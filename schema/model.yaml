@@ -240,7 +240,7 @@ tables:
     kind: append_only
     evidence: true
     description: Masked canonical JSON payload of a chain entry (no floats, no raw PII).
-    primary_key: [lane, seq]
+    primary_key: [lane, seq, payload_hash]
     columns:
       lane: string
       seq: int
@@ -251,7 +251,7 @@ tables:
     kind: append_only
     evidence: true
     description: Signature over the entry_hash of a root-lane entry (signed head).
-    primary_key: [lane, seq]
+    primary_key: [lane, seq, entry_hash]
     columns:
       lane: string
       seq: int

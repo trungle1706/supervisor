@@ -81,7 +81,7 @@ class _Ed25519Signer:
     def export_public_key(self, path: Path) -> Path:
         path = Path(os.path.abspath(path))
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(self.public_key_pem(), encoding="ascii")
+        path.write_text(self.public_key_pem(), encoding="ascii", newline="\n")
         return path
 
 

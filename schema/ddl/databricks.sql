@@ -240,7 +240,7 @@ COMMENT 'Hash chain. One lane per agent plus the root lane. PII never enters.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- chain_payload (append_only): Masked canonical JSON payload of a chain entry (no floats, no raw PII).
--- primary key (enforced by the app, not by Delta): lane, seq
+-- primary key (enforced by the app, not by Delta): lane, seq, payload_hash
 -- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`chain_payload` (
   lane STRING NOT NULL,
@@ -253,7 +253,7 @@ COMMENT 'Masked canonical JSON payload of a chain entry (no floats, no raw PII).
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- chain_signature (append_only): Signature over the entry_hash of a root-lane entry (signed head).
--- primary key (enforced by the app, not by Delta): lane, seq
+-- primary key (enforced by the app, not by Delta): lane, seq, entry_hash
 -- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`chain_signature` (
   lane STRING NOT NULL,

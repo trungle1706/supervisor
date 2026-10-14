@@ -70,6 +70,8 @@ def cmd_verify(args: argparse.Namespace) -> int:
         argv += ["--anchors", args.anchors]
     if args.strict:
         argv.append("--strict")
+    if args.partial:
+        argv.append("--partial")
     return int(verify.main(argv))
 
 
@@ -107,6 +109,7 @@ def build_parser() -> argparse.ArgumentParser:
     v.add_argument("--pubkey", default=None, help="pinned notary public key (PEM)")
     v.add_argument("--anchors", default=None, help="directory of anchor documents")
     v.add_argument("--strict", action="store_true", help="fail on entries not yet sealed")
+    v.add_argument("--partial", action="store_true", help="accept a lane (partial) export")
     v.set_defaults(func=cmd_verify)
     sub.add_parser("export-reqs", help="write requirements.txt from uv.lock").set_defaults(
         func=cmd_export_reqs

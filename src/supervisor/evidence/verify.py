@@ -18,6 +18,9 @@ What it checks (exit code 0 = all OK, 1 = any FAIL, 2 = the export cannot be rea
    signature over ``SIGNING_PREFIX + entry_hash``; the ``key_id`` is the SHA-256 of
    the raw public key; with ``--pubkey`` the key must be the pinned key. Every lane
    head committed in a root must match the exported entry at that seq.
+   A lane committed by a signed root but absent from the export fails (unless
+   ``--partial`` for a lane export); a lane that a later signed root does not
+   commit fails (injected lane). An export without any verified root fails.
 5. ``--anchors DIR``: every anchor document re-hashes to its root entry, its
    signature verifies, the root exists in the export, and the receipts in
    ``anchors.jsonl`` match the SHA-256 of the anchor files.
@@ -148,6 +151,8 @@ class LaneResult:
     seq_to: int | None = None
     head: str | None = None
     sealed_to: int | None = None  # highest seq committed by a verified root
+    first_ts: str | None = None
+    committed: bool = False  # listed in at least one verified root
     problems: list[tuple[int, str]] = field(default_factory=list)
 
     def fail(self, seq: int, reason: str) -> None:
@@ -186,6 +191,7 @@ class Verifier:
     pinned_pem: bytes | None = None
     anchors_dir: Path | None = None
     strict: bool = False
+    partial: bool = False  # accept lanes that signed roots commit but the export lacks
     report: Report = field(default_factory=Report)
 
     def run(self) -> Report:
@@ -197,7 +203,9 @@ class Verifier:
         entries, lanes = self._lanes(manifest)
         payloads = self._payloads(entries, lanes, manifest)
         roots = self._roots(entries, lanes, payloads, keys)
-        self._report_lanes(lanes, manifest)
+        if not roots:
+            r.fail("signed roots: none verified; the export proves nothing without one")
+        self._report_lanes(lanes, roots)
         if self.anchors_dir is not None:
             self._anchors(entries, roots, keys)
         else:
@@ -220,6 +228,9 @@ class Verifier:
             raise ExportError(f"manifest.json is not valid JSON: {exc}") from exc
         if not isinstance(manifest, dict) or manifest.get("format") != EXPORT_FORMAT:
             raise ExportError("manifest.json is not a supervisor evidence export")
+        for key, kind in (("files", dict), ("lanes", dict)):
+            if not isinstance(manifest.get(key), kind):
+                raise ExportError(f"manifest.json: '{key}' is missing or not an object")
         if manifest.get("chain_spec_version") != CHAIN_SPEC_VERSION:
             raise ExportError(
                 f"unsupported chain_spec_version {manifest.get('chain_spec_version')!r}"
@@ -246,6 +257,8 @@ class Verifier:
         keys: dict[str, Ed25519PublicKey] = {}
         for n, row in _read_jsonl(self.export_dir / "public_keys.jsonl"):
             try:
+                if not isinstance(row, dict) or "__error__" in row:
+                    raise ValueError("not a JSON object")
                 key, kid = _load_public_key(row["public_key"])
             except (KeyError, TypeError, ValueError) as exc:
                 r.fail(f"public_keys.jsonl line {n}: unreadable key ({exc})")
@@ -293,8 +306,9 @@ class Verifier:
         expected: dict[str, int] = {}
         prev: dict[str, str] = {}
         for n, row in _read_jsonl(self.export_dir / "entries.jsonl"):
-            if "__error__" in row or not isinstance(row, dict):
-                self.report.fail(f"entries.jsonl: {row.get('__error__', f'line {n}: bad row')}")
+            if not isinstance(row, dict) or "__error__" in row:
+                err = row.get("__error__") if isinstance(row, dict) else None
+                self.report.fail(f"entries.jsonl: {err or f'line {n}: not a JSON object'}")
                 continue
             lane = row.get("lane")
             seq = row.get("seq")
@@ -313,9 +327,11 @@ class Verifier:
                 expected[lane] = seq + 1
             try:
                 computed = entry_hash(row)
-            except (KeyError, CanonicalError) as exc:
+            except (KeyError, TypeError, CanonicalError) as exc:
                 lr.fail(seq, f"entry unreadable ({exc})")
                 continue
+            if lr.first_ts is None and isinstance(row.get("ts"), str):
+                lr.first_ts = row["ts"]
             if computed != row.get("entry_hash"):
                 lr.fail(seq, "entry_hash does not match the entry content")
             link = prev.get(lane, GENESIS_HASH)
@@ -352,10 +368,14 @@ class Verifier:
         out: dict[tuple[str, int], Any] = {}
         checked = 0
         for n, row in _read_jsonl(self.export_dir / "payloads.jsonl"):
-            if "__error__" in row:
-                self.report.fail(f"payloads.jsonl: {row['__error__']}")
+            if not isinstance(row, dict) or "__error__" in row:
+                err = row.get("__error__") if isinstance(row, dict) else None
+                self.report.fail(f"payloads.jsonl: {err or f'line {n}: not a JSON object'}")
                 continue
             lane, seq = row.get("lane"), row.get("seq")
+            if not isinstance(lane, str) or type(seq) is not int:
+                self.report.fail(f"payloads.jsonl line {n}: lane/seq missing or wrong type")
+                continue
             entry = entries.get(lane, {}).get(seq)
             lr = lanes.get(lane)
             if entry is None or lr is None:
@@ -379,15 +399,15 @@ class Verifier:
                 continue
             out[(lane, seq)] = value
             checked += 1
-        if manifest.get("payloads_included", False):
-            missing = sum(
-                1
-                for lane, by_seq in entries.items()
-                for seq in by_seq
-                if (lane, seq) not in out and lane != ROOT_LANE
-            )
-            if missing:
-                self.report.info(f"payloads: {missing} entr(y/ies) without a valid payload")
+        # Root payloads are always exported; agent payloads when the manifest says so.
+        include_all = bool(manifest.get("payloads_included", False))
+        for lane, by_seq in entries.items():
+            if lane != ROOT_LANE and not include_all:
+                continue
+            lr = lanes[lane]
+            for seq in by_seq:
+                if (lane, seq) not in out and not any(p[0] == seq for p in lr.problems):
+                    lr.fail(seq, "payload missing from the export")
         self.report.ok(f"payloads: {checked} payload(s) re-hashed") if checked else None
         return out
 
@@ -402,13 +422,21 @@ class Verifier:
     ) -> dict[int, Mapping[str, Any]]:
         r = self.report
         sigs: dict[int, Mapping[str, Any]] = {}
+        root_lr = lanes.setdefault(ROOT_LANE, LaneResult(ROOT_LANE))
         for n, row in _read_jsonl(self.export_dir / "signatures.jsonl"):
-            if "__error__" in row or row.get("lane") != ROOT_LANE:
+            if (
+                not isinstance(row, dict)
+                or "__error__" in row
+                or row.get("lane") != ROOT_LANE
+                or type(row.get("seq")) is not int
+            ):
                 r.fail(f"signatures.jsonl line {n}: not a root-lane signature row")
                 continue
-            sigs[row.get("seq")] = row
+            if row["seq"] in sigs:
+                root_lr.fail(row["seq"], "more than one signature row")
+                continue
+            sigs[row["seq"]] = row
         root_entries = entries.get(ROOT_LANE, {})
-        root_lr = lanes.setdefault(ROOT_LANE, LaneResult(ROOT_LANE))
         verified: dict[int, Mapping[str, Any]] = {}
         for seq in sorted(root_entries):
             e = root_entries[seq]
@@ -434,10 +462,18 @@ class Verifier:
                 continue
             verified[seq] = e
             for lane, head in payload["lanes"].items():
+                hseq = head.get("seq") if isinstance(head, dict) else None
+                if type(hseq) is not int:
+                    root_lr.fail(seq, f"root payload has a bad head for lane {lane}")
+                    continue
                 lr = lanes.get(lane)
                 if lr is None:
-                    continue  # lane not in this export (single-lane export)
-                hseq = head.get("seq")
+                    if self.partial:
+                        continue  # partial (single-lane) export, accepted by --partial
+                    lr = lanes.setdefault(lane, LaneResult(lane))
+                    lr.fail(0, f"lane committed by signed root seq {seq} is missing")
+                    continue
+                lr.committed = True
                 target = entries.get(lane, {}).get(hseq)
                 if target is None:
                     lr.fail(hseq, f"entry committed by signed root seq {seq} is missing")
@@ -452,8 +488,18 @@ class Verifier:
             r.ok(f"signed roots: {len(verified)} verified")
         return verified
 
-    def _report_lanes(self, lanes: Mapping[str, LaneResult], manifest: Mapping[str, Any]) -> None:
+    def _report_lanes(
+        self, lanes: Mapping[str, LaneResult], roots: Mapping[int, Mapping[str, Any]]
+    ) -> None:
         r = self.report
+        for lr in lanes.values():
+            if lr.lane == ROOT_LANE or lr.committed or lr.first_ts is None:
+                continue
+            later = [s for s, e in roots.items() if str(e.get("ts", "")) > lr.first_ts]
+            if later:
+                lr.fail(
+                    0, f"lane is not committed by signed root seq {min(later)} written after it"
+                )
         for name in sorted(lanes, key=lambda x: (x != ROOT_LANE, x)):
             lr = lanes[name]
             first = lr.first_broken
@@ -492,8 +538,8 @@ class Verifier:
         files = {p.name: p for p in self.anchors_dir.glob("*.json")}
         receipts = {}
         for n, row in _read_jsonl(self.export_dir / "anchors.jsonl"):
-            if "__error__" in row:
-                r.fail(f"anchors.jsonl: {row['__error__']}")
+            if not isinstance(row, dict) or "__error__" in row:
+                r.fail(f"anchors.jsonl line {n}: not a JSON object")
                 continue
             receipts[anchor_name(str(row.get("root_hash")))] = (n, row)
         ok = 0
@@ -529,13 +575,15 @@ class Verifier:
             doc = _loads_strict(data.decode("utf-8"))
             entry = doc["root_entry"]
             sig = doc["signature"]
+            if not isinstance(entry, dict) or not isinstance(sig, dict):
+                raise TypeError("root_entry/signature must be objects")
         except (ValueError, KeyError, TypeError, UnicodeDecodeError) as exc:
             return f"unreadable ({exc})"
         if doc.get("format") != ANCHOR_FORMAT:
             return "not an anchor document"
         try:
             computed = entry_hash(entry)
-        except (KeyError, CanonicalError) as exc:
+        except (KeyError, TypeError, CanonicalError) as exc:
             return f"root entry unreadable ({exc})"
         if computed != entry.get("entry_hash") or name != anchor_name(computed):
             return "root entry hash does not match the document or file name"
@@ -550,7 +598,7 @@ class Verifier:
         ):
             return "signature does not verify"
         seq = entry.get("seq")
-        exported = root_entries.get(seq)
+        exported = root_entries.get(seq) if type(seq) is int else None
         if exported is None:
             return f"anchored root seq {seq} is missing from the export (truncated?)"
         if exported.get("entry_hash") != computed:
@@ -576,9 +624,10 @@ def verify_export(
     pubkey: Path | None = None,
     anchors_dir: Path | None = None,
     strict: bool = False,
+    partial: bool = False,
 ) -> Report:
     pinned = pubkey.read_bytes() if pubkey is not None else None
-    return Verifier(Path(export_dir), pinned, anchors_dir, strict).run()
+    return Verifier(Path(export_dir), pinned, anchors_dir, strict, partial).run()
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -592,6 +641,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument(
         "--strict", action="store_true", help="fail when entries are not yet sealed by a root"
     )
+    ap.add_argument(
+        "--partial",
+        action="store_true",
+        help="accept a lane export: lanes committed by roots but not exported are skipped",
+    )
     args = ap.parse_args(list(argv) if argv is not None else None)
     try:
         if args.pubkey is not None and not Path(args.pubkey).is_file():
@@ -601,7 +655,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             pubkey=Path(args.pubkey) if args.pubkey else None,
             anchors_dir=Path(args.anchors) if args.anchors else None,
             strict=args.strict,
+            partial=args.partial,
         )
+    except (TypeError, KeyError, AttributeError) as exc:
+        print(_ascii(f"[FAIL] malformed export: {type(exc).__name__}: {exc}"))  # noqa: T201
+        return 1
     except ExportError as exc:
         print(_ascii(f"[FAIL] {exc}"))  # noqa: T201 (CLI output)
         return 2

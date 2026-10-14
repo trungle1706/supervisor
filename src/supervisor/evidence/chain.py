@@ -270,17 +270,26 @@ class ChainWriter:
         if not rows:
             return
         self._last_root_ts = rows[0]["ts"]
+        root = rows[0]
         payloads = self.tables.query(
-            "chain_payload", {"lane": ROOT_LANE, "seq": rows[0]["seq"]}, limit=1
+            "chain_payload",
+            {"lane": ROOT_LANE, "seq": root["seq"], "payload_hash": root["payload_hash"]},
+            limit=1,
         )
+        committed: dict[str, Any] = {}
         if payloads:
-            lanes = json.loads(payloads[0]["payload"]).get("lanes", {})
-            for name in lanes:
+            committed = json.loads(payloads[0]["payload"]).get("lanes", {})
+            for name in committed:
                 self._head(name)  # current head from the table, not the root snapshot
-        self._head(ROOT_LANE)
+        root_head = self._head(ROOT_LANE)
         # Entries written after the last root by an earlier process stay unsealed
         # until the next root; the verifier reports them as "not yet sealed".
-        self._since_root = 1
+        changed = root_head is None or root_head.entry_hash != root["entry_hash"]
+        for name, snap in committed.items():
+            head = self._heads.get(name)
+            if head is None or head.entry_hash != snap.get("entry_hash"):
+                changed = True
+        self._since_root = 1 if changed or not payloads else 0
 
     def _prepare_payload(self, payload: Mapping[str, Any]) -> str:
         check_no_floats(payload)
@@ -319,6 +328,29 @@ class ChainWriter:
         }
         h = entry_hash(fields)
         entry = ChainEntry(**fields, entry_hash=h, writer=self.writer_id, env=self.env)
+        # Commit order: payload, signature, then the entry (the commit point). A crash
+        # before the entry leaves only orphan rows keyed by their hash; export ignores
+        # them and a retry (new ts -> new hashes) does not collide with them.
+        self._append_side(
+            "chain_payload",
+            {"lane": lane, "seq": seq, "payload_hash": payload_hash, "payload": text},
+        )
+        if sign:
+            signature = self.signer.sign(signing_message(h))
+            pem = getattr(self.signer, "public_key_pem", None)
+            self._append_side(
+                "chain_signature",
+                {
+                    "lane": lane,
+                    "seq": seq,
+                    "entry_hash": h,
+                    "signature": base64.b64encode(signature).decode("ascii"),
+                    "key_id": self.signer.key_id,
+                    "algorithm": getattr(self.signer, "algorithm", ALGORITHM),
+                    "key_kind": getattr(self.signer, "key_kind", "dev"),
+                    "public_key": pem() if callable(pem) else "",
+                },
+            )
         try:
             self.tables.append("chain_entry", [entry])
         except DuplicateKeyError as exc:
@@ -328,29 +360,13 @@ class ChainWriter:
                 "only one chain writer may run (single-writer rule)"
             ) from exc
         self._heads[lane] = LaneHead(seq, h)
-        self.tables.append(
-            "chain_payload",
-            [{"lane": lane, "seq": seq, "payload_hash": payload_hash, "payload": text}],
-        )
-        if sign:
-            signature = self.signer.sign(signing_message(h))
-            pem = getattr(self.signer, "public_key_pem", None)
-            self.tables.append(
-                "chain_signature",
-                [
-                    {
-                        "lane": lane,
-                        "seq": seq,
-                        "entry_hash": h,
-                        "signature": base64.b64encode(signature).decode("ascii"),
-                        "key_id": self.signer.key_id,
-                        "algorithm": getattr(self.signer, "algorithm", ALGORITHM),
-                        "key_kind": getattr(self.signer, "key_kind", "dev"),
-                        "public_key": pem() if callable(pem) else "",
-                    }
-                ],
-            )
         return h
+
+    def _append_side(self, table: str, row: Mapping[str, Any]) -> None:
+        try:
+            self.tables.append(table, [row])
+        except DuplicateKeyError:
+            pass  # identical row (same key includes the content hash) already stored
 
 
 def build_chain_writer(settings: Any, tables: TableStore, clock: Clock) -> ChainWriter:

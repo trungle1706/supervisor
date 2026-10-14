@@ -251,3 +251,38 @@ def test_root_commit_cannot_be_recorded_directly(env: Env) -> None:
 def test_writer_needs_positive_cadence(env: Env) -> None:
     with pytest.raises(ChainError):
         ChainWriter(env.adapters.tables, env.clock, fixed_signer(), root_every_n=0)
+
+
+def test_restart_without_changes_does_not_need_a_new_root(env: Env) -> None:
+    w = make_writer(env)
+    w.record("e", "e:0", {"agent_id": "a1"})
+    w.close()  # sealed
+    w = make_writer(env)
+    assert w.commit_root() is None
+    w.close()
+
+
+def test_entry_is_written_last(env: Env) -> None:
+    """A failure while writing the entry leaves no chain_entry row (orphans only)."""
+
+    class FailingTables:
+        def __init__(self, inner):
+            self.inner = inner
+
+        def query(self, *a, **k):
+            return self.inner.query(*a, **k)
+
+        def append(self, table, rows):
+            if table == "chain_entry":
+                raise RuntimeError("crash")
+            return self.inner.append(table, rows)
+
+    w = ChainWriter(FailingTables(env.adapters.tables), env.clock, fixed_signer())
+    with pytest.raises(RuntimeError):
+        w.record("e", "e:0", {"agent_id": "a1"})
+    assert env.adapters.tables.query("chain_entry") == []
+    w._closed = True
+    w2 = make_writer(env)
+    w2.record("e", "e:0", {"agent_id": "a1"})
+    w2.close()
+    assert len(env.adapters.tables.query("chain_entry", {"lane": "agent:a1"})) == 1

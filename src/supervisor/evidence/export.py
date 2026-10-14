@@ -96,10 +96,23 @@ def export_chain(
         entries = tables.query("chain_entry", order_by=["lane", "seq"])
         payloads = tables.query("chain_payload", order_by=["lane", "seq"])
     entries.sort(key=lambda r: (r["lane"] != ROOT_LANE, r["lane"], r["seq"]))
+    # Entries were read first. Keep only side rows that belong to an exported entry:
+    # this drops orphans from a crashed write and rows of entries written after the read.
+    by_key = {(r["lane"], r["seq"]): r for r in entries}
+
+    def _belongs(row: Mapping[str, Any], col: str) -> bool:
+        e = by_key.get((row["lane"], row["seq"]))
+        return e is not None and e[col] == row[col]
+
+    payloads = [p for p in payloads if _belongs(p, "payload_hash")]
     if not include_payloads:
         payloads = [p for p in payloads if p["lane"] == ROOT_LANE]
     payloads.sort(key=lambda r: (r["lane"] != ROOT_LANE, r["lane"], r["seq"]))
-    sigs = tables.query("chain_signature", {"lane": ROOT_LANE}, ["seq"])
+    sigs = [
+        s
+        for s in tables.query("chain_signature", {"lane": ROOT_LANE}, ["seq"])
+        if _belongs(s, "entry_hash")
+    ]
     anchors = tables.query("anchor", order_by=["seq_to"])
 
     keys: dict[str, dict[str, str]] = {}
@@ -133,7 +146,9 @@ def export_chain(
         ),
     }
     if sigs:
-        (out_dir / "public_key.pem").write_text(sigs[-1]["public_key"], encoding="ascii")
+        (out_dir / "public_key.pem").write_text(
+            sigs[-1]["public_key"], encoding="ascii", newline="\n"
+        )
         counts["public_key.pem"] = 1
 
     lane_info: dict[str, dict[str, Any]] = {}

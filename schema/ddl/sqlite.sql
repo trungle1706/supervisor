@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS chain_payload (
   seq INTEGER NOT NULL,
   payload_hash TEXT NOT NULL,
   payload TEXT NOT NULL,
-  PRIMARY KEY (lane, seq)
+  PRIMARY KEY (lane, seq, payload_hash)
 );
 
 CREATE TRIGGER IF NOT EXISTS trg_chain_payload_no_update
@@ -312,7 +312,7 @@ CREATE TABLE IF NOT EXISTS chain_signature (
   algorithm TEXT NOT NULL,
   key_kind TEXT NOT NULL,
   public_key TEXT NOT NULL,
-  PRIMARY KEY (lane, seq)
+  PRIMARY KEY (lane, seq, entry_hash)
 );
 
 CREATE TRIGGER IF NOT EXISTS trg_chain_signature_no_update

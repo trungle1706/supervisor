@@ -81,6 +81,8 @@ def test_single_lane_export_verifies(env: Env, capsys) -> None:
     out = env.tmp / "one"
     export_chain(env.adapters.tables, out, lanes=["agent:a1"])
     code, text = _run(out, capsys=capsys)
+    assert code == 1 and "lane agent:a2: first broken seq 0: lane committed by signed root" in text
+    code, text = _run(out, "--partial", capsys=capsys)
     assert code == 0, text
     assert "agent:a2" not in text and "lane agent:a1" in text
 
@@ -294,3 +296,104 @@ def test_verifier_imports_only_stdlib_cryptography_canonical() -> None:
 def test_verify_export_api(exported: Path) -> None:
     report = verify_export(exported)
     assert report.failures == 0
+
+
+# ---- regression tests for the WP6 review findings
+
+
+def test_tamper_delete_whole_lane(env: Env, exported: Path, capsys) -> None:
+    t = _copy(exported, env.tmp, "r1")
+    for f in ("entries.jsonl", "payloads.jsonl"):
+        _write(t / f, [r for r in _lines(t / f) if r["lane"] != "agent:a1"])
+    m = json.loads((t / "manifest.json").read_text())
+    del m["lanes"]["agent:a1"]
+    (t / "manifest.json").write_text(json.dumps(m))
+    _fix_manifest(t)
+    code, out = _run(t, "--pubkey", str(env.tmp / "pinned.pem"), capsys=capsys)
+    assert code == 1
+    assert "[FAIL] lane agent:a1: first broken seq 0: lane committed by signed root" in out
+
+
+def test_tamper_delete_agent_payload(env: Env, exported: Path, capsys) -> None:
+    t = _copy(exported, env.tmp, "r2")
+    rows = [
+        r for r in _lines(t / "payloads.jsonl") if not (r["lane"] == "agent:a2" and r["seq"] == 1)
+    ]
+    _write(t / "payloads.jsonl", rows)
+    _fix_manifest(t)
+    code, out = _run(t, capsys=capsys)
+    assert code == 1
+    assert "[FAIL] lane agent:a2: first broken seq 1: payload missing" in out
+
+
+def test_empty_export_fails(env: Env, exported: Path, capsys) -> None:
+    t = _copy(exported, env.tmp, "r3")
+    for f in ("entries.jsonl", "payloads.jsonl", "signatures.jsonl", "anchors.jsonl"):
+        (t / f).write_text("")
+    m = json.loads((t / "manifest.json").read_text())
+    m["lanes"] = {}
+    (t / "manifest.json").write_text(json.dumps(m))
+    _fix_manifest(t)
+    code, out = _run(t, capsys=capsys)
+    assert code == 1 and "none verified" in out
+    m.pop("files")
+    (t / "manifest.json").write_text(json.dumps(m))
+    assert _run(t, capsys=capsys)[0] == 2
+
+
+def test_injected_fake_lane_fails(env: Env, exported: Path, capsys) -> None:
+    from supervisor.core.canonical import sha256_hex
+    from supervisor.evidence.verify import GENESIS_HASH, entry_hash
+
+    t = _copy(exported, env.tmp, "r4")
+    rows = _lines(t / "entries.jsonl")
+    fake = {
+        "lane": "agent:ghost",
+        "seq": 0,
+        "ts": "2026-10-14T02:00:00.500000Z",  # before the later signed roots
+        "record_type": "verdict",
+        "record_ref": "verdict:ghost",
+        "payload_hash": sha256_hex({"agent_id": "ghost"}),
+        "prev_hash": GENESIS_HASH,
+        "writer": "test-writer",
+        "env": "dev",
+    }
+    fake["entry_hash"] = entry_hash(fake)
+    _write(t / "entries.jsonl", rows + [fake])
+    extra = {
+        "lane": "agent:ghost",
+        "seq": 0,
+        "payload_hash": fake["payload_hash"],
+        "payload": '{"agent_id":"ghost"}',
+    }
+    _write(t / "payloads.jsonl", _lines(t / "payloads.jsonl") + [extra])
+    m = json.loads((t / "manifest.json").read_text())
+    m["lanes"]["agent:ghost"] = {"count": 1, "seq_from": 0, "seq_to": 0, "head": fake["entry_hash"]}
+    (t / "manifest.json").write_text(json.dumps(m))
+    _fix_manifest(t)
+    code, out = _run(t, capsys=capsys)
+    assert code == 1
+    assert "[FAIL] lane agent:ghost: first broken seq 0: lane is not committed" in out
+
+
+@pytest.mark.parametrize("bad", ["5", '{"lane": ["x"], "seq": [1]}', "[1,2]"])
+def test_malformed_rows_no_traceback(env: Env, exported: Path, capsys, bad: str) -> None:
+    t = _copy(exported, env.tmp, "r5")
+    for f in ("entries.jsonl", "payloads.jsonl", "signatures.jsonl", "anchors.jsonl"):
+        (t / f).write_text((t / f).read_text() + bad + "\n")
+    _fix_manifest(t)
+    code, out = _run(t, "--anchors", str(env.tmp / "anchors"), capsys=capsys)
+    assert code == 1 and "RESULT: FAIL" in out
+
+
+def test_export_ignores_orphan_side_rows(env: Env, capsys) -> None:
+    populate(env)
+    tables = env.adapters.tables
+    for seq, h in ((0, "e" * 64), (99, "d" * 64)):
+        tables.append(
+            "chain_payload", [{"lane": "agent:a1", "seq": seq, "payload_hash": h, "payload": "{}"}]
+        )
+    out = env.tmp / "orph"
+    export_chain(tables, out)
+    code, text = _run(out, "--strict", capsys=capsys)
+    assert code == 0, text

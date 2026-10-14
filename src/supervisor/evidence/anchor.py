@@ -64,7 +64,10 @@ class WormDirAnchor:
         except FileExistsError:
             raise AnchorError(f"anchor {dest} already exists; write-once target") from None
         try:
-            os.write(fd, data)
+            view = memoryview(data)
+            while view:
+                view = view[os.write(fd, view) :]
+            os.fsync(fd)
         finally:
             os.close(fd)
         try:

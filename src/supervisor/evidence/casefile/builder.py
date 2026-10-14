@@ -381,5 +381,9 @@ def write_case_file(
     except FileExistsError:
         raise CaseFileError(f"refusing to overwrite existing file: {path}") from None
     if sink is not None:
-        record_case_file(sink, cf, out_fmt, data)
+        try:
+            record_case_file(sink, cf, out_fmt, data)
+        except BaseException:
+            path.unlink(missing_ok=True)  # not in the chain -> do not keep it; retry is possible
+            raise
     return path, notice
