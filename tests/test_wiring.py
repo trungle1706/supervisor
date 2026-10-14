@@ -80,3 +80,18 @@ def test_app_startup_installs_chain_backed_gateway(
     finally:
         gate_wiring.set_gateway(None)
         get_settings.cache_clear()
+
+
+def test_app_still_serves_when_runtime_build_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    from supervisor.app import app
+
+    def broken(*_a: object, **_k: object) -> None:
+        raise RuntimeError("store unavailable at startup")
+
+    monkeypatch.setattr(gate_wiring, "install_runtime", broken)
+    gate_wiring.set_gateway(None)
+    try:
+        with TestClient(app) as client:
+            assert client.get("/healthz").json() == {"status": "ok"}
+    finally:
+        gate_wiring.set_gateway(None)

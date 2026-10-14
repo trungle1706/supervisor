@@ -85,6 +85,17 @@ class IncidentResult:
         return None
 
     @property
+    def stop_fail_mode(self) -> str | None:
+        """fail_mode of the first stop: None for a real rule match, "closed" for a rule error."""
+        for s in self.steps:
+            if not s.attack_step:
+                continue
+            for c in s.run.tool_calls:
+                if c.status in ("blocked", "paused"):
+                    return c.decision.get("fail_mode")
+        return None
+
+    @property
     def gate_actions(self) -> list[str]:
         return [str(c.decision.get("action")) for s in self.steps for c in s.run.tool_calls]
 
@@ -188,7 +199,9 @@ class GatedReport:
     @property
     def ok(self) -> bool:
         return bool(self.results) and all(
-            r.attack_stopped and (r.first_stop or ("", ""))[1] == self.expected[r.incident_id]
+            r.attack_stopped
+            and (r.first_stop or ("", ""))[1] == self.expected[r.incident_id]
+            and r.stop_fail_mode is None  # a genuine rule match, not a fail-closed error
             for r in self.results
         )
 
@@ -234,6 +247,11 @@ def run_gated(
                     f"gate_actions=[{','.join(res.gate_actions)}] "
                     f"{res.harmful_effect}+{res.harmful_effects_recorded}"
                 )
+            elif res.stop_fail_mode is not None:
+                lines.append(
+                    f"[FAIL] {res.incident_id} STOPPED by {stop[0]} only by a rule error "
+                    f"(fail_mode={res.stop_fail_mode}), not by a rule match"
+                )
             elif stop[1] != expected[res.incident_id]:
                 lines.append(
                     f"[FAIL] {res.incident_id} STOPPED by {stop[0]} action={stop[1]} "
@@ -249,7 +267,10 @@ def run_gated(
                 reason = f"demo replay: {res.incident_id} reviewed"
                 states.resume(agent_id, row["owner_user"], reason)
                 states.resume(agent_id, DEMO_REVIEWER, reason)
-                lines.append(f"       {agent_id} resumed (two-person: owner + {DEMO_REVIEWER})")
+                lines.append(
+                    f"       {agent_id} resumed (demo auto-approval, two-person: "
+                    f"owner + {DEMO_REVIEWER})"
+                )
 
         results = replay(
             incident_ids,

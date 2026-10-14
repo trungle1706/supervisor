@@ -12,6 +12,7 @@ from collections.abc import AsyncIterator  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 
 from fastapi import FastAPI, Request  # noqa: E402
+from fastapi.concurrency import run_in_threadpool  # noqa: E402
 from fastapi.exceptions import RequestValidationError  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 
@@ -29,18 +30,17 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Startup: build the runtime (store, policy, evidence chain, gateway) once.
 
     A failure here is logged, not fatal: /healthz still answers and the routes retry
-    the build on first use (they fail closed until it succeeds)."""
-    installed = False
+    the build on first use (they fail closed until it succeeds). Shutdown always seals
+    the chain of whichever runtime was installed. One process, one worker: the chain
+    has a single writer (app.yaml runs uvicorn without --workers)."""
     try:
-        gate_wiring.install_runtime(get_settings())
-        installed = True
+        await run_in_threadpool(gate_wiring.install_runtime, get_settings())
     except Exception:  # noqa: BLE001 - startup must not crash the app process
         log.exception("runtime build failed at startup; gateway routes will retry")
     try:
         yield
     finally:
-        if installed:
-            gate_wiring.shutdown_runtime()
+        gate_wiring.shutdown_runtime()
 
 
 app = FastAPI(title="Supervisor", version=__version__, lifespan=lifespan)

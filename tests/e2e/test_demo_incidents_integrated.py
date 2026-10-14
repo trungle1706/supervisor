@@ -100,6 +100,7 @@ def test_all_four_incidents_stopped_by_real_rules(
     for inc_id, (rule, action) in EXPECTED.items():
         r = by_id[inc_id]
         assert r.attack_stopped and r.first_stop == (rule, action), inc_id
+        assert r.stop_fail_mode is None, inc_id  # rule match, not a fail-closed error
         assert f"[OK] {inc_id} STOPPED by {rule} action={action}" in report.lines
         assert report.expected[inc_id] == action  # the incident file agrees
     # harm actually prevented (DEMO-2: two waivers before the third is blocked;
@@ -135,6 +136,10 @@ def test_handoffs_record_caller_in_gate_evidence(report: R.GatedReport, adapters
     assert [d["caller_agent_id"] for d in transfers] == ["customer_service", "credit_prequal"]
     assert [d["allow"] for d in transfers] == [True, False]
     assert all(d["args_hmac_key_id"] == "dev" and len(d["args_hmac"]) == 64 for d in decisions)
+    # every stop is a genuine rule match, never a rule error that failed closed
+    stops = [d for d in decisions if d["rule_id"] in {rule for rule, _ in EXPECTED.values()}]
+    assert {d["rule_id"] for d in stops if not d["allow"]} == {r for r, _ in EXPECTED.values()}
+    assert all(d["fail_mode"] is None for d in decisions)
     ext = [d for d in decisions if d["tool_name"] == "ext_transfer_api"]
     assert ext[0]["caller_agent_id"] == "customer_service"
     direct = [d for d in decisions if d["agent_id"] == "credit_prequal"]

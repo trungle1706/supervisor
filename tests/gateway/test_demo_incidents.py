@@ -126,6 +126,12 @@ def test_incident_3_without_fact_source_fails_closed(gateway: Gateway) -> None:
         gateway, "credit_prequal", "decide_prequal", application_id="APP-404", decision="approve"
     )
     assert r["allow"] is False and r["fail_mode"] == "closed"  # no record: closed
+    # the fact is read for the exact id the tool receives: padded ids are refused
+    gate(gateway, "credit_prequal", "fetch_application", application_id=" APP-00004")
+    r = gate(
+        gateway, "credit_prequal", "decide_prequal", application_id=" APP-00004", decision="approve"
+    )
+    assert r["allow"] is False and r["fail_mode"] == "closed" and "spaces" in r["reason"]
 
 
 def _transfer(

@@ -133,7 +133,9 @@ def _fact(path: str, args: Mapping[str, Any], facts: FactSource | None) -> Any:
     key = args.get(f"{source}_id")
     if not isinstance(key, str | int) or isinstance(key, bool) or not str(key).strip():
         raise PredicateTypeError(f"{path}: argument {source}_id is needed to read the fact")
-    record = facts.get(source, str(key).strip())
+    if str(key) != str(key).strip():
+        raise PredicateTypeError(f"{path}: argument {source}_id has surrounding spaces")
+    record = facts.get(source, str(key))  # the exact id the tool will receive
     if record is None:
         raise PredicateTypeError(f"{path}: no {source} record for this call")
     if name not in record:

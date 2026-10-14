@@ -105,7 +105,27 @@ def build_runtime(
     tracing.set_args_hash_key(
         settings.args_hash_key.get_secret_value() if settings.args_hash_key is not None else None
     )
-    gateway = Gateway(
+    try:
+        gateway = _make_gateway(
+            settings, adapters, chain, facts, policy_refresh_s, state_cache_ttl_s
+        )
+    except BaseException:
+        chain.close(seal=False)
+        if owns:
+            adapters.close()
+        raise
+    return Runtime(settings, adapters, policy, chain, gateway, owns_adapters=owns)
+
+
+def _make_gateway(
+    settings: Settings,
+    adapters: Adapters,
+    chain: ChainWriter,
+    facts: FactSource | None,
+    policy_refresh_s: float,
+    state_cache_ttl_s: float,
+) -> Gateway:
+    return Gateway(
         StorePolicyProvider(adapters.state, refresh_s=policy_refresh_s),
         adapters.tables,
         adapters.state,
@@ -119,7 +139,6 @@ def build_runtime(
         state_cache_ttl_s=state_cache_ttl_s,
         trust_body_principal=settings.supervisor_mode != "databricks_app",
     )
-    return Runtime(settings, adapters, policy, chain, gateway, owns_adapters=owns)
 
 
 def register_agents(
