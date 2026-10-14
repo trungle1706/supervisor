@@ -11,3 +11,5 @@
 | MLflow as primary trace path | MLflow ≥ 3.14 confirmed in the workspace with CREATE TABLE in a schema |
 | HSM/KMS notary key, bank WORM anchor | Bank key custody and storage decisions |
 | SIEM / ITSM / pager live adapters | Bank endpoint owners named |
+| YAML → Cedar policy compiler (D11) | H1 2027 when policies need formal analysis |
+| gitleaks binary for repo scrubbing | Bank supplies an approved binary; regex scrubber until then |

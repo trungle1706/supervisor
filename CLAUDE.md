@@ -37,3 +37,9 @@ Supervisor = Onboard + Watch for AI agents at a bank. Deterministic gateway that
 
 ## Delegation (for lead agents)
 A lead agent may spawn Sonnet 5.5 sub-agents for bounded sub-tasks and one reviewer sub-agent at the end. If the reviewer finds a significant defect (DoD not met, constraint broken, test missing), fix it before reporting. Report: what was built, how the DoD was proven (commands + output), deviations from the plan, open questions, files changed outside the package.
+
+## Decisions added after Wave A review (2026-10-14)
+- Chain payloads contain no floats. Scores and rates are integer basis points (0–10000); money is integer minor units. `canonical.py` keeps float support for non-chain use only.
+- Evidence tables on Delta: `delta.logRetentionDuration` and `delta.deletedFileRetentionDuration` default to `interval 1825 days`, set from `EVIDENCE_RETENTION_DAYS` in settings.
+- Secret scrubbing before any LLM sees repo text: regex scrubber in-repo; gitleaks optional if the bank supplies the binary.
+- Parallel work packages talk through `EvidenceSink` and `GateHook` in `core/ports.py`. Tests use in-memory adapters.

@@ -175,3 +175,29 @@ class WorkspaceReader(Protocol):
     def list_serving_endpoints(self) -> Sequence[Mapping[str, Any]]: ...
 
     def list_tables(self, catalog: str, schema: str) -> Sequence[str]: ...
+
+
+class EvidenceSink(Protocol):
+    """Where every decision is recorded (chain writer in WP6; in-memory list in tests).
+
+    ``payload`` must be canonicalisable (no floats; scores as integer basis points).
+    Returns the entry hash (hex)."""
+
+    def record(self, record_type: str, record_ref: str, payload: Mapping[str, Any]) -> str: ...
+
+
+class GateHook(Protocol):
+    """Pre-call hook an agent's tool router calls before every tool call (gateway in WP3).
+
+    Return mapping keys: ``allow`` (bool), ``action`` (allow|log|alert|block|pause),
+    ``rule_id`` (str|None), ``reason`` (str), ``latency_ms`` (int). Must never raise:
+    on internal failure return the rule's fail mode (closed for money/credit/PII export)."""
+
+    def check(
+        self,
+        agent_id: str,
+        agent_version: str,
+        tool_name: str,
+        args: Mapping[str, Any],
+        context: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]: ...
