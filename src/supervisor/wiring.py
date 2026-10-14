@@ -138,6 +138,7 @@ def _make_gateway(
         env=settings.supervisor_mode,
         state_cache_ttl_s=state_cache_ttl_s,
         trust_body_principal=settings.supervisor_mode != "databricks_app",
+        require_caller_id=settings.require_caller_id,  # WP7, ADR D10 (default off)
     )
 
 
