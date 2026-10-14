@@ -37,6 +37,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+from supervisor.core.args_hmac import args_hmac, as_key, key_id
 from supervisor.core.canonical import canonical_json, format_ts
 from supervisor.core.ports import Clock, EvidenceSink, StateStore, TableStore
 from supervisor.gateway.facts import FactSource
@@ -172,11 +173,6 @@ def key_hash(name: str, value: Any) -> str:
         raise PredicateTypeError(f"{name}: grouping value is empty")
     data = f"{name}\x1f{text}".encode()
     return hashlib.sha256(data).hexdigest()[:32]
-
-
-def _args_hash(args: Mapping[str, Any]) -> str:
-    data = json.dumps(args, sort_keys=True, separators=(",", ":"), default=str)
-    return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
 # --------------------------------------------------------------------------- windows
@@ -363,6 +359,7 @@ class Gateway:
         states: AgentStateMachine | None = None,
         classifier: Classifier | None = None,
         facts: FactSource | None = None,
+        args_hash_key: str | bytes | None = None,
         tier0b_enabled: bool = True,
         timeout_s: float = HARD_TIMEOUT_S,
         env: str = "local",
@@ -379,6 +376,8 @@ class Gateway:
         )
         self.classifier = classifier or RegexClassifier()
         self.facts = facts
+        self._args_key = as_key(args_hash_key)  # None -> fixed dev key (key id "dev")
+        self.args_key_id = key_id(self._args_key)
         self.tier0b_enabled = tier0b_enabled
         self.timeout_s = timeout_s
         self.env = env
@@ -798,7 +797,7 @@ class Gateway:
                     "caller_agent_id": caller if isinstance(caller, str) else None,
                     "event_type": "gate_decision",
                     "tool_name": tool_name,
-                    "args_hash": _args_hash(args),
+                    "args_hash": args_hmac(args, self._args_key),  # keyed, not plain SHA-256
                     "args_masked": canonical_json({"keys": keys}),
                     "amount_minor": amount if _is_int(amount) else None,
                     "currency": currency
@@ -841,7 +840,8 @@ class Gateway:
             "reason": d.reason[:500],
             "matched": d.matched,
             "policy_hash": d.policy_hash,
-            "args_sha256": _args_hash(args),
+            "args_hmac": args_hmac(args, self._args_key),
+            "args_hmac_key_id": self.args_key_id,
             "amount_minor": amount if _is_int(amount) else None,
             "latency_us": int(d.latency_us),
             "fail_mode": d.fail_mode,

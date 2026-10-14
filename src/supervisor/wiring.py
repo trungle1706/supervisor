@@ -100,6 +100,11 @@ def build_runtime(
         if owns:
             adapters.close()
         raise
+    from supervisor_agents.common import tracing
+
+    tracing.set_args_hash_key(
+        settings.args_hash_key.get_secret_value() if settings.args_hash_key is not None else None
+    )
     gateway = Gateway(
         StorePolicyProvider(adapters.state, refresh_s=policy_refresh_s),
         adapters.tables,
@@ -107,6 +112,9 @@ def build_runtime(
         chain,
         adapters.clock,
         facts=facts,
+        args_hash_key=settings.args_hash_key.get_secret_value()
+        if settings.args_hash_key is not None
+        else None,
         env=settings.supervisor_mode,
         state_cache_ttl_s=state_cache_ttl_s,
         trust_body_principal=settings.supervisor_mode != "databricks_app",

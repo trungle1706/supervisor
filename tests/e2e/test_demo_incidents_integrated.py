@@ -134,6 +134,7 @@ def test_handoffs_record_caller_in_gate_evidence(report: R.GatedReport, adapters
     transfers = [d for d in decisions if d["tool_name"] == "transfer"]
     assert [d["caller_agent_id"] for d in transfers] == ["customer_service", "credit_prequal"]
     assert [d["allow"] for d in transfers] == [True, False]
+    assert all(d["args_hmac_key_id"] == "dev" and len(d["args_hmac"]) == 64 for d in decisions)
     ext = [d for d in decisions if d["tool_name"] == "ext_transfer_api"]
     assert ext[0]["caller_agent_id"] == "customer_service"
     direct = [d for d in decisions if d["agent_id"] == "credit_prequal"]

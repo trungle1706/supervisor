@@ -109,7 +109,7 @@ tables:
       caller_agent_id: string?
       event_type: string
       tool_name: string?
-      args_hash: string?
+      args_hash: string?  # HMAC-SHA256 of the tool args (key ARGS_HASH_KEY), never plain SHA-256
       args_masked: text?
       result_masked: text?
       amount_minor: money?
