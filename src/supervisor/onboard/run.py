@@ -26,7 +26,7 @@ from typing import Any
 from opentelemetry.trace import SpanKind
 
 from supervisor.adapters.factory import Adapters, build_adapters, make_chat_model
-from supervisor.adapters.repo import LocalGitRepoReader
+from supervisor.adapters.repo import LocalGitRepoReader, RepoReadError
 from supervisor.adapters.workspace import FixtureWorkspaceReader
 from supervisor.catalogue import Catalogue, load_catalogue, write_coverage
 from supervisor.config import Settings, load_settings
@@ -130,6 +130,8 @@ def run_onboarding(
     echo: Callable[[str], None] | None = None,
 ) -> OnboardResult:
     target_path = Path(os.path.abspath(target))
+    if not target_path.is_dir():
+        raise RepoReadError(f"target folder does not exist: {target_path}")
     out = Path(os.path.abspath(out_dir))
     out.mkdir(parents=True, exist_ok=True)
     work = Path(os.path.abspath(work_dir)) if work_dir else out / "_work"

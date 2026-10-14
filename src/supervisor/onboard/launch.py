@@ -61,7 +61,12 @@ class Harness:
 def demo_harness(agent_id: str) -> Harness | None:
     """Harness for the three demo agents in ``supervisor_agents`` (None for others)."""
     mod_name = f"supervisor_agents.{agent_id}.agent"
-    if not agent_id.isidentifier() or importlib.util.find_spec(mod_name) is None:
+    if not agent_id.isidentifier():
+        return None
+    try:
+        if importlib.util.find_spec(mod_name) is None:
+            return None
+    except ModuleNotFoundError:
         return None
     agent_mod = importlib.import_module(mod_name)
     tasks_mod = importlib.import_module(f"supervisor_agents.{agent_id}.tasks")
