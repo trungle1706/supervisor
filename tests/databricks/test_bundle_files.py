@@ -72,8 +72,42 @@ def test_bundle_has_no_variables_or_secret_scopes() -> None:
 
 def test_bundle_sync_excludes() -> None:
     excl = set(_load(BUNDLE)["sync"]["exclude"])
-    for item in (".venv", "data", "tests", "docs/handoff", "*.db", ".env"):
+    for item in ("/.venv", "/data", "/tests", "/docs/handoff", "*.db", "/.env"):
         assert item in excl, item
+
+
+def _gitignore_match(pattern: str, rel: str) -> bool:
+    """Small gitignore emulation: a leading / anchors to the root, else any depth."""
+    from fnmatch import fnmatch
+
+    pat = pattern.rstrip("/")
+    parts = rel.split("/")
+    if pat.startswith("/"):
+        pat = pat[1:]
+        return any(fnmatch("/".join(parts[: i + 1]), pat) for i in range(len(parts)))
+    if pat.startswith("**/"):
+        pat = pat[3:]
+    if "/" in pat:
+        return any(fnmatch("/".join(parts[i:]), pat + "*") for i in range(len(parts)))
+    return any(fnmatch(p, pat) for p in parts)
+
+
+def test_bundle_sync_keeps_every_source_file() -> None:
+    """A bare name like `data` would also drop src/supervisor/data/ (ImportError on the App)."""
+    excl = _load(BUNDLE)["sync"]["exclude"]
+    needed = [
+        p.relative_to(REPO_ROOT).as_posix()
+        for top in ("src", "schema", "policies", "agents")
+        if (REPO_ROOT / top).exists()
+        for p in (REPO_ROOT / top).rglob("*")
+        if p.is_file() and "__pycache__" not in p.parts and not p.name.endswith(".pyc")
+    ]
+    needed += ["app.yaml", "requirements.txt", "databricks.yml"]
+    assert "src/supervisor/data/wordlists.py" in needed
+    dropped = [f for f in needed for pat in excl if _gitignore_match(pat, f)]
+    assert dropped == [], dropped[:10]
+    assert _gitignore_match("data", "src/supervisor/data/wordlists.py")  # emulation works
+    assert _gitignore_match("/tests", "tests/x.py")
 
 
 def test_app_yaml_command_and_env() -> None:

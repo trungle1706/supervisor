@@ -275,9 +275,10 @@ class Settings(BaseSettings):
             # cannot live on the Volume. Use the ephemeral container disk and say so.
             self.data_dir_requested = str(self.data_dir).replace("\\", "/")
             self.data_dir = Path(os.path.abspath(tempfile.gettempdir())) / "supervisor-data"
-            logging.getLogger("supervisor.config").warning(
+            logging.getLogger("supervisor.config").error(
                 "DATA_DIR %s is not mounted in this container; using %s (wiped on restart). "
-                "Spool and anchors still go to the Volume through the Files API.",
+                "Spool and anchors still go to the Volume through the Files API; the evidence "
+                "signing key is NOT durable (regenerated on restart).",
                 self.data_dir_requested,
                 self.data_dir,
             )

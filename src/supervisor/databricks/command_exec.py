@@ -124,8 +124,10 @@ def check_cells(cells: Sequence[str]) -> None:
             raise CommandExecError(f"cell {i}: syntax error line {exc.lineno}: {exc.msg}") from exc
 
 
-def _clean(text: Any, limit: int = 4000) -> str:
-    out = _TAG.sub("", str(text or ""))
+def _clean(text: Any, limit: int = 4000, *, strip_html: bool = False) -> str:
+    out = str(text or "")
+    if strip_html:  # error summaries only; never touch cell output (the sentinel JSON)
+        out = _TAG.sub("", out)
     out = out.encode("ascii", "backslashreplace").decode("ascii")
     return out if len(out) <= limit else "..." + out[-limit:]
 
@@ -188,6 +190,8 @@ class CommandRunner:
         return f"cluster {self.cluster_id} on {self.host or '(configured host)'}"
 
     def _call(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
+        # Each HTTP call is bounded by the SDK retry cap (60-120 s), so a run can end up to
+        # one cap after the deadline; no new cell is sent once the deadline has passed.
         try:
             return self._do(method, path, **kw) or {}
         except Exception as exc:  # noqa: BLE001 - SDK errors are not imported here
@@ -217,6 +221,10 @@ class CommandRunner:
         ctx = str(resp.get("id") or "")
         if not ctx:
             raise CommandExecError(f"no execution context id from {self._where()}")
+        return ctx
+
+    def _wait_context(self, ctx: str, start: float) -> None:
+        """Poll until the context runs. The caller destroys it in ``finally`` on any error."""
         while True:
             st = self._call(
                 "GET",
@@ -225,12 +233,10 @@ class CommandRunner:
             )
             status = str(st.get("status") or "")
             if status == "Running":
-                return ctx
+                return
             if status == "Error":
-                self._destroy(ctx)
                 raise CommandExecError(f"execution context failed to start on {self._where()}")
             if self._left(start) <= 0:
-                self._destroy(ctx)
                 raise CommandExecError(
                     f"execution context not ready before the deadline on {self._where()}"
                 )
@@ -247,7 +253,18 @@ class CommandRunner:
             return False
         return True
 
+    def _timeout(self, index: int, what: str) -> CellResult:
+        return CellResult(
+            index,
+            "Timeout",
+            "error",
+            error=f"overall deadline of {self.deadline_s:.0f} s passed in cell {index}; {what} "
+            "(raise DATABRICKS_COMMAND_DEADLINE_S)",
+        )
+
     def _run_cell(self, ctx: str, index: int, code: str, start: float) -> CellResult:
+        if self._left(start) <= 0:
+            return self._timeout(index, "cell not sent")
         resp = self._call(
             "POST",
             "/api/1.2/commands/execute",
@@ -274,20 +291,16 @@ class CommandRunner:
                     )
                 except Exception:  # noqa: BLE001,S110 - best effort
                     pass
-                return CellResult(
-                    index,
-                    "Timeout",
-                    "error",
-                    error=f"overall deadline of {self.deadline_s:.0f} s passed in cell {index}; "
-                    "command cancelled (raise DATABRICKS_COMMAND_DEADLINE_S)",
-                )
+                return self._timeout(index, "command cancelled")
             self._sleep(self.poll_s)
         results = st.get("results") or {}
         rtype = str(results.get("resultType") or ("error" if status != "Finished" else "text"))
         if rtype == "error" or status != "Finished":
             detail = results.get("summary") or results.get("cause") or status
             cause = results.get("cause") or ""
-            text = _clean(detail, 800) + (("\n" + _clean(cause, 3000)) if cause else "")
+            text = _clean(detail, 800, strip_html=True)
+            if cause:
+                text += "\n" + _clean(cause, 3000, strip_html=True)
             return CellResult(index, status, "error", error=text)
         data = results.get("data")
         output = data if isinstance(data, str) else json.dumps(data, default=str)
@@ -302,6 +315,7 @@ class CommandRunner:
         try:
             self._check_cluster()
             ctx = self._create_context(start)
+            self._wait_context(ctx, start)
             for i, code in enumerate(cells):
                 cell = self._run_cell(ctx, i, code, start)
                 result.cells.append(cell)

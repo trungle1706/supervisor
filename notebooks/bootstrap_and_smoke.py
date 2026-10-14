@@ -95,7 +95,8 @@ for stmt in DDL:
         spark.sql(ddl_for(stmt))
         created += 1
     except Exception as exc:
-        check("create " + stmt.split("`")[5], False, f"{type(exc).__name__}: {exc}")
+        name = re.search(r"`\$\{schema\}`\.`([a-z0-9_]+)`", stmt).group(1)
+        check("create " + name, False, f"{type(exc).__name__}: {exc}")
 check("create tables", created == len(DDL), f"{created}/{len(DDL)} statements")
 
 # COMMAND ----------
@@ -261,7 +262,11 @@ try:
     display(spark.createDataFrame(RESULTS))
 except Exception:
     pass
+import sys as _sys
+
+# Print to the live sys.stdout (the command runner may replace it between cells).
 print(
     "SUPERVISOR-EXIT-JSON: " + json.dumps({"checks": RESULTS, "failed": failed}, sort_keys=True),
+    file=_sys.stdout,
     flush=True,
 )

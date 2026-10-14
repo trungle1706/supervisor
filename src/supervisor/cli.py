@@ -116,7 +116,7 @@ def cmd_export_reqs(args: argparse.Namespace) -> int:
         return 1
     text = render_requirements(result.stdout, nexus)
     out.write_text(text, encoding="utf-8", newline="\n")
-    print(f"[OK] wrote {out}")
+    print(f"[OK] wrote {out}".encode("ascii", "backslashreplace").decode("ascii"))
     if nexus:
         print(f"[OK] Nexus index lines are ON ({nexus}). Local copy only: do not commit this file.")
     return 0

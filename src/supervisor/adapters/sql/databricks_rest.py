@@ -255,7 +255,8 @@ def config_kwargs(settings: Settings) -> dict[str, Any]:
     if settings.databricks_auth_kind == "service_principal":
         # Databricks App: the platform injects the service principal (OAuth M2M). Pass it
         # explicitly so a stray profile or auth type cannot win. Never logged.
-        assert settings.databricks_client_secret is not None
+        if settings.databricks_client_secret is None:  # pragma: no cover - kind implies it
+            raise ConfigError("DATABRICKS_CLIENT_SECRET is not set")
         kwargs["client_id"] = settings.databricks_client_id
         kwargs["client_secret"] = settings.databricks_client_secret.get_secret_value()
         kwargs["auth_type"] = "oauth-m2m"

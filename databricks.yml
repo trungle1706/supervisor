@@ -15,22 +15,19 @@ bundle:
   name: supervisor
 
 sync:
+  # Gitignore syntax. A leading / anchors to the repo root: a bare `data` would also drop
+  # src/supervisor/data/ (a test checks that no source file is excluded).
   exclude:
-    - .venv
-    - .venv/**
-    - data
-    - data/**
-    - runs
-    - tests
-    - tests/**
-    - docs/handoff
-    - docs/handoff/**
-    - docs/BANK_DEPLOY_GUIDE.md
-    - .env
-    - uv.toml
+    - /.venv
+    - /data
+    - /runs
+    - /tests
+    - /docs/handoff
+    - /docs/BANK_DEPLOY_GUIDE.md
+    - /.env
+    - /uv.toml
     - "*.db"
-    - "**/*.db"
-    - "**/__pycache__/**"
+    - "**/__pycache__"
 
 resources:
   apps:

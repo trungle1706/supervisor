@@ -286,6 +286,24 @@ def test_run_checks_exit_code(laptop: Settings, capsys: pytest.CaptureFixture) -
     assert any(c.status == "FAIL" for c in checks)
 
 
+def test_unmounted_volume_data_dir_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SUPERVISOR_MODE", "databricks_app")
+    monkeypatch.setenv("DATA_DIR", "/Volumes/c/s/v/supervisor/data")
+    c = preflight._check_paths(load_settings())
+    assert c.status == "FAIL" and c.name == "durable data dir"
+    assert "signing key is regenerated" in c.detail
+
+
+def test_probe_table_left_behind_is_named(laptop: Settings) -> None:
+    client = FakeClient()
+    se = client.statement_execution
+    se.add_rows([("ok", "INT")], [["1"]], match="SELECT 1")
+    se.add(dml_result(0), match="CREATE TABLE IF NOT EXISTS")
+    se.add(failed("PERMISSION_DENIED: DROP"), match="DROP TABLE")
+    c = next(c for c in run(laptop, client) if c.name == "schema writable")
+    assert c.status == "FAIL" and c.fix.startswith("drop it by hand: DROP TABLE IF EXISTS `cat`")
+
+
 def test_scrub_hides_tokens() -> None:
     raw = f'{{"access_token": "{TOKEN}"}} dapi{"0" * 32} client_secret=abc123def'
     out = scrub(raw)

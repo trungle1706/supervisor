@@ -113,6 +113,42 @@ def test_destroy_failure_is_reported_not_raised() -> None:
     assert res.ok and not res.context_destroyed
 
 
+def test_context_status_exception_still_destroys() -> None:
+    api = FakeCommandApi()
+
+    def flaky(method: str, path: str, **kw: Any) -> Any:
+        if path == "/api/1.2/contexts/status":
+            raise RuntimeError("503 Service Unavailable")
+        return api.do(method, path, **kw)
+
+    res = CommandRunner(flaky, "c-1", sleep=lambda s: None).run(["a = 1\n"])
+    assert not res.ok and "503" in res.error and api.destroyed == ["ctx-1"]
+
+
+def test_context_not_ready_before_deadline_destroys() -> None:
+    api = FakeCommandApi(context_statuses=["Pending"])
+    res = runner(api, deadline=3).run(["a = 1\n"])
+    assert "deadline" in res.error and api.destroyed == ["ctx-1"] and api.executed == []
+
+
+def test_no_cell_sent_after_deadline() -> None:
+    api = FakeCommandApi(
+        context_statuses=["Running"],
+        rules={"first": [running(), running(), running(), finished("")]},
+    )
+    res = runner(api, deadline=3, step=1).run(["first = 1\n", "second = 1\n"])
+    assert not res.ok and res.cells[-1].status == "Timeout"
+    assert "cell not sent" in res.error and api.executed == ["first = 1\n"]
+    assert api.destroyed == ["ctx-1"]
+
+
+def test_sentinel_with_angle_brackets_is_kept() -> None:
+    payload = '{"type": "<array<string>>", "html": "<b>x</b>"}'
+    api = FakeCommandApi(rules={"r": [finished(f"{SENTINEL} {payload}")]})
+    res = runner(api).run(["r = 1\n"])
+    assert res.exit == {"type": "<array<string>>", "html": "<b>x</b>"}
+
+
 def test_transport_exception_still_destroys() -> None:
     api = FakeCommandApi()
 

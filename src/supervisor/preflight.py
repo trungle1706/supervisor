@@ -143,12 +143,19 @@ def _check_paths(s: Settings) -> Check:
     if bad:
         return Check("FAIL", "paths absolute", ", ".join(bad), "report this as a bug")
     if s.data_dir_requested:
+        key_note = (
+            "; the evidence signing key is regenerated on every restart, so earlier signed "
+            "roots cannot be verified with the new key"
+            if s.signer_kind == "ed25519_file"
+            else ""
+        )
         return Check(
-            "SKIP",
-            "paths absolute",
+            "FAIL",
+            "durable data dir",
             f"DATA_DIR {s.data_dir_requested} is not mounted here; using {s.data_dir} "
-            "(wiped on restart)",
-            "grant READ VOLUME, WRITE VOLUME to this identity, or accept the ephemeral data dir",
+            f"(wiped on restart){key_note}",
+            "grant READ VOLUME, WRITE VOLUME on the volume to this identity; if the App has no "
+            "/Volumes mount, report it (open item in docs/databricks-prereqs.md)",
         )
     return Check("OK", "paths absolute", f"data_dir={s.data_dir}")
 
@@ -426,8 +433,9 @@ def _check_warehouse_and_schema(s: Settings, client: Any, where: str) -> list[Ch
                 "FAIL",
                 "warehouse reachable",
                 _err(exc),
-                "start the warehouse in the SQL Warehouses UI (a cold start takes about 30 s) "
-                "and re-run; on the laptop check SSL_OS_TRUSTSTORE=1",
+                "start the warehouse in the SQL Warehouses UI (a cold start takes about 30 s; "
+                "this check waits up to DATABRICKS_STATEMENT_DEADLINE_S) and re-run; on the "
+                "laptop check SSL_OS_TRUSTSTORE=1",
             )
         )
         return out
@@ -437,10 +445,22 @@ def _check_warehouse_and_schema(s: Settings, client: Any, where: str) -> list[Ch
         Check(status, "warehouse reachable", f"SELECT 1 in {ms} ms via REST ({x.describe()})")
     )
     target = x.qualify(f"preflight_probe_{uuid.uuid4().hex[:8]}")
+    created = False
     try:
         x.execute(f"CREATE TABLE IF NOT EXISTS {target} (id BIGINT) USING DELTA")
+        created = True
         x.execute(f"DROP TABLE IF EXISTS {target}")
     except Exception as exc:  # noqa: BLE001
+        if created:
+            return [
+                *out,
+                Check(
+                    "FAIL",
+                    "schema writable",
+                    f"created {target} but could not drop it: {_err(exc)}",
+                    f"drop it by hand: DROP TABLE IF EXISTS {target}",
+                ),
+            ]
         out.append(
             Check(
                 "FAIL",
