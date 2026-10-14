@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import shutil
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 from supervisor.adapters.llm.mock import MockChat
-from supervisor.onboard.discover import Discovery
+from supervisor.adapters.repo import LocalGitRepoReader
+from supervisor.onboard.discover import Discovery, discover
 from supervisor.onboard.models import DECISION33_CAVEAT, AgentProfile
 from supervisor.onboard.understand import (
     CLAIMS_SCHEMA,
@@ -14,6 +17,7 @@ from supervisor.onboard.understand import (
     understand,
     validate_llm_claims,
 )
+from tests.onboard.conftest import AGENTS_DIR
 
 
 def test_decision33_classes(profiles: dict[str, AgentProfile]) -> None:
@@ -156,3 +160,29 @@ def test_schema_and_validator_shapes(discoveries: dict[str, Discovery]) -> None:
     kept, dropped = validate_llm_claims("garbage", discoveries["payments"].index)  # type: ignore[arg-type]
     assert kept == [] and dropped == 0
     assert MockChat().is_mock
+
+
+def _copy_with(tmp_path: Path, extra_file: str, code: str) -> Discovery:
+    repo = tmp_path / "payments"
+    shutil.copytree(AGENTS_DIR / "payments", repo, ignore=shutil.ignore_patterns("__pycache__"))
+    path = repo / extra_file
+    path.write_text(path.read_text(encoding="utf-8") + code if path.exists() else code)
+    return discover(LocalGitRepoReader(repo))
+
+
+def test_unrelated_approval_function_does_not_lower_the_class(tmp_path: Path) -> None:
+    d = _copy_with(tmp_path, "helpers.py", "def request_human_approval(x):\n    return x\n")
+    assert d.inventory.human_approval_refs  # found, but in another file
+    p = understand(d, MockChat())
+    assert p.decision33.classification == "high_risk"
+    assert p.decision33.human_gate_in_code is False
+
+
+def test_approval_next_to_the_tool_is_reported(tmp_path: Path) -> None:
+    d = _copy_with(tmp_path, "agent.py", "\n\ndef request_human_approval(x):\n    return x\n")
+    p = understand(d, MockChat())
+    tx = next(e for e in p.decision33.entries if e.entry == "transactions")
+    assert not tx.triggered and "reviewer confirms" in tx.reason
+    assert p.decision33.human_gate_in_code is True
+    assert p.decision33.classification == "not_high_risk"
+    assert "pause is a safety control" in p.decision33.wording_caveat

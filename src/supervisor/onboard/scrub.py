@@ -48,8 +48,10 @@ _PATTERNS: tuple[tuple[str, str, int], ...] = (
         r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b",
         0,
     ),
+    ("gcp_oauth_token", r"\bya29\.[0-9A-Za-z_-]{20,}", 0),
     ("bearer_token", r"(?i)\bbearer\s+([A-Za-z0-9._~+/-]{20,}=*)", 1),
-    ("url_password", r"\b[a-zA-Z][a-zA-Z0-9+.-]*://[^\s/:@\"']+:([^\s@/\"']+)@", 1),
+    ("basic_auth", r"(?i)\bbasic\s+([A-Za-z0-9+/]{12,}={0,2})(?![A-Za-z0-9+/=])", 1),
+    ("url_password", r"\b[a-zA-Z][a-zA-Z0-9+.-]*://[^\s/:@\"']*:([^\s@/\"']+)@", 1),
     (
         "assigned_secret",
         r"(?i)\b[\w.-]*(?:password|passwd|pwd|secret|api_?key|access_?token|auth_?token|"
@@ -60,6 +62,16 @@ _PATTERNS: tuple[tuple[str, str, int], ...] = (
         "assigned_secret_env",
         r"(?m)^\s*(?:export\s+)?[A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|API_KEY|APIKEY)[A-Z0-9_]*"
         r"\s*=\s*([^\s\"'#]{8,})",
+        1,
+    ),
+    (
+        # Unquoted YAML / INI / .env values: `api_key: abc123def`, `password = hunter22`.
+        # The value must hold a digit and end the line, so code such as
+        # `api_key = settings.llm_api_key` or `token: str` is left alone.
+        "assigned_secret_unquoted",
+        r"(?im)^[ \t-]*[\w.-]*(?:password|passwd|pwd|secret|api_?key|apikey|token|"
+        r"client_?secret|private_?key)[\w.-]*[ \t]*[:=][ \t]*"
+        r"(?![\"'$<{]|os\.|FILL-ME|\[REDACTED)(?=[^\s\"'#,;]*\d)([^\s\"'#,;]{6,})[ \t]*$",
         1,
     ),
 )

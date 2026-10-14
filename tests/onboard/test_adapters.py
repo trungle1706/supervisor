@@ -162,9 +162,40 @@ def test_sandbox_git_refuses_merge_and_push(args: list[str], tmp_path: Path) -> 
         sandbox.git(args, cwd=tmp_path)
 
 
-def test_sandbox_git_refuses_exec_options(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["clone", "--upload-pack=touch /tmp/x", "a", "b"],
+        ["clone", "--upload-p", "touch /tmp/x", "a", "b"],  # abbreviation
+        ["clone", "-ccore.sshCommand=touch /tmp/x", "a", "b"],  # attached short form
+        ["clone", "--config", "core.sshCommand=x", "a", "b"],
+        ["clone", "--reference", "x", "a", "b"],
+        ["clone", "--recurse-submodules", "a", "b"],
+        ["clone", "--template=/tmp/t", "a", "b"],
+        ["diff", "--output=/tmp/x"],
+        ["show", "--output=/tmp/x", "HEAD"],
+        ["add", "-u"],
+    ],
+)
+def test_sandbox_git_refuses_unlisted_options(args: list[str], tmp_path: Path) -> None:
     with pytest.raises(SandboxError, match="option"):
-        sandbox.git(["clone", "--upload-pack=touch /tmp/x", "a", "b"], cwd=tmp_path)
+        sandbox.git(args, cwd=tmp_path)
+
+
+def test_sandbox_git_refuses_ext_transport(tmp_path: Path) -> None:
+    with pytest.raises(SandboxError, match="transport"):
+        sandbox.git(["clone", "ext::sh -c touch% /tmp/pwned", str(tmp_path / "d")], cwd=tmp_path)
+
+
+def test_sandbox_git_values_after_value_flags_are_data(tmp_path: Path) -> None:
+    repo = tmp_path / "r"
+    assert sandbox.git(["init", "-q", "-b", "main", str(repo)], cwd=tmp_path).ok
+    (repo / "f.txt").write_text("x", encoding="utf-8")
+    assert sandbox.git(["add", "--all"], cwd=repo).ok
+    res = sandbox.git(
+        ["commit", "-q", "-m", "--not-an-option"], cwd=repo, identity=("T", "t@example.invalid")
+    )
+    assert res.ok, res.stderr
 
 
 def test_sandbox_git_runs_allowed(tmp_path: Path) -> None:

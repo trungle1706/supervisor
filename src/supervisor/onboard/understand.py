@@ -254,37 +254,55 @@ def _weak_spots(inv: Inventory, first: Evidence) -> list[Claim]:
     return out
 
 
+def _approval_refs(inv: Inventory, tools: list[ToolInfo]) -> list[Evidence]:
+    """Human-approval steps in the SAME file as a triggering tool's definition. An
+    approval function somewhere else in the repo does not count (a false "not high
+    risk" is the worse error)."""
+    files = {t.definition.file for t in tools if t.definition is not None}
+    return [r for r in inv.human_approval_refs if r.file in files]
+
+
 def classify_decision33(inv: Inventory, first: Evidence) -> Decision33:
     """Proposed Decision 33 classification. High risk when a triggering entry has no
-    human pre-execution approval step IN CODE (prose does not count; a pause is not one)."""
-    human_in_code = bool(inv.human_approval_refs)
+    human pre-execution approval step IN CODE next to the tool (prose does not count; a
+    pause is not one). A found step still needs a reviewer to confirm it runs before
+    execution."""
     entries: list[Decision33Entry] = []
+    any_gate = False
     tx = [t for t in inv.tools if t.risk_class == "money" and t.destination_arg]
     if tx:
+        refs = _approval_refs(inv, tx)
+        any_gate = any_gate or bool(refs)
         entries.append(
             Decision33Entry(
                 entry="transactions",
-                triggered=not human_in_code,
+                triggered=not refs,
                 reason=(
                     "Tools execute electronic transactions to a destination ("
                     + ", ".join(t.name for t in tx)
                     + "); "
                     + (
-                        "a human approval step was found in code"
-                        if human_in_code
+                        "a human approval step was found in the same code; a reviewer "
+                        "confirms it runs before execution"
+                        if refs
                         else "no human inspection, approval or control before execution "
                         "was found in code"
                     )
                 ),
-                evidence=[e for t in tx for e in _tool_ev(t, first)][:6],
+                evidence=([e for t in tx for e in _tool_ev(t, first)] + refs)[:6],
             )
         )
     cr = [t for t in inv.tools if t.risk_class == "credit"]
     if cr:
+        refs = _approval_refs(inv, cr)
+        any_gate = any_gate or bool(refs)
         prose = [n.evidence for n in inv.notes if n.kind == "human_step"]
         reason = "Tools record credit decisions (" + ", ".join(t.name for t in cr) + "); "
-        if human_in_code:
-            reason += "an independent approval step was found in code"
+        if refs:
+            reason += (
+                "an independent approval step was found in the same code; a reviewer "
+                "confirms a credit officer approves before the decision takes effect"
+            )
         else:
             reason += "no independent approval by a credit officer was found in code"
             if prose:
@@ -292,16 +310,16 @@ def classify_decision33(inv: Inventory, first: Evidence) -> Decision33:
         entries.append(
             Decision33Entry(
                 entry="credit",
-                triggered=not human_in_code,
+                triggered=not refs,
                 reason=reason[:600],
-                evidence=([e for t in cr for e in _tool_ev(t, first)] + prose)[:6],
+                evidence=([e for t in cr for e in _tool_ev(t, first)] + refs + prose)[:6],
             )
         )
     high = any(e.triggered for e in entries)
     return Decision33(
         classification="high_risk" if high else "not_high_risk",
         entries=entries,
-        human_gate_in_code=human_in_code,
+        human_gate_in_code=any_gate,
     )
 
 

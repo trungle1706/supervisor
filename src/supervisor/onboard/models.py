@@ -324,6 +324,7 @@ class InstrumentResult(_M):
     files_changed: list[str]
     codemod_applied: bool
     codemod_note: str
+    warnings: list[str] = Field(default_factory=list)
     policy_hash: str
     merged: bool = False  # never True: the agent never merges
 

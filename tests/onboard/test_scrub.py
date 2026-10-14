@@ -43,7 +43,31 @@ PLANTED = {
     "url_password": "DB_URL = 'postgresql://admin:Hunter2pass@db.example.invalid:5432/x'\n",
     "assigned_secret": "password = 'S3cr3t-Value!'\n",
     "bearer_token": "headers = {'Authorization': 'Bearer abcdefghijklmnopqrstuvwxyz012345'}\n",
+    "basic_auth": "headers = {'Authorization': 'Basic dXNlcjpwYXNzd29yZDEyMw=='}\n",
+    "gcp_oauth_token": "creds = ya" + "29." + "a0AfH6SMBx" * 3 + "\n",
+    "assigned_secret_unquoted": "db:\n  host: db.example.invalid\n  password: hunter22x\n",
 }
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "api_key: abc123def456\n",
+        "client_secret = Zx9-very-secret-value\n",
+        "SERVICE_TOKEN: 7f3a9c2e1b\n",
+        "[db]\npassword=Pa55word!\n",
+    ],
+)
+def test_unquoted_config_secrets(text: str) -> None:
+    res = scrub_text(text)
+    assert res.total == 1, (text, res.counts)
+    assert "[REDACTED:" in res.text
+
+
+def test_url_password_with_empty_user() -> None:
+    res = scrub_text("REDIS = 'redis://:S3cretPass@cache.example.invalid:6379/0'\n")
+    assert res.counts == {"url_password": 1}
+    assert "S3cretPass" not in res.text
 
 
 @pytest.mark.parametrize("kind", sorted(PLANTED))
@@ -77,6 +101,10 @@ def test_clean_code_is_unchanged() -> None:
         "    password_field = args.get('password')\n"
         "    DATABRICKS_HOST = 'FILL-ME-host'\n"
         "    api_key = 'FILL-ME-key'\n"
+        "    api_key = settings.llm_api_key\n"
+        "    token: str\n"
+        "    secret_ref: ${DB_PASSWORD}\n"
+        "    password = os.environ['DB_PASSWORD']\n"
     )
     res = scrub_text(code)
     assert res.total == 0

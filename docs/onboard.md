@@ -42,15 +42,18 @@ decision is in `launch_report.md`.
 - Read-only: `LocalGitRepoReader` has no write method; size cap per file; binary files
   and symlinks out of the root are skipped.
 - Secrets: `onboard/scrub.py` redacts API keys, tokens, PEM blocks, passwords in URLs,
-  AWS / Azure / GCP keys and Databricks `dapi` tokens in every text right after it is
+  AWS / Azure / GCP keys, Basic auth, unquoted config secrets and Databricks `dapi`
+  tokens in every text right after it is
   read. Only counts are logged. Line numbers stay valid. gitleaks is the goal (backlog).
 - Repo text is untrusted data. It is wrapped between nonce delimiters before any LLM
   call; delimiter look-alikes in the text are broken up. The LLM may only add claims; a
   claim is kept only when its file:line exists and holds the quoted text. The LLM never
   sets the Decision 33 class or the risk tier.
 - The codemod is `ast` plus text templates (no libcst, no LLM-written code). It inserts
-  two default lines in the builder function and adds `supervisor_onboard.py`.
-- Git runs only through `sandbox.git`: an allow-list of subcommands. `merge`, `push`,
+  two default lines in the builder function and adds `supervisor_onboard.py`. ADR D12
+  names libcst; it is replaced by `ast` because WP9 adds no new dependency.
+- Git runs only through `sandbox.git`: an allow-list of subcommands and of exact flags
+  per subcommand; `ext::` transports are refused. `merge`, `push`,
   `pull`, `fetch`, `rebase` and `remote` raise `SandboxError`. Hooks are off.
 - The Onboarding Agent is an agent (`onboarding_agent`). Its tool calls pass the real
   gateway on `onboard/self_policy.yaml` (allow-list, scrubbed-only LLM calls, branch

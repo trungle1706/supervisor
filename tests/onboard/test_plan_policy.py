@@ -114,6 +114,7 @@ def adapters(tmp_path: Path) -> Iterator[Adapters]:
         a.close()
 
 
+HARM_ALLOWED = {"DEMO-1": 0, "DEMO-2": 2, "DEMO-3": 0, "DEMO-4": 1}
 PLANTED = {
     "payments": [("DEMO-1", "approved_tools", "pause"), ("DEMO-4", "split_payment", "block")],
     "customer_service": [("DEMO-2", "daily_aggregate", "block")],
@@ -159,7 +160,8 @@ def test_gateway_blocks_planted_incident(
         assert cap_of.get(rule_id) == capability, (incident, rule_id)
         assert got == action
         assert res.stop_fail_mode is None  # a real rule match, not a fail-closed error
-        assert res.harmful_effects_recorded == 0 or incident in ("DEMO-2", "DEMO-4")
+        # DEMO-2: the first two waivers are within the limits; DEMO-4: the first transfer is.
+        assert res.harmful_effects_recorded == HARM_ALLOWED[incident]
         assert any(t == "gate_decision" for t, _, _ in evidence.entries)
 
 

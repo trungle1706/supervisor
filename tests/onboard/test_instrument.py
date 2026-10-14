@@ -14,6 +14,7 @@ from supervisor.core.errors import SandboxError
 from supervisor.onboard.discover import Discovery
 from supervisor.onboard.instrument import (
     MARKER,
+    InstrumentError,
     apply_codemod,
     branch_name,
     instrument,
@@ -137,7 +138,7 @@ def test_copy_mode_when_target_is_not_in_git(
 def test_codemod_is_idempotent_and_safe() -> None:
     src = (
         '"""Doc."""\nimport os\n\n\n'
-        'def build_agent(chat, world, *, gate=None, tracer_provider=None):\n'
+        "def build_agent(chat, world, *, gate=None, tracer_provider=None):\n"
         '    """Build."""\n    return (gate, tracer_provider)\n'
     )
     new, applied, _ = apply_codemod(src, import_line="import supervisor_onboard")
@@ -150,3 +151,39 @@ def test_codemod_is_idempotent_and_safe() -> None:
     assert again == new and not applied2 and "already" in note
     none, applied3, note3 = apply_codemod("def f(x):\n    return x\n", import_line="import m")
     assert not applied3 and "by hand" in note3
+
+
+def test_copy_mode_skips_credential_files(
+    tmp_path: Path, discoveries: dict[str, Discovery], profiles: dict[str, AgentProfile]
+) -> None:
+    plain = tmp_path / "plain2" / "payments"
+    shutil.copytree(AGENTS_DIR / "payments", plain, ignore=shutil.ignore_patterns("__pycache__"))
+    (plain / ".env").write_text("X=1\n", encoding="utf-8")
+    (plain / "deploy.pem").write_text("not a real key\n", encoding="utf-8")
+    (res, _), _ = _run(plain, tmp_path / "w3", discoveries, profiles)
+    tracked = _g(["ls-files"], Path(res.work_repo)).split()
+    assert ".env" not in tracked and "deploy.pem" not in tracked
+    assert any("credential-like" in w for w in res.warnings)
+
+
+def test_work_dir_inside_target_is_refused(
+    source_repo: Path, discoveries: dict[str, Discovery], profiles: dict[str, AgentProfile]
+) -> None:
+    target = source_repo / "agents" / "payments"
+    with pytest.raises(InstrumentError, match="inside the target"):
+        _run(target, target, discoveries, profiles)
+    with pytest.raises(InstrumentError, match="inside the target"):
+        _run(target, target / "sub", discoveries, profiles)
+    assert (target / "agent.py").is_file()
+
+
+def test_dirty_target_is_reported(
+    source_repo: Path,
+    tmp_path: Path,
+    discoveries: dict[str, Discovery],
+    profiles: dict[str, AgentProfile],
+) -> None:
+    target = source_repo / "agents" / "payments"
+    (target / "notes.txt").write_text("uncommitted\n", encoding="utf-8")
+    (res, _), _ = _run(target, tmp_path / "w4", discoveries, profiles)
+    assert any("uncommitted" in w for w in res.warnings)

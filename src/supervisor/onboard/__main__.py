@@ -52,6 +52,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (SupervisorError, OSError, ValueError) as exc:
         echo(f"[FAIL] onboarding stopped: {type(exc).__name__}: {exc}")
         return 1
+    except Exception as exc:  # noqa: BLE001 - CLI prints [FAIL], never a traceback
+        echo(f"[FAIL] onboarding stopped by an internal error: {type(exc).__name__}")
+        return 1
     for name in sorted(res.artefacts):
         echo(f"[OK] wrote {res.artefacts[name]}")
     return 0

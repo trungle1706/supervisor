@@ -46,6 +46,7 @@ from supervisor.onboard.agent import (
 from supervisor.onboard.discover import discover
 from supervisor.onboard.instrument import (
     branch_name,
+    check_dirs,
     instrument,
     render_pr_description,
     validate_policy,
@@ -135,6 +136,7 @@ def run_onboarding(
     out = Path(os.path.abspath(out_dir))
     out.mkdir(parents=True, exist_ok=True)
     work = Path(os.path.abspath(work_dir)) if work_dir else out / "_work"
+    check_dirs(target_path, out, work)
     lines: list[str] = []
 
     def say(line: str) -> None:

@@ -281,14 +281,49 @@ def _git(args: list[str], cwd: Path, timeout_s: float = 120.0) -> str:
     return res.stdout.strip()
 
 
-def prepare_work_repo(target: Path, work_dir: Path) -> tuple[str, Path, Path, str]:
+# Never copied into a new repo in copy mode (credentials and keys stay where they are).
+SECRET_FILE_PATTERNS = (
+    ".env",
+    ".env.*",
+    "*.pem",
+    "*.key",
+    "*.p12",
+    "*.pfx",
+    "*.jks",
+    "id_rsa*",
+    "id_ed25519*",
+    ".netrc",
+    ".git-credentials",
+    "credentials*.json",
+)
+
+
+def _inside(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def check_dirs(target: Path, *dirs: Path) -> None:
+    """Output and work folders must not be the target or inside it (nothing is written
+    into the target, and the work clone is deleted and re-made)."""
+    for d in dirs:
+        if _inside(d, target):
+            raise InstrumentError(f"folder {d} is inside the target {target}; use another folder")
+
+
+def prepare_work_repo(target: Path, work_dir: Path) -> tuple[str, Path, Path, str, list[str]]:
     """Clone the target's repository (or copy the target into a new repo).
 
-    Returns (mode, repo_dir, target_in_repo, base_ref)."""
+    Returns (mode, repo_dir, target_in_repo, base_ref, warnings)."""
+    check_dirs(target, work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
     dest = work_dir / "repo"
     if dest.exists():
         shutil.rmtree(dest)
+    warnings: list[str] = []
     try:
         top = Path(_git(["rev-parse", "--show-toplevel"], target))
         prefix = _git(["rev-parse", "--show-prefix"], target)
@@ -296,18 +331,30 @@ def prepare_work_repo(target: Path, work_dir: Path) -> tuple[str, Path, Path, st
         top = None
         prefix = ""
     if top is not None:
+        dirty = _git(["status", "--porcelain", "--", "."], target)
+        if dirty:
+            warnings.append(
+                f"target has {len(dirty.splitlines())} uncommitted change(s): the branch is "
+                "made from the last commit, so profile evidence may differ from the branch"
+            )
         _git(["clone", "--quiet", "--no-hardlinks", str(top), str(dest)], work_dir, 300.0)
         base = _git(["rev-parse", "--abbrev-ref", "HEAD"], dest)
-        return "clone", dest, dest / prefix if prefix else dest, base
-    shutil.copytree(
-        target,
-        dest,
-        ignore=shutil.ignore_patterns(".git", "__pycache__", ".venv", "*.pyc"),
-    )
+        return "clone", dest, dest / prefix if prefix else dest, base, warnings
+    skipped: list[str] = []
+
+    def ignore(folder: str, names: list[str]) -> set[str]:
+        out = set(shutil.ignore_patterns(".git", "__pycache__", ".venv", "*.pyc")(folder, names))
+        secret = set(shutil.ignore_patterns(*SECRET_FILE_PATTERNS)(folder, names))
+        skipped.extend(sorted(secret))
+        return out | secret
+
+    shutil.copytree(target, dest, ignore=ignore)
+    if skipped:
+        warnings.append(f"{len(skipped)} credential-like file(s) not copied: {sorted(skipped)}")
     _git(["init", "--quiet", "-b", "main"], dest)
     _git(["add", "--all"], dest)
     _commit(dest, "baseline copy for onboarding")
-    return "copy", dest, dest, "main"
+    return "copy", dest, dest, "main", warnings
 
 
 def _commit(repo: Path, message: str) -> str:
@@ -346,7 +393,7 @@ def instrument(
         "alert_routes.yaml": render_alert_routes(inv, playbook),
         f"{HOOK_MODULE}.py": render_hook_module(inv),
     }
-    mode, repo, tdir, base_ref = prepare_work_repo(target, work)
+    mode, repo, tdir, base_ref, warnings = prepare_work_repo(target, work)
     base_sha = _git(["rev-parse", "HEAD"], repo)
     branch = branch_name(inv.agent_id)
     _git(["checkout", "--quiet", "-b", branch], repo)
@@ -397,6 +444,7 @@ def instrument(
             files_changed=sorted(rels),
             codemod_applied=applied,
             codemod_note=note,
+            warnings=warnings,
             policy_hash=policy_hash,
         ),
         texts,
@@ -424,6 +472,7 @@ def render_pr_description(
         f"- Commit: `{result.commit_sha[:12]}`",
         f"- Policy hash: `{result.policy_hash[:16]}`; agent starts in **SHADOW**",
         f"- Codemod: {result.codemod_note}",
+        *[f"- WARNING: {w}" for w in result.warnings],
         "",
         "## Profile",
         "",
