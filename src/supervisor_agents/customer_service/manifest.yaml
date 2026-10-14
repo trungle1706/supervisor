@@ -15,6 +15,9 @@ description: >
   a card dispute.
 limits:
   waive_fee_max_minor: 500000   # VND per waiver
+capture:                 # WP4 recorder: digest | masked | raw (raw needs raw_allowed: true)
+  level: masked
+  raw_allowed: false
 tools:
   - name: lookup_customer
     risk_class: read_only

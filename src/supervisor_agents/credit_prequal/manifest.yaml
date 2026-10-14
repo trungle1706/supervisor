@@ -15,6 +15,9 @@ description: >
   (approve / refer / decline). Final credit approval stays with a human underwriter.
 limits:
   max_prequal_amount_minor: 2000000000   # VND
+capture:                 # WP4 recorder: digest | masked | raw (raw needs raw_allowed: true)
+  level: masked
+  raw_allowed: false
 tools:
   - name: fetch_application
     risk_class: pii_export

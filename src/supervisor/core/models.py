@@ -108,6 +108,7 @@ class AgentEvent(Record):
     classification: str | None = None
     source: EventSource
     capture_level: CaptureLevel = "masked"
+    mask_version: str | None = None  # masker + HMAC key id (WP4); None at digest level
 
 
 class Rule(StateRecord):

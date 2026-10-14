@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS agent_event (
   classification TEXT,
   source TEXT NOT NULL,
   capture_level TEXT NOT NULL,
+  mask_version TEXT,
   PRIMARY KEY (event_id)
 );
 
@@ -121,6 +122,32 @@ CREATE TRIGGER IF NOT EXISTS trg_agent_event_no_delete
 BEFORE DELETE ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
+END;
+
+-- agent_event_raw (append_only): RESTRICTED. Unmasked args/result text for agents whose manifest allows capture level raw (capture.raw_allowed). Restricted group only, short TTL (raw 90 d). Never read by judges or the chain. Rows link to agent_event by event_id.
+CREATE TABLE IF NOT EXISTS agent_event_raw (
+  event_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  trace_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  args_raw TEXT,
+  result_raw TEXT,
+  access_class TEXT NOT NULL,
+  PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_agent_event_raw_agent_id_ts ON agent_event_raw (agent_id, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_agent_event_raw_no_update
+BEFORE UPDATE ON agent_event_raw
+BEGIN
+  SELECT RAISE(ABORT, 'agent_event_raw is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_agent_event_raw_no_delete
+BEFORE DELETE ON agent_event_raw
+BEGIN
+  SELECT RAISE(ABORT, 'agent_event_raw is append-only');
 END;
 
 -- rule (state): Deployed copy of policy rules (git is the source).

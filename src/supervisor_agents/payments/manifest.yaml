@@ -15,6 +15,9 @@ description: >
 limits:
   transfer_max_minor: 100000000          # VND per transfer
   daily_transfer_max_minor: 300000000    # VND per customer per day
+capture:                 # WP4 recorder: digest | masked | raw (raw needs raw_allowed: true)
+  level: masked
+  raw_allowed: false
 tools:
   - name: get_balance
     risk_class: read_only

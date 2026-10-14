@@ -101,6 +101,7 @@ class AgentRuntime:
         max_steps: int = 8,
         env: str = "dev",
         timeout_s: float | None = None,
+        capture_payloads: bool = False,
     ) -> None:
         self.manifest = manifest
         self.tools = tools
@@ -112,6 +113,12 @@ class AgentRuntime:
         self.max_steps = max_steps
         self.env = env
         self.timeout_s = timeout_s
+        # WP4: put args/result/message text on spans so the recorder can mask it (masked
+        # capture level). Default off: spans then carry hashes only.
+        self.capture_payloads = capture_payloads
+
+    def _payload(self, value: Any) -> str:
+        return json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
 
     # -- attributes ---------------------------------------------------------------
     def _base(self, event_type: str, caller: str | None) -> dict[str, Any]:
@@ -146,6 +153,8 @@ class AgentRuntime:
                 T.A_ARGS_HASH: T.args_hash({"task": task}),
             },
         ) as root:
+            if self.capture_payloads:
+                root.set_attribute(T.A_ARGS, task)
             trace_id = f"{root.get_span_context().trace_id:032x}"
             result = self._loop(task, ctx, caller_agent_id, trace_id)
             root.set_attribute(T.A_STATUS, result.status)
@@ -226,6 +235,7 @@ class AgentRuntime:
                 "supervisor.message.role": "assistant",
                 T.A_ARGS_HASH: T.args_hash({"message": text}),
                 T.A_STATUS: status,
+                **({T.A_ARGS: text} if self.capture_payloads else {}),
             },
         ):
             pass
@@ -257,6 +267,8 @@ class AgentRuntime:
             f"execute_tool {tool}", kind=SpanKind.INTERNAL, attributes=attrs
         ) as span:
             span.set_attribute("gen_ai.tool.call.id", f"{span.get_span_context().span_id:016x}")
+            if self.capture_payloads:
+                span.set_attribute(T.A_ARGS, self._payload(args))
             gate_ctx = {
                 **ctx,
                 "trace_id": trace_id,
@@ -303,6 +315,8 @@ class AgentRuntime:
                 result, status = {"error": f"tool failed: {type(exc).__name__}"}, "error"
                 span.set_attribute("error.type", type(exc).__name__)
             span.set_attribute(T.A_STATUS, status)
+            if self.capture_payloads:
+                span.set_attribute(T.A_RESULT, self._payload(result))
             return ToolCallRecord(tool, args, decision, status, result)
 
 
