@@ -320,7 +320,12 @@ class Verifier:
                 lr.fail(seq, "entry_hash does not match the entry content")
             link = prev.get(lane, GENESIS_HASH)
             if seq == want and row.get("prev_hash") != link:
-                lr.fail(seq, "prev_hash does not link to the previous entry")
+                if seq == 0:
+                    lr.fail(0, "first entry does not start from the genesis hash")
+                else:
+                    # seq's own hash is checked above, so its prev_hash is authentic:
+                    # the entry before it is the one that changed.
+                    lr.fail(seq - 1, f"entry differs from the prev_hash committed by seq {seq}")
             prev[lane] = row.get("entry_hash", "")
             if seq not in entries.setdefault(lane, {}):
                 entries[lane][seq] = row
