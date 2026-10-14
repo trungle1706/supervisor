@@ -30,3 +30,8 @@ gitleaks is a Go binary. The bank laptop rules forbid binaries that need a build
 
 - gitleaks scrub becomes a goal. Plan v2 default is an in-process regex scrubber.
 - "Read-only per-repo token" depends on the `RepoReader` adapter: `local_git` (no token) or `databricks_repo`.
+
+
+## Implementation note (2026-10-14, WP9)
+
+The codemod is implemented with the standard library `ast` module plus text templates, not libcst (no new dependency). Secret scrubbing before any LLM call is the in-repo regex scrubber in `src/supervisor/onboard/scrub.py`; gitleaks is optional if the bank supplies an approved binary (see BACKLOG.md).

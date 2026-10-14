@@ -23,3 +23,8 @@
 | Key id on `agent_event` args hash rows; HMAC for grouping keys in `args_masked` | Small gateway/recorder follow-up after WP7 |
 | Judge retries only on timeouts; `--split dev` default in the eval CLI | Reviewer suggestions from WP5, low priority |
 | Verdict table `score` float column retained for compatibility | WP7 adds `score_bp`; drop `score` at the first schema reset before any live data |
+| Red-team pack vs default rules: credit_prequal launch is NO-GO on false alarms (benign cases decide without reading the application), customer_service NO-GO on catch rate | Decide per agent whether the pack or the default rules change; use the bank golden set when available |
+| App service principal needs USE CATALOG / USE SCHEMA grants; dev target app-name prefix vs 30-char limit; /Volumes mount in the App container | Confirm on the live workspace (WP10 live kit) |
+| Judge models in App mode stay mocks until JUDGE_* settings name the bound serving endpoint | Owner fills FILL-ME values; set JUDGE_T1_MODEL/JUDGE_T2_MODEL |
+| Scheduler lease renewal during very long jobs; paging in monitor read_range | WP7 follow-up |
+| Monitors open cases via monitors/common.open_case, console via cases/service | Unify on cases/service in the next refactor |
