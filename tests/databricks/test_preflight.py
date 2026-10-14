@@ -291,7 +291,56 @@ def test_unmounted_volume_data_dir_fails(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setenv("DATA_DIR", "/Volumes/c/s/v/supervisor/data")
     c = preflight._check_paths(load_settings())
     assert c.status == "FAIL" and c.name == "durable data dir"
-    assert "signing key is regenerated" in c.detail
+    assert "signing key is regenerated" not in c.detail  # the key now goes to the Volume
+
+
+KEY = "/Volumes/c/s/v/supervisor/data/keys/evidence_ed25519.pem"
+
+
+def test_signer_default_is_volume_in_app_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SUPERVISOR_MODE", "databricks_app")
+    monkeypatch.setenv("DATA_DIR", "/Volumes/c/s/v/supervisor/data")
+    s = load_settings()
+    assert s.signer_kind == "uc_volume" and str(s.signer_key_path) == KEY
+    c = preflight._check_signer_durable(s)
+    assert c is not None and c.status == "OK"
+
+
+def test_signer_on_container_disk_fails_in_app_mode(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("SUPERVISOR_MODE", "databricks_app")
+    s = load_settings(signer_kind="ed25519_file", signer_key_path=tmp_path / "k.pem")
+    c = preflight._check_signer_durable(s)
+    assert c is not None and c.status == "FAIL" and c.name == "signer key storage"
+    assert "SIGNER_KIND=uc_volume" in c.fix and "/Volumes/FILL-ME-catalog" in c.fix
+    assert "wiped" in c.detail
+    assert format_check(c).isascii()
+
+
+def test_signer_check_skipped_on_laptop_and_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    assert preflight._check_signer_durable(load_settings(data_dir=tmp_path)) is None
+    monkeypatch.setenv("SUPERVISOR_MODE", "databricks_app")
+    assert preflight._check_signer_durable(load_settings(signer_kind="env")) is None
+
+
+def test_signer_volume_probe_branches(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SUPERVISOR_MODE", "databricks_app")
+    monkeypatch.setenv("DATA_DIR", "/Volumes/c/s/v/supervisor/data")
+    s = load_settings()
+    client = FakeClient()
+    c = preflight._check_signer_volume(s, client)
+    assert c is not None and c.status == "OK" and "will be created" in c.detail
+    assert client.files.store == {}  # dry probe: nothing left behind
+    client.files.store[KEY] = b"x"
+    c = preflight._check_signer_volume(s, client)
+    assert c is not None and c.status == "OK" and "exists" in c.detail
+    denied = FakeClient()
+    denied.files.deny.add("/Volumes/c/s/v")
+    c = preflight._check_signer_volume(s, denied)
+    assert c is not None and c.status == "FAIL" and "READ VOLUME" in c.fix
 
 
 def test_probe_table_left_behind_is_named(laptop: Settings) -> None:

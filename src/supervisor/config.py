@@ -205,10 +205,13 @@ class Settings(BaseSettings):
     evidence_root_every_s: int = Field(default=900, ge=1)  # seconds between signed roots
     evidence_retention_days: int = Field(default=1825, ge=1)  # Delta log/file retention
     evidence_writer_id: str | None = None  # default: <hostname>:<pid>
-    signer_kind: Literal["ed25519_file", "env"] = "ed25519_file"
+    signer_kind: Literal["ed25519_file", "env", "uc_volume"] = "ed25519_file"
     signer_key_path: Path | None = None  # default: <data_dir>/keys/evidence_ed25519.pem
     signer_env_var: str = Field(default="SUPERVISOR_SIGNING_KEY", pattern=r"^[A-Z][A-Z0-9_]*$")
     signer_key_managed: bool = False  # True only when the bank manages the key (label)
+    # Key continuity: refuse to start the chain writer when the loaded key differs from the
+    # key of the latest root_commit, unless this is set (then a key_rotation entry is written).
+    signer_allow_rotation: bool = False
     # HMAC key for tool-argument digests (args_hash / args_hmac). Empty = fixed dev key,
     # labelled key id "dev" in every chain payload. Set ARGS_HASH_KEY in production.
     args_hash_key: SecretStr | None = None
@@ -326,14 +329,27 @@ class Settings(BaseSettings):
             logging.getLogger("supervisor.config").error(
                 "DATA_DIR %s is not mounted in this container; using %s (wiped on restart). "
                 "Spool and anchors still go to the Volume through the Files API; the evidence "
-                "signing key is NOT durable (regenerated on restart).",
+                "signing key is kept on the Volume (SIGNER_KIND=uc_volume).",
                 self.data_dir_requested,
                 self.data_dir,
             )
         if self.sqlite_path is None:
             self.sqlite_path = self.data_dir / "supervisor.db"
         if self.signer_key_path is None:
-            self.signer_key_path = self.data_dir / "keys" / "evidence_ed25519.pem"
+            if self.data_dir_requested:
+                # App without a /Volumes mount: the key lives on the Volume (Files API).
+                self.signer_key_path = Path(
+                    self.data_dir_requested.rstrip("/") + "/keys/evidence_ed25519.pem"
+                )
+            else:
+                self.signer_key_path = self.data_dir / "keys" / "evidence_ed25519.pem"
+        if (
+            "signer_kind" not in self.model_fields_set
+            and self.supervisor_mode == "databricks_app"
+            and is_volume_path(self.signer_key_path)
+            and not volume_mounted(self.signer_key_path)
+        ):
+            self.signer_kind = "uc_volume"
         if self.casefile_dir is None:
             self.casefile_dir = self.data_dir / "casefiles"
         if self.recorder_spool_dir is None:

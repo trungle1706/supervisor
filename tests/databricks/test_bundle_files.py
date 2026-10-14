@@ -181,6 +181,8 @@ def test_app_env_loads_as_settings(monkeypatch: Any, tmp_path: Any) -> None:
     # this host has no /Volumes mount: DATA_DIR falls back to the container disk, loudly
     assert s.data_dir_requested == "/Volumes/cat/sch/vol/supervisor/data"
     assert not str(s.data_dir).startswith("/Volumes") and s.data_dir.is_absolute()
-    assert s.signer_key_path is not None and s.signer_key_path.parent.parent == s.data_dir
+    # the signing key lives on the Volume (Files API), not on the container disk
+    assert s.signer_kind == "uc_volume"
+    assert str(s.signer_key_path) == "/Volumes/cat/sch/vol/supervisor/keys/evidence_ed25519.pem"
     assert s.anchor_kind == "uc_volume"
     assert "sp-secret-value" not in repr(s) and "sp-secret-value" not in s.describe_target()

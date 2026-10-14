@@ -34,6 +34,14 @@ The anchor job is an in-process scheduled job: `python -m supervisor.jobs.anchor
 - 06 names Key Vault HSM / KMS. Plan v2 uses an Ed25519 file or env secret until the bank decides. BACKLOG.md item: "HSM/KMS notary key, bank WORM anchor".
 - Anchor targets are `worm_dir` and `uc_volume`, not immutable blob.
 
+## Key storage on Databricks
+
+- `/tmp` is wiped on every App restart. A key file there gives a new key each time, and older signed roots no longer verify against the current public key. The bundle pattern forbids secret-scope resources, so the key cannot come from a secret scope.
+- `SIGNER_KIND=uc_volume` (`VolumeFileSigner`): the PKCS#8 PEM key is one write-once object on a UC Volume, written through the Files API (`databricks/files.py`, exclusive put, no overwrite). Start loads it if present. A start-up race reloads the winner's key. The key is never logged; `repr()` shows key id and kind only.
+- In `databricks_app` mode with a `/Volumes/...` `SIGNER_KEY_PATH` and no explicit `SIGNER_KIND`, the factory selects `uc_volume`. `app.yaml` sets both. Preflight fails when the key path is on the container disk.
+- A Volume key is readable by anyone with READ VOLUME on it: restrict the grant to the App service principal. Key custody (HSM/KMS) stays a bank decision.
+- Key continuity (all signer kinds): at writer start the loaded key id is compared with the key id of the latest `root_commit`. A difference stops the writer (`KeyContinuityError`) unless `SIGNER_ALLOW_ROTATION=1`. Then the writer appends a `key_rotation` entry on the root lane (old and new key id, signed by the new key). The verifier checks that signature and accepts both keys from the export.
+
 ## Spec v2 (WP6 review fix)
 
 - Spec v1 left `writer` and `env` outside `entry_hash`: an attacker could change who wrote an entry, or its environment, with no detection.

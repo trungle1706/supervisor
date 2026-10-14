@@ -29,6 +29,11 @@ env:
   # /tmp is wiped on every restart. Durable files go to a Unity Catalog Volume.
   - name: DATA_DIR
     value: "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/data"
+  # Evidence signing key: write-once object on the Volume (Files API). Never on /tmp.
+  - name: SIGNER_KIND
+    value: "uc_volume"
+  - name: SIGNER_KEY_PATH
+    value: "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/keys/evidence_ed25519.pem"
   - name: SPOOL_DIR
     value: "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/spool"
   - name: ANCHOR_KIND

@@ -57,6 +57,7 @@ SUPPORTED_SPEC_VERSIONS = (1, 2)  # v1 is read-only legacy: the writer emits v2
 GENESIS_HASH = "0" * 64
 ROOT_LANE = "root"
 ROOT_RECORD_TYPE = "root_commit"
+KEY_ROTATION_RECORD_TYPE = "key_rotation"
 SIGNING_PREFIX = b"supervisor-chain/v1 root "
 ALGORITHM = "ed25519"
 EXPORT_FORMAT = "supervisor-evidence-export"
@@ -473,7 +474,8 @@ class Verifier:
         verified: dict[int, Mapping[str, Any]] = {}
         for seq in sorted(root_entries):
             e = root_entries[seq]
-            if e.get("record_type") != ROOT_RECORD_TYPE:
+            kind = e.get("record_type")
+            if kind not in (ROOT_RECORD_TYPE, KEY_ROTATION_RECORD_TYPE):
                 continue
             sig = sigs.pop(seq, None)
             if sig is None:
@@ -490,6 +492,10 @@ class Verifier:
                 root_lr.fail(seq, "signature does not verify")
                 continue
             payload = payloads.get((ROOT_LANE, seq))
+            if kind == KEY_ROTATION_RECORD_TYPE:
+                if not isinstance(payload, dict) or payload.get("new_key_id") != sig.get("key_id"):
+                    root_lr.fail(seq, "key_rotation is not signed by the key it names")
+                continue
             if not isinstance(payload, dict) or not isinstance(payload.get("lanes"), dict):
                 root_lr.fail(seq, "root payload missing or invalid")
                 continue

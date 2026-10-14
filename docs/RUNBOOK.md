@@ -220,9 +220,18 @@ databricks bundle run supervisor -t dev --profile FILL-ME-profile
 
    `validate` fails while any `FILL-ME` value is left. `run` prints the App URL. For prod use `-t prod`.
 
-4. Grants: see `docs\databricks-prereqs.md` section 2 and section 7 above.
+4. Signing key on the Volume (once, before the first run). In `app.yaml` set `SIGNER_KIND` to `uc_volume` and `SIGNER_KEY_PATH` to `/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/keys/evidence_ed25519.pem`. Create the folder, give the App service principal READ VOLUME and WRITE VOLUME, and run preflight:
 
-5. Logs: workspace > Compute > Apps > your app > Logs.
+```
+databricks fs mkdir dbfs:/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/keys --profile FILL-ME-profile
+uv run python -m supervisor.preflight
+```
+
+   `[OK] signer key` means the key exists or can be created. The App creates it at first start and reuses it after every restart. `[FAIL] signer key storage` means the key path is on the container disk: fix `SIGNER_KEY_PATH`. If you must change the key on purpose, set `SIGNER_ALLOW_ROTATION=1` for one start (a `key_rotation` entry is recorded), then remove it. Without it the writer refuses to start when the key differs from the last signed root.
+
+5. Grants: see `docs\databricks-prereqs.md` section 2 and section 7 above.
+
+6. Logs: workspace > Compute > Apps > your app > Logs.
 
 The App runs one process with one worker (`--workers 1`): the evidence chain has one writer.
 It reads `DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID` and `DATABRICKS_CLIENT_SECRET` from the
@@ -286,7 +295,7 @@ Never send `.env`, `uv.toml` with credentials, tokens, or `databricks auth token
 | `bundle validate` "name ... must be at most 30 characters" | app name too long (dev prefix included) | shorten the `FILL-ME-username` part |
 | App BUILD "Could not find a version that satisfies ..." | BUILD has no PyPI access | `export-reqs --nexus FILL-ME-nexus-host`, deploy again |
 | App crashes at start and tries to sync | start command uses `uv run` | `app.yaml` must use `python -m uvicorn` |
-| App log `DATA_DIR /Volumes/... is not mounted in this container` | the App has no `/Volumes` mount | the spool and anchors still use the Files API, but the evidence signing key and case files are on the container disk (wiped on restart: earlier signed roots cannot be verified with the new key). Check the Volume grants; if it stays, tell us (open item) |
+| App log `DATA_DIR /Volumes/... is not mounted in this container` | the App has no `/Volumes` mount | the spool, anchors and the signing key (`SIGNER_KIND=uc_volume`) use the Files API; case files are on the container disk (wiped on restart). Check the Volume grants; if it stays, tell us (open item) |
 | App log `PERMISSION_DENIED` on a `/Volumes/...` path | App service principal has no Volume grant | owner grants `READ VOLUME, WRITE VOLUME` (`docs\databricks-prereqs.md` section 2) |
 | App log `PERMISSION_DENIED` on a Supervisor table | App service principal has no grant | `bootstrap_schema --grant-to <id>`; owner grants USE CATALOG / USE SCHEMA |
 | `jobs/runs/submit` refused: "does not support jobs workload" | shared cluster is interactive only | use `supervisor.jobs.cluster_run` (execution contexts) |

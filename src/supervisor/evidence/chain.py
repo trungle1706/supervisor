@@ -48,6 +48,7 @@ from supervisor.evidence.verify import (
     ALGORITHM,
     CHAIN_SPEC_VERSION,
     GENESIS_HASH,
+    KEY_ROTATION_RECORD_TYPE,
     ROOT_LANE,
     ROOT_RECORD_TYPE,
     entry_hash,
@@ -65,6 +66,10 @@ class ChainError(SupervisorError):
 
 class FloatInPayloadError(ChainError, CanonicalError):
     """A chain payload contains a float. Use integer basis points or minor units."""
+
+
+class KeyContinuityError(ChainError):
+    """The signing key differs from the key of the latest root_commit."""
 
 
 class ChainConflictError(ChainError):
@@ -123,6 +128,7 @@ class ChainWriter:
         root_every_s: int = 900,
         masker: Masker | None = None,
         mask_version: str = "caller-masked",
+        allow_rotation: bool = False,
     ) -> None:
         if root_every_n < 1 or root_every_s < 1:
             raise ChainError("root_every_n and root_every_s must be >= 1")
@@ -153,7 +159,16 @@ class ChainWriter:
                 _ACTIVE[tables] = self.writer_id
             except TypeError:
                 pass
-            self._load_root_state()
+            try:
+                self._load_root_state()
+                self._check_key_continuity(allow_rotation)
+            except BaseException:
+                try:
+                    if _ACTIVE.get(tables) == self.writer_id:
+                        del _ACTIVE[tables]
+                except TypeError:
+                    pass
+                raise
 
     # ------------------------------------------------------------ public API
 
@@ -168,6 +183,8 @@ class ChainWriter:
         """Append one entry. Return its entry hash (hex)."""
         if record_type == ROOT_RECORD_TYPE:
             raise ChainError("root_commit entries are written by commit_root() only")
+        if record_type == KEY_ROTATION_RECORD_TYPE:
+            raise ChainError("key_rotation entries are written at writer start only")
         if not record_type or not record_ref:
             raise ChainError("record_type and record_ref are required")
         if not isinstance(payload, Mapping):
@@ -293,6 +310,50 @@ class ChainWriter:
                 changed = True
         self._since_root = 1 if changed or not payloads else 0
 
+    def _check_key_continuity(self, allow_rotation: bool) -> None:
+        """Refuse to start with a key other than the one on the latest root_commit.
+
+        With ``allow_rotation`` write a ``key_rotation`` entry (root lane, signed by the new
+        key) that names the old and the new key id, then continue."""
+        rows = self.tables.query(
+            "chain_signature", {"lane": ROOT_LANE}, order_by=["-seq"], limit=50
+        )
+        roots = self.tables.query(
+            "chain_entry",
+            {"lane": ROOT_LANE, "record_type": ROOT_RECORD_TYPE},
+            order_by=["-seq"],
+            limit=1,
+        )
+        if not roots:
+            return
+        old = next((r["key_id"] for r in rows if r["seq"] == roots[0]["seq"]), None)
+        if old is None or old == self.signer.key_id:
+            return
+        if not allow_rotation:
+            raise KeyContinuityError(
+                f"signing key {self.signer.key_id[:16]}... differs from key {str(old)[:16]}... "
+                "of the latest root_commit; earlier roots would not verify with the new key. "
+                "Restore the old key, or set SIGNER_ALLOW_ROTATION=1 once to record a "
+                "key_rotation entry"
+            )
+        head = self._head(ROOT_LANE)
+        seq = 0 if head is None else head.seq + 1
+        self._append(
+            ROOT_LANE,
+            KEY_ROTATION_RECORD_TYPE,
+            f"key_rotation:{seq}",
+            {
+                "kind": KEY_ROTATION_RECORD_TYPE,
+                "chain_spec_version": CHAIN_SPEC_VERSION,
+                "old_key_id": old,
+                "new_key_id": self.signer.key_id,
+                "algorithm": ALGORITHM,
+                "writer": self.writer_id,
+            },
+            sign=True,
+        )
+        self._since_root = max(self._since_root, 1)  # next root seals under the new key
+
     def _prepare_payload(self, payload: Mapping[str, Any]) -> str:
         check_no_floats(payload)
         if self.masker is not None:
@@ -379,16 +440,19 @@ class ChainWriter:
             pass  # identical row (same key includes the content hash) already stored
 
 
-def build_chain_writer(settings: Any, tables: TableStore, clock: Clock) -> ChainWriter:
+def build_chain_writer(
+    settings: Any, tables: TableStore, clock: Clock, files: Any = None
+) -> ChainWriter:
     """ChainWriter from Settings (signer, writer id, root cadence)."""
     from supervisor.evidence.signer import build_signer
 
     return ChainWriter(
         tables,
         clock,
-        build_signer(settings),
+        build_signer(settings, files),
         writer_id=getattr(settings, "evidence_writer_id", None),
         env=str(getattr(settings, "supervisor_mode", "dev")),
         root_every_n=int(getattr(settings, "evidence_root_every_n", 100)),
         root_every_s=int(getattr(settings, "evidence_root_every_s", 900)),
+        allow_rotation=bool(getattr(settings, "signer_allow_rotation", False)),
     )

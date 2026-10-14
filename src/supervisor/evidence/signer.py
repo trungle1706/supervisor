@@ -2,6 +2,9 @@
 
 * ``Ed25519FileSigner``: PKCS#8 PEM key file under ``data_dir`` (created on first use,
   mode 0600 on POSIX). Labelled ``key_kind = dev`` unless settings say ``managed``.
+* ``VolumeFileSigner``: the same PEM key as a write-once object on a Unity Catalog Volume,
+  through the Files API (Databricks App: ``/tmp`` is wiped on restart, so the key must not
+  live on the container disk). Created once with a refuse-overwrite put, loaded on start.
 * ``EnvSecretSigner``: private key from an environment variable (Databricks App service
   principal: the platform injects the value; the app never writes it anywhere).
   Accepted formats: PKCS#8 PEM text, or base64 / hex of the raw 32-byte Ed25519 seed.
@@ -20,7 +23,7 @@ import binascii
 import hashlib
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -100,6 +103,37 @@ class Ed25519FileSigner(_Ed25519Signer):
         super().__init__(key, "managed" if managed else "dev")
 
 
+class VolumeFileSigner(_Ed25519Signer):
+    """Ed25519 key kept as a write-once PKCS#8 PEM object on a UC Volume (Files API).
+
+    ``files`` is a :class:`supervisor.databricks.files.VolumeFiles`. The key is created once
+    (exclusive put); on every later start it is loaded. If two starts race, the loser
+    reloads the winner's key. The key is never logged."""
+
+    def __init__(self, files: Any, key_path: str, *, managed: bool = False) -> None:
+        self.key_path = str(key_path).replace("\\", "/")
+        pem = self._load_or_create(files)
+        super().__init__(_load_pem_private(pem, self.key_path), "managed" if managed else "dev")
+
+    def _load_or_create(self, files: Any) -> bytes:
+        from supervisor.databricks.files import VolumeError, volume_root
+
+        try:
+            volume_root(self.key_path)  # validates /Volumes/c/s/v/...
+            if files.exists(self.key_path):
+                return bytes(files.read(self.key_path))
+            pem = _private_pem(Ed25519PrivateKey.generate())
+            try:
+                files.put_new(self.key_path, pem)
+            except VolumeError:
+                if not files.exists(self.key_path):
+                    raise
+                return bytes(files.read(self.key_path))  # lost a start-up race
+            return pem
+        except VolumeError as exc:
+            raise SignerError(f"signing key on the Volume is not usable: {exc}") from exc
+
+
 class EnvSecretSigner(_Ed25519Signer):
     """Ed25519 key read from an environment variable. The value is never logged."""
 
@@ -141,12 +175,16 @@ def _parse_secret(value: str, where: str) -> Ed25519PrivateKey:
     return Ed25519PrivateKey.from_private_bytes(raw)
 
 
-def _write_private_key(path: Path, key: Ed25519PrivateKey) -> None:
-    pem = key.private_bytes(
+def _private_pem(key: Ed25519PrivateKey) -> bytes:
+    return key.private_bytes(
         serialization.Encoding.PEM,
         serialization.PrivateFormat.PKCS8,
         serialization.NoEncryption(),
     )
+
+
+def _write_private_key(path: Path, key: Ed25519PrivateKey) -> None:
+    pem = _private_pem(key)
     path.parent.mkdir(parents=True, exist_ok=True)
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
     fd = os.open(path, flags, 0o600)
@@ -169,14 +207,29 @@ def generate_seed_b64() -> str:
     return base64.b64encode(raw).decode("ascii")
 
 
-def build_signer(settings: object) -> _Ed25519Signer:
-    """Signer from Settings (``SIGNER_KIND`` = ed25519_file | env)."""
+def build_signer(settings: object, files: Any = None) -> _Ed25519Signer:
+    """Signer from Settings (``SIGNER_KIND`` = ed25519_file | env | uc_volume).
+
+    ``files`` (a ``VolumeFiles``) is used by ``uc_volume`` only; default: from settings."""
     kind = getattr(settings, "signer_kind", "ed25519_file")
     managed = bool(getattr(settings, "signer_key_managed", False))
     if kind == "env":
         return EnvSecretSigner(
             getattr(settings, "signer_env_var", "SUPERVISOR_SIGNING_KEY"), managed=managed
         )
+    if kind == "uc_volume":
+        path = getattr(settings, "signer_key_path", None)
+        if path is None:
+            raise SignerError("SIGNER_KEY_PATH is not set")
+        if not str(path).replace("\\", "/").startswith("/Volumes/"):
+            raise SignerError(
+                "SIGNER_KIND=uc_volume needs SIGNER_KEY_PATH=/Volumes/<catalog>/<schema>/<volume>/..."  # noqa: E501
+            )
+        if files is None:
+            from supervisor.databricks.files import make_files
+
+            files = make_files(settings)
+        return VolumeFileSigner(files, str(path), managed=managed)
     if kind == "ed25519_file":
         path = getattr(settings, "signer_key_path", None)
         if path is None:

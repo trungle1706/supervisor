@@ -160,6 +160,47 @@ def _check_paths(s: Settings) -> Check:
     return Check("OK", "paths absolute", f"data_dir={s.data_dir}")
 
 
+def _check_signer_durable(s: Settings) -> Check | None:
+    """databricks_app: a signing key on the container disk is wiped on restart."""
+    if s.supervisor_mode != "databricks_app" or s.signer_kind == "env":
+        return None
+    if _is_volume(s.signer_key_path):
+        return Check("OK", "signer key storage", f"key on a Volume: {s.signer_key_path}")
+    return Check(
+        "FAIL",
+        "signer key storage",
+        f"SIGNER_KEY_PATH {s.signer_key_path} is on the container disk (wiped on every App "
+        "restart: a new key each time, earlier signed roots no longer verify)",
+        "in app.yaml set SIGNER_KIND=uc_volume and "
+        "SIGNER_KEY_PATH=/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/"
+        "supervisor/keys/evidence_ed25519.pem, then redeploy",
+    )
+
+
+def _check_signer_volume(s: Settings, client: Any) -> Check | None:
+    """uc_volume signer: the key object exists, or a probe object can be created next to it."""
+    if s.signer_kind != "uc_volume":
+        return None
+    from supervisor.databricks.files import VolumeFiles
+
+    path = str(s.signer_key_path).replace("\\", "/")
+    vf = VolumeFiles(client.files)
+    probe = f"{path.rsplit('/', 1)[0]}/.preflight-key-{uuid.uuid4().hex[:8]}"
+    try:
+        if vf.exists(path):
+            return Check("OK", "signer key", f"key exists on the Volume: {path}")
+        vf.put_new(probe, b"preflight")
+        vf.delete(probe)
+    except Exception as exc:  # noqa: BLE001
+        return Check(
+            "FAIL",
+            "signer key",
+            f"{path}: {_err(exc)}",
+            "create the volume and grant READ VOLUME, WRITE VOLUME to this identity",
+        )
+    return Check("OK", "signer key", f"key will be created on first start: {path}")
+
+
 def _check_extras() -> list[Check]:
     out = []
     for extra, modules in EXTRAS.items():
@@ -554,6 +595,9 @@ def databricks_checks(
     vol = _check_volume(s, client)
     if vol is not None:
         out.append(vol)
+    key = _check_signer_volume(s, client)
+    if key is not None:
+        out.append(key)
     return out
 
 
@@ -577,6 +621,9 @@ def run_checks(
         )
     )
     checks.append(_check_paths(settings))
+    signer = _check_signer_durable(settings)
+    if signer is not None:
+        checks.append(signer)
     checks.extend(_check_extras())
     checks.append(_check_llm(settings))
     checks.extend(databricks_checks(settings, client_factory=client_factory, cli=cli))
