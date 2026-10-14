@@ -145,7 +145,7 @@ class Settings(BaseSettings):
     judge_t2_sample_bp: int = Field(default=200, ge=0, le=10000)  # random Tier 2 sample
     judge_t1_threshold_bp: int = Field(default=5000, ge=0, le=10000)  # escalate to Tier 2
     judge_t2_threshold_bp: int = Field(default=5000, ge=0, le=10000)  # Tier 2 confirms
-    judge_disagree_bp: int = Field(default=3000, ge=0, le=10000)
+    judge_disagree_bp: int = Field(default=3000, ge=0, le=10000)  # gap logged as large_gap
     judge_k_suspicious: int = Field(default=3, ge=1)  # K flags in window -> open_case high
     judge_window_s: int = Field(default=3600, ge=1)
     judge_timeout_s: int = Field(default=120, ge=1)

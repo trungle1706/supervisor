@@ -88,6 +88,10 @@ def _field(event: Mapping[str, Any] | BaseModel, name: str) -> Any:
     return event.get(name)
 
 
+def _mask_opt(masker: Masker, value: Any) -> str | None:
+    return None if value is None else escape_data(masker.mask(str(value)))
+
+
 def escape_data(text: str) -> str:
     """Neutralise delimiter look-alikes and control characters inside data."""
     text = _CONTROL.sub(" ", text)
@@ -131,8 +135,8 @@ def render_transcript(
             "type": _field(ev, "event_type"),
             "agent": _field(ev, "agent_id"),
             "caller": _field(ev, "caller_agent_id"),
-            "tool": _field(ev, "tool_name"),
-            "status": _field(ev, "status"),
+            "tool": _mask_opt(masker, _field(ev, "tool_name")),
+            "status": _mask_opt(masker, _field(ev, "status")),
             "amount_minor": _field(ev, "amount_minor"),
             "currency": _field(ev, "currency"),
             "args": escape_data(args_m) if args_m is not None else None,
@@ -239,7 +243,7 @@ def build_messages(
     )
     user = templates.USER_TEMPLATE.format(
         agent_id=escape_data(masker.mask(agent_id)),
-        agent_version=escape_data(agent_version or "unknown"),
+        agent_version=escape_data(masker.mask(agent_version or "unknown")),
         n_events=len(events),
         truncation_note=note,
         nonce=nonce,

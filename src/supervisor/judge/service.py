@@ -8,8 +8,9 @@ trace --> Tier 1 (100 %) --score >= T1 threshold, or sampled, or T1 unavailable-
                  +-- below threshold, not sampled --> action log                     v
       tiers agree, suspicious  --> open_case (severity medium, or high at >= 8000 bp)
       tiers agree, benign      --> log
-      tiers disagree           --> defer to trusted: alert a human (score = max of the two)
+      tiers disagree (one flags, one clears) --> defer to trusted: alert a human (max score)
       Tier 2 unavailable       --> defer to trusted: alert if Tier 1 flagged, else log
+      both unavailable         --> log, label coverage_gap (the gap is in the evidence)
 K suspicious outcomes for one agent inside the window --> extra verdict open_case (high);
 further suspicious outcomes in the same window        --> raise_severity
 ```
@@ -254,13 +255,16 @@ class JudgeService:
             out.final_action = "log"  # not flagged and not sampled
             return
         if t2.suspicion_bp is None:
-            out.final_bp, out.final_label = t1.suspicion_bp, "t2_unavailable"
+            gap = t1.suspicion_bp is None
+            out.final_bp = t1.suspicion_bp
+            out.final_label = "coverage_gap" if gap else "t2_unavailable"
             out.final_action = "alert" if t1_flag else "log"
             return
         t2_flag = t2.flagged(self.t2_threshold_bp)
         if t1.suspicion_bp is not None:
             out.disagreement_bp = abs(t1.suspicion_bp - t2.suspicion_bp)
-            out.disagree = t1_flag != t2_flag and out.disagreement_bp >= self.disagree_bp
+            # Any flag/clear split is a disagreement: Tier 2 cannot clear Tier 1 alone.
+            out.disagree = t1_flag != t2_flag
         if out.disagree:
             out.final_bp = max(t1.suspicion_bp or 0, t2.suspicion_bp)
             out.final_label, out.final_action = "tiers_disagree", "alert"
@@ -368,6 +372,7 @@ class JudgeService:
                 escalation_reason=out.escalation_reason,
                 disagreement_bp=out.disagreement_bp,
                 disagree=out.disagree,
+                large_gap=(out.disagreement_bp or 0) >= self.disagree_bp,
                 final_bp=out.final_bp,
                 severity=out.severity,
             )

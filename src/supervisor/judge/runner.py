@@ -77,6 +77,19 @@ class JudgeCall:
         return self.suspicion_bp is not None and self.suspicion_bp >= threshold_bp
 
 
+def _code(exc: BaseException) -> str:
+    """Fixed error code for evidence: the exception class only, never its message
+    (messages can echo model output, the canary or customer text)."""
+    return type(exc).__name__
+
+
+def _raw_leaks(raw: Any, canary: str) -> bool:
+    try:
+        return canary_leaked(raw if isinstance(raw, Mapping) else {"raw": str(raw)}, canary)
+    except (TypeError, ValueError):
+        return canary.split("-", 1)[-1].lower() in str(raw).lower()
+
+
 class TierJudge:
     """Base for :class:`Tier1Judge` and :class:`Tier2Judge`."""
 
@@ -147,22 +160,26 @@ class TierJudge:
             try:
                 raw = m.chat.complete_json(prompt.messages, OUTPUT_SCHEMA, self.timeout_s)
             except TruncatedError as exc:
-                status, error = "truncated", str(exc)[:200]
+                status, error = "truncated", _code(exc)
                 max_chars = max(MIN_INPUT_CHARS, max_chars // 2)  # shorter input next time
                 continue
             except LLMTimeoutError as exc:
-                status, error = "unavailable", f"timeout: {str(exc)[:180]}"
+                status, error = "unavailable", _code(exc)
                 continue
             except LLMOutputError as exc:
-                status, error = "invalid_output", str(exc)[:200]
+                status, error = "invalid_output", _code(exc)
                 continue
             except LLMError as exc:
-                status, error = "unavailable", str(exc)[:200]
+                status, error = "unavailable", _code(exc)
                 continue
+            if _raw_leaks(raw, prompt.canary):
+                # Checked before the schema: a fooled model may put the canary anywhere.
+                latency = int((self._monotonic() - start) * 1000)
+                return self._canary_call(prompt, base, attempts, latency, tokens_in)
             try:
                 out = validate_output(raw)
             except JudgeOutputError as exc:
-                status, error = "invalid_output", str(exc)[:200]
+                status, error = "invalid_output", _code(exc)
                 continue
             latency = int((self._monotonic() - start) * 1000)
             tokens_out = len(json.dumps(raw, ensure_ascii=False)) // 4
@@ -194,6 +211,26 @@ class TierJudge:
             rationale_masked=f"judge reply rejected ({status}); scored as suspicious",
         )
 
+    def _canary_call(
+        self, prompt: Any, base: dict[str, Any], attempts: int, latency: int, tokens_in: int
+    ) -> JudgeCall:
+        # Never store the leaked reply: it holds the canary and attacker-chosen text.
+        return JudgeCall(
+            **base,
+            prompt_hash=prompt.prompt_hash,
+            marker_hits=prompt.transcript.marker_hits,
+            attempts=attempts,
+            latency_ms=latency,
+            tokens_in_est=tokens_in,
+            truncated_chars=prompt.transcript.truncated_chars,
+            status="canary_leak",
+            suspicion_bp=FAIL_SUSPICIOUS_BP,
+            label="judge_manipulation",
+            rationale_masked="judge reply contained the canary token: it followed "
+            "instructions in the data; reply discarded",
+            policy_refs=("JDG-01",),
+        )
+
     def _accept(
         self,
         out: dict[str, Any],
@@ -215,16 +252,7 @@ class TierJudge:
             "truncated_chars": prompt.transcript.truncated_chars,
         }
         if canary_leaked(out, prompt.canary):
-            # Never store the leaked reply: it holds the canary and attacker-chosen text.
-            return JudgeCall(
-                **common,
-                status="canary_leak",
-                suspicion_bp=FAIL_SUSPICIOUS_BP,
-                label="judge_manipulation",
-                rationale_masked="judge reply contained the canary token: it followed "
-                "instructions in the data; reply discarded",
-                policy_refs=("JDG-01",),
-            )
+            return self._canary_call(prompt, base, attempts, latency, tokens_in)
         spans, dropped = ground_spans(out["evidence_spans"], prompt.transcript.masked_texts)
         score, label, floored = out["suspicion_bp"], out["label"], False
         refs = tuple(out["policy_refs"])

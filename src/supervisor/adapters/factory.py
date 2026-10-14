@@ -80,7 +80,9 @@ def make_judge_chat_model(settings: Settings, role: str) -> ChatModel:
     if not model or settings.llm_mock:
         from supervisor.judge.mockjudge import MockJudgeChat
 
-        tier = 2 if role == "t2" else 1
+        tier = (
+            settings.judge_challenger_tier if role == "challenger" else (2 if role == "t2" else 1)
+        )
         return MockJudgeChat(
             tier=tier,
             family=family or "mock",
