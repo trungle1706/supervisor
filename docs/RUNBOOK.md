@@ -48,16 +48,27 @@ notepad .env
 
 Notepad warning: in "Save as", set "Save as type" to "All files". If not, Notepad saves `.env.txt` and the settings are ignored.
 
+Supervisor reads `.env` from the repo folder (not from the current folder). To use another file: `set SUPERVISOR_ENV_FILE=C:\path\to\file.env`. Relative paths in `.env` are resolved against the repo folder.
+
 | Variable | Value | Note |
 |---|---|---|
-| `SSL_OS_TRUSTSTORE` | `1` | Use the Windows trust store. Needed behind TLS inspection. |
-| `SUPERVISOR_MODE` | `laptop` or `databricks_app` or `dev` | Default is `laptop`. |
-| `DATA_DIR` | Absolute path, for example `C:\Users\FILL-ME-user\supervisor-data` | Holds SQLite, keys and exports. |
-| `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` | Must be loopback. A remote URL fails at start unless `LLM_ALLOW_REMOTE=1`. |
+| `SUPERVISOR_MODE` | `laptop`, `databricks_app` or `dev` | Default `laptop`. |
+| `DATA_DIR` | for example `data\local` or `C:\Users\FILL-ME-user\supervisor-data` | Holds the SQLite file, keys and exports. |
+| `SUPERVISOR_HOST`, `SUPERVISOR_PORT` | `127.0.0.1`, `8000` | Where `serve` listens. |
+| `SSL_OS_TRUSTSTORE` | `1` on the bank laptop | Use the Windows trust store (TLS inspection). |
+| `SQL_BACKEND` | `auto`, `sqlite` or `databricks_rest` | `auto` = SQLite on the laptop, Delta on the App. |
+| `TABLE_PREFIX` | empty, or lowercase letters, digits, `_` | Prefix for every table name. |
+| `DATABRICKS_HOST` | `https://FILL-ME-workspace-host` | Shown in every Databricks error message. |
+| `DATABRICKS_CONFIG_PROFILE` | `FILL-ME-profile` | The profile name you used in `databricks auth login`. |
+| `DATABRICKS_AUTH_TYPE` | `databricks-cli` | Laptop only. Uses the CLI OAuth token cache. |
+| `DATABRICKS_WAREHOUSE_ID` or `DATABRICKS_WAREHOUSE_NAME` | `FILL-ME-...` | The name is resolved to an id at start. |
+| `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA` | `FILL-ME-catalog`, `FILL-ME-schema` | Your writable schema. All Supervisor tables go here. |
+| `DATABRICKS_RETRY_TIMEOUT_S` | `60` to `120` (default `90`) | SDK retry budget. |
+| `DATABRICKS_STATEMENT_DEADLINE_S` | default `120` | Overall time per SQL statement. A cold warehouse needs about 30 s. |
+| `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` | Must be loopback unless `LLM_ALLOW_REMOTE=1`. Empty = mock judges. |
+| `LLM_MODEL`, `LLM_TIMEOUT_S` | `qwen3:4b`, `600` | The model name must equal an `ollama list` name. |
 
-Do not set `DATABRICKS_TOKEN`. Supervisor uses OAuth only. Preflight fails if the variable is set.
-
-(TODO WP1: full list of variables from `Settings`.)
+Do not set `DATABRICKS_TOKEN`. Supervisor uses OAuth only. Preflight and every command fail if the variable is set (in the shell or in `.env`).
 
 ## 4. Preflight
 
@@ -94,7 +105,7 @@ A browser window opens for SSO. The refresh token expires fast. Run the login ag
 
 ## 7. Databricks App deploy
 
-1. Copy `databricks.yml`. Edit the `FILL-ME-...` values in your local copy only: workspace host, SQL warehouse id, serving endpoint, catalog, schema, app name suffix. Do not commit real values.
+1. In your local copy, replace every `FILL-ME-...` value. `databricks.yml`: workspace host, SQL warehouse id, serving endpoint name, app name suffix (your user name). `app.yaml`: `DATABRICKS_CATALOG` and `DATABRICKS_SCHEMA`. Do not commit real values. `bundle validate` fails while any `FILL-ME` value is left.
 2. Export the requirements file:
 
 ```

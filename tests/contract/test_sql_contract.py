@@ -97,6 +97,13 @@ def test_append_batches_many_rows(adapters: Adapters) -> None:
     assert got == [{"n": n}]
 
 
+def test_append_rejects_duplicate_key(adapters: Adapters) -> None:
+    adapters.tables.append("agent_event", [_event(1)])
+    with pytest.raises(DuplicateKeyError):
+        adapters.tables.append("agent_event", [_event(1)])
+    assert len(adapters.tables.query("agent_event")) == 1
+
+
 def test_append_only_tables_reject_update_and_delete(adapters: Adapters) -> None:
     adapters.tables.append("agent_event", [_event(1)])
     t = adapters.executor.qualify("agent_event")

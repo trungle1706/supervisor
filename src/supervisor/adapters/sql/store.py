@@ -93,7 +93,21 @@ class _Base:
 class SqlTableStore(_Base):
     """Append-only tables. There is no update or delete method on purpose."""
 
-    def append(self, table: str, rows: Iterable[Mapping[str, Any] | BaseModel]) -> int:
+    def append(
+        self,
+        table: str,
+        rows: Iterable[Mapping[str, Any] | BaseModel],
+        *,
+        dedupe: bool = True,
+    ) -> int:
+        """Append rows. A row whose primary key exists raises DuplicateKeyError.
+
+        SQLite enforces the primary key. Delta does not, so on Databricks the
+        insert is an insert-only MERGE (allowed on delta.appendOnly tables) and a
+        short count means a duplicate (the other rows of that batch are kept).
+        On SQLite a duplicate rejects the whole statement. ``dedupe=False`` uses a plain INSERT on
+        Databricks (faster, at-least-once; duplicates are not detected).
+        """
         t = self._table(table)
         if not t.append_only:
             raise AppendOnlyError(f"{table} is a state table; use StateStore")
@@ -101,26 +115,40 @@ class SqlTableStore(_Base):
         if not data:
             return 0
         cols = t.column_names
+        target = self.x.qualify(t.name)
         per_stmt = max(1, self.x.max_params // len(cols))
         total = 0
         for start in range(0, len(data), per_stmt):
             batch = data[start : start + per_stmt]
-            values, params, types = [], {}, {}
+            params: dict[str, Any] = {}
+            types: dict[str, str] = {}
             for i, row in enumerate(batch):
-                names = []
                 for c in t.columns:
-                    p = f"{c.name}_{i}"
-                    names.append(f":{p}")
-                    params[p] = row[c.name]
-                    types[p] = c.type
-                values.append("(" + ", ".join(names) + ")")
-            sql = f"INSERT INTO {self.x.qualify(t.name)} ({', '.join(cols)}) VALUES " + ", ".join(
-                values
-            )
-            try:
-                n = self.x.execute(sql, params, param_types=types)
-            except DuplicateKeyError:
-                raise
+                    params[f"{c.name}_{i}"] = row[c.name]
+                    types[f"{c.name}_{i}"] = c.type
+            if self.x.dialect == "databricks" and dedupe:
+                selects = [
+                    "SELECT " + ", ".join(f":{c}_{i} AS {c}" for c in cols)
+                    for i in range(len(batch))
+                ]
+                on = " AND ".join(f"tgt.{k} = src.{k}" for k in t.primary_key)
+                sql = (
+                    f"MERGE INTO {target} AS tgt USING ("
+                    + " UNION ALL ".join(selects)
+                    + f") AS src ON {on} WHEN NOT MATCHED THEN INSERT ({', '.join(cols)}) "
+                    + f"VALUES ({', '.join('src.' + c for c in cols)})"
+                )
+            else:
+                values = [
+                    "(" + ", ".join(f":{c}_{i}" for c in cols) + ")" for i in range(len(batch))
+                ]
+                sql = f"INSERT INTO {target} ({', '.join(cols)}) VALUES " + ", ".join(values)
+            n = self.x.execute(sql, params, param_types=types)
+            if dedupe and 0 <= n < len(batch):
+                raise DuplicateKeyError(
+                    f"{table}: {len(batch) - n} of {len(batch)} rows already exist "
+                    f"(primary key {list(t.primary_key)}); the others were appended"
+                )
             total += n if n >= 0 else len(batch)
         return total
 
@@ -215,15 +243,19 @@ class SqlStateStore(_Base):
         types.update({f"k_{k}": t.column(k).type for k in key}, k_expected="int")
         sql = f"UPDATE {self.x.qualify(t.name)} SET {', '.join(sets)} WHERE {where}"
         n = self.x.execute(sql, params, param_types=types)
-        if n == 0 or n == -1:
+        if n < 0:
+            raise SqlError(
+                f"{table} {key}: the backend did not report affected rows, so the "
+                f"optimistic concurrency check cannot be proven ({self.x.describe()})"
+            )
+        if n == 0:
             current = self.get(table, key)
             if current is None:
                 raise NotFoundError(f"{table} {key} does not exist")
-            if n == 0 or current["row_version"] != expected_version + 1:
-                raise ConcurrencyError(
-                    f"{table} {key}: expected row_version {expected_version}, "
-                    f"found {current['row_version']}; re-read and retry"
-                )
+            raise ConcurrencyError(
+                f"{table} {key}: expected row_version {expected_version}, "
+                f"found {current['row_version']}; re-read and retry"
+            )
         row = self.get(table, key)
         assert row is not None
         return row

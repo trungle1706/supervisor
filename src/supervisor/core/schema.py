@@ -18,6 +18,8 @@ import yaml
 
 from supervisor.core.canonical import canonical_json, format_ts, parse_ts, sha256_bytes_hex
 
+# The app runs from source (laptop: repo checkout; App: source_code_path ./ with
+# PYTHONPATH=src). A built wheel would NOT contain schema/model.yaml.
 MODEL_PATH = Path(__file__).resolve().parents[3] / "schema" / "model.yaml"
 DDL_DIR = MODEL_PATH.parent / "ddl"
 
@@ -54,7 +56,7 @@ DATABRICKS_TYPE_NAMES = {
     "BYTE": "int",
     "DOUBLE": "float",
     "FLOAT": "float",
-    "DECIMAL": "float",
+    "DECIMAL": "string",  # never float: could be money; caller casts explicitly
     "BOOLEAN": "bool",
     "TIMESTAMP": "timestamp",
     "TIMESTAMP_NTZ": "timestamp",

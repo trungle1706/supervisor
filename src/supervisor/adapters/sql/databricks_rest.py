@@ -30,7 +30,9 @@ from supervisor.core.schema import DATABRICKS_TYPE_NAMES, from_db, to_param
 if TYPE_CHECKING:
     from databricks.sdk import WorkspaceClient
 
-WAIT_TIMEOUT = "30s"  # API allows 5-50 s; we poll after that
+# Time budget per statement: the first call waits at most min(30 s, deadline/4) server side;
+# SDK transport retries are capped in Config (60-120 s). The deadline is checked again as
+# soon as the first call returns, so a slow first call is cancelled, not polled further.
 TERMINAL = {"SUCCEEDED", "FAILED", "CANCELED", "CLOSED"}
 LOGIN_HINT = "databricks auth login --host {host} --profile {profile}"
 
@@ -117,6 +119,14 @@ class DatabricksRestExecutor:
             return SqlError(where + " -- fix: " + LOGIN_HINT.format(host=self.host, profile="<p>"))
         return SqlError(where)
 
+    def _cancel(self, statement_id: str | None) -> None:
+        if not statement_id:
+            return
+        try:
+            self._api.cancel_execution(statement_id)
+        except Exception:  # noqa: S110 - best effort; the timeout error matters more
+            pass
+
     def _run(
         self,
         sql: str,
@@ -138,7 +148,7 @@ class DatabricksRestExecutor:
                 catalog=self.catalog,
                 schema=self.schema,
                 parameters=self._parameters(params, param_types) or None,
-                wait_timeout=WAIT_TIMEOUT,
+                wait_timeout=f"{max(5, min(30, int(self.deadline_s) // 4))}s",
                 on_wait_timeout=ExecuteStatementRequestOnWaitTimeout.CONTINUE,
                 disposition=Disposition.INLINE,
                 format=Format.JSON_ARRAY,
@@ -151,10 +161,7 @@ class DatabricksRestExecutor:
         delay = 0.5
         while _state_name(resp.status.state) not in TERMINAL:
             if self._monotonic() - start > self.deadline_s:
-                try:
-                    self._api.cancel_execution(resp.statement_id)
-                except Exception:  # noqa: S110 - best effort; the timeout error matters
-                    pass
+                self._cancel(resp.statement_id)
                 raise SqlError(
                     f"Databricks SQL timed out after {self.deadline_s:.0f} s on "
                     f"{self.describe()} (statement cancelled). A cold warehouse takes "
@@ -189,9 +196,10 @@ class DatabricksRestExecutor:
             if nxt is None:
                 break
             if self._monotonic() - start > self.deadline_s:
+                self._cancel(resp.statement_id)
                 raise SqlError(
                     f"Databricks SQL result fetch exceeded {self.deadline_s:.0f} s on "
-                    f"{self.describe()}"
+                    f"{self.describe()} (statement cancelled)"
                 )
             chunk = self._api.get_statement_result_chunk_n(resp.statement_id, nxt)
         return columns, rows

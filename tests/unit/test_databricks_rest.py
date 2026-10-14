@@ -535,3 +535,106 @@ def test_pat_auth_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_module_exposes_login_hint() -> None:
     assert "databricks auth login" in databricks_rest.LOGIN_HINT
+
+
+# ---------------------------------------------------------------- review fixes
+
+
+def _event_row(i: int) -> dict[str, Any]:
+    return {
+        "event_id": f"ev-{i:04d}",
+        "ts": T0,
+        "trace_id": "t",
+        "span_id": f"s{i}",
+        "agent_id": "agent-001",
+        "event_type": "tool_call",
+        "env": "prod",
+        "source": "otel",
+        "capture_level": "masked",
+    }
+
+
+def test_append_dedupes_with_insert_only_merge() -> None:
+    fake = FakeStatementExecution().add(dml_result(2))
+    assert SqlTableStore(make(fake)).append("agent_event", [_event_row(1), _event_row(2)]) == 2
+    stmt = exec_calls(fake)[0]["statement"]
+    assert stmt.startswith("MERGE INTO `cat`.`sch`.`agent_event`")
+    assert "WHEN NOT MATCHED THEN INSERT" in stmt and "UNION ALL" in stmt
+    assert "WHEN MATCHED" not in stmt  # insert-only: allowed on delta.appendOnly tables
+
+
+def test_append_duplicate_detected_by_short_count() -> None:
+    fake = FakeStatementExecution().add(dml_result(1))
+    with pytest.raises(DuplicateKeyError, match="1 of 2"):
+        SqlTableStore(make(fake)).append("agent_event", [_event_row(1), _event_row(2)])
+
+
+def test_append_without_dedupe_uses_plain_insert() -> None:
+    fake = FakeStatementExecution().add(dml_result(1))
+    SqlTableStore(make(fake)).append("agent_event", [_event_row(1)], dedupe=False)
+    assert exec_calls(fake)[0]["statement"].startswith("INSERT INTO `cat`.`sch`.`agent_event`")
+
+
+def test_slow_first_call_is_cancelled_not_polled() -> None:
+    ft = FakeTime()
+
+    class SlowFake(FakeStatementExecution):
+        def execute_statement(self, statement: str, warehouse_id: str, **kw: Any) -> Any:
+            ft.now += 125.0  # SDK retries ate the whole budget
+            return super().execute_statement(statement, warehouse_id, **kw)
+
+    fake = SlowFake().add([pending(), pending()])
+    with pytest.raises(SqlError, match="timed out"):
+        make(fake, ft).query("SELECT 1")
+    assert fake.cancelled and ft.sleeps == []
+
+
+def test_wait_timeout_bounded_by_deadline() -> None:
+    final, _ = succeeded([("x", "LONG")], [["1"]])
+    fake = FakeStatementExecution().add(final)
+    make(fake, deadline_s=20.0).query("SELECT 1 AS x")
+    assert exec_calls(fake)[0]["wait_timeout"] == "5s"
+
+
+def test_chunk_deadline_cancels() -> None:
+    ft = FakeTime()
+    final, chunks = succeeded([("x", "LONG")], [["1"], ["2"]], chunk_size=1)
+    fake = FakeStatementExecution().add(final, chunks=chunks)
+    orig = fake.execute_statement
+
+    def slow(statement: str, warehouse_id: str, **kw: Any) -> Any:
+        resp = orig(statement, warehouse_id, **kw)
+        ft.now += 130.0
+        return resp
+
+    fake.execute_statement = slow  # type: ignore[method-assign]
+    with pytest.raises(SqlError, match="cancelled"):
+        make(fake, ft).query("SELECT x")
+    assert fake.cancelled
+
+
+def test_update_with_unknown_count_is_refused() -> None:
+    fake = FakeStatementExecution().add({"status": {"state": "SUCCEEDED"}})
+    store = SqlStateStore(make(fake), FixedClock(T0))
+    with pytest.raises(SqlError, match="cannot be proven"):
+        store.update("agent", {"agent_id": "a"}, {"gate_state": "PAUSED"}, 1)
+
+
+def test_decimal_fallback_is_not_float() -> None:
+    final, _ = succeeded([("amt", "DECIMAL")], [["12345678901234567890.01"]])
+    fake = FakeStatementExecution().add(final)
+    assert make(fake).query("SELECT amt") == [{"amt": "12345678901234567890.01"}]
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("2026-01-01T00:00:00.123Z", datetime(2026, 1, 1, 0, 0, 0, 123000, tzinfo=UTC)),
+        ("2026-01-01T00:00:00Z", datetime(2026, 1, 1, tzinfo=UTC)),
+        ("2026-01-01 07:00:00+07:00", datetime(2026, 1, 1, tzinfo=UTC)),
+    ],
+)
+def test_timestamp_strings_from_rest(raw: str, expected: datetime) -> None:
+    final, _ = succeeded([("ts", "TIMESTAMP")], [[raw]])
+    fake = FakeStatementExecution().add(final)
+    assert make(fake).query("SELECT ts") == [{"ts": expected}]

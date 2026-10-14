@@ -55,3 +55,15 @@ def test_model_validation(snippet: str, error: str) -> None:
 
 def test_model_path_is_absolute() -> None:
     assert MODEL_PATH.is_absolute() and MODEL_PATH.exists()
+
+
+def test_databricks_ddl_substitution_matches_committed_file() -> None:
+    from supervisor.core.schema import databricks_statements
+
+    model = load_model()
+    committed = (DDL_DIR / "databricks.sql").read_text(encoding="utf-8")
+    rendered = databricks_statements(model, catalog="main", schema="sup")
+    for stmt in rendered:
+        assert "${" not in stmt
+        assert stmt.replace("`main`.`sup`.", "`${catalog}`.`${schema}`.") in committed
+    assert len(rendered) == len(model.tables)

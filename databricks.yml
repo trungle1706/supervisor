@@ -11,6 +11,8 @@ sync:
     - runs
     - tests
     - docs/handoff
+    - docs/BANK_DEPLOY_GUIDE.md
+    - .env
 
 resources:
   apps:

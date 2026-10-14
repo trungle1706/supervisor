@@ -5,7 +5,10 @@ Rules enforced at load:
 
 * ``DATABRICKS_TOKEN`` set anywhere (env or .env) -> hard failure (OAuth only).
 * ``LLM_BASE_URL`` must be loopback unless ``LLM_ALLOW_REMOTE=1``.
-* Every path is resolved to an absolute path once, here.
+* Every path is resolved to an absolute path once, here. Relative paths are
+  resolved against the repo root (not the current directory), so the same
+  database is used wherever the command starts.
+* ``.env`` is read from the repo root, or from ``SUPERVISOR_ENV_FILE`` if set.
 * Values that start with ``FILL-ME`` count as "not configured".
 """
 
@@ -45,6 +48,12 @@ def is_loopback_url(url: str) -> bool:
         return False
 
 
+def env_file_path() -> Path:
+    """The .env file Settings reads: SUPERVISOR_ENV_FILE or <repo root>/.env."""
+    custom = os.environ.get("SUPERVISOR_ENV_FILE")
+    return Path(os.path.abspath(custom)) if custom else REPO_ROOT / ".env"
+
+
 def _env_file_keys(path: Path) -> set[str]:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -63,7 +72,7 @@ def _env_file_keys(path: Path) -> set[str]:
 
 def check_no_databricks_token(env_file: Path | None = None) -> None:
     """Raise ConfigError if DATABRICKS_TOKEN is set. Never shows the value."""
-    env_file = env_file or Path.cwd() / ".env"
+    env_file = env_file or env_file_path()
     if FORBIDDEN_ENV in os.environ:
         raise ConfigError(
             "DATABRICKS_TOKEN is set in the environment. Personal access tokens are not "
@@ -76,7 +85,7 @@ def check_no_databricks_token(env_file: Path | None = None) -> None:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=None,  # set per load in load_settings()
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
@@ -84,8 +93,8 @@ class Settings(BaseSettings):
 
     supervisor_mode: Mode = "laptop"
     data_dir: Path = Path("data/local")
-    host: str = "127.0.0.1"
-    port: int = 8000
+    host: str = Field(default="127.0.0.1", validation_alias="SUPERVISOR_HOST")
+    port: int = Field(default=8000, validation_alias="SUPERVISOR_PORT")
     log_level: str = "INFO"
 
     # Network
@@ -121,7 +130,10 @@ class Settings(BaseSettings):
     def _absolute(cls, value: Path | None) -> Path | None:
         if value is None:
             return None
-        return Path(os.path.abspath(value.expanduser()))
+        value = value.expanduser()
+        if not value.is_absolute():
+            value = REPO_ROOT / value
+        return Path(os.path.abspath(value))
 
     @model_validator(mode="after")
     def _rules(self) -> Settings:
@@ -181,6 +193,7 @@ def _check_identifier(name: str, value: str) -> None:
 def load_settings(**overrides: object) -> Settings:
     """Load settings, enforcing the no-PAT rule first. Raises ConfigError."""
     check_no_databricks_token()
+    overrides.setdefault("_env_file", str(env_file_path()))
     try:
         return Settings(**overrides)  # type: ignore[arg-type]
     except ValidationError as exc:

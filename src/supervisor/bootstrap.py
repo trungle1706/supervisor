@@ -29,11 +29,17 @@ def _flag_from_env_file(name: str, env_file: Path) -> str | None:
     return None
 
 
+def _env_file() -> Path:
+    # Same rule as supervisor.config.env_file_path (kept import-free on purpose).
+    custom = os.environ.get("SUPERVISOR_ENV_FILE")
+    return Path(os.path.abspath(custom)) if custom else Path(__file__).resolve().parents[2] / ".env"
+
+
 def truststore_requested() -> bool:
-    """True when SSL_OS_TRUSTSTORE=1 is set in the environment or in ./.env."""
+    """True when SSL_OS_TRUSTSTORE=1 is set in the environment or in the .env file."""
     value = os.environ.get("SSL_OS_TRUSTSTORE")
     if value is None:
-        value = _flag_from_env_file("SSL_OS_TRUSTSTORE", Path.cwd() / ".env")
+        value = _flag_from_env_file("SSL_OS_TRUSTSTORE", _env_file())
     return value == "1"
 
 

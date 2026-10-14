@@ -19,21 +19,26 @@ from supervisor.core.errors import SupervisorError  # noqa: E402
 from supervisor.core.schema import (  # noqa: E402
     SchemaModel,
     databricks_statements,
+    load_model,
     sqlite_statements,
 )
 
 
 def statements_for(adapters: Adapters) -> list[str]:
-    x = adapters.executor
-    model: SchemaModel = adapters.model
-    prefix = adapters.settings.table_prefix
-    if x.dialect == "sqlite":
-        return sqlite_statements(model, prefix=prefix)
+    return statements_for_settings(adapters.settings, adapters.executor.dialect, adapters.model)
+
+
+def statements_for_settings(
+    settings: Settings, dialect: str, model: SchemaModel | None = None
+) -> list[str]:
+    model = model or load_model()
+    if dialect == "sqlite":
+        return sqlite_statements(model, prefix=settings.table_prefix)
     return databricks_statements(
         model,
-        catalog=str(adapters.settings.databricks_catalog),
-        schema=str(adapters.settings.databricks_schema),
-        prefix=prefix,
+        catalog=str(settings.databricks_catalog),
+        schema=str(settings.databricks_schema),
+        prefix=settings.table_prefix,
     )
 
 
@@ -70,11 +75,12 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     try:
         settings = load_settings()
-        adapters = build_adapters(settings)
-        if args.print:
-            for s in statements_for(adapters):
-                print(s + ";\n")
+        if args.print:  # no connection, no files created
+            dialect = "sqlite" if settings.effective_sql_backend == "sqlite" else "databricks"
+            for stmt in statements_for_settings(settings, dialect):
+                print((stmt + ";\n").encode("ascii", "backslashreplace").decode("ascii"))
             return 0
+        adapters = build_adapters(settings)
         target = adapters.executor.describe()
         result = run(settings, adapters)
     except SupervisorError as exc:
