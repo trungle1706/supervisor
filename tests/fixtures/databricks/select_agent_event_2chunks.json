@@ -1,0 +1,123 @@
+{
+  "response": {
+    "statement_id": "01ef-recorded-0001",
+    "status": {
+      "state": "SUCCEEDED"
+    },
+    "manifest": {
+      "format": "JSON_ARRAY",
+      "schema": {
+        "column_count": 6,
+        "columns": [
+          {
+            "name": "event_id",
+            "type_text": "STRING",
+            "type_name": "STRING",
+            "position": 0
+          },
+          {
+            "name": "ts",
+            "type_text": "TIMESTAMP",
+            "type_name": "TIMESTAMP",
+            "position": 1
+          },
+          {
+            "name": "agent_id",
+            "type_text": "STRING",
+            "type_name": "STRING",
+            "position": 2
+          },
+          {
+            "name": "amount_minor",
+            "type_text": "LONG",
+            "type_name": "LONG",
+            "position": 3
+          },
+          {
+            "name": "latency_ms",
+            "type_text": "LONG",
+            "type_name": "LONG",
+            "position": 4
+          },
+          {
+            "name": "args_masked",
+            "type_text": "STRING",
+            "type_name": "STRING",
+            "position": 5
+          }
+        ]
+      },
+      "total_chunk_count": 2,
+      "total_row_count": 5,
+      "truncated": false,
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "row_offset": 0,
+          "row_count": 3
+        },
+        {
+          "chunk_index": 1,
+          "row_offset": 3,
+          "row_count": 2
+        }
+      ]
+    },
+    "result": {
+      "chunk_index": 0,
+      "row_offset": 0,
+      "row_count": 3,
+      "next_chunk_index": 1,
+      "next_chunk_internal_link": "/api/2.0/sql/statements/01ef-recorded-0001/result/chunks/1",
+      "data_array": [
+        [
+          "ev-001",
+          "2026-03-01T08:15:30.123Z",
+          "agent-credit",
+          "1500000",
+          "42",
+          "Khách hàng Nguyễn Văn A chuyển khoản"
+        ],
+        [
+          "ev-002",
+          "2026-03-01T08:15:31.500Z",
+          "agent-credit",
+          null,
+          "17",
+          "Tra cứu số dư"
+        ],
+        [
+          "ev-003",
+          "2026-03-01T08:16:02.000Z",
+          "agent-kyc",
+          "25000000",
+          "88",
+          "Xác minh giấy tờ: Trần Thị Bích"
+        ]
+      ]
+    }
+  },
+  "chunk_1": {
+    "chunk_index": 1,
+    "row_offset": 3,
+    "row_count": 2,
+    "data_array": [
+      [
+        "ev-004",
+        "2026-03-01T08:17:45.250Z",
+        "agent-kyc",
+        null,
+        null,
+        "Đã đối chiếu CCCD ****1234"
+      ],
+      [
+        "ev-005",
+        "2026-03-01T08:19:00.999Z",
+        "agent-credit",
+        "990000",
+        "31",
+        "Hạn mức thẻ tín dụng"
+      ]
+    ]
+  }
+}

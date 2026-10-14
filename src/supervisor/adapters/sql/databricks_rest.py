@@ -1,0 +1,302 @@
+"""SqlExecutor over the Databricks SQL Statement Execution API (REST) via databricks-sdk.
+
+Why REST: the bank's TLS appliance drops the thrift protocol of the SQL connector.
+Rules applied here (docs/BANK_DEPLOY_GUIDE.md section 3):
+
+* every value arrives as a string; cast by schema/model.yaml types (or the result
+  manifest when no model types are given);
+* follow result chunks;
+* one overall deadline per statement (default 120 s); cancel on expiry;
+* SDK retry budget capped inside ``Config`` (60-120 s), not as a client kwarg;
+* OAuth only (CLI profile on the laptop, platform service principal on the App);
+* truststore is injected by ``supervisor.bootstrap`` before this module runs.
+"""
+
+from __future__ import annotations
+
+import time
+from collections.abc import Callable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Literal
+
+from supervisor.config import Settings, is_placeholder
+from supervisor.core.errors import (
+    AppendOnlyError,
+    ConcurrencyError,
+    ConfigError,
+    SqlError,
+)
+from supervisor.core.schema import DATABRICKS_TYPE_NAMES, from_db, to_param
+
+if TYPE_CHECKING:
+    from databricks.sdk import WorkspaceClient
+
+WAIT_TIMEOUT = "30s"  # API allows 5-50 s; we poll after that
+TERMINAL = {"SUCCEEDED", "FAILED", "CANCELED", "CLOSED"}
+LOGIN_HINT = "databricks auth login --host {host} --profile {profile}"
+
+
+def _state_name(state: Any) -> str:
+    return getattr(state, "value", None) or getattr(state, "name", None) or str(state)
+
+
+class DatabricksRestExecutor:
+    dialect: Literal["databricks"] = "databricks"
+    max_params = 250
+
+    def __init__(
+        self,
+        statement_execution: Any,
+        *,
+        warehouse_id: str,
+        catalog: str,
+        schema: str,
+        table_prefix: str = "",
+        deadline_s: float = 120.0,
+        host: str | None = None,
+        identity: str = "unknown",
+        sleep: Callable[[float], None] = time.sleep,
+        monotonic: Callable[[], float] = time.monotonic,
+    ) -> None:
+        if is_placeholder(warehouse_id):
+            raise ConfigError(
+                "DATABRICKS_WAREHOUSE_ID (or _NAME) is not configured; set it in .env or "
+                "bind the sql-warehouse resource in databricks.yml"
+            )
+        if is_placeholder(catalog) or is_placeholder(schema):
+            raise ConfigError("DATABRICKS_CATALOG and DATABRICKS_SCHEMA must be set (not FILL-ME)")
+        self._api = statement_execution
+        self.warehouse_id = warehouse_id
+        self.catalog = catalog
+        self.schema = schema
+        self.table_prefix = table_prefix
+        self.deadline_s = deadline_s
+        self.host = host
+        self.identity = identity
+        self._sleep = sleep
+        self._monotonic = monotonic
+
+    # ------------------------------------------------------------------ info
+    def describe(self) -> str:
+        return (
+            f"databricks host={self.host or '(default)'} warehouse={self.warehouse_id} "
+            f"schema={self.catalog}.{self.schema} transport=rest identity={self.identity}"
+        )
+
+    def qualify(self, table: str) -> str:
+        return f"`{self.catalog}`.`{self.schema}`.`{self.table_prefix}{table}`"
+
+    # ------------------------------------------------------------------ core
+    def _parameters(
+        self, params: Mapping[str, Any] | None, param_types: Mapping[str, str] | None
+    ) -> list[Any]:
+        from databricks.sdk.service.sql import StatementParameterListItem
+
+        out = []
+        for name, value in (params or {}).items():
+            text, db_type = to_param(value, (param_types or {}).get(name))
+            out.append(StatementParameterListItem(name=name, value=text, type=db_type))
+        return out
+
+    def _error(self, sql: str, state: str, message: str, sql_state: str | None) -> SqlError:
+        where = (
+            f"Databricks SQL {state} on {self.describe()}: {message}"
+            f"{f' (sql_state={sql_state})' if sql_state else ''}. "
+            f"Statement: {sql.strip()[:200]}"
+        )
+        upper = message.upper()
+        if "CONCURRENT" in upper:
+            return ConcurrencyError(where + " -- the row changed under us; re-read and retry")
+        if "APPEND" in upper and ("ONLY" in upper or "APPENDONLY" in upper):
+            return AppendOnlyError(where)
+        if "TABLE_OR_VIEW_NOT_FOUND" in upper:
+            return SqlError(
+                where + " -- fix: uv run python -m supervisor.jobs.bootstrap_schema; tables in "
+                "one workspace are invisible from another, so check the host"
+            )
+        if "REFRESH TOKEN" in upper or "DEFAULT CREDENTIALS" in upper:
+            return SqlError(where + " -- fix: " + LOGIN_HINT.format(host=self.host, profile="<p>"))
+        return SqlError(where)
+
+    def _run(
+        self,
+        sql: str,
+        params: Mapping[str, Any] | None,
+        param_types: Mapping[str, str] | None,
+    ) -> tuple[list[tuple[str, str]], list[list[Any]]]:
+        """Run one statement; return ([(column, type_name)], rows of raw strings)."""
+        from databricks.sdk.service.sql import (
+            Disposition,
+            ExecuteStatementRequestOnWaitTimeout,
+            Format,
+        )
+
+        start = self._monotonic()
+        try:
+            resp = self._api.execute_statement(
+                statement=sql,
+                warehouse_id=self.warehouse_id,
+                catalog=self.catalog,
+                schema=self.schema,
+                parameters=self._parameters(params, param_types) or None,
+                wait_timeout=WAIT_TIMEOUT,
+                on_wait_timeout=ExecuteStatementRequestOnWaitTimeout.CONTINUE,
+                disposition=Disposition.INLINE,
+                format=Format.JSON_ARRAY,
+            )
+        except SqlError:
+            raise
+        except Exception as exc:  # SDK auth/transport errors
+            raise self._error(sql, "REQUEST_FAILED", f"{type(exc).__name__}: {exc}", None) from exc
+
+        delay = 0.5
+        while _state_name(resp.status.state) not in TERMINAL:
+            if self._monotonic() - start > self.deadline_s:
+                try:
+                    self._api.cancel_execution(resp.statement_id)
+                except Exception:  # noqa: S110 - best effort; the timeout error matters
+                    pass
+                raise SqlError(
+                    f"Databricks SQL timed out after {self.deadline_s:.0f} s on "
+                    f"{self.describe()} (statement cancelled). A cold warehouse takes "
+                    f"about 30 s to start; retry, or check the warehouse is running. "
+                    f"Statement: {sql.strip()[:200]}"
+                )
+            self._sleep(delay)
+            delay = min(delay * 2, 5.0)
+            try:
+                resp = self._api.get_statement(resp.statement_id)
+            except Exception as exc:
+                raise self._error(sql, "POLL_FAILED", f"{type(exc).__name__}: {exc}", None) from exc
+
+        state = _state_name(resp.status.state)
+        if state != "SUCCEEDED":
+            err = resp.status.error
+            message = getattr(err, "message", None) or "no error message"
+            raise self._error(sql, state, message, getattr(resp.status, "sql_state", None))
+
+        columns: list[tuple[str, str]] = []
+        manifest = resp.manifest
+        if manifest is not None and manifest.schema is not None and manifest.schema.columns:
+            columns = [
+                (c.name, (c.type_name and _state_name(c.type_name)) or "STRING")
+                for c in manifest.schema.columns
+            ]
+        rows: list[list[Any]] = []
+        chunk = resp.result
+        while chunk is not None:
+            rows.extend(chunk.data_array or [])
+            nxt = chunk.next_chunk_index
+            if nxt is None:
+                break
+            if self._monotonic() - start > self.deadline_s:
+                raise SqlError(
+                    f"Databricks SQL result fetch exceeded {self.deadline_s:.0f} s on "
+                    f"{self.describe()}"
+                )
+            chunk = self._api.get_statement_result_chunk_n(resp.statement_id, nxt)
+        return columns, rows
+
+    # ------------------------------------------------------------------ port
+    def execute(
+        self,
+        sql: str,
+        params: Mapping[str, Any] | None = None,
+        param_types: Mapping[str, str] | None = None,
+    ) -> int:
+        columns, rows = self._run(sql, params, param_types)
+        names = [c for c, _ in columns]
+        if rows and "num_affected_rows" in names:
+            raw = rows[0][names.index("num_affected_rows")]
+            return int(raw) if raw is not None else -1
+        return -1
+
+    def query(
+        self,
+        sql: str,
+        params: Mapping[str, Any] | None = None,
+        column_types: Mapping[str, str] | None = None,
+        param_types: Mapping[str, str] | None = None,
+    ) -> list[dict[str, Any]]:
+        columns, rows = self._run(sql, params, param_types)
+        types = dict(column_types or {})
+        for name, type_name in columns:
+            types.setdefault(name, DATABRICKS_TYPE_NAMES.get(type_name.upper(), "string"))
+        names = [c for c, _ in columns]
+        return [{n: from_db(v, types.get(n)) for n, v in zip(names, r, strict=False)} for r in rows]
+
+    def apply_ddl(self, statements: Sequence[str]) -> None:
+        for stmt in statements:
+            self.execute(stmt)
+
+    def close(self) -> None:  # stateless HTTP client
+        return None
+
+
+# ---------------------------------------------------------------------- wiring
+
+
+def make_workspace_client(settings: Settings) -> WorkspaceClient:
+    """WorkspaceClient with the retry budget capped inside Config. OAuth only."""
+    try:
+        from databricks.sdk import WorkspaceClient
+        from databricks.sdk.core import Config
+    except ImportError as exc:
+        raise ConfigError(
+            "databricks-sdk is not installed. Fix: uv sync --extra databricks"
+        ) from exc
+    kwargs: dict[str, Any] = {}
+    if not is_placeholder(settings.databricks_host):
+        kwargs["host"] = settings.databricks_host
+    if not is_placeholder(settings.databricks_config_profile):
+        kwargs["profile"] = settings.databricks_config_profile
+    if not is_placeholder(settings.databricks_auth_type):
+        kwargs["auth_type"] = settings.databricks_auth_type
+    try:
+        cfg = Config(
+            retry_timeout_seconds=settings.databricks_retry_timeout_s,
+            http_timeout_seconds=60,
+            **kwargs,
+        )
+        if getattr(cfg, "token", None) and cfg.auth_type == "pat":
+            raise ConfigError("personal access token auth is not allowed (OAuth only)")
+        return WorkspaceClient(config=cfg)
+    except ConfigError:
+        raise
+    except Exception as exc:
+        hint = LOGIN_HINT.format(
+            host=settings.databricks_host or "<host>",
+            profile=settings.databricks_config_profile or "<profile>",
+        )
+        raise ConfigError(
+            f"cannot configure Databricks credentials ({type(exc).__name__}: {exc}). Fix: {hint}"
+        ) from exc
+
+
+def resolve_warehouse_id(client: Any, settings: Settings) -> str:
+    if not is_placeholder(settings.databricks_warehouse_id):
+        return str(settings.databricks_warehouse_id)
+    name = settings.databricks_warehouse_name
+    if is_placeholder(name):
+        raise ConfigError("set DATABRICKS_WAREHOUSE_ID or DATABRICKS_WAREHOUSE_NAME")
+    for wh in client.warehouses.list():
+        if wh.name == name:
+            return str(wh.id)
+    raise ConfigError(f"SQL warehouse named {name!r} not found or not visible to this identity")
+
+
+def build_databricks_executor(
+    settings: Settings, client: Any | None = None
+) -> DatabricksRestExecutor:
+    client = client or make_workspace_client(settings)
+    identity = "service_principal" if settings.supervisor_mode == "databricks_app" else "user"
+    host = getattr(getattr(client, "config", None), "host", None) or settings.databricks_host
+    return DatabricksRestExecutor(
+        client.statement_execution,
+        warehouse_id=resolve_warehouse_id(client, settings),
+        catalog=str(settings.databricks_catalog),
+        schema=str(settings.databricks_schema),
+        table_prefix=settings.table_prefix,
+        deadline_s=float(settings.databricks_statement_deadline_s),
+        host=host,
+        identity=identity,
+    )

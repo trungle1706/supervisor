@@ -70,5 +70,7 @@ ignore = [
 "tests/**" = ["S", "T20"]
 "src/supervisor/cli.py" = ["T20"]
 "src/supervisor/preflight.py" = ["T20"]
+# Identifiers come only from schema/model.yaml (regex-checked); values are bound parameters.
+"src/supervisor/adapters/sql/store.py" = ["S608"]
 "src/supervisor/jobs/**" = ["T20"]
 "schema/generate.py" = ["T20"]
