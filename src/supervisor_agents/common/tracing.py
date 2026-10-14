@@ -27,6 +27,7 @@ from supervisor.core.models import AgentEvent
 from supervisor.core.ports import Masker, TableStore
 from supervisor.recorder.capture import CapturePolicy
 from supervisor.recorder.normalise import Normaliser, span_from_readable
+from supervisor.recorder.sink import EventWriter
 
 # supervisor.* attribute names (the contract with WP3/WP4)
 A_AGENT_ID = "supervisor.agent_id"
@@ -90,20 +91,17 @@ class AgentEventExporter(SpanExporter):
         self.normaliser = Normaliser(
             masker, policy or (CapturePolicy() if masker else CapturePolicy.digest_only()), env
         )
+        self.writer = EventWriter(store) if store is not None else None
         self.events: list[AgentEvent] = []
         self.spans: list[ReadableSpan] = []
 
     def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
         self.spans.extend(spans)
         items = self.normaliser.normalise_many((span_from_readable(s) for s in spans), "otel")
-        rows = [i.event for i in items]
-        raw = [i.raw for i in items if i.raw is not None]
-        if rows:
-            self.events.extend(rows)
-            if self.store is not None:
-                self.store.append("agent_event", rows)
-                if raw:
-                    self.store.append("agent_event_raw", raw)
+        if items:
+            self.events.extend(i.event for i in items)
+            if self.writer is not None:
+                self.writer.write(items)  # idempotent by event_id
         return SpanExportResult.SUCCESS
 
     def shutdown(self) -> None:
