@@ -16,11 +16,12 @@ from supervisor.bootstrap import bootstrap
 bootstrap()
 
 import argparse  # noqa: E402
+import re  # noqa: E402
 import sys  # noqa: E402
 
 from supervisor.adapters.factory import Adapters, build_adapters  # noqa: E402
 from supervisor.config import Settings, load_settings  # noqa: E402
-from supervisor.core.errors import SupervisorError  # noqa: E402
+from supervisor.core.errors import ConfigError, SupervisorError  # noqa: E402
 from supervisor.core.schema import (  # noqa: E402
     SchemaModel,
     databricks_statements,
@@ -92,6 +93,22 @@ def run(
     }
 
 
+_PRINCIPAL = re.compile(r"^[A-Za-z0-9@._+-]{1,200}$")
+
+
+def grant_statements(adapters: Adapters, principal: str) -> list[str]:
+    """``GRANT SELECT, MODIFY`` on every model table to ``principal`` (Databricks only).
+
+    For the App service principal (its application id). You own the tables you created,
+    so you can grant on them; USE CATALOG / USE SCHEMA come from the schema owner."""
+    if not _PRINCIPAL.match(principal) or principal.startswith("FILL-ME"):
+        raise ConfigError(f"--grant-to needs a principal name or application id, got {principal!r}")
+    if adapters.executor.dialect != "databricks":
+        raise ConfigError("--grant-to works only with the Databricks backend")
+    q = adapters.executor.qualify
+    return [f"GRANT SELECT, MODIFY ON TABLE {q(t)} TO `{principal}`" for t in adapters.model.tables]
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m supervisor.jobs.bootstrap_schema")
     ap.add_argument("--print", action="store_true", help="print the DDL; do not run it")
@@ -99,6 +116,12 @@ def main(argv: list[str] | None = None) -> int:
         "--plan",
         action="store_true",
         help="connect, read the live schema and print the migration; change nothing",
+    )
+    ap.add_argument(
+        "--grant-to",
+        default=None,
+        metavar="PRINCIPAL",
+        help="after bootstrap, GRANT SELECT, MODIFY on every table (App service principal id)",
     )
     args = ap.parse_args(argv)
     try:
@@ -123,8 +146,13 @@ def main(argv: list[str] | None = None) -> int:
                 _say(f"[WARN] {w}")
             _say(f"[OK] plan: {len(plan.statements)} statements on {target} (nothing applied)")
             return 0
+        grants = grant_statements(adapters, args.grant_to) if args.grant_to else []
         plans: list[MigrationPlan] = []
         result = run(settings, adapters, plan_out=plans)
+        for stmt in grants:
+            adapters.executor.execute(stmt)
+        if grants:
+            _say(f"[OK] granted SELECT, MODIFY on {len(grants)} tables to {args.grant_to}")
     except SupervisorError as exc:
         _say(f"[FAIL] {exc}")
         return 1

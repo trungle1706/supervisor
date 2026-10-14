@@ -248,3 +248,26 @@ def test_plan_cli_prints_without_applying(
     x = SqliteExecutor(db)
     assert "business_owner" not in (live_columns(x, "agent") or {})
     x.close()
+
+
+def test_grant_statements_for_app_principal(tmp_path: Path) -> None:
+    from supervisor.core.errors import ConfigError
+
+    settings = load_settings(
+        sql_backend="databricks_rest",
+        databricks_catalog="c",
+        databricks_schema="s",
+        databricks_warehouse_id="wh",
+        data_dir=tmp_path,
+    )
+    adapters = build_adapters(settings, executor=_exec(FakeStatementExecution()))
+    stmts = bootstrap_schema.grant_statements(adapters, "1234-abcd-app-sp")
+    assert len(stmts) == len(adapters.model.tables)
+    assert stmts[0].startswith("GRANT SELECT, MODIFY ON TABLE `c`.`s`.`")
+    assert stmts[0].endswith("TO `1234-abcd-app-sp`")
+    for bad in ("FILL-ME-sp", "x`; DROP", ""):
+        with pytest.raises(ConfigError):
+            bootstrap_schema.grant_statements(adapters, bad)
+    sqlite = build_adapters(load_settings(data_dir=tmp_path / "q"))
+    with pytest.raises(ConfigError, match="Databricks"):
+        bootstrap_schema.grant_statements(sqlite, "sp")
