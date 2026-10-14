@@ -31,6 +31,8 @@ FORBIDDEN_ENV = "DATABRICKS_TOKEN"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 Mode = Literal["laptop", "databricks_app", "dev"]
+# Dev-only pseudonym key (labelled ``dev`` in mask_version). Set MASK_HMAC_KEY for real use.
+DEV_MASK_HMAC_KEY = b"supervisor-DEV-ONLY-mask-key-not-secret"
 SqlBackend = Literal["auto", "sqlite", "databricks_rest"]
 
 
@@ -144,12 +146,22 @@ class Settings(BaseSettings):
     )
     casefile_pdf_font: Path | None = None  # Unicode TTF for PDF (VN text); none -> HTML
 
+    # Recorder (WP4): masking at capture, OTLP/HTTP receiver, spool.
+    masker_kind: Literal["vn_regex", "presidio", "none"] = "vn_regex"
+    mask_hmac_key: SecretStr | None = None  # empty -> DEV_MASK_HMAC_KEY (labelled dev)
+    mask_key_id: str = Field(default="", pattern=r"^[A-Za-z0-9_.-]*$")  # recorded in mask_version
+    capture_default_level: Literal["digest", "masked"] = "masked"  # agents with no manifest
+    otlp_max_body_bytes: int = Field(default=4_000_000, ge=1024)
+    otlp_max_spans: int = Field(default=5000, ge=1)
+    recorder_spool_dir: Path | None = None  # default: <data_dir>/spool
+
     @field_validator(
         "data_dir",
         "sqlite_path",
         "signer_key_path",
         "casefile_dir",
         "casefile_pdf_font",
+        "recorder_spool_dir",
         mode="after",
     )
     @classmethod
@@ -169,6 +181,8 @@ class Settings(BaseSettings):
             self.signer_key_path = self.data_dir / "keys" / "evidence_ed25519.pem"
         if self.casefile_dir is None:
             self.casefile_dir = self.data_dir / "casefiles"
+        if self.recorder_spool_dir is None:
+            self.recorder_spool_dir = self.data_dir / "spool"
         if self.anchor_kind == "worm_dir":
             if self.anchor_path is None:
                 self.anchor_path = str(self.data_dir / "anchors")
@@ -195,6 +209,13 @@ class Settings(BaseSettings):
         if self.sql_backend != "auto":
             return self.sql_backend
         return "databricks_rest" if self.supervisor_mode == "databricks_app" else "sqlite"
+
+    @property
+    def mask_key(self) -> tuple[bytes, str]:
+        """(HMAC key, key id) for pseudonyms. No MASK_HMAC_KEY -> the dev key, id ``dev``."""
+        if self.mask_hmac_key is None or is_placeholder(self.mask_hmac_key.get_secret_value()):
+            return DEV_MASK_HMAC_KEY, "dev"
+        return self.mask_hmac_key.get_secret_value().encode("utf-8"), self.mask_key_id or "k1"
 
     @property
     def databricks_configured(self) -> bool:

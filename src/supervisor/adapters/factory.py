@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from supervisor.adapters.clock import SystemClock
 from supervisor.adapters.sql.store import SqlStateStore, SqlTableStore
 from supervisor.config import Settings
-from supervisor.core.ports import ChatModel, Clock, SqlExecutor
+from supervisor.core.ports import ChatModel, Clock, Masker, SqlExecutor
 from supervisor.core.schema import SchemaModel, load_model
 
 
@@ -65,3 +65,19 @@ def make_chat_model(settings: Settings) -> ChatModel:
     from supervisor.adapters.llm.openai_compatible import OpenAICompatibleChat
 
     return OpenAICompatibleChat.from_settings(settings)
+
+
+def make_masker(settings: Settings) -> Masker | None:
+    """WP4: the Masker for capture and judges. ``vn_regex`` (default) uses the HMAC key from
+    MASK_HMAC_KEY (dev key when unset, mask_version ``vn_regex-1:dev``); ``presidio`` is an
+    optional extra; ``none`` returns None (recorder then stores digests only)."""
+    if settings.masker_kind == "none":
+        return None
+    if settings.masker_kind == "presidio":
+        from supervisor.adapters.masking.presidio import PresidioMasker
+
+        return PresidioMasker()
+    from supervisor.adapters.masking.vn_regex import VnRegexMasker
+
+    key, key_id = settings.mask_key
+    return VnRegexMasker(key, key_id)
