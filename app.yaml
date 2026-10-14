@@ -1,20 +1,48 @@
-# Databricks App runtime. No package index at runtime: dependencies install at BUILD
-# from requirements.txt (exported from uv.lock). Start with plain python -m uvicorn.
-command: [python, -m, uvicorn, supervisor.app:app, --host, "0.0.0.0", --port, "8000"]
+# Databricks App runtime (WP10). No package index at runtime: dependencies install at BUILD
+# from requirements.txt (exported from uv.lock). Start with plain python -m uvicorn, never uv run.
+# One worker: the evidence chain has a single writer in one process.
+#
+# FILL-ME values: edit INLINE in your local copy only. Never commit real values.
+# The platform injects DATABRICKS_HOST, DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET
+# (the App service principal). Do not set them here. Never set DATABRICKS_TOKEN.
+command:
+  - python
+  - -m
+  - uvicorn
+  - supervisor.app:app
+  - --host
+  - "0.0.0.0"
+  - --port
+  - "8000"
+  - --workers
+  - "1"
 env:
   - name: PYTHONPATH
     value: "src"
   - name: SUPERVISOR_MODE
     value: "databricks_app"
+  # The App container has no bank TLS appliance in front of it.
+  - name: SSL_OS_TRUSTSTORE
+    value: "0"
+  - name: SCHEDULER_ENABLED
+    value: "1"
+  # /tmp is wiped on every restart. Durable files go to a Unity Catalog Volume.
   - name: DATA_DIR
-    value: "/tmp/supervisor"  # ephemeral cache only; durable state is in Delta
-  - name: DATABRICKS_WAREHOUSE_ID
-    valueFrom: sql-warehouse
-  - name: LLM_ENDPOINT
-    valueFrom: llm-endpoint
+    value: "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/data"
+  - name: SPOOL_DIR
+    value: "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/spool"
+  - name: ANCHOR_KIND
+    value: "uc_volume"
+  - name: ANCHOR_PATH
+    value: "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/anchors"
+  # Durable state: Delta tables in this schema (Statement Execution API).
   - name: DATABRICKS_CATALOG
     value: "FILL-ME-catalog"
   - name: DATABRICKS_SCHEMA
     value: "FILL-ME-schema"
-  - name: LLM_BASE_URL
-    value: ""  # WP2 builds the serving-endpoint URL from DATABRICKS_HOST + LLM_ENDPOINT
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  # Serving endpoint name. LLM_BASE_URL is derived: https://<DATABRICKS_HOST>/serving-endpoints
+  # (the workspace's own endpoint, so LLM_ALLOW_REMOTE is implied for that URL only).
+  - name: LLM_ENDPOINT
+    valueFrom: llm-endpoint
