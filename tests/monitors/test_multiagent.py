@@ -141,3 +141,14 @@ def test_require_caller_id_on_fails_closed_for_handoff_without_caller(make_gatew
     assert gw.check("payments", "1.0", "transfer", TRANSFER, {})["allow"]
     r = gw.check("payments", "1.0", "get_balance", {"account_id": "ACC-7"}, {"handoff": True})
     assert r["allow"]
+
+
+def test_late_ingested_event_is_not_lost(adapters, clock, evidence) -> None:
+    """An event ingested after a run, with a ts just before that run, still counts."""
+    ev = split_payment_events(T0 + timedelta(minutes=50), gap_s=570)  # 2nd at T0+59m30s
+    adapters.tables.append("agent_event", as_rows(ev[:1]))
+    clock.advance(3600)  # run at T0+60m; the spool still holds the 2nd event
+    assert _monitor(adapters, evidence).run().cases_opened == []
+    adapters.tables.append("agent_event", as_rows(ev[1:]))  # ingest catches up
+    clock.advance(300)
+    assert len(_monitor(adapters, evidence).run().cases_opened) == 1

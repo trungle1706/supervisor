@@ -18,6 +18,9 @@ def _ctx(adapters, evidence) -> MonitorContext:
 
 
 def _run_daily(monitor: DriftMonitor, clock, days: int) -> list[str]:
+    """One run per day, one hour after midnight (windows settle 10 min after they close)."""
+    if clock.now().minute == 0 and clock.now().hour == 0:
+        clock.advance(3600)
     opened: list[str] = []
     for _ in range(days):
         clock.advance(86400)
@@ -105,7 +108,7 @@ def test_catch_up_in_one_run_and_threshold_override(adapters, clock, evidence) -
         },
     )
     monitor = DriftMonitor(_ctx(adapters, evidence))
-    clock.advance(14 * 86400)  # app was down: one run catches up every missed window
+    clock.advance(14 * 86400 + 3600)  # app was down: one run catches up every missed window
     res = monitor.run()
     assert res.windows_checked == 7 and res.cases_opened == []  # 7 < 10 consecutive
     clock.advance(86400 * 3)
@@ -132,3 +135,16 @@ def test_new_version_gets_its_own_baseline(adapters, clock, evidence) -> None:
     assert adapters.state.query("cases", {"agent_id": "payments"}) == []
     versions = {b["agent_version"] for b in adapters.state.query("policy_baseline", {})}
     assert versions == {"1.0.0", "2.0.0"}
+
+
+def test_streak_restarts_after_human_closes_the_case(adapters, clock, evidence) -> None:
+    adapters.tables.append("agent_event", as_rows(drift_weeks(T0, normal_days=7, drift_days=7)))
+    monitor = DriftMonitor(_ctx(adapters, evidence))
+    opened = _run_daily(monitor, clock, 10)  # drift days 7, 8, 9 -> case at the 3rd
+    assert len(opened) == 1
+    row = adapters.state.get("cases", {"case_id": opened[0]})
+    adapters.state.update("cases", {"case_id": opened[0]}, {"status": "closed"},
+                          row["row_version"])  # fmt: skip
+    # Still drifted, but the streak restarts: no case on the next 2 windows, one on the 3rd.
+    assert _run_daily(monitor, clock, 2) == []
+    assert len(_run_daily(monitor, clock, 1)) == 1

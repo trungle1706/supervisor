@@ -23,7 +23,10 @@ Tracked metrics (all ints):
 ``latency_p50_ms`` / ``_p90`` agent ``llm_call`` + ``tool_call`` latency
 ==========================  ========================================================
 
-A metric needs ``min_n`` samples in a window to have a value there.
+A metric needs ``min_n`` samples in a window to have a value there; a window without a
+value leaves the streak as it is (a data gap does not break or extend a streak). A window
+is judged ``settle_s`` after it closes (late ingest). When a human closes the drift case,
+the streaks restart from zero.
 Thresholds can be overridden per agent in ``policy_threshold``: ``drift.k``,
 ``drift.consecutive`` (agent ``*`` = every agent).
 """
@@ -73,6 +76,7 @@ class DriftConfig:
         default_factory=lambda: {"bp": 100, "ms": 5, "amount": 1}
     )  # ... and at least this, by unit
     max_windows_per_run: int = 400  # catch-up cap per version per run
+    settle_s: int = 600  # a window is judged only this long after it closes (late ingest)
 
     @classmethod
     def from_settings(cls, settings: Any) -> DriftConfig:
@@ -238,8 +242,12 @@ class DriftMonitor:
         streak = {name: int(r["breach_streak"]) for name, r in rows.items()}
         last_value: dict[str, int | None] = {name: r["last_value"] for name, r in rows.items()}
         case_id = next((r["open_case_id"] for r in rows.values() if r["open_case_id"]), None)
+        if case_id and find_open_case(self.ctx, agent_id, "drift", case_id) is None:
+            case_id = None  # a human closed it: start counting again from zero
+            streak = dict.fromkeys(streak, 0)
         n = 0
-        while cursor + step <= now and n < cfg.max_windows_per_run:
+        settle = timedelta(seconds=cfg.settle_s)
+        while cursor + step + settle <= now and n < cfg.max_windows_per_run:
             w_from, w_to = cursor, cursor + step
             events, verdicts = self._window(agent_id, version, w_from, w_to)
             values = window_metrics(events, verdicts, min_n=cfg.min_n, tools=tools)
@@ -280,7 +288,7 @@ class DriftMonitor:
             return {}
         start = floor_window(first, cfg.window_s)
         end = start + timedelta(seconds=cfg.window_s * cfg.baseline_windows)
-        if now < end:
+        if now < end + timedelta(seconds=cfg.settle_s):
             res.collecting.append(f"{agent_id}@{version}")
             return {}
         per_window: list[dict[str, int]] = []

@@ -337,13 +337,15 @@ def compute(
         if attribute in FORBIDDEN_ATTRIBUTES:
             raise ConfigError(f"attribute {attribute!r} is never allowed in fairness slices")
         cells: list[Cell] = []
-        for value, (n, appr, blk) in sorted(counter(records, attribute).items()):
+        counts = counter(records, attribute)
+        for value, (n, appr, blk) in sorted(counts.items()):
             if n < min_cell_n:
                 cells.append(Cell(attribute, value, None, None, None, None, None, True))
             else:
                 cells.append(
                     Cell(attribute, value, n, appr, blk, appr * 10000 // n, blk * 10000 // n, False)
                 )
+        cells = _complementary(cells, {v: n for v, (n, _, _) in counts.items()}, min_cell_n)
         shown = [c for c in cells if not c.suppressed]
         a_gap = b_gap = None
         if len(shown) >= 2:
@@ -353,6 +355,23 @@ def compute(
             b_gap = max(b_rates) - min(b_rates)
         report.attributes[attribute] = AttributeResult(attribute, cells, a_gap, b_gap)
     return report
+
+
+def _complementary(cells: list[Cell], n_of: Mapping[str, int], min_cell_n: int) -> list[Cell]:
+    """Complementary suppression: the suppressed cells together must hold 0 or at least
+    ``min_cell_n`` subjects, else total - shown cells would reveal a small count. Hide the
+    smallest shown cell until that holds (or nothing is shown)."""
+    cells = list(cells)
+    while True:
+        hidden = sum(n_of[c.cell] for c in cells if c.suppressed)
+        shown = [c for c in cells if not c.suppressed]
+        if hidden == 0 or hidden >= min_cell_n or not shown:
+            return cells
+        smallest = min(shown, key=lambda c: (c.n or 0, c.cell))
+        cells = [
+            Cell(c.attribute, c.cell, None, None, None, None, None, True) if c is smallest else c
+            for c in cells
+        ]
 
 
 # --------------------------------------------------------------------------- monitor
@@ -439,7 +458,6 @@ class FairnessMonitor:
                 "window_from": format_ts(ts_from),
                 "window_to": format_ts(now),
                 "method": report.method,
-                "subjects": report.n,
                 "min_cell_n": self.cfg.min_cell_n,
                 "attributes": _evidence_attrs(report),
                 "ts": format_ts(ts),

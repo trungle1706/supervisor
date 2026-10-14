@@ -52,6 +52,7 @@ class SplitPaymentConfig:
     limit_minor: int = 100_000_000
     min_callers: int = 2
     first_run_lookback_s: int = 86400
+    settle_s: int = 120  # events newer than this may still be in the ingest spool
 
     @classmethod
     def from_settings(cls, settings: Any) -> SplitPaymentConfig:
@@ -121,6 +122,8 @@ class SplitPaymentScanner:
             str(row.get("status")) == "allowed",
         )
         key = (c, p)
+        if len(self._hits) > 10_000:  # drop idle (customer, payee) keys
+            self._hits = {k: d for k, d in self._hits.items() if d and ts - d[-1].ts <= self.window}
         hits = self._hits.setdefault(key, deque())
         hits.append(hit)
         while hits and ts - hits[0].ts > self.window:
@@ -168,11 +171,14 @@ class MultiAgentMonitor:
             else now - timedelta(seconds=self.cfg.first_run_lookback_s)
         )
         window = timedelta(seconds=self.cfg.window_s)
+        # Scan only settled time: a late-ingested event older than the cursor would
+        # otherwise be read but its finding skipped forever.
+        end = max(cursor, now - timedelta(seconds=self.cfg.settle_s))
         rows = read_range(
             self.ctx,
             "agent_event",
             cursor - window,
-            now,
+            end,
             {"event_type": "gate_decision", "tool_name": self.cfg.tool},
         )
         scanner = SplitPaymentScanner(self.cfg)
@@ -190,7 +196,7 @@ class MultiAgentMonitor:
             case_id = self._open(f)
             put_state(self.ctx, MONITOR, mark, {"ts": format_ts(f.ts), "case_id": case_id})
             res.cases_opened.append(case_id)
-        put_state(self.ctx, MONITOR, "cursor", {"ts": format_ts(now)})
+        put_state(self.ctx, MONITOR, "cursor", {"ts": format_ts(end)})
         return res
 
     def _open(self, f: Finding) -> str:

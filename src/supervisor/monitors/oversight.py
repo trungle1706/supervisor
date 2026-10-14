@@ -209,12 +209,13 @@ class OversightMetrics:
         today = now.astimezone(UTC).date()
         days = list(days) if days is not None else [today - timedelta(days=1), today]
         written = 0
-        chain_cache: dict[str, bool] = {}
+        chain_cache: dict[str, bool | None] = {}
         for day in days:
             for agent_id in self.agents(day):
                 lane = f"agent:{agent_id}"
                 if lane not in chain_cache:
-                    chain_cache[lane] = check_lane(self.ctx, lane).ok
+                    chk = check_lane(self.ctx, lane)
+                    chain_cache[lane] = None if chk.last_seq is None and chk.ok else chk.ok
                 values = self.compute(agent_id, day, chain_cache[lane])
                 upsert_metric(self.ctx, day, agent_id, values)
                 written += 1

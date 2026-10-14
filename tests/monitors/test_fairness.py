@@ -164,3 +164,15 @@ def test_job_end_to_end_from_events(adapters, evidence, tmp_path: Path) -> None:
     lookup = SyntheticAttributeLookup(settings.mask_key[0], 11, 1200)
     h = subject_hash(settings.mask_key[0], decisions[0].application.application_id)
     assert lookup.attributes(h)["gender"] == decisions[0].application.gender
+
+
+def test_complementary_suppression_hides_small_counts_by_difference() -> None:
+    """total - shown cells must never reveal a cell under 30 (one small cell is hidden)."""
+    recs = [FairnessRecord(f"h{i}", {"x": "a"}, True, False) for i in range(100)]
+    recs += [FairnessRecord(f"g{i}", {"x": "b"}, False, False) for i in range(60)]
+    recs += [FairnessRecord(f"k{i}", {"x": "c"}, True, False) for i in range(5)]
+    cells = {c.cell: c for c in compute(recs, ["x"], method="python").attributes["x"].cells}
+    assert cells["c"].suppressed and cells["b"].suppressed  # b hidden as the complement
+    assert not cells["a"].suppressed
+    for attr in compute(_biased(), ATTRS, method="python").attributes.values():
+        assert all(c.n is None for c in attr.cells if c.suppressed)

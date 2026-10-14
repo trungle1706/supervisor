@@ -130,7 +130,7 @@ def test_daily_row_values(adapters, clock: FixedClock, evidence, tmp_path: Path)
     assert m["judge_verdicts"] == 2 and m["judge_disagree_bp"] == 5000
     assert m["judge_latency_ms"] == 100 and m["groundedness_bp"] == 7000
     assert (m["catch_rate_bp"], m["false_alarm_bp"]) == (9167, 435)
-    assert m["chain_ok"] is True  # no chain lane yet: nothing to contradict
+    assert m["chain_ok"] is None  # no chain lane yet: nothing checked
     assert m["coverage"] == 0.75  # legacy float column
     for col in INT_COLUMNS:
         assert m[col] is None or isinstance(m[col], int), col

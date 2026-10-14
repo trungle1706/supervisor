@@ -228,7 +228,7 @@ class QualityScorer:
                     "verdict_ids": list(res.verdict_ids),
                     "groundedness_bp": res.groundedness_bp,
                     "guideline_bp": res.guideline_bp,
-                    "issues": list(res.issues),
+                    "issue_count": len(res.issues),  # text stays in the verdict table
                     "error": res.error,
                     "model_id": self.chat.model_id,
                     "model_family": self.chat.family,

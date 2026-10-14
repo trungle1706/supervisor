@@ -48,7 +48,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         try:
-            scheduler.stop()  # before the chain is sealed: no job writes after it
+            # Before the chain is sealed: no job writes after it. Off the event loop:
+            # stop() waits for a running job.
+            await run_in_threadpool(scheduler.stop)
         finally:
             gate_wiring.shutdown_runtime()
 

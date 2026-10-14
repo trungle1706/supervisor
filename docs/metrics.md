@@ -28,7 +28,7 @@ and hold the same value divided by 10000. Floats never go to the evidence chain.
 | `tth_s` | int | s | Time to human. Nearest-rank median of (first `case_event` with `actor_kind` user - case `opened_at`) over cases opened that day that a human touched. Null when none. |
 | `catch_rate_bp` | int | bp | Judge catch rate from `data/golden/eval_report.json` (held-out section, else dev). Same for every agent. Placeholder until the bank golden set exists. |
 | `false_alarm_bp` | int | bp | Judge false-alarm rate from the same report. Placeholder. |
-| `chain_ok` | bool | | Last in-store walk of the agent's chain lane (`agent:<id>`): sequence, `prev_hash` links and `entry_hash`. A broken lane stays false. This is a health check, not the proof: the proof is `supervisor-verify` over an export. |
+| `chain_ok` | bool | | Null when the lane has no entries. Else the last in-store walk of the agent's chain lane (`agent:<id>`): sequence, `prev_hash` links and `entry_hash`. A broken lane stays false. This is a health check, not the proof: the proof is `supervisor-verify` over an export. |
 | `judge_verdicts` | int | count | Tier 1/2 verdicts with role primary or challenger. |
 | `judge_disagree_bp` | int | bp | Tier 2 primary verdicts labelled `tiers_disagree` / all Tier 2 primary verdicts. Null when no Tier 2 verdict. |
 | `groundedness_bp` | int | bp | Nearest-rank median of `quality.groundedness` verdict scores. Null when none (quality scoring is off by default). |
