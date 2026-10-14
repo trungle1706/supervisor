@@ -10,18 +10,43 @@ Rules enforced at load:
   database is used wherever the command starts.
 * ``.env`` is read from the repo root, or from ``SUPERVISOR_ENV_FILE`` if set.
 * Values that start with ``FILL-ME`` count as "not configured".
+
+Databricks App mode (``SUPERVISOR_MODE=databricks_app``, WP10):
+
+* The platform injects ``DATABRICKS_HOST`` (often without ``https://``),
+  ``DATABRICKS_CLIENT_ID`` and ``DATABRICKS_CLIENT_SECRET`` (the App service principal).
+  These are enough: no CLI profile is needed. The secret is a ``SecretStr`` and is never
+  printed.
+* ``LLM_ENDPOINT`` (bound from the ``serving_endpoint`` resource) names the workspace's
+  own model-serving endpoint. When ``LLM_BASE_URL`` is not set explicitly, the LLM
+  settings become the endpoint's OpenAI-compatible path
+  ``https://<DATABRICKS_HOST>/serving-endpoints`` with ``LLM_MODEL=<endpoint name>``.
+  ``LLM_ALLOW_REMOTE`` is implied for that URL only: the LLM is the workspace's own
+  endpoint, so no data leaves the workspace. Any other non-loopback URL is still refused
+  unless ``LLM_ALLOW_REMOTE=1``.
+* ``SPOOL_DIR`` is accepted as an alias of ``RECORDER_SPOOL_DIR`` (a UC Volume path on the
+  App, because ``/tmp`` is wiped on restart).
 """
 
 from __future__ import annotations
 
 import ipaddress
+import logging
 import os
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
 
-from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    Field,
+    SecretStr,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from supervisor.core.errors import ConfigError
@@ -38,6 +63,17 @@ SqlBackend = Literal["auto", "sqlite", "databricks_rest"]
 
 def is_placeholder(value: str | None) -> bool:
     return value is None or value.strip() == "" or value.strip().startswith(PLACEHOLDER_PREFIX)
+
+
+def is_volume_path(path: object) -> bool:
+    """True for a Unity Catalog Volume path (``/Volumes/<catalog>/<schema>/<volume>/...``)."""
+    return path is not None and str(path).replace("\\", "/").startswith("/Volumes/")
+
+
+def volume_mounted(path: object) -> bool:
+    """True when the Volume of ``path`` is visible as a local folder."""
+    parts = str(path).replace("\\", "/").strip("/").split("/")
+    return len(parts) >= 4 and os.path.isdir("/" + "/".join(parts[:4]))
 
 
 def is_loopback_url(url: str) -> bool:
@@ -111,6 +147,9 @@ class Settings(BaseSettings):
     databricks_host: str | None = None
     databricks_config_profile: str | None = None
     databricks_auth_type: str | None = None
+    # Injected by the Databricks App platform (service principal, OAuth M2M). Never printed.
+    databricks_client_id: str | None = None
+    databricks_client_secret: SecretStr | None = None
     databricks_warehouse_id: str | None = None
     databricks_warehouse_name: str | None = None
     databricks_catalog: str | None = None
@@ -118,6 +157,10 @@ class Settings(BaseSettings):
     databricks_sql_transport: Literal["rest"] = "rest"
     databricks_retry_timeout_s: int = Field(default=90, ge=60, le=120)
     databricks_statement_deadline_s: int = Field(default=120, ge=10, le=600)
+    # WP10: shared all-purpose cluster for the Command Execution API runner (optional).
+    databricks_cluster_id: str | None = None
+    databricks_cluster_name: str | None = None
+    databricks_command_deadline_s: int = Field(default=1800, ge=30, le=14400)
 
     # LLM (OpenAI-compatible). Empty base URL = mock judges only.
     llm_base_url: str = "http://127.0.0.1:11434/v1"
@@ -184,7 +227,12 @@ class Settings(BaseSettings):
     capture_default_level: Literal["digest", "masked"] = "masked"  # agents with no manifest
     otlp_max_body_bytes: int = Field(default=4_000_000, ge=1024)
     otlp_max_spans: int = Field(default=5000, ge=1)
-    recorder_spool_dir: Path | None = None  # default: <data_dir>/spool
+    # Set by the loader (never by you): the Volume DATA_DIR that was not mounted (App only).
+    data_dir_requested: str | None = Field(default=None, exclude=True)
+    recorder_spool_dir: Path | None = Field(  # default: <data_dir>/spool
+        default=None,
+        validation_alias=AliasChoices("recorder_spool_dir", "spool_dir"),
+    )
 
     # Reviewer console (WP8). Identity: dev_header (laptop: X-Dev-User + config/users.yaml,
     # not a real identity) or databricks_app (SSO headers + config/auth.yaml role map).
@@ -252,8 +300,36 @@ class Settings(BaseSettings):
             value = REPO_ROOT / value
         return Path(os.path.abspath(value))
 
+    @field_validator("databricks_host", mode="after")
+    @classmethod
+    def _host_url(cls, value: str | None) -> str | None:
+        # The App injects DATABRICKS_HOST without a scheme; the SDK and URLs need https://.
+        if value is None or is_placeholder(value):
+            return value
+        value = value.strip().rstrip("/")
+        if "://" not in value:
+            value = "https://" + value
+        return value
+
     @model_validator(mode="after")
     def _rules(self) -> Settings:
+        self.data_dir_requested = None
+        if (
+            self.supervisor_mode == "databricks_app"
+            and is_volume_path(self.data_dir)
+            and not volume_mounted(self.data_dir)
+        ):
+            # No /Volumes mount in this container: local files (signing key, case files)
+            # cannot live on the Volume. Use the ephemeral container disk and say so.
+            self.data_dir_requested = str(self.data_dir).replace("\\", "/")
+            self.data_dir = Path(os.path.abspath(tempfile.gettempdir())) / "supervisor-data"
+            logging.getLogger("supervisor.config").error(
+                "DATA_DIR %s is not mounted in this container; using %s (wiped on restart). "
+                "Spool and anchors still go to the Volume through the Files API; the evidence "
+                "signing key is NOT durable (regenerated on restart).",
+                self.data_dir_requested,
+                self.data_dir,
+            )
         if self.sqlite_path is None:
             self.sqlite_path = self.data_dir / "supervisor.db"
         if self.signer_key_path is None:
@@ -282,9 +358,23 @@ class Settings(BaseSettings):
                 p = Path(self.anchor_path).expanduser()
                 self.anchor_path = os.path.abspath(p if p.is_absolute() else REPO_ROOT / p)
         if (
+            self.supervisor_mode == "databricks_app"
+            and not is_placeholder(self.llm_endpoint)
+            and "llm_base_url" not in self.model_fields_set
+        ):
+            if is_placeholder(self.databricks_host):
+                raise ValueError(
+                    "LLM_ENDPOINT is bound but DATABRICKS_HOST is not set; the App platform "
+                    "injects it. Set DATABRICKS_HOST=https://<workspace host>"
+                )
+            self.llm_base_url = self.serving_base_url
+            if "llm_model" not in self.model_fields_set:
+                self.llm_model = str(self.llm_endpoint)
+        if (
             self.llm_base_url
             and not self.llm_allow_remote
             and not is_loopback_url(self.llm_base_url)
+            and not self.is_workspace_serving_url(self.llm_base_url)
         ):
             raise ValueError(
                 "LLM_BASE_URL must be a loopback address (127.0.0.1 / localhost / ::1) "
@@ -292,7 +382,12 @@ class Settings(BaseSettings):
             )
         for name in ("judge_t1_base_url", "judge_t2_base_url", "judge_challenger_base_url"):
             url = getattr(self, name)
-            if url and not self.llm_allow_remote and not is_loopback_url(url):
+            if (
+                url
+                and not self.llm_allow_remote
+                and not is_loopback_url(url)
+                and not self.is_workspace_serving_url(url)
+            ):
                 raise ValueError(
                     f"{name.upper()} must be a loopback address unless LLM_ALLOW_REMOTE=1"
                 )
@@ -301,6 +396,39 @@ class Settings(BaseSettings):
         if self.databricks_schema and not is_placeholder(self.databricks_schema):
             _check_identifier("DATABRICKS_SCHEMA", self.databricks_schema)
         return self
+
+    @property
+    def serving_base_url(self) -> str:
+        """OpenAI-compatible base URL of the workspace's model-serving endpoints."""
+        return f"{self.databricks_host}/serving-endpoints"
+
+    def is_workspace_serving_url(self, url: str) -> bool:
+        """True only in databricks_app mode for ``<DATABRICKS_HOST>/serving-endpoints``.
+
+        This is the implied ``LLM_ALLOW_REMOTE``: the workspace's own endpoint, reached
+        with the App's own identity, is not AI egress."""
+        if self.supervisor_mode != "databricks_app" or is_placeholder(self.databricks_host):
+            return False
+        return url.rstrip("/") == self.serving_base_url
+
+    @property
+    def llm_uses_workspace_auth(self) -> bool:
+        """The LLM is the bound serving endpoint: authenticate with the workspace identity."""
+        return bool(self.llm_base_url) and self.is_workspace_serving_url(self.llm_base_url)
+
+    @property
+    def databricks_auth_kind(self) -> Literal["service_principal", "cli_profile", "sdk_default"]:
+        """Which OAuth flow the SDK uses. Never a PAT."""
+        if not is_placeholder(self.databricks_config_profile):
+            return "cli_profile"
+        secret = self.databricks_client_secret
+        if (
+            not is_placeholder(self.databricks_client_id)
+            and secret is not None
+            and not is_placeholder(secret.get_secret_value())
+        ):
+            return "service_principal"
+        return "sdk_default"
 
     @property
     def effective_sql_backend(self) -> Literal["sqlite", "databricks_rest"]:

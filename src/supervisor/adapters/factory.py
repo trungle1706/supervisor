@@ -62,6 +62,11 @@ def make_chat_model(settings: Settings) -> ChatModel:
         from supervisor.adapters.llm.mock import MockChat
 
         return MockChat()
+    if settings.llm_uses_workspace_auth:
+        # WP10: the bound serving endpoint, authenticated as the App's own identity.
+        from supervisor.databricks.serving import DatabricksServingChat
+
+        return DatabricksServingChat.from_settings(settings)
     from supervisor.adapters.llm.openai_compatible import OpenAICompatibleChat
 
     return OpenAICompatibleChat.from_settings(settings)

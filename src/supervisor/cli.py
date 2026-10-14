@@ -10,7 +10,9 @@ from supervisor.bootstrap import bootstrap
 bootstrap()
 
 import argparse  # noqa: E402
+import re  # noqa: E402
 import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 from supervisor.config import REPO_ROOT  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
@@ -26,6 +28,32 @@ EXPORT_REQS_ARGV = [
     "--no-emit-project",
     "--no-header",
 ]
+NEXUS_PH = "FILL-ME-nexus-host"
+# Commented Nexus switch (docs/BANK_DEPLOY_GUIDE.md section 5.2). `export-reqs --nexus HOST`
+# turns the two lines on in the user's LOCAL copy only; the committed file keeps them off.
+REQS_HEADER = f"""\
+# Exported from uv.lock. Do not edit. Regenerate: uv run python -m supervisor.cli export-reqs
+# (= uv export --frozen --no-dev --extra databricks --no-hashes --no-emit-project --no-header)
+# The Databricks App installs this file at BUILD; the runtime has no package index.
+# If BUILD cannot reach PyPI, switch to the bank Nexus GROUP index in your LOCAL copy only:
+#   uv run python -m supervisor.cli export-reqs --nexus <nexus host>
+# That turns on the two lines below. Never commit the result.
+# --index-url https://{NEXUS_PH}/repository/pypi-common-group/simple/
+# --trusted-host {NEXUS_PH}
+"""
+_HOSTNAME = re.compile(r"^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$")
+
+
+def render_requirements(exported: str, nexus_host: str | None = None) -> str:
+    """requirements.txt text: the header (Nexus lines commented, or on) + uv export output."""
+    header = REQS_HEADER
+    if nexus_host is not None:
+        if nexus_host.startswith("FILL-ME") or not _HOSTNAME.match(nexus_host):
+            raise SupervisorError(f"--nexus needs a plain host name, got {nexus_host!r}")
+        header = header.replace(
+            f"# --index-url https://{NEXUS_PH}/", f"--index-url https://{nexus_host}/"
+        ).replace(f"# --trusted-host {NEXUS_PH}", f"--trusted-host {nexus_host}")
+    return header + exported
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
@@ -75,16 +103,22 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return int(verify.main(argv))
 
 
-def cmd_export_reqs(_: argparse.Namespace) -> int:
+def cmd_export_reqs(args: argparse.Namespace) -> int:
     from supervisor import sandbox
 
-    out = REPO_ROOT / "requirements.txt"
-    result = sandbox.run([*EXPORT_REQS_ARGV, "-o", str(out)], cwd=REPO_ROOT, timeout_s=300)
+    out = Path(args.output).resolve() if args.output else REPO_ROOT / "requirements.txt"
+    nexus = getattr(args, "nexus", None)
+    text = render_requirements("", nexus)  # validate --nexus before running uv
+    result = sandbox.run(EXPORT_REQS_ARGV, cwd=REPO_ROOT, timeout_s=300)
     if not result.ok:
         print("[FAIL] uv export failed:")
         print(result.stderr.encode("ascii", "backslashreplace").decode("ascii"))
         return 1
-    print(f"[OK] wrote {out}")
+    text = render_requirements(result.stdout, nexus)
+    out.write_text(text, encoding="utf-8", newline="\n")
+    print(f"[OK] wrote {out}".encode("ascii", "backslashreplace").decode("ascii"))
+    if nexus:
+        print(f"[OK] Nexus index lines are ON ({nexus}). Local copy only: do not commit this file.")
     return 0
 
 
@@ -111,9 +145,15 @@ def build_parser() -> argparse.ArgumentParser:
     v.add_argument("--strict", action="store_true", help="fail on entries not yet sealed")
     v.add_argument("--partial", action="store_true", help="accept a lane (partial) export")
     v.set_defaults(func=cmd_verify)
-    sub.add_parser("export-reqs", help="write requirements.txt from uv.lock").set_defaults(
-        func=cmd_export_reqs
+    r = sub.add_parser("export-reqs", help="write requirements.txt from uv.lock")
+    r.add_argument("-o", "--output", default=None, help="output file (default: requirements.txt)")
+    r.add_argument(
+        "--nexus",
+        default=None,
+        metavar="HOST",
+        help="turn on the Nexus --index-url/--trusted-host lines (local copy only)",
     )
+    r.set_defaults(func=cmd_export_reqs)
     sub.add_parser("release", help="build the hand-off zip (WP11)").set_defaults(func=cmd_release)
     return p
 

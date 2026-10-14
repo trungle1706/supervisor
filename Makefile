@@ -1,5 +1,5 @@
 # Linux/macOS convenience only. Bank users: see docs/RUNBOOK.md (Windows cmd).
-.PHONY: sync test lint fmt ddl reqs preflight serve
+.PHONY: sync test lint fmt ddl reqs reqs-nexus preflight serve
 
 sync:
 	uv sync --python 3.11
@@ -20,6 +20,10 @@ ddl:
 
 reqs:
 	uv run python -m supervisor.cli export-reqs
+
+# Local hand-off copy only (never commit): make reqs-nexus NEXUS=<nexus host>
+reqs-nexus:
+	uv run python -m supervisor.cli export-reqs --nexus $(NEXUS)
 
 preflight:
 	uv run python -m supervisor.cli preflight

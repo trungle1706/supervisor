@@ -107,13 +107,16 @@ def run(
     if rec.writer.spool is not None:
         rec = Recorder(rec.normaliser, type(rec.writer)(rec.writer.tables, None))
     counts = _counts()
-    directory = spool_dir or settings.recorder_spool_dir
-    if directory is not None and Path(directory).is_dir():
-        files = sorted(Path(directory).glob("*" + INGESTING)) + sorted(
-            Path(directory).glob("*" + SPOOL_SUFFIX)
-        )
-        for path in files:
-            drain_file(rec, path, counts)
+    # WP10: a Volume spool with no local mount is staged to a local folder first.
+    from supervisor.databricks.files import staged_spool
+
+    with staged_spool(settings, spool_dir or settings.recorder_spool_dir) as directory:
+        if directory is not None and Path(directory).is_dir():
+            files = sorted(Path(directory).glob("*" + INGESTING)) + sorted(
+                Path(directory).glob("*" + SPOOL_SUFFIX)
+            )
+            for path in files:
+                drain_file(rec, path, counts)
     for log in proxy_logs:
         res = read_proxy_log(Path(log), rec.normaliser)
         w = rec.writer.write(res.items)

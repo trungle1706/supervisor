@@ -1,18 +1,33 @@
-# Databricks Asset Bundle for the Supervisor app.
+# Databricks Asset Bundle for the Supervisor app (WP10).
+#
 # Per-workspace values are FILL-ME placeholders. Edit them INLINE in your local copy only.
-# Do not commit real values. No bundle variables, no --var flags, no secret scopes.
+# Do not commit real values. No bundle variables, no --var flags, no secret scopes:
+# that is the pattern that deploys at the bank (docs/BANK_DEPLOY_GUIDE.md section 5.1).
+#
+# Commands (Windows cmd, from the repo folder; see docs/RUNBOOK.md section 7):
+#   databricks bundle validate -t dev --profile FILL-ME-profile
+#   databricks bundle deploy   -t dev --profile FILL-ME-profile
+#   databricks bundle run supervisor -t dev --profile FILL-ME-profile
+#
+# App names: lowercase letters, digits and hyphens, at most 30 characters.
+# Suffix the name with your user name to avoid collisions in the workspace.
 bundle:
   name: supervisor
 
 sync:
+  # Gitignore syntax. A leading / anchors to the repo root: a bare `data` would also drop
+  # src/supervisor/data/ (a test checks that no source file is excluded).
   exclude:
-    - .venv
-    - data
-    - runs
-    - tests
-    - docs/handoff
-    - docs/BANK_DEPLOY_GUIDE.md
-    - .env
+    - /.venv
+    - /data
+    - /runs
+    - /tests
+    - /docs/handoff
+    - /docs/BANK_DEPLOY_GUIDE.md
+    - /.env
+    - /uv.toml
+    - "*.db"
+    - "**/__pycache__"
 
 resources:
   apps:
@@ -20,14 +35,19 @@ resources:
       name: supervisor-FILL-ME-username
       description: "Supervisor - onboard and watch AI agents (Onboard + Watch)"
       source_code_path: ./
+      # On-behalf-of user SQL: the signed-in user's token arrives in X-Forwarded-Access-Token.
       user_api_scopes:
         - sql
       resources:
+        # app.yaml reads these with valueFrom: sql-warehouse -> warehouse id,
+        # llm-endpoint -> serving endpoint name.
         - name: sql-warehouse
+          description: "SQL warehouse for the Supervisor tables (Statement Execution API)"
           sql_warehouse:
             id: FILL-ME-warehouse-id
             permission: CAN_USE
         - name: llm-endpoint
+          description: "Existing model-serving endpoint for the judges (OpenAI-compatible)"
           serving_endpoint:
             name: FILL-ME-serving-endpoint-name
             permission: CAN_QUERY
@@ -38,12 +58,16 @@ targets:
     default: true
     workspace:
       host: https://FILL-ME-workspace-host
+    resources:
+      apps:
+        supervisor:
+          name: supervisor-FILL-ME-username
   prod:
     mode: production
     workspace:
       host: https://FILL-ME-workspace-host
-      root_path: /Workspace/Users/FILL-ME-user-email/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Users/FILL-ME-user-email/.bundle/supervisor/prod
     resources:
       apps:
         supervisor:
-          name: supervisor-prod-FILL-ME-username
+          name: supervisor-prd-FILL-ME-username

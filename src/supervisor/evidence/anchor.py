@@ -169,7 +169,7 @@ def build_anchor(settings: Any) -> WormDirAnchor | UcVolumeAnchor:
     if kind == "worm_dir":
         return WormDirAnchor(Path(path))
     if kind == "uc_volume":
-        from supervisor.adapters.sql.databricks_rest import make_workspace_client
+        from supervisor.databricks.files import make_files  # WP10 Files API helper
 
-        return UcVolumeAnchor(make_workspace_client(settings).files, str(path))
+        return UcVolumeAnchor(make_files(settings), str(path))
     raise AnchorError(f"unknown ANCHOR_KIND {kind!r}")

@@ -243,6 +243,26 @@ class DatabricksRestExecutor:
 # ---------------------------------------------------------------------- wiring
 
 
+def config_kwargs(settings: Settings) -> dict[str, Any]:
+    """Keyword arguments for the SDK ``Config`` (besides the retry caps). OAuth only."""
+    kwargs: dict[str, Any] = {}
+    if not is_placeholder(settings.databricks_host):
+        kwargs["host"] = settings.databricks_host
+    if not is_placeholder(settings.databricks_config_profile):
+        kwargs["profile"] = settings.databricks_config_profile
+    if not is_placeholder(settings.databricks_auth_type):
+        kwargs["auth_type"] = settings.databricks_auth_type
+    if settings.databricks_auth_kind == "service_principal":
+        # Databricks App: the platform injects the service principal (OAuth M2M). Pass it
+        # explicitly so a stray profile or auth type cannot win. Never logged.
+        if settings.databricks_client_secret is None:  # pragma: no cover - kind implies it
+            raise ConfigError("DATABRICKS_CLIENT_SECRET is not set")
+        kwargs["client_id"] = settings.databricks_client_id
+        kwargs["client_secret"] = settings.databricks_client_secret.get_secret_value()
+        kwargs["auth_type"] = "oauth-m2m"
+    return kwargs
+
+
 def make_workspace_client(settings: Settings) -> WorkspaceClient:
     """WorkspaceClient with the retry budget capped inside Config. OAuth only."""
     try:
@@ -252,13 +272,7 @@ def make_workspace_client(settings: Settings) -> WorkspaceClient:
         raise ConfigError(
             "databricks-sdk is not installed. Fix: uv sync --extra databricks"
         ) from exc
-    kwargs: dict[str, Any] = {}
-    if not is_placeholder(settings.databricks_host):
-        kwargs["host"] = settings.databricks_host
-    if not is_placeholder(settings.databricks_config_profile):
-        kwargs["profile"] = settings.databricks_config_profile
-    if not is_placeholder(settings.databricks_auth_type):
-        kwargs["auth_type"] = settings.databricks_auth_type
+    kwargs = config_kwargs(settings)
     try:
         cfg = Config(
             retry_timeout_seconds=settings.databricks_retry_timeout_s,
@@ -296,7 +310,12 @@ def build_databricks_executor(
     settings: Settings, client: Any | None = None
 ) -> DatabricksRestExecutor:
     client = client or make_workspace_client(settings)
-    identity = "service_principal" if settings.supervisor_mode == "databricks_app" else "user"
+    identity = (
+        "service_principal"
+        if settings.supervisor_mode == "databricks_app"
+        or settings.databricks_auth_kind == "service_principal"
+        else "user"
+    )
     host = getattr(getattr(client, "config", None), "host", None) or settings.databricks_host
     return DatabricksRestExecutor(
         client.statement_execution,

@@ -50,9 +50,12 @@ def build_recorder(
 
         masker = make_masker(settings)
     policy = policy or load_manifest_policy(default=settings.capture_default_level)
-    spool = (
-        Spool(settings.recorder_spool_dir) if use_spool and settings.recorder_spool_dir else None
-    )
+    spool: Spool | None = None
+    if use_spool and settings.recorder_spool_dir:
+        # WP10: a /Volumes spool path with no local mount (Databricks App) uses the Files API.
+        from supervisor.databricks.files import make_spool
+
+        spool = make_spool(settings)
     return Recorder(Normaliser(masker, policy, "dev"), EventWriter(tables, spool))
 
 
