@@ -8,6 +8,8 @@ bootstrap()
 
 import logging  # noqa: E402
 import platform  # noqa: E402
+from collections.abc import AsyncIterator  # noqa: E402
+from contextlib import asynccontextmanager  # noqa: E402
 
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.exceptions import RequestValidationError  # noqa: E402
@@ -16,11 +18,32 @@ from fastapi.responses import JSONResponse  # noqa: E402
 from supervisor import __version__  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
+from supervisor.gateway import wiring as gate_wiring  # noqa: E402
 from supervisor.gateway.routes import router as gate_router  # noqa: E402
 
 log = logging.getLogger("supervisor.app")
 
-app = FastAPI(title="Supervisor", version=__version__)
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Startup: build the runtime (store, policy, evidence chain, gateway) once.
+
+    A failure here is logged, not fatal: /healthz still answers and the routes retry
+    the build on first use (they fail closed until it succeeds)."""
+    installed = False
+    try:
+        gate_wiring.install_runtime(get_settings())
+        installed = True
+    except Exception:  # noqa: BLE001 - startup must not crash the app process
+        log.exception("runtime build failed at startup; gateway routes will retry")
+    try:
+        yield
+    finally:
+        if installed:
+            gate_wiring.shutdown_runtime()
+
+
+app = FastAPI(title="Supervisor", version=__version__, lifespan=lifespan)
 app.include_router(gate_router)
 
 
