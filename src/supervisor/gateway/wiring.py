@@ -5,7 +5,7 @@
   (idempotent); the gateway then enforces what the table holds (``StorePolicyProvider``).
 * EvidenceSink: WP6 provides the chain writer. Until it is wired with
   ``set_evidence_sink`` (or ``build_gateway(evidence=...)``), ``BufferedEvidenceSink``
-  keeps the records in memory and logs a warning once. It never drops the gate decision.
+  keeps the last N records in memory and logs a warning once (not durable: wire WP6).
 """
 
 from __future__ import annotations
@@ -76,6 +76,7 @@ def build_gateway(
         evidence or BufferedEvidenceSink(),
         adapters.clock,
         env=settings.supervisor_mode,
+        trust_body_principal=settings.supervisor_mode != "databricks_app",
     )
 
 

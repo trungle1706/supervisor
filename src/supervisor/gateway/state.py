@@ -84,6 +84,11 @@ class AgentStateMachine:
         self._cache[agent_id] = (row, now)
         return row
 
+    def last_known_state(self, agent_id: str) -> str | None:
+        """Last state read from the store (any age); used only to pick a fail mode."""
+        cached = self._cache.get(agent_id)
+        return cached[0]["gate_state"] if cached and cached[0] else None
+
     def invalidate(self, agent_id: str | None = None) -> None:
         with self._lock:
             if agent_id is None:
@@ -225,6 +230,11 @@ class AgentStateMachine:
             out.append(row)
         return out
 
+    def _close_pending_resumes(self, agent_id: str) -> None:
+        """Approvals answer one pause; a quarantine or release voids them."""
+        for row in self._controls(agent_id, "resume", "pending"):
+            self._close_control(row, "void")
+
     def _new_control(self, agent_id: str, action: str, principal: str, **fields: Any) -> None:
         self.state.insert(
             "gate_control",
@@ -252,6 +262,7 @@ class AgentStateMachine:
             _, before = self._transition(
                 agent_id, ("RUNNING", "SHADOW"), "PAUSED", principal, reason, "pause"
             )
+            self._close_pending_resumes(agent_id)
             for old in self._controls(agent_id, "pause", "active"):
                 self._close_control(old, "superseded")
             self._new_control(
@@ -275,6 +286,7 @@ class AgentStateMachine:
                 reason,
                 "quarantine",
             )
+            self._close_pending_resumes(agent_id)
             if before != "PAUSED":
                 self._new_control(
                     agent_id, "pause", principal, reason=reason, resume_to=before, status="active"
@@ -293,6 +305,7 @@ class AgentStateMachine:
             self._transition(
                 agent_id, ("QUARANTINED",), "PAUSED", principal, reason, "release_quarantine"
             )
+            self._close_pending_resumes(agent_id)
             return {"agent_id": agent_id, "state": "PAUSED", "changed": True}
 
     def _role(self, agent_id: str, principal: str) -> str:
@@ -300,7 +313,7 @@ class AgentStateMachine:
         if principal == row["owner_user"]:
             return "owner"
         reviewers = self.policy.current().doc.reviewers
-        if not reviewers or principal in reviewers:
+        if principal in reviewers:
             return "reviewer"
         raise TransitionError(
             f"{principal} may not approve a resume (needs the agent owner or a reviewer)"

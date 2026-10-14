@@ -133,7 +133,10 @@ def key_hash(name: str, value: Any) -> str:
     """Stable, non-reversible grouping key (raw ids never stored in events or the chain)."""
     if isinstance(value, bool) or not isinstance(value, str | int):
         raise PredicateTypeError(f"{name}: grouping value must be text or an integer")
-    data = f"{name}\x1f{type(value).__name__}\x1f{value}".encode()
+    text = str(value).strip().casefold()
+    if not text:
+        raise PredicateTypeError(f"{name}: grouping value is empty")
+    data = f"{name}\x1f{text}".encode()
     return hashlib.sha256(data).hexdigest()[:32]
 
 
@@ -164,6 +167,7 @@ class WindowStore:
     def __init__(self) -> None:
         self.by_tool: dict[str, deque[_Event]] = {}
         self.warm = False
+        self.policy_hash: str | None = None
 
     def add(self, tool: str, ev: _Event) -> None:
         self.by_tool.setdefault(tool, deque()).append(ev)
@@ -329,6 +333,7 @@ class Gateway:
         env: str = "local",
         state_cache_ttl_s: float = 1.0,
         workers: int = 8,
+        trust_body_principal: bool = True,
     ) -> None:
         self.policy = policy
         self.tables = tables
@@ -341,6 +346,7 @@ class Gateway:
         self.tier0b_enabled = tier0b_enabled
         self.timeout_s = timeout_s
         self.env = env
+        self.trust_body_principal = trust_body_principal
         self.metrics = GateMetrics()
         self.windows = WindowStore()
         self._lock = threading.RLock()
@@ -410,14 +416,17 @@ class Gateway:
         """Rebuild windows from allowed gate_decision events (cold start)."""
         now, now_us = self._now_us()
         horizon = now - timedelta(seconds=policy.max_window_s)
-        rows = self.tables.query(
-            "agent_event",
-            {"event_type": "gate_decision", "status": "allowed"},
-            order_by=("-ts",),
-            limit=WARM_LIMIT,
-        )
         store = WindowStore()
-        tracked = policy.tracked_keys()
+        tracked = _window_tools(policy)
+        rows: list[dict[str, Any]] = []
+        for tool in sorted(tracked):
+            rows += self.tables.query(
+                "agent_event",
+                {"event_type": "gate_decision", "status": "allowed", "tool_name": tool},
+                order_by=("-ts",),
+                limit=WARM_LIMIT,
+            )
+        rows.sort(key=lambda r: r["ts"], reverse=True)
         for r in reversed(rows):
             if r["ts"] < horizon or r["tool_name"] not in tracked:
                 continue
@@ -431,6 +440,7 @@ class Gateway:
             )
         store.prune(now_us, policy.max_window_s)
         store.warm = True
+        store.policy_hash = policy.policy_hash
         self.windows = store
 
     def _rule_matches(
@@ -459,6 +469,8 @@ class Gateway:
                     return False  # a separate "absent" rule blocks calls without an amount
                 if not _is_int(current):
                     raise PredicateTypeError(f"{agg.field}: expected an integer amount")
+                if current < 0:
+                    raise PredicateTypeError(f"{agg.field}: negative amount")
             else:
                 current = 1
             key = None
@@ -478,8 +490,9 @@ class Gateway:
             for name in prior.match_args:
                 value = _resolve(name, args, ctx)
                 if value is _MISSING or value is None:
-                    # Cannot link to an earlier call: "absent" holds, "present" does not.
-                    return prior.mode == "absent"
+                    # Cannot link to an earlier call: treat as a match (both modes), so a
+                    # missing id never slips past a money control.
+                    return True
                 match[name] = key_hash(name, value)
             since = now_us - prior.within_s * 1_000_000
             found = self.windows.exists(
@@ -500,8 +513,8 @@ class Gateway:
     ) -> Decision:
         with self._lock:
             policy = self.policy.current()
-            if not self.windows.warm:
-                self._warm(policy)
+            if not self.windows.warm or self.windows.policy_hash != policy.policy_hash:
+                self._warm(policy)  # cold start, or new policy (tracked keys may differ)
             state = self.states.get_state(agent_id, policy)
             risk = policy.risk_class(tool_name)
             now, now_us = self._now_us()
@@ -593,6 +606,8 @@ class Gateway:
                 if call.abandoned:
                     return d  # the caller already applied the fail mode and recorded it
                 call.decision = d
+            if d.allow and tool_name in _window_tools(policy):
+                self._remember(policy, now_us, agent_id, tool_name, args, ctx)
             pause_rule = next((m for m in matches if m.action == "pause"), None)
             if pause_rule is not None and not shadow and builtin is None:
                 self.states.pause(
@@ -603,8 +618,6 @@ class Gateway:
                 d.paused = True
             d.latency_us = (time.perf_counter_ns() - t0) // 1000
             self._record(d, now, agent_id, agent_version, tool_name, args, ctx, matches, shadow)
-            if d.allow and risk is not None and tool_name in policy.tracked_keys():
-                self._remember(policy, now_us, agent_id, tool_name, args, ctx)
         d.total_us = (time.perf_counter_ns() - t0) // 1000
         self.metrics.observe(
             d.total_us,
@@ -619,7 +632,8 @@ class Gateway:
         self, policy: Policy, tool_name: str, args: Mapping[str, Any], ctx: Mapping[str, Any]
     ) -> dict[str, str]:
         keys: dict[str, str] = {}
-        for name in sorted(policy.tracked_keys().get(tool_name, ())):
+        names = set(policy.tracked_keys().get(tool_name, ())) | DEFAULT_KEYS
+        for name in sorted(names):
             value = _resolve(name, args, ctx)
             if value is _MISSING or value is None:
                 continue
@@ -645,7 +659,7 @@ class Gateway:
                 now_us,
                 agent_id,
                 self._event_keys(policy, tool_name, args, ctx),
-                amount if _is_int(amount) else None,
+                amount if _is_int(amount) and amount >= 0 else None,
             ),
         )
 
@@ -804,6 +818,10 @@ class Gateway:
             return "closed", None
         risk = policy.risk_class(tool_name)
         if risk is None or agent_id not in policy.doc.agents:
+            return "closed", None
+        if self.states.last_known_state(agent_id) in ("QUARANTINED", "PAUSED") and (
+            risk != "read_only" or self.states.last_known_state(agent_id) == "QUARANTINED"
+        ):
             return "closed", None
         applicable = [
             r for r in policy.rules_for(agent_id) if _tool_maybe(r.when.tool, tool_name, policy)
@@ -991,6 +1009,17 @@ class Gateway:
         except Exception:  # noqa: BLE001 - 0b never affects the call
             log.exception("tier 0b failed")
             self.metrics.bump("tier0b_errors")
+
+
+# Grouping ids always hashed into gate events, so a new aggregate rule has history.
+DEFAULT_KEYS = frozenset({"customer_id", "payee_id", "application_id", "account_id"})
+
+
+def _window_tools(policy: Policy) -> set[str]:
+    """Tools whose allowed calls feed the windows: tracked ones plus every non-read-only tool."""
+    tools = set(policy.tracked_keys())
+    tools |= {t for t, rc in policy.doc.tools.items() if rc != "read_only"}
+    return tools
 
 
 _ACTION_ORDER = {"pause": 0, "block": 1, "alert": 2, "log": 3}

@@ -113,6 +113,21 @@ rules:
     owner: Payments Ops
     approvals: [risk.lead, compliance.officer]
 
+  - id: PAY-06
+    version: 1
+    description: A transfer amount must be a positive integer
+    agent_scope: [payments]
+    when:
+      tool: {in: [internal_transfer, ext_transfer_api]}
+      all:
+        - {arg: amount_minor, op: le, value: 0}
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Internal payment control - valid instruction
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
   - id: PAY-02
     version: 1
     description: Single transfer limit 100,000,000 VND
@@ -233,6 +248,21 @@ rules:
     severity: medium
     risk_class: money
     regulation_ref: Fee policy - complete instruction
+    owner: Retail Service
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-04
+    version: 1
+    description: A fee waiver amount must be a positive integer
+    agent_scope: [customer_service]
+    when:
+      tool: waive_fee
+      all:
+        - {arg: amount_minor, op: le, value: 0}
+    action: block
+    severity: medium
+    risk_class: money
+    regulation_ref: Fee policy - valid instruction
     owner: Retail Service
     approvals: [risk.lead, compliance.officer]
 

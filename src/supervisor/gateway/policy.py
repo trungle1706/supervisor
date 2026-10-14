@@ -50,6 +50,8 @@ DEFAULT_FAIL_MODE: dict[str, FailModeT] = {
 SEVERITY_RANK = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 ACTION_RANK = {"log": 0, "alert": 1, "block": 2, "pause": 3}
 
+# A group that contains a quantifier and is itself quantified, e.g. (a+)+ or (x*)*: ReDoS risk.
+_REDOS = re.compile(r"\([^)]*[+*}][^)]*\)\s*[+*{]")
 _PATH_RE = re.compile(r"^(ctx\.)?[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*){0,4}$")
 _ID_RE = r"^[A-Z0-9][A-Z0-9_-]{1,40}$"
 _NAME_RE = r"^[A-Za-z0-9_.:-]{1,80}$"
@@ -108,6 +110,8 @@ def _validate_op_value(op: str, value: Any, where: str) -> None:
     elif op == "matches":
         if not isinstance(value, str) or not value or len(value) > MAX_PATTERN_LEN:
             raise ValueError(f"{where}: op matches needs a pattern of 1..{MAX_PATTERN_LEN} chars")
+        if _REDOS.search(value) or re.search(r"\\[1-9]", value):
+            raise ValueError(f"{where}: nested quantifiers and backreferences are not allowed")
         try:
             re.compile(value)
         except re.error as exc:

@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from supervisor.core.errors import SupervisorError
@@ -23,20 +23,23 @@ def gateway_dep() -> Gateway:
 _GW: Gateway = Depends(gateway_dep)
 
 
+_ID = r"^[A-Za-z0-9_.:@-]{1,128}$"
+
+
 class CheckRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    agent_id: str
-    agent_version: str
-    tool_name: str
+    agent_id: str = Field(pattern=_ID)
+    agent_version: str = Field(pattern=_ID)
+    tool_name: str = Field(pattern=_ID)
     args: dict[str, Any]
     context: dict[str, Any] | None = None
 
 
 class ControlRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    agent_id: str
-    principal: str | None = None
-    reason: str = ""
+    agent_id: str = Field(pattern=_ID)
+    principal: str | None = Field(default=None, max_length=256)
+    reason: str = Field(default="", max_length=2000)
 
 
 def _bad(message: str, **extra: Any) -> JSONResponse:
@@ -70,9 +73,16 @@ async def check(request: Request, gw: Gateway = _GW) -> JSONResponse:
     return JSONResponse(content=result)
 
 
-def _principal(request: Request, req: ControlRequest) -> str | None:
+def _principal(request: Request, req: ControlRequest, gw: Gateway) -> str | None:
+    """SSO header first. The body field is a laptop/dev fallback only (D04: the dev users
+    file is not a real identity); with ``trust_body_principal`` off (Databricks App) the
+    header is required. Real identity comes from the WP8 ``Principal`` port."""
     header = request.headers.get("x-forwarded-user", "").strip()
-    return header or (req.principal or "").strip() or None
+    if header:
+        return header
+    if not getattr(gw, "trust_body_principal", False):
+        return None
+    return (req.principal or "").strip() or None
 
 
 async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
@@ -80,9 +90,9 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
         req = ControlRequest.model_validate(await _body(request))
     except ValidationError as exc:
         return _validation_response(exc)
-    principal = _principal(request, req)
+    principal = _principal(request, req, gw)
     if principal is None:
-        return _bad("principal is required (X-Forwarded-User header or body field)")
+        return _bad("principal is required (X-Forwarded-User header; body field on laptop only)")
     states = gw.states
     fn = {
         "pause": states.pause,
@@ -94,6 +104,8 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
         result = await run_in_threadpool(fn, req.agent_id, principal, req.reason)
     except SupervisorError as exc:
         return _bad(str(exc))
+    except Exception as exc:  # noqa: BLE001 - store outage etc.: 400 with a message, never 500
+        return _bad(f"{action} failed: {type(exc).__name__}; see the server log")
     return JSONResponse(content=result)
 
 
