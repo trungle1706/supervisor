@@ -13,7 +13,8 @@ from supervisor.adapters.clock import FixedClock
 from supervisor.adapters.factory import Adapters, build_adapters
 from supervisor.config import load_settings
 from supervisor.core.canonical import canonical_json, sha256_hex
-from supervisor.gateway.policy import Policy, load_policy_dir
+from supervisor.gateway.engine import Gateway
+from supervisor.gateway.policy import Policy, StorePolicyProvider, deploy_policy, load_policy_dir
 from supervisor.jobs import bootstrap_schema
 from tests.conftest import REPO_ROOT
 
@@ -71,3 +72,21 @@ def evidence() -> MemoryEvidence:
 @pytest.fixture(scope="session")
 def baseline() -> Policy:
     return load_policy_dir(POLICY_DIR)
+
+
+@pytest.fixture
+def gateway(adapters: Adapters, evidence: MemoryEvidence, baseline: Policy) -> Iterator[Gateway]:
+    """Gateway on the baseline policy, deployed to the rule table and read back from it."""
+    deploy_policy(baseline, adapters.state, adapters.clock)
+    gw = Gateway(
+        StorePolicyProvider(adapters.state, refresh_s=0),
+        adapters.tables,
+        adapters.state,
+        evidence,
+        adapters.clock,
+        state_cache_ttl_s=0,
+    )
+    try:
+        yield gw
+    finally:
+        gw.close()
