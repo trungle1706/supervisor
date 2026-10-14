@@ -39,6 +39,7 @@ def statements_for_settings(
         catalog=str(settings.databricks_catalog),
         schema=str(settings.databricks_schema),
         prefix=settings.table_prefix,
+        retention_days=settings.evidence_retention_days,
     )
 
 

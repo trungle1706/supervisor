@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`agent_event` (
 )
 USING DELTA
 COMMENT 'Normalised OTel-shaped events. Single read model for Watch. Masked only.'
-TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- rule (state): Deployed copy of policy rules (git is the source).
 -- primary key (enforced by the app, not by Delta): rule_id, version
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`verdict` (
 )
 USING DELTA
 COMMENT 'One row per check outcome (rule, Tier 1 or Tier 2 judge). Judges are advisory.'
-TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- cases (state): Case header (mutable workflow state). Every change also writes case_event.
 -- primary key (enforced by the app, not by Delta): case_id
@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`case_event` (
 )
 USING DELTA
 COMMENT 'Who did what on a case. Feeds the evidence chain.'
-TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- signoff (append_only): Human sign-off. Reviewer id from SSO, never the app service principal.
 -- primary key (enforced by the app, not by Delta): signoff_id
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`signoff` (
 )
 USING DELTA
 COMMENT 'Human sign-off. Reviewer id from SSO, never the app service principal.'
-TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- chain_entry (append_only): Hash chain. One lane per agent plus the root lane. PII never enters.
 -- primary key (enforced by the app, not by Delta): lane, seq
@@ -237,7 +237,37 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`chain_entry` (
 )
 USING DELTA
 COMMENT 'Hash chain. One lane per agent plus the root lane. PII never enters.'
-TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- chain_payload (append_only): Masked canonical JSON payload of a chain entry (no floats, no raw PII).
+-- primary key (enforced by the app, not by Delta): lane, seq
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`chain_payload` (
+  lane STRING NOT NULL,
+  seq BIGINT NOT NULL,
+  payload_hash STRING NOT NULL,
+  payload STRING NOT NULL
+)
+USING DELTA
+COMMENT 'Masked canonical JSON payload of a chain entry (no floats, no raw PII).'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- chain_signature (append_only): Signature over the entry_hash of a root-lane entry (signed head).
+-- primary key (enforced by the app, not by Delta): lane, seq
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`chain_signature` (
+  lane STRING NOT NULL,
+  seq BIGINT NOT NULL,
+  entry_hash STRING NOT NULL,
+  signature STRING NOT NULL,
+  key_id STRING NOT NULL,
+  algorithm STRING NOT NULL,
+  key_kind STRING NOT NULL,
+  public_key STRING NOT NULL
+)
+USING DELTA
+COMMENT 'Signature over the entry_hash of a root-lane entry (signed head).'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- anchor (append_only): Signed chain heads anchored to an immutable target.
 -- primary key (enforced by the app, not by Delta): anchor_id
@@ -256,7 +286,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`anchor` (
 )
 USING DELTA
 COMMENT 'Signed chain heads anchored to an immutable target.'
-TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- oversight_metric (state): Daily oversight metrics per agent. Feeds the console panel.
 -- primary key (enforced by the app, not by Delta): metric_date, agent_id

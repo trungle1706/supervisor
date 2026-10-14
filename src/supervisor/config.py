@@ -125,7 +125,27 @@ class Settings(BaseSettings):
     llm_timeout_s: int = Field(default=600, ge=1)
     llm_endpoint: str | None = None  # Databricks serving endpoint name (App binding)
 
-    @field_validator("data_dir", "sqlite_path", mode="after")
+    # Evidence chain (WP6). Root entries commit all lane heads and are signed.
+    evidence_root_every_n: int = Field(default=100, ge=1)  # entries between signed roots
+    evidence_root_every_s: int = Field(default=900, ge=1)  # seconds between signed roots
+    evidence_retention_days: int = Field(default=1825, ge=1)  # Delta log/file retention
+    evidence_writer_id: str | None = None  # default: <hostname>:<pid>
+    signer_kind: Literal["ed25519_file", "env"] = "ed25519_file"
+    signer_key_path: Path | None = None  # default: <data_dir>/keys/evidence_ed25519.pem
+    signer_env_var: str = Field(default="SUPERVISOR_SIGNING_KEY", pattern=r"^[A-Z][A-Z0-9_]*$")
+    signer_key_managed: bool = False  # True only when the bank manages the key (label)
+    anchor_kind: Literal["worm_dir", "uc_volume"] = "worm_dir"
+    anchor_path: str | None = None  # worm_dir: default <data_dir>/anchors; uc_volume: /Volumes/..
+    casefile_dir: Path | None = None  # default: <data_dir>/casefiles
+    casefile_decision33_text: str = (
+        "FILL-ME: Decision 33 classification (bank counsel to supply the Appendix wording)"
+    )
+    casefile_pdf_font: Path | None = None  # Unicode TTF for PDF (VN text); none -> HTML
+
+    @field_validator(
+        "data_dir", "sqlite_path", "signer_key_path", "casefile_dir", "casefile_pdf_font",
+        mode="after",
+    )
     @classmethod
     def _absolute(cls, value: Path | None) -> Path | None:
         if value is None:
@@ -139,6 +159,16 @@ class Settings(BaseSettings):
     def _rules(self) -> Settings:
         if self.sqlite_path is None:
             self.sqlite_path = self.data_dir / "supervisor.db"
+        if self.signer_key_path is None:
+            self.signer_key_path = self.data_dir / "keys" / "evidence_ed25519.pem"
+        if self.casefile_dir is None:
+            self.casefile_dir = self.data_dir / "casefiles"
+        if self.anchor_kind == "worm_dir":
+            if self.anchor_path is None:
+                self.anchor_path = str(self.data_dir / "anchors")
+            else:
+                p = Path(self.anchor_path).expanduser()
+                self.anchor_path = os.path.abspath(p if p.is_absolute() else REPO_ROOT / p)
         if (
             self.llm_base_url
             and not self.llm_allow_remote

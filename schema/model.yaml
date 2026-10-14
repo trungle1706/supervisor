@@ -15,6 +15,9 @@
 #
 # kind: append_only -> SQLite BEFORE UPDATE/DELETE triggers RAISE(ABORT);
 #                      Delta TBLPROPERTIES delta.appendOnly = true.
+# evidence: true    -> evidence table (WP6). Delta TBLPROPERTIES delta.logRetentionDuration and
+#                      delta.deletedFileRetentionDuration = interval <EVIDENCE_RETENTION_DAYS> days
+#                      (committed DDL shows the default, 1825 days).
 # kind: state       -> mutable rows. The generator adds two columns:
 #                      row_version int (optimistic concurrency) and updated_at timestamp.
 # One catalog.schema holds every table (configured by DATABRICKS_CATALOG / DATABRICKS_SCHEMA).
@@ -89,6 +92,7 @@ tables:
 
   agent_event:
     kind: append_only
+    evidence: true
     description: Normalised OTel-shaped events. Single read model for Watch. Masked only.
     primary_key: [event_id]
     indexes:
@@ -140,6 +144,7 @@ tables:
 
   verdict:
     kind: append_only
+    evidence: true
     description: One row per check outcome (rule, Tier 1 or Tier 2 judge). Judges are advisory.
     primary_key: [verdict_id]
     indexes:
@@ -186,6 +191,7 @@ tables:
 
   case_event:
     kind: append_only
+    evidence: true
     description: Who did what on a case. Feeds the evidence chain.
     primary_key: [case_id, seq]
     columns:
@@ -199,6 +205,7 @@ tables:
 
   signoff:
     kind: append_only
+    evidence: true
     description: Human sign-off. Reviewer id from SSO, never the app service principal.
     primary_key: [signoff_id]
     indexes:
@@ -214,6 +221,7 @@ tables:
 
   chain_entry:
     kind: append_only
+    evidence: true
     description: Hash chain. One lane per agent plus the root lane. PII never enters.
     primary_key: [lane, seq]
     columns:
@@ -228,8 +236,35 @@ tables:
       writer: string
       env: string
 
+  chain_payload:
+    kind: append_only
+    evidence: true
+    description: Masked canonical JSON payload of a chain entry (no floats, no raw PII).
+    primary_key: [lane, seq]
+    columns:
+      lane: string
+      seq: int
+      payload_hash: string
+      payload: text
+
+  chain_signature:
+    kind: append_only
+    evidence: true
+    description: Signature over the entry_hash of a root-lane entry (signed head).
+    primary_key: [lane, seq]
+    columns:
+      lane: string
+      seq: int
+      entry_hash: string
+      signature: string
+      key_id: string
+      algorithm: string
+      key_kind: string
+      public_key: text
+
   anchor:
     kind: append_only
+    evidence: true
     description: Signed chain heads anchored to an immutable target.
     primary_key: [anchor_id]
     columns:
