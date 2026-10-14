@@ -47,17 +47,11 @@ def cmd_preflight(_: argparse.Namespace) -> int:
     return main()
 
 
-def cmd_demo(_: argparse.Namespace) -> int:
-    print("[SKIP] demo is not built yet (WP11). It will run, with no network:")
-    for step in (
-        "1. seed synthetic Vietnamese data and register 3 agents",
-        "2. inject 4 incidents; the gateway blocks or pauses each with a real rule",
-        "3. judges add advisory verdicts and open cases",
-        "4. tamper with one evidence row in an export; verify reports the break",
-        "5. reset to the snapshot; replay mode as fallback",
-    ):
-        print(f"       {step}")
-    return 0
+def cmd_demo(args: argparse.Namespace) -> int:
+    """WP11 demo harness: seed, 4 incidents, tamper test, reset (supervisor.demo.runbook)."""
+    from supervisor.demo import runbook
+
+    return runbook.main(list(getattr(args, "demo_args", None) or []))
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
@@ -88,9 +82,11 @@ def cmd_export_reqs(_: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_release(_: argparse.Namespace) -> int:
-    print("[FAIL] release is not built yet (WP11): git archive + uv.toml + leak sweep")
-    return 2
+def cmd_release(args: argparse.Namespace) -> int:
+    """WP11 hand-off zip: archive of HEAD + requirements + uv.toml + HANDOFF + leak sweep."""
+    from supervisor import release
+
+    return release.main(list(getattr(args, "release_args", None) or []))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -103,7 +99,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("preflight", help="check config and environment").set_defaults(
         func=cmd_preflight
     )
-    sub.add_parser("demo", help="run the demo (WP11)").set_defaults(func=cmd_demo)
+    # demo and release parse their own options (main() hands them the rest of argv).
+    sub.add_parser(
+        "demo", help="demo harness: seed, inject 1-4, tamper, reset, serve (WP11)"
+    ).set_defaults(func=cmd_demo)
     v = sub.add_parser("verify", help="verify an evidence export offline (WP6)")
     v.add_argument("export_dir", nargs="?", default=".")
     v.add_argument("--pubkey", default=None, help="pinned notary public key (PEM)")
@@ -118,8 +117,17 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+PASSTHROUGH = {"demo": "demo_args", "release": "release_args"}  # own argparse inside
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in PASSTHROUGH:
+        # demo and release parse their own options (any order), so hand them the rest.
+        args = argparse.Namespace(command=argv[0], **{PASSTHROUGH[argv[0]]: argv[1:]})
+        args.func = cmd_demo if argv[0] == "demo" else cmd_release
+    else:
+        args = build_parser().parse_args(argv)
     try:
         return int(args.func(args))
     except SupervisorError as exc:

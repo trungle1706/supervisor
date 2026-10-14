@@ -43,11 +43,19 @@ def test_preflight_fails_on_remote_llm(tmp_path: Path) -> None:
     assert "[FAIL] config" in res.stdout and "loopback" in res.stdout
 
 
-@pytest.mark.parametrize("cmd,code", [("demo", 0), ("release", 2), ("verify", 2)])
-def test_stub_commands(cmd: str, code: int, tmp_path: Path) -> None:
-    res = _cli(cmd, cwd=tmp_path)
+@pytest.mark.parametrize(
+    "args,code",
+    [(("demo", "--data-dir", "demo"), 0), (("release",), 2), (("verify",), 2)],
+)
+def test_stub_commands(args: tuple[str, ...], code: int, tmp_path: Path) -> None:
+    # WP11: demo runs the full runbook (relative --data-dir resolves against the cwd);
+    # release is exercised on a temp clone in tests/e2e/test_release.py.
+    res = _cli(*args, cwd=tmp_path)
     assert res.returncode == code, res.stdout + res.stderr
     assert res.stdout.isascii() and res.stdout.strip()
+    if args[0] == "demo":
+        assert "[OK] demo run 1: PASS" in res.stdout, res.stdout
+        assert (tmp_path / "demo" / ".supervisor-demo").is_file()
 
 
 def test_serve_answers_healthz(tmp_path: Path) -> None:

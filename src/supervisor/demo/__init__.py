@@ -1,1 +1,1 @@
-"""Demo helpers (WP2: scripted incident replay; WP11 builds the full harness)."""
+"""Demo harness (WP11): seed, inject, tamper, reset, runbook, stage; WP2 scripted replay."""
