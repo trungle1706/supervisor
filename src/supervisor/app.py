@@ -16,10 +16,12 @@ from fastapi.responses import JSONResponse  # noqa: E402
 from supervisor import __version__  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
+from supervisor.gateway.routes import router as gate_router  # noqa: E402
 
 log = logging.getLogger("supervisor.app")
 
 app = FastAPI(title="Supervisor", version=__version__)
+app.include_router(gate_router)
 
 
 @app.exception_handler(SupervisorError)

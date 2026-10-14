@@ -308,3 +308,23 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`oversight_metric` (
 USING DELTA
 COMMENT 'Daily oversight metrics per agent. Feeds the console panel.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- gate_control (state): Gateway control records (WP3). Active pause (with the state to resume to) and pending two-person resume approvals.
+-- primary key (enforced by the app, not by Delta): control_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`gate_control` (
+  control_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  action STRING NOT NULL,
+  principal STRING NOT NULL,
+  role STRING,
+  reason STRING,
+  resume_to STRING,
+  status STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  expires_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'Gateway control records (WP3). Active pause (with the state to resume to) and pending two-person resume approvals.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

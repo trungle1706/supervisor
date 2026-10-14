@@ -1,0 +1,487 @@
+{
+  "$defs": {
+    "AgentManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "host_type": {
+          "default": "python",
+          "title": "Host Type",
+          "type": "string"
+        },
+        "initial_state": {
+          "default": "SHADOW",
+          "enum": [
+            "RUNNING",
+            "SHADOW"
+          ],
+          "title": "Initial State",
+          "type": "string"
+        },
+        "model_family": {
+          "default": "unknown",
+          "title": "Model Family",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "owner_team": {
+          "minLength": 1,
+          "title": "Owner Team",
+          "type": "string"
+        },
+        "owner_user": {
+          "minLength": 1,
+          "title": "Owner User",
+          "type": "string"
+        },
+        "plug_point": {
+          "default": "sdk",
+          "title": "Plug Point",
+          "type": "string"
+        },
+        "risk_tier": {
+          "default": "high",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "title": "Risk Tier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "owner_user",
+        "owner_team"
+      ],
+      "title": "AgentManifest",
+      "type": "object"
+    },
+    "Aggregate": {
+      "additionalProperties": false,
+      "description": "Stateful window: sum ``field`` (or count calls) of allowed calls, plus this call.",
+      "properties": {
+        "customer_arg": {
+          "default": "customer_id",
+          "title": "Customer Arg",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "fn": {
+          "enum": [
+            "sum",
+            "count"
+          ],
+          "title": "Fn",
+          "type": "string"
+        },
+        "group_by": {
+          "enum": [
+            "agent",
+            "customer"
+          ],
+          "title": "Group By",
+          "type": "string"
+        },
+        "limit": {
+          "minimum": 0,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "op": {
+          "default": "gt",
+          "enum": [
+            "gt",
+            "ge"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tools"
+        },
+        "window_s": {
+          "maximum": 2678400,
+          "minimum": 1,
+          "title": "Window S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fn",
+        "window_s",
+        "group_by",
+        "limit"
+      ],
+      "title": "Aggregate",
+      "type": "object"
+    },
+    "Predicate": {
+      "additionalProperties": false,
+      "description": "``arg`` is a dotted path into the tool args; ``ctx.`` reads the call context.",
+      "properties": {
+        "arg": {
+          "title": "Arg",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "ne",
+            "gt",
+            "ge",
+            "lt",
+            "le",
+            "in",
+            "not_in",
+            "matches",
+            "absent",
+            "present"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "arg",
+        "op"
+      ],
+      "title": "Predicate",
+      "type": "object"
+    },
+    "Prior": {
+      "additionalProperties": false,
+      "description": "Earlier allowed call of ``tool`` with the same ``match_args`` values.\n\nmode ``present``: the rule matches when such a call happened within the window\n(for example a new payee added minutes ago). mode ``absent``: the rule matches\nwhen no such call happened (for example no documents fetched before a decision).",
+      "properties": {
+        "match_args": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Match Args",
+          "type": "array"
+        },
+        "mode": {
+          "enum": [
+            "present",
+            "absent"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "same_agent": {
+          "default": false,
+          "title": "Same Agent",
+          "type": "boolean"
+        },
+        "tool": {
+          "title": "Tool",
+          "type": "string"
+        },
+        "within_s": {
+          "maximum": 34560000,
+          "minimum": 1,
+          "title": "Within S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tool",
+        "within_s",
+        "match_args",
+        "mode"
+      ],
+      "title": "Prior",
+      "type": "object"
+    },
+    "RuleSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "log",
+            "alert",
+            "block",
+            "pause"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "agent_scope": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "const": "*",
+              "type": "string"
+            }
+          ],
+          "title": "Agent Scope"
+        },
+        "aggregate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Aggregate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "approvals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Approvals",
+          "type": "array"
+        },
+        "description": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "fail_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "open",
+                "closed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fail Mode"
+        },
+        "id": {
+          "pattern": "^[A-Z0-9][A-Z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "owner": {
+          "minLength": 1,
+          "title": "Owner",
+          "type": "string"
+        },
+        "prior": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Prior"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "regulation_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regulation Ref"
+        },
+        "risk_class": {
+          "enum": [
+            "money",
+            "credit",
+            "pii_export",
+            "read_only"
+          ],
+          "title": "Risk Class",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "when": {
+          "$ref": "#/$defs/When"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "description",
+        "agent_scope",
+        "action",
+        "severity",
+        "risk_class",
+        "owner"
+      ],
+      "title": "RuleSpec",
+      "type": "object"
+    },
+    "ToolMatch": {
+      "additionalProperties": false,
+      "description": "Which tool names a rule applies to. YAML shorthand: ``tool: name`` means ``eq``.",
+      "properties": {
+        "op": {
+          "default": "eq",
+          "enum": [
+            "eq",
+            "in",
+            "not_in",
+            "matches"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "ToolMatch",
+      "type": "object"
+    },
+    "When": {
+      "additionalProperties": false,
+      "properties": {
+        "all": {
+          "items": {
+            "$ref": "#/$defs/Predicate"
+          },
+          "title": "All",
+          "type": "array"
+        },
+        "any": {
+          "items": {
+            "$ref": "#/$defs/Predicate"
+          },
+          "title": "Any",
+          "type": "array"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolMatch"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "When",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "admins": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Admins",
+      "type": "array"
+    },
+    "agents": {
+      "additionalProperties": {
+        "$ref": "#/$defs/AgentManifest"
+      },
+      "title": "Agents",
+      "type": "object"
+    },
+    "policy_version": {
+      "minimum": 1,
+      "title": "Policy Version",
+      "type": "integer"
+    },
+    "reviewers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reviewers",
+      "type": "array"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/RuleSpec"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "tools": {
+      "additionalProperties": {
+        "enum": [
+          "money",
+          "credit",
+          "pii_export",
+          "read_only"
+        ],
+        "type": "string"
+      },
+      "title": "Tools",
+      "type": "object"
+    }
+  },
+  "required": [
+    "policy_version"
+  ],
+  "title": "Supervisor gateway policy",
+  "type": "object"
+}
