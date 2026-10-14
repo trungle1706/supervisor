@@ -186,6 +186,38 @@ class Settings(BaseSettings):
     otlp_max_spans: int = Field(default=5000, ge=1)
     recorder_spool_dir: Path | None = None  # default: <data_dir>/spool
 
+    # Monitors and in-process scheduler (WP7, ADR D09/D10). Every monitor is off by
+    # default. SCHEDULER_ENABLED unset = on in laptop mode, off in other modes.
+    scheduler_enabled: bool | None = None
+    scheduler_lease_ttl_s: int = Field(default=180, ge=10)
+    scheduler_lock_path: Path | None = None  # default: <data_dir>/scheduler.lock (laptop)
+    sched_ingest_s: int = Field(default=60, ge=1)
+    sched_anchor_s: int = Field(default=900, ge=1)
+    sched_drift_s: int = Field(default=3600, ge=1)
+    sched_fairness_s: int = Field(default=86400, ge=1)
+    sched_metrics_s: int = Field(default=3600, ge=1)
+    sched_judge_s: int = Field(default=300, ge=1)
+    sched_multiagent_s: int = Field(default=300, ge=1)
+    sched_quality_s: int = Field(default=900, ge=1)
+    drift_enabled: bool = False
+    drift_window_s: int = Field(default=86400, ge=60)
+    drift_baseline_windows: int = Field(default=7, ge=2)
+    drift_k: int = Field(default=3, ge=1)
+    drift_consecutive: int = Field(default=3, ge=1)
+    drift_min_n: int = Field(default=20, ge=1)
+    fairness_enabled: bool = False
+    fairness_config: Path = Path("config/fairness.yaml")
+    metrics_enabled: bool = False
+    multiagent_enabled: bool = False
+    multiagent_window_s: int = Field(default=3600, ge=1)
+    multiagent_limit_minor: int = Field(default=100_000_000, ge=1)  # PAY-08 limit, VND
+    quality_enabled: bool = False
+    quality_sample_bp: int = Field(default=1000, ge=0, le=10000)
+    judge_sweep_settle_s: int = Field(default=60, ge=0)  # judge traces older than this
+    # ADR D10: a handoff tool call (context handoff=true) without caller_agent_id fails
+    # closed for money / credit / pii_export tools. Off by default.
+    require_caller_id: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -193,6 +225,8 @@ class Settings(BaseSettings):
         "casefile_dir",
         "casefile_pdf_font",
         "recorder_spool_dir",
+        "scheduler_lock_path",
+        "fairness_config",
         mode="after",
     )
     @classmethod
@@ -214,6 +248,8 @@ class Settings(BaseSettings):
             self.casefile_dir = self.data_dir / "casefiles"
         if self.recorder_spool_dir is None:
             self.recorder_spool_dir = self.data_dir / "spool"
+        if self.scheduler_lock_path is None:
+            self.scheduler_lock_path = self.data_dir / "scheduler.lock"
         if self.anchor_kind == "worm_dir":
             if self.anchor_path is None:
                 self.anchor_path = str(self.data_dir / "anchors")
@@ -246,6 +282,13 @@ class Settings(BaseSettings):
         if self.sql_backend != "auto":
             return self.sql_backend
         return "databricks_rest" if self.supervisor_mode == "databricks_app" else "sqlite"
+
+    @property
+    def scheduler_on(self) -> bool:
+        """SCHEDULER_ENABLED if set, else on in laptop mode only (WP7)."""
+        if self.scheduler_enabled is not None:
+            return self.scheduler_enabled
+        return self.supervisor_mode == "laptop"
 
     @property
     def mask_key(self) -> tuple[bytes, str]:
