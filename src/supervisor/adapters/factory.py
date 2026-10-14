@@ -81,3 +81,38 @@ def make_masker(settings: Settings) -> Masker | None:
 
     key, key_id = settings.mask_key
     return VnRegexMasker(key, key_id)
+
+
+def make_judge_chat_model(settings: Settings, role: str) -> ChatModel:
+    """WP5: ChatModel for one judge role (``t1``, ``t2`` or ``challenger``).
+
+    MockJudge (deterministic, ``mock`` in model_id) when ``JUDGE_<ROLE>_MODEL`` is empty
+    or ``LLM_MOCK=1``; else the OpenAI-compatible adapter at ``JUDGE_<ROLE>_BASE_URL``
+    (default ``LLM_BASE_URL``) with ``JUDGE_API_KEY`` (default ``LLM_API_KEY``)."""
+    if role not in ("t1", "t2", "challenger"):
+        raise ValueError(f"unknown judge role {role!r}")
+    model = getattr(settings, f"judge_{role}_model")
+    family = getattr(settings, f"judge_{role}_family")
+    if not model or settings.llm_mock:
+        from supervisor.judge.mockjudge import MockJudgeChat
+
+        tier = (
+            settings.judge_challenger_tier if role == "challenger" else (2 if role == "t2" else 1)
+        )
+        return MockJudgeChat(
+            tier=tier,
+            family=family or "mock",
+            model_id=f"mock-judge-{role}-v1",
+        )
+    from supervisor.adapters.llm.openai_compatible import OpenAICompatibleChat
+
+    base_url = getattr(settings, f"judge_{role}_base_url") or settings.llm_base_url
+    secret = settings.judge_api_key or settings.llm_api_key
+    return OpenAICompatibleChat(
+        base_url,
+        model,
+        api_key=secret.get_secret_value() if secret else None,
+        timeout_s=settings.judge_timeout_s,
+        max_tokens=min(settings.llm_max_tokens, 2048),
+        family=family,
+    )
