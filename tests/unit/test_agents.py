@@ -233,3 +233,56 @@ def test_context_passed_to_gate_has_trace_and_risk_class() -> None:
         and len(ctx["trace_id"]) == 32
         and ctx["customer_id"] == "CUS-000001"
     )
+
+
+def test_garbled_gate_decision_fails_closed_for_money() -> None:
+    world = BankWorld.build()
+    garbled = _Hook(lambda t, a, c: {"allow": "yes", "action": "approve"})
+    chat = MockChat(
+        scripts={
+            "g": [
+                tool("get_balance", account_id="ACC-0000000001"),
+                tool(
+                    "transfer",
+                    from_account_id="ACC-0000000001",
+                    payee_id="PAY-0001",
+                    amount_minor=1000,
+                    memo="x",
+                ),
+                final("end"),
+            ]
+        }
+    )
+    rt = _agent("payments", world, chat, AgentEventExporter(), garbled)
+    with chat.scenario("g"):
+        res = rt.run("x")
+    assert [c.status for c in res.tool_calls] == ["ok", "blocked"]
+    assert res.tool_calls[1].decision["rule_id"] == "gate_hook_invalid"
+    assert world.transfers == []
+
+
+def test_broken_tool_and_truncated_llm_do_not_crash_the_run() -> None:
+    from supervisor.adapters.llm.errors import TruncatedError
+
+    world = BankWorld.build()
+    chat = MockChat(scripts={"t": [tool("get_balance", account_id="ACC-0000000001"), final("x")]})
+    rt = _agent("payments", world, chat, AgentEventExporter())
+
+    def broken(args: Any) -> Any:
+        raise AttributeError("boom")
+
+    rt.tools.register("get_balance", broken)
+    with chat.scenario("t"):
+        res = rt.run("x")
+    assert res.status == "completed" and res.tool_calls[0].status == "error"
+
+    class Cut:
+        family, model_id, is_mock = "mock", "mock-cut", True
+
+        def complete_json(self, *a: Any, **k: Any) -> Any:
+            raise TruncatedError("cut off")
+
+    exporter2 = AgentEventExporter()
+    rt2 = _agent("payments", world, Cut(), exporter2)  # type: ignore[arg-type]
+    assert rt2.run("x").status == "llm_error"
+    assert [e.status for e in exporter2.events if e.event_type == "llm_call"] == ["truncated"]

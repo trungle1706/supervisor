@@ -15,6 +15,8 @@ from typing import Any
 from supervisor.core.ports import GateHook
 from supervisor_agents.common.manifest import FAIL_CLOSED_CLASSES
 
+VALID_ACTIONS: frozenset[str] = frozenset({"allow", "log", "alert", "block", "pause"})
+
 ALLOW: dict[str, Any] = {
     "allow": True,
     "action": "allow",
@@ -89,10 +91,20 @@ def safe_check(
             + ("fail-closed" if closed else "fail-open"),
             "latency_ms": int((time.monotonic() - start) * 1000),
         }
-    action = str(raw.get("action") or ("allow" if raw.get("allow") else "block"))
-    allow = bool(raw.get("allow", action in ("allow", "log", "alert")))
-    if action in ("block", "pause"):
-        allow = False
+    closed = risk_class is None or risk_class in FAIL_CLOSED_CLASSES
+    action = raw.get("action")
+    allow_raw = raw.get("allow")
+    if action not in VALID_ACTIONS or not isinstance(allow_raw, bool):
+        # Garbled decision: treat like a hook failure (fail-closed for money/credit/PII).
+        return {
+            "allow": not closed,
+            "action": "block" if closed else "alert",
+            "rule_id": "gate_hook_invalid",
+            "reason": "gate hook returned an invalid decision; "
+            + ("fail-closed" if closed else "fail-open"),
+            "latency_ms": int((time.monotonic() - start) * 1000),
+        }
+    allow = allow_raw and action in ("allow", "log", "alert")
     return {
         "allow": allow,
         "action": action,

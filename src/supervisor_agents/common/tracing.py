@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from opentelemetry.sdk.resources import Resource
@@ -55,7 +55,7 @@ def args_hash(args: Mapping[str, Any]) -> str:
 
 
 def _ts(ns: int | None) -> datetime:
-    return datetime.fromtimestamp((ns or 0) / 1e9, tz=UTC)
+    return datetime(1970, 1, 1, tzinfo=UTC) + timedelta(microseconds=(ns or 0) // 1000)
 
 
 def span_to_event(span: ReadableSpan, default_env: str = "dev") -> AgentEvent | None:

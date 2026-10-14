@@ -175,8 +175,33 @@ def test_model_family(name: str, family: str) -> None:
 
 
 def test_repetition_detector() -> None:
-    assert looks_repetitive("abcdefghijklmnopq" * 10)
+    assert looks_repetitive("abcdefghijklmnopq" * 20)
     assert not looks_repetitive('{"action": "allow", "score_bp": 10}')
+
+
+def test_repetition_detector_is_linear_and_ignores_runs() -> None:
+    import time
+
+    start = time.monotonic()
+    looks_repetitive("".join(chr(33 + (i * 7919) % 90) for i in range(40_000)))
+    assert time.monotonic() - start < 1.0
+    assert not looks_repetitive('{"note": "' + "-" * 120 + " " * 200 + "0" * 96 + '"}')
+
+
+def test_valid_reply_with_long_runs_is_accepted() -> None:
+    content = '{"action": "allow", "score_bp": 1, "note": "' + "-" * 300 + '"}'
+    rec = Recorder([_reply(content)])
+    assert _chat(rec).complete_json(MSGS, SCHEMA, timeout_s=5)["action"] == "allow"
+
+
+def test_fenced_json_is_accepted() -> None:
+    rec = Recorder([_reply('```json\n{"action": "allow", "score_bp": 2, "note": "a`b`"}\n```')])
+    assert _chat(rec).complete_json(MSGS, SCHEMA, timeout_s=5)["note"] == "a`b`"
+
+
+def test_loopback_endpoint_ignores_proxy_env() -> None:
+    chat = OpenAICompatibleChat("http://127.0.0.1:11434/v1", "qwen3:4b")
+    assert chat._client.trust_env is False
 
 
 # ----------------------------------------------------------------------- MockChat

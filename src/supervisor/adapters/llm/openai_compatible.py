@@ -15,12 +15,15 @@ The API key is sent only in the ``Authorization`` header. It never appears in lo
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import re
 import time
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -33,6 +36,17 @@ from supervisor.adapters.llm.errors import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def _is_loopback(url: str) -> bool:
+    host = (urlparse(url).hostname or "").strip("[]").lower()
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
 
 # Model-name prefix -> model family. First match wins; checked after vendor prefixes are cut.
 FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
@@ -66,12 +80,25 @@ def model_family(model: str) -> str:
     return "unknown"
 
 
-def looks_repetitive(text: str, chunk: int = 16, times: int = 6) -> bool:
-    """True if some ``chunk``-char window repeats ``times`` or more times back to back."""
-    if len(text) < chunk * times:
+def looks_repetitive(text: str, window: int = 32, times: int = 6, tail: int = 4000) -> bool:
+    """True if some ``window``-char text (with >= 4 distinct chars, so runs of spaces,
+    dashes or zeros do not count) occurs ``times`` or more in the last ``tail`` chars.
+    Linear in ``tail``; used only to label a reply that already failed to parse."""
+    text = text[-tail:]
+    if len(text) < window * times:
         return False
-    pattern = re.compile(r"(.{" + str(chunk) + r",}?)\1{" + str(times - 1) + ",}", re.DOTALL)
-    return pattern.search(text) is not None
+    counts: Counter[str] = Counter()
+    for i in range(len(text) - window + 1):
+        chunk = text[i : i + window]
+        if len(set(chunk)) < 4:
+            continue
+        counts[chunk] += 1
+        if counts[chunk] >= times:
+            return True
+    return False
+
+
+_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
 
 
 class OpenAICompatibleChat:
@@ -89,6 +116,7 @@ class OpenAICompatibleChat:
         max_tokens: int = 8192,
         family: str | None = None,
         transport: httpx.BaseTransport | None = None,
+        strict_schema: bool = False,
     ) -> None:
         if not base_url:
             raise LLMError("LLM_BASE_URL is empty; use MockChat")
@@ -97,8 +125,11 @@ class OpenAICompatibleChat:
         self.family = family or model_family(model)
         self.default_timeout_s = float(timeout_s)
         self.max_tokens = int(max_tokens)
+        # OpenAI strict mode rejects open objects (tool args); Ollama enforces the grammar anyway.
+        self.strict_schema = strict_schema
         self.__api_key = api_key or None
-        self._client = httpx.Client(transport=transport)
+        # Loopback endpoints must not go through a corporate HTTP(S)_PROXY.
+        self._client = httpx.Client(transport=transport, trust_env=not _is_loopback(base_url))
 
     def __repr__(self) -> str:
         return (
@@ -134,7 +165,12 @@ class OpenAICompatibleChat:
         msgs = [dict(m) for m in messages]
         problem = ""
         for attempt in (1, 2):
-            content = self._post(msgs, json_schema, timeout)
+            try:
+                content = self._post(msgs, json_schema, timeout)
+            except TruncatedError as exc:
+                if attempt == 1:
+                    raise
+                raise TruncatedError(f"{exc} (on the anti-repetition retry)") from exc
             parsed, problem = self._parse(content, json_schema)
             if parsed is not None:
                 return parsed
@@ -153,7 +189,11 @@ class OpenAICompatibleChat:
             "max_tokens": self.max_tokens,
             "response_format": {
                 "type": "json_schema",
-                "json_schema": {"name": "reply", "schema": dict(schema), "strict": True},
+                "json_schema": {
+                    "name": "reply",
+                    "schema": dict(schema),
+                    "strict": self.strict_schema,
+                },
             },
         }
         headers = {"Content-Type": "application/json"}
@@ -201,16 +241,14 @@ class OpenAICompatibleChat:
 
     @staticmethod
     def _parse(content: str, schema: Mapping[str, Any]) -> tuple[dict[str, Any] | None, str]:
-        if looks_repetitive(content):
-            return None, "repetition detected"
         text = content.strip()
-        if text.startswith("```"):
-            text = text.strip("`")
-            text = text[4:] if text.startswith("json") else text
+        fenced = _FENCE.match(text)
+        if fenced:
+            text = fenced.group(1)
         try:
             value = json.loads(text)
         except ValueError:
-            return None, "not valid JSON"
+            return None, "repetition detected" if looks_repetitive(content) else "not valid JSON"
         if not isinstance(value, dict):
             return None, "JSON is not an object"
         errs = jsonschema_lite.errors(value, schema)

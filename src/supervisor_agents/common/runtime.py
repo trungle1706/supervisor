@@ -209,7 +209,7 @@ class AgentRuntime:
             try:
                 out = dict(self.chat.complete_json(messages, ACTION_SCHEMA, self.timeout_s))  # type: ignore[arg-type]
             except Exception as exc:  # noqa: BLE001 - recorded on the span, run ends cleanly
-                span.set_attribute(T.A_STATUS, "error")
+                span.set_attribute(T.A_STATUS, _llm_error_status(exc))
                 span.set_attribute("error.type", type(exc).__name__)
                 span.set_status(Status(StatusCode.ERROR, type(exc).__name__))
                 return None
@@ -298,8 +298,22 @@ class AgentRuntime:
                 result, status = {"error": str(exc)}, "error"
             except (KeyError, TypeError, ValueError) as exc:
                 result, status = {"error": f"bad arguments: {type(exc).__name__}"}, "error"
+                span.set_attribute("error.type", type(exc).__name__)
+            except Exception as exc:  # noqa: BLE001 - a broken tool must not crash the run
+                result, status = {"error": f"tool failed: {type(exc).__name__}"}, "error"
+                span.set_attribute("error.type", type(exc).__name__)
             span.set_attribute(T.A_STATUS, status)
             return ToolCallRecord(tool, args, decision, status, result)
+
+
+def _llm_error_status(exc: Exception) -> str:
+    """agent_event.status for a failed LLM call: truncated | timeout | error."""
+    names = {c.__name__ for c in type(exc).__mro__}
+    if "TruncatedError" in names:
+        return "truncated"
+    if "LLMTimeoutError" in names or "TimeoutError" in names:
+        return "timeout"
+    return "error"
 
 
 def default_system_prompt(manifest: AgentManifest) -> str:
