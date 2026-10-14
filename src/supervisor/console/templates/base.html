@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="htmx-config" content='{"selfRequestsOnly": true, "includeIndicatorStyles": false, "allowEval": false}'>
+<title>{% block title %}{{ t('app') }}{% endblock %} - Supervisor</title>
+<link rel="stylesheet" href="/console/static/console.css">
+<script src="/console/static/htmx.min.js" defer></script>
+<script src="/console/static/console.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <span class="brand">Supervisor</span>
+  <a href="/console/" class="{{ 'active' if path in ('/console/', '/console') or path.startswith('/console/cases') else '' }}">{{ t('queue') }}</a>
+  <a href="/console/agents" class="{{ 'active' if path.startswith('/console/agents') else '' }}">{{ t('agents') }}</a>
+  <a href="/console/metrics" class="{{ 'active' if path.startswith('/console/metrics') else '' }}">{{ t('metrics') }}</a>
+  <a href="/console/export" class="{{ 'active' if path.startswith('/console/export') else '' }}">{{ t('export') }}</a>
+  <a href="/console/inbox" class="{{ 'active' if path.startswith('/console/inbox') else '' }}">{{ t('inbox') }}</a>
+  <span class="who">
+    {{ t('signed_in_as') }} <strong>{{ me.label }}</strong>
+    <span class="chip">{{ me.user_id }}</span>
+    <span class="chip">{{ me.auth_method }}</span>
+    {% if me.roles %}<span class="muted">{{ t('roles') }}: {{ me.roles|sort|join(', ') }}</span>{% endif %}
+    {% if known_users %}
+    <form hx-post="/console/dev/user" hx-trigger="change" hx-swap="none">
+      <label class="muted" for="dev-user">{{ t('switch_user') }}</label>
+      <select id="dev-user" name="user">
+        {% for u in known_users %}
+        <option value="{{ u.user_id }}" {{ 'selected' if u.user_id == me.user_id else '' }}>{{ u.user_id }} ({{ u.roles|sort|join('/') }})</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% endif %}
+    <a href="?lang={{ other_lang }}">{{ t('language') }}</a>
+  </span>
+</header>
+{% if auth_kind == 'dev_header' %}<div class="banner">{{ t('dev_banner') }}</div>{% endif %}
+{% if me.kind == 'service_principal' %}<div class="banner">{{ t('sp_banner') }}</div>{% endif %}
+<main>
+  <div id="flash" aria-live="polite"></div>
+  {% block content %}{% endblock %}
+</main>
+<footer class="muted" style="padding:0 1.2rem 1rem">Supervisor {{ version }} | mode {{ mode }} | {{ now|utc }}</footer>
+</body>
+</html>

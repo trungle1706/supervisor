@@ -1,0 +1,166 @@
+<div class="grid2">
+<div>
+  <section class="panel what">
+    <h2>{{ t('what_happened') }}</h2>
+    <p>{{ case.summary }}</p>
+    <p class="muted">{{ t('agent') }}: <strong>{{ case.agent_id }}</strong> |
+      {{ t('status') }}: <strong data-status="{{ case.status }}">{{ t(case.status) }}</strong> |
+      {{ t('assignee') }}: {{ case.assignee or '-' }} |
+      {{ t('itsm_ref') }}: {{ case.itsm_ref or '-' }}</p>
+    <h2>{{ t('why_matters') }}</h2>
+    <p>{{ t('severity') }} <span class="chip sev-{{ case.severity }}">{{ t(case.severity) }}</span>.
+      {% if case.regulation_refs %}Regulation: {{ case.regulation_refs|join(', ') }}.{% endif %}
+      {{ cf.decision33_classification }}</p>
+    {% if report_clock %}
+    <p>{{ t('sbv_clock') }}: <span class="clock {{ report_clock.cls }}">{% if report_clock.overdue %}{{ t('overdue') }} {% endif %}{{ report_clock.text }}{% if not report_clock.overdue %} {{ t('left') }}{% endif %}</span>
+      <span class="muted">(due {{ cf.sbv.report_due_at|ict }})</span><br>
+      {{ t('sbv_remediation') }}: <span class="clock {{ remediation_clock.cls }}">{% if remediation_clock.overdue %}{{ t('overdue') }} {% endif %}{{ remediation_clock.text }}{% if not remediation_clock.overdue %} {{ t('left') }}{% endif %}</span>
+      <span class="muted">(due {{ cf.sbv.remediation_due_at|ict }}, {{ cf.sbv.remediation_basis }})</span></p>
+    {% endif %}
+    <h2>{{ t('what_next') }}</h2>
+    {% if case.status == 'closed' %}
+      <p>{{ t('closed') }} {{ case.closed_at|utc }}.</p>
+    {% else %}
+      <p>{% for n in next_steps %}<span class="chip">{{ t(n) }}</span> {% endfor %}
+      {% if two_person %}<br><span class="muted">{{ t('signoff_rule') }}</span>{% endif %}</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>{{ t('rules_broken') }}</h2>
+    {% set rules = verdicts|selectattr('tier', 'equalto', 0)|list %}
+    {% if rules %}
+    <table>
+      <tr><th>{{ t('time') }}</th><th>Rule</th><th>Action</th><th>Label</th><th>{{ t('rationale') }}</th></tr>
+      {% for v in rules %}
+      <tr><td class="mono">{{ v.ts|utc }}</td><td class="mono">{{ v.rule_id or '-' }}</td>
+        <td><span class="chip">{{ v.action }}</span></td><td>{{ v.label }}</td>
+        <td>{{ v.rationale_masked or '-' }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted">-</p>{% endif %}
+    <h2>{{ t('judge_findings') }}</h2>
+    {% set judges = verdicts|rejectattr('tier', 'equalto', 0)|list %}
+    {% if judges %}
+    <table>
+      <tr><th>{{ t('time') }}</th><th>Tier</th><th>Model</th><th>Label</th><th>Score (bp)</th><th>Action</th><th>{{ t('rationale') }}</th></tr>
+      {% for v in judges %}
+      <tr><td class="mono">{{ v.ts|utc }}</td><td>{{ v.tier }}</td>
+        <td class="mono">{{ v.model_id or '-' }}{% if v.is_mock %} <span class="chip mock">{{ t('mock') }}</span>{% endif %}</td>
+        <td>{{ v.label }}</td><td class="num">{{ (v.score * 10000)|round|int if v.score is not none else '-' }}</td>
+        <td>{{ v.action }}</td><td>{{ v.rationale_masked or '-' }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted">-</p>{% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>{{ t('transcript') }}</h2>
+    {% for e in excerpts %}
+      <div><span class="mono">{{ e.ts|utc }}</span> <strong>{{ e.agent_id }}</strong> {{ e.event_type }}
+        {% if e.tool_name %}<span class="chip">{{ e.tool_name }}</span>{% endif %}
+        {% if e.status %}<span class="chip">{{ e.status }}</span>{% endif %}</div>
+      {% if e.args %}<div class="excerpt">{{ e.args }}</div>{% endif %}
+      {% if e.result %}<div class="excerpt">{{ e.result }}</div>{% endif %}
+    {% else %}<p class="muted">-</p>{% endfor %}
+  </section>
+
+  <section class="panel">
+    <h2>{{ t('timeline') }}</h2>
+    <ul class="timeline">
+    {% for item in cf.timeline %}
+      <li><span class="mono">{{ item.ts|utc }}</span> <span class="chip">{{ item.source }}</span>
+        <strong>{{ item.actor }}</strong> <span class="muted">({{ item.actor_kind }})</span> {{ item.action }}
+        {% if item.text %}<div class="muted">{{ item.text }}</div>{% endif %}</li>
+    {% endfor %}
+    </ul>
+    <table>
+      <tr><th>#</th><th>{{ t('time') }}</th><th>Actor</th><th>Auth</th><th>Action</th></tr>
+      {% for e in events %}
+      <tr><td>{{ e.seq }}</td><td class="mono">{{ e.ts|utc }}</td><td>{{ e.actor }} <span class="muted">({{ e.actor_kind }})</span></td>
+        <td class="mono">{{ e.auth_method or '-' }}</td><td>{{ e.action }}</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+</div>
+
+<div>
+  <section class="panel">
+    <h2>{{ t('actions') }}</h2>
+    {% if case.status != 'closed' %}
+    <form class="stack" hx-post="/console/cases/{{ case.case_id }}/assign" hx-target="#case-body">
+      <input type="hidden" name="row_version" value="{{ case.row_version }}">
+      <label>{{ t('assign') }}
+        <input type="text" name="assignee" list="assignable" value="{{ case.assignee or me.user_id }}" required></label>
+      <datalist id="assignable">{% for u in assignable %}<option value="{{ u }}">{% endfor %}</datalist>
+      <button type="submit">{{ t('assign') }}</button>
+    </form>
+    <hr>
+    {% if 'triaged' in next_steps %}
+    <form class="stack" hx-post="/console/cases/{{ case.case_id }}/transition" hx-target="#case-body">
+      <input type="hidden" name="row_version" value="{{ case.row_version }}">
+      <input type="hidden" name="to" value="triaged">
+      <input type="hidden" name="assignee" value="{{ case.assignee or me.user_id }}">
+      <label>{{ t('note') }} <textarea name="note"></textarea></label>
+      <button type="submit">{{ t('triage') }}</button>
+    </form>
+    {% endif %}
+    {% if 'contained' in next_steps %}
+    <form class="stack" hx-post="/console/cases/{{ case.case_id }}/transition" hx-target="#case-body">
+      <input type="hidden" name="row_version" value="{{ case.row_version }}">
+      <input type="hidden" name="to" value="contained">
+      <label>{{ t('note') }} <textarea name="note" required></textarea></label>
+      <button type="submit">{{ t('contain') }}</button>
+    </form>
+    <p class="muted"><a href="/console/agents?lang={{ lang }}">{{ t('agents') }}: {{ t('pause') }} / {{ t('resume') }}</a></p>
+    {% endif %}
+    {% if 'closed' in next_steps %}
+      {% if two_person %}
+      <p><a class="button secondary" href="/console/cases/{{ case.case_id }}/signoff?lang={{ lang }}">{{ t('signoff') }} ({{ approvals|length }}/2)</a></p>
+      {% endif %}
+    <form class="stack" hx-post="/console/cases/{{ case.case_id }}/transition" hx-target="#case-body">
+      <input type="hidden" name="row_version" value="{{ case.row_version }}">
+      <input type="hidden" name="to" value="closed">
+      <label>{{ t('resolution') }}
+        <select name="resolution">{% for r in resolutions %}<option value="{{ r }}">{{ t(r) }}</option>{% endfor %}</select></label>
+      <label>{{ t('reason') }} <textarea name="note" required></textarea></label>
+      <button type="submit" class="danger">{{ t('close') }}</button>
+    </form>
+    {% endif %}
+    <hr>
+    <form class="stack" hx-post="/console/cases/{{ case.case_id }}/comment" hx-target="#case-body">
+      <input type="hidden" name="row_version" value="{{ case.row_version }}">
+      <label>{{ t('comment') }} <textarea name="text" required></textarea></label>
+      <button type="submit" class="secondary">{{ t('comment') }}</button>
+    </form>
+    <form class="inline" hx-post="/console/cases/{{ case.case_id }}/itsm" hx-target="#case-body">
+      <input type="hidden" name="row_version" value="{{ case.row_version }}">
+      <label>{{ t('itsm_ref') }} <input type="text" name="itsm_ref" value="{{ case.itsm_ref or '' }}" maxlength="64"></label>
+      <button type="submit" class="secondary">{{ t('save') }}</button>
+    </form>
+    {% else %}
+    <p class="muted">{{ t('closed') }}.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>{{ t('signoffs') }}</h2>
+    {% for s in signoffs %}
+      <div><strong>{{ s.reviewer_id }}</strong> <span class="chip">{{ s.decision }}</span>
+        <span class="mono muted">{{ s.ts|utc }} {{ s.auth_method }}</span>
+        <div class="verbatim">{{ s.reason }}</div></div>
+    {% else %}<p class="muted">-</p>{% endfor %}
+  </section>
+
+  <section class="panel">
+    <h2>{{ t('chain') }}</h2>
+    {% if cf.chain %}
+    <p>Lane <span class="mono">{{ cf.chain.lane }}</span>, seq {{ cf.chain.seq_from }}..{{ cf.chain.seq_to }}
+      ({{ cf.chain.entry_count }} {{ t('entries') }})<br>
+      head <span class="mono">{{ cf.chain.head_hash[:16] }}...</span></p>
+    {% else %}<p class="muted">{{ lane }}</p>{% endif %}
+    <div id="verify-result">{% include "_verify_result.html" %}</div>
+    <button class="secondary" hx-post="/console/cases/{{ case.case_id }}/verify" hx-target="#verify-result">{{ t('verify_now') }}</button>
+  </section>
+</div>
+</div>

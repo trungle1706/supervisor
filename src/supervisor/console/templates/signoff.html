@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ t('signoff') }} {{ case.case_id }}{% endblock %}
+{% block content %}
+<h1>{{ t('signoff') }}: <a class="mono" href="/console/cases/{{ case.case_id }}?lang={{ lang }}">{{ case.case_id }}</a>
+  <span class="chip sev-{{ case.severity }}">{{ t(case.severity) }}</span></h1>
+<section class="panel what">
+  <p>{{ case.summary }}</p>
+  <p class="muted">{{ t('signoff_rule') }}</p>
+</section>
+<div id="signoff-panel">
+{% include "_signoff_panel.html" %}
+</div>
+{% endblock %}

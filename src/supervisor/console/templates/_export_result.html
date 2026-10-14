@@ -1,0 +1,7 @@
+{% if pack %}
+<div class="msg {{ 'msg-ok' if pack.verify_ok else 'msg-error' }}" data-verify="{{ 'ok' if pack.verify_ok else 'fail' }}">
+  {{ pack.case_count }} case(s); offline verify: {{ 'OK' if pack.verify_ok else 'FAIL' }}.
+  <a class="mono" href="/console/exports/{{ pack.name }}" download>{{ t('download') }} {{ pack.name }}</a>
+</div>
+<pre class="excerpt">{{ pack.verify_lines[-12:]|join('\n') }}</pre>
+{% endif %}

@@ -1,0 +1,26 @@
+<section class="panel">
+  <h2>{{ t('signoffs') }} ({{ approvals|length }}/2)</h2>
+  {% for s in signoffs %}
+    <div><strong>{{ s.reviewer_id }}</strong> <span class="chip">{{ s.decision }}</span>
+      <span class="mono muted">{{ s.ts|utc }} {{ s.auth_method }}</span>
+      <div class="verbatim">{{ s.reason }}</div></div>
+  {% else %}<p class="muted">-</p>{% endfor %}
+</section>
+{% if case.status == 'contained' %}
+<section class="panel">
+  <form class="stack" hx-post="/console/cases/{{ case.case_id }}/signoff" hx-target="#signoff-panel">
+    <input type="hidden" name="row_version" value="{{ case.row_version }}">
+    <label>{{ t('statement') }}
+      <textarea name="reason" required>{{ t('signoff_text') }}</textarea></label>
+    <label><input type="radio" name="decision" value="approve" checked> {{ t('approve') }}</label>
+    <label><input type="radio" name="decision" value="reject"> {{ t('reject') }}</label>
+    <label><input type="checkbox" name="affirm" value="yes"> {{ t('affirm') }}: <strong>{{ me.user_id }}</strong> ({{ me.auth_method }})</label>
+    <button type="submit">{{ t('signoff') }}</button>
+  </form>
+</section>
+{% else %}
+<p class="muted">{{ t('status') }}: {{ t(case.status) }}</p>
+{% endif %}
+{% if approvals|length >= 2 and case.status == 'contained' %}
+<p><a class="button" href="/console/cases/{{ case.case_id }}?lang={{ lang }}">{{ t('close') }}</a></p>
+{% endif %}

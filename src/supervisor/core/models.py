@@ -35,9 +35,7 @@ FailMode = Literal["open", "closed"]
 Severity = Literal["low", "medium", "high", "critical"]
 VerdictAction = Literal["allow", "log", "alert", "block", "pause", "open_case", "raise_severity"]
 # WP8 console workflow: open -> triaged -> contained -> closed (older values kept).
-CaseStatus = Literal[
-    "open", "triage", "triaged", "contained", "escalated", "resolved", "closed"
-]
+CaseStatus = Literal["open", "triage", "triaged", "contained", "escalated", "resolved", "closed"]
 ActorKind = Literal["user", "service_principal", "system"]
 
 

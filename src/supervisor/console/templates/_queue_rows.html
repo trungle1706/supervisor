@@ -1,0 +1,26 @@
+<table class="queue">
+  <thead>
+    <tr>
+      <th>{{ t('case') }}</th><th>{{ t('severity') }}</th><th>{{ t('status') }}</th>
+      <th>{{ t('source') }}</th><th>{{ t('agent') }}</th><th>{{ t('summary') }}</th>
+      <th>{{ t('opened') }}</th><th>{{ t('assignee') }}</th><th>{{ t('sbv_clock') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for c in items %}
+    <tr data-case="{{ c.case_id }}">
+      <td><a href="/console/cases/{{ c.case_id }}?lang={{ lang }}" class="mono">{{ c.case_id }}</a></td>
+      <td><span class="chip sev-{{ c.severity }}">{{ t(c.severity) }}</span></td>
+      <td>{{ t(c.status) }}</td>
+      <td>{% for s in c.sources %}<span class="chip src-{{ s }}">{{ s }}</span> {% endfor %}</td>
+      <td>{{ c.agent_id }}</td>
+      <td>{{ c.summary[:140] }}</td>
+      <td class="mono">{{ c.opened_at|utc }}</td>
+      <td>{{ c.assignee or '-' }}</td>
+      <td><span class="clock {{ c.clock.cls }}">{% if c.clock.overdue %}{{ t('overdue') }} {{ c.clock.text }}{% elif c.clock.text != '-' %}{{ c.clock.text }} {{ t('left') }}{% else %}-{% endif %}</span></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9" class="muted">{{ t('no_cases') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>

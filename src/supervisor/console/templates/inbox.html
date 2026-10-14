@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ t('inbox') }}{% endblock %}
+{% block content %}
+<h1>{{ t('inbox') }}</h1>
+<div id="inbox-rows">
+{% include "_inbox_rows.html" %}
+</div>
+{% endblock %}

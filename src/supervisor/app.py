@@ -14,10 +14,13 @@ from contextlib import asynccontextmanager  # noqa: E402
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.concurrency import run_in_threadpool  # noqa: E402
 from fastapi.exceptions import RequestValidationError  # noqa: E402
-from fastapi.responses import JSONResponse  # noqa: E402
+from fastapi.responses import JSONResponse, RedirectResponse, Response  # noqa: E402
 
 from supervisor import __version__  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
+from supervisor.console import context as console_context  # noqa: E402
+from supervisor.console.errors import console_error, is_console  # noqa: E402
+from supervisor.console.routes import router as console_router  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
 from supervisor.gateway import wiring as gate_wiring  # noqa: E402
 from supervisor.gateway.routes import router as gate_router  # noqa: E402
@@ -41,34 +44,49 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        console_context.set_context(None)  # WP8: the console context holds the runtime
         gate_wiring.shutdown_runtime()
 
 
 app = FastAPI(title="Supervisor", version=__version__, lifespan=lifespan)
 app.include_router(gate_router)
 app.include_router(otlp_router)  # WP4: POST /v1/traces (OTLP/HTTP JSON)
+app.include_router(console_router)  # WP8: reviewer console (/console)
 
 
 @app.exception_handler(SupervisorError)
-async def _supervisor_error(_: Request, exc: SupervisorError) -> JSONResponse:
+async def _supervisor_error(request: Request, exc: SupervisorError) -> Response:
     # htmx drops 5xx silently; user-visible errors are 400 with a message.
+    if is_console(request):  # WP8: an HTML message partial htmx can render
+        return console_error(request, str(exc))
     return JSONResponse(status_code=400, content={"error": str(exc)})
 
 
 @app.exception_handler(RequestValidationError)
-async def _validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
+async def _validation_error(request: Request, exc: RequestValidationError) -> Response:
+    if is_console(request):
+        return console_error(request, "invalid request")
     return JSONResponse(
         status_code=400, content={"error": "invalid request", "detail": exc.errors()}
     )
 
 
 @app.exception_handler(Exception)
-async def _unexpected(_: Request, exc: Exception) -> JSONResponse:
+async def _unexpected(request: Request, exc: Exception) -> Response:
     log.exception("unhandled error")
+    if is_console(request):
+        return console_error(
+            request, f"unexpected error: {type(exc).__name__}. See the server log."
+        )
     return JSONResponse(
         status_code=400,
         content={"error": f"unexpected error: {type(exc).__name__}. See the server log."},
     )
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse("/console/", status_code=303)
 
 
 @app.get("/healthz")
