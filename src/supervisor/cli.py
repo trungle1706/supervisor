@@ -61,12 +61,16 @@ def cmd_demo(_: argparse.Namespace) -> int:
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
-    try:
-        from supervisor.evidence import verify  # type: ignore[attr-defined]
-    except ImportError:
-        print("[FAIL] verify is not built yet (WP6): python -m supervisor.evidence.verify <dir>")
-        return 2
-    return int(verify.main([args.export_dir]))
+    from supervisor.evidence import verify
+
+    argv = [args.export_dir]
+    if args.pubkey:
+        argv += ["--pubkey", args.pubkey]
+    if args.anchors:
+        argv += ["--anchors", args.anchors]
+    if args.strict:
+        argv.append("--strict")
+    return int(verify.main(argv))
 
 
 def cmd_export_reqs(_: argparse.Namespace) -> int:
@@ -100,6 +104,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("demo", help="run the demo (WP11)").set_defaults(func=cmd_demo)
     v = sub.add_parser("verify", help="verify an evidence export offline (WP6)")
     v.add_argument("export_dir", nargs="?", default=".")
+    v.add_argument("--pubkey", default=None, help="pinned notary public key (PEM)")
+    v.add_argument("--anchors", default=None, help="directory of anchor documents")
+    v.add_argument("--strict", action="store_true", help="fail on entries not yet sealed")
     v.set_defaults(func=cmd_verify)
     sub.add_parser("export-reqs", help="write requirements.txt from uv.lock").set_defaults(
         func=cmd_export_reqs
