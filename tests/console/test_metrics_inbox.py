@@ -18,7 +18,7 @@ from supervisor.adapters.notify import (
 )
 from supervisor.console import views
 
-from .conftest import Console
+from .conftest import Console, add_gate_block
 
 
 def test_sparkline_is_integer_svg_scaled_to_range() -> None:
@@ -78,7 +78,8 @@ def test_metrics_page_with_rows(console: Console) -> None:
 
 
 def test_inbox_mark_read(console: Console) -> None:
-    console.get("/console/")
+    add_gate_block(console.runtime.adapters)
+    console.post("/console/intake/run")
     notice = console.ctx.inbox.list(status="unread")[0]
     r = console.post(
         f"/console/inbox/{notice['notice_id']}/read", {"row_version": notice["row_version"]}

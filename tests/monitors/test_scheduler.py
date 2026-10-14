@@ -146,7 +146,7 @@ def test_build_jobs_defaults_and_anchor_seals_chain(runtime, clock) -> None:
     settings, rt = runtime()
     s = sched_mod.build_scheduler(settings, rt)
     enabled = sorted(j.name for j in s.jobs.values() if j.enabled)
-    assert enabled == ["anchor", "ingest"]  # every monitor is off by default
+    assert enabled == ["anchor", "case_intake", "ingest"]  # every monitor is off by default
     rt.chain.record("note", "n1", {"agent_id": "payments", "i": 1})
     runs = s.tick()
     assert runs["anchor"].status == "ok", runs["anchor"].error
@@ -167,6 +167,24 @@ def test_build_jobs_all_flags_run(runtime, clock) -> None:
         n: r.error for n, r in runs.items()
     }
     s.lease.release()
+
+
+def test_case_intake_job_registered_and_runs_under_lease(runtime, clock) -> None:
+    settings, rt = runtime(sched_case_intake_s=7)
+    s = sched_mod.build_scheduler(settings, rt)
+    job = s.jobs["case_intake"]
+    assert job.enabled and job.interval_s == 7
+    assert load_settings().sched_case_intake_s == 30
+    assert "case_intake" in sched_mod.STARTUP_JOBS
+    runs = s.run_now(list(sched_mod.STARTUP_JOBS))  # the immediate run at scheduler start
+    assert runs["case_intake"].status == "ok", runs["case_intake"].error
+    other = sched_mod.FileLease(settings.scheduler_lock_path, 60, holder="other")
+    assert other.acquire(clock.now()) is False  # s holds the lease
+    s.lease.release()
+    # a replica without the lease runs nothing
+    assert other.acquire(clock.now())
+    assert s.run_now(["case_intake"]) == {}
+    other.release()
 
 
 def test_start_and_stop_apscheduler(runtime) -> None:

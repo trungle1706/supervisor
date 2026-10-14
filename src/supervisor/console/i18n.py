@@ -125,6 +125,7 @@ _T: dict[str, tuple[str, str]] = {
     "subject": ("Subject", "Tiêu đề"),
     "channel": ("Channel", "Kênh"),
     "time": ("Time", "Thời gian"),
+    "refresh_cases": ("Refresh cases", "Làm mới hồ sơ"),
     "saved": ("Saved.", "Đã lưu."),
     "mock": ("MOCK", "GIẢ LẬP"),
     "low": ("low", "thấp"),

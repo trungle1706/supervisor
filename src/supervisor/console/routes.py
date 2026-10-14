@@ -32,6 +32,7 @@ from supervisor.cases.service import (
     SEVERITIES,
     TRANSITIONS,
     TWO_PERSON_SEVERITIES,
+    WORKFLOW_ROLES,
     CaseError,
     PermissionDenied,
     require,
@@ -42,6 +43,7 @@ from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
+from supervisor.jobs import case_intake
 
 router = APIRouter(prefix="/console", tags=["console"])
 log = logging.getLogger("supervisor.console")
@@ -205,7 +207,6 @@ def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
     agent = request.query_params.get("agent") or None
     if agent is not None:
         _check_id(agent, "agent filter")
-    ctx.cases.sync_gate_cases()  # gate blocks/pauses become cases (idempotent)
     statuses = None
     if status == "open":
         statuses = [s for s in (*TRANSITIONS.keys(), "escalated", "resolved")]
@@ -594,6 +595,23 @@ async def metrics(
     _view(me)
     data = await _call(_metrics_data, ctx)
     return render(request, ctx, me, "metrics.html", **data)
+
+
+@router.post("/intake/run", response_class=HTMLResponse)
+async def intake_run(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Explicit case intake for when the scheduler is off (a GET never writes)."""
+    _htmx_only(request)
+    require(me, WORKFLOW_ROLES, "refresh cases")
+    touched = await _call(case_intake.run, ctx.cases)
+    data = await _call(_queue_data, ctx, request)
+    resp = render(request, ctx, me, "_queue_rows.html", **data)
+    t = translator(_lang(request, ctx))
+    note = f"{t('refresh_cases')}: {len(set(touched))}"
+    resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
+    resp.headers["content-length"] = str(len(resp.body))
+    return resp
 
 
 @router.post("/chain/verify", response_class=HTMLResponse)

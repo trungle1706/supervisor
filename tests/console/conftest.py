@@ -136,3 +136,31 @@ def console(seeded: Any) -> Iterator[Console]:
         set_context(None)
         gate_wiring.set_gateway(None)
         set_provider(None)
+
+
+def add_gate_block(adapters: Any, agent: str = "payments", rule: str = "PAY-99") -> str:
+    """A tier-0 block verdict that no case covers yet (what the next intake picks up)."""
+    import uuid
+
+    event_id = uuid.uuid4().hex
+    adapters.tables.append(
+        "verdict",
+        [
+            {
+                "verdict_id": uuid.uuid4().hex,
+                "ts": adapters.clock.now(),
+                "trace_id": "t-" + event_id[:8],
+                "event_id": event_id,
+                "agent_id": agent,
+                "tier": 0,
+                "checker_id": "gate.tier0a",
+                "is_mock": False,
+                "advisory": False,
+                "label": "matched",
+                "action": "block",
+                "rule_id": rule,
+                "rationale_masked": f"rule {rule} matched",
+            }
+        ],
+    )
+    return event_id

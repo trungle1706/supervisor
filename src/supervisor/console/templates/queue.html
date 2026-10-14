@@ -24,6 +24,7 @@
   </label>
   <input type="hidden" name="lang" value="{{ lang }}">
 </form>
+<button type="button" class="btn" hx-post="/console/intake/run?status={{ filters.status }}&amp;severity={{ filters.severity }}&amp;agent={{ filters.agent }}&amp;lang={{ lang }}" hx-target="#queue-rows" hx-swap="innerHTML">{{ t('refresh_cases') }}</button>
 <div id="queue-rows" hx-get="/console/queue/rows?status={{ filters.status }}&amp;severity={{ filters.severity }}&amp;agent={{ filters.agent }}&amp;lang={{ lang }}" hx-trigger="every 30s" hx-swap="innerHTML">
 {% include "_queue_rows.html" %}
 </div>

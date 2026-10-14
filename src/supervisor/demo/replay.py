@@ -281,6 +281,13 @@ def run_gated(
             after_incident=after_incident,
         )
         runtime.gateway.drain()
+        # Gate blocks/pauses become cases here, so a fresh database shows cases without the
+        # console (the console queue GET does not write).
+        from supervisor.cases import build_case_service
+        from supervisor.jobs import case_intake
+
+        opened = case_intake.run(build_case_service(runtime))
+        lines.append(f"[OK] cases opened: {len(set(opened))}")
         runtime.chain.commit_root()
         heads = runtime.chain.heads()
         root = heads.get("root")

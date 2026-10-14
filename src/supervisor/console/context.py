@@ -66,6 +66,12 @@ def set_context(ctx: ConsoleContext | None) -> None:
         _ctx = ctx
 
 
+def peek_context() -> ConsoleContext | None:
+    """The process-wide context if one exists; never builds one."""
+    with _lock:
+        return _ctx
+
+
 def get_context() -> ConsoleContext:
     """The process-wide context; built from the installed runtime on first use."""
     global _ctx

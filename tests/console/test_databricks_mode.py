@@ -124,7 +124,13 @@ def test_sso_actions_record_identity_and_sp_is_read_only(dbx: tuple[TestClient, 
     ev = ctx.cases.events(case["case_id"])[-1]
     assert ev["actor"] == "rev@bank.example" and ev["auth_method"] == "databricks_sso"
     # the intake ran as the service principal (background identity, recorded as such)
-    first = ctx.cases.events(case["case_id"])[0]
+    from .conftest import add_gate_block
+
+    add_gate_block(ctx.runtime.adapters)
+    r = client.post("/console/intake/run", headers={**hx, **REVIEWER})
+    assert r.status_code == 200, r.text
+    new = next(c for c in ctx.cases.list_cases() if "PAY-99" in c["summary"])
+    first = ctx.cases.events(new["case_id"])[0]
     assert first["actor"] == "app-sp-test" and first["actor_kind"] == "service_principal"
     assert first["auth_method"] == "databricks_app_sp"
     r = client.post(

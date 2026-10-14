@@ -186,3 +186,9 @@ def test_chain_export_verifies_and_tamper_fails(
     assert broken.failures > 0
     text = "\n".join(broken.lines)
     assert "[FAIL] lane agent:payments" in text and "payload" in text
+
+
+def test_replay_opens_cases_without_the_console(report: R.GatedReport, adapters: Adapters) -> None:
+    line = next(x for x in report.lines if x.startswith("[OK] cases opened: "))
+    assert line == "[OK] cases opened: 4"  # DEMO-1..4, ints only
+    assert len(adapters.tables.query("cases", {})) == 4

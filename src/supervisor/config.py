@@ -203,6 +203,7 @@ class Settings(BaseSettings):
     scheduler_lock_path: Path | None = None  # default: <data_dir>/scheduler.lock (laptop)
     sched_ingest_s: int = Field(default=60, ge=1)
     sched_anchor_s: int = Field(default=900, ge=1)
+    sched_case_intake_s: int = Field(default=30, ge=1)
     sched_drift_s: int = Field(default=3600, ge=1)
     sched_fairness_s: int = Field(default=86400, ge=1)
     sched_metrics_s: int = Field(default=3600, ge=1)

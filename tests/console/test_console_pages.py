@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from .conftest import Console
+from .conftest import Console, add_gate_block
 
 
 def _case_ids(html: str) -> list[str]:
@@ -52,7 +52,8 @@ def test_agents_metrics_export_inbox_render(console: Console) -> None:
     assert m.status_code == 200 and "Chain status" in m.text
     e = console.get("/console/export")
     assert e.status_code == 200
-    console.get("/console/")  # intake opens cases -> notices
+    add_gate_block(console.runtime.adapters)
+    console.post("/console/intake/run")  # intake opens a case -> notice
     i = console.get("/console/inbox")
     assert i.status_code == 200 and "new case" in i.text
     for name in ("htmx.min.js", "console.css", "console.js"):

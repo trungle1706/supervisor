@@ -12,6 +12,8 @@ drift          DRIFT_ENABLED          drift bands and drift cases
 fairness       FAIRNESS_ENABLED       fairness slices
 metrics        METRICS_ENABLED        daily ``oversight_metric`` rows
 multiagent     MULTIAGENT_ENABLED     split payment across callers
+case_intake    scheduler on           gate block/pause verdicts become cases (also run once
+                                      at scheduler start; the console GET never writes)
 judge_sweep    JUDGE_ENABLED          advisory judges over new events
 quality        QUALITY_ENABLED        groundedness / guideline scores (sampled)
 =============  =====================  ===============================================
@@ -53,6 +55,7 @@ LEASE_NAME = "supervisor-scheduler"
 MONITOR = "scheduler"
 START_DELAY_S = 15  # first tick after startup (the app finishes starting first)
 DEFAULT_TICK_S = 15
+STARTUP_JOBS = ("case_intake",)  # also run once, at once, when the scheduler starts
 
 
 # --------------------------------------------------------------------------- leases
@@ -290,6 +293,21 @@ class SupervisorScheduler:
         finally:
             self._lock.release()
 
+    def run_now(self, names: list[str]) -> dict[str, JobRun]:
+        """Run the named jobs once, now, if this process holds the lease (startup run)."""
+        if not self._lock.acquire(blocking=False):
+            return {}
+        try:
+            try:
+                if not self.lease.acquire(self.clock.now()):
+                    return {}
+            except Exception:  # noqa: BLE001
+                log.exception("scheduler lease check failed")
+                return {}
+            return {n: self.run_job(n) for n in names if n in self.jobs and self.jobs[n].enabled}
+        finally:
+            self._lock.release()
+
     # -- APScheduler ---------------------------------------------------------------
     def start(self, start_delay_s: int = START_DELAY_S) -> None:
         from apscheduler.schedulers.background import BackgroundScheduler
@@ -303,6 +321,14 @@ class SupervisorScheduler:
             next_run_time=datetime.now(UTC) + timedelta(seconds=start_delay_s),
             max_instances=1,
             coalesce=True,
+            misfire_grace_time=None,
+        )
+        aps.add_job(
+            self.run_now,
+            args=[list(STARTUP_JOBS)],
+            id="supervisor-startup",
+            next_run_time=datetime.now(UTC),
+            max_instances=1,
             misfire_grace_time=None,
         )
         aps.start()
@@ -333,6 +359,7 @@ class SupervisorScheduler:
 def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec]:
     """The job list for the app. ``runtime`` is ``supervisor.wiring.Runtime``."""
     from supervisor.jobs import anchor as anchor_job
+    from supervisor.jobs import case_intake as case_intake_job
     from supervisor.jobs import drift as drift_job
     from supervisor.jobs import fairness as fairness_job
     from supervisor.jobs import ingest as ingest_job
@@ -343,6 +370,17 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.monitors.sweeps import build_judge_sweep, build_quality_sweep
 
     adapters = runtime.adapters
+    cases: list[Any] = []
+
+    def intake() -> list[str]:
+        if not cases:  # the console's case service when the app built one (it notifies)
+            from supervisor.cases import build_case_service
+            from supervisor.console.context import peek_context
+
+            ctx_ = peek_context()
+            cases.append(ctx_.cases if ctx_ is not None else build_case_service(runtime))
+        return case_intake_job.run(cases[0])
+
     judge = quality = None
     if settings.judge_enabled:
         try:
@@ -361,6 +399,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
             settings.sched_anchor_s,
             lambda: anchor_job.run(settings, adapters, writer=runtime.chain, seal=True),
         ),
+        JobSpec("case_intake", settings.sched_case_intake_s, intake),
         JobSpec("drift", settings.sched_drift_s, lambda: drift_job.run(ctx, settings),
                 settings.drift_enabled),
         JobSpec("fairness", settings.sched_fairness_s, lambda: fairness_job.run(ctx, settings),
