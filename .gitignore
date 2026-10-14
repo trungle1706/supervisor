@@ -14,3 +14,4 @@ build/
 uv.toml
 *.egg-info/
 node_modules/
+.claude/
