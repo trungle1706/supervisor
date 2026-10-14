@@ -203,6 +203,12 @@ tables:
       rule_id: string?
       policy_hash: string?
       rationale_masked: text?
+      # WP7 (additive): judge fields that were only in the evidence payload before.
+      score_bp: int?            # integer basis points 0-10000 (the float score stays for old readers)
+      role: string?             # judge role: primary | challenger | protocol (null for rules)
+      region: string?           # where the judge model ran (residency, analysis 07 3.1)
+      model_version: string?
+      mask_version: string?
 
   cases:
     kind: state
@@ -222,6 +228,7 @@ tables:
       summary: text
       report_due_at: timestamp?
       closed_at: timestamp?
+      case_type: string?  # WP7 (additive): rule | judge | drift | fairness | multiagent | manual
 
   case_event:
     kind: append_only
@@ -321,14 +328,115 @@ tables:
       metric_date: date
       agent_id: string
       coverage: float?
-      ttd_ms: int?
-      tth_s: int?
+      ttd_ms: int?             # median time to detect that day (see docs/metrics.md)
+      tth_s: int?              # median time to human that day (see docs/metrics.md)
       catch_rate: float?
       false_alarm_rate: float?
       chain_ok: bool?
       groundedness: float?
       fairness_gap: float?
       computed_at: timestamp
+      # WP7 (additive): integer columns; see docs/metrics.md. The float columns above are
+      # kept for older readers and hold the same value / 10000.
+      events_seen: int?        # tool calls seen that day (recorder tool_call, else gate)
+      events_gated: int?       # gate decisions that day
+      coverage_bp: int?        # events_gated * 10000 / events_seen, capped at 10000
+      catch_rate_bp: int?      # from the judge eval report (placeholder until bank golden set)
+      false_alarm_bp: int?     # from the judge eval report
+      judge_verdicts: int?     # tier 1/2 verdicts written that day (all roles)
+      judge_disagree_bp: int?  # tier-2 primary verdicts labelled tiers_disagree, bp of tier-2
+      groundedness_bp: int?    # median quality groundedness score that day
+      fairness_gap_bp: int?    # largest approval-rate gap of the last fairness run
+      cases_opened: int?
+      blocks: int?             # gate decisions not allowed
+      llm_calls: int?          # agent llm_call events (cost proxy)
+      judge_latency_ms: int?   # sum of judge latency (cost proxy)
+
+  policy_baseline:
+    kind: state
+    description: >
+      Drift baseline band per agent version and metric (WP7, ADR D09). Integers only:
+      band = center +- k * scaled MAD. Also holds the breach streak of the drift monitor.
+    primary_key: [agent_id, agent_version, metric]
+    columns:
+      agent_id: string
+      agent_version: string
+      metric: string
+      baseline_id: string
+      center: int
+      mad: int              # scaled MAD (x 1.4826), floored, integer
+      band_low: int
+      band_high: int
+      k: int
+      windows: int          # sub-windows that formed the baseline
+      window_s: int
+      window_from: timestamp
+      window_to: timestamp
+      breach_streak: int
+      last_value: int?
+      last_checked_to: timestamp?
+      open_case_id: string?
+      computed_at: timestamp
+
+  policy_threshold:
+    kind: state
+    description: >
+      Monitor thresholds per agent and metric (WP7). agent_id '*' is the default for every
+      agent. Example metrics: drift.k, drift.consecutive, fairness.approval_gap_bp.
+    primary_key: [agent_id, metric]
+    columns:
+      agent_id: string
+      metric: string
+      threshold: int
+      unit: string
+      owner: string?
+      note: text?
+      effective_from: timestamp
+
+  fairness_slice:
+    kind: append_only
+    description: >
+      One row per fairness cell per run (WP7). Cells under the minimum n are suppressed:
+      counts and rates are null. Built on hashed subject ids, never raw ids.
+    primary_key: [run_id, attribute, cell]
+    indexes:
+      - [agent_id, ts]
+    columns:
+      run_id: string
+      ts: timestamp
+      agent_id: string
+      window_from: timestamp
+      window_to: timestamp
+      attribute: string
+      cell: string
+      n: int?
+      approvals: int?
+      blocks: int?
+      approval_rate_bp: int?
+      block_rate_bp: int?
+      suppressed: bool
+      method: string        # fairlearn | python
+
+  monitor_state:
+    kind: state
+    description: Cursors and dedupe marks of the monitors and the scheduler (WP7).
+    primary_key: [monitor, state_key]
+    columns:
+      monitor: string
+      state_key: string
+      value: json
+
+  scheduler_lease:
+    kind: state
+    description: >
+      Single-instance lock of the in-process scheduler on Databricks (WP7). One row per
+      lease; the holder renews it; another replica takes it only after expires_at.
+    primary_key: [lease_name]
+    columns:
+      lease_name: string
+      holder: string
+      acquired_at: timestamp
+      expires_at: timestamp
 
   gate_control:
     kind: state

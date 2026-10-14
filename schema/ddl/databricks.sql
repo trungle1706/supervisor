@@ -194,7 +194,12 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`verdict` (
   latency_ms BIGINT,
   rule_id STRING,
   policy_hash STRING,
-  rationale_masked STRING
+  rationale_masked STRING,
+  score_bp BIGINT,
+  role STRING,
+  region STRING,
+  model_version STRING,
+  mask_version STRING
 )
 USING DELTA
 COMMENT 'One row per check outcome (rule, Tier 1 or Tier 2 judge). Judges are advisory.'
@@ -214,6 +219,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`cases` (
   summary STRING NOT NULL,
   report_due_at TIMESTAMP,
   closed_at TIMESTAMP,
+  case_type STRING,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )
@@ -335,11 +341,119 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`oversight_metric` (
   groundedness DOUBLE,
   fairness_gap DOUBLE,
   computed_at TIMESTAMP NOT NULL,
+  events_seen BIGINT,
+  events_gated BIGINT,
+  coverage_bp BIGINT,
+  catch_rate_bp BIGINT,
+  false_alarm_bp BIGINT,
+  judge_verdicts BIGINT,
+  judge_disagree_bp BIGINT,
+  groundedness_bp BIGINT,
+  fairness_gap_bp BIGINT,
+  cases_opened BIGINT,
+  blocks BIGINT,
+  llm_calls BIGINT,
+  judge_latency_ms BIGINT,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )
 USING DELTA
 COMMENT 'Daily oversight metrics per agent. Feeds the console panel.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- policy_baseline (state): Drift baseline band per agent version and metric (WP7, ADR D09). Integers only: band = center +- k * scaled MAD. Also holds the breach streak of the drift monitor.
+-- primary key (enforced by the app, not by Delta): agent_id, agent_version, metric
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`policy_baseline` (
+  agent_id STRING NOT NULL,
+  agent_version STRING NOT NULL,
+  metric STRING NOT NULL,
+  baseline_id STRING NOT NULL,
+  center BIGINT NOT NULL,
+  mad BIGINT NOT NULL,
+  band_low BIGINT NOT NULL,
+  band_high BIGINT NOT NULL,
+  k BIGINT NOT NULL,
+  windows BIGINT NOT NULL,
+  window_s BIGINT NOT NULL,
+  window_from TIMESTAMP NOT NULL,
+  window_to TIMESTAMP NOT NULL,
+  breach_streak BIGINT NOT NULL,
+  last_value BIGINT,
+  last_checked_to TIMESTAMP,
+  open_case_id STRING,
+  computed_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'Drift baseline band per agent version and metric (WP7, ADR D09). Integers only: band = center +- k * scaled MAD. Also holds the breach streak of the drift monitor.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- policy_threshold (state): Monitor thresholds per agent and metric (WP7). agent_id '*' is the default for every agent. Example metrics: drift.k, drift.consecutive, fairness.approval_gap_bp.
+-- primary key (enforced by the app, not by Delta): agent_id, metric
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`policy_threshold` (
+  agent_id STRING NOT NULL,
+  metric STRING NOT NULL,
+  threshold BIGINT NOT NULL,
+  unit STRING NOT NULL,
+  owner STRING,
+  note STRING,
+  effective_from TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'Monitor thresholds per agent and metric (WP7). agent_id ''*'' is the default for every agent. Example metrics: drift.k, drift.consecutive, fairness.approval_gap_bp.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- fairness_slice (append_only): One row per fairness cell per run (WP7). Cells under the minimum n are suppressed: counts and rates are null. Built on hashed subject ids, never raw ids.
+-- primary key (enforced by the app, not by Delta): run_id, attribute, cell
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`fairness_slice` (
+  run_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  agent_id STRING NOT NULL,
+  window_from TIMESTAMP NOT NULL,
+  window_to TIMESTAMP NOT NULL,
+  attribute STRING NOT NULL,
+  cell STRING NOT NULL,
+  n BIGINT,
+  approvals BIGINT,
+  blocks BIGINT,
+  approval_rate_bp BIGINT,
+  block_rate_bp BIGINT,
+  suppressed BOOLEAN NOT NULL,
+  method STRING NOT NULL
+)
+USING DELTA
+COMMENT 'One row per fairness cell per run (WP7). Cells under the minimum n are suppressed: counts and rates are null. Built on hashed subject ids, never raw ids.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+
+-- monitor_state (state): Cursors and dedupe marks of the monitors and the scheduler (WP7).
+-- primary key (enforced by the app, not by Delta): monitor, state_key
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`monitor_state` (
+  monitor STRING NOT NULL,
+  state_key STRING NOT NULL,
+  value STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'Cursors and dedupe marks of the monitors and the scheduler (WP7).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- scheduler_lease (state): Single-instance lock of the in-process scheduler on Databricks (WP7). One row per lease; the holder renews it; another replica takes it only after expires_at.
+-- primary key (enforced by the app, not by Delta): lease_name
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`scheduler_lease` (
+  lease_name STRING NOT NULL,
+  holder STRING NOT NULL,
+  acquired_at TIMESTAMP NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'Single-instance lock of the in-process scheduler on Databricks (WP7). One row per lease; the holder renews it; another replica takes it only after expires_at.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
 -- gate_control (state): Gateway control records (WP3). Active pause (with the state to resume to) and pending two-person resume approvals.

@@ -23,8 +23,10 @@ raise_severity, and ``Verdict`` rejects anything else for tier 1/2.
 Challenger verdicts (role ``challenger``) are stored and compared, never acted on and
 never counted by the protocol.
 
-Writes: TableStore ``verdict`` (score column = bp / 10000 because the schema column is a
-float; the chain never sees it) and EvidenceSink ``judge_verdict`` (integer bp only).
+Writes: TableStore ``verdict`` (``score_bp`` integer basis points, plus the legacy float
+``score`` = bp / 10000; the chain never sees the float; ``role``, ``region``,
+``model_version`` and ``mask_version`` are filled too, WP7) and EvidenceSink
+``judge_verdict`` (integer bp only).
 """
 
 from __future__ import annotations
@@ -331,6 +333,11 @@ class JudgeService:
             latency_ms=call.latency_ms,
             policy_hash=call.prompt_hash,
             rationale_masked=call.rationale_masked,
+            score_bp=call.suspicion_bp,
+            role=call.role,
+            region=call.region,
+            model_version=call.model_version,
+            mask_version=call.mask_version,
         )
         payload: dict[str, Any] = {
             "verdict_id": v.verdict_id,
@@ -410,6 +417,8 @@ class JudgeService:
             action=kind,  # type: ignore[arg-type]
             policy_hash=top.prompt_hash,
             rationale_masked=reason,
+            role="protocol",
+            mask_version=mask_version_of(self.masker),
         )
         payload = {
             "verdict_id": v.verdict_id,

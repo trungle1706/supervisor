@@ -152,6 +152,12 @@ class Verdict(Record):
     rule_id: str | None = None
     policy_hash: str | None = None
     rationale_masked: str | None = None
+    # WP7 (additive): judge fields; integer basis points for the score.
+    score_bp: int | None = Field(default=None, ge=0, le=10000)
+    role: str | None = None
+    region: str | None = None
+    model_version: str | None = None
+    mask_version: str | None = None
 
     @model_validator(mode="after")
     def _judges_only_advise(self) -> Verdict:
@@ -178,6 +184,7 @@ class Case(StateRecord):
     summary: str
     report_due_at: UtcDatetime | None = None
     closed_at: UtcDatetime | None = None
+    case_type: str | None = None  # WP7: rule | judge | drift | fairness | multiagent | manual
 
 
 class CaseEvent(Record):
@@ -243,6 +250,20 @@ class OversightMetric(StateRecord):
     groundedness: float | None = None
     fairness_gap: float | None = None
     computed_at: UtcDatetime
+    # WP7 (additive): integer columns, documented in docs/metrics.md.
+    events_seen: int | None = None
+    events_gated: int | None = None
+    coverage_bp: int | None = None
+    catch_rate_bp: int | None = None
+    false_alarm_bp: int | None = None
+    judge_verdicts: int | None = None
+    judge_disagree_bp: int | None = None
+    groundedness_bp: int | None = None
+    fairness_gap_bp: int | None = None
+    cases_opened: int | None = None
+    blocks: int | None = None
+    llm_calls: int | None = None
+    judge_latency_ms: int | None = None
 
 
 ALL_RECORDS: tuple[type[Record], ...] = (

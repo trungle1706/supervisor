@@ -216,6 +216,11 @@ CREATE TABLE IF NOT EXISTS verdict (
   rule_id TEXT,
   policy_hash TEXT,
   rationale_masked TEXT,
+  score_bp INTEGER,
+  role TEXT,
+  region TEXT,
+  model_version TEXT,
+  mask_version TEXT,
   PRIMARY KEY (verdict_id)
 );
 
@@ -248,6 +253,7 @@ CREATE TABLE IF NOT EXISTS cases (
   summary TEXT NOT NULL,
   report_due_at TEXT,
   closed_at TEXT,
+  case_type TEXT,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (case_id)
@@ -418,9 +424,115 @@ CREATE TABLE IF NOT EXISTS oversight_metric (
   groundedness REAL,
   fairness_gap REAL,
   computed_at TEXT NOT NULL,
+  events_seen INTEGER,
+  events_gated INTEGER,
+  coverage_bp INTEGER,
+  catch_rate_bp INTEGER,
+  false_alarm_bp INTEGER,
+  judge_verdicts INTEGER,
+  judge_disagree_bp INTEGER,
+  groundedness_bp INTEGER,
+  fairness_gap_bp INTEGER,
+  cases_opened INTEGER,
+  blocks INTEGER,
+  llm_calls INTEGER,
+  judge_latency_ms INTEGER,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (metric_date, agent_id)
+);
+
+-- policy_baseline (state): Drift baseline band per agent version and metric (WP7, ADR D09). Integers only: band = center +- k * scaled MAD. Also holds the breach streak of the drift monitor.
+CREATE TABLE IF NOT EXISTS policy_baseline (
+  agent_id TEXT NOT NULL,
+  agent_version TEXT NOT NULL,
+  metric TEXT NOT NULL,
+  baseline_id TEXT NOT NULL,
+  center INTEGER NOT NULL,
+  mad INTEGER NOT NULL,
+  band_low INTEGER NOT NULL,
+  band_high INTEGER NOT NULL,
+  k INTEGER NOT NULL,
+  windows INTEGER NOT NULL,
+  window_s INTEGER NOT NULL,
+  window_from TEXT NOT NULL,
+  window_to TEXT NOT NULL,
+  breach_streak INTEGER NOT NULL,
+  last_value INTEGER,
+  last_checked_to TEXT,
+  open_case_id TEXT,
+  computed_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (agent_id, agent_version, metric)
+);
+
+-- policy_threshold (state): Monitor thresholds per agent and metric (WP7). agent_id '*' is the default for every agent. Example metrics: drift.k, drift.consecutive, fairness.approval_gap_bp.
+CREATE TABLE IF NOT EXISTS policy_threshold (
+  agent_id TEXT NOT NULL,
+  metric TEXT NOT NULL,
+  threshold INTEGER NOT NULL,
+  unit TEXT NOT NULL,
+  owner TEXT,
+  note TEXT,
+  effective_from TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (agent_id, metric)
+);
+
+-- fairness_slice (append_only): One row per fairness cell per run (WP7). Cells under the minimum n are suppressed: counts and rates are null. Built on hashed subject ids, never raw ids.
+CREATE TABLE IF NOT EXISTS fairness_slice (
+  run_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  window_from TEXT NOT NULL,
+  window_to TEXT NOT NULL,
+  attribute TEXT NOT NULL,
+  cell TEXT NOT NULL,
+  n INTEGER,
+  approvals INTEGER,
+  blocks INTEGER,
+  approval_rate_bp INTEGER,
+  block_rate_bp INTEGER,
+  suppressed INTEGER NOT NULL,
+  method TEXT NOT NULL,
+  PRIMARY KEY (run_id, attribute, cell)
+);
+
+CREATE INDEX IF NOT EXISTS ix_fairness_slice_agent_id_ts ON fairness_slice (agent_id, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_fairness_slice_no_update
+BEFORE UPDATE ON fairness_slice
+BEGIN
+  SELECT RAISE(ABORT, 'fairness_slice is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_fairness_slice_no_delete
+BEFORE DELETE ON fairness_slice
+BEGIN
+  SELECT RAISE(ABORT, 'fairness_slice is append-only');
+END;
+
+-- monitor_state (state): Cursors and dedupe marks of the monitors and the scheduler (WP7).
+CREATE TABLE IF NOT EXISTS monitor_state (
+  monitor TEXT NOT NULL,
+  state_key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (monitor, state_key)
+);
+
+-- scheduler_lease (state): Single-instance lock of the in-process scheduler on Databricks (WP7). One row per lease; the holder renews it; another replica takes it only after expires_at.
+CREATE TABLE IF NOT EXISTS scheduler_lease (
+  lease_name TEXT NOT NULL,
+  holder TEXT NOT NULL,
+  acquired_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (lease_name)
 );
 
 -- gate_control (state): Gateway control records (WP3). Active pause (with the state to resume to) and pending two-person resume approvals.
