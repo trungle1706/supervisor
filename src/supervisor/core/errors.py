@@ -25,3 +25,11 @@ class ConcurrencyError(SqlError):
 
 class NotFoundError(SupervisorError):
     """A requested row does not exist."""
+
+
+class DuplicateKeyError(SqlError):
+    """A row with the same primary key already exists."""
+
+
+class AppendOnlyError(SqlError):
+    """An UPDATE or DELETE hit an append-only table."""

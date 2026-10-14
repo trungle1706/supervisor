@@ -1,0 +1,262 @@
+# Supervisor data model: the ONE source for all tables.
+# Generator: uv run python -m schema.generate  ->  schema/ddl/sqlite.sql + schema/ddl/databricks.sql
+#
+# Portable type vocabulary (column "type"; a trailing "?" means NULL allowed):
+#   string    short text (ids, enums, hashes)      sqlite TEXT     databricks STRING
+#   text      long text (masked excerpts)          sqlite TEXT     databricks STRING
+#   int       64-bit integer                       sqlite INTEGER  databricks BIGINT
+#   money     integer minor units (VND has 0 dp)   sqlite INTEGER  databricks BIGINT
+#   float     scores and rates, never money        sqlite REAL     databricks DOUBLE
+#   bool      true/false                           sqlite INTEGER  databricks BOOLEAN
+#   timestamp UTC instant                          sqlite TEXT (RFC 3339, 6 fraction digits, Z)
+#                                                  databricks TIMESTAMP
+#   date      calendar date                        sqlite TEXT     databricks DATE
+#   json      canonical JSON document              sqlite TEXT     databricks STRING
+#
+# kind: append_only -> SQLite BEFORE UPDATE/DELETE triggers RAISE(ABORT);
+#                      Delta TBLPROPERTIES delta.appendOnly = true.
+# kind: state       -> mutable rows. The generator adds two columns:
+#                      row_version int (optimistic concurrency) and updated_at timestamp.
+# One catalog.schema holds every table (configured by DATABRICKS_CATALOG / DATABRICKS_SCHEMA).
+# Money columns end in _minor (canonical JSON enforces int there).
+
+version: 1
+
+tables:
+  schema_version:
+    kind: state
+    description: Applied versions of this model.
+    primary_key: [version]
+    columns:
+      version: int
+      applied_at: timestamp
+      model_hash: string
+
+  agent:
+    kind: state
+    description: Registry of supervised agents (one row per agent).
+    primary_key: [agent_id]
+    columns:
+      agent_id: string
+      name: string
+      owner_team: string
+      owner_user: string
+      business_owner: string?
+      risk_tier: string
+      decision33_class: string?
+      host_type: string
+      plug_point: string
+      model_family: string
+      status: string
+      gate_state: string
+      created_at: timestamp
+
+  agent_version:
+    kind: append_only
+    description: Deployed versions of an agent. Drift bands tie to a version.
+    primary_key: [agent_id, version]
+    columns:
+      agent_id: string
+      version: string
+      code_ref: string?
+      prompt_hash: string?
+      tool_manifest_hash: string?
+      model_endpoint: string?
+      model_family: string
+      deployed_at: timestamp
+      baseline_id: string?
+
+  identity_binding:
+    kind: state
+    description: How a black-box agent is recognised (header, SP, key hash).
+    primary_key: [agent_id, binding_type, binding_hash]
+    columns:
+      agent_id: string
+      binding_type: string
+      binding_hash: string
+      valid_from: timestamp
+      valid_to: timestamp?
+
+  coverage:
+    kind: state
+    description: Which monitoring capabilities are on for each agent, and why not.
+    primary_key: [agent_id, capability_id]
+    columns:
+      agent_id: string
+      capability_id: string
+      status: string
+      reason: text?
+
+  agent_event:
+    kind: append_only
+    description: Normalised OTel-shaped events. Single read model for Watch. Masked only.
+    primary_key: [event_id]
+    indexes:
+      - [agent_id, ts]
+      - [trace_id]
+    columns:
+      event_id: string
+      ts: timestamp
+      trace_id: string
+      span_id: string
+      parent_span_id: string?
+      agent_id: string
+      agent_version: string?
+      caller_agent_id: string?
+      event_type: string
+      tool_name: string?
+      args_hash: string?
+      args_masked: text?
+      result_masked: text?
+      amount_minor: money?
+      currency: string?
+      status: string?
+      latency_ms: int?
+      env: string
+      classification: string?
+      source: string
+      capture_level: string
+
+  rule:
+    kind: state
+    description: Deployed copy of policy rules (git is the source).
+    primary_key: [rule_id, version]
+    columns:
+      rule_id: string
+      version: int
+      agent_scope: string
+      expression: json
+      action: string
+      fail_mode: string
+      severity: string
+      regulation_ref: string?
+      owner: string
+      approved_by_1: string?
+      approved_by_2: string?
+      git_sha: string?
+      policy_hash: string
+      effective_from: timestamp
+      effective_to: timestamp?
+
+  verdict:
+    kind: append_only
+    description: One row per check outcome (rule, Tier 1 or Tier 2 judge). Judges are advisory.
+    primary_key: [verdict_id]
+    indexes:
+      - [agent_id, ts]
+      - [trace_id]
+    columns:
+      verdict_id: string
+      ts: timestamp
+      trace_id: string?
+      event_id: string?
+      agent_id: string
+      tier: int
+      checker_id: string
+      model_id: string?
+      model_family: string?
+      is_mock: bool
+      advisory: bool
+      score: float?
+      label: string
+      action: string
+      latency_ms: int?
+      rule_id: string?
+      policy_hash: string?
+      rationale_masked: text?
+
+  cases:
+    kind: state
+    description: Case header (mutable workflow state). Every change also writes case_event.
+    primary_key: [case_id]
+    indexes:
+      - [agent_id, status]
+    columns:
+      case_id: string
+      agent_id: string
+      severity: string
+      status: string
+      opened_at: timestamp
+      assignee: string?
+      itsm_ref: string?
+      regulation_refs: json
+      summary: text
+      report_due_at: timestamp?
+      closed_at: timestamp?
+
+  case_event:
+    kind: append_only
+    description: Who did what on a case. Feeds the evidence chain.
+    primary_key: [case_id, seq]
+    columns:
+      case_id: string
+      seq: int
+      ts: timestamp
+      actor: string
+      actor_kind: string
+      action: string
+      comment_masked: text?
+
+  signoff:
+    kind: append_only
+    description: Human sign-off. Reviewer id from SSO, never the app service principal.
+    primary_key: [signoff_id]
+    indexes:
+      - [case_id]
+    columns:
+      signoff_id: string
+      case_id: string
+      reviewer_id: string
+      decision: string
+      reason: text
+      ts: timestamp
+      auth_method: string
+
+  chain_entry:
+    kind: append_only
+    description: Hash chain. One lane per agent plus the root lane. PII never enters.
+    primary_key: [lane, seq]
+    columns:
+      lane: string
+      seq: int
+      ts: timestamp
+      record_type: string
+      record_ref: string
+      payload_hash: string
+      prev_hash: string
+      entry_hash: string
+      writer: string
+      env: string
+
+  anchor:
+    kind: append_only
+    description: Signed chain heads anchored to an immutable target.
+    primary_key: [anchor_id]
+    columns:
+      anchor_id: string
+      lane: string
+      seq_from: int
+      seq_to: int
+      root_hash: string
+      head_signature: string
+      key_id: string
+      anchored_at: timestamp
+      anchor_target: string
+      receipt: text?
+
+  oversight_metric:
+    kind: state
+    description: Daily oversight metrics per agent. Feeds the console panel.
+    primary_key: [metric_date, agent_id]
+    columns:
+      metric_date: date
+      agent_id: string
+      coverage: float?
+      ttd_ms: int?
+      tth_s: int?
+      catch_rate: float?
+      false_alarm_rate: float?
+      chain_ok: bool?
+      groundedness: float?
+      fairness_gap: float?
+      computed_at: timestamp

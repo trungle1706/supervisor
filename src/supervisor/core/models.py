@@ -1,0 +1,259 @@
+"""Domain models. Field names match the columns in schema/model.yaml (a test checks it).
+
+* Money: ``*_minor`` fields are strict ints of minor units (VND has no minor unit,
+  so 1 VND = 1). Never floats.
+* Timestamps: timezone-aware, normalised to UTC. Naive datetimes are rejected.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, date, datetime
+from typing import Annotated, Any, ClassVar, Literal
+
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictInt, model_validator
+
+
+def _utc(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("timestamp must be timezone-aware (UTC)")
+    return value.astimezone(UTC)
+
+
+UtcDatetime = Annotated[datetime, AfterValidator(_utc)]
+MinorUnits = StrictInt
+Currency = Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+Sha256Hex = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+
+RiskTier = Literal["low", "medium", "high", "critical"]
+AgentStatus = Literal["onboarding", "shadow", "enforced", "paused", "retired"]
+GateState = Literal["RUNNING", "SHADOW", "PAUSED", "QUARANTINED"]  # ADR D03
+EventType = Literal["llm_call", "tool_call", "message", "handoff", "gate_decision"]
+EventSource = Literal["otel", "otlp", "mlflow", "proxy"]
+CaptureLevel = Literal["digest", "masked", "raw"]
+RuleAction = Literal["log", "alert", "block", "pause"]
+FailMode = Literal["open", "closed"]
+Severity = Literal["low", "medium", "high", "critical"]
+VerdictAction = Literal["allow", "log", "alert", "block", "pause", "open_case", "raise_severity"]
+CaseStatus = Literal["open", "triage", "escalated", "resolved", "closed"]
+ActorKind = Literal["user", "service_principal", "system"]
+
+
+class Record(BaseModel):
+    """Base for table rows. ``__table__`` names the table in schema/model.yaml."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    __table__: ClassVar[str] = ""
+
+    def row(self) -> dict[str, Any]:
+        return self.model_dump(mode="python")
+
+
+class StateRecord(Record):
+    """Mutable row: optimistic concurrency via ``row_version``."""
+
+    row_version: int = 0
+    updated_at: UtcDatetime | None = None
+
+
+class Agent(StateRecord):
+    __table__: ClassVar[str] = "agent"
+    agent_id: str
+    name: str
+    owner_team: str
+    owner_user: str
+    business_owner: str | None = None
+    risk_tier: RiskTier
+    decision33_class: str | None = None
+    host_type: str
+    plug_point: str
+    model_family: str
+    status: AgentStatus = "onboarding"
+    gate_state: GateState = "SHADOW"
+    created_at: UtcDatetime
+
+
+class AgentVersion(Record):
+    __table__: ClassVar[str] = "agent_version"
+    agent_id: str
+    version: str
+    code_ref: str | None = None
+    prompt_hash: str | None = None
+    tool_manifest_hash: str | None = None
+    model_endpoint: str | None = None
+    model_family: str
+    deployed_at: UtcDatetime
+    baseline_id: str | None = None
+
+
+class AgentEvent(Record):
+    __table__: ClassVar[str] = "agent_event"
+    event_id: str
+    ts: UtcDatetime
+    trace_id: str
+    span_id: str
+    parent_span_id: str | None = None
+    agent_id: str
+    agent_version: str | None = None
+    caller_agent_id: str | None = None
+    event_type: EventType
+    tool_name: str | None = None
+    args_hash: str | None = None
+    args_masked: str | None = None
+    result_masked: str | None = None
+    amount_minor: MinorUnits | None = None
+    currency: Currency | None = None
+    status: str | None = None
+    latency_ms: int | None = None
+    env: str
+    classification: str | None = None
+    source: EventSource
+    capture_level: CaptureLevel = "masked"
+
+
+class Rule(StateRecord):
+    __table__: ClassVar[str] = "rule"
+    rule_id: str
+    version: int
+    agent_scope: str
+    expression: dict[str, Any]
+    action: RuleAction
+    fail_mode: FailMode
+    severity: Severity
+    regulation_ref: str | None = None
+    owner: str
+    approved_by_1: str | None = None
+    approved_by_2: str | None = None
+    git_sha: str | None = None
+    policy_hash: str
+    effective_from: UtcDatetime
+    effective_to: UtcDatetime | None = None
+
+
+class Verdict(Record):
+    """Tier 0 = deterministic rule; Tier 1/2 = judge (always advisory)."""
+
+    __table__: ClassVar[str] = "verdict"
+    verdict_id: str
+    ts: UtcDatetime
+    trace_id: str | None = None
+    event_id: str | None = None
+    agent_id: str
+    tier: Literal[0, 1, 2]
+    checker_id: str
+    model_id: str | None = None
+    model_family: str | None = None
+    is_mock: bool = False
+    advisory: bool
+    score: float | None = None
+    label: str
+    action: VerdictAction
+    latency_ms: int | None = None
+    rule_id: str | None = None
+    policy_hash: str | None = None
+    rationale_masked: str | None = None
+
+    @model_validator(mode="after")
+    def _judges_only_advise(self) -> Verdict:
+        if self.tier > 0:
+            if not self.advisory:
+                raise ValueError("judge verdicts (tier 1/2) must be advisory")
+            if self.action in ("block", "pause"):
+                raise ValueError("judge verdicts cannot block or pause; only rules can")
+        if self.is_mock and self.model_id is not None and "mock" not in self.model_id:
+            raise ValueError("mock verdicts must carry 'mock' in model_id")
+        return self
+
+
+class Case(StateRecord):
+    __table__: ClassVar[str] = "cases"
+    case_id: str
+    agent_id: str
+    severity: Severity
+    status: CaseStatus = "open"
+    opened_at: UtcDatetime
+    assignee: str | None = None
+    itsm_ref: str | None = None
+    regulation_refs: list[str] = Field(default_factory=list)
+    summary: str
+    report_due_at: UtcDatetime | None = None
+    closed_at: UtcDatetime | None = None
+
+
+class CaseEvent(Record):
+    __table__: ClassVar[str] = "case_event"
+    case_id: str
+    seq: int
+    ts: UtcDatetime
+    actor: str
+    actor_kind: ActorKind
+    action: str
+    comment_masked: str | None = None
+
+
+class Signoff(Record):
+    __table__: ClassVar[str] = "signoff"
+    signoff_id: str
+    case_id: str
+    reviewer_id: str
+    decision: str
+    reason: str
+    ts: UtcDatetime
+    auth_method: str
+
+
+class ChainEntry(Record):
+    __table__: ClassVar[str] = "chain_entry"
+    lane: str
+    seq: int = Field(ge=0)
+    ts: UtcDatetime
+    record_type: str
+    record_ref: str
+    payload_hash: Sha256Hex
+    prev_hash: Sha256Hex
+    entry_hash: Sha256Hex
+    writer: str
+    env: str
+
+
+class Anchor(Record):
+    __table__: ClassVar[str] = "anchor"
+    anchor_id: str
+    lane: str
+    seq_from: int
+    seq_to: int
+    root_hash: Sha256Hex
+    head_signature: str
+    key_id: str
+    anchored_at: UtcDatetime
+    anchor_target: str
+    receipt: str | None = None
+
+
+class OversightMetric(StateRecord):
+    __table__: ClassVar[str] = "oversight_metric"
+    metric_date: date
+    agent_id: str
+    coverage: float | None = None
+    ttd_ms: int | None = None
+    tth_s: int | None = None
+    catch_rate: float | None = None
+    false_alarm_rate: float | None = None
+    chain_ok: bool | None = None
+    groundedness: float | None = None
+    fairness_gap: float | None = None
+    computed_at: UtcDatetime
+
+
+ALL_RECORDS: tuple[type[Record], ...] = (
+    Agent,
+    AgentVersion,
+    AgentEvent,
+    Rule,
+    Verdict,
+    Case,
+    CaseEvent,
+    Signoff,
+    ChainEntry,
+    Anchor,
+    OversightMetric,
+)
