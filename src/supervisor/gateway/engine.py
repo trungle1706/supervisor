@@ -282,7 +282,8 @@ class Decision:
     matched: list[dict[str, Any]] = field(default_factory=list)
     fail_mode: str | None = None
     paused: bool = False
-    latency_us: int = 0
+    latency_us: int = 0  # decision (evaluation) latency, before recording
+    total_us: int = 0  # end to end inside the gateway, recording included
 
     def as_result(self) -> dict[str, Any]:
         return {
@@ -290,8 +291,9 @@ class Decision:
             "action": self.action,
             "rule_id": self.rule_id,
             "reason": self.reason,
-            "latency_ms": self.latency_us // 1000,
+            "latency_ms": (self.total_us or self.latency_us) // 1000,
             "latency_us": self.latency_us,
+            "total_us": self.total_us,
             "decision_id": self.decision_id,
             "agent_state": self.agent_state,
             "policy_hash": self.policy_hash,
@@ -453,6 +455,8 @@ class Gateway:
             if agg.fn == "sum":
                 assert agg.field is not None
                 current = _resolve(agg.field, args, ctx)
+                if current is _MISSING or current is None:
+                    return False  # a separate "absent" rule blocks calls without an amount
                 if not _is_int(current):
                     raise PredicateTypeError(f"{agg.field}: expected an integer amount")
             else:
@@ -601,8 +605,9 @@ class Gateway:
             self._record(d, now, agent_id, agent_version, tool_name, args, ctx, matches, shadow)
             if d.allow and risk is not None and tool_name in policy.tracked_keys():
                 self._remember(policy, now_us, agent_id, tool_name, args, ctx)
+        d.total_us = (time.perf_counter_ns() - t0) // 1000
         self.metrics.observe(
-            d.latency_us,
+            d.total_us,
             d.action,
             d.allow,
             "shadow" if shadow else (f"fail_{d.fail_mode}" if d.fail_mode else None),
@@ -898,7 +903,8 @@ class Gateway:
             )
         except Exception:  # noqa: BLE001
             self.metrics.bump("evidence_failed")
-        self.metrics.observe(d.latency_us, d.action, d.allow, f"fail_{mode}")
+        d.total_us = (time.perf_counter_ns() - t0) // 1000
+        self.metrics.observe(d.total_us, d.action, d.allow, f"fail_{mode}")
         return d
 
     # ------------------------------------------------------------------ 0b
