@@ -1,0 +1,125 @@
+# Gateway policy for the Onboarding Agent itself (agent id onboarding_agent).
+# The Onboarding Agent runs under Watch like every other agent (product spec, ADR D12):
+# each of its tool calls goes through a GateHook and is recorded on the evidence chain.
+# Loaded by supervisor.onboard.agent (not part of policies/, which holds bank agents).
+# Approver ids are synthetic demo identities (same as policies/baseline.yaml).
+#
+# Risk classes: reading the repo and calling the LLM on scrubbed text are read_only.
+# Writing an artefact and committing a branch put data outside the agent: they use the
+# fail-closed class pii_export (the closest fail-closed class in the policy schema).
+
+policy_version: 1
+
+tools:
+  list_repo_tree: read_only
+  read_file: read_only
+  list_workspace: read_only
+  call_llm: read_only
+  run_redteam_sandbox: read_only
+  write_artifact: pii_export
+  git_branch_commit: pii_export
+
+agents:
+  onboarding_agent:
+    name: Supervisor Onboarding Agent
+    owner_user: platform-lead@example.invalid
+    owner_team: Supervisor Platform
+    risk_tier: medium
+    model_family: configured
+    host_type: python_inprocess
+    plug_point: gate_hook
+    initial_state: RUNNING
+
+reviewers: [reviewer.an, reviewer.binh]
+admins: [admin.chi]
+
+rules:
+  - id: OB-SELF-01
+    version: 1
+    description: The Onboarding Agent may call its read, write-artefact and branch tools only
+    agent_scope: [onboarding_agent]
+    when:
+      tool:
+        not_in:
+          - list_repo_tree
+          - read_file
+          - list_workspace
+          - call_llm
+          - run_redteam_sandbox
+          - write_artifact
+          - git_branch_commit
+    action: pause
+    severity: critical
+    risk_class: pii_export
+    regulation_ref: ADR D12 - Onboarding Agent safety
+    owner: Supervisor Platform
+    approvals: [risk.lead, compliance.officer]
+
+  - id: OB-SELF-02
+    version: 1
+    description: An LLM call must carry scrubbed repo text only (secret scrubber ran)
+    agent_scope: [onboarding_agent]
+    when:
+      tool: call_llm
+      any:
+        - {arg: scrubbed, op: absent}
+        - {arg: scrubbed, op: ne, value: true}
+    action: block
+    severity: high
+    risk_class: read_only
+    fail_mode: closed
+    regulation_ref: ADR D12 - secrets never reach an LLM
+    owner: Supervisor Platform
+    approvals: [risk.lead, compliance.officer]
+
+  - id: OB-SELF-03
+    version: 1
+    description: Branches go only to supervisor/onboard-*; the agent never merges or pushes
+    agent_scope: [onboarding_agent]
+    when:
+      tool: git_branch_commit
+      any:
+        - {arg: branch, op: absent}
+        - {arg: branch, op: matches, value: "^(?!supervisor/onboard-[a-z0-9_-]{1,60}$)"}
+        - {arg: merge, op: present}
+        - {arg: push, op: present}
+    action: block
+    severity: critical
+    risk_class: pii_export
+    regulation_ref: ADR D12 - PR only, a human merges
+    owner: Supervisor Platform
+    approvals: [risk.lead, compliance.officer]
+
+  - id: OB-SELF-04
+    version: 1
+    description: Artefacts go only to the output folder (plain file names, no path)
+    agent_scope: [onboarding_agent]
+    when:
+      tool: write_artifact
+      any:
+        - {arg: name, op: absent}
+        - {arg: name, op: matches, value: "^(?![A-Za-z0-9_][A-Za-z0-9_.-]{0,79}$)"}
+    action: block
+    severity: high
+    risk_class: pii_export
+    regulation_ref: ADR D12 - write only to the output folder
+    owner: Supervisor Platform
+    approvals: [risk.lead, compliance.officer]
+
+  - id: OB-SELF-05
+    version: 1
+    description: At most 5000 repository files read per hour (bulk read alert)
+    agent_scope: [onboarding_agent]
+    when:
+      tool: read_file
+    aggregate:
+      fn: count
+      window_s: 3600
+      group_by: agent
+      op: gt
+      limit: 5000
+    action: alert
+    severity: medium
+    risk_class: read_only
+    regulation_ref: ADR D12 - read-only access, bounded
+    owner: Supervisor Platform

@@ -1,7 +1,8 @@
 """Regex secret scrubber: runs on every repo or workspace text before an LLM sees it.
 
 ADR D12: the goal is gitleaks; plan v2 uses this in-process scrubber (lower recall).
-Each match is replaced with ``[REDACTED:<kind>]``. Only counts are logged and recorded,
+Each match is replaced with ``[REDACTED:<kind>]`` (plus the same number of line breaks,
+so file:line evidence stays valid). Only counts are logged and recorded,
 never the matched text. The scrubber is idempotent (a redaction marker never matches).
 
     s = Scrubber()
@@ -94,12 +95,14 @@ def scrub_text(text: str) -> ScrubResult:
             if value.startswith("FILL-ME") or set(value) <= {"*", "x", "X", "."}:
                 return m.group(0)  # documented placeholders are not secrets
             counts[kind] += 1
+            # Keep the line count so file:line evidence stays correct after scrubbing.
+            marker = _marker(kind) + "\n" * value.count("\n")
             if group == 0:
-                return _marker(kind)
+                return marker
             start, end = m.span(group)
             base = m.start(0)
             whole = m.group(0)
-            return whole[: start - base] + _marker(kind) + whole[end - base :]
+            return whole[: start - base] + marker + whole[end - base :]
 
         out = pat.sub(repl, out)
     return ScrubResult(out, dict(counts))

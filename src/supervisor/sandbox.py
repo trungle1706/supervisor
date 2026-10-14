@@ -244,11 +244,21 @@ GIT_ALLOWED = frozenset(
         "switch",
     }
 )
-GIT_FORBIDDEN_ARGS = frozenset({"--exec", "--upload-pack", "--receive-pack", "-u", "--config"})
+GIT_FORBIDDEN_ARGS = frozenset(
+    {"--exec", "--upload-pack", "--receive-pack", "-u", "-c", "--config", "--template"}
+)
 
 
-def git(args: list[str], *, cwd: str | Path, timeout_s: float = 60.0) -> RunResult:
+def git(
+    args: list[str],
+    *,
+    cwd: str | Path,
+    timeout_s: float = 60.0,
+    identity: tuple[str, str] | None = None,
+) -> RunResult:
     """Run one allowed ``git`` subcommand with hooks, prompts and signing off.
+
+    ``identity`` (name, email) sets the author and committer for this call only.
 
     Raises ``SandboxError`` for a forbidden subcommand (merge, push, pull, fetch,
     rebase, remote, ...) or a forbidden option."""
@@ -273,7 +283,9 @@ def git(args: list[str], *, cwd: str | Path, timeout_s: float = 60.0) -> RunResu
         "commit.gpgsign=false",
         "-c",
         "credential.helper=",
-        *args,
     ]
+    if identity is not None:
+        argv += ["-c", f"user.name={identity[0]}", "-c", f"user.email={identity[1]}"]
+    argv += args
     env = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "", "GIT_CONFIG_NOSYSTEM": "1"}
     return run(argv, cwd=cwd, timeout_s=timeout_s, env=env)
