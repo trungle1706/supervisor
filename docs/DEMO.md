@@ -12,6 +12,8 @@ Commands are Windows cmd, run from the unzipped `supervisor` folder.
 | Chain break found by the offline verifier | `[REPLAY]` lines: a recorded twin of a model step, only with `--replay` |
 | Case opened by the same case service the console uses | `[DEMO]` lines: the runbook's two-person auto-resume |
 
+The `[FIXTURE]` line under each incident header covers that incident block: the agent's
+tool call is scripted, everything after it (gate, pause, case, chain) is live.
 If a live control fails, the line is `[FAIL]`. There is no replay for the gate, the pause
 or the tamper test.
 
@@ -44,7 +46,8 @@ Keys in the `demo serve` window: `1`-`4` inject, `t` tamper, `r` resume (two-per
 | 5:00 | Tamper test | key `t` | `[OK] verify ORIGINAL: RESULT OK`, `tamper on the COPY only: ... PAY-08 -> PAY-09`, `[OK] verify TAMPERED copy: RESULT FAIL`, `verifier: FAIL lane agent:payments ...`, `[OK] verify ORIGINAL again: RESULT OK; live store unchanged` | "We change one character in a copy of the evidence and even fix the file checksums. The hash chain still finds it, offline, with the auditor's tool." | Metrics: Verify chain -> OK |
 | 5:45 | Close | | | "Measured on this laptop, not a slide." | Metrics |
 
-After the demo: key `z` (reset, about 1 s), then `q`.
+After the demo: key `z` (reset, about 1 s), then `q`. If a reset fails halfway (for
+example a locked file on Windows), run it again: the snapshot is kept.
 
 ## Fallback triggers
 
@@ -79,4 +82,5 @@ to WP7 (`supervisor.monitors`); the runbook prints `[SKIP]` for them.
 - The MockJudge has no keyword for the invented "miễn phí trọn đời" policy, so on DEMO-2
   it logs the trace as benign (about 458 bp). The case still opens from rule SVC-02. A
   real judge model is expected to flag it; that is measured by the judge eval, not here.
-- Sample output of one run is in `tests/e2e/test_demo_runbook.py` (asserted line by line).
+- The 20-run test (`tests/e2e/test_demo_runbook.py`) asserts the three live controls in
+  every run and prints the measured timing.

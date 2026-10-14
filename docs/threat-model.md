@@ -122,7 +122,7 @@ Goal: edit or delete evidence after the fact.
 | Gap | Effect | Planned answer |
 |---|---|---|
 | Cooperative enforcement | An agent that does not call the gate is not stopped. No credential brokering and no egress proxy in front of tools yet | Bank-side credential broker / egress allow-list (analysis 02, open question 5) |
-| Dev signing key | The default key is a file under `DATA_DIR`, labelled `key_kind=dev` unless `SIGNER_KEY_MANAGED=1`. Whoever can read it can re-sign a rewritten chain | Bank KMS / HSM custody; pin the public key in the verifier; anchors to object-lock storage |
+| Dev signing key | The default key is a file under `DATA_DIR`, labelled `key_kind=dev` unless the setting `signer_key_managed` is true (env `SIGNER_KEY_MANAGED=1`). Whoever can read it can re-sign a rewritten chain | Bank KMS / HSM custody; pin the public key in the verifier; anchors to object-lock storage |
 | Dev HMAC keys | Without `ARGS_HASH_KEY` / `MASK_HMAC_KEY` the dev keys are used (key id `dev`, visible in evidence) | Keys from the bank vault |
 | No OTLP auth yet | `recorder/otlp_receiver.py` `authorize` is a placeholder; any caller that reaches the port can post spans (data only, never gate state) | Principal port on the receiver; network restriction |
 | Gate routes have no caller auth | `/gate/check` trusts the network position (laptop binds 127.0.0.1; on the App, the platform's auth). On the laptop, `/gate/pause|resume` accept a body principal (`trust_body_principal`); on the App the SSO header is required | Per-agent credentials at the gate |

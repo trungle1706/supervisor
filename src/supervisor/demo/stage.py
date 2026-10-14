@@ -83,14 +83,19 @@ class Stage:
             elif key == "r":
                 self._resume_all()
             elif key == "z":
+                from supervisor.console import context as console_context
                 from supervisor.core.errors import SupervisorError
+                from supervisor.gateway import wiring as gate_wiring
 
-                self.uninstall()
-                try:
-                    reset.restore(self.settings, echo=self.echo)
-                except SupervisorError as exc:
-                    self.echo(f"[FAIL] {exc}")
-                self.install()
+                # Hold both locks for the whole swap: a request that arrives meanwhile
+                # waits for the new context instead of seeing a closed runtime.
+                with gate_wiring._lock, console_context._lock:  # noqa: SLF001
+                    self.uninstall()
+                    try:
+                        reset.restore(self.settings, echo=self.echo)
+                    except SupervisorError as exc:
+                        self.echo(f"[FAIL] {exc} (a second reset is safe: the snapshot is kept)")
+                    self.install()
                 self.echo("[OK] console now shows the reset store (refresh the page)")
             elif key == "s":
                 self._status()
