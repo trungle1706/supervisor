@@ -313,6 +313,7 @@ class Settings(BaseSettings):
             return self.auth_kind
         return "databricks_app" if self.supervisor_mode == "databricks_app" else "dev_header"
 
+    @property
     def scheduler_on(self) -> bool:
         """SCHEDULER_ENABLED if set, else on in laptop mode only (WP7)."""
         if self.scheduler_enabled is not None:
