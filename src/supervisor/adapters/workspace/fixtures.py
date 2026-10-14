@@ -1,0 +1,61 @@
+"""``WorkspaceReader`` from a JSON fixture (offline laptop, tests, demos).
+
+Fixture layout (all keys optional)::
+
+    {
+      "apps": [{"name": "...", "url": "...", "description": "..."}],
+      "serving_endpoints": [{"name": "...", "model": "...", "family": "...", "task": "..."}],
+      "tables": {"catalog.schema": ["table_a", "table_b"]},
+      "lineage": [{"agent": "payments", "table": "cat.sch.t", "direction": "read"}],
+      "traces": [{"agent": "payments", "source": "mlflow", "count": 120}]
+    }
+
+Fixture values are untrusted text like repo text; Discover scrubs them.
+"""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import Any
+
+MAX_FIXTURE_BYTES = 2_000_000
+
+
+class FixtureWorkspaceReader:
+    """Implements ``core.ports.WorkspaceReader`` (plus apps, lineage and traces)."""
+
+    def __init__(self, data: Mapping[str, Any]) -> None:
+        if not isinstance(data, Mapping):
+            raise ValueError("workspace fixture must be a JSON object")
+        self.data = dict(data)
+
+    @classmethod
+    def from_file(cls, path: str | Path) -> FixtureWorkspaceReader:
+        p = Path(path)
+        if p.stat().st_size > MAX_FIXTURE_BYTES:
+            raise ValueError(f"{p.name}: fixture larger than {MAX_FIXTURE_BYTES} bytes")
+        return cls(json.loads(p.read_text(encoding="utf-8")))
+
+    @classmethod
+    def empty(cls) -> FixtureWorkspaceReader:
+        return cls({})
+
+    def list_apps(self) -> Sequence[Mapping[str, Any]]:
+        return [dict(a) for a in self.data.get("apps", [])]
+
+    def list_serving_endpoints(self) -> Sequence[Mapping[str, Any]]:
+        return [dict(e) for e in self.data.get("serving_endpoints", [])]
+
+    def list_tables(self, catalog: str, schema: str) -> Sequence[str]:
+        return sorted(str(t) for t in self.data.get("tables", {}).get(f"{catalog}.{schema}", []))
+
+    def list_schemas(self) -> Sequence[str]:
+        return sorted(self.data.get("tables", {}))
+
+    def lineage(self) -> Sequence[Mapping[str, Any]]:
+        return [dict(x) for x in self.data.get("lineage", [])]
+
+    def traces(self) -> Sequence[Mapping[str, Any]]:
+        return [dict(x) for x in self.data.get("traces", [])]

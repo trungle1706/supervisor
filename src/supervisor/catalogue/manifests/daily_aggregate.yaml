@@ -1,0 +1,23 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: daily_aggregate
+name: Daily aggregate per customer
+kind: gate_rule
+lane: fast
+description: >
+  Stateful window over allowed gate decisions. Sums the amounts (when the manifest
+  declares a daily limit) or counts the calls of one money or credit tool per customer or
+  account key in a day. Catches structuring and retry storms that stay under the
+  per-call limit.
+signals_needed: [gateway_events.allowed, tool_call.args.amount_minor, tool_call.args.customer_key]
+checks:
+  - daily sum per key at most the declared daily limit
+  - daily count per key at most the count threshold
+default_thresholds: {window_s: 86400, max_calls_per_key_per_day: 2}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 40, storage_bytes_per_1k_events: 0}
+applies_to: [money, credit]
+requires: [customer_key]
+plug_points: [gate_hook, mcp_proxy]
+regulation_refs: ["AML structuring control - daily aggregate per customer"]
+owner: Supervisor Platform
+module: supervisor.gateway.engine
+can_block: true

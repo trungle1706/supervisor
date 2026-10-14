@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: groundedness
+name: Groundedness of customer replies
+kind: judge
+lane: slow
+description: >
+  A judge checks a sample of free-text replies against the tool results of the same
+  trace (no invented policies, amounts or promises). Advisory only.
+signals_needed: [agent_event.message, agent_event.result_masked]
+checks: [reply claims supported by tool results]
+default_thresholds: {sample_bp: 1000, min_groundedness_bp: 9000}
+cost_estimate: {llm_tokens_per_1k_events: 400000, compute_ms_per_1k_events: 400000, storage_bytes_per_1k_events: 50000}
+applies_to: [money, credit, pii_export, read_only]
+requires: [free_text_output, llm]
+plug_points: [gate_hook, otel, proxy_log, mcp_proxy]
+regulation_refs: ["Consumer protection - accurate information"]
+owner: Supervisor Platform
+module: supervisor.monitors.groundedness

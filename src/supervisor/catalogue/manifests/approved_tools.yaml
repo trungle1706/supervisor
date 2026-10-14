@@ -1,0 +1,19 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: approved_tools
+name: Approved tools allow-list
+kind: gate_rule
+lane: fast
+description: >
+  The agent may call only the tools that are approved for its flows. Any other tool name
+  (registered for other staff, or invented by the model) pauses the agent before it runs.
+signals_needed: [tool_call.tool_name, agent_manifest.tools]
+checks: [tool name is in the approved list for this agent]
+default_thresholds: {}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 20, storage_bytes_per_1k_events: 400000}
+applies_to: [money, credit, pii_export, read_only]
+plug_points: [gate_hook, mcp_proxy]
+regulation_refs: ["Decision 33 (banking) - approved tools", "OWASP ASI02 Tool Misuse"]
+owner: Supervisor Platform
+module: supervisor.gateway.engine
+always_on: true
+can_block: true

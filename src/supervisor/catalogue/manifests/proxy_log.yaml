@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: proxy_log
+name: Proxy log ingest (black-box agents)
+kind: ingest
+lane: slow
+description: >
+  For a legacy agent that cannot emit traces, the gateway proxy log is the only record.
+  Capability is reduced; missing fields are listed in trace_coverage.
+signals_needed: [proxy.request, proxy.response]
+checks: [every proxied call logged]
+default_thresholds: {}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 300, storage_bytes_per_1k_events: 500000}
+applies_to: [money, credit, pii_export, read_only]
+plug_points: [proxy_log, mcp_proxy]
+regulation_refs: []
+owner: Supervisor Platform
+module: supervisor.recorder.proxy_log
+always_on: true

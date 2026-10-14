@@ -1,0 +1,19 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: injection_prefilter
+name: Injection pre-filter (Tier 0b)
+kind: gate_rule
+lane: fast
+description: >
+  Deterministic regex screen for prompt-injection and social-engineering phrases in tool
+  arguments (Vietnamese and English). Runs after the decision, off the hot path; raises
+  an alert and severity, never blocks on its own.
+signals_needed: [tool_call.args]
+checks: [injection phrases in tool arguments]
+default_thresholds: {}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 100, storage_bytes_per_1k_events: 50000}
+applies_to: [money, credit, pii_export, read_only]
+plug_points: [gate_hook, mcp_proxy]
+regulation_refs: ["OWASP ASI01 Agent Goal Hijack"]
+owner: Supervisor Platform
+module: supervisor.gateway.tier0b
+always_on: true
