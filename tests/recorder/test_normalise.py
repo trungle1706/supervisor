@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from datetime import UTC, datetime
 
@@ -192,3 +193,69 @@ def test_ts_and_amount_band_are_integer_safe() -> None:
     assert ns_to_datetime(1_760_418_000_999_999_999).microsecond == 999_999
     assert amount_band(95_000_000) == "1e7-1e8" and amount_band(0) == "le0"
     assert amount_band(None) is None
+
+
+def _otlp(span_extra: dict, attrs: list | None = None, resource: object = None) -> dict:
+    span = {"traceId": "a" * 32, "spanId": "b" * 16, "startTimeUnixNano": "1", **span_extra}
+    span["attributes"] = attrs or [
+        {"key": "supervisor.agent_id", "value": {"stringValue": "a1"}},
+        {"key": "supervisor.event_type", "value": {"stringValue": "tool_call"}},
+    ]
+    rs: dict = {"scopeSpans": [{"spans": [span]}]}
+    if resource is not None:
+        rs["resource"] = resource
+    return {"resourceSpans": [rs]}
+
+
+HUGE = [{"key": "supervisor.amount_minor", "value": {"intValue": "99999999999999999999999"}}]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        _otlp({}, resource="x"),
+        _otlp({}, attrs=[{"key": "k", "value": {"kvlistValue": {"values": [1]}}}]),
+        _otlp({}, attrs=[{"key": "k", "value": {"arrayValue": {"values": "x"}}}]),
+        _otlp({"startTimeUnixNano": "9" * 30}),
+        _otlp({"startTimeUnixNano": "²"}),
+        _otlp({"startTimeUnixNano": "-5"}),
+        _otlp({}, attrs=HUGE),
+    ],
+)
+def test_hostile_otlp_shapes_are_format_errors(payload: dict) -> None:
+    with pytest.raises(OtlpFormatError):
+        spans_from_otlp_json(payload)
+
+
+def test_identifier_fields_never_carry_pii_or_long_text(masker: VnRegexMasker) -> None:
+    attrs = {
+        "supervisor.agent_id": "a1",
+        "supervisor.event_type": "tool_call",
+        "supervisor.env": "0912345678",
+        "supervisor.tool_name": "CCCD 079203001234",
+        "supervisor.status": "x" * 100_000,
+        "supervisor.agent_version": "1.0.0",
+        "supervisor.amount_minor": 2**63,
+        "supervisor.args_hash": "not-a-hash",
+    }
+    sd = SpanData("a" * 32, "b" * 16, None, "t", "INTERNAL", 1, 2, attrs)
+    item = Normaliser(masker, MASKED, "dev").normalise(sd, "otel")
+    assert item is not None
+    ev = item.event
+    assert "0912345678" not in ev.env
+    assert ev.tool_name is None and ev.status is None and ev.agent_version == "1.0.0"
+    assert ev.amount_minor is None and ev.args_hash is None
+
+
+def test_digest_text_hash_is_keyed_not_plain_sha256(masker: VnRegexMasker) -> None:
+    attrs = {
+        "supervisor.agent_id": "a1",
+        "supervisor.event_type": "message",
+        "supervisor.args": "0912345678",
+    }
+    sd = SpanData("a" * 32, "b" * 16, None, "t", "INTERNAL", 1, 2, attrs)
+    item = Normaliser(masker, CapturePolicy.digest_only()).normalise(sd, "otel")
+    assert item is not None and item.event.args_hash
+    assert item.event.args_hash != hashlib.sha256(b"0912345678").hexdigest()
+    plain = Normaliser(None).normalise(sd, "otel")
+    assert plain is not None and plain.event.args_hash is None

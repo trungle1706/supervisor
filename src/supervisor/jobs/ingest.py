@@ -6,8 +6,9 @@ Also callable in-process: ``run(settings, adapters)``.
 Spool files (``*.jsonl`` in ``RECORDER_SPOOL_DIR``) are renamed to ``*.ingesting`` before
 reading, so a writer that appends at the same time starts a new file. A file whose lines
 are all handled becomes ``*.done``; lines that cannot be parsed go to ``*.rejected`` with
-their line number. If the store fails, the file stays ``*.ingesting`` and the next run
-continues with it; rows already stored count as duplicates (``event_id``), never twice.
+their line number, the error and the SHA-256 of the line (never the text: it may hold
+PII). If the store fails, the file stays ``*.ingesting`` and the next run continues
+with it; rows already stored count as duplicates (``event_id``), never twice.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from supervisor.bootstrap import bootstrap
 bootstrap()
 
 import argparse  # noqa: E402
+import hashlib  # noqa: E402
 import json  # noqa: E402
 import sys  # noqa: E402
 from collections.abc import Sequence  # noqa: E402
@@ -26,7 +28,6 @@ from typing import Any  # noqa: E402
 from supervisor.adapters.factory import Adapters, build_adapters  # noqa: E402
 from supervisor.config import Settings, load_settings  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
-from supervisor.recorder.normalise import OtlpFormatError  # noqa: E402
 from supervisor.recorder.proxy_log import read_proxy_log  # noqa: E402
 from supervisor.recorder.service import Recorder, build_recorder  # noqa: E402
 from supervisor.recorder.sink import (  # noqa: E402
@@ -52,6 +53,9 @@ def _handle_line(rec: Recorder, line: str, counts: dict[str, int]) -> None:
     kind = obj.get("kind")
     if kind == "rows":
         events = [event_from_json(r) for r in obj.get(EVENT_TABLE) or []]
+        for e in events:
+            if e.amount_minor is not None and not -(2**63) <= e.amount_minor < 2**63:
+                raise ValueError("amount_minor outside the 64-bit range")
         raw = [raw_from_json(r) for r in obj.get(RAW_TABLE) or []]
         res = rec.writer.write_rows(events, raw)
         counts["written"] += res.written
@@ -77,10 +81,11 @@ def drain_file(rec: Recorder, path: Path, counts: dict[str, int]) -> None:
             counts["lines"] += 1
             try:
                 _handle_line(rec, line, counts)
-            except (ValueError, OtlpFormatError) as exc:  # pydantic errors are ValueErrors
+            except (ValueError, OverflowError) as exc:  # bad line (pydantic/OTLP errors too)
                 counts["rejected"] += 1
                 msg = str(exc).splitlines()[0][:300]
-                rejected.append(json.dumps({"line": n, "error": msg, "text": line.rstrip("\n")}))
+                digest = hashlib.sha256(line.encode("utf-8")).hexdigest()
+                rejected.append(json.dumps({"line": n, "error": msg, "line_sha256": digest}))
     if rejected:
         with work.with_name(work.stem + ".rejected").open("a", encoding="utf-8") as fh:
             fh.write("\n".join(rejected) + "\n")

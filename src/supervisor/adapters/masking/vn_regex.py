@@ -63,34 +63,64 @@ def _with_folded(words: tuple[str, ...]) -> set[str]:
     return set(words) | {_fold(w) for w in words}
 
 
+# Name words beyond the generator lists, so real 4-word names (Trần Thị Bích Ngọc) still match.
+_EXTRA_NAME_WORDS: tuple[str, ...] = (
+    "Bích", "Hồng", "Tuyết", "Diệu", "Thúy", "Xuân", "Hải", "Tiến", "Thái", "Ngọc", "Lan",
+    "Yến", "Nhi", "Đình", "Hoàng", "Trọng", "Xuân", "Thùy", "Như", "Tú",
+)  # fmt: skip
 _SUR = _alt(_with_folded(W.SURNAMES))
-_MID = _alt(_with_folded(W.MIDDLE_MALE + W.MIDDLE_FEMALE))
-_GIVEN = _alt(_with_folded(W.GIVEN_MALE + W.GIVEN_FEMALE))
+_MID = _alt(_with_folded(W.MIDDLE_MALE + W.MIDDLE_FEMALE + _EXTRA_NAME_WORDS))
+_LAST = _alt(
+    _with_folded(
+        W.GIVEN_MALE + W.GIVEN_FEMALE + W.MIDDLE_MALE + W.MIDDLE_FEMALE + _EXTRA_NAME_WORDS
+    )
+)
 _ANY_NAME = _alt(
-    _with_folded(W.SURNAMES + W.MIDDLE_MALE + W.MIDDLE_FEMALE + W.GIVEN_MALE + W.GIVEN_FEMALE)
+    _with_folded(
+        W.SURNAMES
+        + W.MIDDLE_MALE
+        + W.MIDDLE_FEMALE
+        + W.GIVEN_MALE
+        + W.GIVEN_FEMALE
+        + _EXTRA_NAME_WORDS
+    )
 )
 _PROVINCES = _alt(set(W.PROVINCES.values()) | {_fold(p) for p in W.PROVINCES.values()})
+_PROV_TAIL = rf"(?:TP\.? ?)?(?:{_PROVINCES})|TP\.? ?(?:HCM|HN|HCMC)|TPHCM"
 
 _RE_EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?![\w-])")
 _RE_CARD = re.compile(r"(?<![\w.+-])(?:\d[ -]?){12,18}\d(?![\w])")
 _RE_TAX_BRANCH = re.compile(r"(?<![\w.+-])\d{10}-\d{3}(?![\w])")
 _RE_PHONE = re.compile(
-    r"(?<![\w+.,-])(?:(?:\+84|0084)[ .-]?[2-9]\d(?:[ .-]?\d){7}|0[2-9]\d(?:[ .-]?\d){7})(?!\d)"
+    r"(?<![\w+.,-])(?:"
+    r"\(?(?:\+84|0084)\)?[ .-]?[2-9](?:[ .-]?\d){8}"
+    r"|0[2-9](?:[ .-]?\d){8}"
+    r"|84[35789]\d{8}"
+    r")(?!\d)"
 )
 _RE_RUN = re.compile(r"(?<![\w.+-])\d{6,19}(?![\w])")
-_RE_PERSON_PLAIN = re.compile(rf"(?<!\w)(?:{_SUR})(?: (?:{_MID})){{1,2}} (?:{_GIVEN})(?!\w)")
+_RE_GROUPED = re.compile(r"(?<![\w.+-])\d{3,6}(?:[ -]\d{2,6}){1,5}(?![\w])")
+_RE_PERSON_PLAIN = re.compile(
+    rf"(?<!\w)(?:{_SUR})(?: (?:{_MID})){{1,2}} (?:{_LAST})(?!\w)", re.IGNORECASE
+)
 _HONORIFICS = (
     r"anh|chị|ông|bà|cô|chú|mr\.?|ms\.?|mrs\.?|miss|khách hàng|customer|người nhận|của|"
-    r"applicant|tôi là|tên|họ tên|holder|this is|name|payee|beneficiary"
+    r"applicant|tôi là|tên|họ tên|holder|this is|name|payee|beneficiary|"
+    r"ong|khach hang|nguoi nhan|cua|toi la|ten|ho ten"
 )
 _RE_PERSON_LABELLED = re.compile(
-    rf"(?<!\w)(?i:{_HONORIFICS})[:,]? +((?:{_ANY_NAME})(?: (?:{_ANY_NAME})){{1,3}})(?!\w)"
+    rf"(?<!\w)(?:{_HONORIFICS})[:,]? +((?:{_ANY_NAME})(?: (?:{_ANY_NAME})){{1,3}})(?!\w)",
+    re.IGNORECASE,
 )
+_DISTRICT = r"(?:Quận|Huyện|Thành phố|Thị xã|Thị trấn|Quan|Huyen|Thanh pho|Thi xa) [^,\n;()]{1,30}"
+_WARD = r"(?:Phường|Xã|Thị trấn|Phuong|Xa) [^,\n;()]{1,30}"
+_ADDR_TAIL = rf"(?:{_WARD}, )?{_DISTRICT}(?:, (?:{_PROV_TAIL})(?!\w))?"
 _RE_ADDRESS = re.compile(
-    r"(?<!\w)(?:Số|No\.?|So) ?\d{1,4}[A-Za-z]?(?:/\d+)* [^,\n;()]{2,40}, "
-    r"(?:Phường|Xã|Thị trấn|Phuong|Xa) [^,\n;()]{1,30}, "
-    r"(?:Quận|Huyện|Thành phố|Thị xã|Thị trấn|Quan|Huyen|Thanh pho|Thi xa) [^,\n;()]{1,30}"
-    rf"(?:, (?:{_PROVINCES})(?!\w))?"
+    r"(?<![\w/])(?i:Số|No\.?|So) ?\d{1,4}[A-Za-z]?(?:/\d+)* [^,\n;()]{2,40}, " + _ADDR_TAIL
+)
+_RE_ADDRESS_BARE = re.compile(
+    r"(?<![\w/])\d{1,4}[A-Za-z]?(?:/\d+)* (?:[Đđ]ường )?[A-ZĐ][^\W\d_]*"
+    r"(?: [A-ZĐ][^\W\d_]*){0,4}, " + _ADDR_TAIL
 )
 
 _LABELS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -98,6 +128,7 @@ _LABELS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("CCCD", re.compile(r"cccd|căn cước|citizen id|\bid\b", re.I)),
     ("TAX_CODE", re.compile(r"mã số thuế|\bmst\b|tax code|tax id|\bthuế", re.I)),
     ("BANK_ACCOUNT", re.compile(r"tài khoản|account|\bstk\b|số tk|\bacct\b|a/c", re.I)),
+    ("CARD", re.compile(r"thẻ|card", re.I)),
 )
 
 _PRIORITY = {
@@ -183,6 +214,10 @@ class VnRegexMasker:
         msg = f"{type_}:{self.normalise(type_, value)}".encode()
         return hmac.new(self._key, msg, hashlib.sha256).hexdigest()[: self.token_len]
 
+    def keyed_hash(self, text: str) -> str:
+        """Full HMAC-SHA256 hex digest of ``text`` under the masker key."""
+        return hmac.new(self._key, text.encode("utf-8"), hashlib.sha256).hexdigest()
+
     # -- detection --------------------------------------------------------------
     @staticmethod
     def _candidates(text: str) -> list[_Cand]:
@@ -201,17 +236,23 @@ class VnRegexMasker:
             digits = re.sub(r"\D", "", m.group())
             if luhn_ok(digits):
                 strong = len(digits) >= 15 and digits[0] in "2345679"
+                if _nearest_label(text, m.start()) == "BANK_ACCOUNT":
+                    strong = False
                 add(m.start(), m.end(), "card_strong" if strong else "card_weak", "CARD_NUMBER")
         for m in _RE_RUN.finditer(text):
             kind = _classify_run(text, m.start(), m.group())
             if kind:
                 add(m.start(), m.end(), kind[0], kind[1])
+        for m in _RE_GROUPED.finditer(text):
+            if _nearest_label(text, m.start()) == "BANK_ACCOUNT":
+                add(m.start(), m.end(), "label", "BANK_ACCOUNT")
         for m in _RE_PERSON_PLAIN.finditer(text):
             add(m.start(), m.end(), "person_plain", "PERSON")
         for m in _RE_PERSON_LABELLED.finditer(text):
             add(m.start(1), m.end(1), "person_label", "PERSON")
-        for m in _RE_ADDRESS.finditer(text):
-            add(m.start(), m.end(), "address", "ADDRESS")
+        for rx in (_RE_ADDRESS, _RE_ADDRESS_BARE):
+            for m in rx.finditer(text):
+                add(m.start(), m.end(), "address", "ADDRESS")
         return c
 
     def find(self, text: str) -> list[PiiSpan]:

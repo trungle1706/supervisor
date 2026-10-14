@@ -107,3 +107,23 @@ def test_cli_main_ascii(
     assert len(adapters.tables.query("trace_coverage")) == 1
     assert ingest.main(["--proxy-log", str(tmp_path / "missing.jsonl")]) == 1
     assert capsys.readouterr().out.startswith("[FAIL]")
+
+
+def test_poison_lines_are_rejected_without_text_and_do_not_stall(
+    adapters: Adapters, masker: VnRegexMasker, tmp_path: Path
+) -> None:
+    spool_dir = tmp_path / "spool"
+    spool_dir.mkdir()
+    good = Normaliser(masker, POLICY).normalise_many([span_from_readable(SPANS[0])], "otel")
+    row = {**good[0].event.row(), "ts": "2026-10-14T05:00:00Z", "amount_minor": 10**30}
+    lines = [
+        json.dumps({"kind": "rows", "agent_event": [row], "agent_event_raw": []}),
+        json.dumps({"kind": "otlp", "payload": {"resourceSpans": "0912345678"}}),
+    ]
+    (spool_dir / "x.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    rec = build_recorder(adapters.settings, adapters.tables, masker=masker, policy=POLICY)
+    out = ingest.run(adapters.settings, adapters, recorder=rec, spool_dir=spool_dir)
+    assert out["rejected"] == 2 and out["files"] == 1
+    rejected = (spool_dir / "x.rejected").read_text(encoding="utf-8")
+    assert "0912345678" not in rejected and "line_sha256" in rejected
+    assert not list(spool_dir.glob("*.ingesting"))

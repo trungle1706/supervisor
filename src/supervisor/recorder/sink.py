@@ -78,7 +78,8 @@ class Spool:
         with self._lock:
             self.dir.mkdir(parents=True, exist_ok=True)
             path = self.dir / self._name
-            with path.open("a", encoding="utf-8", newline="\n") as fh:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)  # owner only
+            with os.fdopen(fd, "a", encoding="utf-8", newline="\n") as fh:
                 fh.write(line + "\n")
                 fh.flush()
                 os.fsync(fh.fileno())

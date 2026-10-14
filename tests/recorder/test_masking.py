@@ -140,3 +140,68 @@ def test_make_masker_default_is_vn_regex_with_dev_key(monkeypatch: pytest.Monkey
     text = "Số CCCD của tôi là 001305443571."
     assert m.mask(text) != m2.mask(text)  # key rotation changes tokens
     assert make_masker(load_settings(masker_kind="none")) is None
+
+
+def _types(m: VnRegexMasker, text: str) -> list[tuple[str, str]]:
+    return [(s.type, s.text) for s in m.find(text)]
+
+
+@pytest.mark.parametrize(
+    "text,name",
+    [
+        ("khach hang nguyen van an goi den", "nguyen van an"),
+        ("Khách hàng NGUYỄN VĂN AN gọi đến", "NGUYỄN VĂN AN"),
+        ("Khách hàng Trần Thị Bích Ngọc gọi đến", "Trần Thị Bích Ngọc"),
+        ("Hôm nay trần thị bích ngọc gọi", "trần thị bích ngọc"),
+    ],
+)
+def test_names_case_and_length(masker: VnRegexMasker, text: str, name: str) -> None:
+    assert ("PERSON", name) in _types(masker, text)
+
+
+def test_lowercase_plain_name_needs_listed_words(masker: VnRegexMasker) -> None:
+    assert masker.find("hôm nay tôi đi chợ mua rau") == []
+    assert masker.find("nguyen xyz qwe") == []
+
+
+@pytest.mark.parametrize(
+    "text,phone",
+    [
+        ("SĐT 09 12 34 56 78 nhé", "09 12 34 56 78"),
+        ("Gọi (+84) 912345678 nhé", "(+84) 912345678"),
+        ("Gọi 84912345678 nhé", "84912345678"),
+    ],
+)
+def test_phone_formats(masker: VnRegexMasker, text: str, phone: str) -> None:
+    assert _types(masker, text) == [("PHONE", phone)]
+    plain = masker.pseudonym("PHONE", phone)
+    assert plain == masker.pseudonym("PHONE", "0912345678")
+
+
+def test_grouped_account_after_label(masker: VnRegexMasker) -> None:
+    assert _types(masker, "STK 1903 1234 5678 90 tại TCB") == [
+        ("BANK_ACCOUNT", "1903 1234 5678 90")
+    ]
+    card = _types(masker, "Thẻ 4111 1111 1111 1111 bị khóa")
+    assert card == [("CARD_NUMBER", "4111 1111 1111 1111")]
+
+
+@pytest.mark.parametrize(
+    "text,addr",
+    [
+        ("Địa chỉ 12 Lê Lợi, Quận 1, TP HCM.", "12 Lê Lợi, Quận 1, TP HCM"),
+        (
+            "Nhà ở 45/6 Hai Bà Trưng, Huyện Đông Anh, Hà Nội",
+            "45/6 Hai Bà Trưng, Huyện Đông Anh, Hà Nội",
+        ),
+    ],
+)
+def test_address_without_so_or_ward(masker: VnRegexMasker, text: str, addr: str) -> None:
+    assert ("ADDRESS", addr) in _types(masker, text)
+
+
+def test_keyed_hash(masker: VnRegexMasker) -> None:
+    h = masker.keyed_hash("abc")
+    assert len(h) == 64
+    assert h == masker.keyed_hash("abc")
+    assert h != VnRegexMasker(b"other").keyed_hash("abc")

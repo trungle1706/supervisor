@@ -42,6 +42,8 @@ def authorize(request: Request) -> str | None:
 
     WP8 replaces this dependency (``app.dependency_overrides[authorize]``) with the
     Principal port; today it reads the SSO header only and accepts every caller."""
+    # TODO(WP8): bind the principal to the agent ids it may write (today any caller can
+    # send spans for any agent_id, including one whose manifest allows raw capture).
     return request.headers.get("x-forwarded-user") or None
 
 

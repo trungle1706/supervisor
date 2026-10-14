@@ -29,8 +29,8 @@ from __future__ import annotations
 
 import base64
 import binascii
-import hashlib
 import json
+import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -69,6 +69,10 @@ LLM_OPERATIONS = {"chat", "text_completion", "generate_content", "completion"}
 MAX_TEXT_CHARS = 8000
 TRUNCATED = "...[truncated]"
 RESTRICTED = "restricted"
+INT64_MIN, INT64_MAX = -(2**63), 2**63 - 1
+MAX_TIME_NS = 253_402_300_799 * 10**9  # 9999-12-31T23:59:59Z
+_IDENT = re.compile(r"^[A-Za-z0-9_.:/@+-]{1,128}$")
+_HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 _KINDS = ("UNSPECIFIED", "INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER")
@@ -122,10 +126,6 @@ def amount_band(amount_minor: int | None) -> str | None:
         return "le0"
     digits = len(str(amount_minor))
     return f"1e{digits - 1}-1e{digits}"
-
-
-def text_hash(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _opt(value: Any) -> str | None:
@@ -281,11 +281,35 @@ def _decode_id(value: Any, nbytes: int, what: str) -> str:
 def _decode_int(value: Any, what: str) -> int:
     if isinstance(value, bool):
         raise OtlpFormatError(f"{what} must be an integer")
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str) and value.strip().lstrip("-").isdigit():
-        return int(value.strip())
-    raise OtlpFormatError(f"{what} must be an integer (string or number)")
+    if isinstance(value, str):
+        text = value.strip()
+        digits = text[1:] if text.startswith("-") else text
+        if not (digits.isascii() and digits.isdigit() and len(digits) <= 20):
+            raise OtlpFormatError(f"{what} must be an integer (string or number)")
+        value = int(text)
+    if not isinstance(value, int):
+        raise OtlpFormatError(f"{what} must be an integer (string or number)")
+    if not INT64_MIN <= value <= INT64_MAX:
+        raise OtlpFormatError(f"{what} is outside the 64-bit integer range")
+    return value
+
+
+def _decode_time(value: Any, what: str) -> int:
+    ns = _decode_int(value, what)
+    if not 0 <= ns <= MAX_TIME_NS:
+        raise OtlpFormatError(f"{what} must be nanoseconds between 1970 and 9999")
+    return ns
+
+
+def _values(container: Any) -> list[Any]:
+    if container is None:
+        return []
+    if not isinstance(container, Mapping):
+        raise OtlpFormatError("arrayValue/kvlistValue must be objects")
+    items = container.get("values") or []
+    if not isinstance(items, list):
+        raise OtlpFormatError("arrayValue/kvlistValue values must be a list")
+    return items
 
 
 def _decode_value(value: Any, depth: int = 0) -> Any:
@@ -306,10 +330,12 @@ def _decode_value(value: Any, depth: int = 0) -> Any:
         except ValueError as exc:
             raise OtlpFormatError("doubleValue must be a number") from exc
     if "arrayValue" in value:
-        items = (value["arrayValue"] or {}).get("values") or []
+        items = _values(value["arrayValue"])
         return tuple(_decode_value(v, depth + 1) for v in items)
     if "kvlistValue" in value:
-        items = (value["kvlistValue"] or {}).get("values") or []
+        items = _values(value["kvlistValue"])
+        if not all(isinstance(kv, Mapping) for kv in items):
+            raise OtlpFormatError("kvlistValue items must be objects")
         return json.dumps(
             {str(kv.get("key")): _decode_value(kv.get("value"), depth + 1) for kv in items},
             ensure_ascii=False,
@@ -358,6 +384,15 @@ def _decode_status(value: Any) -> str:
 
 def spans_from_otlp_json(payload: Any) -> list[SpanData]:
     """OTLP/HTTP JSON ``ExportTraceServiceRequest`` -> SpanData list. Raises OtlpFormatError."""
+    try:
+        return _spans_from_otlp_json(payload)
+    except OtlpFormatError:
+        raise
+    except (AttributeError, TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise OtlpFormatError(f"malformed payload ({type(exc).__name__})") from exc
+
+
+def _spans_from_otlp_json(payload: Any) -> list[SpanData]:
     if not isinstance(payload, Mapping):
         raise OtlpFormatError("body must be a JSON object with resourceSpans")
     rs_list = payload.get("resourceSpans")
@@ -367,7 +402,10 @@ def spans_from_otlp_json(payload: Any) -> list[SpanData]:
     for rs in rs_list:
         if not isinstance(rs, Mapping):
             raise OtlpFormatError("resourceSpans items must be objects")
-        resource = _decode_attrs((rs.get("resource") or {}).get("attributes"), "resource")
+        res_obj = rs.get("resource") or {}
+        if not isinstance(res_obj, Mapping):
+            raise OtlpFormatError("resource must be an object")
+        resource = _decode_attrs(res_obj.get("attributes"), "resource")
         scope_spans = rs.get("scopeSpans", rs.get("instrumentationLibrarySpans")) or []
         if not isinstance(scope_spans, list):
             raise OtlpFormatError("scopeSpans must be a list")
@@ -387,8 +425,8 @@ def spans_from_otlp_json(payload: Any) -> list[SpanData]:
                         parent_span_id=_decode_id(parent, 8, "parentSpanId") if parent else None,
                         name=str(sp.get("name") or ""),
                         kind=_decode_kind(sp.get("kind")),
-                        start_ns=_decode_int(sp.get("startTimeUnixNano", 0), "startTimeUnixNano"),
-                        end_ns=_decode_int(end, "endTimeUnixNano")
+                        start_ns=_decode_time(sp.get("startTimeUnixNano", 0), "startTimeUnixNano"),
+                        end_ns=_decode_time(end, "endTimeUnixNano")
                         if end not in (None, "")
                         else None,
                         attributes=_decode_attrs(sp.get("attributes"), "span attributes"),
@@ -426,6 +464,16 @@ class Normaliser:
             or _opt(span.resource.get(A_AGENT_ID))
         )
 
+    def _ident(self, value: Any) -> str | None:
+        """Short identifier fields (env, status, tool, version, ids): only plain tokens are
+        stored. Anything else is dropped; a token that the Masker flags as PII is masked."""
+        text = _opt(value)
+        if text is None or not _IDENT.match(text):
+            return None
+        if self.masker is not None and self.masker.mask(text) != text:
+            return _cap(self.masker.mask(text))[:128]
+        return text
+
     def level_for(self, span: SpanData, agent_id: str) -> CaptureLevel:
         requested = _opt(span.attributes.get(A_CAPTURE))
         return self.policy.effective(agent_id, requested, self.masker is not None)
@@ -433,14 +481,18 @@ class Normaliser:
     def normalise(self, span: SpanData, source: Source) -> Normalised | None:
         """One span -> one row, or None when the span is not an agent event."""
         attrs = span.attributes
-        agent_id = self.agent_id_of(span)
+        agent_id = self._ident(self.agent_id_of(span))
         event_type = infer_event_type(attrs, span.kind)
         if not agent_id or not event_type:
             return None
         level = self.level_for(span, agent_id)
         args_text = _first(attrs, ARGS_KEYS)
         result_text = _first(attrs, RESULT_KEYS)
-        args_hash = _opt(attrs.get(A_ARGS_HASH)) or (text_hash(args_text) if args_text else None)
+        given_hash = _opt(attrs.get(A_ARGS_HASH))
+        args_hash = given_hash if given_hash and _HEX64.match(given_hash) else None
+        keyed = getattr(self.masker, "keyed_hash", None)
+        if args_hash is None and args_text and callable(keyed):
+            args_hash = keyed(args_text)  # keyed: a plain SHA-256 of short PII is guessable
 
         args_masked = result_masked = None
         found_pii = False
@@ -460,9 +512,13 @@ class Normaliser:
         if span.end_ns is not None and span.start_ns:
             latency = max(0, (span.end_ns - span.start_ns) // 1_000_000)
         amount = attrs.get(A_AMOUNT)
+        if type(amount) is not int or not INT64_MIN <= amount <= INT64_MAX:
+            amount = None
         currency = _opt(attrs.get(A_CURRENCY))
-        status = _opt(attrs.get(A_STATUS)) or ("error" if span.status_code == "ERROR" else None)
-        classification = _opt(attrs.get(A_CLASSIFICATION))
+        status = self._ident(attrs.get(A_STATUS)) or (
+            "error" if span.status_code == "ERROR" else None
+        )
+        classification = self._ident(attrs.get(A_CLASSIFICATION))
         if classification is None and self.masker is not None and (args_text or result_text):
             classification = "pii" if found_pii else "internal"
         event_id = f"{span.trace_id}-{span.span_id}"
@@ -474,18 +530,18 @@ class Normaliser:
             span_id=span.span_id,
             parent_span_id=span.parent_span_id,
             agent_id=agent_id,
-            agent_version=_opt(attrs.get(A_AGENT_VERSION)),
-            caller_agent_id=_opt(attrs.get(A_CALLER)),
+            agent_version=self._ident(attrs.get(A_AGENT_VERSION)),
+            caller_agent_id=self._ident(attrs.get(A_CALLER)),
             event_type=event_type,  # type: ignore[arg-type]
-            tool_name=_opt(attrs.get(A_TOOL)) or _opt(attrs.get("gen_ai.tool.name")),
+            tool_name=self._ident(attrs.get(A_TOOL) or attrs.get("gen_ai.tool.name")),
             args_hash=args_hash,
             args_masked=args_masked,
             result_masked=result_masked,
-            amount_minor=amount if type(amount) is int else None,
+            amount_minor=amount,
             currency=currency if currency and len(currency) == 3 and currency.isupper() else None,
             status=status,
             latency_ms=latency,
-            env=str(attrs.get(A_ENV) or span.resource.get(A_ENV) or self.default_env),
+            env=self._ident(attrs.get(A_ENV) or span.resource.get(A_ENV)) or self.default_env,
             classification=classification,
             source=source,
             capture_level=level,
