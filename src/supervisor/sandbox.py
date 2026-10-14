@@ -221,3 +221,59 @@ def start_pipes(
     except OSError as exc:
         raise SandboxError(f"cannot start {argv[0]}: {exc}") from exc
     return PipeProcess(popen)
+
+
+# --------------------------------------------------------------------------- git (WP9)
+
+# Subcommands the Onboarding Agent may run. Never merge, push, pull, fetch or rebase:
+# the agent prepares a branch in a local clone and a human opens and merges the PR.
+GIT_ALLOWED = frozenset(
+    {
+        "add",
+        "branch",
+        "checkout",
+        "clone",
+        "commit",
+        "diff",
+        "init",
+        "log",
+        "ls-files",
+        "rev-parse",
+        "show",
+        "status",
+        "switch",
+    }
+)
+GIT_FORBIDDEN_ARGS = frozenset({"--exec", "--upload-pack", "--receive-pack", "-u", "--config"})
+
+
+def git(args: list[str], *, cwd: str | Path, timeout_s: float = 60.0) -> RunResult:
+    """Run one allowed ``git`` subcommand with hooks, prompts and signing off.
+
+    Raises ``SandboxError`` for a forbidden subcommand (merge, push, pull, fetch,
+    rebase, remote, ...) or a forbidden option."""
+    if not args:
+        raise SandboxError("empty git command")
+    sub = args[0]
+    if sub not in GIT_ALLOWED:
+        raise SandboxError(
+            f"git {sub} is not allowed (the Onboarding Agent never merges or pushes)"
+        )
+    for a in args[1:]:
+        if a.split("=", 1)[0] in GIT_FORBIDDEN_ARGS:
+            raise SandboxError(f"git option {a} is not allowed")
+    exe = which("git")
+    if exe is None:
+        raise SandboxError("git is not installed or not on PATH")
+    argv = [
+        exe,
+        "-c",
+        "core.hooksPath=" + os.devnull,
+        "-c",
+        "commit.gpgsign=false",
+        "-c",
+        "credential.helper=",
+        *args,
+    ]
+    env = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "", "GIT_CONFIG_NOSYSTEM": "1"}
+    return run(argv, cwd=cwd, timeout_s=timeout_s, env=env)
