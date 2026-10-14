@@ -1,0 +1,35 @@
+# Fairness slices (WP7, ADR D09; analysis 07 section 3.3 item 5).
+# Loaded by supervisor.monitors.fairness. Job: python -m supervisor.jobs.fairness
+# (or the in-process scheduler when FAIRNESS_ENABLED=1).
+#
+# Rules:
+# - Slices run on hashed subject ids (HMAC with MASK_HMAC_KEY), never raw ids.
+# - Cells with fewer than min_cell_n subjects are suppressed (no counts, no rates).
+# - Ethnicity and religion are never sliced. The loader rejects them even if listed.
+# - permitted: false keeps an attribute listed but not computed (no legal basis yet).
+#   The bank's data protection officer sets these flags.
+# - Gaps are integer basis points: max cell rate - min cell rate among unsuppressed cells.
+
+version: 1
+agents: [credit_prequal]          # agents whose decisions are sliced
+decision_tool: decide_prequal     # tool_call events that carry the decision
+decision_arg: decision            # arg in the masked args JSON
+subject_arg: application_id       # arg hashed into the subject id
+approve_values: [approve]
+window_days: 30
+min_cell_n: 30
+approval_gap_threshold_bp: 2000   # a case opens above this approval-rate gap
+block_gap_threshold_bp: 2000      # ... or above this gate block-rate gap
+
+# Where the slice attributes come from, keyed by hashed subject id.
+#   synthetic: the demo's synthetic loan applications (laptop demo only)
+#   none:      no attribute source; the job reports [SKIP]
+attribute_source: synthetic
+synthetic_seed: 20261014          # supervisor.data.synthetic.DEFAULT_SEED (demo world)
+synthetic_customers: 40           # BankWorld.build default
+
+attributes:
+  gender: {permitted: true}
+  age_band: {permitted: true}
+  province_code: {permitted: true}
+  language: {permitted: true}
