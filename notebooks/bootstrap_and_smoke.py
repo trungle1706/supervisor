@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-# SUPERVISOR-PARAMS (edit inline; cluster_run replaces this cell with --param values)
+# SUPERVISOR-PARAMS (edit inline; cluster_run --param NAME=VALUE overrides these)
 CATALOG = "FILL-ME-catalog"
 SCHEMA = "FILL-ME-schema"
 PREFIX = "smoke_"  # "" creates the real Supervisor tables (then set INSERT_SYNTHETIC = False)

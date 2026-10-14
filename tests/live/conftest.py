@@ -37,7 +37,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 
 def pytest_runtest_logreport(report: pytest.TestReport) -> None:
-    if not LIVE or "tests/live/" not in report.nodeid.replace("\\", "/"):
+    node = report.nodeid.replace("\\", "/")
+    if not LIVE or not any(k in node for k in ("tests/live/", "tests/contract/")):
         return
     if report.when == "call" or (report.when == "setup" and report.outcome != "passed"):
         from supervisor.preflight import scrub
@@ -56,7 +57,7 @@ def pytest_runtest_logreport(report: pytest.TestReport) -> None:
         out = "".join(s for name, s in report.sections if "stdout" in name).strip()
         _RESULTS.append(
             {
-                "test": report.nodeid.split("::")[-1],
+                "test": node.split("/")[-1],
                 "outcome": report.outcome.upper(),
                 "seconds": round(report.duration, 1),
                 "detail": scrub(detail)[:600],

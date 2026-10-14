@@ -196,7 +196,8 @@ def test_smoke_notebook_is_valid_and_current() -> None:
     check_cells(cells)  # every code cell parses
     assert "FILL-ME-catalog" in text and "SUPERVISOR-EXIT-JSON: " in text
     replaced = with_params(cells, {"CATALOG": "c", "SCHEMA": "s"})
-    assert "FILL-ME-catalog" not in replaced[0] and "CATALOG = PARAMS['CATALOG']" in replaced[0]
+    assert replaced[0].index("FILL-ME-catalog") < replaced[0].index("CATALOG = PARAMS['CATALOG']")
+    assert replaced[1:] == cells[1:]
     assert ddl_block().count("CREATE TABLE IF NOT EXISTS") == text.count(
         "CREATE TABLE IF NOT EXISTS"
     )
@@ -222,10 +223,7 @@ def test_cluster_run_job_with_fake(tmp_path: Path, capsys: pytest.CaptureFixture
     )
     res = cluster_run.run(load_settings(), nb, {"N": 5}, runner=runner(api))
     assert res.ok and res.exit == {"failed": 0}
-    assert (
-        api.executed[0].startswith("import json as _supervisor_json")
-        and "N = PARAMS" in api.executed[0]
-    )
+    assert "import json as _supervisor_json" in api.executed[0] and "N = PARAMS" in api.executed[0]
     assert cluster_run.parse_param("A=1") == ("A", 1)
     assert cluster_run.parse_param("B=true") == ("B", True)
     assert cluster_run.parse_param("C=x=y") == ("C", "x=y")

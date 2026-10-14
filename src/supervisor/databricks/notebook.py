@@ -8,8 +8,8 @@ Format (what the workspace exports and imports)::
     <cell 1>
 
 ``# MAGIC %md`` cells are documentation and are skipped by the runner. A cell that holds
-the marker ``# SUPERVISOR-PARAMS`` is replaced by :func:`command_exec.params_cell` when
-parameters are given (no widgets in command mode).
+the marker ``# SUPERVISOR-PARAMS`` gets :func:`command_exec.params_cell` appended when
+parameters are given, so they override its defaults (no widgets in command mode).
 
 ``notebooks/bootstrap_and_smoke.py`` embeds the Databricks DDL generated from
 ``schema/model.yaml`` between two marker lines, so the notebook works when it is pasted
@@ -63,7 +63,7 @@ def split_cells(source: str) -> list[str]:
 
 
 def with_params(cells: list[str], params: Mapping[str, Any] | None) -> list[str]:
-    """Replace the ``# SUPERVISOR-PARAMS`` cell with inline parameters (if any are given)."""
+    """Append inline parameters to the ``# SUPERVISOR-PARAMS`` cell (they override its defaults)."""
     if not params:
         return cells
     idx = [i for i, c in enumerate(cells) if PARAMS_MARKER in c]
@@ -72,7 +72,10 @@ def with_params(cells: list[str], params: Mapping[str, Any] | None) -> list[str]
             f"notebook needs exactly one {PARAMS_MARKER} cell to take parameters"
         )
     out = list(cells)
-    out[idx[0]] = params_cell(params)
+    out[idx[0]] = (
+        cells[idx[0]].rstrip("\n") + "\n# inline parameters (override the defaults above)\n"
+    )
+    out[idx[0]] += params_cell(params)
     return out
 
 

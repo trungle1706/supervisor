@@ -8,7 +8,8 @@ Run (cmd):
     uv run python -m supervisor.jobs.cluster_run notebooks\\bootstrap_and_smoke.py ^
         --param CATALOG=my_catalog --param SCHEMA=my_schema
 
-Parameters replace the notebook's ``# SUPERVISOR-PARAMS`` cell (no widgets). The result is
+Parameters override the defaults in the notebook's ``# SUPERVISOR-PARAMS`` cell (no widgets).
+The result is
 the notebook's last ``SUPERVISOR-EXIT-JSON:`` line. Exit code 0 when every cell passed.
 Also callable in-process: ``run(settings, path, params)``.
 """
