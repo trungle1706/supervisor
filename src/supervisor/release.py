@@ -341,6 +341,11 @@ def build_release(
             return fail(f"uv export: {exc}. Install uv, or run on the build host")
         if not exp.ok:
             return fail(f"uv export failed: {exp.stderr.strip()[:200]}")
+        # Same rendering as ``supervisor.cli export-reqs``: header with the commented Nexus
+        # switch + the export. The committed file is compared against this rendered text.
+        from supervisor.cli import render_requirements
+
+        reqs.write_text(render_requirements(reqs.read_text(encoding="utf-8")), encoding="utf-8")
         with zipfile.ZipFile(archive) as zf:
             name = f"{TOP}/requirements.txt"
             committed = zf.read(name) if name in zf.namelist() else b""
