@@ -52,6 +52,17 @@ Resume (ADR D04): the gateway needs the agent owner (`agent.owner_user`) and a r
 in `policies/*.yaml` (`reviewers:`), two different people. The first approval is stored as
 pending; the second completes it. The console shows the pending approval on the Agents page.
 
+Two lists decide who may act, and both must agree:
+
+| Action | Console role (users.yaml / auth.yaml) | Gateway authority (deployed policy) |
+|---|---|---|
+| Resume | reviewer, owner or admin | `agent.owner_user`, or an id in `reviewers:` |
+| Release a quarantine | admin | an id in `admins:` |
+
+The ids must match exactly (on the App: the SSO email). When they do not, the console answers
+400 and names the missing list. A high or critical case that is a false alarm can be signed
+off by two people while still `triaged`, then closed as `false_alarm`.
+
 ## Identity
 
 | Target | Adapter | Identity | Roles from |

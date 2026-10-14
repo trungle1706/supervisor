@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -43,6 +44,7 @@ from supervisor.core.errors import SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
 
 router = APIRouter(prefix="/console", tags=["console"])
+log = logging.getLogger("supervisor.console")
 
 HERE = Path(__file__).parent
 STATIC = {
@@ -454,6 +456,50 @@ async def agents(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal
     return render(request, ctx, me, "agents.html", **data)
 
 
+def _policy_precheck(ctx: ConsoleContext, agent_id: str, action: str, me: AuthPrincipal) -> None:
+    """The gateway decides resume / release authority from the deployed policy
+    (``reviewers``, ``admins``) and ``agent.owner_user``, not from console roles. Say so
+    clearly when the two lists disagree (ids must match exactly, e.g. the SSO email)."""
+    if action not in ("resume", "release"):
+        return
+    doc = ctx.gateway.states.policy.current().doc
+    if action == "release":
+        if me.user_id not in doc.admins:
+            raise CaseError(
+                f"{me.user_id} has the console admin role but is not in the policy admins "
+                "list (policies/*.yaml, admins:); only a policy admin can release"
+            )
+        return
+    row = ctx.state.get("agent", {"agent_id": agent_id})
+    owner = row["owner_user"] if row else None
+    if me.user_id != owner and me.user_id not in doc.reviewers:
+        raise CaseError(
+            f"{me.user_id} may not approve a resume of {agent_id}: the gateway needs the agent "
+            f"owner ({owner or '-'}) or a reviewer listed in the policy (policies/*.yaml, "
+            "reviewers:); console roles alone are not enough"
+        )
+
+
+def _record_gate_action(
+    ctx: ConsoleContext, agent_id: str, action: str, me: AuthPrincipal, result: dict[str, Any]
+) -> None:
+    ctx.runtime.chain.record(
+        "console_gate_action",
+        f"console:{agent_id}:{action}",
+        {
+            "agent_id": agent_id,
+            "action": action,
+            "actor": me.user_id,
+            "actor_kind": me.kind,
+            "auth_method": me.auth_method,
+            "result_state": result.get("state"),
+            "result_status": result.get("status")
+            or ("changed" if result.get("changed") else "unchanged"),
+            "ts": format_ts(ctx.clock.now()),
+        },
+    )
+
+
 @router.post("/agents/{agent_id}/{action}", response_class=HTMLResponse)
 async def agent_action(
     agent_id: str,
@@ -479,30 +525,24 @@ async def agent_action(
             "quarantine": states.quarantine,
             "release": states.release_quarantine,
         }[action]
+        _policy_precheck(ctx, agent_id, action, me)
         result = fn(agent_id, me.user_id, reason)
-        ctx.runtime.chain.record(
-            "console_gate_action",
-            f"console:{agent_id}:{action}",
-            {
-                "agent_id": agent_id,
-                "action": action,
-                "actor": me.user_id,
-                "actor_kind": me.kind,
-                "auth_method": me.auth_method,
-                "result_state": result.get("state"),
-                "result_status": result.get("status")
-                or ("changed" if result.get("changed") else "unchanged"),
-                "ts": format_ts(ctx.clock.now()),
-            },
-        )
+        try:
+            _record_gate_action(ctx, agent_id, action, me, result)
+        except Exception as exc:  # noqa: BLE001 - the state change already happened
+            log.error("console_gate_action evidence failed: %s", type(exc).__name__)
+            result = {**result, "evidence_warning": type(exc).__name__}
         return result
 
     result = await _call(act)
+    warn = result.get("evidence_warning")
     if result.get("status") == "pending":
         needs = result.get("needs")
         msg = f"{agent_id}: resume approval recorded; needs the {needs} (a different person)"
     else:
         msg = f"{agent_id}: {action} -> {result.get('state')}"
+    if warn:
+        msg += f" (WARNING: the console evidence record failed: {warn}; see the server log)"
     data = await _call(_agents_data, ctx)
     resp = render(request, ctx, me, "_agents_table.html", **data)
     resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()

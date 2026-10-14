@@ -119,14 +119,14 @@ def build_audit_pack(ctx: Any, actor: Any, *, case_ids: list[str] | None = None)
         chain.commit_root(force=True)
         export_chain(ctx.tables, work / "chain", created_at=now)
         report = verify_export(work / "chain")
-        (work / "verify_report.txt").write_text("\n".join(report.lines) + "\n", encoding="ascii")
+        (work / "verify_report.txt").write_text("\n".join(report.lines) + "\n", encoding="utf-8")
         evr = _eval_report(settings)
         if evr is not None:
             shutil.copyfile(evr, work / "eval_report.json")
         else:
             (work / "eval_report_NOT_RUN.txt").write_text(
                 "No judge eval report found. Run: python -m supervisor.judge.eval\n",
-                encoding="ascii",
+                encoding="utf-8",
             )
         (work / "README.txt").write_text(
             "Supervisor audit pack\r\n"
@@ -136,7 +136,7 @@ def build_audit_pack(ctx: Any, actor: Any, *, case_ids: list[str] | None = None)
             "Re-verify on any machine:\r\n"
             "  python -m supervisor.evidence.verify chain\r\n"
             "Case files: casefiles\\<case_id>.json and .html (masked; sign-off text verbatim)\r\n",
-            encoding="ascii",
+            encoding="utf-8",
         )
         files = {
             p.relative_to(work).as_posix(): _sha(p) for p in sorted(work.rglob("*")) if p.is_file()

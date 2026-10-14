@@ -6,7 +6,7 @@
       <div class="verbatim">{{ s.reason }}</div></div>
   {% else %}<p class="muted">-</p>{% endfor %}
 </section>
-{% if case.status == 'contained' %}
+{% if case.status in ('triaged', 'contained') %}
 <section class="panel">
   <form class="stack" hx-post="/console/cases/{{ case.case_id }}/signoff" hx-target="#signoff-panel">
     <input type="hidden" name="row_version" value="{{ case.row_version }}">
@@ -21,6 +21,6 @@
 {% else %}
 <p class="muted">{{ t('status') }}: {{ t(case.status) }}</p>
 {% endif %}
-{% if approvals|length >= 2 and case.status == 'contained' %}
+{% if approvals|length >= 2 and case.status in ('triaged', 'contained') %}
 <p><a class="button" href="/console/cases/{{ case.case_id }}?lang={{ lang }}">{{ t('close') }}</a></p>
 {% endif %}

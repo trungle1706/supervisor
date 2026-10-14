@@ -633,7 +633,10 @@ class CaseService:
             action = {"triaged": "triage", "contained": "contain"}.get(to, f"close:{resolution}")
             self._event(case, actor, action, comment=note or None, extra=extra)
             if to == "closed" and current["severity"] not in TWO_PERSON_SEVERITIES:
-                self._signoff_row(case, actor, f"close:{resolution}", note, role="reviewer")
+                # A closing note is not a signed statement: store it masked like comments.
+                self._signoff_row(
+                    case, actor, f"close:{resolution}", self._mask(note), role="reviewer"
+                )
         if to == "contained" and current["severity"] in TWO_PERSON_SEVERITIES:
             self._notify(
                 "approvers",
@@ -707,8 +710,10 @@ class CaseService:
         role = "approver" if "approver" in roles else ("admin" if "admin" in roles else "reviewer")
         with self._lock:
             current = self.get(case_id)
-            if current["status"] != "contained":
-                raise CaseError(f"case {case_id} is {current['status']}; sign-off needs contained")
+            if current["status"] not in ("triaged", "contained"):
+                raise CaseError(
+                    f"case {case_id} is {current['status']}; sign-off needs triaged or contained"
+                )
             approvals = self._approvals(case_id)
             if decision == "approve":
                 if actor.user_id in approvals:
