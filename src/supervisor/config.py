@@ -186,6 +186,17 @@ class Settings(BaseSettings):
     otlp_max_spans: int = Field(default=5000, ge=1)
     recorder_spool_dir: Path | None = None  # default: <data_dir>/spool
 
+    # Reviewer console (WP8). Identity: dev_header (laptop: X-Dev-User + config/users.yaml,
+    # not a real identity) or databricks_app (SSO headers + config/auth.yaml role map).
+    # auto = databricks_app when SUPERVISOR_MODE=databricks_app, else dev_header.
+    auth_kind: Literal["auto", "dev_header", "databricks_app"] = "auto"
+    users_file: Path | None = None  # default: <repo>/config/users.yaml
+    auth_config_file: Path | None = None  # default: <repo>/config/auth.yaml
+    console_lang: Literal["en", "vi"] = "en"  # default UI language (?lang= overrides)
+    console_export_dir: Path | None = None  # audit packs; default: <data_dir>/exports
+    notify_webhook_enabled: bool = False  # new feature: off by default (inbox always on)
+    notify_webhook_url: str = ""  # stub: notices are queued, never sent (bank ITSM, WP11)
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -193,6 +204,9 @@ class Settings(BaseSettings):
         "casefile_dir",
         "casefile_pdf_font",
         "recorder_spool_dir",
+        "users_file",
+        "auth_config_file",
+        "console_export_dir",
         mode="after",
     )
     @classmethod
@@ -214,6 +228,17 @@ class Settings(BaseSettings):
             self.casefile_dir = self.data_dir / "casefiles"
         if self.recorder_spool_dir is None:
             self.recorder_spool_dir = self.data_dir / "spool"
+        if self.users_file is None:
+            self.users_file = REPO_ROOT / "config" / "users.yaml"
+        if self.auth_config_file is None:
+            self.auth_config_file = REPO_ROOT / "config" / "auth.yaml"
+        if self.console_export_dir is None:
+            self.console_export_dir = self.data_dir / "exports"
+        if self.auth_kind == "dev_header" and self.supervisor_mode == "databricks_app":
+            raise ValueError(
+                "AUTH_KIND=dev_header is not allowed with SUPERVISOR_MODE=databricks_app "
+                "(the X-Dev-User header is not an identity); use databricks_app or auto"
+            )
         if self.anchor_kind == "worm_dir":
             if self.anchor_path is None:
                 self.anchor_path = str(self.data_dir / "anchors")
@@ -246,6 +271,12 @@ class Settings(BaseSettings):
         if self.sql_backend != "auto":
             return self.sql_backend
         return "databricks_rest" if self.supervisor_mode == "databricks_app" else "sqlite"
+
+    @property
+    def effective_auth_kind(self) -> Literal["dev_header", "databricks_app"]:
+        if self.auth_kind != "auto":
+            return self.auth_kind
+        return "databricks_app" if self.supervisor_mode == "databricks_app" else "dev_header"
 
     @property
     def mask_key(self) -> tuple[bytes, str]:

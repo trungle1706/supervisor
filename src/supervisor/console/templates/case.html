@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ t('case') }} {{ case.case_id }}{% endblock %}
+{% block content %}
+<h1>{{ t('case') }} <span class="mono">{{ case.case_id }}</span>
+  <span class="chip sev-{{ case.severity }}">{{ t(case.severity) }}</span>
+  <span class="chip">{{ t(case.status) }}</span></h1>
+<div id="case-body">
+{% include "_case_body.html" %}
+</div>
+{% endblock %}

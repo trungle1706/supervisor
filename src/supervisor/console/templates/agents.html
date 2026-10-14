@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ t('agents') }}{% endblock %}
+{% block content %}
+<h1>{{ t('agents') }}</h1>
+<p class="muted">{{ t('resume_rule') }}</p>
+<div id="agents-table">
+{% include "_agents_table.html" %}
+</div>
+{% endblock %}

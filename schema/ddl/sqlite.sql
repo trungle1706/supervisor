@@ -264,6 +264,7 @@ CREATE TABLE IF NOT EXISTS case_event (
   actor_kind TEXT NOT NULL,
   action TEXT NOT NULL,
   comment_masked TEXT,
+  auth_method TEXT,
   PRIMARY KEY (case_id, seq)
 );
 
@@ -277,6 +278,30 @@ CREATE TRIGGER IF NOT EXISTS trg_case_event_no_delete
 BEFORE DELETE ON case_event
 BEGIN
   SELECT RAISE(ABORT, 'case_event is append-only');
+END;
+
+-- case_link (append_only): WP8. Which source opened or joined a case: a gate decision (block/pause), a judge verdict (CaseRequest) or a monitor finding. One row per source; makes intake idempotent.
+CREATE TABLE IF NOT EXISTS case_link (
+  source_kind TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  case_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  PRIMARY KEY (source_kind, source_ref)
+);
+
+CREATE INDEX IF NOT EXISTS ix_case_link_case_id ON case_link (case_id);
+
+CREATE TRIGGER IF NOT EXISTS trg_case_link_no_update
+BEFORE UPDATE ON case_link
+BEGIN
+  SELECT RAISE(ABORT, 'case_link is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_case_link_no_delete
+BEFORE DELETE ON case_link
+BEGIN
+  SELECT RAISE(ABORT, 'case_link is append-only');
 END;
 
 -- signoff (append_only): Human sign-off. Reviewer id from SSO, never the app service principal.
@@ -441,3 +466,19 @@ CREATE TABLE IF NOT EXISTS gate_control (
 );
 
 CREATE INDEX IF NOT EXISTS ix_gate_control_agent_id_status ON gate_control (agent_id, status);
+
+-- notice (state): WP8. Notifier inbox (console Inbox page). Masked text only. The webhook stub queues rows with status queued and never sends them (off by default).
+CREATE TABLE IF NOT EXISTS notice (
+  notice_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL,
+  read_by TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (notice_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_notice_channel_status ON notice (channel, status);

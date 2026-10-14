@@ -1,0 +1,41 @@
+# Dev users for the reviewer console on the laptop (AUTH_KIND=dev_header, the laptop default).
+# NOT a real identity (ADR D04): anyone at the keyboard can pick a user. The Databricks App
+# uses SSO headers instead (config/auth.yaml). Synthetic names only.
+#
+# Roles: reviewer | approver | owner | auditor | admin
+#   reviewer  triage, contain, comment, assign, pause, first resume approval, sign-off
+#   approver  second sign-off on high / critical cases
+#   owner     agent owner: the other half of the two-person resume (ADR D04)
+#   auditor   read-only, audit-pack export
+#   admin     quarantine / release, everything a reviewer can do
+#
+# Resume needs the agent owner (agent.owner_user) and a reviewer listed in
+# policies/baseline.yaml (reviewers:). The ids below match those files.
+
+default_user: reviewer.an
+
+users:
+  reviewer.an:
+    name: "Nguyễn Văn An"
+    roles: [reviewer]
+  reviewer.binh:
+    name: "Trần Thị Bình"
+    roles: [reviewer, approver]
+  approver.em:
+    name: "Phạm Minh Em"
+    roles: [approver]
+  auditor.dung:
+    name: "Lê Thu Dung"
+    roles: [auditor]
+  admin.chi:
+    name: "Hoàng Văn Chí"
+    roles: [admin, reviewer]
+  payops-lead@example.invalid:
+    name: "Payments Ops lead (owner)"
+    roles: [owner]
+  cc-lead@example.invalid:
+    name: "Customer Care lead (owner)"
+    roles: [owner]
+  lending-lead@example.invalid:
+    name: "Consumer Lending lead (owner)"
+    roles: [owner]

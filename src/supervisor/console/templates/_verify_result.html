@@ -1,0 +1,8 @@
+{% if verify %}
+<p data-verify="{{ 'ok' if verify.ok else 'fail' }}">
+  {% if verify.ok %}<span class="chip st-RUNNING">{{ t('verify_ok') }}</span>{% else %}<span class="chip sev-critical">{{ t('verify_fail') }}</span>{% endif %}
+  <span class="muted">{{ verify.lane }} | {{ verify.ts|utc }}</span></p>
+{% if not verify.ok %}<pre class="excerpt">{{ verify.lines|join('\n') }}</pre>{% endif %}
+{% else %}
+<p class="muted">{{ t('not_verified') }}</p>
+{% endif %}

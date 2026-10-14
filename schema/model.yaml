@@ -236,6 +236,22 @@ tables:
       actor_kind: string
       action: string
       comment_masked: text?
+      auth_method: string?  # WP8: dev_header | databricks_sso | databricks_app_sp | local_system
+
+  case_link:
+    kind: append_only
+    description: >
+      WP8. Which source opened or joined a case: a gate decision (block/pause), a judge
+      verdict (CaseRequest) or a monitor finding. One row per source; makes intake idempotent.
+    primary_key: [source_kind, source_ref]
+    indexes:
+      - [case_id]
+    columns:
+      source_kind: string
+      source_ref: string
+      case_id: string
+      agent_id: string
+      ts: timestamp
 
   signoff:
     kind: append_only
@@ -347,3 +363,20 @@ tables:
       status: string
       created_at: timestamp
       expires_at: timestamp?
+
+  notice:
+    kind: state
+    description: >
+      WP8. Notifier inbox (console Inbox page). Masked text only. The webhook stub queues
+      rows with status queued and never sends them (off by default).
+    primary_key: [notice_id]
+    indexes:
+      - [channel, status]
+    columns:
+      notice_id: string
+      ts: timestamp
+      channel: string
+      subject: string
+      body: text
+      status: string
+      read_by: string?

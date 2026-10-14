@@ -1,0 +1,36 @@
+# Role map for the Databricks App (AUTH_KIND=databricks_app; the default when
+# SUPERVISOR_MODE=databricks_app). The signed-in user comes from the workspace SSO headers
+# (X-Forwarded-Email, else X-Forwarded-User). Replace every FILL-ME value; a FILL-ME entry
+# never matches anyone.
+#
+# Roles: reviewer | approver | owner | auditor | admin (see config/users.yaml for meaning).
+# A user gets a role when the id is listed under `users`, or when one of the user's
+# workspace groups is listed under `groups` (needs group_lookup: scim_me).
+
+# Identity used for background tasks and for requests without SSO headers (local runs).
+# Background tasks have no request and therefore no user token (bank guide 5.3).
+service_principal_id: FILL-ME-app-service-principal-application-id
+service_principal_roles: []   # read-only by default
+
+# none    : roles from `users` only.
+# scim_me : also read the signed-in user's groups with X-Forwarded-Access-Token
+#           (needs user_api_scopes in databricks.yml). The token is used inside the
+#           request only, with a fresh client per call, and is never logged or stored.
+group_lookup: none
+
+roles:
+  reviewer:
+    users: [FILL-ME-reviewer@bank.example]
+    groups: [FILL-ME-supervisor-reviewers]
+  approver:
+    users: [FILL-ME-approver@bank.example]
+    groups: [FILL-ME-supervisor-approvers]
+  owner:
+    users: [FILL-ME-agent-owner@bank.example]
+    groups: [FILL-ME-agent-owners]
+  auditor:
+    users: [FILL-ME-auditor@bank.example]
+    groups: [FILL-ME-internal-audit]
+  admin:
+    users: [FILL-ME-admin@bank.example]
+    groups: [FILL-ME-supervisor-admins]

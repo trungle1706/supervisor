@@ -32,7 +32,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import deque
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -112,8 +112,12 @@ class JudgeService:
         max_retries: int = 1,
         max_input_chars: int = 12000,
         judge_kwargs: Mapping[str, Any] | None = None,
+        case_sink: Callable[[CaseRequest], object] | None = None,
     ) -> None:
         self.router = router
+        # WP8: where CaseRequests go (cases.CaseService.open_from_case_request). None = the
+        # caller reads ``TraceOutcome.case_requests`` itself (the previous behaviour).
+        self.case_sink = case_sink
         self.clock = clock
         self.masker: Masker = masker or IdentityMasker()
         self.tables = tables
@@ -152,6 +156,7 @@ class JudgeService:
         evidence: EvidenceSink | None = None,
         state: StateStore | None = None,
         force: bool = False,
+        case_sink: Callable[[CaseRequest], object] | None = None,
     ) -> JudgeService | None:
         """None when ``JUDGE_ENABLED`` is off (the default) unless ``force``.
 
@@ -173,6 +178,7 @@ class JudgeService:
             timeout_s=settings.judge_timeout_s,
             max_retries=settings.judge_max_retries,
             max_input_chars=settings.judge_max_input_chars,
+            case_sink=case_sink,
         )
 
     # -- public -------------------------------------------------------------------
@@ -244,7 +250,19 @@ class JudgeService:
                 )
         if out.suspicious:
             self._protocol(out, _ts(events[-1]), last_event_id)
+        self._deliver(out)
         return out
+
+    def _deliver(self, out: TraceOutcome) -> None:
+        """Hand case requests to the case workflow (WP8). A failure there never loses the
+        verdicts already written; it is logged and the requests stay on the outcome."""
+        if self.case_sink is None:
+            return
+        for req in out.case_requests:
+            try:
+                self.case_sink(req)
+            except Exception as exc:  # noqa: BLE001 - judging must not fail on the sink
+                log.warning("case sink failed for %s: %s", req.agent_id, type(exc).__name__)
 
     # -- protocol -----------------------------------------------------------------
     def _decide(self, out: TraceOutcome) -> None:

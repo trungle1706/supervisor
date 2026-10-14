@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ t('queue') }}{% endblock %}
+{% block content %}
+<h1>{{ t('queue') }}</h1>
+<form class="filters" hx-get="/console/queue/rows" hx-target="#queue-rows" hx-trigger="change, submit" hx-push-url="false">
+  <label>{{ t('status') }}
+    <select name="status">
+      <option value="open" {{ 'selected' if filters.status == 'open' else '' }}>{{ t('open_cases') }}</option>
+      <option value="closed" {{ 'selected' if filters.status == 'closed' else '' }}>{{ t('closed') }}</option>
+      <option value="all" {{ 'selected' if filters.status == 'all' else '' }}>{{ t('all') }}</option>
+    </select>
+  </label>
+  <label>{{ t('severity') }}
+    <select name="severity">
+      <option value="">{{ t('all') }}</option>
+      {% for s in severities %}<option value="{{ s }}" {{ 'selected' if filters.severity == s else '' }}>{{ t(s) }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>{{ t('agent') }}
+    <select name="agent">
+      <option value="">{{ t('all') }}</option>
+      {% for a in agent_ids %}<option value="{{ a }}" {{ 'selected' if filters.agent == a else '' }}>{{ a }}</option>{% endfor %}
+    </select>
+  </label>
+  <input type="hidden" name="lang" value="{{ lang }}">
+</form>
+<div id="queue-rows" hx-get="/console/queue/rows?status={{ filters.status }}&amp;severity={{ filters.severity }}&amp;agent={{ filters.agent }}&amp;lang={{ lang }}" hx-trigger="every 30s" hx-swap="innerHTML">
+{% include "_queue_rows.html" %}
+</div>
+{% endblock %}
