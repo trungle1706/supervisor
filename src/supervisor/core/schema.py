@@ -218,7 +218,11 @@ def databricks_statements(
     prefix: str = "",
     retention_days: int = DEFAULT_EVIDENCE_RETENTION_DAYS,
 ) -> list[str]:
-    if isinstance(retention_days, bool) or not isinstance(retention_days, int) or retention_days < 1:
+    if (
+        isinstance(retention_days, bool)
+        or not isinstance(retention_days, int)
+        or retention_days < 1
+    ):
         raise ValueError("retention_days must be a positive int")
     out: list[str] = []
     for t in model.tables.values():

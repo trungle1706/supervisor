@@ -143,7 +143,11 @@ class Settings(BaseSettings):
     casefile_pdf_font: Path | None = None  # Unicode TTF for PDF (VN text); none -> HTML
 
     @field_validator(
-        "data_dir", "sqlite_path", "signer_key_path", "casefile_dir", "casefile_pdf_font",
+        "data_dir",
+        "sqlite_path",
+        "signer_key_path",
+        "casefile_dir",
+        "casefile_pdf_font",
         mode="after",
     )
     @classmethod
