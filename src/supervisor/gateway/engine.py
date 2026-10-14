@@ -37,10 +37,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+from supervisor.core.args_hmac import args_hmac, as_key, key_id
 from supervisor.core.canonical import canonical_json, format_ts
 from supervisor.core.ports import Clock, EvidenceSink, StateStore, TableStore
+from supervisor.gateway.facts import FactSource
 from supervisor.gateway.policy import (
     DEFAULT_FAIL_MODE,
+    FACT_PREFIX,
     SEVERITY_RANK,
     Policy,
     PolicyProvider,
@@ -119,8 +122,42 @@ def _compare(op: str, value: Any, target: Any, policy: Policy, what: str) -> boo
     raise PredicateTypeError(f"unknown op {op}")
 
 
-def _pred(p: Predicate, args: Mapping[str, Any], ctx: Mapping[str, Any], policy: Policy) -> bool:
-    return _compare(p.op, _resolve(p.arg, args, ctx), p.value, policy, p.arg)
+def _fact(path: str, args: Mapping[str, Any], facts: FactSource | None) -> Any:
+    """``fact.<source>.<field>``: look the record up by argument ``<source>_id``.
+
+    Every gap raises (rule error -> the rule's fail mode): a missing fact never
+    lets a money or credit call through."""
+    _, source, name = path.split(".")
+    if facts is None:
+        raise PredicateTypeError(f"{path}: no fact source configured")
+    key = args.get(f"{source}_id")
+    if not isinstance(key, str | int) or isinstance(key, bool) or not str(key).strip():
+        raise PredicateTypeError(f"{path}: argument {source}_id is needed to read the fact")
+    if str(key) != str(key).strip():
+        raise PredicateTypeError(f"{path}: argument {source}_id has surrounding spaces")
+    record = facts.get(source, str(key))  # the exact id the tool will receive
+    if record is None:
+        raise PredicateTypeError(f"{path}: no {source} record for this call")
+    if name not in record:
+        raise PredicateTypeError(f"{path}: {source} record has no field {name}")
+    value = record[name]
+    if isinstance(value, float):
+        raise PredicateTypeError(f"{path}: float facts are not allowed")
+    return value
+
+
+def _pred(
+    p: Predicate,
+    args: Mapping[str, Any],
+    ctx: Mapping[str, Any],
+    policy: Policy,
+    facts: FactSource | None = None,
+) -> bool:
+    if p.arg.startswith(FACT_PREFIX):
+        value = _fact(p.arg, args, facts)
+    else:
+        value = _resolve(p.arg, args, ctx)
+    return _compare(p.op, value, p.value, policy, p.arg)
 
 
 def tool_matches(m: ToolMatch | None, tool_name: str, policy: Policy) -> bool:
@@ -138,11 +175,6 @@ def key_hash(name: str, value: Any) -> str:
         raise PredicateTypeError(f"{name}: grouping value is empty")
     data = f"{name}\x1f{text}".encode()
     return hashlib.sha256(data).hexdigest()[:32]
-
-
-def _args_hash(args: Mapping[str, Any]) -> str:
-    data = json.dumps(args, sort_keys=True, separators=(",", ":"), default=str)
-    return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
 # --------------------------------------------------------------------------- windows
@@ -192,14 +224,14 @@ class WindowStore:
         tools: list[str],
         since_us: int,
         agents: set[str] | None,
-        key: tuple[str, str] | None,
+        key: Mapping[str, str] | None,
         fn: str,
     ) -> int:
         acc = 0
         for ev in self._iter(tools, since_us):
             if agents is not None and ev.agent_id not in agents:
                 continue
-            if key is not None and ev.keys.get(key[0]) != key[1]:
+            if key and any(ev.keys.get(k) != v for k, v in key.items()):
                 continue
             if fn == "count":
                 acc += 1
@@ -328,6 +360,8 @@ class Gateway:
         *,
         states: AgentStateMachine | None = None,
         classifier: Classifier | None = None,
+        facts: FactSource | None = None,
+        args_hash_key: str | bytes | None = None,
         tier0b_enabled: bool = True,
         timeout_s: float = HARD_TIMEOUT_S,
         env: str = "local",
@@ -343,6 +377,9 @@ class Gateway:
             state, evidence, clock, policy, cache_ttl_s=state_cache_ttl_s
         )
         self.classifier = classifier or RegexClassifier()
+        self.facts = facts
+        self._args_key = as_key(args_hash_key)  # None -> fixed dev key (key id "dev")
+        self.args_key_id = key_id(self._args_key)
         self.tier0b_enabled = tier0b_enabled
         self.timeout_s = timeout_s
         self.env = env
@@ -455,9 +492,10 @@ class Gateway:
     ) -> bool:
         if not tool_matches(rule.when.tool, tool_name, policy):
             return False
-        if not all(_pred(p, args, ctx, policy) for p in rule.when.all):
+        facts = self.facts
+        if not all(_pred(p, args, ctx, policy, facts) for p in rule.when.all):
             return False
-        if rule.when.any and not any(_pred(p, args, ctx, policy) for p in rule.when.any):
+        if rule.when.any and not any(_pred(p, args, ctx, policy, facts) for p in rule.when.any):
             return False
         agg = rule.aggregate
         if agg is not None:
@@ -473,15 +511,18 @@ class Gateway:
                     raise PredicateTypeError(f"{agg.field}: negative amount")
             else:
                 current = 1
-            key = None
+            key: dict[str, str] = {}
             agents = None if rule.agent_scope == "*" else set(rule.agent_scope)
+            group = list(agg.also_by)
             if agg.group_by == "customer":
-                cust = _resolve(agg.customer_arg, args, ctx)
-                if cust is _MISSING:
-                    raise PredicateTypeError(f"{agg.customer_arg}: needed to group the limit")
-                key = (agg.customer_arg, key_hash(agg.customer_arg, cust))
+                group.insert(0, agg.customer_arg)
             else:
                 agents = {agent_id}
+            for name in group:
+                value = _resolve(name, args, ctx)
+                if value is _MISSING or value is None:
+                    raise PredicateTypeError(f"{name}: needed to group the limit")
+                key[name] = key_hash(name, value)
             total = current + self.windows.total(rule.counted_tools(), since, agents, key, agg.fn)
             return total > agg.limit if agg.op == "gt" else total >= agg.limit
         prior = rule.prior
@@ -758,7 +799,7 @@ class Gateway:
                     "caller_agent_id": caller if isinstance(caller, str) else None,
                     "event_type": "gate_decision",
                     "tool_name": tool_name,
-                    "args_hash": _args_hash(args),
+                    "args_hash": args_hmac(args, self._args_key),  # keyed, not plain SHA-256
                     "args_masked": canonical_json({"keys": keys}),
                     "amount_minor": amount if _is_int(amount) else None,
                     "currency": currency
@@ -786,6 +827,7 @@ class Gateway:
     ) -> dict[str, Any]:
         amount = args.get("amount_minor")
         trace_id = ctx.get("trace_id")
+        caller = ctx.get("caller_agent_id")
         return {
             "decision_id": d.decision_id,
             "ts": format_ts(now),
@@ -800,12 +842,15 @@ class Gateway:
             "reason": d.reason[:500],
             "matched": d.matched,
             "policy_hash": d.policy_hash,
-            "args_sha256": _args_hash(args),
+            "args_hmac": args_hmac(args, self._args_key),
+            "args_hmac_key_id": self.args_key_id,
             "amount_minor": amount if _is_int(amount) else None,
             "latency_us": int(d.latency_us),
             "fail_mode": d.fail_mode,
             "agent_paused": d.paused,
             "trace_id": trace_id if isinstance(trace_id, str) else None,
+            # ADR D10: who handed the work to this agent (None for a direct call).
+            "caller_agent_id": caller if isinstance(caller, str) else None,
             "tier": 0,
         }
 

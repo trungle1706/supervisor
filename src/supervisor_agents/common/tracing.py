@@ -6,15 +6,14 @@ finished spans into ``AgentEvent`` rows and appends them to a ``TableStore``
 (``agent_event``) through the WP4 normaliser (``supervisor.recorder.normalise``).
 
 PII rule: without a Masker the exporter writes digests only (``capture_level = "digest"``):
-tool args are hashed (``args_hash``), never stored as text. Payload text attributes
-(``supervisor.args`` / ``supervisor.result``) are set only when ``capture_payloads`` is on
-in the runtime (default off).
+tool args are digested with HMAC-SHA256 (``args_hash``, key ``ARGS_HASH_KEY``; default the
+dev key), never stored as text. The key is set per process with ``set_args_hash_key``.
+Payload text attributes (``supervisor.args`` / ``supervisor.result``) are set only when
+``capture_payloads`` is on in the runtime (default off).
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -22,7 +21,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 
-from supervisor.core.canonical import CanonicalError, sha256_hex
+from supervisor.core.args_hmac import args_hmac, as_key
 from supervisor.core.models import AgentEvent
 from supervisor.core.ports import Masker, TableStore
 from supervisor.recorder.capture import CapturePolicy
@@ -51,13 +50,18 @@ A_ARGS = "supervisor.args"
 A_RESULT = "supervisor.result"
 
 
+_ARGS_KEY: bytes = as_key(None)
+
+
+def set_args_hash_key(key: str | bytes | None) -> None:
+    """Process-wide HMAC key for ``args_hash`` (None -> the fixed dev key)."""
+    global _ARGS_KEY
+    _ARGS_KEY = as_key(key)
+
+
 def args_hash(args: Mapping[str, Any]) -> str:
-    """SHA-256 of canonical JSON of the args (falls back to sorted JSON if not canonical)."""
-    try:
-        return sha256_hex(dict(args))
-    except CanonicalError:
-        text = json.dumps(dict(args), sort_keys=True, ensure_ascii=False, default=str)
-        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    """HMAC-SHA256 of the args (same digest as the gateway's ``args_hash`` for one key)."""
+    return args_hmac(args, _ARGS_KEY)
 
 
 def span_to_event(span: ReadableSpan, default_env: str = "dev") -> AgentEvent | None:

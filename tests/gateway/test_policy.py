@@ -47,12 +47,14 @@ def test_baseline_loads_and_has_the_incident_rules(baseline: Policy) -> None:
         "CRD-07",
         "PAY-02",
         "PAY-03",
-        "PAY-04",
-        "PAY-05",
+        "PAY-09",
         "SVC-01",
         "SVC-02",
-        "CRD-01",
-        "PII-01",
+        "SVC-05",
+        "SVC-06",
+        "CRD-02",
+        "CRD-03",
+        "PII-02",
     ):
         assert rid in ids
     assert len(baseline.policy_hash) == 64
@@ -73,8 +75,8 @@ def test_hash_is_stable_and_independent_of_file_order() -> None:
 def test_default_fail_mode_by_risk_class(baseline: Policy) -> None:
     by_id = {r.id: r for r in baseline.rules}
     assert by_id["PAY-02"].effective_fail_mode == "closed"
-    assert by_id["CRD-01"].effective_fail_mode == "closed"
-    assert by_id["PII-01"].effective_fail_mode == "closed"
+    assert by_id["CRD-02"].effective_fail_mode == "closed"
+    assert by_id["PII-02"].effective_fail_mode == "closed"
     text = MINI.replace("action: block", "action: alert").replace(
         "risk_class: money", "risk_class: read_only"
     )
@@ -93,6 +95,19 @@ def test_default_fail_mode_by_risk_class(baseline: Policy) -> None:
         ("severity: high", "severity: high\n    extra_key: 1", "xtra"),
         ("arg: amount_minor", "arg: \"__import__('os')\"", "bad arg path"),
         ("id: R-1", "id: r 1", "id"),
+        ("arg: amount_minor", "arg: fact.application", "bad fact path"),
+        ("arg: amount_minor", "arg: fact.a.b.c", "bad fact path"),
+        (
+            "      all: [{arg: amount_minor, op: gt, value: 10}]",
+            "    aggregate: {fn: count, window_s: 60, group_by: agent, also_by: [ctx.payee_id],"
+            " limit: 1}",
+            "bad grouping argument",
+        ),
+        (
+            "      all: [{arg: amount_minor, op: gt, value: 10}]",
+            "    aggregate: {fn: count, window_s: 60, group_by: agent, also_by: [p, p], limit: 1}",
+            "duplicates",
+        ),
     ],
 )
 def test_invalid_policies_are_rejected(old: str, new: str, msg: str) -> None:

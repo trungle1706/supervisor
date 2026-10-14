@@ -1,11 +1,13 @@
-"""Build the process-wide Gateway from Settings (used by the FastAPI routes).
+"""The process-wide Gateway used by the FastAPI routes.
 
-* Adapters come from ``supervisor.adapters.factory`` (SQLite on the laptop, Delta on Databricks).
-* Policy: ``policies/*.yaml`` is loaded, validated and deployed to the ``rule`` table
-  (idempotent); the gateway then enforces what the table holds (``StorePolicyProvider``).
-* EvidenceSink: WP6 provides the chain writer. Until it is wired with
-  ``set_evidence_sink`` (or ``build_gateway(evidence=...)``), ``BufferedEvidenceSink``
-  keeps the last N records in memory and logs a warning once (not durable: wire WP6).
+The gateway is built by the composition root ``supervisor.wiring.build_runtime``:
+adapters from Settings, ``policies/*.yaml`` deployed to the ``rule`` table
+(``StorePolicyProvider`` enforces what the table holds), and the WP6 ``ChainWriter``
+as the EvidenceSink. The app builds it at startup (``install_runtime``); routes build
+it on first use if startup could not (for example the store was briefly unavailable).
+
+``build_gateway(evidence=...)`` keeps the older path with a caller-supplied sink
+(tests and embedding). ``BufferedEvidenceSink`` remains for that path only.
 """
 
 from __future__ import annotations
@@ -15,7 +17,7 @@ import logging
 import threading
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from supervisor.config import REPO_ROOT, Settings
 from supervisor.core.canonical import canonical_bytes
@@ -23,13 +25,16 @@ from supervisor.core.ports import EvidenceSink
 from supervisor.gateway.engine import Gateway
 from supervisor.gateway.policy import StorePolicyProvider, deploy_with_retry, load_policy_dir
 
+if TYPE_CHECKING:
+    from supervisor.wiring import Runtime
+
 log = logging.getLogger("supervisor.gateway")
 
 POLICY_DIR = REPO_ROOT / "policies"
 
 
 class BufferedEvidenceSink:
-    """Placeholder sink until the WP6 chain writer is wired. Keeps the last N records."""
+    """In-memory sink for callers that pass no chain writer. Keeps the last N records."""
 
     def __init__(self, keep: int = 10_000) -> None:
         self.keep = keep
@@ -41,15 +46,16 @@ class BufferedEvidenceSink:
         data = canonical_bytes({"type": record_type, "ref": record_ref, "payload": payload})
         with self._lock:
             if not self._warned:
-                log.warning("evidence chain writer (WP6) not wired; buffering gate evidence")
+                log.warning("gate evidence goes to an in-memory buffer, not the chain")
                 self._warned = True
             self.entries.append((record_type, record_ref, dict(payload)))
             del self.entries[: -self.keep]
         return hashlib.sha256(data).hexdigest()
 
 
-_lock = threading.Lock()
+_lock = threading.RLock()
 _gateway: Gateway | None = None
+_runtime: Runtime | None = None
 
 
 def build_gateway(
@@ -58,9 +64,12 @@ def build_gateway(
     evidence: EvidenceSink | None = None,
     policy_dir: Path | None = None,
 ) -> Gateway:
+    """Gateway with the WP6 chain writer (default) or with the given evidence sink."""
     from supervisor.adapters.factory import build_adapters
     from supervisor.config import load_settings
 
+    if evidence is None:
+        return install_runtime(settings, policy_dir=policy_dir).gateway
     settings = settings or load_settings()
     adapters = build_adapters(settings)
     if adapters.executor.dialect == "sqlite":
@@ -73,11 +82,35 @@ def build_gateway(
         StorePolicyProvider(adapters.state, refresh_s=5.0),
         adapters.tables,
         adapters.state,
-        evidence or BufferedEvidenceSink(),
+        evidence,
         adapters.clock,
         env=settings.supervisor_mode,
         trust_body_principal=settings.supervisor_mode != "databricks_app",
     )
+
+
+def install_runtime(settings: Settings | None = None, *, policy_dir: Path | None = None) -> Runtime:
+    """Build the runtime (chain + gateway) once per process and install its gateway."""
+    global _gateway, _runtime
+    from supervisor.wiring import build_runtime
+
+    with _lock:
+        if _runtime is None:
+            _runtime = build_runtime(settings, policy_dir=policy_dir)
+        if _gateway is None:  # a gateway installed with set_gateway() stays in place
+            _gateway = _runtime.gateway
+        return _runtime
+
+
+def shutdown_runtime() -> None:
+    """Close the installed runtime (seals the chain with a signed root)."""
+    global _gateway, _runtime
+    with _lock:
+        rt, _runtime = _runtime, None
+        if rt is not None and _gateway is rt.gateway:
+            _gateway = None
+    if rt is not None:
+        rt.close()
 
 
 def get_gateway() -> Gateway:
@@ -85,19 +118,19 @@ def get_gateway() -> Gateway:
     global _gateway
     with _lock:
         if _gateway is None:
-            _gateway = build_gateway()
+            _gateway = install_runtime().gateway
         return _gateway
 
 
 def set_gateway(gateway: Gateway | None) -> None:
-    """Install a gateway (tests, or the app wiring a WP6 evidence sink)."""
+    """Install a gateway (tests, or embedding with another evidence sink)."""
     global _gateway
     with _lock:
         _gateway = gateway
 
 
 def set_evidence_sink(sink: EvidenceSink) -> None:
-    """Point the running gateway (and its state machine) at a new sink (WP6 hook)."""
+    """Point the running gateway (and its state machine) at another sink."""
     gw = get_gateway()
     gw.evidence = sink
     gw.states.evidence = sink

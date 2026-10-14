@@ -29,7 +29,7 @@ EXTRA_RULE = """
     description: synthetic rule {i}
     agent_scope: [payments]
     when:
-      tool: {{in: [internal_transfer, get_account_balance]}}
+      tool: {{in: [transfer, get_balance]}}
       all:
         - {{arg: channel, op: eq, value: "branch-{i}"}}
         - {{arg: memo, op: matches, value: "(?i)ref-{i}-[0-9]+"}}
@@ -64,7 +64,7 @@ def test_gate_latency_p99_under_50ms(tmp_path: Path) -> None:
         tier0b_enabled=False,
     )
     rng = random.Random(7)
-    gw.check("payments", "1", "get_customer", {"customer_id": "WARM"})
+    gw.check("payments", "1", "lookup_customer", {"customer_id": "WARM"})
     gw.metrics = GateMetrics()
     decide_us: list[int] = []
     for i in range(N_CHECKS):
@@ -72,12 +72,12 @@ def test_gate_latency_p99_under_50ms(tmp_path: Path) -> None:
         cust = f"CUS-{rng.randrange(200):04d}"
         kind = i % 4
         if kind == 0:
-            res = gw.check("payments", "1", "get_account_balance", {"customer_id": cust})
+            res = gw.check("payments", "1", "get_balance", {"customer_id": cust})
         elif kind == 1:
             res = gw.check(
                 "payments",
                 "1",
-                "internal_transfer",
+                "transfer",
                 {
                     "customer_id": cust,
                     "payee_id": f"P{rng.randrange(50)}",
@@ -94,7 +94,7 @@ def test_gate_latency_p99_under_50ms(tmp_path: Path) -> None:
                 {"customer_id": cust, "amount_minor": 10_000},
             )
         else:
-            res = gw.check("credit_prequal", "1", "fetch_documents", {"application_id": f"A{i}"})
+            res = gw.check("credit_prequal", "1", "fetch_application", {"application_id": f"A{i}"})
         decide_us.append(int(res["latency_us"]))
     snap = gw.metrics.snapshot()
     gw.close()

@@ -43,7 +43,7 @@ def call(id_: int, name: str, args: dict[str, Any]) -> dict[str, Any]:
 def test_allowed_call_is_forwarded(gateway: Any) -> None:
     up = FakeUpstream()
     proxy = McpGateProxy(gateway, "payments", "1.0.0", up)
-    msg = call(1, "get_account_balance", {"account_id": "A-1"})
+    msg = call(1, "get_balance", {"account_id": "A-1"})
     resp = proxy.handle(msg)
     assert up.forwarded == [msg]
     assert resp is not None and resp["result"]["content"][0]["text"] == "ok"
@@ -59,8 +59,8 @@ def test_blocked_call_not_forwarded(gateway: Any) -> None:
     assert resp["result"]["isError"] is True
     sup = resp["result"]["_meta"]["supervisor"]
     assert sup["allow"] is False
-    assert "PAY-05" in resp["result"]["content"][0]["text"]
-    assert sup["rule_id"] == "PAY-05" and sup["action"] == "pause"
+    assert "PAY-07" in resp["result"]["content"][0]["text"]
+    assert sup["rule_id"] == "PAY-07" and sup["action"] == "pause"
 
 
 def test_other_methods_forwarded_and_notification(gateway: Any) -> None:
@@ -94,7 +94,7 @@ class RaisingGate:
 def test_gate_exception_fails_closed() -> None:
     up = FakeUpstream()
     proxy = McpGateProxy(RaisingGate(), "payments", "1.0.0", up)  # type: ignore[arg-type]
-    resp = proxy.handle(call(3, "get_account_balance", {}))
+    resp = proxy.handle(call(3, "get_balance", {}))
     assert up.forwarded == []
     assert resp is not None and resp["result"]["isError"] is True
 
@@ -115,7 +115,7 @@ def test_stdio_upstream_round_trip(gateway: Any, tmp_path: Path) -> None:
     up = StdioUpstream([sandbox.python_executable(), str(script)], cwd=str(tmp_path), timeout_s=10)
     try:
         proxy = McpGateProxy(gateway, "payments", "1.0.0", up)
-        resp = proxy.handle(call(5, "get_account_balance", {"account_id": "A-1"}))
+        resp = proxy.handle(call(5, "get_balance", {"account_id": "A-1"}))
         assert resp == {"jsonrpc": "2.0", "id": 5, "result": {"echo": "tools/call"}}
         assert up._proc.running()
     finally:

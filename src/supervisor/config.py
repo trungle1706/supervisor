@@ -138,6 +138,9 @@ class Settings(BaseSettings):
     signer_key_path: Path | None = None  # default: <data_dir>/keys/evidence_ed25519.pem
     signer_env_var: str = Field(default="SUPERVISOR_SIGNING_KEY", pattern=r"^[A-Z][A-Z0-9_]*$")
     signer_key_managed: bool = False  # True only when the bank manages the key (label)
+    # HMAC key for tool-argument digests (args_hash / args_hmac). Empty = fixed dev key,
+    # labelled key id "dev" in every chain payload. Set ARGS_HASH_KEY in production.
+    args_hash_key: SecretStr | None = None
     anchor_kind: Literal["worm_dir", "uc_volume"] = "worm_dir"
     anchor_path: str | None = None  # worm_dir: default <data_dir>/anchors; uc_volume: /Volumes/..
     casefile_dir: Path | None = None  # default: <data_dir>/casefiles
