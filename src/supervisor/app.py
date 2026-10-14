@@ -16,7 +16,7 @@ from fastapi.concurrency import run_in_threadpool  # noqa: E402
 from fastapi.exceptions import RequestValidationError  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 
-from supervisor import __version__  # noqa: E402
+from supervisor import __version__, scheduler  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
 from supervisor.gateway import wiring as gate_wiring  # noqa: E402
@@ -34,14 +34,23 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     the build on first use (they fail closed until it succeeds). Shutdown always seals
     the chain of whichever runtime was installed. One process, one worker: the chain
     has a single writer (app.yaml runs uvicorn without --workers)."""
+    runtime = None
     try:
-        await run_in_threadpool(gate_wiring.install_runtime, get_settings())
+        runtime = await run_in_threadpool(gate_wiring.install_runtime, get_settings())
     except Exception:  # noqa: BLE001 - startup must not crash the app process
         log.exception("runtime build failed at startup; gateway routes will retry")
+    if runtime is not None:  # WP7: in-process scheduler (on in laptop mode by default)
+        try:
+            await run_in_threadpool(scheduler.start_for_runtime, get_settings(), runtime)
+        except Exception:  # noqa: BLE001 - the app serves without the scheduler
+            log.exception("scheduler did not start")
     try:
         yield
     finally:
-        gate_wiring.shutdown_runtime()
+        try:
+            scheduler.stop()  # before the chain is sealed: no job writes after it
+        finally:
+            gate_wiring.shutdown_runtime()
 
 
 app = FastAPI(title="Supervisor", version=__version__, lifespan=lifespan)
