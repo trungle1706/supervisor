@@ -12,15 +12,15 @@ from supervisor.gateway.state import TransitionError
 from tests.gateway.conftest import MemoryEvidence
 from tests.gateway.helpers import call
 
-MONEY = dict(customer_id="C1", payee_id="P1", amount_minor=1000)
+MONEY = dict(from_account_id="ACC-1", payee_id="P1", amount_minor=1000)
 
 
 def test_pause_by_one_principal_denies_non_read_only(gateway: Gateway) -> None:
     res = gateway.states.pause("payments", "reviewer.an", "suspicious ticket")
     assert res["changed"] is True and res["state"] == "PAUSED"
-    r = call(gateway, "payments", "internal_transfer", **MONEY)
+    r = call(gateway, "payments", "transfer", **MONEY)
     assert r["allow"] is False and r["reason"] == "agent paused"
-    assert call(gateway, "payments", "get_customer", customer_id="C1")["allow"] is True
+    assert call(gateway, "payments", "get_balance", account_id="ACC-1")["allow"] is True
     # pausing again is a no-op
     assert gateway.states.pause("payments", "reviewer.binh")["changed"] is False
 
@@ -34,13 +34,16 @@ def test_resume_needs_owner_and_reviewer(gateway: Gateway, evidence: MemoryEvide
     second_reviewer = gateway.states.resume("payments", "reviewer.binh", "me too")
     assert second_reviewer["status"] == "pending"  # two reviewers are not enough
     assert gateway.states.get_state("payments") == "PAUSED"
-    done = gateway.states.resume("payments", "owner.payments", "ok")
+    done = gateway.states.resume("payments", "payops-lead@example.invalid", "ok")
     assert done["status"] == "resumed" and done["state"] == "RUNNING"
-    assert call(gateway, "payments", "internal_transfer", **MONEY)["allow"] is True
+    assert call(gateway, "payments", "transfer", **MONEY)["allow"] is True
     events = [p["event"] for p in evidence.of_type("gate_state_change")]
     assert events == ["pause", "resume"]
     resumed = evidence.of_type("gate_state_change")[-1]
-    assert {resumed["approver_1"], resumed["approver_2"]} == {"reviewer.an", "owner.payments"}
+    assert {resumed["approver_1"], resumed["approver_2"]} == {
+        "reviewer.an",
+        "payops-lead@example.invalid",
+    }
     assert "ok" not in str(resumed)  # reasons enter the chain as hashes only
 
 
@@ -56,7 +59,7 @@ def test_resume_rejects_strangers_and_unpaused(gateway: Gateway) -> None:
 
 def test_resume_approval_expires(gateway: Gateway, clock: FixedClock) -> None:
     gateway.states.pause("payments", "reviewer.an")
-    gateway.states.resume("payments", "owner.payments")
+    gateway.states.resume("payments", "payops-lead@example.invalid")
     clock.advance(gateway.states.resume_window_s + 1)
     late = gateway.states.resume("payments", "reviewer.an")
     assert late["status"] == "pending"
@@ -66,16 +69,16 @@ def test_resume_approval_expires(gateway: Gateway, clock: FixedClock) -> None:
 def test_resume_returns_to_shadow_when_paused_from_shadow(gateway: Gateway) -> None:
     gateway.states.set_mode("payments", "SHADOW", "admin.chi")
     gateway.states.pause("payments", "reviewer.an")
-    gateway.states.resume("payments", "owner.payments")
+    gateway.states.resume("payments", "payops-lead@example.invalid")
     assert gateway.states.resume("payments", "reviewer.binh")["state"] == "SHADOW"
 
 
 def test_quarantine_denies_everything_and_only_admin_releases(gateway: Gateway) -> None:
     gateway.states.quarantine("payments", "reviewer.an", "confirmed incident")
-    r = call(gateway, "payments", "get_customer", customer_id="C1")
+    r = call(gateway, "payments", "get_balance", account_id="ACC-1")
     assert r["allow"] is False and r["reason"] == "agent quarantined"
     with pytest.raises(TransitionError, match="QUARANTINED"):
-        gateway.states.resume("payments", "owner.payments")
+        gateway.states.resume("payments", "payops-lead@example.invalid")
     with pytest.raises(TransitionError, match="not an admin"):
         gateway.states.release_quarantine("payments", "reviewer.an", "fixed")
     with pytest.raises(TransitionError, match="reason"):
@@ -83,7 +86,7 @@ def test_quarantine_denies_everything_and_only_admin_releases(gateway: Gateway) 
     res = gateway.states.release_quarantine("payments", "admin.chi", "root cause fixed")
     assert res["state"] == "PAUSED"
     # after release the normal two-person resume applies
-    gateway.states.resume("payments", "owner.payments")
+    gateway.states.resume("payments", "payops-lead@example.invalid")
     assert gateway.states.resume("payments", "reviewer.binh")["state"] == "RUNNING"
 
 

@@ -31,11 +31,11 @@ def _reset_default_gate() -> Iterator[None]:
 
 
 def test_allowed_call_runs(gateway: Gateway) -> None:
-    @supervised_tool("customer_service", "1", "get_ticket", "read_only", InProcessGate(gateway))
-    def get_ticket(ticket_id: str) -> str:
+    @supervised_tool("customer_service", "1", "read_ticket", "read_only", InProcessGate(gateway))
+    def read_ticket(ticket_id: str) -> str:
         return f"ticket {ticket_id}"
 
-    assert get_ticket("T1") == "ticket T1"
+    assert read_ticket("T1") == "ticket T1"
 
 
 def test_blocked_call_does_not_run(gateway: Gateway) -> None:
@@ -63,9 +63,9 @@ def test_pause_rule_raises_paused(gateway: Gateway) -> None:
         ext(5)
     assert ran == []
 
-    gateway.states.pause("payments", "owner.payments", "test")
+    gateway.states.pause("payments", "payops-lead@example.invalid", "test")
 
-    @supervised_tool("payments", "1", "internal_transfer", "money", InProcessGate(gateway))
+    @supervised_tool("payments", "1", "transfer", "money", InProcessGate(gateway))
     def transfer(amount_minor: int) -> None:
         ran.append(2)
 
@@ -77,7 +77,7 @@ def test_pause_rule_raises_paused(gateway: Gateway) -> None:
 def test_no_gate_fails_closed() -> None:
     ran: list[int] = []
 
-    @supervised_tool("payments", "1", "get_account_balance", "read_only")
+    @supervised_tool("payments", "1", "get_balance", "read_only")
     def bal() -> None:
         ran.append(1)
 
@@ -89,8 +89,8 @@ def test_no_gate_fails_closed() -> None:
 def test_default_gate_and_async(gateway: Gateway) -> None:
     sdk.set_default_gate(InProcessGate(gateway))
 
-    @supervised_tool("customer_service", "1", "get_ticket", "read_only")
-    async def get_ticket(ticket_id: str) -> str:
+    @supervised_tool("customer_service", "1", "read_ticket", "read_only")
+    async def read_ticket(ticket_id: str) -> str:
         return ticket_id
 
     @supervised_tool("customer_service", "1", "waive_fee", "money")
@@ -98,7 +98,7 @@ def test_default_gate_and_async(gateway: Gateway) -> None:
         return "done"
 
     async def main() -> None:
-        assert await get_ticket("T9") == "T9"
+        assert await read_ticket("T9") == "T9"
         with pytest.raises(SupervisorBlocked):
             await waive("C1", 900000)
 
@@ -129,15 +129,15 @@ def test_http_gate_via_test_client(gateway: Gateway) -> None:
 
         gate = HttpGate("http://gw/", transport=transport)
 
-        @supervised_tool("customer_service", "1", "get_ticket", "read_only", gate)
-        def get_ticket(ticket_id: str) -> str:
+        @supervised_tool("customer_service", "1", "read_ticket", "read_only", gate)
+        def read_ticket(ticket_id: str) -> str:
             return ticket_id
 
         @supervised_tool("customer_service", "1", "waive_fee", "money", gate)
         def waive(customer_id: str, amount_minor: int) -> str:
             return "done"
 
-        assert get_ticket("T1") == "T1"
+        assert read_ticket("T1") == "T1"
         with pytest.raises(SupervisorBlocked):
             waive("C1", 900000)
     finally:
@@ -152,16 +152,16 @@ def test_http_gate_timeout_fail_modes(mode: str) -> None:
         raise TimeoutError("slow")
 
     gate = HttpGate(
-        "http://gw", timeout_s=0.05, transport=transport, fail_modes={"get_ticket": "read_only"}
+        "http://gw", timeout_s=0.05, transport=transport, fail_modes={"read_ticket": "read_only"}
     )
-    money = gate.check("payments", "1", "internal_transfer", {"amount_minor": 1})
+    money = gate.check("payments", "1", "transfer", {"amount_minor": 1})
     assert money["allow"] is False and money["action"] == "block"
     assert money["rule_id"] == "GATE-UNREACHABLE"
     assert isinstance(money["latency_ms"], int)
-    read = gate.check("payments", "1", "get_ticket", {})
+    read = gate.check("payments", "1", "read_ticket", {})
     assert read["allow"] is True and read["action"] == "alert"
 
-    @supervised_tool("payments", "1", "internal_transfer", "money", gate)
+    @supervised_tool("payments", "1", "transfer", "money", gate)
     def transfer(amount_minor: int) -> None:
         raise AssertionError("must not run")
 

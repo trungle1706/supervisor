@@ -26,29 +26,29 @@ def test_negative_and_zero_amounts_are_blocked(gateway: Gateway) -> None:
         r = call(
             gateway,
             "payments",
-            "internal_transfer",
-            customer_id="C1",
+            "transfer",
+            from_account_id="ACC-1",
             payee_id="P1",
             amount_minor=amount,
         )
         assert r["allow"] is False and "PAY-06" in [m["rule_id"] for m in r["matched_rules"]]
-        w = call(gateway, "customer_service", "waive_fee", customer_id="C1", amount_minor=amount)
+        w = call(gateway, "customer_service", "waive_fee", account_id="ACC-1", amount_minor=amount)
         assert w["allow"] is False and w["rule_id"] == "SVC-04"
     # a negative amount never lowers the daily aggregate
     for _ in range(1):
         assert call(
             gateway,
             "payments",
-            "internal_transfer",
-            customer_id="C1",
+            "transfer",
+            from_account_id="ACC-1",
             payee_id="P1",
             amount_minor=100_000_000,
         )["allow"]
     r = call(
         gateway,
         "payments",
-        "internal_transfer",
-        customer_id="C1",
+        "transfer",
+        from_account_id="ACC-1",
         payee_id="P1",
         amount_minor=100_000_000,
     )
@@ -57,7 +57,7 @@ def test_negative_and_zero_amounts_are_blocked(gateway: Gateway) -> None:
 
 def test_quarantine_and_release_void_pending_resume(gateway: Gateway) -> None:
     gateway.states.pause("payments", "reviewer.an")
-    assert gateway.states.resume("payments", "owner.payments")["status"] == "pending"
+    assert gateway.states.resume("payments", "payops-lead@example.invalid")["status"] == "pending"
     gateway.states.quarantine("payments", "reviewer.an", "confirmed")
     gateway.states.release_quarantine("payments", "admin.chi", "fixed")
     r = gateway.states.resume("payments", "reviewer.binh")
@@ -87,27 +87,22 @@ agents:
 
 
 def test_prior_rule_cannot_be_dodged_by_missing_or_retyped_ids(gateway: Gateway) -> None:
-    r = call(gateway, "payments", "internal_transfer", customer_id="C1", amount_minor=10)
-    assert r["allow"] is False and r["rule_id"] == "PAY-04"  # no payee_id: unlinkable
-    assert call(gateway, "payments", "add_payee", customer_id="C1", payee_id=123)["allow"]
-    r = call(
-        gateway,
-        "payments",
-        "internal_transfer",
-        customer_id=" c1 ",
-        payee_id="123",
-        amount_minor=10,
-    )
-    assert r["allow"] is False and r["rule_id"] == "PAY-04"
+    r = call(gateway, "credit_prequal", "decide_prequal", decision="refer")
+    assert r["allow"] is False and r["rule_id"] == "CRD-02"  # no application_id: unlinkable
+    assert call(gateway, "credit_prequal", "fetch_application", application_id=123)["allow"]
+    r = call(gateway, "credit_prequal", "decide_prequal", application_id=" 123 ", decision="refer")
+    assert r["allow"] is True  # same id after normalisation: linked to the earlier read
+    r = call(gateway, "credit_prequal", "decide_prequal", application_id="124", decision="refer")
+    assert r["allow"] is False and r["rule_id"] == "CRD-02"
 
 
 def test_quarantined_agent_stays_denied_during_store_outage(
     gateway: Gateway, adapters: Adapters, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     gateway.states.quarantine("payments", "reviewer.an", "incident")
-    assert call(gateway, "payments", "get_customer", customer_id="C1")["allow"] is False
+    assert call(gateway, "payments", "get_balance", account_id="ACC-1")["allow"] is False
     monkeypatch.setattr(adapters.state, "get", _down)
-    r = call(gateway, "payments", "get_customer", customer_id="C1")
+    r = call(gateway, "payments", "get_balance", account_id="ACC-1")
     assert r["allow"] is False and r["fail_mode"] == "closed"
 
 
