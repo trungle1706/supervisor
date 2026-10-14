@@ -3,10 +3,12 @@
 Every llm_call, tool_call and message is an OTel span with GenAI semantic-convention
 attributes (``gen_ai.*``) plus ``supervisor.*`` attributes. ``AgentEventExporter`` turns
 finished spans into ``AgentEvent`` rows and appends them to a ``TableStore``
-(``agent_event``). WP4 replaces this exporter with the real normaliser and masker.
+(``agent_event``) through the WP4 normaliser (``supervisor.recorder.normalise``).
 
-PII rule: the exporter writes digests only (``capture_level = "digest"``): tool args are
-hashed (``args_hash``), never stored as text.
+PII rule: without a Masker the exporter writes digests only (``capture_level = "digest"``):
+tool args are hashed (``args_hash``), never stored as text. Payload text attributes
+(``supervisor.args`` / ``supervisor.result``) are set only when ``capture_payloads`` is on
+in the runtime (default off).
 """
 
 from __future__ import annotations
@@ -14,7 +16,6 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from opentelemetry.sdk.resources import Resource
@@ -23,7 +24,10 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, Sp
 
 from supervisor.core.canonical import CanonicalError, sha256_hex
 from supervisor.core.models import AgentEvent
-from supervisor.core.ports import TableStore
+from supervisor.core.ports import Masker, TableStore
+from supervisor.recorder.capture import CapturePolicy
+from supervisor.recorder.normalise import Normaliser, span_from_readable
+from supervisor.recorder.sink import EventWriter
 
 # supervisor.* attribute names (the contract with WP3/WP4)
 A_AGENT_ID = "supervisor.agent_id"
@@ -43,6 +47,8 @@ A_GATE_REASON = "supervisor.gate.reason"
 A_GATE_LATENCY = "supervisor.gate.latency_ms"
 A_ENV = "supervisor.env"
 A_CLASSIFICATION = "supervisor.classification"
+A_ARGS = "supervisor.args"
+A_RESULT = "supervisor.result"
 
 
 def args_hash(args: Mapping[str, Any]) -> str:
@@ -54,76 +60,48 @@ def args_hash(args: Mapping[str, Any]) -> str:
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _ts(ns: int | None) -> datetime:
-    return datetime(1970, 1, 1, tzinfo=UTC) + timedelta(microseconds=(ns or 0) // 1000)
-
-
 def span_to_event(span: ReadableSpan, default_env: str = "dev") -> AgentEvent | None:
-    """Convert one finished span to an AgentEvent row (None if not a supervisor span)."""
-    attrs = dict(span.attributes or {})
-    event_type = attrs.get(A_EVENT_TYPE)
-    agent_id = attrs.get(A_AGENT_ID)
-    if not event_type or not agent_id:
-        return None
-    ctx = span.get_span_context()
-    trace_id = f"{ctx.trace_id:032x}"
-    span_id = f"{ctx.span_id:016x}"
-    parent = f"{span.parent.span_id:016x}" if span.parent is not None else None
-    latency = None
-    if span.start_time is not None and span.end_time is not None:
-        latency = int((span.end_time - span.start_time) // 1_000_000)
-    amount = attrs.get(A_AMOUNT)
-    return AgentEvent(
-        event_id=f"{trace_id}-{span_id}",
-        ts=_ts(span.start_time),
-        trace_id=trace_id,
-        span_id=span_id,
-        parent_span_id=parent,
-        agent_id=str(agent_id),
-        agent_version=_opt(attrs.get(A_AGENT_VERSION)),
-        caller_agent_id=_opt(attrs.get(A_CALLER)),
-        event_type=str(event_type),  # type: ignore[arg-type]
-        tool_name=_opt(attrs.get(A_TOOL)),
-        args_hash=_opt(attrs.get(A_ARGS_HASH)),
-        args_masked=None,
-        result_masked=None,
-        amount_minor=amount if type(amount) is int else None,
-        currency=_opt(attrs.get(A_CURRENCY)),
-        status=_opt(attrs.get(A_STATUS)),
-        latency_ms=latency,
-        env=str(attrs.get(A_ENV) or default_env),
-        classification=_opt(attrs.get(A_CLASSIFICATION)),
-        source="otel",
-        capture_level="digest",
+    """Convert one finished span to an AgentEvent row (None if not a supervisor span).
+
+    Digest level (no Masker): goes through the WP4 normaliser like every other path."""
+    item = Normaliser(None, CapturePolicy.digest_only(), default_env).normalise(
+        span_from_readable(span), "otel"
     )
-
-
-def _opt(value: Any) -> str | None:
-    return None if value is None or value == "" else str(value)
+    return item.event if item is not None else None
 
 
 class AgentEventExporter(SpanExporter):
-    """In-memory span exporter -> ``agent_event`` rows in a TableStore.
+    """In-process span exporter -> ``agent_event`` rows in a TableStore (source ``otel``).
 
-    ``store`` may be None (rows are kept in ``self.events`` only)."""
+    Rows come from ``supervisor.recorder.normalise`` (the same code as the OTLP receiver).
+    ``store`` may be None (rows are kept in ``self.events`` only). Without a ``masker`` every
+    row is ``digest`` (no text). With a masker, the capture ``policy`` (from the agent
+    manifests) decides digest / masked / raw; raw rows go to ``agent_event_raw``."""
 
-    def __init__(self, store: TableStore | None = None, env: str = "dev") -> None:
+    def __init__(
+        self,
+        store: TableStore | None = None,
+        env: str = "dev",
+        *,
+        masker: Masker | None = None,
+        policy: CapturePolicy | None = None,
+    ) -> None:
         self.store = store
         self.env = env
+        self.normaliser = Normaliser(
+            masker, policy or (CapturePolicy() if masker else CapturePolicy.digest_only()), env
+        )
+        self.writer = EventWriter(store) if store is not None else None
         self.events: list[AgentEvent] = []
         self.spans: list[ReadableSpan] = []
 
     def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
-        rows = []
-        for span in spans:
-            self.spans.append(span)
-            event = span_to_event(span, self.env)
-            if event is not None:
-                rows.append(event)
-        if rows:
-            self.events.extend(rows)
-            if self.store is not None:
-                self.store.append("agent_event", rows)
+        self.spans.extend(spans)
+        items = self.normaliser.normalise_many((span_from_readable(s) for s in spans), "otel")
+        if items:
+            self.events.extend(i.event for i in items)
+            if self.writer is not None:
+                self.writer.write(items)  # idempotent by event_id
         return SpanExportResult.SUCCESS
 
     def shutdown(self) -> None:
