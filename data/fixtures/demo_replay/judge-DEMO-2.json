@@ -1,0 +1,10 @@
+{
+  "label": "RECORDED live run of the same code (fixture, synthetic data)",
+  "lines": [
+    "[OK] judge tier 1 (MOCK mock-judge-t1-v1): suspicion 458 bp, label benign (advisory)",
+    "[OK] judge outcome: log (benign); 0 case request(s) to the case service; the judge never calls the gate"
+  ],
+  "recorded_at": "2026-10-14T15:54:30Z",
+  "source": "python -m supervisor.cli demo --record (MockJudge)",
+  "step": "judge-DEMO-2"
+}
