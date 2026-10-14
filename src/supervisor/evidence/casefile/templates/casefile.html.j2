@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ cf.case_id }} - Hồ sơ sự cố / Case file</title>
+<style>
+body { font-family: "Segoe UI", Arial, sans-serif; margin: 2rem auto; max-width: 60rem;
+  color: #1a1a1a; line-height: 1.45; padding: 0 1rem; }
+h1 { font-size: 1.5rem; border-bottom: 3px solid #1a1a1a; padding-bottom: .3rem; }
+h2 { font-size: 1.15rem; margin-top: 2rem; border-bottom: 1px solid #888; }
+table { border-collapse: collapse; width: 100%; margin: .5rem 0; }
+th, td { border: 1px solid #bbb; padding: .3rem .5rem; text-align: left; vertical-align: top; }
+th { background: #f0f0f0; }
+code { font-family: Consolas, "DejaVu Sans Mono", monospace; word-break: break-all; }
+.clock { border: 2px solid #1a1a1a; padding: .6rem 1rem; margin: .5rem 0; }
+.overdue { border-color: #b00020; background: #fdecee; font-weight: bold; }
+.mock { background: #fff3cd; border: 1px solid #b38600; padding: 0 .3rem; font-weight: bold; }
+.note { color: #555; font-size: .9rem; }
+footer { margin-top: 3rem; border-top: 1px solid #888; padding-top: .5rem; font-size: .85rem; }
+</style>
+</head>
+<body>
+<h1>Hồ sơ sự cố / Case file: {{ cf.case_id }}</h1>
+
+<h2>Hồ sơ sự cố / Case file</h2>
+<table>
+<tr><th>Mã hồ sơ / Case ID</th><td>{{ cf.case_id }}</td></tr>
+<tr><th>Tác nhân / Agent</th><td>{{ cf.agent_id }}</td></tr>
+<tr><th>Mức độ / Severity</th><td>{{ cf.severity }}</td></tr>
+<tr><th>Trạng thái / Status</th><td>{{ cf.status }}</td></tr>
+<tr><th>Tóm tắt / Summary</th><td>{{ cf.summary }}</td></tr>
+<tr><th>Mở lúc / Opened</th><td>{{ cf.opened_at | utc }} ({{ cf.opened_at | ict }})</td></tr>
+<tr><th>Đóng lúc / Closed</th><td>{{ cf.closed_at | utc }}</td></tr>
+<tr><th>Người phụ trách / Assignee</th><td>{{ cf.assignee or "-" }}</td></tr>
+<tr><th>Tham chiếu ITSM / ITSM ref</th><td>{{ cf.itsm_ref or "-" }}</td></tr>
+<tr><th>Căn cứ quy định / Regulation refs</th>
+<td>{{ cf.regulation_refs | join(", ") or "-" }}</td></tr>
+</table>
+
+<h2>Đồng hồ báo cáo NHNN (24 giờ) / SBV reporting clocks (24 h)</h2>
+<div class="clock{% if cf.sbv.report_overdue or cf.sbv.remediation_overdue %} overdue{% endif %}">
+<p>Phát hiện sự cố / Incident detected:
+<code>{{ cf.sbv.incident_detected_at | utc }}</code> | {{ cf.sbv.incident_detected_at | ict }}</p>
+<p>Hạn báo cáo / Report due (24 h):
+<code>{{ cf.sbv.report_due_at | utc }}</code> | {{ cf.sbv.report_due_at | ict }}
+{% if cf.sbv.report_overdue %}- QUÁ HẠN / OVERDUE{% endif %}</p>
+<p>Hạn khắc phục (5 ngày) / Remediation due (5 days, {{ cf.sbv.remediation_basis }}):
+<code>{{ cf.sbv.remediation_due_at | utc }}</code> | {{ cf.sbv.remediation_due_at | ict }}
+{% if cf.sbv.remediation_overdue %}- QUÁ HẠN / OVERDUE{% endif %}</p>
+<p class="note">Câu hỏi mở / Open question: 5 ngày có thể là ngày làm việc /
+5 days may mean working days.</p>
+</div>
+
+<h2>Phân loại theo Quyết định 33 / Decision 33 classification</h2>
+<p>{{ cf.decision33_classification }}</p>
+
+<h2>Dòng thời gian / Timeline</h2>
+<table>
+<tr><th>Thời điểm / Time (UTC)</th><th>Nguồn / Source</th><th>Tác nhân / Actor</th>
+<th>Hành động / Action</th><th>Nội dung / Text</th><th>Tham chiếu / Ref</th></tr>
+{% for t in cf.timeline %}
+<tr><td>{{ t.ts | utc }}</td><td>{{ t.source }}</td><td>{{ t.actor }} ({{ t.actor_kind }})</td>
+<td>{{ t.action }}</td><td>{{ t.text or "" }}</td><td><code>{{ t.ref }}</code></td></tr>
+{% else %}
+<tr><td colspan="6">Không có / None</td></tr>
+{% endfor %}
+</table>
+
+<h2>Quy tắc bị vi phạm / Rules broken</h2>
+<table>
+<tr><th>Quy tắc / Rule</th><th>Verdict</th><th>Thời điểm / Time (UTC)</th>
+<th>Nhãn / Label</th><th>Hành động / Action</th><th>Căn cứ / Regulation</th></tr>
+{% for r in cf.rules_broken %}
+<tr><td>{{ r.rule_id or "-" }}</td><td><code>{{ r.verdict_id }}</code></td>
+<td>{{ r.ts | utc }}</td><td>{{ r.label }}</td><td>{{ r.action }}</td>
+<td>{{ r.regulation_refs | join(", ") }}</td></tr>
+{% else %}
+<tr><td colspan="6">Không có / None</td></tr>
+{% endfor %}
+</table>
+
+<h2>Phát hiện của bộ đánh giá AI (chỉ tư vấn) / AI judge findings (advisory only)</h2>
+<table>
+<tr><th>Verdict</th><th>Thời điểm / Time (UTC)</th><th>Bộ đánh giá / Judge</th>
+<th>Nhãn / Label</th><th>Điểm / Score (bp)</th><th>Lý do / Rationale</th></tr>
+{% for j in cf.judge_findings %}
+<tr><td><code>{{ j.verdict_id }}</code></td><td>{{ j.ts | utc }}</td>
+<td>{{ j.checker_id }} / {{ j.model_id or "-" }}
+{% if j.is_mock %}<span class="mock">MOCK</span>{% endif %}</td>
+<td>{{ j.label }}</td><td>{{ j.score_bp if j.score_bp is not none else "-" }}</td>
+<td>{{ j.rationale_masked or "" }}</td></tr>
+{% else %}
+<tr><td colspan="6">Không có / None</td></tr>
+{% endfor %}
+</table>
+
+<h2>Phê duyệt của con người / Human sign-offs</h2>
+<table>
+<tr><th>Mã / ID</th><th>Người duyệt / Reviewer</th><th>Quyết định / Decision</th>
+<th>Lý do / Reason</th><th>Thời điểm / Time (UTC)</th><th>Xác thực / Auth</th></tr>
+{% for s in cf.signoffs %}
+<tr><td><code>{{ s.signoff_id }}</code></td><td>{{ s.reviewer_id }}</td><td>{{ s.decision }}</td>
+<td>{{ s.reason }}</td><td>{{ s.ts | utc }}</td><td>{{ s.auth_method }}</td></tr>
+{% else %}
+<tr><td colspan="6">Không có / None</td></tr>
+{% endfor %}
+</table>
+
+<h2>Tham chiếu chuỗi bằng chứng / Evidence chain reference</h2>
+{% if cf.chain %}
+<table>
+<tr><th>Làn / Lane</th><td><code>{{ cf.chain.lane }}</code></td></tr>
+<tr><th>Dải số thứ tự / Seq range</th><td>{{ cf.chain.seq_from }} - {{ cf.chain.seq_to }}
+({{ cf.chain.entry_count }})</td></tr>
+<tr><th>Hash đầu chuỗi / Head hash</th><td><code>{{ cf.chain.head_hash }}</code></td></tr>
+</table>
+{% else %}
+<p>Chưa có bản ghi chuỗi / No chain entries yet.</p>
+{% endif %}
+
+<footer>
+<p>Tạo lúc / Generated at: {{ cf.generated_at | utc }} ({{ cf.generated_at | ict }})</p>
+<p>mask_version: {{ cf.mask_version }} | generator: {{ cf.generator_version }}</p>
+<p>SHA-256 của tệp này được ghi vào chuỗi bằng chứng (record_type case_file) /
+The sha256 of this file is recorded in the evidence chain (record_type case_file).</p>
+</footer>
+</body>
+</html>
