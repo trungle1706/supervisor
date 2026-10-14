@@ -368,6 +368,7 @@ class Gateway:
         state_cache_ttl_s: float = 1.0,
         workers: int = 8,
         trust_body_principal: bool = True,
+        require_caller_id: bool = False,
     ) -> None:
         self.policy = policy
         self.tables = tables
@@ -384,6 +385,9 @@ class Gateway:
         self.timeout_s = timeout_s
         self.env = env
         self.trust_body_principal = trust_body_principal
+        # ADR D10 (WP7): a handoff call without caller_agent_id fails closed for
+        # money / credit / pii_export tools. Off by default (REQUIRE_CALLER_ID).
+        self.require_caller_id = require_caller_id
         self.metrics = GateMetrics()
         self.windows = WindowStore()
         self._lock = threading.RLock()
@@ -570,6 +574,17 @@ class Gateway:
                 builtin = ("GATE-PAUSED", "agent paused")
             elif risk is None and state != "SHADOW":
                 builtin = ("GATE-UNKNOWN-TOOL", f"unknown tool {tool_name}: fail closed")
+            elif (
+                self.require_caller_id
+                and state != "SHADOW"
+                and DEFAULT_FAIL_MODE.get(risk or "") == "closed"
+                and _is_handoff(ctx)
+                and not _caller(ctx)
+            ):
+                builtin = (
+                    "GATE-NO-CALLER",
+                    f"handoff to {agent_id} without caller_agent_id: fail closed (ADR D10)",
+                )
             else:
                 for rule in policy.rules_for(agent_id):
                     try:
@@ -1058,6 +1073,16 @@ class Gateway:
 
 # Grouping ids always hashed into gate events, so a new aggregate rule has history.
 DEFAULT_KEYS = frozenset({"customer_id", "payee_id", "application_id", "account_id"})
+
+
+def _is_handoff(ctx: Mapping[str, Any]) -> bool:
+    """The call was handed over by another agent (context ``handoff: true``, ADR D10)."""
+    return ctx.get("handoff") is True or ctx.get("via") == "handoff"
+
+
+def _caller(ctx: Mapping[str, Any]) -> str | None:
+    caller = ctx.get("caller_agent_id")
+    return caller if isinstance(caller, str) and caller.strip() else None
 
 
 def _window_tools(policy: Policy) -> set[str]:
