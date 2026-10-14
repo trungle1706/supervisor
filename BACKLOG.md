@@ -13,3 +13,8 @@
 | SIEM / ITSM / pager live adapters | Bank endpoint owners named |
 | YAML → Cedar policy compiler (D11) | H1 2027 when policies need formal analysis |
 | gitleaks binary for repo scrubbing | Bank supplies an approved binary; regex scrubber until then |
+| Schema migration step (ALTER TABLE ADD COLUMNS for existing SQLite/Delta tables) | WP10: bootstrap_schema must diff live columns against model.yaml and add missing ones |
+| OTLP receiver authentication (any caller can write spans for any agent id) | WP8 Principal adapters; per-agent ingest tokens |
+| Spool directory on a durable path on the Databricks App (/tmp is wiped) | WP10 runbook + settings default to a UC Volume path |
+| Ingest job lock against concurrent runs | WP7 scheduler owns the single ingest run |
+| Masking recall measured on real Vietnamese text (synthetic set scores 1.000 by construction) | Bank supplies a labelled sample; a masking miss is an incident |
