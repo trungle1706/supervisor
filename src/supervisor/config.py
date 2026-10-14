@@ -123,6 +123,8 @@ class Settings(BaseSettings):
     llm_model: str = "qwen3:4b"
     llm_api_key: SecretStr | None = None
     llm_timeout_s: int = Field(default=600, ge=1)
+    llm_max_tokens: int = Field(default=8192, ge=16)  # WP2: cap against repetition loops
+    llm_mock: bool = False  # WP2: LLM_MOCK=1 forces MockChat even when LLM_BASE_URL is set
     llm_endpoint: str | None = None  # Databricks serving endpoint name (App binding)
 
     @field_validator("data_dir", "sqlite_path", mode="after")

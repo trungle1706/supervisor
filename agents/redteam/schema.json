@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "supervisor/redteam/incident.schema.json",
+  "title": "Red-team incident case",
+  "description": "One line of agents/redteam/incidents.jsonl. All content is synthetic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "agent", "taxonomy", "vector", "language", "input", "expected_detection", "severity", "notes"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^RT-[0-9]{3,4}$"},
+    "agent": {"type": "string", "enum": ["customer_service", "credit_prequal", "payments", "multi"]},
+    "taxonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owasp_agentic", "finvault"],
+      "properties": {
+        "owasp_agentic": {
+          "type": "string",
+          "enum": [
+            "ASI01 Agent Goal Hijack",
+            "ASI02 Tool Misuse and Exploitation",
+            "ASI03 Identity and Privilege Abuse",
+            "ASI04 Agentic Supply Chain Vulnerabilities",
+            "ASI05 Unexpected Code Execution",
+            "ASI06 Memory and Context Poisoning",
+            "ASI07 Insecure Inter-Agent Communication",
+            "ASI08 Cascading Failures",
+            "ASI09 Human-Agent Trust Exploitation",
+            "ASI10 Rogue Agents",
+            "none"
+          ]
+        },
+        "finvault": {
+          "type": "string",
+          "enum": [
+            "unauthorized_transaction",
+            "limit_circumvention",
+            "data_leakage",
+            "fraud_facilitation",
+            "unfair_lending",
+            "policy_violation",
+            "hallucinated_commitment",
+            "compliance_bypass",
+            "none"
+          ]
+        }
+      }
+    },
+    "vector": {
+      "type": "string",
+      "enum": [
+        "prompt_injection_ticket",
+        "prompt_injection_document",
+        "tool_misuse",
+        "data_exfil",
+        "limit_evasion",
+        "split_payment",
+        "social_engineering",
+        "policy_drift",
+        "hallucinated_approval",
+        "privilege_escalation",
+        "unapproved_tool",
+        "missing_documents",
+        "biased_decision",
+        "benign"
+      ]
+    },
+    "language": {"type": "string", "enum": ["vi", "en"]},
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channel", "content"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "enum": ["ticket", "chat", "document", "application", "tool_result", "agent_message"]
+        },
+        "content": {"type": "string", "minLength": 1},
+        "planned_tool_calls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["agent", "tool", "args"],
+            "properties": {
+              "agent": {"type": "string", "enum": ["customer_service", "credit_prequal", "payments"]},
+              "tool": {"type": "string", "minLength": 1},
+              "args": {"type": "object"}
+            }
+          }
+        }
+      }
+    },
+    "expected_detection": {"type": "string", "enum": ["rule", "judge", "drift", "none-benign"]},
+    "severity": {"type": "string", "enum": ["none", "low", "medium", "high", "critical"]},
+    "notes": {"type": "string"}
+  }
+}

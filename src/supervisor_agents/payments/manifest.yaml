@@ -1,0 +1,40 @@
+# Agent manifest (synthetic demo agent).
+id: payments
+name: Payments assistant agent
+version: "1.0.0"
+owner: Payments Ops
+owner_user: payops-lead@example.invalid
+risk_tier: critical
+model_family: qwen
+model_id: qwen3:4b
+host_type: python_inprocess
+plug_point: gate_hook
+description: >
+  Helps retail customers with balances, payees and domestic transfers between accounts
+  at the bank and to other Vietnamese banks via NAPAS. Never sends money abroad.
+limits:
+  transfer_max_minor: 100000000          # VND per transfer
+  daily_transfer_max_minor: 300000000    # VND per customer per day
+tools:
+  - name: get_balance
+    risk_class: read_only
+    description: Read the balance of an account.
+    args: {account_id: string}
+  - name: list_payees
+    risk_class: read_only
+    description: List saved payees of a customer.
+    args: {customer_id: string}
+  - name: add_payee
+    risk_class: pii_export
+    description: Add a new payee (name, bank code, account number) for a customer.
+    args: {customer_id: string, payee_name: string, bank_code: string, account_number: string}
+  - name: transfer
+    risk_class: money
+    description: Domestic transfer from a customer account to a saved payee. Amount in VND minor units.
+    args: {from_account_id: string, payee_id: string, amount_minor: integer, memo: string}
+  - name: ext_transfer_api
+    risk_class: money
+    description: >
+      Raw external transfer API (any bank, any country, any account). Registered for
+      operations staff only; not approved for this agent's customer flows.
+    args: {to_bank_swift: string, to_account: string, amount_minor: integer, currency: string, memo: string}
