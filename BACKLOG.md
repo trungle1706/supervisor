@@ -18,3 +18,8 @@
 | Spool directory on a durable path on the Databricks App (/tmp is wiped) | WP10 runbook + settings default to a UC Volume path |
 | Ingest job lock against concurrent runs | WP7 scheduler owns the single ingest run |
 | Masking recall measured on real Vietnamese text (synthetic set scores 1.000 by construction) | Bank supplies a labelled sample; a masking miss is an incident |
+| Payee cooling-period rule (new payee then transfer within N minutes) | Needs the `add_payee` result (`payee_id`) as a fact in the gate context; add a result-fact channel to the gateway |
+| FactSource adapter to the bank's system of record (documents on file, approved payees) | Demo uses the in-memory BankWorld; the app has no fact source, so CRD-01 fails closed outside the demo |
+| Key id on `agent_event` args hash rows; HMAC for grouping keys in `args_masked` | Small gateway/recorder follow-up after WP7 |
+| Judge retries only on timeouts; `--split dev` default in the eval CLI | Reviewer suggestions from WP5, low priority |
+| Verdict table `score` float column retained for compatibility | WP7 adds `score_bp`; drop `score` at the first schema reset before any live data |
