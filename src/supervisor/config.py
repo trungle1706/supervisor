@@ -1,0 +1,196 @@
+"""Settings for every target. One codebase; the environment is chosen by config only.
+
+Values come from environment variables and ``.env`` (pydantic-settings).
+Rules enforced at load:
+
+* ``DATABRICKS_TOKEN`` set anywhere (env or .env) -> hard failure (OAuth only).
+* ``LLM_BASE_URL`` must be loopback unless ``LLM_ALLOW_REMOTE=1``.
+* Every path is resolved to an absolute path once, here.
+* Values that start with ``FILL-ME`` count as "not configured".
+"""
+
+from __future__ import annotations
+
+import ipaddress
+import os
+from functools import lru_cache
+from pathlib import Path
+from typing import Literal
+from urllib.parse import urlparse
+
+from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from supervisor.core.errors import ConfigError
+
+PLACEHOLDER_PREFIX = "FILL-ME"
+FORBIDDEN_ENV = "DATABRICKS_TOKEN"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+Mode = Literal["laptop", "databricks_app", "dev"]
+SqlBackend = Literal["auto", "sqlite", "databricks_rest"]
+
+
+def is_placeholder(value: str | None) -> bool:
+    return value is None or value.strip() == "" or value.strip().startswith(PLACEHOLDER_PREFIX)
+
+
+def is_loopback_url(url: str) -> bool:
+    host = (urlparse(url).hostname or "").strip("[]").lower()
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _env_file_keys(path: Path) -> set[str]:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return set()
+    keys = set()
+    for line in lines:
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key = line.split("=", 1)[0].strip()
+            if key.startswith("export "):
+                key = key[len("export ") :].strip()
+            keys.add(key)
+    return keys
+
+
+def check_no_databricks_token(env_file: Path | None = None) -> None:
+    """Raise ConfigError if DATABRICKS_TOKEN is set. Never shows the value."""
+    env_file = env_file or Path.cwd() / ".env"
+    if FORBIDDEN_ENV in os.environ:
+        raise ConfigError(
+            "DATABRICKS_TOKEN is set in the environment. Personal access tokens are not "
+            "allowed (OAuth only). Fix: set DATABRICKS_TOKEN=   then run "
+            "databricks auth login --host <host> --profile <profile>"
+        )
+    if FORBIDDEN_ENV in _env_file_keys(env_file):
+        raise ConfigError(f"DATABRICKS_TOKEN appears in {env_file}. Remove that line (OAuth only).")
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    supervisor_mode: Mode = "laptop"
+    data_dir: Path = Path("data/local")
+    host: str = "127.0.0.1"
+    port: int = 8000
+    log_level: str = "INFO"
+
+    # Network
+    ssl_os_truststore: bool = False
+
+    # SQL backend: auto = sqlite for laptop/dev, databricks_rest for databricks_app
+    sql_backend: SqlBackend = "auto"
+    sqlite_path: Path | None = None
+    table_prefix: str = Field(default="", pattern=r"^[a-z0-9_]*$")
+
+    # Databricks (OAuth only: CLI profile on the laptop, platform SP on the App)
+    databricks_host: str | None = None
+    databricks_config_profile: str | None = None
+    databricks_auth_type: str | None = None
+    databricks_warehouse_id: str | None = None
+    databricks_warehouse_name: str | None = None
+    databricks_catalog: str | None = None
+    databricks_schema: str | None = None
+    databricks_sql_transport: Literal["rest"] = "rest"
+    databricks_retry_timeout_s: int = Field(default=90, ge=60, le=120)
+    databricks_statement_deadline_s: int = Field(default=120, ge=10, le=600)
+
+    # LLM (OpenAI-compatible). Empty base URL = mock judges only.
+    llm_base_url: str = "http://127.0.0.1:11434/v1"
+    llm_allow_remote: bool = False
+    llm_model: str = "qwen3:4b"
+    llm_api_key: SecretStr | None = None
+    llm_timeout_s: int = Field(default=600, ge=1)
+    llm_endpoint: str | None = None  # Databricks serving endpoint name (App binding)
+
+    @field_validator("data_dir", "sqlite_path", mode="after")
+    @classmethod
+    def _absolute(cls, value: Path | None) -> Path | None:
+        if value is None:
+            return None
+        return Path(os.path.abspath(value.expanduser()))
+
+    @model_validator(mode="after")
+    def _rules(self) -> Settings:
+        if self.sqlite_path is None:
+            self.sqlite_path = self.data_dir / "supervisor.db"
+        if (
+            self.llm_base_url
+            and not self.llm_allow_remote
+            and not is_loopback_url(self.llm_base_url)
+        ):
+            raise ValueError(
+                "LLM_BASE_URL must be a loopback address (127.0.0.1 / localhost / ::1) "
+                "unless LLM_ALLOW_REMOTE=1 (zero AI egress house rule)"
+            )
+        if self.databricks_catalog and not is_placeholder(self.databricks_catalog):
+            _check_identifier("DATABRICKS_CATALOG", self.databricks_catalog)
+        if self.databricks_schema and not is_placeholder(self.databricks_schema):
+            _check_identifier("DATABRICKS_SCHEMA", self.databricks_schema)
+        return self
+
+    @property
+    def effective_sql_backend(self) -> Literal["sqlite", "databricks_rest"]:
+        if self.sql_backend != "auto":
+            return self.sql_backend
+        return "databricks_rest" if self.supervisor_mode == "databricks_app" else "sqlite"
+
+    @property
+    def databricks_configured(self) -> bool:
+        has_wh = not is_placeholder(self.databricks_warehouse_id) or not is_placeholder(
+            self.databricks_warehouse_name
+        )
+        return (
+            has_wh
+            and not is_placeholder(self.databricks_catalog)
+            and not is_placeholder(self.databricks_schema)
+        )
+
+    def describe_target(self) -> str:
+        """Human-readable target for error messages. Never includes secrets."""
+        if self.effective_sql_backend == "sqlite":
+            return f"sqlite file {self.sqlite_path}"
+        return (
+            f"databricks host={self.databricks_host or '(from profile/env)'} "
+            f"profile={self.databricks_config_profile or '-'} "
+            f"warehouse={self.databricks_warehouse_id or self.databricks_warehouse_name} "
+            f"schema={self.databricks_catalog}.{self.databricks_schema} transport=rest"
+        )
+
+
+def _check_identifier(name: str, value: str) -> None:
+    import re
+
+    if not re.fullmatch(r"[A-Za-z0-9_]+", value):
+        raise ValueError(f"{name} must be a plain identifier (letters, digits, _): {value!r}")
+
+
+def load_settings(**overrides: object) -> Settings:
+    """Load settings, enforcing the no-PAT rule first. Raises ConfigError."""
+    check_no_databricks_token()
+    try:
+        return Settings(**overrides)  # type: ignore[arg-type]
+    except ValidationError as exc:
+        parts = []
+        for err in exc.errors(include_input=False, include_url=False):
+            loc = ".".join(str(x) for x in err["loc"]).upper() or "settings"
+            parts.append(f"{loc}: {err['msg']}")
+        raise ConfigError("invalid settings: " + "; ".join(parts)) from exc
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return load_settings()

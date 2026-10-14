@@ -1,0 +1,47 @@
+# Databricks Asset Bundle for the Supervisor app.
+# Per-workspace values are FILL-ME placeholders. Edit them INLINE in your local copy only.
+# Do not commit real values. No bundle variables, no --var flags, no secret scopes.
+bundle:
+  name: supervisor
+
+sync:
+  exclude:
+    - .venv
+    - data
+    - runs
+    - tests
+    - docs/handoff
+
+resources:
+  apps:
+    supervisor:
+      name: supervisor-FILL-ME-username
+      description: "Supervisor - onboard and watch AI agents (Onboard + Watch)"
+      source_code_path: ./
+      user_api_scopes:
+        - sql
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: FILL-ME-warehouse-id
+            permission: CAN_USE
+        - name: llm-endpoint
+          serving_endpoint:
+            name: FILL-ME-serving-endpoint-name
+            permission: CAN_QUERY
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://FILL-ME-workspace-host
+  prod:
+    mode: production
+    workspace:
+      host: https://FILL-ME-workspace-host
+      root_path: /Workspace/Users/FILL-ME-user-email/.bundle/${bundle.name}/${bundle.target}
+    resources:
+      apps:
+        supervisor:
+          name: supervisor-prod-FILL-ME-username

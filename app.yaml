@@ -1,0 +1,20 @@
+# Databricks App runtime. No package index at runtime: dependencies install at BUILD
+# from requirements.txt (exported from uv.lock). Start with plain python -m uvicorn.
+command: [python, -m, uvicorn, supervisor.app:app, --host, "0.0.0.0", --port, "8000"]
+env:
+  - name: PYTHONPATH
+    value: "src"
+  - name: SUPERVISOR_MODE
+    value: "databricks_app"
+  - name: DATA_DIR
+    value: "/tmp/supervisor"  # ephemeral cache only; durable state is in Delta
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: LLM_ENDPOINT
+    valueFrom: llm-endpoint
+  - name: DATABRICKS_CATALOG
+    value: "FILL-ME-catalog"
+  - name: DATABRICKS_SCHEMA
+    value: "FILL-ME-schema"
+  - name: LLM_BASE_URL
+    value: ""  # WP2 builds the serving-endpoint URL from DATABRICKS_HOST + LLM_ENDPOINT
