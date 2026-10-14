@@ -31,6 +31,7 @@ from supervisor.recorder.normalise import Normalised
 
 EVENT_TABLE = "agent_event"
 RAW_TABLE = "agent_event_raw"
+COVERAGE_TABLE = "trace_coverage"
 SPOOL_SUFFIX = ".jsonl"
 
 
@@ -104,11 +105,8 @@ class EventWriter:
         self.spool = spool
 
     def _existing(self, table: str, ids: Iterable[str]) -> set[str]:
-        found = set()
-        for event_id in ids:
-            if self.tables.query(table, {"event_id": event_id}, limit=1):
-                found.add(event_id)
-        return found
+        key = "coverage_id" if table == COVERAGE_TABLE else "event_id"
+        return {i for i in ids if self.tables.query(table, {key: i}, limit=1)}
 
     def _append_new(self, table: str, rows: Sequence[Any], key: Any) -> tuple[int, int]:
         """Append rows not yet stored. Returns (written, duplicates)."""
@@ -147,3 +145,9 @@ class EventWriter:
         return self.write_rows(
             [i.event for i in items], [i.raw for i in items if i.raw is not None]
         )
+
+    def write_coverage(self, rows: Sequence[Mapping[str, Any]]) -> int:
+        """Append trace_coverage rows not yet stored (idempotent by coverage_id)."""
+        if not rows:
+            return 0
+        return self._append_new(COVERAGE_TABLE, rows, lambda r: r["coverage_id"])[0]

@@ -150,6 +150,30 @@ BEGIN
   SELECT RAISE(ABORT, 'agent_event_raw is append-only');
 END;
 
+-- trace_coverage (append_only): What each trace input path can see per agent (WP4). A proxy-log agent gets capability reduced with the list of missing fields. One row per agent, source and capability.
+CREATE TABLE IF NOT EXISTS trace_coverage (
+  coverage_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  source TEXT NOT NULL,
+  capability TEXT NOT NULL,
+  missing TEXT NOT NULL,
+  note TEXT,
+  PRIMARY KEY (coverage_id)
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_trace_coverage_no_update
+BEFORE UPDATE ON trace_coverage
+BEGIN
+  SELECT RAISE(ABORT, 'trace_coverage is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_trace_coverage_no_delete
+BEFORE DELETE ON trace_coverage
+BEGIN
+  SELECT RAISE(ABORT, 'trace_coverage is append-only');
+END;
+
 -- rule (state): Deployed copy of policy rules (git is the source).
 CREATE TABLE IF NOT EXISTS rule (
   rule_id TEXT NOT NULL,

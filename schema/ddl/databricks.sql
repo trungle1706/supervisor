@@ -132,6 +132,22 @@ USING DELTA
 COMMENT 'RESTRICTED. Unmasked args/result text for agents whose manifest allows capture level raw (capture.raw_allowed). Restricted group only, short TTL (raw 90 d). Never read by judges or the chain. Rows link to agent_event by event_id.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
 
+-- trace_coverage (append_only): What each trace input path can see per agent (WP4). A proxy-log agent gets capability reduced with the list of missing fields. One row per agent, source and capability.
+-- primary key (enforced by the app, not by Delta): coverage_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`trace_coverage` (
+  coverage_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  agent_id STRING NOT NULL,
+  source STRING NOT NULL,
+  capability STRING NOT NULL,
+  missing STRING NOT NULL,
+  note STRING
+)
+USING DELTA
+COMMENT 'What each trace input path can see per agent (WP4). A proxy-log agent gets capability reduced with the list of missing fields. One row per agent, source and capability.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+
 -- rule (state): Deployed copy of policy rules (git is the source).
 -- primary key (enforced by the app, not by Delta): rule_id, version
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`rule` (

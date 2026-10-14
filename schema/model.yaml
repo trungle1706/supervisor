@@ -140,6 +140,21 @@ tables:
       result_raw: text?
       access_class: string
 
+  trace_coverage:
+    kind: append_only
+    description: >
+      What each trace input path can see per agent (WP4). A proxy-log agent gets capability
+      reduced with the list of missing fields. One row per agent, source and capability.
+    primary_key: [coverage_id]
+    columns:
+      coverage_id: string
+      ts: timestamp
+      agent_id: string
+      source: string
+      capability: string
+      missing: json
+      note: text?
+
   rule:
     kind: state
     description: Deployed copy of policy rules (git is the source).
