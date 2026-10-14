@@ -325,3 +325,22 @@ CREATE TABLE IF NOT EXISTS oversight_metric (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (metric_date, agent_id)
 );
+
+-- gate_control (state): Gateway control records (WP3). Active pause (with the state to resume to) and pending two-person resume approvals.
+CREATE TABLE IF NOT EXISTS gate_control (
+  control_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  principal TEXT NOT NULL,
+  role TEXT,
+  reason TEXT,
+  resume_to TEXT,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (control_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_gate_control_agent_id_status ON gate_control (agent_id, status);

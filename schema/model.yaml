@@ -260,3 +260,21 @@ tables:
       groundedness: float?
       fairness_gap: float?
       computed_at: timestamp
+
+  gate_control:
+    kind: state
+    description: Gateway control records (WP3). Active pause (with the state to resume to) and pending two-person resume approvals.
+    primary_key: [control_id]
+    indexes:
+      - [agent_id, status]
+    columns:
+      control_id: string
+      agent_id: string
+      action: string
+      principal: string
+      role: string?
+      reason: text?
+      resume_to: string?
+      status: string
+      created_at: timestamp
+      expires_at: timestamp?

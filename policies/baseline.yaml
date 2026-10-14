@@ -1,0 +1,271 @@
+# Supervisor gateway baseline policy (WP3).
+# Source: product spec (docs/handoff/docs/02-product-spec.md, 07-demo-and-video.md) and ADRs D01-D04, D11.
+# Money is integer minor units (VND has no minor unit: 1 VND = 1).
+# Regulation references are working labels; confirm wording with the bank's legal and risk teams.
+# Approver ids and owners are synthetic demo identities.
+# Schema: policies/schema.json. Loader: supervisor.gateway.policy.
+
+policy_version: 1
+
+tools:
+  # shared read tools
+  get_customer: read_only
+  get_ticket: read_only
+  reply_ticket: read_only
+  # payments
+  get_account_balance: read_only
+  list_payees: read_only
+  add_payee: money
+  internal_transfer: money
+  ext_transfer_api: money
+  # customer service
+  lookup_fee_schedule: read_only
+  waive_fee: money
+  # credit pre-qualification
+  fetch_documents: read_only
+  get_credit_score: read_only
+  credit_decision: credit
+  # data export (no agent is approved for it)
+  export_customer_data: pii_export
+
+agents:
+  payments:
+    name: Payments agent
+    owner_user: owner.payments
+    owner_team: Payments Ops
+    risk_tier: critical
+    initial_state: RUNNING
+  customer_service:
+    name: Customer service agent
+    owner_user: owner.service
+    owner_team: Retail Service
+    risk_tier: high
+    initial_state: RUNNING
+  credit_prequal:
+    name: Credit pre-qualification agent
+    owner_user: owner.credit
+    owner_team: Retail Credit
+    risk_tier: high
+    initial_state: RUNNING
+
+reviewers: [reviewer.an, reviewer.binh]
+admins: [admin.chi]
+
+rules:
+  # ---- approved tools per agent (allow-lists)
+  - id: PAY-07
+    version: 1
+    description: Payments agent may call approved tools only
+    agent_scope: [payments]
+    when:
+      tool:
+        not_in: [get_customer, get_ticket, reply_ticket, get_account_balance, list_payees,
+                 add_payee, internal_transfer, ext_transfer_api]
+    action: pause
+    severity: critical
+    risk_class: money
+    regulation_ref: Decision 33 (banking) - approved tools
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-07
+    version: 1
+    description: Customer service agent may call approved tools only
+    agent_scope: [customer_service]
+    when:
+      tool:
+        not_in: [get_customer, get_ticket, reply_ticket, lookup_fee_schedule, waive_fee]
+    action: pause
+    severity: critical
+    risk_class: money
+    regulation_ref: Decision 33 (banking) - approved tools
+    owner: Retail Service
+    approvals: [risk.lead, compliance.officer]
+
+  - id: CRD-07
+    version: 1
+    description: Credit pre-qualification agent may call approved tools only
+    agent_scope: [credit_prequal]
+    when:
+      tool:
+        not_in: [get_customer, get_ticket, reply_ticket, fetch_documents, get_credit_score,
+                 credit_decision]
+    action: pause
+    severity: critical
+    risk_class: credit
+    regulation_ref: Decision 33 (banking) - approved tools
+    owner: Retail Credit
+    approvals: [risk.lead, compliance.officer]
+
+  # ---- payments limits
+  - id: PAY-01
+    version: 1
+    description: A transfer must state amount_minor as an integer
+    agent_scope: [payments]
+    when:
+      tool: {in: [internal_transfer, ext_transfer_api]}
+      all:
+        - {arg: amount_minor, op: absent}
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Internal payment control - complete instruction
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-02
+    version: 1
+    description: Single transfer limit 100,000,000 VND
+    agent_scope: [payments]
+    when:
+      tool: {in: [internal_transfer, ext_transfer_api]}
+      all:
+        - {arg: amount_minor, op: gt, value: 100000000}
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Internal limit - single agent-initiated transfer
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-03
+    version: 1
+    description: Daily transfers per customer above 150,000,000 VND (split payment / structuring)
+    agent_scope: [payments]
+    when:
+      tool: {in: [internal_transfer, ext_transfer_api]}
+    aggregate:
+      fn: sum
+      field: amount_minor
+      window_s: 86400
+      group_by: customer
+      customer_arg: customer_id
+      op: gt
+      limit: 150000000
+    action: pause
+    severity: critical
+    risk_class: money
+    regulation_ref: AML structuring control - daily aggregate per customer
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-04
+    version: 1
+    description: No transfer to a payee added less than 30 minutes ago
+    agent_scope: [payments]
+    when:
+      tool: {in: [internal_transfer, ext_transfer_api]}
+    prior:
+      tool: add_payee
+      within_s: 1800
+      match_args: [customer_id, payee_id]
+      mode: present
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Fraud control - new payee cooling period
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-05
+    version: 1
+    description: External transfer only to a payee the gateway approved for this customer
+    agent_scope: [payments]
+    when:
+      tool: ext_transfer_api
+    prior:
+      tool: add_payee
+      within_s: 31536000
+      match_args: [customer_id, payee_id]
+      mode: absent
+    action: pause
+    severity: critical
+    risk_class: money
+    regulation_ref: Fraud control - approved payees only
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  # ---- fee waivers
+  - id: SVC-01
+    version: 1
+    description: Single fee waiver limit 500,000 VND
+    agent_scope: [customer_service]
+    when:
+      tool: waive_fee
+      all:
+        - {arg: amount_minor, op: gt, value: 500000}
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Fee policy - waiver authority
+    owner: Retail Service
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-02
+    version: 1
+    description: At most 2 fee waivers per customer per day
+    agent_scope: [customer_service]
+    when:
+      tool: waive_fee
+    aggregate:
+      fn: count
+      window_s: 86400
+      group_by: customer
+      customer_arg: customer_id
+      op: gt
+      limit: 2
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Fee policy - waiver frequency
+    owner: Retail Service
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-03
+    version: 1
+    description: A fee waiver must state amount_minor as an integer
+    agent_scope: [customer_service]
+    when:
+      tool: waive_fee
+      all:
+        - {arg: amount_minor, op: absent}
+    action: block
+    severity: medium
+    risk_class: money
+    regulation_ref: Fee policy - complete instruction
+    owner: Retail Service
+    approvals: [risk.lead, compliance.officer]
+
+  # ---- credit
+  - id: CRD-01
+    version: 1
+    description: A credit decision needs the application documents fetched first
+    agent_scope: [credit_prequal]
+    when:
+      tool: credit_decision
+    prior:
+      tool: fetch_documents
+      within_s: 86400
+      match_args: [application_id]
+      mode: absent
+      same_agent: true
+    action: block
+    severity: high
+    risk_class: credit
+    regulation_ref: Credit policy - documented decision
+    owner: Retail Credit
+    approvals: [risk.lead, compliance.officer]
+
+  # ---- PII export
+  - id: PII-01
+    version: 1
+    description: No agent may export customer personal data
+    agent_scope: "*"
+    when:
+      tool: export_customer_data
+    action: block
+    severity: critical
+    risk_class: pii_export
+    regulation_ref: Decree 13/2023/ND-CP (personal data protection)
+    owner: Data Protection Office
+    approvals: [risk.lead, dpo.officer]
