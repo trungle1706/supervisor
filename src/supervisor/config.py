@@ -127,6 +127,34 @@ class Settings(BaseSettings):
     llm_mock: bool = False  # WP2: LLM_MOCK=1 forces MockChat even when LLM_BASE_URL is set
     llm_endpoint: str | None = None  # Databricks serving endpoint name (App binding)
 
+    # Judges (WP5). Advisory only. Empty JUDGE_T*_MODEL = MockJudge (labelled mock).
+    # Empty JUDGE_T*_BASE_URL = LLM_BASE_URL. JUDGE_T*_FAMILY overrides the family that is
+    # read from the model name (needed when the name does not show it).
+    judge_enabled: bool = False  # new feature: off by default
+    judge_t1_model: str = ""
+    judge_t1_base_url: str = ""
+    judge_t1_family: str | None = None
+    judge_t2_model: str = ""
+    judge_t2_base_url: str = ""
+    judge_t2_family: str | None = None
+    judge_challenger_model: str = ""  # empty = no challenger
+    judge_challenger_base_url: str = ""
+    judge_challenger_family: str | None = None
+    judge_challenger_tier: int = Field(default=1, ge=1, le=2)
+    judge_challenger_sample_bp: int = Field(default=500, ge=0, le=10000)  # 5 %
+    judge_t2_sample_bp: int = Field(default=200, ge=0, le=10000)  # random Tier 2 sample
+    judge_t1_threshold_bp: int = Field(default=5000, ge=0, le=10000)  # escalate to Tier 2
+    judge_t2_threshold_bp: int = Field(default=5000, ge=0, le=10000)  # Tier 2 confirms
+    judge_disagree_bp: int = Field(default=3000, ge=0, le=10000)
+    judge_k_suspicious: int = Field(default=3, ge=1)  # K flags in window -> open_case high
+    judge_window_s: int = Field(default=3600, ge=1)
+    judge_timeout_s: int = Field(default=120, ge=1)
+    judge_max_retries: int = Field(default=1, ge=0, le=3)
+    judge_max_input_chars: int = Field(default=12000, ge=1000)
+    judge_region: str = "local"  # logged in each verdict (residency, analysis 07 3.1)
+    judge_api_key: SecretStr | None = None  # empty = LLM_API_KEY
+    judge_sample_salt: str = "supervisor-judge-v1"
+
     # Evidence chain (WP6). Root entries commit all lane heads and are signed.
     evidence_root_every_n: int = Field(default=100, ge=1)  # entries between signed roots
     evidence_root_every_s: int = Field(default=900, ge=1)  # seconds between signed roots
@@ -184,6 +212,12 @@ class Settings(BaseSettings):
                 "LLM_BASE_URL must be a loopback address (127.0.0.1 / localhost / ::1) "
                 "unless LLM_ALLOW_REMOTE=1 (zero AI egress house rule)"
             )
+        for name in ("judge_t1_base_url", "judge_t2_base_url", "judge_challenger_base_url"):
+            url = getattr(self, name)
+            if url and not self.llm_allow_remote and not is_loopback_url(url):
+                raise ValueError(
+                    f"{name.upper()} must be a loopback address unless LLM_ALLOW_REMOTE=1"
+                )
         if self.databricks_catalog and not is_placeholder(self.databricks_catalog):
             _check_identifier("DATABRICKS_CATALOG", self.databricks_catalog)
         if self.databricks_schema and not is_placeholder(self.databricks_schema):
