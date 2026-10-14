@@ -33,3 +33,12 @@ The anchor job is an in-process scheduled job: `python -m supervisor.jobs.anchor
 
 - 06 names Key Vault HSM / KMS. Plan v2 uses an Ed25519 file or env secret until the bank decides. BACKLOG.md item: "HSM/KMS notary key, bank WORM anchor".
 - Anchor targets are `worm_dir` and `uc_volume`, not immutable blob.
+
+## Spec v2 (WP6 review fix)
+
+- Spec v1 left `writer` and `env` outside `entry_hash`: an attacker could change who wrote an entry, or its environment, with no detection.
+- Spec v2 hashes `{lane, seq, ts, record_type, record_ref, payload_hash, prev_hash, writer, env, chain_spec_version}`. `CHAIN_SPEC_VERSION = 2`. The writer emits v2 only.
+- Export rows carry `chain_spec_version`. A row without it is v1. The verifier hashes each row by its own version and still reads v1 exports. The manifest accepts 1 or 2.
+- A version cannot go down inside a lane (downgrade check). A row marked v1 cannot hide an edit to a v2 row, because the v1 hash differs. `--strict` fails any v1 entry, because v1 does not protect `writer` and `env`.
+- The `chain_entry` table has no version column. Export and anchor detect the version by testing which hash matches the stored `entry_hash`.
+- Offline verifier: `supervisor.evidence.verify` imports only the standard library, `cryptography` and `supervisor.evidence._canonical_stdlib`. That module matches `core/canonical.py` byte for byte for chain data, but rejects floats. A test compares both on the canonical vectors and on 200 random float-free structures, and a subprocess test imports `verify` with pydantic blocked.

@@ -116,6 +116,8 @@ class CaseFile(_Frozen):
     regulation_refs: list[str]
     decision33_classification: str
     sbv: SbvClocks
+    # Draft SBV circular may mean working days; calendar days are earlier (conservative).
+    remediation_due_basis: Literal["calendar_days"] = "calendar_days"
     timeline: list[TimelineItem]
     rules_broken: list[RuleBroken]
     judge_findings: list[JudgeFinding]

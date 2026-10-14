@@ -21,7 +21,7 @@ from supervisor.evidence.verify import (
 )
 from tests.evidence.conftest import Env, fixed_signer, make_writer
 
-# Test vector (chain spec v1). Any verifier in any language must reproduce it.
+# Test vector (chain spec v1, legacy). Any verifier in any language must reproduce it.
 VECTOR_ENTRY = {
     "lane": "agent:a1",
     "seq": 0,
@@ -33,12 +33,23 @@ VECTOR_ENTRY = {
 }
 VECTOR_PAYLOAD_HASH = "5ea7eafcff678a4ae1f6d7c29bce557e7fadf7f3720287f7fb7b72b06aa10c2f"
 VECTOR_ENTRY_HASH = "1606256a8c66f179392598567b987e9ec8d258e85af18f668015b2204c4288ed"
+# Spec v2 vector: same entry plus writer, env, chain_spec_version (computed with plain
+# json + hashlib, independent of the repo code).
+VECTOR_ENTRY_V2 = {
+    **VECTOR_ENTRY,
+    "writer": "test-writer",
+    "env": "dev",
+    "chain_spec_version": 2,
+}
+VECTOR_ENTRY_HASH_V2 = "27e51756d1ebbfe84e280da170c1fff519f42f9ba01656f00c9f025f22628520"
 VECTOR_KEY_ID = "56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c"
 
 
 def test_pinned_vectors() -> None:
     assert VECTOR_ENTRY["payload_hash"] == VECTOR_PAYLOAD_HASH
-    assert entry_hash(VECTOR_ENTRY) == VECTOR_ENTRY_HASH
+    assert entry_hash(VECTOR_ENTRY) == VECTOR_ENTRY_HASH  # no version field = legacy v1
+    assert entry_hash({**VECTOR_ENTRY, "chain_spec_version": 1}) == VECTOR_ENTRY_HASH
+    assert entry_hash(VECTOR_ENTRY_V2) == VECTOR_ENTRY_HASH_V2
     assert fixed_signer().key_id == VECTOR_KEY_ID  # sha256 of raw public key of seed 00..1f
 
 
@@ -79,7 +90,7 @@ def test_chain_is_deterministic_with_fixed_clock(env: Env) -> None:
     env.clock.advance(1)
     h = w.record("verdict", "verdict:v0", {"agent_id": "a1", "score_bp": 7500})
     w.close(seal=False)
-    assert h == entry_hash(VECTOR_ENTRY)
+    assert h == entry_hash(VECTOR_ENTRY_V2) == VECTOR_ENTRY_HASH_V2
     row = _rows(env, "chain_entry", "agent:a1")[0]
     assert row["seq"] == 0 and row["prev_hash"] == GENESIS_HASH
     assert row["writer"] == "test-writer" and row["env"] == "dev"

@@ -2,15 +2,17 @@
 
 Run:  python -m supervisor.evidence.verify <export dir> [--pubkey FILE] [--anchors DIR] [--strict]
 
-Imports only the standard library, ``cryptography`` and ``supervisor.core.canonical``,
-so a copy runs offline on an auditor laptop with no database and no Databricks.
+Imports only the standard library, ``cryptography`` and
+``supervisor.evidence._canonical_stdlib`` (no pydantic), so a copy runs offline on an
+auditor laptop with no database and no Databricks.
 
 What it checks (exit code 0 = all OK, 1 = any FAIL, 2 = the export cannot be read):
 
 1. ``manifest.json``: every listed file exists and its SHA-256 matches.
 2. Every lane: entries appear in seq order 0, 1, 2, ... with no gap; each
    ``entry_hash`` is recomputed from the canonical JSON of
-   ``{lane, seq, ts, record_type, record_ref, payload_hash, prev_hash}``; each
+   ``{lane, seq, ts, record_type, record_ref, payload_hash, prev_hash}`` (spec v1) or
+   that plus ``writer``, ``env`` and ``chain_spec_version`` (spec v2); each
    ``prev_hash`` equals the previous ``entry_hash`` (genesis = 64 zeros).
    Lane counts and heads match the manifest.
 3. Payloads (when exported): canonical, float-free, SHA-256 equals ``payload_hash``.
@@ -45,12 +47,13 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from supervisor.core.canonical import CanonicalError, canonical_json, sha256_hex
+from supervisor.evidence._canonical_stdlib import CanonicalError, canonical_json, sha256_hex
 
-# ------------------------------------------------------------------ chain spec (v1)
+# ------------------------------------------------------------------ chain spec (v2)
 # The chain writer imports these, so writer and verifier cannot drift apart.
 
-CHAIN_SPEC_VERSION = 1
+CHAIN_SPEC_VERSION = 2
+SUPPORTED_SPEC_VERSIONS = (1, 2)  # v1 is read-only legacy: the writer emits v2
 GENESIS_HASH = "0" * 64
 ROOT_LANE = "root"
 ROOT_RECORD_TYPE = "root_commit"
@@ -67,6 +70,7 @@ ENTRY_HASH_FIELDS = (
     "payload_hash",
     "prev_hash",
 )
+ENTRY_HASH_FIELDS_V2 = (*ENTRY_HASH_FIELDS, "writer", "env", "chain_spec_version")
 EXPORT_FILES = (
     "entries.jsonl",
     "payloads.jsonl",
@@ -76,10 +80,32 @@ EXPORT_FILES = (
 )
 
 
+def entry_version(entry: Mapping[str, Any]) -> int:
+    """Spec version of an entry: its ``chain_spec_version`` field, else 1 (legacy)."""
+    v = entry.get("chain_spec_version", 1)
+    if type(v) is not int or v not in SUPPORTED_SPEC_VERSIONS:
+        raise CanonicalError(f"unsupported entry chain_spec_version {v!r}")
+    return v
+
+
 def entry_hash(entry: Mapping[str, Any]) -> str:
-    """SHA-256 of the canonical JSON of the hashed entry fields. ``ts`` may be a
-    datetime (writer) or its RFC 3339 string (verifier): both encode the same."""
-    return sha256_hex({k: entry[k] for k in ENTRY_HASH_FIELDS})
+    """SHA-256 of the canonical JSON of the hashed entry fields, chosen by the entry's
+    spec version (v1: 7 fields; v2: also ``writer``, ``env``, ``chain_spec_version``).
+    ``ts`` may be a datetime (writer) or its RFC 3339 string (verifier): same bytes."""
+    fields = ENTRY_HASH_FIELDS_V2 if entry_version(entry) == 2 else ENTRY_HASH_FIELDS
+    return sha256_hex({k: entry[k] for k in fields})
+
+
+def detect_entry_version(row: Mapping[str, Any]) -> int:
+    """Version of a stored row that has no version column: the one whose hash matches
+    ``entry_hash``. Unmatched rows count as the current version (the verifier fails them)."""
+    for v in (CHAIN_SPEC_VERSION, 1):
+        try:
+            if entry_hash({**row, "chain_spec_version": v}) == row.get("entry_hash"):
+                return v
+        except (KeyError, TypeError):
+            pass
+    return CHAIN_SPEC_VERSION
 
 
 def signing_message(entry_hash_hex: str) -> bytes:
@@ -231,7 +257,7 @@ class Verifier:
         for key, kind in (("files", dict), ("lanes", dict)):
             if not isinstance(manifest.get(key), kind):
                 raise ExportError(f"manifest.json: '{key}' is missing or not an object")
-        if manifest.get("chain_spec_version") != CHAIN_SPEC_VERSION:
+        if manifest.get("chain_spec_version") not in SUPPORTED_SPEC_VERSIONS:
             raise ExportError(
                 f"unsupported chain_spec_version {manifest.get('chain_spec_version')!r}"
             )
@@ -305,6 +331,7 @@ class Verifier:
         lanes: dict[str, LaneResult] = {}
         expected: dict[str, int] = {}
         prev: dict[str, str] = {}
+        lane_ver: dict[str, int] = {}
         for n, row in _read_jsonl(self.export_dir / "entries.jsonl"):
             if not isinstance(row, dict) or "__error__" in row:
                 err = row.get("__error__") if isinstance(row, dict) else None
@@ -330,6 +357,12 @@ class Verifier:
             except (KeyError, TypeError, CanonicalError) as exc:
                 lr.fail(seq, f"entry unreadable ({exc})")
                 continue
+            ver = entry_version(row)
+            if ver < lane_ver.get(lane, 1):
+                lr.fail(seq, "chain_spec_version goes down inside a lane (downgrade)")
+            lane_ver[lane] = max(ver, lane_ver.get(lane, 1))
+            if ver == 1 and self.strict:
+                lr.fail(seq, "legacy spec v1 entry: writer/env are not covered by entry_hash")
             if lr.first_ts is None and isinstance(row.get("ts"), str):
                 lr.first_ts = row["ts"]
             if computed != row.get("entry_hash"):

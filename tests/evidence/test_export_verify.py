@@ -270,7 +270,7 @@ def test_verify_runs_as_module_in_subprocess(env: Env, exported: Path) -> None:
     assert res.stdout.isascii() and "RESULT: OK" in res.stdout
 
 
-def test_verifier_imports_only_stdlib_cryptography_canonical() -> None:
+def test_verifier_imports_only_stdlib_cryptography_stdlib_canonical() -> None:
     import sys
 
     path = REPO_ROOT / "src" / "supervisor" / "evidence" / "verify.py"
@@ -284,13 +284,66 @@ def test_verifier_imports_only_stdlib_cryptography_canonical() -> None:
         else:
             continue
         for mod in mods:
-            assert mod == "supervisor.core.canonical" or mod.split(".")[0] in allowed, mod
+            assert mod == "supervisor.evidence._canonical_stdlib" or mod.split(".")[0] in allowed, (
+                mod
+            )
     init = REPO_ROOT / "src" / "supervisor" / "evidence" / "__init__.py"
     assert not [
         n
         for n in ast.walk(ast.parse(init.read_text()))
         if isinstance(n, ast.Import | ast.ImportFrom)
     ]
+
+
+def _tamper_field(env: Env, exported: Path, capsys, name: str, field: str) -> None:
+    t = _copy(exported, env.tmp, name)
+    rows = _lines(t / "entries.jsonl")
+    target = next(r for r in rows if r["lane"] == "agent:a2" and r["seq"] == 2)
+    assert target["chain_spec_version"] == 2
+    target[field] = "attacker"
+    _write(t / "entries.jsonl", rows)
+    _fix_manifest(t)
+    code, out = _run(t, capsys=capsys)
+    assert code == 1
+    assert "[FAIL] lane agent:a2: first broken seq 2: entry_hash does not match" in out
+    assert "[OK]   lane agent:a1" in out
+
+
+def test_tamper_edit_writer(env: Env, exported: Path, capsys) -> None:
+    _tamper_field(env, exported, capsys, "tw", "writer")
+
+
+def test_tamper_edit_env(env: Env, exported: Path, capsys) -> None:
+    _tamper_field(env, exported, capsys, "te", "env")
+
+
+def test_tamper_downgrade_spec_version_fails(env: Env, exported: Path, capsys) -> None:
+    """Marking an entry v1 to hide a writer/env edit breaks its hash (v2 -> v1 hash)."""
+    t = _copy(exported, env.tmp, "td")
+    rows = _lines(t / "entries.jsonl")
+    target = next(r for r in rows if r["lane"] == "agent:a2" and r["seq"] == 2)
+    target["writer"] = "attacker"
+    target["chain_spec_version"] = 1
+    _write(t / "entries.jsonl", rows)
+    _fix_manifest(t)
+    code, out = _run(t, capsys=capsys)
+    assert code == 1
+    assert "[FAIL] lane agent:a2: first broken seq 2" in out
+
+
+def test_legacy_v1_entry_hash_is_read(exported: Path) -> None:
+    """A row without a version field is spec v1 (7 hashed fields); v2 hashes more."""
+    from supervisor.evidence.verify import entry_hash
+
+    row = {
+        k: v
+        for k, v in _lines(exported / "entries.jsonl")[0].items()
+        if k not in ("writer", "env", "chain_spec_version", "entry_hash")
+    }
+    assert entry_hash(row) == entry_hash({**row, "chain_spec_version": 1})
+    assert entry_hash(row) != entry_hash(
+        {**row, "writer": "w", "env": "e", "chain_spec_version": 2}
+    )
 
 
 def test_verify_export_api(exported: Path) -> None:

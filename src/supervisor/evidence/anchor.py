@@ -23,7 +23,12 @@ from typing import Any, Protocol
 
 from supervisor.core.canonical import canonical_bytes
 from supervisor.core.errors import SupervisorError
-from supervisor.evidence.verify import ANCHOR_FORMAT, CHAIN_SPEC_VERSION, anchor_name
+from supervisor.evidence.verify import (
+    ANCHOR_FORMAT,
+    CHAIN_SPEC_VERSION,
+    anchor_name,
+    detect_entry_version,
+)
 
 
 class AnchorError(SupervisorError):
@@ -138,6 +143,7 @@ def anchor_document(
 ) -> tuple[str, bytes]:
     """(file name, canonical bytes) of the anchor document for one signed root."""
     entry = dict(root_entry)
+    entry.setdefault("chain_spec_version", detect_entry_version(entry))
     doc = {
         "format": ANCHOR_FORMAT,
         "chain_spec_version": CHAIN_SPEC_VERSION,

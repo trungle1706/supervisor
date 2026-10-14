@@ -4,11 +4,13 @@ Entry (table ``chain_entry``)::
 
     payload_hash = sha256(canonical(payload))
     entry_hash   = sha256(canonical({lane, seq, ts, record_type, record_ref,
-                                     payload_hash, prev_hash}))
+                                     payload_hash, prev_hash,
+                                     writer, env, chain_spec_version}))
 
 * ``seq`` is per lane, starts at 0, +1 per entry; ``prev_hash`` of seq 0 is 64 zeros.
-* ``ts`` comes from the injected ``Clock``; ``writer`` and ``env`` are stored but are
-  NOT part of ``entry_hash`` (chain spec v1).
+* Spec v2 (current): ``entry_hash`` also covers ``writer``, ``env`` and
+  ``chain_spec_version`` (2). Spec v1 entries did not; the verifier still reads them.
+* ``ts`` comes from the injected ``Clock``.
 * The payload is stored separately (table ``chain_payload``) as canonical JSON text.
   It must already be masked (hashes and masked excerpts only, never raw PII); an
   optional ``Masker`` is applied to every string value before hashing. Floats are
@@ -326,7 +328,15 @@ class ChainWriter:
             "payload_hash": payload_hash,
             "prev_hash": prev,
         }
-        h = entry_hash(fields)
+        # Spec v2: writer, env and the spec version are hashed too.
+        h = entry_hash(
+            {
+                **fields,
+                "writer": self.writer_id,
+                "env": self.env,
+                "chain_spec_version": CHAIN_SPEC_VERSION,
+            }
+        )
         entry = ChainEntry(**fields, entry_hash=h, writer=self.writer_id, env=self.env)
         # Commit order: payload, signature, then the entry (the commit point). A crash
         # before the entry leaves only orphan rows keyed by their hash; export ignores

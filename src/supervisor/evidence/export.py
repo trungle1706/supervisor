@@ -32,6 +32,7 @@ from supervisor.evidence.verify import (
     CHAIN_SPEC_VERSION,
     EXPORT_FORMAT,
     ROOT_LANE,
+    detect_entry_version,
 )
 
 ENTRY_COLS = (
@@ -45,6 +46,7 @@ ENTRY_COLS = (
     "entry_hash",
     "writer",
     "env",
+    "chain_spec_version",
 )
 SIG_COLS = ("lane", "seq", "entry_hash", "signature", "key_id", "algorithm", "key_kind")
 
@@ -95,6 +97,8 @@ def export_chain(
     else:
         entries = tables.query("chain_entry", order_by=["lane", "seq"])
         payloads = tables.query("chain_payload", order_by=["lane", "seq"])
+    # The table has no version column: record the spec version each row hashes under.
+    entries = [{**r, "chain_spec_version": detect_entry_version(r)} for r in entries]
     entries.sort(key=lambda r: (r["lane"] != ROOT_LANE, r["lane"], r["seq"]))
     # Entries were read first. Keep only side rows that belong to an exported entry:
     # this drops orphans from a crashed write and rows of entries written after the read.
