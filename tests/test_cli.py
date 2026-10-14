@@ -45,7 +45,7 @@ def test_preflight_fails_on_remote_llm(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "args,code",
-    [(("demo", "--data-dir", "demo"), 0), (("release",), 2), (("verify",), 2)],
+    [(("demo", "--data-dir", "demo"), 0), (("release", "--help"), 0), (("verify",), 2)],
 )
 def test_stub_commands(args: tuple[str, ...], code: int, tmp_path: Path) -> None:
     # WP11: demo runs the full runbook (relative --data-dir resolves against the cwd);
