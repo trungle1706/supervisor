@@ -1,3 +1,11 @@
+# Exported from uv.lock. Do not edit. Regenerate: uv run python -m supervisor.cli export-reqs
+# (= uv export --frozen --no-dev --extra databricks --no-hashes --no-emit-project --no-header)
+# The Databricks App installs this file at BUILD; the runtime has no package index.
+# If BUILD cannot reach PyPI, switch to the bank Nexus GROUP index in your LOCAL copy only:
+#   uv run python -m supervisor.cli export-reqs --nexus <nexus host>
+# That turns on the two lines below. Never commit the result.
+# --index-url https://FILL-ME-nexus-host/repository/pypi-common-group/simple/
+# --trusted-host FILL-ME-nexus-host
 annotated-doc==0.0.5
     # via fastapi
 annotated-types==0.8.0
