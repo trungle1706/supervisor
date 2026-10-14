@@ -118,7 +118,7 @@ def test_no_real_ids_in_deploy_files() -> None:
         for name, pat in PATTERNS.items():
             assert not pat.search(text), f"{path.name}: {name}"
         assert not HEX_ID.search(text), f"{path.name}: looks like a warehouse id"
-        assert ".cloud.databricks.com" not in text and "techcombank" not in text.lower()
+        assert ".cloud.databricks.com" not in text and "nexus" not in text.lower()
 
 
 def test_app_env_loads_as_settings(monkeypatch: Any, tmp_path: Any) -> None:
