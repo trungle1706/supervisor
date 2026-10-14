@@ -231,11 +231,26 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`case_event` (
   actor STRING NOT NULL,
   actor_kind STRING NOT NULL,
   action STRING NOT NULL,
-  comment_masked STRING
+  comment_masked STRING,
+  auth_method STRING
 )
 USING DELTA
 COMMENT 'Who did what on a case. Feeds the evidence chain.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- case_link (append_only): WP8. Which source opened or joined a case: a gate decision (block/pause), a judge verdict (CaseRequest) or a monitor finding. One row per source; makes intake idempotent.
+-- primary key (enforced by the app, not by Delta): source_kind, source_ref
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`case_link` (
+  source_kind STRING NOT NULL,
+  source_ref STRING NOT NULL,
+  case_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP8. Which source opened or joined a case: a gate decision (block/pause), a judge verdict (CaseRequest) or a monitor finding. One row per source; makes intake idempotent.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
 
 -- signoff (append_only): Human sign-off. Reviewer id from SSO, never the app service principal.
 -- primary key (enforced by the app, not by Delta): signoff_id
@@ -360,4 +375,21 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`gate_control` (
 )
 USING DELTA
 COMMENT 'Gateway control records (WP3). Active pause (with the state to resume to) and pending two-person resume approvals.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- notice (state): WP8. Notifier inbox (console Inbox page). Masked text only. The webhook stub queues rows with status queued and never sends them (off by default).
+-- primary key (enforced by the app, not by Delta): notice_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`notice` (
+  notice_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  channel STRING NOT NULL,
+  subject STRING NOT NULL,
+  body STRING NOT NULL,
+  status STRING NOT NULL,
+  read_by STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP8. Notifier inbox (console Inbox page). Masked text only. The webhook stub queues rows with status queued and never sends them (off by default).'
 TBLPROPERTIES ('supervisor.kind' = 'state');

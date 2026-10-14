@@ -34,7 +34,10 @@ RuleAction = Literal["log", "alert", "block", "pause"]
 FailMode = Literal["open", "closed"]
 Severity = Literal["low", "medium", "high", "critical"]
 VerdictAction = Literal["allow", "log", "alert", "block", "pause", "open_case", "raise_severity"]
-CaseStatus = Literal["open", "triage", "escalated", "resolved", "closed"]
+# WP8 console workflow: open -> triaged -> contained -> closed (older values kept).
+CaseStatus = Literal[
+    "open", "triage", "triaged", "contained", "escalated", "resolved", "closed"
+]
 ActorKind = Literal["user", "service_principal", "system"]
 
 
@@ -189,6 +192,7 @@ class CaseEvent(Record):
     actor_kind: ActorKind
     action: str
     comment_masked: str | None = None
+    auth_method: str | None = None  # WP8: how the actor was identified
 
 
 class Signoff(Record):
