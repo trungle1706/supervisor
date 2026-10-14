@@ -1,0 +1,19 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: system_of_record
+name: System-of-record check before a decision
+kind: gate_rule
+lane: fast
+description: >
+  Before an approve decision the gateway reads the record (FactSource) and blocks when
+  the record says the file is not complete (for example documents_complete is false).
+signals_needed: [tool_call.args.decision, fact_source.record]
+checks: [approve only when the system of record says the file is complete]
+default_thresholds: {}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 200, storage_bytes_per_1k_events: 0}
+applies_to: [credit]
+requires: [decision_tool, record_fact]
+plug_points: [gate_hook, mcp_proxy]
+regulation_refs: ["Credit policy - complete file before approval"]
+owner: Supervisor Platform
+module: supervisor.gateway.facts
+can_block: true

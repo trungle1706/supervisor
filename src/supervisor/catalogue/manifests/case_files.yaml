@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: case_files
+name: Case files
+kind: evidence
+lane: evidence
+description: >
+  A block, a pause or a confirmed judge flag opens a case. The case file holds the
+  timeline, the rule, the regulation reference, the evidence hashes and the sign-off.
+signals_needed: [cases, case_event, chain_entry]
+checks: [every stop has a case with evidence links]
+default_thresholds: {time_to_human_s: 300}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 100, storage_bytes_per_1k_events: 20000}
+applies_to: [money, credit, pii_export, read_only]
+plug_points: [gate_hook, otel, proxy_log, mcp_proxy]
+regulation_refs: ["Decision 33 - records of supervision"]
+owner: Supervisor Platform
+module: supervisor.evidence.casefile
+always_on: true

@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: fairness_slices
+name: Fairness by customer segment
+kind: monitor
+lane: slow
+description: >
+  Approval rate per slice (segment, province, language) against the overall rate. Opens a
+  case when the gap is above the threshold and the slice is large enough.
+signals_needed: [tool_call.args.decision, customer.segment, customer.province, customer.language]
+checks: [approval-rate gap per slice]
+default_thresholds: {max_gap_bp: 500, min_slice_n: 30}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 800, storage_bytes_per_1k_events: 1000}
+applies_to: [credit]
+requires: [decision_tool]
+plug_points: [gate_hook, otel, proxy_log, mcp_proxy]
+regulation_refs: ["Decision 33 (credit) - non-discriminatory decisions", "Consumer lending fairness"]
+owner: Model Risk
+module: supervisor.monitors.fairness

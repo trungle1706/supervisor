@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: drift_band
+name: Behaviour drift band
+kind: monitor
+lane: slow
+description: >
+  Compares the agent's tool mix, call volume and gate outcomes with the launch baseline of
+  the same agent version. Opens a case when behaviour leaves the band, even if no rule broke.
+signals_needed: [agent_event.tool_name, agent_event.status, launch_baseline]
+checks: [tool-mix share per tool within the band, stop rate within the band]
+default_thresholds: {band_bp: 2000, min_events: 200}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 500, storage_bytes_per_1k_events: 1000}
+applies_to: [money, credit, pii_export, read_only]
+requires: [otel_spans]
+plug_points: [gate_hook, otel, proxy_log, mcp_proxy]
+regulation_refs: ["Model risk - ongoing monitoring against baseline"]
+owner: Model Risk
+module: supervisor.monitors.drift

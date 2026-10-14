@@ -1,0 +1,19 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: pii_masking
+name: PII masking at capture
+kind: masking
+lane: fast
+description: >
+  Vietnamese PII (CCCD, phone, account and card numbers, names near labels) is masked with
+  keyed HMAC tokens before an event is stored or shown to a judge. Plain PII never enters
+  the evidence chain.
+signals_needed: [agent_event.args_masked, agent_event.result_masked]
+checks: [no plain PII in stored events or judge prompts]
+default_thresholds: {}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 300, storage_bytes_per_1k_events: 200000}
+applies_to: [money, credit, pii_export, read_only]
+plug_points: [gate_hook, otel, proxy_log, mcp_proxy]
+regulation_refs: ["Decree 13/2023/ND-CP (personal data protection)"]
+owner: Data Protection Office
+module: supervisor.adapters.masking.vn_regex
+always_on: true

@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: tier1_monitor
+name: Tier 1 judge on every trace
+kind: judge
+lane: slow
+description: >
+  A cheap judge from another model family scores every trace for suspicion (integer basis
+  points). It advises only: a high score escalates to Tier 2 or opens a case.
+signals_needed: [agent_event.masked_trace]
+checks: [suspicion score per trace]
+default_thresholds: {sample_bp: 10000, escalate_bp: 5000}
+cost_estimate: {llm_tokens_per_1k_events: 3000000, compute_ms_per_1k_events: 2000000, storage_bytes_per_1k_events: 300000}
+applies_to: [money, credit, pii_export, read_only]
+requires: [llm]
+plug_points: [gate_hook, otel, proxy_log, mcp_proxy]
+regulation_refs: ["Decision 33 - human supervision, control and intervention"]
+owner: Supervisor Platform
+module: supervisor.judge.tier1

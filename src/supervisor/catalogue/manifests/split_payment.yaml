@@ -1,0 +1,23 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: split_payment
+name: Split payment across calls and agents
+kind: gate_rule
+lane: fast
+description: >
+  Sums transfers from one account to one destination within a short window, whichever
+  agent handed the work over. Blocks when the sum passes the single-call limit (ADR D10).
+signals_needed:
+  - gateway_events.allowed
+  - tool_call.args.amount_minor
+  - tool_call.args.destination
+  - tool_call.caller_agent_id
+checks: [sum per account and destination within the window at most the per-call limit]
+default_thresholds: {window_s: 3600}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 40, storage_bytes_per_1k_events: 0}
+applies_to: [money]
+requires: [amount_arg, destination_arg, declared_limit, customer_key]
+plug_points: [gate_hook, mcp_proxy]
+regulation_refs: ["AML structuring control - split payment (ADR D10)"]
+owner: Supervisor Platform
+module: supervisor.gateway.engine
+can_block: true

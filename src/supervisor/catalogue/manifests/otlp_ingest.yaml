@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: otlp_ingest
+name: OpenTelemetry trace ingest
+kind: ingest
+lane: slow
+description: >
+  The agent's GenAI spans (OTLP/HTTP or in-process exporter) are normalised into
+  agent_event rows with masking at capture. Full capability set for Watch.
+signals_needed: [otel.spans]
+checks: [spans arrive for every tool call, gate decision attributes present]
+default_thresholds: {max_body_bytes: 4000000}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 400, storage_bytes_per_1k_events: 800000}
+applies_to: [money, credit, pii_export, read_only]
+requires: [otel_spans]
+plug_points: [gate_hook, otel]
+regulation_refs: []
+owner: Supervisor Platform
+module: supervisor.recorder.otlp_receiver

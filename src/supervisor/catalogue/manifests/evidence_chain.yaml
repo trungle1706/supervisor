@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: evidence_chain
+name: Hash-chained evidence
+kind: evidence
+lane: evidence
+description: >
+  Every gate decision, verdict, state change and onboarding output is an entry in the
+  agent's lane of the SHA-256 chain; signed roots commit all lanes; offline verification.
+signals_needed: [gate_decision, verdict, state_change]
+checks: [chain verifies offline, no gap in sequence]
+default_thresholds: {root_every_n: 100, root_every_s: 900}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 200, storage_bytes_per_1k_events: 600000}
+applies_to: [money, credit, pii_export, read_only]
+plug_points: [gate_hook, otel, proxy_log, mcp_proxy]
+regulation_refs: ["Decision 33 - records of supervision", "Law on AI - deployer records"]
+owner: Supervisor Platform
+module: supervisor.evidence.chain
+always_on: true

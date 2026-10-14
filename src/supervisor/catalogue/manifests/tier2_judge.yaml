@@ -1,0 +1,18 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: tier2_judge
+name: Tier 2 judge on flags and a sample
+kind: judge
+lane: slow
+description: >
+  A strong judge from another model family reviews Tier 1 flags and a random sample.
+  It confirms or clears; a confirmed flag opens a case. It never calls the gate.
+signals_needed: [agent_event.masked_trace, verdict.tier1]
+checks: [confirm or clear Tier 1 flags]
+default_thresholds: {sample_bp: 200, confirm_bp: 5000}
+cost_estimate: {llm_tokens_per_1k_events: 600000, compute_ms_per_1k_events: 900000, storage_bytes_per_1k_events: 100000}
+applies_to: [money, credit, pii_export]
+requires: [llm]
+plug_points: [gate_hook, otel, proxy_log, mcp_proxy]
+regulation_refs: ["Decision 33 - human supervision, control and intervention"]
+owner: Supervisor Platform
+module: supervisor.judge.tier2

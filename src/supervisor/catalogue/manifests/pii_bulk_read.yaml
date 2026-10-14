@@ -1,0 +1,19 @@
+# Capability manifest (schema: supervisor.catalogue.model.CapabilityManifest).
+id: pii_bulk_read
+name: Bulk personal-data read limit
+kind: gate_rule
+lane: fast
+description: >
+  Counts calls of personal-data tools per agent per hour. A burst above the threshold is
+  a PII export pattern and is blocked. Tune the threshold from the launch baseline.
+signals_needed: [gateway_events.allowed, tool_call.tool_name]
+checks: [personal-data tool calls per agent per hour at most the threshold]
+default_thresholds: {window_s: 3600, max_calls_per_agent_per_hour: 20}
+cost_estimate: {llm_tokens_per_1k_events: 0, compute_ms_per_1k_events: 30, storage_bytes_per_1k_events: 0}
+applies_to: [pii_export]
+requires: [pii_tool]
+plug_points: [gate_hook, mcp_proxy]
+regulation_refs: ["Decree 13/2023/ND-CP (personal data protection)"]
+owner: Data Protection Office
+module: supervisor.gateway.engine
+can_block: true
