@@ -95,6 +95,19 @@ def test_default_fail_mode_by_risk_class(baseline: Policy) -> None:
         ("severity: high", "severity: high\n    extra_key: 1", "xtra"),
         ("arg: amount_minor", "arg: \"__import__('os')\"", "bad arg path"),
         ("id: R-1", "id: r 1", "id"),
+        ("arg: amount_minor", "arg: fact.application", "bad fact path"),
+        ("arg: amount_minor", "arg: fact.a.b.c", "bad fact path"),
+        (
+            "      all: [{arg: amount_minor, op: gt, value: 10}]",
+            "    aggregate: {fn: count, window_s: 60, group_by: agent, also_by: [ctx.payee_id],"
+            " limit: 1}",
+            "bad grouping argument",
+        ),
+        (
+            "      all: [{arg: amount_minor, op: gt, value: 10}]",
+            "    aggregate: {fn: count, window_s: 60, group_by: agent, also_by: [p, p], limit: 1}",
+            "duplicates",
+        ),
     ],
 )
 def test_invalid_policies_are_rejected(old: str, new: str, msg: str) -> None:

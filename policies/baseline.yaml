@@ -171,6 +171,30 @@ rules:
     owner: Payments Ops
     approvals: [risk.lead, compliance.officer]
 
+  - id: PAY-08
+    version: 1
+    description: >-
+      Split payment - transfers from one account to one payee within 1 hour above the
+      100,000,000 VND single-transfer limit, whichever agent handed the work over
+    agent_scope: [payments]
+    when:
+      tool: transfer
+    aggregate:
+      fn: sum
+      field: amount_minor
+      window_s: 3600
+      group_by: customer
+      customer_arg: from_account_id
+      also_by: [payee_id]
+      op: gt
+      limit: 100000000
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: AML structuring control - split payment (ADR D10)
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
   - id: PAY-09
     version: 1
     description: At most 3 new payees per customer per day
@@ -294,6 +318,22 @@ rules:
     approvals: [risk.lead, compliance.officer]
 
   # ---- credit
+  - id: CRD-01
+    version: 1
+    description: Approve only when the required documents are on file (system of record)
+    agent_scope: [credit_prequal]
+    when:
+      tool: decide_prequal
+      all:
+        - {arg: decision, op: eq, value: approve}
+        - {arg: fact.application.documents_complete, op: ne, value: true}
+    action: block
+    severity: high
+    risk_class: credit
+    regulation_ref: Credit policy - complete file before approval
+    owner: Consumer Lending
+    approvals: [risk.lead, compliance.officer]
+
   - id: CRD-02
     version: 1
     description: A pre-qualification decision needs the application read first

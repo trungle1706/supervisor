@@ -53,6 +53,9 @@ ACTION_RANK = {"log": 0, "alert": 1, "block": 2, "pause": 3}
 # A group that contains a quantifier and is itself quantified, e.g. (a+)+ or (x*)*: ReDoS risk.
 _REDOS = re.compile(r"\([^)]*[+*}][^)]*\)\s*[+*{]")
 _PATH_RE = re.compile(r"^(ctx\.)?[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*){0,4}$")
+# ``fact.<source>.<field>`` reads a record from the gateway's FactSource (system of record),
+# keyed by the tool argument ``<source>_id``. See supervisor.gateway.facts.
+FACT_PREFIX = "fact."
 _ID_RE = r"^[A-Z0-9][A-Z0-9_-]{1,40}$"
 _NAME_RE = r"^[A-Za-z0-9_.:-]{1,80}$"
 
@@ -76,7 +79,8 @@ class _Strict(BaseModel):
 
 
 class Predicate(_Strict):
-    """``arg`` is a dotted path into the tool args; ``ctx.`` reads the call context."""
+    """``arg`` is a dotted path into the tool args; ``ctx.`` reads the call context;
+    ``fact.<source>.<field>`` reads the system of record (missing record -> rule error)."""
 
     arg: str
     op: Op
@@ -86,7 +90,11 @@ class Predicate(_Strict):
     @classmethod
     def _path(cls, v: str) -> str:
         if not _PATH_RE.match(v):
-            raise ValueError(f"bad arg path {v!r} (dotted identifiers, optional ctx. prefix)")
+            raise ValueError(
+                f"bad arg path {v!r} (dotted identifiers, optional ctx. or fact. prefix)"
+            )
+        if v.startswith(FACT_PREFIX) and len(v.split(".")) != 3:
+            raise ValueError(f"bad fact path {v!r} (fact.<source>.<field>)")
         return v
 
     @model_validator(mode="after")
@@ -166,6 +174,9 @@ class Aggregate(_Strict):
     window_s: int = Field(ge=1, le=31 * 86400)
     group_by: Literal["agent", "customer"]
     customer_arg: str = "customer_id"
+    # Extra grouping arguments, e.g. [payee_id]: the window then sums calls with the same
+    # customer (or agent) AND the same values of these arguments (split payment, ADR D10).
+    also_by: list[str] = Field(default_factory=list, max_length=3)
     tools: list[str] | None = None
     op: Literal["gt", "ge"] = "gt"
     limit: int = Field(ge=0)
@@ -177,8 +188,11 @@ class Aggregate(_Strict):
                 raise ValueError("sum aggregates need field: <name>_minor (integer minor units)")
         elif self.field is not None:
             raise ValueError("count aggregates take no field")
-        if not _PATH_RE.match(self.customer_arg) or self.customer_arg.startswith("ctx."):
-            raise ValueError(f"bad customer_arg {self.customer_arg!r}")
+        for name in [self.customer_arg, *self.also_by]:
+            if not _PATH_RE.match(name) or name.startswith(("ctx.", FACT_PREFIX)):
+                raise ValueError(f"bad grouping argument {name!r}")
+        if len(set(self.also_by)) != len(self.also_by):
+            raise ValueError("also_by has duplicates")
         return self
 
 
@@ -199,7 +213,7 @@ class Prior(_Strict):
     @classmethod
     def _paths(cls, v: list[str]) -> list[str]:
         for p in v:
-            if not _PATH_RE.match(p) or p.startswith("ctx."):
+            if not _PATH_RE.match(p) or p.startswith(("ctx.", FACT_PREFIX)):
                 raise ValueError(f"bad match arg {p!r}")
         return v
 
@@ -372,6 +386,7 @@ class Policy:
                     keys = out.setdefault(t, set())
                     if r.aggregate.group_by == "customer":
                         keys.add(r.aggregate.customer_arg)
+                    keys.update(r.aggregate.also_by)
             if r.prior:
                 out.setdefault(r.prior.tool, set()).update(r.prior.match_args)
                 for t in r.when.tool.names() if r.when.tool else []:
@@ -602,6 +617,7 @@ def deploy_with_retry(
 
 __all__ = [
     "DEFAULT_FAIL_MODE",
+    "FACT_PREFIX",
     "Aggregate",
     "AgentManifest",
     "Policy",

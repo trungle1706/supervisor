@@ -66,6 +66,14 @@
       "additionalProperties": false,
       "description": "Stateful window: sum ``field`` (or count calls) of allowed calls, plus this call.",
       "properties": {
+        "also_by": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3,
+          "title": "Also By",
+          "type": "array"
+        },
         "customer_arg": {
           "default": "customer_id",
           "title": "Customer Arg",
@@ -146,7 +154,7 @@
     },
     "Predicate": {
       "additionalProperties": false,
-      "description": "``arg`` is a dotted path into the tool args; ``ctx.`` reads the call context.",
+      "description": "``arg`` is a dotted path into the tool args; ``ctx.`` reads the call context;\n``fact.<source>.<field>`` reads the system of record (missing record -> rule error).",
       "properties": {
         "arg": {
           "title": "Arg",
