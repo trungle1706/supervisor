@@ -281,6 +281,52 @@ BEGIN
   SELECT RAISE(ABORT, 'chain_entry is append-only');
 END;
 
+-- chain_payload (append_only): Masked canonical JSON payload of a chain entry (no floats, no raw PII).
+CREATE TABLE IF NOT EXISTS chain_payload (
+  lane TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  payload_hash TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  PRIMARY KEY (lane, seq, payload_hash)
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_chain_payload_no_update
+BEFORE UPDATE ON chain_payload
+BEGIN
+  SELECT RAISE(ABORT, 'chain_payload is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_chain_payload_no_delete
+BEFORE DELETE ON chain_payload
+BEGIN
+  SELECT RAISE(ABORT, 'chain_payload is append-only');
+END;
+
+-- chain_signature (append_only): Signature over the entry_hash of a root-lane entry (signed head).
+CREATE TABLE IF NOT EXISTS chain_signature (
+  lane TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  entry_hash TEXT NOT NULL,
+  signature TEXT NOT NULL,
+  key_id TEXT NOT NULL,
+  algorithm TEXT NOT NULL,
+  key_kind TEXT NOT NULL,
+  public_key TEXT NOT NULL,
+  PRIMARY KEY (lane, seq, entry_hash)
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_chain_signature_no_update
+BEFORE UPDATE ON chain_signature
+BEGIN
+  SELECT RAISE(ABORT, 'chain_signature is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_chain_signature_no_delete
+BEFORE DELETE ON chain_signature
+BEGIN
+  SELECT RAISE(ABORT, 'chain_signature is append-only');
+END;
+
 -- anchor (append_only): Signed chain heads anchored to an immutable target.
 CREATE TABLE IF NOT EXISTS anchor (
   anchor_id TEXT NOT NULL,

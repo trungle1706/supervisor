@@ -67,6 +67,7 @@ IDENT = re.compile(r"^[a-z][a-z0-9_]*$")
 Dialect = Literal["sqlite", "databricks"]
 CATALOG_PH = "${catalog}"
 SCHEMA_PH = "${schema}"
+DEFAULT_EVIDENCE_RETENTION_DAYS = 1825
 
 
 @dataclass(frozen=True)
@@ -84,6 +85,7 @@ class Table:
     primary_key: tuple[str, ...]
     columns: tuple[Column, ...]
     indexes: tuple[tuple[str, ...], ...] = ()
+    evidence: bool = False  # WP6: Delta retention properties (EVIDENCE_RETENTION_DAYS)
 
     @property
     def append_only(self) -> bool:
@@ -161,8 +163,11 @@ def parse_model(text: str) -> SchemaModel:
         for ix in indexes:
             if any(c not in names for c in ix):
                 raise ValueError(f"{tname}: index {ix} names an unknown column")
+        evidence = spec.get("evidence", False)
+        if not isinstance(evidence, bool):
+            raise ValueError(f"{tname}: evidence must be true or false")
         tables[tname] = Table(
-            tname, kind, spec.get("description", "").strip(), pk, tuple(cols), indexes
+            tname, kind, spec.get("description", "").strip(), pk, tuple(cols), indexes, evidence
         )
     return SchemaModel(int(raw["version"]), tables, sha256_bytes_hex(text.encode("utf-8")))
 
@@ -211,7 +216,14 @@ def databricks_statements(
     catalog: str = CATALOG_PH,
     schema: str = SCHEMA_PH,
     prefix: str = "",
+    retention_days: int = DEFAULT_EVIDENCE_RETENTION_DAYS,
 ) -> list[str]:
+    if (
+        isinstance(retention_days, bool)
+        or not isinstance(retention_days, int)
+        or retention_days < 1
+    ):
+        raise ValueError("retention_days must be a positive int")
     out: list[str] = []
     for t in model.tables.values():
         fq = f"`{catalog}`.`{schema}`.`{prefix}{t.name}`"
@@ -222,6 +234,10 @@ def databricks_statements(
         props = ["'supervisor.kind' = " + _sql_str(t.kind)]
         if t.append_only:
             props.insert(0, "'delta.appendOnly' = 'true'")
+        if t.evidence:
+            interval = f"'interval {retention_days} days'"
+            props.insert(-1, f"'delta.logRetentionDuration' = {interval}")
+            props.insert(-1, f"'delta.deletedFileRetentionDuration' = {interval}")
         header = [f"-- {t.name} ({t.kind}): {t.description}"]
         header.append(
             f"-- primary key (enforced by the app, not by Delta): {', '.join(t.primary_key)}"
