@@ -56,7 +56,7 @@ Never a personal access token. Preflight fails when `DATABRICKS_TOKEN` is set.
 | Private Link / workspace network path from the laptop | REST must reach the workspace through the TLS appliance | preflight `warehouse reachable` from the laptop |
 | App runtime egress | We assume only the workspace's own APIs are reachable from the App | App logs after the first start; nothing in Supervisor needs more |
 | App BUILD index (PyPI or Nexus only) | Seen both ways; decides `export-reqs --nexus` | App deploy log ("Could not find a version ...") |
-| `/Volumes` mount inside the App container | If there is no mount, files go through the Files API (handled for the spool and anchors); `DATA_DIR` on a Volume needs the mount for the signing key file | App log line about the signing key; fall back to `DATA_DIR=/tmp/supervisor` (key regenerated on restart, labelled in the chain) |
+| `/Volumes` mount inside the App container | Without a mount, the spool and anchors use the Files API (built in), and `DATA_DIR` falls back to the container disk (signing key and case files wiped on restart; a log line says so) | App log line `DATA_DIR ... is not mounted in this container` |
 | App name prefix in `mode: development` | The dev target may prefix the name; names are at most 30 characters | `databricks bundle validate` output |
 | Insert-only MERGE on `delta.appendOnly` tables | The app appends with MERGE to drop duplicates | live kit test 02 and notebook check 3 |
 | Who owns `USE CATALOG` / `USE SCHEMA` grants for the App principal | The owner lacks CREATE SCHEMA and may lack GRANT on the schema | ask the schema owner |

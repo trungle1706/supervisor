@@ -286,7 +286,8 @@ Never send `.env`, `uv.toml` with credentials, tokens, or `databricks auth token
 | `bundle validate` "name ... must be at most 30 characters" | app name too long (dev prefix included) | shorten the `FILL-ME-username` part |
 | App BUILD "Could not find a version that satisfies ..." | BUILD has no PyPI access | `export-reqs --nexus FILL-ME-nexus-host`, deploy again |
 | App crashes at start and tries to sync | start command uses `uv run` | `app.yaml` must use `python -m uvicorn` |
-| App log `No such file or directory: '/Volumes/...'` | no `/Volumes` mount in the App, or no Volume grant | grant `READ VOLUME, WRITE VOLUME`; if it stays, set `DATA_DIR` to `/tmp/supervisor` in `app.yaml` and tell us |
+| App log `DATA_DIR /Volumes/... is not mounted in this container` | the App has no `/Volumes` mount | nothing breaks: the spool and anchors use the Files API; the signing key and case files use the container disk (wiped on restart). Tell us; it is an open item |
+| App log `PERMISSION_DENIED` on a `/Volumes/...` path | App service principal has no Volume grant | owner grants `READ VOLUME, WRITE VOLUME` (`docs\databricks-prereqs.md` section 2) |
 | App log `PERMISSION_DENIED` on a Supervisor table | App service principal has no grant | `bootstrap_schema --grant-to <id>`; owner grants USE CATALOG / USE SCHEMA |
 | `jobs/runs/submit` refused: "does not support jobs workload" | shared cluster is interactive only | use `supervisor.jobs.cluster_run` (execution contexts) |
 | `cluster_run`: cluster is TERMINATED | the shared cluster is stopped | start it in Compute; run again |

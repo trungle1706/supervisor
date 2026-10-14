@@ -144,6 +144,9 @@ def test_app_env_loads_as_settings(monkeypatch: Any, tmp_path: Any) -> None:
     assert s.llm_base_url == "https://example-workspace.invalid/serving-endpoints"
     assert s.llm_model == "my-endpoint" and s.llm_uses_workspace_auth
     assert str(s.recorder_spool_dir) == "/Volumes/cat/sch/vol/supervisor/spool"
-    assert str(s.data_dir) == "/Volumes/cat/sch/vol/supervisor/data"
+    # this host has no /Volumes mount: DATA_DIR falls back to the container disk, loudly
+    assert s.data_dir_requested == "/Volumes/cat/sch/vol/supervisor/data"
+    assert not str(s.data_dir).startswith("/Volumes") and s.data_dir.is_absolute()
+    assert s.signer_key_path is not None and s.signer_key_path.parent.parent == s.data_dir
     assert s.anchor_kind == "uc_volume"
     assert "sp-secret-value" not in repr(s) and "sp-secret-value" not in s.describe_target()

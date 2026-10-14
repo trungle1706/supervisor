@@ -94,6 +94,27 @@ def test_placeholder_endpoint_is_off(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.llm_base_url == "http://127.0.0.1:11434/v1" and not s.llm_uses_workspace_auth
 
 
+def test_volume_data_dir_fallback_when_not_mounted(
+    app_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import supervisor.config as config_mod
+
+    monkeypatch.setenv("DATA_DIR", "/Volumes/c/s/v/supervisor/data")
+    s = load_settings()
+    assert s.data_dir_requested == "/Volumes/c/s/v/supervisor/data"
+    assert "supervisor-data" in str(s.data_dir) and s.data_dir.is_absolute()
+    monkeypatch.setattr(config_mod.os.path, "isdir", lambda p: p == "/Volumes/c/s/v")
+    mounted = load_settings()
+    assert mounted.data_dir_requested is None
+    assert str(mounted.data_dir) == "/Volumes/c/s/v/supervisor/data"
+
+
+def test_volume_data_dir_untouched_on_laptop(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATA_DIR", "/Volumes/c/s/v/supervisor/data")
+    s = load_settings()
+    assert s.data_dir_requested is None
+
+
 def test_spool_dir_alias(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SPOOL_DIR", "/Volumes/c/s/v/spool")
     assert str(load_settings().recorder_spool_dir) == "/Volumes/c/s/v/spool"

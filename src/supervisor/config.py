@@ -31,7 +31,9 @@ Databricks App mode (``SUPERVISOR_MODE=databricks_app``, WP10):
 from __future__ import annotations
 
 import ipaddress
+import logging
 import os
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -61,6 +63,17 @@ SqlBackend = Literal["auto", "sqlite", "databricks_rest"]
 
 def is_placeholder(value: str | None) -> bool:
     return value is None or value.strip() == "" or value.strip().startswith(PLACEHOLDER_PREFIX)
+
+
+def is_volume_path(path: object) -> bool:
+    """True for a Unity Catalog Volume path (``/Volumes/<catalog>/<schema>/<volume>/...``)."""
+    return path is not None and str(path).replace("\\", "/").startswith("/Volumes/")
+
+
+def volume_mounted(path: object) -> bool:
+    """True when the Volume of ``path`` is visible as a local folder."""
+    parts = str(path).replace("\\", "/").strip("/").split("/")
+    return len(parts) >= 4 and os.path.isdir("/" + "/".join(parts[:4]))
 
 
 def is_loopback_url(url: str) -> bool:
@@ -214,6 +227,8 @@ class Settings(BaseSettings):
     capture_default_level: Literal["digest", "masked"] = "masked"  # agents with no manifest
     otlp_max_body_bytes: int = Field(default=4_000_000, ge=1024)
     otlp_max_spans: int = Field(default=5000, ge=1)
+    # Set by the loader (never by you): the Volume DATA_DIR that was not mounted (App only).
+    data_dir_requested: str | None = Field(default=None, exclude=True)
     recorder_spool_dir: Path | None = Field(  # default: <data_dir>/spool
         default=None,
         validation_alias=AliasChoices("recorder_spool_dir", "spool_dir"),
@@ -250,6 +265,22 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _rules(self) -> Settings:
+        self.data_dir_requested = None
+        if (
+            self.supervisor_mode == "databricks_app"
+            and is_volume_path(self.data_dir)
+            and not volume_mounted(self.data_dir)
+        ):
+            # No /Volumes mount in this container: local files (signing key, case files)
+            # cannot live on the Volume. Use the ephemeral container disk and say so.
+            self.data_dir_requested = str(self.data_dir).replace("\\", "/")
+            self.data_dir = Path(os.path.abspath(tempfile.gettempdir())) / "supervisor-data"
+            logging.getLogger("supervisor.config").warning(
+                "DATA_DIR %s is not mounted in this container; using %s (wiped on restart). "
+                "Spool and anchors still go to the Volume through the Files API.",
+                self.data_dir_requested,
+                self.data_dir,
+            )
         if self.sqlite_path is None:
             self.sqlite_path = self.data_dir / "supervisor.db"
         if self.signer_key_path is None:

@@ -142,6 +142,14 @@ def _check_paths(s: Settings) -> Check:
     ]
     if bad:
         return Check("FAIL", "paths absolute", ", ".join(bad), "report this as a bug")
+    if s.data_dir_requested:
+        return Check(
+            "SKIP",
+            "paths absolute",
+            f"DATA_DIR {s.data_dir_requested} is not mounted here; using {s.data_dir} "
+            "(wiped on restart)",
+            "grant READ VOLUME, WRITE VOLUME to this identity, or accept the ephemeral data dir",
+        )
     return Check("OK", "paths absolute", f"data_dir={s.data_dir}")
 
 
