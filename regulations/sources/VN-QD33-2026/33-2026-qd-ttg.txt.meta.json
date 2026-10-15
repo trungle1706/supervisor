@@ -1,9 +1,0 @@
-{
-  "url": "https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf",
-  "title": "Quyết định số 33/2026/QĐ-TTg ban hành Danh mục hệ thống trí tuệ nhân tạo có rủi ro cao (Công báo số 395)",
-  "fetched_at": "2026-10-15T09:27:59Z",
-  "sha256": "5eedfd5e7d033edcf316fcbe1f7777cffba99dff6c931b29a8d820b0436bfc36",
-  "content_type": "text/plain; charset=utf-8",
-  "tool": "manual-pdftotext-raw",
-  "note": "text extracted from the stored official gazette PDF with pdftotext -raw; gazette page header lines removed"
-}
