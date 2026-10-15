@@ -519,6 +519,23 @@ async def itsm(
 
 
 @router.post(
+    "/cases/{case_id}/report-sent",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("case.report_sent"))],
+)
+@audited("case.report_sent")
+async def report_sent(
+    case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Mark the preliminary or formal incident report as sent (Decree 142 Art. 19)."""
+
+    def act(d: dict[str, str]) -> Any:
+        return ctx.cases.record_report_sent(case_id, d.get("kind", ""), me, _version(d))
+
+    return await _case_action(request, ctx, me, case_id, act, "report_sent")
+
+
+@router.post(
     "/cases/{case_id}/transition",
     response_class=HTMLResponse,
     dependencies=[Depends(needs("case.transition"))],

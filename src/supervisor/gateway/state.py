@@ -1,7 +1,7 @@
 """Agent state machine (ADR D03) and pause / resume authority (ADR D04).
 
-States live in ``agent.gate_state`` (RUNNING / SHADOW / PAUSED / QUARANTINED);
-``agent.status`` mirrors them (enforced / shadow / paused; QUARANTINED -> paused,
+States live in ``agent.gate_state`` (RUNNING / SHADOW / PAUSED / QUARANTINED / RETIRED);
+``agent.status`` mirrors them (enforced / shadow / paused / retired; QUARANTINED -> paused,
 ``gate_state`` tells them apart). The ``gate_control`` table holds the active pause
 (with the state to resume to) and pending resume approvals.
 
@@ -10,6 +10,9 @@ States live in ``agent.gate_state`` (RUNNING / SHADOW / PAUSED / QUARANTINED);
   and a reviewer. The first call records a pending approval; the second completes it.
 * Quarantine: everything is denied, read-only tools too. Only an admin can release
   it, and release goes to PAUSED (the normal two-person resume then applies).
+
+* Retire (WP19, D03 amendment): one-way, only from PAUSED or SHADOW, admin only. Nothing
+  leaves RETIRED. RUNNING must pause first; QUARANTINED must be released to PAUSED first.
 
 Every transition is written with ``row_version`` optimistic concurrency and recorded
 through the EvidenceSink. Free-text reasons stay in ``gate_control``; the chain gets
@@ -30,12 +33,13 @@ from supervisor.core.errors import ConcurrencyError, SupervisorError
 from supervisor.core.ports import Clock, EvidenceSink, StateStore
 from supervisor.gateway.policy import Policy, PolicyProvider
 
-GateStateT = Literal["RUNNING", "SHADOW", "PAUSED", "QUARANTINED"]
+GateStateT = Literal["RUNNING", "SHADOW", "PAUSED", "QUARANTINED", "RETIRED"]
 STATUS_FOR_STATE = {
     "RUNNING": "enforced",
     "SHADOW": "shadow",
     "PAUSED": "paused",
     "QUARANTINED": "paused",
+    "RETIRED": "retired",
 }
 MAX_REASON = 2000
 
@@ -308,6 +312,35 @@ class AgentStateMachine:
             self._close_pending_resumes(agent_id)
             return {"agent_id": agent_id, "state": "PAUSED", "changed": True}
 
+    def retire(self, agent_id: str, principal: str, reason: str) -> dict[str, Any]:
+        """Admin only (``policy.doc.admins``, like a quarantine release). One-way.
+
+        Allowed from PAUSED or SHADOW. A RUNNING agent must be paused first and a
+        QUARANTINED agent released to PAUSED first. Retiring a RETIRED agent is a no-op.
+        """
+        reason = _reason(reason)
+        if not reason:
+            raise TransitionError("a reason is required to retire an agent")
+        admins = self.policy.current().doc.admins
+        if principal not in admins:
+            raise TransitionError(f"{principal} is not an admin; only an admin can retire")
+        with self._lock:
+            row = self._ensure_row(agent_id)
+            current = row["gate_state"]
+            if current == "RETIRED":
+                return {"agent_id": agent_id, "state": "RETIRED", "changed": False}
+            if current == "RUNNING":
+                raise TransitionError(f"agent {agent_id} is RUNNING; pause it first")
+            if current == "QUARANTINED":
+                raise TransitionError(f"agent {agent_id} is QUARANTINED; release it first")
+            _, before = self._transition(
+                agent_id, ("PAUSED", "SHADOW"), "RETIRED", principal, reason, "retire"
+            )
+            self._close_pending_resumes(agent_id)
+            for a in self._controls(agent_id, "pause", "active"):
+                self._close_control(a, "closed")
+            return {"agent_id": agent_id, "state": "RETIRED", "changed": True, "from": before}
+
     def _role(self, agent_id: str, principal: str) -> str:
         row = self._ensure_row(agent_id)
         if principal == row["owner_user"]:
@@ -330,6 +363,8 @@ class AgentStateMachine:
                 raise TransitionError(
                     f"agent {agent_id} is QUARANTINED; an admin must release it first"
                 )
+            if row["gate_state"] == "RETIRED":
+                raise TransitionError(f"agent {agent_id} is RETIRED; it cannot resume")
             if row["gate_state"] != "PAUSED":
                 raise TransitionError(f"agent {agent_id} is {row['gate_state']}; not paused")
             role = self._role(agent_id, principal)
@@ -396,7 +431,7 @@ class AgentStateMachine:
             }
 
     def set_mode(self, agent_id: str, mode: GateStateT, principal: str) -> dict[str, Any]:
-        """Switch between SHADOW and RUNNING (not out of PAUSED or QUARANTINED)."""
+        """Switch between SHADOW and RUNNING (not out of PAUSED, QUARANTINED or RETIRED)."""
         if mode not in ("RUNNING", "SHADOW"):
             raise TransitionError("mode must be RUNNING or SHADOW")
         with self._lock:

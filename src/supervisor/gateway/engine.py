@@ -3,7 +3,7 @@
 Tier 0a, in order:
 
 1. Read the policy (``PolicyProvider``) and the agent state (``AgentStateMachine``).
-2. Unknown agent or unknown tool -> block (closed). QUARANTINED -> block everything.
+2. Unknown agent or unknown tool -> block (closed). QUARANTINED and RETIRED -> block everything.
    PAUSED -> block every tool that is not read-only ("agent paused").
 3. Evaluate every rule in scope, in a fixed order (pause > block > alert > log,
    then severity, then rule id). Predicates, aggregates and prior-call checks are
@@ -570,6 +570,8 @@ class Gateway:
                 builtin = ("GATE-UNKNOWN-AGENT", f"unknown agent {agent_id}: fail closed")
             elif state == "QUARANTINED":
                 builtin = ("GATE-QUARANTINED", "agent quarantined")
+            elif state == "RETIRED":
+                builtin = ("GATE-RETIRED", "agent retired")
             elif state == "PAUSED" and risk != "read_only":
                 builtin = ("GATE-PAUSED", "agent paused")
             elif risk is None and state != "SHADOW":
@@ -879,8 +881,9 @@ class Gateway:
         risk = policy.risk_class(tool_name)
         if risk is None or agent_id not in policy.doc.agents:
             return "closed", None
-        if self.states.last_known_state(agent_id) in ("QUARANTINED", "PAUSED") and (
-            risk != "read_only" or self.states.last_known_state(agent_id) == "QUARANTINED"
+        if self.states.last_known_state(agent_id) in ("QUARANTINED", "PAUSED", "RETIRED") and (
+            risk != "read_only"
+            or self.states.last_known_state(agent_id) in ("QUARANTINED", "RETIRED")
         ):
             return "closed", None
         applicable = [

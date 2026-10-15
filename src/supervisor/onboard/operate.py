@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
 
 from supervisor.onboard.models import (
     AgentProfile,
@@ -64,3 +66,17 @@ def handover(
         artefacts=dict(sorted(artefacts.items())),
         next_steps=steps,
     )
+
+
+def retire(
+    runtime: Any,
+    agent_id: str,
+    *,
+    principal: str,
+    reason: str,
+    out_dir: Path | str,
+) -> Any:
+    """Stage 7 Retire (WP19): thin wrapper over ``supervisor.onboard.retire.retire_agent``."""
+    from supervisor.onboard.retire import retire_agent
+
+    return retire_agent(runtime, agent_id, principal=principal, reason=reason, out_dir=out_dir)

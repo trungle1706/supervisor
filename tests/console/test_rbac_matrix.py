@@ -200,6 +200,7 @@ POST_CASES: list[tuple[str, str, str, dict[str, str], str, str]] = [
         "ok",
         "case",
     ),
+    ("report-sent", "reviewer.an", "case.report_sent", {"kind": "preliminary"}, "ok", "case"),
     ("verify", "auditor.dung", "case.verify", {}, "ok", "case"),
     ("assign", "auditor.dung", "case.assign", {"assignee": "reviewer.an"}, "denied", "case"),
     ("signoff", "reviewer.an", "case.signoff", {"decision": "approve"}, "error", "case"),
@@ -236,7 +237,7 @@ def test_case_actions_write_exactly_one_row(
     assert row["target_kind"] == kind and row["target_id"] == c["case_id"]
     assert row["roles"] == sorted(console.ctx.provider.users[user].roles)
     assert row["before_hash"] and row["after_hash"]
-    if outcome == "ok" and suffix in ("assign", "comment", "itsm", "transition"):
+    if outcome == "ok" and suffix in ("assign", "comment", "itsm", "transition", "report-sent"):
         assert row["before_hash"] != row["after_hash"], "the case row changed"
     else:
         assert row["before_hash"] == row["after_hash"]
@@ -308,6 +309,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "case.comment",
         "case.itsm",
         "case.transition",
+        "case.report_sent",
         "case.verify",
         "case.signoff",
         "agent.pause",

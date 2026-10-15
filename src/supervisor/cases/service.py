@@ -33,9 +33,14 @@ import threading
 import uuid
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, date, datetime
 from typing import Any, Protocol
 
+from supervisor.cases.incident_clock import (
+    compute_clock,
+    formal_due_from,
+    urgency_for,
+)
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, SupervisorError
@@ -58,6 +63,7 @@ MAX_TEXT = 4000
 WORKFLOW_ROLES = rbac.roles_for("case.transition")
 COMMENT_ROLES = rbac.roles_for("case.comment")
 SIGN_ROLES = rbac.roles_for("case.signoff")
+REPORT_KINDS = ("preliminary", "formal")
 TRANSITIONS: dict[str, tuple[str, ...]] = {
     "open": ("triaged",),
     "triage": ("triaged",),  # legacy value
@@ -138,6 +144,7 @@ class CaseService:
         system: Actor | None = None,
         decision33_text: str = "",
         mask_version: str = "",
+        holidays: frozenset[date] | set[date] = frozenset(),
     ) -> None:
         self.state = state
         self.tables = tables
@@ -148,6 +155,7 @@ class CaseService:
         self.system: Actor = system or SystemActor()
         self.decision33_text = decision33_text
         self.mask_version = mask_version
+        self.holidays: frozenset[date] = frozenset(holidays)  # incident clock (WP19)
         self._lock = threading.RLock()
 
     # ------------------------------------------------------------------ reads
@@ -226,8 +234,66 @@ class CaseService:
         )
 
     def clocks(self, case_id: str) -> SbvClocks:
-        """SBV clocks (24 h report, 5-day remediation) from the case-file builder."""
+        """DEPRECATED draft-circular clocks (24 h report, 5-day remediation).
+
+        The signed Circular 53 has no 24-hour clock; use ``incident_status`` (WP19).
+        """
         return self.case_file(case_id).sbv
+
+    def incident_status(self, case_id: str, *, now: datetime | None = None) -> dict[str, Any]:
+        """Decree 142 Art. 19 clock of a case: urgency, due and sent times, overdue flags."""
+        case = self.get(case_id)
+        now = now or self.clock.now()
+        if case.get("prelim_report_due_at") is None:  # a case opened before WP19
+            detected = self.case_file(case_id, now=now).sbv.incident_detected_at
+            c = compute_clock(
+                detected,
+                case.get("urgency_class") or urgency_for(case["severity"]),
+                self.holidays,
+                prelim_sent_at=case.get("prelim_report_sent_at"),
+            )
+            prelim_due, formal_due, urgency = c.prelim_due, c.formal_due, c.urgency
+        else:
+            detected = case["incident_detected_at"]
+            prelim_due, formal_due = case["prelim_report_due_at"], case["formal_report_due_at"]
+            urgency = case["urgency_class"]
+        p_sent, f_sent = case.get("prelim_report_sent_at"), case.get("formal_report_sent_at")
+        return {
+            "detected_at": detected,
+            "urgency": urgency,
+            "prelim_due_at": prelim_due,
+            "formal_due_at": formal_due,
+            "prelim_sent_at": p_sent,
+            "formal_sent_at": f_sent,
+            "prelim_overdue": p_sent is None and now > prelim_due,
+            "formal_overdue": f_sent is None and now > formal_due,
+        }
+
+    def _clock_fields(
+        self,
+        detected: datetime,
+        severity: str,
+        current: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Incident clock columns. With ``current``: tighten only (never relax an urgent clock)."""
+        current = current or {}
+        urgency = urgency_for(severity)
+        if current.get("urgency_class") == "urgent":
+            urgency = "urgent"
+        sent = current.get("prelim_report_sent_at")
+        c = compute_clock(detected, urgency, self.holidays, prelim_sent_at=sent)
+        old_prelim = current.get("prelim_report_due_at")
+        prelim_due = min(c.prelim_due, old_prelim) if old_prelim else c.prelim_due
+        formal_due = formal_due_from(sent or prelim_due)
+        old_formal = current.get("formal_report_due_at")
+        if old_formal and not sent:
+            formal_due = min(formal_due, old_formal)
+        return {
+            "incident_detected_at": current.get("incident_detected_at") or detected,
+            "urgency_class": urgency,
+            "prelim_report_due_at": prelim_due,
+            "formal_report_due_at": formal_due,
+        }
 
     # ------------------------------------------------------------------ helpers
 
@@ -303,7 +369,12 @@ class CaseService:
         return seq
 
     def _update(
-        self, case_id: str, changes: Mapping[str, Any], expected_version: int | None
+        self,
+        case_id: str,
+        changes: Mapping[str, Any],
+        expected_version: int | None,
+        *,
+        allow_closed: bool = False,
     ) -> dict[str, Any]:
         current = self.get(case_id)
         if expected_version is None:
@@ -313,7 +384,7 @@ class CaseService:
                 f"case {case_id} changed since you loaded it (version {expected_version}, "
                 f"now {current['row_version']}); reload and try again"
             )
-        if current["status"] == "closed":
+        if current["status"] == "closed" and not allow_closed:
             raise CaseError(f"case {case_id} is closed")
         try:
             return self.state.update(
@@ -390,9 +461,14 @@ class CaseService:
                 case = self.state.insert("cases", row)
             except DuplicateKeyError:
                 return self.get(case_id)
-            due = self.case_file(case_id, now=now).sbv.report_due_at
+            sbv = self.case_file(case_id, now=now).sbv
+            due = sbv.report_due_at  # DEPRECATED 24 h clock, kept for old readers
+            clock_cols = self._clock_fields(sbv.incident_detected_at, severity)
             case = self.state.update(
-                "cases", {"case_id": case_id}, {"report_due_at": due}, case["row_version"]
+                "cases",
+                {"case_id": case_id},
+                {"report_due_at": due, **clock_cols},
+                case["row_version"],
             )
             self.evidence.record(
                 "case",
@@ -405,6 +481,9 @@ class CaseService:
                     "source_ref": source_ref,
                     "summary_sha256": sha256_hex(summary),
                     "report_due_at": format_ts(due),
+                    "urgency_class": clock_cols["urgency_class"],
+                    "prelim_report_due_at": format_ts(clock_cols["prelim_report_due_at"]),
+                    "formal_report_due_at": format_ts(clock_cols["formal_report_due_at"]),
                     "opened_by": actor.user_id,
                     "auth_method": actor.auth_method,
                     "ts": format_ts(now),
@@ -416,7 +495,7 @@ class CaseService:
         self._notify(
             "reviewers",
             f"[{severity}] new case {case_id} ({agent_id})",
-            f"{summary}\nSBV report due {format_ts(due)}",
+            f"{summary}\nPreliminary report due {format_ts(clock_cols['prelim_report_due_at'])}",
         )
         return case
 
@@ -440,10 +519,15 @@ class CaseService:
                         self._join(case, "judge", ref, actor)
                     if _sev_rank(severity) > _sev_rank(case["severity"]):
                         before = case["severity"]
+                        changes: dict[str, Any] = {"severity": severity}
+                        if case.get("incident_detected_at") is not None:
+                            changes.update(
+                                self._clock_fields(case["incident_detected_at"], severity, case)
+                            )
                         case = self.state.update(
                             "cases",
                             {"case_id": case["case_id"]},
-                            {"severity": severity},
+                            changes,
                             case["row_version"],
                         )
                         self._event(
@@ -655,6 +739,90 @@ class CaseService:
             self._notify("reviewers", f"case {case_id} closed ({resolution})", note)
         return case
 
+    def close_for_retirement(self, case_id: str, actor: Actor, reason: str) -> dict[str, Any]:
+        """Close an open case because its agent was retired (WP19, system path).
+
+        Skips triage, containment and the two-sign-off rule: only ``retire_agent`` calls it.
+        Records resolution ``retired`` in the case_event (action ``close:retired``) and the
+        evidence record. It writes NO signoff row, so the judge-vs-human agreement metric
+        (which counts close:confirmed / close:false_alarm sign-offs) never sees it.
+        A person (kind ``user``) needs the admin role; the system actor needs none.
+        """
+        if actor.kind == "user":
+            require(actor, ("admin",), "close a case for a retirement")
+        reason = _text(reason, "retirement reason", required=True)
+        with self._lock:
+            current = self.get(case_id)
+            if current["status"] == "closed":
+                raise CaseError(f"case {case_id} is already closed")
+            case = self._update(
+                case_id,
+                {"status": "closed", "closed_at": self.clock.now()},
+                int(current["row_version"]),
+            )
+            self._event(
+                case,
+                actor,
+                "close:retired",
+                comment=f"agent retired: {reason}",
+                extra={
+                    "from_status": current["status"],
+                    "to_status": "closed",
+                    "resolution": "retired",
+                },
+            )
+        return case
+
+    # ------------------------------------------------------------------ incident reports
+
+    def record_report_sent(
+        self,
+        case_id: str,
+        kind: str,
+        actor: Actor,
+        expected_version: int | None,
+        sent_at: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Record that the preliminary or formal incident report went to the authority.
+
+        Formal before preliminary and a second send are refused. A preliminary send moves
+        the formal due date to sent + 15 days (Decree 142 Art. 19(4)). Works on closed
+        cases too: the report can be due after the case is closed.
+        """
+        require_permission(actor, "case.report_sent", "record a sent incident report")
+        if kind not in REPORT_KINDS:
+            raise CaseError(f"report kind must be {' or '.join(REPORT_KINDS)}")
+        if sent_at is not None and sent_at.tzinfo is None:
+            raise CaseError("sent_at must include a time zone")
+        with self._lock:
+            current = self.get(case_id)
+            now = self.clock.now()
+            sent = (sent_at or now).astimezone(UTC)
+            col = "prelim_report_sent_at" if kind == "preliminary" else "formal_report_sent_at"
+            if kind == "formal" and current.get("prelim_report_sent_at") is None:
+                raise CaseError("send the preliminary report before the formal report")
+            if current.get(col):
+                raise CaseError(f"the {kind} report is already recorded as sent")
+            backfill: dict[str, Any] = {}
+            if current.get("incident_detected_at") is None:  # a case opened before WP19
+                detected = self.case_file(case_id, now=now).sbv.incident_detected_at
+                backfill = self._clock_fields(detected, current["severity"], current)
+            changes: dict[str, Any] = {**backfill, col: sent}
+            if kind == "preliminary":
+                changes["formal_report_due_at"] = formal_due_from(sent)
+            case = self._update(case_id, changes, expected_version, allow_closed=True)
+            self._event(
+                case,
+                actor,
+                f"report_sent:{kind}",
+                extra={
+                    "report_kind": kind,
+                    "sent_at": format_ts(sent),
+                    "formal_report_due_at": format_ts(case["formal_report_due_at"]),
+                },
+            )
+        return case
+
     # ------------------------------------------------------------------ sign-off
 
     def _approvals(self, case_id: str) -> dict[str, str]:
@@ -748,6 +916,7 @@ __all__ = [
     "CaseError",
     "CaseService",
     "PermissionDenied",
+    "REPORT_KINDS",
     "RESOLUTIONS",
     "SEVERITIES",
     "SystemActor",

@@ -199,7 +199,9 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`verdict` (
   role STRING,
   region STRING,
   model_version STRING,
-  mask_version STRING
+  mask_version STRING,
+  prompt_hash STRING,
+  rubric_version STRING
 )
 USING DELTA
 COMMENT 'One row per check outcome (rule, Tier 1 or Tier 2 judge). Judges are advisory.'
@@ -220,6 +222,12 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`cases` (
   report_due_at TIMESTAMP,
   closed_at TIMESTAMP,
   case_type STRING,
+  incident_detected_at TIMESTAMP,
+  urgency_class STRING,
+  prelim_report_due_at TIMESTAMP,
+  formal_report_due_at TIMESTAMP,
+  prelim_report_sent_at TIMESTAMP,
+  formal_report_sent_at TIMESTAMP,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )
@@ -369,12 +377,40 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`oversight_metric` (
   blocks BIGINT,
   llm_calls BIGINT,
   judge_latency_ms BIGINT,
+  judge_human_pairs BIGINT,
+  judge_human_agree_bp BIGINT,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )
 USING DELTA
 COMMENT 'Daily oversight metrics per agent. Feeds the console panel.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- model_validation (append_only): WP19. One row per judge validation run (python -m supervisor.judge.mrm validate). The judge service checks it when JUDGE_REQUIRE_VALIDATION is on. Integers only.
+-- primary key (enforced by the app, not by Delta): validation_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`model_validation` (
+  validation_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  judge_id STRING NOT NULL,
+  model_version STRING NOT NULL,
+  prompt_hash STRING NOT NULL,
+  rubric_version STRING NOT NULL,
+  mask_version STRING NOT NULL,
+  golden_set_hash STRING NOT NULL,
+  is_mock BOOLEAN NOT NULL,
+  decision STRING NOT NULL,
+  passed BOOLEAN NOT NULL,
+  runs BIGINT NOT NULL,
+  metrics STRING NOT NULL,
+  thresholds STRING NOT NULL,
+  failed_checks STRING NOT NULL,
+  validator STRING NOT NULL,
+  report_hash STRING NOT NULL
+)
+USING DELTA
+COMMENT 'WP19. One row per judge validation run (python -m supervisor.judge.mrm validate). The judge service checks it when JUDGE_REQUIRE_VALIDATION is on. Integers only.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
 -- policy_baseline (state): Drift baseline band per agent version and metric (WP7, ADR D09). Integers only: band = center +- k * scaled MAD. Also holds the breach streak of the drift monitor.
 -- primary key (enforced by the app, not by Delta): agent_id, agent_version, metric

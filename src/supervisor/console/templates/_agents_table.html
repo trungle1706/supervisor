@@ -52,7 +52,7 @@
       {% endif %}
       <div class="hint">{{ t('release_rule') }}</div>
     {% endif %}
-    {% if a.state != 'QUARANTINED' and me.has('admin') %}
+    {% if a.state not in ('QUARANTINED', 'RETIRED') and me.has('admin') %}
       <details class="more"><summary>{{ t('quarantine') }}</summary>
         <form hx-post="/console/agents/{{ a.agent_id }}/quarantine" hx-target="#agents-table" class="stack-f">
           <input type="text" name="reason" placeholder="{{ t('reason_required') }}" maxlength="2000" required aria-label="{{ t('reason') }}">
