@@ -169,6 +169,16 @@ class JudgeService:
         if not settings.judge_enabled and not force:
             return None
         router = JudgeRouter.from_settings(settings, state=state, tables=tables)
+        # Judge enablement gates, in this order (docs/judge-mrm.md section 4):
+        # 1. WP17 pack gate (ASSURANCE_JUDGE_GATE_ENABLED, default on, mock exempt): the
+        #    judge-gate packs passed for this model; raises assurance JudgeNotValidatedError.
+        # 2. WP19 MRM gate below (JUDGE_REQUIRE_VALIDATION, default off): a passing
+        #    model_validation record for this exact identity (model, prompt, rubric).
+        # The scheduler catches either error, logs it and runs without the judge.
+        if settings.assurance_judge_gate_enabled:
+            from supervisor.assurance.gates import require_judge_validated
+
+            require_judge_validated(tables, router)
         service = cls(
             router,
             clock,

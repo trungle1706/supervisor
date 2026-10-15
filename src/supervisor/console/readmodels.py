@@ -125,6 +125,7 @@ def shell(ctx: Any, me: Any) -> dict[str, Any]:
         "initials": initials(me),
         "first_name": first_name(me),
         "role": main_role(me),
+        "assurance": bool(ctx.settings.console_assurance_enabled),
     }
 
 

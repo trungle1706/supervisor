@@ -1,0 +1,23 @@
+{
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "syn-gamma"
+      },
+      "versions": [
+        "0.8.0",
+        "0.9.0"
+      ]
+    }
+  ],
+  "aliases": [],
+  "database_specific": {
+    "severity": "LOW"
+  },
+  "id": "SYN-2026-0006",
+  "modified": "2026-01-01T00:00:00Z",
+  "published": "2026-01-01T00:00:00Z",
+  "schema_version": "1.6.0",
+  "summary": "Synthetic advisory for matcher tests (fake)"
+}

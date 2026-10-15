@@ -323,6 +323,17 @@ class Settings(BaseSettings):
     retention_dry_run: bool = False  # count only, change nothing
     sched_retention_s: int = Field(default=86400, ge=60)
 
+    # WP17 assurance eval packs. Bank-supplied datasets live under ASSURANCE_DATA_DIR/<pack>/;
+    # OSV_DB_PATH is a local OSV vulnerability dump. All new features default off.
+    assurance_data_dir: Path | None = None
+    osv_db_path: Path | None = None
+    assurance_licence_allow: str = (
+        "MIT,Apache-2.0,BSD-2-Clause,BSD-3-Clause,PSF-2.0,ISC,Unlicense,0BSD,MPL-2.0,MIT-0"
+    )
+    assurance_launch_enabled: bool = False  # Launch adds assurance NO-GO items
+    assurance_judge_gate_enabled: bool = True  # non-mock judge needs its judge packs passed
+    console_assurance_enabled: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -337,6 +348,8 @@ class Settings(BaseSettings):
         "fairness_config",
         "incident_holidays_file",
         "log_file",
+        "assurance_data_dir",
+        "osv_db_path",
         mode="after",
     )
     @classmethod

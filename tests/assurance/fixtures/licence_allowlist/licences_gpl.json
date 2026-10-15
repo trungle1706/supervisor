@@ -1,0 +1,5 @@
+{
+  "Pydantic": "GPL-3.0-only",
+  "pyyaml": "MIT",
+  "jinja2": "LicenseRef-Proprietary"
+}
