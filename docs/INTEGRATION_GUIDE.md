@@ -53,6 +53,10 @@ Python OTLP/HTTP exporter sends protobuf. So put an OpenTelemetry Collector betw
                                                  client gets isError: true + reason)
 ```
 
+Use the proxy (pattern C) or the decorators on the tools (pattern A), not both. A tool that
+is gated in code and by the proxy is checked twice, so daily totals count its calls twice.
+The advisor lists the decorator patches and the proxy patch as alternatives.
+
 The proxy command, in cmd syntax:
 
 ```cmd
@@ -820,7 +824,7 @@ onboarding. It tells the team what to fix first.
 | area | weight | points |
 |---|---|---|
 | tracing | 20 | OpenTelemetry tracing found = 20; MLflow tracing only = 12; none = 0 |
-| gate_coverage | 30 | gated tools = risk class money, credit or pii_export; 30 * covered // gated, covered = the tool function already carries a Supervisor gate (`supervised_tool` or a gate `.check(` call); no gated tools = 30 |
+| gate_coverage | 30 | gated tools = risk class money, credit or pii_export, or any tool with a write side effect found in its body (db, http, bank API or file write, or an in-memory mutation); 30 * covered // gated, covered = the tool function already carries a Supervisor gate (`supervised_tool` or a `.check(` call on a gate inside the function), or the repo has a central dispatch gate (a `.check(` call on a name containing `gate` with at least 4 positional arguments, `safe_check(<gate>, ...)` with at least 5, or `build_runtime(..., gate=...)` / `AgentRuntime(..., gate=...)`), which covers every tool; no gated tools = 30 |
 | tool_inventory | 15 | 15 * tools whose implementing function was found // all tools; no tools = 0 |
 | money_args | 10 | per money tool 5 for an amount argument not typed float + 5 for a destination argument; 10 * earned // (10 * money tools); no money tools = 10 |
 | model_identity | 10 | 10 * LLM call sites with a known model family // all; none = 10 |
