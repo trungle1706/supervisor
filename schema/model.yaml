@@ -488,3 +488,31 @@ tables:
       body: text
       status: string
       read_by: string?
+
+  console_action:
+    kind: append_only
+    evidence: true
+    description: >
+      WP18. One row per mutating console or API action (and per denied attempt): who, when,
+      what, target, row hash before and after, request id. Append-only; in the audit pack.
+    primary_key: [action_id]
+    indexes:
+      - [ts]
+      - [actor, ts]
+    columns:
+      action_id: string
+      ts: timestamp
+      request_id: string
+      actor: string
+      actor_kind: string
+      auth_method: string
+      roles: json             # sorted role list of the actor at the time
+      permission: string      # role-matrix permission id, e.g. case.transition
+      method: string
+      path: string
+      target_kind: string?    # case | agent | notice | export | job | session
+      target_id: string?
+      outcome: string         # ok | denied | error
+      before_hash: string?    # sha256 of the canonical target row before the action
+      after_hash: string?     # sha256 of the canonical target row after the action
+      detail: text?           # short masked note (error class, denial reason); never PII

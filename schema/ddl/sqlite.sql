@@ -594,3 +594,40 @@ CREATE TABLE IF NOT EXISTS notice (
 );
 
 CREATE INDEX IF NOT EXISTS ix_notice_channel_status ON notice (channel, status);
+
+-- console_action (append_only): WP18. One row per mutating console or API action (and per denied attempt): who, when, what, target, row hash before and after, request id. Append-only; in the audit pack.
+CREATE TABLE IF NOT EXISTS console_action (
+  action_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  actor_kind TEXT NOT NULL,
+  auth_method TEXT NOT NULL,
+  roles TEXT NOT NULL,
+  permission TEXT NOT NULL,
+  method TEXT NOT NULL,
+  path TEXT NOT NULL,
+  target_kind TEXT,
+  target_id TEXT,
+  outcome TEXT NOT NULL,
+  before_hash TEXT,
+  after_hash TEXT,
+  detail TEXT,
+  PRIMARY KEY (action_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_console_action_ts ON console_action (ts);
+
+CREATE INDEX IF NOT EXISTS ix_console_action_actor_ts ON console_action (actor, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_console_action_no_update
+BEFORE UPDATE ON console_action
+BEGIN
+  SELECT RAISE(ABORT, 'console_action is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_console_action_no_delete
+BEFORE DELETE ON console_action
+BEGIN
+  SELECT RAISE(ABORT, 'console_action is append-only');
+END;
