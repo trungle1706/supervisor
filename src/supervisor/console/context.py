@@ -11,6 +11,7 @@ from supervisor.adapters.auth import PrincipalProvider, build_principal_provider
 from supervisor.adapters.notify import InboxNotifier, build_notifier
 from supervisor.cases import CaseService, build_case_service
 from supervisor.config import Settings
+from supervisor.console.onboard_runs import OnboardRunner
 
 
 @dataclass
@@ -22,6 +23,7 @@ class ConsoleContext:
     provider: PrincipalProvider
     last_verify: dict[str, dict[str, Any]] = field(default_factory=dict)
     lock: threading.RLock = field(default_factory=threading.RLock)
+    onboard: OnboardRunner = field(default_factory=OnboardRunner)
 
     @property
     def gateway(self) -> Any:

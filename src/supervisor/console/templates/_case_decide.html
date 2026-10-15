@@ -1,0 +1,93 @@
+{% import "_ui.html" as ui with context %}
+<section class="card" aria-label="{{ t('your_decision') }}">
+  <h3>{{ t('your_decision') }}</h3>
+  <div class="flow">{% for s in flow %}<span class="st {{ s.state }}">{{ t('flow_' ~ s.key) }}</span>{% if not loop.last %}<span aria-hidden="true">→</span>{% endif %}{% endfor %}</div>
+  {% if case.status != 'closed' %}
+    {% if two_person %}
+    <div class="need">{{ t('need_two', sev=t(case.severity)) }} <b>{{ t('signoffs_n', n=approvals|length) }}</b> {{ t('you_are_a', role=t('role_' ~ me_role)) }}</div>
+    {% else %}
+    <div class="need">{{ t('need_one', sev=t(case.severity)) }}</div>
+    {% endif %}
+  <div class="decide">
+    {# 1. assign #}
+    {% if can_work %}
+      {% if case.assignee != me.user_id %}
+      <form hx-post="/console/cases/{{ case.case_id }}/assign?lang={{ lang }}" hx-target="#case-body">
+        <input type="hidden" name="row_version" value="{{ case.row_version }}">
+        <input type="hidden" name="assignee" value="{{ me.user_id }}">
+        <button class="btn {{ 'primary' if not case.assignee else '' }} block" type="submit">{{ t('assign_to_me') }}</button>
+      </form>
+      {% if case.assignee %}<div class="why-btn">{{ t('assigned_to', who=case.assignee) }}</div>{% endif %}
+      {% else %}
+      <div class="why-btn">{{ t('assigned_to_you') }}</div>
+      {% endif %}
+    {% endif %}
+    {# 2. triage #}
+    {% if 'triaged' in next_steps and can_work %}
+    <details class="act">
+      <summary class="btn {{ 'primary' if case.assignee == me.user_id else '' }} block">{{ t('mark_triaged') }}</summary>
+      <form hx-post="/console/cases/{{ case.case_id }}/transition?lang={{ lang }}" hx-target="#case-body" class="stack-f" style="margin-top:8px">
+        <input type="hidden" name="row_version" value="{{ case.row_version }}">
+        <input type="hidden" name="to" value="triaged">
+        <input type="hidden" name="assignee" value="{{ case.assignee or me.user_id }}">
+        <label class="f">{{ t('note') }}<textarea name="note" placeholder="{{ t('triage_note_ph') }}"></textarea></label>
+        <button class="btn dark" type="submit">{{ t('triage') }}</button>
+      </form>
+    </details>
+    {% endif %}
+    {# 3. contain #}
+    {% if 'contained' in next_steps and can_work %}
+    <details class="act">
+      <summary class="btn {{ 'primary' if case.status == 'triaged' else '' }} block">{{ t('contain_btn') if agent_state in ('PAUSED', 'QUARANTINED') else t('contain_btn_running') }}</summary>
+      <form hx-post="/console/cases/{{ case.case_id }}/transition?lang={{ lang }}" hx-target="#case-body" class="stack-f" style="margin-top:8px">
+        <input type="hidden" name="row_version" value="{{ case.row_version }}">
+        <input type="hidden" name="to" value="contained">
+        <label class="f">{{ t('contain_note') }}<textarea name="note" required></textarea></label>
+        <button class="btn dark" type="submit">{{ t('contain') }}</button>
+      </form>
+    </details>
+    <div class="why-btn">{{ t('agent_now', agent=case.agent_id, state=agent_state or '-') }}{% if agent_state in ('RUNNING', 'SHADOW') %} <a href="/console/agents?lang={{ lang }}">{{ t('pause_on_agents') }}</a>{% endif %}</div>
+    {% endif %}
+    {# 4. sign-off (high / critical) #}
+    {% if two_person and case.status in ('triaged', 'contained') and can_sign %}
+    <a class="btn block {{ 'primary' if case.status == 'contained' and approvals|length < 2 else '' }}" href="/console/cases/{{ case.case_id }}/signoff?lang={{ lang }}">{{ t('signoff') }} ({{ approvals|length }}/2)</a>
+    {% endif %}
+    {# 5. close #}
+    {% if 'closed' in next_steps and can_work and (not two_person or approvals|length >= 2) %}
+    <details class="act">
+      <summary class="btn {{ 'primary' if two_person and approvals|length >= 2 else '' }} block">{{ t('close') }}</summary>
+      <form hx-post="/console/cases/{{ case.case_id }}/transition?lang={{ lang }}" hx-target="#case-body" class="stack-f" style="margin-top:8px">
+        <input type="hidden" name="row_version" value="{{ case.row_version }}">
+        <input type="hidden" name="to" value="closed">
+        <label class="f">{{ t('resolution') }}
+          <select name="resolution">{% for r in ('confirmed', 'false_alarm') %}{% if case.status != 'triaged' or r == 'false_alarm' %}<option value="{{ r }}">{{ t(r) }}</option>{% endif %}{% endfor %}</select></label>
+        <label class="f">{{ t('reason') }}<textarea name="note" required></textarea></label>
+        <button class="btn dark" type="submit">{{ t('close') }}</button>
+      </form>
+    </details>
+    {% if case.status == 'triaged' %}<div class="why-btn">{{ t('close_from_triaged') }}</div>{% endif %}
+    {% else %}
+    <button class="btn ghost block" type="button" disabled>{{ t('close_needs_two') if two_person else t('close') }}</button>
+    <div class="why-btn">{% if case.status == 'open' %}{{ t('close_why_open') }}{% elif two_person %}{{ t('close_why_two', n=approvals|length) }}{% else %}{{ t('close_why_role') }}{% endif %}</div>
+    {% endif %}
+    {# comment #}
+    <details class="act">
+      <summary class="btn ghost block">{{ t('add_comment') }}</summary>
+      <form hx-post="/console/cases/{{ case.case_id }}/comment?lang={{ lang }}" hx-target="#case-body" class="stack-f" style="margin-top:8px">
+        <input type="hidden" name="row_version" value="{{ case.row_version }}">
+        <label class="f">{{ t('comment') }}<textarea name="text" required></textarea></label>
+        <button class="btn" type="submit">{{ t('comment') }}</button>
+        <div class="hint">{{ t('comment_masked') }}</div>
+      </form>
+    </details>
+  </div>
+  {% else %}
+  <div class="ok-big">{{ t('case_closed_line', when=case.closed_at|day) }}</div>
+  {% endif %}
+  <form class="btnrow" hx-post="/console/cases/{{ case.case_id }}/itsm?lang={{ lang }}" hx-target="#case-body" style="font-size:12px">
+    <input type="hidden" name="row_version" value="{{ case.row_version }}">
+    <label class="f" style="flex:1">{{ t('itsm_ticket') }}<input type="text" name="itsm_ref" value="{{ case.itsm_ref or '' }}" maxlength="64" placeholder="{{ t('itsm_ph') }}" class="mono"></label>
+    <button class="btn sm" type="submit" style="align-self:end">{{ t('save') }}</button>
+  </form>
+  <div class="hint">{{ t('itsm_hint') }}</div>
+</section>

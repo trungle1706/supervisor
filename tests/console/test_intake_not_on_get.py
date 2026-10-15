@@ -17,7 +17,8 @@ def _counts(console: Console) -> tuple[int, int]:
 def test_queue_get_writes_nothing(console: Console) -> None:
     add_gate_block(console.runtime.adapters)
     before = _counts(console)
-    for url in ("/console/", "/console/queue/rows", "/console/queue/rows?status=all"):
+    urls = ("/console/", "/console/cases", "/console/queue/rows", "/console/queue/rows?status=all")
+    for url in urls:
         assert console.get(url).status_code == 200
     assert _counts(console) == before
 

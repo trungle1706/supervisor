@@ -245,6 +245,7 @@ class Settings(BaseSettings):
     auth_config_file: Path | None = None  # default: <repo>/config/auth.yaml
     console_lang: Literal["en", "vi"] = "en"  # default UI language (?lang= overrides)
     console_export_dir: Path | None = None  # audit packs; default: <data_dir>/exports
+    console_onboard_enabled: bool = False  # WP12: Onboard "Start" in the console (new: off)
     notify_webhook_enabled: bool = False  # new feature: off by default (inbox always on)
     notify_webhook_url: str = ""  # stub: notices are queued, never sent (bank ITSM, WP11)
     # Monitors and in-process scheduler (WP7, ADR D09/D10). Every monitor is off by

@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
 {% block title %}{{ t('agents') }}{% endblock %}
 {% block content %}
-<h1>{{ t('agents') }}</h1>
-<p class="muted">{{ t('resume_rule') }}</p>
-<div id="agents-table">
+<div class="pagehead"><h1>{{ t('agents') }}</h1></div>
+{{ ui.purpose(t('agents_purpose'), t('agents_why')) }}
+<div id="agents-table" class="grid" style="gap:12px">
 {% include "_agents_table.html" %}
 </div>
 {% endblock %}

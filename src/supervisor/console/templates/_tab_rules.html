@@ -1,0 +1,26 @@
+{% import "_ui.html" as ui with context %}
+<section class="card">
+  <h3>{{ t('rules_and_judges') }}</h3>
+  <p class="hint" style="margin-top:0">{{ t('rules_tab_why') }}</p>
+  {% include "_verdict_table.html" %}
+</section>
+<section class="card" style="margin-top:16px">
+  <h3>{{ t('verdict_details') }}</h3>
+  {% if verdict_rows %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th>{{ t('time') }}</th><th>{{ t('checker') }}</th><th>{{ t('label') }}</th><th class="n">{{ t('score_bp') }}</th><th class="n">ms</th><th>{{ t('rationale') }}</th></tr></thead>
+    <tbody>
+    {% for v in verdict_rows %}
+    <tr>
+      <td class="mono">{{ v.ts|hhmmss }}</td>
+      <td class="mono">{{ v.checker_id }}{% if v.model_id %}<div class="idline">{{ v.model_id }}{% if v.model_family %} · {{ v.model_family }}{% endif %}</div>{% endif %}{% if v.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</td>
+      <td>{{ v.label or '-' }}</td>
+      <td class="n">{{ v.score_bp if v.score_bp is not none else '-' }}</td>
+      <td class="n">{{ v.latency_ms if v.latency_ms is not none else '-' }}</td>
+      <td class="rat">{{ v.rationale or '-' }}{% if v.regulation_ref %}<div class="idline">{{ v.regulation_ref }}</div>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('no_verdicts') }}</p>{% endif %}
+</section>

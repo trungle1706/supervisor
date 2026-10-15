@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_onboard') }}{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>{{ t('onboard_title') }}</h1></div>
+<div class="purpose">
+  <p><strong>{{ t('ob_purpose_lead') }}</strong> {{ t('ob_purpose_rest') }}</p>
+  <p class="why">{{ t('ob_why') }}</p>
+</div>
+<div id="onboard-status">
+{% include "_onboard_status.html" %}
+</div>
+{% endblock %}

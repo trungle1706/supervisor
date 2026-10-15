@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_evidence') }}{% endblock %}
+{% block content %}
+{% set c = chain %}
+<div class="pagehead"><h1>{{ t('nav_evidence') }}</h1></div>
+<div class="purpose">
+  <p><strong>{{ t('ev_purpose_lead') }}</strong> {{ t('ev_purpose_rest') }}</p>
+  <p class="why">{{ t('ev_why') }}</p>
+</div>
+
+<div class="grid g3" id="ev-numbers">
+  <div class="card gold-card">
+    <h3>{{ t('entries') }}</h3>
+    <div class="bignum" data-entries="{{ c.entries }}">{{ c.entries }}</div>
+    <div class="sub">{{ t('lanes_sub', n=c.agent_lanes) }}</div>
+  </div>
+  <div class="card gold-card">
+    <h3>{{ t('last_signed_root') }}</h3>
+    {% if c.signed %}
+    <div class="bignum md">seq {{ c.signed.seq }} · {{ c.signed.ts|hhmmss }}</div>
+    <div class="sub">{{ t('key') }} <span class="mono" title="{{ c.signed.key_id }}">{{ c.signed.key_id[:10] }}…</span>
+      {{ ui.pill(t('key_' ~ c.signed.key_kind) if c.signed.key_kind in ('dev', 'managed') else c.signed.key_kind, 'neutral' if c.signed.key_kind == 'dev' else 'gold') }}
+      · {{ c.signed.algorithm }}</div>
+    {% else %}
+    <div class="bignum md">—</div><div class="sub">{{ t('no_signed_root') }}</div>
+    {% endif %}
+  </div>
+  <div class="card gold-card">
+    <h3>{{ t('last_anchor') }}</h3>
+    {% if c.anchor %}
+    <div class="bignum md">{{ c.anchor.anchored_at|hhmmss }}</div>
+    <div class="sub">{{ t('anchor_target_' ~ ('uc' if c.anchor.anchor_target.startswith('/Volumes') else 'worm')) }} · <span class="mono">{{ c.anchor.anchor_target[-40:] }}</span></div>
+    {% else %}
+    <div class="bignum md">—</div><div class="sub">{{ t('not_anchored_why') }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <h3>{{ t('lanes') }}</h3>
+  <div class="lanes" id="lanes">
+    {% for l in lanes %}
+    <div class="lane" data-lane="{{ l.lane }}" data-squares="{{ l.squares|length }}" data-hidden="{{ l.hidden }}">
+      <span class="mono">{{ l.lane }}</span>
+      <div class="blocks" aria-label="{{ t('n_entries', n=l.count) }}">
+        {% if l.hidden %}<span class="more">+{{ l.hidden }}</span>{% endif %}
+        {% for q in l.squares %}<span class="b {{ q.kind }}" title="{{ q.title }}"></span>{% endfor %}
+      </div>
+      <span class="count">{% if l.lane == 'root' %}{{ ui.pill(t('signed_n', n=signed_n), 'gold') }}{% elif l.verify %}{{ ui.pill(t('ok_word') if l.verify.ok else t('verify_fail'), 'ok' if l.verify.ok else 'bad') }}{% else %}<span class="mono muted">{{ l.count }}</span>{% endif %}</span>
+    </div>
+    {% else %}
+    <p class="muted">{{ t('no_chain') }}</p>
+    {% endfor %}
+  </div>
+  <div class="legend">
+    <span><i class="b"></i>{{ t('lg_decision') }}</span>
+    <span><i class="b stop"></i>{{ t('lg_case') }}</span>
+    <span><i class="b state"></i>{{ t('lg_state') }}</span>
+    <span><i class="b human"></i>{{ t('lg_human') }}</span>
+    <span><i class="b signed"></i>{{ t('lg_signed') }}</span>
+  </div>
+  <div class="hint">{{ t('lanes_hint', cap=60) }}</div>
+</section>
+
+<section class="card" style="margin-top:16px">
+  <h3>{{ t('chain_status') }}</h3>
+  <div id="verify-result">{% include "_verify_result.html" %}</div>
+  <div class="btnrow">
+    <button class="btn primary" hx-post="/console/chain/verify?lang={{ lang }}" hx-target="#verify-result" hx-indicator="#ev-busy">{{ t('verify_now') }}</button>
+    {% if me.has('auditor', 'reviewer', 'approver', 'admin') %}
+    <button class="btn" hx-post="/console/chain/export?lang={{ lang }}" hx-target="#export-result" hx-indicator="#ev-busy">{{ t('export_chain') }}</button>
+    <button class="btn gold" hx-post="/console/export?lang={{ lang }}" hx-target="#export-result" hx-indicator="#ev-busy">{{ t('build_pack') }}</button>
+    {% endif %}
+    <span id="ev-busy" class="htmx-indicator muted">{{ t('working') }}</span>
+  </div>
+  <div id="export-result">{% include "_export_result.html" %}</div>
+  <div class="hint">{{ t('export_help') }}</div>
+</section>
+
+<div class="grid g2" style="margin-top:16px">
+  <section class="card">
+    <h3>{{ t('how_offline') }}</h3>
+    <p style="margin:0 0 6px;font-size:14px">{{ t('how_offline_intro') }}</p>
+    {% set pname = offline_pack %}
+<pre class="cmd" id="offline-cmd">cd /d %USERPROFILE%\Downloads
+tar -xf {{ pname }}
+set PYTHONPATH=C:\supervisor\src
+python -m supervisor.evidence.verify {{ pname[:-4] }}\chain</pre>
+    <div class="hint">{{ t('how_offline_hint') }}</div>
+  </section>
+  <section class="card">
+    <h3>{{ t('download') }}</h3>
+    {% for p in packs %}
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:13px">
+        {{ ui.pill(t('kind_' ~ p.kind), 'gold' if p.kind == 'audit' else 'neutral') }}
+        <a class="mono" href="/console/exports/{{ p.name }}" download>{{ p.name }}</a>
+        <span class="muted">{{ (p.size / 1024)|round(1) }} KB</span>
+      </div>
+    {% else %}<p class="muted">{{ t('no_packs') }}</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

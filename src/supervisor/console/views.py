@@ -12,12 +12,22 @@ REPORT_WINDOW_S = 24 * 3600
 METRIC_KEYS = ("metric_date", "agent_id", "row_version", "updated_at", "computed_at")
 
 
-def countdown(due: dt.datetime | None, now: dt.datetime, window_s: int = REPORT_WINDOW_S) -> dict:
-    """Remaining time and a colour class at 50 / 80 / 100 % of the window used."""
+def countdown(
+    due: dt.datetime | None,
+    now: dt.datetime,
+    window_s: int = REPORT_WINDOW_S,
+    severity: str | None = None,
+) -> dict:
+    """Remaining time and a colour class at 50 / 80 / 100 % of the window used.
+
+    ``used_bp`` (0..10000) draws the bar; ``kind`` colours it: red when overdue, at 80 %
+    used, or for a critical case; amber otherwise. ``secs`` is the absolute remaining (or
+    overdue) time for ``duration_text``."""
     if due is None:
-        return {"text": "-", "cls": "", "overdue": False}
+        return {"text": "-", "cls": "", "overdue": False, "used_bp": 0, "kind": "", "secs": 0}
     remaining = int((due - now).total_seconds())
     used_bp = 10000 - (remaining * 10000 // window_s) if window_s else 10000
+    used_bp = max(0, min(10000, used_bp))
     cls = (
         "c100" if remaining <= 0 else "c80" if used_bp >= 8000 else "c50" if used_bp >= 5000 else ""
     )
@@ -25,7 +35,30 @@ def countdown(due: dt.datetime | None, now: dt.datetime, window_s: int = REPORT_
     days, rem = divmod(secs, 86400)
     hours, rem = divmod(rem, 3600)
     text = (f"{days}d " if days else "") + f"{hours:02d}:{rem // 60:02d}"
-    return {"text": text, "cls": cls, "overdue": remaining <= 0}
+    kind = "red" if remaining <= 0 or used_bp >= 8000 or severity == "critical" else "amber"
+    return {
+        "text": text,
+        "cls": cls,
+        "overdue": remaining <= 0,
+        "used_bp": used_bp,
+        "kind": kind,
+        "secs": secs,
+    }
+
+
+DURATION_UNITS = {"en": ("d", "h", "m"), "vi": ("ngày", "giờ", "phút")}
+
+
+def duration_text(secs: int, lang: str = "en") -> str:
+    """'4 d 23 h' when a day or more, else '23 h 59 m' (Vietnamese units for vi)."""
+    d_u, h_u, m_u = DURATION_UNITS.get(lang, DURATION_UNITS["en"])
+    secs = max(0, int(secs))
+    days, rem = divmod(secs, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes = rem // 60
+    if days:
+        return f"{days} {d_u} {hours} {h_u}"
+    return f"{hours} {h_u} {minutes} {m_u}"
 
 
 def to_int(value: Any) -> int | None:

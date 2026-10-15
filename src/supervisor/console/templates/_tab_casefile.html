@@ -1,0 +1,27 @@
+{% import "_ui.html" as ui with context %}
+<section class="card">
+  <h3>{{ t('tab_casefile') }}</h3>
+  <p class="hint" style="margin-top:0">{{ t('casefile_why') }}</p>
+  <dl class="kv">
+    <dt>{{ t('sbv_clock') }}</dt><dd>{{ cf.sbv.report_due_at|ict }}</dd>
+    <dt>{{ t('sbv_remediation') }}</dt><dd>{{ cf.sbv.remediation_due_at|ict }} <span class="muted">({{ cf.sbv.remediation_basis }})</span></dd>
+    <dt>{{ t('d33_label') }}</dt><dd>{{ d33 or t('d33_pending') }}</dd>
+    <dt>{{ t('regulation') }}</dt><dd>{{ cf.regulation_refs|join('; ') or '-' }}</dd>
+    <dt>{{ t('rules_broken') }}</dt><dd>{{ cf.rules_broken|length }}</dd>
+    <dt>{{ t('judge_findings') }}</dt><dd>{{ cf.judge_findings|length }}</dd>
+    <dt>{{ t('signoffs') }}</dt><dd>{{ cf.signoffs|length }}</dd>
+    <dt>{{ t('timeline') }}</dt><dd>{{ cf.timeline|length }} {{ t('items') }}</dd>
+  </dl>
+  {% if signoffs %}
+  <h3 style="margin-top:16px">{{ t('signoffs') }}</h3>
+  {% for s in signoffs %}
+  <div style="margin-bottom:8px"><strong>{{ s.reviewer_id }}</strong> {{ ui.pill(s.decision, 'gold') }} <span class="mono muted">{{ s.ts|day }} · {{ s.auth_method }}</span>
+    <div class="verbatim">{{ s.reason }}</div></div>
+  {% endfor %}
+  {% endif %}
+  <div class="btnrow">
+    <a class="btn gold" href="/console/cases/{{ case.case_id }}/casefile.html" target="_blank" rel="noopener">{{ t('open_casefile_html') }}</a>
+    <a class="btn" href="/console/cases/{{ case.case_id }}/casefile.json" download>{{ t('download_json') }}</a>
+  </div>
+  <div class="hint">{{ t('casefile_hint') }}</div>
+</section>

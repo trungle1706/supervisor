@@ -30,14 +30,12 @@ from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
 from supervisor.cases.service import (
     RESOLUTIONS,
     SEVERITIES,
-    TRANSITIONS,
-    TWO_PERSON_SEVERITIES,
     WORKFLOW_ROLES,
     CaseError,
     PermissionDenied,
     require,
 )
-from supervisor.console import auditpack, views
+from supervisor.console import auditpack, health, onboard_runs, readmodels, views
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.core.canonical import format_ts
@@ -55,6 +53,16 @@ STATIC = {
     "console.css": "text/css",
     "htmx.LICENSE.txt": "text/plain",
 }
+FONTS = (
+    "plus-jakarta-sans-latin.woff2",
+    "plus-jakarta-sans-latin-ext.woff2",
+    "plus-jakarta-sans-vietnamese.woff2",
+    "jetbrains-mono-latin.woff2",
+    "jetbrains-mono-latin-ext.woff2",
+    "jetbrains-mono-vietnamese.woff2",
+    "OFL-PlusJakartaSans.txt",
+    "OFL-JetBrainsMono.txt",
+)
 LANG_COOKIE = "sv_lang"
 MAX_FORM_BYTES = 64 * 1024
 _ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
@@ -77,6 +85,10 @@ _env = Environment(
 _env.filters["utc"] = fmt_utc
 _env.filters["ict"] = fmt_ict
 _env.filters["metric"] = lambda v, name="": views.metric_cell(name, v)
+_env.filters["hhmm"] = readmodels.hhmm
+_env.filters["hhmmss"] = lambda v: readmodels.hhmm(v, seconds=True)
+_env.filters["day"] = lambda v: "-" if v is None else readmodels.ict(v).strftime("%Y-%m-%d %H:%M")
+_env.filters["vnd"] = lambda v: "-" if v is None else f"{int(v):,}"
 
 
 def ctx_dep() -> ConsoleContext:
@@ -111,8 +123,18 @@ def render(
     **data: Any,
 ) -> HTMLResponse:
     lang = _lang(request, ctx)
+    cache: dict[str, Any] = {}
+
+    def shell() -> dict[str, Any]:  # header data, computed only when a full page asks
+        if "v" not in cache:
+            cache["v"] = readmodels.shell(ctx, me)
+        return cache["v"]
+
+    data.setdefault("section", "")
     body = _env.get_template(template).render(
         t=translator(lang),
+        dur=lambda secs: views.duration_text(secs, lang),
+        shell=shell,
         lang=lang,
         other_lang="vi" if lang == "en" else "en",
         me=me,
@@ -186,6 +208,16 @@ async def _call(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
 # ---------------------------------------------------------------------------- static
 
 
+@router.get("/static/fonts/{name}")
+def static_font(name: str) -> Response:
+    if name not in FONTS:
+        return Response("not found", status_code=404, media_type="text/plain")
+    media = "font/woff2" if name.endswith(".woff2") else "text/plain"
+    resp = FileResponse(HERE / "static" / "fonts" / name, media_type=media)
+    resp.headers["cache-control"] = "public, max-age=604800"
+    return resp
+
+
 @router.get("/static/{name}")
 def static(name: str) -> Response:
     media = STATIC.get(name)
@@ -195,6 +227,9 @@ def static(name: str) -> Response:
 
 
 # ---------------------------------------------------------------------------- queue
+
+
+SOURCE_KINDS = ("gate", "judge", "monitor", "manual")
 
 
 def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
@@ -207,39 +242,59 @@ def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
     agent = request.query_params.get("agent") or None
     if agent is not None:
         _check_id(agent, "agent filter")
+    source = request.query_params.get("source") or None
+    if source is not None and source not in SOURCE_KINDS:
+        raise ConsoleInputError("unknown opened-by filter")
     statuses = None
     if status == "open":
-        statuses = [s for s in (*TRANSITIONS.keys(), "escalated", "resolved")]
+        statuses = list(readmodels.OPEN_STATUSES)
     elif status == "closed":
         statuses = ["closed"]
     rows = ctx.cases.list_cases(statuses=statuses, severity=sev, agent_id=agent)
-    now = ctx.clock.now()
-    items = []
-    for r in rows:
-        kinds = sorted({link["source_kind"] for link in ctx.cases.links(r["case_id"])})
-        items.append(
-            {
-                **r,
-                "sources": kinds,
-                "clock": views.countdown(r["report_due_at"], now)
-                if r["status"] != "closed"
-                else {"text": "-", "cls": "", "overdue": False},
-            }
-        )
+    items = readmodels.case_rows(ctx, rows, ctx.clock.now())
+    if source is not None:
+        items = [i for i in items if source in i["sources"]]
     agents = sorted({a["agent_id"] for a in ctx.state.query("agent")})
+    filters = {
+        "severity": sev or "",
+        "status": status,
+        "agent": agent or "",
+        "source": source or "",
+    }
     return {
         "items": items,
-        "filters": {"severity": sev or "", "status": status, "agent": agent or ""},
+        "filters": filters,
+        "query": "&".join(f"{k}={v}" for k, v in filters.items() if v),
         "severities": SEVERITIES,
+        "sources": SOURCE_KINDS,
         "agent_ids": agents,
+        "closed_n": len(ctx.cases.list_cases(statuses=["closed"])),
     }
 
 
 @router.get("/", response_class=HTMLResponse)
+async def overview(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    now = ctx.clock.now()
+    ov = await _call(readmodels.overview, ctx, now)
+    return render(
+        request,
+        ctx,
+        me,
+        "overview.html",
+        section="overview",
+        ov=ov,
+        greet_key=readmodels.greeting_key(now),
+    )
+
+
+@router.get("/cases", response_class=HTMLResponse)
 async def queue(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     _view(me)
     data = await _call(_queue_data, ctx, request)
-    return render(request, ctx, me, "queue.html", **data)
+    return render(request, ctx, me, "queue.html", section="cases", **data)
 
 
 @router.get("/queue/rows", response_class=HTMLResponse)
@@ -254,53 +309,19 @@ async def queue_rows(
 # ---------------------------------------------------------------------------- case
 
 
-def _case_data(ctx: ConsoleContext, case_id: str) -> dict[str, Any]:
+CASE_TABS = ("story", "rules", "transcript", "evidence", "casefile")
+
+
+def _case_data(
+    ctx: ConsoleContext, case_id: str, me: AuthPrincipal, tab: str = "story"
+) -> dict[str, Any]:
     _check_id(case_id, "case id")
-    case = ctx.cases.get(case_id)
-    cf = ctx.cases.case_file(case_id)
-    now = ctx.clock.now()
-    verdicts = ctx.cases.linked_verdicts(case_id)
-    trace_ids = sorted({v["trace_id"] for v in verdicts if v.get("trace_id")})
-    excerpts: list[dict[str, Any]] = []
-    for tid in trace_ids[:5]:
-        for ev in ctx.tables.query("agent_event", {"trace_id": tid}, order_by=("ts",)):
-            if ev.get("args_masked") or ev.get("result_masked"):
-                excerpts.append(
-                    {
-                        "ts": ev["ts"],
-                        "agent_id": ev["agent_id"],
-                        "event_type": ev["event_type"],
-                        "tool_name": ev.get("tool_name"),
-                        "status": ev.get("status"),
-                        "args": (ev.get("args_masked") or "")[:600],
-                        "result": (ev.get("result_masked") or "")[:600],
-                    }
-                )
-    excerpts = excerpts[:30]
-    lane = f"agent:{case['agent_id']}"
-    status = case["status"]
-    next_steps = list(TRANSITIONS.get(status, ()))
-    approvals = ctx.cases._approvals(case_id)
-    return {
-        "case": case,
-        "cf": cf,
-        "events": ctx.cases.events(case_id),
-        "signoffs": ctx.cases.signoffs(case_id),
-        "approvals": approvals,
-        "links": ctx.cases.links(case_id),
-        "verdicts": verdicts,
-        "excerpts": excerpts,
-        "report_clock": views.countdown(cf.sbv.report_due_at, now) if status != "closed" else None,
-        "remediation_clock": views.countdown(cf.sbv.remediation_due_at, now, 5 * 86400)
-        if status != "closed"
-        else None,
-        "lane": lane,
-        "verify": ctx.last_verify.get(lane) or ctx.last_verify.get("all"),
-        "next_steps": next_steps,
-        "resolutions": RESOLUTIONS,
-        "two_person": case["severity"] in TWO_PERSON_SEVERITIES,
-        "assignable": [u.user_id for u in ctx.provider.known_users() if u.has("reviewer", "admin")],
-    }
+    if tab not in CASE_TABS:
+        raise ConsoleInputError("unknown case tab")
+    data = readmodels.case_detail(ctx, case_id, me, ctx.clock.now())
+    data["tab"] = tab
+    data["resolutions"] = RESOLUTIONS
+    return data
 
 
 @router.get("/cases/{case_id}", response_class=HTMLResponse)
@@ -308,8 +329,42 @@ async def case_page(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _view(me)
-    data = await _call(_case_data, ctx, case_id)
-    return render(request, ctx, me, "case.html", **data)
+    tab = request.query_params.get("tab") or "story"
+    data = await _call(_case_data, ctx, case_id, me, tab)
+    return render(request, ctx, me, "case.html", section="cases", **data)
+
+
+@router.get("/cases/{case_id}/tab/{tab}", response_class=HTMLResponse)
+async def case_tab(
+    case_id: str, tab: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """One pill tab of the case page (htmx partial)."""
+    _view(me)
+    data = await _call(_case_data, ctx, case_id, me, tab)
+    return render(request, ctx, me, f"_tab_{tab}.html", **data)
+
+
+@router.get("/cases/{case_id}/casefile.{fmt}")
+async def case_file_view(
+    case_id: str, fmt: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """The case file as the regulator sees it (HTML) or as data (JSON). A view: nothing is
+    written; the audit pack writes and chains the files."""
+    _view(me)
+    _check_id(case_id, "case id")
+    if fmt not in ("html", "json"):
+        raise ConsoleInputError("case file format must be html or json")
+    from supervisor.evidence.casefile.render_html import render_html
+    from supervisor.evidence.casefile.render_json import render_json
+
+    cf = await _call(ctx.cases.case_file, case_id)
+    if fmt == "html":
+        return Response(render_html(cf), media_type="text/html; charset=utf-8")
+    return Response(
+        render_json(cf),
+        media_type="application/json",
+        headers={"content-disposition": f'attachment; filename="{case_id}.json"'},
+    )
 
 
 async def _case_action(
@@ -323,7 +378,7 @@ async def _case_action(
     _check_id(case_id, "case id")
     data = await form(request)
     await _call(action, data)
-    page = await _call(_case_data, ctx, case_id)
+    page = await _call(_case_data, ctx, case_id, me)
     resp = render(request, ctx, me, "_case_body.html", **page)
     t = translator(_lang(request, ctx))
     resp.body = resp.body + message_html(f"{t('saved')} {done}", ok=True, oob=True).encode()
@@ -390,7 +445,8 @@ async def verify_case_lane(
     _htmx_only(request)
     case = await _call(ctx.cases.get, _check_id(case_id, "case id"))
     result = await _call(auditpack.verify_chain, ctx, f"agent:{case['agent_id']}")
-    return render(request, ctx, me, "_verify_result.html", verify=result)
+    chain = await _call(readmodels.chain_summary, ctx)
+    return render(request, ctx, me, "_verify_result.html", verify=result, chain=chain)
 
 
 # ---------------------------------------------------------------------------- sign-off
@@ -401,8 +457,8 @@ async def signoff_page(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _view(me)
-    data = await _call(_case_data, ctx, case_id)
-    return render(request, ctx, me, "signoff.html", **data)
+    data = await _call(_case_data, ctx, case_id, me)
+    return render(request, ctx, me, "signoff.html", section="cases", **data)
 
 
 @router.post("/cases/{case_id}/signoff", response_class=HTMLResponse)
@@ -416,9 +472,14 @@ async def signoff(
     await _call(
         ctx.cases.sign_off, case_id, me, d.get("decision", ""), d.get("reason", ""), _version(d)
     )
-    page = await _call(_case_data, ctx, case_id)
+    page = await _call(_case_data, ctx, case_id, me)
     resp = render(request, ctx, me, "_signoff_panel.html", **page)
-    resp.body = resp.body + message_html("Sign-off recorded.", ok=True, oob=True).encode()
+    resp.body = (
+        resp.body
+        + message_html(
+            translator(_lang(request, ctx))("signoff_recorded"), ok=True, oob=True
+        ).encode()
+    )
     resp.headers["content-length"] = str(len(resp.body))
     return resp
 
@@ -426,35 +487,15 @@ async def signoff(
 # ---------------------------------------------------------------------------- agents
 
 
-def _agents_data(ctx: ConsoleContext) -> dict[str, Any]:
-    states = ctx.gateway.states
-    rows = []
-    for a in sorted(ctx.state.query("agent"), key=lambda r: r["agent_id"]):
-        try:
-            desc = states.describe(a["agent_id"])
-        except SupervisorError:
-            desc = {"state": a["gate_state"], "pending_resume": []}
-        cov = views.coverage_bp(ctx.state.query("coverage", {"agent_id": a["agent_id"]}))
-        open_cases = [
-            c for c in ctx.cases.list_cases(agent_id=a["agent_id"]) if c["status"] != "closed"
-        ]
-        rows.append(
-            {
-                **a,
-                "state": desc["state"],
-                "pending": desc.get("pending_resume") or [],
-                "coverage_bp": cov,
-                "open_cases": len(open_cases),
-            }
-        )
-    return {"agents": rows}
+def _agents_data(ctx: ConsoleContext, me: AuthPrincipal) -> dict[str, Any]:
+    return {"agents": readmodels.agent_cards(ctx, me)}
 
 
 @router.get("/agents", response_class=HTMLResponse)
 async def agents(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     _view(me)
-    data = await _call(_agents_data, ctx)
-    return render(request, ctx, me, "agents.html", **data)
+    data = await _call(_agents_data, ctx, me)
+    return render(request, ctx, me, "agents.html", section="agents", **data)
 
 
 def _policy_precheck(ctx: ConsoleContext, agent_id: str, action: str, me: AuthPrincipal) -> None:
@@ -544,7 +585,7 @@ async def agent_action(
         msg = f"{agent_id}: {action} -> {result.get('state')}"
     if warn:
         msg += f" (WARNING: the console evidence record failed: {warn}; see the server log)"
-    data = await _call(_agents_data, ctx)
+    data = await _call(_agents_data, ctx, me)
     resp = render(request, ctx, me, "_agents_table.html", **data)
     resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
     resp.headers["content-length"] = str(len(resp.body))
@@ -621,19 +662,45 @@ async def verify_all(
     _view(me)
     _htmx_only(request)
     result = await _call(auditpack.verify_chain, ctx, None)
-    return render(request, ctx, me, "_verify_result.html", verify=result)
+    chain = await _call(readmodels.chain_summary, ctx)
+    return render(request, ctx, me, "_verify_result.html", verify=result, chain=chain)
 
 
 # ---------------------------------------------------------------------------- export
 
 
-@router.get("/export", response_class=HTMLResponse)
-async def export_page(
+def _evidence_data(ctx: ConsoleContext) -> dict[str, Any]:
+    data = readmodels.evidence(ctx)
+    data["packs"] = auditpack.list_packs(ctx)
+    audits = [p["name"] for p in data["packs"] if p["kind"] == "audit"]
+    data["offline_pack"] = audits[0] if audits else "audit-pack-YYYYMMDDTHHMMSSZ-xxxxxx.zip"
+    data["verify"] = ctx.last_verify.get("all")
+    return data
+
+
+@router.get("/evidence", response_class=HTMLResponse)
+async def evidence_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _view(me)
-    packs = await _call(auditpack.list_packs, ctx)
-    return render(request, ctx, me, "export.html", packs=packs, pack=None)
+    data = await _call(_evidence_data, ctx)
+    return render(request, ctx, me, "evidence.html", section="evidence", pack=None, **data)
+
+
+@router.get("/export")
+def export_page() -> RedirectResponse:
+    """The audit pack lives on the Evidence screen since WP12."""
+    return RedirectResponse("/console/evidence", status_code=303)
+
+
+@router.post("/chain/export", response_class=HTMLResponse)
+async def chain_export(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    await form(request)
+    require(me, EXPORT_ROLES, "export the evidence chain")
+    pack = await _call(auditpack.build_chain_export, ctx, me)
+    return render(request, ctx, me, "_export_result.html", pack=pack)
 
 
 @router.post("/export", response_class=HTMLResponse)
@@ -653,6 +720,87 @@ async def export_download(
     require(me, EXPORT_ROLES, "download an audit pack")
     path = auditpack.pack_path(ctx, name)
     return FileResponse(path, media_type="application/zip", filename=name)
+
+
+# ---------------------------------------------------------------------------- onboard
+
+ONBOARD_ROLES = ("reviewer", "owner", "admin")
+
+
+def _onboard_data(ctx: ConsoleContext) -> dict[str, Any]:
+    runs = onboard_runs.last_runs(ctx.settings)
+    job = ctx.onboard.latest()
+    if job is not None and job.status == "running":
+        arts = readmodels.onboard_artefacts(ctx.settings, job.agent)
+    else:
+        arts = set(runs[0]["files"]) if runs else set()
+    return {
+        "runs": runs,
+        "job": job,
+        "wizard": readmodels.lifecycle(None, arts),
+        "enabled": bool(ctx.settings.console_onboard_enabled),
+    }
+
+
+@router.get("/onboard", response_class=HTMLResponse)
+async def onboard_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    data = await _call(_onboard_data, ctx)
+    return render(request, ctx, me, "onboard.html", section="onboard", **data)
+
+
+@router.get("/onboard/status", response_class=HTMLResponse)
+async def onboard_status(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    data = await _call(_onboard_data, ctx)
+    return render(request, ctx, me, "_onboard_status.html", **data)
+
+
+@router.post("/onboard/start", response_class=HTMLResponse)
+async def onboard_start(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    d = await form(request)
+    if not ctx.settings.console_onboard_enabled:
+        raise ConsoleInputError(
+            "Onboard from the console is off (CONSOLE_ONBOARD_ENABLED=1 turns it on); "
+            "use python -m supervisor.onboard --target <folder> --out <folder>"
+        )
+    require(me, ONBOARD_ROLES, "start an onboarding run")
+    if me.kind != "user":
+        raise PermissionDenied("starting an onboarding run needs a signed-in person")
+    target = onboard_runs.resolve_target(d.get("target", ""))
+    await _call(ctx.onboard.start, ctx, target, me)
+    data = await _call(_onboard_data, ctx)
+    return render(request, ctx, me, "_onboard_status.html", **data)
+
+
+@router.get("/onboard/files/{agent}/{name}")
+async def onboard_file(
+    agent: str, name: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    path = onboard_runs.artefact_path(ctx.settings, agent, name)
+    media = "application/json" if name.endswith(".json") else "text/plain"
+    resp = FileResponse(path, media_type=f"{media}; charset=utf-8")
+    resp.headers["x-content-type-options"] = "nosniff"
+    return resp
+
+
+# ---------------------------------------------------------------------------- health
+
+
+@router.get("/health", response_class=HTMLResponse)
+async def health_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    data = await _call(health.health, ctx)
+    return render(request, ctx, me, "health.html", section="health", **data)
 
 
 # ---------------------------------------------------------------------------- inbox

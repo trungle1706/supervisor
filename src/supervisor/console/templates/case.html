@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ t('case') }} {{ case.case_id }}{% endblock %}
 {% block content %}
-<h1>{{ t('case') }} <span class="mono">{{ case.case_id }}</span>
-  <span class="chip sev-{{ case.severity }}">{{ t(case.severity) }}</span>
-  <span class="chip">{{ t(case.status) }}</span></h1>
+<div class="pagehead">
+  <h1>{{ t('case') }} <span class="mono" style="font-size:26px">{{ case.case_id }}</span></h1>
+  <div class="actions"><a class="btn ghost sm" href="/console/cases?lang={{ lang }}">← {{ t('all_cases') }}</a></div>
+</div>
 <div id="case-body">
 {% include "_case_body.html" %}
 </div>

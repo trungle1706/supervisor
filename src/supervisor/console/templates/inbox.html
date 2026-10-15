@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
 {% block title %}{{ t('inbox') }}{% endblock %}
 {% block content %}
-<h1>{{ t('inbox') }}</h1>
+<div class="pagehead"><h1>{{ t('inbox') }}</h1></div>
+{{ ui.purpose(t('inbox_purpose'), t('inbox_why')) }}
 <div id="inbox-rows">
 {% include "_inbox_rows.html" %}
 </div>

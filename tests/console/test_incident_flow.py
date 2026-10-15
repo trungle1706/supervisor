@@ -33,7 +33,7 @@ def _payloads(console: Console, record_type: str) -> list[dict[str, Any]]:
 
 def test_full_incident_flow(console: Console, tmp_path: Path) -> None:
     # 1. the gate block is in the queue as a case
-    q = console.get("/console/")
+    q = console.get("/console/cases")
     case = next(c for c in console.ctx.cases.list_cases() if "CRD-01" in c["summary"])
     cid, agent = case["case_id"], case["agent_id"]
     assert agent == "credit_prequal" and case["severity"] == "high"

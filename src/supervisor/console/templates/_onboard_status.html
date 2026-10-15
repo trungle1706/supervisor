@@ -1,0 +1,75 @@
+{% import "_ui.html" as ui with context %}
+{% set running = job is not none and job.status == 'running' %}
+<div {% if running %}hx-get="/console/onboard/status?lang={{ lang }}" hx-trigger="every 2s" hx-target="#onboard-status" hx-swap="innerHTML"{% endif %} data-running="{{ '1' if running else '0' }}">
+<div class="wizard" aria-label="{{ t('lifecycle') }}">
+  {% for s in wizard %}
+  <div class="wstep {{ s.state }}" data-stage="{{ s.key }}"><b>{{ loop.index }} {{ t('stage_' ~ s.key) }}</b>{{ t('ws_' ~ s.key) }}</div>
+  {% endfor %}
+</div>
+
+<section class="card">
+  <h3>{{ t('start') }}</h3>
+  <form class="startrow" hx-post="/console/onboard/start?lang={{ lang }}" hx-target="#onboard-status" hx-swap="innerHTML">
+    <label class="f">{{ t('repo_path') }}
+      <input type="text" name="target" value="src/supervisor_agents/payments" maxlength="512" {{ 'disabled' if not enabled or running else '' }}></label>
+    <button class="btn primary" type="submit" {{ 'disabled' if not enabled or running else '' }}>{{ t('discover_btn') }}</button>
+  </form>
+  {% if enabled %}
+  <div class="hint">{{ t('start_hint') }}</div>
+  {% else %}
+  <div class="hint" data-onboard-off="1">{{ t('onboard_off') }} <code>python -m supervisor.onboard --target src\supervisor_agents\payments --out out\payments --mock-llm</code></div>
+  {% endif %}
+  {% if job %}
+  <div class="progress" data-job="{{ job.status }}">
+    <div>{% if job.status == 'running' %}{{ ui.pill(t('ob_running', agent=job.agent), 'warn', True) }}{% elif job.status == 'done' %}{{ ui.pill(t('ob_done', agent=job.agent), 'ok', True) }}{% else %}{{ ui.pill(t('ob_failed', agent=job.agent), 'bad', True) }}{% endif %}
+      {% if job.mock %}{{ ui.pill(t('mock'), 'neutral') }}{% endif %}
+      <span class="muted" style="font-size:12px">{{ t('ob_started', who=job.started_by, time=job.started_at|hhmmss) }}</span></div>
+    <div class="loglines">{{ job.lines[-14:]|join('\n') }}</div>
+  </div>
+  {% endif %}
+</section>
+
+{% for r in runs %}
+<h2 class="sec">{{ t('last_run', agent=r.agent) }} <span class="muted mono" style="font-size:12px;font-weight:500">{{ r.updated|day }}</span></h2>
+<div class="grid g3" data-run="{{ r.agent }}">
+  <div class="card">
+    <h3>{{ t('ob_profile') }}</h3>
+    {% if r.profile.present %}
+    <div style="font-size:14px;display:grid;gap:4px">
+      <div>{{ t('d33_label') }}: {% if r.profile.d33 == 'high_risk' %}{{ ui.pill(t('high_risk'), 'bad') }}{% elif r.profile.d33 %}{{ ui.pill(t('not_high_risk'), 'ok') }}{% else %}-{% endif %} <span class="muted" style="font-size:12px">({{ t('proposal') }})</span></div>
+      <div>{{ t('tools_summary', n=r.profile.tools, m=r.profile.money) }}</div>
+      <div>{{ t('human_gate') }}: <b data-human-gate="{{ 'yes' if r.profile.human_gate else 'no' }}">{{ t('yes') if r.profile.human_gate else t('no') }}</b></div>
+      <div>{{ t('proposed_risk') }}: <b>{{ t(r.profile.risk) if r.profile.risk else '-' }}</b>{% if r.profile.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</div>
+    </div>
+    {% if r.profile.human_gate is sameas false %}<div class="hint">{{ t('no_human_gate_hint') }}</div>{% endif %}
+    {% else %}<p class="muted">{{ t('not_yet') }}</p>{% endif %}
+  </div>
+  <div class="card">
+    <h3>{{ t('ob_plan') }}</h3>
+    {% if r.plan.present %}
+    <div style="font-size:14px;display:grid;gap:4px">
+      <div>{{ t('caps_selected', on=r.plan.caps_on, n=r.plan.caps) }}</div>
+      <div>{{ t('rules_proposed', n=r.plan.rules, s=r.plan.stop_rules) }}</div>
+      <div>{{ t('judges_planned') }}: {% for j in r.plan.judges %}<span class="mono">{{ j.id }}</span> {{ (j.sample_bp or 0) // 100 }}%{% if not loop.last %} · {% endif %}{% else %}-{% endfor %}</div>
+    </div>
+    {% else %}<p class="muted">{{ t('not_yet') }}</p>{% endif %}
+  </div>
+  <div class="card">
+    <h3>{{ t('ob_launch') }}</h3>
+    {% if r.launch.present %}
+    <div style="font-size:14px;display:grid;gap:4px">
+      <div>{% if r.launch.go %}{{ ui.pill('GO', 'ok') }}{% else %}{{ ui.pill('NO-GO', 'bad') }}{% endif %}
+        {{ t('caught_n', c=r.launch.caught, e=r.launch.expected) }}{% if r.launch.catch_bp is not none %} ({{ r.launch.catch_bp // 100 }}%){% endif %}</div>
+      <div>{{ t('false_alarms', p=(r.launch.false_bp // 100) if r.launch.false_bp is not none else '-', f=r.launch.flagged, b=r.launch.benign) }}</div>
+      {% if r.branch %}<div>{{ t('branch') }} <span class="mono">{{ r.branch }}</span>{% if r.commit %} <span class="mono muted">{{ r.commit }}</span>{% endif %}</div>{% endif %}
+      {% if r.launch.mock %}<div>{{ ui.pill(t('mock'), 'neutral') }} <span class="muted" style="font-size:12px">{{ t('launch_mock_note') }}</span></div>{% endif %}
+    </div>
+    {% if r.launch.reasons %}<div class="hint">{{ r.launch.reasons|join(' ') }}</div>{% endif %}
+    {% else %}<p class="muted">{{ t('not_yet') }}</p>{% endif %}
+  </div>
+</div>
+<div class="files" aria-label="{{ t('artefacts') }}">{% for f in r.files %}<a href="/console/onboard/files/{{ r.agent }}/{{ f }}" target="_blank" rel="noopener">{{ f }}</a>{% endfor %}</div>
+{% else %}
+<div class="card empty" style="margin-top:16px">{{ t('no_runs') }}</div>
+{% endfor %}
+</div>

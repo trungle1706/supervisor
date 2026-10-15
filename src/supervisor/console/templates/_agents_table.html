@@ -1,39 +1,68 @@
-<table>
-  <thead><tr>
-    <th>{{ t('agent') }}</th><th>{{ t('state') }}</th><th>{{ t('owner') }}</th><th>Risk</th>
-    <th class="num">{{ t('coverage') }}</th><th class="num">{{ t('open_cases') }}</th>
-    <th>{{ t('pending_resume') }}</th><th>{{ t('actions') }}</th>
-  </tr></thead>
-  <tbody>
-  {% for a in agents %}
-  <tr data-agent="{{ a.agent_id }}" data-state="{{ a.state }}">
-    <td><strong>{{ a.agent_id }}</strong><br><span class="muted">{{ a.name }}</span></td>
-    <td><span class="chip st-{{ a.state }}">{{ a.state }}</span></td>
-    <td>{{ a.owner_user }}<br><span class="muted">{{ a.owner_team }}</span></td>
-    <td>{{ a.risk_tier }}</td>
-    <td class="num">{{ '%.1f%%'|format(a.coverage_bp / 100) if a.coverage_bp is not none else '-' }}</td>
-    <td class="num"><a href="/console/?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ a.open_cases }}</a></td>
-    <td>{% for p in a.pending %}<span class="chip">{{ p.role }}: {{ p.principal }}</span> {% else %}-{% endfor %}</td>
-    <td>
-      <form class="inline" hx-target="#agents-table">
-        <input type="text" name="reason" placeholder="{{ t('reason') }}" maxlength="2000">
-        {% if a.state in ('RUNNING', 'SHADOW') %}
-        <button class="danger" hx-post="/console/agents/{{ a.agent_id }}/pause">{{ t('pause') }}</button>
-        {% endif %}
-        {% if a.state == 'PAUSED' %}
-        <button hx-post="/console/agents/{{ a.agent_id }}/resume">{{ t('resume') }}</button>
-        {% endif %}
-        {% if a.state != 'QUARANTINED' and me.has('admin') %}
-        <button class="danger secondary" hx-post="/console/agents/{{ a.agent_id }}/quarantine">{{ t('quarantine') }}</button>
-        {% endif %}
-        {% if a.state == 'QUARANTINED' and me.has('admin') %}
-        <button hx-post="/console/agents/{{ a.agent_id }}/release">{{ t('release') }}</button>
-        {% endif %}
+{% import "_ui.html" as ui with context %}
+{% for a in agents %}
+<article class="card agent" data-agent="{{ a.agent_id }}" data-state="{{ a.state }}">
+  <div>
+    <h4>{{ a.agent_id }}
+      {% if a.cause and a.cause.rule %}{{ ui.state_pill(a.state, t('by_rule', rule=a.cause.rule), ' ') }}
+      {% elif a.cause and a.cause.principal %}{{ ui.state_pill(a.state, t('by_person', who=a.cause.principal), ' ') }}
+      {% elif a.state == 'SHADOW' %}{{ ui.state_pill(a.state, t('shadow_word')) }}
+      {% else %}{{ ui.state_pill(a.state, t('enforced_word') if a.state == 'RUNNING' else None) }}{% endif %}
+    </h4>
+    <div class="meta">{{ a.name }} · {{ t('owner') }} <b>{{ a.owner_team }}</b> · {{ t('risk') }} <b>{{ t(a.risk_tier) }}</b> ·
+      {% if a.d33.cls == 'high_risk' %}{{ t('d33_high') }}{% elif a.d33.cls == 'not_high_risk' %}{{ t('d33_not_high') }}{% elif a.d33.cls %}{{ t('d33_label') }} {{ a.d33.cls }}{% else %}{{ t('d33_none') }}{% endif %}{% if a.d33.source == 'proposal' %} ({{ t('proposal') }}){% endif %} ·
+      {{ t('model_family') }} <b>{{ a.model_family }}</b> · {{ t('judge_family') }} <b>{{ a.judge.family }}</b>{% if a.judge.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</div>
+    <div class="stepper" aria-label="{{ t('lifecycle') }}">
+      {% for s in a.stages %}
+      <span class="step {{ s.state }}" data-stage="{{ s.key }}" data-stage-state="{{ s.state }}">{{ t('stage_' ~ s.key) }}{% if s.note %} · {{ t(s.note) }}{% endif %}</span>{% if not loop.last %}<span class="arrow"></span>{% endif %}
+      {% endfor %}
+    </div>
+    <div class="covrow">
+      <span>{{ t('coverage') }}</span>
+      {% set bp = a.coverage.bp %}
+      {{ ui.bar(bp or 0, 'none' if bp is none else ('' if bp >= 9500 else ('amber' if bp >= 7000 else 'red'))) }}
+      <span class="mono" data-coverage="{{ bp if bp is not none else '' }}">{{ '%d%%'|format(bp // 100) if bp is not none else '-' }}</span>
+    </div>
+    <div class="hint">{{ t(a.coverage.source, detail=a.coverage.detail) }}{% if a.coverage.planned %} · {{ t('cov_planned', p=a.coverage.planned, n=a.coverage.caps) }}{% endif %}{% if a.coverage.missing %} · {{ t('cov_missing', items=a.coverage.missing|join(', ')) }}{% endif %}</div>
+    <div class="hint">{{ t('tools_summary', n=a.tools_n, m=a.money_n) }} · {{ t('fail_mode_is', mode=t('fail_' ~ a.fail_mode)) }} ·
+      <a href="/console/cases?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('open_cases_n', n=a.open_cases) }}</a></div>
+  </div>
+  <div class="side">
+    {% if a.state in ('RUNNING', 'SHADOW') %}
+      <form hx-post="/console/agents/{{ a.agent_id }}/pause" hx-target="#agents-table">
+        <input type="hidden" name="reason" value="paused from the console">
+        <button class="btn dark block" type="submit">{{ t('pause_now') }}</button>
       </form>
-    </td>
-  </tr>
-  {% else %}
-  <tr><td colspan="8" class="muted">-</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+      <div class="hint">{{ t('pause_rule') }}</div>
+    {% elif a.state == 'PAUSED' %}
+      {% if a.pending %}
+      <div class="pending" data-pending="{{ a.pending|length }}">{% for p in a.pending %}{{ t('approved_by', who=p.principal, role=t('role_' ~ p.role)) }}{% if not loop.last %}<br>{% endif %}{% endfor %}<br><b>{{ t('waiting_for', role=t('role_owner') if 'reviewer' in a.pending_roles else t('role_reviewer')) }}</b></div>
+      {% endif %}
+      <form hx-post="/console/agents/{{ a.agent_id }}/resume" hx-target="#agents-table">
+        <input type="hidden" name="reason" value="resume approved in the console">
+        <button class="btn primary block" type="submit" {{ 'disabled' if a.me_approved else '' }}>{{ t('approve_resume') if not a.pending else t('second_approval') }}</button>
+      </form>
+      <div class="hint">{{ t('resume_rule_short') }}
+        {% if a.me_approved %}{{ t('you_approved') }}{% elif a.me_role %}{{ t('you_are_role', role=t('role_' ~ a.me_role)) }}{% else %}{{ t('you_cannot_resume') }}{% endif %}</div>
+    {% elif a.state == 'QUARANTINED' %}
+      {% if me.has('admin') %}
+      <form hx-post="/console/agents/{{ a.agent_id }}/release" hx-target="#agents-table" class="stack-f">
+        <input type="text" name="reason" placeholder="{{ t('reason_required') }}" maxlength="2000" required aria-label="{{ t('reason') }}">
+        <button class="btn primary block" type="submit">{{ t('release') }}</button>
+      </form>
+      {% endif %}
+      <div class="hint">{{ t('release_rule') }}</div>
+    {% endif %}
+    {% if a.state != 'QUARANTINED' and me.has('admin') %}
+      <details class="more"><summary>{{ t('quarantine') }}</summary>
+        <form hx-post="/console/agents/{{ a.agent_id }}/quarantine" hx-target="#agents-table" class="stack-f">
+          <input type="text" name="reason" placeholder="{{ t('reason_required') }}" maxlength="2000" required aria-label="{{ t('reason') }}">
+          <button class="btn block" type="submit">{{ t('quarantine') }}</button>
+          <div class="hint">{{ t('quarantine_rule') }}</div>
+        </form>
+      </details>
+    {% endif %}
+  </div>
+</article>
+{% else %}
+<div class="card empty">{{ t('no_agents') }}</div>
+{% endfor %}
