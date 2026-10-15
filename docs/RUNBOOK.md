@@ -373,3 +373,27 @@ Default-on changes in this release (a pure addition, each can be turned off):
 2. A request id header on every response (`X-Request-ID`).
 3. A 10 MB request body limit (`MAX_REQUEST_BYTES=0` removes it).
 4. Log scrubbing of PII in every log line.
+
+## Retention (PDPL)
+
+Personal-data columns are set to NULL after their retention time. Rows, hashes and the evidence chain stay, and the chain still verifies (ADR D13). The job is off by default.
+
+| Class | Columns | Setting (default) |
+|---|---|---|
+| raw | `agent_event_raw.args_raw`, `result_raw` | `RETENTION_RAW_DAYS` (90) |
+| masked | `agent_event` args/result, `verdict.rationale_masked`, `case_event.comment_masked` | `RETENTION_MASKED_DAYS` (365) |
+| notice | `notice.body` | `RETENTION_NOTICE_DAYS` (365) |
+
+```
+set RETENTION_ENABLED=1
+set RETENTION_DRY_RUN=1
+python -m supervisor.jobs.retention
+set RETENTION_DRY_RUN=0
+python -m supervisor.jobs.retention
+```
+
+* Always run with `RETENTION_DRY_RUN=1` first. Redaction cannot be undone: back up first.
+* The app scheduler runs the job every `SCHED_RETENTION_S` (86400) seconds when `RETENTION_ENABLED=1`. Run the command by hand only when the app is stopped (one chain writer).
+* After an upgrade, run `python -m supervisor.jobs.bootstrap_schema` once. It replaces the old append-only triggers. If you skip it, the job prints `[FAIL]` and names this command.
+* On Databricks the append-only tables are count-only (`[SKIP] Delta appendOnly: needs bank decision`). Only `notice` is changed.
+* Each run adds a `retention_run` entry to the evidence chain (counts and cutoffs, no personal data).
