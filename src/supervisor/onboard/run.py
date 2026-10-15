@@ -276,9 +276,9 @@ def _compliance(
     internal = Path(settings.regkb_internal_dir) if settings.regkb_internal_dir else None
     kb = load_kb(internal_dir=internal)
     matrix = build_matrix(kb, product, chat=chat)
-    write("compliance_matrix.json", to_json(matrix), "instrument")
-    write("compliance_matrix.md", to_markdown(matrix), "instrument")
-    write("compliance_matrix.html", to_html(matrix), "instrument")
+    write("compliance_matrix.json", to_json(matrix), "comply")
+    write("compliance_matrix.md", to_markdown(matrix), "comply")
+    write("compliance_matrix.html", to_html(matrix), "comply")
     s = matrix.summary
     by = s["by_status"]
     say(
@@ -390,13 +390,6 @@ def _stages(
         f"({inst.mode}); never merged"
     )
 
-    # WP14 launch pack: compliance matrix of the planned product (advisory only; default off)
-    if adapters.settings.onboard_compliance_enabled:
-        try:
-            _compliance(inv, profile, mp, texts, chat, adapters.settings, write, say)
-        except Exception as exc:  # noqa: BLE001 - advisory artefact; never stops onboarding
-            say(f"[FAIL] compliance matrix not written: {type(exc).__name__}: {exc}"[:300])
-
     # 5 Launch ----------------------------------------------------------------------
     policy = validate_policy(texts["policy.yaml"])
     report = agent.call(
@@ -466,6 +459,13 @@ def _stages(
                 f"[OK] advise: readiness {advice.report.readiness.total}/100, "
                 f"{len(advice.patches)} patch(es) (never applied)"
             )
+
+    # 5c Comply (WP14, off by default): advisory compliance matrix of the planned product --
+    if adapters.settings.onboard_compliance_enabled:
+        try:  # optional stage: a failure is reported, the run goes on
+            _compliance(inv, profile, mp, texts, chat, adapters.settings, write, say)
+        except Exception as exc:  # noqa: BLE001
+            say(f"[SKIP] comply: {type(exc).__name__}: {str(exc)[:200]}")
 
     # 6 Operate ---------------------------------------------------------------------
     record = handover(inv, profile, mp, inst, report, agent.artefacts, run_id=agent.run_id)

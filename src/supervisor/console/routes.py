@@ -940,8 +940,8 @@ async def onboard_file(
 
 # ---------------------------------------------------------------------------- compliance (WP14)
 # Read-only, advisory only. Off by default (CONSOLE_COMPLIANCE_ENABLED=1). When off, every
-# compliance page answers HTTP 200 with the same "off" notice as the Onboard page (nothing
-# else is shown). Unknown agent, obligation or filter value: HTTP 400 (SupervisorError).
+# compliance page answers HTTP 400 with a message (the Onboard Start and Integration pattern)
+# and the nav link is hidden. Unknown agent, obligation or filter value: HTTP 400.
 
 
 def _compliance_ctx(request: Request, ctx: ConsoleContext) -> dict[str, Any]:
@@ -956,14 +956,9 @@ def _compliance_ctx(request: Request, ctx: ConsoleContext) -> dict[str, Any]:
 
 
 def _compliance_off(request: Request, ctx: ConsoleContext, me: AuthPrincipal) -> Response:
-    return render(
-        request,
-        ctx,
-        me,
-        "compliance.html",
-        enabled=False,
-        cards=[],
-        **_compliance_ctx(request, ctx),
+    raise ConsoleInputError(
+        "The Compliance tab is off (CONSOLE_COMPLIANCE_ENABLED=1 turns it on); use "
+        "python -m supervisor.advisory.compliance --profile <file> --out <folder>"
     )
 
 

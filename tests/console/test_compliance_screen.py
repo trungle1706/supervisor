@@ -32,8 +32,8 @@ def test_off_by_default_no_nav_link(console: Console) -> None:
         f"/console/compliance/payments/obligation/{GAP_ID}",
     ):
         r = console.get(url)
-        assert r.status_code == 200, url
-        assert 'data-compliance-off="1"' in r.text and "CONSOLE_COMPLIANCE_ENABLED=1" in r.text
+        assert r.status_code == 400, url  # Onboard Start / Integration pattern
+        assert "CONSOLE_COMPLIANCE_ENABLED=1" in r.text
         assert GAP_ID not in r.text
 
 

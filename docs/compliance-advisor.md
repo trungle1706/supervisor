@@ -302,7 +302,8 @@ The pages are read-only (GET only). Permission: `compliance.view`, held by every
 shows "Advisory only" and the disclaimer. The three demo agents are built in memory. A product
 onboarded with the launch pack shows when `<DATA_DIR>\onboard\<agent>\compliance_matrix.json`
 exists. A narrative stored in that file is not shown. When the setting is off, each compliance URL
-answers 200 with a short note on how to turn the tab on. An unknown agent, obligation or filter
+answers HTTP 400 with a short note on how to turn the tab on (the Onboard Start and Integration
+pattern; the nav link is hidden). An unknown agent, obligation or filter
 value answers 400.
 
 ## Assurance packs as evidence (WP17)
