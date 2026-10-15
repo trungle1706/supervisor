@@ -345,6 +345,10 @@ class Settings(BaseSettings):
     # labels the Launch reason and assurance report MOCK. Demo data sets it; production must not.
     assurance_accept_mock_for_launch: bool = False
     assurance_judge_gate_enabled: bool = True  # non-mock judge needs its judge packs passed
+    # Judge gate strictness (per non-mock primary judge, t1 and t2): a validation row needs at
+    # least this many items, and status "warn" validates only when allow_warn is on.
+    assurance_judge_min_items: int = Field(default=50, ge=1)
+    assurance_judge_allow_warn: bool = False
     console_assurance_enabled: bool = False
 
     @field_validator(

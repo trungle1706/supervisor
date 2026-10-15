@@ -180,8 +180,10 @@ bank allows; the packs read it locally and never upload it.
         |
         +--> launch (ASSURANCE_LAUNCH_ENABLED=1): required packs fail/error/skip -> NO-GO items
         |        launch pack: assurance_report.md + assurance_report.json
-        +--> judge enablement (ASSURANCE_JUDGE_GATE_ENABLED=1, default): non-mock judge needs
-        |        every judge_gate pack ok/warn on "judge:<t1 model id>" at the manifest version
+        +--> judge enablement (ASSURANCE_JUDGE_GATE_ENABLED=1, default): each non-mock
+        |        primary judge (t1, t2) needs every judge_gate pack ok (warn only with
+        |        ASSURANCE_JUDGE_ALLOW_WARN=1), >= ASSURANCE_JUDGE_MIN_ITEMS items, real data mode,
+        |        at the manifest version, on "judge:<its model id>"
         +--> console /console/assurance (CONSOLE_ASSURANCE_ENABLED=1)
 ```
 
@@ -223,17 +225,33 @@ headings; Vietnamese headings are a TODO). With the flag off launch behaves as b
 
 `JudgeService.from_settings` (the `JUDGE_ENABLED` path that also runs the model-family check)
 calls `require_judge_validated`. When `ASSURANCE_JUDGE_GATE_ENABLED=1` (the default) and a
-primary judge is not a mock, every pack with `judge_gate: true` (`judge_golden_set`,
-`halueval_vi`, `judge_injection`, `perturbation_vi`) must have a latest `eval_result` row
-with `target_kind = judge`, `target_id = judge:<tier-1 model id>`, `pack_version` equal to the
-manifest version, `manifest_sha256` equal to the current manifest file hash (a threshold
-edit invalidates an old pass), `is_mock = false` and status `ok` or `warn`. The mock
-exemption needs both primary judges mock; a real tier 1 with a mock tier 2 is gated. Otherwise it raises
-`JudgeNotValidatedError` with the missing or failed packs and the command to run:
+primary judge is not a mock, EACH non-mock primary judge (tier 1 and tier 2) is gated on its
+own rows: every pack with `judge_gate: true` (`judge_golden_set`, `halueval_vi`,
+`judge_injection`, `perturbation_vi`) must have a latest `eval_result` row with
+`target_kind = judge` and `target_id = judge:<that model id>` that is:
+
+| Check | Rule |
+|---|---|
+| version and hash | `pack_version` equals the manifest version and `manifest_sha256` equals the current manifest file hash (a threshold edit invalidates an old pass) |
+| not mock | `is_mock = false`; a mock row never validates a real judge |
+| status | `ok`. `warn` counts only when `ASSURANCE_JUDGE_ALLOW_WARN=1` (default `0`) |
+| size | `n_items >= ASSURANCE_JUDGE_MIN_ITEMS` (default `50`) |
+| data mode | `synthetic`, `bank_supplied_path` or `vendored_sample`. A mock is not a data mode (it is `is_mock`); an empty or unknown mode does not validate. Synthetic data is accepted because it is the shipped offline path, but it is weaker evidence than a `bank_supplied_path` run |
+
+The mock exemption is per model: a mock primary judge is not gated, a real one is, so real
+t1 + mock t2 gates only t1, and two real models are both gated. A model id used for both
+tiers is checked once. A failure raises `JudgeNotValidatedError`; the message names the
+failing `judge:<model id>` per pack, ends with `[checked: judge:<t1 id>, judge:<t2 id>]` and
+shows the command to run:
 
 ```bat
 python -m supervisor.assurance run all --target judge --judge settings --out out\judge
 ```
+
+Note for the default size rule: the shipped synthetic sets of `halueval_vi` (40 items) and
+`perturbation_vi` (20 items) are below 50. A real judge therefore needs bank data
+(`bank_supplied_path`) of at least 50 items for those packs, or the bank lowers
+`ASSURANCE_JUDGE_MIN_ITEMS` on purpose (a visible, reviewed choice).
 
 Mock judges are exempt (they stay labelled `mock`), so phase-1 behaviour does not change.
 The scheduler logs the error and runs without the judge. Set
