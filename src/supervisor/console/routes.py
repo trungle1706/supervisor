@@ -35,7 +35,7 @@ from supervisor.cases.service import (
     PermissionDenied,
     require,
 )
-from supervisor.console import auditpack, onboard_runs, readmodels, views
+from supervisor.console import auditpack, health, onboard_runs, readmodels, views
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.core.canonical import format_ts
@@ -789,6 +789,18 @@ async def onboard_file(
     resp = FileResponse(path, media_type=f"{media}; charset=utf-8")
     resp.headers["x-content-type-options"] = "nosniff"
     return resp
+
+
+# ---------------------------------------------------------------------------- health
+
+
+@router.get("/health", response_class=HTMLResponse)
+async def health_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    data = await _call(health.health, ctx)
+    return render(request, ctx, me, "health.html", section="health", **data)
 
 
 # ---------------------------------------------------------------------------- inbox

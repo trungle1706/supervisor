@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_health') }}{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>{{ t('nav_health') }}</h1></div>
+<div class="purpose">
+  <p><strong>{{ t('health_lead') }}</strong> {{ t('health_rest') }}</p>
+  <p class="why">{{ t('health_why') }}</p>
+</div>
+
+<div class="tablewrap" id="health-summary">
+<table>
+  <thead><tr><th>{{ t('check') }}</th><th>{{ t('status') }}</th><th>{{ t('detail') }}</th></tr></thead>
+  <tbody>
+  {% for r in summary %}
+  <tr data-row="{{ r.name }}">
+    <td><strong>{{ t(r.name) }}</strong></td>
+    <td>{{ ui.pill(r.status, r.kind) }}</td>
+    <td>{% if r.key %}{{ t(r.key) }}{% endif %}{% if r.detail %}{% if r.key %} · {% endif %}<span class="{{ 'mono' if r.name == 'h_key' else '' }}">{{ r.detail }}</span>{% endif %}{% if r.last_anchor %}{{ t('last_anchor') }} {{ r.last_anchor|day }}{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2 class="sec">{{ t('preflight_checks') }} {% if failed %}{{ ui.pill(t('n_failed', n=failed), 'bad') }}{% else %}{{ ui.pill(t('all_pass'), 'ok') }}{% endif %}</h2>
+<div class="tablewrap" id="health-checks">
+<table>
+  <thead><tr><th>{{ t('check') }}</th><th>{{ t('status') }}</th><th>{{ t('detail') }}</th><th>{{ t('fix') }}</th></tr></thead>
+  <tbody>
+  {% for c in checks %}
+  <tr data-check="{{ c.name }}" data-status="{{ c.status }}">
+    <td class="mono">{{ c.name }}</td>
+    <td>{{ ui.pill(c.status, c.kind, True) }}</td>
+    <td class="mono wrap" style="font-size:12px">{{ c.detail or '—' }}</td>
+    <td style="font-size:13px">{% if c.fix %}<code>{{ c.fix }}</code>{% else %}<span class="muted">—</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="note">{{ t('health_note') }}{% if databricks %} {{ t('health_note_dbx') }}{% endif %}</div>
+{% endblock %}

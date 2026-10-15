@@ -733,6 +733,78 @@ _T: dict[str, tuple[str, str]] = {
         "No onboarding run yet. Start one above, or run python -m supervisor.onboard.",
         "Chưa có lần tiếp nhận nào. Bắt đầu ở trên, hoặc chạy python -m supervisor.onboard.",
     ),
+    # ---- WP12 health
+    "health_lead": ("Is Supervisor itself healthy?", "Bản thân Supervisor có ổn không?"),
+    "health_rest": (
+        "The same checks as the preflight command, on screen.",
+        "Các kiểm tra giống lệnh preflight, hiển thị trên màn hình.",
+    ),
+    "health_why": (
+        "A supervisor that is misconfigured gives false comfort. Fix every FAIL before a demo "
+        "or a go-live.",
+        "Một hệ thống giám sát cấu hình sai sẽ tạo cảm giác an toàn giả. Hãy sửa mọi FAIL "
+        "trước khi demo hoặc vận hành thật.",
+    ),
+    "check": ("Check", "Kiểm tra"),
+    "detail": ("Detail", "Chi tiết"),
+    "fix": ("How to fix", "Cách sửa"),
+    "h_mode": ("Mode", "Chế độ"),
+    "h_identity": ("Identity", "Danh tính"),
+    "h_identity_dev": (
+        "Not a real identity. The Databricks App uses workspace SSO.",
+        "Không phải danh tính thật. Databricks App dùng SSO của workspace.",
+    ),
+    "h_identity_sso": (
+        "People sign in with the workspace SSO; every action records the auth method.",
+        "Người dùng đăng nhập bằng SSO của workspace; mọi thao tác ghi lại cách đăng nhập.",
+    ),
+    "h_judge": ("Judge model", "Mô hình giám khảo"),
+    "h_judge_mock": (
+        "No judge model configured: mock judges, labelled mock. Set JUDGE_T1_MODEL to a "
+        "loopback model or the bank endpoint.",
+        "Chưa cấu hình mô hình giám khảo: dùng giám khảo giả lập, có nhãn mock. Đặt "
+        "JUDGE_T1_MODEL tới mô hình nội bộ hoặc endpoint của ngân hàng.",
+    ),
+    "h_key": ("Signing key", "Khóa ký"),
+    "h_key_dev": (
+        "Dev key on this machine. Bank key custody decision pending (HSM / KMS).",
+        "Khóa dev trên máy này. Đang chờ quyết định lưu giữ khóa của ngân hàng (HSM / KMS).",
+    ),
+    "h_key_managed": ("Key managed by the bank.", "Khóa do ngân hàng quản lý."),
+    "h_anchor": ("Anchor target", "Nơi neo"),
+    "h_no_anchor": (
+        "No anchor written yet (the anchor job runs on the scheduler).",
+        "Chưa có lần neo (tác vụ neo chạy theo bộ lập lịch).",
+    ),
+    "h_databricks": ("Databricks", "Databricks"),
+    "h_databricks_in_use": (
+        "Live workspace checks create a probe table: run python -m supervisor.preflight.",
+        "Kiểm tra workspace trực tiếp tạo bảng thử: chạy python -m supervisor.preflight.",
+    ),
+    "h_databricks_off": (
+        "Not configured on this machine (no OAuth profile, SQLite store).",
+        "Chưa cấu hình trên máy này (không có hồ sơ OAuth, dùng SQLite).",
+    ),
+    "h_onboard": ("Onboard from the console", "Tiếp nhận từ bảng điều khiển"),
+    "h_onboard_detail": (
+        "CONSOLE_ONBOARD_ENABLED turns the Start form on (off by default).",
+        "CONSOLE_ONBOARD_ENABLED bật biểu mẫu Bắt đầu (mặc định tắt).",
+    ),
+    "preflight_checks": ("Preflight checks", "Kiểm tra preflight"),
+    "n_failed": ("{n} failed", "{n} lỗi"),
+    "all_pass": ("no failure", "không có lỗi"),
+    "health_note": (
+        "Secret values are never shown. The command line gives the same list: "
+        "python -m supervisor.cli preflight.",
+        "Không bao giờ hiển thị giá trị bí mật. Dòng lệnh cho cùng danh sách: "
+        "python -m supervisor.cli preflight.",
+    ),
+    "health_note_dbx": (
+        "The Databricks checks (sign-in, warehouse, schema, serving endpoint, Volume) run only "
+        "from the command line because they write probes.",
+        "Các kiểm tra Databricks (đăng nhập, warehouse, schema, endpoint, Volume) chỉ chạy từ "
+        "dòng lệnh vì chúng ghi dữ liệu thử.",
+    ),
     "flow_open": ("open", "mở"),
     "flow_triaged": ("triaged", "đã phân loại"),
     "flow_contained": ("contained", "đã ngăn chặn"),
