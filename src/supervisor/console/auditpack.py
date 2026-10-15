@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.config import REPO_ROOT
-from supervisor.core.canonical import format_ts
+from supervisor.core.canonical import canonical_json, format_ts
 from supervisor.core.errors import SupervisorError
 from supervisor.evidence.casefile.builder import write_case_file
 from supervisor.evidence.export import export_chain
@@ -120,6 +120,10 @@ def build_audit_pack(ctx: Any, actor: Any, *, case_ids: list[str] | None = None)
         export_chain(ctx.tables, work / "chain", created_at=now)
         report = verify_export(work / "chain")
         (work / "verify_report.txt").write_text("\n".join(report.lines) + "\n", encoding="utf-8")
+        actions = ctx.tables.query("console_action", order_by=("ts", "action_id"))
+        (work / "console_action.jsonl").write_text(
+            "".join(canonical_json(dict(r)) + "\n" for r in actions), encoding="utf-8"
+        )
         evr = _eval_report(settings)
         if evr is not None:
             shutil.copyfile(evr, work / "eval_report.json")
@@ -132,6 +136,7 @@ def build_audit_pack(ctx: Any, actor: Any, *, case_ids: list[str] | None = None)
             "Supervisor audit pack\r\n"
             f"Created: {format_ts(now)} by {actor.user_id} ({actor.auth_method})\r\n"
             f"Cases: {len(cases)}\r\n"
+            f"Console actions: {len(actions)} (console_action.jsonl)\r\n"
             f"Offline verify: {'OK' if report.failures == 0 else 'FAIL'}\r\n"
             "Re-verify on any machine:\r\n"
             "  python -m supervisor.evidence.verify chain\r\n"
@@ -150,6 +155,7 @@ def build_audit_pack(ctx: Any, actor: Any, *, case_ids: list[str] | None = None)
                     "auth_method": actor.auth_method,
                     "verify_ok": report.failures == 0,
                     "cases": [c["case_id"] for c in cases],
+                    "console_actions": len(actions),
                     "files_sha256": files,
                 },
                 indent=2,

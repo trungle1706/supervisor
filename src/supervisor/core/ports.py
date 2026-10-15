@@ -74,6 +74,24 @@ class TableStore(Protocol):
         limit: int | None = None,
     ) -> list[Row]: ...
 
+    def count_due(
+        self, table: str, columns: Sequence[str], time_column: str, before_ts: datetime
+    ) -> int:
+        """Rows older than ``before_ts`` that still hold a value in one of ``columns``."""
+        ...
+
+    def redact_columns(
+        self,
+        table: str,
+        columns: Sequence[str],
+        time_column: str,
+        before_ts: datetime,
+        now: datetime | None = None,
+    ) -> int:
+        """Retention (ADR D13): set ``columns`` to NULL ('' if NOT NULL) on old rows; no row is
+        deleted. Returns the rows changed. ``now`` is needed for state tables."""
+        ...
+
 
 @runtime_checkable
 class StateStore(Protocol):

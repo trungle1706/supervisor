@@ -19,6 +19,7 @@ from supervisor.adapters.auth.base import (
     PrincipalProvider,
     UserToken,
 )
+from supervisor.ops.logging_setup import set_principal_id
 
 if TYPE_CHECKING:
     from supervisor.config import Settings
@@ -66,6 +67,7 @@ def current_principal(request: Request) -> AuthPrincipal:
     principal, token = get_provider().resolve(request.headers, request.cookies)
     request.state.principal = principal
     request.state.user_token = token
+    set_principal_id(principal.user_id)  # WP18: actor id in the log context
     return principal
 
 

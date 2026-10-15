@@ -112,10 +112,19 @@ CREATE INDEX IF NOT EXISTS ix_agent_event_agent_id_ts ON agent_event (agent_id, 
 
 CREATE INDEX IF NOT EXISTS ix_agent_event_trace_id ON agent_event (trace_id);
 
-CREATE TRIGGER IF NOT EXISTS trg_agent_event_no_update
-BEFORE UPDATE ON agent_event
+DROP TRIGGER IF EXISTS trg_agent_event_no_update;
+
+CREATE TRIGGER trg_agent_event_no_update
+BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_agent_event_retention_null_only
+BEFORE UPDATE OF args_masked, result_masked ON agent_event
+WHEN NEW.args_masked IS NOT NULL OR NEW.result_masked IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'agent_event is append-only: retention may only set NULL');
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_agent_event_no_delete
@@ -138,10 +147,19 @@ CREATE TABLE IF NOT EXISTS agent_event_raw (
 
 CREATE INDEX IF NOT EXISTS ix_agent_event_raw_agent_id_ts ON agent_event_raw (agent_id, ts);
 
-CREATE TRIGGER IF NOT EXISTS trg_agent_event_raw_no_update
-BEFORE UPDATE ON agent_event_raw
+DROP TRIGGER IF EXISTS trg_agent_event_raw_no_update;
+
+CREATE TRIGGER trg_agent_event_raw_no_update
+BEFORE UPDATE OF event_id, ts, trace_id, agent_id, access_class ON agent_event_raw
 BEGIN
   SELECT RAISE(ABORT, 'agent_event_raw is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_agent_event_raw_retention_null_only
+BEFORE UPDATE OF args_raw, result_raw ON agent_event_raw
+WHEN NEW.args_raw IS NOT NULL OR NEW.result_raw IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'agent_event_raw is append-only: retention may only set NULL');
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_agent_event_raw_no_delete
@@ -228,10 +246,19 @@ CREATE INDEX IF NOT EXISTS ix_verdict_agent_id_ts ON verdict (agent_id, ts);
 
 CREATE INDEX IF NOT EXISTS ix_verdict_trace_id ON verdict (trace_id);
 
-CREATE TRIGGER IF NOT EXISTS trg_verdict_no_update
-BEFORE UPDATE ON verdict
+DROP TRIGGER IF EXISTS trg_verdict_no_update;
+
+CREATE TRIGGER trg_verdict_no_update
+BEFORE UPDATE OF verdict_id, ts, trace_id, event_id, agent_id, tier, checker_id, model_id, model_family, is_mock, advisory, score, label, action, latency_ms, rule_id, policy_hash, score_bp, role, region, model_version, mask_version ON verdict
 BEGIN
   SELECT RAISE(ABORT, 'verdict is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_verdict_retention_null_only
+BEFORE UPDATE OF rationale_masked ON verdict
+WHEN NEW.rationale_masked IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'verdict is append-only: retention may only set NULL');
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_verdict_no_delete
@@ -274,10 +301,19 @@ CREATE TABLE IF NOT EXISTS case_event (
   PRIMARY KEY (case_id, seq)
 );
 
-CREATE TRIGGER IF NOT EXISTS trg_case_event_no_update
-BEFORE UPDATE ON case_event
+DROP TRIGGER IF EXISTS trg_case_event_no_update;
+
+CREATE TRIGGER trg_case_event_no_update
+BEFORE UPDATE OF case_id, seq, ts, actor, actor_kind, action, auth_method ON case_event
 BEGIN
   SELECT RAISE(ABORT, 'case_event is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_case_event_retention_null_only
+BEFORE UPDATE OF comment_masked ON case_event
+WHEN NEW.comment_masked IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'case_event is append-only: retention may only set NULL');
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_case_event_no_delete
@@ -594,3 +630,40 @@ CREATE TABLE IF NOT EXISTS notice (
 );
 
 CREATE INDEX IF NOT EXISTS ix_notice_channel_status ON notice (channel, status);
+
+-- console_action (append_only): WP18. One row per mutating console or API action (and per denied attempt): who, when, what, target, row hash before and after, request id. Append-only; in the audit pack.
+CREATE TABLE IF NOT EXISTS console_action (
+  action_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  actor_kind TEXT NOT NULL,
+  auth_method TEXT NOT NULL,
+  roles TEXT NOT NULL,
+  permission TEXT NOT NULL,
+  method TEXT NOT NULL,
+  path TEXT NOT NULL,
+  target_kind TEXT,
+  target_id TEXT,
+  outcome TEXT NOT NULL,
+  before_hash TEXT,
+  after_hash TEXT,
+  detail TEXT,
+  PRIMARY KEY (action_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_console_action_ts ON console_action (ts);
+
+CREATE INDEX IF NOT EXISTS ix_console_action_actor_ts ON console_action (actor, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_console_action_no_update
+BEFORE UPDATE ON console_action
+BEGIN
+  SELECT RAISE(ABORT, 'console_action is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_console_action_no_delete
+BEFORE DELETE ON console_action
+BEGIN
+  SELECT RAISE(ABORT, 'console_action is append-only');
+END;

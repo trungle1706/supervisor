@@ -21,6 +21,9 @@
 # kind: state       -> mutable rows. The generator adds two columns:
 #                      row_version int (optimistic concurrency) and updated_at timestamp.
 # One catalog.schema holds every table (configured by DATABRICKS_CATALOG / DATABRICKS_SCHEMA).
+# retention:        -> personal-data classes (ADR D13): {raw|masked|notice: [columns]}. The retention job
+#                      sets these columns to NULL ('' when NOT NULL) once ts is older than the class
+#                      days; rows and digests stay. SQLite triggers then allow ONLY that UPDATE.
 # Money columns end in _minor (canonical JSON enforces int there).
 
 version: 1
@@ -95,6 +98,8 @@ tables:
     evidence: true
     description: Normalised OTel-shaped events. Single read model for Watch. Masked only.
     primary_key: [event_id]
+    retention:
+      masked: [args_masked, result_masked]
     indexes:
       - [agent_id, ts]
       - [trace_id]
@@ -129,6 +134,8 @@ tables:
       raw (capture.raw_allowed). Restricted group only, short TTL (raw 90 d). Never read by
       judges or the chain. Rows link to agent_event by event_id.
     primary_key: [event_id]
+    retention:
+      raw: [args_raw, result_raw]
     indexes:
       - [agent_id, ts]
     columns:
@@ -181,6 +188,8 @@ tables:
     evidence: true
     description: One row per check outcome (rule, Tier 1 or Tier 2 judge). Judges are advisory.
     primary_key: [verdict_id]
+    retention:
+      masked: [rationale_masked]
     indexes:
       - [agent_id, ts]
       - [trace_id]
@@ -235,6 +244,8 @@ tables:
     evidence: true
     description: Who did what on a case. Feeds the evidence chain.
     primary_key: [case_id, seq]
+    retention:
+      masked: [comment_masked]
     columns:
       case_id: string
       seq: int
@@ -478,6 +489,8 @@ tables:
       WP8. Notifier inbox (console Inbox page). Masked text only. The webhook stub queues
       rows with status queued and never sends them (off by default).
     primary_key: [notice_id]
+    retention:
+      notice: [body]
     indexes:
       - [channel, status]
     columns:
@@ -488,3 +501,31 @@ tables:
       body: text
       status: string
       read_by: string?
+
+  console_action:
+    kind: append_only
+    evidence: true
+    description: >
+      WP18. One row per mutating console or API action (and per denied attempt): who, when,
+      what, target, row hash before and after, request id. Append-only; in the audit pack.
+    primary_key: [action_id]
+    indexes:
+      - [ts]
+      - [actor, ts]
+    columns:
+      action_id: string
+      ts: timestamp
+      request_id: string
+      actor: string
+      actor_kind: string
+      auth_method: string
+      roles: json             # sorted role list of the actor at the time
+      permission: string      # role-matrix permission id, e.g. case.transition
+      method: string
+      path: string
+      target_kind: string?    # case | agent | notice | export | job | session
+      target_id: string?
+      outcome: string         # ok | denied | error
+      before_hash: string?    # sha256 of the canonical target row before the action
+      after_hash: string?     # sha256 of the canonical target row after the action
+      detail: text?           # short masked note (error class, denial reason); never PII

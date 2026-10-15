@@ -24,7 +24,7 @@ from supervisor.config import get_settings
 from supervisor.recorder.normalise import OtlpFormatError, spans_from_otlp_json
 from supervisor.recorder.service import Recorder, get_recorder
 
-router = APIRouter(tags=["recorder"])
+router = APIRouter(tags=["traces"])
 JSON_TYPES = ("application/json",)
 PROTOBUF_TYPES = ("application/x-protobuf", "application/protobuf")
 

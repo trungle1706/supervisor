@@ -17,8 +17,8 @@ def _case(console: Console, rule: str = "PAY-07") -> dict[str, Any]:
     return next(c for c in console.ctx.cases.list_cases() if rule in c["summary"])
 
 
-def _assert_400(r: Any, needle: str) -> None:
-    assert r.status_code == 400, (r.status_code, r.text)
+def _assert_400(r: Any, needle: str, status: int = 400) -> None:
+    assert r.status_code == status, (r.status_code, r.text)
     assert "msg-error" in r.text and needle in r.text, r.text
     assert "<html" not in r.text  # a partial for #flash, not a page
 
@@ -41,9 +41,9 @@ def test_missing_role(console: Console) -> None:
         {"assignee": "reviewer.an", "row_version": c["row_version"]},
         user="auditor.dung",
     )
-    _assert_400(r, "needs role")
+    _assert_400(r, "needs role", 403)  # WP18: a missing role is 403, not 400
     r = console.post("/console/agents/payments/quarantine", {"reason": "x"}, user="reviewer.an")
-    _assert_400(r, "needs role admin")
+    _assert_400(r, "needs role admin", 403)
 
 
 def test_second_approver_equals_first(console: Console) -> None:
@@ -99,6 +99,7 @@ def test_reviewer_cannot_resume_alone(console: Console) -> None:
     _assert_400(
         console.post("/console/agents/payments/resume", {"reason": "ok"}, user="auditor.dung"),
         "needs role",
+        403,
     )
 
 
