@@ -84,7 +84,7 @@ Meaning of each flag: `README.md`, section "Flags that are off by default".
 
 | Flag | Bank laptop | Databricks App | Note |
 |---|---|---|---|
-| `API_RBAC_ENABLED` | `1` | `1` | Role matrix on `/gate/*` (value from `docs/enterprise-readiness.md`) |
+| `API_RBAC_ENABLED` | `1` | `1` | Role matrix on the `/gate/*` read routes; the control routes always enforce it (value from `docs/enterprise-readiness.md`) |
 | `RATE_LIMIT_ENABLED` | `1` | `1` | Same source |
 | `LOG_FORMAT` | `json` | `json` | Same source |
 | `CONSOLE_ASSURANCE_ENABLED` | `1` | `1` | Assurance tab |
