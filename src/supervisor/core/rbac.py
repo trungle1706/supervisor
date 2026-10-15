@@ -127,6 +127,9 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/onboard"): "onboard.view",
     ("GET", "/console/onboard/status"): "onboard.view",
     ("GET", "/console/onboard/files/{agent}/{name}"): "onboard.view",
+    ("GET", "/console/integration"): "onboard.view",
+    ("GET", "/console/integration/{name}"): "onboard.view",
+    ("GET", "/console/integration/{name}/patches/{file}"): "onboard.view",
     ("GET", "/console/exports/{name}"): "evidence.download",
     # console actions
     ("POST", "/console/cases/{case_id}/assign"): "case.assign",

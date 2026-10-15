@@ -371,6 +371,23 @@ def _stages(
         f"{report.rule_expected} rule cases)"
     )
 
+    # 5b Advise (WP15, off by default): integration report and patches, never applied --
+    if adapters.settings.onboard_advisor_enabled:
+        from supervisor.advisory.integration.advise import build_advice, patch_filename
+        from supervisor.advisory.integration.render import render_html, render_json, render_md
+
+        advice = build_advice(target, inv, profile, mp, playbook, chat=chat)
+        write("integration_report.json", render_json(advice.report), "advise")
+        write("integration_report.md", render_md(advice.report), "advise")
+        write("integration_report.html", render_html(advice.report), "advise")
+        for i, patch in enumerate(advice.patches, start=1):
+            slug = Path(patch_filename(i, patch)).name.split("-", 1)[-1].removesuffix(".patch")
+            write(f"integration_patch_{i:02d}_{slug}.patch", patch.diff, "advise")
+        say(
+            f"[OK] advise: readiness {advice.report.readiness.total}/100, "
+            f"{len(advice.patches)} patch(es) (never applied)"
+        )
+
     # 6 Operate ---------------------------------------------------------------------
     record = handover(inv, profile, mp, inst, report, agent.artefacts, run_id=agent.run_id)
     write("handover.json", _json(record), "operate")

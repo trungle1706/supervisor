@@ -23,6 +23,7 @@
     <a href="/console/cases?lang={{ lang }}" class="{{ 'active' if section == 'cases' else '' }}">{{ t('cases') }} <span class="k {{ 'hot' if sh.critical_n else '' }}">{{ sh.cases_n }}</span></a>
     <a href="/console/evidence?lang={{ lang }}" class="{{ 'active' if section == 'evidence' else '' }}">{{ t('nav_evidence') }}</a>
     <a href="/console/onboard?lang={{ lang }}" class="{{ 'active' if section == 'onboard' else '' }}">{{ t('nav_onboard') }}</a>
+    {% if integration_on %}<a href="/console/integration?lang={{ lang }}" class="{{ 'active' if section == 'integration' else '' }}">{{ t('nav_integration') }}</a>{% endif %}
     <a href="/console/health?lang={{ lang }}" class="{{ 'active' if section == 'health' else '' }}">{{ t('nav_health') }}</a>
   </nav>
   <div class="who">

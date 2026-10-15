@@ -846,6 +846,151 @@ _T: dict[str, tuple[str, str]] = {
         "Dữ liệu demo: câu trả lời của tác tử theo kịch bản và khách hàng là giả lập. Quyết "
         "định của cổng, việc tạm dừng và chuỗi bằng chứng là thật.",
     ),
+    # ---- WP15 integration advice
+    "nav_integration": (
+        "Integration",
+        "Tích hợp",
+    ),
+    "integration_title": (
+        "Integration advice",
+        "Tư vấn tích hợp",
+    ),
+    "int_purpose_lead": (
+        "What it takes to bring an agent under Watch.",
+        "Điều cần để đưa tác tử vào giám sát.",
+    ),
+    "int_purpose_rest": (
+        "Each report lists what the advisor found in the code, what Supervisor needs, "
+        "a readiness score and patches.",
+        "Mỗi báo cáo nêu điều tìm thấy trong mã, điều Supervisor cần, điểm sẵn sàng và các bản vá.",
+    ),
+    "int_why": (
+        "Read-only. The patches are never applied by the console: "
+        "the owning team reviews and applies them.",
+        "Chỉ đọc. Bảng điều khiển không bao giờ áp dụng bản vá: nhóm sở hữu xem xét và áp dụng.",
+    ),
+    "int_none": (
+        "No integration report yet. Run python -m supervisor.advisory.integration "
+        "or turn on ONBOARD_ADVISOR_ENABLED.",
+        "Chưa có báo cáo tích hợp. Chạy python -m supervisor.advisory.integration "
+        "hoặc bật ONBOARD_ADVISOR_ENABLED.",
+    ),
+    "int_report": (
+        "Report",
+        "Báo cáo",
+    ),
+    "int_agent": (
+        "Agent",
+        "Tác tử",
+    ),
+    "int_framework": (
+        "Framework",
+        "Khung",
+    ),
+    "int_readiness": (
+        "Readiness",
+        "Mức sẵn sàng",
+    ),
+    "int_patches": (
+        "Patches",
+        "Bản vá",
+    ),
+    "int_unreadable": (
+        "Report file cannot be read",
+        "Không đọc được tệp báo cáo",
+    ),
+    "int_back": (
+        "Back to the list",
+        "Về danh sách",
+    ),
+    "int_never_applied": (
+        "Patches are advice. Nothing was applied to the agent code.",
+        "Bản vá chỉ là tư vấn. Chưa áp dụng gì vào mã của tác tử.",
+    ),
+    "int_area": (
+        "Area",
+        "Hạng mục",
+    ),
+    "int_points": (
+        "Points",
+        "Điểm",
+    ),
+    "int_reason": (
+        "Reason",
+        "Lý do",
+    ),
+    "int_found": (
+        "Found in the code",
+        "Tìm thấy trong mã",
+    ),
+    "int_llm_calls": (
+        "LLM calls",
+        "Lệnh gọi LLM",
+    ),
+    "int_tracing": (
+        "Tracing",
+        "Truy vết",
+    ),
+    "int_tools": (
+        "Tools",
+        "Công cụ",
+    ),
+    "int_gated": (
+        "gated",
+        "đã có cổng",
+    ),
+    "int_data_access": (
+        "Data access",
+        "Truy cập dữ liệu",
+    ),
+    "int_pii": (
+        "PII fields",
+        "Trường PII",
+    ),
+    "int_needed": (
+        "What Supervisor needs",
+        "Supervisor cần gì",
+    ),
+    "int_semconv": (
+        "Semantic attributes",
+        "Thuộc tính ngữ nghĩa",
+    ),
+    "int_gate_sites": (
+        "Gate call sites",
+        "Vị trí đặt cổng",
+    ),
+    "int_mcp_proxy": (
+        "MCP proxy",
+        "Proxy MCP",
+    ),
+    "int_catalogue": (
+        "Catalogue capabilities",
+        "Năng lực trong danh mục",
+    ),
+    "int_settings": (
+        "Settings",
+        "Cài đặt",
+    ),
+    "int_test_plan": (
+        "Test plan dimensions",
+        "Hạng mục kế hoạch kiểm thử",
+    ),
+    "int_policy": (
+        "Policy scaffold",
+        "Khung chính sách",
+    ),
+    "int_patch_missing": (
+        "The patch file is not in the report folder.",
+        "Tệp bản vá không có trong thư mục báo cáo.",
+    ),
+    "int_no_patches": (
+        "No patch in this report.",
+        "Báo cáo này không có bản vá.",
+    ),
+    "int_narrative": (
+        "Narrative",
+        "Diễn giải",
+    ),
 }
 
 

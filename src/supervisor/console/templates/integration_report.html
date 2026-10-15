@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_integration') }} · {{ name }}{% endblock %}
+{% block content %}
+{% set f = r.get('found') or {} %}
+{% set n = r.get('needed') or {} %}
+<div class="pagehead"><h1>{{ t('integration_title') }} · <span class="mono">{{ name }}</span></h1></div>
+<p><a href="/console/integration?lang={{ lang }}">{{ t('int_back') }}</a></p>
+{% if error %}
+<div class="notice" data-integration-error="1"><span class="dot"></span>{{ t('int_unreadable') }}: {{ error }}</div>
+{% else %}
+<div class="purpose"><p>{{ t('int_never_applied') }}</p></div>
+
+<h2 class="sec">{{ t('int_readiness') }}</h2>
+{% set rd = r.get('readiness') or {} %}
+<section class="card" data-score="{{ rd.get('total', '') }}">
+  <div style="font-size:28px;font-weight:700">{{ rd.get('total', '-') }}<span class="muted" style="font-size:14px"> / 100</span></div>
+  {% if rd.get('areas') %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th>{{ t('int_area') }}</th><th>{{ t('int_points') }}</th><th>{{ t('int_reason') }}</th></tr></thead>
+    <tbody>
+    {% for a in rd.get('areas') %}
+    <tr><td class="mono">{{ a.get('id') }}</td><td>{{ a.get('points') }} / {{ a.get('weight') }}</td><td>{{ a.get('reason') }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+
+<h2 class="sec">{{ t('int_found') }}</h2>
+<div class="grid g3">
+  <div class="card">
+    <h3>{{ t('int_framework') }}</h3>
+    <div>{{ (f.get('framework') or {}).get('name', r.get('framework', '-')) }}</div>
+    <div class="muted mono" style="font-size:12px">{{ (f.get('framework') or {}).get('evidence') or '' }}</div>
+    <h3>{{ t('int_llm_calls') }}</h3>
+    {% for c in f.get('llm_calls', []) %}<div class="mono" style="font-size:12px">{{ c.get('provider') }} / {{ c.get('model') or c.get('family') }} · {{ c.get('at') }}</div>{% else %}<span class="muted">-</span>{% endfor %}
+    <h3>{{ t('int_tracing') }}</h3>
+    <div>{{ (f.get('tracing') or [])|join(', ') or '-' }}</div>
+  </div>
+  <div class="card">
+    <h3>{{ t('int_tools') }}</h3>
+    {% for tl in f.get('tools', []) %}
+    <div><span class="mono">{{ tl.get('name') }}</span> {{ ui.pill(tl.get('risk_class'), 'bad' if tl.get('risk_class') != 'read_only' else 'neutral') }}{% if tl.get('gated') %} {{ ui.pill(t('int_gated'), 'ok') }}{% endif %}</div>
+    {% else %}<span class="muted">-</span>{% endfor %}
+  </div>
+  <div class="card">
+    <h3>{{ t('int_data_access') }}</h3>
+    {% for d in f.get('data_access', []) %}<div style="font-size:13px">{{ d.get('kind') }} {{ d.get('direction') }} <span class="mono">{{ d.get('target') or '' }}</span></div>{% else %}<span class="muted">-</span>{% endfor %}
+    <h3>{{ t('int_pii') }}</h3>
+    <div>{% for p in f.get('pii_fields', []) %}<span class="mono">{{ p.get('name') }}</span>{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</div>
+  </div>
+</div>
+
+<h2 class="sec">{{ t('int_needed') }}</h2>
+<div class="grid g3">
+  <div class="card">
+    <h3>{{ t('int_semconv') }}</h3>
+    {% for s in n.get('semconv', []) %}<div style="font-size:13px"><b>{{ s.get('operation') }}</b>: <span class="mono">{{ (s.get('attributes') or [])|join(', ') }}</span></div>{% else %}<span class="muted">-</span>{% endfor %}
+  </div>
+  <div class="card">
+    <h3>{{ t('int_gate_sites') }}</h3>
+    {% for g in n.get('gate_sites', []) %}<div style="font-size:13px"><span class="mono">{{ g.get('tool') }}</span> {{ g.get('mode') }} <span class="muted mono">{{ g.get('at') or '' }}</span></div>{% else %}<span class="muted">-</span>{% endfor %}
+    <h3>{{ t('int_mcp_proxy') }}</h3>
+    {% set mp = n.get('mcp_proxy') %}
+    {% if mp %}<div class="mono" style="font-size:12px">{{ mp.get('config_path') }}: {{ (mp.get('command') or [])|join(' ') }}</div>{% else %}<span class="muted">-</span>{% endif %}
+  </div>
+  <div class="card">
+    <h3>{{ t('int_catalogue') }}</h3>
+    <div class="mono" style="font-size:12px">{% for c in n.get('catalogue', []) %}{{ c.get('id') }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</div>
+    <h3>{{ t('int_settings') }}</h3>
+    <div class="mono" style="font-size:12px">{% for s in n.get('settings', []) %}{{ s.get('key') }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</div>
+    <h3>{{ t('int_test_plan') }}</h3>
+    <div>{% for d in n.get('test_plan', []) %}<span class="mono">{{ d.get('dimension') }}</span>{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</div>
+  </div>
+</div>
+{% if n.get('policy_yaml') %}
+<details class="card"><summary>{{ t('int_policy') }}</summary><pre class="loglines" style="max-height:24rem">{{ n.get('policy_yaml') }}</pre></details>
+{% endif %}
+
+<h2 class="sec">{{ t('int_patches') }} ({{ patch_items|length }})</h2>
+{% for p in patch_items %}
+<details class="card" data-patch="{{ p.file }}">
+  <summary><span class="mono">{{ p.ref.get('path') }}</span> {{ ui.pill(p.ref.get('kind') or '-', 'neutral') }} <span class="muted">{{ p.ref.get('description') }}</span></summary>
+  {% if p.missing %}<p class="muted">{{ t('int_patch_missing') }}</p>
+  {% else %}
+  <p><a href="/console/integration/{{ name }}/patches/{{ p.file }}?lang={{ lang }}">{{ p.file }}</a></p>
+  <pre class="loglines" style="max-height:30rem">{{ p.text }}</pre>
+  {% endif %}
+</details>
+{% else %}<p class="muted">{{ t('int_no_patches') }}</p>{% endfor %}
+
+{% set nar = r.get('narrative') or {} %}
+{% if nar.get('text') %}
+<h2 class="sec">{{ t('int_narrative') }} {% if nar.get('source') == 'mock' %}{{ ui.pill(t('mock'), 'neutral') }}{% endif %}</h2>
+<section class="card"><p style="white-space:pre-wrap">{{ nar.get('text') }}</p></section>
+{% endif %}
+{% endif %}
+{% endblock %}
