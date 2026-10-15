@@ -239,6 +239,8 @@ CREATE TABLE IF NOT EXISTS verdict (
   region TEXT,
   model_version TEXT,
   mask_version TEXT,
+  prompt_hash TEXT,
+  rubric_version TEXT,
   PRIMARY KEY (verdict_id)
 );
 
@@ -249,7 +251,7 @@ CREATE INDEX IF NOT EXISTS ix_verdict_trace_id ON verdict (trace_id);
 DROP TRIGGER IF EXISTS trg_verdict_no_update;
 
 CREATE TRIGGER trg_verdict_no_update
-BEFORE UPDATE OF verdict_id, ts, trace_id, event_id, agent_id, tier, checker_id, model_id, model_family, is_mock, advisory, score, label, action, latency_ms, rule_id, policy_hash, score_bp, role, region, model_version, mask_version ON verdict
+BEFORE UPDATE OF verdict_id, ts, trace_id, event_id, agent_id, tier, checker_id, model_id, model_family, is_mock, advisory, score, label, action, latency_ms, rule_id, policy_hash, score_bp, role, region, model_version, mask_version, prompt_hash, rubric_version ON verdict
 BEGIN
   SELECT RAISE(ABORT, 'verdict is append-only');
 END;
@@ -281,6 +283,12 @@ CREATE TABLE IF NOT EXISTS cases (
   report_due_at TEXT,
   closed_at TEXT,
   case_type TEXT,
+  incident_detected_at TEXT,
+  urgency_class TEXT,
+  prelim_report_due_at TEXT,
+  formal_report_due_at TEXT,
+  prelim_report_sent_at TEXT,
+  formal_report_sent_at TEXT,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (case_id)
@@ -498,10 +506,48 @@ CREATE TABLE IF NOT EXISTS oversight_metric (
   blocks INTEGER,
   llm_calls INTEGER,
   judge_latency_ms INTEGER,
+  judge_human_pairs INTEGER,
+  judge_human_agree_bp INTEGER,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (metric_date, agent_id)
 );
+
+-- model_validation (append_only): WP19. One row per judge validation run (python -m supervisor.judge.mrm validate). The judge service checks it when JUDGE_REQUIRE_VALIDATION is on. Integers only.
+CREATE TABLE IF NOT EXISTS model_validation (
+  validation_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  judge_id TEXT NOT NULL,
+  model_version TEXT NOT NULL,
+  prompt_hash TEXT NOT NULL,
+  rubric_version TEXT NOT NULL,
+  mask_version TEXT NOT NULL,
+  golden_set_hash TEXT NOT NULL,
+  is_mock INTEGER NOT NULL,
+  decision TEXT NOT NULL,
+  passed INTEGER NOT NULL,
+  runs INTEGER NOT NULL,
+  metrics TEXT NOT NULL,
+  thresholds TEXT NOT NULL,
+  failed_checks TEXT NOT NULL,
+  validator TEXT NOT NULL,
+  report_hash TEXT NOT NULL,
+  PRIMARY KEY (validation_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_model_validation_model_version_prompt_hash ON model_validation (model_version, prompt_hash);
+
+CREATE TRIGGER IF NOT EXISTS trg_model_validation_no_update
+BEFORE UPDATE ON model_validation
+BEGIN
+  SELECT RAISE(ABORT, 'model_validation is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_model_validation_no_delete
+BEFORE DELETE ON model_validation
+BEGIN
+  SELECT RAISE(ABORT, 'model_validation is append-only');
+END;
 
 -- policy_baseline (state): Drift baseline band per agent version and metric (WP7, ADR D09). Integers only: band = center +- k * scaled MAD. Also holds the breach streak of the drift monitor.
 CREATE TABLE IF NOT EXISTS policy_baseline (
