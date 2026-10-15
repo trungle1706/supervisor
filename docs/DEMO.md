@@ -84,3 +84,24 @@ to WP7 (`supervisor.monitors`); the runbook prints `[SKIP]` for them.
   real judge model is expected to flag it; that is measured by the judge eval, not here.
 - The 20-run test (`tests/e2e/test_demo_runbook.py`) asserts the three live controls in
   every run and prints the measured timing.
+
+## Fail-mode drill
+
+Shows what the gateway does when its store goes away (ADR D03). It runs on a throwaway
+SQLite store in a temporary folder, never on your real data.
+
+```
+set PYTHONPATH=src
+uv run python -m supervisor.demo drill
+uv run python -m supervisor.demo drill --data-dir C:\work\drill-data
+```
+
+Steps, each printed as `[OK]` or `[FAIL]`: (a) a money transfer within limits is allowed;
+(b) the sqlite connection under the gateway is closed; (c) the money tool and an unknown
+tool are BLOCKED (fail closed), a read-only tool passes with an alert (fail open); (d) the
+connection is re-opened and the transfer is allowed again; (e) the evidence chain verifies
+offline. Exit code 0 only when every outcome matched.
+
+Honest limit: while the store is down the decision record and the verdict row cannot be
+written either. The drill prints how many writes failed. The outage decisions are
+not on the chain; the chain written before and after still verifies.
