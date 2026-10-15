@@ -26,7 +26,7 @@ Sha256Hex = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 
 RiskTier = Literal["low", "medium", "high", "critical"]
 AgentStatus = Literal["onboarding", "shadow", "enforced", "paused", "retired"]
-GateState = Literal["RUNNING", "SHADOW", "PAUSED", "QUARANTINED"]  # ADR D03
+GateState = Literal["RUNNING", "SHADOW", "PAUSED", "QUARANTINED", "RETIRED"]  # ADR D03
 EventType = Literal["llm_call", "tool_call", "message", "handoff", "gate_decision"]
 EventSource = Literal["otel", "otlp", "mlflow", "proxy"]
 CaptureLevel = Literal["digest", "masked", "raw"]

@@ -739,6 +739,40 @@ class CaseService:
             self._notify("reviewers", f"case {case_id} closed ({resolution})", note)
         return case
 
+    def close_for_retirement(self, case_id: str, actor: Actor, reason: str) -> dict[str, Any]:
+        """Close an open case because its agent was retired (WP19, system path).
+
+        Skips triage, containment and the two-sign-off rule: only ``retire_agent`` calls it.
+        Records resolution ``retired`` in the case_event (action ``close:retired``) and the
+        evidence record. It writes NO signoff row, so the judge-vs-human agreement metric
+        (which counts close:confirmed / close:false_alarm sign-offs) never sees it.
+        A person (kind ``user``) needs the admin role; the system actor needs none.
+        """
+        if actor.kind == "user":
+            require(actor, ("admin",), "close a case for a retirement")
+        reason = _text(reason, "retirement reason", required=True)
+        with self._lock:
+            current = self.get(case_id)
+            if current["status"] == "closed":
+                raise CaseError(f"case {case_id} is already closed")
+            case = self._update(
+                case_id,
+                {"status": "closed", "closed_at": self.clock.now()},
+                int(current["row_version"]),
+            )
+            self._event(
+                case,
+                actor,
+                "close:retired",
+                comment=f"agent retired: {reason}",
+                extra={
+                    "from_status": current["status"],
+                    "to_status": "closed",
+                    "resolution": "retired",
+                },
+            )
+        return case
+
     # ------------------------------------------------------------------ incident reports
 
     def record_report_sent(
