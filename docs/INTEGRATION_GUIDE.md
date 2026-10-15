@@ -635,6 +635,8 @@ Other behaviour to know:
 - `SupervisorBlocked.decision` holds `allow`, `action`, `rule_id`, `reason`.
 - New agents start in `SHADOW`: rules are evaluated and recorded, nothing is blocked. The
   owner switches rules to enforced mode later, with two approvers.
+- `RETIRED` is the end state. It is one-way and allowed only from `PAUSED` or `SHADOW`:
+  `python -m supervisor.onboard --retire <agent_id> --principal <admin> --reason "..." --out <folder>`.
 
 ## 4. What the recorder needs from a span
 
