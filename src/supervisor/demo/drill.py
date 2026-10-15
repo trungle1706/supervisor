@@ -101,10 +101,10 @@ def run_drill(data_dir: Path | None = None, echo: Echo = default_echo) -> DrillR
 
 
 def _drill(data_dir: Path, echo: Echo) -> DrillReport:
+    from supervisor.core.canonical import sha256_hex
     from supervisor.demo.seed import wipe
     from supervisor.evidence.export import export_chain
     from supervisor.evidence.verify import verify_export
-    from supervisor.core.canonical import sha256_hex
     from supervisor.wiring import register_agents
     from supervisor_agents.common.manifest import load_manifest
     from supervisor_agents.common.runtime import default_system_prompt
@@ -221,8 +221,8 @@ def _drill(data_dir: Path, echo: Echo) -> DrillReport:
     finally:
         try:
             session.close()
-        except Exception:  # noqa: BLE001 - report the drill result, not a close error
-            pass
+        except Exception as exc:  # noqa: BLE001 - report the drill result, not a close error
+            say(f"[SKIP] runtime close after the drill: {type(exc).__name__}")
     say("[OK] fail-mode drill: all outcomes matched" if rep.ok else "[FAIL] fail-mode drill")
     return rep
 
