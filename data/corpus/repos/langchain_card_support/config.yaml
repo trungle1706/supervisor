@@ -1,0 +1,5 @@
+card_api:
+  base_url: https://cards.nganhang.internal/v1
+  timeout_seconds: 10
+agent:
+  max_iterations: 5

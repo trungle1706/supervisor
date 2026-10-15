@@ -28,3 +28,16 @@
 | Judge models in App mode stay mocks until JUDGE_* settings name the bound serving endpoint | Owner fills FILL-ME values; set JUDGE_T1_MODEL/JUDGE_T2_MODEL |
 | Scheduler lease renewal during very long jobs; paging in monitor read_range | WP7 follow-up |
 | Monitors open cases via monitors/common.open_case, console via cases/service | Unify on cases/service in the next refactor |
+| WP18: caller credential on agent ingress `/gate/check`, `/v1/gate/check`, `/v1/traces` (ASVS V2/V13) | Needs bank decision: per-agent credentials or a broker (extends the OTLP item above) |
+| WP18: turn on `API_RBAC_ENABLED`, `RATE_LIMIT_ENABLED`, `LOG_FORMAT=json` for the bank deployment | Needs bank decision (off / text by default to keep phase-1 behaviour) |
+| WP18: retention on Delta append-only tables is report-only; data-subject request path; masked excerpts in chain payloads; retention of sign-off text and case summaries; final day counts (ADR D13) | Needs bank decision |
+| WP18: RPO / RTO, backup retention, DR drill owner and schedule (RUNBOOK FILL-ME) | Needs bank decision |
+| WP18: Prometheus-format metrics endpoint; console and OTLP load tests; Delta fault rig for the drill | Needs infrastructure (scraper, load host, live workspace) |
+| WP18: TLS, HSTS, `Secure` cookies, session expiry (ASVS V3/V9) | Needs infrastructure: follows the platform proxy; `HSTS_ENABLED` exists |
+| WP18: tenancy / business-unit scoping of agents and cases | Needs bank decision |
+| WP18: accessibility audit (skip link, contrast, automated WCAG 2.2 check) | Needs bank decision on the target level and tool |
+| WP18: AI risk register and impact assessment (ISO 42001 6.1, A.5, A.8.4; NIST MP-5) | Out of phase: WP14 compliance advisory |
+| WP18: SBOM, release signing, vulnerability match (A.10, GV-6, MP-4, ASVS V14.2) | Out of phase: WP17 assurance packs |
+| WP18: judge re-validation, judge-vs-human agreement, Retire stage, second-line reviewer guide | Out of phase: WP19 judge MRM |
+| WP18: separate gate SDK package with a version contract | Out of phase: WP15 integration advisory |
+| WP18: competence, training, management review, internal audit programme (ISO 42001 7.2, 9.2, 9.3) | Bank process; the tool supplies evidence only |

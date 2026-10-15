@@ -1,0 +1,364 @@
+schema_version: 1
+instrument:
+  id: INTL-ISO42001-2023
+  jurisdiction: INTL
+  kind: standard
+  issuer: ISO/IEC JTC 1/SC 42
+  number: ISO/IEC 42001:2023
+  title_en: Information technology - Artificial intelligence - Management system
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: null
+      source: https://www.iso.org/standard/81230.html
+      verification: ASSUMED
+      note: published December 2023 per background knowledge; the ISO page returned HTTP 403 and was not
+        read
+    effective:
+      date: null
+      source: https://www.iso.org/standard/81230.html
+      verification: ASSUMED
+      note: voluntary certifiable standard, no effective date
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://docs.modulos.ai/frameworks/iso-42001/clauses-4-10.html
+    title: 'Modulos: ISO 42001 clauses 4 to 10 (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: ASSUMED
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: 'Paywalled certifiable AI management system standard. NOT READ: the ISO site blocked fetches
+    (HTTP 403). Clause numbers and summaries are my own, from background knowledge; only clause 6.1.4
+    (AI system impact assessment) and the Annex A area list A.2-A.5 were seen in a secondary search snippet.
+    No ISO text is quoted or stored. Bank counsel or the ISO owner must check clause numbers against the
+    licensed copy.'
+obligations:
+- id: INTL-ISO42001-2023-C4-01
+  article_ref: Clause 4 Context of the organization
+  summary_en: Work out the organisation's role (provider, deployer, user), interested parties and scope
+    of the AI management system.
+  duties:
+  - governance_accountability
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: profile records agent role and context
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank defines AIMS scope
+  evidence_needed:
+  - AIMS scope statement
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO42001-2023-C5-01
+  article_ref: Clause 5 Leadership (5.2 AI policy, 5.3 roles)
+  summary_en: Top management sets an AI policy and assigns roles and authorities for the management system.
+  duties:
+  - governance_accountability
+  - internal_policy
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: issue AI policy
+  evidence_needed:
+  - signed AI policy
+  - role assignments
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO42001-2023-C6.1.2-01
+  article_ref: Clause 6.1.2 AI risk assessment and 6.1.3 AI risk treatment
+  summary_en: Define and run a repeatable AI risk assessment, then treat risks with chosen controls and
+    a statement of applicability.
+  duties:
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: onboard_plan
+    coverage: partial
+    note: control plan is a risk treatment record for each agent
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: launch results
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second line review
+  evidence_needed:
+  - risk assessment records
+  - statement of applicability
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO42001-2023-C6.1.4-01
+  article_ref: Clause 6.1.4 AI system impact assessment
+  summary_en: Assess the consequences of an AI system for individuals, groups and society and feed results
+    into the risk assessment.
+  duties:
+  - risk_management_system
+  - bias_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: group-level outcome data
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank writes the impact assessment
+  evidence_needed:
+  - impact assessment per AI system
+  verification: VERIFIED_SECONDARY
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://docs.modulos.ai/frameworks/iso-42001/clauses-4-10.html
+    title: 'Modulos: ISO 42001 clauses 4 to 10 (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: medium
+  notes: Clause number seen in a secondary snippet.
+- id: INTL-ISO42001-2023-C7-01
+  article_ref: Clause 7 Support (7.2 competence, 7.5 documented information)
+  summary_en: Provide resources and competent people, raise awareness, and control documented information.
+  duties:
+  - staff_competence
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: staff_training
+    coverage: none
+    note: training records
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: tamper-evident records for part of the documented information
+  evidence_needed:
+  - competence records
+  - document control
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO42001-2023-C8-01
+  article_ref: Clause 8 Operation (8.1 planning and control, 8.2-8.4 risk assessment, treatment, impact)
+  summary_en: Plan and control operational processes, run risk assessment and treatment at planned intervals,
+    and keep results.
+  duties:
+  - lifecycle_management
+  - change_control
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned policy baseline for gate rules
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: change history
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: validation before change
+  evidence_needed:
+  - operational control procedures
+  - change records
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO42001-2023-C9-01
+  article_ref: Clause 9 Performance evaluation (9.1 monitoring, 9.2 internal audit, 9.3 management review)
+  summary_en: Monitor and measure the management system, run internal audits, and hold management reviews.
+  duties:
+  - performance_monitoring
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: oversight metrics
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export pack
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour monitoring
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: management review
+  evidence_needed:
+  - internal audit report
+  - management review minutes
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO42001-2023-C10-01
+  article_ref: Clause 10 Improvement (10.2 nonconformity and corrective action)
+  summary_en: React to nonconformities, correct them, and improve the management system.
+  duties:
+  - incident_response
+  - lifecycle_management
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file holds timeline, rule, evidence hashes and sign-off to support an incident report
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure decides severity, owners, timelines
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: bank files any report to the authority; Supervisor does not notify
+  evidence_needed:
+  - corrective action records
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO42001-2023-AA6-01
+  article_ref: Annex A area A.6 AI system life cycle
+  summary_en: 'Reference controls for the whole life cycle: objectives, design, verification and validation,
+    deployment, operation monitoring, technical documentation, event logs.'
+  duties:
+  - lifecycle_management
+  - logging
+  - technical_documentation
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: gate decisions, verdicts and state changes are hash-chained per agent and verifiable offline
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: tool calls and gate outcomes are recorded as agent events (masked at capture)
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank sets and enforces the retention period; Supervisor does not purge or retain by schedule
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: verification before go-live
+  evidence_needed:
+  - life cycle procedure
+  - event log evidence
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: Area number from background knowledge; only A.2 to A.5 were seen in a snippet.
+- id: INTL-ISO42001-2023-AA10-01
+  article_ref: Annex A area A.10 Third-party and customer relationships
+  summary_en: Controls for suppliers, customers and responsibility allocation in the AI value chain.
+  duties:
+  - outsourcing_oversight
+  - supply_chain_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: supplier contracts and audit
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: model family per version
+  evidence_needed:
+  - supplier assessment records
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: Area number from background knowledge; not seen in the snippet.

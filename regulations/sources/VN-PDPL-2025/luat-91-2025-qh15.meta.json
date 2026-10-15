@@ -1,0 +1,8 @@
+{
+ "url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/179252_body_content.html/download",
+ "title": "Luat Bao ve du lieu ca nhan 91/2025/QH15, vbpl.vn body content (text extracted; some article headings are out of order in the vbpl source HTML)",
+ "fetched_at": "2026-10-15T09:30:00Z",
+ "sha256": "c19120cc0c26a9014f6cec6f3cd84ded2fee5c542f1c7d1ff411fb1a1f86efed",
+ "content_type": "text/plain; charset=utf-8 (extracted from text/html)",
+ "tool": "manual-curl"
+}

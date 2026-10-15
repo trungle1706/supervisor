@@ -7,6 +7,7 @@ schema/model.yaml; values always go through named parameters.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel
@@ -91,7 +92,64 @@ class _Base:
 
 
 class SqlTableStore(_Base):
-    """Append-only tables. There is no update or delete method on purpose."""
+    """Append-only tables. There is no update or delete method on purpose.
+
+    The one exception is retention (ADR D13): ``redact_columns`` nulls the personal-data
+    columns the model lists under ``retention`` and nothing else.
+    """
+
+    def _retention_check(self, table: str, columns: Sequence[str], time_column: str) -> Table:
+        t = self._table(table)
+        allowed = set(t.retention_columns)
+        if not columns or any(c not in allowed for c in columns):
+            raise SqlError(f"{table}: {list(columns)} are not retention columns in the model")
+        self._check_columns(t, [time_column])
+        return t
+
+    def _due_clause(self, t: Table, columns: Sequence[str], time_column: str) -> str:
+        parts = [f"{c} <> ''" if not t.column(c).nullable else f"{c} IS NOT NULL" for c in columns]
+        return f"{time_column} < :before AND (" + " OR ".join(parts) + ")"
+
+    def count_due(
+        self, table: str, columns: Sequence[str], time_column: str, before_ts: datetime
+    ) -> int:
+        t = self._retention_check(table, columns, time_column)
+        sql = (
+            f"SELECT COUNT(*) AS n FROM {self.x.qualify(t.name)} "
+            f"WHERE {self._due_clause(t, columns, time_column)}"
+        )
+        rows = self.x.query(sql, {"before": before_ts}, param_types={"before": "timestamp"})
+        return int(rows[0]["n"]) if rows else 0
+
+    def redact_columns(
+        self,
+        table: str,
+        columns: Sequence[str],
+        time_column: str,
+        before_ts: datetime,
+        now: datetime | None = None,
+    ) -> int:
+        t = self._retention_check(table, columns, time_column)
+        params: dict[str, Any] = {"before": before_ts}
+        types = {"before": "timestamp"}
+        sets = [f"{c} = NULL" if t.column(c).nullable else f"{c} = ''" for c in columns]
+        if t.append_only:
+            if self.x.dialect == "databricks":
+                raise AppendOnlyError(
+                    f"{table}: Delta appendOnly refuses UPDATE; retention is report-only here "
+                    "(ADR D13)"
+                )
+        else:
+            if now is None:
+                raise SqlError(f"{table}: redact_columns needs now for a state table")
+            sets += ["row_version = row_version + 1", "updated_at = :now"]
+            params["now"] = now
+            types["now"] = "timestamp"
+        sql = (
+            f"UPDATE {self.x.qualify(t.name)} SET {', '.join(sets)} "
+            f"WHERE {self._due_clause(t, columns, time_column)}"
+        )
+        return max(0, self.x.execute(sql, params, param_types=types))
 
     def append(
         self,

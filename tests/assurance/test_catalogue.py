@@ -78,3 +78,15 @@ def test_all_judge_packs_run_offline_on_the_mock_judge(tmp_path: Path) -> None:
     assert [r.pack_id for r in summary.results if r.status == "error"] == []
     gated = {r.pack_id for r in summary.results if r.judge_gate}
     assert gated == {p.id for p in PACKS if p.judge_gate}
+
+
+def test_pack_duties_resolve_in_the_regkb_vocabulary() -> None:
+    import yaml
+
+    from supervisor.assurance.taxonomy import CORE_DUTIES, DUTIES_FILE
+
+    duties = set(yaml.safe_load(DUTIES_FILE.read_text(encoding="utf-8"))["duties"])
+    assert CORE_DUTIES <= duties
+    assert REGKB_DUTIES == frozenset(duties)
+    unknown = sorted({d for p in PACKS for d in p.maps_to.regkb_duties} - duties)
+    assert unknown == []

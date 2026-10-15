@@ -1,0 +1,9 @@
+{
+ "url": "https://vbpl.vn/van-ban/chi-tiet/144532",
+ "api_url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/144532",
+ "title": "Thông tư số 09/2020/TT-NHNN Quy định về an toàn hệ thống thông tin trong hoạt động ngân hàng",
+ "fetched_at": "2026-10-15T09:18:48Z",
+ "sha256": "1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7",
+ "content_type": "text/plain; charset=utf-8 (extracted from vbpl documentContent HTML)",
+ "tool": "manual-curl"
+}

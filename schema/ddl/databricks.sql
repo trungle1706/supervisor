@@ -508,6 +508,31 @@ USING DELTA
 COMMENT 'WP8. Notifier inbox (console Inbox page). Masked text only. The webhook stub queues rows with status queued and never sends them (off by default).'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
+-- console_action (append_only): WP18. One row per mutating console or API action (and per denied attempt): who, when, what, target, row hash before and after, request id. Append-only; in the audit pack.
+-- primary key (enforced by the app, not by Delta): action_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`console_action` (
+  action_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  request_id STRING NOT NULL,
+  actor STRING NOT NULL,
+  actor_kind STRING NOT NULL,
+  auth_method STRING NOT NULL,
+  roles STRING NOT NULL,
+  permission STRING NOT NULL,
+  method STRING NOT NULL,
+  path STRING NOT NULL,
+  target_kind STRING,
+  target_id STRING,
+  outcome STRING NOT NULL,
+  before_hash STRING,
+  after_hash STRING,
+  detail STRING
+)
+USING DELTA
+COMMENT 'WP18. One row per mutating console or API action (and per denied attempt): who, when, what, target, row hash before and after, request id. Append-only; in the audit pack.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
 -- eval_run (append_only): WP17 assurance eval packs. One row per run of `python -m supervisor.assurance run` (counts per status). Integers and strings only.
 -- primary key (enforced by the app, not by Delta): run_id
 -- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.

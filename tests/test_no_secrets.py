@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from supervisor import sandbox
+from supervisor.release import fake_secret_allowed
 from tests.conftest import REPO_ROOT
 
 # Reference documents handed over by the owner. They name the bank workspace on purpose.
@@ -55,6 +56,8 @@ def test_no_secret_patterns() -> None:
             for m in pat.finditer(text):
                 if "FILL-ME" in m.group(0):
                     continue
+                if fake_secret_allowed(rel, m.group(0)):  # WP16 corpus fakes only
+                    continue
                 line = text.count("\n", 0, m.start()) + 1
                 hits.append(f"{rel}:{line} {name}")
     assert hits == [], "\n".join(hits)
@@ -66,6 +69,15 @@ def test_deploy_files_use_placeholders() -> None:
         assert "FILL-ME" in text, name
     yml = (REPO_ROOT / "databricks.yml").read_text(encoding="utf-8")
     assert "variables:" not in yml and "secret_scope" not in yml and "${var." not in yml
+
+
+def test_fake_secret_allowance_is_narrow() -> None:
+    fake = "AKIA" + "IOSFODNN7EXAMPLE"
+    real_shape = "AKIA" + "Q3V7K2M9P4X8R6T1"
+    assert fake_secret_allowed("data/corpus/repos/x/settings.py", fake)
+    assert not fake_secret_allowed("data/corpus/repos/x/settings.py", real_shape)
+    assert not fake_secret_allowed("src/supervisor/x.py", fake)
+    assert fake_secret_allowed("data/corpus/repos/x/c.yaml", "dapi" + "e0" * 16)
 
 
 def test_patterns_detect_planted_values() -> None:

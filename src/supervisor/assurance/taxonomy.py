@@ -1,6 +1,7 @@
 """Controlled vocabularies that pack manifests map to (``maps_to``).
 
-* ``REGKB_DUTIES``: duty ids shared with WP13 (RegKB). Same words in both packages.
+* ``REGKB_DUTIES``: duty ids of the RegKB vocabulary ``regulations/schema/duties.yaml``
+  (WP13). ``CORE_DUTIES`` is the WP17 starting subset; it must stay inside the file.
 * ``OWASP_LLM``: OWASP Top 10 for LLM Applications 2025 (https://genai.owasp.org/llm-top-10/).
 * ``OWASP_AGENTIC``: OWASP Top 10 for Agentic Applications (ASI01..ASI10), the same
   labels the red-team pack ``agents/redteam/incidents.jsonl`` uses.
@@ -10,7 +11,13 @@
 
 from __future__ import annotations
 
-REGKB_DUTIES: frozenset[str] = frozenset(
+from pathlib import Path
+
+import yaml
+
+DUTIES_FILE = Path(__file__).resolve().parents[3] / "regulations" / "schema" / "duties.yaml"
+
+CORE_DUTIES: frozenset[str] = frozenset(
     {
         "human_oversight",
         "logging",
@@ -35,6 +42,17 @@ REGKB_DUTIES: frozenset[str] = frozenset(
         "outsourcing_oversight",
     }
 )
+
+
+def load_regkb_duties(path: Path = DUTIES_FILE) -> frozenset[str]:
+    """Duty ids from the RegKB vocabulary; the WP17 core set when the file is absent."""
+    if not path.is_file():
+        return CORE_DUTIES
+    doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return frozenset(str(k) for k in (doc.get("duties") or {}))
+
+
+REGKB_DUTIES: frozenset[str] = load_regkb_duties()
 
 OWASP_LLM_NAMES: dict[str, str] = {
     "LLM01": "Prompt Injection",

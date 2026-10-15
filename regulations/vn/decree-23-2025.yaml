@@ -1,0 +1,446 @@
+schema_version: 1
+instrument:
+  id: VN-DEC23-2025
+  jurisdiction: VN
+  kind: decree
+  issuer: Government
+  number: 23/2025/NĐ-CP
+  title_vi: Nghị định quy định về chữ ký điện tử và dịch vụ tin cậy
+  title_en: Decree on electronic signatures and trust services
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2025-02-21'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2025-04-10'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+      verification: VERIFIED_PRIMARY
+      note: Art. 46(1); Decrees 130/2018/ND-CP and 48/2024/ND-CP cease on this date, except Art. 47 transition
+    milestones:
+    - label: Upgrade of software with signing or verification functions (Art. 47(6)-(7)); 2 years from
+        effective date
+      date: '2027-04-10'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+      verification: VERIFIED_PRIMARY
+      note: date computed from Art. 46(1) and Art. 47
+    - label: Existing public certification providers must upgrade systems and staff (Art. 47(4)); 2 years
+        from effective date
+      date: '2027-04-10'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+      verification: VERIFIED_PRIMARY
+      note: date computed; addressed to providers, not to the bank
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  - url: https://luatvietan.vn/chu-ky-dien-tu-va-dich-vu-tin-cay-theo-nghi-dinh-23-2025.html
+    title: Luat Viet An commentary on Decree 23/2025
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: Full text read from vbpl.vn (documentContent). Dates verified in the text (issued 21 Feb 2025,
+    Art. 46 effective 10 Apr 2025); vbpl status is in force. Guides Law 20/2023/QH15 Arts 25, 29, 30,
+    31, 32, 33 (VN-ETX-2023). Circular 16/2025/TT-BKHCN (model certification rules) and Circular 17/2025
+    (interconnection) exist but are not read here. The decree has no rule on data message storage services
+    beyond Art. 25 and no AI rule. Most of the decree (Arts 18-44) addresses trust service providers and
+    subscribers; the bank is a user or subscriber, so only duties of signers, receivers, organisations
+    and subscribers are listed. Not legal advice; bank counsel must confirm.
+obligations:
+- id: VN-DEC23-2025-A9-01
+  article_ref: Art. 9(1), (3)
+  text_vi: 1. Chữ ký điện tử chuyên dùng bảo đảm an toàn phải đáp ứng đủ các yêu cầu theo quy định tại
+    khoản 2 Điều 22 Luật Giao dịch điện tử. ... Chữ ký điện tử chuyên dùng được bảo đảm bởi chứng thư
+    chữ ký điện tử của cơ quan, tổ chức tạo lập được xem là đáp ứng đủ các yêu cầu tại khoản 2 Điều 22
+    Luật Giao dịch điện tử. ... 3. Cơ quan, tổ chức tạo lập chữ ký điện tử chuyên dùng bảo đảm an toàn
+    chịu trách nhiệm trước pháp luật đối với việc sử dụng chữ ký điện tử chuyên dùng bảo đảm an toàn theo
+    quy định tại khoản 2 Điều này.
+  summary_en: A secured special-purpose e-signature must meet Law 20/2023 Art. 22(2), and the organisation
+    that creates it is legally responsible for its use. A bank that signs documents with its own internal
+    signature carries that responsibility.
+  duties:
+  - electronic_signature
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: Supervisor's signed roots are an internal signature of this kind, but there is no certificate
+      or certification as 'secured' under Arts 10-11
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: counsel decides if any internal signature must be certified as secured
+  evidence_needed:
+  - decision record on which internal signatures are used for legal effect
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: medium
+  notes: Arts 10 and 11 set the file and procedure to obtain the certification of a secured special-purpose
+    e-signature. Not analysed.
+- id: VN-DEC23-2025-A14-01
+  article_ref: Art. 14(1)
+  text_vi: 1. Chữ ký số của cơ quan, tổ chức và người có thẩm quyền của cơ quan, tổ chức được cấp, phát
+    hành chứng thư chữ ký số theo quy định tại Điều 13 của Nghị định này chỉ được sử dụng để thực hiện
+    các giao dịch và các hoạt động theo đúng thẩm quyền của cơ quan, tổ chức và chức danh được cấp, phát
+    hành chứng thư chữ ký số.
+  summary_en: An organisation's digital signature, and that of its authorised person, may only be used
+    for transactions within the authority of the organisation and the signer's title. An AI agent must
+    not apply a bank digital signature beyond that authority.
+  duties:
+  - electronic_signature
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: keeps an agent to approved tools, so it cannot call a signing tool that is not approved
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: limits the amount an agent can commit
+  - kind: process
+    id: access_management
+    coverage: none
+    note: bank controls who or what can use the signing key
+  evidence_needed:
+  - authority matrix for digital signature use
+  - list of agents allowed to trigger signing
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: high
+  notes: Whether an agent may sign for a titled person ('ky thay, ky thua lenh', Art. 14(2)) is a legal
+    question for the bank.
+- id: VN-DEC23-2025-A15-01
+  article_ref: Art. 15(1)-(2)
+  text_vi: '1. Trước khi ký số, người ký phải thực hiện quy trình kiểm tra trạng thái chứng thư chữ ký
+    số như sau: ... c) Trường hợp kết quả kiểm tra tại các điểm a và điểm b khoản này đồng thời có hiệu
+    lực, người ký thực hiện ký số. Trường hợp kết quả kiểm tra tại điểm a hoặc điểm b khoản này là không
+    có hiệu lực, người ký số không thực hiện ký số. ... 2. Sử dụng phần mềm ký số đáp ứng yêu cầu tại
+    Điều 17 của Nghị định này.'
+  summary_en: Before signing, the signer must check that its own certificate and the issuer's certificate
+    are valid, and must use signing software that meets Art. 17. Signing must not proceed if either check
+    fails.
+  duties:
+  - electronic_signature
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: bank's signing software and certificate provider
+  - kind: process
+    id: access_management
+    coverage: none
+    note: key and certificate lifecycle
+  evidence_needed:
+  - signing software conformity statement
+  - certificate status check log
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC23-2025-A16-01
+  article_ref: Art. 16(2)-(3)
+  text_vi: '2. Người nhận phải thực hiện quy trình kiểm tra trạng thái chứng thư chữ ký số như sau: ...
+    c) Chữ ký số trên thông điệp dữ liệu chỉ có hiệu lực khi kết quả kiểm tra tại các điểm a và điểm b
+    khoản này đồng thời có hiệu lực. ... 3. Người nhận chịu trách nhiệm về việc chấp nhận chứng thư chữ
+    ký số trong các trường hợp sau:'
+  summary_en: A receiver must check certificate status at the time of signing, its scope and limits, and
+    the issuer chain before accepting a digital signature; the signature is valid only if all checks pass,
+    and the receiver bears the risk if it skips them. This applies when an agent flow accepts documents
+    signed by customers or counterparties (for example loan files).
+  duties:
+  - electronic_signature
+  - data_quality
+  applies_to:
+    agent_class:
+    - credit_decision
+    - payment
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: verification software and procedure
+  - kind: catalogue
+    id: system_of_record
+    coverage: partial
+    note: agent checks facts against the system of record; this does not verify signatures
+  evidence_needed:
+  - signature verification log for signed customer documents
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: medium
+  notes: Applies only where the bank accepts digitally signed data messages as input.
+- id: VN-DEC23-2025-A17-01
+  article_ref: Art. 17(1)-(3)
+  text_vi: '1. Phần mềm ký số, phần mềm kiểm tra chữ ký số phải tuân thủ các tiêu chuẩn kỹ thuật về chữ
+    ký số trên thông điệp dữ liệu; không sử dụng rào cản kỹ thuật, công nghệ để hạn chế việc kiểm tra
+    hiệu lực chữ ký số. ... 2. Đối với phần mềm ký số phải có chức năng sau: ... 3. Đối với phần mềm kiểm
+    tra chữ ký số phải có chức năng sau:'
+  summary_en: Signing and verification software must follow technical standards, must not block verification
+    by technical barriers, and must have the listed functions (signer authentication, certificate checks,
+    notice of success or failure). Software that integrates signing must be reviewed against this.
+  duties:
+  - electronic_signature
+  - supply_chain_security
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: buy or build conforming software and keep conformity evidence
+  evidence_needed:
+  - conformity evidence for the signing and verification software
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC23-2025-A24-01
+  article_ref: Art. 24(1)-(2)
+  text_vi: 1. Gắn thời gian vào thông điệp dữ liệu; thời gian được gắn vào thông điệp dữ liệu là ngày
+    và thời gian mà tổ chức cung cấp dịch vụ cấp dấu thời gian nhận được thông điệp dữ liệu đó. ... 2.
+    Cung cấp thông tin cần thiết để giúp chứng thực thông điệp dữ liệu đó của thuê bao đã gắn ngày, tháng,
+    năm và thời gian trên thông điệp dữ liệu.
+  summary_en: A licensed time-stamp service attaches the date and time at which it received the data message
+    and gives the information needed to verify it. Where the bank needs legal proof of the time of a record,
+    it must use such a service.
+  duties:
+  - electronic_record_integrity
+  applies_to:
+    agent_class:
+    - any
+  addressee: any
+  control_mapping:
+  - kind: evidence
+    id: anchor
+    coverage: partial
+    note: write-once anchor of signed roots gives an external timeline, but is not a licensed time-stamp
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: buy a licensed time-stamp service where needed
+  evidence_needed:
+  - time-stamp tokens from a licensed provider for records that need them
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: medium
+  notes: Service is provided by a licensed trust service provider. The bank is a user.
+- id: VN-DEC23-2025-A25-01
+  article_ref: Art. 25(2)
+  text_vi: '2. Dịch vụ lưu trữ và xác nhận tính toàn vẹn của thông điệp dữ liệu bao gồm các hoạt động
+    sau: ... c) Lưu trữ nhật ký hoạt động của dịch vụ gửi nhận bảo đảm, xác minh danh tính của người gửi
+    và người nhận và các trao đổi thông tin hoặc dữ liệu giữa người gửi hoặc người nhận; ... đ) Chứng
+    minh thông tin trong thông điệp dữ liệu được bảo đảm toàn vẹn trong quá trình gửi nhận; ... e) Cung
+    cấp thông tin tham chiếu đến hoặc bản liệt kê toàn bộ quá trình, nội dung gửi nhận thông điệp dữ liệu
+    và nội dung sửa đổi (nếu có) kèm theo dấu thời gian.'
+  summary_en: The licensed storage and integrity confirmation service keeps activity logs, proves the
+    integrity of data messages while sent and received, and gives a time-stamped list of the exchange
+    and any changes. It is the statutory service for storing data messages with provable integrity.
+  duties:
+  - electronic_record_integrity
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+  addressee: any
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: does a similar job internally (tamper-evident log of agent events) but is not the licensed service
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: offline integrity proof
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: use a licensed provider if statutory integrity confirmation is needed
+  evidence_needed:
+  - decision on whether agent records need a licensed integrity confirmation service
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: medium
+- id: VN-DEC23-2025-A32-01
+  article_ref: Art. 32(1)-(3)
+  text_vi: '1. Trường hợp cần xác thực về thời gian ký thông điệp dữ liệu, người nhận kiểm tra dấu thời
+    gian được gắn với thông điệp dữ liệu và các thông tin liên quan về dấu thời gian phải được cấp bởi
+    tổ chức cung cấp dịch vụ tin cậy về dấu thời gian được cấp phép. ... 2. Người nhận sử dụng công cụ
+    phần mềm kiểm tra và quy trình kiểm tra đáp ứng tiêu chuẩn, quy chuẩn kỹ thuật về dấu thời gian hoặc
+    kiểm tra dấu thời gian trên cả hệ thống chứng thực dịch vụ tin cậy của tổ chức cung cấp dịch vụ chứng
+    thực điện tử quốc gia và hệ thống thông tin của tổ chức cung cấp dịch vụ tin cậy. ... 3. Người nhận
+    phải chịu trách nhiệm về việc chấp nhận dấu thời gian trong các trường hợp sau:'
+  summary_en: When the time of signing must be shown, the receiver checks the time-stamp issued by a licensed
+    provider and bears responsibility if it accepts a time-stamp without the checks or after it knew of
+    revocation. Applies where the bank relies on time-stamps from others.
+  duties:
+  - electronic_record_integrity
+  applies_to:
+    agent_class:
+    - any
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: verification tool and procedure
+  evidence_needed:
+  - time-stamp verification procedure
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: medium
+- id: VN-DEC23-2025-A45-01
+  article_ref: Art. 45(5)-(6)
+  text_vi: 5. Kiểm soát và sử dụng khóa bí mật của mình một cách an toàn trong suốt thời gian chứng thư
+    chữ ký số công cộng có hiệu lực và bị tạm dừng. ... 6. Thông báo trong thời gian 24 giờ cho tổ chức
+    cung cấp dịch vụ chứng thực chữ ký số công cộng nếu phát hiện thấy dấu hiệu khóa bí mật của mình đã
+    bị lộ, bị đánh cắp hoặc sử dụng trái phép để có các biện pháp xử lý.
+  summary_en: A subscriber to a public digital signature certificate must keep its private key under safe
+    control and tell the provider within 24 hours if the key is exposed, stolen or misused. If a bank
+    holds public certificates for signing, this includes keys used by automated flows.
+  duties:
+  - electronic_signature
+  - incident_report_24h
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank notifies the provider within 24 hours
+  - kind: process
+    id: access_management
+    coverage: none
+    note: key custody
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: provider contact and revocation procedure
+  evidence_needed:
+  - key compromise procedure with the 24-hour provider notice
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: high
+  notes: Applies only if the bank itself holds public signing certificates.
+- id: VN-DEC23-2025-A47-01
+  article_ref: Art. 47(6)-(7)
+  text_vi: 6. Các phần mềm ứng dụng có tích hợp phần mềm ký số, phần mềm kiểm tra chữ ký số trong vòng
+    02 năm kể từ ngày Nghị định này có hiệu lực, phải được rà soát, nâng cấp đáp ứng quy định tại Điều
+    17 Nghị định này. ... 7. Trường hợp chủ quản hệ thống thông tin phục vụ giao dịch điện tử sử dụng
+    chữ ký số trong giao dịch, chủ quản hệ thống thông tin có trách nhiệm rà soát, nâng cấp hệ thống thông
+    tin, phần mềm ứng dụng để tích hợp phần mềm ký số, phần mềm kiểm tra chữ ký số đáp ứng quy định tại
+    Điều 17 Nghị định này.
+  summary_en: Applications that embed signing or verification software must be reviewed and upgraded within
+    2 years of 2025-04-10 (that is by 2027-04-10) to meet Art. 17; owners of e-transaction systems that
+    use digital signatures must do the same for their systems.
+  duties:
+  - electronic_signature
+  - change_control
+  - lifecycle_management
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: inventory of applications with signing functions and the upgrade plan
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory helps find agent flows that call signing functions
+  evidence_needed:
+  - inventory of applications with signing or verification functions
+  - upgrade plan with date before 2027-04-10
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/175484
+    title: Nghi dinh 23/2025/ND-CP ve chu ky dien tu va dich vu tin cay (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 2fb953d8faeb25191608ee5484ce805f9f24decd3fead816a4c21c683040ca3d
+    local_path: regulations/sources/VN-DEC23-2025/decree-23-2025-nd-cp.txt
+  confidence: high
+  notes: Deadline 2027-04-10 is computed from the effective date and the 2-year period in Art. 47.

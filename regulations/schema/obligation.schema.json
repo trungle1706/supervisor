@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://supervisor.invalid/regulations/schema/obligation.schema.json",
+  "title": "RegKB obligation (resolved form)",
+  "description": "One regulatory obligation after the loader merged the instrument header into it. A file under regulations/{vn,intl,internal}/ follows $defs/instrument_file: obligations there omit the instrument-level fields (instrument_id, jurisdiction, instrument_kind, issuer, number, title_vi, title_en, binding) and may override status and dates; the loader copies the rest from the header and then validates each obligation against this schema. Extra semantic rules enforced by the loader (supervisor.regkb): obligation id starts with '<instrument_id>-'; VERIFIED_PRIMARY needs at least one source of kind primary, and text_vi for a VN instrument; an instrument of kind draft or status draft is never status in_force; status reference implies binding false; every duty id is in duties.yaml; every control_mapping id resolves (controls.yaml). Not legal advice; bank counsel must confirm.",
+  "$ref": "#/$defs/obligation",
+  "$defs": {
+    "date_iso": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+    },
+    "url": {"type": "string", "pattern": "^https?://[^\\s]+$"},
+    "verification": {"enum": ["VERIFIED_PRIMARY", "VERIFIED_SECONDARY", "ASSUMED"]},
+    "status": {"enum": ["in_force", "issued", "draft", "superseded", "repealed", "reference"], "description": "issued = signed and published but not yet effective on the check date (see dates.effective)"},
+    "instrument_kind": {
+      "enum": ["law", "decree", "circular", "decision", "draft", "standard", "guidance", "internal"]
+    },
+    "instrument_id": {"type": "string", "pattern": "^(VN|INTL|INT)-[A-Z0-9]+(-[A-Z0-9]+){0,3}$"},
+    "obligation_id": {
+      "type": "string",
+      "pattern": "^(VN|INTL|INT)-[A-Z0-9]+(-[A-Z0-9]+){0,3}-[A-Z0-9][A-Z0-9.]*-[0-9]{2}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "title", "fetched_at", "kind"],
+      "properties": {
+        "url": {"$ref": "#/$defs/url"},
+        "title": {"type": "string", "minLength": 1},
+        "fetched_at": {"$ref": "#/$defs/date_iso"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "kind": {"enum": ["primary", "secondary"]},
+        "local_path": {"type": "string", "pattern": "^regulations/sources/[A-Za-z0-9._/-]+$"}
+      }
+    },
+    "dated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "source", "verification"],
+      "properties": {
+        "date": {"anyOf": [{"$ref": "#/$defs/date_iso"}, {"type": "null"}]},
+        "source": {"$ref": "#/$defs/url"},
+        "verification": {"$ref": "#/$defs/verification"},
+        "note": {"type": "string"}
+      }
+    },
+    "milestone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "date", "source", "verification"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "date": {"anyOf": [{"$ref": "#/$defs/date_iso"}, {"type": "null"}]},
+        "source": {"$ref": "#/$defs/url"},
+        "verification": {"$ref": "#/$defs/verification"},
+        "note": {"type": "string"}
+      }
+    },
+    "dates": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "issued": {"$ref": "#/$defs/dated"},
+        "effective": {"$ref": "#/$defs/dated"},
+        "compliance_deadline": {"$ref": "#/$defs/dated"},
+        "milestones": {"type": "array", "items": {"$ref": "#/$defs/milestone"}}
+      }
+    },
+    "applies_to": {
+      "description": "Predicate over a product profile. Omitted key = no condition on that fact. agent_class: product has at least one of these classes ('any' matches every product). data_classes: product holds at least one of these. autonomy, model_hosting: product value is in the list. cross_border: product value equals it. role: product acts in at least one of these roles. A fact the profile does not state makes the result 'unknown' (a question), never a guess.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agent_class": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["customer_facing", "credit_decision", "payment", "internal_tool", "any"]}
+        },
+        "data_classes": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["personal", "sensitive_personal", "financial", "biometric", "core_data", "important_data"]}
+        },
+        "autonomy": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["advisory", "acts_with_approval", "acts_autonomously"]}
+        },
+        "cross_border": {"type": "boolean"},
+        "model_hosting": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["on_prem", "domestic_cloud", "foreign_cloud"]}
+        },
+        "role": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["deployer", "provider"]}
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "coverage"],
+      "properties": {
+        "kind": {"enum": ["catalogue", "rule", "monitor", "console", "evidence", "process"]},
+        "id": {"type": "string", "minLength": 1},
+        "coverage": {"enum": ["full", "partial", "none"]},
+        "note": {"type": "string"}
+      }
+    },
+    "instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "jurisdiction", "kind", "issuer", "number", "title_en", "status", "binding", "dates", "sources", "verification", "primary_text_fetched", "last_checked"],
+      "properties": {
+        "id": {"$ref": "#/$defs/instrument_id"},
+        "jurisdiction": {"type": "string", "pattern": "^[A-Z]{2,4}$"},
+        "kind": {"$ref": "#/$defs/instrument_kind"},
+        "issuer": {"type": "string", "minLength": 1},
+        "number": {"type": "string", "minLength": 1},
+        "title_vi": {"type": "string"},
+        "title_en": {"type": "string", "minLength": 1},
+        "status": {"$ref": "#/$defs/status"},
+        "binding": {"type": "boolean"},
+        "dates": {"$ref": "#/$defs/dates"},
+        "supersedes": {"type": "array", "items": {"type": "string"}},
+        "superseded_by": {"type": "array", "items": {"type": "string"}},
+        "related": {"type": "array", "items": {"type": "string"}},
+        "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/source"}},
+        "verification": {"$ref": "#/$defs/verification"},
+        "primary_text_fetched": {"type": "boolean"},
+        "last_checked": {"$ref": "#/$defs/date_iso"},
+        "notes": {"type": "string"}
+      }
+    },
+    "obligation_fields": {
+      "type": "object",
+      "properties": {
+        "id": {"$ref": "#/$defs/obligation_id"},
+        "article_ref": {"type": "string", "minLength": 1},
+        "text_vi": {"type": "string"},
+        "text_en": {"type": "string"},
+        "summary_en": {"type": "string", "minLength": 1},
+        "summary_vi": {"type": "string"},
+        "duties": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
+        },
+        "applies_to": {"$ref": "#/$defs/applies_to"},
+        "addressee": {"enum": ["bank", "deployer", "provider", "controller", "processor", "any"]},
+        "control_mapping": {"type": "array", "items": {"$ref": "#/$defs/control"}},
+        "evidence_needed": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "verification": {"$ref": "#/$defs/verification"},
+        "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/source"}},
+        "confidence": {"enum": ["high", "medium", "low"]},
+        "notes": {"type": "string"},
+        "status": {"$ref": "#/$defs/status"},
+        "dates": {"$ref": "#/$defs/dates"}
+      }
+    },
+    "obligation": {
+      "allOf": [{"$ref": "#/$defs/obligation_fields"}],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "instrument_id", "jurisdiction", "instrument_kind", "issuer", "number", "title_en", "status", "binding", "dates", "article_ref", "summary_en", "duties", "applies_to", "control_mapping", "evidence_needed", "verification", "sources", "confidence"],
+      "properties": {
+        "id": true, "article_ref": true, "text_vi": true, "text_en": true, "summary_en": true,
+        "summary_vi": true, "duties": true, "applies_to": true, "addressee": true,
+        "control_mapping": true, "evidence_needed": true, "verification": true, "sources": true,
+        "confidence": true, "notes": true, "status": true, "dates": true,
+        "instrument_id": {"$ref": "#/$defs/instrument_id"},
+        "jurisdiction": {"type": "string", "pattern": "^[A-Z]{2,4}$"},
+        "instrument_kind": {"$ref": "#/$defs/instrument_kind"},
+        "issuer": {"type": "string", "minLength": 1},
+        "number": {"type": "string", "minLength": 1},
+        "title_vi": {"type": "string"},
+        "title_en": {"type": "string", "minLength": 1},
+        "binding": {"type": "boolean"}
+      }
+    },
+    "file_obligation": {
+      "description": "Obligation as written in an instrument file; instrument-level fields come from the header.",
+      "allOf": [{"$ref": "#/$defs/obligation_fields"}],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "article_ref", "summary_en", "duties", "applies_to", "control_mapping", "evidence_needed", "verification", "sources", "confidence"],
+      "properties": {
+        "id": true, "article_ref": true, "text_vi": true, "text_en": true, "summary_en": true,
+        "summary_vi": true, "duties": true, "applies_to": true, "addressee": true,
+        "control_mapping": true, "evidence_needed": true, "verification": true, "sources": true,
+        "confidence": true, "notes": true, "status": true, "dates": true
+      }
+    },
+    "instrument_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "instrument", "obligations"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "instrument": {"$ref": "#/$defs/instrument"},
+        "obligations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/file_obligation"}}
+      }
+    }
+  }
+}

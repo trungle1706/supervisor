@@ -1,0 +1,884 @@
+schema_version: 1
+instrument:
+  id: VN-ETX-2023
+  jurisdiction: VN
+  kind: law
+  issuer: National Assembly
+  number: 20/2023/QH15
+  title_vi: Luật Giao dịch điện tử
+  title_en: Law on Electronic Transactions
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2023-06-22'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2024-07-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+      verification: VERIFIED_PRIMARY
+      note: Art. 52(1); Law 51/2005/QH11 ceases on this date except Art. 53 transition
+    milestones:
+    - label: Art. 41 (data creation and collection) repealed by Data Law 2024
+      date: '2025-07-01'
+      source: https://caselaw.vn/van-ban-phap-luat/411469-luat-giao-dich-dien-tu-so-20-2023-qh15-ngay-22-06-2023-cua-quoc-hoi
+      verification: VERIFIED_SECONDARY
+      note: caselaw.vn annotation; vbpl.vn shows the law as partially expired. Not relevant to the obligations
+        below.
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  - url: https://caselaw.vn/van-ban-phap-luat/411469-luat-giao-dich-dien-tu-so-20-2023-qh15-ngay-22-06-2023-cua-quoc-hoi
+    title: caselaw.vn mirror of Law 20/2023/QH15 with amendment annotations
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'Full text read from vbpl.vn (documentContent). vbpl status is ''Hết hiệu lực một phần'' (partially
+    expired); the articles used here were checked in the text. caselaw.vn lists amendments dated 2025-03-01
+    and 2025-07-01 (secondary, not analysed). Implementing decrees: Decree 23/2025/ND-CP (e-signatures
+    and trust services, VN-DEC23-2025) and Decree 137/2024/ND-CP (arts 12, 44, 45), not in this KB. Law
+    Arts 29, 30, 31, 32 and 33 guide-by notes come from caselaw.vn (secondary). The law has no AI-specific
+    rule; Arts 14, 18 and 34 apply to AI agents by interpretation (automated information systems). Not
+    legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-ETX-2023-A6.4-01
+  article_ref: Art. 6(4)
+  text_vi: 4. Giả mạo, làm sai lệch hoặc xóa, hủy, sao chép, di chuyển trái pháp luật một phần hoặc toàn
+    bộ thông điệp dữ liệu.
+  summary_en: It is forbidden to forge, falsify, delete, destroy, copy or move a data message (electronic
+    record) unlawfully. Agent logs, transaction records and customer messages are data messages, so an
+    agent or operator must not alter or delete them outside the law.
+  duties:
+  - electronic_record_integrity
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained entries make later alteration or deletion detectable; they do not prevent it
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: offline verification shows tampering of recorded agent events
+  - kind: process
+    id: access_management
+    coverage: none
+    note: bank controls who can change source records
+  evidence_needed:
+  - chain verification report on file
+  - access review of systems holding the original records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+- id: VN-ETX-2023-A9-01
+  article_ref: Art. 9(1)
+  text_vi: 1. Trường hợp pháp luật yêu cầu thông tin phải được thể hiện bằng văn bản thì thông điệp dữ
+    liệu được xem là đáp ứng yêu cầu nếu thông tin trong thông điệp dữ liệu đó có thể truy cập và sử dụng
+    được để tham chiếu.
+  summary_en: Where a law requires information in writing, a data message satisfies it if the information
+    stays accessible and usable for later reference. So agent-produced notices, quotes and decisions can
+    meet a written-form rule if they can be retrieved.
+  duties:
+  - record_keeping
+  - electronic_record_integrity
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export (json, html, pdf) keeps the interaction retrievable
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export pack
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank must keep the customer-facing record itself
+  evidence_needed:
+  - retrievable copy of each agent notice or decision sent to a customer
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+- id: VN-ETX-2023-A10-01
+  article_ref: Art. 10
+  text_vi: 'Thông điệp dữ liệu được sử dụng và có giá trị như bản gốc khi đáp ứng đủ các yêu cầu sau đây:
+    ... 1. Thông tin trong thông điệp dữ liệu được bảo đảm toàn vẹn kể từ khi được khởi tạo lần đầu tiên
+    dưới dạng một thông điệp dữ liệu hoàn chỉnh. Thông tin trong thông điệp dữ liệu được xem là toàn vẹn
+    khi thông tin đó chưa bị thay đổi, trừ những thay đổi về hình thức phát sinh trong quá trình gửi,
+    lưu trữ hoặc hiển thị thông điệp dữ liệu; ... 2. Thông tin trong thông điệp dữ liệu có thể truy cập
+    và sử dụng được dưới dạng hoàn chỉnh.'
+  summary_en: A data message counts as an original only if its integrity is assured from first creation
+    and it stays accessible and usable in complete form. For agent records this means keeping an unaltered,
+    retrievable original of each event.
+  duties:
+  - electronic_record_integrity
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: SHA-256 chain with signed roots proves integrity of recorded events since creation; the original
+      business record stays in the bank's system of record
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: offline check that no entry changed
+  - kind: evidence
+    id: anchor
+    coverage: partial
+    note: signed roots written to a write-once target (WORM directory or UC volume); not a licensed time-stamp
+  evidence_needed:
+  - chain verify report covering the period
+  - anchor receipts
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+  notes: Supervisor holds masked traces, not the full original customer record (pii_masking), so the chain
+    proves integrity of the evidence it keeps, not of every source document.
+- id: VN-ETX-2023-A11.2-01
+  article_ref: Art. 11(2)
+  text_vi: 2. Giá trị dùng làm chứng cứ của thông điệp dữ liệu được xác định căn cứ vào độ tin cậy của
+    cách thức khởi tạo, gửi, nhận hoặc lưu trữ thông điệp dữ liệu; cách thức bảo đảm và duy trì tính toàn
+    vẹn của thông điệp dữ liệu; cách thức xác định người khởi tạo, gửi, nhận thông điệp dữ liệu và các
+    yếu tố phù hợp khác.
+  summary_en: The evidential weight of a data message depends on how reliably it was created, sent, received
+    and stored, how its integrity is kept, and how the originator is identified. A bank that relies on
+    agent logs as evidence in a dispute must be able to show these points.
+  duties:
+  - electronic_record_integrity
+  - record_keeping
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: records how each event was created and by which agent; integrity provable offline
+  - kind: evidence
+    id: anchor
+    coverage: partial
+    note: external write-once anchor of signed roots
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions with agent identity
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: report a court or auditor can re-run
+  evidence_needed:
+  - chain verify report
+  - description of how events are created and stored
+  - agent identity mapping
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+  notes: Evidential value is decided by the court or arbitrator case by case; no control gives a guarantee.
+- id: VN-ETX-2023-A13.1-01
+  article_ref: Art. 13(1)
+  text_vi: '1. Trường hợp pháp luật yêu cầu văn bản, chứng từ, hồ sơ, tài liệu hoặc thông tin phải được
+    lưu trữ thì văn bản, chứng từ, hồ sơ, tài liệu hoặc thông tin đó có thể được lưu trữ dưới dạng thông
+    điệp dữ liệu khi đáp ứng đủ các yêu cầu sau đây: ... a) Thông tin trong thông điệp dữ liệu đó có thể
+    truy cập và sử dụng được để tham chiếu; ... b) Thông tin trong thông điệp dữ liệu đó được lưu trong
+    chính khuôn dạng được khởi tạo, gửi, nhận hoặc trong khuôn dạng cho phép thể hiện chính xác thông
+    tin đó; ... c) Thông điệp dữ liệu đó được lưu trữ theo một cách thức nhất định cho phép xác định nguồn
+    gốc khởi tạo, người gửi, người nhận, thời gian gửi, nhận thông điệp dữ liệu.'
+  summary_en: Records that must be kept by law may be kept as data messages if they are accessible, kept
+    in a format that shows the information exactly, and stored so that origin, sender, receiver and send
+    and receive time can be determined.
+  duties:
+  - record_keeping
+  - electronic_record_integrity
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: each entry carries agent, record type, sequence and time; origin is recorded
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: events keep tool, args (masked) and decision
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: export so the data can be accessed and shown
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank retention schedule decides what is kept and for how long
+  evidence_needed:
+  - records retention schedule that names agent records
+  - sample export showing origin and time fields
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+  notes: Time stamps in the chain come from the host clock, not a national standard time source or licensed
+    time-stamp service (see A31 and A46.4).
+- id: VN-ETX-2023-A13.3-02
+  article_ref: Art. 13(3)
+  text_vi: 3. Nội dung, thời hạn lưu trữ đối với thông điệp dữ liệu được thực hiện theo quy định của pháp
+    luật về lưu trữ và quy định khác của pháp luật có liên quan. Việc lưu trữ thông điệp dữ liệu có giá
+    trị như lưu trữ văn bản giấy.
+  summary_en: Content and retention period of a stored data message follow the archive law and other laws;
+    keeping a data message has the same standing as keeping paper. The bank must set retention periods
+    for agent records from the sector rules.
+  duties:
+  - retention
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank sets periods; Supervisor retention is a deployment setting
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: append-only chain keeps entries for the configured period
+  evidence_needed:
+  - retention schedule entry for agent evidence
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: medium
+  notes: The actual periods come from other laws (archive law, banking record rules). Not decided here.
+- id: VN-ETX-2023-A14.2-01
+  article_ref: Art. 14(2)(a)
+  text_vi: a) Thông điệp dữ liệu được xem là của người khởi tạo nếu được gửi bởi người khởi tạo thông
+    điệp dữ liệu, người đại diện của người khởi tạo hoặc bởi một hệ thống thông tin được thiết lập để
+    hoạt động tự động do người khởi tạo chỉ định;
+  summary_en: Unless parties agree otherwise, a data message is treated as the originator's when it is
+    sent by the originator, its representative, or an automated information system the originator designated.
+    A message sent by a bank's AI agent is attributed to the bank.
+  duties:
+  - governance_accountability
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    - credit_decision
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: keeps the agent to approved tools, so only intended message types can be sent
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: caps the amount an agent can commit
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: records which agent sent which message
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank decides which agents it designates and under what terms
+  evidence_needed:
+  - register of agents designated to send messages for the bank
+  - customer terms that state this attribution
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+  notes: 'Interpretation: an AI agent run by the bank is an ''automated information system designated
+    by the originator''. Bank counsel must confirm.'
+- id: VN-ETX-2023-A14.3-01
+  article_ref: Art. 14(3)
+  text_vi: '3. Trường hợp một bên mắc lỗi nhập thông tin thông qua hệ thống thông tin tự động mà hệ thống
+    thông tin tự động đó không cung cấp cho bên đó cơ hội sửa lỗi thì bên mắc lỗi nhập thông tin có quyền
+    rút lại thông tin đã nhập nếu đáp ứng đủ các yêu cầu sau đây: ... a) Người khởi tạo mắc lỗi nhập thông
+    tin đã có thông báo về lỗi nhập thông tin của mình cho các bên liên quan ngay khi nhận ra lỗi; ...
+    b) Người khởi tạo mắc lỗi nhập thông tin chưa sử dụng hoặc nhận được bất kỳ lợi ích nào (nếu có) từ
+    các bên.'
+  summary_en: If a party makes an input error through an automated system that gives no chance to correct
+    it, that party may withdraw the input when it tells the others promptly and has not used any benefit.
+    A chat or payment agent that executes customer input with no confirmation step creates this exposure
+    for the bank.
+  duties:
+  - fair_treatment
+  - complaint_handling
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank designs confirm-before-execute and correction steps in the customer flow
+  - kind: process
+    id: complaint_handling
+    coverage: none
+    note: bank handles withdrawal requests
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: shows what the customer entered and when
+  evidence_needed:
+  - flow design showing a confirmation or correction step
+  - procedure for withdrawal requests after input errors
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: medium
+  notes: Duty is on the system operator in effect (customer gains a right). Applicability to AI agents
+    is an interpretation.
+- id: VN-ETX-2023-A14.5-01
+  article_ref: Art. 14(5)
+  text_vi: 5. Người khởi tạo phải chịu trách nhiệm trước pháp luật về nội dung thông điệp dữ liệu do mình
+    khởi tạo.
+  summary_en: The originator is legally responsible for the content of the data message it creates. The
+    bank stays responsible for what its AI agents say or send, whoever built the model.
+  duties:
+  - governance_accountability
+  - output_handling
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: samples free-text replies against tool results; advisory only
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: scores every trace for suspicion; advisory
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: proves what the agent actually sent
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank owns accountability
+  evidence_needed:
+  - named business owner per agent
+  - sampling results for agent content
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+  notes: Supervisor monitors advise and do not block content.
+- id: VN-ETX-2023-A18-01
+  article_ref: Art. 18
+  text_vi: Trường hợp người khởi tạo hoặc người nhận chỉ định một hoặc nhiều hệ thống thông tin tự động
+    gửi hoặc nhận thông điệp dữ liệu thì việc gửi, nhận thông điệp dữ liệu thực hiện theo quy định tại
+    các điều 14, 15, 16 và 17 của Luật này.
+  summary_en: Where an originator or receiver designates automated information systems to send or receive
+    data messages, sending and receiving follow Articles 14 to 17 (attribution, time and place). Automated
+    agent traffic is not a special case.
+  duties:
+  - governance_accountability
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: records send and receive events with time
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: tamper-evident record of each event
+  evidence_needed:
+  - log of automated send and receive events with time
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: medium
+- id: VN-ETX-2023-A22.2-01
+  article_ref: Art. 22(2)
+  text_vi: '2. Chữ ký điện tử chuyên dùng phải đáp ứng đủ các yêu cầu sau đây: ... a) Xác nhận chủ thể
+    ký và khẳng định sự chấp thuận của chủ thể ký đối với thông điệp dữ liệu; ... b) Dữ liệu tạo chữ ký
+    điện tử chuyên dùng chỉ gắn duy nhất với nội dung của thông điệp dữ liệu được chấp thuận; ... c) Dữ
+    liệu tạo chữ ký điện tử chuyên dùng chỉ thuộc sự kiểm soát của chủ thể ký tại thời điểm ký; ... d)
+    Hiệu lực của chữ ký điện tử chuyên dùng có thể được kiểm tra theo điều kiện do các bên tham gia thỏa
+    thuận.'
+  summary_en: An organisation's own electronic signature ('chu ky dien tu chuyen dung') must identify
+    the signer and show consent, be tied only to the approved content, stay under the signer's control,
+    and be checkable under agreed conditions. Supervisor's own Ed25519 root signature is of this internal
+    kind.
+  duties:
+  - electronic_signature
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: signed roots meet the technical idea (bound to content, key under bank control, verifiable offline)
+      but are not a signature of a person or a licensed secure e-signature
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: verifies the signature offline
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: counsel decides whether the internal signature has any legal value for a given use
+  evidence_needed:
+  - key custody procedure for the signer key
+  - statement of what the internal signature is used for
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: medium
+  notes: Supervisor's signer key is internal. It is not a licensed trust service and not a public digital
+    signature (Art. 22(3)). Legal equivalence to a handwritten signature applies only to a 'secured' special-purpose
+    e-signature or a digital signature (Art. 23(2)).
+- id: VN-ETX-2023-A22.3-01
+  article_ref: Art. 22(3)
+  text_vi: '3. Chữ ký số là chữ ký điện tử đáp ứng đủ các yêu cầu sau đây: ... đ) Phải được bảo đảm bởi
+    chứng thư chữ ký số. Trường hợp chữ ký số chuyên dùng công vụ phải được bảo đảm bởi chứng thư chữ
+    ký số của tổ chức cung cấp dịch vụ chứng thực chữ ký số chuyên dùng công vụ. Trường hợp chữ ký số
+    công cộng phải được bảo đảm bởi chứng thư chữ ký số của tổ chức cung cấp dịch vụ chứng thực chữ ký
+    số công cộng;'
+  summary_en: A digital signature must meet the signer, content-binding, control and tamper-detection
+    tests, and must be backed by a digital signature certificate (for public use, one issued by a licensed
+    public certification provider). Customer or bank signatures with legal weight need such a certificate.
+  duties:
+  - electronic_signature
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: bank uses a licensed certification provider and manages the contract
+  - kind: evidence
+    id: evidence_chain
+    coverage: none
+    note: Supervisor's Ed25519 key has no certificate from a licensed provider, so it is not a digital
+      signature in this sense
+  evidence_needed:
+  - certificate and provider licence for any signature that must carry legal weight
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+  notes: 'Clause 3(d) text: Art. 22(3) item d) tamper detection is satisfied technically by the chain,
+    but item dd) (certificate) is not.'
+- id: VN-ETX-2023-A23.2-01
+  article_ref: Art. 23(2)
+  text_vi: 2. Chữ ký điện tử chuyên dùng bảo đảm an toàn hoặc chữ ký số có giá trị pháp lý tương đương
+    chữ ký của cá nhân đó trong văn bản giấy.
+  summary_en: A secured special-purpose e-signature or a digital signature has the same legal value as
+    the person's signature on paper. Contracts and consents that an agent flow collects with such a signature
+    are binding; weaker confirmations (click, OTP) fall under other laws (Art. 22(4)).
+  duties:
+  - electronic_signature
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: bank chooses the signature method per product
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: counsel decides which flows need a digital signature
+  evidence_needed:
+  - signature method per product flow
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+  notes: 'Art. 22(4): other forms of electronic confirmation follow other laws.'
+- id: VN-ETX-2023-A28-01
+  article_ref: Art. 28(1)-(3)
+  text_vi: '1. Dịch vụ tin cậy bao gồm: ... a) Dịch vụ cấp dấu thời gian; ... b) Dịch vụ chứng thực thông
+    điệp dữ liệu; ... c) Dịch vụ chứng thực chữ ký số công cộng. ... 2. Dịch vụ tin cậy là ngành, nghề
+    đầu tư kinh doanh có điều kiện. ... 3. Tổ chức cung cấp dịch vụ tin cậy phải có giấy phép kinh doanh
+    dịch vụ do Bộ Thông tin và Truyền thông cấp, trừ dịch vụ chứng thực hợp đồng điện tử trong thương
+    mại. Tổ chức được quyền đăng ký một hoặc các dịch vụ quy định tại khoản 1 Điều này. Thời hạn của giấy
+    phép kinh doanh dịch vụ tin cậy là 10 năm. Tổ chức cung cấp dịch vụ chứng thực hợp đồng điện tử trong
+    thương mại phải đáp ứng điều kiện hoạt động cung cấp dịch vụ chứng thực hợp đồng điện tử theo quy
+    định của pháp luật về thương mại điện tử và điều kiện kinh doanh dịch vụ tin cậy theo quy định tại
+    Điều 29 của Luật này.'
+  summary_en: Trust services (time-stamping, data message authentication, public digital signature certification)
+    are conditional businesses and need a licence. A bank that wants statutory trust-service effect must
+    buy from a licensed provider; it cannot treat its own tooling as one.
+  duties:
+  - electronic_signature
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - any
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: verify provider licence, contract and exit plan
+  - kind: evidence
+    id: anchor
+    coverage: none
+    note: Supervisor's anchor is a write-once store, not a licensed time-stamp service
+  evidence_needed:
+  - provider licence copy
+  - outsourcing contract
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: medium
+  notes: Licence issuer named in the law text is the former Ministry of Information and Communications;
+    after the 2025 ministry merger the competent ministry may differ. Not verified.
+- id: VN-ETX-2023-A31-01
+  article_ref: Art. 31(1)-(4)
+  text_vi: 1. Dịch vụ cấp dấu thời gian là dịch vụ để gắn thông tin về thời gian vào thông điệp dữ liệu.
+    ... 2. Dấu thời gian được tạo ra dưới dạng chữ ký số. ... 3. Thời gian được gắn vào thông điệp dữ
+    liệu là thời gian mà tổ chức cung cấp dịch vụ cấp dấu thời gian nhận được thông điệp dữ liệu đó và
+    được chứng thực bởi tổ chức cung cấp dịch vụ cấp dấu thời gian. ... 4. Nguồn thời gian của tổ chức
+    cung cấp dịch vụ cấp dấu thời gian phải theo quy định của pháp luật về nguồn thời gian chuẩn quốc
+    gia.
+  summary_en: A statutory time-stamp is a digital signature by a licensed provider that attaches the time
+    it received the data message, using the national standard time source. Only such a stamp gives provable
+    legal time for an agent record.
+  duties:
+  - electronic_record_integrity
+  - electronic_signature
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: anchor
+    coverage: partial
+    note: anchor receipts give an external write-once timeline but are not licensed time-stamps
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: entries carry host-clock time
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: bank buys a licensed time-stamp service where legal time must be proved
+  evidence_needed:
+  - licensed time-stamp tokens for records that need legal time proof
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: medium
+  notes: 'Possible future work: send signed roots to a licensed time-stamp provider. Not implemented.'
+- id: VN-ETX-2023-A34.1-01
+  article_ref: Art. 34(1)
+  text_vi: 1. Hợp đồng điện tử được giao kết hoặc thực hiện từ sự tương tác giữa một hệ thống thông tin
+    tự động với người hoặc giữa các hệ thống thông tin tự động với nhau không bị phủ nhận giá trị pháp
+    lý chỉ vì không có sự kiểm tra hay can thiệp của con người vào từng hành động cụ thể do các hệ thống
+    thông tin tự động thực hiện hay vào hợp đồng.
+  summary_en: A contract made or performed through interaction between an automated system and a person,
+    or between automated systems, cannot be denied validity only because no human checked each action
+    or the contract. A bank is bound by contracts its AI agents conclude or perform; the law gives no
+    automatic excuse for agent error.
+  duties:
+  - governance_accountability
+  - excessive_agency_limits
+  - human_oversight
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    - credit_decision
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: limits the actions an agent can take
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: limits the money an agent can commit
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: detects splitting around limits
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: evidence of what the agent agreed to
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: counsel sets agent authority limits and customer terms
+  evidence_needed:
+  - agent authority matrix
+  - customer terms covering agent-concluded contracts
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+  notes: Key provision for AI agents. A Supervisor pause stops later actions; it is not human approval
+    before execution (Decision 33 in docs/onboard.md).
+- id: VN-ETX-2023-A38-01
+  article_ref: Art. 38
+  text_vi: Trong giao kết và thực hiện hợp đồng điện tử, thông báo dưới dạng thông điệp dữ liệu có giá
+    trị pháp lý như thông báo bằng văn bản giấy.
+  summary_en: A notice in the form of a data message has the same legal value as a paper notice in making
+    and performing an e-contract. Notices sent by an agent (fees, changes, reminders) are valid notices,
+    and the bank needs proof they were sent.
+  duties:
+  - consumer_information
+  - record_keeping
+  applies_to:
+    agent_class:
+    - customer_facing
+    - payment
+    - credit_decision
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank defines which notices go by electronic message
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: records the notice event
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: tamper-evident proof of sending
+  evidence_needed:
+  - sample of notice records with time and recipient reference
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: high
+- id: VN-ETX-2023-A46.4-01
+  article_ref: Art. 46(4)
+  text_vi: '4. Lịch sử giao dịch của tài khoản giao dịch điện tử có giá trị pháp lý để chứng minh giao
+    dịch khi đáp ứng đủ các yêu cầu sau đây: ... a) Hệ thống thông tin phục vụ giao dịch điện tử phải
+    bảo đảm an toàn theo quy định của pháp luật về an toàn thông tin mạng; ... b) Gắn duy nhất với một
+    cơ quan, tổ chức hoặc cá nhân là chủ tài khoản giao dịch điện tử; ... c) Bảo đảm chính xác thời gian
+    giao dịch từ nguồn thời gian theo quy định của pháp luật về nguồn thời gian chuẩn quốc gia.'
+  summary_en: Transaction history of an electronic transaction account proves the transactions only if
+    the system is secure under information-security law, tied uniquely to the account holder, and time-accurate
+    against the national standard time source. This matters for payment agents acting on customer accounts.
+  duties:
+  - record_keeping
+  - electronic_record_integrity
+  - logging
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: supports a tamper-evident side record of agent actions per account reference
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: events link to the customer reference (masked)
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: security classification of the e-banking system
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: confirm the time source meets the national standard
+  evidence_needed:
+  - security classification record
+  - time source configuration
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: medium
+  notes: The legal proof of account history is the bank's core system, not Supervisor. Supervisor time
+    comes from the host clock.
+- id: VN-ETX-2023-A47.1-01
+  article_ref: Art. 47(1)
+  text_vi: '1. Chủ quản hệ thống thông tin phục vụ giao dịch điện tử có trách nhiệm sau đây: ... a) Tuân
+    thủ quy định của Luật này và pháp luật về an toàn thông tin mạng, an ninh mạng, bảo vệ thông tin cá
+    nhân, bảo vệ dữ liệu cá nhân và quy định khác của pháp luật có liên quan; ... b) Cung cấp thông tin
+    bằng phương tiện điện tử theo quy định của pháp luật nhằm phục vụ công tác đo lường, thống kê, giám
+    sát, thanh tra, kiểm tra, báo cáo theo yêu cầu của cơ quan quản lý nhà nước về giao dịch điện tử;
+    chia sẻ dữ liệu phục vụ quản lý nhà nước về giao dịch điện tử; ... c) Giám sát an toàn hệ thống thông
+    tin phục vụ giao dịch điện tử của mình theo quy định của pháp luật về an toàn thông tin mạng.'
+  summary_en: The owner of an electronic transaction system must follow cyber, information security and
+    personal data laws, provide data to the transaction regulator by electronic means, and monitor the
+    safety of the system. The bank's e-banking and agent platforms are in scope.
+  duties:
+  - security_monitoring
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: export pack for the regulator or auditor
+  - kind: monitor
+    id: sweeps
+    coverage: partial
+    note: periodic sweeps over recorded events
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: security monitoring operations stay with the bank
+  evidence_needed:
+  - security monitoring procedure
+  - export for authority requests
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/165913
+    title: Luat Giao dich dien tu so 20/2023/QH15 (vbpl.vn full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 0a04ce71214a46a65f2b9a987b6274a90ab57e4d93c36b463a8772305c5946a0
+    local_path: regulations/sources/VN-ETX-2023/law-20-2023-qh15.txt
+  confidence: medium

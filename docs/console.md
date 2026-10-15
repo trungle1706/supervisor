@@ -67,13 +67,56 @@ sign-off row too.
 
 ## Roles
 
-| Role | Can do |
+Seven roles. A person can hold several (the sets add up). `owner` is the agent-owner role of
+ADR D04. The table below is the role matrix in `src/supervisor/core/rbac.py`; a test keeps this
+page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first, then paste.
+
+| Role | In short |
 |---|---|
-| reviewer | Assign, triage, contain, close, comment, ITSM ref, sign off, pause, resume (as the reviewer half) |
-| approver | Sign off (the approver half), comment, pause |
-| owner | Resume (as the owner half), comment, pause |
-| auditor | Read everything, build and download audit packs |
+| viewer | Read-only console pages |
+| reviewer | Assign, triage, contain, close, comment, ITSM ref, sign off, pause, resume (as the reviewer half), export |
+| approver | Sign off (the approver half), comment, pause, export |
+| owner | Resume (as the owner half), comment, pause, start an onboarding run |
+| auditor | Read everything, build and download audit packs, verify the chain |
 | admin | Reviewer rights, quarantine, release a quarantine |
+| operator | Read pages, run case intake, verify the chain |
+
+### Role matrix
+
+<!-- ROLE-MATRIX:BEGIN -->
+| Permission | What it allows | viewer | reviewer | approver | owner | admin | auditor | operator |
+|---|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `console.view` | Open console pages (queue, case, agents, evidence, case files) | x | x | x | x | x | x | x |
+| `health.view` | Health page | x | x | x | x | x | x | x |
+| `metrics.view` | Metrics page | x | x | x | x | x | x | x |
+| `onboard.view` | Onboarding page, status and generated files | x | x | x | x | x | x | x |
+| `gate.read` | Read agent gate state and gate metrics (API) | x | x | x | x | x | x | x |
+| `case.assign` | Assign a case |  | x |  |  | x |  |  |
+| `case.itsm` | Set the ITSM reference of a case |  | x |  |  | x |  |  |
+| `case.transition` | Triage, contain or close a case |  | x |  |  | x |  |  |
+| `case.comment` | Comment on a case |  | x | x | x | x |  |  |
+| `case.signoff` | Sign off a case (two-person rule) |  | x | x |  | x |  |  |
+| `case.verify` | Verify the evidence lane of one agent |  | x | x | x | x | x |  |
+| `chain.verify` | Verify the whole evidence chain |  | x | x | x | x | x | x |
+| `intake.run` | Run case intake now |  | x |  |  | x |  | x |
+| `inbox.read` | Mark an inbox notice read |  | x | x | x | x | x |  |
+| `evidence.export` | Build an audit pack or chain export |  | x | x |  | x | x |  |
+| `evidence.download` | Download a built audit pack |  | x | x |  | x | x |  |
+| `onboard.start` | Start an onboarding run |  | x |  | x | x |  |  |
+| `agent.pause` | Pause an agent (D04) |  | x | x | x | x |  |  |
+| `agent.resume` | Approve a resume (D04, two people) |  | x |  | x | x |  |  |
+| `agent.quarantine` | Quarantine an agent |  |  |  |  | x |  |  |
+| `agent.release` | Release an agent from quarantine |  |  |  |  | x |  |  |
+<!-- ROLE-MATRIX:END -->
+
+Every console route and every `/gate` human route has a permission in `ROUTES` (same file).
+Routes marked `PUBLIC` (health, ready, version, docs, static files, redirects), `AGENT`
+(`POST /gate/check`, `POST /v1/traces`: the agent's own identity) or `DEV_ONLY`
+(`POST /console/dev/user`) have no role check. A service principal or the system identity
+keeps its phase-1 treatment: it may open the read-only views (view, health, metrics, onboard
+page, verify) and nothing else. The `/gate` pause, resume, quarantine, release, state and
+metrics routes enforce the matrix only when `API_RBAC_ENABLED=1` (default off, phase-1
+behaviour); `/v1/gate/...` aliases follow the same rule.
 
 Resume (ADR D04): the gateway needs the agent owner (`agent.owner_user`) and a reviewer listed
 in `policies/*.yaml` (`reviewers:`), two different people. The first approval is stored as
@@ -105,10 +148,26 @@ Every action records who did it and how they were identified: `case_event.actor`
 (`case_event`, `signoff`, `console_gate_action`, `audit_pack_requested`). Free text is masked
 before storage; the chain gets only its SHA-256. Sign-off statements are stored verbatim.
 
+## Console action audit
+
+Every POST under `/console` writes one row to the append-only table `console_action`
+(allowed, denied or failed), and so do the `/gate` control routes (pause, resume, quarantine,
+release), also when `API_RBAC_ENABLED` is off. Columns: `action_id`, `ts`, `request_id`,
+`actor`, `actor_kind`, `auth_method`, `roles`, `permission`, `method`, `path`, `target_kind`,
+`target_id`, `outcome` (`ok`, `denied`, `error`), `before_hash` and `after_hash` (SHA-256 of
+the canonical target row: the case row, the agent row with its active gate controls, or the
+notice row), `detail` (an error class or a denial code, never free text typed by a user). The
+rows are in the audit pack (`console_action.jsonl`, with the count in `manifest.json`). A
+failed audit write is logged and shown as a WARNING in the page message; it never causes a 5xx.
+`CONSOLE_AUDIT_ENABLED=0` writes nothing.
+
 ## Errors
 
-Every user error (bad transition, missing role, the same person approving twice, a stale page,
-an unknown user) is HTTP 400 with a short message that appears at the top of the page. Every
+Every user error (bad transition, the same person approving twice, a stale page, an unknown
+user) is HTTP 400 with a short message that appears at the top of the page. A missing role is
+HTTP 403 with the same kind of message (WP18; before WP18 it was 400: **default-on behaviour
+change**, scripts that checked for 400 must accept 403). Both are 4xx user errors, never 5xx;
+`console.js` swaps 400, 403, 413 and 429 message partials into `#flash`. Every
 POST must come from the console page (htmx sends `HX-Request: true`); a cross-site form cannot
 set that header.
 
@@ -129,6 +188,8 @@ set that header.
 | `ASSURANCE_JUDGE_GATE_ENABLED` | `1` | WP17: a non-mock judge (`JUDGE_ENABLED=1` with real models) starts only when every pack with `judge_gate` has a latest result `ok` or `warn` for `judge:<tier-1 model id>` at the current pack version; else the judge sweep stays off and the log names the missing packs. Mock judges are exempt. Windows cmd: `set ASSURANCE_JUDGE_GATE_ENABLED=0` to switch the check off |
 | `CONSOLE_EXPORT_DIR` | `<DATA_DIR>\exports` | Audit packs. On the App this is ephemeral: download the zip at once. |
 | `NOTIFY_WEBHOOK_ENABLED` | `0` | Webhook stub: queues notices (`status=queued`), never sends |
+| `API_RBAC_ENABLED` | `0` | WP18: enforce the role matrix on the `/gate` human routes (console routes always enforce) |
+| `CONSOLE_AUDIT_ENABLED` | `1` | WP18: write one `console_action` row per mutating action (default on) |
 
 Case intake as a job (only when the app is not running, single chain writer):
 `python -m supervisor.jobs.case_intake`.

@@ -12,6 +12,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from supervisor.onboard.injection import neutralize
+
 RiskClassT = Literal["money", "credit", "pii_export", "read_only"]
 TierT = Literal["low", "medium", "high", "critical"]
 
@@ -41,11 +43,13 @@ class Evidence(_M):
 
     @classmethod
     def at(cls, file: str, line: int, text: str) -> Evidence:
+        """Repo text that looks like a prompt injection is withheld from the quote (the line
+        hash still identifies the line)."""
         clean = text.strip()
         return cls(
             file=file,
             line=line,
-            quote=clean[:240],
+            quote=neutralize(clean)[:240],
             line_sha256=hashlib.sha256(clean.encode("utf-8")).hexdigest(),
         )
 
@@ -89,6 +93,7 @@ class ToolInfo(_M):
     amount_arg: str | None = None
     destination_arg: str | None = None
     key_args: list[str] = Field(default_factory=list)
+    side_effects: list[str] = Field(default_factory=list)  # WP16: writes found in the body
 
 
 class PromptInfo(_M):
@@ -117,6 +122,25 @@ class TableRef(_M):
     direction: Literal["read", "write"]
     source: Literal["code", "workspace"]
     evidence: Evidence | None = None
+
+
+class LlmCallSite(_M):
+    """WP16: a line where a model request is made or a chat model is bound."""
+
+    provider: str
+    family: str
+    model: str | None = None
+    via: str
+    evidence: Evidence
+
+
+class DataAccess(_M):
+    """WP16: a read or write of data outside the process (db, http, bank API, file)."""
+
+    kind: Literal["db", "http", "bank_api", "file"]
+    direction: Literal["read", "write"]
+    target: str | None = None
+    evidence: Evidence
 
 
 class LimitInfo(_M):
@@ -170,6 +194,14 @@ class Inventory(_M):
     scrub: dict[str, Any] = Field(default_factory=dict)
     features: list[str] = Field(default_factory=list)
     apps: list[str] = Field(default_factory=list)
+    # WP16 code facts (static analysis, see onboard/codefacts.py)
+    framework: str = "unknown"
+    framework_evidence: Evidence | None = None
+    llm_calls: list[LlmCallSite] = Field(default_factory=list)
+    data_access: list[DataAccess] = Field(default_factory=list)
+    tracing: list[str] = Field(default_factory=list)
+    pii_identifiers: dict[str, Evidence] = Field(default_factory=dict)
+    injection_refs: list[Evidence] = Field(default_factory=list)
 
     def tool(self, name: str) -> ToolInfo | None:
         return next((t for t in self.tools if t.name == name), None)
@@ -207,6 +239,9 @@ class LlmUse(_M):
     claims_dropped: int = 0
 
 
+AutonomyT = Literal["L0", "L1", "L2", "L3"]
+
+
 class AgentProfile(_M):
     agent_id: str
     version: str
@@ -225,6 +260,10 @@ class AgentProfile(_M):
     features: list[str]
     llm: LlmUse
     needs_human_confirmation: bool = True
+    # WP16: L0 no tools, L1 read-only, L2 every side effect behind a human approval step in
+    # code, L3 a side effect without one.
+    autonomy: AutonomyT | None = None
+    autonomy_reason: str = ""
 
     def all_claims(self) -> list[Claim]:
         return [

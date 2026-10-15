@@ -1,0 +1,875 @@
+schema_version: 1
+instrument:
+  id: INTL-EUAIA-2024
+  jurisdiction: EU
+  kind: law
+  issuer: European Parliament and Council of the EU
+  number: Regulation (EU) 2024/1689
+  title_en: EU Artificial Intelligence Act
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2024-06-13'
+      source: https://publications.europa.eu/resource/celex/32024R1689
+      verification: VERIFIED_PRIMARY
+      note: date of the act; published in OJ L on 2024-07-12
+    effective:
+      date: '2024-08-01'
+      source: https://publications.europa.eu/resource/celex/32026R1744
+      verification: VERIFIED_PRIMARY
+      note: entry into force date, stated in recital 1 of Reg. 2026/1744
+    compliance_deadline:
+      date: '2027-12-02'
+      source: https://publications.europa.eu/resource/celex/32026R1744
+      verification: VERIFIED_PRIMARY
+      note: high-risk (Art 6(2), Annex III) obligations apply from this date after Digital Omnibus on
+        AI; was 2026-08-02
+    milestones:
+    - label: Chapters I and II (prohibitions, AI literacy) apply
+      date: '2025-02-02'
+      source: https://publications.europa.eu/resource/celex/32026R1744
+      verification: VERIFIED_PRIMARY
+    - label: General date of application (e.g. Art 50 transparency)
+      date: '2026-08-02'
+      source: https://publications.europa.eu/resource/celex/32026R1744
+      verification: VERIFIED_PRIMARY
+    - label: Digital Omnibus on AI (Reg. 2026/1744) enters into force
+      date: '2026-07-27'
+      source: https://publications.europa.eu/resource/celex/32026R1744
+      verification: VERIFIED_SECONDARY
+    - label: New Art 5 prohibitions (points ba, bb, paras 1a, 1b) and Art 50(2) grace for systems placed
+        before 2026-08-02
+      date: '2026-12-02'
+      source: https://publications.europa.eu/resource/celex/32026R1744
+      verification: VERIFIED_PRIMARY
+    - label: High-risk Annex III systems (incl. credit scoring, Annex III 5(b)) apply
+      date: '2027-12-02'
+      source: https://publications.europa.eu/resource/celex/32026R1744
+      verification: VERIFIED_PRIMARY
+    - label: High-risk systems under Annex I (products) apply
+      date: '2028-08-02'
+      source: https://publications.europa.eu/resource/celex/32026R1744
+      verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  - url: https://publications.europa.eu/resource/celex/32026R1744
+    title: Regulation (EU) 2026/1744 Digital Omnibus on AI, OJ L 2026/1744, 24.7.2026
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9d754652b867722807e4219c85912ce354233e58a1b4eb8c7752b4d1922993db
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2026-1744-digital-omnibus-on-ai.xhtml
+  - url: https://www.gibsondunn.com/eu-ai-act-omnibus-agreement-postponed-high-risk-deadlines/
+    title: 'Gibson Dunn: EU AI Act omnibus agreement (May 2026, pre-adoption summary)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'Foreign law, kept as a reference framework only: binding false, status reference for Vietnam.
+    In force in the EU since 2024-08-01. The ''digital omnibus'' delay is no longer a proposal: Regulation
+    (EU) 2026/1744 of 2026-07-08 was published in OJ 2026-07-24 (entry into force on the third day after
+    publication, so 2026-07-27, derived from its final article) and moved the Annex III high-risk date
+    to 2027-12-02 and Annex I to 2028-08-02. The Gibson Dunn page (written in May 2026) still calls it
+    not adopted; the OJ text supersedes it. Art 4 (AI literacy) was rewritten by the omnibus to ''support
+    the development of AI literacy''. The bank is usually a DEPLOYER (Art 3); provider duties (Arts 9-15,
+    50(1)-(2), 73) are listed because a deployer relies on vendor evidence and a deployer that modifies
+    a system or puts its name on it can become a provider (Art 25, not mapped here). High-risk duties
+    are tagged agent_class credit_decision (Annex III 5(b) creditworthiness evaluation of natural persons).
+    Whether the demo credit pre-qualification agent counts as ''evaluating creditworthiness'' and escapes
+    via Art 6(3) is a legal question for bank counsel. Annex III 5(b) excludes AI used to detect financial
+    fraud. Full OJ texts stored under regulations/sources/INTL-EUAIA-2024/ (EU legal text, reuse allowed).'
+obligations:
+- id: INTL-EUAIA-2024-A5-01
+  article_ref: Art. 5(1)(a)-(c)
+  text_en: The following AI practices shall be prohibited
+  summary_en: Do not place on the market or use AI that manipulates people with subliminal or deceptive
+    techniques, exploits vulnerabilities (age, disability, social or economic situation), or scores people
+    by social behaviour with unjustified detrimental treatment. A bank agent that pressures vulnerable
+    customers or builds social scores would fall here.
+  duties:
+  - prohibited_practice
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: samples customer replies for invented claims; does not detect manipulation of vulnerable customers
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: segment gaps can show unjustified differential treatment
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel screens each use case against Art 5 before launch
+  evidence_needed:
+  - use-case screening record against Art 5
+  - fairness slice results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+  notes: Applies from 2025-02-02 in the EU. Points (ba)/(bb) and paras (1a)/(1b) added by Reg. 2026/1744
+    apply from 2026-12-02 (non-consensual intimate imagery and CSAM; not finance specific).
+- id: INTL-EUAIA-2024-A4-01
+  article_ref: Art. 4 (as replaced by Reg. 2026/1744)
+  text_en: take measures to support the development of AI literacy of their staff
+  summary_en: Providers and deployers must take measures to support AI literacy of staff and others who
+    operate or use AI on their behalf, matched to their knowledge and the context. For a bank this means
+    training for reviewers and agent owners.
+  duties:
+  - staff_competence
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: staff_training
+    coverage: none
+    note: bank keeps training records for reviewers and agent owners
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: oversight metrics show whether reviewers act on stops; they do not prove competence
+  evidence_needed:
+  - training records for reviewers and agent owners
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32026R1744
+    title: Regulation (EU) 2026/1744 Digital Omnibus on AI, OJ L 2026/1744, 24.7.2026
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9d754652b867722807e4219c85912ce354233e58a1b4eb8c7752b4d1922993db
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2026-1744-digital-omnibus-on-ai.xhtml
+  confidence: high
+  notes: Original Art 4 required measures 'to ensure, to their best extent, a sufficient level of AI literacy'.
+    The omnibus softened this to 'support'.
+- id: INTL-EUAIA-2024-A6-01
+  article_ref: Art. 6(2), 6(3) and Annex III point 5(b)
+  text_en: AI systems intended to be used to evaluate the creditworthiness of natural persons or establish
+    their credit score, with the exception of AI systems used for the purpose of detecting financial fraud
+  summary_en: AI systems that evaluate the creditworthiness of natural persons or establish their credit
+    score are high-risk (Annex III 5(b)), except AI used to detect financial fraud. A provider can claim
+    a derogation under Art 6(3) if the system poses no significant risk, but that claim is documented
+    and registered.
+  duties:
+  - risk_classification
+  applies_to:
+    agent_class:
+    - credit_decision
+  control_mapping:
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding profile records agent class and data classes used for classification
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: risk tier stored per agent
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel decides whether a use case is Annex III 5(b) or fits the Art 6(3) derogation
+  evidence_needed:
+  - classification memo per AI use case
+  - Art 6(3) derogation assessment if relied on
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+  notes: Annex III applies from 2027-12-02 after Reg. 2026/1744. Payment and customer-service agents are
+    not Annex III use cases on this text.
+- id: INTL-EUAIA-2024-A9-01
+  article_ref: Art. 9
+  text_en: A risk management system shall be established, implemented, documented and maintained in relation
+    to high-risk AI systems.
+  summary_en: 'Providers of high-risk AI must run a documented, continuous risk management system across
+    the lifecycle: identify and evaluate known and foreseeable risks (including misuse), adopt measures,
+    test against defined metrics before release. A deployer asks the vendor for this evidence and runs
+    its own risk process.'
+  duties:
+  - risk_management_system
+  - performance_monitoring
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: provider
+  control_mapping:
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: 'launch sandbox report: catch rate, false alarms, GO or NO-GO against a red-team pack'
+  - kind: evidence
+    id: onboard_plan
+    coverage: partial
+    note: onboarding control plan per agent
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: post-deployment behaviour drift against the launch baseline
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second line validates the model and its use; Supervisor does not
+  evidence_needed:
+  - risk management file from the provider
+  - bank's own risk assessment for the use case
+  - launch report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+- id: INTL-EUAIA-2024-A10-01
+  article_ref: Art. 10
+  summary_en: Training, validation and testing data for high-risk AI must follow data governance practices
+    (origin, collection, bias examination, representativeness). Providers carry this duty; a deployer
+    who controls input data must keep it relevant and representative (Art 26(4)).
+  duties:
+  - data_quality
+  - bias_monitoring
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: provider
+  control_mapping:
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: tests outcomes by segment after deployment; says nothing about training data
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: approval-rate gap per segment, province, language
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: data lineage and bias review of training data sit with the model owner and second line
+  evidence_needed:
+  - training data documentation from the vendor
+  - bias examination record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: medium
+  notes: Supervisor sees outputs and tool calls, not training data.
+- id: INTL-EUAIA-2024-A11-01
+  article_ref: Art. 11 with Annex IV
+  text_en: The technical documentation of a high-risk AI system shall be drawn up before that system is
+    placed on the market or put into service and shall be kept up-to date.
+  summary_en: Technical documentation of a high-risk AI system must be drawn up before it is put into
+    service and kept up to date, enough for authorities to assess compliance. A deployer needs it from
+    the provider to run its own checks.
+  duties:
+  - technical_documentation
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: provider
+  control_mapping:
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: profile of the agent and its tools written at onboarding
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history
+  - kind: process
+    id: conformity_assessment_file
+    coverage: none
+    note: provider holds the dossier; bank files the copy it receives
+  evidence_needed:
+  - Annex IV documentation from the provider
+  - bank copy of the instructions for use
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+- id: INTL-EUAIA-2024-A12-01
+  article_ref: Art. 12
+  text_en: High-risk AI systems shall technically allow for the automatic recording of events (logs) over
+    the lifetime of the system.
+  summary_en: High-risk AI systems must technically allow automatic recording of events (logs) over their
+    lifetime, enough to trace risk situations and support post-market monitoring and deployer monitoring.
+  duties:
+  - logging
+  - record_keeping
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: provider
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: gate decisions, verdicts and state changes are hash-chained per agent and verifiable offline
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: tool calls and gate outcomes are recorded as agent events (masked at capture)
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank sets and enforces the retention period; Supervisor does not purge or retain by schedule
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export pack of recorded events
+  evidence_needed:
+  - event log specification from the provider
+  - sample log export
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+  notes: Supervisor records what the gateway and traces see around the agent; it does not replace the
+    logging built into the vendor system.
+- id: INTL-EUAIA-2024-A13-01
+  article_ref: Art. 13
+  text_en: High-risk AI systems shall be accompanied by instructions for use
+  summary_en: A high-risk AI system must be transparent enough for deployers to interpret its output and
+    use it appropriately, and ship with instructions for use (provider identity, capabilities, limits,
+    accuracy metrics, oversight measures).
+  duties:
+  - technical_documentation
+  - explainability
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: provider
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file shows what the agent did and why it was stopped; not the model's reasoning
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: bank collects and files instructions for use; contract requires updates
+  evidence_needed:
+  - instructions for use from the provider
+  - accuracy metrics declared by the provider
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+- id: INTL-EUAIA-2024-A14-01
+  article_ref: Art. 14
+  text_en: High-risk AI systems shall be designed and developed in such a way, including with appropriate
+    human-machine interface tools, that they can be effectively overseen by natural persons
+  summary_en: 'High-risk AI must be designed so that people can effectively oversee it while in use: understand
+    its limits, spot anomalies, avoid automation bias, override or stop it. The measures must fit the
+    risk and autonomy level.'
+  duties:
+  - human_oversight
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: provider
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: reviewer can pause or resume an agent
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: human sign-off on a case after a stop; a Supervisor pause is not pre-execution human approval
+      (Decision 33)
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'oversight metrics: dwell time, approval rate, chain_ok'
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank names accountable roles and committee oversight
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire an agent (the 'stop button')
+  evidence_needed:
+  - oversight design in the provider documentation
+  - reviewer authority and training record
+  - oversight metrics
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+  notes: A Supervisor pause stops later calls; it is not human approval before the action (docs/onboard.md
+    Decision 33). Art 14(4)(e) 'stop' button is the closest match.
+- id: INTL-EUAIA-2024-A15-01
+  article_ref: Art. 15
+  text_en: High-risk AI systems shall be resilient against attempts by unauthorised third parties to alter
+    their use, outputs or performance by exploiting system vulnerabilities.
+  summary_en: High-risk AI must reach an appropriate level of accuracy, robustness and cybersecurity throughout
+    its lifecycle, declare accuracy metrics, resist errors and unauthorised alteration, and defend against
+    data poisoning, model poisoning and adversarial inputs.
+  duties:
+  - robustness_security
+  - performance_monitoring
+  - prompt_injection_defence
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: provider
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: regex screen for injection phrases in tool arguments; alerts, does not block
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift against launch baseline
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: advisory judge on every trace
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: pen test and security classification stay with the bank
+  evidence_needed:
+  - accuracy and robustness test results
+  - security test report
+  - drift reports
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+- id: INTL-EUAIA-2024-A26.1-01
+  article_ref: Art. 26(1)-(2)
+  text_en: Deployers shall assign human oversight to natural persons who have the necessary competence,
+    training and authority, as well as the necessary support.
+  summary_en: Deployers of high-risk AI must use it as the instructions say, with technical and organisational
+    measures, and assign human oversight to people with the competence, training, authority and support
+    to do it.
+  duties:
+  - human_oversight
+  - governance_accountability
+  - staff_competence
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: deployer
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: reviewer can pause or resume an agent
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: human sign-off on a case after a stop; a Supervisor pause is not pre-execution human approval
+      (Decision 33)
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'oversight metrics: dwell time, approval rate, chain_ok'
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank names accountable roles and committee oversight
+  - kind: process
+    id: staff_training
+    coverage: none
+    note: training records for assigned reviewers
+  evidence_needed:
+  - named oversight roles
+  - training records
+  - instructions for use on file
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+- id: INTL-EUAIA-2024-A26.4-01
+  article_ref: Art. 26(4)-(5)
+  text_en: Deployers shall monitor the operation of the high-risk AI system on the basis of the instructions
+    for use
+  summary_en: Deployers who control input data must keep it relevant and representative. They must monitor
+    operation against the instructions for use and, if they see a risk, inform the provider and the market
+    surveillance authority without undue delay and suspend use. Financial institutions meet the monitoring
+    duty through their financial-law governance rules.
+  duties:
+  - performance_monitoring
+  - data_quality
+  - incident_report
+  - serious_incident_suspension
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: deployer
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: monitors behaviour against launch baseline
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: advisory suspicion score per trace
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: reviewer can pause an agent to suspend use
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file supports the notice to the provider
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank decides when a risk triggers notice and suspension
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: notice to provider and authority is sent by the bank
+  evidence_needed:
+  - monitoring plan and results
+  - notice to provider and authority
+  - suspension record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+  notes: 'Second subparagraph: financial-institution deployers can satisfy monitoring through internal-governance
+    rules under EU financial services law. Not an EU-wide exemption for Vietnam use.'
+- id: INTL-EUAIA-2024-A26.6-01
+  article_ref: Art. 26(6)
+  text_en: keep the logs automatically generated by that high-risk AI system ... for a period appropriate
+    to the intended purpose ... of at least six months
+  summary_en: Deployers must keep the logs the high-risk system generates, to the extent under their control,
+    for at least six months (longer if other law says so). Financial institutions keep them as part of
+    the documentation they already keep under financial-services law.
+  duties:
+  - logging
+  - retention
+  - record_keeping
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: deployer
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: gate decisions, verdicts and state changes are hash-chained per agent and verifiable offline
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: tool calls and gate outcomes are recorded as agent events (masked at capture)
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank sets and enforces the retention period; Supervisor does not purge or retain by schedule
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: export of recorded events for supervisors
+  evidence_needed:
+  - log retention setting
+  - proof logs are kept at least six months
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+- id: INTL-EUAIA-2024-A26.11-01
+  article_ref: Art. 26(11)
+  text_en: shall inform the natural persons that they are subject to the use of the high-risk AI system
+  summary_en: Deployers of Annex III high-risk AI that makes or helps make decisions about natural persons
+    must tell those persons they are subject to the system. A bank credit decision agent needs a customer
+    notice.
+  duties:
+  - ai_disclosure
+  - consumer_information
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: deployer
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank writes and shows the notice; Supervisor does not display notices
+  evidence_needed:
+  - customer notice text and placement
+  - proof the notice was shown
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+- id: INTL-EUAIA-2024-A27-01
+  article_ref: Art. 27
+  text_en: Prior to deploying a high-risk AI system ... deployers of high-risk AI systems referred to
+    in points 5 (b) and (c) of Annex III, shall perform an assessment
+  summary_en: 'Before first use, deployers of Annex III 5(b)/(c) systems (credit scoring, life and health
+    insurance pricing) and public bodies must run a fundamental rights impact assessment: process, period
+    of use, affected groups, specific risks, human oversight, and measures if risks materialise. They
+    notify the market surveillance authority of the result. A DPIA can cover part of it.'
+  duties:
+  - fundamental_rights_assessment
+  - risk_management_system
+  - bias_monitoring
+  - dpia
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: deployer
+  control_mapping:
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: gives segment-level outcome data for the assessment
+  - kind: process
+    id: dpia_document
+    coverage: partial
+    note: a DPIA can satisfy overlapping items under Art 27(4)
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank owns and files the FRIA; Supervisor does not produce it
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: result goes to the market surveillance authority
+  evidence_needed:
+  - FRIA document per use case
+  - notification to the authority
+  - fairness slice results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+  notes: No duty id for FRIA exists in duties.yaml; mapped to risk_management_system, bias_monitoring
+    and dpia. Suggest new duty fundamental_rights_assessment.
+- id: INTL-EUAIA-2024-A50.1-01
+  article_ref: Art. 50(1)
+  text_en: the natural persons concerned are informed that they are interacting with an AI system
+  summary_en: Providers must design AI systems that talk to people so the people know they are dealing
+    with AI, unless it is obvious. A bank chatbot (customer service agent) needs a clear AI notice at
+    first contact (Art 50(5)).
+  duties:
+  - ai_disclosure
+  applies_to:
+    agent_class:
+    - customer_facing
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank shows the AI notice in the channel
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded events can show a disclosure message was sent, if the agent emits it
+  evidence_needed:
+  - screenshot of the AI notice at first interaction
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+  notes: Applies from 2026-08-02. A deployer that builds its own chatbot is also the provider for this
+    clause.
+- id: INTL-EUAIA-2024-A50.2-01
+  article_ref: Art. 50(2)
+  text_en: outputs of the AI system are marked in a machine-readable format and detectable as artificially
+    generated or manipulated
+  summary_en: Providers of AI that generate synthetic text, audio, image or video must mark outputs in
+    a machine-readable format so they are detectable as AI-generated. Systems placed on the market before
+    2026-08-02 have until 2026-12-02 (Reg. 2026/1744).
+  duties:
+  - content_labelling
+  applies_to:
+    agent_class:
+    - customer_facing
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: marking is a provider function; bank checks it contractually
+  evidence_needed:
+  - provider statement of marking method
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  - url: https://publications.europa.eu/resource/celex/32026R1744
+    title: Regulation (EU) 2026/1744 Digital Omnibus on AI, OJ L 2026/1744, 24.7.2026
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9d754652b867722807e4219c85912ce354233e58a1b4eb8c7752b4d1922993db
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2026-1744-digital-omnibus-on-ai.xhtml
+  confidence: medium
+  notes: Low relevance to a chat agent that sends short replies; kept because it is in the Art 50 package.
+- id: INTL-EUAIA-2024-A73-01
+  article_ref: Art. 73
+  text_en: not later than 15 days after the provider or, where applicable, the deployer, becomes aware
+    of the serious incident
+  summary_en: 'Providers of high-risk AI report serious incidents to the market surveillance authority:
+    immediately after a causal link is established and in any case within 15 days; 2 days for widespread
+    infringement or critical infrastructure; 10 days after a death. A deployer that learns of a serious
+    incident informs the provider (Art 26(5)).'
+  duties:
+  - incident_report
+  - incident_response
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: provider
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file holds timeline, rule, evidence hashes and sign-off to support an incident report
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure decides severity, owners, timelines
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: bank files any report to the authority; Supervisor does not notify
+  evidence_needed:
+  - serious-incident procedure
+  - report to provider and authority
+  - case file for each incident
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high
+  notes: Periods are 15 / 2 / 10 days, not the 24 h / 72 h duty ids; mapped to generic incident_report.
+- id: INTL-EUAIA-2024-A86-01
+  article_ref: Art. 86
+  text_en: shall have the right to obtain from the deployer clear and meaningful explanations of the role
+    of the AI system in the decision-making procedure
+  summary_en: A person affected by a decision a deployer takes on the output of an Annex III high-risk
+    system (credit scoring included) that has legal or similarly significant effects has the right to
+    get clear and meaningful explanations of the AI system's role and the main elements of the decision.
+  duties:
+  - explainability
+  - right_to_human_review
+  - automated_decision_rights
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: deployer
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file reconstructs the steps that led to a stop or decision
+  - kind: process
+    id: complaint_handling
+    coverage: none
+    note: bank answers the explanation request
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank writes the explanation
+  evidence_needed:
+  - explanation request procedure
+  - sample explanation given to a customer
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  confidence: high

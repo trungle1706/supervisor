@@ -1,0 +1,1091 @@
+schema_version: 1
+instrument:
+  id: VN-TT09-2020
+  jurisdiction: VN
+  kind: circular
+  issuer: State Bank of Vietnam
+  number: 09/2020/TT-NHNN
+  title_vi: Thông tư quy định về an toàn hệ thống thông tin trong hoạt động ngân hàng
+  title_en: Circular on information system security in banking operations
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2020-10-21'
+      source: https://vbpl.vn/van-ban/chi-tiet/144532
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2021-01-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/144532
+      verification: VERIFIED_PRIMARY
+      note: Art. 56(1); point b of Art. 20(4) effective 2022-01-01 (Art. 56(2))
+  related:
+  - VN-TT50-2024
+  - VN-LCI-2024
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn) - Art. 22(6) repeals Art. 25 of Circular 09/2020
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'vbpl.vn status 2026-10-15: ''Het hieu luc mot phan'' (partly expired). Verified partial repeal:
+    Art. 25 (online transaction systems) was repealed by Art. 22(6) of Circular 50/2024/TT-NHNN (effective
+    2025-01-01); the stored text still shows Art. 25. The assignment hint ''Circular 12/2024'' is WRONG:
+    12/2024/TT-NHNN amends Circular 39/2016 on lending, not Circular 09/2020 (vbpl search + title). No
+    other amending circular was found in vbpl keyword search; the clause-level relation list on vbpl was
+    not read. The text replaced Circular 18/2018/TT-NHNN. Art. 5 refers to Decree 85/2016/NĐ-CP on security
+    levels; whether a newer decree or the Cybersecurity Law 116/2025/QH15 changes the level scheme was
+    not checked. The signed AI Circular 53/2026/TT-NHNN (effective 2026-11-15, covered by another worker)
+    adds AI-specific duties on top of these. ''Organisation'' (to chuc) in the text means credit institutions
+    and other SBV-regulated units. Not legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-TT09-2020-A4-01
+  article_ref: Art. 4
+  text_vi: 'Thông tin xử lý, lưu trữ thông qua hệ thống thông tin được phân loại theo thuộc tính bí mật
+    như sau:
+
+    1. Thông tin công cộng là thông tin được công khai cho tất cả các đối tượng mà không cần xác định
+    danh tính, địa chỉ cụ thể của các đối tượng đó;
+
+    2. Thông tin riêng (hoặc thông tin nội bộ) là thông tin được phân quyền quản lý, khai thác cho một
+    hoặc một nhóm đối tượng được xác định danh tính;
+
+    3. Thông tin cá nhân là thông tin định danh khách hàng và các thông tin sau đây: thông tin về tài
+    khoản, thông tin về tiền gửi, thông tin về tài sản gửi, thông tin về giao dịch và các thông tin có
+    liên quan khác;
+
+    4. Thông tin bí mật là: (i) Thông tin Mật, Tối Mật, Tuyệt Mật theo quy định của pháp luật về bảo vệ
+    bí mật nhà nước; (ii) Thông tin hạn chế tiếp cận theo quy định của tổ chức.'
+  summary_en: Information must be classified as public, internal, personal (customer identity, account,
+    deposit, transaction data) or confidential. An agent's inputs and outputs inherit the class of the
+    data they carry.
+  duties:
+  - data_classification
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks personal identifiers before storage
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank classifies the data the agent uses
+  evidence_needed:
+  - Data classification of each agent's inputs and outputs
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: medium
+- id: VN-TT09-2020-A5.1-01
+  article_ref: Art. 5(1), (8), (9)
+  text_vi: '1. Đối với hệ thống thông tin cung cấp dịch vụ trực tuyến cho khách hàng, các tổ chức thực
+    hiện phân loại theo quy định tại Nghị định số 85/2016/NĐ-CP ngày 01/7/2016 của Chính phủ quy định
+    về bảo đảm an toàn hệ thống thông tin theo cấp độ. Đối với các hệ thống thông tin khác, thực hiện
+    phân loại theo quy định tại khoản 2, 3, 4, 5, 6, 7 Điều này.
+
+    ...
+
+    8. Tổ chức thực hiện phân loại hệ thống thông tin theo cấp độ quy định tại khoản 1, 2, 3, 4, 5, 6,
+    7 Điều này. Hồ sơ, thủ tục thẩm định, phê duyệt hệ thống thông tin theo cấp độ tuân thủ quy định tại
+    Nghị định số 85/2016/NĐ-CP. Đối với hồ sơ đề xuất các hệ thống thông tin cấp độ 4, 5, tổ chức gửi
+    hồ sơ cho Ngân hàng Nhà nước (Cục Công nghệ thông tin) để lấy ý kiến.
+
+    ...
+
+    9. Danh sách hệ thống thông tin theo cấp độ phải được lập và rà soát, cập nhật sau khi hệ thống được
+    triển khai và định kỳ hàng năm.'
+  summary_en: Each information system must be classified by security level (1 to 5), approved under the
+    level decree, and kept on a list reviewed after go-live and every year. Systems with customer data
+    of 10 million or more customers, or 24/7 customer service, rank high (level 3 or 4). The agent platform
+    and the gateway are part of the classified system.
+  duties:
+  - system_classification
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner and risk tier; not the legal security level
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank classifies and gets the level approved
+  evidence_needed:
+  - System list with security levels and approvals
+  - Annual review record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A6-01
+  article_ref: Art. 6(1), (3)
+  text_vi: '1. Tổ chức xây dựng quy chế an toàn thông tin phù hợp với hệ thống thông tin, cơ cấu tổ chức,
+    yêu cầu quản lý và hoạt động của tổ chức. Quy chế an toàn thông tin phải được người đại diện hợp pháp
+    ký ban hành và triển khai thực hiện trong toàn tổ chức.
+
+    ...
+
+    3. Tổ chức rà soát quy chế an toàn thông tin tối thiểu mỗi năm một lần, bảo đảm sự đầy đủ của quy
+    chế theo các quy định tại Thông tư này. Khi phát hiện những bất cập, bất hợp lý gây ra mất an toàn
+    thông tin hoặc theo yêu cầu của cơ quan có thẩm quyền, tổ chức tiến hành chỉnh sửa, bổ sung ngay quy
+    chế an toàn thông tin đã ban hành.'
+  summary_en: The bank must issue an information-security regulation signed by its legal representative
+    and review it at least once a year.
+  duties:
+  - internal_policy
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank issues and reviews the regulation
+  evidence_needed:
+  - Signed regulation with annual review record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A26.1-01
+  article_ref: Art. 26(1)
+  text_vi: '1. Ghi và lưu trữ nhật ký về hoạt động của hệ thống thông tin và người sử dụng, các lỗi phát
+    sinh, các sự cố an toàn thông tin nếu hệ thống hỗ trợ, tối thiểu bao gồm:
+
+    a) Thông tin kết nối mạng (firewall log);
+
+    b) Thông tin đăng nhập;
+
+    c) Thông tin thay đổi cấu hình;
+
+    d) Thông tin truy cập dữ liệu và dịch vụ quan trọng (nếu có);
+
+    đ) Thông tin các lỗi phát sinh trong quá trình hoạt động;
+
+    e) Thông tin cảnh báo từ các thiết bị;
+
+    g) Thông tin hiệu năng hoạt động của thiết bị (đối với hệ thống thông tin từ cấp độ 3 trở lên).'
+  summary_en: 'For systems of level 2 and above, the bank must log system and user activity: firewall,
+    logins, configuration changes, access to key data and services, errors and alerts (device performance
+    from level 3).'
+  duties:
+  - logging
+  - security_monitoring
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of every gate decision, verdict and state change
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: gateway proxy log for agents that emit no traces
+  evidence_needed:
+  - Log sources list per system
+  - Sample of agent event records with timestamps
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A26.2-01
+  article_ref: Art. 26(2)
+  text_vi: 2. Dữ liệu nhật ký của các hệ thống thông tin cấp độ 2 phải được lưu trực tuyến tối thiểu 1
+    tháng và sao lưu tối thiểu 6 tháng. Dữ liệu nhật ký của các hệ thống thông tin từ cấp độ 3 trở lên
+    phải được lưu trực tuyến tối thiểu 3 tháng theo hình thức tập trung và sao lưu tối thiểu một năm.
+  summary_en: Logs of level-2 systems must be kept online at least 1 month and backed up at least 6 months.
+    Logs of level-3 and higher systems must be kept online at least 3 months, centrally, and backed up
+    at least 1 year.
+  duties:
+  - logging
+  - retention
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of every gate decision, verdict and state change
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank sets online and backup periods for agent logs
+  evidence_needed:
+  - 'Retention settings: 3 months online and 1 year backup for level 3 or above'
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+  notes: Supervisor stores events; the retention period is set by the bank's deployment, not by Supervisor.
+- id: VN-TT09-2020-A26.4-01
+  article_ref: Art. 26(4)
+  text_vi: 4. Bảo vệ các chức năng ghi nhật ký và thông tin nhật ký, chống giả mạo, thay đổi và truy cập
+    trái phép; bảo đảm người quản trị hệ thống và người sử dụng không thể xóa hay sửa đổi nhật ký hệ thống
+    ghi lại các hoạt động của chính họ.
+  summary_en: Logging functions and log data must be protected from forgery, change and unauthorised access.
+    Administrators and users must not be able to delete or change logs of their own actions.
+  duties:
+  - electronic_record_integrity
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: SHA-256 hash chain with signed roots makes change detectable
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: offline verification of the chain
+  - kind: evidence
+    id: anchor
+    coverage: partial
+    note: external anchor of signed roots
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: bank must stop admins from editing the store itself
+  evidence_needed:
+  - Chain verification report
+  - Admin rights review of the log store
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+  notes: The chain detects tampering; it does not by itself prevent deletion by a database administrator.
+- id: VN-TT09-2020-A28.1B-01
+  article_ref: Art. 28(1)(b)
+  text_vi: b) Mỗi tài khoản truy cập hệ thống phải được gán cho một người sử dụng duy nhất; trường hợp
+    chia sẻ tài khoản dùng chung để truy cập hệ thống thông tin thì phải được phê duyệt bởi cấp có thẩm
+    quyền và xác định được trách nhiệm cá nhân tại mỗi thời điểm sử dụng;
+  summary_en: Each account must belong to one user only. A shared account needs approval by a competent
+    level and personal responsibility must stay identifiable at every time of use.
+  duties:
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: named accounts are the bank's IAM duty; Supervisor reviewer sign-offs carry the reviewer id
+  - kind: evidence
+    id: signoff_record
+    coverage: partial
+    note: sign-off records name the human reviewer
+  evidence_needed:
+  - Account inventory with an owner for every account
+  - Approval record for any shared account
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A28.1C-01
+  article_ref: Art. 28(1)(c)
+  text_vi: c) Đối với tài khoản để các ứng dụng, dịch vụ kết nối tự động, phải được giao cho một cá nhân
+    quản lý và được giới hạn quyền truy cập theo mục đích sử dụng; cá nhân được giao quản lý không được
+    phép sử dụng tài khoản này cho các mục đích khác;
+  summary_en: An account that an application or service uses to connect automatically (a service account,
+    which includes an AI agent credential) must have one named manager and rights limited to its purpose.
+  duties:
+  - access_control
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: an agent may call only tools approved for its flows
+  - kind: rule
+    id: PAY-07
+    coverage: partial
+    note: payments agent may call approved tools only
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory names an owner
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: service-account owner and rights in IAM
+  evidence_needed:
+  - Service-account register with owner and scope for each agent credential
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A28.1D-01
+  article_ref: Art. 28(1)(d)
+  text_vi: 'd) Đối với hệ thống thông tin từ cấp độ 3 trở lên và các hệ thống thông tin có xử lý thông
+    tin cá nhân của khách hàng phải giới hạn và kiểm soát các truy cập sử dụng tài khoản có quyền quản
+    trị: (i) Thiết lập cơ chế kiểm soát việc tạo tài khoản có quyền quản trị để bảo đảm không một tài
+    khoản nào sử dụng được khi chưa được cấp có thẩm quyền phê duyệt; (ii) Phải có biện pháp giám sát
+    việc sử dụng tài khoản có quyền quản trị; (iii) Việc sử dụng tài khoản có quyền quản trị phải được
+    giới hạn trong khoảng thời gian đủ để thực hiện công việc và phải được thu hồi ngay sau khi kết thúc
+    công việc; (iv) Việc kết nối quản trị hệ thống phải qua các máy chủ trung gian hoặc các hệ thống quản
+    trị tập trung, không thực hiện trực tiếp từ máy trạm của người quản trị;'
+  summary_en: For systems of level 3 or above, and systems with customer personal data, admin accounts
+    need approval, monitoring, time-limited use revoked after the task, and access through a jump server.
+  duties:
+  - access_control
+  - security_monitoring
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: records admin actions on the agent platform if routed through it
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: privileged access management is a bank process
+  evidence_needed:
+  - Privileged-access records and approvals
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A28.1E-01
+  article_ref: Art. 28(1)(e)
+  text_vi: e) Rà soát, kiểm tra, xét duyệt lại quyền truy cập của người sử dụng;
+  summary_en: The bank must review and re-approve users' access rights.
+  duties:
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: periodic access review is a bank IAM process
+  evidence_needed:
+  - Access review record per period
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A30.3-01
+  article_ref: Art. 30(3)
+  text_vi: '3. Quản lý và phân quyền truy cập thông tin và ứng dụng bảo đảm nguyên tắc cấp quyền vừa đủ
+    để thực hiện nhiệm vụ được giao của người sử dụng:
+
+    a) Phân quyền truy cập đến từng thư mục, chức năng của chương trình;
+
+    b) Phân quyền đọc, ghi, xóa, thực thi đối với thông tin, dữ liệu, chương trình.'
+  summary_en: 'Access to information and applications must follow least privilege: rights per folder and
+    function, and separate read, write, delete and execute rights.'
+  duties:
+  - access_control
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list per agent
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: amount cap per tool call
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: rights design in IAM
+  evidence_needed:
+  - Role and rights matrix for each agent and reviewer
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A32-01
+  article_ref: Art. 32
+  text_vi: 'Khi sử dụng dịch vụ công nghệ thông tin của bên thứ ba, tổ chức bảo đảm các nguyên tắc sau
+    đây:
+
+    1. Không làm suy giảm khả năng cung cấp dịch vụ liên tục của tổ chức cho khách hàng.
+
+    2. Không làm suy giảm việc kiểm soát quy trình nghiệp vụ của tổ chức.
+
+    3. Không làm thay đổi trách nhiệm của tổ chức trong việc bảo đảm an toàn thông tin.
+
+    4. Dịch vụ công nghệ thông tin của bên thứ ba phải đáp ứng các quy định về bảo đảm an toàn thông tin
+    của tổ chức.'
+  summary_en: When the bank uses a third party for IT services, the service must not weaken continuity,
+    control of business processes or the bank's own responsibility for security. The bank stays responsible.
+  duties:
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: bank manages third parties; Supervisor does not replace this
+  evidence_needed:
+  - Vendor register with responsibility split
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A33.1-01
+  article_ref: Art. 33(1)
+  text_vi: '1. Đánh giá rủi ro công nghệ thông tin, rủi ro hoạt động tối thiểu bao gồm các nội dung sau:
+
+    a) Nhận diện rủi ro, phân tích, ước lượng cấp độ tổn hại, mối đe dọa đến an toàn thông tin;
+
+    b) Khả năng kiểm soát các quy trình nghiệp vụ, khả năng cung cấp dịch vụ liên tục, khả năng thực hiện
+    nghĩa vụ cung cấp thông tin cho các cơ quan nhà nước;
+
+    c) Xác định rõ vai trò, trách nhiệm của các bên liên quan trong việc bảo đảm chất lượng dịch vụ;
+
+    d) Xây dựng các biện pháp nhằm giảm thiểu rủi ro, biện pháp phòng ngừa, ứng cứu, khắc phục sự cố;
+
+    đ) Rà soát và điều chỉnh chính sách quản lý rủi ro (nếu có).'
+  summary_en: 'Before using a third-party service for a level-3+ system or a system with customer personal
+    data, the bank must assess IT and operational risk: threats, control of processes, continuity, roles,
+    and mitigation. A model vendor or hosted AI platform handling customer data falls here.'
+  duties:
+  - outsourcing_oversight
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: pre-contract risk assessment is a bank process
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding profile records data and tools an agent uses; useful input only
+  evidence_needed:
+  - Risk assessment per third-party service
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A33.2-01
+  article_ref: Art. 33(2)
+  text_vi: '2. Trong trường hợp sử dụng dịch vụ điện toán đám mây, ngoài các yêu cầu tại khoản 1 Điều
+    này, tổ chức thực hiện:
+
+    a) Phân loại hoạt động, nghiệp vụ dự kiến triển khai trên điện toán đám mây dựa trên đánh giá tác
+    động của hoạt động, nghiệp vụ đó với hoạt động của tổ chức;
+
+    b) Xây dựng phương án dự phòng đối với các cấu phần của hệ thống thông tin từ cấp độ 3 trở lên. Phương
+    án dự phòng phải được kiểm thử và đánh giá sẵn sàng thay thế cho các hoạt động, nghiệp vụ triển khai
+    trên điện toán đám mây;
+
+    c) Xây dựng các tiêu chí lựa chọn bên thứ ba đáp ứng yêu cầu quy định tại Điều 34 Thông tư này;
+
+    d) Rà soát, bổ sung, áp dụng các biện pháp bảo đảm an toàn thông tin của tổ chức, giới hạn truy cập
+    từ điện toán đám mây đến các hệ thống thông tin của tổ chức.'
+  summary_en: For cloud services the bank must also classify the workload by impact, build a tested fallback
+    for level-3+ components, set selection criteria, and limit access from the cloud to bank systems.
+  duties:
+  - outsourcing_oversight
+  - business_continuity
+  applies_to:
+    agent_class:
+    - any
+    model_hosting:
+    - domestic_cloud
+    - foreign_cloud
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: cloud selection and fallback tests
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+    note: fallback plan tested
+  evidence_needed:
+  - Cloud workload classification
+  - Fallback test record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A35-01
+  article_ref: Art. 35(1), (4)
+  text_vi: '1. Cam kết của bên thứ ba về bảo đảm an toàn thông tin bao gồm:
+
+    a) Không sao chép, thay đổi, sử dụng hay cung cấp dữ liệu của tổ chức sử dụng dịch vụ cho cá nhân,
+    tổ chức khác, trừ trường hợp có yêu cầu của cơ quan nhà nước có thẩm quyền theo quy định của pháp
+    luật; trong trường hợp này, bên thứ ba phải thông báo cho tổ chức sử dụng dịch vụ trước khi cung cấp
+    dữ liệu, trừ khi việc thông báo sẽ vi phạm pháp luật Việt Nam;
+
+    b) Phổ biến cho nhân sự của bên thứ ba tham gia thực hiện hợp đồng các quy định về bảo đảm an toàn
+    thông tin của tổ chức, thực hiện các biện pháp giám sát bảo đảm tuân thủ.
+
+    ...
+
+    4. Dữ liệu phát sinh trong quá trình sử dụng dịch vụ là tài sản của tổ chức. Khi chấm dứt sử dụng
+    dịch vụ:
+
+    a) Bên thứ ba thực hiện trả lại hoặc hỗ trợ chuyển toàn bộ dữ liệu triển khai và dữ liệu phát sinh
+    trong quá trình sử dụng dịch vụ về cho tổ chức;
+
+    b) Bên thứ ba cam kết hoàn thành việc xóa toàn bộ dữ liệu của tổ chức trong một khoảng thời gian xác
+    định.'
+  summary_en: 'A contract with a third party for level-3+ or customer-data systems must include: no copy
+    or disclosure of bank data (except lawful state request, with notice), staff security rules, subcontractor
+    liability, data as bank property, return and deletion at exit.'
+  duties:
+  - outsourcing_oversight
+  - processor_contract
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract terms are negotiated by the bank
+  evidence_needed:
+  - Contract clauses mapped to Art. 35
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+  notes: Art. 35(6) adds cloud terms (annual independent IT audit report, data-centre locations outside
+    Vietnam disclosed, data segregation).
+- id: VN-TT09-2020-A36-01
+  article_ref: Art. 36(2), (5), (8)
+  text_vi: '2. Có quy trình và bố trí nguồn lực để giám sát, kiểm soát các dịch vụ do bên thứ ba cung
+    cấp bảo đảm chất lượng dịch vụ theo thỏa thuận đã ký kết. Đối với dịch vụ điện toán đám mây, phải
+    giám sát, kiểm soát chất lượng dịch vụ.
+
+    ...
+
+    5. Áp dụng các biện pháp giám sát chặt chẽ và giới hạn quyền truy cập của bên thứ ba khi cho phép
+    bên thứ ba truy cập vào hệ thống thông tin của tổ chức.
+
+    ...
+
+    8. Đối với hệ thống thông tin từ cấp độ 3 trở lên, các hệ thống thông tin xử lý thông tin khách hàng
+    hoặc hệ thống thông tin sử dụng dịch vụ điện toán đám mây, phải đánh giá sự tuân thủ các quy định
+    về bảo đảm an toàn thông tin của bên thứ ba theo đúng thỏa thuận đã ký kết. Thực hiện đánh giá sự
+    tuân thủ định kỳ hàng năm hoặc đột xuất khi có nhu cầu. Việc đánh giá tuân thủ có thể sử dụng kết
+    quả kiểm toán công nghệ thông tin của tổ chức kiểm toán độc lập.'
+  summary_en: The bank must monitor the service quality of third parties, supervise and limit their access
+    to bank systems, and for level-3+ or customer-data systems assess their compliance at least once a
+    year.
+  duties:
+  - outsourcing_oversight
+  - performance_monitoring
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: records calls to external model endpoints seen by the gateway
+  - kind: evidence
+    id: verdict_log
+    coverage: partial
+    note: judge verdicts with model and prompt version show vendor model behaviour
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: annual compliance assessment
+  evidence_needed:
+  - Annual third-party assessment
+  - Third-party access list and logs
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A37.2-01
+  article_ref: Art. 37(2)
+  text_vi: 2. Xây dựng phương án kiểm tra, xác minh hệ thống được triển khai tuân thủ theo đúng tài liệu
+    thiết kế và yêu cầu bảo đảm an toàn thông tin trước khi nghiệm thu. Kết quả kiểm tra phải lập thành
+    báo cáo và được cấp có thẩm quyền phê duyệt trước khi đưa vào vận hành chính thức.
+  summary_en: Before a new or upgraded system (level 2 or above) goes live, the bank must test that it
+    follows its security design and get the report approved by a competent level.
+  duties:
+  - security_testing
+  - change_control
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: launch sandbox report (catch rate, false alarms, GO or NO-GO) for the Supervisor controls only
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank approves the security test report
+  evidence_needed:
+  - Security test report with approval before go-live
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A40.2-01
+  article_ref: Art. 40(2)
+  text_vi: 2. Tổ chức phải lựa chọn, kiểm soát đối với dữ liệu kiểm tra, thử nghiệm. Không sử dụng dữ
+    liệu thật của hệ thống thông tin vận hành chính thức cho hoạt động kiểm thử khi chưa thực hiện các
+    biện pháp che giấu hoặc thay đổi đối với dữ liệu chứa thông tin khách hàng và thông tin bí mật.
+  summary_en: Real production data must not be used for testing until customer and confidential data has
+    been masked or changed. This binds the test and launch sandboxes for agents.
+  duties:
+  - data_minimisation
+  - security_testing
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks identifiers in recorded events, which helps when replaying events for tests
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: launch sandbox results
+  evidence_needed:
+  - Test-data masking procedure
+  - Confirmation that sandbox uses synthetic or masked data
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A41-01
+  article_ref: Art. 41(1)
+  text_vi: 1. Thực hiện ghi chép lại các thay đổi; lập kế hoạch thay đổi; thực hiện kiểm tra, thử nghiệm
+    sự thay đổi, báo cáo kết quả; phê duyệt kế hoạch thay đổi trước khi áp dụng chính thức thay đổi phiên
+    bản phần mềm, cấu hình phần cứng, tham số phần mềm hệ thống, quy trình vận hành. Có phương án dự phòng
+    cho việc phục hồi hệ thống trong trường hợp thực hiện thay đổi không thành công hoặc gặp các sự cố
+    không có khả năng dự tính trước.
+  summary_en: The bank must record, plan, test, report and approve a change before it goes live (software
+    version, configuration, parameters, procedures) and keep a rollback plan. Changing an agent's model,
+    prompt or tools is such a change.
+  duties:
+  - change_control
+  - lifecycle_management
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: agent version history
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned policy baseline
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second-line review of significant changes
+  evidence_needed:
+  - Change record with test result, approval and rollback plan
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A42-01
+  article_ref: Art. 42(1)(d), (2), (3)
+  text_vi: 'd) Kiểm tra thử nghiệm cấp độ an toàn mạng (Penetration Test), bắt buộc phải thực hiện đối
+    với các hệ thống thông tin có kết nối và cung cấp thông tin, dịch vụ ra Internet, kết nối với khách
+    hàng và bên thứ ba;
+
+    ...
+
+    2. Tổ chức thực hiện kiểm tra, đánh giá an toàn thông tin đối với hệ thống thông tin từ cấp độ 3 trở
+    lên và các hệ thống thông tin có xử lý thông tin cá nhân của khách hàng theo các nội dung quy định
+    tại khoản 1 Điều này trước khi đưa vào vận hành chính thức.
+
+    ...
+
+    3. Trong quá trình vận hành hệ thống thông tin, tổ chức thực hiện kiểm tra, đánh giá an toàn thông
+    tin theo quy định tại khoản 1 Điều này định kỳ tối thiểu như sau:
+
+    a) Sáu tháng một lần đối với hệ thống thông tin cấp độ 5;
+
+    b) Một năm một lần đối với các hệ thống thông tin cấp độ 4, cấp độ 3 và các trang thiết bị giao tiếp
+    trực tiếp với môi trường bên ngoài như Internet, kết nối với bên thứ ba;
+
+    c) Hai năm một lần thực hiện kiểm tra, đánh giá an toàn thông tin và quản lý rủi ro an toàn thông
+    tin tổng thể trong hoạt động của tổ chức.'
+  summary_en: Level-3+ systems and systems with customer data need a security check, including a penetration
+    test for internet-facing or customer-linked systems, before go-live. Repeat at least yearly (level
+    3 and 4, and all devices that face the outside) or every 6 months (level 5).
+  duties:
+  - security_testing
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: Supervisor launch report is not a penetration test
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: penetration test by the bank or its vendor
+  evidence_needed:
+  - Penetration test report before go-live
+  - Yearly assessment report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A45-01
+  article_ref: Art. 45(1)
+  text_vi: '1. Ban hành quy trình xử lý sự cố an toàn thông tin bao gồm những nội dung tối thiểu sau:
+
+    a) Tiếp nhận thông tin về sự cố phát sinh;
+
+    b) Đánh giá cấp độ, phạm vi ảnh hưởng của sự cố đến hoạt động của hệ thống thông tin. Tùy theo cấp
+    độ, phạm vi ảnh hưởng của sự cố phải báo cáo đến các cấp quản lý tương ứng để chỉ đạo xử lý;
+
+    c) Thực hiện các biện pháp xử lý, khắc phục sự cố;
+
+    d) Ghi nhận hồ sơ và báo cáo kết quả xử lý sự cố.'
+  summary_en: 'The bank must issue an incident process: receive, assess level and impact and escalate,
+    fix, and record and report the result.'
+  duties:
+  - incident_response
+  - internal_policy
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: pause or retire an agent that misbehaves
+  - kind: console
+    id: inbox
+    coverage: partial
+    note: notices to reviewers
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident management procedure
+  evidence_needed:
+  - Incident procedure covering agent incidents
+  - Incident register
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A46-01
+  article_ref: Art. 46(1)-(3)
+  text_vi: '1. Lập danh sách sự cố an toàn thông tin và phương án xử lý sự cố đối với các hệ thống thông
+    tin từ cấp độ 3 trở lên và các hệ thống thông tin có xử lý thông tin cá nhân của khách hàng; tối thiểu
+    6 tháng một lần thực hiện rà soát, cập nhật danh sách, phương án ứng cứu sự cố.
+
+    ...
+
+    2. Báo cáo ngay đến cấp có thẩm quyền và những người có liên quan khi phát sinh sự cố an toàn thông
+    tin để có biện pháp khắc phục trong thời gian sớm nhất.
+
+    ...
+
+    3. Trong quá trình kiểm tra, xử lý, khắc phục sự cố thu thập, ghi chép, bảo vệ chứng cứ và lưu trữ
+    tại tổ chức.'
+  summary_en: For level-3+ and customer-data systems the bank must list incident types and response plans
+    (review at least every 6 months), report an incident at once to the competent level, and collect and
+    protect evidence during handling.
+  duties:
+  - incident_response
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: tamper-evident evidence of agent events
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file for evidence handover
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: response plans and escalation
+  evidence_needed:
+  - Incident type list reviewed every 6 months
+  - Evidence preserved for an example incident
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A54.1-01
+  article_ref: Art. 54(1)
+  text_vi: 1. Báo cáo sự cố an toàn thông tin (theo Phụ lục 01 kèm theo Thông tư này) trong vòng 24 giờ
+    kể từ thời điểm sự cố được phát hiện và Báo cáo hoàn thành khắc phục sự cố (theo Phụ lục 02 kèm theo
+    Thông tư này) trong vòng 05 ngày làm việc sau khi hoàn thành khắc phục sự cố. Báo cáo gửi về địa chỉ
+    thư điện tử antt@sbv.gov.vn.
+  summary_en: The bank must report an information-security incident to the SBV (Information Technology
+    Department) within 24 hours of detection, and a completion report within 5 working days after the
+    fix.
+  duties:
+  - incident_report_24h
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: inbox
+    coverage: partial
+    note: notice to reviewers; does not file the report
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: bank files the report to antt@sbv.gov.vn
+  evidence_needed:
+  - Incident report with detection time and filing time
+  - Completion report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: high
+- id: VN-TT09-2020-A54.2-01
+  article_ref: Art. 54(2) with Art. 33(3)
+  text_vi: 2. Báo cáo đánh giá rủi ro theo quy định tại khoản 3 Điều 33 Thông tư này gửi trực tiếp hoặc
+    qua đường bưu điện về Ngân hàng Nhà nước (Cục Công nghệ thông tin) khi thuê ngoài toàn bộ công việc
+    quản trị hệ thống thông tin từ cấp độ 3 trở lên và các hệ thống thông tin xử lý thông tin khách hàng
+    trước thời điểm triển khai tối thiểu 10 ngày làm việc.
+  summary_en: If the bank outsources the whole administration of a level-3+ or customer-data system, it
+    must send its risk assessment to the SBV at least 10 working days before rollout.
+  duties:
+  - outsourcing_oversight
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: bank files to SBV
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: risk assessment
+  evidence_needed:
+  - Risk assessment and proof of submission 10 working days before rollout
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/144532
+    title: Circular 09/2020/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 1445a15c8884bbdfc979ecca68351fde87c7308c79e06c1d8525e8035ee19ae7
+    local_path: regulations/sources/VN-TT09-2020/tt-09-2020-nhnn.txt
+  confidence: medium

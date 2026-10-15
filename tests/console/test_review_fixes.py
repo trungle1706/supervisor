@@ -26,7 +26,7 @@ def test_admin_release_and_non_admin_refused(console: Console) -> None:
     q = console.post("/console/agents/payments/quarantine", {"reason": "q"}, user="admin.chi")
     assert q.status_code == 200 and 'data-state="QUARANTINED"' in q.text
     r = console.post("/console/agents/payments/release", {"reason": "r"}, user="reviewer.binh")
-    assert r.status_code == 400 and "needs role admin" in r.text
+    assert r.status_code == 403 and "needs role admin" in r.text
     ok = console.post("/console/agents/payments/release", {"reason": "r"}, user="admin.chi")
     assert ok.status_code == 200 and 'data-state="PAUSED"' in ok.text
 

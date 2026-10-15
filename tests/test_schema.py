@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from schema.generate import main as generate_main
@@ -20,8 +22,10 @@ def test_append_only_tables_have_triggers_and_delta_property() -> None:
     sqlite = (DDL_DIR / "sqlite.sql").read_text(encoding="utf-8")
     dbx = (DDL_DIR / "databricks.sql").read_text(encoding="utf-8")
     for t in model.tables.values():
+        # retention tables (ADR D13) use BEFORE UPDATE OF <non-retention columns> ON <table>
         has_trg = (
-            f"BEFORE UPDATE ON {t.name}\n" in sqlite and f"BEFORE DELETE ON {t.name}\n" in sqlite
+            re.search(rf"BEFORE UPDATE (OF [a-z_, ]+ )?ON {t.name}\n", sqlite) is not None
+            and f"BEFORE DELETE ON {t.name}\n" in sqlite
         )
         assert has_trg == t.append_only, t.name
         assert f"`${{catalog}}`.`${{schema}}`.`{t.name}`" in dbx
