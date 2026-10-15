@@ -90,7 +90,7 @@ def test_sqlite_older_schema_gets_missing_columns(tmp_path: Path) -> None:
     trg = x.query(
         "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'agent_event'"
     )
-    assert len(trg) == 2
+    assert len(trg) == 3  # no_update, no_delete, retention_null_only (ADR D13)
     # idempotent
     again = bootstrap_schema.run(settings, adapters)
     assert again["added_columns"] == 0

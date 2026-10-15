@@ -21,6 +21,11 @@ reviewer console. This file says how to report a problem and where the security 
   [`docs/threat-model.md`](docs/threat-model.md).
 - Design decisions: [`docs/adr/`](docs/adr/) (gateway D01, fail mode D03, pause/resume
   authority D04, evidence chain D05, judge hardening D06, residency D07).
+- Access control (WP18): a seven-role matrix (`src/supervisor/core/rbac.py`, table in
+  [`docs/console.md`](docs/console.md)) is checked on every console route; a missing role is
+  HTTP 403. Every mutating console action and every gate control call writes an append-only
+  `console_action` row (actor, permission, target, hashes of the row before and after).
+  `API_RBAC_ENABLED=1` extends the matrix to the `/gate` human routes.
 - Bank integrations (SIEM, ITSM, pager, SCIM), all off by default:
   [`docs/bank-integration.md`](docs/bank-integration.md).
 - Deployment constraints learned at the bank: [`docs/BANK_DEPLOY_GUIDE.md`](docs/BANK_DEPLOY_GUIDE.md).

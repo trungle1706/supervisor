@@ -16,6 +16,7 @@ case_intake    scheduler on           gate block/pause verdicts become cases (al
                                       at scheduler start; the console GET never writes)
 judge_sweep    JUDGE_ENABLED          advisory judges over new events
 quality        QUALITY_ENABLED        groundedness / guideline scores (sampled)
+retention      RETENTION_ENABLED      null personal-data columns past their TTL (ADR D13)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -367,6 +368,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import metrics as metrics_job
     from supervisor.jobs import multiagent as multiagent_job
     from supervisor.jobs import quality as quality_job
+    from supervisor.jobs import retention as retention_job
     from supervisor.monitors.sweeps import build_judge_sweep, build_quality_sweep
 
     adapters = runtime.adapters
@@ -412,6 +414,9 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 lambda: judge_job.run(ctx, settings, judge), judge is not None),
         JobSpec("quality", settings.sched_quality_s,
                 lambda: quality_job.run(ctx, settings, quality), quality is not None),
+        JobSpec("retention", settings.sched_retention_s,
+                lambda: retention_job.run(settings, adapters, chain=runtime.chain),
+                settings.retention_enabled),
     ]  # fmt: skip
 
 

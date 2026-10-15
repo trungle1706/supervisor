@@ -334,3 +334,132 @@ set DATABRICKS_TOKEN=
 setx OLLAMA_KEEP_ALIVE -1
 ollama list
 ```
+
+
+## 14. Operations: logs, health, headers, limits
+
+Settings are environment variables or lines in `.env`. Restart the app after a change.
+
+| Topic | Setting (default) | What it does |
+|---|---|---|
+| Log level | `LOG_LEVEL` (`INFO`) | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+| Log format | `LOG_FORMAT` (`text`) | `json` = one JSON object per line: `ts`, `level`, `logger`, `msg`, `request_id`, `principal_id`, and `exc_type` / `exc` on errors |
+| Log file | `LOG_FILE` (off) | Absolute path. Rotating UTF-8 file. `LOG_FILE_MAX_BYTES` (10000000), `LOG_FILE_BACKUPS` (3) |
+| Request id | `REQUEST_ID_HEADER` (`X-Request-ID`) | Accepted from the caller if it matches `^[A-Za-z0-9._-]{8,128}$`, else generated. Always echoed in the response |
+| Security headers | `SECURITY_HEADERS_ENABLED` (`true`) | CSP, X-Frame-Options, nosniff, Referrer-Policy; `Cache-Control: no-store` on console pages |
+| HSTS | `HSTS_ENABLED` (`false`) | Turn on only behind TLS |
+| Body limit | `MAX_REQUEST_BYTES` (`10000000`, `0` = off) | Answer 413 with a message above the limit. OTLP and form limits stay |
+| Rate limit | `RATE_LIMIT_ENABLED` (`false`), `RATE_LIMIT_PER_MINUTE` (120), `RATE_LIMIT_BURST` (30) | Token bucket per user on POST/PUT/PATCH/DELETE; answer 429 with `Retry-After` |
+
+```
+set LOG_FORMAT=json
+set LOG_FILE=C:\supervisor\logs\supervisor.log
+set RATE_LIMIT_ENABLED=true
+python -m supervisor.cli serve
+```
+
+Every log message passes a PII scrubber (phone, CCCD/CMND, account number, e-mail, names become `[PHONE]`, `[CCCD]`, and so on). The `principal_id` field is the actor id and is not scrubbed.
+
+Probes (no sign-in, no secrets in the body):
+
+* `GET /health` returns 200 `{"status":"ok","version":...}` while the process runs. `GET /healthz` is unchanged.
+* `GET /ready` returns 200 `{"ready":true,"checks":{...}}` when the runtime is built, the store answers and the evidence signer is loaded. It returns 503 with `"failed":[names]` otherwise. 503 is for probes and load balancers, not for people. The `scheduler` check shows `running`, `off` or `not-leader` and does not fail the probe.
+
+If the runtime build fails at startup, `/ready` stays 503 until the first gateway call builds it again. This is correct for a probe: the app cannot decide yet.
+
+Rate limit scope: the key is `X-Forwarded-Email`, else the dev user (`X-Dev-User` or `sv_dev_user` cookie), else the client IP. `POST /gate/check`, `POST /v1/gate/check` and `POST /v1/traces` are not limited: agent traffic is governed by the gateway (fail mode), and a human limit there would turn a busy agent into a gate outage. The key is read before sign-in. On the Databricks App the proxy sets `X-Forwarded-Email`, so the key is the real user. On a laptop a caller can change the header, so the limit is a throttle there, not a control.
+
+The interactive `/docs` and `/redoc` pages are off: they load JavaScript from a CDN. The API schema is at `/openapi.json` (see `docs/api.md`).
+
+Default-on changes in this release (a pure addition, each can be turned off):
+
+1. Security headers on every response (`SECURITY_HEADERS_ENABLED=false` removes them). The CSP allows only same-origin scripts; inline `style=` is allowed. Vendored htmx and `console.js` work unchanged.
+2. A request id header on every response (`X-Request-ID`).
+3. A 10 MB request body limit (`MAX_REQUEST_BYTES=0` removes it).
+4. Log scrubbing of PII in every log line.
+
+## Retention (PDPL)
+
+Personal-data columns are set to NULL after their retention time. Rows, hashes and the evidence chain stay, and the chain still verifies (ADR D13). The job is off by default.
+
+| Class | Columns | Setting (default) |
+|---|---|---|
+| raw | `agent_event_raw.args_raw`, `result_raw` | `RETENTION_RAW_DAYS` (90) |
+| masked | `agent_event` args/result, `verdict.rationale_masked`, `case_event.comment_masked` | `RETENTION_MASKED_DAYS` (365) |
+| notice | `notice.body` | `RETENTION_NOTICE_DAYS` (365) |
+
+```
+set RETENTION_ENABLED=1
+set RETENTION_DRY_RUN=1
+python -m supervisor.jobs.retention
+set RETENTION_DRY_RUN=0
+python -m supervisor.jobs.retention
+```
+
+* Always run with `RETENTION_DRY_RUN=1` first. Redaction cannot be undone: back up first.
+* The app scheduler runs the job every `SCHED_RETENTION_S` (86400) seconds when `RETENTION_ENABLED=1`. Run the command by hand only when the app is stopped (one chain writer).
+* After an upgrade, run `python -m supervisor.jobs.bootstrap_schema` once. It replaces the old append-only triggers. If you skip it, the job prints `[FAIL]` and names this command.
+* On Databricks the append-only tables are count-only (`[SKIP] Delta appendOnly: needs bank decision`). Only `notice` is changed.
+* Each run adds a `retention_run` entry to the evidence chain (counts and cutoffs, no personal data).
+
+## Backup, restore, support bundle
+
+All commands run from the repo folder, with the app settings in `.env`. Paths are examples.
+
+### Support bundle (send this to support, not the logs)
+
+```
+python -m supervisor.cli support-bundle --out C:\supervisor-support\bundle1
+```
+
+* Writes `settings.json` (secrets shown only as `***set***`), `preflight.txt`, `schema.json`, `chain.json` (lane heads, no payloads), `logs.txt` (last 500 lines of `LOG_FILE`, PII masked, secrets scrubbed), `env.json`, `manifest.json` (sha256 of each file) and `support-bundle-<time>.zip`.
+* Options: `--log-lines N` (default 500), `--force` (use a non-empty folder), `--network` (also run the Databricks and LLM preflight checks; the default skips them, so the command never hangs on the network).
+* The bundle never creates a missing store and never prints environment variables. Open the zip and read `settings.json` once before you send it.
+
+### Backup (SQLite mode)
+
+```
+python -m supervisor.cli backup --out C:\supervisor-backup\2026-10-15
+python -m supervisor.cli backup --out C:\supervisor-backup\2026-10-15 --include-key
+```
+
+* The app may run: the copy uses the SQLite online backup. The folder gets `supervisor.db`, `manifest.json` (time, version, schema hash, sha256, table row counts, chain lane heads) and the `anchors` folder when `ANCHOR_KIND=worm_dir`.
+* The signing key is copied only with `--include-key`. A folder with the key must be stored as a secret. Without the flag, back up `SIGNER_KEY_PATH` yourself to the bank secret store.
+* In App mode the command prints `[FAIL] backup is for SQLite mode; use export-delta` and exits 1.
+
+### Restore
+
+```
+python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15
+python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15 --force
+```
+
+* Stop the app first. The command checks the manifest and the sha256, refuses a backup with a newer schema than the code, and refuses to overwrite an existing store unless `--force`. With `--force` the old file is moved to `<name>.pre-restore-<time>`, never deleted.
+* After the copy it verifies the evidence chain and prints `[OK] evidence chain verifies` or `[FAIL]`. An older backup prints a warning: run `python -m supervisor.jobs.bootstrap_schema` (it adds columns only).
+
+### Delta export (App mode)
+
+```
+python -m supervisor.cli export-delta --out C:\supervisor-export\2026-10-15
+python -m supervisor.cli export-delta --out C:\supervisor-export\2026-10-15 --tables chain_entry,chain_payload
+```
+
+* One read-only `SELECT` per table through the Statement Execution API. Output: `<table>.jsonl` and `manifest.json` (row counts, sha256, schema hash, workspace host). It also works on SQLite (same code).
+* Run it from the laptop with the CLI OAuth profile (`databricks auth login --host <host> --profile <name>`, then `set DATABRICKS_CONFIG_PROFILE=<name>`), or from a notebook. Large tables take time: export one table at a time with `--tables`.
+* Restoring Delta is a task for the bank DBA. Use the Delta features: time travel (`RESTORE TABLE ... TO VERSION AS OF`) and `DEEP CLONE`. History is kept for `delta.logRetentionDuration` (set from `EVIDENCE_RETENTION_DAYS` for evidence tables): confirm that value covers the recovery window you need. The JSONL export is a second copy outside Delta, not a restore tool.
+
+### DR drill (SQLite mode, about 15 minutes)
+
+1. `python -m supervisor.cli backup --out C:\drill\backup --include-key`
+2. Point a new data folder: `set DATA_DIR=C:\drill\restore-data`. `SQLITE_PATH` and `SIGNER_KEY_PATH` must not be set in `.env` (comment them out): their defaults follow `DATA_DIR`
+3. `python -m supervisor.cli restore --from C:\drill\backup`. Expect `[OK] evidence chain verifies`.
+4. Compare counts: the `table_counts` in `C:\drill\backup\manifest.json` against a new backup of the restored store (`backup --out C:\drill\check`, then compare the two `table_counts`). They must be equal.
+5. Start the app on the restored data (`python -m supervisor.cli serve`), open `/health`, then stop it. Delete `C:\drill` (it holds a key copy).
+6. Write down the elapsed time (measured RTO) and the age of the backup (RPO).
+
+| Target | Value |
+|---|---|
+| RPO (maximum data loss) | FILL-ME: bank decision |
+| RTO (maximum time to recover) | FILL-ME: bank decision |
+| Backup schedule and retention | FILL-ME: bank decision |
+| Backup storage location (and who holds the signing key copy) | FILL-ME: bank decision |

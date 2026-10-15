@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
 from supervisor.core.errors import SupervisorError
+from supervisor.core.rbac import ROLES  # the role list lives in the role matrix
 
-ROLES: tuple[str, ...] = ("reviewer", "approver", "owner", "auditor", "admin")
 Kind = Literal["user", "service_principal", "system"]
 
 

@@ -82,6 +82,22 @@ class SqliteExecutor:
         for stmt in statements:
             self.execute(stmt)
 
+    def backup_to(self, dest: str | Path) -> None:
+        """Online backup (sqlite3 backup API): a consistent copy while others may write."""
+        dest = Path(dest)
+        if dest.exists():
+            raise SqlError(f"backup target exists: {dest}")
+        target = sqlite3.connect(str(dest))
+        try:
+            with self._lock:
+                self._conn.backup(target)
+            target.execute("PRAGMA journal_mode = DELETE")  # one self-contained file
+        except sqlite3.Error as exc:
+            target.close()
+            dest.unlink(missing_ok=True)
+            raise SqlError(f"{self.describe()}: backup failed: {exc}") from exc
+        target.close()
+
     def close(self) -> None:
         with self._lock:
             self._conn.close()

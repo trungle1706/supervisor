@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import re
 from collections.abc import Callable, Mapping
@@ -26,18 +27,19 @@ from starlette.concurrency import run_in_threadpool
 
 from supervisor import __version__
 from supervisor.adapters.auth import AuthPrincipal, current_principal
-from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
-from supervisor.cases.service import (
-    RESOLUTIONS,
-    SEVERITIES,
-    WORKFLOW_ROLES,
-    CaseError,
-    PermissionDenied,
-    require,
+from supervisor.adapters.auth.audit import (
+    request_id_of,
+    snapshot_hash,
+    target_of,
+    write_action,
 )
+from supervisor.adapters.auth.authz import needs
+from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
+from supervisor.cases.service import RESOLUTIONS, SEVERITIES, CaseError, PermissionDenied
 from supervisor.console import auditpack, health, onboard_runs, readmodels, views
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
+from supervisor.core import rbac
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
@@ -66,13 +68,11 @@ FONTS = (
 LANG_COOKIE = "sv_lang"
 MAX_FORM_BYTES = 64 * 1024
 _ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
-VIEW_ROLES = ("reviewer", "approver", "owner", "auditor", "admin")
-EXPORT_ROLES = ("auditor", "reviewer", "approver", "admin")
-GATE_ROLES: dict[str, tuple[str, ...]] = {
-    "pause": ("reviewer", "approver", "owner", "admin"),  # D04: any on-call reviewer
-    "resume": ("reviewer", "owner", "admin"),  # D04: owner + reviewer, two people
-    "quarantine": ("admin",),
-    "release": ("admin",),
+# Role tuples come from the role matrix (core/rbac.py); the old names stay as aliases.
+VIEW_ROLES = rbac.roles_for("console.view")
+EXPORT_ROLES = rbac.roles_for("evidence.export")
+GATE_ROLES: dict[str, tuple[str, ...]] = {  # D04: pause = any on-call reviewer; resume = two
+    a: rbac.roles_for(f"agent.{a}") for a in ("pause", "resume", "quarantine", "release")
 }
 
 _env = Environment(
@@ -196,13 +196,91 @@ def _check_id(value: str, what: str) -> str:
     return value
 
 
-def _view(me: AuthPrincipal) -> None:
-    if me.kind == "user" and not me.has(*VIEW_ROLES):
-        raise PermissionDenied(f"{me.user_id} has no console role")
-
-
 async def _call(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return await run_in_threadpool(fn, *args, **kwargs)
+
+
+def _warn_html(body: bytes, warning: str) -> bytes:
+    """Add the audit WARNING to the #flash message already in an htmx response (or append a
+    new #flash message when there is none)."""
+    text = body.decode("utf-8")
+    tail = "</div></div>"
+    if text.endswith(tail) and 'id="flash"' in text:
+        from markupsafe import escape
+
+        return (text[: -len(tail)] + " " + str(escape(warning)) + tail).encode("utf-8")
+    return (text + message_html(warning, oob=True)).encode("utf-8")
+
+
+def audited(permission: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Write one ``console_action`` row for this mutating route (WP18): outcome ok, denied
+    or error, with the target row hash before and after. Off with CONSOLE_AUDIT_ENABLED=0.
+    The route function must take ``request`` and ``ctx`` (and ``me`` when it has a person).
+    A failed audit write is logged and shown as a WARNING in the flash message, never a 5xx."""
+
+    def decorate(fn: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(fn)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            request: Request = kwargs["request"]
+            ctx: ConsoleContext = kwargs["ctx"]
+            if not ctx.settings.console_audit_enabled:
+                return await fn(*args, **kwargs)
+            me = kwargs.get("me")
+            if me is None:
+                try:
+                    me = current_principal(request)
+                except Exception:  # noqa: BLE001 - no identity: nothing to attribute
+                    return await fn(*args, **kwargs)
+            perm = rbac.resolve_permission(permission, request.path_params)
+            if perm not in rbac.PERMISSIONS and perm != "dev.user":
+                perm = permission.split(".")[0] + ".invalid"  # a bad action name from the URL
+            kind, tid = target_of(request.url.path, request.path_params)
+            before = await _call(snapshot_hash, ctx.state, kind, tid)
+            outcome, detail, exc_out, resp = "ok", None, None, None
+            try:
+                resp = await fn(*args, **kwargs)
+            except Exception as exc:  # noqa: BLE001 - re-raised below after the audit row
+                exc_out = exc
+                denied = isinstance(exc, PermissionDenied)
+                outcome = "denied" if denied else "error"
+                detail = "permission_denied" if denied else type(exc).__name__
+            try:
+                after = await _call(snapshot_hash, ctx.state, kind, tid)
+                await _call(
+                    write_action,
+                    ctx.tables,
+                    ctx.clock,
+                    request_id=request_id_of(request),
+                    actor=me,
+                    permission=perm,
+                    method=request.method,
+                    path=request.url.path,
+                    outcome=outcome,
+                    target_kind=kind,
+                    target_id=tid,
+                    before_hash=before,
+                    after_hash=after,
+                    detail=detail,
+                )
+            except Exception as werr:  # noqa: BLE001 - never a 5xx because of the audit
+                log.error("console_action write failed: %s", type(werr).__name__)
+                warning = (
+                    f"WARNING: the console audit record failed: {type(werr).__name__}; "
+                    "see the server log"
+                )
+                if exc_out is not None:
+                    if isinstance(exc_out, SupervisorError):
+                        exc_out.args = (f"{exc_out} ({warning})",)
+                elif isinstance(resp, Response) and hasattr(resp, "body"):
+                    resp.body = _warn_html(bytes(resp.body), warning)
+                    resp.headers["content-length"] = str(len(resp.body))
+            if exc_out is not None:
+                raise exc_out
+            return resp
+
+        return wrapper
+
+    return decorate
 
 
 # ---------------------------------------------------------------------------- static
@@ -272,11 +350,10 @@ def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
     }
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def overview(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     now = ctx.clock.now()
     ov = await _call(readmodels.overview, ctx, now)
     return render(
@@ -290,18 +367,18 @@ async def overview(
     )
 
 
-@router.get("/cases", response_class=HTMLResponse)
+@router.get("/cases", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def queue(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
-    _view(me)
     data = await _call(_queue_data, ctx, request)
     return render(request, ctx, me, "queue.html", section="cases", **data)
 
 
-@router.get("/queue/rows", response_class=HTMLResponse)
+@router.get(
+    "/queue/rows", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
 async def queue_rows(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     data = await _call(_queue_data, ctx, request)
     return render(request, ctx, me, "_queue_rows.html", **data)
 
@@ -324,33 +401,36 @@ def _case_data(
     return data
 
 
-@router.get("/cases/{case_id}", response_class=HTMLResponse)
+@router.get(
+    "/cases/{case_id}", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
 async def case_page(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     tab = request.query_params.get("tab") or "story"
     data = await _call(_case_data, ctx, case_id, me, tab)
     return render(request, ctx, me, "case.html", section="cases", **data)
 
 
-@router.get("/cases/{case_id}/tab/{tab}", response_class=HTMLResponse)
+@router.get(
+    "/cases/{case_id}/tab/{tab}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("console.view"))],
+)
 async def case_tab(
     case_id: str, tab: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     """One pill tab of the case page (htmx partial)."""
-    _view(me)
     data = await _call(_case_data, ctx, case_id, me, tab)
     return render(request, ctx, me, f"_tab_{tab}.html", **data)
 
 
-@router.get("/cases/{case_id}/casefile.{fmt}")
+@router.get("/cases/{case_id}/casefile.{fmt}", dependencies=[Depends(needs("console.view"))])
 async def case_file_view(
     case_id: str, fmt: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     """The case file as the regulator sees it (HTML) or as data (JSON). A view: nothing is
     written; the audit pack writes and chains the files."""
-    _view(me)
     _check_id(case_id, "case id")
     if fmt not in ("html", "json"):
         raise ConsoleInputError("case file format must be html or json")
@@ -386,7 +466,12 @@ async def _case_action(
     return resp
 
 
-@router.post("/cases/{case_id}/assign", response_class=HTMLResponse)
+@router.post(
+    "/cases/{case_id}/assign",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("case.assign"))],
+)
+@audited("case.assign")
 async def assign(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
@@ -396,7 +481,12 @@ async def assign(
     return await _case_action(request, ctx, me, case_id, act, "assign")
 
 
-@router.post("/cases/{case_id}/comment", response_class=HTMLResponse)
+@router.post(
+    "/cases/{case_id}/comment",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("case.comment"))],
+)
+@audited("case.comment")
 async def comment(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
@@ -406,7 +496,10 @@ async def comment(
     return await _case_action(request, ctx, me, case_id, act, "comment")
 
 
-@router.post("/cases/{case_id}/itsm", response_class=HTMLResponse)
+@router.post(
+    "/cases/{case_id}/itsm", response_class=HTMLResponse, dependencies=[Depends(needs("case.itsm"))]
+)
+@audited("case.itsm")
 async def itsm(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
@@ -416,7 +509,12 @@ async def itsm(
     return await _case_action(request, ctx, me, case_id, act, "itsm_ref")
 
 
-@router.post("/cases/{case_id}/transition", response_class=HTMLResponse)
+@router.post(
+    "/cases/{case_id}/transition",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("case.transition"))],
+)
+@audited("case.transition")
 async def transition(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
@@ -437,11 +535,15 @@ async def transition(
     return await _case_action(request, ctx, me, case_id, act, "transition")
 
 
-@router.post("/cases/{case_id}/verify", response_class=HTMLResponse)
+@router.post(
+    "/cases/{case_id}/verify",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("case.verify"))],
+)
+@audited("case.verify")
 async def verify_case_lane(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     _htmx_only(request)
     case = await _call(ctx.cases.get, _check_id(case_id, "case id"))
     result = await _call(auditpack.verify_chain, ctx, f"agent:{case['agent_id']}")
@@ -452,16 +554,24 @@ async def verify_case_lane(
 # ---------------------------------------------------------------------------- sign-off
 
 
-@router.get("/cases/{case_id}/signoff", response_class=HTMLResponse)
+@router.get(
+    "/cases/{case_id}/signoff",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("console.view"))],
+)
 async def signoff_page(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     data = await _call(_case_data, ctx, case_id, me)
     return render(request, ctx, me, "signoff.html", section="cases", **data)
 
 
-@router.post("/cases/{case_id}/signoff", response_class=HTMLResponse)
+@router.post(
+    "/cases/{case_id}/signoff",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("case.signoff"))],
+)
+@audited("case.signoff")
 async def signoff(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
@@ -491,9 +601,8 @@ def _agents_data(ctx: ConsoleContext, me: AuthPrincipal) -> dict[str, Any]:
     return {"agents": readmodels.agent_cards(ctx, me)}
 
 
-@router.get("/agents", response_class=HTMLResponse)
+@router.get("/agents", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def agents(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
-    _view(me)
     data = await _call(_agents_data, ctx, me)
     return render(request, ctx, me, "agents.html", section="agents", **data)
 
@@ -542,7 +651,12 @@ def _record_gate_action(
     )
 
 
-@router.post("/agents/{agent_id}/{action}", response_class=HTMLResponse)
+@router.post(
+    "/agents/{agent_id}/{action}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("agent.{action}"))],
+)
+@audited("agent.{action}")
 async def agent_action(
     agent_id: str,
     action: str,
@@ -554,7 +668,6 @@ async def agent_action(
     if action not in GATE_ROLES:
         raise ConsoleInputError("unknown agent action")
     d = await form(request)
-    require(me, GATE_ROLES[action], f"{action} an agent")
     reason = d.get("reason", "")
     if action in ("quarantine", "release") and not reason.strip():
         raise CaseError(f"a reason is required to {action}")
@@ -629,22 +742,23 @@ def _metrics_data(ctx: ConsoleContext) -> dict[str, Any]:
     }
 
 
-@router.get("/metrics", response_class=HTMLResponse)
+@router.get("/metrics", response_class=HTMLResponse, dependencies=[Depends(needs("metrics.view"))])
 async def metrics(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     data = await _call(_metrics_data, ctx)
     return render(request, ctx, me, "metrics.html", **data)
 
 
-@router.post("/intake/run", response_class=HTMLResponse)
+@router.post(
+    "/intake/run", response_class=HTMLResponse, dependencies=[Depends(needs("intake.run"))]
+)
+@audited("intake.run")
 async def intake_run(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     """Explicit case intake for when the scheduler is off (a GET never writes)."""
     _htmx_only(request)
-    require(me, WORKFLOW_ROLES, "refresh cases")
     touched = await _call(case_intake.run, ctx.cases)
     data = await _call(_queue_data, ctx, request)
     resp = render(request, ctx, me, "_queue_rows.html", **data)
@@ -655,11 +769,13 @@ async def intake_run(
     return resp
 
 
-@router.post("/chain/verify", response_class=HTMLResponse)
+@router.post(
+    "/chain/verify", response_class=HTMLResponse, dependencies=[Depends(needs("chain.verify"))]
+)
+@audited("chain.verify")
 async def verify_all(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     _htmx_only(request)
     result = await _call(auditpack.verify_chain, ctx, None)
     chain = await _call(readmodels.chain_summary, ctx)
@@ -678,11 +794,10 @@ def _evidence_data(ctx: ConsoleContext) -> dict[str, Any]:
     return data
 
 
-@router.get("/evidence", response_class=HTMLResponse)
+@router.get("/evidence", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def evidence_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     data = await _call(_evidence_data, ctx)
     return render(request, ctx, me, "evidence.html", section="evidence", pack=None, **data)
 
@@ -693,38 +808,41 @@ def export_page() -> RedirectResponse:
     return RedirectResponse("/console/evidence", status_code=303)
 
 
-@router.post("/chain/export", response_class=HTMLResponse)
+@router.post(
+    "/chain/export", response_class=HTMLResponse, dependencies=[Depends(needs("evidence.export"))]
+)
+@audited("evidence.export")
 async def chain_export(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     await form(request)
-    require(me, EXPORT_ROLES, "export the evidence chain")
     pack = await _call(auditpack.build_chain_export, ctx, me)
     return render(request, ctx, me, "_export_result.html", pack=pack)
 
 
-@router.post("/export", response_class=HTMLResponse)
+@router.post(
+    "/export", response_class=HTMLResponse, dependencies=[Depends(needs("evidence.export"))]
+)
+@audited("evidence.export")
 async def export_build(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     await form(request)
-    require(me, EXPORT_ROLES, "export an audit pack")
     pack = await _call(auditpack.build_audit_pack, ctx, me)
     return render(request, ctx, me, "_export_result.html", pack=pack)
 
 
-@router.get("/exports/{name}")
+@router.get("/exports/{name}", dependencies=[Depends(needs("evidence.download"))])
 async def export_download(
     name: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    require(me, EXPORT_ROLES, "download an audit pack")
     path = auditpack.pack_path(ctx, name)
     return FileResponse(path, media_type="application/zip", filename=name)
 
 
 # ---------------------------------------------------------------------------- onboard
 
-ONBOARD_ROLES = ("reviewer", "owner", "admin")
+ONBOARD_ROLES = rbac.roles_for("onboard.start")
 
 
 def _onboard_data(ctx: ConsoleContext) -> dict[str, Any]:
@@ -742,25 +860,28 @@ def _onboard_data(ctx: ConsoleContext) -> dict[str, Any]:
     }
 
 
-@router.get("/onboard", response_class=HTMLResponse)
+@router.get("/onboard", response_class=HTMLResponse, dependencies=[Depends(needs("onboard.view"))])
 async def onboard_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     data = await _call(_onboard_data, ctx)
     return render(request, ctx, me, "onboard.html", section="onboard", **data)
 
 
-@router.get("/onboard/status", response_class=HTMLResponse)
+@router.get(
+    "/onboard/status", response_class=HTMLResponse, dependencies=[Depends(needs("onboard.view"))]
+)
 async def onboard_status(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     data = await _call(_onboard_data, ctx)
     return render(request, ctx, me, "_onboard_status.html", **data)
 
 
-@router.post("/onboard/start", response_class=HTMLResponse)
+@router.post(
+    "/onboard/start", response_class=HTMLResponse, dependencies=[Depends(needs("onboard.start"))]
+)
+@audited("onboard.start")
 async def onboard_start(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
@@ -770,7 +891,6 @@ async def onboard_start(
             "Onboard from the console is off (CONSOLE_ONBOARD_ENABLED=1 turns it on); "
             "use python -m supervisor.onboard --target <folder> --out <folder>"
         )
-    require(me, ONBOARD_ROLES, "start an onboarding run")
     if me.kind != "user":
         raise PermissionDenied("starting an onboarding run needs a signed-in person")
     target = onboard_runs.resolve_target(d.get("target", ""))
@@ -779,11 +899,10 @@ async def onboard_start(
     return render(request, ctx, me, "_onboard_status.html", **data)
 
 
-@router.get("/onboard/files/{agent}/{name}")
+@router.get("/onboard/files/{agent}/{name}", dependencies=[Depends(needs("onboard.view"))])
 async def onboard_file(
     agent: str, name: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     path = onboard_runs.artefact_path(ctx.settings, agent, name)
     media = "application/json" if name.endswith(".json") else "text/plain"
     resp = FileResponse(path, media_type=f"{media}; charset=utf-8")
@@ -794,11 +913,10 @@ async def onboard_file(
 # ---------------------------------------------------------------------------- health
 
 
-@router.get("/health", response_class=HTMLResponse)
+@router.get("/health", response_class=HTMLResponse, dependencies=[Depends(needs("health.view"))])
 async def health_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    _view(me)
     data = await _call(health.health, ctx)
     return render(request, ctx, me, "health.html", section="health", **data)
 
@@ -806,20 +924,23 @@ async def health_page(
 # ---------------------------------------------------------------------------- inbox
 
 
-@router.get("/inbox", response_class=HTMLResponse)
+@router.get("/inbox", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def inbox(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
-    _view(me)
     notices = await _call(ctx.inbox.list)
     return render(request, ctx, me, "inbox.html", notices=notices)
 
 
-@router.post("/inbox/{notice_id}/read", response_class=HTMLResponse)
+@router.post(
+    "/inbox/{notice_id}/read",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("inbox.read"))],
+)
+@audited("inbox.read")
 async def inbox_read(
     notice_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _check_id(notice_id, "notice id")
     d = await form(request)
-    _view(me)
     if me.kind != "user":
         raise PermissionDenied("marking a notice read needs a signed-in person")
     await _call(ctx.inbox.mark_read, notice_id, me.user_id, _version(d))
@@ -831,6 +952,7 @@ async def inbox_read(
 
 
 @router.post("/dev/user")
+@audited("dev.user")
 async def dev_user(request: Request, ctx: ConsoleContext = _CTX) -> Response:
     d = await form(request)
     if ctx.provider.name != "dev_header":
