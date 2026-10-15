@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import argparse
 import shutil
-import sqlite3
 import sys
 import tempfile
 from collections.abc import Sequence
@@ -57,15 +56,10 @@ def _break(executor: Any) -> None:
 
 
 def _restore(executor: Any) -> None:
-    """Open a new connection to the same file, with the executor's own settings."""
+    """Open a new connection to the same file by building a fresh executor on it."""
+    fresh = type(executor)(executor.path, executor.table_prefix)
     with executor._lock:  # noqa: SLF001
-        conn = sqlite3.connect(
-            str(executor.path), check_same_thread=False, isolation_level=None, timeout=10.0
-        )
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA busy_timeout = 10000")
-        conn.execute("PRAGMA journal_mode = WAL")
-        executor._conn = conn  # noqa: SLF001
+        executor._conn = fresh._conn  # noqa: SLF001
 
 
 def _money_args(world: Any) -> dict[str, Any]:
