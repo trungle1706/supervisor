@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_assurance') }}{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>{{ t('nav_assurance') }}</h1></div>
+{{ ui.purpose(t('as_purpose'), t('as_why')) }}
+<div id="assurance-body" data-assurance="1">
+{% if run_id is defined and run_id %}
+{% include "_assurance_run.html" %}
+{% else %}
+{% include "_assurance_runs.html" %}
+{% endif %}
+</div>
+{% endblock %}

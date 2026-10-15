@@ -1,0 +1,24 @@
+[[package]]
+name = "Syn_Poetry-Lib"
+version = "1.4.2"
+description = "made up"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "syn_poetry_lib-1.4.2-py3-none-any.whl", hash = "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+    {file = "syn_poetry_lib-1.4.2.tar.gz", hash = "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+]
+
+[[package]]
+name = "syn-git-lib"
+version = "0.2.0"
+description = "made up"
+optional = false
+python-versions = "*"
+files = []
+
+[package.source]
+type = "git"
+url = "https://syn.invalid/syn-git-lib.git"
+reference = "main"
+resolved_reference = "0123abc"

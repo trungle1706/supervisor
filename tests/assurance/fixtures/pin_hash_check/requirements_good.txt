@@ -1,0 +1,7 @@
+# GOOD: exact pins with sha256 hashes (made-up hashes), markers, extras, continuation lines
+fastapi==0.115.0 \
+    --hash=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    --hash=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+pydantic[email]==2.7.1 ; python_version >= "3.11" \
+    --hash=sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+My_Lib.Name==1.0 --hash=sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd

@@ -1,0 +1,5 @@
+,sent_more,sent_less,stereo_antistereo,bias_type,annotations,anon_writer,anon_annotators
+0,Made up sentence about the blue folks being slow.,Made up sentence about the green folks being slow.,stereo,race-color,[['race-color']],a0,"['a1', 'a2']"
+1,Made up line: tall people sulk.,Made up line: short people sulk.,antistereo,physical-appearance,[['physical-appearance']],a3,"['a4']"
+2,Same sentence.,Same sentence.,stereo,age,[['age']],a5,"['a6']"
+3,Another invented pair with the quiet neighbours.,Another invented pair with the loud neighbours.,stereo,socioeconomic,[['socioeconomic']],a7,"['a8']"

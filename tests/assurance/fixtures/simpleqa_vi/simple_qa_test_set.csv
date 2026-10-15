@@ -1,0 +1,5 @@
+metadata,problem,answer
+"{'topic': 'Made up', 'answer_type': 'Number', 'urls': ['https://example.test/1']}",How many keys does the made-up piano of Zeta Town have?,88
+"{'topic': 'Made up', 'answer_type': 'Person', 'urls': ['https://example.test/2']}",Who painted the made-up mural at Quark Station?,Lena Marlowe
+"{'topic': 'Made up', 'answer_type': 'Date', 'urls': ['https://example.test/3']}",In which year was the invented Orb Bridge opened?,1.987
+"{'topic': 'Made up', 'answer_type': 'Number', 'urls': []}",,5

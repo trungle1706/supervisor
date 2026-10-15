@@ -1,0 +1,8 @@
+# BAD: ranges, no hashes (made-up agent dependencies)
+fastapi>=0.100
+httpx~=0.27
+pydantic[email]>=2,<3 ; python_version >= "3.11"
+requests
+syn-lib @ git+https://syn.invalid/syn-lib.git@0123abc
+-r other.txt
+--index-url https://syn.invalid/simple

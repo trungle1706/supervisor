@@ -90,6 +90,10 @@ COMPLIANCE_ARTEFACTS = (
 )
 
 
+# Written only when assurance ran in Launch (ASSURANCE_LAUNCH_ENABLED); not in ARTEFACTS.
+ASSURANCE_ARTEFACTS = ("assurance_report.md", "assurance_report.json")
+
+
 @dataclass
 class OnboardResult:
     run_id: str
@@ -400,6 +404,20 @@ def _stages(
     write("launch_report.json", _json(report), "launch")
     write("launch_report.md", render.launch_md(report), "launch")
     write("baseline.json", _json(report.baseline), "launch")
+    if report.assurance_enabled:
+        write("assurance_report.md", render.assurance_md(report), "launch")
+        write(
+            "assurance_report.json",
+            _json(
+                {
+                    "agent_id": report.agent_id,
+                    "go": report.go,
+                    "assurance_reasons": report.assurance_reasons,
+                    "results": report.assurance,
+                }
+            ),
+            "launch",
+        )
     summary = {
         "decision": "GO" if report.go else "NO-GO",
         "catch_rate_bp": report.catch_rate_bp,

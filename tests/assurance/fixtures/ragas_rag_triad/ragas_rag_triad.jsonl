@@ -1,0 +1,3 @@
+{"id": "r1", "question": "Phí thẻ Demo Silver là bao nhiêu?", "contexts": ["Phí thẻ Demo Silver là 50.000 đồng mỗi năm.", "Chi nhánh nghỉ Chủ nhật."], "answer": "Phí thẻ Demo Silver là 50.000 đồng mỗi năm."}
+{"id": "r2", "question": "Hotline là số nào?", "contexts": ["Chi nhánh nghỉ Chủ nhật.", "Hotline là 1900 1234."], "answer": "Hotline là 1900 1234."}
+{"id": "r3", "question": "Câu hỏi không có ngữ cảnh?", "contexts": [], "answer": "x"}
