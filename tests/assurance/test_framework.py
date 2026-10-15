@@ -19,6 +19,7 @@ from supervisor.assurance.engine import (
     metric_verdict,
     run_packs,
 )
+from supervisor.assurance.gates import assurance_launch_items, assurance_launch_notes
 from supervisor.assurance.loader import PackError, load_packs, manifest_sha256
 from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput
 from supervisor.assurance.registry import RegistryError, resolve_runner, select
@@ -279,14 +280,86 @@ def test_pack_status_from_metrics() -> None:
     assert status == "fail" and ms["miss_rate"] == "fail"
     assert ms["info_count"] == "na"  # no threshold: informational
     ms, reasons, status = apply_thresholds(pack, {"hit_rate": 9000, "miss_rate": None})
-    assert status == "ok" and ms["miss_rate"] == "na" and "not computable" in reasons[0]
+    assert status == "skip" and ms["miss_rate"] == "na"
+    assert reasons == ["metric miss_rate not measured"]
+    ms, reasons, status = apply_thresholds(
+        pack, {"hit_rate": 9000, "miss_rate": None}, not_applicable={"miss_rate"}
+    )
+    assert status == "ok" and ms["miss_rate"] == "na" and reasons == []
+    # a fail still wins over an unmeasured metric
+    assert apply_thresholds(pack, {"hit_rate": 100, "miss_rate": None})[2] == "fail"
+    # everything not applicable or missing -> skip, never ok
+    _, _, st = apply_thresholds(
+        pack, {"hit_rate": None, "miss_rate": None}, not_applicable={"hit_rate", "miss_rate"}
+    )
+    assert st == "skip"
     assert apply_thresholds(pack, {"hit_rate": None, "miss_rate": None})[2] == "skip"
     assert apply_thresholds(pack, {})[2] == "skip"
 
 
-def test_pack_without_thresholds_is_ok_when_computed() -> None:
-    pack = pack_of(thresholds=[])
-    assert apply_thresholds(pack, {"hit_rate": 1})[2] == "ok"
+def test_pack_without_thresholds_is_refused() -> None:
+    with pytest.raises(ValueError, match="at least one threshold"):
+        pack_of(thresholds=[])
+
+
+def test_requires_capabilities_validated() -> None:
+    assert pack_of(requires_capabilities=["decide"]).requires_capabilities == ["decide"]
+    with pytest.raises(ValueError, match="unknown capabilities"):
+        pack_of(requires_capabilities=["telepathy"])
+
+
+def test_unmeasured_metric_makes_the_pack_skip_in_the_engine() -> None:
+    out = ok_output(metrics={"hit_rate": 9000, "miss_rate": None, "info_count": 3})
+    _, r = run_one(lambda p, c: out)
+    assert r.status == "skip" and r.reasons == ["metric miss_rate not measured"]
+    declared = ok_output(
+        metrics={"hit_rate": 9000, "miss_rate": None, "info_count": 3},
+        not_applicable_metrics={"miss_rate"},
+    )
+    assert run_one(lambda p, c: declared)[1].status == "ok"
+
+
+def test_requires_capabilities_gives_structured_not_applicable_skip() -> None:
+    pack = pack_of(requires_capabilities=["decide"], launch_gate="required")
+    called: list[int] = []
+
+    def fn(p: EvalPack, c: RunContext) -> RunnerOutput:
+        called.append(1)
+        return ok_output()
+
+    sink = MemorySink()
+    no_decide = FakeAgent(capabilities=frozenset({"chat"}))
+    s = run_packs([pack], no_decide, ctx(no_decide), overrides={RUNNER: FnRunner(fn)}, sink=sink)
+    r = s.results[0]
+    assert r.status == "skip" and not called
+    assert r.reasons == ["not applicable: target lacks decide"]
+    assert r.details["not_applicable"] is True
+    assert sink.entries[0][2]["not_applicable"] is True
+    assert assurance_launch_items([r], [pack]) == []
+    assert len(assurance_launch_notes([r], [pack])) == 1
+    with_decide = FakeAgent(capabilities=frozenset({"chat", "decide"}))
+    r2 = run_packs([pack], with_decide, ctx(with_decide), overrides={RUNNER: FnRunner(fn)}).results[
+        0
+    ]
+    assert r2.status == "ok" and called
+    judge = FakeJudge(
+        lambda e: {"score_bp": 0, "label": "ok", "tier": 1}
+    )  # the rule is for agent targets only
+    r3 = run_packs([pack], judge, ctx(judge), overrides={RUNNER: FnRunner(fn)}).results[0]
+    assert r3.status == "ok"
+
+
+def test_error_payload_carries_only_the_exception_class() -> None:
+    def boom(p: EvalPack, c: RunContext) -> RunnerOutput:
+        raise ValueError("secret 0912345678 in message")
+
+    sink = MemorySink()
+    target = FakeAgent()
+    s = run_packs([pack_of()], target, ctx(target), overrides={RUNNER: FnRunner(boom)}, sink=sink)
+    assert s.results[0].reasons == ["ValueError: secret 0912345678 in message"]
+    payload = sink.entries[0][2]
+    assert payload["reasons"] == ["error: ValueError"]
+    assert "0912345678" not in json.dumps(payload)
 
 
 # --------------------------------------------------------------------------- engine
@@ -448,6 +521,7 @@ def test_evidence_payload_shape() -> None:
         "run_id", "pack_id", "pack_version", "manifest_sha256", "dimension", "target_kind",
         "target_id", "status", "metrics", "metric_status", "thresholds", "n_items", "data_mode",
         "dataset_id", "dataset_sha256", "is_mock", "launch_gate", "judge_gate", "reasons",
+        "not_applicable",
     }  # fmt: skip
     assert not has_float(payload)
     assert all(type(v) is int or v is None for v in payload["metrics"].values())

@@ -31,6 +31,7 @@ from typing import Any
 
 from supervisor.assurance import perturb, textutil
 from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput
+from supervisor.assurance.runners.accuracy_common import is_answer
 
 CORRECT_F1_BP = 6000
 FLAG_BP = 5000
@@ -87,6 +88,7 @@ def _finish(
     dataset_id: str,
     metrics: dict[str, int | None],
     details: dict[str, Any],
+    na: Sequence[str] = (),
 ) -> RunnerOutput:
     return RunnerOutput(
         status="ok",
@@ -97,6 +99,7 @@ def _finish(
         dataset_sha256=textutil.sha256_lines(_canon(rows)),
         is_mock=bool(getattr(ctx.target, "is_mock", False)),
         details=details,
+        not_applicable_metrics=set(na),
     )
 
 
@@ -118,6 +121,13 @@ def _with_message(events: Sequence[Mapping[str, Any]], text: str) -> list[dict[s
     return out
 
 
+# Thresholded metrics that do not apply to the other target kind (declared n/a to the engine).
+JUDGE_ONLY_PERTURBATION = ("verdict_flip_rate_bp", "mean_score_shift_bp")
+AGENT_ONLY_PERTURBATION = ("answer_consistency_bp", "accuracy_drop_bp", "answered_bp")
+JUDGE_ONLY_PARAPHRASE = ("label_agreement_bp",)
+AGENT_ONLY_PARAPHRASE = ("pairwise_consistency_bp", "paraphrase_accuracy_bp")
+
+
 # ------------------------------------------------------------------------ perturbation_vi
 class PerturbationRunner:
     """CheckList-style invariance of the agent and of the judge under six perturbations."""
@@ -137,21 +147,26 @@ class PerturbationRunner:
             if "chat" not in _caps(ctx.target):
                 return RunnerOutput.skip("agent target lacks the 'chat' capability")
             metrics, details = self._agent(ctx, rows)
+            na = JUDGE_ONLY_PERTURBATION
         else:
             metrics, details = self._judge(ctx, rows)
-        return _finish(pack, ctx, rows, dataset_id, metrics, details)
+            na = AGENT_ONLY_PERTURBATION
+        return _finish(pack, ctx, rows, dataset_id, metrics, details, na)
 
     def _agent(
         self, ctx: RunContext, rows: list[dict[str, Any]]
     ) -> tuple[dict[str, int | None], dict[str, Any]]:
         t = ctx.target
+        answered = 0
         per: dict[str, dict[str, list[int]]] = {
             k: {"cons": [], "clean_ok": [], "pert_ok": []} for k in ROBUST_KINDS
         }
         skipped = 0
         for row in rows:
             context = list(row.get("context") or [])
-            clean = t.respond(row["question"], context=context).text
+            clean_reply = t.respond(row["question"], context=context)
+            clean = clean_reply.text
+            answered += int(is_answer(clean_reply))
             clean_ok = int(_correct(clean, row["answer"]))
             for k in ROBUST_KINDS:
                 pq = perturb.apply(k, row["question"], seed=ctx.seed)
@@ -183,11 +198,13 @@ class PerturbationRunner:
             "answer_consistency_bp": textutil.mean_int(all_cons),
             "accuracy_drop_bp": textutil.bp(clean_ok_n - pert_ok_n, n_pairs),
             "worst_kind_consistency_bp": min(kind_cons) if kind_cons else None,
+            "answered_bp": textutil.bp(answered, len(rows)),
             "verdict_flip_rate_bp": None,
             "mean_score_shift_bp": None,
         }
         details = {
             "target": "agent",
+            "answered": answered,
             "per_kind": by_kind,
             "pairs": n_pairs,
             "skipped_unchanged": skipped,
@@ -233,6 +250,7 @@ class PerturbationRunner:
             "answer_consistency_bp": None,
             "accuracy_drop_bp": None,
             "worst_kind_consistency_bp": None,
+            "answered_bp": None,
             "verdict_flip_rate_bp": textutil.bp(sum(flips), len(flips)),
             "mean_score_shift_bp": textutil.mean_int(shifts),
         }
@@ -266,9 +284,11 @@ class ParaphraseRunner:
             if "chat" not in _caps(ctx.target):
                 return RunnerOutput.skip("agent target lacks the 'chat' capability")
             metrics, details = self._agent(ctx, rows)
+            na = JUDGE_ONLY_PARAPHRASE
         else:
             metrics, details = self._judge(ctx, rows)
-        return _finish(pack, ctx, rows, dataset_id, metrics, details)
+            na = AGENT_ONLY_PARAPHRASE
+        return _finish(pack, ctx, rows, dataset_id, metrics, details, na)
 
     def _agent(
         self, ctx: RunContext, rows: list[dict[str, Any]]

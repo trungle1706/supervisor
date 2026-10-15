@@ -7,38 +7,51 @@ Launch (``assurance_launch_items``)
     ``fail`` -> one reason per failing metric (``assurance pack <id> failed: <metric>
     <value> vs no-go <no_go>``); ``error`` -> ``assurance pack <id> errored: <reason>``;
     ``skip`` -> ``assurance pack <id> skipped (required): <reason>`` (never a silent
-    pass), except a skip because the target lacks a capability the pack needs (reason
-    contains ``lacks capability``, e.g. a credit-decision pack on a payments agent): the
-    pack does not apply to that agent, so it is a note, not a NO-GO. ``warn`` results
-    and packs with ``advisory`` or ``off`` never give NO-GO; they
-    are returned by ``assurance_launch_notes``.
+    pass), except a structured not-applicable skip (``details.not_applicable`` true, set
+    by the engine when the target lacks a capability in the pack's ``requires_capabilities``,
+    e.g. a credit-decision pack on a payments agent): that is a note, not a NO-GO. Every
+    other skip stays NO-GO. With ``expect_target_kind``, a required pack for that kind with
+    no result at all gives ``assurance pack <id> has no result (required)``. ``warn``
+    results and packs with ``advisory`` or ``off`` never give NO-GO; they are returned by
+    ``assurance_launch_notes``.
 
 Judge enablement (``judge_enablement_problems``)
     A non-mock judge may run only when each pack with ``judge_gate: true`` has a latest
     stored ``eval_result`` row, status ``ok`` or ``warn``, not from a mock run, for the
-    manifest's current ``version``. Match rule: the row's ``target_kind`` is ``judge`` and
+    manifest's current ``version`` and current manifest hash (a threshold edit without a
+    version bump invalidates an old pass). Match rule: the row's ``target_kind`` is ``judge`` and
     its ``target_id`` is ``judge:<model_id of the tier-1 primary judge>`` (the id the
-    judge targets in ``assurance.targets`` use). Mock judges are exempt (phase-1
-    behaviour, labelled mock).
+    judge targets in ``assurance.targets`` use). The exemption needs BOTH
+    primary judges (t1 and t2) to be mock; a mixed setup (real t1 + mock t2) is gated on
+    the t1 model id like a fully real one. Mock judges are exempt (phase-1 behaviour,
+    labelled mock).
 """
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from supervisor.assurance.loader import PACKS_DIR, load_packs
+from supervisor.assurance.loader import PACKS_DIR, load_packs, manifest_sha256, pack_path
 from supervisor.assurance.model import EvalPack, PackResult
 from supervisor.assurance.results import latest_results
 from supervisor.core.errors import ConfigError
 
 OK_STATUSES = ("ok", "warn")
-NOT_APPLICABLE_MARK = "lacks capability"
 
 
 def not_applicable(d: Mapping[str, Any]) -> bool:
-    """A skip that means 'this pack does not apply to this target' (not 'no data')."""
-    return d.get("status") == "skip" and any(NOT_APPLICABLE_MARK in r for r in d["reasons"])
+    """A skip that the engine marked 'this pack does not apply to this target'."""
+    if d.get("status") != "skip":
+        return False
+    details = d.get("details")
+    if isinstance(details, str):
+        try:
+            details = json.loads(details)
+        except ValueError:
+            return False
+    return isinstance(details, Mapping) and details.get("not_applicable") is True
 
 
 class JudgeNotValidatedError(ConfigError):
@@ -63,6 +76,7 @@ def _row(r: PackResult | Mapping[str, Any]) -> dict[str, Any]:
             "metric_status": dict(r.metric_status),
             "reasons": list(r.reasons),
             "target_id": r.target_id,
+            "details": dict(r.details),
         }
     reasons = d.get("reasons") or []
     if isinstance(reasons, str):
@@ -76,11 +90,21 @@ def _sort_key(d: Mapping[str, Any]) -> tuple[str, str]:
 
 
 def assurance_launch_items(
-    results: Sequence[PackResult | Mapping[str, Any]], packs: Sequence[EvalPack]
+    results: Sequence[PackResult | Mapping[str, Any]],
+    packs: Sequence[EvalPack],
+    *,
+    expect_target_kind: str | None = None,
 ) -> list[str]:
     """NO-GO reasons from results of packs with ``launch_gate: required`` (see module doc)."""
     by_id = {p.id: p for p in packs}
     out: list[str] = []
+    if expect_target_kind is not None:
+        have = {str(_row(r).get("pack_id")) for r in results}
+        out += [
+            f"assurance pack {p.id} has no result (required)"
+            for p in sorted(packs, key=lambda p: p.id)
+            if p.launch_gate == "required" and expect_target_kind in p.targets and p.id not in have
+        ]
     for d in sorted((_row(r) for r in results), key=_sort_key):
         pack = by_id.get(str(d.get("pack_id")))
         if pack is None or pack.launch_gate != "required":
@@ -164,9 +188,19 @@ def judge_enablement_problems(
                 f"pack {pack.id}: result is for version {row.get('pack_version')}, "
                 f"the manifest is version {pack.version} ({run_hint})"
             )
+        elif row.get("manifest_sha256") != _current_manifest_hash(pack):
+            problems.append(
+                f"pack {pack.id}: the manifest changed since this result (thresholds or "
+                f"metrics edited); run it again ({run_hint})"
+            )
         elif row.get("is_mock"):
             problems.append(f"pack {pack.id}: the result is from a mock run, not this judge")
     return problems
+
+
+def _current_manifest_hash(pack: EvalPack) -> str | None:
+    path = pack_path(pack.id)
+    return manifest_sha256(path) if path.is_file() else None
 
 
 def require_judge_validated(

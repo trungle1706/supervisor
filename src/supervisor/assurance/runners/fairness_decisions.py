@@ -298,9 +298,11 @@ def _ok(
     sha: str,
     metrics: dict[str, int | None],
     details: dict[str, Any],
+    na: tuple[str, ...] = (),
 ) -> RunnerOutput:
     return RunnerOutput(
         status="ok",
+        not_applicable_metrics=set(na),
         metrics=metrics,
         n_items=len(recs),
         data_mode="synthetic",
@@ -350,7 +352,8 @@ class FairnessMetricsRunner:
         details = {"attributes": per, "min_group_n": MIN_GROUP_N, **notes}
         if not labelled:
             details["equalized_odds"] = "not computed: traces carry no ground-truth label"
-        return _ok(pack, ctx, recs, sha, metrics, details)
+        na = () if labelled else ("equalized_odds_difference_bp",)
+        return _ok(pack, ctx, recs, sha, metrics, details, na)
 
 
 class FourFifthsRunner:
@@ -616,8 +619,14 @@ class CounterfactualRunner:
                 n_items=n_items,
                 details=details,
             )
+        na: set[str] = set()
+        if not can_decide:
+            na |= {"decision_flip_rate_bp", "limit_change_rate_bp"}
+        if not can_chat:
+            na.add("reply_divergence_bp")
         return RunnerOutput(
             status="ok",
+            not_applicable_metrics=na,
             metrics=metrics,
             n_items=n_items,
             data_mode="synthetic",

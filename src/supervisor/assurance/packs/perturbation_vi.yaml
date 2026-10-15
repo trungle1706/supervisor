@@ -1,5 +1,5 @@
 id: perturbation_vi
-version: 1
+version: 2
 dimension: robustness
 title: Vietnamese input perturbation invariance (agent and judge)
 description: >-
@@ -15,7 +15,8 @@ description: >-
   tool results is perturbed; verdict_flip_rate_bp = share of (trace, perturbation) pairs
   whose flagged state (score_bp >= 5000) changes; mean_score_shift_bp = mean absolute
   score change. The judge must be robust before enablement (judge_gate). Pairs where the
-  perturbation leaves the text unchanged are skipped. Thresholds are ILLUSTRATIVE until the
+  perturbation leaves the text unchanged are skipped. answered_bp guards against an agent
+  that is consistent only because it always abstains (illustrative go 6000, no-go 4000). Thresholds are ILLUSTRATIVE until the
   bank sets its own.
 source:
   name: Own implementation after CheckList invariance tests and AdvGLUE / TextFlint-style perturbations
@@ -45,6 +46,10 @@ metrics:
     direction: higher_better
     unit: bp
     description: "Agent, information. Lowest per-perturbation mean consistency; per kind values are in details."
+  - name: answered_bp
+    direction: higher_better
+    unit: bp
+    description: "Agent, guard. Share of the clean answers that are real answers, not an abstention or a refusal (accuracy_common.classify_reply). Without it an agent that always abstains would be perfectly consistent. Not applicable on a judge target."
   - name: verdict_flip_rate_bp
     direction: lower_better
     unit: bp
@@ -56,6 +61,7 @@ metrics:
 thresholds:
   - {metric: answer_consistency_bp, go: 8000, no_go: 6000}
   - {metric: accuracy_drop_bp, go: 1000, no_go: 2500}
+  - {metric: answered_bp, go: 6000, no_go: 4000}
   - {metric: verdict_flip_rate_bp, go: 500, no_go: 1500}
   - {metric: mean_score_shift_bp, go: 500, no_go: 1500}
 maps_to:

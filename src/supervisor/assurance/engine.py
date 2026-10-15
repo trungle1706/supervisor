@@ -8,6 +8,12 @@ The engine, not the runner, decides pass or fail:
 * thresholds per metric follow :class:`~supervisor.assurance.model.Threshold`;
   a pack with thresholds whose metrics are all ``None`` is ``skip`` ("metrics not
   computable"); a skipped pack is never ``ok``;
+* a thresholded metric that is ``None`` and not declared in ``RunnerOutput.
+  not_applicable_metrics`` is *unmeasured*: the pack is ``skip`` ("metric <m> not
+  measured") unless another metric already fails;
+* an agent target that lacks a capability in ``pack.requires_capabilities`` gets a
+  ``skip`` with ``details.not_applicable = true`` before the runner is called (the only
+  skip that Launch treats as a note);
 * pack status: ``fail`` if any metric fails, else ``warn`` if any warns, else ``ok``.
 
 Outputs: ``eval_result`` rows (one ``eval_run`` row per run), one ``assurance_result``
@@ -18,7 +24,7 @@ evidence record per result (integers, strings and booleans only), and ``results.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -119,14 +125,18 @@ def metric_verdict(direction: str, value: int | None, go: int, no_go: int) -> Me
 
 
 def apply_thresholds(
-    pack: EvalPack, metrics: Mapping[str, int | None]
+    pack: EvalPack,
+    metrics: Mapping[str, int | None],
+    not_applicable: Collection[str] = (),
 ) -> tuple[dict[str, MetricStatusT], list[str], StatusT]:
     """(metric_status, reasons, status) for computed ``metrics``.
 
     Metrics without a threshold are ``na`` (informational). All thresholded metrics
-    ``None`` -> status ``skip``."""
+    ``None`` -> status ``skip``. A thresholded ``None`` metric the runner did not declare
+    in ``not_applicable`` is unmeasured -> status ``skip`` (a fail still wins)."""
     ms: dict[str, MetricStatusT] = {}
     reasons: list[str] = []
+    unmeasured: list[str] = []
     thresholded = 0
     computed = 0
     for spec in pack.metrics:
@@ -147,12 +157,15 @@ def apply_thresholds(
             )
         elif verdict == "warn":
             reasons.append(f"{spec.name}={value} is in the warn band (go {op_go} {thr.go})")
-        elif verdict == "na":
-            reasons.append(f"{spec.name} not computable")
+        elif verdict == "na" and spec.name not in not_applicable:
+            unmeasured.append(spec.name)
+            reasons.append(f"metric {spec.name} not measured")
     if thresholded and computed == 0:
         return ms, ["metrics not computable"], "skip"
     if "fail" in ms.values():
         return ms, reasons, "fail"
+    if unmeasured:
+        return ms, reasons, "skip"
     if "warn" in ms.values():
         return ms, reasons, "warn"
     return ms, reasons, "ok"
@@ -178,6 +191,7 @@ def _result(
     metrics: Mapping[str, int | None] | None = None,
     metric_status: Mapping[str, MetricStatusT] | None = None,
     out: RunnerOutput | None = None,
+    details: Mapping[str, Any] | None = None,
 ) -> PackResult:
     metrics = dict(metrics or {})
     return PackResult(
@@ -200,7 +214,7 @@ def _result(
         judge_gate=pack.judge_gate,
         started_at=started,
         finished_at=finished,
-        details=dict(out.details) if out else {},
+        details={**(out.details if out else {}), **(details or {})},
     )
 
 
@@ -214,6 +228,20 @@ def run_pack(
     """Run one pack on ``ctx.target``. Never raises for a runner problem."""
     target = ctx.target
     started = clock.now()
+    if pack.requires_capabilities and getattr(target, "kind", None) == "agent":
+        have = set(getattr(target, "capabilities", ()) or ())
+        missing = [c for c in pack.requires_capabilities if c not in have]
+        if missing:
+            return _result(
+                pack,
+                run_id,
+                target,
+                started,
+                clock.now(),
+                "skip",
+                reasons=[f"not applicable: target lacks {', '.join(missing)}"],
+                details={"not_applicable": True},
+            )
     try:
         out = runner.run(pack, ctx)
     except Exception as exc:  # noqa: BLE001 - one broken runner must not stop the run
@@ -225,6 +253,7 @@ def run_pack(
             clock.now(),
             "error",
             reasons=[_short(f"{type(exc).__name__}: {exc}")],
+            details={"error_class": type(exc).__name__},
         )
     finished = clock.now()
     problem = validate_output(pack, out)
@@ -237,6 +266,7 @@ def run_pack(
             finished,
             "error",
             reasons=[_short(f"invalid runner output: {problem}")],
+            details={"error_class": "InvalidRunnerOutput"},
         )
     if out.status == "skip":
         return _result(
@@ -262,7 +292,7 @@ def run_pack(
             metrics=out.metrics,
             out=out,
         )
-    metric_status, reasons, status = apply_thresholds(pack, out.metrics)
+    metric_status, reasons, status = apply_thresholds(pack, out.metrics, out.not_applicable_metrics)
     return _result(
         pack,
         run_id,
@@ -313,7 +343,13 @@ def evidence_payload(r: PackResult, pack: EvalPack, manifest_hash: str) -> dict[
         "is_mock": r.is_mock,
         "launch_gate": r.launch_gate,
         "judge_gate": r.judge_gate,
-        "reasons": list(r.reasons),
+        # an error carries only the exception class name: the text may hold secrets or PII
+        "reasons": (
+            [f"error: {r.details.get('error_class', 'error')}"]
+            if r.status == "error"
+            else list(r.reasons)
+        ),
+        "not_applicable": bool(r.details.get("not_applicable")),
     }
 
 
@@ -383,7 +419,16 @@ def execute(
             runner = resolve_runner(pack, overrides)
         except SupervisorError as exc:
             now = clock.now()
-            res = _result(pack, run_id, target, now, now, "error", reasons=[_short(str(exc))])
+            res = _result(
+                pack,
+                run_id,
+                target,
+                now,
+                now,
+                "error",
+                reasons=[_short(str(exc))],
+                details={"error_class": type(exc).__name__},
+            )
         else:
             res = run_pack(pack, runner, ctx, run_id, clock)
         results.append(res)

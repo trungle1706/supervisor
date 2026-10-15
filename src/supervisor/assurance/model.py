@@ -60,6 +60,7 @@ LaunchGateT = Literal["required", "advisory", "off"]
 StatusT = Literal["ok", "warn", "fail", "skip", "error"]
 MetricStatusT = Literal["pass", "warn", "fail", "na"]
 
+CAPABILITIES = frozenset({"chat", "tools", "planned", "decide", "deps", "models", "tool_manifest"})
 SHARE_ALIKE = frozenset({"CC-BY-SA-4.0", "CC-BY-SA-3.0"})
 VENDORABLE = frozenset({"MIT", "Apache-2.0", "CC-BY-4.0", "BSD-3-Clause", "own"})
 
@@ -152,6 +153,10 @@ class EvalPack(_Strict):
     judge_gate: bool = False  # True: judge enablement requires this pack to pass
     importer: str | None = None  # bank_supplied_path: expected files + format (docs)
     min_items: int = Field(ge=1, default=10)  # fewer usable items -> skip, never pass
+    # An agent target that lacks any of these capabilities gets a structured "not applicable"
+    # skip from the engine (never a NO-GO). Only for packs that do not apply to some agents
+    # (credit decisions); behavioural packs leave it empty so a missing capability stays a NO-GO.
+    requires_capabilities: list[str] = Field(default_factory=list)
     owner: str = "Supervisor Assurance"
 
     @model_validator(mode="after")
@@ -167,6 +172,11 @@ class EvalPack(_Strict):
                 raise ValueError(f"{self.id}.{t.metric}: higher_better needs go >= no_go")
             if spec.direction == "lower_better" and t.go > t.no_go:
                 raise ValueError(f"{self.id}.{t.metric}: lower_better needs go <= no_go")
+        if not self.thresholds:
+            raise ValueError(f"{self.id}: a pack needs at least one threshold")
+        bad_caps = [c for c in self.requires_capabilities if c not in CAPABILITIES]
+        if bad_caps:
+            raise ValueError(f"{self.id}: unknown capabilities {bad_caps}")
         if "synthetic" not in self.data_modes:
             raise ValueError(f"{self.id}: every pack needs a synthetic offline data path")
         if self.licence in SHARE_ALIKE and "vendored_sample" in self.data_modes:
@@ -209,6 +219,9 @@ class RunnerOutput:
     is_mock: bool = False
     skip_reason: str = ""
     details: dict[str, Any] = field(default_factory=dict)
+    # Thresholded metrics that are None because they do not apply to this target (kind or
+    # capability). A thresholded None metric NOT listed here is "unmeasured": pack -> skip.
+    not_applicable_metrics: set[str] = field(default_factory=set)
 
     @classmethod
     def skip(cls, reason: str, **kw: Any) -> RunnerOutput:

@@ -291,7 +291,7 @@ def _with_assurance(
             results = _run_agent_packs(agent_id, work_dir, packs, policy)
         except SupervisorError as exc:
             results, run_error = [], str(exc)
-    items = assurance_launch_items(results, packs)
+    items = assurance_launch_items(results, packs, expect_target_kind="agent")
     if run_error:
         items.append(f"assurance packs could not run for this agent: {run_error}")
     summary = [_compact(r, by_id.get(str(_pack_id(r)))) for r in results]

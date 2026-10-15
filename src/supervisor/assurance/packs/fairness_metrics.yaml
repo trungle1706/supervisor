@@ -1,5 +1,5 @@
 id: fairness_metrics
-version: 1
+version: 2
 dimension: bias_fairness
 title: Group fairness metrics for credit decisions (Fairlearn definitions)
 description: >-
@@ -36,5 +36,6 @@ maps_to:
   regkb_duties: [bias_monitoring, explainability]
   finvault: [unfair_lending]
 launch_gate: required
+requires_capabilities: [decide]  # credit decisions: not applicable to an agent without decide()
 judge_gate: false
 min_items: 100
