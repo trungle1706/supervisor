@@ -35,6 +35,24 @@ POSITIVE = [
     ("CCCD 001-203-004-567", "CCCD", "001-203-004-567"),
     ("CCCD 001 203 004 567", "CCCD", "001 203 004 567"),
     ("CCCD 079-203-004-567", "CCCD", "079-203-004-567"),
+    ("CCCD 001  203  004  567", "CCCD", "001203004567"),
+    ("CCCD 001\t203\t004\t567", "CCCD", "001203004567"),
+    ("CCCD 001/203/004/567", "CCCD", "001203004567"),
+    ("CCCD 001_203_004_567", "CCCD", "001203004567"),
+    ("CCCD 123 456 789 012", "CCCD", "123456789012"),
+    ("CCCD 123.456.789.012", "CCCD", "123456789012"),
+    ("can cuoc 123 456 789 012", "CCCD", "123456789012"),
+    ("CMND 024 678 123", "CMND", "024678123"),
+    ("STK 1903-4567 8901.23", "BANK_ACCOUNT", "19034567890123"),
+    ("STK 1903/4567/8901/23", "BANK_ACCOUNT", "19034567890123"),
+    ("CCCD 0012\u034f03004567", "CCCD", "001203004567"),
+    ("CCCD 0012\u316403004567", "CCCD", "001203004567"),
+    ("CCCD 0012\u280003004567", "CCCD", "001203004567"),
+    ("CCCD 0012\ufe0f03004567", "CCCD", "001203004567"),
+    ("CCCD 0012\U000e000103004567", "CCCD", "001203004567"),
+    ("CCCD 0012\u180e03004567", "CCCD", "001203004567"),
+    ("CCCD 0012\u17b403004567", "CCCD", "001203004567"),
+    ("CCCD 0012\U000e010003004567", "CCCD", "001203004567"),
     ("CCCD 001.203.004.567", "CCCD", "001.203.004.567"),
     ("so 0012 0300 4567 la cua toi", "CCCD", "0012 0300 4567"),
     ("so 001203 004567 la cua toi", "CCCD", "001203 004567"),
@@ -61,6 +79,22 @@ POSITIVE = [
 ]
 
 NEGATIVE = [
+    "12.05.2026 10.30.00",
+    "01.01.2026 31.12.2026",
+    "15-10-2026 10-30-00",
+    "2026 10 15 10 30 00",
+    "20.000.000 20.000.000",
+    "100.000 200.000 300.000",
+    "5.000.000-10.000.000",
+    "chuyen den 2026 10 15 1030 00",
+    "ma GD 2026 10 15 123456",
+    "123456789012 VND",
+    "15/10/2026",
+    "CCCD 15/10/2026",
+    "ngay 15/10/2026 10/30/00",
+    "001/203/004/567",
+    "001_203_004_567",
+    "12.000.000.000.000",
     "phi 100.000.000.000",
     "khoan vay 250 000 000 000",
     "IP 192.168.100.200",
@@ -154,3 +188,25 @@ def test_unseparated_12_digits_unchanged(m: VnRegexMasker) -> None:
     assert m.mask("so 079203004567 ok").startswith("so <CCCD:")
     assert m.mask("CCCD 001203004567").startswith("CCCD <CCCD:")
     assert [x.type for x in m.find("x 190345678901 y")] == ["BANK_ACCOUNT"]
+
+
+def test_account_tail_may_be_short_but_inner_groups_may_not(m: VnRegexMasker) -> None:
+    assert "<BANK_ACCOUNT:" in m.mask("chuyen den 1903 4567 8901 23")
+    assert m.mask("chuyen den 1903 45 8901 2345") == "chuyen den 1903 45 8901 2345"
+
+
+def test_currency_after_unseparated_run_is_an_amount(m: VnRegexMasker) -> None:
+    assert m.mask("phi 123456789012 VND") == "phi 123456789012 VND"
+    assert m.mask("phi 123456789012 dong") == "phi 123456789012 dong"
+    assert "<BANK_ACCOUNT:" in m.mask("phi 123456789012")
+
+
+def test_label_does_not_mask_a_following_amount_or_date(m: VnRegexMasker) -> None:
+    for t in ("tai khoan so du 100.000.000", "tk 5 000 000 000", "stk 2026 10 15"):
+        assert m.mask(t) == t, t
+
+
+def test_canonical_strips_default_ignorables_not_in_cf() -> None:
+    for cp in (0x34F, 0x115F, 0x1160, 0x17B4, 0x17B5, 0x180B, 0x180F, 0x2800, 0x3164, 0xFE00,
+               0xFE0F, 0xFFA0, 0xE0100, 0xE01EF):  # fmt: skip
+        assert canonical(f"a{chr(cp)}b") == "ab", hex(cp)
