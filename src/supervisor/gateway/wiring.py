@@ -85,7 +85,6 @@ def build_gateway(
         evidence,
         adapters.clock,
         env=settings.supervisor_mode,
-        trust_body_principal=settings.supervisor_mode != "databricks_app",
     )
 
 

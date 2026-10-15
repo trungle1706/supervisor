@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import pytest
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from supervisor.adapters.clock import FixedClock
 from supervisor.adapters.factory import Adapters
+from supervisor.cases.service import PermissionDenied
 from supervisor.gateway import wiring
 from supervisor.gateway.engine import Gateway
 from supervisor.gateway.policy import PolicyError, StaticPolicyProvider, load_policy_texts
@@ -163,19 +165,22 @@ rules: []
     g.close()
 
 
-def test_body_principal_rejected_when_not_trusted(gateway: Gateway) -> None:
+def test_control_needs_identity_and_check_validation_is_400(gateway: Gateway) -> None:
     app = FastAPI()
     app.include_router(router)
+    app.add_exception_handler(
+        PermissionDenied,
+        lambda r, e: JSONResponse(status_code=403, content={"error": str(e)}),
+    )
     wiring.set_gateway(gateway)
     try:
         client = TestClient(app)
-        gateway.trust_body_principal = False
         r = client.post("/gate/pause", json={"agent_id": "payments", "principal": "reviewer.an"})
-        assert r.status_code == 400 and "principal" in r.json()["error"]
+        assert r.status_code == 403 and "identity" in r.json()["error"]
         r = client.post(
             "/gate/pause",
             json={"agent_id": "payments"},
-            headers={"X-Forwarded-User": "reviewer.an"},
+            headers={"X-Dev-User": "reviewer.an"},
         )
         assert r.status_code == 200 and r.json()["state"] == "PAUSED"
         bad = client.post(

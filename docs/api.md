@@ -25,6 +25,8 @@
 | `devHeader` | `X-Dev-User` | Laptop only. Not a real identity (ADR D04). |
 | `databricksSSO` | `X-Forwarded-Email` | Set by the Databricks App proxy. |
 
+`/gate` control routes (pause, resume, quarantine, release) always require an identity (laptop: `X-Dev-User` header with a known user, no default user; App: SSO headers) and the role; a missing or unknown identity is 403. The body field `principal` is ignored.
+
 They apply to the routes where people act (gate control and read routes, console).
 `/v1/gate/check` and `/v1/traces` are agent ingress and need no human identity.
 

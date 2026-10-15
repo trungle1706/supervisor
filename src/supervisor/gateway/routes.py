@@ -44,6 +44,8 @@ class CheckRequest(BaseModel):
 class ControlRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     agent_id: str = Field(pattern=_ID)
+    # Accepted for backward compatibility and IGNORED: the actor is the authenticated
+    # principal (X-Dev-User on the laptop, SSO headers on the App), never a body field.
     principal: str | None = Field(default=None, max_length=256)
     reason: str = Field(default="", max_length=2000)
 
@@ -80,18 +82,6 @@ async def check(request: Request, gw: Gateway = _GW) -> JSONResponse:
     except SupervisorError as exc:
         return _bad(str(exc))
     return JSONResponse(content=result)
-
-
-def _principal(request: Request, req: ControlRequest, gw: Gateway) -> str | None:
-    """SSO header first. The body field is a laptop/dev fallback only (D04: the dev users
-    file is not a real identity); with ``trust_body_principal`` off (Databricks App) the
-    header is required. Real identity comes from the WP8 ``Principal`` port."""
-    header = request.headers.get("x-forwarded-user", "").strip()
-    if header:
-        return header
-    if not getattr(gw, "trust_body_principal", False):
-        return None
-    return (req.principal or "").strip() or None
 
 
 def _audit_control(
@@ -151,10 +141,8 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
             detail="invalid_request",
         )
         return _validation_response(exc, warn)
-    principal = _principal(request, req, gw)
-    me = getattr(request.state, "principal", None)
-    if runtime_settings().api_rbac_enabled and isinstance(me, AuthPrincipal) and me.is_human:
-        principal = me.user_id  # the identity that passed the role check is the actor
+    me = getattr(request.state, "principal", None)  # set by needs(..., control=True)
+    principal = me.user_id if isinstance(me, AuthPrincipal) else None
     before = await run_in_threadpool(snapshot_hash, gw.states.state, "agent", req.agent_id)
 
     async def audit(outcome: str, detail: str | None) -> str | None:
@@ -172,9 +160,9 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
 
     if principal is None:
         warn = await audit("error", "principal_missing")
-        return _bad(
-            "principal is required (X-Forwarded-User header; body field on laptop only)",
-            **({"audit_warning": warn} if warn else {}),
+        return JSONResponse(
+            status_code=403,
+            content={"error": "identity required", **({"audit_warning": warn} if warn else {})},
         )
     states = gw.states
     fn = {
@@ -184,7 +172,15 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
         "release": states.release_quarantine,
     }[action]
     try:
-        result = await run_in_threadpool(fn, req.agent_id, principal, req.reason)
+        assert isinstance(me, AuthPrincipal)
+        result = await run_in_threadpool(
+            fn,
+            req.agent_id,
+            principal,
+            req.reason,
+            auth_method=me.auth_method,
+            actor_kind=me.kind,
+        )
     except SupervisorError as exc:
         warn = await audit("error", type(exc).__name__)
         return _bad(str(exc), **({"audit_warning": warn} if warn else {}))
@@ -198,22 +194,22 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
     return JSONResponse(content={**result, "audit_warning": warn} if warn else result)
 
 
-@router.post("/pause", dependencies=[Depends(needs("agent.pause", api=True))])
+@router.post("/pause", dependencies=[Depends(needs("agent.pause", control=True))])
 async def pause(request: Request, gw: Gateway = _GW) -> JSONResponse:
     return await _control(request, gw, "pause")
 
 
-@router.post("/resume", dependencies=[Depends(needs("agent.resume", api=True))])
+@router.post("/resume", dependencies=[Depends(needs("agent.resume", control=True))])
 async def resume(request: Request, gw: Gateway = _GW) -> JSONResponse:
     return await _control(request, gw, "resume")
 
 
-@router.post("/quarantine", dependencies=[Depends(needs("agent.quarantine", api=True))])
+@router.post("/quarantine", dependencies=[Depends(needs("agent.quarantine", control=True))])
 async def quarantine(request: Request, gw: Gateway = _GW) -> JSONResponse:
     return await _control(request, gw, "quarantine")
 
 
-@router.post("/release", dependencies=[Depends(needs("agent.release", api=True))])
+@router.post("/release", dependencies=[Depends(needs("agent.release", control=True))])
 async def release(request: Request, gw: Gateway = _GW) -> JSONResponse:
     return await _control(request, gw, "release")
 

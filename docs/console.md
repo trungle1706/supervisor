@@ -116,9 +116,18 @@ Routes marked `PUBLIC` (health, ready, version, docs, static files, redirects), 
 (`POST /gate/check`, `POST /v1/traces`: the agent's own identity) or `DEV_ONLY`
 (`POST /console/dev/user`) have no role check. A service principal or the system identity
 keeps its phase-1 treatment: it may open the read-only views (view, health, metrics, onboard
-page, verify) and nothing else. The `/gate` pause, resume, quarantine, release, state and
-metrics routes enforce the matrix only when `API_RBAC_ENABLED=1` (default off, phase-1
-behaviour); `/v1/gate/...` aliases follow the same rule.
+page, verify) and nothing else. The `/gate` control routes
+(pause, resume, quarantine, release) and their `/v1/gate/...` aliases ALWAYS check identity
+and role, whatever `API_RBAC_ENABLED` says. The caller must be named by the Principal port:
+on the laptop the `X-Dev-User` header must be present and name a user in the users file (no
+`default_user`, no console cookie); on the App the SSO headers apply. A missing or unknown
+identity, or a role without the permission, is HTTP 403 JSON `{"error": "..."}`. The route
+never reads `X-Forwarded-User` itself, and the JSON body field `principal` is accepted for
+backward compatibility but ignored. Example (Windows cmd):
+`curl -X POST -H "X-Dev-User: reviewer.an" -H "Content-Type: application/json" -d "{\"agent_id\":\"payments\",\"reason\":\"check\"}" http://127.0.0.1:8000/v1/gate/pause`.
+`API_RBAC_ENABLED` gates only the agent-facing routes (`GET /gate/agents/{id}/state`,
+`GET /gate/metrics`); `POST /gate/check` is agent ingress. The `gate_state_change` evidence
+record carries `actor_kind` and `auth_method` of the acting principal.
 
 Resume (ADR D04): the gateway needs the agent owner (`agent.owner_user`) and a reviewer listed
 in `policies/*.yaml` (`reviewers:`), two different people. The first approval is stored as
@@ -154,7 +163,7 @@ before storage; the chain gets only its SHA-256. Sign-off statements are stored 
 
 Every POST under `/console` writes one row to the append-only table `console_action`
 (allowed, denied or failed), and so do the `/gate` control routes (pause, resume, quarantine,
-release), also when `API_RBAC_ENABLED` is off. Columns: `action_id`, `ts`, `request_id`,
+release), also when `API_RBAC_ENABLED` is off (an unidentified caller gets one `denied` row, detail `identity_unknown`, actor_kind `unverified`). Columns: `action_id`, `ts`, `request_id`,
 `actor`, `actor_kind`, `auth_method`, `roles`, `permission`, `method`, `path`, `target_kind`,
 `target_id`, `outcome` (`ok`, `denied`, `error`), `before_hash` and `after_hash` (SHA-256 of
 the canonical target row: the case row, the agent row with its active gate controls, or the
@@ -192,7 +201,7 @@ set that header.
 | `ASSURANCE_JUDGE_GATE_ENABLED` | `1` | WP17: a non-mock judge (`JUDGE_ENABLED=1` with real models) starts only when every pack with `judge_gate` has a latest result `ok` or `warn` for `judge:<tier-1 model id>` at the current pack version; else the judge sweep stays off and the log names the missing packs. Mock judges are exempt. Windows cmd: `set ASSURANCE_JUDGE_GATE_ENABLED=0` to switch the check off |
 | `CONSOLE_EXPORT_DIR` | `<DATA_DIR>\exports` | Audit packs. On the App this is ephemeral: download the zip at once. |
 | `NOTIFY_WEBHOOK_ENABLED` | `0` | Webhook stub: queues notices (`status=queued`), never sends |
-| `API_RBAC_ENABLED` | `0` | WP18: enforce the role matrix on the `/gate` human routes (console routes always enforce) |
+| `API_RBAC_ENABLED` | `0` | WP18: enforce the role matrix on the agent-facing `/gate` read routes (state, metrics). Gate control routes and console routes always enforce |
 | `CONSOLE_AUDIT_ENABLED` | `1` | WP18: write one `console_action` row per mutating action (default on) |
 
 Case intake as a job (only when the app is not running, single chain writer):

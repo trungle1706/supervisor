@@ -342,7 +342,8 @@ def test_audit_off_writes_nothing(console: Console, monkeypatch: pytest.MonkeyPa
     assert console.post("/console/agents/payments/pause", {"reason": "t"}).status_code == 200
     r = console.client.post(
         "/gate/pause",
-        json={"agent_id": "payments", "reason": "t", "principal": "reviewer.an"},
+        json={"agent_id": "payments", "reason": "t"},
+        headers={"X-Dev-User": "reviewer.an"},
     )
     assert r.status_code == 200
     assert _rows(console) == []
@@ -399,20 +400,33 @@ def test_console_action_is_append_only(console: Console) -> None:
 # ------------------------------------------------------------------ (e) /gate
 
 
-def test_gate_off_path_is_phase1_but_still_audited(console: Console) -> None:
+def test_gate_control_ignores_the_rbac_flag_and_the_agent_routes_keep_it(
+    console: Console,
+) -> None:
     assert console.ctx.settings.api_rbac_enabled is False
-    # no identity at all and a viewer both pass: nothing is checked on /gate when off
+    # control routes always need a known identity (B1); a body principal is ignored
     r = console.client.post(
         "/gate/pause",
         json={"agent_id": "payments", "reason": "t", "principal": "someone"},
         headers={"X-Dev-User": "no-such-user"},
     )
-    assert r.status_code == 200 and r.json()["state"] == "PAUSED"
+    assert r.status_code == 403 and "error" in r.json()
+    assert console.runtime.gateway.states.get_state("payments") != "PAUSED"
+    # agent-facing read routes stay open while the flag is off
     assert console.client.get("/gate/metrics", headers={"X-Dev-User": "nobody"}).status_code == 200
     (row,) = _rows(console)
-    assert row["permission"] == "agent.pause" and row["outcome"] == "ok"
-    assert row["actor"] == "someone" and row["actor_kind"] == "unverified"
-    assert row["auth_method"] == "gate_api" and row["target_id"] == "payments"
+    assert row["permission"] == "agent.pause" and row["outcome"] == "denied"
+    assert row["actor"] == "no-such-user" and row["actor_kind"] == "unverified"
+    assert row["detail"] == "identity_unknown"
+    r = console.client.post(
+        "/gate/pause",
+        json={"agent_id": "payments", "reason": "t"},
+        headers={"X-Dev-User": "reviewer.an"},
+    )
+    assert r.status_code == 200 and r.json()["state"] == "PAUSED"
+    row = _rows(console)[-1]
+    assert row["outcome"] == "ok" and row["actor"] == "reviewer.an"
+    assert row["actor_kind"] == "user" and row["auth_method"] == "dev_header"
     assert row["before_hash"] != row["after_hash"]
 
 
@@ -439,11 +453,14 @@ def test_gate_on_denies_a_viewer_and_allows_a_reviewer(
 def test_gate_on_service_principal_cannot_control(
     console: Console, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(console.ctx.settings, "api_rbac_enabled", True)
     sp = AuthPrincipal("app-sp", "service_principal", "sp")
     monkeypatch.setattr(console.ctx.provider, "resolve", lambda h, c: (sp, None))
-    r = console.client.post("/gate/pause", json={"agent_id": "payments", "reason": "t"})
-    assert r.status_code == 403 and "signed-in person" in r.json()["error"]
+    r = console.client.post(
+        "/gate/pause",
+        json={"agent_id": "payments", "reason": "t"},
+        headers={"X-Dev-User": "reviewer.an"},
+    )
+    assert r.status_code == 403 and "person" in r.json()["error"]
     assert console.client.get("/gate/metrics").status_code == 200
 
 
