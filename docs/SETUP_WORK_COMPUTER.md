@@ -110,7 +110,7 @@ uv run python -m supervisor.judge.mrm validate --out out\mrm --model settings --
 The first command runs all packs on the judge against the real model. The second makes the
 validation report with a GO or NO-GO. Send both output folders back. Both commands come from
 `docs/assurance.md` and `docs/judge-mrm.md`. Not run here with a real model (no key yet); the
-same commands ran with the mock judge.
+command forms were checked against `--help` and the docs only.
 
 ## G. Databricks (when you are ready)
 
