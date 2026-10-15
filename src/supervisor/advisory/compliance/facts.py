@@ -204,6 +204,8 @@ def policy_facts(
             if not tools or not kinds & {"money", "credit"}:
                 continue
             rc = "credit" if kinds <= {"credit"} else ("money" if kinds <= {"money"} else "")
+            if raw.get("action") not in ("block", "pause"):
+                continue  # a log or alert rule does not limit anything
             agg = raw.get("aggregate")
             if isinstance(agg, dict):
                 if (
@@ -217,9 +219,8 @@ def policy_facts(
                     who = {"customer": "per_customer", "agent": "per_agent"}.get(
                         str(agg.get("group_by")), "unknown"
                     )
-                    limits.append(
-                        LimitFact(rid, "rule", "daily", who, agg["limit"], tools, ptr, rc)
-                    )
+                    value = agg["limit"] - (1 if agg.get("op") == "ge" else 0)
+                    limits.append(LimitFact(rid, "rule", "daily", who, value, tools, ptr, rc))
                 continue
             for cond in when.get("all") or []:
                 if (
@@ -228,10 +229,9 @@ def policy_facts(
                     and cond.get("op") in ("gt", "ge")
                     and _is_int(cond.get("value"))
                 ):
+                    value = cond["value"] - (1 if cond.get("op") == "ge" else 0)
                     limits.append(
-                        LimitFact(
-                            rid, "rule", "per_transaction", "unknown", cond["value"], tools, ptr, rc
-                        )
+                        LimitFact(rid, "rule", "per_transaction", "unknown", value, tools, ptr, rc)
                     )
     return tuple(rules), tuple(limits)
 
@@ -370,15 +370,19 @@ def from_onboard(
     def ev_ptrs(entry: Any) -> tuple[Pointer, ...]:
         return (d33_ptr, *(Pointer("file", f"{px}{e.ref()}", entry.entry) for e in entry.evidence))
 
+    # A missing entry means "not found in code", not "does not": the fact stays None (a
+    # question). An approval step is read from code only (onboard's same-file rule); a bank
+    # step outside the code is for the questionnaire to state.
     approval = indep = None
-    prov["executes_payments"] = ev_ptrs(tx) if tx else (d33_ptr,)
+    code_only = Pointer("profile", "profile.json#decision33", "approval step read from code only")
     if tx:
+        prov["executes_payments"] = ev_ptrs(tx)
         approval = not tx.triggered
-        prov["human_approval_before_execution"] = ev_ptrs(tx)
-    prov["credit_decisions"] = ev_ptrs(cr) if cr else (d33_ptr,)
+        prov["human_approval_before_execution"] = (*ev_ptrs(tx), code_only)
     if cr:
+        prov["credit_decisions"] = ev_ptrs(cr)
         indep = not cr.triggered
-        prov["independent_credit_approval"] = ev_ptrs(cr)
+        prov["independent_credit_approval"] = (*ev_ptrs(cr), code_only)
 
     limits: list[LimitFact] = []
     rules: tuple[RuleFact, ...] = ()
@@ -442,9 +446,9 @@ def from_onboard(
         data_classes=tuple(data),
         autonomy=autonomy,
         roles=("deployer",),
-        executes_payments=tx is not None,
+        executes_payments=True if tx is not None else None,
         human_approval_before_execution=approval,
-        credit_decisions=cr is not None,
+        credit_decisions=True if cr is not None else None,
         independent_credit_approval=indep,
         max_transaction_vnd=max_tx,
         max_daily_vnd=low_daily.value_vnd if low_daily else None,

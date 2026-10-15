@@ -5,11 +5,11 @@
    {
     "entry": "transactions",
     "lines": [
-     "[VN-QD33-2026-PL4.1-01] Executes payments by itself: no (source: profile.json#decision33).",
-     "[VN-QD33-2026-PL4.1-02, VN-TT53-2026-A4.02A-01] High value (over 10,000,000 VND per transaction or 20,000,000 per day for an individual; over 50,000,000 or 100,000,000 for an organisation): yes (no payment value limit in the product's policy (policies/baseline.yaml); the value is not bounded, so it is above every line until a limit is shown; largest payment unknown; largest day total unknown).",
+     "[VN-QD33-2026-PL4.1-01] Executes payments by itself: unknown.",
+     "[VN-QD33-2026-PL4.1-02, VN-TT53-2026-A4.02A-01] High value (over 10,000,000 VND per transaction or 20,000,000 per day for an individual; over 50,000,000 or 100,000,000 for an organisation): unknown (customer types unknown; largest payment unknown; largest day total unknown).",
      "[VN-QD33-2026-PL4.1-03] No human inspection or approval before execution: unknown."
     ],
-    "triggered": false
+    "triggered": null
    },
    {
     "entry": "credit",

@@ -14,11 +14,11 @@
    {
     "entry": "credit",
     "lines": [
-     "[VN-QD33-2026-PL4.2-01] Decides credit by itself: no (source: profile.json#decision33).",
+     "[VN-QD33-2026-PL4.2-01] Decides credit by itself: unknown.",
      "[VN-QD33-2026-PL4.2-02] No independent approval by a credit officer: unknown.",
      "[VN-QD33-2026-PL4.2-03, VN-TT53-2026-A4.02B-01] Credit of 50,000,000 VND or more: unknown (largest credit unknown)."
     ],
-    "triggered": false
+    "triggered": null
    }
   ]
  },

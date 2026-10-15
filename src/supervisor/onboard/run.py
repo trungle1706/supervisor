@@ -392,7 +392,10 @@ def _stages(
 
     # WP14 launch pack: compliance matrix of the planned product (advisory only; default off)
     if adapters.settings.onboard_compliance_enabled:
-        _compliance(inv, profile, mp, texts, chat, adapters.settings, write, say)
+        try:
+            _compliance(inv, profile, mp, texts, chat, adapters.settings, write, say)
+        except Exception as exc:  # noqa: BLE001 - advisory artefact; never stops onboarding
+            say(f"[FAIL] compliance matrix not written: {type(exc).__name__}: {exc}"[:300])
 
     # 5 Launch ----------------------------------------------------------------------
     policy = validate_policy(texts["policy.yaml"])

@@ -90,15 +90,18 @@ def test_payments_threshold_gap(kb):
     assert "PAY-03" in row.status_reason
 
 
-@pytest.mark.parametrize("name", ["payments", "credit_prequal", "fastapi_toolserver_remit"])
+@pytest.mark.parametrize("name", ["payments", "credit_prequal"])
 def test_high_risk(kb, name):
     assert _build(kb, name).decision33.classification == "high_risk"
 
 
-def test_remit_unbounded_line(kb):
+def test_remit_value_unknown_is_a_question(kb):
+    """No payment value limit in the remit policy: Decision 33 asks for the largest value,
+    it does not assume "unbounded" (the Art. 5 daily-cap check still reports the missing
+    daily limit as a gap, by its own rule)."""
     m = _build(kb, "fastapi_toolserver_remit")
-    lines = [ln for e in m.decision33.entries for ln in e.lines]
-    assert any("is not bounded" in ln for ln in lines)
+    assert m.decision33.classification == "needs_answer"
+    assert {"Q-max_transaction_vnd", "Q-max_daily_vnd"} <= set(m.decision33.question_ids)
 
 
 @pytest.mark.parametrize("name", NAMES)

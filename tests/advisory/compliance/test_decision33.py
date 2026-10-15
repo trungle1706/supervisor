@@ -34,7 +34,8 @@ def test_payments_demo_is_high_risk() -> None:
         assert oid in text
     assert "VN-TT53-2026-A4.02A-01" in text
     assert _entry(sug, "transactions").triggered is True
-    assert _entry(sug, "credit").triggered is False
+    # no credit tool found in code is not proof of no credit: unknown, not False
+    assert _entry(sug, "credit").triggered is None
     assert sug.caveat == DECISION33_CAVEAT
     assert "src/supervisor_agents/payments" in text  # fact pointers are cited
 
@@ -47,15 +48,18 @@ def test_credit_demo_is_high_risk_via_credit_entry() -> None:
     text = "\n".join(credit.lines)
     assert "2,000,000,000" in text and "VN-QD33-2026-PL4.2-03" in text
     assert "VN-TT53-2026-A4.02B-01" in text
-    assert _entry(sug, "transactions").triggered is False
+    assert _entry(sug, "transactions").triggered is None
 
 
 def test_customer_service_follows_onboard_mapping() -> None:
     p = demo_product("customer_service")
     sug, qs = suggest_decision33(p)
     assert p.onboard_decision33 is not None
-    assert sug.classification == p.onboard_decision33["classification"] == "not_high_risk"
-    assert qs == []
+    # onboard proposes not_high_risk because no payment tool with a destination was found;
+    # absence in code is not a fact, so the advisor asks instead of answering "no".
+    assert p.onboard_decision33["classification"] == "not_high_risk"
+    assert sug.classification == "needs_answer"
+    assert {q.id for q in qs} >= {"Q-executes_payments", "Q-credit_decisions"}
 
 
 def test_in_between_value_with_unknown_customer_types_asks() -> None:

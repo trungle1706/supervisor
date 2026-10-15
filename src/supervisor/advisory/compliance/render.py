@@ -268,6 +268,9 @@ def _build(m: ObligationMatrix) -> list[_Block]:
 
 
 def _md(text: str) -> str:
+    # untrusted text (internal rules): no raw HTML, no markdown links
+    for a, b in (("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"), ("[", "\\["), ("]", "\\]")):
+        text = text.replace(a, b)
     return text.replace("|", "\\|").replace("\n", "<br>")
 
 

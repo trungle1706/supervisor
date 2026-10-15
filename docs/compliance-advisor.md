@@ -144,8 +144,8 @@ Demo results (2026-10-15, RegKB as of that day):
 |---|---|---|---|---|---|---|
 | payments | 406 | 122 | 31 | 314 | 61 | high risk |
 | credit_prequal | 403 | 125 | 20 | 327 | 56 | high risk |
-| customer_service | 423 | 105 | 27 | 323 | 73 | not high risk |
-| fastapi_toolserver_remit (planned) | 406 | 122 | 41 | 304 | 61 | high risk |
+| customer_service | 423 | 105 | 27 | 323 | 73 | needs answer (Onboard proposes not high risk) |
+| fastapi_toolserver_remit (planned) | 406 | 122 | 41 | 304 | 61 | needs answer |
 
 The snapshot files in `tests\advisory\compliance\snapshots` hold the full rows.
 `UPDATE_SNAPSHOTS=1` rewrites them after a deliberate change.
@@ -174,9 +174,15 @@ Rules:
 - Otherwise: `needs_answer`, with a question.
 - Customer type unknown: a limit above the organisation line is above both lines (true). A limit
   at or below the individual line is below both (false). A limit in between needs `customer_types`.
-- **Unbounded rule:** if the policy has no payment value limit, the value is not bounded, so it
-  is above every line until a limit is shown. The reasoning line says "the value is not bounded".
-  The `fastapi_toolserver_remit` repo shows this: no limit, no approval step, so it is high risk.
+- No value limit known: condition 2 is unknown and the advisor asks for `max_transaction_vnd`
+  and `max_daily_vnd`. It does not assume "unbounded". The `fastapi_toolserver_remit` repo shows
+  this: payments with no approval step in code, but no value limit, so the class is
+  `needs_answer`. (The Art. 5 daily-cap check below has its own rule for a missing daily limit.)
+- Not found in code is not "no". If Onboard finds no payment tool (or no credit tool), the fact
+  `executes_payments` (or `credit_decisions`) stays unknown and becomes a question. So the
+  `customer_service` demo agent, which Onboard proposes as not high risk, is `needs_answer` here
+  until the owner answers. An approval step counts only when Onboard finds it in code, in the
+  same file as the tool; a bank step outside the code must be stated in `product.yaml`.
 - Classification: `high_risk` if any entry is triggered; `not_high_risk` if every entry is false;
   otherwise `needs_answer`.
 
@@ -196,7 +202,9 @@ executes payments (or may). Every daily limit and every per-transaction limit ge
 | `within` | limit below the cap |
 | `needs_answer` | the customer type or the limit is unknown |
 
-The **effective** finding uses the smallest daily per-customer limit. If there is no daily limit
+Only rules with action `block` or `pause` count as limits (a `log` or `alert` rule limits
+nothing); a rule with `ge N` allows at most N - 1. The **effective** finding uses the smallest
+daily per-customer limit. If there is no daily limit
 and the controls are known, the verdict is `exceeds` with the reason "the day total is unbounded".
 
 **Payments result** (policy `policies\baseline.yaml`, customer type individual):
@@ -210,7 +218,8 @@ and the controls are known, the verdict is `exceeds` with the reason "the day to
 | Effective daily ceiling (PAY-03) | 150,000,000 | 100,000,000 | exceeds |
 
 So the row `VN-TT53-2026-A5.01G2-01` is `gap`. The summary shows 1 threshold gap (the effective
-finding) and 3 limits above a cap.
+finding). `threshold_exceeds` is 3: the two daily limits above the cap (PAY-03 and the manifest
+daily limit) plus the effective finding.
 
 **The advisor does not change the baseline policy.** The owner of the payments agent decides:
 lower PAY-03 to 100,000,000 or less, or show why a higher limit is allowed (for example only

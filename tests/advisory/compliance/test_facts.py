@@ -60,7 +60,7 @@ def test_unknown_facts_stay_none() -> None:
 
 def test_customer_service_has_no_payment_and_no_limit_guess() -> None:
     p = demo_product("customer_service")
-    assert p.executes_payments is False
+    assert p.executes_payments is None  # not found in code is a question, not False
     assert p.max_transaction_vnd is None  # no payment tool; never an invented limit
     assert p.max_daily_vnd is None
 
@@ -72,6 +72,27 @@ def test_onboard_decision33_reused() -> None:
     assert p.executes_payments is True and p.human_approval_before_execution is False
     c = demo_product("credit_prequal")
     assert c.credit_decisions is True and c.independent_credit_approval is False
+
+
+def test_only_blocking_rules_are_limits_and_ge_is_exact() -> None:
+    """A log or alert rule limits nothing; 'ge N' allows at most N - 1 (review fix)."""
+    from supervisor.advisory.compliance.facts import policy_facts
+
+    text = """
+tools: {transfer: money}
+rules:
+  - id: X-LOG
+    agent_scope: [a]
+    when: {tool: transfer, all: [{arg: amount_minor, op: gt, value: 5}]}
+    action: log
+  - id: X-GE
+    agent_scope: [a]
+    when: {tool: transfer, all: [{arg: amount_minor, op: ge, value: 1000}]}
+    action: block
+"""
+    rules, limits = policy_facts([("p.yaml", text)], "a")
+    assert {r.id for r in rules} == {"X-LOG", "X-GE"}  # both rules are present as controls
+    assert [(x.id, x.value_vnd) for x in limits] == [("X-GE", 999)]
 
 
 def test_policy_facts_scope_and_line_numbers() -> None:

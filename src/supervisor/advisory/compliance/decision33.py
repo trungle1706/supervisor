@@ -61,27 +61,8 @@ def _over(tx: int | None, day: int | None, kind: str) -> bool | None:
     return None
 
 
-def _unbounded(product: ProductProfile) -> bool:
-    """The product's policy was read and sets no money value limit on payments at all
-    (same stance as the Art. 5 threshold check: no limit means the value is not bounded)."""
-    ctl = product.controls
-    return (
-        ctl.known
-        and bool(ctl.rules)
-        and product.max_transaction_vnd is None
-        and product.max_daily_vnd is None
-        and not [x for x in product.limits if x.risk_class != "credit"]
-    )
-
-
 def _high_value(product: ProductProfile) -> tuple[bool | None, str]:
     tx, day = product.max_transaction_vnd, product.max_daily_vnd
-    if _unbounded(product):
-        files = ", ".join(sorted({r.pointer.ref.split(":")[0] for r in product.controls.rules}))
-        return True, (
-            f"no payment value limit in the product's policy ({files}); the value is not "
-            "bounded, so it is above every line until a limit is shown"
-        )
     types = product.customer_types
     complete = product.customer_types_complete and types is not None
     if complete:
