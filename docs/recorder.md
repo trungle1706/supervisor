@@ -49,7 +49,17 @@ set MASK_HMAC_KEY=<long random value from the bank key store>
 set MASK_KEY_ID=k2026q4
 ```
 
-Without `MASK_HMAC_KEY` the dev key is used and `mask_version` is `vn_regex-1:dev`. A new
+`vn_regex-2` also catches CCCD written with spaces, dots or dashes (`001 203 004 567`), grouped
+account numbers after a cue word (`chuyen den 1903 4567 8901 23`) or of 13-19 digits, and PII with
+invisible characters inside. **Masked output is normalised**: before matching, Unicode format
+characters (zero-width space, soft hyphen, word joiner, BOM; category Cf) are removed and the text
+is put through NFKC (full-width digits become ASCII, no-break space becomes a space, Unicode
+dashes become `-`). `mask()` returns this normalised text with the PII replaced, so the recorded
+`args_masked` can differ from the raw text in those characters. Amounts such as `1.500.000` or
+`15.000.000đ`, dates and times are not masked: a dot-grouped or space-grouped number with 1-3
+digits and then groups of exactly 3 is an amount, unless it has 12 digits (then it is a CCCD).
+
+Without `MASK_HMAC_KEY` the dev key is used and `mask_version` is `vn_regex-2:dev`. A new
 `MASK_KEY_ID` + key gives new tokens; `mask_version` on each row tells which key made it.
 `MASKER_KIND=presidio` needs the optional `presidio` extra (off by default).
 

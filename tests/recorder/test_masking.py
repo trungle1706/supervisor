@@ -90,7 +90,7 @@ def test_key_rotation() -> None:
     m2 = VnRegexMasker(b"k2", "k2")
     assert m1.pseudonym("CCCD", "001305443571") != m2.pseudonym("CCCD", "001305443571")
     assert m1.mask_version != m2.mask_version
-    assert m1.mask_version == "vn_regex-1:k1"
+    assert m1.mask_version == "vn_regex-2:k1"
 
 
 @pytest.mark.parametrize(
@@ -132,11 +132,11 @@ def test_make_masker_default_is_vn_regex_with_dev_key(monkeypatch: pytest.Monkey
     from supervisor.config import load_settings
 
     m = make_masker(load_settings())
-    assert isinstance(m, VnRegexMasker) and m.mask_version == "vn_regex-1:dev"
+    assert isinstance(m, VnRegexMasker) and m.mask_version == "vn_regex-2:dev"
     monkeypatch.setenv("MASK_HMAC_KEY", "bank-key-2026")
     monkeypatch.setenv("MASK_KEY_ID", "k2026q4")
     m2 = make_masker(load_settings())
-    assert isinstance(m2, VnRegexMasker) and m2.mask_version == "vn_regex-1:k2026q4"
+    assert isinstance(m2, VnRegexMasker) and m2.mask_version == "vn_regex-2:k2026q4"
     text = "Số CCCD của tôi là 001305443571."
     assert m.mask(text) != m2.mask(text)  # key rotation changes tokens
     assert make_masker(load_settings(masker_kind="none")) is None
