@@ -1,26 +1,27 @@
-<section class="panel">
-  <h2>{{ t('signoffs') }} ({{ approvals|length }}/2)</h2>
+{% import "_ui.html" as ui with context %}
+<section class="card gold-card">
+  <h3>{{ t('signoffs') }} ({{ approvals|length }}/2)</h3>
   {% for s in signoffs %}
-    <div><strong>{{ s.reviewer_id }}</strong> <span class="chip">{{ s.decision }}</span>
-      <span class="mono muted">{{ s.ts|utc }} {{ s.auth_method }}</span>
+    <div style="margin-bottom:10px"><strong>{{ s.reviewer_id }}</strong> {{ ui.pill(s.decision, 'gold') }}
+      <span class="mono muted" style="font-size:12px">{{ s.ts|day }} · {{ s.auth_method }}</span>
       <div class="verbatim">{{ s.reason }}</div></div>
-  {% else %}<p class="muted">-</p>{% endfor %}
-</section>
-{% if case.status in ('triaged', 'contained') %}
-<section class="panel">
-  <form class="stack" hx-post="/console/cases/{{ case.case_id }}/signoff" hx-target="#signoff-panel">
+  {% else %}<p class="muted">{{ t('no_signoffs') }}</p>{% endfor %}
+  {% if case.status in ('triaged', 'contained') %}
+  <form class="stack-f" hx-post="/console/cases/{{ case.case_id }}/signoff?lang={{ lang }}" hx-target="#signoff-panel" style="margin-top:12px">
     <input type="hidden" name="row_version" value="{{ case.row_version }}">
-    <label>{{ t('statement') }}
+    <label class="f">{{ t('statement') }}
       <textarea name="reason" required>{{ t('signoff_text') }}</textarea></label>
-    <label><input type="radio" name="decision" value="approve" checked> {{ t('approve') }}</label>
-    <label><input type="radio" name="decision" value="reject"> {{ t('reject') }}</label>
-    <label><input type="checkbox" name="affirm" value="yes"> {{ t('affirm') }}: <strong>{{ me.user_id }}</strong> ({{ me.auth_method }})</label>
-    <button type="submit">{{ t('signoff') }}</button>
+    <div style="display:flex;gap:14px;font-size:14px">
+      <label><input type="radio" name="decision" value="approve" checked> {{ t('approve') }}</label>
+      <label><input type="radio" name="decision" value="reject"> {{ t('reject') }}</label>
+    </div>
+    <label style="font-size:14px"><input type="checkbox" name="affirm" value="yes"> {{ t('affirm') }}: <strong>{{ me.user_id }}</strong> <span class="mono muted">({{ me.auth_method }})</span></label>
+    <button type="submit" class="btn primary">{{ t('signoff') }}</button>
   </form>
+  {% else %}
+  <p class="muted">{{ t('status') }}: {{ t(case.status) }}</p>
+  {% endif %}
+  {% if approvals|length >= 2 and case.status in ('triaged', 'contained') %}
+  <p><a class="btn dark" href="/console/cases/{{ case.case_id }}?lang={{ lang }}">{{ t('go_close') }}</a></p>
+  {% endif %}
 </section>
-{% else %}
-<p class="muted">{{ t('status') }}: {{ t(case.status) }}</p>
-{% endif %}
-{% if approvals|length >= 2 and case.status in ('triaged', 'contained') %}
-<p><a class="button" href="/console/cases/{{ case.case_id }}?lang={{ lang }}">{{ t('close') }}</a></p>
-{% endif %}

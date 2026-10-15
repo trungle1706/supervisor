@@ -1,13 +1,20 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
 {% block title %}{{ t('signoff') }} {{ case.case_id }}{% endblock %}
 {% block content %}
-<h1>{{ t('signoff') }}: <a class="mono" href="/console/cases/{{ case.case_id }}?lang={{ lang }}">{{ case.case_id }}</a>
-  <span class="chip sev-{{ case.severity }}">{{ t(case.severity) }}</span></h1>
-<section class="panel what">
-  <p>{{ case.summary }}</p>
-  <p class="muted">{{ t('signoff_rule') }}</p>
-</section>
-<div id="signoff-panel">
-{% include "_signoff_panel.html" %}
+<div class="pagehead">
+  <h1>{{ t('signoff') }}</h1>
+  <div class="actions"><a class="btn ghost sm" href="/console/cases/{{ case.case_id }}?lang={{ lang }}">← {{ case.case_id }}</a></div>
+</div>
+{{ ui.purpose(t('signoff_purpose'), t('signoff_rule')) }}
+<div class="two">
+  <section class="card">
+    <div class="pills" style="display:flex;gap:6px;align-items:center">{{ ui.sev(case.severity) }} <span class="pill neutral">{{ t(case.status) }}</span> <span class="mono muted" style="font-size:12px">{{ case.case_id }}</span></div>
+    <h2 style="font-size:20px;margin:10px 0 6px">{% if head.key %}{{ t(head.key, agent=head.params.agent, what=t(head.params.what, tool=head.params.tool)) }}{% else %}{{ case.summary }}{% endif %}</h2>
+    <p class="muted" style="margin:0">{{ case.summary }}</p>
+  </section>
+  <div id="signoff-panel">
+  {% include "_signoff_panel.html" %}
+  </div>
 </div>
 {% endblock %}

@@ -623,6 +623,276 @@ def case_rows(ctx: Any, cases: Sequence[Mapping[str, Any]], now: dt.datetime) ->
     return rows
 
 
+# ---------------------------------------------------------------------------- case detail
+
+CASE_FLOW = ("open", "triaged", "contained", "closed")
+MAX_TRACE_EVENTS = 400
+EVENT_KEYS = {
+    "open": "ev_open",
+    "assign": "ev_assign",
+    "triage": "ev_triage",
+    "contain": "ev_contain",
+    "comment": "ev_comment",
+    "itsm_ref": "ev_itsm",
+    "link_source": "ev_join",
+    "raise_severity": "ev_raise",
+}
+
+
+def _trace_ids(head: Mapping[str, Any], verdicts: Sequence[Mapping[str, Any]]) -> list[str]:
+    out: list[str] = []
+    for tid in [head.get("trace_id"), *[v.get("trace_id") for v in verdicts]]:
+        if tid and tid not in out:
+            out.append(str(tid))
+    return out[:5]
+
+
+def _verdict_row(v: Mapping[str, Any], rules: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    tier = int(v["tier"])
+    checker = str(v.get("checker_id") or "")
+    if tier == 0 and "tier0b" in checker:
+        source = "tier0b"
+    elif tier == 0:
+        source = "tier0"
+    else:
+        source = "judge"
+    rule = rules.get(v.get("rule_id") or "") if v.get("rule_id") else None
+    score_bp = v.get("score_bp")
+    if score_bp is None and v.get("score") is not None:
+        score_bp = round(float(v["score"]) * 10000)
+    return {
+        "ts": v["ts"],
+        "source": source,
+        "tier": tier,
+        "rule_id": v.get("rule_id"),
+        "checker_id": checker,
+        "model_id": v.get("model_id"),
+        "model_family": v.get("model_family"),
+        "mock": bool(v.get("is_mock")),
+        "advisory": bool(v.get("advisory")),
+        "label": v.get("label"),
+        "action": v.get("action"),
+        "score_bp": score_bp,
+        "latency_ms": v.get("latency_ms"),
+        "reason": (rule or {}).get("description") or (v.get("rationale_masked") or ""),
+        "rationale": v.get("rationale_masked") or "",
+        "regulation_ref": (rule or {}).get("regulation_ref"),
+    }
+
+
+def _transcript_line(e: Mapping[str, Any], stop_rule: str | None) -> str:
+    """One masked line per event. Only the masked fields; never raw text."""
+    et = e["event_type"]
+    status = e.get("status") or "-"
+    tool = e.get("tool_name")
+    args = (e.get("args_masked") or "").strip()
+    result = (e.get("result_masked") or "").strip()
+    if et == "tool_call":
+        line = f"[tool] {tool}({args[:300]}) -> {status}"
+    elif et == "gate_decision":
+        line = f"[gate] {tool} -> {status}" + (
+            f" ({stop_rule})" if status == "denied" and stop_rule else ""
+        )
+    elif et == "llm_call":
+        line = f"[model] call -> {status}"
+    elif et == "message":
+        line = f"[message] {status}" + (f": {args[:300]}" if args else "")
+    else:
+        line = f"[{et}] {status}"
+    if result:
+        line += f" => {result[:300]}"
+    return line
+
+
+def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, Any]:
+    from supervisor.cases.service import TWO_PERSON_SEVERITIES
+    from supervisor.console import views
+
+    case = ctx.cases.get(case_id)
+    cf = ctx.cases.case_file(case_id, now=now)
+    rules = rules_index(ctx)
+    classes = tool_classes(ctx)
+    head = case_head(ctx, case, rules=rules, classes=classes)
+    linked = ctx.cases.linked_verdicts(case_id)
+    traces = _trace_ids(head, linked)
+
+    events: list[dict[str, Any]] = []
+    trace_verdicts: dict[str, dict[str, Any]] = {v["verdict_id"]: v for v in linked}
+    for tid in traces:
+        events += ctx.tables.query(
+            "agent_event", {"trace_id": tid}, order_by=("ts",), limit=MAX_TRACE_EVENTS
+        )
+        for v in ctx.tables.query("verdict", {"trace_id": tid}):
+            trace_verdicts.setdefault(v["verdict_id"], v)
+    events.sort(key=lambda e: (e["ts"], e["event_id"]))
+    verdict_rows = sorted(
+        (
+            _verdict_row(v, rules)
+            for v in trace_verdicts.values()
+            if not (int(v["tier"]) == 0 and v["action"] == "allow")
+        ),
+        key=lambda r: (r["ts"], r["tier"]),
+    )
+
+    # ---- story timeline (real rows only; each item is a translation key + params)
+    story: list[dict[str, Any]] = []
+    for e in events:
+        if e["event_type"] != "tool_call" or not e.get("tool_name"):
+            continue
+        tool = e["tool_name"]
+        if e.get("status") in ("blocked", "paused", "denied"):
+            story.append(
+                {
+                    "ts": e["ts"],
+                    "dot": "amber",
+                    "key": "st_planned",
+                    "params": {"tool": tool},
+                    "amount": e.get("amount_minor"),
+                    "currency": e.get("currency") or "VND",
+                }
+            )
+        else:
+            read = classes.get(tool) == "read_only"
+            story.append(
+                {
+                    "ts": e["ts"],
+                    "dot": "",
+                    "key": "st_read" if read else "st_called",
+                    "params": {"tool": tool},
+                }
+            )
+    story = story[-10:]
+    for r in verdict_rows:
+        if r["source"] == "tier0" and r["action"] in STOP_ACTIONS:
+            story.append(
+                {
+                    "ts": r["ts"],
+                    "dot": "red",
+                    "key": "st_rule_pause" if r["action"] == "pause" else "st_rule_block",
+                    "params": {"rule": r["rule_id"] or "-", "desc": r["reason"]},
+                    "latency_ms": head.get("latency_ms"),
+                    "strong": True,
+                }
+            )
+        elif r["source"] == "tier0b":
+            story.append(
+                {"ts": r["ts"], "dot": "teal", "key": "st_t0b", "params": {"why": r["reason"]}}
+            )
+        elif r["source"] == "judge":
+            story.append(
+                {
+                    "ts": r["ts"],
+                    "dot": "teal",
+                    "key": "st_judge",
+                    "params": {
+                        "tier": r["tier"],
+                        "label": r["label"] or "-",
+                        "action": r["action"] or "-",
+                    },
+                    "mock": r["mock"],
+                }
+            )
+    for ev in ctx.cases.events(case_id):
+        action = str(ev["action"])
+        base = action.split(":", 1)[0]
+        if base == "signoff":  # the signoff row below carries the statement
+            continue
+        key = EVENT_KEYS.get(base)
+        if base == "close":
+            key = "ev_close"
+        story.append(
+            {
+                "ts": ev["ts"],
+                "dot": "teal" if ev["actor_kind"] != "user" else "green",
+                "key": key or "ev_other",
+                "params": {
+                    "who": ev["actor"],
+                    "action": action,
+                    "detail": action.split(":", 1)[1] if ":" in action else "",
+                },
+                "comment": ev.get("comment_masked") or "",
+                "auth": ev.get("auth_method"),
+            }
+        )
+    for s in ctx.cases.signoffs(case_id):
+        story.append(
+            {
+                "ts": s["ts"],
+                "dot": "gold",
+                "key": "st_signoff",
+                "params": {"who": s["reviewer_id"], "decision": s["decision"]},
+                "comment": s["reason"],
+            }
+        )
+    for item in story:
+        for k, v in (
+            ("strong", False),
+            ("amount", None),
+            ("currency", None),
+            ("latency_ms", None),
+            ("mock", False),
+            ("comment", ""),
+            ("auth", None),
+        ):
+            item.setdefault(k, v)
+    story.sort(key=lambda i: i["ts"])
+
+    stop_rule = head.get("rule_id")
+    transcript = [
+        {"ts": e["ts"], "event": e, "line": _transcript_line(e, stop_rule)} for e in events
+    ]
+    mask_versions = sorted({str(e["mask_version"]) for e in events if e.get("mask_version")})
+
+    status = case["status"]
+    next_steps = list(TRANSITIONS.get(status, ()))
+    approvals = ctx.cases._approvals(case_id)
+    two_person = case["severity"] in TWO_PERSON_SEVERITIES
+    agent_row = ctx.state.get("agent", {"agent_id": case["agent_id"]}) or {}
+    try:
+        agent_state = ctx.gateway.states.describe(case["agent_id"])["state"]
+    except Exception:  # noqa: BLE001 - an unknown agent: the case page still renders
+        agent_state = agent_row.get("gate_state")
+    d33_text = cf.decision33_classification or ""
+    d33 = None if d33_text.startswith("FILL-ME") else d33_text
+    lane = f"agent:{case['agent_id']}"
+    closed = status == "closed"
+    flow_idx = CASE_FLOW.index(status) if status in CASE_FLOW else 0
+    return {
+        "case": case,
+        "cf": cf,
+        "head": head,
+        "story": story,
+        "verdict_rows": verdict_rows,
+        "transcript": transcript,
+        "mask_versions": mask_versions,
+        "events": ctx.cases.events(case_id),
+        "signoffs": ctx.cases.signoffs(case_id),
+        "approvals": approvals,
+        "links": ctx.cases.links(case_id),
+        "report_clock": None
+        if closed
+        else views.countdown(cf.sbv.report_due_at, now, severity=case["severity"]),
+        "remediation_clock": None
+        if closed
+        else views.countdown(cf.sbv.remediation_due_at, now, 5 * 86400),
+        "lane": lane,
+        "verify": ctx.last_verify.get(lane) or ctx.last_verify.get("all"),
+        "chain": chain_summary(ctx),
+        "next_steps": next_steps,
+        "flow": [
+            {"key": s, "state": "done" if i < flow_idx else "now" if i == flow_idx else "todo"}
+            for i, s in enumerate(CASE_FLOW)
+        ],
+        "two_person": two_person,
+        "agent_state": agent_state,
+        "d33": d33,
+        "agent_d33": decision33(ctx, agent_row) if agent_row else {"cls": None},
+        "me_role": main_role(me),
+        "can_work": bool(set(getattr(me, "roles", ())) & {"reviewer", "admin"}),
+        "can_sign": bool(set(getattr(me, "roles", ())) & {"reviewer", "approver", "admin"}),
+    }
+
+
 def overview(ctx: Any, now: dt.datetime) -> dict[str, Any]:
     from supervisor.console import views
 

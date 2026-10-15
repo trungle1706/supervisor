@@ -1,0 +1,34 @@
+{% import "_ui.html" as ui with context %}
+<section class="card">
+  <h3>{{ t('what_happened') }}</h3>
+  <ul class="timeline" id="story">
+    {% for i in story %}
+    <li data-key="{{ i.key }}">
+      <span class="t">{{ i.ts|hhmmss }}</span><span class="dot {{ i.dot }}"></span>
+      <span>
+        {% if i.strong %}<strong>{% endif %}{{ t(i.key, **i.params) }}{% if i.strong %}</strong>{% endif %}
+        {%- if i.amount %}{{ ' ' }}{{ t('st_amount', amount=i.amount|vnd, cur=i.currency) }}{% endif %}
+        {%- if i.latency_ms is not none %}{{ ' ' }}{{ t('st_latency', ms=i.latency_ms) }}{% endif %}
+        {%- if i.mock %}{{ ' ' }}{{ ui.pill(t('mock'), 'neutral') }}{% endif %}
+        {% if i.comment %}<div class="who-l">“{{ i.comment }}”</div>{% endif %}
+      </span>
+    </li>
+    {% endfor %}
+    {% if case.status != 'closed' %}
+    <li data-key="waiting"><span class="t">—</span><span class="dot hollow"></span><span class="muted">{% set nx = [] %}{% for n in next_steps %}{% set _ = nx.append(t('next_' ~ n)) %}{% endfor %}{{ t('st_waiting', next=nx|join(', ') or '-') }}</span></li>
+    {% endif %}
+  </ul>
+</section>
+
+<section class="card" style="margin-top:16px">
+  <h3>{{ t('rules_and_judges') }} <a class="right" href="/console/cases/{{ case.case_id }}?tab=rules&amp;lang={{ lang }}" hx-get="/console/cases/{{ case.case_id }}/tab/rules?lang={{ lang }}" hx-target="#tab-body">{{ t('details') }} →</a></h3>
+  {% include "_verdict_table.html" %}
+</section>
+
+<section class="card" style="margin-top:16px">
+  <h3>{{ t('transcript') }}</h3>
+  {% if transcript %}
+  <div class="excerpt">{{ transcript[:12]|map(attribute='line')|join('\n') }}{% if transcript|length > 12 %}{{ '\n' }}… {{ t('more_lines', n=transcript|length - 12) }}{% endif %}</div>
+  {% else %}<p class="muted">{{ t('no_transcript') }}</p>{% endif %}
+  <div class="hint">{{ t('masking_note') }}{% if mask_versions %} ({{ t('mask_version') }} <span class="mono">{{ mask_versions|join(', ') }}</span>){% endif %}</div>
+</section>

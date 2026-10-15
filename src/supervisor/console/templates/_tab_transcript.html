@@ -1,0 +1,20 @@
+{% import "_ui.html" as ui with context %}
+<section class="card">
+  <h3>{{ t('transcript') }}</h3>
+  <p class="hint" style="margin-top:0">{{ t('masking_note') }}{% if mask_versions %} ({{ t('mask_version') }} <span class="mono">{{ mask_versions|join(', ') }}</span>){% endif %}</p>
+  {% if transcript %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th>{{ t('time') }}</th><th>{{ t('event') }}</th><th>{{ t('status') }}</th><th>{{ t('masked_text') }}</th></tr></thead>
+    <tbody>
+    {% for x in transcript %}{% set e = x.event %}
+    <tr>
+      <td class="mono">{{ e.ts|hhmmss }}</td>
+      <td>{{ e.event_type }}{% if e.tool_name %}<div class="idline">{{ e.tool_name }}</div>{% endif %}</td>
+      <td>{{ ui.pill(e.status or '-', {'denied': 'bad', 'blocked': 'bad', 'paused': 'warn', 'error': 'bad'}.get(e.status, 'neutral')) }}</td>
+      <td class="mono wrap" style="font-size:12px">{{ (e.args_masked or '')[:600] or '—' }}{% if e.result_masked %}<div class="muted">=&gt; {{ e.result_masked[:600] }}</div>{% endif %}{% if e.amount_minor %}<div class="idline">{{ e.amount_minor|vnd }} {{ e.currency or 'VND' }}</div>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('no_transcript') }}</p>{% endif %}
+</section>

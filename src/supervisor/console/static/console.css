@@ -279,6 +279,9 @@ form.stack-f { display: grid; gap: 8px; }
   border-radius: 999px; padding: 4px; }
 .segm a { padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; }
 .segm a.on { background: var(--ink); color: var(--ink-fg); }
+details.act > summary { list-style: none; }
+details.act > summary::-webkit-details-marker { display: none; }
+details.act[open] > summary { background: var(--surface-2); color: var(--fg); border-color: var(--line); }
 details.more > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); padding: 6px 0; }
 
 /* ------------------------------------------------------------------ case page */

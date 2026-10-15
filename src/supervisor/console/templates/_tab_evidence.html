@@ -1,0 +1,21 @@
+{% import "_ui.html" as ui with context %}
+<section class="card gold-card">
+  <h3>{{ t('case_on_chain') }}</h3>
+  <p class="hint" style="margin-top:0">{{ t('case_on_chain_why') }}</p>
+  <dl class="kv">
+    <dt>{{ t('chain_lane') }}</dt><dd class="mono">{{ lane }}</dd>
+    {% if cf.chain %}
+    <dt>{{ t('seq_range') }}</dt><dd class="mono">{{ cf.chain.seq_from }}..{{ cf.chain.seq_to }} ({{ t('n_entries', n=cf.chain.entry_count) }})</dd>
+    <dt>{{ t('head') }}</dt><dd class="mono wrap">{{ cf.chain.head_hash }}</dd>
+    {% endif %}
+    {% if chain.signed %}
+    <dt>{{ t('last_signed_root') }}</dt><dd>seq <span class="mono">{{ chain.signed.seq }}</span> · {{ chain.signed.ts|hhmmss }} · {{ t('key') }} <span class="mono">{{ chain.signed.key_id[:12] }}…</span> {{ ui.pill(t('key_' ~ chain.signed.key_kind) if chain.signed.key_kind in ('dev', 'managed') else chain.signed.key_kind, 'neutral' if chain.signed.key_kind == 'dev' else 'gold') }}</dd>
+    {% endif %}
+    <dt>{{ t('last_anchor') }}</dt><dd>{% if chain.anchor %}{{ chain.anchor.anchored_at|day }} · <span class="mono">{{ chain.anchor.anchor_target }}</span>{% else %}{{ t('not_anchored') }}{% endif %}</dd>
+  </dl>
+  <h3 style="margin-top:16px">{{ t('links') }}</h3>
+  <div class="tablewrap flat"><table>
+    <thead><tr><th>{{ t('time') }}</th><th>{{ t('source') }}</th><th>{{ t('reference') }}</th></tr></thead>
+    <tbody>{% for l in links %}<tr><td class="mono">{{ l.ts|hhmmss }}</td><td>{{ t('src_' ~ l.source_kind) }}</td><td class="mono wrap">{{ l.source_ref }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>

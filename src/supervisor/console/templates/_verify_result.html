@@ -1,8 +1,10 @@
 {% if verify %}
-<p data-verify="{{ 'ok' if verify.ok else 'fail' }}">
-  {% if verify.ok %}<span class="chip st-RUNNING">{{ t('verify_ok') }}</span>{% else %}<span class="chip sev-critical">{{ t('verify_fail') }}</span>{% endif %}
-  <span class="muted">{{ verify.lane }} | {{ verify.ts|utc }}</span></p>
-{% if not verify.ok %}<pre class="excerpt">{{ verify.lines|join('\n') }}</pre>{% endif %}
+{% if verify.ok %}
+<div class="ok-big" data-verify="ok">✓ {{ t('verified_at', time=verify.ts|hhmm) }} · {{ verify.lane }}{% if chain is defined and chain.signed %} · {{ t('signed_root') }}{% endif %}{% if chain is defined and chain.anchored %} · {{ t('anchored') }}{% endif %}</div>
 {% else %}
-<p class="muted">{{ t('not_verified') }}</p>
+<div class="bad-big" data-verify="fail">✗ {{ t('verify_fail') }} · {{ verify.lane }} · {{ verify.ts|hhmm }}</div>
+<pre class="excerpt">{{ verify.lines|join('\n') }}</pre>
+{% endif %}
+{% else %}
+<div class="idle-big" data-verify="none">{{ t('not_verified') }}</div>
 {% endif %}

@@ -1,0 +1,16 @@
+{% import "_ui.html" as ui with context %}
+{% if verdict_rows %}
+<div class="tablewrap flat"><table>
+  <thead><tr><th>{{ t('source') }}</th><th>{{ t('verdict') }}</th><th>{{ t('reason') }}</th></tr></thead>
+  <tbody>
+  {% for v in verdict_rows %}
+  <tr data-tier="{{ v.tier }}">
+    <td class="mono">{% if v.source == 'tier0' %}{{ v.rule_id or '-' }} · tier 0{% elif v.source == 'tier0b' %}tier 0b regex{% else %}tier {{ v.tier }} {{ t('judge_word') }}{% endif %}</td>
+    <td>{% if v.source == 'judge' %}{% if v.mock %}{{ ui.pill(t('mock') ~ ' · ' ~ v.action, 'neutral') }}{% else %}{{ ui.pill(v.action, 'teal') }}{% endif %}
+        {% else %}{{ ui.pill(v.action, {'pause': 'warn', 'block': 'bad', 'alert': 'info'}.get(v.action, 'neutral')) }}{% endif %}</td>
+    <td>{{ v.reason or '-' }}{% if v.source == 'judge' %}<div class="hint">{% if v.mock %}{{ t('judge_mock_note') }}{% else %}{{ t('judge_advisory_note') }}{% endif %}</div>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="muted">{{ t('no_verdicts') }}</p>{% endif %}

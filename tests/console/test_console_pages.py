@@ -37,7 +37,7 @@ def test_case_page_shows_rules_excerpts_chain(console: Console) -> None:
     r = console.get(f"/console/cases/{case['case_id']}")
     assert r.status_code == 200, r.text
     assert "PAY-07" in r.text and "What happened" in r.text
-    assert "Transcript excerpts (masked)" in r.text
+    assert "Masked transcript excerpt" in r.text
     assert f"agent:{case['agent_id']}" in r.text
     v = console.post(f"/console/cases/{case['case_id']}/verify")
     assert v.status_code == 200 and 'data-verify="ok"' in v.text, v.text
