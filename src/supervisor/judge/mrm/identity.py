@@ -150,14 +150,23 @@ def _truthy(value: Any) -> bool:
     return bool(value)
 
 
-def matches(record: Mapping[str, Any], ident: JudgeIdentity) -> bool:
-    """True when a ``model_validation`` row is a passing record for this identity."""
+def same_key(record: Mapping[str, Any], ident: JudgeIdentity) -> bool:
+    """True when a ``model_validation`` row is for this identity (any decision)."""
     key = (
         str(record.get("model_version")),
         str(record.get("prompt_hash")),
         str(record.get("rubric_version")),
     )
-    return _truthy(record.get("passed")) and key == ident.key()
+    return key == ident.key()
+
+
+def matches(record: Mapping[str, Any], ident: JudgeIdentity) -> bool:
+    """True when a ``model_validation`` row is a passing (GO) record for this identity."""
+    return (
+        same_key(record, ident)
+        and _truthy(record.get("passed"))
+        and str(record.get("decision")) == "GO"
+    )
 
 
 __all__ = [
@@ -170,5 +179,6 @@ __all__ = [
     "golden_set_hash",
     "identity_from_router",
     "matches",
+    "same_key",
     "rubric_version",
 ]

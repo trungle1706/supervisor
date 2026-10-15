@@ -74,7 +74,7 @@ def test_hash_stable_and_recording(tmp_path: Path) -> None:
     b = val.run_validation(s, runs=2, now=NOW, tables=tb, record=False)
     assert a["report_hash"] == b["report_hash"]
     assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
-    assert a["validation_id"] == "jval-" + a["report_hash"][:16]
+    assert a["validation_id"] == "jval-" + a["report_hash"][:16] + "-20261015T000000Z"
     rows = tb.tables["model_validation"]
     assert len(rows) == 1 and rows[0]["decision"] == "NO_GO" and rows[0]["passed"] is False
     assert rows[0]["report_hash"] == a["report_hash"]
@@ -82,6 +82,19 @@ def test_hash_stable_and_recording(tmp_path: Path) -> None:
     ev_rows = ev.of_type("judge_validation")
     assert len(ev_rows) == 1 and ev_rows[0]["report_hash"] == a["report_hash"]
     assert_no_floats(rows[0]["metrics"])
+
+
+def test_same_report_recorded_again_later_is_a_new_row(tmp_path: Path) -> None:
+    """Yearly re-test / retry with unchanged inputs: a new id, the same report hash."""
+    from datetime import timedelta
+
+    s = load_settings(data_dir=tmp_path)
+    ev, tb = MemoryEvidence(), MemoryTables()
+    a = val.run_validation(s, runs=1, now=NOW, tables=tb, evidence=ev)
+    b = val.run_validation(s, runs=1, now=NOW + timedelta(days=366), tables=tb, evidence=ev)
+    assert a["report_hash"] == b["report_hash"] and a["validation_id"] != b["validation_id"]
+    assert len(tb.tables["model_validation"]) == 2
+    assert len(ev.of_type("judge_validation")) == 2
 
 
 def test_cli_no_record_writes_files(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

@@ -41,7 +41,12 @@ from supervisor.judge.mrm._common import (
     router_factory,
     utc_now,
 )
-from supervisor.judge.mrm.inputs import JudgeValidationInput, load_pack_results, validate_pack_rows
+from supervisor.judge.mrm.inputs import (
+    EvalResultPacks,
+    JudgeValidationInput,
+    load_pack_results,
+    validate_pack_rows,
+)
 from supervisor.judge.router import JudgeRouter
 
 REPORT_VERSION = 1
@@ -192,11 +197,21 @@ def run_validation(
     )["metrics"]["heldout"]
     chal = _challenger_section(settings, model, items, primary)
     agreement = _agreement_section(settings, tables)
+    pack_source = "supplied"
+    if packs is None and tables is not None:
+        # Default source: WP17 assurance results stored for this judge (eval_result).
+        stored = EvalResultPacks(tables, primary)
+        if stored.results():
+            packs, pack_source = stored, "eval_result"
     pack_rows = validate_pack_rows(packs.results()) if packs is not None else []
     packs_section: dict[str, Any] = (
-        {"status": "ok", "rows": pack_rows}
+        {"status": "ok", "source": pack_source, "rows": pack_rows}
         if packs is not None
-        else {"status": "none_supplied", "note": "WP17 assurance packs plug in here"}
+        else {
+            "status": "none_supplied",
+            "note": "no eval_result rows for this judge; run WP17 judge packs: "
+            "python -m supervisor.assurance run <pack> --target judge --judge settings",
+        }
     )
 
     checks = [
@@ -266,7 +281,7 @@ def run_validation(
                 "name": f"pack:{row['pack_id']}:{row['metric']}",
                 "value_bp": row["value_bp"],
                 "threshold_bp": row["threshold_bp"],
-                "op": ">=",
+                "op": row["op"],
                 "passed": row["passed"],
             }
         )
@@ -340,7 +355,8 @@ def run_validation(
         "notes": notes,
     }
     body["report_hash"] = sha256_hex({k: v for k, v in body.items() if k not in NON_HASHED})
-    body["validation_id"] = "jval-" + body["report_hash"][:16]
+    # Unique per run: the same report re-run later (yearly re-test, retry) is a new record.
+    body["validation_id"] = f"jval-{body['report_hash'][:16]}-{ts.strftime('%Y%m%dT%H%M%SZ')}"
     body["ts"] = ts.isoformat()
     if record:
         _record(settings, body, ts, tables, evidence)
@@ -375,26 +391,7 @@ def _record(
 ) -> None:
     ident = report["identity"]
     metrics = metrics_of(report)
-    if evidence is not None:
-        evidence.record(
-            "judge_validation",
-            report["validation_id"],
-            {
-                "judge_id": ident["judge_id"],
-                "model_version": ident["model_version"],
-                "prompt_hash": ident["prompt_hash"],
-                "rubric_version": ident["rubric_version"],
-                "mask_version": ident["mask_version"],
-                "golden_set_hash": ident["golden_set_hash"],
-                "is_mock": ident["is_mock"],
-                "decision": report["decision"],
-                "passed": report["passed"],
-                "runs": report["runs"],
-                "metrics": metrics,
-                "failed_checks": report["failed_checks"],
-                "report_hash": report["report_hash"],
-            },
-        )
+    # Table row first: if it fails (duplicate id, store error) no orphan chain entry.
     if tables is not None:
         tables.append(
             "model_validation",
@@ -419,6 +416,26 @@ def _record(
                     "report_hash": report["report_hash"],
                 }
             ],
+        )
+    if evidence is not None:
+        evidence.record(
+            "judge_validation",
+            report["validation_id"],
+            {
+                "judge_id": ident["judge_id"],
+                "model_version": ident["model_version"],
+                "prompt_hash": ident["prompt_hash"],
+                "rubric_version": ident["rubric_version"],
+                "mask_version": ident["mask_version"],
+                "golden_set_hash": ident["golden_set_hash"],
+                "is_mock": ident["is_mock"],
+                "decision": report["decision"],
+                "passed": report["passed"],
+                "runs": report["runs"],
+                "metrics": metrics,
+                "failed_checks": report["failed_checks"],
+                "report_hash": report["report_hash"],
+            },
         )
 
 

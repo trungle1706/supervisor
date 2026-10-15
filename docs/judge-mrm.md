@@ -16,7 +16,7 @@ the deterministic rules.
 
 | MRM element | Circular 53 duty | What Supervisor gives | Command / place | Status |
 |---|---|---|---|---|
-| Inventory | Art. 4(5) AI inventory (name, risk level, purpose, provider, version, approval doc); Art. 19(2) bill of materials | Judge identity: `judge.tiered`, T1/T2 model id, family, version, prompt hashes, rubric version, mask version, golden-set hash | `src/supervisor/judge/mrm/identity.py`; model card "Identity" | Done. Approval document and provider name: FILL-ME (bank) |
+| Inventory | Art. 4(5) AI inventory (name, risk level, purpose, provider, version, approval doc); Art. 19(2) bill of materials | Judge identity: `judge.tiered`, T1/T2 model id, family, version, prompt hashes, rubric version, mask version, golden-set hash | `src/supervisor/judge/mrm/identity.py`; model card "Identity" | Done. Risk level, provider and approval document: FILL-ME fields on the card (bank) |
 | Model card (development doc) | Art. 8(2) version control; Art. 11(1) purpose, scope, limits for internal users | Identity, roles, intended use and limits, data used, metrics, known failure modes, change log, last validations | `python -m supervisor.judge.mrm card --out DIR` (json + md) | Done. Vietnamese headings: TODO |
 | Independent validation | Art. 16(2) test before first use, yearly, after serious incident / significant change; Art. 16(3) accuracy, stability, black-box tests; Art. 16(4) independent unit | Validation report: golden-set catch / false alarm / by language, judge-injection resistance, challenger disagreement, N-run stability, judge-vs-human agreement, assurance packs; deterministic GO / NO-GO | `python -m supervisor.judge.mrm validate --out DIR [--runs N] [--packs FILE]`; table `model_validation`; evidence `judge_validation` | Done with the mock judge. Real numbers need the real model and the bank golden set |
 | Change control | Art. 8(2) version info, change log, test results; Art. 8(3)(b) vendor model change | Every judge verdict row carries `prompt_hash`, `model_version`, `rubric_version`. Optional gate: `JUDGE_REQUIRE_VALIDATION=1` refuses to start the judge without a passing validation for the current identity | `src/supervisor/judge/mrm/control.py`; `python -m supervisor.judge.mrm triggers` | Done. Gate off by default |
@@ -63,12 +63,14 @@ The thresholds are illustrative; the validator sets them in `.env`.
 Outputs: `judge_validation.json` + `judge_validation.md` in `--out`; one `model_validation` row;
 one `judge_validation` evidence record on the chain (root lane). `report_hash` = SHA-256 of the
 canonical report without `report_hash`, `validation_id`, `ts`; `validation_id` = `jval-` + 16 hex of
-it. The recorded run writes to the chain, so run it with the app stopped (like the other jobs) or
+it + `-` + the run time (`YYYYMMDDTHHMMSSZ`), so a re-run with unchanged inputs (yearly re-test,
+retry) is a new record with the same `report_hash`. The table row is written before the chain
+record, so a failed write leaves no orphan chain entry. The recorded run writes to the chain, so run it with the app stopped (like the other jobs) or
 use `--no-record`.
 
 ### Demo-store result (mock judge, 2026-10-15, runs 3)
 
-Decision **NO_GO** (`jval-664f7371701353fd`). Two runs with the same store and `--now` give a
+Decision **NO_GO** (`jval-da8510d321db2a6c-20261015T000000Z`; no WP17 eval_result rows in the demo store, so the packs section is `none_supplied`). Two runs with the same store and `--now` give a
 byte-identical `judge_validation.json`.
 
 | Check | Value | Threshold | Result |
@@ -84,13 +86,21 @@ byte-identical `judge_validation.json`.
 
 The mock is not tuned to pass. A NO_GO here is the honest result.
 
-### Assurance packs (WP17) plug in through `JudgeValidationInput`
+### Assurance packs (WP17) through `JudgeValidationInput`
 
 `src/supervisor/judge/mrm/inputs.py` defines one protocol, `JudgeValidationInput.results()`, that
-returns plain dicts `{pack_id, metric, value_bp, threshold_bp, passed}` (ints and a bool; floats are
-rejected). The pack does not import WP17 code. WP17 assurance eval packs (judge-target packs) will
-plug in later through this protocol: an adapter in WP17 returns its results as these rows, or WP17
-writes them to a JSON file for `--packs FILE`. Each row becomes a check named `pack:<id>:<metric>`.
+returns plain dicts `{pack_id, metric, value_bp, threshold_bp, passed, op}` (ints, a bool, `op` `>=`
+or `<=`; floats are rejected; `passed` must agree with `value_bp op threshold_bp`, else the row is
+rejected). Sources, in this order:
+
+1. `--packs FILE` (a JSON list of rows), or any object passed as `packs=` (tests).
+2. Default when the store has them: `EvalResultPacks` reads the newest WP17 `eval_result` row per
+   pack for this judge's target (`judge:<t1 model id>`). Per metric: threshold = the pack's `no_go`,
+   `op` from the manifest direction, pass = stored metric status is not `fail`. Metrics outside
+   0..10000 (counts, ms) are left out. Mock runs are labelled in `source`.
+3. None: the section says how to run the WP17 judge packs.
+
+Each row becomes a check named `pack:<id>:<metric>`; any failed row forces NO_GO.
 
 ## 4. Change control
 
@@ -105,9 +115,21 @@ Every judge verdict (`verdict` table and `judge_verdict` evidence) carries:
 The validated unit is keyed by three composite strings (`identity.py`): model version
 `t1=<id>@<ver>;t2=<id>@<ver>`, composite prompt hash, rubric version.
 
-**Validation gate** (`JUDGE_REQUIRE_VALIDATION`, default off). When on, `JudgeService.from_settings`
-looks for a `model_validation` row with `passed = true` for the current key and raises
-`JudgeNotValidatedError` when there is none (or when no store is given). The judge sweep job prints
+**Judge enablement gates.** `JudgeService.from_settings` runs two checks, in this order, in one
+place:
+
+1. WP17 pack gate (`ASSURANCE_JUDGE_GATE_ENABLED`, default on, mock judges exempt): each pack with
+   `judge_gate: true` (halueval_vi, judge_golden_set, judge_injection, perturbation_vi) has a
+   passing, non-mock `eval_result` for this model and the current manifest
+   (`supervisor.assurance.gates.require_judge_validated`).
+2. WP19 MRM gate (`JUDGE_REQUIRE_VALIDATION`, default off): the LATEST `model_validation` row for
+   the current key (model version, prompt hash, rubric) is a GO with `passed = true`. A later
+   NO_GO withdraws an earlier GO. No row, no store, or a store error (e.g. table missing) refuses.
+
+The two do not duplicate each other: gate 1 asks "did the test packs pass for this model?", gate 2
+asks "did the second line accept a validation of this exact identity?" (that validation includes
+the same pack results as checks, see section 3). Both raise `JudgeNotValidatedError`: the WP19 class
+is a subclass of the WP17 one, so one `except` handles both. The judge sweep job prints
 `[FAIL] judge_sweep: ...`; the in-app scheduler logs the error and drops the judge job; the app
 keeps running. The gate, the pause switch and agent states are never touched: agents stay under the
 deterministic rules, and the missing judge coverage is visible as no new judge verdicts. When off,

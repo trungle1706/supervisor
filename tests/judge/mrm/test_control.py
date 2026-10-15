@@ -109,8 +109,37 @@ def test_latest_validation_picks_latest_passing() -> None:
             record(ident, validation_id="bad", ts=T0 + timedelta(days=2), passed=False),
         ],
     )
-    assert latest_validation(t, ident)["validation_id"] == "new"
-    assert require_validation(t, ident)["validation_id"] == "new"
+    # The latest row for the key decides: a later NO_GO withdraws the earlier GO.
+    assert latest_validation(t, ident) is None
+    with pytest.raises(JudgeNotValidatedError):
+        require_validation(t, ident)
+    t.append("model_validation", [record(ident, validation_id="z", ts=T0 + timedelta(days=3))])
+    assert latest_validation(t, ident)["validation_id"] == "z"
+
+
+def test_passed_true_with_no_go_decision_is_refused() -> None:
+    ident = ident_for(settings_for())
+    t = MemoryTables()
+    t.append("model_validation", [record(ident, decision="NO_GO")])
+    assert latest_validation(t, ident) is None
+
+
+def test_store_error_becomes_not_validated(clock) -> None:
+    class Broken(MemoryTables):
+        def query(self, table, *a, **k):  # noqa: ANN001, ANN002, ANN003, ANN202
+            if table == "model_validation":
+                raise RuntimeError("TABLE_OR_VIEW_NOT_FOUND")
+            return super().query(table, *a, **k)
+
+    s = settings_for(judge_require_validation=True)
+    with pytest.raises(JudgeNotValidatedError, match="lookup failed"):
+        JudgeService.from_settings(s, clock, tables=Broken(), force=True)
+
+
+def test_error_is_in_the_wp17_judge_gate_family() -> None:
+    from supervisor.assurance.gates import JudgeNotValidatedError as PackGateError
+
+    assert issubclass(JudgeNotValidatedError, PackGateError)
 
 
 def test_refusal_does_not_touch_gate(clock) -> None:

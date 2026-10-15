@@ -28,6 +28,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from supervisor.assurance.gates import JudgeNotValidatedError as _PackGateError
 from supervisor.config import Settings
 from supervisor.core.errors import SupervisorError
 from supervisor.core.ports import Masker, TableStore
@@ -47,8 +48,15 @@ TRIGGER_IDS = (
 )
 
 
-class JudgeNotValidatedError(SupervisorError):
-    """JUDGE_REQUIRE_VALIDATION is on and there is no passing validation for this judge."""
+class JudgeNotValidatedError(_PackGateError):
+    """JUDGE_REQUIRE_VALIDATION is on and there is no passing validation for this judge.
+
+    A subclass of the WP17 assurance ``JudgeNotValidatedError``: callers that catch the pack
+    gate error also catch this one (one error family for "judge not enabled")."""
+
+    def __init__(self, message: str) -> None:
+        self.problems = [message]
+        SupervisorError.__init__(self, message)
 
 
 # --------------------------------------------------------------------------- identity
@@ -77,14 +85,19 @@ def _ts(value: Any) -> datetime:
 
 def _validations(tables: TableStore) -> list[dict[str, Any]]:
     rows = [dict(r) for r in tables.query("model_validation")]
-    rows.sort(key=lambda r: _ts(r["ts"]))
+    rows.sort(key=lambda r: (_ts(r["ts"]), str(r.get("validation_id"))))
     return rows
 
 
 def latest_validation(tables: TableStore, ident: JudgeIdentity) -> dict[str, Any] | None:
-    """Latest passing ``model_validation`` row for this identity, else None."""
-    ok = [r for r in _validations(tables) if ident_mod.matches(r, ident)]
-    return ok[-1] if ok else None
+    """The latest ``model_validation`` row for this identity if it is a GO pass, else None.
+
+    The LATEST row for the key decides: a later NO_GO (e.g. after a golden-set or threshold
+    change that is not part of the key) withdraws an earlier GO."""
+    same = [r for r in _validations(tables) if ident_mod.same_key(r, ident)]
+    if not same or not ident_mod.matches(same[-1], ident):
+        return None
+    return same[-1]
 
 
 def require_validation(tables: TableStore, ident: JudgeIdentity) -> dict[str, Any]:
@@ -105,7 +118,16 @@ def check_validation_gate(service: Any, settings: Settings, tables: TableStore |
         raise JudgeNotValidatedError(
             "JUDGE_REQUIRE_VALIDATION needs the store to look up model_validation records"
         )
-    require_validation(tables, current_identity(service, settings))
+    ident = current_identity(service, settings)
+    try:
+        require_validation(tables, ident)
+    except JudgeNotValidatedError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - a store error (missing table) = not validated
+        raise JudgeNotValidatedError(
+            f"judge not validated: model_validation lookup failed ({type(exc).__name__}). "
+            f"Run: {VALIDATE_CMD}. Agents continue under the deterministic rules."
+        ) from exc
 
 
 # --------------------------------------------------------------------------- triggers

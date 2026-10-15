@@ -173,6 +173,12 @@ def build_card(
             "validator": settings.mrm_validator,
             "approver": settings.mrm_approver,
         },
+        # Circular 53 Art. 4(5) inventory fields the bank fills (not in settings yet).
+        "inventory": {
+            "risk_level": "FILL-ME-risk-level (bank classification, Art. 4)",
+            "provider": "FILL-ME-judge-model-provider",
+            "approval_document": "FILL-ME-approval-document-ref",
+        },
         "intended_use": list(INTENDED_USE),
         "data": data_block,
         "metrics": metrics,
@@ -212,6 +218,8 @@ def render_card_md(card: dict[str, Any]) -> str:
         "",
     ]
     lines += [f"- {k}: {v}" for k, v in card["roles"].items()]
+    lines += ["", "## Inventory (Circular 53 Art. 4(5))", ""]
+    lines += [f"- {k}: {v}" for k, v in card["inventory"].items()]
     lines += ["", "## Intended use and limits", ""] + [f"- {x}" for x in card["intended_use"]]
     d = card["data"]
     lines += ["", "## Data used", "", f"- golden set hash: {d['golden_set_hash']}"]
