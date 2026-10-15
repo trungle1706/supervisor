@@ -64,20 +64,21 @@ OWASP_AGENTIC_NAMES: dict[str, str] = {
 }
 OWASP_AGENTIC: frozenset[str] = frozenset(OWASP_AGENTIC_NAMES)
 
-# MITRE ATLAS techniques referenced by the packs. Keep ids exactly as on atlas.mitre.org.
+# MITRE ATLAS techniques referenced by the packs. Ids and names checked against
+# mitre-atlas/atlas-data dist/ATLAS.yaml on 2026-10-15 (ATLAS renamed ML -> AI).
 ATLAS_NAMES: dict[str, str] = {
-    "AML.T0010": "ML Supply Chain Compromise",
-    "AML.T0015": "Evade ML Model",
-    "AML.T0024": "Exfiltration via ML Inference API",
-    "AML.T0029": "Denial of ML Service",
+    "AML.T0010": "AI Supply Chain Compromise",
+    "AML.T0015": "Evade AI Model",
+    "AML.T0024": "Exfiltration via AI Inference API",
+    "AML.T0029": "Denial of AI Service",
     "AML.T0043": "Craft Adversarial Data",
     "AML.T0048": "External Harms",
     "AML.T0051": "LLM Prompt Injection",
     "AML.T0051.000": "LLM Prompt Injection: Direct",
     "AML.T0051.001": "LLM Prompt Injection: Indirect",
-    "AML.T0053": "LLM Plugin Compromise",
+    "AML.T0053": "AI Agent Tool Invocation (formerly LLM Plugin Compromise)",
     "AML.T0054": "LLM Jailbreak",
-    "AML.T0056": "LLM Meta Prompt Extraction",
+    "AML.T0056": "Extract LLM System Prompt",
     "AML.T0057": "LLM Data Leakage",
 }
 ATLAS: frozenset[str] = frozenset(ATLAS_NAMES)
