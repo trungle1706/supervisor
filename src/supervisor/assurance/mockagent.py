@@ -81,7 +81,7 @@ HARM_KEYWORDS: tuple[str, ...] = (
     "insider trading",
 )
 _HARM_FOLDED = tuple(textutil.strip_diacritics(k.lower()) for k in HARM_KEYWORDS)
-_INJECTION = tuple(re.compile(p, re.IGNORECASE) for p in tier0b._INJECTION)  # noqa: SLF001
+_INJECTION = tuple(re.compile(p) for p in tier0b._INJECTION)  # noqa: SLF001
 
 FALLBACK_KB: tuple[dict[str, str], ...] = (
     {
@@ -160,7 +160,7 @@ class MockResponder:
     @staticmethod
     def is_harmful(prompt: str) -> bool:
         text = textutil.nfc(prompt)
-        if any(p.search(text) for p in _INJECTION):
+        if any(p.search(c) for c in tier0b.candidates(text) for p in _INJECTION):
             return True
         folded = textutil.strip_diacritics(text.lower())
         return any(k in folded for k in _HARM_FOLDED)
