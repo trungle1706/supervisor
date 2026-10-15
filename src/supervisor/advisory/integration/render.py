@@ -64,6 +64,8 @@ _T: dict[str, tuple[str, str]] = {
     "settings": ("Settings (.env)", "Cài đặt (.env)"),
     "catalogue": ("Capabilities to enable", "Năng lực cần bật"),
     "test_plan": ("Assurance test plan", "Kế hoạch kiểm thử đảm bảo"),
+    "packs": ("Assurance packs (WP17)", "Gói kiểm thử (WP17)"),
+    "command": ("Run with", "Chạy bằng lệnh"),
     "manual": ("Do by hand", "Làm thủ công"),
     "policy": ("Policy YAML (starts in SHADOW)", "Chính sách YAML (bắt đầu ở SHADOW)"),
     "mcp_proxy": ("MCP proxy", "Proxy MCP"),
@@ -234,7 +236,15 @@ def _blocks(r: IntegrationReport, lang: str) -> list[Block]:
         )
     )
     b.append(("h2", t("test_plan")))
-    b.append(("table", ([t("area"), t("reason")], [[a.dimension, a.reason] for a in n.test_plan])))
+    b.append(
+        (
+            "table",
+            (
+                [t("area"), t("reason"), t("packs"), t("command")],
+                [[a.dimension, a.reason, ", ".join(a.packs), a.command] for a in n.test_plan],
+            ),
+        )
+    )
     b.append(("h2", t("manual")))
     b.append(("ul", [f"{m.what}{' (' + m.at + ')' if m.at else ''}: {m.note}" for m in n.manual]))
     if n.policy_yaml:

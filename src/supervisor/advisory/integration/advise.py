@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
+
 from supervisor.adapters.llm.mock import MockChat
 from supervisor.adapters.repo import LocalGitRepoReader, RepoReadError
 from supervisor.advisory.integration.analysis import needs_gate
@@ -164,7 +166,44 @@ def _test_plan(inv: Inventory) -> list[AssuranceItem]:
             "the agent calls tools and data sources that can fail",
         ),
     ]
-    return [AssuranceItem(dimension=d, reason=r) for d, ok, r in rows if ok]  # type: ignore[arg-type]
+    packs = assurance_packs()
+    return [
+        AssuranceItem(
+            dimension=d,  # type: ignore[arg-type]
+            reason=r,
+            packs=packs.get(_PACK_DIMENSION.get(d, d), []),
+            command=(
+                f"python -m supervisor.assurance run {_PACK_DIMENSION.get(d, d)} "
+                f"--target agent:{inv.agent_id} --repo <repo folder> --out out\\assurance"
+            ),
+        )
+        for d, ok, r in rows
+        if ok
+    ]
+
+
+# Our dimension names -> WP17 pack dimension names.
+_PACK_DIMENSION = {"dependency_risk": "dependency", "adversarial_security": "security"}
+PACKS_DIR = Path(__file__).resolve().parents[2] / "assurance" / "packs"
+
+
+def assurance_packs(packs_dir: Path = PACKS_DIR) -> dict[str, list[str]]:
+    """WP17 pack ids per pack dimension, only packs that can target an agent. Read as
+    data (YAML id / dimension / targets); empty when the assurance packs are absent."""
+    out: dict[str, list[str]] = {}
+    if not packs_dir.is_dir():
+        return out
+    for f in sorted(packs_dir.glob("*.yaml")):
+        try:
+            doc = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            continue
+        if not isinstance(doc, dict) or "agent" not in (doc.get("targets") or []):
+            continue
+        pid, dim = doc.get("id"), doc.get("dimension")
+        if isinstance(pid, str) and isinstance(dim, str):
+            out.setdefault(dim, []).append(pid)
+    return {k: sorted(v) for k, v in out.items()}
 
 
 def _found(inv: Inventory, pplan: PatchPlan) -> Found:

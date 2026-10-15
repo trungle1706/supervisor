@@ -71,7 +71,7 @@
     <h3>{{ t('int_settings') }}</h3>
     <div class="mono" style="font-size:12px">{% for s in n.get('settings', []) %}{{ s.get('key') }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</div>
     <h3>{{ t('int_test_plan') }}</h3>
-    <div>{% for d in n.get('test_plan', []) %}<span class="mono">{{ d.get('dimension') }}</span>{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</div>
+    <div>{% for d in n.get('test_plan', []) %}<div><span class="mono">{{ d.get('dimension') }}</span>{% if d.get('packs') %}: <span class="mono">{{ d.get('packs')|join(', ') }}</span>{% endif %}{% if d.get('command') %} <code>{{ d.get('command') }}</code>{% endif %}</div>{% else %}-{% endfor %}</div>
   </div>
 </div>
 {% if n.get('policy_yaml') %}

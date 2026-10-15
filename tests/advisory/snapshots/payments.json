@@ -302,15 +302,36 @@
     ],
     "test_plan": [
       {
+        "command": "python -m supervisor.assurance run accuracy --target agent:payments --repo <repo folder> --out out\\assurance",
         "dimension": "accuracy",
+        "packs": [
+          "simpleqa_vi",
+          "truthfulqa_vi"
+        ],
         "reason": "the agent answers or acts on customer requests"
       },
       {
+        "command": "python -m supervisor.assurance run security --target agent:payments --repo <repo folder> --out out\\assurance",
         "dimension": "adversarial_security",
+        "packs": [
+          "atlas_coverage",
+          "finance_harm_refusal",
+          "garak_probe_families",
+          "indirect_injection_vi",
+          "owasp_agentic_redteam",
+          "owasp_llm_top10",
+          "pii_canary"
+        ],
         "reason": "the agent has tools with side effects or reads untrusted text"
       },
       {
+        "command": "python -m supervisor.assurance run robustness --target agent:payments --repo <repo folder> --out out\\assurance",
         "dimension": "robustness",
+        "packs": [
+          "paraphrase_consistency",
+          "perturbation_vi",
+          "prefilter_evasion"
+        ],
         "reason": "the agent calls tools and data sources that can fail"
       }
     ]

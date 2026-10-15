@@ -130,6 +130,8 @@ class SettingNeeded(_M):
 class AssuranceItem(_M):
     dimension: Dimension
     reason: str
+    packs: list[str] = Field(default_factory=list)  # WP17 pack ids (targets include agent)
+    command: str = ""  # python -m supervisor.assurance run <dimension> --target agent:<id>
 
 
 class ManualItem(_M):

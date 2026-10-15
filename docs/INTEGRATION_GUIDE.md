@@ -844,17 +844,23 @@ The bands are advice. A score of 100 does not replace the checklist in section 8
 
 ## 7. Assurance test plan dimensions
 
-The advisor's test plan lists the dimensions below for each agent. Another work package
-builds the test packs. This table says when a dimension normally applies.
+The advisor's test plan lists the dimensions below for each agent. The rule is
+deterministic (from the static scan). For each dimension the report also names the WP17
+assurance packs that can target an agent (read from `src\supervisor\assurance\packs\*.yaml`)
+and the command to run them:
 
-| Dimension | Applies when |
-|---|---|
-| `accuracy` | Always. The agent answers or acts, so it needs tasks with known good outcomes. |
-| `hallucination` | The agent writes free text to customers or staff, or answers from documents (retrieval). |
-| `bias_fairness` | The agent's output affects a person: credit, pricing, limits, collections, complaints. |
-| `dependency_risk` | The agent depends on an external model endpoint, an external API, or packages that can change under it. |
-| `adversarial_security` | The agent reads untrusted text (emails, tickets, web pages, documents) or has tools that write or move money. |
-| `robustness` | Always for agents with tools: typos, missing diacritics, long inputs, tool errors, repeated calls. |
+```cmd
+python -m supervisor.assurance run <pack dimension> --target agent:<agent id> --repo C:\path\to\repo --out out\assurance
+```
+
+| Dimension | Pack dimension | Listed when |
+|---|---|---|
+| `accuracy` | `accuracy` | the repo has an LLM call site or a tool |
+| `hallucination` | `hallucination` | the repo has an LLM call site (or free-text output) |
+| `bias_fairness` | `bias_fairness` | a credit tool, a decision tool, or demographic personal data |
+| `dependency_risk` | `dependency` | an LLM call site, an MCP server, or HTTP / bank API access |
+| `adversarial_security` | `security` | a tool that is not read-only, an LLM call site, or a flagged injection line |
+| `robustness` | `robustness` | a tool or a data access |
 
 ## 8. Checklist before onboarding
 
