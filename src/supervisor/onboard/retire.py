@@ -171,8 +171,9 @@ def retire_agent(
     if current == "RUNNING":
         raise RetireError(f"agent {agent_id} is RUNNING; pause it first")
     try:
+        # the principal is a name typed on the CLI, not a verified identity
         res = states.retire(
-            agent_id, principal, reason, auth_method="onboard_retire", actor_kind="system"
+            agent_id, principal, reason, auth_method="onboard_retire", actor_kind="unverified"
         )
     except TransitionError as exc:
         raise RetireError(str(exc)) from exc
