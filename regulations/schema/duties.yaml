@@ -1,0 +1,78 @@
+# RegKB duty vocabulary (WP13). Every obligation lists one or more duty ids from this file.
+# The loader refuses an unknown duty id. Add a duty here (with label and description) before use.
+# WP17 assurance packs map to these ids. Not legal advice; bank counsel must confirm.
+schema_version: 1
+duties:
+  # ---- governance and model risk
+  risk_classification: {label_en: Classify the AI system by risk, label_vi: Phan loai rui ro he thong AI, group: governance}
+  risk_management_system: {label_en: Run a documented AI risk management process, label_vi: Quy trinh quan ly rui ro AI, group: governance}
+  model_inventory: {label_en: Keep an inventory of models and AI systems with owners, label_vi: Danh muc mo hinh va chu so huu, group: governance}
+  governance_accountability: {label_en: Name accountable roles and board oversight for AI, label_vi: Trach nhiem giai trinh va vai tro, group: governance}
+  internal_policy: {label_en: Issue an internal policy or procedure, label_vi: Ban hanh quy dinh noi bo, group: governance}
+  independent_validation: {label_en: Independent validation before use and periodically, label_vi: Tham dinh doc lap, group: model_risk}
+  change_control: {label_en: Controlled, approved changes with re-validation triggers, label_vi: Kiem soat thay doi, group: model_risk}
+  lifecycle_management: {label_en: Manage the lifecycle (design, deploy, monitor, retire), label_vi: Quan ly vong doi, group: model_risk}
+  performance_monitoring: {label_en: Monitor accuracy, drift and performance continuously, label_vi: Giam sat hieu nang va troi mo hinh, group: model_risk}
+  technical_documentation: {label_en: Keep technical documentation of the system, label_vi: Ho so ky thuat, group: model_risk}
+  data_quality: {label_en: Data governance and data quality for training and inputs, label_vi: Chat luong du lieu, group: model_risk}
+  robustness_security: {label_en: Accuracy, robustness and cybersecurity of the AI system, label_vi: Do chinh xac, ben vung, an ninh, group: model_risk}
+  staff_competence: {label_en: Train staff and keep AI competence, label_vi: Nang luc va dao tao nhan su, group: governance}
+  # ---- conformity and registration
+  conformity_assessment: {label_en: Conformity assessment before use, label_vi: Danh gia su phu hop, group: conformity}
+  registration: {label_en: Register or notify the system with an authority, label_vi: Dang ky / thong bao voi co quan, group: conformity}
+  regulatory_reporting: {label_en: Periodic reporting to the regulator, label_vi: Bao cao dinh ky, group: conformity}
+  # ---- human oversight and customer rights
+  human_oversight: {label_en: Human supervision, control and ability to intervene or stop, label_vi: Giam sat cua con nguoi, group: oversight}
+  pre_execution_approval: {label_en: Human inspection or approval before an action executes, label_vi: Phe duyet truoc khi thuc hien, group: oversight}
+  right_to_human_review: {label_en: Customer can ask for human review of a disputed decision, label_vi: Quyen yeu cau con nguoi xem xet, group: customer}
+  ai_disclosure: {label_en: Tell people they deal with AI or AI-generated content, label_vi: Thong bao co su dung AI, group: customer}
+  content_labelling: {label_en: Label or watermark AI-generated content, label_vi: Gan nhan noi dung do AI tao, group: customer}
+  explainability: {label_en: Explain the main factors of an AI decision, label_vi: Giai thich quyet dinh, group: customer}
+  fair_treatment: {label_en: Fair treatment and no unfair terms or practices towards consumers, label_vi: Doi xu cong bang voi khach hang, group: customer}
+  bias_monitoring: {label_en: Monitor for bias and prevent discriminatory outcomes, label_vi: Giam sat thien lech, group: customer}
+  complaint_handling: {label_en: Receive and resolve complaints, label_vi: Giai quyet khieu nai, group: customer}
+  consumer_information: {label_en: Give consumers accurate, complete product information, label_vi: Cung cap thong tin cho nguoi tieu dung, group: customer}
+  # ---- logging, incidents, evidence
+  logging: {label_en: Log operations automatically and keep logs, label_vi: Ghi nhat ky hoat dong, group: evidence}
+  record_keeping: {label_en: Keep records for a set period and produce them on request, label_vi: Luu tru ho so, group: evidence}
+  retention: {label_en: Retain or delete data within set periods, label_vi: Thoi han luu tru, group: evidence}
+  incident_report: {label_en: Report incidents to an authority (period not fixed or other than 24 h / 72 h), label_vi: Bao cao su co, group: incident}
+  incident_report_24h: {label_en: Report an incident within 24 hours, label_vi: Bao cao su co trong 24 gio, group: incident}
+  incident_report_72h: {label_en: Report a breach within 72 hours, label_vi: Bao cao vi pham trong 72 gio, group: incident}
+  incident_response: {label_en: Respond, contain and remediate incidents, label_vi: Ung pho su co, group: incident}
+  serious_incident_suspension: {label_en: Suspend or withdraw a system after a serious incident, label_vi: Tam dung khi co su co nghiem trong, group: incident}
+  electronic_record_integrity: {label_en: Keep electronic records intact and verifiable, label_vi: Toan ven thong diep du lieu dien tu, group: evidence}
+  electronic_signature: {label_en: Use a valid electronic or digital signature, label_vi: Chu ky dien tu, group: evidence}
+  # ---- data protection
+  lawful_basis: {label_en: Have a lawful basis for processing personal data, label_vi: Co so phap ly xu ly du lieu, group: data_protection}
+  consent: {label_en: Obtain valid consent, label_vi: Su dong y cua chu the du lieu, group: data_protection}
+  purpose_limitation: {label_en: Use data only for the stated purpose, label_vi: Gioi han muc dich, group: data_protection}
+  data_minimisation: {label_en: Collect and keep only the data needed, label_vi: Toi thieu hoa du lieu, group: data_protection}
+  sensitive_data_protection: {label_en: Extra safeguards for sensitive personal data, label_vi: Bao ve du lieu nhay cam, group: data_protection}
+  data_subject_rights: {label_en: Honour access, correction, deletion and objection rights, label_vi: Quyen cua chu the du lieu, group: data_protection}
+  automated_decision_rights: {label_en: Rights and limits around automated processing and profiling, label_vi: Quyen lien quan xu ly tu dong, group: data_protection}
+  dpia: {label_en: Personal data processing impact assessment, label_vi: Danh gia tac dong xu ly du lieu ca nhan, group: data_protection}
+  cross_border_notice: {label_en: Transfer impact assessment or notice before data leaves the country, label_vi: Danh gia / thong bao chuyen du lieu ra nuoc ngoai, group: data_protection}
+  data_localisation: {label_en: Store data inside the country, label_vi: Luu tru du lieu trong nuoc, group: data_protection}
+  data_classification: {label_en: Classify data (core, important, personal), label_vi: Phan loai du lieu, group: data_protection}
+  dpo_appointment: {label_en: Name a data protection officer or unit, label_vi: Bo phan / nhan su bao ve du lieu, group: data_protection}
+  processor_contract: {label_en: Written contract and controls over data processors, label_vi: Hop dong voi ben xu ly, group: data_protection}
+  breach_notification_subject: {label_en: Inform affected data subjects of a breach, label_vi: Thong bao vi pham cho chu the, group: data_protection}
+  # ---- banking specific
+  customer_confidentiality: {label_en: Keep customer information confidential, label_vi: Bao mat thong tin khach hang, group: banking}
+  transaction_authentication: {label_en: Strong authentication of transactions, label_vi: Xac thuc giao dich, group: banking}
+  biometric_verification: {label_en: Biometric check against the chip ID or stored data, label_vi: Xac thuc sinh trac hoc, group: banking}
+  transaction_limits: {label_en: Transaction limits and fraud controls, label_vi: Han muc va phong chong gian lan, group: banking}
+  fraud_monitoring: {label_en: Monitor for fraud and suspicious transactions, label_vi: Giam sat gian lan, group: banking}
+  outsourcing_oversight: {label_en: Oversee third parties and outsourced IT or AI; bank stays responsible, label_vi: Quan ly ben thu ba, group: banking}
+  access_control: {label_en: Named accounts, least privilege, access review, label_vi: Quan ly truy cap, group: security}
+  system_classification: {label_en: Classify the information system by security level, label_vi: Phan loai cap do he thong thong tin, group: security}
+  security_testing: {label_en: Security testing or assessment before go-live and periodically, label_vi: Kiem tra danh gia an ninh, group: security}
+  security_monitoring: {label_en: Monitor security events, label_vi: Giam sat an ninh, group: security}
+  encryption: {label_en: Encrypt data in transit or at rest, label_vi: Ma hoa du lieu, group: security}
+  business_continuity: {label_en: Backup, continuity and recovery, label_vi: Du phong va phuc hoi, group: security}
+  prompt_injection_defence: {label_en: Defend against prompt injection and tool misuse, label_vi: Chong tiem lenh, group: security}
+  excessive_agency_limits: {label_en: Limit agent permissions and autonomy, label_vi: Gioi han quyen tac tu, group: security}
+  supply_chain_security: {label_en: Manage model, data and software supply-chain risk, label_vi: Rui ro chuoi cung ung, group: security}
+  output_handling: {label_en: Validate and filter model output before use, label_vi: Kiem soat dau ra mo hinh, group: security}
+  prohibited_practice: {label_en: Do not use prohibited AI practices, label_vi: Khong su dung hanh vi bi cam, group: governance}
