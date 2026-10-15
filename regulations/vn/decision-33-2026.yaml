@@ -1,0 +1,451 @@
+schema_version: 1
+instrument:
+  id: VN-QD33-2026
+  jurisdiction: VN
+  kind: decision
+  issuer: Prime Minister (signed by Deputy Prime Minister Hồ Quốc Dũng on behalf)
+  number: 33/2026/QĐ-TTg
+  title_vi: Quyết định ban hành Danh mục hệ thống trí tuệ nhân tạo có rủi ro cao
+  title_en: Decision promulgating the List of High-Risk Artificial Intelligence Systems
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2026-06-30'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: VERIFIED_PRIMARY
+      note: 'Header: Hà Nội, ngày 30 tháng 6 năm 2026. Published in Công báo số 395 (2026-07-14).'
+    effective:
+      date: '2026-08-15'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: VERIFIED_PRIMARY
+      note: Art. 3(1).
+    compliance_deadline:
+      date: '2027-03-01'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: ASSUMED
+      note: 'Art. 4: 2027-09-01 for health, education and finance; 2027-03-01 for other listed sectors and for new systems started within 6 months. Banking is listed as its own sector; planning date is the earlier one.'
+    milestones:
+    - label: Existing listed systems in health, education and finance comply by (Art. 4(1)(a))
+      date: '2027-09-01'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: VERIFIED_PRIMARY
+    - label: Existing listed systems in the remaining sectors comply by (Art. 4(1)(b))
+      date: '2027-03-01'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: VERIFIED_PRIMARY
+    - label: New listed systems started within 6 months of the effective date comply by (Art. 4(3))
+      date: '2027-03-01'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: VERIFIED_PRIMARY
+    - label: End of the 6-month window for new systems (derived)
+      date: '2027-02-15'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: ASSUMED
+      note: 2026-08-15 plus 6 months.
+  sources:
+  - &id001
+    url: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+    title: Quyết định số 33/2026/QĐ-TTg (Công báo số 395 ngày 14-07-2026), text extracted from the gazette PDF
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 5eedfd5e7d033edcf316fcbe1f7777cffba99dff6c931b29a8d820b0436bfc36
+    local_path: regulations/sources/VN-QD33-2026/33-2026-qd-ttg.txt
+  - &id002
+    url: https://lsvn.vn/danh-muc-he-thong-tri-tue-nhan-tao-co-rui-ro-cao-a175291.html
+    title: LSVN - Danh muc he thong tri tue nhan tao co rui ro cao
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - &id003
+    url: https://www.allenandgledhill.com/sg/publication/articles/33374/identifies-high-risk-ai-systems-across-six-sectors
+    title: Allen & Gledhill - identifies high-risk AI systems across six sectors
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'Number and year confirmed from the gazette: 33/2026/QĐ-TTg. Full text (4 articles and the Appendix) read from the gazette PDF. The Appendix has six sectors: I education, II ethnic and religious affairs, III health, IV banking, V proceedings (tố tụng), VI transport (31 systems). Only sector IV is turned into obligations. IV has two entries: (1) AI that automatically performs e-transactions, (2) AI that automatically decides credit. Each entry applies only when ALL its listed conditions hold. The wording reported earlier differs from the real text: the real text says ''Không có sự kiểm tra, phê duyệt hoặc kiểm soát của con người trước khi giao dịch được thực hiện'' and ''mà không có sự phê duyệt độc lập của cán bộ tín dụng''. ''High value'' and loan value are left to SBV; Circular 53/2026/TT-NHNN fixes them. The Appendix is a table; the quotes come from a text layer in which some cells are garbled, so only clean fragments are quoted. Not legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-QD33-2026-A1.02-01
+  article_ref: Art. 1(2)
+  text_vi: Hệ thống trí tuệ nhân tạo phải đáp ứng các nguyên tắc hoạt động cơ bản theo quy định của pháp luật về trí tuệ nhân tạo; việc sử dụng hệ thống trí tuệ nhân tạo không làm thay đổi, chuyển giao hoặc loại trừ thẩm quyền, trách nhiệm của cơ quan, tổ chức, cá nhân có thẩm quyền theo quy định của pháp luật; bảo đảm sự giám sát, kiểm soát và khả năng can thiệp của con người trong quá trình vận hành hệ thống; không thực hiện các hành vi bị nghiêm cấm theo quy định của pháp luật.
+  summary_en: Listed systems must follow the basic AI principles. Use of AI does not move or remove the legal authority and responsibility of the competent person or body. Human supervision, control and ability to intervene must be kept during operation. Prohibited acts stay prohibited.
+  duties:
+  - human_oversight
+  - governance_accountability
+  - prohibited_practice
+  applies_to: &id004
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - &id008
+    kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  - &id007
+    kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before execution
+  - &id010
+    kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
+  evidence_needed:
+  - named accountable human for each listed system
+  - tested intervention path
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-QD33-2026-A2-01
+  article_ref: Art. 2
+  text_vi: 'Các hệ thống trí tuệ nhân tạo được xác định là có rủi ro cao căn cứ trên các tiêu chí sau đây: 1. Hệ thống có thể gây thiệt hại đáng kể đến tính mạng, sức khỏe, quyền và lợi ích hợp pháp của tổ chức, cá nhân, lợi ích quốc gia, lợi ích công cộng, an ninh quốc gia theo quy định tại Điều 9 Luật Trí tuệ nhân tạo; khoản 1 Điều 8 của Nghị định số 142/2026/NĐ-CP quy định chi tiết một số điều và biện pháp thi hành Luật Trí tuệ nhân tạo. 2. Hệ thống không được loại trừ theo quy định tại khoản 2 Điều 8 của Nghị định số 142/2026/NĐ-CP quy định chi tiết một số điều và biện pháp thi hành Luật Trí tuệ nhân tạo.'
+  summary_en: A system is high risk if it could cause significant harm (Art. 9 of the Law, Art. 8(1) of Decree 142) and is not excluded under Art. 8(2) of Decree 142.
+  duties:
+  - risk_classification
+  applies_to: *id004
+  addressee: any
+  control_mapping:
+  - &id006
+    kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding profile proposes a Decision 33 class; counsel confirms
+  - &id005
+    kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - classification decision per AI system with reasons
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: Appendix entries carry their own 'only applies when' conditions. Read them with Art. 2.
+- id: VN-QD33-2026-A3.01-01
+  article_ref: Art. 3(1)
+  text_vi: Quyết định này có hiệu lực thi hành từ ngày 15 tháng 8 năm 2026.
+  summary_en: The Decision takes effect on 2026-08-15.
+  duties:
+  - risk_classification
+  applies_to: *id004
+  addressee: any
+  control_mapping:
+  - *id005
+  evidence_needed:
+  - date noted in the compliance plan
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-QD33-2026-A4.01-01
+  article_ref: Art. 4(1)
+  text_vi: 'Đối với các hệ thống trí tuệ nhân tạo thuộc Danh mục ban hành kèm theo Quyết định này đã được đưa vào hoạt động trước ngày Quyết định này có hiệu lực, nhà cung cấp và bên triển khai có trách nhiệm hoàn thành các nghĩa vụ tuân thủ theo quy định của pháp luật về trí tuệ nhân tạo theo lộ trình sau: a) Trước ngày 01 tháng 9 năm 2027 đối với các hệ thống trí tuệ nhân tạo trong lĩnh vực y tế, giáo dục và tài chính; b) Trước ngày 01 tháng 3 năm 2027 đối với các hệ thống trí tuệ nhân tạo thuộc các lĩnh vực còn lại trong Danh mục.'
+  summary_en: Listed systems running before 2026-08-15 must complete their AI-law duties before 2027-09-01 if in health, education or finance, and before 2027-03-01 in the other listed sectors.
+  duties:
+  - conformity_assessment
+  - risk_classification
+  - registration
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - *id006
+  - *id005
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: launch report shows readiness; it is not a conformity assessment
+  evidence_needed:
+  - start date of each listed system
+  - legal view on which date applies to banking
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: Banking is a separate sector in the Appendix (IV), yet the transition rule names 'tài chính' (finance), not 'ngân hàng'. Not settled whether a bank system gets 2027-09-01. Circular 53/2026/TT-NHNN Art. 24 requires bank systems running before 2026-11-15 to meet its Chapters II to IV from 2027-03-01. Plan for 2027-03-01.
+  dates:
+    compliance_deadline:
+      date: '2027-03-01'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: ASSUMED
+      note: Earlier date used for planning; the later date 2027-09-01 may apply if banking counts as finance.
+- id: VN-QD33-2026-A4.02-01
+  article_ref: Art. 4(2)
+  text_vi: Trong thời hạn chuyển tiếp quy định tại khoản 1 Điều này, các hệ thống trí tuệ nhân tạo nêu trên được phép tiếp tục hoạt động, trừ trường hợp cơ quan nhà nước có thẩm quyền xác định hệ thống có nguy cơ gây thiệt hại nghiêm trọng và yêu cầu tạm dừng hoặc chấm dứt hoạt động
+  summary_en: During the transition the systems may keep running, unless the authority finds a risk of serious harm and orders a pause or stop.
+  duties:
+  - serious_incident_suspension
+  applies_to: *id004
+  addressee: any
+  control_mapping:
+  - *id007
+  - *id008
+  evidence_needed:
+  - ability to stop an agent on order
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-QD33-2026-A4.03-01
+  article_ref: Art. 4(3)
+  text_vi: Đối với các hệ thống trí tuệ nhân tạo được đưa vào hoạt động trong thời gian 06 tháng kể từ ngày Quyết định này có hiệu lực, nhà cung cấp và bên triển khai có trách nhiệm hoàn thành các nghĩa vụ tuân thủ theo quy định của pháp luật về trí tuệ nhân tạo trước ngày 01 tháng 3 năm 2027.
+  summary_en: Listed systems put into operation within 6 months of 2026-08-15 (to 2027-02-15) must complete their AI-law duties before 2027-03-01.
+  duties:
+  - conformity_assessment
+  - risk_classification
+  - registration
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - *id006
+  - *id005
+  evidence_needed:
+  - go-live date vs 2027-02-15
+  - compliance plan to 2027-03-01
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: The 6-month window runs 2026-08-15 to 2027-02-15 (derived). A system that starts after 2027-02-15 has no stated transition and must comply from the start.
+  dates:
+    compliance_deadline:
+      date: '2027-03-01'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/7/14/469951-1784024086_v1_1784024564_signed.pdf
+      verification: VERIFIED_PRIMARY
+      note: Stated in Art. 4(3).
+- id: VN-QD33-2026-PL4.1-01
+  article_ref: Appendix IV, entry 1 (condition 1)
+  text_vi: 'Chỉ áp dụng đối với hệ thống trí tuệ nhân tạo tự động thực hiện giao dịch điện tử trong hoạt động ngân hàng khi đáp ứng các điều kiện sau: - Hệ thống có khả năng tự tạo, sửa đổi, xác nhận và phê duyệt giao dịch;'
+  summary_en: 'High-risk entry for banking, e-transactions: the AI system can itself create, change, confirm and approve a transaction. All three conditions of the entry must hold (this one, high value, no human check).'
+  duties:
+  - risk_classification
+  - excessive_agency_limits
+  applies_to: &id009
+    agent_class:
+    - payment
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list shows what the agent can do
+  - kind: rule
+    id: PAY-07
+    coverage: partial
+    note: 'payments agent: approved tools only'
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: profile records the agent's capabilities and a proposal
+  - *id005
+  evidence_needed:
+  - 'capability list of the agent: can it create and approve a transfer by itself?'
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'Entry text is cumulative. In the gazette table the banking entry is marked in the first conformity column (point b, Art. 13(2) of the Law: self-assessment or a registered body), not the mandatory-certification column. This reading comes from the column layout of the PDF; counsel should confirm.'
+- id: VN-QD33-2026-PL4.1-02
+  article_ref: Appendix IV, entry 1 (condition 2)
+  text_vi: Giao dịch có mức giá trị cao theo quy định của Ngân hàng Nhà nước;
+  summary_en: 'Condition 2 for the e-transaction entry: the transaction is of high value as SBV sets it. Circular 53/2026/TT-NHNN Art. 4(2)(a) sets: personal customer over 10 million VND per transaction or over 20 million VND per day; organisation over 50 million VND per transaction or over 100 million VND per day.'
+  duties:
+  - risk_classification
+  - transaction_limits
+  applies_to: *id009
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: single transfer limit
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: daily aggregate limit
+  - kind: rule
+    id: PAY-02
+    coverage: partial
+    note: single transfer limit 100,000,000 VND is above the 10 million (personal) high-value line
+  - kind: rule
+    id: PAY-03
+    coverage: partial
+    note: daily aggregate rule at 150,000,000 VND is above the 20 million (personal) daily line
+  evidence_needed:
+  - transaction value distribution of the agent vs the Circular 53 thresholds
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: The SBV thresholds come from Circular 53/2026/TT-NHNN (VN-TT53-2026), effective 2026-11-15. Supervisor's demo limits are far above the high-value line, so a payments agent that can approve transfers on its own is high risk unless a human gate sits before execution.
+- id: VN-QD33-2026-PL4.1-03
+  article_ref: Appendix IV, entry 1 (condition 3)
+  text_vi: Không có sự kiểm tra, phê duyệt hoặc kiểm soát của con người trước khi giao dịch được thực hiện.
+  summary_en: 'Condition 3 for the e-transaction entry: no human inspection, approval or control before the transaction is executed. A human step before execution takes the system out of this entry.'
+  duties:
+  - pre_execution_approval
+  - human_oversight
+  - risk_classification
+  applies_to: *id009
+  addressee: any
+  control_mapping:
+  - &id012
+    kind: console
+    id: case_signoff
+    coverage: partial
+    note: records a named human decision on a case; counts as pre-execution approval only if the agent code waits for it
+  - kind: evidence
+    id: signoff_record
+    coverage: partial
+    note: records who approved what and when
+  - *id010
+  - *id007
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file shows the human decision
+  evidence_needed:
+  - code path where the transfer waits for a named human decision
+  - approval records with timestamps before execution
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'A Supervisor pause acts AFTER the agent acts; it is not human approval before execution and does not by itself move an agent out of this entry. A human step counts only when it is in code; a sentence in a README or manifest does not. Supervisor can evidence that the gate exists and works; the bank owns the design and the legal reading. Source wording: ''kiểm tra, phê duyệt hoặc kiểm soát của con người'' (inspection, approval or control by a human).'
+- id: VN-QD33-2026-PL4.2-01
+  article_ref: Appendix IV, entry 2 (condition 1)
+  text_vi: 'đưa ra quyết định cấp tín dụng hoặc giải ngân khi đáp ứng các điều kiện sau: - Hệ thống đưa ra quyết định cuối cùng về việc phê duyệt hoặc từ chối cấp tín dụng;'
+  summary_en: 'High-risk entry for banking, credit: the system scores credit and repayment ability and decides on credit or disbursement, and it makes the FINAL decision to approve or reject credit.'
+  duties:
+  - risk_classification
+  - excessive_agency_limits
+  applies_to: &id011
+    agent_class:
+    - credit_decision
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: rule
+    id: CRD-07
+    coverage: partial
+    note: 'credit agent: approved tools only'
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: profile records the capabilities and a proposal
+  - *id005
+  evidence_needed:
+  - does the agent record a final decision, or only a recommendation to an officer?
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'Entry text is cumulative (final decision, used directly without independent officer approval, loan value per SBV). In the gazette table the banking entry is marked in the first conformity column (point b, Art. 13(2) of the Law: self-assessment or a registered body), not the mandatory-certification column. This reading comes from the column layout of the PDF; counsel should confirm. The name cell of this row is garbled in the PDF text layer, so the scoring part of the description is not quoted.'
+- id: VN-QD33-2026-PL4.2-02
+  article_ref: Appendix IV, entry 2 (condition 2)
+  text_vi: Quyết định của hệ thống được sử dụng trực tiếp để cấp tín dụng hoặc giải ngân mà không có sự phê duyệt độc lập của cán bộ tín dụng;
+  summary_en: 'Condition 2 for the credit entry: the system''s decision is used directly to grant credit or disburse without independent approval by a credit officer.'
+  duties:
+  - pre_execution_approval
+  - human_oversight
+  - risk_classification
+  applies_to: *id011
+  addressee: any
+  control_mapping:
+  - *id012
+  - kind: evidence
+    id: signoff_record
+    coverage: partial
+    note: records a named officer's decision
+  - kind: rule
+    id: CRD-01
+    coverage: partial
+    note: approve only when required documents are on file
+  - *id010
+  - *id007
+  evidence_needed:
+  - code path where a credit officer decides independently before credit is granted
+  - officer decision records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: '''Independent'' means the officer is not just clicking through the AI result. Monitor dwell time and approval rate (oversight metrics) as evidence that the review is real. A pause switch is not independent approval. Counsel decides whether a ''pre-qualification'' agent that only informs a customer counts as a credit decision.'
+- id: VN-QD33-2026-PL4.2-03
+  article_ref: Appendix IV, entry 2 (condition 3)
+  text_vi: Khoản vay có mức giá trị theo quy định của Ngân hàng Nhà nước.
+  summary_en: 'Condition 3 for the credit entry: the loan is of a value SBV sets. Circular 53/2026/TT-NHNN Art. 4(2)(b) sets credit of 50 million VND or more.'
+  duties:
+  - risk_classification
+  applies_to: *id011
+  addressee: any
+  control_mapping:
+  - kind: rule
+    id: CRD-03
+    coverage: partial
+    note: pre-qualification amount limit
+  - *id005
+  evidence_needed:
+  - loan size distribution of the agent vs 50 million VND
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: Circular 53/2026/TT-NHNN (VN-TT53-2026) effective 2026-11-15.

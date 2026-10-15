@@ -1,0 +1,851 @@
+schema_version: 1
+instrument:
+  id: VN-DEC142-2026
+  jurisdiction: VN
+  kind: decree
+  issuer: Government
+  number: 142/2026/NĐ-CP
+  title_vi: Nghị định quy định chi tiết một số điều và biện pháp thi hành Luật Trí tuệ nhân tạo
+  title_en: Decree detailing a number of articles and measures to implement the Law on Artificial Intelligence
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2026-04-30'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/18/469480-1778814202_v1_1779067280_signed.pdf
+      verification: VERIFIED_PRIMARY
+      note: 'Header of the gazette text: Hà Nội, ngày 30 tháng 4 năm 2026. Published in Công báo số 278 (2026-05-18).'
+    effective:
+      date: '2026-05-01'
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/18/469480-1778814202_v1_1779067280_signed.pdf
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 45: effective from 1 May 2026.'
+    milestones:
+    - label: Interim filing channel applies until the one-stop portal is officially live (Art. 46(1))
+      date: null
+      source: https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/18/469480-1778814202_v1_1779067280_signed.pdf
+      verification: ASSUMED
+      note: 'No date: depends on an MST announcement that was not found.'
+  sources:
+  - &id001
+    url: https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/18/469480-1778814202_v1_1779067280_signed.pdf
+    title: Nghị định số 142/2026/NĐ-CP (Công báo số 278 ngày 18-05-2026), text extracted from the gazette PDF
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: b8e0be6bc8ff2396a6a6c1fb894e3a7e1531e85c06518ad25a869b6062ea536b
+    local_path: regulations/sources/VN-DEC142-2026/142-2026-nd-cp.txt
+  - &id002
+    url: https://media.chinhphu.vn/ban-hanh-nghi-dinh-quy-dinh-chi-tiet-mot-so-dieu-va-bien-phap-thi-hanh-luat-tri-tue-nhan-tao-102260508162952667.htm
+    title: Chinhphu media - Ban hanh Nghi dinh quy dinh chi tiet Luat Tri tue nhan tao
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - &id003
+    url: https://luatvietan.vn/nghi-dinh-142-2026-nd-cp-huong-dan-luat-tri-tue-nhan-tao.html
+    title: Luat Viet An - summary of Decree 142/2026/ND-CP
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'This is the Government decree guiding Law 134/2025/QH15; it was issued on 2026-04-30, so there is no pending draft (the draft VN-AIDEC-DRAFT file was not needed). Full text of 46 articles read from the gazette PDF. Covers: portal (Art. 4), classification (Art. 5-12), conformity assessment (Art. 13), notification (Art. 14), high-risk management (Art. 15), transparency (Art. 16-18), serious incidents (Art. 19), state-agency impact assessment (Art. 20), sandbox (Art. 21-27), infrastructure and data (Art. 28-40). Sandbox and infrastructure articles were not turned into obligations because they do not bind a bank deploying an agent. The decree has NO fine amounts. Decision 33/2026/QD-TTg is issued under Art. 7 and Art. 8. Not legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-DEC142-2026-A5.03-01
+  article_ref: Art. 5(3)
+  text_vi: Bên triển khai phải phối hợp với nhà cung cấp để rà soát, phân loại lại hệ thống trí tuệ nhân tạo khi việc triển khai, sửa đổi, tích hợp hoặc thay đổi chức năng hoặc mục đích sử dụng làm phát sinh rủi ro mới hoặc rủi ro cao hơn của hệ thống đã được phân loại.
+  summary_en: The deployer must work with the provider to review and re-classify the system when deployment, changes, integration or a new function or purpose creates new or higher risk.
+  duties:
+  - risk_classification
+  - change_control
+  applies_to: &id005
+    agent_class:
+    - any
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - &id006
+    kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history shows functional change
+  - &id004
+    kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - re-classification record linked to each functional change
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A5.04-01
+  article_ref: Art. 5(4)
+  text_vi: Nhà cung cấp và bên triển khai phải thực hiện đánh giá sự phù hợp đối với hệ thống trí tuệ nhân tạo có rủi ro cao theo quy định của Luật Trí tuệ nhân tạo và Nghị định này.
+  summary_en: Provider AND deployer must carry out the conformity assessment of a high-risk system.
+  duties:
+  - conformity_assessment
+  applies_to: &id007
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: conformity_assessment_file
+    coverage: none
+    note: conformity dossier
+  - *id004
+  evidence_needed:
+  - conformity dossier or provider's certificate on file
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: High-risk status depends on the Decision 33 classification (VN-QD33-2026) and the thresholds in Circular 53/2026/TT-NHNN. Art. 13(1) of the Decree puts the assessment on the provider; Art. 5(4) names both. The bank should hold the provider's result and fill gaps for its own deployment.
+- id: VN-DEC142-2026-A6.04-01
+  article_ref: Art. 6(4)
+  text_vi: Trường hợp bên triển khai sửa đổi, tích hợp, thay đổi chức năng hoặc mục đích sử dụng của hệ thống so với công bố ban đầu của nhà cung cấp làm phát sinh rủi ro mới hoặc rủi ro cao hơn, bên triển khai có trách nhiệm phối hợp với nhà cung cấp để rà soát, phân loại lại mức độ rủi ro.
+  summary_en: If the deployer changes, integrates or re-purposes a system beyond the provider's original statement and risk rises, the deployer must help re-classify it.
+  duties:
+  - risk_classification
+  - change_control
+  applies_to: *id005
+  addressee: deployer
+  control_mapping:
+  - *id006
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history
+  - *id004
+  evidence_needed:
+  - change record and re-classification outcome
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A8.02B-01
+  article_ref: Art. 8(2)(b)
+  text_vi: Có cơ chế kỹ thuật và quy trình vận hành bảo đảm sự giám sát thực chất của con người, theo đó người có thẩm quyền có khả năng xem xét độc lập, can thiệp, từ chối hoặc thay đổi quyết định của hệ thống trước khi quyết định đó có hiệu lực;
+  summary_en: 'A system can stay off the high-risk list proposal when a technical mechanism and process give real human oversight: an authorised person can review independently, intervene, reject or change the decision BEFORE it takes effect.'
+  duties:
+  - human_oversight
+  - pre_execution_approval
+  - risk_classification
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - &id009
+    kind: console
+    id: case_signoff
+    coverage: partial
+    note: records a named human decision on a case; counts as pre-execution approval only if the agent code waits for it
+  - &id010
+    kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+  - kind: evidence
+    id: signoff_record
+    coverage: partial
+    note: signoff records show a named human decision
+  - &id008
+    kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before execution
+  evidence_needed:
+  - code path where the agent waits for a named human before the action takes effect
+  - dwell time and override rate
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: This is the criterion for DRAFTING the list (aimed at ministries), not a self-service exemption. Decision 33 (VN-QD33-2026) Appendix IV applies when no human check, approval or control happens before execution. Supervisor pause acts after the action and does not meet 'before the decision takes effect'. Supervisor can only evidence a human gate that exists in code.
+- id: VN-DEC142-2026-A11.01-01
+  article_ref: Art. 11(1)
+  text_vi: 'Nhà cung cấp phải thực hiện rà soát và phân loại lại mức độ rủi ro của hệ thống trí tuệ nhân tạo khi phát sinh một trong các sự kiện pháp lý sau đây: a) Hệ thống có sự thay đổi đáng kể về chức năng, mục đích sử dụng hoặc ngữ cảnh triển khai làm ảnh hưởng đến tiêu chí phân loại rủi ro ban đầu của hệ thống; b) Hệ thống xảy ra sự cố nghiêm trọng chứng minh mức độ rủi ro thực tế cao hơn mức đã được phân loại; c) Có quyết định của Thủ tướng Chính phủ về việc sửa đổi, bổ sung Danh mục hệ thống trí tuệ nhân tạo có rủi ro cao làm thay đổi mức độ rủi ro của hệ thống; d) Có yêu cầu bằng văn bản của cơ quan quản lý nhà nước có thẩm quyền theo quy định tại khoản 6 Điều 10 của Luật Trí tuệ nhân tạo.'
+  summary_en: The provider must review and re-classify the risk level on a significant functional change, a serious incident showing higher risk, a Prime Minister list change, or a written authority request.
+  duties:
+  - risk_classification
+  - change_control
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - *id006
+  - *id004
+  evidence_needed:
+  - trigger log for re-classification
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A11.03A-01
+  article_ref: Art. 11(3)(a)
+  text_vi: Trường hợp kết quả phân loại lại xác định mức độ rủi ro của hệ thống cao hơn mức đã phân loại, nhà cung cấp, bên triển khai phải thực hiện thông báo kết quả phân loại lại cho cơ quan nhà nước có thẩm quyền trong thời hạn 15 ngày làm việc kể từ ngày hoàn thành việc rà soát và phải áp dụng ngay các biện pháp quản lý rủi ro tương ứng với mức độ rủi ro mới;
+  summary_en: If re-classification raises the risk level, provider and deployer must notify the authority within 15 working days after the review and apply the matching risk controls at once.
+  duties:
+  - risk_classification
+  - regulatory_reporting
+  - registration
+  applies_to: *id005
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: ai_registration
+    coverage: none
+    note: portal notice
+  - *id006
+  - *id004
+  evidence_needed:
+  - notice sent within 15 working days
+  - controls for the new level switched on
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A11.05-01
+  article_ref: Art. 11(5)
+  text_vi: Trường hợp hệ thống trí tuệ nhân tạo phải phân loại lại thành rủi ro cao theo quy định tại điểm a khoản 1 Điều này, nhà cung cấp, bên triển khai áp dụng thời gian chuyển tiếp tối đa 12 tháng kể từ ngày quyết định sửa đổi, bổ sung Danh mục hệ thống trí tuệ nhân tạo có rủi ro cao của Thủ tướng Chính phủ có hiệu lực để hoàn thiện hồ sơ và thủ tục đánh giá sự phù hợp theo quy định của Luật Trí tuệ nhân tạo. Trong thời hạn chuyển tiếp, hệ thống được phép tiếp tục hoạt động nhưng nhà cung cấp, bên triển khai phải thiết lập và duy trì cơ chế giám sát thực chất của con người. Người thực hiện giám sát phải được bảo đảm đủ thông tin, thẩm quyền để đánh giá độc lập, can thiệp hoặc bác bỏ kết quả của hệ thống; đồng thời, nhà cung cấp, bên triển khai phải lưu trữ đầy đủ nhật ký vận hành và các quyết định can thiệp để phục vụ công tác thanh tra, kiểm tra.
+  summary_en: A system re-classified to high risk after a significant change gets up to 12 months from the list change taking effect to finish conformity work. Meanwhile it may run, but real human oversight and full logs of operation and interventions are mandatory.
+  duties:
+  - human_oversight
+  - logging
+  - record_keeping
+  - conformity_assessment
+  applies_to: *id007
+  addressee: any
+  control_mapping:
+  - &id011
+    kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  - *id008
+  - *id009
+  - *id010
+  - &id012
+    kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  - &id014
+    kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
+  evidence_needed:
+  - human can review independently and reject results
+  - logs of operation and every intervention kept
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and the thresholds in Circular 53/2026/TT-NHNN. The Decree says ''real oversight'' (giám sát thực chất): the overseer must have enough information and authority to judge independently, intervene or reject.'
+- id: VN-DEC142-2026-A12.06-01
+  article_ref: Art. 12(6)
+  text_vi: Nhà cung cấp, bên triển khai có trách nhiệm lưu trữ hồ sơ phân loại trong suốt thời gian hệ thống hoạt động.
+  summary_en: Provider and deployer must keep the classification file for as long as the system runs.
+  duties:
+  - record_keeping
+  - retention
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - *id006
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: retention schedule
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding profile is a seed for the file
+  evidence_needed:
+  - classification file retained for the life of the system
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A13.01-01
+  article_ref: Art. 13(1)
+  text_vi: Nhà cung cấp hệ thống trí tuệ nhân tạo có rủi ro cao phải thực hiện đánh giá sự phù hợp trước khi đưa hệ thống vào sử dụng theo quy định tại khoản 1 Điều 13 của Luật Trí tuệ nhân tạo.
+  summary_en: The provider of a high-risk system must complete the conformity assessment before the system is used, and repeat it after significant changes (model, architecture, data source, integration, purpose).
+  duties:
+  - conformity_assessment
+  - change_control
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: conformity_assessment_file
+    coverage: none
+    note: dossier
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history helps decide 'significant change'
+  evidence_needed:
+  - conformity result
+  - change assessment log
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and the thresholds in Circular 53/2026/TT-NHNN. '
+- id: VN-DEC142-2026-A13.02-01
+  article_ref: Art. 13(2)
+  text_vi: 'Nhà cung cấp phải thực hiện đánh giá sự phù hợp với yêu cầu của Điều 14 của Luật Trí tuệ nhân tạo theo các phương thức sau đây: a) Đối với hệ thống trí tuệ nhân tạo có rủi ro cao thuộc Danh mục hệ thống trí tuệ nhân tạo phải chứng nhận sự phù hợp trước khi đưa vào sử dụng, nhà cung cấp phải thực hiện đánh giá sự phù hợp thông qua tổ chức đánh giá sự phù hợp quy định tại khoản 4 Điều này; b) Đối với hệ thống trí tuệ nhân tạo có rủi ro cao không thuộc trường hợp quy định tại điểm a khoản này, nhà cung cấp có quyền tự thực hiện đánh giá sự phù hợp hoặc sử dụng dịch vụ của tổ chức đánh giá sự phù hợp quy định tại khoản 4 Điều này. Trường hợp tự thực hiện đánh giá sự phù hợp, nhà cung cấp phải lập hồ sơ kỹ thuật và chịu trách nhiệm trước pháp luật về kết quả đánh giá.'
+  summary_en: 'Two routes: items on the mandatory-certification list need a registered conformity assessment body; other high-risk items can be self-assessed (with a technical file and legal responsibility) or assessed by a body.'
+  duties:
+  - conformity_assessment
+  - technical_documentation
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: conformity_assessment_file
+    coverage: none
+    note: dossier
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: launch report is sandbox evidence, not a legal assessment
+  evidence_needed:
+  - route chosen and evidence
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: High-risk status depends on the Decision 33 classification (VN-QD33-2026) and the thresholds in Circular 53/2026/TT-NHNN. In Decision 33 the two banking entries are marked under the 'point b' column (not the mandatory third-party certification column), based on the table layout of the gazette PDF. Counsel should confirm.
+- id: VN-DEC142-2026-A13.06-01
+  article_ref: Art. 13(6)
+  text_vi: Nhà cung cấp có hệ thống trí tuệ nhân tạo có rủi ro cao đã được đánh giá sự phù hợp phải duy trì sự phù hợp và công khai thông tin về kết quả đánh giá sự phù hợp trên Cổng thông tin điện tử một cửa về trí tuệ nhân tạo
+  summary_en: The provider must keep the system conformant and publish the conformity result (system name and version, method, body, conclusion, dates) on the national AI portal.
+  duties:
+  - conformity_assessment
+  - registration
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: ai_registration
+    coverage: none
+    note: portal publication
+  evidence_needed:
+  - portal record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and the thresholds in Circular 53/2026/TT-NHNN. '
+- id: VN-DEC142-2026-A14.01-01
+  article_ref: Art. 14(1)
+  text_vi: Nhà cung cấp hệ thống trí tuệ nhân tạo có rủi ro trung bình và hệ thống trí tuệ nhân tạo có rủi ro cao phải thông báo kết quả phân loại rủi ro cho Bộ Khoa học và Công nghệ thông qua Cổng thông tin điện tử một cửa về trí tuệ nhân tạo trước khi đưa hệ thống vào sử dụng.
+  summary_en: The provider of a medium or high-risk system must notify the Ministry of Science and Technology of the classification through the one-stop portal before use. The portal returns a system identifier.
+  duties:
+  - registration
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: ai_registration
+    coverage: none
+    note: portal notice
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: profile can supply the facts
+  evidence_needed:
+  - portal confirmation with system identifier
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'Art. 46(1): until the portal is formally live, MST names an interim channel. Not checked whether the portal was live on 2026-10-15.'
+- id: VN-DEC142-2026-A15.04-01
+  article_ref: Art. 15(4)
+  text_vi: Bên triển khai hệ thống trí tuệ nhân tạo có rủi ro cao phải tổ chức quản lý rủi ro trong quá trình triển khai và vận hành hệ thống phù hợp với mục đích sử dụng, phạm vi triển khai, mức độ rủi ro của hệ thống và hướng dẫn kỹ thuật của nhà cung cấp.
+  summary_en: The deployer of a high-risk system must run risk management during deployment and operation that fits purpose, scope, risk level and the provider's technical instructions.
+  duties:
+  - risk_management_system
+  - governance_accountability
+  applies_to: *id007
+  addressee: deployer
+  control_mapping:
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned policy baseline
+  - kind: evidence
+    id: coverage_rows
+    coverage: partial
+    note: capability coverage per agent
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank issues the internal policy
+  evidence_needed:
+  - risk management procedure for each high-risk agent
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and the thresholds in Circular 53/2026/TT-NHNN. '
+- id: VN-DEC142-2026-A15.05-01
+  article_ref: Art. 15(5)
+  text_vi: 'Trong quá trình triển khai và vận hành, bên triển khai thực hiện các biện pháp quản lý rủi ro sau đây: a) Vận hành hệ thống đúng mục đích sử dụng, điều kiện sử dụng và giới hạn sử dụng do nhà cung cấp xác định; b) Tổ chức giám sát hoạt động của hệ thống nhằm phát hiện sai lệch, rủi ro hoặc sự cố có thể phát sinh; c) Thiết lập và duy trì cơ chế giám sát và can thiệp của con người trong quá trình sử dụng hệ thống theo quy định của pháp luật; d) Áp dụng biện pháp hạn chế hoặc kiểm soát rủi ro trong phạm vi quyền kiểm soát của mình khi phát hiện hệ thống hoạt động không đúng mục đích sử dụng hoặc phát sinh rủi ro mới; đ) Phối hợp với nhà cung cấp trong việc rà soát, cập nhật biện pháp quản lý rủi ro khi hệ thống có thay đổi đáng kể hoặc khi phát sinh sự cố.'
+  summary_en: 'Deployer measures: operate within the provider''s purpose and limits; monitor for deviation, risk and incidents; set up and keep human monitoring and intervention; restrict or control risk when the system acts outside purpose; help the provider update controls.'
+  duties:
+  - performance_monitoring
+  - human_oversight
+  - excessive_agency_limits
+  - risk_management_system
+  applies_to: *id007
+  addressee: deployer
+  control_mapping:
+  - kind: monitor
+    id: drift
+    coverage: partial
+    note: behaviour drift band per agent
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift band
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: quality and groundedness sampling
+  - *id011
+  - *id008
+  - *id010
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list keeps the agent inside its purpose
+  evidence_needed:
+  - monitoring in place
+  - human intervention path tested
+  - provider's usage limits written down
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and the thresholds in Circular 53/2026/TT-NHNN. '
+- id: VN-DEC142-2026-A15.06-01
+  article_ref: Art. 15(6)
+  text_vi: Trường hợp phát hiện hệ thống có nguy cơ gây thiệt hại nghiêm trọng đến tính mạng, sức khỏe con người, quyền con người, tài sản, an ninh mạng, trật tự, an toàn xã hội hoặc lợi ích công cộng, bên triển khai phải kịp thời áp dụng biện pháp hạn chế rủi ro trong phạm vi quyền kiểm soát của mình và thông báo cho nhà cung cấp và cơ quan nhà nước có thẩm quyền theo quy định của pháp luật.
+  summary_en: If the deployer finds a risk of serious harm, it must promptly limit the risk within its control and notify the provider and the authority.
+  duties:
+  - incident_response
+  - incident_report
+  - serious_incident_suspension
+  applies_to: *id005
+  addressee: deployer
+  control_mapping:
+  - *id008
+  - *id011
+  - &id013
+    kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
+  - &id016
+    kind: process
+    id: regulator_notification
+    coverage: none
+    note: the bank files the report on the national AI portal or with SBV
+  - &id015
+    kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure
+  evidence_needed:
+  - pause or restriction applied
+  - notice to provider and authority
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A16.02-01
+  article_ref: Art. 16(2)
+  text_vi: 'Nhà cung cấp và bên triển khai phải thực hiện các nghĩa vụ sau đây: a) Thông báo, đánh dấu kỹ thuật và gắn nhãn hiển thị đối với hệ thống trí tuệ nhân tạo và nội dung do hệ thống tạo ra theo quy định của pháp luật; b) Cung cấp thông tin về mục đích sử dụng, phạm vi áp dụng, điều kiện sử dụng và các hạn chế của hệ thống trí tuệ nhân tạo; c) Lưu trữ thông tin, tài liệu phục vụ việc kiểm tra, giám sát theo quy định của pháp luật.'
+  summary_en: 'Provider and deployer must: notify, mark and label per the law; give information on purpose, scope, conditions and limits of the system; and store information and documents for checks.'
+  duties:
+  - ai_disclosure
+  - content_labelling
+  - record_keeping
+  - consumer_information
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: customer-facing notices
+  - *id012
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export
+  evidence_needed:
+  - AI notice
+  - statement of limits
+  - document store for inspectors
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A16.03-01
+  article_ref: Art. 16(3)
+  text_vi: Nhà cung cấp và bên triển khai phải giải trình khi có yêu cầu bằng văn bản của cơ quan nhà nước có thẩm quyền theo quy định tại Điều 14 và Điều 15 của Luật Trí tuệ nhân tạo.
+  summary_en: Provider and deployer must explain the system when the authority asks in writing. Scope and time limit depend on the party's role and the system's risk.
+  duties:
+  - regulatory_reporting
+  - explainability
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export pack
+  - *id013
+  - *id004
+  evidence_needed:
+  - response procedure for written requests
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A16.06-01
+  article_ref: Art. 16(6)
+  text_vi: Trường hợp hệ thống trí tuệ nhân tạo tích hợp mô hình trí tuệ nhân tạo của tổ chức, cá nhân khác, nhà cung cấp phải thỏa thuận với tổ chức, cá nhân cung cấp mô hình để bảo đảm việc phối hợp cung cấp thông tin kỹ thuật cần thiết
+  summary_en: A provider that builds on another party's AI model must agree with that party on supplying the technical information needed for transparency and accountability.
+  duties:
+  - outsourcing_oversight
+  - technical_documentation
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, audit and exit plan with the AI vendor
+  evidence_needed:
+  - contract clause on technical information from the model vendor
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: Matters when the bank builds an agent on a foreign LLM API and so counts as provider.
+- id: VN-DEC142-2026-A17.01-01
+  article_ref: Art. 17(1)
+  text_vi: Nhà cung cấp hệ thống trí tuệ nhân tạo phải áp dụng giải pháp kỹ thuật để nội dung đầu ra là âm thanh, hình ảnh hoặc video được đánh dấu ở định dạng máy đọc theo quy định tại khoản 2 Điều 11 của Luật Trí tuệ nhân tạo. Nhà cung cấp không bắt buộc phải thực hiện đánh dấu kỹ thuật ở định dạng máy đọc đối với nội dung đầu ra là văn bản, trừ trường hợp pháp luật có quy định khác.
+  summary_en: The provider must apply a technical mark in machine-readable form to AI audio, image and video output. Text output does not need a machine-readable mark unless another law says so.
+  duties:
+  - content_labelling
+  applies_to:
+    agent_class:
+    - customer_facing
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: mark implemented in the generator
+  evidence_needed:
+  - watermark or metadata mark on generated media
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: Text-only banking agents are outside the machine-readable mark duty.
+- id: VN-DEC142-2026-A18.01-01
+  article_ref: Art. 18(1)
+  text_vi: Bên triển khai phải thông báo rõ ràng khi cung cấp ra công cộng nội dung do hệ thống trí tuệ nhân tạo tạo ra hoặc chỉnh sửa có khả năng gây nhầm lẫn về tính xác thực của sự kiện, nhân vật hoặc nguồn gốc nội dung
+  summary_en: The deployer must clearly notify when it releases to the public AI-made or AI-edited content that could be mistaken for authentic events, persons or origin.
+  duties:
+  - content_labelling
+  - ai_disclosure
+  applies_to:
+    agent_class:
+    - customer_facing
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: public notice
+  evidence_needed:
+  - notice or label on public AI content
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: medium
+  notes: 'Art. 18(4)(c): no visible label duty for content used only inside the organisation and not given to the public.'
+- id: VN-DEC142-2026-A18.02-01
+  article_ref: Art. 18(2)
+  text_vi: 'Bên triển khai phải gắn nhãn dễ nhận biết đối với âm thanh, hình ảnh hoặc video được tạo ra hoặc chỉnh sửa bằng hệ thống trí tuệ nhân tạo trong các trường hợp sau đây: a) Mô phỏng hoặc giả lập ngoại hình, giọng nói của người thật; b) Tái hiện sự kiện thực tế để phân biệt với nội dung thật, trừ trường hợp pháp luật có quy định khác.'
+  summary_en: The deployer must label AI audio, image or video that imitates a real person's looks or voice or recreates real events.
+  duties:
+  - content_labelling
+  applies_to:
+    agent_class:
+    - customer_facing
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: label policy
+  evidence_needed:
+  - label on synthetic media
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: medium
+- id: VN-DEC142-2026-A19.02A-01
+  article_ref: Art. 19(2)(a)
+  text_vi: Bên triển khai và người sử dụng phải kịp thời ghi nhận sự cố, thực hiện các biện pháp cần thiết để hạn chế hậu quả và thông báo cho nhà cung cấp để phối hợp khắc phục;
+  summary_en: On a serious incident the deployer and user must record it in time, limit the damage and tell the provider so they can fix it together.
+  duties:
+  - incident_response
+  - incident_report
+  - logging
+  applies_to: *id005
+  addressee: deployer
+  control_mapping:
+  - *id012
+  - *id014
+  - *id008
+  - *id013
+  - *id015
+  evidence_needed:
+  - incident record
+  - notice to provider
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A19.03-01
+  article_ref: Art. 19(3)
+  text_vi: 'Nhà cung cấp hoặc bên triển khai phải báo cáo sơ bộ sự cố nghiêm trọng cho cơ quan nhà nước có thẩm quyền theo Mẫu AI01a đối với tổ chức hoặc Mẫu AI01b đối với cá nhân tại Phụ lục ban hành kèm theo Nghị định này thông qua Cổng thông tin điện tử một cửa về trí tuệ nhân tạo trong thời hạn như sau: a) Đối với các sự cố nghiêm trọng có tính khẩn cấp quy định tại điểm a, điểm d khoản 1 Điều này và trường hợp không thể kiểm soát đối với quy định tại điểm c khoản 1 Điều này: thực hiện báo cáo sơ bộ trong thời hạn 72 giờ kể từ thời điểm xác nhận sự cố; b) Đối với các sự cố nghiêm trọng còn lại: thực hiện báo cáo sơ bộ trong thời hạn 05 ngày làm việc kể từ thời điểm xác nhận sự cố;'
+  summary_en: 'Provider or deployer must send a preliminary serious-incident report (form AI01a for organisations) through the portal: within 72 hours of confirming the incident for urgent cases (loss of life or serious injury, serious disruption of essential services or national security, uncontrollable serious rights breaches), and within 5 working days for all others. If the deployer cannot reach the provider, the deployer reports.'
+  duties:
+  - incident_report
+  - incident_report_72h
+  - regulatory_reporting
+  applies_to: *id005
+  addressee: deployer
+  control_mapping:
+  - *id013
+  - *id012
+  - *id014
+  - *id016
+  - *id015
+  evidence_needed:
+  - incident clock started at confirmation
+  - preliminary report on form AI01a
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+  notes: Confirmation time is when there is enough initial information that the incident really happened and likely stems from the AI system (Art. 19(3)(c)). A report is not an admission of fault. A report under cybersecurity or personal-data law may run in parallel (Art. 19(5)). The 24-hour period in the SBV draft circular did not survive into Circular 53/2026/TT-NHNN, which refers back to this rule.
+- id: VN-DEC142-2026-A19.04-01
+  article_ref: Art. 19(4)
+  text_vi: Nhà cung cấp và bên triển khai phải duy trì, lưu giữ nhật ký hệ thống, dữ liệu và thông tin liên quan đến sự cố để phục vụ việc xác minh, đánh giá và khắc phục sự cố; đồng thời gửi báo cáo chính thức về kết quả khắc phục sự cố cho cơ quan nhà nước có thẩm quyền trong thời hạn 15 ngày kể từ ngày nộp báo cáo sơ bộ.
+  summary_en: Provider and deployer must keep the system logs, data and information on the incident, and send a formal remediation report to the authority within 15 days of the preliminary report.
+  duties:
+  - incident_report
+  - incident_response
+  - logging
+  - record_keeping
+  applies_to: *id005
+  addressee: deployer
+  control_mapping:
+  - *id012
+  - *id014
+  - *id013
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export
+  - *id016
+  evidence_needed:
+  - incident logs retained
+  - formal report filed within 15 days
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A19.06-01
+  article_ref: Art. 19(6)
+  text_vi: Cơ quan nhà nước có thẩm quyền tiếp nhận báo cáo, tổ chức xác minh và hướng dẫn xử lý sự cố nghiêm trọng; khi cần thiết, có quyền yêu cầu tạm dừng hoạt động, thu hồi hoặc đánh giá lại hệ thống trí tuệ nhân tạo
+  summary_en: The authority can verify an incident and order a pause, recall or re-assessment of the system.
+  duties:
+  - serious_incident_suspension
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - *id008
+  - *id011
+  evidence_needed:
+  - ability to stop an agent on order
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: high
+- id: VN-DEC142-2026-A46.01-01
+  article_ref: Art. 46(1)
+  text_vi: Trường hợp Cổng thông tin điện tử một cửa về trí tuệ nhân tạo chưa được Bộ Khoa học và Công nghệ công bố vận hành chính thức, việc thực hiện các thủ tục thông báo, báo cáo theo quy định của Nghị định này được thực hiện thông qua hệ thống thông tin điện tử, dịch vụ công trực tuyến hoặc phương thức tiếp nhận do Bộ Khoa học và Công nghệ công bố
+  summary_en: Until the one-stop portal is officially live, notices and reports go through an interim electronic channel announced by the Ministry of Science and Technology. Such filings have equal legal value.
+  duties:
+  - registration
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: ai_registration
+    coverage: none
+    note: filing channel
+  - *id004
+  evidence_needed:
+  - check which channel MST announced
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  - *id003
+  confidence: medium
+  notes: Whether the portal is live on 2026-10-15 was not verified.
