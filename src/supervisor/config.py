@@ -300,6 +300,15 @@ class Settings(BaseSettings):
     # closed for money / credit / pii_export tools. Off by default.
     require_caller_id: bool = False
 
+    # WP15 integration advisor. Console tab "Integration" (reads reports from
+    # INTEGRATION_REPORTS_DIR, default <data_dir>/integration) and the advisor as a
+    # run_onboarding stage: both off. RECORDER_SEMCONV maps OpenTelemetry GenAI names
+    # (gen_ai.*) in the normaliser (supervisor.recorder.semconv); supervisor.* names win.
+    console_integration_enabled: bool = False
+    integration_reports_dir: Path | None = None
+    onboard_advisor_enabled: bool = False
+    recorder_semconv: bool = True
+
     # WP18 enterprise readiness. Pure additions are on by default (health, security
     # headers, request id, console audit rows); anything that changes phase-1 behaviour
     # is off by default. See docs/enterprise-readiness.md.
@@ -348,6 +357,7 @@ class Settings(BaseSettings):
         "users_file",
         "auth_config_file",
         "console_export_dir",
+        "integration_reports_dir",
         "scheduler_lock_path",
         "fairness_config",
         "incident_holidays_file",
@@ -422,6 +432,8 @@ class Settings(BaseSettings):
             self.auth_config_file = REPO_ROOT / "config" / "auth.yaml"
         if self.console_export_dir is None:
             self.console_export_dir = self.data_dir / "exports"
+        if self.integration_reports_dir is None:
+            self.integration_reports_dir = self.data_dir / "integration"
         if self.auth_kind == "dev_header" and self.supervisor_mode == "databricks_app":
             raise ValueError(
                 "AUTH_KIND=dev_header is not allowed with SUPERVISOR_MODE=databricks_app "

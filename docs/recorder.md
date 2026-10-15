@@ -121,3 +121,32 @@ python -m supervisor.jobs.ingest --proxy-log C:\logs\vendor_bot.jsonl
 
 Ingest is idempotent by `event_id`. A fully stored file is renamed to `*.done`. On the
 Databricks App `/tmp` is wiped at restart: keep `RECORDER_SPOOL_DIR` on a durable path.
+
+## OpenTelemetry GenAI semantic conventions
+
+The normaliser reads the OpenTelemetry GenAI names next to our own `supervisor.*` names
+(`supervisor.recorder.semconv`). Spec read 2026-10-15: the conventions now live in
+https://github.com/open-telemetry/semantic-conventions-genai (links name semconv v1.44.0);
+all `gen_ai.*` attributes are `development`, `error.type` is `stable`.
+
+Rules: a `supervisor.*` attribute always wins. Deprecated names (`gen_ai.system`,
+`gen_ai.usage.prompt_tokens`, `gen_ai.usage.completion_tokens`) are read when the current
+name is missing. A missing `gen_ai.operation.name` is taken from the span name prefix
+(`chat {model}`, `execute_tool {tool}`, `invoke_agent {agent}`).
+
+| Semconv attribute | agent_event column | Status | Note |
+|---|---|---|---|
+| `gen_ai.operation.name` | `event_type` | development | chat/text_completion/generate_content = llm_call; execute_tool = tool_call; invoke_agent/create_agent = message (handoff with a caller) |
+| `gen_ai.agent.id` | `agent_id` | development | after `supervisor.agent_id` |
+| `gen_ai.agent.name` | `agent_id` | development | last fallback |
+| `gen_ai.agent.version` | `agent_version` | development | after `supervisor.agent_version` |
+| `gen_ai.tool.name` | `tool_name` | development | also from the span name |
+| `gen_ai.tool.call.arguments`, `gen_ai.input.messages` | `args_masked` | development | opt-in; masked by capture level; `args_hash` is computed |
+| `gen_ai.tool.call.result`, `gen_ai.output.messages` | `result_masked` | development | opt-in; masked by capture level |
+| `error.type` | `status` (`error`) | stable | unless `supervisor.status` is set |
+| `gen_ai.provider.name` (`gen_ai.system`), `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.usage.input_tokens` / `output_tokens` (`prompt_tokens` / `completion_tokens`), `gen_ai.response.finish_reasons`, `gen_ai.conversation.id`, `gen_ai.tool.call.id`, `gen_ai.tool.type` | not mapped | development / deprecated | no column in `agent_event` |
+
+Setting: `RECORDER_SEMCONV` (`recorder_semconv`, default on). Off = the older partial
+fallbacks only (`gen_ai.agent.id`, `gen_ai.tool.name`, `gen_ai.operation.name`).
+`semconv.EMIT` lists the attributes a team emits per span type; `semconv.SUPERVISOR_ATTRS`
+lists our own extra attributes.

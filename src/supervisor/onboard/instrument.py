@@ -219,6 +219,15 @@ def render_hook_module(inv: Inventory) -> str:
     return text
 
 
+def select_entry_file(inv: Inventory, entry_file: str | None = None) -> str | None:
+    """File of the builder function the codemod edits: ``entry_file`` when given, else the
+    ``build_agent`` entrypoint that Discover found (None when there is none)."""
+    return entry_file or next(
+        (e.evidence.file for e in inv.entrypoints if e.name == "build_agent" and e.evidence),
+        None,
+    )
+
+
 def apply_codemod(source: str, *, import_line: str) -> tuple[str, bool, str]:
     """Insert the gate/tracer defaults at the top of the builder function.
 
@@ -408,10 +417,7 @@ def instrument(
     )
     changed.append(tdir / f"{HOOK_MODULE}.py")
     applied, note = False, "no entrypoint found: wire the hook by hand"
-    entry = entry_file or next(
-        (e.evidence.file for e in inv.entrypoints if e.name == "build_agent" and e.evidence),
-        None,
-    )
+    entry = select_entry_file(inv, entry_file)
     if entry:
         path = tdir / entry
         rel_pkg = (tdir / "__init__.py").exists()

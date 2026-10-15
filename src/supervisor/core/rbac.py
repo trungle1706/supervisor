@@ -136,6 +136,9 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/compliance"): "compliance.view",
     ("GET", "/console/compliance/{agent}"): "compliance.view",
     ("GET", "/console/compliance/{agent}/obligation/{obligation_id}"): "compliance.view",
+    ("GET", "/console/integration"): "onboard.view",
+    ("GET", "/console/integration/{name}"): "onboard.view",
+    ("GET", "/console/integration/{name}/patches/{file}"): "onboard.view",
     ("GET", "/console/assurance"): "console.view",  # WP17, read-only
     ("GET", "/console/assurance/{run_id}"): "console.view",
     ("GET", "/console/exports/{name}"): "evidence.download",

@@ -1,0 +1,442 @@
+{
+  "agent_id": "customer_service",
+  "found": {
+    "data_access": [],
+    "framework": {
+      "evidence": null,
+      "name": "custom"
+    },
+    "injection_refs": [],
+    "llm_calls": [],
+    "mcp_server": false,
+    "pii_fields": [
+      {
+        "at": "manifest.yaml:34",
+        "name": "account_id"
+      },
+      {
+        "at": "manifest.yaml:38",
+        "name": "card_last4"
+      },
+      {
+        "at": "manifest.yaml:22",
+        "name": "customer_id"
+      },
+      {
+        "at": "manifest.yaml:30",
+        "name": "text"
+      }
+    ],
+    "secrets_count": 0,
+    "tools": [
+      {
+        "amount_arg": null,
+        "defined_at": "agent.py:30",
+        "destination_arg": null,
+        "gated": true,
+        "name": "lookup_customer",
+        "risk_class": "read_only",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      },
+      {
+        "amount_arg": "amount_minor",
+        "defined_at": "agent.py:84",
+        "destination_arg": null,
+        "gated": true,
+        "name": "open_dispute",
+        "risk_class": "money",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      },
+      {
+        "amount_arg": null,
+        "defined_at": "agent.py:51",
+        "destination_arg": null,
+        "gated": true,
+        "name": "read_ticket",
+        "risk_class": "read_only",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      },
+      {
+        "amount_arg": null,
+        "defined_at": "agent.py:62",
+        "destination_arg": null,
+        "gated": true,
+        "name": "reply",
+        "risk_class": "read_only",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      },
+      {
+        "amount_arg": "amount_minor",
+        "defined_at": "agent.py:68",
+        "destination_arg": null,
+        "gated": true,
+        "name": "waive_fee",
+        "risk_class": "money",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      }
+    ],
+    "tracing": [
+      "otel"
+    ]
+  },
+  "framework": "custom",
+  "name": "Customer service agent",
+  "narrative": {
+    "source": "mock",
+    "text": "The agent uses custom and has 5 tool(s), 2 of them with side effects. Readiness is 95 of 100. 4 patch(es) are ready to review and 1 item(s) need a change by hand. Start in SHADOW mode and apply the patches one by one."
+  },
+  "needed": {
+    "catalogue": [
+      {
+        "id": "amount_valid",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Complete and valid amount"
+      },
+      {
+        "id": "approved_tools",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Approved tools allow-list"
+      },
+      {
+        "id": "case_files",
+        "kind": "evidence",
+        "lane": "evidence",
+        "name": "Case files"
+      },
+      {
+        "id": "daily_aggregate",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Daily aggregate per customer"
+      },
+      {
+        "id": "drift_band",
+        "kind": "monitor",
+        "lane": "slow",
+        "name": "Behaviour drift band"
+      },
+      {
+        "id": "evidence_chain",
+        "kind": "evidence",
+        "lane": "evidence",
+        "name": "Hash-chained evidence"
+      },
+      {
+        "id": "groundedness",
+        "kind": "judge",
+        "lane": "slow",
+        "name": "Groundedness of customer replies"
+      },
+      {
+        "id": "injection_prefilter",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Injection pre-filter (Tier 0b)"
+      },
+      {
+        "id": "otlp_ingest",
+        "kind": "ingest",
+        "lane": "slow",
+        "name": "OpenTelemetry trace ingest"
+      },
+      {
+        "id": "pii_masking",
+        "kind": "masking",
+        "lane": "fast",
+        "name": "PII masking at capture"
+      },
+      {
+        "id": "single_limit",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Per-call amount limit"
+      },
+      {
+        "id": "tier1_monitor",
+        "kind": "judge",
+        "lane": "slow",
+        "name": "Tier 1 judge on every trace"
+      },
+      {
+        "id": "tier2_judge",
+        "kind": "judge",
+        "lane": "slow",
+        "name": "Tier 2 judge on flags and a sample"
+      }
+    ],
+    "gate_sites": [
+      {
+        "at": "agent.py:84",
+        "decorator": "@supervised_tool(supervisor_onboard.AGENT_ID, \"1.0.0\", \"open_dispute\", \"money\", gate=supervisor_onboard.default_gate())",
+        "mode": "already_gated",
+        "note": "central dispatch gate at agent.py:112",
+        "risk_class": "money",
+        "tool": "open_dispute"
+      },
+      {
+        "at": "agent.py:62",
+        "decorator": "@supervised_tool(supervisor_onboard.AGENT_ID, \"1.0.0\", \"reply\", \"read_only\", gate=supervisor_onboard.default_gate())",
+        "mode": "already_gated",
+        "note": "central dispatch gate at agent.py:112",
+        "risk_class": "read_only",
+        "tool": "reply"
+      },
+      {
+        "at": "agent.py:68",
+        "decorator": "@supervised_tool(supervisor_onboard.AGENT_ID, \"1.0.0\", \"waive_fee\", \"money\", gate=supervisor_onboard.default_gate())",
+        "mode": "already_gated",
+        "note": "central dispatch gate at agent.py:112",
+        "risk_class": "money",
+        "tool": "waive_fee"
+      }
+    ],
+    "manual": [
+      {
+        "at": "agent.py:62",
+        "note": "writes found (mutates replies) but classed read_only; read_only fails open when the gateway is down",
+        "what": "confirm the risk class of tool reply"
+      }
+    ],
+    "mcp_proxy": null,
+    "policy_yaml": "# Supervisor policy for agent customer_service - generated by the Onboarding Agent.\n# Review every rule. Replace each FILL-ME-approver with two named approvers before\n# merge. The agent starts in SHADOW: rules are evaluated and recorded, nothing is\n# blocked until a rule is switched to enforced mode (see the launch report).\n# Schema: policies/schema.json (supervisor.gateway.policy).\npolicy_version: 1\ntools:\n  lookup_customer: read_only\n  open_dispute: money\n  read_ticket: read_only\n  reply: read_only\n  waive_fee: money\nagents:\n  customer_service:\n    name: Customer service agent\n    owner_user: cc-lead@example.invalid\n    owner_team: Retail Customer Care\n    risk_tier: high\n    model_family: qwen\n    host_type: python_inprocess\n    plug_point: gate_hook\n    initial_state: SHADOW\nrules:\n- id: OB-CUSTOMER_SERVICE-01\n  version: 1\n  description: Customer service agent may call approved tools only\n  agent_scope:\n  - customer_service\n  action: pause\n  severity: critical\n  risk_class: money\n  regulation_ref: Decision 33 (banking) - approved tools\n  owner: Retail Customer Care\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool:\n      not_in:\n      - lookup_customer\n      - open_dispute\n      - read_ticket\n      - reply\n      - waive_fee\n- id: OB-CUSTOMER_SERVICE-02\n  version: 1\n  description: A money call must state amount_minor as a positive integer\n  agent_scope:\n  - customer_service\n  action: block\n  severity: high\n  risk_class: money\n  regulation_ref: Internal payment control - complete instruction\n  owner: Retail Customer Care\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool:\n      in:\n      - open_dispute\n      - waive_fee\n    any:\n    - arg: amount_minor\n      op: absent\n    - arg: amount_minor\n      op: le\n      value: 0\n- id: OB-CUSTOMER_SERVICE-03\n  version: 1\n  description: Single waive_fee limit 500000 (waive_fee_max_minor)\n  agent_scope:\n  - customer_service\n  action: block\n  severity: high\n  risk_class: money\n  regulation_ref: Internal limit - single agent-initiated transaction\n  owner: Retail Customer Care\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool: waive_fee\n    all:\n    - arg: amount_minor\n      op: gt\n      value: 500000\n- id: OB-CUSTOMER_SERVICE-04\n  version: 1\n  description: At most 2 open_dispute calls per customer_id per day\n  agent_scope:\n  - customer_service\n  action: block\n  severity: high\n  risk_class: money\n  regulation_ref: AML structuring control - daily aggregate per customer\n  owner: Retail Customer Care\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool: open_dispute\n  aggregate:\n    window_s: 86400\n    group_by: customer\n    customer_arg: customer_id\n    op: gt\n    fn: count\n    limit: 2\n- id: OB-CUSTOMER_SERVICE-05\n  version: 1\n  description: At most 2 waive_fee calls per account_id per day\n  agent_scope:\n  - customer_service\n  action: block\n  severity: high\n  risk_class: money\n  regulation_ref: AML structuring control - daily aggregate per customer\n  owner: Retail Customer Care\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool: waive_fee\n  aggregate:\n    window_s: 86400\n    group_by: customer\n    customer_arg: account_id\n    op: gt\n    fn: count\n    limit: 2\n",
+    "semconv": [
+      {
+        "attributes": [
+          "gen_ai.operation.name",
+          "gen_ai.provider.name",
+          "gen_ai.agent.id",
+          "gen_ai.agent.name",
+          "gen_ai.agent.version",
+          "gen_ai.conversation.id",
+          "gen_ai.request.model",
+          "gen_ai.usage.input_tokens",
+          "gen_ai.usage.output_tokens",
+          "error.type",
+          "supervisor.agent_id",
+          "supervisor.agent_version",
+          "supervisor.caller_agent_id",
+          "supervisor.event_type",
+          "supervisor.args_hash",
+          "supervisor.amount_minor",
+          "supervisor.currency",
+          "supervisor.env"
+        ],
+        "note": "one span per agent run; service.name and gen_ai.agent.id = customer_service",
+        "operation": "invoke_agent"
+      },
+      {
+        "attributes": [
+          "gen_ai.operation.name",
+          "gen_ai.tool.name",
+          "gen_ai.tool.call.id",
+          "gen_ai.tool.type",
+          "gen_ai.tool.call.arguments",
+          "gen_ai.tool.call.result",
+          "gen_ai.agent.id",
+          "gen_ai.conversation.id",
+          "error.type",
+          "supervisor.agent_id",
+          "supervisor.agent_version",
+          "supervisor.caller_agent_id",
+          "supervisor.event_type",
+          "supervisor.args_hash",
+          "supervisor.amount_minor",
+          "supervisor.currency",
+          "supervisor.env"
+        ],
+        "note": "supervisor.args_hash is SHA-256 of the canonical arguments; supervisor.amount_minor is an integer",
+        "operation": "execute_tool"
+      }
+    ],
+    "settings": [
+      {
+        "example": "http://FILL-ME-supervisor-host:8000",
+        "key": "SUPERVISOR_GATE_URL",
+        "purpose": "Where the gate hook sends tool checks (HTTP gate)."
+      },
+      {
+        "example": "1",
+        "key": "SUPERVISOR_TRACING",
+        "purpose": "1 turns on the Supervisor tracer provider in the hook module."
+      },
+      {
+        "example": "http://FILL-ME-supervisor-host:8000",
+        "key": "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "purpose": "OTLP base URL of the Supervisor recorder."
+      },
+      {
+        "example": "http://FILL-ME-supervisor-host:8000/v1/traces",
+        "key": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+        "purpose": "OTLP traces URL: the Supervisor /v1/traces route."
+      },
+      {
+        "example": "http/json",
+        "key": "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
+        "purpose": "The recorder reads OTLP JSON only (http/json)."
+      },
+      {
+        "example": "customer_service",
+        "key": "OTEL_SERVICE_NAME",
+        "purpose": "Service name; use the agent id."
+      }
+    ],
+    "test_plan": [
+      {
+        "command": "python -m supervisor.assurance run accuracy --target agent:customer_service --repo <repo folder> --out out\\assurance",
+        "dimension": "accuracy",
+        "packs": [
+          "simpleqa_vi",
+          "truthfulqa_vi"
+        ],
+        "reason": "the agent answers or acts on customer requests"
+      },
+      {
+        "command": "python -m supervisor.assurance run hallucination --target agent:customer_service --repo <repo folder> --out out\\assurance",
+        "dimension": "hallucination",
+        "packs": [
+          "ragas_rag_triad",
+          "selfcheck_consistency"
+        ],
+        "reason": "the agent writes text with a language model"
+      },
+      {
+        "command": "python -m supervisor.assurance run security --target agent:customer_service --repo <repo folder> --out out\\assurance",
+        "dimension": "adversarial_security",
+        "packs": [
+          "atlas_coverage",
+          "finance_harm_refusal",
+          "garak_probe_families",
+          "indirect_injection_vi",
+          "owasp_agentic_redteam",
+          "owasp_llm_top10",
+          "pii_canary"
+        ],
+        "reason": "the agent has tools with side effects or reads untrusted text"
+      },
+      {
+        "command": "python -m supervisor.assurance run robustness --target agent:customer_service --repo <repo folder> --out out\\assurance",
+        "dimension": "robustness",
+        "packs": [
+          "paraphrase_consistency",
+          "perturbation_vi",
+          "prefilter_evasion"
+        ],
+        "reason": "the agent calls tools and data sources that can fail"
+      }
+    ]
+  },
+  "patches": [
+    {
+      "description": "Hook module: default_gate() and default_tracer_provider() for this agent",
+      "file": "patches/01-supervisor-onboard-py.patch",
+      "kind": "hook_module",
+      "path": "supervisor_onboard.py"
+    },
+    {
+      "description": "Gateway policy for the agent, initial state SHADOW (nothing is blocked)",
+      "file": "patches/02-supervisor-onboarding-policy-yaml.patch",
+      "kind": "policy",
+      "path": "supervisor_onboarding/policy.yaml"
+    },
+    {
+      "description": "Builder default gate and tracer (gate and tracer defaults inserted in build_agent())",
+      "file": "patches/03-agent-py.patch",
+      "kind": "builder_hook",
+      "path": "agent.py"
+    },
+    {
+      "description": "Environment keys for the gate URL, tracing and the OTLP exporter",
+      "file": "patches/04-env-example.patch",
+      "kind": "settings",
+      "path": ".env.example"
+    }
+  ],
+  "readiness": {
+    "areas": [
+      {
+        "id": "tracing",
+        "inputs": {
+          "mlflow": 0,
+          "otel": 1
+        },
+        "points": 20,
+        "reason": "OpenTelemetry tracing found",
+        "weight": 20
+      },
+      {
+        "id": "gate_coverage",
+        "inputs": {
+          "covered": 3,
+          "gated_tools": 3
+        },
+        "points": 30,
+        "reason": "3 of 3 money, credit, pii_export or writing tools carry a gate (central dispatch gate at agent.py:112)",
+        "weight": 30
+      },
+      {
+        "id": "tool_inventory",
+        "inputs": {
+          "resolved": 5,
+          "tools": 5
+        },
+        "points": 15,
+        "reason": "5 of 5 tools have a definition found in code",
+        "weight": 15
+      },
+      {
+        "id": "money_args",
+        "inputs": {
+          "earned": 10,
+          "money_tools": 2
+        },
+        "points": 5,
+        "reason": "10 of 20 points: amount (not float) and destination arguments",
+        "weight": 10
+      },
+      {
+        "id": "model_identity",
+        "inputs": {
+          "call_sites": 0,
+          "known": 0
+        },
+        "points": 10,
+        "reason": "no LLM call site",
+        "weight": 10
+      },
+      {
+        "id": "manifest",
+        "inputs": {
+          "manifest": 1
+        },
+        "points": 10,
+        "reason": "agent manifest found",
+        "weight": 10
+      },
+      {
+        "id": "hygiene",
+        "inputs": {
+          "injection_lines": 0,
+          "secrets": 0
+        },
+        "points": 5,
+        "reason": "no secret and no flagged line",
+        "weight": 5
+      }
+    ],
+    "total": 95
+  },
+  "schema_version": 1,
+  "version": "1.0.0"
+}
