@@ -16,7 +16,7 @@ from supervisor.evidence.signer import build_signer
 from supervisor.jobs.bootstrap_schema import run as bootstrap_run
 
 SECRETS = {
-    "LLM_API_KEY": "sk-test-LLMKEY-9f8e7d6c5b4a",
+    "LLM_API_KEY": "fake-llm-credential-9f8e7d6c5b4a",
     "MASK_HMAC_KEY": "maskhmac-SECRET-1a2b3c4d5e6f",
     "DATABRICKS_CLIENT_SECRET": "dbx-client-SECRET-77aa88bb99cc",
 }
