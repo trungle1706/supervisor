@@ -42,7 +42,7 @@ Vietnamese instruments (binding or draft, mark each):
 |---|---|
 | Law on Artificial Intelligence (2025) and its guiding decree | risk classes, conformity assessment, registration, human oversight, transparency, incident duties |
 | Decision 33 (high-risk AI system list) | classifies credit, payment and customer-facing agents; transition dates |
-| Draft SBV circular on AI in banking | model management, logging, 24-hour incident report, bias monitoring, human review of disputed decisions, outsourcing responsibility |
+| SBV Circular 53/2026/TT-NHNN on AI in banking (signed 2026-09-30, in effect 2026-11-15; was a draft when phase 1 was analysed) | model management, logging, incident duties via the AI Law and Decree 142/2026 (72 h preliminary, 5 working days, 15-day formal), bias monitoring, human review of disputed decisions, outsourcing responsibility, high-value thresholds (Art. 4) and the 100M VND per day cap on autonomous payments for an individual (Art. 5) |
 | Personal Data Protection Law 91/2025/QH15 + Decree 356/2025 | lawful basis, sensitive data (financial, biometric), cross-border transfer, retention, data subject rights, DPIA |
 | Data Law 60/2024 + Decree 165/2025 | core / important data localisation and transfer notice; log retention minimum |
 | Cybersecurity Law 116/2025 (and Decree 53/2022 while in force) | localisation, incident reporting, system classification |
