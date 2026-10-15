@@ -210,3 +210,21 @@ def test_canonical_strips_default_ignorables_not_in_cf() -> None:
     for cp in (0x34F, 0x115F, 0x1160, 0x17B4, 0x17B5, 0x180B, 0x180F, 0x2800, 0x3164, 0xFE00,
                0xFE0F, 0xFFA0, 0xE0100, 0xE01EF):  # fmt: skip
         assert canonical(f"a{chr(cp)}b") == "ab", hex(cp)
+
+
+@pytest.mark.parametrize(
+    "text", ["STK 190 345 678", "stk 123 456 789", "so tk: 190-345-678", "account no 190 345 678"]
+)
+def test_label_directly_before_thousands_shaped_account_masks_it(
+    m: VnRegexMasker, text: str
+) -> None:
+    # Regression guard: vn_regex-1 masked these; an amount rule must not unmask a labelled account.
+    out = m.mask(text)
+    assert "<BANK_ACCOUNT:" in out and "345" not in out
+
+
+@pytest.mark.parametrize(
+    "text", ["so du tai khoan 1.500.000", "stk 123.456.789 VND", "tk 5.000.000"]
+)
+def test_dot_grouped_amount_after_label_stays(m: VnRegexMasker, text: str) -> None:
+    assert m.mask(text) == text

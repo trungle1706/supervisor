@@ -267,6 +267,21 @@ def _amount_shaped(run: str) -> bool:
     return len(parts) > 1 and all(re.fullmatch(r"\d{1,3}(?:\.\d{3})+", p) for p in parts)
 
 
+# An account label directly before the run ("STK 190 345 678", "so tk: 123 456 789"). Then a
+# space- or dash-grouped run is the account even in thousands shape; dot-grouped stays an amount
+# ("so du tai khoan 1.500.000").
+_RE_LABEL_ADJACENT = re.compile(
+    r"(?:\bstk|\bso tk|\btk|tai khoan|\baccount|\bacct|\ba/c)"
+    r"\s*(?:so|la|no\.?|number)?\s*[:#]?\s*$"
+)
+
+
+def _label_adjacent(text: str, m: re.Match[str]) -> bool:
+    if "." in m.group():
+        return False
+    return bool(_RE_LABEL_ADJACENT.search(_fold(text[max(0, m.start() - 24) : m.start()]).lower()))
+
+
 def _date_like(groups: list[str]) -> bool:
     """A 4-digit 19xx/20xx group next to a 1-2 digit group: 2026 10 15, 15-10-2026 10-30-00."""
     for i, g in enumerate(groups):
@@ -389,7 +404,7 @@ class VnRegexMasker:
         for m in _RE_GROUPED.finditer(text):
             groups = re.split(r"[ \t.-]+", m.group())
             if (
-                _amount_shaped(m.group())
+                (_amount_shaped(m.group()) and not _label_adjacent(text, m))
                 or _date_like(groups)
                 or _RE_CURRENCY_AFTER.match(text, m.end())
             ):
