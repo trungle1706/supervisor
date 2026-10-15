@@ -35,7 +35,7 @@ HSTS = "max-age=31536000; includeSubDomains"
 MUTATING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 # Agent ingress is governed by the gateway (fail mode, budgets), not by a human rate limit:
 # throttling it here would turn a busy agent into a gate outage.
-RATE_LIMIT_EXEMPT = frozenset({"/gate/check", "/v1/traces"})
+RATE_LIMIT_EXEMPT = frozenset({"/gate/check", "/v1/gate/check", "/v1/traces"})
 
 
 def _reject(scope: Scope, message: str, status: int, headers: dict[str, str] | None = None):

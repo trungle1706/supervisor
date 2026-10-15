@@ -116,6 +116,7 @@ def test_rate_limit_429_and_exemptions(tmp_path):
     assert c.post("/api/x", headers={"X-Dev-User": "carol"}).status_code == 200  # own bucket
     for _ in range(10):
         assert c.post("/gate/check", headers=h).status_code == 200  # agent ingress exempt
+        assert c.post("/v1/gate/check", headers=h).status_code != 429  # versioned ingress
 
 
 def test_rate_limit_off_by_default(tmp_path):
