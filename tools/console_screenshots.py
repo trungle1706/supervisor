@@ -50,13 +50,13 @@ with sync_playwright() as p:
                           color_scheme=shot.get("scheme", "light"))
         page.goto(cfg["base"] + shot["path"], wait_until="networkidle")
         page.evaluate("document.fonts.ready")
-        if shot.get("click"):
+        if shot.get("click") and page.locator(shot["click"]).count():
             page.click(shot["click"])
             page.wait_for_load_state("networkidle")
             page.wait_for_timeout(300)
         page.screenshot(path=shot["file"])
         page.screenshot(path=shot["file"].replace(".png", "-full.png"), full_page=True)
-        say("[OK] " + shot["file"].rsplit("/", 1)[-1])
+        print("[OK] " + shot["file"].rsplit("/", 1)[-1])
         page.close()
     b.close()
 """

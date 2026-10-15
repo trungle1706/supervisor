@@ -477,35 +477,15 @@ async def signoff(
 # ---------------------------------------------------------------------------- agents
 
 
-def _agents_data(ctx: ConsoleContext) -> dict[str, Any]:
-    states = ctx.gateway.states
-    rows = []
-    for a in sorted(ctx.state.query("agent"), key=lambda r: r["agent_id"]):
-        try:
-            desc = states.describe(a["agent_id"])
-        except SupervisorError:
-            desc = {"state": a["gate_state"], "pending_resume": []}
-        cov = views.coverage_bp(ctx.state.query("coverage", {"agent_id": a["agent_id"]}))
-        open_cases = [
-            c for c in ctx.cases.list_cases(agent_id=a["agent_id"]) if c["status"] != "closed"
-        ]
-        rows.append(
-            {
-                **a,
-                "state": desc["state"],
-                "pending": desc.get("pending_resume") or [],
-                "coverage_bp": cov,
-                "open_cases": len(open_cases),
-            }
-        )
-    return {"agents": rows}
+def _agents_data(ctx: ConsoleContext, me: AuthPrincipal) -> dict[str, Any]:
+    return {"agents": readmodels.agent_cards(ctx, me)}
 
 
 @router.get("/agents", response_class=HTMLResponse)
 async def agents(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     _view(me)
-    data = await _call(_agents_data, ctx)
-    return render(request, ctx, me, "agents.html", **data)
+    data = await _call(_agents_data, ctx, me)
+    return render(request, ctx, me, "agents.html", section="agents", **data)
 
 
 def _policy_precheck(ctx: ConsoleContext, agent_id: str, action: str, me: AuthPrincipal) -> None:
@@ -595,7 +575,7 @@ async def agent_action(
         msg = f"{agent_id}: {action} -> {result.get('state')}"
     if warn:
         msg += f" (WARNING: the console evidence record failed: {warn}; see the server log)"
-    data = await _call(_agents_data, ctx)
+    data = await _call(_agents_data, ctx, me)
     resp = render(request, ctx, me, "_agents_table.html", **data)
     resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
     resp.headers["content-length"] = str(len(resp.body))

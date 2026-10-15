@@ -285,6 +285,241 @@ def latest_decisions(ctx: Any, limit: int = 6) -> list[dict[str, Any]]:
     return out
 
 
+# ---------------------------------------------------------------------------- agents
+
+STAGES = ("discover", "understand", "plan", "instrument", "launch", "operate")
+# The artefact each Onboard stage writes (supervisor.onboard.run.ARTEFACTS).
+STAGE_ARTEFACT = {
+    "discover": "inventory.json",
+    "understand": "profile.json",
+    "plan": "plan.json",
+    "instrument": "pr_description.md",
+    "launch": "launch_report.json",
+    "operate": "handover.json",
+}
+
+
+def onboard_dir(settings: Any, agent_id: str) -> Path:
+    return Path(settings.data_dir) / "onboard" / agent_id
+
+
+def onboard_artefacts(settings: Any, agent_id: str) -> set[str]:
+    d = onboard_dir(settings, agent_id)
+    try:
+        return {p.name for p in d.iterdir() if p.is_file()} if d.is_dir() else set()
+    except OSError:
+        return set()
+
+
+def lifecycle(gate_state: str | None, artefacts: set[str]) -> list[dict[str, str]]:
+    """Six-stage stepper. A registered agent is past Instrument: SHADOW means Launch
+    (rules evaluated, nothing blocked yet); RUNNING / PAUSED / QUARANTINED means Operate
+    (the default for a registered agent). An agent known only from Onboard artefacts is at
+    the stage after the last artefact written."""
+    if gate_state == "SHADOW":
+        now = STAGES.index("launch")
+        note = "stage_note_shadow"
+    elif gate_state:
+        now = STAGES.index("operate")
+        note = "stage_note_enforced"
+    else:
+        done = [i for i, s in enumerate(STAGES) if STAGE_ARTEFACT[s] in artefacts]
+        now = min(max(done) + 1, len(STAGES) - 1) if done else 0
+        note = ""
+    out = []
+    for i, s in enumerate(STAGES):
+        state = "done" if i < now else "now" if i == now else "todo"
+        out.append({"key": s, "state": state, "note": note if i == now else ""})
+    return out
+
+
+def _allowed_tools(rules: Mapping[str, Mapping[str, Any]], agent_id: str) -> list[str]:
+    """Tools named by the agent's approved-tools rule (``tool not_in [...]``)."""
+    out: list[str] = []
+    for r in rules.values():
+        expr = r.get("expression") or {}
+        scope = expr.get("agent_scope")
+        if scope != "*" and agent_id not in (scope or []):
+            continue
+        tool = (expr.get("when") or {}).get("tool") or {}
+        if tool.get("op") == "not_in":
+            out += [t for t in tool.get("value") or [] if t not in out]
+    return out
+
+
+def _coverage(ctx: Any, agent_id: str) -> dict[str, Any]:
+    """Coverage in basis points and where the number comes from.
+
+    1. ``coverage`` rows (capabilities on / all, written by Onboard);
+    2. else the latest ``oversight_metric.coverage_bp`` (gated / seen tool calls);
+    3. else gate decisions / tool calls over the agent's newest 2000 events.
+    ``trace_coverage`` rows add the capabilities a trace path cannot see."""
+    from supervisor.console import views
+
+    reduced = ctx.tables.query("trace_coverage", {"agent_id": agent_id}, limit=200)
+    missing = sorted({m for r in reduced for m in (jloads(r.get("missing"), []) or [])})
+    rows = ctx.state.query("coverage", {"agent_id": agent_id})
+    if rows:
+        on = sum(1 for r in rows if str(r.get("status", "")).lower() in ("on", "enabled"))
+        return {
+            "bp": views.coverage_bp(rows),
+            "source": "cov_src_capabilities",
+            "detail": f"{on}/{len(rows)}",
+            "missing": missing,
+        }
+    metric = ctx.state.query("oversight_metric", {"agent_id": agent_id})
+    metric = [m for m in metric if m.get("coverage_bp") is not None]
+    if metric:
+        latest = max(metric, key=lambda m: m["metric_date"])
+        return {
+            "bp": int(latest["coverage_bp"]),
+            "source": "cov_src_metric",
+            "detail": str(latest["metric_date"]),
+            "missing": missing,
+        }
+    events = ctx.tables.query("agent_event", {"agent_id": agent_id}, order_by=("-ts",), limit=2000)
+    calls = sum(1 for e in events if e["event_type"] == "tool_call")
+    gated = sum(1 for e in events if e["event_type"] == "gate_decision")
+    if calls == 0 and gated == 0:
+        return {"bp": None, "source": "cov_src_none", "detail": "", "missing": missing}
+    seen = calls or gated
+    return {
+        "bp": min(10000, gated * 10000 // seen),
+        "source": "cov_src_events",
+        "detail": f"{gated}/{seen}",
+        "missing": missing,
+    }
+
+
+def _judge_family(ctx: Any, agent_id: str) -> dict[str, Any]:
+    rows = ctx.tables.query("verdict", {"agent_id": agent_id}, order_by=("-ts",), limit=500)
+    judge = next((v for v in rows if int(v["tier"]) >= 1), None)
+    if judge is not None:
+        return {
+            "family": judge.get("model_family") or "-",
+            "model": judge.get("model_id") or "-",
+            "mock": bool(judge.get("is_mock")),
+        }
+    s = ctx.settings
+    if not getattr(s, "judge_t1_model", ""):
+        return {"family": "mock", "model": "-", "mock": True}
+    return {
+        "family": getattr(s, "judge_t1_family", None) or "-",
+        "model": s.judge_t1_model,
+        "mock": False,
+    }
+
+
+def _stop_cause(ctx: Any, agent_id: str, state: str) -> dict[str, Any] | None:
+    """Who or which rule put the agent in PAUSED / QUARANTINED (active gate_control)."""
+    if state not in ("PAUSED", "QUARANTINED"):
+        return None
+    action = "pause" if state == "PAUSED" else "quarantine"
+    rows = [
+        r
+        for r in ctx.state.query("gate_control", {"agent_id": agent_id, "status": "active"})
+        if r["action"] == action
+    ]
+    if not rows:
+        return None
+    row = max(rows, key=lambda r: r["created_at"])
+    principal = str(row.get("principal") or "")
+    rule = principal.split(":", 1)[1] if principal.startswith("rule:") else None
+    return {"rule": rule, "principal": None if rule else principal, "at": row["created_at"]}
+
+
+def decision33(ctx: Any, agent: Mapping[str, Any]) -> dict[str, Any]:
+    """Registry value, else the Onboard proposal (profile.json), else not classified."""
+    cls = agent.get("decision33_class")
+    if cls:
+        return {"cls": str(cls), "source": "registry"}
+    prof = onboard_dir(ctx.settings, agent["agent_id"]) / "profile.json"
+    if prof.is_file():
+        try:
+            data = json.loads(prof.read_text(encoding="utf-8"))
+            return {"cls": data["decision33"]["classification"], "source": "proposal"}
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+    return {"cls": None, "source": None}
+
+
+def agent_cards(ctx: Any, me: Any) -> list[dict[str, Any]]:
+    from supervisor.core.errors import SupervisorError
+
+    states = ctx.gateway.states
+    rules = rules_index(ctx)
+    classes = tool_classes(ctx)
+    try:
+        doc = states.policy.current().doc
+        reviewers, admins = set(doc.reviewers), set(doc.admins)
+    except Exception:  # noqa: BLE001
+        reviewers, admins = set(), set()
+    open_by_agent: dict[str, int] = {}
+    for c in open_cases(ctx):
+        open_by_agent[c["agent_id"]] = open_by_agent.get(c["agent_id"], 0) + 1
+    cards = []
+    for a in sorted(ctx.state.query("agent"), key=lambda r: r["agent_id"]):
+        aid = a["agent_id"]
+        try:
+            desc = states.describe(aid)
+        except SupervisorError:
+            desc = {"state": a["gate_state"], "pending_resume": []}
+        state = desc["state"]
+        pending = desc.get("pending_resume") or []
+        scoped = [
+            r
+            for r in rules.values()
+            if (r["expression"].get("agent_scope") == "*")
+            or aid in (r["expression"].get("agent_scope") or [])
+        ]
+        fail_modes = sorted({r.get("fail_mode") or "-" for r in scoped})
+        tools = _allowed_tools(rules, aid)
+        seen = {
+            e["tool_name"]
+            for e in ctx.tables.query(
+                "agent_event",
+                {"agent_id": aid, "event_type": "gate_decision"},
+                order_by=("-ts",),
+                limit=2000,
+            )
+            if e.get("tool_name")
+        }
+        tools += sorted(t for t in seen if t not in tools)
+        money = [t for t in tools if classes.get(t) == "money"]
+        me_role = (
+            "owner"
+            if me.user_id == a.get("owner_user")
+            else "reviewer"
+            if me.user_id in reviewers
+            else None
+        )
+        approved = {p["principal"] for p in pending}
+        cards.append(
+            {
+                **a,
+                "state": state,
+                "cause": _stop_cause(ctx, aid, state),
+                "pending": pending,
+                "pending_roles": sorted({p["role"] for p in pending}),
+                "me_role": me_role,
+                "me_approved": me.user_id in approved,
+                "me_policy_admin": me.user_id in admins,
+                "stages": lifecycle(state, onboard_artefacts(ctx.settings, aid)),
+                "coverage": _coverage(ctx, aid),
+                "open_cases": open_by_agent.get(aid, 0),
+                "tools_n": len(tools),
+                "money_n": len(money),
+                "fail_mode": fail_modes[0] if len(fail_modes) == 1 else "mixed",
+                "rules_n": len(scoped),
+                "judge": _judge_family(ctx, aid),
+                "d33": decision33(ctx, a),
+            }
+        )
+    rank = {"QUARANTINED": 0, "PAUSED": 1, "SHADOW": 2, "RUNNING": 3}
+    cards.sort(key=lambda c: (rank.get(c["state"], 4), c["agent_id"]))
+    return cards
+
+
 def overview(ctx: Any, now: dt.datetime) -> dict[str, Any]:
     from supervisor.console import views
 

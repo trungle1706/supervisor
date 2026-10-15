@@ -8,7 +8,7 @@
 
 {% macro sev(s) %}{{ pill(t(s), {'critical': 'crit', 'high': 'bad', 'medium': 'warn', 'low': 'neutral'}.get(s, 'neutral')) }}{% endmacro %}
 
-{% macro state_pill(state, detail=None) %}<span class="pill {{ {'RUNNING': 'ok', 'SHADOW': 'teal', 'PAUSED': 'warn', 'QUARANTINED': 'bad'}.get(state, 'neutral') }}"><span class="dot"></span>{{ state }}{% if detail %} · {{ detail }}{% endif %}</span>{% endmacro %}
+{% macro state_pill(state, detail=None, sep=' · ') %}<span class="pill {{ {'RUNNING': 'ok', 'SHADOW': 'teal', 'PAUSED': 'warn', 'QUARANTINED': 'bad'}.get(state, 'neutral') }}"><span class="dot"></span>{{ state }}{% if detail %}{{ sep }}{{ detail }}{% endif %}</span>{% endmacro %}
 
 {% macro bar(bp, kind='') %}<div class="bar {{ kind }}" role="img" aria-label="{{ (bp or 0) // 100 }}%"><i style="width:{{ [[(bp or 0) // 100, 0]|max, 100]|min }}%"></i></div>{% endmacro %}
 

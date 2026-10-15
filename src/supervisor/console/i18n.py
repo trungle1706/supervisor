@@ -261,6 +261,94 @@ _T: dict[str, tuple[str, str]] = {
         "Chỉ là dữ liệu demo. Mọi khách hàng và mọi câu trả lời của tác tử đều là dữ liệu "
         "giả lập. Quyết định của cổng, việc tạm dừng và chuỗi bằng chứng là thật.",
     ),
+    # ---- WP12 agents
+    "agents_purpose": (
+        "Every agent the bank runs, where it is in its life, and whether Supervisor can stop it.",
+        "Mọi tác tử ngân hàng đang chạy, đang ở giai đoạn nào, và Supervisor có thể dừng nó không.",
+    ),
+    "agents_why": (
+        "Pause is one click by any reviewer. Resume needs two people: the agent's owner and a "
+        "reviewer. Quarantine is for admins.",
+        "Tạm dừng: một người duyệt bấm một lần. Mở lại cần hai người: chủ sở hữu tác tử và một "
+        "người duyệt. Cách ly dành cho quản trị viên.",
+    ),
+    "by_rule": ("by rule {rule}", "do quy tắc {rule}"),
+    "by_person": ("by {who}", "bởi {who}"),
+    "shadow_word": ("shadow", "chế độ bóng"),
+    "enforced_word": ("enforced", "đang thực thi"),
+    "risk": ("risk", "rủi ro"),
+    "d33_high": ("Decision 33 high-risk", "Quyết định 33: rủi ro cao"),
+    "d33_not_high": ("not high-risk under Decision 33", "không thuộc rủi ro cao theo QĐ 33"),
+    "d33_label": ("Decision 33", "Quyết định 33"),
+    "d33_none": ("Decision 33 not classified yet", "chưa phân loại theo Quyết định 33"),
+    "proposal": ("proposal", "đề xuất"),
+    "model_family": ("model family", "họ mô hình"),
+    "judge_family": ("judge family", "họ giám khảo"),
+    "lifecycle": ("Lifecycle", "Vòng đời"),
+    "stage_discover": ("Discover", "Khám phá"),
+    "stage_understand": ("Understand", "Hiểu"),
+    "stage_plan": ("Plan", "Lập kế hoạch"),
+    "stage_instrument": ("Instrument", "Gắn giám sát"),
+    "stage_launch": ("Launch", "Ra mắt"),
+    "stage_operate": ("Operate", "Vận hành"),
+    "stage_note_shadow": ("shadow mode", "chế độ bóng"),
+    "stage_note_enforced": ("enforced", "đang thực thi"),
+    "cov_src_capabilities": (
+        "{detail} monitoring capabilities on (Onboard plan)",
+        "{detail} năng lực giám sát đang bật (kế hoạch tiếp nhận)",
+    ),
+    "cov_src_metric": (
+        "share of tool calls that passed the gate (daily metric {detail})",
+        "tỷ lệ lệnh gọi công cụ đi qua cổng (chỉ số ngày {detail})",
+    ),
+    "cov_src_events": (
+        "{detail} recent tool calls passed the gate",
+        "{detail} lệnh gọi công cụ gần đây đã đi qua cổng",
+    ),
+    "cov_src_none": ("no traffic yet: coverage not measured", "chưa có lưu lượng: chưa đo"),
+    "cov_missing": ("trace path cannot see: {items}", "đường vết không thấy: {items}"),
+    "tools_summary": ("{n} tools · {m} money-moving", "{n} công cụ · {m} di chuyển tiền"),
+    "fail_mode_is": ("fail mode {mode}", "khi lỗi: {mode}"),
+    "fail_closed": ("closed", "đóng (chặn)"),
+    "fail_open": ("open", "mở (cho qua)"),
+    "fail_mixed": ("mixed", "hỗn hợp"),
+    "fail_-": ("-", "-"),
+    "open_cases_n": ("{n} open case(s)", "{n} vụ việc đang mở"),
+    "pause_now": ("Pause now", "Tạm dừng ngay"),
+    "pause_rule": (
+        "One click by any reviewer. Takes effect at the agent's next tool call.",
+        "Một người duyệt bấm một lần. Có hiệu lực ở lệnh gọi công cụ tiếp theo.",
+    ),
+    "approve_resume": ("Approve resume", "Đồng ý mở lại"),
+    "second_approval": ("Give the second approval", "Phê duyệt lần hai"),
+    "approved_by": ("Approved by {who} ({role}).", "{who} ({role}) đã đồng ý."),
+    "waiting_for": ("Waiting for the {role}.", "Đang chờ {role}."),
+    "resume_rule_short": (
+        "Needs the agent owner and a reviewer, two different people.",
+        "Cần chủ sở hữu tác tử và một người duyệt, là hai người khác nhau.",
+    ),
+    "you_are_role": ("You are the {role}.", "Bạn là {role}."),
+    "you_approved": (
+        "You approved; the other person must approve.",
+        "Bạn đã đồng ý; cần người còn lại.",
+    ),
+    "you_cannot_resume": (
+        "You are not the owner or a policy reviewer, so you cannot approve.",
+        "Bạn không phải chủ sở hữu hay người duyệt trong chính sách, nên không thể đồng ý.",
+    ),
+    "release_rule": (
+        "Only an admin listed in the policy can release a quarantine. A reason is required.",
+        "Chỉ quản trị viên trong chính sách được gỡ cách ly. Bắt buộc ghi lý do.",
+    ),
+    "quarantine_rule": (
+        "Admin only. Stops every call until an admin releases it.",
+        "Chỉ quản trị viên. Chặn mọi lệnh gọi cho đến khi quản trị viên gỡ.",
+    ),
+    "reason_required": ("Reason (required)", "Lý do (bắt buộc)"),
+    "no_agents": (
+        "No agent is registered yet. Use Onboard to bring the first agent under supervision.",
+        "Chưa có tác tử nào. Dùng Tiếp nhận để đưa tác tử đầu tiên vào giám sát.",
+    ),
     "demo_note": (
         "Demo data: the agents' replies are scripted and the customers are synthetic. The "
         "gate decisions, the pause and the chain are real.",
