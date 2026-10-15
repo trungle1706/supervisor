@@ -169,3 +169,26 @@ def test_generic_secret_scrub_in_logs_and_settings_paths(
     settings = json.loads(raw)
     assert settings["data_dir"] == "<DATA_DIR>"
     assert settings["log_file"] == "~/app.log"
+
+
+@pytest.mark.parametrize(
+    ("line", "leak"),
+    [
+        ('{"password": "hunter2"}', "hunter2"),
+        ('{"access_token":"abc123"}', "abc123"),
+        ('secret="a b c"', "a b c"),
+        ("api_key=abc123", "abc123"),
+        ("password: hunter2", "hunter2"),
+        ("Authorization: Bearer xyz987", "xyz987"),
+        ("retry with Bearer xyz987 failed", "xyz987"),
+        ("Authorization: Basic dXNlcjpwdw==", "dXNlcjpwdw"),
+        ("connect postgres://app:s3cretpw@db.local:5432/x", "s3cretpw"),
+    ],
+)
+def test_scrub_generic_cases(line: str, leak: str) -> None:
+    from supervisor.ops.support import scrub_generic
+
+    out = scrub_generic(line)
+    assert leak not in out and "<redacted>" in out
+    assert scrub_generic("postgres://app:pw@db/x") == "postgres://app:<redacted>@db/x"
+    assert scrub_generic("nothing secret-free here") == "nothing secret-free here"

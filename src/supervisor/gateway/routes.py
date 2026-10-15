@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from starlette.concurrency import run_in_threadpool
 
-from supervisor.adapters.auth import AuthPrincipal
+from supervisor.adapters.auth import AuthPrincipal, get_provider
 from supervisor.adapters.auth.audit import (
     AuditUnavailable,
     audit_active,
@@ -114,7 +114,7 @@ def _audit_row(
     kw: dict[str, Any] = {
         "request_id": request_id_of(request),
         "actor": me,
-        "actor_fallback": (principal or "unknown", "unverified", "gate_api"),
+        "actor_fallback": ("unverified:unknown", "unverified", get_provider().name),
         "permission": f"agent.{action}",
         "method": request.method,
         "path": request.url.path,

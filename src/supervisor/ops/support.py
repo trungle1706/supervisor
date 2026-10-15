@@ -33,7 +33,12 @@ SET = "***set***"
 PII_FILES = {"logs.txt", "preflight.txt"}
 SECRET_NAME = re.compile(r"key|secret|token|password|client_id", re.IGNORECASE)
 _URL = re.compile(r"^[a-z][a-z0-9+.-]*://", re.IGNORECASE)
-_GENERIC_SECRET = re.compile(r"(key|token|secret|password|pwd)\s*[=:]\s*\S+", re.IGNORECASE)
+_GENERIC_SECRET = re.compile(
+    r"""(key|token|secret|password|pwd)(["']?)\s*[=:]\s*(?:"[^"]*"|'[^']*'|\S+)""", re.IGNORECASE
+)
+_URL_CRED = re.compile(r"\b([a-z][a-z0-9+.-]*://[^\s:/@]+):[^\s@/]+@", re.IGNORECASE)
+_AUTH_HEADER = re.compile(r"(authorization\s*[=:]\s*)(?:\w+\s+)?[^\s,;]+", re.IGNORECASE)
+_BEARER = re.compile(r"\b(bearer)\s+[\w.~+/=-]+", re.IGNORECASE)
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 
 
@@ -50,8 +55,12 @@ def _strip_query(value: str) -> str:
 
 
 def scrub_generic(text: str) -> str:
-    """Minor 4: ``api_key=abc``, ``password: x`` and similar become ``api_key=<redacted>``."""
-    return _GENERIC_SECRET.sub(r"\1=<redacted>", text)
+    """Minor 4: ``api_key=abc``, ``password: x``, quoted JSON pairs (``"password": "a b"``),
+    ``Authorization: Bearer x`` / ``Bearer x`` and URL credentials (``scheme://user:pw@host``)."""
+    text = _URL_CRED.sub(r"\1:<redacted>@", text)
+    text = _AUTH_HEADER.sub(r"\1<redacted>", text)
+    text = _BEARER.sub(r"\1 <redacted>", text)
+    return _GENERIC_SECRET.sub(r"\1\2=<redacted>", text)
 
 
 def _relativise(value: str, data_dir: Path) -> str:

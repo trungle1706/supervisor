@@ -188,8 +188,9 @@ Two rows per action, one `request_id`:
 * A permission denial (HTTP 403) writes one `denied` row and no `attempted` row: it has no side
   effect.
 * An unknown or missing identity on a mutating route (for example an unknown `X-Dev-User`)
-  writes one `denied` row: `actor_kind` `unverified`, `auth_method` of the provider, `actor` the
-  claimed id (cut to 64 characters) or `unknown`, `detail` `identity_unknown`. The console
+  writes one `denied` row: `actor_kind` `unverified`, `auth_method` of the provider (also on
+  the `/gate` path), `actor` `unverified:<claimed id>` (client text cut to the characters
+  `A-Za-z0-9_.@+-`, 64 at most) or `unverified:unknown`, `detail` `identity_unknown`. The console
   answer stays HTTP 400 with the usual message; the control routes answer 403.
 * `CONSOLE_AUDIT_ENABLED=0` is allowed only with `SUPERVISOR_MODE=dev`. In `laptop` and
   `databricks_app` mode the settings are refused at load, and the runtime ignores the flag

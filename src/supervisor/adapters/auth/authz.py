@@ -28,6 +28,7 @@ by the route and a body ``principal`` is ignored.
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -48,6 +49,7 @@ from supervisor.core import rbac
 from supervisor.ops.logging_setup import set_principal_id
 
 log = logging.getLogger("supervisor.authz")
+_SAFE_ID = re.compile(r"[^A-Za-z0-9_.@+-]")
 
 RBAC_ATTR = "rbac_permission"
 RBAC_API_ATTR = "rbac_api"
@@ -130,16 +132,17 @@ def _lower_first(text: str) -> str:
 
 
 def _claimed_id(request: Request) -> str:
-    """The id the caller claims, for the audit row of a refused identity (never trusted)."""
+    """The audit ``actor`` of a refused identity: ``unverified:<claimed id>`` where the claimed
+    id is client text cut to [A-Za-z0-9_.@+-], 64 characters; else ``unverified:unknown``."""
     for name in ("x-dev-user", "x-forwarded-email", "x-forwarded-user"):
-        value = request.headers.get(name, "").strip()
+        value = _SAFE_ID.sub("", request.headers.get(name, "").strip())[:64]
         if value:
-            return value[:64]
-    return "unknown"
+            return f"unverified:{value}"
+    return "unverified:unknown"
 
 
 def _audit_identity_failure(
-    request: Request, permission: str | None = None, auth_method: str = "gate_api"
+    request: Request, permission: str | None = None, auth_method: str | None = None
 ) -> str:
     """One best-effort ``denied`` row (actor_kind ``unverified``) for a mutating call without a
     usable identity. Gate control routes derive the permission from the path."""
@@ -156,7 +159,11 @@ def _audit_identity_failure(
             clock,
             request_id=request_id_of(request),
             actor=None,
-            actor_fallback=(_claimed_id(request), "unverified", auth_method),
+            actor_fallback=(
+                _claimed_id(request),
+                "unverified",
+                auth_method or get_provider().name,
+            ),
             permission=permission or f"agent.{action}",
             method=request.method,
             path=request.url.path,

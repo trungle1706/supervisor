@@ -424,7 +424,7 @@ def test_gate_control_ignores_the_rbac_flag_and_the_agent_routes_keep_it(
     assert console.client.get("/gate/metrics", headers={"X-Dev-User": "nobody"}).status_code == 200
     (row,) = _rows(console)
     assert row["permission"] == "agent.pause" and row["outcome"] == "denied"
-    assert row["actor"] == "no-such-user" and row["actor_kind"] == "unverified"
+    assert row["actor"] == "unverified:no-such-user" and row["actor_kind"] == "unverified"
     assert row["detail"] == "identity_unknown"
     r = console.client.post(
         "/gate/pause",

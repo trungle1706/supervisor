@@ -360,7 +360,15 @@ class AgentStateMachine:
             self._close_pending_resumes(agent_id)
             return {"agent_id": agent_id, "state": "PAUSED", "changed": True}
 
-    def retire(self, agent_id: str, principal: str, reason: str) -> dict[str, Any]:
+    def retire(
+        self,
+        agent_id: str,
+        principal: str,
+        reason: str,
+        *,
+        auth_method: str | None = None,
+        actor_kind: str | None = None,
+    ) -> dict[str, Any]:
         """Admin only (``policy.doc.admins``, like a quarantine release). One-way.
 
         Allowed from PAUSED or SHADOW. A RUNNING agent must be paused first and a
@@ -382,7 +390,14 @@ class AgentStateMachine:
             if current == "QUARANTINED":
                 raise TransitionError(f"agent {agent_id} is QUARANTINED; release it first")
             _, before = self._transition(
-                agent_id, ("PAUSED", "SHADOW"), "RETIRED", principal, reason, "retire"
+                agent_id,
+                ("PAUSED", "SHADOW"),
+                "RETIRED",
+                principal,
+                reason,
+                "retire",
+                auth_method=auth_method,
+                actor_kind=actor_kind,
             )
             self._close_pending_resumes(agent_id)
             for a in self._controls(agent_id, "pause", "active"):

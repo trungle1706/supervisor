@@ -670,6 +670,8 @@ class Gateway:
                     agent_id,
                     f"rule:{pause_rule.rule.id}",
                     f"{pause_rule.rule.id}: {pause_rule.rule.description}",
+                    auth_method="local_system",
+                    actor_kind="system",
                 )
                 d.paused = True
             d.latency_us = (time.perf_counter_ns() - t0) // 1000
