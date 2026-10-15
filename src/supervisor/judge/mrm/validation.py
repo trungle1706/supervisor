@@ -1,7 +1,12 @@
 """Judge validation report with a deterministic GO / NO_GO decision (WP19).
 
 ``python -m supervisor.judge.mrm validate --out DIR [--runs N] [--packs FILE]
-[--model mock|settings] [--no-record]``
+[--model mock|settings] [--no-record | --no-store]``
+
+Exit code: 0 GO, 1 NO_GO, 2 error (bad input, store failure, exception). ``--no-record``
+reads the store but writes no row and no chain record. ``--no-store`` does not open the store
+at all (nothing read, nothing written, no database file created); ``--out`` files are still
+written.
 
 Sections: golden set (held-out split is the validation number), judge-injection
 resistance, challenger disagreement, N-run stability, judge-vs-human agreement,
@@ -520,13 +525,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--packs", type=Path, default=None)
     p.add_argument("--model", choices=("mock", "settings"), default="mock")
     p.add_argument("--no-record", action="store_true")
+    p.add_argument(
+        "--no-store",
+        action="store_true",
+        help="do not open or write the default store (only the --out files are written)",
+    )
     p.add_argument("--now", default=None, help=argparse.SUPPRESS)
     args = p.parse_args(argv)
     try:
         now = parse_now(args.now)
         packs = load_pack_results(args.packs) if args.packs else None
         settings = load_settings()
-        report = _run_with_store(settings, args, packs, now)
+        if args.no_store:
+            args.no_record = True
+            report = run_validation(
+                settings, runs=args.runs, packs=packs, now=now, model=args.model, record=False
+            )
+        else:
+            report = _run_with_store(settings, args, packs, now)
         out = Path(args.out).resolve()
         out.mkdir(parents=True, exist_ok=True)
         (out / "judge_validation.json").write_text(
@@ -534,14 +550,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             encoding="utf-8",
         )
         (out / "judge_validation.md").write_text(render_md(report), encoding="utf-8")
-    except (SupervisorError, ValueError, OSError) as exc:
+    except Exception as exc:  # any failure is exit 2, never a traceback or a false GO
         print(ascii_safe(f"[FAIL] judge validation: {exc}"))  # noqa: T201
         return 2
     print(ascii_summary(report))  # noqa: T201
     print(ascii_safe(f"[OK] validation written to {out} ({report['decision']})"))  # noqa: T201
     if not args.no_record:
         print("[OK] recorded: model_validation row + judge_validation evidence")  # noqa: T201
-    return 0
+    return 0 if report["decision"] == "GO" else 1
 
 
 def _run_with_store(
