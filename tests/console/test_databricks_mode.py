@@ -99,14 +99,14 @@ def test_sso_actions_record_identity_and_sp_is_read_only(dbx: tuple[TestClient, 
     r = client.get("/console/")
     assert r.status_code == 200 and "app-sp-test" in r.text and "service principal" in r.text
     r = client.post("/console/agents/credit_prequal/pause", data={"reason": "x"}, headers=hx)
-    assert r.status_code == 400 and "signed-in person" in r.text
+    assert r.status_code == 403 and "signed-in person" in r.text
     # the X-Dev-User header means nothing on the App
     r = client.post(
         "/console/agents/credit_prequal/pause",
         data={"reason": "x"},
         headers={**hx, "X-Dev-User": "admin.chi"},
     )
-    assert r.status_code == 400
+    assert r.status_code == 403
     r = client.post("/console/dev/user", data={"user": "admin.chi"}, headers=hx)
     assert r.status_code == 400
     # SSO reviewer pauses; reviewer + owner resume (two people)

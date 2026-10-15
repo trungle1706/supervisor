@@ -31,7 +31,7 @@ def test_onboard_target_validation(console: Console, monkeypatch: pytest.MonkeyP
     r = console.post(
         "/console/onboard/start", {"target": "src/supervisor_agents/payments"}, user="auditor.dung"
     )
-    assert r.status_code == 400 and "needs role" in r.text
+    assert r.status_code == 403 and "needs role" in r.text
     with pytest.raises(onboard_runs.OnboardInputError):
         onboard_runs.artefact_path(console.ctx.settings, "payments", "../../etc/passwd")
 

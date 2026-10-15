@@ -36,6 +36,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol
 
+from supervisor.core import rbac
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, SupervisorError
 from supervisor.core.ports import Clock, EvidenceSink, Masker, Notifier, StateStore, TableStore
@@ -53,9 +54,10 @@ TWO_PERSON_SEVERITIES = ("high", "critical")
 RESOLUTIONS = ("confirmed", "false_alarm")
 SIGNOFF_DECISIONS = ("approve", "reject")
 MAX_TEXT = 4000
-WORKFLOW_ROLES = ("reviewer", "admin")
-COMMENT_ROLES = ("reviewer", "approver", "owner", "admin")
-SIGN_ROLES = ("reviewer", "approver", "admin")
+# Role tuples come from the role matrix (core/rbac.py); the old names stay as aliases.
+WORKFLOW_ROLES = rbac.roles_for("case.transition")
+COMMENT_ROLES = rbac.roles_for("case.comment")
+SIGN_ROLES = rbac.roles_for("case.signoff")
 TRANSITIONS: dict[str, tuple[str, ...]] = {
     "open": ("triaged",),
     "triage": ("triaged",),  # legacy value
@@ -97,6 +99,11 @@ def require(actor: Actor, roles: Sequence[str], what: str) -> None:
         raise PermissionDenied(f"{what} needs a signed-in person, not a {actor.kind}")
     if not (_roles(actor) & set(roles)):
         raise PermissionDenied(f"{actor.user_id} cannot {what}: needs role {' or '.join(roles)}")
+
+
+def require_permission(actor: Actor, permission: str, what: str) -> None:
+    """Like ``require`` but the roles come from the role matrix."""
+    require(actor, rbac.roles_for(permission), what)
 
 
 def _sev_rank(sev: str) -> int:
@@ -557,7 +564,7 @@ class CaseService:
     def assign(
         self, case_id: str, assignee: str, actor: Actor, expected_version: int | None
     ) -> dict[str, Any]:
-        require(actor, WORKFLOW_ROLES, "assign a case")
+        require_permission(actor, "case.assign", "assign a case")
         assignee = _text(assignee, "assignee", required=True)[:128]
         with self._lock:
             case = self._update(case_id, {"assignee": assignee}, expected_version)
@@ -567,7 +574,7 @@ class CaseService:
     def comment(
         self, case_id: str, text: str, actor: Actor, expected_version: int | None
     ) -> dict[str, Any]:
-        require(actor, COMMENT_ROLES, "comment on a case")
+        require_permission(actor, "case.comment", "comment on a case")
         text = _text(text, "comment", required=True)
         with self._lock:
             case = self._update(case_id, {}, expected_version)
@@ -577,7 +584,7 @@ class CaseService:
     def set_itsm_ref(
         self, case_id: str, ref: str, actor: Actor, expected_version: int | None
     ) -> dict[str, Any]:
-        require(actor, WORKFLOW_ROLES, "set the ITSM reference")
+        require_permission(actor, "case.itsm", "set the ITSM reference")
         ref = _text(ref, "ITSM reference", required=True)
         if len(ref) > 64 or not all(ch.isalnum() or ch in "-_.:/#" for ch in ref):
             raise CaseError("ITSM reference: letters, digits and - _ . : / # only (max 64)")
@@ -597,7 +604,7 @@ class CaseService:
         assignee: str | None = None,
         resolution: str | None = None,
     ) -> dict[str, Any]:
-        require(actor, WORKFLOW_ROLES, f"move a case to {to}")
+        require_permission(actor, "case.transition", f"move a case to {to}")
         with self._lock:
             current = self.get(case_id)
             frm = current["status"]
@@ -702,7 +709,7 @@ class CaseService:
         expected_version: int | None,
     ) -> dict[str, Any]:
         """Two-person sign-off for closing a high / critical case."""
-        require(actor, SIGN_ROLES, "sign off a case")
+        require_permission(actor, "case.signoff", "sign off a case")
         if decision not in SIGNOFF_DECISIONS:
             raise CaseError(f"decision must be {' or '.join(SIGNOFF_DECISIONS)}")
         reason = _text(reason, "sign-off statement", required=True)

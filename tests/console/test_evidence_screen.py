@@ -72,4 +72,4 @@ def test_verify_and_export_chain(console: Console, tmp_path: Path) -> None:
     rows = console.ctx.tables.query("chain_entry", {"record_type": "chain_export_built"})
     assert rows
     denied = console.post("/console/chain/export", {}, user="payops-lead@example.invalid")
-    assert denied.status_code == 400 and "needs role" in denied.text
+    assert denied.status_code == 403 and "needs role" in denied.text
