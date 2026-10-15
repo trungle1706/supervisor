@@ -1,0 +1,296 @@
+schema_version: 1
+instrument:
+  id: INTL-HKMAGENAI-2024
+  jurisdiction: HK
+  kind: guidance
+  issuer: Hong Kong Monetary Authority (HKMA)
+  number: Our Ref B1/15C, B9/67C
+  title_en: Consumer Protection in respect of Use of Generative Artificial Intelligence (circular to authorized
+    institutions)
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2024-08-19'
+      source: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+      verification: VERIFIED_PRIMARY
+      note: date on the letter
+    effective:
+      date: null
+      source: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+      verification: VERIFIED_PRIMARY
+      note: letter sets expectations with no effective date
+  sources:
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://mayerbrown.com/pt/insights/publications/2024/08/hkma-enhanced-consumer-protection-in-the-use-of-genai-by-authorized-institutions-in-hong-kong
+    title: 'Mayer Brown: HKMA enhanced consumer protection in the use of GenAI (Aug 2024)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: 'HKMA supervisory circular for customer-facing generative AI in Hong Kong banks; not binding
+    in Vietnam. Letter read in full (4 pages); not stored in the repo (HKMA copyright; URL only) (public
+    regulator letter). It extends the HKMA circulars of 5 Nov 2019 ''Consumer Protection in respect of
+    Use of Big Data Analytics and AI'' (four areas: governance and accountability, fairness, transparency
+    and disclosure, data privacy) and refers to ''High-level Principles on AI'' of 1 Nov 2019 for risk
+    management; those two 2019 circulars were NOT fetched. Unverified: the HKMA site lists a 15 Oct 2026
+    press release ''HKMA announces ART Framework to promote responsible A.I. adoption''; its content was
+    not readable, so it is not covered.'
+obligations:
+- id: INTL-HKMAGENAI-2024-G0-01
+  article_ref: 'Intro: extension of the 2019 BDAI Guiding Principles'
+  text_en: apply and extend the 2019 BDAI Guiding Principles to the use of GenAI and continue to adopt
+    a risk-based approach
+  summary_en: Apply and extend the 2019 big data analytics and AI principles to GenAI used with customers,
+    with a risk-based approach. GenAI adds hallucination and explainability risk.
+  duties:
+  - risk_management_system
+  - consumer_information
+  applies_to:
+    agent_class:
+    - customer_facing
+  control_mapping:
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank maps the 2019 principles to its GenAI policy
+  evidence_needed:
+  - policy mapping to the 2019 BDAI principles
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-HKMAGENAI-2024-G1.A-01
+  article_ref: Para 1(a)-(b) Governance and accountability
+  text_en: the scope of customer-facing GenAI applications is clearly defined such that GenAI usage would
+    not be used in unintended areas
+  summary_en: Board and senior management stay accountable for GenAI-driven decisions; define the scope
+    of customer-facing GenAI so it is not used in unintended areas; have policies and controls for responsible
+    use.
+  duties:
+  - governance_accountability
+  - internal_policy
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - customer_facing
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list keeps the agent inside its approved flows
+  - kind: rule
+    id: SVC-07
+    coverage: partial
+    note: customer service agent approved tools only
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: committee oversight
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: responsible-use policy
+  evidence_needed:
+  - scope statement per customer-facing GenAI app
+  - policy
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-HKMAGENAI-2024-G1.C-01
+  article_ref: 'Para 1(c) Governance: validation and human-in-the-loop'
+  text_en: during the early stage of deploying customer-facing GenAI applications, authorized institutions
+    should adopt the "human-in-the-loop" approach
+  summary_en: Validate GenAI models properly; in the early stage of customer-facing use, keep a human
+    in the loop who retains control and checks that outputs are accurate and not misleading.
+  duties:
+  - independent_validation
+  - human_oversight
+  applies_to:
+    agent_class:
+    - customer_facing
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: reviewer can pause or resume an agent
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: human sign-off on a case after a stop; a Supervisor pause is not pre-execution human approval
+      (Decision 33)
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'oversight metrics: dwell time, approval rate, chain_ok'
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank names accountable roles and committee oversight
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: samples replies against tool results
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: validation by second line
+  evidence_needed:
+  - validation report
+  - human-in-the-loop design
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+  notes: HKMA says the human 'retains control in the decision-making process'. A Supervisor pause after
+    the fact does not meet a pre-execution human-in-the-loop reading (Decision 33).
+- id: INTL-HKMAGENAI-2024-F2.A-01
+  article_ref: 'Para 2(a) Fairness: no unfair bias'
+  text_en: the model-generated outputs would not lead to unfair bias or disadvantage against any customers
+    or groups of customers
+  summary_en: Model outputs must not lead to unfair bias or disadvantage to customers or groups; options
+    include anonymising data, representative datasets, and bias removal in validation.
+  duties:
+  - bias_monitoring
+  - fair_treatment
+  applies_to:
+    agent_class:
+    - customer_facing
+  control_mapping:
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: approval-rate gap per slice
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: case on gap
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: bias review in validation
+  evidence_needed:
+  - fairness slice results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-HKMAGENAI-2024-F2.B-01
+  article_ref: 'Para 2(b) Fairness: opt-out and review'
+  text_en: customers are provided with the option to opt out of using GenAI and request human intervention
+    on GenAI-generated decision at their discretion as far as practicable
+  summary_en: In the early stage, let customers opt out of GenAI and ask for human intervention; where
+    opt-out is not possible, give a channel to request review of GenAI decisions.
+  duties:
+  - right_to_human_review
+  - complaint_handling
+  applies_to:
+    agent_class:
+    - customer_facing
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file supports the human review
+  - kind: process
+    id: complaint_handling
+    coverage: none
+    note: bank runs the review channel
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank offers the opt-out
+  evidence_needed:
+  - opt-out or review channel in the customer journey
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-HKMAGENAI-2024-T3-01
+  article_ref: Para 3 Transparency and disclosure
+  text_en: they should disclose the use of GenAI to customers
+  summary_en: Tell customers GenAI is in use, why, and what its limits are, so they can understand model
+    outputs.
+  duties:
+  - ai_disclosure
+  - consumer_information
+  applies_to:
+    agent_class:
+    - customer_facing
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank shows the disclosure and limits
+  evidence_needed:
+  - customer notice text and placement
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-HKMAGENAI-2024-D4-01
+  article_ref: Para 4 Data privacy and protection
+  text_en: authorized institutions should implement effective protection measures to safeguard customer
+    data
+  summary_en: Protect customer data; comply with Hong Kong's Personal Data (Privacy) Ordinance and heed
+    PCPD guidance when GenAI processes personal data.
+  duties:
+  - customer_confidentiality
+  - data_minimisation
+  - lawful_basis
+  applies_to:
+    agent_class:
+    - customer_facing
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masking before storage or judge calls
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: bulk-read limit
+  - kind: process
+    id: dpo_signoff
+    coverage: none
+    note: privacy review
+  evidence_needed:
+  - privacy impact review
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high

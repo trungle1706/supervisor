@@ -1,0 +1,530 @@
+schema_version: 1
+instrument:
+  id: INTL-NISTRMF-2023
+  jurisdiction: US
+  kind: guidance
+  issuer: National Institute of Standards and Technology (NIST)
+  number: NIST AI 100-1
+  title_en: Artificial Intelligence Risk Management Framework (AI RMF 1.0)
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2023-01-26'
+      source: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+      verification: ASSUMED
+      note: document is dated January 2023; exact day 26 Jan 2023 from NIST release notes, not re-read
+    effective:
+      date: null
+      source: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+      verification: ASSUMED
+      note: voluntary framework, no effective date
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.nist.gov/itl/ai-risk-management-framework
+    title: NIST AI RMF landing page
+    fetched_at: '2026-10-15'
+    kind: primary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: 'Voluntary US framework, no legal force anywhere; used in Vietnam only as a reference. PDF read
+    in full for the subcategory wording below (NIST publications are US government works). Subcategory
+    ids follow the Core: GOVERN, MAP, MEASURE, MANAGE. Not every subcategory is listed: those most relevant
+    to an agent supervisor are.'
+obligations:
+- id: INTL-NISTRMF-2023-GV1.1-01
+  article_ref: GOVERN 1.1
+  text_en: Legal and regulatory requirements involving AI are understood, managed, and documented.
+  summary_en: Know, manage and document the legal and regulatory requirements that apply to the AI system.
+    The bank keeps a register of AI rules and maps each AI use case to them.
+  duties:
+  - governance_accountability
+  - internal_policy
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank legal keeps the register of applicable rules
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned policy baseline records which rules Supervisor enforces
+  evidence_needed:
+  - register of applicable AI rules per use case
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-GV1.6-01
+  article_ref: GOVERN 1.6
+  text_en: Mechanisms are in place to inventory AI systems and are resourced according to organizational
+    risk priorities.
+  summary_en: Keep an inventory of AI systems, resourced according to risk priority. Each agent has an
+    owner, risk tier and model family on record.
+  duties:
+  - model_inventory
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier, model family
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history of each agent
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank issues the AI inventory policy covering non-agent models too
+  evidence_needed:
+  - inventory export with owner and risk tier per agent
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-GV1.7-01
+  article_ref: GOVERN 1.7
+  summary_en: Have processes to decommission or phase out AI systems safely without raising risk. Retiring
+    an agent should be a defined step with records.
+  duties:
+  - lifecycle_management
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: retire action on the agent registry
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: retired state recorded
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank defines the decommissioning procedure
+  evidence_needed:
+  - decommission procedure
+  - retire record for each retired agent
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-GV2.3-01
+  article_ref: GOVERN 2.3
+  summary_en: Executive leadership takes responsibility for decisions about AI risk in development and
+    deployment.
+  duties:
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank names the accountable executive and committee
+  - kind: console
+    id: metrics
+    coverage: partial
+    note: oversight metrics panel gives leaders a view
+  evidence_needed:
+  - committee minutes
+  - named accountable executive
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MP1.1-01
+  article_ref: MAP 1.1
+  summary_en: 'Document the intended purpose, context-specific laws and norms, and settings in which the
+    AI will be used. For each agent: purpose, tools, data classes, users.'
+  duties:
+  - risk_classification
+  - technical_documentation
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding profile written from the agent repository
+  - kind: evidence
+    id: onboard_plan
+    coverage: partial
+    note: control plan per agent
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank confirms context-specific laws
+  evidence_needed:
+  - intended-purpose statement per agent
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MP3.5-01
+  article_ref: MAP 3.5
+  text_en: Processes for human oversight are defined, assessed, and documented in accordance with organizational
+    policies from the GOVERN function.
+  summary_en: Define, assess and document processes for human oversight in line with GOVERN policies.
+  duties:
+  - human_oversight
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: reviewer can pause or resume an agent
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: human sign-off on a case after a stop; a Supervisor pause is not pre-execution human approval
+      (Decision 33)
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'oversight metrics: dwell time, approval rate, chain_ok'
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank names accountable roles and committee oversight
+  evidence_needed:
+  - oversight process description
+  - reviewer roster
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+  notes: Supervisor pause is not pre-execution approval (Decision 33); the bank defines which actions
+    need prior approval.
+- id: INTL-NISTRMF-2023-MP4.1-01
+  article_ref: MAP 4.1
+  summary_en: Map technology and legal risks of AI components, including third-party data and software,
+    and risks of infringing others' rights.
+  duties:
+  - supply_chain_security
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: records model family and version per agent version
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, audit and exit plan with model vendors
+  evidence_needed:
+  - third-party component list
+  - vendor risk review
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MS2.4-01
+  article_ref: MEASURE 2.4
+  text_en: The functionality and behavior of the AI system and its components ... are monitored when in
+    production.
+  summary_en: Monitor the functionality and behaviour of the AI system and its components while in production.
+  duties:
+  - performance_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: tool mix and stop rate against launch baseline
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: advisory suspicion score per trace
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: quality and groundedness sampling
+  - kind: catalogue
+    id: otlp_ingest
+    coverage: partial
+    note: traces are the signal source
+  evidence_needed:
+  - monitoring dashboards
+  - drift reports
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MS2.5-01
+  article_ref: MEASURE 2.5
+  text_en: The AI system to be deployed is demonstrated to be valid and reliable.
+  summary_en: Show that the system to be deployed is valid and reliable and document limits of generalisation
+    beyond the conditions it was developed under.
+  duties:
+  - independent_validation
+  - performance_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: 'launch sandbox: catch rate and false alarms for the control set, not for the model''s task
+      accuracy'
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second line validates validity and reliability
+  evidence_needed:
+  - validation report
+  - documented limits
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MS2.7-01
+  article_ref: MEASURE 2.7
+  text_en: AI system security and resilience ... are evaluated and documented.
+  summary_en: Evaluate and document the security and resilience of the AI system.
+  duties:
+  - robustness_security
+  - security_testing
+  - prompt_injection_defence
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: injection phrase screen on tool arguments; advisory
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: red-team pack results before go-live
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: security testing stays with the bank
+  evidence_needed:
+  - security evaluation report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MS2.11-01
+  article_ref: MEASURE 2.11
+  text_en: Fairness and bias ... are evaluated and results are documented.
+  summary_en: Evaluate and document fairness and bias identified in the MAP function.
+  duties:
+  - bias_monitoring
+  - fair_treatment
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: approval-rate gap per segment, province, language
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: opens a case when the gap passes the threshold
+  - kind: evidence
+    id: fairness_slice
+    coverage: partial
+    note: stored slice results
+  evidence_needed:
+  - fairness evaluation results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MS3.3-01
+  article_ref: MEASURE 3.3
+  text_en: Feedback processes for end users and impacted communities to report problems and appeal system
+    outcomes are established
+  summary_en: Set up feedback processes so end users and affected communities can report problems and
+    appeal outcomes, and feed them into evaluation.
+  duties:
+  - right_to_human_review
+  - complaint_handling
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: complaint_handling
+    coverage: none
+    note: bank runs the customer channel
+  - kind: console
+    id: inbox
+    coverage: partial
+    note: notices to reviewers
+  evidence_needed:
+  - appeal and feedback log
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MG2.4-01
+  article_ref: MANAGE 2.4
+  text_en: Mechanisms are in place and applied ... to supersede, disengage, or deactivate AI systems that
+    demonstrate performance or outcomes inconsistent with intended use.
+  summary_en: Have mechanisms, with assigned responsibilities, to supersede, disengage or deactivate AI
+    systems that behave outside intended use.
+  duties:
+  - human_oversight
+  - serious_incident_suspension
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause or retire an agent
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry with the switch
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: gate pauses an agent on an unapproved tool call
+  evidence_needed:
+  - deactivation criteria
+  - record of a tested deactivation
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MG4.1-01
+  article_ref: MANAGE 4.1
+  summary_en: Run post-deployment monitoring plans that capture user input, appeal and override, decommissioning,
+    incident response, recovery and change management.
+  duties:
+  - performance_monitoring
+  - change_control
+  - incident_response
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: post-deployment drift
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: oversight metrics
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: change history
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure
+  evidence_needed:
+  - post-deployment monitoring plan
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-NISTRMF-2023-MG4.3-01
+  article_ref: MANAGE 4.3
+  text_en: Incidents and errors are communicated to relevant AI actors, including affected communities.
+  summary_en: Communicate incidents and errors to relevant AI actors, including affected communities,
+    and track, respond to and recover from them with documentation.
+  duties:
+  - incident_report
+  - incident_response
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file holds timeline, rule, evidence hashes and sign-off to support an incident report
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure decides severity, owners, timelines
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: bank files any report to the authority; Supervisor does not notify
+  evidence_needed:
+  - incident register
+  - communication records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high

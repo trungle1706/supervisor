@@ -270,6 +270,7 @@ class Settings(BaseSettings):
     sched_judge_s: int = Field(default=300, ge=1)
     sched_multiagent_s: int = Field(default=300, ge=1)
     sched_quality_s: int = Field(default=900, ge=1)
+    regkb_internal_dir: str = ""  # WP13: RegKB internal rules dir (empty = off)
     drift_enabled: bool = False
     drift_window_s: int = Field(default=86400, ge=60)
     drift_baseline_windows: int = Field(default=7, ge=2)
@@ -289,6 +290,29 @@ class Settings(BaseSettings):
     # closed for money / credit / pii_export tools. Off by default.
     require_caller_id: bool = False
 
+    # WP18 enterprise readiness. Pure additions are on by default (health, security
+    # headers, request id, console audit rows); anything that changes phase-1 behaviour
+    # is off by default. See docs/enterprise-readiness.md.
+    log_format: Literal["text", "json"] = "text"  # json = one JSON object per line
+    log_file: Path | None = None  # optional rotating log file (support bundle reads it)
+    log_file_max_bytes: int = Field(default=10_000_000, ge=10_000)
+    log_file_backups: int = Field(default=3, ge=0, le=20)
+    request_id_header: str = Field(default="X-Request-ID", pattern=r"^[A-Za-z][A-Za-z0-9-]*$")
+    security_headers_enabled: bool = True  # CSP, X-Frame-Options, nosniff, Referrer-Policy
+    hsts_enabled: bool = False  # only behind TLS (the App proxy terminates TLS)
+    max_request_bytes: int = Field(default=10_000_000, ge=0)  # 0 = no app-wide limit
+    rate_limit_enabled: bool = False  # in-process limit on mutating routes (new: off)
+    rate_limit_per_minute: int = Field(default=120, ge=1)  # per principal (else client IP)
+    rate_limit_burst: int = Field(default=30, ge=1)
+    api_rbac_enabled: bool = False  # role matrix on /gate/* control and read routes (new: off)
+    console_audit_enabled: bool = True  # console_action row for every mutating action
+    retention_enabled: bool = False  # PDPL retention job (ADR D13; new: off)
+    retention_raw_days: int = Field(default=90, ge=1)  # agent_event_raw args/result
+    retention_masked_days: int = Field(default=365, ge=1)  # masked excerpts
+    retention_notice_days: int = Field(default=365, ge=1)  # inbox notice bodies
+    retention_dry_run: bool = False  # count only, change nothing
+    sched_retention_s: int = Field(default=86400, ge=60)
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -302,6 +326,7 @@ class Settings(BaseSettings):
         "integration_reports_dir",
         "scheduler_lock_path",
         "fairness_config",
+        "log_file",
         mode="after",
     )
     @classmethod

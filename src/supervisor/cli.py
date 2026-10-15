@@ -123,6 +123,95 @@ def cmd_release(args: argparse.Namespace) -> int:
     return release.main(list(getattr(args, "release_args", None) or []))
 
 
+def _ascii(text: str) -> str:
+    return text.encode("ascii", "backslashreplace").decode("ascii")
+
+
+def cmd_support_bundle(args: argparse.Namespace) -> int:
+    """WP18: settings (redacted), preflight, schema, chain heads, masked logs, env -> zip."""
+    from supervisor.config import load_settings
+    from supervisor.ops.support import build_support_bundle
+
+    settings = load_settings()
+    zpath, hashes = build_support_bundle(
+        settings,
+        Path(args.out),
+        log_lines=args.log_lines,
+        force=args.force,
+        network=args.network,
+    )
+    for name in sorted(hashes):
+        print(_ascii(f"[OK] {name} sha256={hashes[name][:16]}"))
+    print(_ascii(f"[OK] wrote {zpath}"))
+    if not args.network:
+        print("[SKIP] network checks not run (add --network to include them)")
+    return 0
+
+
+def cmd_backup(args: argparse.Namespace) -> int:
+    """WP18: SQLite online backup (+ anchors, + signing key with --include-key)."""
+    from supervisor.config import load_settings
+    from supervisor.ops import backup
+
+    settings = load_settings()
+    if settings.effective_sql_backend != "sqlite":
+        print("[FAIL] backup is for SQLite mode; use export-delta")
+        return 1
+    m = backup.backup(settings, Path(args.out), include_key=args.include_key)
+    out = Path(args.out).resolve()
+    print(_ascii(f"[OK] database copy {out / backup.DB_NAME} ({m['db_size']} bytes)"))
+    print(_ascii(f"[OK] tables {len(m['table_counts'])}, rows {sum(m['table_counts'].values())}"))
+    print(_ascii(f"[OK] chain lanes {len(m['chain_lane_heads'])}, anchors {m['anchor_files']}"))
+    if m["signing_key_included"]:
+        print("[OK] signing key included")
+        print("[WARN] the backup folder holds the signing key: store it as a secret")
+    else:
+        print("[SKIP] signing key not included (use --include-key, or back up SIGNER_KEY_PATH)")
+    print(_ascii(f"[OK] manifest {out / backup.MANIFEST}"))
+    return 0
+
+
+def cmd_restore(args: argparse.Namespace) -> int:
+    """WP18: restore a backup, then verify the evidence chain."""
+    from supervisor.config import load_settings
+    from supervisor.ops import backup
+
+    settings = load_settings()
+    r = backup.restore(settings, Path(args.src), force=args.force)
+    if r["moved_aside"]:
+        print(_ascii(f"[OK] existing store moved aside: {r['moved_aside']}"))
+    print(_ascii(f"[OK] restored {r['target']}"))
+    if r["key_restored"]:
+        print("[OK] signing key restored")
+    if r["anchors_restored"]:
+        print(f"[OK] anchors restored: {r['anchors_restored']}")
+    for w in r["warnings"]:
+        print(_ascii(f"[WARN] {w}"))
+    if r["verify_ok"]:
+        print("[OK] evidence chain verifies")
+        return 0
+    print("[FAIL] evidence chain does not verify")
+    for line in r["verify_lines"][-10:]:
+        print(_ascii("  " + line))
+    return 1
+
+
+def cmd_export_delta(args: argparse.Namespace) -> int:
+    """WP18: read every table (one SELECT each) into DIR/<table>.jsonl."""
+    from supervisor.config import load_settings
+    from supervisor.ops import backup
+
+    settings = load_settings()
+    tables = [t.strip() for t in args.tables.split(",") if t.strip()] if args.tables else None
+    m = backup.export_delta(settings, Path(args.out), tables=tables, include_raw=args.include_raw)
+    for name, info in m["tables"].items():
+        print(_ascii(f"[OK] {name}: {info['rows']} rows"))
+    for name in m.get("skipped_restricted", []):
+        print(_ascii(f"[SKIP] {name}: restricted raw capture (add --include-raw)"))
+    print(_ascii(f"[OK] manifest {Path(args.out).resolve() / backup.MANIFEST}"))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python -m supervisor.cli", description="Supervisor CLI")
     sub = p.add_subparsers(dest="command", required=True)
@@ -153,6 +242,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="turn on the Nexus --index-url/--trusted-host lines (local copy only)",
     )
     r.set_defaults(func=cmd_export_reqs)
+    sb = sub.add_parser("support-bundle", help="redacted diagnostics zip for support (WP18)")
+    sb.add_argument("--out", required=True, help="output directory (created)")
+    sb.add_argument("--log-lines", type=int, default=500, help="log lines to include")
+    sb.add_argument("--force", action="store_true", help="allow a non-empty output directory")
+    sb.add_argument("--network", action="store_true", help="also run network preflight checks")
+    sb.set_defaults(func=cmd_support_bundle)
+    bk = sub.add_parser("backup", help="SQLite online backup (WP18)")
+    bk.add_argument("--out", required=True, help="backup directory (empty or new)")
+    bk.add_argument("--include-key", action="store_true", help="also copy the signing key")
+    bk.set_defaults(func=cmd_backup)
+    rs = sub.add_parser("restore", help="restore a backup and verify the chain (WP18)")
+    rs.add_argument("--from", dest="src", required=True, help="backup directory")
+    rs.add_argument("--force", action="store_true", help="move an existing store aside")
+    rs.set_defaults(func=cmd_restore)
+    ed = sub.add_parser("export-delta", help="export every table to JSONL (WP18)")
+    ed.add_argument("--out", required=True, help="export directory (empty or new)")
+    ed.add_argument("--tables", default=None, help="comma list of tables (default: all)")
+    ed.add_argument(
+        "--include-raw",
+        action="store_true",
+        help="also export agent_event_raw (unmasked capture; store as restricted data)",
+    )
+    ed.set_defaults(func=cmd_export_delta)
     sub.add_parser("release", help="build the hand-off zip (WP11)").set_defaults(func=cmd_release)
     return p
 

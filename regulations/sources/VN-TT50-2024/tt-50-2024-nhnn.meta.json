@@ -1,0 +1,9 @@
+{
+ "url": "https://vbpl.vn/van-ban/chi-tiet/171687",
+ "api_url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/171687",
+ "title": "Thông tư số 50/2024/TT-NHNN Quy định về an toàn, bảo mật cho việc cung cấp dịch vụ trực tuyến trong ngành Ngân hàng",
+ "fetched_at": "2026-10-15T09:18:49Z",
+ "sha256": "32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8",
+ "content_type": "text/plain; charset=utf-8 (extracted from vbpl documentContent HTML)",
+ "tool": "manual-curl"
+}

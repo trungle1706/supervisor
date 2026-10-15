@@ -2,7 +2,8 @@
 
 Step 1: ``CREATE TABLE IF NOT EXISTS`` for every table (new tables get everything).
 Step 2: additive migration of existing tables (``supervisor.core.schema_diff``): missing
-columns are added, Delta append-only and retention properties are set. Never drops.
+columns are added, Delta append-only and retention properties are set. Never drops a
+table or a column (it re-creates the append-only triggers of retention tables, ADR D13).
 Idempotent: a second run applies nothing.
 
 Run: uv run python -m supervisor.jobs.bootstrap_schema [--print | --plan]

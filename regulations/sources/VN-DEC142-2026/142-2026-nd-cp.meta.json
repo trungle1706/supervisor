@@ -1,0 +1,9 @@
+{
+  "url": "https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/18/469480-1778814202_v1_1779067280_signed.pdf",
+  "title": "Nghị định số 142/2026/NĐ-CP (Công báo số 278)",
+  "fetched_at": "2026-10-15T09:27:59Z",
+  "sha256": "b8e0be6bc8ff2396a6a6c1fb894e3a7e1531e85c06518ad25a869b6062ea536b",
+  "content_type": "text/plain; charset=utf-8",
+  "tool": "manual-pdftotext-raw",
+  "note": "text extracted from the stored official gazette PDF with pdftotext -raw; gazette page header lines removed"
+}

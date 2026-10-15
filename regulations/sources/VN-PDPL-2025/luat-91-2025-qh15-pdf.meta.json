@@ -1,0 +1,8 @@
+{
+  "content_type": "application/pdf",
+  "fetched_at": "2026-10-15T10:00:00Z",
+  "sha256": "0f1c2723f8685377db4e756670f57087e49c51fc499aa82082e99d2207ab7334",
+  "title": "Luat Bao ve du lieu ca nhan 91/2025/QH15, signed original (VanBanGoc_91.L2025 PDF) from the vbpl.vn gateway; scan without text layer",
+  "tool": "curl",
+  "url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/VanBanGoc_91.L2025-Luat%20Bao%20ve%20du%20lieu%20ca%20nhan.pdf/download"
+}

@@ -41,7 +41,7 @@
 
   document.addEventListener("htmx:beforeSwap", function (evt) {
     var xhr = evt.detail.xhr;
-    if (xhr && xhr.status === 400) {
+    if (xhr && (xhr.status === 400 || xhr.status === 403 || xhr.status === 413 || xhr.status === 429)) {
       var flash = document.getElementById("flash");
       if (flash) {
         evt.detail.shouldSwap = true;

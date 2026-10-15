@@ -1,0 +1,355 @@
+schema_version: 1
+instrument:
+  id: INTL-SR117-2011
+  jurisdiction: US
+  kind: guidance
+  issuer: Board of Governors of the Federal Reserve System and Office of the Comptroller of the Currency
+  number: SR 11-7 / OCC Bulletin 2011-12
+  title_en: Supervisory Guidance on Model Risk Management
+  status: superseded
+  binding: false
+  dates:
+    issued:
+      date: '2011-04-04'
+      source: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+      verification: VERIFIED_PRIMARY
+      note: SR 26-2 names 'SR letter 11-7 ... (issued April 4, 2011)'
+    effective:
+      date: null
+      source: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+      verification: ASSUMED
+      note: guidance with no effective date
+    milestones:
+    - label: Superseded and replaced by SR 26-2 / OCC Bulletin 2026-13 (interagency, Fed + OCC + FDIC)
+      date: '2026-04-17'
+      source: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+      verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  - url: https://www.orrick.com/en/Insights/2026/04/Agencies-Overhaul-Model-Risk-Management-Guidance-for-Banks-Heres-What-Changed
+    title: 'Orrick: Agencies overhaul model risk management guidance for banks (Apr 2026)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: 'RESCINDED: SR 11-7 was superseded and replaced on 2026-04-17 by SR 26-2 ''Revised Guidance on
+    Model Risk Management'' (read on federalreserve.gov: ''supersedes and replaces SR letter 11-7 ...
+    and SR letter 21-8''). Status is therefore superseded, not reference (binding false either way: US
+    supervisory guidance, never binding in Vietnam). Key SR 26-2 differences: expected most relevant to
+    banks over USD 30 billion in assets; states it ''does not set forth enforceable standards''; narrower
+    ''model'' definition (excludes deterministic rule-based processes); footnote 3: generative AI and
+    agentic AI models are ''not within the scope of this guidance'' (principles apply to traditional statistical
+    and non-generative, non-agentic AI models). Obligations below keep the SR 11-7 structure (kept as
+    the historic frame the rest of the industry still cites) and point to the same section in SR 26-2,
+    which was read. The original SR 11-7 PDF was not re-read (the Fed page is now an archive page), so
+    SR 11-7 section numbers are ASSUMED. Recommend the lead adds a new instrument INTL-SR262-2026 for
+    the current guidance (not in this assignment).'
+obligations:
+- id: INTL-SR117-2011-S3-01
+  article_ref: SR 11-7 Sec. III (effective challenge); SR 26-2 Sec. III
+  text_en: Effective challenge is performed by individuals with the appropriate expertise to conduct a
+    critical and objective challenge
+  summary_en: Critical analysis by objective, competent, independent people with standing to force change,
+    throughout the model lifecycle.
+  duties:
+  - independent_validation
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second line performs effective challenge
+  evidence_needed:
+  - validation and challenge records
+  verification: ASSUMED
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  confidence: medium
+  notes: 'Principle restated in SR 26-2 (read). '
+- id: INTL-SR117-2011-S4-01
+  article_ref: SR 11-7 Sec. IV (development, implementation, use); SR 26-2 Sec. IV
+  summary_en: Develop with a clear statement of purpose, sound design, testing (out-of-sample, alternatives),
+    and documented implementation and use.
+  duties:
+  - technical_documentation
+  - lifecycle_management
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: purpose and tools profile
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: launch test results
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: development testing review
+  evidence_needed:
+  - development documentation
+  - test results
+  verification: ASSUMED
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  confidence: medium
+  notes: 'Principle restated in SR 26-2 (read). '
+- id: INTL-SR117-2011-S5.1-01
+  article_ref: 'SR 11-7 Sec. V (validation: conceptual soundness, outcomes analysis); SR 26-2 Sec. V'
+  summary_en: 'Validate before use and periodically: conceptual soundness, ongoing monitoring, outcomes
+    analysis, by people independent of development.'
+  duties:
+  - independent_validation
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: sandbox launch result; not a model validation
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: independent validation by second line
+  evidence_needed:
+  - validation report
+  verification: ASSUMED
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  confidence: medium
+  notes: 'Principle restated in SR 26-2 (read). '
+- id: INTL-SR117-2011-S5.2-01
+  article_ref: SR 11-7 Sec. V (ongoing monitoring); SR 26-2 Sec. V
+  summary_en: Monitor model performance and conditions of use on an ongoing basis, with thresholds, to
+    catch drift and misuse.
+  duties:
+  - performance_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift against launch baseline
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: quality sampling
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: oversight metrics
+  evidence_needed:
+  - monitoring reports
+  verification: ASSUMED
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  confidence: medium
+  notes: 'Principle restated in SR 26-2 (read). '
+- id: INTL-SR117-2011-S6.1-01
+  article_ref: SR 11-7 Sec. VI (governance, roles, board oversight); SR 26-2 Sec. VI
+  summary_en: Model governance with clear policy, roles, accountability and conflict handling; board and
+    senior management oversight.
+  duties:
+  - governance_accountability
+  - internal_policy
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: model risk policy
+  evidence_needed:
+  - model risk policy
+  - committee minutes
+  verification: ASSUMED
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  confidence: medium
+  notes: 'Principle restated in SR 26-2 (read). '
+- id: INTL-SR117-2011-S6.2-01
+  article_ref: SR 11-7 Sec. VI (model inventory); SR 26-2 Sec. VI
+  text_en: an effective model inventory includes sufficient information to understand model risks
+  summary_en: Keep a comprehensive inventory of models in development and in use with enough information
+    to understand model risk individually and in aggregate.
+  duties:
+  - model_inventory
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier, model family
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history of each agent
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank issues the AI inventory policy covering non-agent models too
+  evidence_needed:
+  - inventory export
+  verification: ASSUMED
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  confidence: medium
+  notes: 'Principle restated in SR 26-2 (read). '
+- id: INTL-SR117-2011-S6.3-01
+  article_ref: SR 11-7 Sec. VI (documentation); SR 26-2 Sec. VI
+  summary_en: Document models well enough to support continuity of operations, tracking of recommendations
+    and exceptions, and remediation.
+  duties:
+  - technical_documentation
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: gate decisions, verdicts and state changes are hash-chained per agent and verifiable offline
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: tool calls and gate outcomes are recorded as agent events (masked at capture)
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank sets and enforces the retention period; Supervisor does not purge or retain by schedule
+  evidence_needed:
+  - documentation set
+  verification: ASSUMED
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  confidence: medium
+  notes: 'Principle restated in SR 26-2 (read). '
+- id: INTL-SR117-2011-S7-01
+  article_ref: SR 11-7 Sec. VII (vendor and third-party models); SR 26-2 Sec. VII
+  summary_en: Validate vendor products, test them in the bank's own use, monitor them, and plan for opaque
+    code and data. The bank stays accountable.
+  duties:
+  - outsourcing_oversight
+  - independent_validation
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: model family and version tracked per agent
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: vendor validation and contracts
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: own-use testing
+  evidence_needed:
+  - vendor model validation file
+  verification: ASSUMED
+  sources:
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
+  confidence: medium
+  notes: 'Principle restated in SR 26-2 (read). '

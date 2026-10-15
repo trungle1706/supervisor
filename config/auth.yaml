@@ -3,7 +3,7 @@
 # (X-Forwarded-Email, else X-Forwarded-User). Replace every FILL-ME value; a FILL-ME entry
 # never matches anyone.
 #
-# Roles: reviewer | approver | owner | auditor | admin (see config/users.yaml for meaning).
+# Roles: viewer | reviewer | approver | owner | auditor | admin | operator (see config/users.yaml for meaning).
 # A user gets a role when the id is listed under `users`, or when one of the user's
 # workspace groups is listed under `groups` (needs group_lookup: scim_me).
 
@@ -34,3 +34,9 @@ roles:
   admin:
     users: [FILL-ME-admin@bank.example]
     groups: [FILL-ME-supervisor-admins]
+  viewer:
+    users: [FILL-ME-viewer@bank.example]
+    groups: [FILL-ME-supervisor-viewers]
+  operator:
+    users: [FILL-ME-operator@bank.example]
+    groups: [FILL-ME-supervisor-operators]

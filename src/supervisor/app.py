@@ -17,6 +17,7 @@ from fastapi.exceptions import RequestValidationError  # noqa: E402
 from fastapi.responses import JSONResponse, RedirectResponse, Response  # noqa: E402
 
 from supervisor import __version__, scheduler  # noqa: E402
+from supervisor.cases.service import PermissionDenied  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
 from supervisor.console import context as console_context  # noqa: E402
 from supervisor.console.errors import console_error, is_console  # noqa: E402
@@ -24,9 +25,14 @@ from supervisor.console.routes import router as console_router  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
 from supervisor.gateway import wiring as gate_wiring  # noqa: E402
 from supervisor.gateway.routes import router as gate_router  # noqa: E402
+from supervisor.ops import middleware as ops_middleware  # noqa: E402
+from supervisor.ops import openapi as openapi_doc  # noqa: E402
+from supervisor.ops.logging_setup import configure_logging  # noqa: E402
+from supervisor.ops.readiness import readiness  # noqa: E402
 from supervisor.recorder.otlp_receiver import router as otlp_router  # noqa: E402
 
 log = logging.getLogger("supervisor.app")
+configure_logging(get_settings())  # WP18: LOG_LEVEL / LOG_FORMAT / LOG_FILE (idempotent)
 
 
 @asynccontextmanager
@@ -59,10 +65,32 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             gate_wiring.shutdown_runtime()
 
 
-app = FastAPI(title="Supervisor", version=__version__, lifespan=lifespan)
-app.include_router(gate_router)
+app = FastAPI(
+    title="Supervisor",
+    version=__version__,
+    lifespan=lifespan,
+    openapi_tags=openapi_doc.TAGS,
+    # Swagger UI / ReDoc load their JS from a CDN: not allowed offline and blocked by the
+    # CSP. The schema stays at /openapi.json (docs/api.md).
+    docs_url=None,
+    redoc_url=None,
+)
+# WP18 API versioning (docs/api.md): /v1/gate/... is the versioned path; /gate/... keeps
+# working and is marked deprecated in the schema only.
+app.include_router(gate_router, prefix="/v1")
+app.include_router(gate_router, deprecated=True)
 app.include_router(otlp_router)  # WP4: POST /v1/traces (OTLP/HTTP JSON)
 app.include_router(console_router)  # WP8: reviewer console (/console)
+openapi_doc.install(app)  # WP18: tags, security schemes
+ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
+
+
+@app.exception_handler(PermissionDenied)
+async def _permission_denied(request: Request, exc: PermissionDenied) -> Response:
+    # WP18: a missing role is 403 (still a 4xx user error with a message, never 5xx).
+    if is_console(request):
+        return console_error(request, str(exc), 403)
+    return JSONResponse(status_code=403, content={"error": str(exc)})
 
 
 @app.exception_handler(SupervisorError)
@@ -100,12 +128,26 @@ def root() -> RedirectResponse:
     return RedirectResponse("/console/", status_code=303)
 
 
-@app.get("/healthz")
+@app.get("/healthz", tags=["ops"])
 def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/version")
+@app.get("/health", tags=["ops"])
+def health() -> dict[str, str]:
+    """Liveness for probes: 200 while the process runs."""
+    return {"status": "ok", "version": __version__}
+
+
+@app.get("/ready", tags=["ops"])
+def ready() -> JSONResponse:
+    """Readiness for probes (not users): 200 when ready, else 503 with the failed check names.
+    The body has no secrets, hosts, paths or error text."""
+    body = readiness(get_settings(), getattr(gate_wiring, "_runtime", None), scheduler.current())
+    return JSONResponse(body, status_code=200 if body["ready"] else 503)
+
+
+@app.get("/version", tags=["ops"])
 def version() -> dict[str, str]:
     settings = get_settings()
     return {

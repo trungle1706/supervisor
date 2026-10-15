@@ -1,0 +1,1635 @@
+schema_version: 1
+instrument:
+  id: VN-AI-2025
+  jurisdiction: VN
+  kind: law
+  issuer: National Assembly (Quoc hoi khoa XV, ky hop thu 10)
+  number: 134/2025/QH15
+  title_vi: Luật Trí tuệ nhân tạo
+  title_en: Law on Artificial Intelligence
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2025-12-10'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+      verification: VERIFIED_PRIMARY
+      note: Passed by the 15th National Assembly, 10th session, on 10 December 2025 (closing line of the
+        stored text). The vbpl.vn record gives issue date 2025-12-10. The President's promulgation date
+        was not checked.
+    effective:
+      date: '2026-03-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 34: effective from 1 March 2026, except content tied to Art. 35 (transition).'
+    compliance_deadline:
+      date: '2027-03-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+      verification: ASSUMED
+      note: 'Art. 35(1)(b): 12 months for systems running before 2026-03-01 outside health, education
+        and finance. Art. 35(1)(a): 18 months (2027-09-01) for health, education and finance. Whether
+        banking is ''finance'' is not settled; planning date is the earlier one.'
+    milestones:
+    - label: Transition end for existing systems in health, education and finance (Art. 35(1)(a), 18 months)
+      date: '2027-09-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+      verification: VERIFIED_PRIMARY
+      note: 'Derived: 2026-03-01 plus 18 months. Decision 33/2026/QD-TTg Art. 4(1)(a) uses the same date
+        for listed systems.'
+    - label: Transition end for other existing systems (Art. 35(1)(b), 12 months)
+      date: '2027-03-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+      verification: VERIFIED_PRIMARY
+      note: 'Derived: 2026-03-01 plus 12 months.'
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'Full Vietnamese text read from the vbpl.vn gateway copy (also a PDF and DOCX stored). Detailed
+    rules: Decree 142/2026/ND-CP (VN-DEC142-2026), Decision 33/2026/QD-TTg (VN-QD33-2026), SBV Circular
+    53/2026/TT-NHNN (VN-TT53-2026). The Law has no fine amounts: Art. 29(1) only says administrative or
+    criminal liability plus civil compensation, and Art. 29(5) leaves administrative fines to a Government
+    decree. No AI-specific sanctions decree was found by 2026-10-15 (not verified; a negative search result
+    only). Conformity assessment is Art. 13, duties of high-risk providers and deployers are Art. 14,
+    the portal is Art. 8, serious incident reporting is Art. 12. The bank is normally the DEPLOYER of
+    vendor AI, and the PROVIDER of AI it builds and offers under its own name (Art. 3(4)-(5)). Not legal
+    advice; bank counsel must confirm.'
+obligations:
+- id: VN-AI-2025-A4.02-01
+  article_ref: Art. 4(2)
+  text_vi: Trí tuệ nhân tạo phục vụ con người, không thay thế thẩm quyền và trách nhiệm của con người.
+    Bảo đảm duy trì sự kiểm soát và khả năng can thiệp của con người đối với mọi quyết định và hành vi
+    của hệ thống trí tuệ nhân tạo; an toàn hệ thống, an ninh dữ liệu và bảo mật thông tin; khả năng kiểm
+    tra và giám sát quá trình phát triển và vận hành hệ thống trí tuệ nhân tạo.
+  summary_en: 'Core principle: AI does not replace human authority. People keep control and the ability
+    to intervene in every decision and action of an AI system, and the system stays auditable and monitorable.'
+  duties:
+  - human_oversight
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: deployer
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
+  evidence_needed:
+  - named human owner per agent
+  - evidence that a human can stop or override each agent
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: A principle, not a stand-alone penalty rule, but Art. 7(4) bans defeating human control and Art.
+    14 turns it into duties for high-risk systems.
+- id: VN-AI-2025-A4.03-01
+  article_ref: Art. 4(3)
+  text_vi: Bảo đảm công bằng, minh bạch, không thiên lệch, không phân biệt đối xử và không gây hại cho
+    con người hoặc xã hội; tuân thủ chuẩn mực đạo đức và giá trị văn hóa Việt Nam; thực hiện trách nhiệm
+    giải trình về các quyết định và hệ quả của hệ thống trí tuệ nhân tạo.
+  summary_en: 'Core principle: fairness, transparency, no bias or discrimination, ethics, and accountability
+    for decisions and their effects.'
+  duties:
+  - fair_treatment
+  - bias_monitoring
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: deployer
+  control_mapping:
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: outcome rates by customer segment
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: fairness slice monitor
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  evidence_needed:
+  - fairness slice results per customer segment
+  - accountable owner named
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: Principle level. Circular 53/2026/TT-NHNN Art. 17 turns it into bank duties.
+- id: VN-AI-2025-A7.02B-01
+  article_ref: Art. 7(2)(b)
+  text_vi: Sử dụng yếu tố giả mạo hoặc mô phỏng người, sự kiện thật để lừa dối hoặc thao túng nhận thức,
+    hành vi của con người một cách có chủ đích và có hệ thống, gây tổn hại nghiêm trọng đến quyền, lợi
+    ích hợp pháp của con người;
+  summary_en: 'Prohibited: AI that uses fake or simulated people or events to deceive or manipulate people
+    on purpose and systematically, causing serious harm.'
+  duties:
+  - prohibited_practice
+  applies_to:
+    agent_class:
+    - customer_facing
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: blocks manipulative input to the agent; does not police the agent's own persuasion
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: flags unsupported claims in customer answers
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - agent content policy
+  - sampled review of customer-facing answers
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: Relevant to a chat or sales agent that could pressure customers. Not a typical risk for a payments
+    agent.
+- id: VN-AI-2025-A7.02C-01
+  article_ref: Art. 7(2)(c)
+  text_vi: Lợi dụng điểm yếu của nhóm người dễ bị tổn thương, bao gồm trẻ em, người cao tuổi, người khuyết
+    tật, người dân tộc thiểu số hoặc người mất năng lực hành vi dân sự, người bị hạn chế năng lực hành
+    vi dân sự, người có khó khăn trong nhận thức, làm chủ hành vi để gây tổn hại cho chính họ hoặc người
+    khác;
+  summary_en: 'Prohibited: using the weakness of vulnerable groups (children, elderly, disabled, ethnic
+    minorities, people with limited capacity) to harm them or others.'
+  duties:
+  - prohibited_practice
+  - fair_treatment
+  applies_to:
+    agent_class:
+    - customer_facing
+    - credit_decision
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: outcome rates by customer segment
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: fairness slice monitor
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - fairness slices that include age and vulnerable segments
+  - content policy for vulnerable customers
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: Fairness slices only help if segment data exists. The bank must define the vulnerable segments.
+- id: VN-AI-2025-A7.03-01
+  article_ref: Art. 7(3)
+  text_vi: Thu thập, xử lý hoặc sử dụng dữ liệu để phát triển, huấn luyện, kiểm thử hoặc vận hành hệ thống
+    trí tuệ nhân tạo trái với quy định của pháp luật về dữ liệu
+  summary_en: 'Prohibited: collecting or using data to build, train, test or run an AI system against
+    the data, personal data protection, IP or cybersecurity laws.'
+  duties:
+  - prohibited_practice
+  - lawful_basis
+  - purpose_limitation
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - sensitive_personal
+    - financial
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks personal data before any judge call
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: limits bulk reads of personal data
+  - kind: rule
+    id: PII-02
+    coverage: partial
+    note: caps loan applications read per hour
+  - kind: process
+    id: dpo_signoff
+    coverage: none
+    note: DPO confirms the legal basis
+  evidence_needed:
+  - lawful basis record
+  - DPIA on file for AI processing
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: Links the AI Law to the PDPL (VN-PDPL-2025), Data Law and Cybersecurity Law.
+- id: VN-AI-2025-A7.04-01
+  article_ref: Art. 7(4)
+  text_vi: Cản trở, vô hiệu hóa hoặc làm sai lệch cơ chế giám sát, can thiệp và kiểm soát của con người
+    đối với hệ thống trí tuệ nhân tạo theo quy định của Luật này.
+  summary_en: 'Prohibited: blocking, disabling or distorting the human monitoring, intervention and control
+    mechanism of an AI system.'
+  duties:
+  - prohibited_practice
+  - human_oversight
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  evidence_needed:
+  - pause and override paths tested
+  - change log for the oversight configuration
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: An agent that can edit its own gate, policy or pause state would breach the spirit of this ban.
+    Supervisor keeps the gate and chain outside the agent.
+- id: VN-AI-2025-A7.05-01
+  article_ref: Art. 7(5)
+  text_vi: Che giấu thông tin bắt buộc phải công khai, minh bạch hoặc giải trình; tẩy xóa, làm sai lệch
+    các thông tin, nhãn, cảnh báo bắt buộc trong hoạt động trí tuệ nhân tạo.
+  summary_en: 'Prohibited: hiding information that must be disclosed or explained, and erasing or falsifying
+    mandatory information, labels and warnings.'
+  duties:
+  - prohibited_practice
+  - ai_disclosure
+  - electronic_record_integrity
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: offline verification shows records were not altered
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank owns the customer-facing notices
+  evidence_needed:
+  - verified evidence chain
+  - AI notices live in the customer channel
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+- id: VN-AI-2025-A9.01-01
+  article_ref: Art. 9(1)
+  text_vi: 'Hệ thống trí tuệ nhân tạo được phân loại theo các mức độ rủi ro sau đây: a) Hệ thống trí tuệ
+    nhân tạo có rủi ro cao là hệ thống có thể gây thiệt hại đáng kể đến tính mạng, sức khỏe, quyền và
+    lợi ích hợp pháp của tổ chức, cá nhân, lợi ích quốc gia, lợi ích công cộng, an ninh quốc gia; b) Hệ
+    thống trí tuệ nhân tạo có rủi ro trung bình là hệ thống có khả năng gây nhầm lẫn, tác động hoặc thao
+    túng người sử dụng do không nhận biết được chủ thể tương tác là hệ thống trí tuệ nhân tạo hoặc nội
+    dung do hệ thống tạo ra; c) Hệ thống trí tuệ nhân tạo có rủi ro thấp là hệ thống không thuộc trường
+    hợp quy định tại điểm a và điểm b khoản này.'
+  summary_en: 'Three risk tiers: high (could cause significant harm to life, health, rights, public or
+    national interest), medium (people may not know they deal with AI or AI content), low (the rest).'
+  duties:
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding profile proposes a Decision 33 class and a risk tier; counsel confirms
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - risk class recorded for every AI system
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: A customer chat agent that talks to people as AI is at least medium (Art. 9(1)(b)). Payment and
+    credit agents are tested against the Decision 33 list for high.
+- id: VN-AI-2025-A10.01-01
+  article_ref: Art. 10(1)
+  text_vi: Nhà cung cấp tự phân loại hệ thống trí tuệ nhân tạo trước khi đưa vào sử dụng. Hệ thống được
+    phân loại là rủi ro trung bình hoặc rủi ro cao phải có hồ sơ phân loại kèm theo.
+  summary_en: The provider classifies the system itself before use and keeps a classification file for
+    medium or high risk.
+  duties:
+  - risk_classification
+  - technical_documentation
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding profile can seed the classification file
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - classification file
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: The bank is a provider only for AI it builds and puts into use under its own name (Art. 3(4)).
+    For vendor tools the bank is the deployer.
+- id: VN-AI-2025-A10.02-01
+  article_ref: Art. 10(2)
+  text_vi: Bên triển khai được kế thừa kết quả phân loại của nhà cung cấp và có trách nhiệm bảo đảm an
+    toàn, nguyên vẹn của hệ thống trong quá trình sử dụng; trường hợp sửa đổi, tích hợp hoặc thay đổi
+    chức năng làm phát sinh rủi ro mới hoặc rủi ro cao hơn thì phối hợp nhà cung cấp thực hiện phân loại
+    lại.
+  summary_en: The deployer may reuse the provider's classification but must keep the system safe and intact.
+    If the deployer changes, integrates or re-purposes the system so that new or higher risk appears,
+    it must re-classify with the provider.
+  duties:
+  - risk_classification
+  - change_control
+  applies_to:
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history shows when tools or functions changed
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned policy baseline
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - re-classification record after each functional change
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: Adding a money tool (for example fee waiver or transfer) to a chat agent is a functional change
+    that can raise the class.
+- id: VN-AI-2025-A10.03-01
+  article_ref: Art. 10(3)
+  text_vi: Đối với hệ thống được phân loại là rủi ro trung bình hoặc rủi ro cao, nhà cung cấp phải thông
+    báo kết quả phân loại cho Bộ Khoa học và Công nghệ thông qua Cổng thông tin điện tử một cửa về trí
+    tuệ nhân tạo trước khi đưa vào sử dụng.
+  summary_en: For medium or high risk systems, the provider must notify the classification result to the
+    Ministry of Science and Technology on the national AI one-stop portal before use.
+  duties:
+  - registration
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: ai_registration
+    coverage: none
+    note: registration on the national AI portal is a bank or vendor act
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: profile can supply the facts for the notice
+  evidence_needed:
+  - portal confirmation and system identifier
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: Detail in Decree 142/2026/ND-CP Art. 14. A bank that only deploys a vendor system relies on the
+    vendor to notify.
+- id: VN-AI-2025-A11.01-01
+  article_ref: Art. 11(1)
+  text_vi: Nhà cung cấp bảo đảm hệ thống trí tuệ nhân tạo tương tác trực tiếp với con người được thiết
+    kế và vận hành để người sử dụng nhận biết khi đang tương tác với hệ thống
+  summary_en: The provider must design a system that talks directly with people so that the user can tell
+    it is an AI.
+  duties:
+  - ai_disclosure
+  applies_to:
+    agent_class:
+    - customer_facing
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: customer-facing AI notice in the chat channel
+  evidence_needed:
+  - screenshot or config of the AI notice at session start
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: Circular 53/2026/TT-NHNN Art. 20(3) puts the same duty on the bank from the start of each session.
+- id: VN-AI-2025-A11.03-01
+  article_ref: Art. 11(3)
+  text_vi: Bên triển khai có trách nhiệm thông báo rõ ràng khi cung cấp ra công cộng văn bản, âm thanh,
+    hình ảnh, video được tạo ra hoặc chỉnh sửa bằng hệ thống trí tuệ nhân tạo nếu nội dung đó có khả năng
+    gây nhầm lẫn về tính xác thực của sự kiện, nhân vật, trừ trường hợp pháp luật có quy định khác.
+  summary_en: The deployer must clearly tell the public when it publishes AI-generated or AI-edited text,
+    audio, image or video that could be mistaken for real events or persons.
+  duties:
+  - content_labelling
+  - ai_disclosure
+  applies_to:
+    agent_class:
+    - customer_facing
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: label or notice on public AI content
+  evidence_needed:
+  - label policy for published AI content
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: medium
+  notes: Applies to public content (marketing, social media). One-to-one private chat answers are not
+    published to the public; counsel to confirm.
+- id: VN-AI-2025-A11.04-01
+  article_ref: Art. 11(4)
+  text_vi: Bên triển khai có trách nhiệm bảo đảm âm thanh, hình ảnh, video được tạo ra hoặc chỉnh sửa
+    bằng hệ thống trí tuệ nhân tạo nhằm mô phỏng, giả lập ngoại hình, giọng nói của người thật hoặc tái
+    hiện sự kiện thực tế phải được gắn nhãn dễ nhận biết để phân biệt với nội dung thật.
+  summary_en: The deployer must label audio, image or video that imitates a real person's looks or voice,
+    or recreates real events, so people can tell it from real content.
+  duties:
+  - content_labelling
+  applies_to:
+    agent_class:
+    - customer_facing
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: label on synthetic media
+  evidence_needed:
+  - label on synthetic media
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: medium
+  notes: Matters if the bank uses voice clones or synthetic presenters in service or marketing.
+- id: VN-AI-2025-A12.01-01
+  article_ref: Art. 12(1)
+  text_vi: Nhà phát triển, nhà cung cấp, bên triển khai và người sử dụng hệ thống trí tuệ nhân tạo có
+    trách nhiệm bảo đảm an toàn, an ninh, độ tin cậy và kịp thời phát hiện, khắc phục sự cố
+  summary_en: All parties (developer, provider, deployer, user) must keep AI systems safe, secure and
+    reliable and find and fix incidents in time.
+  duties:
+  - incident_response
+  - robustness_security
+  - performance_monitoring
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: monitor
+    id: drift
+    coverage: partial
+    note: behaviour drift band per agent
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift band
+  - kind: monitor
+    id: sweeps
+    coverage: partial
+    note: periodic sweeps over recorded events
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure
+  evidence_needed:
+  - monitoring and alert routes in place
+  - incident procedure covers AI faults
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+- id: VN-AI-2025-A12.02B-01
+  article_ref: Art. 12(2)(b)
+  text_vi: Bên triển khai và người sử dụng có nghĩa vụ ghi nhận, thông báo kịp thời sự cố và phối hợp
+    trong quá trình khắc phục.
+  summary_en: On a serious incident the deployer and user must record it, report it in time and help fix
+    it.
+  duties:
+  - incident_report
+  - incident_response
+  - logging
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: the bank files the report on the national AI portal or with SBV
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure
+  evidence_needed:
+  - incident record
+  - report on the portal
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: 'Deadlines are in Decree 142/2026/ND-CP Art. 19: preliminary report within 72 hours (urgent cases)
+    or 5 working days, formal report within 15 days of the preliminary report. Serious incident is defined
+    in Art. 3(8).'
+- id: VN-AI-2025-A13.01-01
+  article_ref: Art. 13(1)
+  text_vi: Hệ thống trí tuệ nhân tạo có rủi ro cao phải được đánh giá sự phù hợp theo quy định của Luật
+    này trước khi đưa vào sử dụng hoặc khi có thay đổi đáng kể trong quá trình sử dụng.
+  summary_en: A high-risk AI system needs a conformity assessment before use and again after a significant
+    change.
+  duties:
+  - conformity_assessment
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: conformity_assessment_file
+    coverage: none
+    note: conformity dossier owned by the provider or the bank
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history helps show what changed
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - conformity result for each high-risk system
+  - change log to decide if a change is significant
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking,
+    on the thresholds in Circular 53/2026/TT-NHNN. Under Decree 142/2026/ND-CP Art. 13 the provider performs
+    the assessment; Art. 5(4) of the Decree names both provider and deployer. Art. 13(2)(b): for list
+    items not marked for mandatory certification, the provider may self-assess or hire a registered body.'
+- id: VN-AI-2025-A13.03-01
+  article_ref: Art. 13(3)
+  text_vi: Kết quả đánh giá sự phù hợp là điều kiện để hệ thống trí tuệ nhân tạo có rủi ro cao được phép
+    đưa vào sử dụng
+  summary_en: A passed conformity assessment is a condition for putting a high-risk system into use. The
+    holder must keep conformity and publish information as the Government sets.
+  duties:
+  - conformity_assessment
+  - registration
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: conformity_assessment_file
+    coverage: none
+    note: conformity result on file before go-live
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: launch report gives GO or NO-GO on sandbox evidence; it is not a legal conformity assessment
+  evidence_needed:
+  - go-live gate checks that the conformity result exists
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking, on
+    the thresholds in Circular 53/2026/TT-NHNN. Circular 53/2026/TT-NHNN Art. 22(2)(đ) puts the conformity
+    result in the pre-go-live dossier.
+- id: VN-AI-2025-A14.02A-01
+  article_ref: Art. 14(2)(a)
+  text_vi: Vận hành và giám sát hệ thống đúng mục đích, phạm vi và mức độ rủi ro đã được phân loại, không
+    làm phát sinh rủi ro mới hoặc rủi ro cao hơn;
+  summary_en: A deployer of a high-risk system must run and monitor it within the classified purpose,
+    scope and risk level, and must not create new or higher risk.
+  duties:
+  - risk_management_system
+  - performance_monitoring
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: only approved tools can be called, which keeps the agent in scope
+  - kind: rule
+    id: PAY-07
+    coverage: partial
+    note: 'payments agent: approved tools only'
+  - kind: rule
+    id: CRD-07
+    coverage: partial
+    note: 'credit agent: approved tools only'
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift band
+  - kind: monitor
+    id: drift
+    coverage: partial
+    note: behaviour drift band per agent
+  evidence_needed:
+  - scope statement per agent
+  - tool allow-list under change control
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking,
+    on the thresholds in Circular 53/2026/TT-NHNN. '
+- id: VN-AI-2025-A14.02B-01
+  article_ref: Art. 14(2)(b)
+  text_vi: Bảo đảm an toàn, bảo mật dữ liệu và khả năng can thiệp của con người trong quá trình sử dụng;
+  summary_en: A deployer of a high-risk system must keep data safe and keep human ability to intervene
+    during use.
+  duties:
+  - human_oversight
+  - robustness_security
+  - access_control
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masking of personal data
+  evidence_needed:
+  - intervention path tested
+  - data access review
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking, on
+    the thresholds in Circular 53/2026/TT-NHNN. A Supervisor pause is a post-action safety control. It
+    is not pre-execution approval (see Decision 33 Appendix IV).
+- id: VN-AI-2025-A14.02C-01
+  article_ref: Art. 14(2)(c)
+  text_vi: Duy trì việc tuân thủ tiêu chuẩn, quy chuẩn kỹ thuật về trí tuệ nhân tạo trong quá trình vận
+    hành hệ thống;
+  summary_en: A deployer of a high-risk system must keep to AI technical standards and regulations during
+    operation.
+  duties:
+  - internal_policy
+  - technical_documentation
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank issues the internal policy
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - list of applicable AI standards
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: medium
+  notes: High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking, on
+    the thresholds in Circular 53/2026/TT-NHNN. No Vietnamese AI technical standard list was found by
+    2026-10-15; this duty stays open until MST publishes one. Circular 53/2026/TT-NHNN Art. 6(1)(b) names
+    OWASP lists from 2027-09-01.
+- id: VN-AI-2025-A14.02D-01
+  article_ref: Art. 14(2)(đ)
+  text_vi: Thực hiện trách nhiệm giải trình đối với cơ quan nhà nước có thẩm quyền về việc vận hành hệ
+    thống, biện pháp kiểm soát rủi ro, xử lý sự cố và các nội dung cần thiết phục vụ công tác thanh tra,
+    kiểm tra; cung cấp cho người sử dụng và người bị ảnh hưởng các thông tin công khai ở mức mô tả chức
+    năng, cách thức vận hành và cảnh báo rủi ro nhằm bảo đảm an toàn trong sử dụng;
+  summary_en: A deployer of a high-risk system must explain operation, risk controls and incident handling
+    to the authority, and give users and affected people public information on function, operation and
+    risk warnings.
+  duties:
+  - explainability
+  - record_keeping
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export pack for inspectors
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: public information for users and affected people
+  evidence_needed:
+  - audit pack on request
+  - public description of function and risks
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking,
+    on the thresholds in Circular 53/2026/TT-NHNN. '
+- id: VN-AI-2025-A14.02E-01
+  article_ref: Art. 14(2)(e)
+  text_vi: Phối hợp với nhà cung cấp và cơ quan nhà nước có thẩm quyền trong kiểm tra, đánh giá, hậu kiểm
+    và khắc phục sự cố.
+  summary_en: A deployer of a high-risk system must cooperate with the provider and the authority in inspection,
+    assessment, post-checks and incident fixing.
+  duties:
+  - outsourcing_oversight
+  - record_keeping
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, audit and exit plan with the AI vendor
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: evidence for inspectors
+  evidence_needed:
+  - contact points with the provider and authority
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: 'High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking,
+    on the thresholds in Circular 53/2026/TT-NHNN. '
+- id: VN-AI-2025-A14.01C-01
+  article_ref: Art. 14(1)(c)
+  text_vi: Lập, cập nhật, lưu giữ hồ sơ kỹ thuật và nhật ký hoạt động ở mức cần thiết cho việc đánh giá
+    sự phù hợp và kiểm tra sau khi đưa vào sử dụng
+  summary_en: The provider of a high-risk system keeps technical documents and operation logs and gives
+    them to the authority when needed, without exposing trade secrets.
+  duties:
+  - technical_documentation
+  - logging
+  - record_keeping
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
+  - kind: evidence
+    id: onboard_plan
+    coverage: partial
+    note: onboarding plan documents capabilities, rules and thresholds
+  evidence_needed:
+  - technical file
+  - operation logs retained
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking, on
+    the thresholds in Circular 53/2026/TT-NHNN. For a bank that builds its own agent, this lands on the
+    bank as provider.
+- id: VN-AI-2025-A14.01D-01
+  article_ref: Art. 14(1)(d)
+  text_vi: Thiết kế hệ thống bảo đảm khả năng giám sát và can thiệp của con người đối với hệ thống;
+  summary_en: The provider of a high-risk system must design it so people can monitor and intervene.
+  duties:
+  - human_oversight
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: records a named human decision on a case; counts as pre-execution approval only if the agent
+      code waits for it
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+  evidence_needed:
+  - design record showing a human gate in code
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking, on
+    the thresholds in Circular 53/2026/TT-NHNN. A human step counts for Decision 33 only when it is in
+    code; a README sentence does not.
+- id: VN-AI-2025-A15.01-01
+  article_ref: Art. 15(1)
+  text_vi: 'Hệ thống trí tuệ nhân tạo có rủi ro trung bình được quản lý như sau: a) Nhà cung cấp và bên
+    triển khai phải bảo đảm minh bạch theo quy định tại Điều 11 của Luật này; b) Nhà cung cấp có trách
+    nhiệm giải trình về mục đích sử dụng, nguyên lý hoạt động ở mức mô tả chức năng, dữ liệu đầu vào chủ
+    yếu và biện pháp quản lý rủi ro, an toàn của hệ thống khi có yêu cầu của cơ quan nhà nước trong thanh
+    tra, kiểm tra hoặc khi có dấu hiệu rủi ro hoặc sự cố; việc giải trình không yêu cầu tiết lộ mã nguồn,
+    thuật toán chi tiết, bộ tham số hoặc bí mật kinh doanh, bí mật công nghệ; c) Bên triển khai có trách
+    nhiệm giải trình về việc vận hành, kiểm soát rủi ro, xử lý sự cố và bảo vệ quyền, lợi ích hợp pháp
+    của tổ chức, cá nhân khi có yêu cầu của cơ quan nhà nước có thẩm quyền trong quá trình thanh tra,
+    kiểm tra hoặc xử lý sự cố; d) Người sử dụng có trách nhiệm tuân thủ quy định về thông báo, gắn nhãn
+    hệ thống trí tuệ nhân tạo.'
+  summary_en: 'Medium-risk systems: transparency (Art. 11) for provider and deployer, and the provider
+    and the deployer must explain to the authority on request. Users must follow the notice and labelling
+    rules.'
+  duties:
+  - ai_disclosure
+  - regulatory_reporting
+  - explainability
+  applies_to:
+    agent_class:
+    - customer_facing
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: AI notice
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: evidence for the authority
+  evidence_needed:
+  - AI notice
+  - explanation file for the authority
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: A customer chat agent is normally medium risk unless a Decision 33 entry applies.
+- id: VN-AI-2025-A16.05-01
+  article_ref: Art. 16(5)
+  text_vi: Ứng dụng trí tuệ nhân tạo quan trọng trong các lĩnh vực thiết yếu theo danh mục do Thủ tướng
+    Chính phủ ban hành phải được triển khai trên hạ tầng trí tuệ nhân tạo quốc gia
+  summary_en: Important AI applications in essential sectors on a Prime Minister list must run on the
+    national AI infrastructure.
+  duties:
+  - data_localisation
+  - system_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: data_localisation_setup
+    coverage: none
+    note: in-country hosting decision
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - check whether a Prime Minister list under Art. 16(5) exists and names banking agents
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: low
+  notes: No separate Prime Minister list under Art. 16(5) was found by 2026-10-15. Decision 33/2026/QD-TTg
+    is the high-risk list under Art. 13(4), not this list. Treat as an open watch item.
+- id: VN-AI-2025-A28.03-01
+  article_ref: Art. 28(3)
+  text_vi: Trong quá trình thanh tra, kiểm tra, tổ chức, cá nhân liên quan có nghĩa vụ cung cấp hồ sơ
+    kỹ thuật, nhật ký lưu vết, dữ liệu huấn luyện và thông tin cần thiết khác
+  summary_en: During inspection, the organisation must provide technical files, trace logs, training data
+    and other needed information to find the cause of a breach or incident and to assign responsibility.
+  duties:
+  - record_keeping
+  - logging
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export pack
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: offline verification report
+  evidence_needed:
+  - ability to export logs and files on request
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+- id: VN-AI-2025-A29.02-01
+  article_ref: Art. 29(2)
+  text_vi: Trường hợp hệ thống trí tuệ nhân tạo có rủi ro cao được quản lý, vận hành và sử dụng đúng quy
+    định nhưng vẫn phát sinh thiệt hại thì bên triển khai phải chịu trách nhiệm bồi thường cho người bị
+    thiệt hại.
+  summary_en: If a high-risk system run by the rules still causes harm, the deployer must compensate the
+    victim first. It may claim back from the provider or developer only if they agreed so.
+  duties:
+  - governance_accountability
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, audit and exit plan with the AI vendor
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
+  evidence_needed:
+  - vendor contract with recourse clause
+  - insurance or reserve view by counsel
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: High-risk status depends on the Decision 33 classification (VN-QD33-2026) and, for banking, on
+    the thresholds in Circular 53/2026/TT-NHNN. Strict-style liability on the bank as deployer. Art. 14(5)
+    only encourages civil liability insurance.
+- id: VN-AI-2025-A29.04-01
+  article_ref: Art. 29(4)
+  text_vi: Trường hợp bên triển khai, nhà cung cấp có lỗi trong việc để hệ thống bị xâm nhập, chiếm quyền
+    điều khiển hoặc can thiệp trái pháp luật thì phải liên đới bồi thường thiệt hại theo quy định của
+    pháp luật về dân sự.
+  summary_en: If the deployer or provider was at fault in letting a third party break into or hijack the
+    AI system, it is jointly liable for the damage.
+  duties:
+  - robustness_security
+  - prompt_injection_defence
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: prefilter on injection patterns
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list limits what a hijacked agent can do
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: proxy log of tool calls
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: security testing
+  evidence_needed:
+  - security test results
+  - log of blocked attacks
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+- id: VN-AI-2025-A35.01-01
+  article_ref: Art. 35(1)
+  text_vi: 'Đối với các hệ thống trí tuệ nhân tạo đã được đưa vào hoạt động trước ngày Luật này có hiệu
+    lực thi hành, nhà cung cấp và bên triển khai có trách nhiệm thực hiện các nghĩa vụ tuân thủ theo quy
+    định của Luật này trong thời hạn sau đây: a) 18 tháng kể từ ngày Luật này có hiệu lực thi hành đối
+    với hệ thống trí tuệ nhân tạo trong lĩnh vực y tế, giáo dục và tài chính; b) 12 tháng kể từ ngày Luật
+    này có hiệu lực thi hành đối với các hệ thống trí tuệ nhân tạo không thuộc trường hợp quy định tại
+    điểm a khoản này.'
+  summary_en: Systems already running before 2026-03-01 must comply within 18 months (to 2027-09-01) for
+    health, education and finance systems, and within 12 months (to 2027-03-01) for all others.
+  duties:
+  - conformity_assessment
+  - risk_classification
+  - registration
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
+  evidence_needed:
+  - inventory with start date of each AI system
+  - legal view whether banking counts as finance
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+  notes: 'Open question: the Law names ''tài chính'' (finance), not ''ngân hàng'' (banking). Decision
+    33 lists banking as its own sector but repeats ''tài chính'' in its transition rule (Art. 4(1)(a)).
+    Circular 53/2026/TT-NHNN Art. 24 sets 2027-03-01 for bank systems under Chapters II to IV. Use the
+    earlier date (2027-03-01) for planning until counsel decides.'
+  dates:
+    compliance_deadline:
+      date: '2027-03-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+      verification: ASSUMED
+      note: Conservative planning date for a bank system running before 2026-03-01. The Law allows 2027-09-01
+        if banking counts as finance; this is not settled.
+- id: VN-AI-2025-A35.02-01
+  article_ref: Art. 35(2)
+  text_vi: Trong thời hạn quy định tại khoản 1 Điều này, hệ thống trí tuệ nhân tạo được tiếp tục hoạt
+    động, trừ trường hợp cơ quan quản lý nhà nước về trí tuệ nhân tạo xác định hệ thống có nguy cơ gây
+    thiệt hại nghiêm trọng thì có quyền yêu cầu tạm dừng hoặc chấm dứt hoạt động.
+  summary_en: During the transition, existing systems may keep running, unless the authority finds a risk
+    of serious harm and orders a pause or stop.
+  duties:
+  - serious_incident_suspension
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  evidence_needed:
+  - ability to stop an agent on order
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
