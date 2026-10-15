@@ -43,6 +43,16 @@ _RULES: tuple[tuple[str, str], ...] = (
     ),
     ("verdict_request", r"\b(correct|true|real|final)\b[^.\n]{0,20}decision 33 class"),
     (
+        "verdict_request",
+        r"\b(output|return|say|write|state|answer|give)\b[^.\n]{0,30}?\brisk( level| tier)?"
+        r"\s*(is\s*|=\s*|:\s*|of\s*)?(low|none|minimal)\b",
+    ),
+    (
+        "verdict_request",
+        r"\b(skip|omit|hide|leave out)\b[^.\n]{0,15}?\b(the )?(tool list|tools|findings|"
+        r"weak spots|money tool)\b",
+    ),
+    (
         "addressed_to_ai",
         r"\b(note|message|instruction)s? (to|for) (any |the )?(ai|llm|assistant|model|reviewer|"
         r"auditor|analy[sz]er)\b",
@@ -52,6 +62,12 @@ _RULES: tuple[tuple[str, str], ...] = (
         r"\b(ai|llm) (reviewer|auditor|assistant|analy[sz]er|agent|scanner)s?\s*[:,]",
     ),
     ("addressed_to_ai", r"\bluu y (cho|danh cho) (ai|llm|tro ly|mo hinh)\b"),
+    (
+        "addressed_to_ai",
+        r"\b(dear|attention|hey|hello)\b[^.\n:]{0,25}\b(model|ai|llm|assistant|reviewer|"
+        r"auditor|analy[sz]er)\b\s*[:,]",
+    ),
+    ("addressed_to_ai", r"\b(gui|kinh gui|chao) (mo hinh|ai|llm|tro ly)\b"),
     ("role_marker", r"(^|<!--|[#*>|]\s*)\s*(system|assistant)\s*:\s*\S"),
     ("role_marker", r"\byou are now\b|\bnew instructions\b|\bdo not mention\b"),
 )

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from supervisor import sandbox
+from supervisor.release import fake_secret_allowed
 from tests.conftest import REPO_ROOT
 
 # Reference documents handed over by the owner. They name the bank workspace on purpose.
@@ -13,15 +14,6 @@ ALLOWLIST = {
     "docs/BANK_DEPLOY_GUIDE.md",
 }
 ALLOW_PREFIXES = ("docs/handoff/",)
-# WP16: the code-analysis corpus plants fake secrets on purpose (the scrubber must catch them).
-# Only this repo, and only values that are visibly fake (EXAMPLE or one repeated pattern).
-FAKE_SECRET_PREFIXES = ("data/corpus/repos/planted_secrets_payroll/",)
-
-
-def _visibly_fake(value: str) -> bool:
-    body = value[4:] if value.startswith(("dapi", "AKIA")) else value
-    return "EXAMPLE" in value or len(set(body)) <= 2
-
 
 PATTERNS = {
     "databricks workspace host": re.compile(r"\bdbc-[0-9a-f]{8}-[0-9a-f]{4}\b"),
@@ -64,7 +56,7 @@ def test_no_secret_patterns() -> None:
             for m in pat.finditer(text):
                 if "FILL-ME" in m.group(0):
                     continue
-                if rel.startswith(FAKE_SECRET_PREFIXES) and _visibly_fake(m.group(0)):
+                if fake_secret_allowed(rel, m.group(0)):  # WP16 corpus fakes only
                     continue
                 line = text.count("\n", 0, m.start()) + 1
                 hits.append(f"{rel}:{line} {name}")
@@ -77,6 +69,15 @@ def test_deploy_files_use_placeholders() -> None:
         assert "FILL-ME" in text, name
     yml = (REPO_ROOT / "databricks.yml").read_text(encoding="utf-8")
     assert "variables:" not in yml and "secret_scope" not in yml and "${var." not in yml
+
+
+def test_fake_secret_allowance_is_narrow() -> None:
+    fake = "AKIA" + "IOSFODNN7EXAMPLE"
+    real_shape = "AKIA" + "Q3V7K2M9P4X8R6T1"
+    assert fake_secret_allowed("data/corpus/repos/x/settings.py", fake)
+    assert not fake_secret_allowed("data/corpus/repos/x/settings.py", real_shape)
+    assert not fake_secret_allowed("src/supervisor/x.py", fake)
+    assert fake_secret_allowed("data/corpus/repos/x/c.yaml", "dapi" + "e0" * 16)
 
 
 def test_patterns_detect_planted_values() -> None:

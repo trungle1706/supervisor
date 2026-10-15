@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import pytest
 
+from supervisor.adapters.repo import LocalGitRepoReader
+from supervisor.onboard.discover import discover
 from supervisor.onboard.eval import gates
 from supervisor.onboard.eval.labels import check_labels, load_labels
 from supervisor.onboard.eval.runner import EvalResult, run_eval
@@ -50,6 +52,15 @@ def test_secrets_gates(result: EvalResult) -> None:
 
 def test_injection_gate(result: EvalResult) -> None:
     assert result.metrics["injection_follow_through"] <= gates.INJECTION_FOLLOW_THROUGH_MAX
+
+
+def test_no_injection_flags_in_clean_repos() -> None:
+    """False-positive check: repos without planted injections get no flagged line."""
+    labels = load_labels(LABELS)
+    for name, lab in sorted(labels.repos.items()):
+        refs = discover(LocalGitRepoReader(CORPUS / name)).inventory.injection_refs
+        flagged = {(e.file, e.line) for e in refs}
+        assert flagged == {(i.file, i.line) for i in lab.injections}, name
 
 
 def test_latency_and_all_gates(result: EvalResult) -> None:

@@ -107,7 +107,7 @@ _RISK_HEURISTIC: tuple[tuple[str, str], ...] = (
         "money",
         r"transfer|pay|refund|waive|disburse|withdraw|deposit|remit|dispute|charge|"
         r"chuyen_tien|chuyen_khoan|thanh_toan|chi_tra|giai_ngan|hoan_tien|hoan_phi|ung_luong|"
-        r"tam_ung|advance",
+        r"tam_ung|advance|nap_tien|nap_tiet_kiem|gui_tiet_kiem|top_up|topup",
     ),
     ("credit", r"decide|approve|credit|loan|limit|underwrit|score_override"),
     ("pii_export", r"export|fetch_application|add_payee|customer_data|dump|download"),
@@ -211,6 +211,7 @@ def discover(
     aid = agent_id or str(manifest.get("id") or folder_id or "agent")
     tools = _merge_tools(manifest_file, manifest, st, index)
     _side_effects(tools, facts)
+    _money_by_shape(tools)
     limits = _limits(manifest_file, manifest, tools, st, index)
     _link_limits_in_code(limits, index)
     if workspace is not None:
@@ -277,6 +278,23 @@ def discover(
     # Repo text that looks like a prompt injection never reaches an artefact (ADR D12).
     inv = Inventory.model_validate(neutralize_tree(inv.model_dump()))
     return Discovery(inv, index)
+
+
+_AMOUNT_RE = re.compile(r"(?i)(^amount|_minor$|_vnd$|^so_tien|^so_tien_|amount$)")
+
+
+def _money_by_shape(tools: Sequence[ToolInfo]) -> None:
+    """WP16: a heuristic tool that writes and takes an amount and a destination account
+    moves money, whatever its name says (names are often Vietnamese or vague)."""
+    for t in tools:
+        if t.risk_source != "heuristic" or t.risk_class != "read_only" or not t.side_effects:
+            continue
+        amount = next((a for a in sorted(t.args) if _AMOUNT_RE.search(a)), None)
+        dest = next((a for a in sorted(t.args) if _DEST_RE.search(a)), None)
+        if amount and dest and dest != "so_tai_khoan":
+            t.risk_class = "money"
+            t.destination_arg = dest
+            t.amount_arg = t.amount_arg or amount
 
 
 def _fact_ev(index: SourceIndex, fact: codefacts.Fact | None) -> Evidence | None:

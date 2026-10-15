@@ -110,6 +110,22 @@ SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
 }
 # The reference guide names the bank workspace on purpose (owner hand-over document).
 SECRET_ALLOW = {("databricks workspace host", f"{TOP}/docs/BANK_DEPLOY_GUIDE.md")}
+# WP16: the code-analysis corpus plants fake secrets on purpose (the scrubber must catch
+# them). Allowed only under this folder and only when the value is visibly fake.
+FAKE_SECRET_DIR = "data/corpus/repos/"  # noqa: S105 - a folder, not a password
+
+
+def visibly_fake(value: str) -> bool:
+    """``EXAMPLE`` in the value, or one short repeated pattern after the key prefix."""
+    body = re.sub(r"^(dapi|AKIA|ASIA|sk-(ant-|proj-)?)", "", value)
+    return "EXAMPLE" in value or len(set(body)) <= 2
+
+
+def fake_secret_allowed(rel_path: str, value: str) -> bool:
+    """True for a planted fake secret of the WP16 corpus (path relative to the repo)."""
+    return rel_path.startswith(FAKE_SECRET_DIR) and visibly_fake(value)
+
+
 BINARY_SUFFIXES = (".whl", ".zip", ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".mp4", ".ico")
 WHEEL_RE = re.compile(r"\.whl$")
 
@@ -225,6 +241,8 @@ def sweep_text(name: str, text: str) -> list[str]:
             continue
         for m in pat.finditer(text):
             if "FILL-ME" in m.group(0):
+                continue
+            if fake_secret_allowed(name.split("/", 1)[-1], m.group(0)):
                 continue
             line = text.count("\n", 0, m.start()) + 1
             hits.append(f"{name}:{line}: {label}")
