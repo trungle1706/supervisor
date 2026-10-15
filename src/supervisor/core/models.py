@@ -159,6 +159,9 @@ class Verdict(Record):
     region: str | None = None
     model_version: str | None = None
     mask_version: str | None = None
+    # WP19 (additive): change control fields for judge verdicts.
+    prompt_hash: str | None = None
+    rubric_version: str | None = None
 
     @model_validator(mode="after")
     def _judges_only_advise(self) -> Verdict:
@@ -186,6 +189,13 @@ class Case(StateRecord):
     report_due_at: UtcDatetime | None = None
     closed_at: UtcDatetime | None = None
     case_type: str | None = None  # WP7: rule | judge | drift | fairness | multiagent | manual
+    # WP19 (additive): incident clock (Decree 142/2026 Art. 19), computed by cases/service.
+    incident_detected_at: UtcDatetime | None = None
+    urgency_class: Literal["urgent", "standard"] | None = None
+    prelim_report_due_at: UtcDatetime | None = None
+    formal_report_due_at: UtcDatetime | None = None
+    prelim_report_sent_at: UtcDatetime | None = None
+    formal_report_sent_at: UtcDatetime | None = None
 
 
 class CaseEvent(Record):
@@ -266,6 +276,9 @@ class OversightMetric(StateRecord):
     blocks: int | None = None
     llm_calls: int | None = None
     judge_latency_ms: int | None = None
+    # WP19 (additive): judge-vs-human agreement from sign-offs.
+    judge_human_pairs: int | None = None
+    judge_human_agree_bp: int | None = None
 
 
 ALL_RECORDS: tuple[type[Record], ...] = (

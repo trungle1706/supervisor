@@ -209,6 +209,10 @@ tables:
       region: string?           # where the judge model ran (residency, analysis 07 3.1)
       model_version: string?
       mask_version: string?
+      # WP19 (additive): change control. prompt_hash = SHA-256 of the judge prompt templates
+      # (same value as policy_hash for judge rows); rubric_version = judge rubric id.
+      prompt_hash: string?
+      rubric_version: string?
 
   cases:
     kind: state
@@ -229,6 +233,14 @@ tables:
       report_due_at: timestamp?
       closed_at: timestamp?
       case_type: string?  # WP7 (additive): rule | judge | drift | fairness | multiagent | manual
+      # WP19 (additive): incident clock (Decree 142/2026 Art. 19). report_due_at above is the
+      # deprecated 24-hour field (kept for old readers). See docs/judge-mrm.md.
+      incident_detected_at: timestamp?
+      urgency_class: string?          # urgent | standard
+      prelim_report_due_at: timestamp?  # urgent: detected + 72 h; else + 5 VN working days
+      formal_report_due_at: timestamp?  # preliminary due + 15 days
+      prelim_report_sent_at: timestamp?
+      formal_report_sent_at: timestamp?
 
   case_event:
     kind: append_only
@@ -367,6 +379,37 @@ tables:
       blocks: int?             # gate decisions not allowed
       llm_calls: int?          # agent llm_call events (cost proxy)
       judge_latency_ms: int?   # sum of judge latency (cost proxy)
+      # WP19 (additive): judge-vs-human agreement from sign-offs (docs/metrics.md).
+      judge_human_pairs: int?     # signed-off cases with a judge label that day
+      judge_human_agree_bp: int?  # pairs where the reviewer agreed with the judge, bp
+
+  model_validation:
+    kind: append_only
+    evidence: true
+    description: >
+      WP19. One row per judge validation run (python -m supervisor.judge.mrm validate).
+      The judge service checks it when JUDGE_REQUIRE_VALIDATION is on. Integers only.
+    primary_key: [validation_id]
+    indexes:
+      - [model_version, prompt_hash]
+    columns:
+      validation_id: string
+      ts: timestamp
+      judge_id: string           # inventory id of the tiered judge (judge.tiered)
+      model_version: string      # composite judge identity key, see judge/mrm/identity.py
+      prompt_hash: string        # composite prompt hash (Tier 1 + Tier 2)
+      rubric_version: string
+      mask_version: string
+      golden_set_hash: string
+      is_mock: bool
+      decision: string           # GO | NO_GO
+      passed: bool
+      runs: int
+      metrics: json              # integer basis points and counts only
+      thresholds: json
+      failed_checks: json
+      validator: string
+      report_hash: string        # SHA-256 of the canonical report JSON
 
   policy_baseline:
     kind: state
