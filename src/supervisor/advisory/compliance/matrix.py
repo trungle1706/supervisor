@@ -66,6 +66,29 @@ def _merge_questions(groups: list[list[Question]]) -> list[Question]:
     ]
 
 
+_INCIDENT_CLOCK = (
+    "table case: incident clock (incident_detected_at, urgency_class, prelim_report_due_at, "
+    "formal_report_due_at, *_sent_at; Decree 142/2026 Art. 19)"
+)
+_JUDGE_ONLY = "Supervisor's own judge model only, not this product's model"
+# duty id -> evidence a Supervisor feature keeps (WP19). Hints only: they never change a status.
+EVIDENCE_HINTS: dict[str, tuple[str, ...]] = {
+    "incident_report": (_INCIDENT_CLOCK,),
+    "incident_report_24h": (_INCIDENT_CLOCK,),
+    "incident_report_72h": (_INCIDENT_CLOCK,),
+    "incident_response": (_INCIDENT_CLOCK,),
+    "independent_validation": (
+        f"table model_validation; python -m supervisor.judge.mrm validate ({_JUDGE_ONLY})",
+    ),
+    "change_control": (f"python -m supervisor.judge.mrm triggers ({_JUDGE_ONLY})",),
+    "technical_documentation": (f"python -m supervisor.judge.mrm card ({_JUDGE_ONLY})",),
+}
+
+
+def _hints(duties: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(sorted({h for d in duties for h in EVIDENCE_HINTS.get(d, ())}))
+
+
 def _packs_by_duty() -> dict[str, list[str]]:
     """duty id -> assurance pack ids (src/supervisor/assurance/packs). Empty if unreadable."""
     try:
@@ -161,6 +184,7 @@ def build_matrix(
                 assurance_packs=()
                 if p["applies"] == "no"
                 else tuple(sorted({pid for d in ob.duties for pid in packs.get(d, [])})),
+                evidence_hints=() if p["applies"] == "no" else _hints(tuple(ob.duties)),
             )
         )
 

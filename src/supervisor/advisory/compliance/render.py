@@ -244,6 +244,7 @@ def _build(m: ObligationMatrix) -> list[_Block]:
                             f"eval_result pack {a} (test evidence, not read)"
                             for a in r.assurance_packs
                         ]
+                        + [f"hint: {h}" for h in r.evidence_hints]
                     ),
                     "\n".join(_dates(r)),
                     ", ".join(r.question_ids),

@@ -128,3 +128,16 @@ def test_assurance_packs_are_evidence_hints_only(kb) -> None:
             assert duty_packs[pid] & set(r.duties)
     assert any("fairness_metrics" in r.assurance_packs for r in m.rows)
     assert "eval_result pack" in to_markdown(m)
+
+
+def test_wp19_evidence_hints_follow_duties(kb) -> None:
+    """Incident-clock and judge-MRM hints appear on rows with matching duties, nowhere else."""
+    from supervisor.advisory.compliance.matrix import EVIDENCE_HINTS
+
+    m = build_matrix(kb, demo_product("payments"), as_of="2026-10-15", generated_at="x")
+    incident = [r for r in m.rows if "incident_report_72h" in r.duties and r.applies != "no"]
+    assert incident and all(any("incident clock" in h for h in r.evidence_hints) for r in incident)
+    for r in m.rows:
+        assert set(r.evidence_hints) <= {h for d in r.duties for h in EVIDENCE_HINTS.get(d, ())}
+    plain = build_matrix(kb, demo_product("payments"), as_of="2026-10-15", generated_at="x")
+    assert [r.status for r in plain.rows] == [r.status for r in m.rows]

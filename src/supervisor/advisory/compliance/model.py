@@ -234,6 +234,9 @@ class MatrixRow:
     # WP17 assurance packs whose maps_to.regkb_duties meet this row's duties: where an auditor
     # finds test evidence (eval_result table). The advisor does not read results; no status effect.
     assurance_packs: tuple[str, ...] = ()
+    # WP19 evidence sources that match the row's duties (incident clock, judge MRM). Hints
+    # for the auditor only; no status effect.
+    evidence_hints: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

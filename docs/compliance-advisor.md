@@ -314,6 +314,21 @@ auditor where test evidence lives (table `eval_result`). The advisor does not re
 so a pack never changes a status. Future work: read the latest `eval_result` per agent and pack,
 and show pass, warn or fail next to the pack id.
 
+## Incident clock and judge MRM as evidence (WP19)
+
+Each row also lists `evidence_hints`, chosen by duty id:
+
+| Duty | Hint |
+|---|---|
+| incident_report, incident_report_24h, incident_report_72h, incident_response | case incident clock fields (Decree 142/2026 Art. 19: preliminary report in 72 h if urgent, else 5 working days; formal report 15 days later) |
+| independent_validation | table `model_validation`, `python -m supervisor.judge.mrm validate` |
+| change_control | `python -m supervisor.judge.mrm triggers` |
+| technical_documentation | `python -m supervisor.judge.mrm card` |
+
+The MRM hints cover **Supervisor's own judge model only**, not the product's model. Hints never
+change a status: the RegKB control vocabulary does not name these sources yet. When it does, they
+can become real controls.
+
 ## AI risk register (enterprise-readiness row A-6.1)
 
 `docs\enterprise-readiness.md` row A-6.1 ("Planning: AI risk assessment") says Onboard gives
