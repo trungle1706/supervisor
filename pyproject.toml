@@ -1,6 +1,6 @@
 [project]
 name = "supervisor"
-version = "0.1.0"
+version = "0.2.0"
 description = "Supervisor: onboard and watch AI agents at a bank (gateway, judges, evidence chain, console)."
 readme = "CLAUDE.md"
 requires-python = ">=3.11"
