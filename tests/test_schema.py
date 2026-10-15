@@ -57,14 +57,15 @@ def test_model_validation(snippet: str, error: str) -> None:
         parse_model("version: 1\ntables:\n  " + snippet + "\n")
 
 
-def test_chain_table_cannot_have_retention() -> None:
+@pytest.mark.parametrize("name", ["chain_x", "anchor", "console_action"])
+def test_integrity_table_cannot_have_retention(name: str) -> None:
     snippet = (
-        "chain_x: {kind: append_only, primary_key: [a], columns: "
+        f"{name}: {{kind: append_only, primary_key: [a], columns: "
         "{a: string, ts: timestamp, b: 'string?'}, retention: {raw: [b]}}"
     )
-    with pytest.raises(ValueError, match="chain_x.*retention"):
+    with pytest.raises(ValueError, match=f"{name}.*retention"):
         parse_model("version: 1\ntables:\n  " + snippet + "\n")
-    ok = snippet.replace("chain_x", "other_x")
+    ok = snippet.replace(name, "other_x")  # an ordinary (even evidence) table is fine
     assert "other_x" in parse_model("version: 1\ntables:\n  " + ok + "\n").tables
 
 
