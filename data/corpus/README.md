@@ -20,6 +20,8 @@ in `src/` imports them.
 | `repos/<name>/` | one repo: 3 to 15 files, short, realistic imports |
 | `labels.yaml` | gold labels for every repo (one key per repo under `repos:`) |
 | `reports/baseline.json` | the eval report before any analyser tuning (kept for the record) |
+| `reports/holdout_blind.json` | the 4 `holdout_*` repos, run once with the analyser frozen after tuning |
+| `reports/final.json` | the eval report after tuning, all repos |
 
 Do NOT put labels, notes or answers inside `repos/<name>/`: the analyser reads every file there.
 
