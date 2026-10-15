@@ -114,10 +114,25 @@ def main(argv: list[str] | None = None) -> int:
     data_dir = Path(os.path.abspath(args.data_dir))
     env = {"PYTHONPATH": str(REPO / "src"), "DATA_DIR": str(data_dir)}
     if args.reseed:
-        steps = [["demo", "seed"]] + [["demo", "inject", n] for n in ("4", "2", "3", "1")]
+        cli = [py, "-m", "supervisor.cli"]
+        steps = [[*cli, "demo", "seed"]] + [[*cli, "demo", "inject", n] for n in "4231"]
+        # one onboarding run (mock model, labelled) so the Onboard cards have real artefacts
+        out = data_dir / "onboard" / "payments"
+        steps.append(
+            [
+                py,
+                "-m",
+                "supervisor.onboard",
+                "--target",
+                "src/supervisor_agents/payments",
+                "--out",
+                str(out),
+                "--mock-llm",
+            ]
+        )
         for step in steps:
-            r = sandbox.run([py, "-m", "supervisor.cli", *step], cwd=REPO, timeout_s=600, env=env)
-            say(("[OK] " if r.returncode == 0 else "[FAIL] ") + " ".join(step))
+            r = sandbox.run(step, cwd=REPO, timeout_s=600, env=env)
+            say(("[OK] " if r.returncode == 0 else "[FAIL] ") + " ".join(step[2:]))
             if r.returncode != 0:
                 return 1
     if not data_dir.is_dir():

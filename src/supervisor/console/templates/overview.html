@@ -7,9 +7,9 @@
 <h1 class="greet" data-greeting="{{ greet_key }}">{{ t(greet_key, name=shell().first_name) }}</h1>
 <p class="greet-sub" id="greet-sub">
   {% if ov.agents_n == 0 %}{{ t('greet_agents_0') }}{% elif ov.agents_n == 1 %}{{ t('greet_agents_1') }}{% else %}{{ t('greet_agents_n', n=ov.agents_n) }}{% endif %}
-  {% if g.stopped == 0 %}{{ t('greet_stopped_0') }}{% elif g.stopped == 1 %}{{ t('greet_stopped_1') }}{% else %}{{ t('greet_stopped_n', n=g.stopped) }}{% endif %}
-  {% if ov.cases_n == 0 %}{{ t('greet_cases_0') }}{% elif ov.cases_n == 1 %}{{ t('greet_cases_1') }}{% else %}{{ t('greet_cases_n', n=ov.cases_n) }}{% endif %}
-  {% if ov.nearest_clock %}{% if ov.nearest_clock.overdue %}{{ t('greet_clock_over', d=dur(ov.nearest_clock.secs)) }}{% else %}{{ t('greet_clock_left', d=dur(ov.nearest_clock.secs)) }}{% endif %}{% endif %}
+  {{ " " }}{% if g.stopped == 0 %}{{ t('greet_stopped_0') }}{% elif g.stopped == 1 %}{{ t('greet_stopped_1') }}{% else %}{{ t('greet_stopped_n', n=g.stopped) }}{% endif %}
+  {{ " " }}{% if ov.cases_n == 0 %}{{ t('greet_cases_0') }}{% elif ov.cases_n == 1 %}{{ t('greet_cases_1') }}{% else %}{{ t('greet_cases_n', n=ov.cases_n) }}{% endif %}
+  {% if ov.nearest_clock %}{{ " " }}{% if ov.nearest_clock.overdue %}{{ t('greet_clock_over', d=dur(ov.nearest_clock.secs)) }}{% else %}{{ t('greet_clock_left', d=dur(ov.nearest_clock.secs)) }}{% endif %}{% endif %}
 </p>
 <div class="purpose">
   <p><strong>{{ t('what_is_lead') }}</strong> {{ t('what_is_rest') }}</p>

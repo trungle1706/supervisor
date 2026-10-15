@@ -22,7 +22,7 @@
       {{ ui.bar(bp or 0, 'none' if bp is none else ('' if bp >= 9500 else ('amber' if bp >= 7000 else 'red'))) }}
       <span class="mono" data-coverage="{{ bp if bp is not none else '' }}">{{ '%d%%'|format(bp // 100) if bp is not none else '-' }}</span>
     </div>
-    <div class="hint">{{ t(a.coverage.source, detail=a.coverage.detail) }}{% if a.coverage.missing %} · {{ t('cov_missing', items=a.coverage.missing|join(', ')) }}{% endif %}</div>
+    <div class="hint">{{ t(a.coverage.source, detail=a.coverage.detail) }}{% if a.coverage.planned %} · {{ t('cov_planned', p=a.coverage.planned, n=a.coverage.caps) }}{% endif %}{% if a.coverage.missing %} · {{ t('cov_missing', items=a.coverage.missing|join(', ')) }}{% endif %}</div>
     <div class="hint">{{ t('tools_summary', n=a.tools_n, m=a.money_n) }} · {{ t('fail_mode_is', mode=t('fail_' ~ a.fail_mode)) }} ·
       <a href="/console/cases?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('open_cases_n', n=a.open_cases) }}</a></div>
   </div>

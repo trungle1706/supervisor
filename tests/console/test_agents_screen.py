@@ -60,6 +60,25 @@ def test_agents_cards_show_state_rule_action(console: Console) -> None:
     assert "/console/agents/credit_prequal/quarantine" in admin.text
 
 
+def test_coverage_never_counts_planned_capabilities(console: Console) -> None:
+    from supervisor.console.readmodels import _coverage
+
+    state = console.ctx.state
+    for i, status in enumerate(("planned", "planned", "off")):
+        state.insert(
+            "coverage",
+            {"agent_id": "payments", "capability_id": f"cap{i}", "status": status, "reason": None},
+        )
+    cov = _coverage(console.ctx, "payments")
+    assert cov["source"] != "cov_src_capabilities" and cov["planned"] == 2 and cov["caps"] == 3
+    r = console.get("/console/agents")
+    card = r.text.split('data-agent="payments"', 1)[1].split("</article>", 1)[0]
+    assert "2 of 3 monitoring capabilities planned by Onboard" in card
+    state.update("coverage", {"agent_id": "payments", "capability_id": "cap0"}, {"status": "on"}, 1)
+    cov = _coverage(console.ctx, "payments")
+    assert cov["source"] == "cov_src_capabilities" and cov["bp"] == 3333
+
+
 def test_resume_shows_pending_approval(console: Console) -> None:
     p = console.post("/console/agents/payments/pause", {"reason": "x"})
     assert p.status_code == 200 and "by reviewer.an" in p.text

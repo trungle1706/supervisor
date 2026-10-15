@@ -250,13 +250,35 @@ def chain_summary(ctx: Any) -> dict[str, Any]:
 
 
 def latest_decisions(ctx: Any, limit: int = 6) -> list[dict[str, Any]]:
-    """Newest gate decisions with their outcome, rule and case (if one was opened)."""
+    """Newest gate decisions with their outcome, rule and case (if one was opened).
+
+    The newest stops (block / pause, at most half the strip) are always included, so a
+    burst of allowed calls never hides the decisions a reviewer must see."""
     rules = rules_index(ctx)
     classes = tool_classes(ctx)
+    events = {
+        e["event_id"]: e
+        for e in ctx.tables.query(
+            "agent_event", {"event_type": "gate_decision"}, order_by=("-ts",), limit=limit
+        )
+    }
+    stop_ids: list[str] = []
+    for v in ctx.tables.query("verdict", {"tier": 0}, order_by=("-ts",), limit=500):
+        if v["action"] in STOP_ACTIONS and not v["advisory"] and v.get("event_id"):
+            if v["event_id"] not in stop_ids:
+                stop_ids.append(v["event_id"])
+        if len(stop_ids) >= max(1, limit // 2):
+            break
+    for eid in stop_ids:
+        if eid not in events:
+            rows = ctx.tables.query("agent_event", {"event_id": eid}, limit=1)
+            if rows:
+                events[eid] = rows[0]
+    chosen = sorted(events.values(), key=lambda e: e["ts"], reverse=True)
+    keep = [e for e in chosen if e["event_id"] in stop_ids]
+    keep += [e for e in chosen if e["event_id"] not in stop_ids][: max(0, limit - len(keep))]
     out = []
-    for e in ctx.tables.query(
-        "agent_event", {"event_type": "gate_decision"}, order_by=("-ts",), limit=limit
-    ):
+    for e in sorted(keep, key=lambda e: e["ts"], reverse=True):
         verdicts = ctx.tables.query("verdict", {"event_id": e["event_id"]})
         stops = [
             v
@@ -350,44 +372,46 @@ def _allowed_tools(rules: Mapping[str, Mapping[str, Any]], agent_id: str) -> lis
 def _coverage(ctx: Any, agent_id: str) -> dict[str, Any]:
     """Coverage in basis points and where the number comes from.
 
-    1. ``coverage`` rows (capabilities on / all, written by Onboard);
+    1. ``coverage`` rows with capabilities ``on`` (capabilities on / all);
     2. else the latest ``oversight_metric.coverage_bp`` (gated / seen tool calls);
     3. else gate decisions / tool calls over the agent's newest 2000 events.
-    ``trace_coverage`` rows add the capabilities a trace path cannot see."""
-    from supervisor.console import views
-
+    Capabilities an Onboard plan proposed but nobody merged yet (``planned``) are named,
+    never counted as on. ``trace_coverage`` rows add what a trace path cannot see."""
     reduced = ctx.tables.query("trace_coverage", {"agent_id": agent_id}, limit=200)
     missing = sorted({m for r in reduced for m in (jloads(r.get("missing"), []) or [])})
     rows = ctx.state.query("coverage", {"agent_id": agent_id})
-    if rows:
-        on = sum(1 for r in rows if str(r.get("status", "")).lower() in ("on", "enabled"))
+    status = [str(r.get("status", "")).lower() for r in rows]
+    on = sum(1 for s in status if s in ("on", "enabled", "active"))
+    planned = sum(1 for s in status if s == "planned")
+    base = {"missing": missing, "planned": planned, "caps": len(rows)}
+    if on:
         return {
-            "bp": views.coverage_bp(rows),
+            **base,
+            "bp": on * 10000 // len(rows),
             "source": "cov_src_capabilities",
             "detail": f"{on}/{len(rows)}",
-            "missing": missing,
         }
     metric = ctx.state.query("oversight_metric", {"agent_id": agent_id})
     metric = [m for m in metric if m.get("coverage_bp") is not None]
     if metric:
         latest = max(metric, key=lambda m: m["metric_date"])
         return {
+            **base,
             "bp": int(latest["coverage_bp"]),
             "source": "cov_src_metric",
             "detail": str(latest["metric_date"]),
-            "missing": missing,
         }
     events = ctx.tables.query("agent_event", {"agent_id": agent_id}, order_by=("-ts",), limit=2000)
     calls = sum(1 for e in events if e["event_type"] == "tool_call")
     gated = sum(1 for e in events if e["event_type"] == "gate_decision")
     if calls == 0 and gated == 0:
-        return {"bp": None, "source": "cov_src_none", "detail": "", "missing": missing}
+        return {**base, "bp": None, "source": "cov_src_none", "detail": ""}
     seen = calls or gated
     return {
+        **base,
         "bp": min(10000, gated * 10000 // seen),
         "source": "cov_src_events",
         "detail": f"{gated}/{seen}",
-        "missing": missing,
     }
 
 
