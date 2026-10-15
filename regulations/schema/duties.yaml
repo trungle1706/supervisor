@@ -76,3 +76,4 @@ duties:
   supply_chain_security: {label_en: Manage model, data and software supply-chain risk, label_vi: Rui ro chuoi cung ung, group: security}
   output_handling: {label_en: Validate and filter model output before use, label_vi: Kiem soat dau ra mo hinh, group: security}
   prohibited_practice: {label_en: Do not use prohibited AI practices, label_vi: Khong su dung hanh vi bi cam, group: governance}
+  fundamental_rights_assessment: {label_en: Assess impact on fundamental rights before deployment (EU AI Act Art. 27), label_vi: Danh gia tac dong quyen co ban, group: governance}

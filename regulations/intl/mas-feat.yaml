@@ -1,0 +1,296 @@
+schema_version: 1
+instrument:
+  id: INTL-MASFEAT-2018
+  jurisdiction: SG
+  kind: guidance
+  issuer: Monetary Authority of Singapore (MAS)
+  number: FEAT Principles (2018)
+  title_en: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the Use
+    of AI and Data Analytics in Singapore's Financial Sector
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2018-11-12'
+      source: https://www.mas.gov.sg/publications/monographs-or-information-paper/2018/feat
+      verification: ASSUMED
+      note: FEAT released November 2018; day 12 Nov from background knowledge, the PDF itself carries
+        no date
+    effective:
+      date: null
+      source: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+      verification: ASSUMED
+      note: principles for firms to consider; not prescriptive (para 2.2), no effective date
+  sources:
+  - &id001
+    url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.mas.gov.sg/publications/monographs-or-information-paper/2018/feat
+    title: MAS FEAT publication page (as linked from the 2026 AI Risk Management Guidelines, fn 2)
+    fetched_at: '2026-10-15'
+    kind: primary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: Singapore principles, non-binding even in Singapore ('not intended to be prescriptive', para
+    2.2). 14 numbered principles read in the PDF summary (section 4). MAS Guidelines on AI Risk Management
+    (2026) say FEAT 'continue to apply' (para 1.2). Obligations below group the 14 principles by theme;
+    token P<n> is the first principle in the group.
+obligations:
+- id: INTL-MASFEAT-2018-P1-01
+  article_ref: 'Principles 1-2 (Fairness: justifiability)'
+  text_en: Individuals or groups of individuals are not systematically disadvantaged through AIDA-driven
+    decisions unless these decisions can be justified.
+  summary_en: Individuals or groups must not be systematically disadvantaged by AI-driven decisions unless
+    that can be justified, and personal attributes used as inputs must be justified.
+  duties:
+  - fair_treatment
+  - bias_monitoring
+  applies_to:
+    agent_class:
+    - credit_decision
+    - customer_facing
+  control_mapping:
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: approval-rate gap per segment, province, language
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: case when the gap is above threshold
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second line judges whether an attribute is justified
+  evidence_needed:
+  - fairness slice results
+  - justification record for each personal attribute used
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-MASFEAT-2018-P3-01
+  article_ref: 'Principles 3-4 (Fairness: accuracy and bias)'
+  text_en: Data and models used for AIDA-driven decisions are regularly reviewed and validated for accuracy
+    and relevance, and to minimize unintentional bias.
+  summary_en: Data and models behind AI-driven decisions must be reviewed and validated regularly for
+    accuracy, relevance and unintended bias, and decisions reviewed so models behave as designed.
+  duties:
+  - bias_monitoring
+  - independent_validation
+  - performance_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour against launch baseline
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: bias by slice
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: periodic validation by second line
+  evidence_needed:
+  - validation reports
+  - drift reports
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-MASFEAT-2018-P5-01
+  article_ref: Principles 5-6 (Ethics)
+  text_en: AIDA-driven decisions are held to at least the same ethical standards as human-driven decisions.
+  summary_en: AI use must follow the firm's ethical standards and codes of conduct, and AI-driven decisions
+    must meet at least the standard of human-driven decisions.
+  duties:
+  - governance_accountability
+  - fair_treatment
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: ethics standard set by the bank
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: samples replies for unsupported claims
+  evidence_needed:
+  - ethics policy covering AI
+  - review of AI decisions against the same standard as human ones
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-MASFEAT-2018-P7-01
+  article_ref: 'Principle 7 (Internal accountability: approval)'
+  text_en: Use of AIDA in AIDA-driven decision-making is approved by an appropriate internal authority.
+  summary_en: Use of AI in decision-making must be approved by an appropriate internal authority.
+  duties:
+  - governance_accountability
+  - change_control
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: onboard_plan
+    coverage: partial
+    note: plan and launch GO/NO-GO recorded per agent
+  - kind: evidence
+    id: signoff_record
+    coverage: partial
+    note: sign-off records
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank names the approving authority
+  evidence_needed:
+  - approval record per AI use case
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-MASFEAT-2018-P8-01
+  article_ref: 'Principle 8 (Internal accountability: sourced models)'
+  text_en: Firms using AIDA are accountable for both internally developed and externally sourced AIDA
+    models.
+  summary_en: The firm is accountable for both internally built and externally sourced AI models.
+  duties:
+  - outsourcing_oversight
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: records model family and owner
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract and audit of model vendors
+  evidence_needed:
+  - vendor oversight file
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-MASFEAT-2018-P9-01
+  article_ref: 'Principle 9 (Internal accountability: board awareness)'
+  summary_en: Management and the Board must be proactively made aware of the firm's use of AI.
+  duties:
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: metrics
+    coverage: partial
+    note: oversight metrics panel for leaders
+  - kind: console
+    id: home
+    coverage: partial
+    note: overview screen
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: reporting to the board
+  evidence_needed:
+  - board papers on AI use
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-MASFEAT-2018-P10-01
+  article_ref: Principles 10-11 (External accountability)
+  text_en: Data subjects are provided with channels to enquire about, submit appeals for and request reviews
+    of AIDA-driven decisions that affect them.
+  summary_en: Data subjects need channels to enquire about, appeal and request review of AI-driven decisions,
+    and verified extra data they supply must be considered in the review.
+  duties:
+  - right_to_human_review
+  - complaint_handling
+  applies_to:
+    agent_class:
+    - credit_decision
+    - customer_facing
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file can support a review
+  - kind: process
+    id: complaint_handling
+    coverage: none
+    note: bank runs the channel and the review
+  evidence_needed:
+  - appeal channel description
+  - sample reviews
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-MASFEAT-2018-P12-01
+  article_ref: 'Principle 12 (Transparency: disclosure)'
+  text_en: use of AIDA is proactively disclosed to data subjects as part of general communication.
+  summary_en: Use of AI should be proactively disclosed to data subjects as part of general communication.
+  duties:
+  - ai_disclosure
+  applies_to:
+    agent_class:
+    - customer_facing
+    - credit_decision
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank publishes the disclosure
+  evidence_needed:
+  - public or in-channel AI notice
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-MASFEAT-2018-P13-01
+  article_ref: 'Principles 13-14 (Transparency: explanations on request)'
+  text_en: Data subjects are provided, upon request, clear explanations on what data is used to make AIDA-driven
+    decisions
+  summary_en: On request, give data subjects clear explanations of what data was used in the decision,
+    how it affects the decision, and what consequences the decision may have.
+  duties:
+  - explainability
+  - consumer_information
+  applies_to:
+    agent_class:
+    - credit_decision
+    - customer_facing
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: reconstructs the steps and data tools used
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank writes the explanation
+  evidence_needed:
+  - explanation template
+  - sample explanations
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high

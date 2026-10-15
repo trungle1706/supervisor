@@ -1,0 +1,387 @@
+schema_version: 1
+instrument:
+  id: INTL-OWASPASI-2026
+  jurisdiction: INTL
+  kind: standard
+  issuer: OWASP GenAI Security Project
+  number: OWASP Top 10 for Agentic Applications for 2026
+  title_en: OWASP Top 10 for Agentic Applications for 2026
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2025-12-09'
+      source: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+      verification: VERIFIED_PRIMARY
+      note: announcement date (URL and page); the resource page also shows this date
+    effective:
+      date: null
+      source: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+      verification: ASSUMED
+      note: voluntary awareness document, no effective date
+  sources:
+  - url: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+    title: 'OWASP GenAI Security Project: OWASP Top 10 for Agentic Applications for 2026'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - &id001
+    url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - &id002
+    url: https://cycode.com/blog/owasp-top-10-agentic-applications/
+    title: 'Cycode: OWASP Top 10 for Agentic Applications (full item titles)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: Official title ends 'for 2026' (checked on the OWASP resource page), so the instrument id uses
+    2026 although the list was released on 2025-12-09. The 10 ids and short names are on OWASP's own announcement.
+    The PDF itself could not be downloaded (HTTP 429), so item summaries are my own reading of the announcement's
+    one-line examples and are not from the document body; the full title of ASI02 ('Tool Misuse and Exploitation')
+    and ASI03/ASI09 long forms come from a secondary page (Cycode). Community document, not a legal obligation.
+obligations:
+- id: INTL-OWASPASI-2026-ASI01-01
+  article_ref: ASI01 Agent Goal Hijack
+  summary_en: Hidden or injected instructions redirect an agent's goal, for example turning a copilot
+    into a data-exfiltration channel (EchoLeak). Treat all external content as untrusted and lock goals
+    to approved intent.
+  duties:
+  - prompt_injection_defence
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: alerts on injection phrases in tool arguments; never blocks
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: hijacked calls to non-approved tools pause the agent
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift can show a changed goal
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: advisory trace judge
+  evidence_needed:
+  - injection test results
+  - alerts
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-OWASPASI-2026-ASI02-01
+  article_ref: ASI02 Tool Misuse (and Exploitation)
+  summary_en: Agents bend legitimate tools into harmful use (the announcement cites Amazon Q). Give narrow
+    tool scopes, validate arguments, and cap impact.
+  duties:
+  - excessive_agency_limits
+  - transaction_limits
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list
+  - kind: rule
+    id: PAY-07
+    coverage: partial
+    note: payments agent approved tools only
+  - kind: rule
+    id: SVC-07
+    coverage: partial
+    note: customer service agent approved tools only
+  - kind: rule
+    id: CRD-07
+    coverage: partial
+    note: credit agent approved tools only
+  - kind: catalogue
+    id: amount_valid
+    coverage: partial
+    note: valid amount
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: per-call limit
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: daily aggregate
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: split payment sum
+  - kind: catalogue
+    id: prior_read
+    coverage: partial
+    note: record read before decision
+  evidence_needed:
+  - tool scope list
+  - limit settings
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: high
+  notes: Short name 'Tool Misuse' is from OWASP's announcement; the long title is from a secondary page.
+- id: INTL-OWASPASI-2026-ASI03-01
+  article_ref: ASI03 Identity & Privilege Abuse
+  summary_en: Leaked or over-broad credentials let an agent act beyond its intended scope. Use per-agent
+    identities, least privilege, short-lived credentials.
+  duties:
+  - access_control
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: scope of callable tools
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: limits bulk reads under a granted privilege
+  - kind: process
+    id: access_management
+    coverage: none
+    note: agent identities, credential issue and rotation stay with the bank
+  evidence_needed:
+  - agent identity and privilege inventory
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-OWASPASI-2026-ASI04-01
+  article_ref: ASI04 Agentic Supply Chain Vulnerabilities
+  summary_en: Dynamic tool, MCP and agent-to-agent components can be poisoned at runtime (the announcement
+    cites a GitHub MCP exploit). Vet and pin components.
+  duties:
+  - supply_chain_security
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: only approved tool names are callable
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: vetting of tool and MCP providers
+  evidence_needed:
+  - component allow-list
+  - vendor review
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-OWASPASI-2026-ASI05-01
+  article_ref: ASI05 Unexpected Code Execution (RCE)
+  summary_en: Natural-language paths can lead to code execution on the host (the announcement cites AutoGPT
+    RCE). Sandbox execution and block unlisted code tools.
+  duties:
+  - robustness_security
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: blocks a code-execution tool that is not on the list
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: sandboxing and host hardening
+  evidence_needed:
+  - sandbox design
+  - tool list showing no code execution
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-OWASPASI-2026-ASI06-01
+  article_ref: ASI06 Memory & Context Poisoning
+  summary_en: Poisoned memory or context changes behaviour long after the first interaction (the announcement
+    cites a Gemini memory attack). Validate and expire memory.
+  duties:
+  - data_quality
+  - robustness_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: slow behaviour change shows in drift
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: may match injected phrases in tool arguments
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: memory design review
+  evidence_needed:
+  - memory store controls
+  - drift reports
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: low
+  notes: Supervisor does not read agent memory directly.
+- id: INTL-OWASPASI-2026-ASI07-01
+  article_ref: ASI07 Insecure Inter-Agent Communication
+  summary_en: Spoofed or tampered messages between agents can misdirect a whole cluster. Authenticate
+    and validate inter-agent messages.
+  duties:
+  - robustness_security
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: monitor
+    id: multiagent
+    coverage: partial
+    note: cross-agent pattern checks
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: sums transfers across agents handing work over
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: message authentication between agents
+  evidence_needed:
+  - inter-agent protocol review
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-OWASPASI-2026-ASI08-01
+  article_ref: ASI08 Cascading Failures
+  summary_en: False signals cascade through automated pipelines with growing impact. Add circuit breakers,
+    isolation and monitoring across agents.
+  duties:
+  - robustness_security
+  - serious_incident_suspension
+  - business_continuity
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: monitor
+    id: multiagent
+    coverage: partial
+    note: cross-agent checks
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause an agent to stop the cascade
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: volume and stop-rate spikes
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+    note: fallback process
+  evidence_needed:
+  - circuit-breaker design
+  - incident drill record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-OWASPASI-2026-ASI09-01
+  article_ref: ASI09 Human-Agent Trust Exploitation
+  summary_en: Confident, polished explanations lead human reviewers to approve harmful actions. Show evidence,
+    measure reviewer behaviour, and train reviewers.
+  duties:
+  - human_oversight
+  - staff_competence
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok flag rubber-stamping
+  - kind: console
+    id: case_detail
+    coverage: partial
+    note: case view shows evidence beside the agent's claim
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: sign-off record
+  - kind: process
+    id: staff_training
+    coverage: none
+    note: reviewer training
+  evidence_needed:
+  - oversight metrics
+  - reviewer training record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-OWASPASI-2026-ASI10-01
+  article_ref: ASI10 Rogue Agents
+  summary_en: Agents show misalignment, concealment or self-directed action (the announcement cites the
+    Replit incident). Keep a kill switch, watch for drift, keep tamper-evident logs.
+  duties:
+  - human_oversight
+  - serious_incident_suspension
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause or retire
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record the agent cannot edit
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: advisory trace judge
+  evidence_needed:
+  - kill-switch test record
+  - drift reports
+  - chain verification report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high

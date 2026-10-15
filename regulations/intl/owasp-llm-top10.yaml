@@ -1,0 +1,381 @@
+schema_version: 1
+instrument:
+  id: INTL-OWASPLLM-2025
+  jurisdiction: INTL
+  kind: standard
+  issuer: OWASP GenAI Security Project
+  number: OWASP Top 10 for LLM Applications v2025
+  title_en: OWASP Top 10 for Large Language Model Applications 2025
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2024-11-18'
+      source: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+      verification: VERIFIED_PRIMARY
+      note: 'cover page: ''Version 2025, November 18, 2024'''
+    effective:
+      date: null
+      source: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+      verification: ASSUMED
+      note: voluntary awareness document, no effective date
+  sources:
+  - &id001
+    url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://genai.owasp.org/llm-top-10/
+    title: 'OWASP GenAI Security Project: LLM Top 10 index'
+    fetched_at: '2026-10-15'
+    kind: primary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: 'Community security awareness list (CC BY-SA 4.0); not a legal obligation anywhere. Ids and titles
+    verified on the official index and in the PDF (read 2026-10-15; not stored in the repo because CC BY-SA content is not allowed there;
+    URL only). Each obligation here restates one item as a duty to address
+    the risk, with article_ref LLM01:2025 to LLM10:2025. Titles: LLM01 Prompt Injection, LLM02 Sensitive
+    Information Disclosure, LLM03 Supply Chain, LLM04 Data and Model Poisoning, LLM05 Improper Output
+    Handling, LLM06 Excessive Agency, LLM07 System Prompt Leakage, LLM08 Vector and Embedding Weaknesses,
+    LLM09 Misinformation, LLM10 Unbounded Consumption.'
+obligations:
+- id: INTL-OWASPLLM-2025-LLM01-01
+  article_ref: LLM01:2025 Prompt Injection
+  summary_en: Inputs, direct or hidden in documents and tool results, can change the model's behaviour.
+    Limit privileges, validate inputs, separate untrusted content, and test with adversarial prompts.
+  duties:
+  - prompt_injection_defence
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: regex screen for injection phrases in tool arguments (Vietnamese and English); alerts only,
+      never blocks, and does not see the user prompt
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: an injected call to a tool outside the list pauses the agent
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: advisory judge on every trace
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: red-team and pen test of the agent
+  evidence_needed:
+  - injection test results
+  - alert log from the pre-filter
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-OWASPLLM-2025-LLM02-01
+  article_ref: LLM02:2025 Sensitive Information Disclosure
+  summary_en: Models can reveal personal data, credentials or confidential data in output. Sanitise data,
+    restrict access, and limit what the model can see.
+  duties:
+  - customer_confidentiality
+  - data_minimisation
+  - sensitive_data_protection
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks CCCD, phone, account and card numbers before storage or judge calls; does not mask the
+      agent's own replies
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: blocks bursts of personal-data reads
+  - kind: rule
+    id: PII-02
+    coverage: partial
+    note: caps loan applications read per agent per hour
+  - kind: process
+    id: dpo_signoff
+    coverage: none
+    note: privacy review
+  evidence_needed:
+  - masking test results
+  - bulk-read thresholds
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-OWASPLLM-2025-LLM03-01
+  article_ref: LLM03:2025 Supply Chain
+  summary_en: Third-party models, datasets, adapters and plugins can be tampered with or outdated. Vet
+    sources, keep an inventory of components, and check integrity.
+  duties:
+  - supply_chain_security
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: model family and version per agent version
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: inventory of agents
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: vendor assessment and contracts
+  evidence_needed:
+  - component inventory
+  - vendor assessment
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+  notes: Supervisor does not scan model files or packages.
+- id: INTL-OWASPLLM-2025-LLM04-01
+  article_ref: LLM04:2025 Data and Model Poisoning
+  summary_en: Tampered training, fine-tuning or embedding data can plant backdoors or bias. Track data
+    origin, validate, and monitor behaviour.
+  duties:
+  - data_quality
+  - supply_chain_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift against launch baseline can show a changed model
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: validation of training data lineage and model behaviour
+  evidence_needed:
+  - data lineage records
+  - drift reports
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+  notes: Supervisor sees runtime behaviour only, not training data.
+- id: INTL-OWASPLLM-2025-LLM05-01
+  article_ref: LLM05:2025 Improper Output Handling
+  summary_en: Model output passed to other systems without validation can cause injection, code execution
+    or bad actions. Treat output as untrusted and validate it.
+  duties:
+  - output_handling
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: amount_valid
+    coverage: partial
+    note: blocks a money call with a missing or non-positive amount
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: blocks a call above the declared per-call limit
+  - kind: catalogue
+    id: system_of_record
+    coverage: partial
+    note: approve decisions are checked against the record
+  - kind: rule
+    id: PAY-01
+    coverage: partial
+    note: transfer must state amount_minor as an integer
+  - kind: rule
+    id: CRD-01
+    coverage: partial
+    note: approve only when documents are on file
+  evidence_needed:
+  - validation rules per tool
+  - gate decision log
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+  notes: Covers money and credit tool arguments only; other output paths (HTML, SQL) are in the agent's
+    own code.
+- id: INTL-OWASPLLM-2025-LLM06-01
+  article_ref: LLM06:2025 Excessive Agency
+  summary_en: An agent with too many functions, permissions or autonomy can do damage when its output
+    is wrong or manipulated. Minimise tools and rights, require approval for high-impact actions.
+  duties:
+  - excessive_agency_limits
+  - pre_execution_approval
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list per agent, enforced at the gateway
+  - kind: rule
+    id: PAY-07
+    coverage: partial
+    note: payments agent approved tools only
+  - kind: rule
+    id: SVC-07
+    coverage: partial
+    note: customer service agent approved tools only
+  - kind: rule
+    id: CRD-07
+    coverage: partial
+    note: credit agent approved tools only
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: per-call amount limit
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: daily sum or count per customer
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: sum across calls and agents
+  - kind: catalogue
+    id: prior_read
+    coverage: partial
+    note: decision needs the record read first
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause or retire an agent
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank decides which actions need human approval before they run
+  evidence_needed:
+  - tool and permission list per agent
+  - limit settings
+  - list of actions needing prior approval
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+  notes: A Supervisor pause is not pre-execution human approval (Decision 33), so pre_execution_approval
+    stays with the bank.
+- id: INTL-OWASPLLM-2025-LLM07-01
+  article_ref: LLM07:2025 System Prompt Leakage
+  summary_en: System prompts can reveal secrets or internal rules. Keep secrets and authorisation logic
+    out of prompts and enforce controls outside the model.
+  duties:
+  - prompt_injection_defence
+  - sensitive_data_protection
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank reviews prompts for secrets; no Supervisor control watches model replies for prompt leakage
+  evidence_needed:
+  - prompt review record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+  notes: Gateway rules live outside the prompt, which is the recommended design, but they do not detect
+    leakage.
+- id: INTL-OWASPLLM-2025-LLM08-01
+  article_ref: LLM08:2025 Vector and Embedding Weaknesses
+  summary_en: Weak access control or poisoned content in vector stores and RAG can leak or corrupt data.
+    Use permission-aware retrieval and validate sources.
+  duties:
+  - access_control
+  - data_quality
+  - robustness_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank tests the RAG store; Supervisor does not see the vector store
+  evidence_needed:
+  - RAG access-control design
+  - content validation record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-OWASPLLM-2025-LLM09-01
+  article_ref: LLM09:2025 Misinformation
+  summary_en: Hallucinated or biased output can mislead users. Ground answers in trusted data, test, and
+    keep humans in the loop for risky answers.
+  duties:
+  - output_handling
+  - performance_monitoring
+  - consumer_information
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: judge samples replies against the tool results of the same trace; advisory
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: quality sampling
+  - kind: catalogue
+    id: system_of_record
+    coverage: partial
+    note: decision checked against the record
+  evidence_needed:
+  - groundedness sample results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-OWASPLLM-2025-LLM10-01
+  article_ref: LLM10:2025 Unbounded Consumption
+  summary_en: Uncontrolled inference can cause denial of service, cost blow-up or model extraction. Rate-limit,
+    set quotas and monitor usage.
+  duties:
+  - robustness_security
+  - security_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: counts calls of one tool per customer and day
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: call volume against baseline
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: hourly cap on personal-data reads
+  - kind: catalogue
+    id: otlp_ingest
+    coverage: partial
+    note: spans show volume
+  evidence_needed:
+  - rate limit settings
+  - usage and cost reports
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+  notes: Token and cost quotas are set at the model provider or API gateway, not by Supervisor.

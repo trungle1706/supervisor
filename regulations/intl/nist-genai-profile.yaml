@@ -1,0 +1,344 @@
+schema_version: 1
+instrument:
+  id: INTL-NISTGAI-2024
+  jurisdiction: US
+  kind: guidance
+  issuer: National Institute of Standards and Technology (NIST)
+  number: NIST AI 600-1
+  title_en: 'Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile'
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2024-07-26'
+      source: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+      verification: ASSUMED
+      note: document is dated July 2024; day from NIST release notes, not re-read
+    effective:
+      date: null
+      source: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+      verification: ASSUMED
+      note: voluntary profile, no effective date
+  sources:
+  - &id001
+    url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: Voluntary US companion profile to the AI RMF for generative AI; no legal force. PDF read for
+    the 12 risk categories (section 2) and suggested-action ids. Risk categories used as obligations here
+    are the ones that bear on an LLM agent at a bank; CBRN, environmental, IP and obscene content are
+    left out.
+obligations:
+- id: INTL-NISTGAI-2024-S2.2-01
+  article_ref: Sec. 2.2 Confabulation
+  summary_en: GAI can state false content with confidence. Test for it, ground answers in trusted data,
+    and disclose limits.
+  duties:
+  - output_handling
+  - performance_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: judge samples replies against tool results; advisory
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: quality sampling
+  - kind: catalogue
+    id: system_of_record
+    coverage: partial
+    note: approve decisions are checked against the record
+  evidence_needed:
+  - groundedness sample results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-NISTGAI-2024-S2.4-01
+  article_ref: Sec. 2.4 Data Privacy
+  summary_en: GAI can leak or infer personal data from inputs, outputs or training data. Minimise and
+    mask data, restrict bulk reads.
+  duties:
+  - data_minimisation
+  - customer_confidentiality
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: keyed-HMAC masking before storage or judge calls
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: blocks bulk personal-data reads
+  - kind: rule
+    id: PII-02
+    coverage: partial
+    note: caps loan applications read per agent per hour
+  evidence_needed:
+  - masking test results
+  - bulk-read thresholds
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-NISTGAI-2024-S2.6-01
+  article_ref: Sec. 2.6 Harmful Bias and Homogenization
+  summary_en: GAI can amplify bias against groups. Measure outcomes across groups and review.
+  duties:
+  - bias_monitoring
+  - fair_treatment
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: approval-rate gap per segment
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: case on gap
+  evidence_needed:
+  - fairness slice results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-NISTGAI-2024-S2.7-01
+  article_ref: Sec. 2.7 Human-AI Configuration
+  summary_en: Misconfigured human-AI interaction, automation bias and over-reliance. Design review roles
+    so reviewers keep real control.
+  duties:
+  - human_oversight
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: reviewer can pause or resume an agent
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: human sign-off on a case after a stop; a Supervisor pause is not pre-execution human approval
+      (Decision 33)
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'oversight metrics: dwell time, approval rate, chain_ok'
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank names accountable roles and committee oversight
+  evidence_needed:
+  - oversight metrics showing review time and override rate
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+  notes: Dwell time and approval-rate metrics are indicators of automation bias, not proof against it.
+- id: INTL-NISTGAI-2024-S2.8-01
+  article_ref: Sec. 2.8 Information Integrity
+  summary_en: GAI can produce and spread misleading content at scale. Provenance and disclosure help.
+  duties:
+  - output_handling
+  - ai_disclosure
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: checks replies against tool results
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank labels AI replies
+  evidence_needed:
+  - groundedness results
+  - disclosure screenshots
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-NISTGAI-2024-S2.9-01
+  article_ref: Sec. 2.9 Information Security
+  text_en: GAI itself is vulnerable to attacks like prompt injection or data poisoning.
+  summary_en: 'GAI adds attack surface: prompt injection, data poisoning, model theft. Secure the system,
+    inputs and tools.'
+  duties:
+  - robustness_security
+  - prompt_injection_defence
+  - security_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: regex screen on tool arguments (advisory)
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank pen test and classification
+  evidence_needed:
+  - security test report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: high
+- id: INTL-NISTGAI-2024-S2.12-01
+  article_ref: Sec. 2.12 Value Chain and Component Integration
+  summary_en: Third-party models, data and components bring opaque risk. Assess and monitor vendors and
+    keep version records.
+  duties:
+  - supply_chain_security
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: model family and version per agent version
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contracts, audit, exit plan
+  evidence_needed:
+  - vendor assessment
+  - component list
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-NISTGAI-2024-GV1.6.001-01
+  article_ref: GV-1.6-001 (suggested action)
+  summary_en: Enumerate the organisation's GAI systems for the AI inventory and adjust inventory rules
+    for GAI risks.
+  duties:
+  - model_inventory
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier, model family
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history of each agent
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank issues the AI inventory policy covering non-agent models too
+  evidence_needed:
+  - inventory including GAI systems
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-NISTGAI-2024-MS2.7.001-01
+  article_ref: MS-2.7-001 (suggested action)
+  summary_en: Test GAI security against known attack classes (including autonomous agents, bypass, extraction)
+    and benchmark resilience.
+  duties:
+  - security_testing
+  - robustness_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: red-team pack at launch
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: periodic security testing by the bank
+  evidence_needed:
+  - red-team report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-NISTGAI-2024-MG2.4.001-01
+  article_ref: MG-2.4-001 to MG-2.4-004 (suggested actions)
+  summary_en: Define criteria for deactivating GAI systems, escalate incidents that meet them, and plan
+    communication to stakeholders.
+  duties:
+  - serious_incident_suspension
+  - incident_response
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause or retire
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: metrics
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: deactivation criteria and communication plan
+  evidence_needed:
+  - deactivation criteria document
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium
+- id: INTL-NISTGAI-2024-MG4.3.001-01
+  article_ref: MG-4.3-001 (suggested action)
+  summary_en: Keep procedures for communicating GAI incidents to AI actors and, where applicable, legal
+    and regulatory bodies.
+  duties:
+  - incident_report
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file holds timeline, rule, evidence hashes and sign-off to support an incident report
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure decides severity, owners, timelines
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: bank files any report to the authority; Supervisor does not notify
+  evidence_needed:
+  - incident communication procedure
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  confidence: medium

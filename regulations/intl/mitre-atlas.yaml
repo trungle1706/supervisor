@@ -1,0 +1,367 @@
+schema_version: 1
+instrument:
+  id: INTL-ATLAS
+  jurisdiction: INTL
+  kind: standard
+  issuer: MITRE
+  number: ATLAS 2026.09 (Adversarial Threat Landscape for AI Systems)
+  title_en: 'MITRE ATLAS: Adversarial Threat Landscape for Artificial-Intelligence Systems'
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2020-10-23'
+      source: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+      verification: VERIFIED_PRIMARY
+      note: created-date in the data file; this is the first ATLAS release, not the current one
+    effective:
+      date: null
+      source: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+      verification: ASSUMED
+      note: knowledge base, no effective date
+    milestones:
+    - label: Data release 2026.09 (modified-date)
+      date: '2026-09-15'
+      source: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+      verification: VERIFIED_PRIMARY
+  sources:
+  - &id001
+    url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - &id002
+    url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: 'Threat knowledge base, not a legal duty; each entry is restated as a duty to defend against
+    the technique. Ids and names read from the official data file (release 2026.09). The older dist/ATLAS.yaml
+    (version 5.6.0) is marked deprecated. Name changes found: AML.T0053 is now ''AI Agent Tool Invocation''
+    (earlier ''LLM Plugin Compromise''); do not cite the old name. Article token T0051 means AML.T0051.'
+obligations:
+- id: INTL-ATLAS-T0051-01
+  article_ref: AML.T0051 LLM Prompt Injection (sub-techniques .000 Direct, .001 Indirect)
+  summary_en: Crafted prompts, direct or arriving through data the agent reads (documents, emails, web),
+    make the LLM act in unintended ways.
+  duties:
+  - prompt_injection_defence
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: alerts on injection phrases in tool arguments; never blocks
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: limits what an injected instruction can call
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: advisory judge
+  evidence_needed:
+  - injection test results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: high
+- id: INTL-ATLAS-T0054-01
+  article_ref: AML.T0054 LLM Jailbreak
+  summary_en: Adversary induces the model to ignore safety behaviour and guardrails to produce withheld
+    output.
+  duties:
+  - prompt_injection_defence
+  - robustness_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: advisory judge on every trace
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: samples replies
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: jailbreak testing
+  evidence_needed:
+  - jailbreak test results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: medium
+  notes: Supervisor gates tool calls, so a jailbroken chat reply that calls no tool is outside its gate.
+- id: INTL-ATLAS-T0057-01
+  article_ref: AML.T0057 LLM Data Leakage
+  summary_en: Prompts that make the LLM reveal private user data or proprietary information.
+  duties:
+  - customer_confidentiality
+  - data_minimisation
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks before storage or judge calls; does not mask replies
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: bulk-read cap
+  - kind: rule
+    id: PII-02
+    coverage: partial
+    note: loan application read cap
+  evidence_needed:
+  - leakage test results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: high
+- id: INTL-ATLAS-T0053-01
+  article_ref: AML.T0053 AI Agent Tool Invocation
+  summary_en: Adversary uses access to an agent to invoke the tools it can reach (formerly 'LLM Plugin
+    Compromise').
+  duties:
+  - excessive_agency_limits
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: tool allow-list
+  - kind: rule
+    id: PAY-07
+    coverage: partial
+    note: payments agent approved tools only
+  - kind: rule
+    id: SVC-07
+    coverage: partial
+    note: customer service agent approved tools only
+  - kind: rule
+    id: CRD-07
+    coverage: partial
+    note: credit agent approved tools only
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: per-call limit
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: daily aggregate
+  evidence_needed:
+  - tool scope list
+  - limit settings
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: high
+- id: INTL-ATLAS-T0086-01
+  article_ref: AML.T0086 Exfiltration via AI Agent Tool Invocation
+  summary_en: Write-capable agent tools are invoked to carry data out to an adversary, with data encoded
+    in tool inputs.
+  duties:
+  - customer_confidentiality
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: blocks tools not on the list
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: bulk-read cap
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: alerts on phrases in tool arguments
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: no plain PII in stored events
+  evidence_needed:
+  - egress-capable tool list
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: medium
+- id: INTL-ATLAS-T0080-01
+  article_ref: AML.T0080 AI Agent Context Poisoning (.000 Memory)
+  summary_en: Adversary manipulates the context or memory an agent uses so it keeps producing biased responses
+    or actions.
+  duties:
+  - data_quality
+  - robustness_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: may match planted phrases
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: memory design review
+  evidence_needed:
+  - memory controls
+  - drift reports
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: low
+- id: INTL-ATLAS-T0070-01
+  article_ref: AML.T0070 RAG Poisoning
+  summary_en: Malicious content injected into data indexed for retrieval contaminates later answers.
+  duties:
+  - data_quality
+  - robustness_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: checks replies against tool results of the same trace
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: RAG source control
+  evidence_needed:
+  - RAG source validation record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: low
+- id: INTL-ATLAS-T0010-01
+  article_ref: AML.T0010 AI Supply Chain Compromise
+  summary_en: Initial access via compromised hardware, data, model, software or agent tools in the AI
+    supply chain.
+  duties:
+  - supply_chain_security
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version and model family history
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: vendor assessment
+  evidence_needed:
+  - supply chain inventory
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: medium
+- id: INTL-ATLAS-T0110-01
+  article_ref: AML.T0110 AI Agent Tool Poisoning
+  summary_en: Adversary modifies a tool's model-visible definition, implementation or runtime responses
+    to steer the agent.
+  duties:
+  - supply_chain_security
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: only approved tool names are callable; does not check tool descriptions
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: vetting of tool providers
+  evidence_needed:
+  - tool integrity review
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: medium
+- id: INTL-ATLAS-T0056-01
+  article_ref: AML.T0056 Extract LLM System Prompt
+  summary_en: Prompt injection that makes the model reveal its system prompt.
+  duties:
+  - prompt_injection_defence
+  - sensitive_data_protection
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank checks prompts for secrets; no Supervisor control watches replies
+  evidence_needed:
+  - prompt review record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: medium
+- id: INTL-ATLAS-T0034-01
+  article_ref: AML.T0034 Cost Harvesting
+  summary_en: Driving AI services beyond normal capacity to raise the victim's cost (sub-technique .002
+    Agentic Resource Consumption).
+  duties:
+  - robustness_security
+  - security_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: counts calls per customer and day
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: volume against baseline
+  evidence_needed:
+  - usage and cost reports
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id001
+  - *id002
+  confidence: low
