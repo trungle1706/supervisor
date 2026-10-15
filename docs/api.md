@@ -14,6 +14,9 @@
 - `/gate/...` (no prefix) is the old path. It still works and runs the same code. It is
   marked `deprecated` in `/openapi.json` only. New clients use `/v1/gate/...`.
 - The OpenAPI document is at `/openapi.json`. Tags: `gate`, `traces`, `console`, `ops`.
+  The interactive `/docs` and `/redoc` pages are off (WP18): they load JavaScript from a
+  CDN, which the offline rule forbids and the CSP blocks. Open `/openapi.json` in any
+  OpenAPI viewer the bank allows.
 
 ## Security schemes in the document
 

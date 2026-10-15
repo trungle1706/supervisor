@@ -365,7 +365,11 @@ Probes (no sign-in, no secrets in the body):
 * `GET /health` returns 200 `{"status":"ok","version":...}` while the process runs. `GET /healthz` is unchanged.
 * `GET /ready` returns 200 `{"ready":true,"checks":{...}}` when the runtime is built, the store answers and the evidence signer is loaded. It returns 503 with `"failed":[names]` otherwise. 503 is for probes and load balancers, not for people. The `scheduler` check shows `running`, `off` or `not-leader` and does not fail the probe.
 
-Rate limit scope: the key is `X-Forwarded-Email`, else the dev user (`X-Dev-User` or `sv_dev_user` cookie), else the client IP. `POST /gate/check` and `POST /v1/traces` are not limited: agent traffic is governed by the gateway (fail mode), and a human limit there would turn a busy agent into a gate outage.
+If the runtime build fails at startup, `/ready` stays 503 until the first gateway call builds it again. This is correct for a probe: the app cannot decide yet.
+
+Rate limit scope: the key is `X-Forwarded-Email`, else the dev user (`X-Dev-User` or `sv_dev_user` cookie), else the client IP. `POST /gate/check`, `POST /v1/gate/check` and `POST /v1/traces` are not limited: agent traffic is governed by the gateway (fail mode), and a human limit there would turn a busy agent into a gate outage. The key is read before sign-in. On the Databricks App the proxy sets `X-Forwarded-Email`, so the key is the real user. On a laptop a caller can change the header, so the limit is a throttle there, not a control.
+
+The interactive `/docs` and `/redoc` pages are off: they load JavaScript from a CDN. The API schema is at `/openapi.json` (see `docs/api.md`).
 
 Default-on changes in this release (a pure addition, each can be turned off):
 

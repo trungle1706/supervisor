@@ -70,6 +70,10 @@ app = FastAPI(
     version=__version__,
     lifespan=lifespan,
     openapi_tags=openapi_doc.TAGS,
+    # Swagger UI / ReDoc load their JS from a CDN: not allowed offline and blocked by the
+    # CSP. The schema stays at /openapi.json (docs/api.md).
+    docs_url=None,
+    redoc_url=None,
 )
 # WP18 API versioning (docs/api.md): /v1/gate/... is the versioned path; /gate/... keeps
 # working and is marked deprecated in the schema only.

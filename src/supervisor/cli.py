@@ -203,9 +203,11 @@ def cmd_export_delta(args: argparse.Namespace) -> int:
 
     settings = load_settings()
     tables = [t.strip() for t in args.tables.split(",") if t.strip()] if args.tables else None
-    m = backup.export_delta(settings, Path(args.out), tables=tables)
+    m = backup.export_delta(settings, Path(args.out), tables=tables, include_raw=args.include_raw)
     for name, info in m["tables"].items():
         print(_ascii(f"[OK] {name}: {info['rows']} rows"))
+    for name in m.get("skipped_restricted", []):
+        print(_ascii(f"[SKIP] {name}: restricted raw capture (add --include-raw)"))
     print(_ascii(f"[OK] manifest {Path(args.out).resolve() / backup.MANIFEST}"))
     return 0
 
@@ -257,6 +259,11 @@ def build_parser() -> argparse.ArgumentParser:
     ed = sub.add_parser("export-delta", help="export every table to JSONL (WP18)")
     ed.add_argument("--out", required=True, help="export directory (empty or new)")
     ed.add_argument("--tables", default=None, help="comma list of tables (default: all)")
+    ed.add_argument(
+        "--include-raw",
+        action="store_true",
+        help="also export agent_event_raw (unmasked capture; store as restricted data)",
+    )
     ed.set_defaults(func=cmd_export_delta)
     sub.add_parser("release", help="build the hand-off zip (WP11)").set_defaults(func=cmd_release)
     return p

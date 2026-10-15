@@ -95,13 +95,14 @@ def test_model_declares_classes() -> None:
 @pytest.mark.parametrize(
     "bad",
     ["retention: {bogus: [a]}", "retention: {raw: [nope]}", "retention: {raw: [id]}",
-     "retention: {raw: [n]}"],
+     "retention: {raw: [n]}", "retention: {raw: [b]}", "retention: {raw: [a], masked: [c]}"],
 )  # fmt: skip
 def test_model_rejects_bad_retention(bad: str) -> None:
+    # b: NOT NULL text on an append_only table; two classes on one append_only table.
     text = (
         "version: 1\ntables:\n  t:\n    kind: append_only\n    primary_key: [id]\n"
         f"    {bad}\n    columns:\n      id: string\n      ts: timestamp\n      a: text?\n"
-        "      n: int\n"
+        "      n: int\n      b: text\n      c: text?\n"
     )
     with pytest.raises(ValueError):
         parse_model(text)

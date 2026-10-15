@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import tempfile
 from datetime import UTC, date, datetime
@@ -114,7 +115,7 @@ def backup(settings: Settings, out: Path, *, include_key: bool = False) -> dict[
     key_path = Path(settings.signer_key_path) if settings.signer_key_path else None
     key_included = False
     if include_key and key_path is not None and key_path.is_file():
-        shutil.copyfile(key_path, out / KEY_NAME)
+        _copy_private(key_path, out / KEY_NAME)
         key_included = True
     anchors_copied = 0
     if settings.anchor_kind == "worm_dir" and settings.anchor_path:
@@ -228,13 +229,15 @@ def restore(settings: Settings, src: Path, *, force: bool = False) -> dict[str, 
         if stale.exists():
             shutil.move(str(stale), str(stale) + f".pre-restore-{utc_stamp()}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(db, target)
+    partial = target.with_name(target.name + ".restoring")
+    shutil.copyfile(db, partial)  # copy beside the target, then swap: never a half file
+    os.replace(partial, target)
     key_restored = False
     key_src = src / KEY_NAME
     key_dst = Path(settings.signer_key_path) if settings.signer_key_path else None
     if key_src.is_file() and key_dst is not None and not key_dst.exists():
         key_dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(key_src, key_dst)
+        _copy_private(key_src, key_dst)
         key_restored = True
     anchors_restored = 0
     if (src / ANCHOR_DIR).is_dir() and settings.anchor_kind == "worm_dir" and settings.anchor_path:
@@ -261,17 +264,36 @@ def restore(settings: Settings, src: Path, *, force: bool = False) -> dict[str, 
 
 # ----------------------------------------------------------------------------- export-delta
 
+RESTRICTED = ("agent_event_raw",)  # unmasked capture (schema/model.yaml): opt-in only
+
+
+def _copy_private(src: Path, dst: Path) -> None:
+    """Copy a secret (the signing key) and make it owner-only where the OS allows it."""
+    shutil.copyfile(src, dst)
+    try:
+        os.chmod(dst, 0o600)
+    except OSError:  # Windows ACLs: the folder's own permissions apply
+        pass
+
 
 def export_delta(
-    settings: Settings, out: Path, *, tables: list[str] | None = None
+    settings: Settings,
+    out: Path,
+    *,
+    tables: list[str] | None = None,
+    include_raw: bool = False,
 ) -> dict[str, Any]:
-    """One read-only SELECT per table (paged by the adapter) -> DIR/<table>.jsonl."""
+    """One read-only SELECT per table (paged by the adapter) -> DIR/<table>.jsonl.
+
+    The RESTRICTED raw-capture table is left out unless ``include_raw`` (or it is named in
+    ``tables``): an export on disk has no table grants to protect it."""
     from supervisor.adapters.factory import build_adapters
 
     a = build_adapters(settings)
     try:
         model = a.model
-        names = tables or list(model.tables)
+        skipped = [] if (tables or include_raw) else [t for t in RESTRICTED if t in model.tables]
+        names = tables or [t for t in model.tables if t not in skipped]
         unknown = [n for n in names if n not in model.tables]
         if unknown:
             raise BackupError(f"unknown table(s): {', '.join(unknown)}")
@@ -298,6 +320,7 @@ def export_delta(
             "created_at": utc_stamp(),
             "app_version": __version__,
             "schema_version": model.version,
+            "skipped_restricted": skipped,
             "schema_model_hash": model.source_hash,
             "backend": settings.effective_sql_backend,
             "workspace_host": "FILL-ME-host" if host is None or is_placeholder(host) else host,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -95,6 +96,10 @@ def test_include_key_and_restore_key(cfg: Settings, tmp_path: Path, capsys) -> N
     code, out = run(capsys, "restore", "--from", str(bdir))
     assert code == 0 and "signing key restored" in out
     assert cfg.signer_key_path.is_file()  # type: ignore[union-attr]
+    if os.name == "posix":  # the key copies are owner-only
+        assert (bdir / B.KEY_NAME).stat().st_mode & 0o077 == 0
+        assert cfg.signer_key_path.stat().st_mode & 0o077 == 0  # type: ignore[union-attr]
+    assert not list(cfg.sqlite_path.parent.glob("*.restoring"))  # type: ignore[union-attr]
 
 
 def test_restore_refuses_sha_mismatch_and_newer_schema(cfg: Settings, tmp_path: Path) -> None:
@@ -143,12 +148,18 @@ def test_backup_nonempty_dir_refused(cfg: Settings, tmp_path: Path) -> None:
 
 def test_export_delta_sqlite(cfg: Settings, tmp_path: Path, capsys) -> None:
     out_dir = tmp_path / "ex"
-    code, _ = run(capsys, "export-delta", "--out", str(out_dir))
+    code, out = run(capsys, "export-delta", "--out", str(out_dir))
     assert code == 0
+    assert "[SKIP] agent_event_raw: restricted raw capture" in out
     m = json.loads((out_dir / "manifest.json").read_text())
     model = load_model()
     want = counts(cfg)
-    assert set(m["tables"]) == set(model.tables)
+    assert set(m["tables"]) == set(model.tables) - {"agent_event_raw"}
+    assert m["skipped_restricted"] == ["agent_event_raw"]
+    assert not (out_dir / "agent_event_raw.jsonl").exists()
+    raw_dir = tmp_path / "ex-raw"
+    assert run(capsys, "export-delta", "--out", str(raw_dir), "--include-raw")[0] == 0
+    assert (raw_dir / "agent_event_raw.jsonl").exists()
     for name, info in m["tables"].items():
         lines = (out_dir / f"{name}.jsonl").read_text(encoding="utf-8").splitlines()
         assert len(lines) == info["rows"] == want[name]

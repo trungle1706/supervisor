@@ -16,6 +16,7 @@ from supervisor.adapters.auth.authz import needs, runtime_settings
 from supervisor.core.errors import SupervisorError
 from supervisor.gateway import wiring
 from supervisor.gateway.engine import Gateway
+from supervisor.ops.middleware import BodyTooLarge
 
 router = APIRouter(prefix="/gate", tags=["gate"])
 log = logging.getLogger("supervisor.gateway")
@@ -54,6 +55,8 @@ def _bad(message: str, **extra: Any) -> JSONResponse:
 async def _body(request: Request) -> Any:
     try:
         return await request.json()
+    except BodyTooLarge:  # the body-limit middleware answers 413
+        raise
     except Exception:  # noqa: BLE001 - any malformed body is a user error
         return None
 

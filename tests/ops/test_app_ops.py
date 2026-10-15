@@ -60,3 +60,14 @@ def test_ready_503_without_runtime(monkeypatch):
     monkeypatch.setattr(gate_wiring, "_runtime", None)
     r = TestClient(app).get("/ready")
     assert r.status_code == 503 and "runtime" in r.json()["failed"]
+
+
+def test_gate_chunked_oversized_body_is_413(runtime):
+    """The gate's own body parser must not turn the body-limit stop into a 400."""
+
+    def chunks():
+        for _ in range(12):
+            yield b"a" * 1_000_000
+
+    r = TestClient(app).post("/gate/check", content=chunks())
+    assert r.status_code == 413 and "too large" in r.json()["error"]

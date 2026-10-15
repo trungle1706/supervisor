@@ -126,6 +126,9 @@ class _TooLarge(Exception):
     pass
 
 
+BodyTooLarge = _TooLarge  # public name: handlers that catch Exception must re-raise it
+
+
 class BodyLimitMiddleware:
     """413 above ``limit`` bytes: by Content-Length, and by counting streamed bytes."""
 

@@ -137,10 +137,13 @@ def _parse_type(spec: str, where: str) -> tuple[str, bool]:
 
 
 def _parse_retention(
-    tname: str, spec: Any, cols: list[Column], pk: tuple[str, ...]
+    tname: str, spec: Any, cols: list[Column], pk: tuple[str, ...], kind: str = "state"
 ) -> tuple[tuple[str, tuple[str, ...]], ...]:
     if not isinstance(spec, dict):
         raise ValueError(f"{tname}: retention must be a mapping class -> [columns]")
+    if kind == "append_only" and len(spec) > 1:
+        # The SQLite trigger allows an UPDATE only when every retention column ends NULL.
+        raise ValueError(f"{tname}: an append_only table may have one retention class only")
     by_name = {c.name: c for c in cols}
     if spec and "ts" not in by_name:
         raise ValueError(f"{tname}: retention needs a ts column")
@@ -158,6 +161,8 @@ def _parse_retention(
                 raise ValueError(f"{tname}.{n}: key or time column cannot be a retention column")
             if by_name[n].type not in RETENTION_TYPES:
                 raise ValueError(f"{tname}.{n}: retention columns must be text-like")
+            if kind == "append_only" and not by_name[n].nullable:
+                raise ValueError(f"{tname}.{n}: retention columns of append_only tables need '?'")
             if n in seen:
                 raise ValueError(f"{tname}.{n}: listed in more than one retention class")
             seen.add(n)
@@ -203,7 +208,7 @@ def parse_model(text: str) -> SchemaModel:
         evidence = spec.get("evidence", False)
         if not isinstance(evidence, bool):
             raise ValueError(f"{tname}: evidence must be true or false")
-        retention = _parse_retention(tname, spec.get("retention") or {}, cols, pk)
+        retention = _parse_retention(tname, spec.get("retention") or {}, cols, pk, kind)
         tables[tname] = Table(
             tname,
             kind,
