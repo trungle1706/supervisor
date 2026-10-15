@@ -214,7 +214,7 @@ def predict_repo(repo_dir: str | Path) -> Prediction:
         tools=_tools(inv),
         llm_calls=_llm_calls(inv),
         data_access=_data_access(inv),
-        pii_fields=sorted(inv.pii_fields),
+        pii_fields=sorted(set(inv.pii_fields) | set(getattr(inv, "pii_identifiers", {}))),
         tracing=_tracing(inv),
         framework=getattr(inv, "framework", None) or "unknown",
         decision33=profile.decision33.classification,

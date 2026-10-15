@@ -25,11 +25,15 @@ import yaml
 
 from supervisor.adapters.repo.local_git import RepoReadError
 from supervisor.core.ports import RepoReader, WorkspaceReader
+from supervisor.onboard import codefacts
+from supervisor.onboard.injection import WITHHELD, find_injection, neutralize_tree
 from supervisor.onboard.models import (
+    DataAccess,
     Endpoint,
     Evidence,
     Inventory,
     LimitInfo,
+    LlmCallSite,
     NamedRef,
     Note,
     PromptInfo,
@@ -91,10 +95,35 @@ _HUMAN_APPROVAL_IDENT = re.compile(
     r"(approval|sign_?off)$|maker_checker|four_eyes|human_approval|officer_approval"
 )
 _RISK_HEURISTIC: tuple[tuple[str, str], ...] = (
-    ("money", r"transfer|pay|refund|waive|disburse|withdraw|deposit|remit|dispute|charge"),
+    # WP16: credit changes first ("record_payment_plan" changes credit terms, it pays nothing)
+    (
+        "credit",
+        r"payment_plan|restructur|reschedul|preapprov|decision|underwrit|score_override|"
+        r"phe_duyet|han_muc|ke_hoach_tra_no|co_cau_no|gia_han_no|"
+        r"(raise|set|increase|change|update)_\w*limit",
+    ),
+    ("pii_export", r"add_payee|save_payee|luu_nguoi_thu_huong"),
+    (
+        "money",
+        r"transfer|pay|refund|waive|disburse|withdraw|deposit|remit|dispute|charge|"
+        r"chuyen_tien|chuyen_khoan|thanh_toan|chi_tra|giai_ngan|hoan_tien|hoan_phi|ung_luong|"
+        r"tam_ung|advance",
+    ),
     ("credit", r"decide|approve|credit|loan|limit|underwrit|score_override"),
     ("pii_export", r"export|fetch_application|add_payee|customer_data|dump|download"),
 )
+# WP16: a tool whose name starts with a read verb only reads (checked before the table).
+_READ_VERB = re.compile(
+    r"(?i)^(get|list|lookup|look_up|read|fetch|search|find|check|show|view|query|describe|"
+    r"calc|calculate|compute|estimate|quote|explain|summari[sz]e|tra_cuu|xem|kiem_tra|tinh|"
+    r"doc|lay|liet_ke|tim)(_|$)"
+)
+# WP16: destination argument names beyond the fixed list (money moves to a chosen account).
+_DEST_RE = re.compile(
+    r"(?i)(payee|beneficiary|biller|recipient|destination|to_acc|tai_khoan_nhan|nguoi_nhan|"
+    r"thu_huong|so_tai_khoan|iban|swift)"
+)
+_NOT_ARGS = {"self", "cls", "args", "kwargs", "state", "config", "run_manager", "ctx", "context"}
 
 
 @dataclass
@@ -120,6 +149,8 @@ class SourceIndex:
         rows = self.lines.get(ev.file)
         if not rows or ev.line > len(rows):
             return False
+        if ev.quote == WITHHELD:  # injection text is withheld; the line must still be flagged
+            return find_injection(rows[ev.line - 1]) is not None
         return ev.quote.strip() != "" and ev.quote.strip() in rows[ev.line - 1]
 
 
@@ -166,14 +197,20 @@ def discover(
         elif f.endswith((".json", ".yaml", ".yml", ".toml")) and f != manifest_file:
             _scan_config(f, index, st)
         _scan_notes(f, index, st)
+    injection_refs: list[Evidence] = []
     for f, rows in index.lines.items():
         for i, line in enumerate(rows, start=1):
             if "[REDACTED:" in line:
                 st.secret_refs.append(index.evidence(f, i))
+            if find_injection(line):
+                injection_refs.append(index.evidence(f, i))
+    facts = codefacts.analyse(index.lines)
+    _add_code_tools(facts, index, st)
 
     folder_id = _folder_id(repo)
     aid = agent_id or str(manifest.get("id") or folder_id or "agent")
     tools = _merge_tools(manifest_file, manifest, st, index)
+    _side_effects(tools, facts)
     limits = _limits(manifest_file, manifest, tools, st, index)
     _link_limits_in_code(limits, index)
     if workspace is not None:
@@ -211,9 +248,166 @@ def discover(
         skipped=dict(sorted(skipped.items())),
         scrub=scrubber.summary(),
         apps=st.apps,
+        framework=facts.framework,
+        framework_evidence=_fact_ev(index, facts.framework_evidence),
+        llm_calls=[
+            LlmCallSite(
+                provider=c.provider,
+                family=c.family,
+                model=c.model,
+                via=c.via,
+                evidence=index.evidence(c.file, c.line),
+            )
+            for c in facts.llm_calls
+        ],
+        data_access=[
+            DataAccess(
+                kind=d.kind,  # type: ignore[arg-type]
+                direction=d.direction,  # type: ignore[arg-type]
+                target=d.target[:200] if d.target else None,
+                evidence=index.evidence(d.file, d.line),
+            )
+            for d in facts.data_access
+        ],
+        tracing=sorted(facts.tracing),
+        pii_identifiers={k: index.evidence(v.file, v.line) for k, v in sorted(facts.pii.items())},
+        injection_refs=injection_refs,
     )
     inv.features = features_of(inv)
+    # Repo text that looks like a prompt injection never reaches an artefact (ADR D12).
+    inv = Inventory.model_validate(neutralize_tree(inv.model_dump()))
     return Discovery(inv, index)
+
+
+def _fact_ev(index: SourceIndex, fact: codefacts.Fact | None) -> Evidence | None:
+    return index.evidence(fact.file, fact.line) if fact is not None else None
+
+
+def _def_nodes(tree: ast.Module | None) -> dict[int, ast.AST]:
+    out: dict[int, ast.AST] = {}
+    for node in ast.walk(tree) if tree is not None else ():
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            out.setdefault(node.lineno, node)
+    return out
+
+
+def _model_fields(*trees: ast.Module | None) -> dict[str, set[str]]:
+    """Annotated fields of classes (pydantic models, dataclasses): name -> field names."""
+    out: dict[str, set[str]] = {}
+    for tree in trees:
+        for node in ast.walk(tree) if tree is not None else ():
+            if isinstance(node, ast.ClassDef):
+                names = {
+                    s.target.id
+                    for s in node.body
+                    if isinstance(s, ast.AnnAssign) and isinstance(s.target, ast.Name)
+                }
+                if names:
+                    out.setdefault(node.name, names)
+    return out
+
+
+def _params(
+    fn: ast.FunctionDef | ast.AsyncFunctionDef, models: Mapping[str, set[str]] | None = None
+) -> set[str]:
+    """Parameter names; a parameter typed with a request model gives the model's fields."""
+    a = fn.args
+    out: set[str] = set()
+    for x in a.posonlyargs + a.args + a.kwonlyargs:
+        if x.arg in _NOT_ARGS:
+            continue
+        ann = x.annotation.id if isinstance(x.annotation, ast.Name) else None
+        if models and ann in models:
+            out |= models[ann]
+        else:
+            out.add(x.arg)
+    return out
+
+
+def _add_code_tools(facts: codefacts.CodeFacts, index: SourceIndex, st: _State) -> None:
+    """WP16: tools that the base scan misses (decorators with explicit names, tool objects,
+    tool classes, schema + dispatch, registries, config-enabled plugins, tool lists)."""
+    models = _model_fields(*facts.trees.values())
+    for tf in facts.tools:
+        if tf.name in st.code_tools:
+            if tf.func and tf.func in models:
+                continue
+            fn = _def_nodes(facts.trees.get(tf.file)).get(tf.line)
+            if isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+                st.code_tools[tf.name].setdefault("args", set())
+                st.code_tools[tf.name]["args"] |= _params(fn, models)
+            continue
+        if tf.func and tf.func != tf.name and tf.func in st.code_tools and tf.how == "decorator":
+            st.code_tools[tf.name] = st.code_tools.pop(tf.func)
+            continue
+        node = _def_nodes(facts.trees.get(tf.file)).get(tf.line)
+        info: dict[str, Any] = {
+            "evidence": index.evidence(tf.file, tf.line),
+            "returns": set(),
+            "mutates": set(),
+            "args": set(),
+        }
+        if isinstance(node, ast.ClassDef):
+            node = next(
+                (
+                    b
+                    for b in node.body
+                    if isinstance(b, ast.FunctionDef | ast.AsyncFunctionDef)
+                    and b.name in ("_run", "run", "_arun", "__call__")
+                ),
+                None,
+            )
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            info["args"] = _params(node, models) | _subscript_keys(node)
+            _body_facts(node, info)
+        st.code_tools[tf.name] = info
+
+
+def _body_facts(fn: ast.AST, info: dict[str, Any]) -> None:
+    for sub in ast.walk(fn):
+        if isinstance(sub, ast.Return) and isinstance(sub.value, ast.Dict):
+            for k in sub.value.keys:
+                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                    info["returns"].add(k.value)
+        if (
+            isinstance(sub, ast.Call)
+            and isinstance(sub.func, ast.Attribute)
+            and sub.func.attr in ("append", "extend", "insert")
+            and isinstance(sub.func.value, ast.Attribute)
+        ):
+            info["mutates"].add(sub.func.value.attr)
+
+
+def _side_effects(tools: Sequence[ToolInfo], facts: codefacts.CodeFacts) -> None:
+    """WP16: writes (db, http, bank API, file) inside a tool's body or in a repo function
+    it calls (two levels)."""
+    spans: dict[str, tuple[str, int, int]] = {}
+    for file, tree in facts.trees.items():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+                spans.setdefault(node.name, (file, node.lineno, node.end_lineno or node.lineno))
+    writes = [d for d in facts.data_access if d.direction == "write"]
+
+    def effects(file: str, start: int, end: int, depth: int) -> set[str]:
+        out = {f"{d.kind} write" for d in writes if d.file == file and start <= d.line <= end}
+        if depth > 0:
+            node = _def_nodes(facts.trees.get(file)).get(start)
+            for sub in ast.walk(node) if node is not None else ():
+                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name):
+                    target = spans.get(sub.func.id)
+                    if target and target[1] != start:
+                        out |= effects(*target, depth - 1)
+        return out
+
+    for t in tools:
+        ev = t.definition
+        if ev is None:
+            continue
+        node = _def_nodes(facts.trees.get(ev.file)).get(ev.line)
+        if node is None:
+            continue
+        end = getattr(node, "end_lineno", None) or ev.line
+        t.side_effects = sorted(effects(ev.file, ev.line, end, 2))
 
 
 # --------------------------------------------------------------------------- state
@@ -239,7 +433,10 @@ class _State:
 
 
 def _interesting(path: str) -> bool:
-    return path.endswith((".py", ".yaml", ".yml", ".json", ".toml", ".md", ".txt", ".sql"))
+    return path.endswith(
+        (".py", ".yaml", ".yml", ".json", ".toml", ".md", ".txt", ".sql")
+        + (".ini", ".cfg", ".env.example")  # WP16: config files often hold secrets
+    )
 
 
 def _is_manifest(path: str) -> bool:
@@ -386,6 +583,11 @@ def _merge_tools(
     for t in tools.values():
         t.amount_arg = next((a for a in sorted(t.args) if a.endswith("_minor")), None)
         t.destination_arg = next((a for a in _DEST_ARGS if a in t.args), None)
+        if t.destination_arg is None and t.risk_class == "money":
+            t.destination_arg = next(
+                (a for a in sorted(t.args) if _DEST_RE.search(a) and not a.endswith("_name")),
+                None,
+            )
         t.key_args = [a for a in _KEY_ARGS if a in t.args]
         for a in t.args:
             if _PII_RE.match(a) and a not in st.pii:
@@ -399,6 +601,8 @@ def _merge_tools(
 
 
 def _guess_risk(name: str) -> str:
+    if _READ_VERB.match(name):
+        return "read_only"
     for rc, pattern in _RISK_HEURISTIC:
         if re.search(pattern, name, re.IGNORECASE):
             return rc
@@ -472,6 +676,7 @@ def _scan_python(file: str, index: SourceIndex, st: _State) -> None:
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             defs.setdefault(node.name, node)
+    models = _model_fields(tree)
     registered: dict[str, int] = {}
     for node in ast.walk(tree):
         # reg.register("name", fn) / reg.register(fn.__name__, fn)
@@ -507,7 +712,7 @@ def _scan_python(file: str, index: SourceIndex, st: _State) -> None:
         )
         info.setdefault("args", set())
         if fn is not None:
-            info["args"] |= _subscript_keys(fn)
+            info["args"] |= _subscript_keys(fn) | _params(fn, models)
             for sub in ast.walk(fn):
                 if isinstance(sub, ast.Return) and isinstance(sub.value, ast.Dict):
                     for k in sub.value.keys:

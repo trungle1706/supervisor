@@ -20,6 +20,7 @@ from typing import Any
 
 from supervisor.core.ports import ChatModel
 from supervisor.onboard.discover import Discovery, SourceIndex
+from supervisor.onboard.injection import FLAG, find_injection, neutralize_tree
 from supervisor.onboard.models import (
     AgentProfile,
     Claim,
@@ -85,7 +86,10 @@ def understand(
     chat: ChatModel | None = None,
     *,
     llm_call: LlmCall | None = None,
+    exercise_llm: bool = False,
 ) -> AgentProfile:
+    """``exercise_llm`` (default off, WP16 eval): run the LLM step against a mock model too,
+    so tests can capture exactly what a model would receive. The result stays labelled mock."""
     inv, idx = discovery.inventory, discovery.index
     first = _first_evidence(inv, idx)
     purpose = Claim(
@@ -114,7 +118,7 @@ def understand(
         is_mock=bool(getattr(chat, "is_mock", True)),
         note="no model configured: deterministic profile",
     )
-    if chat is not None and not chat.is_mock:
+    if chat is not None and (not chat.is_mock or exercise_llm):
         extra, llm = _llm_claims(inv, idx, chat, llm_call)
         lists = {
             "capability": capabilities,
@@ -127,7 +131,8 @@ def understand(
         llm = llm.model_copy(
             update={"note": "mock model: LLM step skipped, deterministic fallback (labelled mock)"}
         )
-    return AgentProfile(
+    autonomy, autonomy_reason = autonomy_level(inv)
+    profile = AgentProfile(
         agent_id=inv.agent_id,
         version=inv.version,
         name=inv.name,
@@ -144,7 +149,11 @@ def understand(
         tool_risk_classes={t.name: t.risk_class for t in inv.tools},
         features=list(inv.features),
         llm=llm,
+        autonomy=autonomy,
+        autonomy_reason=autonomy_reason,
     )
+    # Repo text that looks like a prompt injection never reaches an artefact (ADR D12).
+    return AgentProfile.model_validate(neutralize_tree(profile.model_dump()))
 
 
 # --------------------------------------------------------------------------- deterministic
@@ -323,6 +332,27 @@ def classify_decision33(inv: Inventory, first: Evidence) -> Decision33:
     )
 
 
+def _has_side_effect(t: ToolInfo) -> bool:
+    return t.risk_class in ("money", "credit") or bool(t.side_effects) or bool(t.mutates)
+
+
+def autonomy_level(inv: Inventory) -> tuple[str, str]:
+    """WP16 autonomy: L0 no tools; L1 only reading tools; L2 every tool with a side effect
+    has a human approval step in code in the same file; L3 otherwise. Same-file rule as
+    Decision 33: an approval function elsewhere does not count."""
+    if not inv.tools:
+        return "L0", "no tools: the agent only answers with text"
+    acting = [t for t in inv.tools if _has_side_effect(t)]
+    if not acting:
+        return "L1", "every tool only reads"
+    open_ = [t.name for t in acting if not _approval_refs(inv, [t])]
+    if not open_:
+        return "L2", "every tool with a side effect has a human approval step in the same code"
+    return "L3", "tools with side effects and no human approval step in code: " + ", ".join(
+        sorted(open_)
+    )
+
+
 def _tier(inv: Inventory, d33: Decision33, first: Evidence) -> tuple[str, Claim]:
     classes = {t.risk_class for t in inv.tools}
     if any(e.entry == "transactions" and e.triggered for e in d33.entries):
@@ -360,7 +390,9 @@ def build_messages(
         for i, line in enumerate(rows, start=1):
             if not line.strip():
                 continue
-            entry = f"{f}:{i}: {_DELIM.sub(lambda m: ' '.join(m.group(0)), line)}"
+            text = _DELIM.sub(lambda m: " ".join(m.group(0)), line)
+            flag = f"{FLAG} " if find_injection(line) else ""
+            entry = f"{f}:{i}: {flag}{text}"
             if len(entry) + 1 > budget:
                 break
             parts.append(entry)
@@ -394,6 +426,9 @@ def validate_llm_claims(raw: Mapping[str, Any], idx: SourceIndex) -> tuple[list[
             ):
                 dropped += 1
                 continue
+            if find_injection(rows[line - 1]) or find_injection(str(item["claim"])):
+                dropped += 1  # a claim built on (or echoing) injected text is not kept
+                continue
             text = _DELIM.sub(" ", str(item["claim"]))[:300]
             kept.append(
                 Claim(
@@ -423,7 +458,7 @@ def _llm_claims(
         return [], LlmUse(
             used=False,
             model_id=chat.model_id,
-            is_mock=False,
+            is_mock=bool(chat.is_mock),
             note=f"LLM step failed ({type(exc).__name__}): deterministic profile only",
         )
     kept, dropped = validate_llm_claims(raw, idx)
@@ -431,8 +466,12 @@ def _llm_claims(
     return kept, LlmUse(
         used=True,
         model_id=chat.model_id,
-        is_mock=False,
-        note="LLM proposed extra claims; unsupported claims dropped",
+        is_mock=bool(chat.is_mock),
+        note=(
+            "mock model: LLM step exercised (labelled mock); unsupported claims dropped"
+            if chat.is_mock
+            else "LLM proposed extra claims; unsupported claims dropped"
+        ),
         claims_proposed=proposed,
         claims_kept=len(kept),
         claims_dropped=dropped,
