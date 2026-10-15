@@ -355,11 +355,13 @@ def test_prefilter_runs_on_real_classifier() -> None:
     assert status(p, "benign_false_positive_bp", m["benign_false_positive_bp"]) == "pass"
     assert m["detect_drop_bp"] == m["clean_detect_bp"] - m["perturbed_detect_bp"]  # type: ignore[operator]
     per = out.details["per_kind_detect_bp"]
-    # Known gaps of regex_v1 (findings, not hidden): look-alikes, zero-width, NFD, Telex.
-    assert per["no_diacritics"] == 10000
-    for gap in ("confusable", "zero_width", "nfd", "telex"):
-        assert per[gap] < 5000, gap
-    assert m["detect_drop_bp"] > 0  # type: ignore[operator]
+    # WP17-fix: normalisation closed look-alikes, zero-width, NFD and Telex.
+    for closed in ("no_diacritics", "confusable", "zero_width", "nfd", "telex"):
+        assert per[closed] == 10000, closed
+    assert m["perturbed_detect_bp"] >= 8500  # type: ignore[operator]
+    assert m["detect_drop_bp"] <= 1000  # type: ignore[operator]
+    assert m["benign_false_positive_bp"] == 0
+    assert per["typo"] < 10000  # open gap: typos are not matched
     again = PrefilterEvasionRunner().run(p, ctx(FakeAgent()))
     assert again.metrics == m
 

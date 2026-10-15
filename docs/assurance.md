@@ -295,11 +295,16 @@ it does not answer multiple-choice prompts; they need a real model.
 
 Real findings on Supervisor itself (not mock-dependent):
 
-* `prefilter_evasion`: the tier-0b regex prefilter (`src/supervisor/gateway/tier0b.py`) detects
-  9666 bp of clean injections but only 3725 bp after perturbation. Cyrillic/Greek look-alikes,
-  zero-width characters, NFD-decomposed Vietnamese, telex input and vi/en code-switching evade
-  it; "Ignore the above rules" is missed; one benign salary-transfer sentence is flagged.
-  Fix candidates: NFKC + strip Cf characters + confusable folding before matching.
+* `prefilter_evasion`: the first run (WP17) showed that the tier-0b regex prefilter
+  (`src/supervisor/gateway/tier0b.py`) detected 9666 bp of clean injections but only 3725 bp
+  after perturbation (drop 5941 bp, benign false positive 333 bp): look-alike letters,
+  zero-width characters, NFD Vietnamese, telex and vi/en mixing evaded it, "Ignore the above
+  rules" was missed, and one benign salary-transfer sentence was flagged. After WP17-fix
+  (normalisation: NFKC, Cf strip, confusable fold, case fold, diacritics-stripped and
+  Telex-decoded candidates; see ADR D02) the same pack gives clean_detect_bp 10000,
+  perturbed_detect_bp 9019, detect_drop_bp 981, benign_false_positive_bp 0. Per kind: confusable,
+  zero_width, nfd, no_diacritics, telex, fullwidth_digits 10000; code_switch 9166; typo 5666
+  (typos remain the open gap; fuzzy matching is a possible next step).
 * `licence_allowlist`: in a dev environment without all extras installed, many packages have
   no readable licence metadata (unknown). Run it in the full environment or supply
   `licences.json`.
