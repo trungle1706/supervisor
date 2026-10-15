@@ -397,3 +397,65 @@ python -m supervisor.jobs.retention
 * After an upgrade, run `python -m supervisor.jobs.bootstrap_schema` once. It replaces the old append-only triggers. If you skip it, the job prints `[FAIL]` and names this command.
 * On Databricks the append-only tables are count-only (`[SKIP] Delta appendOnly: needs bank decision`). Only `notice` is changed.
 * Each run adds a `retention_run` entry to the evidence chain (counts and cutoffs, no personal data).
+
+## Backup, restore, support bundle
+
+All commands run from the repo folder, with the app settings in `.env`. Paths are examples.
+
+### Support bundle (send this to support, not the logs)
+
+```
+python -m supervisor.cli support-bundle --out C:\supervisor-support\bundle1
+```
+
+* Writes `settings.json` (secrets shown only as `***set***`), `preflight.txt`, `schema.json`, `chain.json` (lane heads, no payloads), `logs.txt` (last 500 lines of `LOG_FILE`, PII masked, secrets scrubbed), `env.json`, `manifest.json` (sha256 of each file) and `support-bundle-<time>.zip`.
+* Options: `--log-lines N` (default 500), `--force` (use a non-empty folder), `--network` (also run the Databricks and LLM preflight checks; the default skips them, so the command never hangs on the network).
+* The bundle never creates a missing store and never prints environment variables. Open the zip and read `settings.json` once before you send it.
+
+### Backup (SQLite mode)
+
+```
+python -m supervisor.cli backup --out C:\supervisor-backup\2026-10-15
+python -m supervisor.cli backup --out C:\supervisor-backup\2026-10-15 --include-key
+```
+
+* The app may run: the copy uses the SQLite online backup. The folder gets `supervisor.db`, `manifest.json` (time, version, schema hash, sha256, table row counts, chain lane heads) and the `anchors` folder when `ANCHOR_KIND=worm_dir`.
+* The signing key is copied only with `--include-key`. A folder with the key must be stored as a secret. Without the flag, back up `SIGNER_KEY_PATH` yourself to the bank secret store.
+* In App mode the command prints `[FAIL] backup is for SQLite mode; use export-delta` and exits 1.
+
+### Restore
+
+```
+python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15
+python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15 --force
+```
+
+* Stop the app first. The command checks the manifest and the sha256, refuses a backup with a newer schema than the code, and refuses to overwrite an existing store unless `--force`. With `--force` the old file is moved to `<name>.pre-restore-<time>`, never deleted.
+* After the copy it verifies the evidence chain and prints `[OK] evidence chain verifies` or `[FAIL]`. An older backup prints a warning: run `python -m supervisor.jobs.bootstrap_schema` (it adds columns only).
+
+### Delta export (App mode)
+
+```
+python -m supervisor.cli export-delta --out C:\supervisor-export\2026-10-15
+python -m supervisor.cli export-delta --out C:\supervisor-export\2026-10-15 --tables chain_entry,chain_payload
+```
+
+* One read-only `SELECT` per table through the Statement Execution API. Output: `<table>.jsonl` and `manifest.json` (row counts, sha256, schema hash, workspace host). It also works on SQLite (same code).
+* Run it from the laptop with the CLI OAuth profile (`databricks auth login --host <host> --profile <name>`, then `set DATABRICKS_CONFIG_PROFILE=<name>`), or from a notebook. Large tables take time: export one table at a time with `--tables`.
+* Restoring Delta is a task for the bank DBA. Use the Delta features: time travel (`RESTORE TABLE ... TO VERSION AS OF`) and `DEEP CLONE`. History is kept for `delta.logRetentionDuration` (set from `EVIDENCE_RETENTION_DAYS` for evidence tables): confirm that value covers the recovery window you need. The JSONL export is a second copy outside Delta, not a restore tool.
+
+### DR drill (SQLite mode, about 15 minutes)
+
+1. `python -m supervisor.cli backup --out C:\drill\backup --include-key`
+2. Point a new data folder: `set DATA_DIR=C:\drill\restore-data`. `SQLITE_PATH` and `SIGNER_KEY_PATH` must not be set in `.env` (comment them out): their defaults follow `DATA_DIR`
+3. `python -m supervisor.cli restore --from C:\drill\backup`. Expect `[OK] evidence chain verifies`.
+4. Compare counts: the `table_counts` in `C:\drill\backup\manifest.json` against a new backup of the restored store (`backup --out C:\drill\check`, then compare the two `table_counts`). They must be equal.
+5. Start the app on the restored data (`python -m supervisor.cli serve`), open `/health`, then stop it. Delete `C:\drill` (it holds a key copy).
+6. Write down the elapsed time (measured RTO) and the age of the backup (RPO).
+
+| Target | Value |
+|---|---|
+| RPO (maximum data loss) | FILL-ME: bank decision |
+| RTO (maximum time to recover) | FILL-ME: bank decision |
+| Backup schedule and retention | FILL-ME: bank decision |
+| Backup storage location (and who holds the signing key copy) | FILL-ME: bank decision |
