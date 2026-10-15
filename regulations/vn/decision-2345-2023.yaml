@@ -9,7 +9,7 @@ instrument:
     toán thẻ ngân hàng
   title_en: Decision on safety and security solutions for online payments and bank card payments
   status: superseded
-  binding: true
+  binding: false
   dates:
     issued:
       date: '2023-12-18'
