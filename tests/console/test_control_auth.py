@@ -77,7 +77,7 @@ def test_identity_failure_audit_row(console: Console) -> None:
     _post(console, "pause", "nobody")
     (row,) = console.ctx.tables.query("console_action")
     assert row["outcome"] == "denied" and row["detail"] == "identity_unknown"
-    assert row["actor"] == "nobody" and row["actor_kind"] == "unverified"
+    assert row["actor"] == "unverified:nobody" and row["actor_kind"] == "unverified"
 
 
 def test_admin_quarantine_release_and_reviewer_pause(console: Console) -> None:
@@ -174,3 +174,17 @@ def test_databricks_sso_admin_can_control_and_no_sso_is_403(
         "/v1/gate/pause", json=body, headers={"X-Forwarded-Email": "nobody-role@bank.example"}
     )
     assert r.status_code == 403
+
+
+def test_identity_failure_actor_is_sanitised_and_method_is_the_provider(
+    console: Console,
+) -> None:
+    _post(console, "pause", "ev il<script>")
+    console.client.post(
+        "/gate/quarantine",
+        json={"agent_id": "payments", "reason": "t"},
+        headers={"X-Forwarded-User": "admin.chi"},
+    )
+    rows = console.ctx.tables.query("console_action", order_by=("ts",))
+    assert [r["actor"] for r in rows] == ["unverified:evilscript", "unverified:admin.chi"]
+    assert {r["auth_method"] for r in rows} == {"dev_header"}

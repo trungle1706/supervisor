@@ -67,3 +67,14 @@ def test_nothing_leaves_retired(gateway: Gateway) -> None:
         st.release_quarantine("payments", ADMIN, "x")
     assert st.retire("payments", ADMIN, "again")["changed"] is False  # idempotent no-op
     assert st.get_state("payments") == "RETIRED"
+
+
+def test_retire_payload_carries_actor_when_given(
+    gateway: Gateway, evidence: MemoryEvidence
+) -> None:
+    gateway.states.pause("payments", "reviewer.an", "stop")
+    gateway.states.retire(
+        "payments", ADMIN, "bye", auth_method="onboard_retire", actor_kind="system"
+    )
+    last = evidence.of_type("gate_state_change")[-1]
+    assert (last["auth_method"], last["actor_kind"]) == ("onboard_retire", "system")

@@ -107,7 +107,7 @@ def test_unknown_dev_user_is_audited_as_unverified(console: Console) -> None:
     r = console.post(f"/console/cases/{c['case_id']}/verify", {}, user="nobody")
     assert r.status_code == 400
     (row,) = _rows(console)
-    assert row["actor_kind"] == "unverified" and row["actor"] == "nobody"
+    assert row["actor_kind"] == "unverified" and row["actor"] == "unverified:nobody"
     assert row["outcome"] == "denied" and row["detail"] == "identity_unknown"
     assert row["auth_method"] == "dev_header" and row["permission"] == "case.verify"
 
