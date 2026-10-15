@@ -323,7 +323,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = False  # in-process limit on mutating routes (new: off)
     rate_limit_per_minute: int = Field(default=120, ge=1)  # per principal (else client IP)
     rate_limit_burst: int = Field(default=30, ge=1)
-    api_rbac_enabled: bool = False  # role matrix on /gate/* control and read routes (new: off)
+    api_rbac_enabled: bool = False  # role matrix on agent-facing /gate read routes only (new: off)
     console_audit_enabled: bool = True  # console_action row for every mutating action
     retention_enabled: bool = False  # PDPL retention job (ADR D13; new: off)
     retention_raw_days: int = Field(default=90, ge=1)  # agent_event_raw args/result
@@ -446,6 +446,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 "AUTH_KIND=dev_header is not allowed with SUPERVISOR_MODE=databricks_app "
                 "(the X-Dev-User header is not an identity); use databricks_app or auto"
+            )
+        if not self.console_audit_enabled and self.supervisor_mode != "dev":
+            raise ValueError(
+                "CONSOLE_AUDIT_ENABLED=0 is only allowed with SUPERVISOR_MODE=dev "
+                "(the console audit trail cannot be switched off in laptop or databricks_app mode)"
             )
         if self.scheduler_lock_path is None:
             self.scheduler_lock_path = self.data_dir / "scheduler.lock"

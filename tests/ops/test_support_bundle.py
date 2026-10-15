@@ -149,3 +149,46 @@ def test_url_query_stripped(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     s = json.loads((out / "settings.json").read_text())
     assert s["llm_base_url"] == "http://127.0.0.1:11434/v1"
     assert "ABCD1234" not in all_text(out)
+
+
+def test_generic_secret_scrub_in_logs_and_settings_paths(
+    env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HOME", str(env))  # data dir, log file and others sit under "home"
+    monkeypatch.setenv("USERPROFILE", str(env))
+    log = env / "app.log"
+    log.write_text("api_key=abc123\npassword: hunter2\nnote token = zzz9\n", encoding="utf-8")
+    out = env / "bundle"
+    assert cli.main(["support-bundle", "--out", str(out)]) == 0
+    logs = (out / "logs.txt").read_text(encoding="utf-8")
+    for leaked in ("abc123", "hunter2", "zzz9"):
+        assert leaked not in logs
+    assert "api_key=<redacted>" in logs and "password=<redacted>" in logs
+    raw = (out / "settings.json").read_text(encoding="utf-8")
+    assert str(env) not in raw
+    settings = json.loads(raw)
+    assert settings["data_dir"] == "<DATA_DIR>"
+    assert settings["log_file"] == "~/app.log"
+
+
+@pytest.mark.parametrize(
+    ("line", "leak"),
+    [
+        ('{"password": "hunter2"}', "hunter2"),
+        ('{"access_token":"abc123"}', "abc123"),
+        ('secret="a b c"', "a b c"),
+        ("api_key=abc123", "abc123"),
+        ("password: hunter2", "hunter2"),
+        ("Authorization: Bearer xyz987", "xyz987"),
+        ("retry with Bearer xyz987 failed", "xyz987"),
+        ("Authorization: Basic dXNlcjpwdw==", "dXNlcjpwdw"),
+        ("connect postgres://app:s3cretpw@db.local:5432/x", "s3cretpw"),
+    ],
+)
+def test_scrub_generic_cases(line: str, leak: str) -> None:
+    from supervisor.ops.support import scrub_generic
+
+    out = scrub_generic(line)
+    assert leak not in out and "<redacted>" in out
+    assert scrub_generic("postgres://app:pw@db/x") == "postgres://app:<redacted>@db/x"
+    assert scrub_generic("nothing secret-free here") == "nothing secret-free here"

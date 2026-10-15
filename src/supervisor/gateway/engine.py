@@ -367,7 +367,6 @@ class Gateway:
         env: str = "local",
         state_cache_ttl_s: float = 1.0,
         workers: int = 8,
-        trust_body_principal: bool = True,
         require_caller_id: bool = False,
     ) -> None:
         self.policy = policy
@@ -384,7 +383,6 @@ class Gateway:
         self.tier0b_enabled = tier0b_enabled
         self.timeout_s = timeout_s
         self.env = env
-        self.trust_body_principal = trust_body_principal
         # ADR D10 (WP7): a handoff call without caller_agent_id fails closed for
         # money / credit / pii_export tools. Off by default (REQUIRE_CALLER_ID).
         self.require_caller_id = require_caller_id
@@ -672,6 +670,8 @@ class Gateway:
                     agent_id,
                     f"rule:{pause_rule.rule.id}",
                     f"{pause_rule.rule.id}: {pause_rule.rule.description}",
+                    auth_method="local_system",
+                    actor_kind="system",
                 )
                 d.paused = True
             d.latency_us = (time.perf_counter_ns() - t0) // 1000

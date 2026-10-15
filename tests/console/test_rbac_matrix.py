@@ -115,8 +115,13 @@ def _url(template: str, case_id: str, action: str = "pause") -> str:
     return url
 
 
-def _rows(console: Console) -> list[dict[str, Any]]:
+def _all_rows(console: Console) -> list[dict[str, Any]]:
     return console.ctx.tables.query("console_action", order_by=("ts",))
+
+
+def _rows(console: Console) -> list[dict[str, Any]]:
+    """The outcome rows (M4 also writes an ``attempted`` row before each side effect)."""
+    return [r for r in _all_rows(console) if r["outcome"] != "attempted"]
 
 
 def _call(console: Console, method: str, url: str, user: str) -> Any:
@@ -330,6 +335,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
 
 def test_audit_off_writes_nothing(console: Console, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(console.ctx.settings, "console_audit_enabled", False)
+    monkeypatch.setattr(console.ctx.settings, "supervisor_mode", "dev")  # M4: dev only
     c = _case(console)
     assert (
         console.post(
@@ -342,27 +348,30 @@ def test_audit_off_writes_nothing(console: Console, monkeypatch: pytest.MonkeyPa
     assert console.post("/console/agents/payments/pause", {"reason": "t"}).status_code == 200
     r = console.client.post(
         "/gate/pause",
-        json={"agent_id": "payments", "reason": "t", "principal": "reviewer.an"},
+        json={"agent_id": "payments", "reason": "t"},
+        headers={"X-Dev-User": "reviewer.an"},
     )
     assert r.status_code == 200
     assert _rows(console) == []
 
 
-def test_audit_failure_is_a_warning_not_a_5xx(
+def test_outcome_write_failure_is_a_warning_not_a_5xx(
     console: Console, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import supervisor.console.routes as routes
+    """M4: the ``attempted`` row is written; only the outcome row fails -> result + WARNING."""
+    orig = console.ctx.tables.append
 
-    def boom(*a: Any, **k: Any) -> None:
-        raise RuntimeError("store down")
+    def flaky(table: str, rows: Any, *a: Any, **k: Any) -> Any:
+        if table == "console_action" and rows[0]["outcome"] != "attempted":
+            raise RuntimeError("store down")
+        return orig(table, rows, *a, **k)
 
-    monkeypatch.setattr(routes, "write_action", boom)
+    monkeypatch.setattr(console.ctx.tables, "append", flaky)
     r = console.post("/console/agents/payments/pause", {"reason": "t"})
     assert r.status_code == 200 and "WARNING: the console audit record failed" in r.text
     r = console.post("/console/agents/payments/quarantine", {"reason": "t"}, user="reviewer.an")
     assert r.status_code == 403  # denied before the wrapper: the dependency writes the row
-    r = console.post("/console/agents/payments/frobnicate", {"reason": "t"})
-    assert r.status_code == 400 and "WARNING" in r.text
+    assert [x["outcome"] for x in _all_rows(console)] == ["attempted"]
 
 
 def test_audit_detail_never_carries_typed_text(console: Console) -> None:
@@ -399,20 +408,33 @@ def test_console_action_is_append_only(console: Console) -> None:
 # ------------------------------------------------------------------ (e) /gate
 
 
-def test_gate_off_path_is_phase1_but_still_audited(console: Console) -> None:
+def test_gate_control_ignores_the_rbac_flag_and_the_agent_routes_keep_it(
+    console: Console,
+) -> None:
     assert console.ctx.settings.api_rbac_enabled is False
-    # no identity at all and a viewer both pass: nothing is checked on /gate when off
+    # control routes always need a known identity (B1); a body principal is ignored
     r = console.client.post(
         "/gate/pause",
         json={"agent_id": "payments", "reason": "t", "principal": "someone"},
         headers={"X-Dev-User": "no-such-user"},
     )
-    assert r.status_code == 200 and r.json()["state"] == "PAUSED"
+    assert r.status_code == 403 and "error" in r.json()
+    assert console.runtime.gateway.states.get_state("payments") != "PAUSED"
+    # agent-facing read routes stay open while the flag is off
     assert console.client.get("/gate/metrics", headers={"X-Dev-User": "nobody"}).status_code == 200
     (row,) = _rows(console)
-    assert row["permission"] == "agent.pause" and row["outcome"] == "ok"
-    assert row["actor"] == "someone" and row["actor_kind"] == "unverified"
-    assert row["auth_method"] == "gate_api" and row["target_id"] == "payments"
+    assert row["permission"] == "agent.pause" and row["outcome"] == "denied"
+    assert row["actor"] == "unverified:no-such-user" and row["actor_kind"] == "unverified"
+    assert row["detail"] == "identity_unknown"
+    r = console.client.post(
+        "/gate/pause",
+        json={"agent_id": "payments", "reason": "t"},
+        headers={"X-Dev-User": "reviewer.an"},
+    )
+    assert r.status_code == 200 and r.json()["state"] == "PAUSED"
+    row = _rows(console)[-1]
+    assert row["outcome"] == "ok" and row["actor"] == "reviewer.an"
+    assert row["actor_kind"] == "user" and row["auth_method"] == "dev_header"
     assert row["before_hash"] != row["after_hash"]
 
 
@@ -439,11 +461,14 @@ def test_gate_on_denies_a_viewer_and_allows_a_reviewer(
 def test_gate_on_service_principal_cannot_control(
     console: Console, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(console.ctx.settings, "api_rbac_enabled", True)
     sp = AuthPrincipal("app-sp", "service_principal", "sp")
     monkeypatch.setattr(console.ctx.provider, "resolve", lambda h, c: (sp, None))
-    r = console.client.post("/gate/pause", json={"agent_id": "payments", "reason": "t"})
-    assert r.status_code == 403 and "signed-in person" in r.json()["error"]
+    r = console.client.post(
+        "/gate/pause",
+        json={"agent_id": "payments", "reason": "t"},
+        headers={"X-Dev-User": "reviewer.an"},
+    )
+    assert r.status_code == 403 and "person" in r.json()["error"]
     assert console.client.get("/gate/metrics").status_code == 200
 
 
@@ -481,10 +506,13 @@ def test_audit_pack_carries_the_console_action_rows(console: Console, tmp_path: 
     lines = (root / "console_action.jsonl").read_text(encoding="utf-8").splitlines()
     rows = [json.loads(x) for x in lines]
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["console_actions"] == len(rows) == 2
+    assert manifest["console_actions"] == len(rows)
+    rows = [r for r in rows if r["permission"].startswith("agent.")]  # + the export's own row
     assert "console_action.jsonl" in manifest["files_sha256"]
     assert [(r["permission"], r["outcome"]) for r in rows] == [
+        ("agent.pause", "attempted"),
         ("agent.pause", "ok"),
         ("agent.quarantine", "denied"),
     ]
+    assert rows[0]["request_id"] == rows[1]["request_id"]
     assert all(r["request_id"] and r["action_id"] for r in rows)

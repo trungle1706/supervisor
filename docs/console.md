@@ -76,11 +76,11 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | Role | In short |
 |---|---|
 | viewer | Read-only console pages |
-| reviewer | Assign, triage, contain, close, comment, ITSM ref, sign off, pause, resume (as the reviewer half), export |
-| approver | Sign off (the approver half), comment, pause, export |
-| owner | Resume (as the owner half), comment, pause, start an onboarding run |
-| auditor | Read everything, build and download audit packs, verify the chain |
-| admin | Reviewer rights, quarantine, release a quarantine |
+| reviewer | Assign, triage, contain, close, comment, ITSM ref, sign off, record report sent, pause, resume (as the reviewer half), run intake, start onboarding, verify case and chain, mark inbox read, export and download |
+| approver | Sign off (the approver half), record report sent, comment, pause, verify case and chain, mark inbox read, export and download |
+| owner | Resume (as the owner half), comment, pause, start an onboarding run, verify case and chain, mark inbox read |
+| auditor | Read pages, verify case and chain, mark inbox read, build and download audit packs and chain exports |
+| admin | Everything a reviewer can do, plus quarantine and release a quarantine |
 | operator | Read pages, run case intake, verify the chain |
 
 ### Role matrix
@@ -118,9 +118,18 @@ Routes marked `PUBLIC` (health, ready, version, docs, static files, redirects), 
 (`POST /gate/check`, `POST /v1/traces`: the agent's own identity) or `DEV_ONLY`
 (`POST /console/dev/user`) have no role check. A service principal or the system identity
 keeps its phase-1 treatment: it may open the read-only views (view, health, metrics, onboard
-page, verify) and nothing else. The `/gate` pause, resume, quarantine, release, state and
-metrics routes enforce the matrix only when `API_RBAC_ENABLED=1` (default off, phase-1
-behaviour); `/v1/gate/...` aliases follow the same rule.
+page, verify) and nothing else. The `/gate` control routes
+(pause, resume, quarantine, release) and their `/v1/gate/...` aliases ALWAYS check identity
+and role, whatever `API_RBAC_ENABLED` says. The caller must be named by the Principal port:
+on the laptop the `X-Dev-User` header must be present and name a user in the users file (no
+`default_user`, no console cookie); on the App the SSO headers apply. A missing or unknown
+identity, or a role without the permission, is HTTP 403 JSON `{"error": "..."}`. The route
+never reads `X-Forwarded-User` itself, and the JSON body field `principal` is accepted for
+backward compatibility but ignored. Example (Windows cmd):
+`curl -X POST -H "X-Dev-User: reviewer.an" -H "Content-Type: application/json" -d "{\"agent_id\":\"payments\",\"reason\":\"check\"}" http://127.0.0.1:8000/v1/gate/pause`.
+`API_RBAC_ENABLED` gates only the agent-facing routes (`GET /gate/agents/{id}/state`,
+`GET /gate/metrics`); `POST /gate/check` is agent ingress. The `gate_state_change` evidence
+record carries `actor_kind` and `auth_method` of the acting principal.
 
 Resume (ADR D04): the gateway needs the agent owner (`agent.owner_user`) and a reviewer listed
 in `policies/*.yaml` (`reviewers:`), two different people. The first approval is stored as
@@ -154,16 +163,39 @@ before storage; the chain gets only its SHA-256. Sign-off statements are stored 
 
 ## Console action audit
 
-Every POST under `/console` writes one row to the append-only table `console_action`
-(allowed, denied or failed), and so do the `/gate` control routes (pause, resume, quarantine,
-release), also when `API_RBAC_ENABLED` is off. Columns: `action_id`, `ts`, `request_id`,
-`actor`, `actor_kind`, `auth_method`, `roles`, `permission`, `method`, `path`, `target_kind`,
-`target_id`, `outcome` (`ok`, `denied`, `error`), `before_hash` and `after_hash` (SHA-256 of
-the canonical target row: the case row, the agent row with its active gate controls, or the
-notice row), `detail` (an error class or a denial code, never free text typed by a user). The
-rows are in the audit pack (`console_action.jsonl`, with the count in `manifest.json`). A
-failed audit write is logged and shown as a WARNING in the page message; it never causes a 5xx.
-`CONSOLE_AUDIT_ENABLED=0` writes nothing.
+Every POST under `/console` writes rows to the append-only table `console_action`, and so do
+the `/gate` control routes (pause, resume, quarantine, release), also when `API_RBAC_ENABLED` is
+off. Columns: `action_id`, `ts`, `request_id`, `actor`, `actor_kind`, `auth_method`, `roles`,
+`permission`, `method`, `path`, `target_kind`, `target_id`, `outcome`, `before_hash` and
+`after_hash` (SHA-256 of the canonical target row: the case row, the agent row with its active
+gate controls, or the notice row), `detail` (an error class or a denial code, never free text
+typed by a user). The rows are in the audit pack (`console_action.jsonl`, with the count in
+`manifest.json`).
+
+Two rows per action, one `request_id`:
+
+| Row | `outcome` | Written | `before_hash` / `after_hash` |
+|---|---|---|---|
+| 1 | `attempted` | BEFORE the side effect | target now / null |
+| 2 | `ok`, `denied` or `error` | after | target before / target after |
+
+* If row 1 cannot be written, the action is NOT done. The answer is HTTP 400 with "audit store
+  unavailable; the action was not done" (a message partial on the console, `{"error": ...}` on
+  `/gate`). Nothing changes: no case row, no agent state, no intake run.
+* If row 2 cannot be written (the action is already done), the server logs an ERROR and the
+  answer carries a WARNING ("the console audit record failed"). It is never a 5xx. Row 1
+  already proves the action was tried.
+* A permission denial (HTTP 403) writes one `denied` row and no `attempted` row: it has no side
+  effect.
+* An unknown or missing identity on a mutating route (for example an unknown `X-Dev-User`)
+  writes one `denied` row: `actor_kind` `unverified`, `auth_method` of the provider (also on
+  the `/gate` path), `actor` `unverified:<claimed id>` (client text cut to the characters
+  `A-Za-z0-9_.@+-`, 64 at most) or `unverified:unknown`, `detail` `identity_unknown`. The console
+  answer stays HTTP 400 with the usual message; the control routes answer 403.
+* `CONSOLE_AUDIT_ENABLED=0` is allowed only with `SUPERVISOR_MODE=dev`. In `laptop` and
+  `databricks_app` mode the settings are refused at load, and the runtime ignores the flag
+  (auditing stays on). In dev mode with the flag off the app logs a WARNING at startup and
+  writes no rows.
 
 ## Errors
 
@@ -199,8 +231,8 @@ set that header.
 | `ASSURANCE_JUDGE_ALLOW_WARN` | `0` | W3: `1` lets a `warn` judge validation result count as validated; default only `ok` does. Windows cmd: `set ASSURANCE_JUDGE_ALLOW_WARN=1` |
 | `CONSOLE_EXPORT_DIR` | `<DATA_DIR>\exports` | Audit packs. On the App this is ephemeral: download the zip at once. |
 | `NOTIFY_WEBHOOK_ENABLED` | `0` | Webhook stub: queues notices (`status=queued`), never sends |
-| `API_RBAC_ENABLED` | `0` | WP18: enforce the role matrix on the `/gate` human routes (console routes always enforce) |
-| `CONSOLE_AUDIT_ENABLED` | `1` | WP18: write one `console_action` row per mutating action (default on) |
+| `API_RBAC_ENABLED` | `0` | WP18: enforce the role matrix on the agent-facing `/gate` read routes (state, metrics). Gate control routes and console routes always enforce |
+| `CONSOLE_AUDIT_ENABLED` | `1` | WP18/M4: write the `attempted` and outcome `console_action` rows for every mutating action (default on; `0` is refused unless `SUPERVISOR_MODE=dev`) |
 
 Case intake as a job (only when the app is not running, single chain writer):
 `python -m supervisor.jobs.case_intake`.

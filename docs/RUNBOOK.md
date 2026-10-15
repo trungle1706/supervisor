@@ -432,10 +432,19 @@ python -m supervisor.cli backup --out C:\supervisor-backup\2026-10-15 --include-
 ```
 python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15
 python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15 --force
+python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15 --pubkey C:\secure\notary.pem
+python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15 --allow-key-change
 ```
 
 * Stop the app first. The command checks the manifest and the sha256, refuses a backup with a newer schema than the code, and refuses to overwrite an existing store unless `--force`. With `--force` the old file is moved to `<name>.pre-restore-<time>`, never deleted.
-* After the copy it verifies the evidence chain and prints `[OK] evidence chain verifies` or `[FAIL]`. An older backup prints a warning: run `python -m supervisor.jobs.bootstrap_schema` (it adds columns only).
+* The command first copies the backup to a temporary file beside the target and verifies that copy. Only if every check passes does it move the old store aside and swap the copy in. On any failure the live store is not touched and the temporary file is removed.
+* The sha256 in `manifest.json` only detects accidental damage. It is not an authenticity check (the manifest sits next to the data). Authenticity comes from the chain check, which is pinned to the public key of the current signer (`SIGNER_KIND` / `SIGNER_KEY_PATH`). A chain signed by another key is refused.
+* `--pubkey FILE` pins a key you give (PEM, for example exported from the bank secret store) instead of the current signer's key. Use it on a new machine that has no signing key yet; if no key can be found, restore refuses unless you pass `--pubkey` (or `--allow-key-change`).
+* `--allow-key-change` accepts a backup signed by a different key. It prints a `[WARN] WARNING:` line with both key fingerprints and still checks the chain with the backup's own key. That proves the chain is consistent, not who made it. Use it only for a known key change (key rotation, new deployment) and record the reason.
+* The signing key file in the backup (`--include-key`) is installed only if the target has no key, the file is a regular file (not a symlink) and its public key is the pinned key. Otherwise restore prints a `[WARN]`, skips it, and you restore the key from the secret store. Symlinks in the backup `anchors` folder are skipped too.
+* A backup with no chain entries is refused (`signed roots: none verified`): an empty store has nothing to restore; bootstrap instead.
+* The manifest `db_file` must be a bare file name; paths, `..`, drive letters and absolute paths are refused.
+* The chain check prints `[OK] evidence chain verifies` or `[FAIL]`. An older backup prints a warning: run `python -m supervisor.jobs.bootstrap_schema` (it adds columns only).
 
 ### Delta export (App mode)
 
@@ -452,7 +461,7 @@ python -m supervisor.cli export-delta --out C:\supervisor-export\2026-10-15 --ta
 
 1. `python -m supervisor.cli backup --out C:\drill\backup --include-key`
 2. Point a new data folder: `set DATA_DIR=C:\drill\restore-data`. `SQLITE_PATH` and `SIGNER_KEY_PATH` must not be set in `.env` (comment them out): their defaults follow `DATA_DIR`
-3. `python -m supervisor.cli restore --from C:\drill\backup`. Expect `[OK] evidence chain verifies`.
+3. `python -m supervisor.cli restore --from C:\drill\backup --pubkey C:\secure\notary.pem` (the new data folder has no signing key, so pin the notary public key; `--allow-key-change` is the weaker choice). Expect `[OK] evidence chain verifies`.
 4. Compare counts: the `table_counts` in `C:\drill\backup\manifest.json` against a new backup of the restored store (`backup --out C:\drill\check`, then compare the two `table_counts`). They must be equal.
 5. Start the app on the restored data (`python -m supervisor.cli serve`), open `/health`, then stop it. Delete `C:\drill` (it holds a key copy).
 6. Write down the elapsed time (measured RTO) and the age of the backup (RPO).

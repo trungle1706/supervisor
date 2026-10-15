@@ -16,7 +16,7 @@ A kill switch with no defined owner is a risk. A pause that anyone can undo is n
 
 Every pause, resume and break-glass event is written to the evidence chain (see D05). The console shows who did what and when.
 
-The `Principal` port gives the user identity. On the laptop it is a dev users file. On Databricks it comes from the SSO headers (`X-Forwarded-User`). The same person cannot fill both resume roles.
+The `Principal` port gives the user identity (the gate control routes use only it: explicit `X-Dev-User` on the laptop, SSO headers on Databricks; never a body field or a raw `X-Forwarded-User`; role check always on). On the laptop it is a dev users file. On Databricks it comes from the SSO headers (`X-Forwarded-User`). The same person cannot fill both resume roles.
 
 All user errors on these actions return HTTP 400 with a message. htmx drops 500 responses.
 

@@ -44,7 +44,9 @@ def test_incident_1_injected_ticket_leads_to_ext_transfer(
     )
     assert r["allow"] is False and r["rule_id"] == "PAY-07" and r["action"] == "pause"
     assert gateway.states.get_state("payments") == "PAUSED"
-    assert evidence.of_type("gate_state_change")[-1]["principal"] == "rule:PAY-07"
+    change = evidence.of_type("gate_state_change")[-1]
+    assert change["principal"] == "rule:PAY-07"
+    assert (change["auth_method"], change["actor_kind"]) == ("local_system", "system")  # M5
     assert evidence.of_type("gate_decision")[-1]["caller_agent_id"] == "customer_service"
     gateway.drain()
     assert any(f["kind"] == "injection" for f in evidence.of_type("gate_tier0b")[-1]["findings"])

@@ -7,8 +7,10 @@ from typing import Any
 
 import pytest
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
+from supervisor.cases.service import PermissionDenied
 from supervisor.gateway import wiring
 from supervisor.gateway.engine import Gateway
 from supervisor.gateway.routes import router
@@ -18,6 +20,10 @@ from supervisor.gateway.routes import router
 def client(gateway: Gateway) -> Iterator[TestClient]:
     app = FastAPI()
     app.include_router(router)
+    app.add_exception_handler(
+        PermissionDenied,
+        lambda r, e: JSONResponse(status_code=403, content={"error": str(e)}),
+    )
     wiring.set_gateway(gateway)
     try:
         yield TestClient(app)
@@ -35,7 +41,7 @@ def _check(client: TestClient, agent: str, tool: str, args: dict[str, Any] | Non
 def _ctl(client: TestClient, verb: str, agent: str, principal: str | None, **kw: Any) -> Any:
     body = {"agent_id": agent, "reason": "test reason"}
     if principal:
-        body["principal"] = principal
+        kw["headers"] = {"X-Dev-User": principal, **kw.get("headers", {})}
     return client.post(f"/gate/{verb}", json=body, **kw)
 
 
@@ -70,22 +76,20 @@ def test_resume_needs_two_people(client: TestClient) -> None:
     assert client.get("/gate/agents/payments/state").json()["state"] == "RUNNING"
 
 
-def test_forwarded_user_overrides_body_principal(client: TestClient) -> None:
-    _ctl(client, "pause", "payments", "payops-lead@example.invalid")
+def test_forwarded_user_header_is_not_an_identity(client: TestClient) -> None:
     r = _ctl(
         client,
-        "resume",
+        "pause",
         "payments",
-        "nobody",
+        None,
         headers={"X-Forwarded-User": "payops-lead@example.invalid"},
     )
-    assert r.status_code == 200 and r.json()["status"] == "pending"
-    state = client.get("/gate/agents/payments/state").json()
-    assert state["pending_resume"][0]["principal"] == "payops-lead@example.invalid"
+    assert r.status_code == 403
+    assert client.get("/gate/agents/payments/state").json()["state"] == "RUNNING"
 
 
-def test_missing_principal_and_bad_body_are_400(client: TestClient) -> None:
-    assert _ctl(client, "pause", "payments", None).status_code == 400
+def test_missing_identity_is_403_and_bad_body_is_400(client: TestClient) -> None:
+    assert _ctl(client, "pause", "payments", None).status_code == 403
     assert client.post("/gate/check", json={"agent_id": "payments"}).status_code == 400
     assert client.post("/gate/check", content=b"not json").status_code == 400
     extra = {"agent_id": "a", "agent_version": "1", "tool_name": "t", "args": {}, "x": 1}
@@ -99,9 +103,10 @@ def test_unknown_agent_is_400(client: TestClient) -> None:
 
 
 def test_quarantine_release_needs_admin(client: TestClient) -> None:
-    r = _ctl(client, "quarantine", "payments", "reviewer.an")
+    assert _ctl(client, "quarantine", "payments", "reviewer.an").status_code == 403  # role
+    r = _ctl(client, "quarantine", "payments", "admin.chi")
     assert r.status_code == 200 and r.json()["state"] == "QUARANTINED"
-    assert _ctl(client, "release", "payments", "reviewer.an").status_code == 400
+    assert _ctl(client, "release", "payments", "reviewer.an").status_code == 403
     r = _ctl(client, "release", "payments", "admin.chi")
     assert r.status_code == 200 and r.json()["state"] == "PAUSED"
 

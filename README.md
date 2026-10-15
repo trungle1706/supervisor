@@ -92,7 +92,7 @@ until you turn its flag on.
 | `ASSURANCE_JUDGE_MIN_ITEMS` | Not a switch (default `50`): the fewest items a judge pack result needs to validate a real judge, checked for both tier-1 and tier-2 models |
 | `ASSURANCE_JUDGE_ALLOW_WARN` | Lets a judge pack result with status `warn` validate a real judge (default off: only `ok` counts) |
 | `JUDGE_REQUIRE_VALIDATION` | Judge refuses to start without a passing MRM validation for its current identity |
-| `API_RBAC_ENABLED` | Enforces the role matrix on `/gate/*` control and read routes |
+| `API_RBAC_ENABLED` | Enforces the role matrix on the agent-facing `/gate/*` read routes (`/gate/agents/{id}/state`, `/gate/metrics`). The control routes (pause, resume, quarantine, release) always check identity and role |
 | `RATE_LIMIT_ENABLED` | Rate-limits mutating routes (429); agent check path is exempt |
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
 | `LOG_FORMAT` | Value `json` writes one JSON log line with request id and principal id (default `text`) |
