@@ -24,9 +24,13 @@ from supervisor.console.routes import router as console_router  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
 from supervisor.gateway import wiring as gate_wiring  # noqa: E402
 from supervisor.gateway.routes import router as gate_router  # noqa: E402
+from supervisor.ops import middleware as ops_middleware  # noqa: E402
+from supervisor.ops.logging_setup import configure_logging  # noqa: E402
+from supervisor.ops.readiness import readiness  # noqa: E402
 from supervisor.recorder.otlp_receiver import router as otlp_router  # noqa: E402
 
 log = logging.getLogger("supervisor.app")
+configure_logging(get_settings())  # WP18: LOG_LEVEL / LOG_FORMAT / LOG_FILE (idempotent)
 
 
 @asynccontextmanager
@@ -63,6 +67,7 @@ app = FastAPI(title="Supervisor", version=__version__, lifespan=lifespan)
 app.include_router(gate_router)
 app.include_router(otlp_router)  # WP4: POST /v1/traces (OTLP/HTTP JSON)
 app.include_router(console_router)  # WP8: reviewer console (/console)
+ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 
 
 @app.exception_handler(SupervisorError)
@@ -103,6 +108,20 @@ def root() -> RedirectResponse:
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    """Liveness for probes: 200 while the process runs."""
+    return {"status": "ok", "version": __version__}
+
+
+@app.get("/ready")
+def ready() -> JSONResponse:
+    """Readiness for probes (not users): 200 when ready, else 503 with the failed check names.
+    The body has no secrets, hosts, paths or error text."""
+    body = readiness(get_settings(), getattr(gate_wiring, "_runtime", None), scheduler.current())
+    return JSONResponse(body, status_code=200 if body["ready"] else 503)
 
 
 @app.get("/version")
