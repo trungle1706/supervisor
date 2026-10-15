@@ -594,3 +594,77 @@ CREATE TABLE IF NOT EXISTS notice (
 );
 
 CREATE INDEX IF NOT EXISTS ix_notice_channel_status ON notice (channel, status);
+
+-- eval_run (append_only): WP17 assurance eval packs. One row per run of `python -m supervisor.assurance run` (counts per status). Integers and strings only.
+CREATE TABLE IF NOT EXISTS eval_run (
+  run_id TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT NOT NULL,
+  target_spec TEXT NOT NULL,
+  selector TEXT NOT NULL,
+  packs_total INTEGER NOT NULL,
+  ok INTEGER NOT NULL,
+  warn INTEGER NOT NULL,
+  fail INTEGER NOT NULL,
+  skip INTEGER NOT NULL,
+  error INTEGER NOT NULL,
+  is_mock INTEGER NOT NULL,
+  settings_digest TEXT,
+  out_dir TEXT,
+  PRIMARY KEY (run_id)
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_eval_run_no_update
+BEFORE UPDATE ON eval_run
+BEGIN
+  SELECT RAISE(ABORT, 'eval_run is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_eval_run_no_delete
+BEFORE DELETE ON eval_run
+BEGIN
+  SELECT RAISE(ABORT, 'eval_run is append-only');
+END;
+
+-- eval_result (append_only): WP17 assurance eval packs. One row per pack x target x run: integer metrics, the per-metric status against the manifest thresholds, the dataset digest and the hash of the assurance_result chain record. Mock runs are labelled is_mock.
+CREATE TABLE IF NOT EXISTS eval_result (
+  run_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  pack_id TEXT NOT NULL,
+  pack_version INTEGER NOT NULL,
+  manifest_sha256 TEXT NOT NULL,
+  dimension TEXT NOT NULL,
+  target_kind TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  metrics TEXT NOT NULL,
+  metric_status TEXT NOT NULL,
+  thresholds TEXT NOT NULL,
+  reasons TEXT NOT NULL,
+  n_items INTEGER NOT NULL,
+  data_mode TEXT NOT NULL,
+  dataset_id TEXT NOT NULL,
+  dataset_sha256 TEXT NOT NULL,
+  is_mock INTEGER NOT NULL,
+  launch_gate TEXT NOT NULL,
+  judge_gate INTEGER NOT NULL,
+  details TEXT NOT NULL,
+  evidence_hash TEXT,
+  PRIMARY KEY (run_id, pack_id, target_kind, target_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_eval_result_target_kind_target_id_ts ON eval_result (target_kind, target_id, ts);
+
+CREATE INDEX IF NOT EXISTS ix_eval_result_pack_id ON eval_result (pack_id);
+
+CREATE TRIGGER IF NOT EXISTS trg_eval_result_no_update
+BEFORE UPDATE ON eval_result
+BEGIN
+  SELECT RAISE(ABORT, 'eval_result is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_eval_result_no_delete
+BEFORE DELETE ON eval_result
+BEGIN
+  SELECT RAISE(ABORT, 'eval_result is append-only');
+END;

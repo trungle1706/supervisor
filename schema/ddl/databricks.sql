@@ -507,3 +507,57 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`notice` (
 USING DELTA
 COMMENT 'WP8. Notifier inbox (console Inbox page). Masked text only. The webhook stub queues rows with status queued and never sends them (off by default).'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- eval_run (append_only): WP17 assurance eval packs. One row per run of `python -m supervisor.assurance run` (counts per status). Integers and strings only.
+-- primary key (enforced by the app, not by Delta): run_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`eval_run` (
+  run_id STRING NOT NULL,
+  started_at TIMESTAMP NOT NULL,
+  finished_at TIMESTAMP NOT NULL,
+  target_spec STRING NOT NULL,
+  selector STRING NOT NULL,
+  packs_total BIGINT NOT NULL,
+  ok BIGINT NOT NULL,
+  warn BIGINT NOT NULL,
+  fail BIGINT NOT NULL,
+  skip BIGINT NOT NULL,
+  error BIGINT NOT NULL,
+  is_mock BOOLEAN NOT NULL,
+  settings_digest STRING,
+  out_dir STRING
+)
+USING DELTA
+COMMENT 'WP17 assurance eval packs. One row per run of `python -m supervisor.assurance run` (counts per status). Integers and strings only.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+
+-- eval_result (append_only): WP17 assurance eval packs. One row per pack x target x run: integer metrics, the per-metric status against the manifest thresholds, the dataset digest and the hash of the assurance_result chain record. Mock runs are labelled is_mock.
+-- primary key (enforced by the app, not by Delta): run_id, pack_id, target_kind, target_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`eval_result` (
+  run_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  pack_id STRING NOT NULL,
+  pack_version BIGINT NOT NULL,
+  manifest_sha256 STRING NOT NULL,
+  dimension STRING NOT NULL,
+  target_kind STRING NOT NULL,
+  target_id STRING NOT NULL,
+  status STRING NOT NULL,
+  metrics STRING NOT NULL,
+  metric_status STRING NOT NULL,
+  thresholds STRING NOT NULL,
+  reasons STRING NOT NULL,
+  n_items BIGINT NOT NULL,
+  data_mode STRING NOT NULL,
+  dataset_id STRING NOT NULL,
+  dataset_sha256 STRING NOT NULL,
+  is_mock BOOLEAN NOT NULL,
+  launch_gate STRING NOT NULL,
+  judge_gate BOOLEAN NOT NULL,
+  details STRING NOT NULL,
+  evidence_hash STRING
+)
+USING DELTA
+COMMENT 'WP17 assurance eval packs. One row per pack x target x run: integer metrics, the per-metric status against the manifest thresholds, the dataset digest and the hash of the assurance_result chain record. Mock runs are labelled is_mock.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');

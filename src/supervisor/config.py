@@ -281,6 +281,17 @@ class Settings(BaseSettings):
     # closed for money / credit / pii_export tools. Off by default.
     require_caller_id: bool = False
 
+    # WP17 assurance eval packs. Bank-supplied datasets live under ASSURANCE_DATA_DIR/<pack>/;
+    # OSV_DB_PATH is a local OSV vulnerability dump. All new features default off.
+    assurance_data_dir: Path | None = None
+    osv_db_path: Path | None = None
+    assurance_licence_allow: str = (
+        "MIT,Apache-2.0,BSD-2-Clause,BSD-3-Clause,PSF-2.0,ISC,Unlicense,0BSD,MPL-2.0"
+    )
+    assurance_launch_enabled: bool = False  # Launch adds assurance NO-GO items
+    assurance_judge_gate_enabled: bool = True  # non-mock judge needs its judge packs passed
+    console_assurance_enabled: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -293,6 +304,8 @@ class Settings(BaseSettings):
         "console_export_dir",
         "scheduler_lock_path",
         "fairness_config",
+        "assurance_data_dir",
+        "osv_db_path",
         mode="after",
     )
     @classmethod

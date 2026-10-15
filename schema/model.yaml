@@ -488,3 +488,60 @@ tables:
       body: text
       status: string
       read_by: string?
+
+  eval_run:
+    kind: append_only
+    description: >
+      WP17 assurance eval packs. One row per run of `python -m supervisor.assurance run`
+      (counts per status). Integers and strings only.
+    primary_key: [run_id]
+    columns:
+      run_id: string
+      started_at: timestamp
+      finished_at: timestamp
+      target_spec: string
+      selector: string
+      packs_total: int
+      ok: int
+      warn: int
+      fail: int
+      skip: int
+      error: int
+      is_mock: bool
+      settings_digest: string?
+      out_dir: string?
+
+  eval_result:
+    kind: append_only
+    evidence: true
+    description: >
+      WP17 assurance eval packs. One row per pack x target x run: integer metrics, the
+      per-metric status against the manifest thresholds, the dataset digest and the hash of
+      the assurance_result chain record. Mock runs are labelled is_mock.
+    primary_key: [run_id, pack_id, target_kind, target_id]
+    indexes:
+      - [target_kind, target_id, ts]
+      - [pack_id]
+    columns:
+      run_id: string
+      ts: timestamp
+      pack_id: string
+      pack_version: int
+      manifest_sha256: string
+      dimension: string
+      target_kind: string
+      target_id: string
+      status: string
+      metrics: json
+      metric_status: json
+      thresholds: json
+      reasons: text
+      n_items: int
+      data_mode: string
+      dataset_id: string
+      dataset_sha256: string
+      is_mock: bool
+      launch_gate: string
+      judge_gate: bool
+      details: json
+      evidence_hash: string?
