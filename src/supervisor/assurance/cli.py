@@ -125,8 +125,36 @@ def _cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
-def _context(settings: Settings, target: Any, args: argparse.Namespace) -> RunContext:
+def tool_baseline_of(tables: Any, agent_id: str) -> str | None:
+    """Latest registered ``agent_version.tool_manifest_hash`` of an agent, if the store has one."""
+    if tables is None:
+        return None
+    try:
+        rows = tables.query("agent_version", {"agent_id": agent_id}, order_by=["-deployed_at"])
+    except Exception:  # noqa: BLE001 - no registry rows: the pack uses its own baseline
+        return None
+    for row in rows:
+        if row.get("tool_manifest_hash"):
+            return str(row["tool_manifest_hash"])
+    return None
+
+
+def _context(
+    settings: Settings,
+    target: Any,
+    args: argparse.Namespace,
+    *,
+    out_dir: Path | None = None,
+    tables: Any = None,
+) -> RunContext:
     allow = tuple(x.strip() for x in settings.assurance_licence_allow.split(",") if x.strip())
+    extras: dict[str, Any] = {}
+    if out_dir is not None:
+        extras["out_dir"] = str(out_dir)
+    if getattr(target, "kind", None) == "agent":
+        baseline = tool_baseline_of(tables, str(target.target_id))
+        if baseline:
+            extras["tool_baseline"] = baseline
     return RunContext(
         target=target,
         repo_root=REPO_ROOT,
@@ -135,6 +163,7 @@ def _context(settings: Settings, target: Any, args: argparse.Namespace) -> RunCo
         max_items=args.max_items,
         osv_db_path=settings.osv_db_path,
         licence_allow=allow,
+        extras=extras,
     )
 
 
@@ -186,7 +215,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         started = clock.now()
         results: list[PackResult] = []
         for target in targets:
-            ctx = _context(settings, target, args)
+            ctx = _context(settings, target, args, out_dir=out_dir, tables=tables)
             pack_results = execute(
                 chosen,
                 target,

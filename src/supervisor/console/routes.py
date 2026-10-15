@@ -35,7 +35,7 @@ from supervisor.cases.service import (
     PermissionDenied,
     require,
 )
-from supervisor.console import auditpack, health, onboard_runs, readmodels, views
+from supervisor.console import assurance_views, auditpack, health, onboard_runs, readmodels, views
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.core.canonical import format_ts
@@ -789,6 +789,40 @@ async def onboard_file(
     resp = FileResponse(path, media_type=f"{media}; charset=utf-8")
     resp.headers["x-content-type-options"] = "nosniff"
     return resp
+
+
+# ---------------------------------------------------------------------------- assurance
+
+
+def _assurance_off(request: Request, ctx: ConsoleContext) -> Response | None:
+    """The screen is hidden (404) unless CONSOLE_ASSURANCE_ENABLED is on."""
+    if ctx.settings.console_assurance_enabled:
+        return None
+    return Response("not found", status_code=404, media_type="text/plain")
+
+
+@router.get("/assurance", response_class=HTMLResponse)
+async def assurance_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    off = _assurance_off(request, ctx)
+    if off is not None:
+        return off
+    _view(me)
+    runs = await _call(assurance_views.runs, ctx.tables)
+    return render(request, ctx, me, "assurance.html", section="assurance", runs=runs, run_id="")
+
+
+@router.get("/assurance/{run_id}", response_class=HTMLResponse)
+async def assurance_run_page(
+    run_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    off = _assurance_off(request, ctx)
+    if off is not None:
+        return off
+    _view(me)
+    data = await _call(assurance_views.run_detail, ctx.tables, run_id)
+    return render(request, ctx, me, "assurance.html", section="assurance", **data)
 
 
 # ---------------------------------------------------------------------------- health

@@ -123,7 +123,12 @@ class DemoAgentTarget:
     is_mock = True
 
     def __init__(
-        self, agent_id: str, work_dir: str | Path, *, settings: Settings | None = None
+        self,
+        agent_id: str,
+        work_dir: str | Path,
+        *,
+        settings: Settings | None = None,
+        policy: Policy | None = None,
     ) -> None:
         if agent_id not in DEMO_AGENTS:
             raise TargetError(f"{agent_id!r} is not a demo agent; use --repo for other agents")
@@ -150,7 +155,7 @@ class DemoAgentTarget:
         bootstrap_schema.run(sb_settings, self._adapters)
         self.sink = _Sink()
         self.world = harness.make_world()
-        self.policy = shadow_policy()
+        self.policy = policy if policy is not None else shadow_policy()
         self.gateway = Gateway(
             StaticPolicyProvider(self.policy),
             self._adapters.tables,

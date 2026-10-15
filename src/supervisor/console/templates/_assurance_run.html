@@ -1,0 +1,40 @@
+{% import "_ui.html" as ui with context %}
+<p><a href="/console/assurance?lang={{ lang }}">&larr; {{ t('as_all_runs') }}</a>
+  <span class="mono" data-run-id="{{ run_id }}">{{ run_id }}</span>
+  {% if run %}<span class="muted">{{ run.started_at|day }} · {{ run.target_spec }}</span>{% if run.is_mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}{% endif %}</p>
+{% if run and run.is_mock %}<div class="hint">{{ t('as_mock_note') }}</div>{% endif %}
+<div class="tablewrap">
+<table class="queue">
+  <thead>
+    <tr>
+      <th>{{ t('as_pack') }}</th><th>{{ t('as_dimension') }}</th><th>{{ t('as_target') }}</th>
+      <th>{{ t('status') }}</th><th>{{ t('as_metrics') }}</th><th>{{ t('as_data') }}</th>
+      <th>{{ t('as_reasons') }}</th><th>{{ t('nav_evidence') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in results %}
+    <tr class="row" data-pack="{{ r.pack_id }}" data-status="{{ r.status }}">
+      <td><b>{{ r.pack_id }}</b> <span class="muted mono">v{{ r.pack_version }}</span>
+        <div class="idline">{{ t('as_gate') }}: {{ r.launch_gate }}{% if r.judge_gate %} · {{ t('as_judge_gate') }}{% endif %}</div></td>
+      <td>{{ r.dimension }}</td>
+      <td class="mono">{{ r.target_kind }}:{{ r.target_id }}{% if r.is_mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</td>
+      <td>{{ ui.pill(r.status, r.pill, True) }}</td>
+      <td>
+        {% for m in r.metric_rows %}
+        <div class="mono" data-metric="{{ m.name }}" data-mstatus="{{ m.status }}">{{ m.name }} = {{ '-' if m.value is none else m.value }}
+          {% if m.go is not none %}<span class="muted">(go {{ m.op }} {{ m.go }}, no-go {{ m.no_go }})</span>{% endif %}
+          {% if m.status in ('fail', 'warn') %}{{ ui.pill(m.status, 'bad' if m.status == 'fail' else 'warn') }}{% endif %}</div>
+        {% else %}-{% endfor %}
+      </td>
+      <td>{{ r.data_mode or '-' }}<div class="idline">{{ r.n_items }} {{ t('items') }}</div></td>
+      <td>{% for x in r.reason_list %}<div>{{ x }}</div>{% else %}-{% endfor %}</td>
+      <td>{% if r.evidence_hash %}<a class="mono" href="/console/evidence?lang={{ lang }}" title="assurance_result {{ r.record_ref }}">{{ r.evidence_hash[:12] }}…</a>{% else %}<span class="muted">{{ t('as_no_chain') }}</span>{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" class="empty">{{ t('as_no_results') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="hint">{{ t('as_illustrative') }}</div>

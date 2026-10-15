@@ -286,7 +286,7 @@ class Settings(BaseSettings):
     assurance_data_dir: Path | None = None
     osv_db_path: Path | None = None
     assurance_licence_allow: str = (
-        "MIT,Apache-2.0,BSD-2-Clause,BSD-3-Clause,PSF-2.0,ISC,Unlicense,0BSD,MPL-2.0"
+        "MIT,Apache-2.0,BSD-2-Clause,BSD-3-Clause,PSF-2.0,ISC,Unlicense,0BSD,MPL-2.0,MIT-0"
     )
     assurance_launch_enabled: bool = False  # Launch adds assurance NO-GO items
     assurance_judge_gate_enabled: bool = True  # non-mock judge needs its judge packs passed
