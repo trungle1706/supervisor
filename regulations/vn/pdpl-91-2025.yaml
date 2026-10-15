@@ -1,0 +1,673 @@
+schema_version: 1
+instrument:
+  id: VN-PDPL-2025
+  jurisdiction: VN
+  kind: law
+  issuer: National Assembly
+  number: "91/2025/QH15"
+  title_vi: "Luật Bảo vệ dữ liệu cá nhân"
+  title_en: Law on Personal Data Protection
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: "2025-06-26"
+      source: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/179252_body_content.html/download"
+      verification: VERIFIED_PRIMARY
+      note: "Law text header reads: Hà Nội, ngày 26 tháng 6 năm 2025. vbpl.vn record 179252 gives issue date 2025-06-26."
+    effective:
+      date: "2026-01-01"
+      source: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/179252_body_content.html/download"
+      verification: VERIFIED_PRIMARY
+      note: "Art. 38(1). Whole law takes effect on 2026-01-01."
+    compliance_deadline:
+      date: null
+      source: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/179252_body_content.html/download"
+      verification: ASSUMED
+      note: "No single deadline. DPIA and transfer impact assessment dossiers are due 60 days from the first day of processing or transfer (Art. 20(2), 21(1)). For processing already running on 2026-01-01 the law does not state a catch-up date; Art. 39 only keeps old consent and old dossiers valid. Bank counsel must confirm."
+    milestones:
+      - label: "Decree 13/2023/ND-CP ceases to have effect (Decree 356/2025 Art. 42(2))"
+        date: "2026-01-01"
+        source: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/187276/187276_content.html/download"
+        verification: VERIFIED_PRIMARY
+      - label: "End of the 5-year option for small enterprises and start-ups to skip Art. 21, 22 and 33(2) (Art. 38(2); 5 years from 2026-01-01)"
+        date: "2031-01-01"
+        source: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/179252_body_content.html/download"
+        verification: VERIFIED_PRIMARY
+        note: "End date is computed from the text: 05 năm kể từ ngày Luật này có hiệu lực thi hành. Not relevant to a large bank."
+  supersedes: [VN-DEC13-2023]
+  sources:
+    - url: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/179252_body_content.html/download"
+      title: "Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15 - vbpl.vn (national legal database) body content, text extracted"
+      fetched_at: "2026-10-15"
+      kind: primary
+      sha256: "c19120cc0c26a9014f6cec6f3cd84ded2fee5c542f1c7d1ff411fb1a1f86efed"
+      local_path: "regulations/sources/VN-PDPL-2025/luat-91-2025-qh15.txt"
+    - url: "https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx"
+      title: "Luật Bảo vệ dữ liệu cá nhân 2025 số 91/2025/QH15 - Thư viện Pháp luật (secondary mirror; confirms 26/06/2025 and 01/01/2026)"
+      fetched_at: "2026-10-15"
+      kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: "2026-10-15"
+  notes: >-
+    Text read from the vbpl.vn gateway (body_content.html, record id 179252). The HTML is partly scrambled:
+    some article headings are missing or out of order (for example the heading "Điều 9" appears as "9." and
+    consent text sits after Art. 23), but all 39 articles are present. The article numbers in this file were
+    taken from the vbpl record order and checked against the Decree 356/2025 cross-references (for example
+    Art. 17(1)(a), 19, 20(6), 21, 22, 23, 33(2), 38(2)). The signed scan (VanBanGoc_91.L2025 PDF, 10 MB) has no text layer and is not stored.
+    Law does not name Decree 13/2023 as repealed; the repeal is in Decree 356/2025 Art. 42(2) (verified).
+    The law has no general "profiling" or "automated decision" article; those duties are in Decree 356/2025 Art. 10.
+    The law covers personal data of Vietnamese citizens and foreign organisations that take part in processing
+    (Art. 1, summarised from secondary source; Art. 1 text is stored but not quoted here).
+    A separate administrative-sanctions decree for this field was not checked; only the caps in Art. 8 are recorded.
+obligations:
+  - id: VN-PDPL-2025-A2.1-01
+    article_ref: "Art. 2(1), 2(3)"
+    text_vi: "Dữ liệu cá nhân nhạy cảm là dữ liệu cá nhân gắn liền với quyền riêng tư của cá nhân, khi bị xâm phạm sẽ gây ảnh hưởng trực tiếp đến quyền, lợi ích hợp pháp của cơ quan, tổ chức, cá nhân, thuộc danh mục do Chính phủ ban hành."
+    summary_en: "Personal data is either basic or sensitive; the sensitive list is set by the Government (Decree 356/2025 Art. 4 includes bank, credit and biometric data). Data that is de-identified is no longer personal data. The bank must classify every data field an AI agent touches."
+    duties: [data_classification, sensitive_data_protection]
+    applies_to:
+      data_classes: [personal, sensitive_personal, financial, biometric]
+    addressee: controller
+    control_mapping:
+      - {kind: catalogue, id: pii_masking, coverage: partial, note: "masking makes data de-identified only if the mask is irreversible for the receiver; the bank must prove it"}
+      - {kind: process, id: record_of_processing, coverage: none, note: "bank keeps the data inventory and classification"}
+      - {kind: process, id: legal_review, coverage: none, note: "counsel confirms what counts as de-identified"}
+    evidence_needed: ["data inventory with basic and sensitive tags per agent tool", "test showing masked trace cannot identify a person"]
+    verification: VERIFIED_PRIMARY
+    sources: &lawsrc
+      - {url: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/179252_body_content.html/download", title: "Luật 91/2025/QH15 - vbpl.vn", fetched_at: "2026-10-15", kind: primary, sha256: "c19120cc0c26a9014f6cec6f3cd84ded2fee5c542f1c7d1ff411fb1a1f86efed", local_path: "regulations/sources/VN-PDPL-2025/luat-91-2025-qh15.txt"}
+    confidence: high
+    notes: "Art. 2(1) also says de-identified personal data is no longer personal data. De-identification is defined in Art. 2(11)."
+
+  - id: VN-PDPL-2025-A3.2-01
+    article_ref: "Art. 3(2)"
+    text_vi: "Chỉ được thu thập, xử lý dữ liệu cá nhân đúng phạm vi, mục đích cụ thể, rõ ràng, bảo đảm tuân thủ quy định của pháp luật."
+    summary_en: "Collect and process personal data only inside the stated scope and a specific, clear purpose. An agent must not read or pass on fields beyond what the task needs."
+    duties: [purpose_limitation, data_minimisation]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: catalogue, id: pii_bulk_read, coverage: partial, note: "limits bulk reads of personal records by one agent"}
+      - {kind: rule, id: PII-02, coverage: partial, note: "caps loan applications read per agent per hour at 200; does not check purpose"}
+      - {kind: catalogue, id: approved_tools, coverage: partial, note: "agent can call only approved tools"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "records which records each tool call touched"}
+    evidence_needed: ["purpose statement per agent in the record of processing", "tool-call log showing reads stay in scope"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A3.3-01
+    article_ref: "Art. 3(3)"
+    text_vi: "Bảo đảm tính chính xác của dữ liệu cá nhân và được chỉnh sửa, cập nhật, bổ sung khi cần thiết; được lưu trữ trong khoảng thời gian phù hợp với mục đích xử lý dữ liệu cá nhân, trừ trường hợp pháp luật có quy định khác."
+    summary_en: "Keep personal data accurate and store it only as long as the purpose needs. This covers the agent's traces, case files and evidence copies that hold customer data."
+    duties: [data_quality, retention]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: records_retention, coverage: none, note: "bank sets retention for traces and case files; banking record rules may require longer keeping"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "shows what was stored"}
+    evidence_needed: ["retention schedule that names trace and case-file storage", "deletion job log"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Tension to resolve with counsel: an append-only hash-chained evidence store versus deletion duties (Art. 14). Store references and masked values in the chain, not raw personal data."
+
+  - id: VN-PDPL-2025-A4.1-01
+    article_ref: "Art. 4(1)"
+    text_vi: "Yêu cầu cung cấp, xóa, hạn chế xử lý dữ liệu cá nhân; gửi yêu cầu phản đối xử lý dữ liệu cá nhân;"
+    summary_en: "The data subject has rights to be informed, to give or refuse consent and withdraw it, to view and correct data, to ask for a copy, deletion or restriction, to object, and to complain or claim damages. The bank needs a way to find and act on a customer's data held by an AI agent."
+    duties: [data_subject_rights]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: data_subject_request, coverage: none, note: "bank handles the request"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "helps locate every event that touched one customer"}
+      - {kind: console, id: case_detail, coverage: partial, note: "case file view shows what the agent did for a customer"}
+    evidence_needed: ["request register with dates", "ability to search agent events by customer id"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A4.5-01
+    article_ref: "Art. 4(5)"
+    text_vi: "Khi nhận được yêu cầu của chủ thể dữ liệu cá nhân để thực hiện quyền của chủ thể dữ liệu cá nhân quy định tại khoản 1 Điều này, bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân phải kịp thời thực hiện trong thời hạn theo quy định của pháp luật."
+    summary_en: "A data subject request must be carried out in the legal time limit. The exact days are in Decree 356/2025 Art. 5 (2 working days to reply; 10 to 20 days to act, with one extension)."
+    duties: [data_subject_rights]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: data_subject_request, coverage: none, note: "SLA clock and tracking sit in the bank process"}
+    evidence_needed: ["request log with received, replied and completed dates"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A7.4-01
+    article_ref: "Art. 7(4), 7(6), 7(7)"
+    text_vi: "Xử lý dữ liệu cá nhân trái quy định của pháp luật."
+    summary_en: "Prohibited acts include processing personal data against the law, buying or selling personal data, and deliberately leaking or losing it. An agent that sends customer data to an unapproved party would be such an act."
+    duties: [prohibited_practice, purpose_limitation]
+    applies_to:
+      data_classes: [personal]
+    addressee: any
+    control_mapping:
+      - {kind: catalogue, id: approved_tools, coverage: partial, note: "limits agent outputs to approved tools"}
+      - {kind: catalogue, id: proxy_log, coverage: partial, note: "logs outbound calls"}
+      - {kind: process, id: legal_review, coverage: none, note: "counsel decides what is lawful processing"}
+    evidence_needed: ["outbound call log", "list of approved recipients"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: medium
+    notes: "Art. 7(6) sale of personal data and 7(7) deliberate leak are in the same article; only 7(4) is quoted."
+
+  - id: VN-PDPL-2025-A8.4-01
+    article_ref: "Art. 8(4)"
+    text_vi: "Mức phạt tiền tối đa trong xử phạt vi phạm hành chính đối với tổ chức có hành vi vi phạm quy định chuyển dữ liệu cá nhân xuyên biên giới là 5% doanh thu của năm trước liền kề của tổ chức đó;"
+    summary_en: "A fine for a breach of the cross-border transfer rules can reach 5% of the organisation's revenue of the previous year. Other breaches are capped at VND 3 billion (Art. 8(5)); selling personal data at 10 times the gain (Art. 8(3)). Individuals face half the cap (Art. 8(6))."
+    duties: [cross_border_notice]
+    applies_to:
+      data_classes: [personal]
+      cross_border: true
+    addressee: any
+    control_mapping:
+      - {kind: process, id: transfer_impact_assessment, coverage: none, note: "the way to avoid this penalty is a filed assessment"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "shows whether any call left the country"}
+    evidence_needed: ["TIA filing receipt", "list of every foreign endpoint that received personal data"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Penalty exposure, not a separate duty. It raises the priority of the Art. 20 duties."
+
+  - id: VN-PDPL-2025-A9.2-01
+    article_ref: "Art. 9(2), 9(4)"
+    text_vi: "Sự đồng ý của chủ thể dữ liệu cá nhân chỉ có hiệu lực khi dựa trên sự tự nguyện và biết rõ các thông tin sau đây:"
+    summary_en: "Consent is valid only if it is voluntary and the person knows the data types and purpose, who controls the data, and their rights. Consent must be per purpose, may not be bundled, and silence is not consent (Art. 9(4)). An AI agent that reuses data for a new purpose needs fresh consent or another lawful basis."
+    duties: [consent, lawful_basis, purpose_limitation]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: consent_management, coverage: none, note: "bank captures and stores consent per purpose"}
+      - {kind: process, id: customer_disclosure, coverage: none, note: "notice text names the AI use"}
+    evidence_needed: ["consent records per purpose", "consent text that names AI processing"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Heading number 'Điều 9' is missing in the vbpl HTML; the article number is inferred from the sequence (Art. 8 penalties, Art. 10 withdrawal) and from Decree 356 cross-references. Art. 9(4) quoted in summary only."
+
+  - id: VN-PDPL-2025-A10.1-01
+    article_ref: "Art. 10(1), 10(3)"
+    text_vi: "Chủ thể dữ liệu cá nhân có quyền yêu cầu rút lại sự đồng ý cho phép xử lý dữ liệu cá nhân, yêu cầu hạn chế xử lý dữ liệu cá nhân của mình khi có nghi ngờ phạm vi, mục đích xử lý dữ liệu cá nhân hoặc tính chính xác của dữ liệu cá nhân"
+    summary_en: "A customer can withdraw consent or ask to restrict processing. The controller must carry it out and make its processors do the same. Past processing stays valid (Art. 10(4)). An agent needs a switch to stop using one customer's data."
+    duties: [data_subject_rights, consent]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: data_subject_request, coverage: none, note: "bank receives and executes the withdrawal"}
+      - {kind: process, id: consent_management, coverage: none, note: "consent register must flip to withdrawn"}
+      - {kind: console, id: agent_action, coverage: partial, note: "pause switch stops an agent, but not per-customer exclusion"}
+    evidence_needed: ["withdrawal log with completion date", "proof the agent no longer reads the customer's data"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A11.1-01
+    article_ref: "Art. 11(1)"
+    text_vi: "Dữ liệu cá nhân được thu thập phải được sự đồng ý của chủ thể dữ liệu cá nhân trước khi thu thập, trừ trường hợp pháp luật có quy định khác."
+    summary_en: "Consent must come before collection, unless another law allows it. The exceptions are in Art. 19."
+    duties: [consent, lawful_basis]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: consent_management, coverage: none, note: "bank gets consent before the agent collects data"}
+    evidence_needed: ["consent timestamp earlier than first collection event"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A13.2-01
+    article_ref: "Art. 13(2)"
+    text_vi: "Bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân chỉnh sửa dữ liệu cá nhân sau khi chủ thể dữ liệu cá nhân yêu cầu hoặc chỉnh sửa dữ liệu cá nhân theo quy định của pháp luật; yêu cầu bên xử lý dữ liệu cá nhân, bên thứ ba chỉnh sửa dữ liệu cá nhân của chủ thể dữ liệu cá nhân."
+    summary_en: "On request the controller corrects the data and makes its processors and third parties correct it too. A wrong value in the system of record must not keep feeding an agent decision."
+    duties: [data_subject_rights, data_quality]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: catalogue, id: system_of_record, coverage: partial, note: "agent reads the record of truth, so a correction there reaches the agent"}
+      - {kind: process, id: data_subject_request, coverage: none, note: "bank executes the correction and informs processors"}
+    evidence_needed: ["correction log", "notice to processors"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: medium
+
+  - id: VN-PDPL-2025-A14.3-01
+    article_ref: "Art. 14(1), 14(3)"
+    text_vi: "Bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân xóa, hủy dữ liệu cá nhân trong các trường hợp quy định tại khoản 1 Điều này hoặc yêu cầu bên xử lý dữ liệu cá nhân, bên thứ ba xóa, hủy dữ liệu cá nhân của chủ thể dữ liệu cá nhân."
+    summary_en: "Delete personal data when the subject asks, the purpose is done, the retention period ends, an authority orders it, or the parties agreed. Use safe methods that stop recovery. Deletion can be refused where Art. 19 applies (Art. 14(2)); if deletion is impossible the subject must be told (Art. 14(5))."
+    duties: [retention, data_subject_rights]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: records_retention, coverage: none, note: "bank deletion schedule incl. agent traces"}
+      - {kind: process, id: data_subject_request, coverage: none, note: "deletion requests"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "shows where copies exist"}
+    evidence_needed: ["deletion confirmation including processors and judge-model vendors", "deletion log"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Banks also keep records under other laws (Art. 14(2) and 19 allow refusal). Deletion versus the append-only evidence chain needs a counsel decision."
+
+  - id: VN-PDPL-2025-A14.6-01
+    article_ref: "Art. 14(6)"
+    text_vi: "Không được tái nhận dạng dữ liệu cá nhân sau khi đã được khử nhận dạng, trừ trường hợp pháp luật có quy định khác;"
+    summary_en: "The party that de-identifies data must control the process and may not re-identify the data later. Masked traces sent to a judge model must not be joined back to a customer."
+    duties: [data_minimisation, sensitive_data_protection]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: catalogue, id: pii_masking, coverage: partial, note: "masks fields before any judge call; the mask method must be one-way for the judge"}
+      - {kind: process, id: dpo_signoff, coverage: none, note: "DPO approves the de-identification method"}
+    evidence_needed: ["masking spec", "check that no judge payload holds a re-identifiable key"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: medium
+
+  - id: VN-PDPL-2025-A17.1-01
+    article_ref: "Art. 17(1)(d)"
+    text_vi: "Bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân chuyển giao dữ liệu cá nhân cho bên xử lý dữ liệu cá nhân, bên thứ ba để xử lý dữ liệu cá nhân theo quy định;"
+    summary_en: "Handing data to a processor or third party is allowed in set cases (consent, internal sharing, merger, processor/third party, authority order). Transfer terms are in Decree 356/2025 Art. 7: a written agreement with purpose, data types, retention, legal basis, duties and breach cooperation."
+    duties: [processor_contract, lawful_basis]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: vendor_management, coverage: none, note: "contract with each AI vendor and cloud provider"}
+      - {kind: catalogue, id: proxy_log, coverage: partial, note: "logs every outbound call so the transfer list is complete"}
+    evidence_needed: ["transfer agreement per recipient", "outbound call inventory"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A18.1-01
+    article_ref: "Art. 18(1)"
+    text_vi: "Bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân, bên xử lý dữ liệu cá nhân, bên thứ ba lưu trữ dữ liệu cá nhân theo hình thức phù hợp với hoạt động của mình và có biện pháp bảo vệ dữ liệu cá nhân trong quá trình lưu trữ theo quy định của pháp luật."
+    summary_en: "Whoever stores personal data must protect it while stored. This covers traces, logs and case files kept by Supervisor and by the agent platform."
+    duties: [encryption, access_control, customer_confidentiality]
+    applies_to:
+      data_classes: [personal]
+    addressee: any
+    control_mapping:
+      - {kind: catalogue, id: pii_masking, coverage: partial, note: "reduces personal data held in traces"}
+      - {kind: process, id: access_management, coverage: none, note: "named accounts for trace and case-file access"}
+      - {kind: process, id: security_assessment, coverage: none, note: "storage security assessed by the bank"}
+    evidence_needed: ["storage security controls for trace and evidence stores"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: medium
+
+  - id: VN-PDPL-2025-A19.2-01
+    article_ref: "Art. 19(2)"
+    text_vi: "Cơ quan, tổ chức, cá nhân có liên quan phải thiết lập cơ chế giám sát khi xử lý dữ liệu cá nhân trong trường hợp không cần sự đồng ý của chủ thể dữ liệu cá nhân bao gồm:"
+    summary_en: "Where processing without consent is allowed (for example emergency, state order, performance of an agreement), the organisation must set a supervision mechanism: written procedure and roles, safeguards and regular risk checks, periodic compliance checks, and a way to take complaints. The party must prove the ground in urgent-case use (Art. 19(1)(a))."
+    duties: [lawful_basis, internal_policy, governance_accountability]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: internal_policy_issuance, coverage: none, note: "bank writes the procedure"}
+      - {kind: monitor, id: sweeps, coverage: partial, note: "periodic sweeps over recorded events support the periodic check"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "evidence that processing stayed in scope"}
+    evidence_needed: ["procedure for no-consent processing", "periodic compliance check report"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: medium
+    notes: "Art. 19(1)(d), implementing an agreement between the subject and the organisation, is the likely ground for core banking processing; counsel must confirm which ground the bank relies on per use case."
+
+  - id: VN-PDPL-2025-A20.1-01
+    article_ref: "Art. 20(1)(c)"
+    text_vi: "Cơ quan, tổ chức, cá nhân tại Việt Nam hoặc ở nước ngoài sử dụng nền tảng ở ngoài lãnh thổ nước Cộng hòa xã hội chủ nghĩa Việt Nam để xử lý dữ liệu cá nhân được thu thập tại Việt Nam."
+    summary_en: "Cross-border transfer covers three cases: storing data on servers abroad, sending data to a person or entity abroad, and using a platform outside Vietnam to process personal data collected in Vietnam. A judge model or any LLM API hosted abroad that receives customer data (even masked, if the data stays personal) triggers the cross-border duties."
+    duties: [cross_border_notice]
+    applies_to:
+      data_classes: [personal]
+      model_hosting: [foreign_cloud]
+    addressee: controller
+    control_mapping:
+      - {kind: catalogue, id: pii_masking, coverage: partial, note: "masking before a foreign judge call may take the payload out of scope only if it is truly de-identified (Art. 2(1)); bank must prove it"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "log each model call with its hosting region so a later agent can flag foreign_cloud use"}
+      - {kind: evidence, id: verdict_log, coverage: partial, note: "records which judge model and prompt version saw the data"}
+      - {kind: process, id: transfer_impact_assessment, coverage: none, note: "bank files the assessment"}
+    evidence_needed: ["region of each model call logged in the chain", "list of foreign platforms that process personal data"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Flag rule for later agents: judge or agent model hosted in foreign_cloud and any personal field in the payload => Art. 20(2) filing duty. Applies even if the vendor is the one hosting."
+
+  - id: VN-PDPL-2025-A20.2-01
+    article_ref: "Art. 20(2), 20(3)"
+    text_vi: "Cơ quan, tổ chức, cá nhân chuyển dữ liệu cá nhân xuyên biên giới thực hiện các hoạt động quy định tại khoản 1 Điều này phải lập hồ sơ đánh giá tác động chuyển dữ liệu cá nhân xuyên biên giới và gửi 01 bản chính cho cơ quan chuyên trách bảo vệ dữ liệu cá nhân trong thời gian 60 ngày kể từ ngày đầu tiên chuyển dữ liệu cá nhân xuyên biên giới, trừ trường hợp quy định tại khoản 6 Điều này."
+    summary_en: "Prepare a cross-border transfer impact assessment dossier and file one original with the specialised personal-data protection agency (under the Ministry of Public Security) within 60 days of the first transfer. The assessment is done once for the life of the organisation and then kept up to date (Art. 22). The agency may inspect once a year or on incident (Art. 20(4)) and may order the transfer to stop for national-security harm (Art. 20(5))."
+    duties: [cross_border_notice, dpia, regulatory_reporting]
+    applies_to:
+      data_classes: [personal]
+      cross_border: true
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: transfer_impact_assessment, coverage: none, note: "bank prepares and files the dossier"}
+      - {kind: process, id: regulator_notification, coverage: none, note: "filing to the Ministry of Public Security agency"}
+      - {kind: process, id: dpo_signoff, coverage: none, note: "DPO reviews the dossier"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "date of first transfer and flows"}
+    evidence_needed: ["TIA dossier on file", "filing receipt within 60 days of first transfer", "first-transfer date from the chain"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Dossier contents and form numbers are in Decree 356/2025 Art. 18. The old 2023 regime (Decree 13) required a dossier before transfer; the new law allows filing within 60 days after the first transfer."
+
+  - id: VN-PDPL-2025-A20.6-01
+    article_ref: "Art. 20(6)"
+    text_vi: "Các trường hợp không phải thực hiện quy định về đánh giá tác động chuyển dữ liệu cá nhân xuyên biên giới bao gồm:"
+    summary_en: "Exempt from the transfer assessment: state authorities; an organisation storing its own employees' data on cloud; the data subject transferring their own data; and cases the Government adds (Decree 356/2025 Art. 17(3) adds news media, public data, emergencies, cross-border HR, and contract and payment steps such as remittance and payment). The exemption list is narrow; AI vendor calls are not listed."
+    duties: [cross_border_notice]
+    applies_to:
+      data_classes: [personal]
+      cross_border: true
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: legal_review, coverage: none, note: "counsel decides whether a payment-related exemption covers an AI judge call; default assumption: it does not"}
+    evidence_needed: ["written legal opinion for any claimed exemption"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: medium
+    notes: "Inference (ASSUMED in notes only): the Decree 356 payment exemption covers sending data to complete a transfer abroad, not sending traces to a monitoring or judge model."
+
+  - id: VN-PDPL-2025-A21.1-01
+    article_ref: "Art. 21(1), 21(2)"
+    text_vi: "Bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân lập, lưu trữ hồ sơ đánh giá tác động xử lý dữ liệu cá nhân và gửi 01 bản chính cho cơ quan chuyên trách bảo vệ dữ liệu cá nhân trong thời gian 60 ngày kể từ ngày đầu tiên xử lý dữ liệu cá nhân, trừ trường hợp quy định tại khoản 6 Điều này."
+    summary_en: "The controller prepares and keeps a personal-data processing impact assessment and files one original with the specialised agency within 60 days of the first day of processing. It is done once for the life of the controller and updated under Art. 22. A new AI agent that adds a new processing purpose triggers an update (Decree 356/2025 Art. 20)."
+    duties: [dpia, regulatory_reporting, record_keeping]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: dpia_document, coverage: none, note: "bank prepares the dossier; Supervisor evidence can feed the risk section"}
+      - {kind: process, id: record_of_processing, coverage: none, note: "data-flow diagram and purposes"}
+      - {kind: process, id: dpo_signoff, coverage: none, note: "DPO signs"}
+      - {kind: process, id: regulator_notification, coverage: none, note: "filing with the agency"}
+      - {kind: evidence, id: onboard_profile, coverage: partial, note: "onboarding profile lists data classes and tools per agent"}
+    evidence_needed: ["DPIA dossier on file and filed", "update log for each new agent or purpose"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "State authorities are exempt (Art. 21(6)). Small enterprises and start-ups may opt out for 5 years (Art. 38(2)) and micro businesses are exempt (Art. 38(3)), unless they process sensitive data at scale; not applicable to a bank."
+
+  - id: VN-PDPL-2025-A21.3-01
+    article_ref: "Art. 21(3)"
+    text_vi: "Bên xử lý dữ liệu cá nhân lập và lưu trữ hồ sơ đánh giá tác động xử lý dữ liệu cá nhân theo thỏa thuận với bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân, trừ trường hợp quy định tại khoản 6 Điều này."
+    summary_en: "A processor prepares and keeps its own impact assessment as agreed with the controller. If Supervisor or an AI vendor processes customer data for the bank, the contract must say who prepares which assessment."
+    duties: [dpia, processor_contract]
+    applies_to:
+      data_classes: [personal]
+    addressee: processor
+    control_mapping:
+      - {kind: process, id: vendor_management, coverage: none, note: "contract clause on who files the processor DPIA"}
+      - {kind: process, id: dpia_document, coverage: none, note: "processor's own dossier"}
+    evidence_needed: ["contract clause allocating DPIA duties", "processor DPIA on file"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A22.1-01
+    article_ref: "Art. 22(1), 22(2)"
+    text_vi: "Hồ sơ đánh giá tác động xử lý dữ liệu cá nhân và hồ sơ đánh giá tác động chuyển dữ liệu cá nhân xuyên biên giới được cập nhật định kỳ 06 tháng khi có sự thay đổi hoặc cập nhật ngay trong các trường hợp quy định tại khoản 2 Điều này."
+    summary_en: "Update the DPIA and the transfer assessment every 6 months when something changed, and at once on reorganisation, change of the data-protection service provider, or a new or changed business line involving personal data. Updates go through the national personal-data portal or the agency (Art. 22(3))."
+    duties: [dpia, cross_border_notice, change_control]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: evidence, id: agent_version, coverage: partial, note: "version history shows when an agent, tool set or model changed"}
+      - {kind: evidence, id: onboard_plan, coverage: partial, note: "onboarding plan records new agents"}
+      - {kind: process, id: dpia_document, coverage: none, note: "bank updates the dossier"}
+      - {kind: process, id: transfer_impact_assessment, coverage: none, note: "bank updates the TIA"}
+    evidence_needed: ["6-month update log", "change list from agent version history"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Decree 356/2025 Art. 20 sets the 10-day period for immediate updates and the triggers for the 6-month update."
+
+  - id: VN-PDPL-2025-A23.1-01
+    article_ref: "Art. 23(1)"
+    text_vi: "phải thông báo cho cơ quan chuyên trách bảo vệ dữ liệu cá nhân chậm nhất là 72 giờ kể từ khi phát hiện hành vi vi phạm."
+    summary_en: "A controller or third party that finds a breach that could harm national security, public order, or the life, health, honour or property of the data subject must tell the specialised agency within 72 hours of discovery. A processor must tell the controller promptly. A harmful leak by an AI agent counts."
+    duties: [incident_report_72h, incident_response]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: monitor, id: sweeps, coverage: partial, note: "sweeps help detect abnormal data access"}
+      - {kind: catalogue, id: pii_bulk_read, coverage: partial, note: "bulk reads are an early signal"}
+      - {kind: rule, id: PII-02, coverage: partial, note: "blocks over-limit reads of loan applications"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "timeline to date the discovery and scope"}
+      - {kind: process, id: incident_management, coverage: none, note: "72-hour clock starts at discovery"}
+      - {kind: process, id: regulator_notification, coverage: none, note: "notice to the Ministry of Public Security agency (Form 08)"}
+    evidence_needed: ["incident timeline with discovery time", "notification receipt within 72 h"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Form and content: Decree 356/2025 Art. 28. Sector rule for finance and for location and biometric data: 72 hours to the subject as well (Decree 356 Art. 8(3), 29)."
+
+  - id: VN-PDPL-2025-A23.2-01
+    article_ref: "Art. 23(2), 23(4)"
+    text_vi: "Bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân phải lập biên bản xác nhận về việc xảy ra hành vi vi phạm quy định về bảo vệ dữ liệu cá nhân, phối hợp với cơ quan chuyên trách bảo vệ dữ liệu cá nhân xử lý hành vi vi phạm."
+    summary_en: "The controller must write a record that confirms the breach and work with the agency. Controller and others must stop the breach and fix its effects (Art. 23(4)). Art. 23(3) also requires notice to the agency where data was used for a wrong purpose or subject rights were not honoured."
+    duties: [incident_response, record_keeping]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: evidence, id: case_file, coverage: partial, note: "case file and chain give a verifiable record of agent actions"}
+      - {kind: evidence, id: chain_verify_report, coverage: partial, note: "shows the record was not altered"}
+      - {kind: console, id: agent_action, coverage: partial, note: "pause or retire an agent to stop an ongoing breach"}
+      - {kind: process, id: incident_management, coverage: none, note: "bank writes the breach record"}
+    evidence_needed: ["signed breach record", "containment actions with timestamps"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A27.1-01
+    article_ref: "Art. 27(1)(a), 27(1)(c)"
+    text_vi: "Thực hiện đầy đủ quy định về bảo vệ dữ liệu cá nhân nhạy cảm, các tiêu chuẩn an toàn, bảo mật trong hoạt động tài chính, ngân hàng theo quy định của pháp luật;"
+    summary_en: "Finance, banking and credit-information firms must apply the full sensitive-data rules and banking security standards, and collect only the personal data they need for credit-information work from lawful sources."
+    duties: [sensitive_data_protection, customer_confidentiality, data_minimisation]
+    applies_to:
+      data_classes: [sensitive_personal, financial]
+    addressee: bank
+    control_mapping:
+      - {kind: catalogue, id: pii_masking, coverage: partial, note: "masks identifiers in traces and judge payloads"}
+      - {kind: catalogue, id: pii_bulk_read, coverage: partial, note: "limits bulk reads"}
+      - {kind: rule, id: PII-02, coverage: partial, note: "bulk read cap for credit_prequal"}
+      - {kind: process, id: security_assessment, coverage: none, note: "banking security standards are the bank's"}
+    evidence_needed: ["sensitive-data handling policy", "access list for financial data"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A27.1-02
+    article_ref: "Art. 27(1)(b)"
+    text_vi: "Không sử dụng thông tin tín dụng của chủ thể dữ liệu cá nhân để chấm điểm, xếp hạng tín dụng, đánh giá thông tin tín dụng, đánh giá mức độ tín nhiệm về tín dụng của chủ thể dữ liệu cá nhân khi chưa có sự đồng ý của chủ thể dữ liệu cá nhân;"
+    summary_en: "Credit information may not be used to score, rank or rate a person's creditworthiness without their consent. A credit pre-qualification agent needs a recorded consent that covers the scoring purpose before it uses credit data."
+    duties: [consent, lawful_basis, automated_decision_rights]
+    applies_to:
+      agent_class: [credit_decision]
+      data_classes: [financial, personal]
+    addressee: bank
+    control_mapping:
+      - {kind: process, id: consent_management, coverage: none, note: "consent for credit scoring recorded before the agent runs"}
+      - {kind: catalogue, id: prior_read, coverage: partial, note: "can require that a record was read from the system of record before a decision; does not check consent"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "shows scoring happened and when"}
+    evidence_needed: ["consent id attached to each prequalification run", "gate that blocks scoring when consent is absent"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "Supervisor has no consent-check gate today; this is a gap a later work package may close."
+
+  - id: VN-PDPL-2025-A27.1-03
+    article_ref: "Art. 27(1)(d)"
+    text_vi: "Thông báo cho chủ thể dữ liệu cá nhân trong trường hợp lộ, mất thông tin về tài khoản ngân hàng, tài chính, tín dụng, thông tin tín dụng."
+    summary_en: "The bank must tell the customer when bank-account, financial, credit or credit-information data is leaked or lost. Decree 356/2025 Art. 8(3) sets 72 hours for this notice and for the agency notice."
+    duties: [breach_notification_subject, incident_response]
+    applies_to:
+      data_classes: [financial, sensitive_personal]
+    addressee: bank
+    control_mapping:
+      - {kind: process, id: incident_management, coverage: none, note: "customer notification step"}
+      - {kind: process, id: regulator_notification, coverage: none, note: "parallel agency notice"}
+      - {kind: evidence, id: agent_event_log, coverage: partial, note: "identifies affected customers"}
+    evidence_needed: ["list of affected customers from the event log", "customer notice sent record"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A30.1-01
+    article_ref: "Art. 30(1), 30(3)"
+    text_vi: "Dữ liệu cá nhân trong môi trường dữ liệu lớn, trí tuệ nhân tạo, chuỗi khối, vũ trụ ảo và điện toán đám mây phải được xử lý đúng mục đích và giới hạn trong phạm vi cần thiết, bảo đảm quyền, lợi ích hợp pháp của chủ thể dữ liệu cá nhân."
+    summary_en: "Personal data in AI, big-data and cloud environments must be used for the stated purpose and no wider than needed. Systems must have built-in security, suitable authentication and access rights (Art. 30(3))."
+    duties: [purpose_limitation, data_minimisation, access_control, robustness_security]
+    applies_to:
+      data_classes: [personal]
+    addressee: any
+    control_mapping:
+      - {kind: catalogue, id: approved_tools, coverage: partial, note: "agent confined to approved tools"}
+      - {kind: catalogue, id: pii_masking, coverage: partial, note: "masks before judge calls"}
+      - {kind: process, id: access_management, coverage: none, note: "named accounts and least privilege"}
+    evidence_needed: ["tool allow-list per agent", "access review record"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A30.4-01
+    article_ref: "Art. 30(4)"
+    text_vi: "Việc xử lý dữ liệu cá nhân bằng trí tuệ nhân tạo phải thực hiện phân loại theo mức độ rủi ro để có biện pháp bảo vệ dữ liệu cá nhân phù hợp."
+    summary_en: "AI processing of personal data must be classified by risk level so that protection measures match the risk. The bank needs a risk tier per AI agent that handles personal data."
+    duties: [risk_classification, risk_management_system]
+    applies_to:
+      data_classes: [personal]
+    addressee: any
+    control_mapping:
+      - {kind: evidence, id: agent_registry, coverage: partial, note: "registry records the risk tier per agent"}
+      - {kind: evidence, id: onboard_profile, coverage: partial, note: "onboarding profile proposes a tier"}
+      - {kind: process, id: board_governance, coverage: none, note: "committee approves the tier method"}
+    evidence_needed: ["risk tier per agent in registry", "tier method approved by the bank"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    notes: "The law gives no scale. Decree 356/2025 Art. 10 adds AI duties but no tier list. Align with the AI Law risk levels once the bank decides."
+
+  - id: VN-PDPL-2025-A30.5-01
+    article_ref: "Art. 30(5)"
+    text_vi: "Không sử dụng, phát triển hệ thống xử lý dữ liệu lớn, trí tuệ nhân tạo, chuỗi khối, vũ trụ ảo, điện toán đám mây có sử dụng dữ liệu cá nhân để gây tổn hại đến quốc phòng, an ninh quốc gia, trật tự, an toàn xã hội hoặc xâm phạm đến tính mạng, sức khỏe, danh dự, nhân phẩm, tài sản của người khác."
+    summary_en: "Do not use or build AI, big-data or cloud systems that use personal data to harm national security, public order, or the life, health, honour, dignity or property of others."
+    duties: [prohibited_practice]
+    applies_to:
+      data_classes: [personal]
+    addressee: any
+    control_mapping:
+      - {kind: monitor, id: oversight, coverage: partial, note: "oversight metrics help show human control"}
+      - {kind: process, id: legal_review, coverage: none, note: "counsel screens use cases"}
+    evidence_needed: ["use-case screening record"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: medium
+
+  - id: VN-PDPL-2025-A31.4-01
+    article_ref: "Art. 31(4)"
+    text_vi: "Cơ quan, tổ chức, cá nhân thu thập và xử lý dữ liệu sinh trắc học phải có biện pháp bảo mật vật lý đối với thiết bị lưu trữ và truyền tải dữ liệu sinh trắc học của mình; hạn chế quyền truy cập vào dữ liệu sinh trắc học; có hệ thống theo dõi để phòng ngừa, phát hiện hành vi xâm phạm dữ liệu sinh trắc học; tuân thủ quy định của pháp luật và tiêu chuẩn quốc tế có liên quan;"
+    summary_en: "Biometric data needs physical security for storage and transfer devices, restricted access, a monitoring system to detect abuse, and compliance with relevant standards. If processing harms the subject, the subject must be told (Art. 31(4)(b))."
+    duties: [sensitive_data_protection, access_control, security_monitoring]
+    applies_to:
+      data_classes: [biometric]
+    addressee: any
+    control_mapping:
+      - {kind: catalogue, id: pii_masking, coverage: partial, note: "keeps biometric templates and images out of traces if masking is configured for them"}
+      - {kind: process, id: access_management, coverage: none, note: "restricted access"}
+      - {kind: process, id: security_assessment, coverage: none, note: "physical security"}
+    evidence_needed: ["biometric data access list", "monitoring alerts for biometric stores"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A33.2-01
+    article_ref: "Art. 33(2)"
+    text_vi: "Cơ quan, tổ chức có trách nhiệm chỉ định bộ phận, nhân sự đủ điều kiện năng lực bảo vệ dữ liệu cá nhân hoặc thuê tổ chức, cá nhân cung cấp dịch vụ bảo vệ dữ liệu cá nhân."
+    summary_en: "Appoint a qualified personal-data protection unit or person, or hire a service provider. Conditions and tasks are in Decree 356/2025 Art. 13 and 14. Small enterprises and micro businesses may be exempt (Art. 38); a bank is not."
+    duties: [dpo_appointment, governance_accountability]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: dpo_signoff, coverage: none, note: "bank names the DPO or unit and routes AI changes to them"}
+      - {kind: console, id: case_signoff, coverage: partial, note: "sign-off screen can record a DPO or compliance reviewer for a case; it does not make the appointment"}
+    evidence_needed: ["written appointment of the unit or person"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A37.1-01
+    article_ref: "Art. 37(1)(c), 37(1)(e), 37(1)(g)"
+    text_vi: "Thực hiện biện pháp quản lý, kỹ thuật phù hợp để bảo vệ dữ liệu cá nhân theo quy định của pháp luật, rà soát và cập nhật các biện pháp này khi cần thiết;"
+    summary_en: "The controller applies suitable management and technical measures and reviews them, picks a suitable processor (Art. 37(1)(đ)), guarantees data subject rights, and is liable to the subject for damage from its processing (Art. 37(1)(g)). The bank stays answerable for what its AI vendors do with data."
+    duties: [governance_accountability, outsourcing_oversight, robustness_security]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: vendor_management, coverage: none, note: "due diligence on AI vendors and judge-model hosts"}
+      - {kind: evidence, id: audit_pack, coverage: partial, note: "audit export supports internal and external review"}
+    evidence_needed: ["vendor due-diligence file", "periodic review of technical measures"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A37.2-01
+    article_ref: "Art. 37(2)(a), 37(2)(b)"
+    text_vi: "Chỉ được tiếp nhận dữ liệu cá nhân sau khi có thỏa thuận, hợp đồng về xử lý dữ liệu cá nhân với bên kiểm soát dữ liệu cá nhân, bên kiểm soát và xử lý dữ liệu cá nhân;"
+    summary_en: "A processor may receive personal data only after an agreement or contract with the controller and must process only as the contract says. It must apply protection measures and answers to the controller for damage (Art. 37(2)(c), (d)). This applies to an AI vendor or to Supervisor when they handle customer data for the bank."
+    duties: [processor_contract]
+    applies_to:
+      data_classes: [personal]
+    addressee: processor
+    control_mapping:
+      - {kind: process, id: vendor_management, coverage: none, note: "contract signed before the first data flow"}
+    evidence_needed: ["signed processing contract dated before first data flow"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+
+  - id: VN-PDPL-2025-A39.1-01
+    article_ref: "Art. 39(1), 39(2)"
+    text_vi: "Hoạt động xử lý dữ liệu cá nhân đang thực hiện mà đã được chủ thể dữ liệu cá nhân đồng ý hoặc theo thỏa thuận theo quy định của Nghị định số 13/2023/NĐ-CP ngày 17 tháng 4 năm 2023 của Chính phủ trước ngày Luật này có hiệu lực thi hành thì tiếp tục thực hiện, không phải xin đồng ý lại hoặc thỏa thuận lại."
+    summary_en: "Processing already consented under Decree 13/2023 before 2026-01-01 continues without new consent. Dossiers already received by the agency under Decree 13 stay valid, and later updates follow the new law (Art. 39(2)). A new AI use of old data still needs its own lawful basis."
+    duties: [consent, lawful_basis, dpia]
+    applies_to:
+      data_classes: [personal]
+    addressee: controller
+    control_mapping:
+      - {kind: process, id: consent_management, coverage: none, note: "map old consents to the new purposes"}
+      - {kind: process, id: dpia_document, coverage: none, note: "check whether a Decree 13 dossier exists and covers the AI agent"}
+    evidence_needed: ["list of Decree 13 consents and dossiers with receipt dates"]
+    verification: VERIFIED_PRIMARY
+    sources: *lawsrc
+    confidence: high
+    status: in_force
+    notes: "Transition rule only. Whether an old consent covers a new AI purpose is a legal question (Art. 3(2), 9(4)(a))."

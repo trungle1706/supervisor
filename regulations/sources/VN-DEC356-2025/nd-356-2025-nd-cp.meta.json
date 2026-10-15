@@ -1,0 +1,8 @@
+{
+ "url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/187276/187276_content.html/download",
+ "title": "Nghi dinh 356/2025/ND-CP, vbpl.vn content (text extracted, incl. annex form titles)",
+ "fetched_at": "2026-10-15T09:30:00Z",
+ "sha256": "22de007d15f2baea157c4524207897cc65ff4afe267a9bb543cc0282454e0b81",
+ "content_type": "text/plain; charset=utf-8 (extracted from text/html)",
+ "tool": "manual-curl"
+}
