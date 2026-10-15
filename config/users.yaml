@@ -5,12 +5,13 @@
 # Roles: viewer | reviewer | approver | owner | auditor | admin | operator
 # (the full role x permission table is in docs/console.md, "Role matrix")
 #   viewer    read-only console pages
-#   operator  views + run case intake + verify the chain + health
-#   reviewer  triage, contain, comment, assign, pause, first resume approval, sign-off
-#   approver  second sign-off on high / critical cases
-#   owner     agent owner: the other half of the two-person resume (ADR D04)
-#   auditor   read-only, audit-pack export
-#   admin     quarantine / release, everything a reviewer can do
+#   operator  views + run case intake + verify the chain
+#   reviewer  assign, triage, contain, close, comment, ITSM ref, sign-off, record report sent,
+#             pause, resume (reviewer half), intake, start onboarding, verify, export
+#   approver  sign-off (approver half), record report sent, comment, pause, verify, export
+#   owner     agent owner: resume (owner half), comment, pause, start onboarding, verify
+#   auditor   read pages, verify case and chain, mark inbox read, audit-pack and chain export
+#   admin     everything a reviewer can do + quarantine / release
 #
 # Resume needs the agent owner (agent.owner_user) and a reviewer listed in
 # policies/baseline.yaml (reviewers:). The ids below match those files.

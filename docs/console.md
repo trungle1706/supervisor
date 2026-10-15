@@ -75,11 +75,11 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | Role | In short |
 |---|---|
 | viewer | Read-only console pages |
-| reviewer | Assign, triage, contain, close, comment, ITSM ref, sign off, pause, resume (as the reviewer half), export |
-| approver | Sign off (the approver half), comment, pause, export |
-| owner | Resume (as the owner half), comment, pause, start an onboarding run |
-| auditor | Read everything, build and download audit packs, verify the chain |
-| admin | Reviewer rights, quarantine, release a quarantine |
+| reviewer | Assign, triage, contain, close, comment, ITSM ref, sign off, record report sent, pause, resume (as the reviewer half), run intake, start onboarding, verify case and chain, mark inbox read, export and download |
+| approver | Sign off (the approver half), record report sent, comment, pause, verify case and chain, mark inbox read, export and download |
+| owner | Resume (as the owner half), comment, pause, start an onboarding run, verify case and chain, mark inbox read |
+| auditor | Read pages, verify case and chain, mark inbox read, build and download audit packs and chain exports |
+| admin | Everything a reviewer can do, plus quarantine and release a quarantine |
 | operator | Read pages, run case intake, verify the chain |
 
 ### Role matrix
