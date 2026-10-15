@@ -171,3 +171,81 @@ def test_clean_roundtrip_moves_old_store_aside(cfg: Settings, tmp_path: Path) ->
     want = json.loads((bdir / "manifest.json").read_text())["db_sha256"]
     assert B.sha256_file(_live(cfg)) == want
     _no_tmp(cfg)
+
+
+def _fresh_target(tmp_path: Path) -> Settings:
+    return load_settings(data_dir=tmp_path / "dr", sql_backend="sqlite", llm_base_url="")
+
+
+def _pub(cfg: Settings, tmp_path: Path, name: str = "pub.pem") -> Path:
+    pem = tmp_path / name
+    build_signer(cfg).export_public_key(pem)
+    return pem
+
+
+def _keyfile(s: Settings) -> Path:
+    return Path(s.signer_key_path)  # type: ignore[arg-type]
+
+
+def test_matching_key_restored_on_fresh_target(cfg: Settings, tmp_path: Path) -> None:
+    bdir = tmp_path / "bk"
+    B.backup(cfg, bdir, include_key=True)
+    s2 = _fresh_target(tmp_path)
+    r = B.restore(s2, bdir, pubkey=_pub(cfg, tmp_path))
+    assert r["key_restored"] and build_signer(s2).key_id == build_signer(cfg).key_id
+
+
+def test_attacker_key_in_backup_not_installed(cfg: Settings, tmp_path: Path) -> None:
+    other_cfg, _ = _foreign_backup(tmp_path)
+    bdir = tmp_path / "bk"
+    B.backup(cfg, bdir)
+    (bdir / B.KEY_NAME).write_bytes(_keyfile(other_cfg).read_bytes())
+    s2 = _fresh_target(tmp_path)
+    r = B.restore(s2, bdir, pubkey=_pub(cfg, tmp_path))
+    assert not r["key_restored"] and not _keyfile(s2).exists()
+    assert any("not the pinned key" in w for w in r["warnings"])
+
+
+def test_allow_key_change_installs_only_chain_key(cfg: Settings, tmp_path: Path) -> None:
+    other_cfg, _ = _foreign_backup(tmp_path)
+    bdir = tmp_path / "bk"
+    B.backup(cfg, bdir)
+    (bdir / B.KEY_NAME).write_bytes(_keyfile(other_cfg).read_bytes())
+    s2 = _fresh_target(tmp_path)
+    r = B.restore(s2, bdir, allow_key_change=True)
+    assert not r["key_restored"] and any("not the chain key" in w for w in r["warnings"])
+    assert not _keyfile(s2).exists()
+
+
+def test_symlinked_key_file_not_followed(cfg: Settings, tmp_path: Path) -> None:
+    bdir = tmp_path / "bk"
+    B.backup(cfg, bdir)
+    real = tmp_path / "real.pem"
+    real.write_bytes(_keyfile(cfg).read_bytes())
+    try:
+        (bdir / B.KEY_NAME).symlink_to(real)
+    except OSError:
+        pytest.skip("symlinks not available")
+    s2 = _fresh_target(tmp_path)
+    r = B.restore(s2, bdir, pubkey=_pub(cfg, tmp_path))
+    assert not r["key_restored"] and not _keyfile(s2).exists()
+    assert any("not a regular file" in w for w in r["warnings"])
+
+
+def test_symlinked_anchor_not_copied(cfg: Settings, tmp_path: Path) -> None:
+    bdir = tmp_path / "bk"
+    B.backup(cfg, bdir)
+    secret = tmp_path / "secret.txt"
+    secret.write_text("private")
+    (bdir / B.ANCHOR_DIR).mkdir()
+    (bdir / B.ANCHOR_DIR / "ok.json").write_text("{}")
+    try:
+        (bdir / B.ANCHOR_DIR / "evil.json").symlink_to(secret)
+    except OSError:
+        pytest.skip("symlinks not available")
+    anch = tmp_path / "anch"
+    s2 = _fresh_target(tmp_path).model_copy(update={"anchor_kind": "worm_dir", "anchor_path": anch})
+    r = B.restore(s2, bdir, pubkey=_pub(cfg, tmp_path))
+    assert r["anchors_restored"] == 1
+    assert (anch / "ok.json").is_file() and not (anch / "evil.json").exists()
+    assert any("evil.json" in w for w in r["warnings"])

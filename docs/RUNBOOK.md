@@ -441,6 +441,8 @@ python -m supervisor.cli restore --from C:\supervisor-backup\2026-10-15 --allow-
 * The sha256 in `manifest.json` only detects accidental damage. It is not an authenticity check (the manifest sits next to the data). Authenticity comes from the chain check, which is pinned to the public key of the current signer (`SIGNER_KIND` / `SIGNER_KEY_PATH`). A chain signed by another key is refused.
 * `--pubkey FILE` pins a key you give (PEM, for example exported from the bank secret store) instead of the current signer's key. Use it on a new machine that has no signing key yet; if no key can be found, restore refuses unless you pass `--pubkey` (or `--allow-key-change`).
 * `--allow-key-change` accepts a backup signed by a different key. It prints a `[WARN] WARNING:` line with both key fingerprints and still checks the chain with the backup's own key. That proves the chain is consistent, not who made it. Use it only for a known key change (key rotation, new deployment) and record the reason.
+* The signing key file in the backup (`--include-key`) is installed only if the target has no key, the file is a regular file (not a symlink) and its public key is the pinned key. Otherwise restore prints a `[WARN]`, skips it, and you restore the key from the secret store. Symlinks in the backup `anchors` folder are skipped too.
+* A backup with no chain entries is refused (`signed roots: none verified`): an empty store has nothing to restore; bootstrap instead.
 * The manifest `db_file` must be a bare file name; paths, `..`, drive letters and absolute paths are refused.
 * The chain check prints `[OK] evidence chain verifies` or `[FAIL]`. An older backup prints a warning: run `python -m supervisor.jobs.bootstrap_schema` (it adds columns only).
 

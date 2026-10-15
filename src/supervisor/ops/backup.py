@@ -276,6 +276,46 @@ def _tail(lines: list[str], n: int = 3) -> str:
     return " | ".join(bad[:n])
 
 
+def _plan_key_install(
+    src: Path,
+    key_dst: Path | None,
+    pinned_id: str | None,
+    chain_ids: set[str],
+    warnings: list[str],
+) -> Path | None:
+    """Backup key file to install, or None. Checked before the swap; a bad key is a warning.
+
+    Installed only when it is a regular file (not a symlink), the target has no key, and its
+    public key is the pinned key (or, with no pinned key, a key the chain verified with)."""
+    import stat
+
+    from supervisor.evidence.signer import SignerError, _load_pem_private, key_id_for
+
+    key_src = src / KEY_NAME
+    try:
+        st = os.lstat(key_src)
+    except OSError:
+        return None
+    if key_dst is None or os.path.lexists(key_dst):
+        return None
+    if not stat.S_ISREG(st.st_mode):
+        warnings.append(f"{KEY_NAME} in the backup is not a regular file (symlink?): not installed")
+        return None
+    try:
+        kid = key_id_for(_load_pem_private(key_src.read_bytes(), KEY_NAME).public_key())
+    except (SignerError, ValueError, TypeError, OSError):
+        warnings.append(f"{KEY_NAME} in the backup is not a readable Ed25519 key: not installed")
+        return None
+    if (kid != pinned_id) if pinned_id else (kid not in chain_ids):
+        warnings.append(
+            f"{KEY_NAME} in the backup (key {kid}) is not the "
+            f"{'pinned' if pinned_id else 'chain'} key: not installed. Restore the real signing "
+            "key from your secret store"
+        )
+        return None
+    return key_src
+
+
 def restore(
     settings: Settings,
     src: Path,
@@ -337,6 +377,7 @@ def restore(
     tmp = target.with_name(f"{target.name}.restore-tmp-{secrets.token_hex(6)}")
     key_change = False
     moved: str | None = None
+    key_dst = Path(settings.signer_key_path) if settings.signer_key_path else None
     try:
         try:
             shutil.copyfile(db, tmp)  # same folder as the target: the final replace is atomic
@@ -365,6 +406,7 @@ def restore(
                 f"{pinned_id or 'none'}; backup chain key(s): {', '.join(sorted(ids)) or 'none'}. "
                 "The chain is internally consistent but its origin is not proven."
             )
+        key_plan = _plan_key_install(src, key_dst, pinned_id, ids, warnings)
         stamp = utc_stamp()
         aside: Path | None = None
         if target.exists():
@@ -385,18 +427,23 @@ def restore(
         for suffix in ("", "-wal", "-shm", "-journal"):
             Path(str(tmp) + suffix).unlink(missing_ok=True)
     key_restored = False
-    key_src = src / KEY_NAME
-    key_dst = Path(settings.signer_key_path) if settings.signer_key_path else None
-    if key_src.is_file() and key_dst is not None and not key_dst.exists():
+    if key_plan is not None and key_dst is not None:
         key_dst.parent.mkdir(parents=True, exist_ok=True)
-        _copy_private(key_src, key_dst)
+        _copy_private(key_plan, key_dst)
         key_restored = True
     anchors_restored = 0
-    if (src / ANCHOR_DIR).is_dir() and settings.anchor_kind == "worm_dir" and settings.anchor_path:
+    anchor_root = src / ANCHOR_DIR
+    if anchor_root.is_symlink():
+        warnings.append(f"{ANCHOR_DIR} in the backup is a symlink: anchors not restored")
+    elif anchor_root.is_dir() and settings.anchor_kind == "worm_dir" and settings.anchor_path:
         dst = Path(settings.anchor_path)
         dst.mkdir(parents=True, exist_ok=True)
-        for f in (src / ANCHOR_DIR).rglob("*"):
-            rel = f.relative_to(src / ANCHOR_DIR)
+        root_real = anchor_root.resolve()
+        for f in anchor_root.rglob("*"):
+            rel = f.relative_to(anchor_root)
+            if f.is_symlink() or (f.exists() and not f.resolve().is_relative_to(root_real)):
+                warnings.append(f"anchor entry {rel} is a symlink or outside the backup: skipped")
+                continue
             if f.is_file() and not (dst / rel).exists():
                 (dst / rel).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(f, dst / rel)
