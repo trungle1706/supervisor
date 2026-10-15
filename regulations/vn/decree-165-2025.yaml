@@ -1,0 +1,1008 @@
+schema_version: 1
+instrument:
+  id: VN-DEC165-2025
+  jurisdiction: VN
+  kind: decree
+  issuer: Government
+  number: 165/2025/NĐ-CP
+  title_vi: Nghị định quy định chi tiết một số điều và biện pháp thi hành Luật Dữ liệu
+  title_en: Decree detailing a number of articles and implementing measures of the Law on Data
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2025-06-30'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+      verification: VERIFIED_PRIMARY
+      note: 'Text: ''Hà Nội, ngày 30 tháng 6 năm 2025''.'
+    effective:
+      date: '2025-07-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+      verification: VERIFIED_PRIMARY
+      note: Art. 33.
+  related:
+  - VN-DATA-2024
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  - url: https://vbpl.vn/van-ban/chi-tiet/179108
+    title: vbpl.vn record 179108 (Con hieu luc)
+    fetched_at: '2026-10-15'
+    kind: primary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'Verified from the official text. Final text: important-data cross-border filing is 15 days before
+    processing (Art. 12(6)); the draft figure of 5 days was NOT used. Core data needs an assessment and
+    written pass result from the Ministry of Public Security within 10 days (15 if complex) before transfer
+    (Art. 12(5)). Log retention for core/important data processing: at least six months (Art. 17(10)).
+    Annual risk assessment: Art. 17(11). Incident report to MPS/MND for core/important data: ''as early
+    as possible'' (Art. 19(4)). Drills every 6 months: Art. 19(8). The cross-border quantity test counts
+    from 1 Jul 2025 (Art. 12(10)). Gap: the Prime Minister''s catalogues of core and important data were
+    not found in the checked sources; until published, classification relies on the criteria in Art. 3-4.
+    Not checked: the form annexes (Form 02 and the risk report form).'
+obligations:
+- id: VN-DEC165-2025-A3-01
+  article_ref: Art. 3
+  text_vi: 'Việc xác định dữ liệu quan trọng căn cứ theo mức độ có thể tác động của dữ liệu đến quốc phòng,
+    an ninh, cơ yếu, đối ngoại, kinh tế vĩ mô, ổn định xã hội, sức khỏe và an toàn cộng đồng khi bị thu
+    thập, sử dụng trái phép (không bao gồm bí mật nhà nước), bao gồm:
+
+    1. Dữ liệu có thể gây tác động nguy hiểm đến an ninh quốc gia, độc lập, chủ quyền, thống nhất và toàn
+    vẹn lãnh thổ của Tổ quốc, bảo vệ Đảng, Nhà nước, khối đại đoàn kết toàn dân tộc; bảo vệ an ninh chính
+    trị, an ninh trong các lĩnh vực tư tưởng - văn hóa, kinh tế, quốc phòng, đối ngoại, thông tin, xã
+    hội, tài nguyên, môi trường, nông nghiệp, sinh học, y tế, lao động, xây dựng, giáo dục, đào tạo, khoa
+    học và công nghệ.
+
+    2. Dữ liệu có thể gây tác động nguy hiểm đến kế hoạch phát triển quan hệ đối ngoại, ảnh hưởng lợi
+    ích quốc gia và an ninh hợp tác quốc tế, dự án đầu tư của Việt Nam ở nước ngoài, an ninh năng lượng,
+    hàng hải.
+
+    3. Dữ liệu có thể gây tác động nguy hiểm đến phát triển, vận hành kinh tế vĩ mô, ngành kinh tế quan
+    trọng của quốc gia, tổng cung, tổng cầu của xã hội, tổng giá trị kinh tế quốc gia, tỷ lệ thất nghiệp,
+    lĩnh vực tiền tệ, thương mại, xuất, nhập khẩu, cung ứng hàng hóa, sản phẩm, dịch vụ thiết yếu.
+
+    4. Dữ liệu có thể gây tác động nguy hiểm đến tính mạng, sức khỏe, danh dự, nhân phẩm, tài sản, quyền,
+    lợi ích hợp pháp của cơ quan, tổ chức, cá nhân; công tác phòng chống dịch bệnh, phòng ngừa, theo dõi
+    và điều trị các bệnh truyền nhiễm, bệnh nghề nghiệp, an toàn vệ sinh thực phẩm; cung ứng lao động,
+    cung cấp các dịch vụ công.'
+  summary_en: 'Criteria for important data: data whose unauthorised collection or use could endanger national
+    defence/security, foreign relations, macro-economy, important sectors (money, trade, essential services),
+    or life, health, property and rights of people and organisations.'
+  duties:
+  - data_classification
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: declared data classes
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: 'apply criteria to bank datasets: payments, credit and customer data may meet items 3 and 4'
+  evidence_needed:
+  - documented classification decision per dataset
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+  notes: Item 3 names money and 'essential services'; item 4 names property of people and organisations.
+    Whether bank data is 'important' is a judgement for bank counsel until the PM catalogue is published.
+- id: VN-DEC165-2025-A4-01
+  article_ref: Art. 4
+  text_vi: 'Việc xác định dữ liệu cốt lõi căn cứ vào tác động trực tiếp của dữ liệu gây nguy hiểm đến
+    quốc phòng, an ninh, cơ yếu, đối ngoại, kinh tế vĩ mô, ổn định xã hội, sức khỏe và an toàn cộng đồng
+    khi bị thu thập, sử dụng trái phép (không bao gồm bí mật nhà nước), bao gồm:
+
+    1. Dữ liệu trực tiếp gây tác động nguy hiểm đến an ninh quốc gia, độc lập, chủ quyền, thống nhất và
+    toàn vẹn lãnh thổ của Tổ quốc, bảo vệ Đảng, Nhà nước, khối đại đoàn kết toàn dân tộc; bảo vệ an ninh
+    chính trị, an ninh trong các lĩnh vực tư tưởng - văn hóa, kinh tế, quốc phòng, đối ngoại, thông tin,
+    xã hội, tài nguyên, môi trường, nông nghiệp, sinh học, y tế, lao động, xây dựng, giáo dục, đào tạo,
+    khoa học và công nghệ.
+
+    2. Dữ liệu trực tiếp gây tác động nguy hiểm đến kế hoạch phát triển quan hệ đối ngoại, ảnh hưởng lợi
+    ích quốc gia và an ninh hợp tác quốc tế, dự án đầu tư của Việt Nam ở nước ngoài, an ninh năng lượng,
+    hàng hải.
+
+    3. Dữ liệu trực tiếp gây tác động nguy hiểm đến phát triển, vận hành kinh tế vĩ mô, ngành kinh tế
+    quan trọng của quốc gia, tổng cung, tổng cầu của xã hội, tổng giá trị kinh tế quốc gia, tỷ lệ thất
+    nghiệp, lĩnh vực tiền tệ, thương mại, xuất, nhập khẩu, cung ứng hàng hóa, sản phẩm, dịch vụ thiết
+    yếu.
+
+    4. Dữ liệu trực tiếp gây tác động nguy hiểm đến tính mạng, sức khỏe, danh dự, nhân phẩm, tài sản,
+    quyền, lợi ích hợp pháp của cơ quan, tổ chức, cá nhân; công tác phòng chống dịch bệnh, phòng ngừa,
+    theo dõi và điều trị các bệnh truyền nhiễm, bệnh nghề nghiệp, an toàn vệ sinh thực phẩm; cung ứng
+    lao động, cung cấp các dịch vụ công.'
+  summary_en: 'Criteria for core data: data whose unauthorised collection or use directly endangers the
+    same interests (same four groups, with direct impact).'
+  duties:
+  - data_classification
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - documented classification decision per dataset
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC165-2025-A5.1-01
+  article_ref: Art. 5(1)
+  text_vi: 1. Chủ sở hữu dữ liệu quy định thời hạn lưu trữ cụ thể đối với dữ liệu do mình thu thập, tạo
+    lập.
+  summary_en: The data owner sets a specific retention period for the data it collects or creates.
+  duties:
+  - retention
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: records_retention
+    coverage: none
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: retention of agent event data follows the bank schedule
+  evidence_needed:
+  - retention schedule covering agent data
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: medium
+- id: VN-DEC165-2025-A11.1-01
+  article_ref: Art. 11(1)
+  text_vi: '1. Cơ quan, tổ chức, cá nhân được sử dụng một hoặc nhiều giải pháp mã hóa và quy trình mã
+    hóa, giải mã phù hợp với hoạt động quản trị, quản lý dữ liệu của mình gồm:
+
+    a) Giải pháp mã hóa dữ liệu khi truyền tải dữ liệu;
+
+    b) Giải pháp mã hóa dữ liệu khi lưu trữ dữ liệu;
+
+    c) Giải pháp mã hóa dữ liệu trên thiết bị số;
+
+    d) Giải pháp bảo mật phần cứng nhằm phòng chống truy cập trái phép và bảo đảm rằng các thao tác mã
+    hóa/giải mã chỉ được thực hiện trong môi trường an toàn;
+
+    đ) Quy trình giải mã yêu cầu xác thực định danh người thực hiện giải mã dữ liệu, xác định và cấp quyền
+    truy cập dữ liệu đã được mã hóa;
+
+    e) Giải pháp ghi lại các hoạt động mã hóa và giải mã nhằm bảo đảm tính hợp pháp, minh bạch, công bằng
+    và phục vụ tra cứu;
+
+    g) Các giải pháp, quy trình khác theo quy định của pháp luật.'
+  summary_en: Encryption and key-handling solutions may include encryption in transit, at rest and on
+    devices, hardware security, authenticated decryption with access rights, and logging of encrypt/decrypt
+    operations.
+  duties:
+  - encryption
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: can record agent-side calls, not key operations
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - encryption standard
+  - encryption/decryption operation logs
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: medium
+  notes: Wording is permissive ('được sử dụng'); treat as a menu of accepted solutions, not a hard duty.
+- id: VN-DEC165-2025-A12.1-01
+  article_ref: Art. 12(1), 12(2), 12(4); Art. 16(2)
+  text_vi: '1. Chủ sở hữu dữ liệu, chủ quản dữ liệu khi cần chuyển, xử lý dữ liệu cốt lõi, dữ liệu quan
+    trọng xuyên biên giới thì thực hiện đánh giá tác động theo quy định khoản 2 Điều này. Đánh giá tác
+    động chuyển dữ liệu cốt lõi, quan trọng ra nước ngoài, cho tổ chức, cá nhân nước ngoài được thực hiện
+    01 lần cho suốt thời gian hoạt động của tổ chức, doanh nghiệp và được cập nhật, bổ sung theo quy định
+    tại khoản 8 Điều này.
+
+    ...
+
+    2. Bên chuyển dữ liệu phải đánh giá tác động với các vấn đề sau:
+
+    a) Tính hợp pháp, sự cần thiết, phạm vi, phương thức truyền dữ liệu và cách xử lý dữ liệu của bên
+    nhận dữ liệu;
+
+    b) Những rủi ro mà việc chuyển dữ liệu có thể gây ra cho quốc phòng, an ninh, hoạt động kinh tế, đối
+    ngoại, ổn định xã hội, lợi ích công cộng hoặc quyền và lợi ích hợp pháp của cá nhân hoặc tổ chức;
+    rủi ro dữ liệu sẽ bị giả mạo, phá hủy, rò rỉ, mất hoặc sử dụng bất hợp pháp;
+
+    c) Trách nhiệm và nghĩa vụ, các biện pháp quản lý, kỹ thuật của bên nhận dữ liệu;
+
+    d) Các vấn đề khác có liên quan.
+
+    ...
+
+    4. Hồ sơ đánh giá tác động chuyển, xử lý dữ liệu xuyên biên giới gồm Báo cáo đánh giá tác động chuyển,
+    xử lý dữ liệu xuyên biên giới (theo Mẫu số 02 ban hành kèm theo Nghị định này) và các văn bản khác
+    có liên quan.'
+  summary_en: Before transferring or processing core or important data across the border, the owner or
+    controller must assess impact (legality and need, risks, recipient controls). One assessment covers
+    the life of the organisation and is updated on change. The dossier uses Report Form 02.
+  duties:
+  - cross_border_notice
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: shows which agent sent which data where
+  - kind: process
+    id: transfer_impact_assessment
+    coverage: none
+    note: impact report on Form 02
+  - kind: process
+    id: data_localisation_setup
+    coverage: none
+  evidence_needed:
+  - impact assessment report (Form 02)
+  - recipient controls review
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+  notes: 'Art. 16(2): where core/important data is also personal data, only Art. 12 applies and the PDPL
+    transfer impact assessment is not needed.'
+- id: VN-DEC165-2025-A12.3-01
+  article_ref: Art. 12(3)
+  text_vi: '3. Văn bản giao kết giữa bên chuyển dữ liệu và bên nhận dữ liệu, phải xác định rõ:
+
+    a) Mục đích, phương pháp và phạm vi xuất dữ liệu, mục đích và phương pháp xử lý dữ liệu của bên nhận
+    dữ liệu;
+
+    b) Địa điểm và thời gian lưu trữ dữ liệu, các biện pháp xử lý dữ liệu sau khi hết thời hạn lưu trữ,
+    hoàn thành mục tiêu đã thỏa thuận;
+
+    c) Yêu cầu ràng buộc đối với bên nhận dữ liệu về việc cung cấp dữ liệu đã được chuyển giao cho bên
+    thứ ba;
+
+    d) Các biện pháp bảo vệ dữ liệu mà bên nhận dữ liệu sẽ sử dụng;
+
+    đ) Biện pháp khắc phục hậu quả, bồi thường thiệt hại, trách nhiệm xử lý vi phạm hợp đồng, biện pháp
+    giải quyết tranh chấp đối với hành vi phạm nghĩa vụ bảo vệ dữ liệu;
+
+    e) Trách nhiệm của các bên trong việc xử lý dữ liệu.'
+  summary_en: The agreement between the sender and the foreign receiver must state purpose, method and
+    scope; storage place and time and disposal; limits on onward transfer; protection measures; remedies;
+    and each side's duties.
+  duties:
+  - cross_border_notice
+  - processor_contract
+  - outsourcing_oversight
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract terms with the foreign model/tool vendor
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - signed data transfer agreement with the listed terms
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC165-2025-A12.5-01
+  article_ref: Art. 12(5)
+  text_vi: '5. Trường hợp dữ liệu chuyển, xử lý ở nước ngoài là dữ liệu cốt lõi:
+
+    a) Bên chuyển dữ liệu gửi hồ sơ đánh giá tác động chuyển, xử lý dữ liệu xuyên biên giới đến Bộ Công
+    an, trường hợp thuộc lĩnh vực quân sự, quốc phòng, cơ yếu thì gửi hồ sơ về Bộ Quốc phòng;
+
+    b) Đơn vị chịu trách nhiệm thuộc Bộ Quốc phòng, Bộ Công an nhận hồ sơ kiểm tra tính đầy đủ, hợp lệ
+    của hồ sơ. Trường hợp hồ sơ chưa đầy đủ thì yêu cầu bên chuyển dữ liệu bổ sung, hoàn thiện hồ sơ;
+
+    c) Đơn vị chịu trách nhiệm thuộc Bộ Quốc phòng, Bộ Công an hoàn thành việc đánh giá hồ sơ đánh giá
+    tác động chuyển, xử lý dữ liệu ra nước ngoài trong thời hạn 10 ngày kể từ ngày nhận được hồ sơ đầy
+    đủ, hợp lệ; trường hợp hồ sơ phức tạp, cần xác minh, kiểm tra thì không quá 15 ngày;
+
+    d) Bên chuyển dữ liệu phải được thông báo bằng văn bản về kết quả đánh giá. Sau khi nhận được kết
+    quả đánh giá đạt, chủ quản dữ liệu quyết định việc chuyển dữ liệu cốt lõi ra nước ngoài, xử lý dữ
+    liệu xuyên biên giới.'
+  summary_en: 'Core data: file the assessment with the Ministry of Public Security (or National Defence
+    for military/cipher data). The authority checks completeness and finishes the assessment within 10
+    days, or 15 days for complex files. The owner may transfer only after a pass result in writing.'
+  duties:
+  - cross_border_notice
+  - registration
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: transfer_impact_assessment
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: filing and wait for written result
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: evidence that no transfer ran before approval
+  evidence_needed:
+  - filing receipt
+  - written pass result
+  - evidence that transfer started after approval
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC165-2025-A12.6-01
+  article_ref: Art. 12(6)
+  text_vi: '6. Trường hợp cần chuyển, xử lý xuyên biên giới là dữ liệu quan trọng: Bên chuyển dữ liệu
+    phải lập hồ sơ đánh giá tác động trước khi chuyển, xử lý dữ liệu xuyên biên giới để phục vụ hoạt động
+    kiểm tra, đánh giá của Bộ Công an hoặc Bộ Quốc phòng trong trường hợp cần thiết (không cần sự chấp
+    thuận của cơ quan có thẩm quyền trước khi thực hiện). Bên chuyển dữ liệu gửi 01 bản chính hồ sơ tới
+    Bộ Công an hoặc Bộ Quốc phòng theo mẫu ban hành kèm theo Nghị định này trước 15 ngày khi tiến hành
+    xử lý dữ liệu.'
+  summary_en: 'Important data: no prior approval, but the sender must prepare the assessment dossier before
+    transfer and send one original to the Ministry of Public Security (or National Defence) 15 days before
+    processing starts. The final text says 15 days (an earlier draft reportedly said 5).'
+  duties:
+  - cross_border_notice
+  - registration
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - important_data
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: transfer_impact_assessment
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: notice at least 15 days before start
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: go-live date evidence
+  evidence_needed:
+  - dossier on file
+  - proof of filing at least 15 days before start
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+  notes: Final text quotes 'trước 15 ngày'. The cumulative-quantity rule in Art. 12(10) counts transfers
+    from 1 Jul 2025.
+- id: VN-DEC165-2025-A12.8-01
+  article_ref: Art. 12(8)
+  text_vi: '8. Các trường hợp bên chuyển dữ liệu phải thực hiện sửa đổi, bổ sung hồ sơ đánh giá tác động
+    chuyển, xử lý dữ liệu xuyên biên giới gồm:
+
+    a) Khi có sự thay đổi về mục đích, phương pháp, phạm vi, loại dữ liệu chuyển, xử lý, thay đổi mục
+    đích hoặc phương pháp xử lý dữ liệu của bên nhận dữ liệu, ảnh hưởng đến an ninh an toàn dữ liệu; kéo
+    dài thời gian lưu trữ dữ liệu cốt lõi, dữ liệu quan trọng;
+
+    b) Thay đổi chính sách, quy định bảo vệ dữ liệu và môi trường an ninh mạng ở quốc gia hoặc khu vực
+    nơi bên nhận dữ liệu, thay đổi quyền kiểm soát thực tế của bên chuyển dữ liệu hoặc bên nhận dữ liệu
+    và các tác động khác đến tính bảo mật của dữ liệu được chuyển.'
+  summary_en: The dossier must be amended when purpose, method, scope or data types change, the receiver's
+    processing changes, retention is extended, or the receiver's legal environment or control changes.
+  duties:
+  - cross_border_notice
+  - change_control
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history shows when an agent's tools or model changed
+  - kind: process
+    id: transfer_impact_assessment
+    coverage: none
+  evidence_needed:
+  - change log linked to dossier updates
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: medium
+  notes: A model, region or tool change in an agent can be a trigger under Art. 12(8)(a).
+- id: VN-DEC165-2025-A12.11-01
+  article_ref: Art. 12(11)-(12)
+  text_vi: '11. Trường hợp chuyển, xử lý dữ liệu cốt lõi xuyên biên giới không cần sự chấp thuận của cơ
+    quan có thẩm quyền tại khoản 5 Điều này và trường hợp chuyển, xử lý dữ liệu quan trọng không phải
+    thông báo cho cơ quan có thẩm quyền theo quy định tại khoản 6 Điều này gồm:
+
+    a) Trong các tình huống khẩn cấp, thực sự cần thiết phải cung cấp dữ liệu cá nhân ra nước ngoài để
+    bảo vệ tính mạng, sức khỏe và an toàn tài sản của cá nhân; để thực hiện nhiệm vụ, nghĩa vụ theo quy
+    định của pháp luật;
+
+    b) Thực hiện quản lý nhân sự xuyên biên giới theo quy tắc, quy chế lao động và thỏa ước lao động tập
+    thể theo quy định của pháp luật;
+
+    c) Trường hợp thực sự cần thiết phải cung cấp dữ liệu nhằm mục đích ký kết hoặc thực hiện hợp đồng,
+    bao gồm trường hợp hợp đồng liên quan đến vận chuyển xuyên biên giới, hậu cần, chuyển tiền, thanh
+    toán, mở tài khoản ngân hàng và khách sạn, xin thị thực, dịch vụ kiểm tra.
+
+    ...
+
+    12. Trường hợp chuyển, xử lý dữ liệu cốt lõi, dữ liệu quan trọng theo quy định của khoản 11 Điều này
+    phải gửi đánh giá tác động về Bộ Công an (hoặc Bộ Quốc phòng đối với dữ liệu do Bộ Quốc phòng quản
+    lý) theo quy định tại khoản 4 Điều này sau 15 ngày kể từ ngày tiến hành thực hiện.'
+  summary_en: Approval (core data) or prior notice (important data) is not needed for emergency personal-data
+    transfers, cross-border HR management, or transfers truly needed to conclude or perform a contract,
+    including remittance, payment and opening bank accounts. The assessment must still be sent to the
+    Ministry of Public Security after 15 days from the start (wording as in the text).
+  duties:
+  - cross_border_notice
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: transfer_impact_assessment
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: confirm whether the payment exception fits an agent flow
+  evidence_needed:
+  - record of exception relied on
+  - filing sent to MPS
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: medium
+  notes: Directly relevant to bank payments. The text says 'sau 15 ngày kể từ ngày tiến hành' (after 15
+    days from start); how to read it (within vs after) is unclear; bank counsel to confirm.
+- id: VN-DEC165-2025-A13.1-01
+  article_ref: Art. 13(1)(b)
+  text_vi: b) Việc xóa, hủy dữ liệu được thực hiện trong 72 giờ sau khi có yêu cầu của chủ thể dữ liệu
+    và phải thông báo kết quả xử lý thu hồi, xóa, hủy dữ liệu cho chủ sở hữu dữ liệu, trừ trường hợp pháp
+    luật có quy định khác. Trường hợp không thể xóa, hủy dữ liệu, chủ sở hữu dữ liệu, chủ quản dữ liệu
+    phải ngừng xử lý, sử dụng dữ liệu.
+  summary_en: Deletion or destruction must be done within 72 hours of the data subject's request, and
+    the result reported to the data owner. If deletion is impossible, processing and use must stop.
+  duties:
+  - data_subject_rights
+  - retention
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+  addressee: controller
+  control_mapping:
+  - kind: process
+    id: data_subject_request
+    coverage: none
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: trace of agent copies
+  evidence_needed:
+  - deletion request log with timestamps
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+  notes: Compare the PDPL deletion rules; bank retention duties may limit deletion.
+- id: VN-DEC165-2025-A15.2-01
+  article_ref: Art. 15(2)
+  text_vi: '2. Một số biện pháp phòng ngừa rủi ro phát sinh trong xử lý dữ liệu bao gồm:
+
+    a) Thực hiện sao lưu dữ liệu thường xuyên và bảo đảm an toàn;
+
+    b) Định kỳ bảo trì, bảo dưỡng, nâng cấp hệ thống nhằm duy trì và cải thiện hiệu suất, tính năng, tính
+    bảo mật và tính nhất quán của hệ thống cơ sở dữ liệu; có biện pháp ứng phó khôi phục hệ thống để bảo
+    đảm tính liên tục của hệ thống;
+
+    c) Thực hiện các biện pháp bảo vệ dữ liệu theo quy định;
+
+    d) Phân cấp chặt chẽ quyền truy cập đối với từng loại dữ liệu để phòng ngừa việc truy cập dữ liệu
+    trái phép;
+
+    đ) Sử dụng các hệ thống giám sát và phát hiện xâm nhập để theo dõi hoạt động mạng và phát hiện các
+    hành vi bất thường hoặc truy cập trái phép;
+
+    e) Cài đặt và duy trì các phần mềm bảo mật;
+
+    g) Thực hiện đánh giá rủi ro định kỳ hàng năm để xác định các lỗ hổng trong hệ thống và áp dụng các
+    biện pháp phòng ngừa rủi ro tương ứng;
+
+    h) Xây dựng phương án, kế hoạch xử lý sự cố để chủ động, kịp thời ứng phó, khắc phục sự cố;
+
+    i) Đào tạo, bồi dưỡng, tập huấn kỹ năng bảo vệ dữ liệu, cách nhận biết các mối đe dọa, cách xử lý
+    khi phát hiện rủi ro bảo mật; thường xuyên diễn tập phòng ngừa sự cố, giám sát, phát hiện, bảo đảm
+    kịp thời ứng phó, khắc phục sự cố;
+
+    k) Các biện pháp khác theo quy định pháp luật.'
+  summary_en: Risk prevention measures include regular safe backups, system maintenance and recovery,
+    strict access tiers per data type, intrusion monitoring, security software, an annual risk assessment,
+    an incident plan, and training and drills.
+  duties:
+  - risk_management_system
+  - security_monitoring
+  - business_continuity
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: runtime monitoring of agent behaviour
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+  - kind: process
+    id: access_management
+    coverage: none
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - annual risk assessment
+  - backup and recovery tests
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: medium
+  notes: Phrased as 'some' preventive measures, not a closed mandatory list.
+- id: VN-DEC165-2025-A16.3-01
+  article_ref: Art. 16(3)
+  text_vi: '3. Chủ quản dữ liệu cung cấp hoặc ủy thác việc xử lý dữ liệu cốt lõi, dữ liệu quan trọng cho
+    tổ chức, cá nhân không thuộc quy định tại Điều 12 Nghị định này phải đáp ứng những yêu cầu như sau:
+
+    a) Thỏa thuận với bên nhận dữ liệu về mục đích, phương thức, phạm vi, nghĩa vụ bảo vệ an ninh thông
+    qua hợp đồng và tiến hành giám sát việc thực hiện nghĩa vụ của bên nhận dữ liệu. Hồ sơ về việc xử
+    lý dữ liệu quan trọng được cung cấp hoặc ủy thác cho các bên nhận dữ liệu khác phải được lưu trữ ít
+    nhất 3 năm;
+
+    b) Khi thực hiện cung cấp, ủy thác xử lý dữ liệu cốt lõi, dữ liệu quan trọng, chủ quản dữ liệu cần
+    thực hiện mã hóa, ký số và thực hiện các biện pháp bảo mật khác để bảo đảm tính bí mật, toàn vẹn và
+    tính chống chối bỏ;
+
+    c) Bên tiếp nhận dữ liệu cốt lõi, dữ liệu quan trọng phải thực hiện nghĩa vụ bảo vệ dữ liệu, xử lý
+    dữ liệu cốt lõi, dữ liệu quan trọng theo đúng mục đích, phương thức, phạm vi đã thỏa thuận.'
+  summary_en: When giving or entrusting core or important data to a party outside the Art. 12 cross-border
+    case, the controller needs a contract, monitors performance, keeps records for important data for
+    at least 3 years, and uses encryption and digital signature. The receiver must keep to the agreed
+    purpose.
+  duties:
+  - processor_contract
+  - outsourcing_oversight
+  - record_keeping
+  - encryption
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: tamper-evident record of hand-offs
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+  evidence_needed:
+  - contract
+  - 3-year file of important-data processing hand-offs
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC165-2025-A17.4-01
+  article_ref: Art. 17(4)
+  text_vi: '4. Khi xử lý, sử dụng dữ liệu cốt lõi, dữ liệu quan trọng, chủ quản dữ liệu cần thực hiện:
+
+    a) Xây dựng, triển khai quy chế truy cập, truy xuất dữ liệu bảo đảm tuân thủ các nguyên tắc đặc quyền
+    tối thiểu trong quá trình xử lý, sử dụng dữ liệu;
+
+    b) Xây dựng hệ thống kiểm soát truy cập dữ liệu, trong đó thiết lập nền tảng quản lý truy cập và nhận
+    dạng thống nhất; áp dụng các biện pháp kỹ thuật để bảo vệ dữ liệu, kiểm soát việc truy cập, truy xuất
+    dữ liệu trong quá trình xử lý, sử dụng dữ liệu.'
+  summary_en: For core or important data, set access rules on the least-privilege principle and an access
+    control system with unified identity and access management.
+  duties:
+  - access_control
+  - excessive_agency_limits
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: limits agent tool access
+  - kind: catalogue
+    id: system_of_record
+    coverage: partial
+  - kind: process
+    id: access_management
+    coverage: none
+  evidence_needed:
+  - access rules
+  - access review records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC165-2025-A17.10-01
+  article_ref: Art. 17(10)
+  text_vi: 10. Chủ quản dữ liệu cốt lõi, dữ liệu quan trọng phải ghi nhật ký xử lý dữ liệu trong toàn
+    bộ quá trình xử lý dữ liệu. Nhật ký được lưu giữ trong thời gian ít nhất sáu tháng.
+  summary_en: Controllers of core or important data must log data processing across the whole process.
+    Logs must be kept at least six months.
+  duties:
+  - logging
+  - retention
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: records agent tool calls and gate decisions
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained, tamper-evident
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: keep logs at least 6 months
+  evidence_needed:
+  - processing logs retained at least 6 months
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+  notes: Minimum 6 months confirmed in the final text ('ít nhất sáu tháng'). Longer bank or sector retention
+    rules still apply.
+- id: VN-DEC165-2025-A17.11-01
+  article_ref: Art. 17(11)
+  text_vi: '11. Chủ quản dữ liệu cốt lõi, dữ liệu quan trọng hàng năm phải thực hiện đánh giá rủi ro đối
+    với hoạt động xử lý dữ liệu cốt lõi, dữ liệu quan trọng trong phạm vi quản lý, lập, lưu trữ Báo cáo
+    đánh giá rủi ro theo mẫu ban hành kèm theo Nghị định này và phải luôn có sẵn để phục vụ hoạt động
+    kiểm tra, đánh giá của cơ quan có thẩm quyền, trừ trường hợp đã lập Hồ sơ đánh giá tác động chuyển,
+    xử lý dữ liệu xuyên biên giới theo quy định tại Điều 12 Nghị định này. Báo cáo đánh giá rủi ro bao
+    gồm:
+
+    a) Thông tin cơ bản về chủ quản dữ liệu, thông tin về bộ phận có chức năng bảo vệ an toàn dữ liệu,
+    tên và thông tin liên lạc của người chịu trách nhiệm về bảo vệ dữ liệu;
+
+    b) Mục đích, loại, số lượng, phương pháp, phạm vi, thời gian lưu trữ, vị trí lưu trữ dữ liệu, hoạt
+    động xử lý dữ liệu và hoàn cảnh thực hiện các hoạt động xử lý dữ liệu;
+
+    c) Hệ thống quản lý bảo vệ dữ liệu, các biện pháp kỹ thuật mã hóa, sao lưu, dán nhãn, kiểm soát truy
+    cập và xác thực, các biện pháp cần thiết khác;
+
+    d) Rủi ro an toàn dữ liệu đã phát hiện, sự cố an toàn dữ liệu đã xảy ra và cách giải quyết;
+
+    đ) Các nội dung báo cáo khác theo quy định của các cơ quan có thẩm quyền có liên quan.'
+  summary_en: Each year, controllers of core or important data must assess risk of that processing and
+    keep a risk report in the set form, ready for authority inspection (not needed if a cross-border dossier
+    under Art. 12 already exists). The report lists the controller, data, storage, controls, found risks
+    and incidents.
+  duties:
+  - risk_management_system
+  - technical_documentation
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export can feed the report
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - annual risk assessment report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC165-2025-A18.1-01
+  article_ref: Art. 18(1), 18(5)
+  text_vi: '1. Chủ sở hữu dữ liệu, chủ quản dữ liệu cốt lõi, dữ liệu quan trọng phải xác định người chịu
+    trách nhiệm về bảo vệ dữ liệu và bộ phận bảo vệ an toàn dữ liệu.
+
+    ...
+
+    5. Xây dựng kế hoạch và thực hiện đào tạo về bảo vệ dữ liệu hàng năm.'
+  summary_en: Owners and controllers of core or important data must name a person responsible for data
+    protection and a data security unit, and run annual training.
+  duties:
+  - governance_accountability
+  - dpo_appointment
+  - staff_competence
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: board_governance
+    coverage: none
+  - kind: process
+    id: staff_training
+    coverage: none
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: owner field
+  evidence_needed:
+  - appointment decision
+  - training plan and records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+- id: VN-DEC165-2025-A19.4-01
+  article_ref: Art. 19(4)
+  text_vi: '4. Chủ quản dữ liệu có trách nhiệm:
+
+    a) Thông báo kịp thời cho chủ sở hữu dữ liệu về các sự cố an toàn dữ liệu có thể gây tổn hại đến quyền
+    và lợi ích hợp pháp của cá nhân, tổ chức và đưa ra các biện pháp giảm thiểu thiệt hại;
+
+    b) Sau khi xảy ra sự cố an toàn dữ liệu, phải kịp thời tiến hành ứng phó khẩn cấp theo kế hoạch ứng
+    phó khẩn cấp, báo cáo các sự cố bảo mật liên quan đến dữ liệu quan trọng và dữ liệu cốt lõi cho Bộ
+    Công an, Bộ Quốc phòng quản lý trong thời gian sớm nhất có thể.'
+  summary_en: The controller must tell the data owner promptly about data safety incidents that may harm
+    rights, respond under its emergency plan, and report incidents involving important or core data to
+    the Ministry of Public Security or National Defence as early as possible. No fixed hour count is given.
+  duties:
+  - incident_report
+  - incident_response
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: incident evidence
+  - kind: process
+    id: incident_management
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause or retire an agent to contain an incident
+  evidence_needed:
+  - incident report to MPS/MND
+  - containment record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high
+  notes: Timing is 'thời gian sớm nhất có thể'. Compare Decree 331/2026 for system incidents (24 h initial,
+    72 h report).
+- id: VN-DEC165-2025-A19.8-01
+  article_ref: Art. 19(8)
+  text_vi: 8. Chủ quản dữ liệu thực hiện diễn tập kế hoạch dự phòng đối với các sự cố an toàn dữ liệu
+    quan trọng, cốt lõi tiến hành diễn tập khẩn cấp định kỳ 06 tháng/lần, lưu hồ sơ diễn tập và báo cáo
+    tóm tắt diễn tập, cập nhật kịp thời các kế hoạch dự phòng theo những thay đổi lớn trong chính hệ thống
+    xử lý dữ liệu hoặc môi trường bên ngoài.
+  summary_en: Controllers of important or core data must run emergency drills every 6 months, keep drill
+    records and a summary report, and update contingency plans after major changes.
+  duties:
+  - business_continuity
+  - incident_response
+  - staff_competence
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+  - kind: process
+    id: incident_management
+    coverage: none
+  evidence_needed:
+  - drill records every 6 months
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/179108
+    title: Nghi dinh 165/2025/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9686c5d6448f28a0bfa9821a475040baafd24fde24ff9664d3ca9d4137f67291
+    local_path: regulations/sources/VN-DEC165-2025/nghi-dinh-165-2025-nd-cp.txt
+  confidence: high

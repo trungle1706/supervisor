@@ -1,0 +1,9 @@
+{
+ "url": "https://vbpl.vn/van-ban/chi-tiet/166170",
+ "api_url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/166170",
+ "title": "Luat Cac to chuc tin dung so 32/2024/QH15 (text extracted from vbpl doc.json copied from /home/trung/tcb-reggraph/data/raw/L32-2024, fetched 2026-10-08T04:05:50Z)",
+ "fetched_at": "2026-10-08T04:05:50Z",
+ "sha256": "6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5",
+ "content_type": "text/plain; charset=utf-8 (extracted from vbpl documentContent HTML)",
+ "tool": "manual-curl"
+}

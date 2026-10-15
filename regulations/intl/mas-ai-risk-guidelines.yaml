@@ -1,0 +1,622 @@
+schema_version: 1
+instrument:
+  id: INTL-MASAIRM-2025
+  jurisdiction: SG
+  kind: guidance
+  issuer: Monetary Authority of Singapore (MAS)
+  number: Guidelines on Artificial Intelligence Risk Management (7 October 2026)
+  title_en: Guidelines on Artificial Intelligence Risk Management (for financial institutions)
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: '2026-10-07'
+      source: https://www.mas.gov.sg/regulation/guidelines/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions
+      verification: VERIFIED_PRIMARY
+      note: '''Published Date'' on the MAS page and date on the PDF cover'
+    effective:
+      date: '2027-10-07'
+      source: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+      verification: VERIFIED_PRIMARY
+      note: 'para 1.8: ''These Guidelines take effect on 7 October 2027'''
+    milestones:
+    - label: Consultation paper issued
+      date: '2025-11-13'
+      source: https://www.malaymail.com/news/singapore/2026/10/08/singapore-sets-ai-risk-rules-for-financial-sector-from-2027/238172
+      verification: VERIFIED_SECONDARY
+    - label: Sections 3 and 4 (oversight, systems and policies) may be met from
+      date: '2027-10-07'
+      source: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+      verification: VERIFIED_PRIMARY
+    - label: Sections 5 and 6 (life cycle controls, capability) may be met by
+      date: '2028-10-07'
+      source: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+      verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.mas.gov.sg/regulation/guidelines/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions
+    title: 'MAS page: Guidelines on AI Risk Management for Financial Institutions (published 7 October
+      2026; takes effect 7 October 2027)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.malaymail.com/news/singapore/2026/10/08/singapore-sets-ai-risk-rules-for-financial-sector-from-2027/238172
+    title: 'Malay Mail/AFP: Singapore sets AI risk rules for financial sector from 2027 (8 Oct 2026)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: 'Final guidelines. RESOLVED: the prior single-source claim ''final 7 Oct 2026, effective 7 Oct
+    2027'' is CONFIRMED by the MAS page and the PDF (para 1.8). Instrument id keeps ''2025'' (the consultation
+    year) as assigned; the real issue date is 2026-10-07. Para 1.8 adds a phase-in: sections 3-4 from
+    2027-10-07, sections 5-6 by 2028-10-07. They are supervisory expectations in Singapore (binding false
+    here, status reference for Vietnam). They name AI agents explicitly (paras 1.5, 1.11, 5.23) and point
+    to IMDA''s Model AI Governance Framework for Agentic AI; press reports say MAS plans separate agentic-AI
+    guidance in 2027 (secondary, not confirmed). Apply proportionately by size and risk (para 2.1); low-materiality
+    uses may use basic governance (paras 2.3-2.5, not listed as an obligation). PDF read in full for paras
+    cited. PDF not stored (MAS publication; URL only).'
+obligations:
+- id: INTL-MASAIRM-2025-P3.4-01
+  article_ref: Paras 3.2-3.5 (board and senior management)
+  summary_en: The board (or a delegated committee) approves and reviews the AI risk governance approach;
+    senior management implements it, with clear accountability and coordination across functions. Local
+    senior management stays accountable if it adopts group frameworks.
+  duties:
+  - governance_accountability
+  - internal_policy
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: metrics
+    coverage: partial
+    note: oversight metrics panel for leadership
+  - kind: console
+    id: home
+    coverage: partial
+    note: overview screen
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee approves and reviews
+  evidence_needed:
+  - board-approved AI governance framework
+  - minutes
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P4.2-01
+  article_ref: Paras 4.1-4.4 (AI identification)
+  summary_en: Have policies and tools to identify all AI use across business areas, including AI inside
+    material third-party services, and keep residual risk from unidentified AI within appetite.
+  duties:
+  - model_inventory
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: registers agents that are onboarded; cannot find unknown shadow AI
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: profile of each onboarded agent
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank runs discovery across the group and vendors
+  evidence_needed:
+  - AI identification procedure
+  - discovery results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+- id: INTL-MASAIRM-2025-P4.5-01
+  article_ref: Paras 4.5-4.9 (AI inventory)
+  text_en: An FI should establish and maintain an accurate inventory of AI use cases, systems or models
+    across the FI
+  summary_en: Keep an accurate, regularly updated inventory of AI use cases, systems and models with attributes
+    that support oversight, linked to other inventories, with named owners.
+  duties:
+  - model_inventory
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier, model family
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history of each agent
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank issues the AI inventory policy covering non-agent models too
+  evidence_needed:
+  - inventory export with attributes
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P4.10-01
+  article_ref: Paras 4.10-4.13 (risk materiality assessment)
+  summary_en: Assess the risk materiality of each AI use case (inherent and residual) with a consistent
+    method; residual risk must be within appetite before deployment; review regularly.
+  duties:
+  - risk_classification
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: risk tier stored per agent
+  - kind: evidence
+    id: onboard_plan
+    coverage: partial
+    note: control plan
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: GO/NO-GO
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second line approves materiality and residual risk
+  evidence_needed:
+  - materiality assessment per use case
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P5.3-01
+  article_ref: Para 5.3 (contingency plans) and 5.23(b) (kill switches)
+  summary_en: For high-risk use cases, have contingency plans with fallback options (manual process, alternate
+    system), tested regularly, and consider kill switches to deactivate AI that exceeds risk tolerance.
+  duties:
+  - business_continuity
+  - serious_incident_suspension
+  - human_oversight
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire an agent (a kill switch for the agent)
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry with switch
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+    note: bank writes and tests the fallback process
+  evidence_needed:
+  - contingency plan
+  - test record of the kill switch
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P5.4-01
+  article_ref: Para 5.4 (data management)
+  summary_en: Data used across the AI life cycle must be fit for purpose, representative, high quality
+    and governed (ownership, access, IP).
+  duties:
+  - data_quality
+  - data_minimisation
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks personal data before it is stored or judged
+  - kind: catalogue
+    id: system_of_record
+    coverage: partial
+    note: decisions checked against the record
+  - kind: process
+    id: dpo_signoff
+    coverage: none
+    note: data governance sits with the bank
+  evidence_needed:
+  - data governance records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+- id: INTL-MASAIRM-2025-P5.5-01
+  article_ref: Paras 5.5-5.6 (transparency and explainability)
+  text_en: An FI should establish relevant controls to ensure an appropriate level of transparency and
+    explainability for an AI use case.
+  summary_en: Put controls in place for an appropriate level of transparency and explainability, matched
+    to the use case and the audience (customers, internal users, validators).
+  duties:
+  - explainability
+  - consumer_information
+  - ai_disclosure
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file explains why Supervisor stopped an action, not why the model chose it
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank writes customer notices
+  evidence_needed:
+  - explainability approach per use case
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+- id: INTL-MASAIRM-2025-P5.7-01
+  article_ref: Paras 5.7-5.8 (fairness)
+  text_en: An FI should define what it considers
+  summary_en: Define what fair outcomes mean, add controls to find and reduce harmful bias, and run and
+    document fairness assessments with suitable metrics. Credit decisioning gets more attention.
+  duties:
+  - bias_monitoring
+  - fair_treatment
+  applies_to:
+    agent_class:
+    - credit_decision
+    - customer_facing
+  control_mapping:
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: approval-rate gap per slice
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: case on gap
+  - kind: evidence
+    id: fairness_slice
+    coverage: partial
+    note: stored results
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: choice of metric and protected attributes
+  evidence_needed:
+  - fairness definition
+  - fairness assessment results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P5.9-01
+  article_ref: Para 5.9 (human oversight)
+  text_en: An FI should put in place and regularly review controls to ensure appropriate human oversight
+    over an AI use case, system or model across its life cycle.
+  summary_en: 'Put and regularly review controls for appropriate human oversight over the life cycle:
+    clear roles and escalation, competent people with authority to intervene, design that escalates outputs
+    for review when set conditions are met; take account of automation bias and decision fatigue.'
+  duties:
+  - human_oversight
+  - right_to_human_review
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: console
+    id: agents
+    coverage: partial
+    note: reviewer can pause or resume an agent
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: human sign-off on a case after a stop; a Supervisor pause is not pre-execution human approval
+      (Decision 33)
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'oversight metrics: dwell time, approval rate, chain_ok'
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank names accountable roles and committee oversight
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause and resume
+  evidence_needed:
+  - oversight roles and authority
+  - escalation conditions
+  - oversight metrics
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+  notes: Footnote 37 says oversight covers human in the loop or over the loop. A Supervisor pause is not
+    pre-execution approval (Decision 33).
+- id: INTL-MASAIRM-2025-P5.10-01
+  article_ref: Paras 5.10-5.11 (third-party AI)
+  text_en: the FI retains primary accountability for its use of third-party AI
+  summary_en: 'Onboarding and use controls for third-party AI must fit the risk: contracts give visibility
+    of updates, the FI tests the service on its own use cases and data, and keeps documentation. The FI
+    keeps primary accountability.'
+  duties:
+  - outsourcing_oversight
+  - supply_chain_security
+  - independent_validation
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: model family and version per agent version
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: sandbox test in the bank's context
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, testing and exit plan
+  evidence_needed:
+  - third-party AI assessment
+  - contract clauses on change notices
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P5.14-01
+  article_ref: Para 5.14 (evaluation and testing) and 5.18 (independent pre-deployment review)
+  summary_en: Evaluate and test before deployment in proportion to materiality, with measurable thresholds,
+    edge cases and (for GenAI) hallucination, toxicity, leakage and adversarial tests. Parties not involved
+    in development review the use case before it goes live.
+  duties:
+  - independent_validation
+  - security_testing
+  - robustness_security
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: red-team pack with the gate in shadow mode; catch rate and false alarms
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: advisory screen
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: independent pre-deployment review by a party outside development
+  evidence_needed:
+  - test plan and results
+  - independent review report
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P5.16-01
+  article_ref: Para 5.16 (security, access control)
+  summary_en: Deploy AI in secured environments with input validation, API authentication, encryption,
+    data loss prevention, role-based access with MFA and separation of duties.
+  duties:
+  - robustness_security
+  - access_control
+  - security_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: gateway allow-list limits what the agent can call
+  - kind: rule
+    id: PAY-07
+    coverage: partial
+    note: payments agent approved tools only
+  - kind: rule
+    id: SVC-07
+    coverage: partial
+    note: customer service approved tools only
+  - kind: rule
+    id: CRD-07
+    coverage: partial
+    note: credit agent approved tools only
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: limits bulk personal-data reads
+  - kind: process
+    id: access_management
+    coverage: none
+    note: named accounts and reviews
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: pen test
+  evidence_needed:
+  - security design review
+  - access review records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P5.23-01
+  article_ref: Para 5.23 (ongoing monitoring, incidents, logging)
+  text_en: ongoing monitoring is critical to ensure that deployed AI operates as intended and remains
+    fit for purpose over time
+  summary_en: 'Monitor all deployed AI, including third-party AI: metrics with tiered thresholds, drift
+    checks, and for agents the reasoning, actions and tools used. Have an incident process, accountable
+    person, and records; control and log access; enhanced documentation for GenAI and agents.'
+  duties:
+  - performance_monitoring
+  - incident_response
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: tool mix and stop rate against baseline
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: per-trace judge
+  - kind: catalogue
+    id: otlp_ingest
+    coverage: partial
+    note: agent spans and tool use
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained records of actions and decisions
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case per stop
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident handling
+  evidence_needed:
+  - monitoring metrics and thresholds
+  - incident log
+  - agent action logs
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P5.25-01
+  article_ref: Paras 5.24-5.26 (re-validation, change management, decommissioning)
+  summary_en: Re-validate when needed, evaluate significance of changes and re-approve significant ones,
+    use change control with version control and human oversight, and retire AI under a defined process.
+  duties:
+  - change_control
+  - lifecycle_management
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: version history
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned policy baseline
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: retire action
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: re-validation on significant change
+  evidence_needed:
+  - change log with approvals
+  - decommission record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: high
+- id: INTL-MASAIRM-2025-P6.1-01
+  article_ref: Paras 6.1-6.3 (capability and capacity)
+  summary_en: Ensure people have the competence and conduct to develop, deploy and use AI, review capability
+    regularly, and provide adequate technology infrastructure (availability, resilience, cybersecurity).
+  duties:
+  - staff_competence
+  - business_continuity
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: staff_training
+    coverage: none
+    note: training records
+  - kind: console
+    id: health
+    coverage: partial
+    note: system health screen
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+    note: recovery plan
+  evidence_needed:
+  - training programme
+  - infrastructure capacity review
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium

@@ -1,0 +1,75 @@
+# RegKB control vocabulary (WP13). control_mapping entries resolve as follows:
+#   kind catalogue -> id of a manifest in src/supervisor/catalogue/manifests/*.yaml (test reads them)
+#   kind rule      -> rule id in policies/baseline.yaml (test reads it)
+#   kind monitor   -> module name in src/supervisor/monitors/ listed under monitors below
+#   kind console   -> console screen name below; its path must exist in src/supervisor/console/routes.py
+#   kind evidence  -> evidence artefact below; its module or table must exist
+#   kind process   -> bank process below (owned by the bank, Supervisor only records evidence of it)
+# coverage on a mapping: full = the control alone meets the duty; partial = it helps, more is needed;
+# none = no Supervisor control; the bank must act (used with kind process).
+schema_version: 1
+monitors:
+  drift: {module: supervisor.monitors.drift, label: Behaviour drift band per agent}
+  fairness: {module: supervisor.monitors.fairness, label: Fairness slices by customer segment}
+  multiagent: {module: supervisor.monitors.multiagent, label: Cross-agent pattern checks}
+  oversight: {module: supervisor.monitors.oversight, label: Oversight metrics (dwell time, approval rate, chain_ok)}
+  quality: {module: supervisor.monitors.quality, label: Quality and groundedness sampling}
+  sweeps: {module: supervisor.monitors.sweeps, label: Periodic sweeps over recorded events}
+console:
+  home: {path: /home, label: Overview}
+  cases: {path: /cases, label: Case queue}
+  case_detail: {path: "/cases/{case_id}", label: Case file view}
+  case_signoff: {path: "/cases/{case_id}/signoff", label: Human sign-off on a case}
+  case_verify: {path: "/cases/{case_id}/verify", label: Verify a case against the chain}
+  agents: {path: /agents, label: Agent registry and pause or resume switch}
+  agent_action: {path: "/agents/{agent_id}/{action}", label: Pause, resume or retire an agent}
+  metrics: {path: /metrics, label: Oversight metrics panel}
+  evidence: {path: /evidence, label: Evidence chain screen}
+  chain_verify: {path: /chain/verify, label: Verify the evidence chain}
+  export: {path: /export, label: Audit export}
+  onboard: {path: /onboard, label: Onboarding runs}
+  inbox: {path: /inbox, label: Notices to reviewers}
+  health: {path: /health, label: System health}
+evidence:
+  evidence_chain: {module: supervisor.evidence.chain, label: Hash-chained evidence lanes with signed roots}
+  chain_verify_report: {module: supervisor.evidence.verify, label: Offline chain verification report}
+  anchor: {module: supervisor.evidence.anchor, label: External anchor of signed roots}
+  case_file: {module: supervisor.evidence.casefile, label: Case file (json, html, pdf)}
+  audit_pack: {module: supervisor.console.auditpack, label: Audit export pack}
+  agent_event_log: {table: agent_event, label: Recorded agent events (tool calls, gate decisions)}
+  verdict_log: {table: verdict, label: Judge verdicts with model and prompt version}
+  signoff_record: {table: signoff, label: Human sign-off records}
+  oversight_metric: {table: oversight_metric, label: Daily oversight metrics per agent}
+  fairness_slice: {table: fairness_slice, label: Fairness slice results}
+  agent_registry: {table: agent, label: Agent inventory with owner, risk tier, model family}
+  agent_version: {table: agent_version, label: Agent version history}
+  policy_baseline: {table: policy_baseline, label: Versioned policy baseline}
+  coverage_rows: {table: coverage, label: Capability coverage per agent}
+  onboard_profile: {module: supervisor.onboard.understand, label: Onboarding profile incl. Decision 33 proposal}
+  onboard_plan: {module: supervisor.onboard.plan, label: Onboarding control plan}
+  launch_report: {module: supervisor.onboard.launch, label: Launch sandbox report (catch rate, false alarms, GO or NO-GO)}
+  handover: {module: supervisor.onboard.operate, label: Operate handover}
+process:
+  legal_review: {label: Bank legal or compliance review and interpretation}
+  dpo_signoff: {label: Data protection officer review and sign-off}
+  dpia_document: {label: Personal data processing impact assessment file}
+  transfer_impact_assessment: {label: Cross-border transfer impact assessment file}
+  record_of_processing: {label: Record of processing activities}
+  consent_management: {label: Customer consent capture and records}
+  data_subject_request: {label: Data subject request handling (access, correction, deletion)}
+  regulator_notification: {label: Notification or report to SBV, MPS or another authority}
+  conformity_assessment_file: {label: Conformity assessment dossier}
+  ai_registration: {label: Registration on the national AI portal or with the regulator}
+  model_validation: {label: Independent model validation by the second line}
+  vendor_management: {label: Third-party and outsourcing management (contract, audit, exit plan)}
+  security_assessment: {label: Information-system security classification and testing}
+  incident_management: {label: Bank incident management procedure}
+  complaint_handling: {label: Customer complaint handling procedure}
+  customer_disclosure: {label: Customer-facing notices and terms}
+  staff_training: {label: Staff training records}
+  records_retention: {label: Bank records retention schedule}
+  access_management: {label: Identity and access management (named accounts, reviews)}
+  business_continuity_plan: {label: Business continuity and recovery plan}
+  data_localisation_setup: {label: In-country hosting decision and setup}
+  board_governance: {label: Board or committee oversight of AI}
+  internal_policy_issuance: {label: Issue or update an internal bank policy}

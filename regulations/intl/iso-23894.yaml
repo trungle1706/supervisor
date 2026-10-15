@@ -1,0 +1,243 @@
+schema_version: 1
+instrument:
+  id: INTL-ISO23894-2023
+  jurisdiction: INTL
+  kind: standard
+  issuer: ISO/IEC JTC 1/SC 42
+  number: ISO/IEC 23894:2023
+  title_en: Information technology - Artificial intelligence - Guidance on risk management
+  status: reference
+  binding: false
+  dates:
+    issued:
+      date: null
+      source: https://www.iso.org/standard/77304.html
+      verification: ASSUMED
+      note: first edition dated 2023-02 per an AFNOR listing seen in search; day unknown; ISO page returned
+        HTTP 403
+    effective:
+      date: null
+      source: https://www.iso.org/standard/77304.html
+      verification: ASSUMED
+      note: guidance, not certifiable, no effective date
+  sources:
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
+    title: 'NIST: ISO/IEC 23894 crosswalk to the NIST AI RMF (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: ASSUMED
+  primary_text_fetched: false
+  last_checked: '2026-10-15'
+  notes: 'Paywalled guidance that applies ISO 31000 to AI. NOT READ: ISO blocked the fetch (HTTP 403).
+    Structure (clause 4 principles, 5 framework, 6 process) is confirmed only by a NIST crosswalk snippet
+    that names 5.2 Leadership and commitment, 5.5 Implementation and 6.5 Risk Treatment. Other clause
+    numbers follow ISO 31000 and are from background knowledge. No ISO text quoted or stored.'
+obligations:
+- id: INTL-ISO23894-2023-C5.2-01
+  article_ref: Clause 5.2 Leadership and commitment
+  summary_en: Top management shows leadership on AI risk management, sets policy and assigns accountability.
+  duties:
+  - governance_accountability
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board oversight
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: AI risk policy
+  evidence_needed:
+  - AI risk policy
+  - accountable roles
+  verification: VERIFIED_SECONDARY
+  sources:
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
+    title: 'NIST: ISO/IEC 23894 crosswalk to the NIST AI RMF (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: medium
+  notes: Clause number seen in the NIST crosswalk snippet.
+- id: INTL-ISO23894-2023-C5.5-01
+  article_ref: Clause 5.5 Implementation
+  summary_en: Put the AI risk management framework into effect with plans, resources and integration into
+    business processes.
+  duties:
+  - risk_management_system
+  - lifecycle_management
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: onboard_plan
+    coverage: partial
+    note: per-agent control plan
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank integrates into processes
+  evidence_needed:
+  - implementation plan
+  verification: VERIFIED_SECONDARY
+  sources:
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
+    title: 'NIST: ISO/IEC 23894 crosswalk to the NIST AI RMF (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO23894-2023-C6.4-01
+  article_ref: Clause 6.4 Risk assessment (identification 6.4.2, analysis 6.4.3, evaluation 6.4.4)
+  summary_en: Identify AI-specific risk sources (data, model, autonomy, opacity), analyse likelihood and
+    consequence, and rank risks against criteria.
+  duties:
+  - risk_management_system
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: profile lists tools, data classes, autonomy
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: red-team results
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second line
+  evidence_needed:
+  - risk register per AI use case
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO23894-2023-C6.5-01
+  article_ref: Clause 6.5 Risk treatment
+  summary_en: Choose and apply treatments for evaluated risks, and record residual risk.
+  duties:
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: evidence
+    id: onboard_plan
+    coverage: partial
+    note: chosen catalogue controls per agent
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: enforced rules
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: approval of residual risk
+  evidence_needed:
+  - treatment plan
+  - residual risk acceptance
+  verification: VERIFIED_SECONDARY
+  sources:
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
+    title: 'NIST: ISO/IEC 23894 crosswalk to the NIST AI RMF (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO23894-2023-C6.6-01
+  article_ref: Clause 6.6 Monitoring and review
+  summary_en: Monitor and review risks and controls continuously, because AI behaviour can change after
+    release.
+  duties:
+  - performance_monitoring
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: oversight metrics
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: per-trace judge
+  evidence_needed:
+  - monitoring reports
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
+- id: INTL-ISO23894-2023-C6.7-01
+  article_ref: Clause 6.7 Recording and reporting
+  summary_en: Record the risk process and its results and report them to stakeholders.
+  duties:
+  - record_keeping
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: gate decisions, verdicts and state changes are hash-chained per agent and verifiable offline
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: tool calls and gate outcomes are recorded as agent events (masked at capture)
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: bank sets and enforces the retention period; Supervisor does not purge or retain by schedule
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export pack
+  evidence_needed:
+  - risk records
+  - reports to management
+  verification: ASSUMED
+  sources:
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  confidence: medium
+  notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'

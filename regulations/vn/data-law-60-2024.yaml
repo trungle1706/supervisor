@@ -1,0 +1,742 @@
+schema_version: 1
+instrument:
+  id: VN-DATA-2024
+  jurisdiction: VN
+  kind: law
+  issuer: National Assembly
+  number: 60/2024/QH15
+  title_vi: Luật Dữ liệu
+  title_en: Law on Data
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2024-11-30'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+      verification: VERIFIED_PRIMARY
+      note: Passed by the National Assembly 30 Nov 2024; Decree 165/2025 cites 'Luật Dữ liệu ngày 30 tháng
+        11 năm 2024'.
+    effective:
+      date: '2025-07-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+      verification: VERIFIED_PRIMARY
+      note: Art. 45.
+  related:
+  - VN-DEC165-2025
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  - url: https://vbpl.vn/van-ban/chi-tiet/174877
+    title: 'vbpl.vn record 174877 (status: Con hieu luc; issue 2024-11-30; effective 2025-07-01)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Du-lieu-2024-so-60-2024-QH15-621343.aspx
+    title: thuvienphapluat.vn page for Law 60/2024/QH15 (web search snippet only; page returns 403 to
+      scripts)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'Number, issue date (30/11/2024) and effective date (1/7/2025) confirmed from the official text
+    and the vbpl.vn record. Definitions: Art. 3(6) important data and 3(7) core data are data that can
+    affect defence, security, foreign affairs, macro-economy, social stability, public health and safety,
+    listed in a catalogue issued by the Prime Minister. Criteria are in Decree 165/2025 Art. 3-4; no PM
+    catalogue was found in the sources checked on 2026-10-15 (not verified either way). Localisation:
+    the Law has no explicit in-country storage duty for core data held by private organisations; Art.
+    14(2) only points to Art. 27(3), and Art. 14(3)-(4) apply to state databases. Cross-border handling
+    of core/important data is governed by Art. 23 and Decree 165 Art. 12 (assessment; approval for core
+    data; 15-day prior filing for important data). Risk assessment: Art. 25(4). Data products/services:
+    Art. 39-43 (obligations A40-A43 apply only if the bank offers such services). AI is named as a technology
+    platform in Art. 24(2) but the Law has no AI-specific duty. Art. 4 says later laws that differ must
+    say so; the Personal Data Protection Law 91/2025 and Cybersecurity Law 116/2025 sit alongside it (see
+    Decree 165 Art. 16(2): core/important data that is personal data follows Decree 165 and is exempt
+    from the PDPL impact assessment).'
+obligations:
+- id: VN-DATA-2024-A13.2-01
+  article_ref: Art. 13(1)(b), 13(2)
+  text_vi: '2. Chủ sở hữu dữ liệu, chủ quản dữ liệu không thuộc quy định tại khoản 1 Điều này phải phân
+    loại dữ liệu theo quy định tại điểm b khoản 1 Điều này và được phân loại dữ liệu theo các tiêu chí
+    khác.
+
+    ...
+
+    b) Phân loại theo tính chất quan trọng của dữ liệu gồm: dữ liệu cốt lõi, dữ liệu quan trọng, dữ liệu
+    khác;'
+  summary_en: A data owner or controller that is not a state agency must classify its data as core, important
+    or other. The bank must know which of its data (and which data its agents touch) falls in the Prime
+    Minister's core / important lists.
+  duties:
+  - data_classification
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank data classification policy
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding profile records the data classes declared for the agent; the classification itself
+      is the bank's
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: map bank datasets to the PM core/important data lists
+  evidence_needed:
+  - data classification register
+  - per-agent declared data classes
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: high
+  notes: Criteria for core/important data are in Decree 165/2025 Art. 3-4. The PM list itself (Art. 3(6)-(7)
+    of the Law) was not found published as of 2026-10-15; see instrument notes.
+- id: VN-DATA-2024-A11.3-01
+  article_ref: Art. 11(3)(c)
+  text_vi: c) Chịu trách nhiệm đối với dữ liệu do mình thu thập, tạo lập theo quy định của pháp luật.
+  summary_en: Whoever collects or creates data is responsible for it. For an AI agent this means the bank
+    stays accountable for data the agent collects or generates.
+  duties:
+  - governance_accountability
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: each agent has a named owner in the registry
+  - kind: process
+    id: board_governance
+    coverage: none
+  evidence_needed:
+  - agent owner records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: medium
+- id: VN-DATA-2024-A15.4-01
+  article_ref: Art. 15(1), 15(4)
+  text_vi: '4. Chủ sở hữu dữ liệu, chủ quản dữ liệu là tổ chức, cá nhân không thuộc quy định tại khoản
+    3 Điều này căn cứ vào điều kiện thực tế thực hiện quản trị, quản lý dữ liệu do mình thu thập, tạo
+    lập, sở hữu.
+
+    ...
+
+    1. Quản trị dữ liệu bao gồm: xây dựng chính sách, kế hoạch, chương trình, quy trình, tiêu chuẩn về
+    dữ liệu của chủ sở hữu dữ liệu, chủ quản dữ liệu để quản lý dữ liệu một cách liên tục, hiệu quả, bảo
+    đảm tính đầy đủ, chính xác, toàn vẹn, nhất quán, thống nhất, được chuẩn hóa, an toàn, bảo mật, kịp
+    thời của dữ liệu.'
+  summary_en: Data owners and controllers outside the state sector govern and manage their data (policy,
+    plan, process, standard) in line with their real conditions, so data stays complete, accurate, consistent
+    and secure.
+  duties:
+  - internal_policy
+  - data_quality
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned policy baseline for agent behaviour, not data governance as a whole
+  evidence_needed:
+  - data governance policy
+  - data quality controls
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: medium
+- id: VN-DATA-2024-A18.2-01
+  article_ref: Art. 18(2)
+  text_vi: '2. Tổ chức, cá nhân phải cung cấp dữ liệu cho cơ quan nhà nước khi có yêu cầu của cơ quan
+    có thẩm quyền mà không cần chủ thể dữ liệu đồng ý trong các trường hợp sau đây:
+
+    a) Ứng phó với tình trạng khẩn cấp;
+
+    b) Khi có nguy cơ đe dọa an ninh quốc gia nhưng chưa đến mức ban bố tình trạng khẩn cấp;
+
+    c) Thảm họa;
+
+    d) Phòng, chống bạo loạn, khủng bố.'
+  summary_en: On a competent authority's request the bank must hand over data to state agencies, without
+    data-subject consent, in an emergency, a threat to national security, a disaster, or riot/terror prevention.
+    The bank must be able to find and produce the data.
+  duties:
+  - record_keeping
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export can package agent events and case files
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: handling of authority data requests (Decree 165 Art. 8)
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - log of authority requests and handovers (minutes)
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: medium
+  notes: Decree 165/2025 Art. 8 sets the form of the request and the handover minutes.
+- id: VN-DATA-2024-A23.2-01
+  article_ref: Art. 23(2)
+  text_vi: '2. Chuyển, xử lý dữ liệu cốt lõi, dữ liệu quan trọng xuyên biên giới bao gồm:
+
+    a) Chuyển dữ liệu đang lưu trữ tại Việt Nam tới hệ thống lưu trữ dữ liệu đặt ngoài lãnh thổ nước Cộng
+    hòa xã hội chủ nghĩa Việt Nam;
+
+    b) Cơ quan, tổ chức, cá nhân Việt Nam chuyển dữ liệu cho tổ chức, cá nhân nước ngoài;
+
+    c) Cơ quan, tổ chức, cá nhân Việt Nam sử dụng nền tảng ở ngoài lãnh thổ nước Cộng hòa xã hội chủ nghĩa
+    Việt Nam để xử lý dữ liệu.'
+  summary_en: 'Cross-border handling of core or important data includes: moving stored data to a system
+    outside Vietnam, giving data to a foreign party, and using a platform outside Vietnam to process data.
+    An AI agent that sends such data to a foreign-hosted model or tool is in scope.'
+  duties:
+  - cross_border_notice
+  - data_localisation
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masking before a judge call lowers data exposure but does not classify core/important data
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: calls and destinations can be logged
+  - kind: process
+    id: transfer_impact_assessment
+    coverage: none
+    note: impact assessment file (Decree 165 Art. 12)
+  - kind: process
+    id: data_localisation_setup
+    coverage: none
+  evidence_needed:
+  - cross-border data inventory
+  - region and host of each model/tool call
+  - assessment dossier (Decree 165 Art. 12)
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: high
+  notes: Use of a foreign cloud model counts as 'using a platform outside Vietnam to process data' (Art.
+    23(2)(c)). Law 60 does not itself require core data to stay in Vietnam; the control is the Art. 23
+    / Decree 165 Art. 12 assessment and approval.
+- id: VN-DATA-2024-A23.3-01
+  article_ref: Art. 23(3)
+  text_vi: 3. Việc chuyển, xử lý dữ liệu quy định tại khoản 1 và khoản 2 Điều này phải bảo đảm quốc phòng,
+    an ninh, bảo vệ lợi ích quốc gia, lợi ích công cộng, quyền và lợi ích hợp pháp của chủ thể dữ liệu,
+    chủ sở hữu dữ liệu theo quy định của pháp luật Việt Nam và các điều ước quốc tế mà nước Cộng hòa xã
+    hội chủ nghĩa Việt Nam là thành viên.
+  summary_en: Any cross-border transfer or processing must protect national defence, security, public
+    interest and the rights of data subjects and owners under Vietnamese law and treaties.
+  duties:
+  - cross_border_notice
+  applies_to:
+    agent_class:
+    - any
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: transfer_impact_assessment
+    coverage: none
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - documented legality and necessity analysis per transfer
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: medium
+- id: VN-DATA-2024-A25.1-01
+  article_ref: Art. 25(1)
+  text_vi: '1. Rủi ro phát sinh trong xử lý dữ liệu bao gồm: rủi ro quyền riêng tư, rủi ro an ninh mạng,
+    rủi ro nhận dạng và quản lý truy cập, rủi ro khác trong xử lý dữ liệu.'
+  summary_en: Data processing risks include privacy risk, cybersecurity risk, and identity and access
+    management risk. The bank's risk register for an agent should cover all three.
+  duties:
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: rule
+    id: PII-02
+    coverage: partial
+    note: limits personal-data reads by the agent
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - risk register entries for privacy, cyber and IAM risk
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: medium
+- id: VN-DATA-2024-A25.3-01
+  article_ref: Art. 25(3)
+  text_vi: 3. Chủ quản dữ liệu không thuộc quy định tại khoản 2 Điều này tự đánh giá, xác định rủi ro
+    và thực hiện các biện pháp để bảo vệ dữ liệu; kịp thời khắc phục rủi ro phát sinh và thông báo cho
+    chủ thể dữ liệu, cơ quan, tổ chức, cá nhân có liên quan.
+  summary_en: Data controllers outside the state sector assess and find data risks themselves, apply protection
+    measures, fix risks quickly and notify the data subjects and parties concerned.
+  duties:
+  - risk_management_system
+  - incident_response
+  - breach_notification_subject
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file records what happened and which customers were affected
+  - kind: process
+    id: incident_management
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: notice to data subjects and related parties
+  evidence_needed:
+  - risk self-assessment
+  - notice to affected data subjects
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: medium
+- id: VN-DATA-2024-A25.4-01
+  article_ref: Art. 25(4)
+  text_vi: 4. Chủ quản dữ liệu cốt lõi, dữ liệu quan trọng phải định kỳ tiến hành đánh giá rủi ro đối
+    với các hoạt động xử lý dữ liệu đó theo quy định và thông báo tới đơn vị chuyên trách về an ninh mạng,
+    an toàn thông tin thuộc Bộ Công an, Bộ Quốc phòng và cơ quan có liên quan để phối hợp thực hiện việc
+    bảo vệ an toàn, an ninh dữ liệu.
+  summary_en: Controllers of core or important data must run periodic risk assessments of that processing
+    and tell the cybersecurity / information-security unit of the Ministry of Public Security or Ministry
+    of National Defence and other relevant bodies.
+  duties:
+  - risk_management_system
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: processing events support the assessment
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: periodic risk assessment (annual under Decree 165 Art. 17(11))
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  evidence_needed:
+  - risk assessment report on file
+  - notice to MPS/MND
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: high
+- id: VN-DATA-2024-A26.1-01
+  article_ref: Art. 26(1)
+  text_vi: 1. Chủ thể dữ liệu có quyền yêu cầu chủ sở hữu dữ liệu, chủ quản dữ liệu thu hồi, xóa hoặc
+    hủy dữ liệu của mình đã cung cấp, trừ trường hợp pháp luật có quy định khác. Chủ quản dữ liệu có trách
+    nhiệm thiết lập quy trình, triển khai các biện pháp, phương thức thu hồi, xóa hoặc hủy dữ liệu theo
+    yêu cầu của chủ thể dữ liệu.
+  summary_en: 'A data subject may ask the owner or controller to recall, delete or destroy the data they
+    supplied, unless the law says otherwise. The controller must have a process to do it (Decree 165 Art.
+    13: within 72 hours).'
+  duties:
+  - data_subject_rights
+  - retention
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+  addressee: controller
+  control_mapping:
+  - kind: process
+    id: data_subject_request
+    coverage: none
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: shows where an agent copied or used a customer's data
+  evidence_needed:
+  - deletion request log with result and timing
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: high
+  notes: Deletion may conflict with bank record retention duties; 'unless the law says otherwise' applies.
+- id: VN-DATA-2024-A27.1-01
+  article_ref: Art. 27(1)
+  text_vi: '1. Biện pháp bảo vệ dữ liệu được áp dụng trong toàn bộ quá trình xử lý dữ liệu, bao gồm:
+
+    a) Xây dựng và tổ chức thực hiện chính sách, quy định bảo vệ dữ liệu;
+
+    b) Quản lý hoạt động xử lý dữ liệu;
+
+    c) Xây dựng và triển khai các giải pháp kỹ thuật;
+
+    d) Đào tạo, bồi dưỡng, phát triển, quản lý nguồn nhân lực;
+
+    đ) Các biện pháp bảo vệ dữ liệu khác theo quy định của pháp luật.'
+  summary_en: 'Data protection measures must cover the whole processing life: policy and rules, management
+    of processing, technical solutions, and training and management of staff.'
+  duties:
+  - internal_policy
+  - robustness_security
+  - staff_competence
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: limits which tools an agent may call
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: logs agent traffic
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+  - kind: process
+    id: staff_training
+    coverage: none
+  evidence_needed:
+  - data protection policy
+  - training records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: medium
+- id: VN-DATA-2024-A27.3-01
+  article_ref: Art. 27(3); Art. 14(2)
+  text_vi: '3. Chủ sở hữu dữ liệu, chủ quản dữ liệu quản lý dữ liệu cốt lõi, dữ liệu quan trọng phải tuân
+    thủ các quy định về bảo vệ dữ liệu.
+
+    ...
+
+    2. Tổ chức, cá nhân không thuộc quy định tại khoản 1 Điều này là chủ sở hữu dữ liệu được quyền quyết
+    định việc lưu trữ dữ liệu do mình thu thập, tạo lập, sở hữu; trường hợp lưu trữ dữ liệu cốt lõi, dữ
+    liệu quan trọng phải bảo đảm tuân thủ theo quy định tại khoản 3 Điều 27 của Luật này.'
+  summary_en: 'Owners and controllers of core or important data must follow the data protection rules
+    (detailed in Decree 165/2025 Art. 16-19: access, logs, encryption, risk assessment, responsible person,
+    drills).'
+  duties:
+  - robustness_security
+  - internal_policy
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - core_data
+    - important_data
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: tamper-evident log of agent events
+  - kind: process
+    id: security_assessment
+    coverage: none
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+  evidence_needed:
+  - data protection control set for core/important data
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: high
+- id: VN-DATA-2024-A10.1-01
+  article_ref: Art. 10(1)-(2)
+  text_vi: '1. Lợi dụng việc xử lý dữ liệu, quản trị dữ liệu, phát triển, kinh doanh, lưu hành sản phẩm,
+    dịch vụ về dữ liệu để xâm phạm đến lợi ích quốc gia, dân tộc, quốc phòng, an ninh, trật tự, an toàn
+    xã hội, lợi ích công cộng, quyền và lợi ích hợp pháp của cơ quan, tổ chức, cá nhân.
+
+    ...
+
+    2. Cản trở hoặc ngăn chặn trái pháp luật quá trình xử lý dữ liệu, quản trị dữ liệu hoặc tấn công,
+    chiếm đoạt, phá hoại cơ sở dữ liệu, hệ thống thông tin phục vụ quản lý, xử lý, quản trị, bảo vệ dữ
+    liệu.'
+  summary_en: 'Banned: abusing data processing or data products to harm national interest, security, public
+    order or others'' lawful rights; obstructing data processing; attacking or seizing databases and information
+    systems.'
+  duties:
+  - prohibited_practice
+  applies_to:
+    agent_class:
+    - any
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: reduces hijack of an agent to misuse data
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - acceptable-use controls
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: low
+  notes: General prohibition; included for completeness.
+- id: VN-DATA-2024-A40.2-01
+  article_ref: Art. 40(2)
+  text_vi: 2. Tổ chức cung cấp sản phẩm, dịch vụ trung gian dữ liệu phải được đăng ký hoạt động và quản
+    lý theo quy định của pháp luật về đầu tư; trừ trường hợp cung cấp sản phẩm, dịch vụ trung gian dữ
+    liệu trong nội bộ tổ chức.
+  summary_en: A data intermediary service provider must register under investment law, except inside its
+    own organisation. Applies only if the bank offers data intermediary services to third parties.
+  duties:
+  - registration
+  applies_to:
+    agent_class:
+    - any
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: check whether any bank product is a data intermediary service
+  evidence_needed:
+  - registration certificate if applicable
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: low
+  notes: Applicability cannot be expressed in the product profile; ask the user whether the bank sells
+    data services.
+- id: VN-DATA-2024-A41.2-01
+  article_ref: Art. 41(2)
+  text_vi: '2. Tổ chức kinh doanh sản phẩm, dịch vụ phân tích, tổng hợp dữ liệu có thể gây nguy hại đến
+    quốc phòng, an ninh quốc gia, trật tự, an toàn xã hội, đạo đức xã hội, sức khỏe của cộng đồng phải
+    đăng ký hoạt động, quản lý theo quy định của pháp luật về đầu tư.
+
+    Trường hợp có kết nối, chia sẻ với cơ sở dữ liệu quốc gia, cơ sở dữ liệu chuyên ngành để kinh doanh
+    sản phẩm, dịch vụ phân tích, tổng hợp dữ liệu phải được quản lý theo quy định của pháp luật.'
+  summary_en: A business selling data analysis or aggregation products that could harm defence, security,
+    order, morals or public health must register under investment law. Applies only if the bank sells
+    such analytics to others.
+  duties:
+  - registration
+  applies_to:
+    agent_class:
+    - any
+  addressee: provider
+  control_mapping:
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - registration certificate if applicable
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: low
+  notes: Art. 44(2)(b) of this Law repeals Art. 3(8) and Art. 41 of the Electronic Transactions Law 20/2023/QH15,
+    a different statute; it does not touch this Art. 41.
+- id: VN-DATA-2024-A42.3-01
+  article_ref: Art. 42(3)
+  text_vi: '3. Dữ liệu không được phép giao dịch bao gồm:
+
+    a) Dữ liệu gây nguy hại đến quốc phòng, an ninh, đối ngoại, cơ yếu;
+
+    b) Dữ liệu không được chủ thể dữ liệu đồng ý, trừ trường hợp pháp luật có quy định khác;
+
+    c) Dữ liệu khác bị cấm giao dịch theo quy định của pháp luật.'
+  summary_en: 'Data that may not be traded on a data exchange: data harmful to defence/security, data
+    without the data subject''s consent (unless the law allows), and data banned by other laws.'
+  duties:
+  - consent
+  - prohibited_practice
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: consent_management
+    coverage: none
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - consent records for any data shared or sold
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: medium
+- id: VN-DATA-2024-A43.3-01
+  article_ref: Art. 43(3)-(4)
+  text_vi: '3. Thực hiện quản lý, kiểm tra, giám sát an toàn dữ liệu, bảo mật dữ liệu thường xuyên; phòng
+    ngừa, ngăn chặn và xử lý rủi ro dữ liệu; giám sát hành vi có thể ảnh hưởng đến việc bảo vệ dữ liệu.
+
+    ...
+
+    4. Tuân thủ quy định của pháp luật về an toàn thông tin mạng, pháp luật về an ninh mạng, pháp luật
+    về giao dịch điện tử và quy định khác của pháp luật có liên quan.'
+  summary_en: Providers of data intermediary, analytics or exchange services must monitor and check data
+    safety and confidentiality regularly, prevent and handle data risks, and comply with cybersecurity,
+    information-security and e-transaction law.
+  duties:
+  - security_monitoring
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+  addressee: provider
+  control_mapping:
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: runtime monitor over agent behaviour
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - monitoring and check records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/174877
+    title: Luat Du lieu 60/2024/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 39fb4a228bbd45781f70f6ef68513083152b9be1350cbb3d3fe39ddaea1cfb18
+    local_path: regulations/sources/VN-DATA-2024/luat-60-2024-qh15.txt
+  confidence: low
+  notes: Only if the bank provides such services.

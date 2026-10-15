@@ -1,0 +1,9 @@
+{
+ "url": "https://vbpl.vn/van-ban/chi-tiet/130985",
+ "api_url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/130985",
+ "title": "Nghị định số 117/2018/NĐ-CP Về việc giữ bí mật, cung cấp thông tin khách hành của tổ chức tín dụng, chi nhánh ngân hàng nước ngoài",
+ "fetched_at": "2026-10-15T09:18:49Z",
+ "sha256": "fd91271d8853c5a3b51b7965b8eddf3bd09bfa164f86f5fbdb6571626a8c0f1b",
+ "content_type": "text/plain; charset=utf-8 (extracted from vbpl documentContent HTML)",
+ "tool": "manual-curl"
+}

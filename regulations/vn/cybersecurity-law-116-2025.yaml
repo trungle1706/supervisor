@@ -1,0 +1,1307 @@
+schema_version: 1
+instrument:
+  id: VN-CYBER-2025
+  jurisdiction: VN
+  kind: law
+  issuer: National Assembly
+  number: 116/2025/QH15
+  title_vi: Luật An ninh mạng
+  title_en: Law on Cybersecurity (2025)
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2025-12-10'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+      verification: VERIFIED_PRIMARY
+      note: Passed at the 10th session of the 15th National Assembly on 10 Dec 2025 (closing line of the
+        text).
+    effective:
+      date: '2026-07-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+      verification: VERIFIED_PRIMARY
+      note: Art. 44(1).
+    compliance_deadline:
+      date: '2027-07-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 45(1) and 45(3): 12 months after 2026-07-01 to meet controls for the level already assigned.'
+    milestones:
+    - label: Decrees 327-333/2026/NĐ-CP signed (guide the Law); 333 and 331 effective on signing
+      date: '2026-08-19'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/05c85440-c526-11f1-bca7-ed1ef8223cce
+      verification: VERIFIED_PRIMARY
+    - label: Decree 328/2026 (fake news) effective
+      date: '2026-10-05'
+      source: https://vbpl.vn/van-ban/chi-tiet/dfc7b350-c523-11f1-bada-b398b307200c
+      verification: VERIFIED_SECONDARY
+      note: Date from the vbpl.vn search index, text not read.
+  supersedes:
+  - VN-CYBER-2018
+  - VN-NIS-2015
+  related:
+  - VN-DEC53-2022
+  - VN-DATA-2024
+  - VN-DEC165-2025
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/05c85440-c526-11f1-bca7-ed1ef8223cce
+    title: Nghi dinh 333/2026/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 709099cd3b7bae0b0cba49de68b3722165bfe4ff4d50392483bfd769586108e4
+    local_path: regulations/sources/VN-CYBER-2025/nghi-dinh-333-2026-nd-cp.txt
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/a0fff6e0-c524-11f1-bb41-3d7ef5db9516
+    title: Nghi dinh 331/2026/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8a6231ed6ca90d01acd9148697508c2775615e2d601a79b0e3b32881b7689e9b
+    local_path: regulations/sources/VN-CYBER-2025/nghi-dinh-331-2026-nd-cp.txt
+  - url: https://vbpl.vn/van-ban/chi-tiet/187039
+    title: 'vbpl.vn record 187039 (shows ''Het hieu luc mot phan'': a partial-lapse flag, cause not checked)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://luatvietnam.vn/linh-vuc-khac/danh-sach-van-ban-huong-dan-luat-an-ninh-mang-2025-co-hieu-luc-tu-01-7-2026-883-111870-article.html
+    title: LuatVietnam list of guiding decrees for the 2025 Cybersecurity Law
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'Official text read (vbpl.vn). Number 116/2025/QH15, passed 10 Dec 2025, effective 1 Jul 2026
+    confirmed. The text has 45 articles in 8 chapters (a press report says 58 articles; the vbpl text
+    ends at Art. 45; trust the stored text). Art. 44(2): the Network Information Security Law 86/2015/QH13
+    (as amended by 35/2018/QH14) and the Cybersecurity Law 24/2018/QH14 cease on 1 Jul 2026. Local storage:
+    Art. 25(3) (store in Vietnam for the period the Government sets; foreign firms need a branch or office).
+    The 2018 law''s ''on request'' wording is gone from the Law but Decree 333/2026 Art. 19-20 keeps the
+    24-month minimum counted from the storage request; domestic firms store the listed data in Vietnam
+    (Art. 19(2)); no bank-specific carve-out or rule exists. Incident reporting: Art. 40(1)(c), 41(3);
+    timing from Decree 331/2026 Art. 31(2)(d): 24 h initial for serious incidents, 72 h report. Security
+    levels: Art. 8, five levels, criteria in Decree 331/2026 (which replaces the level system of Decree
+    85/2016 in substance; 331 has no express repeal clause in the text read, vbpl still shows 85/2016
+    as ''Con hieu luc'': status of 85/2016 and of Circular 12/2022/TT-BTTTT after 19 Aug 2026 is UNVERIFIED).
+    Critical systems: Art. 9 (national security important systems, PM list). AI: only Art. 7(2)(g) (deepfake
+    ban). Guiding decrees signed 19 Aug 2026 per vbpl: 327 (illegal info), 328 (fake news), 329 (cyber
+    forces), 330 (administrative penalties for cybersecurity and personal data protection; the ''330/2026,
+    19 Aug 2026'' report is CONFIRMED by the vbpl index: not read), 331 (system security), 332 (cyber
+    products/services), 333 (details). Penalty decree 330 was not read, so no sanction amounts are stored.
+    The Law has no sector-specific bank rule; SBV circulars on information-system safety were not covered
+    here.'
+obligations:
+- id: VN-CYBER-2025-A8.1-01
+  article_ref: Art. 8(1)-(2)
+  text_vi: '1. Hệ thống thông tin được phân loại theo 5 cấp độ căn cứ vào mức độ tổn hại tới an ninh quốc
+    gia, trật tự, an toàn xã hội, quyền, lợi ích hợp pháp của tổ chức, cá nhân, lợi ích công cộng khi
+    bị sự cố hoặc có hành vi vi phạm pháp luật về an ninh mạng như sau:
+
+    a) Cấp độ 1 có thể làm tổn hại tới quyền và lợi ích hợp pháp của tổ chức, cá nhân;
+
+    b) Cấp độ 2 có thể làm tổn hại nghiêm trọng tới quyền và lợi ích hợp pháp của tổ chức, cá nhân hoặc
+    làm tổn hại tới lợi ích công cộng;
+
+    c) Cấp độ 3 có thể làm tổn hại đặc biệt nghiêm trọng tới quyền và lợi ích hợp pháp của tổ chức, cá
+    nhân; tổn hại nghiêm trọng tới lợi ích công cộng; tổn hại hoặc tổn hại nghiêm trọng tới trật tự, an
+    toàn xã hội hoặc làm tổn hại tới an ninh quốc gia;
+
+    d) Cấp độ 4 có thể làm tổn hại đặc biệt nghiêm trọng tới lợi ích công cộng, trật tự, an toàn xã hội
+    hoặc làm tổn hại nghiêm trọng tới an ninh quốc gia;
+
+    đ) Cấp độ 5 có thể làm tổn hại đặc biệt nghiêm trọng tới an ninh quốc gia.
+
+    ...
+
+    2. Chính phủ quy định chi tiết tiêu chí xác định cấp độ hệ thống thông tin; quy định thẩm quyền, trình
+    tự, thủ tục xác định cấp độ hệ thống thông tin và biện pháp, trách nhiệm, nghĩa vụ bảo đảm an ninh
+    mạng theo từng cấp độ của hệ thống thông tin.'
+  summary_en: Every information system is classified into one of five security levels by the harm a failure
+    would cause (level 1 harm to rights of persons; level 3 very serious harm to rights or serious harm
+    to public interest; level 5 very serious harm to national security). The Government sets criteria
+    and procedure.
+  duties:
+  - system_classification
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: level approval dossier
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: onboarding can record the host system's declared level
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - security level decision for each system the agent runs on
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: high
+  notes: Art. 8(1) lists the five levels; see Decree 331/2026 for criteria.
+- id: VN-CYBER-2025-A8.1-02
+  article_ref: Decree 331/2026 Art. 12-13
+  text_vi: 'Hệ thống thông tin cấp độ 2 là hệ thống thông tin có một trong các tiêu chí cụ thể sau:
+
+    1. Hệ thống thông tin phục vụ hoạt động nội bộ của cơ quan, tổ chức và có xử lý thông tin riêng, thông
+    tin cá nhân của người sử dụng nhưng không xử lý thông tin bí mật nhà nước.
+
+    2. Hệ thống thông tin phục vụ người dân, doanh nghiệp thuộc một trong các loại hình như sau:
+
+    a) Cung cấp dịch vụ trực tuyến không thuộc danh mục ngành, nghề đầu tư kinh doanh có điều kiện;
+
+    b) Cung cấp dịch vụ trực tuyến khác có xử lý thông tin riêng, thông tin cá nhân của dưới 100.000 chủ
+    thể dữ liệu đối với dữ liệu cá nhân cơ bản hoặc dưới 10.000 chủ thể dữ liệu đối với dữ liệu cá nhân
+    nhạy cảm.
+
+    3. Hệ thống cơ sở hạ tầng thông tin phục vụ hoạt động của một cơ quan, tổ chức.
+
+    4. Hệ thống thông tin khác do Thủ tướng Chính phủ quyết định hoặc được đánh giá rủi ro an ninh mạng
+    theo Khung quản lý rủi ro an ninh mạng.
+
+    ...
+
+    Hệ thống thông tin cấp độ 3 là hệ thống có một trong các tiêu chí sau:
+
+    1. Hệ thống xử lý thông tin bí mật nhà nước hoặc hệ thống phục vụ quốc phòng, an ninh khi bị phá hoại
+    sẽ làm tổn hại tới an ninh quốc gia.
+
+    2. Hệ thống thông tin phục vụ người dân, doanh nghiệp thuộc một trong các loại hình như sau:
+
+    a) Cung cấp dịch vụ trực tuyến thuộc danh mục ngành, nghề đầu tư kinh doanh có điều kiện;
+
+    b) Hệ thống thông tin giải quyết thủ tục hành chính;
+
+    c) Cung cấp dịch vụ trực tuyến khác có xử lý thông tin riêng, thông tin cá nhân của từ 100.000 chủ
+    thể dữ liệu đối với dữ liệu cá nhân cơ bản trở lên hoặc từ 10.000 chủ thể dữ liệu đối với dữ liệu
+    cá nhân nhạy cảm trở lên.
+
+    3. Hệ thống cơ sở hạ tầng thông tin phục vụ hoạt động của các cơ quan, tổ chức trong phạm vi một bộ,
+    một ngành, một tỉnh hoặc một số tỉnh.
+
+    4. Hệ thống thông tin điều khiển công nghiệp trực tiếp phục vụ điều khiển, vận hành hoạt động bình
+    thường của các công trình xây dựng cấp II, cấp III hoặc cấp IV theo phân cấp của pháp luật về xây
+    dựng.
+
+    5. Hệ thống thông tin khác do Thủ tướng Chính phủ quyết định hoặc được đánh giá rủi ro an ninh mạng
+    theo Khung quản lý rủi ro an ninh mạng.'
+  summary_en: Under Decree 331/2026, an online service system in a conditional-business sector (assumed,
+    counsel to confirm, that a licensed bank is one) or with personal data of 100,000+ people (10,000+
+    sensitive) is at least level 3. A system with fewer subjects and no conditional sector is level 2.
+    Higher criteria give the higher level.
+  duties:
+  - system_classification
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+  evidence_needed:
+  - level 3 approval dossier for online banking systems and AI front ends
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/a0fff6e0-c524-11f1-bb41-3d7ef5db9516
+    title: Nghi dinh 331/2026/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8a6231ed6ca90d01acd9148697508c2775615e2d601a79b0e3b32881b7689e9b
+    local_path: regulations/sources/VN-CYBER-2025/nghi-dinh-331-2026-nd-cp.txt
+  confidence: medium
+  notes: Decree 331 Art. 2 applies to state systems and to systems offering online services to people
+    and businesses. Reading 'licensed bank = conditional business' is ASSUMED, not stated in the text.
+    Whether an AI agent is its own information system or part of the host system (Decree 331 Art. 7-8)
+    needs bank counsel.
+- id: VN-CYBER-2025-A8.1-03
+  article_ref: Decree 331/2026 Art. 30(8)
+  text_vi: '8. Trường hợp hệ thống thông tin cấp độ 3, cấp độ 4 được triển khai dưới hình thức thuê dịch
+    vụ công nghệ thông tin tại Trung tâm dữ liệu hoặc Điện toán đám mây, thiết kế hệ thống phải đáp ứng
+    các yêu cầu sau:
+
+    a) Phải được thiết kế tách riêng, độc lập với các hệ thống khác về lô-gic và có biện pháp quản lý
+    truy cập giữa các hệ thống;
+
+    b) Các vùng mạng trong hệ thống phải được thiết kế tách riêng, độc lập với nhau về lô-gic và có biện
+    pháp quản lý truy cập giữa các vùng mạng;
+
+    c) Có phân vùng lưu trữ được phân tách độc lập về lô-gic.'
+  summary_en: A level 3 or 4 system hosted as rented IT service in a data centre or cloud must be designed
+    logically separate from other systems, with separate network zones and a separate logical storage
+    partition.
+  duties:
+  - robustness_security
+  - outsourcing_oversight
+  - supply_chain_security
+  applies_to:
+    agent_class:
+    - any
+    model_hosting:
+    - domestic_cloud
+    - foreign_cloud
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: vendor_management
+    coverage: none
+  - kind: process
+    id: security_assessment
+    coverage: none
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: records agent traffic to the cloud model
+  evidence_needed:
+  - architecture showing tenant, network and storage separation
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/a0fff6e0-c524-11f1-bb41-3d7ef5db9516
+    title: Nghi dinh 331/2026/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8a6231ed6ca90d01acd9148697508c2775615e2d601a79b0e3b32881b7689e9b
+    local_path: regulations/sources/VN-CYBER-2025/nghi-dinh-331-2026-nd-cp.txt
+  confidence: medium
+- id: VN-CYBER-2025-A9.3-01
+  article_ref: Art. 9(2)(g), 9(3)
+  text_vi: 'g) Hệ thống thông tin quốc gia thuộc lĩnh vực năng lượng, tài chính, ngân hàng, viễn thông,
+    giao thông vận tải, nông nghiệp, tài nguyên và môi trường, hóa chất, y tế, văn hóa;
+
+    ...
+
+    3. Hệ thống thông tin quan trọng về an ninh quốc gia phải được thẩm định an ninh mạng, chứng nhận
+    đủ điều kiện về an ninh mạng trước khi đưa vào vận hành, sử dụng; thường xuyên kiểm tra an ninh mạng,
+    giám sát an ninh mạng trong quá trình sử dụng và kịp thời ứng phó, khắc phục sự cố an ninh mạng.'
+  summary_en: National-level systems in energy, finance, banking, telecoms, transport and other fields
+    can be listed as systems important to national security. A listed system must pass cybersecurity appraisal
+    and get a certificate before operation, and be checked and monitored continuously.
+  duties:
+  - security_testing
+  - system_classification
+  - registration
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: confirm if any bank system is on the PM list
+  evidence_needed:
+  - list status of each system
+  - appraisal certificate if listed
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+  notes: The PM list is not public in the checked sources. Art. 9(2)(g) says 'hệ thống thông tin quốc
+    gia' in banking; whether commercial bank systems are on it is unknown (ASSUMED not listed).
+- id: VN-CYBER-2025-A10.1-01
+  article_ref: Art. 10(1)
+  text_vi: '1. Nhiệm vụ bảo vệ an ninh mạng đối với hệ thống thông tin bao gồm:
+
+    a) Xác định cấp độ an ninh mạng của hệ thống thông tin và hệ thống thông tin quan trọng về an ninh
+    quốc gia;
+
+    b) Đánh giá và quản lý rủi ro an ninh mạng hệ thống thông tin;
+
+    c) Đôn đốc, giám sát, kiểm tra công tác bảo vệ an ninh mạng hệ thống thông tin;
+
+    d) Tổ chức triển khai các biện pháp bảo vệ an ninh mạng hệ thống thông tin;
+
+    đ) Thực hiện chế độ báo cáo theo quy định;
+
+    e) Tổ chức tuyên truyền, nâng cao nhận thức về an ninh mạng.'
+  summary_en: 'System owners must: set the security level, assess and manage cyber risk, supervise and
+    check protection, apply protection measures, report as required, and raise awareness.'
+  duties:
+  - system_classification
+  - risk_management_system
+  - security_monitoring
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+    note: monitors agent behaviour, not the host system
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+  evidence_needed:
+  - risk assessment
+  - reports to the authority
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: high
+- id: VN-CYBER-2025-A10.4-01
+  article_ref: Art. 10(2), 10(4)
+  text_vi: '4. Chủ quản hệ thống thông tin thuộc Cấp độ 3, Cấp độ 4 không thuộc danh mục hệ thống thông
+    tin quan trọng về an ninh quốc gia thực hiện đầy đủ các nhiệm vụ quy định tại khoản 1 Điều này, các
+    biện pháp quy định tại các điểm a, d, đ, e, g và h khoản 2 Điều này và theo nhu cầu, khả năng thực
+    tế lựa chọn áp dụng biện pháp quy định tại điểm b và điểm c khoản 2 Điều này.
+
+    ...
+
+    2. Biện pháp bảo vệ an ninh mạng đối với hệ thống thông tin bao gồm:
+
+    a) Ban hành quy định về bảo đảm an ninh mạng trong thiết kế, xây dựng, quản lý, vận hành, sử dụng,
+    nâng cấp, hủy bỏ hệ thống thông tin;
+
+    b) Thẩm định an ninh mạng đối với hồ sơ, thiết kế của hệ thống thông tin;
+
+    c) Đánh giá điều kiện an ninh mạng đối với hệ thống thông tin;
+
+    d) Áp dụng biện pháp quản lý theo tiêu chuẩn, quy chuẩn kỹ thuật về an ninh mạng, nghiên cứu xây dựng
+    hệ thống tường lửa quốc gia để phòng, chống nguy cơ, khắc phục sự cố an ninh mạng;
+
+    đ) Tổ chức triển khai các biện pháp lưu trữ, sao lưu bảo vệ an ninh thông tin mạng và an ninh của
+    các thành tố cấu thành hệ thống thông tin;
+
+    e) Kiểm tra, giám sát việc tuân thủ quy định và đánh giá hiệu quả của các biện pháp quản lý và kỹ
+    thuật được áp dụng;
+
+    g) Thực hiện giám sát an ninh mạng;
+
+    h) Ứng phó, khắc phục sự cố an ninh mạng đối với hệ thống thông tin.'
+  summary_en: Owners of level 3 or 4 systems (not on the national security list) must do all Art. 10(1)
+    tasks and apply security rules in the life cycle, technical standards, backup, compliance checks,
+    security monitoring, and incident response.
+  duties:
+  - security_monitoring
+  - business_continuity
+  - incident_response
+  - security_testing
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: supports monitoring and checks
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+  - kind: process
+    id: incident_management
+    coverage: none
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - security rules for design, operation, upgrade and retirement
+  - backup and recovery test results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: high
+- id: VN-CYBER-2025-A11.1-01
+  article_ref: Art. 11(1)(b)-(d)
+  text_vi: 'b) Khi thiết lập, mở rộng hoặc nâng cấp hệ thống thông tin quan trọng về an ninh quốc gia
+    phải thực hiện kiểm tra an ninh mạng trước khi đi vào vận hành, khai thác; định kỳ hằng năm, tự kiểm
+    tra an ninh mạng, đánh giá điều kiện an ninh mạng hệ thống thông tin quan trọng về an ninh quốc gia
+    và thông báo kết quả kiểm tra bằng văn bản trước tháng 10 hằng năm cho lực lượng chuyên trách bảo
+    vệ an ninh mạng có thẩm quyền;
+
+    ...
+
+    c) Chủ trì, phối hợp với lực lượng chuyên trách bảo vệ an ninh mạng có thẩm quyền trong việc thường
+    xuyên thực hiện giám sát an ninh mạng; xây dựng cơ chế tự cảnh báo và tiếp nhận cảnh báo về nguy cơ
+    đe dọa an ninh mạng; đề ra phương án ứng phó, khắc phục khẩn cấp;
+
+    ...
+
+    d) Xây dựng phương án ứng phó, khắc phục sự cố an ninh mạng; triển khai phương án ứng phó, khắc phục
+    khi sự cố an ninh mạng xảy ra và kịp thời báo cáo với lực lượng chuyên trách bảo vệ an ninh mạng có
+    thẩm quyền;'
+  summary_en: Owners of systems on the national security list must test cybersecurity before go-live and
+    each year self-assess, report in writing before October each year, support continuous monitoring,
+    and keep and run an incident response plan, reporting to the specialised force on time.
+  duties:
+  - security_testing
+  - incident_response
+  - incident_report
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+  - kind: process
+    id: incident_management
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: annual report before October
+  - kind: evidence
+    id: case_file
+    coverage: partial
+  evidence_needed:
+  - annual self-check report
+  - incident plan
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+  notes: Applies only if a bank system is on the national security list.
+- id: VN-CYBER-2025-A12.3-01
+  article_ref: Art. 12(3)
+  text_vi: 3. Chủ quản hệ thống thông tin có trách nhiệm thông báo cho lực lượng chuyên trách bảo vệ an
+    ninh mạng thuộc Bộ Công an khi phát hiện hành vi vi phạm pháp luật về an ninh mạng trên hệ thống thông
+    tin thuộc phạm vi quản lý.
+  summary_en: A system owner must notify the cybersecurity force of the Ministry of Public Security when
+    it finds a cybersecurity law violation on its system.
+  duties:
+  - incident_report
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  - kind: evidence
+    id: case_file
+    coverage: partial
+  evidence_needed:
+  - notice record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: high
+- id: VN-CYBER-2025-A18.2-01
+  article_ref: Art. 18(2)
+  text_vi: 2. Chủ quản hệ thống thông tin có trách nhiệm áp dụng biện pháp kỹ thuật để phòng ngừa, ngăn
+    chặn hành vi quy định tại các điểm a, b, c, d và e khoản 1 Điều này đối với hệ thống thông tin thuộc
+    phạm vi quản lý.
+  summary_en: System owners apply technical measures to prevent malware spread, denial of service, intrusion,
+    exploitation of weak points and similar cyber attacks on their systems.
+  duties:
+  - robustness_security
+  - security_monitoring
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: injection_prefilter
+    coverage: partial
+    note: covers the prompt-injection part of the attack surface only
+  - kind: catalogue
+    id: tier1_monitor
+    coverage: partial
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - technical control set against attacks
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: high
+- id: VN-CYBER-2025-A20.4A-01
+  article_ref: Art. 20(4)(a)
+  text_vi: a) Khi phát hiện tình huống nguy hiểm về an ninh mạng, cơ quan, tổ chức, cá nhân kịp thời thông
+    báo cho lực lượng chuyên trách bảo vệ an ninh mạng và áp dụng ngay các biện pháp quy định tại điểm
+    a và điểm b khoản 3 Điều này;
+  summary_en: Organisations that see a dangerous cybersecurity situation must tell the specialised force
+    promptly and start emergency prevention steps right away.
+  duties:
+  - incident_report
+  - incident_response
+  applies_to:
+    agent_class:
+    - any
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: incident_management
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause an agent
+  evidence_needed:
+  - incident notice and response record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+- id: VN-CYBER-2025-A25.2A-01
+  article_ref: Art. 25(2)(a)
+  text_vi: a) Xác thực thông tin khi người dùng đăng ký tài khoản số; bảo mật thông tin, tài khoản của
+    người dùng; cung cấp thông tin người dùng cho lực lượng chuyên trách bảo vệ an ninh mạng thuộc Bộ
+    Công an chậm nhất là 24 giờ kể từ thời điểm có yêu cầu bằng văn bản hoặc thư điện tử, điện thoại hoặc
+    hình thức trao đổi khác đã được xác nhận để phục vụ xác minh, điều tra, xử lý hành vi vi phạm pháp
+    luật về an ninh mạng; trường hợp khẩn cấp đe dọa xâm hại an ninh quốc gia, đe dọa tính mạng con người,
+    yêu cầu cung cấp thông tin chậm nhất là 03 giờ;
+  summary_en: A firm offering services in cyberspace in Vietnam must verify user information at account
+    registration, protect user data, and give user information to the Ministry of Public Security within
+    24 hours of a request (3 hours in a national-security or life-threatening emergency).
+  duties:
+  - record_keeping
+  - customer_confidentiality
+  - regulatory_reporting
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: can export who did what for a customer
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: 24 h / 3 h authority request desk
+  - kind: process
+    id: access_management
+    coverage: none
+  evidence_needed:
+  - authority request log with response times
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+  notes: Whether a bank counts as providing 'dịch vụ trên mạng viễn thông, Internet, dịch vụ gia tăng'
+    for its apps is ASSUMED yes; counsel to confirm.
+- id: VN-CYBER-2025-A25.2B-01
+  article_ref: Art. 25(2)(b); Decree 333/2026 Art. 20(3)
+  text_vi: b) Ngăn chặn việc chia sẻ thông tin, xóa bỏ thông tin, gỡ bỏ dịch vụ, ứng dụng có nội dung
+    vi phạm quy định của Luật này chậm nhất là 24 giờ kể từ thời điểm có yêu cầu của lực lượng chuyên
+    trách bảo vệ an ninh mạng thuộc Bộ Công an và lưu nhật ký hệ thống để phục vụ xác minh, điều tra,
+    xử lý hành vi vi phạm pháp luật về an ninh mạng trong thời gian theo quy định của pháp luật; trường
+    hợp khẩn cấp đe dọa xâm hại an ninh quốc gia, yêu cầu ngăn chặn, xóa bỏ thông tin chậm nhất là 06
+    giờ;
+  summary_en: On a Ministry of Public Security request, block or delete violating content or services
+    within 24 hours (6 hours in an emergency) and keep system logs for the legal period. Decree 333/2026
+    Art. 20(3) sets that period at no less than 12 months.
+  duties:
+  - logging
+  - retention
+  - incident_response
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: agent events
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: keep system logs 12 months or more
+  evidence_needed:
+  - system logs kept at least 12 months
+  - takedown records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/05c85440-c526-11f1-bca7-ed1ef8223cce
+    title: Nghi dinh 333/2026/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 709099cd3b7bae0b0cba49de68b3722165bfe4ff4d50392483bfd769586108e4
+    local_path: regulations/sources/VN-CYBER-2025/nghi-dinh-333-2026-nd-cp.txt
+  confidence: medium
+  notes: 'The 12-month figure is from Decree 333/2026 Art. 20(3): ''Nhật ký hệ thống ... được lưu trữ
+    tối thiểu là 12 tháng''.'
+- id: VN-CYBER-2025-A25.2D-01
+  article_ref: Art. 25(2)(d)
+  text_vi: 'd) Lưu trữ thông tin cá nhân của người sử dụng dịch vụ, dữ liệu do người sử dụng dịch vụ tạo
+    ra, bao gồm: tên tài khoản, thời gian sử dụng dịch vụ, thông tin thanh toán phí sử dụng dịch vụ, địa
+    chỉ IP truy cập và các dữ liệu liên quan khác trong thời gian theo quy định của pháp luật sau khi
+    người dùng kết thúc việc sử dụng dịch vụ.'
+  summary_en: Store users' personal data and user-generated data (account name, usage time, payment data,
+    access IP, related data) for the legal period after the user stops using the service.
+  duties:
+  - retention
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: records_retention
+    coverage: none
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+  evidence_needed:
+  - retention schedule for user data after account closure
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+- id: VN-CYBER-2025-A25.3-01
+  article_ref: Art. 25(3)
+  text_vi: '3. Doanh nghiệp trong nước và ngoài nước cung cấp dịch vụ trên mạng viễn thông, mạng Internet,
+    các dịch vụ gia tăng trên không gian mạng tại Việt Nam có hoạt động thu thập, khai thác, phân tích,
+    xử lý dữ liệu về thông tin cá nhân, dữ liệu về mối quan hệ của người sử dụng dịch vụ, dữ liệu do người
+    sử dụng dịch vụ tại Việt Nam tạo ra phải áp dụng các biện pháp bảo vệ dữ liệu theo quy định của pháp
+    luật và lưu trữ dữ liệu này tại Việt Nam trong thời gian theo quy định của Chính phủ.
+
+    Doanh nghiệp ngoài nước quy định tại khoản này phải đặt chi nhánh hoặc văn phòng đại diện tại Việt
+    Nam.'
+  summary_en: Domestic and foreign firms providing services in cyberspace in Vietnam that collect, analyse
+    or process personal data, relationship data or user-generated data of users in Vietnam must protect
+    it and store it in Vietnam for the period set by the Government. Foreign firms must have a branch
+    or representative office in Vietnam.
+  duties:
+  - data_localisation
+  - data_minimisation
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: data_localisation_setup
+    coverage: none
+    note: in-country store of the listed data
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: shows where an agent sent personal data
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - data map showing the listed data stored in Vietnam
+  - hosting contracts
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: high
+  notes: Unlike Art. 26 of the 2018 law, the 2025 text does not say 'on request'; Decree 333 Art. 19 keeps
+    domestic firms under a direct storage duty and ties foreign-firm branch/storage orders to the Minister's
+    decision. Banks are not carved out by name.
+- id: VN-CYBER-2025-A25.3-02
+  article_ref: Decree 333/2026 Art. 19(1)-(2), 19(5), 20(1)
+  text_vi: '1. Dữ liệu phải lưu trữ tại Việt Nam:
+
+    a) Thông tin cá nhân của người sử dụng dịch vụ tại Việt Nam;
+
+    b) Dữ liệu do người sử dụng dịch vụ tại Việt Nam tạo ra: Tên tài khoản sử dụng dịch vụ, thời gian
+    sử dụng dịch vụ, thông tin thẻ tín dụng, địa chỉ thư điện tử, địa chỉ mạng (IP) đăng nhập, đăng xuất
+    gần nhất, số điện thoại đăng ký được gắn với tài khoản hoặc dữ liệu.
+
+    ...
+
+    2. Doanh nghiệp trong nước lưu trữ dữ liệu quy định tại khoản 1 Điều này tại Việt Nam.
+
+    ...
+
+    5. Hình thức lưu trữ dữ liệu tại Việt Nam do doanh nghiệp tự quyết định, đảm bảo khả năng truy xuất,
+    cung cấp kịp thời khi có yêu cầu của cơ quan có thẩm quyền và đảm bảo an toàn thông tin theo tiêu
+    chuẩn, quy chuẩn kỹ thuật quốc gia.
+
+    ...
+
+    1. Thời gian lưu trữ dữ liệu theo quy định tại Điều 19 Nghị định này bắt đầu từ khi doanh nghiệp nhận
+    được yêu cầu lưu trữ dữ liệu đến khi kết thúc yêu cầu. Thời gian lưu trữ tối thiểu là 24 tháng.'
+  summary_en: 'Data to be stored in Vietnam: personal data of service users in Vietnam, and data they
+    create (account name, usage time, credit card info, email, last login/logout IP, registered phone
+    number). Domestic firms store it in Vietnam; the form of storage is theirs but it must be retrievable
+    on request. Minimum storage period is 24 months from the date of the request.'
+  duties:
+  - data_localisation
+  - retention
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: data_localisation_setup
+    coverage: none
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: 24 month minimum from request
+  evidence_needed:
+  - storage location evidence
+  - 24-month retention setting
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/05c85440-c526-11f1-bca7-ed1ef8223cce
+    title: Nghi dinh 333/2026/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 709099cd3b7bae0b0cba49de68b3722165bfe4ff4d50392483bfd769586108e4
+    local_path: regulations/sources/VN-CYBER-2025/nghi-dinh-333-2026-nd-cp.txt
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+  notes: 'The 24-month minimum carries over from Decree 53/2022 Art. 27(1). It counts ''from when the
+    firm receives the storage request until the request ends''. Whether a domestic bank is under a standing
+    duty or only under an order is a counsel question: Art. 19(2) states the domestic duty without an
+    order trigger. Hosting a model or tool abroad that holds this data is the main risk for AI agents
+    (cross_border / foreign_cloud). The 2018-era ''relationship data'' item (friends, groups) no longer
+    appears in this list.'
+- id: VN-CYBER-2025-A26.2-01
+  article_ref: Art. 26(2)
+  text_vi: '2. Nội dung bảo đảm an ninh dữ liệu bao gồm:
+
+    a) Xây dựng chính sách, thiết lập quy trình về bảo đảm an ninh dữ liệu;
+
+    b) Áp dụng biện pháp, tiêu chuẩn, quy chuẩn kỹ thuật theo quy định của pháp luật về an ninh mạng;
+
+    c) Sử dụng mật mã cơ yếu, mật mã dân sự để bảo đảm an ninh dữ liệu;
+
+    d) Triển khai cơ chế kiểm soát chặt chẽ nhân sự trực tiếp tham gia xử lý dữ liệu;
+
+    đ) Kiểm tra, đánh giá rủi ro định kỳ nhằm phát hiện, ngăn chặn và xử lý kịp thời các nguy cơ đe dọa
+    an ninh dữ liệu;
+
+    e) Kiểm tra, đánh giá việc chuyển dữ liệu xuyên biên giới; điều kiện bảo đảm an ninh dữ liệu trong
+    hệ thống thông tin quan trọng về an ninh quốc gia, các cơ sở dữ liệu, trung tâm dữ liệu, hệ thống
+    lưu trữ dữ liệu;
+
+    g) Các nội dung khác theo quy định của pháp luật.'
+  summary_en: 'Data security covers: policy and process; technical standards; cryptography; strict control
+    of staff who process data; periodic risk checks; and checks of cross-border transfers and of security
+    conditions of critical systems, databases and data centres.'
+  duties:
+  - risk_management_system
+  - robustness_security
+  - encryption
+  - access_control
+  - cross_border_notice
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+  - kind: process
+    id: security_assessment
+    coverage: none
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+  evidence_needed:
+  - data security policy
+  - periodic risk check records
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+- id: VN-CYBER-2025-A40.1B-01
+  article_ref: Art. 40(1)(b)
+  text_vi: b) Kết nối hệ thống giám sát an ninh mạng, hệ thống phòng chống mã độc tập trung về Trung tâm
+    An ninh mạng quốc gia của Bộ Công an hoặc Trung tâm An ninh mạng của tỉnh, thành phố để hỗ trợ giám
+    sát an ninh mạng;
+  summary_en: System owners must connect their security monitoring and central anti-malware systems to
+    the National Cybersecurity Centre of the Ministry of Public Security or the provincial centre.
+  duties:
+  - security_monitoring
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: otlp_ingest
+    coverage: partial
+    note: telemetry intake exists but is not a link to the national centre
+  - kind: process
+    id: security_assessment
+    coverage: none
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  evidence_needed:
+  - connection arrangement with the national centre
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+  notes: Technical details are not in the Law; see the owner-duty articles of Decree 331/2026 and Decree
+    333/2026 Art. 7 (monitoring procedure, not read in full).
+- id: VN-CYBER-2025-A40.1C-01
+  article_ref: Art. 40(1)(c)
+  text_vi: c) Báo cáo sự cố an ninh mạng với cơ quan chuyên trách của Bộ Công an hoặc Bộ Quốc phòng.
+  summary_en: System owners must report cybersecurity incidents to the specialised unit of the Ministry
+    of Public Security or National Defence.
+  duties:
+  - incident_report
+  - incident_response
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file gives incident evidence
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  - kind: process
+    id: incident_management
+    coverage: none
+  evidence_needed:
+  - incident report to MPS
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: high
+- id: VN-CYBER-2025-A40.1C-02
+  article_ref: Decree 331/2026 Art. 31(2)(d)
+  text_vi: 'd) Báo cáo sự cố an ninh mạng với cơ quan chuyên trách của Bộ Công an (đối với hệ thống do
+    Bộ Quốc phòng quản lý, chủ quản hệ thống báo cáo sự cố về lực lượng chuyên trách bảo vệ an ninh mạng
+    thuộc Bộ Quốc phòng để phối hợp xử lý theo thẩm quyền):'
+  summary_en: 'Timing for incident reports by the system owner: report cause, scope and fix within 72
+    hours of detection (preliminary plus update and closing reports for complex cases); initial notice
+    of a serious incident within 24 hours; immediate report if national security or order is at stake.'
+  duties:
+  - incident_report_24h
+  - incident_report_72h
+  - incident_response
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file supplies facts for the report
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: 24 h initial notice; 72 h report
+  - kind: process
+    id: incident_management
+    coverage: none
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: contain by pausing an agent
+  evidence_needed:
+  - 24 h notice and 72 h report with timestamps
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/a0fff6e0-c524-11f1-bb41-3d7ef5db9516
+    title: Nghi dinh 331/2026/ND-CP (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8a6231ed6ca90d01acd9148697508c2775615e2d601a79b0e3b32881b7689e9b
+    local_path: regulations/sources/VN-CYBER-2025/nghi-dinh-331-2026-nd-cp.txt
+  confidence: medium
+  notes: 'Decree 331 Art. 2 scope: state systems and systems offering online services to the public. Whether
+    a bank''s internal AI agent falls in scope is unclear; online banking does.'
+- id: VN-CYBER-2025-A41.2-01
+  article_ref: Art. 41(2)-(3)
+  text_vi: '2. Cảnh báo khả năng mất an ninh mạng trong việc sử dụng dịch vụ trên không gian mạng do mình
+    cung cấp và hướng dẫn biện pháp phòng ngừa đối với người sử dụng dịch vụ; xây dựng phương án ứng cứu
+    khẩn cấp bảo đảm an ninh mạng để chủ động xử lý điểm yếu, rủi ro và sự cố an ninh mạng.
+
+    ...
+
+    3. Khi xảy ra sự cố an ninh mạng, ngay lập tức triển khai phương án ứng cứu khẩn cấp bảo đảm an ninh
+    mạng, đồng thời báo cáo ngay với lực lượng chuyên trách bảo vệ an ninh mạng theo quy định của Luật
+    này.'
+  summary_en: Firms providing services in cyberspace must warn users of security risks and advise on prevention,
+    keep an emergency plan, run it at once when an incident occurs, and report to the specialised force
+    straight away.
+  duties:
+  - incident_response
+  - incident_report
+  - consumer_information
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: incident_management
+    coverage: none
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: user warnings
+  - kind: process
+    id: regulator_notification
+    coverage: none
+  - kind: evidence
+    id: case_file
+    coverage: partial
+  evidence_needed:
+  - emergency plan
+  - customer warnings
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+- id: VN-CYBER-2025-A41.4-01
+  article_ref: Art. 41(4)
+  text_vi: 4. Áp dụng các biện pháp, giải pháp kỹ thuật để bảo đảm an ninh mạng cho hoạt động xử lý dữ
+    liệu, xử lý dữ liệu cá nhân theo quy định của Luật này, pháp luật về dữ liệu, pháp luật về bảo vệ
+    dữ liệu cá nhân và quy định khác của pháp luật có liên quan.
+  summary_en: Service providers apply technical measures to keep data processing and personal data processing
+    secure under the cybersecurity, data and personal data protection laws.
+  duties:
+  - robustness_security
+  - sensitive_data_protection
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: flags bulk personal-data reads by an agent
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - technical control set for personal data
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+- id: VN-CYBER-2025-A42.2-01
+  article_ref: Art. 42(2)
+  text_vi: 2. Có trách nhiệm bảo mật thông tin đăng ký, mở, quản lý, sử dụng tài khoản số của mình. Trường
+    hợp sử dụng tài khoản số để thực hiện hành vi vi phạm pháp luật, tùy theo tính chất, mức độ của hành
+    vi vi phạm, chủ tài khoản số, người sử dụng tài khoản số bị xử lý kỷ luật, xử phạt vi phạm hành chính
+    hoặc bị truy cứu trách nhiệm hình sự; nếu gây thiệt hại đến lợi ích của Nhà nước, quyền và lợi ích
+    hợp pháp của tổ chức, cá nhân thì phải bồi thường thiệt hại theo quy định pháp luật.
+  summary_en: Organisations and persons must protect the information used to register, open, manage and
+    use their digital accounts. Account holders carry the consequences of misuse. For an AI agent this
+    supports named, controlled service accounts.
+  duties:
+  - access_control
+  applies_to:
+    agent_class:
+    - any
+  addressee: any
+  control_mapping:
+  - kind: process
+    id: access_management
+    coverage: none
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+  evidence_needed:
+  - service account inventory and credential controls
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: low
+- id: VN-CYBER-2025-A7.1D-01
+  article_ref: Art. 7(1)(d)
+  text_vi: d) Sai sự thật gây hoang mang trong Nhân dân, gây thiệt hại cho hoạt động kinh tế - xã hội,
+    gây khó khăn cho hoạt động bình thường của cơ quan nhà nước hoặc người thi hành công vụ, xâm phạm
+    quyền và lợi ích hợp pháp của cơ quan, tổ chức, cá nhân khác; thông tin bịa đặt, sai sự thật về sản
+    phẩm, hàng hóa, tiền, trái phiếu, tín phiếu, công trái, séc và các loại giấy tờ có giá khác; thông
+    tin bịa đặt, sai sự thật trong lĩnh vực tài chính, ngân hàng, thương mại điện tử, kinh doanh theo
+    phương thức đa cấp, chứng khoán.
+  summary_en: 'Banned: spreading false or invented information on the cyberspace that harms the economy
+    or others, including false information about products, bonds, cheques and other valuable papers, and
+    in finance and banking. A customer-facing agent must not give invented financial information.'
+  duties:
+  - prohibited_practice
+  - consumer_information
+  - output_handling
+  applies_to:
+    agent_class:
+    - customer_facing
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: groundedness
+    coverage: partial
+    note: groundedness check on answers
+  - kind: catalogue
+    id: tier2_judge
+    coverage: partial
+    note: judge review of outputs
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+  evidence_needed:
+  - groundedness sampling results
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+  notes: Penalties are in Decree 330/2026; not read.
+- id: VN-CYBER-2025-A7.2G-01
+  article_ref: Art. 7(2)(g)
+  text_vi: g) Sử dụng trí tuệ nhân tạo hoặc công nghệ mới để giả mạo video, hình ảnh, giọng nói của người
+    khác trái quy định của pháp luật; tạo lập, đăng tải, phát tán thông tin quy định tại khoản 1 Điều
+    này;
+  summary_en: 'Banned: using artificial intelligence or new technology to fake another person''s video,
+    image or voice contrary to law, or to create or spread the false or harmful information listed in
+    Art. 7(1). This is the only direct AI provision found in the Law.'
+  duties:
+  - prohibited_practice
+  - content_labelling
+  applies_to:
+    agent_class:
+    - any
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: tier2_judge
+    coverage: partial
+    note: can review generated content
+  - kind: process
+    id: legal_review
+    coverage: none
+  evidence_needed:
+  - controls blocking synthetic voice or image impersonation
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+  notes: No AI governance duty (risk class, registration, labelling) was found in Law 116/2025; that sits
+    in the AI Law 134/2025/QH15 (listed on vbpl as effective 2026-03-01, status 'Chua xac dinh'; not covered
+    here).
+- id: VN-CYBER-2025-A7.2H-01
+  article_ref: Art. 7(2)(h)
+  text_vi: h) Thu thập, sử dụng, phát tán, trao đổi, chuyển nhượng, kinh doanh trái pháp luật thông tin,
+    dữ liệu cá nhân của người khác;
+  summary_en: 'Banned: unlawfully collecting, using, spreading, exchanging, transferring or trading another
+    person''s personal information or data.'
+  duties:
+  - prohibited_practice
+  - lawful_basis
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+  addressee: any
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+  - kind: process
+    id: dpo_signoff
+    coverage: none
+  evidence_needed:
+  - lawful basis record for each agent data use
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: medium
+- id: VN-CYBER-2025-A45.1-01
+  article_ref: Art. 45(1)
+  text_vi: 1. Hệ thống thông tin đã được xác định cấp độ theo quy định của Luật An toàn thông tin mạng
+    số 86/2015/QH13 đã được sửa đổi, bổ sung một số điều theo Luật số 35/2018/QH14 thì tiếp tục giữ cấp
+    độ đã được xác định kể từ ngày Luật này có hiệu lực thi hành; trong thời hạn 12 tháng kể từ ngày Luật
+    này có hiệu lực thi hành thì phải bảo đảm điều kiện, tiêu chuẩn, biện pháp bảo vệ an ninh mạng tương
+    ứng với cấp độ theo quy định của Luật này.
+  summary_en: Systems already classified under the 2015 law keep their level from 1 Jul 2026, and must
+    meet the controls for that level under the new law within 12 months (by 1 Jul 2027).
+  duties:
+  - system_classification
+  - security_testing
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+  evidence_needed:
+  - gap assessment against Decree 331 controls by 2027-07-01
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/187039
+    title: Luat An ninh mang 116/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d08ddd5e57838d026d8d6ffe31737d949629d3874db71a23acabc59b4972ac59
+    local_path: regulations/sources/VN-CYBER-2025/luat-116-2025-qh15.txt
+  confidence: high
+  notes: 'Dates: 12 months from 2026-07-01 gives 2027-07-01 (computed, ASSUMED to count calendar months).
+    Decree 331 Art. 39 also gives 6 months (to 2027-01-01) to finish level approval for systems still
+    under construction on 2026-07-01.'

@@ -1,0 +1,8 @@
+{
+ "url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/180306",
+ "title": "Nghi dinh 53/2022/ND-CP, vbpl.vn API documentContent (text extracted from HTML)",
+ "fetched_at": "2026-10-15T10:00:00Z",
+ "sha256": "9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e",
+ "content_type": "text/plain; charset=utf-8 (extracted from text/html)",
+ "tool": "manual-curl"
+}
