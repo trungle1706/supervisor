@@ -1,0 +1,9 @@
+{
+ "url": "https://vbpl.vn/van-ban/chi-tiet/171687",
+ "api_url": "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/171687/Th%C3%B4ng%20t%C6%B0%2050-2024-TT-NHNN.docx/download",
+ "title": "Thong tu 50/2024/TT-NHNN incl. Phu luc 01-04 (text extracted from vbpl DOCX attachment)",
+ "fetched_at": "2026-10-15T09:19:44Z",
+ "sha256": "d2dfc4800134dc09be7e428108965059eff0da7e7f657735383e2400926285fe",
+ "content_type": "text/plain; charset=utf-8 (extracted from DOCX)",
+ "tool": "manual-curl"
+}

@@ -1,0 +1,636 @@
+schema_version: 1
+instrument:
+  id: VN-LCI-2024
+  jurisdiction: VN
+  kind: law
+  issuer: National Assembly
+  number: 32/2024/QH15
+  title_vi: Luật Các tổ chức tín dụng
+  title_en: Law on Credit Institutions
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2024-01-18'
+      source: https://vbpl.vn/van-ban/chi-tiet/166170
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2024-07-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/166170
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 209(1): effective 1 Jul 2024; Art. 200(3) and Art. 210(15) effective 1 Jan 2025'
+    milestones:
+    - label: Amending Law 96/2025/QH15 effective (adds Art. 198a on collateral seizure for bad debt; SBV
+        liquidity support)
+      date: '2025-10-15'
+      source: https://luatvietnam.vn/bai-viet-lien-quan/luat-96-2025-qh15-405399.html
+      verification: VERIFIED_SECONDARY
+      note: Date from luatvietnam.vn summary only. Existence of the amending law is confirmed in the recitals
+        of primary Circular 77/2025/TT-NHNN.
+  supersedes: []
+  related:
+  - VN-DEC117-2018
+  - VN-TT09-2020
+  - VN-TT50-2024
+  - VN-QD2345-2023
+  sources:
+  - &id001
+    url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
+  - url: https://luatvietnam.vn/bai-viet-lien-quan/luat-96-2025-qh15-405399.html
+    title: luatvietnam.vn - Law 96/2025/QH15 amending the Law on Credit Institutions (summary)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-15'
+  notes: 'Original text of Law 32/2024/QH15 stored (copied from the tcb-reggraph vbpl fetch of 2026-10-08,
+    text re-extracted from doc.json). vbpl marks the law ''Het hieu luc mot phan'' because Law 96/2025/QH15
+    amended it (effective 2025-10-15 per secondary source). Primary Circular 77/2025/TT-NHNN and Circular
+    53/2026/TT-NHNN cite ''Law 32/2024/QH15 as amended by Law 96/2025/QH15''. The text of Law 96/2025
+    was NOT read: the amendment content (Art. 198a, liquidity support) is secondary. No obligation below
+    was checked against the amended text; the cited Arts. 10, 12-14, 57-58, 101-105 are assumed unchanged.
+    The Law replaces the 2010 Law (47/2010/QH12, amended 2017) from 2024-07-01, except Art. 210 items.
+    Art. 13(2) says confidentiality follows ''regulations of the Government'': Decree 117/2018/ND-CP still
+    applies (see VN-DEC117-2018). Not legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-LCI-2024-A13.1-01
+  article_ref: Art. 13(1)
+  text_vi: 1. Người quản lý, người điều hành, nhân viên của tổ chức tín dụng, chi nhánh ngân hàng nước
+    ngoài không được tiết lộ thông tin khách hàng, bí mật kinh doanh của tổ chức tín dụng, chi nhánh ngân
+    hàng nước ngoài.
+  summary_en: Managers, executives and staff of a credit institution must not disclose customer information
+    or business secrets. An AI agent acts for staff, so the bank must keep its output and logs from exposing
+    customer data to anyone without need.
+  duties:
+  - customer_confidentiality
+  - access_control
+  applies_to: &id002
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks CCCD, phone, account and card numbers before storage or any judge call
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: blocks bursts of personal-data reads
+  - kind: rule
+    id: PII-02
+    coverage: partial
+    note: caps loan application reads per agent per hour (credit_prequal only)
+  - kind: console
+    id: case_detail
+    coverage: partial
+    note: case file shows masked data to the reviewer, need-to-know
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: bank IAM decides who may open cases and customer data
+  evidence_needed:
+  - Access-control policy for staff and agents
+  - Masked case files for reviewers
+  - Record of who opened which case
+  verification: VERIFIED_PRIMARY
+  sources: &id003
+  - *id001
+  confidence: high
+  notes: Supervisor masks before storage but does not stop an agent from reading customer data inside
+    the bank system; the bank must set agent scope.
+- id: VN-LCI-2024-A13.2-01
+  article_ref: Art. 13(2)
+  text_vi: 2. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài phải bảo đảm bí mật thông tin khách hàng
+    của tổ chức tín dụng, chi nhánh ngân hàng nước ngoài theo quy định của Chính phủ.
+  summary_en: The bank must keep customer information secret under the Government's detailed rules (Decree
+    117/2018/ND-CP).
+  duties:
+  - customer_confidentiality
+  - internal_policy
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks CCCD, phone, account and card numbers before storage or any judge call
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: blocks bursts of personal-data reads
+  - kind: rule
+    id: PII-02
+    coverage: partial
+    note: caps loan application reads per agent per hour (credit_prequal only)
+  - kind: console
+    id: case_detail
+    coverage: partial
+    note: case file shows masked data to the reviewer, need-to-know
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: bank IAM decides who may open cases and customer data
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: internal confidentiality rule per Decree 117 Art. 5
+  evidence_needed:
+  - Internal confidentiality regulation
+  - Evidence of monitoring and breach handling
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-LCI-2024-A13.3-01
+  article_ref: Art. 13(3)
+  text_vi: 3. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài không được cung cấp thông tin khách hàng
+    của tổ chức tín dụng, chi nhánh ngân hàng nước ngoài cho tổ chức, cá nhân khác, trừ trường hợp có
+    yêu cầu của cơ quan nhà nước có thẩm quyền theo quy định của luật hoặc được sự chấp thuận của khách
+    hàng.
+  summary_en: 'The bank must not give customer information to another organisation or person, except on
+    a lawful request from a state authority or with the customer''s consent. An AI vendor or external
+    model is ''another organisation'': sending unmasked data to it needs a legal basis.'
+  duties:
+  - customer_confidentiality
+  - consent
+  - purpose_limitation
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: tokens replace identifiers before any call to an external judge or vendor model
+  - kind: process
+    id: consent_management
+    coverage: none
+    note: bank records the customer's consent or the legal request
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract and data-flow review for model vendors
+  evidence_needed:
+  - Data-flow map showing which fields leave the bank
+  - Consent or legal-basis record
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+  notes: Whether masked tokens still count as customer information is a legal question for the bank.
+- id: VN-LCI-2024-A14-01
+  article_ref: Art. 14
+  text_vi: Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài phải bảo đảm an toàn hệ thống thông tin, bảo
+    mật dữ liệu và hoạt động liên tục theo quy định của Thống đốc Ngân hàng Nhà nước và quy định khác
+    của pháp luật có liên quan.
+  summary_en: The bank must keep its information systems safe, data confidential and operations continuous,
+    as the SBV Governor prescribes (Circular 09/2020/TT-NHNN, Circular 50/2024/TT-NHNN).
+  duties:
+  - security_monitoring
+  - business_continuity
+  - robustness_security
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: tamper-evident record of agent actions and gate decisions
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank classifies and tests its systems
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+    note: recovery plan for the agent platform
+  evidence_needed:
+  - Information-system security regulation
+  - Continuity plan and test records
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-LCI-2024-A12.1-01
+  article_ref: Art. 12(1)
+  text_vi: 1. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài cung cấp cho chủ tài khoản thông tin về
+    giao dịch và số dư trên tài khoản của chủ tài khoản theo thỏa thuận với chủ tài khoản.
+  summary_en: The bank gives an account holder information on the transactions and balance of that account
+    as agreed with the holder. A customer-service agent may only give balance or transaction data to the
+    verified owner.
+  duties:
+  - customer_confidentiality
+  - consumer_information
+  applies_to:
+    agent_class:
+    - customer_facing
+    data_classes:
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: masks account numbers in stored events
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: owner verification is done in the bank channel
+  evidence_needed:
+  - Customer identity check before account information is given
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: medium
+- id: VN-LCI-2024-A10.4-01
+  article_ref: Art. 10(4)
+  text_vi: 4. Công bố công khai lãi suất tiền gửi, phí dịch vụ, quyền, nghĩa vụ của khách hàng đối với
+    từng loại sản phẩm, dịch vụ đang cung ứng.
+  summary_en: The bank must publish deposit rates, service fees, and customer rights and duties for each
+    product. A chat agent that quotes fees or terms must use the published values.
+  duties:
+  - consumer_information
+  - fair_treatment
+  applies_to:
+    agent_class:
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank publishes tariffs and terms
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: groundedness sampling can flag fee quotes that differ from the source
+  evidence_needed:
+  - Published tariff
+  - Sample of agent answers checked against the tariff
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: medium
+- id: VN-LCI-2024-A10.5-01
+  article_ref: Art. 10(5)
+  text_vi: 5. Công bố công khai thời gian giao dịch chính thức. Trường hợp ngừng giao dịch tại một hoặc
+    một số địa điểm thực hiện giao dịch trong thời gian giao dịch chính thức hoặc ngừng giao dịch bằng
+    phương tiện điện tử, chậm nhất là 24 giờ trước thời điểm ngừng giao dịch, tổ chức tín dụng, chi nhánh
+    ngân hàng nước ngoài phải niêm yết thông tin về ngừng giao dịch tại địa điểm giao dịch hoặc trên trang
+    thông tin điện tử của tổ chức tín dụng, chi nhánh ngân hàng nước ngoài. Trường hợp ngừng giao dịch
+    do sự kiện bất khả kháng, chậm nhất là 24 giờ sau thời điểm ngừng giao dịch, tổ chức tín dụng, chi
+    nhánh ngân hàng nước ngoài phải niêm yết thông tin về ngừng giao dịch tại địa điểm giao dịch hoặc
+    trên trang thông tin điện tử của tổ chức tín dụng, chi nhánh ngân hàng nước ngoài.
+  summary_en: 'The bank must announce when it stops service at a location or by electronic means: at least
+    24 hours before, or within 24 hours after in a force majeure case. Pausing or retiring an agent that
+    serves customers can count as a stop of an electronic service.'
+  duties:
+  - consumer_information
+  - business_continuity
+  applies_to:
+    agent_class:
+    - customer_facing
+    - payment
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause and resume switch gives the time of each stop
+  - kind: process
+    id: customer_disclosure
+    coverage: none
+    note: bank posts the stop notice
+  evidence_needed:
+  - Stop notice posted on the site or at the branch
+  - Pause log with times
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: medium
+  notes: Applies to a stop of the whole electronic channel; a Supervisor pause of one agent may not reach
+    that level. Bank counsel to decide.
+- id: VN-LCI-2024-A57.2-01
+  article_ref: Art. 57(2), (4)
+  text_vi: |-
+    2. Tổ chức tín dụng phải xây dựng hệ thống kiểm soát nội bộ để bảo đảm các yêu cầu sau đây:
+    a) Hiệu quả và an toàn trong hoạt động; bảo vệ, quản lý, sử dụng an toàn, hiệu quả tài sản và các nguồn lực;
+    b) Hệ thống thông tin tài chính và thông tin quản lý trung thực, hợp lý, đầy đủ và kịp thời;
+    c) Tuân thủ pháp luật và các cơ chế, chính sách, quy trình, quy định nội bộ.
+    ...
+    4. Tổ chức tín dụng xây dựng hệ thống kiểm soát nội bộ và triển khai ứng dụng công nghệ trong hoạt động kiểm soát nội bộ theo quy định của Thống đốc Ngân hàng Nhà nước.
+  summary_en: The bank must build an internal control system for safe operations, true and complete information,
+    and compliance with law and internal rules. It must apply technology in internal control as the Governor
+    prescribes. An AI agent is part of the process under control.
+  duties:
+  - risk_management_system
+  - governance_accountability
+  - human_oversight
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'oversight metrics: dwell time, approval rate, chain_ok'
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: evidence for internal control and audit
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: bank governance of AI use
+  evidence_needed:
+  - Internal control framework covering AI agents
+  - Oversight metrics reports
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-LCI-2024-A58-01
+  article_ref: Art. 58(1)-(2)
+  text_vi: |-
+    1. Tổ chức tín dụng phải thành lập kiểm toán nội bộ thuộc Ban kiểm soát thực hiện kiểm toán nội bộ tổ chức tín dụng.
+    ...
+    2. Kiểm toán nội bộ thực hiện rà soát, đánh giá độc lập, khách quan về tính thích hợp và sự tuân thủ cơ chế, chính sách, quy trình, quy định nội bộ của tổ chức tín dụng; đưa ra kiến nghị nhằm nâng cao hiệu quả của các hệ thống, quy trình, quy định, góp phần bảo đảm tổ chức tín dụng hoạt động an toàn, hiệu quả, đúng pháp luật.
+  summary_en: The bank must set up internal audit under the Supervisory Board. It reviews independently
+    whether internal rules and processes are suitable and followed. Audit of an AI agent needs durable,
+    verifiable records.
+  duties:
+  - independent_validation
+  - record_keeping
+  - logging
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: audit export pack
+  - kind: evidence
+    id: chain_verify_report
+    coverage: partial
+    note: offline verification of the evidence chain
+  - kind: console
+    id: export
+    coverage: partial
+    note: audit export screen
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: second-line validation of the AI use case
+  evidence_needed:
+  - Audit export for the period
+  - Chain verification report
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-LCI-2024-A101.1-01
+  article_ref: Art. 101(1)
+  text_vi: 1. Căn cứ vào quy định của Luật này, quy định của Thống đốc Ngân hàng Nhà nước và quy định
+    khác của pháp luật có liên quan, tổ chức tín dụng phải xây dựng và ban hành quy định nội bộ đối với
+    hoạt động nghiệp vụ của tổ chức tín dụng, bao gồm cả việc thực hiện hoạt động nghiệp vụ bằng phương
+    tiện điện tử, bảo đảm có cơ chế kiểm soát, kiểm toán nội bộ, quản lý rủi ro gắn với từng quy trình
+    nghiệp vụ kinh doanh, phương án xử lý trường hợp khẩn cấp.
+  summary_en: The bank must issue internal rules for its operations, also those run by electronic means,
+    with controls, internal audit, risk management for each business process and an emergency plan. Agents
+    that run a bank process need such rules.
+  duties:
+  - internal_policy
+  - risk_management_system
+  - business_continuity
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned policy baseline records the agent rules
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank issues the rule
+  - kind: process
+    id: business_continuity_plan
+    coverage: none
+    note: emergency plan
+  evidence_needed:
+  - Internal rule that covers each agent process
+  - Emergency procedure
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-LCI-2024-A101.2-01
+  article_ref: Art. 101(2)
+  text_vi: |-
+    2. Tổ chức tín dụng phải ban hành quy định nội bộ về các nội dung sau đây:
+    a) Cấp tín dụng, quản lý khoản cấp tín dụng;
+    b) Phân loại tài sản có, trích lập và sử dụng dự phòng rủi ro;
+    c) Đánh giá chất lượng tài sản có và tuân thủ tỷ lệ an toàn vốn tối thiểu;
+    d) Quản lý thanh khoản, trong đó có thủ tục và giới hạn quản lý thanh khoản;
+    đ) Kiểm soát nội bộ và kiểm toán nội bộ phù hợp với tính chất và quy mô hoạt động của tổ chức tín dụng;
+    e) Hệ thống xếp hạng tín dụng nội bộ đối với tổ chức tín dụng phải xây dựng hệ thống xếp hạng tín dụng nội bộ theo quy định của pháp luật về các tổ chức tín dụng;
+    g) Quản trị rủi ro trong hoạt động của tổ chức tín dụng;
+    h) Phòng, chống rửa tiền;
+    i) Phương án xử lý trường hợp khẩn cấp.
+  summary_en: The bank must issue internal rules on, among others, credit granting, internal control and
+    audit, risk governance, AML and emergency plans, and send them to the SBV within 10 days of issue
+    (Art. 101(3)).
+  duties:
+  - internal_policy
+  - regulatory_reporting
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: versioned rules the gateway enforces
+  - kind: process
+    id: regulator_notification
+    coverage: none
+    note: send the rules to SBV in 10 days
+  evidence_needed:
+  - Rule list with issue dates
+  - Proof of submission to SBV
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-LCI-2024-A102.4-01
+  article_ref: Art. 102(4)
+  text_vi: 4. Tổ chức tín dụng phải tổ chức xét duyệt cấp tín dụng theo nguyên tắc phân định trách nhiệm
+    giữa khâu thẩm định và quyết định cấp tín dụng.
+  summary_en: Credit approval must separate the appraisal step from the credit decision. An AI pre-qualification
+    agent that both scores and decides would break this separation unless a person or separate function
+    decides.
+  duties:
+  - human_oversight
+  - governance_accountability
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: human sign-off on a case after the agent step; not pre-execution approval
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: approval rate and dwell time of reviewers
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: credit approval authority matrix
+  evidence_needed:
+  - Approval authority matrix
+  - Sign-off records separate from the appraisal output
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: medium
+  notes: A Supervisor pause is not pre-execution human approval (Decision 33).
+- id: VN-LCI-2024-A102.1-01
+  article_ref: Art. 102(1)
+  text_vi: 1. Tổ chức tín dụng phải yêu cầu khách hàng cung cấp tài liệu, dữ liệu chứng minh khả năng
+    tài chính của khách hàng, phương án sử dụng vốn khả thi, mục đích sử dụng vốn hợp pháp trước khi quyết
+    định cấp tín dụng, trừ trường hợp quy định tại khoản 2 Điều này.
+  summary_en: Before a credit decision the bank must require the customer to supply data showing financial
+    capacity, a viable capital plan and a lawful purpose. Pre-qualification output must rest on such data.
+  duties:
+  - data_quality
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - credit_decision
+    data_classes:
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: case_files
+    coverage: partial
+    note: case file shows which source records the agent read
+  - kind: catalogue
+    id: system_of_record
+    coverage: partial
+    note: figures must come from the system of record
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: credit policy
+  evidence_needed:
+  - Application file with the required documents
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: medium
+- id: VN-LCI-2024-A103.4-01
+  article_ref: Art. 103(4)
+  text_vi: 4. Tổ chức tín dụng có quyền quyết định miễn, giảm lãi, phí cho khách hàng theo quy định nội
+    bộ của tổ chức tín dụng.
+  summary_en: The bank may waive or reduce interest and fees for a customer under its internal rules.
+    A fee-waiver agent must stay inside those rules.
+  duties:
+  - internal_policy
+  - fair_treatment
+  applies_to:
+    agent_class:
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: caps the amount of a money or credit call per the agent manifest
+  - kind: process
+    id: internal_policy_issuance
+    coverage: none
+    note: bank sets waiver authority and limits
+  evidence_needed:
+  - Waiver policy with authority limits
+  - Log of waivers granted by the agent
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: medium
+- id: VN-LCI-2024-A104-01
+  article_ref: Art. 104(1)-(2)
+  text_vi: |-
+    1. Tổ chức tín dụng phải lưu trữ hồ sơ tín dụng, bao gồm:
+    a) Tài liệu, dữ liệu đề nghị cấp tín dụng;
+    b) Tài liệu, dữ liệu thẩm định, quyết định cấp tín dụng;
+    c) Hợp đồng, thỏa thuận cấp tín dụng; hồ sơ về biện pháp bảo đảm trong trường hợp có áp dụng biện pháp bảo đảm;
+    d) Tài liệu, dữ liệu phát sinh trong quá trình sử dụng khoản cấp tín dụng liên quan đến hợp đồng, thỏa thuận cấp tín dụng.
+    ...
+    2. Thời hạn lưu trữ hồ sơ tín dụng thực hiện theo quy định của pháp luật về lưu trữ.
+  summary_en: 'The bank must keep credit files: application data, appraisal and decision records, contracts,
+    and data created during use. The period follows the archive law. Agent-made appraisal data is part
+    of the file.'
+  duties:
+  - record_keeping
+  - retention
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file (json, html, pdf) of each reviewed case
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of agent steps
+  - kind: process
+    id: records_retention
+    coverage: none
+    note: retention schedule per archive law
+  evidence_needed:
+  - Credit file with agent output attached
+  - Retention schedule
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-LCI-2024-A105-01
+  article_ref: Art. 105
+  text_vi: Hoạt động của tổ chức tín dụng được thực hiện bằng phương tiện điện tử theo quy định của Thống
+    đốc Ngân hàng Nhà nước, quy định của pháp luật về giao dịch điện tử.
+  summary_en: Electronic activity of the bank follows the Governor's rules and the e-transaction law (Circular
+    50/2024/TT-NHNN, Circular 09/2020/TT-NHNN).
+  duties:
+  - transaction_authentication
+  - robustness_security
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: security_assessment
+    coverage: none
+    note: bank must meet the Circulars; see VN-TT50-2024
+  evidence_needed:
+  - Compliance matrix to Circular 50/2024
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: medium
