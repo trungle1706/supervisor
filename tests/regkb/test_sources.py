@@ -12,9 +12,7 @@ import pytest
 from supervisor.regkb import load_kb
 
 SOURCES = Path(__file__).resolve().parents[2] / "regulations" / "sources"
-FILES = sorted(
-    p for p in SOURCES.glob("*/*") if p.is_file() and not p.name.endswith(".meta.json")
-)
+FILES = sorted(p for p in SOURCES.glob("*/*") if p.is_file() and not p.name.endswith(".meta.json"))
 
 
 @pytest.mark.parametrize("path", FILES, ids=[f"{p.parent.name}/{p.name}" for p in FILES])
