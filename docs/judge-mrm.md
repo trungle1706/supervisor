@@ -44,7 +44,15 @@ set DATA_DIR=C:\supervisor\data
 python -m supervisor.judge.mrm validate --out C:\supervisor\mrm --runs 5
 python -m supervisor.judge.mrm validate --out C:\supervisor\mrm --model settings --runs 5
 python -m supervisor.judge.mrm validate --out C:\supervisor\mrm --packs packs.json --no-record
+python -m supervisor.judge.mrm validate --out C:\supervisor\mrm --no-store
 ```
+
+Exit code: `0` = GO, `1` = NO_GO, `2` = error (bad input such as a bad `--packs` file, store
+failure, any exception). A script or CI step can gate on it. `--no-record` reads the store
+(agreement pairs, stored pack results) but writes no `model_validation` row and no chain
+record. `--no-store` does not open the store at all: nothing is read or written and no
+database file is created; the `--out` files are still written. Without either flag the run
+writes to the default store even when `--out` points elsewhere.
 
 Sections (all values integer basis points; the report has no floats; a test walks it):
 

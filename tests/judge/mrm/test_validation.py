@@ -100,7 +100,7 @@ def test_same_report_recorded_again_later_is_a_new_row(tmp_path: Path) -> None:
 def test_cli_no_record_writes_files(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     out = tmp_path / "out"
     rc = val.main(["--out", str(out), "--runs", "1", "--no-record", "--now", NOW.isoformat()])
-    assert rc == 0
+    assert rc == 1  # NO_GO
     rep = json.loads((out / "judge_validation.json").read_text())
     assert rep["decision"] == "NO_GO"
     assert (out / "judge_validation.md").read_text().isascii()
@@ -112,3 +112,51 @@ def test_cli_bad_packs_file_exit_2(tmp_path: Path) -> None:
     bad = tmp_path / "p.json"
     bad.write_text('[{"pack_id": "p"}]')
     assert val.main(["--out", str(tmp_path / "o"), "--packs", str(bad), "--no-record"]) == 2
+
+
+def _store_files(data_dir: Path) -> list[str]:
+    return sorted(str(p.relative_to(data_dir)) for p in data_dir.rglob("*") if p.is_file())
+
+
+def test_cli_exit_codes_and_no_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    monkeypatch.setenv("DATA_DIR", str(data))
+    for k, v in LOW.items():
+        monkeypatch.setenv(k.upper(), str(v))
+    now = ["--now", NOW.isoformat(), "--runs", "1"]
+    # 0: GO with lowered thresholds; --no-store opens no store and writes only --out
+    out0 = tmp_path / "o0"
+    assert val.main(["--out", str(out0), "--no-store", *now]) == 0
+    assert json.loads((out0 / "judge_validation.json").read_text())["decision"] == "GO"
+    assert _store_files(data) == []
+    assert "recorded" not in capsys.readouterr().out
+    # 1: NO_GO (default thresholds), still nothing in the store
+    for k in LOW:
+        monkeypatch.delenv(k.upper())
+    out1 = tmp_path / "o1"
+    assert val.main(["--out", str(out1), "--no-store", *now]) == 1
+    assert json.loads((out1 / "judge_validation.json").read_text())["decision"] == "NO_GO"
+    assert _store_files(data) == []
+    # 2: bad input, and an unexpected exception
+    assert val.main(["--out", str(tmp_path / "o2"), "--packs", str(tmp_path / "nope.json")]) == 2
+
+    def boom(*a: Any, **k: Any) -> Any:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(val, "run_validation", boom)
+    assert val.main(["--out", str(tmp_path / "o3"), "--no-store", *now]) == 2
+    assert _store_files(data) == []
+
+
+def test_cli_without_no_store_writes_the_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    monkeypatch.setenv("DATA_DIR", str(data))
+    rc = val.main(["--out", str(tmp_path / "o"), "--runs", "1", "--now", NOW.isoformat()])
+    assert rc == 1
+    assert _store_files(data)  # contrast: the default run does record

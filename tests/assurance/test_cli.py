@@ -6,6 +6,7 @@ import sys
 import types
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -14,6 +15,7 @@ from supervisor.assurance.cli import main
 from supervisor.assurance.loader import PACKS_DIR
 from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput
 from supervisor.config import load_settings
+from supervisor.judge.mockjudge import MockJudgeChat
 from tests.assurance.test_framework import manifest, write_pack
 
 MODULE = "supervisor.assurance.runners.cli_demo_fake"
@@ -21,6 +23,25 @@ MODULE = "supervisor.assurance.runners.cli_demo_fake"
 
 class GoodRunner:
     def run(self, pack: EvalPack, ctx: RunContext) -> RunnerOutput:
+        return RunnerOutput(
+            status="ok",
+            metrics={"hit_rate": 9100, "miss_rate": 400, "info_count": 3},
+            n_items=12,
+            data_mode="synthetic",
+            dataset_id="cli-demo",
+            dataset_sha256="cd" * 32,
+            is_mock=bool(getattr(ctx.target, "is_mock", False)),
+        )
+
+
+class JudgeEchoRunner:
+    """Records which judge model the target really exposes (the model under test)."""
+
+    seen: list[tuple[str, str]] = []
+
+    def run(self, pack: EvalPack, ctx: RunContext) -> RunnerOutput:
+        t1_id = ctx.target.router_factory()().t1.model_id
+        JudgeEchoRunner.seen.append((str(ctx.target.target_id), t1_id))
         return RunnerOutput(
             status="ok",
             metrics={"hit_rate": 9100, "miss_rate": 400, "info_count": 3},
@@ -48,6 +69,7 @@ def fake_runner_module() -> Iterator[None]:
     mod = types.ModuleType(MODULE)
     mod.GoodRunner = GoodRunner  # type: ignore[attr-defined]
     mod.BadRunner = BadRunner  # type: ignore[attr-defined]
+    mod.JudgeEchoRunner = JudgeEchoRunner  # type: ignore[attr-defined]
     sys.modules[MODULE] = mod
     yield
     sys.modules.pop(MODULE, None)
@@ -220,3 +242,69 @@ def test_run_with_store_then_report_by_run_id(
     assert code == 0 and "good_pack" in rep, err
     code, _, err = run_cli(capsys, "report", "--run-id", "run-does-not-exist")
     assert code == 2 and "no stored results" in err
+
+
+class _RealLooking(MockJudgeChat):
+    """A scripted judge chat that presents itself as a real (non-mock) model."""
+
+    is_mock = False
+
+    def __init__(self, tier: int, *, family: str, model_id: str) -> None:
+        super().__init__(tier, family=family, model_id="mock-" + model_id)
+        self.model_id = model_id  # MockChat insists on 'mock' in the id; present a real one
+
+
+def test_t2_model_is_validated_through_judge_tier_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """End to end: t1 and t2 are different non-mock models. Before the tier-2 run the gate
+    refuses naming judge:<t2> (with a --judge-tier 2 hint); after both runs it passes. The
+    synthetic sets of the real packs hold fewer than 50 items, so this test uses its own
+    judge-gated pack (12 items) and lowers the minimum to 10."""
+    from supervisor.assurance.gates import judge_enablement_problems
+    from supervisor.assurance.loader import load_packs
+    from supervisor.judge.router import JudgeRouter
+
+    t1_id, t2_id = "judge-small-2026-01-01", "judge-large-2026-01-01"
+    orig = JudgeRouter.from_settings.__func__  # type: ignore[attr-defined]
+
+    def fake(cls: Any, settings: Any, **kw: Any) -> Any:
+        chats = {
+            "t1": _RealLooking(1, family="fam-a", model_id=t1_id),
+            "t2": _RealLooking(2, family="fam-b", model_id=t2_id),
+        }
+        return orig(cls, settings, chats=chats, agent_families={})
+
+    monkeypatch.setattr(JudgeRouter, "from_settings", classmethod(fake))
+    pdir = tmp_path / "packs"
+    write_pack(
+        pdir,
+        manifest(
+            "echo_pack", runner=f"{MODULE}:JudgeEchoRunner", targets=["judge"], judge_gate=True
+        ),
+    )
+    packs = load_packs(pdir)
+    JudgeEchoRunner.seen.clear()
+
+    def check() -> list[str]:
+        adapters = build_adapters(load_settings())
+        try:
+            router = JudgeRouter.from_settings(load_settings())
+            return judge_enablement_problems(
+                adapters.tables, router, packs, min_items=10, packs_dir=pdir
+            )
+        finally:
+            adapters.close()
+
+    base = ("run", "echo_pack", "--target", "judge", "--judge", "settings")
+    base += ("--packs-dir", str(pdir))
+    code, _, err = run_cli(capsys, *base, "--out", str(tmp_path / "t1"))
+    assert code == 0, err
+    problems = check()  # tier 2 not yet run
+    assert problems and all(f"judge:{t2_id}" in p for p in problems)
+    assert all("--judge-tier 2" in p for p in problems) and not any(t1_id in p for p in problems)
+    code, _, err = run_cli(capsys, *base, "--judge-tier", "2", "--out", str(tmp_path / "t2"))
+    assert code == 0, err
+    assert check() == []
+    # the model under test really was t1 in the first run and t2 in the second
+    assert JudgeEchoRunner.seen == [(f"judge:{t1_id}", t1_id), (f"judge:{t2_id}", t2_id)]

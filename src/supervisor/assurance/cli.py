@@ -77,6 +77,13 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--target", required=True, help="agent:<id>, traces:<id>, judge or demo")
     run.add_argument("--repo", type=Path, help="repo folder of an onboarded agent (agent:<id>)")
     run.add_argument("--judge", choices=("mock", "settings"), default="mock")
+    run.add_argument(
+        "--judge-tier",
+        type=int,
+        choices=(1, 2),
+        default=1,
+        help="with --judge settings: which configured model is evaluated (2 = the tier-2 model)",
+    )
     run.add_argument("--data", choices=("auto", "synthetic", "bank", "vendored"), default="auto")
     run.add_argument("--max-items", type=int, help="cap items per pack (fast runs)")
     run.add_argument("--out", type=Path, required=True, help="folder for results.json + report.md")
@@ -205,6 +212,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             repo=args.repo,
             judge=args.judge,
             adapters=adapters,
+            judge_tier=args.judge_tier,
         )
         clock = adapters.clock if adapters is not None else None
         from supervisor.adapters.clock import SystemClock

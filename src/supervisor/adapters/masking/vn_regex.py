@@ -2,6 +2,14 @@
 
 Each detected span becomes ``<TYPE:hex>`` where hex is a keyed HMAC-SHA256 pseudonym, so the
 same person or number gets the same token across formats, and a key change changes the tokens.
+
+Masked output is NORMALISED (``vn_regex-2``). Before matching, the text is stripped of every
+Unicode format character (category Cf: zero-width space, soft hyphen, word joiner, BOM, bidi
+marks) and put through NFKC (full-width digits become ASCII, no-break space becomes a space);
+Unicode dashes become ``-``. ``mask()`` returns the normalised text with PII spans replaced,
+and ``find()`` returns offsets into that normalised text (``canonical()`` gives it). This way an
+invisible character can never sit inside or next to a masked value and leak part of it. Pure
+ASCII input is returned unchanged by the normalisation step.
 """
 
 from __future__ import annotations
@@ -29,6 +37,43 @@ def _fold(text: str) -> str:
     out = unicodedata.normalize("NFD", text)
     out = "".join(c for c in out if unicodedata.category(c) != "Mn")
     return out.replace("đ", "d").replace("Đ", "D")
+
+
+_DASHES = str.maketrans(
+    dict.fromkeys("\u2010\u2011\u2012\u2013\u2014\u2015\u2212\ufe58\ufe63\uff0d", "-")
+)
+
+
+# Default_Ignorable code points that are not category Cf (Cf itself is matched by category).
+_IGNORABLE = frozenset({0x034F, 0x115F, 0x1160, 0x17B4, 0x17B5, 0x2800, 0x3164, 0xFFA0})
+_IGNORABLE_RANGES = ((0x180B, 0x180F), (0xFE00, 0xFE0F), (0xE0100, 0xE01EF))
+
+
+def _invisible(c: str) -> bool:
+    o = ord(c)
+    return (
+        unicodedata.category(c) == "Cf"
+        or o in _IGNORABLE
+        or any(lo <= o <= hi for lo, hi in _IGNORABLE_RANGES)
+    )
+
+
+def canonical(text: str) -> str:
+    """Strip invisible characters, apply NFKC, map Unicode dashes to ``-``.
+
+    Stripped: every Unicode category Cf character (zero-width space/joiners, soft hyphen, word
+    joiner, BOM, bidi marks, tags, invisible operators) plus these Default_Ignorable code points
+    that are not Cf: U+034F, U+115F, U+1160, U+17B4, U+17B5, U+180B-U+180F, U+2800, U+3164,
+    U+FE00-U+FE0F, U+FFA0, U+E0100-U+E01EF. Stripping happens before and after NFKC, so
+    characters on both sides of an invisible one compose and match as if it were not there.
+    Pure ASCII has none of these and is returned as is (fast path).
+    """
+    if text.isascii():
+        return text
+    out = "".join(c for c in text if not _invisible(c))
+    out = unicodedata.normalize("NFKC", out)
+    out = "".join(c for c in out if not _invisible(c))
+    return out.translate(_DASHES)
 
 
 def luhn_ok(digits: str) -> bool:
@@ -99,7 +144,25 @@ _RE_PHONE = re.compile(
     r")(?!\d)"
 )
 _RE_RUN = re.compile(r"(?<![\w.+-])\d{6,19}(?![\w])")
-_RE_GROUPED = re.compile(r"(?<![\w.+-])\d{3,6}(?:[ -]\d{2,6}){1,5}(?![\w])")
+_RE_GROUPED = re.compile(r"(?<![\w.+-])\d{3,6}(?:[ \t.-]\d{2,6}){1,5}(?![\w])")
+# Digit groups written with single space / dot / dash separators. First group 2-6 digits, then
+# 1-5 more. Not preceded by another digit group ("12 345 678 901 234" must not match at "345").
+# Separator: one dot or dash, or 1-2 spaces/tabs (never a newline). "/" and "_" are accepted
+# only when a CCCD / account label is within 40 chars before the run (see _classify_sep_run).
+_SEP = r"(?:[ \t]{1,2}|[./_-])"
+_RE_SEP_RUN = re.compile(
+    rf"(?<![\w.+-])(?<!\d[ \t./_-])(?<!\d[ \t]{{2}})\d{{2,6}}(?:{_SEP}\d{{1,6}}){{1,7}}(?!\w)"
+)
+_RE_SLASH_CUE = re.compile(r"\b(?:cccd|cmnd|stk|tk|tai khoan|account|acct|can cuoc|so dinh danh)\b")
+_RE_CURRENCY_AFTER = re.compile(r"\s{0,2}(?:vnd|vnđ|vn đ|đồng|dong|đ|₫|usd|đ/)(?!\w)", re.I)
+_RE_TOKEN = re.compile(r"<[A-Z_]{2,20}:[0-9a-f]{4,64}>")
+# Cue words that make a grouped digit run an account number ("chuyen den 1903 4567 8901 23").
+# Matched on folded (no diacritics, lower case) text, whole words, in the 40 chars before the run.
+_RE_ACCOUNT_CUE = re.compile(
+    r"\b(?:chuyen|den|sang|vao|stk|tk|tai khoan|account|acct|transfer|to)\b"
+)
+_RE_STRONG_CUE = re.compile(r"\b(?:stk|tk|tai khoan|account|acct)\b")
+_RE_THOUSANDS = re.compile(r"\d{1,3}(?:([. ])\d{3})+")
 _RE_PERSON_PLAIN = re.compile(
     rf"(?<!\w)(?:{_SUR})(?: (?:{_MID})){{1,2}} (?:{_LAST})(?!\w)", re.IGNORECASE
 )
@@ -125,7 +188,10 @@ _RE_ADDRESS_BARE = re.compile(
 
 _LABELS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("CMND", re.compile(r"cmnd|chứng minh|old id card|old id|\bcmt\b", re.I)),
-    ("CCCD", re.compile(r"cccd|căn cước|citizen id|\bid\b", re.I)),
+    (
+        "CCCD",
+        re.compile(r"cccd|căn cước|can cuoc|số định danh|so dinh danh|citizen id|\bid\b", re.I),
+    ),
     ("TAX_CODE", re.compile(r"mã số thuế|\bmst\b|tax code|tax id|\bthuế", re.I)),
     ("BANK_ACCOUNT", re.compile(r"tài khoản|account|\bstk\b|số tk|\bacct\b|a/c", re.I)),
     ("CARD", re.compile(r"thẻ|card", re.I)),
@@ -184,6 +250,96 @@ def _classify_run(text: str, start: int, run: str) -> tuple[str, str] | None:
     return None
 
 
+def _has_account_cue(text: str, start: int, pat: re.Pattern[str] = _RE_ACCOUNT_CUE) -> bool:
+    window = text[max(0, start - 40) : start]
+    # A digit between the cue and the run means the cue belongs to another number
+    # ("chuyen 1.500.000 den ..." keeps "den" because it is after the amount).
+    last_digit = max((i for i, c in enumerate(window) if c.isdigit()), default=-1)
+    return bool(pat.search(_fold(window[last_digit + 1 :]).lower()))
+
+
+def _amount_shaped(run: str) -> bool:
+    """Thousands format (1-3 digits, then exact 3-digit groups, dot or space), or several such
+    dot-grouped amounts in a row ("20.000.000 20.000.000", "5.000.000-10.000.000")."""
+    if _RE_THOUSANDS.fullmatch(run):
+        return True
+    parts = re.split(r"[ \t-]+", run)
+    return len(parts) > 1 and all(re.fullmatch(r"\d{1,3}(?:\.\d{3})+", p) for p in parts)
+
+
+# An account label directly before the run ("STK 190 345 678", "so tk: 123 456 789"). Then a
+# space- or dash-grouped run is the account even in thousands shape; dot-grouped stays an amount
+# ("so du tai khoan 1.500.000").
+_RE_LABEL_ADJACENT = re.compile(
+    r"(?:\bstk|\bso tk|\btk|tai khoan|\baccount|\bacct|\ba/c)"
+    r"\s*(?:so|la|no\.?|number)?\s*[:#]?\s*$"
+)
+
+
+def _label_adjacent(text: str, m: re.Match[str]) -> bool:
+    if "." in m.group():
+        return False
+    return bool(_RE_LABEL_ADJACENT.search(_fold(text[max(0, m.start() - 24) : m.start()]).lower()))
+
+
+def _date_like(groups: list[str]) -> bool:
+    """A 4-digit 19xx/20xx group next to a 1-2 digit group: 2026 10 15, 15-10-2026 10-30-00."""
+    for i, g in enumerate(groups):
+        if len(g) == 4 and g[:2] in ("19", "20"):
+            near = groups[max(0, i - 1) : i] + groups[i + 1 : i + 2]
+            if any(len(x) <= 2 for x in near):
+                return True
+    return False
+
+
+def _classify_sep_run(text: str, m: re.Match[str]) -> tuple[str, str] | None:
+    """Type for a separator-written digit run, or None.
+
+    Rules (a wrongly masked amount or date is a defect; so is an unmasked CCCD):
+    * Followed by a currency word or sign (VND, d, dong, USD): amount, never masked.
+    * "/" or "_" as separator: only with a CCCD / CMND / account label within 40 chars before.
+    * After a CMND / CCCD / can cuoc / so dinh danh label: 9 digits are CMND, 12 digits CCCD,
+      whatever the lead digit and group sizes.
+    * Date-like (a 4-digit 19xx/20xx group next to a 1-2 digit group) or any group except the
+      last shorter than 3 digits: never an account (1903 4567 8901 23 keeps its short tail).
+    * Exactly 12 digits in 2-4 groups of 3+ digits AND a leading 0 (a CCCD starts with a province
+      code 001-096): CCCD (3-3-3-3, 4-4-4, 6-6, mixed), or BANK_ACCOUNT after STK / TK /
+      tai khoan / account. This wins over the amount rule, because 001.203.004.567 is a CCCD.
+    * Otherwise a thousands format (1-3 digits, then groups of exactly 3, one separator kind,
+      dot or space) is an amount, even right after an account cue: 100.000.000.000,
+      250 000 000 000, 1.500.000, 192.168.100.200. Several dot-grouped amounts in a row
+      (20.000.000 20.000.000) are amounts, never one run.
+    * 13-19 digits: BANK_ACCOUNT regardless of label.
+    * 9-19 digits: BANK_ACCOUNT when an account/transfer cue word is within 40 chars before it.
+    * Everything else (dates, times, short refs, < 9 digits): not masked.
+    """
+    run = m.group()
+    if _RE_CURRENCY_AFTER.match(text, m.end()):
+        return None
+    if ("/" in run or "_" in run) and not _has_account_cue(text, m.start(), _RE_SLASH_CUE):
+        return None
+    groups = re.split(r"[ \t./_-]+", run)
+    n = sum(len(g) for g in groups)
+    if _nearest_label(text, m.start()) in ("CMND", "CCCD"):
+        if n == 9:
+            return "label", "CMND"
+        if n == 12:
+            return "label", "CCCD"
+    if _date_like(groups) or any(len(g) < 3 for g in groups[:-1]):
+        return None
+    if n == 12 and run[0] == "0" and 2 <= len(groups) <= 4:
+        if _has_account_cue(text, m.start(), _RE_STRONG_CUE):
+            return "bank", "BANK_ACCOUNT"  # "STK 9704 2201 0101": a 12-digit account
+        return "id_valid", "CCCD"
+    if _amount_shaped(run):
+        return None
+    if 13 <= n <= 19:
+        return "bank", "BANK_ACCOUNT"
+    if 9 <= n <= 19 and _has_account_cue(text, m.start()):
+        return "bank", "BANK_ACCOUNT"
+    return None
+
+
 class VnRegexMasker:
     """Masker for Vietnamese banking text. Implements the ``Masker`` protocol."""
 
@@ -193,7 +349,7 @@ class VnRegexMasker:
         self._key = key
         self.key_id = key_id
         self.token_len = token_len
-        self.mask_version = f"vn_regex-1:{key_id}"
+        self.mask_version = f"vn_regex-2:{key_id}"
 
     # -- pseudonyms -------------------------------------------------------------
     @staticmethod
@@ -240,12 +396,25 @@ class VnRegexMasker:
                     strong = False
                 add(m.start(), m.end(), "card_strong" if strong else "card_weak", "CARD_NUMBER")
         for m in _RE_RUN.finditer(text):
+            if _RE_CURRENCY_AFTER.match(text, m.end()):
+                continue  # "123456789012 VND" is an amount
             kind = _classify_run(text, m.start(), m.group())
             if kind:
                 add(m.start(), m.end(), kind[0], kind[1])
         for m in _RE_GROUPED.finditer(text):
+            groups = re.split(r"[ \t.-]+", m.group())
+            if (
+                (_amount_shaped(m.group()) and not _label_adjacent(text, m))
+                or _date_like(groups)
+                or _RE_CURRENCY_AFTER.match(text, m.end())
+            ):
+                continue
             if _nearest_label(text, m.start()) == "BANK_ACCOUNT":
                 add(m.start(), m.end(), "label", "BANK_ACCOUNT")
+        for m in _RE_SEP_RUN.finditer(text):
+            kind = _classify_sep_run(text, m)
+            if kind:
+                add(m.start(), m.end(), kind[0], kind[1])
         for m in _RE_PERSON_PLAIN.finditer(text):
             add(m.start(), m.end(), "person_plain", "PERSON")
         for m in _RE_PERSON_LABELLED.finditer(text):
@@ -255,16 +424,30 @@ class VnRegexMasker:
                 add(m.start(), m.end(), "address", "ADDRESS")
         return c
 
+    @staticmethod
+    def canonical(text: str) -> str:
+        """The normalised text that ``find`` offsets refer to (see module docstring)."""
+        return canonical(text)
+
     def find(self, text: str) -> list[PiiSpan]:
-        """Non-overlapping spans sorted by position. Higher priority, then longer, wins."""
+        """Non-overlapping spans sorted by position. Higher priority, then longer, wins.
+
+        Offsets are into ``canonical(text)``, which equals ``text`` for plain ASCII.
+        """
+        text = canonical(text)
+        tokens = [(t.start(), t.end()) for t in _RE_TOKEN.finditer(text)]
         chosen: list[tuple[int, int, str]] = []
         for _prio, s, e, t in sorted(self._candidates(text), key=lambda x: (-x[0], x[1] - x[2])):
+            if any(s < te and ts < e for ts, te in tokens):
+                continue  # already a mask token: keeps mask() idempotent
             if all(e <= cs or s >= ce for cs, ce, _ in chosen):
                 chosen.append((s, e, t))
         chosen.sort()
         return [PiiSpan(s, e, t, text[s:e]) for s, e, t in chosen]
 
     def mask(self, text: str) -> str:
+        """Mask ``canonical(text)``: the result is normalised, see the module docstring."""
+        text = canonical(text)
         out: list[str] = []
         pos = 0
         for sp in self.find(text):

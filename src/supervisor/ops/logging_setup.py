@@ -61,6 +61,7 @@ def scrub(text: str) -> str:
     if not text:
         return text
     try:
+        text = _masker.canonical(text)  # span offsets refer to the normalised text
         spans = _masker.find(text)
     except Exception:  # noqa: BLE001 - logging must never raise
         return "[log text withheld: scrub error]"

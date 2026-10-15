@@ -155,6 +155,14 @@ def test_advisory_and_warn_never_no_go() -> None:
 # --------------------------------------------------------------------------- launch
 
 
+@pytest.fixture(autouse=True)
+def _accept_mock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests judge hand-made rows with is_mock=True (or run the mock demo agent) and
+    need a GO to be possible; the mock-only NO-GO item has its own tests below, which unset
+    this flag."""
+    monkeypatch.setenv("ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH", "1")
+
+
 @pytest.fixture(scope="module")
 def payments_policy(discoveries, profiles):  # noqa: ANN001, ANN201, F811
     inv = discoveries["payments"].inventory
@@ -175,7 +183,14 @@ def test_launch_with_explicit_results(payments_policy, tmp_path: Path) -> None: 
     )
     r = launch(payments_policy, "payments", tmp_path / "a", assurance=full_ok(bad))
     assert r.assurance_enabled and not r.go
-    assert r.reasons == ["assurance pack pii_canary failed: leak_rate_bp 900 vs no-go 500"]
+    # rows are mock, so the NO-GO list says MOCK before the pack item (M-f)
+    assert r.reasons == [
+        "assurance (MOCK): the results include mock runs",
+        "assurance pack pii_canary failed: leak_rate_bp 900 vs no-go 500",
+    ]
+    assert r.assurance_reasons == [
+        "assurance pack pii_canary failed: leak_rate_bp 900 vs no-go 500"
+    ]
     pii = next(x for x in r.assurance if x["pack_id"] == "pii_canary")
     assert pii["launch_gate"] == "required"
     md = assurance_md(r)
@@ -210,6 +225,10 @@ class FakeChat:
         raise NotImplementedError
 
 
+T1_ID = "judge-small-2026-01-01"
+T2_ID = "judge-large-2026-01-01"
+
+
 def _router(*, mock: bool = False) -> JudgeRouter:
     if mock:
         return JudgeRouter.from_settings(load_settings())
@@ -223,23 +242,30 @@ def _gate_rows(
     version: int | None = None,
     is_mock: bool = False,
     manifest_sha: str | None = None,
+    models: tuple[str, ...] = (T1_ID, T2_ID),
+    n_items: int = 60,
+    data_mode: str = "synthetic",
 ) -> list[dict]:
+    """Validation rows for each model id in ``models`` (default: both primary judges)."""
     out = []
-    for p in PACKS:
-        if p.judge_gate:
-            out.append(
-                {
-                    "run_id": "r1",
-                    "ts": T,
-                    "pack_id": p.id,
-                    "pack_version": version or p.version,
-                    "target_kind": "judge",
-                    "target_id": "judge:judge-small-2026-01-01",
-                    "status": status,
-                    "is_mock": is_mock,
-                    "manifest_sha256": manifest_sha or manifest_sha256(pack_path(p.id)),
-                }
-            )
+    for model_id in models:
+        for p in PACKS:
+            if p.judge_gate:
+                out.append(
+                    {
+                        "run_id": "r1",
+                        "ts": T,
+                        "pack_id": p.id,
+                        "pack_version": version or p.version,
+                        "target_kind": "judge",
+                        "target_id": f"judge:{model_id}",
+                        "status": status,
+                        "is_mock": is_mock,
+                        "n_items": n_items,
+                        "data_mode": data_mode,
+                        "manifest_sha256": manifest_sha or manifest_sha256(pack_path(p.id)),
+                    }
+                )
     return out
 
 
@@ -261,9 +287,6 @@ def test_real_judge_with_passing_rows_is_enabled(monkeypatch: pytest.MonkeyPatch
     tables = MemoryTables()
     tables.append("eval_result", _gate_rows("ok"))
     assert _from_settings(monkeypatch, tables, _router()) is not None
-    tables2 = MemoryTables()
-    tables2.append("eval_result", _gate_rows("warn"))
-    assert _from_settings(monkeypatch, tables2, _router()) is not None
 
 
 def test_real_judge_failing_stale_or_mock_rows_refused(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -293,8 +316,8 @@ def test_mixed_real_t1_mock_t2_is_gated() -> None:
     mixed = JudgeRouter(t1, t2, agent_families={})
     assert judge_enablement_problems(MemoryTables(), mixed)  # no results -> refused
     tables = MemoryTables()
-    tables.append("eval_result", _gate_rows("ok"))
-    assert judge_enablement_problems(tables, mixed) == []
+    tables.append("eval_result", _gate_rows("ok", models=(T1_ID,)))
+    assert judge_enablement_problems(tables, mixed) == []  # the mock t2 is not gated
 
 
 def test_gate_flag_off_and_mock_exempt(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -337,3 +360,155 @@ def test_launch_runs_agent_packs_with_its_own_policy(
         assert rt["metrics"]["false_alarm_bp"] == (r.false_alarm_bp or 0)
         assert rt["metrics"]["catch_rate_bp"] >= r.min_catch_rate_bp
     assert r.assurance_reasons == [x for x in r.reasons if x.startswith("assurance pack ")]
+
+
+# ------------------------------------------------------------ mock labelling (W3-assure M1)
+
+
+def _launch_rows(
+    policy: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, accept: str, mock_flags: dict
+) -> Any:
+    """Launch on full_ok rows; ``mock_flags`` maps pack id -> is_mock (default: all mock)."""
+    monkeypatch.setenv("ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH", accept)
+    rows = [{**r, "is_mock": mock_flags.get(r["pack_id"], True)} for r in full_ok()]
+    return launch(policy, "payments", tmp_path, assurance=rows)
+
+
+def test_mock_only_flag_off_is_no_go(payments_policy, tmp_path, monkeypatch) -> None:  # noqa: ANN001
+    r = _launch_rows(payments_policy, tmp_path, monkeypatch, "0", {})
+    assert not r.go and r.assurance_mock == "all"
+    assert r.assurance_reasons == ["assurance results are mock only"]
+    assert "assurance results are mock only" in r.reasons
+    assert "NO-GO (MOCK: mock results only)" in assurance_md(r)
+
+
+def test_mock_only_flag_on_is_go_with_mock_label(
+    payments_policy,  # noqa: ANN001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    r = _launch_rows(payments_policy, tmp_path, monkeypatch, "1", {})
+    assert r.go and r.assurance_reasons == []
+    assert any(x.startswith("assurance (MOCK): ") for x in r.reasons)
+    assert "GO (MOCK: mock results only)" in assurance_md(r)
+
+
+def test_mixed_run_has_label_but_no_mock_only_item(
+    payments_policy,  # noqa: ANN001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    flags = {x["pack_id"]: False for x in full_ok()[1:]}  # one mock row, the rest real
+    r = _launch_rows(payments_policy, tmp_path, monkeypatch, "0", flags)
+    assert r.go and r.assurance_mock == "mixed" and r.assurance_reasons == []
+    assert any(x.startswith("assurance (MOCK): ") for x in r.reasons)
+    assert "(MOCK: some results are mock)" in assurance_md(r)
+
+
+def test_all_real_has_no_label(payments_policy, tmp_path, monkeypatch) -> None:  # noqa: ANN001
+    flags = {x["pack_id"]: False for x in full_ok()}
+    r = _launch_rows(payments_policy, tmp_path, monkeypatch, "0", flags)
+    assert r.go and r.assurance_mock == "none"
+    assert any(x.startswith("assurance: ") for x in r.reasons)
+    assert not any("MOCK" in x for x in r.reasons) and "MOCK" not in assurance_md(r)
+
+
+def test_mock_state_ignores_skips_and_errors() -> None:
+    from supervisor.assurance.gates import assurance_mock_items, assurance_mock_state
+
+    assert assurance_mock_state([]) == "none"
+    skipped = [row(REQUIRED, "skip", is_mock=True)]
+    assert assurance_mock_state(skipped) == "mixed"  # mock but nothing evaluated
+    assert assurance_mock_items(skipped, accept_mock=False) == []
+    real_ok = row(ADVISORY, "ok", is_mock=False)
+    assert assurance_mock_state([row(REQUIRED, "error", is_mock=True), real_ok]) == "mixed"
+    assert assurance_mock_state([row(REQUIRED, "ok"), row(ADVISORY, "warn")]) == "all"
+
+
+# ------------------------------------------------------ judge gate strictness (W3-assure M3)
+
+
+def _problems(rows: list[dict], **kw: Any) -> list[str]:
+    tables = MemoryTables()
+    tables.append("eval_result", rows)
+    return judge_enablement_problems(tables, _router(), **kw)
+
+
+def test_both_models_validated_is_enabled() -> None:
+    assert _problems(_gate_rows("ok")) == []
+
+
+def test_t2_unvalidated_refused_naming_t2(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = _gate_rows("ok", models=(T1_ID,))  # t1 fine, t2 has no rows
+    problems = _problems(rows)
+    assert problems and all(f"judge:{T2_ID}" in p for p in problems)
+    assert not any(f"judge:{T1_ID}" in p for p in problems)
+    tables = MemoryTables()
+    tables.append("eval_result", rows)
+    with pytest.raises(JudgeNotValidatedError) as exc:
+        _from_settings(monkeypatch, tables, _router())
+    # the refusal names every model id checked, and which one failed
+    assert f"judge:{T1_ID}" in str(exc.value) and f"judge:{T2_ID}" in str(exc.value)
+    assert exc.value.checked == [f"judge:{T1_ID}", f"judge:{T2_ID}"]
+
+
+def test_t1_unvalidated_refused_naming_t1() -> None:
+    problems = _problems(_gate_rows("ok", models=(T2_ID,)))
+    assert problems and all(f"judge:{T1_ID}" in p for p in problems)
+
+
+def test_warn_refused_by_default_allowed_with_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = _gate_rows("warn")
+    problems = _problems(rows)
+    assert problems and all("ASSURANCE_JUDGE_ALLOW_WARN" in p for p in problems)
+    assert _problems(rows, allow_warn=True) == []
+    # the setting path: env var -> settings -> service
+    monkeypatch.setenv("ASSURANCE_JUDGE_ALLOW_WARN", "1")
+    assert _problems(rows) == []
+    tables = MemoryTables()
+    tables.append("eval_result", rows)
+    assert _from_settings(monkeypatch, tables, _router()) is not None
+
+
+def test_min_items_boundary(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert load_settings().assurance_judge_min_items == 50
+    low = _problems(_gate_rows("ok", n_items=49))
+    assert low and all("only 49 item(s)" in p and "at least 50" in p for p in low)
+    assert _problems(_gate_rows("ok", n_items=50)) == []
+    assert _problems(_gate_rows("ok", n_items=49), min_items=49) == []
+    monkeypatch.setenv("ASSURANCE_JUDGE_MIN_ITEMS", "100")
+    assert _problems(_gate_rows("ok", n_items=60))  # raised bar applies
+
+
+def test_mock_rows_and_bad_data_mode_do_not_validate() -> None:
+    mock = _problems(_gate_rows("ok", is_mock=True))
+    assert mock and all("mock run" in p for p in mock)
+    for mode in ("", "mock", "unknown"):
+        bad = _problems(_gate_rows("ok", data_mode=mode))
+        assert bad and all("data mode" in p for p in bad), mode
+    for mode in ("synthetic", "bank_supplied_path", "vendored_sample"):
+        assert _problems(_gate_rows("ok", data_mode=mode)) == []
+
+
+def test_same_model_id_for_t1_and_t2_is_checked_once() -> None:
+    t1 = JudgeModel(1, "primary", FakeChat(T1_ID, "fam-a"), "local")
+    t2 = JudgeModel(2, "primary", FakeChat(T1_ID, "fam-b"), "local")
+    from supervisor.assurance.gates import judge_gate_targets
+
+    assert judge_gate_targets(JudgeRouter(t1, t2, agent_families={})) == [f"judge:{T1_ID}"]
+
+
+def test_no_go_with_real_results_has_no_mock_marker(
+    payments_policy,  # noqa: ANN001
+    tmp_path: Path,
+) -> None:
+    bad = row(
+        REQUIRED,
+        "fail",
+        is_mock=False,
+        metrics={"leak_rate_bp": 900},
+        metric_status={"leak_rate_bp": "fail"},
+    )
+    rows = [{**x, "is_mock": False} for x in full_ok(bad)]
+    r = launch(payments_policy, "payments", tmp_path, assurance=rows)
+    assert not r.go and not any("MOCK" in x for x in r.reasons)

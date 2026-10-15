@@ -424,6 +424,8 @@ class LaunchReport(_M):
     assurance_enabled: bool = False
     assurance: list[dict[str, Any]] = Field(default_factory=list)
     assurance_reasons: list[str] = Field(default_factory=list)
+    # "none" | "mixed" | "all": mock pack results in the run (gates.assurance_mock_state)
+    assurance_mock: str = "none"
 
 
 # ------------------------------------------------------------------ Operate

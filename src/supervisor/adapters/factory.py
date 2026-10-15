@@ -74,7 +74,7 @@ def make_chat_model(settings: Settings) -> ChatModel:
 
 def make_masker(settings: Settings) -> Masker | None:
     """WP4: the Masker for capture and judges. ``vn_regex`` (default) uses the HMAC key from
-    MASK_HMAC_KEY (dev key when unset, mask_version ``vn_regex-1:dev``); ``presidio`` is an
+    MASK_HMAC_KEY (dev key when unset, mask_version ``vn_regex-2:dev``); ``presidio`` is an
     optional extra; ``none`` returns None (recorder then stores digests only)."""
     if settings.masker_kind == "none":
         return None

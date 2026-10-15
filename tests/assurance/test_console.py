@@ -65,8 +65,9 @@ def _seed(console: Console) -> None:
 
 def test_assurance_hidden_when_off(console: Console) -> None:
     assert console.ctx.settings.console_assurance_enabled is False
-    assert console.get("/console/assurance").status_code == 404
-    assert console.get("/console/assurance/run-test-1").status_code == 404
+    off = console.get("/console/assurance")
+    assert off.status_code == 400 and "CONSOLE_ASSURANCE_ENABLED" in off.text
+    assert console.get("/console/assurance/run-test-1").status_code == 400
     page = console.get("/console/")
     assert page.status_code == 200 and "/console/assurance" not in page.text
 

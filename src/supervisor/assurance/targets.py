@@ -681,16 +681,32 @@ class MockJudgeTarget(_JudgeTargetBase):
 
 
 class SettingsJudgeTarget(_JudgeTargetBase):
-    """The judges configured in settings (JUDGE_T1_MODEL, ...); mock when unset."""
+    """The judges configured in settings (JUDGE_T1_MODEL, ...); mock when unset.
 
-    def __init__(self, settings: Settings | None = None) -> None:
+    ``tier=2`` makes the configured tier-2 model the judge UNDER TEST: the router the packs
+    get has the t2 chat model in both slots, so its ``target_id`` is ``judge:<t2 model id>``
+    and every score comes from that model. This writes the validation rows that the judge
+    enablement gate (``gates.judge_enablement_problems``) wants for the t2 model."""
+
+    def __init__(self, settings: Settings | None = None, tier: int = 1) -> None:
+        if tier not in (1, 2):
+            raise TargetError(f"judge tier must be 1 or 2, not {tier!r}")
+        self.tier = tier
         super().__init__(settings)
 
     def _make_factory(self) -> Callable[[], Any]:
-        from supervisor.judge.router import JudgeRouter
+        from supervisor.judge.router import JudgeModel, JudgeRouter
 
-        settings = self.settings
-        return lambda: JudgeRouter.from_settings(settings)
+        settings, tier = self.settings, self.tier
+        if tier == 1:
+            return lambda: JudgeRouter.from_settings(settings)
+
+        def build_t2() -> Any:
+            base = JudgeRouter.from_settings(settings)
+            t1 = JudgeModel(1, "primary", base.t2.chat, base.t2.region)
+            return JudgeRouter(t1, base.t2, agent_families=base.agent_families)
+
+        return build_t2
 
 
 # --------------------------------------------------------------------------- spec
@@ -704,12 +720,14 @@ def build_targets(
     repo: str | Path | None = None,
     judge: str = "mock",
     adapters: Adapters | None = None,
+    judge_tier: int = 1,
 ) -> list[Any]:
     """Targets for a comma separated ``spec``.
 
     * ``agent:<id>``  demo agent (sandbox), or a ``RepoAgentTarget`` when ``repo`` is set;
     * ``traces:<id>`` ``agent_event`` rows of that agent in the configured store;
-    * ``judge``       the mock judge (``judge="settings"``: the configured judges);
+    * ``judge``       the mock judge (``judge="settings"``: the configured judges;
+                      ``judge_tier=2``: the tier-2 model is the judge under test);
     * ``demo``        the three demo agents, then the traces of each from its own sandbox
                       store (read after the agent packs ran), then the mock judge.
 
@@ -722,7 +740,9 @@ def build_targets(
         raise TargetError("empty target spec; use agent:<id>, traces:<id>, judge or demo")
 
     def make_judge() -> Any:
-        return SettingsJudgeTarget(settings) if judge == "settings" else MockJudgeTarget(settings)
+        if judge == "settings":
+            return SettingsJudgeTarget(settings, tier=judge_tier)
+        return MockJudgeTarget(settings)
 
     targets: list[Any] = []
     try:

@@ -156,8 +156,10 @@ def launch_md(r: LaunchReport) -> str:
 # supply them); the launch pack is English only for now.
 def assurance_md(r: LaunchReport) -> str:
     """The assurance part of the launch pack (only written when assurance ran)."""
+    mock = {"all": " (MOCK: mock results only)", "mixed": " (MOCK: some results are mock)"}
     out = [
-        f"# Assurance report: `{r.agent_id}` - {'GO' if r.go else 'NO-GO'}",
+        f"# Assurance report: `{r.agent_id}` - {'GO' if r.go else 'NO-GO'}"
+        f"{mock.get(r.assurance_mock, '')}",
         "",
         "Eval packs run against the agent in the launch sandbox (gate in SHADOW, mock LLM).",
         "Packs with launch gate `required` block Launch when they fail, error or are skipped;",

@@ -88,6 +88,9 @@ until you turn its flag on.
 | `ASSURANCE_DATA_DIR` | Points to bank-supplied datasets, one folder per pack (no value = synthetic data only) |
 | `ASSURANCE_LICENCE_ALLOW` | Lists the licences the dependency pack accepts (has a safe default list) |
 | `ASSURANCE_JUDGE_GATE_ENABLED` | Note: on by default. A real (non-mock) judge needs its judge packs to pass; set `0` to switch off |
+| `ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH` | Lets a Launch GO rest on mock pack results only (default off: mock-only results are a NO-GO item; any mock result labels the reason `assurance (MOCK)`). Demo only |
+| `ASSURANCE_JUDGE_MIN_ITEMS` | Not a switch (default `50`): the fewest items a judge pack result needs to validate a real judge, checked for both tier-1 and tier-2 models |
+| `ASSURANCE_JUDGE_ALLOW_WARN` | Lets a judge pack result with status `warn` validate a real judge (default off: only `ok` counts) |
 | `JUDGE_REQUIRE_VALIDATION` | Judge refuses to start without a passing MRM validation for its current identity |
 | `API_RBAC_ENABLED` | Enforces the role matrix on `/gate/*` control and read routes |
 | `RATE_LIMIT_ENABLED` | Rate-limits mutating routes (429); agent check path is exempt |

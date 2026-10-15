@@ -467,13 +467,19 @@ class Normaliser:
             or (_opt(a.get(semconv.A_AGENT_NAME)) if self.use_semconv else None)
         )
 
+    def _canon(self, text: str) -> str:
+        """Text as the masker sees it. ``mask()`` of vn_regex normalises (NFKC, invisible
+        characters), so "PII found" must compare against the normalised text, not the raw one."""
+        canon = getattr(self.masker, "canonical", None)
+        return canon(text) if callable(canon) else text
+
     def _ident(self, value: Any) -> str | None:
         """Short identifier fields (env, status, tool, version, ids): only plain tokens are
         stored. Anything else is dropped; a token that the Masker flags as PII is masked."""
         text = _opt(value)
         if text is None or not _IDENT.match(text):
             return None
-        if self.masker is not None and self.masker.mask(text) != text:
+        if self.masker is not None and self.masker.mask(text) != self._canon(text):
             return _cap(self.masker.mask(text))[:128]
         return text
 
@@ -506,8 +512,9 @@ class Normaliser:
                 self.masker.mask(t) if t is not None else None for t in (args_text, result_text)
             ]
             found_pii = any(
-                m is not None and m != t
+                m is not None and m != self._canon(t)
                 for m, t in zip(masked, (args_text, result_text), strict=True)
+                if t is not None
             )
             if level in ("masked", "raw"):
                 args_masked = _cap(masked[0]) if masked[0] is not None else None
