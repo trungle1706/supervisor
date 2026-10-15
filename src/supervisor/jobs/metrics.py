@@ -35,7 +35,12 @@ def run(
     days: list[date] | None = None,
     eval_report: Path | None = None,
 ) -> dict[str, Any]:
-    rows = OversightMetrics(ctx, eval_report=eval_report or EVAL_REPORT).run(days=days)
+    rows = OversightMetrics(
+        ctx,
+        eval_report=eval_report or EVAL_REPORT,
+        min_agreement_bp=settings.mrm_min_agreement_bp,
+        min_agreement_pairs=settings.mrm_min_agreement_pairs,
+    ).run(days=days)
     return {"rows": rows}
 
 

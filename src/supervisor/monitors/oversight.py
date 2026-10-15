@@ -24,11 +24,13 @@ from typing import Any
 
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.evidence.verify import GENESIS_HASH, detect_entry_version, entry_hash
+from supervisor.judge.mrm.agreement import agree_bp, agreement_pairs
 from supervisor.monitors.common import (
     MonitorContext,
     as_dt,
     get_state,
     median,
+    open_case,
     put_state,
     rate_bp,
     read_range,
@@ -109,8 +111,16 @@ def check_lane(ctx: MonitorContext, lane: str) -> ChainCheck:
 
 
 class OversightMetrics:
-    def __init__(self, ctx: MonitorContext, *, eval_report: Path | None = None) -> None:
+    def __init__(
+        self,
+        ctx: MonitorContext,
+        *,
+        eval_report: Path | None = None,
+        min_agreement_bp: int = 8000,
+        min_agreement_pairs: int = 5,
+    ) -> None:
         self.ctx = ctx
+        self.min_bp, self.min_pairs = min_agreement_bp, min_agreement_pairs
         self.eval = load_eval_report(eval_report)
 
     def agents(self, day: date) -> list[str]:
@@ -189,6 +199,14 @@ class OversightMetrics:
             "llm_calls": sum(1 for e in events if e["event_type"] == "llm_call"),
             "judge_latency_ms": sum(int(v["latency_ms"] or 0) for v in judges),
         }
+        # WP19: judge-vs-human agreement of the cases a reviewer closed that day.
+        pairs = [
+            p
+            for p in agreement_pairs(self.ctx.tables, since=start, until=end)
+            if p["agent_id"] == agent_id
+        ]
+        out["judge_human_pairs"] = len(pairs)
+        out["judge_human_agree_bp"] = agree_bp(sum(1 for p in pairs if p["agrees"]), len(pairs))
         # Legacy float columns (same value / 10000), never recorded on the chain.
         for float_col, bp_col in (
             ("coverage", "coverage_bp"),
@@ -220,7 +238,42 @@ class OversightMetrics:
                 upsert_metric(self.ctx, day, agent_id, values)
                 written += 1
                 self._record(agent_id, day, values)
+                self.agreement_case(agent_id, day, values)
         return written
+
+    def agreement_case(self, agent_id: str, day: date, values: Mapping[str, Any]) -> str | None:
+        """WP19: one medium case per agent and day when judge-human agreement drops.
+
+        Advice to a human only: no gate call, no pause. Settings come from ``agreement_*``
+        (set by the job; defaults match ``MRM_MIN_AGREEMENT_*``)."""
+        pairs, bp = values.get("judge_human_pairs"), values.get("judge_human_agree_bp")
+        if not pairs or bp is None or pairs < self.min_pairs or bp >= self.min_bp:
+            return None
+        key = f"agreement_case:{agent_id}:{day.isoformat()}"
+        if get_state(self.ctx, MONITOR, key):
+            return None
+        case_id = open_case(
+            self.ctx,
+            agent_id=agent_id,
+            severity="medium",
+            case_type="judge_agreement",
+            summary=(
+                f"Judge-human agreement for {agent_id} on {day.isoformat()} is {bp} bp over "
+                f"{pairs} closed cases (minimum {self.min_bp} bp). Check re-validation "
+                "triggers: python -m supervisor.judge.mrm triggers"
+            ),
+            actor="monitor:oversight",
+            evidence_payload={
+                "monitor": "judge_human_agreement",
+                "metric_date": day.isoformat(),
+                "judge_human_pairs": int(pairs),
+                "judge_human_agree_bp": int(bp),
+                "min_agreement_bp": self.min_bp,
+                "min_pairs": self.min_pairs,
+            },
+        )
+        put_state(self.ctx, MONITOR, key, {"case_id": case_id})
+        return case_id
 
     def _record(self, agent_id: str, day: date, values: Mapping[str, Any]) -> None:
         """Integer columns on the chain, only when they changed since the last record."""

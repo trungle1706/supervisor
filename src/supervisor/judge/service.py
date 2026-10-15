@@ -46,6 +46,7 @@ from supervisor.core.models import Verdict
 from supervisor.core.ports import Clock, EvidenceSink, Masker, StateStore, TableStore
 from supervisor.judge import ADVISORY_ACTIONS
 from supervisor.judge.masking import IdentityMasker, mask_version_of
+from supervisor.judge.mrm.identity import rubric_version
 from supervisor.judge.router import JudgeModel, JudgeRouter
 from supervisor.judge.runner import JudgeCall, TierJudge
 from supervisor.judge.tier1 import Tier1Judge
@@ -126,6 +127,7 @@ class JudgeService:
         self.evidence = evidence
         self.t1_threshold_bp = t1_threshold_bp
         self.t2_threshold_bp = t2_threshold_bp
+        self.rubric_version = rubric_version(t1_threshold_bp, t2_threshold_bp)  # WP19
         self.disagree_bp = disagree_bp
         self.k_suspicious = k_suspicious
         self.window = timedelta(seconds=window_s)
@@ -162,11 +164,12 @@ class JudgeService:
     ) -> JudgeService | None:
         """None when ``JUDGE_ENABLED`` is off (the default) unless ``force``.
 
-        Raises FamilyConflictError at startup when a judge shares an agent's family."""
+        Raises FamilyConflictError at startup when a judge shares an agent's family, and
+        JudgeNotValidatedError when ``JUDGE_REQUIRE_VALIDATION`` is on without a passing record."""
         if not settings.judge_enabled and not force:
             return None
         router = JudgeRouter.from_settings(settings, state=state, tables=tables)
-        return cls(
+        service = cls(
             router,
             clock,
             masker=masker,
@@ -182,6 +185,11 @@ class JudgeService:
             max_input_chars=settings.judge_max_input_chars,
             case_sink=case_sink,
         )
+        if settings.judge_require_validation:  # WP19: default off, no lookup when off
+            from supervisor.judge.mrm.control import check_validation_gate
+
+            check_validation_gate(service, settings, tables)
+        return service
 
     # -- public -------------------------------------------------------------------
     def evaluate_window(
@@ -356,6 +364,8 @@ class JudgeService:
             region=call.region,
             model_version=call.model_version,
             mask_version=call.mask_version,
+            prompt_hash=call.prompt_hash,
+            rubric_version=self.rubric_version,
         )
         payload: dict[str, Any] = {
             "verdict_id": v.verdict_id,
@@ -372,6 +382,7 @@ class JudgeService:
             "region": call.region,
             "mask_version": call.mask_version,
             "prompt_hash": call.prompt_hash,
+            "rubric_version": self.rubric_version,
             "is_mock": call.is_mock,
             "advisory": True,
             "acted_on": call.role == "primary" and primary,
@@ -437,6 +448,8 @@ class JudgeService:
             rationale_masked=reason,
             role="protocol",
             mask_version=mask_version_of(self.masker),
+            prompt_hash=top.prompt_hash,
+            rubric_version=self.rubric_version,
         )
         payload = {
             "verdict_id": v.verdict_id,
@@ -456,6 +469,8 @@ class JudgeService:
             "window_s": int(self.window.total_seconds()),
             "trace_ids": list(traces),
             "mask_version": mask_version_of(self.masker),
+            "prompt_hash": top.prompt_hash,
+            "rubric_version": self.rubric_version,
             "rationale_masked": reason,
         }
         self._persist(v, payload)
