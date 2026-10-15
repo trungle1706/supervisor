@@ -66,6 +66,21 @@ def _merge_questions(groups: list[list[Question]]) -> list[Question]:
     ]
 
 
+def _packs_by_duty() -> dict[str, list[str]]:
+    """duty id -> assurance pack ids (src/supervisor/assurance/packs). Empty if unreadable."""
+    try:
+        from supervisor.assurance.loader import load_packs
+
+        packs = load_packs()
+    except Exception:  # noqa: BLE001 - optional evidence hint, never fatal
+        return {}
+    out: dict[str, list[str]] = {}
+    for p in packs:
+        for duty in p.maps_to.regkb_duties:
+            out.setdefault(duty, []).append(p.id)
+    return out
+
+
 def build_matrix(
     kb: KnowledgeBase,
     product: ProductProfile,
@@ -109,6 +124,7 @@ def build_matrix(
         for oid in q.obligation_ids:
             by_obligation.setdefault(oid, []).append(q.id)
 
+    packs = _packs_by_duty()
     rows: list[MatrixRow] = []
     for oid, ob in sorted(kb.obligations.items()):
         p = partial[oid]
@@ -142,6 +158,9 @@ def build_matrix(
                 deadline=deadline_for(ob, kb),
                 question_ids=tuple(sorted(by_obligation.get(oid, []))),
                 threshold_ids=tuple(sorted(f.id for f in findings if f.obligation_id == oid)),
+                assurance_packs=()
+                if p["applies"] == "no"
+                else tuple(sorted({pid for d in ob.duties for pid in packs.get(d, [])})),
             )
         )
 

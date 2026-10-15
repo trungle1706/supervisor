@@ -296,6 +296,15 @@ exists. A narrative stored in that file is not shown. When the setting is off, e
 answers 200 with a short note on how to turn the tab on. An unknown agent, obligation or filter
 value answers 400.
 
+## Assurance packs as evidence (WP17)
+
+Each row lists `assurance_packs`: the assurance eval packs whose `maps_to.regkb_duties`
+(in `src\supervisor\assurance\packs\*.yaml`) meet the row's duties. The md and html files show
+them in the evidence column as `eval_result pack <id> (test evidence, not read)`. This tells an
+auditor where test evidence lives (table `eval_result`). The advisor does not read the results,
+so a pack never changes a status. Future work: read the latest `eval_result` per agent and pack,
+and show pass, warn or fail next to the pack id.
+
 ## AI risk register (enterprise-readiness row A-6.1)
 
 `docs\enterprise-readiness.md` row A-6.1 ("Planning: AI risk assessment") says Onboard gives

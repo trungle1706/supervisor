@@ -13,7 +13,7 @@ import pytest
 
 from supervisor.advisory.compliance import corpus_product, demo_product
 from supervisor.advisory.compliance.matrix import build_matrix
-from supervisor.advisory.compliance.render import to_json
+from supervisor.advisory.compliance.render import to_json, to_markdown
 
 SNAP_DIR = Path(__file__).parent / "snapshots"
 AS_OF = "2026-10-15"
@@ -110,3 +110,18 @@ def test_rows_cite_known_obligations(kb, name):
 
 def test_json_is_byte_identical(kb):
     assert to_json(_build(kb, "payments")) == to_json(_build(kb, "payments"))
+
+
+def test_assurance_packs_are_evidence_hints_only(kb) -> None:
+    """WP17 packs that map to a row's duties are listed; they never change a status."""
+    from supervisor.assurance.loader import load_packs
+
+    m = build_matrix(kb, demo_product("credit_prequal"), as_of="2026-10-15", generated_at="x")
+    duty_packs = {p.id: set(p.maps_to.regkb_duties) for p in load_packs()}
+    hinted = [r for r in m.rows if r.assurance_packs]
+    assert hinted, "some rows should name an assurance pack"
+    for r in hinted:
+        for pid in r.assurance_packs:
+            assert duty_packs[pid] & set(r.duties)
+    assert any("fairness_metrics" in r.assurance_packs for r in m.rows)
+    assert "eval_result pack" in to_markdown(m)

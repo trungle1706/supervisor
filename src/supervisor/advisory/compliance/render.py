@@ -238,7 +238,13 @@ def _build(m: ObligationMatrix) -> list[_Block]:
                     _status_word(r.status),
                     r.status_reason,
                     "\n".join(_controls(r)),
-                    "\n".join(f"{p.kind}:{p.ref}" for p in r.evidence_pointers),
+                    "\n".join(
+                        [f"{p.kind}:{p.ref}" for p in r.evidence_pointers]
+                        + [
+                            f"eval_result pack {a} (test evidence, not read)"
+                            for a in r.assurance_packs
+                        ]
+                    ),
                     "\n".join(_dates(r)),
                     ", ".join(r.question_ids),
                 ]

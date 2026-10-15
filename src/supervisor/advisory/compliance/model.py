@@ -231,6 +231,9 @@ class MatrixRow:
     deadline: Deadline
     question_ids: tuple[str, ...] = ()
     threshold_ids: tuple[str, ...] = ()
+    # WP17 assurance packs whose maps_to.regkb_duties meet this row's duties: where an auditor
+    # finds test evidence (eval_result table). The advisor does not read results; no status effect.
+    assurance_packs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
