@@ -31,6 +31,8 @@ def doc() -> dict[str, Any]:
 
 def _ops(doc: dict[str, Any]) -> Iterator[tuple[str, str, dict[str, Any]]]:
     for path, item in doc["paths"].items():
+        if path.startswith("/_"):  # probe routes other tests add to the shared app
+            continue
         for method, op in item.items():
             if method in METHODS:
                 yield path, method, op
