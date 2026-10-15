@@ -1,0 +1,40 @@
+{"id": "kb-001", "topic": "phi_the_ghi_no", "question": "Phí thường niên thẻ ghi nợ Demo Classic là bao nhiêu?", "answer": "Phí thường niên thẻ ghi nợ Demo Classic là 100.000 đồng mỗi năm."}
+{"id": "kb-002", "topic": "phi_the_tin_dung", "question": "Phí thường niên thẻ tín dụng Demo Gold là bao nhiêu?", "answer": "Phí thường niên thẻ tín dụng Demo Gold là 500.000 đồng mỗi năm."}
+{"id": "kb-003", "topic": "han_muc_ngay", "question": "Hạn mức chuyển khoản tối đa mỗi ngày trên ứng dụng là bao nhiêu?", "answer": "Hạn mức chuyển khoản tối đa mỗi ngày trên ứng dụng là 500.000.000 đồng."}
+{"id": "kb-004", "topic": "sinh_trac", "question": "Chuyển khoản từ mức nào trở lên phải xác thực sinh trắc học?", "answer": "Giao dịch chuyển khoản trên 10.000.000 đồng phải xác thực sinh trắc học."}
+{"id": "kb-005", "topic": "otp_hieu_luc", "question": "Mã OTP có hiệu lực trong bao lâu?", "answer": "Mã OTP có hiệu lực trong 90 giây."}
+{"id": "kb-006", "topic": "otp_chia_se", "question": "Nhân viên ngân hàng có được hỏi mã OTP của khách hàng không?", "answer": "Ngân hàng không bao giờ yêu cầu khách hàng cung cấp mã OTP qua điện thoại hoặc tin nhắn."}
+{"id": "kb-007", "topic": "otp_sai", "question": "Nhập sai OTP bao nhiêu lần thì giao dịch trực tuyến bị khóa?", "answer": "Nhập sai OTP 5 lần liên tiếp sẽ khóa giao dịch trực tuyến trong 24 giờ."}
+{"id": "kb-008", "topic": "khoa_the", "question": "Làm thế nào để khóa thẻ khi bị mất?", "answer": "Để khóa thẻ, vào mục Thẻ trong ứng dụng, chọn thẻ cần khóa rồi bấm Khóa thẻ tạm thời, hoặc gọi hotline 1900 5555."}
+{"id": "kb-009", "topic": "hotline", "question": "Số hotline hỗ trợ khách hàng 24/7 là gì?", "answer": "Hotline hỗ trợ 24/7 của Ngân hàng TMCP Demo là 1900 5555."}
+{"id": "kb-010", "topic": "lai_6t", "question": "Lãi suất tiết kiệm kỳ hạn 6 tháng là bao nhiêu?", "answer": "Lãi suất tiết kiệm kỳ hạn 6 tháng là 4,8% mỗi năm."}
+{"id": "kb-011", "topic": "lai_12t", "question": "Lãi suất tiết kiệm kỳ hạn 12 tháng là bao nhiêu?", "answer": "Lãi suất tiết kiệm kỳ hạn 12 tháng là 5,6% mỗi năm."}
+{"id": "kb-012", "topic": "lai_khong_ky_han", "question": "Lãi suất tiền gửi không kỳ hạn là bao nhiêu?", "answer": "Lãi suất tiền gửi không kỳ hạn là 0,1% mỗi năm."}
+{"id": "kb-013", "topic": "gui_toi_thieu", "question": "Số tiền gửi tiết kiệm tối thiểu là bao nhiêu?", "answer": "Số tiền gửi tiết kiệm tối thiểu là 1.000.000 đồng."}
+{"id": "kb-014", "topic": "rut_truoc_han", "question": "Rút tiết kiệm trước hạn thì được hưởng lãi suất nào?", "answer": "Rút tiết kiệm trước hạn chỉ được hưởng lãi suất không kỳ hạn là 0,1% mỗi năm."}
+{"id": "kb-015", "topic": "gio_lam_viec", "question": "Chi nhánh làm việc giờ nào từ thứ Hai đến thứ Sáu?", "answer": "Chi nhánh làm việc từ 8:00 đến 17:00 các ngày thứ Hai đến thứ Sáu và từ 8:00 đến 12:00 thứ Bảy."}
+{"id": "kb-016", "topic": "chu_nhat", "question": "Chi nhánh có mở cửa Chủ nhật không?", "answer": "Chi nhánh nghỉ Chủ nhật và các ngày lễ theo quy định."}
+{"id": "kb-017", "topic": "khieu_nai_han", "question": "Khách hàng có bao nhiêu ngày để khiếu nại một giao dịch?", "answer": "Khách hàng có thể khiếu nại giao dịch trong vòng 60 ngày kể từ ngày phát sinh giao dịch."}
+{"id": "kb-018", "topic": "khieu_nai_xu_ly", "question": "Ngân hàng xử lý khiếu nại trong bao lâu?", "answer": "Ngân hàng xử lý khiếu nại trong 15 ngày làm việc."}
+{"id": "kb-019", "topic": "tam_hoan", "question": "Khiếu nại giao dịch thẻ được tạm hoàn tiền sau bao lâu?", "answer": "Với khiếu nại giao dịch thẻ, ngân hàng tạm hoàn tiền trong 5 ngày làm việc."}
+{"id": "kb-020", "topic": "phi_lien_ngan_hang", "question": "Phí chuyển khoản nhanh liên ngân hàng là bao nhiêu?", "answer": "Phí chuyển khoản nhanh liên ngân hàng 24/7 là 7.700 đồng cho mỗi giao dịch dưới 10.000.000 đồng."}
+{"id": "kb-021", "topic": "noi_bo", "question": "Chuyển khoản giữa các tài khoản cùng Ngân hàng TMCP Demo có mất phí không?", "answer": "Chuyển khoản trong cùng Ngân hàng TMCP Demo được miễn phí."}
+{"id": "kb-022", "topic": "atm_ngoai", "question": "Rút tiền ở ATM ngoài hệ thống bị tính phí bao nhiêu?", "answer": "Phí rút tiền tại ATM ngoài hệ thống là 3.300 đồng mỗi lần."}
+{"id": "kb-023", "topic": "atm_han_muc", "question": "Hạn mức rút tiền ATM mỗi ngày là bao nhiêu?", "answer": "Hạn mức rút tiền mặt tại ATM là 50.000.000 đồng mỗi ngày."}
+{"id": "kb-024", "topic": "so_du_toi_thieu", "question": "Số dư tối thiểu của tài khoản thanh toán là bao nhiêu?", "answer": "Tài khoản thanh toán không thu phí duy trì và yêu cầu số dư tối thiểu 50.000 đồng."}
+{"id": "kb-025", "topic": "tuoi_mo_tk", "question": "Bao nhiêu tuổi thì được mở tài khoản thanh toán?", "answer": "Khách hàng từ đủ 18 tuổi, có căn cước công dân gắn chip, được mở tài khoản thanh toán."}
+{"id": "kb-026", "topic": "lai_vay_tieu_dung", "question": "Lãi suất vay tiêu dùng tín chấp là bao nhiêu?", "answer": "Lãi suất vay tiêu dùng tín chấp là 14% mỗi năm."}
+{"id": "kb-027", "topic": "lai_the_chap", "question": "Lãi suất ưu đãi vay thế chấp mua nhà là bao nhiêu?", "answer": "Vay thế chấp mua nhà có lãi suất ưu đãi 8,5% mỗi năm trong 12 tháng đầu."}
+{"id": "kb-028", "topic": "tra_no_truoc_han", "question": "Phí trả nợ trước hạn khoản vay là bao nhiêu?", "answer": "Phí trả nợ trước hạn là 2% số tiền gốc trả trước."}
+{"id": "kb-029", "topic": "phi_cham_the", "question": "Phí chậm thanh toán thẻ tín dụng là bao nhiêu?", "answer": "Phí chậm thanh toán thẻ tín dụng là 4% số tiền tối thiểu còn thiếu, thấp nhất 150.000 đồng."}
+{"id": "kb-030", "topic": "sao_ke", "question": "Ngày chốt sao kê thẻ tín dụng là ngày nào hằng tháng?", "answer": "Ngân hàng chốt sao kê thẻ tín dụng vào ngày 25 hằng tháng và hạn thanh toán là 15 ngày sau đó."}
+{"id": "kb-031", "topic": "phi_mat_the", "question": "Phí cấp lại thẻ bị mất là bao nhiêu?", "answer": "Phí cấp lại thẻ bị mất là 100.000 đồng."}
+{"id": "kb-032", "topic": "cap_lai_the", "question": "Thẻ cấp lại sau khi mất được giao trong bao lâu?", "answer": "Thẻ cấp lại được giao trong 7 ngày làm việc."}
+{"id": "kb-033", "topic": "quen_mat_khau", "question": "Quên mật khẩu ứng dụng thì làm thế nào?", "answer": "Nếu quên mật khẩu ứng dụng, chọn Quên mật khẩu rồi xác thực khuôn mặt và nhập mã OTP."}
+{"id": "kb-034", "topic": "thiet_bi", "question": "Mỗi tài khoản đăng ký được tối đa bao nhiêu thiết bị?", "answer": "Mỗi tài khoản được đăng ký tối đa 2 thiết bị cho ứng dụng."}
+{"id": "kb-035", "topic": "quoc_te", "question": "Phí chuyển tiền quốc tế là bao nhiêu?", "answer": "Phí chuyển tiền quốc tế là 0,2% số tiền chuyển, tối thiểu 5 USD."}
+{"id": "kb-036", "topic": "vang", "question": "Ngân hàng có nhận gửi vàng không?", "answer": "Ngân hàng TMCP Demo không cung cấp dịch vụ gửi giữ vàng."}
+{"id": "kb-037", "topic": "bao_hiem", "question": "Tiền gửi được bảo hiểm tối đa bao nhiêu?", "answer": "Tiền gửi của mỗi cá nhân được bảo hiểm tối đa 125.000.000 đồng."}
+{"id": "kb-038", "topic": "sms", "question": "Phí dịch vụ SMS banking mỗi tháng là bao nhiêu?", "answer": "Phí dịch vụ SMS banking là 11.000 đồng mỗi tháng."}
+{"id": "kb-039", "topic": "han_muc_gold", "question": "Hạn mức tối đa của thẻ tín dụng Demo Gold là bao nhiêu?", "answer": "Hạn mức tối đa của thẻ tín dụng Demo Gold là 100.000.000 đồng."}
+{"id": "kb-040", "topic": "duyet_vay", "question": "Hồ sơ vay tiêu dùng được duyệt trong bao lâu?", "answer": "Hồ sơ vay tiêu dùng đầy đủ được duyệt trong 3 ngày làm việc."}
