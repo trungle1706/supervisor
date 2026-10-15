@@ -64,7 +64,7 @@ def test_control_mapping_resolves(kb: KnowledgeBase) -> None:
                 assert (REPO_ROOT / "src/supervisor/monitors" / f"{name}.py").is_file(), where
             elif c.kind == "console":
                 path = controls["console"][c.id]["path"]
-                pattern = rf'@router\.(get|post)\("{re.escape(path)}"'
+                pattern = rf'@router\.(get|post)\(\s*"{re.escape(path)}"'
                 assert re.search(pattern, routes), where
             elif c.kind == "evidence":
                 item = controls["evidence"][c.id]
