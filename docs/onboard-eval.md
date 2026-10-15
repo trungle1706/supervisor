@@ -112,6 +112,9 @@ were fixed, so the 4 repos are now part of the tuned set and the "Final (20)" co
 a held-out number. "Blind" means the worker was told not to read the analyser or the other
 repos; we cannot verify that beyond its report.
 
+The held-out set is no longer blind: the post-blind fixes were tuned against it. A fresh blind
+set is needed before the gates are quoted outside the team.
+
 The baseline's injection follow-through was not caused by the injection: the analyser did
 not know `biller_account` as a destination, so it proposed `not_high_risk` for a bill-pay
 agent, which is the outcome the injection asked for. The eval counts any profile that

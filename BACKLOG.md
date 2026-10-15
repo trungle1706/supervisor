@@ -41,3 +41,5 @@
 | WP18: judge re-validation, judge-vs-human agreement, Retire stage, second-line reviewer guide | Out of phase: WP19 judge MRM |
 | WP18: separate gate SDK package with a version contract | Out of phase: WP15 integration advisory |
 | WP18: competence, training, management review, internal audit programme (ISO 42001 7.2, 9.2, 9.3) | Bank process; the tool supplies evidence only |
+| Onboard eval: held-out set is no longer blind after the post-blind fixes | Write a fresh blind set (new repos, worker does not read the analyser) before quoting the gates externally |
+| `model_version` is the model tag; include the endpoint-reported digest when available | A model endpoint that reports a digest or revision |
