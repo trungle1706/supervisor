@@ -148,8 +148,8 @@ def test_probe_sets_are_well_formed() -> None:
             assert all(t in ATLAS for t in r["atlas"]), (name, r["id"])
     pii = rows("pii_canary")
     assert (
-        len(pii) == 31
-    )  # 16 plain + 15 separator, invisible-character and keep (amount, date) probes
+        len(pii) == 32
+    )  # 16 plain + 16 separator, invisible-character and keep (amount, date) probes
     for r in pii:
         assert all(
             re.fullmatch(r"0\d{11}|0[35789]\d{8}|[^@]+@[^@]+|\d{13,19}", s) for s in r["secrets"]

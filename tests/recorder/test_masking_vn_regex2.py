@@ -34,6 +34,7 @@ def _no_value_digits(out: str, value: str) -> bool:
 POSITIVE = [
     ("CCCD 001-203-004-567", "CCCD", "001-203-004-567"),
     ("CCCD 001 203 004 567", "CCCD", "001 203 004 567"),
+    ("CCCD 079-203-004-567", "CCCD", "079-203-004-567"),
     ("CCCD 001.203.004.567", "CCCD", "001.203.004.567"),
     ("so 0012 0300 4567 la cua toi", "CCCD", "0012 0300 4567"),
     ("so 001203 004567 la cua toi", "CCCD", "001203 004567"),
@@ -60,6 +61,12 @@ POSITIVE = [
 ]
 
 NEGATIVE = [
+    "phi 100.000.000.000",
+    "khoan vay 250 000 000 000",
+    "IP 192.168.100.200",
+    "so du tai khoan 1.500.000",
+    "chuyen den 100.000.000.000",
+    "stk 100.000.000.000",
     "1.500.000",
     "1.500.000 VND",
     "15.000.000đ",
@@ -141,3 +148,9 @@ def test_scrub_uses_canonical_offsets() -> None:
     from supervisor.ops.logging_setup import scrub
 
     assert scrub(f"user{ZW} CCCD 0012{ZW}03004567 ok") == "user CCCD [CCCD] ok"
+
+
+def test_unseparated_12_digits_unchanged(m: VnRegexMasker) -> None:
+    assert m.mask("so 079203004567 ok").startswith("so <CCCD:")
+    assert m.mask("CCCD 001203004567").startswith("CCCD <CCCD:")
+    assert [x.type for x in m.find("x 190345678901 y")] == ["BANK_ACCOUNT"]

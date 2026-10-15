@@ -57,7 +57,7 @@ is put through NFKC (full-width digits become ASCII, no-break space becomes a sp
 dashes become `-`). `mask()` returns this normalised text with the PII replaced, so the recorded
 `args_masked` can differ from the raw text in those characters. Amounts such as `1.500.000` or
 `15.000.000đ`, dates and times are not masked: a dot-grouped or space-grouped number with 1-3
-digits and then groups of exactly 3 is an amount, unless it has 12 digits (then it is a CCCD).
+digits and then groups of exactly 3 is an amount, even after an account word. A separated 12-digit run is a CCCD only when it starts with 0 (province code), for example `001.203.004.567`; `100.000.000.000` is an amount.
 
 Without `MASK_HMAC_KEY` the dev key is used and `mask_version` is `vn_regex-2:dev`. A new
 `MASK_KEY_ID` + key gives new tokens; `mask_version` on each row tells which key made it.

@@ -236,11 +236,12 @@ def _classify_sep_run(text: str, m: re.Match[str]) -> tuple[str, str] | None:
 
     Rules (a wrongly masked amount is a defect; so is an unmasked CCCD):
     * Followed by a currency word or sign (VND, d, dong, USD): amount, never masked.
-    * Exactly 12 digits in 2-4 groups of 3+ digits: CCCD (3-3-3-3, 4-4-4, 6-6, mixed), or
-      BANK_ACCOUNT after STK / TK / tai khoan / account. This wins over the amount rule, because
-      001.203.004.567 is a CCCD.
-    * Otherwise a thousands format (1-3 digits, then groups of exactly 3, joined by one kind of
-      separator, dot or space) is an amount: 1.500.000, 12.345.678.900.
+    * Exactly 12 digits in 2-4 groups of 3+ digits AND a leading 0 (a CCCD starts with a province
+      code 001-096): CCCD (3-3-3-3, 4-4-4, 6-6, mixed), or BANK_ACCOUNT after STK / TK /
+      tai khoan / account. This wins over the amount rule, because 001.203.004.567 is a CCCD.
+    * Otherwise a thousands format (1-3 digits with a nonzero lead, then groups of exactly 3,
+      joined by one kind of separator, dot or space) is an amount, even right after an account
+      cue: 100.000.000.000, 250 000 000 000, 1.500.000. The same shape wins for 192.168.100.200.
     * 13-19 digits: BANK_ACCOUNT regardless of label.
     * 9-19 digits: BANK_ACCOUNT when an account/transfer cue word is within 40 chars before it.
     * Everything else (dates, times, short refs, < 9 digits): not masked.
@@ -250,7 +251,7 @@ def _classify_sep_run(text: str, m: re.Match[str]) -> tuple[str, str] | None:
         return None
     groups = re.split(r"[ .-]", run)
     n = sum(len(g) for g in groups)
-    if n == 12 and 2 <= len(groups) <= 4 and all(len(g) >= 3 for g in groups):
+    if n == 12 and run[0] == "0" and 2 <= len(groups) <= 4 and all(len(g) >= 3 for g in groups):
         if _has_account_cue(text, m.start(), _RE_STRONG_CUE):
             return "bank", "BANK_ACCOUNT"  # "STK 9704 2201 0101": a 12-digit account
         return "id_valid", "CCCD"
