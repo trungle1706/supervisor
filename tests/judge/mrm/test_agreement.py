@@ -133,7 +133,12 @@ def run(m: OversightMetrics, adapters):
 
 
 def judge_cases(adapters):
-    return [c for c in adapters.state.query("cases") if c["case_type"] == "judge_agreement"]
+    # Opened through CaseService.open_from_monitor (monitor id judge_human_agreement).
+    return [
+        c
+        for c in adapters.state.query("cases")
+        if str(c["summary"]).startswith("Monitor judge_human_agreement:")
+    ]
 
 
 def test_daily_values_and_drop_case_once(adapters, evidence) -> None:
@@ -146,6 +151,7 @@ def test_daily_values_and_drop_case_once(adapters, evidence) -> None:
     (case,) = judge_cases(adapters)
     assert case["severity"] == "medium" and "4000 bp" in case["summary"]
     assert "python -m supervisor.judge.mrm triggers" in case["summary"]
+    assert case["urgency_class"] == "standard" and case["prelim_report_due_at"] is not None
     run(m, adapters)  # idempotent
     assert len(judge_cases(adapters)) == 1
     assert snapshot(adapters) == before  # never through the gate

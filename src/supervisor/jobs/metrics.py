@@ -10,6 +10,7 @@ the app's scheduler run it (METRICS_ENABLED=1).
 from __future__ import annotations
 
 from supervisor.bootstrap import bootstrap
+from supervisor.cases.incident_clock import load_holidays
 
 bootstrap()
 
@@ -40,6 +41,7 @@ def run(
         eval_report=eval_report or EVAL_REPORT,
         min_agreement_bp=settings.mrm_min_agreement_bp,
         min_agreement_pairs=settings.mrm_min_agreement_pairs,
+        holidays=load_holidays(settings.incident_holidays_file),
     ).run(days=days)
     return {"rows": rows}
 

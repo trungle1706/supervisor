@@ -30,7 +30,6 @@ from supervisor.monitors.common import (
     as_dt,
     get_state,
     median,
-    open_case,
     put_state,
     rate_bp,
     read_range,
@@ -118,8 +117,10 @@ class OversightMetrics:
         eval_report: Path | None = None,
         min_agreement_bp: int = 8000,
         min_agreement_pairs: int = 5,
+        holidays: frozenset[date] = frozenset(),
     ) -> None:
         self.ctx = ctx
+        self.holidays = holidays  # incident clock calendar for the agreement case (WP19)
         self.min_bp, self.min_pairs = min_agreement_bp, min_agreement_pairs
         self.eval = load_eval_report(eval_report)
 
@@ -252,26 +253,28 @@ class OversightMetrics:
         key = f"agreement_case:{agent_id}:{day.isoformat()}"
         if get_state(self.ctx, MONITOR, key):
             return None
-        case_id = open_case(
-            self.ctx,
+        # Through the case service (incident clock, case_link, evidence), never the gate.
+        from supervisor.cases.service import CaseService
+
+        cases = CaseService(
+            self.ctx.state,
+            self.ctx.tables,
+            self.ctx.evidence,
+            self.ctx.clock,
+            holidays=self.holidays,
+        )
+        case = cases.open_from_monitor(
             agent_id=agent_id,
+            monitor_id="judge_human_agreement",
+            finding_ref=f"{agent_id}:{day.isoformat()}",
             severity="medium",
-            case_type="judge_agreement",
             summary=(
                 f"Judge-human agreement for {agent_id} on {day.isoformat()} is {bp} bp over "
                 f"{pairs} closed cases (minimum {self.min_bp} bp). Check re-validation "
                 "triggers: python -m supervisor.judge.mrm triggers"
             ),
-            actor="monitor:oversight",
-            evidence_payload={
-                "monitor": "judge_human_agreement",
-                "metric_date": day.isoformat(),
-                "judge_human_pairs": int(pairs),
-                "judge_human_agree_bp": int(bp),
-                "min_agreement_bp": self.min_bp,
-                "min_pairs": self.min_pairs,
-            },
         )
+        case_id = str(case["case_id"])
         put_state(self.ctx, MONITOR, key, {"case_id": case_id})
         return case_id
 

@@ -25,7 +25,7 @@ import argparse
 import json
 import sys
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from supervisor.config import Settings
@@ -174,6 +174,9 @@ def _new_class_trigger(tables: TableStore, since: datetime) -> dict[str, Any]:
     return _trig(tid, True, "new agent class: " + "; ".join(parts))
 
 
+PERIODIC_DAYS = 365
+
+
 def fired_triggers(
     settings: Settings,
     tables: TableStore,
@@ -212,6 +215,14 @@ def fired_triggers(
             ),
             _agreement_trigger(settings, tables, since),
             _new_class_trigger(tables, since),
+            # Circular 53 Art. 16(2): test at least yearly (also after a serious incident,
+            # which a human decides; see docs/judge-mrm.md).
+            _trig(
+                "periodic_revalidation_due",
+                now - since > timedelta(days=PERIODIC_DAYS),
+                f"last validation {since.date().isoformat()}; yearly re-test "
+                f"(>{PERIODIC_DAYS} days) per Circular 53 Art. 16(2)",
+            ),
         ]
     return {
         "checked_at": now.isoformat(),

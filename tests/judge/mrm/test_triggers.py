@@ -140,3 +140,9 @@ def test_cli_exit_codes_and_ascii(monkeypatch, capsys, tmp_path) -> None:
     assert control.main([]) == 1
     text = capsys.readouterr().out
     assert "[FIRED] never_validated" in text and text.isascii()
+
+
+def test_periodic_revalidation_due_after_a_year() -> None:
+    late = fired_triggers(S, base(), router=ROUTER, now=T0 + timedelta(days=366))
+    ids = {x["id"] for x in late["triggers"] if x["fired"]}
+    assert ids == {"periodic_revalidation_due"}
