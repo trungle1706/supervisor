@@ -71,7 +71,7 @@
 html { background: var(--bg); }
 body {
   margin: 0; min-height: 100vh; color: var(--fg); font-family: var(--f-body); font-size: 15px;
-  line-height: 1.5; background: var(--bg);
+  line-height: 1.5; background: var(--bg); word-spacing: .05em;
   background-image: radial-gradient(900px 420px at 12% -6%, var(--bg-glow), transparent 70%),
     radial-gradient(700px 360px at 100% 0%, color-mix(in srgb, var(--gold-soft) 60%, transparent), transparent 70%);
   background-repeat: no-repeat;
@@ -86,7 +86,8 @@ code, .mono { font-family: var(--f-mono); font-size: 13px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 /* ------------------------------------------------------------------ header (one row) */
-.top { display: flex; align-items: center; gap: 14px; padding: 16px 28px 6px; flex-wrap: wrap; }
+.top { display: flex; align-items: center; gap: 12px; padding: 16px 28px 6px; flex-wrap: wrap; }
+.top .nav { flex: none; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px;
   color: var(--fg); text-decoration: none; min-width: 0; }
 .brand .mark { width: 32px; height: 32px; border-radius: 50%; background: var(--brand);
@@ -105,7 +106,7 @@ code, .mono { font-family: var(--f-mono); font-size: 13px; }
   padding: 0 7px; border-radius: 10px; line-height: 18px; }
 .nav .k.hot { background: var(--brand-soft); color: var(--brand-text); }
 .nav a.active .k { background: rgba(255, 255, 255, .24); color: var(--brand-fg); }
-.who { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.who { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); flex-wrap: nowrap; }
 .env { display: inline-flex; align-items: center; font-family: var(--f-mono); font-size: 11px;
   padding: 3px 10px; border-radius: 999px; background: var(--ink); color: var(--ink-fg); white-space: nowrap; }
 .env.demo { background: var(--amber-soft); color: var(--amber); }
@@ -130,7 +131,7 @@ details.me > summary::-webkit-details-marker { display: none; }
   display: grid; gap: 6px; font-size: 12px; color: var(--fg); }
 .me-pop .row { display: flex; justify-content: space-between; gap: 8px; }
 .me-pop select { width: 100%; }
-@media (max-width: 1300px) { .me-name { display: none; } }
+@media (max-width: 1520px) { .me-name { display: none; } }
 
 .notice { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted);
   max-width: 1240px; margin: 2px auto 0; padding: 0 28px; }

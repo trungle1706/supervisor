@@ -269,10 +269,28 @@ def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
 
 
 @router.get("/", response_class=HTMLResponse)
+async def overview(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    now = ctx.clock.now()
+    ov = await _call(readmodels.overview, ctx, now)
+    return render(
+        request,
+        ctx,
+        me,
+        "overview.html",
+        section="overview",
+        ov=ov,
+        greet_key=readmodels.greeting_key(now),
+    )
+
+
+@router.get("/cases", response_class=HTMLResponse)
 async def queue(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     _view(me)
     data = await _call(_queue_data, ctx, request)
-    return render(request, ctx, me, "queue.html", **data)
+    return render(request, ctx, me, "queue.html", section="cases", **data)
 
 
 @router.get("/queue/rows", response_class=HTMLResponse)

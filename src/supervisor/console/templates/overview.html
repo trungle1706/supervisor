@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_overview') }}{% endblock %}
+{% block content %}
+{% set g = ov.gate %}
+{% if ov.demo %}<p class="demo-line" data-demo="1"><span class="dot"></span>{{ t('demo_line') }}</p>{% endif %}
+<h1 class="greet" data-greeting="{{ greet_key }}">{{ t(greet_key, name=shell().first_name) }}</h1>
+<p class="greet-sub" id="greet-sub">
+  {% if ov.agents_n == 0 %}{{ t('greet_agents_0') }}{% elif ov.agents_n == 1 %}{{ t('greet_agents_1') }}{% else %}{{ t('greet_agents_n', n=ov.agents_n) }}{% endif %}
+  {% if g.stopped == 0 %}{{ t('greet_stopped_0') }}{% elif g.stopped == 1 %}{{ t('greet_stopped_1') }}{% else %}{{ t('greet_stopped_n', n=g.stopped) }}{% endif %}
+  {% if ov.cases_n == 0 %}{{ t('greet_cases_0') }}{% elif ov.cases_n == 1 %}{{ t('greet_cases_1') }}{% else %}{{ t('greet_cases_n', n=ov.cases_n) }}{% endif %}
+  {% if ov.nearest_clock %}{% if ov.nearest_clock.overdue %}{{ t('greet_clock_over', d=dur(ov.nearest_clock.secs)) }}{% else %}{{ t('greet_clock_left', d=dur(ov.nearest_clock.secs)) }}{% endif %}{% endif %}
+</p>
+<div class="purpose">
+  <p><strong>{{ t('what_is_lead') }}</strong> {{ t('what_is_rest') }}</p>
+  <p class="why">{{ t('what_is_why') }}</p>
+</div>
+
+<div class="grid pillars">
+  <a class="card pillar" href="/console/onboard?lang={{ lang }}" style="text-decoration:none;color:inherit"><div class="ico on">1</div><div><h4>{{ t('pillar_onboard') }}</h4><p>{{ t('pillar_onboard_text') }}</p></div></a>
+  <a class="card pillar" href="/console/agents?lang={{ lang }}" style="text-decoration:none;color:inherit"><div class="ico wa">2</div><div><h4>{{ t('pillar_watch') }}</h4><p>{{ t('pillar_watch_text') }}</p></div></a>
+  <a class="card pillar" href="/console/evidence?lang={{ lang }}" style="text-decoration:none;color:inherit"><div class="ico pr">3</div><div><h4>{{ t('pillar_prove') }}</h4><p>{{ t('pillar_prove_text') }}</p></div></a>
+</div>
+
+<div class="grid g4" id="numbers">
+  <div class="card" data-num="checked">
+    <h3>{{ t('num_checked') }}</h3>
+    <div class="bignum">{{ g.checked }}{% if g.capped %}+{% endif %}</div>
+    <div class="sub">{{ t('num_checked_sub', n=g.agents) }}{% if g.median_ms is not none %} · {{ t('median_ms', ms=g.median_ms) }}{% endif %}</div>
+  </div>
+  <div class="card" data-num="stopped">
+    <h3>{{ t('num_stopped') }}</h3>
+    <div class="bignum">{{ g.stopped }}<small>{{ t('blocked_paused', b=g.blocked, p=g.paused) }}</small></div>
+    <div class="sub">{{ t('num_stopped_sub') }}{% if g.stop_median_ms is not none %} · {{ t('median_ms', ms=g.stop_median_ms) }}{% endif %}</div>
+  </div>
+  <a class="card" data-num="cases" href="/console/cases?lang={{ lang }}" style="text-decoration:none;color:inherit">
+    <h3>{{ t('num_cases') }}</h3>
+    <div class="bignum">{{ ov.cases_n }}{% if ov.critical_n %}<small>{{ t('n_critical', n=ov.critical_n) }}</small>{% endif %}</div>
+    <div class="sub">{{ t('num_cases_sub', n=ov.clock_running_n) }}</div>
+  </a>
+  <a class="card gold-card" data-num="chain" href="/console/evidence?lang={{ lang }}" style="text-decoration:none;color:inherit">
+    <h3>{{ t('chain') }}</h3>
+    <div style="margin:4px 0 2px">{{ ui.verify_pill(ov.chain.verify) }}</div>
+    <div class="sub">{{ t('n_entries', n=ov.chain.entries) }} · {% if ov.chain.signed %}{{ t('signed_root') }}{% else %}{{ t('no_signed_root') }}{% endif %} · {% if ov.chain.anchored %}{{ t('anchored') }}{% else %}{{ t('not_anchored') }}{% endif %}</div>
+  </a>
+</div>
+
+<h2 class="sec">{{ t('latest_decisions') }} <a href="/console/cases?lang={{ lang }}">{{ t('all_cases') }} →</a></h2>
+{% if ov.latest %}
+<div class="strip" id="latest">
+  {% for d in ov.latest %}
+  <div class="ev" data-outcome="{{ d.outcome }}">
+    <span class="t">{{ d.ts|hhmmss }}</span>
+    <span>{{ ui.pill(t('outcome_' ~ d.outcome), {'blocked': 'bad', 'paused': 'warn', 'allowed': 'ok'}.get(d.outcome, 'neutral')) }}</span>
+    <span>{{ d.agent_id }}</span>
+    <span><code>{{ d.tool }}</code>{% if d.rule_id %} · {{ d.rule_text }} · <span class="mono">{{ t('rule_word') }} {{ d.rule_id }}</span>{% elif d.risk %} · <span class="muted">{{ t(d.risk) }}</span>{% endif %}</span>
+    <span class="go">{% if d.case_id %}<a href="/console/cases/{{ d.case_id }}?lang={{ lang }}">{{ t('case_arrow') }} →</a>{% endif %}</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty">{{ t('no_decisions') }}</div>
+{% endif %}
+{% if ov.demo %}<div class="note">{{ t('demo_note') }}</div>{% endif %}
+{% endblock %}

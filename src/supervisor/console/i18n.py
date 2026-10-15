@@ -158,6 +158,115 @@ _T: dict[str, tuple[str, str]] = {
     "role_auditor": ("auditor", "kiểm toán"),
     "role_service": ("service", "dịch vụ"),
     "role_viewer": ("viewer", "người xem"),
+    # ---- WP12 overview
+    "greet_morning": ("Good morning, {name}", "Chào buổi sáng, {name}"),
+    "greet_afternoon": ("Good afternoon, {name}", "Chào buổi chiều, {name}"),
+    "greet_evening": ("Good evening, {name}", "Chào buổi tối, {name}"),
+    "greet_agents_0": ("No agent is under supervision yet.", "Chưa có tác tử nào được giám sát."),
+    "greet_agents_1": ("1 agent is under supervision.", "1 tác tử đang được giám sát."),
+    "greet_agents_n": ("{n} agents are under supervision.", "{n} tác tử đang được giám sát."),
+    "greet_stopped_0": ("No action was stopped today.", "Hôm nay chưa có thao tác nào bị chặn."),
+    "greet_stopped_1": ("1 action was stopped today.", "Hôm nay 1 thao tác đã bị chặn."),
+    "greet_stopped_n": ("{n} actions were stopped today.", "Hôm nay {n} thao tác đã bị chặn."),
+    "greet_cases_0": ("No case is waiting for a decision.", "Không có vụ việc nào chờ quyết định."),
+    "greet_cases_1": ("1 case needs a decision.", "1 vụ việc cần quyết định."),
+    "greet_cases_n": ("{n} cases need a decision.", "{n} vụ việc cần quyết định."),
+    "greet_clock_left": (
+        "The nearest SBV 24-hour report clock has {d} left.",
+        "Hạn báo cáo NHNN 24 giờ gần nhất còn {d}.",
+    ),
+    "greet_clock_over": (
+        "The nearest SBV 24-hour report is overdue by {d}.",
+        "Báo cáo NHNN 24 giờ gần nhất đã quá hạn {d}.",
+    ),
+    "what_is_lead": (
+        "Supervisor watches the AI agents your bank runs.",
+        "Supervisor giám sát các tác tử AI mà ngân hàng đang vận hành.",
+    ),
+    "what_is_rest": (
+        "It records every action, stops the dangerous ones before they execute, and keeps "
+        "evidence that a regulator can check.",
+        "Hệ thống ghi lại mọi thao tác, chặn thao tác nguy hiểm trước khi thực thi, và lưu "
+        "bằng chứng mà cơ quan quản lý có thể kiểm tra.",
+    ),
+    "what_is_why": (
+        "Think of a pit boss on a casino floor. The dealers are your agents. The pit boss "
+        "never deals, but watches every table, steps in when a hand looks wrong, and the "
+        "cameras keep the tape.",
+        "Hãy hình dung người giám sát sàn sòng bài. Người chia bài là các tác tử. Người giám "
+        "sát không chia bài, nhưng theo dõi mọi bàn, can thiệp khi có ván bất thường, và "
+        "camera luôn ghi hình.",
+    ),
+    "pillar_onboard": ("Onboard", "Tiếp nhận"),
+    "pillar_onboard_text": (
+        "Read an agent's code and traces. Write its risk profile, its rules and a pull "
+        "request. Nothing is merged without a person.",
+        "Đọc mã nguồn và vết hoạt động của tác tử. Viết hồ sơ rủi ro, quy tắc và một pull "
+        "request. Không gì được hợp nhất nếu không có người duyệt.",
+    ),
+    "pillar_watch": ("Watch", "Giám sát"),
+    "pillar_watch_text": (
+        "Every tool call passes a gate. Hard rules block or pause in milliseconds. AI "
+        "judges read the rest and only advise.",
+        "Mọi lệnh gọi công cụ đi qua cổng kiểm soát. Quy tắc cứng chặn hoặc tạm dừng trong "
+        "vài mili giây. Giám khảo AI đọc phần còn lại và chỉ đưa ý kiến.",
+    ),
+    "pillar_prove": ("Prove", "Chứng minh"),
+    "pillar_prove_text": (
+        "Decisions go into a signed hash chain. A case file answers the SBV clock. Anyone "
+        "can verify the chain offline.",
+        "Mọi quyết định được ghi vào chuỗi băm có chữ ký. Hồ sơ vụ việc đáp ứng hạn của "
+        "NHNN. Ai cũng có thể kiểm tra chuỗi khi không có mạng.",
+    ),
+    "num_checked": ("Actions checked today", "Thao tác đã kiểm tra hôm nay"),
+    "num_checked_sub": (
+        "across {n} agent(s) · every call passed the gate",
+        "trên {n} tác tử · mọi lệnh gọi đều qua cổng",
+    ),
+    "median_ms": ("median {ms} ms", "trung vị {ms} ms"),
+    "num_stopped": ("Stopped by a rule", "Bị quy tắc chặn"),
+    "blocked_paused": ("{b} blocked · {p} paused", "{b} bị chặn · {p} tạm dừng"),
+    "num_stopped_sub": ("before execution", "trước khi thực thi"),
+    "num_cases": ("Open cases", "Vụ việc đang mở"),
+    "n_critical": ("{n} critical", "{n} nghiêm trọng"),
+    "num_cases_sub": (
+        "SBV 24 h report clock running on {n}",
+        "Đồng hồ báo cáo NHNN 24 giờ đang chạy cho {n} vụ",
+    ),
+    "n_entries": ("{n} entries", "{n} mục"),
+    "signed_root": ("signed root", "gốc đã ký"),
+    "no_signed_root": ("no signed root yet", "chưa có gốc đã ký"),
+    "anchored": ("anchored", "đã neo"),
+    "not_anchored": ("not anchored yet", "chưa neo"),
+    "verified_at": ("verified {time}", "đã kiểm tra {time}"),
+    "not_verified_short": ("not verified yet", "chưa kiểm tra"),
+    "latest_decisions": ("Latest gate decisions", "Quyết định mới nhất của cổng"),
+    "all_cases": ("All cases", "Tất cả vụ việc"),
+    "outcome_blocked": ("blocked", "bị chặn"),
+    "outcome_paused": ("paused", "tạm dừng"),
+    "outcome_allowed": ("allowed", "cho phép"),
+    "rule_word": ("rule", "quy tắc"),
+    "case_arrow": ("case", "vụ việc"),
+    "no_decisions": (
+        "No gate decision yet. Decisions appear here when an agent calls a tool.",
+        "Chưa có quyết định nào. Quyết định xuất hiện khi tác tử gọi công cụ.",
+    ),
+    "risk_read_only": ("read-only", "chỉ đọc"),
+    "risk_money": ("moves money", "di chuyển tiền"),
+    "risk_credit": ("credit decision", "quyết định tín dụng"),
+    "risk_pii_export": ("exports personal data", "xuất dữ liệu cá nhân"),
+    "demo_line": (
+        "Demo data only. Every customer and every agent reply is synthetic. The gate "
+        "decisions, the pause and the evidence chain are real.",
+        "Chỉ là dữ liệu demo. Mọi khách hàng và mọi câu trả lời của tác tử đều là dữ liệu "
+        "giả lập. Quyết định của cổng, việc tạm dừng và chuỗi bằng chứng là thật.",
+    ),
+    "demo_note": (
+        "Demo data: the agents' replies are scripted and the customers are synthetic. The "
+        "gate decisions, the pause and the chain are real.",
+        "Dữ liệu demo: câu trả lời của tác tử theo kịch bản và khách hàng là giả lập. Quyết "
+        "định của cổng, việc tạm dừng và chuỗi bằng chứng là thật.",
+    ),
 }
 
 

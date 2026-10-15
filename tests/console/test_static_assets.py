@@ -30,18 +30,12 @@ def test_no_external_urls_in_templates_or_static() -> None:
 
 
 FONTS = {
-    "plus-jakarta-sans-latin.woff2": "153fc85b70298beeb1d61a5f723331649e7f23bb77302a66e61cb3e2fbdb5e79",
-    "plus-jakarta-sans-latin-ext.woff2": (
-        "38e3b8fd8045048eb311d90170a4429ed2c8f405852dc3d91b5af8452758703f"
-    ),
-    "plus-jakarta-sans-vietnamese.woff2": (
-        "b275d1258601dda240fc6a1d4a6cad56e691d898f5cdf1b0e4fd6ca0022d8e40"
-    ),
-    "jetbrains-mono-latin.woff2": "83c005d49d8a6a50474c73a5a36ac0468076e9c4a29da7bdb14995d80560a5be",
-    "jetbrains-mono-latin-ext.woff2": "db5ff4db83e580426280e9337a58dc57d3a83784a1b03ad80914651594441d52",
-    "jetbrains-mono-vietnamese.woff2": (
-        "c89b9cc0bc6262bd4f8d8494b6961601f3aefa829d08c2e3635f4d501d3a47c2"
-    ),
+    "plus-jakarta-sans-latin.woff2": "153fc85b70298beeb1d61a5f723331649e7f23bb77302a66e61cb3e2fbdb5e79",  # noqa: E501
+    "plus-jakarta-sans-latin-ext.woff2": "38e3b8fd8045048eb311d90170a4429ed2c8f405852dc3d91b5af8452758703f",  # noqa: E501
+    "plus-jakarta-sans-vietnamese.woff2": "b275d1258601dda240fc6a1d4a6cad56e691d898f5cdf1b0e4fd6ca0022d8e40",  # noqa: E501
+    "jetbrains-mono-latin.woff2": "83c005d49d8a6a50474c73a5a36ac0468076e9c4a29da7bdb14995d80560a5be",  # noqa: E501
+    "jetbrains-mono-latin-ext.woff2": "db5ff4db83e580426280e9337a58dc57d3a83784a1b03ad80914651594441d52",  # noqa: E501
+    "jetbrains-mono-vietnamese.woff2": "c89b9cc0bc6262bd4f8d8494b6961601f3aefa829d08c2e3635f4d501d3a47c2",  # noqa: E501
 }
 
 
