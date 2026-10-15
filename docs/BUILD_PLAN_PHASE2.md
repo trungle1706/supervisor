@@ -1,5 +1,21 @@
 # Build plan, phase 2 (2026-10-15): from competition entry to enterprise product
 
+## Status (2026-10-15)
+
+Waves 1 and 2 are merged on `main`. Wave 3 (review fixes, docs, release v0.2.0) is in progress.
+
+| WP | Name | Merged commit | Headline |
+|---|---|---|---|
+| 13 | Regulation knowledge base | `fd14d9f` | 31 instruments, 528 obligations |
+| 14 | Compliance advisory agent | `89b973c` (merge of WP14) | Matrices for payments, credit_prequal, customer_service; Decision 33 and Circular 53 thresholds |
+| 15 | Integration advisory agent | `7e8c2a5` | Readiness score and patches per corpus repo; OTel GenAI mapping |
+| 16 | Code-analysis corpus and tuning | `d9c550c` | 20 corpus repos; gates in tests |
+| 17 | Assurance eval packs | `b96cc9d` (+ fix `b42dadd`) | 33 packs, 6 dimensions |
+| 18 | Enterprise readiness | `6170306` | Readiness 49 % -> 60 % (145 / 297 -> 178 / 297) |
+| 19 | Judge MRM pack | `b85b587` | Model card, validation report, incident clock, RETIRED state |
+
+Whole suite on `main`: 2548 tests (figure from the wave 2 merge report, not re-run for this table).
+
 Phase 1 (`docs/BUILD_PLAN.md`, WP0–WP12) shipped release v0.1.0: gateway, recorder, judges,
 evidence chain, monitors, console, onboarding agent, Databricks kit, demo. Phase 2 makes
 Supervisor a product any regulated company can run, not only Techcombank, while we wait for the
