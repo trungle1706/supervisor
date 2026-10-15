@@ -52,15 +52,13 @@ instrument:
       source: https://publications.europa.eu/resource/celex/32026R1744
       verification: VERIFIED_PRIMARY
   sources:
-  - &id001
-    url: https://publications.europa.eu/resource/celex/32024R1689
+  - url: https://publications.europa.eu/resource/celex/32024R1689
     title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
     fetched_at: '2026-10-15'
     kind: primary
     sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
     local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
-  - &id002
-    url: https://publications.europa.eu/resource/celex/32026R1744
+  - url: https://publications.europa.eu/resource/celex/32026R1744
     title: Regulation (EU) 2026/1744 Digital Omnibus on AI, OJ L 2026/1744, 24.7.2026
     fetched_at: '2026-10-15'
     kind: primary
@@ -116,8 +114,13 @@ obligations:
   - use-case screening record against Art 5
   - fairness slice results
   verification: VERIFIED_PRIMARY
-  sources: &id003
-  - *id001
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
   notes: Applies from 2025-02-02 in the EU. Points (ba)/(bb) and paras (1a)/(1b) added by Reg. 2026/1744
     apply from 2026-12-02 (non-consensual intimate imagery and CSAM; not finance specific).
@@ -145,7 +148,12 @@ obligations:
   - training records for reviewers and agent owners
   verification: VERIFIED_PRIMARY
   sources:
-  - *id002
+  - url: https://publications.europa.eu/resource/celex/32026R1744
+    title: Regulation (EU) 2026/1744 Digital Omnibus on AI, OJ L 2026/1744, 24.7.2026
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9d754652b867722807e4219c85912ce354233e58a1b4eb8c7752b4d1922993db
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2026-1744-digital-omnibus-on-ai.xhtml
   confidence: high
   notes: Original Art 4 required measures 'to ensure, to their best extent, a sufficient level of AI literacy'.
     The omnibus softened this to 'support'.
@@ -179,7 +187,13 @@ obligations:
   - classification memo per AI use case
   - Art 6(3) derogation assessment if relied on
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
   notes: Annex III applies from 2027-12-02 after Reg. 2026/1744. Payment and customer-service agents are
     not Annex III use cases on this text.
@@ -220,7 +234,13 @@ obligations:
   - bank's own risk assessment for the use case
   - launch report
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
 - id: INTL-EUAIA-2024-A10-01
   article_ref: Art. 10
@@ -251,7 +271,13 @@ obligations:
   - training data documentation from the vendor
   - bias examination record
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: medium
   notes: Supervisor sees outputs and tool calls, not training data.
 - id: INTL-EUAIA-2024-A11-01
@@ -284,7 +310,13 @@ obligations:
   - Annex IV documentation from the provider
   - bank copy of the instructions for use
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
 - id: INTL-EUAIA-2024-A12-01
   article_ref: Art. 12
@@ -320,7 +352,13 @@ obligations:
   - event log specification from the provider
   - sample log export
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
   notes: Supervisor records what the gateway and traces see around the agent; it does not replace the
     logging built into the vendor system.
@@ -350,7 +388,13 @@ obligations:
   - instructions for use from the provider
   - accuracy metrics declared by the provider
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
 - id: INTL-EUAIA-2024-A14-01
   article_ref: Art. 14
@@ -392,7 +436,13 @@ obligations:
   - reviewer authority and training record
   - oversight metrics
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
   notes: A Supervisor pause stops later calls; it is not human approval before the action (docs/onboard.md
     Decision 33). Art 14(4)(e) 'stop' button is the closest match.
@@ -433,7 +483,13 @@ obligations:
   - security test report
   - drift reports
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
 - id: INTL-EUAIA-2024-A26.1-01
   article_ref: Art. 26(1)-(2)
@@ -477,7 +533,13 @@ obligations:
   - training records
   - instructions for use on file
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
 - id: INTL-EUAIA-2024-A26.4-01
   article_ref: Art. 26(4)-(5)
@@ -526,7 +588,13 @@ obligations:
   - notice to provider and authority
   - suspension record
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
   notes: 'Second subparagraph: financial-institution deployers can satisfy monitoring through internal-governance
     rules under EU financial services law. Not an EU-wide exemption for Vietnam use.'
@@ -566,7 +634,13 @@ obligations:
   - log retention setting
   - proof logs are kept at least six months
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
 - id: INTL-EUAIA-2024-A26.11-01
   article_ref: Art. 26(11)
@@ -590,7 +664,13 @@ obligations:
   - customer notice text and placement
   - proof the notice was shown
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
 - id: INTL-EUAIA-2024-A27-01
   article_ref: Art. 27
@@ -631,7 +711,13 @@ obligations:
   - notification to the authority
   - fairness slice results
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
   notes: No duty id for FRIA exists in duties.yaml; mapped to risk_management_system, bias_monitoring
     and dpia. Suggest new duty fundamental_rights_assessment.
@@ -659,7 +745,13 @@ obligations:
   evidence_needed:
   - screenshot of the AI notice at first interaction
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
   notes: Applies from 2026-08-02. A deployer that builds its own chatbot is also the provider for this
     clause.
@@ -685,8 +777,18 @@ obligations:
   - provider statement of marking method
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
+  - url: https://publications.europa.eu/resource/celex/32026R1744
+    title: Regulation (EU) 2026/1744 Digital Omnibus on AI, OJ L 2026/1744, 24.7.2026
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 9d754652b867722807e4219c85912ce354233e58a1b4eb8c7752b4d1922993db
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2026-1744-digital-omnibus-on-ai.xhtml
   confidence: medium
   notes: Low relevance to a chat agent that sends short replies; kept because it is in the Art 50 package.
 - id: INTL-EUAIA-2024-A73-01
@@ -722,7 +824,13 @@ obligations:
   - report to provider and authority
   - case file for each incident
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high
   notes: Periods are 15 / 2 / 10 days, not the 24 h / 72 h duty ids; mapped to generic incident_report.
 - id: INTL-EUAIA-2024-A86-01
@@ -757,5 +865,11 @@ obligations:
   - explanation request procedure
   - sample explanation given to a customer
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://publications.europa.eu/resource/celex/32024R1689
+    title: Regulation (EU) 2024/1689, OJ L 2024/1689, 12.7.2024 (EU Publications Office)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 8f0b656302f9864cc87e040c371f209a9d65ae1a6cecc25ca5eb737e872d721a
+    local_path: regulations/sources/INTL-EUAIA-2024/regulation-2024-1689.xhtml
   confidence: high

@@ -21,8 +21,7 @@ instrument:
       verification: VERIFIED_PRIMARY
       note: letter sets expectations with no effective date
   sources:
-  - &id001
-    url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
     title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
       Use of Generative Artificial Intelligence'
     fetched_at: '2026-10-15'
@@ -64,7 +63,11 @@ obligations:
   - policy mapping to the 2019 BDAI principles
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-HKMAGENAI-2024-G1.A-01
   article_ref: Para 1(a)-(b) Governance and accountability
@@ -102,7 +105,11 @@ obligations:
   - policy
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-HKMAGENAI-2024-G1.C-01
   article_ref: 'Para 1(c) Governance: validation and human-in-the-loop'
@@ -147,7 +154,11 @@ obligations:
   - human-in-the-loop design
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
   notes: HKMA says the human 'retains control in the decision-making process'. A Supervisor pause after
     the fact does not meet a pre-execution human-in-the-loop reading (Decision 33).
@@ -180,7 +191,11 @@ obligations:
   - fairness slice results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-HKMAGENAI-2024-F2.B-01
   article_ref: 'Para 2(b) Fairness: opt-out and review'
@@ -211,7 +226,11 @@ obligations:
   - opt-out or review channel in the customer journey
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-HKMAGENAI-2024-T3-01
   article_ref: Para 3 Transparency and disclosure
@@ -233,7 +252,11 @@ obligations:
   - customer notice text and placement
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-HKMAGENAI-2024-D4-01
   article_ref: Para 4 Data privacy and protection
@@ -265,5 +288,9 @@ obligations:
   - privacy impact review
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://brdr.hkma.gov.hk/chi/doc-ldg/docId/getPdf/20241107-1-EN/20241107-1-EN.pdf
+    title: 'HKMA letter to all authorized institutions, 19 Aug 2024: Consumer Protection in respect of
+      Use of Generative Artificial Intelligence'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high

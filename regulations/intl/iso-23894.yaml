@@ -21,13 +21,11 @@ instrument:
       verification: ASSUMED
       note: guidance, not certifiable, no effective date
   sources:
-  - &id001
-    url: https://www.iso.org/standard/77304.html
+  - url: https://www.iso.org/standard/77304.html
     title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
     fetched_at: '2026-10-15'
     kind: primary
-  - &id002
-    url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
+  - url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
     title: 'NIST: ISO/IEC 23894 crosswalk to the NIST AI RMF (search snippet only)'
     fetched_at: '2026-10-15'
     kind: secondary
@@ -62,8 +60,14 @@ obligations:
   - accountable roles
   verification: VERIFIED_SECONDARY
   sources:
-  - *id001
-  - *id002
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
+    title: 'NIST: ISO/IEC 23894 crosswalk to the NIST AI RMF (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: medium
   notes: Clause number seen in the NIST crosswalk snippet.
 - id: INTL-ISO23894-2023-C5.5-01
@@ -89,8 +93,14 @@ obligations:
   - implementation plan
   verification: VERIFIED_SECONDARY
   sources:
-  - *id001
-  - *id002
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
+    title: 'NIST: ISO/IEC 23894 crosswalk to the NIST AI RMF (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO23894-2023-C6.4-01
@@ -120,7 +130,10 @@ obligations:
   - risk register per AI use case
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO23894-2023-C6.5-01
@@ -149,8 +162,14 @@ obligations:
   - residual risk acceptance
   verification: VERIFIED_SECONDARY
   sources:
-  - *id001
-  - *id002
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://airc.nist.gov/documents/3/ai-2025-00109_revised_ISO_IEC_23894_Crosswalk_to_the_NIST_AI_RMF.pdf
+    title: 'NIST: ISO/IEC 23894 crosswalk to the NIST AI RMF (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO23894-2023-C6.6-01
@@ -179,7 +198,10 @@ obligations:
   - monitoring reports
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO23894-2023-C6.7-01
@@ -213,6 +235,9 @@ obligations:
   - reports to management
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/77304.html
+    title: 'ISO/IEC 23894:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'

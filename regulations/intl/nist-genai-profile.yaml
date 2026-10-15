@@ -20,8 +20,7 @@ instrument:
       verification: ASSUMED
       note: voluntary profile, no effective date
   sources:
-  - &id001
-    url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
     title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
     fetched_at: '2026-10-15'
     kind: primary
@@ -60,7 +59,10 @@ obligations:
   - groundedness sample results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTGAI-2024-S2.4-01
   article_ref: Sec. 2.4 Data Privacy
@@ -90,7 +92,10 @@ obligations:
   - bulk-read thresholds
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTGAI-2024-S2.6-01
   article_ref: Sec. 2.6 Harmful Bias and Homogenization
@@ -114,7 +119,10 @@ obligations:
   - fairness slice results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTGAI-2024-S2.7-01
   article_ref: Sec. 2.7 Human-AI Configuration
@@ -147,7 +155,10 @@ obligations:
   - oversight metrics showing review time and override rate
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
   notes: Dwell time and approval-rate metrics are indicators of automation bias, not proof against it.
 - id: INTL-NISTGAI-2024-S2.8-01
@@ -173,7 +184,10 @@ obligations:
   - disclosure screenshots
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-NISTGAI-2024-S2.9-01
   article_ref: Sec. 2.9 Information Security
@@ -204,7 +218,10 @@ obligations:
   - security test report
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTGAI-2024-S2.12-01
   article_ref: Sec. 2.12 Value Chain and Component Integration
@@ -230,7 +247,10 @@ obligations:
   - component list
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-NISTGAI-2024-GV1.6.001-01
   article_ref: GV-1.6-001 (suggested action)
@@ -258,7 +278,10 @@ obligations:
   - inventory including GAI systems
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-NISTGAI-2024-MS2.7.001-01
   article_ref: MS-2.7-001 (suggested action)
@@ -283,7 +306,10 @@ obligations:
   - red-team report
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-NISTGAI-2024-MG2.4.001-01
   article_ref: MG-2.4-001 to MG-2.4-004 (suggested actions)
@@ -312,7 +338,10 @@ obligations:
   - deactivation criteria document
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-NISTGAI-2024-MG4.3.001-01
   article_ref: MG-4.3-001 (suggested action)
@@ -340,5 +369,8 @@ obligations:
   - incident communication procedure
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+    title: NIST AI 600-1, AI RMF Generative AI Profile, July 2024
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium

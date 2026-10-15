@@ -20,8 +20,7 @@ instrument:
       verification: ASSUMED
       note: voluntary framework, no effective date
   sources:
-  - &id001
-    url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
     title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
     fetched_at: '2026-10-15'
     kind: primary
@@ -61,7 +60,10 @@ obligations:
   - register of applicable AI rules per use case
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-GV1.6-01
   article_ref: GOVERN 1.6
@@ -91,7 +93,10 @@ obligations:
   - inventory export with owner and risk tier per agent
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-GV1.7-01
   article_ref: GOVERN 1.7
@@ -120,7 +125,10 @@ obligations:
   - retire record for each retired agent
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-GV2.3-01
   article_ref: GOVERN 2.3
@@ -145,7 +153,10 @@ obligations:
   - named accountable executive
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MP1.1-01
   article_ref: MAP 1.1
@@ -174,7 +185,10 @@ obligations:
   - intended-purpose statement per agent
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MP3.5-01
   article_ref: MAP 3.5
@@ -209,7 +223,10 @@ obligations:
   - reviewer roster
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
   notes: Supervisor pause is not pre-execution approval (Decision 33); the bank defines which actions
     need prior approval.
@@ -237,7 +254,10 @@ obligations:
   - vendor risk review
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MS2.4-01
   article_ref: MEASURE 2.4
@@ -271,7 +291,10 @@ obligations:
   - drift reports
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MS2.5-01
   article_ref: MEASURE 2.5
@@ -299,7 +322,10 @@ obligations:
   - documented limits
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MS2.7-01
   article_ref: MEASURE 2.7
@@ -329,7 +355,10 @@ obligations:
   - security evaluation report
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MS2.11-01
   article_ref: MEASURE 2.11
@@ -358,7 +387,10 @@ obligations:
   - fairness evaluation results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MS3.3-01
   article_ref: MEASURE 3.3
@@ -385,7 +417,10 @@ obligations:
   - appeal and feedback log
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MG2.4-01
   article_ref: MANAGE 2.4
@@ -417,7 +452,10 @@ obligations:
   - record of a tested deactivation
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MG4.1-01
   article_ref: MANAGE 4.1
@@ -451,7 +489,10 @@ obligations:
   - post-deployment monitoring plan
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-NISTRMF-2023-MG4.3-01
   article_ref: MANAGE 4.3
@@ -482,5 +523,8 @@ obligations:
   - communication records
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+    title: NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high

@@ -27,8 +27,7 @@ instrument:
   related:
   - VN-TT50-2024
   sources:
-  - &id001
-    url: https://luatvietnam.vn/tai-chinh/quyet-dinh-2345-qd-nhnn-2023-giai-phap-bao-mat-trong-thanh-toan-truc-tuyen-va-qua-the-ngan-hang-285123-d1.html
+  - url: https://luatvietnam.vn/tai-chinh/quyet-dinh-2345-qd-nhnn-2023-giai-phap-bao-mat-trong-thanh-toan-truc-tuyen-va-qua-the-ngan-hang-285123-d1.html
     title: Decision 2345/QD-NHNN full text with Appendices (reproduced on luatvietnam.vn; no vbpl or sbv.gov.vn
       copy found)
     fetched_at: '2026-10-15'
@@ -47,8 +46,10 @@ instrument:
   verification: VERIFIED_SECONDARY
   primary_text_fetched: false
   last_checked: '2026-10-15'
-  notes: 'LEAD REVIEW 2026-10-15: all claims tagged VERIFIED_SECONDARY because the only text read is a commercial reproduction (luatvietnam.vn), not an official copy; the stored file is kept for reference. STATUS: treated as superseded in substance by Circular 50/2024/TT-NHNN (effective 2025-01-01),
-    which restates the same A-D transaction types and the same 10 million / 20 million VND biometric thresholds
+  notes: 'LEAD REVIEW 2026-10-15: all claims tagged VERIFIED_SECONDARY because the only text read is a
+    commercial reproduction (luatvietnam.vn), not an official copy; the stored file is kept for reference.
+    STATUS: treated as superseded in substance by Circular 50/2024/TT-NHNN (effective 2025-01-01), which
+    restates the same A-D transaction types and the same 10 million / 20 million VND biometric thresholds
     (Appendices 01-02). Source for supersession: div.gov.vn (secondary). The Circular''s own repeal list
     (Art. 22(5)-(6)) names Circulars 35/2016, 35/2018 and Art. 25 of Circular 09/2020 but NOT Decision
     2345; no formal repeal of the Decision was found and the SBV 2024/2025 lists of expired documents
@@ -62,10 +63,19 @@ instrument:
 obligations:
 - id: VN-QD2345-2023-APP1-01
   article_ref: Art. 1 with Appendix 01 group I.3 and Appendix 02 type C (individuals)
-  text_vi: |-
-    Giao dịch thỏa mãn một trong các trường hợp sau: 1. Trường hợp 1: Giao dịch thỏa mãn các điều kiện: (i) G ≤ 10 triệu VND. (ii) G + Tksth > 20 triệu VND. (iii) G + T ≤ 1,5 tỷ VND. 2. Trường hợp 2: Giao dịch thỏa mãn các điều kiện; (i) G > 10 triệu VND. (ii) G ≤ 500 triệu VND. (iii) G + T ≤ 1,5 tỷ VND. Giao dịch thỏa mãn một trong các trường hợp sau:
+  text_vi: 'Giao dịch thỏa mãn một trong các trường hợp sau: 1. Trường hợp 1: Giao dịch thỏa mãn các điều
+    kiện: (i) G ≤ 10 triệu VND. (ii) G + Tksth > 20 triệu VND. (iii) G + T ≤ 1,5 tỷ VND. 2. Trường hợp
+    2: Giao dịch thỏa mãn các điều kiện; (i) G > 10 triệu VND. (ii) G ≤ 500 triệu VND. (iii) G + T ≤ 1,5
+    tỷ VND. Giao dịch thỏa mãn một trong các trường hợp sau:
+
     ...
-    - Bằng dấu hiệu nhận dạng sinh trắc học của khách hàng: (i) khớp đúng với dữ liệu sinh trắc học được lưu trong chip của thẻ căn cước công dân (CCCD) của khách hàng do cơ quan Công an cấp4; (ii) hoặc thông qua xác thực tài khoản định danh điện tử của khách hàng do hệ thống định danh và xác thực điện tử tạo lập5. - Hoặc bằng dấu hiệu nhận dạng sinh trắc học của khách hàng khớp đúng với dữ liệu sinh trắc học được lưu trong cơ sở dữ liệu (CSDL) sinh trắc học về khách hàng đã thu thập và kiểm tra6, khuyến khích kết hợp với phương thức xác thực OTP gửi qua SMS/Voice hoặc Soft OTP/Token OTP.
+
+    - Bằng dấu hiệu nhận dạng sinh trắc học của khách hàng: (i) khớp đúng với dữ liệu sinh trắc học được
+    lưu trong chip của thẻ căn cước công dân (CCCD) của khách hàng do cơ quan Công an cấp4; (ii) hoặc
+    thông qua xác thực tài khoản định danh điện tử của khách hàng do hệ thống định danh và xác thực điện
+    tử tạo lập5. - Hoặc bằng dấu hiệu nhận dạng sinh trắc học của khách hàng khớp đúng với dữ liệu sinh
+    trắc học được lưu trong cơ sở dữ liệu (CSDL) sinh trắc học về khách hàng đã thu thập và kiểm tra6,
+    khuyến khích kết hợp với phương thức xác thực OTP gửi qua SMS/Voice hoặc Soft OTP/Token OTP.'
   summary_en: Biometric match is required for an individual's online transfer to another account holder,
     bank or e-wallet when one transfer is above 10 million VND, or the day total of earlier type A and
     B transfers plus this one is above 20 million VND (type C, up to 1.5 billion VND per day and 500 million
@@ -75,7 +85,7 @@ obligations:
   - biometric_verification
   - transaction_authentication
   - transaction_limits
-  applies_to: &id002
+  applies_to:
     agent_class:
     - payment
     data_classes:
@@ -108,8 +118,14 @@ obligations:
   - Channel configuration showing biometric step above 10 million VND per transfer or 20 million VND per
     day
   verification: VERIFIED_SECONDARY
-  sources: &id003
-  - *id001
+  sources:
+  - url: https://luatvietnam.vn/tai-chinh/quyet-dinh-2345-qd-nhnn-2023-giai-phap-bao-mat-trong-thanh-toan-truc-tuyen-va-qua-the-ngan-hang-285123-d1.html
+    title: Decision 2345/QD-NHNN full text with Appendices (reproduced on luatvietnam.vn; no vbpl or sbv.gov.vn
+      copy found)
+    fetched_at: '2026-10-15'
+    kind: secondary
+    sha256: 2db6f3d123e11147581e9526973aef658d6158ee1f9296b48228fd0864e643ea
+    local_path: regulations/sources/VN-QD2345-2023/qd-2345-2023-nhnn.txt
   confidence: high
   notes: Carried on in Circular 50/2024 (see VN-TT50-2024-APP02-01). Note the original here advised OTP
     with biometric as 'encouraged'; Circular 50 makes OTP plus biometric the minimum for type C.
@@ -124,7 +140,11 @@ obligations:
   duties:
   - transaction_authentication
   - transaction_limits
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    data_classes:
+    - financial
   addressee: bank
   control_mapping:
   - kind: rule
@@ -148,7 +168,14 @@ obligations:
   evidence_needed:
   - Rules per transaction type in the channel
   verification: VERIFIED_SECONDARY
-  sources: *id003
+  sources:
+  - url: https://luatvietnam.vn/tai-chinh/quyet-dinh-2345-qd-nhnn-2023-giai-phap-bao-mat-trong-thanh-toan-truc-tuyen-va-qua-the-ngan-hang-285123-d1.html
+    title: Decision 2345/QD-NHNN full text with Appendices (reproduced on luatvietnam.vn; no vbpl or sbv.gov.vn
+      copy found)
+    fetched_at: '2026-10-15'
+    kind: secondary
+    sha256: 2db6f3d123e11147581e9526973aef658d6158ee1f9296b48228fd0864e643ea
+    local_path: regulations/sources/VN-QD2345-2023/qd-2345-2023-nhnn.txt
   confidence: high
   notes: Superseded in substance by Circular 50/2024 Art. 10(1) and Appendices.
 - id: VN-QD2345-2023-A2.1-01
@@ -178,7 +205,14 @@ obligations:
   evidence_needed:
   - Test showing the new-device biometric step
   verification: VERIFIED_SECONDARY
-  sources: *id003
+  sources:
+  - url: https://luatvietnam.vn/tai-chinh/quyet-dinh-2345-qd-nhnn-2023-giai-phap-bao-mat-trong-thanh-toan-truc-tuyen-va-qua-the-ngan-hang-285123-d1.html
+    title: Decision 2345/QD-NHNN full text with Appendices (reproduced on luatvietnam.vn; no vbpl or sbv.gov.vn
+      copy found)
+    fetched_at: '2026-10-15'
+    kind: secondary
+    sha256: 2db6f3d123e11147581e9526973aef658d6158ee1f9296b48228fd0864e643ea
+    local_path: regulations/sources/VN-QD2345-2023/qd-2345-2023-nhnn.txt
   confidence: high
   notes: Now Art. 8(6) of Circular 50/2024, with SMS/Voice OTP also allowed.
 - id: VN-QD2345-2023-A2.3-01
@@ -214,18 +248,31 @@ obligations:
   evidence_needed:
   - Retention setting of at least 3 months for device and authentication logs
   verification: VERIFIED_SECONDARY
-  sources: *id003
+  sources:
+  - url: https://luatvietnam.vn/tai-chinh/quyet-dinh-2345-qd-nhnn-2023-giai-phap-bao-mat-trong-thanh-toan-truc-tuyen-va-qua-the-ngan-hang-285123-d1.html
+    title: Decision 2345/QD-NHNN full text with Appendices (reproduced on luatvietnam.vn; no vbpl or sbv.gov.vn
+      copy found)
+    fetched_at: '2026-10-15'
+    kind: secondary
+    sha256: 2db6f3d123e11147581e9526973aef658d6158ee1f9296b48228fd0864e643ea
+    local_path: regulations/sources/VN-QD2345-2023/qd-2345-2023-nhnn.txt
   confidence: high
   notes: Circular 50/2024 Art. 7(7) now requires 3 months online and 1 year backup.
 - id: VN-QD2345-2023-A3-01
   article_ref: Art. 3
-  text_vi: |-
-    1. Thông báo giao dịch qua tin nhắn SMS hoặc thư điện tử.
+  text_vi: '1. Thông báo giao dịch qua tin nhắn SMS hoặc thư điện tử.
+
     2. Thiết lập hạn mức giao dịch trong ngày.
+
     3. Thiết lập tính năng cho phép/ không cho phép thanh toán trực tuyến.
+
     4. Thiết lập hạn mức thanh toán thẻ trực tuyến trong ngày.
-    5. Thiết lập tính năng cho phép/ không cho phép thanh toán ở nước ngoài (ngoại trừ các giao dịch trực tuyến).
-    6. Triển khai giải pháp xác thực 3D Secure (hoặc tương đương) cho việc thanh toán trực tuyến với thẻ quốc tế.
+
+    5. Thiết lập tính năng cho phép/ không cho phép thanh toán ở nước ngoài (ngoại trừ các giao dịch trực
+    tuyến).
+
+    6. Triển khai giải pháp xác thực 3D Secure (hoặc tương đương) cho việc thanh toán trực tuyến với thẻ
+    quốc tế.'
   summary_en: A card payment provider must send transaction notices by SMS or email, set daily transaction
     and daily online payment limits, let the customer switch online and foreign payments on or off, and
     use 3D Secure (or equal) for international cards online.
@@ -257,6 +304,13 @@ obligations:
   - Card control settings
   - Notice templates
   verification: VERIFIED_SECONDARY
-  sources: *id003
+  sources:
+  - url: https://luatvietnam.vn/tai-chinh/quyet-dinh-2345-qd-nhnn-2023-giai-phap-bao-mat-trong-thanh-toan-truc-tuyen-va-qua-the-ngan-hang-285123-d1.html
+    title: Decision 2345/QD-NHNN full text with Appendices (reproduced on luatvietnam.vn; no vbpl or sbv.gov.vn
+      copy found)
+    fetched_at: '2026-10-15'
+    kind: secondary
+    sha256: 2db6f3d123e11147581e9526973aef658d6158ee1f9296b48228fd0864e643ea
+    local_path: regulations/sources/VN-QD2345-2023/qd-2345-2023-nhnn.txt
   confidence: high
   notes: Now Art. 7(9) and Appendices 03-04 of Circular 50/2024.

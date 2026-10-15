@@ -20,8 +20,7 @@ instrument:
       verification: ASSUMED
       note: voluntary awareness document, no effective date
   sources:
-  - &id001
-    url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
     title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
     fetched_at: '2026-10-15'
     kind: primary
@@ -33,11 +32,11 @@ instrument:
   primary_text_fetched: false
   last_checked: '2026-10-15'
   notes: 'Community security awareness list (CC BY-SA 4.0); not a legal obligation anywhere. Ids and titles
-    verified on the official index and in the PDF (read 2026-10-15; not stored in the repo because CC BY-SA content is not allowed there;
-    URL only). Each obligation here restates one item as a duty to address
-    the risk, with article_ref LLM01:2025 to LLM10:2025. Titles: LLM01 Prompt Injection, LLM02 Sensitive
-    Information Disclosure, LLM03 Supply Chain, LLM04 Data and Model Poisoning, LLM05 Improper Output
-    Handling, LLM06 Excessive Agency, LLM07 System Prompt Leakage, LLM08 Vector and Embedding Weaknesses,
+    verified on the official index and in the PDF (read 2026-10-15; not stored in the repo because CC
+    BY-SA content is not allowed there; URL only). Each obligation here restates one item as a duty to
+    address the risk, with article_ref LLM01:2025 to LLM10:2025. Titles: LLM01 Prompt Injection, LLM02
+    Sensitive Information Disclosure, LLM03 Supply Chain, LLM04 Data and Model Poisoning, LLM05 Improper
+    Output Handling, LLM06 Excessive Agency, LLM07 System Prompt Leakage, LLM08 Vector and Embedding Weaknesses,
     LLM09 Misinformation, LLM10 Unbounded Consumption.'
 obligations:
 - id: INTL-OWASPLLM-2025-LLM01-01
@@ -72,7 +71,10 @@ obligations:
   - alert log from the pre-filter
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-OWASPLLM-2025-LLM02-01
   article_ref: LLM02:2025 Sensitive Information Disclosure
@@ -108,7 +110,10 @@ obligations:
   - bulk-read thresholds
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-OWASPLLM-2025-LLM03-01
   article_ref: LLM03:2025 Supply Chain
@@ -138,7 +143,10 @@ obligations:
   - vendor assessment
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: Supervisor does not scan model files or packages.
 - id: INTL-OWASPLLM-2025-LLM04-01
@@ -165,7 +173,10 @@ obligations:
   - drift reports
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: Supervisor sees runtime behaviour only, not training data.
 - id: INTL-OWASPLLM-2025-LLM05-01
@@ -203,7 +214,10 @@ obligations:
   - gate decision log
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
   notes: Covers money and credit tool arguments only; other output paths (HTML, SQL) are in the agent's
     own code.
@@ -264,7 +278,10 @@ obligations:
   - list of actions needing prior approval
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
   notes: A Supervisor pause is not pre-execution human approval (Decision 33), so pre_execution_approval
     stays with the bank.
@@ -287,7 +304,10 @@ obligations:
   - prompt review record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: Gateway rules live outside the prompt, which is the recommended design, but they do not detect
     leakage.
@@ -312,7 +332,10 @@ obligations:
   - content validation record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-OWASPLLM-2025-LLM09-01
   article_ref: LLM09:2025 Misinformation
@@ -342,7 +365,10 @@ obligations:
   - groundedness sample results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-OWASPLLM-2025-LLM10-01
   article_ref: LLM10:2025 Unbounded Consumption
@@ -376,6 +402,9 @@ obligations:
   - usage and cost reports
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf
+    title: OWASP Top 10 for LLM Applications 2025, PDF v2025 (18 November 2024), CC BY-SA 4.0
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: Token and cost quotas are set at the model provider or API gateway, not by Supervisor.

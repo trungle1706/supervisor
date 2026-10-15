@@ -25,13 +25,11 @@ instrument:
       source: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
       verification: VERIFIED_PRIMARY
   sources:
-  - &id001
-    url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
     title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
     fetched_at: '2026-10-15'
     kind: primary
-  - &id002
-    url: https://atlas.mitre.org/techniques
+  - url: https://atlas.mitre.org/techniques
     title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
       the data file)
     fetched_at: '2026-10-15'
@@ -70,8 +68,15 @@ obligations:
   - injection test results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-ATLAS-T0054-01
   article_ref: AML.T0054 LLM Jailbreak
@@ -100,8 +105,15 @@ obligations:
   - jailbreak test results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: Supervisor gates tool calls, so a jailbroken chat reply that calls no tool is outside its gate.
 - id: INTL-ATLAS-T0057-01
@@ -130,8 +142,15 @@ obligations:
   - leakage test results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-ATLAS-T0053-01
   article_ref: AML.T0053 AI Agent Tool Invocation
@@ -173,8 +192,15 @@ obligations:
   - limit settings
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-ATLAS-T0086-01
   article_ref: AML.T0086 Exfiltration via AI Agent Tool Invocation
@@ -207,8 +233,15 @@ obligations:
   - egress-capable tool list
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-ATLAS-T0080-01
   article_ref: AML.T0080 AI Agent Context Poisoning (.000 Memory)
@@ -238,8 +271,15 @@ obligations:
   - drift reports
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: low
 - id: INTL-ATLAS-T0070-01
   article_ref: AML.T0070 RAG Poisoning
@@ -263,8 +303,15 @@ obligations:
   - RAG source validation record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: low
 - id: INTL-ATLAS-T0010-01
   article_ref: AML.T0010 AI Supply Chain Compromise
@@ -289,8 +336,15 @@ obligations:
   - supply chain inventory
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-ATLAS-T0110-01
   article_ref: AML.T0110 AI Agent Tool Poisoning
@@ -315,8 +369,15 @@ obligations:
   - tool integrity review
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-ATLAS-T0056-01
   article_ref: AML.T0056 Extract LLM System Prompt
@@ -336,8 +397,15 @@ obligations:
   - prompt review record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-ATLAS-T0034-01
   article_ref: AML.T0034 Cost Harvesting
@@ -362,6 +430,13 @@ obligations:
   - usage and cost reports
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.09.yaml
+    title: MITRE ATLAS data release 2026.09 (atlas-data repository, v6 format, modified 2026-09-15)
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://atlas.mitre.org/techniques
+    title: MITRE ATLAS techniques (site; page itself returned HTTP 404 to the fetch tool, ids read from
+      the data file)
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: low

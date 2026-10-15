@@ -42,6 +42,11 @@ CONTROL_VOCAB = {"monitor": "monitors", "console": "console", "evidence": "evide
 SOURCE_DIRS = (("vn", "VN-"), ("intl", "INTL-"))
 
 
+def _today() -> dt.date:
+    """Check date for in_force / issued against dates.effective (tests patch this)."""
+    return dt.date.today()
+
+
 def _load_yaml(path: Path) -> Any:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
@@ -282,6 +287,20 @@ class _Loader:
                 self.obligations[ob.id] = ob
 
     # ---- rules ----------------------------------------------------------------------
+    def check_timing(self, rel: str, ident: str, status: str, dates: Dates) -> None:
+        """in_force before the effective date is an error; issued after it is a warning."""
+        eff = dates.effective.date if dates.effective is not None else None
+        if not eff:
+            return
+        today = _today().isoformat()
+        if status == "in_force" and eff > today:
+            self.sem(rel, ident, f"status in_force but effective date {eff} is after {today}")
+        elif status == "issued" and eff <= today:
+            self.warnings.append(
+                f"{rel}: {ident}: status issued but effective date {eff} has passed; "
+                "check the text and set in_force"
+            )
+
     def sem(self, rel: str, ident: str, message: str) -> None:
         self.semantic_errors.append(f"{rel}: {ident}: {message}")
 
@@ -295,6 +314,7 @@ class _Loader:
             sem("a draft instrument cannot have status in_force or issued")
         if inst.status in ("reference", "draft") and inst.binding:
             sem(f"status {inst.status} requires binding false")
+        self.check_timing(inst.file, inst.id, inst.status, inst.dates)
         if inst.verification == "VERIFIED_PRIMARY" and not any(
             s.kind == "primary" for s in inst.sources
         ):
@@ -310,6 +330,7 @@ class _Loader:
             sem("an obligation of a draft instrument cannot have status in_force or issued")
         if ob.status in ("reference", "draft") and ob.binding:
             sem(f"status {ob.status} requires binding false")
+        self.check_timing(ob.file, ob.id, ob.status, ob.dates)
         for duty in ob.duties:
             if duty not in self.vocab.duties:
                 sem(f"unknown duty {duty!r} (add it to regulations/schema/duties.yaml)")

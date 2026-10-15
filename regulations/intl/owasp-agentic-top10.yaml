@@ -24,14 +24,12 @@ instrument:
     title: 'OWASP GenAI Security Project: OWASP Top 10 for Agentic Applications for 2026'
     fetched_at: '2026-10-15'
     kind: primary
-  - &id001
-    url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
     title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
       with one-line examples)'
     fetched_at: '2026-10-15'
     kind: primary
-  - &id002
-    url: https://cycode.com/blog/owasp-top-10-agentic-applications/
+  - url: https://cycode.com/blog/owasp-top-10-agentic-applications/
     title: 'Cycode: OWASP Top 10 for Agentic Applications (full item titles)'
     fetched_at: '2026-10-15'
     kind: secondary
@@ -77,7 +75,11 @@ obligations:
   - alerts
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-OWASPASI-2026-ASI02-01
   article_ref: ASI02 Tool Misuse (and Exploitation)
@@ -131,8 +133,15 @@ obligations:
   - limit settings
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://cycode.com/blog/owasp-top-10-agentic-applications/
+    title: 'Cycode: OWASP Top 10 for Agentic Applications (full item titles)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: Short name 'Tool Misuse' is from OWASP's announcement; the long title is from a secondary page.
 - id: INTL-OWASPASI-2026-ASI03-01
@@ -162,7 +171,11 @@ obligations:
   - agent identity and privilege inventory
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-OWASPASI-2026-ASI04-01
   article_ref: ASI04 Agentic Supply Chain Vulnerabilities
@@ -192,7 +205,11 @@ obligations:
   - vendor review
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-OWASPASI-2026-ASI05-01
   article_ref: ASI05 Unexpected Code Execution (RCE)
@@ -218,7 +235,11 @@ obligations:
   - tool list showing no code execution
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-OWASPASI-2026-ASI06-01
   article_ref: ASI06 Memory & Context Poisoning
@@ -248,7 +269,11 @@ obligations:
   - drift reports
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: low
   notes: Supervisor does not read agent memory directly.
 - id: INTL-OWASPASI-2026-ASI07-01
@@ -278,7 +303,11 @@ obligations:
   - inter-agent protocol review
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-OWASPASI-2026-ASI08-01
   article_ref: ASI08 Cascading Failures
@@ -313,7 +342,11 @@ obligations:
   - incident drill record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-OWASPASI-2026-ASI09-01
   article_ref: ASI09 Human-Agent Trust Exploitation
@@ -347,7 +380,11 @@ obligations:
   - reviewer training record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-OWASPASI-2026-ASI10-01
   article_ref: ASI10 Rogue Agents
@@ -383,5 +420,9 @@ obligations:
   - chain verification report
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/
+    title: 'OWASP announcement, 9 Dec 2025: OWASP Top 10 for Agentic Applications (lists ASI01 to ASI10
+      with one-line examples)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high

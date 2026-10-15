@@ -63,22 +63,19 @@ instrument:
   - VN-TT09-2020
   - VN-LCI-2024
   sources:
-  - &id001
-    url: https://vbpl.vn/van-ban/chi-tiet/171687
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
     title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
     fetched_at: '2026-10-15'
     kind: primary
     sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
     local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
-  - &id004
-    url: https://vbpl.vn/van-ban/chi-tiet/171687
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
     title: Circular 50/2024/TT-NHNN with Appendices 01-04 (DOCX attachment on vbpl.vn, text extracted)
     fetched_at: '2026-10-15'
     kind: primary
     sha256: d2dfc4800134dc09be7e428108965059eff0da7e7f657735383e2400926285fe
     local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn-with-appendices.txt
-  - &id005
-    url: https://vbpl.vn/van-ban/chi-tiet/186058
+  - url: https://vbpl.vn/van-ban/chi-tiet/186058
     title: Circular 77/2025/TT-NHNN amending Circular 50/2024 (vbpl.vn)
     fetched_at: '2026-10-15'
     kind: primary
@@ -121,7 +118,7 @@ obligations:
   duties:
   - system_classification
   - robustness_security
-  applies_to: &id002
+  applies_to:
     agent_class:
     - payment
     - customer_facing
@@ -138,22 +135,41 @@ obligations:
   - Security-level approval for the online channel and the agent platform
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
 - id: VN-TT50-2024-A3.3-01
   article_ref: Art. 3(3)
-  text_vi: |-
-    3. Các giao dịch của khách hàng được phân loại và đánh giá mức độ rủi ro tối thiểu theo: nhóm khách hàng, hành vi sử dụng của khách hàng, loại giao dịch, hạn mức giao dịch (nếu có) và tuân thủ các quy định của pháp luật liên quan. Trên cơ sở đó, đơn vị cung cấp các hình thức xác nhận giao dịch phù hợp cho khách hàng lựa chọn, tuân thủ tối thiểu các quy định sau:
-    a) Áp dụng tối thiểu một trong các hình thức xác nhận quy định tại khoản 3, khoản 4, khoản 5, khoản 7, khoản 8, khoản 9 Điều 11 Thông tư này khi thay đổi thông tin định danh khách hàng;
-    b) Áp dụng tối thiểu một hoặc kết hợp các hình thức xác nhận giao dịch theo quy định tại Thông tư này; Trường hợp văn bản quy phạm pháp luật hướng dẫn về các dịch vụ quy định tại khoản 1 Điều 1 Thông tư này có quy định về hình thức xác nhận giao dịch thì thực hiện theo văn bản quy phạm pháp luật đó;
-    c) Đối với giao dịch gồm nhiều bước, phải thực hiện xác nhận giao dịch tại bước phê duyệt cuối cùng.
+  text_vi: '3. Các giao dịch của khách hàng được phân loại và đánh giá mức độ rủi ro tối thiểu theo: nhóm
+    khách hàng, hành vi sử dụng của khách hàng, loại giao dịch, hạn mức giao dịch (nếu có) và tuân thủ
+    các quy định của pháp luật liên quan. Trên cơ sở đó, đơn vị cung cấp các hình thức xác nhận giao dịch
+    phù hợp cho khách hàng lựa chọn, tuân thủ tối thiểu các quy định sau:
+
+    a) Áp dụng tối thiểu một trong các hình thức xác nhận quy định tại khoản 3, khoản 4, khoản 5, khoản
+    7, khoản 8, khoản 9 Điều 11 Thông tư này khi thay đổi thông tin định danh khách hàng;
+
+    b) Áp dụng tối thiểu một hoặc kết hợp các hình thức xác nhận giao dịch theo quy định tại Thông tư
+    này; Trường hợp văn bản quy phạm pháp luật hướng dẫn về các dịch vụ quy định tại khoản 1 Điều 1 Thông
+    tư này có quy định về hình thức xác nhận giao dịch thì thực hiện theo văn bản quy phạm pháp luật đó;
+
+    c) Đối với giao dịch gồm nhiều bước, phải thực hiện xác nhận giao dịch tại bước phê duyệt cuối cùng.'
   summary_en: The bank must rate each transaction by customer group, behaviour, type and limit, and offer
     confirmation forms to match. A change of customer identity data needs a strong form. A multi-step
     transaction is confirmed at the final approval step.
   duties:
   - transaction_authentication
   - fraud_monitoring
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: rule
@@ -179,7 +195,12 @@ obligations:
   - Mapping of transaction types to confirmation forms
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
   notes: Point a of Art. 3(3) was replaced by Circular 77/2025 Art. 3 (see VN-TT50-2024-A3.3A-01).
 - id: VN-TT50-2024-A3.4-01
@@ -188,7 +209,13 @@ obligations:
   summary_en: The bank must test and assess the security of the Online Banking system every year.
   duties:
   - security_testing
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -199,21 +226,38 @@ obligations:
   - Yearly assessment report
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
 - id: VN-TT50-2024-A9-01
   article_ref: Art. 9(1)-(2)
-  text_vi: |-
-    1. Khách hàng đăng ký sử dụng phần mềm ứng dụng Online Banking phải được đơn vị nhận biết khách hàng và cấp tài khoản giao dịch điện tử. Tài khoản giao dịch điện tử gồm tên đăng nhập và tối thiểu một trong các hình thức xác nhận quy định tại khoản 1, khoản 2, khoản 3, khoản 4, khoản 5, khoản 6, khoản 7, khoản 8, khoản 9 Điều 11 Thông tư này.
+  text_vi: '1. Khách hàng đăng ký sử dụng phần mềm ứng dụng Online Banking phải được đơn vị nhận biết
+    khách hàng và cấp tài khoản giao dịch điện tử. Tài khoản giao dịch điện tử gồm tên đăng nhập và tối
+    thiểu một trong các hình thức xác nhận quy định tại khoản 1, khoản 2, khoản 3, khoản 4, khoản 5, khoản
+    6, khoản 7, khoản 8, khoản 9 Điều 11 Thông tư này.
+
     ...
-    2. Khách hàng truy cập phần mềm ứng dụng Online Banking bằng tài khoản giao dịch điện tử do đơn vị cấp hoặc truy cập bằng hình thức đăng nhập một lần (Single Sign On) thông qua tài khoản giao dịch điện tử của hệ thống thông tin khác đã được đơn vị tích hợp và theo đăng ký của khách hàng.
+
+    2. Khách hàng truy cập phần mềm ứng dụng Online Banking bằng tài khoản giao dịch điện tử do đơn vị
+    cấp hoặc truy cập bằng hình thức đăng nhập một lần (Single Sign On) thông qua tài khoản giao dịch
+    điện tử của hệ thống thông tin khác đã được đơn vị tích hợp và theo đăng ký của khách hàng.'
   summary_en: A customer must be identified and given an e-transaction account (user name and at least
     one confirmation form) before using Online Banking. Single sign-on is allowed if the bank has integrated
     it and the customer registered it.
   duties:
   - transaction_authentication
   - access_control
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -224,24 +268,46 @@ obligations:
   - Customer identification record for each e-account
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: medium
 - id: VN-TT50-2024-A10.1-01
   article_ref: Art. 10(1)
-  text_vi: |-
-    1. Đối với giao dịch thanh toán trực tuyến:
-    a) Đối với giao dịch thanh toán sử dụng tài khoản thanh toán hoặc ví điện tử hoặc giao dịch chuyển tiền từ thẻ ghi nợ, thẻ trả trước định danh, đơn vị thực hiện phân loại giao dịch theo các nhóm loại hình giao dịch quy định tại Phụ lục 01 ban hành kèm theo Thông tư này và áp dụng hình thức xác nhận quy định tại Phụ lục 02 ban hành kèm theo Thông tư này, trừ quy định tại điểm b, điểm c, điểm d và điểm đ khoản này;
-    b) Đối với giao dịch thanh toán thực hiện bằng phương thức xử lý xuyên suốt, đơn vị thực hiện xác nhận giao dịch tối thiểu bằng một trong các hình thức xác nhận quy định tại khoản 7, khoản 8, khoản 9 Điều 11 Thông tư này;
-    c) Đối với các giao dịch thanh toán thẻ trực tuyến (không bao gồm giao dịch chuyển tiền), đơn vị thực hiện phân loại giao dịch theo các nhóm loại hình giao dịch quy định tại Phụ lục 03 ban hành kèm theo Thông tư này và áp dụng các hình thức xác nhận quy định tại Phụ lục 04 ban hành kèm theo Thông tư này;
-    d) Đối với các giao dịch mà đơn vị chủ động trích Nợ tài khoản thanh toán, chủ động trích Nợ ví điện tử, chủ động thanh toán từ thẻ của khách hàng theo thỏa thuận với khách hàng, không phải áp dụng xác nhận giao dịch quy định tại điểm a, điểm c khoản 1 Điều này;
-    đ) Đối với các giao dịch thanh toán trực tuyến trên Cổng Dịch vụ công quốc gia, nộp tiền vào ngân sách nhà nước, không bắt buộc phải áp dụng xác nhận giao dịch quy định tại điểm a, điểm c khoản 1 Điều này.
+  text_vi: '1. Đối với giao dịch thanh toán trực tuyến:
+
+    a) Đối với giao dịch thanh toán sử dụng tài khoản thanh toán hoặc ví điện tử hoặc giao dịch chuyển
+    tiền từ thẻ ghi nợ, thẻ trả trước định danh, đơn vị thực hiện phân loại giao dịch theo các nhóm loại
+    hình giao dịch quy định tại Phụ lục 01 ban hành kèm theo Thông tư này và áp dụng hình thức xác nhận
+    quy định tại Phụ lục 02 ban hành kèm theo Thông tư này, trừ quy định tại điểm b, điểm c, điểm d và
+    điểm đ khoản này;
+
+    b) Đối với giao dịch thanh toán thực hiện bằng phương thức xử lý xuyên suốt, đơn vị thực hiện xác
+    nhận giao dịch tối thiểu bằng một trong các hình thức xác nhận quy định tại khoản 7, khoản 8, khoản
+    9 Điều 11 Thông tư này;
+
+    c) Đối với các giao dịch thanh toán thẻ trực tuyến (không bao gồm giao dịch chuyển tiền), đơn vị thực
+    hiện phân loại giao dịch theo các nhóm loại hình giao dịch quy định tại Phụ lục 03 ban hành kèm theo
+    Thông tư này và áp dụng các hình thức xác nhận quy định tại Phụ lục 04 ban hành kèm theo Thông tư
+    này;
+
+    d) Đối với các giao dịch mà đơn vị chủ động trích Nợ tài khoản thanh toán, chủ động trích Nợ ví điện
+    tử, chủ động thanh toán từ thẻ của khách hàng theo thỏa thuận với khách hàng, không phải áp dụng xác
+    nhận giao dịch quy định tại điểm a, điểm c khoản 1 Điều này;
+
+    đ) Đối với các giao dịch thanh toán trực tuyến trên Cổng Dịch vụ công quốc gia, nộp tiền vào ngân
+    sách nhà nước, không bắt buộc phải áp dụng xác nhận giao dịch quy định tại điểm a, điểm c khoản 1
+    Điều này.'
   summary_en: For online payments from an account, e-wallet or debit card, the bank sorts the transaction
     into types A to D by value (Appendix 01) and applies at least the confirmation form for that type
     (Appendix 02). Bank-initiated debits agreed with the customer are exempt.
   duties:
   - transaction_authentication
   - transaction_limits
-  applies_to: &id003
+  applies_to:
     agent_class:
     - payment
     data_classes:
@@ -279,16 +345,26 @@ obligations:
   - Test cases per type
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
   notes: Point a of Art. 10(1) was amended by Circular 77/2025 Art. 6 (mobile-money accounts added). Amended
     Arts. 3 and 10 apply from 2026-07-01 for units serving individuals.
 - id: VN-TT50-2024-APP02-01
   article_ref: Appendix 01 group I.3 and Appendix 02 type C (individuals), as replaced by Circular 77/2025
-  text_vi: |-
-    Giao dịch thỏa mãn một trong các trường hợp sau: 1. Trường hợp 1: Giao dịch thỏa mãn các điều kiện: (i) G ≤ 10 triệu VND. (ii) G + Tksth > 20 triệu VND. (iii) G + T ≤ 1,5 tỷ VND. 2. Trường hợp 2: Giao dịch thỏa mãn các điều kiện: (i) G > 10 triệu VND. (ii) G ≤ 500 triệu VND. (iii) G + T ≤ 1,5 tỷ VND.
+  text_vi: 'Giao dịch thỏa mãn một trong các trường hợp sau: 1. Trường hợp 1: Giao dịch thỏa mãn các điều
+    kiện: (i) G ≤ 10 triệu VND. (ii) G + Tksth > 20 triệu VND. (iii) G + T ≤ 1,5 tỷ VND. 2. Trường hợp
+    2: Giao dịch thỏa mãn các điều kiện: (i) G > 10 triệu VND. (ii) G ≤ 500 triệu VND. (iii) G + T ≤ 1,5
+    tỷ VND.
+
     ...
-    - OTP gửi qua SMS/Voice hoặc Soft OTP/Token OTP loại cơ bản. - Và kết hợp khớp đúng thông tin sinh trắc học.
+
+    - OTP gửi qua SMS/Voice hoặc Soft OTP/Token OTP loại cơ bản. - Và kết hợp khớp đúng thông tin sinh
+    trắc học.'
   summary_en: 'For an individual customer who sends money to another account holder, bank or e-wallet:
     one transfer above 10 million VND, or a day total of earlier type A and B transfers plus this one
     above 20 million VND (with the day total up to 1.5 billion VND), is type C and needs an OTP (SMS/Voice,
@@ -299,7 +375,11 @@ obligations:
   - biometric_verification
   - transaction_authentication
   - transaction_limits
-  applies_to: *id003
+  applies_to:
+    agent_class:
+    - payment
+    data_classes:
+    - financial
   addressee: bank
   control_mapping:
   - kind: rule
@@ -338,8 +418,18 @@ obligations:
   - Biometric match logs
   verification: VERIFIED_PRIMARY
   sources:
-  - *id004
-  - *id005
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN with Appendices 01-04 (DOCX attachment on vbpl.vn, text extracted)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d2dfc4800134dc09be7e428108965059eff0da7e7f657735383e2400926285fe
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn-with-appendices.txt
+  - url: https://vbpl.vn/van-ban/chi-tiet/186058
+    title: Circular 77/2025/TT-NHNN amending Circular 50/2024 (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d1c5ec2da21aabaef33deaf4d495085a473bc709e2e1b6b863e1420d381fd6f5
+    local_path: regulations/sources/VN-TT50-2024/tt-77-2025-nhnn-amending.txt
   confidence: high
   notes: Thresholds verified verbatim from Appendix 01 group I.3 and Appendix 02 row C. Original (2025-01-01)
     Appendix 01 and the Circular 77 replacement (applies from 2026-07-01 to units serving individuals)
@@ -358,7 +448,13 @@ obligations:
   - biometric_verification
   - transaction_authentication
   - fraud_monitoring
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -373,7 +469,12 @@ obligations:
   - Channel log showing biometric match on profile changes
   verification: VERIFIED_PRIMARY
   sources:
-  - *id005
+  - url: https://vbpl.vn/van-ban/chi-tiet/186058
+    title: Circular 77/2025/TT-NHNN amending Circular 50/2024 (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d1c5ec2da21aabaef33deaf4d495085a473bc709e2e1b6b863e1420d381fd6f5
+    local_path: regulations/sources/VN-TT50-2024/tt-77-2025-nhnn-amending.txt
   confidence: high
   notes: An agent must not change phone, email or ID data without this step.
   dates:
@@ -384,20 +485,35 @@ obligations:
       note: 'Art. 12(2)-(3) of Circular 77/2025: Art. 3 applies from 2026-07-01 (units serving individuals)'
 - id: VN-TT50-2024-A8.6-01
   article_ref: Art. 8(6)
-  text_vi: |-
-    6. Đối với khách hàng cá nhân, phải có chức năng kiểm tra khách hàng khi khách hàng truy cập lần đầu hoặc khi khách hàng truy cập trên thiết bị khác với thiết bị đã truy cập phần mềm ứng dụng Mobile Banking lần gần nhất. Việc kiểm tra khách hàng tối thiểu bao gồm:
-    a) Khớp đúng SMS OTP hoặc Voice OTP thông qua số điện thoại đã được khách hàng đăng ký hoặc Soft OTP/Token OTP;
-    b) Khớp đúng thông tin sinh trắc học theo quy định tại khoản 5 Điều 11 Thông tư này trong trường hợp văn bản pháp luật chuyên ngành liên quan đến dịch vụ cung cấp trên phần mềm ứng dụng Mobile Banking có quy định thu thập, lưu trữ thông tin sinh trắc học của khách hàng.
+  text_vi: '6. Đối với khách hàng cá nhân, phải có chức năng kiểm tra khách hàng khi khách hàng truy cập
+    lần đầu hoặc khi khách hàng truy cập trên thiết bị khác với thiết bị đã truy cập phần mềm ứng dụng
+    Mobile Banking lần gần nhất. Việc kiểm tra khách hàng tối thiểu bao gồm:
+
+    a) Khớp đúng SMS OTP hoặc Voice OTP thông qua số điện thoại đã được khách hàng đăng ký hoặc Soft OTP/Token
+    OTP;
+
+    b) Khớp đúng thông tin sinh trắc học theo quy định tại khoản 5 Điều 11 Thông tư này trong trường hợp
+    văn bản pháp luật chuyên ngành liên quan đến dịch vụ cung cấp trên phần mềm ứng dụng Mobile Banking
+    có quy định thu thập, lưu trữ thông tin sinh trắc học của khách hàng.
+
     Mục 2
+
     XÁC NHẬN GIAO DỊCH ĐIỆN TỬ THÔNG
-    QUA HỆ THỐNG ONLINE BANKING
+
+    QUA HỆ THỐNG ONLINE BANKING'
   summary_en: 'For individual customers the Mobile Banking app must check the customer at first access
     and whenever the device differs from the last one: SMS or Voice OTP or Soft/Token OTP, and a biometric
     match where sector law requires biometrics to be collected.'
   duties:
   - biometric_verification
   - transaction_authentication
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -408,18 +524,37 @@ obligations:
   - Mobile app test showing the new-device check
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: medium
 - id: VN-TT50-2024-A11.5-01
   article_ref: Art. 11(5)
-  text_vi: |-
-    (i) Có độ chính xác được xác định theo tiêu chuẩn quốc tế như sau (hoặc tương đương): Có tỷ lệ từ chối sai < 5% với tỷ lệ chấp nhận sai < 0,01% theo tiêu chuẩn FIDO Biometric Requirement (áp dụng đối với tập mẫu tối thiểu 10.000 mẫu);
+  text_vi: '(i) Có độ chính xác được xác định theo tiêu chuẩn quốc tế như sau (hoặc tương đương): Có tỷ
+    lệ từ chối sai < 5% với tỷ lệ chấp nhận sai < 0,01% theo tiêu chuẩn FIDO Biometric Requirement (áp
+    dụng đối với tập mẫu tối thiểu 10.000 mẫu);
+
     ...
-    (ii) Có khả năng phát hiện tấn công giả mạo thông tin sinh trắc học của vật thể sống (Presentation Attack Detection - PAD) dựa trên các tiêu chuẩn quốc tế (như NIST Special Publication 800-63B Digital Identity Guidelines: Authentication and Lifecycle Management hoặc ISO 30107 - Biometric presentation attack detection hoặc FIDO Biometric Requirements) để phòng, chống gian lận, giả mạo khách hàng qua hình ảnh, video, mặt nạ 3D.
+
+    (ii) Có khả năng phát hiện tấn công giả mạo thông tin sinh trắc học của vật thể sống (Presentation
+    Attack Detection - PAD) dựa trên các tiêu chuẩn quốc tế (như NIST Special Publication 800-63B Digital
+    Identity Guidelines: Authentication and Lifecycle Management hoặc ISO 30107 - Biometric presentation
+    attack detection hoặc FIDO Biometric Requirements) để phòng, chống gian lận, giả mạo khách hàng qua
+    hình ảnh, video, mặt nạ 3D.
+
     ...
-    d) Trường hợp khách hàng xác nhận bằng hình thức khớp đúng thông tin sinh trắc học quá số lần sai liên tiếp do đơn vị quy định (nhưng không quá 10 lần): khóa chức năng thực hiện xác nhận giao dịch bằng hình thức khớp đúng thông tin sinh trắc học, chỉ mở khóa khi khách hàng yêu cầu và phải kiểm tra khách hàng trước khi thực hiện, bảo đảm chống gian lận, giả mạo;
+
+    d) Trường hợp khách hàng xác nhận bằng hình thức khớp đúng thông tin sinh trắc học quá số lần sai
+    liên tiếp do đơn vị quy định (nhưng không quá 10 lần): khóa chức năng thực hiện xác nhận giao dịch
+    bằng hình thức khớp đúng thông tin sinh trắc học, chỉ mở khóa khi khách hàng yêu cầu và phải kiểm
+    tra khách hàng trước khi thực hiện, bảo đảm chống gian lận, giả mạo;
+
     ...
-    đ) Thời gian thực hiện khớp đúng thông tin sinh trắc học tối đa 03 phút.
+
+    đ) Thời gian thực hiện khớp đúng thông tin sinh trắc học tối đa 03 phút.'
   summary_en: A face-biometric match must reach a false rejection rate under 5% at a false acceptance
     rate under 0.01% (FIDO biometric requirement, at least 10,000 samples), detect presentation attacks
     (photo, video, 3D mask), lock after a set number of failures (at most 10), and finish within 3 minutes.
@@ -443,7 +578,12 @@ obligations:
   - Lock-out configuration
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
 - id: VN-TT50-2024-A11.5C-01
   article_ref: Art. 11(5)(c) as replaced by Circular 77/2025
@@ -478,8 +618,18 @@ obligations:
   - PAD certificate
   verification: VERIFIED_PRIMARY
   sources:
-  - *id005
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/186058
+    title: Circular 77/2025/TT-NHNN amending Circular 50/2024 (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: d1c5ec2da21aabaef33deaf4d495085a473bc709e2e1b6b863e1420d381fd6f5
+    local_path: regulations/sources/VN-TT50-2024/tt-77-2025-nhnn-amending.txt
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
   dates:
     effective:
@@ -489,19 +639,30 @@ obligations:
       note: 'Art. 22(4) of Circular 50: point c of Art. 11(5) effective 2026-07-01'
 - id: VN-TT50-2024-A11.1-01
   article_ref: Art. 11(1), (3)(a)
-  text_vi: |-
-    a) Mã khóa bí mật có độ dài tối thiểu 08 ký tự và cấu tạo bao gồm tối thiểu các ký tự: số, chữ hoa, chữ thường;
+  text_vi: 'a) Mã khóa bí mật có độ dài tối thiểu 08 ký tự và cấu tạo bao gồm tối thiểu các ký tự: số,
+    chữ hoa, chữ thường;
+
     ...
-    b) Thời gian hiệu lực của mã khóa bí mật tối đa 12 tháng, đối với mã khóa bí mật được cấp phát mặc định lần đầu: thời gian hiệu lực tối đa là 30 ngày.
+
+    b) Thời gian hiệu lực của mã khóa bí mật tối đa 12 tháng, đối với mã khóa bí mật được cấp phát mặc
+    định lần đầu: thời gian hiệu lực tối đa là 30 ngày.
+
     ...
-    (ii) OTP có hiệu lực tối đa 05 phút.
+
+    (ii) OTP có hiệu lực tối đa 05 phút.'
   summary_en: 'Passwords need 8 or more characters with digits, upper and lower case, and expire within
     12 months (30 days if default). PIN: 6 or more digits. SMS and Email OTP live at most 5 minutes (Voice
     3, matrix card 2, Soft and Token OTP 2).'
   duties:
   - transaction_authentication
   - access_control
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -513,17 +674,34 @@ obligations:
   - OTP lifetime settings
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
 - id: VN-TT50-2024-A7.7-01
   article_ref: Art. 7(7)
-  text_vi: |-
-    7. Phần mềm ứng dụng Online Banking phải có chức năng lưu trữ trực tuyến thông tin về thiết bị thực hiện các giao dịch của khách hàng, nhật ký (log) giao dịch, nhật ký xác nhận giao dịch tối thiểu trong vòng 03 tháng và sao lưu tối thiểu 01 năm, trong đó gồm:
+  text_vi: '7. Phần mềm ứng dụng Online Banking phải có chức năng lưu trữ trực tuyến thông tin về thiết
+    bị thực hiện các giao dịch của khách hàng, nhật ký (log) giao dịch, nhật ký xác nhận giao dịch tối
+    thiểu trong vòng 03 tháng và sao lưu tối thiểu 01 năm, trong đó gồm:
+
     a) Thông tin định danh về thiết bị:
-    (i) Đối với thiết bị di động: thông tin để định danh duy nhất thiết bị (ví dụ như: số IMEI hoặc Serial hoặc WLAN MAC hoặc Android ID hoặc thông tin định danh khác);
-    (ii) Đối với máy tính: thông tin để định danh duy nhất máy tính (ví dụ như địa chỉ MAC hoặc kết hợp các thông tin liên quan đến máy tính để có thể định danh duy nhất máy tính).
-    b) Nhật ký (log) giao dịch tối thiểu gồm: mã giao dịch, mã khách hàng, thời gian khởi tạo giao dịch, loại giao dịch, giá trị giao dịch (nếu có);
-    c) Nhật ký (log) xác nhận giao dịch tối thiểu gồm: hình thức xác nhận giao dịch, thời gian xác nhận giao dịch. Trường hợp xác nhận giao dịch bằng hình thức khớp đúng thông tin sinh trắc học, đơn vị thực hiện lưu trữ thông tin sinh trắc học của khách hàng khi thực hiện giao dịch đối với tối thiểu 10 giao dịch gần nhất của khách hàng đó.
+
+    (i) Đối với thiết bị di động: thông tin để định danh duy nhất thiết bị (ví dụ như: số IMEI hoặc Serial
+    hoặc WLAN MAC hoặc Android ID hoặc thông tin định danh khác);
+
+    (ii) Đối với máy tính: thông tin để định danh duy nhất máy tính (ví dụ như địa chỉ MAC hoặc kết hợp
+    các thông tin liên quan đến máy tính để có thể định danh duy nhất máy tính).
+
+    b) Nhật ký (log) giao dịch tối thiểu gồm: mã giao dịch, mã khách hàng, thời gian khởi tạo giao dịch,
+    loại giao dịch, giá trị giao dịch (nếu có);
+
+    c) Nhật ký (log) xác nhận giao dịch tối thiểu gồm: hình thức xác nhận giao dịch, thời gian xác nhận
+    giao dịch. Trường hợp xác nhận giao dịch bằng hình thức khớp đúng thông tin sinh trắc học, đơn vị
+    thực hiện lưu trữ thông tin sinh trắc học của khách hàng khi thực hiện giao dịch đối với tối thiểu
+    10 giao dịch gần nhất của khách hàng đó.'
   summary_en: The online channel must keep device identity data, transaction logs and confirmation logs
     online for at least 3 months and backed up for at least 1 year. The logs hold transaction id, customer
     id, time, type and value, and the confirmation form and time.
@@ -531,7 +709,13 @@ obligations:
   - logging
   - record_keeping
   - retention
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: catalogue
@@ -551,21 +735,40 @@ obligations:
   - Sample transaction and confirmation logs
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
   notes: Supervisor events are an additional record; they do not replace the channel logs.
 - id: VN-TT50-2024-A7.10-01
   article_ref: Art. 7(6)(h), 7(10)
-  text_vi: |-
-    h) Có chức năng thông báo việc đăng nhập lần đầu phần mềm ứng dụng Online Banking hoặc việc đăng nhập phần mềm ứng dụng Online Banking trên thiết bị khác với thiết bị thực hiện đăng nhập phần mềm ứng dụng Online Banking lần gần nhất qua SMS hoặc các kênh khác do khách hàng đăng ký (điện thoại, thư điện tử…), ngoại trừ trường hợp khách hàng tổ chức: đăng nhập trên các thiết bị đã đăng ký sử dụng dịch vụ; hoặc đăng nhập sử dụng tối thiểu một trong các hình thức xác nhận quy định tại khoản 3, khoản 4, khoản 5, khoản 7, khoản 8, khoản 9 Điều 11 Thông tư này.
+  text_vi: 'h) Có chức năng thông báo việc đăng nhập lần đầu phần mềm ứng dụng Online Banking hoặc việc
+    đăng nhập phần mềm ứng dụng Online Banking trên thiết bị khác với thiết bị thực hiện đăng nhập phần
+    mềm ứng dụng Online Banking lần gần nhất qua SMS hoặc các kênh khác do khách hàng đăng ký (điện thoại,
+    thư điện tử…), ngoại trừ trường hợp khách hàng tổ chức: đăng nhập trên các thiết bị đã đăng ký sử
+    dụng dịch vụ; hoặc đăng nhập sử dụng tối thiểu một trong các hình thức xác nhận quy định tại khoản
+    3, khoản 4, khoản 5, khoản 7, khoản 8, khoản 9 Điều 11 Thông tư này.
+
     ...
-    10. Phần mềm ứng dụng Online Banking phải có chức năng thông báo cho khách hàng về các giao dịch phát sinh qua tin nhắn SMS hoặc thư điện tử hoặc phần mềm ứng dụng Mobile Banking hoặc các kênh liên lạc khác do khách hàng đăng ký.
+
+    10. Phần mềm ứng dụng Online Banking phải có chức năng thông báo cho khách hàng về các giao dịch phát
+    sinh qua tin nhắn SMS hoặc thư điện tử hoặc phần mềm ứng dụng Mobile Banking hoặc các kênh liên lạc
+    khác do khách hàng đăng ký.'
   summary_en: The channel must tell the customer by SMS, email, app or another registered channel about
     each first-time login or login from a new device, and about each transaction.
   duties:
   - consumer_information
   - fraud_monitoring
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -576,17 +779,30 @@ obligations:
   - Notification templates and send logs
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
   notes: Org customers have exceptions for registered devices.
 - id: VN-TT50-2024-A7.9-01
   article_ref: Art. 7(9)
-  text_vi: |-
-    9. Tổ chức phát hành thẻ có cung cấp dịch vụ thanh toán trực tuyến sử dụng thẻ ngân hàng, phải có phần mềm ứng dụng Online Banking có tối thiểu các tính năng sau:
+  text_vi: '9. Tổ chức phát hành thẻ có cung cấp dịch vụ thanh toán trực tuyến sử dụng thẻ ngân hàng,
+    phải có phần mềm ứng dụng Online Banking có tối thiểu các tính năng sau:
+
     a) Cho phép hoặc không cho phép thanh toán trực tuyến;
+
     b) Thiết lập hạn mức thanh toán trực tuyến sử dụng thẻ ngân hàng trong ngày;
-    c) Cho phép hoặc không cho phép thanh toán ở nước ngoài tại thiết bị chấp nhận thẻ tại điểm bán, máy giao dịch tự động;
-    d) Cho phép khách hàng đăng ký lựa chọn việc chủ động thực hiện xác nhận hoặc đồng ý để tổ chức phát hành thẻ thực hiện xác nhận đối với tất cả hoặc một phần giao dịch thanh toán trực tuyến sử dụng thẻ ngân hàng (giao dịch thanh toán thẻ trực tuyến) trong trường hợp sử dụng hình thức xác nhận theo quy định tại khoản 10 Điều 11 Thông tư này.
+
+    c) Cho phép hoặc không cho phép thanh toán ở nước ngoài tại thiết bị chấp nhận thẻ tại điểm bán, máy
+    giao dịch tự động;
+
+    d) Cho phép khách hàng đăng ký lựa chọn việc chủ động thực hiện xác nhận hoặc đồng ý để tổ chức phát
+    hành thẻ thực hiện xác nhận đối với tất cả hoặc một phần giao dịch thanh toán trực tuyến sử dụng thẻ
+    ngân hàng (giao dịch thanh toán thẻ trực tuyến) trong trường hợp sử dụng hình thức xác nhận theo quy
+    định tại khoản 10 Điều 11 Thông tư này.'
   summary_en: 'A card issuer offering online card payment must give the customer: switch online payment
     on or off, a daily online card payment limit, switch foreign payment at POS and ATM on or off, and
     the choice of own or issuer-run confirmation (EMV 3DS).'
@@ -617,21 +833,35 @@ obligations:
   - Screenshots of the card control functions
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: medium
 - id: VN-TT50-2024-A12.2-01
   article_ref: Art. 12(1)-(2)
-  text_vi: |-
-    1. Đơn vị phải phân công nhân sự giám sát, theo dõi hoạt động của hệ thống Online Banking, phát hiện và xử lý các sự cố kỹ thuật, các cuộc tấn công mạng.
+  text_vi: '1. Đơn vị phải phân công nhân sự giám sát, theo dõi hoạt động của hệ thống Online Banking,
+    phát hiện và xử lý các sự cố kỹ thuật, các cuộc tấn công mạng.
+
     ...
-    2. Đơn vị phải phân công nhân sự tiếp nhận thông tin, hỗ trợ khách hàng, kịp thời liên lạc với khách hàng khi phát hiện các giao dịch bất thường.
+
+    2. Đơn vị phải phân công nhân sự tiếp nhận thông tin, hỗ trợ khách hàng, kịp thời liên lạc với khách
+    hàng khi phát hiện các giao dịch bất thường.'
   summary_en: The bank must staff the monitoring of the online system and staff who can contact customers
     when abnormal transactions are found.
   duties:
   - fraud_monitoring
   - human_oversight
   - staff_competence
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: console
@@ -651,22 +881,39 @@ obligations:
   - Contact procedure for abnormal transactions
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: medium
 - id: VN-TT50-2024-A12.4-01
   article_ref: Art. 12(4), 13(2)(c)-(d)
-  text_vi: |-
-    4. Việc cấp phát, phân quyền tài khoản quản trị hệ thống Online Banking phải được theo dõi, giám sát bởi bộ phận độc lập với bộ phận cấp phát tài khoản.
+  text_vi: '4. Việc cấp phát, phân quyền tài khoản quản trị hệ thống Online Banking phải được theo dõi,
+    giám sát bởi bộ phận độc lập với bộ phận cấp phát tài khoản.
+
     ...
-    c) Việc sử dụng tài khoản có quyền quản trị phải được giới hạn trong khoảng thời gian đủ để thực hiện công việc và phải được thu hồi ngay sau khi kết thúc phiên làm việc;
+
+    c) Việc sử dụng tài khoản có quyền quản trị phải được giới hạn trong khoảng thời gian đủ để thực hiện
+    công việc và phải được thu hồi ngay sau khi kết thúc phiên làm việc;
+
     ...
-    d) Phải có biện pháp giám sát việc sử dụng tài khoản có quyền quản trị, giám sát và vận hành, có cảnh báo khi có tác động bất thường vào cơ sở dữ liệu, ứng dụng.
+
+    d) Phải có biện pháp giám sát việc sử dụng tài khoản có quyền quản trị, giám sát và vận hành, có cảnh
+    báo khi có tác động bất thường vào cơ sở dữ liệu, ứng dụng.'
   summary_en: Admin accounts of the online system must be granted under independent watch, used only for
     the time needed, and monitored with alerts on abnormal change to databases and applications.
   duties:
   - access_control
   - security_monitoring
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -681,21 +928,39 @@ obligations:
   - Privileged-access records with independent review
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
 - id: VN-TT50-2024-A14.5-01
   article_ref: Art. 14(5)-(6)
-  text_vi: |-
-    5. Thực hiện dò quét lỗ hổng, điểm yếu của hệ thống Online Banking tối thiểu mỗi năm một lần hoặc khi tiếp nhận được những thông tin liên quan đến lỗ hổng, điểm yếu mới. Đối với thành phần hệ thống kết nối trực tiếp với Internet thực hiện dò quét lỗ hổng, điểm yếu tối thiểu 03 tháng một lần. Đánh giá mức độ tác động, rủi ro của từng lỗ hổng, điểm yếu về mặt kỹ thuật được phát hiện của hệ thống và đưa ra phương án, kế hoạch xử lý.
+  text_vi: '5. Thực hiện dò quét lỗ hổng, điểm yếu của hệ thống Online Banking tối thiểu mỗi năm một lần
+    hoặc khi tiếp nhận được những thông tin liên quan đến lỗ hổng, điểm yếu mới. Đối với thành phần hệ
+    thống kết nối trực tiếp với Internet thực hiện dò quét lỗ hổng, điểm yếu tối thiểu 03 tháng một lần.
+    Đánh giá mức độ tác động, rủi ro của từng lỗ hổng, điểm yếu về mặt kỹ thuật được phát hiện của hệ
+    thống và đưa ra phương án, kế hoạch xử lý.
+
     ...
-    a) Đối với lỗ hổng bảo mật được đánh giá ở mức nghiêm trọng: trong vòng 01 ngày đối với thành phần hệ thống kết nối trực tiếp với Internet; trong vòng 01 tháng đối với các thành phần còn lại sau khi lỗ hổng được công bố hoặc phát hiện.
+
+    a) Đối với lỗ hổng bảo mật được đánh giá ở mức nghiêm trọng: trong vòng 01 ngày đối với thành phần
+    hệ thống kết nối trực tiếp với Internet; trong vòng 01 tháng đối với các thành phần còn lại sau khi
+    lỗ hổng được công bố hoặc phát hiện.'
   summary_en: The bank must scan for vulnerabilities at least yearly (every 3 months for internet-facing
     parts) and patch critical and high findings within 1 day for internet-facing parts, and within 1 month
     (critical) or 2 months (high) for others.
   duties:
   - security_testing
   - security_monitoring
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -707,7 +972,12 @@ obligations:
   - Patch log with dates
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
 - id: VN-TT50-2024-A15.1-01
   article_ref: Art. 15(1)
@@ -720,7 +990,13 @@ obligations:
   duties:
   - logging
   - security_monitoring
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: catalogue
@@ -740,7 +1016,12 @@ obligations:
   - Alert handling records
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
 - id: VN-TT50-2024-A15.2-01
   article_ref: Art. 15(2)
@@ -753,7 +1034,11 @@ obligations:
   duties:
   - fraud_monitoring
   - transaction_limits
-  applies_to: *id003
+  applies_to:
+    agent_class:
+    - payment
+    data_classes:
+    - financial
   addressee: bank
   control_mapping:
   - kind: rule
@@ -795,20 +1080,34 @@ obligations:
   - Alert samples and handling records
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
   notes: Supervisor sees only what the agent sends through the gateway. It does not see geography, device
     or failed logins.
 - id: VN-TT50-2024-A17-01
   article_ref: Art. 17(1), (3)
-  text_vi: |-
-    1. Đơn vị phải công bố thông tin về dịch vụ Online Banking, bảo đảm khách hàng có khả năng tiếp cận được thông tin trước hoặc ngay tại thời điểm đăng ký sử dụng dịch vụ, thông tin công bố tối thiểu gồm có:
-    a) Cách thức cung cấp dịch vụ, cách thức truy cập dịch vụ Online Banking ứng với từng phương tiện truy cập;
+  text_vi: '1. Đơn vị phải công bố thông tin về dịch vụ Online Banking, bảo đảm khách hàng có khả năng
+    tiếp cận được thông tin trước hoặc ngay tại thời điểm đăng ký sử dụng dịch vụ, thông tin công bố tối
+    thiểu gồm có:
+
+    a) Cách thức cung cấp dịch vụ, cách thức truy cập dịch vụ Online Banking ứng với từng phương tiện
+    truy cập;
+
     b) Hạn mức giao dịch (nếu có) và các hình thức xác nhận giao dịch;
+
     c) Các trang thiết bị cần thiết để sử dụng dịch vụ, điều kiện với các trang thiết bị được sử dụng;
+
     d) Các rủi ro liên quan đến việc sử dụng dịch vụ Online Banking.
+
     ...
-    3. Đơn vị không gửi tin nhắn SMS, thư điện tử cho khách hàng có nội dung chứa đường dẫn liên kết (Hyperlink) truy cập các trang tin điện tử, trừ trường hợp theo yêu cầu của khách hàng.
+
+    3. Đơn vị không gửi tin nhắn SMS, thư điện tử cho khách hàng có nội dung chứa đường dẫn liên kết (Hyperlink)
+    truy cập các trang tin điện tử, trừ trường hợp theo yêu cầu của khách hàng.'
   summary_en: Before or at sign-up the bank must publish how the service works, limits, confirmation forms,
     needed equipment and risks. It must not send SMS or email with web links unless the customer asks.
     A chat agent must not send such links.
@@ -833,16 +1132,25 @@ obligations:
   - Check that agent messages hold no hyperlinks
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: medium
   notes: Supervisor has no built-in rule that blocks hyperlinks in outbound messages (see PAY and SVC
     rule ids for content rules).
 - id: VN-TT50-2024-A18-01
   article_ref: Art. 18(2)-(3)
-  text_vi: |-
-    2. Đơn vị phải hướng dẫn khách hàng thực hiện các biện pháp bảo đảm an toàn, bảo mật khi sử dụng dịch vụ Online Banking, tối thiểu gồm các nội dung sau:
+  text_vi: '2. Đơn vị phải hướng dẫn khách hàng thực hiện các biện pháp bảo đảm an toàn, bảo mật khi sử
+    dụng dịch vụ Online Banking, tối thiểu gồm các nội dung sau:
+
     ...
-    3. Đơn vị phải cung cấp cho khách hàng thông tin về đầu mối tiếp nhận thông tin, số điện thoại đường dây nóng và chỉ dẫn cho khách hàng quy trình, cách thức phối hợp xử lý các lỗi và sự cố trong quá trình sử dụng dịch vụ Online Banking.
+
+    3. Đơn vị phải cung cấp cho khách hàng thông tin về đầu mối tiếp nhận thông tin, số điện thoại đường
+    dây nóng và chỉ dẫn cho khách hàng quy trình, cách thức phối hợp xử lý các lỗi và sự cố trong quá
+    trình sử dụng dịch vụ Online Banking.'
   summary_en: The bank must teach customers safe use (protect PIN and OTP, avoid public Wi-Fi, spot fake
     sites, report loss and fraud at once) and give a hotline and contact point.
   duties:
@@ -866,7 +1174,12 @@ obligations:
   - Hotline
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: medium
 - id: VN-TT50-2024-A19.2-01
   article_ref: Art. 19(2)
@@ -893,7 +1206,12 @@ obligations:
   - Storage encryption design
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
   notes: Agents and prompts must never carry such data.
 - id: VN-TT50-2024-A19.3-01
@@ -938,7 +1256,12 @@ obligations:
   - Access log review
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
 - id: VN-TT50-2024-A19.5-01
   article_ref: Art. 19(5)
@@ -973,21 +1296,35 @@ obligations:
   - Breach register with customer and SBV notices
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: high
   notes: No fixed hours here; Circular 09/2020 Art. 54 sets 24 hours for security incidents.
 - id: VN-TT50-2024-A20-01
   article_ref: Art. 20(1)
-  text_vi: |-
-    a) Thời hạn gửi báo cáo: Tối thiểu 10 ngày làm việc trước khi cung cấp chính thức dịch vụ Online Banking;
+  text_vi: 'a) Thời hạn gửi báo cáo: Tối thiểu 10 ngày làm việc trước khi cung cấp chính thức dịch vụ
+    Online Banking;
+
     ...
-    (iii) Các giải pháp kiểm tra khách hàng truy cập dịch vụ Online Banking; các hình thức xác nhận giao dịch áp dụng cho từng loại giao dịch và hạn mức giao dịch (nếu có);
+
+    (iii) Các giải pháp kiểm tra khách hàng truy cập dịch vụ Online Banking; các hình thức xác nhận giao
+    dịch áp dụng cho từng loại giao dịch và hạn mức giao dịch (nếu có);'
   summary_en: At least 10 working days before offering an Online Banking service officially, the bank
     must report to the SBV the access checks, the confirmation forms per transaction type and the limits.
   duties:
   - regulatory_reporting
   - registration
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+    data_classes:
+    - financial
+    - personal
   addressee: bank
   control_mapping:
   - kind: process
@@ -1002,5 +1339,10 @@ obligations:
   - Report filed 10 working days before launch
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/171687
+    title: Circular 50/2024/TT-NHNN full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 32a265f3b54f8d91d2d445baae0e03089a12abbb5694adce1a069b65c7acf2e8
+    local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   confidence: medium

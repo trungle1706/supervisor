@@ -25,13 +25,11 @@ instrument:
       source: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
       verification: VERIFIED_PRIMARY
   sources:
-  - &id001
-    url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
     title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
     fetched_at: '2026-10-15'
     kind: primary
-  - &id002
-    url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
     title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
     fetched_at: '2026-10-15'
     kind: primary
@@ -78,8 +76,16 @@ obligations:
   - validation and challenge records
   verification: ASSUMED
   sources:
-  - *id001
-  - *id002
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
   confidence: medium
   notes: 'Principle restated in SR 26-2 (read). '
 - id: INTL-SR117-2011-S4-01
@@ -110,8 +116,16 @@ obligations:
   - test results
   verification: ASSUMED
   sources:
-  - *id001
-  - *id002
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
   confidence: medium
   notes: 'Principle restated in SR 26-2 (read). '
 - id: INTL-SR117-2011-S5.1-01
@@ -136,8 +150,16 @@ obligations:
   - validation report
   verification: ASSUMED
   sources:
-  - *id001
-  - *id002
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
   confidence: medium
   notes: 'Principle restated in SR 26-2 (read). '
 - id: INTL-SR117-2011-S5.2-01
@@ -166,8 +188,16 @@ obligations:
   - monitoring reports
   verification: ASSUMED
   sources:
-  - *id001
-  - *id002
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
   confidence: medium
   notes: 'Principle restated in SR 26-2 (read). '
 - id: INTL-SR117-2011-S6.1-01
@@ -194,8 +224,16 @@ obligations:
   - committee minutes
   verification: ASSUMED
   sources:
-  - *id001
-  - *id002
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
   confidence: medium
   notes: 'Principle restated in SR 26-2 (read). '
 - id: INTL-SR117-2011-S6.2-01
@@ -225,8 +263,16 @@ obligations:
   - inventory export
   verification: ASSUMED
   sources:
-  - *id001
-  - *id002
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
   confidence: medium
   notes: 'Principle restated in SR 26-2 (read). '
 - id: INTL-SR117-2011-S6.3-01
@@ -256,8 +302,16 @@ obligations:
   - documentation set
   verification: ASSUMED
   sources:
-  - *id001
-  - *id002
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
   confidence: medium
   notes: 'Principle restated in SR 26-2 (read). '
 - id: INTL-SR117-2011-S7-01
@@ -287,7 +341,15 @@ obligations:
   - vendor model validation file
   verification: ASSUMED
   sources:
-  - *id001
-  - *id002
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602.htm
+    title: 'Federal Reserve SR 26-2: Revised Guidance on Model Risk Management (17 April 2026)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://www.federalreserve.gov/supervisionreg/srletters/SR2602a1.pdf
+    title: 'SR 26-2 attachment: Supervisory Guidance on Model Risk Management'
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 209ce4c14cea8aab3dc2f27bae1293efb6e1b60f9577a68d9595f85e4b94b0af
+    local_path: regulations/sources/INTL-SR117-2011/sr26-2-attachment.pdf
   confidence: medium
   notes: 'Principle restated in SR 26-2 (read). '

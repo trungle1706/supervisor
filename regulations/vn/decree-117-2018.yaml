@@ -24,8 +24,7 @@ instrument:
   related:
   - VN-LCI-2024
   sources:
-  - &id001
-    url: https://vbpl.vn/van-ban/chi-tiet/130985
+  - url: https://vbpl.vn/van-ban/chi-tiet/130985
     title: Decree 117/2018/ND-CP full text (vbpl.vn)
     fetched_at: '2026-10-15'
     kind: primary
@@ -52,7 +51,7 @@ obligations:
   duties:
   - customer_confidentiality
   - purpose_limitation
-  applies_to: &id003
+  applies_to:
     agent_class:
     - any
     data_classes:
@@ -84,8 +83,13 @@ obligations:
   - Internal confidentiality regulation
   - Evidence of who accessed customer data
   verification: VERIFIED_PRIMARY
-  sources: &id002
-  - *id001
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/130985
+    title: Decree 117/2018/ND-CP full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: fd91271d8853c5a3b51b7965b8eddf3bd09bfa164f86f5fbdb6571626a8c0f1b
+    local_path: regulations/sources/VN-DEC117-2018/nd-117-2018.txt
   confidence: high
 - id: VN-DEC117-2018-A4.2-01
   article_ref: Art. 4(2)
@@ -126,23 +130,43 @@ obligations:
   - Data-flow review showing no credentials, OTP or biometric templates reach agent or vendor
   - Masking test results
   verification: VERIFIED_PRIMARY
-  sources: *id002
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/130985
+    title: Decree 117/2018/ND-CP full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: fd91271d8853c5a3b51b7965b8eddf3bd09bfa164f86f5fbdb6571626a8c0f1b
+    local_path: regulations/sources/VN-DEC117-2018/nd-117-2018.txt
   confidence: high
   notes: Supervisor does not scan for passwords or biometric templates as a class; masking covers CCCD,
     phone, account and card numbers.
 - id: VN-DEC117-2018-A5.2-01
   article_ref: Art. 5(1)-(2)
-  text_vi: |-
-    1. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài căn cứ quy định của pháp luật, Nghị định này để ban hành quy định nội bộ về giữ bí mật, lưu trữ và cung cấp thông tin khách hàng và tổ chức thực hiện thống nhất trong tổ chức tín dụng, chi nhánh ngân hàng nước ngoài.
+  text_vi: '1. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài căn cứ quy định của pháp luật, Nghị định
+    này để ban hành quy định nội bộ về giữ bí mật, lưu trữ và cung cấp thông tin khách hàng và tổ chức
+    thực hiện thống nhất trong tổ chức tín dụng, chi nhánh ngân hàng nước ngoài.
+
     ...
-    2. Quy định nội bộ về giữ bí mật, lưu trữ và cung cấp thông tin khách hàng phải bao gồm tối thiểu các nội dung sau đây:
-    a) Quy trình, thủ tục tiếp nhận, xử lý và cung cấp thông tin khách hàng; quy trình, thủ tục lưu trữ, bảo vệ bí mật thông tin khách hàng;
-    b) Việc giám sát, kiểm tra và xử lý vi phạm quy định nội bộ về giữ bí mật, lưu trữ, cung cấp thông tin khách hàng;
-    c) Phân cấp thẩm quyền, quyền hạn, nghĩa vụ của các đơn vị, cá nhân trong việc giữ bí mật, lưu trữ và cung cấp thông tin khách hàng.
+
+    2. Quy định nội bộ về giữ bí mật, lưu trữ và cung cấp thông tin khách hàng phải bao gồm tối thiểu
+    các nội dung sau đây:
+
+    a) Quy trình, thủ tục tiếp nhận, xử lý và cung cấp thông tin khách hàng; quy trình, thủ tục lưu trữ,
+    bảo vệ bí mật thông tin khách hàng;
+
+    b) Việc giám sát, kiểm tra và xử lý vi phạm quy định nội bộ về giữ bí mật, lưu trữ, cung cấp thông
+    tin khách hàng;
+
+    c) Phân cấp thẩm quyền, quyền hạn, nghĩa vụ của các đơn vị, cá nhân trong việc giữ bí mật, lưu trữ
+    và cung cấp thông tin khách hàng.
+
     Chương II
+
     QUY ĐỊNH CỤ THỂ
+
     Mục 1
-    VIỆC GIỮ BÍ MẬT, CUNG CẤP THÔNG TIN KHÁCH HÀNG CHO CƠ QUAN NHÀ NƯỚC
+
+    VIỆC GIỮ BÍ MẬT, CUNG CẤP THÔNG TIN KHÁCH HÀNG CHO CƠ QUAN NHÀ NƯỚC'
   summary_en: The bank must issue an internal rule on confidentiality, storage and provision of customer
     information. It must cover the procedure, monitoring and handling of breaches, and the split of authority
     between units.
@@ -150,7 +174,12 @@ obligations:
   - internal_policy
   - customer_confidentiality
   - governance_accountability
-  applies_to: *id003
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
   addressee: bank
   control_mapping:
   - kind: process
@@ -165,14 +194,23 @@ obligations:
   - Internal rule covering agents and vendors
   - Monitoring reports
   verification: VERIFIED_PRIMARY
-  sources: *id002
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/130985
+    title: Decree 117/2018/ND-CP full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: fd91271d8853c5a3b51b7965b8eddf3bd09bfa164f86f5fbdb6571626a8c0f1b
+    local_path: regulations/sources/VN-DEC117-2018/nd-117-2018.txt
   confidence: high
 - id: VN-DEC117-2018-A11.1-01
   article_ref: Art. 11(1)
-  text_vi: |-
-    1. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài chỉ được cung cấp thông tin khách hàng cho tổ chức khác, cá nhân thuộc một trong các trường hợp sau đây:
-    a) Tổ chức khác, cá nhân có quyền yêu cầu tổ chức tín dụng, chi nhánh ngân hàng nước ngoài cung cấp thông tin khách hàng được quy định cụ thể tại bộ luật, luật, nghị quyết của Quốc hội.
-    b) Có chấp thuận của khách hàng bằng văn bản hoặc bằng hình thức khác theo thỏa thuận với khách hàng.
+  text_vi: '1. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài chỉ được cung cấp thông tin khách hàng
+    cho tổ chức khác, cá nhân thuộc một trong các trường hợp sau đây:
+
+    a) Tổ chức khác, cá nhân có quyền yêu cầu tổ chức tín dụng, chi nhánh ngân hàng nước ngoài cung cấp
+    thông tin khách hàng được quy định cụ thể tại bộ luật, luật, nghị quyết của Quốc hội.
+
+    b) Có chấp thuận của khách hàng bằng văn bản hoặc bằng hình thức khác theo thỏa thuận với khách hàng.'
   summary_en: The bank may give customer information to another organisation or person only if a code
     or law gives that party the right to ask, or the customer agrees. Giving data to an AI service outside
     the bank needs one of these two bases.
@@ -180,7 +218,12 @@ obligations:
   - customer_confidentiality
   - consent
   - lawful_basis
-  applies_to: *id003
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
   addressee: bank
   control_mapping:
   - kind: catalogue
@@ -198,7 +241,13 @@ obligations:
   evidence_needed:
   - Record of the lawful basis for each outward data flow
   verification: VERIFIED_PRIMARY
-  sources: *id002
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/130985
+    title: Decree 117/2018/ND-CP full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: fd91271d8853c5a3b51b7965b8eddf3bd09bfa164f86f5fbdb6571626a8c0f1b
+    local_path: regulations/sources/VN-DEC117-2018/nd-117-2018.txt
   confidence: medium
 - id: VN-DEC117-2018-A11.2-01
   article_ref: Art. 11(2)
@@ -228,17 +277,32 @@ obligations:
   evidence_needed:
   - Identity check before release of account data
   verification: VERIFIED_PRIMARY
-  sources: *id002
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/130985
+    title: Decree 117/2018/ND-CP full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: fd91271d8853c5a3b51b7965b8eddf3bd09bfa164f86f5fbdb6571626a8c0f1b
+    local_path: regulations/sources/VN-DEC117-2018/nd-117-2018.txt
   confidence: medium
 - id: VN-DEC117-2018-A14.2-01
   article_ref: Art. 14(2)
-  text_vi: |-
-    2. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài có trách nhiệm sau đây:
-    a) Cung cấp thông tin khách hàng trung thực, đầy đủ, kịp thời, đúng đối tượng và phạm vi thông tin được yêu cầu cung cấp;
-    b) Đảm bảo an toàn, bí mật thông tin khách hàng trong quá trình cung cấp, quản lý, sử dụng, lưu trữ thông tin khách hàng;
-    c) Giải quyết khiếu nại của khách hàng trong việc cung cấp thông tin khách hàng theo quy định của pháp luật;
-    d) Tổ chức giám sát, kiểm tra và xử lý vi phạm quy định nội bộ về giữ bí mật, lưu trữ, cung cấp thông tin khách hàng;
-    đ) Chịu trách nhiệm theo quy định của pháp luật đối với trường hợp vi phạm quy định của Nghị định này, pháp luật có liên quan.
+  text_vi: '2. Tổ chức tín dụng, chi nhánh ngân hàng nước ngoài có trách nhiệm sau đây:
+
+    a) Cung cấp thông tin khách hàng trung thực, đầy đủ, kịp thời, đúng đối tượng và phạm vi thông tin
+    được yêu cầu cung cấp;
+
+    b) Đảm bảo an toàn, bí mật thông tin khách hàng trong quá trình cung cấp, quản lý, sử dụng, lưu trữ
+    thông tin khách hàng;
+
+    c) Giải quyết khiếu nại của khách hàng trong việc cung cấp thông tin khách hàng theo quy định của
+    pháp luật;
+
+    d) Tổ chức giám sát, kiểm tra và xử lý vi phạm quy định nội bộ về giữ bí mật, lưu trữ, cung cấp thông
+    tin khách hàng;
+
+    đ) Chịu trách nhiệm theo quy định của pháp luật đối với trường hợp vi phạm quy định của Nghị định
+    này, pháp luật có liên quan.'
   summary_en: The bank must give customer information truthfully and in scope, keep it safe and secret
     during provision, management, use and storage, handle customer complaints about it, and monitor, inspect
     and punish breaches of its internal rule.
@@ -246,7 +310,12 @@ obligations:
   - customer_confidentiality
   - complaint_handling
   - security_monitoring
-  applies_to: *id003
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
   addressee: bank
   control_mapping:
   - kind: catalogue
@@ -269,7 +338,13 @@ obligations:
   - Inspection records
   - Complaint log on information use
   verification: VERIFIED_PRIMARY
-  sources: *id002
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/130985
+    title: Decree 117/2018/ND-CP full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: fd91271d8853c5a3b51b7965b8eddf3bd09bfa164f86f5fbdb6571626a8c0f1b
+    local_path: regulations/sources/VN-DEC117-2018/nd-117-2018.txt
   confidence: high
 - id: VN-DEC117-2018-A4.5-01
   article_ref: Art. 4(5)
@@ -281,7 +356,12 @@ obligations:
   duties:
   - record_keeping
   - retention
-  applies_to: *id003
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
   addressee: bank
   control_mapping:
   - kind: evidence
@@ -295,5 +375,11 @@ obligations:
   evidence_needed:
   - Retention schedule that covers agent logs
   verification: VERIFIED_PRIMARY
-  sources: *id002
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/130985
+    title: Decree 117/2018/ND-CP full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: fd91271d8853c5a3b51b7965b8eddf3bd09bfa164f86f5fbdb6571626a8c0f1b
+    local_path: regulations/sources/VN-DEC117-2018/nd-117-2018.txt
   confidence: medium

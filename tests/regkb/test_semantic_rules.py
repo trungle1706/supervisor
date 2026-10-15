@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 from pathlib import Path
 from typing import Any
@@ -229,3 +230,22 @@ def test_draft_instrument_issued(root: Path) -> None:
 def test_issued_binding_is_fine(root: Path) -> None:
     _replace(root, inst=instrument(status="issued"))
     assert load_kb(root).get(OID).status == "issued"
+
+
+def _eff(date: str) -> dict[str, Any]:
+    return {"effective": {"date": date, "source": "https://e.invalid/x", "verification": "ASSUMED"}}
+
+
+def test_in_force_before_effective_date_fails(root: Path, monkeypatch) -> None:
+    monkeypatch.setattr("supervisor.regkb.loader._today", lambda: dt.date(2026, 10, 15))
+    _replace(root, inst=instrument(status="in_force", dates=_eff("2026-11-15")))
+    err = _load_bad(root)
+    assert any("VN-TEST-2026" in e and "effective date 2026-11-15" in e for e in err.errors)
+
+
+def test_issued_warns_once_effective_date_passed(root: Path, monkeypatch) -> None:
+    _replace(root, inst=instrument(status="issued", dates=_eff("2026-11-15")))
+    monkeypatch.setattr("supervisor.regkb.loader._today", lambda: dt.date(2026, 10, 15))
+    assert not any("has passed" in w for w in load_kb(root).warnings)
+    monkeypatch.setattr("supervisor.regkb.loader._today", lambda: dt.date(2026, 12, 1))
+    assert any("has passed" in w for w in load_kb(root).warnings)

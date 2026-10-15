@@ -22,8 +22,7 @@ instrument:
       verification: ASSUMED
       note: principles for firms to consider; not prescriptive (para 2.2), no effective date
   sources:
-  - &id001
-    url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
     title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
       Use of AI and Data Analytics in Singapore''s Financial Sector'
     fetched_at: '2026-10-15'
@@ -71,7 +70,11 @@ obligations:
   - justification record for each personal attribute used
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASFEAT-2018-P3-01
   article_ref: 'Principles 3-4 (Fairness: accuracy and bias)'
@@ -104,7 +107,11 @@ obligations:
   - drift reports
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASFEAT-2018-P5-01
   article_ref: Principles 5-6 (Ethics)
@@ -131,7 +138,11 @@ obligations:
   - review of AI decisions against the same standard as human ones
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-MASFEAT-2018-P7-01
   article_ref: 'Principle 7 (Internal accountability: approval)'
@@ -160,7 +171,11 @@ obligations:
   - approval record per AI use case
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASFEAT-2018-P8-01
   article_ref: 'Principle 8 (Internal accountability: sourced models)'
@@ -186,7 +201,11 @@ obligations:
   - vendor oversight file
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASFEAT-2018-P9-01
   article_ref: 'Principle 9 (Internal accountability: board awareness)'
@@ -213,7 +232,11 @@ obligations:
   - board papers on AI use
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASFEAT-2018-P10-01
   article_ref: Principles 10-11 (External accountability)
@@ -242,7 +265,11 @@ obligations:
   - sample reviews
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASFEAT-2018-P12-01
   article_ref: 'Principle 12 (Transparency: disclosure)'
@@ -263,7 +290,11 @@ obligations:
   - public or in-channel AI notice
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASFEAT-2018-P13-01
   article_ref: 'Principles 13-14 (Transparency: explanations on request)'
@@ -292,5 +323,9 @@ obligations:
   - sample explanations
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/~/media/MAS/News%20and%20Publications/Monographs%20and%20Information%20Papers/FEAT%20Principles%20Final.pdf
+    title: 'MAS: Principles to Promote Fairness, Ethics, Accountability and Transparency (FEAT) in the
+      Use of AI and Data Analytics in Singapore''s Financial Sector'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high

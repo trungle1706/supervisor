@@ -1,5 +1,3 @@
-# WP13 RegKB instrument file. Generated from stored primary text; text_vi quotes are extracted verbatim from regulations/sources/.
-# Not legal advice. Bank counsel must confirm.
 schema_version: 1
 instrument:
   id: VN-DEC53-2022
@@ -50,13 +48,27 @@ instrument:
     sha256: 709099cd3b7bae0b0cba49de68b3722165bfe4ff4d50392483bfd769586108e4
     local_path: regulations/sources/VN-CYBER-2025/nghi-dinh-333-2026-nd-cp.txt
   - url: https://vbpl.vn/van-ban/chi-tiet/180306
-    title: vbpl.vn record 180306 still shows 'Con hieu luc' on 2026-10-15 (the index is not updated for this repeal)
+    title: vbpl.vn record 180306 still shows 'Con hieu luc' on 2026-10-15 (the index is not updated for
+      this repeal)
     fetched_at: '2026-10-15'
     kind: primary
   verification: ASSUMED
   primary_text_fetched: true
   last_checked: '2026-10-15'
-  notes: 'STATUS IS ASSUMED. Facts verified: the decree guides the 2018 Cybersecurity Law; that law ceased on 2026-07-01 (Law 116/2025 Art. 44(2)); Decree 333/2026/NĐ-CP (19 Aug 2026) guides the new law, covers the same subjects (storage Art. 19-20, incident response Art. 9, appraisal and assessment) and Art. 31 says dossiers lodged under Decree 53/2022 before 19 Aug 2026 and not yet resolved continue under it. Not verified: no express repeal clause for 53/2022 was found in 333/2026 (the text has none), and vbpl.vn still lists 53/2022 as in force. Reasoning: a decree that guides a lapsed law and was replaced by a new guiding decree is treated here as superseded. A possible gap 1 Jul to 19 Aug 2026 (where 53/2022 may still have applied) is not resolved. Set binding=false so the compliance agent does not use these items for new products; use VN-CYBER-2025 items A25.3-02 and A25.2B-01 instead. Rules that carry over unchanged: domestic firms store the listed data in Vietnam; 24-month minimum storage; 12-month log retention. Changes in 333/2026: relationship data (friends, groups) dropped from the list; foreign-firm trigger needs up to 3 written notices over at most 6 months; force majeure period 25 working days (was 30); online application and trade-like services added. Bank scope: neither decree names banks; ''online payment'' and ''payment intermediary'' are listed for FOREIGN firms only.'
+  notes: 'STATUS IS ASSUMED. Facts verified: the decree guides the 2018 Cybersecurity Law; that law ceased
+    on 2026-07-01 (Law 116/2025 Art. 44(2)); Decree 333/2026/NĐ-CP (19 Aug 2026) guides the new law, covers
+    the same subjects (storage Art. 19-20, incident response Art. 9, appraisal and assessment) and Art.
+    31 says dossiers lodged under Decree 53/2022 before 19 Aug 2026 and not yet resolved continue under
+    it. Not verified: no express repeal clause for 53/2022 was found in 333/2026 (the text has none),
+    and vbpl.vn still lists 53/2022 as in force. Reasoning: a decree that guides a lapsed law and was
+    replaced by a new guiding decree is treated here as superseded. A possible gap 1 Jul to 19 Aug 2026
+    (where 53/2022 may still have applied) is not resolved. Set binding=false so the compliance agent
+    does not use these items for new products; use VN-CYBER-2025 items A25.3-02 and A25.2B-01 instead.
+    Rules that carry over unchanged: domestic firms store the listed data in Vietnam; 24-month minimum
+    storage; 12-month log retention. Changes in 333/2026: relationship data (friends, groups) dropped
+    from the list; foreign-firm trigger needs up to 3 written notices over at most 6 months; force majeure
+    period 25 working days (was 30); online application and trade-like services added. Bank scope: neither
+    decree names banks; ''online payment'' and ''payment intermediary'' are listed for FOREIGN firms only.'
 obligations:
 - id: VN-DEC53-2022-A26.1-01
   article_ref: Art. 26(1)
@@ -64,10 +76,14 @@ obligations:
 
     a) Dữ liệu về thông tin cá nhân của người sử dụng dịch vụ tại Việt Nam;
 
-    b) Dữ liệu do người sử dụng dịch vụ tại Việt Nam tạo ra: Tên tài khoản sử dụng dịch vụ, thời gian sử dụng dịch vụ, thông tin thẻ tín dụng, địa chỉ thư điện tử, địa chỉ mạng (IP) đăng nhập, đăng xuất gần nhất, số điện thoại đăng ký được gắn với tài khoản hoặc dữ liệu;
+    b) Dữ liệu do người sử dụng dịch vụ tại Việt Nam tạo ra: Tên tài khoản sử dụng dịch vụ, thời gian
+    sử dụng dịch vụ, thông tin thẻ tín dụng, địa chỉ thư điện tử, địa chỉ mạng (IP) đăng nhập, đăng xuất
+    gần nhất, số điện thoại đăng ký được gắn với tài khoản hoặc dữ liệu;
 
-    c) Dữ liệu về mối quan hệ của người sử dụng dịch vụ tại Việt Nam: bạn bè, nhóm mà người sử dụng kết nối hoặc tương tác.'
-  summary_en: 'Data to be stored in Vietnam: users'' personal data, data users create (account name, usage time, credit card info, email, last login/logout IP, phone), and relationship data (friends, groups).'
+    c) Dữ liệu về mối quan hệ của người sử dụng dịch vụ tại Việt Nam: bạn bè, nhóm mà người sử dụng kết
+    nối hoặc tương tác.'
+  summary_en: 'Data to be stored in Vietnam: users'' personal data, data users create (account name, usage
+    time, credit card info, email, last login/logout IP, phone), and relationship data (friends, groups).'
   duties:
   - data_localisation
   applies_to:
@@ -94,7 +110,8 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: high
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes).
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes).
   status: superseded
 - id: VN-DEC53-2022-A26.2-01
   article_ref: Art. 26(2)
@@ -123,12 +140,28 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: high
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Same rule is Decree 333/2026 Art. 19(2).
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Same rule is Decree
+    333/2026 Art. 19(2).
   status: superseded
 - id: VN-DEC53-2022-A26.3-01
   article_ref: Art. 26(3)(a)
-  text_vi: 'a) Doanh nghiệp nước ngoài có hoạt động kinh doanh tại Việt Nam thuộc một trong những lĩnh vực sau: Dịch vụ viễn thông; lưu trữ, chia sẻ dữ liệu trên không gian mạng; cung cấp tên miền quốc gia hoặc quốc tế cho người sử dụng dịch vụ tại Việt Nam; thương mại điện tử; thanh toán trực tuyến; trung gian thanh toán; dịch vụ kết nối vận chuyển qua không gian mạng; mạng xã hội và truyền thông xã hội; trò chơi điện tử trên mạng; dịch vụ cung cấp, quản lý hoặc vận hành thông tin khác trên không gian mạng dưới dạng tin nhắn, cuộc gọi thoại, cuộc gọi video, thư điện tử, trò chuyện trực tuyến phải lưu trữ dữ liệu quy định tại khoản 1 Điều này và đặt chi nhánh hoặc văn phòng đại diện tại Việt Nam trong trường hợp dịch vụ do doanh nghiệp cung cấp bị sử dụng thực hiện hành vi vi phạm pháp luật về an ninh mạng đã được Cục An ninh mạng và phòng, chống tội phạm sử dụng công nghệ cao thuộc Bộ Công an thông báo và có yêu cầu phối hợp, ngăn chặn, điều tra, xử lý bằng văn bản nhưng không chấp hành, chấp hành không đầy đủ hoặc ngăn chặn, cản trở, vô hiệu hóa, làm mất tác dụng của biện pháp bảo vệ an ninh mạng do lực lượng chuyên trách bảo vệ an ninh mạng thực hiện;'
-  summary_en: Foreign firms in listed sectors (telecoms, data storage, e-commerce, online payment, payment intermediary, social media and others) must store the data and open a branch or office in Vietnam if their service is used for violations and they ignore the Ministry of Public Security's written request.
+  text_vi: 'a) Doanh nghiệp nước ngoài có hoạt động kinh doanh tại Việt Nam thuộc một trong những lĩnh
+    vực sau: Dịch vụ viễn thông; lưu trữ, chia sẻ dữ liệu trên không gian mạng; cung cấp tên miền quốc
+    gia hoặc quốc tế cho người sử dụng dịch vụ tại Việt Nam; thương mại điện tử; thanh toán trực tuyến;
+    trung gian thanh toán; dịch vụ kết nối vận chuyển qua không gian mạng; mạng xã hội và truyền thông
+    xã hội; trò chơi điện tử trên mạng; dịch vụ cung cấp, quản lý hoặc vận hành thông tin khác trên không
+    gian mạng dưới dạng tin nhắn, cuộc gọi thoại, cuộc gọi video, thư điện tử, trò chuyện trực tuyến phải
+    lưu trữ dữ liệu quy định tại khoản 1 Điều này và đặt chi nhánh hoặc văn phòng đại diện tại Việt Nam
+    trong trường hợp dịch vụ do doanh nghiệp cung cấp bị sử dụng thực hiện hành vi vi phạm pháp luật về
+    an ninh mạng đã được Cục An ninh mạng và phòng, chống tội phạm sử dụng công nghệ cao thuộc Bộ Công
+    an thông báo và có yêu cầu phối hợp, ngăn chặn, điều tra, xử lý bằng văn bản nhưng không chấp hành,
+    chấp hành không đầy đủ hoặc ngăn chặn, cản trở, vô hiệu hóa, làm mất tác dụng của biện pháp bảo vệ
+    an ninh mạng do lực lượng chuyên trách bảo vệ an ninh mạng thực hiện;'
+  summary_en: Foreign firms in listed sectors (telecoms, data storage, e-commerce, online payment, payment
+    intermediary, social media and others) must store the data and open a branch or office in Vietnam
+    if their service is used for violations and they ignore the Ministry of Public Security's written
+    request.
   duties:
   - data_localisation
   applies_to:
@@ -157,12 +190,17 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: medium
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Decree 333/2026 Art. 19(3)(a) now adds an 'after 3 notices and up to 6 months' step.
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Decree 333/2026 Art.
+    19(3)(a) now adds an 'after 3 notices and up to 6 months' step.
   status: superseded
 - id: VN-DEC53-2022-A26.6-01
   article_ref: Art. 26(6)(c)
-  text_vi: c) Trong thời hạn 12 tháng kể từ ngày Bộ trưởng Bộ Công an ra quyết định, các doanh nghiệp quy định tại điểm a khoản 3 Điều 26 của Nghị định này phải hoàn thành lưu trữ dữ liệu, đặt chi nhánh hoặc văn phòng đại diện tại Việt Nam.
-  summary_en: Foreign firms get 12 months from the Minister of Public Security's decision to finish local storage or open a branch.
+  text_vi: c) Trong thời hạn 12 tháng kể từ ngày Bộ trưởng Bộ Công an ra quyết định, các doanh nghiệp
+    quy định tại điểm a khoản 3 Điều 26 của Nghị định này phải hoàn thành lưu trữ dữ liệu, đặt chi nhánh
+    hoặc văn phòng đại diện tại Việt Nam.
+  summary_en: Foreign firms get 12 months from the Minister of Public Security's decision to finish local
+    storage or open a branch.
   duties:
   - data_localisation
   applies_to:
@@ -185,12 +223,15 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: medium
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes).
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes).
   status: superseded
 - id: VN-DEC53-2022-A27.1-01
   article_ref: Art. 27(1)
-  text_vi: 1. Thời gian lưu trữ dữ liệu theo quy định tại Điều 26 Nghị định này bắt đầu từ khi doanh nghiệp nhận được yêu cầu lưu trữ dữ liệu đến khi kết thúc yêu cầu. Thời gian lưu trữ tối thiểu là 24 tháng.
-  summary_en: Local storage runs from receipt of the request until the request ends; minimum storage period is 24 months.
+  text_vi: 1. Thời gian lưu trữ dữ liệu theo quy định tại Điều 26 Nghị định này bắt đầu từ khi doanh nghiệp
+    nhận được yêu cầu lưu trữ dữ liệu đến khi kết thúc yêu cầu. Thời gian lưu trữ tối thiểu là 24 tháng.
+  summary_en: Local storage runs from receipt of the request until the request ends; minimum storage period
+    is 24 months.
   duties:
   - data_localisation
   - retention
@@ -216,16 +257,20 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: high
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Same 24 months in Decree 333/2026 Art. 20(1).
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Same 24 months in
+    Decree 333/2026 Art. 20(1).
   status: superseded
 - id: VN-DEC53-2022-A27.3-01
   article_ref: Art. 27(3)
-  text_vi: 3. Nhật ký hệ thống để phục vụ điều tra, xử lý hành vi vi phạm pháp luật về an ninh mạng được quy định tại điểm b khoản 2 Điều 26 của Luật An ninh mạng được lưu trữ tối thiểu là 12 tháng.
-  summary_en: System logs kept for investigating cybersecurity violations (Law 2018 Art. 26(2)(b)) are stored at least 12 months.
+  text_vi: 3. Nhật ký hệ thống để phục vụ điều tra, xử lý hành vi vi phạm pháp luật về an ninh mạng được
+    quy định tại điểm b khoản 2 Điều 26 của Luật An ninh mạng được lưu trữ tối thiểu là 12 tháng.
+  summary_en: System logs kept for investigating cybersecurity violations (Law 2018 Art. 26(2)(b)) are
+    stored at least 12 months.
   duties:
   - logging
   - retention
-  applies_to: &id001
+  applies_to:
     agent_class:
     - any
   addressee: bank
@@ -250,7 +295,9 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: high
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Same 12 months in Decree 333/2026 Art. 20(3).
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Same 12 months in
+    Decree 333/2026 Art. 20(3).
   status: superseded
 - id: VN-DEC53-2022-A9-01
   article_ref: Art. 9(1)-(2)
@@ -258,12 +305,18 @@ obligations:
 
     ...
 
-    2. Nhân sự phụ trách về vận hành, quản trị hệ thống và bảo vệ an ninh mạng phải có trình độ chuyên môn về an ninh mạng, an toàn thông tin mạng, công nghệ thông tin; có cam kết bảo mật thông tin liên quan đến hệ thống thông tin quan trọng về an ninh quốc gia trong quá trình làm việc và sau khi nghỉ việc.'
-  summary_en: Owners of systems important to national security need a unit for operation, administration and protection, with qualified, confidentiality-bound staff.
+    2. Nhân sự phụ trách về vận hành, quản trị hệ thống và bảo vệ an ninh mạng phải có trình độ chuyên
+    môn về an ninh mạng, an toàn thông tin mạng, công nghệ thông tin; có cam kết bảo mật thông tin liên
+    quan đến hệ thống thông tin quan trọng về an ninh quốc gia trong quá trình làm việc và sau khi nghỉ
+    việc.'
+  summary_en: Owners of systems important to national security need a unit for operation, administration
+    and protection, with qualified, confidentiality-bound staff.
   duties:
   - governance_accountability
   - staff_competence
-  applies_to: *id001
+  applies_to:
+    agent_class:
+    - any
   addressee: bank
   control_mapping:
   - kind: process
@@ -283,7 +336,9 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: medium
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Applies only to listed systems.
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Applies only to listed
+    systems.
   status: superseded
 - id: VN-DEC53-2022-A11.1-01
   article_ref: Art. 11(1)(a), 11(2)
@@ -291,13 +346,19 @@ obligations:
 
     ...
 
-    2. Dữ liệu của hệ thống thông tin quan trọng về an ninh quốc gia phải có phương án tự động sao lưu dự phòng phù hợp ra phương tiện lưu trữ ngoài với tần suất thay đổi của dữ liệu và bảo đảm nguyên tắc dữ liệu phát sinh phải được sao lưu trong vòng 24 giờ. Dữ liệu sao lưu dự phòng phải được kiểm tra, bảo đảm khả năng khôi phục định kỳ 6 tháng một lần.'
-  summary_en: Production environment of a national-security-important system is separate from development and test, and data is auto-backed up to external media so new data is backed up within 24 hours.
+    2. Dữ liệu của hệ thống thông tin quan trọng về an ninh quốc gia phải có phương án tự động sao lưu
+    dự phòng phù hợp ra phương tiện lưu trữ ngoài với tần suất thay đổi của dữ liệu và bảo đảm nguyên
+    tắc dữ liệu phát sinh phải được sao lưu trong vòng 24 giờ. Dữ liệu sao lưu dự phòng phải được kiểm
+    tra, bảo đảm khả năng khôi phục định kỳ 6 tháng một lần.'
+  summary_en: Production environment of a national-security-important system is separate from development
+    and test, and data is auto-backed up to external media so new data is backed up within 24 hours.
   duties:
   - change_control
   - business_continuity
   - robustness_security
-  applies_to: *id001
+  applies_to:
+    agent_class:
+    - any
   addressee: bank
   control_mapping:
   - kind: process
@@ -318,16 +379,25 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: medium
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Applies only to listed systems.
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Applies only to listed
+    systems.
   status: superseded
 - id: VN-DEC53-2022-A17-01
   article_ref: Art. 17(1)(b)
-  text_vi: b) Chủ quản hệ thống thông tin quan trọng về an ninh quốc gia có trách nhiệm thực hiện các biện pháp theo hướng dẫn và các biện pháp phù hợp khác để ngăn chặn, xử lý, khắc phục hậu quả ngay sau khi nhận được thông báo, trừ quy định tại điểm c khoản này. Trường hợp vượt quá khả năng xử lý, kịp thời thông báo cho lực lượng chuyên trách bảo vệ an ninh mạng để điều phối, ứng phó khắc phục sự cố an ninh mạng;
-  summary_en: The owner of a national-security-important system acts on the force's guidance right after notice of an incident, and informs the force if the incident exceeds its capacity.
+  text_vi: b) Chủ quản hệ thống thông tin quan trọng về an ninh quốc gia có trách nhiệm thực hiện các
+    biện pháp theo hướng dẫn và các biện pháp phù hợp khác để ngăn chặn, xử lý, khắc phục hậu quả ngay
+    sau khi nhận được thông báo, trừ quy định tại điểm c khoản này. Trường hợp vượt quá khả năng xử lý,
+    kịp thời thông báo cho lực lượng chuyên trách bảo vệ an ninh mạng để điều phối, ứng phó khắc phục
+    sự cố an ninh mạng;
+  summary_en: The owner of a national-security-important system acts on the force's guidance right after
+    notice of an incident, and informs the force if the incident exceeds its capacity.
   duties:
   - incident_response
   - incident_report
-  applies_to: *id001
+  applies_to:
+    agent_class:
+    - any
   addressee: bank
   control_mapping:
   - kind: process
@@ -347,5 +417,7 @@ obligations:
     sha256: 9cce0a6ae9b786485b17676fd1e16e314dc24b11a01055fa461706aac134d99e
     local_path: regulations/sources/VN-DEC53-2022/nghi-dinh-53-2022-nd-cp.txt
   confidence: medium
-  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules) and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Now Decree 333/2026 Art. 9(3).
+  notes: Superseded in practice by Decree 333/2026/NĐ-CP (Art. 19-20 carry over the same storage rules)
+    and by the lapse of the 2018 law on 2026-07-01 (ASSUMED; see instrument notes). Now Decree 333/2026
+    Art. 9(3).
   status: superseded

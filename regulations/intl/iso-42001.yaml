@@ -21,13 +21,11 @@ instrument:
       verification: ASSUMED
       note: voluntary certifiable standard, no effective date
   sources:
-  - &id001
-    url: https://www.iso.org/standard/81230.html
+  - url: https://www.iso.org/standard/81230.html
     title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
     fetched_at: '2026-10-15'
     kind: primary
-  - &id002
-    url: https://docs.modulos.ai/frameworks/iso-42001/clauses-4-10.html
+  - url: https://docs.modulos.ai/frameworks/iso-42001/clauses-4-10.html
     title: 'Modulos: ISO 42001 clauses 4 to 10 (search snippet only)'
     fetched_at: '2026-10-15'
     kind: secondary
@@ -63,7 +61,10 @@ obligations:
   - AIMS scope statement
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO42001-2023-C5-01
@@ -89,7 +90,10 @@ obligations:
   - role assignments
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO42001-2023-C6.1.2-01
@@ -119,7 +123,10 @@ obligations:
   - statement of applicability
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO42001-2023-C6.1.4-01
@@ -145,8 +152,14 @@ obligations:
   - impact assessment per AI system
   verification: VERIFIED_SECONDARY
   sources:
-  - *id001
-  - *id002
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
+  - url: https://docs.modulos.ai/frameworks/iso-42001/clauses-4-10.html
+    title: 'Modulos: ISO 42001 clauses 4 to 10 (search snippet only)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: medium
   notes: Clause number seen in a secondary snippet.
 - id: INTL-ISO42001-2023-C7-01
@@ -172,7 +185,10 @@ obligations:
   - document control
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO42001-2023-C8-01
@@ -204,7 +220,10 @@ obligations:
   - change records
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO42001-2023-C9-01
@@ -238,7 +257,10 @@ obligations:
   - management review minutes
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO42001-2023-C10-01
@@ -267,7 +289,10 @@ obligations:
   - corrective action records
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: 'ASSUMED: clause content from background knowledge; ISO text is paywalled and was not read.'
 - id: INTL-ISO42001-2023-AA6-01
@@ -303,7 +328,10 @@ obligations:
   - event log evidence
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: Area number from background knowledge; only A.2 to A.5 were seen in a snippet.
 - id: INTL-ISO42001-2023-AA10-01
@@ -328,6 +356,9 @@ obligations:
   - supplier assessment records
   verification: ASSUMED
   sources:
-  - *id001
+  - url: https://www.iso.org/standard/81230.html
+    title: 'ISO/IEC 42001:2023 catalogue page (could not be fetched: HTTP 403; paywalled standard)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
   notes: Area number from background knowledge; not seen in the snippet.

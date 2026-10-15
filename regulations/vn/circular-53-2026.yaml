@@ -5,8 +5,10 @@ instrument:
   kind: circular
   issuer: State Bank of Vietnam (signed by a Deputy Governor for the Governor)
   number: 53/2026/TT-NHNN
-  title_vi: Thông tư quy định về an toàn, quản lý rủi ro và điều kiện triển khai đối với việc ứng dụng hệ thống trí tuệ nhân tạo trong ngành Ngân hàng
-  title_en: Circular on safety, risk management and deployment conditions for AI systems in the banking sector
+  title_vi: Thông tư quy định về an toàn, quản lý rủi ro và điều kiện triển khai đối với việc ứng dụng
+    hệ thống trí tuệ nhân tạo trong ngành Ngân hàng
+  title_en: Circular on safety, risk management and deployment conditions for AI systems in the banking
+    sector
   status: issued
   binding: true
   dates:
@@ -19,12 +21,15 @@ instrument:
       date: '2026-11-15'
       source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
       verification: VERIFIED_PRIMARY
-      note: 'Art. 23(1): from 2026-11-15, except Art. 14 (2027-01-01), Art. 6(1)(b) (2027-09-01) and Art. 21 (2027-09-01, except units with a high-risk AI system). Not yet effective on the check date 2026-10-15.'
+      note: 'Art. 23(1): from 2026-11-15, except Art. 14 (2027-01-01), Art. 6(1)(b) (2027-09-01) and Art.
+        21 (2027-09-01, except units with a high-risk AI system). Not yet effective on the check date
+        2026-10-15.'
     compliance_deadline:
       date: '2027-03-01'
       source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
       verification: VERIFIED_PRIMARY
-      note: 'Art. 24: systems in official operation before 2026-11-15 comply with Chapters II-IV from 2027-03-01.'
+      note: 'Art. 24: systems in official operation before 2026-11-15 comply with Chapters II-IV from
+        2027-03-01.'
     milestones:
     - label: Art. 14 (risk management framework, three lines) takes effect
       date: '2027-01-01'
@@ -43,59 +48,73 @@ instrument:
       source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
       verification: VERIFIED_PRIMARY
   sources:
-  - &id001
-    url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
     title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
     fetched_at: '2026-10-15'
     kind: primary
     sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
     local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
-  - &id002
-    url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
-    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi ung dung AI (2026-10-08)
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
     fetched_at: '2026-10-15'
     kind: secondary
-  - &id003
-    url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
-    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the consultation draft)'
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
     fetched_at: '2026-10-15'
     kind: secondary
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
   last_checked: '2026-10-15'
-  notes: 'SIGNED, NOT YET EFFECTIVE on 2026-10-15 (status issued). This replaces the SBV consultation draft reported by Baker McKenzie (Apr 2026) and the press in Aug 2026; the planned draft file was not written. Full text of Art. 1-25 read from the vbpl.vn gateway copy. Scope: credit institutions, foreign bank branches, payment intermediaries, mobile money providers, credit information companies, VAMC, the State Printing Mill, Deposit Insurance of Vietnam (Art. 1(2)), for AI that decides or supports decisions in services to customers (Art. 1(1)(a)). Differences between the reported draft duties and the signed text: the 24-hour incident report and 5-working-day remediation report are NOT in the signed text (Art. 9 refers to the AI law; Decree 142 Art. 19 gives 72 hours or 5 working days, then 15 days). ''Human review of disputed decisions'' is Art. 20(4); ''AI disclosure'' is Art. 20(3); ''explanation'' is Art. 20(5); ''annual staff capability review'' is Art. 21(4); ''bias monitoring'' is Art. 6(2), 16(3)(a)(v) and 17. Risk thresholds that complete Decision 33: Art. 4(2). The Circular gives no fine amounts. Not legal advice; bank counsel must confirm.'
+  notes: 'SIGNED, NOT YET EFFECTIVE on 2026-10-15 (status issued). This replaces the SBV consultation
+    draft reported by Baker McKenzie (Apr 2026) and the press in Aug 2026; the planned draft file was
+    not written. Full text of Art. 1-25 read from the vbpl.vn gateway copy. Scope: credit institutions,
+    foreign bank branches, payment intermediaries, mobile money providers, credit information companies,
+    VAMC, the State Printing Mill, Deposit Insurance of Vietnam (Art. 1(2)), for AI that decides or supports
+    decisions in services to customers (Art. 1(1)(a)). Differences between the reported draft duties and
+    the signed text: the 24-hour incident report and 5-working-day remediation report are NOT in the signed
+    text (Art. 9 refers to the AI law; Decree 142 Art. 19 gives 72 hours or 5 working days, then 15 days).
+    ''Human review of disputed decisions'' is Art. 20(4); ''AI disclosure'' is Art. 20(3); ''explanation''
+    is Art. 20(5); ''annual staff capability review'' is Art. 21(4); ''bias monitoring'' is Art. 6(2),
+    16(3)(a)(v) and 17. Risk thresholds that complete Decision 33: Art. 4(2). The Circular gives no fine
+    amounts. Not legal advice; bank counsel must confirm.'
 obligations:
 - id: VN-TT53-2026-A3.03-01
   article_ref: Art. 3(3)
-  text_vi: Trí tuệ nhân tạo không thay thế thẩm quyền và trách nhiệm của con người. Đơn vị chịu trách nhiệm trước pháp luật và khách hàng đối với mọi quyết định, hoặc hỗ trợ ra quyết định do hệ thống trí tuệ nhân tạo đưa ra mà đơn vị dựa vào đó để cung cấp dịch vụ cho khách hàng. Đơn vị không được viện dẫn các lý do liên quan đến đặc tính kỹ thuật, tính tự chủ của hệ thống trí tuệ nhân tạo hoặc kết quả do bên thứ ba cung cấp để từ chối, miễn trừ hoặc giảm nhẹ trách nhiệm pháp lý, trách nhiệm quản lý và trách nhiệm bồi thường thiệt hại, ngoại trừ trường hợp được miễn trừ theo quy định của pháp luật.
-  summary_en: AI does not replace human authority. The bank is answerable to the law and to customers for every AI decision it relies on. It may not use the tech nature, autonomy or a third party's output to avoid or reduce its liability.
+  text_vi: Trí tuệ nhân tạo không thay thế thẩm quyền và trách nhiệm của con người. Đơn vị chịu trách
+    nhiệm trước pháp luật và khách hàng đối với mọi quyết định, hoặc hỗ trợ ra quyết định do hệ thống
+    trí tuệ nhân tạo đưa ra mà đơn vị dựa vào đó để cung cấp dịch vụ cho khách hàng. Đơn vị không được
+    viện dẫn các lý do liên quan đến đặc tính kỹ thuật, tính tự chủ của hệ thống trí tuệ nhân tạo hoặc
+    kết quả do bên thứ ba cung cấp để từ chối, miễn trừ hoặc giảm nhẹ trách nhiệm pháp lý, trách nhiệm
+    quản lý và trách nhiệm bồi thường thiệt hại, ngoại trừ trường hợp được miễn trừ theo quy định của
+    pháp luật.
+  summary_en: AI does not replace human authority. The bank is answerable to the law and to customers
+    for every AI decision it relies on. It may not use the tech nature, autonomy or a third party's output
+    to avoid or reduce its liability.
   duties:
   - governance_accountability
   - outsourcing_oversight
-  applies_to: &id004
+  applies_to:
     agent_class:
     - any
     role:
     - deployer
   addressee: bank
   control_mapping:
-  - &id005
-    kind: console
+  - kind: console
     id: agents
     coverage: partial
     note: agent registry screen with the pause switch
-  - &id008
-    kind: process
+  - kind: process
     id: board_governance
     coverage: none
     note: board or committee oversight of AI
-  - &id018
-    kind: process
+  - kind: process
     id: vendor_management
     coverage: none
     note: contract, audit and exit plan with the AI vendor
-  - &id006
-    kind: process
+  - kind: process
     id: legal_review
     coverage: none
     note: bank counsel confirms scope and reading
@@ -104,57 +123,96 @@ obligations:
   - vendor contracts that do not shift liability away from the bank
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: Applies to AI that decides or supports decisions in the bank's services to customers (Art. 1(1)(a)).
   status: issued
 - id: VN-TT53-2026-A3.05-01
   article_ref: Art. 3(5)
-  text_vi: Hệ thống trí tuệ nhân tạo phải được thiết kế bảo đảm khả năng giám sát và can thiệp của con người đối với hệ thống trong quá trình sử dụng
-  summary_en: AI systems must be designed so that people can monitor and intervene during use, in line with the risk level.
+  text_vi: Hệ thống trí tuệ nhân tạo phải được thiết kế bảo đảm khả năng giám sát và can thiệp của con
+    người đối với hệ thống trong quá trình sử dụng
+  summary_en: AI systems must be designed so that people can monitor and intervene during use, in line
+    with the risk level.
   duties:
   - human_oversight
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id005
-  - &id010
-    kind: console
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  - kind: console
     id: agent_action
     coverage: partial
-    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before execution
-  - &id014
-    kind: monitor
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: monitor
     id: oversight
     coverage: partial
     note: dwell time, approval rate and chain_ok metrics show whether the human step is real
-  - &id009
-    kind: console
+  - kind: console
     id: case_signoff
     coverage: partial
-    note: records a named human decision on a case; counts as pre-execution approval only if the agent code waits for it
+    note: records a named human decision on a case; counts as pre-execution approval only if the agent
+      code waits for it
   evidence_needed:
   - design record of the human oversight path
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A4.01-01
   article_ref: Art. 4(1)
-  text_vi: Trước khi triển khai hệ thống trí tuệ nhân tạo, đơn vị phải thực hiện phân loại hệ thống trí tuệ nhân tạo theo mức độ rủi ro cao, trung bình, thấp
-  summary_en: Before deployment the bank classifies each AI system as high, medium or low risk under the AI law and Art. 4(2).
+  text_vi: Trước khi triển khai hệ thống trí tuệ nhân tạo, đơn vị phải thực hiện phân loại hệ thống trí
+    tuệ nhân tạo theo mức độ rủi ro cao, trung bình, thấp
+  summary_en: Before deployment the bank classifies each AI system as high, medium or low risk under the
+    AI law and Art. 4(2).
   duties:
   - risk_classification
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - &id007
-    kind: evidence
+  - kind: evidence
     id: agent_registry
     coverage: partial
     note: agent inventory with owner, risk tier and model family
@@ -162,24 +220,48 @@ obligations:
     id: onboard_profile
     coverage: partial
     note: onboarding profile proposes a Decision 33 class and a risk tier; the bank approves
-  - *id006
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
   evidence_needed:
   - classification record before go-live
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A4.02A-01
   article_ref: Art. 4(2)(a)
-  text_vi: 'Đối với hệ thống trí tuệ nhân tạo tự động thực hiện giao dịch điện tử trong hoạt động ngân hàng, được xác định là hệ thống trí tuệ nhân tạo có rủi ro cao nếu có thực hiện tối thiểu một trong các loại giao dịch sau: (i) Giao dịch thanh toán của khách hàng cá nhân có giá trị lớn hơn 10 triệu đồng hoặc có tổng giá trị giao dịch trong một ngày đối với một khách hàng do hệ thống trí tuệ nhân tạo tự động thực hiện lớn hơn 20 triệu đồng; (ii) Giao dịch thanh toán của khách hàng tổ chức có giá trị lớn hơn 50 triệu đồng hoặc có tổng giá trị giao dịch trong một ngày đối với một khách hàng do hệ thống trí tuệ nhân tạo tự động thực hiện lớn hơn 100 triệu đồng;'
-  summary_en: 'An AI system that auto-executes e-transactions is high risk if it executes at least one of: a personal customer payment over 10 million VND (or over 20 million VND a day per customer), or an organisation payment over 50 million VND (or over 100 million VND a day per customer).'
+  text_vi: 'Đối với hệ thống trí tuệ nhân tạo tự động thực hiện giao dịch điện tử trong hoạt động ngân
+    hàng, được xác định là hệ thống trí tuệ nhân tạo có rủi ro cao nếu có thực hiện tối thiểu một trong
+    các loại giao dịch sau: (i) Giao dịch thanh toán của khách hàng cá nhân có giá trị lớn hơn 10 triệu
+    đồng hoặc có tổng giá trị giao dịch trong một ngày đối với một khách hàng do hệ thống trí tuệ nhân
+    tạo tự động thực hiện lớn hơn 20 triệu đồng; (ii) Giao dịch thanh toán của khách hàng tổ chức có giá
+    trị lớn hơn 50 triệu đồng hoặc có tổng giá trị giao dịch trong một ngày đối với một khách hàng do
+    hệ thống trí tuệ nhân tạo tự động thực hiện lớn hơn 100 triệu đồng;'
+  summary_en: 'An AI system that auto-executes e-transactions is high risk if it executes at least one
+    of: a personal customer payment over 10 million VND (or over 20 million VND a day per customer), or
+    an organisation payment over 50 million VND (or over 100 million VND a day per customer).'
   duties:
   - risk_classification
   - transaction_limits
-  applies_to: &id011
+  applies_to:
     agent_class:
     - payment
     role:
@@ -202,25 +284,45 @@ obligations:
     id: PAY-03
     coverage: partial
     note: demo daily rule 150 million VND is above the 20 million personal line
-  - *id007
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
   evidence_needed:
   - transfer value distribution per agent
   - classification record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: This is the SBV 'high value' that Decision 33 Appendix IV entry 1 leaves open. The thresholds are for the AI-executed transaction types; the Decision's other two conditions (can approve by itself, no human check before execution) still apply.
+  notes: This is the SBV 'high value' that Decision 33 Appendix IV entry 1 leaves open. The thresholds
+    are for the AI-executed transaction types; the Decision's other two conditions (can approve by itself,
+    no human check before execution) still apply.
   status: issued
 - id: VN-TT53-2026-A4.02B-01
   article_ref: Art. 4(2)(b)
-  text_vi: Đối với hệ thống trí tuệ nhân tạo tự động quyết định cấp tín dụng, được xác định là hệ thống trí tuệ nhân tạo có rủi ro cao nếu có xử lý khoản cấp tín dụng có giá trị từ 50 triệu đồng trở lên.
-  summary_en: An AI system that auto-decides credit is high risk if it processes credit of 50 million VND or more.
+  text_vi: Đối với hệ thống trí tuệ nhân tạo tự động quyết định cấp tín dụng, được xác định là hệ thống
+    trí tuệ nhân tạo có rủi ro cao nếu có xử lý khoản cấp tín dụng có giá trị từ 50 triệu đồng trở lên.
+  summary_en: An AI system that auto-decides credit is high risk if it processes credit of 50 million
+    VND or more.
   duties:
   - risk_classification
-  applies_to: &id013
+  applies_to:
     agent_class:
     - credit_decision
     role:
@@ -231,51 +333,110 @@ obligations:
     id: CRD-03
     coverage: partial
     note: pre-qualification amount limit
-  - *id007
-  - *id006
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
   evidence_needed:
   - loan size distribution per agent
   - classification record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Note the Circular says 'processes' credit of 50 million or more, a wide trigger. Decision 33 entry 2 still needs the final-decision and no-independent-approval conditions.
+  notes: Note the Circular says 'processes' credit of 50 million or more, a wide trigger. Decision 33
+    entry 2 still needs the final-decision and no-independent-approval conditions.
   status: issued
 - id: VN-TT53-2026-A4.03-01
   article_ref: Art. 4(3)
-  text_vi: Kết quả phân loại hệ thống trí tuệ nhân tạo phải được phê duyệt bởi cấp có thẩm quyền của đơn vị.
-  summary_en: The classification result must be approved by the bank's competent level (board, legal representative, or a person they authorise in writing). A foreign bank branch follows its parent bank.
+  text_vi: Kết quả phân loại hệ thống trí tuệ nhân tạo phải được phê duyệt bởi cấp có thẩm quyền của đơn
+    vị.
+  summary_en: The classification result must be approved by the bank's competent level (board, legal representative,
+    or a person they authorise in writing). A foreign bank branch follows its parent bank.
   duties:
   - risk_classification
   - governance_accountability
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id007
-  - *id008
-  - *id009
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: records a named human decision on a case; counts as pre-execution approval only if the agent
+      code waits for it
   evidence_needed:
   - signed approval of each classification
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A4.05-01
   article_ref: Art. 4(5)
-  text_vi: 'Đơn vị phải lập danh mục hệ thống trí tuệ nhân tạo và rà soát, cập nhật danh mục tối thiểu hằng năm. Danh mục tối thiểu bao gồm các trường thông tin: tên hệ thống trí tuệ nhân tạo, mức độ rủi ro, mục đích sử dụng, nhà cung cấp, phiên bản, văn bản phê duyệt mức độ rủi ro.'
-  summary_en: 'The bank keeps an AI system inventory, reviewed at least yearly, with: system name, risk level, purpose, provider, version and the approval document for the risk level.'
+  text_vi: 'Đơn vị phải lập danh mục hệ thống trí tuệ nhân tạo và rà soát, cập nhật danh mục tối thiểu
+    hằng năm. Danh mục tối thiểu bao gồm các trường thông tin: tên hệ thống trí tuệ nhân tạo, mức độ rủi
+    ro, mục đích sử dụng, nhà cung cấp, phiên bản, văn bản phê duyệt mức độ rủi ro.'
+  summary_en: 'The bank keeps an AI system inventory, reviewed at least yearly, with: system name, risk
+    level, purpose, provider, version and the approval document for the risk level.'
   duties:
   - model_inventory
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id007
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
   - kind: evidence
     id: agent_version
     coverage: partial
@@ -285,16 +446,42 @@ obligations:
   - yearly review record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: The registry covers agents known to Supervisor only. The bank must also list AI systems outside Supervisor. The registry has owner, risk tier and model family; the provider name and the approval document reference may need extra fields.
+  notes: The registry covers agents known to Supervisor only. The bank must also list AI systems outside
+    Supervisor. The registry has owner, risk tier and model family; the provider name and the approval
+    document reference may need extra fields.
   status: issued
 - id: VN-TT53-2026-A5.01-01
   article_ref: Art. 5(1)
-  text_vi: 'Việc tự động hóa thực hiện quyết định do hệ thống trí tuệ nhân tạo đề xuất chỉ được thực hiện khi đáp ứng các điều kiện sau: a) Hoạt động nghiệp vụ được ứng dụng hệ thống trí tuệ nhân tạo không thuộc trường hợp pháp luật quy định phải có sự xem xét, quyết định hoặc phê duyệt của con người; b) Mô hình đã được kiểm tra, đánh giá đạt ngưỡng chất lượng theo quy định nội bộ của đơn vị; c) Đơn vị đã xác định rõ ngưỡng rủi ro, tiêu chí cảnh báo và quy trình giám sát hoạt động của hệ thống trí tuệ nhân tạo. Đối với hệ thống trí tuệ nhân tạo có rủi ro cao, đơn vị phải thiết lập công cụ giám sát liên tục hoạt động của hệ thống trí tuệ nhân tạo; d) Bảo đảm khả năng can thiệp của con người theo quy định tại khoản 2 Điều này; đ) Kết quả vận hành của hệ thống phải được rà soát và báo cáo theo quy định tại khoản 6 Điều 12 Thông tư này;'
-  summary_en: 'Automatic execution of an AI-proposed decision is allowed only if: the activity does not legally need a human decision; the model passed internal quality thresholds; risk thresholds, alert criteria and a monitoring process exist (high risk: continuous monitoring tool); human intervention is possible; results are reviewed and reported (Art. 12(6)).'
+  text_vi: 'Việc tự động hóa thực hiện quyết định do hệ thống trí tuệ nhân tạo đề xuất chỉ được thực hiện
+    khi đáp ứng các điều kiện sau: a) Hoạt động nghiệp vụ được ứng dụng hệ thống trí tuệ nhân tạo không
+    thuộc trường hợp pháp luật quy định phải có sự xem xét, quyết định hoặc phê duyệt của con người; b)
+    Mô hình đã được kiểm tra, đánh giá đạt ngưỡng chất lượng theo quy định nội bộ của đơn vị; c) Đơn vị
+    đã xác định rõ ngưỡng rủi ro, tiêu chí cảnh báo và quy trình giám sát hoạt động của hệ thống trí tuệ
+    nhân tạo. Đối với hệ thống trí tuệ nhân tạo có rủi ro cao, đơn vị phải thiết lập công cụ giám sát
+    liên tục hoạt động của hệ thống trí tuệ nhân tạo; d) Bảo đảm khả năng can thiệp của con người theo
+    quy định tại khoản 2 Điều này; đ) Kết quả vận hành của hệ thống phải được rà soát và báo cáo theo
+    quy định tại khoản 6 Điều 12 Thông tư này;'
+  summary_en: 'Automatic execution of an AI-proposed decision is allowed only if: the activity does not
+    legally need a human decision; the model passed internal quality thresholds; risk thresholds, alert
+    criteria and a monitoring process exist (high risk: continuous monitoring tool); human intervention
+    is possible; results are reviewed and reported (Art. 12(6)).'
   duties:
   - pre_execution_approval
   - human_oversight
@@ -326,9 +513,12 @@ obligations:
     id: tier1_monitor
     coverage: partial
     note: always-on rule monitor
-  - *id010
-  - &id024
-    kind: process
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: process
     id: model_validation
     coverage: none
     note: independent second-line model validation
@@ -338,16 +528,33 @@ obligations:
   - model test result vs internal threshold
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: 'High-risk status: Decision 33 Appendix IV (VN-QD33-2026) plus the thresholds in Art. 4(2) of this Circular. The continuous-monitoring duty is mandatory for high-risk systems. Supervisor provides the monitor and alert side; the bank defines the thresholds.'
+  notes: 'High-risk status: Decision 33 Appendix IV (VN-QD33-2026) plus the thresholds in Art. 4(2) of
+    this Circular. The continuous-monitoring duty is mandatory for high-risk systems. Supervisor provides
+    the monitor and alert side; the bank defines the thresholds.'
   status: issued
 - id: VN-TT53-2026-A5.01E-01
   article_ref: Art. 5(1)(e)
-  text_vi: Bảo đảm khả năng xác định được giao dịch do hệ thống trí tuệ nhân tạo tự động thực hiện hay do con người thực hiện;
-  summary_en: The bank must be able to tell which transactions were executed automatically by the AI system and which by a person.
+  text_vi: Bảo đảm khả năng xác định được giao dịch do hệ thống trí tuệ nhân tạo tự động thực hiện hay
+    do con người thực hiện;
+  summary_en: The bank must be able to tell which transactions were executed automatically by the AI system
+    and which by a person.
   duties:
   - logging
   - record_keeping
@@ -359,13 +566,11 @@ obligations:
     - deployer
   addressee: bank
   control_mapping:
-  - &id012
-    kind: evidence
+  - kind: evidence
     id: agent_event_log
     coverage: partial
     note: recorded tool calls and gate decisions per agent
-  - &id015
-    kind: evidence
+  - kind: evidence
     id: evidence_chain
     coverage: partial
     note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
@@ -377,22 +582,54 @@ obligations:
   - flag or lane that separates AI-executed from human-executed transactions
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A5.01G1-01
   article_ref: Art. 5(1)(g)(i)
-  text_vi: 'Khách hàng và đơn vị phải xác lập thỏa thuận về việc cho phép hệ thống trí tuệ nhân tạo tự động thực hiện giao dịch thanh toán. Khi xác lập thỏa thuận đơn vị có trách nhiệm kiểm tra, đối chiếu, xác minh thông tin nhận biết khách hàng, bảo đảm thực hiện bởi chính chủ tài khoản thanh toán, thẻ, ví điện tử, tài khoản Tiền di động hoặc người đại diện của khách hàng cá nhân hoặc người đại diện theo pháp luật hoặc người đại diện theo ủy quyền của khách hàng tổ chức; trong trường hợp thực hiện bằng phương tiện điện tử phải kiểm tra tối thiểu bằng khớp đúng thông tin sinh trắc học kết hợp với một hình thức xác nhận khác quy định tại Thông tư số 50/2024/TT-NHNN của Thống đốc Ngân hàng Nhà nước Việt Nam quy định về an toàn, bảo mật cho việc cung cấp dịch vụ trực tuyến trong ngành Ngân hàng được sửa đổi, bổ sung bởi Thông tư số 77/2025/TT-NHNN (sau đây gọi tắt là Thông tư số 50/2024/TT-NHNN). Thỏa thuận phải xác định rõ: phạm vi giao dịch được tự động thực hiện; hạn mức theo từng giao dịch và theo ngày; thời hạn hiệu lực; điều kiện tạm dừng; quyền của khách hàng chấm dứt thỏa thuận bất kỳ thời điểm nào và trách nhiệm của đơn vị thực hiện ngay yêu cầu chấm dứt;'
-  summary_en: 'Autonomous AI payments need a prior agreement with the customer. The bank must verify the customer is the account holder or a lawful representative (electronic route: biometric match plus another confirmation under Circular 50/2024/TT-NHNN). The agreement states the scope, per-transaction and daily limits, validity period, pause conditions, and the customer''s right to end it at any time with immediate effect.'
+  text_vi: 'Khách hàng và đơn vị phải xác lập thỏa thuận về việc cho phép hệ thống trí tuệ nhân tạo tự
+    động thực hiện giao dịch thanh toán. Khi xác lập thỏa thuận đơn vị có trách nhiệm kiểm tra, đối chiếu,
+    xác minh thông tin nhận biết khách hàng, bảo đảm thực hiện bởi chính chủ tài khoản thanh toán, thẻ,
+    ví điện tử, tài khoản Tiền di động hoặc người đại diện của khách hàng cá nhân hoặc người đại diện
+    theo pháp luật hoặc người đại diện theo ủy quyền của khách hàng tổ chức; trong trường hợp thực hiện
+    bằng phương tiện điện tử phải kiểm tra tối thiểu bằng khớp đúng thông tin sinh trắc học kết hợp với
+    một hình thức xác nhận khác quy định tại Thông tư số 50/2024/TT-NHNN của Thống đốc Ngân hàng Nhà nước
+    Việt Nam quy định về an toàn, bảo mật cho việc cung cấp dịch vụ trực tuyến trong ngành Ngân hàng được
+    sửa đổi, bổ sung bởi Thông tư số 77/2025/TT-NHNN (sau đây gọi tắt là Thông tư số 50/2024/TT-NHNN).
+    Thỏa thuận phải xác định rõ: phạm vi giao dịch được tự động thực hiện; hạn mức theo từng giao dịch
+    và theo ngày; thời hạn hiệu lực; điều kiện tạm dừng; quyền của khách hàng chấm dứt thỏa thuận bất
+    kỳ thời điểm nào và trách nhiệm của đơn vị thực hiện ngay yêu cầu chấm dứt;'
+  summary_en: 'Autonomous AI payments need a prior agreement with the customer. The bank must verify the
+    customer is the account holder or a lawful representative (electronic route: biometric match plus
+    another confirmation under Circular 50/2024/TT-NHNN). The agreement states the scope, per-transaction
+    and daily limits, validity period, pause conditions, and the customer''s right to end it at any time
+    with immediate effect.'
   duties:
   - consent
   - biometric_verification
   - transaction_authentication
   - transaction_limits
   - customer_confidentiality
-  applies_to: *id011
+  applies_to:
+    agent_class:
+    - payment
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: process
@@ -411,27 +648,51 @@ obligations:
     id: daily_aggregate
     coverage: partial
     note: daily limit enforcement
-  - *id012
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
   evidence_needed:
   - signed agreement with the required fields
   - biometric plus second-factor check record at signing
   - limits in the agreement enforced at the gate
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Supervisor can enforce limits at the gate and log each autonomous payment. It does not run onboarding or biometric checks.
+  notes: Supervisor can enforce limits at the gate and log each autonomous payment. It does not run onboarding
+    or biometric checks.
   status: issued
 - id: VN-TT53-2026-A5.01G2-01
   article_ref: Art. 5(1)(g)(ii)
-  text_vi: Tổng giá trị giao dịch do hệ thống trí tuệ nhân tạo tự động thực hiện trong một ngày của một khách hàng không vượt quá hạn mức theo quy định nội bộ của đơn vị, nhưng không vượt quá 100 triệu đồng đối với khách hàng cá nhân, không vượt quá 500 triệu đồng đối với khách hàng tổ chức;
-  summary_en: 'Hard cap on AI-executed payments: per customer per day not above the internal limit, and never above 100 million VND (personal) or 500 million VND (organisation).'
+  text_vi: Tổng giá trị giao dịch do hệ thống trí tuệ nhân tạo tự động thực hiện trong một ngày của một
+    khách hàng không vượt quá hạn mức theo quy định nội bộ của đơn vị, nhưng không vượt quá 100 triệu
+    đồng đối với khách hàng cá nhân, không vượt quá 500 triệu đồng đối với khách hàng tổ chức;
+  summary_en: 'Hard cap on AI-executed payments: per customer per day not above the internal limit, and
+    never above 100 million VND (personal) or 500 million VND (organisation).'
   duties:
   - transaction_limits
   - excessive_agency_limits
-  applies_to: *id011
+  applies_to:
+    agent_class:
+    - payment
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: catalogue
@@ -441,7 +702,8 @@ obligations:
   - kind: rule
     id: PAY-03
     coverage: partial
-    note: demo rule trips above 150 million VND a day (structuring); this is ABOVE the 100 million legal cap for personal customers, so the threshold needs lowering for AI-autonomous payments
+    note: demo rule trips above 150 million VND a day (structuring); this is ABOVE the 100 million legal
+      cap for personal customers, so the threshold needs lowering for AI-autonomous payments
   - kind: catalogue
     id: single_limit
     coverage: partial
@@ -454,50 +716,97 @@ obligations:
   - daily cap configured at or below the legal cap per customer type
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Supervisor's demo policy PAY-03 (150 million VND a day) and PAY-02 (100 million per transfer) do not match this cap for personal customers. Counsel and the policy owner must set a lower autonomous-payment cap.
+  notes: Supervisor's demo policy PAY-03 (150 million VND a day) and PAY-02 (100 million per transfer)
+    do not match this cap for personal customers. Counsel and the policy owner must set a lower autonomous-payment
+    cap.
   status: issued
 - id: VN-TT53-2026-A5.01G3-01
   article_ref: Art. 5(1)(g)(iii)
-  text_vi: Có công cụ cho phép khách hàng chủ động tạm dừng hoặc hủy quyền cho phép hệ thống trí tuệ nhân tạo tự động thực hiện giao dịch thanh toán;
-  summary_en: The bank must give the customer a tool to pause or revoke the permission for autonomous AI payments.
+  text_vi: Có công cụ cho phép khách hàng chủ động tạm dừng hoặc hủy quyền cho phép hệ thống trí tuệ nhân
+    tạo tự động thực hiện giao dịch thanh toán;
+  summary_en: The bank must give the customer a tool to pause or revoke the permission for autonomous
+    AI payments.
   duties:
   - consent
   - right_to_human_review
   - human_oversight
-  applies_to: *id011
+  applies_to:
+    agent_class:
+    - payment
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: process
     id: consent_management
     coverage: none
     note: customer-facing pause or revoke tool is a bank channel feature
-  - *id010
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
   evidence_needed:
   - customer tool in the app
   - revocation takes effect at the gate at once
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Supervisor's pause is an operator-side switch per agent, not a per-customer revoke tool. The bank must pass the customer's revoke to the gate.
+  notes: Supervisor's pause is an operator-side switch per agent, not a per-customer revoke tool. The
+    bank must pass the customer's revoke to the gate.
   status: issued
 - id: VN-TT53-2026-A5.01H-01
   article_ref: Art. 5(1)(h)
-  text_vi: Trường hợp triển khai hệ thống trí tuệ nhân tạo tự động quyết định cấp tín dụng, đơn vị phải tuân thủ quy định về cho vay bằng phương tiện điện tử theo quy định của pháp luật.
+  text_vi: Trường hợp triển khai hệ thống trí tuệ nhân tạo tự động quyết định cấp tín dụng, đơn vị phải
+    tuân thủ quy định về cho vay bằng phương tiện điện tử theo quy định của pháp luật.
   summary_en: An AI system that auto-decides credit must follow the rules on lending by electronic means.
   duties:
   - internal_policy
   - transaction_authentication
-  applies_to: *id013
+  applies_to:
+    agent_class:
+    - credit_decision
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id006
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
   - kind: process
     id: internal_policy_issuance
     coverage: none
@@ -506,78 +815,171 @@ obligations:
   - mapping of the credit agent to the e-lending rules
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: medium
-  notes: E-lending rules were not analysed here. They are in the Circular on lending by electronic means; counsel to map.
+  notes: E-lending rules were not analysed here. They are in the Circular on lending by electronic means;
+    counsel to map.
   status: issued
 - id: VN-TT53-2026-A5.02-01
   article_ref: Art. 5(2)
-  text_vi: 'Đơn vị phải thiết lập cơ chế giám sát và bảo đảm khả năng can thiệp của con người phù hợp với mức độ rủi ro của hệ thống trí tuệ nhân tạo, trong đó: a) Bộ phận thực hiện giám sát hệ thống trí tuệ nhân tạo phải có đầy đủ quyền hạn và năng lực để: (i) Ghi đè hoặc điều chỉnh, tạm dừng quyết định của hệ thống trí tuệ nhân tạo hoặc kích hoạt cơ chế ngắt khẩn cấp để dừng hoặc cô lập hệ thống trong trường hợp cần thiết; (ii) Can thiệp trong các tình huống cần thiết nhằm bảo đảm an toàn hoạt động nghiệp vụ, quyền lợi của khách hàng và hoạt động của các hệ thống thông tin; b) Mọi hoạt động can thiệp, điều chỉnh hoặc ghi đè quyết định của hệ thống trí tuệ nhân tạo phải được ghi nhận đầy đủ, tối thiểu bao gồm: nội dung thực hiện, thời gian thực hiện, người thực hiện, lý do can thiệp.'
-  summary_en: 'The bank sets up supervision and human intervention suited to the risk level. The supervising unit must be able to override, adjust or pause AI decisions, or trigger an emergency stop to halt or isolate the system. Every intervention is recorded: what, when, who, why.'
+  text_vi: 'Đơn vị phải thiết lập cơ chế giám sát và bảo đảm khả năng can thiệp của con người phù hợp
+    với mức độ rủi ro của hệ thống trí tuệ nhân tạo, trong đó: a) Bộ phận thực hiện giám sát hệ thống
+    trí tuệ nhân tạo phải có đầy đủ quyền hạn và năng lực để: (i) Ghi đè hoặc điều chỉnh, tạm dừng quyết
+    định của hệ thống trí tuệ nhân tạo hoặc kích hoạt cơ chế ngắt khẩn cấp để dừng hoặc cô lập hệ thống
+    trong trường hợp cần thiết; (ii) Can thiệp trong các tình huống cần thiết nhằm bảo đảm an toàn hoạt
+    động nghiệp vụ, quyền lợi của khách hàng và hoạt động của các hệ thống thông tin; b) Mọi hoạt động
+    can thiệp, điều chỉnh hoặc ghi đè quyết định của hệ thống trí tuệ nhân tạo phải được ghi nhận đầy
+    đủ, tối thiểu bao gồm: nội dung thực hiện, thời gian thực hiện, người thực hiện, lý do can thiệp.'
+  summary_en: 'The bank sets up supervision and human intervention suited to the risk level. The supervising
+    unit must be able to override, adjust or pause AI decisions, or trigger an emergency stop to halt
+    or isolate the system. Every intervention is recorded: what, when, who, why.'
   duties:
   - human_oversight
   - logging
   - serious_incident_suspension
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id005
-  - *id010
-  - *id009
+  - kind: console
+    id: agents
+    coverage: partial
+    note: agent registry screen with the pause switch
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: records a named human decision on a case; counts as pre-execution approval only if the agent
+      code waits for it
   - kind: evidence
     id: signoff_record
     coverage: partial
     note: records what was decided, by whom, when
-  - *id014
-  - *id015
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
   evidence_needed:
   - tested emergency stop
   - intervention log with action, time, person, reason
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: The pause, resume and retire switch is the emergency stop. The chain and sign-off records give the intervention log. The pause switch does not by itself give 'override or adjust' of a single decision; that needs a per-decision review path.
+  notes: The pause, resume and retire switch is the emergency stop. The chain and sign-off records give
+    the intervention log. The pause switch does not by itself give 'override or adjust' of a single decision;
+    that needs a per-decision review path.
   status: issued
 - id: VN-TT53-2026-A5.03-01
   article_ref: Art. 5(3)
-  text_vi: Nhân sự tham gia giám sát, kiểm soát và can thiệp đối với hệ thống trí tuệ nhân tạo phải được đào tạo và có năng lực phù hợp
-  summary_en: Staff who supervise, control and intervene must be trained and competent to spot deviation and step in on time.
+  text_vi: Nhân sự tham gia giám sát, kiểm soát và can thiệp đối với hệ thống trí tuệ nhân tạo phải được
+    đào tạo và có năng lực phù hợp
+  summary_en: Staff who supervise, control and intervene must be trained and competent to spot deviation
+    and step in on time.
   duties:
   - staff_competence
   - human_oversight
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - &id020
-    kind: process
+  - kind: process
     id: staff_training
     coverage: none
     note: training records
-  - *id014
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
   evidence_needed:
   - training records for overseers
   - oversight metrics show real review (dwell time)
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A6.01-01
   article_ref: Art. 6(1)
-  text_vi: 'Hệ thống trí tuệ nhân tạo phải được kiểm tra, đánh giá an ninh mạng trước khi đưa vào vận hành chính thức và định kỳ hoặc ngay khi có thay đổi đáng kể của hệ thống trí tuệ nhân tạo, tối thiểu bao gồm: a) Kiểm tra, đánh giá việc phòng, chống các kịch bản tấn công, rủi ro đặc thù đối với hệ thống trí tuệ nhân tạo, tối thiểu bao gồm: (i) Tấn công vi phạm quyền riêng tư dữ liệu; (ii) Tấn công đầu độc dữ liệu, tấn công đầu độc mô hình, tấn công né tránh và tấn công trích xuất mô hình (bắt buộc đối với hệ thống trí tuệ nhân tạo có rủi ro cao; khuyến khích áp dụng đối với các hệ thống trí tuệ nhân tạo khác); (iii) Tấn công tiêm lệnh, rủi ro tạo sinh nội dung sai lệch hoặc không có căn cứ thực tế, rủi ro thiên lệch trong kết quả đầu ra (đối với hệ thống trí tuệ nhân tạo tạo sinh);'
-  summary_en: 'Cybersecurity testing before go-live, periodically and after significant change, covering AI-specific attacks: privacy leakage; data and model poisoning, evasion and model extraction (mandatory for high risk); prompt injection, false or ungrounded output and bias (generative systems).'
+  text_vi: 'Hệ thống trí tuệ nhân tạo phải được kiểm tra, đánh giá an ninh mạng trước khi đưa vào vận
+    hành chính thức và định kỳ hoặc ngay khi có thay đổi đáng kể của hệ thống trí tuệ nhân tạo, tối thiểu
+    bao gồm: a) Kiểm tra, đánh giá việc phòng, chống các kịch bản tấn công, rủi ro đặc thù đối với hệ
+    thống trí tuệ nhân tạo, tối thiểu bao gồm: (i) Tấn công vi phạm quyền riêng tư dữ liệu; (ii) Tấn công
+    đầu độc dữ liệu, tấn công đầu độc mô hình, tấn công né tránh và tấn công trích xuất mô hình (bắt buộc
+    đối với hệ thống trí tuệ nhân tạo có rủi ro cao; khuyến khích áp dụng đối với các hệ thống trí tuệ
+    nhân tạo khác); (iii) Tấn công tiêm lệnh, rủi ro tạo sinh nội dung sai lệch hoặc không có căn cứ thực
+    tế, rủi ro thiên lệch trong kết quả đầu ra (đối với hệ thống trí tuệ nhân tạo tạo sinh);'
+  summary_en: 'Cybersecurity testing before go-live, periodically and after significant change, covering
+    AI-specific attacks: privacy leakage; data and model poisoning, evasion and model extraction (mandatory
+    for high risk); prompt injection, false or ungrounded output and bias (generative systems).'
   duties:
   - security_testing
   - prompt_injection_defence
   - robustness_security
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: catalogue
@@ -601,16 +1003,37 @@ obligations:
   - results filed for inspectors (Art. 6(1)(d))
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Supervisor defences are runtime controls. They are not a substitute for the pre-go-live security tests.
+  notes: Supervisor defences are runtime controls. They are not a substitute for the pre-go-live security
+    tests.
   status: issued
 - id: VN-TT53-2026-A6.01B-01
   article_ref: Art. 6(1)(b)
-  text_vi: Đối với các hệ thống trí tuệ nhân tạo có rủi ro cao hoặc hệ thống trí tuệ nhân tạo có rủi ro trung bình ra quyết định trong hoạt động nghiệp vụ, áp dụng các biện pháp phòng, chống các rủi ro, lỗ hổng, tấn công mạng theo các tiêu chuẩn và thông lệ quốc tế như OWASP (OWASP Machine Learning Security Top Ten đối với hệ thống học máy, OWASP Top 10 for Large Language Model Applications đối với hệ thống sử dụng mô hình ngôn ngữ lớn; Phiên bản OWASP áp dụng là phiên bản mới nhất hoặc phiên bản gần nhất với phiên bản được ban hành trong vòng 06 tháng) hoặc tương đương;
-  summary_en: From 2027-09-01, high-risk and medium-risk decision-making systems must apply defences per international practice such as OWASP ML Security Top Ten and OWASP Top 10 for LLM Applications, or equivalent.
+  text_vi: Đối với các hệ thống trí tuệ nhân tạo có rủi ro cao hoặc hệ thống trí tuệ nhân tạo có rủi ro
+    trung bình ra quyết định trong hoạt động nghiệp vụ, áp dụng các biện pháp phòng, chống các rủi ro,
+    lỗ hổng, tấn công mạng theo các tiêu chuẩn và thông lệ quốc tế như OWASP (OWASP Machine Learning Security
+    Top Ten đối với hệ thống học máy, OWASP Top 10 for Large Language Model Applications đối với hệ thống
+    sử dụng mô hình ngôn ngữ lớn; Phiên bản OWASP áp dụng là phiên bản mới nhất hoặc phiên bản gần nhất
+    với phiên bản được ban hành trong vòng 06 tháng) hoặc tương đương;
+  summary_en: From 2027-09-01, high-risk and medium-risk decision-making systems must apply defences per
+    international practice such as OWASP ML Security Top Ten and OWASP Top 10 for LLM Applications, or
+    equivalent.
   duties:
   - security_testing
   - prompt_injection_defence
@@ -644,9 +1067,22 @@ obligations:
   - OWASP mapping with the version used
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: 'Date override: this point takes effect 2027-09-01 (Art. 23(3)).'
   status: issued
@@ -658,36 +1094,40 @@ obligations:
       note: 'Art. 23(3): Art. 6(1)(b) takes effect on 2027-09-01.'
 - id: VN-TT53-2026-A6.02-01
   article_ref: Art. 6(2)
-  text_vi: 'Đơn vị phải thiết lập cơ chế giám sát hiệu năng và hành vi của hệ thống trí tuệ nhân tạo, tối thiểu bao gồm: việc phát hiện các dấu hiệu bất thường như sai lệch đầu ra, suy giảm chất lượng, thiên lệch, trôi mô hình, trôi dữ liệu hoặc hành vi bất thường khác cho thấy hệ thống hoạt động không đúng với mục đích thiết kế hoặc phạm vi sử dụng đã được phê duyệt.'
-  summary_en: 'The bank monitors performance and behaviour of each AI system and detects anomalies: output deviation, quality loss, bias, model drift, data drift, or behaviour outside the approved design or scope.'
+  text_vi: 'Đơn vị phải thiết lập cơ chế giám sát hiệu năng và hành vi của hệ thống trí tuệ nhân tạo,
+    tối thiểu bao gồm: việc phát hiện các dấu hiệu bất thường như sai lệch đầu ra, suy giảm chất lượng,
+    thiên lệch, trôi mô hình, trôi dữ liệu hoặc hành vi bất thường khác cho thấy hệ thống hoạt động không
+    đúng với mục đích thiết kế hoặc phạm vi sử dụng đã được phê duyệt.'
+  summary_en: 'The bank monitors performance and behaviour of each AI system and detects anomalies: output
+    deviation, quality loss, bias, model drift, data drift, or behaviour outside the approved design or
+    scope.'
   duties:
   - performance_monitoring
   - bias_monitoring
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - &id016
-    kind: monitor
+  - kind: monitor
     id: drift
     coverage: partial
     note: behaviour drift band per agent
-  - &id017
-    kind: catalogue
+  - kind: catalogue
     id: drift_band
     coverage: partial
     note: behaviour drift band
-  - &id026
-    kind: monitor
+  - kind: monitor
     id: fairness
     coverage: partial
     note: fairness slice monitor
-  - &id023
-    kind: catalogue
+  - kind: catalogue
     id: fairness_slices
     coverage: partial
     note: outcome rates by customer segment
-  - &id025
-    kind: monitor
+  - kind: monitor
     id: quality
     coverage: partial
     note: quality and groundedness sampling
@@ -700,27 +1140,49 @@ obligations:
   - alert routes
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: Closest match to Supervisor's core monitors.
   status: issued
 - id: VN-TT53-2026-A7.02C-01
   article_ref: Art. 7(2)(c)
-  text_vi: Lưu nhật ký quá trình xử lý dữ liệu đầu vào trước khi đưa dữ liệu vào hệ thống trí tuệ nhân tạo nhằm bảo đảm khả năng truy vết dữ liệu khi cần thiết.
-  summary_en: The bank logs how input data is processed before it enters the AI system, so data can be traced.
+  text_vi: Lưu nhật ký quá trình xử lý dữ liệu đầu vào trước khi đưa dữ liệu vào hệ thống trí tuệ nhân
+    tạo nhằm bảo đảm khả năng truy vết dữ liệu khi cần thiết.
+  summary_en: The bank logs how input data is processed before it enters the AI system, so data can be
+    traced.
   duties:
   - logging
   - data_quality
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: catalogue
     id: proxy_log
     coverage: partial
     note: proxy log of calls the agent makes
-  - *id012
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
   - kind: catalogue
     id: otlp_ingest
     coverage: partial
@@ -729,21 +1191,45 @@ obligations:
   - input-processing log
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: medium
   notes: Supervisor sees agent calls and events, not the bank's upstream data pipelines.
   status: issued
 - id: VN-TT53-2026-A7.04-01
   article_ref: Art. 7(4)
-  text_vi: 'Đơn vị phải thiết lập cơ chế bảo vệ dữ liệu khỏi nguy cơ rò rỉ từ hệ thống trí tuệ nhân tạo, tối thiểu bao gồm: a) Hạn chế và kiểm soát quyền truy cập của hệ thống trí tuệ nhân tạo vào dữ liệu của đơn vị theo nguyên tắc chỉ cấp quyền tối thiểu, khi cần thiết, phù hợp với đối tượng, mục đích sử dụng và phạm vi xử lý dữ liệu đã được phê duyệt; b) Kiểm soát quyền truy cập đối với dữ liệu huấn luyện, kiểm thử, vận hành của hệ thống trí tuệ nhân tạo và thông tin về cấu trúc mô hình nhằm phòng ngừa nguy cơ rò rỉ, lộ lọt dữ liệu.'
-  summary_en: 'The bank protects data against leaks from AI systems: least-privilege access of the AI system to bank data, and access control over training, test and operation data and model structure information.'
+  text_vi: 'Đơn vị phải thiết lập cơ chế bảo vệ dữ liệu khỏi nguy cơ rò rỉ từ hệ thống trí tuệ nhân tạo,
+    tối thiểu bao gồm: a) Hạn chế và kiểm soát quyền truy cập của hệ thống trí tuệ nhân tạo vào dữ liệu
+    của đơn vị theo nguyên tắc chỉ cấp quyền tối thiểu, khi cần thiết, phù hợp với đối tượng, mục đích
+    sử dụng và phạm vi xử lý dữ liệu đã được phê duyệt; b) Kiểm soát quyền truy cập đối với dữ liệu huấn
+    luyện, kiểm thử, vận hành của hệ thống trí tuệ nhân tạo và thông tin về cấu trúc mô hình nhằm phòng
+    ngừa nguy cơ rò rỉ, lộ lọt dữ liệu.'
+  summary_en: 'The bank protects data against leaks from AI systems: least-privilege access of the AI
+    system to bank data, and access control over training, test and operation data and model structure
+    information.'
   duties:
   - access_control
   - data_minimisation
   - sensitive_data_protection
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: catalogue
@@ -771,20 +1257,40 @@ obligations:
   - bulk read alerts
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A8.02-01
   article_ref: Art. 8(2)
-  text_vi: 'Đơn vị phải quản lý phiên bản đối với mô hình, tối thiểu bao gồm: thông tin phiên bản mô hình; thời điểm áp dụng, thay đổi hoặc ngừng sử dụng; phạm vi ảnh hưởng; cấu hình liên quan; nhật ký thay đổi; kết quả kiểm tra, đánh giá mô hình.'
-  summary_en: 'Model version control: version info, dates of use, change or retirement, scope of effect, related configuration, change log and test results.'
+  text_vi: 'Đơn vị phải quản lý phiên bản đối với mô hình, tối thiểu bao gồm: thông tin phiên bản mô hình;
+    thời điểm áp dụng, thay đổi hoặc ngừng sử dụng; phạm vi ảnh hưởng; cấu hình liên quan; nhật ký thay
+    đổi; kết quả kiểm tra, đánh giá mô hình.'
+  summary_en: 'Model version control: version info, dates of use, change or retirement, scope of effect,
+    related configuration, change log and test results.'
   duties:
   - change_control
   - lifecycle_management
   - technical_documentation
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: evidence
@@ -803,15 +1309,33 @@ obligations:
   - version history including model, config and test results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A8.03B-01
   article_ref: Art. 8(3)(b)
-  text_vi: Đối với các hệ thống trí tuệ nhân tạo có rủi ro cao hoặc hệ thống trí tuệ nhân tạo có rủi ro trung bình ra quyết định trong hoạt động nghiệp vụ sử dụng mô hình do bên thứ ba cung cấp thông qua dịch vụ nền tảng hoặc giao diện lập trình ứng dụng (API), đơn vị phải thực hiện đánh giá tác động và có phương án dự phòng khi nhà cung cấp cập nhật, thay đổi mô hình.
-  summary_en: When a high-risk or medium-risk decision system uses a third-party model through a platform or API, the bank must assess impact and keep a fallback plan whenever the vendor updates or changes the model.
+  text_vi: Đối với các hệ thống trí tuệ nhân tạo có rủi ro cao hoặc hệ thống trí tuệ nhân tạo có rủi ro
+    trung bình ra quyết định trong hoạt động nghiệp vụ sử dụng mô hình do bên thứ ba cung cấp thông qua
+    dịch vụ nền tảng hoặc giao diện lập trình ứng dụng (API), đơn vị phải thực hiện đánh giá tác động
+    và có phương án dự phòng khi nhà cung cấp cập nhật, thay đổi mô hình.
+  summary_en: When a high-risk or medium-risk decision system uses a third-party model through a platform
+    or API, the bank must assess impact and keep a fallback plan whenever the vendor updates or changes
+    the model.
   duties:
   - change_control
   - outsourcing_oversight
@@ -828,13 +1352,22 @@ obligations:
     - domestic_cloud
   addressee: bank
   control_mapping:
-  - *id016
-  - *id017
+  - kind: monitor
+    id: drift
+    coverage: partial
+    note: behaviour drift band per agent
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift band
   - kind: evidence
     id: verdict_log
     coverage: partial
     note: model version recorded
-  - *id018
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, audit and exit plan with the AI vendor
   - kind: process
     id: business_continuity_plan
     coverage: none
@@ -845,37 +1378,68 @@ obligations:
   - fallback plan
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: A drift band can flag behaviour change after a silent vendor update. It does not stop the update.
   status: issued
 - id: VN-TT53-2026-A9.02-01
   article_ref: Art. 9(2)
-  text_vi: 'Khi xảy ra sự cố nghiêm trọng đối với hệ thống trí tuệ nhân tạo, đơn vị phải: a) Kích hoạt ngay cơ chế ngắt khẩn cấp, chuyển sang vận hành thủ công trong trường hợp cần thiết; b) Triển khai ngay biện pháp khắc phục, hạn chế thiệt hại; c) Báo cáo sự cố cho cơ quan quản lý nhà nước có thẩm quyền và Ngân hàng Nhà nước Việt Nam (Cục Công nghệ thông tin) theo quy định của pháp luật về trí tuệ nhân tạo; d) Thông báo cho khách hàng bị ảnh hưởng theo quy định của pháp luật về bảo vệ dữ liệu cá nhân (nếu có); đ) Lập báo cáo hoàn thành khắc phục sự cố tối thiểu bao gồm nguyên nhân, thiệt hại và biện pháp khắc phục.'
-  summary_en: 'On a serious incident the bank must: trigger the emergency stop (go manual if needed); contain the damage; report to the competent authority and to SBV (IT Department) as the AI law requires; notify affected customers under personal data law where it applies; and write a remediation report with cause, damage and fix.'
+  text_vi: 'Khi xảy ra sự cố nghiêm trọng đối với hệ thống trí tuệ nhân tạo, đơn vị phải: a) Kích hoạt
+    ngay cơ chế ngắt khẩn cấp, chuyển sang vận hành thủ công trong trường hợp cần thiết; b) Triển khai
+    ngay biện pháp khắc phục, hạn chế thiệt hại; c) Báo cáo sự cố cho cơ quan quản lý nhà nước có thẩm
+    quyền và Ngân hàng Nhà nước Việt Nam (Cục Công nghệ thông tin) theo quy định của pháp luật về trí
+    tuệ nhân tạo; d) Thông báo cho khách hàng bị ảnh hưởng theo quy định của pháp luật về bảo vệ dữ liệu
+    cá nhân (nếu có); đ) Lập báo cáo hoàn thành khắc phục sự cố tối thiểu bao gồm nguyên nhân, thiệt hại
+    và biện pháp khắc phục.'
+  summary_en: 'On a serious incident the bank must: trigger the emergency stop (go manual if needed);
+    contain the damage; report to the competent authority and to SBV (IT Department) as the AI law requires;
+    notify affected customers under personal data law where it applies; and write a remediation report
+    with cause, damage and fix.'
   duties:
   - incident_response
   - incident_report
   - serious_incident_suspension
   - breach_notification_subject
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id010
-  - &id019
-    kind: evidence
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: evidence
     id: case_file
     coverage: partial
     note: case file export can hold the facts for a report; Supervisor does not file the report
-  - *id015
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
   - kind: process
     id: regulator_notification
     coverage: none
     note: the bank files the report on the national AI portal or with SBV
-  - &id021
-    kind: process
+  - kind: process
     id: incident_management
     coverage: none
     note: bank incident procedure
@@ -885,24 +1449,51 @@ obligations:
   - remediation report
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: The final text has no fixed deadline of its own. It refers to the AI law, whose Decree 142/2026/NĐ-CP Art. 19 sets 72 hours (urgent cases) or 5 working days for the preliminary report and 15 days for the formal report. The consultation draft reported 24 hours and 5 working days; neither figure is in the signed text.
+  notes: The final text has no fixed deadline of its own. It refers to the AI law, whose Decree 142/2026/NĐ-CP
+    Art. 19 sets 72 hours (urgent cases) or 5 working days for the preliminary report and 15 days for
+    the formal report. The consultation draft reported 24 hours and 5 working days; neither figure is
+    in the signed text.
   status: issued
 - id: VN-TT53-2026-A9.03-01
   article_ref: Art. 9(3)
-  text_vi: Đơn vị phải lưu trữ đầy đủ hồ sơ, tài liệu liên quan đến sự cố để phục vụ kiểm tra, điều tra khi cần thiết.
+  text_vi: Đơn vị phải lưu trữ đầy đủ hồ sơ, tài liệu liên quan đến sự cố để phục vụ kiểm tra, điều tra
+    khi cần thiết.
   summary_en: The bank keeps full records on each incident for inspection and investigation.
   duties:
   - record_keeping
   - incident_response
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id015
-  - *id019
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
   - kind: evidence
     id: audit_pack
     coverage: partial
@@ -911,46 +1502,105 @@ obligations:
   - incident files retained
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A9.04-01
   article_ref: Art. 9(4)
-  text_vi: Sau khi xử lý sự cố nghiêm trọng, đơn vị phải tổ chức đánh giá lại mức độ rủi ro của hệ thống trí tuệ nhân tạo
-  summary_en: After a serious incident the bank re-assesses the system's risk level and, where needed, re-classifies, adjusts controls, or suspends use to stop a repeat.
+  text_vi: Sau khi xử lý sự cố nghiêm trọng, đơn vị phải tổ chức đánh giá lại mức độ rủi ro của hệ thống
+    trí tuệ nhân tạo
+  summary_en: After a serious incident the bank re-assesses the system's risk level and, where needed,
+    re-classifies, adjusts controls, or suspends use to stop a repeat.
   duties:
   - risk_classification
   - incident_response
   - lifecycle_management
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id007
-  - *id010
-  - *id006
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
   evidence_needed:
   - post-incident risk review record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A10.01-01
   article_ref: Art. 10(1)
-  text_vi: 'Hệ thống trí tuệ nhân tạo phải được cấu hình để ghi nhật ký các sự kiện trong quá trình vận hành, tối thiểu bao gồm: a) Thời gian, hệ thống, người dùng thực hiện các giao dịch hoặc tác vụ; b) Thông tin về dữ liệu đầu vào và kết quả đầu ra của hệ thống, kèm theo thông tin về phiên bản mô hình, cấu hình hoặc câu lệnh (nếu có) bảo đảm đủ để truy xuất, kiểm tra và tái lập quá trình xử lý khi cần thiết; c) Các trường hợp kết quả nằm ngoài phạm vi hoạt động dự định hoặc có độ tin cậy thấp; d) Các sự kiện liên quan đến lỗi của hệ thống hoặc cảnh báo sự cố an ninh mạng.'
-  summary_en: 'AI systems must be set up to log: time, system and user for each transaction or task; inputs and outputs with model version, configuration or prompt (enough to trace and reproduce); out-of-scope or low-confidence results; system errors and cyber alerts.'
+  text_vi: 'Hệ thống trí tuệ nhân tạo phải được cấu hình để ghi nhật ký các sự kiện trong quá trình vận
+    hành, tối thiểu bao gồm: a) Thời gian, hệ thống, người dùng thực hiện các giao dịch hoặc tác vụ; b)
+    Thông tin về dữ liệu đầu vào và kết quả đầu ra của hệ thống, kèm theo thông tin về phiên bản mô hình,
+    cấu hình hoặc câu lệnh (nếu có) bảo đảm đủ để truy xuất, kiểm tra và tái lập quá trình xử lý khi cần
+    thiết; c) Các trường hợp kết quả nằm ngoài phạm vi hoạt động dự định hoặc có độ tin cậy thấp; d) Các
+    sự kiện liên quan đến lỗi của hệ thống hoặc cảnh báo sự cố an ninh mạng.'
+  summary_en: 'AI systems must be set up to log: time, system and user for each transaction or task; inputs
+    and outputs with model version, configuration or prompt (enough to trace and reproduce); out-of-scope
+    or low-confidence results; system errors and cyber alerts.'
   duties:
   - logging
   - record_keeping
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id015
-  - *id012
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: recorded tool calls and gate decisions per agent
   - kind: evidence
     id: verdict_log
     coverage: partial
@@ -968,45 +1618,95 @@ obligations:
   - ability to reproduce a decision from the log
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Supervisor records gate decisions, tool calls and verdicts. Whether it holds full model inputs and outputs, model version and prompt depends on how the agent is connected; check coverage per agent.
+  notes: Supervisor records gate decisions, tool calls and verdicts. Whether it holds full model inputs
+    and outputs, model version and prompt depends on how the agent is connected; check coverage per agent.
   status: issued
 - id: VN-TT53-2026-A10.02-01
   article_ref: Art. 10(2)
-  text_vi: Thời gian lưu trữ nhật ký hoạt động của hệ thống trí tuệ nhân tạo và nhật ký xử lý dữ liệu quy định tại điểm c khoản 2 Điều 7 Thông tư này phải phù hợp với mức độ rủi ro, mục đích sử dụng của hệ thống, tối thiểu đáp ứng quy định về lưu trữ nhật ký của hệ thống thông tin theo cấp độ an ninh mạng.
-  summary_en: Log retention must fit the risk and purpose and meet at least the log retention rules for the information-system security level.
+  text_vi: Thời gian lưu trữ nhật ký hoạt động của hệ thống trí tuệ nhân tạo và nhật ký xử lý dữ liệu
+    quy định tại điểm c khoản 2 Điều 7 Thông tư này phải phù hợp với mức độ rủi ro, mục đích sử dụng của
+    hệ thống, tối thiểu đáp ứng quy định về lưu trữ nhật ký của hệ thống thông tin theo cấp độ an ninh
+    mạng.
+  summary_en: Log retention must fit the risk and purpose and meet at least the log retention rules for
+    the information-system security level.
   duties:
   - retention
   - record_keeping
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: process
     id: records_retention
     coverage: none
     note: retention schedule
-  - *id015
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
   evidence_needed:
   - retention period set per system security level
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A11.01-01
   article_ref: Art. 11(1)
-  text_vi: 'Đơn vị cung cấp đầy đủ, rõ ràng thông tin cho người quản lý, người điều hành và nhân viên sử dụng hệ thống trí tuệ nhân tạo (sau đây gọi chung là người sử dụng nội bộ), bao gồm: a) Mục đích sử dụng, phạm vi áp dụng, vai trò của hệ thống trong việc hỗ trợ hoặc đưa ra quyết định, khả năng và các giới hạn của hệ thống trí tuệ nhân tạo; b) Hướng dẫn sử dụng hệ thống và các khuyến nghị về việc diễn giải, sử dụng kết quả đầu ra của hệ thống, bao gồm cảnh báo về nguy cơ sai lệch hoặc sử dụng ngoài mục đích thiết kế; c) Quy trình và cách thức yêu cầu sự can thiệp của con người khi phát hiện bất thường hoặc rủi ro hoặc sự cố trong quá trình vận hành.'
-  summary_en: 'The bank gives internal users clear information: purpose, scope, role, abilities and limits of the system; usage guidance with warnings about error or out-of-design use; and how to ask for human intervention on anomaly, risk or incident.'
+  text_vi: 'Đơn vị cung cấp đầy đủ, rõ ràng thông tin cho người quản lý, người điều hành và nhân viên
+    sử dụng hệ thống trí tuệ nhân tạo (sau đây gọi chung là người sử dụng nội bộ), bao gồm: a) Mục đích
+    sử dụng, phạm vi áp dụng, vai trò của hệ thống trong việc hỗ trợ hoặc đưa ra quyết định, khả năng
+    và các giới hạn của hệ thống trí tuệ nhân tạo; b) Hướng dẫn sử dụng hệ thống và các khuyến nghị về
+    việc diễn giải, sử dụng kết quả đầu ra của hệ thống, bao gồm cảnh báo về nguy cơ sai lệch hoặc sử
+    dụng ngoài mục đích thiết kế; c) Quy trình và cách thức yêu cầu sự can thiệp của con người khi phát
+    hiện bất thường hoặc rủi ro hoặc sự cố trong quá trình vận hành.'
+  summary_en: 'The bank gives internal users clear information: purpose, scope, role, abilities and limits
+    of the system; usage guidance with warnings about error or out-of-design use; and how to ask for human
+    intervention on anomaly, risk or incident.'
   duties:
   - staff_competence
   - consumer_information
   - human_oversight
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: evidence
@@ -1017,25 +1717,49 @@ obligations:
     id: handover
     coverage: partial
     note: operate handover
-  - *id020
+  - kind: process
+    id: staff_training
+    coverage: none
+    note: training records
   evidence_needed:
   - user guide per AI system
   - escalation route
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A11.02-01
   article_ref: Art. 11(2)
-  text_vi: Đơn vị phải thiết lập kênh tiếp nhận và xử lý phản hồi từ người sử dụng nội bộ và các bộ phận liên quan về các sự cố, hành vi bất thường, tác động bất lợi hoặc kết quả sai lệch phát sinh trong quá trình vận hành hệ thống trí tuệ nhân tạo, làm cơ sở cho việc điều chỉnh mô hình, quy trình hoặc biện pháp kiểm soát rủi ro.
-  summary_en: The bank sets up a channel to receive and handle feedback from internal users on incidents, odd behaviour, adverse effects or wrong results, to tune the model, process or controls.
+  text_vi: Đơn vị phải thiết lập kênh tiếp nhận và xử lý phản hồi từ người sử dụng nội bộ và các bộ phận
+    liên quan về các sự cố, hành vi bất thường, tác động bất lợi hoặc kết quả sai lệch phát sinh trong
+    quá trình vận hành hệ thống trí tuệ nhân tạo, làm cơ sở cho việc điều chỉnh mô hình, quy trình hoặc
+    biện pháp kiểm soát rủi ro.
+  summary_en: The bank sets up a channel to receive and handle feedback from internal users on incidents,
+    odd behaviour, adverse effects or wrong results, to tune the model, process or controls.
   duties:
   - incident_response
   - complaint_handling
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: console
@@ -1046,23 +1770,41 @@ obligations:
     id: cases
     coverage: partial
     note: case queue
-  - *id021
+  - kind: process
+    id: incident_management
+    coverage: none
+    note: bank incident procedure
   evidence_needed:
   - feedback channel and handling log
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: medium
   status: issued
 - id: VN-TT53-2026-A12.03-01
   article_ref: Art. 12(3)
-  text_vi: Đối với hệ thống trí tuệ nhân tạo có rủi ro cao, Hội đồng quản lý cấp cao phải phê duyệt chủ trương triển khai và quyết định đưa hệ thống vào vận hành chính thức.
-  summary_en: For a high-risk system the senior management board must approve the plan to deploy and decide on official go-live.
+  text_vi: Đối với hệ thống trí tuệ nhân tạo có rủi ro cao, Hội đồng quản lý cấp cao phải phê duyệt chủ
+    trương triển khai và quyết định đưa hệ thống vào vận hành chính thức.
+  summary_en: For a high-risk system the senior management board must approve the plan to deploy and decide
+    on official go-live.
   duties:
   - governance_accountability
-  applies_to: &id022
+  applies_to:
     agent_class:
     - payment
     - credit_decision
@@ -1070,7 +1812,10 @@ obligations:
     - deployer
   addressee: bank
   control_mapping:
-  - *id008
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
   - kind: evidence
     id: launch_report
     coverage: partial
@@ -1083,21 +1828,44 @@ obligations:
   - board resolution for each high-risk system and for go-live
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: 'High-risk status: Decision 33 Appendix IV (VN-QD33-2026) plus the thresholds in Art. 4(2) of this Circular. '
+  notes: 'High-risk status: Decision 33 Appendix IV (VN-QD33-2026) plus the thresholds in Art. 4(2) of
+    this Circular. '
   status: issued
 - id: VN-TT53-2026-A12.06-01
   article_ref: Art. 12(6)
-  text_vi: Đơn vị phải báo cáo Hội đồng quản lý cấp cao, ngân hàng mẹ về tình hình vận hành, rủi ro, sự cố nghiêm trọng, khiếu nại và xu hướng sai lệch của hệ thống định kỳ tối thiểu 6 tháng đối với hệ thống trí tuệ nhân tạo có rủi ro cao và rủi ro trung bình hoặc khi có thay đổi đáng kể của hệ thống trí tuệ nhân tạo có rủi ro cao.
-  summary_en: At least every 6 months (and after a significant change to a high-risk system) the bank reports to the senior board and parent bank on operation, risk, serious incidents, complaints and deviation trends of high-risk and medium-risk systems.
+  text_vi: Đơn vị phải báo cáo Hội đồng quản lý cấp cao, ngân hàng mẹ về tình hình vận hành, rủi ro, sự
+    cố nghiêm trọng, khiếu nại và xu hướng sai lệch của hệ thống định kỳ tối thiểu 6 tháng đối với hệ
+    thống trí tuệ nhân tạo có rủi ro cao và rủi ro trung bình hoặc khi có thay đổi đáng kể của hệ thống
+    trí tuệ nhân tạo có rủi ro cao.
+  summary_en: At least every 6 months (and after a significant change to a high-risk system) the bank
+    reports to the senior board and parent bank on operation, risk, serious incidents, complaints and
+    deviation trends of high-risk and medium-risk systems.
   duties:
   - regulatory_reporting
   - governance_accountability
   - performance_monitoring
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: monitor
@@ -1112,26 +1880,58 @@ obligations:
     id: audit_pack
     coverage: partial
     note: export for the report
-  - *id008
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
   evidence_needed:
   - six-monthly board report
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A13.01-01
   article_ref: Art. 13(1)
-  text_vi: 'Đối với hệ thống trí tuệ nhân tạo có rủi ro cao, đơn vị phải thực hiện đánh giá tác động của hệ thống trí tuệ nhân tạo trước khi triển khai, tối thiểu bao gồm các nội dung sau: a) Mô tả mục đích, phạm vi và nguyên lý hoạt động của hệ thống; mô tả cơ chế bảo đảm khả năng giám sát, can thiệp của con người; b) Phân tích rủi ro tiềm ẩn đối với hoạt động nghiệp vụ; rủi ro an ninh mạng đối với hệ thống thông tin; quyền lợi của khách hàng và các bên liên quan (trong đó đánh giá cụ thể tác động về tính công bằng, sự minh bạch, khả năng giải thích và nguy cơ phân biệt đối xử đối với khách hàng); c) Đánh giá tác động xử lý dữ liệu cá nhân theo quy định của pháp luật (nếu có); d) Xác định các biện pháp kiểm soát và giảm thiểu rủi ro; đ) Xây dựng kế hoạch giám sát và phương án ứng phó sự cố trong quá trình vận hành.'
-  summary_en: 'Before deploying a high-risk system the bank does an impact assessment: purpose, scope, how it works and how human oversight works; risks to operations, cybersecurity and customer rights, with explicit analysis of fairness, transparency, explainability and discrimination; a personal-data impact assessment where relevant; controls; monitoring and incident plans.'
+  text_vi: 'Đối với hệ thống trí tuệ nhân tạo có rủi ro cao, đơn vị phải thực hiện đánh giá tác động của
+    hệ thống trí tuệ nhân tạo trước khi triển khai, tối thiểu bao gồm các nội dung sau: a) Mô tả mục đích,
+    phạm vi và nguyên lý hoạt động của hệ thống; mô tả cơ chế bảo đảm khả năng giám sát, can thiệp của
+    con người; b) Phân tích rủi ro tiềm ẩn đối với hoạt động nghiệp vụ; rủi ro an ninh mạng đối với hệ
+    thống thông tin; quyền lợi của khách hàng và các bên liên quan (trong đó đánh giá cụ thể tác động
+    về tính công bằng, sự minh bạch, khả năng giải thích và nguy cơ phân biệt đối xử đối với khách hàng);
+    c) Đánh giá tác động xử lý dữ liệu cá nhân theo quy định của pháp luật (nếu có); d) Xác định các biện
+    pháp kiểm soát và giảm thiểu rủi ro; đ) Xây dựng kế hoạch giám sát và phương án ứng phó sự cố trong
+    quá trình vận hành.'
+  summary_en: 'Before deploying a high-risk system the bank does an impact assessment: purpose, scope,
+    how it works and how human oversight works; risks to operations, cybersecurity and customer rights,
+    with explicit analysis of fairness, transparency, explainability and discrimination; a personal-data
+    impact assessment where relevant; controls; monitoring and incident plans.'
   duties:
   - risk_management_system
   - dpia
   - bias_monitoring
   - explainability
-  applies_to: *id022
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: evidence
@@ -1150,29 +1950,57 @@ obligations:
     id: dpia_document
     coverage: none
     note: personal data impact assessment
-  - *id023
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: outcome rates by customer segment
   evidence_needed:
   - impact assessment document with the five required parts
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: 'High-risk status: Decision 33 Appendix IV (VN-QD33-2026) plus the thresholds in Art. 4(2) of this Circular. The onboarding outputs are inputs to the assessment, not the assessment itself.'
+  notes: 'High-risk status: Decision 33 Appendix IV (VN-QD33-2026) plus the thresholds in Art. 4(2) of
+    this Circular. The onboarding outputs are inputs to the assessment, not the assessment itself.'
   status: issued
 - id: VN-TT53-2026-A13.02-01
   article_ref: Art. 13(2)
-  text_vi: Kết quả đánh giá tác động phải được lập thành hồ sơ, phê duyệt bởi cấp có thẩm quyền của đơn vị; được rà soát, cập nhật khi có sự thay đổi về chức năng, phạm vi xử lý dữ liệu hoặc điều kiện vận hành của hệ thống trí tuệ nhân tạo; và lưu trữ hồ sơ trong suốt thời gian hoạt động của hệ thống.
-  summary_en: The impact assessment is filed, approved by the competent level, updated when function, data scope or operating conditions change, and kept for the life of the system.
+  text_vi: Kết quả đánh giá tác động phải được lập thành hồ sơ, phê duyệt bởi cấp có thẩm quyền của đơn
+    vị; được rà soát, cập nhật khi có sự thay đổi về chức năng, phạm vi xử lý dữ liệu hoặc điều kiện vận
+    hành của hệ thống trí tuệ nhân tạo; và lưu trữ hồ sơ trong suốt thời gian hoạt động của hệ thống.
+  summary_en: The impact assessment is filed, approved by the competent level, updated when function,
+    data scope or operating conditions change, and kept for the life of the system.
   duties:
   - record_keeping
   - governance_accountability
   - change_control
-  applies_to: *id022
+  applies_to:
+    agent_class:
+    - payment
+    - credit_decision
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id008
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
   - kind: evidence
     id: agent_version
     coverage: partial
@@ -1181,25 +2009,59 @@ obligations:
   - approved impact assessment kept and refreshed
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: 'High-risk status: Decision 33 Appendix IV (VN-QD33-2026) plus the thresholds in Art. 4(2) of this Circular. '
+  notes: 'High-risk status: Decision 33 Appendix IV (VN-QD33-2026) plus the thresholds in Art. 4(2) of
+    this Circular. '
   status: issued
 - id: VN-TT53-2026-A14.02-01
   article_ref: Art. 14(2)
-  text_vi: 'Đơn vị tổ chức quản lý rủi ro đối với việc ứng dụng hệ thống trí tuệ nhân tạo theo 03 tuyến bảo vệ độc lập, trong đó: a) Tuyến bảo vệ thứ nhất là bộ phận hoặc cá nhân thực hiện chức năng phát triển, triển khai, vận hành, sử dụng hệ thống trí tuệ nhân tạo; nhận dạng, thực hiện các biện pháp kiểm soát, theo dõi, giảm thiểu rủi ro; b) Tuyến bảo vệ thứ hai là bộ phận hoặc cá nhân thực hiện chức năng kiểm tra, đánh giá hệ thống trí tuệ nhân tạo; xây dựng chính sách quản lý rủi ro, quy định nội bộ về quản lý rủi ro; theo dõi, kiểm soát rủi ro và tuân thủ quy định của pháp luật; c) Tuyến bảo vệ thứ ba là bộ phận hoặc cá nhân thực hiện chức năng kiểm toán nội bộ; d) Đơn vị được phép thuê ngoài để thực hiện một số chức năng của các tuyến bảo vệ, nhưng phải bảo đảm tính độc lập giữa các tuyến.'
-  summary_en: 'AI risk management follows three independent lines of defence: first line develops, deploys and operates; second line tests, sets risk policy and monitors compliance; third line is internal audit. Outsourcing of some functions is allowed if independence between lines is kept.'
+  text_vi: 'Đơn vị tổ chức quản lý rủi ro đối với việc ứng dụng hệ thống trí tuệ nhân tạo theo 03 tuyến
+    bảo vệ độc lập, trong đó: a) Tuyến bảo vệ thứ nhất là bộ phận hoặc cá nhân thực hiện chức năng phát
+    triển, triển khai, vận hành, sử dụng hệ thống trí tuệ nhân tạo; nhận dạng, thực hiện các biện pháp
+    kiểm soát, theo dõi, giảm thiểu rủi ro; b) Tuyến bảo vệ thứ hai là bộ phận hoặc cá nhân thực hiện
+    chức năng kiểm tra, đánh giá hệ thống trí tuệ nhân tạo; xây dựng chính sách quản lý rủi ro, quy định
+    nội bộ về quản lý rủi ro; theo dõi, kiểm soát rủi ro và tuân thủ quy định của pháp luật; c) Tuyến
+    bảo vệ thứ ba là bộ phận hoặc cá nhân thực hiện chức năng kiểm toán nội bộ; d) Đơn vị được phép thuê
+    ngoài để thực hiện một số chức năng của các tuyến bảo vệ, nhưng phải bảo đảm tính độc lập giữa các
+    tuyến.'
+  summary_en: 'AI risk management follows three independent lines of defence: first line develops, deploys
+    and operates; second line tests, sets risk policy and monitors compliance; third line is internal
+    audit. Outsourcing of some functions is allowed if independence between lines is kept.'
   duties:
   - governance_accountability
   - independent_validation
   - risk_management_system
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id008
-  - *id024
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: independent second-line model validation
   - kind: evidence
     id: audit_pack
     coverage: partial
@@ -1208,11 +2070,26 @@ obligations:
   - RACI of the three lines for AI
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: 'Date override: Art. 14 takes effect 2027-01-01 (Art. 23(2)). Art. 14(1), (3) and (4) require a risk framework covering model, data governance, cyber, compliance, ethics, third-party, supply-chain and (for banks) reputation risk.'
+  notes: 'Date override: Art. 14 takes effect 2027-01-01 (Art. 23(2)). Art. 14(1), (3) and (4) require
+    a risk framework covering model, data governance, cyber, compliance, ethics, third-party, supply-chain
+    and (for banks) reputation risk.'
   status: issued
   dates:
     effective:
@@ -1222,15 +2099,24 @@ obligations:
       note: 'Art. 23(2): Art. 14 takes effect on 2027-01-01.'
 - id: VN-TT53-2026-A15.01-01
   article_ref: Art. 15(1)
-  text_vi: Đơn vị phải thiết lập, thực hiện và duy trì quản lý rủi ro đối với hệ thống trí tuệ nhân tạo trong suốt vòng đời của hệ thống trong phạm vi trách nhiệm và khả năng kiểm soát của đơn vị
-  summary_en: 'Risk management over the whole life of the system: design, development, test, deployment, operation, retirement.'
+  text_vi: Đơn vị phải thiết lập, thực hiện và duy trì quản lý rủi ro đối với hệ thống trí tuệ nhân tạo
+    trong suốt vòng đời của hệ thống trong phạm vi trách nhiệm và khả năng kiểm soát của đơn vị
+  summary_en: 'Risk management over the whole life of the system: design, development, test, deployment,
+    operation, retirement.'
   duties:
   - lifecycle_management
   - risk_management_system
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id007
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
   - kind: evidence
     id: agent_version
     coverage: partial
@@ -1239,32 +2125,60 @@ obligations:
     id: handover
     coverage: partial
     note: operate handover
-  - *id010
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution
   evidence_needed:
   - lifecycle procedure
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A15.05B-01
   article_ref: Art. 15(5)(b)
-  text_vi: Khi hệ thống trí tuệ nhân tạo không còn sử dụng, đơn vị phải thực hiện quy trình ngừng hoạt động an toàn, bao gồm việc xóa (sau khi thực hiện việc lưu trữ dữ liệu theo quy định của pháp luật) hoặc vô hiệu hóa an toàn hoặc cô lập dữ liệu, mô hình, cấu hình và các thành phần liên quan thuộc phạm vi quản lý, kiểm soát của đơn vị nhằm ngăn chặn rò rỉ dữ liệu hoặc khôi phục trái phép;
-  summary_en: 'When a system is retired the bank follows a safe shutdown: delete (after legal archiving), disable or isolate data, model, configuration and related parts to stop leaks or unlawful restore.'
+  text_vi: Khi hệ thống trí tuệ nhân tạo không còn sử dụng, đơn vị phải thực hiện quy trình ngừng hoạt
+    động an toàn, bao gồm việc xóa (sau khi thực hiện việc lưu trữ dữ liệu theo quy định của pháp luật)
+    hoặc vô hiệu hóa an toàn hoặc cô lập dữ liệu, mô hình, cấu hình và các thành phần liên quan thuộc
+    phạm vi quản lý, kiểm soát của đơn vị nhằm ngăn chặn rò rỉ dữ liệu hoặc khôi phục trái phép;
+  summary_en: 'When a system is retired the bank follows a safe shutdown: delete (after legal archiving),
+    disable or isolate data, model, configuration and related parts to stop leaks or unlawful restore.'
   duties:
   - lifecycle_management
   - retention
   - data_minimisation
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: console
     id: agent_action
     coverage: partial
     note: retire action in the console marks an agent retired
-  - *id007
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
   - kind: process
     id: records_retention
     coverage: none
@@ -1273,16 +2187,33 @@ obligations:
   - retirement checklist with data and credential cleanup
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: The retire action stops the agent in Supervisor. Deleting data and models is the bank's job.
   status: issued
 - id: VN-TT53-2026-A16.02-01
   article_ref: Art. 16(2)
-  text_vi: 'Đơn vị thực hiện kiểm tra, đánh giá mô hình trong các trường hợp sau: a) Trước khi đưa vào vận hành lần đầu; b) Định kỳ tối thiểu hằng năm trong quá trình vận hành; c) Khi xảy ra sự cố nghiêm trọng; khi có thay đổi đáng kể của hệ thống trí tuệ nhân tạo; khi phát hiện bất thường, sai lệch nghiêm trọng trong quá trình vận hành; hoặc khi mức độ rủi ro của hệ thống thay đổi.'
-  summary_en: Models are tested and evaluated before first use, at least yearly, and after a serious incident, a significant change, serious deviation or a change in risk level.
+  text_vi: 'Đơn vị thực hiện kiểm tra, đánh giá mô hình trong các trường hợp sau: a) Trước khi đưa vào
+    vận hành lần đầu; b) Định kỳ tối thiểu hằng năm trong quá trình vận hành; c) Khi xảy ra sự cố nghiêm
+    trọng; khi có thay đổi đáng kể của hệ thống trí tuệ nhân tạo; khi phát hiện bất thường, sai lệch nghiêm
+    trọng trong quá trình vận hành; hoặc khi mức độ rủi ro của hệ thống thay đổi.'
+  summary_en: Models are tested and evaluated before first use, at least yearly, and after a serious incident,
+    a significant change, serious deviation or a change in risk level.
   duties:
   - independent_validation
   - performance_monitoring
@@ -1295,27 +2226,58 @@ obligations:
     - deployer
   addressee: bank
   control_mapping:
-  - *id024
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: independent second-line model validation
   - kind: evidence
     id: launch_report
     coverage: partial
     note: launch sandbox report is pre-go-live test evidence
-  - *id025
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: quality and groundedness sampling
   evidence_needed:
   - validation calendar
   - reports per trigger
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: 'Scope: high-risk models and medium-risk models that decide in business operations (Art. 16(1)).'
   status: issued
 - id: VN-TT53-2026-A16.03-01
   article_ref: Art. 16(3)
-  text_vi: 'Việc kiểm tra, đánh giá mô hình phải tối thiểu bao gồm các nội dung sau: a) Đối với mô hình do đơn vị trực tiếp quản lý: (i) Sự phù hợp của dữ liệu huấn luyện và dữ liệu kiểm thử; (ii) Tính hợp lý của thuật toán và kiến trúc mô hình; (iii) Hiệu năng và độ chính xác của mô hình; (iv) Khả năng giải thích về cơ chế ra quyết định và mức độ ảnh hưởng của các yếu tố đầu vào chính đối với kết quả của mô hình; (v) Tính công bằng và kiểm soát nguy cơ thiên lệch; (vi) Độ ổn định và khả năng chống chịu của mô hình trong các điều kiện vận hành; b) Đối với mô hình do bên thứ ba cung cấp dưới dạng dịch vụ thông qua nền tảng hoặc giao diện lập trình ứng dụng: (i) Mục đích sử dụng, phạm vi triển khai và mức độ rủi ro của hệ thống; (ii) Kết quả kiểm thử hộp đen thực tế trên tập dữ liệu của đơn vị; (iii) Kết quả đầu ra của mô hình trong điều kiện vận hành thực tế, trừ trường hợp quy định tại điểm a khoản 2 Điều này; (iv) Tài liệu, thông tin, báo cáo hoặc cam kết do nhà cung cấp công bố; (v) Các biện pháp kiểm soát, giám sát và can thiệp của con người trong quá trình sử dụng.'
-  summary_en: 'Model tests cover, for own models: data fit, algorithm and architecture, accuracy, explainability, fairness and bias, stability. For third-party API models: use and risk level, black-box tests on the bank''s data, real operating outputs, vendor documents and commitments, and human control measures.'
+  text_vi: 'Việc kiểm tra, đánh giá mô hình phải tối thiểu bao gồm các nội dung sau: a) Đối với mô hình
+    do đơn vị trực tiếp quản lý: (i) Sự phù hợp của dữ liệu huấn luyện và dữ liệu kiểm thử; (ii) Tính
+    hợp lý của thuật toán và kiến trúc mô hình; (iii) Hiệu năng và độ chính xác của mô hình; (iv) Khả
+    năng giải thích về cơ chế ra quyết định và mức độ ảnh hưởng của các yếu tố đầu vào chính đối với kết
+    quả của mô hình; (v) Tính công bằng và kiểm soát nguy cơ thiên lệch; (vi) Độ ổn định và khả năng chống
+    chịu của mô hình trong các điều kiện vận hành; b) Đối với mô hình do bên thứ ba cung cấp dưới dạng
+    dịch vụ thông qua nền tảng hoặc giao diện lập trình ứng dụng: (i) Mục đích sử dụng, phạm vi triển
+    khai và mức độ rủi ro của hệ thống; (ii) Kết quả kiểm thử hộp đen thực tế trên tập dữ liệu của đơn
+    vị; (iii) Kết quả đầu ra của mô hình trong điều kiện vận hành thực tế, trừ trường hợp quy định tại
+    điểm a khoản 2 Điều này; (iv) Tài liệu, thông tin, báo cáo hoặc cam kết do nhà cung cấp công bố; (v)
+    Các biện pháp kiểm soát, giám sát và can thiệp của con người trong quá trình sử dụng.'
+  summary_en: 'Model tests cover, for own models: data fit, algorithm and architecture, accuracy, explainability,
+    fairness and bias, stability. For third-party API models: use and risk level, black-box tests on the
+    bank''s data, real operating outputs, vendor documents and commitments, and human control measures.'
   duties:
   - independent_validation
   - explainability
@@ -1330,8 +2292,14 @@ obligations:
     - deployer
   addressee: bank
   control_mapping:
-  - *id024
-  - *id023
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: independent second-line model validation
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: outcome rates by customer segment
   - kind: catalogue
     id: groundedness
     coverage: partial
@@ -1344,44 +2312,96 @@ obligations:
   - test report covering each listed content item
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A16.04-01
   article_ref: Art. 16(4)
-  text_vi: Việc kiểm tra, đánh giá mô hình được thực hiện bởi bộ phận độc lập với bộ phận phát triển, triển khai, vận hành hệ thống trí tuệ nhân tạo và nhà cung cấp mô hình.
-  summary_en: Model testing is done by a unit independent of development, deployment, operation and the model vendor.
+  text_vi: Việc kiểm tra, đánh giá mô hình được thực hiện bởi bộ phận độc lập với bộ phận phát triển,
+    triển khai, vận hành hệ thống trí tuệ nhân tạo và nhà cung cấp mô hình.
+  summary_en: Model testing is done by a unit independent of development, deployment, operation and the
+    model vendor.
   duties:
   - independent_validation
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id024
+  - kind: process
+    id: model_validation
+    coverage: none
+    note: independent second-line model validation
   evidence_needed:
   - independent reviewer named
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Supervisor can host evidence but it is not independent of the team that deploys it unless the second line operates the console.
+  notes: Supervisor can host evidence but it is not independent of the team that deploys it unless the
+    second line operates the console.
   status: issued
 - id: VN-TT53-2026-A16.05-01
   article_ref: Art. 16(5)
-  text_vi: 'Đơn vị phải thiết lập cơ chế giám sát hiệu năng của mô hình, bao gồm: a) Phát hiện kịp thời các dấu hiệu suy giảm chất lượng mô hình; b) So sánh định kỳ giữa kết quả dự đoán của mô hình và kết quả thực tế; c) Thiết lập ngưỡng cảnh báo và biện pháp can thiệp khi phát hiện bất thường.'
-  summary_en: 'Model performance monitoring: spot quality decay in time, compare predictions with actual results regularly, set alert thresholds and intervention actions.'
+  text_vi: 'Đơn vị phải thiết lập cơ chế giám sát hiệu năng của mô hình, bao gồm: a) Phát hiện kịp thời
+    các dấu hiệu suy giảm chất lượng mô hình; b) So sánh định kỳ giữa kết quả dự đoán của mô hình và kết
+    quả thực tế; c) Thiết lập ngưỡng cảnh báo và biện pháp can thiệp khi phát hiện bất thường.'
+  summary_en: 'Model performance monitoring: spot quality decay in time, compare predictions with actual
+    results regularly, set alert thresholds and intervention actions.'
   duties:
   - performance_monitoring
   - lifecycle_management
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id016
-  - *id017
-  - *id025
+  - kind: monitor
+    id: drift
+    coverage: partial
+    note: behaviour drift band per agent
+  - kind: catalogue
+    id: drift_band
+    coverage: partial
+    note: behaviour drift band
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: quality and groundedness sampling
   - kind: monitor
     id: oversight
     coverage: partial
@@ -1391,24 +2411,51 @@ obligations:
   - alert thresholds
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Supervisor sees behaviour drift and quality samples. Prediction-vs-outcome comparison (for example credit default) needs the bank's outcome data.
+  notes: Supervisor sees behaviour drift and quality samples. Prediction-vs-outcome comparison (for example
+    credit default) needs the bank's outcome data.
   status: issued
 - id: VN-TT53-2026-A17.01-01
   article_ref: Art. 17(1)
-  text_vi: Đơn vị phải áp dụng các biện pháp kiểm soát phù hợp nhằm phát hiện và giảm thiểu thiên lệch dữ liệu, thiên lệch mô hình và thiên lệch vận hành; bảo đảm xem xét đầy đủ tác động đến nhóm dễ bị tổn thương bao gồm trẻ em, người cao tuổi, người khuyết tật, nhóm yếu thế.
-  summary_en: 'The bank must detect and reduce data bias, model bias and operational bias, with attention to vulnerable groups: children, elderly, disabled, disadvantaged groups.'
+  text_vi: Đơn vị phải áp dụng các biện pháp kiểm soát phù hợp nhằm phát hiện và giảm thiểu thiên lệch
+    dữ liệu, thiên lệch mô hình và thiên lệch vận hành; bảo đảm xem xét đầy đủ tác động đến nhóm dễ bị
+    tổn thương bao gồm trẻ em, người cao tuổi, người khuyết tật, nhóm yếu thế.
+  summary_en: 'The bank must detect and reduce data bias, model bias and operational bias, with attention
+    to vulnerable groups: children, elderly, disabled, disadvantaged groups.'
   duties:
   - bias_monitoring
   - fair_treatment
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id023
-  - *id026
+  - kind: catalogue
+    id: fairness_slices
+    coverage: partial
+    note: outcome rates by customer segment
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: fairness slice monitor
   - kind: evidence
     id: fairness_slice
     coverage: partial
@@ -1418,46 +2465,114 @@ obligations:
   - mitigation record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Fairness slices need segment attributes. Supervisor reports gaps by slice; it does not fix bias or pick the fairness metric.
+  notes: Fairness slices need segment attributes. Supervisor reports gaps by slice; it does not fix bias
+    or pick the fairness metric.
   status: issued
 - id: VN-TT53-2026-A18.01B-01
   article_ref: Art. 18(1)(b)
-  text_vi: Việc thuê ngoài không làm thay đổi trách nhiệm của đơn vị đối với việc bảo đảm an toàn hoạt động nghiệp vụ, bảo vệ quyền lợi của khách hàng, việc tuân thủ pháp luật về an ninh mạng, bảo vệ dữ liệu cá nhân và quản lý rủi ro.
-  summary_en: Outsourcing does not change the bank's responsibility for operational safety, customer rights, cybersecurity, personal data and risk management.
+  text_vi: Việc thuê ngoài không làm thay đổi trách nhiệm của đơn vị đối với việc bảo đảm an toàn hoạt
+    động nghiệp vụ, bảo vệ quyền lợi của khách hàng, việc tuân thủ pháp luật về an ninh mạng, bảo vệ dữ
+    liệu cá nhân và quản lý rủi ro.
+  summary_en: Outsourcing does not change the bank's responsibility for operational safety, customer rights,
+    cybersecurity, personal data and risk management.
   duties:
   - outsourcing_oversight
   - governance_accountability
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id018
-  - *id006
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, audit and exit plan with the AI vendor
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
   evidence_needed:
   - vendor register with owner at the bank
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: Matches the reported 'bank fully responsible for third-party AI' duty.
   status: issued
 - id: VN-TT53-2026-A18.03-01
   article_ref: Art. 18(3)
-  text_vi: 'Yêu cầu về hợp đồng thuê ngoài hệ thống trí tuệ nhân tạo tối thiểu bao gồm: a) Tuân thủ yêu cầu về hợp đồng sử dụng dịch vụ công nghệ thông tin với bên thứ ba theo quy định của Thống đốc Ngân hàng Nhà nước; b) Bên thứ ba phải cung cấp báo cáo kiểm toán tuân thủ công nghệ thông tin do tổ chức kiểm toán độc lập thực hiện hằng năm trong thời gian thực hiện hợp đồng hoặc các chứng chỉ bảo mật, quản lý rủi ro quốc tế tương đương (như SOC 2, ISO/IEC 27001, ISO/IEC 42001) còn hiệu lực. Trường hợp bên thứ ba không cung cấp được tài liệu này, đơn vị thực hiện đánh giá hoặc thuê tổ chức độc lập đánh giá tuân thủ công nghệ thông tin đối với bên thứ ba; c) Bên thứ ba phải cung cấp thông tin hoặc báo cáo kết quả kiểm tra, đánh giá chất lượng mô hình hằng năm hoặc theo từng phiên bản được phát hành; d) Bên thứ ba phải cung cấp công cụ hoặc giao diện lập trình ứng dụng (API) hoặc dữ liệu nhật ký (logs) hoặc các phương tiện kỹ thuật cần thiết khác để đơn vị giám sát hiệu năng của mô hình; đ) Bên thứ ba có trách nhiệm cung cấp thông tin về đặc tính kỹ thuật, giới hạn mô hình, cơ chế cập nhật và các biện pháp bảo mật liên quan để đơn vị thực hiện đánh giá rủi ro và quản trị vận hành; e) Bên thứ ba cam kết bảo đảm tính liên tục trong hoạt động cung cấp dịch vụ, có phương án dự phòng và giai đoạn chuyển tiếp phù hợp khi ngừng hỗ trợ hoặc có thay đổi đáng kể về mô hình; g) Bên thứ ba phải phối hợp, cung cấp thông tin cho cơ quan nhà nước có thẩm quyền trong kiểm tra, đánh giá, hậu kiểm và khắc phục sự cố liên quan đến hệ thống theo quy định của pháp luật về trí tuệ nhân tạo; h) Bên thứ ba cam kết không sử dụng dữ liệu của đơn vị để huấn luyện, tinh chỉnh hoặc cải thiện mô hình của bên thứ ba mà không có sự đồng ý bằng văn bản của đơn vị.'
-  summary_en: 'Minimum AI outsourcing contract terms: compliance with SBV IT-service contract rules; yearly independent IT audit or valid SOC 2, ISO/IEC 27001 or ISO/IEC 42001; yearly or per-version model quality reports; tools, API or logs for the bank to monitor model performance; technical information and model limits; continuity and exit plan; cooperation with authorities; no use of bank data to train or tune vendor models without written consent.'
+  text_vi: 'Yêu cầu về hợp đồng thuê ngoài hệ thống trí tuệ nhân tạo tối thiểu bao gồm: a) Tuân thủ yêu
+    cầu về hợp đồng sử dụng dịch vụ công nghệ thông tin với bên thứ ba theo quy định của Thống đốc Ngân
+    hàng Nhà nước; b) Bên thứ ba phải cung cấp báo cáo kiểm toán tuân thủ công nghệ thông tin do tổ chức
+    kiểm toán độc lập thực hiện hằng năm trong thời gian thực hiện hợp đồng hoặc các chứng chỉ bảo mật,
+    quản lý rủi ro quốc tế tương đương (như SOC 2, ISO/IEC 27001, ISO/IEC 42001) còn hiệu lực. Trường
+    hợp bên thứ ba không cung cấp được tài liệu này, đơn vị thực hiện đánh giá hoặc thuê tổ chức độc lập
+    đánh giá tuân thủ công nghệ thông tin đối với bên thứ ba; c) Bên thứ ba phải cung cấp thông tin hoặc
+    báo cáo kết quả kiểm tra, đánh giá chất lượng mô hình hằng năm hoặc theo từng phiên bản được phát
+    hành; d) Bên thứ ba phải cung cấp công cụ hoặc giao diện lập trình ứng dụng (API) hoặc dữ liệu nhật
+    ký (logs) hoặc các phương tiện kỹ thuật cần thiết khác để đơn vị giám sát hiệu năng của mô hình; đ)
+    Bên thứ ba có trách nhiệm cung cấp thông tin về đặc tính kỹ thuật, giới hạn mô hình, cơ chế cập nhật
+    và các biện pháp bảo mật liên quan để đơn vị thực hiện đánh giá rủi ro và quản trị vận hành; e) Bên
+    thứ ba cam kết bảo đảm tính liên tục trong hoạt động cung cấp dịch vụ, có phương án dự phòng và giai
+    đoạn chuyển tiếp phù hợp khi ngừng hỗ trợ hoặc có thay đổi đáng kể về mô hình; g) Bên thứ ba phải
+    phối hợp, cung cấp thông tin cho cơ quan nhà nước có thẩm quyền trong kiểm tra, đánh giá, hậu kiểm
+    và khắc phục sự cố liên quan đến hệ thống theo quy định của pháp luật về trí tuệ nhân tạo; h) Bên
+    thứ ba cam kết không sử dụng dữ liệu của đơn vị để huấn luyện, tinh chỉnh hoặc cải thiện mô hình của
+    bên thứ ba mà không có sự đồng ý bằng văn bản của đơn vị.'
+  summary_en: 'Minimum AI outsourcing contract terms: compliance with SBV IT-service contract rules; yearly
+    independent IT audit or valid SOC 2, ISO/IEC 27001 or ISO/IEC 42001; yearly or per-version model quality
+    reports; tools, API or logs for the bank to monitor model performance; technical information and model
+    limits; continuity and exit plan; cooperation with authorities; no use of bank data to train or tune
+    vendor models without written consent.'
   duties:
   - outsourcing_oversight
   - processor_contract
   - supply_chain_security
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id018
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, audit and exit plan with the AI vendor
   - kind: catalogue
     id: proxy_log
     coverage: partial
@@ -1466,55 +2581,110 @@ obligations:
     id: otlp_ingest
     coverage: partial
     note: trace ingest supports the monitoring-data clause
-  - *id006
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
   evidence_needed:
   - contract checklist against the eight clauses
   - vendor audit report or certificate on file
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A18.04E-01
   article_ref: Art. 18(4)(e)
-  text_vi: 'Trường hợp hệ thống trí tuệ nhân tạo do thuê ngoài gây thiệt hại cho khách hàng hoặc bên liên quan, đơn vị phải: (i) Kịp thời thực hiện các biện pháp khắc phục, bảo vệ quyền lợi của khách hàng; (ii) Tổ chức tiếp nhận, xử lý khiếu nại và bồi thường thiệt hại theo quy định của pháp luật và thỏa thuận hợp đồng.'
-  summary_en: If an outsourced AI system harms a customer or a related party, the bank must remedy it quickly, handle complaints and pay compensation per law and contract.
+  text_vi: 'Trường hợp hệ thống trí tuệ nhân tạo do thuê ngoài gây thiệt hại cho khách hàng hoặc bên liên
+    quan, đơn vị phải: (i) Kịp thời thực hiện các biện pháp khắc phục, bảo vệ quyền lợi của khách hàng;
+    (ii) Tổ chức tiếp nhận, xử lý khiếu nại và bồi thường thiệt hại theo quy định của pháp luật và thỏa
+    thuận hợp đồng.'
+  summary_en: If an outsourced AI system harms a customer or a related party, the bank must remedy it
+    quickly, handle complaints and pay compensation per law and contract.
   duties:
   - outsourcing_oversight
   - complaint_handling
   - incident_response
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id018
+  - kind: process
+    id: vendor_management
+    coverage: none
+    note: contract, audit and exit plan with the AI vendor
   - kind: process
     id: complaint_handling
     coverage: none
     note: complaint procedure
-  - *id019
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
   evidence_needed:
   - remedy and compensation procedure
   - case file for the affected customer
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A19.02-01
   article_ref: Art. 19(2)
-  text_vi: 'Đơn vị phải xây dựng và duy trì danh mục chi tiết các thành phần phần mềm của hệ thống trí tuệ nhân tạo, tối thiểu bao gồm: Tên thành phần (thư viện, mô hình, tập dữ liệu huấn luyện và các thành phần phụ thuộc); tên nhà cung cấp hoặc nhà phát triển thành phần; phiên bản đang sử dụng; giấy phép sử dụng; mã kiểm tra tính toàn vẹn và xác thực nguồn gốc; thời điểm tạo lập danh mục để phục vụ việc truy vết và ứng phó kịp thời đối với các rủi ro, sự cố an ninh mạng.'
-  summary_en: 'The bank keeps a detailed bill of materials of the AI system: libraries, models, training datasets and dependencies, with supplier, version, licence, integrity check value and creation date.'
+  text_vi: 'Đơn vị phải xây dựng và duy trì danh mục chi tiết các thành phần phần mềm của hệ thống trí
+    tuệ nhân tạo, tối thiểu bao gồm: Tên thành phần (thư viện, mô hình, tập dữ liệu huấn luyện và các
+    thành phần phụ thuộc); tên nhà cung cấp hoặc nhà phát triển thành phần; phiên bản đang sử dụng; giấy
+    phép sử dụng; mã kiểm tra tính toàn vẹn và xác thực nguồn gốc; thời điểm tạo lập danh mục để phục
+    vụ việc truy vết và ứng phó kịp thời đối với các rủi ro, sự cố an ninh mạng.'
+  summary_en: 'The bank keeps a detailed bill of materials of the AI system: libraries, models, training
+    datasets and dependencies, with supplier, version, licence, integrity check value and creation date.'
   duties:
   - supply_chain_security
   - model_inventory
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id007
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
   - kind: process
     id: security_assessment
     coverage: none
@@ -1523,16 +2693,31 @@ obligations:
   - AI bill of materials per system
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: Supervisor registry holds agent and model family, not full component lists.
   status: issued
 - id: VN-TT53-2026-A20.02-01
   article_ref: Art. 20(2)
-  text_vi: Đơn vị có trách nhiệm cung cấp thông tin hướng dẫn sử dụng và nêu rõ các giới hạn của hệ thống trí tuệ nhân tạo để khách hàng biết trước khi thoả thuận sử dụng dịch vụ của đơn vị.
-  summary_en: Before the customer agrees to the service, the bank gives usage guidance and states the limits of the AI system.
+  text_vi: Đơn vị có trách nhiệm cung cấp thông tin hướng dẫn sử dụng và nêu rõ các giới hạn của hệ thống
+    trí tuệ nhân tạo để khách hàng biết trước khi thoả thuận sử dụng dịch vụ của đơn vị.
+  summary_en: Before the customer agrees to the service, the bank gives usage guidance and states the
+    limits of the AI system.
   duties:
   - consumer_information
   - ai_disclosure
@@ -1553,16 +2738,32 @@ obligations:
   - customer-facing description of AI use and limits
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: Applies to AI that makes decisions in business activity (Art. 20(1)).
   status: issued
 - id: VN-TT53-2026-A20.03-01
   article_ref: Art. 20(3)
-  text_vi: Đối với các hệ thống trí tuệ nhân tạo đóng vai trò thay thế con người trong việc giao tiếp trực tiếp với khách hàng, đơn vị phải có biện pháp thông báo cho khách hàng biết việc đang tương tác với hệ thống trí tuệ nhân tạo ngay từ khi bắt đầu phiên làm việc hoặc hội thoại.
-  summary_en: If an AI system replaces a person in direct talk with customers, the bank must tell the customer from the start of the session that it is an AI.
+  text_vi: Đối với các hệ thống trí tuệ nhân tạo đóng vai trò thay thế con người trong việc giao tiếp
+    trực tiếp với khách hàng, đơn vị phải có biện pháp thông báo cho khách hàng biết việc đang tương tác
+    với hệ thống trí tuệ nhân tạo ngay từ khi bắt đầu phiên làm việc hoặc hội thoại.
+  summary_en: If an AI system replaces a person in direct talk with customers, the bank must tell the
+    customer from the start of the session that it is an AI.
   duties:
   - ai_disclosure
   applies_to:
@@ -1585,16 +2786,35 @@ obligations:
   - log that the notice was shown
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: The reported 'AI disclosure to customers' duty. Supervisor does not render the chat UI; it can only check that the agent's first message carries the notice if the policy asks for it.
+  notes: The reported 'AI disclosure to customers' duty. Supervisor does not render the chat UI; it can
+    only check that the agent's first message carries the notice if the policy asks for it.
   status: issued
 - id: VN-TT53-2026-A20.04-01
   article_ref: Art. 20(4)
-  text_vi: Đơn vị phải thiết lập bộ phận và quy trình tiếp nhận, xử lý khiếu nại liên quan đến việc sử dụng hệ thống trí tuệ nhân tạo; trong đó bảo đảm việc rà soát, đánh giá lại bởi con người đối với các quyết định tự động bị khiếu nại và sử dụng kết quả rà soát của con người làm căn cứ cuối cùng để giải quyết khiếu nại.
-  summary_en: The bank must have a unit and process for complaints about AI use. A human must re-review each complained-about automated decision, and the human review is the final basis for resolving the complaint.
+  text_vi: Đơn vị phải thiết lập bộ phận và quy trình tiếp nhận, xử lý khiếu nại liên quan đến việc sử
+    dụng hệ thống trí tuệ nhân tạo; trong đó bảo đảm việc rà soát, đánh giá lại bởi con người đối với
+    các quyết định tự động bị khiếu nại và sử dụng kết quả rà soát của con người làm căn cứ cuối cùng
+    để giải quyết khiếu nại.
+  summary_en: The bank must have a unit and process for complaints about AI use. A human must re-review
+    each complained-about automated decision, and the human review is the final basis for resolving the
+    complaint.
   duties:
   - right_to_human_review
   - complaint_handling
@@ -1615,22 +2835,47 @@ obligations:
     id: cases
     coverage: partial
     note: case queue for human review
-  - *id009
-  - *id019
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: records a named human decision on a case; counts as pre-execution approval only if the agent
+      code waits for it
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
   evidence_needed:
   - complaint route
   - human review record that decides the complaint
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   status: issued
 - id: VN-TT53-2026-A20.05-01
   article_ref: Art. 20(5)
-  text_vi: Đối với các hệ thống trí tuệ nhân tạo tự động ra quyết định có ảnh hưởng trực tiếp đến trách nhiệm pháp lý, nghĩa vụ tài chính hoặc việc tiếp cận, sử dụng sản phẩm, dịch vụ của khách hàng, đơn vị phải có biện pháp lưu trữ thông tin về cơ sở và các yếu tố chính dẫn đến quyết định đó
-  summary_en: For automated decisions that directly affect a customer's legal liability, financial duties or access to products or services, the bank must keep the basis and main factors of the decision, to give an explanation when the customer asks. No source code, detailed algorithm or trade secret need be shown. For fraud, AML or cyber decisions only a reason suited to risk review is needed.
+  text_vi: Đối với các hệ thống trí tuệ nhân tạo tự động ra quyết định có ảnh hưởng trực tiếp đến trách
+    nhiệm pháp lý, nghĩa vụ tài chính hoặc việc tiếp cận, sử dụng sản phẩm, dịch vụ của khách hàng, đơn
+    vị phải có biện pháp lưu trữ thông tin về cơ sở và các yếu tố chính dẫn đến quyết định đó
+  summary_en: For automated decisions that directly affect a customer's legal liability, financial duties
+    or access to products or services, the bank must keep the basis and main factors of the decision,
+    to give an explanation when the customer asks. No source code, detailed algorithm or trade secret
+    need be shown. For fraud, AML or cyber decisions only a reason suited to risk review is needed.
   duties:
   - explainability
   - record_keeping
@@ -1644,8 +2889,14 @@ obligations:
     - deployer
   addressee: bank
   control_mapping:
-  - *id019
-  - *id015
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: case file export can hold the facts for a report; Supervisor does not file the report
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
   - kind: evidence
     id: verdict_log
     coverage: partial
@@ -1659,69 +2910,154 @@ obligations:
   - explanation procedure for customer requests
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: 'Reported duty: explanation to customers. Supervisor stores the basis; the bank answers the customer.'
   status: issued
 - id: VN-TT53-2026-A21.03-01
   article_ref: Art. 21(3)
-  text_vi: 'Đơn vị phải xây dựng và triển khai chương trình đào tạo, nâng cao năng lực cho cán bộ, nhân viên liên quan về: a) Kiến thức cơ bản và ứng dụng của trí tuệ nhân tạo trong hoạt động ngân hàng; b) Quản lý rủi ro đối với việc ứng dụng hệ thống trí tuệ nhân tạo và các phương pháp đánh giá, kiểm soát rủi ro; c) Đạo đức trí tuệ nhân tạo, bảo vệ dữ liệu cá nhân và quyền riêng tư; d) An ninh mạng và các quy định của pháp luật liên quan.'
-  summary_en: 'The bank runs a training programme on: AI basics in banking; AI risk management; AI ethics, personal data and privacy; cybersecurity and related laws.'
+  text_vi: 'Đơn vị phải xây dựng và triển khai chương trình đào tạo, nâng cao năng lực cho cán bộ, nhân
+    viên liên quan về: a) Kiến thức cơ bản và ứng dụng của trí tuệ nhân tạo trong hoạt động ngân hàng;
+    b) Quản lý rủi ro đối với việc ứng dụng hệ thống trí tuệ nhân tạo và các phương pháp đánh giá, kiểm
+    soát rủi ro; c) Đạo đức trí tuệ nhân tạo, bảo vệ dữ liệu cá nhân và quyền riêng tư; d) An ninh mạng
+    và các quy định của pháp luật liên quan.'
+  summary_en: 'The bank runs a training programme on: AI basics in banking; AI risk management; AI ethics,
+    personal data and privacy; cybersecurity and related laws.'
   duties:
   - staff_competence
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id020
+  - kind: process
+    id: staff_training
+    coverage: none
+    note: training records
   evidence_needed:
   - training programme and records
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: 'Date override: Art. 21 takes effect 2027-09-01 unless the unit has a high-risk AI system (Art. 23(4)).'
+  notes: 'Date override: Art. 21 takes effect 2027-09-01 unless the unit has a high-risk AI system (Art.
+    23(4)).'
   status: issued
-  dates: &id027
+  dates:
     effective:
       date: '2027-09-01'
       source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
       verification: VERIFIED_PRIMARY
-      note: 'Art. 23(4): Art. 21 takes effect on 2027-09-01, except for a unit that has a high-risk AI system (then the general date 2026-11-15 applies).'
+      note: 'Art. 23(4): Art. 21 takes effect on 2027-09-01, except for a unit that has a high-risk AI
+        system (then the general date 2026-11-15 applies).'
 - id: VN-TT53-2026-A21.04-01
   article_ref: Art. 21(4)
-  text_vi: Định kỳ tối thiểu hằng năm, đơn vị phải đánh giá và cập nhật năng lực của đội ngũ nhân sự quy định tại khoản 1 Điều này.
-  summary_en: At least yearly the bank assesses and updates the capability of the staff who develop, run, monitor, validate and audit AI systems.
+  text_vi: Định kỳ tối thiểu hằng năm, đơn vị phải đánh giá và cập nhật năng lực của đội ngũ nhân sự quy
+    định tại khoản 1 Điều này.
+  summary_en: At least yearly the bank assesses and updates the capability of the staff who develop, run,
+    monitor, validate and audit AI systems.
   duties:
   - staff_competence
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id020
+  - kind: process
+    id: staff_training
+    coverage: none
+    note: training records
   evidence_needed:
   - yearly capability review record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
   notes: Reported 'annual staff capability review'. Same date rule as Art. 21(3).
   status: issued
-  dates: *id027
+  dates:
+    effective:
+      date: '2027-09-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 23(4): Art. 21 takes effect on 2027-09-01, except for a unit that has a high-risk AI
+        system (then the general date 2026-11-15 applies).'
 - id: VN-TT53-2026-A22.01-01
   article_ref: Art. 22(1)-(2)
-  text_vi: 'Đơn vị lập hồ sơ liên quan đến hệ thống trí tuệ nhân tạo theo khoản 2 Điều này và báo cáo cấp có thẩm quyền của đơn vị quyết định việc đưa hệ thống trí tuệ nhân tạo vào vận hành chính thức. 2. Hồ sơ bao gồm: a) Hồ sơ phân loại rủi ro theo quy định của pháp luật về trí tuệ nhân tạo; b) Kết quả kiểm tra, đánh giá an ninh mạng; c) Kết quả kiểm tra, đánh giá mô hình; d) Kết quả đánh giá tác động của hệ thống trí tuệ nhân tạo có rủi ro cao theo quy định tại Điều 13 Thông tư này; đ) Kết quả đánh giá sự phù hợp của hệ thống trí tuệ nhân tạo có rủi ro cao theo quy định của pháp luật về trí tuệ nhân tạo; e) Kế hoạch vận hành an toàn, bao gồm giám sát, bảo đảm hoạt động liên tục và ứng phó sự cố; g) Kết quả đánh giá đáp ứng điều kiện triển khai đối với hệ thống trí tuệ nhân tạo ra quyết định trong các hoạt động nghiệp vụ theo quy định tại Điều 20 Thông tư này; h) Báo cáo về nguồn nhân lực triển khai và quản lý hệ thống trí tuệ nhân tạo theo quy định tại Điều 21 Thông tư này; i) Điều kiện dừng và khôi phục hệ thống.'
-  summary_en: 'Before go-live the bank prepares a dossier and the competent level decides. The dossier holds: risk classification file; cyber test result; model test result; impact assessment (high risk); conformity result (high risk); safe-operation plan (monitoring, continuity, incident response); Art. 20 readiness; staffing report; stop and recovery conditions.'
+  text_vi: 'Đơn vị lập hồ sơ liên quan đến hệ thống trí tuệ nhân tạo theo khoản 2 Điều này và báo cáo
+    cấp có thẩm quyền của đơn vị quyết định việc đưa hệ thống trí tuệ nhân tạo vào vận hành chính thức.
+    2. Hồ sơ bao gồm: a) Hồ sơ phân loại rủi ro theo quy định của pháp luật về trí tuệ nhân tạo; b) Kết
+    quả kiểm tra, đánh giá an ninh mạng; c) Kết quả kiểm tra, đánh giá mô hình; d) Kết quả đánh giá tác
+    động của hệ thống trí tuệ nhân tạo có rủi ro cao theo quy định tại Điều 13 Thông tư này; đ) Kết quả
+    đánh giá sự phù hợp của hệ thống trí tuệ nhân tạo có rủi ro cao theo quy định của pháp luật về trí
+    tuệ nhân tạo; e) Kế hoạch vận hành an toàn, bao gồm giám sát, bảo đảm hoạt động liên tục và ứng phó
+    sự cố; g) Kết quả đánh giá đáp ứng điều kiện triển khai đối với hệ thống trí tuệ nhân tạo ra quyết
+    định trong các hoạt động nghiệp vụ theo quy định tại Điều 20 Thông tư này; h) Báo cáo về nguồn nhân
+    lực triển khai và quản lý hệ thống trí tuệ nhân tạo theo quy định tại Điều 21 Thông tư này; i) Điều
+    kiện dừng và khôi phục hệ thống.'
+  summary_en: 'Before go-live the bank prepares a dossier and the competent level decides. The dossier
+    holds: risk classification file; cyber test result; model test result; impact assessment (high risk);
+    conformity result (high risk); safe-operation plan (monitoring, continuity, incident response); Art.
+    20 readiness; staffing report; stop and recovery conditions.'
   duties:
   - risk_management_system
   - conformity_assessment
   - independent_validation
   - governance_accountability
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
   - kind: evidence
@@ -1736,7 +3072,10 @@ obligations:
     id: handover
     coverage: partial
     note: operate handover
-  - *id008
+  - kind: process
+    id: board_governance
+    coverage: none
+    note: board or committee oversight of AI
   - kind: process
     id: conformity_assessment_file
     coverage: none
@@ -1746,24 +3085,52 @@ obligations:
   - decision record of the competent level
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: The onboarding launch report can feed parts of the dossier. It does not replace the cyber test, the model validation or the conformity result.
+  notes: The onboarding launch report can feed parts of the dossier. It does not replace the cyber test,
+    the model validation or the conformity result.
   status: issued
 - id: VN-TT53-2026-A24-01
   article_ref: Art. 24
-  text_vi: Các hệ thống trí tuệ nhân tạo được triển khai đưa vào vận hành chính thức trước ngày Thông tư này có hiệu lực thi hành thì phải tuân thủ các quy định về bảo đảm an toàn, quản lý rủi ro và điều kiện triển khai quy định tại Chương II, Chương III, Chương IV Thông tư này kể từ ngày 01 tháng 03 năm 2027.
-  summary_en: AI systems officially in operation before 2026-11-15 must meet Chapters II (safety), III (risk management) and IV (deployment conditions) from 2027-03-01.
+  text_vi: Các hệ thống trí tuệ nhân tạo được triển khai đưa vào vận hành chính thức trước ngày Thông
+    tư này có hiệu lực thi hành thì phải tuân thủ các quy định về bảo đảm an toàn, quản lý rủi ro và điều
+    kiện triển khai quy định tại Chương II, Chương III, Chương IV Thông tư này kể từ ngày 01 tháng 03
+    năm 2027.
+  summary_en: AI systems officially in operation before 2026-11-15 must meet Chapters II (safety), III
+    (risk management) and IV (deployment conditions) from 2027-03-01.
   duties:
   - risk_management_system
   - lifecycle_management
-  applies_to: *id004
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
   addressee: bank
   control_mapping:
-  - *id007
-  - *id006
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: agent inventory with owner, risk tier and model family
+  - kind: process
+    id: legal_review
+    coverage: none
+    note: bank counsel confirms scope and reading
   - kind: evidence
     id: coverage_rows
     coverage: partial
@@ -1773,11 +3140,25 @@ obligations:
   - plan to close gaps by 2027-03-01
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
-  - *id002
-  - *id003
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  - url: https://thitruongtaichinhtiente.vn/nhnn-ban-hanh-quy-dinh-ve-an-toan-quan-ly-rui-ro-khi-ung-dung-ai-trong-nganh-ngan-hang-86130.html
+    title: Tap chi Thi truong Tai chinh Tien te - NHNN ban hanh quy dinh ve an toan, quan ly rui ro khi
+      ung dung AI (2026-10-08)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://www.bakermckenzie.com/en/insight/publications/2026/04/vietnam-draft-circular-on-ai-deployment-in-banking
+    title: 'Baker McKenzie - Vietnam: draft circular on AI deployment in banking (Apr 2026, about the
+      consultation draft)'
+    fetched_at: '2026-10-15'
+    kind: secondary
   confidence: high
-  notes: Art. 14 (2027-01-01), Art. 6(1)(b) (2027-09-01) and Art. 21 (2027-09-01) keep their own start dates (Art. 23).
+  notes: Art. 14 (2027-01-01), Art. 6(1)(b) (2027-09-01) and Art. 21 (2027-09-01) keep their own start
+    dates (Art. 23).
   status: issued
   dates:
     compliance_deadline:

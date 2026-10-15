@@ -33,8 +33,7 @@ instrument:
       source: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
       verification: VERIFIED_PRIMARY
   sources:
-  - &id001
-    url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
     title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
     fetched_at: '2026-10-15'
     kind: primary
@@ -89,7 +88,10 @@ obligations:
   - minutes
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P4.2-01
   article_ref: Paras 4.1-4.4 (AI identification)
@@ -119,7 +121,10 @@ obligations:
   - discovery results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-MASAIRM-2025-P4.5-01
   article_ref: Paras 4.5-4.9 (AI inventory)
@@ -149,7 +154,10 @@ obligations:
   - inventory export with attributes
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P4.10-01
   article_ref: Paras 4.10-4.13 (risk materiality assessment)
@@ -182,7 +190,10 @@ obligations:
   - materiality assessment per use case
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P5.3-01
   article_ref: Para 5.3 (contingency plans) and 5.23(b) (kill switches)
@@ -213,7 +224,10 @@ obligations:
   - test record of the kill switch
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P5.4-01
   article_ref: Para 5.4 (data management)
@@ -242,7 +256,10 @@ obligations:
   - data governance records
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-MASAIRM-2025-P5.5-01
   article_ref: Paras 5.5-5.6 (transparency and explainability)
@@ -270,7 +287,10 @@ obligations:
   - explainability approach per use case
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium
 - id: INTL-MASAIRM-2025-P5.7-01
   article_ref: Paras 5.7-5.8 (fairness)
@@ -306,7 +326,10 @@ obligations:
   - fairness assessment results
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P5.9-01
   article_ref: Para 5.9 (human oversight)
@@ -349,7 +372,10 @@ obligations:
   - oversight metrics
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
   notes: Footnote 37 says oversight covers human in the loop or over the loop. A Supervisor pause is not
     pre-execution approval (Decision 33).
@@ -384,7 +410,10 @@ obligations:
   - contract clauses on change notices
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P5.14-01
   article_ref: Para 5.14 (evaluation and testing) and 5.18 (independent pre-deployment review)
@@ -416,7 +445,10 @@ obligations:
   - independent review report
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P5.16-01
   article_ref: Para 5.16 (security, access control)
@@ -463,7 +495,10 @@ obligations:
   - access review records
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P5.23-01
   article_ref: Para 5.23 (ongoing monitoring, incidents, logging)
@@ -510,7 +545,10 @@ obligations:
   - agent action logs
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P5.25-01
   article_ref: Paras 5.24-5.26 (re-validation, change management, decommissioning)
@@ -544,7 +582,10 @@ obligations:
   - decommission record
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: high
 - id: INTL-MASAIRM-2025-P6.1-01
   article_ref: Paras 6.1-6.3 (capability and capacity)
@@ -574,5 +615,8 @@ obligations:
   - infrastructure capacity review
   verification: VERIFIED_PRIMARY
   sources:
-  - *id001
+  - url: https://www.mas.gov.sg/-/media/mas-media-library/regulation/guidelines/bd/guidelines-on-artificial-intelligence-risk-management-for-financial-institutions/guidelines-on-artificial-intelligence-risk-management.pdf
+    title: 'MAS: Guidelines on Artificial Intelligence Risk Management, 7 October 2026 (PDF, 30 pages)'
+    fetched_at: '2026-10-15'
+    kind: primary
   confidence: medium

@@ -34,8 +34,7 @@ instrument:
   - VN-TT50-2024
   - VN-QD2345-2023
   sources:
-  - &id001
-    url: https://vbpl.vn/van-ban/chi-tiet/166170
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
     title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
     fetched_at: '2026-10-15'
     kind: primary
@@ -69,7 +68,7 @@ obligations:
   duties:
   - customer_confidentiality
   - access_control
-  applies_to: &id002
+  applies_to:
     agent_class:
     - any
     data_classes:
@@ -102,8 +101,13 @@ obligations:
   - Masked case files for reviewers
   - Record of who opened which case
   verification: VERIFIED_PRIMARY
-  sources: &id003
-  - *id001
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
   notes: Supervisor masks before storage but does not stop an agent from reading customer data inside
     the bank system; the bank must set agent scope.
@@ -116,7 +120,12 @@ obligations:
   duties:
   - customer_confidentiality
   - internal_policy
-  applies_to: *id002
+  applies_to:
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    - financial
   addressee: bank
   control_mapping:
   - kind: catalogue
@@ -147,7 +156,13 @@ obligations:
   - Internal confidentiality regulation
   - Evidence of monitoring and breach handling
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
 - id: VN-LCI-2024-A13.3-01
   article_ref: Art. 13(3)
@@ -186,7 +201,13 @@ obligations:
   - Data-flow map showing which fields leave the bank
   - Consent or legal-basis record
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
   notes: Whether masked tokens still count as customer information is a legal question for the bank.
 - id: VN-LCI-2024-A14-01
@@ -221,7 +242,13 @@ obligations:
   - Information-system security regulation
   - Continuity plan and test records
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
 - id: VN-LCI-2024-A12.1-01
   article_ref: Art. 12(1)
@@ -251,7 +278,13 @@ obligations:
   evidence_needed:
   - Customer identity check before account information is given
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: medium
 - id: VN-LCI-2024-A10.4-01
   article_ref: Art. 10(4)
@@ -279,7 +312,13 @@ obligations:
   - Published tariff
   - Sample of agent answers checked against the tariff
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: medium
 - id: VN-LCI-2024-A10.5-01
   article_ref: Art. 10(5)
@@ -315,19 +354,31 @@ obligations:
   - Stop notice posted on the site or at the branch
   - Pause log with times
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: medium
   notes: Applies to a stop of the whole electronic channel; a Supervisor pause of one agent may not reach
     that level. Bank counsel to decide.
 - id: VN-LCI-2024-A57.2-01
   article_ref: Art. 57(2), (4)
-  text_vi: |-
-    2. Tổ chức tín dụng phải xây dựng hệ thống kiểm soát nội bộ để bảo đảm các yêu cầu sau đây:
-    a) Hiệu quả và an toàn trong hoạt động; bảo vệ, quản lý, sử dụng an toàn, hiệu quả tài sản và các nguồn lực;
+  text_vi: '2. Tổ chức tín dụng phải xây dựng hệ thống kiểm soát nội bộ để bảo đảm các yêu cầu sau đây:
+
+    a) Hiệu quả và an toàn trong hoạt động; bảo vệ, quản lý, sử dụng an toàn, hiệu quả tài sản và các
+    nguồn lực;
+
     b) Hệ thống thông tin tài chính và thông tin quản lý trung thực, hợp lý, đầy đủ và kịp thời;
+
     c) Tuân thủ pháp luật và các cơ chế, chính sách, quy trình, quy định nội bộ.
+
     ...
-    4. Tổ chức tín dụng xây dựng hệ thống kiểm soát nội bộ và triển khai ứng dụng công nghệ trong hoạt động kiểm soát nội bộ theo quy định của Thống đốc Ngân hàng Nhà nước.
+
+    4. Tổ chức tín dụng xây dựng hệ thống kiểm soát nội bộ và triển khai ứng dụng công nghệ trong hoạt
+    động kiểm soát nội bộ theo quy định của Thống đốc Ngân hàng Nhà nước.'
   summary_en: The bank must build an internal control system for safe operations, true and complete information,
     and compliance with law and internal rules. It must apply technology in internal control as the Governor
     prescribes. An AI agent is part of the process under control.
@@ -356,14 +407,25 @@ obligations:
   - Internal control framework covering AI agents
   - Oversight metrics reports
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
 - id: VN-LCI-2024-A58-01
   article_ref: Art. 58(1)-(2)
-  text_vi: |-
-    1. Tổ chức tín dụng phải thành lập kiểm toán nội bộ thuộc Ban kiểm soát thực hiện kiểm toán nội bộ tổ chức tín dụng.
+  text_vi: '1. Tổ chức tín dụng phải thành lập kiểm toán nội bộ thuộc Ban kiểm soát thực hiện kiểm toán
+    nội bộ tổ chức tín dụng.
+
     ...
-    2. Kiểm toán nội bộ thực hiện rà soát, đánh giá độc lập, khách quan về tính thích hợp và sự tuân thủ cơ chế, chính sách, quy trình, quy định nội bộ của tổ chức tín dụng; đưa ra kiến nghị nhằm nâng cao hiệu quả của các hệ thống, quy trình, quy định, góp phần bảo đảm tổ chức tín dụng hoạt động an toàn, hiệu quả, đúng pháp luật.
+
+    2. Kiểm toán nội bộ thực hiện rà soát, đánh giá độc lập, khách quan về tính thích hợp và sự tuân thủ
+    cơ chế, chính sách, quy trình, quy định nội bộ của tổ chức tín dụng; đưa ra kiến nghị nhằm nâng cao
+    hiệu quả của các hệ thống, quy trình, quy định, góp phần bảo đảm tổ chức tín dụng hoạt động an toàn,
+    hiệu quả, đúng pháp luật.'
   summary_en: The bank must set up internal audit under the Supervisory Board. It reviews independently
     whether internal rules and processes are suitable and followed. Audit of an AI agent needs durable,
     verifiable records.
@@ -396,7 +458,13 @@ obligations:
   - Audit export for the period
   - Chain verification report
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
 - id: VN-LCI-2024-A101.1-01
   article_ref: Art. 101(1)
@@ -433,21 +501,37 @@ obligations:
   - Internal rule that covers each agent process
   - Emergency procedure
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
 - id: VN-LCI-2024-A101.2-01
   article_ref: Art. 101(2)
-  text_vi: |-
-    2. Tổ chức tín dụng phải ban hành quy định nội bộ về các nội dung sau đây:
+  text_vi: '2. Tổ chức tín dụng phải ban hành quy định nội bộ về các nội dung sau đây:
+
     a) Cấp tín dụng, quản lý khoản cấp tín dụng;
+
     b) Phân loại tài sản có, trích lập và sử dụng dự phòng rủi ro;
+
     c) Đánh giá chất lượng tài sản có và tuân thủ tỷ lệ an toàn vốn tối thiểu;
+
     d) Quản lý thanh khoản, trong đó có thủ tục và giới hạn quản lý thanh khoản;
-    đ) Kiểm soát nội bộ và kiểm toán nội bộ phù hợp với tính chất và quy mô hoạt động của tổ chức tín dụng;
-    e) Hệ thống xếp hạng tín dụng nội bộ đối với tổ chức tín dụng phải xây dựng hệ thống xếp hạng tín dụng nội bộ theo quy định của pháp luật về các tổ chức tín dụng;
+
+    đ) Kiểm soát nội bộ và kiểm toán nội bộ phù hợp với tính chất và quy mô hoạt động của tổ chức tín
+    dụng;
+
+    e) Hệ thống xếp hạng tín dụng nội bộ đối với tổ chức tín dụng phải xây dựng hệ thống xếp hạng tín
+    dụng nội bộ theo quy định của pháp luật về các tổ chức tín dụng;
+
     g) Quản trị rủi ro trong hoạt động của tổ chức tín dụng;
+
     h) Phòng, chống rửa tiền;
-    i) Phương án xử lý trường hợp khẩn cấp.
+
+    i) Phương án xử lý trường hợp khẩn cấp.'
   summary_en: The bank must issue internal rules on, among others, credit granting, internal control and
     audit, risk governance, AML and emergency plans, and send them to the SBV within 10 days of issue
     (Art. 101(3)).
@@ -472,7 +556,13 @@ obligations:
   - Rule list with issue dates
   - Proof of submission to SBV
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
 - id: VN-LCI-2024-A102.4-01
   article_ref: Art. 102(4)
@@ -506,7 +596,13 @@ obligations:
   - Approval authority matrix
   - Sign-off records separate from the appraisal output
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: medium
   notes: A Supervisor pause is not pre-execution human approval (Decision 33).
 - id: VN-LCI-2024-A102.1-01
@@ -541,7 +637,13 @@ obligations:
   evidence_needed:
   - Application file with the required documents
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: medium
 - id: VN-LCI-2024-A103.4-01
   article_ref: Art. 103(4)
@@ -569,18 +671,31 @@ obligations:
   - Waiver policy with authority limits
   - Log of waivers granted by the agent
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: medium
 - id: VN-LCI-2024-A104-01
   article_ref: Art. 104(1)-(2)
-  text_vi: |-
-    1. Tổ chức tín dụng phải lưu trữ hồ sơ tín dụng, bao gồm:
+  text_vi: '1. Tổ chức tín dụng phải lưu trữ hồ sơ tín dụng, bao gồm:
+
     a) Tài liệu, dữ liệu đề nghị cấp tín dụng;
+
     b) Tài liệu, dữ liệu thẩm định, quyết định cấp tín dụng;
-    c) Hợp đồng, thỏa thuận cấp tín dụng; hồ sơ về biện pháp bảo đảm trong trường hợp có áp dụng biện pháp bảo đảm;
-    d) Tài liệu, dữ liệu phát sinh trong quá trình sử dụng khoản cấp tín dụng liên quan đến hợp đồng, thỏa thuận cấp tín dụng.
+
+    c) Hợp đồng, thỏa thuận cấp tín dụng; hồ sơ về biện pháp bảo đảm trong trường hợp có áp dụng biện
+    pháp bảo đảm;
+
+    d) Tài liệu, dữ liệu phát sinh trong quá trình sử dụng khoản cấp tín dụng liên quan đến hợp đồng,
+    thỏa thuận cấp tín dụng.
+
     ...
-    2. Thời hạn lưu trữ hồ sơ tín dụng thực hiện theo quy định của pháp luật về lưu trữ.
+
+    2. Thời hạn lưu trữ hồ sơ tín dụng thực hiện theo quy định của pháp luật về lưu trữ.'
   summary_en: 'The bank must keep credit files: application data, appraisal and decision records, contracts,
     and data created during use. The period follows the archive law. Agent-made appraisal data is part
     of the file.'
@@ -608,7 +723,13 @@ obligations:
   - Credit file with agent output attached
   - Retention schedule
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: high
 - id: VN-LCI-2024-A105-01
   article_ref: Art. 105
@@ -632,5 +753,11 @@ obligations:
   evidence_needed:
   - Compliance matrix to Circular 50/2024
   verification: VERIFIED_PRIMARY
-  sources: *id003
+  sources:
+  - url: https://vbpl.vn/van-ban/chi-tiet/166170
+    title: Luat Cac to chuc tin dung 32/2024/QH15 - full text (vbpl.vn)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 6f4ac1905fb54253c4577d470fcd02b101400eb5127be666fd54649e2c146cc5
+    local_path: regulations/sources/VN-LCI-2024/law-32-2024-qh15.txt
   confidence: medium
