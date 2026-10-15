@@ -11,7 +11,7 @@
     },
     "url": {"type": "string", "pattern": "^https?://[^\\s]+$"},
     "verification": {"enum": ["VERIFIED_PRIMARY", "VERIFIED_SECONDARY", "ASSUMED"]},
-    "status": {"enum": ["in_force", "draft", "superseded", "repealed", "reference"]},
+    "status": {"enum": ["in_force", "issued", "draft", "superseded", "repealed", "reference"], "description": "issued = signed and published but not yet effective on the check date (see dates.effective)"},
     "instrument_kind": {
       "enum": ["law", "decree", "circular", "decision", "draft", "standard", "guidance", "internal"]
     },
