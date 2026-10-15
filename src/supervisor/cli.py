@@ -177,7 +177,13 @@ def cmd_restore(args: argparse.Namespace) -> int:
     from supervisor.ops import backup
 
     settings = load_settings()
-    r = backup.restore(settings, Path(args.src), force=args.force)
+    r = backup.restore(
+        settings,
+        Path(args.src),
+        force=args.force,
+        pubkey=Path(args.pubkey) if args.pubkey else None,
+        allow_key_change=args.allow_key_change,
+    )
     if r["moved_aside"]:
         print(_ascii(f"[OK] existing store moved aside: {r['moved_aside']}"))
     print(_ascii(f"[OK] restored {r['target']}"))
@@ -187,7 +193,7 @@ def cmd_restore(args: argparse.Namespace) -> int:
         print(f"[OK] anchors restored: {r['anchors_restored']}")
     for w in r["warnings"]:
         print(_ascii(f"[WARN] {w}"))
-    if r["verify_ok"]:
+    if r["verify_ok"]:  # always true here: a failed verify raises before the swap
         print("[OK] evidence chain verifies")
         return 0
     print("[FAIL] evidence chain does not verify")
@@ -255,6 +261,16 @@ def build_parser() -> argparse.ArgumentParser:
     rs = sub.add_parser("restore", help="restore a backup and verify the chain (WP18)")
     rs.add_argument("--from", dest="src", required=True, help="backup directory")
     rs.add_argument("--force", action="store_true", help="move an existing store aside")
+    rs.add_argument(
+        "--pubkey",
+        default=None,
+        help="PEM public key to pin for the chain check (default: the current signer's key)",
+    )
+    rs.add_argument(
+        "--allow-key-change",
+        action="store_true",
+        help="accept a backup signed by a different key (prints a WARNING with both fingerprints)",
+    )
     rs.set_defaults(func=cmd_restore)
     ed = sub.add_parser("export-delta", help="export every table to JSONL (WP18)")
     ed.add_argument("--out", required=True, help="export directory (empty or new)")

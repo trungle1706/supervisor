@@ -91,9 +91,11 @@ def test_include_key_and_restore_key(cfg: Settings, tmp_path: Path, capsys) -> N
     code, out = run(capsys, "backup", "--out", str(bdir), "--include-key")
     assert code == 0 and "[WARN]" in out and (bdir / B.KEY_NAME).is_file()
     assert json.loads((bdir / "manifest.json").read_text())["signing_key_included"] is True
+    pem = tmp_path / "notary.pem"
+    build_signer(cfg).export_public_key(pem)
     cfg.signer_key_path.unlink()  # type: ignore[union-attr]
     cfg.sqlite_path.unlink()  # type: ignore[union-attr]
-    code, out = run(capsys, "restore", "--from", str(bdir))
+    code, out = run(capsys, "restore", "--from", str(bdir), "--pubkey", str(pem))
     assert code == 0 and "signing key restored" in out
     assert cfg.signer_key_path.is_file()  # type: ignore[union-attr]
     if os.name == "posix":  # the key copies are owner-only
@@ -126,7 +128,9 @@ def test_restore_to_new_data_dir_and_verify(cfg: Settings, tmp_path: Path) -> No
     bdir = tmp_path / "bk"
     B.backup(cfg, bdir, include_key=True)
     s2 = load_settings(data_dir=tmp_path / "dr", sql_backend="sqlite", llm_base_url="")
-    r = B.restore(s2, bdir)
+    pem = tmp_path / "notary.pem"
+    build_signer(cfg).export_public_key(pem)
+    r = B.restore(s2, bdir, pubkey=pem)
     assert r["verify_ok"] and r["key_restored"]
     assert counts(s2) == counts(cfg)
 
