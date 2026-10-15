@@ -1,20 +1,23 @@
+{% import "_ui.html" as ui with context %}
+<div class="tablewrap">
 <table>
   <thead><tr><th>{{ t('time') }}</th><th>{{ t('channel') }}</th><th>{{ t('subject') }}</th><th>{{ t('status') }}</th><th></th></tr></thead>
   <tbody>
   {% for n in notices %}
-  <tr data-notice="{{ n.notice_id }}" data-status="{{ n.status }}">
-    <td class="mono">{{ n.ts|utc }}</td>
-    <td><span class="chip">{{ n.channel }}</span></td>
-    <td><strong>{{ n.subject }}</strong><div class="muted" style="white-space:pre-wrap">{{ n.body }}</div></td>
-    <td>{{ n.status }}{% if n.read_by %} ({{ n.read_by }}){% endif %}</td>
+  <tr class="row" data-notice="{{ n.notice_id }}" data-status="{{ n.status }}">
+    <td class="mono">{{ n.ts|day }}</td>
+    <td>{{ ui.pill(n.channel, 'neutral') }}</td>
+    <td><strong>{{ n.subject }}</strong><div class="muted" style="white-space:pre-wrap;font-size:13px">{{ n.body }}</div></td>
+    <td>{{ ui.pill(n.status, 'warn' if n.status == 'unread' else 'ok') }}{% if n.read_by %}<div class="idline">{{ n.read_by }}</div>{% endif %}</td>
     <td>{% if n.status == 'unread' %}
-      <form hx-post="/console/inbox/{{ n.notice_id }}/read" hx-target="#inbox-rows">
+      <form hx-post="/console/inbox/{{ n.notice_id }}/read?lang={{ lang }}" hx-target="#inbox-rows">
         <input type="hidden" name="row_version" value="{{ n.row_version }}">
-        <button class="secondary">{{ t('mark_read') }}</button>
+        <button class="btn sm">{{ t('mark_read') }}</button>
       </form>{% endif %}</td>
   </tr>
   {% else %}
-  <tr><td colspan="5" class="muted">{{ t('no_notices') }}</td></tr>
+  <tr><td colspan="5" class="empty">{{ t('no_notices') }}</td></tr>
   {% endfor %}
   </tbody>
 </table>
+</div>

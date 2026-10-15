@@ -1,50 +1,52 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
 {% block title %}{{ t('metrics') }}{% endblock %}
 {% block content %}
-<h1>{{ t('metrics') }}</h1>
-<section class="panel">
-  <h2>{{ t('oversight') }}</h2>
+<div class="pagehead"><h1>{{ t('oversight') }}</h1></div>
+{{ ui.purpose(t('metrics_purpose'), t('metrics_why')) }}
+<section class="card">
+  <h3>{{ t('oversight') }}</h3>
   {% if summary %}
-  <table class="metrics">
-    <thead><tr><th>{{ t('agent') }}</th><th>Date</th>
+  <div class="tablewrap flat"><table class="metrics">
+    <thead><tr><th>{{ t('agent') }}</th><th>{{ t('day') }}</th>
       {% for c in metric_cols %}<th>{{ c }}</th>{% endfor %}</tr></thead>
     <tbody>
     {% for s in summary %}
       <tr data-agent="{{ s.agent_id }}">
-        <td><strong>{{ s.agent_id }}</strong><br><span class="muted">{{ s.points }} day(s)</span></td>
+        <td><strong>{{ s.agent_id }}</strong><div class="idline">{{ s.points }} day(s)</div></td>
         <td class="mono">{{ s.metric_date }}</td>
         {% for c in metric_cols %}
-        <td>{{ s.latest.get(c)|metric(c) }}<br>{{ s.sparks[c] }}</td>
+        <td class="mono" style="font-size:12px">{{ s.latest.get(c)|metric(c) }}<br>{{ s.sparks[c] }}</td>
         {% endfor %}
       </tr>
     {% endfor %}
     </tbody>
-  </table>
-  <details><summary>All rows ({{ rows|length }})</summary>
-    <table><tr><th>Date</th><th>{{ t('agent') }}</th>{% for c in metric_cols %}<th>{{ c }}</th>{% endfor %}</tr>
+  </table></div>
+  <details class="more"><summary>{{ t('all_rows', n=rows|length) }}</summary>
+    <div class="tablewrap flat"><table><tr><th>{{ t('day') }}</th><th>{{ t('agent') }}</th>{% for c in metric_cols %}<th>{{ c }}</th>{% endfor %}</tr>
     {% for r in rows %}<tr><td class="mono">{{ r.metric_date }}</td><td>{{ r.agent_id }}</td>
-      {% for c in metric_cols %}<td>{{ r.get(c)|metric(c) }}</td>{% endfor %}</tr>{% endfor %}
-    </table>
+      {% for c in metric_cols %}<td class="mono" style="font-size:12px">{{ r.get(c)|metric(c) }}</td>{% endfor %}</tr>{% endfor %}
+    </table></div>
   </details>
   {% else %}
   <p class="muted">{{ t('no_metrics') }}</p>
   {% endif %}
 </section>
-<div class="grid2">
-<section class="panel">
-  <h2>{{ t('chain_status') }}</h2>
-  <p>{{ t('lanes') }}: {{ heads|length }} | {{ t('entries') }}: {{ entries }}</p>
-  <table><tr><th>Lane</th><th class="num">Seq</th><th>Head</th></tr>
-  {% for lane, h in heads.items() %}<tr><td class="mono">{{ lane }}</td><td class="num">{{ h.seq }}</td><td class="mono">{{ h.entry_hash[:16] }}...</td></tr>{% endfor %}
-  </table>
-  <div id="verify-result">{% include "_verify_result.html" %}</div>
-  <button class="secondary" hx-post="/console/chain/verify" hx-target="#verify-result">{{ t('verify_now') }}</button>
+<div class="grid g2" style="margin-top:16px">
+<section class="card gold-card">
+  <h3>{{ t('chain_status') }}</h3>
+  <p style="margin:0 0 8px">{{ t('lanes') }}: {{ heads|length }} · {{ t('entries') }}: {{ entries }}</p>
+  <div class="tablewrap flat"><table><tr><th>Lane</th><th class="n">Seq</th><th>{{ t('head') }}</th></tr>
+  {% for lane, h in heads.items() %}<tr><td class="mono">{{ lane }}</td><td class="n">{{ h.seq }}</td><td class="mono">{{ h.entry_hash[:16] }}…</td></tr>{% endfor %}
+  </table></div>
+  <div id="verify-result" style="margin-top:10px">{% include "_verify_result.html" %}</div>
+  <div class="btnrow"><button class="btn" hx-post="/console/chain/verify?lang={{ lang }}" hx-target="#verify-result">{{ t('verify_now') }}</button></div>
 </section>
-<section class="panel">
-  <h2>{{ t('gate_latency') }}</h2>
-  <table>
-  {% for k, v in gate.items() %}{% if v is not mapping %}<tr><td>{{ k }}</td><td class="num">{{ v }}</td></tr>{% endif %}{% endfor %}
-  </table>
+<section class="card">
+  <h3>{{ t('gate_latency') }}</h3>
+  <div class="tablewrap flat"><table>
+  {% for k, v in gate.items() %}{% if v is not mapping %}<tr><td>{{ k }}</td><td class="n">{{ v }}</td></tr>{% else %}{% for k2, v2 in v.items() %}<tr><td>{{ k }}.{{ k2 }}</td><td class="n">{{ v2 }}</td></tr>{% endfor %}{% endif %}{% endfor %}
+  </table></div>
 </section>
 </div>
 {% endblock %}

@@ -805,6 +805,27 @@ _T: dict[str, tuple[str, str]] = {
         "Các kiểm tra Databricks (đăng nhập, warehouse, schema, endpoint, Volume) chỉ chạy từ "
         "dòng lệnh vì chúng ghi dữ liệu thử.",
     ),
+    # ---- WP12 inbox, metrics
+    "inbox_purpose": (
+        "Notices from the case workflow: a new case, a sign-off needed, a case closed.",
+        "Thông báo từ quy trình vụ việc: vụ việc mới, cần phê duyệt, vụ việc đã đóng.",
+    ),
+    "inbox_why": (
+        "The bank's ITSM and pager get the same notices when those links are switched on.",
+        "ITSM và hệ thống nhắn tin của ngân hàng nhận cùng thông báo khi bật kết nối.",
+    ),
+    "metrics_purpose": (
+        "Daily oversight numbers per agent: coverage, time to detect, time to a human, judge "
+        "quality.",
+        "Số liệu giám sát hằng ngày theo tác tử: độ bao phủ, thời gian phát hiện, thời gian "
+        "tới con người, chất lượng giám khảo.",
+    ),
+    "metrics_why": (
+        "These are the numbers a risk committee asks for. Definitions: docs/metrics.md.",
+        "Đây là số liệu hội đồng rủi ro cần. Định nghĩa: docs/metrics.md.",
+    ),
+    "day": ("Day", "Ngày"),
+    "all_rows": ("All rows ({n})", "Tất cả các dòng ({n})"),
     "flow_open": ("open", "mở"),
     "flow_triaged": ("triaged", "đã phân loại"),
     "flow_contained": ("contained", "đã ngăn chặn"),
