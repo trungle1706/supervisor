@@ -83,6 +83,17 @@ def test_required_error_and_skip_are_no_go() -> None:
     assert "assurance pack prefilter_evasion skipped (required): no data" in items
 
 
+def test_required_skip_for_missing_capability_is_a_note_not_no_go() -> None:
+    r = row("four_fifths_rule", "skip", reasons=["target lacks capability 'decide'"])
+    assert assurance_launch_items([r], PACKS) == []
+    notes = assurance_launch_notes([r], PACKS)
+    assert len(notes) == 1 and "lacks capability" in notes[0]
+    no_data = row("four_fifths_rule", "skip", reasons=["only 0 decisions, pack needs 100"])
+    assert assurance_launch_items([no_data], PACKS) == [
+        "assurance pack four_fifths_rule skipped (required): only 0 decisions, pack needs 100"
+    ]
+
+
 def test_advisory_and_warn_never_no_go() -> None:
     results = [row(ADVISORY, "fail", reasons=["x"]), row(REQUIRED, "warn", reasons=["w"])]
     assert assurance_launch_items(results, PACKS) == []

@@ -7,7 +7,10 @@ Launch (``assurance_launch_items``)
     ``fail`` -> one reason per failing metric (``assurance pack <id> failed: <metric>
     <value> vs no-go <no_go>``); ``error`` -> ``assurance pack <id> errored: <reason>``;
     ``skip`` -> ``assurance pack <id> skipped (required): <reason>`` (never a silent
-    pass). ``warn`` results and packs with ``advisory`` or ``off`` never give NO-GO; they
+    pass), except a skip because the target lacks a capability the pack needs (reason
+    contains ``lacks capability``, e.g. a credit-decision pack on a payments agent): the
+    pack does not apply to that agent, so it is a note, not a NO-GO. ``warn`` results
+    and packs with ``advisory`` or ``off`` never give NO-GO; they
     are returned by ``assurance_launch_notes``.
 
 Judge enablement (``judge_enablement_problems``)
@@ -30,6 +33,12 @@ from supervisor.assurance.results import latest_results
 from supervisor.core.errors import ConfigError
 
 OK_STATUSES = ("ok", "warn")
+NOT_APPLICABLE_MARK = "lacks capability"
+
+
+def not_applicable(d: Mapping[str, Any]) -> bool:
+    """A skip that means 'this pack does not apply to this target' (not 'no data')."""
+    return d.get("status") == "skip" and any(NOT_APPLICABLE_MARK in r for r in d["reasons"])
 
 
 class JudgeNotValidatedError(ConfigError):
@@ -95,7 +104,7 @@ def assurance_launch_items(
             ]
         elif status == "error":
             out.append(f"assurance pack {pack.id} errored: {reasons[0] if reasons else 'error'}")
-        elif status == "skip":
+        elif status == "skip" and not not_applicable(d):
             why = reasons[0] if reasons else "skipped"
             out.append(f"assurance pack {pack.id} skipped (required): {why}")
     return list(dict.fromkeys(out))
@@ -113,7 +122,7 @@ def assurance_launch_notes(
         status = d.get("status")
         if pack is None or pack.launch_gate == "off" or status in ("ok", None):
             continue
-        if pack.launch_gate == "required" and status != "warn":
+        if pack.launch_gate == "required" and status != "warn" and not not_applicable(d):
             continue
         why = d["reasons"][0] if d["reasons"] else ""
         out.append(f"assurance pack {pack.id} ({pack.launch_gate}): {status} {why}".rstrip())

@@ -127,7 +127,7 @@ def test_probe_sets_are_well_formed() -> None:
     assert sum(r["kind"] == "harmful" for r in fh) == 30
     assert sum(r["kind"] == "benign" for r in fh) == 20
     ii = rows("indirect_injection_vi")
-    assert len(ii) == 30 and {r["agent"] for r in ii} == {
+    assert len(ii) == 32 and {r["agent"] for r in ii} == {
         "customer_service",
         "credit_prequal",
         "payments",
@@ -484,7 +484,7 @@ def _all_agents(**kw: Any) -> FakeAgent:
 def test_indirect_injection_good_bad_and_stack() -> None:
     p = pack("indirect_injection_vi")
     good = IndirectInjectionRunner().run(p, ctx(_all_agents(tool_fn=good_tool)))
-    assert good.n_items == 30
+    assert good.n_items == 32
     assert good.metrics["attack_success_bp"] == 0 and good.metrics["uncaught_attack_bp"] == 0
     assert good.metrics["stack_catch_bp"] is None  # nothing succeeded
     assert good.metrics["utility_benign_bp"] == 10000

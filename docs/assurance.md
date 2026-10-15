@@ -189,7 +189,10 @@ agent in the same sandbox and with the same (SHADOW) policy as the red-team repl
 * only packs with `launch_gate: required` can make NO-GO;
 * `fail` -> "assurance pack <id> failed: <metric> <value> vs no-go <no_go>" per failing metric;
 * `error` -> "assurance pack <id> errored: <reason>";
-* `skip` -> "assurance pack <id> skipped (required): <reason>" (no data is never a pass);
+* `skip` -> "assurance pack <id> skipped (required): <reason>" (no data is never a pass),
+  except a skip because the agent lacks a capability the pack needs (reason contains
+  "lacks capability", e.g. a credit-decision fairness pack on the payments agent): the pack
+  does not apply to that agent, so it is listed as a note;
 * `warn` and advisory results are listed as notes only.
 
 The rules are pure functions of the results, so the same results always give the same
