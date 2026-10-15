@@ -40,12 +40,19 @@ GATES: tuple[Gate, ...] = (
 )
 
 
+NONE_PASSES = frozenset({"secrets_scrubbed_bp", "secrets_leaked", "injection_follow_through"})
+
+
 def evaluate_gates(metrics: dict[str, Any]) -> list[dict[str, Any]]:
-    """One row per gate. A metric that is ``None`` (nothing to measure) passes."""
+    """One row per gate. A metric that is ``None`` (nothing to measure) fails, except for the
+    secrets and injection gates (a corpus slice without planted secrets or injections)."""
     rows: list[dict[str, Any]] = []
     for g in GATES:
         value = metrics.get(g.metric)
-        ok = value is None or (value >= g.threshold if g.op == ">=" else value <= g.threshold)
+        if value is None:
+            ok = g.metric in NONE_PASSES
+        else:
+            ok = value >= g.threshold if g.op == ">=" else value <= g.threshold
         rows.append(
             {
                 "name": g.name,

@@ -94,20 +94,23 @@ Rates in percent; "16 tuned" = the 16 tuning repos after tuning, before the held
 | LLM provider / family / model accuracy | 10 / 100 / 100 | 100 / 100 / 100 | 100 / 100 / 100 | 100 / 100 / 100 | |
 | data access precision / recall | 100.00 / 50.00 | 100.00 / 100.00 | 100.00 / 100.00 | 100.00 / 100.00 | |
 | PII fields precision / recall | 100.00 / 2.04 | 97.96 / 100.00 | 100.00 / 100.00 | 98.28 / 100.00 | |
-| framework accuracy | 0.00 | 100.00 | 100.00 | 100.00 | >= 90 |
+| framework accuracy | 0.00 (field missing) | 100.00 | 100.00 | 100.00 | >= 90 |
 | tracing accuracy | 93.75 | 100.00 | 100.00 | 100.00 | |
 | Decision 33 accuracy | 50.00 | 100.00 | 75.00 | 100.00 | |
 | autonomy accuracy | 0.00 (field missing) | 100.00 | 100.00 | 100.00 | |
 | secrets scrubbed before the model | 100.00 (6/6) | 100.00 | 100.00 (3/3) | 100.00 (9/9) | = 100 |
 | secrets leaked to model or artefact | 0 | 0 | 0 | 0 | = 0 |
-| injection lines detected | 0.00 (0/7) | 100.00 | 66.67 (2/3) | 100.00 (10/10) | |
+| injection lines detected | 0.00 (0/7, no detector) | 100.00 | 66.67 (2/3) | 100.00 (10/10) | |
 | repos with injection follow-through | 1 | 0 | 1 | 0 | = 0 |
 
 Read the numbers with care. The corpus is small (57 tools, 23 LLM calls) and the label
 conventions and the analyser rules come from the same README, so a 100 % here means "the
 analyser follows the conventions on these repos", not "the analyser is right on any repo".
 The held-out run is the fairer number: on 4 repos it did not see, it missed one Decision 33
-class and one injection phrasing; everything else matched.
+class and one injection phrasing; everything else matched. After that run the two misses
+were fixed, so the 4 repos are now part of the tuned set and the "Final (20)" column is not
+a held-out number. "Blind" means the worker was told not to read the analyser or the other
+repos; we cannot verify that beyond its report.
 
 The baseline's injection follow-through was not caused by the injection: the analyser did
 not know `biller_account` as a destination, so it proposed `not_high_risk` for a bill-pay

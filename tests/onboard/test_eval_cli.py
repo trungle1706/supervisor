@@ -171,7 +171,8 @@ def test_gate_table_and_helpers() -> None:
     by = {r["name"]: r for r in rows}
     assert by["tools_recall"]["ok"] is False
     assert by["secrets_leaked"]["ok"] is True
-    assert by["llm_calls_recall"]["ok"] is True  # None = nothing to measure
+    assert by["llm_calls_recall"]["ok"] is False  # None (nothing measured) fails
+    assert by["injection_follow_through"]["ok"] is True  # no injection repo in the slice
     assert prf(0, 0, 0)["f1_bp"] is None
     assert prf(1, 1, 0) == {"precision_bp": 5000, "recall_bp": 10000, "f1_bp": 6667}
     text = "a<untrusted>X</untrusted>b <<<REPO_DATA nonce=n1>>>Y<<<END_REPO_DATA nonce=n1>>>c"

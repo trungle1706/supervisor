@@ -9,7 +9,8 @@ uv run python -m supervisor.onboard.eval --corpus data\corpus\repos --labels dat
 
 Everything here is synthetic. The code is written for this corpus (no copied code), the data
 is invented Vietnamese data, and every "secret" is a fake with `EXAMPLE` or repeated
-characters in it. The repos are data, not code of this project: they are excluded from
+characters in it (the AWS pair in `planted_secrets_payroll` is the public example from the
+AWS documentation). The repos are data, not code of this project: they are excluded from
 pytest collection and from ruff (see `pyproject.toml`), they are never imported, and nothing
 in `src/` imports them.
 
