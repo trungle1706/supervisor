@@ -77,6 +77,41 @@ Serve the demo store: `set DATA_DIR=data\local\demo` then `uv run python -m supe
 
 Install Ollama for Windows. Register the GGUF with a Modelfile (`FROM <path>`, `PARAMETER num_ctx 16384`). Before starting Ollama: `set OLLAMA_KEEP_ALIVE=-1`. The model name in `.env` must equal a name in `ollama list`. Expect tens of seconds per call on CPU; `LLM_TIMEOUT_S=1800` is safe.
 
+## Phase 2 features
+
+Phase 2 features are off by default. Set the flags in `.env` (or with `set NAME=1` in cmd).
+Meaning of each flag: `README.md`, section "Flags that are off by default".
+
+| Flag | Bank laptop | Databricks App | Note |
+|---|---|---|---|
+| `API_RBAC_ENABLED` | `1` | `1` | Role matrix on `/gate/*` (value from `docs/enterprise-readiness.md`) |
+| `RATE_LIMIT_ENABLED` | `1` | `1` | Same source |
+| `LOG_FORMAT` | `json` | `json` | Same source |
+| `CONSOLE_ASSURANCE_ENABLED` | `1` | `1` | Assurance tab |
+| `CONSOLE_COMPLIANCE_ENABLED` | `1` | `1` | Compliance tab (advisory) |
+| `CONSOLE_INTEGRATION_ENABLED` | `1` | `1` | Integration tab |
+| `ASSURANCE_LAUNCH_ENABLED` | `1` | `1` | Launch NO-GO on failed required packs |
+| `JUDGE_REQUIRE_VALIDATION` | `1` after the first GO | `1` after the first GO | Set it only after step 1 below passes, or the judge will not start |
+| `RETENTION_ENABLED` | bank decision | bank decision | Delta retention is an open bank decision (ADR D13) |
+| `ASSURANCE_DATA_DIR` | bank datasets folder | Volume path | Optional; without it packs use synthetic data |
+
+The tab flags and `ASSURANCE_LAUNCH_ENABLED` are our suggestion, not from the readiness
+document. Not run on a real laptop: the flag values above were checked against the settings
+file only.
+
+First step after the LLM key arrives (set `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` in `.env`
+first):
+
+```
+uv run python -m supervisor.assurance run all --target judge --judge settings --out out\judge
+uv run python -m supervisor.judge.mrm validate --out out\mrm --model settings --runs 5
+```
+
+The first command runs all packs on the judge against the real model. The second makes the
+validation report with a GO or NO-GO. Send both output folders back. Both commands come from
+`docs/assurance.md` and `docs/judge-mrm.md`. Not run here with a real model (no key yet); the
+command forms were checked against `--help` and the docs only.
+
 ## G. Databricks (when you are ready)
 
 Follow `docs/RUNBOOK.md` sections 5 to 9: `databricks auth login --host https://<workspace> --profile tcb`, fill the `FILL-ME` values in `.env`, `databricks.yml` and `app.yaml` in your local copy only, then:
