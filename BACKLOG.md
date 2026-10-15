@@ -25,7 +25,7 @@
 | Scheduler lease renewal during very long jobs; paging in monitor read_range | WP7 follow-up |
 | Monitors open cases via monitors/common.open_case, console via cases/service | Unify on cases/service in the next refactor |
 | WP18: caller credential on agent ingress `/gate/check`, `/v1/gate/check`, `/v1/traces` (ASVS V2/V13) | Needs bank decision: per-agent credentials or a broker (extends the OTLP item above) |
-| WP18: turn on `API_RBAC_ENABLED`, `RATE_LIMIT_ENABLED`, `LOG_FORMAT=json` for the bank deployment | Needs bank decision (off / text by default to keep phase-1 behaviour) |
+| WP18: turn on `API_RBAC_ENABLED` (now covers only the read routes `/gate/agents/{id}/state` and `/gate/metrics`; control routes always enforce RBAC since W3-sec), `RATE_LIMIT_ENABLED`, `LOG_FORMAT=json` for the bank deployment | Needs bank decision (off / text by default to keep phase-1 behaviour) |
 | WP18: retention on Delta append-only tables is report-only; data-subject request path; masked excerpts in chain payloads; retention of sign-off text and case summaries; final day counts (ADR D13) | Needs bank decision |
 | WP18: RPO / RTO, backup retention, DR drill owner and schedule (RUNBOOK FILL-ME) | Needs bank decision |
 | WP18: Prometheus-format metrics endpoint; console and OTLP load tests; Delta fault rig for the drill | Needs infrastructure (scraper, load host, live workspace) |
