@@ -1,0 +1,3 @@
+model: llama-3.3-70b-instruct
+llm_base_url: http://llm.example.vn/v1
+max_steps: 5

@@ -51,6 +51,8 @@ default-groups = ["dev"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+# WP16: the code-analysis corpus is data (synthetic agent repos), never collected.
+norecursedirs = [".*", "*.egg", "build", "dist", "node_modules", "venv", "data"]
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 markers = [
     "databricks: live test against a real Databricks workspace (needs RUN_DATABRICKS=1)",
@@ -60,7 +62,7 @@ markers = [
 line-length = 100
 target-version = "py311"
 src = ["src", "."]
-extend-exclude = ["docs"]
+extend-exclude = ["docs", "data/corpus/repos"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "T20"]

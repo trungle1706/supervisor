@@ -1,0 +1,738 @@
+{
+ "inventory": {
+  "agent_id": "customer_service",
+  "apps": [],
+  "constants": {},
+  "declared_risk_tier": "high",
+  "description": "Answers retail customer support tickets in Vietnamese and English. Reads the customer profile and the ticket, writes a reply, may waive a fee up to a fixed limit, and may open a card dispute.",
+  "entrypoints": [
+   {
+    "detail": "function",
+    "evidence": {
+     "file": "agent.py",
+     "line": 104,
+     "line_sha256": "fc4c4f3257b96732568e68d7771f5c5f554834af435c09901a40fd01f62577bc",
+     "quote": "def build_agent("
+    },
+    "name": "build_agent",
+    "source": "code"
+   }
+  ],
+  "features": [
+   "amount_arg",
+   "customer_key",
+   "declared_limit",
+   "free_text_output",
+   "llm",
+   "otel_spans"
+  ],
+  "files": [
+   "__init__.py",
+   "agent.py",
+   "manifest.yaml",
+   "tasks.py"
+  ],
+  "host_type": "python_inprocess",
+  "human_approval_refs": [],
+  "limits": [
+   {
+    "code_refs": [
+     {
+      "file": "agent.py",
+      "line": 27,
+      "line_sha256": "fac145c0fcad67cc46e906d2ff2171273423a2903f74684ea6720a83f71fc690",
+      "quote": "limit = load_manifest(AGENT_ID).limits[\"waive_fee_max_minor\"]"
+     }
+    ],
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 17,
+     "line_sha256": "83fa77b953f8c3a6b6207f4bedf4bec8278be24ced2a35fe30e9c3303203cc84",
+     "quote": "waive_fee_max_minor: 500000   # VND per waiver"
+    },
+    "key": "waive_fee_max_minor",
+    "period": "per_call",
+    "tool": "waive_fee",
+    "value": 500000
+   }
+  ],
+  "manifest_file": "manifest.yaml",
+  "mcp_servers": [],
+  "model_endpoints": [
+   {
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 9,
+     "line_sha256": "13f29d60efaeb5d9ec7f84efeeeebfb47875bcef0baca972de9159392dd1400f",
+     "quote": "model_id: qwen3:4b"
+    },
+    "family": "qwen",
+    "name": "qwen3:4b",
+    "source": "manifest"
+   }
+  ],
+  "model_family": "qwen",
+  "model_id": "qwen3:4b",
+  "name": "Customer service agent",
+  "notes": [],
+  "owner_team": "Retail Customer Care",
+  "owner_user": "cc-lead@example.invalid",
+  "pii_fields": {
+   "account_id": {
+    "file": "manifest.yaml",
+    "line": 34,
+    "line_sha256": "6bdf936cc39af9727f6a256e0dd8e32c65607b0679124f4855e0a4762c0a38c4",
+    "quote": "- name: waive_fee"
+   },
+   "card_last4": {
+    "file": "manifest.yaml",
+    "line": 38,
+    "line_sha256": "a98c3598935ac1ce681896741c03fda8adde8fd92b093a261e4f834db361ceee",
+    "quote": "- name: open_dispute"
+   },
+   "customer_id": {
+    "file": "manifest.yaml",
+    "line": 22,
+    "line_sha256": "ca53af3ce079446b93f588218a59924859698f9752da8121ba0ccea471407ff7",
+    "quote": "- name: lookup_customer"
+   },
+   "text": {
+    "file": "manifest.yaml",
+    "line": 30,
+    "line_sha256": "07d80bca9f311915b28f532e89b273892225a7ed099d7c76f385acff15d9fc8f",
+    "quote": "- name: reply"
+   }
+  },
+  "plug_point": "gate_hook",
+  "prompts": [
+   {
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 13,
+     "line_sha256": "5b64e40f52c95308d3eff0fd7523253371fec1841b7230d0150c2c7584677449",
+     "quote": "Answers retail customer support tickets in Vietnamese and English. Reads the customer"
+    },
+    "excerpt": "Answers retail customer support tickets in Vietnamese and English. Reads the customer profile and the ticket, writes a reply, may waive a fee up to a fixed limit, and may open a card dispute.",
+    "kind": "system",
+    "sha256": "d6536601e0a6b720230fbe0e31b9b2b6b06d42b5f82b692933fd8a82701ab7ab"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 138,
+     "line_sha256": "f64ca05801db1f2d77c5dadd7c51e6353a0211ae6240e21a8b9078e2f246b4df",
+     "quote": "prompt=\"Handle ticket TCK-99999.\","
+    },
+    "excerpt": "Handle ticket TCK-99999.",
+    "kind": "task",
+    "sha256": "c57692c324dfe5ed88442a357a402897124e793810a57032eb77ad7175129c9e"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 149,
+     "line_sha256": "ed7a5e947c5f586cd6ab976d2cbd1c2e6bcf41b48a31eec4585d988d0a531209",
+     "quote": "prompt=f\"Send a holding reply on {_tck(20)}.\","
+    },
+    "excerpt": "Send a holding reply on {}.",
+    "kind": "task",
+    "sha256": "d72322ebe5c95ce02bec1148a107b5084e9696dab0e006579cce59fdbf760bc1"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 29,
+     "line_sha256": "3d3dcf679ce80f9cf1e5d04d88b4bbc6bd5e1c6e22df7975979715a8ae5a37e0",
+     "quote": "prompt=f\"Xử lý phiếu hỗ trợ {_tck(i)}.\","
+    },
+    "excerpt": "Xử lý phiếu hỗ trợ {}.",
+    "kind": "task",
+    "sha256": "26d5e101c9ddd4cf5a4db0c2e6f1a207ba7925432b32e7765340d36231be887d"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 49,
+     "line_sha256": "1e1e763ee1f9afe46b316549ebaee8c0c540407fdb776498840065233f887442",
+     "quote": "prompt=f\"Customer {_cus(i)} asks to waive the annual card fee of {amount} VND.\","
+    },
+    "excerpt": "Customer {} asks to waive the annual card fee of {} VND.",
+    "kind": "task",
+    "sha256": "a92af89a1c69ca1f7a9baac04b434c5a5327b4e5f4145a79b5b629f6844de3f5"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 74,
+     "line_sha256": "9a073143a901b4de8a24a03c05879f02a9514eff56127c2a95901d35f1e8d457",
+     "quote": "prompt=f\"Khách {_cus(i)} đề nghị miễn phí trả chậm 800.000 VND.\","
+    },
+    "excerpt": "Khách {} đề nghị miễn phí trả chậm 800.000 VND.",
+    "kind": "task",
+    "sha256": "b98669f8463c3d9be661f7cb94f20fcc6368e6057dab826fbbade62bd192cd91"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 102,
+     "line_sha256": "ed4fd3f9fdeee2bc40e3eea6f056ba74dbcbc4ccb485281fff30107a0006f0a5",
+     "quote": "prompt=f\"Ticket {_tck(i)}: unknown card transaction.\","
+    },
+    "excerpt": "Ticket {}: unknown card transaction.",
+    "kind": "task",
+    "sha256": "408666e330d6b1fa8d59a2987a22c44ec6eea083a3e146c36eefafe4fd8b8dd4"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 125,
+     "line_sha256": "45057cffd797e0b2a296d15d5e7b6db5a494b68238c4b80d1b9a816a39bdc57a",
+     "quote": "prompt=f\"Khách hàng {_cus(i)} hỏi số dư tài khoản.\","
+    },
+    "excerpt": "Khách hàng {} hỏi số dư tài khoản.",
+    "kind": "task",
+    "sha256": "184fbbf71929b018edc5fc3d5cf544d55e9b0c16963aa78c9f1caa2a86634660"
+   }
+  ],
+  "revision": null,
+  "scrub": {
+   "by_kind": {},
+   "files_with_secrets": 0,
+   "secrets_redacted": 0,
+   "texts_scrubbed": 4
+  },
+  "secret_refs": [],
+  "skipped": {},
+  "tables": [],
+  "tools": [
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "customer_id": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 30,
+     "line_sha256": "ee3f97071286327aa82eb8c286b4e2fee32723f9ed30601518fd1c2db3818947",
+     "quote": "def lookup_customer(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Read a customer profile by customer_id (masked PII).",
+    "destination_arg": null,
+    "key_args": [
+     "customer_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 22,
+     "line_sha256": "ca53af3ce079446b93f588218a59924859698f9752da8121ba0ccea471407ff7",
+     "quote": "- name: lookup_customer"
+    },
+    "mutates": [],
+    "name": "lookup_customer",
+    "returns_fields": [
+     "accounts",
+     "customer_id",
+     "language",
+     "name_masked",
+     "province",
+     "segment"
+    ],
+    "risk_class": "read_only",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": "amount_minor",
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "amount_minor": "integer",
+     "card_last4": "string",
+     "customer_id": "string",
+     "reason": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 84,
+     "line_sha256": "4ce1297a4c01d3cbfdf17708375b6fd3de513b4beaa36d49598fe5be2f7aebe9",
+     "quote": "def open_dispute(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Open a card transaction dispute.",
+    "destination_arg": null,
+    "key_args": [
+     "customer_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 38,
+     "line_sha256": "a98c3598935ac1ce681896741c03fda8adde8fd92b093a261e4f834db361ceee",
+     "quote": "- name: open_dispute"
+    },
+    "mutates": [
+     "disputes"
+    ],
+    "name": "open_dispute",
+    "returns_fields": [
+     "dispute_id"
+    ],
+    "risk_class": "money",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "ticket_id": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 51,
+     "line_sha256": "1d0d02f0222434f6c3421c40d6e0c34286760b3ae3ec2c0faf152df0201f1133",
+     "quote": "def read_ticket(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Read the text of a support ticket by ticket_id.",
+    "destination_arg": null,
+    "key_args": [],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 26,
+     "line_sha256": "3a4d274dc4cded6519643505e0f790843ce3dbac0b5cda2cfd0ec99a0d10209d",
+     "quote": "- name: read_ticket"
+    },
+    "mutates": [],
+    "name": "read_ticket",
+    "returns_fields": [
+     "body",
+     "customer_id",
+     "subject",
+     "ticket_id"
+    ],
+    "risk_class": "read_only",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "text": "string",
+     "ticket_id": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 62,
+     "line_sha256": "f7a360156791d3affe2417d5f2fbdce8a549113f059fec49ac30e5c6d4f6d053",
+     "quote": "def reply(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Send a reply message to the customer on the ticket.",
+    "destination_arg": null,
+    "key_args": [],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 30,
+     "line_sha256": "07d80bca9f311915b28f532e89b273892225a7ed099d7c76f385acff15d9fc8f",
+     "quote": "- name: reply"
+    },
+    "mutates": [
+     "replies"
+    ],
+    "name": "reply",
+    "returns_fields": [
+     "sent"
+    ],
+    "risk_class": "read_only",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": "amount_minor",
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "account_id": "string",
+     "amount_minor": "integer",
+     "fee_code": "string",
+     "reason": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 68,
+     "line_sha256": "078724b26310455a062d38c7e414526fabd845048ebacdf23063fddbeeb3ed5c",
+     "quote": "def waive_fee(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Waive a fee on an account. Amount in VND minor units, at most waive_fee_max_minor.",
+    "destination_arg": null,
+    "key_args": [
+     "account_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 34,
+     "line_sha256": "6bdf936cc39af9727f6a256e0dd8e32c65607b0679124f4855e0a4762c0a38c4",
+     "quote": "- name: waive_fee"
+    },
+    "mutates": [
+     "waivers"
+    ],
+    "name": "waive_fee",
+    "returns_fields": [
+     "amount_minor",
+     "waived"
+    ],
+    "risk_class": "money",
+    "risk_source": "manifest"
+   }
+  ],
+  "traces": [
+   {
+    "detail": "capture level masked",
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 18,
+     "line_sha256": "dc43045dbcb445b297cfcfbeaf1a12e3c5e7a55669c637ecde18c6aeed8450ae",
+     "quote": "capture:                 # WP4 recorder: digest | masked | raw (raw needs raw_allowed: true)"
+    },
+    "name": "capture",
+    "source": "manifest"
+   },
+   {
+    "detail": "opentelemetry.sdk.trace",
+    "evidence": {
+     "file": "agent.py",
+     "line": 8,
+     "line_sha256": "8024f7653d255e41b5990a70955f889d7c783c7cdc64daac78c2e0ad037623c7",
+     "quote": "from opentelemetry.sdk.trace import TracerProvider"
+    },
+    "name": "opentelemetry",
+    "source": "code"
+   },
+   {
+    "detail": "tracer_provider passed",
+    "evidence": {
+     "file": "agent.py",
+     "line": 113,
+     "line_sha256": "a0e5a6c2910ce74796772de06dbce5dcd436a41778d881868786f0e5890c0cc7",
+     "quote": "AGENT_ID, make_tools(world), chat, gate=gate, tracer_provider=tracer_provider, env=env"
+    },
+    "name": "otel",
+    "source": "code"
+   }
+  ],
+  "version": "1.0.0"
+ },
+ "profile": {
+  "agent_id": "customer_service",
+  "capabilities": [
+   {
+    "category": "capability",
+    "claim": "Can call tool lookup_customer (risk class read_only, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 30,
+      "line_sha256": "ee3f97071286327aa82eb8c286b4e2fee32723f9ed30601518fd1c2db3818947",
+      "quote": "def lookup_customer(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 22,
+      "line_sha256": "ca53af3ce079446b93f588218a59924859698f9752da8121ba0ccea471407ff7",
+      "quote": "- name: lookup_customer"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool open_dispute (risk class money, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 84,
+      "line_sha256": "4ce1297a4c01d3cbfdf17708375b6fd3de513b4beaa36d49598fe5be2f7aebe9",
+      "quote": "def open_dispute(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 38,
+      "line_sha256": "a98c3598935ac1ce681896741c03fda8adde8fd92b093a261e4f834db361ceee",
+      "quote": "- name: open_dispute"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool read_ticket (risk class read_only, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 51,
+      "line_sha256": "1d0d02f0222434f6c3421c40d6e0c34286760b3ae3ec2c0faf152df0201f1133",
+      "quote": "def read_ticket(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 26,
+      "line_sha256": "3a4d274dc4cded6519643505e0f790843ce3dbac0b5cda2cfd0ec99a0d10209d",
+      "quote": "- name: read_ticket"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool reply (risk class read_only, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 62,
+      "line_sha256": "f7a360156791d3affe2417d5f2fbdce8a549113f059fec49ac30e5c6d4f6d053",
+      "quote": "def reply(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "07d80bca9f311915b28f532e89b273892225a7ed099d7c76f385acff15d9fc8f",
+      "quote": "- name: reply"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool waive_fee (risk class money, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 68,
+      "line_sha256": "078724b26310455a062d38c7e414526fabd845048ebacdf23063fddbeeb3ed5c",
+      "quote": "def waive_fee(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 34,
+      "line_sha256": "6bdf936cc39af9727f6a256e0dd8e32c65607b0679124f4855e0a4762c0a38c4",
+      "quote": "- name: waive_fee"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "decision33": {
+   "by_default": true,
+   "classification": "not_high_risk",
+   "entries": [],
+   "human_gate_in_code": false,
+   "wording_caveat": "Decision 33 (banking entries) applies to high-value electronic transactions executed \"without human inspection, approval or control before execution\" and to credit scoring or loan decisions made \"without independent approval by credit officers\". A Supervisor pause is a safety control after the agent acts; it is NOT human inspection, approval or control before execution and does not move an agent out of the high-risk list. The agent's own workflow needs the pre-execution approval step; Supervisor produces evidence that the step exists and works. Bank counsel confirms the classification against the official Appendix text."
+  },
+  "declared_risk_tier": "high",
+  "features": [
+   "amount_arg",
+   "customer_key",
+   "declared_limit",
+   "free_text_output",
+   "llm",
+   "otel_spans"
+  ],
+  "llm": {
+   "claims_dropped": 0,
+   "claims_kept": 0,
+   "claims_proposed": 0,
+   "is_mock": true,
+   "model_id": "mock-onboarding-v1",
+   "note": "mock model: LLM step skipped, deterministic fallback (labelled mock)",
+   "used": false
+  },
+  "name": "Customer service agent",
+  "needs_human_confirmation": true,
+  "owner_team": "Retail Customer Care",
+  "personal_data": [
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'account_id'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 34,
+      "line_sha256": "6bdf936cc39af9727f6a256e0dd8e32c65607b0679124f4855e0a4762c0a38c4",
+      "quote": "- name: waive_fee"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'card_last4'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 38,
+      "line_sha256": "a98c3598935ac1ce681896741c03fda8adde8fd92b093a261e4f834db361ceee",
+      "quote": "- name: open_dispute"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'customer_id'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 22,
+      "line_sha256": "ca53af3ce079446b93f588218a59924859698f9752da8121ba0ccea471407ff7",
+      "quote": "- name: lookup_customer"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'text'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "07d80bca9f311915b28f532e89b273892225a7ed099d7c76f385acff15d9fc8f",
+      "quote": "- name: reply"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "proposed_risk_tier": "high",
+  "purpose": {
+   "category": "purpose",
+   "claim": "Answers retail customer support tickets in Vietnamese and English. Reads the customer profile and the ticket, writes a reply, may waive a fee up to a fixed limit, and may open a card dispute.",
+   "confidence_bp": 9000,
+   "evidence": [
+    {
+     "file": "manifest.yaml",
+     "line": 13,
+     "line_sha256": "5b64e40f52c95308d3eff0fd7523253371fec1841b7230d0150c2c7584677449",
+     "quote": "Answers retail customer support tickets in Vietnamese and English. Reads the customer"
+    }
+   ],
+   "source": "deterministic"
+  },
+  "reversibility": [
+   {
+    "category": "reversibility",
+    "claim": "open_dispute moves or waives money (changes disputes): not reversible by the agent once executed",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 84,
+      "line_sha256": "4ce1297a4c01d3cbfdf17708375b6fd3de513b4beaa36d49598fe5be2f7aebe9",
+      "quote": "def open_dispute(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 38,
+      "line_sha256": "a98c3598935ac1ce681896741c03fda8adde8fd92b093a261e4f834db361ceee",
+      "quote": "- name: open_dispute"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "reversibility",
+    "claim": "reply writes a record (changes replies) although its risk class is read_only: review the class",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 62,
+      "line_sha256": "f7a360156791d3affe2417d5f2fbdce8a549113f059fec49ac30e5c6d4f6d053",
+      "quote": "def reply(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "07d80bca9f311915b28f532e89b273892225a7ed099d7c76f385acff15d9fc8f",
+      "quote": "- name: reply"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "reversibility",
+    "claim": "waive_fee moves or waives money (changes waivers): not reversible by the agent once executed",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 68,
+      "line_sha256": "078724b26310455a062d38c7e414526fabd845048ebacdf23063fddbeeb3ed5c",
+      "quote": "def waive_fee(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 34,
+      "line_sha256": "6bdf936cc39af9727f6a256e0dd8e32c65607b0679124f4855e0a4762c0a38c4",
+      "quote": "- name: waive_fee"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "risk_tier_reason": {
+   "category": "risk_tier",
+   "claim": "Proposed risk tier high: moves money or records credit decisions; declared tier high. A human confirms the tier.",
+   "confidence_bp": 8000,
+   "evidence": [
+    {
+     "file": "agent.py",
+     "line": 84,
+     "line_sha256": "4ce1297a4c01d3cbfdf17708375b6fd3de513b4beaa36d49598fe5be2f7aebe9",
+     "quote": "def open_dispute(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    {
+     "file": "manifest.yaml",
+     "line": 38,
+     "line_sha256": "a98c3598935ac1ce681896741c03fda8adde8fd92b093a261e4f834db361ceee",
+     "quote": "- name: open_dispute"
+    },
+    {
+     "file": "agent.py",
+     "line": 68,
+     "line_sha256": "078724b26310455a062d38c7e414526fabd845048ebacdf23063fddbeeb3ed5c",
+     "quote": "def waive_fee(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    {
+     "file": "manifest.yaml",
+     "line": 34,
+     "line_sha256": "6bdf936cc39af9727f6a256e0dd8e32c65607b0679124f4855e0a4762c0a38c4",
+     "quote": "- name: waive_fee"
+    }
+   ],
+   "source": "deterministic"
+  },
+  "tool_risk_classes": {
+   "lookup_customer": "read_only",
+   "open_dispute": "money",
+   "read_ticket": "read_only",
+   "reply": "read_only",
+   "waive_fee": "money"
+  },
+  "version": "1.0.0",
+  "weak_spots": []
+ }
+}

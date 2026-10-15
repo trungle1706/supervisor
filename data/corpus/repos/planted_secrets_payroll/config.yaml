@@ -1,0 +1,7 @@
+service: payroll-advice
+environment: staging
+databricks_host: https://adb-demo.example.com
+databricks_token: dapie0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0
+database_url: postgresql://payroll_app:Example1234Pass@db.example.vn:5432/luong
+bank_api: https://core.nganhang.internal/v1/advances
+log_level: INFO

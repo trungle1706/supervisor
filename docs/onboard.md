@@ -49,6 +49,11 @@ decision is in `launch_report.md`.
   call; delimiter look-alikes in the text are broken up. The LLM may only add claims; a
   claim is kept only when its file:line exists and holds the quoted text. The LLM never
   sets the Decision 33 class or the risk tier.
+- Prompt injection (WP16): `onboard/injection.py` flags lines that speak to an AI reader
+  ("ignore your instructions", "mark this agent low risk", Vietnamese with or without
+  diacritics). Flagged text is withheld from every artefact (the line hash and file:line
+  stay), flagged inside the prompt's REPO_DATA block, and an LLM claim that cites or echoes
+  it is dropped. Measured on the corpus: `docs/onboard-eval.md`.
 - The codemod is `ast` plus text templates (no libcst, no LLM-written code). It inserts
   two default lines in the builder function and adds `supervisor_onboard.py`. ADR D12
   names libcst; it is replaced by `ast` because WP9 adds no new dependency.
