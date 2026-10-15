@@ -394,17 +394,27 @@ def _stages(
         from supervisor.advisory.integration.advise import build_advice, patch_filename
         from supervisor.advisory.integration.render import render_html, render_json, render_md
 
-        advice = build_advice(target, inv, profile, mp, playbook, chat=chat)
-        write("integration_report.json", render_json(advice.report), "advise")
-        write("integration_report.md", render_md(advice.report), "advise")
-        write("integration_report.html", render_html(advice.report), "advise")
-        for i, patch in enumerate(advice.patches, start=1):
-            slug = Path(patch_filename(i, patch)).name.split("-", 1)[-1].removesuffix(".patch")
-            write(f"integration_patch_{i:02d}_{slug}.patch", patch.diff, "advise")
-        say(
-            f"[OK] advise: readiness {advice.report.readiness.total}/100, "
-            f"{len(advice.patches)} patch(es) (never applied)"
-        )
+        try:  # optional stage: a failure is reported, the run goes on
+            advice = agent.call(
+                "call_llm",  # narrative only; its input is the deterministic summary
+                {"scrubbed": True, "stage": "advise"},
+                lambda: build_advice(target, inv, profile, mp, playbook, chat=chat),
+            )
+        except Exception as exc:  # noqa: BLE001
+            advice = None
+            say(f"[SKIP] advise: {type(exc).__name__}: {str(exc)[:200]}")
+        if advice is not None:
+            write("integration_report.json", render_json(advice.report), "advise")
+            write("integration_report.md", render_md(advice.report), "advise")
+            write("integration_report.html", render_html(advice.report), "advise")
+            for i, patch in enumerate(advice.patches, start=1):
+                name = Path(patch_filename(i, patch)).name
+                slug = name.split("-", 1)[-1].removesuffix(".patch")
+                write(f"integration_patch_{i:02d}_{slug}.patch", patch.diff, "advise")
+            say(
+                f"[OK] advise: readiness {advice.report.readiness.total}/100, "
+                f"{len(advice.patches)} patch(es) (never applied)"
+            )
 
     # 6 Operate ---------------------------------------------------------------------
     record = handover(inv, profile, mp, inst, report, agent.artefacts, run_id=agent.run_id)

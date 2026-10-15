@@ -138,3 +138,12 @@ def test_gate_coverage_counts_writing_tools_and_central_gate() -> None:
     r = score(i, central)
     area = next(a for a in r.areas if a.id == "gate_coverage")
     assert area.points == 30 and "central dispatch gate at a.py:3" in area.reason
+
+
+def test_central_gate_ignores_gate_none(tmp_path: Any) -> None:
+    from supervisor.advisory.integration.analysis import central_gate
+
+    (tmp_path / "a.py").write_text("rt = build_runtime(tools, gate=None)\n", encoding="utf-8")
+    assert central_gate(tmp_path, inv(files=["a.py"])) is None
+    (tmp_path / "a.py").write_text("rt = build_runtime(tools, gate=g)\n", encoding="utf-8")
+    assert central_gate(tmp_path, inv(files=["a.py"])) == "a.py:1"

@@ -83,6 +83,10 @@ def list_reports(settings: Any) -> list[dict[str, Any]]:
     for sub in sorted(root.iterdir()):
         if not NAME_RE.match(sub.name) or not (sub / REPORT_FILE).is_file():
             continue
+        try:  # a symlinked folder that points outside the reports root is not listed
+            (sub / REPORT_FILE).resolve().relative_to(root.resolve())
+        except ValueError:
+            continue
         data, err = _read(sub / REPORT_FILE)
         patches = _g(data, "patches", default=[])
         rows.append(

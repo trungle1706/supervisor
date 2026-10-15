@@ -56,3 +56,15 @@ def test_on_adds_report_and_patches_to_the_handover(tmp_path: Path) -> None:
     assert line.isascii()
     # nothing was applied to the target
     assert not (tmp_path / REPO / "supervisor_onboard.py").exists()
+
+
+def test_advisor_failure_skips_the_stage(tmp_path: Path, monkeypatch: object) -> None:
+    import supervisor.advisory.integration.advise as advise_mod
+
+    def boom(*a: object, **k: object) -> None:
+        raise RuntimeError("advisor broke")
+
+    monkeypatch.setattr(advise_mod, "build_advice", boom)  # type: ignore[attr-defined]
+    res, _ = _run(tmp_path, True)
+    assert set(res.artefacts) == set(ARTEFACTS)
+    assert any(x.startswith("[SKIP] advise: RuntimeError") for x in res.lines)

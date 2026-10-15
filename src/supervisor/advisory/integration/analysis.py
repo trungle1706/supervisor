@@ -239,7 +239,11 @@ def central_gate(target: Path, inv: Inventory) -> str | None:
                 and "gate" in ast.unparse(call.args[0]).lower()
             ):
                 return f"{file}:{call.lineno}"
-            if name in _RUNTIME_BUILDERS and any(k.arg == "gate" for k in call.keywords):
+            if name in _RUNTIME_BUILDERS and any(
+                k.arg == "gate"
+                and not (isinstance(k.value, ast.Constant) and k.value.value is None)
+                for k in call.keywords
+            ):
                 return f"{file}:{call.lineno}"
     return None
 
