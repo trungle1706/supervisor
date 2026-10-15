@@ -77,6 +77,48 @@ Optional beats: `--onboard` runs the onboarding beat when WP9 (`supervisor.onboa
 in the build; otherwise the runbook prints `[SKIP]`. The drift and fairness beats belong
 to WP7 (`supervisor.monitors`); the runbook prints `[SKIP]` for them.
 
+## Phase 2 demo (about 5 minutes, optional)
+
+Set the flags in the `demo serve` window before you start (cmd):
+
+```
+set CONSOLE_ASSURANCE_ENABLED=1
+set CONSOLE_COMPLIANCE_ENABLED=1
+set CONSOLE_INTEGRATION_ENABLED=1
+```
+
+Run the three CLI steps first, from the same folder. Each output is a mock run and says so.
+
+| Step | Command | Console tab after the run |
+|---|---|---|
+| Assurance on the demo agents | `uv run python -m supervisor.assurance run all --target demo --out out\assurance` | Assurance `/console/assurance`: run list, then per pack the metric against go / no-go, `MOCK` label, chain record hash |
+| Integration report | `uv run python -m supervisor.advisory.integration --target data\corpus\repos\langgraph_loan_triage --out data\local\demo\integration\loan --mock-llm` | Integration `/console/integration`: readiness score per area, what was found, patches as text (never applied). The tab reads `INTEGRATION_REPORTS_DIR`, default `<data dir>\integration` |
+| Compliance matrix | Nothing to run for the three demo agents. For a new product: `uv run python -m supervisor.advisory.compliance --profile <profile.json> --out <dir> --mock-llm` | Compliance `/console/compliance`: counts by status, Decision 33 class, open questions, one page per obligation |
+
+Not run here: the console pages (browser) and the exact folder layout the Integration tab
+expects under `INTEGRATION_REPORTS_DIR`; check the tab shows the report, else see
+`docs/console.md`. The CLI steps ran on the dev host. The Compliance tab already lists the three
+demo agents; a matrix for an onboarded product appears there after a launch pack run
+(`ONBOARD_COMPLIANCE_ENABLED=1`, see `docs/compliance-advisor.md`).
+
+### Talking point: PAY-03 against Circular 53 Art. 5
+
+| Item | Value |
+|---|---|
+| Our payments rule PAY-03 (daily per customer) | 150,000,000 VND |
+| Circular 53 Art. 5(1)(g)(ii) cap for autonomous payments for an individual | 100,000,000 VND per day |
+| Matrix row `VN-TT53-2026-A5.01G2-01` | status `gap`, threshold verdict `exceeds` |
+
+Say: "The advisor read our own rule and the Circular and found that the daily limit is above
+the cap. It does not change the rule. The owner of the payments agent decides: lower PAY-03
+or show why a higher limit is allowed. It is advice, not legal advice."
+
+### Fail-mode drill (1 minute)
+
+The drill is in the section "Fail-mode drill" below: `set PYTHONPATH=src` then
+`uv run python -m supervisor.demo drill`. Ran on the dev host: ends with
+`[OK] fail-mode drill: all outcomes matched`.
+
 ## Known limits
 
 - The MockJudge has no keyword for the invented "miễn phí trọn đời" policy, so on DEMO-2
