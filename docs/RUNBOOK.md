@@ -334,3 +334,42 @@ set DATABRICKS_TOKEN=
 setx OLLAMA_KEEP_ALIVE -1
 ollama list
 ```
+
+
+## 14. Operations: logs, health, headers, limits
+
+Settings are environment variables or lines in `.env`. Restart the app after a change.
+
+| Topic | Setting (default) | What it does |
+|---|---|---|
+| Log level | `LOG_LEVEL` (`INFO`) | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+| Log format | `LOG_FORMAT` (`text`) | `json` = one JSON object per line: `ts`, `level`, `logger`, `msg`, `request_id`, `principal_id`, and `exc_type` / `exc` on errors |
+| Log file | `LOG_FILE` (off) | Absolute path. Rotating UTF-8 file. `LOG_FILE_MAX_BYTES` (10000000), `LOG_FILE_BACKUPS` (3) |
+| Request id | `REQUEST_ID_HEADER` (`X-Request-ID`) | Accepted from the caller if it matches `^[A-Za-z0-9._-]{8,128}$`, else generated. Always echoed in the response |
+| Security headers | `SECURITY_HEADERS_ENABLED` (`true`) | CSP, X-Frame-Options, nosniff, Referrer-Policy; `Cache-Control: no-store` on console pages |
+| HSTS | `HSTS_ENABLED` (`false`) | Turn on only behind TLS |
+| Body limit | `MAX_REQUEST_BYTES` (`10000000`, `0` = off) | Answer 413 with a message above the limit. OTLP and form limits stay |
+| Rate limit | `RATE_LIMIT_ENABLED` (`false`), `RATE_LIMIT_PER_MINUTE` (120), `RATE_LIMIT_BURST` (30) | Token bucket per user on POST/PUT/PATCH/DELETE; answer 429 with `Retry-After` |
+
+```
+set LOG_FORMAT=json
+set LOG_FILE=C:\supervisor\logs\supervisor.log
+set RATE_LIMIT_ENABLED=true
+python -m supervisor.cli serve
+```
+
+Every log message passes a PII scrubber (phone, CCCD/CMND, account number, e-mail, names become `[PHONE]`, `[CCCD]`, and so on). The `principal_id` field is the actor id and is not scrubbed.
+
+Probes (no sign-in, no secrets in the body):
+
+* `GET /health` returns 200 `{"status":"ok","version":...}` while the process runs. `GET /healthz` is unchanged.
+* `GET /ready` returns 200 `{"ready":true,"checks":{...}}` when the runtime is built, the store answers and the evidence signer is loaded. It returns 503 with `"failed":[names]` otherwise. 503 is for probes and load balancers, not for people. The `scheduler` check shows `running`, `off` or `not-leader` and does not fail the probe.
+
+Rate limit scope: the key is `X-Forwarded-Email`, else the dev user (`X-Dev-User` or `sv_dev_user` cookie), else the client IP. `POST /gate/check` and `POST /v1/traces` are not limited: agent traffic is governed by the gateway (fail mode), and a human limit there would turn a busy agent into a gate outage.
+
+Default-on changes in this release (a pure addition, each can be turned off):
+
+1. Security headers on every response (`SECURITY_HEADERS_ENABLED=false` removes them). The CSP allows only same-origin scripts; inline `style=` is allowed. Vendored htmx and `console.js` work unchanged.
+2. A request id header on every response (`X-Request-ID`).
+3. A 10 MB request body limit (`MAX_REQUEST_BYTES=0` removes it).
+4. Log scrubbing of PII in every log line.
