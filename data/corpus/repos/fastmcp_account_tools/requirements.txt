@@ -1,0 +1,4 @@
+fastmcp>=2.3
+psycopg[binary]>=3.2
+opentelemetry-sdk>=1.27
+opentelemetry-exporter-otlp>=1.27

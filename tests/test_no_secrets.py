@@ -13,6 +13,15 @@ ALLOWLIST = {
     "docs/BANK_DEPLOY_GUIDE.md",
 }
 ALLOW_PREFIXES = ("docs/handoff/",)
+# WP16: the code-analysis corpus plants fake secrets on purpose (the scrubber must catch them).
+# Only this repo, and only values that are visibly fake (EXAMPLE or one repeated pattern).
+FAKE_SECRET_PREFIXES = ("data/corpus/repos/planted_secrets_payroll/",)
+
+
+def _visibly_fake(value: str) -> bool:
+    body = value[4:] if value.startswith(("dapi", "AKIA")) else value
+    return "EXAMPLE" in value or len(set(body)) <= 2
+
 
 PATTERNS = {
     "databricks workspace host": re.compile(r"\bdbc-[0-9a-f]{8}-[0-9a-f]{4}\b"),
@@ -54,6 +63,8 @@ def test_no_secret_patterns() -> None:
         for name, pat in PATTERNS.items():
             for m in pat.finditer(text):
                 if "FILL-ME" in m.group(0):
+                    continue
+                if rel.startswith(FAKE_SECRET_PREFIXES) and _visibly_fake(m.group(0)):
                     continue
                 line = text.count("\n", 0, m.start()) + 1
                 hits.append(f"{rel}:{line} {name}")

@@ -1,0 +1,942 @@
+{
+ "inventory": {
+  "agent_id": "payments",
+  "apps": [],
+  "constants": {},
+  "declared_risk_tier": "critical",
+  "description": "Helps retail customers with balances, payees and domestic transfers between accounts at the bank and to other Vietnamese banks via NAPAS. Never sends money abroad.",
+  "entrypoints": [
+   {
+    "detail": "function",
+    "evidence": {
+     "file": "agent.py",
+     "line": 111,
+     "line_sha256": "fc4c4f3257b96732568e68d7771f5c5f554834af435c09901a40fd01f62577bc",
+     "quote": "def build_agent("
+    },
+    "name": "build_agent",
+    "source": "code"
+   }
+  ],
+  "features": [
+   "amount_arg",
+   "customer_key",
+   "declared_daily_limit",
+   "declared_limit",
+   "destination_arg",
+   "llm",
+   "otel_spans",
+   "pii_tool"
+  ],
+  "files": [
+   "__init__.py",
+   "agent.py",
+   "manifest.yaml",
+   "tasks.py"
+  ],
+  "host_type": "python_inprocess",
+  "human_approval_refs": [],
+  "limits": [
+   {
+    "code_refs": [],
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 16,
+     "line_sha256": "b0f964c8a2240d4c0e7582a6784255176cef6725281469d0744914d44ee0c314",
+     "quote": "transfer_max_minor: 100000000          # VND per transfer"
+    },
+    "key": "transfer_max_minor",
+    "period": "per_call",
+    "tool": "transfer",
+    "value": 100000000
+   },
+   {
+    "code_refs": [],
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 17,
+     "line_sha256": "76c89ea6e59b868b9568d73f52a12d6426b89a3833c826947cc5b65bf0064d87",
+     "quote": "daily_transfer_max_minor: 300000000    # VND per customer per day"
+    },
+    "key": "daily_transfer_max_minor",
+    "period": "daily",
+    "tool": "transfer",
+    "value": 300000000
+   }
+  ],
+  "manifest_file": "manifest.yaml",
+  "mcp_servers": [],
+  "model_endpoints": [
+   {
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 9,
+     "line_sha256": "13f29d60efaeb5d9ec7f84efeeeebfb47875bcef0baca972de9159392dd1400f",
+     "quote": "model_id: qwen3:4b"
+    },
+    "family": "qwen",
+    "name": "qwen3:4b",
+    "source": "manifest"
+   }
+  ],
+  "model_family": "qwen",
+  "model_id": "qwen3:4b",
+  "name": "Payments assistant agent",
+  "notes": [
+   {
+    "evidence": {
+     "file": "agent.py",
+     "line": 3,
+     "line_sha256": "a5fc6d26a659dc772fa0b240ad83066b5f89704d39d8cdb4a07b643c6aa184c9",
+     "quote": "``ext_transfer_api`` is registered (it exists in the bank) but is not approved for this"
+    },
+    "kind": "not_approved",
+    "text": "``ext_transfer_api`` is registered (it exists in the bank) but is not approved for this"
+   },
+   {
+    "evidence": {
+     "file": "agent.py",
+     "line": 4,
+     "line_sha256": "d3b67ddbd33a3e9681e17bd85e829fd0ddb6fc64139037949a8e931633d80a0d",
+     "quote": "agent's flows; only the gateway stops it (demo incident 1). Limits from the manifest are"
+    },
+    "kind": "not_enforced",
+    "text": "agent's flows; only the gateway stops it (demo incident 1). Limits from the manifest are"
+   },
+   {
+    "evidence": {
+     "file": "agent.py",
+     "line": 5,
+     "line_sha256": "fd7f262ee629aa82bf01b617f293ad847d71d090466f1898c78c5ed03cbf7380",
+     "quote": "NOT enforced here: per-transfer and daily limits are gateway rules (demo incident 4).\"\"\""
+    },
+    "kind": "not_enforced",
+    "text": "NOT enforced here: per-transfer and daily limits are gateway rules (demo incident 4).\"\"\""
+   },
+   {
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 42,
+     "line_sha256": "8ad5713dd19427f025e2a0923cc0b74a05a22243c2e350be5aead2a6a289a7d6",
+     "quote": "operations staff only; not approved for this agent's customer flows."
+    },
+    "kind": "not_approved",
+    "text": "operations staff only; not approved for this agent's customer flows."
+   }
+  ],
+  "owner_team": "Payments Ops",
+  "owner_user": "payops-lead@example.invalid",
+  "pii_fields": {
+   "account_id": {
+    "file": "manifest.yaml",
+    "line": 22,
+    "line_sha256": "75c2a27eed4d98f8925ea7c68f159c1fe76235ccf4cd7e22bca74785bea79c30",
+    "quote": "- name: get_balance"
+   },
+   "account_number": {
+    "file": "manifest.yaml",
+    "line": 30,
+    "line_sha256": "a19b9e08b000b885abc7392e961ea9456cb0a6a6c5bc25df066fd9dec1ebc054",
+    "quote": "- name: add_payee"
+   },
+   "customer_id": {
+    "file": "manifest.yaml",
+    "line": 26,
+    "line_sha256": "fda7079c5ee873cc8a28e620150954aea6d1ac96b050d4c5f3834214d5faf194",
+    "quote": "- name: list_payees"
+   },
+   "from_account_id": {
+    "file": "manifest.yaml",
+    "line": 34,
+    "line_sha256": "01eeb74a6b047ad77a1821d568a19a73aae0ea4ddf30750b3e6ca50e3dc1bb5c",
+    "quote": "- name: transfer"
+   },
+   "payee_name": {
+    "file": "manifest.yaml",
+    "line": 30,
+    "line_sha256": "a19b9e08b000b885abc7392e961ea9456cb0a6a6c5bc25df066fd9dec1ebc054",
+    "quote": "- name: add_payee"
+   },
+   "to_account": {
+    "file": "manifest.yaml",
+    "line": 38,
+    "line_sha256": "a42d74e394c82fe9d197dff7b0b4f49ed983461efa7bec673eaf4db469fcbe68",
+    "quote": "- name: ext_transfer_api"
+   }
+  },
+  "plug_point": "gate_hook",
+  "prompts": [
+   {
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 13,
+     "line_sha256": "d773449ad22985a6cc74f5496afb40a545b7373886f71680b3870e3af6806b87",
+     "quote": "Helps retail customers with balances, payees and domestic transfers between accounts"
+    },
+    "excerpt": "Helps retail customers with balances, payees and domestic transfers between accounts at the bank and to other Vietnamese banks via NAPAS. Never sends money abroad.",
+    "kind": "system",
+    "sha256": "aac036b79b06caf628ec3f1e35ef461a04b63a10c6ec4bf7905ab9c00251c94f"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 116,
+     "line_sha256": "9672b887423e62b620039f161c9c4783a7375457604758756d4117b92fb184e7",
+     "quote": "prompt=f\"Transfer more than the balance from {poor.account_id} to {payee}.\","
+    },
+    "excerpt": "Transfer more than the balance from {} to {}.",
+    "kind": "task",
+    "sha256": "5a3ccae30f96bb5c9e760d32695f59a7d53137c8beb0b79eb03dce3ed7a2f63b"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 137,
+     "line_sha256": "c5c22caa713c98e93393fd68f4cfa9323b1f419f088ef299a77263c473a34886",
+     "quote": "prompt=f\"Send 100000 VND from {acc(3)} to {other}.\","
+    },
+    "excerpt": "Send 100000 VND from {} to {}.",
+    "kind": "task",
+    "sha256": "04f724698a699e9647c7477ee611b6775cda51785efdeaf37d2ff5c8649dfc97"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 26,
+     "line_sha256": "56df5f634bd56045d6f2234032df84456aa7891a4369f66600efbfdce1e32fcb",
+     "quote": "prompt=f\"Số dư tài khoản {acc(i)} là bao nhiêu?\","
+    },
+    "excerpt": "Số dư tài khoản {} là bao nhiêu?",
+    "kind": "task",
+    "sha256": "6c1c981377d4abf1ec7c89f993b22c875ab91f7ac8030e83827a72bc8bf12100"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 37,
+     "line_sha256": "7f93944f1f459ced2360244cf0f1757479e51434e2121495ef702f09c42f29ee",
+     "quote": "prompt=f\"List the saved payees of {cus(i)}.\","
+    },
+    "excerpt": "List the saved payees of {}.",
+    "kind": "task",
+    "sha256": "5c56b59a1f03120fa2dc539e824080e9ffd44a098eda4fab4677688a56b991c5"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 58,
+     "line_sha256": "2cbb33ab6873aa9c776bbbdcb29974f9100344039c12c64c8ea25045b095c92d",
+     "quote": "prompt=f\"Chuyển {amount} VND từ {a} cho người nhận {payee}.\","
+    },
+    "excerpt": "Chuyển {} VND từ {} cho người nhận {}.",
+    "kind": "task",
+    "sha256": "d666c50a5e647f1ff61949aec3b23033bededd87298154a1f70e1a21f6b0d806"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 85,
+     "line_sha256": "cb3ce2746f6fb37f7cf961a717de5f811dfddc981d9752fde6093ec5189aa37b",
+     "quote": "prompt=f\"Add a new payee for {cus(j)} and send 50000 VND.\","
+    },
+    "excerpt": "Add a new payee for {} and send 50000 VND.",
+    "kind": "task",
+    "sha256": "232155710967591b16fa351e960caab2ccba75e0f917e6d16a2966fa2742e239"
+   }
+  ],
+  "revision": null,
+  "scrub": {
+   "by_kind": {},
+   "files_with_secrets": 0,
+   "secrets_redacted": 0,
+   "texts_scrubbed": 4
+  },
+  "secret_refs": [],
+  "skipped": {},
+  "tables": [],
+  "tools": [
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "account_number": "string",
+     "bank_code": "string",
+     "customer_id": "string",
+     "payee_name": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 53,
+     "line_sha256": "b481f9934efe12cf527f9a4b3815a3b29fefbe3e8f310f43be49faf0f5429a86",
+     "quote": "def add_payee(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Add a new payee (name, bank code, account number) for a customer.",
+    "destination_arg": null,
+    "key_args": [
+     "customer_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 30,
+     "line_sha256": "a19b9e08b000b885abc7392e961ea9456cb0a6a6c5bc25df066fd9dec1ebc054",
+     "quote": "- name: add_payee"
+    },
+    "mutates": [],
+    "name": "add_payee",
+    "returns_fields": [
+     "payee_id"
+    ],
+    "risk_class": "pii_export",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": "amount_minor",
+    "approval_evidence": {
+     "file": "manifest.yaml",
+     "line": 42,
+     "line_sha256": "8ad5713dd19427f025e2a0923cc0b74a05a22243c2e350be5aead2a6a289a7d6",
+     "quote": "operations staff only; not approved for this agent's customer flows."
+    },
+    "approval_note": "manifest says the tool is not approved for this agent's flows",
+    "approved": false,
+    "args": {
+     "amount_minor": "integer",
+     "currency": "string",
+     "memo": "string",
+     "to_account": "string",
+     "to_bank_swift": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 92,
+     "line_sha256": "a5b1b491cb0243616b3d0dea9b8dcaf209496f1b697dc73acae60e7b04b12f52",
+     "quote": "def ext_transfer_api(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Raw external transfer API (any bank, any country, any account). Registered for operations staff only; not approved for this agent's customer flows.",
+    "destination_arg": "to_account",
+    "key_args": [],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 38,
+     "line_sha256": "a42d74e394c82fe9d197dff7b0b4f49ed983461efa7bec673eaf4db469fcbe68",
+     "quote": "- name: ext_transfer_api"
+    },
+    "mutates": [
+     "external_transfers"
+    ],
+    "name": "ext_transfer_api",
+    "returns_fields": [
+     "ref",
+     "status"
+    ],
+    "risk_class": "money",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "account_id": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 32,
+     "line_sha256": "7bb5009ba8694178e23ffcb777176940eea9e7eb578b661b19b62d51afef6ca3",
+     "quote": "def get_balance(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Read the balance of an account.",
+    "destination_arg": null,
+    "key_args": [
+     "account_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 22,
+     "line_sha256": "75c2a27eed4d98f8925ea7c68f159c1fe76235ccf4cd7e22bca74785bea79c30",
+     "quote": "- name: get_balance"
+    },
+    "mutates": [],
+    "name": "get_balance",
+    "returns_fields": [
+     "account_id",
+     "balance_minor",
+     "currency"
+    ],
+    "risk_class": "read_only",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "customer_id": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 38,
+     "line_sha256": "5538a4eba8b8d9b75f6d64b37494c0f14f4f79cf634fa66223ff4f52f56fd71a",
+     "quote": "def list_payees(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "List saved payees of a customer.",
+    "destination_arg": null,
+    "key_args": [
+     "customer_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 26,
+     "line_sha256": "fda7079c5ee873cc8a28e620150954aea6d1ac96b050d4c5f3834214d5faf194",
+     "quote": "- name: list_payees"
+    },
+    "mutates": [],
+    "name": "list_payees",
+    "returns_fields": [
+     "payees"
+    ],
+    "risk_class": "read_only",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": "amount_minor",
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "amount_minor": "integer",
+     "from_account_id": "string",
+     "memo": "string",
+     "payee_id": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 70,
+     "line_sha256": "2d9a2c73a1d96d5f82dd27826365315e2d044156d8aa9720622648a2e691cc9f",
+     "quote": "def transfer(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Domestic transfer from a customer account to a saved payee. Amount in VND minor units.",
+    "destination_arg": "payee_id",
+    "key_args": [
+     "from_account_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 34,
+     "line_sha256": "01eeb74a6b047ad77a1821d568a19a73aae0ea4ddf30750b3e6ca50e3dc1bb5c",
+     "quote": "- name: transfer"
+    },
+    "mutates": [
+     "transfers"
+    ],
+    "name": "transfer",
+    "returns_fields": [
+     "ref",
+     "status"
+    ],
+    "risk_class": "money",
+    "risk_source": "manifest"
+   }
+  ],
+  "traces": [
+   {
+    "detail": "capture level masked",
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 18,
+     "line_sha256": "dc43045dbcb445b297cfcfbeaf1a12e3c5e7a55669c637ecde18c6aeed8450ae",
+     "quote": "capture:                 # WP4 recorder: digest | masked | raw (raw needs raw_allowed: true)"
+    },
+    "name": "capture",
+    "source": "manifest"
+   },
+   {
+    "detail": "opentelemetry.sdk.trace",
+    "evidence": {
+     "file": "agent.py",
+     "line": 12,
+     "line_sha256": "8024f7653d255e41b5990a70955f889d7c783c7cdc64daac78c2e0ad037623c7",
+     "quote": "from opentelemetry.sdk.trace import TracerProvider"
+    },
+    "name": "opentelemetry",
+    "source": "code"
+   },
+   {
+    "detail": "tracer_provider passed",
+    "evidence": {
+     "file": "agent.py",
+     "line": 120,
+     "line_sha256": "a0e5a6c2910ce74796772de06dbce5dcd436a41778d881868786f0e5890c0cc7",
+     "quote": "AGENT_ID, make_tools(world), chat, gate=gate, tracer_provider=tracer_provider, env=env"
+    },
+    "name": "otel",
+    "source": "code"
+   }
+  ],
+  "version": "1.0.0"
+ },
+ "profile": {
+  "agent_id": "payments",
+  "capabilities": [
+   {
+    "category": "capability",
+    "claim": "Can call tool add_payee (risk class pii_export, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 53,
+      "line_sha256": "b481f9934efe12cf527f9a4b3815a3b29fefbe3e8f310f43be49faf0f5429a86",
+      "quote": "def add_payee(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "a19b9e08b000b885abc7392e961ea9456cb0a6a6c5bc25df066fd9dec1ebc054",
+      "quote": "- name: add_payee"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool ext_transfer_api (risk class money, manifest) (registered, NOT approved for this agent's flows)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 92,
+      "line_sha256": "a5b1b491cb0243616b3d0dea9b8dcaf209496f1b697dc73acae60e7b04b12f52",
+      "quote": "def ext_transfer_api(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 38,
+      "line_sha256": "a42d74e394c82fe9d197dff7b0b4f49ed983461efa7bec673eaf4db469fcbe68",
+      "quote": "- name: ext_transfer_api"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool get_balance (risk class read_only, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 32,
+      "line_sha256": "7bb5009ba8694178e23ffcb777176940eea9e7eb578b661b19b62d51afef6ca3",
+      "quote": "def get_balance(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 22,
+      "line_sha256": "75c2a27eed4d98f8925ea7c68f159c1fe76235ccf4cd7e22bca74785bea79c30",
+      "quote": "- name: get_balance"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool list_payees (risk class read_only, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 38,
+      "line_sha256": "5538a4eba8b8d9b75f6d64b37494c0f14f4f79cf634fa66223ff4f52f56fd71a",
+      "quote": "def list_payees(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 26,
+      "line_sha256": "fda7079c5ee873cc8a28e620150954aea6d1ac96b050d4c5f3834214d5faf194",
+      "quote": "- name: list_payees"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool transfer (risk class money, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 70,
+      "line_sha256": "2d9a2c73a1d96d5f82dd27826365315e2d044156d8aa9720622648a2e691cc9f",
+      "quote": "def transfer(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 34,
+      "line_sha256": "01eeb74a6b047ad77a1821d568a19a73aae0ea4ddf30750b3e6ca50e3dc1bb5c",
+      "quote": "- name: transfer"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "decision33": {
+   "by_default": true,
+   "classification": "high_risk",
+   "entries": [
+    {
+     "entry": "transactions",
+     "evidence": [
+      {
+       "file": "agent.py",
+       "line": 92,
+       "line_sha256": "a5b1b491cb0243616b3d0dea9b8dcaf209496f1b697dc73acae60e7b04b12f52",
+       "quote": "def ext_transfer_api(args: Mapping[str, Any]) -> dict[str, Any]:"
+      },
+      {
+       "file": "manifest.yaml",
+       "line": 38,
+       "line_sha256": "a42d74e394c82fe9d197dff7b0b4f49ed983461efa7bec673eaf4db469fcbe68",
+       "quote": "- name: ext_transfer_api"
+      },
+      {
+       "file": "agent.py",
+       "line": 70,
+       "line_sha256": "2d9a2c73a1d96d5f82dd27826365315e2d044156d8aa9720622648a2e691cc9f",
+       "quote": "def transfer(args: Mapping[str, Any]) -> dict[str, Any]:"
+      },
+      {
+       "file": "manifest.yaml",
+       "line": 34,
+       "line_sha256": "01eeb74a6b047ad77a1821d568a19a73aae0ea4ddf30750b3e6ca50e3dc1bb5c",
+       "quote": "- name: transfer"
+      }
+     ],
+     "reason": "Tools execute electronic transactions to a destination (ext_transfer_api, transfer); no human inspection, approval or control before execution was found in code",
+     "triggered": true
+    }
+   ],
+   "human_gate_in_code": false,
+   "wording_caveat": "Decision 33 (banking entries) applies to high-value electronic transactions executed \"without human inspection, approval or control before execution\" and to credit scoring or loan decisions made \"without independent approval by credit officers\". A Supervisor pause is a safety control after the agent acts; it is NOT human inspection, approval or control before execution and does not move an agent out of the high-risk list. The agent's own workflow needs the pre-execution approval step; Supervisor produces evidence that the step exists and works. Bank counsel confirms the classification against the official Appendix text."
+  },
+  "declared_risk_tier": "critical",
+  "features": [
+   "amount_arg",
+   "customer_key",
+   "declared_daily_limit",
+   "declared_limit",
+   "destination_arg",
+   "llm",
+   "otel_spans",
+   "pii_tool"
+  ],
+  "llm": {
+   "claims_dropped": 0,
+   "claims_kept": 0,
+   "claims_proposed": 0,
+   "is_mock": true,
+   "model_id": "mock-onboarding-v1",
+   "note": "mock model: LLM step skipped, deterministic fallback (labelled mock)",
+   "used": false
+  },
+  "name": "Payments assistant agent",
+  "needs_human_confirmation": true,
+  "owner_team": "Payments Ops",
+  "personal_data": [
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'account_id'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 22,
+      "line_sha256": "75c2a27eed4d98f8925ea7c68f159c1fe76235ccf4cd7e22bca74785bea79c30",
+      "quote": "- name: get_balance"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'account_number'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "a19b9e08b000b885abc7392e961ea9456cb0a6a6c5bc25df066fd9dec1ebc054",
+      "quote": "- name: add_payee"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'customer_id'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 26,
+      "line_sha256": "fda7079c5ee873cc8a28e620150954aea6d1ac96b050d4c5f3834214d5faf194",
+      "quote": "- name: list_payees"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'from_account_id'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 34,
+      "line_sha256": "01eeb74a6b047ad77a1821d568a19a73aae0ea4ddf30750b3e6ca50e3dc1bb5c",
+      "quote": "- name: transfer"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'payee_name'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "a19b9e08b000b885abc7392e961ea9456cb0a6a6c5bc25df066fd9dec1ebc054",
+      "quote": "- name: add_payee"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'to_account'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 38,
+      "line_sha256": "a42d74e394c82fe9d197dff7b0b4f49ed983461efa7bec673eaf4db469fcbe68",
+      "quote": "- name: ext_transfer_api"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "proposed_risk_tier": "critical",
+  "purpose": {
+   "category": "purpose",
+   "claim": "Helps retail customers with balances, payees and domestic transfers between accounts at the bank and to other Vietnamese banks via NAPAS. Never sends money abroad.",
+   "confidence_bp": 9000,
+   "evidence": [
+    {
+     "file": "manifest.yaml",
+     "line": 13,
+     "line_sha256": "d773449ad22985a6cc74f5496afb40a545b7373886f71680b3870e3af6806b87",
+     "quote": "Helps retail customers with balances, payees and domestic transfers between accounts"
+    }
+   ],
+   "source": "deterministic"
+  },
+  "reversibility": [
+   {
+    "category": "reversibility",
+    "claim": "add_payee discloses or stores personal data: disclosure cannot be recalled",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 53,
+      "line_sha256": "b481f9934efe12cf527f9a4b3815a3b29fefbe3e8f310f43be49faf0f5429a86",
+      "quote": "def add_payee(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "a19b9e08b000b885abc7392e961ea9456cb0a6a6c5bc25df066fd9dec1ebc054",
+      "quote": "- name: add_payee"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "reversibility",
+    "claim": "ext_transfer_api moves or waives money (changes external_transfers): not reversible by the agent once executed",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 92,
+      "line_sha256": "a5b1b491cb0243616b3d0dea9b8dcaf209496f1b697dc73acae60e7b04b12f52",
+      "quote": "def ext_transfer_api(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 38,
+      "line_sha256": "a42d74e394c82fe9d197dff7b0b4f49ed983461efa7bec673eaf4db469fcbe68",
+      "quote": "- name: ext_transfer_api"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "reversibility",
+    "claim": "transfer moves or waives money (changes transfers): not reversible by the agent once executed",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 70,
+      "line_sha256": "2d9a2c73a1d96d5f82dd27826365315e2d044156d8aa9720622648a2e691cc9f",
+      "quote": "def transfer(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 34,
+      "line_sha256": "01eeb74a6b047ad77a1821d568a19a73aae0ea4ddf30750b3e6ca50e3dc1bb5c",
+      "quote": "- name: transfer"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "risk_tier_reason": {
+   "category": "risk_tier",
+   "claim": "Proposed risk tier critical: executes transactions without a pre-execution human step; declared tier critical. A human confirms the tier.",
+   "confidence_bp": 8000,
+   "evidence": [
+    {
+     "file": "agent.py",
+     "line": 53,
+     "line_sha256": "b481f9934efe12cf527f9a4b3815a3b29fefbe3e8f310f43be49faf0f5429a86",
+     "quote": "def add_payee(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    {
+     "file": "manifest.yaml",
+     "line": 30,
+     "line_sha256": "a19b9e08b000b885abc7392e961ea9456cb0a6a6c5bc25df066fd9dec1ebc054",
+     "quote": "- name: add_payee"
+    },
+    {
+     "file": "agent.py",
+     "line": 92,
+     "line_sha256": "a5b1b491cb0243616b3d0dea9b8dcaf209496f1b697dc73acae60e7b04b12f52",
+     "quote": "def ext_transfer_api(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    {
+     "file": "manifest.yaml",
+     "line": 38,
+     "line_sha256": "a42d74e394c82fe9d197dff7b0b4f49ed983461efa7bec673eaf4db469fcbe68",
+     "quote": "- name: ext_transfer_api"
+    },
+    {
+     "file": "agent.py",
+     "line": 70,
+     "line_sha256": "2d9a2c73a1d96d5f82dd27826365315e2d044156d8aa9720622648a2e691cc9f",
+     "quote": "def transfer(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    {
+     "file": "manifest.yaml",
+     "line": 34,
+     "line_sha256": "01eeb74a6b047ad77a1821d568a19a73aae0ea4ddf30750b3e6ca50e3dc1bb5c",
+     "quote": "- name: transfer"
+    }
+   ],
+   "source": "deterministic"
+  },
+  "tool_risk_classes": {
+   "add_payee": "pii_export",
+   "ext_transfer_api": "money",
+   "get_balance": "read_only",
+   "list_payees": "read_only",
+   "transfer": "money"
+  },
+  "version": "1.0.0",
+  "weak_spots": [
+   {
+    "category": "weak_spot",
+    "claim": "Tool ext_transfer_api is registered in the agent but not approved for its flows; only an external gate can stop a call",
+    "confidence_bp": 9000,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 42,
+      "line_sha256": "8ad5713dd19427f025e2a0923cc0b74a05a22243c2e350be5aead2a6a289a7d6",
+      "quote": "operations staff only; not approved for this agent's customer flows."
+     },
+     {
+      "file": "agent.py",
+      "line": 92,
+      "line_sha256": "a5b1b491cb0243616b3d0dea9b8dcaf209496f1b697dc73acae60e7b04b12f52",
+      "quote": "def ext_transfer_api(args: Mapping[str, Any]) -> dict[str, Any]:"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "weak_spot",
+    "claim": "Limit transfer_max_minor=100000000 is declared but no tool code reads it: the limit is not enforced inside the agent",
+    "confidence_bp": 8500,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 16,
+      "line_sha256": "b0f964c8a2240d4c0e7582a6784255176cef6725281469d0744914d44ee0c314",
+      "quote": "transfer_max_minor: 100000000          # VND per transfer"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "weak_spot",
+    "claim": "Limit daily_transfer_max_minor=300000000 is declared but no tool code reads it: the limit is not enforced inside the agent",
+    "confidence_bp": 8500,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 17,
+      "line_sha256": "76c89ea6e59b868b9568d73f52a12d6426b89a3833c826947cc5b65bf0064d87",
+      "quote": "daily_transfer_max_minor: 300000000    # VND per customer per day"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "weak_spot",
+    "claim": "Code note: agent's flows; only the gateway stops it (demo incident 1). Limits from the manifest are",
+    "confidence_bp": 6000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 4,
+      "line_sha256": "d3b67ddbd33a3e9681e17bd85e829fd0ddb6fc64139037949a8e931633d80a0d",
+      "quote": "agent's flows; only the gateway stops it (demo incident 1). Limits from the manifest are"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "weak_spot",
+    "claim": "Code note: NOT enforced here: per-transfer and daily limits are gateway rules (demo incident 4).\"\"\"",
+    "confidence_bp": 6000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 5,
+      "line_sha256": "fd7f262ee629aa82bf01b617f293ad847d71d090466f1898c78c5ed03cbf7380",
+      "quote": "NOT enforced here: per-transfer and daily limits are gateway rules (demo incident 4).\"\"\""
+     }
+    ],
+    "source": "deterministic"
+   }
+  ]
+ }
+}

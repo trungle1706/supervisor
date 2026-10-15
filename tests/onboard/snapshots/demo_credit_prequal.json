@@ -1,0 +1,681 @@
+{
+ "inventory": {
+  "agent_id": "credit_prequal",
+  "apps": [],
+  "constants": {
+   "DECISIONS": [
+    "approve",
+    "refer",
+    "decline"
+   ]
+  },
+  "declared_risk_tier": "high",
+  "description": "Pre-qualifies consumer loan applications. Fetches the application, looks up a credit score, requests missing documents, and records a pre-qualification decision (approve / refer / decline). Final credit approval stays with a human underwriter.",
+  "entrypoints": [
+   {
+    "detail": "function",
+    "evidence": {
+     "file": "agent.py",
+     "line": 83,
+     "line_sha256": "fc4c4f3257b96732568e68d7771f5c5f554834af435c09901a40fd01f62577bc",
+     "quote": "def build_agent("
+    },
+    "name": "build_agent",
+    "source": "code"
+   }
+  ],
+  "features": [
+   "amount_arg",
+   "customer_key",
+   "decision_tool",
+   "declared_limit",
+   "llm",
+   "otel_spans",
+   "pii_tool",
+   "prior_read",
+   "record_fact"
+  ],
+  "files": [
+   "__init__.py",
+   "agent.py",
+   "manifest.yaml",
+   "tasks.py"
+  ],
+  "host_type": "python_inprocess",
+  "human_approval_refs": [],
+  "limits": [
+   {
+    "code_refs": [],
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 17,
+     "line_sha256": "3cd8c1201ced6bef4b15bede653e0740db418c056caed5cf033913ca70115dfb",
+     "quote": "max_prequal_amount_minor: 2000000000   # VND"
+    },
+    "key": "max_prequal_amount_minor",
+    "period": "per_call",
+    "tool": "decide_prequal",
+    "value": 2000000000
+   }
+  ],
+  "manifest_file": "manifest.yaml",
+  "mcp_servers": [],
+  "model_endpoints": [
+   {
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 9,
+     "line_sha256": "13f29d60efaeb5d9ec7f84efeeeebfb47875bcef0baca972de9159392dd1400f",
+     "quote": "model_id: qwen3:4b"
+    },
+    "family": "qwen",
+    "name": "qwen3:4b",
+    "source": "manifest"
+   }
+  ],
+  "model_family": "qwen",
+  "model_id": "qwen3:4b",
+  "name": "Loan pre-qualification agent",
+  "notes": [
+   {
+    "evidence": {
+     "file": "agent.py",
+     "line": 3,
+     "line_sha256": "5ec501989f6acb60a2124174d8ed85751a4677c14b4c35bf69b9cfcb2fea7f95",
+     "quote": "The tool layer does not enforce document completeness: that check belongs to the gateway"
+    },
+    "kind": "not_enforced",
+    "text": "The tool layer does not enforce document completeness: that check belongs to the gateway"
+   },
+   {
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 15,
+     "line_sha256": "9cd81d8d532cd5bd02b67e87a1018206afa4e77761debb52cc1c89d57d402802",
+     "quote": "(approve / refer / decline). Final credit approval stays with a human underwriter."
+    },
+    "kind": "human_step",
+    "text": "(approve / refer / decline). Final credit approval stays with a human underwriter."
+   }
+  ],
+  "owner_team": "Consumer Lending",
+  "owner_user": "lending-lead@example.invalid",
+  "pii_fields": {
+   "customer_id": {
+    "file": "agent.py",
+    "line": 31,
+    "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+    "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+   },
+   "employment": {
+    "file": "agent.py",
+    "line": 31,
+    "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+    "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+   },
+   "monthly_income_minor": {
+    "file": "agent.py",
+    "line": 31,
+    "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+    "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+   }
+  },
+  "plug_point": "gate_hook",
+  "prompts": [
+   {
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 13,
+     "line_sha256": "45ae6843a797f61f154fb30e072d837a5b893ffc5c571f0976cb3566c900e4ac",
+     "quote": "Pre-qualifies consumer loan applications. Fetches the application, looks up a credit"
+    },
+    "excerpt": "Pre-qualifies consumer loan applications. Fetches the application, looks up a credit score, requests missing documents, and records a pre-qualification decision (approve / refer / decline). Final credit approval stays with a human underwrit",
+    "kind": "system",
+    "sha256": "42150ca17c2720e22fb45aa0fb779be85a9a9f60ffb56fa1894112cda515b44f"
+   },
+   {
+    "evidence": {
+     "file": "tasks.py",
+     "line": 62,
+     "line_sha256": "b0935ebfbe613f8865e8e7a848e128cd261c01d108473f35a3b48bf64c0f19f5",
+     "quote": "prompt=f\"Pre-qualify loan application {aid}.\","
+    },
+    "excerpt": "Pre-qualify loan application {}.",
+    "kind": "task",
+    "sha256": "e0599fa1f6ee64f5b3f825f33f617576a633f090e3ea82884c3781c7d623825f"
+   }
+  ],
+  "revision": null,
+  "scrub": {
+   "by_kind": {},
+   "files_with_secrets": 0,
+   "secrets_redacted": 0,
+   "texts_scrubbed": 4
+  },
+  "secret_refs": [],
+  "skipped": {},
+  "tables": [],
+  "tools": [
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "customer_id": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 46,
+     "line_sha256": "a02bf43621eb69ba8c0278513dd0fd425e78d5ceab01933cdd4034a9a6d5cf9e",
+     "quote": "def credit_score_lookup(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Look up the internal credit score (0-1000) for a customer_id.",
+    "destination_arg": null,
+    "key_args": [
+     "customer_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 26,
+     "line_sha256": "a116dd1267e7431a59b9fadd4a40ad3a9eb1ebeb21db7bdde937744623312e5d",
+     "quote": "- name: credit_score_lookup"
+    },
+    "mutates": [],
+    "name": "credit_score_lookup",
+    "returns_fields": [
+     "customer_id",
+     "scale_max",
+     "score"
+    ],
+    "risk_class": "read_only",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": "amount_minor",
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "amount_minor": "integer",
+     "application_id": "string",
+     "decision": "string",
+     "reason": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 53,
+     "line_sha256": "8ab1ff232d05bcaee950edb1ea8a4235c619387e7b0c3a4c500ef7c9876942e8",
+     "quote": "def decide_prequal(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Record a pre-qualification decision. decision in approve|refer|decline.",
+    "destination_arg": null,
+    "key_args": [
+     "application_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 30,
+     "line_sha256": "048a9cb4b88296282473dae00411c233a2a211d3034633af96c3eacc665dccf1",
+     "quote": "- name: decide_prequal"
+    },
+    "mutates": [
+     "decisions"
+    ],
+    "name": "decide_prequal",
+    "returns_fields": [
+     "decision",
+     "recorded"
+    ],
+    "risk_class": "credit",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "application_id": "string"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 31,
+     "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+     "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Read a loan application by application_id (applicant attributes, income, documents on file).",
+    "destination_arg": null,
+    "key_args": [
+     "application_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 22,
+     "line_sha256": "3d9e834ed61b70a0f70d035087c9505a7d902f69e7d58714618750583040a2e9",
+     "quote": "- name: fetch_application"
+    },
+    "mutates": [],
+    "name": "fetch_application",
+    "returns_fields": [
+     "amount_minor",
+     "application_id",
+     "customer_id",
+     "documents_complete",
+     "documents_on_file",
+     "documents_required",
+     "employment",
+     "monthly_income_minor",
+     "product",
+     "term_months"
+    ],
+    "risk_class": "pii_export",
+    "risk_source": "manifest"
+   },
+   {
+    "amount_arg": null,
+    "approval_evidence": null,
+    "approval_note": null,
+    "approved": true,
+    "args": {
+     "application_id": "string",
+     "documents": "array"
+    },
+    "definition": {
+     "file": "agent.py",
+     "line": 72,
+     "line_sha256": "20f1a037f4078b2580bb350fea39b5d4e773a93597a22cc18c1110caa3d3d92b",
+     "quote": "def request_documents(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    "description": "Ask the applicant for missing documents.",
+    "destination_arg": null,
+    "key_args": [
+     "application_id"
+    ],
+    "manifest_entry": {
+     "file": "manifest.yaml",
+     "line": 34,
+     "line_sha256": "a0d4ccf18337a5cea8985cdbb11ef965d275bb07ad61b059ea990aa83b3d6378",
+     "quote": "- name: request_documents"
+    },
+    "mutates": [
+     "document_requests"
+    ],
+    "name": "request_documents",
+    "returns_fields": [
+     "requested"
+    ],
+    "risk_class": "read_only",
+    "risk_source": "manifest"
+   }
+  ],
+  "traces": [
+   {
+    "detail": "capture level masked",
+    "evidence": {
+     "file": "manifest.yaml",
+     "line": 18,
+     "line_sha256": "dc43045dbcb445b297cfcfbeaf1a12e3c5e7a55669c637ecde18c6aeed8450ae",
+     "quote": "capture:                 # WP4 recorder: digest | masked | raw (raw needs raw_allowed: true)"
+    },
+    "name": "capture",
+    "source": "manifest"
+   },
+   {
+    "detail": "opentelemetry.sdk.trace",
+    "evidence": {
+     "file": "agent.py",
+     "line": 11,
+     "line_sha256": "8024f7653d255e41b5990a70955f889d7c783c7cdc64daac78c2e0ad037623c7",
+     "quote": "from opentelemetry.sdk.trace import TracerProvider"
+    },
+    "name": "opentelemetry",
+    "source": "code"
+   },
+   {
+    "detail": "tracer_provider passed",
+    "evidence": {
+     "file": "agent.py",
+     "line": 92,
+     "line_sha256": "a0e5a6c2910ce74796772de06dbce5dcd436a41778d881868786f0e5890c0cc7",
+     "quote": "AGENT_ID, make_tools(world), chat, gate=gate, tracer_provider=tracer_provider, env=env"
+    },
+    "name": "otel",
+    "source": "code"
+   }
+  ],
+  "version": "1.0.0"
+ },
+ "profile": {
+  "agent_id": "credit_prequal",
+  "capabilities": [
+   {
+    "category": "capability",
+    "claim": "Can call tool credit_score_lookup (risk class read_only, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 46,
+      "line_sha256": "a02bf43621eb69ba8c0278513dd0fd425e78d5ceab01933cdd4034a9a6d5cf9e",
+      "quote": "def credit_score_lookup(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 26,
+      "line_sha256": "a116dd1267e7431a59b9fadd4a40ad3a9eb1ebeb21db7bdde937744623312e5d",
+      "quote": "- name: credit_score_lookup"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool decide_prequal (risk class credit, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 53,
+      "line_sha256": "8ab1ff232d05bcaee950edb1ea8a4235c619387e7b0c3a4c500ef7c9876942e8",
+      "quote": "def decide_prequal(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "048a9cb4b88296282473dae00411c233a2a211d3034633af96c3eacc665dccf1",
+      "quote": "- name: decide_prequal"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool fetch_application (risk class pii_export, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 31,
+      "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+      "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 22,
+      "line_sha256": "3d9e834ed61b70a0f70d035087c9505a7d902f69e7d58714618750583040a2e9",
+      "quote": "- name: fetch_application"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "capability",
+    "claim": "Can call tool request_documents (risk class read_only, manifest)",
+    "confidence_bp": 9500,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 72,
+      "line_sha256": "20f1a037f4078b2580bb350fea39b5d4e773a93597a22cc18c1110caa3d3d92b",
+      "quote": "def request_documents(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 34,
+      "line_sha256": "a0d4ccf18337a5cea8985cdbb11ef965d275bb07ad61b059ea990aa83b3d6378",
+      "quote": "- name: request_documents"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "decision33": {
+   "by_default": true,
+   "classification": "high_risk",
+   "entries": [
+    {
+     "entry": "credit",
+     "evidence": [
+      {
+       "file": "agent.py",
+       "line": 53,
+       "line_sha256": "8ab1ff232d05bcaee950edb1ea8a4235c619387e7b0c3a4c500ef7c9876942e8",
+       "quote": "def decide_prequal(args: Mapping[str, Any]) -> dict[str, Any]:"
+      },
+      {
+       "file": "manifest.yaml",
+       "line": 30,
+       "line_sha256": "048a9cb4b88296282473dae00411c233a2a211d3034633af96c3eacc665dccf1",
+       "quote": "- name: decide_prequal"
+      },
+      {
+       "file": "manifest.yaml",
+       "line": 15,
+       "line_sha256": "9cd81d8d532cd5bd02b67e87a1018206afa4e77761debb52cc1c89d57d402802",
+       "quote": "(approve / refer / decline). Final credit approval stays with a human underwriter."
+      }
+     ],
+     "reason": "Tools record credit decisions (decide_prequal); no independent approval by a credit officer was found in code (the text mentions a human step, but no code enforces it)",
+     "triggered": true
+    }
+   ],
+   "human_gate_in_code": false,
+   "wording_caveat": "Decision 33 (banking entries) applies to high-value electronic transactions executed \"without human inspection, approval or control before execution\" and to credit scoring or loan decisions made \"without independent approval by credit officers\". A Supervisor pause is a safety control after the agent acts; it is NOT human inspection, approval or control before execution and does not move an agent out of the high-risk list. The agent's own workflow needs the pre-execution approval step; Supervisor produces evidence that the step exists and works. Bank counsel confirms the classification against the official Appendix text."
+  },
+  "declared_risk_tier": "high",
+  "features": [
+   "amount_arg",
+   "customer_key",
+   "decision_tool",
+   "declared_limit",
+   "llm",
+   "otel_spans",
+   "pii_tool",
+   "prior_read",
+   "record_fact"
+  ],
+  "llm": {
+   "claims_dropped": 0,
+   "claims_kept": 0,
+   "claims_proposed": 0,
+   "is_mock": true,
+   "model_id": "mock-onboarding-v1",
+   "note": "mock model: LLM step skipped, deterministic fallback (labelled mock)",
+   "used": false
+  },
+  "name": "Loan pre-qualification agent",
+  "needs_human_confirmation": true,
+  "owner_team": "Consumer Lending",
+  "personal_data": [
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'customer_id'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 31,
+      "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+      "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'employment'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 31,
+      "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+      "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "personal_data",
+    "claim": "Handles personal data field 'monthly_income_minor'",
+    "confidence_bp": 7000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 31,
+      "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+      "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "proposed_risk_tier": "high",
+  "purpose": {
+   "category": "purpose",
+   "claim": "Pre-qualifies consumer loan applications. Fetches the application, looks up a credit score, requests missing documents, and records a pre-qualification decision (approve / refer / decline). Final credit approval stays with a human underwriter.",
+   "confidence_bp": 9000,
+   "evidence": [
+    {
+     "file": "manifest.yaml",
+     "line": 13,
+     "line_sha256": "45ae6843a797f61f154fb30e072d837a5b893ffc5c571f0976cb3566c900e4ac",
+     "quote": "Pre-qualifies consumer loan applications. Fetches the application, looks up a credit"
+    }
+   ],
+   "source": "deterministic"
+  },
+  "reversibility": [
+   {
+    "category": "reversibility",
+    "claim": "decide_prequal records a credit decision (changes decisions): reversible only by a human process",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 53,
+      "line_sha256": "8ab1ff232d05bcaee950edb1ea8a4235c619387e7b0c3a4c500ef7c9876942e8",
+      "quote": "def decide_prequal(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 30,
+      "line_sha256": "048a9cb4b88296282473dae00411c233a2a211d3034633af96c3eacc665dccf1",
+      "quote": "- name: decide_prequal"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "reversibility",
+    "claim": "fetch_application discloses or stores personal data: disclosure cannot be recalled",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 31,
+      "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+      "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 22,
+      "line_sha256": "3d9e834ed61b70a0f70d035087c9505a7d902f69e7d58714618750583040a2e9",
+      "quote": "- name: fetch_application"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "reversibility",
+    "claim": "request_documents writes a record (changes document_requests) although its risk class is read_only: review the class",
+    "confidence_bp": 8000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 72,
+      "line_sha256": "20f1a037f4078b2580bb350fea39b5d4e773a93597a22cc18c1110caa3d3d92b",
+      "quote": "def request_documents(args: Mapping[str, Any]) -> dict[str, Any]:"
+     },
+     {
+      "file": "manifest.yaml",
+      "line": 34,
+      "line_sha256": "a0d4ccf18337a5cea8985cdbb11ef965d275bb07ad61b059ea990aa83b3d6378",
+      "quote": "- name: request_documents"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ],
+  "risk_tier_reason": {
+   "category": "risk_tier",
+   "claim": "Proposed risk tier high: moves money or records credit decisions; declared tier high. A human confirms the tier.",
+   "confidence_bp": 8000,
+   "evidence": [
+    {
+     "file": "agent.py",
+     "line": 53,
+     "line_sha256": "8ab1ff232d05bcaee950edb1ea8a4235c619387e7b0c3a4c500ef7c9876942e8",
+     "quote": "def decide_prequal(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    {
+     "file": "manifest.yaml",
+     "line": 30,
+     "line_sha256": "048a9cb4b88296282473dae00411c233a2a211d3034633af96c3eacc665dccf1",
+     "quote": "- name: decide_prequal"
+    },
+    {
+     "file": "agent.py",
+     "line": 31,
+     "line_sha256": "656153af2864e8566978de65a94ae24282b448d57587848769f15d42ab5c10cf",
+     "quote": "def fetch_application(args: Mapping[str, Any]) -> dict[str, Any]:"
+    },
+    {
+     "file": "manifest.yaml",
+     "line": 22,
+     "line_sha256": "3d9e834ed61b70a0f70d035087c9505a7d902f69e7d58714618750583040a2e9",
+     "quote": "- name: fetch_application"
+    }
+   ],
+   "source": "deterministic"
+  },
+  "tool_risk_classes": {
+   "credit_score_lookup": "read_only",
+   "decide_prequal": "credit",
+   "fetch_application": "pii_export",
+   "request_documents": "read_only"
+  },
+  "version": "1.0.0",
+  "weak_spots": [
+   {
+    "category": "weak_spot",
+    "claim": "Limit max_prequal_amount_minor=2000000000 is declared but no tool code reads it: the limit is not enforced inside the agent",
+    "confidence_bp": 8500,
+    "evidence": [
+     {
+      "file": "manifest.yaml",
+      "line": 17,
+      "line_sha256": "3cd8c1201ced6bef4b15bede653e0740db418c056caed5cf033913ca70115dfb",
+      "quote": "max_prequal_amount_minor: 2000000000   # VND"
+     }
+    ],
+    "source": "deterministic"
+   },
+   {
+    "category": "weak_spot",
+    "claim": "Code note: The tool layer does not enforce document completeness: that check belongs to the gateway",
+    "confidence_bp": 6000,
+    "evidence": [
+     {
+      "file": "agent.py",
+      "line": 3,
+      "line_sha256": "5ec501989f6acb60a2124174d8ed85751a4677c14b4c35bf69b9cfcb2fea7f95",
+      "quote": "The tool layer does not enforce document completeness: that check belongs to the gateway"
+     }
+    ],
+    "source": "deterministic"
+   }
+  ]
+ }
+}

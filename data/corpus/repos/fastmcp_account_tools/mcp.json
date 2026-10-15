@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "tai-khoan": {
+      "command": "python",
+      "args": ["-m", "server"],
+      "env": {
+        "PG_DSN": "${PG_DSN}",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://otel.example.vn:4317"
+      }
+    }
+  }
+}
