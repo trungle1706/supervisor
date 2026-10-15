@@ -17,12 +17,14 @@ from fastapi.exceptions import RequestValidationError  # noqa: E402
 from fastapi.responses import JSONResponse, RedirectResponse, Response  # noqa: E402
 
 from supervisor import __version__, scheduler  # noqa: E402
+from supervisor.adapters.auth.audit import request_id_of  # noqa: E402
 from supervisor.cases.service import PermissionDenied  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
 from supervisor.console import context as console_context  # noqa: E402
 from supervisor.console.errors import console_error, is_console  # noqa: E402
 from supervisor.console.routes import router as console_router  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
+from supervisor.evidence.casefile.builder import CaseFileError  # noqa: E402
 from supervisor.gateway import wiring as gate_wiring  # noqa: E402
 from supervisor.gateway.routes import router as gate_router  # noqa: E402
 from supervisor.ops import middleware as ops_middleware  # noqa: E402
@@ -101,6 +103,14 @@ async def _supervisor_error(request: Request, exc: SupervisorError) -> Response:
     return JSONResponse(status_code=400, content={"error": str(exc)})
 
 
+@app.exception_handler(CaseFileError)
+async def _case_file_error(request: Request, exc: CaseFileError) -> Response:
+    # Minor 1: a missing / unbuildable case file is a 404, not a generic 400.
+    if is_console(request):
+        return console_error(request, str(exc), 404)
+    return JSONResponse(status_code=404, content={"error": str(exc)})
+
+
 @app.exception_handler(RequestValidationError)
 async def _validation_error(request: Request, exc: RequestValidationError) -> Response:
     if is_console(request):
@@ -112,7 +122,12 @@ async def _validation_error(request: Request, exc: RequestValidationError) -> Re
 
 @app.exception_handler(Exception)
 async def _unexpected(request: Request, exc: Exception) -> Response:
-    log.exception("unhandled error")
+    log.error(
+        "unhandled error request_id=%s class=%s",
+        request_id_of(request),
+        type(exc).__name__,
+        exc_info=exc,
+    )
     if is_console(request):
         return console_error(
             request, f"unexpected error: {type(exc).__name__}. See the server log."

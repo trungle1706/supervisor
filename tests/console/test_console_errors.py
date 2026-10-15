@@ -147,3 +147,42 @@ def test_programmer_error_is_not_a_500(console: Console, monkeypatch: pytest.Mon
     monkeypatch.setattr(console.ctx.cases, "list_cases", boom)
     r = console.get("/console/queue/rows", headers={"HX-Request": "true"})
     assert r.status_code == 400 and "unexpected error: RuntimeError" in r.text
+
+
+def test_case_file_error_is_404(console: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+    from supervisor.evidence.casefile.builder import CaseFileError
+
+    def missing(*_a: Any, **_k: Any) -> None:
+        raise CaseFileError("case not found: C-404")
+
+    monkeypatch.setattr(console.ctx.cases, "list_cases", missing)
+    r = console.get("/console/queue/rows", headers={"HX-Request": "true"})
+    assert r.status_code == 404 and "case not found: C-404" in r.text
+
+
+def test_unexpected_error_logs_request_id_and_class(
+    console: Console, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def boom(*_a: Any, **_k: Any) -> None:
+        raise RuntimeError("bug")
+
+    monkeypatch.setattr(console.ctx.cases, "list_cases", boom)
+    with caplog.at_level("ERROR", logger="supervisor.app"):
+        console.get("/console/queue/rows", headers={"HX-Request": "true"})
+    recs = [r for r in caplog.records if r.name == "supervisor.app" and r.levelname == "ERROR"]
+    assert recs and "RuntimeError" in recs[0].getMessage()
+    assert "request_id=" in recs[0].getMessage() and "request_id=None" not in recs[0].getMessage()
+    assert recs[0].exc_info is not None
+
+
+@pytest.mark.parametrize(
+    ("raw", "ok"), [("7", True), ("٣", False), ("1" * 12, False), ("1" * 11, True), ("", False)]
+)
+def test_version_helper(raw: str, ok: bool) -> None:
+    from supervisor.console.routes import ConsoleInputError, _version
+
+    if ok:
+        assert _version({"row_version": raw}) == int(raw)
+    else:
+        with pytest.raises(ConsoleInputError):
+            _version({"row_version": raw})

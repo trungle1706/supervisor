@@ -16,7 +16,7 @@ import re
 import sys
 import zipfile
 from collections import deque
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
@@ -33,6 +33,7 @@ SET = "***set***"
 PII_FILES = {"logs.txt", "preflight.txt"}
 SECRET_NAME = re.compile(r"key|secret|token|password|client_id", re.IGNORECASE)
 _URL = re.compile(r"^[a-z][a-z0-9+.-]*://", re.IGNORECASE)
+_GENERIC_SECRET = re.compile(r"(key|token|secret|password|pwd)\s*[=:]\s*\S+", re.IGNORECASE)
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 
 
@@ -46,6 +47,25 @@ def _strip_query(value: str) -> str:
     p = urlsplit(value)
     netloc = p.netloc.rsplit("@", 1)[-1]  # drop user:password@
     return urlunsplit((p.scheme, netloc, p.path, "", ""))
+
+
+def scrub_generic(text: str) -> str:
+    """Minor 4: ``api_key=abc``, ``password: x`` and similar become ``api_key=<redacted>``."""
+    return _GENERIC_SECRET.sub(r"\1=<redacted>", text)
+
+
+def _relativise(value: str, data_dir: Path) -> str:
+    """Absolute paths: under DATA_DIR -> ``<DATA_DIR>/...``, under the home dir -> ``~/...``."""
+    if not (value.startswith(("/", "\\")) or re.match(r"^[A-Za-z]:[\\/]", value)):
+        return value
+    p = PurePath(value)
+    for root, label in ((PurePath(data_dir), "<DATA_DIR>"), (PurePath(Path.home()), "~")):
+        try:
+            rel = p.relative_to(root)
+        except ValueError:
+            continue
+        return "/".join([label, *rel.parts]) if rel.parts else label
+    return value
 
 
 def secret_values(settings: Settings) -> list[str]:
@@ -76,9 +96,9 @@ def redact_settings(settings: Settings) -> dict[str, Any]:
                 out[name] = str(raw) if is_placeholder(str(raw)) else SET
             continue
         if isinstance(v, Path):
-            v = str(v)
+            v = _relativise(str(v), settings.data_dir)
         elif isinstance(v, str):
-            v = _strip_query(v)
+            v = scrub_generic(_relativise(_strip_query(v), settings.data_dir))
         elif not isinstance(v, bool | int | float | type(None) | list | dict):
             v = str(v)
         out[name] = v
@@ -94,7 +114,7 @@ def _sanitise(text: str, settings: Settings, secrets: list[str], *, pii: bool) -
     for secret in secrets:
         text = text.replace(secret, REDACTED)
     if pii:
-        text = scrub(scrub_text(text).text)
+        text = scrub_generic(scrub(scrub_text(text).text))
         masker = make_masker(settings)
         if masker is not None:
             text = "\n".join(masker.mask(line) for line in text.split("\n"))

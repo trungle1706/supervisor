@@ -196,7 +196,7 @@ async def form(request: Request) -> dict[str, str]:
 
 def _version(data: Mapping[str, str]) -> int:
     raw = data.get("row_version", "")
-    if not raw.isdigit():
+    if not (raw.isascii() and raw.isdigit() and len(raw) < 12):
         raise ConsoleInputError("row_version is missing; reload the page")
     return int(raw)
 
