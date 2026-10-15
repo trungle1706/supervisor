@@ -172,6 +172,21 @@ class EvalPack(_Strict):
                 raise ValueError(f"{self.id}.{t.metric}: higher_better needs go >= no_go")
             if spec.direction == "lower_better" and t.go > t.no_go:
                 raise ValueError(f"{self.id}.{t.metric}: lower_better needs go <= no_go")
+            # no_go must be reachable, else the metric can only ever warn (W3-assure M2).
+            # Reachable = some legal value fails: a bp metric lies in 0..10000, so a
+            # lower_better no_go must be < 10000; a higher_better no_go must be > 0 (a value
+            # below it must exist; counts and ms are never negative). Count / ms metrics with
+            # lower_better have no upper bound, so no rule applies to them.
+            if spec.direction == "lower_better" and spec.unit == "bp" and t.no_go >= 10000:
+                raise ValueError(
+                    f"{self.id}.{t.metric}: lower_better bp no_go {t.no_go} is unreachable "
+                    "(bp values are at most 10000); use a no_go below 10000"
+                )
+            if spec.direction == "higher_better" and t.no_go <= 0:
+                raise ValueError(
+                    f"{self.id}.{t.metric}: higher_better no_go {t.no_go} is unreachable "
+                    "(values are never below 0); use a no_go above 0"
+                )
         if not self.thresholds:
             raise ValueError(f"{self.id}: a pack needs at least one threshold")
         bad_caps = [c for c in self.requires_capabilities if c not in CAPABILITIES]

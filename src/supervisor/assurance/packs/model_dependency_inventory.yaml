@@ -1,5 +1,5 @@
 id: model_dependency_inventory
-version: 1
+version: 2
 dimension: dependency
 title: Model dependency inventory (pinning, hosting region, vendor concentration)
 description: >-
@@ -7,9 +7,10 @@ description: >-
   version is not pinned. unknown_region_count: models with no hosting region (matters for data
   localisation and cross-border notice). max_vendor_share_bp: largest vendor share of all
   models, in bp (concentration). mock_models: mock models in the list (information only).
-  Default thresholds are ILLUSTRATIVE: with one model the vendor share is always 10000 bp, so
-  the default limit 10000 never fails; a bank that wants a multi-vendor rule sets a lower
-  go / no_go.
+  Default thresholds are ILLUSTRATIVE: the vendor share warns above 5000 bp and fails above
+  9999 bp, so a single-vendor inventory (always 10000 bp) fails this advisory pack as a
+  concentration finding (a no-go of 10000 would be unreachable and was removed); a bank that
+  accepts one vendor sets its own limits.
 source:
   name: Own check on the model inventory of the supervised agent / judge
   url: https://github.com/CycloneDX/specification
@@ -47,7 +48,7 @@ metrics:
 thresholds:
   - {metric: unpinned_models, go: 0, no_go: 0}
   - {metric: unknown_region_count, go: 0, no_go: 0}
-  - {metric: max_vendor_share_bp, go: 10000, no_go: 10000}
+  - {metric: max_vendor_share_bp, go: 5000, no_go: 9999}
 maps_to:
   regkb_duties: [model_inventory, outsourcing_oversight, data_localisation, cross_border_notice]
   owasp_llm: [LLM03]
