@@ -262,6 +262,7 @@ class Settings(BaseSettings):
     sched_judge_s: int = Field(default=300, ge=1)
     sched_multiagent_s: int = Field(default=300, ge=1)
     sched_quality_s: int = Field(default=900, ge=1)
+    regkb_internal_dir: str = ""  # WP13: RegKB internal rules dir (empty = off)
     drift_enabled: bool = False
     drift_window_s: int = Field(default=86400, ge=60)
     drift_baseline_windows: int = Field(default=7, ge=2)

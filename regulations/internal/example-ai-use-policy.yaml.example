@@ -1,0 +1,75 @@
+# SYNTHETIC EXAMPLE of a bank internal rule file. Not a real policy.
+# The .example suffix keeps it out of the default load. To try it, copy it to a folder as
+# example-ai-use-policy.yaml and point REGKB_INTERNAL_DIR at that folder.
+# Not legal advice. Bank counsel must confirm.
+schema_version: 1
+instrument:
+  id: INT-EXAMPLE-AIPOL
+  jurisdiction: VN
+  kind: internal
+  issuer: Example Bank - Technology Risk Management (synthetic)
+  number: "AI-POL-001"
+  title_en: Example internal policy on the use of AI agents
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      {date: "2026-01-15", source: "https://intranet.example.invalid/policies/ai-pol-001", verification: VERIFIED_PRIMARY}
+    effective:
+      {date: "2026-02-01", source: "https://intranet.example.invalid/policies/ai-pol-001", verification: VERIFIED_PRIMARY}
+  sources:
+    - {url: "https://intranet.example.invalid/policies/ai-pol-001", title: "AI-POL-001 (intranet)", fetched_at: "2026-10-15", kind: primary}
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: false
+  last_checked: "2026-10-15"
+  notes: Synthetic example. Replace with the real policy text and owner.
+obligations:
+  - id: INT-EXAMPLE-AIPOL-S4-01
+    article_ref: "Section 4.1"
+    text_vi: "Moi tac tu AI phai co chu so huu duoc chi dinh va duoc dang ky trong danh muc mo hinh truoc khi van hanh."
+    summary_en: Every AI agent needs a named owner and an entry in the model inventory before it goes live.
+    duties: [model_inventory, governance_accountability]
+    applies_to:
+      agent_class: [any]
+    addressee: bank
+    control_mapping:
+      - {kind: evidence, id: agent_registry, coverage: partial, note: "registry holds owner and risk tier"}
+      - {kind: process, id: board_governance, coverage: none, note: "committee approves new agents"}
+    evidence_needed: ["Agent registry row with owner", "Approval record from the committee"]
+    verification: VERIFIED_PRIMARY
+    sources:
+      - {url: "https://intranet.example.invalid/policies/ai-pol-001", title: "AI-POL-001 (intranet)", fetched_at: "2026-10-15", kind: primary}
+    confidence: high
+  - id: INT-EXAMPLE-AIPOL-S5-01
+    article_ref: "Section 5.2"
+    text_vi: "Tac tu AI tu dong thuc hien giao dich tien phai co nguoi phe duyet truoc khi thuc hien."
+    summary_en: An AI agent that moves money on its own needs a human approval before each action.
+    duties: [pre_execution_approval, human_oversight]
+    applies_to:
+      agent_class: [payment, credit_decision]
+      autonomy: [acts_autonomously]
+    addressee: deployer
+    control_mapping:
+      - {kind: rule, id: PAY-01, coverage: partial, note: "gate rule; a pause is not an approval"}
+      - {kind: console, id: case_signoff, coverage: partial}
+    evidence_needed: ["Sign-off record per action"]
+    verification: VERIFIED_PRIMARY
+    sources:
+      - {url: "https://intranet.example.invalid/policies/ai-pol-001", title: "AI-POL-001 (intranet)", fetched_at: "2026-10-15", kind: primary}
+    confidence: medium
+  - id: INT-EXAMPLE-AIPOL-S7-01
+    article_ref: "Section 7.3"
+    text_vi: "Du lieu khach hang ca nhan khong duoc gui toi dich vu AI dat ngoai lanh tho Viet Nam khi chua che du lieu."
+    summary_en: Personal customer data must be masked before it goes to an AI service hosted outside Vietnam.
+    duties: [data_minimisation, cross_border_notice]
+    applies_to:
+      data_classes: [personal, sensitive_personal]
+      model_hosting: [foreign_cloud]
+    addressee: bank
+    control_mapping:
+      - {kind: catalogue, id: pii_masking, coverage: full, note: "masks before any judge call"}
+    evidence_needed: ["Masking test report"]
+    verification: VERIFIED_PRIMARY
+    sources:
+      - {url: "https://intranet.example.invalid/policies/ai-pol-001", title: "AI-POL-001 (intranet)", fetched_at: "2026-10-15", kind: primary}
+    confidence: medium
