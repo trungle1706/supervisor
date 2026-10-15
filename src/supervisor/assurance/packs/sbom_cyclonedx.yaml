@@ -1,0 +1,50 @@
+id: sbom_cyclonedx
+version: 1
+dimension: dependency
+title: Software bill of materials (CycloneDX 1.5)
+description: >-
+  Builds a CycloneDX 1.5 JSON SBOM from the target's lock files (components of type library with
+  name, version, purl pkg:pypi/<name>@<version> and SHA-256 hashes from the lock). The serial
+  number is a UUID derived from the content hash, so the same dependency set gives the same
+  number; the timestamp comes from the run clock. The file is written to the run output folder
+  as sbom-<target>.cdx.json. Thresholds are ILLUSTRATIVE.
+source:
+  name: CycloneDX 1.5 JSON specification (own writer, written from the spec)
+  url: https://cyclonedx.org/docs/1.5/json/
+  paper: null
+  licence_url: https://github.com/CycloneDX/specification
+  licence_verified_on: "2026-10-15"
+  notes: >-
+    Specification repository licence checked on 2026-10-15: Apache-2.0. No spec text, schema
+    file or library code is copied; the writer is our own (stdlib only).
+licence: own
+data_modes: [synthetic, bank_supplied_path]
+targets: [agent, judge]
+runner: supervisor.assurance.runners.deps:SbomRunner
+metrics:
+  - name: components_count
+    direction: higher_better
+    unit: count
+    description: Number of components in the SBOM (information only, no threshold).
+  - name: components_with_purl_bp
+    direction: higher_better
+    unit: bp
+    description: Components whose purl carries a version, divided by all components, in bp.
+  - name: components_with_hash_bp
+    direction: higher_better
+    unit: bp
+    description: Components that carry at least one SHA-256 hash, divided by all components, in bp.
+thresholds:
+  - {metric: components_with_purl_bp, go: 10000, no_go: 9500}
+  - {metric: components_with_hash_bp, go: 10000, no_go: 9000}
+maps_to:
+  regkb_duties: [model_inventory, change_control, conformity_assessment]
+  owasp_llm: [LLM03]
+  owasp_agentic: [ASI04]
+  atlas: [AML.T0010]
+launch_gate: advisory
+judge_gate: false
+importer: >-
+  No import needed: the SBOM is built from the target's own lock files. The run output folder
+  (ctx.extras out_dir) receives sbom-<target>.cdx.json.
+min_items: 1

@@ -1,0 +1,30 @@
+{
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "syn-delta"
+      },
+      "ranges": [
+        {
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ],
+          "type": "ECOSYSTEM"
+        }
+      ]
+    }
+  ],
+  "aliases": [],
+  "database_specific": {
+    "severity": "HIGH"
+  },
+  "id": "SYN-2026-0004",
+  "modified": "2026-01-01T00:00:00Z",
+  "published": "2026-01-01T00:00:00Z",
+  "schema_version": "1.6.0",
+  "summary": "Synthetic advisory for matcher tests (fake)",
+  "withdrawn": "2026-02-01T00:00:00Z"
+}
