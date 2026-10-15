@@ -32,12 +32,13 @@ import binascii
 import json
 import re
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from supervisor.core.models import AgentEvent
 from supervisor.core.ports import Masker
+from supervisor.recorder import semconv
 from supervisor.recorder.capture import CaptureLevel, CapturePolicy
 
 Source = Literal["otel", "otlp", "proxy"]
@@ -449,6 +450,7 @@ class Normaliser:
     masker: Masker | None = None
     policy: CapturePolicy = field(default_factory=CapturePolicy)
     default_env: str = "dev"
+    use_semconv: bool = True  # WP15: map OTel GenAI names (settings.recorder_semconv)
 
     @property
     def mask_version(self) -> str | None:
@@ -462,6 +464,7 @@ class Normaliser:
             _opt(a.get(A_AGENT_ID))
             or _opt(a.get("gen_ai.agent.id"))
             or _opt(span.resource.get(A_AGENT_ID))
+            or (_opt(a.get(semconv.A_AGENT_NAME)) if self.use_semconv else None)
         )
 
     def _ident(self, value: Any) -> str | None:
@@ -480,6 +483,8 @@ class Normaliser:
 
     def normalise(self, span: SpanData, source: Source) -> Normalised | None:
         """One span -> one row, or None when the span is not an agent event."""
+        if self.use_semconv:
+            span = replace(span, attributes=semconv.apply(span.attributes, span.kind, span.name))
         attrs = span.attributes
         agent_id = self._ident(self.agent_id_of(span))
         event_type = infer_event_type(attrs, span.kind)
@@ -530,7 +535,10 @@ class Normaliser:
             span_id=span.span_id,
             parent_span_id=span.parent_span_id,
             agent_id=agent_id,
-            agent_version=self._ident(attrs.get(A_AGENT_VERSION)),
+            agent_version=self._ident(
+                attrs.get(A_AGENT_VERSION)
+                or (attrs.get("gen_ai.agent.version") if self.use_semconv else None)
+            ),
             caller_agent_id=self._ident(attrs.get(A_CALLER)),
             event_type=event_type,  # type: ignore[arg-type]
             tool_name=self._ident(attrs.get(A_TOOL) or attrs.get("gen_ai.tool.name")),

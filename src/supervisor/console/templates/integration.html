@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_integration') }}{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>{{ t('integration_title') }}</h1></div>
+<div class="purpose">
+  <p><strong>{{ t('int_purpose_lead') }}</strong> {{ t('int_purpose_rest') }}</p>
+  <p class="why">{{ t('int_why') }}</p>
+</div>
+{% if reports %}
+<div class="tablewrap"><table data-integration-list="1">
+  <thead><tr><th>{{ t('int_report') }}</th><th>{{ t('int_agent') }}</th><th>{{ t('int_framework') }}</th><th>{{ t('int_readiness') }}</th><th>{{ t('int_patches') }}</th></tr></thead>
+  <tbody>
+  {% for r in reports %}
+  <tr data-report="{{ r.name }}">
+    <td><a href="/console/integration/{{ r.name }}?lang={{ lang }}" class="mono">{{ r.name }}</a></td>
+    {% if r.error %}
+    <td colspan="4">{{ ui.pill(t('int_unreadable'), 'bad', True) }} <span class="muted">{{ r.error }}</span></td>
+    {% else %}
+    <td class="mono">{{ r.agent_id }}</td>
+    <td>{{ r.framework }}</td>
+    <td>{% if r.total is not none %}<b>{{ r.total }}</b>/100{% else %}-{% endif %}</td>
+    <td>{{ r.patches }}</td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<p class="muted" data-integration-empty="1">{{ t('int_none') }}</p>
+{% endif %}
+{% endblock %}

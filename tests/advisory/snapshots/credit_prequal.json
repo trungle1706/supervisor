@@ -1,0 +1,445 @@
+{
+  "agent_id": "credit_prequal",
+  "found": {
+    "data_access": [],
+    "framework": {
+      "evidence": null,
+      "name": "custom"
+    },
+    "injection_refs": [],
+    "llm_calls": [],
+    "mcp_server": false,
+    "pii_fields": [
+      {
+        "at": "agent.py:31",
+        "name": "customer_id"
+      },
+      {
+        "at": "agent.py:31",
+        "name": "employment"
+      },
+      {
+        "at": "agent.py:31",
+        "name": "monthly_income_minor"
+      }
+    ],
+    "secrets_count": 0,
+    "tools": [
+      {
+        "amount_arg": null,
+        "defined_at": "agent.py:46",
+        "destination_arg": null,
+        "gated": true,
+        "name": "credit_score_lookup",
+        "risk_class": "read_only",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      },
+      {
+        "amount_arg": "amount_minor",
+        "defined_at": "agent.py:53",
+        "destination_arg": null,
+        "gated": true,
+        "name": "decide_prequal",
+        "risk_class": "credit",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      },
+      {
+        "amount_arg": null,
+        "defined_at": "agent.py:31",
+        "destination_arg": null,
+        "gated": true,
+        "name": "fetch_application",
+        "risk_class": "pii_export",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      },
+      {
+        "amount_arg": null,
+        "defined_at": "agent.py:72",
+        "destination_arg": null,
+        "gated": true,
+        "name": "request_documents",
+        "risk_class": "read_only",
+        "risk_source": "manifest",
+        "shape": "nested_function",
+        "side_effects": []
+      }
+    ],
+    "tracing": [
+      "otel"
+    ]
+  },
+  "framework": "custom",
+  "name": "Loan pre-qualification agent",
+  "narrative": {
+    "source": "mock",
+    "text": "The agent uses custom and has 4 tool(s), 2 of them with side effects. Readiness is 100 of 100. 4 patch(es) are ready to review and 1 item(s) need a change by hand. Start in SHADOW mode and apply the patches one by one."
+  },
+  "needed": {
+    "catalogue": [
+      {
+        "id": "approved_tools",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Approved tools allow-list"
+      },
+      {
+        "id": "case_files",
+        "kind": "evidence",
+        "lane": "evidence",
+        "name": "Case files"
+      },
+      {
+        "id": "daily_aggregate",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Daily aggregate per customer"
+      },
+      {
+        "id": "drift_band",
+        "kind": "monitor",
+        "lane": "slow",
+        "name": "Behaviour drift band"
+      },
+      {
+        "id": "evidence_chain",
+        "kind": "evidence",
+        "lane": "evidence",
+        "name": "Hash-chained evidence"
+      },
+      {
+        "id": "fairness_slices",
+        "kind": "monitor",
+        "lane": "slow",
+        "name": "Fairness by customer segment"
+      },
+      {
+        "id": "injection_prefilter",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Injection pre-filter (Tier 0b)"
+      },
+      {
+        "id": "otlp_ingest",
+        "kind": "ingest",
+        "lane": "slow",
+        "name": "OpenTelemetry trace ingest"
+      },
+      {
+        "id": "pii_bulk_read",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Bulk personal-data read limit"
+      },
+      {
+        "id": "pii_masking",
+        "kind": "masking",
+        "lane": "fast",
+        "name": "PII masking at capture"
+      },
+      {
+        "id": "prior_read",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Decision needs the record read first"
+      },
+      {
+        "id": "single_limit",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "Per-call amount limit"
+      },
+      {
+        "id": "system_of_record",
+        "kind": "gate_rule",
+        "lane": "fast",
+        "name": "System-of-record check before a decision"
+      },
+      {
+        "id": "tier1_monitor",
+        "kind": "judge",
+        "lane": "slow",
+        "name": "Tier 1 judge on every trace"
+      },
+      {
+        "id": "tier2_judge",
+        "kind": "judge",
+        "lane": "slow",
+        "name": "Tier 2 judge on flags and a sample"
+      }
+    ],
+    "gate_sites": [
+      {
+        "at": "agent.py:53",
+        "decorator": "@supervised_tool(supervisor_onboard.AGENT_ID, \"1.0.0\", \"decide_prequal\", \"credit\", gate=supervisor_onboard.default_gate())",
+        "mode": "already_gated",
+        "note": "central dispatch gate at agent.py:91",
+        "risk_class": "credit",
+        "tool": "decide_prequal"
+      },
+      {
+        "at": "agent.py:31",
+        "decorator": "@supervised_tool(supervisor_onboard.AGENT_ID, \"1.0.0\", \"fetch_application\", \"pii_export\", gate=supervisor_onboard.default_gate())",
+        "mode": "already_gated",
+        "note": "central dispatch gate at agent.py:91",
+        "risk_class": "pii_export",
+        "tool": "fetch_application"
+      },
+      {
+        "at": "agent.py:72",
+        "decorator": "@supervised_tool(supervisor_onboard.AGENT_ID, \"1.0.0\", \"request_documents\", \"read_only\", gate=supervisor_onboard.default_gate())",
+        "mode": "already_gated",
+        "note": "central dispatch gate at agent.py:91",
+        "risk_class": "read_only",
+        "tool": "request_documents"
+      }
+    ],
+    "manual": [
+      {
+        "at": "agent.py:72",
+        "note": "writes found (mutates document_requests) but classed read_only; read_only fails open when the gateway is down",
+        "what": "confirm the risk class of tool request_documents"
+      }
+    ],
+    "mcp_proxy": null,
+    "policy_yaml": "# Supervisor policy for agent credit_prequal - generated by the Onboarding Agent.\n# Review every rule. Replace each FILL-ME-approver with two named approvers before\n# merge. The agent starts in SHADOW: rules are evaluated and recorded, nothing is\n# blocked until a rule is switched to enforced mode (see the launch report).\n# Schema: policies/schema.json (supervisor.gateway.policy).\npolicy_version: 1\ntools:\n  credit_score_lookup: read_only\n  decide_prequal: credit\n  fetch_application: pii_export\n  request_documents: read_only\nagents:\n  credit_prequal:\n    name: Loan pre-qualification agent\n    owner_user: lending-lead@example.invalid\n    owner_team: Consumer Lending\n    risk_tier: high\n    model_family: qwen\n    host_type: python_inprocess\n    plug_point: gate_hook\n    initial_state: SHADOW\nrules:\n- id: OB-CREDIT_PREQUAL-01\n  version: 1\n  description: Loan pre-qualification agent may call approved tools only\n  agent_scope:\n  - credit_prequal\n  action: pause\n  severity: critical\n  risk_class: credit\n  regulation_ref: Decision 33 (banking) - approved tools\n  owner: Consumer Lending\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool:\n      not_in:\n      - credit_score_lookup\n      - decide_prequal\n      - fetch_application\n      - request_documents\n- id: OB-CREDIT_PREQUAL-02\n  version: 1\n  description: Single decide_prequal limit 2000000000 (max_prequal_amount_minor)\n  agent_scope:\n  - credit_prequal\n  action: block\n  severity: high\n  risk_class: credit\n  regulation_ref: Internal limit - single agent-initiated transaction\n  owner: Consumer Lending\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool: decide_prequal\n    all:\n    - arg: amount_minor\n      op: gt\n      value: 2000000000\n- id: OB-CREDIT_PREQUAL-03\n  version: 1\n  description: Daily decide_prequal total per application_id above the ceiling 2000000000 (split decisions)\n  agent_scope:\n  - credit_prequal\n  action: block\n  severity: high\n  risk_class: credit\n  regulation_ref: AML structuring control - daily aggregate per customer\n  owner: Consumer Lending\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool: decide_prequal\n  aggregate:\n    window_s: 86400\n    group_by: customer\n    customer_arg: application_id\n    op: gt\n    fn: sum\n    field: amount_minor\n    limit: 2000000000\n- id: OB-CREDIT_PREQUAL-04\n  version: 1\n  description: decide_prequal may approve only when the system of record says application.documents_complete\n    is true\n  agent_scope:\n  - credit_prequal\n  action: block\n  severity: high\n  risk_class: credit\n  regulation_ref: Credit policy - complete file before approval\n  owner: Consumer Lending\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool: decide_prequal\n    all:\n    - arg: decision\n      op: eq\n      value: approve\n    - arg: fact.application.documents_complete\n      op: ne\n      value: true\n- id: OB-CREDIT_PREQUAL-05\n  version: 1\n  description: decide_prequal needs fetch_application of the same application_id first (same agent)\n  agent_scope:\n  - credit_prequal\n  action: block\n  severity: high\n  risk_class: credit\n  regulation_ref: Credit policy - documented decision\n  owner: Consumer Lending\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool: decide_prequal\n  prior:\n    tool: fetch_application\n    within_s: 86400\n    match_args:\n    - application_id\n    mode: absent\n    same_agent: true\n- id: OB-CREDIT_PREQUAL-06\n  version: 1\n  description: At most 20 personal-data tool calls per agent per hour (bulk export pattern)\n  agent_scope:\n  - credit_prequal\n  action: block\n  severity: high\n  risk_class: pii_export\n  regulation_ref: Decree 13/2023/ND-CP (personal data protection)\n  owner: Consumer Lending\n  approvals:\n  - FILL-ME-approver-risk\n  - FILL-ME-approver-compliance\n  when:\n    tool:\n      in: &id001\n      - fetch_application\n  aggregate:\n    fn: count\n    window_s: 3600\n    group_by: agent\n    tools: *id001\n    op: gt\n    limit: 20\n",
+    "semconv": [
+      {
+        "attributes": [
+          "gen_ai.operation.name",
+          "gen_ai.provider.name",
+          "gen_ai.agent.id",
+          "gen_ai.agent.name",
+          "gen_ai.agent.version",
+          "gen_ai.conversation.id",
+          "gen_ai.request.model",
+          "gen_ai.usage.input_tokens",
+          "gen_ai.usage.output_tokens",
+          "error.type",
+          "supervisor.agent_id",
+          "supervisor.agent_version",
+          "supervisor.caller_agent_id",
+          "supervisor.event_type",
+          "supervisor.args_hash",
+          "supervisor.amount_minor",
+          "supervisor.currency",
+          "supervisor.env"
+        ],
+        "note": "one span per agent run; service.name and gen_ai.agent.id = credit_prequal",
+        "operation": "invoke_agent"
+      },
+      {
+        "attributes": [
+          "gen_ai.operation.name",
+          "gen_ai.tool.name",
+          "gen_ai.tool.call.id",
+          "gen_ai.tool.type",
+          "gen_ai.tool.call.arguments",
+          "gen_ai.tool.call.result",
+          "gen_ai.agent.id",
+          "gen_ai.conversation.id",
+          "error.type",
+          "supervisor.agent_id",
+          "supervisor.agent_version",
+          "supervisor.caller_agent_id",
+          "supervisor.event_type",
+          "supervisor.args_hash",
+          "supervisor.amount_minor",
+          "supervisor.currency",
+          "supervisor.env"
+        ],
+        "note": "supervisor.args_hash is SHA-256 of the canonical arguments; supervisor.amount_minor is an integer",
+        "operation": "execute_tool"
+      }
+    ],
+    "settings": [
+      {
+        "example": "http://FILL-ME-supervisor-host:8000",
+        "key": "SUPERVISOR_GATE_URL",
+        "purpose": "Where the gate hook sends tool checks (HTTP gate)."
+      },
+      {
+        "example": "1",
+        "key": "SUPERVISOR_TRACING",
+        "purpose": "1 turns on the Supervisor tracer provider in the hook module."
+      },
+      {
+        "example": "http://FILL-ME-supervisor-host:8000",
+        "key": "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "purpose": "OTLP base URL of the Supervisor recorder."
+      },
+      {
+        "example": "http://FILL-ME-supervisor-host:8000/v1/traces",
+        "key": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+        "purpose": "OTLP traces URL: the Supervisor /v1/traces route."
+      },
+      {
+        "example": "http/json",
+        "key": "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
+        "purpose": "The recorder reads OTLP JSON only (http/json)."
+      },
+      {
+        "example": "credit_prequal",
+        "key": "OTEL_SERVICE_NAME",
+        "purpose": "Service name; use the agent id."
+      }
+    ],
+    "test_plan": [
+      {
+        "command": "python -m supervisor.assurance run accuracy --target agent:credit_prequal --repo <repo folder> --out out\\assurance",
+        "dimension": "accuracy",
+        "packs": [
+          "simpleqa_vi",
+          "truthfulqa_vi"
+        ],
+        "reason": "the agent answers or acts on customer requests"
+      },
+      {
+        "command": "python -m supervisor.assurance run bias_fairness --target agent:credit_prequal --repo <repo folder> --out out\\assurance",
+        "dimension": "bias_fairness",
+        "packs": [
+          "bbq_vi",
+          "bold_vi",
+          "counterfactual_vi",
+          "crows_pairs_vi",
+          "fairness_metrics",
+          "four_fifths_rule",
+          "stereoset_vi",
+          "winobias_vi"
+        ],
+        "reason": "the agent records credit decisions or handles personal attributes"
+      },
+      {
+        "command": "python -m supervisor.assurance run security --target agent:credit_prequal --repo <repo folder> --out out\\assurance",
+        "dimension": "adversarial_security",
+        "packs": [
+          "atlas_coverage",
+          "finance_harm_refusal",
+          "garak_probe_families",
+          "indirect_injection_vi",
+          "owasp_agentic_redteam",
+          "owasp_llm_top10",
+          "pii_canary"
+        ],
+        "reason": "the agent has tools with side effects or reads untrusted text"
+      },
+      {
+        "command": "python -m supervisor.assurance run robustness --target agent:credit_prequal --repo <repo folder> --out out\\assurance",
+        "dimension": "robustness",
+        "packs": [
+          "paraphrase_consistency",
+          "perturbation_vi",
+          "prefilter_evasion"
+        ],
+        "reason": "the agent calls tools and data sources that can fail"
+      }
+    ]
+  },
+  "patches": [
+    {
+      "description": "Hook module: default_gate() and default_tracer_provider() for this agent",
+      "file": "patches/01-supervisor-onboard-py.patch",
+      "kind": "hook_module",
+      "path": "supervisor_onboard.py"
+    },
+    {
+      "description": "Gateway policy for the agent, initial state SHADOW (nothing is blocked)",
+      "file": "patches/02-supervisor-onboarding-policy-yaml.patch",
+      "kind": "policy",
+      "path": "supervisor_onboarding/policy.yaml"
+    },
+    {
+      "description": "Builder default gate and tracer (gate and tracer defaults inserted in build_agent())",
+      "file": "patches/03-agent-py.patch",
+      "kind": "builder_hook",
+      "path": "agent.py"
+    },
+    {
+      "description": "Environment keys for the gate URL, tracing and the OTLP exporter",
+      "file": "patches/04-env-example.patch",
+      "kind": "settings",
+      "path": ".env.example"
+    }
+  ],
+  "readiness": {
+    "areas": [
+      {
+        "id": "tracing",
+        "inputs": {
+          "mlflow": 0,
+          "otel": 1
+        },
+        "points": 20,
+        "reason": "OpenTelemetry tracing found",
+        "weight": 20
+      },
+      {
+        "id": "gate_coverage",
+        "inputs": {
+          "covered": 3,
+          "gated_tools": 3
+        },
+        "points": 30,
+        "reason": "3 of 3 money, credit, pii_export or writing tools carry a gate (central dispatch gate at agent.py:91)",
+        "weight": 30
+      },
+      {
+        "id": "tool_inventory",
+        "inputs": {
+          "resolved": 4,
+          "tools": 4
+        },
+        "points": 15,
+        "reason": "4 of 4 tools have a definition found in code",
+        "weight": 15
+      },
+      {
+        "id": "money_args",
+        "inputs": {
+          "earned": 0,
+          "money_tools": 0
+        },
+        "points": 10,
+        "reason": "no money tool",
+        "weight": 10
+      },
+      {
+        "id": "model_identity",
+        "inputs": {
+          "call_sites": 0,
+          "known": 0
+        },
+        "points": 10,
+        "reason": "no LLM call site",
+        "weight": 10
+      },
+      {
+        "id": "manifest",
+        "inputs": {
+          "manifest": 1
+        },
+        "points": 10,
+        "reason": "agent manifest found",
+        "weight": 10
+      },
+      {
+        "id": "hygiene",
+        "inputs": {
+          "injection_lines": 0,
+          "secrets": 0
+        },
+        "points": 5,
+        "reason": "no secret and no flagged line",
+        "weight": 5
+      }
+    ],
+    "total": 100
+  },
+  "schema_version": 1,
+  "version": "1.0.0"
+}

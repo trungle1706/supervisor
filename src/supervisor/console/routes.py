@@ -36,7 +36,15 @@ from supervisor.adapters.auth.audit import (
 from supervisor.adapters.auth.authz import needs
 from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
 from supervisor.cases.service import RESOLUTIONS, SEVERITIES, CaseError, PermissionDenied
-from supervisor.console import assurance_views, auditpack, health, onboard_runs, readmodels, views
+from supervisor.console import (
+    assurance_views,
+    auditpack,
+    health,
+    integration_reports,
+    onboard_runs,
+    readmodels,
+    views,
+)
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.core import rbac
@@ -139,6 +147,7 @@ def render(
         other_lang="vi" if lang == "en" else "en",
         me=me,
         mode=ctx.settings.supervisor_mode,
+        integration_on=bool(ctx.settings.console_integration_enabled),
         auth_kind=ctx.provider.name,
         known_users=ctx.provider.known_users(),
         now=ctx.clock.now(),
@@ -925,6 +934,52 @@ async def onboard_file(
     resp = FileResponse(path, media_type=f"{media}; charset=utf-8")
     resp.headers["x-content-type-options"] = "nosniff"
     return resp
+
+
+# ---------------------------------------------------------------------------- integration
+
+
+def _integration_on(ctx: ConsoleContext) -> None:
+    if not ctx.settings.console_integration_enabled:
+        raise ConsoleInputError(
+            "The Integration tab is off (CONSOLE_INTEGRATION_ENABLED=1 turns it on); "
+            "use python -m supervisor.advisory.integration --target <folder> --out <folder>"
+        )
+
+
+@router.get(
+    "/integration", response_class=HTMLResponse, dependencies=[Depends(needs("onboard.view"))]
+)
+async def integration_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _integration_on(ctx)
+    rows = await _call(integration_reports.list_reports, ctx.settings)
+    return render(request, ctx, me, "integration.html", section="integration", reports=rows)
+
+
+@router.get("/integration/{name}/patches/{file}", dependencies=[Depends(needs("onboard.view"))])
+async def integration_patch(
+    name: str, file: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _integration_on(ctx)
+    path = await _call(integration_reports.patch_path, ctx.settings, name, file)
+    resp = FileResponse(path, media_type="text/plain; charset=utf-8")
+    resp.headers["x-content-type-options"] = "nosniff"
+    return resp
+
+
+@router.get(
+    "/integration/{name}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("onboard.view"))],
+)
+async def integration_report(
+    name: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _integration_on(ctx)
+    data = await _call(integration_reports.load_report, ctx.settings, name)
+    return render(request, ctx, me, "integration_report.html", section="integration", **data)
 
 
 # ---------------------------------------------------------------------------- assurance
