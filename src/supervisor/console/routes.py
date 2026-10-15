@@ -35,7 +35,7 @@ from supervisor.cases.service import (
     PermissionDenied,
     require,
 )
-from supervisor.console import auditpack, readmodels, views
+from supervisor.console import auditpack, onboard_runs, readmodels, views
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.core.canonical import format_ts
@@ -720,6 +720,75 @@ async def export_download(
     require(me, EXPORT_ROLES, "download an audit pack")
     path = auditpack.pack_path(ctx, name)
     return FileResponse(path, media_type="application/zip", filename=name)
+
+
+# ---------------------------------------------------------------------------- onboard
+
+ONBOARD_ROLES = ("reviewer", "owner", "admin")
+
+
+def _onboard_data(ctx: ConsoleContext) -> dict[str, Any]:
+    runs = onboard_runs.last_runs(ctx.settings)
+    job = ctx.onboard.latest()
+    if job is not None and job.status == "running":
+        arts = readmodels.onboard_artefacts(ctx.settings, job.agent)
+    else:
+        arts = set(runs[0]["files"]) if runs else set()
+    return {
+        "runs": runs,
+        "job": job,
+        "wizard": readmodels.lifecycle(None, arts),
+        "enabled": bool(ctx.settings.console_onboard_enabled),
+    }
+
+
+@router.get("/onboard", response_class=HTMLResponse)
+async def onboard_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    data = await _call(_onboard_data, ctx)
+    return render(request, ctx, me, "onboard.html", section="onboard", **data)
+
+
+@router.get("/onboard/status", response_class=HTMLResponse)
+async def onboard_status(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    data = await _call(_onboard_data, ctx)
+    return render(request, ctx, me, "_onboard_status.html", **data)
+
+
+@router.post("/onboard/start", response_class=HTMLResponse)
+async def onboard_start(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    d = await form(request)
+    if not ctx.settings.console_onboard_enabled:
+        raise ConsoleInputError(
+            "Onboard from the console is off (CONSOLE_ONBOARD_ENABLED=1 turns it on); "
+            "use python -m supervisor.onboard --target <folder> --out <folder>"
+        )
+    require(me, ONBOARD_ROLES, "start an onboarding run")
+    if me.kind != "user":
+        raise PermissionDenied("starting an onboarding run needs a signed-in person")
+    target = onboard_runs.resolve_target(d.get("target", ""))
+    await _call(ctx.onboard.start, ctx, target, me)
+    data = await _call(_onboard_data, ctx)
+    return render(request, ctx, me, "_onboard_status.html", **data)
+
+
+@router.get("/onboard/files/{agent}/{name}")
+async def onboard_file(
+    agent: str, name: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _view(me)
+    path = onboard_runs.artefact_path(ctx.settings, agent, name)
+    media = "application/json" if name.endswith(".json") else "text/plain"
+    resp = FileResponse(path, media_type=f"{media}; charset=utf-8")
+    resp.headers["x-content-type-options"] = "nosniff"
+    return resp
 
 
 # ---------------------------------------------------------------------------- inbox

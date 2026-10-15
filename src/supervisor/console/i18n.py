@@ -638,6 +638,101 @@ _T: dict[str, tuple[str, str]] = {
     "kind_audit": ("audit pack", "gói kiểm toán"),
     "kind_chain": ("chain export", "bản xuất chuỗi"),
     "no_packs": ("Nothing exported yet.", "Chưa xuất gì."),
+    # ---- WP12 onboard
+    "onboard_title": ("Onboard an agent", "Tiếp nhận một tác tử"),
+    "ob_purpose_lead": (
+        "Bring a new or existing agent under supervision in six steps.",
+        "Đưa một tác tử mới hoặc đang chạy vào giám sát qua sáu bước.",
+    ),
+    "ob_purpose_rest": (
+        "Supervisor reads the code and traces, proposes rules, and opens a pull request. "
+        "People approve every step.",
+        "Supervisor đọc mã nguồn và vết hoạt động, đề xuất quy tắc và mở pull request. Con "
+        "người duyệt từng bước.",
+    ),
+    "ob_why": (
+        "Nothing is merged automatically. The onboarding agent itself runs under Watch.",
+        "Không có gì được hợp nhất tự động. Bản thân tác tử tiếp nhận cũng chạy dưới giám sát.",
+    ),
+    "ws_discover": (
+        "Find the repo, prompts, tools, tables, traces.",
+        "Tìm repo, prompt, công cụ, bảng dữ liệu, vết hoạt động.",
+    ),
+    "ws_understand": (
+        "Risk profile with file:line evidence. Decision 33 class.",
+        "Hồ sơ rủi ro có bằng chứng tệp:dòng. Phân loại QĐ 33.",
+    ),
+    "ws_plan": (
+        "Pick checks from the catalogue. Thresholds. Cost.",
+        "Chọn kiểm tra từ danh mục. Ngưỡng. Chi phí.",
+    ),
+    "ws_instrument": (
+        "Rules YAML, tracing hook, dashboard → pull request.",
+        "YAML quy tắc, móc ghi vết, bảng theo dõi → pull request.",
+    ),
+    "ws_launch": (
+        "Red-team pack in a sandbox. Baseline. Go / no-go.",
+        "Bộ tấn công thử trong sandbox. Mốc chuẩn. Quyết định đi / dừng.",
+    ),
+    "ws_operate": ("Hand over to Watch.", "Bàn giao cho Giám sát."),
+    "start": ("Start", "Bắt đầu"),
+    "repo_path": (
+        "Agent folder (inside a git repo; relative to the Supervisor folder)",
+        "Thư mục tác tử (trong repo git; tính từ thư mục Supervisor)",
+    ),
+    "discover_btn": ("Discover", "Khám phá"),
+    "start_hint": (
+        "Read-only access. Secrets are scrubbed before any model reads the code. About a "
+        "minute for a small repo. Without a reachable model the run uses the mock (labelled).",
+        "Chỉ đọc. Bí mật được xóa trước khi mô hình đọc mã. Khoảng một phút với repo nhỏ. "
+        "Khi không có mô hình, lần chạy dùng bản giả lập (có nhãn).",
+    ),
+    "onboard_off": (
+        "Starting a run from the console is off by default (CONSOLE_ONBOARD_ENABLED=1 turns it "
+        "on). From the command line:",
+        "Chạy từ bảng điều khiển đang tắt theo mặc định (CONSOLE_ONBOARD_ENABLED=1 để bật). "
+        "Từ dòng lệnh:",
+    ),
+    "ob_running": ("running: {agent}", "đang chạy: {agent}"),
+    "ob_done": ("finished: {agent}", "đã xong: {agent}"),
+    "ob_failed": ("failed: {agent}", "thất bại: {agent}"),
+    "ob_started": ("started by {who} at {time}", "{who} bắt đầu lúc {time}"),
+    "last_run": ("Last run · {agent}", "Lần chạy gần nhất · {agent}"),
+    "ob_profile": ("Profile", "Hồ sơ"),
+    "ob_plan": ("Plan", "Kế hoạch"),
+    "ob_launch": ("Launch report", "Báo cáo ra mắt"),
+    "high_risk": ("high-risk", "rủi ro cao"),
+    "not_high_risk": ("not high-risk", "không rủi ro cao"),
+    "human_gate": ("Human approval step in code", "Bước con người duyệt trong mã"),
+    "yes": ("yes", "có"),
+    "no": ("no", "không"),
+    "proposed_risk": ("Proposed risk tier", "Mức rủi ro đề xuất"),
+    "no_human_gate_hint": (
+        "A pause is not pre-execution approval. The agent needs its own approval step.",
+        "Tạm dừng không thay cho phê duyệt trước khi thực thi. Tác tử cần bước duyệt riêng.",
+    ),
+    "caps_selected": ("{on} of {n} capabilities on", "{on}/{n} năng lực được bật"),
+    "rules_proposed": (
+        "{n} rules proposed, {s} block or pause (need two approvers)",
+        "{n} quy tắc đề xuất, {s} chặn hoặc tạm dừng (cần hai người duyệt)",
+    ),
+    "judges_planned": ("Judges", "Giám khảo"),
+    "caught_n": ("{c} / {e} red-team cases caught", "bắt được {c} / {e} tình huống tấn công"),
+    "false_alarms": (
+        "false alarms {p}% ({f} of {b} benign)",
+        "báo động nhầm {p}% ({f} trên {b} tình huống lành)",
+    ),
+    "branch": ("branch", "nhánh"),
+    "launch_mock_note": (
+        "profile written with the mock model; rules and red-team results are real",
+        "hồ sơ viết bằng mô hình giả lập; quy tắc và kết quả tấn công thử là thật",
+    ),
+    "not_yet": ("Not written yet.", "Chưa có."),
+    "artefacts": ("Artefacts", "Tệp kết quả"),
+    "no_runs": (
+        "No onboarding run yet. Start one above, or run python -m supervisor.onboard.",
+        "Chưa có lần tiếp nhận nào. Bắt đầu ở trên, hoặc chạy python -m supervisor.onboard.",
+    ),
     "flow_open": ("open", "mở"),
     "flow_triaged": ("triaged", "đã phân loại"),
     "flow_contained": ("contained", "đã ngăn chặn"),
