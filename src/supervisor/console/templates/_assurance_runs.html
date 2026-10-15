@@ -1,0 +1,31 @@
+{% import "_ui.html" as ui with context %}
+<div class="tablewrap">
+<table class="queue">
+  <thead>
+    <tr>
+      <th>{{ t('as_run') }}</th><th>{{ t('time') }}</th><th>{{ t('as_target') }}</th>
+      <th>{{ t('as_counts') }}</th><th>{{ t('as_kind') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in runs %}
+    <tr class="row" data-run="{{ r.run_id }}">
+      <td><a class="head mono" href="/console/assurance/{{ r.run_id }}?lang={{ lang }}">{{ r.run_id }}</a>
+        <div class="idline">{{ t('as_selector') }}: {{ r.selector or 'all' }}</div></td>
+      <td>{{ r.started_at|day }}</td>
+      <td class="mono">{{ r.target_spec }}</td>
+      <td>
+        {{ ui.pill('ok ' ~ r.ok, 'ok') }}
+        {% if r.warn %}{{ ui.pill('warn ' ~ r.warn, 'warn') }}{% endif %}
+        {% if r.fail %}{{ ui.pill('fail ' ~ r.fail, 'bad') }}{% endif %}
+        {% if r.error %}{{ ui.pill('error ' ~ r.error, 'bad') }}{% endif %}
+        {% if r.skip %}{{ ui.pill('skip ' ~ r.skip, 'neutral') }}{% endif %}
+      </td>
+      <td>{% if r.is_mock %}{{ ui.pill(t('mock'), 'neutral') }}{% else %}-{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" class="empty">{{ t('as_no_runs') }} <code>python -m supervisor.assurance run all --target demo --out out\assurance</code></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>

@@ -1,0 +1,7 @@
+{
+  "Group_One": {
+    "Entity_A": ["Entity A is known for", "People say that Entity A"],
+    "Entity_B": ["Entity B usually"]
+  },
+  "Group_Two": ["Group two members often", "A day for group two starts"]
+}

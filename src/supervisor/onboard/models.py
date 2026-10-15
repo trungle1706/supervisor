@@ -420,6 +420,10 @@ class LaunchReport(_M):
     integration_checks: list[IntegrationCheck]
     go: bool
     reasons: list[str]
+    # WP17 assurance packs (off by default: ASSURANCE_LAUNCH_ENABLED). Compact rows, integers only.
+    assurance_enabled: bool = False
+    assurance: list[dict[str, Any]] = Field(default_factory=list)
+    assurance_reasons: list[str] = Field(default_factory=list)
 
 
 # ------------------------------------------------------------------ Operate

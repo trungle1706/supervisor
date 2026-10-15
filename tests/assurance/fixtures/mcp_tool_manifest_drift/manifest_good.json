@@ -1,0 +1,12 @@
+{
+  "tools": [
+    {"name": "get_balance", "description": "Return the balance of an account.", "risk_class": "read_only", "args": {"account_id": "string"}},
+    {"name": "transfer", "description": "Move money between two accounts.", "risk_class": "money", "args": {"amount_minor": "integer", "to": "string"}}
+  ],
+  "registered": ["get_balance", "transfer", "docs/lookup"],
+  "mcp_servers": [
+    {"name": "docs", "tools": [
+      {"name": "lookup", "description": "Look up a public FAQ entry.", "inputSchema": {"type": "object", "properties": {"q": {"type": "string"}}}}
+    ]}
+  ]
+}

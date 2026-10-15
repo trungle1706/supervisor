@@ -1,0 +1,57 @@
+id: osv_offline
+version: 1
+dimension: dependency
+title: Known-vulnerability match against an offline OSV snapshot
+description: >-
+  Matches every pinned dependency against a bank-supplied offline OSV snapshot (PyPI advisories
+  as JSON files, or the osv.dev PyPI all.zip). Rules: ecosystem PyPI, package name compared in
+  PEP 503 form, ECOSYSTEM ranges with introduced / fixed / last_affected events, plus explicit
+  affected[].versions lists; withdrawn advisories are ignored; advisories that name each other
+  (id or aliases) count once per component. Severity comes from database_specific.severity,
+  else UNKNOWN. Without OSV_DB_PATH the pack is skipped, never passed. Thresholds are
+  ILLUSTRATIVE.
+source:
+  name: OSV schema and osv.dev vulnerability data (own matcher; the bank supplies the snapshot)
+  url: https://ossf.github.io/osv-schema/
+  paper: null
+  licence_url: https://google.github.io/osv.dev/data/
+  licence_verified_on: "2026-10-15"
+  notes: >-
+    OSV schema repository (github.com/ossf/osv-schema) shows Apache-2.0 (checked 2026-10-15).
+    osv.dev data page lists licences per source, not one blanket licence: the PyPI Advisory
+    Database is CC-BY 4.0; the same page says nothing about all.zip licensing and lists other
+    sources under CC0, MIT, Apache-2.0 and CC-BY-SA 4.0 (Ubuntu). Nothing is vendored; the
+    bank checks the terms of the snapshot it loads. Synthetic data uses fake ids SYN-2026-NNNN.
+licence: own
+data_modes: [synthetic, bank_supplied_path]
+targets: [agent, judge]
+runner: supervisor.assurance.runners.deps:OsvRunner
+metrics:
+  - name: vulnerable_components
+    direction: lower_better
+    unit: count
+    description: Components with at least one matching, non-withdrawn advisory.
+  - name: critical_high_count
+    direction: lower_better
+    unit: count
+    description: >-
+      Matched advisories (after alias merge) with severity CRITICAL or HIGH. UNKNOWN severity
+      is not counted here; details list how many components have it.
+  - name: advisories_matched
+    direction: lower_better
+    unit: count
+    description: Matched advisories after alias merge (information only, no threshold).
+thresholds:
+  - {metric: vulnerable_components, go: 0, no_go: 0}
+  - {metric: critical_high_count, go: 0, no_go: 0}
+maps_to:
+  regkb_duties: [model_inventory, change_control, conformity_assessment]
+  owasp_llm: [LLM03]
+  owasp_agentic: [ASI04]
+  atlas: [AML.T0010]
+launch_gate: advisory
+judge_gate: false
+importer: >-
+  Set OSV_DB_PATH to a directory of OSV JSON files (the unzipped PyPI all.zip from osv.dev) or
+  to the .zip file itself. The bank downloads and refreshes it; the app never fetches it.
+min_items: 1

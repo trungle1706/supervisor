@@ -1,0 +1,76 @@
+version = 1
+revision = 5
+requires-python = ">=3.11"
+
+[[package]]
+name = "syn-alpha"
+version = "1.2.0"
+source = { registry = "https://syn.invalid/simple" }
+sdist = { url = "https://syn.invalid/syn_alpha-1.2.0.tar.gz", hash = "sha256:76b4ea87520d3d2e0f5fc97001b36f48a2566a81b271991d4eacdea8d7e0c404" }
+wheels = [
+    { url = "https://syn.invalid/syn_alpha-1.2.0-py3-none-any.whl", hash = "sha256:61fa0b558aa512b1395ffba3e72bc550d9ac7d96255f177509af9ac13f6c5a8f" },
+]
+
+[[package]]
+name = "syn-beta"
+version = "2.0.0"
+source = { registry = "https://syn.invalid/simple" }
+sdist = { url = "https://syn.invalid/syn_beta-2.0.0.tar.gz", hash = "sha256:196fee7ab854be291384a551289013d094af8065ab6b5dd828449d3be825a035" }
+wheels = [
+    { url = "https://syn.invalid/syn_beta-2.0.0-py3-none-any.whl", hash = "sha256:784f355c259bc64afde509bd373e65cae105f50105e1d297d1612c7c4c4b6b12" },
+]
+
+[[package]]
+name = "syn-delta"
+version = "1.0.0"
+source = { registry = "https://syn.invalid/simple" }
+sdist = { url = "https://syn.invalid/syn_delta-1.0.0.tar.gz", hash = "sha256:0f56cf4acc0f29644fb0d2c86494d4b8d1e528e091a405d0a7b25065cf2a2e29" }
+wheels = [
+    { url = "https://syn.invalid/syn_delta-1.0.0-py3-none-any.whl", hash = "sha256:43b8fc96237c4d4fb9a46e7e234dd06c416da8fa08b4435a13d22a7327faf257" },
+]
+
+[[package]]
+name = "syn-eps"
+version = "3.0.0"
+source = { registry = "https://syn.invalid/simple" }
+sdist = { url = "https://syn.invalid/syn_eps-3.0.0.tar.gz", hash = "sha256:38f004cfd9eab22d0142a7e3418d8143f214b2b1117f7c300529e7492553fc60" }
+wheels = [
+    { url = "https://syn.invalid/syn_eps-3.0.0-py3-none-any.whl", hash = "sha256:7ea2039050c350805b8c0ec35cba197900dada4147d2c85b2c7ab61c490e4eed" },
+]
+
+[[package]]
+name = "syn-gamma"
+version = "0.9.0"
+source = { registry = "https://syn.invalid/simple" }
+sdist = { url = "https://syn.invalid/syn_gamma-0.9.0.tar.gz", hash = "sha256:da5674cf796e52c8718d31007e1c629b4bc8095c6b27f148e1c9ee93ea9ed44d" }
+wheels = [
+    { url = "https://syn.invalid/syn_gamma-0.9.0-py3-none-any.whl", hash = "sha256:0f31a9a080a59bba16d5819fe362b09704e6e32cceee62c48cc9872f8cf1bc3a" },
+]
+
+[[package]]
+name = "syn-theta"
+version = "0.1.0"
+source = { git = "https://syn.invalid/syn-theta.git?rev=0123abc#0123abc" }
+
+[[package]]
+name = "syn-zeta"
+version = "1.0.0"
+source = { registry = "https://syn.invalid/simple" }
+sdist = { url = "https://syn.invalid/syn_zeta-1.0.0.tar.gz", hash = "sha256:a92ddcf92ecff6ff0c430708a0ca1d5b39d5c01f5e050a3e141fd5bea606e5ba" }
+wheels = [
+    { url = "https://syn.invalid/syn_zeta-1.0.0-py3-none-any.whl", hash = "sha256:8b53b9bde0b24fcd294e04bde8b2e8d87a5b7b741ac1a705ee5b288d17ef562b" },
+]
+
+[[package]]
+name = "syn-agent"
+version = "0.0.1"
+source = { editable = "." }
+dependencies = [
+    { name = "syn-alpha" },
+    { name = "syn-beta" },
+    { name = "syn-delta" },
+    { name = "syn-eps" },
+    { name = "syn-gamma" },
+    { name = "syn-theta" },
+    { name = "syn-zeta" },
+]

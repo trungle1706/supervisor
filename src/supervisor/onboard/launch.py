@@ -178,6 +178,153 @@ def launch(
     redteam: Sequence[Mapping[str, Any]] | None = None,
     min_catch_rate_bp: int = MIN_CATCH_RATE_BP,
     max_false_alarm_bp: int = MAX_FALSE_ALARM_BP,
+    assurance: Sequence[Any] | None = None,
+) -> LaunchReport:
+    """Run Launch. ``assurance`` = results of assurance packs (``PackResult`` or stored row
+    dicts) to judge instead of running the agent packs; with ``None`` the agent packs run
+    only when ``ASSURANCE_LAUNCH_ENABLED`` is on. Flag off and ``None``: nothing changes."""
+    report = _launch_core(
+        policy,
+        agent_id,
+        work_dir,
+        harness=harness,
+        redteam=redteam,
+        min_catch_rate_bp=min_catch_rate_bp,
+        max_false_alarm_bp=max_false_alarm_bp,
+    )
+    if assurance is None and not load_settings().assurance_launch_enabled:
+        return report
+    return _with_assurance(report, agent_id, work_dir, assurance, policy)
+
+
+def _compact(r: Any, pack: Any) -> dict[str, Any]:
+    """Small integer-only summary row of one result (PackResult or stored row dict)."""
+    d = r if isinstance(r, Mapping) else _result_dict(r)
+    metrics = dict(d.get("metrics") or {})
+    thr = {t.metric: {"go": t.go, "no_go": t.no_go} for t in pack.thresholds} if pack else {}
+    reasons = d.get("reasons") or []
+    if isinstance(reasons, str):
+        reasons = [x for x in reasons.split("; ") if x]
+    return {
+        "pack_id": str(d.get("pack_id")),
+        "dimension": str(d.get("dimension") or (pack.dimension if pack else "")),
+        "target_id": str(d.get("target_id") or ""),
+        "status": str(d.get("status")),
+        "launch_gate": pack.launch_gate if pack else str(d.get("launch_gate") or "advisory"),
+        "metrics": metrics,
+        "metric_status": dict(d.get("metric_status") or {}),
+        "thresholds": thr,
+        "reasons": [str(x) for x in reasons][:3],
+        "n_items": int(d.get("n_items") or 0),
+        "data_mode": str(d.get("data_mode") or ""),
+        "is_mock": bool(d.get("is_mock")),
+    }
+
+
+def _result_dict(r: Any) -> dict[str, Any]:
+    return {
+        k: getattr(r, k)
+        for k in (
+            "pack_id",
+            "dimension",
+            "target_id",
+            "status",
+            "metrics",
+            "metric_status",
+            "reasons",
+            "n_items",
+            "data_mode",
+            "is_mock",
+            "launch_gate",
+        )
+    }
+
+
+def _run_agent_packs(
+    agent_id: str, work_dir: str | Path, packs: Sequence[Any], policy: Policy | None = None
+) -> list[Any]:
+    """Agent-target packs on a ``DemoAgentTarget`` of the harness's agent (sandbox, mock)."""
+    from supervisor.assurance.engine import execute
+    from supervisor.assurance.model import RunContext
+    from supervisor.assurance.registry import select
+    from supervisor.assurance.targets import DemoAgentTarget
+
+    settings = load_settings()
+    sandbox_dir = Path(work_dir) / "launch_sandbox"
+    allow = tuple(x.strip() for x in settings.assurance_licence_allow.split(",") if x.strip())
+    chosen = select(packs, "all", "agent")
+    target = DemoAgentTarget(agent_id, sandbox_dir, settings=settings, policy=policy)
+    try:
+        ctx = RunContext(
+            target=target,
+            repo_root=REPO_ROOT,
+            data_root=settings.assurance_data_dir,
+            data_mode="auto",
+            osv_db_path=settings.osv_db_path,
+            licence_allow=allow,
+            extras={"out_dir": str(sandbox_dir / "assurance")},
+        )
+        return execute(chosen, target, ctx, "run-launch", FixedClock(T0))
+    finally:
+        target.close()
+
+
+def _with_assurance(
+    report: LaunchReport,
+    agent_id: str,
+    work_dir: str | Path,
+    given: Sequence[Any] | None,
+    policy: Policy | None = None,
+) -> LaunchReport:
+    """Add the assurance NO-GO reasons (gates.py) and a compact summary to ``report``."""
+    from supervisor.assurance.gates import assurance_launch_items
+    from supervisor.assurance.loader import load_packs
+    from supervisor.core.errors import SupervisorError
+
+    packs = load_packs()
+    by_id = {p.id: p for p in packs}
+    run_error: str | None = None
+    if given is not None:
+        results = list(given)
+    else:
+        try:
+            results = _run_agent_packs(agent_id, work_dir, packs, policy)
+        except SupervisorError as exc:
+            results, run_error = [], str(exc)
+    items = assurance_launch_items(results, packs, expect_target_kind="agent")
+    if run_error:
+        items.append(f"assurance packs could not run for this agent: {run_error}")
+    summary = [_compact(r, by_id.get(str(_pack_id(r)))) for r in results]
+    summary.sort(key=lambda x: (x["pack_id"], x["target_id"]))
+    reasons = list(report.reasons)
+    if items:
+        reasons = ([] if report.go else reasons) + items
+    elif report.go:
+        reasons.append(f"assurance: {len(summary)} pack result(s), no required pack blocks Launch")
+    return report.model_copy(
+        update={
+            "go": report.go and not items,
+            "reasons": reasons,
+            "assurance_enabled": True,
+            "assurance": summary,
+            "assurance_reasons": items,
+        }
+    )
+
+
+def _pack_id(r: Any) -> Any:
+    return r.get("pack_id") if isinstance(r, Mapping) else r.pack_id
+
+
+def _launch_core(
+    policy: Policy,
+    agent_id: str,
+    work_dir: str | Path,
+    *,
+    harness: Harness | None,
+    redteam: Sequence[Mapping[str, Any]] | None,
+    min_catch_rate_bp: int,
+    max_false_alarm_bp: int,
 ) -> LaunchReport:
     harness = harness or demo_harness(agent_id)
     cases = list(redteam if redteam is not None else load_redteam())

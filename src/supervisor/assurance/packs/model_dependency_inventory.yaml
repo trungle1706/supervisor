@@ -1,0 +1,60 @@
+id: model_dependency_inventory
+version: 1
+dimension: dependency
+title: Model dependency inventory (pinning, hosting region, vendor concentration)
+description: >-
+  Reads target.model_inventory(). models_count: models listed. unpinned_models: models whose
+  version is not pinned. unknown_region_count: models with no hosting region (matters for data
+  localisation and cross-border notice). max_vendor_share_bp: largest vendor share of all
+  models, in bp (concentration). mock_models: mock models in the list (information only).
+  Default thresholds are ILLUSTRATIVE: with one model the vendor share is always 10000 bp, so
+  the default limit 10000 never fails; a bank that wants a multi-vendor rule sets a lower
+  go / no_go.
+source:
+  name: Own check on the model inventory of the supervised agent / judge
+  url: https://github.com/CycloneDX/specification
+  paper: null
+  licence_url: null
+  licence_verified_on: null
+  notes: >-
+    Own implementation; data comes from the target. The URL points at the CycloneDX
+    specification, which defines an ML-BOM model component the inventory can be exported to.
+licence: own
+data_modes: [synthetic, bank_supplied_path]
+targets: [agent, judge]
+runner: supervisor.assurance.runners.deps:ModelInventoryRunner
+metrics:
+  - name: models_count
+    direction: higher_better
+    unit: count
+    description: Models in the inventory (information only, no threshold).
+  - name: unpinned_models
+    direction: lower_better
+    unit: count
+    description: Models with version_pinned false.
+  - name: unknown_region_count
+    direction: lower_better
+    unit: count
+    description: Models with no hosting region, or region "unknown".
+  - name: max_vendor_share_bp
+    direction: lower_better
+    unit: bp
+    description: Largest vendor model count divided by all models, in bp.
+  - name: mock_models
+    direction: lower_better
+    unit: count
+    description: Models flagged as mock (information only, no threshold).
+thresholds:
+  - {metric: unpinned_models, go: 0, no_go: 0}
+  - {metric: unknown_region_count, go: 0, no_go: 0}
+  - {metric: max_vendor_share_bp, go: 10000, no_go: 10000}
+maps_to:
+  regkb_duties: [model_inventory, outsourcing_oversight, data_localisation, cross_border_notice]
+  owasp_llm: [LLM03]
+  owasp_agentic: [ASI04]
+  atlas: [AML.T0010]
+launch_gate: advisory
+judge_gate: false
+importer: >-
+  No import needed: the inventory comes from the target (agent version and judge settings).
+min_items: 1
