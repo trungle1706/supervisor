@@ -68,6 +68,8 @@ Dialect = Literal["sqlite", "databricks"]
 CATALOG_PH = "${catalog}"
 SCHEMA_PH = "${schema}"
 DEFAULT_EVIDENCE_RETENTION_DAYS = 1825
+RETENTION_CLASSES = ("raw", "masked", "notice")  # ADR D13; days come from RETENTION_*_DAYS
+RETENTION_TYPES = ("string", "text", "json")
 
 
 @dataclass(frozen=True)
@@ -86,6 +88,12 @@ class Table:
     columns: tuple[Column, ...]
     indexes: tuple[tuple[str, ...], ...] = ()
     evidence: bool = False  # WP6: Delta retention properties (EVIDENCE_RETENTION_DAYS)
+    # WP18 (ADR D13): personal-data retention classes, ((class, (column, ...)), ...).
+    retention: tuple[tuple[str, tuple[str, ...]], ...] = ()
+
+    @property
+    def retention_columns(self) -> tuple[str, ...]:
+        return tuple(c for _, cols in self.retention for c in cols)
 
     @property
     def append_only(self) -> bool:
@@ -128,6 +136,35 @@ def _parse_type(spec: str, where: str) -> tuple[str, bool]:
     return base, nullable
 
 
+def _parse_retention(
+    tname: str, spec: Any, cols: list[Column], pk: tuple[str, ...]
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    if not isinstance(spec, dict):
+        raise ValueError(f"{tname}: retention must be a mapping class -> [columns]")
+    by_name = {c.name: c for c in cols}
+    if spec and "ts" not in by_name:
+        raise ValueError(f"{tname}: retention needs a ts column")
+    out: list[tuple[str, tuple[str, ...]]] = []
+    seen: set[str] = set()
+    for klass, names in spec.items():
+        if klass not in RETENTION_CLASSES:
+            raise ValueError(f"{tname}: unknown retention class {klass!r}; {RETENTION_CLASSES}")
+        if not isinstance(names, list) or not names:
+            raise ValueError(f"{tname}: retention.{klass} must be a non-empty list of columns")
+        for n in names:
+            if n not in by_name:
+                raise ValueError(f"{tname}: retention column {n!r} is not defined")
+            if n in pk or n == "ts":
+                raise ValueError(f"{tname}.{n}: key or time column cannot be a retention column")
+            if by_name[n].type not in RETENTION_TYPES:
+                raise ValueError(f"{tname}.{n}: retention columns must be text-like")
+            if n in seen:
+                raise ValueError(f"{tname}.{n}: listed in more than one retention class")
+            seen.add(n)
+        out.append((klass, tuple(names)))
+    return tuple(out)
+
+
 def parse_model(text: str) -> SchemaModel:
     raw = yaml.safe_load(text)
     tables: dict[str, Table] = {}
@@ -166,8 +203,16 @@ def parse_model(text: str) -> SchemaModel:
         evidence = spec.get("evidence", False)
         if not isinstance(evidence, bool):
             raise ValueError(f"{tname}: evidence must be true or false")
+        retention = _parse_retention(tname, spec.get("retention") or {}, cols, pk)
         tables[tname] = Table(
-            tname, kind, spec.get("description", "").strip(), pk, tuple(cols), indexes, evidence
+            tname,
+            kind,
+            spec.get("description", "").strip(),
+            pk,
+            tuple(cols),
+            indexes,
+            evidence,
+            retention,
         )
     return SchemaModel(int(raw["version"]), tables, sha256_bytes_hex(text.encode("utf-8")))
 
@@ -200,7 +245,31 @@ def sqlite_statements(model: SchemaModel, prefix: str = "") -> list[str]:
         for ix in t.indexes:
             ix_name = f"ix_{name}_{'_'.join(ix)}"
             out.append(f"CREATE INDEX IF NOT EXISTS {ix_name} ON {name} ({', '.join(ix)})")
-        if t.append_only:
+        if t.append_only and t.retention:
+            # ADR D13: the only allowed UPDATE sets retention columns to NULL. DROP first so an
+            # existing database loses the old blanket trigger (bootstrap_schema refreshes it).
+            keep = [c for c in t.column_names if c not in t.retention_columns]
+            msg = _sql_str(f"{t.name} is append-only")
+            out.append(f"DROP TRIGGER IF EXISTS trg_{name}_no_update")
+            out.append(
+                f"CREATE TRIGGER trg_{name}_no_update\n"
+                f"BEFORE UPDATE OF {', '.join(keep)} ON {name}\n"
+                f"BEGIN\n  SELECT RAISE(ABORT, {msg});\nEND"
+            )
+            ro_msg = _sql_str(f"{t.name} is append-only: retention may only set NULL")
+            when = " OR ".join(f"NEW.{c} IS NOT NULL" for c in t.retention_columns)
+            out.append(
+                f"CREATE TRIGGER IF NOT EXISTS trg_{name}_retention_null_only\n"
+                f"BEFORE UPDATE OF {', '.join(t.retention_columns)} ON {name}\n"
+                f"WHEN {when}\n"
+                f"BEGIN\n  SELECT RAISE(ABORT, {ro_msg});\nEND"  # noqa: S608
+            )
+            out.append(
+                f"CREATE TRIGGER IF NOT EXISTS trg_{name}_no_delete\n"
+                f"BEFORE DELETE ON {name}\n"
+                f"BEGIN\n  SELECT RAISE(ABORT, {msg});\nEND"
+            )
+        elif t.append_only:
             for op in ("UPDATE", "DELETE"):
                 msg = _sql_str(f"{t.name} is append-only")
                 out.append(
