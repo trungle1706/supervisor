@@ -662,19 +662,45 @@ async def verify_all(
     _view(me)
     _htmx_only(request)
     result = await _call(auditpack.verify_chain, ctx, None)
-    return render(request, ctx, me, "_verify_result.html", verify=result)
+    chain = await _call(readmodels.chain_summary, ctx)
+    return render(request, ctx, me, "_verify_result.html", verify=result, chain=chain)
 
 
 # ---------------------------------------------------------------------------- export
 
 
-@router.get("/export", response_class=HTMLResponse)
-async def export_page(
+def _evidence_data(ctx: ConsoleContext) -> dict[str, Any]:
+    data = readmodels.evidence(ctx)
+    data["packs"] = auditpack.list_packs(ctx)
+    audits = [p["name"] for p in data["packs"] if p["kind"] == "audit"]
+    data["offline_pack"] = audits[0] if audits else "audit-pack-YYYYMMDDTHHMMSSZ-xxxxxx.zip"
+    data["verify"] = ctx.last_verify.get("all")
+    return data
+
+
+@router.get("/evidence", response_class=HTMLResponse)
+async def evidence_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _view(me)
-    packs = await _call(auditpack.list_packs, ctx)
-    return render(request, ctx, me, "export.html", packs=packs, pack=None)
+    data = await _call(_evidence_data, ctx)
+    return render(request, ctx, me, "evidence.html", section="evidence", pack=None, **data)
+
+
+@router.get("/export")
+def export_page() -> RedirectResponse:
+    """The audit pack lives on the Evidence screen since WP12."""
+    return RedirectResponse("/console/evidence", status_code=303)
+
+
+@router.post("/chain/export", response_class=HTMLResponse)
+async def chain_export(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    await form(request)
+    require(me, EXPORT_ROLES, "export the evidence chain")
+    pack = await _call(auditpack.build_chain_export, ctx, me)
+    return render(request, ctx, me, "_export_result.html", pack=pack)
 
 
 @router.post("/export", response_class=HTMLResponse)

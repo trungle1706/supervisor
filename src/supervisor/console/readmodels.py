@@ -893,6 +893,72 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
     }
 
 
+# ---------------------------------------------------------------------------- evidence
+
+LANE_CAP = 60
+HUMAN_RECORDS = (
+    "case_event",
+    "console_gate_action",
+    "signoff",
+    "audit_pack_requested",
+    "audit_pack_built",
+    "chain_export_built",
+    "case_file",
+)
+STATE_RECORDS = ("gate_state_change",)
+STOP_RECORDS = ("case",)
+
+
+def square_kind(lane: str, record_type: str, signed: bool) -> str:
+    if lane == "root":
+        return "root signed" if signed else "root"
+    if record_type in STOP_RECORDS:
+        return "stop"
+    if record_type in HUMAN_RECORDS or record_type.startswith("case_file"):
+        return "human"
+    if record_type in STATE_RECORDS:
+        return "state"
+    return ""
+
+
+def lane_squares(
+    lane: str,
+    count: int,
+    entries: Sequence[Mapping[str, Any]],
+    signed: set[int],
+    cap: int = LANE_CAP,
+) -> dict[str, Any]:
+    """The newest ``cap`` entries of a lane as squares (oldest first) and how many earlier
+    entries are not drawn ("+N")."""
+    newest = sorted(entries, key=lambda e: e["seq"])[-cap:]
+    return {
+        "lane": lane,
+        "count": count,
+        "hidden": max(0, count - len(newest)),
+        "squares": [
+            {
+                "seq": e["seq"],
+                "kind": square_kind(lane, str(e.get("record_type") or ""), e["seq"] in signed),
+                "title": f"{lane} #{e['seq']} {e.get('record_type') or ''}",
+            }
+            for e in newest
+        ],
+    }
+
+
+def evidence(ctx: Any) -> dict[str, Any]:
+    summary = chain_summary(ctx)
+    signed = {int(s["seq"]) for s in ctx.tables.query("chain_signature", {"lane": "root"})}
+    lanes = []
+    for lane, count in summary["lanes"].items():
+        rows = ctx.tables.query("chain_entry", {"lane": lane}, order_by=("-seq",), limit=LANE_CAP)
+        item = lane_squares(lane, count, rows, signed)
+        item["verify"] = ctx.last_verify.get(lane)
+        lanes.append(item)
+    lanes.sort(key=lambda x: (x["lane"] == "root", x["lane"]))
+    return {"chain": summary, "lanes": lanes, "signed_n": len(signed)}
+
+
 def overview(ctx: Any, now: dt.datetime) -> dict[str, Any]:
     from supervisor.console import views
 

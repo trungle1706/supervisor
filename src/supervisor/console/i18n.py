@@ -580,6 +580,64 @@ _T: dict[str, tuple[str, str]] = {
     "no_signoffs": ("No sign-off yet.", "Chưa có phê duyệt."),
     "go_close": ("Go to the case to close it", "Về vụ việc để đóng"),
     "signoff_recorded": ("Sign-off recorded.", "Đã ghi nhận phê duyệt."),
+    # ---- WP12 evidence
+    "ev_purpose_lead": (
+        "Every decision Supervisor makes, and every action a person takes, is written to a "
+        "hash chain.",
+        "Mọi quyết định của Supervisor và mọi thao tác của con người đều được ghi vào chuỗi băm.",
+    ),
+    "ev_purpose_rest": (
+        "Edit one byte anywhere and the verifier says where.",
+        "Sửa một byte ở bất kỳ đâu, công cụ kiểm tra sẽ chỉ ra vị trí.",
+    ),
+    "ev_why": (
+        "Lane heads are committed by a signed root and anchored to write-once storage. You can "
+        "verify an export on a laptop with no network.",
+        "Đầu các làn được chốt bằng một gốc có chữ ký và neo vào kho chỉ-ghi-một-lần. Có thể "
+        "kiểm tra bản xuất trên máy tính không có mạng.",
+    ),
+    "lanes_sub": ("{n} agent lane(s) + 1 root lane", "{n} làn tác tử + 1 làn gốc"),
+    "anchor_target_worm": ("write-once folder", "thư mục chỉ-ghi-một-lần"),
+    "anchor_target_uc": ("UC Volume", "UC Volume"),
+    "not_anchored_why": (
+        "No anchor yet. The anchor job writes one "
+        "(scheduler, or python -m supervisor.jobs.anchor).",
+        "Chưa có lần neo. Tác vụ neo sẽ ghi (bộ lập lịch, hoặc python -m supervisor.jobs.anchor).",
+    ),
+    "signed_n": ("{n} signed", "{n} đã ký"),
+    "ok_word": ("ok", "ổn"),
+    "no_chain": ("The chain is empty.", "Chuỗi đang trống."),
+    "lg_decision": ("gate decision / event", "quyết định cổng / sự kiện"),
+    "lg_case": ("case opened", "mở vụ việc"),
+    "lg_state": ("pause / resume", "tạm dừng / mở lại"),
+    "lg_human": ("a person's action", "thao tác của con người"),
+    "lg_signed": ("signed root (locks all lane heads)", "gốc có chữ ký (khóa đầu mọi làn)"),
+    "lanes_hint": (
+        "Each square is one entry, newest on the right; a lane shows its last {cap} entries "
+        "and the number of earlier ones.",
+        "Mỗi ô là một mục, mới nhất ở bên phải; mỗi làn hiện {cap} mục cuối và số mục trước đó.",
+    ),
+    "export_chain": ("Export chain", "Xuất chuỗi"),
+    "working": ("working…", "đang xử lý…"),
+    "chain_exported": ("Chain exported", "Đã xuất chuỗi"),
+    "pack_built": ("Audit pack built ({n} case files)", "Đã tạo gói kiểm toán ({n} hồ sơ)"),
+    "offline_verify": ("offline verify", "kiểm tra ngoại tuyến"),
+    "how_offline": ("How to verify offline", "Cách kiểm tra ngoại tuyến"),
+    "how_offline_intro": (
+        "On any Windows laptop with Python 3.11 and the Supervisor release unpacked in "
+        "C:\\supervisor, no network needed:",
+        "Trên máy Windows có Python 3.11 và bản phát hành Supervisor giải nén ở C:\\supervisor, "
+        "không cần mạng:",
+    ),
+    "how_offline_hint": (
+        "Exit code 0 and RESULT: OK mean every hash, link and signature matched. Add "
+        "--pubkey <bank key>.pem to pin the signing key.",
+        "Mã thoát 0 và RESULT: OK nghĩa là mọi mã băm, liên kết và chữ ký đều khớp. Thêm "
+        "--pubkey <khóa ngân hàng>.pem để cố định khóa ký.",
+    ),
+    "kind_audit": ("audit pack", "gói kiểm toán"),
+    "kind_chain": ("chain export", "bản xuất chuỗi"),
+    "no_packs": ("Nothing exported yet.", "Chưa xuất gì."),
     "flow_open": ("open", "mở"),
     "flow_triaged": ("triaged", "đã phân loại"),
     "flow_contained": ("contained", "đã ngăn chặn"),

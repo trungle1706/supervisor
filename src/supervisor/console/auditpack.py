@@ -31,7 +31,7 @@ from supervisor.evidence.casefile.builder import write_case_file
 from supervisor.evidence.export import export_chain
 from supervisor.evidence.verify import verify_export
 
-PACK_RE = re.compile(r"^audit-pack-\d{8}T\d{6}Z-[0-9a-f]{6}\.zip$")
+PACK_RE = re.compile(r"^(audit-pack|chain-export)-\d{8}T\d{6}Z-[0-9a-f]{6}\.zip$")
 EVAL_REPORT_CANDIDATES = ("eval_report.json",)
 
 
@@ -201,7 +201,75 @@ def list_packs(ctx: Any) -> list[dict[str, Any]]:
     if not root.is_dir():
         return []
     out = []
-    for p in sorted(root.glob("audit-pack-*.zip"), reverse=True):
+    for p in sorted(root.glob("*.zip"), key=lambda q: q.name.split("-", 2)[-1], reverse=True):
         if PACK_RE.match(p.name):
-            out.append({"name": p.name, "size": p.stat().st_size})
+            kind = "chain" if p.name.startswith("chain-export-") else "audit"
+            out.append({"name": p.name, "size": p.stat().st_size, "kind": kind})
     return out[:20]
+
+
+def build_chain_export(ctx: Any, actor: Any) -> AuditPack:
+    """WP12 "Export chain": the whole chain (supervisor.evidence.export format) plus the
+    offline verify report, zipped, so it can be checked on another machine. Who asked and
+    the zip hash go on the chain, like the audit pack."""
+    now = ctx.clock.now()
+    name = f"chain-export-{now:%Y%m%dT%H%M%S}Z-{uuid.uuid4().hex[:6]}"
+    out_root = Path(ctx.settings.console_export_dir)
+    work = out_root / name
+    if work.exists():
+        raise AuditPackError(f"export directory already exists: {work}")
+    chain = ctx.runtime.chain
+    chain.record(
+        "chain_export_requested",
+        f"chain_export:{name}",
+        {
+            "export": name,
+            "requested_by": actor.user_id,
+            "actor_kind": actor.kind,
+            "auth_method": actor.auth_method,
+            "ts": format_ts(now),
+        },
+    )
+    try:
+        chain.commit_root(force=True)
+        export_chain(ctx.tables, work / "chain", created_at=now)
+        report = verify_export(work / "chain")
+        (work / "verify_report.txt").write_text("\n".join(report.lines) + "\n", encoding="utf-8")
+        (work / "README.txt").write_text(
+            "Supervisor evidence chain export\r\n"
+            f"Created: {format_ts(now)} by {actor.user_id} ({actor.auth_method})\r\n"
+            f"Offline verify: {'OK' if report.failures == 0 else 'FAIL'}\r\n"
+            "Re-verify on any machine:\r\n"
+            "  python -m supervisor.evidence.verify chain\r\n",
+            encoding="utf-8",
+        )
+        files = {
+            p.relative_to(work).as_posix(): _sha(p) for p in sorted(work.rglob("*")) if p.is_file()
+        }
+        zip_path = out_root / f"{name}.zip"
+        with zipfile.ZipFile(zip_path, "x", compression=zipfile.ZIP_DEFLATED) as zf:
+            for p in sorted(work.rglob("*")):
+                if p.is_file():
+                    zf.write(p, f"{name}/{p.relative_to(work).as_posix()}")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    chain.record(
+        "chain_export_built",
+        f"chain_export:{name}",
+        {
+            "export": name,
+            "sha256": _sha(zip_path),
+            "verify_ok": report.failures == 0,
+            "requested_by": actor.user_id,
+            "auth_method": actor.auth_method,
+            "ts": format_ts(ctx.clock.now()),
+        },
+    )
+    ctx.last_verify["all"] = {
+        "ok": report.failures == 0,
+        "failures": report.failures,
+        "lines": report.lines[-40:],
+        "lane": "all",
+        "ts": now,
+    }
+    return AuditPack(zip_path, zip_path.name, report.failures == 0, report.lines, 0, files)
