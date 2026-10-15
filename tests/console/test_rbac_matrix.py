@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -458,3 +459,30 @@ def test_service_principal_keeps_read_access_on_the_console(
         "/console/agents/payments/pause", data={}, headers={"HX-Request": "true"}
     )
     assert r.status_code == 403
+
+
+# ------------------------------------------------------------------ audit pack
+
+
+def test_audit_pack_carries_the_console_action_rows(console: Console, tmp_path: Any) -> None:
+    import zipfile
+
+    assert console.post("/console/agents/payments/pause", {"reason": "t"}).status_code == 200
+    assert console.post("/console/agents/payments/quarantine", {"reason": "t"}).status_code == 403
+    e = console.post("/console/export", {}, user="auditor.dung")
+    assert e.status_code == 200, e.text
+    zips = sorted(Path(console.ctx.settings.console_export_dir).glob("audit-pack-*.zip"))
+    assert len(zips) == 1
+    with zipfile.ZipFile(zips[0]) as zf:
+        zf.extractall(tmp_path)
+    root = tmp_path / zips[0].stem
+    lines = (root / "console_action.jsonl").read_text(encoding="utf-8").splitlines()
+    rows = [json.loads(x) for x in lines]
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["console_actions"] == len(rows) == 2
+    assert "console_action.jsonl" in manifest["files_sha256"]
+    assert [(r["permission"], r["outcome"]) for r in rows] == [
+        ("agent.pause", "ok"),
+        ("agent.quarantine", "denied"),
+    ]
+    assert all(r["request_id"] and r["action_id"] for r in rows)
