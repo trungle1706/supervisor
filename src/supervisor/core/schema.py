@@ -208,6 +208,9 @@ def parse_model(text: str) -> SchemaModel:
         evidence = spec.get("evidence", False)
         if not isinstance(evidence, bool):
             raise ValueError(f"{tname}: evidence must be true or false")
+        if spec.get("retention") and tname.startswith("chain_"):
+            # Minor 5: chain tables are hash-linked; nulling a column would break verify.
+            raise ValueError(f"{tname}: chain_* tables cannot have a retention: block")
         retention = _parse_retention(tname, spec.get("retention") or {}, cols, pk, kind)
         tables[tname] = Table(
             tname,

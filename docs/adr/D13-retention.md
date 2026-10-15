@@ -28,6 +28,7 @@ PDPL 91/2025 requires storage limitation: personal data must not be kept longer 
 
 - `signoff.reason` and `cases.summary` are out of scope. They are the human decision record needed for audit and for the regulator; their text is already masked at entry. The bank may overrule this (Open 3).
 - Chain payloads are not redacted. Some payloads carry masked excerpts (for example a judge verdict payload has `rationale_masked`). They are masked and hash-linked; nulling them changes `payload_hash` and breaks `verify`. They stay for `EVIDENCE_RETENTION_DAYS` (default 1825).
+- Schema rule: a `chain_*` table cannot have a `retention:` block (schema load error naming the table). Chain rows are hash-linked, so nulling a column would break `verify`. (The same rule for `evidence: true` tables is open: `agent_event`, `verdict` and `case_event` carry both today.)
 
 ## Consequences
 
