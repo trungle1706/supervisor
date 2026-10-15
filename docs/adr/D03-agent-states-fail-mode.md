@@ -38,3 +38,28 @@ Mutable state (agent state, counters) lives in SQLite on the laptop. On Databric
 ## Changes from 06 section 3
 
 - None in the rules. Storage changes: no Lakebase. BACKLOG.md item: "Lakebase for mutable state".
+
+
+## Amendment WP19: RETIRED
+
+A fifth state ends the life of an agent.
+
+| State | Meaning |
+|---|---|
+| RETIRED | Out of service for good. The gateway blocks every call, read-only tools too (builtin rule `GATE-RETIRED`, reason "agent retired"). `agent.status` shows `retired`. |
+
+Transition rule (one way):
+
+| From | To RETIRED |
+|---|---|
+| PAUSED | allowed |
+| SHADOW | allowed |
+| RUNNING | refused: pause it first |
+| QUARANTINED | refused: an admin releases it to PAUSED first |
+| RETIRED | no-op (already retired); no transition leaves RETIRED |
+
+Resume, `set_mode`, pause, quarantine and release refuse a RETIRED agent. Authority: an admin
+listed in the policy `admins` (same check as a quarantine release, D04). Entry point:
+`AgentStateMachine.retire`; the Onboard stage `python -m supervisor.onboard --retire AGENT_ID`
+also closes the open cases, writes the `agent_retired` chain entry, builds the audit pack and
+renders the retirement note.

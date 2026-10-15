@@ -1,0 +1,29 @@
+# Vietnam public holidays for the incident clock (WP19, cases/service.py).
+# Working days = Monday to Friday, minus the dates below.
+# The bank edits this file each year (setting INCIDENT_HOLIDAYS_FILE points to it).
+# ILLUSTRATIVE: the dates below follow the Labour Code 2019 Art. 112 pattern
+# (New Year, Tet, Hung Kings, 30/4, 1/5, National Day 2/9 + one adjacent day).
+# Lunar dates and compensatory days off change every year: the bank HR calendar wins.
+holidays:
+  - 2026-01-01
+  - 2026-02-16
+  - 2026-02-17
+  - 2026-02-18
+  - 2026-02-19
+  - 2026-02-20
+  - 2026-04-27
+  - 2026-04-30
+  - 2026-05-01
+  - 2026-09-01
+  - 2026-09-02
+  - 2027-01-01
+  - 2027-02-05
+  - 2027-02-08
+  - 2027-02-09
+  - 2027-02-10
+  - 2027-02-11
+  - 2027-04-16
+  - 2027-04-30
+  - 2027-05-03
+  - 2027-09-02
+  - 2027-09-03

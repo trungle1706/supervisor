@@ -52,6 +52,10 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "case.transition": (("reviewer", "admin"), "Triage, contain or close a case"),
     "case.comment": (("reviewer", "approver", "owner", "admin"), "Comment on a case"),
     "case.signoff": (("reviewer", "approver", "admin"), "Sign off a case (two-person rule)"),
+    "case.report_sent": (
+        ("reviewer", "approver", "admin"),
+        "Record that an incident report (preliminary or formal) was sent to the authority",
+    ),
     "case.verify": (PHASE1_ROLES, "Verify the evidence lane of one agent"),
     "chain.verify": (_P1_OP, "Verify the whole evidence chain"),
     "intake.run": (("reviewer", "admin", "operator"), "Run case intake now"),
@@ -140,6 +144,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/cases/{case_id}/comment"): "case.comment",
     ("POST", "/console/cases/{case_id}/itsm"): "case.itsm",
     ("POST", "/console/cases/{case_id}/transition"): "case.transition",
+    ("POST", "/console/cases/{case_id}/report-sent"): "case.report_sent",
     ("POST", "/console/cases/{case_id}/verify"): "case.verify",
     ("POST", "/console/cases/{case_id}/signoff"): "case.signoff",
     ("POST", "/console/agents/{agent_id}/{action}"): _AGENT_ACTION,

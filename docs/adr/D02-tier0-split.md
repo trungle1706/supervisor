@@ -21,6 +21,10 @@ The default masker is a Vietnamese regex masker (CCCD, phone, account, e-mail). 
 
 We publish p50, p95 and p99 latency for 0a with 20 rules. The numbers come from `tests/perf`.
 
+### Normalisation (WP17-fix)
+
+The 0b injection patterns do not run on the raw text. `tier0b.candidates()` builds up to three strings: (1) the text after NFKC, removal of Unicode Cf and zero-width characters, case fold, a small table for Latin look-alikes (Cyrillic, Greek, small caps; not the full `confusables.txt`), NFC and collapsed whitespace, with diacritics stripped, so one pattern covers "bỏ qua" and "bo qua"; (2) the same string with diacritics kept; (3) the diacritics-stripped form of the Telex decoding of (1) ("bor qua" becomes "bo qua"). The patterns run on each string and the highest count is reported. PII patterns still run on the raw text, so PII counts do not change. A finding still carries only a kind and a count. Cost: under 20 ms for 20 KB (`MAX_SCAN_CHARS`). The "chuyển ngay/gấp ... tài khoản" pattern now needs a destination word (sang, vào, tới, đến) and excludes "chuyển ngay hôm nay" (a time word, not urgency). Typo-level perturbations stay a known gap.
+
 ## Consequences
 
 - The hot path has no model call and no network call.
