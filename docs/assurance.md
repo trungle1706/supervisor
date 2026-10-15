@@ -202,6 +202,19 @@ agent in the same sandbox and with the same (SHADOW) policy as the red-team repl
 * a required agent pack with no result at all -> "assurance pack <id> has no result (required)";
 * `warn`, advisory results and not-applicable skips are listed as notes only.
 
+Mock results (`ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH`, default `0`):
+
+| Run | Reason / report label | NO-GO item |
+|---|---|---|
+| all results real | `assurance: N pack result(s), ...` | none |
+| mixed (some mock, some real) | `assurance (MOCK): ...`, report header `(MOCK: some results are mock)` | none: the real results carry the decision |
+| mock only (every evaluated result mock: status ok, warn or fail) | `assurance (MOCK): ...`, header `(MOCK: mock results only)` | `assurance results are mock only`, unless the flag is `1` |
+
+With the flag `1`, a mock-only run can give GO, still labelled MOCK. Keep it `0` in
+production. Tests and the demo data that need a GO set it on purpose (the `onboard` demo
+does not run assurance at all unless `ASSURANCE_LAUNCH_ENABLED=1`). A run whose results
+are all skip or error evaluated nothing: the pack rules already block it.
+
 The rules are pure functions of the results, so the same results always give the same
 decision. The launch pack gains `assurance_report.md` and `assurance_report.json` (English
 headings; Vietnamese headings are a TODO). With the flag off launch behaves as before.

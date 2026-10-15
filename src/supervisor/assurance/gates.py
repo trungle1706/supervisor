@@ -15,6 +15,15 @@ Launch (``assurance_launch_items``)
     results and packs with ``advisory`` or ``off`` never give NO-GO; they are returned by
     ``assurance_launch_notes``.
 
+Mock results (``assurance_mock_state``, ``assurance_mock_items``; W3-assure M1)
+    A result with ``is_mock`` comes from a mock model or the mock demo target. If ANY result
+    of a run is mock, the Launch reason and the assurance report are labelled MOCK. If every
+    evaluated result (status ok, warn or fail; skip and error evaluated nothing) is mock
+    ("mock only"), Launch also gets the NO-GO item ``assurance results are mock only``
+    unless ``ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH`` is on. A mixed run (some mock, some real)
+    keeps the label but gets no such item: its real results carry the decision. A run with
+    no evaluated result gets no item here (skips already block through the pack rules).
+
 Judge enablement (``judge_enablement_problems``)
     A non-mock judge may run only when each pack with ``judge_gate: true`` has a latest
     stored ``eval_result`` row, status ``ok`` or ``warn``, not from a mock run, for the
@@ -134,6 +143,32 @@ def assurance_launch_items(
     return list(dict.fromkeys(out))
 
 
+MOCK_ONLY_ITEM = "assurance results are mock only"
+EVALUATED = ("ok", "warn", "fail")
+
+
+def assurance_mock_state(results: Sequence[PackResult | Mapping[str, Any]]) -> str:
+    """``"none"`` (no mock result), ``"mixed"`` (some mock) or ``"all"`` (mock only: at least
+    one evaluated result and every evaluated result is mock)."""
+    rows = [_row(r) for r in results]
+    if not any(r.get("is_mock") for r in rows):
+        return "none"
+    evaluated = [r for r in rows if r.get("status") in EVALUATED]
+    if evaluated and all(r.get("is_mock") for r in evaluated):
+        return "all"
+    return "mixed"
+
+
+def assurance_mock_items(
+    results: Sequence[PackResult | Mapping[str, Any]], *, accept_mock: bool
+) -> list[str]:
+    """The mock-only NO-GO item (see module doc); ``[]`` when real results exist or
+    ``accept_mock`` (setting ``ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH``) is on."""
+    if not accept_mock and assurance_mock_state(results) == "all":
+        return [MOCK_ONLY_ITEM]
+    return []
+
+
 def assurance_launch_notes(
     results: Sequence[PackResult | Mapping[str, Any]], packs: Sequence[EvalPack]
 ) -> list[str]:
@@ -215,6 +250,8 @@ __all__ = [
     "JudgeNotValidatedError",
     "assurance_launch_items",
     "assurance_launch_notes",
+    "assurance_mock_items",
+    "assurance_mock_state",
     "judge_enablement_problems",
     "judge_target_id",
     "require_judge_validated",

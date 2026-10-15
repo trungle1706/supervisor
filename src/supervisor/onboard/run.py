@@ -365,6 +365,7 @@ def _stages(
                     "agent_id": report.agent_id,
                     "go": report.go,
                     "assurance_reasons": report.assurance_reasons,
+                    "assurance_mock": report.assurance_mock,
                     "results": report.assurance,
                 }
             ),

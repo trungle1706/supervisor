@@ -155,6 +155,14 @@ def test_advisory_and_warn_never_no_go() -> None:
 # --------------------------------------------------------------------------- launch
 
 
+@pytest.fixture(autouse=True)
+def _accept_mock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests judge hand-made rows with is_mock=True (or run the mock demo agent) and
+    need a GO to be possible; the mock-only NO-GO item has its own tests below, which unset
+    this flag."""
+    monkeypatch.setenv("ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH", "1")
+
+
 @pytest.fixture(scope="module")
 def payments_policy(discoveries, profiles):  # noqa: ANN001, ANN201, F811
     inv = discoveries["payments"].inventory
@@ -337,3 +345,66 @@ def test_launch_runs_agent_packs_with_its_own_policy(
         assert rt["metrics"]["false_alarm_bp"] == (r.false_alarm_bp or 0)
         assert rt["metrics"]["catch_rate_bp"] >= r.min_catch_rate_bp
     assert r.assurance_reasons == [x for x in r.reasons if x.startswith("assurance pack ")]
+
+
+# ------------------------------------------------------------ mock labelling (W3-assure M1)
+
+
+def _launch_rows(
+    policy: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, accept: str, mock_flags: dict
+) -> Any:
+    """Launch on full_ok rows; ``mock_flags`` maps pack id -> is_mock (default: all mock)."""
+    monkeypatch.setenv("ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH", accept)
+    rows = [{**r, "is_mock": mock_flags.get(r["pack_id"], True)} for r in full_ok()]
+    return launch(policy, "payments", tmp_path, assurance=rows)
+
+
+def test_mock_only_flag_off_is_no_go(payments_policy, tmp_path, monkeypatch) -> None:  # noqa: ANN001
+    r = _launch_rows(payments_policy, tmp_path, monkeypatch, "0", {})
+    assert not r.go and r.assurance_mock == "all"
+    assert r.assurance_reasons == ["assurance results are mock only"]
+    assert "assurance results are mock only" in r.reasons
+    assert "NO-GO (MOCK: mock results only)" in assurance_md(r)
+
+
+def test_mock_only_flag_on_is_go_with_mock_label(
+    payments_policy,  # noqa: ANN001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    r = _launch_rows(payments_policy, tmp_path, monkeypatch, "1", {})
+    assert r.go and r.assurance_reasons == []
+    assert any(x.startswith("assurance (MOCK): ") for x in r.reasons)
+    assert "GO (MOCK: mock results only)" in assurance_md(r)
+
+
+def test_mixed_run_has_label_but_no_mock_only_item(
+    payments_policy,  # noqa: ANN001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    flags = {x["pack_id"]: False for x in full_ok()[1:]}  # one mock row, the rest real
+    r = _launch_rows(payments_policy, tmp_path, monkeypatch, "0", flags)
+    assert r.go and r.assurance_mock == "mixed" and r.assurance_reasons == []
+    assert any(x.startswith("assurance (MOCK): ") for x in r.reasons)
+    assert "(MOCK: some results are mock)" in assurance_md(r)
+
+
+def test_all_real_has_no_label(payments_policy, tmp_path, monkeypatch) -> None:  # noqa: ANN001
+    flags = {x["pack_id"]: False for x in full_ok()}
+    r = _launch_rows(payments_policy, tmp_path, monkeypatch, "0", flags)
+    assert r.go and r.assurance_mock == "none"
+    assert any(x.startswith("assurance: ") for x in r.reasons)
+    assert not any("MOCK" in x for x in r.reasons) and "MOCK" not in assurance_md(r)
+
+
+def test_mock_state_ignores_skips_and_errors() -> None:
+    from supervisor.assurance.gates import assurance_mock_items, assurance_mock_state
+
+    assert assurance_mock_state([]) == "none"
+    skipped = [row(REQUIRED, "skip", is_mock=True)]
+    assert assurance_mock_state(skipped) == "mixed"  # mock but nothing evaluated
+    assert assurance_mock_items(skipped, accept_mock=False) == []
+    real_ok = row(ADVISORY, "ok", is_mock=False)
+    assert assurance_mock_state([row(REQUIRED, "error", is_mock=True), real_ok]) == "mixed"
+    assert assurance_mock_state([row(REQUIRED, "ok"), row(ADVISORY, "warn")]) == "all"
