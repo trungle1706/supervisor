@@ -174,6 +174,9 @@ class AgentStateMachine:
         reason: str,
         event: str,
         extra: Mapping[str, Any] | None = None,
+        *,
+        auth_method: str | None = None,
+        actor_kind: str | None = None,
     ) -> tuple[dict[str, Any], str]:
         """Change ``gate_state`` with the row_version check; retry on a lost race."""
         last_error: Exception | None = None
@@ -205,6 +208,11 @@ class AgentStateMachine:
                 "ts": format_ts(self.clock.now()),
                 **(extra or {}),
             }
+            # M5: who acted and how they were identified (keys only when known)
+            if auth_method is not None:
+                payload["auth_method"] = auth_method
+            if actor_kind is not None:
+                payload["actor_kind"] = actor_kind
             self.evidence.record("gate_state_change", agent_id, payload)
             return new, current
         raise TransitionError(f"agent {agent_id}: state changed concurrently; retry ({last_error})")
@@ -254,7 +262,15 @@ class AgentStateMachine:
 
     # ------------------------------------------------------------ transitions
 
-    def pause(self, agent_id: str, principal: str, reason: str = "") -> dict[str, Any]:
+    def pause(
+        self,
+        agent_id: str,
+        principal: str,
+        reason: str = "",
+        *,
+        auth_method: str | None = None,
+        actor_kind: str | None = None,
+    ) -> dict[str, Any]:
         """One principal, one call. Pausing a paused agent is a no-op."""
         reason = _reason(reason)
         if not principal:
@@ -264,7 +280,14 @@ class AgentStateMachine:
             if row["gate_state"] == "PAUSED":
                 return {"agent_id": agent_id, "state": "PAUSED", "changed": False}
             _, before = self._transition(
-                agent_id, ("RUNNING", "SHADOW"), "PAUSED", principal, reason, "pause"
+                agent_id,
+                ("RUNNING", "SHADOW"),
+                "PAUSED",
+                principal,
+                reason,
+                "pause",
+                auth_method=auth_method,
+                actor_kind=actor_kind,
             )
             self._close_pending_resumes(agent_id)
             for old in self._controls(agent_id, "pause", "active"):
@@ -274,7 +297,15 @@ class AgentStateMachine:
             )
             return {"agent_id": agent_id, "state": "PAUSED", "changed": True, "from": before}
 
-    def quarantine(self, agent_id: str, principal: str, reason: str = "") -> dict[str, Any]:
+    def quarantine(
+        self,
+        agent_id: str,
+        principal: str,
+        reason: str = "",
+        *,
+        auth_method: str | None = None,
+        actor_kind: str | None = None,
+    ) -> dict[str, Any]:
         reason = _reason(reason)
         if not principal:
             raise TransitionError("principal is required")
@@ -289,6 +320,8 @@ class AgentStateMachine:
                 principal,
                 reason,
                 "quarantine",
+                auth_method=auth_method,
+                actor_kind=actor_kind,
             )
             self._close_pending_resumes(agent_id)
             if before != "PAUSED":
@@ -297,7 +330,15 @@ class AgentStateMachine:
                 )
             return {"agent_id": agent_id, "state": "QUARANTINED", "changed": True, "from": before}
 
-    def release_quarantine(self, agent_id: str, principal: str, reason: str) -> dict[str, Any]:
+    def release_quarantine(
+        self,
+        agent_id: str,
+        principal: str,
+        reason: str,
+        *,
+        auth_method: str | None = None,
+        actor_kind: str | None = None,
+    ) -> dict[str, Any]:
         """Admin only. QUARANTINED -> PAUSED; the two-person resume still applies."""
         reason = _reason(reason)
         if not reason:
@@ -307,7 +348,14 @@ class AgentStateMachine:
             raise TransitionError(f"{principal} is not an admin; only an admin can release")
         with self._lock:
             self._transition(
-                agent_id, ("QUARANTINED",), "PAUSED", principal, reason, "release_quarantine"
+                agent_id,
+                ("QUARANTINED",),
+                "PAUSED",
+                principal,
+                reason,
+                "release_quarantine",
+                auth_method=auth_method,
+                actor_kind=actor_kind,
             )
             self._close_pending_resumes(agent_id)
             return {"agent_id": agent_id, "state": "PAUSED", "changed": True}
@@ -352,7 +400,15 @@ class AgentStateMachine:
             f"{principal} may not approve a resume (needs the agent owner or a reviewer)"
         )
 
-    def resume(self, agent_id: str, principal: str, reason: str = "") -> dict[str, Any]:
+    def resume(
+        self,
+        agent_id: str,
+        principal: str,
+        reason: str = "",
+        *,
+        auth_method: str | None = None,
+        actor_kind: str | None = None,
+    ) -> dict[str, Any]:
         """Two different people (agent owner + reviewer) within the resume window."""
         reason = _reason(reason)
         if not principal:
@@ -396,6 +452,8 @@ class AgentStateMachine:
                         "reason_sha256": sha256_hex(reason),
                         "window_s": self.resume_window_s,
                         "ts": format_ts(self.clock.now()),
+                        **({"auth_method": auth_method} if auth_method is not None else {}),
+                        **({"actor_kind": actor_kind} if actor_kind is not None else {}),
                     },
                 )
                 needed = "reviewer" if role == "owner" else "owner"
@@ -418,6 +476,8 @@ class AgentStateMachine:
                 reason,
                 "resume",
                 {"approver_1": partner["principal"], "approver_2": principal},
+                auth_method=auth_method,
+                actor_kind=actor_kind,
             )
             self._close_control(partner, "used")
             for a in active:

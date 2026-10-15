@@ -323,7 +323,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = False  # in-process limit on mutating routes (new: off)
     rate_limit_per_minute: int = Field(default=120, ge=1)  # per principal (else client IP)
     rate_limit_burst: int = Field(default=30, ge=1)
-    api_rbac_enabled: bool = False  # role matrix on /gate/* control and read routes (new: off)
+    api_rbac_enabled: bool = False  # role matrix on agent-facing /gate read routes only (new: off)
     console_audit_enabled: bool = True  # console_action row for every mutating action
     retention_enabled: bool = False  # PDPL retention job (ADR D13; new: off)
     retention_raw_days: int = Field(default=90, ge=1)  # agent_event_raw args/result

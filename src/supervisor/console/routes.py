@@ -709,7 +709,7 @@ async def agent_action(
             "release": states.release_quarantine,
         }[action]
         _policy_precheck(ctx, agent_id, action, me)
-        result = fn(agent_id, me.user_id, reason)
+        result = fn(agent_id, me.user_id, reason, auth_method=me.auth_method, actor_kind=me.kind)
         try:
             _record_gate_action(ctx, agent_id, action, me, result)
         except Exception as exc:  # noqa: BLE001 - the state change already happened

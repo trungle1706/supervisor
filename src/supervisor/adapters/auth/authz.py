@@ -11,8 +11,18 @@ checks the permission:
 * A denial raises ``PermissionDenied``; ``supervisor.app`` answers it with HTTP 403 (a user
   error, never 5xx). A denied POST is written to ``console_action`` first.
 
-``needs(..., api=True)`` is for the ``/gate/*`` human routes: it enforces only when
-``API_RBAC_ENABLED=1`` (default off: the phase-1 behaviour of those routes is unchanged).
+``needs(..., api=True)`` is for the agent-facing ``/gate`` check and read routes
+(``/gate/check``, ``/gate/agents/{id}/state``, ``/gate/metrics`` and the ``/v1`` aliases): it
+enforces only when ``API_RBAC_ENABLED=1`` (default off: the phase-1 behaviour is unchanged).
+
+``needs(..., control=True)`` is for the ``/gate`` control routes (pause, resume, quarantine,
+release and the ``/v1`` aliases). It ALWAYS enforces, whatever ``API_RBAC_ENABLED`` says, and
+it needs an explicit identity: the ``dev_header`` adapter needs the ``X-Dev-User`` header
+naming a user of the users file (no ``default_user``, no console cookie: a JSON API that
+changes agent state must not act on an ambient credential); ``databricks_app`` needs valid SSO
+headers. A missing or unknown identity, or a role without the permission, is HTTP 403. The
+acting principal comes only from the ``Principal`` port; ``X-Forwarded-User`` is never read
+by the route and a body ``principal`` is ignored.
 """
 
 from __future__ import annotations
@@ -23,7 +33,7 @@ from typing import Any
 
 from fastapi import Request
 
-from supervisor.adapters.auth import AuthPrincipal, current_principal
+from supervisor.adapters.auth import AuthError, AuthPrincipal, current_principal, get_provider
 from supervisor.adapters.auth.audit import (
     MUTATING,
     request_id_of,
@@ -34,11 +44,15 @@ from supervisor.adapters.auth.audit import (
 from supervisor.cases.service import PermissionDenied
 from supervisor.config import Settings, get_settings
 from supervisor.core import rbac
+from supervisor.ops.logging_setup import set_principal_id
 
 log = logging.getLogger("supervisor.authz")
 
 RBAC_ATTR = "rbac_permission"
 RBAC_API_ATTR = "rbac_api"
+RBAC_CONTROL_ATTR = "rbac_control"
+DEV_HEADER = "x-dev-user"
+DEV_HEADER_NAME = "X-Dev-User"
 
 
 def runtime_settings() -> Settings:
@@ -114,15 +128,84 @@ def _lower_first(text: str) -> str:
     return text[:1].lower() + text[1:]
 
 
-def needs(permission: str, *, api: bool = False) -> Callable[..., AuthPrincipal]:
+def _claimed_id(request: Request) -> str:
+    """The id the caller claims, for the audit row of a refused identity (never trusted)."""
+    for name in ("x-dev-user", "x-forwarded-email", "x-forwarded-user"):
+        value = request.headers.get(name, "").strip()
+        if value:
+            return value[:64]
+    return "unknown"
+
+
+def _audit_identity_failure(request: Request) -> str:
+    """One best-effort ``denied`` row for a control call without a usable identity."""
+    handles = _audit_handles(request)
+    if handles is None:
+        return ""
+    tables, _state, clock = handles
+    try:
+        action = request.url.path.rstrip("/").rsplit("/", 1)[-1]
+        write_action(
+            tables,
+            clock,
+            request_id=request_id_of(request),
+            actor=None,
+            actor_fallback=(_claimed_id(request), "unverified", "gate_api"),
+            permission=f"agent.{action}",
+            method=request.method,
+            path=request.url.path,
+            outcome="denied",
+            detail="identity_unknown",
+        )
+    except Exception as exc:  # noqa: BLE001 - the denial itself must still be answered
+        log.error("console_action write failed: %s", type(exc).__name__)
+        return (
+            f" (WARNING: the console audit record failed: {type(exc).__name__}; see the server log)"
+        )
+    return ""
+
+
+def control_principal(request: Request) -> AuthPrincipal:
+    """The explicitly authenticated person behind a gate control call, else ``PermissionDenied``
+    (HTTP 403). Never uses ``default_user``, the dev cookie or ``X-Forwarded-User``."""
+    provider = get_provider()
+    headers = request.headers
+    problem = ""
+    me: AuthPrincipal | None = None
+    if provider.name == "dev_header" and not headers.get(DEV_HEADER, "").strip():
+        problem = f"identity required: send the {DEV_HEADER_NAME} header with a known user"
+    else:
+        try:
+            # cookies are deliberately not passed: no ambient credential on a JSON API
+            me, token = provider.resolve(headers, {})
+        except AuthError as exc:
+            problem = f"identity required: {exc}"
+        else:
+            if me.kind != "user":
+                problem = "identity required: sign in as a person (no valid user identity found)"
+                me = None
+            else:
+                request.state.principal = me
+                request.state.user_token = token
+                set_principal_id(me.user_id)
+    if me is None:
+        raise PermissionDenied(problem + _audit_identity_failure(request))
+    return me
+
+
+def needs(
+    permission: str, *, api: bool = False, control: bool = False
+) -> Callable[..., AuthPrincipal]:
     """FastAPI dependency factory: the caller must hold ``permission`` (see module doc)."""
     if "{" not in permission and permission not in rbac.PERMISSIONS:
         raise ValueError(f"unknown permission {permission!r}")
+    if api and control:
+        raise ValueError("api and control are exclusive")
 
     def dependency(request: Request) -> AuthPrincipal | None:
         if api and not runtime_settings().api_rbac_enabled:
             return None  # phase-1 behaviour: no identity lookup, no check
-        me = current_principal(request)
+        me = control_principal(request) if control else current_principal(request)
         perm = rbac.resolve_permission(permission, request.path_params)
         if perm not in rbac.PERMISSIONS:
             return me  # e.g. an unknown agent action: the route answers it with a 400
@@ -142,4 +225,5 @@ def needs(permission: str, *, api: bool = False) -> Callable[..., AuthPrincipal]
 
     setattr(dependency, RBAC_ATTR, permission)
     setattr(dependency, RBAC_API_ATTR, api)
+    setattr(dependency, RBAC_CONTROL_ATTR, control)
     return dependency
