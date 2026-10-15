@@ -57,7 +57,14 @@ def test_phase1_grants_are_kept(permission: str, roles: tuple[str, ...]) -> None
 
 def test_new_roles() -> None:
     viewer = {p for p in rbac.PERMISSIONS if rbac.allowed(["viewer"], p)}
-    assert viewer == {"console.view", "health.view", "metrics.view", "onboard.view", "gate.read"}
+    assert viewer == {
+        "console.view",
+        "health.view",
+        "metrics.view",
+        "onboard.view",
+        "compliance.view",
+        "gate.read",
+    }
     operator = {p for p in rbac.PERMISSIONS if rbac.allowed(["operator"], p)}
     assert operator == viewer | {"intake.run", "chain.verify"}
     auditor = {p for p in rbac.PERMISSIONS if rbac.allowed(["auditor"], p)}

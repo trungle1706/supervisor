@@ -1,0 +1,126 @@
+# Product questionnaire for the Supervisor compliance advisor.
+# Phiếu thông tin sản phẩm cho công cụ tư vấn tuân thủ của Supervisor.
+# Blank = unknown: the advisor asks a question. [] = a real answer 'none'.
+# Để trống = chưa biết: công cụ sẽ đặt câu hỏi. [] = câu trả lời 'không có'.
+# Money: whole VND, no decimals. Not legal advice; bank counsel must confirm.
+
+# Required. Short stable id of the product (letters, digits, dot, dash, underscore).
+# Bắt buộc. Mã ngắn, ổn định của sản phẩm (chữ, số, dấu chấm, gạch).
+product_id: my-product
+
+# Required. Product name.
+# Bắt buộc. Tên sản phẩm.
+name: My product
+
+# Product version, for example 1.0.0.
+# Phiên bản sản phẩm, ví dụ 1.0.0.
+version:
+
+# Team that owns the product.
+# Đơn vị sở hữu sản phẩm.
+owner_team:
+
+# What the product does, in one or two sentences.
+# Sản phẩm làm gì, trong một hai câu.
+purpose:
+
+# All classes that fit the product. payment: it moves money. credit_decision: it scores or decides credit. customer_facing: it talks to customers. internal_tool: staff use only. Blank = unknown; [] = none.
+# Mọi loại phù hợp. payment: chuyển tiền. credit_decision: chấm điểm hoặc quyết định tín dụng. customer_facing: giao tiếp với khách hàng. internal_tool: chỉ nhân viên dùng. Để trống = chưa biết; [] = không có.
+# Allowed / Giá trị hợp lệ: customer_facing, credit_decision, payment, internal_tool
+agent_classes:
+
+# All data classes the product handles. Blank = unknown; [] = none.
+# Mọi loại dữ liệu sản phẩm xử lý. Để trống = chưa biết; [] = không có.
+# Allowed / Giá trị hợp lệ: personal, sensitive_personal, financial, biometric, core_data, important_data
+data_classes:
+
+# advisory: only suggests. acts_with_approval: acts after a human approves. acts_autonomously: acts without a human step.
+# advisory: chỉ gợi ý. acts_with_approval: hành động sau khi người duyệt. acts_autonomously: tự hành động, không có bước người duyệt.
+# Allowed / Giá trị hợp lệ: advisory, acts_with_approval, acts_autonomously
+autonomy:
+
+# true if data or the model call leaves Vietnam.
+# true nếu dữ liệu hoặc lệnh gọi mô hình ra khỏi Việt Nam.
+cross_border:
+
+# Where the AI model runs.
+# Nơi mô hình AI chạy.
+# Allowed / Giá trị hợp lệ: on_prem, domestic_cloud, foreign_cloud
+model_hosting:
+
+# deployer: the bank runs it. provider: the bank also builds or sells it. Blank = unknown.
+# deployer: ngân hàng vận hành. provider: ngân hàng cũng phát triển hoặc cung cấp. Để trống = chưa biết.
+# Allowed / Giá trị hợp lệ: deployer, provider
+roles:
+
+# true if customers use the product directly.
+# true nếu khách hàng dùng trực tiếp sản phẩm.
+customer_facing:
+
+# true if the product makes or shapes decisions that affect customers.
+# true nếu sản phẩm đưa ra hoặc định hướng quyết định ảnh hưởng đến khách hàng.
+decisions_affecting_customers:
+
+# Who the customers are: individual, organisation, or both. The Decision 33 and Circular 53 money lines differ by type. Blank = unknown.
+# Khách hàng là ai: individual (cá nhân), organisation (tổ chức) hoặc cả hai. Ngưỡng tiền theo Quyết định 33 và Thông tư 53 khác nhau theo loại. Để trống = chưa biết.
+# Allowed / Giá trị hợp lệ: individual, organisation
+customer_types:
+
+# true if the product itself creates and executes payments.
+# true nếu sản phẩm tự tạo và thực hiện giao dịch thanh toán.
+executes_payments:
+
+# true if a human inspects or approves each payment before it runs. A pause after the payment ran does not count.
+# true nếu có người kiểm tra hoặc phê duyệt từng giao dịch trước khi thực hiện. Tạm dừng sau khi giao dịch đã chạy thì không tính.
+human_approval_before_execution:
+
+# true if the product decides or records credit decisions (approve, reject, disburse).
+# true nếu sản phẩm quyết định hoặc ghi nhận quyết định tín dụng (duyệt, từ chối, giải ngân).
+credit_decisions:
+
+# true if a credit officer approves independently before the decision takes effect.
+# true nếu cán bộ tín dụng phê duyệt độc lập trước khi quyết định có hiệu lực.
+independent_credit_approval:
+
+# Largest single payment the product can execute, whole VND (integer). Circular 53/2026 Art. 4(2)(a) calls a payment high value when an individual customer pays more than 10,000,000 VND per transaction or more than 20,000,000 VND per day, or an organisation pays more than 50,000,000 VND per transaction or more than 100,000,000 VND per day.
+# Giao dịch lớn nhất mà sản phẩm có thể thực hiện, đồng (số nguyên). Thông tư 53/2026 Điều 4(2)(a): giao dịch giá trị cao là khách hàng cá nhân trên 10.000.000 đồng một giao dịch hoặc trên 20.000.000 đồng một ngày; tổ chức trên 50.000.000 đồng một giao dịch hoặc trên 100.000.000 đồng một ngày.
+max_transaction_vnd:
+
+# Largest total per customer per day, whole VND (integer). Circular 53/2026 Art. 4(2)(a) calls a payment high value when an individual customer pays more than 10,000,000 VND per transaction or more than 20,000,000 VND per day, or an organisation pays more than 50,000,000 VND per transaction or more than 100,000,000 VND per day. Art. 5(1)(g)(ii) caps a day at 100,000,000 VND for an individual and 500,000,000 VND for an organisation.
+# Tổng lớn nhất mỗi khách hàng mỗi ngày, đồng (số nguyên). Thông tư 53/2026 Điều 4(2)(a): giao dịch giá trị cao là khách hàng cá nhân trên 10.000.000 đồng một giao dịch hoặc trên 20.000.000 đồng một ngày; tổ chức trên 50.000.000 đồng một giao dịch hoặc trên 100.000.000 đồng một ngày. Điều 5(1)(g)(ii) giới hạn một ngày ở mức 100.000.000 đồng với cá nhân và 500.000.000 đồng với tổ chức.
+max_daily_vnd:
+
+# Largest credit amount the product can process, whole VND (integer). Circular 53/2026 Art. 4(2)(b): credit of 50,000,000 VND or more is high value.
+# Khoản tín dụng lớn nhất sản phẩm có thể xử lý, đồng (số nguyên). Thông tư 53/2026 Điều 4(2)(b): tín dụng từ 50.000.000 đồng trở lên là giá trị cao.
+max_credit_vnd:
+
+# Date the product went live (YYYY-MM-DD). It decides which transition date of Circular 53 Art. 24 and AI Law Art. 35 applies.
+# Ngày sản phẩm đưa vào vận hành (YYYY-MM-DD). Ngày này quyết định mốc chuyển tiếp nào của Thông tư 53 Điều 24 và Luật AI Điều 35 áp dụng.
+in_operation_since:
+
+# Supervisor controls the product has / Các kiểm soát Supervisor của sản phẩm.
+# Leave the whole block out if unknown / Bỏ cả khối nếu chưa biết.
+controls:
+  # true if the product is registered with Supervisor (gateway, recorder, evidence chain).
+  # true nếu sản phẩm đã đăng ký với Supervisor (cổng, ghi nhận, chuỗi bằng chứng).
+  supervised:
+
+  # Ids of Supervisor catalogue capabilities that are on (for example single_limit).
+  # Mã các năng lực trong danh mục Supervisor đang bật (ví dụ single_limit).
+  catalogue:
+
+  # Gate rules the product has: a list of {id, description}.
+  # Các quy tắc cổng của sản phẩm: danh sách {id, description}.
+  rules:
+
+  # Policy YAML files (paths relative to this file) to read rule ids and limits from.
+  # Tệp chính sách YAML (đường dẫn tương đối so với tệp này) để đọc mã quy tắc và hạn mức.
+  policy_files:
+
+  # Monitors that run for the product (names from regulations/schema/controls.yaml).
+  # Các bộ giám sát đang chạy cho sản phẩm (tên trong regulations/schema/controls.yaml).
+  monitors:
+
+  # Evidence artefacts the product produces beyond the standard ones.
+  # Các bằng chứng sản phẩm tạo ra ngoài các bằng chứng chuẩn.
+  evidence:

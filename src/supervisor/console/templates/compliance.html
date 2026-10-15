@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_compliance') }}{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>{{ t('cp_title') }} {{ ui.pill(t('cp_advisory'), 'info') }}</h1></div>
+{{ ui.purpose(t('cp_purpose'), t('cp_why')) }}
+{% include "_compliance_note.html" %}
+{% if not enabled %}
+<section class="card"><div class="hint" data-compliance-off="1">{{ t('cp_off') }} <code>python -m supervisor.advisory.compliance --profile out\payments\profile.json --out out\payments --mock-llm</code></div></section>
+{% else %}
+<div class="grid" style="gap:12px">
+  {% for c in cards %}
+  <article class="card" data-agent="{{ c.agent }}">
+    <h4><a href="/console/compliance/{{ c.agent }}?lang={{ lang }}">{{ c.agent }}</a>
+      {{ ui.pill(t('cp_source_' ~ c.source_kind), 'neutral') }}
+      {{ ui.pill(cw('d33.' ~ c.d33), d33_pill.get(c.d33, 'neutral'), True) }}</h4>
+    <div class="meta">{{ c.name }} · RegKB {{ c.regkb_version[:12] }} · {{ c.as_of }}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+      {% for s in ('gap', 'partial', 'met', 'bank_process') %}
+      {{ ui.pill(cw('status.' ~ s) ~ ' ' ~ c.by_status[s], status_pill[s], True) }}
+      {% endfor %}
+    </div>
+    <div class="hint">{{ t('cp_applies_yes') }} <b>{{ c.applies_yes }}</b> · {{ t('cp_needs_answer') }} <b>{{ c.needs_answer }}</b> · {{ t('cp_questions') }} <b>{{ c.questions }}</b> · {{ t('cp_threshold_gaps') }} <b>{{ c.threshold_gaps }}</b></div>
+    <div class="hint"><a href="/console/compliance/{{ c.agent }}?lang={{ lang }}">{{ t('cp_open') }}</a></div>
+  </article>
+  {% else %}
+  <section class="card"><div class="hint">{{ t('cp_no_agents') }}</div></section>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
