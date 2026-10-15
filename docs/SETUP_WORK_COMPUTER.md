@@ -91,6 +91,9 @@ Meaning of each flag: `README.md`, section "Flags that are off by default".
 | `CONSOLE_COMPLIANCE_ENABLED` | `1` | `1` | Compliance tab (advisory) |
 | `CONSOLE_INTEGRATION_ENABLED` | `1` | `1` | Integration tab |
 | `ASSURANCE_LAUNCH_ENABLED` | `1` | `1` | Launch NO-GO on failed required packs |
+| `ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH` | `0` | `0` | Keep `0`: with mock-only pack results Launch is NO-GO ("assurance results are mock only"); `1` only for a labelled demo |
+| `ASSURANCE_JUDGE_MIN_ITEMS` | `50` (default) | `50` (default) | Judge packs need at least this many items per model; the shipped synthetic halueval_vi (40) and perturbation_vi (20) are below it, so supply bank data first |
+| `ASSURANCE_JUDGE_ALLOW_WARN` | `0` | `0` | Only status `ok` validates a real judge |
 | `JUDGE_REQUIRE_VALIDATION` | `1` after the first GO | `1` after the first GO | Set it only after step 1 below passes, or the judge will not start |
 | `RETENTION_ENABLED` | bank decision | bank decision | Delta retention is an open bank decision (ADR D13) |
 | `ASSURANCE_DATA_DIR` | bank datasets folder | Volume path | Optional; without it packs use synthetic data |

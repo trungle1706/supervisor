@@ -277,7 +277,7 @@ PII enters the chain. The chain hash is stored in `eval_result.evidence_hash`.
 
 `CONSOLE_ASSURANCE_ENABLED=1` (default off) adds the "Assurance" screen: runs newest first
 (`/console/assurance`) and per-run results with metric vs threshold, data mode, items,
-reasons and the evidence hash (`/console/assurance/<run_id>`). Flag off: no nav entry, 404.
+reasons and the evidence hash (`/console/assurance/<run_id>`). Flag off: no nav entry, 400 with a message.
 
 ## 6. What each threshold means
 
