@@ -11,7 +11,14 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from supervisor.adapters.auth import AuthPrincipal
-from supervisor.adapters.auth.audit import request_id_of, snapshot_hash, write_action
+from supervisor.adapters.auth.audit import (
+    AuditUnavailable,
+    audit_active,
+    request_id_of,
+    snapshot_hash,
+    write_attempt,
+    write_outcome,
+)
 from supervisor.adapters.auth.authz import needs, runtime_settings
 from supervisor.core.errors import SupervisorError
 from supervisor.gateway import wiring
@@ -84,45 +91,47 @@ async def check(request: Request, gw: Gateway = _GW) -> JSONResponse:
     return JSONResponse(content=result)
 
 
-def _audit_control(
+def _audit_row(
     request: Request,
     gw: Gateway,
     action: str,
     *,
+    attempt: bool,
     principal: str | None,
     agent_id: str | None,
     outcome: str,
     before: str | None,
     detail: str | None,
 ) -> str | None:
-    """One ``console_action`` row for a control call (always, unless CONSOLE_AUDIT_ENABLED=0,
-    also with API_RBAC_ENABLED off). Returns a warning text when the write failed."""
-    if not runtime_settings().console_audit_enabled:
+    """One ``console_action`` row for a control call (also with API_RBAC_ENABLED off; skipped
+    only with CONSOLE_AUDIT_ENABLED=0 in dev mode). ``attempt`` = the row written BEFORE the
+    side effect: a store error raises ``AuditUnavailable``. Otherwise returns a warning text
+    when the outcome write failed."""
+    if not audit_active(runtime_settings()):
         return None
     me = getattr(request.state, "principal", None)
     me = me if isinstance(me, AuthPrincipal) else None
+    kw: dict[str, Any] = {
+        "request_id": request_id_of(request),
+        "actor": me,
+        "actor_fallback": (principal or "unknown", "unverified", "gate_api"),
+        "permission": f"agent.{action}",
+        "method": request.method,
+        "path": request.url.path,
+        "target_kind": "agent" if agent_id else None,
+        "target_id": agent_id,
+        "before_hash": before,
+    }
+    if attempt:
+        write_attempt(gw.tables, gw.clock, **kw)
+        return None
     try:
-        after = snapshot_hash(gw.states.state, "agent", agent_id) if agent_id else None
-        write_action(
-            gw.tables,
-            gw.clock,
-            request_id=request_id_of(request),
-            actor=me,
-            actor_fallback=(principal or "unknown", "unverified", "gate_api"),
-            permission=f"agent.{action}",
-            method=request.method,
-            path=request.url.path,
-            outcome=outcome,
-            target_kind="agent" if agent_id else None,
-            target_id=agent_id,
-            before_hash=before,
-            after_hash=after,
-            detail=detail,
-        )
-    except Exception as exc:  # noqa: BLE001 - never a 5xx because of the audit
-        log.error("console_action write failed: %s", type(exc).__name__)
-        return f"the audit record failed: {type(exc).__name__}; see the server log"
-    return None
+        kw["after_hash"] = snapshot_hash(gw.states.state, "agent", agent_id) if agent_id else None
+    except Exception as exc:  # noqa: BLE001 - a hash problem must not hide the outcome
+        log.error("console_action hash failed: %s", type(exc).__name__)
+        kw["after_hash"] = None
+    warn = write_outcome(gw.tables, gw.clock, outcome=outcome, detail=detail, **kw)
+    return warn
 
 
 async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
@@ -130,10 +139,11 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
         req = ControlRequest.model_validate(await _body(request))
     except ValidationError as exc:
         warn = await run_in_threadpool(
-            _audit_control,
+            _audit_row,
             request,
             gw,
             action,
+            attempt=False,
             principal=None,
             agent_id=None,
             outcome="error",
@@ -147,10 +157,11 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
 
     async def audit(outcome: str, detail: str | None) -> str | None:
         return await run_in_threadpool(
-            _audit_control,
+            _audit_row,
             request,
             gw,
             action,
+            attempt=False,
             principal=principal,
             agent_id=req.agent_id,
             outcome=outcome,
@@ -164,6 +175,21 @@ async def _control(request: Request, gw: Gateway, action: str) -> JSONResponse:
             status_code=403,
             content={"error": "identity required", **({"audit_warning": warn} if warn else {})},
         )
+    try:  # M4: row 1 BEFORE the side effect; no row, no action
+        await run_in_threadpool(
+            _audit_row,
+            request,
+            gw,
+            action,
+            attempt=True,
+            principal=principal,
+            agent_id=req.agent_id,
+            outcome="attempted",
+            before=before,
+            detail=None,
+        )
+    except AuditUnavailable as exc:
+        return _bad(str(exc))
     states = gw.states
     fn = {
         "pause": states.pause,

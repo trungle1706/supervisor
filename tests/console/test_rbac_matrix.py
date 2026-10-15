@@ -115,8 +115,13 @@ def _url(template: str, case_id: str, action: str = "pause") -> str:
     return url
 
 
-def _rows(console: Console) -> list[dict[str, Any]]:
+def _all_rows(console: Console) -> list[dict[str, Any]]:
     return console.ctx.tables.query("console_action", order_by=("ts",))
+
+
+def _rows(console: Console) -> list[dict[str, Any]]:
+    """The outcome rows (M4 also writes an ``attempted`` row before each side effect)."""
+    return [r for r in _all_rows(console) if r["outcome"] != "attempted"]
 
 
 def _call(console: Console, method: str, url: str, user: str) -> Any:
@@ -330,6 +335,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
 
 def test_audit_off_writes_nothing(console: Console, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(console.ctx.settings, "console_audit_enabled", False)
+    monkeypatch.setattr(console.ctx.settings, "supervisor_mode", "dev")  # M4: dev only
     c = _case(console)
     assert (
         console.post(
@@ -349,21 +355,23 @@ def test_audit_off_writes_nothing(console: Console, monkeypatch: pytest.MonkeyPa
     assert _rows(console) == []
 
 
-def test_audit_failure_is_a_warning_not_a_5xx(
+def test_outcome_write_failure_is_a_warning_not_a_5xx(
     console: Console, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import supervisor.console.routes as routes
+    """M4: the ``attempted`` row is written; only the outcome row fails -> result + WARNING."""
+    orig = console.ctx.tables.append
 
-    def boom(*a: Any, **k: Any) -> None:
-        raise RuntimeError("store down")
+    def flaky(table: str, rows: Any, *a: Any, **k: Any) -> Any:
+        if table == "console_action" and rows[0]["outcome"] != "attempted":
+            raise RuntimeError("store down")
+        return orig(table, rows, *a, **k)
 
-    monkeypatch.setattr(routes, "write_action", boom)
+    monkeypatch.setattr(console.ctx.tables, "append", flaky)
     r = console.post("/console/agents/payments/pause", {"reason": "t"})
     assert r.status_code == 200 and "WARNING: the console audit record failed" in r.text
     r = console.post("/console/agents/payments/quarantine", {"reason": "t"}, user="reviewer.an")
     assert r.status_code == 403  # denied before the wrapper: the dependency writes the row
-    r = console.post("/console/agents/payments/frobnicate", {"reason": "t"})
-    assert r.status_code == 400 and "WARNING" in r.text
+    assert [x["outcome"] for x in _all_rows(console)] == ["attempted"]
 
 
 def test_audit_detail_never_carries_typed_text(console: Console) -> None:
@@ -498,10 +506,13 @@ def test_audit_pack_carries_the_console_action_rows(console: Console, tmp_path: 
     lines = (root / "console_action.jsonl").read_text(encoding="utf-8").splitlines()
     rows = [json.loads(x) for x in lines]
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["console_actions"] == len(rows) == 2
+    assert manifest["console_actions"] == len(rows)
+    rows = [r for r in rows if r["permission"].startswith("agent.")]  # + the export's own row
     assert "console_action.jsonl" in manifest["files_sha256"]
     assert [(r["permission"], r["outcome"]) for r in rows] == [
+        ("agent.pause", "attempted"),
         ("agent.pause", "ok"),
         ("agent.quarantine", "denied"),
     ]
+    assert rows[0]["request_id"] == rows[1]["request_id"]
     assert all(r["request_id"] and r["action_id"] for r in rows)

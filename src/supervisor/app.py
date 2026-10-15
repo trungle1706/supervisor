@@ -46,6 +46,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     the chain of whichever runtime was installed. One process, one worker: the chain
     has a single writer (app.yaml runs uvicorn without --workers)."""
     runtime = None
+    if not get_settings().console_audit_enabled:
+        log.warning("CONSOLE_AUDIT_ENABLED=0 (dev mode): console actions are NOT audited")
     try:
         runtime = await run_in_threadpool(gate_wiring.install_runtime, get_settings())
     except Exception:  # noqa: BLE001 - startup must not crash the app process

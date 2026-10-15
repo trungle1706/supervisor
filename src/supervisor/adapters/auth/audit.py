@@ -1,11 +1,16 @@
 """Console action audit (WP18): one append-only ``console_action`` row per mutating action.
 
 Who (actor, kind, auth method, roles), what (permission, method, path), which target, the
-outcome (``ok`` | ``denied`` | ``error``), the SHA-256 of the canonical target row before and
-after, and a request id. ``detail`` is a short fixed note (an error class name or a denial
-code): never PII and never text a user typed.
+outcome (``attempted`` | ``ok`` | ``denied`` | ``error``), the SHA-256 of the canonical target
+row before and after, and a request id. ``detail`` is a short fixed note (an error class name
+or a denial code): never PII and never text a user typed.
 
-A failed audit write never turns into a 5xx: the caller logs it and shows a WARNING.
+Two rows per mutating action (M4), sharing one request id: ``attempted`` is written BEFORE the
+side effect (``write_attempt``); if that write fails the action is not done (``AuditUnavailable``,
+HTTP 400). The outcome row (``write_outcome``) is written after; if it fails the result is
+returned with a WARNING and an ERROR log (the ``attempted`` row already proves the try). A denial
+(403) and a refused identity need no ``attempted`` row: they have no side effect.
+Auditing may be switched off (``CONSOLE_AUDIT_ENABLED=0``) only when ``SUPERVISOR_MODE=dev``.
 """
 
 from __future__ import annotations
@@ -17,6 +22,7 @@ from collections.abc import Mapping
 from typing import Any, Protocol
 
 from supervisor.core.canonical import sha256_hex
+from supervisor.core.errors import SupervisorError
 
 log = logging.getLogger("supervisor.audit")
 
@@ -37,6 +43,15 @@ _TEMPLATE_KIND = {
 }
 _ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 MUTATING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+class AuditUnavailable(SupervisorError):
+    """The ``attempted`` audit row could not be written: the action was not done."""
+
+
+def audit_active(settings: Any) -> bool:
+    """Audit is on, unless the flag is off AND the mode is ``dev`` (the only mode that may skip)."""
+    return bool(settings.console_audit_enabled) or settings.supervisor_mode != "dev"
 
 
 class _Clock(Protocol):
@@ -144,6 +159,27 @@ def write_action(
         ],
     )
     return action_id
+
+
+def write_attempt(tables: Any, clock: _Clock, **kw: Any) -> str:
+    """Row 1: ``attempted``, before the side effect. ``AuditUnavailable`` on a store error."""
+    kw.pop("outcome", None)
+    kw["after_hash"] = None
+    try:
+        return write_action(tables, clock, outcome="attempted", **kw)
+    except Exception as exc:  # noqa: BLE001 - any store error blocks the action
+        log.error("console_action attempt write failed: %s", type(exc).__name__)
+        raise AuditUnavailable("audit store unavailable; the action was not done") from exc
+
+
+def write_outcome(tables: Any, clock: _Clock, **kw: Any) -> str | None:
+    """Row 2: the outcome, after the side effect. Returns a WARNING text when the write fails."""
+    try:
+        write_action(tables, clock, **kw)
+    except Exception as exc:  # noqa: BLE001 - never a 5xx because of the audit
+        log.error("console_action write failed: %s", type(exc).__name__)
+        return f"WARNING: the console audit record failed: {type(exc).__name__}; see the server log"
+    return None
 
 
 def request_id_of(request: Any) -> str:

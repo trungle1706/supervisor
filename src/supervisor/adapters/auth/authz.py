@@ -36,6 +36,7 @@ from fastapi import Request
 from supervisor.adapters.auth import AuthError, AuthPrincipal, current_principal, get_provider
 from supervisor.adapters.auth.audit import (
     MUTATING,
+    audit_active,
     request_id_of,
     snapshot_hash,
     target_of,
@@ -70,10 +71,10 @@ def _audit_handles(request: Request) -> tuple[Any, Any, Any] | None:
 
     ctx = peek_context()
     if ctx is not None:
-        if not ctx.settings.console_audit_enabled:
+        if not audit_active(ctx.settings):
             return None
         return ctx.tables, ctx.state, ctx.clock
-    if not get_settings().console_audit_enabled:
+    if not audit_active(get_settings()):
         return None
     try:
         from supervisor.gateway import wiring
@@ -137,8 +138,13 @@ def _claimed_id(request: Request) -> str:
     return "unknown"
 
 
-def _audit_identity_failure(request: Request) -> str:
-    """One best-effort ``denied`` row for a control call without a usable identity."""
+def _audit_identity_failure(
+    request: Request, permission: str | None = None, auth_method: str = "gate_api"
+) -> str:
+    """One best-effort ``denied`` row (actor_kind ``unverified``) for a mutating call without a
+    usable identity. Gate control routes derive the permission from the path."""
+    if request.method not in MUTATING:
+        return ""
     handles = _audit_handles(request)
     if handles is None:
         return ""
@@ -150,8 +156,8 @@ def _audit_identity_failure(request: Request) -> str:
             clock,
             request_id=request_id_of(request),
             actor=None,
-            actor_fallback=(_claimed_id(request), "unverified", "gate_api"),
-            permission=f"agent.{action}",
+            actor_fallback=(_claimed_id(request), "unverified", auth_method),
+            permission=permission or f"agent.{action}",
             method=request.method,
             path=request.url.path,
             outcome="denied",
@@ -205,8 +211,19 @@ def needs(
     def dependency(request: Request) -> AuthPrincipal | None:
         if api and not runtime_settings().api_rbac_enabled:
             return None  # phase-1 behaviour: no identity lookup, no check
-        me = control_principal(request) if control else current_principal(request)
         perm = rbac.resolve_permission(permission, request.path_params)
+        if control:
+            me = control_principal(request)
+        else:
+            try:
+                me = current_principal(request)
+            except AuthError:
+                # M4: an unknown / missing identity on a mutating route is audited (denied,
+                # unverified). The answer stays the usual 400 message.
+                if request.url.path.startswith("/console"):
+                    shown = perm if perm in rbac.PERMISSIONS else permission
+                    _audit_identity_failure(request, shown, get_provider().name)
+                raise
         if perm not in rbac.PERMISSIONS:
             return me  # e.g. an unknown agent action: the route answers it with a 400
         if me.kind != "user":

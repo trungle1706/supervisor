@@ -568,7 +568,7 @@ tables:
       path: string
       target_kind: string?    # case | agent | notice | export | job | session
       target_id: string?
-      outcome: string         # ok | denied | error
+      outcome: string         # attempted | ok | denied | error
       before_hash: string?    # sha256 of the canonical target row before the action
       after_hash: string?     # sha256 of the canonical target row after the action
       detail: text?           # short masked note (error class, denial reason); never PII

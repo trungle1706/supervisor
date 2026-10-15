@@ -163,16 +163,38 @@ before storage; the chain gets only its SHA-256. Sign-off statements are stored 
 
 ## Console action audit
 
-Every POST under `/console` writes one row to the append-only table `console_action`
-(allowed, denied or failed), and so do the `/gate` control routes (pause, resume, quarantine,
-release), also when `API_RBAC_ENABLED` is off (an unidentified caller gets one `denied` row, detail `identity_unknown`, actor_kind `unverified`). Columns: `action_id`, `ts`, `request_id`,
-`actor`, `actor_kind`, `auth_method`, `roles`, `permission`, `method`, `path`, `target_kind`,
-`target_id`, `outcome` (`ok`, `denied`, `error`), `before_hash` and `after_hash` (SHA-256 of
-the canonical target row: the case row, the agent row with its active gate controls, or the
-notice row), `detail` (an error class or a denial code, never free text typed by a user). The
-rows are in the audit pack (`console_action.jsonl`, with the count in `manifest.json`). A
-failed audit write is logged and shown as a WARNING in the page message; it never causes a 5xx.
-`CONSOLE_AUDIT_ENABLED=0` writes nothing.
+Every POST under `/console` writes rows to the append-only table `console_action`, and so do
+the `/gate` control routes (pause, resume, quarantine, release), also when `API_RBAC_ENABLED` is
+off. Columns: `action_id`, `ts`, `request_id`, `actor`, `actor_kind`, `auth_method`, `roles`,
+`permission`, `method`, `path`, `target_kind`, `target_id`, `outcome`, `before_hash` and
+`after_hash` (SHA-256 of the canonical target row: the case row, the agent row with its active
+gate controls, or the notice row), `detail` (an error class or a denial code, never free text
+typed by a user). The rows are in the audit pack (`console_action.jsonl`, with the count in
+`manifest.json`).
+
+Two rows per action, one `request_id`:
+
+| Row | `outcome` | Written | `before_hash` / `after_hash` |
+|---|---|---|---|
+| 1 | `attempted` | BEFORE the side effect | target now / null |
+| 2 | `ok`, `denied` or `error` | after | target before / target after |
+
+* If row 1 cannot be written, the action is NOT done. The answer is HTTP 400 with "audit store
+  unavailable; the action was not done" (a message partial on the console, `{"error": ...}` on
+  `/gate`). Nothing changes: no case row, no agent state, no intake run.
+* If row 2 cannot be written (the action is already done), the server logs an ERROR and the
+  answer carries a WARNING ("the console audit record failed"). It is never a 5xx. Row 1
+  already proves the action was tried.
+* A permission denial (HTTP 403) writes one `denied` row and no `attempted` row: it has no side
+  effect.
+* An unknown or missing identity on a mutating route (for example an unknown `X-Dev-User`)
+  writes one `denied` row: `actor_kind` `unverified`, `auth_method` of the provider, `actor` the
+  claimed id (cut to 64 characters) or `unknown`, `detail` `identity_unknown`. The console
+  answer stays HTTP 400 with the usual message; the control routes answer 403.
+* `CONSOLE_AUDIT_ENABLED=0` is allowed only with `SUPERVISOR_MODE=dev`. In `laptop` and
+  `databricks_app` mode the settings are refused at load, and the runtime ignores the flag
+  (auditing stays on). In dev mode with the flag off the app logs a WARNING at startup and
+  writes no rows.
 
 ## Errors
 
@@ -206,7 +228,7 @@ set that header.
 | `CONSOLE_EXPORT_DIR` | `<DATA_DIR>\exports` | Audit packs. On the App this is ephemeral: download the zip at once. |
 | `NOTIFY_WEBHOOK_ENABLED` | `0` | Webhook stub: queues notices (`status=queued`), never sends |
 | `API_RBAC_ENABLED` | `0` | WP18: enforce the role matrix on the agent-facing `/gate` read routes (state, metrics). Gate control routes and console routes always enforce |
-| `CONSOLE_AUDIT_ENABLED` | `1` | WP18: write one `console_action` row per mutating action (default on) |
+| `CONSOLE_AUDIT_ENABLED` | `1` | WP18/M4: write the `attempted` and outcome `console_action` rows for every mutating action (default on; `0` is refused unless `SUPERVISOR_MODE=dev`) |
 
 Case intake as a job (only when the app is not running, single chain writer):
 `python -m supervisor.jobs.case_intake`.

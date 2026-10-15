@@ -28,10 +28,12 @@ from starlette.concurrency import run_in_threadpool
 from supervisor import __version__
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.audit import (
+    audit_active,
     request_id_of,
     snapshot_hash,
     target_of,
-    write_action,
+    write_attempt,
+    write_outcome,
 )
 from supervisor.adapters.auth.authz import needs
 from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
@@ -224,17 +226,18 @@ def _warn_html(body: bytes, warning: str) -> bytes:
 
 
 def audited(permission: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Write one ``console_action`` row for this mutating route (WP18): outcome ok, denied
-    or error, with the target row hash before and after. Off with CONSOLE_AUDIT_ENABLED=0.
-    The route function must take ``request`` and ``ctx`` (and ``me`` when it has a person).
-    A failed audit write is logged and shown as a WARNING in the flash message, never a 5xx."""
+    """Two ``console_action`` rows for this mutating route (WP18, M4): ``attempted`` before the
+    side effect (no row, no action: HTTP 400), then ok, denied or error with the target row hash
+    before and after (a failed outcome write is a WARNING in the flash message, never a 5xx).
+    Off only with CONSOLE_AUDIT_ENABLED=0 in dev mode.
+    The route function must take ``request`` and ``ctx`` (and ``me`` when it has a person)."""
 
     def decorate(fn: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fn)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             request: Request = kwargs["request"]
             ctx: ConsoleContext = kwargs["ctx"]
-            if not ctx.settings.console_audit_enabled:
+            if not audit_active(ctx.settings):  # off only with CONSOLE_AUDIT_ENABLED=0 in dev
                 return await fn(*args, **kwargs)
             me = kwargs.get("me")
             if me is None:
@@ -247,6 +250,18 @@ def audited(permission: str) -> Callable[[Callable[..., Any]], Callable[..., Any
                 perm = permission.split(".")[0] + ".invalid"  # a bad action name from the URL
             kind, tid = target_of(request.url.path, request.path_params)
             before = await _call(snapshot_hash, ctx.state, kind, tid)
+            common: dict[str, Any] = {
+                "request_id": request_id_of(request),
+                "actor": me,
+                "permission": perm,
+                "method": request.method,
+                "path": request.url.path,
+                "target_kind": kind,
+                "target_id": tid,
+            }
+            # M4: row 1 BEFORE the side effect; if it fails nothing is done (AuditUnavailable
+            # -> HTTP 400 "audit store unavailable; the action was not done").
+            await _call(write_attempt, ctx.tables, ctx.clock, before_hash=before, **common)
             outcome, detail, exc_out, resp = "ok", None, None, None
             try:
                 resp = await fn(*args, **kwargs)
@@ -255,30 +270,18 @@ def audited(permission: str) -> Callable[[Callable[..., Any]], Callable[..., Any
                 denied = isinstance(exc, PermissionDenied)
                 outcome = "denied" if denied else "error"
                 detail = "permission_denied" if denied else type(exc).__name__
-            try:
-                after = await _call(snapshot_hash, ctx.state, kind, tid)
-                await _call(
-                    write_action,
-                    ctx.tables,
-                    ctx.clock,
-                    request_id=request_id_of(request),
-                    actor=me,
-                    permission=perm,
-                    method=request.method,
-                    path=request.url.path,
-                    outcome=outcome,
-                    target_kind=kind,
-                    target_id=tid,
-                    before_hash=before,
-                    after_hash=after,
-                    detail=detail,
-                )
-            except Exception as werr:  # noqa: BLE001 - never a 5xx because of the audit
-                log.error("console_action write failed: %s", type(werr).__name__)
-                warning = (
-                    f"WARNING: the console audit record failed: {type(werr).__name__}; "
-                    "see the server log"
-                )
+            after = await _call(snapshot_hash, ctx.state, kind, tid)
+            warning = await _call(
+                write_outcome,
+                ctx.tables,
+                ctx.clock,
+                outcome=outcome,
+                before_hash=before,
+                after_hash=after,
+                detail=detail,
+                **common,
+            )
+            if warning:
                 if exc_out is not None:
                     if isinstance(exc_out, SupervisorError):
                         exc_out.args = (f"{exc_out} ({warning})",)

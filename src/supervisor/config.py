@@ -439,6 +439,11 @@ class Settings(BaseSettings):
                 "AUTH_KIND=dev_header is not allowed with SUPERVISOR_MODE=databricks_app "
                 "(the X-Dev-User header is not an identity); use databricks_app or auto"
             )
+        if not self.console_audit_enabled and self.supervisor_mode != "dev":
+            raise ValueError(
+                "CONSOLE_AUDIT_ENABLED=0 is only allowed with SUPERVISOR_MODE=dev "
+                "(the console audit trail cannot be switched off in laptop or databricks_app mode)"
+            )
         if self.scheduler_lock_path is None:
             self.scheduler_lock_path = self.data_dir / "scheduler.lock"
         if self.anchor_kind == "worm_dir":
