@@ -1,6 +1,6 @@
 # Supervisor — rules for every agent that writes code in this repo
 
-Read in this order: this file, `docs/BANK_DEPLOY_GUIDE.md` (hard constraints, learned from live failures at the bank), `docs/BUILD_PLAN.md` (work packages, Definition of Done), `docs/adr/` (design decisions D1–D12). The product background is in `docs/handoff/` (read `docs/handoff/CLAUDE.md` and `docs/handoff/analysis/05-overall-analysis.md` when you need the why).
+Read in this order: this file, `docs/BANK_DEPLOY_GUIDE.md` (hard constraints, learned from live failures at the bank), `docs/BUILD_PLAN.md` (phase 1, WP0–WP12), `docs/BUILD_PLAN_PHASE2.md` (phase 2, WP13–WP19), `docs/adr/` (design decisions D1–D12). The product background is in `docs/handoff/` (read `docs/handoff/CLAUDE.md` and `docs/handoff/analysis/05-overall-analysis.md` when you need the why).
 
 ## What this is
 Supervisor = Onboard + Watch for AI agents at a bank. Deterministic gateway that can block or pause an agent, tiered AI judges that only advise, hash-chained evidence with offline verification, case files, reviewer console, and an Onboarding Agent that opens pull requests. One Python codebase, two targets: a bank Windows laptop (self-host, offline) and a Databricks App.
