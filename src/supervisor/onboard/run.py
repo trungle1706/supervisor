@@ -82,6 +82,12 @@ ARTEFACTS = (
     "baseline.json",
     "handover.json",
 )
+# WP14: written only when ONBOARD_COMPLIANCE_ENABLED=1 (not part of ARTEFACTS: off path unchanged)
+COMPLIANCE_ARTEFACTS = (
+    "compliance_matrix.json",
+    "compliance_matrix.md",
+    "compliance_matrix.html",
+)
 
 
 @dataclass
@@ -241,6 +247,44 @@ def run_onboarding(
             adapters.close()
 
 
+def _compliance(
+    inv: Inventory,
+    profile: AgentProfile,
+    mp: MonitoringPlan,
+    texts: Mapping[str, str],
+    chat: ChatModel,
+    settings: Settings,
+    write: Callable[[str, str, str], None],
+    say: Callable[[str], None],
+) -> None:
+    from supervisor.advisory.compliance import from_onboard
+    from supervisor.advisory.compliance.matrix import build_matrix
+    from supervisor.advisory.compliance.render import to_html, to_json, to_markdown
+    from supervisor.regkb import load_kb
+
+    product = from_onboard(
+        inv,
+        profile,
+        plan=mp,
+        policy_texts=[("policy.yaml", texts["policy.yaml"])],
+        basis="planned",
+    )
+    internal = Path(settings.regkb_internal_dir) if settings.regkb_internal_dir else None
+    kb = load_kb(internal_dir=internal)
+    matrix = build_matrix(kb, product, chat=chat)
+    write("compliance_matrix.json", to_json(matrix), "instrument")
+    write("compliance_matrix.md", to_markdown(matrix), "instrument")
+    write("compliance_matrix.html", to_html(matrix), "instrument")
+    s = matrix.summary
+    by = s["by_status"]
+    say(
+        f"[OK] compliance: {matrix.header.obligations} obligations, "
+        f"{s['by_applies']['yes']} apply, {s['needs_answer']} need an answer, "
+        f"{by['gap']} gap, {s['questions']} question(s), "
+        f"Decision 33 {matrix.decision33.classification} (advisory; not legal advice)"
+    )
+
+
 def _stages(
     agent: OnboardingAgent,
     target: Path,
@@ -341,6 +385,10 @@ def _stages(
         f"[OK] instrument: branch {inst.branch} commit {inst.commit_sha[:12]} "
         f"({inst.mode}); never merged"
     )
+
+    # WP14 launch pack: compliance matrix of the planned product (advisory only; default off)
+    if adapters.settings.onboard_compliance_enabled:
+        _compliance(inv, profile, mp, texts, chat, adapters.settings, write, say)
 
     # 5 Launch ----------------------------------------------------------------------
     policy = validate_policy(texts["policy.yaml"])

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_compliance') }} - {{ ob.id }}{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>{{ t('cp_ob_title') }} <span class="mono">{{ ob.id }}</span> {{ ui.pill(t('cp_advisory'), 'info') }}</h1></div>
+{{ ui.purpose(t('cp_purpose'), t('cp_why')) }}
+{% include "_compliance_note.html" %}
+<p><a href="/console/compliance/{{ agent }}?lang={{ lang }}">&larr; {{ agent }}</a></p>
+
+<section class="card" data-section="product-status">
+  <h3>{{ t('cp_this_product') }}: {{ agent }}</h3>
+  <div>{{ ui.pill(cw('applies.' ~ row.applies), {'yes': 'ok', 'needs_answer': 'warn'}.get(row.applies, 'neutral')) }}
+    {{ ui.pill(cw('status.' ~ row.status), status_pill.get(row.status, 'neutral'), True) }}</div>
+  <div class="hint"><b>{{ t('cp_status_reason') }}:</b> {{ row.status_reason }}</div>
+</section>
+
+<section class="card" data-section="text">
+  <h3>{{ ob.title_en }} · {{ ob.article_ref }}</h3>
+  <dl class="kv">
+    <dt>{{ t('cp_instrument_line') }}</dt><dd>{{ ob.number }} ({{ ob.instrument_id }}) · {{ ob.issuer }} · {{ ob.status }}</dd>
+    <dt>{{ t('cp_text_vi') }}</dt><dd data-text-vi="1">{% if ob.text_vi %}{{ ob.text_vi }}{% else %}<span class="muted">{{ t('cp_no_text_vi') }}</span>{% endif %}</dd>
+    <dt>{{ t('cp_summary_en') }}</dt><dd>{{ ob.summary_en }}</dd>
+    <dt>{{ t('cp_evidence_needed') }}</dt><dd>{{ ob.evidence_needed|join('; ') or '-' }}</dd>
+  </dl>
+</section>
+
+<section class="card" data-section="controls">
+  <h3>{{ t('cp_controls') }}</h3>
+  <table>
+    <thead><tr><th>Type</th><th>ID</th><th>{{ t('cp_coverage') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for c in controls %}
+    <tr><td>{{ c.kind }}</td><td class="mono">{{ c.id }}</td><td>{{ c.coverage }}</td><td>{{ c.note }}</td></tr>
+    {% else %}<tr><td colspan="4" class="hint">{{ t('cp_none') }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card" data-section="sources">
+  <h3>{{ t('cp_sources') }}</h3>
+  <ul>{% for s in ob.sources %}<li>{{ s.title }} <span class="hint">({{ s.kind }}, {{ s.fetched_at }}) <span class="mono">{{ s.url }}</span></span></li>{% else %}<li class="hint">{{ t('cp_none') }}</li>{% endfor %}</ul>
+</section>
+{% endblock %}

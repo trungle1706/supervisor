@@ -846,6 +846,79 @@ _T: dict[str, tuple[str, str]] = {
         "Dữ liệu demo: câu trả lời của tác tử theo kịch bản và khách hàng là giả lập. Quyết "
         "định của cổng, việc tạm dừng và chuỗi bằng chứng là thật.",
     ),
+    # ---- WP14 compliance advisor tab
+    "nav_compliance": ("Compliance", "Tuân thủ"),
+    "cp_title": ("Compliance advisor", "Cố vấn tuân thủ"),
+    "cp_purpose": (
+        "See which legal duties apply to each agent and which Supervisor controls cover them.",
+        "Xem nghĩa vụ pháp lý nào áp dụng cho từng tác tử và biện pháp nào của Supervisor đáp ứng.",
+    ),
+    "cp_why": (
+        "Every status names a control and a product fact. A fact we do not know becomes a "
+        "question, never a guess.",
+        "Mỗi trạng thái nêu rõ biện pháp kiểm soát và dữ kiện sản phẩm. Dữ kiện chưa biết "
+        "trở thành câu hỏi, không bao giờ là phỏng đoán.",
+    ),
+    "cp_advisory": ("Advisory only", "Chỉ mang tính tham khảo"),
+    "cp_disclaimer": (
+        "Not legal advice. Bank counsel must confirm.",
+        "Không phải tư vấn pháp lý. Cần pháp chế ngân hàng xác nhận.",
+    ),
+    "cp_off": (
+        "The Compliance tab is off by default. Set CONSOLE_COMPLIANCE_ENABLED=1 and restart "
+        "the console to turn it on. From the command line:",
+        "Thẻ Tuân thủ đang tắt theo mặc định. Đặt CONSOLE_COMPLIANCE_ENABLED=1 rồi khởi động "
+        "lại bảng điều khiển để bật. Từ dòng lệnh:",
+    ),
+    "cp_no_agents": ("No compliance matrix yet.", "Chưa có ma trận tuân thủ nào."),
+    "cp_source_demo": ("demo agent", "tác tử demo"),
+    "cp_source_onboard": ("onboarded product", "sản phẩm đã tiếp nhận"),
+    "cp_applies_yes": ("Apply", "Áp dụng"),
+    "cp_needs_answer": ("Need an answer", "Cần trả lời"),
+    "cp_questions": ("Open questions", "Câu hỏi còn mở"),
+    "cp_threshold_gaps": ("Threshold gaps", "Hạn mức vượt trần"),
+    "cp_d33": ("Decision 33 (suggestion)", "Quyết định 33 (gợi ý)"),
+    "cp_open": ("Open matrix", "Mở ma trận"),
+    "cp_back": ("All agents", "Tất cả tác tử"),
+    "cp_counts": ("Rows that apply, by status", "Dòng áp dụng, theo trạng thái"),
+    "cp_filters": ("Filters", "Bộ lọc"),
+    "cp_instrument": ("Instrument", "Văn bản"),
+    "cp_duty": ("Duty", "Nhiệm vụ"),
+    "cp_applies": ("Applies", "Áp dụng"),
+    "cp_any": ("any", "tất cả"),
+    "cp_apply_filter": ("Apply filter", "Lọc"),
+    "cp_showing": ("Showing {n} of {m} rows", "Hiển thị {n} trên {m} dòng"),
+    "cp_col_obligation": ("Obligation", "Nghĩa vụ"),
+    "cp_col_article": ("Article", "Điều"),
+    "cp_col_summary": ("Summary", "Tóm tắt"),
+    "cp_col_reason": ("Reason", "Lý do"),
+    "cp_thresholds": ("Threshold findings", "Kết quả kiểm tra hạn mức"),
+    "cp_col_limit": ("Limit (VND)", "Hạn mức (VND)"),
+    "cp_col_cap": ("Cap (VND)", "Trần (VND)"),
+    "cp_col_verdict": ("Verdict", "Kết luận"),
+    "cp_none": ("none", "không có"),
+    "cp_questions_list": ("Open questions", "Câu hỏi còn mở"),
+    "cp_decides": ("decides {n} obligation(s)", "quyết định {n} nghĩa vụ"),
+    "cp_d33_lines": ("Decision 33 reasoning", "Lập luận theo Quyết định 33"),
+    "cp_ob_title": ("Obligation", "Nghĩa vụ"),
+    "cp_text_vi": ("Text (Vietnamese)", "Nội dung (tiếng Việt)"),
+    "cp_summary_en": ("Summary (English)", "Tóm tắt (tiếng Anh)"),
+    "cp_no_text_vi": (
+        "No Vietnamese text in RegKB for this obligation.",
+        "RegKB chưa có nội dung tiếng Việt cho nghĩa vụ này.",
+    ),
+    "cp_instrument_line": ("Instrument", "Văn bản"),
+    "cp_sources": ("Sources", "Nguồn"),
+    "cp_controls": ("Controls that cover it", "Biện pháp kiểm soát"),
+    "cp_coverage": ("coverage", "mức độ"),
+    "cp_this_product": ("This product", "Sản phẩm này"),
+    "cp_status_reason": ("Why this status", "Vì sao có trạng thái này"),
+    "cp_evidence_needed": ("Evidence needed", "Bằng chứng cần có"),
+    "cp_mock_hidden": (
+        "A narrative, if the file holds one, is not shown here.",
+        "Phần diễn giải (nếu có trong tệp) không hiển thị ở đây.",
+    ),
+    "cp_file_links": ("Files of this run", "Tệp của lần chạy này"),
 }
 
 

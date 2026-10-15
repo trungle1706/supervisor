@@ -305,6 +305,11 @@ class Settings(BaseSettings):
     retention_dry_run: bool = False  # count only, change nothing
     sched_retention_s: int = Field(default=86400, ge=60)
 
+    # WP14 compliance advisor (advisory only; both off by default). The launch pack writes
+    # compliance_matrix.* during onboarding; the console tab reads demo and onboarded products.
+    onboard_compliance_enabled: bool = False
+    console_compliance_enabled: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",

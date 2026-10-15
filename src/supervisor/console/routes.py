@@ -36,7 +36,14 @@ from supervisor.adapters.auth.audit import (
 from supervisor.adapters.auth.authz import needs
 from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
 from supervisor.cases.service import RESOLUTIONS, SEVERITIES, CaseError, PermissionDenied
-from supervisor.console import auditpack, health, onboard_runs, readmodels, views
+from supervisor.console import (
+    auditpack,
+    compliance_view,
+    health,
+    onboard_runs,
+    readmodels,
+    views,
+)
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.core import rbac
@@ -131,6 +138,7 @@ def render(
         return cache["v"]
 
     data.setdefault("section", "")
+    data["compliance_enabled"] = bool(ctx.settings.console_compliance_enabled)  # WP14 nav link
     body = _env.get_template(template).render(
         t=translator(lang),
         dur=lambda secs: views.duration_text(secs, lang),
@@ -908,6 +916,119 @@ async def onboard_file(
     resp = FileResponse(path, media_type=f"{media}; charset=utf-8")
     resp.headers["x-content-type-options"] = "nosniff"
     return resp
+
+
+# ---------------------------------------------------------------------------- compliance (WP14)
+# Read-only, advisory only. Off by default (CONSOLE_COMPLIANCE_ENABLED=1). When off, every
+# compliance page answers HTTP 200 with the same "off" notice as the Onboard page (nothing
+# else is shown). Unknown agent, obligation or filter value: HTTP 400 (SupervisorError).
+
+
+def _compliance_ctx(request: Request, ctx: ConsoleContext) -> dict[str, Any]:
+    lang = _lang(request, ctx)
+    return {
+        "section": "compliance",
+        "cw": lambda key: compliance_view.word(key, lang),
+        "status_pill": compliance_view.STATUS_PILL,
+        "d33_pill": compliance_view.D33_PILL,
+        "statuses": compliance_view.STATUSES,
+    }
+
+
+def _compliance_off(request: Request, ctx: ConsoleContext, me: AuthPrincipal) -> Response:
+    return render(
+        request,
+        ctx,
+        me,
+        "compliance.html",
+        enabled=False,
+        cards=[],
+        **_compliance_ctx(request, ctx),
+    )
+
+
+@router.get(
+    "/compliance", response_class=HTMLResponse, dependencies=[Depends(needs("compliance.view"))]
+)
+async def compliance_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    if not ctx.settings.console_compliance_enabled:
+        return _compliance_off(request, ctx, me)
+    cards = await _call(compliance_view.cards, ctx.settings)
+    return render(
+        request,
+        ctx,
+        me,
+        "compliance.html",
+        enabled=True,
+        cards=cards,
+        **_compliance_ctx(request, ctx),
+    )
+
+
+@router.get(
+    "/compliance/{agent}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("compliance.view"))],
+)
+async def compliance_agent(
+    agent: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    if not ctx.settings.console_compliance_enabled:
+        return _compliance_off(request, ctx, me)
+    q = request.query_params
+
+    def work() -> tuple[dict[str, Any], dict[str, Any]]:
+        m = compliance_view.matrix_for(ctx.settings, agent)
+        f = compliance_view.filter_rows(
+            m,
+            instrument=q.get("instrument", ""),
+            status=q.get("status", ""),
+            duty=q.get("duty", ""),
+            applies=q.get("applies", ""),
+        )
+        return m, f
+
+    matrix, filtered = await _call(work)
+    return render(
+        request,
+        ctx,
+        me,
+        "compliance_agent.html",
+        agent=agent,
+        matrix=matrix,
+        f=filtered,
+        **_compliance_ctx(request, ctx),
+    )
+
+
+@router.get(
+    "/compliance/{agent}/obligation/{obligation_id}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("compliance.view"))],
+)
+async def compliance_obligation(
+    agent: str,
+    obligation_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    if not ctx.settings.console_compliance_enabled:
+        return _compliance_off(request, ctx, me)
+    detail = await _call(compliance_view.obligation_detail, ctx.settings, agent, obligation_id)
+    return render(
+        request,
+        ctx,
+        me,
+        "compliance_obligation.html",
+        agent=agent,
+        row=detail["row"],
+        ob=detail["ob"],
+        controls=detail["controls"],
+        **_compliance_ctx(request, ctx),
+    )
 
 
 # ---------------------------------------------------------------------------- health

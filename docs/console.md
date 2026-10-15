@@ -44,6 +44,7 @@ always a word in a coloured pill.
 | Sign-off | `/console/cases/<id>/signoff` | Sign-offs so far with the statement text verbatim. | Approve or reject with a statement; the signer ticks "I sign this statement as myself". |
 | Evidence | `/console/evidence` (`/console/export` redirects) | Entries, last signed root (key id, dev / managed key), last anchor; every lane as squares (one per entry, newest 60, "+N" for earlier ones; colour by record type; root lane gold, signed roots filled); "How to verify offline" with the cmd commands; earlier exports. | Verify now; Export chain (zip: chain export + offline verify report; recorded on the chain); Build audit pack (zip: chain export + verify report + case files + judge eval report + manifest). Auditor, reviewer, approver, admin. |
 | Onboard | `/console/onboard` | Six-step wizard (stage from the artefacts of the latest run), last-run cards: profile (Decision 33 proposal, tools, money-moving, human approval step in code), plan (capabilities, rules proposed, judges), launch report (GO / NO-GO, red-team catch rate, false alarms, branch), links to the artefact files. | Start (off by default, `CONSOLE_ONBOARD_ENABLED=1`): runs `supervisor.onboard` in a background thread on the console's own store and chain writer, one run at a time, progress every 2 s. MockChat (labelled) unless the configured LLM answers the preflight probe. Reviewer, owner, admin. |
+| Compliance | `/console/compliance` (off by default, `CONSOLE_COMPLIANCE_ENABLED=1`) | Advisory obligations matrix per agent (the three demo agents and onboarded products with a launch-pack matrix): counts by status, Decision 33 class, open questions, threshold findings, rows with filters (instrument, status, duty), and one page per obligation (Vietnamese text, sources, controls). Advisory only. See `docs/compliance-advisor.md`. | Read-only. |
 | Health | `/console/health` | A plain setup summary (mode and store, identity, judge model or mock, signing key, anchor, Databricks, Onboard start) and the local preflight checks with status pills and fix hints. Secrets are never shown. The live Databricks checks write probes, so they run only from `python -m supervisor.cli preflight`. | - |
 | Metrics | `/console/metrics` (footer link) | Oversight metrics per agent with sparklines; chain lanes and heads; gateway latency counters. | Verify the whole chain now. |
 | Inbox | `/console/inbox` (envelope in the header) | Notices from the case workflow (new case, sign-off needed, case closed). | Mark read. |
@@ -89,6 +90,7 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | `health.view` | Health page | x | x | x | x | x | x | x |
 | `metrics.view` | Metrics page | x | x | x | x | x | x | x |
 | `onboard.view` | Onboarding page, status and generated files | x | x | x | x | x | x | x |
+| `compliance.view` | Compliance tab (advisory obligations matrix, read-only) | x | x | x | x | x | x | x |
 | `gate.read` | Read agent gate state and gate metrics (API) | x | x | x | x | x | x | x |
 | `case.assign` | Assign a case |  | x |  |  | x |  |  |
 | `case.itsm` | Set the ITSM reference of a case |  | x |  |  | x |  |  |
@@ -179,6 +181,8 @@ set that header.
 | `AUTH_CONFIG_FILE` | `config\auth.yaml` | Role map (Databricks App) |
 | `CONSOLE_LANG` | `en` | Default UI language (`en` or `vi`) |
 | `CONSOLE_ONBOARD_ENABLED` | `0` | WP12: the Onboard screen may start runs (new feature, off by default) |
+| `ONBOARD_COMPLIANCE_ENABLED` | `0` | WP14: the onboarding run also writes `compliance_matrix.json`, `.md` and `.html` (advisory only) |
+| `CONSOLE_COMPLIANCE_ENABLED` | `0` | WP14: the Compliance tab (`/console/compliance`, read-only, advisory only) |
 | `CONSOLE_EXPORT_DIR` | `<DATA_DIR>\exports` | Audit packs. On the App this is ephemeral: download the zip at once. |
 | `NOTIFY_WEBHOOK_ENABLED` | `0` | Webhook stub: queues notices (`status=queued`), never sends |
 | `API_RBAC_ENABLED` | `0` | WP18: enforce the role matrix on the `/gate` human routes (console routes always enforce) |

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_compliance') }} - {{ agent }}{% endblock %}
+{% block content %}
+{% set m = matrix %}
+<div class="pagehead"><h1>{{ t('cp_title') }}: {{ agent }} {{ ui.pill(t('cp_advisory'), 'info') }}</h1></div>
+{{ ui.purpose(t('cp_purpose'), t('cp_why')) }}
+{% include "_compliance_note.html" %}
+<p><a href="/console/compliance?lang={{ lang }}">&larr; {{ t('cp_back') }}</a>
+  · {{ m.header.product_name }} · RegKB {{ m.header.regkb_version[:12] }} · {{ m.header.as_of }}
+  {% if m.header.internal_rules %}· {{ ui.pill('internal', 'gold') }}{% endif %}</p>
+
+<div class="grid g2">
+  <section class="card" data-section="counts">
+    <h3>{{ t('cp_counts') }}</h3>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      {% for s in statuses %}
+      {{ ui.pill(cw('status.' ~ s) ~ ' ' ~ m.summary.by_status.get(s, 0), status_pill[s], True) }}
+      {% endfor %}
+    </div>
+    <div class="hint">{{ t('cp_needs_answer') }} <b>{{ m.summary.needs_answer }}</b> · {{ t('cp_questions') }} <b>{{ m.summary.questions }}</b> · {{ t('cp_threshold_gaps') }} <b>{{ m.summary.threshold_gaps }}</b></div>
+  </section>
+  <section class="card" data-section="decision33">
+    <h3>{{ t('cp_d33') }}</h3>
+    <div>{{ ui.pill(cw('d33.' ~ m.decision33.classification), d33_pill.get(m.decision33.classification, 'neutral'), True) }}</div>
+    {% for e in m.decision33.entries %}
+    <div class="hint"><b>{{ e.entry }}</b>: {{ cw('d33.triggered') if e.triggered is true else (cw('d33.not_triggered') if e.triggered is false else cw('d33.unknown')) }}</div>
+    <ul class="hint">{% for ln in e.lines %}<li>{{ ln }}</li>{% endfor %}</ul>
+    {% endfor %}
+    <div class="hint">{{ m.decision33.caveat }}</div>
+  </section>
+</div>
+
+<section class="card" data-section="thresholds">
+  <h3>{{ t('cp_thresholds') }}</h3>
+  {% if m.thresholds %}
+  <table>
+    <thead><tr><th>ID</th><th>{{ t('cp_col_limit') }}</th><th>{{ t('cp_col_cap') }}</th><th>{{ t('cp_col_verdict') }}</th><th>{{ t('cp_col_reason') }}</th></tr></thead>
+    <tbody>
+    {% for f in m.thresholds %}
+    <tr data-threshold="{{ f.id }}"><td class="mono">{{ f.id }}<div class="hint">{{ f.limit_id }} · {{ f.period }}</div></td>
+      <td>{{ f.limit_vnd|vnd }}</td><td>{{ f.cap_vnd|vnd }}</td>
+      <td>{{ ui.pill(cw('verdict.' ~ f.verdict), {'exceeds': 'bad', 'at_cap': 'warn', 'within': 'ok'}.get(f.verdict, 'neutral'), True) }}</td>
+      <td>{{ f.reason }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="hint">{{ t('cp_none') }}</div>{% endif %}
+</section>
+
+<section class="card" data-section="questions">
+  <h3>{{ t('cp_questions_list') }}</h3>
+  {% for q in m.questions %}
+  <div data-question="{{ q.id }}"><span class="mono">{{ q.id }}</span> {{ q.text_vi if lang == 'vi' else q.text_en }}
+    <span class="hint">({{ t('cp_decides', n=q.obligation_ids|length) }})</span></div>
+  {% else %}<div class="hint">{{ t('cp_none') }}</div>{% endfor %}
+</section>
+
+<section class="card" data-section="rows">
+  <h3>{{ t('cp_filters') }}</h3>
+  <form method="get" action="/console/compliance/{{ agent }}" class="filters" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <label class="f" for="f-status">{{ t('status') }}
+      <select id="f-status" name="status"><option value="">{{ t('cp_any') }}</option>
+        {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if f.status == s else '' }}>{{ cw('status.' ~ s) }}</option>{% endfor %}</select></label>
+    <label class="f" for="f-applies">{{ t('cp_applies') }}
+      <select id="f-applies" name="applies"><option value="">{{ t('cp_any') }}</option>
+        {% for a in ('yes', 'needs_answer', 'no') %}<option value="{{ a }}" {{ 'selected' if f.applies == a else '' }}>{{ cw('applies.' ~ a) }}</option>{% endfor %}</select></label>
+    <label class="f" for="f-instrument">{{ t('cp_instrument') }}
+      <select id="f-instrument" name="instrument"><option value="">{{ t('cp_any') }}</option>
+        {% for i in f.instruments %}<option value="{{ i }}" {{ 'selected' if f.instrument == i else '' }}>{{ i }}</option>{% endfor %}</select></label>
+    <label class="f" for="f-duty">{{ t('cp_duty') }}
+      <select id="f-duty" name="duty"><option value="">{{ t('cp_any') }}</option>
+        {% for d in f.duties %}<option value="{{ d }}" {{ 'selected' if f.duty == d else '' }}>{{ d }}</option>{% endfor %}</select></label>
+    <button class="btn" type="submit">{{ t('cp_apply_filter') }}</button>
+  </form>
+  <div class="hint">{{ t('cp_showing', n=f.rows|length, m=f.total) }}</div>
+  <table>
+    <thead><tr><th>{{ t('cp_col_obligation') }}</th><th>{{ t('cp_col_article') }}</th><th>{{ t('cp_applies') }}</th><th>{{ t('status') }}</th><th>{{ t('cp_col_reason') }}</th></tr></thead>
+    <tbody>
+    {% for r in f.rows %}
+    <tr data-obligation="{{ r.obligation_id }}" data-status="{{ r.status }}">
+      <td class="mono"><a href="/console/compliance/{{ agent }}/obligation/{{ r.obligation_id }}?lang={{ lang }}">{{ r.obligation_id }}</a><div class="hint">{{ r.instrument_number }}</div></td>
+      <td>{{ r.article_ref }}<div class="hint">{{ r.summary_en }}</div></td>
+      <td>{{ ui.pill(cw('applies.' ~ r.applies), {'yes': 'ok', 'needs_answer': 'warn'}.get(r.applies, 'neutral')) }}</td>
+      <td>{{ ui.pill(cw('status.' ~ r.status), status_pill.get(r.status, 'neutral'), True) }}</td>
+      <td>{{ r.status_reason }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
