@@ -629,3 +629,45 @@ def test_all_three_target_kinds_run() -> None:
 
 def test_repo_root_constant() -> None:
     assert (REPO_ROOT / "schema" / "model.yaml").is_file()
+
+
+def test_unreachable_no_go_is_refused_lower_better_bp() -> None:
+    """W3-assure M2: a bp no_go of 10000 can never fail (values are at most 10000)."""
+    ok = [
+        {"metric": "hit_rate", "go": 8000, "no_go": 6000},
+        {"metric": "miss_rate", "go": 1000, "no_go": 9999},
+    ]
+    assert pack_of(thresholds=ok).threshold("miss_rate").no_go == 9999  # type: ignore[union-attr]
+    bad = [
+        {"metric": "hit_rate", "go": 8000, "no_go": 6000},
+        {"metric": "miss_rate", "go": 500, "no_go": 10000},
+    ]
+    with pytest.raises(ValueError, match="miss_rate.*unreachable"):
+        pack_of(thresholds=bad)
+
+
+def test_unreachable_no_go_is_refused_higher_better() -> None:
+    for unit_metric in ("hit_rate", "info_count"):  # bp and count, both higher_better
+        with pytest.raises(ValueError, match=f"{unit_metric}.*unreachable"):
+            pack_of(thresholds=[{"metric": unit_metric, "go": 5, "no_go": 0}])
+        assert pack_of(thresholds=[{"metric": unit_metric, "go": 5, "no_go": 1}])
+
+
+def test_lower_better_count_has_no_upper_bound_rule() -> None:
+    metrics = [
+        {"name": "bad_count", "direction": "lower_better", "unit": "count", "description": "n"}
+    ]
+    pack = pack_of(metrics=metrics, thresholds=[{"metric": "bad_count", "go": 0, "no_go": 10000}])
+    assert pack.threshold("bad_count") is not None
+
+
+def test_every_shipped_pack_loads_with_reachable_thresholds() -> None:
+    packs = load_packs()
+    assert len(packs) >= 30
+    for p in packs:
+        for t in p.thresholds:
+            spec = p.metric(t.metric)
+            if spec.direction == "lower_better" and spec.unit == "bp":
+                assert t.no_go < 10000, (p.id, t.metric)
+            if spec.direction == "higher_better":
+                assert t.no_go > 0, (p.id, t.metric)

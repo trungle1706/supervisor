@@ -1099,10 +1099,14 @@ async def integration_report(
 
 
 def _assurance_off(request: Request, ctx: ConsoleContext) -> Response | None:
-    """The screen is hidden (404) unless CONSOLE_ASSURANCE_ENABLED is on."""
+    """Off unless CONSOLE_ASSURANCE_ENABLED is on: HTTP 400 with a message (the Compliance and
+    Integration pattern), and the nav link is hidden."""
     if ctx.settings.console_assurance_enabled:
         return None
-    return Response("not found", status_code=404, media_type="text/plain")
+    raise ConsoleInputError(
+        "The Assurance tab is off (CONSOLE_ASSURANCE_ENABLED=1 turns it on); use "
+        "python -m supervisor.assurance run <pack> --target <target> --out <folder>"
+    )
 
 
 @router.get(

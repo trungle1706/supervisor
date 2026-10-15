@@ -349,7 +349,9 @@ class RagasTriadRunner:
     agent target: ``respond(question, context=passages)`` on synthetic RAG items.
     traces target: recorded ``reply`` tool calls scored against the ``result_masked`` of the
     other tool calls of the same trace (no gold, so context_precision is None).
-    Abstentions are excluded from the means and counted in details."""
+    Abstentions are excluded from the three means (they are means over answered items) and
+    reported by ``abstention_bp`` (abstained / items) and ``answered_bp`` (answered / items,
+    the denominator includes abstained items). Both are None for the traces target."""
 
     def run(self, pack: EvalPack, ctx: RunContext) -> RunnerOutput:
         kind = getattr(ctx.target, "kind", None)
@@ -367,6 +369,8 @@ class RagasTriadRunner:
             "faithfulness_bp": mean_int(faith),
             "answer_relevance_bp": mean_int(rel),
             "context_precision_bp": mean_int(prec) if prec else None,
+            "abstention_bp": None,
+            "answered_bp": None,
         }
 
     def _agent(self, pack: EvalPack, ctx: RunContext) -> RunnerOutput:
@@ -405,7 +409,10 @@ class RagasTriadRunner:
         if n < pack.min_items:
             return RunnerOutput.skip(f"only {n} usable items, need {pack.min_items}")
         details = {"abstained": abstained, "unfaithful_ids": first_ids(unfaithful)}
-        return finish(ds, ctx.target, self._mean_metrics(faith, rel, prec), details, n)
+        metrics = self._mean_metrics(faith, rel, prec)
+        metrics["abstention_bp"] = bp(abstained, n)
+        metrics["answered_bp"] = bp(len(faith), n)
+        return finish(ds, ctx.target, metrics, details, n)
 
     def _traces(self, pack: EvalPack, ctx: RunContext) -> RunnerOutput:
         rows = [dict(e) for e in ctx.target.events()]
@@ -468,7 +475,8 @@ class SelfCheckRunner:
     inconsistency = 10000 - max over samples of overlap_bp(sentence, sample). The paper
     offers BERTScore, QA, n-gram, NLI and prompt variants; this is the unigram idea with
     an overlap max instead of a unigram LM. An abstaining sample disagrees (overlap 0). A
-    main answer that abstains is excluded and counted."""
+    main answer that abstains is excluded from the two means (they are over answered items)
+    and counted: ``abstention_bp`` = abstained / items, ``answered_bp`` = answered / items."""
 
     def run(self, pack: EvalPack, ctx: RunContext) -> RunnerOutput:
         why = agent_skip_reason(ctx.target, "chat")
@@ -510,6 +518,8 @@ class SelfCheckRunner:
         metrics = {
             "mean_inconsistency_bp": mean_int(per_item),
             "flagged_sentence_bp": bp(flagged, total),
+            "abstention_bp": bp(abstained, n),
+            "answered_bp": bp(n - abstained, n),
         }
         details = {
             "abstained": abstained,

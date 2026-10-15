@@ -56,7 +56,7 @@ def test_inprocess_and_otlp_json_give_identical_rows(masked: bool, masker: VnReg
     assert len(payee.args_hash or "") == 64 and payee.parent_span_id
     if masked:
         assert payee.args_masked and "<PERSON:" in payee.args_masked
-        assert payee.classification == "pii" and payee.mask_version == "vn_regex-1:t1"
+        assert payee.classification == "pii" and payee.mask_version == "vn_regex-2:t1"
     else:
         assert payee.args_masked is None and payee.mask_version is None
 
@@ -259,3 +259,25 @@ def test_digest_text_hash_is_keyed_not_plain_sha256(masker: VnRegexMasker) -> No
     assert item.event.args_hash != hashlib.sha256(b"0912345678").hexdigest()
     plain = Normaliser(None).normalise(sd, "otel")
     assert plain is not None and plain.event.args_hash is None
+
+
+def test_nfd_and_invisible_text_without_pii_is_not_classified_pii(masker: VnRegexMasker) -> None:
+    import unicodedata
+
+    text = unicodedata.normalize("NFD", "Tra cứu số dư tài khoản\u200b của khách\u00a0hôm nay")
+    assert masker.mask(text) != text  # mask() normalises ...
+    span = SpanData(
+        "a" * 32, "b" * 16, None, "agent.message", "INTERNAL", 1, 2,
+        {"supervisor.agent_id": "payments", "supervisor.message.text": text,
+         "supervisor.event_type": "message"},
+    )  # fmt: skip
+    item = Normaliser(masker, MASKED, "dev").normalise(span, "otel")
+    assert item is not None
+    assert item.event.classification == "internal"  # ... but that is not PII
+    pii = SpanData(
+        "a" * 32, "b" * 16, None, "agent.message", "INTERNAL", 1, 2,
+        {"supervisor.agent_id": "payments", "supervisor.message.text": text + " CCCD 001203004567",
+         "supervisor.event_type": "message"},
+    )  # fmt: skip
+    item2 = Normaliser(masker, MASKED, "dev").normalise(pii, "otel")
+    assert item2 is not None and item2.event.classification == "pii"

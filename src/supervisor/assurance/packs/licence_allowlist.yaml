@@ -1,5 +1,5 @@
 id: licence_allowlist
-version: 2
+version: 3
 dimension: dependency
 title: Dependency licences against an allow list
 description: >-
@@ -12,8 +12,9 @@ description: >-
   licence that cannot be read is unknown, not disallowed. The classifier "BSD License" is
   mapped to BSD-3-Clause (an approximation). The licence source is the HOST environment
   (importlib.metadata of the machine that runs the pack) plus the optional bank licences.json;
-  a package that is not installed on the host is unknown. So unknown alone only warns
-  (go 500 bp, no-go 10000 bp); a disallowed licence still fails. Thresholds are ILLUSTRATIVE.
+  a package that is not installed on the host is unknown. So a small share of unknown only warns
+  (go 500 bp, warn up to 2000 bp), and more than 2000 bp (20 percent of dependencies unknown)
+  fails the required pack; a disallowed licence always fails. Thresholds are ILLUSTRATIVE.
 source:
   name: SPDX licence identifiers and Python core metadata (own mapping table)
   url: https://spdx.org/licenses/
@@ -43,7 +44,7 @@ metrics:
     description: Distinct dependencies checked (information only, no threshold).
 thresholds:
   - {metric: disallowed_count, go: 0, no_go: 0}
-  - {metric: unknown_licence_bp, go: 500, no_go: 10000}
+  - {metric: unknown_licence_bp, go: 500, no_go: 2000}
 maps_to:
   regkb_duties: [model_inventory, outsourcing_oversight, conformity_assessment]
   owasp_llm: [LLM03]

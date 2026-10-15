@@ -35,6 +35,18 @@ metrics:
     direction: lower_better
     unit: bp
     description: Main-answer sentences with inconsistency >= 5000 / all main-answer sentences.
+  # abstention_bp and answered_bp are ADVISORY: they have no threshold, so they never gate.
+  # Any limit on them would be ILLUSTRATIVE (the bank sets it). The two metrics above are
+  # over ANSWERED questions only (abstaining main answers are excluded); read them together
+  # with answered_bp (denominator = all questions, abstained included).
+  - name: abstention_bp
+    direction: lower_better
+    unit: bp
+    description: Questions whose main answer abstained (or had no scorable sentence) / all questions.
+  - name: answered_bp
+    direction: higher_better
+    unit: bp
+    description: Answered questions / all questions (abstained questions are in the denominator).
 thresholds:
   - {metric: mean_inconsistency_bp, go: 2000, no_go: 4000}
   - {metric: flagged_sentence_bp, go: 1500, no_go: 3500}

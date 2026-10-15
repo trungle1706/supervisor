@@ -46,6 +46,22 @@ metrics:
       Mean over items of RAGAS precision@K averaged over relevant ranks (relevant =
       gold-answer overlap with the passage >= 5000 bp). Agent target only; None for traces.
       It measures the retriever order, so it has no threshold.
+  # abstention_bp and answered_bp are ADVISORY: they have no threshold, so they never gate.
+  # Any limit on them would be ILLUSTRATIVE (the bank sets it). The three means above are
+  # over ANSWERED items only; an agent that abstains on hard items keeps a high mean, so
+  # read them together with answered_bp (denominator = all items, abstained included).
+  - name: abstention_bp
+    direction: lower_better
+    unit: bp
+    description: >-
+      Items where the agent abstained (or gave no scorable claim) / all items. Agent target
+      only; None for traces.
+  - name: answered_bp
+    direction: higher_better
+    unit: bp
+    description: >-
+      Answered items / all items (abstained items are in the denominator). Agent target
+      only; None for traces.
 thresholds:
   - {metric: faithfulness_bp, go: 8500, no_go: 7000}
   - {metric: answer_relevance_bp, go: 5000, no_go: 3000}

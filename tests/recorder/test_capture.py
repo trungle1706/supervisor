@@ -52,7 +52,7 @@ def test_masked_has_masked_text_only() -> None:
     item = _norm("masked").normalise(_span(), "otel")
     assert item is not None and item.raw is None
     ev = item.event
-    assert ev.capture_level == "masked" and ev.mask_version == "vn_regex-1:k1"
+    assert ev.capture_level == "masked" and ev.mask_version == "vn_regex-2:k1"
     assert ev.args_masked and "<PERSON:" in ev.args_masked and PII_NAME not in ev.args_masked
     assert PII_ACCOUNT not in ev.args_masked
     assert ev.result_masked and PII_NAME not in ev.result_masked

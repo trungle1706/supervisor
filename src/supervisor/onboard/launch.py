@@ -277,7 +277,12 @@ def _with_assurance(
     policy: Policy | None = None,
 ) -> LaunchReport:
     """Add the assurance NO-GO reasons (gates.py) and a compact summary to ``report``."""
-    from supervisor.assurance.gates import assurance_launch_items
+    from supervisor.assurance.gates import (
+        MOCK_ONLY_ITEM,
+        assurance_launch_items,
+        assurance_mock_items,
+        assurance_mock_state,
+    )
     from supervisor.assurance.loader import load_packs
     from supervisor.core.errors import SupervisorError
 
@@ -292,15 +297,27 @@ def _with_assurance(
         except SupervisorError as exc:
             results, run_error = [], str(exc)
     items = assurance_launch_items(results, packs, expect_target_kind="agent")
+    # Mock results label the reason MOCK; mock-only results are a NO-GO item unless accepted.
+    mock_state = assurance_mock_state(results)
+    items += assurance_mock_items(
+        results, accept_mock=load_settings().assurance_accept_mock_for_launch
+    )
+    label = "assurance (MOCK)" if mock_state != "none" else "assurance"
     if run_error:
         items.append(f"assurance packs could not run for this agent: {run_error}")
     summary = [_compact(r, by_id.get(str(_pack_id(r)))) for r in results]
     summary.sort(key=lambda x: (x["pack_id"], x["target_id"]))
     reasons = list(report.reasons)
     if items:
-        reasons = ([] if report.go else reasons) + items
+        # NO-GO items on a run with mock results say MOCK too (the mock-only item says it itself)
+        marker = (
+            ["assurance (MOCK): the results include mock runs"]
+            if mock_state != "none" and MOCK_ONLY_ITEM not in items
+            else []
+        )
+        reasons = ([] if report.go else reasons) + marker + items
     elif report.go:
-        reasons.append(f"assurance: {len(summary)} pack result(s), no required pack blocks Launch")
+        reasons.append(f"{label}: {len(summary)} pack result(s), no required pack blocks Launch")
     return report.model_copy(
         update={
             "go": report.go and not items,
@@ -308,6 +325,7 @@ def _with_assurance(
             "assurance_enabled": True,
             "assurance": summary,
             "assurance_reasons": items,
+            "assurance_mock": mock_state,
         }
     )
 

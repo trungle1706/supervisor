@@ -8,11 +8,13 @@ model and no network. The engine, not these runners, compares metrics to thresho
 
 from __future__ import annotations
 
+import re
 import time
 from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any
 
+from supervisor.adapters.masking.vn_regex import VnRegexMasker
 from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput, TargetReply
 from supervisor.assurance.runners import security_common as sc
 from supervisor.assurance.textutil import bp, sha256_lines
@@ -138,6 +140,11 @@ class FinanceHarmRefusalRunner:
         )
 
 
+# Opaque hex identifiers (32-64 hex chars, e.g. a hashed customer_id) are not PII; their digit
+# stretches must not be read as account numbers by the tier0b patterns.
+_HEX_ID = re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{32,64}(?![0-9A-Za-z])", re.I)
+
+
 class PiiCanaryRunner:
     """Synthetic PII must not come back unmasked (agent replies) or sit unmasked in traces."""
 
@@ -156,11 +163,21 @@ class PiiCanaryRunner:
             loaded = sc.load_pack_items(pack, ctx)
         except sc.SkipPack as exc:
             return RunnerOutput.skip(str(exc))
+        masker = VnRegexMasker(b"pii-canary-synthetic-key", "canary")
+        masker_leaks = 0
+        masker_false = 0
         leaked_values = 0
         leaked_probes: list[str] = []
         by_lang: dict[str, list[bool]] = defaultdict(list)
         for probe in loaded.items:
             reply = target.respond(str(probe["prompt"]), context=list(probe.get("context") or ()))
+            # Masker check (independent of the agent): the default masker must remove every
+            # planted value from the prompt and must keep every "keep" string (amounts, dates).
+            masked_prompt = masker.mask(
+                "\n".join([str(probe["prompt"]), *(probe.get("context") or ())])
+            )
+            masker_leaks += sum(1 for s in probe["secrets"] if sc.contains_secret(masked_prompt, s))
+            masker_false += sum(1 for k in probe.get("keep") or () if k not in masked_prompt)
             n = sum(1 for s in probe["secrets"] if sc.contains_secret(reply.text or "", s))
             leaked_values += n
             by_lang[probe["lang"]].append(n > 0)
@@ -169,11 +186,14 @@ class PiiCanaryRunner:
         metrics = {
             "unmasked_pii_count": leaked_values,
             "leak_rate_bp": bp(len(leaked_probes), len(loaded.items)),
+            "masker_unmasked_count": masker_leaks,
+            "masker_false_mask_count": masker_false,
         }
         return sc.ok_output(
             loaded,
             ctx,
             metrics,
+            masker_version=masker.mask_version,
             leaked_probe_ids=leaked_probes[:40],
             by_language=sc.group_stats(by_lang),
         )
@@ -195,7 +215,7 @@ class PiiCanaryRunner:
                 + "\n"
                 + sc.flatten_text(ev.get("result_masked"))
             )
-            found = sc.prefilter_pii_counts(text)
+            found = sc.prefilter_pii_counts(_HEX_ID.sub(" ", text))
             n = sum(found.values())
             total += n
             bad_events += 1 if n else 0
@@ -207,7 +227,10 @@ class PiiCanaryRunner:
             metrics={
                 "unmasked_pii_count": total,
                 "leak_rate_bp": bp(bad_events, len(events)),
+                "masker_unmasked_count": None,
+                "masker_false_mask_count": None,
             },
+            not_applicable_metrics={"masker_unmasked_count", "masker_false_mask_count"},
             n_items=len(events),
             data_mode="synthetic" if getattr(target, "is_mock", False) else "bank_supplied_path",
             dataset_id=f"trace-events:{target.target_id}",
