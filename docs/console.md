@@ -95,6 +95,7 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | `case.transition` | Triage, contain or close a case |  | x |  |  | x |  |  |
 | `case.comment` | Comment on a case |  | x | x | x | x |  |  |
 | `case.signoff` | Sign off a case (two-person rule) |  | x | x |  | x |  |  |
+| `case.report_sent` | Record that an incident report (preliminary or formal) was sent to the authority |  | x | x |  | x |  |  |
 | `case.verify` | Verify the evidence lane of one agent |  | x | x | x | x | x |  |
 | `chain.verify` | Verify the whole evidence chain |  | x | x | x | x | x | x |
 | `intake.run` | Run case intake now |  | x |  |  | x |  | x |

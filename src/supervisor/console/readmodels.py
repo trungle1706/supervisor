@@ -672,6 +672,8 @@ EVENT_KEYS = {
     "itsm_ref": "ev_itsm",
     "link_source": "ev_join",
     "raise_severity": "ev_raise",
+    "report_sent:preliminary": "ev_report_prelim",
+    "report_sent:formal": "ev_report_formal",
 }
 
 
@@ -911,6 +913,7 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
         "remediation_clock": None
         if closed
         else views.countdown(cf.sbv.remediation_due_at, now, 5 * 86400),
+        "incident": ctx.cases.incident_status(case_id, now=now),  # WP19: Decree 142 Art. 19
         "lane": lane,
         "verify": ctx.last_verify.get(lane) or ctx.last_verify.get("all"),
         "chain": chain_summary(ctx),

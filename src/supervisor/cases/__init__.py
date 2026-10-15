@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from supervisor.cases.incident_clock import load_holidays
 from supervisor.cases.service import (
     RESOLUTIONS,
     SEVERITIES,
@@ -40,6 +41,7 @@ def build_case_service(
         system=system,
         decision33_text=settings.casefile_decision33_text,
         mask_version=str(mask_version or settings.masker_kind),
+        holidays=load_holidays(settings.incident_holidays_file),
     )
 
 

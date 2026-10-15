@@ -90,4 +90,11 @@
     <button class="btn sm" type="submit" style="align-self:end">{{ t('save') }}</button>
   </form>
   <div class="hint">{{ t('itsm_hint') }}</div>
+  {% if not incident.prelim_sent_at or not incident.formal_sent_at %}
+  <form class="btnrow" hx-post="/console/cases/{{ case.case_id }}/report-sent?lang={{ lang }}" hx-target="#case-body" style="font-size:12px">
+    <input type="hidden" name="row_version" value="{{ case.row_version }}">
+    <input type="hidden" name="kind" value="{{ 'formal' if incident.prelim_sent_at else 'preliminary' }}">
+    <button class="btn sm" type="submit">{{ t('mark_formal_sent') if incident.prelim_sent_at else t('mark_prelim_sent') }}</button>
+  </form>
+  {% endif %}
 </section>
