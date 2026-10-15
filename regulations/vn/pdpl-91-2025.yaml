@@ -43,6 +43,18 @@ instrument:
       kind: primary
       sha256: "c19120cc0c26a9014f6cec6f3cd84ded2fee5c542f1c7d1ff411fb1a1f86efed"
       local_path: "regulations/sources/VN-PDPL-2025/luat-91-2025-qh15.txt"
+    - url: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/VanBanGoc_91.L2025-Luat%20Bao%20ve%20du%20lieu%20ca%20nhan.pdf/download"
+      title: "Luật 91/2025/QH15 - signed original (VanBanGoc_91.L2025 PDF), vbpl.vn gateway; scan without text layer"
+      fetched_at: "2026-10-15"
+      kind: primary
+      sha256: "0f1c2723f8685377db4e756670f57087e49c51fc499aa82082e99d2207ab7334"
+      local_path: "regulations/sources/VN-PDPL-2025/luat-91-2025-qh15-pdf.pdf"
+    - url: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/VanBanGoc_91.L2025-Luat%20Bao%20ve%20du%20lieu%20ca%20nhan.pdf/download"
+      title: "Luật 91/2025/QH15 - OCR (tesseract vie) of the signed original PDF; article headings Điều 1-39 clean"
+      fetched_at: "2026-10-15"
+      kind: primary
+      sha256: "939d49c9ae85326678df06f122bc7df02dfb1eabfd13bab2d3435dfa8263e87a"
+      local_path: "regulations/sources/VN-PDPL-2025/luat-91-2025-qh15-ocr.txt"
     - url: "https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx"
       title: "Luật Bảo vệ dữ liệu cá nhân 2025 số 91/2025/QH15 - Thư viện Pháp luật (secondary mirror; confirms 26/06/2025 and 01/01/2026)"
       fetched_at: "2026-10-15"
@@ -55,7 +67,7 @@ instrument:
     some article headings are missing or out of order (for example the heading "Điều 9" appears as "9." and
     consent text sits after Art. 23), but all 39 articles are present. The article numbers in this file were
     taken from the vbpl record order and checked against the Decree 356/2025 cross-references (for example
-    Art. 17(1)(a), 19, 20(6), 21, 22, 23, 33(2), 38(2)). The signed scan (VanBanGoc_91.L2025 PDF, 10 MB) has no text layer and is not stored.
+    Art. 17(1)(a), 19, 20(6), 21, 22, 23, 33(2), 38(2)). The signed scan (VanBanGoc_91.L2025 PDF) has no text layer; it is now stored (luat-91-2025-qh15-pdf.pdf) with an OCR text (luat-91-2025-qh15-ocr.txt, tesseract vie). Article numbers of all 35 obligations were verified on 2026-10-15 against the headings Điều 1 to Điều 39 of the OCR of the signed original PDF: every article_ref and id matches, no change was needed. The body text of the OCR can hold small OCR errors, so text_vi stays quoted from the vbpl HTML text.
     Law does not name Decree 13/2023 as repealed; the repeal is in Decree 356/2025 Art. 42(2) (verified).
     The law has no general "profiling" or "automated decision" article; those duties are in Decree 356/2025 Art. 10.
     The law covers personal data of Vietnamese citizens and foreign organisations that take part in processing
@@ -78,6 +90,8 @@ obligations:
     verification: VERIFIED_PRIMARY
     sources: &lawsrc
       - {url: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/179252_body_content.html/download", title: "Luật 91/2025/QH15 - vbpl.vn", fetched_at: "2026-10-15", kind: primary, sha256: "c19120cc0c26a9014f6cec6f3cd84ded2fee5c542f1c7d1ff411fb1a1f86efed", local_path: "regulations/sources/VN-PDPL-2025/luat-91-2025-qh15.txt"}
+      - {url: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/VanBanGoc_91.L2025-Luat%20Bao%20ve%20du%20lieu%20ca%20nhan.pdf/download", title: "Luật 91/2025/QH15 - signed original PDF, vbpl.vn", fetched_at: "2026-10-15", kind: primary, sha256: "0f1c2723f8685377db4e756670f57087e49c51fc499aa82082e99d2207ab7334", local_path: "regulations/sources/VN-PDPL-2025/luat-91-2025-qh15-pdf.pdf"}
+      - {url: "https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/179252/VanBanGoc_91.L2025-Luat%20Bao%20ve%20du%20lieu%20ca%20nhan.pdf/download", title: "Luật 91/2025/QH15 - OCR of signed original PDF", fetched_at: "2026-10-15", kind: primary, sha256: "939d49c9ae85326678df06f122bc7df02dfb1eabfd13bab2d3435dfa8263e87a", local_path: "regulations/sources/VN-PDPL-2025/luat-91-2025-qh15-ocr.txt"}
     confidence: high
     notes: "Art. 2(1) also says de-identified personal data is no longer personal data. De-identification is defined in Art. 2(11)."
 
