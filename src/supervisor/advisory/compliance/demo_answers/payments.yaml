@@ -1,0 +1,5 @@
+# Synthetic demo answer for the payments demo agent (not a real bank fact).
+# Source: src/supervisor_agents/payments/manifest.yaml, description: "Helps retail customers
+# with balances, payees and domestic transfers ...". Retail customers = individuals.
+# The advisor cannot read this from code, so a demo answer states it.
+customer_types: [individual]
