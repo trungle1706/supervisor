@@ -89,6 +89,7 @@ _env.filters["ict"] = fmt_ict
 _env.filters["metric"] = lambda v, name="": views.metric_cell(name, v)
 _env.filters["hhmm"] = readmodels.hhmm
 _env.filters["hhmmss"] = lambda v: readmodels.hhmm(v, seconds=True)
+_env.filters["day"] = lambda v: "-" if v is None else readmodels.ict(v).strftime("%Y-%m-%d %H:%M")
 _env.filters["vnd"] = lambda v: "-" if v is None else f"{int(v):,}"
 
 
@@ -230,6 +231,9 @@ def static(name: str) -> Response:
 # ---------------------------------------------------------------------------- queue
 
 
+SOURCE_KINDS = ("gate", "judge", "monitor", "manual")
+
+
 def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
     sev = request.query_params.get("severity") or None
     if sev is not None and sev not in SEVERITIES:
@@ -240,31 +244,33 @@ def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
     agent = request.query_params.get("agent") or None
     if agent is not None:
         _check_id(agent, "agent filter")
+    source = request.query_params.get("source") or None
+    if source is not None and source not in SOURCE_KINDS:
+        raise ConsoleInputError("unknown opened-by filter")
     statuses = None
     if status == "open":
-        statuses = [s for s in (*TRANSITIONS.keys(), "escalated", "resolved")]
+        statuses = list(readmodels.OPEN_STATUSES)
     elif status == "closed":
         statuses = ["closed"]
     rows = ctx.cases.list_cases(statuses=statuses, severity=sev, agent_id=agent)
-    now = ctx.clock.now()
-    items = []
-    for r in rows:
-        kinds = sorted({link["source_kind"] for link in ctx.cases.links(r["case_id"])})
-        items.append(
-            {
-                **r,
-                "sources": kinds,
-                "clock": views.countdown(r["report_due_at"], now)
-                if r["status"] != "closed"
-                else {"text": "-", "cls": "", "overdue": False},
-            }
-        )
+    items = readmodels.case_rows(ctx, rows, ctx.clock.now())
+    if source is not None:
+        items = [i for i in items if source in i["sources"]]
     agents = sorted({a["agent_id"] for a in ctx.state.query("agent")})
+    filters = {
+        "severity": sev or "",
+        "status": status,
+        "agent": agent or "",
+        "source": source or "",
+    }
     return {
         "items": items,
-        "filters": {"severity": sev or "", "status": status, "agent": agent or ""},
+        "filters": filters,
+        "query": "&".join(f"{k}={v}" for k, v in filters.items() if v),
         "severities": SEVERITIES,
+        "sources": SOURCE_KINDS,
         "agent_ids": agents,
+        "closed_n": len(ctx.cases.list_cases(statuses=["closed"])),
     }
 
 

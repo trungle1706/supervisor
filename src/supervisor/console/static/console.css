@@ -202,7 +202,7 @@ h2.sec a { font-size: 12px; font-weight: 600; margin-left: auto; }
 .tablewrap.flat { border: none; box-shadow: none; border-radius: 0; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 11px; letter-spacing: .05em; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+th { white-space: nowrap; font-size: 11px; letter-spacing: .05em; color: var(--muted); font-weight: 600; text-transform: uppercase; }
 tbody tr:last-child td { border-bottom: none; }
 tr.row:hover td { background: var(--surface-2); }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }

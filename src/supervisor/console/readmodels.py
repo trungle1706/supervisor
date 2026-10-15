@@ -520,6 +520,109 @@ def agent_cards(ctx: Any, me: Any) -> list[dict[str, Any]]:
     return cards
 
 
+# ---------------------------------------------------------------------------- cases
+
+WHAT_BY_CLASS = {
+    "money": "what_money",
+    "credit": "what_credit",
+    "pii_export": "what_pii",
+    "read_only": "what_read",
+}
+
+
+def case_head(
+    ctx: Any,
+    case: Mapping[str, Any],
+    *,
+    rules: Mapping[str, Mapping[str, Any]] | None = None,
+    classes: Mapping[str, str] | None = None,
+    agents: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """What the case is about, in plain words, from its first gate stop (rule + tool).
+
+    Returns the source kinds, the stopping rule, the tool and amount of the stopped call,
+    and a headline key with its parameters (the template translates). Cases opened by a
+    judge or a monitor keep their own summary as the headline."""
+    rules = rules if rules is not None else rules_index(ctx)
+    classes = classes if classes is not None else tool_classes(ctx)
+    links = ctx.cases.links(case["case_id"])
+    kinds = sorted({link["source_kind"] for link in links})
+    agent = (agents or {}).get(case["agent_id"]) or ctx.state.get(
+        "agent", {"agent_id": case["agent_id"]}
+    )
+    agent_label = (agent or {}).get("name") or case["agent_id"]
+    out: dict[str, Any] = {
+        "kinds": kinds or ["manual"],
+        "rule_id": None,
+        "rule": None,
+        "tool": None,
+        "amount": None,
+        "currency": None,
+        "action": None,
+        "latency_ms": None,
+        "event_id": None,
+        "trace_id": None,
+        "key": None,
+        "params": {},
+        "agent_label": agent_label,
+        "joined": max(0, len([lk for lk in links if lk["source_kind"] == "gate"]) - 1),
+    }
+    gate_links = [lk for lk in links if lk["source_kind"] == "gate"]
+    if gate_links:
+        ref = gate_links[0]["source_ref"]
+        verdicts = ctx.tables.query("verdict", {"event_id": ref})
+        stops = [
+            v
+            for v in verdicts
+            if int(v["tier"]) == 0 and v["action"] in STOP_ACTIONS and not v["advisory"]
+        ]
+        stop = min(stops, key=lambda v: v["action"] != "pause") if stops else None
+        events = ctx.tables.query("agent_event", {"event_id": ref}, limit=1)
+        ev = events[0] if events else {}
+        tool = ev.get("tool_name")
+        out.update(
+            {
+                "event_id": ref,
+                "trace_id": ev.get("trace_id") or (stop or {}).get("trace_id"),
+                "tool": tool,
+                "amount": ev.get("amount_minor"),
+                "currency": ev.get("currency") or ("VND" if ev.get("amount_minor") else None),
+                "latency_ms": ev.get("latency_ms"),
+            }
+        )
+        if stop is not None:
+            rid = stop.get("rule_id")
+            out.update(
+                {
+                    "rule_id": rid,
+                    "rule": rules.get(rid) if rid else None,
+                    "action": stop["action"],
+                }
+            )
+            what = WHAT_BY_CLASS.get(classes.get(tool or "", ""), "what_call")
+            out["key"] = "hl_pause" if stop["action"] == "pause" else "hl_block"
+            out["params"] = {"agent": agent_label, "what": what, "tool": tool or "-"}
+    return out
+
+
+def case_rows(ctx: Any, cases: Sequence[Mapping[str, Any]], now: dt.datetime) -> list[dict]:
+    from supervisor.console import views
+
+    rules = rules_index(ctx)
+    classes = tool_classes(ctx)
+    agents = {a["agent_id"]: a for a in ctx.state.query("agent")}
+    rows = []
+    for c in cases:
+        head = case_head(ctx, c, rules=rules, classes=classes, agents=agents)
+        clock = (
+            views.countdown(c.get("report_due_at"), now, severity=c["severity"])
+            if c["status"] != "closed"
+            else None
+        )
+        rows.append({**c, "head": head, "sources": head["kinds"], "clock": clock})
+    return rows
+
+
 def overview(ctx: Any, now: dt.datetime) -> dict[str, Any]:
     from supervisor.console import views
 

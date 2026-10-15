@@ -349,6 +349,47 @@ _T: dict[str, tuple[str, str]] = {
         "No agent is registered yet. Use Onboard to bring the first agent under supervision.",
         "Chưa có tác tử nào. Dùng Tiếp nhận để đưa tác tử đầu tiên vào giám sát.",
     ),
+    # ---- WP12 cases
+    "archive": ("Archive", "Lưu trữ"),
+    "cases_purpose": (
+        "Each case is one thing that needs a human decision. Rules, judges and monitors open "
+        "cases. People triage, contain and close them.",
+        "Mỗi vụ việc là một việc cần con người quyết định. Quy tắc, giám khảo AI và bộ giám "
+        "sát mở vụ việc. Con người phân loại, ngăn chặn và đóng vụ việc.",
+    ),
+    "cases_why": (
+        "The clocks come from the draft SBV circular: report within 24 hours, remediate within "
+        "5 days.",
+        "Các mốc thời gian theo dự thảo thông tư NHNN: báo cáo trong 24 giờ, khắc phục trong "
+        "5 ngày.",
+    ),
+    "cases_note": (
+        "Closed cases move to the archive with their case file. The list refreshes every 30 s.",
+        "Vụ việc đã đóng chuyển vào lưu trữ cùng hồ sơ. Danh sách tự làm mới mỗi 30 giây.",
+    ),
+    "opened_by": ("Opened by", "Mở bởi"),
+    "src_gate": ("gate", "cổng"),
+    "src_judge": ("judge", "giám khảo"),
+    "src_monitor": ("monitor", "giám sát"),
+    "src_manual": ("person", "con người"),
+    "joined_n": ("+{n} more stop(s) joined", "+{n} lần chặn khác gộp vào"),
+    "hl_pause": (
+        "{agent} paused: {what} was stopped before it ran",
+        "{agent} bị tạm dừng: {what} đã bị chặn trước khi chạy",
+    ),
+    "hl_block": (
+        "{agent}: {what} was blocked before it ran",
+        "{agent}: {what} đã bị chặn trước khi chạy",
+    ),
+    "what_money": ("a money-moving call ({tool})", "một thao tác di chuyển tiền ({tool})"),
+    "what_credit": ("a credit decision ({tool})", "một quyết định tín dụng ({tool})"),
+    "what_pii": ("a personal-data export ({tool})", "một lần xuất dữ liệu cá nhân ({tool})"),
+    "what_read": ("a read ({tool})", "một lần đọc dữ liệu ({tool})"),
+    "what_call": ("a tool call ({tool})", "một lệnh gọi công cụ ({tool})"),
+    "time_left": ("{d} left", "còn {d}"),
+    "overdue_by": ("overdue by {d}", "quá hạn {d}"),
+    "escalated": ("escalated", "đã chuyển cấp"),
+    "resolved": ("resolved", "đã giải quyết"),
     "demo_note": (
         "Demo data: the agents' replies are scripted and the customers are synthetic. The "
         "gate decisions, the pause and the chain are real.",
