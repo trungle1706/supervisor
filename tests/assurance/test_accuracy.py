@@ -317,6 +317,22 @@ def test_ragas_agent_good_and_bad() -> None:
     shy = RagasTriadRunner().run(p, ctx(agent(lambda q, c, s: reply(ABSTAIN))))
     assert shy.status == "ok" and shy.metrics["faithfulness_bp"] is None
     assert shy.details["abstained"] == 30
+    assert shy.metrics["abstention_bp"] == 10000 and shy.metrics["answered_bp"] == 0
+
+
+def test_ragas_abstention_and_answered_bp() -> None:
+    p = pack("ragas_rag_triad")
+    assert p.threshold("abstention_bp") is None and p.threshold("answered_bp") is None
+    full = RagasTriadRunner().run(p, ctx(agent(extractive)))
+    assert full.metrics["abstention_bp"] == 0 and full.metrics["answered_bp"] == 10000
+    first = {r["question"] for r in rows("ragas_rag_triad.jsonl")[:6]}
+    mixed = RagasTriadRunner().run(
+        p, ctx(agent(lambda q, c, s: reply(ABSTAIN) if q in first else extractive(q, c, s)))
+    )
+    assert mixed.details["abstained"] == 6
+    assert mixed.metrics["abstention_bp"] == 2000 and mixed.metrics["answered_bp"] == 8000
+    # means stay over answered items
+    assert mixed.metrics["faithfulness_bp"] == full.metrics["faithfulness_bp"]
 
 
 def test_ragas_wrong_number_is_unfaithful() -> None:
@@ -340,6 +356,7 @@ def test_ragas_traces_good_and_bad() -> None:
         bad_rows += qa_trace(f"b{i}", r["knowledge"], r["question"], r["hallucinated_answer"])
     out = RagasTriadRunner().run(p, ctx(FakeTraces(rows=good_rows)))
     assert out.status == "ok" and out.metrics["context_precision_bp"] is None
+    assert out.metrics["abstention_bp"] is None and out.metrics["answered_bp"] is None
     assert verdict(p, out, "faithfulness_bp") == "go"
     assert verdict(p, out, "answer_relevance_bp") == "go"
     out = RagasTriadRunner().run(p, ctx(FakeTraces(rows=bad_rows)))
@@ -376,12 +393,15 @@ def test_selfcheck_consistent_vs_random() -> None:
     assert out.metrics["mean_inconsistency_bp"] == 0 and out.metrics["flagged_sentence_bp"] == 0
     assert verdict(p, out, "mean_inconsistency_bp") == "go"
     assert out.details["abstained"] == 10 and out.n_items == 30
+    assert out.metrics["abstention_bp"] == 3333 and out.metrics["answered_bp"] == 6666
+    assert p.threshold("abstention_bp") is None and p.threshold("answered_bp") is None
 
     def wobbly(q: str, c: Sequence[str], s: int) -> TargetReply:
         base = pool.index(by_q[q]) if q in by_q else 0
         return reply(pool[(base + s * 7) % len(pool)])
 
     out = SelfCheckRunner().run(p, ctx(agent(wobbly)))
+    assert out.metrics["abstention_bp"] == 0 and out.metrics["answered_bp"] == 10000
     assert verdict(p, out, "mean_inconsistency_bp") == "fail"
     assert verdict(p, out, "flagged_sentence_bp") == "fail"
 
