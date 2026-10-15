@@ -15,3 +15,4 @@ uv.toml
 *.egg-info/
 node_modules/
 .claude/
+data/*.log
