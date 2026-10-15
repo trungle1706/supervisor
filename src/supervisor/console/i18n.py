@@ -535,7 +535,7 @@ _T: dict[str, tuple[str, str]] = {
     "verdict_details": ("Every check on this case", "Mọi lần kiểm tra của vụ việc"),
     "checker": ("Checker", "Bộ kiểm tra"),
     "label": ("Label", "Nhãn"),
-    "score_bp": ("Score (bp)", "Điểm (bp)"),
+    "score_bp": ("Score (0-10000)", "Điểm (0-10000)"),
     "more_lines": ("{n} more lines in the Transcript tab", "còn {n} dòng ở thẻ Hội thoại"),
     "no_transcript": (
         "No agent events are recorded for this case's trace.",
@@ -753,6 +753,8 @@ _T: dict[str, tuple[str, str]] = {
     "detail": ("Detail", "Chi tiết"),
     "fix": ("How to fix", "Cách sửa"),
     "h_mode": ("Mode", "Chế độ"),
+    "h_mode_sched_on": ("one process · scheduler on", "một tiến trình · bộ lập lịch bật"),
+    "h_mode_sched_off": ("one process · scheduler off", "một tiến trình · bộ lập lịch tắt"),
     "h_identity": ("Identity", "Danh tính"),
     "h_identity_dev": (
         "Not a real identity. The Databricks App uses workspace SSO.",

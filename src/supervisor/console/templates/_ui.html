@@ -16,4 +16,4 @@
 
 {% macro clock(c) %}{% if c and c.text != '-' %}<div class="clockcell">{{ bar(c.used_bp, c.kind) }}<span class="clocktext {{ 'over' if c.overdue else '' }}">{{ clocktext(c) }}</span></div>{% else %}<span class="muted">-</span>{% endif %}{% endmacro %}
 
-{% macro verify_pill(v) %}{% if v %}{% if v.ok %}{{ pill(t('verified_at', time=v.ts|hhmm), 'ok', True) }}{% else %}{{ pill(t('verify_fail'), 'bad', True) }}{% endif %}{% else %}{{ pill(t('not_verified_short'), 'neutral', True) }}{% endif %}{% endmacro %}
+{% macro verify_pill(v) %}{% if v %}{% if v.ok %}{{ pill(t('verified_at', time=v.ts|hhmm), 'ok', True) }}{% else %}{{ pill(t('verify_fail'), 'bad', True) }}{% endif %}{% else %}{{ pill(t('not_verified_short'), 'warn', True) }}{% endif %}{% endmacro %}

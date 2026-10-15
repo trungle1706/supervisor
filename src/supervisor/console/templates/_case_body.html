@@ -6,7 +6,6 @@
       {{ ui.sev(case.severity) }}
       {% for s in h.kinds %}<span class="pill src-{{ s }} {{ 'info' if s == 'gate' else ('teal' if s == 'judge' else 'neutral') }}">{{ t('opened_by_' ~ s) }}</span>{% endfor %}
       <span class="pill neutral" data-status="{{ case.status }}">{{ t(case.status) }}</span>
-      <span class="mono muted" style="font-size:12px">{{ case.case_id }}</span>
     </div>
     <h2>{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ case.summary }}{% endif %}</h2>
     <div class="line">

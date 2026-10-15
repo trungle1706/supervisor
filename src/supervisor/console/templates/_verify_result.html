@@ -6,5 +6,5 @@
 <pre class="excerpt">{{ verify.lines|join('\n') }}</pre>
 {% endif %}
 {% else %}
-<div class="idle-big" data-verify="none">{{ t('not_verified') }}</div>
+<div class="idle-big" data-verify="none" style="background:var(--amber-soft);color:var(--amber)">{{ t('not_verified') }}</div>
 {% endif %}

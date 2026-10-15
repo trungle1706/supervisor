@@ -3,7 +3,6 @@
 {% block title %}{{ t('nav_overview') }}{% endblock %}
 {% block content %}
 {% set g = ov.gate %}
-{% if ov.demo %}<p class="demo-line" data-demo="1"><span class="dot"></span>{{ t('demo_line') }}</p>{% endif %}
 <h1 class="greet" data-greeting="{{ greet_key }}">{{ t(greet_key, name=shell().first_name) }}</h1>
 <p class="greet-sub" id="greet-sub">
   {% if ov.agents_n == 0 %}{{ t('greet_agents_0') }}{% elif ov.agents_n == 1 %}{{ t('greet_agents_1') }}{% else %}{{ t('greet_agents_n', n=ov.agents_n) }}{% endif %}
@@ -38,7 +37,7 @@
     <div class="bignum">{{ ov.cases_n }}{% if ov.critical_n %}<small>{{ t('n_critical', n=ov.critical_n) }}</small>{% endif %}</div>
     <div class="sub">{{ t('num_cases_sub', n=ov.clock_running_n) }}</div>
   </a>
-  <a class="card gold-card" data-num="chain" href="/console/evidence?lang={{ lang }}" style="text-decoration:none;color:inherit">
+  <a class="card" data-num="chain" href="/console/evidence?lang={{ lang }}" style="text-decoration:none;color:inherit">
     <h3>{{ t('chain') }}</h3>
     <div style="margin:4px 0 2px">{{ ui.verify_pill(ov.chain.verify) }}</div>
     <div class="sub">{{ t('n_entries', n=ov.chain.entries) }} · {% if ov.chain.signed %}{{ t('signed_root') }}{% else %}{{ t('no_signed_root') }}{% endif %} · {% if ov.chain.anchored %}{{ t('anchored') }}{% else %}{{ t('not_anchored') }}{% endif %}</div>

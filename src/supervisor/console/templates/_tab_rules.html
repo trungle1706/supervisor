@@ -17,7 +17,7 @@
       <td>{{ v.label or '-' }}</td>
       <td class="n">{{ v.score_bp if v.score_bp is not none else '-' }}</td>
       <td class="n">{{ v.latency_ms if v.latency_ms is not none else '-' }}</td>
-      <td>{{ v.rationale or '-' }}{% if v.regulation_ref %}<div class="idline">{{ v.regulation_ref }}</div>{% endif %}</td>
+      <td class="rat">{{ v.rationale or '-' }}{% if v.regulation_ref %}<div class="idline">{{ v.regulation_ref }}</div>{% endif %}</td>
     </tr>
     {% endfor %}
     </tbody>

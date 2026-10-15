@@ -16,7 +16,7 @@
   <tr data-row="{{ r.name }}">
     <td><strong>{{ t(r.name) }}</strong></td>
     <td>{{ ui.pill(r.status, r.kind) }}</td>
-    <td>{% if r.key %}{{ t(r.key) }}{% endif %}{% if r.detail %}{% if r.key %} · {% endif %}<span class="{{ 'mono' if r.name == 'h_key' else '' }}">{{ r.detail }}</span>{% endif %}{% if r.last_anchor %}{{ t('last_anchor') }} {{ r.last_anchor|day }}{% endif %}</td>
+    <td>{% set parts = [] %}{% if r.name == 'h_mode' and r.detail %}{% set _ = parts.append(r.detail) %}{% endif %}{% if r.key %}{% set _ = parts.append(t(r.key)) %}{% endif %}{{ parts|join(' · ') }}{% if r.detail and r.name != 'h_mode' %}{% if parts %} · {% endif %}<span class="{{ 'mono' if r.name == 'h_key' else '' }}">{{ r.detail }}</span>{% endif %}{% if r.last_anchor %}{{ t('last_anchor') }} {{ r.last_anchor|day }}{% endif %}</td>
   </tr>
   {% endfor %}
   </tbody>

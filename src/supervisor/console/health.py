@@ -8,12 +8,38 @@ token, no secret value is ever shown).
 
 from __future__ import annotations
 
+import re
+import time
 from typing import Any
 
 from supervisor import preflight
 from supervisor.core.errors import ConfigError
 
 STATUS_KIND = {"OK": "ok", "FAIL": "bad", "SKIP": "neutral"}
+LLM_PROBE_TTL_S = 60
+_USERINFO = re.compile(r"(?<=//)[^/@\s]+@")
+
+
+def _clean(text: str) -> str:
+    """preflight.scrub plus URL credentials (https://user:pass@host -> https://***@host)."""
+    return _USERINFO.sub("***@", preflight.scrub(text or ""))
+
+
+_probe: dict[str, Any] = {}
+
+
+def _llm_check(settings: Any) -> preflight.Check:
+    """The LLM endpoint probe (an HTTP GET, 3 s timeout), cached for a minute per URL so a
+    page view does not call the endpoint every time."""
+    key = str(getattr(settings, "llm_base_url", ""))
+    hit = _probe.get(key)
+    now = time.monotonic()
+    if hit is not None and now - hit[0] < LLM_PROBE_TTL_S:
+        return hit[1]
+    check = preflight._check_llm(settings)
+    _probe.clear()
+    _probe[key] = (now, check)
+    return check
 
 
 def local_checks(settings: Any) -> list[preflight.Check]:
@@ -35,7 +61,7 @@ def local_checks(settings: Any) -> list[preflight.Check]:
     if signer is not None:
         checks.append(signer)
     checks.extend(preflight._check_extras())
-    checks.append(preflight._check_llm(settings))
+    checks.append(_llm_check(settings))
     return checks
 
 
@@ -45,7 +71,7 @@ def _row(name: str, status: str, kind: str, detail: str = "", key: str = "") -> 
         "name": name,
         "status": status,
         "kind": kind,
-        "detail": preflight.scrub(detail),
+        "detail": _clean(detail),
         "key": key,
         "last_anchor": None,
     }
@@ -61,7 +87,8 @@ def summary(ctx: Any) -> list[dict[str, Any]]:
             "h_mode",
             s.supervisor_mode,
             "info",
-            f"{store} · one process · scheduler {'on' if s.scheduler_on else 'off'}",
+            store,
+            key="h_mode_sched_on" if s.scheduler_on else "h_mode_sched_off",
         )
     )
     if ctx.provider.name == "dev_header":
@@ -122,8 +149,8 @@ def health(ctx: Any) -> dict[str, Any]:
                 "name": c.name,
                 "status": c.status,
                 "kind": STATUS_KIND.get(c.status, "neutral"),
-                "detail": preflight.scrub(c.detail),
-                "fix": preflight.scrub(c.fix) if c.status != "OK" else "",
+                "detail": _clean(c.detail),
+                "fix": _clean(c.fix) if c.status != "OK" else "",
             }
             for c in checks
         ],

@@ -44,7 +44,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121212; --surface: #1c1c1c; --surface-2: #262626; --fg: #ededea; --muted: #a8a8a2;
+    --bg: #121212; --surface: #1c1c1c; --surface-2: #262626; --fg: #ededea; --muted: #b4b4ae;
     --line: #333331; --ink: #ededea; --ink-fg: #141414;
     --gold: #d8ab45; --gold-mark: #d8ab45; --gold-soft: #3a3118;
     --green: #7cc38a; --green-soft: #1c3324; --amber: #e0a04a; --amber-soft: #3a2a12;
@@ -56,7 +56,7 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121212; --surface: #1c1c1c; --surface-2: #262626; --fg: #ededea; --muted: #a8a8a2;
+  --bg: #121212; --surface: #1c1c1c; --surface-2: #262626; --fg: #ededea; --muted: #b4b4ae;
   --line: #333331; --ink: #ededea; --ink-fg: #141414;
   --gold: #d8ab45; --gold-mark: #d8ab45; --gold-soft: #3a3118;
   --green: #7cc38a; --green-soft: #1c3324; --amber: #e0a04a; --amber-soft: #3a2a12;
@@ -393,6 +393,27 @@ svg.spark line.base { stroke: var(--line); stroke-width: 1; }
   .nav { margin-inline: 0; }
   .greet, .pagehead h1 { font-size: 24px; }
 }
+
+/* ---- WP12 design-review fixes */
+.top { padding-bottom: 10px; }
+.notice { margin-bottom: 8px; }
+.env.demo { background: var(--ink); color: var(--ink-fg); }
+.inboxlink .dotn { background: var(--ink); color: var(--ink-fg); border: 1.5px solid var(--surface); }
+.wstep.now { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.wstep.now b { color: var(--fg); }
+.wstep.todo b { color: var(--muted); }
+.lane .blocks { flex-wrap: nowrap; gap: 2px; overflow: hidden; }
+.bar i { min-width: 6px; }
+.bar.none i { min-width: 0; }
+.case-head { margin-top: 6px; }
+td.rat { min-width: 260px; }
+.pill.neutral { color: var(--fg); background: color-mix(in srgb, var(--fg) 8%, var(--surface)); }
+.mono.wrap, td.wrap { overflow-wrap: anywhere; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body { background-image: radial-gradient(900px 420px at 12% -6%, color-mix(in srgb, var(--brand) 9%, #121212), transparent 70%); }
+}
+:root[data-theme="dark"] body { background-image: radial-gradient(900px 420px at 12% -6%, color-mix(in srgb, var(--brand) 9%, #121212), transparent 70%); }
+
 @media print {
   body { background: #fff; }
   .top, .notice, .tabs, .decide, footer.foot { display: none; }

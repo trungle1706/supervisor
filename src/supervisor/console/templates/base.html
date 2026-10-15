@@ -52,7 +52,7 @@
     </details>
   </div>
 </header>
-{% if auth_kind == 'dev_header' %}<div class="notice"><span class="dot"></span>{{ t('dev_banner') }}</div>{% endif %}
+{% if auth_kind == 'dev_header' or sh.demo %}<div class="notice"{% if sh.demo %} data-demo="1"{% endif %}><span class="dot"></span>{% if auth_kind == 'dev_header' %}{{ t('dev_banner') }}{% endif %}{% if sh.demo %} {{ t('demo_line') }}{% endif %}</div>{% endif %}
 {% if me.kind == 'service_principal' %}<div class="notice sp"><span class="dot"></span>{{ t('sp_banner') }}</div>{% endif %}
 <main id="main">
   <div id="flash" aria-live="polite"></div>

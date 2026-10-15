@@ -189,6 +189,18 @@ RISK_WORD = {
 # ---------------------------------------------------------------------------- overview
 
 
+def stop_verdicts(ctx: Any, limit: int) -> list[dict[str, Any]]:
+    """Newest tier-0 block / pause verdicts (queried by action, so allow rows never crowd
+    them out of the scan), newest first."""
+    rows = []
+    for action in STOP_ACTIONS:
+        rows += ctx.tables.query(
+            "verdict", {"tier": 0, "action": action}, order_by=("-ts",), limit=limit
+        )
+    rows.sort(key=lambda v: v["ts"], reverse=True)
+    return rows[:limit]
+
+
 def gate_today(ctx: Any, now: dt.datetime) -> dict[str, Any]:
     """Gate decisions of the ICT day: checked, stopped (blocked / paused), latencies."""
     start = day_start(now)
@@ -197,7 +209,7 @@ def gate_today(ctx: Any, now: dt.datetime) -> dict[str, Any]:
     )
     today = [e for e in events if e["ts"] >= start]
     capped = len(events) >= SCAN_CAP and len(today) == len(events)
-    verdicts = ctx.tables.query("verdict", {"tier": 0}, order_by=("-ts",), limit=SCAN_CAP)
+    verdicts = stop_verdicts(ctx, SCAN_CAP)
     stops: dict[str, str] = {}
     for v in verdicts:
         if v["ts"] < start or v["advisory"] or v["action"] not in STOP_ACTIONS:
@@ -263,7 +275,7 @@ def latest_decisions(ctx: Any, limit: int = 6) -> list[dict[str, Any]]:
         )
     }
     stop_ids: list[str] = []
-    for v in ctx.tables.query("verdict", {"tier": 0}, order_by=("-ts",), limit=500):
+    for v in stop_verdicts(ctx, 500):
         if v["action"] in STOP_ACTIONS and not v["advisory"] and v.get("event_id"):
             if v["event_id"] not in stop_ids:
                 stop_ids.append(v["event_id"])

@@ -27,7 +27,7 @@ from supervisor.core.errors import SupervisorError
 
 log = logging.getLogger("supervisor.console")
 
-AGENT_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+AGENT_RE = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,63}$")
 # What a run writes (supervisor.onboard.run.ARTEFACTS); the console serves only these.
 ARTEFACTS = (
     "inventory.json",
@@ -68,8 +68,10 @@ class OnboardJob:
     lines: list[str] = field(default_factory=list)
 
     def say(self, line: str) -> None:
+        from supervisor.preflight import scrub
+
         if len(self.lines) < MAX_LINES:
-            self.lines.append(line)
+            self.lines.append(scrub(str(line))[:500])
 
 
 def onboard_root(settings: Any) -> Path:
@@ -84,11 +86,13 @@ def resolve_target(raw: str) -> Path:
     p = Path(text)
     if not p.is_absolute():
         p = REPO_ROOT / p
-    p = Path(os.path.abspath(p))
+    p = Path(os.path.realpath(p))  # symlinks resolved before any check
     if not p.is_dir():
         raise OnboardInputError(f"folder not found: {text}")
     if p.parent == p:
         raise OnboardInputError("choose the agent's folder, not a drive root")
+    if not any((d / ".git").exists() for d in (p, *p.parents)):
+        raise OnboardInputError("the agent folder must be inside a git repository")
     if not AGENT_RE.match(p.name):
         raise OnboardInputError("the agent folder name may use letters, digits, _ . - only")
     return p
@@ -118,10 +122,12 @@ class OnboardRunner:
         return None
 
     def start(self, ctx: Any, target: Path, actor: Any, *, chat: Any | None = None) -> OnboardJob:
+        if self.running() is not None:
+            raise OnboardInputError("an onboarding run is already in progress; wait for it")
+        chat = chat or pick_chat(ctx.settings)  # may probe the LLM: outside the lock
         with self._lock:
             if any(j.status == "running" for j in self._jobs.values()):
                 raise OnboardInputError("an onboarding run is already in progress; wait for it")
-            chat = chat or pick_chat(ctx.settings)
             job = OnboardJob(
                 key=uuid.uuid4().hex[:12],
                 target=str(target),
@@ -158,16 +164,20 @@ class OnboardRunner:
                 echo=job.say,
             )
             job.go = bool(result.launch.go)
+            job.finished_at = ctx.clock.now()
             job.status = "done"
         except Exception as exc:  # noqa: BLE001 - a failed run is shown, never a crash
-            job.status = "failed"
-            job.error = (
-                f"{type(exc).__name__}: {str(exc).splitlines()[0][:300] if str(exc) else ''}"
-            )
+            from supervisor.preflight import scrub
+
+            first = str(exc).splitlines()[0][:300] if str(exc) else ""
+            job.error = scrub(f"{type(exc).__name__}: {first}")
             job.say(f"[FAIL] {job.error}")
+            job.finished_at = ctx.clock.now()
+            job.status = "failed"
             log.warning("console onboarding run failed: %s", type(exc).__name__)
         finally:
-            job.finished_at = ctx.clock.now()
+            if job.finished_at is None:
+                job.finished_at = ctx.clock.now()
 
 
 def pick_chat(settings: Any) -> Any:
@@ -258,7 +268,12 @@ def last_runs(settings: Any, limit: int = 3) -> list[dict[str, Any]]:
     if not root.is_dir():
         return []
     dirs = [d for d in root.iterdir() if d.is_dir() and AGENT_RE.match(d.name)]
-    runs = [run_summary(d) for d in dirs]
+    runs = []
+    for d in dirs:
+        try:
+            runs.append(run_summary(d))
+        except (AttributeError, TypeError, ValueError, KeyError):  # a hand-edited artefact
+            log.warning("onboard artefacts in %s are not readable; skipped", d.name)
     runs = [r for r in runs if r["files"]]
     runs.sort(key=lambda r: r["updated"] or dt.datetime.min.replace(tzinfo=dt.UTC), reverse=True)
     return runs[:limit]
