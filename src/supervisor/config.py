@@ -230,9 +230,6 @@ class Settings(BaseSettings):
     capture_default_level: Literal["digest", "masked"] = "masked"  # agents with no manifest
     otlp_max_body_bytes: int = Field(default=4_000_000, ge=1024)
     otlp_max_spans: int = Field(default=5000, ge=1)
-    # WP15: map OpenTelemetry GenAI semantic-convention names (gen_ai.*) in the normaliser
-    # (supervisor.recorder.semconv). Our own supervisor.* names always win.
-    recorder_semconv: bool = True
     # Set by the loader (never by you): the Volume DATA_DIR that was not mounted (App only).
     data_dir_requested: str | None = Field(default=None, exclude=True)
     recorder_spool_dir: Path | None = Field(  # default: <data_dir>/spool
@@ -249,11 +246,6 @@ class Settings(BaseSettings):
     console_lang: Literal["en", "vi"] = "en"  # default UI language (?lang= overrides)
     console_export_dir: Path | None = None  # audit packs; default: <data_dir>/exports
     console_onboard_enabled: bool = False  # WP12: Onboard "Start" in the console (new: off)
-    # WP15: Integration advisor. Console tab (reads reports from INTEGRATION_REPORTS_DIR,
-    # default <data_dir>/integration) and the advisor as a run_onboarding stage. Both off.
-    console_integration_enabled: bool = False
-    integration_reports_dir: Path | None = None
-    onboard_advisor_enabled: bool = False
     notify_webhook_enabled: bool = False  # new feature: off by default (inbox always on)
     notify_webhook_url: str = ""  # stub: notices are queued, never sent (bank ITSM, WP11)
     # Monitors and in-process scheduler (WP7, ADR D09/D10). Every monitor is off by
@@ -289,6 +281,15 @@ class Settings(BaseSettings):
     # ADR D10: a handoff tool call (context handoff=true) without caller_agent_id fails
     # closed for money / credit / pii_export tools. Off by default.
     require_caller_id: bool = False
+
+    # WP15 integration advisor. Console tab "Integration" (reads reports from
+    # INTEGRATION_REPORTS_DIR, default <data_dir>/integration) and the advisor as a
+    # run_onboarding stage: both off. RECORDER_SEMCONV maps OpenTelemetry GenAI names
+    # (gen_ai.*) in the normaliser (supervisor.recorder.semconv); supervisor.* names win.
+    console_integration_enabled: bool = False
+    integration_reports_dir: Path | None = None
+    onboard_advisor_enabled: bool = False
+    recorder_semconv: bool = True
 
     # WP18 enterprise readiness. Pure additions are on by default (health, security
     # headers, request id, console audit rows); anything that changes phase-1 behaviour
