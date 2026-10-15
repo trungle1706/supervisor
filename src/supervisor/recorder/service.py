@@ -56,7 +56,8 @@ def build_recorder(
         from supervisor.databricks.files import make_spool
 
         spool = make_spool(settings)
-    return Recorder(Normaliser(masker, policy, "dev"), EventWriter(tables, spool))
+    normaliser = Normaliser(masker, policy, "dev", use_semconv=settings.recorder_semconv)
+    return Recorder(normaliser, EventWriter(tables, spool))
 
 
 _LOCK = threading.Lock()
