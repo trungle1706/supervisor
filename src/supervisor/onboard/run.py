@@ -82,6 +82,12 @@ ARTEFACTS = (
     "baseline.json",
     "handover.json",
 )
+# WP14: written only when ONBOARD_COMPLIANCE_ENABLED=1 (not part of ARTEFACTS: off path unchanged)
+COMPLIANCE_ARTEFACTS = (
+    "compliance_matrix.json",
+    "compliance_matrix.md",
+    "compliance_matrix.html",
+)
 
 
 # Written only when assurance ran in Launch (ASSURANCE_LAUNCH_ENABLED); not in ARTEFACTS.
@@ -243,6 +249,44 @@ def run_onboarding(
             chain.close()
         if owns:
             adapters.close()
+
+
+def _compliance(
+    inv: Inventory,
+    profile: AgentProfile,
+    mp: MonitoringPlan,
+    texts: Mapping[str, str],
+    chat: ChatModel,
+    settings: Settings,
+    write: Callable[[str, str, str], None],
+    say: Callable[[str], None],
+) -> None:
+    from supervisor.advisory.compliance import from_onboard
+    from supervisor.advisory.compliance.matrix import build_matrix
+    from supervisor.advisory.compliance.render import to_html, to_json, to_markdown
+    from supervisor.regkb import load_kb
+
+    product = from_onboard(
+        inv,
+        profile,
+        plan=mp,
+        policy_texts=[("policy.yaml", texts["policy.yaml"])],
+        basis="planned",
+    )
+    internal = Path(settings.regkb_internal_dir) if settings.regkb_internal_dir else None
+    kb = load_kb(internal_dir=internal)
+    matrix = build_matrix(kb, product, chat=chat)
+    write("compliance_matrix.json", to_json(matrix), "comply")
+    write("compliance_matrix.md", to_markdown(matrix), "comply")
+    write("compliance_matrix.html", to_html(matrix), "comply")
+    s = matrix.summary
+    by = s["by_status"]
+    say(
+        f"[OK] compliance: {matrix.header.obligations} obligations, "
+        f"{s['by_applies']['yes']} apply, {s['needs_answer']} need an answer, "
+        f"{by['gap']} gap, {s['questions']} question(s), "
+        f"Decision 33 {matrix.decision33.classification} (advisory; not legal advice)"
+    )
 
 
 def _stages(
@@ -416,6 +460,13 @@ def _stages(
                 f"[OK] advise: readiness {advice.report.readiness.total}/100, "
                 f"{len(advice.patches)} patch(es) (never applied)"
             )
+
+    # 5c Comply (WP14, off by default): advisory compliance matrix of the planned product --
+    if adapters.settings.onboard_compliance_enabled:
+        try:  # optional stage: a failure is reported, the run goes on
+            _compliance(inv, profile, mp, texts, chat, adapters.settings, write, say)
+        except Exception as exc:  # noqa: BLE001
+            say(f"[SKIP] comply: {type(exc).__name__}: {str(exc)[:200]}")
 
     # 6 Operate ---------------------------------------------------------------------
     record = handover(inv, profile, mp, inst, report, agent.artefacts, run_id=agent.run_id)

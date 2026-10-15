@@ -44,6 +44,10 @@ ARTEFACTS = (
     "launch_report.md",
     "baseline.json",
     "handover.json",
+    # WP14 launch pack (only present when ONBOARD_COMPLIANCE_ENABLED=1)
+    "compliance_matrix.json",
+    "compliance_matrix.md",
+    "compliance_matrix.html",
 )
 MAX_LINES = 400
 

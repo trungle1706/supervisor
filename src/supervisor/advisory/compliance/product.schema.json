@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Supervisor compliance advisor: product questionnaire / Phiếu thông tin sản phẩm",
+  "type": "object",
+  "required": [
+    "product_id",
+    "name"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "product_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200,
+      "description": "Required. Short stable id of the product (letters, digits, dot, dash, underscore). / Bắt buộc. Mã ngắn, ổn định của sản phẩm (chữ, số, dấu chấm, gạch)."
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200,
+      "description": "Required. Product name. / Bắt buộc. Tên sản phẩm."
+    },
+    "version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200,
+      "description": "Product version, for example 1.0.0. / Phiên bản sản phẩm, ví dụ 1.0.0."
+    },
+    "owner_team": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200,
+      "description": "Team that owns the product. / Đơn vị sở hữu sản phẩm."
+    },
+    "purpose": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2000,
+      "description": "What the product does, in one or two sentences. / Sản phẩm làm gì, trong một hai câu."
+    },
+    "agent_classes": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "enum": [
+          "customer_facing",
+          "credit_decision",
+          "payment",
+          "internal_tool"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "All classes that fit the product. payment: it moves money. credit_decision: it scores or decides credit. customer_facing: it talks to customers. internal_tool: staff use only. Blank = unknown; [] = none. / Mọi loại phù hợp. payment: chuyển tiền. credit_decision: chấm điểm hoặc quyết định tín dụng. customer_facing: giao tiếp với khách hàng. internal_tool: chỉ nhân viên dùng. Để trống = chưa biết; [] = không có."
+    },
+    "data_classes": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "enum": [
+          "personal",
+          "sensitive_personal",
+          "financial",
+          "biometric",
+          "core_data",
+          "important_data"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "All data classes the product handles. Blank = unknown; [] = none. / Mọi loại dữ liệu sản phẩm xử lý. Để trống = chưa biết; [] = không có."
+    },
+    "autonomy": {
+      "enum": [
+        "advisory",
+        "acts_with_approval",
+        "acts_autonomously",
+        null
+      ],
+      "description": "advisory: only suggests. acts_with_approval: acts after a human approves. acts_autonomously: acts without a human step. / advisory: chỉ gợi ý. acts_with_approval: hành động sau khi người duyệt. acts_autonomously: tự hành động, không có bước người duyệt."
+    },
+    "cross_border": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "true if data or the model call leaves Vietnam. / true nếu dữ liệu hoặc lệnh gọi mô hình ra khỏi Việt Nam."
+    },
+    "model_hosting": {
+      "enum": [
+        "on_prem",
+        "domestic_cloud",
+        "foreign_cloud",
+        null
+      ],
+      "description": "Where the AI model runs. / Nơi mô hình AI chạy."
+    },
+    "roles": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "enum": [
+          "deployer",
+          "provider"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "deployer: the bank runs it. provider: the bank also builds or sells it. Blank = unknown. / deployer: ngân hàng vận hành. provider: ngân hàng cũng phát triển hoặc cung cấp. Để trống = chưa biết."
+    },
+    "customer_facing": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "true if customers use the product directly. / true nếu khách hàng dùng trực tiếp sản phẩm."
+    },
+    "decisions_affecting_customers": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "true if the product makes or shapes decisions that affect customers. / true nếu sản phẩm đưa ra hoặc định hướng quyết định ảnh hưởng đến khách hàng."
+    },
+    "customer_types": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "enum": [
+          "individual",
+          "organisation"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Who the customers are: individual, organisation, or both. The Decision 33 and Circular 53 money lines differ by type. Blank = unknown. / Khách hàng là ai: individual (cá nhân), organisation (tổ chức) hoặc cả hai. Ngưỡng tiền theo Quyết định 33 và Thông tư 53 khác nhau theo loại. Để trống = chưa biết."
+    },
+    "executes_payments": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "true if the product itself creates and executes payments. / true nếu sản phẩm tự tạo và thực hiện giao dịch thanh toán."
+    },
+    "human_approval_before_execution": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "true if a human inspects or approves each payment before it runs. A pause after the payment ran does not count. / true nếu có người kiểm tra hoặc phê duyệt từng giao dịch trước khi thực hiện. Tạm dừng sau khi giao dịch đã chạy thì không tính."
+    },
+    "credit_decisions": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "true if the product decides or records credit decisions (approve, reject, disburse). / true nếu sản phẩm quyết định hoặc ghi nhận quyết định tín dụng (duyệt, từ chối, giải ngân)."
+    },
+    "independent_credit_approval": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "true if a credit officer approves independently before the decision takes effect. / true nếu cán bộ tín dụng phê duyệt độc lập trước khi quyết định có hiệu lực."
+    },
+    "max_transaction_vnd": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "Largest single payment the product can execute, whole VND (integer). Circular 53/2026 Art. 4(2)(a) calls a payment high value when an individual customer pays more than 10,000,000 VND per transaction or more than 20,000,000 VND per day, or an organisation pays more than 50,000,000 VND per transaction or more than 100,000,000 VND per day. / Giao dịch lớn nhất mà sản phẩm có thể thực hiện, đồng (số nguyên). Thông tư 53/2026 Điều 4(2)(a): giao dịch giá trị cao là khách hàng cá nhân trên 10.000.000 đồng một giao dịch hoặc trên 20.000.000 đồng một ngày; tổ chức trên 50.000.000 đồng một giao dịch hoặc trên 100.000.000 đồng một ngày."
+    },
+    "max_daily_vnd": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "Largest total per customer per day, whole VND (integer). Circular 53/2026 Art. 4(2)(a) calls a payment high value when an individual customer pays more than 10,000,000 VND per transaction or more than 20,000,000 VND per day, or an organisation pays more than 50,000,000 VND per transaction or more than 100,000,000 VND per day. Art. 5(1)(g)(ii) caps a day at 100,000,000 VND for an individual and 500,000,000 VND for an organisation. / Tổng lớn nhất mỗi khách hàng mỗi ngày, đồng (số nguyên). Thông tư 53/2026 Điều 4(2)(a): giao dịch giá trị cao là khách hàng cá nhân trên 10.000.000 đồng một giao dịch hoặc trên 20.000.000 đồng một ngày; tổ chức trên 50.000.000 đồng một giao dịch hoặc trên 100.000.000 đồng một ngày. Điều 5(1)(g)(ii) giới hạn một ngày ở mức 100.000.000 đồng với cá nhân và 500.000.000 đồng với tổ chức."
+    },
+    "max_credit_vnd": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "Largest credit amount the product can process, whole VND (integer). Circular 53/2026 Art. 4(2)(b): credit of 50,000,000 VND or more is high value. / Khoản tín dụng lớn nhất sản phẩm có thể xử lý, đồng (số nguyên). Thông tư 53/2026 Điều 4(2)(b): tín dụng từ 50.000.000 đồng trở lên là giá trị cao."
+    },
+    "in_operation_since": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date",
+      "description": "Date the product went live (YYYY-MM-DD). It decides which transition date of Circular 53 Art. 24 and AI Law Art. 35 applies. / Ngày sản phẩm đưa vào vận hành (YYYY-MM-DD). Ngày này quyết định mốc chuyển tiếp nào của Thông tư 53 Điều 24 và Luật AI Điều 35 áp dụng."
+    },
+    "controls": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "description": "Supervisor controls the product has. If this block is absent the advisor treats the controls as unknown and asks / Các kiểm soát Supervisor của sản phẩm. Nếu không có khối này, công cụ coi là chưa biết và đặt câu hỏi.",
+      "properties": {
+        "supervised": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "true if the product is registered with Supervisor (gateway, recorder, evidence chain). / true nếu sản phẩm đã đăng ký với Supervisor (cổng, ghi nhận, chuỗi bằng chứng)."
+        },
+        "catalogue": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "Ids of Supervisor catalogue capabilities that are on (for example single_limit). / Mã các năng lực trong danh mục Supervisor đang bật (ví dụ single_limit)."
+        },
+        "rules": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Gate rules the product has: a list of {id, description}. / Các quy tắc cổng của sản phẩm: danh sách {id, description}."
+        },
+        "policy_files": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "Policy YAML files (paths relative to this file) to read rule ids and limits from. / Tệp chính sách YAML (đường dẫn tương đối so với tệp này) để đọc mã quy tắc và hạn mức."
+        },
+        "monitors": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "enum": [
+              "drift",
+              "fairness",
+              "multiagent",
+              "oversight",
+              "quality",
+              "sweeps"
+            ]
+          },
+          "uniqueItems": true,
+          "description": "Monitors that run for the product (names from regulations/schema/controls.yaml). / Các bộ giám sát đang chạy cho sản phẩm (tên trong regulations/schema/controls.yaml)."
+        },
+        "evidence": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "enum": [
+              "agent_event_log",
+              "agent_registry",
+              "agent_version",
+              "anchor",
+              "audit_pack",
+              "case_file",
+              "chain_verify_report",
+              "coverage_rows",
+              "evidence_chain",
+              "fairness_slice",
+              "handover",
+              "launch_report",
+              "onboard_plan",
+              "onboard_profile",
+              "oversight_metric",
+              "policy_baseline",
+              "signoff_record",
+              "verdict_log"
+            ]
+          },
+          "uniqueItems": true,
+          "description": "Evidence artefacts the product produces beyond the standard ones. / Các bằng chứng sản phẩm tạo ra ngoài các bằng chứng chuẩn."
+        }
+      }
+    }
+  }
+}
