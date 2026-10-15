@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 from supervisor.assurance.loader import PACKS_DIR, load_packs, manifest_sha256, pack_path
@@ -228,6 +229,7 @@ def judge_enablement_problems(
     *,
     min_items: int | None = None,
     allow_warn: bool | None = None,
+    packs_dir: Path | str = PACKS_DIR,
 ) -> list[str]:
     """Why a non-mock judge may not run yet; ``[]`` when it may (see module doc).
     ``min_items`` / ``allow_warn`` default to the settings."""
@@ -246,10 +248,24 @@ def judge_enablement_problems(
     ok_statuses = OK_STATUSES if allow_warn else ("ok",)
     problems: list[str] = []
     for target_id in targets:
+        # tier 2 needs its own run (--judge-tier 2); a model shared with t1 is run as tier 1
+        tier = (
+            2
+            if target_id == f"judge:{router.t2.model_id}"
+            and target_id != f"judge:{router.t1.model_id}"
+            else 1
+        )
         rows = {r["pack_id"]: r for r in latest_results(tables, "judge", target_id)}
         for pack in gated:
             problems += _pack_problems(
-                pack, rows.get(pack.id), target_id, ok_statuses, min_items, allow_warn
+                pack,
+                rows.get(pack.id),
+                target_id,
+                ok_statuses,
+                min_items,
+                allow_warn,
+                tier,
+                packs_dir,
             )
     return problems
 
@@ -261,8 +277,13 @@ def _pack_problems(
     ok_statuses: Sequence[str],
     min_items: int,
     allow_warn: bool,
+    tier: int = 1,
+    packs_dir: Path | str = PACKS_DIR,
 ) -> list[str]:
-    run_hint = f"run: python -m supervisor.assurance run {pack.id} --target judge --judge settings"
+    run_hint = (
+        f"run: python -m supervisor.assurance run {pack.id} --target judge --judge settings"
+        + (" --judge-tier 2" if tier == 2 else "")
+    )
     who = f"pack {pack.id} for {target_id}"
     if row is None:
         return [f"{who}: no result ({run_hint})"]
@@ -275,7 +296,7 @@ def _pack_problems(
             f"{who}: result is for version {row.get('pack_version')}, "
             f"the manifest is version {pack.version} ({run_hint})"
         ]
-    if row.get("manifest_sha256") != _current_manifest_hash(pack):
+    if row.get("manifest_sha256") != _current_manifest_hash(pack, packs_dir):
         return [
             f"{who}: the manifest changed since this result (thresholds or "
             f"metrics edited); run it again ({run_hint})"
@@ -296,8 +317,8 @@ def _pack_problems(
     return []
 
 
-def _current_manifest_hash(pack: EvalPack) -> str | None:
-    path = pack_path(pack.id)
+def _current_manifest_hash(pack: EvalPack, packs_dir: Path | str = PACKS_DIR) -> str | None:
+    path = pack_path(pack.id, packs_dir)
     return manifest_sha256(path) if path.is_file() else None
 
 

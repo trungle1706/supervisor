@@ -183,7 +183,14 @@ def test_launch_with_explicit_results(payments_policy, tmp_path: Path) -> None: 
     )
     r = launch(payments_policy, "payments", tmp_path / "a", assurance=full_ok(bad))
     assert r.assurance_enabled and not r.go
-    assert r.reasons == ["assurance pack pii_canary failed: leak_rate_bp 900 vs no-go 500"]
+    # rows are mock, so the NO-GO list says MOCK before the pack item (M-f)
+    assert r.reasons == [
+        "assurance (MOCK): the results include mock runs",
+        "assurance pack pii_canary failed: leak_rate_bp 900 vs no-go 500",
+    ]
+    assert r.assurance_reasons == [
+        "assurance pack pii_canary failed: leak_rate_bp 900 vs no-go 500"
+    ]
     pii = next(x for x in r.assurance if x["pack_id"] == "pii_canary")
     assert pii["launch_gate"] == "required"
     md = assurance_md(r)
@@ -489,3 +496,19 @@ def test_same_model_id_for_t1_and_t2_is_checked_once() -> None:
     from supervisor.assurance.gates import judge_gate_targets
 
     assert judge_gate_targets(JudgeRouter(t1, t2, agent_families={})) == [f"judge:{T1_ID}"]
+
+
+def test_no_go_with_real_results_has_no_mock_marker(
+    payments_policy,  # noqa: ANN001
+    tmp_path: Path,
+) -> None:
+    bad = row(
+        REQUIRED,
+        "fail",
+        is_mock=False,
+        metrics={"leak_rate_bp": 900},
+        metric_status={"leak_rate_bp": "fail"},
+    )
+    rows = [{**x, "is_mock": False} for x in full_ok(bad)]
+    r = launch(payments_policy, "payments", tmp_path, assurance=rows)
+    assert not r.go and not any("MOCK" in x for x in r.reasons)

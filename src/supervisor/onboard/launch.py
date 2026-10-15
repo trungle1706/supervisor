@@ -278,6 +278,7 @@ def _with_assurance(
 ) -> LaunchReport:
     """Add the assurance NO-GO reasons (gates.py) and a compact summary to ``report``."""
     from supervisor.assurance.gates import (
+        MOCK_ONLY_ITEM,
         assurance_launch_items,
         assurance_mock_items,
         assurance_mock_state,
@@ -308,7 +309,13 @@ def _with_assurance(
     summary.sort(key=lambda x: (x["pack_id"], x["target_id"]))
     reasons = list(report.reasons)
     if items:
-        reasons = ([] if report.go else reasons) + items
+        # NO-GO items on a run with mock results say MOCK too (the mock-only item says it itself)
+        marker = (
+            ["assurance (MOCK): the results include mock runs"]
+            if mock_state != "none" and MOCK_ONLY_ITEM not in items
+            else []
+        )
+        reasons = ([] if report.go else reasons) + marker + items
     elif report.go:
         reasons.append(f"{label}: {len(summary)} pack result(s), no required pack blocks Launch")
     return report.model_copy(

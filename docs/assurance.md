@@ -248,6 +248,23 @@ shows the command to run:
 python -m supervisor.assurance run all --target judge --judge settings --out out\judge
 ```
 
+How to validate the tier-2 model: the command in the refusal hint differs per tier. Tier 1
+(the default) evaluates the configured tier-1 model; `--judge-tier 2` makes the configured
+tier-2 model the judge under test (it answers every judge call of the pack) and stores its
+rows under `judge:<t2 model id>`:
+
+```bat
+python -m supervisor.assurance run all --target judge --judge settings --out out\judge-t1
+python -m supervisor.assurance run all --target judge --judge settings --judge-tier 2 --out out\judge-t2
+```
+
+If t1 and t2 are the same model id, the tier-1 run covers both. Without the tier-2 run the
+gate refuses and names `judge:<t2 model id>`.
+
+Launch NO-GO reasons also say MOCK: when assurance items make Launch NO-GO and any result is
+mock, the reasons list starts the assurance part with `assurance (MOCK): the results include
+mock runs`.
+
 Note for the default size rule: the shipped synthetic sets of `halueval_vi` (40 items) and
 `perturbation_vi` (20 items) are below 50. A real judge therefore needs bank data
 (`bank_supplied_path`) of at least 50 items for those packs, or the bank lowers
