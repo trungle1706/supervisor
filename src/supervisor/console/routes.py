@@ -37,7 +37,7 @@ from supervisor.cases.service import (
     PermissionDenied,
     require,
 )
-from supervisor.console import auditpack, views
+from supervisor.console import auditpack, readmodels, views
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.core.canonical import format_ts
@@ -55,6 +55,16 @@ STATIC = {
     "console.css": "text/css",
     "htmx.LICENSE.txt": "text/plain",
 }
+FONTS = (
+    "plus-jakarta-sans-latin.woff2",
+    "plus-jakarta-sans-latin-ext.woff2",
+    "plus-jakarta-sans-vietnamese.woff2",
+    "jetbrains-mono-latin.woff2",
+    "jetbrains-mono-latin-ext.woff2",
+    "jetbrains-mono-vietnamese.woff2",
+    "OFL-PlusJakartaSans.txt",
+    "OFL-JetBrainsMono.txt",
+)
 LANG_COOKIE = "sv_lang"
 MAX_FORM_BYTES = 64 * 1024
 _ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
@@ -77,6 +87,9 @@ _env = Environment(
 _env.filters["utc"] = fmt_utc
 _env.filters["ict"] = fmt_ict
 _env.filters["metric"] = lambda v, name="": views.metric_cell(name, v)
+_env.filters["hhmm"] = readmodels.hhmm
+_env.filters["hhmmss"] = lambda v: readmodels.hhmm(v, seconds=True)
+_env.filters["vnd"] = lambda v: "-" if v is None else f"{int(v):,}"
 
 
 def ctx_dep() -> ConsoleContext:
@@ -111,8 +124,18 @@ def render(
     **data: Any,
 ) -> HTMLResponse:
     lang = _lang(request, ctx)
+    cache: dict[str, Any] = {}
+
+    def shell() -> dict[str, Any]:  # header data, computed only when a full page asks
+        if "v" not in cache:
+            cache["v"] = readmodels.shell(ctx, me)
+        return cache["v"]
+
+    data.setdefault("section", "")
     body = _env.get_template(template).render(
         t=translator(lang),
+        dur=lambda secs: views.duration_text(secs, lang),
+        shell=shell,
         lang=lang,
         other_lang="vi" if lang == "en" else "en",
         me=me,
@@ -184,6 +207,16 @@ async def _call(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
 
 
 # ---------------------------------------------------------------------------- static
+
+
+@router.get("/static/fonts/{name}")
+def static_font(name: str) -> Response:
+    if name not in FONTS:
+        return Response("not found", status_code=404, media_type="text/plain")
+    media = "font/woff2" if name.endswith(".woff2") else "text/plain"
+    resp = FileResponse(HERE / "static" / "fonts" / name, media_type=media)
+    resp.headers["cache-control"] = "public, max-age=604800"
+    return resp
 
 
 @router.get("/static/{name}")

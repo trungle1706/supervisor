@@ -136,17 +136,56 @@ _T: dict[str, tuple[str, str]] = {
     "triaged": ("triaged", "đã phân loại"),
     "contained": ("contained", "đã ngăn chặn"),
     "language": ("Tiếng Việt", "English"),
+    # ---- WP12 shell
+    "tagline": ("Onboard · Watch · Prove", "Tiếp nhận · Giám sát · Chứng minh"),
+    "nav_label": ("Main sections", "Các mục chính"),
+    "nav_overview": ("Overview", "Tổng quan"),
+    "nav_evidence": ("Evidence", "Bằng chứng"),
+    "nav_onboard": ("Onboard", "Tiếp nhận"),
+    "nav_health": ("Health", "Sức khỏe"),
+    "env_title": (
+        "Where Supervisor runs, and whether this is a demo store",
+        "Nơi Supervisor đang chạy, và đây có phải kho dữ liệu demo không",
+    ),
+    "demo_data": ("demo data", "dữ liệu demo"),
+    "theme_toggle": ("Switch light / dark", "Đổi giao diện sáng / tối"),
+    "auth_method": ("Sign-in method", "Cách đăng nhập"),
+    "mode": ("mode", "chế độ"),
+    "role_admin": ("admin", "quản trị"),
+    "role_approver": ("approver", "người phê duyệt"),
+    "role_reviewer": ("reviewer", "người duyệt"),
+    "role_owner": ("owner", "chủ sở hữu"),
+    "role_auditor": ("auditor", "kiểm toán"),
+    "role_service": ("service", "dịch vụ"),
+    "role_viewer": ("viewer", "người xem"),
 }
 
 
-def translator(lang: str) -> Callable[[str], str]:
+def translator(lang: str) -> Callable[..., str]:
+    """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
+    back unchanged, so a template never fails on a label."""
     idx = 1 if lang == "vi" else 0
 
-    def t(key: str) -> str:
+    def t(key: str, **kw: object) -> str:
         pair = _T.get(key)
-        return pair[idx] if pair else key
+        text = pair[idx] if pair else key
+        if kw:
+            try:
+                return text.format(**kw)
+            except (KeyError, IndexError, ValueError):
+                return text
+        return text
 
     return t
+
+
+def keys() -> list[str]:
+    return sorted(_T)
+
+
+def table() -> dict[str, tuple[str, str]]:
+    """Both dictionaries (tests check every key has an English and a Vietnamese text)."""
+    return dict(_T)
 
 
 def pick_lang(query: str | None, cookie: str | None, default: str) -> str:

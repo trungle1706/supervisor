@@ -1,0 +1,19 @@
+{# Small building blocks shared by every screen (import "_ui.html" as ui with context).
+   Status is always a word in a coloured pill, never colour alone. #}
+{% macro purpose(main, why) %}
+<div class="purpose"><p>{{ main }}</p>{% if why %}<p class="why">{{ why }}</p>{% endif %}</div>
+{% endmacro %}
+
+{% macro pill(text, kind='neutral', dot=False) %}<span class="pill {{ kind }}">{% if dot %}<span class="dot"></span>{% endif %}{{ text }}</span>{% endmacro %}
+
+{% macro sev(s) %}{{ pill(t(s), {'critical': 'crit', 'high': 'bad', 'medium': 'warn', 'low': 'neutral'}.get(s, 'neutral')) }}{% endmacro %}
+
+{% macro state_pill(state, detail=None) %}<span class="pill {{ {'RUNNING': 'ok', 'SHADOW': 'teal', 'PAUSED': 'warn', 'QUARANTINED': 'bad'}.get(state, 'neutral') }}"><span class="dot"></span>{{ state }}{% if detail %} · {{ detail }}{% endif %}</span>{% endmacro %}
+
+{% macro bar(bp, kind='') %}<div class="bar {{ kind }}" role="img" aria-label="{{ (bp or 0) // 100 }}%"><i style="width:{{ [[(bp or 0) // 100, 0]|max, 100]|min }}%"></i></div>{% endmacro %}
+
+{% macro clocktext(c) %}{% if c.overdue %}{{ t('overdue_by', d=dur(c.secs)) }}{% else %}{{ t('time_left', d=dur(c.secs)) }}{% endif %}{% endmacro %}
+
+{% macro clock(c) %}{% if c and c.text != '-' %}<div class="clockcell">{{ bar(c.used_bp, c.kind) }}<span class="clocktext {{ 'over' if c.overdue else '' }}">{{ clocktext(c) }}</span></div>{% else %}<span class="muted">-</span>{% endif %}{% endmacro %}
+
+{% macro verify_pill(v) %}{% if v %}{% if v.ok %}{{ pill(t('verified_at', time=v.ts|hhmm), 'ok', True) }}{% else %}{{ pill(t('verify_fail'), 'bad', True) }}{% endif %}{% else %}{{ pill(t('not_verified_short'), 'neutral', True) }}{% endif %}{% endmacro %}
