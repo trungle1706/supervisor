@@ -39,3 +39,16 @@ and `.../ofl/jetbrainsmono/OFL.txt`. Served from `/console/static/fonts/` (white
 | `OFL-JetBrainsMono.txt` | licence text (Copyright 2020 The JetBrains Mono Project Authors) | google/fonts `ofl/jetbrainsmono/OFL.txt` | - |
 
 `console.css` and `console.js` are hand-written for this repo (no framework).
+
+### Assurance eval packs (WP17)
+
+No third-party dataset, sample or code is vendored. Every pack ships its own synthetic
+Vietnamese data (`data/assurance/synthetic/`) and own code written from the papers'
+descriptions. Importers read bank-supplied local copies only (`ASSURANCE_DATA_DIR/<pack_id>/`);
+the bank checks each dataset's licence before it copies it in. Licences read on 2026-10-15:
+TruthfulQA Apache-2.0, SimpleQA (openai/simple-evals) MIT, HaluEval MIT, BBQ CC-BY-4.0,
+WinoBias MIT, BOLD / CrowS-Pairs / StereoSet CC-BY-SA-4.0 (importer only, never vendored),
+OSV data per source (PyPI Advisory Database CC-BY-4.0), MITRE ATLAS data Apache-2.0,
+CycloneDX specification Apache-2.0. References only (no code copied): RAGAS Apache-2.0,
+SelfCheckGPT MIT, Fairlearn MIT, garak Apache-2.0, AgentDojo MIT, InjecAgent MIT,
+HarmBench MIT, AgentHarm MIT with a use clause. Per-pack URLs: `docs/assurance.md`.

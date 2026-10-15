@@ -1,0 +1,50 @@
+id: pin_hash_check
+version: 1
+dimension: dependency
+title: Exact pins and SHA-256 hashes for every dependency
+description: >-
+  Every dependency must be pinned to an exact version and carry a sha256 hash. uv.lock,
+  poetry.lock and Pipfile.lock give both (wheel and sdist hashes). A requirements file counts
+  as pinned with == and as hashed with --hash=sha256:. pyproject.toml ranges are only
+  declared; they become pinned only through a lock. A requirements file with ranges and no
+  hashes gives a high unpinned_bp and unhashed_bp, which is the point. lock_present is 1 when
+  a lock file exists (or a requirements file carries hashes). Thresholds are ILLUSTRATIVE.
+source:
+  name: Reproducible install practice (pip hash-checking mode, uv.lock) - own check
+  url: https://pip.pypa.io/en/stable/topics/secure-installs/
+  paper: null
+  licence_url: null
+  licence_verified_on: null
+  notes: Own implementation; no third-party data or code.
+licence: own
+data_modes: [synthetic, bank_supplied_path]
+targets: [agent, judge]
+runner: supervisor.assurance.runners.deps:PinHashRunner
+metrics:
+  - name: unpinned_bp
+    direction: lower_better
+    unit: bp
+    description: Dependencies without an exact version, divided by all dependencies, in bp.
+  - name: unhashed_bp
+    direction: lower_better
+    unit: bp
+    description: Dependencies without any sha256 hash, divided by all dependencies, in bp.
+  - name: lock_present
+    direction: higher_better
+    unit: count
+    description: 1 when a lock file (or a hashed requirements file) exists, else 0.
+thresholds:
+  - {metric: unpinned_bp, go: 0, no_go: 0}
+  - {metric: unhashed_bp, go: 0, no_go: 0}
+  - {metric: lock_present, go: 1, no_go: 1}
+maps_to:
+  regkb_duties: [change_control, conformity_assessment, model_inventory]
+  owasp_llm: [LLM03]
+  owasp_agentic: [ASI04]
+  atlas: [AML.T0010]
+launch_gate: required
+judge_gate: false
+importer: >-
+  No import needed: the files come from the target (uv.lock, poetry.lock, Pipfile.lock,
+  requirements*.txt, pyproject.toml).
+min_items: 1

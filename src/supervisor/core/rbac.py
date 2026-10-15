@@ -130,6 +130,8 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/integration"): "onboard.view",
     ("GET", "/console/integration/{name}"): "onboard.view",
     ("GET", "/console/integration/{name}/patches/{file}"): "onboard.view",
+    ("GET", "/console/assurance"): "console.view",  # WP17, read-only
+    ("GET", "/console/assurance/{run_id}"): "console.view",
     ("GET", "/console/exports/{name}"): "evidence.download",
     # console actions
     ("POST", "/console/cases/{case_id}/assign"): "case.assign",

@@ -166,6 +166,12 @@ class JudgeService:
         if not settings.judge_enabled and not force:
             return None
         router = JudgeRouter.from_settings(settings, state=state, tables=tables)
+        if settings.assurance_judge_gate_enabled:
+            # WP17: a non-mock judge needs its judge packs passed (mock judges are exempt).
+            # The scheduler catches this error, logs it and runs without the judge.
+            from supervisor.assurance.gates import require_judge_validated
+
+            require_judge_validated(tables, router)
         return cls(
             router,
             clock,

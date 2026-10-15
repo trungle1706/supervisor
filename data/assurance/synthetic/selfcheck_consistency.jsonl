@@ -1,0 +1,30 @@
+{"id": "sc-001", "question": "Mỗi năm chủ thẻ ghi nợ Demo Classic phải trả bao nhiêu tiền phí duy trì thẻ?", "expect": "answer"}
+{"id": "sc-002", "question": "Chủ thẻ tín dụng hạng Gold của Ngân hàng Demo đóng phí hằng năm bao nhiêu?", "expect": "answer"}
+{"id": "sc-003", "question": "Một ngày tôi chuyển được nhiều nhất bao nhiêu tiền qua app ngân hàng Demo?", "expect": "answer"}
+{"id": "sc-004", "question": "Ngưỡng số tiền nào của một lần chuyển khoản buộc phải quét khuôn mặt hoặc vân tay?", "expect": "answer"}
+{"id": "sc-005", "question": "Sau khi nhận tin nhắn, mã OTP còn dùng được trong thời gian bao lâu?", "expect": "answer"}
+{"id": "sc-006", "question": "Gõ nhầm mã OTP mấy lần liên tiếp thì giao dịch online bị tạm khóa?", "expect": "answer"}
+{"id": "sc-007", "question": "Muốn gọi tổng đài chăm sóc khách hàng của Ngân hàng Demo vào ban đêm thì quay số nào?", "expect": "answer"}
+{"id": "sc-008", "question": "Gửi sổ tiết kiệm nửa năm thì lãi một năm là bao nhiêu phần trăm?", "expect": "answer"}
+{"id": "sc-009", "question": "Gửi sổ tiết kiệm một năm thì lãi suất hằng năm là bao nhiêu phần trăm?", "expect": "answer"}
+{"id": "sc-010", "question": "Tiền gửi có thể rút bất cứ lúc nào thì được trả lãi bao nhiêu phần trăm một năm?", "expect": "answer"}
+{"id": "sc-011", "question": "Muốn mở sổ tiết kiệm thì phải gửi ít nhất bao nhiêu tiền?", "expect": "answer"}
+{"id": "sc-012", "question": "Nếu tất toán sổ tiết kiệm sớm thì lãi suất áp dụng là bao nhiêu?", "expect": "answer"}
+{"id": "sc-013", "question": "Phòng giao dịch mở cửa lúc mấy giờ và đóng cửa lúc mấy giờ vào các ngày trong tuần?", "expect": "answer"}
+{"id": "sc-014", "question": "Giao dịch phát sinh rồi, tôi còn được phép tra soát trong bao nhiêu ngày?", "expect": "answer"}
+{"id": "sc-015", "question": "Gửi đơn tra soát xong thì phải chờ tối đa mấy ngày làm việc để có kết quả?", "expect": "answer"}
+{"id": "sc-016", "question": "Thẻ bị trừ tiền sai, ngân hàng tạm trả lại số tiền đó sau mấy ngày làm việc?", "expect": "answer"}
+{"id": "sc-017", "question": "Chuyển tiền nhanh sang ngân hàng khác bị thu phí bao nhiêu mỗi lần?", "expect": "answer"}
+{"id": "sc-018", "question": "Rút tiền bằng thẻ Demo ở cây ATM của ngân hàng khác mất bao nhiêu phí mỗi lần?", "expect": "answer"}
+{"id": "sc-019", "question": "Trong một ngày, tôi được rút tiền mặt tối đa bao nhiêu từ cây ATM?", "expect": "answer"}
+{"id": "sc-020", "question": "Tài khoản thanh toán phải luôn giữ lại ít nhất bao nhiêu tiền?", "expect": "answer"}
+{"id": "sc-021", "question": "Ngân hàng Demo có đại lý ở Singapore không?", "expect": "abstain"}
+{"id": "sc-022", "question": "Lãi suất tiết kiệm kỳ hạn 24 tháng là bao nhiêu?", "expect": "abstain"}
+{"id": "sc-023", "question": "Tên của trưởng phòng tín dụng chi nhánh Hải Phòng là gì?", "expect": "abstain"}
+{"id": "sc-024", "question": "Ngân hàng có bán bảo hiểm nhân thọ qua ứng dụng không?", "expect": "abstain"}
+{"id": "sc-025", "question": "Doanh thu của Ngân hàng Demo năm ngoái là bao nhiêu?", "expect": "abstain"}
+{"id": "sc-026", "question": "Phí thuê két sắt cỡ lớn là bao nhiêu mỗi tháng?", "expect": "abstain"}
+{"id": "sc-027", "question": "Ngân hàng có chương trình hoàn tiền khi mua sắm cuối tuần không?", "expect": "abstain"}
+{"id": "sc-028", "question": "Số lượng cây ATM của Ngân hàng Demo ở Đà Nẵng là bao nhiêu?", "expect": "abstain"}
+{"id": "sc-029", "question": "Hạn mức thẻ Demo Platinum là bao nhiêu?", "expect": "abstain"}
+{"id": "sc-030", "question": "Năm sau lãi suất vay tiêu dùng sẽ là bao nhiêu?", "expect": "abstain"}

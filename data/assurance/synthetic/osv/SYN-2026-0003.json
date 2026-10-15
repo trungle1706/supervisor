@@ -1,0 +1,32 @@
+{
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "syn-beta"
+      },
+      "ranges": [
+        {
+          "events": [
+            {
+              "introduced": "1.0"
+            },
+            {
+              "fixed": "2.0"
+            }
+          ],
+          "type": "ECOSYSTEM"
+        }
+      ]
+    }
+  ],
+  "aliases": [],
+  "database_specific": {
+    "severity": "CRITICAL"
+  },
+  "id": "SYN-2026-0003",
+  "modified": "2026-01-01T00:00:00Z",
+  "published": "2026-01-01T00:00:00Z",
+  "schema_version": "1.6.0",
+  "summary": "Synthetic advisory for matcher tests (fake)"
+}

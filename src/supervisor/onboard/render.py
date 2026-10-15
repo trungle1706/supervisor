@@ -150,3 +150,41 @@ def launch_md(r: LaunchReport) -> str:
             f"- tool mix (bp): {b.get('tool_mix_bp')}",
         ]
     return "\n".join(out) + "\n"
+
+
+# TODO(vi): Vietnamese headings for the assurance report (the console i18n catalogue can
+# supply them); the launch pack is English only for now.
+def assurance_md(r: LaunchReport) -> str:
+    """The assurance part of the launch pack (only written when assurance ran)."""
+    out = [
+        f"# Assurance report: `{r.agent_id}` - {'GO' if r.go else 'NO-GO'}",
+        "",
+        "Eval packs run against the agent in the launch sandbox (gate in SHADOW, mock LLM).",
+        "Packs with launch gate `required` block Launch when they fail, error or are skipped;",
+        "`advisory` packs are listed only. Thresholds are illustrative until the bank sets own.",
+        "",
+        "## Launch blockers from assurance packs",
+        "",
+    ]
+    out += [f"- {x}" for x in r.assurance_reasons] or ["- none"]
+    out += [
+        "",
+        "## Pack results",
+        "",
+        "| Pack | Dimension | Gate | Status | Metrics (go / no-go) | Items | Data | Mock |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for row in r.assurance:
+        thr = row.get("thresholds") or {}
+        cells = []
+        for name, value in sorted((row.get("metrics") or {}).items()):
+            t = thr.get(name)
+            lim = f" ({t['go']} / {t['no_go']})" if t else ""
+            cells.append(f"{name}={'-' if value is None else value}{lim}")
+        why = "; ".join(row.get("reasons") or []) if row["status"] in ("skip", "error") else ""
+        out.append(
+            f"| {row['pack_id']} | {row['dimension']} | {row['launch_gate']} | {row['status']} | "
+            f"{('; '.join(cells) or why or '-').replace('|', '/')} | {row['n_items']} | "
+            f"{row['data_mode'] or '-'} | {'yes' if row['is_mock'] else 'no'} |"
+        )
+    return "\n".join(out) + "\n"

@@ -1,0 +1,57 @@
+id: licence_allowlist
+version: 2
+dimension: dependency
+title: Dependency licences against an allow list
+description: >-
+  Every dependency licence must be on the allow list (setting ASSURANCE_LICENCE_ALLOW; default
+  MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, PSF-2.0, ISC, Unlicense, 0BSD, MPL-2.0).
+  Licences come from installed distribution metadata (License-Expression, then License ::
+  classifiers via our own SPDX mapping table, then the License field), or from an optional
+  bank file ASSURANCE_DATA_DIR/licence_allowlist/licences.json ({name: spdx}) that wins over
+  the metadata. SPDX expressions are read as written (OR: any alternative allowed; AND: all). A
+  licence that cannot be read is unknown, not disallowed. The classifier "BSD License" is
+  mapped to BSD-3-Clause (an approximation). The licence source is the HOST environment
+  (importlib.metadata of the machine that runs the pack) plus the optional bank licences.json;
+  a package that is not installed on the host is unknown. So unknown alone only warns
+  (go 500 bp, no-go 10000 bp); a disallowed licence still fails. Thresholds are ILLUSTRATIVE.
+source:
+  name: SPDX licence identifiers and Python core metadata (own mapping table)
+  url: https://spdx.org/licenses/
+  paper: null
+  licence_url: https://spdx.org/licenses/
+  licence_verified_on: "2026-10-15"
+  notes: >-
+    Only licence identifiers are used (no data from the SPDX list files). Python core metadata
+    fields: packaging.python.org/specifications/core-metadata/. SPDX licence page not fetched
+    for a licence statement; identifiers are facts, not copied text.
+licence: own
+data_modes: [synthetic, bank_supplied_path]
+targets: [agent, judge]
+runner: supervisor.assurance.runners.deps:LicenceRunner
+metrics:
+  - name: disallowed_count
+    direction: lower_better
+    unit: count
+    description: Dependencies whose licence is known and not allowed.
+  - name: unknown_licence_bp
+    direction: lower_better
+    unit: bp
+    description: Dependencies with no readable licence, divided by all dependencies, in bp.
+  - name: checked_count
+    direction: higher_better
+    unit: count
+    description: Distinct dependencies checked (information only, no threshold).
+thresholds:
+  - {metric: disallowed_count, go: 0, no_go: 0}
+  - {metric: unknown_licence_bp, go: 500, no_go: 10000}
+maps_to:
+  regkb_duties: [model_inventory, outsourcing_oversight, conformity_assessment]
+  owasp_llm: [LLM03]
+  owasp_agentic: [ASI04]
+  atlas: [AML.T0010]
+launch_gate: required
+judge_gate: false
+importer: >-
+  Optional: ASSURANCE_DATA_DIR/licence_allowlist/licences.json, a JSON object
+  {"package-name": "SPDX-expression"}. Entries override installed metadata.
+min_items: 1

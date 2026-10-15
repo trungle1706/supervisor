@@ -991,6 +991,48 @@ _T: dict[str, tuple[str, str]] = {
         "Narrative",
         "Diễn giải",
     ),
+    # ---- WP17 assurance
+    "nav_assurance": ("Assurance", "Đảm bảo chất lượng"),
+    "as_purpose": (
+        "Results of the assurance eval packs: accuracy, hallucination, bias, dependency, "
+        "security and robustness tests run on agents, traces and the judge.",
+        "Kết quả các gói kiểm thử đảm bảo: độ chính xác, ảo giác, thiên vị, phụ thuộc, "
+        "bảo mật và độ bền, chạy trên tác tử, dấu vết và giám khảo AI.",
+    ),
+    "as_why": (
+        "Thresholds are illustrative until the bank sets its own. A skipped pack is never a pass.",
+        "Ngưỡng chỉ mang tính minh họa cho đến khi ngân hàng đặt ngưỡng riêng. Gói bị bỏ qua "
+        "không bao giờ được tính là đạt.",
+    ),
+    "as_run": ("Run", "Lần chạy"),
+    "as_target": ("Target", "Đối tượng"),
+    "as_counts": ("Results", "Kết quả"),
+    "as_kind": ("Label", "Nhãn"),
+    "as_selector": ("selector", "bộ chọn"),
+    "as_no_runs": (
+        "No assurance run yet. Run:",
+        "Chưa có lần chạy nào. Hãy chạy:",
+    ),
+    "as_all_runs": ("All runs", "Tất cả lần chạy"),
+    "as_mock_note": (
+        "MOCK: at least one result comes from a mock model or target. The numbers prove the "
+        "harness, not a real model.",
+        "MÔ PHỎNG: ít nhất một kết quả đến từ mô hình hoặc đối tượng giả lập. Số liệu chỉ "
+        "chứng minh bộ kiểm thử, không phải mô hình thật.",
+    ),
+    "as_pack": ("Pack", "Gói"),
+    "as_dimension": ("Dimension", "Khía cạnh"),
+    "as_metrics": ("Metrics vs thresholds", "Chỉ số so với ngưỡng"),
+    "as_data": ("Data", "Dữ liệu"),
+    "as_reasons": ("Reasons", "Lý do"),
+    "as_gate": ("launch gate", "cổng ra mắt"),
+    "as_judge_gate": ("judge gate", "cổng giám khảo"),
+    "as_no_chain": ("not on chain", "chưa ghi chuỗi"),
+    "as_no_results": ("No results in this run.", "Lần chạy này chưa có kết quả."),
+    "as_illustrative": (
+        "Thresholds are illustrative defaults until the bank sets its own.",
+        "Ngưỡng là giá trị minh họa cho đến khi ngân hàng đặt ngưỡng riêng.",
+    ),
 }
 
 

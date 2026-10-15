@@ -1,0 +1,32 @@
+{
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "syn-eps"
+      },
+      "ranges": [
+        {
+          "events": [
+            {
+              "introduced": "3.0.0rc1"
+            },
+            {
+              "last_affected": "3.0.0"
+            }
+          ],
+          "type": "ECOSYSTEM"
+        }
+      ]
+    }
+  ],
+  "aliases": [],
+  "database_specific": {
+    "severity": "CRITICAL"
+  },
+  "id": "SYN-2026-0005",
+  "modified": "2026-01-01T00:00:00Z",
+  "published": "2026-01-01T00:00:00Z",
+  "schema_version": "1.6.0",
+  "summary": "Synthetic advisory for matcher tests (fake)"
+}
