@@ -1,0 +1,177 @@
+{
+  "commit": "bf3a23a + WP22 working tree (main at v0.2.0)",
+  "events": 5330,
+  "generator": "supervisor.data.tool_usage.generate(seed=20261020, days=90, end_day=2026-10-20)",
+  "note": "Exact values. The generator and the rollup are deterministic: any change here is a behaviour change to review, not noise.",
+  "recorded": "2026-10-20",
+  "rollup_rows_90d": 1005,
+  "suggestion_30d": {
+    "credit_prequal": {
+      "confidence": "ok",
+      "remove": [],
+      "undeclared": []
+    },
+    "customer_service": {
+      "confidence": "ok",
+      "remove": [
+        "open_dispute"
+      ],
+      "undeclared": []
+    },
+    "payments": {
+      "confidence": "ok",
+      "remove": [
+        "add_payee"
+      ],
+      "undeclared": [
+        "ext_transfer_api"
+      ]
+    }
+  },
+  "window_30d": {
+    "credit_prequal/credit_score_lookup": {
+      "allows": 145,
+      "blocks": 3,
+      "callers_max": 2,
+      "calls": 150,
+      "days_active": 30,
+      "errors": 0,
+      "p50_us": 1229,
+      "p95_us": 6460,
+      "pauses": 2,
+      "users_max": 5
+    },
+    "credit_prequal/decide_prequal": {
+      "allows": 86,
+      "blocks": 3,
+      "callers_max": 2,
+      "calls": 90,
+      "days_active": 30,
+      "errors": 1,
+      "p50_us": 1163,
+      "p95_us": 5459,
+      "pauses": 1,
+      "users_max": 3
+    },
+    "credit_prequal/fetch_application": {
+      "allows": 149,
+      "blocks": 1,
+      "callers_max": 2,
+      "calls": 150,
+      "days_active": 30,
+      "errors": 1,
+      "p50_us": 1310,
+      "p95_us": 5196,
+      "pauses": 0,
+      "users_max": 5
+    },
+    "credit_prequal/request_documents": {
+      "allows": 1,
+      "blocks": 1,
+      "callers_max": 1,
+      "calls": 2,
+      "days_active": 2,
+      "errors": 0,
+      "p50_us": 583,
+      "p95_us": 2382,
+      "pauses": 0,
+      "users_max": 1
+    },
+    "customer_service/lookup_customer": {
+      "allows": 257,
+      "blocks": 9,
+      "callers_max": 2,
+      "calls": 270,
+      "days_active": 30,
+      "errors": 1,
+      "p50_us": 1186,
+      "p95_us": 8115,
+      "pauses": 4,
+      "users_max": 9
+    },
+    "customer_service/read_ticket": {
+      "allows": 201,
+      "blocks": 8,
+      "callers_max": 2,
+      "calls": 210,
+      "days_active": 30,
+      "errors": 0,
+      "p50_us": 1215,
+      "p95_us": 5786,
+      "pauses": 1,
+      "users_max": 7
+    },
+    "customer_service/reply": {
+      "allows": 201,
+      "blocks": 6,
+      "callers_max": 2,
+      "calls": 210,
+      "days_active": 30,
+      "errors": 1,
+      "p50_us": 1215,
+      "p95_us": 5578,
+      "pauses": 3,
+      "users_max": 7
+    },
+    "customer_service/waive_fee": {
+      "allows": 88,
+      "blocks": 2,
+      "callers_max": 2,
+      "calls": 90,
+      "days_active": 30,
+      "errors": 0,
+      "p50_us": 1075,
+      "p95_us": 3888,
+      "pauses": 0,
+      "users_max": 3
+    },
+    "payments/ext_transfer_api": {
+      "allows": 0,
+      "blocks": 0,
+      "callers_max": 1,
+      "calls": 3,
+      "days_active": 3,
+      "errors": 0,
+      "p50_us": 952,
+      "p95_us": 1584,
+      "pauses": 3,
+      "users_max": 1
+    },
+    "payments/get_balance": {
+      "allows": 232,
+      "blocks": 5,
+      "callers_max": 2,
+      "calls": 240,
+      "days_active": 30,
+      "errors": 1,
+      "p50_us": 1188,
+      "p95_us": 4788,
+      "pauses": 3,
+      "users_max": 8
+    },
+    "payments/list_payees": {
+      "allows": 118,
+      "blocks": 1,
+      "callers_max": 2,
+      "calls": 120,
+      "days_active": 30,
+      "errors": 0,
+      "p50_us": 1003,
+      "p95_us": 4856,
+      "pauses": 1,
+      "users_max": 4
+    },
+    "payments/transfer": {
+      "allows": 169,
+      "blocks": 10,
+      "callers_max": 2,
+      "calls": 180,
+      "days_active": 30,
+      "errors": 0,
+      "p50_us": 1262,
+      "p95_us": 5922,
+      "pauses": 1,
+      "users_max": 6
+    }
+  }
+}

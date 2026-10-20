@@ -1,0 +1,108 @@
+# Least-privilege SUGGESTION (WP22). Generated, not applied. Nothing was changed.
+# Apply only through the normal policy change path: pull request, two approvers,
+# deploy. See docs/tool-analytics.md, section 'Applying a suggestion'.
+suggestion_version: 1
+status: SUGGESTION - NOT APPLIED
+as_of: '2026-10-20'
+window_days: 30
+unified_diff_file: least_privilege_2026-10-20.diff
+agents:
+  credit_prequal:
+    confidence: ok
+    declared_source: policy
+    policy_file: null
+    manifest_file: null
+    rules:
+    - rule: CRD-07
+      version:
+        current: 1
+        proposed: 2
+      path: when.tool.not_in
+      current:
+      - fetch_application
+      - credit_score_lookup
+      - decide_prequal
+      - request_documents
+      proposed:
+      - fetch_application
+      - credit_score_lookup
+      - decide_prequal
+      - request_documents
+    remove: []
+    flag_undeclared: []
+    keep_by_exception: []
+    drift:
+      manifest_not_in_policy: []
+      policy_not_in_manifest: []
+    warnings: []
+  customer_service:
+    confidence: ok
+    declared_source: policy
+    policy_file: tests/fixtures/tool_analytics/policies/baseline.yaml
+    manifest_file: tests/fixtures/tool_analytics/agents/customer_service/manifest.yaml
+    rules:
+    - rule: SVC-07
+      version:
+        current: 1
+        proposed: 2
+      path: when.tool.not_in
+      current:
+      - lookup_customer
+      - read_ticket
+      - reply
+      - waive_fee
+      - open_dispute
+      proposed:
+      - lookup_customer
+      - read_ticket
+      - reply
+      - waive_fee
+    remove:
+    - tool: open_dispute
+      risk_class: money
+      reason: no gate decision in the last 30 days
+    flag_undeclared: []
+    keep_by_exception: []
+    drift:
+      manifest_not_in_policy: []
+      policy_not_in_manifest: []
+    warnings: []
+  payments:
+    confidence: ok
+    declared_source: policy
+    policy_file: tests/fixtures/tool_analytics/policies/baseline.yaml
+    manifest_file: tests/fixtures/tool_analytics/agents/payments/manifest.yaml
+    rules:
+    - rule: PAY-07
+      version:
+        current: 1
+        proposed: 2
+      path: when.tool.not_in
+      current:
+      - get_balance
+      - list_payees
+      - add_payee
+      - transfer
+      proposed:
+      - get_balance
+      - list_payees
+      - transfer
+    remove:
+    - tool: add_payee
+      risk_class: pii_export
+      reason: no gate decision in the last 30 days
+    flag_undeclared:
+    - tool: ext_transfer_api
+      risk_class: money
+      calls: 3
+      blocks: 0
+      pauses: 3
+      last_seen: '2026-10-12'
+    keep_by_exception: []
+    drift:
+      manifest_not_in_policy:
+      - ext_transfer_api
+      policy_not_in_manifest: []
+    warnings:
+    - 'tools called but not declared: ext_transfer_api (review; the gate blocked or
+      paused them)'
