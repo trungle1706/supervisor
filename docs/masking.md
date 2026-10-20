@@ -8,7 +8,7 @@ R2). The masker is the part that makes this true. This page says what it masks, 
 alone on purpose, how it is measured, and how the gate can mask tool arguments before a tool runs.
 
 Related files: model card `docs/masker-model-card.md`, validation report
-`docs/masker-validation-report.md`, decision `docs/adr/D14-masker-v3-inline-redaction.md`,
+`docs/masker-validation-report.md`, decision `docs/adr/D17-masker-v3-inline-redaction.md`,
 recorder side `docs/recorder.md`.
 
 ## 1. What the masker does
@@ -46,7 +46,9 @@ A labelled account number (`STK 190 3456 7890 12`) still wins over an amount sha
 Dates, times, loan terms, percentages, reference numbers (`HD-2026-00123`), hotline numbers,
 company names (a two-word brand inside `Cong ty TNHH ...` is not a person), single first names
 after a lower-case `anh` (`chuyen den anh Nam`), and ordinary prose that uses lexicon words
-(`khach hang co the khieu nai`, `xu ly trong bao lau`). Numbers sent as bare JSON numbers
+(`khach hang co the khieu nai`, `xu ly trong bao lau`). An identifier followed by the word `đồng`
+(`đồng ý`, `đồng thời`) is still masked: a leading 0, an id label, a Luhn card number or
+account-style digit groups mean an identifier, not an amount. Numbers sent as bare JSON numbers
 (a phone as an integer) keep their value and type in inline redaction (see BACKLOG).
 
 ## 2. Inline redaction at the gate
@@ -68,6 +70,10 @@ Rules the code keeps:
 * Amounts stay intact in the masked copy (the gate masker has `mask_amounts` off).
 * Numbers, booleans and null keep value and type; only string leaves change.
 * If the SDK cannot map the answer onto the tool signature, it refuses the call (fail closed).
+* If the masker raises during inline redaction, the gate blocks the call with rule
+  `GATE-REDACTION` (fail closed): the tool never runs with the raw values.
+* The masker pass runs before the gate lock for tools known or declared as `pii_export`
+  (about 3 ms for a 2 KB payload); the policy risk class under the lock still decides.
 * The chain record `gate_decision` keeps `args_hmac` (original arguments) and adds
   `args_hmac_transformed`, `redaction_count`, `masker_version`. Values never enter the chain.
 * If only one side is on, nothing changes for the tool: server on and SDK off means the tool

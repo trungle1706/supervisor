@@ -1,4 +1,4 @@
-# D14 - Masker `vn_regex-3` and inline redaction at the gate
+# D17 - Masker `vn_regex-3` and inline redaction at the gate
 
 Status: Accepted (WP24b, 2026-10-20). Bank decisions listed under "Open".
 
@@ -50,7 +50,12 @@ assessment ask for a masker that handles these forms and for masking before a PI
 * `mask_version` changes to `vn_regex-3:<key id>`; existing rows keep `vn_regex-2` and stay valid.
 * Pseudonyms of names and addresses can differ from v2 for the same value (they did not match
   across cases before, so rows were not joinable on them anyway).
-* Cost: one masker pass per `pii_export` gate call when the server flag is on (about 0.3 ms).
+* Cost: one masker pass per `pii_export` gate call when the server flag is on (about 0.3 ms
+  for short arguments, about 3.2 ms for a 2 KB payload). Review: the pass runs before the gate
+  lock; a masker error blocks the call (`GATE-REDACTION`, fail closed).
+* Note (review): the held-out name pools are subtracted from the shipped lexicon
+  (`vn_text._HELD_BLOCK`), so common real names (`Duy`, `Lâm`, `Khôi`, `Thịnh`, `Quách`, `Kiều`,
+  and by folding `Tân`, `Nhân`, `Lam`) are not lexicon words in production. See REVIEW_WP24b.md.
 * Trust boundary: the gate answer now may carry masked arguments. See `docs/threat-model.md` 3.1.
 
 ## Open

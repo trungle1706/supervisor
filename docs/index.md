@@ -37,6 +37,6 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/LICENSES.md` | Licence log for packages, assets, datasets | 2L, Aud |
 | `docs/BUILD_PLAN.md` | Phase 1 plan (WP0 to WP12) | Build |
 | `docs/BUILD_PLAN_PHASE2.md` | Phase 2 plan (WP13 to WP19) and status | Build |
-| `docs/adr/` (D01 to D14) | Design decisions: gateway, evidence chain, judges, retention | Build, Aud |
+| `docs/adr/` (D01 to D13, D17) | Design decisions: gateway, evidence chain, judges, retention | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |
