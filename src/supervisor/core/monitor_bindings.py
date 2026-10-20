@@ -71,7 +71,7 @@ class DriftBinding(_Strict):
     min_n: int | None = Field(default=None, ge=1)
 
 
-# WP27 (ADR D29): the eight signals of the session monitor, in a fixed order, and the default
+# WP27 (ADR D29): the nine signals of the session monitor, in a fixed order, and the default
 # weights (basis points, sum 10000). A policy may replace them; the sum is checked below.
 SIGNALS: tuple[str, ...] = (
     "findings",
@@ -145,6 +145,14 @@ class SessionBinding(_Strict):
             and self.pause_threshold_bp < self.case_threshold_bp
         ):
             raise ValueError("pause_threshold_bp must not be below case_threshold_bp")
+        if self.pause_scope and self.weights is not None:
+            pause_bp = self.pause_threshold_bp if self.pause_threshold_bp is not None else 4000
+            if self.weights["findings"] >= pause_bp:
+                # R1: detector, Tier 0b and judge output is one counter and never pauses alone
+                raise ValueError(
+                    "the findings weight must stay below pause_threshold_bp: detector and "
+                    "judge output may not pause a session on its own (rule R1)"
+                )
         return self
 
 

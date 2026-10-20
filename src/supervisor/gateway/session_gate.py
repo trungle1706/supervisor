@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from collections import OrderedDict
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -52,6 +53,8 @@ RARE_SHARE_BP = 200  # a tool with a drift-baseline share below this is a rare t
 REFRESH_S = 2.0  # how often the gate re-reads active pauses written by another process
 BASELINE_TTL_S = 60.0
 FORGET_EVERY_S = 300.0
+MAX_PENDING = 5000  # late Tier 0b codes parked for turns not stored yet (oldest dropped first)
+PII_CACHE = 4096  # client session ids already checked by the masker
 
 
 @dataclass
@@ -70,6 +73,14 @@ class SessionCall:
 
 def epoch_ms(ts: datetime) -> int:
     return int(ts.timestamp() * 1000)
+
+
+def finding_codes(det: Any) -> list[str]:
+    """Codes of the fired detector findings that count for the session. A mock finding (the
+    mock judge) is a test value, not evidence about the conversation: it is left out."""
+    return [
+        str(f.code) for f in getattr(det, "findings", ()) or () if not getattr(f, "is_mock", False)
+    ]
 
 
 class BaselineTools:
@@ -124,7 +135,10 @@ class SessionGate:
         self._warmed = False
         self._reloading = False
         self._policy: Any = None
-        self._pending: dict[str, list[str]] = {}
+        self._pending: OrderedDict[str, list[str]] = OrderedDict()
+        self._local: dict[tuple[str, str], float] = {}  # pauses set here: monotonic set time
+        self._pii_seen: OrderedDict[str, bool] = OrderedDict()
+        self._masker: Any = None
         self.sync_reload = False
         self._cfg: dict[tuple[str, str], tuple[SessionConfig, int | None]] = {}
         self._pauses: dict[tuple[str, str], tuple[str, int, tuple[str, ...]]] = {}
@@ -166,7 +180,11 @@ class SessionGate:
             cfg, _ = self.config_for(policy, agent_id)
             if not cfg.enabled:
                 return None
-            sid, source, consumer = identify(agent_id, ctx, now.strftime("%Y-%m-%d"), self.key)
+            sid, source, consumer = identify(
+                agent_id, ctx, now.strftime("%Y-%m-%d"), self.key, is_pii=self.is_pii
+            )
+            if sid is None:  # no session id and no consumer id: nothing joins the turns
+                return None
             call = SessionCall(sid, source, consumer, day=now.strftime("%Y-%m-%d"))
             risk = policy.risk_class(tool_name)
             if not dry:
@@ -181,6 +199,26 @@ class SessionGate:
             log.warning("session prepare failed: %s", type(exc).__name__)
             self.stats["errors"] += 1
             return None
+
+    def is_pii(self, session_id: str) -> bool:
+        """True when the VN masker would change the id (a phone, CCCD or account number used as
+        a conversation id): such an id is not stored. Cached; never raises."""
+        hit = self._pii_seen.get(session_id)
+        if hit is not None:
+            return hit
+        try:
+            if self._masker is None:
+                from supervisor.adapters.masking.vn_regex import VnRegexMasker
+
+                self._masker = VnRegexMasker(self.key)
+            hit = self._masker.mask(session_id) != session_id
+        except Exception:  # noqa: BLE001 - a masker problem: do not trust the id
+            hit = True
+        with self._lock:
+            self._pii_seen[session_id] = hit
+            while len(self._pii_seen) > PII_CACHE:
+                self._pii_seen.popitem(last=False)
+        return hit
 
     def finalize(self, call: SessionCall, args: Mapping[str, Any], risk: str | None) -> None:
         """Compute the sketch and the identifier tokens from ``args`` (the masked arguments when
@@ -211,14 +249,15 @@ class SessionGate:
         def work() -> None:
             try:
                 self._reload_now(now_ms)
+            except Exception:  # noqa: BLE001 - a failed read keeps the last known pauses
+                log.exception("session pause reload failed")
             finally:
                 self._reloading = False
-
-        self._policy: Any = None
 
         threading.Thread(target=work, name="session-pause-reload", daemon=True).start()
 
     def _reload_now(self, now_ms: int) -> None:
+        started = time.monotonic()
         fresh: dict[tuple[str, str], tuple[str, int, tuple[str, ...]]] = {}
         stale = False
         for row in self.actions.active_pauses():
@@ -229,7 +268,14 @@ class SessionGate:
                 scope = tuple(s for s in str(row["scope"]).split(",") if s)
                 fresh[(row["agent_id"], row["session_id"])] = (str(row["control_id"]), exp, scope)
         with self._lock:
+            # a pause this process set while the read was in flight is not in ``fresh`` yet:
+            # keep it, or the next calls of that session would pass until the next reload
+            for k, v in self._pauses.items():
+                if k not in fresh and self._local.get(k, -1.0) >= started and v[1] > now_ms:
+                    fresh[k] = v
             self._pauses = fresh
+            for k in [k for k, t in self._local.items() if t < started - 10 * REFRESH_S]:
+                del self._local[k]
         if stale:  # cool-down ran out: close the rows and record it on the chain
             try:
                 self.actions.expire()
@@ -258,9 +304,12 @@ class SessionGate:
         with self._lock:
             if agent_id is None:
                 self._pauses.clear()
+                self._local.clear()
             else:
                 for k in [k for k in self._pauses if k[0] == agent_id]:
                     del self._pauses[k]
+                for k in [k for k in self._local if k[0] == agent_id]:
+                    del self._local[k]
         self._pause_read = 0.0
 
     # ------------------------------------------------------------------ after the decision
@@ -284,7 +333,7 @@ class SessionGate:
             self.finalize(call, d.transformed_args or args, risk_class)
             amount = args.get("amount_minor")
             det = getattr(d, "det", None)
-            codes = tuple(f"d:{f.code}" for f in getattr(det, "findings", ()) or ())
+            codes = tuple(f"d:{c}" for c in finding_codes(det))
             now_ms = epoch_ms(now)
             turn = Turn(
                 event_id=d.decision_id,
@@ -349,6 +398,7 @@ class SessionGate:
                     now_ms + cfg.cooldown_s * 1000,
                     cfg.pause_scope,
                 )
+                self._local[(agent_id, session_id)] = time.monotonic()
 
     def _warm(self, policy: Any, now: datetime, exclude: str) -> None:
         """Cold start: rebuild the windows from stored gate decisions (once per process)."""
@@ -374,10 +424,10 @@ class SessionGate:
         try:
             with self._lock:
                 ok = self.engine.add_codes(call.session_id, agent_id, event_id, kinds)
-                if not ok:
-                    if len(self._pending) > 5000:
-                        self._pending.clear()
-                    self._pending[event_id] = list(kinds)  # the turn is not stored yet
+                if not ok:  # the turn is not stored yet: park the codes, oldest out first
+                    self._pending[event_id] = list(kinds)
+                    while len(self._pending) > MAX_PENDING:
+                        self._pending.popitem(last=False)
                     return
                 turns = self.engine.turns(call.session_id, agent_id)
                 ts = next((t.ts_ms for t in reversed(turns) if t.event_id == event_id), None)
@@ -389,4 +439,11 @@ class SessionGate:
             self.stats["errors"] += 1
 
 
-__all__ = ["PAUSE_RULE", "BaselineTools", "SessionCall", "SessionGate", "epoch_ms"]
+__all__ = [
+    "PAUSE_RULE",
+    "BaselineTools",
+    "SessionCall",
+    "SessionGate",
+    "epoch_ms",
+    "finding_codes",
+]

@@ -62,7 +62,7 @@ from supervisor.gateway.policy import (
 )
 from supervisor.gateway.redact import redact_args
 from supervisor.gateway.session_gate import PAUSE_RULE as SESSION_PAUSE_RULE
-from supervisor.gateway.session_gate import SessionCall, SessionGate
+from supervisor.gateway.session_gate import SessionCall, SessionGate, finding_codes
 from supervisor.gateway.state import AgentStateMachine
 from supervisor.gateway.tier0b import Classifier, RegexClassifier
 
@@ -1206,8 +1206,7 @@ class Gateway:
         assert s is not None
         if self.session_gate is not None:  # sketch on the masked arguments (WP37 review F3)
             self.session_gate.finalize(s, d.transformed_args or args, d.risk_class)
-        det = getattr(d, "det", None)
-        codes = [f.code for f in getattr(det, "findings", ()) or ()]
+        codes = finding_codes(getattr(d, "det", None))
         feats: dict[str, Any] = {}
         if s.consumer:
             feats["c"] = s.consumer

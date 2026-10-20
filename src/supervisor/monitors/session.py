@@ -2,7 +2,7 @@
 
 A conversation can be steered over many turns toward a payment split, a limit breach or a PII
 leak while every single call looks fine. This module is the PURE part: no store, no clock, no
-network. It keeps a sliding window of turns per session, turns them into eight integer
+network. It keeps a sliding window of turns per session, turns them into nine integer
 signals and one score, and says whether the session meets the case rule or the pause rule.
 The actions (case, pause) live in ``session_actions.py``; the gate hook in
 ``gateway/session_gate.py``; the batch job in ``jobs/session_monitor.py``.
@@ -43,7 +43,7 @@ import hashlib
 import re
 import unicodedata
 from collections import OrderedDict, deque
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -64,6 +64,7 @@ MAX_TEXT = 4000  # characters of a turn text that are read
 MAX_TOKENS = 400
 MAX_TURNS_PER_SESSION = 300
 MAX_SESSIONS = 20000
+MAX_CONSUMERS = 50000  # cross-agent index; the oldest consumer is dropped first
 DUP_LOOKBACK = 24  # earlier turns a turn is compared with
 CODE_CAP_PER_TURN = 2  # a noisy turn cannot fill the findings signal alone
 DRIFT_MIN_PRIOR = 3  # read-only turns before a step up in risk class counts as a marker
@@ -125,7 +126,10 @@ ASSERT_PHRASES: tuple[str, ...] = (
     "exempt",
     "special permission",
     "pre approved",
-    "from now on",
+    "okayed",
+    "signed off",
+    "green light",
+    "gave the go ahead",
     "da duoc phe duyet",
     "giam doc da duyet",
     "da duyet",
@@ -134,7 +138,6 @@ ASSERT_PHRASES: tuple[str, ...] = (
     "duoc phep",
     "nang han muc",
     "mien han muc",
-    "tu bay gio",
     "ban lanh dao da",
 )
 RECALL_PHRASES: tuple[str, ...] = (
@@ -227,6 +230,10 @@ STANDING_PHRASES: tuple[str, ...] = (
     "future requests",
     "for all future",
     "keep this for later",
+    "keep that in your notes",
+    "keep it in your notes",
+    "note that for later",
+    "remember that for later",
     "apply it to every",
     "apply this to every",
     "tu bay gio",
@@ -274,6 +281,12 @@ class SessionConfig:
             raise ConfigError("session weights must name every signal and sum to 10000")
         if self.pause_scope and self.pause_threshold_bp < self.case_threshold_bp:
             raise ConfigError("pause_threshold_bp must not be below case_threshold_bp")
+        if self.pause_scope and self.weights["findings"] >= self.pause_threshold_bp:
+            # R1: detector, Tier 0b and judge output is one counter; alone it may never pause
+            raise ConfigError(
+                "the findings weight must stay below pause_threshold_bp: detector and judge "
+                "output may not pause a session on its own (rule R1)"
+            )
 
     @property
     def pause_on(self) -> bool:
@@ -334,26 +347,42 @@ def _h(data: str, key: bytes, n: int = 8) -> str:
 
 
 def hash_consumer(consumer_id: str, key: bytes) -> str:
-    """Keyed 6 byte hash of a consumer id (the raw id is never stored)."""
-    return _h("consumer:" + consumer_id, key, 6)
+    """Keyed 8 byte hash of a consumer id (the raw id is never stored). 8 bytes, not 6: at a
+    few million customers a 48-bit hash would let two of them share a cross-agent bucket."""
+    return _h("consumer:" + consumer_id, key, 8)
 
 
 def identify(
-    agent_id: str, ctx: Mapping[str, Any], day: str, key: bytes
-) -> tuple[str, str, str | None]:
+    agent_id: str,
+    ctx: Mapping[str, Any],
+    day: str,
+    key: bytes,
+    is_pii: Callable[[str], bool] | None = None,
+) -> tuple[str | None, str, str | None]:
     """(session_id, source, consumer hash). ``source`` is ``client`` when the caller sent a valid
     ``session_id`` in the context, else ``derived``: a stable id from agent + consumer + day.
-    A derived id can join two real conversations of one consumer on one day (documented)."""
+    A derived id can join two real conversations of one consumer on one day (documented).
+
+    With neither a valid ``session_id`` nor a ``consumer_id`` the answer is ``(None, "none",
+    None)``: there is nothing that tells two customers apart, so the call is not put in any
+    session (an id from agent + day alone would merge every anonymous customer of the agent into
+    one conversation, and one customer's pause would stop all of them). ``is_pii`` (the gate
+    passes the VN masker) rejects a client id that looks like a phone, CCCD or account number:
+    such an id is never stored and the call falls back to the derived id."""
     raw_consumer = ctx.get("consumer_id")
-    consumer = (
-        hash_consumer(raw_consumer, key)
-        if isinstance(raw_consumer, str) and 0 < len(raw_consumer) <= 256
-        else None
-    )
+    ok_consumer = isinstance(raw_consumer, str) and 0 < len(raw_consumer) <= 256
+    consumer = hash_consumer(raw_consumer, key) if ok_consumer else None
     sid = ctx.get("session_id")
-    if isinstance(sid, str) and SESSION_ID_PATTERN.fullmatch(sid):
+    if (
+        isinstance(sid, str)
+        and SESSION_ID_PATTERN.fullmatch(sid)
+        and not (is_pii is not None and is_pii(sid))
+    ):
         return sid, "client", consumer
-    return "d-" + _h(f"{agent_id}|{consumer or '-'}|{day}", key, 12), "derived", consumer
+    if consumer is None:
+        return None, "none", None
+    # from the raw consumer id (full keyed hash), not from the short stored hash
+    return "d-" + _h(f"session:{agent_id}|{raw_consumer}|{day}", key, 12), "derived", consumer
 
 
 # --------------------------------------------------------------------------- features
@@ -505,14 +534,23 @@ def with_args(
     """Add the near-duplicate sketch and the identifier tokens. The gate passes the MASKED
     arguments (the dlp transform output when there is one), never the raw ones."""
     keep = risk in ("money", "credit", "pii_export")
-    use = feats.assert_ or risk in ("money", "credit")
+    # An assertion links by an identifier it NAMES in its text; the arguments of that turn hold
+    # the customer's own account, which every later transfer repeats (review WP27: "am I
+    # allowed to ..." on get_balance, then any transfer, opened a case). The call that uses the
+    # fact links by its text and its (masked) arguments.
+    if feats.assert_:
+        toks = id_tokens(text, None, key)
+    elif risk in ("money", "credit"):
+        toks = id_tokens(text, args, key)
+    else:
+        toks = ()
     return Features(
         feats.expand,
         sketch(text, args, key) if keep else (),
         feats.rare,
         feats.assert_,
         feats.recall,
-        id_tokens(text, args, key) if use else (),
+        toks,
         feats.topic,
         feats.standing,
     )
@@ -644,7 +682,11 @@ class SessionEngine:
             self._sessions.move_to_end(key)
         q.append(turn)
         if turn.consumer and turn.risk in MONEY_CLASSES:
-            cq = self._consumers.setdefault(turn.consumer, deque(maxlen=200))
+            cq = self._consumers.get(turn.consumer)
+            if cq is None:
+                cq = self._consumers[turn.consumer] = deque(maxlen=200)
+                while len(self._consumers) > MAX_CONSUMERS:
+                    del self._consumers[next(iter(self._consumers))]
             cq.append((turn.ts_ms, turn.agent_id))
 
     def add_codes(

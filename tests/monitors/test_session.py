@@ -71,7 +71,9 @@ def test_session_identity_client_and_derived() -> None:
     c = S.identify("payments", {"consumer_id": "u1"}, "2026-10-21", KEY)
     assert a == b and a[1] == "derived" and a[0] != c[0]
     # an e-mail shaped id is not accepted as a client id
-    assert S.identify("payments", {"session_id": "a@b.vn"}, "d", KEY)[1] == "derived"
+    assert S.identify("payments", {"session_id": "a@b.vn", "consumer_id": "u"}, "d", KEY)[1] == (
+        "derived"
+    )
 
 
 @pytest.mark.parametrize(
