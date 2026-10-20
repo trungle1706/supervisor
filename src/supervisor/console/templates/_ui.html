@@ -17,3 +17,100 @@
 {% macro clock(c) %}{% if c and c.text != '-' %}<div class="clockcell">{{ bar(c.used_bp, c.kind) }}<span class="clocktext {{ 'over' if c.overdue else '' }}">{{ clocktext(c) }}</span></div>{% else %}<span class="muted">-</span>{% endif %}{% endmacro %}
 
 {% macro verify_pill(v) %}{% if v %}{% if v.ok %}{{ pill(t('verified_at', time=v.ts|hhmm), 'ok', True) }}{% else %}{{ pill(t('verify_fail'), 'bad', True) }}{% endif %}{% else %}{{ pill(t('not_verified_short'), 'warn', True) }}{% endif %}{% endmacro %}
+
+{# ---- WP-UX1 components (docs/console.md "Components"). Server-rendered, htmx only. ---- #}
+
+{# Breadcrumb. items = [(label, href_or_None), ...]; the last one is the current page. #}
+{% macro crumbs(items) %}
+<nav class="crumbs" aria-label="{{ t('breadcrumb') }}"><ol>
+{% for label, href in items %}<li>{% if href and not loop.last %}<a href="{{ href }}">{{ label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ label }}</span>{% endif %}</li>
+{% endfor %}
+</ol></nav>
+{% endmacro %}
+
+{# Page header: title, optional pills (safe HTML), actions from the call block. #}
+{% macro pagehead(title, pills=None) %}
+<div class="pagehead"><h1>{{ title }}</h1>{% if pills %}<span class="pills">{{ pills }}</span>{% endif %}{% if caller is defined %}<div class="actions">{{ caller() }}</div>{% endif %}</div>
+{% endmacro %}
+
+{# Count tiles that act as one filter. items = [{label (i18n key), n, on, qs}]; qs is the
+   filter query string the tile sets (no lang). #}
+{% macro tiles(items, url, rows_url, target='#list') %}
+<div class="tiles" role="group" aria-label="{{ t('filter_quick') }}">
+{% for i in items %}{% set q = (i.qs ~ '&' if i.qs else '') ~ 'lang=' ~ lang %}<a class="tile {{ 'on' if i.on else '' }}" href="{{ url }}?{{ q }}"{% if i.on %} aria-current="true"{% endif %} hx-get="{{ rows_url }}?{{ q }}" hx-target="{{ target }}" hx-push-url="false"><span class="n">{{ i.n }}</span><span class="l">{{ t(i.label) }}</span></a>
+{% endfor %}
+</div>
+{% endmacro %}
+
+{# Filter bar. fields = [{name, label, kind: select|search, value, options: [(value, label)]}].
+   Without JS the form is a plain GET of `action`; with htmx it swaps `rows_url` into `target`. #}
+{% macro filterbar(action, rows_url, fields, reset_href, target='#list', hidden=None) %}
+<form class="filters fbar" role="search" action="{{ action }}" method="get" hx-get="{{ rows_url }}" hx-target="{{ target }}" hx-trigger="change, submit" hx-push-url="false">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  {% for k, v in (hidden or {}).items() %}{% if v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+  {% for f in fields %}
+    <label class="sr" for="f-{{ f.name }}">{{ f.label }}</label>
+    {% if f.kind == 'search' %}
+    <input id="f-{{ f.name }}" type="search" name="{{ f.name }}" value="{{ f.value }}" placeholder="{{ f.label }}" maxlength="64" autocomplete="off">
+    {% else %}
+    <select id="f-{{ f.name }}" name="{{ f.name }}">
+      <option value="">{{ f.label }}: {{ t('all') }}</option>
+      {% for v, l in f.options %}<option value="{{ v }}" {{ 'selected' if f.value == v else '' }}>{{ t(l) }}</option>{% endfor %}
+    </select>
+    {% endif %}
+  {% endfor %}
+  <noscript><button class="btn" type="submit">{{ t('apply') }}</button></noscript>
+  <a class="chipbtn" href="{{ reset_href }}">{{ t('reset') }}</a>
+</form>
+{% endmacro %}
+
+{# Pill tabs. href_pattern holds {tab}; hx_pattern is the partial URL (same {tab}). The
+   active one gets aria-selected; arrow keys, Home and End move between tabs (console.js);
+   `panel` is the id of the role=tabpanel element the tabs fill. #}
+{% macro tabs(keys, current, labels, href_pattern, hx_pattern, target='#drawer', counts=None, panel=None) %}
+<div class="tabs" role="tablist" aria-label="{{ t('tabs_label') }}">
+{% for k in keys %}<a role="tab" data-tab="{{ k }}"{% if panel %} aria-controls="{{ panel }}"{% endif %} class="{{ 'on' if k == current else '' }}" aria-selected="{{ 'true' if k == current else 'false' }}" tabindex="{{ '0' if k == current else '-1' }}" href="{{ href_pattern|replace('{tab}', k) }}" hx-get="{{ hx_pattern|replace('{tab}', k) }}" hx-target="{{ target }}" hx-push-url="false">{{ labels[k] }}{% if counts and counts.get(k) is not none %} <span class="k">{{ counts[k] }}</span>{% endif %}</a>
+{% endfor %}
+</div>
+{% endmacro %}
+
+{# Key-value panel. rows = [(label, value)] or [(label, value, True)] for mono (ids, hashes). #}
+{% macro kv(rows) %}
+<dl class="kv">
+{% for r in rows %}<dt>{{ r[0] }}</dt><dd{% if r|length > 2 and r[2] %} class="mono wrap"{% endif %}>{{ r[1] if r[1] not in (None, '') else '-' }}</dd>
+{% endfor %}
+</dl>
+{% endmacro %}
+
+{# Empty state: a title, one sentence and an optional link. #}
+{% macro empty(title, line='', href=None, label=None) %}
+<div class="card empty emptystate"><strong>{{ title }}</strong>{% if line %}<p>{{ line }}</p>{% endif %}{% if href %}<a class="btn" href="{{ href }}">{{ label }}</a>{% endif %}</div>
+{% endmacro %}
+
+{# Stat tile. `value` may be safe HTML (a pill); `key` becomes data-num. #}
+{% macro stat(label, value, sub='', key=None, href=None) %}
+<{{ 'a' if href else 'div' }} class="card stat"{% if key %} data-num="{{ key }}"{% endif %}{% if href %} href="{{ href }}"{% endif %}>
+  <h3>{{ label }}</h3>
+  <div class="bignum">{{ value }}</div>
+  {% if sub %}<div class="sub">{{ sub }}</div>{% endif %}
+</{{ 'a' if href else 'div' }}>
+{% endmacro %}
+
+{# A number with a CSS bar behind it (no chart library). #}
+{% macro barcell(value, maxv) %}<span class="barcell"><i style="width:{{ [[((value or 0) * 100 // maxv) if maxv else 0, 0]|max, 100]|min }}%"></i><b>{{ value }}</b></span>{% endmacro %}
+
+{# Gate action as a word in a pill. #}
+{% macro action_pill(action) %}{{ pill(t('act_' ~ action), {'allow': 'ok', 'log': 'neutral', 'alert': 'warn', 'block': 'bad', 'pause': 'warn'}.get(action, 'neutral')) }}{% endmacro %}
+
+{# Timeline. items = [{t, text, tone: red|amber|teal|green|gold|hollow, who}]. #}
+{% macro timeline(items) %}
+<ul class="timeline">
+{% for i in items %}<li><span class="t">{{ i.t }}</span><span class="dot {{ i.tone or '' }}" aria-hidden="true"></span><span>{{ i.text }}{% if i.who %}<span class="who-l"> · {{ i.who }}</span>{% endif %}</span></li>
+{% endfor %}
+</ul>
+{% endmacro %}
+
+{# Toast: a message that fades after 6 s with CSS only. The text stays in the DOM. #}
+{% macro toast(message, kind='ok') %}
+<div class="msg msg-{{ kind }} toast" role="{{ 'status' if kind == 'ok' else 'alert' }}">{{ message }}</div>
+{% endmacro %}

@@ -453,6 +453,12 @@ class Settings(BaseSettings):
     # CSV package prefixes a FACT_SOURCE=callable: module must sit under (import = code run).
     fact_callable_allow_prefix: str = "supervisor."
 
+    # --- WP-UX1 --- console shell (docs/console.md). CONSOLE_NAV=top is the one-setting rollback
+    # to the pill header; the second flag shows the links of pages that WP-UX3 has not built yet
+    # (they open a "coming in WP-UX3" page).
+    console_nav: Literal["sidebar", "top"] = "sidebar"
+    console_nav_placeholders: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",

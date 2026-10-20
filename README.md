@@ -42,7 +42,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Judges | Tier 1 and Tier 2 AI judges; advise only, never call the gate | `docs/adr/D06-judge-hardening.md` |
 | Evidence chain | SHA-256 chain, one lane per agent, signed head, offline `verify` | `docs/adr/D05-evidence-chain.md` |
 | Monitors | Drift, fairness, groundedness, oversight metrics; per-agent bindings and an explicit `not_applicable` status when a monitor cannot run (`python -m supervisor.monitors.binding_harness`) | `docs/metrics.md`, `docs/monitors.md`, `docs/adr/D20-monitor-bindings.md` |
-| Console | Reviewer pages: queue, agents, cases, sign-off, metrics | `docs/console.md` |
+| Console | Reviewer pages: queue, agents, cases, sign-off, metrics; left sidebar, global search, list pages with filter bar and row drawer (WP-UX1) | `docs/console.md` |
 | Onboarding agent | Discover, Understand, Advise, Launch, Retire stages; opens PRs. HTTP routes are listed as entrypoints, not tools; deepagents and the model family are recognised | `docs/onboard.md`, `docs/onboard-eval.md` |
 | Regulation knowledge base | 31 instruments, 528 obligations, cited, versioned; internal rules load too | `docs/regulations.md` |
 | Compliance advisor | Obligation matrix, gaps, open questions for any product | `docs/compliance-advisor.md` |
@@ -90,6 +90,8 @@ until you turn its flag on.
 | `CONSOLE_INTEGRATION_ENABLED` | Shows the Integration tab (readiness reports and patches as text) |
 | `CONSOLE_ASSURANCE_ENABLED` | Shows the Assurance tab (runs, packs, metrics against go / no-go) |
 | `TOOL_ANALYTICS_ENABLED` | Runs the daily tool usage rollup and writes least-privilege suggestions (a diff for a person to apply, never applied); serves `GET /v1/analytics/tools`. Commands and flags: `docs/tool-analytics.md` |
+| `CONSOLE_NAV` | Console layout: `sidebar` (default, left sidebar with six groups) or `top` (the phase 2 pill header; one-setting rollback). Details: `docs/console.md` |
+| `CONSOLE_NAV_PLACEHOLDERS` | Shows sidebar links for pages WP-UX3 builds (they open a "coming in WP-UX3" page) |
 | `CONSOLE_TOOLS_ENABLED` | Shows the Tools tab (usage per agent and tool, unused allowed tools, diff download for owners) |
 | `ONBOARD_COMPLIANCE_ENABLED` | Onboarding run also writes the compliance matrix |
 | `ONBOARD_ADVISOR_ENABLED` | Onboarding run also writes the integration report and patches |

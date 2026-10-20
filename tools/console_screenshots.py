@@ -99,6 +99,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", default=str(REPO / "docs" / "design" / "screens"))
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--reseed", action="store_true", help="seed + inject 4, 2, 3, 1 first")
+    ap.add_argument(
+        "--nav", choices=("sidebar", "top"), default="sidebar", help="CONSOLE_NAV (WP-UX1)"
+    )
     args = ap.parse_args(argv)
 
     pw = os.environ.get("PLAYWRIGHT_PYTHON", DEFAULT_PW)
@@ -115,7 +118,10 @@ def main(argv: list[str] | None = None) -> int:
     env = {"PYTHONPATH": str(REPO / "src"), "DATA_DIR": str(data_dir)}
     if args.reseed:
         cli = [py, "-m", "supervisor.cli"]
-        steps = [[*cli, "demo", "seed"]] + [[*cli, "demo", "inject", n] for n in "4231"]
+        # the demo harness reads --data-dir, not DATA_DIR: without it the seed went to the
+        # default data/local/demo while the server below served --data-dir
+        dd = ["--data-dir", str(data_dir)]
+        steps = [[*cli, "demo", "seed", *dd]] + [[*cli, "demo", "inject", n, *dd] for n in "4231"]
         # one onboarding run (mock model, labelled) so the Onboard cards have real artefacts
         out = data_dir / "onboard" / "payments"
         steps.append(
@@ -146,7 +152,13 @@ def main(argv: list[str] | None = None) -> int:
     server = sandbox.start(
         [py, "-m", "supervisor.cli", "serve", "--host", "127.0.0.1", "--port", str(args.port)],
         cwd=REPO,
-        env={**env, "SCHEDULER_ENABLED": "0", "CONSOLE_ONBOARD_ENABLED": "1"},
+        env={
+            **env,
+            "SCHEDULER_ENABLED": "0",
+            "CONSOLE_ONBOARD_ENABLED": "1",
+            "CONSOLE_NAV": args.nav,
+            "CONSOLE_NAV_PLACEHOLDERS": "1",  # WP-UX1: show the whole sidebar
+        },
     )
     try:
         deadline = time.monotonic() + 60
@@ -163,6 +175,9 @@ def main(argv: list[str] | None = None) -> int:
             ("onboard", "/console/onboard", None),
             ("health", "/console/health", None),
         ]
+        if args.nav == "sidebar":  # WP-UX1: the row drawer open, and the collapsed sidebar
+            screens.insert(2, ("agents-drawer", "/console/agents", "a.rowlink"))
+            screens.insert(3, ("agents-collapsed", "/console/agents", "[data-side-collapse]"))
         if case_id:
             screens.insert(3, ("case", f"/console/cases/{case_id}", None))
             screens.insert(4, ("case-rules", f"/console/cases/{case_id}", "a[data-tab=rules]"))

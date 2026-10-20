@@ -1,0 +1,21 @@
+{# Span tree (WP-UX1 component; the Traces viewer of WP-UX3 fills it). `tree` comes from
+   readmodels.span_tree(events). Nested lists with <details> per span that has children, so
+   it opens and closes without JS. Plain lists, not role=tree: a real ARIA tree needs roving
+   focus and arrow keys, and a half-built one is worse for screen readers than native
+   disclosure widgets. Import it `with context` after `_ui.html` (needs `ui` and `t`). #}
+{% import "_ui.html" as ui with context %}
+{% macro label(n) %}<span class="sp-type">{{ n.event_type or '-' }}</span>{% if n.tool_name %} <span class="mono">{{ n.tool_name }}</span>{% endif %}{% if n.status %} <span class="muted">{{ n.status }}</span>{% endif %}{% if n.cut %} {{ ui.pill(t('span_cut'), 'warn') }}{% endif %}<span class="sp-dur">{{ (n.latency_ms ~ ' ms') if n.latency_ms is not none else '' }}</span>{% endmacro %}
+
+{% macro node(n) %}<li data-span="{{ n.span_id }}">{% if n.children %}<details open><summary>{{ label(n) }}</summary><ul>{% for c in n.children %}{{ node(c) }}{% endfor %}</ul></details>{% else %}<div class="sp-leaf">{{ label(n) }}</div>{% endif %}</li>{% endmacro %}
+
+{% macro spantree(tree) %}
+<div class="spantree">
+{% if tree.truncated %}<p class="hint">{{ t('span_capped', n=tree.cap) }}</p>{% endif %}
+{% if not tree.roots and not tree.unparented %}{{ ui.empty(t('span_none'), '') }}{% else %}
+<ul class="tree" aria-label="{{ t('span_tree') }}">
+{% for n in tree.roots %}{{ node(n) }}{% endfor %}
+{% if tree.unparented %}<li class="sp-orphans"><details open><summary><span class="muted">{{ t('span_unparented') }}</span></summary><ul>{% for n in tree.unparented %}{{ node(n) }}{% endfor %}</ul></details></li>{% endif %}
+</ul>
+{% endif %}
+</div>
+{% endmacro %}
