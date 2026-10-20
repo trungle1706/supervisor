@@ -40,6 +40,8 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/fact-sources.md` | `POLICY_DIR` and `FACT_SOURCE` for the served app (WP1b-A) | Build, Sec |
 | `docs/enterprise-readiness.md` | Scored gaps (ISO 42001, NIST AI RMF, ASVS, ops) | 2L, Aud, Op |
 | `docs/metrics.md` | Oversight metrics and their definitions | 2L, Op |
+| `docs/session-monitor.md` | Session monitor: signals, case and pause rules, settings, route, harness (WP27) | Dev, Op, Aud |
+| `docs/session-monitor-validation-report.md` | Session harness result with GO / NO-GO and the WP28 trace catch rates (WP27) | Aud, 2L |
 | `docs/detectors.md` | Detector contract, catalogue, verdict v2, precedence, coverage, harness, how to add a detector (WP37) | Dev, Op, Aud |
 | `docs/detectors-validation-report.md` | Detector harness result on the mock path with GO / NO-GO (WP37) | Aud, 2L |
 | `docs/latency.md` | Gate latency: method, numbers from `tools/bench_latency.py`, budgets, what is not measured | Op, Dev, Aud |

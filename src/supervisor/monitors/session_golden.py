@@ -33,7 +33,7 @@ N_ATTACK_PER_FAMILY = 12
 N_BENIGN = 60
 
 # ---------------------------------------------------------------------------- text banks
-# Each bank is a list of (Vietnamese, English) pairs; dev takes the even pairs, heldout the odd ones.
+# Each bank is a list of (Vietnamese, English) pairs; dev takes even pairs, heldout odd ones.
 BANK: dict[str, list[str]] = {
     "greet": [
         "Chao ban, toi muon kiem tra tai khoan.",

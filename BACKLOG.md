@@ -130,3 +130,14 @@
 
 
 | WP37: adversarial rows are hand-written by one author (n = 60 / 66 / 51 positives); injection (4696 bp) and judge mock (3725 bp) pass their thresholds on the point value only, their Wilson lower bounds are below the threshold, and the report marks them `indicative` | A second labeller; bank-supplied probes; raise n until the lower bound clears the threshold or the threshold moves |
+| WP27: a slow attack (steps more than `window_s` apart, for example one transfer a day) is not seen; the window is 30 minutes (probes `slow-days`, `slow-drip`) | A second, daily-scale window using `oversight_metric` or the multi-agent monitor over days |
+| WP27: a caller that rotates `session_id` every turn escapes the session counters and the pause (probe `id-churn`); `consumer_id` correlation covers the cross-agent signal only | Count per consumer across sessions (a consumer-level window) once WP38 sends a verified consumer id |
+| WP27: phrase lists are small: leetspeak, zero-width characters, typos and paraphrase can hide an "expand on" request; other signals often still catch the session (probes `leet`, `zero-width`, `typos`) | Normalisation pass shared with Tier 0b (decode, fold look-alikes); WP25 classifier as one more counter |
+| WP27: memory poison needs an authority phrase in the plant and a recall phrase, a shared identifier or a standing instruction in the ask; a paraphrase with none of these is missed (probe `memory-paraphrase`) | Learn nothing (R1); extend the phrase lists with bank-supplied examples |
+| WP27: WP28 single-call families (tool poisoning, policy puppetry) often end before three hits are possible; the sensitive profile (K=3, 1500 bp) catches more at about 4 percent false alarms on WP28 controls | Bank sets K and the thresholds from its own false alarm budget |
+| WP27: the synthetic sessions are written by the same author as the monitor; per-family n is 12 (wide Wilson intervals) | Second labeller, bank-supplied sessions, more trials per family |
+| WP27: `solo_signals: [memory]` can open a case alone; its false alarm rate on real traffic is unknown (0 of 120 synthetic benign, 0 of 12 WP28 controls) | Review after the pilot; set `solo_signals: []` to require K hits |
+| WP27: the in-request path reads active pauses written by another process every 2 s in a background thread; a pause set by the batch job applies after at most that delay | Push notification between replicas if the pilot runs several |
+| WP27: Tier 0b runs after the decision; a late code re-assesses the session at that turn, but the first assessment of a turn may not include it | Run Tier 0b before the decision for money tools if latency allows |
+| WP27: no console page for sessions (WP39); the route and the case summary carry the timeline | WP39 |
+| WP27: the pause is not applied to MCP proxy or SDK local gates that bypass `/v1/gate/check` | WP26 / WP38 pass the context through |

@@ -4,7 +4,7 @@
     "expect_match_bp": 10000,
     "false_alarm_bp": 0
   },
-  "commit": "19305df",
+  "commit": "6d82c82",
   "config": {
     "case_threshold_bp": 2500,
     "cooldown_s": 3600,
@@ -32,7 +32,7 @@
     },
     "heldout": {
       "catch_bp": 9500,
-      "early_catch_bp": 6000,
+      "early_catch_bp": 5833,
       "false_alarm_bp": 0,
       "per_family": {
         "crescendo": 10000,
