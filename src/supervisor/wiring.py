@@ -182,7 +182,11 @@ def make_detector_gate(settings: Settings, policy: Policy) -> Any:
         key, key_id = settings.mask_key
         masker = VnRegexMasker(key, key_id)
     registry = build_registry(masker, judge=_advisory_judge(settings, masker))
-    resolved = ResolvedDetectors(load_config(settings.detectors_config), registry)
+    try:
+        resolved = ResolvedDetectors(load_config(settings.detectors_config), registry)
+    except ConfigError as exc:  # one ASCII line naming the setting, no chained traceback
+        msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
+        raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
     problems: list[str] = []
     for agent_id, manifest in policy.doc.agents.items():
         if manifest.detectors is not None:
@@ -191,7 +195,8 @@ def make_detector_gate(settings: Settings, policy: Policy) -> Any:
             if over.detectors is not None:
                 problems += resolved.check_agent(f"{agent_id}/{consumer_id}", over.detectors)
     if problems:
-        raise ConfigError("detector overrides in the policy are invalid: " + "; ".join(problems))
+        msg = "detector overrides in the policy are invalid: " + "; ".join(problems)
+        raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii"))
     return DetectorGate(registry, resolved)
 
 
