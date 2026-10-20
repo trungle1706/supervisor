@@ -9,7 +9,7 @@ Review this commit: see "Branch and commit" at the end.
 | Check | Result |
 |---|---|
 | Merges | 11 of 11 (`git merge --no-ff`; WP23, WP1b-B, WP1b-A and the console WP-UX1, WP-UX2, WP-UX3 merged in later passes), conflicts resolved by union of the additive blocks |
-| `ruff check .` / `ruff format --check .` | clean / clean (667 files) |
+| `ruff check .` / `ruff format --check .` | clean / clean (661 files) |
 | Full suite `uv run python -m pytest -q` (no `-x`, `RUN_PERF` off) | **3684 passed**, 29 skipped, 0 failed (main: 2791). History: five WPs 3283 / 28; + WP23 3303 / 29 (the 50 ms timing test is skipped without `RUN_PERF=1`); + WP1b-B 3349 / 29; + WP1b-A and the POLICY_DIR binding test 3426 / 29; + WP-UX1, WP-UX2, WP-UX3 and the i18n duplicate-key test **3684 / 29** (final) |
 | `python -m supervisor.pii_eval` (both splits) | same as the WP24b baseline (table in section 6) |
 | `python -m supervisor.alerts.harness` | `[OK] all GO` on dev and held-out, 8 of 8 alerts |
