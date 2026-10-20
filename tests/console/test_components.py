@@ -205,3 +205,83 @@ def test_tabs_point_at_their_panel() -> None:
         "{% call dr.drawer('x', '', 'TABS', '{}') %}B{% endcall %}"
     )
     assert 'id="tab-body" role="tabpanel"' in d
+
+
+# ---- span tree
+
+
+def _ev(span: str, parent: str | None, ts: str, **kw: object) -> dict[str, object]:
+    return {
+        "event_id": f"e-{span}-{ts}",
+        "span_id": span,
+        "parent_span_id": parent,
+        "ts": ts,
+        "event_type": "tool_call",
+        **kw,
+    }
+
+
+def test_span_tree_nests_orphans_and_cuts_cycles() -> None:
+    from supervisor.console.readmodels import span_tree
+
+    events = [
+        _ev("root", None, "01"),
+        _ev("child", "root", "02", tool_name="pay/send", latency_ms=12),
+        _ev("child", "root", "03", event_type="gate_decision", latency_ms=30),
+        _ev("orphan", "missing", "04"),
+        _ev("a", "b", "05"),  # a <-> b: a parent loop
+        _ev("b", "a", "06"),
+        _ev("self", "self", "07"),  # its own parent: a root
+    ]
+    tree = span_tree(events)
+    assert [n["span_id"] for n in tree["roots"]] == ["root", "self"]
+    child = tree["roots"][0]["children"][0]
+    assert child["span_id"] == "child" and len(child["events"]) == 2
+    assert child["latency_ms"] == 30 and child["tool_name"] == "pay/send"
+    under = [n["span_id"] for n in tree["unparented"]]
+    assert under[0] == "orphan" and "a" in under
+    cut = next(n for n in tree["unparented"] if n["span_id"] == "a")
+    assert cut["cut"] and [c["span_id"] for c in cut["children"]] == ["b"]
+
+    def ids(nodes: list[dict[str, object]]) -> list[str]:
+        out: list[str] = []
+        for n in nodes:
+            out.append(str(n["span_id"]))
+            out += ids(n["children"])  # type: ignore[arg-type]
+        return out
+
+    every = ids(tree["roots"]) + ids(tree["unparented"])
+    assert sorted(every) == sorted({e["span_id"] for e in events})  # each span exactly once
+    assert tree["n"] == 6 and not tree["truncated"]
+
+
+def test_span_tree_cap_and_depth_and_render() -> None:
+    from supervisor.console import readmodels
+
+    chain = [_ev(f"s{i:04d}", f"s{i - 1:04d}" if i else None, f"{i:06d}") for i in range(600)]
+    tree = readmodels.span_tree(chain)
+    assert tree["n"] == readmodels.SPAN_CAP and tree["truncated"]
+    depth, node = 1, tree["roots"][0]
+    while node["children"]:
+        depth, node = depth + 1, node["children"][0]
+    assert depth <= readmodels.SPAN_DEPTH  # deep chains re-hang, no deep recursion in Jinja
+    for lang, word in (("en", "Showing the first 500"), ("vi", "Chỉ hiển thị 500")):
+        html = _render(
+            '{% import "_c_spantree.html" as st with context %}{{ st.spantree(tree) }}',
+            lang,
+            tree=tree,
+        )
+        assert word in html and html.count("<li data-span=") == 500
+        assert "<details open>" in html and 'role="tree"' not in html
+    small = readmodels.span_tree(
+        [_ev("r", None, "1"), _ev("o", "gone", "2"), _ev("x<y", None, "3", tool_name="<b>")]
+    )
+    html = _render(
+        '{% import "_c_spantree.html" as st with context %}{{ st.spantree(tree) }}', tree=small
+    )
+    assert "Spans without a parent" in html and "&lt;b&gt;" in html and "<b>" not in html
+    empty = _render(
+        '{% import "_c_spantree.html" as st with context %}{{ st.spantree(tree) }}',
+        tree=readmodels.span_tree([]),
+    )
+    assert "No span in this trace" in empty

@@ -552,6 +552,15 @@ a.rowlink::after { content: ""; position: absolute; inset: 0; }
 .idline { font-size: 12px; color: var(--muted); }
 .tabs a[aria-selected="true"] { background: var(--ink); color: var(--ink-fg); }
 
+/* span tree: nested lists, <details> per parent span (no JS) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree ul { padding-left: 18px; border-left: 1px solid var(--line); margin-left: 6px; }
+.tree summary, .tree .sp-leaf { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 6px; font-size: 13px; }
+.tree summary { cursor: pointer; }
+.tree summary:hover, .tree .sp-leaf:hover { background: var(--surface-2); }
+.tree .sp-type { font-weight: 600; }
+.tree .sp-dur { margin-left: auto; font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
 /* toast: an ok message fades out after 6 s with CSS only (the text stays in the DOM) */
 @keyframes sv-toast { to { opacity: 0; visibility: hidden; max-height: 0; margin: 0; padding-block: 0; border-width: 0; } }
 .toast, #flash .msg-ok { max-height: 120px; animation: sv-toast .4s ease 6s forwards; }

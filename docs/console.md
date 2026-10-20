@@ -119,6 +119,7 @@ drawer, tab keys).
 | Empty state | `ui.empty(title, line, href, label)` | |
 | Stat tile, bar cell | `ui.stat(...)`, `ui.barcell(value, max)` | CSS bar, no chart library |
 | Toast | `ui.toast(message, kind)`; `#flash` | An ok message fades after 6 s by CSS only |
+| Span tree | `_c_spantree.html` (`st.spantree(tree)`), `readmodels.span_tree(events)` | One node per span, `<details>` per parent (no JS). Spans with a missing parent and spans in a parent loop (marked "loop cut") go under "Spans without a parent"; at most 500 spans. No page uses it yet (Traces viewer, WP-UX3) |
 
 Migrated in WP-UX1 as proof: **Overview** (stat tiles, empty state, "see all" link) and
 **Agents** (breadcrumb, page header, state tiles, filter bar, sortable paged table, row drawer
