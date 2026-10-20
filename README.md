@@ -48,6 +48,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Integration advisor | Readiness score and patches to fit a product into Supervisor | `docs/INTEGRATION_GUIDE.md` |
 | Assurance packs | 33 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
 | Judge MRM | Model card, validation report, change control, retire | `docs/judge-mrm.md` |
+| Inventory graph | Agents, models, endpoints, tools, MCP servers and datasets with evidence; risk passes up; flags Apps and endpoints with no manifest (shadow AI) | `docs/inventory.md`, `docs/adr/D16-inventory-graph.md` |
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
 
 ## 10-minute tour
@@ -94,6 +95,7 @@ until you turn its flag on.
 | `JUDGE_REQUIRE_VALIDATION` | Judge refuses to start without a passing MRM validation for its current identity |
 | `API_RBAC_ENABLED` | Enforces the role matrix on the agent-facing `/gate/*` read routes (`/gate/agents/{id}/state`, `/gate/metrics`). The control routes (pause, resume, quarantine, release) always check identity and role |
 | `RATE_LIMIT_ENABLED` | Rate-limits mutating routes (429); agent check path is exempt |
+| `INVENTORY_ENABLED` | Fills the inventory graph, runs the workspace refresh job (databricks_app mode), shows the Inventory tab and `/v1/inventory/...`; shadow-AI items open low-severity cases |
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
 | `LOG_FORMAT` | Value `json` writes one JSON log line with request id and principal id (default `text`) |
 

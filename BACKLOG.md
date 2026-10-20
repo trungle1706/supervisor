@@ -47,3 +47,11 @@
 | Compliance advisor counts a monitor as present when it is planned, not when its runtime flag is on (`FAIRNESS_ENABLED` etc.) | Read deployment settings into the product facts |
 | Onboard eval: held-out set is no longer blind after the post-blind fixes | Write a fresh blind set (new repos, worker does not read the analyser) before quoting the gates externally |
 | `model_version` is the model tag; include the endpoint-reported digest when available | A model endpoint that reports a digest or revision |
+| WP24: the compliance advisor and the launch report do not yet read the inventory (the read API `supervisor.inventory.read.inventory_for_agent` exists and is tested) | Wire it in with the advisor owner (use the endpoint, tools and datasets as product facts) |
+| WP24: no console action to set a manual risk or an allow-list entry; manual risk is `InventoryStore.set_manual_risk` only; allow-list is a file | Bank decision on who may edit the inventory, then an `inventory.edit` permission and a chain record |
+| WP24: Delta writes are one statement per changed row (no batching); fine for thousands of nodes, slow beyond | Batch MERGE if the workspace has more than a few thousand objects |
+| WP24: workspace scan sees Apps, serving endpoints, registered models and UC tables; not Genie spaces, Vector Search endpoints, notebooks/jobs that call a model, or agents on Agent Bricks | Extend the reader per owner priority |
+| WP24: Apps are matched to agents by name or by an explicit `databricks_app` in the manifest; there is no read of an App's bound resources (`resources` of the App spec) to find its serving endpoint | Read App resources through the SDK and add `uses` edges automatically |
+| WP24: lineage (who reads which UC table) comes from the fixture only; the live reader does not call the lineage API | Add `lineage-tracking` table-lineage reads when the metastore enables it |
+| WP24: risk inheritance uses `uses` edges only; datasets carry no own level; no per-node Decision 33 tasks | WP29 risk register and WP30 task list decide what else passes up |
+| WP24: shadow case severity is fixed `low` | Owner decision (ADR D16 open 3) |
