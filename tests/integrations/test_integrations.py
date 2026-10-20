@@ -82,8 +82,26 @@ def test_chain_feed_writes_schema_events_once(demo: DemoSession, tmp_path: Path)
     assert all(set(e) == allowed for e in events)
     # no PII: no CCCD / phone / account-like digit runs anywhere in the SIEM stream
     text = json.dumps([{k: v for k, v in e.items() if k != "entry_hash"} for e in events])
-    assert not re.search(r"(?<![0-9a-f])\d{9,12}(?![0-9a-f])", text)
+    assert not _pii_digit_runs(text)
     assert "ACC-" not in text and "CUS-" not in text
+
+
+# A case id is CASE- + 10 upper-case hex characters of a hash (cases.service.case_id_for). The
+# demo's case ids change every run, and about 1 in 50 is all digits or holds a 9-digit run
+# (CASE-5607640249): the digit grep read it as PII and the test failed now and then (WP29
+# review). Case ids are product ids, not PII, so they are taken out before the grep.
+_CASE_ID = re.compile(r"CASE-[0-9A-F]{10}(?![0-9A-Za-z])")
+_DIGIT_RUN = re.compile(r"(?<![0-9a-f])\d{9,12}(?![0-9a-f])")
+
+
+def _pii_digit_runs(text: str) -> list[str]:
+    return _DIGIT_RUN.findall(_CASE_ID.sub("CASE-<id>", text))
+
+
+def test_pii_digit_grep_ignores_case_ids_only() -> None:
+    assert _pii_digit_runs('{"case_id": "CASE-5607640249", "lane": "case:CASE-123456789A"}') == []
+    assert _pii_digit_runs('{"actor": "0912345678"}') == ["0912345678"]
+    assert _pii_digit_runs('{"x": "CASE-5607640249 079123456789"}') == ["079123456789"]
 
 
 def test_anchor_event() -> None:
