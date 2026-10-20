@@ -322,6 +322,7 @@
           "finance_harm_refusal",
           "garak_probe_families",
           "indirect_injection_vi",
+          "multiturn_redteam_vi",
           "owasp_agentic_redteam",
           "owasp_llm_top10",
           "pii_canary"

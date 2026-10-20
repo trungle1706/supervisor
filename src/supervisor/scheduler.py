@@ -376,6 +376,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import multiagent as multiagent_job
     from supervisor.jobs import notify as notify_job
     from supervisor.jobs import quality as quality_job
+    from supervisor.jobs import redteam_nightly as redteam_job
     from supervisor.jobs import retention as retention_job
     from supervisor.jobs import siem as siem_job
     from supervisor.monitors.sweeps import build_judge_sweep, build_quality_sweep
@@ -447,6 +448,12 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
 
     if inventory_job.scheduled(settings):  # WP24: listed only when it can run
         jobs.append(JobSpec("inventory", settings.sched_inventory_s, inventory))
+    if redteam_job.enabled(settings):  # WP28: nightly multi-turn red team, listed only when on
+        jobs.append(
+            JobSpec(
+                "redteam_nightly", settings.sched_redteam_s, lambda: redteam_job.run(ctx, settings)
+            )
+        )
     return jobs
 
 
