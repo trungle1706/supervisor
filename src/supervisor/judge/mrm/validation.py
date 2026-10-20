@@ -105,8 +105,12 @@ def _challenger_section(
     sample = [i for i in items if i.split == "heldout" and _sampled(i.id, sample_bp)]
     thr = settings.judge_t1_threshold_bp
     base = run_once(sample, primary, 0, thr)
+    # The challenger sits in the T1 slot of this comparison router. Its family was already
+    # checked as a challenger when `primary` was built (D15), so no agents are listed here.
     chal_router = JudgeRouter.from_settings(
-        settings, chats=chats if model == "settings" else with_mock_challenger(settings, chats)
+        settings,
+        chats=chats if model == "settings" else with_mock_challenger(settings, chats),
+        agent_families={},
     )
     chal = run_once(sample, chal_router, 0, thr)
 

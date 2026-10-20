@@ -287,3 +287,21 @@ def test_mrm_validate_runs_with_a_qwen_challenger(monkeypatch: pytest.MonkeyPatc
     _qwen_challenger(monkeypatch)
     report = run_validation(load_settings(_env_file=None), runs=1, record=False)
     assert report["decision"] in ("GO", "NO_GO")
+
+
+def test_challenger_comparison_section_accepts_a_qwen_challenger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Found by the live run: the comparison router puts the challenger in its T1 slot, which
+    was checked against every manifest (qwen demo agents) and stopped `validate`."""
+    from supervisor.judge.eval.datasets import build_eval_sets
+    from supervisor.judge.mrm.validation import _challenger_section
+
+    _qwen_challenger(monkeypatch)
+    settings = load_settings(_env_file=None)
+    chal = MockJudgeChat(1, model_id="mock-qwen-challenger-v1", family="qwen")
+    primary = JudgeRouter.from_settings(settings, chats={"challenger": chal})
+    assert primary.challenger is not None
+    items = [i for i in build_eval_sets() if i.split == "heldout"][:6]
+    section = _challenger_section(settings, "settings", items, primary)
+    assert section["status"] == "ok" and section["n"] == len(items)
