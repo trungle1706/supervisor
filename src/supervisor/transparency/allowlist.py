@@ -11,9 +11,16 @@ Nothing that is not listed is copied. A section with no spec for a variant is re
 superset, by definition). A package that adds a section (WP30 ``controls``) must add its fields
 here with ``set_spec``; until then the regulator and customer variants show nothing of it.
 
+``scrub`` runs on every text value of the regulator and customer variants after the projection:
+the masker, then the patterns below (e-mail, phone, a long run of digits such as a CCCD or an
+account number). Many allowed fields are copied as they are (a matrix article, a limit pointer,
+an inventory node name); the scrub makes sure none of them carries contact or account data even
+when the source does.
+
 ``guard`` is a second, independent check on the finished report: the customer variant must hold
 no agent id, rule id, obligation id, hash, owner field or person name, whatever the allow-list
-says. If the allow-list is wrong the report is refused, not shown.
+says; neither outer variant may hold an e-mail, a phone number or a long run of digits. If the
+allow-list is wrong the report is refused, not shown.
 """
 
 from __future__ import annotations
@@ -175,6 +182,267 @@ SPECS: dict[str, dict[str, Spec]] = {
 }
 
 
+# Maps whose keys are data (a status, a band, a tier, a metric name), not fields: their keys are
+# shown as ``*`` in ``field_paths``.
+DATA_MAPS = frozenset(
+    {
+        "by_status",
+        "by_applies",
+        "by_band",
+        "by_category",
+        "by_evidence",
+        "by_severity",
+        "tiers",
+        "metrics",
+        "role_names",
+        "tasks",
+    }
+)
+
+
+def field_paths(sections: Mapping[str, Mapping[str, Any]]) -> set[str]:
+    """Every field path of the sections' data, ``section.field.sub`` with ``[]`` for a list
+    and ``*`` for the keys of a data map. Used by the test that refuses a field nobody
+    reviewed (``REVIEWED``)."""
+    out: set[str] = set()
+
+    def go(v: Any, path: str, key: str) -> None:
+        if isinstance(v, dict):
+            if not v:
+                out.add(path)
+            for k, x in v.items():
+                go(x, f"{path}.{'*' if key in DATA_MAPS else k}", k)
+        elif isinstance(v, list):
+            if not v:
+                out.add(path + "[]")
+            for x in v:
+                go(x, path + "[]", key)
+        else:
+            out.add(path)
+
+    for sid, sec in sections.items():
+        go(sec.get("data") or {}, sid, sid)
+    return out
+
+
+# Every field path the builder makes (``field_paths``), reviewed for each variant in WP31 and its
+# review. A collector that adds a field fails tests/transparency/test_review_leaks.py until
+# the field is listed here AND the variant specs above say who may see it (``True`` sub-trees of
+# the regulator spec copy a new field without asking, so this list is the gate).
+REVIEWED: frozenset[str] = frozenset(
+    {
+        "assurance.by_status.*",
+        "assurance.mock_n",
+        "assurance.more",
+        "assurance.packs[].day",
+        "assurance.packs[].dimension",
+        "assurance.packs[].is_mock",
+        "assurance.packs[].metrics.*",
+        "assurance.packs[].n_items",
+        "assurance.packs[].pack_id",
+        "assurance.packs[].status",
+        "assurance.packs_total",
+        "backlog.items[].item",
+        "backlog.items[].returns_when",
+        "backlog.matched_n",
+        "backlog.more",
+        "cards.agent_card.agent_classes[]",
+        "cards.agent_card.autonomy",
+        "cards.agent_card.customer_types[]",
+        "cards.agent_card.data_classes[]",
+        "cards.agent_card.limits[].id",
+        "cards.agent_card.limits[].period",
+        "cards.agent_card.limits[].ref",
+        "cards.agent_card.limits[].scope",
+        "cards.agent_card.limits[].value_vnd",
+        "cards.agent_card.limits_more",
+        "cards.agent_card.provenance_n",
+        "cards.agent_card.purpose",
+        "cards.agent_card.roles[]",
+        "cards.agent_card.version",
+        "cards.judge_card.catch_rate_bp",
+        "cards.judge_card.failure_modes_n",
+        "cards.judge_card.false_alarm_bp",
+        "cards.judge_card.heldout_split",
+        "cards.judge_card.is_mock",
+        "cards.judge_card.judge_id",
+        "cards.judge_card.mask_version",
+        "cards.judge_card.metrics_mock",
+        "cards.judge_card.metrics_status",
+        "cards.judge_card.model_version",
+        "cards.judge_card.prompt_version",
+        "cards.judge_card.role_names.*",
+        "cards.judge_card.roles_assigned",
+        "cards.judge_card.roles_total",
+        "cards.judge_card.rubric_version",
+        "cards.judge_card.tiers.*.family",
+        "cards.judge_card.tiers.*.kind",
+        "cards.judge_card.tiers.*.model_id",
+        "cases.by_severity",
+        "cases.by_severity.*",
+        "cases.closed_n",
+        "cases.items[]",
+        "cases.items[].case_id",
+        "cases.items[].opened_day",
+        "cases.items[].severity",
+        "cases.items[].status",
+        "cases.items[].summary",
+        "cases.more",
+        "cases.oldest_open_hours",
+        "cases.open_n",
+        "cases.total_n",
+        "classification.class_source",
+        "classification.d33_obligation_ids[]",
+        "classification.decision33_class",
+        "classification.entries[].entry",
+        "classification.entries[].obligation_ids[]",
+        "classification.entries[].triggered",
+        "classification.matrix_class",
+        "compliance.as_of",
+        "compliance.by_applies.*",
+        "compliance.by_status.*",
+        "compliance.d33_ids_missing[]",
+        "compliance.d33_rows[].applies",
+        "compliance.d33_rows[].article_ref",
+        "compliance.d33_rows[].obligation_id",
+        "compliance.d33_rows[].status",
+        "compliance.gaps[].instrument_id",
+        "compliance.gaps[].obligation_id",
+        "compliance.gaps[].status",
+        "compliance.gaps_more",
+        "compliance.obligations_total",
+        "compliance.questions_open",
+        "compliance.regkb_version",
+        "compliance.source_kind",
+        "compliance.threshold_exceeds",
+        "compliance.threshold_gaps",
+        "controls.bank_in_scope",
+        "controls.bank_note",
+        "controls.compliance_bp",
+        "controls.controls[].control_id",
+        "controls.controls[].control_type",
+        "controls.controls[].implemented_by",
+        "controls.controls[].owner",
+        "controls.controls[].reason",
+        "controls.controls[].stale",
+        "controls.controls[].status",
+        "controls.controls[].title",
+        "controls.coverage[].controls_n",
+        "controls.coverage[].obligation",
+        "controls.coverage[].status",
+        "controls.failing",
+        "controls.in_scope",
+        "controls.more",
+        "controls.no_data",
+        "controls.product_bp",
+        "controls.product_in_scope",
+        "controls.product_working",
+        "controls.tasks.*",
+        "controls.uncovered_risks_n",
+        "controls.working",
+        "evidence.anchored",
+        "evidence.lane.entries",
+        "evidence.lane.head_hash",
+        "evidence.lane.lane",
+        "evidence.root.algorithm",
+        "evidence.root.key_id",
+        "evidence.root.key_kind",
+        "evidence.root.seq",
+        "evidence.verify.failures",
+        "evidence.verify.how",
+        "evidence.verify.state",
+        "identity.agent_id",
+        "identity.business_owner",
+        "identity.display_name",
+        "identity.gate_state",
+        "identity.host_type",
+        "identity.kind",
+        "identity.model_family",
+        "identity.oversight.credit_decisions",
+        "identity.oversight.executes_payments",
+        "identity.oversight.human_approval_before_execution",
+        "identity.oversight.independent_credit_approval",
+        "identity.owner_team",
+        "identity.owner_user",
+        "identity.plug_point",
+        "identity.purpose",
+        "identity.registered_day",
+        "identity.risk_tier",
+        "identity.status",
+        "inventory.effective_risk",
+        "inventory.groups[].count",
+        "inventory.groups[].group",
+        "inventory.links[].effective_risk",
+        "inventory.links[].evidence_ref",
+        "inventory.links[].group",
+        "inventory.links[].name",
+        "inventory.links[].own_risk",
+        "inventory.links[].source",
+        "inventory.more",
+        "inventory.node_count",
+        "inventory.own_risk",
+        "judge_mrm.judge_is_mock",
+        "judge_mrm.latest[].day",
+        "judge_mrm.latest[].decision",
+        "judge_mrm.latest[].is_mock",
+        "judge_mrm.latest[].model_version",
+        "judge_mrm.latest[].passed",
+        "judge_mrm.latest_decision",
+        "judge_mrm.validation_required",
+        "judge_mrm.validations_n",
+        "masking.amounts_masked",
+        "masking.capture_level",
+        "masking.mask_version",
+        "masking.masker_kind",
+        "masking.masking_on",
+        "monitors.bindings.drift.bound",
+        "monitors.bindings.fairness.bound",
+        "monitors.bindings.fairness.gap",
+        "monitors.bindings.fairness.source",
+        "monitors.bindings.quality.bound",
+        "monitors.bindings.quality.gap",
+        "monitors.bindings.quality.source",
+        "monitors.bindings.split.bound",
+        "monitors.bindings.split.gap",
+        "monitors.bindings.split.source",
+        "monitors.coverage_bp",
+        "monitors.events_gated",
+        "monitors.events_seen",
+        "monitors.flags.drift",
+        "monitors.flags.fairness",
+        "monitors.flags.metrics",
+        "monitors.flags.multiagent",
+        "monitors.flags.quality",
+        "monitors.oversight_day",
+        "risks.by_band.*",
+        "risks.by_category.*",
+        "risks.by_evidence.*",
+        "risks.evidence_monitors[]",
+        "risks.inherent_level",
+        "risks.inherent_score",
+        "risks.more",
+        "risks.residual_level",
+        "risks.residual_score",
+        "risks.risks_n",
+        "risks.top[].category",
+        "risks.top[].evidence_links_n",
+        "risks.top[].evidence_reason",
+        "risks.top[].evidence_state",
+        "risks.top[].inherent_score",
+        "risks.top[].own",
+        "risks.top[].owner",
+        "risks.top[].reference_links_n",
+        "risks.top[].residual_band",
+        "risks.top[].residual_score",
+        "risks.top[].review_overdue",
+        "risks.top[].risk_id",
+        "risks.top[].title",
+        "risks.top[].treatment",
+        "risks.top[].via",
+    }
+)
+
+
 def set_spec(variant: str, section: str, spec: Spec) -> None:
     """Add or replace the spec of one section (a package that adds a section calls this)."""
     if variant not in VARIANTS:
@@ -226,6 +494,46 @@ def project_sections(sections: Mapping[str, Mapping[str, Any]], variant: str) ->
 _HASH = re.compile(r"\b[0-9a-f]{32,}\b")
 _RULE = re.compile(r"\b(?!SHA)[A-Z]{2,6}-\d{2,3}\b")
 _OBLIGATION = re.compile(r"\b(?:VN|INTL)-[A-Z0-9]+(?:-[A-Za-z0-9.]+)+\b")
+# Contact and account data (review of WP31): e-mail, a Vietnamese phone number with or without
+# separators, and a run of 9 to 19 digits standing alone or in groups of 3 or 4 (CCCD 12, CMND 9,
+# account and card numbers). Hashes are hex with letters around their digits; dates, versions and
+# file:line refs are short groups joined by "-" or ":".
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
+_PHONE = re.compile(r"(?<![\w+])(?:\+84|0)[\s.-]?\d{2,3}[\s.-]?\d{3}[\s.-]?\d{3,4}(?!\w)")
+_DIGITS = re.compile(
+    r"(?<![\w.-])(?:\d{9,19}|\d{3,4}(?:[ .]\d{3,4}){2,4}(?:[ .]\d{1,2})?)(?![\w]|[.-]\d)"
+)
+PII_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("email", _EMAIL),
+    ("digits", _DIGITS),
+    ("phone", _PHONE),
+)
+REMOVED = "[removed]"
+
+
+def scrub_text(text: str) -> str:
+    """The text with every e-mail, phone number and long run of digits replaced."""
+    for _, pat in PII_PATTERNS:
+        text = pat.sub(REMOVED, text)
+    return text
+
+
+def scrub(value: Any, fn: Any) -> Any:
+    """Apply ``fn`` to every text value (not to keys) of a plain JSON value."""
+    if isinstance(value, dict):
+        return {k: scrub(v, fn) for k, v in value.items()}
+    if isinstance(value, list):
+        return [scrub(v, fn) for v in value]
+    if isinstance(value, str):
+        return fn(value)
+    return value
+
+
+def scrub_sections(sections: Mapping[str, Mapping[str, Any]], fn: Any) -> dict[str, Any]:
+    """Every section with its ``data`` scrubbed (the meta fields are fixed codes)."""
+    return {sid: {**sec, "data": scrub(sec.get("data") or {}, fn)} for sid, sec in sections.items()}
+
+
 _FORBIDDEN_KEY = re.compile(r"(_id$|^id$|hash|owner|user|^ref$|lane|name$|_ref$|team)")
 
 
@@ -242,15 +550,24 @@ def walk(value: Any, path: str = "") -> Iterator[tuple[str, str, Any]]:
         yield path, "str", value
 
 
-def text_leaks(text: str, variant: str, secrets: Mapping[str, set[str]]) -> list[str]:
+def text_leaks(
+    text: str, variant: str, secrets: Mapping[str, set[str]], *, digits: bool = True
+) -> list[str]:
     """Reasons the text must not be shown to this variant (empty list = clean). The customer
-    text may hold no id, hash, rule, obligation or person; the regulator text no person."""
+    text may hold no id, hash, rule, obligation or person; the regulator text no person; neither
+    an e-mail, a phone number or (``digits``) a long run of digits. The rendered text is checked
+    with ``digits=False``: it prints integer amounts in minor units, which are not text values
+    (every text value was already checked with the digit pattern)."""
     low = text.lower()
     found: list[str] = []
     for name in sorted(secrets.get("people", set())):
         if name.lower() in low:
             found.append("person")
             break
+    if variant != "internal":
+        found += [
+            kind for kind, pat in PII_PATTERNS if (digits or kind != "digits") and pat.search(text)
+        ]
     if variant != "customer":
         return found
     if _HASH.search(text):

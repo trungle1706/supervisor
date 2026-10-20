@@ -22,6 +22,8 @@ from supervisor.core.canonical import format_ts
 OPEN_STATUSES = ("open", "triaged", "contained")
 _ROOT = "root"
 _WORD = re.compile(r"[A-Za-z0-9_]+")
+_CODE = re.compile(r"[A-Za-z0-9_.:/@+~-]*")  # one word: an id, a status, a path:line
+DROPPED = "[unmasked text dropped]"
 
 
 @dataclass
@@ -101,9 +103,24 @@ class Facts:
             return ""
         raw = str(text)
         if self._masker is None:
-            return "[unmasked text dropped]"
+            return DROPPED
         out = str(self._masker.mask(raw))
         return out if len(out) <= limit else out[: limit - 1] + "~"
+
+    def scrub(self, text: str) -> str:
+        """A text value of an outer variant: masked, then the contact and account patterns of
+        the allow-list replaced. Clean text comes back unchanged. With no masker only a code
+        (one word: an id, a status, a file:line) is kept; any other text is dropped, as in
+        ``mask`` (a name in a config text field must not go outward unmasked)."""
+        from supervisor.transparency.allowlist import scrub_text
+
+        if self._masker is not None:
+            out = str(self._masker.mask(text))
+        elif _CODE.fullmatch(text):
+            out = text
+        else:
+            out = DROPPED
+        return scrub_text(out)
 
     # ------------------------------------------------------------------ registry
     def agent_row(self, agent_id: str) -> dict[str, Any] | None:

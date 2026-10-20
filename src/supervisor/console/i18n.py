@@ -2106,6 +2106,18 @@ _T.update(
             "Một danh sách bị cắt ngắn để báo cáo gọn",
         ),
         "tp_ns_agent_retired": ("The agent is retired", "Tác tử đã ngừng hoạt động"),
+        "tp_ns_monitors_off": (
+            "Some monitors are switched off",
+            "Một số giám sát đang tắt",
+        ),
+        "tp_ns_masking_off": (
+            "Masking of personal data is switched off",
+            "Che dữ liệu cá nhân đang tắt",
+        ),
+        "tp_ns_judge_not_validated": (
+            "The AI judge has no validation run yet",
+            "Bộ đánh giá AI chưa có lần thẩm định nào",
+        ),
         "tp_ns_advisory_only": (
             "The compliance matrix is advisory and is not a statement of compliance",
             "Ma trận tuân thủ chỉ mang tính tham khảo, không phải tuyên bố tuân thủ",

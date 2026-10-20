@@ -94,9 +94,12 @@ class TransparencyService:
 
     # ------------------------------------------------------------------ build
     def preview(self, agent_id: str, variant: str, *, fresh_verify: bool = False) -> dict[str, Any]:
+        """The report of the current facts, unsigned. The rendered text of both languages gets
+        the same second check as a signed version (``live=1`` and ``lang`` cannot skip it)."""
         check_variant(variant)
-        self.builder.fresh_verify = fresh_verify
-        return self.builder.build(agent_id, variant)
+        report, secrets = self._built(agent_id, variant, fresh_verify)
+        check_text(report, variant, secrets)
+        return report
 
     def _built(
         self, agent_id: str, variant: str, fresh_verify: bool
@@ -199,11 +202,8 @@ class TransparencyService:
         html_hash: dict[str, str] = {}
         pdf_hash: dict[str, str | None] = {}
         notices: list[str] = []
+        check_text(report, variant, secrets)
         for lang in LANGS:
-            text = render.plain_text(report, lang)
-            bad = leaks(text, variant, secrets)
-            if bad:
-                raise TransparencyError(f"allow-list leak in the {lang} text: {bad[0]}")
             html = render.render_html(report, lang)
             files[f"report.{lang}.html"] = html
             html_hash[lang] = _sha(html)
@@ -227,6 +227,7 @@ class TransparencyService:
             raise TransparencyError(
                 f"refusing to overwrite an existing report file in {folder.name}"
             ) from None
+        by = actor_ref(self.settings, actor)  # R2: no person id in the chain or the evidence row
         payload: dict[str, Any] = {
             "agent_id": agent_id,
             "variant": variant,
@@ -244,7 +245,7 @@ class TransparencyService:
             "diff_added_n": len(diff["added"]),
             "diff_removed_n": len(diff["removed"]),
             "diff_changed": diff["changed"],
-            "generated_by": actor,
+            "generated_by": by,
             "ts": report["generated_at"],
         }
         for lang in LANGS:
@@ -272,7 +273,7 @@ class TransparencyService:
                 "version": version,
                 "schema_version": SCHEMA_VERSION,
                 "generated_at": now,
-                "generated_by": actor,
+                "generated_by": by,
                 "content_hash": chash,
                 "json_hash": _sha(json_bytes),
                 "html_hash": html_hash[lang],
@@ -369,12 +370,39 @@ class TransparencyService:
         return data, CONTENT_TYPES[fmt], {"status": "preview", "version": 0, "hash": _sha(data)}
 
 
+# Actors that are a role of the product, not a person: kept as they are on the chain.
+SYSTEM_ACTORS = ("system:", "cli:", "job:")
+
+
+def actor_ref(settings: Any, actor: str) -> str:
+    """The actor as the chain may hold it (R2): a product role (``system:...``, ``cli:...``)
+    as it is, a person as a keyed hash (an id can be an e-mail). The ``console_action`` audit
+    row keeps the readable actor; the chain record and the append-only ``transparency_report``
+    row (kept for years, no text) hold this ref. Same actor, same ref."""
+    import hmac
+
+    if actor.startswith(SYSTEM_ACTORS):
+        return actor
+    key, _ = settings.mask_key
+    return "act_" + hmac.new(key, f"tr-actor:{actor}".encode(), hashlib.sha256).hexdigest()[:16]
+
+
 def leaks(text: str, variant: str, secrets: dict[str, set[str]]) -> list[str]:
     """Why the rendered text may not be shown to ``variant`` (the second check, on the words)."""
     if variant == "internal":
         return []
     people = secrets["people"] if variant == "customer" else secrets["people"] - secrets["team"]
-    return allowlist.text_leaks(text, variant, {"ids": secrets["ids"], "people": people})
+    return allowlist.text_leaks(
+        text, variant, {"ids": secrets["ids"], "people": people}, digits=False
+    )
+
+
+def check_text(report: dict[str, Any], variant: str, secrets: dict[str, set[str]]) -> None:
+    """The second check on the words of both languages (TransparencyError, HTTP 400)."""
+    for lang in LANGS:
+        bad = leaks(render.plain_text(report, lang), variant, secrets)
+        if bad:
+            raise TransparencyError(f"allow-list leak in the {lang} text: {bad[0]}")
 
 
 def prev_section_hashes(row: dict[str, Any] | None) -> dict[str, str] | None:

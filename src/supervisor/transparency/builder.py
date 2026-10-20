@@ -434,7 +434,7 @@ def c_risks(c: Ctx) -> dict[str, Any]:
             **c.facts.risk_link_counts(r["risk_id"]),
             "treatment": r.get("treatment"),
             "owner": c.facts.mask(r.get("owner"), 60),
-            "via": r.get("via"),
+            "via": c.facts.mask(r.get("via"), 120),  # an inventory node name: free text
             "own": bool(r.get("own")),
             "review_overdue": bool(r.get("review_overdue")),
         }
@@ -593,6 +593,15 @@ def not_shown(
         more = int(d.get("more", 0) or 0) + int(d.get("gaps_more", 0) or 0)
         if more:
             add("truncated", sid, more)
+    # sources that are switched off or never ran, although their section is shown (review)
+    flags = data("monitors").get("flags") or {}
+    off = sorted(k for k, v in flags.items() if v is False)
+    if off:
+        add("monitors_off", ",".join(off), len(off))
+    if data("masking").get("masking_on") is False:
+        add("masking_off", "masking")
+    if data("judge_mrm") and not data("judge_mrm").get("validations_n"):
+        add("judge_not_validated", "judge_mrm")
     if extra.get("retired"):
         add("agent_retired")
     add("advisory_only", "compliance")
@@ -663,6 +672,8 @@ class ReportBuilder:
         check_variant(variant)
         full = self.build_full(agent_id)
         sections = allowlist.project_sections(full["sections"], variant)
+        if variant != "internal":  # raw fields too: no contact or account data goes outward
+            sections = allowlist.scrub_sections(sections, self.facts.scrub)
         for sid in SECTIONS:
             if sid == "not_shown":
                 continue
