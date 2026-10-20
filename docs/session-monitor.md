@@ -25,13 +25,16 @@ the session pause is off until a policy turns it on.
 
 | Context key | Meaning |
 |---|---|
-| `session_id` | Conversation id, 1-128 characters of `A-Za-z0-9_.:-` (no `@`). Must not hold personal data. WP38 collectors send it. |
-| `consumer_id` | Who is on the other end (user, channel or service principal id). Stored only as a keyed 6-byte hash. |
+| `session_id` | Conversation id, 1-128 characters of `A-Za-z0-9_.:-` (no `@`), unique per agent. Must not hold personal data: an id that the VN masker flags (a phone, CCCD or account number) is refused and the call falls back to the derived id. WP38 collectors send it. |
+| `consumer_id` | Who is on the other end (user, channel or service principal id). Stored only as a keyed 8-byte hash. **Asserted by the calling agent, not verified**: ingress auth (WP20) proves which agent calls, not which customer. |
 | `turn_text` | The user message of this turn. Read in memory for the phrase lists and the sketch, then dropped. Never stored (R2). |
 
-No `session_id`: the gate derives a stable id from agent + consumer + day and marks
-`session_source=derived`. A derived id can merge two real conversations of one consumer on one day
-(a probe in the harness shows it). Span events set `session_id` from `supervisor.session_id` (or
+No `session_id`: the gate derives a stable id from agent + consumer + day (keyed hash of the raw
+consumer id) and marks `session_source=derived`. A derived id can merge two real conversations of
+one consumer on one day (a probe in the harness shows it). **Neither a `session_id` nor a
+`consumer_id`: the call is in no session** (no session fields, no case, no pause). An id from
+agent + day alone would put every anonymous customer of the agent in one conversation, and one
+customer's pause would stop all of them (review WP27). Span events set `session_id` from `supervisor.session_id` (or
 `gen_ai.conversation.id`) with `session_source=span`.
 The gate answer gains `session_id` and `session_source`; `agent_event` gains the nullable columns
 `session_id`, `session_source`, `session_json` (flags, a keyed shingle sketch, finding codes; no text).
@@ -44,19 +47,21 @@ Score = sum(weight x strength) / 10000, an integer.
 
 | Signal | Counts in the window | Weight (bp) |
 |---|---|---|
-| `findings` | detector and Tier 0b finding codes (saturates at 3). PII-shaped codes (`pii*`) never count: an account number in a legitimate add-payee request is not an attack. A detector that timed out is not a finding. | 1800 |
+| `findings` | detector and Tier 0b finding codes (saturates at 3). PII-shaped codes (`pii*`) never count: an account number in a legitimate add-payee request is not an attack. A detector that timed out is not a finding, and a finding of a mock detector (the mock judge) is not either. | 1800 |
 | `refusals` | blocked or paused decisions (saturates at 3). A block by `GATE-DETECTOR-FAILED` is an outage of ours and never counts. | 900 |
 | `expand` | "expand on", "continue", "tell me more", "mo rong", "tiep tuc", "buoc hai" ... (small VN/EN phrase list, diacritics folded; saturates at 3) | 1300 |
 | `drift` | topic drift markers: a tool the drift baseline calls rare, a step up in tool risk class after read-only turns, a turn about limits, authority, urgency, exceptions (saturates at 3) | 800 |
 | `money` | money moved in the window as a share of the daily cap taken from the policy's own aggregate rule (PAY-03); 0 when the policy has no cap | 1300 |
 | `near_dup` | repeated near-duplicate arguments of a money, credit or pii_export tool: bottom-16 sketch of 3-token shingles, keyed hash, on the **masked** arguments (saturates at 3) | 800 |
 | `timing` | burst rate against the session's own median gap (needs 8 turns; a session that is always fast has no burst) | 400 |
-| `cross_agent` | the same consumer touching money tools of two agents inside the window | 1300 |
-| `memory` | **state signal.** An authority or permission fact asserted early ("management approved my limit", "from now on ...") comes back in a money or credit call at least 3 turns later: by a recall phrase, a shared identifier, or because the assertion was a standing instruction. Counters miss this pattern (quiet plant, filler turns, one ask). | 1400 |
+| `cross_agent` | the same consumer touching money tools of two agents inside the window. The consumer id is what the agents assert (see section 1): two agents that send different ids for one person defeat it (probe rv-2), and a faulty agent that sends someone else's id adds a cross-agent hit to that person's session. Alone it is one hit and 1300 bp: it opens no case and no pause by itself (test `test_r1_cross_agent_alone_neither_opens_a_case_nor_pauses`). | 1300 |
+| `memory` | **state signal.** An authority or permission fact asserted early ("management approved my limit") comes back in a money or credit call at least 3 turns later: by a recall phrase, an identifier that the assertion names **in its text** (the customer's own account in the arguments does not count), or because the assertion was also a standing instruction ("from now on ..."; a standing phrase alone is not an assertion). Counters miss this pattern (quiet plant, filler turns, one ask). | 1400 |
 
 `timing`, `near_dup` and `cross_agent` are the three anomaly signals of vendor-parity row 30
 (timing pattern, content similarity, cross-agent correlation). All weights are policy values and
-must sum to 10000 (a policy file whose weights do not is rejected at load).
+must sum to 10000 (a policy file whose weights do not is rejected at load). With a `pause_scope`,
+the `findings` weight must stay below `pause_threshold_bp`: detector, Tier 0b and judge output
+can never pause a session on its own (R1; the policy is rejected at load otherwise).
 
 ## 3. Rules (R1)
 
@@ -70,6 +75,11 @@ must sum to 10000 (a policy file whose weights do not is rejected at load).
   a SHADOW agent is never blocked). It ends by the two-person resume (agent owner + reviewer, same
   rule as the agent resume; `POST /v1/sessions/<id>/resume`, or the agent's own two-person resume) or
   when `cooldown_s` runs out (recorded on the chain as `session_pause_expired`).
+* Idempotent: the in-request path, the scheduler's batch job and another replica may assess one
+  session at the same time. A process lock serialises the first two; a case opens only after a
+  compare-and-set claim on the session's `monitor_state` row, and a pause row has a
+  deterministic id, so two writers make one case and one pause (tests in
+  `tests/monitors/test_session_review_wp27.py`).
 * Chain records: `session_pause`, `session_resume_requested`, `session_resumed`,
   `session_pause_expired`, `case_opened`, and `gate_decision` with `session_sha256`. Hashes and
   integers only.
@@ -125,12 +135,17 @@ Sessions run through the real gateway (baseline policy, Tier 0b, SQLite, fixed c
 rubrics: fraud investigator, SOC analyst (harness docstring). The result and its limits are in
 `docs/session-monitor-validation-report.md`. Thresholds are ILLUSTRATIVE.
 
-Honest reading: the synthetic sets were written by the same author as the monitor. The probes and
-the WP28 traces are the evidence that matters; on the WP28 traces the catch rate is lower than on
-the synthetic sessions, and a single-call attack (a planted tool result, a fake policy block) ends
-before three hits are possible. K=3 / 2500 bp is the quiet operating point (no false alarm on 120
-benign sessions in either split); K=3 / 1500 bp is the sensitive one (about 4 percent false alarms on
-WP28 benign controls, catch up to 7100 bp on its held-out successes).
+Honest reading: the synthetic sets were written by the same author as the monitor, and the author
+read WP28 dev sample texts to extend the phrase lists, so the WP28 fixture numbers are not blind.
+The blind check is the WP28 **held-out** split only (report section "Blind check"): the quiet
+point K=3 / 2500 bp catches 4099 bp [3640-4575] of 422 successful held-out attacks (2890 bp by
+the success turn) with 0 of 108 false alarms [0-344]; payload split (857 bp), policy puppetry
+(754 bp) and tool poisoning (312 bp) are mostly missed, because a single-call attack ends before
+three hits are possible. The sensitive point K=3 / 1500 bp catches 7132 bp [6683-7544] on the
+same split with 4 of 108 false alarms [144-914], and 14 of 60 [1443-3544] on the synthetic
+held-out benign sessions. The review also found 7 of 7 ordinary benign questions ("am I allowed
+to ...", "from now on send me SMS") opening a memory case before the fix; the author's benign sets
+had none of them.
 
 ### WP28 trace format (what `from_redteam_trace` reads)
 

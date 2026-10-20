@@ -195,7 +195,11 @@ deterministic rule `GATE-SESSION-PAUSE` blocks, only when the policy lists the t
 `session_id` can pause only the forger's own session, but a caller who sends someone else's session
 id could add turns to it (the gate cannot tell; ingress auth identifies the agent, not the user).
 (3) A detector outage must not raise the score: a timed-out detector is no finding and a
-`GATE-DETECTOR-FAILED` block is no refusal. It does not stop: an attacker who rotates the session id,
+`GATE-DETECTOR-FAILED` block is no refusal. (4) The `consumer_id` is asserted by the calling agent;
+ingress auth (WP20) verifies the agent, not the customer. A faulty or compromised agent can split
+one person over two ids (no cross-agent link) or add a cross-agent hit to someone else's session
+(one hit, 1300 bp: no case and no pause alone). A call with neither a session id nor a consumer id
+is in no session, so anonymous customers are never merged into one pause. It does not stop: an attacker who rotates the session id,
 spreads steps over more than the window, obfuscates the phrases, or paraphrases a planted fact (see
 the probes and BACKLOG).
 

@@ -14,13 +14,19 @@ on one conversation. Judges and detectors score single calls.
 1. **Session identity on every decision.** `session_id` from the context, else a derived id (agent
    + consumer + day, `session_source=derived`). Stored on `agent_event` (nullable columns), on the
    answer and as `session_sha256` on the chain.
+   Review WP27: with neither a session id nor a consumer id the call is in no session (an id from
+   agent + day would merge every anonymous customer); a client id that the VN masker flags as
+   personal data is refused. The consumer id is asserted by the agent, not verified by ingress
+   auth.
 2. **One pure engine** (`monitors/session.py`) used by the gate (in-request) and by a batch job
    that replays `agent_event`. Nine integer signals, policy weights that sum to 10000, a score in bp.
    No model. Turn text is read in memory and dropped; only flags, a keyed bottom-k sketch and
    keyed hashes are stored (R2).
 3. **R1.** The only effects are a case and, if the policy lists a tool class in `pause_scope`, a
    session-scoped pause enforced by the built-in rule `GATE-SESSION-PAUSE`. Findings and judge
-   output are counters. Default: case only, pause off.
+   output are counters. Default: case only, pause off. With a pause scope the `findings` weight must stay below
+   `pause_threshold_bp` (policy load error otherwise), so detector and judge output never pause
+   alone; mock findings do not count.
 4. **PII-shaped findings do not count** as an attack signal (WP28 false alarms came from them). A
    detector that timed out is not a finding, and a `GATE-DETECTOR-FAILED` block is not a refusal.
 5. **State signal `memory`** (authority fact asserted early, used by a later money or credit call)
