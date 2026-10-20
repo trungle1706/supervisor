@@ -119,12 +119,15 @@ def test_observe_on_a_running_money_agent_without_two_approvers_is_refused() -> 
         make(text(payer=("RUNNING", OBSERVE + "    observe_approvals: [x.y, x.y]\n")))
 
 
-def test_consumer_observe_on_a_money_agent_is_refused_even_with_approvers() -> None:
+def test_consumer_observe_is_refused_on_every_agent() -> None:
+    """F15: no gap for agents without a money rule in scope."""
     extra = OBSERVE + APPROVED + "    consumers:\n      pilot: {mode: observe}\n"
     with pytest.raises(PolicyError, match="asserted by the caller") as e:
         make(text(payer=("RUNNING", extra)))
     str(e.value).encode("ascii")
-    make(text(helper=("RUNNING", "    consumers:\n      pilot: {mode: observe}\n")))
+    with pytest.raises(PolicyError, match="asserted by the caller"):
+        make(text(helper=("RUNNING", "    consumers:\n      pilot: {mode: observe}\n")))
+    make(text(helper=("RUNNING", "    consumers:\n      pilot: {mode: enforce}\n")))
 
 
 def test_a_consumer_cannot_switch_off_a_pii_export_block_rule() -> None:
@@ -160,21 +163,18 @@ def test_unapproved_observe_never_lifts_a_money_block_after_shadow_ends(gw_for: 
 def test_a_guessed_observe_consumer_gets_no_free_pass_on_a_money_tool(gw_for: Any) -> None:
     """Attack: an agent with no money rule names an observe consumer and calls a money tool
     whose detectors cannot run. GATE-DETECTOR-FAILED must hold."""
-    extra = "    consumers:\n      pilot: {mode: observe, detectors: {disable: [bad]}}\n"
+    extra = "    consumers:\n      pilot: {detectors: {disable: [bad]}}\n"
     gw = gw_for(make(text(helper=("RUNNING", extra))), _failing_gate())
     r = gw.check("helper", "1", "pay", {"amount_minor": 1}, {"consumer_id": "pilot"})
     assert r["allow"] is False and r["rule_id"] == "GATE-DETECTOR-FAILED"
     assert r["status"] == "block" and "observed_decision" not in r
-    # the same consumer on a read_only tool: the override and observe apply
-    r = gw.check("helper", "1", "lookup", {"tag": "bad"}, {"consumer_id": "pilot"})
-    assert r["allow"] is True and r["observed_decision"]["rule_id"] == "R-READ-BLOCK"
 
 
 @pytest.mark.parametrize("cid", ["pi​lot", "pilot‍", "pіlot", "pilot\r\nX: 1", "pilot "])
 def test_confusable_or_injected_consumer_ids_never_select_the_override(
     gw_for: Any, cid: str
 ) -> None:
-    extra = "    consumers:\n      pilot: {mode: observe}\n"
+    extra = "    consumers:\n      pilot: {rules: {disable: [R-READ-BLOCK]}}\n"
     gw = gw_for(make(text(helper=("RUNNING", extra))))
     r = gw.check("helper", "1", "lookup", {"tag": "bad"}, {"consumer_id": cid})
     assert r["allow"] is False and r["consumer_ignored"] is True and "consumer_id" not in r

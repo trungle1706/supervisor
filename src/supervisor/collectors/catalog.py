@@ -301,6 +301,13 @@ supervisor_guardrail = build_litellm_guardrail(
             "Add the hook to the assistant settings as in the snippet. Keep SUPERVISOR_FAIL_MODE "
             "unset (closed).",
             "Register the assistant tool names (for example Bash) in the policy tools section.",
+            "Minimum assistant version: the first release whose hook documentation lists "
+            "updatedInput for PreToolUse. An older version ignores a masked input and runs the "
+            "original, so check your version in its release notes before you rely on masking.",
+            "Self-test after install: save the event line from the snippet as event.json, run "
+            "python -m supervisor.gateway.adapters.claude_code_hook < event.json and read the "
+            "exit code. 0 = allowed, 2 = refused (the reason is on stderr). Use a tool the "
+            "policy blocks to see 2. With the gate switched off you must also see 2.",
         ),
         snippet="""# .claude/settings.json
 # environment: SUPERVISOR_URL=<SUPERVISOR_URL>  SUPERVISOR_AGENT_ID=<AGENT_ID>
@@ -316,6 +323,8 @@ supervisor_guardrail = build_litellm_guardrail(
     ]
   }
 }
+# event.json for the self-test (one line):
+# {"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"ls"}}
 """,
         language="json",
         module="supervisor.gateway.adapters.claude_code_hook",

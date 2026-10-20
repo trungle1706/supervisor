@@ -11,6 +11,7 @@ agents:
   payments:
     mode: observe            # enforce (default) | observe
     observe_approvals: [risk.lead, compliance.officer]   # needed: payments has money rules
+    rule_approvals: [risk.lead, compliance.officer]      # needed to disable a money block rule
     rules: {disable: [PAY-09]}            # switch single rules off (or on, see below)
     consumers:                            # per-consumer override, key = context.consumer_id
       web-banking: {mode: enforce}
@@ -47,11 +48,12 @@ class is `money`, `credit` or `pii_export`.
 | Guard | Where |
 |---|---|
 | A consumer may not switch off a `block` or `pause` rule of risk class `money`, `credit` or `pii_export` | load error |
-| A consumer of a money agent may not set `mode: observe` | load error |
+| No consumer may set `mode: observe`, on any agent (the id is asserted by the caller; observe is set on the agent) | load error |
+| `rules.disable` on an agent that names a `block` or `pause` rule of risk class `money`, `credit` or `pii_export` needs two distinct ids in `rule_approvals` | load error |
 | `mode: observe` on a money agent needs `initial_state: SHADOW` or two distinct ids in `observe_approvals` | load error |
 | Observe lifts a decision on a `money`, `credit` or `pii_export` tool only when the agent has `observe_approvals` (so a SHADOW agent without them is enforced on those tools once it runs) | gate |
 | A consumer's `detectors` block never applies to a call of a `money`, `credit` or `pii_export` tool; the agent's block applies | gate |
-| `observe_approvals`, like `mode`, is left out of the dump when unset (hash unchanged) | loader |
+| `observe_approvals` and `rule_approvals`, like `mode`, are left out of the dump when unset (hash unchanged) | loader |
 
 ## 2. Gate order
 

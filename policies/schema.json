@@ -164,6 +164,14 @@
           "title": "Risk Tier",
           "type": "string"
         },
+        "rule_approvals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Rule Approvals",
+          "type": "array"
+        },
         "rules": {
           "anyOf": [
             {

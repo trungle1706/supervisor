@@ -370,11 +370,15 @@ class AgentManifest(_Strict):
     # money, credit or pii_export tool (see _cross_check_modes). Left out of the hash when empty.
     observe_approvals: list[str] = Field(default_factory=list, max_length=2)
 
-    @field_validator("observe_approvals")
+    # WP38 follow-up F14: two distinct approver ids that allow ``rules.disable`` to name a block
+    # or pause rule of risk class money, credit or pii_export. Left out of the hash when empty.
+    rule_approvals: list[str] = Field(default_factory=list, max_length=2)
+
+    @field_validator("observe_approvals", "rule_approvals")
     @classmethod
     def _two_approvers(cls, v: list[str]) -> list[str]:
         if v and (len(v) != 2 or len(set(v)) != 2):
-            raise ValueError("observe_approvals needs two distinct approver ids")
+            raise ValueError("approvals need two distinct approver ids")
         for a in v:
             if not re.match(_NAME_RE, a):
                 raise ValueError(f"bad approver id {a!r}")
@@ -451,6 +455,19 @@ def _cross_check_modes(doc: PolicyDoc) -> None:
                 if rid not in by_id:
                     raise PolicyError(f"{where}: rule {rid} is not in the rules section")
         money = money_agent(doc, agent_id)
+        for rid in agent.rules.disable if agent.rules else []:
+            r = by_id[rid]
+            if (
+                r.action in ("block", "pause")
+                and r.risk_class in _PROTECTED_RISK
+                and len(set(agent.rule_approvals)) != 2
+            ):
+                raise PolicyError(
+                    _ascii(
+                        f"agent {agent_id}: rules.disable names {r.action} rule {rid} "
+                        f"({r.risk_class}); that needs two distinct ids in rule_approvals"
+                    )
+                )
         if agent.mode == "observe" and money:
             if agent.initial_state != "SHADOW" and not agent.observe_approvals:
                 raise PolicyError(
@@ -461,12 +478,12 @@ def _cross_check_modes(doc: PolicyDoc) -> None:
                     )
                 )
         for cid, over in agent.consumers.items():
-            if over.mode == "observe" and money:
+            if over.mode == "observe":  # F15: no consumer of any agent may observe
                 raise PolicyError(
                     _ascii(
                         f"agent {agent_id} consumer {cid}: mode observe is not allowed for a "
-                        "consumer of an agent with money, credit or pii_export rules (the "
-                        "consumer id is asserted by the caller)"
+                        "consumer (the consumer id is asserted by the caller); set mode on "
+                        "the agent"
                     )
                 )
             for rid in over.rules.disable if over.rules else []:
@@ -525,8 +542,9 @@ def _dump(doc: PolicyDoc, exclude: set[str] | None = None) -> dict[str, Any]:
         for key in ("mode", "rules"):  # WP38: unset keys are not part of the hash
             if agent.get(key) is None:
                 agent.pop(key, None)
-        if not agent.get("observe_approvals"):
-            agent.pop("observe_approvals", None)
+        for key in ("observe_approvals", "rule_approvals"):
+            if not agent.get(key):
+                agent.pop(key, None)
         if not agent.get("consumers"):
             agent.pop("consumers", None)
         else:

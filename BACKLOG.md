@@ -141,3 +141,4 @@
 
 
 | WP37: adversarial rows are hand-written by one author (n = 60 / 66 / 51 positives); injection (4696 bp) and judge mock (3725 bp) pass their thresholds on the point value only, their Wilson lower bounds are below the threshold, and the report marks them `indicative` | A second labeller; bank-supplied probes; raise n until the lower bound clears the threshold or the threshold moves |
+| WP38 F16: an old assistant version that ignores `updatedInput` runs the raw input of the Claude Code hook; the catalogue text gives the version rule and a self-test but no exact minimum version number | Owner or the bank's tooling team names the minimum assistant version; the hook could refuse unless it is told the version |

@@ -351,14 +351,14 @@ def test_review_a_consumer_detector_override_never_applies_to_a_money_tool(gw_fo
 
 BAD = {"tag": "bad"}  # R-READ-BLOCK (read_only) matches
 CONSUMERS = """    consumers:
-      relaxed: {mode: observe}
+      relaxed: {detectors: {preset: lenient}}
       strict: {mode: enforce}
       noread: {rules: {disable: [R-READ-BLOCK]}}
 """
 
 
 def test_consumer_mode_wins_over_the_agent_mode(gw_for: Any) -> None:
-    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)}, RULES_SCOPED)))
+    gw = gw_for(make(policy_text({"a1": ("RUNNING", OBSERVE + CONSUMERS)}, RULES_SCOPED)))
     r = gw.check("a1", "1", "lookup", BAD, {"consumer_id": "relaxed"})
     assert r["allow"] is True and r["consumer_id"] == "relaxed" and r["mode"] == "observe"
     r = gw.check("a1", "1", "lookup", BAD, {"consumer_id": "strict"})
@@ -508,3 +508,47 @@ def test_consumer_detector_overrides_go_through_the_same_validator() -> None:
     assert gate.check_policy(make(policy_text({"a1": ("RUNNING", bad)})))
     good = "    consumers:\n      c1: {detectors: {preset: lenient}}\n"
     assert gate.check_policy(make(policy_text({"a1": ("RUNNING", good)}))) == []
+
+
+# ------------------------------------------------------------------ follow-ups F14, F15
+
+PAY_OFF = "    rules: {disable: [R-PAY-BLOCK]}\n"
+RULE_OK = "    rule_approvals: [risk.lead, compliance.officer]\n"
+
+
+def test_f14_agent_disable_of_a_money_block_rule_needs_two_rule_approvals() -> None:
+    with pytest.raises(PolicyError, match="rule_approvals") as e:
+        make(policy_text({"a1": ("RUNNING", PAY_OFF)}))
+    msg = str(e.value)
+    msg.encode("ascii")
+    assert "a1" in msg and "R-PAY-BLOCK" in msg
+    with pytest.raises(PolicyError, match="rule_approvals"):
+        make(policy_text({"a1": ("RUNNING", PAY_OFF + "    rule_approvals: [x.y]\n")}))
+    with pytest.raises(PolicyError, match="distinct"):
+        make(policy_text({"a1": ("RUNNING", PAY_OFF + "    rule_approvals: [x.y, x.y]\n")}))
+    make(policy_text({"a1": ("RUNNING", PAY_OFF + RULE_OK)}))  # two distinct ids: accepted
+
+
+def test_f14_the_pause_rule_is_covered_and_a_read_only_rule_is_not() -> None:
+    with pytest.raises(PolicyError, match="rule_approvals"):
+        make(policy_text({"a1": ("RUNNING", "    rules: {disable: [R-PAY-PAUSE]}\n")}))
+    make(policy_text({"a1": ("RUNNING", "    rules: {disable: [R-READ-BLOCK]}\n")}))
+    make(policy_text({"a1": ("RUNNING", "    rules: {disable: [R-LOG2]}\n")}))  # a log rule
+
+
+def test_f14_the_approvals_work_at_the_gate_and_the_hash_ignores_an_empty_key(gw_for: Any) -> None:
+    gw = gw_for(make(policy_text({"a1": ("RUNNING", PAY_OFF + RULE_OK)})))
+    r = gw.check("a1", "1", "pay", {"amount_minor": 500})
+    assert "R-PAY-BLOCK" not in [m["rule_id"] for m in r["matched_rules"]]
+    base = make(policy_text()).policy_hash
+    assert make(policy_text({"a1": ("RUNNING", "    rule_approvals: []\n")})).policy_hash == base
+
+
+def test_f15_consumer_observe_is_refused_on_every_agent() -> None:
+    cons = "    consumers:\n      c1: {mode: observe}\n"
+    with pytest.raises(PolicyError, match="not allowed for a consumer") as e:
+        make(policy_text({"a1": ("RUNNING", cons)}, RULES_SCOPED))  # no money rule in scope
+    str(e.value).encode("ascii")
+    with pytest.raises(PolicyError, match="not allowed for a consumer"):
+        make(policy_text({"a1": ("RUNNING", OBSERVE + APPROVED + cons)}))  # money agent
+    make(policy_text({"a1": ("RUNNING", "    consumers:\n      c1: {mode: enforce}\n")}))
