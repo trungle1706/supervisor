@@ -12,7 +12,6 @@ from fastapi.testclient import TestClient
 from supervisor.gateway import wiring
 from supervisor.gateway.engine import Gateway
 from supervisor.gateway.routes import router
-from tests.detectors.conftest import GatewayFactory
 from tests.detectors.fingerprint import PII_ARGS
 
 HEADER = "X-Supervisor-Correlation-Id"
@@ -130,7 +129,7 @@ def test_a_correlation_header_with_the_flag_off_is_ignored(off: TestClient) -> N
     assert r.status_code == 200 and "correlation_id" not in r.json()
 
 
-def test_a_detector_gate_with_a_stub_gateway_signature(make_gateway: GatewayFactory) -> None:
+def test_the_route_calls_a_stub_gateway_with_the_old_signature() -> None:
     """The route only passes the new keywords to a gateway that has detectors on."""
     seen: dict[str, Any] = {}
 

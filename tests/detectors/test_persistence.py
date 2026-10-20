@@ -212,3 +212,35 @@ def test_siem_event_without_a_status_is_as_before() -> None:
     payload = {"agent_id": "payments", "action": "allow", "allow": True, "rule_id": None}
     ev = siem.event_from_chain(_entry(), payload)
     assert ev is not None and ev.attrs is None
+
+
+def test_a_span_event_carries_the_gate_correlation_id() -> None:
+    """The agent SDK sets supervisor.gate.correlation_id on the tool span; the recorder keeps it
+    in agent_event.correlation_id, so a span, the decision and the findings join on one id."""
+    from supervisor.recorder.capture import AgentCapture, CapturePolicy
+    from supervisor.recorder.normalise import Normaliser, SpanData
+
+    def span(attrs: dict[str, Any]) -> SpanData:
+        return SpanData(
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            name="execute_tool add_payee",
+            kind="INTERNAL",
+            start_ns=1_700_000_000_000_000_000,
+            end_ns=1_700_000_000_100_000_000,
+            attributes=attrs,
+        )
+
+    base = {
+        "supervisor.agent_id": "payments",
+        "supervisor.event_type": "tool_call",
+        "supervisor.tool_name": "add_payee",
+    }
+    norm = Normaliser(None, CapturePolicy({"payments": AgentCapture("digest")}), "dev")
+    (item,) = norm.normalise_many(
+        [span({**base, "supervisor.gate.correlation_id": "corr-span-1"})], "otel"
+    )
+    assert item.event.correlation_id == "corr-span-1" and item.event.verdict_status is None
+    (item2,) = norm.normalise_many([span(base)], "otel")
+    assert item2.event.correlation_id is None

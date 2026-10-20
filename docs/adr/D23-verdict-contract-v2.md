@@ -67,7 +67,7 @@ scan planned for WP26 would each add another private shape.
 
 ## Consequences
 
-* Proof: `tests/detectors/` (about 110 tests): contract, precedence table, flag-off fingerprint
+* Proof: `tests/detectors/` (115 tests): contract, precedence table, flag-off fingerprint
   against the v0.3.0 value, GATE-DETECTOR-FAILED on money / pii_export and not elsewhere, skip,
   output direction, correlation id in decision / finding / chain, no raw personal data in rows or
   chain, HTTP contract, both modes (SQLite laptop and `databricks_app`, plus the Delta statements on

@@ -103,6 +103,7 @@ payload, so a new text field in a payload cannot leak by accident (test:
 | Alert repeats absorbed | `attrs.suppressed_count` | `cn3` (`suppressedCount`) | `unmapped.attrs.suppressed_count` |
 | Other alert details | `attrs.alert_id`, `severity_label`, `window_s`, `threshold`, `dedupe_key` | not sent | `unmapped.attrs.*` |
 | Ingress reject reason | `attrs.reason_code` | not sent | `unmapped.attrs.reason_code` |
+| Verdict v2 (WP37, `DETECTORS_ENABLED`): status, finding codes, correlation id of a gate decision | `attrs.status`, `attrs.finding_codes`, `attrs.correlation_id` | not sent | `unmapped.attrs.*` |
 | Product | `product`, `vendor`, `version`, `schema` | header | `metadata.product.name`, `vendor_name`, `version`; `metadata.log_name` |
 | Source of the call (class 6003) | - | - | `src_endpoint.svc_name` (`SIEM_SRC_APP`, default `supervisor`), `src_endpoint.hostname` (`SIEM_SRC_HOST`, default this host). Never a user address |
 

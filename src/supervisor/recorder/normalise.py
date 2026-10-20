@@ -57,6 +57,7 @@ A_STATUS = "supervisor.status"
 A_ENV = "supervisor.env"
 A_CLASSIFICATION = "supervisor.classification"
 A_CAPTURE = "supervisor.capture_level"
+A_GATE_CORRELATION = "supervisor.gate.correlation_id"  # WP37
 
 ARGS_KEYS = (
     A_ARGS,
@@ -561,6 +562,8 @@ class Normaliser:
             source=source,
             capture_level=level,
             mask_version=self.mask_version if level != "digest" else None,
+            # WP37: the id the gate returned for this call (span attribute set by the agent SDK)
+            correlation_id=self._ident(attrs.get(A_GATE_CORRELATION)),
         )
         raw = None
         if level == "raw" and (args_text is not None or result_text is not None):

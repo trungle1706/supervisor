@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -92,8 +91,3 @@ def make_gateway(
 @pytest.fixture
 def gw_on(make_gateway: GatewayFactory) -> Gateway:
     return make_gateway()
-
-
-@pytest.fixture
-def tmp_cfg(tmp_path: Path) -> Path:
-    return tmp_path
