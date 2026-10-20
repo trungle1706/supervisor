@@ -1,6 +1,6 @@
 # HANDOFF WP24b: masker fixes and inline redaction
 
-Branch: `worktree-agent-a44bc574614ace41d` (4 commits on top of main bf3a23a). Not pushed, not merged.
+Branch: `worktree-agent-a44bc574614ace41d` (7 commits on top of main bf3a23a). Not pushed, not merged.
 Tests: main 2791 passed; this branch **2896 passed, 28 skipped** (`python -m pytest -q`, 4.5 min).
 Lint: `ruff check` and `ruff format --check` clean.
 
