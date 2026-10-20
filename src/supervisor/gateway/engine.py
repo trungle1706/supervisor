@@ -404,6 +404,9 @@ class Gateway:
         self.masker = masker
         self.inline_redaction = inline_redaction and masker is not None
         self.redact_tools = frozenset(redact_tools or ())
+        # Tools seen as pii_export: their masker pass runs BEFORE the gate lock (a 2 KB payload
+        # costs about 3 ms; inside the lock it would delay every other agent's decision).
+        self._redact_hint: frozenset[str] = frozenset()
         self.metrics = GateMetrics()
         self.windows = WindowStore()
         self._lock = threading.RLock()
@@ -572,6 +575,7 @@ class Gateway:
         args: dict[str, Any],
         ctx: dict[str, Any],
     ) -> Decision:
+        pre = self._pre_redact(tool_name, args, ctx)
         with self._lock:
             policy = self.policy.current()
             if not self.windows.warm or self.windows.policy_hash != policy.policy_hash:
@@ -667,7 +671,7 @@ class Gateway:
                 )
             d.fail_mode = fail_mode
             if d.allow and not shadow and builtin is None:
-                self._redact(d, risk, tool_name, args)
+                self._redact(d, risk, tool_name, args, pre)
             d.matched = [
                 {
                     "rule_id": m.rule.id,
@@ -706,14 +710,44 @@ class Gateway:
         self._tier0b(d, agent_id, tool_name, args, risk, ctx)
         return d
 
-    def _redact(self, d: Decision, risk: str | None, tool_name: str, args: dict[str, Any]) -> None:
+    def _pre_redact(
+        self, tool_name: str, args: dict[str, Any], ctx: Mapping[str, Any]
+    ) -> tuple[dict[str, Any], int] | BaseException | None:
+        """Masker pass outside the gate lock for a tool that is likely in scope (a hint only:
+        ``_redact`` decides under the lock on the policy risk class, and masks there when the
+        hint missed). Returns the result, the exception, or None when not computed."""
+        if not self.inline_redaction or self.masker is None:
+            return None
+        if not (
+            tool_name in self.redact_tools
+            or tool_name in self._redact_hint
+            or ctx.get("declared_risk_class") == "pii_export"
+        ):
+            return None
+        try:
+            return redact_args(self.masker, args)
+        except Exception as exc:  # noqa: BLE001 - handled under the lock (fail closed)
+            return exc
+
+    def _redact(
+        self,
+        d: Decision,
+        risk: str | None,
+        tool_name: str,
+        args: dict[str, Any],
+        pre: tuple[dict[str, Any], int] | BaseException | None = None,
+    ) -> None:
         """Fill ``transformed_args`` for a pii_export tool (never in SHADOW, never on a block)."""
         if not self.inline_redaction or self.masker is None:
             return
         if risk != "pii_export" and tool_name not in self.redact_tools:
             return
+        if risk == "pii_export" and tool_name not in self._redact_hint:
+            self._redact_hint = self._redact_hint | {tool_name}
         try:
-            new, n = redact_args(self.masker, args)
+            if isinstance(pre, BaseException):
+                raise pre
+            new, n = pre if pre is not None else redact_args(self.masker, args)
         except Exception as exc:  # noqa: BLE001 - the decision must still be recorded
             # Fail closed: the caller asked for masked arguments and cannot get them, so the
             # pii_export tool must not run with the raw values (deterministic, rule R1 holds).

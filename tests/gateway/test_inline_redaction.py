@@ -307,6 +307,9 @@ def test_redaction_failure_fails_closed(gw_on: Gateway, evidence: MemoryEvidence
     assert r["allow"] is False and r["rule_id"] == "GATE-REDACTION"
     assert "transformed_args" not in r
     assert evidence.of_type("gate_decision")[-1]["rule_id"] == "GATE-REDACTION"
+    # the same on the pre-lock path (hinted tool, declared risk class)
+    ctx = {"declared_risk_class": "pii_export"}
+    assert gw_on.check("payments", "1", "add_payee", ARGS, ctx)["rule_id"] == "GATE-REDACTION"
     # a tool outside the redaction scope is not affected by a broken masker
     assert gw_on.check("payments", "1", "get_balance", {"account_id": "A-1"})["allow"] is True
 
@@ -325,3 +328,17 @@ def test_sdk_refuses_when_it_cannot_map_the_answer() -> None:
         inspect.signature(tool), ("x",), {}, {"transformed_args": {"a": "<PERSON:1>"}}
     )
     assert args == ("<PERSON:1>",) and kwargs == {}
+
+
+def test_pre_lock_pass_gives_the_same_answer(gw_on: Gateway) -> None:
+    """The masker pass may run before the gate lock (hint) or under it: same result."""
+    under = gw_on.check("payments", "1", "add_payee", ARGS)  # no hint yet: under the lock
+    assert "add_payee" in gw_on._redact_hint
+    pre = gw_on.check("payments", "1", "add_payee", ARGS)  # hinted: before the lock
+    assert pre["transformed_args"] == under["transformed_args"]
+    assert pre["args_hmac_transformed"] == under["args_hmac_transformed"]
+    # a hint never widens the scope: the policy risk class decides under the lock
+    r = gw_on.check(
+        "payments", "1", "get_balance", {"who": NAME}, {"declared_risk_class": "pii_export"}
+    )
+    assert "transformed_args" not in r
