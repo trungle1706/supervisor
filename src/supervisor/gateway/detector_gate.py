@@ -207,6 +207,8 @@ class DetectorGate:
             d.reason = f"{FAILED_RULE}: detector could not run ({who}): fail closed"
             d.fail_mode = "closed"
             transformed = None
+            # A blocked call has no transformed arguments (WP24b filled them while it was allowed).
+            d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0
         # 2. The dlp transform: only on an allowed, non-shadow call (same rule as WP24b).
         if transformed and d.allow and not shadow and not builtin:
             d.transformed_payload = {k: transformed[k] for k in sorted(transformed)}

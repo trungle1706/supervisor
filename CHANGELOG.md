@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+| WP | Feature | Docs | ADR |
+|---|---|---|---|
+| WP37 | Verdict contract v2 on `/v1/gate/check` (`status`, `findings`, `not_executed`, `coverage`, `transformed_payload`, `request_id`, `correlation_id`, `direction`; old fields kept), detector framework (`dlp_vn`, `injection_regex`, `judge_advisory`), `GET /v1/gate/detectors`, table `finding` and three nullable `agent_event` columns (run `python -m supervisor.jobs.bootstrap_schema` on Delta), harness `python -m supervisor.detectors.harness`. Flag `DETECTORS_ENABLED` (default off: answers and rows as in v0.3.0) | `docs/detectors.md`, `docs/api.md` | D23 |
+
 ## v0.3.0 (phase 3, wave 1) - 2026-10-20
 
 Merged from the integration branch `phase3-wave1` (3,684 tests, 29 skipped). Every new feature is behind a
