@@ -64,10 +64,27 @@ class InProcessGate:
         tool_name: str,
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
+        *,
+        direction: str = "input",
+        correlation_id: str | None = None,
     ) -> Mapping[str, Any]:
         t0 = time.perf_counter()
         try:
-            return self.gateway.check(agent_id, agent_version, tool_name, args, context)
+            if direction == "input" and correlation_id is None:
+                return self.gateway.check(agent_id, agent_version, tool_name, args, context)
+            if not getattr(self.gateway, "detectors_on", False) and direction != "input":
+                # the HTTP route answers 400 here; in process the output check would be run as a
+                # tool call, which is wrong. Fail closed.
+                return _closed_decision("GATE-DIRECTION", "direction=output needs detectors", t0)
+            return self.gateway.check(
+                agent_id,
+                agent_version,
+                tool_name,
+                args,
+                context,
+                direction=direction,
+                correlation_id=correlation_id,
+            )
         except Exception:  # noqa: BLE001 - the hook must never raise
             return _closed_decision("GATE-ERROR", "gateway error: fail closed", t0)
 
@@ -86,6 +103,9 @@ def _default_signed_transport(
     return post_bytes(url, body, dict(headers), timeout_s)
 
 
+# Same value as gateway.detector_gate.CORRELATION_HEADER (a test keeps them equal); the SDK must
+# not import the server side.
+CORRELATION_HEADER = "X-Supervisor-Correlation-Id"
 GATE_PATH = "/v1/gate/check"
 LEGACY_GATE_PATH = "/gate/check"  # deprecated alias, used only as a fallback on 404
 
@@ -141,17 +161,27 @@ class HttpGate:
         tool_name: str,
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
+        *,
+        direction: str = "input",
+        correlation_id: str | None = None,
     ) -> Mapping[str, Any]:
+        """``direction`` and ``correlation_id`` (WP38) are sent only when set: ``direction`` as a
+        body field when it is not ``input`` (an older server rejects unknown fields), the
+        correlation id as the ``X-Supervisor-Correlation-Id`` header."""
         t0 = time.perf_counter()
-        payload = {
+        payload: dict[str, Any] = {
             "agent_id": agent_id,
             "agent_version": agent_version,
             "tool_name": tool_name,
             "args": dict(args),
             "context": dict(context) if context is not None else None,
         }
+        if direction != "input":
+            payload["direction"] = direction
         try:
-            result = self._call(payload)
+            result = self._call(
+                payload, {CORRELATION_HEADER: correlation_id} if correlation_id else None
+            )
             if not isinstance(result, Mapping) or not isinstance(result.get("allow"), bool):
                 return self._fallback(tool_name, t0)
             out = dict(result)
@@ -163,28 +193,37 @@ class HttpGate:
                 return _closed_decision("GATE-AUTH", "gateway refused the credential", t0)
             return self._fallback(tool_name, t0)
 
-    def _send(self, path: str, payload: dict[str, Any]) -> Mapping[str, Any]:
+    def _send(
+        self, path: str, payload: dict[str, Any], extra: Mapping[str, str] | None = None
+    ) -> Mapping[str, Any]:
         url = f"{self.base_url}{path}"
-        if self.credential is None:
+        if self.credential is None and not extra:
             return self.transport(url, payload, self.timeout_s)
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode()
-        headers = self.credential.headers_for("POST", urlparse(url).path, body)
+        headers = (
+            self.credential.headers_for("POST", urlparse(url).path, body)
+            if self.credential is not None
+            else {}
+        )
+        headers.update(extra or {})
         headers["Content-Type"] = "application/json"
         return self.signed_transport(url, body, headers, self.timeout_s)
 
-    def _call(self, payload: dict[str, Any]) -> Mapping[str, Any]:
+    def _call(
+        self, payload: dict[str, Any], extra: Mapping[str, str] | None = None
+    ) -> Mapping[str, Any]:
         """Run the transport with a hard deadline, even if the transport ignores it."""
         box: dict[str, Any] = {}
 
         def run() -> None:
             try:
                 try:
-                    box["value"] = self._send(self.gate_path, payload)
+                    box["value"] = self._send(self.gate_path, payload, extra)
                 except Exception as exc:  # noqa: BLE001
                     status = getattr(getattr(exc, "response", None), "status_code", None)
                     if status != 404 or not self.versioned or self.gate_path != GATE_PATH:
                         raise
-                    box["value"] = self._send(LEGACY_GATE_PATH, payload)
+                    box["value"] = self._send(LEGACY_GATE_PATH, payload, extra)
                     self.gate_path = LEGACY_GATE_PATH  # an older server: stop probing
             except BaseException as exc:  # noqa: BLE001
                 box["error"] = exc
