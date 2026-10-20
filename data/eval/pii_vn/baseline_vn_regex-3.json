@@ -1,5 +1,5 @@
 {
-  "commit": "4f876d7+wip",
+  "commit": "wp24b-final",
   "masker": "vn_regex-3",
   "recorded_at": "2026-10-20",
   "splits": {
@@ -227,8 +227,8 @@
           "touched": 0
         }
       },
-      "latency_us_p50": 261,
-      "latency_us_p95": 404,
+      "latency_us_p50": 250,
+      "latency_us_p95": 393,
       "micro_leak_recall_bp": 9970,
       "n_items": 486,
       "over_mask_amount_count": 0,
@@ -455,8 +455,8 @@
           "touched": 0
         }
       },
-      "latency_us_p50": 254,
-      "latency_us_p95": 403,
+      "latency_us_p50": 241,
+      "latency_us_p95": 387,
       "micro_leak_recall_bp": 8228,
       "n_items": 235,
       "over_mask_amount_count": 0,

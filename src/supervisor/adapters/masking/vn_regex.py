@@ -106,32 +106,6 @@ def _alt(words: set[str]) -> str:
     return "|".join(re.escape(w) for w in sorted(words, key=lambda w: (-len(w), w)))
 
 
-def _with_folded(words: tuple[str, ...]) -> set[str]:
-    return set(words) | {_fold(w) for w in words}
-
-
-# Name words beyond the generator lists, so real 4-word names (Trần Thị Bích Ngọc) still match.
-_EXTRA_NAME_WORDS: tuple[str, ...] = (
-    "Bích", "Hồng", "Tuyết", "Diệu", "Thúy", "Xuân", "Hải", "Tiến", "Thái", "Ngọc", "Lan",
-    "Yến", "Nhi", "Đình", "Hoàng", "Trọng", "Xuân", "Thùy", "Như", "Tú",
-)  # fmt: skip
-_SUR = _alt(_with_folded(W.SURNAMES))
-_MID = _alt(_with_folded(W.MIDDLE_MALE + W.MIDDLE_FEMALE + _EXTRA_NAME_WORDS))
-_LAST = _alt(
-    _with_folded(
-        W.GIVEN_MALE + W.GIVEN_FEMALE + W.MIDDLE_MALE + W.MIDDLE_FEMALE + _EXTRA_NAME_WORDS
-    )
-)
-_ANY_NAME = _alt(
-    _with_folded(
-        W.SURNAMES
-        + W.MIDDLE_MALE
-        + W.MIDDLE_FEMALE
-        + W.GIVEN_MALE
-        + W.GIVEN_FEMALE
-        + _EXTRA_NAME_WORDS
-    )
-)
 _PROVINCES = _alt(set(W.PROVINCES.values()) | {_fold(p) for p in W.PROVINCES.values()})
 _PROV_TAIL = rf"(?:TP\.? ?)?(?:{_PROVINCES})|TP\.? ?(?:HCM|HN|HCMC)|TPHCM"
 
@@ -168,18 +142,6 @@ _RE_ACCOUNT_CUE = re.compile(
 )
 _RE_STRONG_CUE = re.compile(r"\b(?:stk|tk|tai khoan|account|acct)\b")
 _RE_THOUSANDS = re.compile(r"\d{1,3}(?:([. ])\d{3})+")
-_RE_PERSON_PLAIN = re.compile(
-    rf"(?<!\w)(?:{_SUR})(?: (?:{_MID})){{1,2}} (?:{_LAST})(?!\w)", re.IGNORECASE
-)
-_HONORIFICS = (
-    r"anh|chị|ông|bà|cô|chú|mr\.?|ms\.?|mrs\.?|miss|khách hàng|customer|người nhận|của|"
-    r"applicant|tôi là|tên|họ tên|holder|this is|name|payee|beneficiary|"
-    r"ong|khach hang|nguoi nhan|cua|toi la|ten|ho ten"
-)
-_RE_PERSON_LABELLED = re.compile(
-    rf"(?<!\w)(?:{_HONORIFICS})[:,]? +((?:{_ANY_NAME})(?: (?:{_ANY_NAME})){{1,3}})(?!\w)",
-    re.IGNORECASE,
-)
 _DISTRICT = r"(?:Quận|Huyện|Thành phố|Thị xã|Thị trấn|Quan|Huyen|Thanh pho|Thi xa) [^,\n;()]{1,30}"
 _WARD = r"(?:Phường|Xã|Thị trấn|Phuong|Xa) [^,\n;()]{1,30}"
 _ADDR_TAIL = rf"(?:{_WARD}, )?{_DISTRICT}(?:, (?:{_PROV_TAIL})(?!\w))?"
