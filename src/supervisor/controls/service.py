@@ -43,6 +43,7 @@ from supervisor.controls.model import (
     STATUS_NO_DATA,
     STATUSES,
     ControlError,
+    actor_ref,
     check_id,
     check_target,
     normalise,
@@ -176,7 +177,7 @@ class ControlService:
             {
                 "control_id": row["control_id"],
                 "action": action,
-                "actor": actor,
+                "actor_ref": actor_ref(self.settings, actor),
                 "status": row["status"],
                 "control_type": row["control_type"],
                 "implemented_by": row["implemented_by"],

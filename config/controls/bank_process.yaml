@@ -31,8 +31,8 @@ controls:
     status: active
     review_date: 2027-04-20
     covers:
-      matrix: [INTL-SR117-2011-S5.2-01, INTL-EUAIA-2024-A15-01]
-      risk: [RSK-SHR-001, RSK-SHR-002]
+      matrix: [INTL-SR117-2011-S5.2-01, INTL-EUAIA-2024-A15-01, INTL-NISTGAI-2024-S2.2-01]
+      risk: [RSK-SHR-001, RSK-SHR-002, RSK-CRD-005]
     evidence:
       document: [model-validation-report]
 

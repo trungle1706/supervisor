@@ -55,7 +55,7 @@ Computed per control and per agent from the same facts the risk register uses
 | Source | Counts as |
 |---|---|
 | rule | working = at least one **enforced** tier-0 hit of the agent in the window (shadow, rule_error, fail-mode and mock rows are not hits); failing = the rule is not in the deployed policy any more |
-| pack | newest **non-mock** result of the agent: ok working; fail or error failing; warn, skip, none idle |
+| pack | newest **non-mock** result of the agent: ok working; fail or error failing; warn, skip, none idle. A judge-scored pack (`groundedness_monitor`, `halueval_vi`, ...) is a reference, not evidence, unless `RISK_EVIDENCE_JUDGED_PACKS=1` (rule R1) |
 | monitor | only `fairness`, `drift`, `multiagent` can be working (`quality` is an LLM scorer; `oversight` and `sweeps` write no status). They are idle |
 | detector, document | recorded and checked for shape or existence; never working |
 
@@ -80,9 +80,10 @@ the control names the agent or `*`. The API also gives `product_bp` and `bank_in
 controls never show working (Supervisor cannot see a bank process), so read the figure with them
 apart. `obligation_coverage(agent)` lists, for each obligation, its controls and the best status.
 
+A **product** control needs at least one source that can make it work (a rule, a pack that is not judge-scored, or `fairness`, `drift`, `multiagent`); the harness starter check fails an active product control that has only references (`evidence_capable()` in `controls/model.py`). The starters `CTL-MON-OVERSIGHT`, `CTL-EVD-CHAIN`, `CTL-MON-QUALITY` and `CTL-ASR-GROUNDED` are `draft` for that reason.
+
 Honest limits: a quiet rule is `no_data`, not working (add a pack or a deterministic monitor to the
-control); several starter controls name `oversight`, `sweeps` or `quality` only and stay `no_data`
-until a deterministic monitor writes a status for them (BACKLOG).
+control); four starter controls are draft until a deterministic source exists for them (BACKLOG).
 
 ## 5. Tasks and sizing
 
@@ -115,7 +116,7 @@ integers; the reason is a hash on the chain and text in the row).
 | Routes | `/v1/controls...` (`controls.view`, `controls.edit`), `/v1/tasks...` (`tasks.view`, `tasks.edit`, `tasks.approve`) |
 | Console | `/console/controls`, `/console/tasks`, Agent tabs Controls and Tasks (`CONSOLE_CONTROLS_ENABLED`) |
 | Jobs | `python -m supervisor.jobs.control_status` (scheduler `SCHED_CONTROL_STATUS_S`), `python -m supervisor.jobs.task_due` (`SCHED_TASK_DUE_S`) |
-| CLI | `python -m supervisor.controls list\|import\|status\|export`; `python -m supervisor.tasks list\|plan\|generate\|done\|waive` |
+| CLI | `python -m supervisor.controls list\|import\|status\|export` (`--by` for writes); `python -m supervisor.tasks list\|plan\|generate\|done\|waive` |
 | Launch gate | `TASKS_LAUNCH_GATE_ENABLED=1` (needs `CONTROLS_ENABLED`): `assurance.gates.task_launch_items` |
 | Harness | `python -m supervisor.controls.harness` |
 
@@ -124,10 +125,12 @@ On Delta run `python -m supervisor.jobs.bootstrap_schema` first (five new tables
 ### How a bank imports its own catalogue
 
 ```
-python -m supervisor.risk import <bank risks>.yaml           # the risks first (a control maps to them)
-python -m supervisor.controls import <bank controls>.yaml --dry-run
-python -m supervisor.controls import <bank controls>.yaml
+python -m supervisor.risk import <bank risks>.yaml --by <you>          # the risks first
+python -m supervisor.controls import <bank controls>.yaml --by <you> --dry-run
+python -m supervisor.controls import <bank controls>.yaml --by <you>
 ```
+
+`--by` is your own user id: it goes to a `console_action` row; chain records carry only a keyed hash (`actor_ref`). The task CLI takes `--by` too (`python -m supervisor.tasks generate --agent <id> --by <you>`).
 
 Format (see `config/controls/*.yaml`): a `controls:` list; each item has `id`, `title`,
 `objective`, `type`, `implemented_by`, `owner`, `status`, `review_date`, `agents`, `covers:

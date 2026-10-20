@@ -48,7 +48,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from supervisor.controls import evidence as cev
-from supervisor.controls.model import ControlError, normalise
+from supervisor.controls.model import ControlError, evidence_capable, normalise
 from supervisor.controls.refs import ControlRefs
 from supervisor.controls.service import ControlService
 from supervisor.risk.harness import _bp, load_golden, repo_catalogue, wilson_bp
@@ -185,6 +185,10 @@ def check_starters(directory: Path | None = None) -> dict[str, Any]:
                     problems.append(f"{cid}: covers nothing")
                 if not kinds & {"rule", "pack", "monitor", "detector", "document"}:
                     problems.append(f"{cid}: no evidence source")
+                elif fields["implemented_by"] == "product" and not any(
+                    evidence_capable(k, t) for k, t in doc["maps"]
+                ):
+                    problems.append(f"{cid}: a product control with only reference sources")
             for agent in fields["scope_agents"]:
                 if agent != "*" and g.by_name("system", agent) is None:
                     problems.append(f"{cid}: agent {agent} is not in the manifests")
@@ -192,9 +196,9 @@ def check_starters(directory: Path | None = None) -> dict[str, Any]:
                 n_maps += 1
                 if not refs.exists(kind, target):
                     problems.append(f"{cid}: {kind} {target} does not exist")
-                if kind == "matrix":
+                if kind == "matrix" and fields["status"] == "active":
                     covered_obl.add(target)
-                if kind == "risk":
+                if kind == "risk" and fields["status"] == "active":
                     covered_risk.add(target)
                 if kind == "rule":
                     sc = scopes.get(target)
@@ -204,7 +208,7 @@ def check_starters(directory: Path | None = None) -> dict[str, Any]:
     if n_controls < MIN_STARTER_CONTROLS:
         problems.append(f"only {n_controls} starter controls (at least {MIN_STARTER_CONTROLS})")
     for rid in sorted(risk_ids - covered_risk):
-        problems.append(f"{rid}: no starter control covers this starter risk")
+        problems.append(f"{rid}: no active starter control covers this starter risk")
     for obl in sorted(cited - covered_obl):
         problems.append(f"{obl}: cited by a starter risk, covered by no starter control")
     # the task templates must name controls and packs that exist

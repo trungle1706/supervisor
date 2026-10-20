@@ -16,6 +16,7 @@ import uuid
 from collections.abc import Mapping
 from typing import Any
 
+from supervisor.controls.model import actor_ref
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, NotFoundError
@@ -183,7 +184,7 @@ class TaskService:
                 "task_id": row["task_id"],
                 "agent_id": row["agent_id"],
                 "action": action,
-                "actor": actor,
+                "actor_ref": actor_ref(self.settings, actor, "task"),
                 "template_id": row["template_id"],
                 "kind": row["kind"],
                 "stage": row["stage"],
@@ -595,7 +596,7 @@ class TaskService:
                     "level": inputs["level"],
                     "d33_class": inputs["d33_class"],
                     "made_required": made,
-                    "actor": who,
+                    "actor_ref": actor_ref(self.settings, who, "task"),
                     "ts": format_ts(self.clock.now()),
                 },
             )

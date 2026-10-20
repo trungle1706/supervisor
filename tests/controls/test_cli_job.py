@@ -45,9 +45,9 @@ def test_cli_and_jobs_are_noops_when_off(
 ) -> None:
     _on(monkeypatch, False)
     assert ccli.main(["list"]) == 0
-    assert ccli.main(["import", str(STARTERS)]) == 0
+    assert ccli.main(["import", str(STARTERS), "--by", "ann"]) == 0
     assert tcli.main(["list"]) == 0
-    assert tcli.main(["generate", "--agent", "payments", "--user", "x"]) == 0
+    assert tcli.main(["generate", "--agent", "payments", "--by", "x"]) == 0
     assert cjob.main([]) == 0 and tjob.main([]) == 0
     assert capsys.readouterr().out.count("[SKIP]") == 6
 
@@ -85,13 +85,15 @@ def test_controls_cli_import_list_status_export_and_jobs(
             )  # fmt: skip
     finally:
         a0.close()
-    assert rcli.main(["import", str(RISKS), "--source", "starter"]) == 0
+    assert rcli.main(["import", str(RISKS), "--source", "starter", "--by", "ann"]) == 0
     capsys.readouterr()
-    assert ccli.main(["import", str(STARTERS), "--dry-run", "--source", "starter"]) == 0
+    assert (
+        ccli.main(["import", str(STARTERS), "--dry-run", "--source", "starter", "--by", "ann"]) == 0
+    )
     assert "dry run: created=0" in capsys.readouterr().out
-    assert ccli.main(["import", str(STARTERS), "--source", "starter"]) == 0
+    assert ccli.main(["import", str(STARTERS), "--source", "starter", "--by", "ann"]) == 0
     assert "created=28" in capsys.readouterr().out
-    assert ccli.main(["import", str(STARTERS), "--source", "starter"]) == 0
+    assert ccli.main(["import", str(STARTERS), "--source", "starter", "--by", "ann"]) == 0
     assert "unchanged=28" in capsys.readouterr().out
     assert ccli.main(["list", "--agent", "payments", "--type", "preventive"]) == 0
     out = capsys.readouterr().out
@@ -100,17 +102,17 @@ def test_controls_cli_import_list_status_export_and_jobs(
     assert (tmp_path / "x" / "controls.csv").is_file()
     assert (tmp_path / "x" / "control_maps.csv").is_file()
     capsys.readouterr()
-    assert ccli.main(["status", "--run"]) == 0
+    assert ccli.main(["status", "--run", "--by", "ann"]) == 0
     out = capsys.readouterr().out
     assert "status pass" in out and "written=" in out and out.isascii()
     assert cjob.main([]) == 0
     assert "written=0" in capsys.readouterr().out  # same window: nothing new
     # the task flow from the command line
-    assert tcli.main(["generate", "--agent", "payments", "--user", "olga"]) == 0
+    assert tcli.main(["generate", "--agent", "payments", "--by", "olga"]) == 0
     assert "stage initiation" in capsys.readouterr().out
     assert tcli.main(["list", "--agent", "payments"]) == 0
     assert "INI-REGISTER" in capsys.readouterr().out
-    assert tcli.main(["waive", "x", "--user", "olga", "--reason", "r"]) == 1
+    assert tcli.main(["waive", "x", "--by", "olga", "--reason", "r"]) == 1
     assert tjob.main(["--no-cases"]) == 0
     assert "task_due:" in capsys.readouterr().out
     a = build_adapters(load_settings())

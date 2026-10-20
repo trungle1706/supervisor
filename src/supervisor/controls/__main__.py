@@ -1,8 +1,8 @@
 """Control catalogue CLI (WP30). ASCII output.
 
   python -m supervisor.controls list [--agent A] [--type T] [--status S]  controls, map counts
-  python -m supervisor.controls import PATH [--dry-run] [--source starter]  import YAML
-  python -m supervisor.controls status [--agent A] [--run]  evidence status, compliance bp per agent
+  python -m supervisor.controls import PATH --by USER [--dry-run] [--source starter]  import YAML
+  python -m supervisor.controls status [--agent A] [--run --by USER]  evidence status, bp
   python -m supervisor.controls export --out DIR [--format json|csv|both]  controls.json, CSV files
 
 Needs CONTROLS_ENABLED=1. ``status --run`` writes one status pass (as the job
@@ -18,6 +18,7 @@ from supervisor.bootstrap import bootstrap
 bootstrap()
 
 import argparse  # noqa: E402
+import re  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 from typing import TYPE_CHECKING  # noqa: E402
@@ -30,6 +31,32 @@ if TYPE_CHECKING:
 
 def _say(text: str) -> None:
     print(text.encode("ascii", "replace").decode("ascii"))  # noqa: T201
+
+
+def _by(value: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9_.@+-]{1,64}", value):
+        raise argparse.ArgumentTypeError(
+            "--by must be 1 to 64 characters from A-Z a-z 0-9 _ . @ + -"
+        )
+    return value
+
+
+def _audit(svc: object, by: str, permission: str, path: str, kind: str, detail: str) -> None:
+    from supervisor.adapters.auth.audit import write_action
+
+    write_action(
+        svc.tables,  # type: ignore[attr-defined]
+        svc.clock,  # type: ignore[attr-defined]
+        request_id=None,
+        actor=None,
+        actor_fallback=(by, "operator", "cli"),
+        permission=permission,
+        method="CLI",
+        path=path,
+        outcome="ok",
+        target_kind=kind,
+        detail=detail,
+    )
 
 
 def _cut(text: str, n: int) -> str:
@@ -46,16 +73,20 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--owner", default="")
     p = sub.add_parser("import")
     p.add_argument("path", type=Path)
+    p.add_argument("--by", required=True, type=_by, help="who runs this import (your user id)")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--overwrite-manual", action="store_true")
     p.add_argument("--source", choices=("import", "starter"), default="import")
     p = sub.add_parser("status")
     p.add_argument("--agent", default="")
     p.add_argument("--run", action="store_true", help="write a status pass first")
+    p.add_argument("--by", default=None, type=_by, help="who runs the pass (needed with --run)")
     p = sub.add_parser("export")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--format", choices=("json", "csv", "both"), default="both")
     args = ap.parse_args(argv)
+    if args.cmd == "status" and args.run and not args.by:
+        ap.error("status --run needs --by (your user id)")
 
     from supervisor.config import load_settings
     from supervisor.controls.service import ControlService
@@ -111,7 +142,7 @@ def _do(args: argparse.Namespace, svc: ControlService) -> int:
     elif args.cmd == "import":
         res = svc.import_path(
             args.path,
-            "cli",
+            args.by,
             source=args.source,
             dry_run=args.dry_run,
             overwrite_manual=args.overwrite_manual,
@@ -123,6 +154,8 @@ def _do(args: argparse.Namespace, svc: ControlService) -> int:
         if res.errors:
             _say("[FAIL] nothing was imported")
             return 1
+        if not args.dry_run:
+            _audit(svc, args.by, "controls.edit", "supervisor.controls import", "control", "import")
         tag = "dry run: " if args.dry_run else ""
         _say(
             f"[OK] {tag}created={res.created} updated={res.updated} unchanged={res.unchanged} "
@@ -132,6 +165,7 @@ def _do(args: argparse.Namespace, svc: ControlService) -> int:
     elif args.cmd == "status":
         if args.run:
             out = svc.run_status()
+            _audit(svc, args.by, "controls.edit", "supervisor.controls status", "control", "status")
             _say("[OK] status pass: " + ", ".join(f"{k}={v}" for k, v in out.items()))
         _say(f"{'AGENT':20} {'IN SCOPE':>8} {'WORKING':>7} {'FAILING':>7} {'NO DATA':>7} {'BP':>6}")
         for name, _bp in sorted(svc.compliance_all().items()):

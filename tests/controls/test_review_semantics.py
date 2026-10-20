@@ -98,3 +98,57 @@ def test_a_map_change_invalidates_the_evidence_of_a_linked_risk(env: CtlEnv) -> 
     assert env.svc.get(rid)["evidence_state"] == "working"
     env.controls.add_map("CTL-A", "pack", "pack_b", "u")
     assert env.svc.get(rid)["evidence_reason"] == "changed_since_evidence"
+
+
+def test_chain_payloads_carry_a_keyed_actor_ref_never_the_actor(env: CtlEnv, sink) -> None:
+    env.agent("pay")
+    env.classify("pay", "not_high_risk", "low")
+    env.controls.create(
+        {
+            "title": "T",
+            "objective": "O",
+            "control_type": "preventive",
+            "implemented_by": "product",
+            "owner": "ops",
+            "status": "draft",
+        },
+        "alice@bank.example",
+        control_id="C1",
+    )
+    from types import SimpleNamespace
+
+    env.tasks.generate("pay", SimpleNamespace(user_id="bob@bank.example", roles=frozenset()))
+    records = sink.of("control_change") + sink.of("task_change")
+    assert records
+    for p in records:
+        assert "actor" not in p and p["actor_ref"].startswith("act_")
+        assert "bank.example" not in str(p)
+    # the readable id stays in the audited task_event row
+    assert {e["actor"] for e in env.tasks.events("pay")} == {"bob@bank.example"}
+
+
+def test_judge_scored_pack_and_status_less_monitor_are_references_in_the_starters() -> None:
+    from supervisor.controls import harness as H
+    from supervisor.controls.model import evidence_capable
+
+    assert not evidence_capable("pack", "groundedness_monitor")
+    assert not evidence_capable("monitor", "quality") and not evidence_capable(
+        "monitor", "oversight"
+    )
+    assert evidence_capable("monitor", "drift") and evidence_capable("pack", "pii_canary")
+    assert not evidence_capable("document", "x") and not evidence_capable("detector", "cccd")
+    assert H.check_starters()["problems"] == []
+
+
+def test_harness_starter_check_fails_a_product_control_with_only_references(tmp_path) -> None:
+    from supervisor.controls import harness as H
+
+    (tmp_path / "x.yaml").write_text(
+        "version: 1\ncontrols:\n  - id: CTL-ONLY-REF\n    title: t\n    objective: o\n"
+        "    type: preventive\n    implemented_by: product\n    owner: o\n    status: active\n"
+        "    review_date: 2027-04-20\n    covers: {matrix: [INTL-SR117-2011-S5.2-01]}\n"
+        "    evidence: {monitor: [oversight], pack: [groundedness_monitor]}\n",
+        encoding="utf-8",
+    )
+    problems = H.check_starters(tmp_path)["problems"]
+    assert any("only reference sources" in p for p in problems)

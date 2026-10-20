@@ -1,6 +1,10 @@
 # Starter controls: assurance packs, monitors, the masker and the evidence chain (WP30).
 # SYNTHETIC and ILLUSTRATIVE, like gate_rules.yaml. A pack or monitor result counts only when
 # it is a real (non-mock) result of a supervised agent in the window.
+# A product control needs at least one source that can make it work: a gate rule, a pack that
+# is not scored by a judge, or the monitors fairness, drift, multiagent. The controls below
+# marked draft have none yet (oversight, sweeps and quality write no usable status; groundedness
+# packs are judge-scored); they become active when such a source exists (BACKLOG).
 version: 1
 controls:
   - id: CTL-PII-MASK
@@ -108,7 +112,7 @@ controls:
     type: detective
     implemented_by: product
     owner: AI Governance
-    status: active
+    status: draft
     review_date: 2027-04-20
     covers:
       matrix: [INTL-NISTGAI-2024-S2.2-01]
@@ -142,7 +146,7 @@ controls:
     type: detective
     implemented_by: product
     owner: AI Governance
-    status: active
+    status: draft
     review_date: 2027-04-20
     covers:
       matrix: [INTL-EUAIA-2024-A14-01, VN-AI-2025-A14.02A-01, INTL-HKMAGENAI-2024-G1.A-01]
@@ -190,7 +194,7 @@ controls:
     type: detective
     implemented_by: product
     owner: AI Governance
-    status: active
+    status: draft
     review_date: 2027-04-20
     covers:
       matrix: [INTL-NISTGAI-2024-S2.2-01, INTL-SR117-2011-S5.2-01]
@@ -206,7 +210,7 @@ controls:
     type: detective
     implemented_by: product
     owner: AI Governance
-    status: active
+    status: draft
     review_date: 2027-04-20
     covers:
       matrix: [VN-AI-2025-A12.02B-01, VN-AI-2025-A28.03-01, INTL-EUAIA-2024-A12-01]
@@ -221,11 +225,12 @@ controls:
       two different people.
     type: corrective
     implemented_by: product
-    owner: AI Governance
+    owner: Payments Ops
+    agents: [payments]
     status: active
     review_date: 2027-04-20
     covers:
       matrix: [INTL-EUAIA-2024-A14-01, INTL-MASAIRM-2025-P5.25-01]
       risk: [RSK-PAY-006]
     evidence:
-      monitor: [oversight]
+      rule: [PAY-03, PAY-07]

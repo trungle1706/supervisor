@@ -61,6 +61,33 @@ def ensure_on(settings: Any) -> None:
         )
 
 
+def actor_ref(settings: Any, actor: str, scope: str = "control") -> str:
+    """Keyed hash of an actor id for chain payloads (an id can be an e-mail; rule R2). The
+    readable id stays in the audited row. Same actor, same ref."""
+    import hashlib
+    import hmac
+
+    key, _ = settings.mask_key
+    return (
+        "act_" + hmac.new(key, f"{scope}-actor:{actor}".encode(), hashlib.sha256).hexdigest()[:16]
+    )
+
+
+def evidence_capable(kind: str, target: str, *, judged_packs: bool = False) -> bool:
+    """True when a source of this kind can make a control working (same rule as WP29): a gate
+    rule; a pack not scored by a judge (unless RISK_EVIDENCE_JUDGED_PACKS); a deterministic
+    monitor. Detectors, documents, judge-scored packs and the other monitors are references."""
+    from supervisor.risk import evidence as ev
+
+    if kind == "rule":
+        return True
+    if kind == "pack":
+        return judged_packs or target not in ev.JUDGED_PACKS
+    if kind == "monitor":
+        return target in ev.EVIDENCE_MONITORS
+    return False
+
+
 def check_id(value: Any, what: str = "control id") -> str:
     if not isinstance(value, str) or not _ID.match(value):
         raise ControlError(f"{what} must be 1 to 64 characters from A-Z a-z 0-9 _ . : -")
