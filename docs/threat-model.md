@@ -162,6 +162,28 @@ again; a `digest` event shows no text, and no masker means no text. Every new pa
 behind its own permission and flag, and every filter value is checked against an allow-list or a
 strict pattern (bad input is HTTP 400); filters reach the store only as named parameters.
 
+### 3.10 Risk register (WP29, ADR D26)
+
+The register adds a write path for people (`POST /v1/risks/...`, flag `RISK_REGISTER_ENABLED`, off by
+default) and a job that reads gate verdicts, assurance results and monitor status. Threats and
+controls: (1) **a person lowers a risk score without proof**: the stored residual is only a claim; the
+product shows the declared value only while the linked controls are `working` in the last window,
+so editing the number does not change what the page shows, and every edit writes two
+`console_action` rows and a `risk_change` chain record with the actor; (2) **fake evidence**: the
+job reads tier-0 gate verdicts, non-mock assurance rows and monitor status only (no judge, no
+classifier, no text from a user), ignores SHADOW, retired and unknown agents and mock results, and
+a removed rule or a failed pack counts against the risk; a person with write access to the
+verdict or `eval_result` tables could still plant rows (those tables are append-only and chained;
+the register adds no new write path to them); (3) **injection through free text**: titles and notes
+are stored and shown as text (templates escape them), exports start a cell with `'` when it begins
+with `=`, `+`, `-` or `@`, ids and link targets must match a strict pattern and a link must point at
+something that exists, and no SQL is built from input (named parameters only); (4) **personal data**:
+the register holds risk descriptions written by staff; the chain payloads hold integers, codes and
+hashes only, and the evidence row has no text column; a person must not write customer data into a
+description. Not covered: a reviewer, owner or admin who creates a false `accept` risk with a
+justification note (there is no four-eyes step yet, see BACKLOG) and who is the only check on their own
+scoring.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

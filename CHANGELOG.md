@@ -1,5 +1,9 @@
 # Changelog
 
+## unreleased
+
+* WP29 risk register (off by default): `risk`, `risk_link`, `risk_evidence` tables (run `python -m supervisor.jobs.bootstrap_schema` on Delta), risks that inherit up the inventory graph and link to matrix rows, gate rules, packs and monitors, runtime evidence job `python -m supervisor.jobs.risk_evidence` with the rule that only working controls lower a residual score, `/v1/risks/...` (permissions `risks.view`, `risks.edit`), Risks page and Agent tab, `python -m supervisor.risk list|import|score|export`, 19 starter risks in `config/risks`, harness `python -m supervisor.risk.harness`. Flags `RISK_REGISTER_ENABLED`, `CONSOLE_RISKS_ENABLED`. Docs `docs/risk-register.md`, ADR D26. Band thresholds are ILLUSTRATIVE.
+
 ## v0.3.0 (phase 3, wave 1) - 2026-10-20
 
 Merged from the integration branch `phase3-wave1` (3,684 tests, 29 skipped). Every new feature is behind a

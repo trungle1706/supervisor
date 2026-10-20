@@ -445,9 +445,15 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 notify_job.enabled(settings)),
         JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
                 settings.alerts_enabled),
-        JobSpec("risk_evidence", settings.sched_risk_evidence_s,
-                lambda: risk_evidence_job.run(ctx, settings), settings.risk_register_enabled),
     ]  # fmt: skip
+    if settings.risk_register_enabled:  # WP29: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "risk_evidence",
+                settings.sched_risk_evidence_s,
+                lambda: risk_evidence_job.run(ctx, settings),
+            )
+        )
     from supervisor.jobs import inventory as inventory_job
 
     if inventory_job.scheduled(settings):  # WP24: listed only when it can run
