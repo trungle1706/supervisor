@@ -52,8 +52,9 @@ app version:
 
     python -m supervisor.jobs.bootstrap_schema
 
-(or the migration cell in `notebooks/bootstrap_and_smoke.py`). It adds the column
-`agent_event.latency_us` and the new tables `alert`, `siem_event`, `tool_usage_daily`,
-`inventory_node` and `inventory_edge`. If the app runs first, every gate decision insert fails
-on the unknown column `latency_us`. SQLite (laptop) is bootstrapped at app start and needs no
+(or the migration cell in `notebooks/bootstrap_and_smoke.py`). It adds the columns
+`agent_event.latency_us` and `oversight_metric.monitor_status` (WP1b-B) and the new tables
+`alert`, `siem_event`, `tool_usage_daily`, `inventory_node` and `inventory_edge`. If the app runs
+first, every gate decision insert fails on the unknown column `latency_us`, and the monitor jobs
+fail on `monitor_status`. SQLite (laptop) is bootstrapped at app start and needs no
 step.
