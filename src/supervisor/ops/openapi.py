@@ -60,7 +60,7 @@ _METHODS = {"get", "put", "post", "delete", "patch", "head", "options"}
 def _is_human_path(path: str) -> bool:
     if path in _INGRESS:
         return False
-    return path.startswith(("/console", "/gate/", "/v1/gate/"))
+    return path.startswith(("/console", "/gate/", "/v1/gate/", "/v1/inventory/"))
 
 
 def build_openapi(app: FastAPI) -> dict[str, Any]:

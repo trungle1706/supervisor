@@ -115,7 +115,14 @@ def shell(ctx: Any, me: Any) -> dict[str, Any]:
         unread = sum(1 for n in ctx.inbox.list() if n.get("status") == "unread")
     except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
         unread = 0
+    inventory_n = None  # WP24: unmanaged workspace items (None = tab off)
+    if ctx.settings.inventory_enabled:
+        try:
+            inventory_n = len(ctx.state.query("inventory_node", {"status": "unmanaged"}))
+        except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
+            inventory_n = 0
     return {
+        "inventory_n": inventory_n,
         "agents_n": len(agents),
         "cases_n": len(cases),
         "critical_n": sum(1 for c in cases if c["severity"] == "critical"),

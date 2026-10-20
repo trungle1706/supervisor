@@ -1083,6 +1083,40 @@ _T: dict[str, tuple[str, str]] = {
         "Narrative",
         "Diễn giải",
     ),
+    # ---- WP24 inventory
+    "nav_inventory": ("Inventory", "Kiểm kê"),
+    "inv_purpose": (
+        "What each agent runs on: model endpoints, tools, MCP servers, datasets and hosting, "
+        "each with its evidence. Risk passes up from tools and endpoints to the agent.",
+        "Mỗi tác tử chạy trên gì: điểm cuối mô hình, công cụ, máy chủ MCP, dữ liệu và nơi "
+        "lưu trữ, kèm bằng chứng. Mức rủi ro đi lên từ công cụ và điểm cuối tới tác tử.",
+    ),
+    "inv_why": (
+        "Unmanaged items run in the workspace but no Supervisor manifest covers them (shadow "
+        "AI). Each opens one low-severity case. Decision 33 class is set by people only.",
+        "Mục chưa quản lý chạy trong workspace nhưng chưa có bản kê khai Supervisor (AI ngầm). "
+        "Mỗi mục mở một hồ sơ mức thấp. Phân loại Quyết định 33 chỉ do con người đặt.",
+    ),
+    "inv_agent": ("Agent", "Tác tử"),
+    "inv_tree": ("Subgraph (indented tree)", "Đồ thị con (cây thụt lề)"),
+    "inv_nodes": ("Nodes", "Nút"),
+    "inv_kind": ("Kind", "Loại"),
+    "inv_name": ("Name", "Tên"),
+    "inv_own": ("Own risk", "Rủi ro riêng"),
+    "inv_eff": ("Effective risk", "Rủi ro hiệu lực"),
+    "inv_evidence": ("Evidence", "Bằng chứng"),
+    "inv_unmanaged": ("Unmanaged items", "Mục chưa quản lý"),
+    "inv_no_unmanaged": (
+        "No unmanaged item. Every App and endpoint seen in the last refresh is registered "
+        "or allow-listed.",
+        "Không có mục chưa quản lý. Mọi App và endpoint thấy ở lần làm mới gần nhất đã đăng ký "
+        "hoặc nằm trong danh sách cho phép.",
+    ),
+    "inv_no_agents": (
+        "The inventory is empty. Run:",
+        "Kiểm kê đang trống. Hãy chạy:",
+    ),
+    "inv_case": ("Case", "Hồ sơ"),
     # ---- WP17 assurance
     "nav_assurance": ("Assurance", "Đảm bảo chất lượng"),
     "as_purpose": (

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_inventory') }}{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>{{ t('nav_inventory') }}</h1></div>
+{{ ui.purpose(t('inv_purpose'), t('inv_why')) }}
+<div id="inventory-body" data-inventory="1">
+<h2>{{ t('inv_unmanaged') }} {{ ui.pill(unmanaged|length, 'bad' if unmanaged else 'ok') }}</h2>
+<div class="tablewrap">
+<table class="queue" id="inv-unmanaged">
+  <thead><tr><th>{{ t('inv_kind') }}</th><th>{{ t('inv_name') }}</th><th>{{ t('inv_evidence') }}</th><th>{{ t('inv_case') }}</th></tr></thead>
+  <tbody>
+  {% for u in unmanaged %}
+    <tr class="row">
+      <td>{{ u.kind }}</td>
+      <td class="mono">{{ u.display_name }}</td>
+      <td class="mono">{% for e in u.evidence[:2] %}{{ e.source }}: {{ e.ref }}{% if not loop.last %}; {% endif %}{% endfor %}</td>
+      <td>{% if u.case_id %}<a class="head mono" href="/console/cases/{{ u.case_id }}?lang={{ lang }}">{{ u.case_id }}</a>{% else %}-{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="empty">{{ t('inv_no_unmanaged') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if agents %}
+<h2>{{ t('inv_tree') }}</h2>
+<form method="get" action="/console/inventory" class="filters">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <label for="inv-agent">{{ t('inv_agent') }}</label>
+  <select id="inv-agent" name="agent">
+    {% for a in agents %}<option value="{{ a }}" {{ 'selected' if a == agent else '' }}>{{ a }}</option>{% endfor %}
+  </select>
+  <button type="submit" class="chipbtn">OK</button>
+</form>
+<pre class="excerpt" id="inv-tree">{{ tree }}</pre>
+<h2>{{ t('inv_nodes') }}</h2>
+<div class="tablewrap">
+<table class="queue" id="inv-nodes">
+  <thead><tr><th>{{ t('inv_kind') }}</th><th>{{ t('inv_name') }}</th><th>{{ t('inv_own') }}</th><th>{{ t('inv_eff') }}</th><th>{{ t('inv_evidence') }}</th></tr></thead>
+  <tbody>
+  {% for r in node_rows %}
+    <tr class="row">
+      <td>{{ r.kind }}</td><td class="mono">{{ r.name }}</td>
+      <td>{{ r.own_risk or '-' }}</td><td>{{ r.effective_risk or '-' }}</td>
+      <td class="mono">{{ r.evidence }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="empty">{{ t('inv_no_agents') }} <code>python -m supervisor.jobs.inventory</code></p>
+{% endif %}
+</div>
+{% endblock %}
