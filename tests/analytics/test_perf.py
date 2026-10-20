@@ -5,8 +5,10 @@ The rollup runs through the product code path, in 7-day chunks of grouped SQL, s
 row is read into Python. Measured numbers go to the console with ``-s`` and to
 ``docs/tool-analytics.md``.
 
-Run alone: uv run python -m pytest -q -s tests/analytics/test_perf.py
-Rows: PERF_ROWS (default 1000000; a smaller number only shortens the run, the budget scales).
+Run alone: RUN_PERF=1 uv run python -m pytest -q -s tests/analytics/test_perf.py
+Rows: PERF_ROWS (default 1000000 with RUN_PERF=1; a smaller number only shortens the run, the
+budget scales). Without RUN_PERF the normal suite runs 50,000 rows and checks the counts and
+the memory bound only: a wall-clock budget is flaky on a loaded CI host, so it is opt-in.
 """
 
 from __future__ import annotations
@@ -31,7 +33,8 @@ from supervisor.monitors.common import MonitorContext
 from tests.analytics.conftest import END, NOW
 from tests.judge.conftest import MemoryEvidence
 
-ROWS = int(os.environ.get("PERF_ROWS", "1000000"))
+RUN_PERF = os.environ.get("RUN_PERF") == "1"
+ROWS = int(os.environ.get("PERF_ROWS", "1000000" if RUN_PERF else "50000"))
 # Measured on the dev box (see docs/tool-analytics.md): about 20 s per million rows with
 # tracemalloc on. The budget is
 # loose on purpose (a slow CI disk, a busy host) but still catches a quadratic mistake.
@@ -105,6 +108,7 @@ def test_rollup_one_million_decisions(tmp_path) -> None:
     adapters.close()
     assert total == n, "every decision is counted exactly once"
     assert out["rows"] == len(stored) == out["inserted"]
-    assert per_million < BUDGET_S_PER_MILLION
+    if RUN_PERF:
+        assert per_million < BUDGET_S_PER_MILLION
     assert peak / 1e6 < PEAK_PYTHON_MB, "rollup must not load the events into memory"
     assert n > 0.9 * ROWS

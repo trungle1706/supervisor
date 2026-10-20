@@ -56,6 +56,7 @@ norecursedirs = [".*", "*.egg", "build", "dist", "node_modules", "venv", "data"]
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 markers = [
     "databricks: live test against a real Databricks workspace (needs RUN_DATABRICKS=1)",
+    "perf: performance test; the time budget is enforced only with RUN_PERF=1",
 ]
 
 [tool.ruff]
