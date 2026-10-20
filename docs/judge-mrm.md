@@ -197,6 +197,8 @@ golden set (`cohen_kappa_bp()` is ready).
 | `formal_report_due_at` | 15 days (calendar, ASSUMED) after the preliminary report was sent, else after its due time |
 | `prelim_report_sent_at`, `formal_report_sent_at` | set by "mark report sent" in the case view (`case.report_sent` permission) |
 
+**No clock for internal flags (WP24).** A case whose source kind is in `cases.service.NO_CLOCK_SOURCES` (today `inventory`: shadow-AI flags) is not an incident. It opens with the ordinary case timestamps only: `report_due_at`, `incident_detected_at`, `urgency_class` and the report due times stay empty, the chain record carries no clock fields, `incident_status` returns `clocked: false` with no overdue flags, the case view hides the clocks and the "mark report sent" button, and `record_report_sent` refuses. If a person decides a flagged item is a real incident, open a new case from a clocked source.
+
 `config/vn_holidays.yaml` is illustrative; the bank edits it each year (`INCIDENT_HOLIDAYS_FILE`).
 
 **Deprecated:** `cases.report_due_at` (the 24-hour SBV report) and the 24 h / 5-day `SbvClocks` in

@@ -98,3 +98,4 @@ def test_shadow_case_page_renders_for_the_pseudo_agent(inv_console: Any) -> None
         assert r.status_code == 200, r.text[:300]
         assert "Shadow AI" in r.text
     assert inv_console.get("/console/cases").status_code == 200
+    assert "report-sent" not in r.text  # no mark-report-sent button on a clockless case

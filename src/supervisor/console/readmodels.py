@@ -902,6 +902,7 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
     d33 = None if d33_text.startswith("FILL-ME") else d33_text
     lane = f"agent:{case['agent_id']}"
     closed = status == "closed"
+    unclocked = ctx.cases.unclocked(case_id)  # WP24: internal flag, no Decree 142 clock
     flow_idx = CASE_FLOW.index(status) if status in CASE_FLOW else 0
     return {
         "case": case,
@@ -916,10 +917,10 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
         "approvals": approvals,
         "links": ctx.cases.links(case_id),
         "report_clock": None
-        if closed
+        if closed or unclocked
         else views.countdown(cf.sbv.report_due_at, now, severity=case["severity"]),
         "remediation_clock": None
-        if closed
+        if closed or unclocked
         else views.countdown(cf.sbv.remediation_due_at, now, 5 * 86400),
         "incident": ctx.cases.incident_status(case_id, now=now),  # WP19: Decree 142 Art. 19
         "lane": lane,

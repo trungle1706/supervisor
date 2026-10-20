@@ -91,6 +91,9 @@ class Node:
     decision33_class: str | None = None
     attrs: dict[str, Any] = field(default_factory=dict)
     evidence: list[dict[str, str]] = field(default_factory=list)
+    # Not stored. True when decision33_class is a copy of the human-set agent row: the store then
+    # copies the value as it is, including an empty one (a cleared class is cleared here too).
+    d33_copy: bool = False
 
     def __post_init__(self) -> None:
         self.display_name = self.display_name or str(self.name).strip()

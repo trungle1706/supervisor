@@ -89,6 +89,7 @@ def fill_from_manifests(
             own_risk=tier if tier in ("low", "medium", "high", "critical") else None,
             risk_source="manifest" if tier else "none",
             decision33_class=row.get("decision33_class"),
+            d33_copy=bool(row),
             attrs={
                 "role": "agent",
                 "version": str(doc.get("version", "")),
@@ -211,6 +212,7 @@ def fill_from_manifests(
             own_risk=tier if tier in ("low", "medium", "high", "critical") else None,
             risk_source="manifest" if tier in ("low", "medium", "high", "critical") else "none",
             decision33_class=row.get("decision33_class"),
+            d33_copy=True,
             attrs={
                 k: v
                 for k, v in {

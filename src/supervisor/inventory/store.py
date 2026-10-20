@@ -325,7 +325,9 @@ def _merge(cur: Node, new: Node) -> Node:
     ):
         if m.risk_source != "manual":
             m.own_risk, m.risk_source = new.own_risk, new.risk_source
-    if new.decision33_class:  # only the manifest filler sets it, as a copy of the agent row
+    if new.d33_copy:  # a copy of the human-set agent row, an empty value included
+        m.decision33_class = new.decision33_class
+    elif new.decision33_class and not m.decision33_class:
         m.decision33_class = new.decision33_class
     if m.status == "gone":
         m.status = new.status

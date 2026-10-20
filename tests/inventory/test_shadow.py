@@ -192,3 +192,48 @@ def test_baseline_counts(svc: InventoryService, reader: FixtureWorkspaceReader, 
     assert len(nodes) == base["nodes"] and len(active_edges) == base["edges"]
     c = svc.counts()
     assert c["unmanaged"] == base["unmanaged"]
+
+
+def test_shadow_cases_have_no_incident_clock(
+    svc: InventoryService, reader: FixtureWorkspaceReader, cases: CaseService, sink
+) -> None:
+    """Review item 12: an internal flag is not a Decree 142 incident. Ordinary timestamps stay."""
+    import pytest
+
+    from supervisor.adapters.auth.dev_header import DevHeaderPrincipal
+    from supervisor.cases.service import CaseError
+
+    svc.fill_manifests()
+    svc.refresh_workspace(reader, cases)
+    shadow_cases = cases.list_cases()
+    assert len(shadow_cases) == 3
+    for c in shadow_cases:
+        assert c["opened_at"] is not None  # ordinary case timestamps
+        for col in (
+            "report_due_at",
+            "incident_detected_at",
+            "urgency_class",
+            "prelim_report_due_at",
+            "formal_report_due_at",
+        ):
+            assert c[col] is None, col
+        st = cases.incident_status(c["case_id"])
+        assert st["clocked"] is False and st["prelim_due_at"] is None
+        assert st["prelim_overdue"] is False and st["formal_overdue"] is False
+    recs = [p for t, _, p in sink.records if t == "case"]
+    assert len(recs) == 3
+    assert all("prelim_report_due_at" not in p and "urgency_class" not in p for p in recs)
+    me = DevHeaderPrincipal.from_file(REPO_ROOT / "config" / "users.yaml").users["reviewer.an"]
+    c0 = shadow_cases[0]
+    with pytest.raises(CaseError, match="no incident report clock"):
+        cases.record_report_sent(c0["case_id"], "preliminary", me, c0["row_version"])
+    # a real incident source still gets its clocks
+    real = cases.open_case(
+        agent_id="payments",
+        severity="high",
+        summary="gate block",
+        source_kind="monitor",
+        source_ref="x:1",
+    )
+    assert real["prelim_report_due_at"] is not None and real["urgency_class"] is not None
+    assert cases.incident_status(real["case_id"])["clocked"] is True

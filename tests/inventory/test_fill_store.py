@@ -226,3 +226,81 @@ def test_onboarding_fragment_exact() -> None:
     assert g.effective_risk()[g.by_name("system", "demo").node_id] == "critical"  # type: ignore[union-attr]
     refs = {e.evidence_ref for e in g.edges.values()}
     assert {"tools.py:7", "g.py:3", "t.py:9"} <= refs
+
+
+def _agent_row(adapters, class_):
+    return {
+        "agent_id": "pay",
+        "name": "Pay agent",
+        "owner_team": "Team A",
+        "owner_user": "u@example.invalid",
+        "risk_tier": "critical",
+        "decision33_class": class_,
+        "host_type": "python_inprocess",
+        "plug_point": "gate_hook",
+        "model_family": "acme",
+        "status": "active",
+        "gate_state": "RUNNING",
+        "created_at": adapters.clock.now(),
+    }
+
+
+def test_cleared_decision33_class_is_cleared_in_the_inventory(
+    svc: InventoryService, adapters, tmp_path: Path
+) -> None:
+    """Review item 9: the node copies the current human value, an empty one included."""
+    agents, baseline = _mini(tmp_path)
+    adapters.state.insert("agent", _agent_row(adapters, "high_risk"))
+    svc.fill_manifests(agents, baseline)
+    assert svc.summary_for_agent("pay")["decision33_class"] == "high_risk"
+    key = {"agent_id": "pay"}
+    row = adapters.state.get("agent", key)
+    adapters.state.update("agent", key, {"decision33_class": None}, row["row_version"])
+    svc.fill_manifests(agents, baseline)
+    assert svc.summary_for_agent("pay")["decision33_class"] is None
+    row = adapters.state.get("agent", key)
+    adapters.state.update("agent", key, {"decision33_class": "not_high_risk"}, row["row_version"])
+    svc.fill_manifests(agents, baseline)
+    assert svc.summary_for_agent("pay")["decision33_class"] == "not_high_risk"
+
+
+def test_onboarding_never_sets_or_clears_decision33_class(
+    svc: InventoryService, adapters, tmp_path: Path
+) -> None:
+    agents, baseline = _mini(tmp_path)
+    adapters.state.insert("agent", _agent_row(adapters, "high_risk"))
+    svc.fill_manifests(agents, baseline)
+    svc.fill_onboarding({"agent_id": "pay", "name": "Pay agent"})
+    assert svc.summary_for_agent("pay")["decision33_class"] == "high_risk"
+
+
+def test_reserved_agent_ids_are_refused(svc: InventoryService, tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    import pytest
+
+    from supervisor.adapters.repo import LocalGitRepoReader
+    from supervisor.core.errors import ReservedAgentIdError, SupervisorError, check_agent_id
+    from supervisor.onboard.discover import discover
+    from supervisor.wiring import register_agents
+
+    assert issubclass(ReservedAgentIdError, SupervisorError)  # HTTP 400 through the app handler
+    for bad in ("inventory", "Inventory", "app:payments", "APP:x"):
+        with pytest.raises(ReservedAgentIdError, match="reserved"):
+            check_agent_id(bad)
+    assert check_agent_id("inventory_ops") == "inventory_ops"
+    repo = tmp_path / "inventory"  # the folder name would become the agent id
+    repo.mkdir()
+    (repo / "tools.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    with pytest.raises(ReservedAgentIdError):
+        discover(LocalGitRepoReader(repo))
+    with pytest.raises(ReservedAgentIdError):
+        discover(LocalGitRepoReader(repo), agent_id="app:x")
+    with pytest.raises(ReservedAgentIdError):
+        svc.fill_onboarding({"agent_id": "app:x"})
+    rt = SimpleNamespace(
+        adapters=SimpleNamespace(clock=svc.clock),
+        policy=SimpleNamespace(doc=SimpleNamespace(agents={})),
+    )
+    with pytest.raises(ReservedAgentIdError):
+        register_agents(rt, [SimpleNamespace(id="inventory")])  # type: ignore[arg-type]

@@ -43,7 +43,9 @@ class Graph:
             or (new_src == cur_src and RISK_RANK[node.own_risk] > RISK_RANK[cur.own_risk])
         ):
             cur.own_risk, cur.risk_source = node.own_risk, node.risk_source
-        if node.decision33_class and not cur.decision33_class:
+        if node.d33_copy:
+            cur.decision33_class = node.decision33_class
+        elif node.decision33_class and not cur.decision33_class:
             cur.decision33_class = node.decision33_class
         return nid
 

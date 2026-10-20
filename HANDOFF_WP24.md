@@ -69,3 +69,14 @@ Advisor and launch report do not call `inventory_for_agent` yet; no console acti
 * Neighbouring finding (not fixed): `tests/integrations/test_integrations.py::test_chain_feed_writes_schema_events_once` failed once on the base commit (first full run) because a random 10-digit run in a hash matched its PII regex; it passed on re-run. It is flaky, unrelated to WP24.
 * Merge hot spots: `config.py` end of class, `rbac.py` PERMISSIONS/ROUTES, `schema/model.yaml` tail and both DDLs, `notebooks/bootstrap_and_smoke.py` (regenerate with `python -m supervisor.databricks.notebook` after merging all schema changes), `docs/console.md` role matrix (regenerate from `rbac.matrix_markdown()`), `scheduler.py`, `tests/test_rbac.py` viewer set.
 * No new dependency (PyYAML already used).
+
+## Review follow-up (items 12, 14, 9)
+
+| Item | Change | Test |
+|---|---|---|
+| 12 shadow cases have no Decree 142 clocks | `cases/service.py`: `NO_CLOCK_SOURCES = ("inventory",)`; `open_case` skips the clock columns and the clock fields of the chain record for those sources; `unclocked(case_id)`; `incident_status` returns `clocked: false`; `record_report_sent` refuses; case view hides clocks and the report-sent button. Documented in `docs/judge-mrm.md` section 6 and `docs/inventory.md` | `tests/inventory/test_shadow.py::test_shadow_cases_have_no_incident_clock`, console case page test |
+| 14 reserved agent ids | `core/errors.py`: `check_agent_id`, `ReservedAgentIdError` (a `SupervisorError`, so HTTP 400). Refused in Discover, `register_agents` and `InventoryService.fill_onboarding`: `inventory` and `app:*` | `test_reserved_agent_ids_are_refused` |
+| 9 cleared Decision 33 class | `Node.d33_copy` (not stored): fillers that copy the `agent` row set it, and the store copies the value including empty. Onboarding never touches it | `test_cleared_decision33_class_is_cleared_in_the_inventory`, `test_onboarding_never_sets_or_clears_decision33_class` |
+
+Extra files touched: `cases/service.py`, `console/readmodels.py`, `console/templates/_case_decide.html`, `core/errors.py`, `onboard/discover.py`, `wiring.py`, `docs/judge-mrm.md`.
+

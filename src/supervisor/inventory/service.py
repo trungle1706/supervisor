@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.config import REPO_ROOT, Settings
+from supervisor.core.errors import check_agent_id
 from supervisor.inventory import shadow
 from supervisor.inventory.fill import (
     WORKSPACE_KINDS,
@@ -105,6 +106,7 @@ class InventoryService:
                 raise InventoryError(f"{p.name}: not valid JSON") from exc
         if not isinstance(inventory, Mapping) or not inventory.get("agent_id"):
             raise InventoryError("inventory.json has no agent_id")
+        check_agent_id(str(inventory["agent_id"]))
         g = fill_from_onboarding(inventory, resolve_dataset=self._dataset_resolver())
         return self.store.apply(g, source="onboarding")
 

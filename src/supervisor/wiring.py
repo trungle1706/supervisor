@@ -24,6 +24,7 @@ from typing import Any, Protocol
 from supervisor.adapters.factory import Adapters, build_adapters
 from supervisor.config import REPO_ROOT, Settings, load_settings
 from supervisor.core.canonical import format_ts
+from supervisor.core.errors import check_agent_id
 from supervisor.evidence.chain import ChainWriter, build_chain_writer
 from supervisor.gateway.engine import Gateway
 from supervisor.gateway.facts import FactSource
@@ -156,6 +157,7 @@ def register_agents(
     policy_agents = runtime.policy.doc.agents
     done: list[str] = []
     for m in manifests:
+        check_agent_id(m.id)
         if m.id not in policy_agents:
             raise ValueError(f"agent {m.id} is not in the deployed policy")
         initial = policy_agents[m.id].initial_state

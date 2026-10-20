@@ -82,6 +82,9 @@ workspace listing --> nodes (status unmanaged) --> classify --> active | allowli
 An App or endpoint is **active** (managed) when: an agent with manifest or onboarding evidence is named like the App (`-` and `_` are equal: `credit-prequal` = `credit_prequal`); or an agent declares it or is `hosted_on` it; or, for an endpoint, an agent `uses` it. It is **allowlisted** when it matches `config/inventory_allowlist.yaml` or `INVENTORY_SELF_APP`. Everything else is **unmanaged**.
 
 * One case per node, once. The case service dedupes on (`inventory`, node id), so repeated scans and closed cases do not open a second one. Case lane: `agent:inventory` on the evidence chain (one lane for all shadow-AI cases).
+* **No incident clock.** A shadow-AI case is an internal flag, not a Decree 142 incident: it opens with the ordinary case timestamps and without report due times, urgency class or "mark report sent" (see `docs/judge-mrm.md` section 6, `NO_CLOCK_SOURCES`).
+* **Reserved ids.** Agent ids `inventory` and any id starting with `app:` are reserved. Onboarding Discover, `register_agents` and `fill_onboarding` refuse them with HTTP 400 and a message.
+* **Decision 33 follows the human.** Each refresh copies the current `agent.decision33_class`, including an empty value: when a person clears it, the node clears it on the next refresh. Onboarding never sets or clears it.
 * The check is deterministic. No model decides (rule R1). A case is a flag for a person; the scan never pauses or blocks anything.
 * Registering the agent (onboarding or a manifest) clears the flag on the next refresh. An item that disappears from the workspace becomes `gone` and leaves the count.
 
