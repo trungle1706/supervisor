@@ -13,7 +13,7 @@ import pytest
 from supervisor.console import decisions_v2
 
 from .conftest import Console
-from .wp39_fixtures import CORR, PLANTED, plant, v2adapters, v2console  # noqa: F401
+from .wp39_fixtures import CORR, PLANTED, plant
 from .wp39_helpers import add_decision
 
 RAW = (PLANTED["name"], PLANTED["phone"], PLANTED["cccd"], PLANTED["email"])

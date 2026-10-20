@@ -164,3 +164,6 @@ def add_gate_block(adapters: Any, agent: str = "payments", rule: str = "PAY-99")
         ],
     )
     return event_id
+
+
+from .wp39_fixtures import v2adapters, v2console  # noqa: E402, F401  (WP39 fixtures)
