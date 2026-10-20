@@ -824,6 +824,7 @@ class Gateway:
                     else None,
                     "status": "allowed" if d.allow else "denied",
                     "latency_ms": d.latency_us // 1000,
+                    "latency_us": d.latency_us,  # WP22: tool analytics percentiles
                     "env": self.env,
                     "classification": d.action,
                     "source": "proxy",

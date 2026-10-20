@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS agent_event (
   source TEXT NOT NULL,
   capture_level TEXT NOT NULL,
   mask_version TEXT,
+  latency_us INTEGER,
   PRIMARY KEY (event_id)
 );
 
@@ -115,7 +116,7 @@ CREATE INDEX IF NOT EXISTS ix_agent_event_trace_id ON agent_event (trace_id);
 DROP TRIGGER IF EXISTS trg_agent_event_no_update;
 
 CREATE TRIGGER trg_agent_event_no_update
-BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version ON agent_event
+BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
 END;
@@ -787,3 +788,28 @@ BEFORE DELETE ON eval_result
 BEGIN
   SELECT RAISE(ABORT, 'eval_result is append-only');
 END;
+
+-- tool_usage_daily (state): WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.
+CREATE TABLE IF NOT EXISTS tool_usage_daily (
+  usage_date TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  risk_class TEXT,
+  calls INTEGER NOT NULL,
+  allows INTEGER NOT NULL,
+  blocks INTEGER NOT NULL,
+  pauses INTEGER NOT NULL,
+  errors INTEGER NOT NULL,
+  p50_us INTEGER,
+  p95_us INTEGER,
+  distinct_callers INTEGER NOT NULL,
+  distinct_users INTEGER NOT NULL,
+  first_seen TEXT,
+  last_seen TEXT,
+  computed_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (usage_date, agent_id, tool_name)
+);
+
+CREATE INDEX IF NOT EXISTS ix_tool_usage_daily_agent_id_usage_date ON tool_usage_daily (agent_id, usage_date);

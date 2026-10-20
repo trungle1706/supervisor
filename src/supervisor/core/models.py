@@ -110,6 +110,7 @@ class AgentEvent(Record):
     source: EventSource
     capture_level: CaptureLevel = "masked"
     mask_version: str | None = None  # masker + HMAC key id (WP4); None at digest level
+    latency_us: int | None = None  # WP22: gate decision latency, microseconds (null on old rows)
 
 
 class Rule(StateRecord):

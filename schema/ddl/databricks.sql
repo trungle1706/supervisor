@@ -110,7 +110,8 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`agent_event` (
   classification STRING,
   source STRING NOT NULL,
   capture_level STRING NOT NULL,
-  mask_version STRING
+  mask_version STRING,
+  latency_us BIGINT
 )
 USING DELTA
 COMMENT 'Normalised OTel-shaped events. Single read model for Watch. Masked only.'
@@ -622,3 +623,29 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`eval_result` (
 USING DELTA
 COMMENT 'WP17 assurance eval packs. One row per pack x target x run: integer metrics, the per-metric status against the manifest thresholds, the dataset digest and the hash of the assurance_result chain record. Mock runs are labelled is_mock.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- tool_usage_daily (state): WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.
+-- primary key (enforced by the app, not by Delta): usage_date, agent_id, tool_name
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`tool_usage_daily` (
+  usage_date DATE NOT NULL,
+  agent_id STRING NOT NULL,
+  tool_name STRING NOT NULL,
+  risk_class STRING,
+  calls BIGINT NOT NULL,
+  allows BIGINT NOT NULL,
+  blocks BIGINT NOT NULL,
+  pauses BIGINT NOT NULL,
+  errors BIGINT NOT NULL,
+  p50_us BIGINT,
+  p95_us BIGINT,
+  distinct_callers BIGINT NOT NULL,
+  distinct_users BIGINT NOT NULL,
+  first_seen TIMESTAMP,
+  last_seen TIMESTAMP,
+  computed_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

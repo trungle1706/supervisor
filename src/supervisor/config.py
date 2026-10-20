@@ -355,6 +355,15 @@ class Settings(BaseSettings):
     assurance_judge_allow_warn: bool = False
     console_assurance_enabled: bool = False
 
+    # --- WP22 --- tool analytics and least privilege (docs/tool-analytics.md)
+    tool_analytics_enabled: bool = False  # scheduler job, /v1/analytics/tools
+    sched_tool_analytics_s: int = Field(default=3600, ge=1)
+    tool_analytics_window_days: int = Field(default=30, ge=1, le=366)  # "used" lookback
+    tool_analytics_min_history_days: int = Field(default=14, ge=1)  # less data = low confidence
+    tool_analytics_exceptions_file: Path = Path("config/tool_exceptions.yaml")
+    tool_analytics_dir: Path | None = None  # suggested diffs; default <data_dir>/analytics
+    console_tools_enabled: bool = False  # the Tools page
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -368,6 +377,8 @@ class Settings(BaseSettings):
         "integration_reports_dir",
         "scheduler_lock_path",
         "fairness_config",
+        "tool_analytics_exceptions_file",
+        "tool_analytics_dir",
         "incident_holidays_file",
         "log_file",
         "assurance_data_dir",
@@ -440,6 +451,8 @@ class Settings(BaseSettings):
             self.auth_config_file = REPO_ROOT / "config" / "auth.yaml"
         if self.console_export_dir is None:
             self.console_export_dir = self.data_dir / "exports"
+        if self.tool_analytics_dir is None:
+            self.tool_analytics_dir = self.data_dir / "analytics"
         if self.integration_reports_dir is None:
             self.integration_reports_dir = self.data_dir / "integration"
         if self.auth_kind == "dev_header" and self.supervisor_mode == "databricks_app":

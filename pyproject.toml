@@ -78,4 +78,5 @@ ignore = [
 # Identifiers come only from schema/model.yaml (regex-checked); values are bound parameters.
 "src/supervisor/adapters/sql/store.py" = ["S608"]
 "src/supervisor/jobs/**" = ["T20"]
+"src/supervisor/analytics/tools.py" = ["T20"]  # WP22 CLI
 "schema/generate.py" = ["T20"]
