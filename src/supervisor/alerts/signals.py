@@ -9,11 +9,16 @@ alert can point at the evidence.
 Loaders: ``load_signals`` reads the live store between two instants (chain entries by record
 type, tier 2 verdicts, scheduler job state); ``read_jsonl`` reads the fixture format used by
 the harness and by ``python -m supervisor.alerts test --signals FILE``.
+
+Ingress rejections come from WP20's ``console_action`` audit rows (WP20 writes no chain
+record for them); an ``ingress_reject`` chain record, if a later version writes one, is read
+too.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -33,6 +38,16 @@ CHAIN_KINDS = {
     "case": "case",
     "case_opened": "case",
 }
+
+
+# WP20 (ingress auth) writes each rejection as a ``console_action`` row (permission
+# ``ingress.auth``, outcome ``denied``, ``target_id`` = the claimed agent, ``detail`` =
+# ``<reason>`` or ``<reason>;suppressed=<n>`` when its audit throttle skipped n rows), not as a
+# chain record. The claimed agent id is unverified input: kept only when it looks like an id.
+INGRESS_PERMISSION = "ingress.auth"
+MAX_INGRESS_WEIGHT = 1000  # throttled rows expand to at most this many signals
+_SAFE_ID = re.compile(r"^[A-Za-z0-9._:@-]{1,128}$")
+_SAFE_REASON = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 
 
 @dataclass(frozen=True)
@@ -100,6 +115,7 @@ def load_signals(ctx: MonitorContext, ts_from: datetime, ts_to: datetime) -> lis
                 case_id=p.get("case_id"),
             )
         )
+    out.extend(_ingress_rejects(ctx, ts_from, ts_to))
     for v in read_range(ctx, "verdict", ts_from, ts_to, {"tier": 2}):
         out.append(
             Signal(
@@ -137,6 +153,33 @@ def load_signals(ctx: MonitorContext, ts_from: datetime, ts_to: datetime) -> lis
                 )
             )
     out.sort(key=Signal.order_key)
+    return out
+
+
+def _ingress_rejects(ctx: MonitorContext, ts_from: datetime, ts_to: datetime) -> list[Signal]:
+    """WP20 rejection audit rows as ``ingress_reject`` signals. A row that stands for n
+    throttled rejections as well (``;suppressed=n``) gives 1 + n signals at its time, so a
+    burst rule still counts every rejection."""
+    out: list[Signal] = []
+    where = {"permission": INGRESS_PERMISSION, "outcome": "denied"}
+    for row in read_range(ctx, "console_action", ts_from, ts_to, where):
+        reason, _, rest = str(row.get("detail") or "").partition(";")
+        skipped = 0
+        if rest.startswith("suppressed="):
+            try:
+                skipped = max(0, int(rest[len("suppressed=") :]))
+            except ValueError:
+                skipped = 0
+        claimed = row.get("target_id") if row.get("target_kind") == "agent" else None
+        agent = str(claimed) if claimed and _SAFE_ID.match(str(claimed)) else None
+        fields = {
+            "agent_id": agent,
+            "reason_code": reason if _SAFE_REASON.match(reason) else "unknown",
+        }
+        ts = as_dt(row["ts"])
+        for k in range(1 + min(skipped, MAX_INGRESS_WEIGHT - 1)):
+            sid = f"ingress:{row['action_id']}" + (f"#{k}" if k else "")
+            out.append(Signal(sid=sid, kind="ingress_reject", ts=ts, fields=fields))
     return out
 
 

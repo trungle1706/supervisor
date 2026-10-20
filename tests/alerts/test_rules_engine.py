@@ -239,3 +239,36 @@ def test_only_rules_filter_and_alert_id_is_deterministic() -> None:
     assert a == evaluate(rs, sigs).fired[0].alert_id
     assert evaluate(rs, sigs, only_rules={"OTHER"}).fired == []
     assert yaml.safe_dump(doc)  # the dict used above is plain data
+
+
+# --------------------------------------------------------------------------- review fixes
+
+
+def test_enabled_false_takes_the_rule_out_and_is_validated() -> None:
+    rs = parse_rules(_rules(enabled=False))
+    assert rs.rules == ()
+    sigs = [_sig(i, i * 10.0) for i in range(5)]
+    assert evaluate(rs, sigs).fired == []
+    with pytest.raises(AlertConfigError, match="enabled must be true or false"):
+        parse_rules(_rules(enabled="no"))
+    # a suppression may still name the disabled rule
+    doc = _rules(enabled=False)
+    doc["suppressions"] = [
+        {"rule_id": "AL-TEST-ONE", "agent_id": "*", "until": "2027-01-01T00:00:00Z",
+         "reason_code": "planned_test"}
+    ]  # fmt: skip
+    assert len(parse_rules(doc).suppressions) == 1
+
+
+def test_unknown_top_level_and_suppression_keys_are_errors() -> None:
+    doc = _rules()
+    doc["suppresion"] = []  # a typo must not silently drop the block
+    with pytest.raises(AlertConfigError, match="unknown top-level key 'suppresion'"):
+        parse_rules(doc)
+    doc = _rules()
+    doc["suppressions"] = [
+        {"rule_id": "AL-TEST-ONE", "agent_id": "*", "until": "2027-01-01T00:00:00Z",
+         "reason_code": "planned_test", "agnet": "x"}
+    ]  # fmt: skip
+    with pytest.raises(AlertConfigError, match="unknown key 'agnet'"):
+        parse_rules(doc)

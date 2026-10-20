@@ -25,6 +25,7 @@ signals --> rules (window, threshold, group) --> dedupe --> alert row --> routes
 | `ALERTS_ENABLED` | `0` | Run the `alerts` job in the app scheduler |
 | `ALERTS_CONFIG` | `config/alerts.yaml` | Rule file |
 | `SCHED_ALERTS_S` | `60` | Job interval in seconds |
+| `ALERTS_LAG_S` | `30` | Watermark: signals younger than this wait for the next run, so a chain entry that commits after its timestamp is not skipped |
 | `SIEM_ENABLED` | `0` | The `siem` route needs it (`docs/siem.md`); without it the route says `off` |
 | `NOTIFY_WEBHOOK_ENABLED` + `NOTIFY_WEBHOOK_URL` | `0` / empty | The `webhook` route needs both (`FILL-ME` URL) |
 | `NOTIFY_WEBHOOK_TOKEN` | empty | Secret from the bank vault; sent in the `Authorization: Bearer` header |
@@ -58,7 +59,11 @@ no expression language, no `eval`, no code. An error stops the load and lists ev
 | `severity` | `low`, `medium`, `high`, `critical` |
 | `dedupe_s` | After a fire, repeats of the same rule and group inside this time are absorbed |
 | `routes` | `inbox`, `siem`, `webhook`, `pager` |
+| `enabled` | `true` (default) or `false`: a disabled rule is still validated but never runs |
 | `suppressions` (top level) | `rule_id` (or `*`), `agent_id` (or `*`), `until` (RFC 3339 with zone), `reason_code`: planned maintenance, time-boxed |
+
+Unknown keys (in a rule, in a suppression, at the top level) are errors, so a typo never
+turns a rule or a suppression off without a message.
 
 Filter fields: `gate_decision` (agent_id, action, rule_id, allow), `gate_state_change`
 (agent_id, event, to_state), `verdict` (agent_id, tier, label, action, rule_id, is_mock; only
@@ -77,12 +82,22 @@ Shipped rules (thresholds ILLUSTRATIVE until the bank SOC sets them):
 | `AL-FAILCLOSED-DRILL-FAIL` | the fail-closed drill failed | critical | any | 86400 s | inbox, siem, webhook, pager |
 | `AL-JOB-FAILURE` | a scheduled job ended in error | medium | any | 3600 s | inbox, siem |
 
-Chain record types read: `gate_decision`, `gate_state_change`, `ingress_reject` (WP20 ingress
-auth: payload `agent_id`, `reason_code`), `chain_verify` (payload `ok`), `audit_pack_built`
-(payload `verify_ok`), `failmode_drill` (payload `ok`), `case`. A record type no component
-writes yet simply produces no signals; the console "Verify chain" button does not write a
-`chain_verify` record yet (backlog), so today `AL-CHAIN-VERIFY-FAIL` sees failed audit-pack
-verifies only.
+Chain record types read: `gate_decision`, `gate_state_change`, `ingress_reject` (payload
+`agent_id`, `reason_code`), `chain_verify` (payload `ok`), `audit_pack_built` (payload
+`verify_ok`), `failmode_drill` (payload `ok`), `case`. A record type no component writes yet
+simply produces no signals.
+
+Ingress rejections: WP20 ingress auth writes each rejection as a `console_action` row
+(permission `ingress.auth`, outcome `denied`, `target_id` = claimed agent, `detail` = reason
+code, plus `;suppressed=<n>` when its audit throttle skipped rows). The alert job reads these
+rows as `ingress_reject` signals (a throttled row counts 1 + n, at most 1000). The claimed
+agent id is unverified, so it is kept only when it looks like an id.
+
+Rules that see little or nothing today: the console "Verify chain" button does not write a
+`chain_verify` record (backlog), so `AL-CHAIN-VERIFY-FAIL` sees failed audit-pack verifies
+only. Nothing writes a `failmode_drill` record yet (the drill in `supervisor.demo` prints its
+result and writes no record), so `AL-FAILCLOSED-DRILL-FAIL` cannot fire until the drill
+records its result.
 
 ## Engine semantics (deterministic)
 
@@ -170,5 +185,5 @@ trusting a threshold.
 ## Not done
 
 See `BACKLOG.md` (WP21 lines): auto-close, alert-to-case promotion, real pager and ITSM
-senders for alerts, a `chain_verify` record from the console verify button, late-arriving
-chain entries behind the cursor, per-tenant rules.
+senders for alerts, a `chain_verify` record from the console verify button, chain entries that commit more
+than `ALERTS_LAG_S` after their timestamp, per-tenant rules.

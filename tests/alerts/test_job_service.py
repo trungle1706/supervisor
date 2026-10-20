@@ -53,7 +53,9 @@ class Setup:
         self.a = env.adapters
         self.w = make_writer(env)
         self.ctx = MonitorContext.from_adapters(env.adapters, self.w)
-        self.settings = load_settings(data_dir=tmp / "d", alerts_enabled=True, alerts_config=RULES)
+        self.settings = load_settings(
+            data_dir=tmp / "d", alerts_enabled=True, alerts_config=RULES, alerts_lag_s=0
+        )
         self.inbox = InboxNotifier(self.a.state, self.a.clock)
         self.hook = FakeHook()
         self.hook_notifier = WebhookNotifier(
@@ -295,7 +297,9 @@ def test_policy_suppression_from_the_config(s: Setup, tmp_path: Path) -> None:
         ),
         "utf-8",
     )
-    s.settings = load_settings(data_dir=tmp_path / "d", alerts_enabled=True, alerts_config=cfg)
+    s.settings = load_settings(
+        data_dir=tmp_path / "d", alerts_enabled=True, alerts_config=cfg, alerts_lag_s=0
+    )
     s.w.record("gate_state_change", "gsc:1", {"agent_id": "a1", "event": "quarantine"})
     out = s.run()
     assert out["alerts"] == 0 and out["policy_suppressed"] == 1 and s.alerts() == []
@@ -428,3 +432,108 @@ def test_alert_table_on_databricks_fake_insert_read_and_ack() -> None:
     assert fake.remaining() == 0
     # the siem_event Delta table is append-only: no UPDATE / DELETE method exists for it
     assert model.table("siem_event").append_only is True
+
+
+# --------------------------------------------------------------------------- review fixes
+
+
+def _late_quarantine(s: Setup, agent: str, ts_offset_s: float) -> None:
+    """A chain entry stamped ``ts_offset_s`` before now that becomes visible only now (its
+    commit was slow, or another lane committed first): the clock steps back for the stamp."""
+    s.env.clock.advance(-ts_offset_s)
+    s.w.record(
+        "gate_state_change",
+        f"gsc:late:{agent}",
+        {"agent_id": agent, "event": "quarantine", "from_state": "RUNNING",
+         "to_state": "QUARANTINED"},
+    )  # fmt: skip
+    s.env.clock.advance(ts_offset_s)
+
+
+def _quarantine_alerts(s: Setup, agent: str) -> list[dict[str, Any]]:
+    return [a for a in s.alerts() if a["dedupe_key"] == f"AL-QUARANTINE:{agent}"]
+
+
+def test_watermark_lag_catches_an_entry_that_commits_after_its_timestamp(s: Setup) -> None:
+    """Review: without a lag the cursor sat at the newest signal, and an entry stamped a few
+    seconds earlier that became visible after the run was behind the cursor forever."""
+    s.settings = s.settings.model_copy(update={"alerts_lag_s": 30})
+    s.blocks("a1", 1)
+    s.env.clock.advance(100)
+    s.blocks("a1", 1)  # newer than the late entry below, but younger than the lag
+    out = s.run()  # judges only the first block: cursor = its ts, 100 s back
+    assert out["judged"] == 1
+    _late_quarantine(s, "a2", ts_offset_s=4)  # same timing as the no-lag test below
+    s.env.clock.advance(60)
+    s.run()
+    assert len(_quarantine_alerts(s, "a2")) == 1
+
+
+def test_without_lag_a_late_entry_behind_the_cursor_is_missed(s: Setup) -> None:
+    """The reason for ALERTS_LAG_S: with lag 0 the same late entry is skipped."""
+    s.blocks("a1", 1)
+    s.env.clock.advance(100)
+    s.blocks("a1", 1)  # the newest signal moves the cursor to (almost) now
+    assert s.run()["judged"] == 2
+    _late_quarantine(s, "a3", ts_offset_s=4)
+    s.env.clock.advance(60)
+    s.run()
+    assert _quarantine_alerts(s, "a3") == []
+
+
+def _ingress_denied(s: Setup, reason: str, claimed: str | None, suppressed: int = 0) -> None:
+    """The row WP20 ingress auth writes for one rejection (gateway/ingress_auth.py)."""
+    from supervisor.adapters.auth.audit import write_action
+
+    write_action(
+        s.a.tables,
+        s.a.clock,
+        request_id=None,
+        actor=None,
+        actor_fallback=(f"unverified:{claimed or 'none'}", "agent", "ingress"),
+        permission="ingress.auth",
+        method="POST",
+        path="/gate/check",
+        outcome="denied",
+        target_kind="agent" if claimed else None,
+        target_id=claimed,
+        before_hash="0" * 64,
+        detail=reason + (f";suppressed={suppressed}" if suppressed else ""),
+    )
+
+
+def test_wp20_ingress_rejections_from_console_action_raise_the_burst_alert(s: Setup) -> None:
+    """Review: WP20 writes rejections as console_action rows, not ingress_reject chain
+    records, so AL-INGRESS-REJECT-BURST could never fire after the merge."""
+    from supervisor.alerts.signals import load_signals
+
+    for i in range(4):
+        s.env.clock.advance(5)
+        _ingress_denied(s, "bad_signature", f"pay-{i}")
+    s.run()
+    assert [a for a in s.alerts() if a["rule_id"] == "AL-INGRESS-REJECT-BURST"] == []  # 4 < 10
+    s.env.clock.advance(5)
+    _ingress_denied(s, "stale_timestamp", "x" * 300 + " <script>", suppressed=7)  # 8 more
+    s.run()
+    burst = [a for a in s.alerts() if a["rule_id"] == "AL-INGRESS-REJECT-BURST"]
+    assert len(burst) == 1 and burst[0]["window_count"] >= 10
+    now = s.env.clock.now()
+    sigs = [
+        x
+        for x in load_signals(s.ctx, now - timedelta(seconds=600), now)
+        if x.kind == "ingress_reject"
+    ]
+    assert len(sigs) == 4 + 8
+    assert {x.fields["reason_code"] for x in sigs} == {"bad_signature", "stale_timestamp"}
+    # the unverified claimed id that is not id-shaped never reaches an alert or a signal
+    assert all(x.fields["agent_id"] is None or len(x.fields["agent_id"]) <= 128 for x in sigs)
+    assert "<script>" not in json.dumps([dict(x.fields) for x in sigs])
+    # an ok console_action row or another permission is not a rejection
+    from supervisor.adapters.auth.audit import write_action
+
+    write_action(
+        s.a.tables, s.a.clock, request_id=None, actor=None, permission="ingress.auth",
+        method="POST", path="/gate/check", outcome="ok", detail="bad_signature",
+    )  # fmt: skip
+    assert len([x for x in load_signals(s.ctx, now - timedelta(seconds=600), now + timedelta(
+        seconds=1)) if x.kind == "ingress_reject"]) == 12  # fmt: skip

@@ -8,6 +8,8 @@ counters), stores new alerts, sends them through their routes, adds absorbed rep
 open alert (``suppressed_count``) and retries routes that failed earlier. The cursor
 (monitor ``alerts``, key ``cursor``) moves only after the alerts are stored, so a crash
 repeats work but never loses an alert; alert ids are deterministic, so a repeat is a no-op.
+The read stops ALERTS_LAG_S (default 30 s) before now: a watermark for entries that commit
+after their timestamp.
 """
 
 from __future__ import annotations
@@ -58,7 +60,11 @@ def run(
         ts_from = cursor[0] - timedelta(seconds=ruleset.max_window_s)
     else:
         ts_from = now - timedelta(seconds=max(ruleset.max_window_s, FIRST_RUN_LOOKBACK_S))
-    signals = load_signals(ctx, ts_from, now + timedelta(seconds=1))
+    # Watermark: only signals older than ALERTS_LAG_S are read, so an entry whose ts is
+    # earlier than its commit (Delta latency, another lane committing first) is still ahead
+    # of the cursor when it becomes visible. Entries later than the lag are still missed.
+    upper = now - timedelta(seconds=settings.alerts_lag_s)
+    signals = load_signals(ctx, ts_from, upper)
     result = evaluate(ruleset, signals, cursor=cursor, last_fired=service.last_fired())
     stored = 0
     for fired in result.fired:

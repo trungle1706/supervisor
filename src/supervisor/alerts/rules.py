@@ -188,12 +188,15 @@ def _rule(raw: Any, i: int, errors: list[str]) -> Rule | None:
     severity = raw.get("severity")
     if severity not in SEVERITIES:
         errors.append(f"{where_s}: severity must be one of {', '.join(SEVERITIES)}")
+    enabled = raw.get("enabled", True)
+    if not isinstance(enabled, bool):
+        errors.append(f"{where_s}: enabled must be true or false")
     routes = raw.get("routes", ["inbox"])
     if not isinstance(routes, list) or not routes or any(r not in ROUTES for r in routes):
         errors.append(f"{where_s}: routes must be a list from {', '.join(ROUTES)}")
         routes = []
-    if len(errors) > n0:
-        return None
+    if len(errors) > n0 or enabled is False:
+        return None  # a disabled rule is validated, then left out of the rule set
     body = {
         "id": rid, "title": title, "source": source, "where": {k: list(v) for k, v in conds},
         "group_by": group_by, "window_s": window_s, "threshold": threshold,
@@ -220,6 +223,8 @@ def parse_rules(doc: Any) -> RuleSet:
         raise AlertConfigError("alerts.yaml must be a mapping with a 'rules' list")
     if doc.get("version") != 1:
         errors.append("version must be 1")
+    for k in sorted(set(doc) - {"version", "rules", "suppressions"}):
+        errors.append(f"unknown top-level key {k!r}")
     raw_rules = doc.get("rules")
     if not isinstance(raw_rules, list):
         raise AlertConfigError("alerts.yaml: 'rules' must be a list")
@@ -231,12 +236,18 @@ def parse_rules(doc: Any) -> RuleSet:
                 errors.append(f"rule {r.id}: duplicate id")
             else:
                 rules.append(r)
-    ids = {r.id for r in rules}
+    ids = {r.id for r in rules} | {
+        str(raw.get("id"))
+        for raw in raw_rules
+        if isinstance(raw, dict) and raw.get("enabled") is False
+    }  # a suppression may name a disabled rule
     sups: list[Suppression] = []
     for j, raw in enumerate(doc.get("suppressions") or []):
         if not isinstance(raw, dict):
             errors.append(f"suppressions[{j}]: must be a mapping")
             continue
+        for k in sorted(set(raw) - {"rule_id", "agent_id", "until", "reason_code"}):
+            errors.append(f"suppressions[{j}]: unknown key {k!r}")
         until = _as_utc(raw.get("until"))
         rid, aid = str(raw.get("rule_id", "")), str(raw.get("agent_id", ""))
         reason = str(raw.get("reason_code", ""))

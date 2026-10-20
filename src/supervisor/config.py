@@ -364,6 +364,10 @@ class Settings(BaseSettings):
     alerts_enabled: bool = False
     alerts_config: Path = Path("config/alerts.yaml")
     sched_alerts_s: int = Field(default=60, ge=5)
+    # Watermark lag: a signal is judged only when it is at least this old. A chain entry gets
+    # its ts before its rows commit (seconds on Delta), and lanes commit in any order, so a
+    # cursor at "now" would skip entries that become visible late.
+    alerts_lag_s: int = Field(default=30, ge=0, le=3600)
     notify_webhook_dead_letter: Path | None = None  # default: <data_dir>/notify/webhook.dead.jsonl
     notify_webhook_token: SecretStr | None = None  # bank vault; Authorization: Bearer <token>
 
