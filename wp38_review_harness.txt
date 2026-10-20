@@ -1,7 +1,0 @@
-contract 144/144  probes 26/26
-overhead langgraph: p50 18 us, p95 21 us
-overhead litellm: p50 136 us, p95 239 us
-overhead fastapi: p50 153 us, p95 351 us
-overhead hook: p50 21 us, p95 34 us
-OVERALL: GO
-[OK] no drop below the baseline
