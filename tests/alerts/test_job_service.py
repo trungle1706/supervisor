@@ -380,7 +380,7 @@ def _alert_row(**kw: Any) -> dict[str, Any]:
         "first_ts": T0, "last_ts": T0, "suppressed_count": 0, "case_id": None,
         "chain_lane": "agent:a1", "chain_seq": 3, "entry_hash": "e" * 64, "refs": ["a1:1"],
         "routes": ["inbox"], "route_status": {"inbox": "pending"}, "acknowledged_by": None,
-        "acknowledged_at": None,
+        "acknowledged_at": None, "correlation_id": None,
     }  # fmt: skip
     row.update(kw)
     return row

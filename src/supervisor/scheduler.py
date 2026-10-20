@@ -444,9 +444,15 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 notify_job.enabled(settings)),
         JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
                 settings.alerts_enabled),
-        JobSpec("decision_rollup", settings.sched_decision_rollup_s,
-                lambda: decision_rollup_job.run(ctx, settings), settings.console_decisions_v2),
     ]  # fmt: skip
+    if settings.console_decisions_v2:  # WP39: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "decision_rollup",
+                settings.sched_decision_rollup_s,
+                lambda: decision_rollup_job.run(ctx, settings),
+            )
+        )
     from supervisor.jobs import inventory as inventory_job
 
     if inventory_job.scheduled(settings):  # WP24: listed only when it can run

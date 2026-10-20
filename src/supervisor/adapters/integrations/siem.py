@@ -243,6 +243,7 @@ def event_from_alert(row: Mapping[str, Any], env: str = "") -> SiemEvent:
             "threshold": int(row["threshold"]),
             "suppressed_count": int(row.get("suppressed_count") or 0),
             "dedupe_key": str(row["dedupe_key"]),
+            "correlation_id": str(row.get("correlation_id") or "")[:128],
         },
     )
 
