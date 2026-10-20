@@ -130,3 +130,12 @@
 
 
 | WP37: adversarial rows are hand-written by one author (n = 60 / 66 / 51 positives); injection (4696 bp) and judge mock (3725 bp) pass their thresholds on the point value only, their Wilson lower bounds are below the threshold, and the report marks them `indicative` | A second labeller; bank-supplied probes; raise n until the lower bound clears the threshold or the threshold moves |
+| WP39: the gate stores no masked payload, so the Request tab depends on the recorder event of the same trace and the transformed payload is rebuilt, not read | Gate stores a masked copy of the payload parts (nullable column or a `payload` table, masked retention class), with an R2 test |
+| WP39: HTTP statuses of the gate routes are not stored; `AL-ERROR-RATE` counts ingress rejections and fail-mode decisions only (a plain 400 for a bad payload is invisible) | Persist route status (a counter table or a `gate_request` record) and read it in the signal loader |
+| WP39: `AL-REDACTION-SPIKE` uses a fixed share (3000 bp), not a rolling baseline per agent | Baseline from `decision_daily` (median of the last 14 days) and a `rate.baseline` key |
+| WP39: `AL-SECRETS-OUTPUT` needs a detector with `secret.*` codes; none ships | A secrets detector (WP25 or a regex pack) with golden items |
+| WP39: `enforcement: observe` of `AL-THREAT-NOT-ENFORCED` waits for the policy observe mode (WP38); consumer id arrives with `context.consumer_id` (WP38 SDK) | WP38 |
+| WP39: detector latency over several days is approximate (p50 weighted, p95 highest daily); no per-hour series | Keep a histogram per day in `decision_daily` or read hourly rows |
+| WP39: coverage gap takes the inventory from system nodes of `inventory_node`; an agent id that differs only by case or a suffix gives a second gap | Alias map in the inventory; normalise ids at ingress |
+| WP39: the CSV export is built in memory and saved to `CONSOLE_EXPORT_DIR` (wiped on App restart) | Stream to a UC volume path; signed download link |
+| WP39: the Decisions list scans the newest `CONSOLE_SCAN_CAP` events and as many findings; filters on code and not-evaluated see only that window | Push the filters to SQL (a join with `finding`) when the cap is reached |

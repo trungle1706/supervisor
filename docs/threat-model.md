@@ -181,6 +181,22 @@ no detector matches (the adversarial probes in the validation report list the kn
 finding that is kept past its retention class in a copy outside the store, or an operator who
 edits `config/detectors.yaml` to disable a detector (the file is in change control).
 
+### 3.11 Console activity pages and the CSV export (WP39, ADR D32)
+
+The Decisions drawer, the Traces pages and the Analytics tabs show text of calls that carried
+personal data. Controls: the gate stores no arguments (a keyed hash only); the Request tab is
+rebuilt from recorder events at capture level `masked` and masked again before it is shown (no
+masker or `digest` level: no text); finding text, entity tokens and reasons are masked again on
+the way out, so a faulty detector row does not leak; ids from stored rows are escaped in HTML,
+percent-encoded in links and neutralised in CSV (leading quote for `=`, `+`, `-`, `@`; control
+characters removed); filter and deep-link values must match an id pattern (HTTP 400, never a
+header or a query to the store). The CSV export is an allow-list of 18 columns of ids, codes,
+enums and integers, capped at `CONSOLE_EXPORT_MAX_ROWS`, for auditor and admin only, and written
+as an audited action (two `console_action` rows). `tests/console/test_wp39_decisions.py` and
+`python -m supervisor.console.activity_harness` plant a name, a phone number, an ID number and an
+e-mail in arguments, tool results, an output, a case title and a verdict text, and fail on any
+page or export that shows one. Gap: the export file sits in `CONSOLE_EXPORT_DIR` until removed.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |
