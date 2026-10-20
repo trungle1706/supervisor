@@ -70,3 +70,19 @@ def test_cli_help() -> None:
     with pytest.raises(SystemExit) as stop:
         cli.main(["--help"])
     assert stop.value.code == 0
+
+
+def test_scheduler_lists_the_job_only_when_on(env: Env) -> None:
+    """Review of WP31: flag off, no scheduler job (like the risk register job)."""
+    from types import SimpleNamespace
+
+    from supervisor.monitors.common import MonitorContext
+    from supervisor.scheduler import build_jobs
+
+    runtime = SimpleNamespace(adapters=env.adapters, chain=env.rt.chain, settings=env.settings)
+    ctx = MonitorContext.from_adapters(env.adapters, env.rt.chain)
+    env.settings.transparency_enabled = False
+    assert "transparency" not in {j.name for j in build_jobs(env.settings, runtime, ctx)}
+    env.settings.transparency_enabled = True
+    jobs = {j.name: j for j in build_jobs(env.settings, runtime, ctx)}
+    assert jobs["transparency"].interval_s == env.settings.sched_transparency_s == 86400
