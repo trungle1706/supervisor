@@ -47,3 +47,10 @@
 | Compliance advisor counts a monitor as present when it is planned, not when its runtime flag is on (`FAIRNESS_ENABLED` etc.) | Read deployment settings into the product facts |
 | Onboard eval: held-out set is no longer blind after the post-blind fixes | Write a fresh blind set (new repos, worker does not read the analyser) before quoting the gates externally |
 | `model_version` is the model tag; include the endpoint-reported digest when available | A model endpoint that reports a digest or revision |
+| WP21: SIEM `http` sink posts a batch envelope, not one Splunk HEC event per request; no QRadar LEEF; no live test against a real SIEM; OCSF is a documented 1.1 subset, not validated against the official JSON schema | Bank picks the SIEM and OCSF version; add a HEC batch format and a live kit test |
+| WP21: `ChainEventFeed` and the alert job scan `chain_entry` by time/seq each run (fine for a lab, heavy on a large Delta chain) | Range read with a lane list and `seq >` filter pushed down to SQL |
+| WP21: the console "Verify chain" button does not write a `chain_verify` record, so `AL-CHAIN-VERIFY-FAIL` sees only failed audit-pack verifies; the `ingress_reject` chain record is a contract with WP20 (payload `agent_id`, `reason_code`) | Write the record in `verify_chain`; align names with WP20 at merge |
+| WP21: alerts: no auto-close or re-page of an unacknowledged critical alert, no alert-to-case promotion, no `closed` transition, pager and ITSM routes are stubs (queued notice only), no per-tenant rules | Bank SOC process decisions; real pager and ITSM senders |
+| WP21: chain entries that arrive with a time behind the alert cursor are not seen (single writer per lane makes it rare) | A small grace lag or per-lane cursors in the alert job |
+| WP21: alert thresholds are illustrative and tuned on 7 synthetic alerts per split (Wilson lower bound 6456 bp) | Replay a week of the bank's own gate decisions with `python -m supervisor.alerts test` |
+| WP21: `alert` and `siem_event` have no retention class; dead-letter files are not rotated | Bank decision on retention for alert history; rotate the dead-letter files |

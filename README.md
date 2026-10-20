@@ -95,6 +95,9 @@ until you turn its flag on.
 | `API_RBAC_ENABLED` | Enforces the role matrix on the agent-facing `/gate/*` read routes (`/gate/agents/{id}/state`, `/gate/metrics`). The control routes (pause, resume, quarantine, release) always check identity and role |
 | `RATE_LIMIT_ENABLED` | Rate-limits mutating routes (429); agent check path is exempt |
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
+| `SIEM_ENABLED` | Sends evidence events to the bank SIEM through `SIEM_SINK` (`file`, `http`, `delta`) in `SIEM_FORMAT` (`jsonl`, `cef`, `ocsf`); see `docs/siem.md` |
+| `ALERTS_ENABLED` | Runs the alert rules in `config/alerts.yaml` and routes alerts to inbox, SIEM, webhook, pager; Alerts section on the Metrics page; see `docs/alerts.md` |
+| `NOTIFY_WEBHOOK_ENABLED` | Webhook notifier sends notices to `NOTIFY_WEBHOOK_URL` (retry, dead-letter file); without a URL it only queues |
 | `LOG_FORMAT` | Value `json` writes one JSON log line with request id and principal id (default `text`) |
 
 ## What is mock

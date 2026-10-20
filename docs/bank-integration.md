@@ -1,5 +1,9 @@
 # Bank integration contracts (WP11 stubs)
 
+> WP21 update: the SIEM export is now production-grade (file rotation, HTTP retry with a
+> dead-letter file, a Delta sink, OCSF) and the webhook notifier really sends when enabled.
+> Read `docs/siem.md` and `docs/alerts.md` first. ITSM, pager and SCIM below are still stubs.
+
 Four integrations connect Supervisor to systems the bank already runs. In this build each
 one is a **stub**: a written contract, an adapter that is safe to ship (a file sink or an
 in-memory fake) and tests. **All are off by default.** Nothing opens a network connection
@@ -31,8 +35,8 @@ Settings (environment or `.env`):
 | Variable | Default | Meaning |
 |---|---|---|
 | `SIEM_ENABLED` | `0` | Emit SIEM events from the evidence chain |
-| `SIEM_SINK` | `file` | `file` (`LogSiemSink`) or `webhook` (`WebhookSiemSink`) |
-| `SIEM_FORMAT` | `json` | `json` (one object per line) or `cef` |
+| `SIEM_SINK` | `file` | `file`, `http` (`webhook` is the old name) or `delta`; WP21: full list and the OCSF format in `docs/siem.md` |
+| `SIEM_FORMAT` | `jsonl` | `jsonl` (`json` is an alias), `cef` or `ocsf` |
 | `SIEM_FILE_PATH` | `<DATA_DIR>\siem\events.log` | File the bank's forwarder tails |
 | `SIEM_WEBHOOK_URL` | empty | `FILL-ME`; only with `SIEM_SINK=webhook` |
 | `ITSM_ENABLED` | `0` | Ticket sync (fake until a client is wired) |

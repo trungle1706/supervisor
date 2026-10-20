@@ -1,0 +1,192 @@
+{
+  "base_commit": "bf3a23a",
+  "branch": "WP21",
+  "date": "2026-10-20",
+  "note": "Recorded by `python -m supervisor.alerts.harness --write-baseline`. tests/alerts/test_harness.py fails if a metric drops below this.",
+  "results": {
+    "dev": {
+      "by_rule": {
+        "AL-BLOCK-BURST": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-CHAIN-VERIFY-FAIL": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-FAILCLOSED-DRILL-FAIL": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-INGRESS-REJECT-BURST": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-JOB-FAILURE": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-JUDGE-ESCALATION": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-QUARANTINE": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        }
+      },
+      "failure_taxonomy": {
+        "duplicate_alert": 0,
+        "false_negative": [],
+        "false_positive": [],
+        "triage_gaps": {}
+      },
+      "metrics": {
+        "alerts_expected": 7,
+        "alerts_fired": 7,
+        "dedupe_exact_bp": 10000,
+        "false_alert_rate_upper_bp": 67,
+        "false_negative": 0,
+        "false_positive": 0,
+        "flood_ratio_x100": 814,
+        "matching_signals": 57,
+        "n_gate_decisions": 500,
+        "n_signals": 570,
+        "precision_bp": 10000,
+        "precision_ci_bp": [
+          6456,
+          10000
+        ],
+        "recall_bp": 10000,
+        "recall_ci_bp": [
+          6456,
+          10000
+        ],
+        "suppressed_repeats": 9,
+        "triage_complete_bp": 10000,
+        "true_positive": 7
+      },
+      "rules_config_hash": "00d51458406ae864873e4261367f8ed14418e44ccd550375bbccdab32d61d38c",
+      "split": "dev",
+      "thresholds_bp": {
+        "dedupe_exact": 10000,
+        "precision": 10000,
+        "recall": 10000,
+        "triage": 10000
+      },
+      "thresholds_note": "ILLUSTRATIVE until the bank SOC sets them",
+      "verdicts": {
+        "dedupe_exact": "GO",
+        "precision": "GO",
+        "recall": "GO",
+        "triage": "GO"
+      }
+    },
+    "heldout": {
+      "by_rule": {
+        "AL-BLOCK-BURST": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-CHAIN-VERIFY-FAIL": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-FAILCLOSED-DRILL-FAIL": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-INGRESS-REJECT-BURST": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-JOB-FAILURE": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-JUDGE-ESCALATION": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        },
+        "AL-QUARANTINE": {
+          "expected": 1,
+          "false_positive": 0,
+          "fired": 1,
+          "missed": 0
+        }
+      },
+      "failure_taxonomy": {
+        "duplicate_alert": 0,
+        "false_negative": [],
+        "false_positive": [],
+        "triage_gaps": {}
+      },
+      "metrics": {
+        "alerts_expected": 7,
+        "alerts_fired": 7,
+        "dedupe_exact_bp": 10000,
+        "false_alert_rate_upper_bp": 67,
+        "false_negative": 0,
+        "false_positive": 0,
+        "flood_ratio_x100": 785,
+        "matching_signals": 55,
+        "n_gate_decisions": 500,
+        "n_signals": 570,
+        "precision_bp": 10000,
+        "precision_ci_bp": [
+          6456,
+          10000
+        ],
+        "recall_bp": 10000,
+        "recall_ci_bp": [
+          6456,
+          10000
+        ],
+        "suppressed_repeats": 9,
+        "triage_complete_bp": 10000,
+        "true_positive": 7
+      },
+      "rules_config_hash": "00d51458406ae864873e4261367f8ed14418e44ccd550375bbccdab32d61d38c",
+      "split": "heldout",
+      "thresholds_bp": {
+        "dedupe_exact": 10000,
+        "precision": 10000,
+        "recall": 10000,
+        "triage": 10000
+      },
+      "thresholds_note": "ILLUSTRATIVE until the bank SOC sets them",
+      "verdicts": {
+        "dedupe_exact": "GO",
+        "precision": "GO",
+        "recall": "GO",
+        "triage": "GO"
+      }
+    }
+  }
+}

@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -138,7 +137,7 @@ class WebhookNotifier:
             raise IntegrationError("NOTIFY_WEBHOOK_URL is empty or FILL-ME; the webhook is off")
         self.inbox = inbox
         self.url = url
-        self.transport = transport or HttpTransport(os.environ.get("NOTIFY_WEBHOOK_TOKEN"))
+        self.transport = transport or HttpTransport()
         self.retry = retry or RetryPolicy()
         self.dead_letter = dead_letter
         self.timeout_s = timeout_s
@@ -238,7 +237,9 @@ def build_notifier(
             targets.append(WebhookNotifierStub(inbox, url))  # no URL: queue only
         else:
             dead = DeadLetter(webhook_dead_letter_path(settings))
-            targets.append(WebhookNotifier(inbox, url, dead_letter=dead))
+            secret = getattr(settings, "notify_webhook_token", None)
+            transport = HttpTransport(secret.get_secret_value() if secret else None)
+            targets.append(WebhookNotifier(inbox, url, transport=transport, dead_letter=dead))
     return FanoutNotifier(targets), inbox
 
 

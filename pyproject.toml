@@ -79,4 +79,5 @@ ignore = [
 "src/supervisor/adapters/sql/store.py" = ["S608"]
 "src/supervisor/jobs/**" = ["T20"]
 "src/supervisor/alerts/__main__.py" = ["T20"]  # WP21 CLI
+"src/supervisor/alerts/harness.py" = ["T20"]  # WP21 harness CLI
 "schema/generate.py" = ["T20"]

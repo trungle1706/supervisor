@@ -48,6 +48,7 @@ chain lane in ``monitor_state`` so a restart does not send an event twice.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 from collections.abc import Callable, Iterable, Mapping
@@ -74,6 +75,8 @@ from supervisor.adapters.integrations.transport import (
 from supervisor.core.canonical import canonical_json, format_ts
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError
 from supervisor.core.ports import StateStore, TableStore
+
+log = logging.getLogger("supervisor.siem")
 
 SCHEMA = "supervisor.siem.v1"
 VENDOR = "Supervisor"
@@ -421,17 +424,22 @@ class LogSiemSink:
         with self._lock:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             if self.max_bytes and self.path.exists():
-                if self.path.stat().st_size + len(data) > self.max_bytes:
-                    if self.path.stat().st_size > 0:
+                size = self.path.stat().st_size
+                if size > 0 and size + len(data) > self.max_bytes:
+                    try:
                         self._rotate()
+                    except OSError:
+                        # Windows: a forwarder holds the file without share-delete. Keep
+                        # appending (the file grows past the limit) and try again next batch.
+                        log.warning("SIEM file rotation failed; appending to the live file")
             with self.path.open("ab") as fh:
                 fh.write(data)
         return len(lines)
 
 
 class WebhookSiemSink:
-    """HEC-style POST of a batch (``{"events": [...], "idempotency_key": "..."}``). OFF by
-    default (needs a filled URL).
+    """HEC-style POST of a batch ``{"events", "event_ids", "format", "idempotency_key"}``. OFF
+    by default (needs a filled URL).
 
     Auth: placeholder. The bank owner supplies the token through the bank vault
     (``SIEM_HTTP_TOKEN``); it is never read from the repo or logged. Retry: ``RetryPolicy``
@@ -474,6 +482,7 @@ class WebhookSiemSink:
             return 0
         body = {
             "events": [render_obj(e, self.fmt) for e in evs],
+            "event_ids": [e.event_id for e in evs],  # one idempotency key per event
             "format": self.fmt,
             "idempotency_key": idempotency_key(e.event_id for e in evs),
         }

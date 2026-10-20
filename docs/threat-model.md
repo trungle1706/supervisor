@@ -117,6 +117,21 @@ Goal: edit or delete evidence after the fact.
 | No `exec`, `eval`, `compile` or `subprocess` outside one module (AST test) | `src/supervisor/sandbox.py`, `tests/test_architecture.py` |
 | No PAT: preflight and settings refuse `DATABRICKS_TOKEN` | `config.py`, `preflight.py` |
 
+### Trust boundary added by WP21 (SIEM export, alerts, webhook)
+
+Supervisor can now open outbound connections: the SIEM `http` sink and the webhook notifier
+(both off by default, URL and token are `FILL-ME` values from the bank vault). Controls: only
+ids, enums, counts and hashes are sent (a fixed field list builds every event and alert; tests
+plant free text and a phone number and assert they never appear); the token is a `SecretStr`,
+sent only in the `Authorization` header and never logged or written to the dead-letter file;
+sends are bounded (3 attempts, 10 s timeout) and a failure never blocks a gate decision, a case
+action or the alert row; a failed batch waits in a local dead-letter file with an idempotency key
+for replay. The receiver is trusted by the bank, not by us: a wrong URL sends metadata (agent
+ids, rule ids, counts) to the wrong place, so the URL is a reviewed setting. Alert rules are
+YAML read with `safe_load` and validated, never evaluated as code. Acknowledging an alert needs
+a signed-in person with `alert.ack` and is audited. Alerts do not act on agents (R1), so a
+forged alert cannot pause or block anything.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

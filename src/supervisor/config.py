@@ -365,6 +365,7 @@ class Settings(BaseSettings):
     alerts_config: Path = Path("config/alerts.yaml")
     sched_alerts_s: int = Field(default=60, ge=5)
     notify_webhook_dead_letter: Path | None = None  # default: <data_dir>/notify/webhook.dead.jsonl
+    notify_webhook_token: SecretStr | None = None  # bank vault; Authorization: Bearer <token>
 
     @field_validator(
         "data_dir",

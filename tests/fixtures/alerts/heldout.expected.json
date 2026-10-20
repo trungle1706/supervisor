@@ -1,0 +1,72 @@
+{
+  "incidents": [
+    {
+      "alerts": [
+        {
+          "group": "ho-agent-05",
+          "rule_id": "AL-BLOCK-BURST",
+          "suppressed": 3
+        },
+        {
+          "group": "ho-agent-05",
+          "rule_id": "AL-QUARANTINE",
+          "suppressed": 0
+        }
+      ],
+      "id": "INC-1"
+    },
+    {
+      "alerts": [
+        {
+          "group": "*",
+          "rule_id": "AL-CHAIN-VERIFY-FAIL",
+          "suppressed": 1
+        }
+      ],
+      "id": "INC-2"
+    },
+    {
+      "alerts": [
+        {
+          "group": "ho-agent-07",
+          "rule_id": "AL-JUDGE-ESCALATION",
+          "suppressed": 0
+        }
+      ],
+      "id": "INC-3"
+    },
+    {
+      "alerts": [
+        {
+          "group": "*",
+          "rule_id": "AL-INGRESS-REJECT-BURST",
+          "suppressed": 4
+        }
+      ],
+      "id": "INC-4"
+    },
+    {
+      "alerts": [
+        {
+          "group": "drift",
+          "rule_id": "AL-JOB-FAILURE",
+          "suppressed": 1
+        }
+      ],
+      "id": "INC-5"
+    },
+    {
+      "alerts": [
+        {
+          "group": "*",
+          "rule_id": "AL-FAILCLOSED-DRILL-FAIL",
+          "suppressed": 0
+        }
+      ],
+      "id": "INC-6"
+    }
+  ],
+  "n_gate_decisions": 500,
+  "n_signals": 570,
+  "split": "heldout"
+}

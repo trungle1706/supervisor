@@ -21,6 +21,8 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/api.md` | API versioning policy and paths | Dev |
 | `docs/INTEGRATION_GUIDE.md` | Three ways to fit a product into Supervisor | Dev |
 | `docs/bank-integration.md` | Bank-side integration contracts (stubs) | Dev, Op |
+| `docs/siem.md` | SIEM export: sinks, jsonl / CEF / OCSF field mapping, Splunk, Sentinel, Databricks examples | Op, Dev |
+| `docs/alerts.md` | Alert rules, dedupe, routes, acknowledge, harness | Op, 2L |
 | `docs/recorder.md` | Trace recorder, OTLP, masking | Dev |
 | `docs/onboard.md` | Onboarding Agent and capability catalogue | Dev, Op |
 | `docs/onboard-eval.md` | Precision and recall of the code analysers on the corpus | Dev, 2L |
@@ -34,6 +36,6 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/LICENSES.md` | Licence log for packages, assets, datasets | 2L, Aud |
 | `docs/BUILD_PLAN.md` | Phase 1 plan (WP0 to WP12) | Build |
 | `docs/BUILD_PLAN_PHASE2.md` | Phase 2 plan (WP13 to WP19) and status | Build |
-| `docs/adr/` (D01 to D13) | Design decisions: gateway, evidence chain, judges, retention | Build, Aud |
+| `docs/adr/` (D01 to D15) | Design decisions: gateway, evidence chain, judges, retention | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |
