@@ -101,8 +101,8 @@ def check_tab(ctx: Any, me: Any, tab: str) -> str:
 
 def card_of(ctx: Any, me: Any, agent_id: str) -> dict[str, Any]:
     """The agent card of ``agent_id`` (``readmodels.agent_cards``); AgentDetailError if the
-    agent is not registered."""
-    for c in readmodels.agent_cards(ctx, me):
+    agent is not registered. Only this agent's card is built (a card costs several queries)."""
+    for c in readmodels.agent_cards(ctx, me, only=agent_id):
         if c["agent_id"] == agent_id:
             return c
     raise AgentDetailError(f"agent {agent_id} is not registered")
@@ -174,7 +174,7 @@ def rules_in_scope(ctx: Any, agent_id: str) -> list[dict[str, Any]]:
 def _policy(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
     rules_all = readmodels.rules_index(ctx)
     classes = readmodels.tool_classes(ctx)
-    allow = readmodels._allowed_tools(rules_all, card["agent_id"])  # noqa: SLF001 - same package
+    allow = readmodels.allowed_tools(rules_all, card["agent_id"])
     try:
         cur = ctx.gateway.states.policy.current()
         policy = {"hash": cur.policy_hash, "version": cur.doc.policy_version}

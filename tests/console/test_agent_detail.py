@@ -231,3 +231,38 @@ def test_service_principal_sees_read_only_tabs(console: Console) -> None:
     sp = SP()
     assert agent_detail.can(sp, "tools.view") and not agent_detail.can(sp, "tools.download")
     assert not agent_detail.can(sp, "agent.pause")
+
+
+def test_agent_page_builds_only_its_own_card(
+    console: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review fix: the page and the lifecycle answer build one card, not one per agent."""
+    from supervisor.console import readmodels
+
+    seen: list[str | None] = []
+    real = readmodels.agent_cards
+
+    def spy(ctx: object, me: object, only: str | None = None) -> list[dict]:
+        seen.append(only)
+        return real(ctx, me, only=only)
+
+    monkeypatch.setattr(readmodels, "agent_cards", spy)
+    assert console.get("/console/agents/payments").status_code == 200
+    assert console.post("/console/agents/payments/pause", {"reason": "x"}).status_code == 200
+    assert seen and all(s == "payments" for s in seen), seen
+    assert console.get("/console/agents/nobody_here").status_code == 400
+
+
+def test_policy_tab_uses_the_public_allow_list_reader() -> None:
+    from supervisor.console import readmodels
+
+    rules = {
+        "R": {
+            "expression": {
+                "agent_scope": ["a"],
+                "when": {"tool": {"op": "not_in", "value": ["t1", "t2"]}},
+            }
+        }
+    }
+    assert readmodels.allowed_tools(rules, "a") == ["t1", "t2"]
+    assert readmodels.allowed_tools(rules, "b") == []

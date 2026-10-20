@@ -405,6 +405,11 @@ def _allowed_tools(rules: Mapping[str, Mapping[str, Any]], agent_id: str) -> lis
     return out
 
 
+def allowed_tools(rules: Mapping[str, Mapping[str, Any]], agent_id: str) -> list[str]:
+    """Public read of the approved-tools allow-list of one agent (agent page, Policy tab)."""
+    return _allowed_tools(rules, agent_id)
+
+
 def _coverage(ctx: Any, agent_id: str) -> dict[str, Any]:
     """Coverage in basis points and where the number comes from.
 
