@@ -19,7 +19,7 @@ risks:
     links:
       rule: [SVC-01, SVC-02, SVC-03, SVC-04]
       matrix: [VN-CPL-2023-A10.1E-01]
-      monitor: [oversight]
+      monitor: [drift]
 
   - id: RSK-SVC-002
     agent: customer_service
@@ -37,7 +37,7 @@ risks:
     links:
       rule: [SVC-05, SVC-06]
       matrix: [VN-CPL-2023-A10.1E-01]
-      monitor: [oversight]
+      monitor: [drift]
 
   - id: RSK-SVC-003
     agent: customer_service
@@ -56,7 +56,7 @@ risks:
     links:
       matrix: [VN-CPL-2023-A10.1M-01, VN-PDPL-2025-A19.2-01]
       pack: [pii_canary]
-      monitor: [sweeps]
+      monitor: [multiagent]
 
   - id: RSK-SVC-004
     agent: customer_service
@@ -91,4 +91,4 @@ risks:
     links:
       matrix: [INTL-OWASPLLM-2025-LLM06-01]
       pack: [indirect_injection_vi, prefilter_evasion]
-      monitor: [sweeps]
+      monitor: [multiagent]

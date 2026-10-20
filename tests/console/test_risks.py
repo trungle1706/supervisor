@@ -390,7 +390,7 @@ def test_link_route_audits_before_and_after_hashes(seeded_risks: Console) -> Non
     c = seeded_risks
     n = len(_outcome_rows(c))
     r = _post(
-        c, "/v1/risks/RSK-PAY-001/links", {"action": "add", "kind": "monitor", "target": "drift"}
+        c, "/v1/risks/RSK-PAY-001/links", {"action": "add", "kind": "monitor", "target": "fairness"}
     )
     assert r.status_code == 200
     att, out = _outcome_rows(c)[n:]

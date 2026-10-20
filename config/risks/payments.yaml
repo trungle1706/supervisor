@@ -22,7 +22,7 @@ risks:
       rule: [PAY-01, PAY-02, PAY-06]
       matrix: [VN-QD33-2026-PL4.1-02, VN-TT50-2024-A10.1-01, VN-QD2345-2023-A1-01]
       pack: [owasp_agentic_redteam]
-      monitor: [oversight]
+      monitor: [drift]
 
   - id: RSK-PAY-002
     agent: payments
@@ -77,7 +77,7 @@ risks:
     links:
       rule: [PAY-09]
       matrix: [VN-TT50-2024-A15.2-01]
-      monitor: [sweeps]
+      monitor: [multiagent]
 
   - id: RSK-PAY-005
     agent: payments
@@ -97,7 +97,7 @@ risks:
       rule: [PAY-07]
       matrix: [INTL-OWASPLLM-2025-LLM06-01]
       pack: [indirect_injection_vi, owasp_llm_top10]
-      monitor: [sweeps]
+      monitor: [multiagent]
 
   - id: RSK-PAY-006
     agent: payments
@@ -115,4 +115,4 @@ risks:
     status: active
     links:
       matrix: [VN-AI-2025-A14.02A-01]
-      monitor: [oversight]
+      monitor: [drift]

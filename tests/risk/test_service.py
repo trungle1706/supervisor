@@ -34,7 +34,9 @@ def test_create_get_and_scores(svc: RiskService, sink: ListSink) -> None:
     assert out["agents"] == ["payments"]
     (rec,) = sink.of("risk_change")
     assert (
-        rec["action"] == "create" and rec["actor"] == "reviewer.an" and rec["inherent_score"] == 20
+        rec["action"] == "create"
+        and rec["actor_ref"] == svc.actor_ref("reviewer.an")
+        and rec["inherent_score"] == 20
     )
     assert all(isinstance(v, (int, str)) for v in rec.values())
 

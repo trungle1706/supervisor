@@ -79,6 +79,17 @@ agent level = max( band of every ACTIVE risk on a node the agent reaches along A
 
 Matrix and case links are references. They never count as a control.
 
+**Which links are evidence and which are references:**
+
+| Link | Evidence | Reference only |
+|---|---|---|
+| rule | any rule in the deployed policy | - |
+| pack | a pack not scored by a judge model | judge-scored packs (`groundedness_monitor`, `halueval_vi`, `ragas_rag_triad`, `selfcheck_consistency`, `simpleqa_vi`, `truthfulqa_vi`) unless `RISK_EVIDENCE_JUDGED_PACKS=1` (owner decision, default 0) |
+| monitor | `drift`, `fairness`, `multiagent` (they write a status) | `quality` (LLM scorer), `oversight`, `sweeps` (no status) |
+| matrix, case | - | always |
+
+The harness row `starters` fails when a risk has only reference links.
+
 **The rule that may lower a residual score** (`risk/evidence.py`, `assess`):
 
 1. Only a `mitigate` risk can be lowered. For `avoid`, `accept` and `transfer` the residual is the declared value (the gate cannot see a contract or a decision).
@@ -112,7 +123,7 @@ Limits to know: a rule that fires rarely (for example "unapproved tool") stays `
 
 ```
 set RISK_REGISTER_ENABLED=1
-python -m supervisor.risk import config\risks --source starter
+python -m supervisor.risk import config\risks --source starter --by your.user.id
 python -m supervisor.risk list --agent payments --band critical
 python -m supervisor.risk score
 python -m supervisor.risk export --out out\risk --format both
@@ -156,7 +167,8 @@ Rules of the importer:
 * All or nothing: every document is checked first, then everything is written. A bad category, a link to something that does not exist, a duplicate id, two documents with the same anchor and title but different treatments (`conflicting treatments`), `accept` with a lowered residual: the file is refused with the reason and nothing is written. `--dry-run` only checks.
 * A re-import of the same file changes nothing. It updates a risk whose `source` is `starter` or `import` and replaces its links with the file's links. A risk a person edited (`source` manual) is left alone unless `--overwrite-manual`.
 * The importer is the bank's change control for the register: keep the file in git and import it from there. Map the bank's own scales to 1 to 5 once, in the file; the product does not convert.
-* Each created or changed risk writes a `risk_change` chain record with the actor.
+* Each created or changed risk writes a `risk_change` chain record. It carries `actor_ref`, a keyed hash of the actor id (the id can be an e-mail); the readable actor is only in the `console_action` audit row.
+* `python -m supervisor.risk import` has no login. It runs with the operator's own shell and store access, so it needs `--by <your own user id>` and refuses to run without it. The id is written to a `console_action` row (permission `risks.edit`, method `CLI`).
 
 ## Reference catalogue
 
@@ -183,6 +195,7 @@ svc.add_link("RSK-PAY-001", "rule", "PAY-02", actor)
 | `SCHED_RISK_EVIDENCE_S` | `21600` | Evidence pass interval (seconds, minimum 60) |
 | `RISK_EVIDENCE_WINDOW_DAYS` | `7` | Length of the evidence window (1 to 90) |
 | `RISK_CONFIG` | `config\risk.yaml` | Band thresholds, `min_working_controls`, `review_grace_days` |
+| `RISK_EVIDENCE_JUDGED_PACKS` | `0` | `1`: packs scored by a judge model may count as evidence (rule R1: leave off until the owner decides) |
 | `RISK_STARTER_DIR` | `config\risks` | Folder of the starter risks |
 
 On Delta run `python -m supervisor.jobs.bootstrap_schema` before turning the flag on (three new tables).

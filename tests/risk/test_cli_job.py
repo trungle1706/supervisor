@@ -39,7 +39,12 @@ def test_cli_is_a_noop_when_off(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _on(monkeypatch, False)
-    for argv in (["list"], ["score"], ["import", str(STARTERS)], ["export", "--out", "x"]):
+    for argv in (
+        ["list"],
+        ["score"],
+        ["import", str(STARTERS), "--by", "op.test"],
+        ["export", "--out", "x"],
+    ):
         assert cli.main(argv) == 0
     assert capsys.readouterr().out.count("[SKIP]") == 4
 
@@ -48,11 +53,14 @@ def test_cli_import_list_score_export(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _on(monkeypatch)
-    assert cli.main(["import", str(STARTERS), "--dry-run", "--source", "starter"]) == 0
+    assert (
+        cli.main(["import", str(STARTERS), "--by", "op.test", "--dry-run", "--source", "starter"])
+        == 0
+    )
     assert "dry run: created=0" in capsys.readouterr().out
-    assert cli.main(["import", str(STARTERS), "--source", "starter"]) == 0
+    assert cli.main(["import", str(STARTERS), "--by", "op.test", "--source", "starter"]) == 0
     assert "created=19" in capsys.readouterr().out
-    assert cli.main(["import", str(STARTERS), "--source", "starter"]) == 0
+    assert cli.main(["import", str(STARTERS), "--by", "op.test", "--source", "starter"]) == 0
     assert "unchanged=19" in capsys.readouterr().out
 
     assert cli.main(["list", "--agent", "payments", "--band", "critical"]) == 0
@@ -86,10 +94,10 @@ def test_cli_import_errors_are_ascii_and_exit_1(
     bad.write_text(
         "risks:\n  - {id: X-1, agent: payments, title: t, category: nope}\n", encoding="utf-8"
     )
-    assert cli.main(["import", str(bad)]) == 1
+    assert cli.main(["import", str(bad), "--by", "op.test"]) == 1
     out = capsys.readouterr().out
     assert "[FAIL]" in out and "nothing was imported" in out and out.isascii()
-    assert cli.main(["import", str(tmp_path / "missing.yaml")]) == 1
+    assert cli.main(["import", str(tmp_path / "missing.yaml"), "--by", "op.test"]) == 1
     assert "[FAIL]" in capsys.readouterr().out
 
 
@@ -97,7 +105,7 @@ def test_cli_import_writes_chain_records(monkeypatch: pytest.MonkeyPatch, tmp_pa
     from supervisor.adapters.factory import build_adapters
 
     _on(monkeypatch)
-    assert cli.main(["import", str(STARTERS), "--source", "starter"]) == 0
+    assert cli.main(["import", str(STARTERS), "--by", "op.test", "--source", "starter"]) == 0
     a = build_adapters(load_settings())
     try:
         rows = a.tables.query("chain_entry", {"record_type": "risk_change"})
@@ -120,7 +128,7 @@ def test_job_standalone_writes_evidence_and_chain(
     from supervisor.adapters.factory import build_adapters
 
     _on(monkeypatch)
-    assert cli.main(["import", str(STARTERS), "--source", "starter"]) == 0
+    assert cli.main(["import", str(STARTERS), "--by", "op.test", "--source", "starter"]) == 0
     capsys.readouterr()
     assert job.main([]) == 0
     out = capsys.readouterr().out
