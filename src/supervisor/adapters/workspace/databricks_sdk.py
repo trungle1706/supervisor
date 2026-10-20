@@ -87,17 +87,23 @@ class DatabricksWorkspaceReader:
         return sorted(str(t.full_name or f"{catalog}.{schema}.{t.name}") for t in tables)
 
     def list_registered_models(self) -> Sequence[Mapping[str, Any]]:
-        """MLflow registered models: Unity Catalog models first, the workspace registry when
-        the UC call is refused (WP24)."""
+        """MLflow registered models from Unity Catalog and from the workspace (legacy) registry
+        (WP24). A workspace can hold both, so both are read; one listing that is refused (no UC
+        permission, or the legacy registry is disabled) is skipped. Both refused: the error of
+        the UC call is raised, so the caller does not mark known models as gone."""
+        out: dict[str, dict[str, Any]] = {}
+        errors: list[Exception] = []
         try:
-            models = self._take(self.client.registered_models.list())
-            return [
-                {
-                    "name": str(m.full_name or m.name),
-                    "owner": getattr(m, "owner", None),
-                }
-                for m in models
-            ]
-        except Exception:  # noqa: BLE001 - e.g. no UC permission: try the legacy registry
-            models = self._take(self.client.model_registry.list_models())
-            return [{"name": str(m.name), "owner": getattr(m, "user_id", None)} for m in models]
+            for m in self._take(self.client.registered_models.list()):
+                name = str(m.full_name or m.name)
+                out[name] = {"name": name, "registry": "uc"}
+        except Exception as exc:  # noqa: BLE001 - e.g. no UC permission: try the legacy registry
+            errors.append(exc)
+        try:
+            for m in self._take(self.client.model_registry.list_models()):
+                out.setdefault(str(m.name), {"name": str(m.name), "registry": "workspace"})
+        except Exception as exc:  # noqa: BLE001 - legacy registry disabled in a UC-only workspace
+            errors.append(exc)
+        if len(errors) == 2:
+            raise errors[0]
+        return [out[k] for k in sorted(out)]

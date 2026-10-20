@@ -11,6 +11,8 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from supervisor.adapters.clock import FixedClock
 from supervisor.adapters.sql.databricks_fake import (
     FakeStatementExecution,
@@ -128,31 +130,43 @@ def test_ddl_and_model_have_the_tables_in_both_dialects() -> None:
     assert not model.table("inventory_node").append_only  # state table: row_version
 
 
-def test_sdk_reader_lists_registered_models_uc_then_registry() -> None:
-    class L(list):
-        pass
-
-    uc = SimpleNamespace(
-        registered_models=SimpleNamespace(
-            list=lambda: L([SimpleNamespace(full_name="main.ml.m1", name="m1", owner="o")])
-        )
-    )
-    assert DatabricksWorkspaceReader(uc).list_registered_models() == [
-        {"name": "main.ml.m1", "owner": "o"}
-    ]
+def test_sdk_reader_lists_registered_models_from_uc_and_registry() -> None:
+    """Review fix: a workspace can hold UC and legacy models at once; both are listed, the
+    owner (a user name or e-mail) is not copied, and one refused listing is skipped."""
 
     def refused() -> Any:
-        raise PermissionError("no UC grant")
+        raise PermissionError("refused")
 
+    uc_model = SimpleNamespace(full_name="main.ml.m1", name="m1", owner="o@example.invalid")
+    old_model = SimpleNamespace(name="old", user_id="u@example.invalid")
+    both = SimpleNamespace(
+        registered_models=SimpleNamespace(list=lambda: [uc_model]),
+        model_registry=SimpleNamespace(list_models=lambda: [old_model]),
+    )
+    assert DatabricksWorkspaceReader(both).list_registered_models() == [
+        {"name": "main.ml.m1", "registry": "uc"},
+        {"name": "old", "registry": "workspace"},
+    ]
+    uc_only = SimpleNamespace(
+        registered_models=SimpleNamespace(list=lambda: [uc_model]),
+        model_registry=SimpleNamespace(list_models=refused),
+    )
+    assert DatabricksWorkspaceReader(uc_only).list_registered_models() == [
+        {"name": "main.ml.m1", "registry": "uc"}
+    ]
     legacy = SimpleNamespace(
         registered_models=SimpleNamespace(list=refused),
-        model_registry=SimpleNamespace(
-            list_models=lambda: [SimpleNamespace(name="old", user_id="u")]
-        ),
+        model_registry=SimpleNamespace(list_models=lambda: [old_model]),
     )
     assert DatabricksWorkspaceReader(legacy).list_registered_models() == [
-        {"name": "old", "owner": "u"}
+        {"name": "old", "registry": "workspace"}
     ]
+    none = SimpleNamespace(
+        registered_models=SimpleNamespace(list=refused),
+        model_registry=SimpleNamespace(list_models=refused),
+    )
+    with pytest.raises(PermissionError):  # both refused: the section fails, nothing goes gone
+        DatabricksWorkspaceReader(none).list_registered_models()
 
 
 def test_service_builds_in_databricks_app_mode_settings(tmp_path: Any) -> None:
