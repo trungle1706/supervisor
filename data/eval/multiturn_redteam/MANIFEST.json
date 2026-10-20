@@ -1,0 +1,20 @@
+{
+ "capability": "multiturn_redteam",
+ "data": "synthetic; no real names, accounts or customers",
+ "files": {
+  "objectives.jsonl": {
+   "items": 120,
+   "sha256": "14fc3679dec8ea9c23df489d4f29eff2b29e64ad30fad0dc00efc2dcc23c8513"
+  },
+  "probes.jsonl": {
+   "items": 39,
+   "sha256": "ec84fc507c43feef31b769ce3c69928793f4953acee170b8a9470538baefe429"
+  }
+ },
+ "label_note": "every objective is an attack (label attack); benign controls are generated from each objective's benign_steps",
+ "labeller": "expert rubric",
+ "licence": "own (Apache-2.0 like the repo)",
+ "source": "own",
+ "splits": "pair level; ordinals 3, 6, 9 of each family are heldout (30 percent); tune on dev only",
+ "wp": "WP28"
+}

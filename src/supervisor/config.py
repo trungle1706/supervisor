@@ -476,6 +476,18 @@ class Settings(BaseSettings):
     console_scan_cap: int = Field(default=20000, ge=100, le=200_000)
     console_trace_scan: int = Field(default=5000, ge=100, le=50_000)
 
+    # --- WP28 --- multi-turn Vietnamese red team (docs/redteam-multiturn.md, ADR D25).
+    # The nightly job is off by default. The attacker is the offline template attacker unless
+    # REDTEAM_ATTACKER_MODEL names a model on the configured LLM endpoint (LLM_BASE_URL).
+    redteam_nightly_enabled: bool = False  # scheduler job `redteam_nightly`
+    sched_redteam_s: int = Field(default=86400, ge=60)
+    redteam_trials: int = Field(default=8, ge=1, le=500)  # per objective, assurance pack
+    redteam_nightly_trials: int = Field(default=50, ge=1, le=500)  # per objective, nightly job
+    redteam_seed: int = 20261020
+    redteam_attacker_model: str = Field(default="", pattern=r"^[A-Za-z0-9_.:/@-]*$")
+    redteam_llm_max_conversations: int = Field(default=60, ge=1, le=60)  # hard cap, live runs
+    redteam_langs: str = Field(default="vi", pattern=r"^(vi|en|vi,en)$")
+
     @field_validator(
         "data_dir",
         "sqlite_path",
