@@ -384,7 +384,7 @@ def build_item(g: Gen, template: int) -> Doc:
 N_TEMPLATES = 11
 
 
-def generate(n_dev: int = 360, n_held: int = 160, seed: int = SEED) -> list[dict[str, Any]]:
+def generate(n_dev: int = 440, n_held: int = 220, seed: int = SEED) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for split, n, off in (("dev", n_dev, 0), ("heldout", n_held, 1)):
         g = Gen(seed + off, held=split == "heldout")

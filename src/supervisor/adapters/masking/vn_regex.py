@@ -431,10 +431,6 @@ class VnRegexMasker:
             add(s, e, "amount", "AMOUNT")
         for m in _RE_PHONE_GLUED.finditer(text):
             add(m.start(1), m.end(1), "phone", "PHONE")
-        for m in _RE_PERSON_PLAIN.finditer(text):
-            add(m.start(), m.end(), "person_plain", "PERSON")
-        for m in _RE_PERSON_LABELLED.finditer(text):
-            add(m.start(1), m.end(1), "person_label", "PERSON")
         plain, labelled = vn_text.person_spans(text)
         for s, e, _why in plain:
             add(s, e, "person_plain", "PERSON")

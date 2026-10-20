@@ -7,186 +7,186 @@
       "amounts_masked": false,
       "entities": {
         "ADDRESS": {
-          "leak_recall_bp": 1826,
+          "leak_recall_bp": 1889,
           "leak_recall_wilson_bp": [
-            1201,
-            2678
+            1304,
+            2659
           ],
-          "n": 104,
+          "n": 127,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            8318,
+            8620,
             10000
           ],
-          "predicted": 19,
-          "typed_recall_bp": 1826,
+          "predicted": 24,
+          "typed_recall_bp": 1889,
           "typed_recall_wilson_bp": [
-            1201,
-            2678
+            1304,
+            2659
           ]
         },
         "BANK_ACCOUNT": {
-          "leak_recall_bp": 9285,
+          "leak_recall_bp": 9166,
           "leak_recall_wilson_bp": [
-            8434,
-            9692
+            8378,
+            9591
           ],
-          "n": 70,
-          "precision_bp": 5384,
+          "n": 84,
+          "precision_bp": 5350,
           "precision_wilson_bp": [
-            4528,
-            6219
+            4571,
+            6113
           ],
-          "predicted": 130,
-          "typed_recall_bp": 9285,
+          "predicted": 157,
+          "typed_recall_bp": 9166,
           "typed_recall_wilson_bp": [
-            8434,
-            9692
+            8378,
+            9591
           ]
         },
         "CARD_NUMBER": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            8984,
+            9143,
             10000
           ],
-          "n": 34,
+          "n": 41,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            8984,
+            9143,
             10000
           ],
-          "predicted": 34,
+          "predicted": 41,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            8984,
+            9143,
             10000
           ]
         },
         "CCCD": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            9465,
+            9557,
             10000
           ],
-          "n": 68,
+          "n": 83,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            9465,
+            9557,
             10000
           ],
-          "predicted": 68,
+          "predicted": 83,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            9465,
+            9557,
             10000
           ]
         },
         "CMND": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            8984,
+            9143,
             10000
           ],
-          "n": 34,
-          "precision_bp": 8717,
+          "n": 41,
+          "precision_bp": 8913,
           "precision_wilson_bp": [
-            7329,
-            9440
+            7696,
+            9527
           ],
-          "predicted": 39,
+          "predicted": 46,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            8984,
+            9143,
             10000
           ]
         },
         "EMAIL": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            9472,
+            9557,
             10000
           ],
-          "n": 69,
+          "n": 83,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            9472,
+            9557,
             10000
           ],
-          "predicted": 69,
+          "predicted": 83,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            9472,
+            9557,
             10000
           ]
         },
         "PERSON": {
-          "leak_recall_bp": 5129,
+          "leak_recall_bp": 5186,
           "leak_recall_wilson_bp": [
-            4574,
-            5681
+            4681,
+            5687
           ],
-          "n": 310,
+          "n": 376,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            9800,
+            9840,
             10000
           ],
-          "predicted": 189,
-          "typed_recall_bp": 5129,
+          "predicted": 237,
+          "typed_recall_bp": 5186,
           "typed_recall_wilson_bp": [
-            4574,
-            5681
+            4681,
+            5687
           ]
         },
         "PHONE": {
-          "leak_recall_bp": 9901,
+          "leak_recall_bp": 9919,
           "leak_recall_wilson_bp": [
-            9465,
-            9983
+            9557,
+            9986
           ],
-          "n": 102,
+          "n": 124,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            9633,
+            9697,
             10000
           ],
-          "predicted": 101,
-          "typed_recall_bp": 9901,
+          "predicted": 123,
+          "typed_recall_bp": 9919,
           "typed_recall_wilson_bp": [
-            9465,
-            9983
+            9557,
+            9986
           ]
         },
         "TAX_CODE": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            8984,
+            9143,
             10000
           ],
-          "n": 34,
-          "precision_bp": 8947,
+          "n": 41,
+          "precision_bp": 8723,
           "precision_wilson_bp": [
-            7586,
-            9583
+            7482,
+            9402
           ],
-          "predicted": 38,
+          "predicted": 47,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            8984,
+            9143,
             10000
           ]
         }
       },
       "keep": {
         "AMOUNT": {
-          "intact_bp": 7481,
-          "n": 274,
-          "touched": 69
+          "intact_bp": 7477,
+          "n": 333,
+          "touched": 84
         },
         "DATE": {
           "intact_bp": 10000,
-          "n": 100,
+          "n": 121,
           "touched": 0
         },
         "EXPIRY": {
@@ -201,151 +201,151 @@
         },
         "TERM": {
           "intact_bp": 10000,
-          "n": 34,
+          "n": 41,
           "touched": 0
         }
       },
-      "latency_us_p50": 144,
-      "latency_us_p95": 227,
-      "micro_leak_recall_bp": 7066,
-      "n_items": 406,
-      "over_mask_amount_count": 69,
+      "latency_us_p50": 147,
+      "latency_us_p95": 233,
+      "micro_leak_recall_bp": 7080,
+      "n_items": 486,
+      "over_mask_amount_count": 84,
       "taxonomy": {
         "missed-address-lowercase-nodiac": 1,
-        "missed-address-mixed": 16,
-        "missed-address-mixed-nodiac": 6,
-        "missed-address-uppercase": 36,
-        "missed-address-uppercase-nodiac": 26,
-        "missed-person-lowercase-nodiac": 10,
-        "missed-person-mixed": 25,
-        "missed-person-mixed-nodiac": 48,
+        "missed-address-mixed": 18,
+        "missed-address-mixed-nodiac": 9,
+        "missed-address-uppercase": 41,
+        "missed-address-uppercase-nodiac": 34,
+        "missed-person-lowercase-nodiac": 11,
+        "missed-person-mixed": 30,
+        "missed-person-mixed-nodiac": 56,
         "missed-person-telex": 1,
         "missed-person-uppercase": 22,
-        "missed-person-uppercase-nodiac": 15,
+        "missed-person-uppercase-nodiac": 19,
         "missed-phone-glued": 1,
-        "over-mask-amount": 69,
-        "partial-bank_account": 5,
+        "over-mask-amount": 84,
+        "partial-bank_account": 7,
         "partial-person-lowercase-nodiac": 3,
-        "partial-person-mixed": 7,
-        "partial-person-mixed-nodiac": 5,
-        "partial-person-uppercase": 10,
-        "partial-person-uppercase-nodiac": 5
+        "partial-person-mixed": 12,
+        "partial-person-mixed-nodiac": 6,
+        "partial-person-uppercase": 14,
+        "partial-person-uppercase-nodiac": 7
       }
     },
     "heldout": {
       "amounts_masked": false,
       "entities": {
         "ADDRESS": {
-          "leak_recall_bp": 2391,
+          "leak_recall_bp": 1904,
           "leak_recall_wilson_bp": [
-            1391,
-            3794
+            1124,
+            3041
           ],
-          "n": 46,
+          "n": 63,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            7411,
+            7574,
             10000
           ],
-          "predicted": 11,
-          "typed_recall_bp": 2391,
+          "predicted": 12,
+          "typed_recall_bp": 1904,
           "typed_recall_wilson_bp": [
-            1391,
-            3794
+            1124,
+            3041
           ]
         },
         "BANK_ACCOUNT": {
-          "leak_recall_bp": 9354,
+          "leak_recall_bp": 9512,
           "leak_recall_wilson_bp": [
-            7928,
-            9822
+            8386,
+            9866
           ],
-          "n": 31,
-          "precision_bp": 5254,
+          "n": 41,
+          "precision_bp": 5125,
           "precision_wilson_bp": [
-            4003,
-            6474
+            4049,
+            6190
           ],
-          "predicted": 59,
-          "typed_recall_bp": 9354,
+          "predicted": 80,
+          "typed_recall_bp": 9512,
           "typed_recall_wilson_bp": [
-            7928,
-            9822
+            8386,
+            9866
           ]
         },
         "CARD_NUMBER": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            7961,
+            8388,
             10000
           ],
-          "n": 15,
+          "n": 20,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            7961,
+            8388,
             10000
           ],
-          "predicted": 15,
+          "predicted": 20,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            7961,
+            8388,
             10000
           ]
         },
         "CCCD": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            8864,
+            9143,
             10000
           ],
-          "n": 30,
+          "n": 41,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            8864,
+            9143,
             10000
           ],
-          "predicted": 30,
+          "predicted": 41,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            8864,
+            9143,
             10000
           ]
         },
         "CMND": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            7846,
+            8388,
             10000
           ],
-          "n": 14,
-          "precision_bp": 8750,
+          "n": 20,
+          "precision_bp": 9090,
           "precision_wilson_bp": [
-            6397,
-            9651
+            7218,
+            9748
           ],
-          "predicted": 16,
+          "predicted": 22,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            7846,
+            8388,
             10000
           ]
         },
         "EMAIL": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            8897,
+            9143,
             10000
           ],
-          "n": 31,
+          "n": 41,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            8897,
+            9143,
             10000
           ],
-          "predicted": 31,
+          "predicted": 41,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            8897,
+            9143,
             10000
           ]
         },
@@ -353,69 +353,69 @@
           "leak_recall_bp": 0,
           "leak_recall_wilson_bp": [
             0,
-            277
+            204
           ],
-          "n": 135,
+          "n": 185,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            6096,
+            7411,
             10000
           ],
-          "predicted": 6,
+          "predicted": 11,
           "typed_recall_bp": 0,
           "typed_recall_wilson_bp": [
             0,
-            277
+            204
           ]
         },
         "PHONE": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            9197,
+            9398,
             10000
           ],
-          "n": 44,
+          "n": 60,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            9197,
+            9398,
             10000
           ],
-          "predicted": 44,
+          "predicted": 60,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            9197,
+            9398,
             10000
           ]
         },
         "TAX_CODE": {
           "leak_recall_bp": 10000,
           "leak_recall_wilson_bp": [
-            7961,
+            8388,
             10000
           ],
-          "n": 15,
+          "n": 20,
           "precision_bp": 10000,
           "precision_wilson_bp": [
-            7961,
+            8388,
             10000
           ],
-          "predicted": 15,
+          "predicted": 20,
           "typed_recall_bp": 10000,
           "typed_recall_wilson_bp": [
-            7961,
+            8388,
             10000
           ]
         }
       },
       "keep": {
         "AMOUNT": {
-          "intact_bp": 7478,
-          "n": 119,
-          "touched": 30
+          "intact_bp": 7484,
+          "n": 163,
+          "touched": 41
         },
         "DATE": {
           "intact_bp": 10000,
-          "n": 44,
+          "n": 61,
           "touched": 0
         },
         "REF": {
@@ -425,30 +425,31 @@
         },
         "TERM": {
           "intact_bp": 10000,
-          "n": 15,
+          "n": 20,
           "touched": 0
         }
       },
-      "latency_us_p50": 145,
-      "latency_us_p95": 220,
-      "micro_leak_recall_bp": 5235,
-      "n_items": 175,
-      "over_mask_amount_count": 30,
+      "latency_us_p50": 162,
+      "latency_us_p95": 271,
+      "micro_leak_recall_bp": 5152,
+      "n_items": 235,
+      "over_mask_amount_count": 41,
       "taxonomy": {
-        "missed-address-mixed": 8,
-        "missed-address-mixed-nodiac": 3,
-        "missed-address-uppercase": 12,
-        "missed-address-uppercase-nodiac": 12,
-        "missed-person-lowercase-nodiac": 12,
-        "missed-person-mixed": 41,
-        "missed-person-mixed-nodiac": 29,
-        "missed-person-uppercase": 35,
-        "missed-person-uppercase-nodiac": 12,
-        "over-mask-amount": 30,
+        "missed-address-mixed": 11,
+        "missed-address-mixed-nodiac": 4,
+        "missed-address-uppercase": 22,
+        "missed-address-uppercase-nodiac": 14,
+        "missed-person-lowercase-nodiac": 19,
+        "missed-person-mixed": 49,
+        "missed-person-mixed-nodiac": 40,
+        "missed-person-uppercase": 50,
+        "missed-person-uppercase-nodiac": 16,
+        "over-mask-amount": 41,
         "partial-bank_account": 2,
         "partial-person-lowercase-nodiac": 1,
+        "partial-person-mixed": 3,
         "partial-person-mixed-nodiac": 1,
-        "partial-person-uppercase": 2,
+        "partial-person-uppercase": 4,
         "partial-person-uppercase-nodiac": 2
       }
     }

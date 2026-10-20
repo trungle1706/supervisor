@@ -317,7 +317,14 @@ def main(argv: list[str] | None = None) -> int:
         description="Score the vn_regex masker on the Vietnamese PII golden set (pii_vn).",
     )
     p.add_argument("--generate", action="store_true", help="rewrite the golden set from the seed")
-    p.add_argument("--record", metavar="PATH", help="write the JSON report (baseline) to PATH")
+    p.add_argument(
+        "--record",
+        metavar="PATH",
+        nargs="?",
+        const="",
+        help="write the JSON report (baseline) to PATH (default: baseline_<masker>.json in the "
+        "golden set folder)",
+    )
     p.add_argument("--json", action="store_true", help="print the JSON report")
     p.add_argument(
         "--show-failures", action="store_true", help="list failing DEV item ids per class"
@@ -337,17 +344,16 @@ def main(argv: list[str] | None = None) -> int:
     if ns.show_failures:
         for k, ids in report["splits"]["dev"]["_failing_ids"].items():
             print(f"  dev {k}: {', '.join(ids)}")  # noqa: T201 (CLI output)
-    if ns.record:
+    if ns.record is not None:
         doc = {
             "recorded_at": time.strftime("%Y-%m-%d", time.gmtime()),
             "commit": ns.commit,
             "thresholds": "ILLUSTRATIVE until the bank sets them",
             **_strip_ids(report),
         }
-        Path(ns.record).write_text(
-            json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
-        print(f"[OK] baseline written to {ns.record}")  # noqa: T201 (CLI output)
+        target = Path(ns.record) if ns.record else DATA_DIR / f"baseline_{report['masker']}.json"
+        target.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"[OK] baseline written to {target}")  # noqa: T201 (CLI output)
     return 0
 
 

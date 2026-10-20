@@ -3,14 +3,14 @@
   "seed": 20261020,
   "splits": {
     "dev": {
-      "n_items": 406,
-      "n_spans": 825,
-      "sha256": "aae78ae37161f942d372cfd66326eb4438213e7a57107ba6e5019f0533f30105"
+      "n_items": 486,
+      "n_spans": 1000,
+      "sha256": "627885cf00fbec10dc3eefc4c0be6eff6e95affa8a755e35807f152e9a6fa875"
     },
     "heldout": {
-      "n_items": 175,
-      "n_spans": 361,
-      "sha256": "3d1134e26911fa279d09121ce0cd50518e1b41a06d7ec21e779f18d55f22fec6"
+      "n_items": 235,
+      "n_spans": 491,
+      "sha256": "5b2811ef0c23b6d88cffb623b87ae05bafcf0de27cfccea7ea6e121a6e71723b"
     }
   }
 }

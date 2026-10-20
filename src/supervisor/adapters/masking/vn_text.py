@@ -79,6 +79,27 @@ MIDS = _clean(tuple(W.MIDDLE_MALE + W.MIDDLE_FEMALE) + MIDDLE_EXTRA)
 GIVENS = _clean(tuple(W.GIVEN_MALE + W.GIVEN_FEMALE) + GIVEN_EXTRA) | MIDS - {"van", "thi"}
 NAME_LEXICON = SURS | MIDS | GIVENS
 
+
+def _exact(words: tuple[str, ...]) -> frozenset[str]:
+    return frozenset(unicodedata.normalize("NFC", w).lower() for w in words if not w.endswith("_"))
+
+
+_SURS_EX = _exact(tuple(W.SURNAMES) + SURNAMES_EXTRA)
+_MIDS_EX = _exact(tuple(W.MIDDLE_MALE + W.MIDDLE_FEMALE) + MIDDLE_EXTRA)
+_GIVENS_EX = _exact(tuple(W.GIVEN_MALE + W.GIVEN_FEMALE) + GIVEN_EXTRA) | _MIDS_EX
+_EXACT_OF: dict[int, frozenset[str]] = {
+    id(SURS): _SURS_EX,
+    id(MIDS): _MIDS_EX,
+    id(GIVENS): _GIVENS_EX,
+    id(NAME_LEXICON): _SURS_EX | _MIDS_EX | _GIVENS_EX,
+}
+# Surnames that are also ordinary words are accepted in lower-case text only when spelled
+# like a name with a distinctive surname.
+LOWER_SURS = frozenset(
+    "nguyen tran le pham hoang huynh phan vu dang bui duong trinh dinh luong truong phung "
+    "doan chau ngo vo".split()
+)
+
 # Words that look like a name in Title or UPPER case but are not (function words, document
 # words, role words). Folded, lower case.
 STOP = frozenset(
@@ -110,7 +131,11 @@ def _telex(k: str) -> str:
 
 
 def _in(tok: str, lex: set[str] | frozenset[str]) -> bool:
+    """Is ``tok`` a lexicon word? A word with diacritics must be spelled exactly (so "nguyên",
+    "đó", "thể" are not names); plain ASCII matches the folded form, also telex-typed."""
     k = _k(tok)
+    if not tok.isascii():
+        return k in lex and unicodedata.normalize("NFC", tok).lower() in _EXACT_OF[id(lex)]
     return k in lex or (len(k) > 2 and _telex(k) in lex)
 
 
@@ -140,8 +165,8 @@ def _chain_ok(text: str, a: _Tok, b: _Tok) -> bool:
 
 
 _STREET_BEFORE = re.compile(
-    r"(?i:đường|duong|phố|pho|ngõ|ngo|hẻm|hem|quận|quan|huyện|huyen|phường|phuong|xã|xa|"
-    r"thành phố|thanh pho|tỉnh|tinh|tp\.?|đại lộ|dai lo|cầu|cau|chợ|cho|trường|truong)\s*$"
+    r"(?<![\w])(?i:đường|duong|phố|pho|ngõ|ngo|hẻm|hem|quận|quan|huyện|huyen|phường|phuong|"
+    r"xã|thành phố|thanh pho|tỉnh|tinh|tp\.?|đại lộ|dai lo)\s*$"
 )
 
 
@@ -175,6 +200,33 @@ _COMPANY = re.compile(
 )
 
 
+def _open_ok(tok: str) -> bool:
+    """A written name word that is not in the lexicon: Title or UPPER case, short like a
+    Vietnamese syllable (so English words such as "Anything" do not pass), not a stop word."""
+    return (
+        _cased(tok)
+        and len(tok) <= 7
+        and (len(tok) > 2 or _in(tok, NAME_LEXICON))
+        and not _is_stop(tok)
+    )
+
+
+def _lower_name(words: list[str]) -> bool:
+    """Lower-case text is risky (thế, từ, thường are also words). Accept only surname + middle
+    + given name(s), all from the lexicon, a diacritic word only in its exact spelling."""
+    return (
+        len(words) >= 3
+        and _in(words[0], SURS)
+        and (_k(words[0]) in LOWER_SURS or _k(words[1]) in ("thi", "van"))
+        and _in(words[1], MIDS)
+        and all(_in(w, NAME_LEXICON) for w in words)
+    )
+
+
+_WEAK_LABELS = frozenset(
+    {"toi la", "this is", "khach hang", "customer", "boi", "ky boi", "nguoi vay", "ben vay",
+     "applicant", "name"}
+)  # fmt: skip
 _HONORS = frozenset({"ong", "ba", "anh", "chi", "co", "chu", "mr", "ms", "mrs", "miss", "em"})
 
 
@@ -196,7 +248,7 @@ def _take_chain(toks: list[_Tok], text: str, i: int, limit: int) -> list[_Tok]:
             continue  # "người đại diện: Ông Trần Văn Bách": the title is not the name
         if _is_stop(t.text):
             break
-        if _cased(t.text):
+        if _cased(t.text) and (_in(t.text, NAME_LEXICON) or _open_ok(t.text)):
             this = "cased"
         elif _in(t.text, NAME_LEXICON) and t.text.islower():
             this = "lower"
@@ -238,14 +290,36 @@ def person_spans(text: str) -> tuple[list[tuple[int, int, str]], list[tuple[int,
         words = [t.text for t in chain]
         if _place_like(words):
             continue
+        if words[0].islower() and not (
+            _lower_name(words)
+            or (
+                len(words) >= 3 and _in(words[0], SURS) and all(_in(w, NAME_LEXICON) for w in words)
+            )
+        ):
+            continue  # lower case after a label: surname first and three name words at least
+        label = m.group().strip(" .:,\"'")
         if not strong:
-            # "Anh Tuấn", "Chị Lan", "của Nguyễn Văn A": needs a name word from the lexicon.
-            if not any(_in(w, NAME_LEXICON) for w in words):
+            # "Anh Tuấn", "Chị Lan", "của Nguyễn Văn A": the first word must be a lexicon name
+            # (not "GHI CHÚ HỆ THỐNG"), and a lone name needs a capitalised, not UPPER, label.
+            if not _in(words[0], NAME_LEXICON):
                 continue
             if _k(chain[0].text) == "nhanh":
                 continue
-            if len(chain) == 1 and m.group()[0].islower():
+            if len(chain) == 1 and not (label[:1].isupper() and not label.isupper()):
                 continue  # "chuyen den anh Nam": a first name alone after a lower-case "anh"
+        elif (
+            m.re is not _RE_JSON_KEY
+            and _k(label) in _WEAK_LABELS
+            and len(chain) < 3
+            and not any(_in(w, NAME_LEXICON) for w in words)
+        ):
+            continue  # "tôi là: DROP TABLE": a weak label needs a lexicon name or 3 words
+        elif (
+            len(chain) == 1
+            and not _in(words[0], NAME_LEXICON)
+            and not (m.re is _RE_JSON_KEY or _k(label) in _HONORS)
+        ):
+            continue  # "khách hàng VIP": one unknown word is not enough without a title
         labelled.append((chain[0].start, chain[-1].end, "label"))
 
     # ---- plain: surname + middle(s) + given, any case, with or without diacritics
@@ -281,22 +355,20 @@ def _plain_at(toks: list[_Tok], text: str, n: int) -> int | None:
         prev = rest[-1] if rest else s
         if not _chain_ok(text, prev, t) or _is_stop(t.text):
             break
-        if cased and not _cased(t.text):
+        if cased and not (_cased(t.text) and (_in(t.text, NAME_LEXICON) or _open_ok(t.text))):
             break
-        if not cased and not t.text.islower():
+        if not cased and not (t.text.islower() and _in(t.text, NAME_LEXICON)):
             break
         rest.append(t)
+    if not cased:  # lower case text: surname + thi/van + given name(s), lexicon only
+        words = [s.text] + [t.text for t in rest]
+        for k in (4, 3):
+            if len(words) >= k and _lower_name(words[:k]):
+                return n + k - 1
+        return None
     mids = 0
     while mids < min(2, len(rest)) and _in(rest[mids].text, MIDS):
         mids += 1
-    if not cased:  # lower case text: closed lexicon only, surname + middle + given at least
-        if mids == 0:
-            return None
-        if mids < len(rest) and _in(rest[mids].text, GIVENS):
-            return n + 1 + mids
-        if mids == 2 and _in(rest[1].text, GIVENS):
-            return n + 2
-        return None
     if mids >= 1:
         if mids < len(rest):  # open final word, written as a name
             end = mids
