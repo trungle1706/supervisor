@@ -1,19 +1,19 @@
 {
-  "commit": "f3780a56bc14",
+  "commit": "cff336e+wp37-f13",
   "date": "2026-10-20",
   "detectors": {
     "dlp_vn": {
       "detector_id": "dlp_vn@1.0.0",
       "splits": {
         "adversarial": {
-          "fn": 6,
+          "fn": 16,
           "fp": 0,
           "fragment_exact_bp": 10000,
           "leak_items": 0,
-          "n": 14,
+          "n": 74,
           "precision_bp": 10000,
-          "recall_bp": 5000,
-          "typed_recall_bp": 5000
+          "recall_bp": 7333,
+          "typed_recall_bp": 8333
         },
         "dev": {
           "fn": 0,
@@ -41,14 +41,14 @@
       "detector_id": "injection_regex@1.0.0",
       "splits": {
         "adversarial": {
-          "fn": 8,
-          "fp": 2,
+          "fn": 35,
+          "fp": 4,
           "fragment_exact_bp": 10000,
           "leak_items": 0,
-          "n": 20,
-          "precision_bp": 8181,
-          "recall_bp": 5294,
-          "typed_recall_bp": 10000
+          "n": 81,
+          "precision_bp": 8857,
+          "recall_bp": 4696,
+          "typed_recall_bp": 9545
         },
         "dev": {
           "fn": 4,
@@ -76,14 +76,14 @@
       "detector_id": "judge_advisory@1.0.0",
       "splits": {
         "adversarial": {
-          "fn": 2,
-          "fp": 0,
+          "fn": 32,
+          "fp": 4,
           "fragment_exact_bp": null,
           "leak_items": 0,
-          "n": 4,
-          "precision_bp": 10000,
-          "recall_bp": 3333,
-          "typed_recall_bp": 10000
+          "n": 64,
+          "precision_bp": 8260,
+          "recall_bp": 3725,
+          "typed_recall_bp": 9803
         },
         "dev": {
           "fn": 0,
