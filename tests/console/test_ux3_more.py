@@ -219,6 +219,28 @@ def test_cycles_missing_parents_and_the_span_cap(ux: Console) -> None:
     assert len(nodes) == traces.MAX_SPANS and extra == 7
 
 
+def test_a_very_deep_span_chain_is_not_a_500(ux: Console) -> None:
+    """Review WP-UX3: 1500 nested spans (each the child of the one before) used to exceed the
+    Python recursion limit in the tree walk. Now the walk is iterative and stops at the cap."""
+    now = ux.ctx.clock.now()
+    deep = [
+        {"event_id": str(i), "ts": now + dt.timedelta(microseconds=i), "span_id": f"d{i}",
+         "parent_span_id": f"d{i - 1}" if i else None, "event_type": "llm_call",
+         "tool_name": None}
+        for i in range(1500)
+    ]  # fmt: skip
+    nodes, extra = traces.build_tree(deep)
+    assert len(nodes) == traces.MAX_SPANS and extra == 1500 - traces.MAX_SPANS
+    assert [n["depth"] for n in nodes[:3]] == [0, 1, 2]
+    t = "trace-ux3-deep"
+    rows = [{**e, "trace_id": t, "agent_id": "payments", "env": "test", "source": "sdk",
+             "status": "completed", "capture_level": "digest", "event_id": uuid.uuid4().hex}
+            for e in deep]  # fmt: skip
+    ux.ctx.tables.append("agent_event", rows)
+    r = ux.get(f"/console/traces/{t}")
+    assert r.status_code == 200 and "+1000" in r.text.replace(" ", "")
+
+
 def test_traces_flag_viewer_roles(console: Console) -> None:
     assert console.get("/console/traces/x").status_code == 400  # flag off
 

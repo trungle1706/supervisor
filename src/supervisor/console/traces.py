@@ -171,19 +171,23 @@ def build_tree(events: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]
     order: list[tuple[str, int]] = []
     seen: set[str] = set()
 
-    def walk(sid: str, depth: int) -> None:
-        if sid in seen:
-            return
-        seen.add(sid)
-        order.append((sid, depth))
-        for c in kids.get(sid, []):
-            walk(c, depth + 1)
+    def walk(root: str) -> None:
+        # iterative depth-first walk: a chain of 1000+ nested spans must not hit the recursion
+        # limit (that was a 500), and drawing stops at MAX_SPANS
+        stack = [(root, 0)]
+        while stack and len(order) < MAX_SPANS:
+            sid, depth = stack.pop()
+            if sid in seen:
+                continue
+            seen.add(sid)
+            order.append((sid, depth))
+            stack.extend((c, depth + 1) for c in reversed(kids.get(sid, [])))
 
     for root in kids.get(None, []):
-        walk(root, 0)
+        walk(root)
     for sid in spans:  # spans in a parent cycle have no root: show them at the top level
-        walk(sid, 0)
-    extra = max(0, len(order) - MAX_SPANS)
+        walk(sid)
+    extra = max(0, len(spans) - len(order))
     nodes = []
     for sid, depth in order[:MAX_SPANS]:
         evs = sorted(spans[sid], key=lambda e: e["ts"])
