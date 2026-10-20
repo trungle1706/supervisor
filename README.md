@@ -100,6 +100,7 @@ until you turn its flag on.
 | `CONSOLE_USERS_ENABLED` | Shows the Users and roles page (read-only role map and matrix; admin) |
 | `CONSOLE_AUDITLOG_ENABLED` | Shows the Audit log page (`console_action` rows; auditor and admin). Not the same as `CONSOLE_AUDIT_ENABLED`, which writes the rows |
 | `CONSOLE_INTEGRATIONS_ENABLED` | Shows the Integrations status page (SIEM, webhook, pager, ITSM, SCIM; read-only) |
+| `CONSOLE_SCAN_CAP`, `CONSOLE_TRACE_SCAN` | Newest rows the Gate decisions / Audit log pages (default 20000) and the Traces list (default 5000) read before they filter |
 | `CONSOLE_TOOLS_ENABLED` | Shows the Tools tab (usage per agent and tool, unused allowed tools, diff download for owners) |
 | `ONBOARD_COMPLIANCE_ENABLED` | Onboarding run also writes the compliance matrix |
 | `ONBOARD_ADVISOR_ENABLED` | Onboarding run also writes the integration report and patches |
