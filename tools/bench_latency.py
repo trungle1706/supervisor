@@ -1059,9 +1059,9 @@ async def _http_arm(
     client: Any, path: str, kind: str, bodies_warm: list[bytes], bodies: list[bytes], rate: int
 ) -> tuple[list[int], dict]:
     send = _http_sender(client, path, kind)
-    warm = await drive_open_loop(send, bodies_warm, rate)
-    _check_drive(warm, f"{kind} warm-up")
-    gc.collect()
+    if bodies_warm:
+        warm = await drive_open_loop(send, bodies_warm, rate)
+        _check_drive(warm, f"{kind} warm-up")
     res = await drive_open_loop(send, bodies, rate)
     _check_drive(res, kind)
     lagged = sorted(res.lag_us)
@@ -1087,9 +1087,11 @@ def run_http_gate_pair(
     order: int,
     prefix: str = "",
     wl_pass: Workload | None = None,
+    prime: bool = False,
 ) -> dict[str, tuple[list[int], dict]]:
-    """One repeat of the GAF pair: /gate/check and the pass-through, same rate, same payload
-    shape. ``order`` alternates which arm goes first to cancel drift."""
+    """One pass of the GAF pair: /gate/check and the pass-through, same rate, same payload
+    shape. ``order`` alternates which arm goes first to cancel drift. ``plan.warm`` requests per
+    arm are sent first and discarded; ``prime`` adds 8 sequential requests before that."""
 
     wl_pass = wl_pass or Workload(1_000)  # the gate's stream must stay contiguous
 
@@ -1100,8 +1102,9 @@ def run_http_gate_pair(
         out: dict[str, tuple[list[int], dict]] = {}
         client = make_client()
         try:
-            await _prime(client, bodies(8, wl_pass), "/bench/passthrough")
-            await _prime(client, bodies(8, wl), prefix + "/gate/check")
+            if prime:
+                await _prime(client, bodies(8, wl_pass), "/bench/passthrough")
+                await _prime(client, bodies(8, wl), prefix + "/gate/check")
             arms = [("gate", prefix + "/gate/check"), ("passthrough", "/bench/passthrough")]
             if order % 2:
                 arms.reverse()
@@ -1273,10 +1276,13 @@ def _mcp_loop(proc: Any, n: int, start: int) -> list[int]:
     return lat
 
 
-def run_mcp(port: int, workdir: Path, n: int, warm: int, repeats: int) -> dict[str, list[dict]]:
+def run_mcp(
+    port: int, workdir: Path, slice_n: int, rounds: int, warm: int, repeats: int
+) -> dict[str, list[dict]]:
     """Closed loop on purpose: a stdio MCP client has one request in flight per pipe.
     Arms: direct to the echo upstream, and through ``supervisor.gateway.mcp_proxy`` (which
-    calls the gate over HTTP on ``port``)."""
+    calls the gate over HTTP on ``port``). Both processes stay alive and take turns in slices,
+    so a slow moment on the host hits both arms and all repeats alike."""
     from supervisor import sandbox
 
     echo = [sys.executable, "-m", "tools.bench_latency", "--echo-upstream"]
@@ -1285,23 +1291,23 @@ def run_mcp(port: int, workdir: Path, n: int, warm: int, repeats: int) -> dict[s
         sys.executable, "-m", "supervisor.gateway.mcp_proxy", "--agent-id", "payments",
         "--agent-version", "1", "--gate-url", f"http://127.0.0.1:{port}", "--", *echo,
     ]  # fmt: skip
-    out: dict[str, list[dict]] = {"direct": [], "proxy": []}
+    arms = {"direct": echo, "proxy": proxy_argv}
+    procs = {name: sandbox.start_pipes(argv, cwd=REPO_ROOT, env=env) for name, argv in arms.items()}
+    buckets: dict[str, list[list[int]]] = {a: [[] for _ in range(repeats)] for a in arms}
     ctr = 10_000_000
-    for arm, argv in (("direct", echo), ("proxy", proxy_argv)):
-        proc = sandbox.start_pipes(argv, cwd=REPO_ROOT, env=env)
-        try:
-            _mcp_loop(proc, 20, ctr)  # process start and import warm-up
-            ctr += 20
-            _mcp_loop(proc, warm, ctr)
-            ctr += warm
-            for _ in range(repeats):
-                gc.collect()
-                samples = _mcp_loop(proc, n, ctr)
-                ctr += n
-                out[arm].append(summarise(samples))
-        finally:
+    try:
+        for proc in procs.values():
+            _mcp_loop(proc, 20 + warm, ctr)  # process start, imports and warm-up
+            ctr += 20 + warm
+        for _ in range(rounds):
+            for r in range(repeats):
+                for name, proc in procs.items():
+                    buckets[name][r] += _mcp_loop(proc, slice_n, ctr)
+                    ctr += slice_n
+    finally:
+        for proc in procs.values():
             proc.stop()
-    return out
+    return {name: [summarise(x) for x in reps] for name, reps in buckets.items()}
 
 
 # ----------------------------------------------------------------------------- suite
@@ -1323,6 +1329,10 @@ class Options:
     tolerance_pct: int = 10
     strict: bool = True
     attempts: int = 4
+    abs_floor_us: int = 20
+    slice_n: int = 100
+    http_slice: int = 100
+    mcp_slice: int = 40
     seed: int = 7
     sim_step_s: float = 120.0
     fake_rtt_ms: int = 0
@@ -1343,6 +1353,9 @@ class Options:
             "mcp_n": 40,
             "strict": False,
             "attempts": 1,
+            "slice_n": 50,
+            "http_slice": 50,
+            "mcp_slice": 20,
             "window_depths": (1000,),
         }
         base.update(kw)
@@ -1371,14 +1384,23 @@ def _result(
     }
 
 
-def _repeat(fn: Callable[[int], tuple[list[int], dict]], repeats: int) -> tuple[list[dict], dict]:
-    reps: list[dict[str, int]] = []
-    meta: dict[str, Any] = {}
-    for r in range(repeats):
-        gc.collect()
-        samples, meta = fn(r)
-        reps.append(summarise(samples))
-    return reps, meta
+def interleave(
+    repeats: int, rounds: int, run_slice: Callable[[int], dict[str, list[int]]]
+) -> dict[str, list[dict[str, int]]]:
+    """Collect ``repeats`` independent sample sets in turns of one slice each (r0, r1, r2, r0, ...).
+
+    On a shared host a slow period (disk stall, a neighbour's test run) would hit one sequential
+    repeat and miss the others, and the spread would measure the host, not the code. Taking
+    turns gives every repeat the same share of every period. The spread then shows the sampling
+    noise of the statistic; the host's drift is shown by the load average and by comparing two
+    runs (``--compare``)."""
+    buckets: dict[str, list[list[int]]] = {}
+    for _ in range(rounds):
+        for r in range(repeats):
+            gc.collect()
+            for name, samples in run_slice(r).items():
+                buckets.setdefault(name, [[] for _ in range(repeats)])[r] += samples
+    return {name: [summarise(x) for x in reps] for name, reps in buckets.items()}
 
 
 def _delta_row(
@@ -1412,11 +1434,17 @@ def _stable(
         out = measure()
         bad: list[str] = []
         for name, (reps, _) in out.items():
-            bad += reproducibility_failures([{"id": name, "repeats": reps}], tol_bp)
+            bad += reproducibility_failures(
+                [{"id": name, "repeats": reps}], tol_bp, opts.abs_floor_us
+            )
         if not bad or not opts.strict or attempt >= max(1, opts.attempts):
             return out, attempt
         opts.log(f"[{label}] spread above tolerance, attempt {attempt}: {bad[0]}")
         attempt += 1
+
+
+def _rounds(n: int, slice_n: int) -> int:
+    return max(1, n // max(1, slice_n))
 
 
 def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
@@ -1426,21 +1454,17 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
     breakdowns: list[dict[str, Any]] = []
     want = set(opts.scenarios)
     tag = f"{backend}|{size}"
-    plan = HttpPlan(opts.http_n, opts.http_warm, opts.rate_hz)
     state = {"otlp": 1}
+    reps_n = opts.repeats
 
-    def otlp_plan(spans: int) -> HttpPlan:
-        return HttpPlan(
-            opts.http_n if spans == 1 else max(40, opts.http_n // 3),
-            opts.http_warm,
-            opts.rate_hz,
-            otlp_rate_hz=100 if spans == 1 else 50,
-        )
+    def otlp_n(spans: int) -> int:
+        return opts.http_n if spans == 1 else max(opts.http_slice, opts.http_n // 3)
+
+    def plan_for(n: int, warm: int, spans: int = 1) -> HttpPlan:
+        return HttpPlan(n, warm, opts.rate_hz, otlp_rate_hz=100 if spans == 1 else 50)
 
     def record(
-        out: dict[str, tuple[list[dict[str, int]], dict]],
-        attempts: int,
-        rules: int,
+        out: dict[str, tuple[list[dict[str, int]], dict]], attempts: int, rules: int
     ) -> dict[str, dict[str, Any]]:
         got = {}
         for name, (reps, meta) in out.items():
@@ -1450,37 +1474,61 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
             got[name] = res
         return got
 
-    def repeat_arm(name: str, fn: Callable[[int], tuple[list[int], dict]]) -> Measure:
+    def single(
+        name: str, rounds: int, run_slice: Callable[[int], tuple[list[int], dict]]
+    ) -> Measure:
+        """One arm, ``rounds`` turns of slices over the repeats."""
+
         def measure() -> dict[str, tuple[list[dict[str, int]], dict]]:
-            reps, meta = _repeat(fn, opts.repeats)
-            return {name: (reps, meta)}
+            meta: dict[str, Any] = {}
+
+            def one(r: int) -> dict[str, list[int]]:
+                samples, m = run_slice(r)
+                meta.update(m)
+                return {name: samples}
+
+            return {name: (interleave(reps_n, rounds, one)[name], meta)}
 
         return measure
 
-    def pair_arm(prefix: str, make: Callable[[], Any], wl_gate: Workload) -> Measure:
+    def pair(prefix: str, make: Callable[[], Any], wl_gate: Workload) -> Measure:
+        slice_plan = plan_for(opts.http_slice, 0)
+        warm_plan = plan_for(0, opts.http_warm)
+
         def measure() -> dict[str, tuple[list[dict[str, int]], dict]]:
-            runs = []
-            for r in range(opts.repeats):
-                gc.collect()
-                runs.append(run_http_gate_pair(make, plan, wl_gate, r))
-            return {
-                f"{prefix}_gate": ([summarise(x["gate"][0]) for x in runs], runs[-1]["gate"][1]),
-                f"{prefix}_passthrough": (
-                    [summarise(x["passthrough"][0]) for x in runs],
-                    runs[-1]["passthrough"][1],
-                ),
-            }
+            wl_pass = Workload(1_000)
+            run_http_gate_pair(make, warm_plan, wl_gate, 0, wl_pass=wl_pass, prime=True)
+            meta: dict[str, dict] = {}
+            turn = {"i": 0}
+
+            def one(r: int) -> dict[str, list[int]]:
+                turn["i"] += 1
+                out = run_http_gate_pair(make, slice_plan, wl_gate, turn["i"], wl_pass=wl_pass)
+                for k, (_, m) in out.items():
+                    meta[k] = m
+                return {f"{prefix}_{k}": v[0] for k, v in out.items()}
+
+            res = interleave(reps_n, _rounds(opts.http_n, opts.http_slice), one)
+            return {name: (reps, meta[name.split("_", 1)[1]]) for name, reps in res.items()}
 
         return measure
 
-    def otlp_arm(name: str, make: Callable[[], Any], spans: int, base: int = 0) -> Measure:
-        pl = otlp_plan(spans)
+    def otlp(name: str, make: Callable[[], Any], spans: int, base: int = 0) -> Measure:
+        n = otlp_n(spans)
+        slice_n = min(opts.http_slice, n)
 
-        def run_it(r: int) -> tuple[list[int], dict]:
-            state["otlp"] += (pl.n + pl.warm + 5) * spans
-            return run_http_otlp(make, pl, spans, base + state["otlp"])
+        def run_slice(r: int) -> tuple[list[int], dict]:
+            state["otlp"] += (slice_n + 5) * spans
+            return run_http_otlp(make, plan_for(slice_n, 0, spans), spans, base + state["otlp"])
 
-        return repeat_arm(name, run_it)
+        inner = single(name, _rounds(n, slice_n), run_slice)
+
+        def measure() -> dict[str, tuple[list[dict[str, int]], dict]]:
+            state["otlp"] += (opts.http_warm + 5) * spans
+            run_http_otlp(make, plan_for(0, opts.http_warm, spans), spans, base + state["otlp"])
+            return inner()
+
+        return measure
 
     with tempfile.TemporaryDirectory(prefix="bench-latency-") as tmp, isolated_env(Path(tmp)):
         workdir = Path(tmp)
@@ -1492,14 +1540,20 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
         try:
             if "inproc" in want:
                 opts.log(f"[{tag}] gate_inproc")
-                fn = repeat_arm(
-                    "gate_inproc", lambda r: run_gate_inproc(stack, wl, opts.n, opts.warm)
+                run_gate_inproc(stack, wl, 0, opts.warm)  # warm-up, discarded
+                fn = single(
+                    "gate_inproc",
+                    _rounds(opts.n, opts.slice_n),
+                    lambda r: run_gate_inproc(stack, wl, opts.slice_n, 0),
                 )
                 record(*_stable(opts, tag, fn), rules)
             if "chain" in want:
                 opts.log(f"[{tag}] chain_append")
-                fn = repeat_arm(
-                    "chain_append", lambda r: run_chain_append(stack, opts.n, opts.warm)
+                run_chain_append(stack, 0, opts.warm)
+                fn = single(
+                    "chain_append",
+                    _rounds(opts.n, opts.slice_n),
+                    lambda r: run_chain_append(stack, opts.slice_n, 0),
                 )
                 record(*_stable(opts, tag, fn), rules)
             if "breakdown" in want:
@@ -1510,30 +1564,45 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
                 for depth in opts.window_depths:
                     opts.log(f"[{tag}] window_depth {depth}")
 
-                    def run_w(r: int, depth: int = depth) -> tuple[list[int], dict]:
-                        stack.sim_step_s = 1.0  # injected events must stay inside the window
-                        remove_injected(stack)
-                        total = inject_window(stack, depth)
-                        lat, meta = run_gate_inproc(stack, wl, opts.n // 2, opts.warm // 3)
-                        meta["window_events"] = total
-                        stack.sim_step_s = opts.sim_step_s
-                        return lat, meta
+                    def window_measure(depth: int = depth) -> Measure:
+                        inner = single(
+                            f"window_depth_{depth}",
+                            _rounds(opts.n // 2, opts.slice_n),
+                            lambda r: run_gate_inproc(stack, wl, opts.slice_n, 0),
+                        )
 
-                    fn = repeat_arm(f"window_depth_{depth}", run_w)
-                    record(*_stable(opts, tag, fn), rules)
+                        def measure() -> dict[str, tuple[list[dict[str, int]], dict]]:
+                            stack.sim_step_s = 1.0  # injected events must stay inside the window
+                            try:
+                                remove_injected(stack)
+                                total = inject_window(stack, depth)
+                                run_gate_inproc(stack, wl, 0, opts.warm // 3)
+                                out = inner()
+                            finally:
+                                stack.sim_step_s = opts.sim_step_s
+                            for _, meta in out.values():
+                                meta["window_events"] = total
+                            return out
+
+                        return measure
+
+                    record(*_stable(opts, tag, window_measure()), rules)
                 remove_injected(stack)
             if "otlp" in want:
                 for spans in (1, 20):
                     opts.log(f"[{tag}] otlp_inproc x{spans}")
-                    pl = otlp_plan(spans)
+                    n = otlp_n(spans)
+                    slice_n = min(opts.http_slice, n)
 
                     def run_o(
-                        r: int, spans: int = spans, pl: HttpPlan = pl
+                        r: int, spans: int = spans, slice_n: int = slice_n
                     ) -> tuple[list[int], dict]:
-                        state["otlp"] += (pl.n + pl.warm + 5) * spans
-                        return run_otlp_inproc(stack, spans, pl.n, pl.warm, state["otlp"])
+                        state["otlp"] += (slice_n + 5) * spans
+                        return run_otlp_inproc(stack, spans, slice_n, 0, state["otlp"])
 
-                    fn = repeat_arm(f"otlp_inproc_{spans}span", run_o)
+                    state["otlp"] += (opts.http_warm + 5) * spans
+                    run_otlp_inproc(stack, spans, 0, opts.http_warm, state["otlp"])
+                    fn = single(f"otlp_inproc_{spans}span", _rounds(n, slice_n), run_o)
                     record(*_stable(opts, tag, fn), rules)
             if "asgi" in want or "otlp" in want:
                 from supervisor.gateway import wiring as gate_wiring
@@ -1542,7 +1611,7 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
             try:
                 if "asgi" in want:
                     opts.log(f"[{tag}] asgi gate vs passthrough")
-                    got = record(*_stable(opts, tag, pair_arm("asgi", make, wl)), rules)
+                    got = record(*_stable(opts, tag, pair("asgi", make, wl)), rules)
                     deltas.append(
                         _delta_row(
                             "asgi", backend, rules, got["asgi_gate"], got["asgi_passthrough"]
@@ -1551,7 +1620,7 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
                 if "otlp" in want:
                     for spans in (1, 20):
                         opts.log(f"[{tag}] otlp asgi x{spans}")
-                        fn = otlp_arm(f"otlp_asgi_{spans}span", make, spans)
+                        fn = otlp(f"otlp_asgi_{spans}span", make, spans)
                         record(*_stable(opts, tag, fn), rules)
             finally:
                 if "asgi" in want or "otlp" in want:
@@ -1566,8 +1635,8 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
                 make_t = tcp_client_factory(port)
                 if "server" in want:
                     opts.log(f"[{tag}] uvicorn gate vs passthrough (port {port})")
-                    pair = pair_arm("uvicorn", make_t, Workload(opts.seed + 1))
-                    got = record(*_stable(opts, tag, pair), rules)
+                    fn = pair("uvicorn", make_t, Workload(opts.seed + 1))
+                    got = record(*_stable(opts, tag, fn), rules)
                     deltas.append(
                         _delta_row(
                             "uvicorn",
@@ -1579,13 +1648,20 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
                     )
                     for spans in (1, 20):
                         opts.log(f"[{tag}] otlp uvicorn x{spans}")
-                        fn = otlp_arm(f"otlp_uvicorn_{spans}span", make_t, spans, 5_000_000)
+                        fn = otlp(f"otlp_uvicorn_{spans}span", make_t, spans, 5_000_000)
                         record(*_stable(opts, tag, fn), rules)
                 if "mcp" in want:
                     opts.log(f"[{tag}] mcp stdio proxy")
 
                     def run_m() -> dict[str, tuple[list[dict[str, int]], dict]]:
-                        mcp = run_mcp(port, wd2, opts.mcp_n, max(20, opts.mcp_n // 4), opts.repeats)
+                        mcp = run_mcp(
+                            port,
+                            wd2,
+                            opts.mcp_slice,
+                            _rounds(opts.mcp_n, opts.mcp_slice),
+                            max(20, opts.mcp_n // 4),
+                            reps_n,
+                        )
                         return {"mcp_direct": (mcp["direct"], {}), "mcp_proxy": (mcp["proxy"], {})}
 
                     got = record(*_stable(opts, tag, run_m), rules)
@@ -1610,7 +1686,7 @@ def run_suite(opts: Options) -> dict[str, Any]:
         [round(x, 2) for x in os.getloadavg()] if hasattr(os, "getloadavg") else []
     )
     tol_bp = opts.tolerance_pct * 100
-    failures = reproducibility_failures(results, tol_bp)
+    failures = reproducibility_failures(results, tol_bp, opts.abs_floor_us)
     attempts = {r["id"]: r.get("attempts", 1) for r in results if r.get("attempts", 1) > 1}
     return {
         "schema": SCHEMA,
@@ -1647,6 +1723,7 @@ def run_suite(opts: Options) -> dict[str, Any]:
         "reproducibility": {
             "enforced": opts.strict,
             "tolerance_bp": tol_bp,
+            "abs_floor_us": opts.abs_floor_us,
             "gated_statistics": list(GATED_KEYS),
             "failures": failures,
             "attempts": attempts,
@@ -1731,6 +1808,33 @@ def markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def compare_reports(old: dict[str, Any], new: dict[str, Any]) -> str:
+    """Run-to-run comparison: p50 and p95 of every result present in both reports."""
+    prev = {r["id"]: r for r in old["results"]}
+    lines = [
+        f"Run-to-run: {old['environment']['date_utc']} "
+        f"(load {old['environment']['load_avg_1_5_15']}) vs {new['environment']['date_utc']} "
+        f"(load {new['environment']['load_avg_1_5_15']})",
+        "",
+        "| Result | p50 old | p50 new | p50 diff % | p95 old | p95 new | p95 diff % |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    worst = 0
+    for r in new["results"]:
+        o = prev.get(r["id"])
+        if o is None:
+            continue
+        cells = []
+        for k in ("p50", "p95"):
+            a, b = o["median"][k], r["median"][k]
+            diff = (b - a) * 10_000 // a if a else 0
+            worst = max(worst, abs(diff))
+            cells += [str(a), str(b), f"{diff / 100:+.1f}"]
+        lines.append(f"| {r['id']} | " + " | ".join(cells) + " |")
+    lines += ["", f"Largest absolute difference: {worst / 100:.1f}%"]
+    return "\n".join(lines) + "\n"
+
+
 def write_outputs(report: dict[str, Any], out_dir: Path) -> tuple[Path, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     env = report["environment"]
@@ -1765,6 +1869,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--rate", type=int, help="HTTP arrival rate, requests per second")
     p.add_argument("--tolerance-pct", type=int, default=10)
     p.add_argument("--attempts", type=int, default=4, help="strict runs: tries per measurement")
+    p.add_argument("--abs-floor-us", type=int, default=20, help="spreads below this are ignored")
+    p.add_argument("--compare", nargs=2, metavar=("OLD", "NEW"), help="compare two JSON reports")
     p.add_argument("--no-strict", action="store_true", help="report, but do not fail, on spread")
     p.add_argument("--seed", type=int, default=7)
     p.add_argument(
@@ -1784,6 +1890,7 @@ def build_parser() -> argparse.ArgumentParser:
 def options_from_args(ns: argparse.Namespace) -> Options:
     kw: dict[str, Any] = {"repeats": ns.repeats, "tolerance_pct": ns.tolerance_pct, "seed": ns.seed}
     kw["fake_rtt_ms"] = ns.fake_rtt_ms
+    kw["abs_floor_us"] = ns.abs_floor_us
     if not ns.quick:
         kw["attempts"] = ns.attempts
     if ns.backends:
@@ -1808,6 +1915,10 @@ def options_from_args(ns: argparse.Namespace) -> Options:
 
 def main(argv: list[str] | None = None) -> int:
     ns = build_parser().parse_args(argv)
+    if ns.compare:
+        old, new = (json.loads(Path(x).read_text(encoding="utf-8")) for x in ns.compare)
+        print(compare_reports(old, new))  # noqa: T201
+        return 0
     if ns.echo_upstream:
         return echo_upstream_main()
     if ns.serve:
