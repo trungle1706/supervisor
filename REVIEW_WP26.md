@@ -128,5 +128,5 @@ about twice that). This is one process on loopback, so it is not a production fi
 
 ## 7. Not changed (outside WP26 or design)
 
-F12 to F17 are recorded above and in BACKLOG. I did not touch the stdio proxy (F13), the gate
+F12 to F18 are recorded above; F12, F14, F15 and F16 are also in BACKLOG. I did not touch the stdio proxy (F13), the gate
 engine, or the console.
