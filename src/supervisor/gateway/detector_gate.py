@@ -80,6 +80,15 @@ class DetectorGate:
         self.registry = registry
         self.resolved = resolved
 
+    def check_policy(self, policy: Policy) -> list[str]:
+        """Problems in the per-agent detector overrides of a policy (empty = fine). Used at
+        start-up and by the policy provider on every reload (F11)."""
+        problems: list[str] = []
+        for agent_id, manifest in policy.doc.agents.items():
+            if manifest.detectors is not None:
+                problems += self.resolved.check_agent(agent_id, manifest.detectors)
+        return problems
+
     # ------------------------------------------------------------------ before the lock
 
     def payload_view(
