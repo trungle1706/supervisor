@@ -248,3 +248,13 @@ def test_unexpected_verifier_error_is_401_not_500(secured: TestClient) -> None:
     body = make_body()
     r = secured.post("/gate/check", content=body, headers=signed("/gate/check", body))
     assert r.status_code == 401 and r.json() == {"error": "authentication failed"}
+
+
+def test_chunked_body_over_the_app_limit_is_413_not_401(secured: TestClient) -> None:
+    # Review: the body-limit middleware's own error must pass through the guard unchanged.
+    def gen() -> Iterator[bytes]:
+        for _ in range(200):
+            yield b"x" * 100_000
+
+    r = secured.post("/gate/check", content=gen(), headers={"content-type": "application/json"})
+    assert r.status_code == 413

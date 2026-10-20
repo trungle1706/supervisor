@@ -361,20 +361,22 @@ class IngressGuard:
             body = await _read_capped(request, self.body_cap(request.url.path))
             body_hash = body_sha256(body)
             request.state.ingress_body_hash = body_hash
-            ident = await run_in_threadpool(
-                self.verifier.authenticate,
-                request.method,
-                request.url.path,
-                request.headers,
-                body,
-            )
+            try:
+                ident = await run_in_threadpool(
+                    self.verifier.authenticate,
+                    request.method,
+                    request.url.path,
+                    request.headers,
+                    body,
+                )
+            except IngressRejected:
+                raise
+            except Exception as exc:  # noqa: BLE001 - a store or verifier bug: 401, never 500
+                log.error("ingress verifier failed: %s", type(exc).__name__)
+                raise IngressRejected("auth_unavailable") from exc
         except IngressRejected as exc:
             await self.record_reject(request, exc.reason, body_hash, claimed)
             raise
-        except Exception as exc:  # noqa: BLE001 - a store or verifier bug: 401, never 500
-            log.error("ingress verifier failed: %s", type(exc).__name__)
-            await self.record_reject(request, "auth_unavailable", body_hash, claimed)
-            raise IngressRejected("auth_unavailable") from exc
         request.state.ingress = ident
         self._count("ingress_accepted")
         return ident
