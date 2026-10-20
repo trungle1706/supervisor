@@ -33,16 +33,21 @@ if CSV_DIR:
     edges.createOrReplaceTempView("inv_edge")
     N, E = "inv_node", "inv_edge"
     ACTIVE = "active = 'true'"
+    LAST_SEEN = "CAST(NULL AS TIMESTAMP) AS last_seen"  # the CSV export has no last_seen
+    # A permanent view cannot reference a temp view: over the CSV pair the views are temporary.
+    CREATE = "CREATE OR REPLACE TEMP VIEW `{name}`"
 else:
     N, E = f"{SRC}.`inventory_node`", f"{SRC}.`inventory_edge`"
     ACTIVE = "active = true"
+    LAST_SEEN = "last_seen"
+    CREATE = "CREATE OR REPLACE VIEW " + OUT + ".`{name}`"
 
 # COMMAND ----------
 
 VIEWS = {
     # shadow AI: Apps and serving endpoints seen in the workspace with no Supervisor manifest
     "v_inventory_unmanaged": f"""
-        SELECT kind, display_name, status, last_seen
+        SELECT kind, display_name, status, {LAST_SEEN}
         FROM {N} WHERE status = 'unmanaged' ORDER BY kind, display_name""",
     # what each agent uses, with evidence (file:line or workspace reference)
     "v_inventory_agent_links": f"""
@@ -57,6 +62,7 @@ VIEWS = {
 # column `effective_risk`, or GET /v1/inventory/{agent_id}. It is not recomputed in SQL.
 
 for name, sql in VIEWS.items():
-    spark.sql(f"CREATE OR REPLACE VIEW {OUT}.`{name}` AS {sql}")
-    print(f"[OK] {OUT}.{name}")
-display(spark.sql(f"SELECT * FROM {OUT}.`v_inventory_counts`"))
+    stmt = CREATE.format(name=name)
+    spark.sql(f"{stmt} AS {sql}")
+    print(f"[OK] {stmt.split()[-1]}")
+display(spark.sql("SELECT * FROM " + CREATE.format(name="v_inventory_counts").split()[-1]))
