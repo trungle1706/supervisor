@@ -329,3 +329,103 @@ def kit(data_dir: Path, *, detectors: bool = True, v2: bool = True) -> Iterator[
             runtime.close()
     finally:
         adapters.close()
+
+
+# ------------------------------------------------------------------ demo store (screenshots)
+
+
+def seed_demo_store(data_dir: Path) -> dict[str, Any]:
+    """A store for screenshots and manual checks: the demo replay and planted calls through the
+    real gate, 40 more synthetic decisions (statuses, consumers, gaps, a failing detector), the
+    decision_daily rollup, the alert job, and three labelled demo alert rows."""
+    from supervisor.jobs import alerts as alerts_job
+    from supervisor.jobs import decision_rollup
+    from supervisor.monitors.common import MonitorContext
+
+    out: dict[str, Any] = {}
+    with kit(data_dir) as k:
+        ids = plant_calls(k.runtime, k.ctx)
+        agents = ("payments", "customer_service", "credit_prequal")
+        mix = [
+            ("allow", (), (), ()),
+            ("allow", (), (), ()),
+            ("report", ("injection.ignore_previous",), (), ()),
+            ("transform", ("pii.phone", "pii.person"), (), ()),
+            ("allow", (), ("content_uninspectable",), ()),
+            ("allow", (), (), ("timed_out",)),
+            ("block", (), (), ()),
+            ("skip", (), ("skipped_by_policy",), ()),
+        ]
+        for i in range(40):
+            status, codes, gaps, ne = mix[i % len(mix)]
+            add_decision(
+                k.ctx,
+                agent=agents[i % 3],
+                status=status,
+                codes=codes,
+                gaps=gaps,
+                not_executed=ne,
+                consumer=("app-mobile", "app-web", "app-branch")[i % 3],
+                direction="output" if i % 5 == 0 else "input",
+                corr=f"corr-demo-{i:04d}",
+                age_s=60 + i * 900,
+                lat=(1200 + (i * 37) % 900, 250 + i % 7 * 20, 300 + i % 11 * 40),
+            )
+        mctx = MonitorContext.from_adapters(k.runtime.adapters, k.runtime.chain)
+        out["rollup"] = decision_rollup.run(mctx, k.ctx.settings, days=3)
+        settings = k.ctx.settings.model_copy(update={"alerts_lag_s": 0})
+        out["alerts"] = alerts_job.run(mctx, settings)
+        now = k.ctx.clock.now()
+        for n, (rule, sev, agent) in enumerate(
+            [
+                ("AL-COVERAGE-GAP", "high", "support-bot"),
+                ("AL-DETECTOR-FAILED", "high", "payments"),
+                ("AL-LATENCY-DEGRADATION", "medium", None),
+            ]
+        ):
+            k.ctx.state.insert(
+                "alert",
+                {
+                    "alert_id": f"{n + 7:032x}",
+                    "ts": now,
+                    "dedupe_key": f"{rule}:demo",
+                    "rule_id": rule,
+                    "rule_hash": "d" * 64,
+                    "severity": sev,
+                    "status": "open",
+                    "title": f"Demo alert {rule} (labelled demo row, not from the engine)",
+                    "agent_id": agent,
+                    "group_value": agent or "*",
+                    "window_s": 900,
+                    "window_count": 5,
+                    "threshold": 3,
+                    "first_ts": now,
+                    "last_ts": now,
+                    "suppressed_count": n,
+                    "refs": ["demo"],
+                    "routes": ["inbox"],
+                    "route_status": {"inbox": "sent"},
+                    "correlation_id": f"corr-demo-{n:04d}",
+                },
+            )
+        out["ids"] = ids
+    return out
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(
+        prog="python -m supervisor.demo.activity_seed",
+        description="Seed a demo store with verdict v2 data (synthetic; for screenshots).",
+    )
+    ap.add_argument("--data-dir", required=True)
+    args = ap.parse_args(argv)
+    res = seed_demo_store(Path(args.data_dir).resolve())
+    rows, alerts = res["rollup"]["rows"], res["alerts"]
+    print(f"[OK] seeded {args.data_dir}: rollup {rows} rows, alerts {alerts}")  # noqa: T201
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
