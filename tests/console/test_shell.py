@@ -231,3 +231,93 @@ def test_no_inline_script_and_no_external_url_in_rendered_pages(console: Console
         assert not re.search(r"<script(?![^>]*\bsrc=)", html), path
         assert not re.search(r"\son[a-z]+=\"", html), path  # no inline event handler
         assert not re.search(r"https?://", html, re.I), path
+
+
+def test_search_trace_lookup_needs_eight_characters(
+    console: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The box searches on each keystroke: a short text never costs an agent_event query."""
+    from supervisor.console import search
+
+    calls: list[object] = []
+    real = console.ctx.tables.query
+
+    def spy(table: str, *a: object, **k: object) -> object:
+        if table == "agent_event":
+            calls.append(a)
+        return real(table, *a, **k)
+
+    monkeypatch.setattr(console.ctx.tables, "query", spy)
+    hx = {"HX-Request": "true"}
+    assert console.get("/console/search?q=abcdefg", headers=hx).status_code == 200
+    assert calls == [] and search.TRACE_MIN == 8
+    assert console.get("/console/search?q=abcdefgh", headers=hx).status_code == 200
+    assert len(calls) == 1
+
+
+def test_drawer_builds_one_agent_card(console: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The htmx drawer builds the card of the opened agent only (a card is several queries);
+    previous / next still follow the list order, and a coverage sort still works."""
+    built: list[str | None] = []
+    real = readmodels.agent_cards
+
+    def spy(ctx, me, only=None):  # type: ignore[no-untyped-def]
+        built.append(only)
+        return real(ctx, me, only)
+
+    monkeypatch.setattr(readmodels, "agent_cards", spy)
+    ids = re.findall(r'data-row="([^"]+)"', console.get("/console/agents/rows").text)
+    assert len(ids) >= 3
+    built.clear()
+    d = console.get(f"/console/agents/{ids[1]}/drawer?tab=overview").text
+    assert built == [ids[1]]
+    assert f"/console/agents/{ids[0]}/drawer" in d and f"/console/agents/{ids[2]}/drawer" in d
+    built.clear()
+    cov = console.get(f"/console/agents/{ids[1]}/drawer?sort=coverage&dir=desc")
+    assert cov.status_code == 200 and built == [ids[1], None]
+
+
+def test_collapsed_sidebar_codes_are_unique_short_and_labelled(
+    console: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    keys = [it.key for _, items in nav.GROUPS for it in items]
+    assert sorted(nav.CODES) == sorted(keys)
+    codes = list(nav.CODES.values())
+    assert len(set(codes)) == len(codes)
+    assert all(re.fullmatch(r"[A-Z]{2,3}", c) for c in codes)
+    monkeypatch.setattr(console.ctx.settings, "console_nav_placeholders", True)
+    side = _sidebar(console.get("/console/?lang=vi").text)
+    items = re.findall(r'title="([^"]+)"[^>]*><span class="ni" aria-hidden="true">([A-Z]+)<', side)
+    assert len(items) >= 15 and ("Nhật ký kiểm toán", "AU") in items
+
+
+def test_shell_on_an_empty_store(adapters, monkeypatch: pytest.MonkeyPatch) -> None:  # type: ignore[no-untyped-def]
+    """A fresh store (no agent, no case, no alert): every count is 0 and the pages render."""
+    from fastapi.testclient import TestClient
+
+    from supervisor.adapters.auth import set_provider
+    from supervisor.app import app
+    from supervisor.console.context import build_context, set_context
+    from supervisor.gateway import wiring as gate_wiring
+    from supervisor.wiring import build_runtime
+
+    runtime = build_runtime(adapters.settings, adapters=adapters, policy_refresh_s=0.0)
+    ctx = build_context(runtime)
+    set_context(ctx)
+    gate_wiring.set_gateway(runtime.gateway)
+    try:
+        sh = readmodels.shell(ctx, _principal(None))  # type: ignore[arg-type]
+        for key in ("agents_n", "cases_n", "critical_n", "signoff_n", "alerts_n", "unread"):
+            assert sh[key] == 0, key
+        client = TestClient(app, raise_server_exceptions=False)
+        hdr = {"X-Dev-User": "reviewer.an"}
+        for url in ("/console/", "/console/agents", "/console/agents/rows", "/console/search?q=ab"):
+            r = client.get(url, headers=hdr)
+            assert r.status_code == 200, (url, r.text[:300])
+        assert client.get("/console/agents/x/drawer", headers=hdr).status_code == 400
+        assert "Showing 0-0 of 0" in client.get("/console/agents/rows", headers=hdr).text
+    finally:
+        set_context(None)
+        gate_wiring.set_gateway(None)
+        set_provider(None)
+        runtime.close()

@@ -115,7 +115,7 @@ def signoff_waiting(ctx: Any, cases: list[dict[str, Any]]) -> int:
     try:
         for c in cases:
             if c["severity"] in TWO_PERSON_SEVERITIES and c["status"] in ("triaged", "contained"):
-                if len(ctx.cases._approvals(c["case_id"])) < 2:  # noqa: SLF001 - read-only count
+                if len(ctx.cases.approvals(c["case_id"])) < 2:
                     n += 1
     except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
         return 0
@@ -521,7 +521,8 @@ def decision33(ctx: Any, agent: Mapping[str, Any]) -> dict[str, Any]:
     return {"cls": None, "source": None}
 
 
-def agent_cards(ctx: Any, me: Any) -> list[dict[str, Any]]:
+def agent_cards(ctx: Any, me: Any, only: str | None = None) -> list[dict[str, Any]]:
+    """One card per agent; ``only`` builds the card of that agent alone (the row drawer)."""
     from supervisor.core.errors import SupervisorError
 
     states = ctx.gateway.states
@@ -538,6 +539,8 @@ def agent_cards(ctx: Any, me: Any) -> list[dict[str, Any]]:
     cards = []
     for a in sorted(ctx.state.query("agent"), key=lambda r: r["agent_id"]):
         aid = a["agent_id"]
+        if only is not None and aid != only:
+            continue
         try:
             desc = states.describe(aid)
         except SupervisorError:
@@ -925,7 +928,7 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
 
     status = case["status"]
     next_steps = list(TRANSITIONS.get(status, ()))
-    approvals = ctx.cases._approvals(case_id)
+    approvals = ctx.cases.approvals(case_id)
     two_person = case["severity"] in TWO_PERSON_SEVERITIES
     agent_row = ctx.state.get("agent", {"agent_id": case["agent_id"]}) or {}
     try:
@@ -1063,4 +1066,95 @@ def overview(ctx: Any, now: dt.datetime) -> dict[str, Any]:
         "chain": chain_summary(ctx),
         "latest": latest_decisions(ctx),
         "demo": is_demo_store(ctx.settings),
+    }
+
+
+# ---------------------------------------------------------------------------- span tree
+
+SPAN_CAP = 500  # spans per tree; the rest is cut and the tree says so
+SPAN_DEPTH = 48  # deeper spans hang under the "unparented" node (keeps the template shallow)
+
+
+def span_tree(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    """The events of one trace as a span tree for ``_c_spantree.html`` (WP-UX1 component).
+
+    One node per ``span_id`` (its events in time order). A span whose parent is missing goes
+    under the ``unparented`` list; a span inside a parent loop is cut there too (``cut``), so
+    every span shows once and the walk always ends. At most ``SPAN_CAP`` spans (first in time).
+    Node: ``{span_id, events, children, ts, event_type, tool_name, status, latency_ms, cut}``."""
+    rows = sorted(events, key=lambda e: (str(e.get("ts") or ""), str(e.get("event_id") or "")))
+    nodes: dict[str, dict[str, Any]] = {}
+    parent: dict[str, str | None] = {}
+    truncated = False
+    for e in rows:
+        sid = str(e.get("span_id") or "")
+        if not sid:
+            continue
+        node = nodes.get(sid)
+        if node is None:
+            if len(nodes) >= SPAN_CAP:
+                truncated = True
+                continue
+            node = nodes[sid] = {
+                "span_id": sid,
+                "events": [],
+                "children": [],
+                "ts": e.get("ts"),
+                "event_type": e.get("event_type"),
+                "tool_name": e.get("tool_name"),
+                "status": e.get("status"),
+                "latency_ms": None,
+                "cut": False,
+            }
+            parent[sid] = None
+        node["events"].append(e)
+        node["tool_name"] = node["tool_name"] or e.get("tool_name")
+        if e.get("latency_ms") is not None:
+            node["latency_ms"] = max(node["latency_ms"] or 0, int(e["latency_ms"]))
+        p = e.get("parent_span_id")
+        if p and parent[sid] is None and p != sid:
+            parent[sid] = str(p)
+    roots: list[dict[str, Any]] = []
+    unparented: list[dict[str, Any]] = []
+    for sid, node in nodes.items():  # insertion order = time order
+        p = parent[sid]
+        if p is None:
+            roots.append(node)
+        elif p in nodes:
+            nodes[p]["children"].append(node)
+        else:
+            unparented.append(node)
+    # Walk from the roots; whatever the walk does not reach sits in a parent loop: cut it there.
+    seen: set[str] = set()
+
+    def walk(start: list[dict[str, Any]]) -> None:
+        stack = [(n, 1) for n in reversed(start)]
+        while stack:
+            n, depth = stack.pop()
+            seen.add(n["span_id"])
+            if depth >= SPAN_DEPTH and n["children"]:
+                unparented.extend(n["children"])
+                stack.extend((c, 1) for c in reversed(n["children"]))
+                n["children"] = []
+                continue
+            stack.extend((c, depth + 1) for c in reversed(n["children"]))
+
+    walk(roots)
+    walk(list(unparented))
+    for sid, node in nodes.items():
+        if sid in seen:
+            continue
+        loop_parent = parent[sid]
+        if loop_parent in nodes:  # detach from its parent in the loop
+            kids = nodes[loop_parent]["children"]
+            nodes[loop_parent]["children"] = [k for k in kids if k["span_id"] != sid]
+        node["cut"] = True
+        unparented.append(node)
+        walk([node])
+    return {
+        "roots": roots,
+        "unparented": unparented,
+        "n": len(nodes),
+        "cap": SPAN_CAP,
+        "truncated": truncated,
     }

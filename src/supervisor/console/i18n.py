@@ -1325,6 +1325,11 @@ _T: dict[str, tuple[str, str]] = {
         "Mục menu đã có để cấu trúc được chốt. Không mất dữ liệu: dữ liệu đã được ghi sẵn.",
     ),
     "see_all": ("See all", "Xem tất cả"),
+    "span_tree": ("Span tree", "Cây span"),
+    "span_unparented": ("Spans without a parent", "Span không có span cha"),
+    "span_cut": ("loop cut", "đã cắt vòng lặp"),
+    "span_capped": ("Showing the first {n} spans only.", "Chỉ hiển thị {n} span đầu tiên."),
+    "span_none": ("No span in this trace", "Dấu vết này không có span"),
     "no_decisions_line": (
         "Decisions appear here when an agent calls the gate.",
         "Quyết định sẽ hiện ở đây khi tác tử gọi cổng.",
@@ -1435,7 +1440,6 @@ _T: dict[str, tuple[str, str]] = {
     "trace_title": ("Trace", "Dấu vết"),
     "copy_id": ("Copy id", "Sao chép mã"),
     "n_spans": ("{n} spans", "{n} span"),
-    "span_tree": ("Span tree", "Cây span"),
     "span_detail": ("Selected span", "Span đã chọn"),
     "tree_legend": (
         "P pause, B block, A alert, J judge verdict (advisory).",

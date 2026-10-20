@@ -672,10 +672,11 @@ async def agents(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal
         data["drawer"] = await _call(
             agents_list.drawer_view,
             ctx,
-            data["agents"],
+            me,
             opened,
             query.get("dtab") or "overview",
             dq,
+            data["agents"],
         )
         data["drawer_open"] = True
     return render(request, ctx, me, "agents.html", section="agents", **data)
@@ -703,8 +704,7 @@ async def agent_drawer(
     query = dict(request.query_params)
     tab = query.pop("tab", "overview")
     query.pop("lang", None)
-    cards = await _call(readmodels.agent_cards, ctx, me)
-    data = await _call(agents_list.drawer_view, ctx, cards, agent_id, tab, query)
+    data = await _call(agents_list.drawer_view, ctx, me, agent_id, tab, query)
     return render(request, ctx, me, "_agent_drawer.html", drawer=data)
 
 

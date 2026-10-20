@@ -108,16 +108,50 @@ def list_view(cards: list[dict[str, Any]], query: Mapping[str, str]) -> dict[str
     }
 
 
+def order_rows(ctx: Any, me: Any, p: Mapping[str, str]) -> list[dict[str, Any]]:
+    """The rows that order the drawer's previous / next links, without a full card per agent
+    (a card costs several queries): only the fields the filters and sort keys read. A sort
+    by coverage needs the coverage of every agent, so it takes the full cards."""
+    col, _ = parse_sort(p["sort"], p["dir"], COLUMNS, "state", "asc")
+    if col == "coverage":
+        return readmodels.agent_cards(ctx, me)
+    open_by: dict[str, int] = {}
+    for c in readmodels.open_cases(ctx):
+        open_by[c["agent_id"]] = open_by.get(c["agent_id"], 0) + 1
+    states = ctx.gateway.states
+    return [
+        {
+            **a,
+            "state": states.get_state(a["agent_id"]) or a.get("gate_state"),
+            "open_cases": open_by.get(a["agent_id"], 0),
+        }
+        for a in ctx.state.query("agent")
+    ]
+
+
 def drawer_view(
-    ctx: Any, cards: list[dict[str, Any]], agent_id: str, tab: str, query: Mapping[str, str]
+    ctx: Any,
+    me: Any,
+    agent_id: str,
+    tab: str,
+    query: Mapping[str, str],
+    cards: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    """Data for ``_agent_drawer.html``. ``cards`` (the list page has them already) avoids a
+    second build; without it only the card of ``agent_id`` is built."""
     if tab not in DRAWER_TABS:
         raise ListingError("unknown drawer tab")
-    card = next((a for a in cards if a["agent_id"] == agent_id), None)
-    if card is None:
-        raise ListingError(f"agent {agent_id} is not registered")
     p = parse_params(query)
-    rows, _, _ = ordered(cards, p)
+    if cards is None:
+        found = readmodels.agent_cards(ctx, me, only=agent_id)
+        order = order_rows(ctx, me, p)
+    else:
+        found = [a for a in cards if a["agent_id"] == agent_id]
+        order = cards
+    if not found:
+        raise ListingError(f"agent {agent_id} is not registered")
+    card = found[0]
+    rows, _, _ = ordered(order, p)
     ids = [a["agent_id"] for a in rows]
     i = ids.index(agent_id) if agent_id in ids else -1
     out: dict[str, Any] = {

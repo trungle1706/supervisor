@@ -1,7 +1,9 @@
 """Global search box (WP-UX1): agents, cases and traces that match a short text.
 
 Read-only. Agents and cases match by substring on id and name; a trace matches by exact trace
-id (no fuzzy index, no free-text scan of events). At most ``LIMIT`` hits per kind."""
+id (no fuzzy index, no free-text scan of events), and only from ``TRACE_MIN`` characters: the
+box searches on each keystroke and a trace lookup is one SQL call (on Delta, no index). At most
+``LIMIT`` hits per kind."""
 
 from __future__ import annotations
 
@@ -12,6 +14,7 @@ from supervisor.console.listing import ListingError
 
 LIMIT = 5
 MAX_LEN = 64
+TRACE_MIN = 8  # shorter text cannot be a trace id worth a lookup
 _Q = re.compile(r"^[A-Za-z0-9_.:@ -]+$")
 
 
@@ -45,7 +48,7 @@ def run(ctx: Any, raw: str | None) -> dict[str, Any]:
             )
             if len(out["cases"]) >= LIMIT:
                 break
-    if " " not in q:
+    if len(q) >= TRACE_MIN and " " not in q:
         seen: set[str] = set()
         for e in ctx.tables.query("agent_event", {"trace_id": q}, limit=50):
             if e["agent_id"] not in seen:

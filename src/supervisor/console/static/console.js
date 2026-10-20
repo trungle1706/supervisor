@@ -112,7 +112,9 @@
       lastRow = elt && elt.closest ? elt.closest("a,button") : null;
       d.hidden = false;
     }
-    var h = document.getElementById("drawer-title");
+    var src = evt.detail.requestConfig && evt.detail.requestConfig.elt;
+    var tab = src && src.getAttribute("role") === "tab" ? d.querySelector('[role=tab][data-tab="' + src.getAttribute("data-tab") + '"]') : null;
+    var h = tab || document.getElementById("drawer-title");
     if (h) { h.focus(); }
   });
   document.addEventListener("keydown", function (evt) {
@@ -123,13 +125,14 @@
       docEl.removeAttribute("data-side-open");
       return;
     }
-    var dir = { ArrowDown: 1, ArrowUp: -1, ArrowRight: 1, ArrowLeft: -1 }[evt.key];
+    var dir = { ArrowDown: 1, ArrowUp: -1, ArrowRight: 1, ArrowLeft: -1, Home: -1e3, End: 1e3 }[evt.key];
     var host = evt.target.closest ? evt.target.closest("[data-sidenav], [role=tablist]") : null;
     if (!dir || !host) { return; }
     var vertical = host.hasAttribute("data-sidenav");
-    if (vertical !== (evt.key === "ArrowDown" || evt.key === "ArrowUp")) { return; }
+    if (Math.abs(dir) === 1 && vertical !== (evt.key === "ArrowDown" || evt.key === "ArrowUp")) { return; }
     var links = Array.prototype.slice.call(host.querySelectorAll("a[href]"));
-    var next = links[links.indexOf(evt.target.closest("a")) + dir];
+    var at = links.indexOf(evt.target.closest("a")) + dir;
+    var next = links[Math.max(0, Math.min(links.length - 1, at))];
     if (next) { evt.preventDefault(); next.focus(); }
   });
 })();
