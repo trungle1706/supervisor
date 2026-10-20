@@ -7,13 +7,20 @@ counts what those controls did, for the agents the risk applies to, and writes o
 What counts, per linked control, in the window [start, end):
 
 =========  ======================================================================================
-rule       ``working`` = at least one tier-0 verdict hit (action other than allow, not advisory)
-           by a supervised agent; ``failing`` = the rule id is not in the deployed policy any more
-           (a control that was removed); otherwise ``idle`` (no hit: it proves nothing).
-pack       newest non-mock assurance result of a supervised agent: ``ok`` = working,
-           ``fail`` or ``error`` = failing, ``warn``, ``skip`` or none = idle.
-monitor    newest daily ``monitor_status`` of a supervised agent: ``ok`` = working; anything
-           else (``not_applicable``, ``no_data``, missing) = idle.
+rule       ``working`` = at least one tier-0 verdict hit (action other than allow, not advisory,
+           not mock) that the gate enforced for a supervised agent; ``failing`` = the rule id is
+           not in the deployed policy any more (a control that was removed); otherwise ``idle``
+           (no hit: it proves nothing). A SHADOW "would" row, a rule error and a fail-mode row
+           are not hits (the label written by the gate at the time says so).
+pack       newest non-mock assurance result of EVERY supervised agent: all ``ok`` (or ``skip``)
+           = working; any ``fail`` or ``error`` = failing; otherwise (``warn``, an agent with no
+           result, none at all) = idle.
+monitor    newest daily ``monitor_status`` of EVERY supervised agent is ``ok`` = working;
+           anything else (``not_applicable``, ``no_data``, missing for one agent) = idle. Only
+           the deterministic monitors that write a status count (``EVIDENCE_MONITORS``); the
+           ``quality`` monitor is an advisory LLM scorer (rule R1) and ``oversight`` and
+           ``sweeps`` write no status, so a link to them is never evidence. ``ok`` means the
+           monitor ran and produced values for the agent.
 =========  ======================================================================================
 
 A supervised agent has ``gate_state`` RUNNING, PAUSED or QUARANTINED. A SHADOW agent only logs
@@ -52,6 +59,17 @@ STOP_ACTIONS = ("block", "pause")
 HIT_ACTIONS = ("log", "alert", "block", "pause")
 SCAN_CAP = 20000
 STALE_WINDOWS = 2
+# Verdict labels and checkers that are not proof that a rule enforced anything (review WP29):
+# a SHADOW agent's "would" rows, a rule that raised (the fail mode decided, not the rule) and
+# a gate fail-mode row. The gate writes the label at the time of the call, so this also holds
+# for an agent that was SHADOW then and is RUNNING now.
+NON_HIT_LABEL_PREFIXES = ("shadow_",)
+NON_HIT_LABELS = ("rule_error", "fail_open", "fail_closed")
+NON_HIT_CHECKERS = ("gate:fail_mode",)
+# Monitors whose status may count as a working control: the deterministic ones that write a
+# monitor_status entry (supervisor.monitors.status.MONITORS) minus "quality", an advisory LLM
+# scorer (rule R1: a judge never changes a control decision, so it never lowers a score).
+EVIDENCE_MONITORS = ("fairness", "drift", "multiagent")
 
 STATE_WORKING = "working"
 STATE_FAILING = "failing"
@@ -66,6 +84,7 @@ REASONS = (
     "treatment_declared",
     "stale_evidence",
     "no_evidence_yet",
+    "changed_since_evidence",
 )
 
 
@@ -117,7 +136,10 @@ class Window:
 
 
 def window_for(now: dt.datetime, days: int) -> Window:
-    """The window that ends at the last full hour before ``now`` and spans ``days`` days."""
+    """The window that ends at the last full hour before ``now`` and spans ``days`` days.
+    A naive ``now`` is read as UTC (never as the host's local time)."""
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=dt.UTC)
     end = now.astimezone(dt.UTC).replace(minute=0, second=0, microsecond=0)
     return Window(end - dt.timedelta(days=days), end)
 
@@ -143,6 +165,21 @@ def assess(
     if treatment != "mitigate":
         return Decision(state, "treatment_declared", declared)
     return Decision(state, reason, declared if state == STATE_WORKING else inherent)
+
+
+def _true(value: Any) -> bool:
+    """A stored boolean (Delta answers strings)."""
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true")
+    return bool(value)
+
+
+def enforced_hit(v: Mapping[str, Any]) -> bool:
+    """A verdict row that shows the gate enforced the rule (not shadow, error, fail or mock)."""
+    label = str(v.get("label") or "")
+    if _true(v.get("is_mock")) or str(v.get("checker_id") or "") in NON_HIT_CHECKERS:
+        return False
+    return label not in NON_HIT_LABELS and not label.startswith(NON_HIT_LABEL_PREFIXES)
 
 
 def _json(value: Any) -> Any:
@@ -232,7 +269,9 @@ class Collector:
             )
             for v in rows:
                 ts = _ts(v["ts"])
-                if ts is None or not (w.start <= ts < w.end) or v.get("advisory"):
+                if ts is None or not (w.start <= ts < w.end) or _true(v.get("advisory")):
+                    continue
+                if not enforced_hit(v):
                     continue
                 if v["action"] in HIT_ACTIONS:
                     hits += 1
@@ -240,9 +279,13 @@ class Collector:
         return hits, stops
 
     def pack_status(self, agents: list[str], pack_id: str, w: Window) -> str:
-        """``ok`` | ``warn`` | ``fail`` | ``nodata`` over the agents' newest non-mock results."""
+        """``ok`` | ``warn`` | ``fail`` | ``nodata`` over the agents' newest non-mock results.
+        ``ok`` needs a result for every supervised agent: a pack run on one agent does not show
+        the control works for another agent the risk applies to."""
         seen: list[str] = []
+        missing = False
         for a in agents:
+            found = False
             rows = self.tables.query(
                 "eval_result",
                 {"target_kind": "agent", "target_id": a, "pack_id": pack_id},
@@ -251,12 +294,16 @@ class Collector:
             )
             for r in rows:
                 ts = _ts(r["ts"])
-                if ts is None or not (w.start <= ts < w.end) or r.get("is_mock"):
+                if ts is None or not (w.start <= ts < w.end) or _true(r.get("is_mock")):
                     continue
                 seen.append(str(r["status"]))
+                found = True
                 break
+            missing = missing or not found
         if any(s in ("fail", "error") for s in seen):
             return "fail"
+        if seen and missing:
+            return "warn"  # partial coverage: not shown for every agent
         if any(s == "ok" for s in seen):
             return "ok" if all(s in ("ok", "skip") for s in seen) else "warn"
         if any(s == "warn" for s in seen):
@@ -264,17 +311,20 @@ class Collector:
         return "nodata"
 
     def monitor_ok(self, agents: list[str], monitor: str, w: Window) -> bool:
+        """True when the newest status in the window is ``ok`` for EVERY supervised agent."""
+        if monitor not in EVIDENCE_MONITORS or not agents:
+            return False
         for a in agents:
             rows = self.state.query("oversight_metric", {"agent_id": a})
             dated = [(d, r) for r in rows if (d := _date(r.get("metric_date"))) is not None]
             dated = [(d, r) for d, r in dated if w.start.date() <= d < w.end.date()]
             if not dated:
-                continue
+                return False
             _, newest = max(dated, key=lambda x: x[0])
             status = (_json(newest.get("monitor_status")) or {}).get(monitor) or {}
-            if isinstance(status, Mapping) and status.get("status") == "ok":
-                return True
-        return False
+            if not (isinstance(status, Mapping) and status.get("status") == "ok"):
+                return False
+        return True
 
     # -- one risk ------------------------------------------------------------------------
     def count(self, agents: Iterable[str], links: Iterable[tuple[str, str]], w: Window) -> Counts:
@@ -344,8 +394,29 @@ def evidence_digest(risk_id: str, w: Window, c: Counts, d: Decision) -> str:
     )
 
 
-def evidence_id(risk_id: str, w: Window) -> str:
-    return "rev_" + sha256_hex({"risk_id": risk_id, "end": format_ts(w.end)})[:24]
+def evidence_basis(row: Mapping[str, Any], controls: Iterable[tuple[str, str]]) -> str:
+    """Hash of what an evidence row was computed for: the anchor, the treatment, the inherent
+    and declared residual values and the control links. A change to any of them (an unlink, a
+    move to another agent, a lower declared residual) needs a new evidence pass before the
+    declared value is used again. Text fields (title, owner, review date) are not in it."""
+    return sha256_hex(
+        {
+            "agent_id": row.get("agent_id") or "",
+            "node_id": row.get("node_id") or "",
+            "treatment": row["treatment"],
+            "inherent": [int(row["inherent_likelihood"]), int(row["inherent_impact"])],
+            "declared": [int(row["residual_likelihood"]), int(row["residual_impact"])],
+            "controls": sorted([k, t] for k, t in set(controls) if k in CONTROL_KINDS),
+        }
+    )[:32]
+
+
+def evidence_id(risk_id: str, w: Window, basis: str = "") -> str:
+    """Row id: one row per risk, window and basis (a repeat is a no-op)."""
+    key: dict[str, str] = {"risk_id": risk_id, "end": format_ts(w.end)}
+    if basis:
+        key["basis"] = basis
+    return "rev_" + sha256_hex(key)[:24]
 
 
 def is_stale(window_end: dt.datetime, window_seconds: int, now: dt.datetime) -> bool:

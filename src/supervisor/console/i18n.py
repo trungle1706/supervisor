@@ -1737,6 +1737,10 @@ _T.update(
         "rk_reason_treatment_declared": ("residual as declared", "điểm dư như đã khai báo"),
         "rk_reason_stale_evidence": ("evidence is too old", "bằng chứng đã cũ"),
         "rk_reason_no_evidence_yet": ("evidence job has not run", "chưa chạy công việc bằng chứng"),
+        "rk_reason_changed_since_evidence": (
+            "risk or its controls changed since the last evidence pass",
+            "rủi ro hoặc kiểm soát đã đổi sau lần lấy bằng chứng gần nhất",
+        ),
         "rk_score_val": ("{s} ({l} x {i})", "{s} ({l} x {i})"),
         "rk_marginal": ("Marginal risk (AI)", "Rủi ro biên (AI)"),
         "rk_treatment_note": ("Treatment note", "Ghi chú xử lý"),

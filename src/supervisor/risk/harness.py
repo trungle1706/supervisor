@@ -278,7 +278,7 @@ class _Env:
             obligations=lambda: ["OB-1"],
             rules=lambda: self.rules,
             packs=lambda: ["pack_a"],
-            monitors=lambda: ["oversight"],
+            monitors=lambda: ["oversight", "drift", "quality"],
             case_exists=lambda c: False,
         )
         self.svc = RiskService.from_adapters(self.adapters)
@@ -318,10 +318,10 @@ class _Env:
                     "ts": when,
                     "agent_id": agent_id,
                     "tier": 0,
-                    "checker_id": "gate",
+                    "checker_id": "gate:tier0a",
                     "is_mock": False,
                     "advisory": False,
-                    "label": "hit",
+                    "label": "matched",
                     "action": action,
                     "rule_id": rule_id,
                 }
