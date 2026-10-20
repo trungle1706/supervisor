@@ -38,6 +38,19 @@ class ConsoleContext:
         return svc
 
     @property
+    def risks(self) -> Any:
+        """The risk register service (WP29, ADR D26). Changes and evidence go on the chain."""
+        from supervisor.risk.service import RiskService
+
+        svc = getattr(self, "_risks", None)
+        if svc is None:
+            svc = RiskService(
+                self.state, self.tables, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._risks = svc
+        return svc
+
+    @property
     def gateway(self) -> Any:
         return self.runtime.gateway
 

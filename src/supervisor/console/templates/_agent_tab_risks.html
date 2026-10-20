@@ -1,0 +1,38 @@
+{# Risks tab of the Agent page (WP29): the agent's register level and the risks that reach it,
+   its own and inherited through the inventory graph. Read only. #}
+{% import "_ui.html" as ui with context %}
+{% if rk_off %}
+{{ ui.empty(t('rk_tab_off')) }}
+{% else %}
+<section class="card" data-section="risk-level">
+  <h3>{{ t('rk_level') }}</h3>
+  <p>
+    {{ t('rk_col_inherent') }}: {{ rk.inherent_score }} {% if rk.inherent_level %}{{ ui.sev(rk.inherent_level) }}{% else %}-{% endif %}
+    · {{ t('rk_col_residual') }}: {{ rk.residual_score }} {% if rk.residual_level %}{{ ui.sev(rk.residual_level) }}{% else %}-{% endif %}
+  </p>
+  {% if rk.thresholds_illustrative %}<p class="hint">{{ t('rk_illustrative_short') }}</p>{% endif %}
+</section>
+{% if rk.risks %}
+<section class="card" data-section="risk-list">
+  <h3>{{ t('nav_risks') }} <span class="k">{{ rk.risks|length }}</span></h3>
+  <div class="tablewrap flat"><table class="queue" id="agent-risks">
+    <thead><tr><th scope="col">{{ t('rk_col_risk') }}</th><th scope="col">{{ t('rk_col_category') }}</th><th scope="col" class="n">{{ t('rk_col_inherent') }}</th><th scope="col" class="n">{{ t('rk_col_residual') }}</th><th scope="col">{{ t('rk_col_evidence') }}</th><th scope="col">{{ t('rk_via') }}</th></tr></thead>
+    <tbody>
+    {% for r in rk.risks %}
+      <tr class="row">
+        <td><a class="mono" href="/console/risks?drawer={{ r.risk_id }}&amp;lang={{ lang }}">{{ r.risk_id }}</a><div class="idline">{{ r.title }}</div></td>
+        <td>{{ t('rk_cat_' ~ r.category) }}</td>
+        <td class="n">{{ r.inherent_score }} {{ ui.sev(r.inherent_band) }}</td>
+        <td class="n">{{ r.residual_score }} {{ ui.sev(r.residual_band) }}</td>
+        <td>{% if r.evidence_state %}{{ ui.pill(t('rk_ev_' ~ r.evidence_state), {'working': 'ok', 'failing': 'bad', 'no_evidence': 'warn'}.get(r.evidence_state, 'neutral'), True) }}{% else %}<span class="muted">{{ t('rk_ev_none') }}</span>{% endif %}</td>
+        <td class="mono">{{ r.via }} <span class="muted">({{ t('rk_own') if r.own else t('rk_inherited') }})</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% else %}
+{{ ui.empty(t('rk_tab_none')) }}
+{% endif %}
+{% if risks_page %}<p class="hint"><a href="/console/risks?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('rk_open_page') }}</a></p>{% endif %}
+{% endif %}

@@ -1,0 +1,111 @@
+# Starter risks for the credit decision agent profile (WP29): the loan pre-qualification agent
+# of this repo. SYNTHETIC and ILLUSTRATIVE (see payments.yaml). A bank-internal credit memo agent
+# is imported the same way from the bank's own file.
+version: 1
+risks:
+  - id: RSK-CRD-001
+    agent: credit_prequal
+    title: Pre-qualification decision without the required documents or the application read
+    description: >
+      The agent approves, or decides, before the documents are on file in the system of record,
+      or without having read the application.
+    category: credit_decision
+    inherent: {likelihood: 3, impact: 4}
+    marginal: {score: 3, note: A fixed workflow checks the documents; an agent can skip a step.}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 3}
+    owner: Consumer Lending
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [CRD-01, CRD-02]
+      matrix: [VN-QD33-2026-PL4.2-02, INTL-OWASPLLM-2025-LLM05-01]
+      pack: [owasp_agentic_redteam]
+      monitor: [oversight]
+
+  - id: RSK-CRD-002
+    agent: credit_prequal
+    title: Credit amount above the authorised limit
+    description: >
+      The agent pre-qualifies an amount above the limit set for its mandate.
+    category: credit_decision
+    inherent: {likelihood: 3, impact: 5}
+    treatment: mitigate
+    residual: {likelihood: 1, impact: 5}
+    owner: Consumer Lending
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [CRD-03]
+      matrix: [VN-QD33-2026-PL4.2-03, VN-TT53-2026-A4.02B-01]
+      monitor: [oversight]
+
+  - id: RSK-CRD-003
+    agent: credit_prequal
+    title: Bulk read of loan applications (personal data)
+    description: >
+      The agent reads far more loan applications per hour than the work needs, which exposes
+      personal and financial data.
+    category: pii
+    inherent: {likelihood: 3, impact: 4}
+    marginal: {score: 4, note: An agent can read at machine speed without a person asking.}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 3}
+    owner: Consumer Lending
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [PII-02]
+      matrix: [VN-DATA-2024-A25.1-01, VN-DEC356-2025-A4.1-01, INTL-OWASPLLM-2025-LLM02-01]
+      pack: [pii_canary]
+      monitor: [sweeps]
+
+  - id: RSK-CRD-004
+    agent: credit_prequal
+    title: Unfair pre-qualification outcomes between customer groups
+    description: >
+      Approval rates differ between groups of customers without a business reason.
+    category: model_behaviour
+    inherent: {likelihood: 3, impact: 4}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 3}
+    owner: Consumer Lending
+    review_date: 2027-04-20
+    status: active
+    links:
+      matrix: [INTL-EUAIA-2024-A10-01, INTL-EUAIA-2024-A27-01]
+      pack: [fairness_metrics, four_fifths_rule]
+      monitor: [fairness]
+
+  - id: RSK-CRD-005
+    agent: credit_prequal
+    title: Ungrounded reasons in the pre-qualification note
+    description: >
+      The note states facts that are not in the application or the score lookup.
+    category: model_behaviour
+    inherent: {likelihood: 3, impact: 3}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 2}
+    owner: Consumer Lending
+    review_date: 2027-04-20
+    status: active
+    links:
+      matrix: [INTL-NISTGAI-2024-S2.2-01]
+      pack: [groundedness_monitor, halueval_vi]
+      monitor: [quality]
+
+  - id: RSK-CRD-006
+    agent: credit_prequal
+    title: Call of a tool the agent is not approved to use
+    description: The agent calls a tool outside its approved list.
+    category: injection
+    inherent: {likelihood: 3, impact: 4}
+    treatment: mitigate
+    residual: {likelihood: 1, impact: 4}
+    owner: Consumer Lending
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [CRD-07]
+      matrix: [VN-QD33-2026-PL4.2-01, INTL-OWASPASI-2026-ASI02-01]
+      pack: [owasp_agentic_redteam]

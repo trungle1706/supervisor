@@ -752,3 +752,89 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_edge` (
 USING DELTA
 COMMENT 'WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- risk (state): WP29 risk register entry. Anchored on an agent or on an inventory node (a shared model, tool, MCP server or dataset, which every agent that reaches it inherits). Likelihood and impact are whole numbers 1 to 5; the score is their product and is computed on read, never stored. residual_* is what the person declares for the treated risk; the value the product uses is decided by the evidence rule (risk_evidence), see docs/risk-register.md.
+-- primary key (enforced by the app, not by Delta): risk_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`risk` (
+  risk_id STRING NOT NULL,
+  title STRING NOT NULL,
+  description STRING NOT NULL,
+  category STRING NOT NULL,
+  agent_id STRING,
+  node_id STRING,
+  inherent_likelihood BIGINT NOT NULL,
+  inherent_impact BIGINT NOT NULL,
+  marginal_risk BIGINT,
+  marginal_note STRING,
+  treatment STRING NOT NULL,
+  treatment_note STRING,
+  residual_likelihood BIGINT NOT NULL,
+  residual_impact BIGINT NOT NULL,
+  owner STRING NOT NULL,
+  review_date DATE,
+  status STRING NOT NULL,
+  source STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP29 risk register entry. Anchored on an agent or on an inventory node (a shared model, tool, MCP server or dataset, which every agent that reaches it inherits). Likelihood and impact are whole numbers 1 to 5; the score is their product and is computed on read, never stored. residual_* is what the person declares for the treated risk; the value the product uses is decided by the evidence rule (risk_evidence), see docs/risk-register.md.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- risk_link (state): WP29 link of a risk to a compliance matrix row (obligation id), a gate rule id, an assurance pack id, a monitor name or a case id. rule, pack and monitor links are the controls the evidence rule looks at; matrix and case links are references.
+-- primary key (enforced by the app, not by Delta): link_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`risk_link` (
+  link_id STRING NOT NULL,
+  risk_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  target STRING NOT NULL,
+  active BOOLEAN NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP29 link of a risk to a compliance matrix row (obligation id), a gate rule id, an assurance pack id, a monitor name or a case id. rule, pack and monitor links are the controls the evidence rule looks at; matrix and case links are references.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- risk_evidence (append_only): WP29. One row per risk and window: what the linked controls did (counts), the state (working | failing | no_evidence), the reason code and the residual score the evidence rule allows. Integers, codes and hashes only; no text. The matching chain record is risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).
+-- primary key (enforced by the app, not by Delta): evidence_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`risk_evidence` (
+  evidence_id STRING NOT NULL,
+  risk_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  window_start TIMESTAMP NOT NULL,
+  window_end TIMESTAMP NOT NULL,
+  state STRING NOT NULL,
+  reason STRING NOT NULL,
+  agents_n BIGINT NOT NULL,
+  agents_excluded BIGINT NOT NULL,
+  rule_links BIGINT NOT NULL,
+  rule_hits BIGINT NOT NULL,
+  rule_stops BIGINT NOT NULL,
+  rules_missing BIGINT NOT NULL,
+  pack_links BIGINT NOT NULL,
+  pack_ok BIGINT NOT NULL,
+  pack_warn BIGINT NOT NULL,
+  pack_fail BIGINT NOT NULL,
+  pack_nodata BIGINT NOT NULL,
+  monitor_links BIGINT NOT NULL,
+  monitor_ok BIGINT NOT NULL,
+  monitor_other BIGINT NOT NULL,
+  controls_working BIGINT NOT NULL,
+  controls_failing BIGINT NOT NULL,
+  controls_idle BIGINT NOT NULL,
+  declared_residual_likelihood BIGINT NOT NULL,
+  declared_residual_impact BIGINT NOT NULL,
+  residual_likelihood BIGINT NOT NULL,
+  residual_impact BIGINT NOT NULL,
+  digest STRING NOT NULL,
+  chain_hash STRING
+)
+USING DELTA
+COMMENT 'WP29. One row per risk and window: what the linked controls did (counts), the state (working | failing | no_evidence), the reason code and the residual score the evidence rule allows. Integers, codes and hashes only; no text. The matching chain record is risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');

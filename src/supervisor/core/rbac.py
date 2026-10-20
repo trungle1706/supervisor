@@ -95,6 +95,12 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "users.view": (("admin",), "Users and roles page (read-only)"),
     "audit.view": (("auditor", "admin"), "Audit log page: console_action rows (read-only)"),
     "integrations.view": (_ALL, "Integrations status page (read-only)"),
+    # --- WP29 ---
+    "risks.view": (_ALL, "Risks page, Risks tab and /v1/risks (read-only, WP29)"),
+    "risks.edit": (
+        ("reviewer", "owner", "admin"),
+        "Create and change risks, link them to controls and rules (WP29)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -226,6 +232,17 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/audit/rows"): "audit.view",
     ("GET", "/console/audit/{action_id}/drawer"): "audit.view",
     ("GET", "/console/integrations"): "integrations.view",
+    # --- WP29 ---
+    ("GET", "/console/risks"): "risks.view",
+    ("GET", "/console/risks/rows"): "risks.view",
+    ("GET", "/console/risks/{risk_id}/drawer"): "risks.view",
+    ("GET", "/v1/risks"): "risks.view",
+    ("GET", "/v1/risks/agents/{agent_id}"): "risks.view",
+    ("GET", "/v1/risks/{risk_id}"): "risks.view",
+    ("GET", "/v1/risks/{risk_id}/evidence"): "risks.view",
+    ("POST", "/v1/risks"): "risks.edit",
+    ("POST", "/v1/risks/{risk_id}"): "risks.edit",
+    ("POST", "/v1/risks/{risk_id}/links"): "risks.edit",
 }
 
 

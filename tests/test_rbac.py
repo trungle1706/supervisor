@@ -71,6 +71,7 @@ def test_new_roles() -> None:
         "traces.view",
         "policies.view",
         "integrations.view",
+        "risks.view",  # WP29: the register is readable by every role
     }
     operator = {p for p in rbac.PERMISSIONS if rbac.allowed(["operator"], p)}
     assert operator == viewer | {"intake.run", "chain.verify", "alert.ack", "playground.run"}

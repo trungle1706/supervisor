@@ -1,0 +1,118 @@
+# Starter risks for the payments agent profile (WP29). SYNTHETIC and ILLUSTRATIVE: the scores,
+# owners and review dates are a worked example, not the bank's assessment. The bank imports its
+# own register with `python -m supervisor.risk import FILE` (docs/risk-register.md).
+# Every rule id, obligation id, pack id and monitor name below exists today; a test checks it.
+version: 1
+risks:
+  - id: RSK-PAY-001
+    agent: payments
+    title: Transfer above the authorised amount or with a bad amount
+    description: >
+      The agent moves more money than one customer instruction allows, or sends a transfer
+      whose amount is not a clean positive integer.
+    category: money_movement
+    inherent: {likelihood: 4, impact: 5}
+    marginal: {score: 3, note: A script has fixed limits; an agent can choose the amount itself.}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 5}
+    owner: Payments Ops
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [PAY-01, PAY-02, PAY-06]
+      matrix: [VN-QD33-2026-PL4.1-02, VN-TT50-2024-A10.1-01, VN-QD2345-2023-A1-01]
+      pack: [owasp_agentic_redteam]
+      monitor: [oversight]
+
+  - id: RSK-PAY-002
+    agent: payments
+    title: Daily total or split payments used to pass the limit
+    description: >
+      Many smaller transfers from one account, or one amount split across a short time, add up
+      to more than the daily or single limit.
+    category: money_movement
+    inherent: {likelihood: 3, impact: 4}
+    marginal: {score: 3, note: An agent can repeat calls quickly without a person noticing.}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 3}
+    owner: Payments Ops
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [PAY-03, PAY-08]
+      matrix: [VN-TT50-2024-A15.2-01, VN-QD33-2026-PL4.1-02]
+      monitor: [multiagent]
+
+  - id: RSK-PAY-003
+    agent: payments
+    title: Call of a tool the agent is not approved to use
+    description: >
+      The agent calls ext_transfer_api (operations staff only) or another tool outside its
+      approved list, for example after a manipulated instruction.
+    category: money_movement
+    inherent: {likelihood: 3, impact: 5}
+    marginal: {score: 4, note: Tool choice is made by the model at run time.}
+    treatment: mitigate
+    residual: {likelihood: 1, impact: 5}
+    owner: Payments Ops
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [PAY-07]
+      matrix: [VN-QD33-2026-PL4.1-01, INTL-OWASPASI-2026-ASI02-01, VN-TT09-2020-A28.1C-01]
+      pack: [owasp_agentic_redteam]
+
+  - id: RSK-PAY-004
+    agent: payments
+    title: Many new payees added in one day
+    description: >
+      The agent adds new payees in bulk, which prepares fraud or hides a mule account chain.
+    category: money_movement
+    inherent: {likelihood: 3, impact: 4}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 3}
+    owner: Payments Ops
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [PAY-09]
+      matrix: [VN-TT50-2024-A15.2-01]
+      monitor: [sweeps]
+
+  - id: RSK-PAY-005
+    agent: payments
+    title: Prompt injection through payee notes or tool results
+    description: >
+      Text inside a payee name, a note or a tool result tells the agent to act. The agent follows
+      it as if a customer wrote it.
+    category: injection
+    inherent: {likelihood: 4, impact: 4}
+    marginal: {score: 4, note: Instruction and data share one channel in a language model.}
+    treatment: mitigate
+    residual: {likelihood: 3, impact: 3}
+    owner: Payments Ops
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [PAY-07]
+      matrix: [INTL-OWASPLLM-2025-LLM06-01]
+      pack: [indirect_injection_vi, owasp_llm_top10]
+      monitor: [sweeps]
+
+  - id: RSK-PAY-006
+    agent: payments
+    title: Gate or recorder unavailable while money tools stay open
+    description: >
+      The gate service stops or the recorder loses events. A money tool call is then allowed
+      without a check, or is made without a record.
+    category: availability
+    inherent: {likelihood: 2, impact: 5}
+    treatment: mitigate
+    treatment_note: Money, credit and PII tools fail closed (ADR D03); watch the oversight metrics.
+    residual: {likelihood: 1, impact: 5}
+    owner: Payments Ops
+    review_date: 2027-04-20
+    status: active
+    links:
+      matrix: [VN-AI-2025-A14.02A-01]
+      monitor: [oversight]

@@ -1,0 +1,38 @@
+# Starter risks on a shared component (WP29). The model endpoint qwen3:4b is used by all three
+# agent profiles, so every agent inherits these risks through the inventory graph (WP24).
+# SYNTHETIC and ILLUSTRATIVE (see payments.yaml).
+version: 1
+risks:
+  - id: RSK-SHR-001
+    node: {kind: model_endpoint, name: "qwen3:4b"}
+    title: Model endpoint changes behaviour after a provider or version update
+    description: >
+      The model behind the endpoint is replaced or retrained. Answers, tool choices and refusals
+      change without a change in the agent code.
+    category: third_party
+    inherent: {likelihood: 3, impact: 4}
+    marginal: {score: 4, note: A fixed rule set does not change without a release; a model can.}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 3}
+    owner: AI Platform
+    review_date: 2027-04-20
+    status: active
+    links:
+      matrix: [INTL-SR117-2011-S5.2-01]
+      pack: [model_dependency_inventory, pin_hash_check]
+      monitor: [drift]
+
+  - id: RSK-SHR-002
+    node: {kind: model_endpoint, name: "qwen3:4b"}
+    title: Model endpoint not available or too slow for the agents
+    description: >
+      The endpoint is down or slow. Agents stop, retry in loops or fall back to unchecked paths.
+    category: availability
+    inherent: {likelihood: 3, impact: 3}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 3}
+    owner: AI Platform
+    review_date: 2027-04-20
+    status: active
+    links:
+      monitor: [oversight]

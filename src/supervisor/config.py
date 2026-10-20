@@ -476,6 +476,19 @@ class Settings(BaseSettings):
     console_scan_cap: int = Field(default=20000, ge=100, le=200_000)
     console_trace_scan: int = Field(default=5000, ge=100, le=50_000)
 
+    # --- WP29 --- risk register (ADR D26, docs/risk-register.md). All off by default.
+    # RISK_REGISTER_ENABLED: /v1/risks routes, the scheduler job risk_evidence and the CLI.
+    # CONSOLE_RISKS_ENABLED: the Risks page and the Risks tab on the Agent page (needs the first
+    # flag too). Band thresholds and the evidence rule live in config/risk.yaml (ILLUSTRATIVE).
+    risk_register_enabled: bool = False
+    console_risks_enabled: bool = False
+    sched_risk_evidence_s: int = Field(default=21600, ge=60)  # one evidence pass per 6 hours
+    risk_evidence_window_days: int = Field(default=7, ge=1, le=90)
+    risk_config: Path = Path("config/risk.yaml")
+    risk_starter_dir: Path = Path(
+        "config/risks"
+    )  # starter risks (python -m supervisor.risk import)
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -503,6 +516,8 @@ class Settings(BaseSettings):
         "inventory_workspace_fixture",
         "policy_dir",
         "fact_query_map",
+        "risk_config",
+        "risk_starter_dir",
         mode="after",
     )
     @classmethod

@@ -1,0 +1,94 @@
+# Starter risks for the customer service agent profile (WP29). SYNTHETIC and ILLUSTRATIVE (see
+# payments.yaml).
+version: 1
+risks:
+  - id: RSK-SVC-001
+    agent: customer_service
+    title: Fee waiver above the limit or repeated waivers
+    description: >
+      The agent waives a fee above the single limit, or waives fees for one account more often
+      than the daily limit allows.
+    category: money_movement
+    inherent: {likelihood: 3, impact: 3}
+    marginal: {score: 3, note: The agent can choose to give a waiver to be helpful.}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 2}
+    owner: Retail Customer Care
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [SVC-01, SVC-02, SVC-03, SVC-04]
+      matrix: [VN-CPL-2023-A10.1E-01]
+      monitor: [oversight]
+
+  - id: RSK-SVC-002
+    agent: customer_service
+    title: Card dispute opened with a bad amount or in bulk
+    description: >
+      The agent opens card disputes with a missing or wrong amount, or opens many disputes for
+      one customer in a day.
+    category: money_movement
+    inherent: {likelihood: 3, impact: 3}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 2}
+    owner: Retail Customer Care
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [SVC-05, SVC-06]
+      matrix: [VN-CPL-2023-A10.1E-01]
+      monitor: [oversight]
+
+  - id: RSK-SVC-003
+    agent: customer_service
+    title: Customer data shown in a reply to the wrong person
+    description: >
+      A reply contains personal data of another customer, or more data than the customer asked
+      for.
+    category: pii
+    inherent: {likelihood: 3, impact: 4}
+    marginal: {score: 4, note: A language model can copy text from earlier tool results.}
+    treatment: mitigate
+    residual: {likelihood: 2, impact: 3}
+    owner: Retail Customer Care
+    review_date: 2027-04-20
+    status: active
+    links:
+      matrix: [VN-CPL-2023-A10.1M-01, VN-PDPL-2025-A19.2-01]
+      pack: [pii_canary]
+      monitor: [sweeps]
+
+  - id: RSK-SVC-004
+    agent: customer_service
+    title: Call of a tool the agent is not approved to use
+    description: The agent calls a tool outside its approved list.
+    category: injection
+    inherent: {likelihood: 3, impact: 4}
+    treatment: mitigate
+    residual: {likelihood: 1, impact: 4}
+    owner: Retail Customer Care
+    review_date: 2027-04-20
+    status: active
+    links:
+      rule: [SVC-07]
+      matrix: [INTL-OWASPASI-2026-ASI02-01, INTL-HKMAGENAI-2024-G1.A-01]
+      pack: [owasp_agentic_redteam]
+
+  - id: RSK-SVC-005
+    agent: customer_service
+    title: Prompt injection in a customer message or ticket
+    description: >
+      A message or a ticket contains text that tells the agent to ignore its rules or to act for
+      the writer.
+    category: injection
+    inherent: {likelihood: 4, impact: 3}
+    marginal: {score: 4, note: Customer text is read by the model as part of its prompt.}
+    treatment: mitigate
+    residual: {likelihood: 3, impact: 2}
+    owner: Retail Customer Care
+    review_date: 2027-04-20
+    status: active
+    links:
+      matrix: [INTL-OWASPLLM-2025-LLM06-01]
+      pack: [indirect_injection_vi, prefilter_evasion]
+      monitor: [sweeps]

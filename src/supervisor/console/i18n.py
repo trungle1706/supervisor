@@ -1818,6 +1818,137 @@ _T.update(
 )
 
 
+# --- WP29: risk register (Risks page, drawer, Risks tab on the Agent page) ---
+_T.update(
+    {
+        "nav_risks": ("Risks", "Rủi ro"),
+        "atab_risks": ("Risks", "Rủi ro"),
+        "dtab_links": ("Links", "Liên kết"),
+        "rk_purpose": (
+            "The risk register: what can go wrong, how big it is, which controls hold it down.",
+            "Sổ đăng ký rủi ro: điều gì có thể sai, lớn đến đâu, kiểm soát nào giữ nó ở mức thấp.",
+        ),
+        "rk_why": (
+            "A mitigated risk keeps its lower residual score only while its linked controls "
+            "show working evidence.",
+            "Rủi ro được giảm nhẹ chỉ giữ điểm dư thấp khi các kiểm soát liên kết còn bằng chứng "
+            "hoạt động.",
+        ),
+        "rk_illustrative": (
+            "Score bands are ILLUSTRATIVE (low up to {low}, medium up to {med}, high up to {high}) "
+            "until the bank sets its own.",
+            "Các mức điểm chỉ MINH HỌA (thấp đến {low}, trung bình đến {med}, cao đến {high}) "
+            "cho đến khi ngân hàng đặt mức riêng.",
+        ),
+        "rk_illustrative_short": (
+            "Score bands are ILLUSTRATIVE until the bank sets its own.",
+            "Các mức điểm chỉ MINH HỌA cho đến khi ngân hàng đặt mức riêng.",
+        ),
+        "rk_edit_note": (
+            "Read only. Change risks with /v1/risks or python -m supervisor.risk import.",
+            "Chỉ đọc. Sửa rủi ro qua /v1/risks hoặc python -m supervisor.risk import.",
+        ),
+        "rk_tile_active": ("Active", "Đang áp dụng"),
+        "rk_tile_critical": ("Critical", "Nghiêm trọng"),
+        "rk_tile_high": ("High", "Cao"),
+        "rk_overdue_line": (
+            "{n} active risk(s) are past their review date.",
+            "{n} rủi ro đang áp dụng đã quá hạn rà soát.",
+        ),
+        "rk_unproven_line": (
+            "{n} mitigated risk(s) have no working control evidence yet; "
+            "their residual score equals the inherent score.",
+            "{n} rủi ro giảm nhẹ chưa có bằng chứng kiểm soát hoạt động; điểm dư bằng điểm gốc.",
+        ),
+        "rk_cat_money_movement": ("Money movement", "Di chuyển tiền"),
+        "rk_cat_credit_decision": ("Credit decision", "Quyết định tín dụng"),
+        "rk_cat_pii": ("Personal data", "Dữ liệu cá nhân"),
+        "rk_cat_injection": ("Injection", "Tiêm lệnh"),
+        "rk_cat_model_behaviour": ("Model behaviour", "Hành vi mô hình"),
+        "rk_cat_availability": ("Availability", "Tính sẵn sàng"),
+        "rk_cat_third_party": ("Third party", "Bên thứ ba"),
+        "rk_st_draft": ("Draft", "Nháp"),
+        "rk_st_active": ("Active", "Đang áp dụng"),
+        "rk_st_retired": ("Retired", "Đã gỡ"),
+        "rk_treat_avoid": ("Avoid", "Tránh"),
+        "rk_treat_mitigate": ("Mitigate", "Giảm nhẹ"),
+        "rk_treat_accept": ("Accept", "Chấp nhận"),
+        "rk_treat_transfer": ("Transfer", "Chuyển giao"),
+        "rk_col_risk": ("Risk", "Rủi ro"),
+        "rk_col_category": ("Category", "Nhóm"),
+        "rk_col_agents": ("Applies to", "Áp dụng cho"),
+        "rk_col_inherent": ("Inherent", "Gốc"),
+        "rk_col_residual": ("Residual", "Dư"),
+        "rk_col_evidence": ("Evidence", "Bằng chứng"),
+        "rk_col_treatment": ("Treatment", "Xử lý"),
+        "rk_col_review": ("Review", "Rà soát"),
+        "rk_overdue": ("overdue", "quá hạn"),
+        "rk_no_risks": ("No risks", "Chưa có rủi ro"),
+        "rk_no_risks_line": (
+            "Import the starter risks: python -m supervisor.risk import config/risks.",
+            "Nhập rủi ro mẫu: python -m supervisor.risk import config/risks.",
+        ),
+        "rk_no_match": ("No risk matches the filters.", "Không có rủi ro khớp bộ lọc."),
+        "rk_ev_working": ("working", "hoạt động"),
+        "rk_ev_failing": ("failing", "lỗi"),
+        "rk_ev_no_evidence": ("no evidence", "chưa có bằng chứng"),
+        "rk_ev_none": ("not run yet", "chưa chạy"),
+        "rk_reason_controls_working": ("controls working", "kiểm soát hoạt động"),
+        "rk_reason_control_failing": ("a control is failing", "có kiểm soát bị lỗi"),
+        "rk_reason_no_working_control": (
+            "no control showed activity",
+            "chưa kiểm soát nào hoạt động",
+        ),
+        "rk_reason_no_links": ("no control linked", "chưa liên kết kiểm soát"),
+        "rk_reason_no_supervised_agent": ("no supervised agent", "chưa có tác tử được giám sát"),
+        "rk_reason_treatment_declared": ("residual as declared", "điểm dư như đã khai báo"),
+        "rk_reason_stale_evidence": ("evidence is too old", "bằng chứng đã cũ"),
+        "rk_reason_no_evidence_yet": ("evidence job has not run", "chưa chạy công việc bằng chứng"),
+        "rk_score_val": ("{s} ({l} x {i})", "{s} ({l} x {i})"),
+        "rk_marginal": ("Marginal risk (AI)", "Rủi ro biên (AI)"),
+        "rk_treatment_note": ("Treatment note", "Ghi chú xử lý"),
+        "rk_declared": ("Residual as declared", "Điểm dư đã khai báo"),
+        "rk_applies_to": ("Applies to agents", "Áp dụng cho tác tử"),
+        "rk_anchor": ("Sits on", "Gắn với"),
+        "rk_lnk_matrix": ("Compliance matrix rows", "Dòng ma trận tuân thủ"),
+        "rk_lnk_rule": ("Gate rules", "Quy tắc cổng"),
+        "rk_lnk_pack": ("Assurance packs", "Gói đánh giá"),
+        "rk_lnk_monitor": ("Monitors", "Bộ giám sát"),
+        "rk_lnk_case": ("Cases", "Vụ việc"),
+        "rk_no_links": ("No links", "Chưa có liên kết"),
+        "rk_trend": ("Residual score by window", "Điểm dư theo kỳ"),
+        "rk_window_end": ("Window end", "Cuối kỳ"),
+        "rk_rule_hits": ("Rule hits", "Lượt kích hoạt quy tắc"),
+        "rk_rules_missing": ("Rules missing", "Quy tắc không còn"),
+        "rk_pack_ok": ("Packs ok", "Gói đạt"),
+        "rk_pack_fail": ("Packs failed", "Gói lỗi"),
+        "rk_mon_ok": ("Monitors ok", "Bộ giám sát ổn"),
+        "rk_ctl_working": ("Working", "Hoạt động"),
+        "rk_ctl_failing": ("Failing", "Lỗi"),
+        "rk_ctl_idle": ("Idle", "Chưa hoạt động"),
+        "rk_agents_n": ("Agents", "Tác tử"),
+        "rk_agents_excl": ("Excluded", "Bị loại"),
+        "rk_no_trend": (
+            "No evidence rows yet. python -m supervisor.jobs.risk_evidence writes them.",
+            "Chưa có dòng bằng chứng. python -m supervisor.jobs.risk_evidence sẽ tạo.",
+        ),
+        "rk_level": ("Register level", "Mức trong sổ rủi ro"),
+        "rk_via": ("via", "qua"),
+        "rk_own": ("own", "riêng"),
+        "rk_inherited": ("inherited", "thừa hưởng"),
+        "rk_tab_none": (
+            "No active risk reaches this agent.",
+            "Không có rủi ro đang áp dụng nào chạm tới tác tử này.",
+        ),
+        "rk_tab_off": (
+            "The risk register is off (RISK_REGISTER_ENABLED=1 turns it on).",
+            "Sổ rủi ro đang tắt (đặt RISK_REGISTER_ENABLED=1 để bật).",
+        ),
+        "rk_open_page": ("Open the Risks page", "Mở trang Rủi ro"),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""
