@@ -110,14 +110,30 @@ def make_judge_chat_model(settings: Settings, role: str) -> ChatModel:
             model_id=f"mock-judge-{role}-v1",
         )
     from supervisor.adapters.llm.openai_compatible import OpenAICompatibleChat
+    from supervisor.judge.family import resolve_family
 
     base_url = getattr(settings, f"judge_{role}_base_url") or settings.llm_base_url
     secret = settings.judge_api_key or settings.llm_api_key
-    return OpenAICompatibleChat(
+    chat = OpenAICompatibleChat(
         base_url,
         model,
         api_key=secret.get_secret_value() if secret else None,
         timeout_s=settings.judge_timeout_s,
         max_tokens=min(settings.llm_max_tokens, 2048),
-        family=family,
+        strict_schema=settings.llm_strict_schema,
+        send_temperature=settings.llm_send_temperature,
     )
+    # D05: the family is derived (model id, and endpoint metadata when JUDGE_FAMILY_PROBE=1).
+    # A declared family only counts if it agrees, or under the test-only override.
+    try:
+        chat.family, chat.family_source = resolve_family(
+            f"JUDGE_{'CHALLENGER' if role == 'challenger' else role.upper()}_FAMILY",
+            model,
+            family,
+            override_test_only=settings.judge_family_override_test_only,
+            endpoint_family=chat.endpoint_family() if settings.judge_family_probe else None,
+        )
+    except BaseException:
+        chat.close()
+        raise
+    return chat

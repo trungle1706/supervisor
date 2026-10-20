@@ -9,6 +9,11 @@
   whose family cannot be read from its name, raises :class:`FamilyConflictError` at
   startup. ``tests/judge/test_router.py`` runs the same check in CI on the committed
   manifests and the default settings.
+* The family is derived from the model id / endpoint metadata, not from a declared label
+  (D05, ``judge/family.py``); each judge carries ``family_source`` into its verdict rows.
+* The challenger is checked only against the agents it judges (D15): registered, non-retired
+  agents of the store, plus manifests of the agents named in ``JUDGE_AGENTS``. T1 and T2 are
+  still checked against every manifest and every registry row.
 * Model ids are pinned: ``latest`` aliases are refused. ``region``, ``model_version`` and
   the masker version are carried into each verdict.
 * Sampling is a hash of (salt, trace_id): reproducible and auditable, not ``random``.
@@ -88,6 +93,13 @@ class JudgeModel:
         return normalize_family(self.chat.family)
 
     @property
+    def family_source(self) -> str:
+        """derived | declared-test-only | mock (D05)."""
+        if self.is_mock:
+            return "mock"
+        return str(getattr(self.chat, "family_source", "derived"))
+
+    @property
     def model_id(self) -> str:
         return self.chat.model_id
 
@@ -116,18 +128,28 @@ def load_manifest_families(root: Path = MANIFEST_ROOT) -> dict[str, str]:
 
 
 def load_registry_families(
-    state: StateStore | None = None, tables: TableStore | None = None
+    state: StateStore | None = None,
+    tables: TableStore | None = None,
+    *,
+    include_retired: bool = True,
 ) -> dict[str, set[str]]:
-    """``{agent_id: {families}}`` from the ``agent`` (state) and ``agent_version`` tables."""
+    """``{agent_id: {families}}`` from the ``agent`` (state) and ``agent_version`` tables.
+
+    With ``include_retired=False`` an agent whose ``agent.status`` is ``retired`` is left out
+    (D15: a retired agent is no longer judged)."""
     rows: list[Mapping[str, Any]] = []
+    retired: set[str] = set()
     if state is not None:
-        rows.extend(state.query("agent"))
+        for row in state.query("agent"):
+            rows.append(row)
+            if str(row.get("status")) == "retired":
+                retired.add(str(row["agent_id"]))
     if tables is not None:
         rows.extend(tables.query("agent_version"))
     out: dict[str, set[str]] = {}
     for row in rows:
         fam = row.get("model_family")
-        if fam:
+        if fam and (include_retired or str(row["agent_id"]) not in retired):
             out.setdefault(str(row["agent_id"]), set()).add(str(fam))
     return out
 
@@ -141,8 +163,10 @@ def check_family_independence(
         fam = j.family
         if fam in ("", "unknown"):
             problems.append(
-                f"{j.checker_id} model {j.model_id!r}: family unknown; set "
-                f"JUDGE_{'CHALLENGER' if j.role == 'challenger' else 'T' + str(j.tier)}_FAMILY"
+                f"{j.checker_id} model {j.model_id!r}: family unknown; use a model id that "
+                f"shows its family (a declared JUDGE_"
+                f"{'CHALLENGER' if j.role == 'challenger' else 'T' + str(j.tier)}_FAMILY is "
+                "accepted only with JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1, tests only)"
             )
             continue
         for agent_id, fams in sorted(agent_families.items()):
@@ -176,6 +200,7 @@ class JudgeRouter:
         challenger: JudgeModel | None = None,
         *,
         agent_families: Mapping[str, str | Iterable[str]],
+        challenger_agent_families: Mapping[str, str | Iterable[str]] | None = None,
         challenger_sample_bp: int = 500,
         t2_sample_bp: int = 200,
         salt: str = "supervisor-judge-v1",
@@ -188,13 +213,21 @@ class JudgeRouter:
         for j in judges:
             if not j.is_mock:
                 check_pinned(j.model_id)
-        check_family_independence(judges, agent_families)
+        check_family_independence([j for j in judges if j is not challenger], agent_families)
+        if challenger is not None:  # D15: only against the agents it judges
+            check_family_independence(
+                [challenger],
+                agent_families if challenger_agent_families is None else challenger_agent_families,
+            )
         if t1.family == t2.family and not t1.is_mock:
             log.warning(
                 "Tier 1 and Tier 2 judges share family %r; one payload may beat both", t1.family
             )
         self.t1, self.t2, self.challenger = t1, t2, challenger
         self.agent_families = dict(agent_families)
+        self.challenger_agent_families = dict(
+            agent_families if challenger_agent_families is None else challenger_agent_families
+        )
         self.challenger_sample_bp = challenger_sample_bp
         self.t2_sample_bp = t2_sample_bp
         self.salt = salt
@@ -228,6 +261,7 @@ class JudgeRouter:
                 "model_id": j.model_id,
                 "model_version": j.model_version,
                 "family": j.family,
+                "family_source": j.family_source,
                 "region": j.region,
                 "is_mock": j.is_mock,
             }
@@ -259,6 +293,21 @@ class JudgeRouter:
             for agent_id, fams in load_registry_families(state, tables).items():
                 families.setdefault(agent_id, set()).update(fams)
 
+        # D15: the challenger judges the registered, non-retired agents (when a store is
+        # given) and the manifests of JUDGE_AGENTS. With no store and no JUDGE_AGENTS (eval,
+        # mrm validate) it judges no concrete agent, so there is nothing to clash with.
+        judged = {a.strip() for a in settings.judge_agents.split(",") if a.strip()}
+        chal_families: dict[str, set[str]] = {}
+        for agent_id, fams in source.items():
+            if agent_id in judged:
+                chal_families.setdefault(agent_id, set()).update(
+                    {fams} if isinstance(fams, str) else fams
+                )
+        if state is not None or tables is not None:
+            registry = load_registry_families(state, tables, include_retired=False)
+            for agent_id, fams in registry.items():
+                chal_families.setdefault(agent_id, set()).update(fams)
+
         def chat(role: str) -> ChatModel:
             if chats and role in chats:
                 return chats[role]
@@ -279,6 +328,7 @@ class JudgeRouter:
             t2,
             challenger,
             agent_families=families,
+            challenger_agent_families=chal_families,
             challenger_sample_bp=settings.judge_challenger_sample_bp,
             t2_sample_bp=settings.judge_t2_sample_bp,
             salt=settings.judge_sample_salt,

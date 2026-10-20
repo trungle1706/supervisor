@@ -225,6 +225,8 @@ tables:
       # (same value as policy_hash for judge rows); rubric_version = judge rubric id.
       prompt_hash: string?
       rubric_version: string?
+      # D05 (additive): derived | declared-test-only | mock (how model_family was obtained).
+      family_source: string?
 
   cases:
     kind: state

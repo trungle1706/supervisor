@@ -202,7 +202,8 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`verdict` (
   model_version STRING,
   mask_version STRING,
   prompt_hash STRING,
-  rubric_version STRING
+  rubric_version STRING,
+  family_source STRING
 )
 USING DELTA
 COMMENT 'One row per check outcome (rule, Tier 1 or Tier 2 judge). Judges are advisory.'

@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS verdict (
   mask_version TEXT,
   prompt_hash TEXT,
   rubric_version TEXT,
+  family_source TEXT,
   PRIMARY KEY (verdict_id)
 );
 
@@ -252,7 +253,7 @@ CREATE INDEX IF NOT EXISTS ix_verdict_trace_id ON verdict (trace_id);
 DROP TRIGGER IF EXISTS trg_verdict_no_update;
 
 CREATE TRIGGER trg_verdict_no_update
-BEFORE UPDATE OF verdict_id, ts, trace_id, event_id, agent_id, tier, checker_id, model_id, model_family, is_mock, advisory, score, label, action, latency_ms, rule_id, policy_hash, score_bp, role, region, model_version, mask_version, prompt_hash, rubric_version ON verdict
+BEFORE UPDATE OF verdict_id, ts, trace_id, event_id, agent_id, tier, checker_id, model_id, model_family, is_mock, advisory, score, label, action, latency_ms, rule_id, policy_hash, score_bp, role, region, model_version, mask_version, prompt_hash, rubric_version, family_source ON verdict
 BEGIN
   SELECT RAISE(ABORT, 'verdict is append-only');
 END;

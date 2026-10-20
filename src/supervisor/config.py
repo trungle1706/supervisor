@@ -171,6 +171,10 @@ class Settings(BaseSettings):
     llm_max_tokens: int = Field(default=8192, ge=16)  # WP2: cap against repetition loops
     llm_mock: bool = False  # WP2: LLM_MOCK=1 forces MockChat even when LLM_BASE_URL is set
     llm_endpoint: str | None = None  # Databricks serving endpoint name (App binding)
+    # D14: Anthropic's OpenAI-compatible endpoint needs strict json_schema without minimum,
+    # maximum, pattern, maxItems and refuses `temperature`. Defaults keep the old request.
+    llm_strict_schema: bool = False  # strict:true + schema copy without the refused keywords
+    llm_send_temperature: bool = True  # false = leave temperature out of the request
 
     # Judges (WP5). Advisory only. Empty JUDGE_T*_MODEL = MockJudge (labelled mock).
     # Empty JUDGE_T*_BASE_URL = LLM_BASE_URL. JUDGE_T*_FAMILY overrides the family that is
@@ -199,6 +203,13 @@ class Settings(BaseSettings):
     judge_region: str = "local"  # logged in each verdict (residency, analysis 07 3.1)
     judge_api_key: SecretStr | None = None  # empty = LLM_API_KEY
     judge_sample_salt: str = "supervisor-judge-v1"
+    # D05: the judge family is derived from the model id (and endpoint metadata). A declared
+    # JUDGE_*_FAMILY that disagrees is refused unless this flag is set; never in databricks_app.
+    judge_family_override_test_only: bool = False
+    judge_family_probe: bool = False  # ask GET /models of the judge endpoint for its family
+    # D15: manifests of these agent ids (CSV) count as judged by the challenger, besides the
+    # registered, non-retired agents of the store. Empty = registry only.
+    judge_agents: str = ""
     # Judge model-risk management (WP19, docs/judge-mrm.md). Role names are FILL-ME until
     # the bank names them. Thresholds are illustrative defaults; second line sets them.
     judge_require_validation: bool = False  # new: refuse to judge without a passing record
@@ -532,6 +543,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 "CONSOLE_AUDIT_ENABLED=0 is only allowed with SUPERVISOR_MODE=dev "
                 "(the console audit trail cannot be switched off in laptop or databricks_app mode)"
+            )
+        if self.judge_family_override_test_only and self.supervisor_mode == "databricks_app":
+            raise ValueError(
+                "JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1 is not allowed with "
+                "SUPERVISOR_MODE=databricks_app (a declared judge family is not an identity)"
             )
         if self.ingress_keys_file is None:
             self.ingress_keys_file = REPO_ROOT / "config" / "agent_keys.yaml"

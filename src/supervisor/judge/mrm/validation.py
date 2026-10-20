@@ -45,6 +45,7 @@ from supervisor.judge.mrm._common import (
     parse_now,
     router_factory,
     utc_now,
+    with_mock_challenger,
 )
 from supervisor.judge.mrm.inputs import (
     EvalResultPacks,
@@ -104,7 +105,9 @@ def _challenger_section(
     sample = [i for i in items if i.split == "heldout" and _sampled(i.id, sample_bp)]
     thr = settings.judge_t1_threshold_bp
     base = run_once(sample, primary, 0, thr)
-    chal_router = JudgeRouter.from_settings(settings, chats=chats)
+    chal_router = JudgeRouter.from_settings(
+        settings, chats=chats if model == "settings" else with_mock_challenger(settings, chats)
+    )
     chal = run_once(sample, chal_router, 0, thr)
 
     def flag(bp: int | None) -> bool:
@@ -429,6 +432,10 @@ def _record(
             {
                 "judge_id": ident["judge_id"],
                 "model_version": ident["model_version"],
+                "t1_family": ident["t1_family"],
+                "t1_family_source": ident["t1_family_source"],
+                "t2_family": ident["t2_family"],
+                "t2_family_source": ident["t2_family_source"],
                 "prompt_hash": ident["prompt_hash"],
                 "rubric_version": ident["rubric_version"],
                 "mask_version": ident["mask_version"],
@@ -459,6 +466,8 @@ def render_md(report: dict[str, Any]) -> str:
         "",
         f"- judge: {ident['judge_id']}",
         f"- model_version: {ident['model_version']}",
+        f"- T1 family: {ident['t1_family']} (family_source: {ident['t1_family_source']})",
+        f"- T2 family: {ident['t2_family']} (family_source: {ident['t2_family_source']})",
         f"- prompt_hash: {ident['prompt_hash']}",
         f"- rubric_version: {ident['rubric_version']}",
         f"- mask_version: {ident['mask_version']}",

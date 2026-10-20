@@ -84,3 +84,44 @@ def errors(value: Any, schema: Mapping[str, Any], path: str = "$") -> list[str]:
 
 def is_valid(value: Any, schema: Mapping[str, Any]) -> bool:
     return not errors(value, schema)
+
+
+# Keywords that strict structured-output endpoints (Anthropic's OpenAI-compatible endpoint,
+# OpenAI strict mode) refuse. The adapter strips them from the schema it SENDS and keeps the
+# full schema for the local check of the reply (D14).
+STRICT_UNSUPPORTED: frozenset[str] = frozenset(
+    {
+        "minimum",
+        "maximum",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+        "multipleOf",
+        "minLength",
+        "maxLength",
+        "pattern",
+        "format",
+        "minItems",
+        "maxItems",
+        "uniqueItems",
+    }
+)
+
+
+def strict_compatible(schema: Any) -> Any:
+    """Deep copy of ``schema`` without the keywords in :data:`STRICT_UNSUPPORTED`.
+
+    Only schema keywords are dropped: a property that is itself NAMED ``pattern`` or
+    ``minimum`` (a key under ``properties``) is kept."""
+    if isinstance(schema, Mapping):
+        out: dict[str, Any] = {}
+        for k, v in schema.items():
+            if k in STRICT_UNSUPPORTED:
+                continue
+            if k in ("properties", "$defs", "definitions") and isinstance(v, Mapping):
+                out[k] = {name: strict_compatible(sub) for name, sub in v.items()}
+            else:
+                out[k] = strict_compatible(v)
+        return out
+    if isinstance(schema, list):
+        return [strict_compatible(x) for x in schema]
+    return schema
