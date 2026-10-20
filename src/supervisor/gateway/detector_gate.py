@@ -138,7 +138,7 @@ class DetectorGate:
     ) -> PreDetect:
         pre = PreDetect(direction=req.direction)
         cid = ctx.get("consumer_id")
-        if isinstance(cid, str) and re.match(ID_PATTERN, cid):
+        if isinstance(cid, str) and re.fullmatch(ID_PATTERN, cid):
             pre.consumer_id = cid
         try:
             pre.risk_class = policy.risk_class(tool_name)

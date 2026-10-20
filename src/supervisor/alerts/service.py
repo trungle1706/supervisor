@@ -99,7 +99,7 @@ _CORR = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 def _corr(value: Any) -> str | None:
     """The correlation id of the trigger signal, only when it is a plain id (it may come from a
     caller; anything else is dropped, never stored)."""
-    return str(value) if isinstance(value, str) and _CORR.match(value) else None
+    return str(value) if isinstance(value, str) and _CORR.fullmatch(value) else None
 
 
 def _ts(v: Any) -> str:
