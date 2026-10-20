@@ -47,7 +47,7 @@ Leak recall in bp, v2 -> v3 (dev / held-out):
 
 Verdict (validation report): **GO** for structured identifiers, addresses, labelled names, amounts, and to merge. **NO-GO** to rely on the masker alone for names written without a title, label or known surname (held-out PERSON about 53%). Latency about 0.25 ms median per call.
 
-`pii_canary` on sample agents (`--no-store`): `demo` target OK, 0 of 256 canaries leaked, 0 false masks (old pack: 102 items, no masker metrics). The three `agent:<id>` sandbox targets FAIL in the old pack and the new pack alike: 40 leaked values on 12 of 34 file probes, because the mock responder repeats PII from retrieved context. Masker metrics for those targets: 0 and 0. Old masker on the matrix: 36 leaks (addresses, telex names); new: 0.
+`pii_canary` on sample agents (`--no-store`): `--target demo`: the three `traces:` targets OK, 0 of 256 canaries leaked, 0 false masks (old pack: 102 items, no masker metrics). The three `agent:<id>` sandbox targets FAIL in the old pack and the new pack alike: 40 leaked values on 12 of 34 file probes, because the mock responder repeats PII from retrieved context. Masker metrics for those targets: 0 and 0. Old masker on the matrix: 36 leaks (addresses, telex names); new: 0.
 
 ## 5. Existing tests changed
 

@@ -22,7 +22,7 @@ Everything is synthetic: **these numbers are not bank numbers** (BACKLOG: measur
 | Amounts left intact: 10000 bp, 0 over-masked | 10000, 0 of 496 amounts touched | GO (hard rule met) |
 | Precision per entity: >= 9500 bp | 10000 for every entity on both splits | GO |
 | No recall drop per entity vs baseline (regression test) | Test passes | GO |
-| `pii_canary` pack on the demo target | 0 leaks of 256 canaries, 0 false masks | GO |
+| `pii_canary` masker metrics (`--target demo`: 3 `traces:` and 3 `agent:` targets) | `masker_unmasked_count` 0 of 256 canaries, 0 false masks on all six; the three `traces:` targets OK | GO (masker); the `agent:` targets FAIL on the agent reply, see section 4 |
 
 **Overall: NO-GO for relying on the masker as the only control for personal names written without
 a title, label or known surname. GO to merge and to use for structured identifiers, addresses,
@@ -79,12 +79,17 @@ with a surname outside the lexicon (`Thach`, `Quach`, `Tong`, ...) written witho
   detected span (a half-masked name is a miss and is listed as `partial-...`).
 * Intervals are Wilson 95%. With n = 20 an observed 10000 bp still has a lower bound near 8400 bp.
 * Latency: median about 0.26 ms, p95 about 0.4 ms per call (this host, Python 3.11).
-* `pii_canary` v2 on sample agents (mock responder, `--no-store`): `demo` target OK (0 of 256
-  canaries leaked, 0 false masks; old pack: 102 items, no masker metrics). The three
+* `pii_canary` v2 on sample agents (mock responder, `--no-store`): `--target demo` runs
+  three `traces:` targets (OK: 0 of 256 canaries leaked, 0 false masks; old pack: 102 items, no
+  masker metrics) and three `agent:` targets. The three
   `agent:<id>` sandbox targets FAIL in both the old and the new pack, with the same 40 leaked
   values on 12 of 34 file probes: the mock responder repeats PII from the retrieved context. This
   is the agent target behaving as a naive agent, not a masker miss; the masker metrics for those
-  targets are 0 and 0.
+  targets are 0 and 0. **A FAIL there is a target (agent) failure, not a masker failure.**
+* Review (2026-10-20): the 256-canary matrix and the dev split use the same name pools the
+  masker was tuned on, so "0 of 256" is a dev figure. Old masker (`bf3a23a`) on the same
+  matrix: 36 leaked values (addresses upper / no diacritics / abbreviated, telex names);
+  reproduced by the reviewer.
 
 ## 5. Residual risk and conditions
 
