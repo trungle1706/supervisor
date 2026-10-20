@@ -19,6 +19,7 @@ callables in tests, so a unit test needs no database.
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable, Iterable
 from typing import Any
 
@@ -38,6 +39,10 @@ class RefCatalogue:
         self._src = {"matrix": obligations, "rule": rules, "pack": packs, "monitor": monitors}
         self._case = case_exists
         self._cache: dict[str, frozenset[str]] = {}
+
+    def clear(self) -> None:
+        """Forget the cached lookups (call at the start of an operation)."""
+        self._cache.clear()
 
     def ids(self, kind: str) -> frozenset[str]:
         if kind not in self._src:
@@ -61,13 +66,32 @@ class RefCatalogue:
         return self.ids("rule")
 
 
+@functools.lru_cache(maxsize=1)
+def _obligation_ids() -> tuple[str, ...]:
+    from supervisor.regkb import load_kb
+
+    return tuple(load_kb().obligations)
+
+
+@functools.lru_cache(maxsize=1)
+def _pack_ids() -> tuple[str, ...]:
+    from supervisor.assurance.loader import load_packs
+
+    return tuple(p.id for p in load_packs())
+
+
+@functools.lru_cache(maxsize=1)
+def _monitor_names() -> tuple[str, ...]:
+    import yaml
+
+    from supervisor.config import REPO_ROOT
+
+    doc = yaml.safe_load((REPO_ROOT / "regulations" / "schema" / "controls.yaml").read_text())
+    return tuple((doc.get("monitors") or {}).keys())
+
+
 def build_catalogue(state: Any, settings: Any) -> RefCatalogue:
     """The catalogue over the live store and the repo files (lazy: nothing is read until used)."""
-
-    def obligations() -> list[str]:
-        from supervisor.regkb import load_kb
-
-        return list(load_kb().obligations)
 
     def rules() -> list[str]:
         from supervisor.gateway.policy import MANIFEST_RULE_ID
@@ -85,26 +109,13 @@ def build_catalogue(state: Any, settings: Any) -> RefCatalogue:
         folder = getattr(settings, "policy_dir", None) or (REPO_ROOT / "policies")
         return [r.id for r in load_policy_dir(folder).doc.rules]
 
-    def packs() -> list[str]:
-        from supervisor.assurance.loader import load_packs
-
-        return [p.id for p in load_packs()]
-
-    def monitors() -> list[str]:
-        import yaml
-
-        from supervisor.config import REPO_ROOT
-
-        doc = yaml.safe_load((REPO_ROOT / "regulations" / "schema" / "controls.yaml").read_text())
-        return list((doc.get("monitors") or {}).keys())
-
     def case_exists(case_id: str) -> bool:
         return state.get("cases", {"case_id": case_id}) is not None
 
     return RefCatalogue(
-        obligations=obligations,
+        obligations=_obligation_ids,
         rules=rules,
-        packs=packs,
-        monitors=monitors,
+        packs=_pack_ids,
+        monitors=_monitor_names,
         case_exists=case_exists,
     )

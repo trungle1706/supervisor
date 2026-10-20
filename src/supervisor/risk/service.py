@@ -183,6 +183,11 @@ class RiskService:
             },
         )
 
+    def _fresh(self) -> RefCatalogue:
+        """The catalogue with its per-run cache cleared (the deployed policy can change)."""
+        self.catalogue.clear()
+        return self.catalogue
+
     # ------------------------------------------------------------------ links
     def _link_rows(self, risk_id: str) -> list[dict[str, Any]]:
         return [
@@ -205,7 +210,7 @@ class RiskService:
     def add_link(self, risk_id: str, kind: str, target: str, actor: str) -> dict[str, Any]:
         check_target(kind, target)
         row = self._need(risk_id)
-        self.catalogue.check(kind, target)
+        self._fresh().check(kind, target)
         lid = link_id(risk_id, kind, target)
         out = {"risk_id": risk_id, "kind": kind, "target": target, "added": True}
         cur = self.state.get("risk_link", {"link_id": lid})
@@ -430,9 +435,10 @@ class RiskService:
         fields = normalise(data, source=source)
         rid = check_id(risk_id) if risk_id else new_risk_id()
         pairs = sorted(set(links))
+        cat = self._fresh()
         for kind, target in pairs:
             check_target(kind, target)
-            self.catalogue.check(kind, target)
+            cat.check(kind, target)
         if len(pairs) > MAX_LINKS_PER_RISK:
             raise RiskError(f"a risk can have at most {MAX_LINKS_PER_RISK} links")
         row = {**fields, "risk_id": rid, "created_at": self.clock.now(), "created_by": actor}
@@ -474,7 +480,7 @@ class RiskService:
 
     # ------------------------------------------------------------------ evidence
     def collector(self) -> ev.Collector:
-        return ev.Collector(self.tables, self.state, self.catalogue.rule_ids())
+        return ev.Collector(self.tables, self.state, self._fresh().rule_ids())
 
     def run_evidence(self, now: dt.datetime | None = None) -> dict[str, Any]:
         """One evidence pass: a ``risk_evidence`` row and a chain record for every active risk
@@ -545,7 +551,8 @@ class RiskService:
         return out
 
     # ------------------------------------------------------------------ import
-    def parse_import(self, text: str, name: str = "risks") -> list[dict[str, Any]]:
+    @staticmethod
+    def parse_import(text: str, name: str = "risks") -> list[dict[str, Any]]:
         """Risk documents (flat dicts with ``id`` and ``links``) from one YAML text."""
         if len(text.encode("utf-8")) > MAX_IMPORT_BYTES:
             raise RiskError(f"{name}: file is too large")
@@ -557,7 +564,7 @@ class RiskService:
             raise RiskError(f"{name}: expected a mapping with a 'risks' list")
         if len(doc["risks"]) > MAX_RISKS:
             raise RiskError(f"{name}: more than {MAX_RISKS} risks")
-        return [self._flat(item, f"{name}[{i}]") for i, item in enumerate(doc["risks"], 1)]
+        return [RiskService._flat(item, f"{name}[{i}]") for i, item in enumerate(doc["risks"], 1)]
 
     @staticmethod
     def _flat(item: Any, where: str) -> dict[str, Any]:
@@ -613,6 +620,7 @@ class RiskService:
         source is ``starter`` or ``import``; a risk a person edited (source ``manual``) is left
         alone unless ``overwrite_manual``. Links of a document replace the stored links."""
         res = ImportResult()
+        cat = self._fresh()
         plan: list[tuple[str, dict[str, Any], list[tuple[str, str]]]] = []
         seen: dict[str, int] = {}
         keyed: dict[tuple[str, str, str], tuple[str, str]] = {}
@@ -627,7 +635,7 @@ class RiskService:
                 links = list(d.get("links") or [])
                 for kind, target in links:
                     check_target(kind, target)
-                    self.catalogue.check(kind, target)
+                    cat.check(kind, target)
                 anchor = (
                     fields["agent_id"] or "",
                     fields["node_id"] or "",

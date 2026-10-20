@@ -35,4 +35,5 @@ risks:
     review_date: 2027-04-20
     status: active
     links:
+      matrix: [INTL-EUAIA-2024-A15-01]
       monitor: [oversight]
