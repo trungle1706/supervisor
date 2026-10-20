@@ -266,7 +266,9 @@ def traces_page_exists() -> bool:
 
 
 def _traces(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
-    return {"traces": trace_rows(ctx, card["agent_id"]), "traces_page": traces_page_exists()}
+    # link to the viewer only when it is registered AND switched on (flag off = HTTP 400 there)
+    viewer = traces_page_exists() and bool(getattr(ctx.settings, "console_traces_enabled", False))
+    return {"traces": trace_rows(ctx, card["agent_id"]), "traces_page": viewer}
 
 
 def _cases(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:

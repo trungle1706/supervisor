@@ -3,7 +3,7 @@
 {% import "_c_table.html" as tb with context %}
 <div class="tablewrap">
 <table class="queue policies-tbl">
-  <caption class="sr">{{ t('policy_rules') }}</caption>
+  <caption class="sr">{{ t('policies_in_force') }}</caption>
   <thead>
     <tr>
       {{ tb.th('rule_id', t('rule_col'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}

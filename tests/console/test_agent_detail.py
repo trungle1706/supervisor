@@ -184,11 +184,16 @@ def test_traces_tab_links_case_transcript_then_traces_page(
     assert rows and len(rows) <= agent_detail.TRACE_LIMIT
     with_case = [x for x in rows if x["case_id"]]
     assert with_case, "the demo pause is linked to a case"
+    # after the wave-1 merge the WP-UX3 viewer route exists; with its flag off (default) the tab
+    # still links to the case transcript, because the viewer would answer 400
+    assert agent_detail.traces_page_exists()
     assert f"/console/cases/{with_case[0]['case_id']}?tab=transcript" in r.text
-    assert "/console/traces/" not in r.text  # WP-UX3 page not built here
-    monkeypatch.setattr(agent_detail, "traces_page_exists", lambda: True)
+    assert "/console/traces/" not in r.text
+    monkeypatch.setattr(console.ctx.settings, "console_traces_enabled", True)
     r = console.get("/console/agents/payments/tab/traces", headers=HX)
     assert f"/console/traces/{rows[0]['trace_id']}" in r.text
+    viewer = console.get(f"/console/traces/{rows[0]['trace_id']}")
+    assert viewer.status_code == 200
 
 
 def test_cases_tab_lists_all_cases_of_the_agent(console: Console) -> None:

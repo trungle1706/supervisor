@@ -26,7 +26,7 @@
       <td>{{ ui.pill(t('trace_' ~ r.status), {'ok': 'ok', 'alert': 'warn', 'blocked': 'bad', 'paused': 'warn'}[r.status], True) }}</td>
     </tr>
   {% else %}
-    <tr><td colspan="6">{{ ui.empty(t('no_traces'), t('no_traces_line')) }}</td></tr>
+    <tr><td colspan="6">{{ ui.empty(t('traces_no_match'), t('traces_no_match_line')) }}</td></tr>
   {% endfor %}
   </tbody>
 </table>

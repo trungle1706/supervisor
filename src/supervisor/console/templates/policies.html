@@ -23,7 +23,7 @@
 <h2 class="sec">{{ t('policy_tools') }}</h2>
 <p class="idline">{% for name, cls in tools %}<span class="mono">{{ name }}</span> ({{ cls }}){{ ', ' if not loop.last else '' }}{% endfor %}</p>
 {% endif %}
-<h2 class="sec">{{ t('policy_rules') }} <span class="k">{{ total_rules }}</span></h2>
+<h2 class="sec">{{ t('policies_in_force') }} <span class="k">{{ total_rules }}</span></h2>
 {{ ui.filterbar('/console/policies', '/console/policies/rows', [
   {'name': 'q', 'label': t('search_rules'), 'kind': 'search', 'value': params.q},
   {'name': 'agent', 'label': t('agent_scope'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
