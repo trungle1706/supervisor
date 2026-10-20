@@ -44,7 +44,7 @@ moved since (WP23 work); this branch does not contain it.
   - jobs `fairness`, `drift`, `multiagent` and `build_quality_sweep` pass `BindingResolver.from_settings(settings)`.
 - Console: Metrics page section "Monitor status" (agent x monitor, pill + reason + n), EN and VI strings; `monitor_status` hidden from the numeric table.
 - Harness: `python -m supervisor.monitors.binding_harness [--json] [--expected FILE] [--keep DIR]`; synthetic 3-agent trace (`memo_agent` bound, `helpdesk` derived, `lookup_agent` nothing), golden `data/eval/monitor_bindings/expected.json` (12 cells, provenance and rubric in the file). `tests/monitors/test_bindings.py` (golden match, the old silence with `legacy=True`, resolver precedence, ambiguity, bad key, forbidden attribute, policy schema, status idempotence); `tests/console/test_monitor_status.py`.
-- Docs: `docs/monitors.md` (new), `docs/adr/D19-monitor-bindings.md`, `docs/metrics.md`, README, CHANGELOG (WP1b-B row, behaviour changes), BACKLOG (3 rows), `docs/index.md`.
+- Docs: `docs/monitors.md` (new), `docs/adr/D20-monitor-bindings.md`, `docs/metrics.md`, README, CHANGELOG (WP1b-B row, behaviour changes), BACKLOG (3 rows), `docs/index.md`.
 
 ## Flags and settings
 
@@ -65,7 +65,7 @@ uv run python -m pytest tests\onboard\test_wp1b_b_codefacts.py tests\monitors\te
 - Existing test changed: `tests/advisory/test_corpus.py` (corpus size 20 to 21; the name is now `test_corpus_has_twenty_one_repos`).
 - Judge-side files: none touched. `onboard/codefacts.py` imports `FAMILY_ALIASES` from `judge/router.py` (read only). If the judge engineer renames that table or moves it, one import changes.
 - `monitors/sweeps.py`: `build_quality_sweep` only gained the `resolver=` / `sample_bp=` arguments in the `QualitySweep(...)` call. The judge-model lines are untouched, but the file is close to the judge area: check the merge.
-- Likely merge conflicts: `CHANGELOG.md`, `BACKLOG.md`, `README.md`, `config.py`, `schema/model.yaml` and DDL (append-only edits), `policies/schema.json` (regenerate with `policy_json_schema()` after the merge), ADR number D19 (may collide).
+- Likely merge conflicts: `CHANGELOG.md`, `BACKLOG.md`, `README.md`, `config.py`, `schema/model.yaml` and DDL (append-only edits), `policies/schema.json` (regenerate with `policy_json_schema()` after the merge), ADR number (renamed to D20 in review).
 
 ## Self-review
 
@@ -79,6 +79,6 @@ R1: monitors still only advise; nothing calls the gate. R2: no new PII path; the
 4. Statuses are not on the chain. Owner: do auditors need "monitor not applicable" as evidence?
 5. Served app still cannot load another gateway policy folder (D13, not my WP); `MONITOR_POLICY_DIR` only feeds the monitors.
 6. Name-derived reply tool can pick a wrong tool (a tool called `message_*` that is not the output). Explicit binding overrides it.
-7. Drift per-agent window must be set before the baseline exists (documented in D19).
-8. A second wave-1b engineer may also take ADR number D19.
+7. Drift per-agent window must be set before the baseline exists (documented in D20).
+8. ADR renamed to D20 in review (phase3-wave1 has D19-latency-benchmark).
 9. Verify live: the new `monitor_status` column needs the bootstrap/ALTER path on an existing Delta table (additive column; covered by `tests/test_schema.py` offline only).

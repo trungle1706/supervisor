@@ -41,7 +41,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | PII masking | `vn_regex-3` masker, per-entity eval harness (`python -m supervisor.pii_eval`), inline redaction at the gate | `docs/masking.md`, `docs/masker-validation-report.md` |
 | Judges | Tier 1 and Tier 2 AI judges; advise only, never call the gate | `docs/adr/D06-judge-hardening.md` |
 | Evidence chain | SHA-256 chain, one lane per agent, signed head, offline `verify` | `docs/adr/D05-evidence-chain.md` |
-| Monitors | Drift, fairness, groundedness, oversight metrics; per-agent bindings and an explicit `not_applicable` status when a monitor cannot run (`python -m supervisor.monitors.binding_harness`) | `docs/metrics.md`, `docs/monitors.md` |
+| Monitors | Drift, fairness, groundedness, oversight metrics; per-agent bindings and an explicit `not_applicable` status when a monitor cannot run (`python -m supervisor.monitors.binding_harness`) | `docs/metrics.md`, `docs/monitors.md`, `docs/adr/D20-monitor-bindings.md` |
 | Console | Reviewer pages: queue, agents, cases, sign-off, metrics | `docs/console.md` |
 | Onboarding agent | Discover, Understand, Advise, Launch, Retire stages; opens PRs. HTTP routes are listed as entrypoints, not tools; deepagents and the model family are recognised | `docs/onboard.md`, `docs/onboard-eval.md` |
 | Regulation knowledge base | 31 instruments, 528 obligations, cited, versioned; internal rules load too | `docs/regulations.md` |

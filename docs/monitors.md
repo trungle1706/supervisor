@@ -1,4 +1,4 @@
-# Monitor bindings and monitor status (WP1b-B, ADR D19)
+# Monitor bindings and monitor status (WP1b-B, ADR D20)
 
 Four monitors read agent traffic: quality (groundedness of replies), fairness (approval-rate
 gaps), drift (baseline bands) and multi-agent (split payment across callers). Until WP1b-B

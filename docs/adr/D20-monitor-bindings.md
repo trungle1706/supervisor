@@ -1,4 +1,4 @@
-# D19: Per-agent monitor bindings and explicit monitor status (WP1b-B)
+# D20: Per-agent monitor bindings and explicit monitor status (WP1b-B)
 
 Status: accepted for phase 3 wave 1b. Source: credit-memo benchmark defect D06
 (`quality`, `fairness`, `drift` and `multiagent` silent for a non-demo agent).
@@ -39,4 +39,4 @@ like a monitor that found nothing.
 ## Open
 
 - Should a high-risk agent with `not_applicable` open a low-severity case? (BACKLOG)
-- ADR numbering: D19 was taken here; the integrator may renumber.
+- ADR numbering: first numbered D19; renamed to D20 in review because phase3-wave1 already has D19-latency-benchmark.
