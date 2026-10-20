@@ -146,6 +146,7 @@ def drawer_view(ctx: Any, alert_id: str) -> dict[str, Any]:
             "acknowledged_by",
             "correlation_id",
         )
+        if k != "correlation_id" or row.get(k)  # WP39 review: no new key on an old row
     }
     return {
         "settings_v2": bool(getattr(ctx.settings, "console_decisions_v2", False)),
