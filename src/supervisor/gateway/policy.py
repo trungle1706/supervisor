@@ -267,6 +267,31 @@ class RuleSpec(_Strict):
         return []
 
 
+class AgentDetectors(_Strict):
+    """WP37 (ADR D23): per-agent override of ``config/detectors.yaml`` (``agents.<id>.detectors``).
+
+    ``preset`` is the agent's default sensitivity preset; ``enable`` / ``disable`` switch single
+    detectors; ``settings`` overrides detector settings by slug; ``skip_tools`` lists tools for
+    which the gate runs no detector (verdict status ``skip``, a deterministic policy value).
+    Read only when DETECTORS_ENABLED=1; the key is left out of the policy hash when unset, so a
+    policy file without it keeps the hash it had before WP37."""
+
+    preset: Literal["strict", "balanced", "lenient"] | None = None
+    enable: list[str] = Field(default_factory=list, max_length=16)
+    disable: list[str] = Field(default_factory=list, max_length=16)
+    settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    skip_tools: list[str] = Field(default_factory=list, max_length=64)
+
+    @field_validator("settings")
+    @classmethod
+    def _no_floats(cls, v: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        for slug, values in v.items():
+            for key, value in values.items():
+                if isinstance(value, float):
+                    raise ValueError(f"{slug}.{key}: floats are not allowed (use basis points)")
+        return v
+
+
 class AgentManifest(_Strict):
     name: str = Field(min_length=1)
     owner_user: str = Field(min_length=1)
@@ -278,6 +303,8 @@ class AgentManifest(_Strict):
     initial_state: Literal["RUNNING", "SHADOW"] = "SHADOW"
     # WP1b-B (D06): which tools the quality / fairness / drift / multi-agent monitors read.
     monitors: MonitorBindings | None = None
+    # WP37 (D23): per-agent detector override; absent from the dump (and the hash) when None.
+    detectors: AgentDetectors | None = None
 
 
 class PolicyDoc(_Strict):
@@ -337,13 +364,23 @@ def _cross_check(doc: PolicyDoc) -> None:
             raise PolicyError(f"{r.id}: aggregate needs tools: [...] or when.tool eq/in")
 
 
+def _dump(doc: PolicyDoc, exclude: set[str] | None = None) -> dict[str, Any]:
+    """JSON dump of a policy document. An agent's ``detectors`` key is dropped when unset, so
+    adding the WP37 field did not change the hash of any existing policy file."""
+    out = doc.model_dump(mode="json", by_alias=True, exclude=exclude)
+    for agent in out.get("agents", {}).values():
+        if agent.get("detectors") is None:
+            agent.pop("detectors", None)
+    return out
+
+
 class Policy:
     """A validated, merged policy with its hash and per-agent rule lists."""
 
     def __init__(self, doc: PolicyDoc) -> None:
         _cross_check(doc)
         self.doc = doc
-        self.policy_hash = sha256_hex(doc.model_dump(mode="json", by_alias=True))
+        self.policy_hash = sha256_hex(_dump(doc))
         self._patterns: dict[str, re.Pattern[str]] = {}
         self._by_agent: dict[str, list[RuleSpec]] = {}
         for r in doc.rules:
@@ -379,6 +416,11 @@ class Policy:
 
     def risk_class(self, tool_name: str) -> str | None:
         return self.doc.tools.get(tool_name)
+
+    def agent_detectors(self, agent_id: str) -> AgentDetectors | None:
+        """WP37: the agent's detector override, or None."""
+        agent = self.doc.agents.get(agent_id)
+        return agent.detectors if agent is not None else None
 
     def tracked_keys(self) -> dict[str, set[str]]:
         """Per tool: the arg paths that aggregates and prior rules group by."""
@@ -448,7 +490,7 @@ def policy_json_schema() -> dict[str, Any]:
 
 
 def _manifest_expression(doc: PolicyDoc) -> dict[str, Any]:
-    return doc.model_dump(mode="json", by_alias=True, exclude={"rules"})
+    return _dump(doc, exclude={"rules"})
 
 
 def deploy_policy(

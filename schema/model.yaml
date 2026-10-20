@@ -129,6 +129,12 @@ tables:
       # WP22 (additive): gate decision latency in integer microseconds (latency_ms keeps the
       # old millisecond value; a sub-millisecond gate call is 0 ms). Null on older rows.
       latency_us: int?
+      # WP37 (additive, null unless DETECTORS_ENABLED): verdict contract v2 on gate decisions.
+      # verdict_status is allow|report|transform|pause|block|skip (the old ``status`` column keeps
+      # allowed|denied). coverage_json lists the payload parts inspected and not inspected.
+      verdict_status: string?
+      correlation_id: string?
+      coverage_json: json?
 
   agent_event_raw:
     kind: append_only
@@ -781,3 +787,43 @@ tables:
       active: bool
       first_seen: timestamp
       last_seen: timestamp
+
+  # --- WP37 detector findings (ADR D23) ------------------------------------------------
+  finding:
+    kind: append_only
+    evidence: true
+    description: >
+      WP37 one row per detector result of a gate decision: a fired finding, or a detector that
+      did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only
+      (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the
+      gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.
+    primary_key: [finding_id]
+    retention:
+      masked: [entities_masked, fragments_masked]
+    indexes:
+      - [agent_id, ts]
+      - [event_id]
+      - [correlation_id]
+    columns:
+      finding_id: string
+      ts: timestamp
+      event_id: string
+      request_id: string
+      correlation_id: string
+      trace_id: string?
+      agent_id: string
+      tool_name: string
+      direction: string       # input | output
+      detector_slug: string
+      detector_id: string     # slug@version
+      code: string
+      score_bp: int
+      threshold_bp: int
+      masked_count: int
+      action_hint: string     # report | transform | pause | block
+      not_executed_reason: string?
+      preset: string?
+      is_mock: bool
+      verdict_status: string  # status of the whole decision
+      entities_masked: json?
+      fragments_masked: json?

@@ -43,9 +43,18 @@ SEQUENCE: list[tuple[str, str, dict[str, Any]]] = [
 ]
 
 
+# Columns WP37 added to agent_event. They exist (as NULL) in every row read back from the store;
+# with the flag off nothing writes them, so a NULL here is "not written" and is left out.
+WP37_NULL_COLUMNS = {"verdict_status", "correlation_id", "coverage_json"}
+
+
 def _clean(value: Any) -> Any:
     if isinstance(value, dict):
-        return {k: _clean(v) for k, v in value.items() if k not in VOLATILE}
+        return {
+            k: _clean(v)
+            for k, v in value.items()
+            if k not in VOLATILE and not (k in WP37_NULL_COLUMNS and v is None)
+        }
     if isinstance(value, list):
         return [_clean(v) for v in value]
     return value
