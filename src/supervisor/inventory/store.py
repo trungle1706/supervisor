@@ -131,6 +131,7 @@ class InventoryStore:
         *,
         source: str,
         stale_kinds: Iterable[str] | None = None,
+        stale_any: bool = False,
         stale_edges: bool = False,
     ) -> ApplyResult:
         """Merge ``fragment`` (all of it came from ``source``).
@@ -138,6 +139,8 @@ class InventoryStore:
         ``stale_kinds``: workspace kinds (attrs.workspace_kind) that were listed completely this
         time; a node of that kind whose only evidence is this source and that is missing from the
         fragment becomes ``gone``, and one with other evidence loses this source's evidence.
+        ``stale_any``: the same for every node kind; use it only when the fragment is the
+        complete output of ``source`` (all manifests): a retired agent then becomes ``gone``.
         ``stale_edges``: edges of this source that the fragment does not carry become inactive.
         """
         now = self.clock.now()
@@ -164,8 +167,9 @@ class InventoryStore:
             )
             res.nodes_same += 1 if same else 0
             res.nodes_changed += 0 if same else 1
-        if stale_kinds is not None:
-            res.nodes_gone += self._stale_nodes(fragment, existing, source, set(stale_kinds), now)
+        if stale_kinds is not None or stale_any:
+            kinds = None if stale_any else set(stale_kinds or ())
+            res.nodes_gone += self._stale_nodes(fragment, existing, source, kinds, now)
 
         known = set(existing) | set(fragment.nodes)
         eexisting = self._rows("inventory_edge", "edge_id")
@@ -222,7 +226,7 @@ class InventoryStore:
         fragment: Graph,
         existing: dict[str, dict[str, Any]],
         source: str,
-        kinds: set[str],
+        kinds: set[str] | None,
         now: datetime,
     ) -> int:
         gone = 0
@@ -230,7 +234,7 @@ class InventoryStore:
             if nid in fragment.nodes:
                 continue
             node = node_from_row(row)
-            if node.attrs.get("workspace_kind") not in kinds:
+            if kinds is not None and node.attrs.get("workspace_kind") not in kinds:
                 continue
             kept = [e for e in node.evidence if e["source"] != source]
             if len(kept) == len(node.evidence):

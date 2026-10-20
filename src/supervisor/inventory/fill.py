@@ -196,6 +196,39 @@ def fill_from_manifests(
                 "manifest",
                 f"{ref}:{_line_of(lines, 'serving_endpoint:')}",
             )
+    # Agents registered in the ``agent`` table without a repo manifest (the usual case for an
+    # agent onboarded on Databricks). Without this their App would be reported as shadow AI.
+    seen = {n.name for n in g.nodes.values() if n.kind == "system"}
+    for agent_id, row in sorted((agent_rows or {}).items()):
+        if canonical_name(agent_id) in seen or row.get("status") == "retired":
+            continue
+        tier = row.get("risk_tier")
+        ref = f"agent_table:{agent_id}"
+        sysn = Node(
+            "system",
+            agent_id,
+            display_name=str(row.get("name") or agent_id),
+            own_risk=tier if tier in ("low", "medium", "high", "critical") else None,
+            risk_source="manifest" if tier in ("low", "medium", "high", "critical") else "none",
+            decision33_class=row.get("decision33_class"),
+            attrs={
+                k: v
+                for k, v in {
+                    "role": "agent",
+                    "host_type": row.get("host_type"),
+                    "plug_point": row.get("plug_point"),
+                    "model_family": row.get("model_family"),
+                    "gate_state": row.get("gate_state"),
+                }.items()
+                if v not in (None, "")
+            },
+        )
+        sysn.add_evidence("manifest", ref)
+        g.add_node(sysn)
+        owner = str(row.get("owner_team") or "").strip()
+        if owner and not owner.startswith("FILL-ME"):
+            o = _supplier(g, owner, "owner_team", "manifest", ref)
+            g.link(g.nodes[sysn.node_id], "owned_by", o, "manifest", ref)
     return g
 
 

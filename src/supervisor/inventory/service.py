@@ -89,7 +89,9 @@ class InventoryService:
             self.agent_rows(),
             root=REPO_ROOT,
         )
-        return self.store.apply(g, source="manifest", stale_edges=True)
+        # The fragment is every manifest: a node only a removed manifest backed becomes gone
+        # (ISO/IEC 42001 A.6: a retired agent must not stay "active" and keep its App managed).
+        return self.store.apply(g, source="manifest", stale_any=True, stale_edges=True)
 
     def fill_onboarding(self, inventory: Mapping[str, Any] | str | Path) -> ApplyResult:
         """From the ``inventory.json`` an onboarding run wrote (a dict or a path)."""

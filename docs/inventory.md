@@ -32,7 +32,7 @@ system:payments --uses--> tool:payments/transfer
 | Edge id | Hash of (src, kind, dst, source): one row per claim, so each source keeps its own evidence. |
 | Evidence | `source` is `manifest`, `onboarding`, `workspace_scan` or `manual`. `evidence_ref` is `path:line` for repo text and `workspace:<kind>/<name>` for a workspace object. Workspace URLs and ids are not stored. |
 | Shared edges | When two agents share an edge (the same model), the smallest reference wins inside one fill, so the result does not depend on fill order. |
-| Status | `active`, `unmanaged`, `allowlisted`, `gone` (the workspace no longer lists it). |
+| Status | `active`, `unmanaged`, `allowlisted`, `gone` (the workspace no longer lists it, or the manifest or agent row that was its only evidence was removed or retired). |
 | Writes | State tables with `row_version`. Only changed rows are written, plus a `last_seen` refresh once a day. |
 
 ## Risk inheritance
@@ -55,13 +55,15 @@ effective(node) = max( own(node), effective(child) for each child reached by an 
 |---|---|---|---|
 | (a) manifests | `fill_from_manifests` | `src/supervisor_agents/*/manifest.yaml`, `policies/baseline.yaml`, `agent` rows | `python -m supervisor.inventory manifests`; every scheduler run |
 | (b) onboarding | `fill_from_onboarding` | `inventory.json` from `python -m supervisor.onboard` | automatic at the end of Discover when `INVENTORY_ENABLED=1`; or `python -m supervisor.inventory onboarding PATH` |
-| (c) workspace | `fill_from_workspace` | Apps, Model Serving endpoints, MLflow registered models (Unity Catalog, else the workspace registry), UC tables of `INVENTORY_SCAN_SCHEMAS`, lineage (fixture reader) | `python -m supervisor.jobs.inventory`; the scheduler job `inventory` |
+| (c) workspace | `fill_from_workspace` | Apps, Model Serving endpoints, MLflow registered models (Unity Catalog and the workspace registry; one refused listing is skipped), UC tables of `INVENTORY_SCAN_SCHEMAS`, lineage (fixture reader) | `python -m supervisor.jobs.inventory`; the scheduler job `inventory` |
 
 A bare table name from code (`loan_applications`) is linked to the one Unity Catalog table with the same last segment when exactly one exists; otherwise it stays a separate node.
 
+An `agent` table row with no manifest file (an agent registered or onboarded on Databricks) also becomes a `system` node with evidence `manifest: agent_table:<id>` (risk tier, human-set Decision 33 class, owner team; never `owner_user`). Rows with status `retired` are left out. Each manifest run is complete, so a node that only a removed manifest or row backed becomes `gone`.
+
 A manifest may also declare `databricks_app`, `serving_endpoint`, `mcp_servers` and `datasets: {reads: [], writes: []}`; they become edges with `manifest` evidence.
 
-A listing that fails is reported (`errors`: kind and exception class only) and its objects are not marked `gone`. Reading the workspace is read only: `apps.list`, `serving_endpoints.list`, `registered_models.list`, `tables.list`.
+A listing that fails is reported (`errors`: kind and exception class only) and its objects are not marked `gone`. Reading the workspace is read only: `apps.list`, `serving_endpoints.list`, `registered_models.list`, `model_registry.list_models`, `tables.list`.
 
 ### Scheduler job
 
