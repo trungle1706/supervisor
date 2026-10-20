@@ -5,6 +5,7 @@
 | WP | Feature | Docs | ADR |
 |---|---|---|---|
 | WP37 | Verdict contract v2 on `/v1/gate/check` (`status`, `findings`, `not_executed`, `coverage`, `transformed_payload`, `request_id`, `correlation_id`, `direction`; old fields kept), detector framework (`dlp_vn`, `injection_regex`, `judge_advisory`), `GET /v1/gate/detectors`, table `finding` and three nullable `agent_event` columns (run `python -m supervisor.jobs.bootstrap_schema` on Delta), harness `python -m supervisor.detectors.harness`. Flag `DETECTORS_ENABLED` (default off: answers and rows as in v0.3.0) | `docs/detectors.md`, `docs/api.md` | D23 |
+| WP38 | Collector catalogue on the Integrations page (`COLLECTORS_ENABLED`, default off: the v0.3.0 page): Python SDK, LangGraph and deepagents middleware, FastAPI middleware, REST, MCP proxy, LiteLLM guardrail, Claude Code hook; Add issues the first agent key (`collectors.add`); detail drawer. Policy: `agents.<id>.mode: observe`, `agents.<id>.consumers.<id>` override, rule switches, gate order words (policy hash unchanged without the new keys). SDK `check_v2` with `direction` and correlation id. Playground sample library and extra attributes. Harness `python -m supervisor.collectors.harness` | `docs/collectors.md`, `docs/policy.md` | D28 |
 
 ## v0.3.0 (phase 3, wave 1) - 2026-10-20
 

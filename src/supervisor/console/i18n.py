@@ -1833,10 +1833,10 @@ _T.update(
             "Thêm sẽ cấp khóa đầu tiên của tác tử. Khóa chỉ hiện một lần; Supervisor không thể "
             "hiện lại.",
         ),
-        "col_cat_sdk": ("SDK", "SDK"),
-        "col_cat_middleware": ("Middleware", "Middleware"),
+        "col_cat_sdk": ("SDK", "SDK (thư viện)"),
+        "col_cat_middleware": ("Middleware", "Middleware (lớp trung gian)"),
         "col_cat_gateway": ("Gateway and API", "Cổng và API"),
-        "col_cat_mcp": ("MCP", "MCP"),
+        "col_cat_mcp": ("MCP", "MCP (giao thức công cụ)"),
         "col_cat_ide": ("Developer tools", "Công cụ lập trình"),
         "col_add": ("Add", "Thêm"),
         "col_pick_agent": ("Agent without a key", "Tác tử chưa có khóa"),

@@ -88,3 +88,20 @@ A failed fail-closed detector on a money, credit or pii_export tool gives `allow
 
 `GET /v1/gate/detectors` returns the catalogue from code (needs `gate.read` when `API_RBAC_ENABLED`
 is on): slug, sides, protocols, presets and the settings schema of each detector.
+
+## WP38 additions (policy mode and consumer)
+
+`context.consumer_id` (1 to 128 characters of `A-Za-z0-9_.:@-`) selects `agents.<id>.consumers.<id>`
+in the policy. An agent that uses `mode`, `rules` or `consumers` in the policy gets these extra fields
+in the answer (agents that do not, get none):
+
+| Field | Meaning |
+|---|---|
+| `mode` | `enforce` or `observe` after the consumer override |
+| `consumer_id` | the consumer whose override was applied |
+| `consumer_ignored` | `true` when an id was sent but is invalid or has no entry |
+| `observed_decision` | in observe mode, the decision that became a report: `allow` (false), `action`, `rule_id`, `reason` |
+| `status` | `report` when observe turned a block or pause into a report (also without detectors) |
+
+In observe mode `allow` is `true` and `action` is `log`. Details: `docs/policy.md`. The SDK adds
+`HttpGate.check_v2(..., direction=, correlation_id=)` (header `X-Supervisor-Correlation-Id`).

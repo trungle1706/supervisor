@@ -325,6 +325,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "inbox.read",
         "alert.ack",
         "playground.run",  # WP-UX3: tests/console/test_ux3_playground.py
+        "collectors.add",  # WP38: tests/console/test_collectors_page.py (two audit rows)
         "dev.user",
     }
     posts = {

@@ -181,6 +181,23 @@ no detector matches (the adversarial probes in the validation report list the kn
 finding that is kept past its retention class in a copy outside the store, or an operator who
 edits `config/detectors.yaml` to disable a detector (the file is in change control).
 
+### 3.11 Collectors, consumer ids and the Add flow (WP38, ADR D28)
+
+Trust boundary: values that a framework or a caller supplies (tool name, consumer id, session id,
+correlation id, headers of an inbound request) and the console action that issues an agent key.
+Controls: the adapters drop or replace any id that is not 1 to 128 characters of `A-Za-z0-9_.:@-`
+(no header injection, no 400 from the route), map tool names to safe names, cap payload size and fail
+closed on every malformed answer; the gate ignores an invalid or unknown consumer id and then applies
+the agent's own settings, and a consumer cannot switch off a money or credit block or pause rule.
+The consumer id is asserted by the caller: a compromised agent can name a lenient consumer such as
+an observe-mode channel, so the mode and the consumer id are in every decision, chain record and SIEM
+event, and overrides are changed only through the reviewed policy file. The Add action passes the new
+secret through the browser once (`Cache-Control: no-store`); the audit row has the agent id, template
+id and key id only; the page needs `collectors.add` (admin, operator) and an htmx request; the base
+URL put in snippets is validated. Observe mode lets calls that rules would stop go through; it is a
+per-agent policy value in git and shows in the Policy binding tab. It does not stop: a person who
+can edit the policy file or read the key file.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

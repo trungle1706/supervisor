@@ -17,8 +17,11 @@ Short rules used in this guide:
 | A. In-process SDK | One decorator per tool, one hook module | Gate check before every tool call; optional traces | You own the Python code. This is the default and the strongest control. |
 | B. OTLP traces | Tracer provider and exporter only | Recorded events (what happened). No blocking. | You cannot change tool code yet, or you want evidence first. Also use it with A. |
 | C. MCP proxy | The command that starts the MCP server | Gate check on every `tools/call` | The tools live in an MCP server you do not want to edit, or the agent is not Python. |
+| D. Collector (WP38) | One middleware, guardrail or hook from the console catalogue | Input and output check per call, correlation id, masked values applied | LangGraph or deepagents agents, FastAPI apps, a LiteLLM proxy, developer assistants. Add it on the Integrations page (`COLLECTORS_ENABLED=1`); see `docs/collectors.md`. |
 
 Pattern A and B together is the normal target: A gives the block, B gives the record.
+
+Pattern D (WP38) wraps the same gate call in a framework adapter. It sends `direction`, the output text, the session and consumer id and the `X-Supervisor-Correlation-Id` header, applies the masked payload, and raises `SupervisorPaused` on a pause. Fail mode is closed by default. LangGraph and LiteLLM stay your own dependencies. Set `agents.<id>.mode: observe` in the policy to watch before you enforce (`docs/policy.md`).
 
 ### Pattern A: in-process SDK
 

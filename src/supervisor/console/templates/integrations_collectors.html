@@ -15,11 +15,11 @@
   <input type="hidden" name="lang" value="{{ lang }}">
   <label for="col-agent">{{ t('col_pick_agent') }}</label>
   {% if agent_opts %}
-  <select id="col-agent" name="agent" onchange="this.form.submit()">
+  <select id="col-agent" name="agent">
     <option value="">-</option>
     {% for a in agent_opts %}<option value="{{ a }}"{% if a == sel_agent %} selected{% endif %}>{{ a }}</option>{% endfor %}
   </select>
-  <noscript><button class="btn" type="submit">{{ t('col_open') }}</button></noscript>
+  <button class="btn" type="submit">{{ t('col_open') }}</button>
   {% else %}
   <p class="hint">{{ t('col_no_free_agent') }}</p>
   {% endif %}

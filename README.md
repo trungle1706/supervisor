@@ -56,6 +56,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
 | Ingress auth (WP20, off by default) | Per-agent HMAC key or Databricks service-principal token on `/gate/check` and `/v1/traces`; `INGRESS_AUTH_ENABLED=1` | `docs/ingress-auth.md`, `docs/adr/D14-ingress-auth.md` |
 | Detectors and verdict v2 (WP37, off by default) | One detector contract (`dlp_vn`, `injection_regex`, `judge_advisory`), findings on masked text, `status` / `coverage` / `correlation_id` on `POST /v1/gate/check`, `DETECTORS_ENABLED=1`; harness `python -m supervisor.detectors.harness` | `docs/detectors.md`, `docs/detectors-validation-report.md`, `docs/adr/D23-verdict-contract-v2.md` |
+| Collectors and policy modes (WP38, off by default) | Integrations page as a catalogue (`COLLECTORS_ENABLED=1`): Python SDK, LangGraph and deepagents middleware, FastAPI middleware, REST, MCP proxy, LiteLLM guardrail, Claude Code hook; Add issues the agent key. Policy: `agents.<id>.mode: observe`, per-consumer override; Playground samples; harness `python -m supervisor.collectors.harness` | `docs/collectors.md`, `docs/policy.md`, `docs/collectors-validation-report.md`, `docs/adr/D28-collectors-and-policy-modes.md` |
 | Latency | Gate p99 on a laptop (SQLite): 4.6 ms with 19 rules, 6.8 ms with 200 (budget 50 ms). HTTP overhead p95 (GAF delta): +3.2 ms. Delta not measured yet. `python -m tools.bench_latency` | `docs/latency.md` |
 
 ## 10-minute tour

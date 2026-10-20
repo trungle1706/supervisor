@@ -128,4 +128,12 @@
 | WP37: the SDK (`HttpGate`) does not yet send `direction`, `context.output` or `X-Supervisor-Correlation-Id`, and does not read `status`; the in-repo agent runtime only copies `correlation_id` and `status` to its span | WP38 collectors and the LangGraph middleware |
 | WP37: no console page for findings, no latency split rules / detectors / overhead, no "not evaluated" badge | WP39 (reads `finding`, `agent_event.verdict_status`, `coverage_json`) |
 | WP37: the pii_vn golden set feeds `dlp_vn` items (derived text); a bank-supplied set would be a better held-out set | Bank provides labelled examples under the DPO rubric |
-
+| WP38: `consumer_id` is asserted by the caller; the policy cannot tie it to an authenticated identity (a compromised agent can name a lenient consumer) | WP33 end-user identity; bind consumer ids to the credential in `config/agent_identities.yaml` |
+| WP38: observe mode is allowed for a consumer on money tools; only rule switches are guarded | Owner decides whether observe may be set per consumer for agents with money tools |
+| WP38: `agent_event` has no column for the observed decision (verdict rows, chain and SIEM carry it) | WP39 adds a column and shows it in Decisions |
+| WP38: the mcp_http_proxy card is a placeholder; the Databricks AI Gateway template is not built | WP26; second wave of collectors |
+| WP38: Add is for the first key only; rotation stays on the command line; env and secret-scope stores cannot be written from the console | A rotate button with a two-person check, if the owner wants the secret to pass the browser again |
+| WP38: the LiteLLM guardrail and the FastAPI middleware do not check streamed answers; the middleware buffers a response up to 1 MB | Chunked output check with a window; needs a decision on what to do with bytes already sent |
+| WP38: adapters were tested with fake framework objects; no run against an installed LangGraph, deepagents or LiteLLM | A nightly job in an environment with the frameworks (not a dependency of the repo) |
+| WP38: no policy editor; mode and consumers are changed by editing YAML | WP40 |
+| WP38: HttpGate.check still has no direction; `supervised_tool` does not send a correlation id | Use `check_v2` in the decorator once old servers are gone |
