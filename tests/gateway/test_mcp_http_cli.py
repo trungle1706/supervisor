@@ -83,3 +83,10 @@ def test_cli_over_http_uses_the_routes(monkeypatch: pytest.MonkeyPatch, capsys: 
     assert seen[0][1].endswith(f"/v1/mcp/tools?server_id={SERVER}")
     assert seen[1][2][1] == {"X-Dev-User": "rev.an"}
     assert seen[1][2][0]["observed_hash"] == "a" * 12
+
+
+def test_flag_defaults() -> None:
+    s = load_settings()
+    assert s.mcp_http_enabled is False  # new features default off
+    assert s.mcp_tool_lock is True  # inside the proxy the lock is on
+    assert s.mcp_lock_refresh_s == 60

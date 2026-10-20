@@ -22,6 +22,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/api.md` | API versioning policy and paths | Dev |
 | `docs/INTEGRATION_GUIDE.md` | Three ways to fit a product into Supervisor | Dev |
 | `docs/bank-integration.md` | Bank-side integration contracts (stubs) | Dev, Op |
+| `docs/mcp-gateway.md` | HTTP MCP gateway: streamable-HTTP proxy, tool locking, two-person tool review, poisoning scan, harness, latency | Dev, Op, 2L |
 | `docs/siem.md` | SIEM export: sinks, jsonl / CEF / OCSF field mapping, Splunk, Sentinel, Databricks examples | Op, Dev |
 | `docs/alerts.md` | Alert rules, dedupe, routes, acknowledge, harness | Op, 2L |
 | `docs/recorder.md` | Trace recorder, OTLP, masking | Dev |

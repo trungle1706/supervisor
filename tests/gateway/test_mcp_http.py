@@ -488,3 +488,29 @@ def test_tofu_needs_a_name_and_prints_the_warning(
         ["--upstream", "http://127.0.0.1:1/mcp", "--agent", "payments", "--trust-on-first-use"]
     )
     assert rc == 2 and "needs --by" in capsys.readouterr().out
+
+
+def test_expired_lock_session_is_reopened_once(adapters: Adapters, evidence: Any) -> None:
+    with stack(adapters, evidence, [BAL], fake={"require_session": True}, refresh_s=0.0) as (
+        c,
+        up,
+        _s,
+        _g,
+        _p,
+    ):
+        c.initialize()
+        assert c.call("get_balance", account_id="A-1")["result"]["isError"] is False
+        up.sessions.clear()  # the upstream forgets every session, as after a restart
+        c.call("get_balance", account_id="A-1")  # client session gone upstream: an error, no hang
+        c.initialize()  # the client starts a new session; the lock session was reopened
+        assert c.call("get_balance", account_id="A-1")["result"]["isError"] is False
+
+
+def test_session_end_is_passed_upstream(adapters: Adapters, evidence: Any) -> None:
+    with stack(adapters, evidence, [BAL], fake={"require_session": True}) as (c, up, _s, _g, _p):
+        c.initialize()
+        assert c.session in up.sessions
+        c.conn.request("DELETE", c.path, headers={"Mcp-Session-Id": c.session or ""})
+        r = c.conn.getresponse()
+        r.read()
+        assert r.status == 204 and c.session not in up.sessions

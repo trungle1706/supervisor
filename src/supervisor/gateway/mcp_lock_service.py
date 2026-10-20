@@ -214,6 +214,11 @@ class ToolLockService:
             tool = by_name[name]
             h = hashes[name]
             row = rows.get(name)
+            if row is not None and row["observed_hash"] == h and row["status"] != "removed":
+                last = _as_dt(row.get("last_seen"))  # steady state: no scan, no write
+                if last is None or now - last >= LAST_SEEN_REFRESH:
+                    self._update(row, {"last_seen": now})
+                continue
             scan = mcp_lock.scan_tool(tool)
             definition = mcp_lock.stored_definition(tool)
             if row is None:
@@ -237,11 +242,6 @@ class ToolLockService:
                 )
                 if not seed and initial_case is None:
                     self._attach_case(server_id, name, agent_id, h, scan)
-                continue
-            if row["observed_hash"] == h and row["status"] != "removed":
-                last = _as_dt(row.get("last_seen"))
-                if last is None or now - last >= LAST_SEEN_REFRESH:
-                    self._update(row, {"last_seen": now})
                 continue
             changes.append(self._moved(row, h, definition, scan, agent_id, now))
         for name, row in sorted(rows.items()):

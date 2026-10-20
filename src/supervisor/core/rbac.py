@@ -96,14 +96,14 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "audit.view": (("auditor", "admin"), "Audit log page: console_action rows (read-only)"),
     "integrations.view": (_ALL, "Integrations status page (read-only)"),
     # --- WP26 ---
-    "mcp.tools.view": (_ALL, "MCP tool lock: list tools and diffs (read-only, WP26)"),
+    "mcp.tools.view": (_ALL, "List MCP tools and their diffs (read-only, WP26)"),
     "mcp.tools.propose": (
         ("reviewer", "approver", "owner", "admin", "operator"),
-        "MCP tool lock: first approval of a new or changed tool (WP26)",
+        "Give the first approval of a new or changed MCP tool (WP26)",
     ),
     "mcp.tools.approve": (
         ("reviewer", "approver", "owner", "admin"),
-        "MCP tool lock: approve a tool; the second different person locks it (WP26)",
+        "Approve a new or changed MCP tool; the second different person locks it (WP26)",
     ),
 }
 

@@ -200,12 +200,16 @@ def build_env(backend: str, workdir: Path) -> Env:
     clock = FixedClock(datetime(2026, 10, 20, 2, 0, 0, tzinfo=UTC))
     executor = None
     if backend == "databricks_fake":
-        try:
-            from tools import bench_latency as bl
-        except ImportError as exc:
+        bench = REPO_ROOT / "tools" / "bench_latency.py"  # loaded by path: src never imports tools
+        if not bench.exists():
             raise HarnessError(
-                "backend databricks_fake needs the repository's tools/ package"
-            ) from exc
+                "backend databricks_fake needs the repository's tools/bench_latency.py"
+            )
+        spec = importlib.util.spec_from_file_location("mcp_http_bench_latency", bench)
+        assert spec is not None and spec.loader is not None
+        bl = importlib.util.module_from_spec(spec)
+        sys.modules["mcp_http_bench_latency"] = bl
+        spec.loader.exec_module(bl)
         executor = bl._fake_delta_executor()()
     elif backend == "sqlite":
         from supervisor.adapters.sql.sqlite import SqliteExecutor

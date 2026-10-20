@@ -291,9 +291,9 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `users.view` | Users and roles page (read-only) |  |  |  |  | x |  |  |
 | `audit.view` | Audit log page: console_action rows (read-only) |  |  |  |  | x | x |  |
 | `integrations.view` | Integrations status page (read-only) | x | x | x | x | x | x | x |
-| `mcp.tools.view` | MCP tool lock: list tools and diffs (read-only, WP26) | x | x | x | x | x | x | x |
-| `mcp.tools.propose` | MCP tool lock: first approval of a new or changed tool (WP26) |  | x | x | x | x |  | x |
-| `mcp.tools.approve` | MCP tool lock: approve a tool; the second different person locks it (WP26) |  | x | x | x | x |  |  |
+| `mcp.tools.view` | List MCP tools and their diffs (read-only, WP26) | x | x | x | x | x | x | x |
+| `mcp.tools.propose` | Give the first approval of a new or changed MCP tool (WP26) |  | x | x | x | x |  | x |
+| `mcp.tools.approve` | Approve a new or changed MCP tool; the second different person locks it (WP26) |  | x | x | x | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

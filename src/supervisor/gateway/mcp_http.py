@@ -256,16 +256,19 @@ class McpHttpGateProxy(McpGateProxy):
         with self._refresh_lock:
             if self._view is not None and self._mono() - self._view_at < self._refresh_s:
                 return self._view
-            try:
-                with self._own_session():
-                    tools, _first = self._list_all()
-            except LockUnavailable:
-                raise
-            except Exception as exc:  # noqa: BLE001
-                reset = getattr(self._upstream, "reset_own_session", None)
-                if reset is not None:
-                    reset()
-                raise LockUnavailable(f"upstream failed: {type(exc).__name__}") from None
+            reset = getattr(self._upstream, "reset_own_session", None)
+            for attempt in (0, 1):  # one retry on a fresh session (the old one may have expired)
+                try:
+                    with self._own_session():
+                        tools, _first = self._list_all()
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    if reset is not None:
+                        reset()
+                    if attempt:
+                        if isinstance(exc, LockUnavailable):
+                            raise
+                        raise LockUnavailable(f"upstream failed: {type(exc).__name__}") from None
             return self._observe(tools)
 
     def view_now(self) -> dict[str, Any]:

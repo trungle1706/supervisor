@@ -169,6 +169,40 @@ About 8.7 ms at p50. The proxy asks the gate over HTTP for every call (`HttpGate
 builds a new client and a new connection for every call), so the cost is the gate's 4.7 ms plus the proxy's own connection, JSON and process hop. A keep-alive connection is a follow-up in
 BACKLOG.md.
 
+### HTTP MCP proxy, per `tools/call` (WP26)
+
+Measured with `python -m supervisor.gateway.mcp_http_harness --gate-server -n 500 --repeats 3` on the
+same method as above (monotonic clock, integer microseconds, warm-up of 100 calls discarded, nearest-rank
+percentiles, median of 3 repeats, arms rotated between repeats). One closed-loop client over a kept-alive
+connection, one `tools/call` of `get_balance` that the gate allows, loopback, SQLite file store, 19 rules.
+Client, proxy, fake upstream, and gate run in ONE Python process (the interpreter lock is shared; the
+stdio rows above use separate processes), so read the deltas, not the absolute values. The upstream is a
+labelled MOCK (an in-process fake streamable-HTTP MCP server). Linux x86_64, 16 cores.
+
+| Arm | p50 us | p95 us | What it is |
+|---|---|---|---|
+| `direct` | 177 | 290 | client to the fake server |
+| `proxy_nolock_stubgate` | 1273 | 1559 | through the proxy, lock off, stub gate (MOCK): the cost of the extra hop, JSON, and one kept-alive upstream client |
+| `proxy_lock_stubgate` | 1288 | 1539 | same, lock on (cached view): the lock costs 15 us at p50 |
+| `proxy_lock_gate_inproc` | 3180 | 4410 | lock on, real `Gateway.check` in process (the 4.7 ms gate p50 of the stdio table is the same code plus its HTTP hop) |
+| `proxy_lock_gate_http` | 11273 | 20222 | real gate over HTTP, a new connection per gate call, as `mcp_proxy` does |
+| `proxy_lock_gate_http_pooled` | 5897 | 7155 | real gate over HTTP, kept-alive gate connection (`PooledJson`, the default of `mcp_http`) |
+
+Delta of the default HTTP arm over direct: **p50 +5.7 ms, p95 +6.9 ms**. The pooled gate connection
+halves the HTTP-gate cost (11.3 to 5.9 ms at p50). The lock alone is 15 us at p50 because `tools/call` reads
+a cached view; every `MCP_LOCK_REFRESH_S` (60 s) one call also lists the upstream server and posts the
+list to the app (one extra round trip). `tools/list` always lists the server and posts the list (about
+the cost of two requests plus the hashing, no scan when nothing changed). Upstream connections reused:
+3 TCP connections for about 10,000 calls.
+
+Two measurement hazards found while building this (they apply to any arm that passes a socket to uvicorn
+or serves with `http.server`): (1) a listening socket handed to `uvicorn.Server.run(sockets=...)` needs
+`TCP_NODELAY` itself, otherwise every kept-alive answer waits 40 ms for the client's delayed ACK (a trivial
+ASGI app measured 41 ms against 0.3 ms); (2) a `BaseHTTPRequestHandler` writes headers and body separately, so
+the proxy and the fake server set `TCP_NODELAY` on every accepted socket. Not measured: TLS to the upstream
+server, a real remote server, the Delta round trip (the `databricks_fake` backend is SQLite behind REST
+marshalling and is only used for the quality metrics), OAuth, and a real network.
+
 ### OTLP ingest, `POST /v1/traces`
 
 | Path | Store | 1 span p50 / p95 | 20 spans p50 / p95 | per span at p50 (20 / 20) |

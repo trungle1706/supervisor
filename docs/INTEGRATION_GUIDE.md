@@ -16,7 +16,7 @@ Short rules used in this guide:
 |---|---|---|---|
 | A. In-process SDK | One decorator per tool, one hook module | Gate check before every tool call; optional traces | You own the Python code. This is the default and the strongest control. |
 | B. OTLP traces | Tracer provider and exporter only | Recorded events (what happened). No blocking. | You cannot change tool code yet, or you want evidence first. Also use it with A. |
-| C. MCP proxy | The command that starts the MCP server | Gate check on every `tools/call` | The tools live in an MCP server you do not want to edit, or the agent is not Python. |
+| C. MCP proxy | The command that starts the MCP server (stdio), or the URL of the MCP server (HTTP) | Gate check on every `tools/call`; for HTTP also a locked tool list | The tools live in an MCP server you do not want to edit, or the agent is not Python. |
 
 Pattern A and B together is the normal target: A gives the block, B gives the record.
 
@@ -81,6 +81,37 @@ replaces the command and the old command moves behind `--`:
   }
 }
 ```
+
+#### Pattern C, HTTP MCP servers (WP26)
+
+A remote MCP server (streamable HTTP) is not started by you, so there is no command to wrap.
+Run the HTTP proxy beside the agent and point the MCP client at it. Off unless
+`MCP_HTTP_ENABLED=1`; details in `docs/mcp-gateway.md`.
+
+```text
+ MCP client --HTTP--> supervisor.gateway.mcp_http --HTTPS--> remote MCP server
+   (127.0.0.1:9701)        |  tools/list: hash, hide new or changed tools
+                           |  tools/call: lock check, then Supervisor /v1/gate/check
+```
+
+```cmd
+set MCP_HTTP_ENABLED=1
+python -m supervisor.gateway.mcp_http --upstream https://mcp.bank.example/mcp --agent <agent_id> --listen 127.0.0.1:9701 --gate-url http://127.0.0.1:8000 --key-file C:\secure\<agent_id>.key
+```
+
+```json
+{
+  "mcpServers": {
+    "tai-khoan": { "type": "http", "url": "http://127.0.0.1:9701/mcp" }
+  }
+}
+```
+
+The decision path, the evidence, the ingress signing and the masked arguments are those of the
+stdio proxy. New: a tool that is new or changed since two people approved it is hidden from
+`tools/list` and refused on `tools/call` (`MCP-TOOL-UNREVIEWED`); a review case opens. Seed the
+first manifest with `--trust-on-first-use --by NAME` or review each tool with
+`python -m supervisor.gateway.mcp_http tools ...`. One proxy process per application.
 
 Limits of the proxy: it sees the tool name and arguments only. It has no risk class, so
 every tool fails closed when the gate is unreachable, read-only tools too. Only `tools/call`

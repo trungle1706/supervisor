@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased (phase 3, wave 2)
+
+### WP26: HTTP MCP gateway with tool locking (flag `MCP_HTTP_ENABLED`, default off)
+
+* `python -m supervisor.gateway.mcp_http --upstream URL --agent ID --listen 127.0.0.1:PORT`: a
+  streamable-HTTP MCP proxy that reuses `McpGateProxy` (same gate path, evidence, ingress signing
+  and masked arguments as the stdio proxy), one kept-alive upstream client, one listener per
+  application. Refuses to start with the flag off.
+* Tool locking: every tool is hashed (name, description, input schema, annotations); a new or
+  changed tool is hidden from `tools/list` and refused on `tools/call` (`MCP-TOOL-UNREVIEWED`)
+  until two different people approve the same hash; a removed tool is logged; a review case
+  `mcp_tool_review` opens. New table `mcp_tool_manifest` (run `bootstrap_schema` on Delta).
+  `MCP_TOOL_LOCK` (default `1`), `MCP_LOCK_REFRESH_S` (default `60`).
+* Review: `python -m supervisor.gateway.mcp_http tools list|diff|propose|approve`, and routes
+  `/v1/mcp/tools` (permissions `mcp.tools.view`, `mcp.tools.propose`, `mcp.tools.approve`; the
+  role table in `docs/console.md` changed). Two new ingress routes `/v1/mcp/tools/observe` and
+  `/blocked` (signed like gate calls).
+* Report-only poisoning scan with a hook for the WP25 classifier score.
+* Harness `python -m supervisor.gateway.mcp_http_harness` (110 template items, 33 probes outside
+  the templates, Wilson intervals, latency with and without the gate) and its regression test.
+* Docs: `docs/mcp-gateway.md`, ADR D24, pattern C in the integration guide, threat model.
+
 ## v0.3.0 (phase 3, wave 1) - 2026-10-20
 
 Merged from the integration branch `phase3-wave1` (3,684 tests, 29 skipped). Every new feature is behind a
