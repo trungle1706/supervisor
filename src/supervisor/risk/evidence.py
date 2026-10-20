@@ -70,6 +70,16 @@ NON_HIT_CHECKERS = ("gate:fail_mode",)
 # monitor_status entry (supervisor.monitors.status.MONITORS) minus "quality", an advisory LLM
 # scorer (rule R1: a judge never changes a control decision, so it never lowers a score).
 EVIDENCE_MONITORS = ("fairness", "drift", "multiagent")
+# Packs whose verdict comes from a judge model (hallucination and accuracy scorers). They are
+# references, not evidence, unless the owner sets RISK_EVIDENCE_JUDGED_PACKS=1 (rule R1).
+JUDGED_PACKS = (
+    "groundedness_monitor",
+    "halueval_vi",
+    "ragas_rag_triad",
+    "selfcheck_consistency",
+    "simpleqa_vi",
+    "truthfulqa_vi",
+)
 
 STATE_WORKING = "working"
 STATE_FAILING = "failing"
@@ -226,6 +236,7 @@ class Collector:
     rule_ids: Collection[str]
     _agents: dict[str, tuple[str, str]] = field(default_factory=dict)
     _loaded: bool = False
+    judged_packs: bool = False
     # One pass asks the same (agents, control) question for many risks; answer it once.
     _memo: dict[tuple[Any, ...], Any] = field(default_factory=dict)
 
@@ -282,6 +293,8 @@ class Collector:
         """``ok`` | ``warn`` | ``fail`` | ``nodata`` over the agents' newest non-mock results.
         ``ok`` needs a result for every supervised agent: a pack run on one agent does not show
         the control works for another agent the risk applies to."""
+        if pack_id in JUDGED_PACKS and not self.judged_packs:
+            return "nodata"  # a judge-scored pack is a reference, not evidence
         seen: list[str] = []
         missing = False
         for a in agents:

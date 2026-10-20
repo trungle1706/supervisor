@@ -21,7 +21,7 @@ risks:
       rule: [CRD-01, CRD-02]
       matrix: [VN-QD33-2026-PL4.2-02, INTL-OWASPLLM-2025-LLM05-01]
       pack: [owasp_agentic_redteam]
-      monitor: [oversight]
+      monitor: [drift]
 
   - id: RSK-CRD-002
     agent: credit_prequal
@@ -38,7 +38,7 @@ risks:
     links:
       rule: [CRD-03]
       matrix: [VN-QD33-2026-PL4.2-03, VN-TT53-2026-A4.02B-01]
-      monitor: [oversight]
+      monitor: [drift]
 
   - id: RSK-CRD-003
     agent: credit_prequal
@@ -58,7 +58,7 @@ risks:
       rule: [PII-02]
       matrix: [VN-DATA-2024-A25.1-01, VN-DEC356-2025-A4.1-01, INTL-OWASPLLM-2025-LLM02-01]
       pack: [pii_canary]
-      monitor: [sweeps]
+      monitor: [multiagent]
 
   - id: RSK-CRD-004
     agent: credit_prequal
@@ -91,7 +91,7 @@ risks:
     status: active
     links:
       matrix: [INTL-NISTGAI-2024-S2.2-01]
-      pack: [groundedness_monitor, halueval_vi]
+      pack: [groundedness_monitor, halueval_vi, paraphrase_consistency]
       monitor: [quality]
 
   - id: RSK-CRD-006

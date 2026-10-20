@@ -212,6 +212,17 @@ def check_starters(directory: Path | None = None) -> dict[str, Any]:
                 problems.append(f"{rid}: agent {agent} is not in the manifests")
             if doc.get("node_id") and doc["node_id"] not in g.nodes:
                 problems.append(f"{rid}: node does not resolve in the manifest inventory")
+            sources = [
+                (k, t)
+                for k, t in doc["links"]
+                if (k == "rule")
+                or (k == "pack" and t not in ev.JUDGED_PACKS)
+                or (k == "monitor" and t in ev.EVIDENCE_MONITORS)
+            ]
+            if not sources:
+                problems.append(
+                    f"{rid}: only reference links; no rule, pack or monitor can be evidence"
+                )
             for kind, target in doc["links"]:
                 n_links += 1
                 if kind not in LINK_KINDS or not cat.exists(kind, target):

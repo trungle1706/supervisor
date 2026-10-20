@@ -130,3 +130,4 @@
 | WP31: files are kept in `TRANSPARENCY_DIR` (ephemeral on the Databricks App); no store in a Volume or Delta; no web publishing of the customer version; no delivery to partners | Volume path and publishing decision |
 | WP31: the Transparency page has no filter, sort or diff view between versions; the diff is only in the chain record and the table | Console follow-up |
 | WP31: open BACKLOG items are matched to an agent by its id or model family word only | A tag column in BACKLOG.md |
+| WP29 L6: packs scored by a judge model are references only (`RISK_EVIDENCE_JUDGED_PACKS=0`). Whether they may lower a score is an owner decision (rule R1) | Owner decision; if yes, set the switch and name the judge validation gate it depends on |

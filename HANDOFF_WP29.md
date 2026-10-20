@@ -124,3 +124,29 @@ Console create and edit forms; four-eyes approval of a new or accepted risk; ris
 5. ADR number: I used D26 as you asked. D23 and D24 exist on other branches (verdict contract v2, MCP tool locking); D25 may too. Check for a clash at merge.
 6. Evidence window (7 days) and number of working controls required (1): keep or change?
 7. Gate state is read now, not at the time of each hit. If an agent moved from SHADOW to RUNNING inside the window, all hits count. Store the gate state with each verdict?
+
+
+## Follow-ups after review
+
+Review commits 65232ed to 222a170 are kept as they are. The follow-ups below are additive.
+
+| Item | Change | Tests |
+|---|---|---|
+| M2 starter links | The 12 starter links to `oversight` and `sweeps` now point to `drift` or `multiagent` (they write a status). CRD-005 also has the pack `paraphrase_consistency` (its other packs are judge-scored). The harness row `starters` fails when a risk has only reference links. `docs/risk-register.md` has a table of evidence links and reference links. | `tests/risk/test_followups.py` |
+| L3 actor | `risk_change` payloads carry `actor_ref` (keyed HMAC of the actor, `act_` + 16 hex, key = mask key), no `actor`. The readable actor stays in the `console_action` row. | no `@` in any chain payload; same actor same ref |
+| L4 latest evidence | One bounded query (`limit 1`) per risk replaces the 20,000-row read. Same code on both stores. | fixture of 20,200 rows, older risk still found |
+| L5 CLI | `import` needs `--by` (argparse refuses without it, exit 2). It writes a `console_action` row (method CLI, actor = `--by`). Documented in the CLI help and `docs/risk-register.md`. | refusal, audit row, hashed chain payload |
+| L6 judged packs | `RISK_EVIDENCE_JUDGED_PACKS` (default 0): the six judge-scored packs are references unless it is 1. BACKLOG row added. | idle by default, working when on, list matches real packs |
+
+Also: `tests/risk/test_service.py` and `tests/risk/test_cli_job.py` updated for `actor_ref` and `--by`; `tests/console/test_risks.py` link test uses `fairness` (PAY-001 already has `drift`).
+
+Last lines:
+
+```
+uv run python -m pytest -q -x     3892 passed, 29 skipped, 1 warning in 569.60s (0:09:29)
+uv run python -m ruff check       All checks passed!
+uv run python -m ruff format --check   689 files already formatted
+uv run python -m supervisor.risk.harness   [starters] risks=19 links=86 problems=[] ... [OK] all GO
+```
+
+Tests: 3,892 passed (review head 3,881, so +11 new). Log: `wp29_followup_full.txt` in the scratchpad.
