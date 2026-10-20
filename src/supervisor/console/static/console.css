@@ -539,7 +539,9 @@ a.rowlink::after { content: ""; position: absolute; inset: 0; }
   background: var(--surface); border-left: 1px solid var(--line); box-shadow: -12px 0 32px rgba(0, 0, 0, .12);
   padding: 16px 18px 24px; }
 .drawer[hidden] { display: none; }
-@media (min-width: 1280px) { body:has(#drawer:not([hidden])) { padding-right: 480px; } }
+/* WP-UX2 review: beside the list only when the list keeps >= 760 px (248 sidebar + 56 main
+   padding + 760 + 480 drawer = 1544); below 1600 px the drawer lies over the list */
+@media (min-width: 1600px) { body:has(#drawer:not([hidden])) { padding-right: 480px; } }
 .drawer-head { display: flex; align-items: center; gap: 10px; }
 .drawer-head h2 { margin: 0; font-size: 18px; flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .drawer-head h2:focus { outline: none; }

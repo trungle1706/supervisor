@@ -9,7 +9,7 @@
   {{ ui.kv([
     (t('agent'), drawer.agent),
     (t('time'), al.ts|day),
-    (t('alert_window'), al.window_count ~ '/' ~ al.threshold ~ ' in ' ~ al.window_s ~ ' s'),
+    (t('alert_window'), t('alert_window_val', n=al.window_count, max=al.threshold, s=al.window_s)),
     (t('alert_repeats'), al.suppressed_count),
     (t('alert_first'), al.first_ts|day),
     (t('alert_last'), al.last_ts|day),

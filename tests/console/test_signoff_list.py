@@ -128,3 +128,13 @@ def test_vietnamese(console: Console) -> None:
     _triage(console)
     r = console.get("/console/signoff?lang=vi")
     assert r.status_code == 200 and "Phê duyệt" in r.text and "Chữ ký" in r.text
+
+
+def test_zero_signatures_is_labelled_of_two(console: Console) -> None:
+    """Owner rule: a high / critical case needs two signatures, so a case with none waits;
+    the column says so in words ("0/2 signatures")."""
+    case = _triage(console)
+    r = console.get("/console/signoff")
+    assert "Signatures (of 2)" in r.text and "0/2 signatures" in r.text
+    assert 'data-case="' + case["case_id"] + '"' in r.text
+    assert "0/2 chữ ký" in console.get("/console/signoff?lang=vi").text

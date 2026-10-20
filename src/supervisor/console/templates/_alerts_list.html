@@ -26,7 +26,7 @@
     <td><strong>{{ a.rule_id }}</strong><div class="idline">{{ a.title }}</div></td>
     <td>{{ ui.sev(a.severity) }}</td>
     <td>{{ a.agent_id or a.group_value or '-' }}</td>
-    <td class="mono">{{ a.window_count }}/{{ a.threshold }} in {{ a.window_s }} s</td>
+    <td class="mono">{{ t('alert_window_val', n=a.window_count, max=a.threshold, s=a.window_s) }}</td>
     <td class="n">{{ a.suppressed_count }}</td>
     <td>{% if a.case_id %}<a href="/console/cases/{{ a.case_id }}?lang={{ lang }}">{{ a.case_id }}</a>{% else %}-{% endif %}</td>
     <td class="mono" style="font-size:12px">{% if a.chain_lane %}{{ a.chain_lane }}:{{ a.chain_seq }}<div class="idline">{{ (a.entry_hash or '')[:12] }}</div>{% else %}-{% endif %}</td>

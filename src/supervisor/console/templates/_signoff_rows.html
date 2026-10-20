@@ -24,7 +24,7 @@
         <a class="head" href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary[:160] }}{% endif %}</a>
         <div class="idline">{% if h.rule_id %}{{ h.rule_id }} · {% endif %}{{ c.case_id }}</div>
       </td>
-      <td><b>{{ 2 - c.missing }}/2</b>
+      <td><b>{{ t('so_sig_n', n=2 - c.missing) }}</b>
         {% for who, role in c.approvals.items() %}<div class="idline">{{ who }} ({{ t('role_' ~ role) }})</div>{% else %}<div class="idline">{{ t('no_signoffs') }}</div>{% endfor %}
       </td>
       <td>{{ ui.clock(c.clock) }}</td>

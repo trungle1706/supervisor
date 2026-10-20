@@ -1431,7 +1431,7 @@ _T.update(
             "High and critical cases that wait for a signature.",
             "Vụ việc mức cao và nghiêm trọng đang chờ chữ ký.",
         ),
-        "so_signatures": ("Signatures", "Chữ ký"),
+        "so_signatures": ("Signatures (of 2)", "Chữ ký (trên 2)"),
         "so_none": ("Nothing waits for a signature", "Không có gì chờ chữ ký"),
         "so_none_line": (
             "Cases that need two people appear here once they are triaged.",
@@ -1468,6 +1468,25 @@ _T.update(
             "Quyết định hiện ở đây khi tác tử gọi cổng.",
         ),
         "an_see_alerts": ("see all", "xem tất cả"),
+        # review fix: the toolbar always names the window the numbers cover
+        "an_window_days": (
+            "Window: {a} .. {b} ({n} days, UTC)",
+            "Khoảng: {a} .. {b} ({n} ngày, UTC)",
+        ),
+        "an_window_stored": (
+            "Window: every stored day, {a} .. {b}",
+            "Khoảng: mọi ngày đã lưu, {a} .. {b}",
+        ),
+        "an_window_stored_none": (
+            "Window: every stored day (none yet)",
+            "Khoảng: mọi ngày đã lưu (chưa có)",
+        ),
+        "an_window_live": (
+            "Window: live counters since this process started",
+            "Khoảng: bộ đếm trực tiếp từ lúc tiến trình này khởi động",
+        ),
+        "so_sig_n": ("{n}/2 signatures", "{n}/2 chữ ký"),
+        "alert_window_val": ("{n}/{max} in {s} s", "{n}/{max} trong {s} giây"),
         "an_latency_note": (
             "Live counters of this process since it started.",
             "Bộ đếm trực tiếp của tiến trình này từ lúc khởi động.",
