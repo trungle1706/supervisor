@@ -240,9 +240,10 @@ def test_trend_reads_delta_style_rows_and_never_invents_a_day() -> None:
     def row(days_ago: int, status: str, catch: int, esc: int) -> dict[str, Any]:
         ts = (now - timedelta(days=days_ago)).isoformat().replace("+00:00", "Z")
         m = {"gate_catch_bp": catch, "unexpected_escape_count": esc, "known_gap_open_count": 6,
-             "attack_success_bp": 4000, "conversations": 100}  # fmt: skip
+             "attack_success_bp": 4000, "conversations": 100, "model_gate_catch_bp": 7000}  # fmt: skip
+        d = {"gap_kinds_open": ["split_two_accounts", "score_harvest"]}
         return {"pack_id": PACK_ID, "target_id": "payments", "ts": ts, "status": status,
-                "metrics": json.dumps(m)}  # fmt: skip
+                "metrics": json.dumps(m), "details": json.dumps(d)}  # fmt: skip
 
     rows = [row(0, "ok", 10000, 0), row(0, "warn", 9000, 2), row(2, "ok", 10000, 0), row(9, "ok", 1, 1),
             row(1, "skip", 5, 5)]  # fmt: skip
@@ -251,7 +252,12 @@ def test_trend_reads_delta_style_rows_and_never_invents_a_day() -> None:
     assert t[-1]["gate_catch_bp_min"] == 9000 and t[-1]["unexpected_escape_max"] == 2
     assert t[-2]["gate_catch_bp_min"] is None  # the skipped row does not count
     text = render_trend(t)
-    assert "| 2026-10-20 | 2 | 200 | 9000 | 2 | 6 | 4000 |" in text and "2 of 7 days" in text
+    assert "| 2026-10-20 | 2 | 200 | 9000 | 7000 | 2 | 6 | 4000 |" in text and "2 of 7 days" in text
+    # the pooled number (all objectives, mock) and the hole names are printed, never hidden
+    assert "all incl. holes, MOCK" in text
+    assert (
+        "Known holes open on the latest day" in text and "score_harvest, split_two_accounts" in text
+    )
     assert pack_trend(_Rows([]), now=now)[0]["runs"] == 0
 
 

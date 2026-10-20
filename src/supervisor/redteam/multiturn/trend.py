@@ -24,8 +24,8 @@ def _ts(value: Any) -> datetime | None:
     return d if d.tzinfo else d.replace(tzinfo=UTC)
 
 
-def _metrics(row: Mapping[str, Any]) -> Mapping[str, Any]:
-    m = row.get("metrics")
+def _metrics(row: Mapping[str, Any], column: str = "metrics") -> Mapping[str, Any]:
+    m = row.get(column)
     if isinstance(m, str):
         import json
 
@@ -68,6 +68,10 @@ def pack_trend(
         def pick(name: str, ms: list[Mapping[str, Any]] = ms) -> list[int]:
             return [int(m[name]) for m in ms if m.get(name) is not None]
 
+        pooled = pick("model_gate_catch_bp")
+        holes: set[str] = set()
+        for r in rs:
+            holes.update(str(k) for k in _metrics(r, "details").get("gap_kinds_open") or [])
         catch, esc, gaps, succ, conv = (
             pick("gate_catch_bp"),
             pick("unexpected_escape_count"),
@@ -81,6 +85,10 @@ def pack_trend(
                 "runs": len(rs),
                 "conversations": sum(conv),
                 "gate_catch_bp_min": min(catch) if catch else None,
+                # all objectives incl. the known holes, mock susceptibility model (not pooled
+                # into the regression number above, never hidden either)
+                "model_gate_catch_bp_min": min(pooled) if pooled else None,
+                "known_holes": sorted(holes),
                 "unexpected_escape_max": max(esc) if esc else None,
                 "known_gap_open_max": max(gaps) if gaps else None,
                 "attack_success_bp_avg": (sum(succ) // len(succ)) if succ else None,
@@ -98,19 +106,24 @@ def render_trend(
     lines = [
         f"## {title}",
         "",
-        "| Day (UTC) | Rows | Conversations | Gate catch min (bp) | Unexpected escapes max "
+        "| Day (UTC) | Rows | Conversations | Gate catch min, rule-covered (bp) "
+        "| Gate catch min, all incl. holes, MOCK (bp) | Unexpected escapes max "
         "| Known gaps open | Mock success avg (bp) |",
-        "|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         lines.append(
             f"| {r['date']} | {r['runs']} | {r['conversations']} | {s(r['gate_catch_bp_min'])} | "
-            f"{s(r['unexpected_escape_max'])} | {s(r['known_gap_open_max'])} | "
-            f"{s(r['attack_success_bp_avg'])} |"
+            f"{s(r['model_gate_catch_bp_min'])} | {s(r['unexpected_escape_max'])} | "
+            f"{s(r['known_gap_open_max'])} | {s(r['attack_success_bp_avg'])} |"
         )
     seen = sum(1 for r in rows if r["runs"])
+    latest = next((r for r in reversed(rows) if r["runs"]), None)
+    holes = ", ".join(latest["known_holes"]) if latest and latest["known_holes"] else "-"
     lines += [
         "",
+        "Known holes open on the latest day (no rule stops them today; listed, not hidden): "
+        f"{holes}.",
         f"{seen} of {len(rows)} days have a run. Mock agent; thresholds illustrative.",
         "",
     ]
