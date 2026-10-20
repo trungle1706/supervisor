@@ -528,3 +528,35 @@ def test_headers_are_fresh_each_call() -> None:
     a, b = cred.headers_for("POST", PATH, BODY), cred.headers_for("POST", PATH, BODY)
     assert a[H_NONCE] != b[H_NONCE] and a[H_SIGNATURE] != b[H_SIGNATURE]
     assert a[H_TIMESTAMP].isdigit()
+
+
+def test_scim_me_uses_short_sdk_timeouts(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Review fix: SDK defaults (60 s + 300 s retries) would hold a worker for minutes.
+    pytest.importorskip("databricks.sdk")
+    import databricks.sdk as dbsdk
+
+    from supervisor.adapters.auth import agent_creds_identity as ident
+
+    seen: dict[str, Any] = {}
+
+    class FakeClient:
+        def __init__(self, **kw: Any) -> None:
+            seen.update(kw)
+
+            class Me:
+                @staticmethod
+                def me() -> Any:
+                    return type("U", (), {"user_name": "sp-1", "display_name": "SP"})()
+
+            self.current_user = Me()
+
+    monkeypatch.setattr(dbsdk, "WorkspaceClient", FakeClient)
+    assert ident.scim_me("https://h", "tok").principal == "sp-1"
+    assert seen["http_timeout_seconds"] <= 10 and seen["retry_timeout_seconds"] <= 15
+
+
+@pytest.mark.parametrize("header", [H_AGENT, H_NONCE, H_SIGNATURE])
+def test_trailing_newline_in_a_credential_header_is_malformed(header: str) -> None:
+    h = sign()
+    h[header] = h[header] + "\n"
+    assert reason_of(verifier(), h) == ("malformed_credential", 401)

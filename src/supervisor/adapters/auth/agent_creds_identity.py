@@ -65,13 +65,23 @@ class FakeIdentityVerifier:
 
 
 MeCall = Callable[[str], VerifiedIdentity]
+SCIM_HTTP_TIMEOUT_S = 10
+SCIM_RETRY_TIMEOUT_S = 15
 
 
 def scim_me(host: str, token: str) -> VerifiedIdentity:
     """SCIM ``Me`` with the caller's token (fresh client per call, dropped at return)."""
     from databricks.sdk import WorkspaceClient  # optional extra: databricks
 
-    client = WorkspaceClient(host=host, token=token, auth_type="pat")
+    # Short timeouts: the SDK defaults (60 s per call, 300 s of retries) would hold a thread
+    # pool worker for minutes per request while the workspace is slow or down.
+    client = WorkspaceClient(
+        host=host,
+        token=token,
+        auth_type="pat",
+        http_timeout_seconds=SCIM_HTTP_TIMEOUT_S,
+        retry_timeout_seconds=SCIM_RETRY_TIMEOUT_S,
+    )
     me = client.current_user.me()
     principal = me.user_name or ""
     if not principal:
