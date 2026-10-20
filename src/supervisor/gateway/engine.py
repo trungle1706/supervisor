@@ -556,8 +556,10 @@ class Gateway:
         out["agent_version"] = str(agent_version)
         out["shadow"] = shadow
         out["builtin"] = builtin is not None
-        out["would_pause"] = builtin is None and not shadow and (
-            any(m.action == "pause" for m in matches) or d.rule_id == CLASSIFIER_PAUSE_RULE
+        out["would_pause"] = (
+            builtin is None
+            and not shadow
+            and (any(m.action == "pause" for m in matches) or d.rule_id == CLASSIFIER_PAUSE_RULE)
         )
         out["not_evaluated"] = sorted(skipped)
         return out

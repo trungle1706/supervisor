@@ -23,7 +23,6 @@ The run is deterministic: same data, same seed, same bytes (a test trains a tiny
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import random
@@ -36,20 +35,20 @@ from supervisor.config import REPO_ROOT
 from supervisor.detectors.injection_classifier import features as F
 from supervisor.detectors.injection_classifier import units as U
 from supervisor.detectors.injection_classifier.model import (
-    MODELS_DIR,
     MODEL_NAME,
+    MODELS_DIR,
     SCALE,
     SURFACES,
     LinearModel,
-    sigmoid_bp,
     sha256_file,
+    sigmoid_bp,
     write_model,
 )
 
 DATA = REPO_ROOT / "data" / "eval" / "injection_vi_en"
 SEED = 20261023
 VERSION = "1.0.0"
-HYPER = {"epochs": 12, "lr": 0.8, "l2": 2e-6, "eps": 1e-6, "pos_weight": 1.0}
+HYPER = {"epochs": 12, "lr": 0.8, "l2": 2e-6, "eps": 1e-6, "pos_weight": 1.0, "hard_weight": 1.0}
 
 
 def load_items(name: str) -> list[dict[str, Any]]:
@@ -69,55 +68,79 @@ def unit_of(item: dict[str, Any]) -> tuple[str, str]:
 
 
 class Sample:
-    __slots__ = ("surface", "label", "wins")
+    __slots__ = ("surface", "label", "wins", "hard")
 
-    def __init__(self, surface: str, label: int, wins: list[array]) -> None:
-        self.surface, self.label, self.wins = surface, label, wins
+    def __init__(self, surface: str, label: int, wins: list[array], hard: bool = False) -> None:
+        self.surface, self.label, self.wins, self.hard = surface, label, wins, hard
 
 
 def make_samples(items: list[dict[str, Any]]) -> list[Sample]:
     out = []
     for it in items:
         surf, text = unit_of(it)
-        wins = [array("I", ids) for var in F.variant_feature_sets(text) for ids in var] if text else []
-        out.append(Sample(surf, int(it["label"]), wins or [array("I")]))
+        wins = (
+            [array("I", ids) for var in F.variant_feature_sets(text) for ids in var] if text else []
+        )
+        out.append(
+            Sample(surf, int(it["label"]), wins or [array("I")], it["category"] == "benign-hard")
+        )
     return out
 
 
 def train(samples: list[Sample], hyper: dict[str, Any], seed: int, log: bool = True) -> LinearModel:
     rng = random.Random(seed)  # noqa: S311 - seeded shuffle, not security
-    w = [0.0] * F.BUCKETS
-    g2 = [0.0] * F.BUCKETS
+    w = [0.0] * F.TOTAL
+    g2 = [0.0] * F.TOTAL
     bias = {s: 0.0 for s in SURFACES}
     gb = {s: 0.0 for s in SURFACES}
     lr, l2, eps = hyper["lr"], hyper["l2"], hyper["eps"]
     order = list(range(len(samples)))
+    acc_w = [0.0] * F.TOTAL
+    acc_b = {k: 0.0 for k in SURFACES}
+    n_acc = 0
     for epoch in range(hyper["epochs"]):
         rng.shuffle(order)
         loss = 0.0
         for k in order:
             s = samples[k]
-            best, best_z = None, -1e18
+            best, best_z, best_n = None, -1e18, 1
             for ids in s.wins:
-                n = len(ids)
-                z = bias[s.surface] + (sum(w[i] for i in ids) / math.sqrt(n) if n else 0.0)
+                sw = sc = 0.0
+                n = 0
+                for i in ids:
+                    if i < F.BUCKETS:
+                        sw += w[i]
+                        n += 1
+                    else:
+                        sc += w[i]
+                z = bias[s.surface] + (sw / math.sqrt(n) if n else 0.0) + sc * F.CONCEPT_SCALE
                 if z > best_z:
-                    best, best_z = ids, z
+                    best, best_z, best_n = ids, z, n
             p = 1.0 / (1.0 + math.exp(-max(-30.0, min(30.0, best_z))))
             y = s.label
             loss += -math.log(max(1e-9, p if y else 1 - p))
-            err = (p - y) * (hyper["pos_weight"] if y else 1.0)
+            err = (p - y) * (
+                hyper["pos_weight"] if y else (hyper["hard_weight"] if s.hard else 1.0)
+            )
             gb[s.surface] += err * err
             bias[s.surface] -= lr * 0.1 * err / (math.sqrt(gb[s.surface]) + eps)
-            n = len(best)  # type: ignore[arg-type]
-            if n:
-                inv = 1.0 / math.sqrt(n)
-                for i in best:  # type: ignore[union-attr]
-                    g = err * inv + l2 * w[i]
-                    g2[i] += g * g
-                    w[i] -= lr * g / (math.sqrt(g2[i]) + eps)
+            inv = 1.0 / math.sqrt(best_n) if best_n else 0.0
+            for i in best:  # type: ignore[union-attr]
+                g = err * (inv if i < F.BUCKETS else F.CONCEPT_SCALE) + l2 * w[i]
+                g2[i] += g * g
+                w[i] -= lr * g / (math.sqrt(g2[i]) + eps)
+        if hyper.get("average") and epoch >= 1:  # average the weights of epochs 2..N
+            n_acc += 1
+            for i in range(F.TOTAL):
+                if w[i]:
+                    acc_w[i] += w[i]
+            for k in SURFACES:
+                acc_b[k] += bias[k]
         if log:
             print(f"  epoch {epoch + 1:>2}/{hyper['epochs']}  mean loss {loss / len(order):.4f}")
+    if n_acc:
+        w = [x / n_acc for x in acc_w]
+        bias = {k: v / n_acc for k, v in acc_b.items()}
     ints = [int(round(x * SCALE)) for x in w]
     b_int = {s: int(round(bias[s] * SCALE)) for s in SURFACES}
     return LinearModel(VERSION, ints, b_int, {})
@@ -221,10 +244,14 @@ def main(argv: list[str] | None = None) -> int:
         prog="python -m tools.train_classifier",
         description="Train the injection_vi_en linear classifier (stdlib only, deterministic).",
     )
-    ap.add_argument("--out", type=Path, default=None, help="folder for weights.json (default: data/models/...)")
+    ap.add_argument(
+        "--out", type=Path, default=None, help="folder for weights.json (default: data/models/...)"
+    )
     ap.add_argument("--epochs", type=int, default=HYPER["epochs"])
     ap.add_argument("--seed", type=int, default=SEED)
-    ap.add_argument("--limit", type=int, default=0, help="use only the first N training items (tests)")
+    ap.add_argument(
+        "--limit", type=int, default=0, help="use only the first N training items (tests)"
+    )
     ap.add_argument("--no-card", action="store_true", help="do not write model_card.json")
     args = ap.parse_args(argv)
     hyper = dict(HYPER, epochs=args.epochs)
@@ -254,12 +281,20 @@ def main(argv: list[str] | None = None) -> int:
     print(f"suggested thresholds (dev false alarm <= 800 / 300 / 50 / 20 bp): {suggest}")
     print(f"[OK] weights: {wpath}  sha256={wsha}  nonzero={sum(1 for x in model.weights if x)}")
     if not args.no_card:
-        thresholds = json.loads((out / "model_card.json").read_text(encoding="utf-8"))["thresholds_bp"] if (out / "model_card.json").is_file() else suggest
+        thresholds = (
+            json.loads((out / "model_card.json").read_text(encoding="utf-8"))["thresholds_bp"]
+            if (out / "model_card.json").is_file()
+            else suggest
+        )
         card = build_card(model, wsha, hyper, thresholds, {"train": len(train_items)}, args.seed)
         (out / "model_card.json").write_text(
-            json.dumps(card, indent=2, sort_keys=True, ensure_ascii=True) + "\n", encoding="utf-8", newline="\n"
+            json.dumps(card, indent=2, sort_keys=True, ensure_ascii=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
         )
-        print(f"[OK] card: {out / 'model_card.json'} (thresholds_bp from {'the old card' if (out / 'model_card.json').is_file() else 'this run'})")
+        print(
+            f"[OK] card: {out / 'model_card.json'} (thresholds_bp from {'the old card' if (out / 'model_card.json').is_file() else 'this run'})"
+        )
     return 0
 
 

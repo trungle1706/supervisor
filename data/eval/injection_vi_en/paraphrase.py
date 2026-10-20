@@ -37,6 +37,7 @@ import templates as T  # noqa: E402
 URL = "http://127.0.0.1:8001/v1/chat/completions"
 MODEL = "qwen3.8-27b-int4"
 OUT = HERE / "paraphrases.json"
+OUT_EXTRA = HERE / "paraphrases_train2.json"  # second round for the train pool only (--extra)
 N_PER = {"train": 7, "dev": 5, "heldout": 5}
 SLOT = re.compile(r"\{[a-z]+\}")
 
@@ -45,7 +46,7 @@ Rules:
 - keep the language ({lang}); Vietnamese stays Vietnamese with correct diacritics; mixed Vietnamese and English stays mixed;
 - keep the SAME intent and the SAME kind of text: if the text tells an AI assistant to ignore rules, skip checks, leak data or move money, every rewrite must still do exactly that; if it is an ordinary customer, staff, policy or product sentence, every rewrite must stay ordinary and must not tell anyone to break a rule;
 - keep every placeholder in curly braces exactly as written (for example {{acct}}, {{amt}}, {{name}}, {{ref}}, {{date}}, {{inj}}); do not add new ones;
-- vary the words, the sentence structure and the tone; keep it about as long as the original;
+- vary the words, the sentence structure, the register and the length a lot (use synonyms and different phrasing for the key verbs and nouns); keep it about as long as the original;
 - output only a JSON list of {n} strings.
 
 Text: {text}"""
@@ -55,7 +56,7 @@ def ask(text: str, lang: str, n: int) -> list[str]:
     body = {
         "model": MODEL,
         "messages": [{"role": "user", "content": PROMPT.format(n=n, lang=lang, text=text)}],
-        "temperature": 0.9,
+        "temperature": 1.0,
         "max_tokens": 900,
         "chat_template_kwargs": {"enable_thinking": False},
     }
@@ -108,7 +109,18 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Paraphrase templates with the local LLM (offline).")
     ap.add_argument("--pool", action="append", choices=list(T.POOLS))
     ap.add_argument("--limit", type=int, default=0, help="only the first N templates per pool")
+    ap.add_argument(
+        "--extra",
+        type=int,
+        default=0,
+        help="second round: N more paraphrases per train template, written to paraphrases_train2.json",
+    )
     args = ap.parse_args(argv)
+    global OUT
+    if args.extra:
+        OUT = OUT_EXTRA
+        N_PER["train"] = args.extra
+        args.pool = ["train"]
     done: dict[str, Any] = json.loads(OUT.read_text(encoding="utf-8")) if OUT.is_file() else {}
     for pool in args.pool or list(T.POOLS):
         todo = jobs(pool)
@@ -117,18 +129,28 @@ def main(argv: list[str] | None = None) -> int:
         todo = [j for j in todo if f"{j[1]}|{j[2]}|{j[3]}" not in done.get(pool, {})]
         print(f"[..] {pool}: {len(todo)} templates to paraphrase")
 
-        def work(j: tuple[str, str, str, int, str]) -> tuple[tuple[str, str, str, int, str], list[str]]:
+        def work(
+            j: tuple[str, str, str, int, str],
+        ) -> tuple[tuple[str, str, str, int, str], list[str]]:
             _, _, key, _, s = j
-            got = ask(s, lang_of(key), N_PER[pool])
+            got = ask(s, lang_of(key), N_PER[j[0]])
             return j, [g for g in dict.fromkeys(got) if valid(s, g)]
 
         with ThreadPoolExecutor(max_workers=2) as ex:  # concurrency 2 at most
             for n, (j, ok) in enumerate(ex.map(work, todo), 1):
-                done.setdefault(pool, {})[f"{j[1]}|{j[2]}|{j[3]}"] = {"text": j[4], "paraphrases": ok}
+                done.setdefault(pool, {})[f"{j[1]}|{j[2]}|{j[3]}"] = {
+                    "text": j[4],
+                    "paraphrases": ok,
+                }
                 if n % 10 == 0 or n == len(todo):
-                    OUT.write_text(json.dumps(done, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+                    OUT.write_text(
+                        json.dumps(done, indent=1, sort_keys=True, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
+                    )
                     print(f"  {pool}: {n}/{len(todo)}")
-        OUT.write_text(json.dumps(done, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+        OUT.write_text(
+            json.dumps(done, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
     kept = sum(len(v["paraphrases"]) for p in done.values() for v in p.values())
     print(f"[OK] paraphrases kept: {kept}")
     return 0

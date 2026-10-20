@@ -34,7 +34,6 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from supervisor.config import REPO_ROOT
 from supervisor.detectors.injection_classifier import detector as D
 from supervisor.detectors.injection_classifier import golden as G
 from supervisor.detectors.injection_classifier import model as M
@@ -113,7 +112,9 @@ def regex_hit(item: dict[str, Any], rc: tier0b.RegexClassifier | None = None) ->
 # --------------------------------------------------------------------------- direct scoring
 
 
-def score_items(det: D.InjectionClassifierDetector, items: list[dict[str, Any]]) -> list[dict[str, int]]:
+def score_items(
+    det: D.InjectionClassifierDetector, items: list[dict[str, Any]]
+) -> list[dict[str, int]]:
     """Unthresholded max score per surface for each item (direct call, threshold 0)."""
     out = []
     clean = {
@@ -133,7 +134,9 @@ def score_items(det: D.InjectionClassifierDetector, items: list[dict[str, Any]])
     return out
 
 
-def _operating(items: list[dict[str, Any]], scores: list[dict[str, int]], thr: int) -> dict[str, Any]:
+def _operating(
+    items: list[dict[str, Any]], scores: list[dict[str, int]], thr: int
+) -> dict[str, Any]:
     tp = fn = fp = tn = 0
     hard_fp = hard_n = 0
     for it, sc in zip(items, scores, strict=True):
@@ -209,7 +212,9 @@ def false_alarm(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def evasion_table(rows: list[dict[str, Any]], items: list[dict[str, Any]], heldout: list[dict[str, Any]]) -> dict[str, Any]:
+def evasion_table(
+    rows: list[dict[str, Any]], items: list[dict[str, Any]], heldout: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Classifier versus the Tier 0b regex on the same evasion items."""
     rc = tier0b.RegexClassifier()
     clean_hit = {it["id"]: regex_hit(it, rc) for it in heldout if it["label"] == 1}
@@ -285,10 +290,18 @@ def adversarial_table(rows: list[dict[str, Any]], items: list[dict[str, Any]]) -
         "regex_false_alarm_bp": _bp(rx_neg, len(neg)),
         "by_category": {k: dict(v) for k, v in sorted(cats.items())},
         "missed_categories": sorted(
-            {it["category"] for it, r in zip(items, rows, strict=True) if it["label"] and not r["detected"]}
+            {
+                it["category"]
+                for it, r in zip(items, rows, strict=True)
+                if it["label"] and not r["detected"]
+            }
         ),
         "false_alarm_categories": sorted(
-            {it["category"] for it, r in zip(items, rows, strict=True) if not it["label"] and r["detected"]}
+            {
+                it["category"]
+                for it, r in zip(items, rows, strict=True)
+                if not it["label"] and r["detected"]
+            }
         ),
     }
 
@@ -333,7 +346,7 @@ def compute(
     registry: Any, masker: Any, preset: str, rows_by_split: dict[str, list[dict[str, Any]]]
 ) -> dict[str, Any]:
     h = _h()
-    det = registry.get(D.InjectionClassifierDetector.slug)
+    registry.get(D.InjectionClassifierDetector.slug)  # must be registered
     bad_files = G.verify_files()
     heldout = G.load("heldout")
     dev = G.load("dev")
@@ -412,7 +425,12 @@ def verdicts(mrm: dict[str, Any]) -> dict[str, Any]:
 
     for code, c in mrm["per_code"]["heldout"].items():
         v = c["recall_bp"]
-        put(f"recall_bp.heldout.{code}", v, th["recall_per_code_bp"], None if v is None else v >= th["recall_per_code_bp"])
+        put(
+            f"recall_bp.heldout.{code}",
+            v,
+            th["recall_per_code_bp"],
+            None if v is None else v >= th["recall_per_code_bp"],
+        )
         v = c["precision_bp"]
         put(
             f"precision_bp.heldout.{code}",
@@ -425,13 +443,17 @@ def verdicts(mrm: dict[str, Any]) -> dict[str, Any]:
         "false_alarm_hard_negatives_bp.heldout",
         fa["hard_false_alarm_bp"],
         th["false_alarm_bp_max"],
-        None if fa["hard_false_alarm_bp"] is None else fa["hard_false_alarm_bp"] <= th["false_alarm_bp_max"],
+        None
+        if fa["hard_false_alarm_bp"] is None
+        else fa["hard_false_alarm_bp"] <= th["false_alarm_bp_max"],
     )
     put(
         "false_alarm_all_benign_bp.heldout",
         fa["false_alarm_bp"],
         th["false_alarm_all_benign_bp_max"],
-        None if fa["false_alarm_bp"] is None else fa["false_alarm_bp"] <= th["false_alarm_all_benign_bp_max"],
+        None
+        if fa["false_alarm_bp"] is None
+        else fa["false_alarm_bp"] <= th["false_alarm_all_benign_bp_max"],
     )
     ev = mrm["evasion"]
     typo = ev["kinds"].get("typo")
@@ -443,7 +465,12 @@ def verdicts(mrm: dict[str, Any]) -> dict[str, Any]:
             typo["classifier_recall_bp"] >= th["typo_recall_bp"],
         )
         gain = typo["classifier_recall_bp"] - typo["regex_recall_bp"]
-        put("typo_gain_over_regex_bp", gain, EVASION_BASELINE_MIN_GAIN_BP, gain >= EVASION_BASELINE_MIN_GAIN_BP)
+        put(
+            "typo_gain_over_regex_bp",
+            gain,
+            EVASION_BASELINE_MIN_GAIN_BP,
+            gain >= EVASION_BASELINE_MIN_GAIN_BP,
+        )
     allk = ev["all"]
     put(
         "evasion_recall_bp.all_kinds",
@@ -452,7 +479,12 @@ def verdicts(mrm: dict[str, Any]) -> dict[str, Any]:
         allk["classifier_recall_bp"] >= th["evasion_recall_bp"],
     )
     gain = allk["classifier_recall_bp"] - allk["regex_recall_bp"]
-    put("evasion_gain_over_regex_bp", gain, EVASION_BASELINE_MIN_GAIN_BP, gain >= EVASION_BASELINE_MIN_GAIN_BP)
+    put(
+        "evasion_gain_over_regex_bp",
+        gain,
+        EVASION_BASELINE_MIN_GAIN_BP,
+        gain >= EVASION_BASELINE_MIN_GAIN_BP,
+    )
     put(
         "evasion_benign_false_alarm_bp",
         allk["classifier_benign_false_alarm_bp"],
@@ -486,8 +518,18 @@ def verdicts(mrm: dict[str, Any]) -> dict[str, Any]:
         th["determinism_mismatches_max"],
         mrm["determinism"]["mismatches"] <= th["determinism_mismatches_max"],
     )
-    put("weights_sha256_matches_card", int(mrm["card"]["weights_sha256_matches_file"]), 1, mrm["card"]["weights_sha256_matches_file"])
-    put("thresholds_match_card", int(mrm["card"]["thresholds_match_code"]), 1, mrm["card"]["thresholds_match_code"])
+    put(
+        "weights_sha256_matches_card",
+        int(mrm["card"]["weights_sha256_matches_file"]),
+        1,
+        mrm["card"]["weights_sha256_matches_file"],
+    )
+    put(
+        "thresholds_match_card",
+        int(mrm["card"]["thresholds_match_code"]),
+        1,
+        mrm["card"]["thresholds_match_code"],
+    )
     put("golden_files_intact", int(mrm["golden_files_intact"]), 1, mrm["golden_files_intact"])
     return out
 
@@ -507,12 +549,21 @@ def write_baseline(report: dict[str, Any]) -> Path:
         "weights_sha256": mrm["card"]["weights_sha256"],
         "note": "Mock-free (no model call). Regenerate with --record after a deliberate change.",
         "splits": {
-            sp: {k: s[k] for k in ("n", "recall_bp", "precision_bp", "typed_recall_bp", "fp", "fn", "leak_items")}
+            sp: {
+                k: s[k]
+                for k in (
+                    "n",
+                    "recall_bp",
+                    "precision_bp",
+                    "typed_recall_bp",
+                    "fp",
+                    "fn",
+                    "leak_items",
+                )
+            }
             for sp, s in d["splits"].items()
         },
-        "per_code_recall_bp": {
-            c: v["recall_bp"] for c, v in mrm["per_code"]["heldout"].items()
-        },
+        "per_code_recall_bp": {c: v["recall_bp"] for c, v in mrm["per_code"]["heldout"].items()},
         "false_alarm_hard_bp": mrm["false_alarm"]["heldout"]["hard_false_alarm_bp"],
         "typo_recall_bp": mrm["evasion"]["kinds"]["typo"]["classifier_recall_bp"],
         "evasion_recall_bp": mrm["evasion"]["all"]["classifier_recall_bp"],
@@ -531,18 +582,24 @@ def compare_baseline(det: dict[str, Any]) -> list[str]:
     mrm = det["mrm"]
     problems = []
     if det["detector_id"] != b["detector_id"]:
-        problems.append(f"injection_classifier: version {det['detector_id']} != baseline {b['detector_id']}")
+        problems.append(
+            f"injection_classifier: version {det['detector_id']} != baseline {b['detector_id']}"
+        )
     for sp, bs in b["splits"].items():
         cs = det["splits"].get(sp)
         if cs is None:
             continue
         if cs["n"] != bs["n"]:
-            problems.append(f"injection_classifier.{sp}: n {cs['n']} != {bs['n']} (golden set changed)")
+            problems.append(
+                f"injection_classifier.{sp}: n {cs['n']} != {bs['n']} (golden set changed)"
+            )
         for k in ("recall_bp", "precision_bp", "typed_recall_bp"):
             if bs[k] is not None and (cs[k] is None or cs[k] < bs[k]):
                 problems.append(f"injection_classifier.{sp}.{k}: {cs[k]} < baseline {bs[k]}")
         if cs["leak_items"] > bs["leak_items"]:
-            problems.append(f"injection_classifier.{sp}.leak_items: {cs['leak_items']} > {bs['leak_items']}")
+            problems.append(
+                f"injection_classifier.{sp}.leak_items: {cs['leak_items']} > {bs['leak_items']}"
+            )
     cur = {
         "typo_recall_bp": mrm["evasion"]["kinds"]["typo"]["classifier_recall_bp"],
         "evasion_recall_bp": mrm["evasion"]["all"]["classifier_recall_bp"],
@@ -553,13 +610,19 @@ def compare_baseline(det: dict[str, Any]) -> list[str]:
             problems.append(f"injection_classifier.{k}: {v} < baseline {b[k]}")
     for c, v in mrm["per_code"]["heldout"].items():
         if v["recall_bp"] < b["per_code_recall_bp"][c]:
-            problems.append(f"injection_classifier.recall.{c}: {v['recall_bp']} < baseline {b['per_code_recall_bp'][c]}")
+            problems.append(
+                f"injection_classifier.recall.{c}: {v['recall_bp']} < baseline {b['per_code_recall_bp'][c]}"
+            )
     fa = mrm["false_alarm"]["heldout"]["hard_false_alarm_bp"]
     if fa > b["false_alarm_hard_bp"]:
-        problems.append(f"injection_classifier.false_alarm_hard_bp: {fa} > baseline {b['false_alarm_hard_bp']}")
+        problems.append(
+            f"injection_classifier.false_alarm_hard_bp: {fa} > baseline {b['false_alarm_hard_bp']}"
+        )
     fp = mrm["pause"]["heldout"]["false_pause_bp"]
     if fp > b["false_pause_bp"]:
-        problems.append(f"injection_classifier.false_pause_bp: {fp} > baseline {b['false_pause_bp']}")
+        problems.append(
+            f"injection_classifier.false_pause_bp: {fp} > baseline {b['false_pause_bp']}"
+        )
     return problems
 
 
@@ -589,7 +652,9 @@ def render_text(mrm: dict[str, Any]) -> list[str]:
             f" {_f(fa['hard_false_alarm_ci_bp'])} (n={fa['n_hard_negatives']})"
         )
     ev = mrm["evasion"]
-    lines.append("    evasion (same items): kind, classifier recall, regex recall, benign false alarm clf/regex")
+    lines.append(
+        "    evasion (same items): kind, classifier recall, regex recall, benign false alarm clf/regex"
+    )
     for k, v in {**ev["kinds"], "ALL": ev["all"]}.items():
         lines.append(
             f"      {k:<16}{_f(v['classifier_recall_bp']):>6} {_f(v['regex_recall_bp']):>6}  "
@@ -612,7 +677,9 @@ def render_text(mrm: dict[str, Any]) -> list[str]:
         f"    latency us: p50 {lat['p50_us']} p95 {lat['p95_us']} p99 {lat['p99_us']} max {lat['max_us']}"
         f" (no finding p95 {lat['no_finding_p95_us']}, finding p95 {lat['finding_p95_us']})"
     )
-    lines.append(f"    determinism mismatches: {mrm['determinism']['mismatches']} of {mrm['determinism']['items_compared']}")
+    lines.append(
+        f"    determinism mismatches: {mrm['determinism']['mismatches']} of {mrm['determinism']['items_compared']}"
+    )
     return lines
 
 
@@ -631,21 +698,29 @@ def render_markdown(mrm: dict[str, Any]) -> list[str]:
                 f"| {sp} | `{code}` | {c['n_pos']} | {_f(c['recall_bp'])} {_f(c['recall_ci_bp'])} | "
                 f"{_f(c['precision_bp'])} {_f(c['precision_ci_bp'])} |"
             )
-    out += ["", "False alarms on benign items (hard negatives = legitimate urgent transfers, policy quotes, complaints, "
-            "honest descriptions that use words like must, never, ignore, override):", "",
-            "| split | benign n | false alarm bp (95% CI) | hard negatives n | hard false alarm bp (95% CI) |",
-            "|---|---|---|---|---|"]
+    out += [
+        "",
+        "False alarms on benign items (hard negatives = legitimate urgent transfers, policy quotes, complaints, "
+        "honest descriptions that use words like must, never, ignore, override):",
+        "",
+        "| split | benign n | false alarm bp (95% CI) | hard negatives n | hard false alarm bp (95% CI) |",
+        "|---|---|---|---|---|",
+    ]
     for sp, fa in mrm["false_alarm"].items():
         out.append(
             f"| {sp} | {fa['n_benign']} | {_f(fa['false_alarm_bp'])} {_f(fa['false_alarm_ci_bp'])} | "
             f"{fa['n_hard_negatives']} | {_f(fa['hard_false_alarm_bp'])} {_f(fa['hard_false_alarm_ci_bp'])} |"
         )
     ev = mrm["evasion"]
-    out += ["", "Evasion: the held-out positives re-written with one evasion each, classifier versus the Tier 0b "
-            "regex on the SAME items (the regex is given the same text units; in production it sees only the "
-            "arguments of non-read-only calls). `catchable` = items whose clean text the regex catches:", "",
-            "| kind | n pos | classifier recall bp (95% CI) | regex recall bp | classifier on catchable | regex on catchable | benign false alarm clf / regex |",
-            "|---|---|---|---|---|---|---|"]
+    out += [
+        "",
+        "Evasion: the held-out positives re-written with one evasion each, classifier versus the Tier 0b "
+        "regex on the SAME items (the regex is given the same text units; in production it sees only the "
+        "arguments of non-read-only calls). `catchable` = items whose clean text the regex catches:",
+        "",
+        "| kind | n pos | classifier recall bp (95% CI) | regex recall bp | classifier on catchable | regex on catchable | benign false alarm clf / regex |",
+        "|---|---|---|---|---|---|---|",
+    ]
     for k, v in {**ev["kinds"], "ALL": ev["all"]}.items():
         out.append(
             f"| {k} | {v['n_pos']} | {_f(v['classifier_recall_bp'])} {_f(v['classifier_recall_ci_bp'])} | "
@@ -654,17 +729,27 @@ def render_markdown(mrm: dict[str, Any]) -> list[str]:
         )
     adv = mrm.get("adversarial")
     if adv:
-        out += ["", f"Adversarial probes (hand-written, outside the templates): recall {_f(adv['classifier_recall_bp'])} "
-                f"{_f(adv['classifier_recall_ci_bp'])} (n pos {adv['n_pos']}, regex {_f(adv['regex_recall_bp'])}); benign "
-                f"look-alikes false alarm {_f(adv['classifier_false_alarm_bp'])} {_f(adv['classifier_false_alarm_ci_bp'])} "
-                f"(n {adv['n_benign']}, regex {_f(adv['regex_false_alarm_bp'])}).", "",
-                "| category | positives | caught (classifier) | caught (regex) | benign | false alarm (classifier) |",
-                "|---|---|---|---|---|---|"]
+        out += [
+            "",
+            f"Adversarial probes (hand-written, outside the templates): recall {_f(adv['classifier_recall_bp'])} "
+            f"{_f(adv['classifier_recall_ci_bp'])} (n pos {adv['n_pos']}, regex {_f(adv['regex_recall_bp'])}); benign "
+            f"look-alikes false alarm {_f(adv['classifier_false_alarm_bp'])} {_f(adv['classifier_false_alarm_ci_bp'])} "
+            f"(n {adv['n_benign']}, regex {_f(adv['regex_false_alarm_bp'])}).",
+            "",
+            "| category | positives | caught (classifier) | caught (regex) | benign | false alarm (classifier) |",
+            "|---|---|---|---|---|---|",
+        ]
         for k, v in adv["by_category"].items():
-            out.append(f"| {k} | {v.get('pos', 0)} | {v.get('clf', 0)} | {v.get('rx', 0)} | {v.get('neg', 0)} | {v.get('clf_fp', 0)} |")
-    out += ["", "Operating points at the frozen thresholds (dev: where they were chosen; held-out: reported):", "",
-            "| split | point | threshold bp | recall bp (95% CI) | false alarm bp (95% CI) | hard negatives false alarm bp |",
-            "|---|---|---|---|---|---|"]
+            out.append(
+                f"| {k} | {v.get('pos', 0)} | {v.get('clf', 0)} | {v.get('rx', 0)} | {v.get('neg', 0)} | {v.get('clf_fp', 0)} |"
+            )
+    out += [
+        "",
+        "Operating points at the frozen thresholds (dev: where they were chosen; held-out: reported):",
+        "",
+        "| split | point | threshold bp | recall bp (95% CI) | false alarm bp (95% CI) | hard negatives false alarm bp |",
+        "|---|---|---|---|---|---|",
+    ]
     for sp, pts in mrm["operating_points"].items():
         for name, p in pts.items():
             out.append(
@@ -672,23 +757,46 @@ def render_markdown(mrm: dict[str, Any]) -> list[str]:
                 f"{_f(p['false_alarm_bp'])} {_f(p['false_alarm_ci_bp'])} | {_f(p['hard_negative_false_alarm_bp'])} |"
             )
     pz = mrm["pause"]["heldout"]
-    out += ["", f"Pause (held-out, money and credit tools): pause recall {_f(pz['pause_recall_bp'])} {_f(pz['pause_recall_ci_bp'])} "
-            f"(n {pz['n_pos_money_credit']}); false pauses {pz['false_pauses']} of {pz['n_benign_money_credit']} benign calls "
-            f"= {_f(pz['false_pause_bp'])} bp {_f(pz['false_pause_ci_bp'])}; pauses on other tool classes: {pz['pauses_on_other_classes']}."]
+    out += [
+        "",
+        f"Pause (held-out, money and credit tools): pause recall {_f(pz['pause_recall_bp'])} {_f(pz['pause_recall_ci_bp'])} "
+        f"(n {pz['n_pos_money_credit']}); false pauses {pz['false_pauses']} of {pz['n_benign_money_credit']} benign calls "
+        f"= {_f(pz['false_pause_bp'])} bp {_f(pz['false_pause_ci_bp'])}; pauses on other tool classes: {pz['pauses_on_other_classes']}.",
+    ]
     out += ["", "Failure taxonomy (counts only, no item text):", ""]
     for sp, d in mrm["misses_by_template"].items():
-        out.append(f"- {sp} missed by template id: " + (", ".join(f"`{k}` {v}" for k, v in d["missed"].items()) or "none"))
-        out.append(f"- {sp} false alarm by template id: " + (", ".join(f"`{k}` {v}" for k, v in d["false_alarm"].items()) or "none"))
-    out.append("- evasion missed by kind: " + (", ".join(f"`{k}` {v}" for k, v in ev["missed_by_kind"].items()) or "none"))
+        out.append(
+            f"- {sp} missed by template id: "
+            + (", ".join(f"`{k}` {v}" for k, v in d["missed"].items()) or "none")
+        )
+        out.append(
+            f"- {sp} false alarm by template id: "
+            + (", ".join(f"`{k}` {v}" for k, v in d["false_alarm"].items()) or "none")
+        )
+    out.append(
+        "- evasion missed by kind: "
+        + (", ".join(f"`{k}` {v}" for k, v in ev["missed_by_kind"].items()) or "none")
+    )
     if adv:
-        out.append("- adversarial categories missed: " + (", ".join(f"`{c}`" for c in adv["missed_categories"]) or "none"))
-        out.append("- adversarial categories with a false alarm: " + (", ".join(f"`{c}`" for c in adv["false_alarm_categories"]) or "none"))
+        out.append(
+            "- adversarial categories missed: "
+            + (", ".join(f"`{c}`" for c in adv["missed_categories"]) or "none")
+        )
+        out.append(
+            "- adversarial categories with a false alarm: "
+            + (", ".join(f"`{c}`" for c in adv["false_alarm_categories"]) or "none")
+        )
     lat = mrm["latency"]
-    out += ["", f"Latency per call (whole registry run, microseconds, n {lat['n']}): p50 {lat['p50_us']}, p95 {lat['p95_us']}, "
-            f"p99 {lat['p99_us']}, max {lat['max_us']}; calls with no finding p95 {lat['no_finding_p95_us']}, "
-            f"calls with a finding p95 {lat['finding_p95_us']} (includes the masker for fragments).",
-            "", f"Determinism: {mrm['determinism']['mismatches']} score mismatches over {mrm['determinism']['items_compared']} items "
-            "between two independent model loads.",
-            "", f"Data: {mrm['data']['licence']}; independent template strings per pool {mrm['data']['independent_templates']}. "
-            + mrm["data"]["note"]]
+    out += [
+        "",
+        f"Latency per call (whole registry run, microseconds, n {lat['n']}): p50 {lat['p50_us']}, p95 {lat['p95_us']}, "
+        f"p99 {lat['p99_us']}, max {lat['max_us']}; calls with no finding p95 {lat['no_finding_p95_us']}, "
+        f"calls with a finding p95 {lat['finding_p95_us']} (includes the masker for fragments).",
+        "",
+        f"Determinism: {mrm['determinism']['mismatches']} score mismatches over {mrm['determinism']['items_compared']} items "
+        "between two independent model loads.",
+        "",
+        f"Data: {mrm['data']['licence']}; independent template strings per pool {mrm['data']['independent_templates']}. "
+        + mrm["data"]["note"],
+    ]
     return out

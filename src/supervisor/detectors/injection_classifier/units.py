@@ -57,7 +57,7 @@ def _prior_text(value: Any) -> str:
 
 
 def collect(payload: Mapping[str, Any], direction: str) -> list[Unit]:
-    """Units of one payload. ``payload["meta"]`` may carry ``tool_description`` and ``prior_calls``."""
+    """Units of one payload; ``payload["meta"]`` may carry ``tool_description``, ``prior_calls``."""
     meta = payload.get("meta") or {}
     units: list[Unit] = []
     if direction == "input":
@@ -83,11 +83,18 @@ def collect(payload: Mapping[str, Any], direction: str) -> list[Unit]:
                     for x in walk_leaves("tool_results", res)
                 ]
                 if leaves:
-                    units.append(Unit("tool_results", "tool_results", _leaf_text(leaves), tuple(leaves)))
+                    units.append(
+                        Unit("tool_results", "tool_results", _leaf_text(leaves), tuple(leaves))
+                    )
         desc = meta.get("tool_description")
         if isinstance(desc, str) and desc.strip():
             units.append(
-                Unit("tool_description", "tool_description", desc, (Leaf("tool_description", "$", desc),))
+                Unit(
+                    "tool_description",
+                    "tool_description",
+                    desc,
+                    (Leaf("tool_description", "$", desc),),
+                )
             )
     elif payload.get("output") is not None:
         leaves = list(walk_leaves("output", payload["output"]))

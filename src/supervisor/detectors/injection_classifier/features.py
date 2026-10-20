@@ -37,13 +37,16 @@ import zlib
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from supervisor.detectors.injection_classifier import concepts as C
 from supervisor.gateway import tier0b
 
-FEATURE_VERSION = "feat-1"
-BUCKETS = 1 << 16
+FEATURE_VERSION = "feat-2"
+BUCKETS = 1 << 16  # character n-gram and word buckets
 MASK = BUCKETS - 1
-WINDOW = 240  # characters per scoring window
-STRIDE = 120
+CONCEPT_SCALE = 0.6  # value of a concept feature (n-gram features have 1/sqrt(n))
+TOTAL = BUCKETS + C.CBUCKETS  # concept features (concepts.py) live above BUCKETS
+WINDOW = 150  # characters per scoring window
+STRIDE = 75
 MAX_UNIT_CHARS = 12_000  # per scored unit; longer text keeps its head and its tail
 MIN_TEXT_CHARS = 6  # shorter strings are not classified
 
@@ -53,7 +56,20 @@ _B64_TOKEN = re.compile(r"[A-Za-z0-9+/_-]{16,}={0,2}")
 _LEET_INNER = re.compile(r"(?<=[a-z])[01345@$7!|](?=[a-z])")
 _LEET_START = re.compile(r"(?<![a-z0-9])[1345$@7](?=[a-z]{2})")
 _LEET_END = re.compile(r"(?<=[a-z]{2})[3@$5](?![a-z0-9])")
-_LEET_MAP = str.maketrans({"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "!": "i", "|": "l"})
+_LEET_MAP = str.maketrans(
+    {
+        "0": "o",
+        "1": "i",
+        "3": "e",
+        "4": "a",
+        "5": "s",
+        "7": "t",
+        "@": "a",
+        "$": "s",
+        "!": "i",
+        "|": "l",
+    }
+)
 _HTML_COMMENT = re.compile(r"<!--|-->")
 _ALNUM = re.compile(r"[a-z0-9#]+")
 
@@ -129,7 +145,12 @@ def decode_b64_tokens(text: str, limit: int = 4) -> list[str]:
             continue
         printable = sum(c.isprintable() or c in "\n\t" for c in dec)
         letters = sum(c.isalpha() or c.isspace() for c in dec)
-        if len(dec) >= 8 and printable >= 0.97 * len(dec) and letters >= 0.6 * len(dec) and " " in dec:
+        if (
+            len(dec) >= 8
+            and printable >= 0.97 * len(dec)
+            and letters >= 0.6 * len(dec)
+            and " " in dec
+        ):
             out.append(dec)
             if len(out) >= limit:
                 break
@@ -163,7 +184,9 @@ def prepare(text: str) -> list[str]:
         marks.append(MARK_LEET)
     decoded = decode_b64_tokens(text)
     if decoded:
-        plain = plain + " " + " ".join(tier0b.strip_diacritics(tier0b.normalise(d)) for d in decoded)
+        plain = (
+            plain + " " + " ".join(tier0b.strip_diacritics(tier0b.normalise(d)) for d in decoded)
+        )
         marks.append(MARK_DECODED)
     main = _WS.sub(" ", plain).strip()
     variants = [(main + " " + " ".join(marks)).strip()]
@@ -201,7 +224,8 @@ def windows(text: str) -> list[str]:
 
 
 def features(window: str) -> list[int]:
-    """Sorted unique hashed feature ids of one window of one variant."""
+    """Sorted unique feature ids of one window of one variant: hashed n-grams and words below
+    BUCKETS, concept features (concepts.py) from BUCKETS up."""
     t = _DIGITS.sub("#", window)
     ids: set[int] = set()
     padded = f" {t} "
@@ -217,6 +241,7 @@ def features(window: str) -> list[int]:
         if prev:
             ids.add(crc(b"b" + prev.encode("utf-8") + b" " + w.encode("utf-8")) & MASK)
         prev = w
+    ids.update(BUCKETS + i for i in C.concept_features(t))
     return sorted(ids)
 
 

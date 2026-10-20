@@ -45,11 +45,12 @@ def sigmoid_bp(z: float) -> int:
     return int(round(10_000 / (1.0 + math.exp(-z))))
 
 
-def logit(sum_w: int, n: int, bias: int) -> float:
-    """Logit of one window: bias + (sum of weights) / sqrt(number of features)."""
+def logit(sum_w: int, n: int, bias: int, sum_c: int = 0) -> float:
+    """Logit of one window: bias + (sum of n-gram weights) / sqrt(number of n-gram features) +
+    (sum of concept weights, not normalised)."""
     if n <= 0:
-        return bias / SCALE
-    return (bias + sum_w / math.sqrt(n)) / SCALE
+        return (bias + sum_c) / SCALE
+    return (bias + sum_w / math.sqrt(n) + sum_c) / SCALE
 
 
 @dataclass(frozen=True)
@@ -74,7 +75,14 @@ class LinearModel:
     # ------------------------------------------------------------------ scoring
     def window_logit(self, ids: list[int], surface: str) -> float:
         w = self.weights
-        return logit(sum(w[i] for i in ids), len(ids), self.bias[surface])
+        sw = sc = n = 0
+        for i in ids:
+            if i < F.BUCKETS:
+                sw += w[i]
+                n += 1
+            else:
+                sc += w[i]
+        return logit(sw, n, self.bias[surface], sc * F.CONCEPT_SCALE)
 
     def score_variants(
         self, variants: list[list[list[int]]], surface: str
@@ -106,7 +114,7 @@ class LinearModel:
             "format": MODEL_FORMAT,
             "feature_version": F.FEATURE_VERSION,
             "version": self.version,
-            "buckets": F.BUCKETS,
+            "buckets": F.TOTAL,
             "scale": SCALE,
             "bias": {k: self.bias[k] for k in SURFACES},
             "meta": self.meta,
@@ -150,14 +158,14 @@ def load_model(version: str, base: Path | None = None) -> LinearModel:
         raise ModelIntegrityError("unknown weight file format")
     if doc.get("version") != version or card.get("version") != version:
         raise ModelIntegrityError("model version differs between folder, card and weights")
-    if doc.get("feature_version") != F.FEATURE_VERSION or doc.get("buckets") != F.BUCKETS:
+    if doc.get("feature_version") != F.FEATURE_VERSION or doc.get("buckets") != F.TOTAL:
         raise ModelIntegrityError("weights were made with another feature version: refused")
     if doc.get("scale") != SCALE:
         raise ModelIntegrityError("weight scale differs")
-    weights = [0] * F.BUCKETS
+    weights = [0] * F.TOTAL
     for k, v in doc["weights"].items():
         i = int(k)
-        if not 0 <= i < F.BUCKETS or type(v) is not int:
+        if not 0 <= i < F.TOTAL or type(v) is not int:
             raise ModelIntegrityError("bad weight entry")
         weights[i] = v
     bias = doc["bias"]

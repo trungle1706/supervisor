@@ -69,7 +69,15 @@ EVASION_KINDS = (
     "split_fields",
 )
 EVASION_PER_KIND = 45  # positives per kind in evasion.jsonl (and as many benign twins)
-AMOUNTS = ["500.000", "2.000.000", "5.000.000", "15.000.000", "50.000.000", "200.000.000", "1.200.000.000"]
+AMOUNTS = [
+    "500.000",
+    "2.000.000",
+    "5.000.000",
+    "15.000.000",
+    "50.000.000",
+    "200.000.000",
+    "1.200.000.000",
+]
 RISK_MIX = (("money", 0.45), ("credit", 0.15), ("read_only", 0.30), ("pii_export", 0.10))
 TOOLS = {
     "money": T.TOOLS_MONEY,
@@ -77,15 +85,30 @@ TOOLS = {
     "read_only": T.TOOLS_READ,
     "pii_export": T.TOOLS_PII,
 }
-AGENTS = {"money": "payments", "credit": "credit_prequal", "read_only": "customer_service", "pii_export": "payments"}
+AGENTS = {
+    "money": "payments",
+    "credit": "credit_prequal",
+    "read_only": "customer_service",
+    "pii_export": "payments",
+}
 
 
 # --------------------------------------------------------------------------- slot filling
 
 
 def load_paraphrases() -> dict[str, Any]:
-    path = HERE / "paraphrases.json"
-    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    out: dict[str, Any] = {}
+    for name in ("paraphrases.json", "paraphrases_train2.json"):
+        path = HERE / name
+        if not path.is_file():
+            continue
+        for pool, recs in json.loads(path.read_text(encoding="utf-8")).items():
+            for key, rec in recs.items():
+                cur = out.setdefault(pool, {}).setdefault(
+                    key, {"text": rec["text"], "paraphrases": []}
+                )
+                cur["paraphrases"] += [x for x in rec["paraphrases"] if x not in cur["paraphrases"]]
+    return out
 
 
 def expand(name: str, para: dict[str, Any]) -> dict[str, Any]:
@@ -94,7 +117,10 @@ def expand(name: str, para: dict[str, Any]) -> dict[str, Any]:
     ``pool["_m"][section][key][i] = (origin index, is_paraphrase)``; the origin index of a
     paraphrase is the index of the template it was made from (hard negatives are origin >= 2)."""
     pool = {sec: {k: list(v) for k, v in d.items()} for sec, d in T.POOLS[name].items()}
-    meta: dict[str, Any] = {sec: {k: [(i, False) for i in range(len(v))] for k, v in d.items()} for sec, d in pool.items()}
+    meta: dict[str, Any] = {
+        sec: {k: [(i, False) for i in range(len(v))] for k, v in d.items()}
+        for sec, d in pool.items()
+    }
     for key, rec in para.get(name, {}).items():
         sec, k, idx = key.split("|")
         for text in rec["paraphrases"]:
@@ -214,7 +240,9 @@ def _lang(rng: random.Random, pool: dict[str, list[str]]) -> str:
     return opts[-1][0]
 
 
-def _args_for(risk: str, rng: random.Random, field: str | None, text: str | None, fill: Fill) -> dict[str, Any]:
+def _args_for(
+    risk: str, rng: random.Random, field: str | None, text: str | None, fill: Fill
+) -> dict[str, Any]:
     if risk == "money":
         a: dict[str, Any] = {
             "amount_minor": rng.choice([50_000, 1_000_000, 25_000_000, 400_000_000]),
@@ -222,7 +250,10 @@ def _args_for(risk: str, rng: random.Random, field: str | None, text: str | None
             "payee_id": f"P-{rng.randrange(100, 999)}",
         }
     elif risk == "credit":
-        a = {"application_id": f"APP-{rng.randrange(1000, 9999)}", "decision": rng.choice(["approve", "refer", "decline"])}
+        a = {
+            "application_id": f"APP-{rng.randrange(1000, 9999)}",
+            "decision": rng.choice(["approve", "refer", "decline"]),
+        }
     elif risk == "pii_export":
         a = {"customer_id": f"C-{rng.randrange(100, 999)}", "payee_name": fill("{name}")}
     else:
@@ -368,7 +399,9 @@ def _source(split: str, item: dict[str, Any]) -> str:
     return f"generator seed={SEED} split={split} template={item['template_id']}"
 
 
-def _finish(split: str, n: int, item: dict[str, Any], tags: list[str] | None = None) -> dict[str, Any]:
+def _finish(
+    split: str, n: int, item: dict[str, Any], tags: list[str] | None = None
+) -> dict[str, Any]:
     code = {"args": "DIR", "tool_results": "IND", "tool_description": "POI"}[item["surface"]]
     item = dict(item)
     item.update(
@@ -377,7 +410,8 @@ def _finish(split: str, n: int, item: dict[str, Any], tags: list[str] | None = N
             "split": split,
             "detector": DETECTOR,
             "direction": "input",
-            "source": _source(split, item) + (" (synthetic, LLM-paraphrased)" if item.get("para") else ""),
+            "source": _source(split, item)
+            + (" (synthetic, LLM-paraphrased)" if item.get("para") else ""),
             "licence": LICENCE,
             "labeller": "synthetic, LLM-paraphrased" if item.get("para") else "synthetic",
             "tags": tags or [item["surface"]],
@@ -417,7 +451,7 @@ def build_evasion(heldout: list[dict[str, Any]], rng: random.Random) -> list[dic
     neg = [x for x in heldout if x["label"] == 0 and x["evasion"] is None]
     out: list[dict[str, Any]] = []
     for kind in EVASION_KINDS:
-        for label, pool in ((1, pos), (0, neg)):
+        for _label, pool in ((1, pos), (0, neg)):
             by_surface: dict[str, list[dict[str, Any]]] = {}
             for x in pool:
                 by_surface.setdefault(x["surface"], []).append(x)
@@ -435,12 +469,16 @@ def build_adversarial() -> list[dict[str, Any]]:
     for n, p in enumerate(adversarial.PROBES, 1):
         s = p["s"]
         positive = bool(p["y"])
-        risk = "money" if s == "args" else ("credit" if s == "tool_results" and n % 2 else "read_only")
+        risk = (
+            "money" if s == "args" else ("credit" if s == "tool_results" and n % 2 else "read_only")
+        )
         tool = {"money": "transfer", "credit": "decide_prequal", "read_only": "get_balance"}[risk]
         meta: dict[str, Any] = {"tool_name": tool, "risk_class": risk, "agent_id": AGENTS[risk]}
         args: dict[str, Any] = {"customer_id": "C-100"}
         if risk == "money":
-            args.update({"amount_minor": 1_000_000, "from_account_id": "ACC-1001", "payee_id": "P-200"})
+            args.update(
+                {"amount_minor": 1_000_000, "from_account_id": "ACC-1001", "payee_id": "P-200"}
+            )
         payload: dict[str, Any] = {"args": args}
         if s == "args":
             args["memo"] = p["t"]
@@ -527,10 +565,14 @@ def manifest(files: dict[str, str]) -> dict[str, Any]:
         "labellers": ["synthetic", "synthetic, LLM-paraphrased", "human (hand-written probe)"],
         "llm_paraphrase": {
             "model": "qwen3.8-27b-int4 (local, inference only, concurrency 2)",
-            "paraphrases_sha256": hashlib.sha256((HERE / "paraphrases.json").read_bytes()).hexdigest()
+            "paraphrases_sha256": hashlib.sha256(
+                (HERE / "paraphrases.json").read_bytes()
+            ).hexdigest()
             if (HERE / "paraphrases.json").is_file()
             else None,
-            "n_paraphrases": sum(len(r["paraphrases"]) for p in load_paraphrases().values() for r in p.values()),
+            "n_paraphrases": sum(
+                len(r["paraphrases"]) for p in load_paraphrases().values() for r in p.values()
+            ),
         },
         "template_strings": {k: _count(p) for k, p in T.POOLS.items()},
         "files": info,

@@ -8,22 +8,22 @@
     "dev.jsonl": {
       "n_items": 1200,
       "n_positive": 450,
-      "sha256": "196ecee579176712a8eda741b27baa4c84eddee8f386851598b43728d309dc8f"
+      "sha256": "5e70e9da54c2626fc593054f3722abe187c4fea33ed2435d359e4f8110c41c07"
     },
     "evasion.jsonl": {
       "n_items": 1440,
       "n_positive": 720,
-      "sha256": "a31934ebafb23d25bcdfe104b69e775aa32ee40d17099701e62c7c463745f59c"
+      "sha256": "84d45fd370762b3f6439799b7677100fc664617ddea03de6759ec865337d43c9"
     },
     "heldout.jsonl": {
       "n_items": 1350,
       "n_positive": 450,
-      "sha256": "c92c5021a790d924d839347a27646328924ce3fc8e159b46cc1f720ed7f71f03"
+      "sha256": "9a4fbb7cdbd6c60da33ce912ddf9235069ff01961fe619310f549233ec8d5705"
     },
     "train.jsonl": {
       "n_items": 4800,
       "n_positive": 2400,
-      "sha256": "577c7830874e5160e9d3a62f6f6f8d1e5000ea6784309dc37631a76c00a4bfb7"
+      "sha256": "5c7963b71ed4c7e538686ce0b8ea7d6a5c60e9e57316c12ba1d4e36faf41c155"
     }
   },
   "labellers": [
@@ -34,14 +34,14 @@
   "licence": "synthetic, this repo",
   "llm_paraphrase": {
     "model": "qwen3.8-27b-int4 (local, inference only, concurrency 2)",
-    "n_paraphrases": 1701,
-    "paraphrases_sha256": "d60270bd382ccca9ca8261ed4c8f3d8eb8dcdca16b38794302c736c5d715f4bc"
+    "n_paraphrases": 3412,
+    "paraphrases_sha256": "d5fe31a5ed20c70531f1a11f63a59d85115364f58ab9b0dfc288a1510c536e7a"
   },
   "name": "injection_vi_en",
   "seed": 20261022,
   "template_strings": {
     "dev": 99,
     "heldout": 108,
-    "train": 135
+    "train": 201
   }
 }

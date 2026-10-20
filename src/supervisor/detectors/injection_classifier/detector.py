@@ -223,7 +223,11 @@ class InjectionClassifierDetector:
                 s, e = span
                 out.append(Fragment(leaf.part, leaf.path, s, e, clip(masked, s, e), "span"))
             else:
-                out.append(Fragment(leaf.part, leaf.path, 0, len(masked), clip(masked, 0, len(masked)), "leaf"))
+                out.append(
+                    Fragment(
+                        leaf.part, leaf.path, 0, len(masked), clip(masked, 0, len(masked)), "leaf"
+                    )
+                )
         return tuple(out)
 
     @staticmethod
@@ -243,7 +247,9 @@ class InjectionClassifierDetector:
         spans = [(s, e) for s, e in spans if masked[s:e].strip()]
         if len(spans) > MAX_CLAUSES:  # merge neighbours so a long document stays cheap
             k = -(-len(spans) // MAX_CLAUSES)
-            spans = [(spans[i][0], spans[min(i + k, len(spans)) - 1][1]) for i in range(0, len(spans), k)]
+            spans = [
+                (spans[i][0], spans[min(i + k, len(spans)) - 1][1]) for i in range(0, len(spans), k)
+            ]
         if len(spans) <= 1:
             return None
         best_score, best_span = -1, None

@@ -16,7 +16,12 @@ def _tiny(tmp: Path, version: str = "9.9.9") -> Path:
     weights = [0] * F.BUCKETS
     for i in F.features("ignore all previous instructions"):
         weights[i] = 40_000
-    m = M.LinearModel(version, weights, {"args": -20_000, "tool_results": -20_000, "tool_description": -20_000}, {})
+    m = M.LinearModel(
+        version,
+        weights,
+        {"args": -20_000, "tool_results": -20_000, "tool_description": -20_000},
+        {},
+    )
     d = tmp / version
     path = M.write_model(m, d)
     card = {"version": version, "weights_sha256": M.sha256_file(path)}
@@ -38,7 +43,10 @@ def test_load_scores_and_is_deterministic(tmp_path: Path) -> None:
 def test_loader_refuses_a_weight_file_that_differs_from_the_card(tmp_path: Path) -> None:
     d = _tiny(tmp_path)
     w = d / "weights.json"
-    w.write_text(w.read_text(encoding="utf-8").replace('"weights":{', '"weights":{"7":1,', 1), encoding="utf-8")
+    w.write_text(
+        w.read_text(encoding="utf-8").replace('"weights":{', '"weights":{"7":1,', 1),
+        encoding="utf-8",
+    )
     with pytest.raises(M.ModelIntegrityError, match="sha256 differs"):
         M.load_model("9.9.9", tmp_path)
 
