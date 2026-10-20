@@ -64,6 +64,7 @@ def turn_from_row(row: Mapping[str, Any], risk: str, extra_codes: Iterable[str] 
         assert_=bool(feats.get("a")),
         recall=bool(feats.get("r")),
         toks=decode_sig(feats.get("k")),
+        topic=bool(feats.get("t")),
     )
 
 

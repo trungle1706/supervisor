@@ -1219,6 +1219,8 @@ class Gateway:
             feats["s"] = encode_sig(s.features.sig)
         if codes:
             feats["f"] = codes
+        if s.features.topic:
+            feats["t"] = 1
         if s.features.assert_:
             feats["a"] = 1
         if s.features.recall:

@@ -16,8 +16,9 @@ Signals (strength 0..10000 bp each; a "hit" is a strength at or above ``hit_bp``
 ``findings``    detector and Tier 0b finding codes seen in the window (saturates at 3)
 ``refusals``    blocked or paused decisions in the window (saturates at 3)
 ``expand``      "expand on" / "continue" style requests, VN and EN phrase list (saturates at 3)
-``drift``       topic drift markers reused from the drift monitor: a tool the agent's drift
-                baseline calls rare, or a step up in tool risk class after read-only turns
+``drift``       topic drift markers: a tool the agent's drift baseline (drift monitor) calls
+                rare, a step up in tool risk class after read-only turns, or a turn that talks
+                about limits, authority, urgency, exceptions (small VN/EN phrase list)
 ``money``       money moved in the window as a share of the daily cap (the aggregate rule fact)
 ``near_dup``    repeated near-duplicate arguments (bottom-k shingle sketch, no model)
 ``timing``      burst rate against the session's own median gap
@@ -165,6 +166,55 @@ def _phrase_re(phrases: Sequence[str]) -> re.Pattern[str]:
     )
 
 
+# Risk-topic phrases: talk about limits and splitting, authority, urgency, secrecy, new rules,
+# exceptions and hypotheticals. One such turn is normal; a run of them is topic drift.
+TOPIC_PHRASES: tuple[str, ...] = (
+    "limit",
+    "han muc",
+    "just under",
+    "ngay duoi han muc",
+    "vuot han muc",
+    "split",
+    "in parts",
+    "in installments",
+    "chia nho",
+    "chia thanh",
+    "tach ra",
+    "urgent",
+    "khan cap",
+    "right now",
+    "ngay lap tuc",
+    "do not tell",
+    "dont tell",
+    "dung bao",
+    "no need to verify",
+    "skip the check",
+    "khong can xac nhan",
+    "bo qua buoc",
+    "the ceo",
+    "the director",
+    "giam doc",
+    "ban lanh dao",
+    "management",
+    "new policy",
+    "chinh sach moi",
+    "per the policy",
+    "theo quy dinh",
+    "override",
+    "exception",
+    "ngoai le",
+    "special case",
+    "truong hop dac biet",
+    "hypothetically",
+    "gia su",
+    "what if",
+    "imagine",
+    "tuong tuong",
+    "remember",
+    "keep in mind",
+    "ghi nho",
+)
+_TOPIC_RE = _phrase_re(TOPIC_PHRASES)
 _ASSERT_RE = _phrase_re(ASSERT_PHRASES)
 _RECALL_RE = _phrase_re(RECALL_PHRASES)
 _WORD_RE = re.compile(r"[a-z0-9]+")
@@ -291,6 +341,10 @@ def has_expand(text: str | None) -> bool:
     return bool(text) and _EXPAND_RE.search(fold(text or "")) is not None
 
 
+def has_topic(text: str | None) -> bool:
+    return bool(text) and _TOPIC_RE.search(fold(text or "")) is not None
+
+
 def has_assert(text: str | None) -> bool:
     return bool(text) and _ASSERT_RE.search(fold(text or "")) is not None
 
@@ -384,6 +438,7 @@ class Features:
     assert_: bool = False  # the turn asserts an authority or permission fact
     recall: bool = False  # the turn points back to something said earlier
     toks: tuple[int, ...] = ()  # keyed hashes of identifier-shaped tokens
+    topic: bool = False  # the turn talks about limits, authority, urgency, exceptions
 
 
 def extract(
@@ -407,6 +462,7 @@ def extract(
         asserted,
         recall and risk in ("money", "credit"),
         id_tokens(text, args, key) if use else (),
+        has_topic(text),
     )
 
 
@@ -431,6 +487,7 @@ class Turn:
     assert_: bool = False
     recall: bool = False
     toks: tuple[int, ...] = ()
+    topic: bool = False
 
     def features_json(self) -> dict[str, Any]:
         """The ``agent_event.session_json`` content (hashes, flags and codes; no text)."""
@@ -443,6 +500,8 @@ class Turn:
             out["d"] = 1
         if self.sig:
             out["s"] = encode_sig(self.sig)
+        if self.topic:
+            out["t"] = 1
         if self.assert_:
             out["a"] = 1
         if self.recall:
@@ -633,7 +692,11 @@ class SessionEngine:
         n = prior_read = highest = 0
         for t in allturns:
             r = RISK_RANK.get(t.risk, 0)
-            marker = t.rare or (r > highest and (highest > 0 or prior_read >= DRIFT_MIN_PRIOR))
+            marker = (
+                t.rare
+                or t.topic
+                or (r > highest and (highest > 0 or prior_read >= DRIFT_MIN_PRIOR))
+            )
             if marker and t.ts_ms >= win[0].ts_ms:
                 n += 1
             if r == 0:
@@ -750,6 +813,113 @@ def daily_cap_minor(policy: Any, agent_id: str) -> int | None:
     return min(caps) if caps else None
 
 
+# --------------------------------------------------------------------------- WP28 trace adapter
+
+# Tool and class of the call a conversation turn stands for, by agent (the baseline policy).
+REDTEAM_AGENT_TOOL = {
+    "payments": ("transfer", "money"),
+    "customer_service": ("waive_fee", "money"),
+    "credit_prequal": ("decide_prequal", "credit"),
+}
+REDTEAM_TOOL_CLASS = {
+    "transfer": "money",
+    "ext_transfer_api": "money",
+    "waive_fee": "money",
+    "open_dispute": "money",
+    "decide_prequal": "credit",
+    "fetch_application": "pii_export",
+    "add_payee": "pii_export",
+}
+
+
+def from_redteam_trace(
+    row: Mapping[str, Any], key: bytes = b"redteam-trace-key"
+) -> tuple[str, list[Turn], dict[str, Any]]:
+    """One WP28 ``traces.jsonl`` conversation -> (session id, turns, meta).
+
+    The trace format is WP28's (docs/redteam-multiturn.md section 5): per turn the text (long digit
+    runs masked), Tier 0b kinds, cue counts, asked and executed calls, ``refused`` and
+    ``gate_would_stop`` (rule ids of the SHADOW gate). The adapter feeds the same feature
+    extraction the gate uses, so the text is read here and dropped. A turn with an executed call
+    becomes a turn of that tool; a refused ask becomes a denied turn of the agent's main tool;
+    anything else is a chat turn (read only). ``gate_would_stop`` counts as a refusal, as it would
+    in an enforced gate. ``meta`` carries the family, the oracle success and its turn, and the
+    language, for the report. Raises ``ValueError`` for a row without turns."""
+    from datetime import datetime
+
+    turns_in = row.get("turns")
+    if not isinstance(turns_in, list) or not turns_in:
+        raise ValueError("trace row has no turns")
+    agent = str(row.get("agent") or "payments")
+    main_tool, main_class = REDTEAM_AGENT_TOOL.get(agent, ("transfer", "money"))
+    sid = f"{row.get('objective_id')}:{row.get('trial')}"
+    out: list[Turn] = []
+    for t in turns_in:
+        executed = [e for e in (t.get("executed") or []) if isinstance(e, Mapping)]
+        stops = list(t.get("gate_would_stop") or [])
+        refused = bool(t.get("refused")) or bool(stops)
+        if executed:
+            tool = str(executed[0].get("tool") or main_tool)
+            risk = REDTEAM_TOOL_CLASS.get(tool, "read_only")
+            amount = sum(
+                int(e["amount_minor"]) for e in executed if isinstance(e.get("amount_minor"), int)
+            )
+        elif refused and int(t.get("asked_calls") or 0) > 0:
+            tool, risk, amount = main_tool, main_class, 0
+        else:
+            tool, risk, amount = "chat", "read_only", 0
+        text = t.get("text") if isinstance(t.get("text"), str) else None
+        feats = extract(text, None, risk=risk, key=key)
+        codes = tuple(
+            f"t:{k}" for k in [*(t.get("tier0b") or []), *(t.get("planted_tier0b") or [])]
+        )
+        cues = t.get("cues") or {}
+        ts = datetime.fromisoformat(str(t["ts"]).replace("Z", "+00:00"))
+        out.append(
+            Turn(
+                event_id=f"{sid}:{t.get('i')}",
+                ts_ms=int(ts.timestamp() * 1000),
+                agent_id=agent,
+                tool=tool,
+                risk=risk,
+                refused=refused,
+                amount_minor=amount if executed else None,
+                codes=codes,
+                expand=feats.expand or bool(cues.get("expand")),
+                sig=feats.sig,
+                assert_=feats.assert_,
+                recall=feats.recall,
+                toks=feats.toks,
+                topic=feats.topic,
+                rule_id=stops[0] if stops else None,
+            )
+        )
+    meta = {
+        "family": str(row.get("family") or ""),
+        "lang": str(row.get("lang") or ""),
+        "benign": bool(row.get("benign")),
+        "success": bool(row.get("success")),
+        "success_turn": row.get("success_turn"),
+        "agent": agent,
+        "split": str(row.get("split") or ""),
+    }
+    return sid, out, meta
+
+
+def first_trip(
+    sid: str, turns: Sequence[Turn], cfg: SessionConfig, cap: int | None
+) -> tuple[int | None, Assessment | None]:
+    """Replay turns one by one, as the in-request path sees them. Returns the 1-based turn at
+    which the case rule first fires (None if never) and that assessment."""
+    eng = SessionEngine()
+    for i, t in enumerate(turns, start=1):
+        eng.add(sid, t)
+        a = eng.assess(sid, t.agent_id, t.ts_ms, cfg, cap)
+        if a is not None and a.case_due:
+            return i, a
+    return None, None
+
+
 __all__ = [
     "Assessment",
     "EXPAND_PHRASES",
@@ -760,6 +930,8 @@ __all__ = [
     "Turn",
     "daily_cap_minor",
     "decode_sig",
+    "first_trip",
+    "from_redteam_trace",
     "encode_sig",
     "extract",
     "fold",

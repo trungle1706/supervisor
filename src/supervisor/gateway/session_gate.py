@@ -288,6 +288,7 @@ class SessionGate:
                 assert_=call.features.assert_,
                 recall=call.features.recall,
                 toks=call.features.toks,
+                topic=call.features.topic,
             )
             with self._lock:
                 self.engine.add(call.session_id, turn)
