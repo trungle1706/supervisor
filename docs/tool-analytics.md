@@ -2,7 +2,7 @@
 
 Closes NeuralTrust gap row 23. Off by default. The feature has four parts: a daily rollup of
 gate decisions per agent and tool, a least-privilege suggestion, a console page, and a JSON
-route with a Databricks notebook.
+route with a Databricks notebook. Design decision: `docs/adr/D18-tool-analytics.md`.
 
 ```
 agent_event (gate_decision rows) + verdict (rule_error)

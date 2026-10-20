@@ -1,4 +1,4 @@
-# D22 - Tool analytics and least-privilege suggestions
+# D18 - Tool analytics and least-privilege suggestions
 
 Status: Accepted (WP22, phase 3). Numbered after the work package to avoid a clash with other
 phase 3 ADRs; the integrator may renumber.
