@@ -54,13 +54,15 @@ no expression language, no `eval`, no code. An error stops the load and lists ev
 |---|---|
 | `id` | Stable id, `AL-` style, shown in every alert and SIEM event |
 | `title` | Fixed text shown to the analyst (events never supply text) |
-| `source` | Signal stream: `gate_decision`, `gate_state_change`, `verdict`, `job_run`, `chain_verify`, `ingress_reject`, `failmode_drill`, `case` |
+| `source` | Signal stream: `gate_decision`, `gate_state_change`, `verdict`, `job_run`, `chain_verify`, `ingress_reject`, `failmode_drill`, `case`, and since WP39 `gate_finding`, `gate_request`, `coverage_gap` |
 | `where` | Equality, or any-of list, on fields of that source (table below) |
 | `group_by` | `agent_id`, `job`, `rule_id` or `none`: one counter per value |
 | `window_s`, `threshold` | Fire when `threshold` matching signals fall in the last `window_s` seconds. `window_s: 0` counts only the signal itself (threshold 1) |
 | `severity` | `low`, `medium`, `high`, `critical` |
 | `dedupe_s` | After a fire, repeats of the same rule and group inside this time are absorbed |
 | `routes` | `inbox`, `siem`, `webhook`, `pager` |
+| `where_min` | WP39: numeric floors on fields of the source, for example `{latency_us: 50000}` (the signal counts only when the field is at least that) |
+| `rate` | WP39: `{min_bp: N}` (and optional `of: {field: value}`): fire only when the matching signals are at least N basis points of all signals of the same source and group in the window. `threshold` is then the minimum count, so a quiet agent does not alert on 1 of 2. Needs `window_s > 0` |
 | `enabled` | `true` (default) or `false`: a disabled rule is still validated but never runs |
 | `suppressions` (top level) | `rule_id` (or `*`), `agent_id` (or `*`), `until` (RFC 3339 with zone), `reason_code`: planned maintenance, time-boxed |
 
@@ -84,6 +86,15 @@ Shipped rules (thresholds ILLUSTRATIVE until the bank SOC sets them):
 | `AL-INGRESS-REJECT-BURST` | 20 rejected ingress credentials over all agents (credential stuffing) | high | 300 s / 20 | 1800 s | inbox, siem, webhook |
 | `AL-FAILCLOSED-DRILL-FAIL` | the fail-closed drill failed | critical | any | 86400 s | inbox, siem, webhook, pager |
 | `AL-JOB-FAILURE` | a scheduled job ended in error | medium | any | 3600 s | inbox, siem |
+| `AL-COVERAGE-GAP` | an agent seen in traces or in the inventory in the last hour with no gate decision in it (a bypass) | high | 3600 s / 1 | 21600 s | inbox, siem, webhook |
+| `AL-DETECTOR-FAILED` | detectors failed or timed out (`execution_failed`, `timed_out`) on at least 5 percent of the calls of one agent, at least 3 calls | high | 900 s / 3, 500 bp | 1800 s | inbox, siem |
+| `AL-THREAT-NOT-ENFORCED` | a finding with action hint `pause` or `block` on an agent in SHADOW (or a policy in observe mode, WP38) | high | 900 s / 1 | 3600 s | inbox, siem |
+| `AL-SECRETS-OUTPUT` | a secret-class finding (`secret.*`) in an output check | critical | any | 1800 s | inbox, siem, webhook, pager |
+| `AL-PII-OUTPUT` | 3 personal-data findings (`pii.*`) in output checks of one agent | high | 600 s / 3 | 1800 s | inbox, siem |
+| `AL-REDACTION-SPIKE` | the share of decisions with status `transform` is 30 percent or more for one agent, at least 10 decisions | medium | 900 s / 10, 3000 bp | 3600 s | inbox, siem |
+| `AL-LATENCY-DEGRADATION` | more than 5 percent of gate decisions took 50 ms or more (p95 above a 50 ms budget), at least 20 | medium | 900 s / 20, 500 bp | 3600 s | inbox, siem |
+| `AL-ERROR-RATE` | 10 percent or more of the requests on the gate routes failed (401, 403, other 4xx, or a decision the fail mode had to make), at least 10 | high | 300 s / 10, 1000 bp | 1800 s | inbox, siem, webhook |
+| `AL-INGRESS-AUTH-ANOMALY` | 3 rejections for one agent with reason `unknown_agent`, `replayed_nonce`, `agent_mismatch` or `unknown_principal` | high | 300 s / 3 | 1800 s | inbox, siem, webhook |
 
 Chain record types read: `gate_decision`, `gate_state_change`, `ingress_reject` (payload
 `agent_id`, `reason_code`), `chain_verify` (payload `ok`), `audit_pack_built` (payload
@@ -133,6 +144,7 @@ Table `alert` (both DDLs, `schema/model.yaml`). Ids, counts and hashes only, nev
 | `window_s`, `window_count`, `threshold` | "5 of 5 in 600 s" |
 | `first_ts`, `last_ts`, `suppressed_count` | How long it ran and how many repeats were absorbed |
 | `case_id` | Linked case (from the trigger, else the oldest open case of the agent opened since the window began) |
+| `correlation_id` | WP39: the correlation id of the trigger signal (gate findings, requests and decisions carry one); links the alert to the decision and the trace span. Null for rules whose signals have none |
 | `chain_lane`, `chain_seq`, `entry_hash`, `refs` | Where the trigger is on the evidence chain (verify offline) and the ids of the signals in the window |
 | `routes`, `route_status` | Where it was sent: `sent`, `queued` (stub), `off`, `dead_letter`, `failed`, `pending` |
 | `acknowledged_by`, `acknowledged_at` | Who acknowledged it |
@@ -167,6 +179,38 @@ roles `operator` and `admin`. A reviewer, approver, owner, auditor or viewer get
 then `ok` with the row hash before and after) and an `alert_ack` evidence record. Only a
 signed-in person can acknowledge; an already acknowledged alert gives HTTP 400.
 
+## Nine use cases of a bank SOC (WP39)
+
+The nine rules above marked WP39 give the on-call analyst the same cover that SOC platforms
+for AI agents list as predefined use cases. All thresholds are ILLUSTRATIVE until the bank SOC
+sets them. Each has a drill in the alert harness (below), a SIEM event that carries the
+correlation id of the trigger (`attrs.correlation_id`) and a link in the Alerts drawer to the
+gate decision that carries the same id.
+
+| Rule | What it means on call | First thing to check |
+|---|---|---|
+| `AL-COVERAGE-GAP` | An agent does work (it appears in traces or in the inventory) but no call of it reached the gate in the window. The gate is bypassed or the collector is not wired. The signal has `registered` (the agent is in the registry) and `seen_in` (`trace` or `inventory`). An agent that shows up under a second id (a rename, a typo) raises a gap for the id the gate has never seen | Decisions page, filter by the agent; Inventory; the collector setup of the application |
+| `AL-DETECTOR-FAILED` | Detectors could not look at a share of the calls. On money, credit and PII-export tools the gate already blocks (`GATE-DETECTOR-FAILED`); on other tools the call went through un-inspected | Decisions page, filter "Not evaluated"; Analytics Detectors tab (p95 near the timeout) |
+| `AL-THREAT-NOT-ENFORCED` | A detector wanted `pause` or `block` and nothing was enforced because the agent is in SHADOW. Findings are advice (R1), so this is about the agent state, not about the detector. `enforcement: observe` is reserved for the policy observe mode of WP38 | Agent page: move out of SHADOW, or accept the risk on record |
+| `AL-SECRETS-OUTPUT` | A secret (key, token, password) is in what an agent said. Rotate it. Needs a detector whose codes start with `secret.` (not shipped yet; the rule is ready) | Decision drawer, Detections tab: the code and the masked fragment; rotate the secret |
+| `AL-PII-OUTPUT` | Personal data leaves in an agent output. Three findings (for example name, ID number, phone) in 10 minutes | Decision drawer: located fragments; data protection officer |
+| `AL-REDACTION-SPIKE` | The masking transform changes far more payloads than usual: a new data flow, or personal data upstream where there was none. The 30 percent level is a fixed illustration; a rolling baseline per agent is in BACKLOG | Analytics Gate tab, per-agent row; Decisions page, status Transform |
+| `AL-LATENCY-DEGRADATION` | The gate is slow: p95 over the 50 ms budget (the same as more than 5 percent of calls over it). Agents time out and fail mode starts to decide | Analytics Latency tab and Detectors tab (which detector); `docs/latency.md` |
+| `AL-ERROR-RATE` | Many calls to the gate fail. HTTP statuses of the gate routes are not stored, so the rule counts what is stored: ingress rejections (401, 403, other 4xx) and decisions made by the fail mode | Ingress rejections (`AL-INGRESS-*`), gate health page |
+| `AL-INGRESS-AUTH-ANOMALY` | One agent presents an unknown key, a replayed nonce or a key of another agent. Not an expired key (that is `AL-INGRESS-REJECT-AGENT`) | Credentials page; the agent host; rotate the key if in doubt |
+
+Signals added by WP39 (all derived from stored records; none is written by the alert job):
+
+| Source | Built from | Fields |
+|---|---|---|
+| `gate_decision` | chain `gate_decision` records (new keys of verdict v2) | adds `status`, `direction`, `agent_state`, `detector_failed`, `not_evaluated`, `correlation_id`, `latency_us` |
+| `gate_finding` | `finding` rows that fired | `agent_id`, `code`, `finding_class` (`secret`, `pii`, `injection`, `judge`, `other` by the code prefix), `direction`, `detector_slug`, `action_hint`, `enforcement` (`shadow` when the agent was in SHADOW at the decision, else `enforced`), `is_mock`, `correlation_id` |
+| `gate_request` | each gate decision (`ok`, or `gate_error` when the fail mode decided) and each ingress rejection (`rejected_401`, `rejected_403`, `rejected_4xx`) | `agent_id`, `outcome_class`, `reason_code`, `correlation_id` |
+| `coverage_gap` | agents with a recorded event or an active inventory system node in the last `window_s` seconds and no gate decision in it | `agent_id`, `seen_in`, `registered` |
+
+Derived signals are not counted in the job result `judged`. The coverage check runs only when
+the rule `AL-COVERAGE-GAP` is in the file.
+
 ## Harness (SOC and detection-engineering view)
 
 `python -m supervisor.alerts.harness` scores the shipped rules on two labelled synthetic
@@ -179,6 +223,19 @@ false alert rate bound. Thresholds are ILLUSTRATIVE. Provenance, rubric and
 limits: `tests/fixtures/alerts/README.md`. The fixture proves the logic, not real-world alert
 rates: replay the bank's own gate decisions through `python -m supervisor.alerts test` before
 trusting a threshold.
+
+### Drills for the nine use cases (WP39)
+
+`python -m supervisor.alerts.harness` also runs `supervisor/alerts/drills.py` (skip with
+`--no-drills`). For each of the nine rules it builds synthetic signals from the rule in the
+file and checks: the rule **fires** once at the limit; it stays **quiet** one signal short;
+repeats inside the dedupe time are **suppressed** (one alert, exact count); the **SIEM** event
+carries the correlation id of the trigger. For the four rate rules a sweep of 40 scenarios
+above the limit and 40 below it gives counts and Wilson 95 percent intervals (40 of 40 on both
+sides gives [9123, 10000] bp). An alert **storm** of 5000 signals inside one dedupe window must
+give exactly one alert with `suppressed_count` = 4999 minus the signals before the trigger.
+Output last line: `[OK] drills GO`. The drills prove the logic on synthetic rows; they say
+nothing about real rates.
 
 ## Tuning
 
