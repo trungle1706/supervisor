@@ -65,7 +65,29 @@ def test_templates_do_not_hide_the_probe_weak_spots(quality: dict[str, Any]) -> 
     assert {"poison:base64", "poison:rot13", "poison:leetspeak"} <= misses
     assert "drift:unhashed_field" in misses
     assert any("benign_lookalike" in k for k in quality["probes"]["false_alarms"])
-    assert quality["known_gap_probes"] == ["X-20", "X-21", "X-22", "X-26", "X-30"]
+    assert quality["known_gap_probes"] == sorted(
+        [
+            "X-20",
+            "X-21",
+            "X-22",
+            "X-26",
+            "X-30",
+            "X-41",
+            "X-58",
+            "X-65",
+            "X-66",
+            "X-67",
+            "X-68",
+            "X-121",
+        ]
+    )
+
+
+def test_probe_rows_have_n_of_at_least_50(quality: dict[str, Any]) -> None:
+    """Review F15: drift, poisoning and benign look-alikes each have n >= 50 on the probe row."""
+    p = quality["probes"]
+    assert p["drift_catch"]["n"] >= 50 and p["poison_catch"]["n"] >= 50
+    assert p["scan_false_alarm"]["n"] >= 50
 
 
 def test_chain_records_cover_every_lock_event(quality: dict[str, Any]) -> None:
