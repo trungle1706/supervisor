@@ -1,0 +1,33 @@
+{# console_action rows + pager: the swap target #list of the audit page (WP-UX3, read-only). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% if capped %}<p class="hint">{{ t('scan_capped') }}</p>{% endif %}
+<div class="tablewrap">
+<table class="queue audit-tbl">
+  <caption class="sr">{{ t('nav_audit') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('ts', t('time'), sort_col, sort_dir, '/console/audit', '/console/audit/rows', base_qs) }}
+      {{ tb.th('actor', t('actor'), sort_col, sort_dir, '/console/audit', '/console/audit/rows', base_qs) }}
+      {{ tb.th('permission', t('permission'), sort_col, sort_dir, '/console/audit', '/console/audit/rows', base_qs) }}
+      {{ tb.th('target', t('target'), sort_col, sort_dir, '/console/audit', '/console/audit/rows', base_qs) }}
+      {{ tb.th('outcome', t('outcome'), sort_col, sort_dir, '/console/audit', '/console/audit/rows', base_qs) }}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for r in page.items %}
+    {% set dq = list_qs ~ '&lang=' ~ lang %}
+    <tr class="row" data-row="{{ r.action_id }}">
+      <td class="mono"><a class="head rowlink" href="/console/audit?drawer={{ r.action_id }}&amp;{{ dq }}" hx-get="/console/audit/{{ r.action_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.ts|day }}</a></td>
+      <td>{{ r.actor }}<div class="idline">{{ r.actor_kind }} · {{ r.auth_method }}</div></td>
+      <td class="mono">{{ r.permission }}</td>
+      <td class="mono">{{ r.target or '-' }}</td>
+      <td>{{ ui.pill(t('outcome_' ~ r.outcome), {'ok': 'ok', 'attempted': 'neutral', 'denied': 'warn', 'error': 'bad'}.get(r.outcome, 'neutral'), True) }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">{{ ui.empty(t('no_audit'), t('no_audit_line')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/audit', '/console/audit/rows', list_qs) }}

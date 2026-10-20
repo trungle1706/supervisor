@@ -60,11 +60,12 @@ Sidebar groups and items (`console/nav.py` holds the list):
 | Analytics | Tools (flag), Metrics |
 | Settings | Policies, Credentials, Users and roles, Audit log, Integrations, Health |
 
-* Items for pages that do not exist yet (Gate decisions, Traces, Policies, Credentials, Users
-  and roles, Audit log, Settings > Integrations) open a placeholder page ("coming in WP-UX3").
-  They show only when `CONSOLE_NAV_PLACEHOLDERS=1`; with the flag off the link is hidden and
-  `/console/soon/<page>` answers HTTP 400 with a message. WP-UX3 replaces each placeholder with
-  its page and its own flag.
+* Since WP-UX3 the eight new pages (Gate decisions, Traces, Playground, Policies, Credentials,
+  Users and roles, Audit log, Integrations) each have their own flag (table "New pages (WP-UX3)"
+  below). With the flag on, the sidebar item opens the real page. With the flag off the item is
+  hidden, unless `CONSOLE_NAV_PLACEHOLDERS=1`: then it opens the old "coming" placeholder
+  (`/console/soon/<page>`, HTTP 400 with the flag off). The placeholder setting is a legacy
+  convenience and may be removed once every page is on by default.
 * Flagged pages (Compliance, Integration, Assurance, Tools, Inventory) show only when their
   flag is on, exactly as before. Hidden navigation is not security: every route still checks its
   permission (`core/rbac.py`).
@@ -122,12 +123,36 @@ refresh the table. The other pages render inside the new shell unchanged.
 
 Not done (WP-UX2 and WP-UX3): see `BACKLOG.md`.
 
+### New pages (WP-UX3)
+
+Eight pages, each behind its own flag (default off; off = HTTP 400 with a message, no sidebar
+link) and its own permission (the role matrix below). All are read-only, take their data from
+the existing stores, and use the list components of WP-UX1 (filter bar, sortable paged table,
+row drawer with a no-JS fallback `?drawer=<id>&dtab=<tab>`). Bad filter values answer HTTP 400.
+English and Vietnamese labels; no external URL; strict CSP.
+
+| Page | URL | Flag | Permission (roles) | What it shows |
+|---|---|---|---|---|
+| Gate decisions | `/console/decisions` | `CONSOLE_DECISIONS_ENABLED` | `decisions.view` (all) | One row per gate decision from `agent_event` (event type `gate_decision`) with the tier-0 verdict rows that share its event id. Count tiles (all, allow, block, pause, alert) act as the action filter; filters agent, action, rule, tool, time range, trace id; sort by time, agent, tool, action, rule, latency; 25 per page. Drawer tabs Details, Rules, Evidence: time, agent, tool, trace and span ids, keyed args hash, hashed argument keys, amount, latency in microseconds, reason, rule hits with severity and regulation, evidence lane and sequence, links to the case and to the trace. **Arguments are never shown**, only the keyed hash (R2). Reads the newest 20,000 records; a hint appears when that cap is reached. |
+| Traces | `/console/traces`, `/console/traces/<trace_id>` | `CONSOLE_TRACES_ENABLED` | `traces.view` (all) | List: trace id, agent, start, spans, verdict labels (block / pause / alert, judge count), status (ok, alert, blocked, paused); filters agent, status, time range, id. Viewer: span tree on the left (built from `span_id` and `parent_span_id`; up to 500 spans, then "+N more"; a cycle or a missing parent cannot loop), key-value detail of the selected span on the right (`/console/traces/<id>/span/<span>` partial; `?span=` without JS), gate stops marked P, B, A, judge verdicts marked J. Verdicts attached to the span: gate rule hits, Tier 0b findings and judge verdicts (mock and advisory labelled). **The capture level decides what text is shown**: `digest` shows no text; `masked` and `raw` show the masked column only (the raw table is never read), after the masker runs again; with no masker configured no text is shown. The stop with the highest rank opens by default. |
+| Playground | `/console/playground`, `POST /console/playground/run` | `CONSOLE_PLAYGROUND_ENABLED`; in `databricks_app` mode also `PLAYGROUND_ALLOW_APP=1` (owner decision pending) | `playground.run` (reviewer, approver, owner, admin, operator) | Form: agent, version, tool, arguments (JSON object, 16 KB), context (JSON object, 4 KB). "Check (dry run)" calls `Gateway.evaluate_only`, which writes **no** verdict, event or chain record, changes **no** agent state (a pause rule shows "would pause the agent"), adds nothing to the windows and does not count in the metrics; a test proves the store and the chain are byte-identical before and after (`tests/gateway/test_evaluate_only.py`, `tests/console/test_ux3_playground.py`). Rules that count calls over time (sum, count, prior-call) are not evaluated and are listed as such. The answer shows the decision, the rule hits and a masked preview of the arguments (or the transformed arguments when inline redaction is on); the typed arguments are not echoed or stored. The POST writes the two audit rows (`attempted`, `ok`); the `ok` row carries `in:<24 hex of the keyed HMAC of the arguments>` in `detail`, never the arguments. |
+| Policies | `/console/policies` | `CONSOLE_POLICIES_ENABLED` | `policies.view` (all) | Deployed policy versions (hash, in force or retired, effective from, git commit, rule count), the tool and risk-class table, and the rules in force with filters (agent scope, action, severity, risk class, text) and sort. Drawer tabs Details, YAML, Versions: description, scope, fail mode, risk class, regulation reference, owner, approvals, hashes, the expression as YAML, history of the rule, and the gate-rule capabilities of the catalogue that apply to its risk class (manifest file names; no link target exists in the console). Read-only: a change goes through Git and a pull request. |
+| Credentials | `/console/credentials` | `CONSOLE_CREDENTIALS_ENABLED` | `credentials.view` (owner, admin) | WP20 ingress key metadata per agent (key id, current or previous, issued from the `k-<time>` key id, expiry, valid now; last use is not tracked, so the column is empty), agents without an active key, and the identity map (principals shortened to first and last four characters). Banner when `INGRESS_AUTH_ENABLED` is off. **Never a secret**: the code reads `key_id`, `state` and `expires_at` only and asks `valid_at()` for a yes or no; an unreadable store shows the error class, not the message or the path. Issue and rotate stay on the command line (`python -m supervisor.gateway.ingress_auth rotate <agent_id>`). |
+| Users and roles | `/console/users` | `CONSOLE_USERS_ENABLED` | `users.view` (admin) | The users file (laptop) or the `auth.yaml` role map (App: users and group names per role, the shortened service principal id, `group_lookup`), holders per role, and the role x permission matrix generated from `core/rbac.py` (same table as "Role matrix" below). Read-only. |
+| Audit log | `/console/audit` | `CONSOLE_AUDITLOG_ENABLED` | `audit.view` (auditor, admin) | `console_action` rows: time, actor (kind, method), permission, target, outcome (attempted, ok, denied, error); filters actor, permission, outcome, target, time range; sort; drawer with roles, request line, target, request id, hash before and after (and whether they differ), the fixed `detail` note and the other rows of the same request. Read-only and append-only. The flag is `CONSOLE_AUDITLOG_ENABLED` because `CONSOLE_AUDIT_ENABLED` already switches the writing of audit rows (WP18). |
+| Integrations | `/console/integrations` | `CONSOLE_INTEGRATIONS_ENABLED` | `integrations.view` (all) | SIEM sink, webhook notifier, pager, ITSM, SCIM: configured, enabled, last delivery, dead-letter count, short detail (sink and format, host name only). Pager, ITSM and SCIM are stubs with in-memory fakes (WP11) and say so. Dead-letter files are counted, never read. No secret and no URL beyond the host name. |
+
+Commands (Windows cmd): `set CONSOLE_DECISIONS_ENABLED=1` and restart; the same for the other
+flags. Screenshots: `python tools\console_screenshots.py --ux3 --reseed --out <dir> --port <free port>`
+turns the eight flags on in the server it starts and captures only these pages, each as the role
+it needs, in English and Vietnamese, plus a dark shot.
+
 ## Screens
 
 | Screen | URL | What it shows | Actions |
 |---|---|---|---|
 | Search | `/console/search?q=` | Agents, cases and exact trace ids that match (WP-UX1). Read-only | - |
-| Placeholders | `/console/soon/<page>` | "Coming in WP-UX3" for seven pages (WP-UX1, needs `CONSOLE_NAV_PLACEHOLDERS=1`) | - |
+| Placeholders | `/console/soon/<page>` | "Coming in WP-UX3" for a page whose flag is off (WP-UX1, needs `CONSOLE_NAV_PLACEHOLDERS=1`) | - |
 | Overview | `/console/` | Greeting by the ICT hour with the live counts (agents under supervision, actions stopped today, cases needing a decision, nearest SBV clock); what Supervisor is; the three pillars; four numbers from the stores (gate decisions today and median latency; stops split blocked / paused; open cases with the critical count; evidence chain entries, signed root, anchor, last verify); latest gate decisions (the newest stops always included) linked to their cases; the demo-data line on a demo store. | - |
 | Agents | `/console/agents` | One card per agent, attention first: state pill with the rule or person that paused / quarantined it, owner, risk, Decision 33 class (registry, else the Onboard proposal), model and judge family (`mock` labelled), lifecycle stepper (Discover .. Operate; registered = Operate, SHADOW = Launch), coverage bar (capabilities on; else the daily metric; else gated / seen tool calls; planned capabilities named, never counted), open cases, tools (count, money-moving, fail mode). | The one relevant action with its rule under it: Pause now (one click); Approve resume (shows the pending approval, who you are, disabled after your own approval); Quarantine / Release (admin, reason required). These call the gateway state machine in-process. |
 | Cases | `/console/cases` | Severity, agent, a plain headline built from the stopping rule and the stopped tool (rule id and case id under it), opened-by pill (gate / judge / monitor / person), SBV 24 h clock as a bar and text, status, assignee. Filters: severity, agent, opened by; Open / Archive / All. Refreshes every 30 s. | Refresh cases: the explicit case intake (a GET never writes). |
@@ -216,6 +241,14 @@ button needs the `alert.ack` permission (operator, admin) and writes two audit r
 | `agent.quarantine` | Quarantine an agent |  |  |  |  | x |  |  |
 | `agent.release` | Release an agent from quarantine |  |  |  |  | x |  |  |
 | `alert.ack` | Acknowledge an alert (WP21) |  |  |  |  | x |  | x |
+| `decisions.view` | Gate decisions list and drawer (read-only) | x | x | x | x | x | x | x |
+| `traces.view` | Traces list and span viewer (masked payloads only) | x | x | x | x | x | x | x |
+| `playground.run` | Playground: dry-run gate check, no side effect (WP-UX3) |  | x | x | x | x |  | x |
+| `policies.view` | Policies page: deployed rules and versions (read-only) | x | x | x | x | x | x | x |
+| `credentials.view` | Credentials page: agent key metadata, never a secret (read-only) |  |  |  | x | x |  |  |
+| `users.view` | Users and roles page (read-only) |  |  |  |  | x |  |  |
+| `audit.view` | Audit log page: console_action rows (read-only) |  |  |  |  | x | x |  |
+| `integrations.view` | Integrations status page (read-only) | x | x | x | x | x | x | x |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).
@@ -322,6 +355,9 @@ set that header.
 | `CONSOLE_LANG` | `en` | Default UI language (`en` or `vi`) |
 | `CONSOLE_NAV` | `sidebar` | WP-UX1: `sidebar` (left sidebar, default) or `top` (the phase 2 pill header). One setting rolls the layout back. Windows cmd: `set CONSOLE_NAV=top` |
 | `CONSOLE_NAV_PLACEHOLDERS` | `0` | WP-UX1: show the sidebar links of pages that WP-UX3 builds (Gate decisions, Traces, Policies, Credentials, Users and roles, Audit log, Integrations); they open a "coming in WP-UX3" page. Off: links hidden, `/console/soon/<page>` answers 400 |
+| `CONSOLE_DECISIONS_ENABLED`, `CONSOLE_TRACES_ENABLED`, `CONSOLE_POLICIES_ENABLED`, `CONSOLE_CREDENTIALS_ENABLED`, `CONSOLE_USERS_ENABLED`, `CONSOLE_AUDITLOG_ENABLED`, `CONSOLE_INTEGRATIONS_ENABLED` | `0` | WP-UX3: one flag per new page (see "New pages (WP-UX3)"). Off: no sidebar link, routes answer HTTP 400 |
+| `CONSOLE_PLAYGROUND_ENABLED` | `0` | WP-UX3: the Playground (dry-run gate check). In `databricks_app` mode it also needs `PLAYGROUND_ALLOW_APP=1` |
+| `PLAYGROUND_ALLOW_APP` | `0` | WP-UX3: allow the Playground on the Databricks App (owner decision pending) |
 | `CONSOLE_ONBOARD_ENABLED` | `0` | WP12: the Onboard screen may start runs (new feature, off by default) |
 | `ONBOARD_COMPLIANCE_ENABLED` | `0` | WP14: the onboarding run also writes `compliance_matrix.json`, `.md` and `.html` (advisory only) |
 | `CONSOLE_COMPLIANCE_ENABLED` | `0` | WP14: the Compliance tab (`/console/compliance`, read-only, advisory only) |

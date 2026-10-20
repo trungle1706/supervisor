@@ -188,6 +188,10 @@ class AgentIdentityMap:
             out.setdefault(principal, set()).update(agents)
         return cls({p.lower() if "@" in p else p: frozenset(a) for p, a in out.items()})
 
+    def entries(self) -> dict[str, frozenset[str]]:
+        """principal -> agent ids (a copy; read-only views such as the console Credentials page)."""
+        return dict(self._map)
+
     def all_agents(self) -> frozenset[str]:
         """Every agent id that any principal may speak for (local, no I/O)."""
         return frozenset().union(*self._map.values()) if self._map else frozenset()

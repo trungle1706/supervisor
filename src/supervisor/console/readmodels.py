@@ -122,6 +122,16 @@ def signoff_waiting(ctx: Any, cases: list[dict[str, Any]]) -> int:
     return n
 
 
+def ux3_pages(settings: Any) -> dict[str, bool]:
+    """WP-UX3 page flags by page key (Playground also needs PLAYGROUND_ALLOW_APP on the App)."""
+    from supervisor.console import nav
+
+    out = {page: bool(getattr(settings, flag, False)) for page, flag in nav.PAGES.items()}
+    if out.get("playground") and settings.supervisor_mode == "databricks_app":
+        out["playground"] = bool(getattr(settings, "playground_allow_app", False))
+    return out
+
+
 def shell(ctx: Any, me: Any) -> dict[str, Any]:
     """Header data for every full page: counts on the pills, environment badge, identity."""
     agents = ctx.state.query("agent")
@@ -144,6 +154,7 @@ def shell(ctx: Any, me: Any) -> dict[str, Any]:
         "alerts_n": alerts_n,
         "signoff_n": signoff_waiting(ctx, cases),
         "placeholders": bool(getattr(ctx.settings, "console_nav_placeholders", False)),
+        "pages": ux3_pages(ctx.settings),  # WP-UX3: which new pages are on
         "inventory_n": inventory_n,
         "agents_n": len(agents),
         "cases_n": len(cases),

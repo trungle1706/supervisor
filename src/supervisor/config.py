@@ -459,6 +459,19 @@ class Settings(BaseSettings):
     console_nav: Literal["sidebar", "top"] = "sidebar"
     console_nav_placeholders: bool = False
 
+    # --- WP-UX3 --- new console pages, each behind its own flag (all off by default; off = HTTP
+    # 400 with a message and no nav link). The audit-log page flag is CONSOLE_AUDITLOG_ENABLED
+    # because CONSOLE_AUDIT_ENABLED already means "write console_action rows" (WP18).
+    console_decisions_enabled: bool = False  # /console/decisions
+    console_traces_enabled: bool = False  # /console/traces and the span viewer
+    console_playground_enabled: bool = False  # /console/playground (dry-run gate check)
+    playground_allow_app: bool = False  # PLAYGROUND_ALLOW_APP=1: Playground in databricks_app mode
+    console_policies_enabled: bool = False  # /console/policies (read-only)
+    console_credentials_enabled: bool = False  # /console/credentials (metadata, never a secret)
+    console_users_enabled: bool = False  # /console/users (read-only role map)
+    console_auditlog_enabled: bool = False  # /console/audit (console_action rows)
+    console_integrations_enabled: bool = False  # /console/integrations (status, read-only)
+
     @field_validator(
         "data_dir",
         "sqlite_path",

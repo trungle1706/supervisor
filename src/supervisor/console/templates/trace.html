@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_traces') }} {{ head.trace_id[:16] }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_watch'), None), (t('nav_traces'), '/console/traces?lang=' ~ lang), (head.trace_id[:16], None)]) }}
+{% set status_pill %}{{ ui.pill(t('trace_' ~ head.status), {'ok': 'ok', 'alert': 'warn', 'blocked': 'bad', 'paused': 'warn'}[head.status], True) }}{% endset %}
+{% call ui.pagehead(t('trace_title'), status_pill) %}
+  <button type="button" class="chipbtn" data-copy="#trace-id">{{ t('copy_id') }}</button>
+{% endcall %}
+<p class="idline"><span class="mono wrap" id="trace-id">{{ head.trace_id }}</span> · {{ head.agent_id }} · {{ t('n_spans', n=head.spans) }} · {{ head.duration_ms }} ms · {{ head.started|day }}
+{% for c in head.case_ids %} · <a href="/console/cases/{{ c }}?lang={{ lang }}">{{ c }}</a>{% endfor %}</p>
+{% if truncated or extra %}<p class="hint">{{ t('trace_capped', n=extra) }}</p>{% endif %}
+<div class="tracegrid">
+  <nav class="card spantree" aria-label="{{ t('span_tree') }}">
+    <h2 class="sec">{{ t('span_tree') }}</h2>
+    <ul class="tree" role="tree">
+    {% for n in nodes %}
+      <li role="treeitem" aria-level="{{ n.depth + 1 }}" aria-selected="{{ 'true' if n.span_id == selected_id else 'false' }}" style="margin-left: {{ n.depth * 14 }}px">
+        <a class="spanlink {{ 'on' if n.span_id == selected_id else '' }}" href="/console/traces/{{ head.trace_id }}?span={{ n.span_id }}&amp;lang={{ lang }}" hx-get="/console/traces/{{ head.trace_id }}/span/{{ n.span_id }}?lang={{ lang }}" hx-target="#span-detail" hx-push-url="false"{% if n.span_id == selected_id %} aria-current="true"{% endif %}>
+          <span class="mono">{{ n.name }}</span>
+          <span class="muted">{{ n.ts|hhmmss }}{% if n.latency_ms %} · {{ n.latency_ms }} ms{% endif %}</span>
+          {% if n.mark %}<span class="pill {{ {'P': 'warn', 'B': 'bad', 'A': 'warn'}[n.mark] }}" title="{{ t('act_' ~ n.stop) }}">{{ n.mark }}</span>{% endif %}
+          {% if n.judge %}<span class="pill neutral" title="{{ t('judge_word') }}">J</span>{% endif %}
+        </a>
+      </li>
+    {% endfor %}
+    </ul>
+    {% if extra %}<p class="hint">{{ t('plus_more', n=extra) }}</p>{% endif %}
+    <p class="hint">{{ t('tree_legend') }}</p>
+  </nav>
+  <section class="card" id="span-detail" aria-live="polite" aria-label="{{ t('span_detail') }}">
+    {% include "_span_detail.html" %}
+  </section>
+</div>
+{% endblock %}

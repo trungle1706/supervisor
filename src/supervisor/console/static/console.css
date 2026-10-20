@@ -560,3 +560,30 @@ a.rowlink::after { content: ""; position: absolute; inset: 0; }
   .gsearch { flex-basis: 100%; max-width: none; order: 3; }
 }
 @media print { .side, .topbar, .drawer, .skip { display: none; } .shell { display: block; } }
+
+/* --- WP-UX3: new pages (traces viewer, playground, payload blocks) --- */
+.msg-warn { background: var(--amber-soft); color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent); }
+.tracegrid { display: grid; grid-template-columns: minmax(260px, 2fr) minmax(0, 3fr); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .tracegrid { grid-template-columns: minmax(0, 1fr); } }
+.spantree { overflow-x: auto; }
+.tree { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.tree li { min-width: 0; }
+.spanlink { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 8px; border-radius: var(--r-s);
+  text-decoration: none; color: var(--fg); border: 1px solid transparent; }
+.spanlink:hover { background: var(--surface-2); }
+.spanlink.on { background: var(--brand-soft); border-color: var(--line); }
+.spanlink .pill { padding: 1px 7px; font-size: 11px; }
+pre.payload { margin: 6px 0 12px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-s); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow: auto; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.playgrid { align-items: start; }
+.pgform { display: grid; gap: 6px; }
+.pgform label { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 6px; }
+.pgform select, .pgform input[type=text], .pgform textarea { width: 100%; }
+.verdict-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+.matrix-tbl th[scope=row] { text-align: left; font-weight: 500; }
+.matrix-tbl td, .matrix-tbl thead th:not(:first-child) { text-align: center; }
+.decisions-tbl td.mono:first-child, .audit-tbl td.mono:first-child, .traces-tbl td.mono { white-space: nowrap; }
+.decisions-tbl td.n, .decisions-tbl td:nth-child(4) { white-space: nowrap; }
+.spanlink .muted { white-space: nowrap; }

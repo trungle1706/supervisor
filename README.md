@@ -42,7 +42,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Judges | Tier 1 and Tier 2 AI judges; advise only, never call the gate | `docs/adr/D06-judge-hardening.md` |
 | Evidence chain | SHA-256 chain, one lane per agent, signed head, offline `verify` | `docs/adr/D05-evidence-chain.md` |
 | Monitors | Drift, fairness, groundedness, oversight metrics; per-agent bindings and an explicit `not_applicable` status when a monitor cannot run (`python -m supervisor.monitors.binding_harness`) | `docs/metrics.md`, `docs/monitors.md`, `docs/adr/D20-monitor-bindings.md` |
-| Console | Reviewer pages: queue, agents, cases, sign-off, metrics; left sidebar, global search, list pages with filter bar and row drawer (WP-UX1) | `docs/console.md` |
+| Console | Reviewer pages: queue, agents, cases, sign-off, metrics; left sidebar, global search, list pages with filter bar and row drawer (WP-UX1); gate decisions, traces, playground, policies, credentials, users, audit log, integrations (WP-UX3, each behind a flag) | `docs/console.md` |
 | Onboarding agent | Discover, Understand, Advise, Launch, Retire stages; opens PRs. HTTP routes are listed as entrypoints, not tools; deepagents and the model family are recognised | `docs/onboard.md`, `docs/onboard-eval.md` |
 | Regulation knowledge base | 31 instruments, 528 obligations, cited, versioned; internal rules load too | `docs/regulations.md` |
 | Compliance advisor | Obligation matrix, gaps, open questions for any product | `docs/compliance-advisor.md` |
@@ -91,7 +91,15 @@ until you turn its flag on.
 | `CONSOLE_ASSURANCE_ENABLED` | Shows the Assurance tab (runs, packs, metrics against go / no-go) |
 | `TOOL_ANALYTICS_ENABLED` | Runs the daily tool usage rollup and writes least-privilege suggestions (a diff for a person to apply, never applied); serves `GET /v1/analytics/tools`. Commands and flags: `docs/tool-analytics.md` |
 | `CONSOLE_NAV` | Console layout: `sidebar` (default, left sidebar with six groups) or `top` (the phase 2 pill header; one-setting rollback). Details: `docs/console.md` |
-| `CONSOLE_NAV_PLACEHOLDERS` | Shows sidebar links for pages WP-UX3 builds (they open a "coming in WP-UX3" page) |
+| `CONSOLE_NAV_PLACEHOLDERS` | Shows a "coming in WP-UX3" link for a new page whose own flag is still off |
+| `CONSOLE_DECISIONS_ENABLED` | Shows the Gate decisions page (list, filters, drawer with rule hits and evidence position) |
+| `CONSOLE_TRACES_ENABLED` | Shows the Traces list and the span-tree viewer (masked payloads only) |
+| `CONSOLE_PLAYGROUND_ENABLED` | Shows the Playground: a dry-run gate check that writes nothing. In `databricks_app` mode also set `PLAYGROUND_ALLOW_APP=1` |
+| `CONSOLE_POLICIES_ENABLED` | Shows the Policies page (deployed versions, rules, YAML; read-only) |
+| `CONSOLE_CREDENTIALS_ENABLED` | Shows the Credentials page (agent key metadata, never a secret; owner and admin) |
+| `CONSOLE_USERS_ENABLED` | Shows the Users and roles page (read-only role map and matrix; admin) |
+| `CONSOLE_AUDITLOG_ENABLED` | Shows the Audit log page (`console_action` rows; auditor and admin). Not the same as `CONSOLE_AUDIT_ENABLED`, which writes the rows |
+| `CONSOLE_INTEGRATIONS_ENABLED` | Shows the Integrations status page (SIEM, webhook, pager, ITSM, SCIM; read-only) |
 | `CONSOLE_TOOLS_ENABLED` | Shows the Tools tab (usage per agent and tool, unused allowed tools, diff download for owners) |
 | `ONBOARD_COMPLIANCE_ENABLED` | Onboarding run also writes the compliance matrix |
 | `ONBOARD_ADVISOR_ENABLED` | Onboarding run also writes the integration report and patches |

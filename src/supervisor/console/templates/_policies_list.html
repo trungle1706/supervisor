@@ -1,0 +1,36 @@
+{# Rules table + pager: the swap target #list of the policies page (WP-UX3, read-only). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+<div class="tablewrap">
+<table class="queue policies-tbl">
+  <caption class="sr">{{ t('policy_rules') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('rule_id', t('rule_col'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
+      <th scope="col">{{ t('agent_scope') }}</th>
+      {{ tb.th('action', t('action'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
+      {{ tb.th('severity', t('severity'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
+      {{ tb.th('fail_mode', t('fail_mode'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
+      {{ tb.th('risk_class', t('risk_class'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
+      {{ tb.th('version', t('version'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs, numeric=True) }}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for r in page.items %}
+    {% set dq = list_qs ~ '&lang=' ~ lang %}
+    <tr class="row" data-row="{{ r.rule_id }}">
+      <td><a class="head rowlink mono" href="/console/policies?drawer={{ r.rule_id }}&amp;{{ dq }}" hx-get="/console/policies/{{ r.rule_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.rule_id }}</a><div class="idline">{{ r.description }}</div></td>
+      <td class="mono">{{ r.scope|join(', ') }}</td>
+      <td>{{ ui.action_pill(r.action) }}</td>
+      <td>{{ ui.sev(r.severity) }}</td>
+      <td>{{ r.fail_mode or '-' }}</td>
+      <td>{{ r.risk_class or '-' }}</td>
+      <td class="n">{{ r.version }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7">{{ ui.empty(t('no_rules'), t('no_rules_filtered')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/policies', '/console/policies/rows', list_qs) }}

@@ -41,16 +41,24 @@ from supervisor.cases.service import RESOLUTIONS, SEVERITIES, CaseError, Permiss
 from supervisor.console import (
     agents_list,
     assurance_views,
+    audit_view,
     auditpack,
     compliance_view,
+    credentials_view,
+    decisions,
     health,
     integration_reports,
+    integrations_view,
     inventory_views,
     nav,
     onboard_runs,
+    playground,
+    policies_view,
     readmodels,
     search,
     tools_views,
+    traces,
+    users_view,
     views,
 )
 from supervisor.console.context import ConsoleContext, get_context
@@ -281,6 +289,8 @@ def audited(permission: str) -> Callable[[Callable[..., Any]], Callable[..., Any
                 denied = isinstance(exc, PermissionDenied)
                 outcome = "denied" if denied else "error"
                 detail = "permission_denied" if denied else type(exc).__name__
+            if outcome == "ok":  # --- WP-UX3 --- a route may add a fixed note (never typed text)
+                detail = getattr(request.state, "audit_detail", None)
             after = await _call(snapshot_hash, ctx.state, kind, tid)
             warning = await _call(
                 write_outcome,
@@ -1324,10 +1334,326 @@ async def soon_page(
         ctx,
         me,
         "soon.html",
-        section=f"soon-{page}",
+        section=page,
         title_key=nav.PLACEHOLDERS[page],
     )
 
+
+# ---------------------------------------------------------------------------- --- WP-UX3 ---
+# New pages, each behind its own flag (default off: HTTP 400 with a message, no nav link).
+
+_UX3_FLAGS = {
+    "decisions": ("CONSOLE_DECISIONS_ENABLED", "Gate decisions"),
+    "traces": ("CONSOLE_TRACES_ENABLED", "Traces"),
+    "playground": ("CONSOLE_PLAYGROUND_ENABLED", "Playground"),
+    "policies": ("CONSOLE_POLICIES_ENABLED", "Policies"),
+    "credentials": ("CONSOLE_CREDENTIALS_ENABLED", "Credentials"),
+    "users": ("CONSOLE_USERS_ENABLED", "Users and roles"),
+    "audit": ("CONSOLE_AUDITLOG_ENABLED", "Audit log"),
+    "integrations": ("CONSOLE_INTEGRATIONS_ENABLED", "Integrations"),
+}
+
+
+def _ux3_off(ctx: ConsoleContext, page: str) -> None:
+    """HTTP 400 unless the page flag is on (Playground also needs PLAYGROUND_ALLOW_APP=1 when
+    SUPERVISOR_MODE=databricks_app)."""
+    env, label = _UX3_FLAGS[page]
+    if not getattr(ctx.settings, nav.PAGES[page], False):
+        raise ConsoleInputError(f"The {label} page is off ({env}=1 turns it on)")
+    if (
+        page == "playground"
+        and ctx.settings.supervisor_mode == "databricks_app"
+        and not ctx.settings.playground_allow_app
+    ):
+        raise ConsoleInputError(
+            "The Playground is off in databricks_app mode (PLAYGROUND_ALLOW_APP=1 allows it)"
+        )
+
+
+def _drawer_query(query: Mapping[str, str]) -> dict[str, str]:
+    return {k: v for k, v in query.items() if k not in ("drawer", "dtab", "tab", "lang")}
+
+
+# -- gate decisions
+
+
+@router.get(
+    "/decisions", response_class=HTMLResponse, dependencies=[Depends(needs("decisions.view"))]
+)
+async def decisions_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "decisions")
+    query = dict(request.query_params)
+    data = await _call(decisions.list_view, ctx, query)
+    opened = query.get("drawer")
+    if opened:  # no-JS fallback of the row drawer
+        _check_id(opened, "decision id")
+        data["drawer"] = await _call(
+            decisions.drawer_view, ctx, opened, query.get("dtab") or "details", _drawer_query(query)
+        )
+    return render(request, ctx, me, "decisions.html", section="decisions", **data)
+
+
+@router.get(
+    "/decisions/rows",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("decisions.view"))],
+)
+async def decisions_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "decisions")
+    data = await _call(decisions.list_view, ctx, dict(request.query_params))
+    return render(request, ctx, me, "_decisions_list.html", **data)
+
+
+@router.get(
+    "/decisions/{event_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("decisions.view"))],
+)
+async def decision_drawer(
+    event_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "decisions")
+    _check_id(event_id, "decision id")
+    query = dict(request.query_params)
+    data = await _call(
+        decisions.drawer_view, ctx, event_id, query.get("tab") or "details", _drawer_query(query)
+    )
+    return render(request, ctx, me, "_decision_drawer.html", drawer=data)
+
+
+# -- traces
+
+
+@router.get("/traces", response_class=HTMLResponse, dependencies=[Depends(needs("traces.view"))])
+async def traces_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "traces")
+    data = await _call(traces.list_view, ctx, dict(request.query_params))
+    return render(request, ctx, me, "traces.html", section="traces", **data)
+
+
+@router.get(
+    "/traces/rows", response_class=HTMLResponse, dependencies=[Depends(needs("traces.view"))]
+)
+async def traces_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "traces")
+    data = await _call(traces.list_view, ctx, dict(request.query_params))
+    return render(request, ctx, me, "_traces_list.html", **data)
+
+
+@router.get(
+    "/traces/{trace_id}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("traces.view"))],
+)
+async def trace_page(
+    trace_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "traces")
+    _check_id(trace_id, "trace id")
+    span = request.query_params.get("span")
+    if span:
+        _check_id(span, "span id")
+    data = await _call(traces.trace_detail, ctx, trace_id, span)
+    return render(request, ctx, me, "trace.html", section="traces", **data)
+
+
+@router.get(
+    "/traces/{trace_id}/span/{span_id}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("traces.view"))],
+)
+async def trace_span(
+    trace_id: str,
+    span_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    _ux3_off(ctx, "traces")
+    _check_id(trace_id, "trace id")
+    _check_id(span_id, "span id")
+    data = await _call(traces.span_view, ctx, trace_id, span_id)
+    return render(request, ctx, me, "_span_detail.html", **data)
+
+
+# -- playground (dry run)
+
+
+@router.get(
+    "/playground", response_class=HTMLResponse, dependencies=[Depends(needs("playground.run"))]
+)
+async def playground_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "playground")
+    data = await _call(playground.form_options, ctx)
+    return render(request, ctx, me, "playground.html", section="playground", **data)
+
+
+@router.post(
+    "/playground/run",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("playground.run"))],
+)
+@audited("playground.run")
+async def playground_run(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Dry-run gate check. Side-effect free (``Gateway.evaluate_only``); the outcome audit row
+    carries the keyed hash of the arguments in ``detail``, never the arguments."""
+    _ux3_off(ctx, "playground")
+    parsed = playground.parse_form(await form(request))
+    result = await _call(playground.run, ctx, parsed)
+    digest = await _call(playground.input_hash, ctx, parsed["args"])
+    request.state.audit_detail = f"in:{digest[:24]}"
+    return render(request, ctx, me, "_playground_result.html", result=result)
+
+
+# -- policies (read-only)
+
+
+@router.get(
+    "/policies", response_class=HTMLResponse, dependencies=[Depends(needs("policies.view"))]
+)
+async def policies_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "policies")
+    query = dict(request.query_params)
+    data = await _call(policies_view.list_view, ctx, query)
+    opened = query.get("drawer")
+    if opened:
+        _check_id(opened, "rule id")
+        data["drawer"] = await _call(
+            policies_view.drawer_view,
+            ctx,
+            opened,
+            query.get("dtab") or "details",
+            _drawer_query(query),
+        )
+    return render(request, ctx, me, "policies.html", section="policies", **data)
+
+
+@router.get(
+    "/policies/rows", response_class=HTMLResponse, dependencies=[Depends(needs("policies.view"))]
+)
+async def policies_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "policies")
+    data = await _call(policies_view.list_view, ctx, dict(request.query_params))
+    return render(request, ctx, me, "_policies_list.html", **data)
+
+
+@router.get(
+    "/policies/{rule_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("policies.view"))],
+)
+async def policy_drawer(
+    rule_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "policies")
+    _check_id(rule_id, "rule id")
+    query = dict(request.query_params)
+    data = await _call(
+        policies_view.drawer_view,
+        ctx,
+        rule_id,
+        query.get("tab") or "details",
+        _drawer_query(query),
+    )
+    return render(request, ctx, me, "_policy_drawer.html", drawer=data)
+
+
+# -- credentials, users, integrations (read-only)
+
+
+@router.get(
+    "/credentials",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("credentials.view"))],
+)
+async def credentials_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "credentials")
+    data = await _call(credentials_view.page, ctx)
+    return render(request, ctx, me, "credentials.html", section="credentials", **data)
+
+
+@router.get("/users", response_class=HTMLResponse, dependencies=[Depends(needs("users.view"))])
+async def users_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "users")
+    data = await _call(users_view.page, ctx)
+    return render(request, ctx, me, "users.html", section="users", **data)
+
+
+@router.get(
+    "/integrations",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("integrations.view"))],
+)
+async def integrations_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "integrations")
+    data = await _call(integrations_view.page, ctx)
+    return render(request, ctx, me, "integrations.html", section="integrations", **data)
+
+
+# -- audit log (read-only)
+
+
+@router.get("/audit", response_class=HTMLResponse, dependencies=[Depends(needs("audit.view"))])
+async def audit_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "audit")
+    query = dict(request.query_params)
+    data = await _call(audit_view.list_view, ctx, query)
+    opened = query.get("drawer")
+    if opened:
+        _check_id(opened, "audit row id")
+        data["drawer"] = await _call(audit_view.drawer_view, ctx, opened, _drawer_query(query))
+    return render(request, ctx, me, "audit.html", section="audit", **data)
+
+
+@router.get("/audit/rows", response_class=HTMLResponse, dependencies=[Depends(needs("audit.view"))])
+async def audit_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "audit")
+    data = await _call(audit_view.list_view, ctx, dict(request.query_params))
+    return render(request, ctx, me, "_audit_list.html", **data)
+
+
+@router.get(
+    "/audit/{action_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("audit.view"))],
+)
+async def audit_drawer(
+    action_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "audit")
+    _check_id(action_id, "audit row id")
+    query = _drawer_query(dict(request.query_params))
+    data = await _call(audit_view.drawer_view, ctx, action_id, query)
+    return render(request, ctx, me, "_audit_drawer.html", drawer=data)
+
+
+# ---------------------------------------------------------------------------- --- end WP-UX3 ---
 
 # ---------------------------------------------------------------------------- health
 

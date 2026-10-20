@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_decisions') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_watch'), None), (t('nav_decisions'), None)]) }}
+{{ ui.pagehead(t('nav_decisions')) }}
+{{ ui.purpose(t('decisions_purpose'), t('decisions_why')) }}
+{{ ui.tiles(tiles, '/console/decisions', '/console/decisions/rows') }}
+{{ ui.filterbar('/console/decisions', '/console/decisions/rows', [
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+  {'name': 'action', 'label': t('action'), 'kind': 'select', 'value': params.action, 'options': action_opts},
+  {'name': 'rule', 'label': t('rule_col'), 'kind': 'select', 'value': params.rule, 'options': rule_opts},
+  {'name': 'tool', 'label': t('tool'), 'kind': 'select', 'value': params.tool, 'options': tool_opts},
+  {'name': 'range', 'label': t('time_range'), 'kind': 'select', 'value': params.range, 'options': range_opts},
+  {'name': 'trace', 'label': t('trace_id'), 'kind': 'search', 'value': params.trace},
+], '/console/decisions?lang=' ~ lang) }}
+<div id="list">
+{% include "_decisions_list.html" %}
+</div>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_decision_drawer.html" %}{% endif %}{% endblock %}

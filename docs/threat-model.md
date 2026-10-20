@@ -146,6 +146,22 @@ YAML read with `safe_load` and validated, never evaluated as code. Acknowledging
 a signed-in person with `alert.ack` and is audited. Alerts do not act on agents (R1), so a
 forged alert cannot pause or block anything.
 
+### 3.9 Console pages added by WP-UX3 (Playground, Credentials, Audit log, ...)
+
+The Playground (`POST /console/playground/run`, role `operator` and up, flag off by default, a
+second flag on the App) lets a person send arbitrary JSON to the gate's evaluation. Risks and
+controls: (1) side effects, removed by construction (`Gateway.evaluate_only` shares the decision
+function and writes nothing; a byte-for-byte test, ADR D22); (2) personal data typed into the
+form, never echoed or stored (the audit row keeps a keyed HMAC, not the input; the answer shows a
+masked preview); (3) abuse as a load or ReDoS vector, bounded by 16 KB and 4 KB input caps, a
+nesting limit, strict JSON object checks, the gate's own 2 s timeout, and the existing rule
+regex limits (D11). The Credentials page reads only key id, state and expiry, never a secret
+(a test plants a secret and checks the page and headers), and an unreadable key store shows the
+error class only. The Traces page shows only masked columns and passes them through the masker
+again; a `digest` event shows no text, and no masker means no text. Every new page is read-only,
+behind its own permission and flag, and every filter value is checked against an allow-list or a
+strict pattern (bad input is HTTP 400); filters reach the store only as named parameters.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

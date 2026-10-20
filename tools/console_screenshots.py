@@ -46,8 +46,11 @@ cfg = json.loads(open(sys.argv[1], encoding="utf-8").read())
 with sync_playwright() as p:
     b = p.chromium.launch()
     for shot in cfg["shots"]:
-        page = b.new_page(viewport={"width": 1360, "height": 900},
-                          color_scheme=shot.get("scheme", "light"))
+        ctx = b.new_context(viewport={"width": 1360, "height": 900},
+                            color_scheme=shot.get("scheme", "light"))
+        if shot.get("user"):  # dev_header identity cookie (WP-UX3 pages need other roles)
+            ctx.add_cookies([{"name": "sv_dev_user", "value": shot["user"], "url": cfg["base"]}])
+        page = ctx.new_page()
         page.goto(cfg["base"] + shot["path"], wait_until="networkidle")
         page.evaluate("document.fonts.ready")
         if shot.get("click") and page.locator(shot["click"]).count():
@@ -58,6 +61,7 @@ with sync_playwright() as p:
         page.screenshot(path=shot["file"].replace(".png", "-full.png"), full_page=True)
         print("[OK] " + shot["file"].rsplit("/", 1)[-1])
         page.close()
+        ctx.close()
     b.close()
 """
 
@@ -93,6 +97,52 @@ def _first_case(data_dir: Path) -> str | None:
         a.close()
 
 
+def _first_trace(data_dir: Path) -> str | None:
+    """A trace with a stop in it (the span viewer opens on the stop)."""
+    sys.path.insert(0, str(REPO / "src"))
+    from supervisor.adapters.factory import build_adapters
+    from supervisor.config import load_settings
+
+    a = build_adapters(load_settings(data_dir=data_dir, sql_backend="sqlite"))
+    try:
+        for action in ("pause", "block"):
+            where = {"event_type": "gate_decision", "classification": action}
+            rows = a.tables.query("agent_event", where, order_by=("-ts",), limit=1)
+            if rows:
+                return str(rows[0]["trace_id"])
+        rows = a.tables.query("agent_event", order_by=("-ts",), limit=1)
+        return str(rows[0]["trace_id"]) if rows else None
+    finally:
+        a.close()
+
+
+# WP-UX3: (name, path, who, click) for the new pages; {trace} is filled from the store.
+UX3_SCREENS = [
+    ("decisions", "/console/decisions", "reviewer.an", None),
+    ("decisions-drawer", "/console/decisions", "reviewer.an", "a.rowlink"),
+    ("traces", "/console/traces", "reviewer.an", None),
+    ("trace", "/console/traces/{trace}", "reviewer.an", None),
+    ("playground", "/console/playground", "operator.khanh", None),
+    ("policies", "/console/policies", "reviewer.an", None),
+    ("policies-drawer", "/console/policies", "reviewer.an", "a.rowlink"),
+    ("credentials", "/console/credentials", "admin.chi", None),
+    ("users", "/console/users", "admin.chi", None),
+    ("audit", "/console/audit", "auditor.dung", None),
+    ("audit-drawer", "/console/audit", "auditor.dung", "a.rowlink"),
+    ("integrations", "/console/integrations", "reviewer.an", None),
+]
+UX3_FLAGS = {
+    "CONSOLE_DECISIONS_ENABLED": "1",
+    "CONSOLE_TRACES_ENABLED": "1",
+    "CONSOLE_PLAYGROUND_ENABLED": "1",
+    "CONSOLE_POLICIES_ENABLED": "1",
+    "CONSOLE_CREDENTIALS_ENABLED": "1",
+    "CONSOLE_USERS_ENABLED": "1",
+    "CONSOLE_AUDITLOG_ENABLED": "1",
+    "CONSOLE_INTEGRATIONS_ENABLED": "1",
+}
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python tools/console_screenshots.py")
     ap.add_argument("--data-dir", default=str(REPO / "data" / "local" / "demo"))
@@ -101,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--reseed", action="store_true", help="seed + inject 4, 2, 3, 1 first")
     ap.add_argument(
         "--nav", choices=("sidebar", "top"), default="sidebar", help="CONSOLE_NAV (WP-UX1)"
+    )
+    ap.add_argument(
+        "--ux3", action="store_true", help="WP-UX3: turn the new pages on and capture only them"
     )
     args = ap.parse_args(argv)
 
@@ -155,6 +208,7 @@ def main(argv: list[str] | None = None) -> int:
             "CONSOLE_ONBOARD_ENABLED": "1",
             "CONSOLE_NAV": args.nav,
             "CONSOLE_NAV_PLACEHOLDERS": "1",  # WP-UX1: show the whole sidebar
+            **(UX3_FLAGS if args.ux3 else {}),
         },
     )
     try:
@@ -175,7 +229,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.nav == "sidebar":  # WP-UX1: the row drawer open, and the collapsed sidebar
             screens.insert(2, ("agents-drawer", "/console/agents", "a.rowlink"))
             screens.insert(3, ("agents-collapsed", "/console/agents", "[data-side-collapse]"))
-        if case_id:
+        if args.ux3:  # only the WP-UX3 pages, with the role each one needs
+            trace = _first_trace(data_dir) or "none"
+            screens = [(n, p.replace("{trace}", trace), c) for n, p, _, c in UX3_SCREENS]
+            who = {n: u for n, _, u, _ in UX3_SCREENS}
+        else:
+            who = {}
+        if case_id and not args.ux3:
             screens.insert(3, ("case", f"/console/cases/{case_id}", None))
             screens.insert(4, ("case-rules", f"/console/cases/{case_id}", "a[data-tab=rules]"))
         shots = []
@@ -185,8 +245,14 @@ def main(argv: list[str] | None = None) -> int:
                 shot = {"path": f"{path}{sep}lang={lang}", "file": str(out / f"{name}-{lang}.png")}
                 if click:
                     shot["click"] = click
+                if name in who:
+                    shot["user"] = who[name]
                 shots.append(shot)
-        dark = {"path": "/console/?lang=en", "file": str(out / "overview-en-dark.png")}
+        if args.ux3:
+            dark = {"path": "/console/decisions?lang=en", "user": "reviewer.an"}
+            dark["file"] = str(out / "decisions-en-dark.png")
+        else:
+            dark = {"path": "/console/?lang=en", "file": str(out / "overview-en-dark.png")}
         shots.append({**dark, "scheme": "dark"})
         with tempfile.TemporaryDirectory() as tmp:
             script = Path(tmp) / "capture.py"

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_audit') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_audit'), None)]) }}
+{{ ui.pagehead(t('nav_audit'), ui.pill(t('read_only'), 'neutral')) }}
+{{ ui.purpose(t('audit_purpose'), t('audit_why')) }}
+{{ ui.filterbar('/console/audit', '/console/audit/rows', [
+  {'name': 'actor', 'label': t('actor'), 'kind': 'select', 'value': params.actor, 'options': actor_opts},
+  {'name': 'permission', 'label': t('permission'), 'kind': 'select', 'value': params.permission, 'options': permission_opts},
+  {'name': 'outcome', 'label': t('outcome'), 'kind': 'select', 'value': params.outcome, 'options': outcome_opts},
+  {'name': 'range', 'label': t('time_range'), 'kind': 'select', 'value': params.range, 'options': range_opts},
+  {'name': 'target', 'label': t('target'), 'kind': 'search', 'value': params.target},
+], '/console/audit?lang=' ~ lang) }}
+<div id="list">
+{% include "_audit_list.html" %}
+</div>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_audit_drawer.html" %}{% endif %}{% endblock %}
