@@ -83,3 +83,4 @@
 | WP1b-A: T1 and T2 are still checked against all manifests and all registry rows, retired agents included | Skip retired agents for T1/T2 too once a retirement test covers it |
 | WP1b-A: strict mode strips constraints from the request; the model can return a value outside them and costs one retry before the local check rejects it | Prompt-side limits are already in the template; measure the invalid-output rate per model in the validation report |
 | WP1b-A: Anthropic's endpoint refuses `temperature`, so determinism rests on model id and prompt version, not on temperature 0 | Run `--runs 3` stability on the real model before a go-live validation |
+| WP1b-A: strict mode lets the model exceed `maxItems`/`maxLength` (live: 12 rejected replies in one validation, 9 of them `policy_refs` > 5 from sonnet); each costs a retry | Judge-runner repair step (truncate rationale and quote, cap policy_refs at 5) with a repair count in the verdict row |
