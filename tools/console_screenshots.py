@@ -154,6 +154,12 @@ WP39_SCREENS = [
         None,
     ),
     (
+        "wp39-decisions-drawer-response",  # WP39 review: the Observed-decision line
+        "/console/decisions?event=req-planted-01&dtab=response",
+        "reviewer.an",
+        None,
+    ),
+    (
         "wp39-decisions-drawer-detections",
         "/console/decisions?event=req-planted-01&dtab=detections",
         "reviewer.an",
