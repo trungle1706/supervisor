@@ -681,20 +681,25 @@ class ReportBuilder:
         return report, secrets
 
     def known_secrets(self, agent_id: str, full: Mapping[str, Any]) -> dict[str, set[str]]:
-        """Strings the customer variant must never contain: agent ids and people's names."""
-        ident = (full["sections"].get("identity") or {}).get("data") or {}
-        team = {str(ident["owner_team"])} if ident.get("owner_team") else set()
-        people = {str(ident.get(k)) for k in ("owner_user", "business_owner") if ident.get(k)}
-        card = (full["sections"].get("cards") or {}).get("data") or {}
-        people |= {
-            str(v)
-            for v in ((card.get("judge_card") or {}).get("role_names") or {}).values()
-            if v and not str(v).startswith("FILL-ME")
-        }
-        for r in ((full["sections"].get("risks") or {}).get("data") or {}).get("top") or []:
+        """Raw strings a variant must never show: agent ids and people's names (read again from
+        the sources, not from the masked report, so a masking gap cannot hide a leak)."""
+        f = self.facts
+        row = f.agent_row(agent_id) or {}
+        team = {str(row["owner_team"])} if row.get("owner_team") else set()
+        people = {str(row[k]) for k in ("owner_user", "business_owner") if row.get(k)}
+        s = f.settings
+        for name in ("mrm_model_owner", "mrm_model_developer", "mrm_validator", "mrm_approver"):
+            v = str(getattr(s, name, "") or "")
+            if v and not v.startswith("FILL-ME"):
+                people.add(v)
+        try:
+            summary = f.risk_summary(agent_id)
+        except Exception:  # noqa: BLE001 - the section already says it failed
+            summary = None
+        for r in (summary or {}).get("risks") or []:
             if r.get("owner"):
                 people.add(str(r["owner"]))
-        ids = {agent_id.lower(), *(a.lower() for a in self.facts.agent_ids())}
+        ids = {agent_id.lower(), *(a.lower() for a in f.agent_ids())}
         people = {p for p in people if len(p) >= 3}
         return {"ids": ids, "people": people | team, "team": team}
 
