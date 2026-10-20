@@ -46,7 +46,7 @@ Branch `wp31-transparency`, built on `wp29-risk-register` (merged three times; f
 ```
 uv sync --extra pdf        (fpdf2 is in uv.lock; the PDF tests need it and a system font, else they skip)
 uv run python -m pytest -q
-  3933 passed, 28 skipped, 1 warning in 599.37s (0:09:59)
+  3935 passed, 28 skipped, 1 warning in 591.87s (0:09:51)
 uv run python -m ruff check          All checks passed!
 uv run python -m ruff format --check  710 files already formatted
 uv run python -m supervisor.transparency.harness
@@ -64,7 +64,7 @@ python -m supervisor.jobs.transparency
 |---|---|---|
 | Before: WP29 first head 316a039 (its handoff) | 3,829 | 29 |
 | Before: WP29 final head 5c0d887 | not measured by me; the last full run on my branch before WP31 tests were counted shows the difference below | |
-| After (this branch, final run) | **3,933** | 28 |
+| After (this branch, final run, with the WP30 adapter) | **3,935** | 28 |
 
 New tests: `tests/transparency/` (service 12, CLI and job 6, Delta 2, harness 9) and `tests/console/test_transparency.py` (4), plus the parametrised RBAC cases the existing matrix adds for the 7 new routes. Run 1 of the full suite showed 3 failures from my own changes (audit coverage list, an i18n pair equal in both languages, an `__import__` in a test); fixed. In a partial run that combined several console modules, 4 `console` fixture errors appeared once and did not repeat alone or in the full runs (I did not find the cause; likely test ordering).
 
