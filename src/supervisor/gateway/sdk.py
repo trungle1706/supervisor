@@ -148,6 +148,10 @@ class HttpGate:
         self.base_url = base_url.rstrip("/")
         self.timeout_s = timeout_s
         self.transport: Transport = transport or _default_transport
+        # WP38 review: a caller's own ``transport`` (proxy, TLS settings, a test double) must not
+        # be bypassed because an adapter adds the correlation header. Without a credential and
+        # without a matching ``signed_transport`` the header is then not sent.
+        self._own_transport_only = transport is not None and signed_transport is None
         self.fail_modes: dict[str, str] = dict(fail_modes or {})
         # A base URL that already ends in /v1 (a common setting) keeps working: /v1 + /gate/check.
         self.versioned = not self.base_url.endswith("/v1")
@@ -218,7 +222,7 @@ class HttpGate:
         self, path: str, payload: dict[str, Any], extra: Mapping[str, str] | None = None
     ) -> Mapping[str, Any]:
         url = f"{self.base_url}{path}"
-        if self.credential is None and not extra:
+        if self.credential is None and (not extra or self._own_transport_only):
             return self.transport(url, payload, self.timeout_s)
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode()
         headers = (

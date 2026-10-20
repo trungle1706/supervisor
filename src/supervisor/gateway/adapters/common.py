@@ -41,6 +41,11 @@ FAIL_MODES = ("closed", "open")
 CLOSED_RISK = frozenset({"money", "credit", "pii_export"})
 # Rule ids the SDK gives when the gate could not answer.
 UNAVAILABLE_RULES = frozenset({"GATE-UNREACHABLE", "GATE-ERROR", "GATE-MISSING"})
+# What an allowed answer may say (WP38 review). Anything else on an ``allow: true`` answer is a
+# contradiction or a value this client does not know: it fails closed, like
+# ``supervisor_agents.common.gate``.
+ALLOWED_ACTIONS = frozenset({"allow", "log", "alert"})
+KNOWN_STATUSES = frozenset({"allow", "report", "transform", "skip", "block", "pause"})
 
 __all__ = [
     "CORRELATION_HEADER",
@@ -117,6 +122,8 @@ class GateAnswer:
             return s
         if not self.allow:
             return "pause" if self.action == "pause" else "block"
+        if self.raw.get("transformed_payload") is not None or self.transformed_args is not None:
+            return "transform"  # an older gate (WP24b) masks without a v2 status
         return "report" if self.action in ("log", "alert") else "allow"
 
     @property
@@ -300,6 +307,17 @@ class GateClient:
     # -------------------------------------------------------------------- the verdict
 
     @staticmethod
+    def contradicts(answer: GateAnswer) -> bool:
+        """An ``allow: true`` answer that also says block or pause, or carries an action or a
+        status this client does not know (WP38 review). Such an answer fails closed."""
+        status = answer.status
+        return answer.allow and (
+            answer.action not in ALLOWED_ACTIONS
+            or status not in KNOWN_STATUSES
+            or status in ("block", "pause")
+        )
+
+    @staticmethod
     def refusal(answer: GateAnswer) -> GateAnswer | None:
         """None when the call may go on; else the answer that stops it.
 
@@ -308,12 +326,21 @@ class GateClient:
         becomes a block (``SDK-TRANSFORM-UNAPPLIED``)."""
         if not answer.allow:
             return answer
-        if answer.status == "transform":
-            have = (
-                answer.transformed_output
-                if answer.direction == "output"
-                else answer.transformed_args
+        status = answer.status
+        if GateClient.contradicts(answer):
+            # allow: true next to a block, a pause or a value we do not know: fail closed.
+            raw = _local(
+                "SDK-ANSWER-CONTRADICTS",
+                "the gate answer is not consistent (allow with a stop or an unknown value): "
+                "fail closed",
             )
+            return GateAnswer(raw, answer.correlation_id, answer.tool_name, answer.direction)
+        tp = answer.raw.get("transformed_payload")
+        if status == "transform" or tp is not None:
+            out = answer.direction == "output"
+            have = answer.transformed_output if out else answer.transformed_args
+            if out and not isinstance(have, str):
+                have = None
             if have is None:
                 raw = _local(
                     "SDK-TRANSFORM-UNAPPLIED",

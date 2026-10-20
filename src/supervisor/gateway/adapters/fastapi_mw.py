@@ -148,15 +148,16 @@ class SupervisorASGIMiddleware:
         return args
 
     @staticmethod
-    def _body_from(answer: GateAnswer, original: bytes) -> bytes:
+    def _body_from(answer: GateAnswer, original: bytes) -> bytes | None:
+        """The body to pass on; None when masked values exist but cannot be applied."""
         new = answer.transformed_args
-        if answer.status != "transform" or new is None:
+        if new is None:
             return original
         if "body" in new:
             return json.dumps(new["body"], ensure_ascii=False).encode("utf-8")
         if isinstance(new.get("text"), str):
             return new["text"].encode("utf-8")
-        return original
+        return None
 
     # ------------------------------------------------------------------ the middleware
 
@@ -184,7 +185,20 @@ class SupervisorASGIMiddleware:
                 await self._refuse(send, stop)
                 return
             cid = ans.correlation_id
-            body = self._body_from(ans, body)
+            new_body = self._body_from(ans, body)
+            if new_body is None:  # a transform without a body or text: fail closed
+                await self._reply(
+                    send,
+                    403,
+                    {
+                        "error": "blocked",
+                        "rule_id": "SDK-TRANSFORM-UNAPPLIED",
+                        "correlation_id": cid,
+                    },
+                    cid,
+                )
+                return
+            body = new_body
             scope = dict(scope)
             scope["headers"] = [
                 (k, str(len(body)).encode() if k.lower() == b"content-length" else v)
@@ -237,14 +251,15 @@ class SupervisorASGIMiddleware:
         ctype = next((v.decode("latin-1") for k, v in headers if k.lower() == b"content-type"), "")
         body = b"".join(chunks)
         if overflow:
-            if self.closed:
-                await self._reply(
-                    send,
-                    502,
-                    {"error": "response too large to inspect", "correlation_id": cid},
-                    cid,
-                )
-                return
+            # The part above the cap was not kept (memory stays bounded), so the response cannot
+            # be passed on whole in any fail mode (WP38 review: open mode sent a cut body).
+            await self._reply(
+                send,
+                502,
+                {"error": "response too large to inspect", "correlation_id": cid},
+                cid,
+            )
+            return
         elif ctype.lower().startswith(_TEXT_TYPES) and body:
             ans = await self.client.acheck(
                 self.tool_name,
@@ -259,7 +274,7 @@ class SupervisorASGIMiddleware:
                 await self._refuse(send, stop)
                 return
             new = ans.transformed_output
-            if ans.status == "transform" and isinstance(new, str):
+            if isinstance(new, str):
                 body = new.encode("utf-8")
         headers = [
             h for h in headers if h[0].lower() not in (b"content-length", b"transfer-encoding")

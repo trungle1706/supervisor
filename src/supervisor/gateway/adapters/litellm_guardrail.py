@@ -24,9 +24,27 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.core.ports import GateHook
-from supervisor.gateway.adapters.common import GateClient, clean_id, new_correlation_id, text_of
+from supervisor.gateway.adapters.common import (
+    GateAnswer,
+    GateClient,
+    clean_id,
+    new_correlation_id,
+    text_of,
+)
+from supervisor.gateway.sdk import SupervisorBlocked
 
 _CONSUMER_ATTRS = ("user_id", "end_user_id", "team_id")
+
+
+def _unapplied(ans: GateAnswer) -> dict[str, Any]:
+    out = ans.decision()
+    out.update(
+        allow=False,
+        action="block",
+        rule_id="SDK-TRANSFORM-UNAPPLIED",
+        reason="masked values without messages: fail closed",
+    )
+    return out
 
 
 def _get(obj: Any, name: str) -> Any:
@@ -94,7 +112,9 @@ class SupervisorGuardrail:
         )
         self.client.enforce(ans)
         new = ans.transformed_args
-        if ans.status == "transform" and new is not None and isinstance(new.get("messages"), list):
+        if new is not None:
+            if not isinstance(new.get("messages"), list):  # cannot apply it: fail closed
+                raise SupervisorBlocked(_unapplied(ans))
             data["messages"] = new["messages"]
         if isinstance(data.get("metadata"), dict):
             data["metadata"]["supervisor_correlation_id"] = ans.correlation_id
@@ -125,7 +145,7 @@ class SupervisorGuardrail:
         )
         self.client.enforce(ans)
         new = ans.transformed_output
-        if ans.status == "transform" and isinstance(new, str):
+        if isinstance(new, str):
             if isinstance(msg, dict):
                 msg["content"] = new
             else:

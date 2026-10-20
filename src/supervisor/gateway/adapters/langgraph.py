@@ -33,6 +33,7 @@ from typing import Any
 
 from supervisor.core.ports import GateHook
 from supervisor.gateway.adapters.common import (
+    CLOSED_RISK,
     GateAnswer,
     GateClient,
     clean_id,
@@ -154,12 +155,22 @@ class SupervisorToolMiddleware:
             session_id=_resolve(self.session_id, request),
         )
 
+    def _skip_transform(self, ans: GateAnswer) -> bool:
+        """The owner chose not to apply masked values (``apply_transform=False``). Never for a
+        money, credit or pii_export tool: there an unapplied transform is a block (review)."""
+        return (
+            ans.allow
+            and not self.apply_transform
+            and self.client.risk_class_of(ans.tool_name) not in CLOSED_RISK
+            and not GateClient.contradicts(ans)
+        )
+
     def _after_input(self, request: Any, args: dict[str, Any], ans: GateAnswer) -> Any:
-        if ans.allow and not self.apply_transform:
-            return request  # the owner chose not to apply masked values
+        if self._skip_transform(ans):
+            return request
         self.client.enforce(ans)
         new_args = ans.transformed_args
-        if self.apply_transform and ans.status == "transform" and new_args is not None:
+        if new_args is not None:  # the whole payload is replaced, never merged
             return _with_args(request, new_args)
         return request
 
@@ -172,11 +183,11 @@ class SupervisorToolMiddleware:
         return text_of(content)
 
     def _after_output(self, result: Any, ans: GateAnswer) -> Any:
-        if ans.allow and not self.apply_transform:
+        if self._skip_transform(ans):
             return result
         self.client.enforce(ans)
         new = ans.transformed_output
-        if self.apply_transform and ans.status == "transform" and isinstance(new, str):
+        if isinstance(new, str):
             return _with_content(result, new)
         return result
 

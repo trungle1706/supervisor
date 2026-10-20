@@ -59,6 +59,39 @@ def _consumer(env: Mapping[str, str]) -> str | None:
         return None
 
 
+class _HttpStatusError(Exception):
+    """A non-2xx answer; ``response.status_code`` is what ``HttpGate`` reads (401/403)."""
+
+    def __init__(self, status: int) -> None:
+        super().__init__(f"HTTP {status}")
+        self.response = type("R", (), {"status_code": status})()
+
+
+def _post_stdlib(url: str, body: bytes, headers: Mapping[str, str], timeout_s: float) -> dict:
+    """POST with ``urllib`` (WP38 review: the hook runs on a developer laptop and needs no
+    package outside the standard library besides Supervisor itself). Raises on non-2xx."""
+    import urllib.error
+    import urllib.request
+
+    if not url.startswith(("http://", "https://")):  # no file: or custom schemes
+        raise ValueError("SUPERVISOR_URL must start with http:// or https://")
+    request = urllib.request.Request(url, data=body, headers=dict(headers), method="POST")  # noqa: S310
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_s) as resp:  # noqa: S310
+            raw = resp.read(MAX_EVENT_BYTES + 1)
+    except urllib.error.HTTPError as exc:
+        raise _HttpStatusError(exc.code) from None
+    data = json.loads(raw) if raw else {}
+    if not isinstance(data, dict):
+        raise ValueError("gateway returned a non-object response")
+    return data
+
+
+def _post_json_stdlib(url: str, payload: dict, timeout_s: float) -> dict:
+    body = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode()
+    return _post_stdlib(url, body, {"Content-Type": "application/json"}, timeout_s)
+
+
 def build_gate(env: Mapping[str, str]) -> GateHook | None:
     """HttpGate from the environment, or None when SUPERVISOR_URL or the agent id is missing."""
     url, agent = env.get("SUPERVISOR_URL", ""), env.get("SUPERVISOR_AGENT_ID", "")
@@ -72,7 +105,11 @@ def build_gate(env: Mapping[str, str]) -> GateHook | None:
     except ValueError:
         timeout = 2.0
     return HttpGate(
-        url, timeout_s=max(0.1, min(timeout, 30.0)), credential=credential_from_env(agent)
+        url,
+        timeout_s=max(0.1, min(timeout, 30.0)),
+        credential=credential_from_env(agent),
+        transport=_post_json_stdlib,
+        signed_transport=_post_stdlib,
     )
 
 
@@ -141,7 +178,7 @@ def run(
             f"(reference {stop.correlation_id})"
         )
     new = ans.transformed_args
-    if ans.status == "transform" and new is not None:
+    if new is not None:
         out.write(
             json.dumps(
                 {
