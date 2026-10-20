@@ -444,6 +444,8 @@ class Settings(BaseSettings):
     policy_dir: Path | None = None  # absolute folder of policy *.yaml; default <repo>/policies
     fact_source: str = ""  # "" = none | sqlite:/abs/file.db | callable:pkg.mod:factory
     fact_query_map: Path | None = None  # YAML query map; required for FACT_SOURCE=sqlite:...
+    # CSV package prefixes a FACT_SOURCE=callable: module must sit under (import = code run).
+    fact_callable_allow_prefix: str = "supervisor."
 
     @field_validator(
         "data_dir",
@@ -557,9 +559,11 @@ class Settings(BaseSettings):
         if self.policy_dir is not None and not self.policy_dir.is_dir():
             raise ValueError(f"POLICY_DIR is not a folder: {self.policy_dir}")
         if self.fact_source.strip():
-            from supervisor.adapters.facts import split_fact_source
+            from supervisor.adapters.facts import callable_target, split_fact_source
 
             kind, target = split_fact_source(self.fact_source)  # raises ValueError
+            if kind == "callable":
+                callable_target(target, self.fact_callable_allow_prefix)  # raises ValueError
             if kind == "sqlite":
                 db = Path(target).expanduser()
                 db = db if db.is_absolute() else REPO_ROOT / db

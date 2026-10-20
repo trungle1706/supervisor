@@ -170,10 +170,13 @@ declaration; a qwen judge could be declared as another family and watch a qwen a
 is now derived from the model id and, with `JUDGE_FAMILY_PROBE=1`, the endpoint metadata; a
 disagreeing declaration stops startup unless `JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1`, which
 `databricks_app` mode refuses, and every verdict row, chain record, the model card and the
-validation report carry `family_source`. A model id that lies about its weights is caught only
+validation report carry `family_source`; `mrm validate` gives NO_GO for a declared source. The
+transition flag `JUDGE_FAMILY_STRICT=0` accepts a declaration only for an id with no family
+(custom endpoint names) and records `declared-unverified`. A model id that lies about its weights is caught only
 by the probe, and only on endpoints that report them. `POLICY_DIR` and `FACT_SOURCE` are operator
-settings: `callable:` imports a module named in the environment (same trust as the environment
-itself) and `sqlite:` opens the file read-only with queries from a map that must be one `SELECT`
+settings: `callable:` imports a module named in the environment, which runs its code, so the
+module must sit under a package prefix in `FACT_CALLABLE_ALLOW_PREFIX` (default `supervisor.`;
+the bank adds its own package); one changed variable cannot load `os` or a planted module. And `sqlite:` opens the file read-only with queries from a map that must be one `SELECT`
 with a bound key (no SQL built from agent input). A fact error returns no record, so the rule
 fails by its fail mode. They do not defend against an operator who can edit the settings.
 

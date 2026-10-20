@@ -6,6 +6,7 @@
                             closed, as before;
 * ``callable:pkg.mod:name`` an importable factory ``name(settings) -> FactSource`` (the
                             existing in-process ``MappingFactSource`` is built this way);
+                            the module must be under ``FACT_CALLABLE_ALLOW_PREFIX``;
 * ``sqlite:/abs/file.db``   a SQLite file opened READ-ONLY, looked up with the queries in the
                             query map ``FACT_QUERY_MAP`` (YAML, below).
 
@@ -55,6 +56,28 @@ def split_fact_source(value: str) -> tuple[str, str]:
             f"{value.split(':', 1)[0]!r}"
         )
     return kind, target.strip()
+
+
+_MODULE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
+_ATTR = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def callable_target(target: str, allow_prefixes: str) -> tuple[str, str]:
+    """``(module, factory)`` of a ``callable:`` target. Raises ValueError.
+
+    Importing a module named in settings runs its code, so the module must sit under one of
+    the CSV package prefixes in ``FACT_CALLABLE_ALLOW_PREFIX`` (default ``supervisor.``):
+    a single changed variable cannot load an arbitrary module (review of D13)."""
+    module, _, attr = target.partition(":")
+    if not _MODULE.match(module) or not _ATTR.match(attr):
+        raise ValueError("FACT_SOURCE=callable:<module>:<factory> needs a dotted module and a name")
+    prefixes = [p.strip().rstrip(".") for p in allow_prefixes.split(",") if p.strip().rstrip(".")]
+    if not any(module == p or module.startswith(p + ".") for p in prefixes):
+        raise ValueError(
+            f"FACT_SOURCE callable module {module!r} is not under FACT_CALLABLE_ALLOW_PREFIX "
+            f"({', '.join(prefixes) or 'empty'}); add the bank package prefix there"
+        )
+    return module, attr
 
 
 def load_query_map(path: Path) -> dict[str, dict[str, Any]]:
@@ -135,9 +158,10 @@ def make_fact_source(settings: Any) -> FactSource | None:
         return SqliteFactSource(Path(target), load_query_map(settings.fact_query_map))
     import importlib
 
-    module, _, attr = target.partition(":")
-    if not module or not attr:
-        raise ConfigError("FACT_SOURCE=callable:<module>:<factory> needs both parts")
+    try:
+        module, attr = callable_target(target, settings.fact_callable_allow_prefix)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
     try:
         factory = getattr(importlib.import_module(module), attr)
         source = factory(settings)

@@ -170,14 +170,48 @@ def test_sqlite_source_database_error_fails_closed(
         SqliteFactSource(tmp_path / "missing.db", {})
 
 
+HERE = "callable:tests.gateway.test_policy_dir_fact_source:factory"
+
+
 def test_callable_kind_builds_the_mapping_source() -> None:
     s = load_settings(
-        _env_file=None, fact_source="callable:tests.gateway.test_policy_dir_fact_source:factory"
+        _env_file=None, fact_source=HERE, fact_callable_allow_prefix="supervisor.,tests.gateway"
     )
     assert make_fact_source(s).get("application", "A") == {"documents_complete": True}  # type: ignore[union-attr]
-    bad = load_settings(_env_file=None, fact_source="callable:no.such.module:f")
+    bad = load_settings(
+        _env_file=None, fact_source="callable:no.such.module:f", fact_callable_allow_prefix="no"
+    )
     with pytest.raises(ConfigError, match="FACT_SOURCE callable"):
         make_fact_source(bad)
+
+
+@pytest.mark.parametrize(
+    ("target", "prefix"),
+    [
+        (HERE, "supervisor."),  # the default allow-list: only supervisor.*
+        ("callable:os:system", "supervisor."),
+        ("callable:supervisorx.evil:f", "supervisor."),  # a prefix is a package, not a string
+        ("callable:tests.gateway.x:f", ""),  # empty allow-list = no callable at all
+        ("callable:supervisor..x:f", "supervisor."),
+        ("callable:supervisor.x:f(1)", "supervisor."),
+    ],
+)
+def test_callable_module_must_be_under_the_allow_prefix(target: str, prefix: str) -> None:
+    """Review D13: importing a module from settings runs its code; restrict it to a package."""
+    with pytest.raises(ConfigError, match="FACT_SOURCE"):
+        load_settings(_env_file=None, fact_source=target, fact_callable_allow_prefix=prefix)
+
+
+def test_callable_allow_prefix_is_checked_again_at_build(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Defence in depth: make_fact_source re-checks a settings object built without validation."""
+    s = load_settings(_env_file=None)
+    fake = s.model_copy(update={"fact_source": "callable:os:getcwd"})
+    with pytest.raises(ConfigError, match="FACT_CALLABLE_ALLOW_PREFIX"):
+        make_fact_source(fake)
+
+
+def test_callable_default_allow_prefix() -> None:
+    assert load_settings(_env_file=None).fact_callable_allow_prefix == "supervisor."
 
 
 def factory(settings: Any) -> MappingFactSource:
