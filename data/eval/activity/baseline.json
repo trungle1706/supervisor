@@ -1,0 +1,32 @@
+{
+  "commit": "a863866",
+  "date": "2026-10-20",
+  "fingerprint": {
+    "export_columns_exact": true,
+    "leak_items": 0,
+    "pages_scanned": 21,
+    "triage_ci_bp": [
+      7961,
+      10000
+    ],
+    "triage_complete": 15,
+    "triage_complete_bp": 10000,
+    "triage_n": 15
+  },
+  "harness": "1",
+  "overall": "GO",
+  "pages": {
+    "bad": 0,
+    "checked": 360,
+    "ok_bp": 10000
+  },
+  "probes": {
+    "ci_bp": [
+      8513,
+      10000
+    ],
+    "n": 22,
+    "passed": 22,
+    "passed_bp": 10000
+  }
+}
