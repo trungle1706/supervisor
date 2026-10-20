@@ -2217,6 +2217,15 @@ _T.update(
         "tp_f_risks_n": ("Risks reaching this agent", "Số rủi ro liên quan"),
         "tp_f_by_band": ("By band", "Theo mức"),
         "tp_f_by_evidence": ("By evidence", "Theo bằng chứng"),
+        "tp_f_links": ("Links (evidence / reference)", "Liên kết (bằng chứng / tham chiếu)"),
+        "tp_links_val": ("{e} / {r}", "{e} / {r}"),
+        "tp_evidence_rule": (
+            "Only rule links, pack links and these monitors count as evidence: {m}. Other monitor "
+            "links, matrix links and case links are references and never lower a score.",
+            "Chỉ liên kết quy tắc, liên kết gói và các bộ giám sát sau được tính là bằng chứng: "
+            "{m}. Liên kết bộ giám sát khác, ma trận và vụ việc chỉ là tham chiếu và không bao "
+            "giờ làm giảm điểm.",
+        ),
         "tp_f_risk": ("Risk", "Rủi ro"),
         "tp_f_category": ("Category", "Nhóm"),
         "tp_f_evidence": ("Evidence", "Bằng chứng"),

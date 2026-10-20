@@ -157,6 +157,21 @@ class Facts:
         svc = RiskService(self.src.state, self.src.tables, self.src.clock, self.settings)
         return svc.agent_summary(agent_id)
 
+    def risk_link_counts(self, risk_id: str) -> dict[str, int]:
+        """How many active links of a risk are evidence and how many are references only (the
+        evidence rule of the register: rule and pack links, and the monitors it lists)."""
+        from supervisor.risk.evidence import EVIDENCE_MONITORS
+        from supervisor.risk.service import RiskService
+
+        svc = RiskService(self.src.state, self.src.tables, self.src.clock, self.settings)
+        ev = ref = 0
+        for x in svc.links(risk_id):
+            counts = x["kind"] in ("rule", "pack") or (
+                x["kind"] == "monitor" and x["target"] in EVIDENCE_MONITORS
+            )
+            ev, ref = (ev + 1, ref) if counts else (ev, ref + 1)
+        return {"evidence_links_n": ev, "reference_links_n": ref}
+
     def judge_card(self) -> dict[str, Any]:
         from supervisor.judge.mrm.card import build_card
 

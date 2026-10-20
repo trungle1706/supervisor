@@ -408,6 +408,8 @@ def _risks(w: Words, d: Mapping[str, Any]) -> list[Block]:
             ]
         )
     ]
+    if d.get("evidence_monitors"):
+        out.append(para(t("tp_evidence_rule", m=", ".join(d["evidence_monitors"])), "note"))
     if d.get("top"):
         head = [
             t("tp_f_risk"),
@@ -415,6 +417,7 @@ def _risks(w: Words, d: Mapping[str, Any]) -> list[Block]:
             t("tp_f_inherent"),
             t("tp_f_residual"),
             t("tp_f_evidence"),
+            t("tp_f_links"),
             t("tp_f_via"),
         ]
         has_owner = any("owner" in x for x in d["top"])
@@ -427,7 +430,11 @@ def _risks(w: Words, d: Mapping[str, Any]) -> list[Block]:
                 w.t("rk_cat_" + str(x.get("category"))),
                 x.get("inherent_score"),
                 f"{x.get('residual_score')} {w.word('lvl', x.get('residual_band'))}",
-                w.word("rev", x.get("evidence_state") or "none"),
+                w.word("rev", x.get("evidence_state") or "none")
+                + " ("
+                + t("rk_reason_" + str(x.get("evidence_reason")))
+                + ")",
+                t("tp_links_val", e=x.get("evidence_links_n"), r=x.get("reference_links_n")),
                 x.get("via"),
             ]
             if has_owner:

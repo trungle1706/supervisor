@@ -184,6 +184,10 @@ description. Not covered: a reviewer, owner or admin who creates a false `accept
 justification note (there is no four-eyes step yet, see BACKLOG) and who is the only check on their own
 scoring.
 
+### 3.11 Transparency report (WP31)
+
+The report crosses the trust boundary on purpose: its customer and regulator versions leave the bank. Controls: explicit allow-lists per variant (a field not listed is not copied); a second check that refuses a customer or regulator report holding an agent id, rule or obligation id, hash, owner field or a person name read from the raw sources, applied to the data and to the rendered text of both languages; free text masked or dropped (never raw); no personal data and no text in the chain (hashes, counts and fixed codes only); files never overwritten and checked against the hash on every read; HTML autoescaped with no script and no external asset; routes behind the sign-in with `transparency.generate` limited to reviewer and admin and audited. Residual risk: names the masker misses can appear in the internal version (BACKLOG).
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

@@ -18,6 +18,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from supervisor.core.canonical import canonical_json, format_ts, sha256_hex
+from supervisor.risk.evidence import EVIDENCE_MONITORS  # noqa: E402
 from supervisor.transparency import allowlist
 from supervisor.transparency.facts import Facts, fmt_day
 from supervisor.transparency.model import (
@@ -429,6 +430,8 @@ def c_risks(c: Ctx) -> dict[str, Any]:
             "residual_score": int(r["residual_score"]),
             "residual_band": r.get("residual_band"),
             "evidence_state": r.get("evidence_state"),
+            "evidence_reason": r.get("evidence_reason"),
+            **c.facts.risk_link_counts(r["risk_id"]),
             "treatment": r.get("treatment"),
             "owner": c.facts.mask(r.get("owner"), 60),
             "via": r.get("via"),
@@ -447,6 +450,7 @@ def c_risks(c: Ctx) -> dict[str, Any]:
             "by_band": {b: by_band.get(b, 0) for b in BANDS},
             "by_category": dict(sorted(by_cat.items())),
             "by_evidence": dict(sorted(ev.items())),
+            "evidence_monitors": list(EVIDENCE_MONITORS),
             "top": top,
             "more": max(0, len(risks) - len(top)),
         },

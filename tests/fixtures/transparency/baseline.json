@@ -1,0 +1,70 @@
+{
+  "base_commit": "316a039",
+  "branch": "wp31-transparency",
+  "date": "2026-10-20",
+  "note": "Recorded by `python -m supervisor.transparency.harness --write-baseline`. tests/transparency/test_harness.py fails if a metric drops below this.",
+  "results": {
+    "adversarial": {
+      "bp": 10000,
+      "n": 24,
+      "passed": 24
+    },
+    "determinism_bp": 10000,
+    "golden": {
+      "dev": {
+        "accuracy_bp": 10000,
+        "accuracy_ci_bp": [
+          9035,
+          10000
+        ],
+        "by_variant": {
+          "customer": {
+            "bp": 10000,
+            "correct": 12,
+            "n": 12
+          },
+          "internal": {
+            "bp": 10000,
+            "correct": 12,
+            "n": 12
+          },
+          "regulator": {
+            "bp": 10000,
+            "correct": 12,
+            "n": 12
+          }
+        },
+        "correct": 36,
+        "n": 36,
+        "result_hash": "e8aaa13f3b0ecb0ca7a17a560d915f5e9a50956f7f5448f1ccf8cbaef1980622"
+      },
+      "held_out": {
+        "accuracy_bp": 10000,
+        "accuracy_ci_bp": [
+          8241,
+          10000
+        ],
+        "by_variant": {
+          "customer": {
+            "bp": 10000,
+            "correct": 6,
+            "n": 6
+          },
+          "internal": {
+            "bp": 10000,
+            "correct": 6,
+            "n": 6
+          },
+          "regulator": {
+            "bp": 10000,
+            "correct": 6,
+            "n": 6
+          }
+        },
+        "correct": 18,
+        "n": 18,
+        "result_hash": "64184177844c17442e0cc2f7ac1ea010a529966c68e2aa3f9b683877f75c9bfb"
+      }
+    }
+  }
+}

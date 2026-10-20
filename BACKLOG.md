@@ -123,3 +123,10 @@
 | WP29 -> WP30 (control catalogue): controls are still the three link kinds (rule, pack, monitor). A catalogue control that covers many risks and obligations should add links through `RiskService.add_link`; `control_links()` is the one read point | WP30 |
 | WP29 -> WP31 (transparency report): the report should read `RiskService.agent_summary()` and `export_json()` (plain data, bands marked illustrative) and not the tables | WP31 |
 | WP29: risk evidence rows have no retention beyond the evidence setting (`EVIDENCE_RETENTION_DAYS`), and `risk` rows are never deleted (retire only) | Retention rule agreed with the bank (records management) |
+| WP31: the customer version uses generic wording per agent class and never names the product; the regulator version shows the owner team | Owner decision on naming the product and on what a regulator may see of ownership |
+| WP31: the `controls` section is a hook ("not built"); WP30 must register a collector and add allow-list entries with `allowlist.set_spec` | WP30 merge |
+| WP31: the report has no electronic signature of the file itself, only its hash in the signed chain; no PDF/A or accessibility tags; PDF needs the optional `fpdf2` extra and a local Unicode font | Bank decision on signature and archive format |
+| WP31: Vietnamese regulator wording in the report labels is not legally reviewed; names are kept out of the regulator and customer versions by omission because the masker misses names | Legal review; masker NER extra (see the masker item above) |
+| WP31: files are kept in `TRANSPARENCY_DIR` (ephemeral on the Databricks App); no store in a Volume or Delta; no web publishing of the customer version; no delivery to partners | Volume path and publishing decision |
+| WP31: the Transparency page has no filter, sort or diff view between versions; the diff is only in the chain record and the table | Console follow-up |
+| WP31: open BACKLOG items are matched to an agent by its id or model family word only | A tag column in BACKLOG.md |
