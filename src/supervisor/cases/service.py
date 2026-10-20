@@ -863,6 +863,27 @@ class CaseService:
                 out[s["reviewer_id"]] = role
         return out
 
+    def waiting_approvals(
+        self, cases: Iterable[Mapping[str, Any]] | None = None
+    ) -> list[dict[str, Any]]:
+        """Open high / critical cases that still need a sign-off (WP-UX2). Read only.
+
+        Each item: ``case`` (the row), ``approvals`` ({reviewer_id: role}) and ``missing``
+        (how many more people must sign, 1 or 2). Same rule as the sidebar badge: status
+        triaged or contained, severity in ``TWO_PERSON_SEVERITIES``, fewer than two approvals.
+        Pass ``cases`` to reuse rows already loaded."""
+        rows = cases if cases is not None else self.list_cases(statuses=("triaged", "contained"))
+        out: list[dict[str, Any]] = []
+        for c in rows:
+            if c["severity"] not in TWO_PERSON_SEVERITIES:
+                continue
+            if c["status"] not in ("triaged", "contained"):
+                continue
+            approvals = self._approvals(c["case_id"])
+            if len(approvals) < 2:
+                out.append({"case": dict(c), "approvals": approvals, "missing": 2 - len(approvals)})
+        return out
+
     def _signoff_row(
         self, case: Mapping[str, Any], actor: Actor, decision: str, reason: str, *, role: str
     ) -> dict[str, Any]:

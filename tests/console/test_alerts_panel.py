@@ -1,4 +1,5 @@
-"""WP21: Alerts section on the Metrics page and the audited, operator-only acknowledge action."""
+"""WP21: Alerts list (WP-UX2: its own page, moved out of Metrics) and the audited,
+operator-only acknowledge action."""
 
 from __future__ import annotations
 
@@ -29,12 +30,12 @@ def _actions(console: Console) -> list[dict[str, Any]]:
     return [r for r in rows if r["permission"] == "alert.ack"]
 
 
-def test_metrics_page_shows_alert_counts_and_rows(console: Console) -> None:
-    r = console.get("/console/metrics")
+def test_alerts_page_shows_alert_counts_and_rows(console: Console) -> None:
+    r = console.get("/console/alerts")  # WP-UX2: moved from /console/metrics
     assert r.status_code == 200 and 'id="alerts"' in r.text and "No alerts." in r.text
     _row(console)
     _row(console, "d" * 32, status="acknowledged", acknowledged_by="operator.khanh")
-    r = console.get("/console/metrics")
+    r = console.get("/console/alerts")
     assert r.status_code == 200
     assert "1 open" in r.text and "1 acknowledged" in r.text
     # what the analyst needs on one row: rule, severity, agent, window counts, repeats, chain
@@ -48,7 +49,7 @@ def test_metrics_page_shows_alert_counts_and_rows(console: Console) -> None:
         assert needle in r.text, needle
     assert f"/console/alerts/{ALERT_ID}/ack" in r.text
     assert f"/console/alerts/{'d' * 32}/ack" not in r.text  # no button once acknowledged
-    assert console.get("/console/metrics?lang=vi").status_code == 200
+    assert console.get("/console/alerts?lang=vi").status_code == 200
 
 
 def test_operator_acknowledges_and_it_is_audited(console: Console) -> None:

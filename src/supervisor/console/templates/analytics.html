@@ -1,0 +1,35 @@
+{# Analytics page (WP-UX2): Gate, Tools, Oversight metrics and Latency under one toolbar
+   (range, agent). Tabs load by htmx from /console/analytics/tab/<tab>; ?tab= is the no-JS
+   full page. Variables: tab, tabs, toolbar {days, agent}, range_opts, agent_opts + the tab data. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_analytics') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_analytics'), None), (t('nav_analytics'), None)]) }}
+{% call ui.pagehead(t('nav_analytics')) %}
+  <a class="btn" href="/console/alerts?lang={{ lang }}">{{ t('alerts') }}</a>
+{% endcall %}
+{{ ui.purpose(t('an_purpose'), t('an_why')) }}
+{% set tab_labels = {'gate': t('an_tab_gate'), 'tools': t('an_tab_tools'), 'metrics': t('an_tab_metrics'), 'latency': t('an_tab_latency')} %}
+{% set tb_qs = ('&days=' ~ toolbar.days if toolbar.days else '') ~ ('&agent=' ~ toolbar.agent if toolbar.agent else '') %}
+{{ ui.tabs(tabs, tab, tab_labels, '/console/analytics?tab={tab}' ~ tb_qs ~ '&lang=' ~ lang, '/console/analytics/tab/{tab}?lang=' ~ lang ~ tb_qs, target='#tab-body') }}
+<form class="filters fbar" role="search" action="/console/analytics" method="get" hx-get="/console/analytics" hx-target="#main" hx-select="#main" hx-swap="outerHTML" hx-trigger="change, submit" hx-push-url="true">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <input type="hidden" name="tab" value="{{ tab }}">
+  <label class="sr" for="f-days">{{ t('an_range') }}</label>
+  <select id="f-days" name="days">
+    <option value="">{{ t('an_range') }}: {{ t('an_range_default') }}</option>
+    {% for d in range_opts %}<option value="{{ d }}" {{ 'selected' if toolbar.days == d else '' }}>{{ t('an_range') }}: {{ t('an_days', n=d) }}</option>{% endfor %}
+  </select>
+  <label class="sr" for="f-agent">{{ t('agent') }}</label>
+  <select id="f-agent" name="agent">
+    <option value="">{{ t('agent') }}: {{ t('all') }}</option>
+    {% for a in agent_opts %}<option value="{{ a }}" {{ 'selected' if toolbar.agent == a else '' }}>{{ a }}</option>{% endfor %}
+  </select>
+  <noscript><button class="btn" type="submit">{{ t('apply') }}</button></noscript>
+  <a class="chipbtn" href="/console/analytics?tab={{ tab }}&amp;lang={{ lang }}">{{ t('reset') }}</a>
+</form>
+<div id="tab-body" class="tabpanel" role="tabpanel">
+{% include "_analytics_tab_" ~ tab ~ ".html" %}
+</div>
+{% endblock %}

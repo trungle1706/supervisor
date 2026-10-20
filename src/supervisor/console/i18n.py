@@ -1293,8 +1293,8 @@ _T: dict[str, tuple[str, str]] = {
     "state_QUARANTINED": ("Quarantined", "Cách ly"),
     "agent_controls": ("Lifecycle and controls", "Vòng đời và điều khiển"),
     "agent_controls_hint": (
-        "Pause, resume and quarantine stay here until the agent page replaces them.",
-        "Tạm dừng, tiếp tục và cách ly vẫn ở đây cho đến khi có trang riêng cho từng tác tử.",
+        "Pause, resume and quarantine are on the agent page: open a row, then the agent page.",
+        "Tạm dừng, tiếp tục và cách ly nằm ở trang tác tử: mở một dòng, rồi mở trang tác tử.",
     ),
     "no_agents_filtered": (
         "No agent matches these filters.",
@@ -1330,6 +1330,151 @@ _T: dict[str, tuple[str, str]] = {
         "Quyết định sẽ hiện ở đây khi tác tử gọi cổng.",
     ),
 }
+
+
+# --- WP-UX2: agent page, Alerts, Sign-off list, Analytics, Cases list ---
+_T.update(
+    {
+        "atab_overview": ("Overview", "Tổng quan"),
+        "atab_policy": ("Policy", "Chính sách"),
+        "atab_tools": ("Tools", "Công cụ"),
+        "atab_inventory": ("Inventory", "Kiểm kê"),
+        "atab_traces": ("Traces", "Dấu vết"),
+        "atab_cases": ("Cases", "Vụ việc"),
+        "atab_assurance": ("Assurance", "Đảm bảo chất lượng"),
+        "atab_compliance": ("Compliance", "Tuân thủ"),
+        "agent_purpose": (
+            "One agent: its state, the one action that fits, its rules, tools, traces and cases.",
+            "Một tác tử: trạng thái, một hành động phù hợp, quy tắc, công cụ, dấu vết và vụ việc.",
+        ),
+        "agent_why": (
+            "Pause is one click for any reviewer. Resume needs two different people.",
+            "Tạm dừng chỉ cần một cú nhấp của người rà soát. Tiếp tục cần hai người khác nhau.",
+        ),
+        "open_agent_page": ("Open the agent page", "Mở trang tác tử"),
+        "gate_24h": ("Gate, last 24 hours", "Cổng, 24 giờ qua"),
+        "gate_checked": ("Calls checked", "Lệnh gọi đã kiểm tra"),
+        "gate_blocked": ("Blocked", "Bị chặn"),
+        "gate_paused": ("Paused", "Bị tạm dừng"),
+        "gate_median": ("Median latency", "Độ trễ trung vị"),
+        "policy_rules": ("Rules in scope", "Quy tắc áp dụng"),
+        "policy_shadow_note": (
+            "Shadow: rules are checked and recorded, but nothing is stopped.",
+            "Chế độ bóng: quy tắc được kiểm tra và ghi lại, nhưng không chặn gì.",
+        ),
+        "policy_hash": ("policy hash", "mã băm chính sách"),
+        "policy_version": ("policy version", "phiên bản chính sách"),
+        "policy_all_agents": ("all agents", "mọi tác tử"),
+        "policy_approvers": ("Approvers", "Người phê duyệt"),
+        "policy_allow": ("Approved tools (allow-list)", "Công cụ được duyệt (danh sách cho phép)"),
+        "policy_no_allow": (
+            "No approved-tools rule names this agent.",
+            "Chưa có quy tắc công cụ được duyệt cho tác tử này.",
+        ),
+        "policy_readonly": (
+            "Read only. Rules change in the policy files, by pull request.",
+            "Chỉ đọc. Quy tắc được đổi trong tệp chính sách, qua pull request.",
+        ),
+        "tl_in_analytics": (
+            "Open this agent in Analytics",
+            "Mở tác tử này trong trang Phân tích",
+        ),
+        "inv_not_listed": (
+            "This agent is not in the inventory",
+            "Tác tử này chưa có trong kiểm kê",
+        ),
+        "inv_not_listed_line": (
+            "The inventory job has not seen it yet.",
+            "Tác vụ kiểm kê chưa thấy tác tử này.",
+        ),
+        "inv_all_link": ("Open the Inventory page", "Mở trang Kiểm kê"),
+        "trace": ("Trace", "Dấu vết"),
+        "trace_events": ("Events", "Sự kiện"),
+        "outcome": ("Outcome", "Kết quả"),
+        "traces_last_n": ("Last {n} traces of this agent.", "{n} dấu vết gần nhất của tác tử này."),
+        "no_traces": ("No trace yet", "Chưa có dấu vết"),
+        "no_traces_line": (
+            "Traces appear here when this agent sends events.",
+            "Dấu vết hiện ở đây khi tác tử này gửi sự kiện.",
+        ),
+        "as_no_agent_results": ("No assurance result", "Chưa có kết quả đảm bảo"),
+        "as_no_agent_results_line": (
+            "No run has this agent as its target.",
+            "Chưa có lần chạy nào nhắm vào tác tử này.",
+        ),
+        "alerts_why": (
+            "An alert is a rule over the evidence. Acknowledging it is a decision of one person, "
+            "and it is recorded.",
+            "Cảnh báo là một quy tắc chạy trên bằng chứng. Xác nhận là quyết định của một người "
+            "và được ghi lại.",
+        ),
+        "alerts_active": ("Active", "Đang hoạt động"),
+        "alerts_st_open": ("Open", "Đang mở"),
+        "alerts_st_acknowledged": ("Acknowledged", "Đã xác nhận"),
+        "alerts_st_closed": ("Closed", "Đã đóng"),
+        "no_alerts_line": (
+            "No alert matches these filters.",
+            "Không có cảnh báo nào khớp bộ lọc này.",
+        ),
+        "alert_first": ("First seen", "Lần đầu"),
+        "alert_last": ("Last seen", "Lần cuối"),
+        "alert_entry_hash": ("Chain entry hash", "Mã băm mục chuỗi"),
+        "alert_rule_hash": ("Rule hash", "Mã băm quy tắc"),
+        "alert_routes": ("Delivery", "Kênh gửi"),
+        "alert_acked_by": ("Acknowledged by", "Người xác nhận"),
+        "so_purpose": (
+            "High and critical cases that wait for a signature.",
+            "Vụ việc mức cao và nghiêm trọng đang chờ chữ ký.",
+        ),
+        "so_signatures": ("Signatures", "Chữ ký"),
+        "so_none": ("Nothing waits for a signature", "Không có gì chờ chữ ký"),
+        "so_none_line": (
+            "Cases that need two people appear here once they are triaged.",
+            "Vụ việc cần hai người sẽ hiện ở đây sau khi được phân loại.",
+        ),
+        "nav_analytics": ("Analytics", "Phân tích"),
+        "an_purpose": (
+            "How agents use their tools, how the gate performs and how oversight is doing.",
+            "Cách tác tử dùng công cụ, cổng hoạt động ra sao và giám sát đang thế nào.",
+        ),
+        "an_why": (
+            "One range and one agent apply to every tab. Numbers are counts, not scores.",
+            "Một khoảng thời gian và một tác tử áp dụng cho mọi tab. Số liệu là số đếm, "
+            "không phải điểm.",
+        ),
+        "an_tab_gate": ("Gate", "Cổng"),
+        "an_tab_tools": ("Tools", "Công cụ"),
+        "an_tab_metrics": ("Oversight metrics", "Chỉ số giám sát"),
+        "an_tab_latency": ("Latency", "Độ trễ"),
+        "an_range": ("Range", "Khoảng thời gian"),
+        "an_range_default": ("default", "mặc định"),
+        "an_days": ("{n} days", "{n} ngày"),
+        "an_capped": (
+            "scan limit reached: older events are not counted",
+            "đã chạm giới hạn quét: sự kiện cũ hơn không được tính",
+        ),
+        "an_p95": ("p95 latency (ms)", "Độ trễ p95 (ms)"),
+        "an_gate_none": (
+            "No gate decision in this range",
+            "Không có quyết định của cổng trong khoảng này",
+        ),
+        "an_gate_none_line": (
+            "Decisions appear when an agent calls the gate.",
+            "Quyết định hiện ở đây khi tác tử gọi cổng.",
+        ),
+        "an_see_alerts": ("see all", "xem tất cả"),
+        "an_latency_note": (
+            "Live counters of this process since it started.",
+            "Bộ đếm trực tiếp của tiến trình này từ lúc khởi động.",
+        ),
+        "open_case": ("Open the case", "Mở vụ việc"),
+        "cp_no_matrix": ("No compliance matrix", "Chưa có ma trận tuân thủ"),
+        "cp_no_matrix_line": (
+            "This agent has no matrix yet. Build one with the advisor command.",
+            "Tác tử này chưa có ma trận. Hãy tạo bằng lệnh của cố vấn.",
+        ),
+    }
+)
 
 
 def translator(lang: str) -> Callable[..., str]:

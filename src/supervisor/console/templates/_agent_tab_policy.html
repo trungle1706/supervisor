@@ -1,0 +1,49 @@
+{# Policy tab: rules in scope, versions, approvers, the tool allow-list with tool classes.
+   Variables: a, rules, policy, allow, shadow. Read only. #}
+{% import "_ui.html" as ui with context %}
+<section class="card" data-section="rules">
+  <h3>{{ t('policy_rules') }} <span class="k">{{ rules|length }}</span></h3>
+  <p class="muted" style="margin:0 0 8px">
+    {% if shadow %}{{ ui.pill(t('shadow_word'), 'teal') }} {{ t('policy_shadow_note') }}{% else %}{{ ui.pill(t('enforced_word'), 'ok') }}{% endif %}
+    {% if policy.hash %} · {{ t('policy_hash') }} <span class="mono" title="{{ policy.hash }}">{{ policy.hash[:12] }}…</span>{% endif %}
+    {% if policy.version %} · {{ t('policy_version') }} {{ policy.version }}{% endif %}
+  </p>
+  {% if rules %}
+  <div class="tablewrap flat"><table class="rules-tbl">
+    <thead><tr>
+      <th scope="col">{{ t('rule_word') }}</th><th scope="col">{{ t('action') }}</th><th scope="col">{{ t('severity') }}</th>
+      <th scope="col">{{ t('fail_mode') }}</th><th scope="col">{{ t('regulation') }}</th><th scope="col">{{ t('policy_approvers') }}</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rules %}
+      <tr data-rule="{{ r.rule_id }}">
+        <td><span class="mono">{{ r.rule_id }}</span> <span class="muted mono">v{{ r.version }}</span>{% if r.scope_all %} {{ ui.pill(t('policy_all_agents'), 'neutral') }}{% endif %}<div class="idline">{{ r.description }}</div></td>
+        <td>{{ ui.action_pill(r.action) }}</td>
+        <td>{{ ui.sev(r.severity) if r.severity else '-' }}</td>
+        <td>{{ r.fail_mode or '-' }}</td>
+        <td>{{ r.regulation_ref or '-' }}</td>
+        <td>{{ r.approvals|join(', ') if r.approvals else (r.owner or '-') }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  {{ ui.empty(t('no_rules'), t('no_rules_line')) }}
+  {% endif %}
+</section>
+<section class="card" data-section="allow-list">
+  <h3>{{ t('policy_allow') }} <span class="k">{{ allow|length }}</span></h3>
+  {% if allow %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th scope="col">{{ t('tl_tool') }}</th><th scope="col">{{ t('tl_risk') }}</th></tr></thead>
+    <tbody>
+    {% for x in allow %}
+      <tr data-tool="{{ x.tool }}"><td class="mono">{{ x.tool }}</td><td>{{ t('risk_' ~ x.cls) if x.cls in ('read_only', 'money', 'credit', 'pii_export') else (x.cls or '-') }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="muted">{{ t('policy_no_allow') }}</p>
+  {% endif %}
+</section>
+<p class="hint">{{ t('policy_readonly') }}</p>

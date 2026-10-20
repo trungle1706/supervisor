@@ -1,0 +1,14 @@
+{# Row drawer of the Sign-off list: the existing sign-off panel (statement, two-person rule,
+   audited POST) for one case. Variables: the _case_data dict of that case. Without JS the row
+   button is a plain link to the full sign-off page. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set pills %}{{ ui.sev(case.severity) }} <span class="pill neutral">{{ t(case.status) }}</span>{% endset %}
+{% call dr.drawer(case.case_id, pills, '', json_text) %}
+  <p style="margin:0 0 6px"><strong>{% if head.key %}{{ t(head.key, agent=head.params.agent, what=t(head.params.what, tool=head.params.tool)) }}{% else %}{{ case.summary }}{% endif %}</strong></p>
+  <p class="muted" style="margin:0 0 12px">{{ t('signoff_rule') }}</p>
+  <div id="signoff-panel">
+  {% include "_signoff_panel.html" %}
+  </div>
+  <p class="btnrow"><a class="btn" href="/console/cases/{{ case.case_id }}?lang={{ lang }}">{{ t('case') }} {{ case.case_id }}</a></p>
+{% endcall %}

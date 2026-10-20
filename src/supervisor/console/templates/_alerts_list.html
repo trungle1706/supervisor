@@ -1,0 +1,50 @@
+{# Alerts table and pager: the swap target #list of the Alerts page, and the answer of the
+   acknowledge action (WP-UX2). Variables: alert_counts, page, sort_col, sort_dir, base_qs,
+   list_qs. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+<p style="margin:0 0 8px" id="alert-counts">
+  {{ ui.pill(alert_counts.open ~ ' ' ~ t('alerts_open'), 'warn' if alert_counts.open else 'ok') }}
+  {{ ui.pill(alert_counts.acknowledged ~ ' ' ~ t('alerts_ack'), 'neutral') }}
+</p>
+{% if page.items %}
+<div class="tablewrap"><table class="alerts">
+  <caption class="sr">{{ t('alerts') }}</caption>
+  <thead><tr>
+    {{ tb.th('ts', t('time'), sort_col, sort_dir, '/console/alerts', '/console/alerts/rows', base_qs) }}
+    {{ tb.th('rule_id', t('alert_rule'), sort_col, sort_dir, '/console/alerts', '/console/alerts/rows', base_qs) }}
+    {{ tb.th('severity', t('severity'), sort_col, sort_dir, '/console/alerts', '/console/alerts/rows', base_qs) }}
+    {{ tb.th('agent', t('agent'), sort_col, sort_dir, '/console/alerts', '/console/alerts/rows', base_qs) }}
+    <th scope="col">{{ t('alert_window') }}</th><th scope="col" class="n">{{ t('alert_repeats') }}</th><th scope="col">{{ t('case') }}</th><th scope="col">{{ t('alert_chain') }}</th>
+    {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/alerts', '/console/alerts/rows', base_qs) }}
+    <th scope="col"><span class="sr">{{ t('details') }}</span></th>
+  </tr></thead>
+  <tbody>
+  {% for a in page.items %}
+  <tr class="row" data-alert="{{ a.alert_id }}" data-status="{{ a.status }}">
+    <td class="mono">{{ a.ts|day }}</td>
+    <td><strong>{{ a.rule_id }}</strong><div class="idline">{{ a.title }}</div></td>
+    <td>{{ ui.sev(a.severity) }}</td>
+    <td>{{ a.agent_id or a.group_value or '-' }}</td>
+    <td class="mono">{{ a.window_count }}/{{ a.threshold }} in {{ a.window_s }} s</td>
+    <td class="n">{{ a.suppressed_count }}</td>
+    <td>{% if a.case_id %}<a href="/console/cases/{{ a.case_id }}?lang={{ lang }}">{{ a.case_id }}</a>{% else %}-{% endif %}</td>
+    <td class="mono" style="font-size:12px">{% if a.chain_lane %}{{ a.chain_lane }}:{{ a.chain_seq }}<div class="idline">{{ (a.entry_hash or '')[:12] }}</div>{% else %}-{% endif %}</td>
+    <td>{{ ui.pill(a.status, 'warn' if a.status == 'open' else 'ok') }}{% if a.acknowledged_by %}<div class="idline">{{ a.acknowledged_by }}</div>{% endif %}</td>
+    <td>
+      {% if a.status == 'open' %}
+      <form hx-post="/console/alerts/{{ a.alert_id }}/ack?{{ list_qs }}&amp;page={{ page.page }}&amp;lang={{ lang }}" hx-target="#list" style="display:inline">
+        <input type="hidden" name="row_version" value="{{ a.row_version }}">
+        <button class="btn sm">{{ t('alert_ack_btn') }}</button>
+      </form>
+      {% endif %}
+      <a class="chipbtn" href="/console/alerts?{{ list_qs }}&amp;drawer={{ a.alert_id }}&amp;lang={{ lang }}" hx-get="/console/alerts/{{ a.alert_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('details') }} {{ a.rule_id }}">{{ t('details') }}</a>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{{ tb.pager(page, '/console/alerts', '/console/alerts/rows', list_qs) }}
+{% else %}
+{{ ui.empty(t('no_alerts'), t('no_alerts_line')) }}
+{% endif %}

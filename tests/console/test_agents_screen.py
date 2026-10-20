@@ -38,7 +38,8 @@ def test_lifecycle_from_onboard_artefacts_only() -> None:
 def test_agents_cards_show_state_rule_action(console: Console) -> None:
     # a rule pause (what the gateway does on PAY-07): principal "rule:<id>"
     console.runtime.gateway.states.pause("payments", "rule:PAY-07", "PAY-07 matched")
-    r = console.get("/console/agents")
+    # WP-UX2: the card (and its action) moved from the Agents list to the agent page
+    r = console.get("/console/agents/payments")
     assert r.status_code == 200, r.text
     # the card says which rule paused it and offers resume, not pause
     card = r.text.split('data-agent="payments"', 1)[1].split("</article>", 1)[0]
@@ -51,13 +52,16 @@ def test_agents_cards_show_state_rule_action(console: Console) -> None:
     assert re.search(r'data-coverage="\d+"', card)
     assert "money-moving" in card and "fail mode closed" in card
     # a running agent offers pause (one click) with the rule under the button
-    other = r.text.split('data-agent="credit_prequal"', 1)[1].split("</article>", 1)[0]
+    o = console.get("/console/agents/credit_prequal")
+    other = o.text.split('data-agent="credit_prequal"', 1)[1].split("</article>", 1)[0]
     assert "/console/agents/credit_prequal/pause" in other and "Pause now" in other
     assert "One click by any reviewer." in other
     # admin-only quarantine is not offered to a reviewer
-    assert "/quarantine" not in r.text
-    admin = console.get("/console/agents", user="admin.chi")
+    assert "/quarantine" not in r.text and "/quarantine" not in o.text
+    admin = console.get("/console/agents/credit_prequal", user="admin.chi")
     assert "/console/agents/credit_prequal/quarantine" in admin.text
+    # and the list no longer carries the cards
+    assert 'data-agent="payments"' not in console.get("/console/agents").text
 
 
 def test_coverage_never_counts_planned_capabilities(console: Console) -> None:
@@ -71,7 +75,7 @@ def test_coverage_never_counts_planned_capabilities(console: Console) -> None:
         )
     cov = _coverage(console.ctx, "payments")
     assert cov["source"] != "cov_src_capabilities" and cov["planned"] == 2 and cov["caps"] == 3
-    r = console.get("/console/agents")
+    r = console.get("/console/agents/payments")
     card = r.text.split('data-agent="payments"', 1)[1].split("</article>", 1)[0]
     assert "2 of 3 monitoring capabilities planned by Onboard" in card
     state.update("coverage", {"agent_id": "payments", "capability_id": "cap0"}, {"status": "on"}, 1)
@@ -88,6 +92,6 @@ def test_resume_shows_pending_approval(console: Console) -> None:
     assert 'data-pending="1"' in card and "Waiting for the owner." in card
     assert "Approved by reviewer.an" in card
     assert "disabled" in card  # the same person cannot approve twice
-    owner = console.get("/console/agents", user="payops-lead@example.invalid")
+    owner = console.get("/console/agents/payments", user="payops-lead@example.invalid")
     card = owner.text.split('data-agent="payments"', 1)[1].split("</article>", 1)[0]
     assert "Give the second approval" in card and "You are the owner." in card

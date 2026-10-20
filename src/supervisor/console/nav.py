@@ -46,9 +46,7 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
             Item("agents", "agents", "/console/agents", count="agents_n"),
             _soon("decisions"),
             _soon("traces"),
-            Item(
-                "alerts", "nav_alerts", "/console/metrics#alerts", count="alerts_n", hot="alerts_n"
-            ),
+            Item("alerts", "nav_alerts", "/console/alerts", count="alerts_n", hot="alerts_n"),
         ),
     ),
     (
@@ -58,7 +56,7 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
             Item(
                 "signoff",
                 "signoff",
-                "/console/cases?status=open",
+                "/console/signoff",
                 count="signoff_n",
                 hot="signoff_n",
             ),
@@ -91,8 +89,8 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
     (
         "nav_g_analytics",
         (
-            Item("tools", "nav_tools", "/console/tools", flag="tools"),
-            Item("metrics", "metrics", "/console/metrics"),
+            # WP-UX2: Tools and Metrics are tabs of one Analytics page (old URLs redirect)
+            Item("analytics", "nav_analytics", "/console/analytics"),
         ),
     ),
     (

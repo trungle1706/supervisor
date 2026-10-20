@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
 {% block title %}{{ t('case') }} {{ case.case_id }}{% endblock %}
 {% block content %}
-<div class="pagehead">
-  <h1>{{ t('case') }} <span class="mono" style="font-size:26px">{{ case.case_id }}</span></h1>
-  <div class="actions"><a class="btn ghost sm" href="/console/cases?lang={{ lang }}">← {{ t('all_cases') }}</a></div>
-</div>
+{{ ui.crumbs([(t('nav_g_act'), None), (t('cases'), '/console/cases?lang=' ~ lang), (case.case_id, None)]) }}
+{% call ui.pagehead(t('case') ~ ' ' ~ case.case_id) %}
+  <a class="btn ghost sm" href="/console/cases?lang={{ lang }}">← {{ t('all_cases') }}</a>
+{% endcall %}
 <div id="case-body">
 {% include "_case_body.html" %}
 </div>

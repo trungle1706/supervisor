@@ -25,7 +25,7 @@
       (t('cases'), a.open_cases),
       (t('tools'), a.tools_n),
     ]) }}
-    <p class="btnrow"><a class="btn" href="/console/agents?lang={{ lang }}#controls">{{ t('agent_controls') }}</a></p>
+    <p class="btnrow"><a class="btn primary" href="/console/agents/{{ a.agent_id }}?lang={{ lang }}">{{ t('open_agent_page') }}</a></p>
   {% elif tab == 'policy' %}
     {% if drawer.rules %}
     <div class="tablewrap flat"><table>

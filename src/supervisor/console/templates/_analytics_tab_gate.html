@@ -1,0 +1,34 @@
+{# Gate tab: decisions per agent in the window. Variables: gate_rows, gate_days, gate_from,
+   gate_to, gate_total, gate_capped. #}
+{% import "_ui.html" as ui with context %}
+<div class="hint">{{ t('tl_window') }}: {{ gate_from }} .. {{ gate_to }} ({{ gate_days }} d, UTC){% if gate_capped %} · {{ t('an_capped') }}{% endif %}</div>
+<div class="grid g4" id="gate-totals" style="margin:10px 0">
+  {{ ui.stat(t('gate_checked'), gate_total.checked, '', 'checked') }}
+  {{ ui.stat(t('gate_blocked'), gate_total.blocked, '', 'blocked') }}
+  {{ ui.stat(t('gate_paused'), gate_total.paused, '', 'paused') }}
+  {{ ui.stat(t('an_p95'), (gate_total.p95_ms ~ ' ms') if gate_total.p95_ms is not none else '-', '', 'p95') }}
+</div>
+{% if gate_rows %}
+{% set maxn = gate_rows|map(attribute='checked')|max %}
+<div class="tablewrap">
+<table class="queue" id="gate-table">
+  <caption class="sr">{{ t('an_tab_gate') }}</caption>
+  <thead><tr>
+    <th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('gate_checked') }}</th><th scope="col" class="n">{{ t('gate_blocked') }}</th>
+    <th scope="col" class="n">{{ t('gate_paused') }}</th><th scope="col" class="n">{{ t('gate_median') }}</th><th scope="col" class="n">{{ t('an_p95') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in gate_rows %}
+    <tr class="row" data-agent="{{ r.agent_id }}">
+      <td><a class="head mono" href="/console/agents/{{ r.agent_id }}?lang={{ lang }}">{{ r.agent_id }}</a></td>
+      <td>{{ ui.barcell(r.checked, maxn) }}</td>
+      <td class="n">{{ r.blocked }}</td><td class="n">{{ r.paused }}</td>
+      <td class="n">{{ r.median_ms if r.median_ms is not none else '-' }}</td><td class="n">{{ r.p95_ms if r.p95_ms is not none else '-' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+{{ ui.empty(t('an_gate_none'), t('an_gate_none_line')) }}
+{% endif %}

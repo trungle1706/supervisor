@@ -109,17 +109,10 @@ def open_cases(ctx: Any) -> list[dict[str, Any]]:
 
 def signoff_waiting(ctx: Any, cases: list[dict[str, Any]]) -> int:
     """Open high / critical cases that still need a sign-off (fewer than two approvals)."""
-    from supervisor.cases.service import TWO_PERSON_SEVERITIES
-
-    n = 0
     try:
-        for c in cases:
-            if c["severity"] in TWO_PERSON_SEVERITIES and c["status"] in ("triaged", "contained"):
-                if len(ctx.cases._approvals(c["case_id"])) < 2:  # noqa: SLF001 - read-only count
-                    n += 1
+        return len(ctx.cases.waiting_approvals(cases))
     except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
         return 0
-    return n
 
 
 def shell(ctx: Any, me: Any) -> dict[str, Any]:

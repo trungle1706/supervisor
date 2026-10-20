@@ -1,0 +1,4 @@
+{# Cases tab: every case of this agent, newest rules first (service order). #}
+{% set sortable = False %}
+{% include "_cases_table.html" %}
+<p class="hint">{% if cases_total > cases_cap %}{{ t('pager_showing', a=1, b=cases_cap, n=cases_total) }} · {% endif %}<a href="/console/cases?agent={{ a.agent_id }}&amp;status=all&amp;lang={{ lang }}">{{ t('all_cases') }}</a></p>

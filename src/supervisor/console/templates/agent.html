@@ -1,0 +1,21 @@
+{# Agent detail page (WP-UX2): header, tabs, one tab body. Variables: a (agent card), tab,
+   tabs (visible tab keys), tab_counts, plus the tab's own data. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ a.agent_id }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_watch'), None), (t('agents'), '/console/agents?lang=' ~ lang), (a.agent_id, None)]) }}
+{% set pills %}<span id="agent-pills">{% include "_agent_pills.html" %}</span>{% endset %}
+{% call ui.pagehead(a.agent_id, pills) %}
+  <a class="btn" href="/console/cases?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('open_cases_n', n=a.open_cases) }}</a>
+{% endcall %}
+{{ ui.purpose(t('agent_purpose'), t('agent_why')) }}
+{% set tab_labels = {
+  'overview': t('atab_overview'), 'policy': t('atab_policy'), 'tools': t('atab_tools'),
+  'inventory': t('atab_inventory'), 'traces': t('atab_traces'), 'cases': t('atab_cases'),
+  'assurance': t('atab_assurance'), 'compliance': t('atab_compliance')} %}
+{{ ui.tabs(tabs, tab, tab_labels, '/console/agents/' ~ a.agent_id ~ '?tab={tab}&lang=' ~ lang, '/console/agents/' ~ a.agent_id ~ '/tab/{tab}?lang=' ~ lang, target='#tab-body', counts=tab_counts) }}
+<div id="tab-body" class="tabpanel" role="tabpanel">
+{% include "_agent_tab_" ~ tab ~ ".html" %}
+</div>
+{% endblock %}

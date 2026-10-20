@@ -32,13 +32,8 @@
   </div>
 </section>
 
-<nav class="tabs" role="tablist" aria-label="{{ t('case') }}">
-  {% for key in ('story', 'rules', 'transcript', 'evidence', 'casefile') %}
-  <a role="tab" data-tab="{{ key }}" class="{{ 'on' if key == tab else '' }}" aria-selected="{{ 'true' if key == tab else 'false' }}"
-     href="/console/cases/{{ case.case_id }}?tab={{ key }}&amp;lang={{ lang }}"
-     hx-get="/console/cases/{{ case.case_id }}/tab/{{ key }}?lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML" hx-push-url="false">{{ t('tab_' ~ key) }}</a>
-  {% endfor %}
-</nav>
+{% set tab_labels = {'story': t('tab_story'), 'rules': t('tab_rules'), 'transcript': t('tab_transcript'), 'evidence': t('tab_evidence'), 'casefile': t('tab_casefile')} %}
+{{ ui.tabs(('story', 'rules', 'transcript', 'evidence', 'casefile'), tab, tab_labels, '/console/cases/' ~ case.case_id ~ '?tab={tab}&lang=' ~ lang, '/console/cases/' ~ case.case_id ~ '/tab/{tab}?lang=' ~ lang, target='#tab-body') }}
 
 <div class="two">
   <div id="tab-body" role="tabpanel">
