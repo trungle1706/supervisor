@@ -1,29 +1,29 @@
 {
   "files": {
     "adversarial.jsonl": {
-      "n_items": 62,
-      "n_positive": 38,
-      "sha256": "c306873c481c9cf2597704a382f9fe7a829ada073fec85345f47f9268437033c"
+      "n_items": 77,
+      "n_positive": 53,
+      "sha256": "fa2faf19f8228cfc984e4ce7910b9260c62139f8e82e48c2525d13e47ec48cfc"
     },
     "dev.jsonl": {
       "n_items": 1200,
       "n_positive": 450,
-      "sha256": "5e70e9da54c2626fc593054f3722abe187c4fea33ed2435d359e4f8110c41c07"
+      "sha256": "85e892c98c94c948808f13b29b1aab38e9edce7eaddbf69443ccd3865a2a3cb3"
     },
     "evasion.jsonl": {
       "n_items": 1440,
       "n_positive": 720,
-      "sha256": "84d45fd370762b3f6439799b7677100fc664617ddea03de6759ec865337d43c9"
+      "sha256": "45a601324d09eee8ce4833deafcdab36d5a93e2e17942bad29205b5a3a895466"
     },
     "heldout.jsonl": {
       "n_items": 1350,
       "n_positive": 450,
-      "sha256": "9a4fbb7cdbd6c60da33ce912ddf9235069ff01961fe619310f549233ec8d5705"
+      "sha256": "09b4d170e6c69de36af6f776d7222301c59ea9cc0c1d9cef166326303999d785"
     },
     "train.jsonl": {
       "n_items": 4800,
       "n_positive": 2400,
-      "sha256": "5c7963b71ed4c7e538686ce0b8ea7d6a5c60e9e57316c12ba1d4e36faf41c155"
+      "sha256": "05ce53f712e1454f47bc742546cc2869f5b1d21f1fac6db9812588cf9ebe7605"
     }
   },
   "labellers": [
@@ -34,8 +34,8 @@
   "licence": "synthetic, this repo",
   "llm_paraphrase": {
     "model": "qwen3.8-27b-int4 (local, inference only, concurrency 2)",
-    "n_paraphrases": 3412,
-    "paraphrases_sha256": "d5fe31a5ed20c70531f1a11f63a59d85115364f58ab9b0dfc288a1510c536e7a"
+    "n_paraphrases": 3704,
+    "paraphrases_sha256": "d7c05b489218c1ecdccff8ec5d1169e5ba80d48e3ad8fb400e6b6b1b716ddac9"
   },
   "name": "injection_vi_en",
   "seed": 20261022,

@@ -61,7 +61,11 @@
     "seed": 20261023
   },
   "validation": {
-    "status": "not validated yet; run python -m supervisor.detectors.harness"
+    "baseline": "data/eval/injection_vi_en/baseline.json",
+    "command": "python -m supervisor.detectors.harness --detector injection_classifier",
+    "pause_use": "not recommended until the bank validates on real data; the entry is disabled by default",
+    "report": "docs/injection-classifier-validation-report.md",
+    "status": "validated: NO-GO on recall, precision, hard-negative false alarm, typo recall and latency; GO on determinism, leaks, integrity, false pause, adversarial recall"
   },
   "version": "1.0.0",
   "weights_file": "weights.json",

@@ -78,10 +78,10 @@ misses by template id.
 
 | Name | bp | Use |
 |---|---|---|
-| `strict` | see card | finding fires (more sensitive) |
-| `balanced` | see card | default |
-| `lenient` | see card | finding fires (fewer false alarms) |
-| pause | see card | pause hint for the configured classes |
+| `strict` | 5500 | more sensitive (dev false alarm 900 bp) |
+| `balanced` | 6000 | default (dev false alarm 613 bp) |
+| `lenient` | 7000 | fewer false alarms (dev about 300 bp) |
+| pause | 8500 | pause hint for the configured classes (dev false alarm 40 bp) |
 
 The numbers live in the model card and in `detector.py` (`PRESETS`, `PAUSE_THRESHOLD_BP`); a test
 compares them. Changing one means a new model version. `pause_threshold_bp` can be raised in the
@@ -131,6 +131,16 @@ uv run python -m supervisor.detectors.harness --detector injection_classifier
 uv run python -m supervisor.detectors.harness --detector injection_classifier --check
 uv run python -m supervisor.detectors.harness --detector injection_classifier --md docs/injection-classifier-validation-report.md
 ```
+
+## 8b. Result (see the validation report for every number)
+
+Verdict **NO-GO** against the illustrative targets, so the entry stays disabled and the pause
+path should not be switched on before the bank validates on its own data. Held-out at the balanced preset:
+recall 5600 bp, hard-negative false alarm 907 bp, typo recall 4133 bp against 400 bp for the regex on the same items,
+hand-written probes 7735 bp recall against 3773 bp for the regex, p95 about 3.6 ms per call. The presets were chosen on an earlier
+version of the dev split (balanced false alarm 480 bp); after the final paraphrase round it reads 613 bp. What holds: the
+classifier beats the regex on every evasion kind, scores are deterministic, no raw text leaks, the pause
+path never acts outside money and credit, the weights are pinned.
 
 ## 9. Limits
 

@@ -130,3 +130,10 @@
 
 
 | WP37: adversarial rows are hand-written by one author (n = 60 / 66 / 51 positives); injection (4696 bp) and judge mock (3725 bp) pass their thresholds on the point value only, their Wilson lower bounds are below the threshold, and the report marks them `indicative` | A second labeller; bank-supplied probes; raise n until the lower bound clears the threshold or the threshold moves |
+| WP25: recall is below the illustrative target (held-out 5600 bp at the balanced preset against 8500 bp) and false alarm on hard negatives (907 bp) is above 500 bp; typo recall 4133 bp. The model learns the wording of synthetic templates | Real, labelled Vietnamese injection data from the bank (decision: data), more templates, a bigger model class (outside the no-torch rule), threshold calibration on real traffic |
+| WP25: p95 latency about 3.6 ms per call (target 2 ms); a finding costs about 4.6 ms (masker and clause location) | Cache features per text, locate fragments without re-scoring, cheaper Telex variant |
+| WP25: no per-trace memory: split attacks need the caller to pass `context.prior_calls`; spaced-out letters, other languages and images are not recognised | WP27 session monitor; a per-trace buffer feeding `prior_calls` |
+| WP25: `score_tool_description` is not registered anywhere (WP26 is not on this branch) | Integrator: `mcp_lock.register_description_scorer(score_tool_description)` |
+| WP25: the secrets regex set (keys, tokens, PEM) named in the roadmap row is not built; the WP25 prompt did not ask for it | Regex set as a fifth detector with its own golden items |
+| WP25: `pause_tool_classes` and the frozen pause threshold are global; no per-agent threshold, no console view of classifier findings | WP39 console; per-agent override already works for `settings` |
+| WP25: MRM roles (owner, validator, approver) are FILL-ME in the model card; the card is not wired into `python -m supervisor.judge.mrm` | Join the judge MRM inventory and change-control gate |

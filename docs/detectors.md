@@ -79,6 +79,9 @@ override 8500, role tag 8000, prompt leak 7000, urgent transfer 6500, plus 500 f
 hit. At the `balanced` preset an urgent-transfer phrase alone does not fire. Known gaps are in
 `BACKLOG.md` and in the validation report (typos, leetspeak, base64, split fields, paraphrase).
 
+`injection_classifier` (WP25, `enabled: false` by default, see `docs/injection-classifier.md`) is a fourth
+detector. It is the only one whose `pause` hint the gate obeys: `GATE-CLASSIFIER-PAUSE`, money and credit tools only.
+
 ## 3. Settings: file and per-agent override
 
 `config/detectors.yaml` holds the defaults (`default_preset`, `limits`, one entry per detector with

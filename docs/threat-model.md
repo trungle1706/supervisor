@@ -225,3 +225,16 @@ Pause is cheap: one rule, one console click or `POST /gate/pause`. Resume is har
 different people (owner + reviewer). Quarantine release needs an admin listed in the
 policy. All three are real state changes on the gateway, recorded on the chain, and
 never faked in the demo (`demo/inject.py` reads the state back from the store).
+
+### 3.11 Injection classifier (WP25, ADR D27)
+
+The classifier reads text from three untrusted places: tool arguments, tool results and tool
+descriptions. The text is only turned into hashed numbers and a score; it is not stored, sent to a
+model or logged, and a finding carries fragments of MASKED text (R2). The trust boundary change is one
+new way to stop a call: a score at or above the frozen pause threshold on a money or credit tool pauses
+the agent (`GATE-CLASSIFIER-PAUSE`), never blocks it, and a human resumes with two people (R1). An
+attacker who learns the model could craft text that stays under the threshold (evasion; see the
+validation report for the measured recall) or craft benign-looking text that triggers pauses (a
+denial-of-service on one agent; the pause is per agent and visible as a case). The weight file is
+pinned by SHA-256 in the model card; the loader refuses a changed file, so the model cannot be swapped
+silently. Training data are synthetic; the model is not a replacement for the rules.
