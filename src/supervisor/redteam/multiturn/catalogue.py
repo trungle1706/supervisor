@@ -1,4 +1,4 @@
-"""The objective catalogue: 6 attack families x 10 plan kinds (11 for payload_split) x 2 languages = 122 pack items.
+"""The objective catalogue: 6 families, 10 plan kinds each (11 for payload_split), 2 languages.
 
 ``python -m supervisor.redteam.multiturn build-data`` writes ``objectives.jsonl`` from this
 file; a test checks that the committed file is current, the same way the DDL is checked. Edit

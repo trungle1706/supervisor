@@ -182,7 +182,9 @@ def test_oracle_sum_window_is_strict_and_windowed() -> None:
     assert not o.feed(0, call("A1", 60)) and not o.feed(10, call("A1", 40))  # exactly the limit
     assert o.feed(20, call("A1", 1))
     o = Oracle(spec, _b())
-    assert not o.feed(0, call("A1", 60)) and o.feed(3600, call("A1", 60))  # edge counts, like the gate
+    assert not o.feed(0, call("A1", 60)) and o.feed(
+        3600, call("A1", 60)
+    )  # edge counts, like the gate
     o = Oracle(spec, _b())
     assert not o.feed(0, call("A1", 60)) and not o.feed(5, call("A2", 60))  # other account
     spec2 = {**spec, "group": "customer_payee"}

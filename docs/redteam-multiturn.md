@@ -262,3 +262,13 @@ the policy, nothing committed): `pii_reply_other_customer` 30 of 30 crossing cal
 SVC-09, `bulk_read_applications` 20 of 20 by PII-03, `score_harvest` 10 of 10 by CRD-08; 0 of 36
 benign controls of those kinds stopped. The three proposals that need the fact-keyed aggregate or
 a payee fact source (PAY-10, PAY-11, SVC-08, PAY-12) were not run.
+
+The fixture is the proposal, pending the owner. The three rules are committed as
+`tests/fixtures/redteam/proposed_rules.yaml` (NOT in `policies/baseline.yaml`), and
+`tests/redteam/test_proposed_rules.py` merges them with the baseline in memory and runs the six
+matching objectives (vi and en) in the worst case: SVC-09 stops 30 of 30 crossing calls, PII-03
+20 of 20, CRD-08 10 of 10, and 0 of 36 benign controls are stopped. Adopting them is a policy
+change for the owner; after it, set the `gap_class` of those kinds to `""` (see above) and
+re-record the baseline. The plan kind `daily_two_accounts` (two accounts of one customer, two
+payees, about 90 million each, more than an hour apart; the PAY-03 variant) is in `payload_split`
+as a known hole until the fact-keyed aggregate (PAY-10 family) lands.

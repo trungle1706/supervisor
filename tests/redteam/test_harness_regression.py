@@ -115,7 +115,9 @@ def test_results_json_has_no_floats(regression, tmp_path) -> None:  # type: igno
 
 def test_every_family_has_a_cell_with_n_stated(regression) -> None:  # type: ignore[no-untyped-def]
     for fam, v in regression.aggregate["by_family"].items():
-        assert v["success"]["n"] == (22 if fam == "payload_split" else 20), fam  # objectives x 2 trials
+        assert v["success"]["n"] == (22 if fam == "payload_split" else 20), (
+            fam
+        )  # objectives x 2 trials
         assert v["success"]["lo"] is not None
 
 
