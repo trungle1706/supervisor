@@ -49,6 +49,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Assurance packs | 33 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
 | Judge MRM | Model card, validation report, change control, retire | `docs/judge-mrm.md` |
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
+| Ingress auth (WP20, off by default) | Per-agent HMAC key or Databricks service-principal token on `/gate/check` and `/v1/traces`; `INGRESS_AUTH_ENABLED=1` | `docs/ingress-auth.md`, `docs/adr/D14-ingress-auth.md` |
 
 ## 10-minute tour
 

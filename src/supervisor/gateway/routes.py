@@ -23,6 +23,7 @@ from supervisor.adapters.auth.authz import needs, runtime_settings
 from supervisor.core.errors import SupervisorError
 from supervisor.gateway import wiring
 from supervisor.gateway.engine import Gateway
+from supervisor.gateway.ingress_auth import ingress_gate
 from supervisor.ops.middleware import BodyTooLarge
 
 router = APIRouter(prefix="/gate", tags=["gate"])
@@ -76,7 +77,7 @@ def _validation_response(exc: ValidationError, audit_warning: str | None = None)
     return _bad("invalid request", detail=errors, **extra)
 
 
-@router.post("/check")
+@router.post("/check", dependencies=[Depends(ingress_gate)])  # WP20: no-op unless enabled
 async def check(request: Request, gw: Gateway = _GW) -> JSONResponse:
     try:
         req = CheckRequest.model_validate(await _body(request))

@@ -355,6 +355,33 @@ class Settings(BaseSettings):
     assurance_judge_allow_warn: bool = False
     console_assurance_enabled: bool = False
 
+    # --- WP20: ingress auth (ADR D14, docs/ingress-auth.md) ---
+    ingress_auth_enabled: bool = False  # per-agent credential on /gate/check and /v1/traces
+    # hmac = per-agent HMAC key; databricks_sp = service-principal bearer token (SCIM Me);
+    # databricks_proxy = identity header set by the Apps proxy (App mode only, no SCIM call);
+    # both = hmac or databricks_sp; all = the three; auto = databricks_proxy in
+    # databricks_app mode, else hmac.
+    ingress_credential_kind: Literal[
+        "auto", "hmac", "databricks_sp", "databricks_proxy", "both", "all"
+    ] = "auto"
+    # auto = file on the laptop / dev, env in databricks_app mode.
+    ingress_key_store: Literal["auto", "file", "env", "secret_scope"] = "auto"
+    ingress_keys_file: Path | None = None  # default: <repo>/config/agent_keys.yaml (chmod 600)
+    ingress_identities_file: Path | None = None  # default: <repo>/config/agent_identities.yaml
+    ingress_secret_scope: str = ""  # Databricks secret scope for ingress_key_store=secret_scope
+    ingress_replay_window_s: int = Field(default=300, ge=1, le=3600)  # timestamp window + nonce TTL
+    ingress_max_header_bytes: int = Field(default=512, ge=64, le=8192)  # per credential header
+    ingress_identity_cache_ttl_s: int = Field(default=300, ge=0)  # SCIM Me result cache
+    ingress_key_cache_ttl_s: int = Field(default=60, ge=0)  # secret scope read cache
+    ingress_key_overlap_hours: int = Field(default=24, ge=1)  # rotation: previous key lifetime
+    # Review follow-up (F8-F10): pre-auth cost and flood limits.
+    ingress_scim_max_concurrent: int = Field(default=4, ge=1)  # parallel SCIM Me calls
+    ingress_identity_negative_ttl_s: int = Field(default=30, ge=0)  # cache a refused token
+    # 0 = audit every rejection. N = at most one row per (reason, client ip or claimed agent)
+    # per N seconds; skipped rows are counted in ingress_audit_suppressed.
+    ingress_audit_throttle_s: int = Field(default=0, ge=0)
+    ingress_nonce_cap_per_agent: int = Field(default=20_000, ge=1)  # plus the global cap
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -372,6 +399,8 @@ class Settings(BaseSettings):
         "log_file",
         "assurance_data_dir",
         "osv_db_path",
+        "ingress_keys_file",
+        "ingress_identities_file",
         mode="after",
     )
     @classmethod
@@ -452,6 +481,10 @@ class Settings(BaseSettings):
                 "CONSOLE_AUDIT_ENABLED=0 is only allowed with SUPERVISOR_MODE=dev "
                 "(the console audit trail cannot be switched off in laptop or databricks_app mode)"
             )
+        if self.ingress_keys_file is None:
+            self.ingress_keys_file = REPO_ROOT / "config" / "agent_keys.yaml"
+        if self.ingress_identities_file is None:
+            self.ingress_identities_file = REPO_ROOT / "config" / "agent_identities.yaml"
         if self.scheduler_lock_path is None:
             self.scheduler_lock_path = self.data_dir / "scheduler.lock"
         if self.anchor_kind == "worm_dir":
@@ -544,6 +577,20 @@ class Settings(BaseSettings):
         if self.auth_kind != "auto":
             return self.auth_kind
         return "databricks_app" if self.supervisor_mode == "databricks_app" else "dev_header"
+
+    @property
+    def effective_ingress_kind(
+        self,
+    ) -> Literal["hmac", "databricks_sp", "databricks_proxy", "both", "all"]:
+        if self.ingress_credential_kind != "auto":
+            return self.ingress_credential_kind
+        return "databricks_proxy" if self.supervisor_mode == "databricks_app" else "hmac"
+
+    @property
+    def effective_ingress_key_store(self) -> Literal["file", "env", "secret_scope"]:
+        if self.ingress_key_store != "auto":
+            return self.ingress_key_store
+        return "env" if self.supervisor_mode == "databricks_app" else "file"
 
     @property
     def scheduler_on(self) -> bool:

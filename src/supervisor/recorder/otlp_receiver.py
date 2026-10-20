@@ -7,13 +7,17 @@
 * Malformed JSON or OTLP shape, too many spans, too large a body: HTTP 400 with a message.
 * Success: HTTP 200 with an OTLP ``ExportTraceServiceResponse`` body (``{}``); counts are in
   ``X-Supervisor-*`` headers. Spans that are not agent events are ignored, not rejected.
-* Auth: ``authorize`` is a placeholder; WP8 replaces it with the Principal port.
+* Auth (WP20): ``authorize`` checks the per-agent credential when ``INGRESS_AUTH_ENABLED=1``
+  (401/403, ``gateway/ingress_auth.py``). A batch may only carry spans of the authenticated
+  agent id(s); otherwise HTTP 403, nothing is written, ``X-Supervisor-Rejected`` = foreign spans.
+  With the flag off, ``authorize`` only reads the SSO header and accepts every caller.
 """
 
 from __future__ import annotations
 
 import json
 import zlib
+from dataclasses import replace
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -21,7 +25,9 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from supervisor.config import get_settings
-from supervisor.recorder.normalise import OtlpFormatError, spans_from_otlp_json
+from supervisor.gateway.ingress_auth import INGRESS_ATTR, check_span_agents, ingress_traces
+from supervisor.recorder import semconv
+from supervisor.recorder.normalise import OtlpFormatError, SpanData, spans_from_otlp_json
 from supervisor.recorder.service import Recorder, get_recorder
 
 router = APIRouter(tags=["traces"])
@@ -37,14 +43,19 @@ def recorder_dep() -> Recorder:
     return get_recorder()
 
 
-def authorize(request: Request) -> str | None:
-    """Placeholder auth hook. Returns the caller principal id or None.
+async def authorize(request: Request) -> str | None:
+    """Auth hook (WP20). Returns the caller principal id or None.
 
-    WP8 replaces this dependency (``app.dependency_overrides[authorize]``) with the
-    Principal port; today it reads the SSO header only and accepts every caller."""
-    # TODO(WP8): bind the principal to the agent ids it may write (today any caller can
-    # send spans for any agent_id, including one whose manifest allows raw capture).
+    Ingress auth on: the credential is verified (``IngressRejected`` = 401/403 otherwise) and
+    the identity is kept on ``request.state.ingress`` for the span check. Off: the SSO header
+    is read and every caller is accepted, as before."""
+    ident = await ingress_traces(request)
+    if ident is not None:
+        return ident.principal
     return request.headers.get("x-forwarded-user") or None
+
+
+setattr(authorize, INGRESS_ATTR, True)  # noqa: B010 - the ingress contract test looks for it
 
 
 _REC: Recorder = Depends(recorder_dep)
@@ -78,6 +89,18 @@ def _gunzip(data: bytes, limit: int) -> bytes:
     if len(out) > limit or d.unconsumed_tail:
         raise BodyTooLarge
     return out
+
+
+def _span_agent(rec: Recorder, span: SpanData) -> str | None:
+    """The agent id the normaliser reads from ``span`` (same semconv view as ``normalise``).
+    A recorder without a normaliser gives ``"?"``: never allowed, so the check fails closed."""
+    norm = getattr(rec, "normaliser", None)
+    agent_of = getattr(norm, "agent_id_of", None)
+    if agent_of is None:
+        return "?"
+    if getattr(norm, "use_semconv", False):
+        span = replace(span, attributes=semconv.apply(span.attributes, span.kind, span.name))
+    return agent_of(span)
 
 
 @router.post("/v1/traces")
@@ -115,6 +138,9 @@ async def receive_traces(request: Request, rec: Recorder = _REC, who: str | None
         return _bad(f"invalid OTLP JSON: {exc}")
     if len(spans) > max_spans:
         return _bad(f"{len(spans)} spans in one request; the limit is {max_spans} (OTLP_MAX_SPANS)")
+    # WP20: spans of another agent than the credential's: batch 403. The agent id must be the
+    # one the normaliser will store, so the semconv view (span name fallback) is applied first.
+    await check_span_agents(request, [_span_agent(rec, sp) for sp in spans])
     result = await run_in_threadpool(rec.ingest_spans, spans, "otlp")
     headers = {
         "X-Supervisor-Accepted": str(result.written),
