@@ -41,6 +41,9 @@ from supervisor.core.args_hmac import args_hmac, as_key, key_id
 from supervisor.core.canonical import canonical_json, format_ts
 from supervisor.core.ports import Clock, EvidenceSink, Masker, StateStore, TableStore
 from supervisor.gateway.detector_gate import (
+    FAILED_RULE as DETECTOR_FAILED_RULE,
+)
+from supervisor.gateway.detector_gate import (
     DetectorGate,
     PreDetect,
     Req,
@@ -54,6 +57,7 @@ from supervisor.gateway.policy import (
     DEFAULT_FAIL_MODE,
     FACT_PREFIX,
     SEVERITY_RANK,
+    Effective,
     Policy,
     PolicyProvider,
     Predicate,
@@ -338,6 +342,11 @@ class Decision:
     v2: dict[str, Any] | None = None
     det: Any = None  # DetectorOutcome: the findings to record
     transformed_payload: dict[str, Any] | None = None
+    # WP38 (ADR D28): mode and consumer. ``sem`` is None unless the agent uses mode, rule
+    # switches or consumers: the answer is then unchanged. ``observed`` holds the decision that
+    # observe mode turned into a report (None = nothing was downgraded).
+    sem: dict[str, Any] | None = None
+    observed: dict[str, Any] | None = None
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -362,6 +371,11 @@ class Decision:
             out["redaction_count"] = self.redaction_count
         if self.v2 is not None:  # absent with the flag off: same output as before
             out.update(self.v2)
+        if self.sem is not None:  # WP38: only for agents that use mode, switches or consumers
+            out.update(self.sem)
+            if self.observed is not None:
+                out["observed_decision"] = self.observed
+                out["status"] = "report"
         return out
 
 
@@ -556,7 +570,10 @@ class Gateway:
         out["shadow"] = shadow
         out["builtin"] = builtin is not None
         out["would_pause"] = (
-            builtin is None and not shadow and any(m.action == "pause" for m in matches)
+            builtin is None
+            and not shadow
+            and d.observed is None
+            and any(m.action == "pause" for m in matches)
         )
         out["not_evaluated"] = sorted(skipped)
         return out
@@ -717,7 +734,7 @@ class Gateway:
             if d.allow and not output and tool_name in _window_tools(policy):
                 self._remember(policy, now_us, agent_id, tool_name, args, ctx)
             pause_rule = next((m for m in matches if m.action == "pause"), None)
-            if pause_rule is not None and not shadow and builtin is None:
+            if pause_rule is not None and not shadow and builtin is None and d.observed is None:
                 self.states.pause(
                     agent_id,
                     f"rule:{pause_rule.rule.id}",
@@ -733,7 +750,9 @@ class Gateway:
             d.total_us,
             d.action,
             d.allow,
-            "shadow" if shadow else (f"fail_{d.fail_mode}" if d.fail_mode else None),
+            "shadow"
+            if shadow
+            else ("observe" if d.observed else (f"fail_{d.fail_mode}" if d.fail_mode else None)),
         )
         self._tier0b(d, agent_id, tool_name, args, risk, ctx)
         return d
@@ -760,6 +779,7 @@ class Gateway:
         dry = skipped is not None
         matches: list[Match] = []
         builtin: tuple[str, str] | None = None
+        eff = policy.effective(agent_id, ctx.get("consumer_id"))  # WP38
         if state is None:
             builtin = ("GATE-UNKNOWN-AGENT", f"unknown agent {agent_id}: fail closed")
         elif state == "QUARANTINED":
@@ -786,7 +806,10 @@ class Gateway:
             # calls (limits, windows, allow-lists), so none is evaluated; the state checks above
             # still apply, and detectors judge the output.
             output = req is not None and req.direction == "output"
-            for rule in () if output else policy.rules_for(agent_id):
+            rules = () if output else policy.rules_for(agent_id)
+            if eff.disabled:  # WP38: rules switched off for this agent or consumer
+                rules = [r for r in rules if r.id not in eff.disabled]
+            for rule in rules:
                 if skipped is not None and (rule.aggregate is not None or rule.prior is not None):
                     try:  # a window rule is listed only when its tool and predicates match
                         if self._rule_static_match(rule, tool_name, args, ctx, policy):
@@ -876,7 +899,40 @@ class Gateway:
                 matched_actions=[m.action for m in matches],
                 hmac_fn=lambda a: args_hmac(a, self._args_key),
             )
+        if eff.active:
+            self._apply_mode(d, eff, shadow, builtin is not None, decisive is not None)
         return d, matches, shadow, builtin
+
+    @staticmethod
+    def _apply_mode(
+        d: Decision, eff: Effective, shadow: bool, builtin: bool, rule_decided: bool
+    ) -> None:
+        """WP38 observe mode. A block or pause that a rule decided (or that GATE-DETECTOR-FAILED
+        decided) becomes a report: the call is allowed, the original decision is kept in
+        ``observed``. Not changed: SHADOW (it has its own downgrade and keeps precedence), the
+        built-in state blocks (paused, quarantined, retired, unknown agent or tool, missing
+        caller id) and GATE-REDACTION (the caller asked for masked arguments and cannot get
+        them). ``skip`` is not a block, so observe never touches it."""
+        sem: dict[str, Any] = {"mode": eff.mode}
+        if eff.consumer_id is not None:
+            sem["consumer_id"] = eff.consumer_id
+        if eff.consumer_ignored:
+            sem["consumer_ignored"] = True
+        d.sem = sem
+        if eff.mode != "observe" or shadow or builtin or d.allow:
+            return
+        if not (rule_decided or d.rule_id == DETECTOR_FAILED_RULE):
+            return
+        d.observed = {
+            "allow": False,
+            "action": d.action,
+            "rule_id": d.rule_id,
+            "reason": d.reason[:500],
+        }
+        d.allow, d.action, d.fail_mode = True, "log", None
+        d.reason = f"observe: would {d.observed['action']} by {d.rule_id}"
+        if d.v2 is not None:
+            d.v2["status"] = "report"
 
     def _pre_detect(
         self,
@@ -895,6 +951,9 @@ class Gateway:
             pol = policy or self.policy.current()
         except Exception as exc:  # noqa: BLE001 - becomes a detector failure, not a crash
             return PreDetect(error=type(exc).__name__, direction=req.direction)
+        eff = pol.effective(agent_id, ctx.get("consumer_id"))
+        if eff.consumer_id is not None:  # WP38: the consumer's detector override, if it has one
+            pol = _ConsumerView(pol, eff)  # type: ignore[assignment]
         return self.detector_gate.prepare(pol, agent_id, agent_version, tool_name, args, ctx, req)
 
     def _pre_redact(
@@ -1018,6 +1077,8 @@ class Gateway:
             for m in matches:
                 if shadow:
                     action, label = "log", f"shadow_would_{m.action}"
+                elif d.observed is not None and m.action in ("block", "pause"):
+                    action, label = "log", f"observe_would_{m.action}"  # WP38
                 else:
                     action, label = m.action, ("rule_error" if m.error else "matched")
                 rows.append(
@@ -1150,6 +1211,14 @@ class Gateway:
             out["masker_version"] = str(getattr(self.masker, "mask_version", "unknown"))
         if d.v2 is not None:  # WP37: ids, codes and hashes only
             out.update(chain_fields(d))
+        if d.sem is not None:  # WP38: mode, consumer and the decision observe mode downgraded
+            out.update(d.sem)
+            if d.observed is not None:
+                out["observed_decision"] = {
+                    "action": d.observed["action"],
+                    "rule_id": d.observed["rule_id"],
+                }
+                out["status"] = "report"
         return out
 
     # ------------------------------------------------------------------ fail mode
@@ -1360,6 +1429,21 @@ class Gateway:
 
 # Grouping ids always hashed into gate events, so a new aggregate rule has history.
 DEFAULT_KEYS = frozenset({"customer_id", "payee_id", "application_id", "account_id"})
+
+
+class _ConsumerView:
+    """A policy that answers ``agent_detectors`` with the consumer's override (WP38). The
+    detector gate (WP37) reads only ``risk_class`` and ``agent_detectors`` from a policy."""
+
+    def __init__(self, policy: Policy, eff: Effective) -> None:
+        self._policy = policy
+        self._eff = eff
+
+    def agent_detectors(self, agent_id: str) -> Any:
+        return self._eff.detectors
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._policy, name)
 
 
 def _is_handoff(ctx: Mapping[str, Any]) -> bool:

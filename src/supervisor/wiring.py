@@ -187,6 +187,9 @@ def make_detector_gate(settings: Settings, policy: Policy) -> Any:
     for agent_id, manifest in policy.doc.agents.items():
         if manifest.detectors is not None:
             problems += resolved.check_agent(agent_id, manifest.detectors)
+        for consumer_id, over in manifest.consumers.items():  # WP38: per-consumer overrides
+            if over.detectors is not None:
+                problems += resolved.check_agent(f"{agent_id}/{consumer_id}", over.detectors)
     if problems:
         raise ConfigError("detector overrides in the policy are invalid: " + "; ".join(problems))
     return DetectorGate(registry, resolved)

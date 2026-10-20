@@ -60,6 +60,13 @@
     "AgentManifest": {
       "additionalProperties": false,
       "properties": {
+        "consumers": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ConsumerOverride"
+          },
+          "title": "Consumers",
+          "type": "object"
+        },
         "detectors": {
           "anyOf": [
             {
@@ -84,6 +91,22 @@
           ],
           "title": "Initial State",
           "type": "string"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "enforce",
+                "observe"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
         },
         "model_family": {
           "default": "unknown",
@@ -131,6 +154,17 @@
           ],
           "title": "Risk Tier",
           "type": "string"
+        },
+        "rules": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleSwitches"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -229,6 +263,52 @@
         "limit"
       ],
       "title": "Aggregate",
+      "type": "object"
+    },
+    "ConsumerOverride": {
+      "additionalProperties": false,
+      "description": "WP38 (ADR D28): ``agents.<id>.consumers.<consumer_id>``. A field that is set replaces the\nagent's value for calls whose ``context.consumer_id`` is this consumer; a field left out\nkeeps the agent's value. ``rules`` merges with the agent's switches.",
+      "properties": {
+        "detectors": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentDetectors"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "enforce",
+                "observe"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "rules": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleSwitches"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "ConsumerOverride",
       "type": "object"
     },
     "DriftBinding": {
@@ -642,6 +722,30 @@
         "owner"
       ],
       "title": "RuleSpec",
+      "type": "object"
+    },
+    "RuleSwitches": {
+      "additionalProperties": false,
+      "description": "WP38 (ADR D28): switch single rules off or on for an agent or one consumer.\n\nA disabled rule is not evaluated for that agent or consumer (no hit, no record). ``enable``\non a consumer undoes a ``disable`` of the agent. Rule ids must exist in the policy.",
+      "properties": {
+        "disable": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Disable",
+          "type": "array"
+        },
+        "enable": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Enable",
+          "type": "array"
+        }
+      },
+      "title": "RuleSwitches",
       "type": "object"
     },
     "SplitPaymentBinding": {

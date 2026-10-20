@@ -176,6 +176,15 @@ def event_from_chain(entry: Mapping[str, Any], payload: Mapping[str, Any]) -> Si
                 "finding_codes": [str(c)[:64] for c in (p.get("finding_codes") or [])[:20]],
                 "correlation_id": str(p.get("correlation_id") or "")[:128],
             }
+        if p.get("mode"):  # WP38: observe mode records the decision it downgraded, and who asked
+            attrs = dict(attrs or {})
+            attrs["mode"] = str(p["mode"])[:16]
+            if p.get("consumer_id"):
+                attrs["consumer_id"] = str(p["consumer_id"])[:128]
+            od = p.get("observed_decision")
+            if isinstance(od, dict):
+                attrs["observed_action"] = str(od.get("action") or "")[:16]
+                attrs["observed_rule_id"] = str(od.get("rule_id") or "")[:64]
     elif etype == "gate_state_change":
         outcome = str(p.get("event") or "state_change")
         sev = SEVERITY.get(outcome, 5)
