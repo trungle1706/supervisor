@@ -456,3 +456,21 @@ def test_order_detectors_run_after_the_rules_and_never_block_alone(gw_for: Any) 
     # and a rule block is unchanged by what the detectors found
     r = gw.check("a1", "1", "pay", {"amount_minor": 500})
     assert r["allow"] is False and r["rule_id"] == "R-PAY-BLOCK" and r["status"] == "block"
+
+
+def test_skip_tools_for_a_money_tool_is_refused_for_agent_and_consumer() -> None:
+    agent = "    detectors: {skip_tools: [pay]}\n"
+    with pytest.raises(PolicyError, match="skip_tools"):
+        make(policy_text({"a1": ("RUNNING", agent)}))
+    cons = "    consumers:\n      c1: {detectors: {skip_tools: [pay]}}\n"
+    with pytest.raises(PolicyError, match="skip_tools"):
+        make(policy_text({"a1": ("RUNNING", cons)}))
+    make(policy_text({"a1": ("RUNNING", "    detectors: {skip_tools: [lookup]}\n")}))
+
+
+def test_consumer_detector_overrides_go_through_the_same_validator() -> None:
+    gate = make_gate(VnRegexMasker(b"test-key", "t"))
+    bad = "    consumers:\n      c1: {detectors: {disable: [no_such_detector]}}\n"
+    assert gate.check_policy(make(policy_text({"a1": ("RUNNING", bad)})))
+    good = "    consumers:\n      c1: {detectors: {preset: lenient}}\n"
+    assert gate.check_policy(make(policy_text({"a1": ("RUNNING", good)}))) == []

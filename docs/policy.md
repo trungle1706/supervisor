@@ -62,7 +62,7 @@ see the open question in the ADR.
    `block > pause > transform > report > allow`).
 5. **Skip.** `skip` is the verdict for a tool listed in `agents.<id>.detectors.skip_tools`: no
    detector runs for the call. It never hides a block or a pause, and observe mode does not
-   change it. Do not list money, credit or pii_export tools there.
+   change it. The policy loader refuses money, credit and pii_export tools there (also in a consumer override).
 6. **Detectors run after the rules** (the work is done before the gate lock, and folded in after
    the rule decision exists). A detector can only add findings (status `report`), give a masked
    payload (status `transform`), or, when it cannot run on a money, credit or pii_export tool,

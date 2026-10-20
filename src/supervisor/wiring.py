@@ -142,8 +142,11 @@ def _make_gateway(
     state_cache_ttl_s: float,
     detector_gate: Any = None,
 ) -> Gateway:
+    provider = StorePolicyProvider(adapters.state, refresh_s=policy_refresh_s)
+    if detector_gate is not None:  # F11: the same check on every reload
+        provider.validator = detector_gate.check_policy
     return Gateway(
-        StorePolicyProvider(adapters.state, refresh_s=policy_refresh_s),
+        provider,
         adapters.tables,
         adapters.state,
         chain,
@@ -187,17 +190,12 @@ def make_detector_gate(settings: Settings, policy: Policy) -> Any:
     except ConfigError as exc:  # one ASCII line naming the setting, no chained traceback
         msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
-    problems: list[str] = []
-    for agent_id, manifest in policy.doc.agents.items():
-        if manifest.detectors is not None:
-            problems += resolved.check_agent(agent_id, manifest.detectors)
-        for consumer_id, over in manifest.consumers.items():  # WP38: per-consumer overrides
-            if over.detectors is not None:
-                problems += resolved.check_agent(f"{agent_id}/{consumer_id}", over.detectors)
+    gate = DetectorGate(registry, resolved)
+    problems = gate.check_policy(policy)
     if problems:
         msg = "detector overrides in the policy are invalid: " + "; ".join(problems)
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii"))
-    return DetectorGate(registry, resolved)
+    return gate
 
 
 def _advisory_judge(settings: Settings, masker: Any) -> Any:
