@@ -622,3 +622,44 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`eval_result` (
 USING DELTA
 COMMENT 'WP17 assurance eval packs. One row per pack x target x run: integer metrics, the per-metric status against the manifest thresholds, the dataset digest and the hash of the assurance_result chain record. Mock runs are labelled is_mock.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- inventory_node (state): WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).
+-- primary key (enforced by the app, not by Delta): node_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_node` (
+  node_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  name STRING NOT NULL,
+  display_name STRING NOT NULL,
+  status STRING NOT NULL,
+  own_risk STRING,
+  risk_source STRING NOT NULL,
+  decision33_class STRING,
+  attrs STRING NOT NULL,
+  evidence STRING NOT NULL,
+  first_seen TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- inventory_edge (state): WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.
+-- primary key (enforced by the app, not by Delta): edge_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_edge` (
+  edge_id STRING NOT NULL,
+  src_id STRING NOT NULL,
+  dst_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  source STRING NOT NULL,
+  evidence_ref STRING NOT NULL,
+  active BOOLEAN NOT NULL,
+  first_seen TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

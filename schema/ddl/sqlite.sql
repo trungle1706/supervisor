@@ -787,3 +787,44 @@ BEFORE DELETE ON eval_result
 BEGIN
   SELECT RAISE(ABORT, 'eval_result is append-only');
 END;
+
+-- inventory_node (state): WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).
+CREATE TABLE IF NOT EXISTS inventory_node (
+  node_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  name TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  own_risk TEXT,
+  risk_source TEXT NOT NULL,
+  decision33_class TEXT,
+  attrs TEXT NOT NULL,
+  evidence TEXT NOT NULL,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (node_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_inventory_node_kind_status ON inventory_node (kind, status);
+
+-- inventory_edge (state): WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.
+CREATE TABLE IF NOT EXISTS inventory_edge (
+  edge_id TEXT NOT NULL,
+  src_id TEXT NOT NULL,
+  dst_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL,
+  evidence_ref TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (edge_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_inventory_edge_src_id ON inventory_edge (src_id);
+
+CREATE INDEX IF NOT EXISTS ix_inventory_edge_dst_id ON inventory_edge (dst_id);
