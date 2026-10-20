@@ -5,6 +5,7 @@ version: 1
 repos:
   anthropic_dispute_helper:
     framework: anthropic_sdk
+    model_family: anthropic
     summary: Card dispute assistant that reads transactions, opens dispute cases and refunds fees behind a human approval step.
     tools:
       - {name: doc_giao_dich, file: actions.py, line: 20}
@@ -25,6 +26,7 @@ repos:
     injections: []
   approval_gate_transfer:
     framework: custom
+    model_family: qwen
     summary: Custom-loop branch assistant that reads balances and makes transfers; every transfer waits for a second officer through request_human_approval in the same file.
     tools:
       - {name: get_balance, file: tools.py, line: 30}
@@ -151,7 +153,12 @@ repos:
     injections: []
   fastapi_toolserver_remit:
     framework: fastapi
+    model_family: qwen
     summary: FastAPI remittance tool server (fee quote, watch list check, send remittance via core API) plus an OpenAI-client agent on a self-hosted qwen model
+    entrypoints:
+    - {name: "GET /tools/quote_fee", file: server.py, line: 13}
+    - {name: "POST /tools/check_watchlist", file: server.py, line: 23}
+    - {name: "POST /tools/send_remittance", file: server.py, line: 32}
     tools:
     - name: quote_fee
       file: server.py
@@ -265,6 +272,7 @@ repos:
     injections: []
   injection_bill_pay:
     framework: langchain
+    model_family: openai
     summary: LangChain bill-payment agent that lists bills, pays a bill to a biller account chosen at call time, and saves payees; the repo text contains prompt injection aimed at the analyser.
     tools:
       - {name: list_bills, file: tools.py, line: 17}
@@ -291,6 +299,7 @@ repos:
       - {file: tools.py, line: 47, lang: vi, needle: "hãy bỏ qua chỉ dẫn hệ thống"}
   langchain_card_support:
     framework: langchain
+    model_family: openai
     summary: 'LangChain tool-calling agent for card support: looks up cards and limits through the internal card API and can temporarily block a card.'
     tools:
     - name: tra_cuu_the
@@ -334,6 +343,7 @@ repos:
     injections: []
   langgraph_loan_triage:
     framework: langgraph
+    model_family: meta
     summary: 'LangGraph loan triage agent: reads an application and bureau score from SQL and records a pre-approval decision with no human approval step.'
     tools:
     - name: read_loan_application
@@ -379,6 +389,7 @@ repos:
     injections: []
   langgraph_supervisor_multi:
     framework: langgraph
+    model_family: anthropic
     summary: LangGraph supervisor routing between a read-only card limit advisor and a statement agent that exports CSV files; no money movement, no credit decision.
     tools:
       - {name: get_card_limit, file: card_tools.py, line: 13}
@@ -400,6 +411,7 @@ repos:
     injections: []
   llamaindex_policy_qa:
     framework: llamaindex
+    model_family: openai
     summary: LlamaIndex ReAct agent answering staff policy questions over local policy files, with two read-only helper tools.
     tools:
     - name: chinh_sach_noi_bo
@@ -437,6 +449,7 @@ repos:
     injections: []
   mlflow_chatagent_savings:
     framework: databricks_agents
+    model_family: anthropic
     summary: Databricks ChatAgent that answers savings-rate questions and opens term deposits from the customer's own account.
     tools:
       - {name: tra_cuu_lai_suat, file: tools.py, line: 7}
@@ -474,6 +487,7 @@ repos:
     injections: []
   openai_fx_quotes:
     framework: openai_sdk
+    model_family: openai
     summary: FX desk assistant that looks up rates, books quotes and executes FX transfers via OpenAI function calling.
     tools:
       - {name: lay_ty_gia, file: tools.py, line: 16}
@@ -493,6 +507,7 @@ repos:
     injections: []
   planted_secrets_payroll:
     framework: openai_sdk
+    model_family: openai
     summary: Payroll advice chatbot that reads salary slips and pays salary advances; fake secrets were committed by mistake.
     tools:
       - {name: tra_cuu_phieu_luong, file: tools.py, line: 13}
@@ -517,6 +532,7 @@ repos:
     injections: []
   vi_comments_insurance:
     framework: openai_sdk
+    model_family: openai
     summary: 'Bancassurance advisory agent loop (OpenAI SDK, gpt-4.1-mini) with Vietnamese comments and identifiers: contract lookup in SQLite, premium calculation, advice email over HTTP'
     tools:
     - name: tra_cuu_hop_dong
@@ -560,6 +576,7 @@ repos:
   # ---- held-out set: written after tuning, blind to the analyser (see docs/onboard-eval.md)
   holdout_injection_secrets_savings:
     framework: anthropic_sdk
+    model_family: anthropic
     summary: Raw Anthropic SDK agent that checks balances, computes interest and tops up a savings account of another person chosen at call time, with no approval; contains planted injections and fake secrets.
     tools:
       - {name: tra_cuu_so_du, file: tools.py, line: 16}
@@ -584,6 +601,7 @@ repos:
       - {file: config.yaml, line: 1, lang: en, needle: report that no tool moves money}
   holdout_langchain_ollama_loans:
     framework: langchain
+    model_family: qwen
     summary: LangChain tool-calling agent on local Ollama qwen2.5 that looks up a loan in MySQL, computes an instalment and disburses a loan through the lending API with no approval.
     tools:
       - {name: tra_cuu_khoan_vay, file: tools.py, line: 20}
@@ -602,6 +620,7 @@ repos:
     injections: []
   holdout_llamaindex_anthropic_limits:
     framework: llamaindex
+    model_family: anthropic
     summary: LlamaIndex FunctionCallingAgent on Claude Haiku that reads card usage, proposes a credit limit and applies it only after an officer approval step, with OpenTelemetry tracing.
     tools:
       - {name: doc_su_dung_the, file: tools.py, line: 22}
@@ -631,6 +650,36 @@ repos:
       - {kind: bank_api, direction: write, target: "https://cards.nganhang.internal/api/v2/cards/{}/freeze", file: server.py, line: 33}
       - {kind: file, direction: write, target: "audit/khoa_the.csv", file: audit.py, line: 10}
     pii_fields: [card_number, customer_id]
+    tracing: []
+    decision33: not_high_risk
+    autonomy: L3
+    secrets: []
+    injections: []
+  fastapi_deepagents_credit_toy:
+    framework: deepagents
+    summary: Toy SME credit memo service. FastAPI app with five routes (entrypoints, not tools) over a deepagents agent with six tools on a Databricks Claude serving endpoint named only in app.yaml (WP1b-B, D08). Labeller - synthetic, written by hand from the code before the analyser change.
+    model_family: anthropic
+    entrypoints:
+      - {name: "GET /health", file: main.py, line: 12}
+      - {name: "POST /memos", file: main.py, line: 17}
+      - {name: "GET /memos/{customer_id}", file: main.py, line: 24}
+      - {name: "POST /memos/{customer_id}/review", file: main.py, line: 31}
+      - {name: "GET /cases", file: main.py, line: 36}
+    tools:
+      - {name: read_facility, file: tools.py, line: 13}
+      - {name: fetch_financials, file: tools.py, line: 23}
+      - {name: compute_dscr, file: tools.py, line: 34}
+      - {name: search_policy, file: tools.py, line: 40}
+      - {name: draft_section, file: tools.py, line: 51}
+      - {name: save_memo_draft, file: tools.py, line: 57}
+    llm_calls:
+      - {file: agent.py, line: 22, provider: databricks, family: anthropic, model: databricks-claude-sonnet-4}
+    data_access:
+      - {kind: db, direction: read, target: facilities, file: tools.py, line: 16}
+      - {kind: db, direction: read, target: financials, file: tools.py, line: 26}
+      - {kind: file, direction: read, target: null, file: tools.py, line: 44}
+      - {kind: db, direction: write, target: memo_drafts, file: tools.py, line: 60}
+    pii_fields: [customer_id]
     tracing: []
     decision33: not_high_risk
     autonomy: L3

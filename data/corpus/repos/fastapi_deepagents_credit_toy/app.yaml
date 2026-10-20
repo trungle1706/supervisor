@@ -1,0 +1,6 @@
+command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+env:
+  - name: MEMO_ENDPOINT
+    value: databricks-claude-sonnet-4
+  - name: MEMO_SCHEMA
+    value: toy_catalog.credit_toy

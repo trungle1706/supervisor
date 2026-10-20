@@ -1,0 +1,31 @@
+{
+  "what": "WP1b-B (D08) onboarding regression baseline. Numbers are integer basis points (bp); thresholds ILLUSTRATIVE.",
+  "date": "2026-10-20",
+  "corpus": "21 repos (20 WP16 repos + fastapi_deepagents_credit_toy)",
+  "labeller": "synthetic (hand-written from the code); model_family labels of the 15 older repos are derived from their gold llm_calls labels",
+  "before": {
+    "commit": "de8a2ca",
+    "note": "analyser of phase3-wave1 on fastapi_deepagents_credit_toy: 11 tools (6 real + 5 routes), framework langchain, model family unknown",
+    "fixture_tools_precision_bp": 5455,
+    "fixture_tools_recall_bp": 10000,
+    "fixture_framework": "langchain",
+    "fixture_model_family": "unknown"
+  },
+  "after": {
+    "commit": "branch wp1b-b-onboard-monitors",
+    "min": {
+      "tools_precision_bp": 10000,
+      "tools_recall_bp": 10000,
+      "entrypoints_precision_bp": 10000,
+      "entrypoints_recall_bp": 10000,
+      "model_family_accuracy_bp": 10000,
+      "framework_accuracy_bp": 10000,
+      "llm_calls_recall_bp": 10000
+    },
+    "min_ci_low_bp": {
+      "tools_precision": 9400,
+      "entrypoints_recall": 6700,
+      "model_family_accuracy": 8000
+    }
+  }
+}

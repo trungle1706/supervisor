@@ -32,20 +32,31 @@ def _pct(v: Any) -> str:
     return "n/a" if v is None else f"{v // 100}.{v % 100:02d}%"
 
 
+def _ci(v: Any) -> str:
+    return "n/a" if not v else f"{_pct(v[0])} to {_pct(v[1])}"
+
+
 def render_md(report: dict[str, Any]) -> str:
     out = ["# Corpus eval report", "", f"Corpus: `{report['corpus']}`", ""]
-    out += ["## Fields (set-type)", "", "| field | precision | recall | F1 | TP | FP | FN |"]
-    out.append("|---|---|---|---|---|---|---|")
-    for f in ("tools", "llm_calls", "data_access", "pii_fields"):
+    out += [
+        "## Fields (set-type)",
+        "",
+        "| field | precision | precision 95% CI | recall | recall 95% CI | F1 | TP | FP | FN |",
+    ]
+    out.append("|---|---|---|---|---|---|---|---|---|")
+    for f in ("tools", "entrypoints", "llm_calls", "data_access", "pii_fields"):
         r = report["fields"][f]
         out.append(
-            f"| {f} | {_pct(r['precision_bp'])} | {_pct(r['recall_bp'])} | {_pct(r['f1_bp'])}"
+            f"| {f} | {_pct(r['precision_bp'])} | {_ci(r.get('precision_ci_bp'))}"
+            f" | {_pct(r['recall_bp'])} | {_ci(r.get('recall_ci_bp'))} | {_pct(r['f1_bp'])}"
             f" | {r['tp']} | {r['fp']} | {r['fn']} |"
         )
     out += ["", "## Fields (accuracy and extras)", "", "| metric | value |", "|---|---|"]
     for f, r in sorted(report["fields"].items()):
         for k, v in sorted(r.items()):
-            if k.endswith("_bp") and k not in ("precision_bp", "recall_bp", "f1_bp"):
+            if k.endswith("_ci_bp"):
+                out.append(f"| {f}.{k} | {_ci(v)} |")
+            elif k.endswith("_bp") and k not in ("precision_bp", "recall_bp", "f1_bp"):
                 out.append(f"| {f}.{k} | {_pct(v)} |")
             elif f in ("secrets", "injections") and not k.endswith("_bp"):
                 out.append(f"| {f}.{k} | {v} |")
@@ -95,7 +106,8 @@ def summary_lines(res: EvalResult) -> list[str]:
     for f, r in res.fields.items():
         if "tp" in r:
             lines.append(
-                f"{f}: P={_pct(r['precision_bp'])} R={_pct(r['recall_bp'])} "
+                f"{f}: P={_pct(r['precision_bp'])} [{_ci(r.get('precision_ci_bp'))}] "
+                f"R={_pct(r['recall_bp'])} [{_ci(r.get('recall_ci_bp'))}] "
                 f"F1={_pct(r['f1_bp'])} (tp={r['tp']} fp={r['fp']} fn={r['fn']})"
             )
         elif "accuracy_bp" in r:
