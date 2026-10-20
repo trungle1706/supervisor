@@ -68,6 +68,11 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "approver", "admin", "auditor"),
         "Download a built audit pack",
     ),
+    "tools.view": (_ALL, "Tools page and /v1/analytics/tools (tool usage, read-only)"),
+    "tools.download": (
+        ("owner", "admin"),
+        "Download the least-privilege diff of an agent (WP22; a suggestion, never applied)",
+    ),
     "onboard.start": (("reviewer", "owner", "admin"), "Start an onboarding run"),
     "agent.pause": (("reviewer", "approver", "owner", "admin"), "Pause an agent (D04)"),
     "agent.resume": (("reviewer", "owner", "admin"), "Approve a resume (D04, two people)"),
@@ -85,6 +90,7 @@ NON_USER_OK: frozenset[str] = frozenset(
         "onboard.view",
         "compliance.view",
         "gate.read",
+        "tools.view",
         "case.verify",
         "chain.verify",
     }
@@ -142,6 +148,9 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/assurance"): "console.view",  # WP17, read-only
     ("GET", "/console/assurance/{run_id}"): "console.view",
     ("GET", "/console/exports/{name}"): "evidence.download",
+    ("GET", "/console/tools"): "tools.view",  # WP22
+    ("GET", "/console/tools/{agent_id}/diff"): "tools.download",
+    ("GET", "/v1/analytics/tools"): "tools.view",
     # console actions
     ("POST", "/console/cases/{case_id}/assign"): "case.assign",
     ("POST", "/console/cases/{case_id}/comment"): "case.comment",

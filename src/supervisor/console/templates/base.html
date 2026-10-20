@@ -26,6 +26,7 @@
     {% if compliance_enabled %}<a href="/console/compliance?lang={{ lang }}" class="{{ 'active' if section == 'compliance' else '' }}">{{ t('nav_compliance') }}</a>{% endif %}
     {% if integration_on %}<a href="/console/integration?lang={{ lang }}" class="{{ 'active' if section == 'integration' else '' }}">{{ t('nav_integration') }}</a>{% endif %}
     {% if sh.assurance %}<a href="/console/assurance?lang={{ lang }}" class="{{ 'active' if section == 'assurance' else '' }}">{{ t('nav_assurance') }}</a>{% endif %}
+    {% if sh.tools %}<a href="/console/tools?lang={{ lang }}" class="{{ 'active' if section == 'tools' else '' }}">{{ t('nav_tools') }}</a>{% endif %}
     <a href="/console/health?lang={{ lang }}" class="{{ 'active' if section == 'health' else '' }}">{{ t('nav_health') }}</a>
   </nav>
   <div class="who">

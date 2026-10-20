@@ -46,7 +46,7 @@ def test_document_is_valid_openapi(doc: dict[str, Any]) -> None:
 
 def test_every_operation_has_a_declared_tag(doc: dict[str, Any]) -> None:
     declared = {t["name"] for t in doc["tags"]}
-    assert declared == {"gate", "traces", "console", "ops"}
+    assert declared == {"gate", "traces", "console", "analytics", "ops"}
     assert all(t["description"] for t in doc["tags"])
     for path, method, op in _ops(doc):
         assert op.get("tags"), (method, path)

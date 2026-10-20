@@ -46,4 +46,10 @@
 | Unverified review notes: `audited` does not catch `CancelledError`; `onboard_runs.artefact_path` has no `resolve()` for planted symlinks | Reproduce, then fix in the next ops pass |
 | Compliance advisor counts a monitor as present when it is planned, not when its runtime flag is on (`FAIRNESS_ENABLED` etc.) | Read deployment settings into the product facts |
 | Onboard eval: held-out set is no longer blind after the post-blind fixes | Write a fresh blind set (new repos, worker does not read the analyser) before quoting the gates externally |
+| WP22: gate failures that never write an `agent_event` (the `_fail` path writes only a `verdict` without a tool name) are not in the tool rollup `errors` | Write an `agent_event` (or add `tool_name` to `verdict`) in `Gateway._fail`; then count `fail_*` verdicts per tool |
+| WP22: distinct callers and users are per day; window views show the largest day, and the window p95 is the worst daily p95 | A second rollup grain (week or window) with HyperLogLog-style sketches, or a live window query on Delta |
+| WP22: the diff is built for one-line `not_in: [..]` lists only and bumps `version`; it cannot edit a rule written in block style or an allow-list kept outside `policies/` | Teach the patcher block-style YAML (ruamel is not in `uv.lock`), or move allow-lists to a dedicated policy file |
+| WP22: backfill of 90 days writes one Delta MERGE per row (about 1,000 rows) | Batch the state writes in `SqlStateStore` (a multi-row MERGE) |
+| WP22: exceptions live in a YAML file with a PR as the approval; no console screen or two-person record | Exception objects in the control catalogue (WP30) |
+| WP22: no per-tool anomaly view (a tool that suddenly gets 10x calls) | Reuse the drift bands (D09) on `tool_usage_daily` |
 | `model_version` is the model tag; include the endpoint-reported digest when available | A model endpoint that reports a digest or revision |

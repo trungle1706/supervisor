@@ -46,6 +46,7 @@ from supervisor.console import (
     integration_reports,
     onboard_runs,
     readmodels,
+    tools_views,
     views,
 )
 from supervisor.console.context import ConsoleContext, get_context
@@ -1137,6 +1138,55 @@ async def assurance_run_page(
         return off
     data = await _call(assurance_views.run_detail, ctx.tables, run_id)
     return render(request, ctx, me, "assurance.html", section="assurance", **data)
+
+
+# ---------------------------------------------------------------------------- tools (WP22)
+
+
+def _tools_off(ctx: ConsoleContext) -> None:
+    """Off unless CONSOLE_TOOLS_ENABLED is on: HTTP 400 with a message and no nav link."""
+    if not ctx.settings.console_tools_enabled:
+        raise ConsoleInputError(
+            "The Tools tab is off (CONSOLE_TOOLS_ENABLED=1 turns it on); use "
+            "python -m supervisor.analytics.tools report"
+        )
+
+
+@router.get("/tools", response_class=HTMLResponse, dependencies=[Depends(needs("tools.view"))])
+async def tools_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _tools_off(ctx)
+    q = request.query_params
+    data = await _call(
+        tools_views.page,
+        ctx,
+        agent_id=q.get("agent_id"),
+        days=q.get("days"),
+        sort=q.get("sort", "default"),
+        desc=q.get("dir") == "desc",
+    )
+    can_download = rbac.allowed(me.roles, "tools.download")
+    return render(
+        request, ctx, me, "tools.html", section="tools", can_download=can_download, **data
+    )
+
+
+@router.get("/tools/{agent_id}/diff", dependencies=[Depends(needs("tools.download"))])
+async def tools_diff(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """The suggested policy diff as a text file. Built in memory: no file is written, no
+    policy is touched."""
+    _tools_off(ctx)
+    name, text = await _call(
+        tools_views.diff_download, ctx, agent_id, request.query_params.get("days")
+    )
+    return Response(
+        text,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )
 
 
 # ---------------------------------------------------------------------------- health

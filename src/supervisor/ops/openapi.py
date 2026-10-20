@@ -27,6 +27,11 @@ TAGS: list[dict[str, str]] = [
         "description": "Reviewer console (HTML UI for people, not a stable API).",
     },
     {
+        "name": "analytics",
+        "description": "Analytics read routes (WP22): GET /v1/analytics/tools, the tool usage "
+        "rollup. Off unless TOOL_ANALYTICS_ENABLED=1.",
+    },
+    {
         "name": "ops",
         "description": "Operations: /health (liveness), /ready (readiness), /healthz, /version.",
     },
@@ -60,7 +65,7 @@ _METHODS = {"get", "put", "post", "delete", "patch", "head", "options"}
 def _is_human_path(path: str) -> bool:
     if path in _INGRESS:
         return False
-    return path.startswith(("/console", "/gate/", "/v1/gate/"))
+    return path.startswith(("/console", "/gate/", "/v1/gate/", "/v1/analytics/"))
 
 
 def build_openapi(app: FastAPI) -> dict[str, Any]:

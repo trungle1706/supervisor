@@ -117,6 +117,20 @@ Goal: edit or delete evidence after the fact.
 | No `exec`, `eval`, `compile` or `subprocess` outside one module (AST test) | `src/supervisor/sandbox.py`, `tests/test_architecture.py` |
 | No PAT: preflight and settings refuse `DATABRICKS_TOKEN` | `config.py`, `preflight.py` |
 
+### 3.7 Tool analytics and least-privilege suggestions (WP22)
+
+New read surface: `GET /v1/analytics/tools` and the console Tools page show per-tool usage; the
+owner can download a suggested policy diff. The rollup stores counts only (distinct callers and
+users are counted from HMAC hashes, never stored), so it adds no personal data. The risk is
+a wrong suggestion, not a leak: a diff that removes a needed tool would stop a business flow,
+and a diff that is applied blindly would weaken review. Controls: nothing is applied by code
+(a test hashes `policies/` and the manifests); the diff raises the rule version, so it must pass
+the two-approver policy PR; no data or too little history means nothing is proposed;
+documented exceptions carry an approver and an expiry; tools called but not declared are only
+flagged, never added. The suggestion cannot add a permission, so a poisoned usage log cannot
+widen an agent's access; it can only make a removal proposal look wrong, which a reviewer sees
+in the table.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

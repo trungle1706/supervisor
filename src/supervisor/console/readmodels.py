@@ -126,6 +126,7 @@ def shell(ctx: Any, me: Any) -> dict[str, Any]:
         "first_name": first_name(me),
         "role": main_role(me),
         "assurance": bool(ctx.settings.console_assurance_enabled),
+        "tools": bool(ctx.settings.console_tools_enabled),  # WP22
     }
 
 

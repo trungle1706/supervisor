@@ -47,6 +47,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Compliance advisor | Obligation matrix, gaps, open questions for any product | `docs/compliance-advisor.md` |
 | Integration advisor | Readiness score and patches to fit a product into Supervisor | `docs/INTEGRATION_GUIDE.md` |
 | Assurance packs | 33 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
+| Tool analytics | Per-tool calls, outcomes, latency; allowed-but-unused tools; least-privilege diff (suggestion only) | `docs/tool-analytics.md` |
 | Judge MRM | Model card, validation report, change control, retire | `docs/judge-mrm.md` |
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
 
@@ -82,6 +83,8 @@ until you turn its flag on.
 | `CONSOLE_COMPLIANCE_ENABLED` | Shows the Compliance tab (read-only obligation matrices) |
 | `CONSOLE_INTEGRATION_ENABLED` | Shows the Integration tab (readiness reports and patches as text) |
 | `CONSOLE_ASSURANCE_ENABLED` | Shows the Assurance tab (runs, packs, metrics against go / no-go) |
+| `TOOL_ANALYTICS_ENABLED` | Runs the daily tool usage rollup and writes least-privilege suggestions (a diff for a person to apply, never applied); serves `GET /v1/analytics/tools`. Commands and flags: `docs/tool-analytics.md` |
+| `CONSOLE_TOOLS_ENABLED` | Shows the Tools tab (usage per agent and tool, unused allowed tools, diff download for owners) |
 | `ONBOARD_COMPLIANCE_ENABLED` | Onboarding run also writes the compliance matrix |
 | `ONBOARD_ADVISOR_ENABLED` | Onboarding run also writes the integration report and patches |
 | `ASSURANCE_LAUNCH_ENABLED` | Launch runs agent packs in the sandbox; a failed required pack makes Launch NO-GO |
