@@ -160,14 +160,18 @@ class Facts:
     def risk_link_counts(self, risk_id: str) -> dict[str, int]:
         """How many active links of a risk are evidence and how many are references only (the
         evidence rule of the register: rule and pack links, and the monitors it lists)."""
-        from supervisor.risk.evidence import EVIDENCE_MONITORS
+        from supervisor.risk.evidence import EVIDENCE_MONITORS, JUDGED_PACKS
         from supervisor.risk.service import RiskService
 
         svc = RiskService(self.src.state, self.src.tables, self.src.clock, self.settings)
+        judged_ok = bool(getattr(self.settings, "risk_evidence_judged_packs", False))
         ev = ref = 0
         for x in svc.links(risk_id):
-            counts = x["kind"] in ("rule", "pack") or (
-                x["kind"] == "monitor" and x["target"] in EVIDENCE_MONITORS
+            judged = x["kind"] == "pack" and x["target"] in JUDGED_PACKS
+            counts = (
+                x["kind"] == "rule"
+                or (x["kind"] == "pack" and (not judged or judged_ok))
+                or (x["kind"] == "monitor" and x["target"] in EVIDENCE_MONITORS)
             )
             ev, ref = (ev + 1, ref) if counts else (ev, ref + 1)
         return {"evidence_links_n": ev, "reference_links_n": ref}

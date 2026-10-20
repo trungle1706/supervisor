@@ -2220,10 +2220,13 @@ _T.update(
         "tp_f_links": ("Links (evidence / reference)", "Liên kết (bằng chứng / tham chiếu)"),
         "tp_links_val": ("{e} evidence / {r} reference", "{e} bằng chứng / {r} tham chiếu"),
         "tp_evidence_rule": (
-            "Only rule links, pack links and these monitors count as evidence: {m}. Other monitor "
-            "links, matrix links and case links are references and never lower a score.",
-            "Chỉ liên kết quy tắc, liên kết gói và các bộ giám sát sau được tính là bằng chứng: "
-            "{m}. Liên kết bộ giám sát khác, ma trận và vụ việc chỉ là tham chiếu và không bao "
+            "Only rule links, packs not scored by a judge model and these monitors count as "
+            "evidence: "
+            "{m}. Judge-scored packs (unless the owner allows them), other monitor links, matrix "
+            "links and case links are references and never lower a score.",
+            "Chỉ liên kết quy tắc, gói không do mô hình đánh giá chấm và các bộ giám sát sau "
+            "được tính là bằng chứng: {m}. Gói do mô hình đánh giá chấm (trừ khi chủ sở hữu cho "
+            "phép), liên kết bộ giám sát khác, ma trận và vụ việc chỉ là tham chiếu và không bao "
             "giờ làm giảm điểm.",
         ),
         "tp_f_risk": ("Risk", "Rủi ro"),

@@ -51,7 +51,7 @@ A chain that fails the offline check is stated in all three variants (the custom
 
 ## Risk evidence wording
 
-The risk section follows the register's evidence rule (ADR D26 and its review amendment): rule links, pack links and the monitors `fairness`, `drift`, `multiagent` count as evidence; other monitor links, matrix links and case links are references and never lower a score. Each risk shows the two counts. The reason code `changed_since_evidence` is shown with its label when a risk changed after its last evidence.
+The risk section follows the register's evidence rule (ADR D26 and its review amendment): rule links, packs not scored by a judge model and the monitors `fairness`, `drift`, `multiagent` count as evidence; judge-scored packs (unless `RISK_EVIDENCE_JUDGED_PACKS=1`), other monitor links, matrix links and case links are references and never lower a score. Each risk shows the two counts. The reason code `changed_since_evidence` is shown with its label when a risk changed after its last evidence.
 
 ## Versions, hashes and the chain
 
