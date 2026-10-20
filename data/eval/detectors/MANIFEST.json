@@ -1,0 +1,46 @@
+{
+  "files": {
+    "adversarial.jsonl": {
+      "n_items": 38,
+      "n_positive": 32,
+      "sha256": "3d5dac9226324e185b7b51050a8bed874cdbec60c4b4dd8186028fd99101eb8d"
+    },
+    "dlp_vn.dev.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "143b8afe954f3145fb2faa8f3b5a7427ddc584e31b33f429e05020854faf5e08"
+    },
+    "dlp_vn.heldout.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "7e3a5c561ccdf9fa5ff187d639354cfc076bb3e94c9400dd004a9d7c1c561878"
+    },
+    "injection_regex.dev.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "6f34afa53366c3811254daa167d599dfb403bdf967df6c37b2b45ee96c67a599"
+    },
+    "injection_regex.heldout.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "6ac21d93c81bd4c9a99575a51c832488cbc199a9755a4d3f1475a60fa6b12eb3"
+    },
+    "judge_advisory.dev.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "9809c6bebff4e1413c219b09c8731cfbfb8ad5e38801785e705b2cfd7b6f8abb"
+    },
+    "judge_advisory.heldout.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "e8b0162124d2c12cf9b76a46d4d7a85e420498101350f4ff32d755a55dae208e"
+    }
+  },
+  "labellers": [
+    "synthetic",
+    "expert rubric"
+  ],
+  "licence": "own (synthetic, MIT)",
+  "note": "dlp_vn items are derived from data/eval/pii_vn (same synthetic text). adversarial.jsonl is hand-written and outside every template.",
+  "seed": 20261021
+}

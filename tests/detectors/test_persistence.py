@@ -41,7 +41,7 @@ def test_model_has_the_finding_table_and_the_agent_event_columns() -> None:
     for ddl in ("sqlite.sql", "databricks.sql"):
         text = (DDL_DIR / ddl).read_text(encoding="utf-8")
         assert "finding" in text and "verdict_status" in text and "coverage_json" in text
-    # the new columns on the old table are nullable: older rows and the flag-off path leave them NULL
+    # nullable: older rows and the flag-off path leave them NULL
     for name in ("verdict_status", "correlation_id", "coverage_json"):
         assert model.table("agent_event").column(name).nullable
 

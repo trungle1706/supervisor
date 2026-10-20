@@ -82,4 +82,5 @@ ignore = [
 "src/supervisor/analytics/tools.py" = ["T20"]  # WP22 CLI
 "src/supervisor/alerts/__main__.py" = ["T20"]  # WP21 CLI
 "src/supervisor/alerts/harness.py" = ["T20"]  # WP21 harness CLI
+"src/supervisor/detectors/harness.py" = ["T20"]  # WP37 harness CLI
 "schema/generate.py" = ["T20"]
