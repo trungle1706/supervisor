@@ -38,6 +38,11 @@
     {
       "alerts": [
         {
+          "group": "dev-agent-04",
+          "rule_id": "AL-INGRESS-REJECT-AGENT",
+          "suppressed": 3
+        },
+        {
           "group": "*",
           "rule_id": "AL-INGRESS-REJECT-BURST",
           "suppressed": 4
@@ -67,6 +72,6 @@
     }
   ],
   "n_gate_decisions": 500,
-  "n_signals": 570,
+  "n_signals": 587,
   "split": "dev"
 }

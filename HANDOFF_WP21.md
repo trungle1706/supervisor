@@ -75,3 +75,21 @@ Merge hints: `config.py` and DDL/model.yaml additions are at the end of their bl
 R1: alerts never call the gate; judge alerts exclude mock verdicts. R2: alert, SIEM and webhook text are built from fixed fields (ids, enums, counts, hashes); tests plant free text and a phone number. R3: no network unless `SIEM_SINK=http` or the webhook is switched on with a filled URL. Tokens are SecretStr, header only, never in repr, logs or dead-letter files. No exec/eval/subprocess. User errors on the new route are 4xx. CLI output is ASCII (asserted). All flags default off; off path tested.
 
 Neighbouring-area notes (not fixed): `post_json` used by the gate SDK now returns `{}` for an empty 2xx body instead of raising on `resp.json()` (needed for collectors; behaviour for non-empty bodies is unchanged). The old `WebhookSiemSink` default transport raised raw `httpx` errors that `with_retry` did not retry; that is fixed through `transport.post_json_mapped`. Commit trailers follow TEAM_BRIEF (Fable 5.1), which differs from the session attribution reminder.
+
+
+## Review follow-up (after REVIEW_WP21.md)
+
+Done on top of the two review commits. Full suite: 2907 passed, 26 skipped (2900 after the review fixes; 2791 on main). Ruff check and format clean.
+
+| Finding | What changed |
+|---|---|
+| F8 | The console **Verify chain** button writes a `chain_verify` record `{ok, failures, scope}` (root lane) after each verify (`console/auditpack.py`, a write failure is logged and never hides the result). `python -m supervisor.demo drill` writes `failmode_drill` `{ok, failures}` on its own throwaway chain and, with the new `--record` option (or `run_drill(sink=...)`), on the configured chain. The SIEM now sends only failed verifies (an ok verify is no finding). Tests in `tests/console/test_alerts_followup.py`: a failing verify raises `AL-CHAIN-VERIFY-FAIL`, a failing drill record raises `AL-FAILCLOSED-DRILL-FAIL`, passing ones are quiet. The drill is not scheduled, so the alert needs `--record` runs; BACKLOG row updated. |
+| F9 | `WebhookNotifier.notify` only queues (`notice` row `webhook:<channel>`, status `queued`). New `WebhookNotifier.drain()` and scheduler job `notify` (`jobs/notify.py`, `python -m supervisor.jobs.notify`, `SCHED_NOTIFY_S` default 15, on only with `NOTIFY_WEBHOOK_ENABLED` and a filled URL) send queued rows with retry and dead letter: `queued` to `sent` or `dead_letter`. Alert webhook routes already run in the alert job, so they are unchanged. Tests: a hook that sleeps 4 s costs a console request nothing (`test_a_dead_webhook_does_not_slow_a_console_request`) and 5 queued notices take under 1 s; drain, retry and dead letter tests rewritten for the queue. |
+| F10 | `ALERTS_SUPPRESSION_MAX_S` (default 30 days). A `suppressions` entry whose `until` is more than that ahead of the load time is a validation error naming the setting. The job passes the scheduler clock; the CLI uses the setting. Tests for 29 d ok, 31 d error, year 2099 error, custom cap. |
+| F12 | CEF `rt` is milliseconds since the epoch (`rt=1792396800500`). |
+| F13 | OCSF class 6003 has `src_endpoint` `{svc_name, hostname}` from `SIEM_SRC_APP` (default `supervisor`) and `SIEM_SRC_HOST` (default this host); never a user address. Class 3002 and 2004 are unchanged. Applies to the file, http and delta sinks. |
+| F17 | New rule `AL-INGRESS-REJECT-AGENT` (per agent, 5 in 300 s, high, dedupe 1800 s, inbox and siem). The global `AL-INGRESS-REJECT-BURST` threshold is now 20. Fixture changed: INC-4 is now 24 rejects in 276 s (8 on one agent, 16 spread over 7 agents) and raises both ingress alerts (2 alerts, 3 and 4 repeats absorbed); new near misses (12 spread rejects, 4 rejects of one agent). Still 6 incidents per split; now 8 expected alerts, 587 signals. New baseline: precision, recall, dedupe and triage 10000 bp on both splits, 8 of 8, 0 FP, 0 FN, Wilson 6755 to 10000 bp, false alert rate bound 66 bp. |
+
+Other test edits: `tests/monitors/test_scheduler.py::test_build_jobs_all_flags_run` also sets the webhook flag and a URL (the new `notify` job); rule counts 7 to 8 in `tests/alerts`.
+
+Not done from the review: F11 (cosmetic over-count of `suppressed_count` after a crash replay), F14 (dead-letter replay lock between processes; replay with the scheduler stopped), F15, F16, F18 (stay in the review file and BACKLOG).

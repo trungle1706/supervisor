@@ -17,7 +17,7 @@ from supervisor.alerts import (
     load_rules,
     parse_rules,
 )
-from supervisor.config import REPO_ROOT
+from supervisor.config import REPO_ROOT, load_settings
 
 T0 = datetime(2026, 10, 19, 8, 0, 0, tzinfo=UTC)
 
@@ -60,6 +60,7 @@ def test_shipped_config_is_valid_and_complete() -> None:
         "AL-CHAIN-VERIFY-FAIL",
         "AL-JUDGE-ESCALATION",
         "AL-INGRESS-REJECT-BURST",
+        "AL-INGRESS-REJECT-AGENT",
         "AL-FAILCLOSED-DRILL-FAIL",
         "AL-JOB-FAILURE",
     }
@@ -244,6 +245,29 @@ def test_only_rules_filter_and_alert_id_is_deterministic() -> None:
 # --------------------------------------------------------------------------- review fixes
 
 
+def _in_days(n: int) -> str:
+    return (datetime.now(UTC) + timedelta(days=n)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def test_suppression_until_is_capped() -> None:
+    def doc(until: str) -> dict[str, Any]:
+        d = _rules()
+        d["suppressions"] = [
+            {"rule_id": "AL-TEST-ONE", "agent_id": "a", "until": until, "reason_code": "planned"}
+        ]
+        return d
+
+    assert len(parse_rules(doc(_in_days(29))).suppressions) == 1  # inside the default 30 days
+    with pytest.raises(AlertConfigError, match="ALERTS_SUPPRESSION_MAX_S"):
+        parse_rules(doc(_in_days(31)))
+    with pytest.raises(AlertConfigError, match="ALERTS_SUPPRESSION_MAX_S"):
+        parse_rules(doc("2099-01-01T00:00:00Z"))  # the permanent mute that looks time-boxed
+    assert len(parse_rules(doc(_in_days(31)), max_suppression_s=40 * 86400).suppressions) == 1
+    with pytest.raises(AlertConfigError, match="ALERTS_SUPPRESSION_MAX_S"):
+        parse_rules(doc(_in_days(2)), max_suppression_s=86400)
+    assert load_settings().alerts_suppression_max_s == 30 * 86400
+
+
 def test_enabled_false_takes_the_rule_out_and_is_validated() -> None:
     rs = parse_rules(_rules(enabled=False))
     assert rs.rules == ()
@@ -254,7 +278,7 @@ def test_enabled_false_takes_the_rule_out_and_is_validated() -> None:
     # a suppression may still name the disabled rule
     doc = _rules(enabled=False)
     doc["suppressions"] = [
-        {"rule_id": "AL-TEST-ONE", "agent_id": "*", "until": "2027-01-01T00:00:00Z",
+        {"rule_id": "AL-TEST-ONE", "agent_id": "*", "until": _in_days(5),
          "reason_code": "planned_test"}
     ]  # fmt: skip
     assert len(parse_rules(doc).suppressions) == 1

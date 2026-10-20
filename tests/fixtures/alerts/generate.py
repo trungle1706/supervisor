@@ -16,12 +16,12 @@ Planted incidents and the alerts each one must raise (and nothing else may fire)
   INC-1 runaway agent   8 blocks in 6 min, then a quarantine   AL-BLOCK-BURST + AL-QUARANTINE
   INC-2 chain tamper    a failed chain verify, repeated 10 min later   AL-CHAIN-VERIFY-FAIL
   INC-3 judge escalation  one real tier 2 verdict             AL-JUDGE-ESCALATION
-  INC-4 credential stuffing  14 ingress rejects in 4 min      AL-INGRESS-REJECT-BURST
+  INC-4 credential stuffing  24 ingress rejects in 276 s       AL-INGRESS-REJECT-AGENT + -BURST
   INC-5 job failure     the "drift" job fails twice, 15 min apart   AL-JOB-FAILURE
   INC-6 drill failure   the fail-closed drill fails           AL-FAILCLOSED-DRILL-FAIL
 
 Hard negatives (must NOT fire): 4 blocks in 9 min for one agent, 5 blocks over 20 min for
-another, a pause (not a quarantine), a mock tier 2 verdict, a tier 1 verdict, 9 ingress
+another, a pause (not a quarantine), a mock tier 2 verdict, a tier 1 verdict, 12 spread ingress
 rejects in 5 min, good chain verifies, a good drill, successful job runs.
 Everything is synthetic. Licence: same as the repository (MIT). Labeller: synthetic.
 """
@@ -138,12 +138,21 @@ def build(split: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         },
         "INC-3",
     )
-    # INC-4: 14 ingress rejects in 4 minutes
-    for i in range(14):
+    # INC-4: 24 ingress rejects in 276 s. Every third one hits one agent (8 rejects: the
+    # per-agent rule fires), the rest are spread over 7 other agents (at most 3 each), and the
+    # global count reaches 20 (the global rule fires).
+    victim, spread = others[3], [x for x in others if x != others[3]]
+    k = 0
+    for i in range(24):
+        if i % 3 == 0:
+            agent = victim
+        else:
+            agent = spread[k % len(spread)]
+            k += 1
         b.add(
             "ingress_reject",
-            t4 + i * 17.0,
-            {"agent_id": rnd.choice(others), "reason_code": "bad_signature"},
+            t4 + i * 12.0,
+            {"agent_id": agent, "reason_code": "bad_signature"},
             "INC-4",
             lane="ingress",
         )
@@ -189,12 +198,19 @@ def build(split: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
             "is_mock": False,
         },
     )
-    n2 = rnd.randint(13000, 13500)  # after every incident slot: no overlap with INC-4
-    for i in range(9):  # 9 ingress rejects in 5 minutes: below the threshold
+    n2 = rnd.randint(13500, 13700)  # after every incident slot: no overlap with INC-4
+    for i in range(12):  # 12 spread rejects in 4 minutes: below the global 20, at most 2 each
         b.add(
             "ingress_reject",
-            n2 + i * 33.0,
-            {"agent_id": rnd.choice(others), "reason_code": "expired"},
+            n2 + i * 20.0,
+            {"agent_id": others[i % len(others)], "reason_code": "expired"},
+            lane="ingress",
+        )
+    for i in range(4):  # 4 rejects of one agent in 30 s: below the per-agent 5
+        b.add(
+            "ingress_reject",
+            14100.0 + i * 10.0,
+            {"agent_id": near1, "reason_code": "expired"},
             lane="ingress",
         )
     for k in range(6):
@@ -246,7 +262,10 @@ def build(split: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
             },
             {
                 "id": "INC-4",
-                "alerts": [{"rule_id": "AL-INGRESS-REJECT-BURST", "group": "*", "suppressed": 4}],
+                "alerts": [
+                    {"rule_id": "AL-INGRESS-REJECT-AGENT", "group": victim, "suppressed": 3},
+                    {"rule_id": "AL-INGRESS-REJECT-BURST", "group": "*", "suppressed": 4},
+                ],
             },
             {
                 "id": "INC-5",

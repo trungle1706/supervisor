@@ -133,8 +133,31 @@ def test_good_audit_pack_is_not_an_anomaly() -> None:
         S.event_from_chain({**ENTRY, "record_type": "audit_pack_built"}, {"verify_ok": True})
         is None
     )
-    ok = S.event_from_chain({**ENTRY, "record_type": "chain_verify"}, {"ok": True})
-    assert ok is not None and ok.outcome == "verify_ok" and ok.severity == 1
+    assert S.event_from_chain({**ENTRY, "record_type": "chain_verify"}, {"ok": True}) is None
+    bad = S.event_from_chain({**ENTRY, "record_type": "chain_verify"}, {"ok": False})
+    assert bad is not None and bad.outcome == "verify_failed" and bad.severity == 10
+
+
+def test_cef_rt_is_milliseconds_since_the_epoch() -> None:
+    line = S.to_cef(_ev(ts="2026-10-19T08:00:00.500000Z"))
+    assert "rt=1792396800500 " in line
+
+
+def test_ocsf_class_6003_has_src_endpoint_without_user_addresses(tmp_path: Path) -> None:
+    doc = to_ocsf_dict(_ev())
+    assert doc["src_endpoint"] == {"svc_name": "supervisor"}
+    cfg = load_integration_settings(
+        _env_file=None, siem_enabled=True, siem_format="ocsf",
+        siem_src_app="supervisor-test", siem_src_host="host-a",
+    )  # fmt: skip
+    sink = S.build_siem_sink(cfg, tmp_path)
+    sink.emit([_ev(), _ev("ingress_reject", n=2, outcome="reject")])
+    docs = [
+        json.loads(x) for x in (tmp_path / "siem" / "events.log").read_text("utf-8").splitlines()
+    ]
+    assert docs[0]["src_endpoint"] == {"svc_name": "supervisor-test", "hostname": "host-a"}
+    assert "src_endpoint" not in docs[1]  # class 3002: no source address is known
+    assert "ip" not in json.dumps(docs[0]["src_endpoint"])
 
 
 FREE_TEXT = "chuyen khoan cho Nguyen Van A so dien thoai 0912345678"

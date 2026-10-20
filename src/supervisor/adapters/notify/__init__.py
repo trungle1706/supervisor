@@ -5,7 +5,9 @@
 * ``webhook`` (off by default: ``NOTIFY_WEBHOOK_ENABLED=0``). With the flag on and
   ``NOTIFY_WEBHOOK_URL`` filled (WP21) ``WebhookNotifier`` POSTs each notice (masked text,
   ids) with bounded retry, an idempotency key and a dead-letter file; the ``notice`` row
-  (channel ``webhook:<channel>``) goes ``queued`` -> ``sent`` or ``dead_letter``. With the
+  (channel ``webhook:<channel>``) is queued by ``notify`` (a console request never waits
+  for the network); the scheduler job ``notify`` (``WebhookNotifier.drain``) sends it:
+  ``queued`` -> ``sent`` or ``dead_letter``. With the
   flag on and the URL empty or ``FILL-ME`` the old stub queues the row and never sends.
 * ``pager`` and ``itsm`` (stubs, WP21): same ``Notifier`` interface and ``kind``; they
   queue a ``notice`` row (``pager:<channel>``, ``itsm:<channel>``, status ``queued``) and
@@ -172,24 +174,41 @@ class WebhookNotifier:
         return self.dead_letter.replay(lambda e: self._retrying(e["payload"], "webhook replay"))
 
     def notify(self, channel: str, subject: str, body: str) -> None:
-        row = self.inbox._store(f"webhook:{channel}"[:64], subject, body, "queued")
-        doc = {
-            "channel": channel,
-            "subject": row["subject"],
-            "body": row["body"],
-            "notice_id": row["notice_id"],
-            "ts": format_ts(row["ts"]),
-        }
-        status = self.send_json("notice", str(row["notice_id"]), doc)
-        try:
-            self.inbox.state.update(
-                "notice",
-                {"notice_id": row["notice_id"]},
-                {"status": "sent" if status == "sent" else "dead_letter"},
-                int(row["row_version"]),
-            )
-        except Exception:  # noqa: BLE001 - the send is done; the row status is a courtesy
-            log.warning("webhook notice status not updated")
+        """Queue only. Never sends: this runs on console request paths (case actions), and a
+        dead webhook must not slow them (3 attempts x 10 s). The ``notify`` scheduler job calls
+        ``drain``."""
+        self.inbox._store(f"webhook:{channel}"[:64], subject, body, "queued")
+
+    def drain(self, limit: int = 50) -> dict[str, int]:
+        """Send queued ``webhook:*`` notices, oldest first, with retry and dead letter. Each row
+        goes ``queued`` -> ``sent`` or ``dead_letter``. Never raises."""
+        rows = [
+            r
+            for r in self.inbox.state.query("notice", {"status": "queued"})
+            if str(r["channel"]).startswith("webhook:")
+        ]
+        rows.sort(key=lambda r: (r["ts"], r["notice_id"]))
+        out = {"sent": 0, "dead_letter": 0}
+        for row in rows[:limit]:
+            doc = {
+                "channel": str(row["channel"])[len("webhook:") :],
+                "subject": row["subject"],
+                "body": row["body"],
+                "notice_id": row["notice_id"],
+                "ts": format_ts(row["ts"]),
+            }
+            status = self.send_json("notice", str(row["notice_id"]), doc)
+            out[status] += 1
+            try:
+                self.inbox.state.update(
+                    "notice",
+                    {"notice_id": row["notice_id"]},
+                    {"status": status},
+                    int(row["row_version"]),
+                )
+            except Exception:  # noqa: BLE001 - the send is done; the row status is a courtesy
+                log.warning("webhook notice status not updated")
+        return out
 
 
 class StubNotifier:

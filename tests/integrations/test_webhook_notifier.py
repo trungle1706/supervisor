@@ -85,6 +85,10 @@ def test_notice_is_sent_with_idempotency_key_and_status(adapters: Adapters) -> N
     hook = Hook()
     n = WebhookNotifier(inbox, "https://h.invalid/x", transport=hook, sleep=lambda _s: None)
     n.notify("reviewers", "New case", "case C1 opened")
+    assert hook.calls == []  # notify only queues: no network on a request path
+    assert inbox.list(channel="webhook:reviewers")[0]["status"] == "queued"
+    assert n.drain() == {"sent": 1, "dead_letter": 0}
+    assert n.drain() == {"sent": 0, "dead_letter": 0}  # nothing is sent twice
     assert len(hook.calls) == 1
     body = hook.calls[0]
     assert body["kind"] == "notice" and body["channel"] == "reviewers"
@@ -103,6 +107,8 @@ def test_retry_with_backoff_then_dead_letter_and_replay(adapters: Adapters, tmp_
         inbox, "https://h.invalid/x", transport=hook, dead_letter=dl, sleep=slept.append
     )
     n.notify("reviewers", "s", "b")  # must not raise
+    assert hook.calls == []
+    assert n.drain() == {"sent": 0, "dead_letter": 1}  # must not raise
     assert len(hook.calls) == 3 and slept == [1.0, 2.0] and n.dead_lettered == 1
     assert inbox.list(channel="webhook:reviewers")[0]["status"] == "dead_letter"
     [entry] = dl.entries()
@@ -124,6 +130,7 @@ def test_succeeds_on_the_second_try_without_a_dead_letter(
         inbox, "https://h.invalid/x", transport=hook, dead_letter=dl, sleep=lambda _s: None
     )
     n.notify("c", "s", "b")
+    n.drain()
     assert len(hook.calls) == 2 and dl.count() == 0
     assert inbox.list(channel="webhook:c")[0]["status"] == "sent"
 
@@ -147,6 +154,7 @@ def test_text_is_masked_like_the_inbox(adapters: Adapters) -> None:
     hook = Hook()
     n = WebhookNotifier(inbox, "https://h.invalid/x", transport=hook, sleep=lambda _s: None)
     n.notify("c", "s", "khach hang so dien thoai 0912345678")
+    n.drain()
     assert "0912345678" not in hook.calls[0]["body"]
 
 
@@ -182,3 +190,22 @@ def test_token_comes_from_settings_and_stays_secret(adapters: Adapters) -> None:
     hook = next(t for t in targets if isinstance(t, WebhookNotifier))
     assert "tok-123" not in repr(hook.transport) and "tok-123" not in repr(on)
     assert hook.transport._token == "tok-123"  # noqa: SLF001
+
+
+def test_a_dead_hook_costs_a_request_nothing(adapters: Adapters) -> None:
+    """F9: the request path only queues. A hook that hangs 5 s per call is not touched."""
+    import time
+
+    inbox = InboxNotifier(adapters.state, adapters.clock)
+
+    def hangs(url: str, payload: dict[str, Any], timeout_s: float) -> dict[str, Any]:
+        time.sleep(5)
+        raise ConnectionError("down")
+
+    n = WebhookNotifier(inbox, "https://h.invalid/x", transport=hangs)
+    fan = FanoutNotifier([inbox, n])
+    t0 = time.perf_counter()
+    for i in range(5):
+        fan.notify("reviewers", f"s{i}", "b")
+    assert time.perf_counter() - t0 < 1.0
+    assert len(inbox.list(status="queued")) == 5

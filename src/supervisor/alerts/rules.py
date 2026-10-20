@@ -28,7 +28,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +52,7 @@ SOURCES: dict[str, tuple[str, ...]] = {
 }
 GROUP_BY = ("none", "agent_id", "job", "rule_id")
 MAX_WINDOW_S = 7 * 86400
+MAX_SUPPRESSION_S = 30 * 86400  # default cap on how far ahead a suppression may end
 _ID = re.compile(r"^[A-Z][A-Z0-9_-]{2,40}$")
 _REASON = re.compile(r"^[a-z][a-z0-9_]{1,40}$")
 
@@ -127,8 +128,6 @@ def _as_utc(value: Any) -> datetime | None:
             return None
     if dt.tzinfo is None:
         return None  # a time without a zone is ambiguous: refuse
-    from datetime import UTC
-
     return dt.astimezone(UTC)
 
 
@@ -217,7 +216,9 @@ def _rule(raw: Any, i: int, errors: list[str]) -> Rule | None:
     )
 
 
-def parse_rules(doc: Any) -> RuleSet:
+def parse_rules(
+    doc: Any, *, now: datetime | None = None, max_suppression_s: int = MAX_SUPPRESSION_S
+) -> RuleSet:
     errors: list[str] = []
     if not isinstance(doc, dict):
         raise AlertConfigError("alerts.yaml must be a mapping with a 'rules' list")
@@ -242,6 +243,7 @@ def parse_rules(doc: Any) -> RuleSet:
         if isinstance(raw, dict) and raw.get("enabled") is False
     }  # a suppression may name a disabled rule
     sups: list[Suppression] = []
+    ref_now = now or datetime.now(UTC)
     for j, raw in enumerate(doc.get("suppressions") or []):
         if not isinstance(raw, dict):
             errors.append(f"suppressions[{j}]: must be a mapping")
@@ -253,6 +255,11 @@ def parse_rules(doc: Any) -> RuleSet:
         reason = str(raw.get("reason_code", ""))
         if until is None:
             errors.append(f"suppressions[{j}]: until must be an RFC 3339 time with a zone")
+        elif until > ref_now + timedelta(seconds=max_suppression_s):
+            errors.append(
+                f"suppressions[{j}]: until is more than {max_suppression_s} s ahead "
+                "(ALERTS_SUPPRESSION_MAX_S); a mute must be short and renewed on purpose"
+            )
         if rid != "*" and rid not in ids:
             errors.append(f"suppressions[{j}]: rule_id {rid!r} is not a rule (or use '*')")
         if not aid:
@@ -270,7 +277,9 @@ def parse_rules(doc: Any) -> RuleSet:
     )
 
 
-def load_rules(path: Path) -> RuleSet:
+def load_rules(
+    path: Path, *, now: datetime | None = None, max_suppression_s: int = MAX_SUPPRESSION_S
+) -> RuleSet:
     try:
         text = Path(path).read_text(encoding="utf-8")
     except OSError as exc:
@@ -279,7 +288,7 @@ def load_rules(path: Path) -> RuleSet:
         doc = yaml.safe_load(text)
     except yaml.YAMLError as exc:
         raise AlertConfigError(f"{path}: not valid YAML ({type(exc).__name__})") from exc
-    return parse_rules(doc)
+    return parse_rules(doc, now=now, max_suppression_s=max_suppression_s)
 
 
 __all__ = [

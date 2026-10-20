@@ -21,6 +21,7 @@ ingress_reject        3002   3         Authentication: ingress credential refuse
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
@@ -90,8 +91,12 @@ def _time_ms(ts: str) -> int:
     return int(dt.timestamp() * 1000)
 
 
-def to_ocsf_dict(event: Any) -> dict[str, Any]:
-    """One OCSF event (a plain dict). ``event`` is a ``siem.SiemEvent``."""
+DEFAULT_SRC: dict[str, str] = {"svc_name": "supervisor"}
+
+
+def to_ocsf_dict(event: Any, src: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """One OCSF event (a plain dict). ``event`` is a ``siem.SiemEvent``. ``src`` is the
+    ``src_endpoint`` of class 6003 (app id and host name of this Supervisor; never a user IP)."""
     class_uid = EVENT_CLASS.get(event.event_type, 6003)
     category_uid, class_name, category_name = CLASSES[class_uid]
     activity_id = _ACTIVITY.get(event.event_type, _API_OTHER)
@@ -122,6 +127,7 @@ def to_ocsf_dict(event: Any) -> dict[str, Any]:
     if class_uid == 6003:
         outcome = event.outcome
         doc["api"] = {"operation": f"{event.event_type}:{outcome}"}
+        doc["src_endpoint"] = dict(src or DEFAULT_SRC)
         doc["actor"] = {"user": {"uid": event.actor or "supervisor-system"}}
         doc["status_id"] = 2 if outcome in ("block", "pause", "quarantine") else 1
         if outcome in _DISPOSITION:
@@ -157,13 +163,14 @@ def to_ocsf_dict(event: Any) -> dict[str, Any]:
     return doc
 
 
-def to_ocsf_json(event: Any) -> str:
+def to_ocsf_json(event: Any, src: Mapping[str, Any] | None = None) -> str:
     """Canonical JSON (sorted keys), one line."""
-    return canonical_json(to_ocsf_dict(event))
+    return canonical_json(to_ocsf_dict(event, src))
 
 
 __all__ = [
     "CLASSES",
+    "DEFAULT_SRC",
     "EVENT_CLASS",
     "OCSF_VERSION",
     "severity_id",

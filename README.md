@@ -97,7 +97,7 @@ until you turn its flag on.
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
 | `SIEM_ENABLED` | Sends evidence events to the bank SIEM through `SIEM_SINK` (`file`, `http`, `delta`) in `SIEM_FORMAT` (`jsonl`, `cef`, `ocsf`); see `docs/siem.md` |
 | `ALERTS_ENABLED` | Runs the alert rules in `config/alerts.yaml` and routes alerts to inbox, SIEM, webhook, pager; Alerts section on the Metrics page; see `docs/alerts.md` |
-| `NOTIFY_WEBHOOK_ENABLED` | Webhook notifier sends notices to `NOTIFY_WEBHOOK_URL` (retry, dead-letter file); without a URL it only queues |
+| `NOTIFY_WEBHOOK_ENABLED` | Webhook notifier sends notices to `NOTIFY_WEBHOOK_URL` from the scheduler job `notify` (a console request only queues; retry, dead-letter file); without a URL it only queues |
 | `LOG_FORMAT` | Value `json` writes one JSON log line with request id and principal id (default `text`) |
 
 ## What is mock

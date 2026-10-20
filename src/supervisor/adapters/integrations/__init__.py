@@ -68,6 +68,8 @@ class IntegrationSettings(BaseSettings):
     siem_http_token: SecretStr | None = None  # never logged, never committed
     siem_http_auth_scheme: str = Field(default="Bearer", pattern=r"^[A-Za-z][A-Za-z0-9_-]*$")
     siem_dead_letter_path: Path | None = None
+    siem_src_app: str = Field(default="supervisor", pattern=r"^[A-Za-z0-9_.-]{1,64}$")
+    siem_src_host: str = Field(default="", pattern=r"^[A-Za-z0-9_.-]{0,128}$")  # empty = this host
     siem_dead_letter_max_bytes: int = Field(default=64 * 1024 * 1024, ge=1024)
     itsm_enabled: bool = False
     pager_enabled: bool = False

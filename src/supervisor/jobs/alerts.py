@@ -50,7 +50,11 @@ def build_service(ctx: MonitorContext, settings: Settings) -> AlertService:
 def run(
     ctx: MonitorContext, settings: Settings, service: AlertService | None = None
 ) -> dict[str, Any]:
-    ruleset = load_rules(settings.alerts_config)
+    ruleset = load_rules(
+        settings.alerts_config,
+        now=ctx.clock.now(),
+        max_suppression_s=settings.alerts_suppression_max_s,
+    )
     service = service or build_service(ctx, settings)
     redelivered = service.redeliver()
     now = ctx.clock.now()

@@ -52,6 +52,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import socket
 import threading
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass
@@ -186,8 +187,8 @@ def event_from_chain(entry: Mapping[str, Any], payload: Mapping[str, Any]) -> Si
         attrs = {"reason_code": str(p.get("reason_code") or "unknown")[:64]}
     elif etype == "chain_anomaly":
         ok = p["ok"] if "ok" in p else p.get("verify_ok")
-        if str(entry["record_type"]) == "audit_pack_built" and ok:
-            return None  # a good audit pack is not an anomaly
+        if ok:
+            return None  # a good verify is not an anomaly (only failures are findings)
         outcome = "verify_ok" if ok else "verify_failed"
         sev, actor = SEVERITY[outcome], None
         if isinstance(p.get("failures"), int):
@@ -321,6 +322,8 @@ CEF_LABELS = {
 
 
 def _cef_value(d: Mapping[str, Any], field: str) -> Any:
+    if field == "ts":  # ArcSight rt: milliseconds since the epoch
+        return int(datetime.fromisoformat(str(d["ts"]).replace("Z", "+00:00")).timestamp() * 1000)
     if field.startswith("attrs."):
         return (d.get("attrs") or {}).get(field[6:])
     return d.get(field)
@@ -372,10 +375,17 @@ def check_format(fmt: str) -> str:
     return fmt
 
 
-def render_obj(event: SiemEvent, fmt: str) -> Any:
+def format_line(event: SiemEvent, fmt: str, src: Mapping[str, Any] | None = None) -> str:
+    """One output line. ``src`` is the OCSF ``src_endpoint`` (ignored by the other formats)."""
+    if fmt == "ocsf":
+        return to_ocsf_json(event, src)
+    return FORMATTERS[fmt](event)
+
+
+def render_obj(event: SiemEvent, fmt: str, src: Mapping[str, Any] | None = None) -> Any:
     """The event as it goes into an HTTP batch: a dict (jsonl, ocsf) or a string (cef)."""
     if fmt == "ocsf":
-        return to_ocsf_dict(event)
+        return to_ocsf_dict(event, src)
     if fmt == "cef":
         return to_cef(event)
     return event.as_dict()
@@ -398,8 +408,15 @@ class LogSiemSink:
     the rename happens between two whole batches, never inside one."""
 
     def __init__(
-        self, path: Path, fmt: str = "jsonl", *, max_bytes: int = 0, backups: int = 5
+        self,
+        path: Path,
+        fmt: str = "jsonl",
+        *,
+        max_bytes: int = 0,
+        backups: int = 5,
+        src_endpoint: Mapping[str, Any] | None = None,
     ) -> None:
+        self.src = src_endpoint
         self.path = Path(path)
         self.fmt = check_format(fmt)
         self.max_bytes = max(0, int(max_bytes))
@@ -419,7 +436,7 @@ class LogSiemSink:
         os.replace(self.path, self.path.with_name(f"{self.path.name}.1"))
 
     def emit(self, events: Iterable[SiemEvent]) -> int:
-        lines = [FORMATTERS[self.fmt](e) for e in events]
+        lines = [format_line(e, self.fmt, self.src) for e in events]
         if not lines:
             return 0
         data = "".join(line + "\n" for line in lines).encode("utf-8")
@@ -460,7 +477,9 @@ class WebhookSiemSink:
         sleep: Callable[[float], None] | None = None,
         fmt: str = "jsonl",
         dead_letter: DeadLetter | None = None,
+        src_endpoint: Mapping[str, Any] | None = None,
     ) -> None:
+        self.src = src_endpoint
         if is_placeholder(url):
             raise IntegrationError("SIEM_WEBHOOK_URL is empty or FILL-ME; SIEM webhook is off")
         self.url = url
@@ -483,7 +502,7 @@ class WebhookSiemSink:
         if not evs:
             return 0
         body = {
-            "events": [render_obj(e, self.fmt) for e in evs],
+            "events": [render_obj(e, self.fmt, self.src) for e in evs],
             "event_ids": [e.event_id for e in evs],  # one idempotency key per event
             "format": self.fmt,
             "idempotency_key": idempotency_key(e.event_id for e in evs),
@@ -516,12 +535,12 @@ class DeltaSiemSink:
     the idempotency key: ``TableStore.append`` is an insert-only MERGE on Delta, so a second
     send of the same event adds nothing. Each row carries the OCSF document, always."""
 
-    def __init__(self, tables: TableStore) -> None:
+    def __init__(self, tables: TableStore, src_endpoint: Mapping[str, Any] | None = None) -> None:
         self.tables = tables
+        self.src = src_endpoint
 
-    @staticmethod
-    def row(event: SiemEvent) -> dict[str, Any]:
-        doc = to_ocsf_dict(event)
+    def row(self, event: SiemEvent) -> dict[str, Any]:
+        doc = to_ocsf_dict(event, self.src)
         return {
             "event_id": event.event_id,
             "ts": datetime.fromisoformat(event.ts.replace("Z", "+00:00")),
@@ -566,6 +585,8 @@ def build_siem_sink(
     if not cfg.siem_enabled:
         return None
     fmt = check_format(cfg.siem_format)
+    # OCSF src_endpoint of class 6003: this product and this host. Never a user address.
+    src = {"svc_name": cfg.siem_src_app, "hostname": cfg.siem_src_host or socket.gethostname()}
     if cfg.siem_sink in ("http", "webhook"):
         dl_path = cfg.siem_dead_letter_path or Path(data_dir) / "siem" / "dead_letter.jsonl"
         token = cfg.siem_http_token.get_secret_value() if cfg.siem_http_token else None
@@ -574,13 +595,20 @@ def build_siem_sink(
             transport=HttpTransport(token, cfg.siem_http_auth_scheme),
             fmt=fmt,
             dead_letter=DeadLetter(dl_path, cfg.siem_dead_letter_max_bytes),
+            src_endpoint=src,
         )
     if cfg.siem_sink == "delta":
         if tables is None:
             raise IntegrationError("SIEM_SINK=delta needs the SQL store (no store was given)")
-        return DeltaSiemSink(tables)
+        return DeltaSiemSink(tables, src)
     path = cfg.siem_file_path or Path(data_dir) / "siem" / "events.log"
-    return LogSiemSink(path, fmt, max_bytes=cfg.siem_file_max_bytes, backups=cfg.siem_file_backups)
+    return LogSiemSink(
+        path,
+        fmt,
+        max_bytes=cfg.siem_file_max_bytes,
+        backups=cfg.siem_file_backups,
+        src_endpoint=src,
+    )
 
 
 # --------------------------------------------------------------------------- feed

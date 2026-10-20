@@ -30,6 +30,7 @@ alert rows ----------------------------------------------------------^          
 | `SIEM_WEBHOOK_URL` (alias `SIEM_HTTP_URL`) | empty | `FILL-ME`; needed for `SIEM_SINK=http` |
 | `SIEM_HTTP_TOKEN` | empty | Secret from the bank vault. Sent as `Authorization: <scheme> <token>`. Never logged, never in the dead-letter file |
 | `SIEM_HTTP_AUTH_SCHEME` | `Bearer` | `Splunk` for Splunk HEC |
+| `SIEM_SRC_APP`, `SIEM_SRC_HOST` | `supervisor`, this host | OCSF `src_endpoint` of class 6003 |
 | `SIEM_DEAD_LETTER_PATH` | `<DATA_DIR>\siem\dead_letter.jsonl` | Where failed batches wait |
 | `SIEM_DEAD_LETTER_MAX_BYTES` | `67108864` (64 MiB) | When the file is full the send raises and the cursor stays (the chain is the buffer) |
 
@@ -79,14 +80,14 @@ payload, so a new text field in a payload cannot leak by accident (test:
 | `chain_anchor` | `anchor` table | anchored |
 | `alert` | `alert` table (pushed by the alert job) | open |
 | `ingress_reject` | `ingress_reject` (WP20 ingress auth) | reject |
-| `chain_anomaly` | `chain_verify`, `audit_pack_built` with `verify_ok` false | verify_failed, verify_ok |
+| `chain_anomaly` | `chain_verify` (console Verify chain button), `audit_pack_built`; only a failed verify is sent | verify_failed |
 
 ## Field mapping
 
 | Concept | `jsonl` field | CEF | OCSF 1.1 |
 |---|---|---|---|
 | Event id (idempotent) | `event_id` | `externalId` | `metadata.uid` |
-| Time | `ts` (RFC 3339 UTC) | `rt` | `time` (epoch ms) |
+| Time | `ts` (RFC 3339 UTC) | `rt` (epoch ms) | `time` (epoch ms) |
 | Severity | `severity` (0..10) | header severity | `severity_id` (0..5) and `severity` |
 | Outcome | `outcome` | `outcome` | `activity_name` (`<event_type>:<outcome>`), `status_id`, `disposition_id`, `action_id` |
 | Event kind | `event_type` | header name and signature id | `class_uid`, `category_uid`, `type_uid`, `unmapped.event_type` |
@@ -103,6 +104,7 @@ payload, so a new text field in a payload cannot leak by accident (test:
 | Other alert details | `attrs.alert_id`, `severity_label`, `window_s`, `threshold`, `dedupe_key` | not sent | `unmapped.attrs.*` |
 | Ingress reject reason | `attrs.reason_code` | not sent | `unmapped.attrs.reason_code` |
 | Product | `product`, `vendor`, `version`, `schema` | header | `metadata.product.name`, `vendor_name`, `version`; `metadata.log_name` |
+| Source of the call (class 6003) | - | - | `src_endpoint.svc_name` (`SIEM_SRC_APP`, default `supervisor`), `src_endpoint.hostname` (`SIEM_SRC_HOST`, default this host). Never a user address |
 
 `jsonl` always has the key `attrs` (null when there are no details).
 

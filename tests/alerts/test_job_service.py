@@ -320,7 +320,7 @@ def test_bad_config_fails_the_run_with_a_clear_error(s: Setup, tmp_path: Path) -
 
 def test_cli_list_validate_and_unknown_rule(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli_main(["validate", "--config", str(RULES)]) == 0
-    assert "[OK] 7 rule(s)" in capsys.readouterr().out
+    assert "[OK] 8 rule(s)" in capsys.readouterr().out
     assert cli_main(["list", "--config", str(RULES)]) == 0
     out = capsys.readouterr().out
     assert "AL-BLOCK-BURST" in out and out.isascii()
@@ -511,19 +511,19 @@ def test_wp20_ingress_rejections_from_console_action_raise_the_burst_alert(s: Se
         s.env.clock.advance(5)
         _ingress_denied(s, "bad_signature", f"pay-{i}")
     s.run()
-    assert [a for a in s.alerts() if a["rule_id"] == "AL-INGRESS-REJECT-BURST"] == []  # 4 < 10
+    assert [a for a in s.alerts() if a["rule_id"] == "AL-INGRESS-REJECT-BURST"] == []  # 4 < 20
     s.env.clock.advance(5)
-    _ingress_denied(s, "stale_timestamp", "x" * 300 + " <script>", suppressed=7)  # 8 more
+    _ingress_denied(s, "stale_timestamp", "x" * 300 + " <script>", suppressed=19)  # 20 more
     s.run()
     burst = [a for a in s.alerts() if a["rule_id"] == "AL-INGRESS-REJECT-BURST"]
-    assert len(burst) == 1 and burst[0]["window_count"] >= 10
+    assert len(burst) == 1 and burst[0]["window_count"] >= 20
     now = s.env.clock.now()
     sigs = [
         x
         for x in load_signals(s.ctx, now - timedelta(seconds=600), now)
         if x.kind == "ingress_reject"
     ]
-    assert len(sigs) == 4 + 8
+    assert len(sigs) == 4 + 20
     assert {x.fields["reason_code"] for x in sigs} == {"bad_signature", "stale_timestamp"}
     # the unverified claimed id that is not id-shaped never reaches an alert or a signal
     assert all(x.fields["agent_id"] is None or len(x.fields["agent_id"]) <= 128 for x in sigs)
@@ -536,4 +536,4 @@ def test_wp20_ingress_rejections_from_console_action_raise_the_burst_alert(s: Se
         method="POST", path="/gate/check", outcome="ok", detail="bad_signature",
     )  # fmt: skip
     assert len([x for x in load_signals(s.ctx, now - timedelta(seconds=600), now + timedelta(
-        seconds=1)) if x.kind == "ingress_reject"]) == 12  # fmt: skip
+        seconds=1)) if x.kind == "ingress_reject"]) == 24  # fmt: skip

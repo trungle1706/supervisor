@@ -30,6 +30,8 @@ signals --> rules (window, threshold, group) --> dedupe --> alert row --> routes
 | `NOTIFY_WEBHOOK_ENABLED` + `NOTIFY_WEBHOOK_URL` | `0` / empty | The `webhook` route needs both (`FILL-ME` URL) |
 | `NOTIFY_WEBHOOK_TOKEN` | empty | Secret from the bank vault; sent in the `Authorization: Bearer` header |
 | `NOTIFY_WEBHOOK_DEAD_LETTER` | `<DATA_DIR>\notify\webhook.dead.jsonl` | Failed sends wait here |
+| `SCHED_NOTIFY_S` | `15` | Interval of the `notify` job that sends queued webhook notices |
+| `ALERTS_SUPPRESSION_MAX_S` | `2592000` (30 days) | Longest time a `suppressions` entry may end ahead; a longer `until` is a validation error |
 
 Commands (ASCII output, Windows cmd syntax):
 
@@ -78,7 +80,8 @@ Shipped rules (thresholds ILLUSTRATIVE until the bank SOC sets them):
 | `AL-QUARANTINE` | any agent quarantined | critical | any | 3600 s | inbox, siem, webhook, pager |
 | `AL-CHAIN-VERIFY-FAIL` | a chain verify or audit-pack verify failed | critical | any | 3600 s | inbox, siem, webhook, pager |
 | `AL-JUDGE-ESCALATION` | a non-mock tier 2 judge verdict | medium | any | 3600 s | inbox, siem |
-| `AL-INGRESS-REJECT-BURST` | 10 rejected ingress credentials (all agents) | high | 300 s / 10 | 1800 s | inbox, siem, webhook |
+| `AL-INGRESS-REJECT-AGENT` | 5 rejected ingress credentials for one agent (a bad or expired key) | high | 300 s / 5 | 1800 s | inbox, siem |
+| `AL-INGRESS-REJECT-BURST` | 20 rejected ingress credentials over all agents (credential stuffing) | high | 300 s / 20 | 1800 s | inbox, siem, webhook |
 | `AL-FAILCLOSED-DRILL-FAIL` | the fail-closed drill failed | critical | any | 86400 s | inbox, siem, webhook, pager |
 | `AL-JOB-FAILURE` | a scheduled job ended in error | medium | any | 3600 s | inbox, siem |
 
@@ -93,11 +96,13 @@ code, plus `;suppressed=<n>` when its audit throttle skipped rows). The alert jo
 rows as `ingress_reject` signals (a throttled row counts 1 + n, at most 1000). The claimed
 agent id is unverified, so it is kept only when it looks like an id.
 
-Rules that see little or nothing today: the console "Verify chain" button does not write a
-`chain_verify` record (backlog), so `AL-CHAIN-VERIFY-FAIL` sees failed audit-pack verifies
-only. Nothing writes a `failmode_drill` record yet (the drill in `supervisor.demo` prints its
-result and writes no record), so `AL-FAILCLOSED-DRILL-FAIL` cannot fire until the drill
-records its result.
+Producers of the two system records: the console **Verify chain** button writes a
+`chain_verify` record `{ok, failures, scope}` (root lane) after every verify, and
+`python -m supervisor.demo drill` writes a `failmode_drill` record `{ok, failures}` on its
+own throwaway chain; with `--record` it also writes it to the configured evidence chain (run
+it with the app stopped, or from a one-shot job host). A passing verify or drill is quiet.
+Two ingress rules exist on purpose: one agent with an expired key trips the per-agent rule and
+cannot hide a credential-stuffing run inside the dedupe window of the global rule.
 
 ## Engine semantics (deterministic)
 
@@ -113,7 +118,8 @@ records its result.
   signal count once. The job also reads the longest rule window before the cursor to fill the
   counters, but only signals after the cursor can fire or be absorbed.
 - A suppression entry drops a matching candidate and counts it (`policy_suppressed` in the job
-  result). It expires at `until`.
+  result). It expires at `until`, and `until` may be at most `ALERTS_SUPPRESSION_MAX_S` (30 days)
+  ahead when the file is loaded.
 
 ## What an alert carries (stable field names)
 
@@ -131,7 +137,8 @@ Table `alert` (both DDLs, `schema/model.yaml`). Ids, counts and hashes only, nev
 | `routes`, `route_status` | Where it was sent: `sent`, `queued` (stub), `off`, `dead_letter`, `failed`, `pending` |
 | `acknowledged_by`, `acknowledged_at` | Who acknowledged it |
 
-The inbox, webhook and pager text is the same 14 `key: value` lines: `alert_id`, `rule_id`,
+A webhook notice (case actions) is only queued by the request and sent by the `notify` job, so a
+dead hook never slows the console. The inbox, webhook and pager text is the same 14 `key: value` lines: `alert_id`, `rule_id`,
 `severity`, `title`, `agent_id`, `group`, `window`, `first_ts`, `last_ts`,
 `suppressed_repeats`, `case`, `chain`, `entry_hash`, `console`. Each alert also writes one
 `alert` record on the evidence chain (ids and counts), and an acknowledge writes `alert_ack`.
@@ -165,10 +172,10 @@ signed-in person can acknowledge; an already acknowledged alert gives HTTP 400.
 `python -m supervisor.alerts.harness` scores the shipped rules on two labelled synthetic
 splits (500 gate decisions each, 6 planted incidents, hard negatives). Baseline
 (`tests/fixtures/alerts/baseline.json`, 2026-10-20): precision, recall, exact dedupe and
-triage completeness are all 10000 bp on both splits; 7 alerts for 7 expected; 55 to 57
-matching signals collapse into 7 alerts. Wilson 95 percent interval for precision and recall
-is 6456 to 10000 bp because only 7 alerts are expected per split; the upper bound of the false
-alert rate over 570 signals is 67 bp. Thresholds are ILLUSTRATIVE. Provenance, rubric and
+triage completeness are all 10000 bp on both splits; 8 alerts for 8 expected; about 110 to
+115 matching signals collapse into 8 alerts. Wilson 95 percent interval for precision and recall
+is 6755 to 10000 bp because only 8 alerts are expected per split; see the baseline file for the
+false alert rate bound. Thresholds are ILLUSTRATIVE. Provenance, rubric and
 limits: `tests/fixtures/alerts/README.md`. The fixture proves the logic, not real-world alert
 rates: replay the bank's own gate decisions through `python -m supervisor.alerts test` before
 trusting a threshold.
@@ -185,5 +192,5 @@ trusting a threshold.
 ## Not done
 
 See `BACKLOG.md` (WP21 lines): auto-close, alert-to-case promotion, real pager and ITSM
-senders for alerts, a `chain_verify` record from the console verify button, chain entries that commit more
+senders for alerts, chain entries that commit more
 than `ALERTS_LAG_S` after their timestamp, per-tenant rules.

@@ -59,12 +59,25 @@ rules:
     dedupe_s: 3600
     routes: [inbox, siem]
 
+  # One agent with a bad or expired credential: low volume, one agent to fix.
+  - id: AL-INGRESS-REJECT-AGENT
+    title: Repeated rejected ingress credentials for one agent
+    source: ingress_reject
+    group_by: agent_id
+    window_s: 300
+    threshold: 5
+    severity: high
+    dedupe_s: 1800
+    routes: [inbox, siem]
+
+  # Many rejections over all agents: credential stuffing. Higher threshold, so one noisy
+  # agent does not hide it inside the dedupe window of the per-agent rule.
   - id: AL-INGRESS-REJECT-BURST
     title: Burst of rejected ingress credentials
     source: ingress_reject
     group_by: none
     window_s: 300
-    threshold: 10
+    threshold: 20
     severity: high
     dedupe_s: 1800
     routes: [inbox, siem, webhook]

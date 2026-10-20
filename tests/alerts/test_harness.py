@@ -60,7 +60,7 @@ def test_each_rule_fires_exactly_for_its_incident(split: str) -> None:
     m = out["metrics"]
     assert m["precision_bp"] == 10000 and m["recall_bp"] == 10000
     assert m["false_positive"] == 0 and m["false_negative"] == 0
-    assert m["true_positive"] == m["alerts_expected"] == 7
+    assert m["true_positive"] == m["alerts_expected"] == 8
     for rid, c in out["by_rule"].items():
         assert c["fired"] == c["expected"] and c["false_positive"] == 0 and c["missed"] == 0, rid
     assert out["failure_taxonomy"]["false_negative"] == []
@@ -76,12 +76,13 @@ def test_dedupe_collapses_repeats_exactly(split: str) -> None:
     by_rule = {f.rule.id: f for f in res.fired}
     assert by_rule["AL-BLOCK-BURST"].suppressed_count == 3
     assert by_rule["AL-INGRESS-REJECT-BURST"].suppressed_count == 4
+    assert by_rule["AL-INGRESS-REJECT-AGENT"].suppressed_count == 3
     assert by_rule["AL-CHAIN-VERIFY-FAIL"].suppressed_count == 1
     assert by_rule["AL-JOB-FAILURE"].suppressed_count == 1
     m = H.run_split(FIX, split, rs)["metrics"]
-    assert m["dedupe_exact_bp"] == 10000 and m["suppressed_repeats"] == 9
-    # no flood: 55-57 matching signals became 7 alerts
-    assert m["matching_signals"] // m["alerts_fired"] >= 7
+    assert m["dedupe_exact_bp"] == 10000 and m["suppressed_repeats"] == 12
+    # no flood: about 100 matching signals became 8 alerts
+    assert m["matching_signals"] // m["alerts_fired"] >= 10
 
 
 @pytest.mark.parametrize("split", SPLITS)

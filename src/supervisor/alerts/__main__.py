@@ -83,7 +83,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             g.add_argument("--since-s", type=int, default=3600, help="live store window")
     args = ap.parse_args(argv)
     try:
-        ruleset = load_rules(_config_path(args.config))
+        ruleset = load_rules(
+            _config_path(args.config), max_suppression_s=load_settings().alerts_suppression_max_s
+        )
     except (AlertConfigError, SupervisorError) as exc:
         print(ascii_line(f"[FAIL] {exc}"))
         return 1
