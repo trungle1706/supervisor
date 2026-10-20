@@ -22,7 +22,7 @@ is the right one to review. No push, no merge.
 1. D12 HttpGate `/v1/gate/check` (+ follow-up: a base URL that already ends in `/v1` is not doubled)
 2. D14, D05, D15 code and tests
 3. D13 code and tests
-4. Docs (llm-adapter, fact-sources, ADR D20, judge-mrm, README, CHANGELOG, BACKLOG, threat model)
+4. Docs (llm-adapter, fact-sources, ADR D21, judge-mrm, README, CHANGELOG, BACKLOG, threat model)
 5. ADR renumbered D20 (D19 is the WP23 ADR on the wave-1 head)
 6. D15 follow-up from the live run
 
@@ -122,7 +122,7 @@ no shortened proof run was needed and no further long run was started):
 ## Files touched (for the integrator)
 
 New: `src/supervisor/judge/family.py`, `src/supervisor/adapters/facts.py`, `docs/llm-adapter.md`,
-`docs/fact-sources.md`, `docs/adr/D20-derived-judge-family-and-served-config.md`,
+`docs/fact-sources.md`, `docs/adr/D21-derived-judge-family-and-served-config.md`,
 `tests/fixtures/llm/anthropic_compat.json`, `tests/unit/test_llm_strict_contract.py`,
 `tests/judge/test_family_source.py`, `tests/gateway/test_policy_dir_fact_source.py`, this file.
 
