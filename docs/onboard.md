@@ -54,7 +54,10 @@ of the judge router (`judge.router.FAMILY_ALIASES`, imported, not copied). So
 `databricks-claude-sonnet-4` is `anthropic`, `databricks-meta-llama-3-3-70b-instruct` is
 `meta`, `databricks-gpt-oss-120b` is `openai`, `qwen3.8-27b-int4` is `qwen`. A name that is
 not a string literal is followed to `os.environ.get("X", default)` / `os.environ["X"]` and to
-the values in `app.yaml` (`env:` list) and `.env*` files. The manifest wins when it names a
+the values in `app.yaml` (`env:` list) and `.env.example` files (Discover does not read
+`.env` itself). Values are read only after secret scrubbing, and never for a name that looks
+like a credential (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `AUTH`, `CREDENTIAL`, ...): only
+endpoint names and model ids are wanted. The manifest wins when it names a
 family; otherwise `Inventory.model_family` / `model_id` come from the code (the most common
 known family among the model call sites) and `model_family_source` says `code`. If nothing is
 static the family stays `unknown`. The judge family check still compares families, so an
