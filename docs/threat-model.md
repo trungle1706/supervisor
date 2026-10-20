@@ -243,3 +243,9 @@ lifecycle move is refused while a required task is open, and Launch is NO-GO; (5
 text**: payloads hold ids, integers, codes and hashes, and reasons only as a hash. Reasons are stored
 as text in the task row (do not type personal data). The CLI trusts the operator on the host (as the
 other CLIs do); the second person of a waiver can answer only through the authenticated route.
+Review additions: (6) **the first line closes a second-line task**: a reviewer, approver, auditor
+or admin task needs that role (or admin); (7) **a downgrade relaxes the list**: sizing keeps the
+highest level and every class the agent had, so a move keeps its stage approval and no stage is
+skipped; (8) **Launch passes on an unknown**: no task list, a stage before deployment, an
+unreadable list or the gate flag on with CONTROLS_ENABLED off are each NO-GO; (9) **a bank process
+shows working because a product rule fired**: a bank-owned control is always `bank_owned`.

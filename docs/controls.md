@@ -25,7 +25,9 @@ A task list sits in front of the launch gate:
  initiation -> design -> validation -> deployment -> operation -> re-evaluation -> retirement
       each arrow is a task (the lifecycle move). It is done only when no REQUIRED task of the
       stage is open. At high level it needs an approver or an admin (stage approval).
- Launch GO/NO-GO (TASKS_LAUNCH_GATE_ENABLED): NO-GO while a required task of the stage is open.
+ Launch GO/NO-GO (TASKS_LAUNCH_GATE_ENABLED): NO-GO while the agent has no task list, is before
+ the deployment stage, or has a required task of its stage open (the move out of the stage and
+ DEP-LAUNCH are done after the launch and do not hold it).
 ```
 
 ## 2. The control
@@ -60,14 +62,18 @@ Computed per control and per agent from the same facts the risk register uses
 | detector, document | recorded and checked for shape or existence; never working |
 
 Status: `failing` if any source fails; `working` if none fails and one works; else `no_data`
-(reasons `no_working_source`, `reference_only`, `no_sources`, `no_supervised_agent`). A SHADOW,
+(reasons `no_working_source`, `reference_only`, `no_sources`, `no_supervised_agent`). A control
+the bank owns (`implemented_by: bank`) is always `no_data` with reason `bank_owned`, whatever
+sources it names, and it gives a linked risk no evidence (review WP30). A SHADOW,
 RETIRED or unknown agent is not supervised, so its controls are `no_data`.
 
 Windows: rules and monitors use `RISK_EVIDENCE_WINDOW_DAYS` (7); a pack result uses
 `CONTROLS_PACK_WINDOW_DAYS` (30), because packs run less often. A status row older than two windows
-reads as `no_data` (`stale`). **A change to the control (status, agents, any map entry) makes the
-stored status read as `no_data` with reason `changed_since_evidence` until the next pass**, and the
-same change changes the evidence basis of every risk that links the control.
+reads as `no_data` (`stale`). **A change to the control (status, implemented_by, agents, any map
+entry) makes the stored status read as `no_data` with reason `changed_since_evidence` until the
+next pass**, and the same change changes the evidence basis of every risk that links the control.
+A judge-scored pack counts for a control only with `RISK_EVIDENCE_JUDGED_PACKS=1`, the same switch
+as the risk register.
 
 `control_status` is append-only (one row per control, agent, window and map fingerprint). One chain
 record `control_status` per agent and pass carries counts and the compliance bp, plus a digest.
@@ -96,15 +102,28 @@ control); four starter controls are draft until a deterministic source exists fo
 3. It is **required** when the level is at least its `required_from`.
 
 `python -m supervisor.tasks plan --class high_risk --band low` prints a set. Tasks of a stage are
-released when the agent enters the stage (sized again then). Evidence of a task: `control` (done only
+released when the agent enters the stage (sized again then). **The list never gets lighter**: it
+is sized with the highest level the agent had in its task list and every class it had (plus the
+current ones), so a class or band that goes down in the middle of the lifecycle does not remove a
+task, skip a stage or drop the stage approval (review WP30); a person waives what no longer
+applies, with a second person. Evidence of a task: `control` (done only
 while the control is working for the agent), `pack` (a real, passed result), `document` (the person
 gives the reference), `none`. `python -m supervisor.jobs.task_due` closes control and pack tasks by
 itself when their evidence is there, and opens one case (source `task`, no incident clock) for each
 overdue required task.
 
+**Who marks a task done.** An `owner` task: anyone with `tasks.edit`. A `reviewer`, `approver`,
+`auditor` or `admin` task: a person with that role, or an admin, so a second-line task is not
+closed by the first line alone. The approver uses `POST /v1/tasks/{id}/approve` (`tasks.approve`)
+for a lifecycle move (stage approval at high level) and for an approver task.
+
 State machine: `open -> in_progress -> done`, or `waived`. **Waiving** needs a reason and a second
 person: the first person (`tasks.edit`) asks, a different signed-in approver or admin
-(`tasks.approve`) answers; a move cannot be waived. A class change in the middle of the lifecycle
+(`tasks.approve`) answers; a move cannot be waived. User ids are compared without letter case.
+**Laptop posture:** with `AUTH_KIND=dev_header` (ADR D04) the identity is not real: one person at
+the keyboard can ask as one user id and answer as another. That is accepted for the laptop only;
+the Databricks App uses SSO, where the same identity is always refused. The CLI trusts `--by` and
+`--role` in the same way (shell access to the store is write access). A class change in the middle of the lifecycle
 is additive: new tasks are added and tasks become required, nothing is removed or relaxed by
 itself. Every change writes a `task_event` row and a `task_change` chain record (hashes and
 integers; the reason is a hash on the chain and text in the row).
@@ -117,7 +136,7 @@ integers; the reason is a hash on the chain and text in the row).
 | Console | `/console/controls`, `/console/tasks`, Agent tabs Controls and Tasks (`CONSOLE_CONTROLS_ENABLED`) |
 | Jobs | `python -m supervisor.jobs.control_status` (scheduler `SCHED_CONTROL_STATUS_S`), `python -m supervisor.jobs.task_due` (`SCHED_TASK_DUE_S`) |
 | CLI | `python -m supervisor.controls list\|import\|status\|export` (`--by` for writes); `python -m supervisor.tasks list\|plan\|generate\|done\|waive` |
-| Launch gate | `TASKS_LAUNCH_GATE_ENABLED=1` (needs `CONTROLS_ENABLED`): `assurance.gates.task_launch_items` |
+| Launch gate | `TASKS_LAUNCH_GATE_ENABLED=1` (needs `CONTROLS_ENABLED`; without it Launch is NO-GO): `assurance.gates.task_launch_items`, `TaskService.launch_blockers` |
 | Harness | `python -m supervisor.controls.harness` |
 
 On Delta run `python -m supervisor.jobs.bootstrap_schema` first (five new tables).

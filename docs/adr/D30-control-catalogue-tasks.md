@@ -49,6 +49,19 @@ close those gaps.
 11. **Flags** `CONTROLS_ENABLED` (API, jobs, CLI), `CONSOLE_CONTROLS_ENABLED` (pages, tabs),
     `TASKS_LAUNCH_GATE_ENABLED` (launch), all off. Off path: tables empty, routes answer 400.
 
+## Amendment (review WP30, 2026-10-20)
+
+* Point 8: Launch is NO-GO when the agent has no task list, is before the `deployment` stage, has
+  a required task of the current stage open (the move out of the stage and templates with
+  `blocks_launch: false`, such as DEP-LAUNCH, excluded: they are done after the launch), the
+  task list cannot be read, or the gate flag is on while `CONTROLS_ENABLED` is off.
+* Point 7: sizing uses the highest level and every class the agent had in its task list, plus
+  the current ones (`TaskService.sizing`); a downgrade never relaxes the list.
+* Point 9 and Three Lines: a task of role reviewer, approver, auditor or admin needs that role or
+  admin; the approver closes a move or an approver task with `POST /v1/tasks/{id}/approve`.
+* Point 3 and 6: a bank-owned control is always `no_data` (`bank_owned`) and gives a risk no
+  evidence; `implemented_by` is in the control fingerprint.
+
 ## Alternatives rejected
 
 * Status as "controls marked done" (Saidot): a claim, not a fact.
@@ -61,6 +74,6 @@ close those gaps.
 ## Open (owner)
 
 Who may waive and approve a stage move (roles now: ask = reviewer, owner, admin; answer = approver,
-admin); real task sets and levels; pack window; whether an agent with no task list should be
-NO-GO at launch (now a note); deterministic monitors for `oversight`, `sweeps`; attestation
+admin); real task sets and levels; pack window; an agent with no task list is NO-GO at launch
+(review; owner to confirm); deterministic monitors for `oversight`, `sweeps`; attestation
 evidence for bank controls.
