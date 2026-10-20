@@ -136,10 +136,11 @@ def build_refs(state: Any, settings: Any) -> ControlRefs:
 
 def runtime_sources(state: Any, control_id: str) -> list[tuple[str, str]]:
     """(kind, target) runtime evidence sources of an ACTIVE control; ``[]`` for a draft, a
-    retired or an unknown control. This is the expander the WP29 ``Collector`` calls for a
-    ``control`` link, so a risk sees a control through the facts the control itself uses."""
+    retired, a bank-owned or an unknown control. This is the expander the WP29 ``Collector``
+    calls for a ``control`` link, so a risk sees a control through the facts the control itself
+    uses (a bank control never shows working, so it gives a risk no evidence either)."""
     row = state.get("control", {"control_id": control_id})
-    if row is None or row["status"] != "active":
+    if row is None or row["status"] != "active" or row.get("implemented_by") == "bank":
         return []
     return sorted(
         (str(r["kind"]), str(r["target"]))
@@ -149,8 +150,9 @@ def runtime_sources(state: Any, control_id: str) -> list[tuple[str, str]]:
 
 
 def map_fingerprint(state: Any, control_id: str) -> str:
-    """Short hash of what decides the evidence of a control: its status, its agents and its whole
-    active map. Any change gives another value, so old evidence stops counting."""
+    """Short hash of what decides the evidence of a control: its status, who implements it, its
+    agents and its whole active map. Any change gives another value, so old evidence stops
+    counting."""
     from supervisor.core.canonical import sha256_hex
 
     row = state.get("control", {"control_id": control_id})
@@ -161,7 +163,9 @@ def map_fingerprint(state: Any, control_id: str) -> str:
         for r in state.query("control_map", {"control_id": control_id})
         if _on(r["active"])
     )
-    return sha256_hex([row["status"], str(row.get("scope_agents")), maps])[:16]
+    return sha256_hex(
+        [row["status"], str(row.get("implemented_by")), str(row.get("scope_agents")), maps]
+    )[:16]
 
 
 def _on(value: Any) -> bool:

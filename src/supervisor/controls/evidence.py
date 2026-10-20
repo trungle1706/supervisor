@@ -22,6 +22,9 @@ The status of the control:
 * ``working``: no source is failing and at least one is working;
 * ``no_data``: everything else (all idle, only references, or no supervised agent). Quiet is not
   proof, and a design document is not behaviour.
+* A control the bank owns (``implemented_by: bank``) is always ``no_data`` with reason
+  ``bank_owned``, whatever sources it names: the product cannot observe a bank process, so a
+  rule hit is not proof that the bank's control works (review WP30).
 
 An agent in SHADOW, RETIRED or unknown is not supervised: its facts are not evidence (the same
 rule as WP29), so its controls are ``no_data``. Judges are not an input (rule R1). Every row
@@ -52,6 +55,7 @@ REASONS = (
     "not_evaluated",
     "stale",
     "changed_since_evidence",
+    "bank_owned",
 )
 
 STALE_WINDOWS = ev.STALE_WINDOWS
@@ -102,13 +106,19 @@ def evaluate(
     sources: list[tuple[str, str]],
     w: ev.Window,
     w_pack: ev.Window | None = None,
+    *,
+    bank: bool = False,
 ) -> Result:
     """Status of one control for one agent. ``sources`` = (kind, target) pairs of the active
     control map (all evidence kinds). Rules and monitors are read in window ``w``; a pack result
-    in ``w_pack`` (longer: packs run less often), default ``w``."""
+    in ``w_pack`` (longer: packs run less often), default ``w``. ``bank`` = the bank owns the
+    control: never working (reason ``bank_owned``)."""
     supervised, _ = col.split_agents([agent_id])
     refs_n = sum(1 for k, _t in sources if k in REF_KINDS)
     runtime = sorted({(k, t) for k, t in sources if k in RUNTIME_KINDS})
+    if bank:
+        n = len(runtime)
+        return Result(STATUS_NO_DATA, "bank_owned", n, 0, 0, n, refs_n)
     if not supervised:
         return decide(len(runtime), 0, 0, refs_n, False)
     working = failing = 0

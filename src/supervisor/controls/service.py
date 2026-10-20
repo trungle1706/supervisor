@@ -482,6 +482,8 @@ class ControlService:
             self.state,
             self._fresh().rule_ids(),
             control_sources=lambda cid: runtime_sources(self.state, cid),
+            # the same owner switch as the risk register (rule R1; review WP30)
+            judged_packs=bool(getattr(self.settings, "risk_evidence_judged_packs", False)),
         )
 
     def run_status(self, now: dt.datetime | None = None) -> dict[str, Any]:
@@ -515,7 +517,9 @@ class ControlService:
                     tally[done[0]["status"]] += 1
                     digests.append(str(done[0]["digest"]))
                     continue
-                res = cev.evaluate(col, aid, pairs[c["control_id"]], w, w_pack)
+                res = cev.evaluate(
+                    col, aid, pairs[c["control_id"]], w, w_pack, bank=c["implemented_by"] == "bank"
+                )
                 digest = cev.status_digest(c["control_id"], aid, w, res)
                 tally[res.status] += 1
                 digests.append(digest)
@@ -587,14 +591,25 @@ class ControlService:
         return ev.is_stale(end, self.window(self.clock.now()).seconds, self.clock.now())
 
     # ------------------------------------------------------------------ compliance
-    def _latest_for_agent(self, agent_id: str) -> dict[str, dict[str, Any]]:
+    def _latest_for_agent(
+        self, agent_id: str, bases: Mapping[str, str] | None = None
+    ) -> dict[str, dict[str, Any]]:
+        """control id -> the row that counts: the newest row computed for the control as it is
+        now (its map fingerprint); else the newest row (it then reads changed_since_evidence). A
+        map changed and changed back in one window so finds its first row again."""
         rows = self.tables.query(
             "control_status", {"agent_id": agent_id}, order_by=("-ts",), limit=20000
         )
-        out: dict[str, dict[str, Any]] = {}
+        newest: dict[str, dict[str, Any]] = {}
+        valid: dict[str, dict[str, Any]] = {}
         for r in rows:
-            out.setdefault(str(r["control_id"]), dict(r))
-        return out
+            cid = str(r["control_id"])
+            newest.setdefault(cid, dict(r))
+            if bases is not None and cid not in valid:
+                w = ev.Window(ev._ts(r["window_start"]), ev._ts(r["window_end"]))  # noqa: SLF001
+                if cev.status_id(cid, str(r["agent_id"]), w, bases.get(cid, "")) == r["status_id"]:
+                    valid[cid] = dict(r)
+        return newest | valid
 
     def agent_compliance(self, agent_id: str) -> dict[str, Any]:
         """Controls in scope of one agent, their status, and the compliance bp: controls with
@@ -605,8 +620,8 @@ class ControlService:
         a = agents.get(agent_id.lower())
         aid = str(a["agent_id"]) if a else agent_id
         scope = self.controls_for(aid) if a else []
-        latest = self._latest_for_agent(aid)
         bases = self.bases()
+        latest = self._latest_for_agent(aid, bases)
         items = []
         tally = dict.fromkeys(EVIDENCE_STATUSES, 0)
         for c in scope:

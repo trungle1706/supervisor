@@ -1865,6 +1865,10 @@ _T.update(
         "ct_reason_no_supervised_agent": ("agent is not supervised", "tác tử chưa được giám sát"),
         "ct_reason_not_evaluated": ("not evaluated yet", "chưa được đánh giá"),
         "ct_reason_stale": ("too old", "đã cũ"),
+        "ct_reason_bank_owned": (
+            "bank process, not observed",
+            "quy trình của ngân hàng, không quan sát được",
+        ),
         "ct_reason_changed_since_evidence": (
             "changed since the evidence",
             "đã đổi sau khi có bằng chứng",
