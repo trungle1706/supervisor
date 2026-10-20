@@ -2,9 +2,7 @@
 
 ## v0.3.0-pre (phase 3, wave 1) - not released
 
-Integration branch `phase3-wave1`. `__version__` stays `0.2.0` until the release. WP23 (latency
-benchmark) is not in this wave yet; it adds `tests/perf/`, `tools/bench_latency.py` and
-`docs/latency.md` and a README line.
+Integration branch `phase3-wave1`. `__version__` stays `0.2.0` until the release.
 
 ### What is new
 
@@ -14,6 +12,7 @@ benchmark) is not in this wave yet; it adds `tests/perf/`, `tools/bench_latency.
 | WP21 | SIEM export (file, http, delta; jsonl, CEF, OCSF 1.1 subset), alert engine (`config/alerts.yaml`), Alerts section on Metrics with acknowledge, queued webhook notifier | `docs/siem.md`, `docs/alerts.md` | D15 |
 | WP22 | Tool usage rollup `tool_usage_daily`, least-privilege diff (suggestion only), console Tools page, `GET /v1/analytics/tools` | `docs/tool-analytics.md` | D18 |
 | WP24 | Inventory graph (agents, models, endpoints, tools, MCP servers, datasets), shadow-AI scan with low-severity cases (no incident clocks), console Inventory page, `GET /v1/inventory/...` | `docs/inventory.md` | D16 |
+| WP23 | Latency benchmark `python -m tools.bench_latency` (in process, HTTP open loop with GAF delta, OTLP, MCP proxy; SQLite and a labelled MOCK Delta path), Delta round-trip notebook, two committed full runs. Laptop gate p99 4.6 ms (19 rules), 6.8 ms (200 rules) against 50 ms. The 50 ms test runs with `RUN_PERF=1` | `docs/latency.md` | D19 |
 | WP24b | Masker `vn_regex-3` (names in every case form, addresses, amounts kept), inline redaction of `pii_export` tool arguments at the gate, `pii_canary` v2, PII eval harness | `docs/masking.md`, `docs/masker-validation-report.md` | D17 |
 
 ### New flags (all default off)

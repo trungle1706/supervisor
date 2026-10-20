@@ -8,12 +8,13 @@ Review this commit: see "Branch and commit" at the end.
 
 | Check | Result |
 |---|---|
-| Merges | 5 of 5 (`git merge --no-ff`), all conflicts resolved by union of the additive blocks |
-| `ruff check .` / `ruff format --check .` | clean / clean (621 files) |
-| Full suite `uv run python -m pytest -q` (no `-x`) | **3283 passed**, 28 skipped, 0 failed, 1 warning (main: 2791, so +492 new; more than the ~330 estimate because the review follow-ups added tests). Same count on the first run after the merges and on the final head |
+| Merges | 6 of 6 (`git merge --no-ff`; WP23 merged last, in a second pass), all conflicts resolved by union of the additive blocks |
+| `ruff check .` / `ruff format --check .` | clean / clean (628 files) |
+| Full suite `uv run python -m pytest -q` (no `-x`) | **3303 passed**, 29 skipped, 0 failed, 1 warning (main: 2791, so +512 new). Five WPs alone: 3283 passed, 28 skipped. WP23 adds 21 tests in `tests/perf`: 20 run, the 50 ms timing test is skipped without `RUN_PERF=1` |
 | `python -m supervisor.pii_eval` (both splits) | same as the WP24b baseline (table in section 6) |
 | `python -m supervisor.alerts.harness` | `[OK] all GO` on dev and held-out, 8 of 8 alerts |
 | Offline chain verify after inventory + alert jobs (fresh SQLite) | `RESULT: OK`, 15 signed roots, 5 lanes incl. `agent:inventory` |
+| `python -m tools.bench_latency --quick` (after the WP23 merge) | exit 0; gate in process p99 4.8 ms (19 rules), 5.6 ms (200 rules) against 50 ms. 10 spread FAILs reported, not enforced in quick mode (the full suite ran on the same host at the same time) |
 | Boot with all wave-1 flags on (port 18431) | /health, /ready, Tools, Inventory, Metrics 200; signed SDK check allowed; unsigned 401; all jobs `ok` |
 
 ## 2. Merge order and why
@@ -25,7 +26,9 @@ main bf3a23a
   |-- 3. WP22  tool analytics      (engine latency_us, model.yaml first table)         1 conflict
   |-- 4. WP21  SIEM + alerts       (model.yaml, http_json, scheduler, rbac)           12 conflicts
   |-- 5. WP24  inventory           (model.yaml, rbac, console, app, scheduler)        12 conflicts
-  `-- integration commits (ADR renumber, format, CHANGELOG, scheduler test)
+  |-- integration commits (ADR renumber, format, CHANGELOG, scheduler test, report)
+  |-- 6. WP23  latency benchmark   (README, BACKLOG, docs/index; no src/ change)      3 conflicts
+  `-- integration commits (ADR D19, RUN_PERF gate, CHANGELOG row, report)
 ```
 
 Reason: the two WPs that change the gate path (WP20, WP24b) go first, so the SDK / MCP proxy
@@ -55,6 +58,8 @@ so `model.yaml` is merged in order and the DDL is generated twice only.
 | WP24 | `schema/model.yaml` | `inventory_node`, `inventory_edge` appended at the tail |
 | WP24 | BACKLOG, threat-model gap table | union |
 | WP21, WP24 | `schema/ddl/*.sql`, `notebooks/bootstrap_and_smoke.py` | not hand-merged: took one side, then regenerated |
+| WP23 | README, BACKLOG | union (Latency capability row; 6 BACKLOG rows) |
+| WP23 | `docs/index.md` | dropped the WP23 "D01 to D14" ADR row; kept the merged row, now "D01 to D19" |
 
 Auto-merged without conflict, then checked by hand: `core/rbac.py` (PERMISSIONS, NON_USER_OK,
 ROUTES of WP21, WP22, WP24 all present), `gateway/engine.py`, `gateway/routes.py`,
@@ -67,7 +72,10 @@ ROUTES of WP21, WP22, WP24 all present), `gateway/engine.py`, `gateway/routes.py
 | `schema/ddl/sqlite.sql`, `schema/ddl/databricks.sql` | `PYTHONPATH=src python -m schema.generate` after the WP21 and after the WP24 merge |
 | `notebooks/bootstrap_and_smoke.py` | `python -m supervisor.databricks.notebook` after each schema merge |
 | `docs/console.md` role matrix | Compared with `rbac.matrix_markdown()`: git merged the rows, the table is equal (test `test_docs_table_equals_matrix_markdown` passes); no edit needed |
-| ADR | `git mv docs/adr/D22-tool-analytics.md docs/adr/D18-tool-analytics.md`, title D18, links in README and `docs/tool-analytics.md`, `docs/index.md` range "D01 to D18". Final set: D14 ingress auth, D15 alerts, D16 inventory, D17 masker v3, D18 tool analytics |
+| ADR | `git mv docs/adr/D22-tool-analytics.md docs/adr/D18-tool-analytics.md`, title D18, links in README and `docs/tool-analytics.md`, `docs/index.md` range "D01 to D18". Final set: D14 ingress auth, D15 alerts, D16 inventory, D17 masker v3, D18 tool analytics, D19 latency benchmark (WP23 `D14-latency-benchmark` renamed with `git mv`; title and the link in `docs/latency.md` fixed) |
+| WP23 light review (performance engineer) | Open-loop driver: latency counts from the intended send time; the stall test proves that a 250 ms stall is charged to the requests behind it (no coordinated omission). Percentile: nearest rank, checked against a definition-based reference on skewed samples and equal to `GateMetrics.percentile`. Reproducibility rule p50 10% / p95 20%: accepted. The ADR text said 10 percent for both, which did not match the code, so I corrected D19 and added a plain "deviation from the phase 3 brief" sentence in `docs/latency.md`. The two committed bench JSONs list their failures (exit 3): accepted as is |
+| WP23 perf gate | `tests/perf/test_gate_latency.py` took 24.7 s here (load average 2.5 to 3.3), over the 10 s limit. It now has `@pytest.mark.perf` and `skipif(not RUN_PERF)`, the same gate as the WP22 rollup test. With `RUN_PERF=1` it passed in 16 s. The budget row in `docs/latency.md` says so. The 21 benchmark self-tests stay in the default suite (7.7 s together) |
+| `CHANGELOG.md` | WP23 feature row; removed the "WP23 not in this wave" sentence |
 | `ops/openapi.py` | `ruff format` of the merged prefix tuple |
 | `CHANGELOG.md` (new) | v0.3.0-pre: feature table, flags table, behaviour changes with flags off, Delta deploy order. README: `INGRESS_AUTH_ENABLED` row (was missing from the flag table) and a CHANGELOG pointer; `docs/index.md` row |
 | `tests/monitors/test_scheduler.py` | all-flags test also turns on `INVENTORY_ENABLED` with the workspace fixture and asserts `siem`, `notify`, `alerts`, `tool_analytics`, `inventory` are all in the job set (additive; nothing removed) |
@@ -162,10 +170,14 @@ Owner questions (from the five handoffs and reviews):
 20. WP24b: `MASK_AMOUNTS` on for the `masked` capture level of some agents?
 21. WP24b: who supplies the bank labelled PII sample, and when?
 22. WP24b: should the `agent:<id>` sandbox mock stop echoing context PII, or should `pii_canary` keep failing it on purpose?
+23. WP23: the Databricks App p99 budget: (A) within 2 s, the current timeout, or (B) within 500 ms, which needs asynchronous recording?
+24. WP23: should recording move off the response path on Delta? It changes what the audit trail guarantees at answer time. Today each check makes 4 sequential write statements inside the 2 s gate timeout.
+25. WP23: is p50 within 10% and p95 within 20% acceptable as the reproducibility rule, or is a dedicated benchmark host available?
+26. WP23: is a 200-rule worst case the right size to publish, or does the bank have a realistic policy to use?
 
 Integration notes (not owner decisions):
 
-- WP23 (latency benchmark) is not merged. Expected touch points: `tests/perf/`, `tools/bench_latency.py`, `docs/latency.md`, README line, CHANGELOG feature row. WP22 registered the pytest marker `perf` in `pyproject.toml` and gates its 1M-row timing on `RUN_PERF=1`; WP23 should reuse that marker. `latency_us` now includes the inline-redaction pass for pii_export tools.
+- WP23 findings outside its scope (in BACKLOG): aggregate and prior-call rules scan the in-memory window (200 rules with 10,000 events per tool per day: p99 58 ms, over budget); the MCP stdio proxy opens a new HTTP connection per call (p50 8.7 ms against 4.7 ms for the gate). The WP23 numbers were taken before the wave-1 merge: ingress auth and inline redaction are not in its request path, and `latency_us` now includes the inline-redaction pass for pii_export tools.
 - Delta deploy order: run `python -m supervisor.jobs.bootstrap_schema` BEFORE the new app (column `agent_event.latency_us`; tables `alert`, `siem_event`, `tool_usage_daily`, `inventory_node`, `inventory_edge`). In `CHANGELOG.md`.
 - Nothing in wave 1 ran against a live workspace: SCIM `Me`, `DatabricksSecretReader`, Apps proxy headers, Delta SQL of the rollup, workspace inventory listing, SIEM Delta sink. Add to the live kit.
 - WP20 uses Starlette private `request._body` (pinned Starlette 1.8.0 behaviour; route and e2e tests catch a change).
@@ -181,12 +193,17 @@ Integration notes (not owner decisions):
 |---|---|
 | Branch | `phase3-wave1` |
 | Worktree | `/home/trung/supervisor/.claude/worktrees/agent-a1f4b3e7345d4debe` |
-| Head | the last commit on `phase3-wave1` (report-only commits on top of `e1730f3`; code and tests are final at `e1730f3`) |
-| Diff vs main | 200+ files, about 28,200 insertions, 226 deletions |
+| Head | the last commit on `phase3-wave1` (this report); code and tests are final at `56bf53b` |
 
 Commits on top of main (first parent):
 
 ```
+(head)  Integration wave 1: WP23 in INTEGRATION_WAVE1.md and CHANGELOG
+56bf53b Integration wave 1: WP23 50 ms gate test runs only with RUN_PERF=1 (25 s on this host), marker perf as in WP22
+5838573 Integration wave 1: WP23 ADR D14-latency-benchmark renamed to D19; ADR range D01 to D19; reproducibility deviation stated
+6e68256 Merge WP23 latency benchmark (worktree-agent-a1650eb98a29b875f)
+de8a2ca Integration wave 1: report section refs and head line
+2a9b049 Integration wave 1: INTEGRATION_WAVE1.md (merge order, conflicts, tests, harnesses, boot, open items)
 e1730f3 Integration wave 1: all-flags scheduler test also runs the inventory job and pins the wave-1 job set
 5ee034c Integration wave 1: CHANGELOG v0.3.0-pre (flags, behaviour changes, Delta deploy order), README ingress flag row
 476f796 Integration wave 1: ruff format openapi human-path prefixes
@@ -198,4 +215,4 @@ d59ca9d Merge WP24b masker v3 + inline redaction (worktree-agent-a44bc574614ace4
 3a9fba1 Merge WP20 ingress auth (worktree-agent-a038a49e4b494fc59)
 ```
 
-Merged branch heads: WP20 `edd5efb`, WP24b `cbe57ce`, WP22 `684f4ef`, WP21 `34d1552`, WP24 `0b87bb3`.
+Merged branch heads: WP20 `edd5efb`, WP24b `cbe57ce`, WP22 `684f4ef`, WP21 `34d1552`, WP24 `0b87bb3`, WP23 `5eab20b`.
