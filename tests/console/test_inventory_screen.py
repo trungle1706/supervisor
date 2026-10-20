@@ -86,3 +86,15 @@ def test_page_without_agents_is_an_empty_state(console: Any) -> None:
     console.ctx.settings.inventory_enabled = True
     r = console.get("/console/inventory")
     assert r.status_code == 200 and "python -m supervisor.jobs.inventory" in r.text
+
+
+def test_shadow_case_page_renders_for_the_pseudo_agent(inv_console: Any) -> None:
+    """Review: the shadow-AI case belongs to pseudo agent ``inventory`` (no agent row); its
+    case page and the case list must still render (no 5xx)."""
+    item = inv_console.get("/v1/inventory/unmanaged", user="viewer.hoa").json()["items"][0]
+    for user in ("viewer.hoa", None):
+        kw = {"user": user} if user else {}
+        r = inv_console.get(f"/console/cases/{item['case_id']}", **kw)
+        assert r.status_code == 200, r.text[:300]
+        assert "Shadow AI" in r.text
+    assert inv_console.get("/console/cases").status_code == 200

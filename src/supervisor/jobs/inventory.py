@@ -77,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         cases = None if args.no_cases else build_case_service(runtime)
         out = run(runtime.adapters, settings, build_reader(settings, args.fixture), cases)
-    except SupervisorError as exc:
+    except (SupervisorError, OSError, ValueError) as exc:  # bad fixture path or JSON: no trace
         print(f"[FAIL] inventory: {exc}".encode("ascii", "replace").decode("ascii"))  # noqa: T201
         return 1
     finally:

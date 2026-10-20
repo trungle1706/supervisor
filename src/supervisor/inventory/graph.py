@@ -26,8 +26,9 @@ class Graph:
 
     # ------------------------------------------------------------------ build
     def add_node(self, node: Node) -> str:
-        """Add or merge. Evidence and attrs accumulate; the first non-null own risk with the
-        strongest source wins (manual > manifest > onboarding > none)."""
+        """Add or merge. Evidence and attrs accumulate; the non-null own risk with the
+        strongest source wins (manual > manifest > onboarding > none); for two claims from
+        sources of the same strength the higher level wins, so the order does not matter."""
         nid = node.node_id
         cur = self.nodes.get(nid)
         if cur is None:
@@ -36,8 +37,10 @@ class Graph:
         for ev in node.evidence:
             cur.add_evidence(ev["source"], ev["ref"])
         cur.attrs.update(node.attrs)
-        if node.own_risk is not None and _risk_src_rank(node.risk_source) >= _risk_src_rank(
-            cur.risk_source
+        new_src, cur_src = _risk_src_rank(node.risk_source), _risk_src_rank(cur.risk_source)
+        if node.own_risk is not None and (
+            new_src > cur_src
+            or (new_src == cur_src and RISK_RANK[node.own_risk] > RISK_RANK[cur.own_risk])
         ):
             cur.own_risk, cur.risk_source = node.own_risk, node.risk_source
         if node.decision33_class and not cur.decision33_class:

@@ -47,8 +47,15 @@ class Allowlist:
             log.warning("inventory: allow-list is not valid YAML; ignored")
             return cls()
         out = cls()
+        if not isinstance(doc, Mapping):
+            log.warning("inventory: allow-list is not a mapping; ignored")
+            return out
         for key in ALLOWLIST_KEYS:
             items = doc.get(key) or []
+            if isinstance(items, str):  # "apps: bi-portal" is one name, not five letters
+                items = [items]
+            elif not isinstance(items, list):
+                items = []
             setattr(
                 out,
                 key,
