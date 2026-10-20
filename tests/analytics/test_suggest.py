@@ -29,13 +29,9 @@ def rolled(ctx, loaded):
 
 def _build(ctx, settings=None, **kw):
     kw.setdefault("as_of", END)
-    return ts.build_all(
-        ctx.state,
-        settings or load_settings(),
-        policy_dir=POLICIES,
-        manifest_dir=AGENTS,
-        **kw,
-    )
+    kw.setdefault("policy_dir", POLICIES)
+    kw.setdefault("manifest_dir", AGENTS)
+    return ts.build_all(ctx.state, settings or load_settings(), **kw)
 
 
 def _by_agent(sug):
@@ -325,3 +321,76 @@ def test_combined_diff_applies_every_agent_to_one_file(rolled, tmp_path) -> None
     assert {r.id: r.version for r in policy.rules if r.id.endswith("-07")} == {
         "PAY-07": 2, "SVC-07": 2, "CRD-07": 1,
     }  # fmt: skip
+
+
+# --------------------------------------------------------------------------- review fixes
+
+
+PAY07_LIST = "        not_in: [get_balance, list_payees, add_payee, transfer]\n"
+
+
+def _policy_copy(tmp_path, old: str, new: str) -> Path:
+    text = (POLICIES / "baseline.yaml").read_text(encoding="utf-8")
+    assert old in text
+    d = tmp_path / "pol"
+    d.mkdir()
+    (d / "baseline.yaml").write_text(text.replace(old, new), encoding="utf-8")
+    return d
+
+
+def test_patch_refuses_an_edit_it_cannot_make_exactly() -> None:
+    """A text edit that would not equal the intended structural edit gives None (a human
+    edits the rule) instead of a wrong diff."""
+    bracket = "rules:\n  - id: R-1\n    version: 3\n    when:\n      tool:\n" + (
+        "        not_in: [a, b]  # see [doc]\n"
+    )
+    assert ts.patch_rule_list(bracket, "R-1", ["b"]) is None  # was: version bumped, b kept
+    last_block = (
+        "rules:\n  - id: R-1\n    version: 1\n    when:\n      tool:\n        not_in:\n"
+        "          - a\n          - b\nother:\n  x:\n    not_in: [a, b]\n"
+    )
+    assert ts.patch_rule_list(last_block, "R-1", ["b"]) is None  # never edits "other"
+    assert ts.verify_rule_patch(bracket, bracket, "R-1", ["b"]) is False
+    m = "tools:\n  - name: a\n    x: 1\n  - name: b\n"
+    assert ts.verify_manifest_patch(m, "tools:\n  - name: b\n", ["a"]) is True
+    assert ts.verify_manifest_patch(m, "tools: []\n", ["a"]) is False
+
+
+def test_rule_shared_with_other_agents_gets_no_diff() -> None:
+    s = {
+        "agent_id": "payments", "remove": ["add_payee"], "rule_ids": ["PAY-07"],
+        "rule_scopes": {"PAY-07": ["customer_service", "payments"]},
+        "manifest_tools": ["add_payee"], "warnings": [],
+    }  # fmt: skip
+    out = ts.attach_diff(s, POLICIES, AGENTS)
+    assert out["diff"] == "" and out["_manifest_path"] is None and out["_rule_files"] == {}
+    assert any("NO DIFF" in w and "more agents" in w for w in out["warnings"])
+    assert ts.combined_diff([out]) == ""
+
+
+def test_unpatchable_rule_withholds_the_whole_agent_diff(rolled, tmp_path) -> None:
+    block = "        not_in:\n" + "".join(
+        f"          - {t}\n" for t in ("get_balance", "list_payees", "add_payee", "transfer")
+    )
+    pol = _policy_copy(tmp_path, PAY07_LIST, block)
+    by = _by_agent(_build(rolled, policy_dir=pol))
+    pay = by["payments"]
+    assert pay["remove"] and pay["diff"] == "" and pay["manifest_file"] is None
+    assert any(w.startswith("NO DIFF") for w in pay["warnings"])
+    text = ts.combined_diff(list(by.values()))
+    assert "payments/manifest.yaml" not in text  # no manifest edit without the policy edit
+    assert "customer_service/manifest.yaml" in text
+
+
+def test_conditional_allow_list_is_not_a_declaration(tmp_path) -> None:
+    cond = PAY07_LIST + "      all:\n        - {arg: amount_minor, op: gt, value: 0}\n"
+    policy = load_policy_dir(_policy_copy(tmp_path, PAY07_LIST, cond))
+    assert ts.allow_rules(policy, "payments") == []
+
+
+def test_stale_rollup_lowers_confidence(rolled) -> None:
+    pay = _by_agent(_build(rolled, as_of=END + timedelta(days=5)))["payments"]
+    assert pay["confidence"] == "low"
+    assert any("stale" in w for w in pay["warnings"])
+    fresh = _by_agent(_build(rolled, as_of=END + timedelta(days=2)))["payments"]
+    assert not any("stale" in w for w in fresh["warnings"])

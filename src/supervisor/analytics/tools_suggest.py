@@ -43,6 +43,9 @@ from supervisor.monitors.common import MonitorContext
 SUGGESTION_VERSION = 1
 POLICY_DIR = REPO_ROOT / "policies"
 RISKY = ("money", "credit", "pii_export")
+# The scheduler job recomputes the last 2 days; a newest stored day older than this means the
+# rollup is not running, and "unused" would only mean "not rolled up".
+STALE_DAYS = 2
 
 
 # --------------------------------------------------------------------------- declared tools
@@ -88,11 +91,23 @@ def load_exceptions(path: Path | None) -> list[dict[str, Any]]:
 
 
 def allow_rules(policy: Any, agent_id: str) -> list[tuple[str, list[str]]]:
-    """(rule id, tool list) of every block/pause rule that allows only the listed tools."""
+    """(rule id, tool list) of every block/pause rule that allows only the listed tools.
+
+    Only unconditional allow-lists count: a rule with ``when.all`` / ``when.any`` predicates,
+    an aggregate or a prior check stops other tools only in some cases, so it does not
+    declare what the agent may call."""
     out = []
     for r in policy.rules_for(agent_id):
         t = r.when.tool
-        if t is not None and t.op == "not_in" and r.action in ("block", "pause"):
+        if (
+            t is not None
+            and t.op == "not_in"
+            and r.action in ("block", "pause")
+            and not r.when.all
+            and not r.when.any
+            and r.aggregate is None
+            and r.prior is None
+        ):
             out.append((r.id, [str(v) for v in t.value]))
     return sorted(out)
 
@@ -278,7 +293,9 @@ def patch_rule_list(text: str, rule_id: str, remove: Sequence[str]) -> str | Non
             items = [i.strip() for i in m.group(2).split(",") if i.strip()]
             keep = [i for i in items if i.strip("'\"") not in set(remove)]
             lines[j] = f"{m.group(1)}[{', '.join(keep)}]{m.group(3)}"
-            return "\n".join(lines)
+            new = "\n".join(lines)
+            # Fail closed: the text edit must equal the intended structural edit.
+            return new if verify_rule_patch(text, new, rule_id, remove) else None
     return None
 
 
@@ -300,7 +317,50 @@ def patch_manifest_text(text: str, remove: Sequence[str]) -> str | None:
                 del lines[i:j]
                 changed = True
                 break
-    return "\n".join(lines) if changed else None
+    if not changed:
+        return None
+    new = "\n".join(lines)
+    return new if verify_manifest_patch(text, new, remove) else None
+
+
+def _find_rule(doc: Any, rule_id: str) -> dict[str, Any] | None:
+    rules = doc.get("rules") if isinstance(doc, dict) else None
+    hits = [r for r in rules or [] if isinstance(r, dict) and r.get("id") == rule_id]
+    return hits[0] if len(hits) == 1 else None
+
+
+def verify_rule_patch(old: str, new: str, rule_id: str, remove: Sequence[str]) -> bool:
+    """True when ``new`` parses to exactly ``old`` with the rule's ``when.tool.not_in`` list
+    minus ``remove`` and its ``version`` plus one. Anything else (a comment that holds a
+    bracket, a list on several lines, a second match) makes the text patch untrustworthy:
+    the caller then leaves the rule to a human instead of emitting a wrong diff."""
+    try:
+        want, got = yaml.safe_load(old), yaml.safe_load(new)
+    except yaml.YAMLError:
+        return False
+    rule = _find_rule(want, rule_id)
+    if rule is None or not isinstance(rule.get("version"), int):
+        return False
+    tool = (rule.get("when") or {}).get("tool")
+    if not isinstance(tool, dict) or not isinstance(tool.get("not_in"), list):
+        return False
+    tool["not_in"] = [t for t in tool["not_in"] if str(t) not in set(remove)]
+    rule["version"] += 1
+    return want == got
+
+
+def verify_manifest_patch(old: str, new: str, remove: Sequence[str]) -> bool:
+    """True when ``new`` parses to ``old`` minus the ``tools`` entries named in ``remove``."""
+    try:
+        want, got = yaml.safe_load(old), yaml.safe_load(new)
+    except yaml.YAMLError:
+        return False
+    if not isinstance(want, dict) or not isinstance(want.get("tools"), list):
+        return False
+    want["tools"] = [
+        t for t in want["tools"] if not (isinstance(t, dict) and t.get("name") in set(remove))
+    ]
+    return want == got
 
 
 def _rel(path: Path) -> str:
@@ -330,37 +390,67 @@ def find_policy_file(policy_dir: Path, rule_id: str) -> Path | None:
 
 
 def attach_diff(s: dict[str, Any], policy_dir: Path, manifest_dir: Path | None) -> dict[str, Any]:
-    """Add ``diff`` (unified, policy then manifest) and the file names to a suggestion."""
-    parts: list[str] = []
+    """Add ``diff`` (unified, policy then manifest) and the file names to a suggestion.
+
+    All or nothing per agent: when one allow-list rule cannot be patched safely (shared with
+    other agents, file not found, a list the text patch cannot edit exactly) or the manifest
+    edit does not verify, the agent gets no diff at all and a warning says why. A partial
+    diff (manifest without policy, or one rule of two) would leave the policy and the
+    manifest out of step."""
     s["policy_file"] = None
     s["manifest_file"] = None
     s["_rule_files"] = {}  # rule id -> Path, for combined_diff
     s["_manifest_path"] = None
-    if s["remove"]:
-        for rule_id in s["rule_ids"]:
-            f = find_policy_file(policy_dir, rule_id)
-            if f is None:
-                s["warnings"].append(f"rule {rule_id}: file not found, edit by hand")
-                continue
-            old = f.read_text(encoding="utf-8")
-            new = patch_rule_list(old, rule_id, s["remove"])
-            if new is None:
-                s["warnings"].append(
-                    f"rule {rule_id}: not_in list is not on one line, edit by hand"
-                )
-                continue
-            s["policy_file"] = _rel(f)
-            s["_rule_files"][rule_id] = f
-            parts.append(_unified(f, old, new))
-        m_remove = [t for t in s["remove"] if t in s["manifest_tools"]]
-        mf = (manifest_dir / s["agent_id"] / "manifest.yaml") if manifest_dir else None
-        if m_remove and mf is not None and mf.is_file():
-            old = mf.read_text(encoding="utf-8")
-            new = patch_manifest_text(old, m_remove)
-            if new is not None:
-                s["manifest_file"] = _rel(mf)
-                s["_manifest_path"] = mf
-                parts.append(_unified(mf, old, new))
+    s["diff"] = ""
+    if not s["remove"]:
+        return s
+    parts: list[str] = []
+    rule_files: dict[str, Path] = {}
+    problems: list[str] = []
+    scopes = s.get("rule_scopes") or {}
+    for rule_id in s["rule_ids"]:
+        scope = scopes.get(rule_id, [s["agent_id"]])
+        if scope != [s["agent_id"]]:
+            shown = "*" if scope == "*" else ", ".join(scope)
+            problems.append(
+                f"rule {rule_id} applies to more agents ({shown}): removing a tool there "
+                "affects them too"
+            )
+            continue
+        f = find_policy_file(policy_dir, rule_id)
+        if f is None:
+            problems.append(f"rule {rule_id}: policy file not found")
+            continue
+        old = f.read_text(encoding="utf-8")
+        new = patch_rule_list(old, rule_id, s["remove"])
+        if new is None:
+            problems.append(
+                f"rule {rule_id}: the not_in list is not a plain one-line list "
+                "(or the edit did not verify)"
+            )
+            continue
+        rule_files[rule_id] = f
+        parts.append(_unified(f, old, new))
+    m_remove = [t for t in s["remove"] if t in s["manifest_tools"]]
+    mf = (manifest_dir / s["agent_id"] / "manifest.yaml") if manifest_dir else None
+    manifest_part = None
+    if m_remove and mf is not None and mf.is_file():
+        old = mf.read_text(encoding="utf-8")
+        new = patch_manifest_text(old, m_remove)
+        if new is None:
+            problems.append(f"{_rel(mf)}: the tool blocks could not be removed exactly")
+        else:
+            manifest_part = _unified(mf, old, new)
+    if problems:
+        s["warnings"].extend(f"NO DIFF, edit by hand: {p}" for p in problems)
+        return s
+    for rule_id, f in rule_files.items():
+        s["policy_file"] = _rel(f)
+        s["_rule_files"][rule_id] = f
+    if manifest_part:
+        s["manifest_file"] = _rel(mf)  # type: ignore[arg-type]
+        s["_manifest_path"] = mf
+        parts.append(manifest_part)
     s["diff"] = "".join(parts)
     return s
 
@@ -494,9 +584,16 @@ def build_all(
         if agent_id not in agents:
             raise AnalyticsError(f"unknown agent: {agent_id}")
         agents = [agent_id]
+    by_agent: dict[str, list[dict[str, Any]]] = {}
+    for r in load_daily(state, end=end):
+        by_agent.setdefault(r["agent_id"], []).append(r)
+    # A rollup that stopped (job off, failing) looks like "no use" for every tool. The newest
+    # stored day of ANY agent shows whether the rollup still runs.
+    latest = max((rows[0]["usage_date"] for rows in by_agent.values()), default=None)
+    stale = latest is not None and (as_of - latest).days > STALE_DAYS
     out = []
     for a in agents:
-        all_rows = load_daily(state, agent_id=a)
+        all_rows = by_agent.get(a, [])
         window = [r for r in all_rows if start <= r["usage_date"] <= end]
         first = min((r["usage_date"] for r in all_rows), default=None)
         m_tools, m_risk = _manifest_tools(a)
@@ -512,7 +609,18 @@ def build_all(
             window_days=days,
             min_history_days=settings.tool_analytics_min_history_days,
         )
+        if stale and s["confidence"] != "no_data":
+            s["confidence"] = "low"
+            s["warnings"].append(
+                f"the rollup looks stale: newest day of any agent is {latest.isoformat()} "
+                f"(as of {as_of.isoformat()}); run the rollup for the missing days first"
+            )
         s["rule_versions"] = {r.id: r.version for r in policy.rules if r.id in s["rule_ids"]}
+        s["rule_scopes"] = {
+            r.id: r.agent_scope if r.agent_scope == "*" else sorted(r.agent_scope)
+            for r in policy.rules
+            if r.id in s["rule_ids"]
+        }
         out.append(attach_diff(s, policy_dir, manifest_dir) if with_diff else s)
     return out
 
@@ -554,6 +662,14 @@ def write_all(
     }
 
 
+def _must(text: str | None, what: str) -> str:
+    # attach_diff verified each edit on the original file; failing here means the edits of
+    # two agents interact. Fail loudly rather than write a diff that differs from the YAML.
+    if text is None:
+        raise AnalyticsError(f"{what}: combined diff could not be built; edit by hand")
+    return text
+
+
 def combined_diff(sug: Sequence[Mapping[str, Any]]) -> str:
     """One unified diff for all agents. Edits to the same file (the baseline policy holds every
     allow-list rule) are applied one after the other, so each file appears once and the patch
@@ -564,12 +680,10 @@ def combined_diff(sug: Sequence[Mapping[str, Any]]) -> str:
             continue
         for rule_id, f in s.get("_rule_files", {}).items():
             cur = files.setdefault(f, [f.read_text(encoding="utf-8")] * 2)
-            cur[1] = patch_rule_list(cur[1], rule_id, s["remove"]) or cur[1]
+            cur[1] = _must(patch_rule_list(cur[1], rule_id, s["remove"]), f"rule {rule_id}")
         mf = s.get("_manifest_path")
         if mf is not None:
             cur = files.setdefault(mf, [mf.read_text(encoding="utf-8")] * 2)
-            cur[1] = (
-                patch_manifest_text(cur[1], [t for t in s["remove"] if t in s["manifest_tools"]])
-                or cur[1]
-            )
+            m_remove = [t for t in s["remove"] if t in s["manifest_tools"]]
+            cur[1] = _must(patch_manifest_text(cur[1], m_remove), _rel(mf))
     return "".join(_unified(f, old, new) for f, (old, new) in files.items() if old != new)

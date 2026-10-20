@@ -97,9 +97,10 @@ decisions, 90 days, 3 agents, 1,005 rollup rows; Python tracemalloc on):
 | Rollup time | 20.7 s (20.6 s per million decisions) | 90 s per million |
 | Peak Python memory during the rollup | 41 MB | 128 MB |
 
-Run it alone with `uv run python -m pytest -q -s tests/analytics/test_perf.py`
-(`PERF_ROWS=100000` shortens it). The budget is deliberately loose (about 4x) so a slow disk
-does not fail the suite; a quadratic mistake still would. On Delta the cost is the warehouse
+Run it with `RUN_PERF=1 uv run python -m pytest -q -s tests/analytics/test_perf.py`
+(`PERF_ROWS=100000` shortens it). The time budget is loose (about 4x) and is enforced only
+with `RUN_PERF=1`: in the normal suite the test loads 50,000 decisions and checks the counts
+and the memory bound, so a busy CI host cannot make it flaky. On Delta the cost is the warehouse
 scan of `agent_event` for the days recomputed; the daily job reads only 2 days.
 
 ## Least-privilege suggestion
@@ -110,7 +111,9 @@ one screen per agent.
 
 **Declared tools** (what the agent may call): the allow-list rule of the agent in
 `policies/*.yaml`, that is a `pause` or `block` rule with `when.tool.not_in: [...]` and the
-agent in scope (PAY-07, SVC-07, CRD-07 in the baseline). If an agent has several such rules, a
+agent in scope (PAY-07, SVC-07, CRD-07 in the baseline). Only unconditional rules count: a
+rule that also has `when.all` / `when.any`, an `aggregate` or a `prior` stops other tools only
+in some cases, so it does not declare the allowed set. If an agent has several such rules, a
 tool must pass all of them (intersection). If it has none, the tools of its manifest
 (`src/supervisor_agents/<id>/manifest.yaml`). Tools that are in the manifest but not in the
 allow-list, or the reverse, are reported as `drift`.
@@ -131,7 +134,9 @@ the table shows `allow`, `block` and `pause` so the reviewer can decide.
 days for the agent (the first day to the last day, inclusive); `no_data` when the window has
 no rows at all, in which case nothing is proposed. A missing rollup therefore never produces
 a "remove everything" diff. If every declared tool is unused the output warns that the agent
-may be ready to retire.
+may be ready to retire. If the newest stored rollup day of any agent is more than 2 days
+before the "as of" day, the rollup has probably stopped: confidence drops to `low` with a
+"stale" warning, because "unused" would only mean "not rolled up".
 
 **Exceptions** (`config/tool_exceptions.yaml`): `agent_id`, `tool`, `reason`, `approver`,
 `expires` (YYYY-MM-DD). An exception holds through its `expires` day. After that the tool is
@@ -149,8 +154,13 @@ may be ready to retire.
 - `least_privilege_<as_of>[_<agent>].diff`: one unified diff for all agents. It edits the
   `not_in` list of each allow-list rule, raises that rule's `version` by one (the gate refuses
   a deployed version with other content), and removes the tool blocks from the manifest.
-  Each file appears once. If a list is not on one line, the diff leaves that rule out and the
-  YAML says "edit by hand".
+  Each file appears once. Every text edit is checked by parsing the file before and after:
+  the result must equal the intended change (that list minus the tools, version plus one;
+  or the manifest minus the tool blocks) and nothing else. The diff is all or nothing per
+  agent: if a rule cannot be edited exactly (a list on several lines, a comment with a
+  bracket, the file not found) or the rule also applies to other agents (`agent_scope: "*"`
+  or a list of several agents; removing a tool there would affect them), the agent gets NO
+  diff, not even the manifest part, and the YAML warns "NO DIFF, edit by hand: ...".
 
 **Nothing is applied.** No code path edits `policies/` or a manifest; a test hashes the files
 before and after.
