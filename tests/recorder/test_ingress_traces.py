@@ -191,3 +191,27 @@ def test_receiver_stays_open_when_the_flag_is_off(
         assert r.status_code == 200
     finally:
         app.dependency_overrides.pop(recorder_dep, None)
+
+
+def _named_span_batch(name: str) -> bytes:
+    """One OTLP span whose agent id comes only from the span name (semconv fallback)."""
+    span = {
+        "traceId": "a" * 32,
+        "spanId": "b" * 16,
+        "name": name,
+        "kind": 3,  # CLIENT
+        "startTimeUnixNano": "1700000000000000000",
+        "endTimeUnixNano": "1700000001000000000",
+        "attributes": [],
+    }
+    doc = {"resourceSpans": [{"resource": {"attributes": []}, "scopeSpans": [{"spans": [span]}]}]}
+    return json.dumps(doc).encode("utf-8")
+
+
+def test_span_named_for_another_agent_is_refused(rig: Rig) -> None:
+    # Review fix: with RECORDER_SEMCONV on, "invoke_agent treasury" gives agent id "treasury"
+    # through the span name only. The check must see the same agent id as the normaliser.
+    body = _named_span_batch("invoke_agent treasury")
+    r = rig.client.post("/v1/traces", content=body, headers=sign(body))
+    assert r.status_code == 403, r.text
+    assert [e for e in rig.events() if e.get("agent_id") == "treasury"] == []
