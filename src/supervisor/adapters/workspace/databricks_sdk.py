@@ -1,6 +1,7 @@
 """``WorkspaceReader`` over a Databricks workspace through ``databricks-sdk``. Read-only.
 
-Lists Databricks Apps, Model Serving endpoints and Unity Catalog tables. OAuth only:
+Lists Databricks Apps, Model Serving endpoints, MLflow registered models (Unity Catalog, else
+the workspace registry) and Unity Catalog tables. OAuth only:
 the client comes from ``supervisor.adapters.sql.databricks_rest.make_workspace_client``
 (retry budget capped in ``Config``, PAT refused). No create, update or delete call is
 made here. Unit tests pass a fake client; the live test runs with ``RUN_DATABRICKS=1``.
@@ -84,3 +85,19 @@ class DatabricksWorkspaceReader:
     def list_tables(self, catalog: str, schema: str) -> Sequence[str]:
         tables = self._take(self.client.tables.list(catalog_name=catalog, schema_name=schema))
         return sorted(str(t.full_name or f"{catalog}.{schema}.{t.name}") for t in tables)
+
+    def list_registered_models(self) -> Sequence[Mapping[str, Any]]:
+        """MLflow registered models: Unity Catalog models first, the workspace registry when
+        the UC call is refused (WP24)."""
+        try:
+            models = self._take(self.client.registered_models.list())
+            return [
+                {
+                    "name": str(m.full_name or m.name),
+                    "owner": getattr(m, "owner", None),
+                }
+                for m in models
+            ]
+        except Exception:  # noqa: BLE001 - e.g. no UC permission: try the legacy registry
+            models = self._take(self.client.model_registry.list_models())
+            return [{"name": str(m.name), "owner": getattr(m, "user_id", None)} for m in models]

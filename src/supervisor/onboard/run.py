@@ -289,6 +289,20 @@ def _compliance(
     )
 
 
+def _fill_inventory(adapters: Adapters, path: Path, say: Callable[[str], None]) -> None:
+    """WP24: merge the new inventory.json into the inventory graph. Off by default; a failure
+    here is reported and never stops onboarding."""
+    if not adapters.settings.inventory_enabled:
+        return
+    try:
+        from supervisor.inventory.service import InventoryService
+
+        res = InventoryService.from_adapters(adapters).fill_onboarding(path)
+        say(f"[OK] inventory: {res.nodes_new} node(s), {res.edges_new} edge(s) added")
+    except Exception as exc:  # noqa: BLE001
+        say(f"[SKIP] inventory not updated: {type(exc).__name__}")
+
+
 def _stages(
     agent: OnboardingAgent,
     target: Path,
@@ -330,6 +344,7 @@ def _stages(
         },
     )
     write("inventory.json", _json(inv), "discover")
+    _fill_inventory(adapters, paths["inventory.json"], say)  # WP24, INVENTORY_ENABLED only
     say(
         f"[OK] discover: {len(inv.files)} files, {len(inv.tools)} tools, "
         f"{len(inv.prompts)} prompts, {scrubber.total} secret(s) redacted"
