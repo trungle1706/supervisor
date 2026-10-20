@@ -291,6 +291,7 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `users.view` | Users and roles page (read-only) |  |  |  |  | x |  |  |
 | `audit.view` | Audit log page: console_action rows (read-only) |  |  |  |  | x | x |  |
 | `integrations.view` | Integrations status page (read-only) | x | x | x | x | x | x | x |
+| `session.view` | GET /v1/sessions/{id}: masked timeline and scores of one conversation (WP27) |  | x | x | x | x | x | x |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

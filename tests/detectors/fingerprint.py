@@ -45,7 +45,14 @@ SEQUENCE: list[tuple[str, str, dict[str, Any]]] = [
 
 # Columns WP37 added to agent_event. They exist (as NULL) in every row read back from the store;
 # with the flag off nothing writes them, so a NULL here is "not written" and is left out.
-WP37_NULL_COLUMNS = {"verdict_status", "correlation_id", "coverage_json"}
+WP37_NULL_COLUMNS = {
+    "verdict_status",
+    "correlation_id",
+    "coverage_json",
+    "session_id",  # WP27: written only with SESSION_MONITOR_ENABLED
+    "session_source",
+    "session_json",
+}
 
 
 def _clean(value: Any) -> Any:

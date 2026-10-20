@@ -129,6 +129,8 @@ ASSERT_PHRASES: tuple[str, ...] = (
     "da duoc phe duyet",
     "giam doc da duyet",
     "da duyet",
+    "phe duyet",
+    "uy quyen",
     "duoc phep",
     "nang han muc",
     "mien han muc",
@@ -215,6 +217,26 @@ TOPIC_PHRASES: tuple[str, ...] = (
     "ghi nho",
 )
 _TOPIC_RE = _phrase_re(TOPIC_PHRASES)
+# A standing instruction: the fact is meant to apply to later requests. An authority assertion
+# that is also standing links to ANY later money or credit call (the ask need not repeat it).
+STANDING_PHRASES: tuple[str, ...] = (
+    "from now on",
+    "every later",
+    "all later",
+    "later requests",
+    "future requests",
+    "for all future",
+    "keep this for later",
+    "apply it to every",
+    "apply this to every",
+    "tu bay gio",
+    "tu gio",
+    "ve sau",
+    "cac yeu cau sau",
+    "cho moi yeu cau",
+    "luu lai cho",
+)
+_STANDING_RE = _phrase_re(STANDING_PHRASES)
 _ASSERT_RE = _phrase_re(ASSERT_PHRASES)
 _RECALL_RE = _phrase_re(RECALL_PHRASES)
 _WORD_RE = re.compile(r"[a-z0-9]+")
@@ -239,8 +261,8 @@ class SessionConfig:
     k: int = 3
     cooldown_s: int = 3600
     hit_bp: int = 5000
-    case_threshold_bp: int = 4500
-    pause_threshold_bp: int = 8000
+    case_threshold_bp: int = 2500
+    pause_threshold_bp: int = 4000
     pause_scope: tuple[str, ...] = ()
     weights: Mapping[str, int] = field(default_factory=lambda: dict(DEFAULT_WEIGHTS))
     solo_signals: tuple[str, ...] = ("memory",)
@@ -291,8 +313,8 @@ def resolve_config(settings: Any, binding: SessionBinding | None) -> SessionConf
         k=pick("k", int(getattr(settings, "session_k", 3))),
         cooldown_s=pick("cooldown_s", int(getattr(settings, "session_cooldown_s", 3600))),
         hit_bp=pick("hit_bp", 5000),
-        case_threshold_bp=pick("case_threshold_bp", 4500),
-        pause_threshold_bp=pick("pause_threshold_bp", 8000),
+        case_threshold_bp=pick("case_threshold_bp", 2500),
+        pause_threshold_bp=pick("pause_threshold_bp", 4000),
         pause_scope=scope,
         weights=dict(b.weights) if b.weights is not None else dict(DEFAULT_WEIGHTS),
         solo_signals=tuple(b.solo_signals) if b.solo_signals is not None else ("memory",),
@@ -343,6 +365,10 @@ def has_expand(text: str | None) -> bool:
 
 def has_topic(text: str | None) -> bool:
     return bool(text) and _TOPIC_RE.search(fold(text or "")) is not None
+
+
+def has_standing(text: str | None) -> bool:
+    return bool(text) and _STANDING_RE.search(fold(text or "")) is not None
 
 
 def has_assert(text: str | None) -> bool:
@@ -439,6 +465,7 @@ class Features:
     recall: bool = False  # the turn points back to something said earlier
     toks: tuple[int, ...] = ()  # keyed hashes of identifier-shaped tokens
     topic: bool = False  # the turn talks about limits, authority, urgency, exceptions
+    standing: bool = False  # the asserted fact is meant to apply to later requests
 
 
 def extract(
@@ -451,18 +478,43 @@ def extract(
 ) -> Features:
     """Features of one turn. The sketch is kept only for tools that move or release something:
     a repeated read-only question is not a signal."""
-    keep = risk in ("money", "credit", "pii_export")
-    asserted = has_assert(text)
-    recall = has_recall(text)
-    use = asserted or risk in ("money", "credit")
+    return with_args(extract_flags(text, risk=risk, rare=rare), text, args, risk=risk, key=key)
+
+
+def extract_flags(text: str | None, *, risk: str | None, rare: bool = False) -> Features:
+    """The text-only features (flags). The gate computes these before the lock; the sketch and the
+    identifier tokens wait for the (masked) arguments, see ``with_args``."""
     return Features(
-        has_expand(text),
+        expand=has_expand(text),
+        rare=rare,
+        assert_=has_assert(text),
+        recall=has_recall(text) and risk in ("money", "credit"),
+        topic=has_topic(text),
+        standing=has_standing(text),
+    )
+
+
+def with_args(
+    feats: Features,
+    text: str | None,
+    args: Mapping[str, Any] | None,
+    *,
+    risk: str | None,
+    key: bytes,
+) -> Features:
+    """Add the near-duplicate sketch and the identifier tokens. The gate passes the MASKED
+    arguments (the dlp transform output when there is one), never the raw ones."""
+    keep = risk in ("money", "credit", "pii_export")
+    use = feats.assert_ or risk in ("money", "credit")
+    return Features(
+        feats.expand,
         sketch(text, args, key) if keep else (),
-        rare,
-        asserted,
-        recall and risk in ("money", "credit"),
+        feats.rare,
+        feats.assert_,
+        feats.recall,
         id_tokens(text, args, key) if use else (),
-        has_topic(text),
+        feats.topic,
+        feats.standing,
     )
 
 
@@ -488,6 +540,8 @@ class Turn:
     recall: bool = False
     toks: tuple[int, ...] = ()
     topic: bool = False
+    infra: bool = False  # refused by GATE-DETECTOR-FAILED: an outage, not behaviour
+    standing: bool = False
 
     def features_json(self) -> dict[str, Any]:
         """The ``agent_event.session_json`` content (hashes, flags and codes; no text)."""
@@ -500,6 +554,10 @@ class Turn:
             out["d"] = 1
         if self.sig:
             out["s"] = encode_sig(self.sig)
+        if self.standing:
+            out["p"] = 1
+        if self.infra:
+            out["i"] = 1
         if self.topic:
             out["t"] = 1
         if self.assert_:
@@ -591,15 +649,17 @@ class SessionEngine:
 
     def add_codes(
         self, session_id: str, agent_id: str, event_id: str, codes: Iterable[str]
-    ) -> None:
-        """Late finding codes (Tier 0b runs after the decision) join the turn they belong to."""
+    ) -> bool:
+        """Late finding codes (Tier 0b runs after the decision) join the turn they belong to.
+        False when the turn is not stored yet."""
         q = self._sessions.get((agent_id, session_id))
         if q is None:
-            return
+            return False
         for t in reversed(q):
             if t.event_id == event_id:
                 t.codes = tuple(dict.fromkeys((*t.codes, *codes)))
-                return
+                return True
+        return False
 
     def turns(self, session_id: str, agent_id: str) -> list[Turn]:
         return list(self._sessions.get((agent_id, session_id), ()))
@@ -641,7 +701,9 @@ class SessionEngine:
         counts["findings"] = sum(
             min(sum(1 for c in t.codes if is_attack_code(c)), CODE_CAP_PER_TURN) for t in win
         )
-        counts["refusals"] = sum(1 for t in win if t.refused)
+        # a block by GATE-DETECTOR-FAILED (a detector timed out or crashed) is an outage of
+        # ours, not something the conversation did: it never raises the score
+        counts["refusals"] = sum(1 for t in win if t.refused and not t.infra)
         counts["expand"] = sum(1 for t in win if t.expand)
         counts["drift"] = self._drift(allturns, win)
         counts["near_dup"] = self._near_dup(win, cfg.dup_bp)
@@ -716,7 +778,7 @@ class SessionEngine:
                 continue
             tt = set(t.toks)
             for a in turns[: max(0, j - MEMORY_MIN_GAP + 1)]:
-                if a.assert_ and (t.recall or (tt and tt & set(a.toks))):
+                if a.assert_ and (t.recall or a.standing or (tt and tt & set(a.toks))):
                     n += 1
                     break
         return n
@@ -891,6 +953,7 @@ def from_redteam_trace(
                 recall=feats.recall,
                 toks=feats.toks,
                 topic=feats.topic,
+                standing=feats.standing,
                 rule_id=stops[0] if stops else None,
             )
         )
@@ -934,6 +997,8 @@ __all__ = [
     "from_redteam_trace",
     "encode_sig",
     "extract",
+    "extract_flags",
+    "with_args",
     "fold",
     "has_expand",
     "hash_consumer",

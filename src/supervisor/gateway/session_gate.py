@@ -36,11 +36,12 @@ from supervisor.monitors.session import (
     SessionEngine,
     Turn,
     daily_cap_minor,
-    extract,
+    extract_flags,
     identify,
     resolve_config,
     session_key,
     timeline,
+    with_args,
 )
 from supervisor.monitors.session_actions import SessionActions
 
@@ -63,6 +64,8 @@ class SessionCall:
     features: Features = field(default_factory=Features)
     pause_id: str | None = None  # an active pause that covers this call's tool class
     day: str = ""
+    text: str | None = None  # the turn text, kept in memory until finalize() and then dropped
+    final: bool = False
 
 
 def epoch_ms(ts: datetime) -> int:
@@ -120,6 +123,8 @@ class SessionGate:
         self._act_lock = threading.Lock()  # one case / pause decision at a time
         self._warmed = False
         self._reloading = False
+        self._policy: Any = None
+        self._pending: dict[str, list[str]] = {}
         self.sync_reload = False
         self._cfg: dict[tuple[str, str], tuple[SessionConfig, int | None]] = {}
         self._pauses: dict[tuple[str, str], tuple[str, int, tuple[str, ...]]] = {}
@@ -166,12 +171,9 @@ class SessionGate:
             risk = policy.risk_class(tool_name)
             if not dry:
                 text = ctx.get("turn_text")
-                call.features = extract(
-                    text if isinstance(text, str) else None,
-                    args,
-                    risk=risk,
-                    key=self.key,
-                    rare=self.baselines.is_rare(agent_id, tool_name),
+                call.text = text if isinstance(text, str) else None
+                call.features = extract_flags(
+                    call.text, risk=risk, rare=self.baselines.is_rare(agent_id, tool_name)
                 )
             call.pause_id = self.paused(agent_id, sid, risk, epoch_ms(now))
             return call
@@ -179,6 +181,17 @@ class SessionGate:
             log.warning("session prepare failed: %s", type(exc).__name__)
             self.stats["errors"] += 1
             return None
+
+    def finalize(self, call: SessionCall, args: Mapping[str, Any], risk: str | None) -> None:
+        """Compute the sketch and the identifier tokens from ``args`` (the masked arguments when
+        the dlp transform produced some) and drop the turn text. Idempotent."""
+        if call.final:
+            return
+        call.final = True
+        try:
+            call.features = with_args(call.features, call.text, args, risk=risk, key=self.key)
+        finally:
+            call.text = None
 
     # ------------------------------------------------------------------ pause lookup
 
@@ -200,6 +213,8 @@ class SessionGate:
                 self._reload_now(now_ms)
             finally:
                 self._reloading = False
+
+        self._policy: Any = None
 
         threading.Thread(target=work, name="session-pause-reload", daemon=True).start()
 
@@ -265,6 +280,8 @@ class SessionGate:
             cfg, cap = self.config_for(policy, agent_id)
             if not self._warmed:
                 self._warm(policy, now, exclude=d.decision_id)
+            risk_class = policy.risk_class(tool_name)
+            self.finalize(call, d.transformed_args or args, risk_class)
             amount = args.get("amount_minor")
             det = getattr(d, "det", None)
             codes = tuple(f"d:{f.code}" for f in getattr(det, "findings", ()) or ())
@@ -289,37 +306,49 @@ class SessionGate:
                 recall=call.features.recall,
                 toks=call.features.toks,
                 topic=call.features.topic,
+                standing=call.features.standing,
+                infra=d.rule_id == "GATE-DETECTOR-FAILED",
             )
             with self._lock:
                 self.engine.add(call.session_id, turn)
-                a = self.engine.assess(call.session_id, agent_id, now_ms, cfg, cap)
-                rows = (
-                    timeline(self.engine.turns(call.session_id, agent_id))
-                    if a and (a.case_due or a.pause_due)
-                    else []
-                )
-                mono = time.monotonic()
-                if mono - self._forgot > FORGET_EVERY_S:
-                    self._forgot = mono
-                    self.engine.forget(now_ms - 2 * cfg.window_s * 1000)
+                late = self._pending.pop(d.decision_id, None)  # Tier 0b finished first
+                if late:
+                    self.engine.add_codes(call.session_id, agent_id, d.decision_id, late)
+            self._policy = policy
             self.stats["observed"] += 1
-            if a is None or not (a.case_due or a.pause_due):
-                return
-            with self._act_lock:
-                res = self.actions.act(a, cfg, rows, source="in_request")
-            if res.case_opened:
-                self.stats["cases"] += 1
-            if res.pause_set and res.pause_id:
-                self.stats["pauses"] += 1
-                with self._lock:
-                    self._pauses[(agent_id, call.session_id)] = (
-                        res.pause_id,
-                        now_ms + cfg.cooldown_s * 1000,
-                        cfg.pause_scope,
-                    )
+            self._assess_act(policy, agent_id, call.session_id, now_ms)
         except Exception:  # noqa: BLE001 - the decision is already made and recorded
             log.exception("session observe failed")
             self.stats["errors"] += 1
+
+    def _assess_act(self, policy: Any, agent_id: str, session_id: str, now_ms: int) -> None:
+        """Assess the window at ``now_ms`` and apply the case rule and the pause rule."""
+        cfg, cap = self.config_for(policy, agent_id)
+        with self._lock:
+            a = self.engine.assess(session_id, agent_id, now_ms, cfg, cap)
+            rows = (
+                timeline(self.engine.turns(session_id, agent_id))
+                if a and (a.case_due or a.pause_due)
+                else []
+            )
+            mono = time.monotonic()
+            if mono - self._forgot > FORGET_EVERY_S:
+                self._forgot = mono
+                self.engine.forget(now_ms - 2 * cfg.window_s * 1000)
+        if a is None or not (a.case_due or a.pause_due):
+            return
+        with self._act_lock:
+            res = self.actions.act(a, cfg, rows, source="in_request")
+        if res.case_opened:
+            self.stats["cases"] += 1
+        if res.pause_set and res.pause_id:
+            self.stats["pauses"] += 1
+            with self._lock:
+                self._pauses[(agent_id, session_id)] = (
+                    res.pause_id,
+                    now_ms + cfg.cooldown_s * 1000,
+                    cfg.pause_scope,
+                )
 
     def _warm(self, policy: Any, now: datetime, exclude: str) -> None:
         """Cold start: rebuild the windows from stored gate decisions (once per process)."""
@@ -340,11 +369,23 @@ class SessionGate:
             log.exception("session window warm-up failed")
 
     def note_codes(self, call: SessionCall, agent_id: str, event_id: str, kinds: list[str]) -> None:
-        """Tier 0b ran after the decision: its finding kinds join the turn."""
+        """Tier 0b ran after the decision: its finding kinds join the turn, and the window is
+        assessed again at that turn's time (a late finding can be the K-th hit)."""
         try:
             with self._lock:
-                self.engine.add_codes(call.session_id, agent_id, event_id, kinds)
+                ok = self.engine.add_codes(call.session_id, agent_id, event_id, kinds)
+                if not ok:
+                    if len(self._pending) > 5000:
+                        self._pending.clear()
+                    self._pending[event_id] = list(kinds)  # the turn is not stored yet
+                    return
+                turns = self.engine.turns(call.session_id, agent_id)
+                ts = next((t.ts_ms for t in reversed(turns) if t.event_id == event_id), None)
+            policy = self._policy
+            if ts is not None and policy is not None:
+                self._assess_act(policy, agent_id, call.session_id, ts)
         except Exception:  # noqa: BLE001
+            log.exception("session note_codes failed")
             self.stats["errors"] += 1
 
 

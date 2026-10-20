@@ -1168,7 +1168,7 @@ class Gateway:
         caller = ctx.get("caller_agent_id")
         extra = event_fields(d) if d.v2 is not None else {}
         if d.sess is not None:  # WP27: session columns (hashes, flags and integers only)
-            extra = {**extra, **self._session_fields(d)}
+            extra = {**extra, **self._session_fields(d, args)}
         self.tables.append(
             "agent_event",
             [
@@ -1201,9 +1201,11 @@ class Gateway:
             ],
         )
 
-    def _session_fields(self, d: Decision) -> dict[str, Any]:
+    def _session_fields(self, d: Decision, args: Mapping[str, Any]) -> dict[str, Any]:
         s = d.sess
         assert s is not None
+        if self.session_gate is not None:  # sketch on the masked arguments (WP37 review F3)
+            self.session_gate.finalize(s, d.transformed_args or args, d.risk_class)
         det = getattr(d, "det", None)
         codes = [f.code for f in getattr(det, "findings", ()) or ()]
         feats: dict[str, Any] = {}
@@ -1219,6 +1221,10 @@ class Gateway:
             feats["s"] = encode_sig(s.features.sig)
         if codes:
             feats["f"] = codes
+        if s.features.standing:
+            feats["p"] = 1
+        if d.rule_id == "GATE-DETECTOR-FAILED":
+            feats["i"] = 1
         if s.features.topic:
             feats["t"] = 1
         if s.features.assert_:

@@ -73,7 +73,13 @@ def test_new_roles() -> None:
         "integrations.view",
     }
     operator = {p for p in rbac.PERMISSIONS if rbac.allowed(["operator"], p)}
-    assert operator == viewer | {"intake.run", "chain.verify", "alert.ack", "playground.run"}
+    assert operator == viewer | {
+        "intake.run",
+        "chain.verify",
+        "alert.ack",
+        "playground.run",
+        "session.view",  # WP27
+    }
     auditor = {p for p in rbac.PERMISSIONS if rbac.allowed(["auditor"], p)}
     assert {"evidence.export", "evidence.download", "chain.verify", "console.view"} <= auditor
     assert not auditor & {"case.assign", "case.signoff", "agent.pause", "intake.run"}
