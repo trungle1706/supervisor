@@ -23,7 +23,19 @@ WINDOW_DAYS = 30
 
 # COMMAND ----------
 
-# ruff: noqa: F821, T201, E501, S608
+# ruff: noqa: F821, T201, E501, S608, E402
+import re
+
+# The names go into SQL text: allow identifier characters only (no quote, no backtick).
+for _name, _value in (
+    ("CATALOG", CATALOG),
+    ("SCHEMA", SCHEMA),
+    ("PREFIX", PREFIX),
+    ("AGENT_ID", AGENT_ID),
+):
+    if _value and not re.fullmatch(r"[A-Za-z0-9_.:@-]{1,128}", _value):
+        raise ValueError(f"{_name} has characters that are not allowed: {_value!r}")
+WINDOW_DAYS = int(WINDOW_DAYS)
 TABLE = f"`{CATALOG}`.`{SCHEMA}`.`{PREFIX}tool_usage_daily`"
 agent_filter = f"AND agent_id = '{AGENT_ID}'" if AGENT_ID else ""
 
