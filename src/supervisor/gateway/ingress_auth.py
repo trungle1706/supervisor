@@ -319,10 +319,11 @@ class IngressGuard:
             except Exception:  # noqa: BLE001, S110 - metrics never break a request
                 pass
 
-    def record_reject(
+    async def record_reject(
         self, request: Request, reason: str, body_hash: str | None, claimed: str | None
     ) -> None:
-        """Metrics + one audit row. Never raises."""
+        """Metrics + one audit row. Never raises. The audit write runs in the thread pool: in
+        databricks_app mode it is a SQL statement over HTTP and must not block the event loop."""
         self._count("ingress_rejected")
         self._count(f"ingress_rejected_{reason}")
         log.warning(
@@ -331,13 +332,14 @@ class IngressGuard:
         if self.audit is None:
             return
         try:
-            self.audit(
+            await run_in_threadpool(
+                self.audit,
                 {
                     "request": request,
                     "reason": reason,
                     "body_hash": body_hash,
                     "claimed": claimed,
-                }
+                },
             )
         except Exception as exc:  # noqa: BLE001 - an audit failure must not become a 500
             log.error("ingress audit write failed: %s", type(exc).__name__)
@@ -367,21 +369,21 @@ class IngressGuard:
                 body,
             )
         except IngressRejected as exc:
-            self.record_reject(request, exc.reason, body_hash, claimed)
+            await self.record_reject(request, exc.reason, body_hash, claimed)
             raise
         except Exception as exc:  # noqa: BLE001 - a store or verifier bug: 401, never 500
             log.error("ingress verifier failed: %s", type(exc).__name__)
-            self.record_reject(request, "auth_unavailable", body_hash, claimed)
+            await self.record_reject(request, "auth_unavailable", body_hash, claimed)
             raise IngressRejected("auth_unavailable") from exc
         request.state.ingress = ident
         self._count("ingress_accepted")
         return ident
 
-    def reject_later(self, request: Request, reason: str, headers: Mapping[str, str]) -> None:
+    async def reject_later(self, request: Request, reason: str, headers: Mapping[str, str]) -> None:
         """Reject after authentication (agent id mismatch found in the body). Raises."""
         ident = getattr(request.state, "ingress", None)
         claimed = ident.claimed_agent if isinstance(ident, IngressIdentity) else None
-        self.record_reject(
+        await self.record_reject(
             request, reason, getattr(request.state, "ingress_body_hash", None), claimed
         )
         raise IngressRejected(reason, headers)
@@ -548,7 +550,7 @@ async def ingress_gate(request: Request) -> IngressIdentity | None:
         return ident  # the route answers 400 for a malformed body, after authentication
     agent = payload.get("agent_id") if isinstance(payload, dict) else None
     if isinstance(agent, str) and not ident.allows(agent):
-        guard.reject_later(request, "agent_mismatch", {})
+        await guard.reject_later(request, "agent_mismatch", {})
     return ident
 
 
@@ -564,7 +566,7 @@ async def ingress_traces(request: Request) -> IngressIdentity | None:
 setattr(ingress_traces, INGRESS_ATTR, True)  # noqa: B010
 
 
-def check_span_agents(request: Request, agent_ids: list[str | None]) -> None:
+async def check_span_agents(request: Request, agent_ids: list[str | None]) -> None:
     """A batch may only carry spans of agents the credential speaks for. Raises 403 with the
     number of foreign spans in ``X-Supervisor-Rejected``; nothing of the batch is written."""
     ident = getattr(request.state, "ingress", None)
@@ -572,7 +574,7 @@ def check_span_agents(request: Request, agent_ids: list[str | None]) -> None:
         return
     foreign = sum(1 for a in agent_ids if a is not None and not ident.allows(a))
     if foreign:
-        get_guard().reject_later(
+        await get_guard().reject_later(
             request, "span_agent_mismatch", {"X-Supervisor-Rejected": str(foreign)}
         )
 

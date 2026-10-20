@@ -140,7 +140,7 @@ async def receive_traces(request: Request, rec: Recorder = _REC, who: str | None
         return _bad(f"{len(spans)} spans in one request; the limit is {max_spans} (OTLP_MAX_SPANS)")
     # WP20: spans of another agent than the credential's: batch 403. The agent id must be the
     # one the normaliser will store, so the semconv view (span name fallback) is applied first.
-    check_span_agents(request, [_span_agent(rec, sp) for sp in spans])
+    await check_span_agents(request, [_span_agent(rec, sp) for sp in spans])
     result = await run_in_threadpool(rec.ingest_spans, spans, "otlp")
     headers = {
         "X-Supervisor-Accepted": str(result.written),
