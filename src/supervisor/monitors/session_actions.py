@@ -10,25 +10,29 @@ Two actions, both deterministic and both written to the evidence chain as hashes
   and a reviewer, same rule as ``AgentStateMachine.resume``) or when the cool-down runs out.
 
 Idempotent: a session that already has an open case, or a case inside its cool-down, gets
-neither a second case nor a second pause. The state is a ``monitor_state`` row.
+neither a second case nor a second pause. The state is a ``monitor_state`` row. The in-request
+path, the scheduler's batch job and another replica may assess the same session at once: one
+process lock serialises the first two, and the case is opened only after a compare-and-set
+claim on the ``monitor_state`` row (insert, or update at the row version read), so a second
+process that read the same old state loses the claim and opens nothing. A pause row has a
+deterministic id (session, case, sequence number), so two writers insert one row.
 """
 
 from __future__ import annotations
 
 import logging
-import uuid
+import threading
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
 from supervisor.core.canonical import format_ts, sha256_hex
-from supervisor.core.errors import ConcurrencyError
+from supervisor.core.errors import ConcurrencyError, DuplicateKeyError
 from supervisor.gateway.state import TransitionError
 from supervisor.monitors.common import (
     MonitorContext,
     find_open_case,
-    get_state,
     open_case,
     put_state,
     raise_severity,
@@ -45,6 +49,8 @@ ACTOR = "monitor:session"
 CASE_TYPE = "session_escalation"
 STATE_MONITOR = "session"
 ACTIVE, LIFTED, EXPIRED = "active", "lifted", "expired"
+# One case / pause decision at a time in this process (gate threads and the scheduler's batch job).
+_ACT_LOCK = threading.Lock()
 
 
 def session_ref(agent_id: str, session_id: str) -> str:
@@ -86,13 +92,45 @@ class SessionActions:
         source: str,
     ) -> ActionResult:
         """Apply the case rule and the pause rule to one assessment."""
-        res = ActionResult()
         if not (a.case_due or a.pause_due):
-            res.skipped = "below_threshold"
-            return res
+            return ActionResult(skipped="below_threshold")
+        with _ACT_LOCK:
+            return self._act(a, cfg, rows, source=source)
+
+    def _state_row(self, key: str) -> dict[str, Any] | None:
+        return self.ctx.state.get("monitor_state", {"monitor": STATE_MONITOR, "state_key": key})
+
+    def _claim(self, key: str, row: Mapping[str, Any] | None, value: Mapping[str, Any]) -> bool:
+        """Compare-and-set on the session's ``monitor_state`` row. False when another process
+        changed it since ``row`` was read (that process opens the case)."""
+        data = {"monitor": STATE_MONITOR, "state_key": key, "value": dict(value)}
+        try:
+            if row is None:
+                self.ctx.state.insert("monitor_state", data)
+            else:
+                self.ctx.state.update(
+                    "monitor_state",
+                    {"monitor": STATE_MONITOR, "state_key": key},
+                    {"value": dict(value)},
+                    expected_version=int(row["row_version"]),
+                )
+        except (DuplicateKeyError, ConcurrencyError):
+            return False
+        return True
+
+    def _act(
+        self,
+        a: Assessment,
+        cfg: SessionConfig,
+        rows: Sequence[Mapping[str, Any]],
+        *,
+        source: str,
+    ) -> ActionResult:
+        res = ActionResult()
         now = self.ctx.clock.now()
         key = session_ref(a.agent_id, a.session_id)
-        st = get_state(self.ctx, STATE_MONITOR, key) or {}
+        srow = self._state_row(key)
+        st = _value(srow)
         case_id = st.get("case_id")
         open_row = find_open_case(self.ctx, a.agent_id, CASE_TYPE, case_id) if case_id else None
         if open_row is not None:
@@ -104,6 +142,9 @@ class SessionActions:
         elif st.get("case_at") and now < _ts(st["case_at"]) + timedelta(seconds=cfg.cooldown_s):
             res.skipped = "cooldown"
             res.case_id = case_id
+        elif not self._claim(key, srow, {"case_id": None, "case_at": format_ts(now)}):
+            res.skipped = "claimed"  # another path or replica opens this case
+            return res
         else:
             res.case_id = self._open(a, cfg, rows, source=source)
             res.case_opened = True
@@ -161,28 +202,32 @@ class SessionActions:
     def pause(self, a: Assessment, cfg: SessionConfig, case_id: str | None) -> tuple[str, bool]:
         """Set the session pause. Returns (control_id, created). An active pause stays."""
         now = self.ctx.clock.now()
-        for row in self.ctx.state.query(
-            "session_control",
-            {"agent_id": a.agent_id, "session_id": a.session_id, "status": ACTIVE},
-        ):
-            if row["expires_at"] > now:
-                return str(row["control_id"]), False
-        cid = uuid.uuid4().hex
-        expires = now + timedelta(seconds=cfg.cooldown_s)
-        self.ctx.state.insert(
-            "session_control",
-            {
-                "control_id": cid,
-                "session_id": a.session_id,
-                "agent_id": a.agent_id,
-                "scope": ",".join(cfg.pause_scope),
-                "status": ACTIVE,
-                "score_bp": a.score_bp,
-                "case_id": case_id,
-                "created_at": now,
-                "expires_at": expires,
-            },
+        rows = self.ctx.state.query(
+            "session_control", {"agent_id": a.agent_id, "session_id": a.session_id}
         )
+        for row in rows:
+            if row["status"] == ACTIVE and row["expires_at"] > now:
+                return str(row["control_id"]), False
+        # deterministic id: two writers that saw the same rows insert the same key, one wins
+        cid = sha256_hex(f"session_pause|{a.agent_id}|{a.session_id}|{case_id}|{len(rows)}")[:32]
+        expires = now + timedelta(seconds=cfg.cooldown_s)
+        try:
+            self.ctx.state.insert(
+                "session_control",
+                {
+                    "control_id": cid,
+                    "session_id": a.session_id,
+                    "agent_id": a.agent_id,
+                    "scope": ",".join(cfg.pause_scope),
+                    "status": ACTIVE,
+                    "score_bp": a.score_bp,
+                    "case_id": case_id,
+                    "created_at": now,
+                    "expires_at": expires,
+                },
+            )
+        except DuplicateKeyError:
+            return cid, False
         self.ctx.evidence.record(
             "session_pause",
             f"session_pause:{cid}",
@@ -329,6 +374,17 @@ class SessionActions:
             },
         )
         return True
+
+
+def _value(row: Mapping[str, Any] | None) -> dict[str, Any]:
+    if row is None:
+        return {}
+    value = row["value"]
+    if isinstance(value, str):
+        import json
+
+        value = json.loads(value)
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _ts(value: Any) -> datetime:
