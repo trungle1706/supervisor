@@ -1,0 +1,19 @@
+{
+  "commit": "639959f90995",
+  "contract": {
+    "n": 144,
+    "pass": 144
+  },
+  "date": "2026-10-20",
+  "harness": "collectors-eval-1",
+  "latency_p95_us": {
+    "fastapi": 280,
+    "hook": 24,
+    "langgraph": 18,
+    "litellm": 215
+  },
+  "probes": {
+    "n": 26,
+    "pass": 26
+  }
+}

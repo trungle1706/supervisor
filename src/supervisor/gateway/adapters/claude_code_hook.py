@@ -17,6 +17,7 @@ SUPERVISOR_AGENT_KEY      or SUPERVISOR_AGENT_KEY_FILE: the WP20 secret of that 
 SUPERVISOR_CONSUMER_ID    who is using it (default: the OS user name, cleaned)
 SUPERVISOR_TIMEOUT_S      default 2
 SUPERVISOR_FAIL_MODE      ``closed`` (default) or ``open``
+SUPERVISOR_CLOSED_TOOLS   comma list of tool names that stay closed even when the mode is open
 ========================  ===========================================================
 
 Closed by default: a missing setting, an unreadable event, an unreachable gate, a refused
@@ -121,6 +122,11 @@ def run(
             agent,
             env.get("SUPERVISOR_AGENT_VERSION", "1"),
             fail_mode=mode,
+            risk_classes={
+                t.strip(): "money"
+                for t in env.get("SUPERVISOR_CLOSED_TOOLS", "").split(",")
+                if t.strip()
+            },
             protocol="mcp" if tool.startswith("mcp__") else "llm",
         )
     except ValueError as exc:
