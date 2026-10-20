@@ -63,3 +63,21 @@ Harness: contract 144/144, probes 26/26, overhead p95 about 30 us (langgraph, ho
 5. Operator may Add (as the brief said); confirm that operators may issue agent keys.
 6. A real-framework run (LangGraph, deepagents, LiteLLM installed) is not part of this repo's CI; wanted as a nightly outside the repo?
 7. Add a column for the observed decision to `agent_event` with WP39?
+
+## 6. Follow-ups after review (REVIEW_WP38.md, commits bdef889 70517c7 610de1a f9424e5 kept)
+
+| Item | What was done | Commit |
+|---|---|---|
+| F14 | New agent key `rule_approvals` (two distinct ids, same shape as `observe_approvals`). Agent-level `rules.disable` naming a block or pause rule of risk class money, credit or pii_export is refused at load without it; the ASCII message names the agent and the rule. Left out of the hash when empty (test). Schema regenerated, `docs/policy.md` updated | 138576f |
+| F15 | The loader refuses `mode: observe` for any consumer of any agent (not only money agents). Agent-level observe unchanged. Tests and doc updated; the reviewer and author tests that used consumer observe now use other consumer fields | 138576f |
+| F16 | Stays a BACKLOG row (updated). The hook's catalogue steps now say the minimum assistant version rule and give a self-test (`python -m supervisor.gateway.adapters.claude_code_hook < event.json`, exit 0 allowed, 2 refused) with a sample event line. I did not invent a version number: the text says "the first release whose hook documentation lists updatedInput for PreToolUse". The owner or tooling team should name the number | 138576f |
+| Cleanup | The reviewer's scratch logs had been swept into 138576f by `git add -A`; they are untracked again | c54248c |
+
+Commands (last lines):
+```
+uv run python -m pytest -q            -> 4053 passed, 29 skipped, 1 warning in 492.26s
+uv run python -m ruff check           -> All checks passed!
+uv run python -m ruff format --check  -> 714 files already formatted
+uv run python -m supervisor.collectors.harness --check -> OVERALL: GO / [OK] no drop below the baseline
+```
+Test count before the follow-ups: 4049 (review). After: 4053 (+4 net: 4 new F14/F15 tests; the consumer observe tests were rewritten in place). One earlier run with `-x` stopped on `tests/integrations/test_integrations.py::test_chain_feed_writes_schema_events_once`: a random 10-digit run inside a hash matched the "no long digit run" regex. It passed on rerun and is unrelated to WP38 (flaky, worth a note for the integrator). Scratch logs: `wp38_followup_pytest.txt`, `wp38_followup_pytest2.txt` (untracked).
