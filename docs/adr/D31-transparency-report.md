@@ -36,6 +36,15 @@ The facts an inspector, a customer or the bank asks for exist in many places: th
 * The customer text is generic; naming the product is a decision for the owner.
 * Extension: WP30 adds `controls`; a new section needs a collector, a block function, labels and allow-list entries.
 
+## Review amendment (2026-10-20, WP31 review)
+
+* **Outer variants are scrubbed after the projection.** Several allowed fields are copied as they are (matrix article and instrument, limit id, scope and pointer, the inventory node a risk comes through). Every text value of the regulator and customer versions goes through the masker and then the e-mail, phone and digit-run patterns; with no masker only a one-word code is kept. The guard refuses those patterns in both outer versions (on the data; e-mail and phone on the rendered text, where integer amounts are printed).
+* **A field nobody reviewed fails a test.** `allowlist.REVIEWED` lists every field path the builder makes; `True` sub-trees of the regulator spec stay, the list is the gate.
+* **The second check runs on every path.** The preview (`live=1`, no signed version, console drawer) checks the rendered text of both languages as `generate` does.
+* **No person in the chain.** `generated_by` in the chain record and the append-only row is a product role or a keyed hash (`act_...`); the person is in the `console_action` audit row.
+* **"Not shown" lists sources that are off although their section shows:** monitors off, masking off, judge never validated.
+* **WP30 adapter aligned** with `wp30-controls`: services imported from `.service` modules only when the flag is on; uncovered risks counted for the agent; task fields named.
+
 ## Open
 
 1. May the customer version name the product? 2. Which roles may generate or hand on the customer version? 3. Should the regulator version show owner team or only a role? 4. Real band thresholds (ILLUSTRATIVE until then).
