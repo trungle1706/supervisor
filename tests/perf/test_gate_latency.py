@@ -4,11 +4,16 @@ The test runs the benchmark itself (``python -m tools.bench_latency --quick``, s
 ``inproc``), so the test and the published numbers use one code path and cannot drift apart.
 Each check is the full gate path: policy and agent state read, rule evaluation (19 rules and
 200 mixed rules), verdict and agent_event append, signed evidence chain record.
-Run alone: uv run python -m pytest -q -s tests/perf
+It takes about 25 s on a loaded shared host, so it runs only with RUN_PERF=1 (the same gate as
+the WP22 rollup perf test, marker ``perf``). The benchmark's own correctness tests in
+``test_bench_latency.py`` stay in the default suite.
+Run alone: RUN_PERF=1 uv run python -m pytest -q -s tests/perf
 Full benchmark and the numbers: docs/latency.md.
 """
 
 from __future__ import annotations
+
+import os
 
 import pytest
 
@@ -17,7 +22,11 @@ from tools import bench_latency as bl
 P99_BUDGET_US = bl.GATE_BUDGET_P99_US  # 50_000
 
 
+RUN_PERF = os.environ.get("RUN_PERF") == "1"
+
+
 @pytest.mark.perf
+@pytest.mark.skipif(not RUN_PERF, reason="timing test: set RUN_PERF=1 (about 25 s)")
 def test_gate_latency_p99_under_50ms() -> None:
     opts = bl.Options.quick_mode(
         backends=("sqlite_file",), sizes=(19, 200), scenarios=("inproc",), n=800, warm=100

@@ -9,7 +9,7 @@ drift. Design record: `docs/adr/D19-latency-benchmark.md`.
 
 | Target | Budget | Status |
 |---|---|---|
-| Laptop, SQLite file | gate p99 under 50 ms | Asserted by the test on every run. ILLUSTRATIVE until the bank sets it. Measured: 4.6 ms (19 rules), 6.8 ms (200 rules). |
+| Laptop, SQLite file | gate p99 under 50 ms | Asserted by `tests/perf/test_gate_latency.py` when `RUN_PERF=1` is set (about 25 s; the default suite skips it, like the WP22 rollup perf test). ILLUSTRATIVE until the bank sets it. Measured: 4.6 ms (19 rules), 6.8 ms (200 rules). |
 | Databricks App, Delta | **FILL-ME: the owner must confirm** | Not measured (no workspace run yet). Candidates and the reason they differ are in "Delta" below. |
 
 ## Command
