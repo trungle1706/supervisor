@@ -5,7 +5,7 @@ Reviewer: Opus 5.5 (fraud investigator and bank security reviewer view). Branch
 `git diff wp37-verdict-detectors...HEAD` at `c657baf` (WP37 final head `bfc6e09` merged).
 Nothing pushed, nothing merged, no history rewritten. No `.env` was created or read.
 
-**Verdict: APPROVED WITH FOLLOW-UPS.** Two High and seven Medium findings. All of them are fixed on
+**Verdict: APPROVED WITH FOLLOW-UPS.** Two High and eight Medium findings. All of them are fixed on
 the branch, with tests. The open items are Low or need an owner decision (BACKLOG rows).
 
 ## 1. Findings
