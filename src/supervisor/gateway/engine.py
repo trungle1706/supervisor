@@ -455,6 +455,60 @@ class Gateway:
             decision = self._fail(t0, agent_id, agent_version, tool_name, args, ctx, exc)
         return decision.as_result()
 
+    def evaluate_only(
+        self,
+        agent_id: str,
+        agent_version: str,
+        tool_name: str,
+        args: Mapping[str, Any],
+        context: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """DRY RUN (WP-UX3 Playground): the decision ``check`` would give now, with no side
+        effect. It writes no verdict, event or chain record, changes no agent state (a pause
+        rule only sets ``would_pause``), adds nothing to the windows and does not count in the
+        metrics. Window rules (sum / count / prior-call) are not evaluated: their ids come back
+        in ``not_evaluated``. Never raises: a policy read error returns ``error``."""
+        ctx = dict(context or {})
+        args = dict(args or {})
+        try:
+            fut = self._pool.submit(self._dry, agent_id, agent_version, tool_name, args, ctx)
+            return fut.result(timeout=self.timeout_s)
+        except cf.TimeoutError:
+            return {"dry_run": True, "error": f"no decision within {self.timeout_s:g} s"}
+        except Exception as exc:  # noqa: BLE001 - a dry run never raises
+            return {"dry_run": True, "error": f"{type(exc).__name__}: {exc}"[:300]}
+
+    def _dry(
+        self,
+        agent_id: str,
+        agent_version: str,
+        tool_name: str,
+        args: dict[str, Any],
+        ctx: dict[str, Any],
+    ) -> dict[str, Any]:
+        t0 = time.perf_counter_ns()
+        skipped: list[str] = []
+        policy = self.policy.current()
+        state = self.states.get_state(agent_id, policy)
+        risk = policy.risk_class(tool_name)
+        _, now_us = self._now_us()
+        pre = self._pre_redact(tool_name, args, ctx)
+        d, matches, shadow, builtin = self._evaluate(
+            policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us, skipped
+        )
+        d.latency_us = (time.perf_counter_ns() - t0) // 1000
+        out = d.as_result()
+        out["dry_run"] = True
+        out["decision_id"] = None  # nothing is recorded, so there is no decision id
+        out["agent_version"] = str(agent_version)
+        out["shadow"] = shadow
+        out["builtin"] = builtin is not None
+        out["would_pause"] = (
+            builtin is None and not shadow and any(m.action == "pause" for m in matches)
+        )
+        out["not_evaluated"] = sorted(skipped)
+        return out
+
     def drain(self, timeout_s: float = 5.0) -> None:
         """Wait for queued Tier 0b work (tests and shutdown)."""
         with self._lock:
@@ -503,6 +557,24 @@ class Gateway:
         store.policy_hash = policy.policy_hash
         self.windows = store
 
+    def _rule_static_match(
+        self,
+        rule: RuleSpec,
+        tool_name: str,
+        args: Mapping[str, Any],
+        ctx: Mapping[str, Any],
+        policy: Policy,
+    ) -> bool:
+        """The history-free part of a rule: tool match and predicates."""
+        if not tool_matches(rule.when.tool, tool_name, policy):
+            return False
+        facts = self.facts
+        if not all(_pred(p, args, ctx, policy, facts) for p in rule.when.all):
+            return False
+        return not (
+            rule.when.any and not any(_pred(p, args, ctx, policy, facts) for p in rule.when.any)
+        )
+
     def _rule_matches(
         self,
         rule: RuleSpec,
@@ -513,12 +585,7 @@ class Gateway:
         policy: Policy,
         now_us: int,
     ) -> bool:
-        if not tool_matches(rule.when.tool, tool_name, policy):
-            return False
-        facts = self.facts
-        if not all(_pred(p, args, ctx, policy, facts) for p in rule.when.all):
-            return False
-        if rule.when.any and not any(_pred(p, args, ctx, policy, facts) for p in rule.when.any):
+        if not self._rule_static_match(rule, tool_name, args, ctx, policy):
             return False
         agg = rule.aggregate
         if agg is not None:
@@ -584,104 +651,9 @@ class Gateway:
             risk = policy.risk_class(tool_name)
             now, now_us = self._now_us()
             self.windows.prune(now_us, policy.max_window_s)
-            matches: list[Match] = []
-            builtin: tuple[str, str] | None = None
-            if state is None:
-                builtin = ("GATE-UNKNOWN-AGENT", f"unknown agent {agent_id}: fail closed")
-            elif state == "QUARANTINED":
-                builtin = ("GATE-QUARANTINED", "agent quarantined")
-            elif state == "RETIRED":
-                builtin = ("GATE-RETIRED", "agent retired")
-            elif state == "PAUSED" and risk != "read_only":
-                builtin = ("GATE-PAUSED", "agent paused")
-            elif risk is None and state != "SHADOW":
-                builtin = ("GATE-UNKNOWN-TOOL", f"unknown tool {tool_name}: fail closed")
-            elif (
-                self.require_caller_id
-                and state != "SHADOW"
-                and DEFAULT_FAIL_MODE.get(risk or "") == "closed"
-                and _is_handoff(ctx)
-                and not _caller(ctx)
-            ):
-                builtin = (
-                    "GATE-NO-CALLER",
-                    f"handoff to {agent_id} without caller_agent_id: fail closed (ADR D10)",
-                )
-            else:
-                for rule in policy.rules_for(agent_id):
-                    try:
-                        if self._rule_matches(rule, agent_id, tool_name, args, ctx, policy, now_us):
-                            matches.append(Match(rule, rule.action))
-                    except Exception as exc:  # noqa: BLE001 - per-rule fail mode
-                        err = f"{type(exc).__name__}: {exc}"[:300]
-                        act = "block" if rule.effective_fail_mode == "closed" else "alert"
-                        matches.append(Match(rule, act, error=err))
-                matches.sort(key=lambda m: _ACTION_ORDER[m.action])
-
-            decision_id = uuid.uuid4().hex
-            shadow = state == "SHADOW"
-            decisive = next((m for m in matches if m.action in ("block", "pause")), None)
-            fail_mode = None
-            if builtin is not None:
-                d = Decision(
-                    decision_id,
-                    False,
-                    "block",
-                    builtin[0],
-                    builtin[1],
-                    state,
-                    policy.policy_hash,
-                    risk,
-                )
-            elif decisive is not None and not shadow:
-                reason = (
-                    f"{decisive.rule.id}: {decisive.rule.description}"
-                    if decisive.error is None
-                    else f"{decisive.rule.id}: rule error, fail closed ({decisive.error})"
-                )
-                if decisive.error is not None:
-                    fail_mode = "closed"
-                d = Decision(
-                    decision_id,
-                    False,
-                    decisive.action,
-                    decisive.rule.id,
-                    reason,
-                    state,
-                    policy.policy_hash,
-                    risk,
-                )
-            else:
-                top = matches[0] if matches else None
-                if shadow and decisive is not None:
-                    action, rid = "log", decisive.rule.id
-                    reason = f"shadow: would {decisive.action} by {decisive.rule.id}"
-                elif shadow and risk is None:
-                    action, rid, reason = "log", "GATE-UNKNOWN-TOOL", "shadow: would block"
-                elif top is not None:
-                    action, rid = top.action, top.rule.id
-                    reason = f"{top.rule.id}: {top.rule.description}"
-                    if top.error is not None:
-                        fail_mode = "open"
-                        reason = f"{top.rule.id}: rule error, fail open ({top.error})"
-                else:
-                    action, rid, reason = "allow", None, "allowed"
-                d = Decision(
-                    decision_id, True, action, rid, reason, state, policy.policy_hash, risk
-                )
-            d.fail_mode = fail_mode
-            if d.allow and not shadow and builtin is None:
-                self._redact(d, risk, tool_name, args, pre)
-            d.matched = [
-                {
-                    "rule_id": m.rule.id,
-                    "version": m.rule.version,
-                    "action": m.action,
-                    "severity": m.rule.severity,
-                    "error": m.error is not None,
-                }
-                for m in matches
-            ]
+            d, matches, shadow, builtin = self._evaluate(
+                policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us
+            )
             with call.lock:
                 if call.abandoned:
                     return d  # the caller already applied the fail mode and recorded it
@@ -710,6 +682,129 @@ class Gateway:
         self._tier0b(d, agent_id, tool_name, args, risk, ctx)
         return d
 
+    def _evaluate(
+        self,
+        policy: Policy,
+        state: str | None,
+        risk: str | None,
+        agent_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+        ctx: dict[str, Any],
+        pre: tuple[dict[str, Any], int] | BaseException | None,
+        now_us: int,
+        skipped: list[str] | None = None,
+    ) -> tuple[Decision, list[Match], bool, tuple[str, str] | None]:
+        """Pure decision from a policy snapshot: rule matching, built-in blocks, shadow,
+        inline redaction. No store write, no state change. ``skipped`` not None = dry run
+        (WP-UX3 ``evaluate_only``): window rules (aggregate / prior) are not evaluated, their
+        ids are appended to ``skipped``, and the redaction hint cache is left alone."""
+        dry = skipped is not None
+        matches: list[Match] = []
+        builtin: tuple[str, str] | None = None
+        if state is None:
+            builtin = ("GATE-UNKNOWN-AGENT", f"unknown agent {agent_id}: fail closed")
+        elif state == "QUARANTINED":
+            builtin = ("GATE-QUARANTINED", "agent quarantined")
+        elif state == "RETIRED":
+            builtin = ("GATE-RETIRED", "agent retired")
+        elif state == "PAUSED" and risk != "read_only":
+            builtin = ("GATE-PAUSED", "agent paused")
+        elif risk is None and state != "SHADOW":
+            builtin = ("GATE-UNKNOWN-TOOL", f"unknown tool {tool_name}: fail closed")
+        elif (
+            self.require_caller_id
+            and state != "SHADOW"
+            and DEFAULT_FAIL_MODE.get(risk or "") == "closed"
+            and _is_handoff(ctx)
+            and not _caller(ctx)
+        ):
+            builtin = (
+                "GATE-NO-CALLER",
+                f"handoff to {agent_id} without caller_agent_id: fail closed (ADR D10)",
+            )
+        else:
+            for rule in policy.rules_for(agent_id):
+                if skipped is not None and (rule.aggregate is not None or rule.prior is not None):
+                    try:  # a window rule is listed only when its tool and predicates match
+                        if self._rule_static_match(rule, tool_name, args, ctx, policy):
+                            skipped.append(rule.id)  # its counts need history
+                    except Exception:  # noqa: BLE001 - cannot tell: list it
+                        skipped.append(rule.id)
+                    continue
+                try:
+                    if self._rule_matches(rule, agent_id, tool_name, args, ctx, policy, now_us):
+                        matches.append(Match(rule, rule.action))
+                except Exception as exc:  # noqa: BLE001 - per-rule fail mode
+                    err = f"{type(exc).__name__}: {exc}"[:300]
+                    act = "block" if rule.effective_fail_mode == "closed" else "alert"
+                    matches.append(Match(rule, act, error=err))
+            matches.sort(key=lambda m: _ACTION_ORDER[m.action])
+
+        decision_id = uuid.uuid4().hex
+        shadow = state == "SHADOW"
+        decisive = next((m for m in matches if m.action in ("block", "pause")), None)
+        fail_mode = None
+        if builtin is not None:
+            d = Decision(
+                decision_id,
+                False,
+                "block",
+                builtin[0],
+                builtin[1],
+                state,
+                policy.policy_hash,
+                risk,
+            )
+        elif decisive is not None and not shadow:
+            reason = (
+                f"{decisive.rule.id}: {decisive.rule.description}"
+                if decisive.error is None
+                else f"{decisive.rule.id}: rule error, fail closed ({decisive.error})"
+            )
+            if decisive.error is not None:
+                fail_mode = "closed"
+            d = Decision(
+                decision_id,
+                False,
+                decisive.action,
+                decisive.rule.id,
+                reason,
+                state,
+                policy.policy_hash,
+                risk,
+            )
+        else:
+            top = matches[0] if matches else None
+            if shadow and decisive is not None:
+                action, rid = "log", decisive.rule.id
+                reason = f"shadow: would {decisive.action} by {decisive.rule.id}"
+            elif shadow and risk is None:
+                action, rid, reason = "log", "GATE-UNKNOWN-TOOL", "shadow: would block"
+            elif top is not None:
+                action, rid = top.action, top.rule.id
+                reason = f"{top.rule.id}: {top.rule.description}"
+                if top.error is not None:
+                    fail_mode = "open"
+                    reason = f"{top.rule.id}: rule error, fail open ({top.error})"
+            else:
+                action, rid, reason = "allow", None, "allowed"
+            d = Decision(decision_id, True, action, rid, reason, state, policy.policy_hash, risk)
+        d.fail_mode = fail_mode
+        if d.allow and not shadow and builtin is None:
+            self._redact(d, risk, tool_name, args, pre, dry=dry)
+        d.matched = [
+            {
+                "rule_id": m.rule.id,
+                "version": m.rule.version,
+                "action": m.action,
+                "severity": m.rule.severity,
+                "error": m.error is not None,
+            }
+            for m in matches
+        ]
+        return d, matches, shadow, builtin
+
     def _pre_redact(
         self, tool_name: str, args: dict[str, Any], ctx: Mapping[str, Any]
     ) -> tuple[dict[str, Any], int] | BaseException | None:
@@ -736,13 +831,14 @@ class Gateway:
         tool_name: str,
         args: dict[str, Any],
         pre: tuple[dict[str, Any], int] | BaseException | None = None,
+        dry: bool = False,
     ) -> None:
         """Fill ``transformed_args`` for a pii_export tool (never in SHADOW, never on a block)."""
         if not self.inline_redaction or self.masker is None:
             return
         if risk != "pii_export" and tool_name not in self.redact_tools:
             return
-        if risk == "pii_export" and tool_name not in self._redact_hint:
+        if not dry and risk == "pii_export" and tool_name not in self._redact_hint:
             self._redact_hint = self._redact_hint | {tool_name}
         try:
             if isinstance(pre, BaseException):
