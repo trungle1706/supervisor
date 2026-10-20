@@ -437,6 +437,11 @@ class Settings(BaseSettings):
     inventory_allowlist_file: Path | None = None  # default config/inventory_allowlist.yaml
     inventory_workspace_fixture: Path | None = None  # offline: JSON fixture instead of a workspace
 
+    # --- WP1b-A --- policy folder and fact source of the served app (D13; docs/fact-sources.md)
+    policy_dir: Path | None = None  # absolute folder of policy *.yaml; default <repo>/policies
+    fact_source: str = ""  # "" = none | sqlite:/abs/file.db | callable:pkg.mod:factory
+    fact_query_map: Path | None = None  # YAML query map; required for FACT_SOURCE=sqlite:...
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -462,6 +467,8 @@ class Settings(BaseSettings):
         "notify_webhook_dead_letter",
         "inventory_allowlist_file",
         "inventory_workspace_fixture",
+        "policy_dir",
+        "fact_query_map",
         mode="after",
     )
     @classmethod
@@ -544,6 +551,20 @@ class Settings(BaseSettings):
                 "CONSOLE_AUDIT_ENABLED=0 is only allowed with SUPERVISOR_MODE=dev "
                 "(the console audit trail cannot be switched off in laptop or databricks_app mode)"
             )
+        if self.policy_dir is not None and not self.policy_dir.is_dir():
+            raise ValueError(f"POLICY_DIR is not a folder: {self.policy_dir}")
+        if self.fact_source.strip():
+            from supervisor.adapters.facts import split_fact_source
+
+            kind, target = split_fact_source(self.fact_source)  # raises ValueError
+            if kind == "sqlite":
+                db = Path(target).expanduser()
+                db = db if db.is_absolute() else REPO_ROOT / db
+                self.fact_source = f"sqlite:{os.path.abspath(db)}"
+                if self.fact_query_map is None:
+                    raise ValueError("FACT_SOURCE=sqlite:... needs FACT_QUERY_MAP")
+                if not self.fact_query_map.is_file():
+                    raise ValueError(f"FACT_QUERY_MAP is not a file: {self.fact_query_map}")
         if self.judge_family_override_test_only and self.supervisor_mode == "databricks_app":
             raise ValueError(
                 "JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1 is not allowed with "
