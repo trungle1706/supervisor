@@ -649,6 +649,22 @@ class ControlService:
             )
         return out
 
+    def status_summary(self) -> dict[str, dict[str, int]]:
+        """control id -> {working, failing, no_data}: the newest status of the control for each
+        agent (a status older than two windows counts as no_data). One query; for the list page."""
+        rows = self.tables.query("control_status", order_by=("-ts",), limit=20000)
+        seen: set[tuple[str, str]] = set()
+        out: dict[str, dict[str, int]] = {}
+        for r in rows:
+            key = (str(r["control_id"]), str(r["agent_id"]))
+            if key in seen:
+                continue
+            seen.add(key)
+            st = STATUS_NO_DATA if self._stale(r) else str(r["status"])
+            bucket = out.setdefault(key[0], dict.fromkeys(EVIDENCE_STATUSES, 0))
+            bucket[st] += 1
+        return out
+
     def uncovered_risks(self) -> list[str]:
         """Active risks no active control maps to (needs the risk register)."""
         try:
