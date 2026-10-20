@@ -34,13 +34,16 @@ from supervisor.tasks.model import (
     check_id,
     check_ref,
     clean_reason,
+    done_refusal,
     effective_level,
     load_config,
     move_refusal,
     move_template_id,
     needs_stage_approval,
-    next_stage,
+    next_stage_at,
     plan,
+    plan_at,
+    same_person,
     stages_in_use,
     waive_refusal,
 )
@@ -265,6 +268,18 @@ class TaskService:
             "gate_state": str(a.get("gate_state") or ""),
         }
 
+    def sizing(self, agent_id: str, inputs: Mapping[str, str]) -> tuple[str, tuple[str, ...]]:
+        """(level, classes) the task list of the agent is sized with: the highest effective
+        level and every Decision 33 class the agent has had in its task list, plus today's. A
+        class or band that goes down in the middle of the lifecycle therefore never removes a
+        task, a stage or the stage approval; a person waives what no longer applies (two people).
+        Review WP30."""
+        rows = self.rows_of(agent_id)
+        levels = [inputs["level"], *(str(r["level"]) for r in rows if r.get("level") in LEVELS)]
+        level = max(levels, key=lambda lv: LEVEL_RANK[lv])
+        classes = {inputs["d33_class"], *(str(r["d33_class"]) for r in rows)} & set(CLASSES)
+        return level, tuple(sorted(classes))
+
     # ------------------------------------------------------------------ reads
     def _need(self, task_id: str) -> dict[str, Any]:
         check_id(task_id)
@@ -385,6 +400,7 @@ class TaskService:
         """Stage, sizing inputs, counts and tasks of one agent as plain data (tab, WP31)."""
         inputs = self.agent_inputs(agent_id)
         rows = self.rows_of(agent_id)
+        level, classes = self.sizing(inputs["agent_id"], inputs)
         now = self.clock.now()
         stage = self.current_stage(agent_id)
         views = [self._view(r, now) for r in rows]
@@ -393,6 +409,9 @@ class TaskService:
         closed = [v for v in required if v["status"] in ("done", "waived")]
         return {
             **inputs,
+            "level_now": inputs["level"],
+            "level": level,  # what the list is sized with (never lower than before)
+            "classes_seen": list(classes),
             "stage": stage,
             "generated": bool(rows),
             "counts": {s: sum(1 for v in views if v["status"] == s) for s in STATUSES},
@@ -400,10 +419,8 @@ class TaskService:
             "required_total": len(required),
             "stage_done_bp": (len(closed) * 10000 // len(required)) if required else 10000,
             "overdue": sum(1 for v in views if v["overdue"] and v["required"]),
-            "next_stage": (
-                next_stage(self.cfg, stage, inputs["d33_class"], inputs["band"]) if stage else None
-            ),
-            "stages_in_use": stages_in_use(self.cfg, inputs["d33_class"], inputs["band"]),
+            "next_stage": next_stage_at(self.cfg, stage, level, classes) if stage else None,
+            "stages_in_use": [s for s, v in plan_at(self.cfg, level, classes).items() if v],
             "illustrative": self.cfg.illustrative,
             "tasks": views,
         }
@@ -480,9 +497,11 @@ class TaskService:
     def _release(
         self, agent_id: str, stage: str, inputs: Mapping[str, str], actor: str
     ) -> list[dict[str, Any]]:
-        """Create the tasks of ``stage`` (and the move out of it) that do not exist yet."""
-        p = plan(self.cfg, inputs["d33_class"], inputs["band"])[stage]
-        level, cls = inputs["level"], inputs["d33_class"]
+        """Create the tasks of ``stage`` (and the move out of it) that do not exist yet, sized by
+        ``sizing()`` (never lighter than what the agent had before)."""
+        level, classes = self.sizing(agent_id, inputs)
+        p = plan_at(self.cfg, level, classes)[stage]
+        cls = inputs["d33_class"]
         created: list[dict[str, Any]] = []
         for x in p:
             t = x.template
@@ -502,7 +521,7 @@ class TaskService:
                 actor=actor,
             )
             created += self._insert(row, actor)
-        nxt = next_stage(self.cfg, stage, cls, inputs["band"])
+        nxt = next_stage_at(self.cfg, stage, level, classes)
         if nxt is not None:
             row = self._row_for(
                 agent_id,
@@ -549,37 +568,38 @@ class TaskService:
             "d33_class": inputs["d33_class"],
             "band": inputs["band"],
             "band_source": inputs["band_source"],
-            "level": inputs["level"],
+            "level": self.sizing(aid, inputs)[0],
             "created": [r["task_id"] for r in created],
             "created_n": len(created),
             "made_required": resized,
         }
 
     def _resize(self, agent_id: str, stage: str, inputs: Mapping[str, str], who: str) -> int:
-        planned = {
-            x.template.id: x for x in plan(self.cfg, inputs["d33_class"], inputs["band"])[stage]
-        }
+        level, classes = self.sizing(agent_id, inputs)
+        planned = {x.template.id: x for x in plan_at(self.cfg, level, classes)[stage]}
         made = 0
         changed = False
-        nxt = next_stage(self.cfg, stage, inputs["d33_class"], inputs["band"])
+        nxt = next_stage_at(self.cfg, stage, level, classes)
         for row in self.rows_of(agent_id):
             if row["stage"] != stage or row["status"] not in OPEN_STATUSES:
                 continue
             fields: dict[str, Any] = {}
-            if row["level"] != inputs["level"]:
-                fields["level"] = inputs["level"]
-            if row["d33_class"] != inputs["d33_class"]:
-                fields["d33_class"] = inputs["d33_class"]
+            # Only ever up: the stored level and class are what the row was sized with, and
+            # they feed sizing() (review WP30: a downgrade must not drop the stage approval).
+            if LEVEL_RANK.get(str(row["level"]), -1) < LEVEL_RANK[level]:
+                fields["level"] = level
             if row["kind"] == "task" and row["template_id"] in planned:
                 if planned[row["template_id"]].required and not _on(row["required"]):
                     fields["required"] = True
                     made += 1
             if row["kind"] == "move":
-                if nxt is not None and row["target_stage"] != nxt:
+                tgt = str(row["target_stage"] or "")
+                if nxt is not None and tgt in STAGES and STAGES.index(nxt) < STAGES.index(tgt):
+                    # a stage was added in between (never skipped): the move goes there first
                     fields["target_stage"] = nxt
                     fields["template_id"] = move_template_id(nxt)  # task_id stays the same
                     fields["title"] = f"Move the agent to the {nxt.replace('_', ' ')} stage"
-                role = "approver" if needs_stage_approval(self.cfg, inputs["level"]) else "owner"
+                role = "approver" if needs_stage_approval(self.cfg, level) else "owner"
                 if row["owner_role"] != role and role == "approver":
                     fields["owner_role"] = role
             if fields:
@@ -593,7 +613,7 @@ class TaskService:
                 {
                     "agent_id": agent_id,
                     "stage": stage,
-                    "level": inputs["level"],
+                    "level": level,
                     "d33_class": inputs["d33_class"],
                     "made_required": made,
                     "actor_ref": actor_ref(self.settings, who, "task"),
@@ -651,18 +671,53 @@ class TaskService:
         }
         if row["kind"] == "move":
             self._check_move(row, actor)
-        elif row["evidence_kind"] == "document":
-            fields["evidence_ref"] = check_ref(evidence_ref, "document reference")
-        elif row["evidence_kind"] in ("control", "pack"):
-            problem = self._evidence_problem(row)
-            if problem:
-                raise TaskError(f"task {task_id} cannot be done: {problem}")
+        else:
+            # Review WP30: the template role decides who may close the task (a second-line
+            # review is not closed by the first line alone).
+            need = done_refusal(str(row["owner_role"]), _roles(actor))
+            if need:
+                raise TaskError(
+                    f"task {task_id} belongs to role {need}: a person with role {need} or admin "
+                    "marks it done"
+                )
+            if row["evidence_kind"] == "document":
+                fields["evidence_ref"] = check_ref(evidence_ref, "document reference")
+            elif row["evidence_kind"] in ("control", "pack"):
+                problem = self._evidence_problem(row)
+                if problem:
+                    raise TaskError(f"task {task_id} cannot be done: {problem}")
         stored = self._update(row, fields)
         self._event(stored, "done", who, row["status"])
         if row["kind"] == "move":
             inputs = self.agent_inputs(row["agent_id"])
             self._release(inputs["agent_id"], row["target_stage"], inputs, who)
         return self.get(task_id)
+
+    def approve(self, task_id: str, actor: Any, evidence_ref: str | None = None) -> dict[str, Any]:
+        """The approver's way to close a lifecycle move or an approver task (route
+        ``POST /v1/tasks/<id>/approve``, permission tasks.approve). Same rules as ``done``."""
+        row = self._need(task_id)
+        if row["kind"] != "move" and row["owner_role"] != "approver":
+            raise TaskError(
+                f"task {task_id} is not a lifecycle move or an approver task; use /done"
+            )
+        return self.done(task_id, actor, evidence_ref)
+
+    def launch_blockers(self, agent_id: str) -> tuple[list[dict[str, Any]], bool, str | None]:
+        """(tasks that hold Launch, whether the agent has a task list, its stage). A task holds
+        Launch when it is required, open, in the current stage, not the move out of the stage
+        and not marked ``blocks_launch: false`` (done after the launch, like DEP-LAUNCH)."""
+        stage = self.current_stage(agent_id)
+        if stage is None:
+            return [], False, None
+        by_id = self.cfg.by_id()
+        rows = [
+            r
+            for r in self.open_required(agent_id)
+            if r["kind"] != "move"
+            and (r["template_id"] not in by_id or by_id[r["template_id"]].blocks_launch)
+        ]
+        return rows, True, stage
 
     def _check_move(self, row: Mapping[str, Any], actor: Any) -> None:
         """The lifecycle move is a gate: no required task of the stage may be open."""
@@ -869,7 +924,7 @@ class TaskService:
             if r["status"] == "waived":
                 if not r.get("waive_requested_by") or not r.get("waive_approved_by"):
                     problems.append(f"{r['task_id']}: waived without two people")
-                elif r["waive_requested_by"] == r["waive_approved_by"]:
+                elif same_person(r["waive_requested_by"], r["waive_approved_by"]):
                     problems.append(f"{r['task_id']}: waived by the same person twice")
             if r["status"] == "done" and not r.get("done_by"):
                 problems.append(f"{r['task_id']}: done without a person")
@@ -908,17 +963,16 @@ def _matches(item: Mapping[str, Any], f: Mapping[str, str]) -> bool:
     return True
 
 
-def launch_tasks_for(settings: Any, agent_id: str) -> tuple[list[dict[str, Any]], bool]:
-    """(open required tasks of the current stage, whether the agent has a task list), read from
-    the configured store. Used by the launch gate (``assurance.gates.task_launch_items``); it
-    opens and closes its own adapters. Raises when the store cannot be read: a gate must not
-    pass on an unknown."""
+def launch_tasks_for(settings: Any, agent_id: str) -> tuple[list[dict[str, Any]], bool, str | None]:
+    """``TaskService.launch_blockers`` read from the configured store: (tasks that hold Launch,
+    whether the agent has a task list, its stage). Used by the launch gate
+    (``assurance.gates.task_launch_items``); it opens and closes its own adapters. Raises when
+    the store cannot be read: a gate must not pass on an unknown."""
     from supervisor.adapters.factory import build_adapters
 
     adapters = build_adapters(settings)
     try:
-        svc = TaskService.from_adapters(adapters)
-        return svc.open_required(agent_id), svc.current_stage(agent_id) is not None
+        return TaskService.from_adapters(adapters).launch_blockers(agent_id)
     finally:
         adapters.close()
 

@@ -114,7 +114,7 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     ),
     "tasks.approve": (
         ("approver", "admin"),
-        "Second person for a task waiver; approve a lifecycle move at high level (WP30)",
+        "Second person for a task waiver; approve a lifecycle move or an approver task (WP30)",
     ),
 }
 
@@ -278,6 +278,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/tasks/agents/{agent_id}/generate"): "tasks.edit",
     ("POST", "/v1/tasks/{task_id}/start"): "tasks.edit",
     ("POST", "/v1/tasks/{task_id}/done"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/approve"): "tasks.approve",  # review WP30
     ("POST", "/v1/tasks/{task_id}/waive"): "tasks.edit",
     ("POST", "/v1/tasks/{task_id}/waive/approve"): "tasks.approve",
     ("POST", "/v1/tasks/{task_id}/waive/reject"): "tasks.approve",

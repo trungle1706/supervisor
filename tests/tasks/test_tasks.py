@@ -189,7 +189,8 @@ def test_a_task_becomes_required_when_the_size_grows(env: CtlEnv) -> None:
     env.agent("pay")
     env.classify("pay", None, "low")  # unclassified: level medium
     env.tasks.generate("pay", ADMIN)
-    _finish_stage(env, "pay", OWNER)
+    # INI-D33 (classify) is a reviewer task: the owner alone may not close it (review WP30)
+    _finish_stage(env, "pay", REVIEWER)
     assert env.tasks.current_stage("pay") == "design"
     assert _ids(env, "pay", "design")["DES-CONTROLS"]["required"] is False
     env.classify("pay", "high_risk", "low")  # level high

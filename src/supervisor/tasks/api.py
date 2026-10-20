@@ -8,6 +8,9 @@
 * ``POST /v1/tasks/{task_id}/start`` (tasks.edit): open to in_progress.
 * ``POST /v1/tasks/{task_id}/done`` (tasks.edit): finish; body evidence_ref for a document task.
   A lifecycle move is a gate: it is refused while a required task of the stage is open.
+  A reviewer or approver task needs that role (or admin).
+* ``POST /v1/tasks/{task_id}/approve`` (tasks.approve): an approver closes a lifecycle move
+  (stage approval at high level) or an approver task; same rules as done (review WP30).
 * ``POST /v1/tasks/{task_id}/waive`` (tasks.edit): ask to waive; body reason.
 * ``POST /v1/tasks/{task_id}/waive/approve`` (tasks.approve): the second person, an approver or
   an admin who is not the person who asked.
@@ -151,6 +154,23 @@ async def done_task(
         raise TaskError("evidence_ref must be text")
     try:
         return svc.done(task_id, _person(me), ref)
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+@router.post("/{task_id}/approve", dependencies=[Depends(needs("tasks.approve"))])
+@audited("tasks.approve")
+async def approve_task(
+    task_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    svc = _service(ctx)
+    check_id(task_id)
+    data = await _body(request)
+    ref = data.get("evidence_ref")
+    if ref is not None and not isinstance(ref, str):
+        raise TaskError("evidence_ref must be text")
+    try:
+        return svc.approve(task_id, _person(me), ref)
     except NotFoundError as exc:
         return _not_found(exc)
 

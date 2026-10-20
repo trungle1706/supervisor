@@ -14,7 +14,7 @@ sized again at that moment, so a class change is picked up for the later stages)
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -57,6 +57,12 @@ _ID = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
 _REF = re.compile(r"^[A-Za-z0-9_.:@/#-]{1,128}$")
 MAX_TITLE = 200
 MAX_REASON = 1000
+# Launch (the GO into enforcement) needs the agent at this stage or later (review WP30).
+LAUNCH_STAGE = "deployment"
+# Template roles a person must hold (or be admin) to mark the task done. ``owner`` tasks may be
+# done by anyone with tasks.edit (owner, reviewer, admin). Review WP30: the second line's task is
+# not done by the first line alone.
+ROLE_BOUND: tuple[str, ...] = ("reviewer", "approver", "auditor", "admin")
 
 
 class TaskError(SupervisorError):
@@ -108,11 +114,15 @@ class Template:
     classes: tuple[str, ...] | None = None  # None = any class
     evidence_kind: str = "none"
     evidence_ref: str | None = None
+    # False = the task is done after the launch (for example "obtain a GO from the launch
+    # report"), so it does not hold the launch gate. It still holds the lifecycle move.
+    blocks_launch: bool = True
 
-    def applies(self, level: str, cls: str) -> bool:
+    def applies(self, level: str, cls: str | Iterable[str]) -> bool:
         if LEVEL_RANK[level] < LEVEL_RANK[self.min_level]:
             return False
-        return self.classes is None or cls in self.classes
+        classes = {cls} if isinstance(cls, str) else set(cls)
+        return self.classes is None or bool(classes & set(self.classes))
 
     def required(self, level: str) -> bool:
         return (
@@ -156,6 +166,36 @@ def plan(cfg: TaskConfig, d33_class: str, band: str) -> dict[str, list[Planned]]
         if t.applies(level, d33_class):
             out[t.stage].append(Planned(t, t.required(level)))
     return out
+
+
+def plan_at(cfg: TaskConfig, level: str, classes: Iterable[str]) -> dict[str, list[Planned]]:
+    """stage -> the templates that apply at an effective level for ANY of the classes. Used for
+    an agent whose class or level changed in the middle of its lifecycle: the set is the union
+    of what every class it had needs, at the highest level it had, so it never gets lighter."""
+    cls = tuple(classes)
+    out: dict[str, list[Planned]] = {s: [] for s in STAGES}
+    for t in cfg.templates:
+        if t.applies(level, cls):
+            out[t.stage].append(Planned(t, t.required(level)))
+    return out
+
+
+def next_stage_at(cfg: TaskConfig, current: str, level: str, classes: Iterable[str]) -> str | None:
+    p = plan_at(cfg, level, classes)
+    after = [s for s in STAGES if p[s] and STAGES.index(s) > STAGES.index(current)]
+    return after[0] if after else None
+
+
+def done_refusal(owner_role: str, roles: Iterable[str]) -> str | None:
+    """None when a person with these roles may mark a task of ``owner_role`` done; else the role
+    that is needed. ``owner`` tasks: anyone who may edit tasks; a reviewer, approver, auditor or
+    admin task: that role or admin."""
+    if owner_role not in ROLE_BOUND:
+        return None
+    held = set(roles)
+    if "admin" in held or owner_role in held:
+        return None
+    return owner_role
 
 
 def stages_in_use(cfg: TaskConfig, d33_class: str, band: str) -> list[str]:
@@ -205,6 +245,11 @@ def move_refusal(
     return None, []
 
 
+def same_person(a: str | None, b: str | None) -> bool:
+    """Two user ids name the same person (ids and e-mails are compared without letter case)."""
+    return bool(a) and bool(b) and str(a).strip().casefold() == str(b).strip().casefold()
+
+
 def waive_refusal(requester: str | None, approver: str, kind: str, can_approve: bool) -> str | None:
     """Why a person may not be the second person of a waiver: ``no_request``, ``not_a_person``,
     ``not_approver`` or ``same_person``; None when the waiver may be approved."""
@@ -214,7 +259,7 @@ def waive_refusal(requester: str | None, approver: str, kind: str, can_approve: 
         return "not_a_person"
     if not can_approve:
         return "not_approver"
-    if requester == approver:
+    if same_person(requester, approver):
         return "same_person"
     return None
 
@@ -281,6 +326,9 @@ def parse_config(doc: Any, name: str = "tasks.yaml") -> TaskConfig:
         eref = ev.get("ref")
         if ekind != "none":
             check_ref(eref, f"{where}: evidence.ref")
+        blocks = raw.get("blocks_launch", True)
+        if not isinstance(blocks, bool):
+            raise TaskError(f"{where}: blocks_launch must be true or false")
         templates.append(
             Template(
                 id=tid,
@@ -295,6 +343,7 @@ def parse_config(doc: Any, name: str = "tasks.yaml") -> TaskConfig:
                 classes=cls_t,
                 evidence_kind=str(ekind),
                 evidence_ref=str(eref) if eref else None,
+                blocks_launch=blocks,
             )
         )
     move = doc.get("move") or {}
