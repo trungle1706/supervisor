@@ -1,0 +1,5561 @@
+{
+  "schema": "supervisor-latency-bench/1",
+  "mode": "full",
+  "environment": {
+    "commit": "df28be504d6187a235d19c2546ab108f2c3ceb13",
+    "date_utc": "2026-10-20T06:00:53Z",
+    "python": "3.11.17",
+    "python_impl": "CPython",
+    "platform": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "cpu_model": "QEMU Virtual CPU version 2.5+",
+    "cpu_count": 16,
+    "load_avg_1_5_15": [
+      2.57,
+      2.99,
+      3.54
+    ],
+    "versions": {
+      "fastapi": "0.143.1",
+      "starlette": "1.8.0",
+      "uvicorn": "0.54.0",
+      "httpx": "0.28.1",
+      "pydantic": "2.14.1",
+      "supervisor": "0.2.0"
+    },
+    "env_flags": {
+      "python_optimize": 0,
+      "python_dev_mode": false,
+      "pythonhashseed": "unset",
+      "gil_enabled": true,
+      "gc_enabled": true,
+      "uvloop": "absent",
+      "httptools": "absent",
+      "cpu_governor": "n/a",
+      "hypervisor": "yes"
+    },
+    "load_avg_end": [
+      2.62,
+      2.81,
+      3.02
+    ]
+  },
+  "parameters": {
+    "backends": [
+      "sqlite_file",
+      "sqlite_memory",
+      "databricks_fake"
+    ],
+    "policy_sizes": [
+      19,
+      200
+    ],
+    "scenarios": [
+      "inproc",
+      "chain",
+      "breakdown",
+      "window",
+      "asgi",
+      "otlp",
+      "server",
+      "mcp"
+    ],
+    "repeats": 3,
+    "iterations": 2000,
+    "warmup": 300,
+    "http_iterations": 600,
+    "http_warmup": 100,
+    "http_rate_hz": 100,
+    "mcp_iterations": 200,
+    "seed": 7,
+    "sim_step_s": 120.0,
+    "fake_rtt_ms": 0,
+    "window_depths": [
+      1000,
+      10000
+    ]
+  },
+  "method": {
+    "clock": "time.perf_counter_ns (monotonic), integer microseconds",
+    "percentile": "nearest rank: sorted[ceil(p*n/100)-1]",
+    "reported": "median over repeats of each statistic; all repeats are kept",
+    "http_load": "open loop, fixed schedule, latency from intended send time",
+    "delta": "GAF: delta = p95(with gate) - p95(without gate); without = same JSON parse, same thread hop, fixed answer, no evaluation",
+    "mock_backend": "databricks_fake is SQLite memory plus REST marshalling code: MOCK"
+  },
+  "results": [
+    {
+      "id": "gate_inproc|sqlite_file|19",
+      "scenario": "gate_inproc",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 1104,
+          "p50": 1527,
+          "p95": 2828,
+          "p99": 4635,
+          "max": 6956,
+          "mean": 1687
+        },
+        {
+          "n": 2000,
+          "min": 1102,
+          "p50": 1542,
+          "p95": 2999,
+          "p99": 5540,
+          "max": 43152,
+          "mean": 1751
+        },
+        {
+          "n": 2000,
+          "min": 1085,
+          "p50": 1521,
+          "p95": 2560,
+          "p99": 4423,
+          "max": 7454,
+          "mean": 1651
+        }
+      ],
+      "median": {
+        "p50": 1527,
+        "p95": 2828,
+        "p99": 4635,
+        "max": 7454,
+        "mean": 1687,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 137,
+        "p95": 1552,
+        "p99": 2409,
+        "max": 48559
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|sqlite_file|19",
+      "scenario": "chain_append",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 350,
+          "p50": 578,
+          "p95": 922,
+          "p99": 1781,
+          "max": 8372,
+          "mean": 596
+        },
+        {
+          "n": 2000,
+          "min": 358,
+          "p50": 568,
+          "p95": 883,
+          "p99": 1760,
+          "max": 23431,
+          "mean": 614
+        },
+        {
+          "n": 2000,
+          "min": 348,
+          "p50": 573,
+          "p95": 833,
+          "p99": 1590,
+          "max": 7952,
+          "mean": 581
+        }
+      ],
+      "median": {
+        "p50": 573,
+        "p95": 883,
+        "p99": 1760,
+        "max": 8372,
+        "mean": 596,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 174,
+        "p95": 1007,
+        "p99": 1085,
+        "max": 18489
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|sqlite_file|19",
+      "scenario": "otlp_inproc_1span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 335,
+          "p50": 556,
+          "p95": 1386,
+          "p99": 2502,
+          "max": 43945,
+          "mean": 712
+        },
+        {
+          "n": 600,
+          "min": 348,
+          "p50": 568,
+          "p95": 1411,
+          "p99": 2277,
+          "max": 63421,
+          "mean": 775
+        },
+        {
+          "n": 600,
+          "min": 346,
+          "p50": 565,
+          "p95": 1393,
+          "p99": 2804,
+          "max": 18388,
+          "mean": 683
+        }
+      ],
+      "median": {
+        "p50": 565,
+        "p95": 1393,
+        "p99": 2502,
+        "max": 43945,
+        "mean": 712,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 212,
+        "p95": 179,
+        "p99": 2106,
+        "max": 10247
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 3
+    },
+    {
+      "id": "otlp_inproc_20span|sqlite_file|19",
+      "scenario": "otlp_inproc_20span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2764,
+          "p50": 3030,
+          "p95": 4243,
+          "p99": 5452,
+          "max": 7454,
+          "mean": 3223
+        },
+        {
+          "n": 200,
+          "min": 2842,
+          "p50": 3183,
+          "p95": 4506,
+          "p99": 6990,
+          "max": 9428,
+          "mean": 3447
+        },
+        {
+          "n": 200,
+          "min": 2784,
+          "p50": 3181,
+          "p95": 4848,
+          "p99": 6674,
+          "max": 57056,
+          "mean": 3846
+        }
+      ],
+      "median": {
+        "p50": 3181,
+        "p95": 4506,
+        "p99": 6674,
+        "max": 9428,
+        "mean": 3447,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 480,
+        "p95": 1342,
+        "p99": 2304,
+        "max": 52611
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "asgi_passthrough|sqlite_file|19",
+      "scenario": "asgi_passthrough",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 758,
+          "p50": 1833,
+          "p95": 2826,
+          "p99": 3170,
+          "max": 3603,
+          "mean": 1852
+        },
+        {
+          "n": 600,
+          "min": 633,
+          "p50": 1891,
+          "p95": 2910,
+          "p99": 3534,
+          "max": 5170,
+          "mean": 1895
+        },
+        {
+          "n": 600,
+          "min": 692,
+          "p50": 1791,
+          "p95": 2819,
+          "p99": 3184,
+          "max": 3534,
+          "mean": 1852
+        }
+      ],
+      "median": {
+        "p50": 1833,
+        "p95": 2826,
+        "p99": 3184,
+        "max": 3603,
+        "mean": 1852,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 545,
+        "p95": 322,
+        "p99": 1143,
+        "max": 4540
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1074,
+          "p99": 2096
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_gate|sqlite_file|19",
+      "scenario": "asgi_gate",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2557,
+          "p50": 4102,
+          "p95": 8131,
+          "p99": 14559,
+          "max": 45992,
+          "mean": 4766
+        },
+        {
+          "n": 600,
+          "min": 2495,
+          "p50": 3911,
+          "p95": 7053,
+          "p99": 9487,
+          "max": 18898,
+          "mean": 4251
+        },
+        {
+          "n": 600,
+          "min": 2561,
+          "p50": 3937,
+          "p95": 6982,
+          "p99": 10521,
+          "max": 13809,
+          "mean": 4296
+        }
+      ],
+      "median": {
+        "p50": 3937,
+        "p95": 7053,
+        "p99": 10521,
+        "max": 18898,
+        "mean": 4296,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 485,
+        "p95": 1629,
+        "p99": 4820,
+        "max": 17029
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 503,
+          "p99": 1076
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_1span|sqlite_file|19",
+      "scenario": "otlp_asgi_1span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1317,
+          "p50": 2324,
+          "p95": 3627,
+          "p99": 4155,
+          "max": 5847,
+          "mean": 2492
+        },
+        {
+          "n": 600,
+          "min": 1298,
+          "p50": 2317,
+          "p95": 3711,
+          "p99": 4177,
+          "max": 5179,
+          "mean": 2550
+        },
+        {
+          "n": 600,
+          "min": 1308,
+          "p50": 2476,
+          "p95": 3947,
+          "p99": 7174,
+          "max": 43259,
+          "mean": 2776
+        }
+      ],
+      "median": {
+        "p50": 2324,
+        "p95": 3711,
+        "p99": 4177,
+        "max": 5847,
+        "mean": 2550,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 684,
+        "p95": 862,
+        "p99": 7227,
+        "max": 65127
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 508,
+          "p99": 2072
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|sqlite_file|19",
+      "scenario": "otlp_asgi_20span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4691,
+          "p50": 5896,
+          "p95": 7952,
+          "p99": 9015,
+          "max": 22804,
+          "mean": 6215
+        },
+        {
+          "n": 200,
+          "min": 4640,
+          "p50": 5801,
+          "p95": 7777,
+          "p99": 26267,
+          "max": 57827,
+          "mean": 6453
+        },
+        {
+          "n": 200,
+          "min": 4586,
+          "p50": 5661,
+          "p95": 7397,
+          "p99": 8109,
+          "max": 8404,
+          "mean": 5840
+        }
+      ],
+      "median": {
+        "p50": 5801,
+        "p95": 7777,
+        "p99": 9015,
+        "max": 22804,
+        "mean": 6215,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 405,
+        "p95": 713,
+        "p99": 20141,
+        "max": 21672
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 700,
+          "p99": 1391
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_passthrough|sqlite_file|19",
+      "scenario": "uvicorn_passthrough",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1394,
+          "p50": 2345,
+          "p95": 3673,
+          "p99": 4255,
+          "max": 5015,
+          "mean": 2556
+        },
+        {
+          "n": 600,
+          "min": 1355,
+          "p50": 2254,
+          "p95": 3654,
+          "p99": 3957,
+          "max": 4729,
+          "mean": 2534
+        },
+        {
+          "n": 600,
+          "min": 1381,
+          "p50": 2392,
+          "p95": 3666,
+          "p99": 4155,
+          "max": 4920,
+          "mean": 2544
+        }
+      ],
+      "median": {
+        "p50": 2345,
+        "p95": 3666,
+        "p99": 4155,
+        "max": 4920,
+        "mean": 2544,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 588,
+        "p95": 51,
+        "p99": 717,
+        "max": 581
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 633,
+          "p99": 2089
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "uvicorn_gate|sqlite_file|19",
+      "scenario": "uvicorn_gate",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 3216,
+          "p50": 4725,
+          "p95": 6582,
+          "p99": 7878,
+          "max": 10259,
+          "mean": 4886
+        },
+        {
+          "n": 600,
+          "min": 3284,
+          "p50": 4679,
+          "p95": 7258,
+          "p99": 18975,
+          "max": 69416,
+          "mean": 5340
+        },
+        {
+          "n": 600,
+          "min": 3317,
+          "p50": 4699,
+          "p95": 6892,
+          "p99": 8432,
+          "max": 16386,
+          "mean": 4966
+        }
+      ],
+      "median": {
+        "p50": 4699,
+        "p95": 6892,
+        "p99": 8432,
+        "max": 16386,
+        "mean": 4966,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 97,
+        "p95": 980,
+        "p99": 13160,
+        "max": 36102
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 455,
+          "p99": 1061
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "otlp_uvicorn_1span|sqlite_file|19",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2615,
+          "p50": 3523,
+          "p95": 4946,
+          "p99": 5944,
+          "max": 7842,
+          "mean": 3621
+        },
+        {
+          "n": 600,
+          "min": 2426,
+          "p50": 3485,
+          "p95": 4735,
+          "p99": 5520,
+          "max": 8012,
+          "mean": 3543
+        },
+        {
+          "n": 600,
+          "min": 2606,
+          "p50": 3516,
+          "p95": 5075,
+          "p99": 5954,
+          "max": 8302,
+          "mean": 3630
+        }
+      ],
+      "median": {
+        "p50": 3516,
+        "p95": 4946,
+        "p99": 5944,
+        "max": 8012,
+        "mean": 3621,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 108,
+        "p95": 687,
+        "p99": 730,
+        "max": 574
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 604,
+          "p99": 1051
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|sqlite_file|19",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5466,
+          "p50": 7586,
+          "p95": 9510,
+          "p99": 10300,
+          "max": 10787,
+          "mean": 7660
+        },
+        {
+          "n": 200,
+          "min": 5634,
+          "p50": 7052,
+          "p95": 8306,
+          "p99": 8564,
+          "max": 8882,
+          "mean": 7109
+        },
+        {
+          "n": 200,
+          "min": 5457,
+          "p50": 7049,
+          "p95": 9077,
+          "p99": 10234,
+          "max": 11204,
+          "mean": 7167
+        }
+      ],
+      "median": {
+        "p50": 7052,
+        "p95": 9077,
+        "p99": 10234,
+        "max": 10787,
+        "mean": 7167,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 761,
+        "p95": 1326,
+        "p99": 1696,
+        "max": 2152
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 842,
+          "p99": 2011
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "mcp_direct|sqlite_file|19",
+      "scenario": "mcp_direct",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 34,
+          "p95": 54,
+          "p99": 183,
+          "max": 203,
+          "mean": 40
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 48,
+          "p95": 66,
+          "p99": 215,
+          "max": 227,
+          "mean": 52
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 45,
+          "p95": 66,
+          "p99": 198,
+          "max": 210,
+          "mean": 48
+        }
+      ],
+      "median": {
+        "p50": 45,
+        "p95": 66,
+        "p99": 198,
+        "max": 210,
+        "mean": 48,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 3111,
+        "p95": 1818,
+        "p99": 1616,
+        "max": 1142
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|sqlite_file|19",
+      "scenario": "mcp_proxy",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 7289,
+          "p50": 8789,
+          "p95": 19905,
+          "p99": 25438,
+          "max": 27397,
+          "mean": 9902
+        },
+        {
+          "n": 200,
+          "min": 7037,
+          "p50": 8730,
+          "p95": 20483,
+          "p99": 24711,
+          "max": 32383,
+          "mean": 9814
+        },
+        {
+          "n": 200,
+          "min": 7255,
+          "p50": 8656,
+          "p95": 19546,
+          "p99": 23652,
+          "max": 27169,
+          "mean": 9636
+        }
+      ],
+      "median": {
+        "p50": 8730,
+        "p95": 19905,
+        "p99": 24711,
+        "max": 27397,
+        "mean": 9814,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 152,
+        "p95": 470,
+        "p99": 722,
+        "max": 1903
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|sqlite_file|200",
+      "scenario": "gate_inproc",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 1334,
+          "p50": 2424,
+          "p95": 4360,
+          "p99": 6151,
+          "max": 52884,
+          "mean": 2664
+        },
+        {
+          "n": 2000,
+          "min": 1452,
+          "p50": 2476,
+          "p95": 5052,
+          "p99": 7915,
+          "max": 54879,
+          "mean": 2819
+        },
+        {
+          "n": 2000,
+          "min": 1381,
+          "p50": 2375,
+          "p95": 4467,
+          "p99": 6777,
+          "max": 65421,
+          "mean": 2691
+        }
+      ],
+      "median": {
+        "p50": 2424,
+        "p95": 4467,
+        "p99": 6777,
+        "max": 54879,
+        "mean": 2691,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 416,
+        "p95": 1549,
+        "p99": 2602,
+        "max": 2284
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|sqlite_file|200",
+      "scenario": "chain_append",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 340,
+          "p50": 548,
+          "p95": 867,
+          "p99": 1613,
+          "max": 3342,
+          "mean": 560
+        },
+        {
+          "n": 2000,
+          "min": 341,
+          "p50": 551,
+          "p95": 863,
+          "p99": 1646,
+          "max": 3426,
+          "mean": 568
+        },
+        {
+          "n": 2000,
+          "min": 332,
+          "p50": 553,
+          "p95": 1003,
+          "p99": 1722,
+          "max": 3745,
+          "mean": 575
+        }
+      ],
+      "median": {
+        "p50": 551,
+        "p95": 867,
+        "p99": 1646,
+        "max": 3426,
+        "mean": 568,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 90,
+        "p95": 1614,
+        "p99": 662,
+        "max": 1176
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|sqlite_file|200",
+      "scenario": "otlp_inproc_1span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 330,
+          "p50": 513,
+          "p95": 866,
+          "p99": 1233,
+          "max": 2550,
+          "mean": 524
+        },
+        {
+          "n": 600,
+          "min": 328,
+          "p50": 508,
+          "p95": 691,
+          "p99": 1039,
+          "max": 2875,
+          "mean": 501
+        },
+        {
+          "n": 600,
+          "min": 329,
+          "p50": 508,
+          "p95": 1182,
+          "p99": 1884,
+          "max": 6343,
+          "mean": 601
+        }
+      ],
+      "median": {
+        "p50": 508,
+        "p95": 866,
+        "p99": 1233,
+        "max": 2875,
+        "mean": 524,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 98,
+        "p95": 5669,
+        "p99": 6853,
+        "max": 13193
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 4
+    },
+    {
+      "id": "otlp_inproc_20span|sqlite_file|200",
+      "scenario": "otlp_inproc_20span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2914,
+          "p50": 3052,
+          "p95": 3712,
+          "p99": 5224,
+          "max": 5493,
+          "mean": 3175
+        },
+        {
+          "n": 200,
+          "min": 2870,
+          "p50": 3057,
+          "p95": 4047,
+          "p99": 5431,
+          "max": 19526,
+          "mean": 3294
+        },
+        {
+          "n": 200,
+          "min": 2861,
+          "p50": 3032,
+          "p95": 3987,
+          "p99": 4959,
+          "max": 6488,
+          "mean": 3201
+        }
+      ],
+      "median": {
+        "p50": 3052,
+        "p95": 3987,
+        "p99": 5224,
+        "max": 6488,
+        "mean": 3201,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 81,
+        "p95": 840,
+        "p99": 903,
+        "max": 21629
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|sqlite_file|200",
+      "scenario": "asgi_passthrough",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 703,
+          "p50": 1817,
+          "p95": 2862,
+          "p99": 3358,
+          "max": 3818,
+          "mean": 1877
+        },
+        {
+          "n": 600,
+          "min": 714,
+          "p50": 1826,
+          "p95": 2839,
+          "p99": 3103,
+          "max": 3592,
+          "mean": 1840
+        },
+        {
+          "n": 600,
+          "min": 700,
+          "p50": 1771,
+          "p95": 2725,
+          "p99": 2935,
+          "max": 3534,
+          "mean": 1798
+        }
+      ],
+      "median": {
+        "p50": 1817,
+        "p95": 2839,
+        "p99": 3103,
+        "max": 3592,
+        "mean": 1840,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 302,
+        "p95": 482,
+        "p99": 1363,
+        "max": 790
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1090,
+          "p99": 2086
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_gate|sqlite_file|200",
+      "scenario": "asgi_gate",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2943,
+          "p50": 4623,
+          "p95": 8313,
+          "p99": 28511,
+          "max": 57698,
+          "mean": 5490
+        },
+        {
+          "n": 600,
+          "min": 2804,
+          "p50": 4728,
+          "p95": 8075,
+          "p99": 25494,
+          "max": 48649,
+          "mean": 5353
+        },
+        {
+          "n": 600,
+          "min": 2813,
+          "p50": 4548,
+          "p95": 8013,
+          "p99": 57018,
+          "max": 94658,
+          "mean": 5741
+        }
+      ],
+      "median": {
+        "p50": 4623,
+        "p95": 8075,
+        "p99": 28511,
+        "max": 57698,
+        "mean": 5490,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 389,
+        "p95": 371,
+        "p99": 11056,
+        "max": 7974
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 504,
+          "p99": 1094
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_1span|sqlite_file|200",
+      "scenario": "otlp_asgi_1span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1166,
+          "p50": 2244,
+          "p95": 3594,
+          "p99": 3745,
+          "max": 4121,
+          "mean": 2408
+        },
+        {
+          "n": 600,
+          "min": 1197,
+          "p50": 2156,
+          "p95": 3519,
+          "p99": 3771,
+          "max": 3977,
+          "mean": 2317
+        },
+        {
+          "n": 600,
+          "min": 1197,
+          "p50": 2255,
+          "p95": 3603,
+          "p99": 3905,
+          "max": 4400,
+          "mean": 2403
+        }
+      ],
+      "median": {
+        "p50": 2244,
+        "p95": 3594,
+        "p99": 3771,
+        "max": 4121,
+        "mean": 2403,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 441,
+        "p95": 233,
+        "p99": 424,
+        "max": 1026
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 576,
+          "p99": 2076
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|sqlite_file|200",
+      "scenario": "otlp_asgi_20span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4225,
+          "p50": 5106,
+          "p95": 6531,
+          "p99": 7191,
+          "max": 7725,
+          "mean": 5205
+        },
+        {
+          "n": 200,
+          "min": 4281,
+          "p50": 5369,
+          "p95": 7012,
+          "p99": 7727,
+          "max": 7919,
+          "mean": 5489
+        },
+        {
+          "n": 200,
+          "min": 4436,
+          "p50": 5414,
+          "p95": 6962,
+          "p99": 8049,
+          "max": 9358,
+          "mean": 5537
+        }
+      ],
+      "median": {
+        "p50": 5369,
+        "p95": 6962,
+        "p99": 7727,
+        "max": 7919,
+        "mean": 5489,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 573,
+        "p95": 690,
+        "p99": 1110,
+        "max": 2062
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 676,
+          "p99": 1295
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_passthrough|sqlite_file|200",
+      "scenario": "uvicorn_passthrough",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1296,
+          "p50": 2334,
+          "p95": 3566,
+          "p99": 4125,
+          "max": 4581,
+          "mean": 2482
+        },
+        {
+          "n": 600,
+          "min": 1250,
+          "p50": 2305,
+          "p95": 3488,
+          "p99": 3721,
+          "max": 4563,
+          "mean": 2433
+        },
+        {
+          "n": 600,
+          "min": 1306,
+          "p50": 2349,
+          "p95": 3569,
+          "p99": 4109,
+          "max": 4765,
+          "mean": 2505
+        }
+      ],
+      "median": {
+        "p50": 2334,
+        "p95": 3566,
+        "p99": 4109,
+        "max": 4581,
+        "mean": 2482,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 188,
+        "p95": 227,
+        "p99": 983,
+        "max": 440
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 640,
+          "p99": 2076
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|sqlite_file|200",
+      "scenario": "uvicorn_gate",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 3424,
+          "p50": 5384,
+          "p95": 7560,
+          "p99": 11154,
+          "max": 26245,
+          "mean": 5686
+        },
+        {
+          "n": 600,
+          "min": 3261,
+          "p50": 5159,
+          "p95": 7443,
+          "p99": 11155,
+          "max": 23546,
+          "mean": 5498
+        },
+        {
+          "n": 600,
+          "min": 3367,
+          "p50": 5425,
+          "p95": 8320,
+          "p99": 19947,
+          "max": 49234,
+          "mean": 5977
+        }
+      ],
+      "median": {
+        "p50": 5384,
+        "p95": 7560,
+        "p99": 11155,
+        "max": 26245,
+        "mean": 5686,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 494,
+        "p95": 1160,
+        "p99": 7882,
+        "max": 9787
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 799,
+          "p99": 1103
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|sqlite_file|200",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2169,
+          "p50": 3167,
+          "p95": 4235,
+          "p99": 4797,
+          "max": 6072,
+          "mean": 3223
+        },
+        {
+          "n": 600,
+          "min": 2226,
+          "p50": 3304,
+          "p95": 4957,
+          "p99": 5876,
+          "max": 6976,
+          "mean": 3445
+        },
+        {
+          "n": 600,
+          "min": 2337,
+          "p50": 3292,
+          "p95": 4777,
+          "p99": 19308,
+          "max": 55558,
+          "mean": 3789
+        }
+      ],
+      "median": {
+        "p50": 3292,
+        "p95": 4777,
+        "p99": 5876,
+        "max": 6976,
+        "mean": 3445,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 416,
+        "p95": 1511,
+        "p99": 24695,
+        "max": 70937
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 570,
+          "p99": 1080
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|sqlite_file|200",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5312,
+          "p50": 6544,
+          "p95": 8688,
+          "p99": 9967,
+          "max": 21213,
+          "mean": 6811
+        },
+        {
+          "n": 200,
+          "min": 5372,
+          "p50": 6601,
+          "p95": 8162,
+          "p99": 8715,
+          "max": 10752,
+          "mean": 6765
+        },
+        {
+          "n": 200,
+          "min": 5500,
+          "p50": 6938,
+          "p95": 9789,
+          "p99": 14401,
+          "max": 50303,
+          "mean": 7597
+        }
+      ],
+      "median": {
+        "p50": 6601,
+        "p95": 8688,
+        "p99": 9967,
+        "max": 21213,
+        "mean": 6811,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 596,
+        "p95": 1872,
+        "p99": 5704,
+        "max": 18644
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 720,
+          "p99": 2003
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "mcp_direct|sqlite_file|200",
+      "scenario": "mcp_direct",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 40,
+          "p50": 59,
+          "p95": 104,
+          "p99": 243,
+          "max": 278,
+          "mean": 64
+        },
+        {
+          "n": 200,
+          "min": 39,
+          "p50": 54,
+          "p95": 71,
+          "p99": 226,
+          "max": 261,
+          "mean": 57
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 61,
+          "p95": 79,
+          "p99": 207,
+          "max": 228,
+          "mean": 63
+        }
+      ],
+      "median": {
+        "p50": 59,
+        "p95": 79,
+        "p99": 226,
+        "max": 261,
+        "mean": 63,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 1186,
+        "p95": 4177,
+        "p99": 1592,
+        "max": 1915
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|sqlite_file|200",
+      "scenario": "mcp_proxy",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 8448,
+          "p50": 10240,
+          "p95": 21880,
+          "p99": 24854,
+          "max": 30786,
+          "mean": 11351
+        },
+        {
+          "n": 200,
+          "min": 8512,
+          "p50": 10536,
+          "p95": 20901,
+          "p99": 26916,
+          "max": 32482,
+          "mean": 11622
+        },
+        {
+          "n": 200,
+          "min": 8351,
+          "p50": 10686,
+          "p95": 21778,
+          "p99": 27407,
+          "max": 29659,
+          "mean": 11755
+        }
+      ],
+      "median": {
+        "p50": 10536,
+        "p95": 21778,
+        "p99": 26916,
+        "max": 30786,
+        "mean": 11622,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 423,
+        "p95": 449,
+        "p99": 948,
+        "max": 916
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|sqlite_memory|19",
+      "scenario": "gate_inproc",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 287,
+          "p50": 449,
+          "p95": 660,
+          "p99": 941,
+          "max": 1445,
+          "mean": 468
+        },
+        {
+          "n": 2000,
+          "min": 292,
+          "p50": 463,
+          "p95": 693,
+          "p99": 986,
+          "max": 1526,
+          "mean": 479
+        },
+        {
+          "n": 2000,
+          "min": 282,
+          "p50": 455,
+          "p95": 676,
+          "p99": 934,
+          "max": 3098,
+          "mean": 473
+        }
+      ],
+      "median": {
+        "p50": 455,
+        "p95": 676,
+        "p99": 941,
+        "max": 1526,
+        "mean": 473,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 307,
+        "p95": 488,
+        "p99": 552,
+        "max": 10832
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|sqlite_memory|19",
+      "scenario": "chain_append",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 60,
+          "p50": 68,
+          "p95": 97,
+          "p99": 379,
+          "max": 512,
+          "mean": 77
+        },
+        {
+          "n": 2000,
+          "min": 59,
+          "p50": 68,
+          "p95": 96,
+          "p99": 376,
+          "max": 524,
+          "mean": 76
+        },
+        {
+          "n": 2000,
+          "min": 60,
+          "p50": 67,
+          "p95": 95,
+          "p99": 374,
+          "max": 511,
+          "mean": 76
+        }
+      ],
+      "median": {
+        "p50": 68,
+        "p95": 96,
+        "p99": 376,
+        "max": 512,
+        "mean": 76,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 147,
+        "p95": 208,
+        "p99": 132,
+        "max": 253
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "window_depth_1000|sqlite_memory|19",
+      "scenario": "window_depth_1000",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 1000,
+          "min": 288,
+          "p50": 486,
+          "p95": 933,
+          "p99": 1388,
+          "max": 1981,
+          "mean": 565
+        },
+        {
+          "n": 1000,
+          "min": 288,
+          "p50": 500,
+          "p95": 930,
+          "p99": 1546,
+          "max": 2126,
+          "mean": 580
+        },
+        {
+          "n": 1000,
+          "min": 297,
+          "p50": 495,
+          "p95": 984,
+          "p99": 1586,
+          "max": 2131,
+          "mean": 584
+        }
+      ],
+      "median": {
+        "p50": 495,
+        "p95": 933,
+        "p99": 1546,
+        "max": 2126,
+        "mean": 580,
+        "n": 1000
+      },
+      "spread_bp": {
+        "p50": 282,
+        "p95": 578,
+        "p99": 1280,
+        "max": 705
+      },
+      "extra": {
+        "allowed": 100,
+        "window_events": 7000
+      },
+      "attempts": 1
+    },
+    {
+      "id": "window_depth_10000|sqlite_memory|19",
+      "scenario": "window_depth_10000",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 1000,
+          "min": 296,
+          "p50": 511,
+          "p95": 2967,
+          "p99": 5203,
+          "max": 6159,
+          "mean": 1136
+        },
+        {
+          "n": 1000,
+          "min": 300,
+          "p50": 495,
+          "p95": 3135,
+          "p99": 5178,
+          "max": 6075,
+          "mean": 1139
+        },
+        {
+          "n": 1000,
+          "min": 306,
+          "p50": 514,
+          "p95": 3211,
+          "p99": 5405,
+          "max": 6445,
+          "mean": 1161
+        }
+      ],
+      "median": {
+        "p50": 511,
+        "p95": 3135,
+        "p99": 5203,
+        "max": 6159,
+        "mean": 1139,
+        "n": 1000
+      },
+      "spread_bp": {
+        "p50": 371,
+        "p95": 778,
+        "p99": 436,
+        "max": 600
+      },
+      "extra": {
+        "allowed": 100,
+        "window_events": 70000
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|sqlite_memory|19",
+      "scenario": "otlp_inproc_1span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 137,
+          "p50": 149,
+          "p95": 175,
+          "p99": 256,
+          "max": 450,
+          "mean": 155
+        },
+        {
+          "n": 600,
+          "min": 136,
+          "p50": 150,
+          "p95": 174,
+          "p99": 264,
+          "max": 452,
+          "mean": 154
+        },
+        {
+          "n": 600,
+          "min": 137,
+          "p50": 150,
+          "p95": 177,
+          "p99": 353,
+          "max": 476,
+          "mean": 155
+        }
+      ],
+      "median": {
+        "p50": 150,
+        "p95": 175,
+        "p99": 264,
+        "max": 452,
+        "mean": 155,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 66,
+        "p95": 171,
+        "p99": 3674,
+        "max": 575
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|sqlite_memory|19",
+      "scenario": "otlp_inproc_20span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2403,
+          "p50": 2448,
+          "p95": 2532,
+          "p99": 2770,
+          "max": 3007,
+          "mean": 2461
+        },
+        {
+          "n": 200,
+          "min": 2399,
+          "p50": 2452,
+          "p95": 2504,
+          "p99": 2695,
+          "max": 2993,
+          "mean": 2460
+        },
+        {
+          "n": 200,
+          "min": 2411,
+          "p50": 2454,
+          "p95": 2506,
+          "p99": 2776,
+          "max": 2986,
+          "mean": 2465
+        }
+      ],
+      "median": {
+        "p50": 2452,
+        "p95": 2506,
+        "p99": 2770,
+        "max": 2993,
+        "mean": 2461,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 24,
+        "p95": 111,
+        "p99": 292,
+        "max": 70
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|sqlite_memory|19",
+      "scenario": "asgi_passthrough",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 626,
+          "p50": 1780,
+          "p95": 2677,
+          "p99": 2837,
+          "max": 3949,
+          "mean": 1757
+        },
+        {
+          "n": 600,
+          "min": 661,
+          "p50": 1809,
+          "p95": 2763,
+          "p99": 3353,
+          "max": 4750,
+          "mean": 1819
+        },
+        {
+          "n": 600,
+          "min": 683,
+          "p50": 1801,
+          "p95": 2726,
+          "p99": 3019,
+          "max": 3297,
+          "mean": 1821
+        }
+      ],
+      "median": {
+        "p50": 1801,
+        "p95": 2726,
+        "p99": 3019,
+        "max": 3949,
+        "mean": 1819,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 161,
+        "p95": 315,
+        "p99": 1709,
+        "max": 3679
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1158,
+          "p99": 2087
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_gate|sqlite_memory|19",
+      "scenario": "asgi_gate",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1205,
+          "p50": 2485,
+          "p95": 3805,
+          "p99": 4309,
+          "max": 4881,
+          "mean": 2607
+        },
+        {
+          "n": 600,
+          "min": 1359,
+          "p50": 2487,
+          "p95": 3897,
+          "p99": 4417,
+          "max": 6244,
+          "mean": 2628
+        },
+        {
+          "n": 600,
+          "min": 1229,
+          "p50": 2373,
+          "p95": 3830,
+          "p99": 4466,
+          "max": 5366,
+          "mean": 2555
+        }
+      ],
+      "median": {
+        "p50": 2485,
+        "p95": 3830,
+        "p99": 4417,
+        "max": 5366,
+        "mean": 2607,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 458,
+        "p95": 240,
+        "p99": 355,
+        "max": 2540
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 747,
+          "p99": 2080
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_1span|sqlite_memory|19",
+      "scenario": "otlp_asgi_1span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1191,
+          "p50": 2286,
+          "p95": 3553,
+          "p99": 3983,
+          "max": 4579,
+          "mean": 2418
+        },
+        {
+          "n": 600,
+          "min": 1185,
+          "p50": 2286,
+          "p95": 3646,
+          "p99": 3998,
+          "max": 4812,
+          "mean": 2468
+        },
+        {
+          "n": 600,
+          "min": 1228,
+          "p50": 2259,
+          "p95": 3643,
+          "p99": 3988,
+          "max": 4683,
+          "mean": 2432
+        }
+      ],
+      "median": {
+        "p50": 2286,
+        "p95": 3643,
+        "p99": 3988,
+        "max": 4683,
+        "mean": 2432,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 118,
+        "p95": 255,
+        "p99": 37,
+        "max": 497
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 882,
+          "p99": 2098
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|sqlite_memory|19",
+      "scenario": "otlp_asgi_20span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 3697,
+          "p50": 4985,
+          "p95": 6744,
+          "p99": 7555,
+          "max": 7802,
+          "mean": 5124
+        },
+        {
+          "n": 200,
+          "min": 3666,
+          "p50": 4507,
+          "p95": 5686,
+          "p99": 6119,
+          "max": 6214,
+          "mean": 4576
+        },
+        {
+          "n": 200,
+          "min": 3559,
+          "p50": 4957,
+          "p95": 6160,
+          "p99": 7388,
+          "max": 7577,
+          "mean": 4952
+        }
+      ],
+      "median": {
+        "p50": 4957,
+        "p95": 6160,
+        "p99": 7388,
+        "max": 7577,
+        "mean": 4952,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 964,
+        "p95": 1717,
+        "p99": 1943,
+        "max": 2095
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 631,
+          "p99": 1437
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 3
+    },
+    {
+      "id": "uvicorn_passthrough|sqlite_memory|19",
+      "scenario": "uvicorn_passthrough",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1295,
+          "p50": 2458,
+          "p95": 3696,
+          "p99": 4358,
+          "max": 4974,
+          "mean": 2547
+        },
+        {
+          "n": 600,
+          "min": 1329,
+          "p50": 2280,
+          "p95": 3626,
+          "p99": 4197,
+          "max": 5499,
+          "mean": 2496
+        },
+        {
+          "n": 600,
+          "min": 1299,
+          "p50": 2410,
+          "p95": 3622,
+          "p99": 3995,
+          "max": 4736,
+          "mean": 2531
+        }
+      ],
+      "median": {
+        "p50": 2410,
+        "p95": 3626,
+        "p99": 4197,
+        "max": 4974,
+        "mean": 2531,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 738,
+        "p95": 204,
+        "p99": 864,
+        "max": 1533
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 603,
+          "p99": 2059
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|sqlite_memory|19",
+      "scenario": "uvicorn_gate",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2135,
+          "p50": 3095,
+          "p95": 4133,
+          "p99": 4878,
+          "max": 5700,
+          "mean": 3155
+        },
+        {
+          "n": 600,
+          "min": 1826,
+          "p50": 3084,
+          "p95": 4117,
+          "p99": 5039,
+          "max": 6093,
+          "mean": 3127
+        },
+        {
+          "n": 600,
+          "min": 1957,
+          "p50": 3079,
+          "p95": 4178,
+          "p99": 5143,
+          "max": 7591,
+          "mean": 3138
+        }
+      ],
+      "median": {
+        "p50": 3084,
+        "p95": 4133,
+        "p99": 5039,
+        "max": 6093,
+        "mean": 3138,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 51,
+        "p95": 147,
+        "p99": 525,
+        "max": 3103
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 567,
+          "p99": 1107
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|sqlite_memory|19",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1943,
+          "p50": 2786,
+          "p95": 3676,
+          "p99": 4492,
+          "max": 5075,
+          "mean": 2814
+        },
+        {
+          "n": 600,
+          "min": 1959,
+          "p50": 2854,
+          "p95": 3819,
+          "p99": 4269,
+          "max": 5316,
+          "mean": 2885
+        },
+        {
+          "n": 600,
+          "min": 2031,
+          "p50": 2863,
+          "p95": 3956,
+          "p99": 4513,
+          "max": 5079,
+          "mean": 2933
+        }
+      ],
+      "median": {
+        "p50": 2854,
+        "p95": 3819,
+        "p99": 4492,
+        "max": 5079,
+        "mean": 2885,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 269,
+        "p95": 733,
+        "p99": 543,
+        "max": 474
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 629,
+          "p99": 1069
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|sqlite_memory|19",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4976,
+          "p50": 6059,
+          "p95": 7034,
+          "p99": 7632,
+          "max": 7992,
+          "mean": 6074
+        },
+        {
+          "n": 200,
+          "min": 4899,
+          "p50": 6090,
+          "p95": 8129,
+          "p99": 8989,
+          "max": 9389,
+          "mean": 6309
+        },
+        {
+          "n": 200,
+          "min": 4626,
+          "p50": 5743,
+          "p95": 7245,
+          "p99": 7662,
+          "max": 7802,
+          "mean": 5810
+        }
+      ],
+      "median": {
+        "p50": 6059,
+        "p95": 7245,
+        "p99": 7662,
+        "max": 7992,
+        "mean": 6074,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 572,
+        "p95": 1511,
+        "p99": 1771,
+        "max": 1985
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 776,
+          "p99": 1825
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "mcp_direct|sqlite_memory|19",
+      "scenario": "mcp_direct",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 38,
+          "p50": 59,
+          "p95": 82,
+          "p99": 173,
+          "max": 200,
+          "mean": 60
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 56,
+          "p95": 84,
+          "p99": 187,
+          "max": 199,
+          "mean": 57
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 47,
+          "p95": 72,
+          "p99": 167,
+          "max": 201,
+          "mean": 52
+        }
+      ],
+      "median": {
+        "p50": 56,
+        "p95": 82,
+        "p99": 173,
+        "max": 200,
+        "mean": 57,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 2142,
+        "p95": 1463,
+        "p99": 1156,
+        "max": 100
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|sqlite_memory|19",
+      "scenario": "mcp_proxy",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5404,
+          "p50": 6362,
+          "p95": 14801,
+          "p99": 23410,
+          "max": 24595,
+          "mean": 7280
+        },
+        {
+          "n": 200,
+          "min": 5450,
+          "p50": 6535,
+          "p95": 15192,
+          "p99": 23419,
+          "max": 38695,
+          "mean": 7494
+        },
+        {
+          "n": 200,
+          "min": 5521,
+          "p50": 6363,
+          "p95": 15977,
+          "p99": 23303,
+          "max": 24619,
+          "mean": 7324
+        }
+      ],
+      "median": {
+        "p50": 6363,
+        "p95": 15192,
+        "p99": 23410,
+        "max": 24619,
+        "mean": 7324,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 271,
+        "p95": 774,
+        "p99": 49,
+        "max": 5727
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|sqlite_memory|200",
+      "scenario": "gate_inproc",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 526,
+          "p50": 970,
+          "p95": 1866,
+          "p99": 2505,
+          "max": 15134,
+          "mean": 1156
+        },
+        {
+          "n": 2000,
+          "min": 533,
+          "p50": 998,
+          "p95": 1888,
+          "p99": 2482,
+          "max": 16821,
+          "mean": 1180
+        },
+        {
+          "n": 2000,
+          "min": 540,
+          "p50": 991,
+          "p95": 1861,
+          "p99": 2498,
+          "max": 3467,
+          "mean": 1160
+        }
+      ],
+      "median": {
+        "p50": 991,
+        "p95": 1866,
+        "p99": 2498,
+        "max": 15134,
+        "mean": 1160,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 282,
+        "p95": 144,
+        "p99": 92,
+        "max": 8823
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|sqlite_memory|200",
+      "scenario": "chain_append",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 59,
+          "p50": 66,
+          "p95": 89,
+          "p99": 285,
+          "max": 733,
+          "mean": 72
+        },
+        {
+          "n": 2000,
+          "min": 59,
+          "p50": 66,
+          "p95": 91,
+          "p99": 278,
+          "max": 399,
+          "mean": 72
+        },
+        {
+          "n": 2000,
+          "min": 59,
+          "p50": 66,
+          "p95": 90,
+          "p99": 285,
+          "max": 760,
+          "mean": 73
+        }
+      ],
+      "median": {
+        "p50": 66,
+        "p95": 90,
+        "p99": 285,
+        "max": 733,
+        "mean": 72,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 0,
+        "p95": 222,
+        "p99": 245,
+        "max": 4924
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "window_depth_1000|sqlite_memory|200",
+      "scenario": "window_depth_1000",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 1000,
+          "min": 538,
+          "p50": 1421,
+          "p95": 8803,
+          "p99": 9234,
+          "max": 14055,
+          "mean": 3205
+        },
+        {
+          "n": 1000,
+          "min": 549,
+          "p50": 1434,
+          "p95": 8974,
+          "p99": 9632,
+          "max": 11615,
+          "mean": 3266
+        },
+        {
+          "n": 1000,
+          "min": 546,
+          "p50": 1446,
+          "p95": 8971,
+          "p99": 9501,
+          "max": 13302,
+          "mean": 3267
+        }
+      ],
+      "median": {
+        "p50": 1434,
+        "p95": 8971,
+        "p99": 9501,
+        "max": 13302,
+        "mean": 3266,
+        "n": 1000
+      },
+      "spread_bp": {
+        "p50": 174,
+        "p95": 190,
+        "p99": 418,
+        "max": 1834
+      },
+      "extra": {
+        "allowed": 100,
+        "window_events": 8000
+      },
+      "attempts": 1
+    },
+    {
+      "id": "window_depth_10000|sqlite_memory|200",
+      "scenario": "window_depth_10000",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 1000,
+          "min": 621,
+          "p50": 3490,
+          "p95": 55723,
+          "p99": 58797,
+          "max": 62045,
+          "mean": 17515
+        },
+        {
+          "n": 1000,
+          "min": 622,
+          "p50": 3417,
+          "p95": 54874,
+          "p99": 57642,
+          "max": 61443,
+          "mean": 17323
+        },
+        {
+          "n": 1000,
+          "min": 602,
+          "p50": 3388,
+          "p95": 54907,
+          "p99": 58282,
+          "max": 63926,
+          "mean": 17161
+        }
+      ],
+      "median": {
+        "p50": 3417,
+        "p95": 54907,
+        "p99": 58282,
+        "max": 62045,
+        "mean": 17323,
+        "n": 1000
+      },
+      "spread_bp": {
+        "p50": 298,
+        "p95": 154,
+        "p99": 198,
+        "max": 400
+      },
+      "extra": {
+        "allowed": 100,
+        "window_events": 80000
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|sqlite_memory|200",
+      "scenario": "otlp_inproc_1span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 135,
+          "p50": 149,
+          "p95": 175,
+          "p99": 239,
+          "max": 480,
+          "mean": 155
+        },
+        {
+          "n": 600,
+          "min": 136,
+          "p50": 149,
+          "p95": 173,
+          "p99": 235,
+          "max": 461,
+          "mean": 154
+        },
+        {
+          "n": 600,
+          "min": 135,
+          "p50": 148,
+          "p95": 173,
+          "p99": 246,
+          "max": 458,
+          "mean": 153
+        }
+      ],
+      "median": {
+        "p50": 149,
+        "p95": 173,
+        "p99": 239,
+        "max": 461,
+        "mean": 154,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 67,
+        "p95": 115,
+        "p99": 460,
+        "max": 477
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|sqlite_memory|200",
+      "scenario": "otlp_inproc_20span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2430,
+          "p50": 2477,
+          "p95": 2528,
+          "p99": 2931,
+          "max": 3009,
+          "mean": 2488
+        },
+        {
+          "n": 200,
+          "min": 2410,
+          "p50": 2472,
+          "p95": 2539,
+          "p99": 3004,
+          "max": 3550,
+          "mean": 2490
+        },
+        {
+          "n": 200,
+          "min": 2430,
+          "p50": 2480,
+          "p95": 2538,
+          "p99": 2980,
+          "max": 3102,
+          "mean": 2494
+        }
+      ],
+      "median": {
+        "p50": 2477,
+        "p95": 2538,
+        "p99": 2980,
+        "max": 3102,
+        "mean": 2490,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 32,
+        "p95": 43,
+        "p99": 244,
+        "max": 1744
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|sqlite_memory|200",
+      "scenario": "asgi_passthrough",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 606,
+          "p50": 1750,
+          "p95": 2702,
+          "p99": 2966,
+          "max": 5282,
+          "mean": 1769
+        },
+        {
+          "n": 600,
+          "min": 658,
+          "p50": 1823,
+          "p95": 2779,
+          "p99": 3225,
+          "max": 4573,
+          "mean": 1816
+        },
+        {
+          "n": 600,
+          "min": 674,
+          "p50": 1715,
+          "p95": 2645,
+          "p99": 2933,
+          "max": 3684,
+          "mean": 1734
+        }
+      ],
+      "median": {
+        "p50": 1750,
+        "p95": 2702,
+        "p99": 2966,
+        "max": 4573,
+        "mean": 1769,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 617,
+        "p95": 495,
+        "p99": 984,
+        "max": 3494
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1079,
+          "p99": 2090
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "asgi_gate|sqlite_memory|200",
+      "scenario": "asgi_gate",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1600,
+          "p50": 3029,
+          "p95": 4593,
+          "p99": 5471,
+          "max": 17866,
+          "mean": 3167
+        },
+        {
+          "n": 600,
+          "min": 1581,
+          "p50": 3160,
+          "p95": 4448,
+          "p99": 6922,
+          "max": 23033,
+          "mean": 3352
+        },
+        {
+          "n": 600,
+          "min": 1601,
+          "p50": 3127,
+          "p95": 4490,
+          "p99": 6490,
+          "max": 20696,
+          "mean": 3271
+        }
+      ],
+      "median": {
+        "p50": 3127,
+        "p95": 4490,
+        "p99": 6490,
+        "max": 20696,
+        "mean": 3271,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 418,
+        "p95": 322,
+        "p99": 2235,
+        "max": 2496
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 615,
+          "p99": 1066
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "otlp_asgi_1span|sqlite_memory|200",
+      "scenario": "otlp_asgi_1span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1189,
+          "p50": 2269,
+          "p95": 3558,
+          "p99": 3882,
+          "max": 4288,
+          "mean": 2426
+        },
+        {
+          "n": 600,
+          "min": 1132,
+          "p50": 2198,
+          "p95": 3536,
+          "p99": 3886,
+          "max": 4717,
+          "mean": 2362
+        },
+        {
+          "n": 600,
+          "min": 1196,
+          "p50": 2268,
+          "p95": 3405,
+          "p99": 3680,
+          "max": 4277,
+          "mean": 2352
+        }
+      ],
+      "median": {
+        "p50": 2268,
+        "p95": 3536,
+        "p99": 3882,
+        "max": 4288,
+        "mean": 2362,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 313,
+        "p95": 432,
+        "p99": 530,
+        "max": 1026
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 847,
+          "p99": 2087
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|sqlite_memory|200",
+      "scenario": "otlp_asgi_20span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 3705,
+          "p50": 4746,
+          "p95": 5925,
+          "p99": 6348,
+          "max": 6766,
+          "mean": 4829
+        },
+        {
+          "n": 200,
+          "min": 3699,
+          "p50": 4730,
+          "p95": 5911,
+          "p99": 6184,
+          "max": 6432,
+          "mean": 4834
+        },
+        {
+          "n": 200,
+          "min": 3710,
+          "p50": 4557,
+          "p95": 5556,
+          "p99": 6035,
+          "max": 6252,
+          "mean": 4651
+        }
+      ],
+      "median": {
+        "p50": 4730,
+        "p95": 5911,
+        "p99": 6184,
+        "max": 6432,
+        "mean": 4829,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 399,
+        "p95": 624,
+        "p99": 506,
+        "max": 799
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 600,
+          "p99": 1112
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "uvicorn_passthrough|sqlite_memory|200",
+      "scenario": "uvicorn_passthrough",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1362,
+          "p50": 2299,
+          "p95": 3631,
+          "p99": 4133,
+          "max": 5285,
+          "mean": 2471
+        },
+        {
+          "n": 600,
+          "min": 1326,
+          "p50": 2267,
+          "p95": 3601,
+          "p99": 3966,
+          "max": 5169,
+          "mean": 2444
+        },
+        {
+          "n": 600,
+          "min": 1299,
+          "p50": 2244,
+          "p95": 3530,
+          "p99": 3656,
+          "max": 4403,
+          "mean": 2402
+        }
+      ],
+      "median": {
+        "p50": 2267,
+        "p95": 3601,
+        "p99": 3966,
+        "max": 5169,
+        "mean": 2444,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 242,
+        "p95": 280,
+        "p99": 1202,
+        "max": 1706
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 765,
+          "p99": 2047
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|sqlite_memory|200",
+      "scenario": "uvicorn_gate",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2364,
+          "p50": 3733,
+          "p95": 5385,
+          "p99": 7277,
+          "max": 22175,
+          "mean": 3957
+        },
+        {
+          "n": 600,
+          "min": 2280,
+          "p50": 3696,
+          "p95": 5057,
+          "p99": 6183,
+          "max": 19256,
+          "mean": 3827
+        },
+        {
+          "n": 600,
+          "min": 2312,
+          "p50": 3762,
+          "p95": 5210,
+          "p99": 6583,
+          "max": 26189,
+          "mean": 3933
+        }
+      ],
+      "median": {
+        "p50": 3733,
+        "p95": 5210,
+        "p99": 6583,
+        "max": 22175,
+        "mean": 3933,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 176,
+        "p95": 629,
+        "p99": 1661,
+        "max": 3126
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 579,
+          "p99": 1073
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|sqlite_memory|200",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1888,
+          "p50": 2778,
+          "p95": 3877,
+          "p99": 4708,
+          "max": 5582,
+          "mean": 2858
+        },
+        {
+          "n": 600,
+          "min": 1811,
+          "p50": 2661,
+          "p95": 3764,
+          "p99": 4182,
+          "max": 5696,
+          "mean": 2701
+        },
+        {
+          "n": 600,
+          "min": 1750,
+          "p50": 2640,
+          "p95": 4006,
+          "p99": 4427,
+          "max": 5999,
+          "mean": 2801
+        }
+      ],
+      "median": {
+        "p50": 2661,
+        "p95": 3877,
+        "p99": 4427,
+        "max": 5696,
+        "mean": 2801,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 518,
+        "p95": 624,
+        "p99": 1188,
+        "max": 732
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 604,
+          "p99": 2069
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|sqlite_memory|200",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4694,
+          "p50": 6074,
+          "p95": 7938,
+          "p99": 9249,
+          "max": 9295,
+          "mean": 6252
+        },
+        {
+          "n": 200,
+          "min": 4764,
+          "p50": 5837,
+          "p95": 7986,
+          "p99": 8553,
+          "max": 9356,
+          "mean": 6068
+        },
+        {
+          "n": 200,
+          "min": 4834,
+          "p50": 5783,
+          "p95": 7026,
+          "p99": 7360,
+          "max": 7454,
+          "mean": 5849
+        }
+      ],
+      "median": {
+        "p50": 5837,
+        "p95": 7938,
+        "p99": 8553,
+        "max": 9295,
+        "mean": 6068,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 498,
+        "p95": 1209,
+        "p99": 2208,
+        "max": 2046
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 602,
+          "p99": 1280
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "mcp_direct|sqlite_memory|200",
+      "scenario": "mcp_direct",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 30,
+          "p95": 67,
+          "p99": 172,
+          "max": 199,
+          "mean": 40
+        },
+        {
+          "n": 200,
+          "min": 19,
+          "p50": 31,
+          "p95": 67,
+          "p99": 178,
+          "max": 192,
+          "mean": 38
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 30,
+          "p95": 65,
+          "p99": 172,
+          "max": 180,
+          "mean": 38
+        }
+      ],
+      "median": {
+        "p50": 30,
+        "p95": 67,
+        "p99": 172,
+        "max": 192,
+        "mean": 38,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 333,
+        "p95": 298,
+        "p99": 348,
+        "max": 989
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|sqlite_memory|200",
+      "scenario": "mcp_proxy",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 6906,
+          "p50": 8237,
+          "p95": 16597,
+          "p99": 21997,
+          "max": 23180,
+          "mean": 9110
+        },
+        {
+          "n": 200,
+          "min": 6797,
+          "p50": 8002,
+          "p95": 16439,
+          "p99": 21756,
+          "max": 33500,
+          "mean": 8898
+        },
+        {
+          "n": 200,
+          "min": 6793,
+          "p50": 8071,
+          "p95": 17803,
+          "p99": 21619,
+          "max": 46724,
+          "mean": 9110
+        }
+      ],
+      "median": {
+        "p50": 8071,
+        "p95": 16597,
+        "p99": 21756,
+        "max": 33500,
+        "mean": 9110,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 291,
+        "p95": 821,
+        "p99": 173,
+        "max": 7028
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|databricks_fake|19",
+      "scenario": "gate_inproc",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 498,
+          "p50": 677,
+          "p95": 938,
+          "p99": 1372,
+          "max": 3497,
+          "mean": 705
+        },
+        {
+          "n": 2000,
+          "min": 499,
+          "p50": 682,
+          "p95": 1005,
+          "p99": 1336,
+          "max": 2086,
+          "mean": 711
+        },
+        {
+          "n": 2000,
+          "min": 499,
+          "p50": 698,
+          "p95": 1037,
+          "p99": 1464,
+          "max": 3610,
+          "mean": 731
+        }
+      ],
+      "median": {
+        "p50": 682,
+        "p95": 1005,
+        "p99": 1372,
+        "max": 3497,
+        "mean": 711,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 307,
+        "p95": 985,
+        "p99": 932,
+        "max": 4358
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|databricks_fake|19",
+      "scenario": "chain_append",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 136,
+          "p50": 150,
+          "p95": 194,
+          "p99": 624,
+          "max": 755,
+          "mean": 165
+        },
+        {
+          "n": 2000,
+          "min": 136,
+          "p50": 151,
+          "p95": 195,
+          "p99": 612,
+          "max": 774,
+          "mean": 165
+        },
+        {
+          "n": 2000,
+          "min": 136,
+          "p50": 151,
+          "p95": 196,
+          "p99": 619,
+          "max": 784,
+          "mean": 165
+        }
+      ],
+      "median": {
+        "p50": 151,
+        "p95": 195,
+        "p99": 619,
+        "max": 774,
+        "mean": 165,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 66,
+        "p95": 102,
+        "p99": 193,
+        "max": 374
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|databricks_fake|19",
+      "scenario": "otlp_inproc_1span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 202,
+          "p50": 221,
+          "p95": 271,
+          "p99": 433,
+          "max": 805,
+          "mean": 232
+        },
+        {
+          "n": 600,
+          "min": 203,
+          "p50": 219,
+          "p95": 258,
+          "p99": 365,
+          "max": 847,
+          "mean": 230
+        },
+        {
+          "n": 600,
+          "min": 202,
+          "p50": 218,
+          "p95": 255,
+          "p99": 418,
+          "max": 867,
+          "mean": 228
+        }
+      ],
+      "median": {
+        "p50": 219,
+        "p95": 258,
+        "p99": 418,
+        "max": 847,
+        "mean": 230,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 136,
+        "p95": 620,
+        "p99": 1626,
+        "max": 731
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|databricks_fake|19",
+      "scenario": "otlp_inproc_20span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2995,
+          "p50": 3048,
+          "p95": 3114,
+          "p99": 3265,
+          "max": 3624,
+          "mean": 3056
+        },
+        {
+          "n": 200,
+          "min": 2983,
+          "p50": 3043,
+          "p95": 3135,
+          "p99": 3482,
+          "max": 4366,
+          "mean": 3064
+        },
+        {
+          "n": 200,
+          "min": 2997,
+          "p50": 3042,
+          "p95": 3087,
+          "p99": 3148,
+          "max": 3412,
+          "mean": 3047
+        }
+      ],
+      "median": {
+        "p50": 3043,
+        "p95": 3114,
+        "p99": 3265,
+        "max": 3624,
+        "mean": 3056,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 19,
+        "p95": 154,
+        "p99": 1022,
+        "max": 2632
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|databricks_fake|19",
+      "scenario": "asgi_passthrough",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 660,
+          "p50": 1719,
+          "p95": 2649,
+          "p99": 2795,
+          "max": 3074,
+          "mean": 1732
+        },
+        {
+          "n": 600,
+          "min": 602,
+          "p50": 1743,
+          "p95": 2712,
+          "p99": 2890,
+          "max": 3253,
+          "mean": 1759
+        },
+        {
+          "n": 600,
+          "min": 626,
+          "p50": 1717,
+          "p95": 2634,
+          "p99": 2838,
+          "max": 3076,
+          "mean": 1733
+        }
+      ],
+      "median": {
+        "p50": 1719,
+        "p95": 2649,
+        "p99": 2838,
+        "max": 3076,
+        "mean": 1733,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 151,
+        "p95": 294,
+        "p99": 334,
+        "max": 581
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1096,
+          "p99": 2046
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_gate|databricks_fake|19",
+      "scenario": "asgi_gate",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1516,
+          "p50": 2308,
+          "p95": 3744,
+          "p99": 3928,
+          "max": 5201,
+          "mean": 2540
+        },
+        {
+          "n": 600,
+          "min": 1538,
+          "p50": 2460,
+          "p95": 3861,
+          "p99": 4151,
+          "max": 4713,
+          "mean": 2626
+        },
+        {
+          "n": 600,
+          "min": 1477,
+          "p50": 2380,
+          "p95": 3807,
+          "p99": 4128,
+          "max": 5340,
+          "mean": 2581
+        }
+      ],
+      "median": {
+        "p50": 2380,
+        "p95": 3807,
+        "p99": 4128,
+        "max": 5201,
+        "mean": 2581,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 638,
+        "p95": 307,
+        "p99": 540,
+        "max": 1205
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 643,
+          "p99": 2033
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_1span|databricks_fake|19",
+      "scenario": "otlp_asgi_1span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1377,
+          "p50": 2505,
+          "p95": 3627,
+          "p99": 4004,
+          "max": 5177,
+          "mean": 2578
+        },
+        {
+          "n": 600,
+          "min": 1372,
+          "p50": 2438,
+          "p95": 3660,
+          "p99": 4137,
+          "max": 4647,
+          "mean": 2567
+        },
+        {
+          "n": 600,
+          "min": 1306,
+          "p50": 2345,
+          "p95": 3631,
+          "p99": 4098,
+          "max": 5321,
+          "mean": 2506
+        }
+      ],
+      "median": {
+        "p50": 2438,
+        "p95": 3631,
+        "p99": 4098,
+        "max": 5177,
+        "mean": 2567,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 656,
+        "p95": 90,
+        "p99": 324,
+        "max": 1301
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 688,
+          "p99": 2104
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|databricks_fake|19",
+      "scenario": "otlp_asgi_20span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4828,
+          "p50": 6363,
+          "p95": 8085,
+          "p99": 9331,
+          "max": 10857,
+          "mean": 6462
+        },
+        {
+          "n": 200,
+          "min": 4509,
+          "p50": 6055,
+          "p95": 7728,
+          "p99": 8478,
+          "max": 8564,
+          "mean": 6175
+        },
+        {
+          "n": 200,
+          "min": 4961,
+          "p50": 6065,
+          "p95": 6912,
+          "p99": 7608,
+          "max": 7933,
+          "mean": 6105
+        }
+      ],
+      "median": {
+        "p50": 6065,
+        "p95": 7728,
+        "p99": 8478,
+        "max": 8564,
+        "mean": 6175,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 507,
+        "p95": 1517,
+        "p99": 2032,
+        "max": 3414
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 704,
+          "p99": 1822
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "uvicorn_passthrough|databricks_fake|19",
+      "scenario": "uvicorn_passthrough",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1334,
+          "p50": 2335,
+          "p95": 3739,
+          "p99": 4101,
+          "max": 4549,
+          "mean": 2521
+        },
+        {
+          "n": 600,
+          "min": 1283,
+          "p50": 2336,
+          "p95": 3648,
+          "p99": 4483,
+          "max": 5366,
+          "mean": 2503
+        },
+        {
+          "n": 600,
+          "min": 1356,
+          "p50": 2368,
+          "p95": 3807,
+          "p99": 4310,
+          "max": 4675,
+          "mean": 2556
+        }
+      ],
+      "median": {
+        "p50": 2336,
+        "p95": 3739,
+        "p99": 4310,
+        "max": 4675,
+        "mean": 2521,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 141,
+        "p95": 425,
+        "p99": 886,
+        "max": 1747
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 527,
+          "p99": 2063
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|databricks_fake|19",
+      "scenario": "uvicorn_gate",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2274,
+          "p50": 3407,
+          "p95": 4911,
+          "p99": 6097,
+          "max": 8263,
+          "mean": 3543
+        },
+        {
+          "n": 600,
+          "min": 2107,
+          "p50": 3434,
+          "p95": 4812,
+          "p99": 5430,
+          "max": 6766,
+          "mean": 3510
+        },
+        {
+          "n": 600,
+          "min": 2204,
+          "p50": 3283,
+          "p95": 4654,
+          "p99": 5584,
+          "max": 6444,
+          "mean": 3402
+        }
+      ],
+      "median": {
+        "p50": 3407,
+        "p95": 4812,
+        "p99": 5584,
+        "max": 6766,
+        "mean": 3510,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 443,
+        "p95": 534,
+        "p99": 1194,
+        "max": 2688
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 670,
+          "p99": 1124
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|databricks_fake|19",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1918,
+          "p50": 3009,
+          "p95": 4538,
+          "p99": 5070,
+          "max": 6140,
+          "mean": 3124
+        },
+        {
+          "n": 600,
+          "min": 2080,
+          "p50": 2993,
+          "p95": 3989,
+          "p99": 4591,
+          "max": 5787,
+          "mean": 3033
+        },
+        {
+          "n": 600,
+          "min": 1969,
+          "p50": 3085,
+          "p95": 4635,
+          "p99": 5491,
+          "max": 7289,
+          "mean": 3202
+        }
+      ],
+      "median": {
+        "p50": 3009,
+        "p95": 4538,
+        "p99": 5070,
+        "max": 6140,
+        "mean": 3124,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 305,
+        "p95": 1423,
+        "p99": 1775,
+        "max": 2446
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 612,
+          "p99": 1105
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 2
+    },
+    {
+      "id": "otlp_uvicorn_20span|databricks_fake|19",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5637,
+          "p50": 7350,
+          "p95": 8839,
+          "p99": 9311,
+          "max": 9587,
+          "mean": 7397
+        },
+        {
+          "n": 200,
+          "min": 5978,
+          "p50": 7778,
+          "p95": 9882,
+          "p99": 90325,
+          "max": 121808,
+          "mean": 9918
+        },
+        {
+          "n": 200,
+          "min": 5886,
+          "p50": 7502,
+          "p95": 8856,
+          "p99": 9750,
+          "max": 10394,
+          "mean": 7540
+        }
+      ],
+      "median": {
+        "p50": 7502,
+        "p95": 8856,
+        "p99": 9750,
+        "max": 10394,
+        "mean": 7540,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 570,
+        "p95": 1177,
+        "p99": 83091,
+        "max": 107967
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 1388,
+          "p99": 2049
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "mcp_direct|databricks_fake|19",
+      "scenario": "mcp_direct",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 32,
+          "p95": 68,
+          "p99": 200,
+          "max": 215,
+          "mean": 42
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 34,
+          "p95": 66,
+          "p99": 181,
+          "max": 266,
+          "mean": 45
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 33,
+          "p95": 72,
+          "p99": 184,
+          "max": 276,
+          "mean": 46
+        }
+      ],
+      "median": {
+        "p50": 33,
+        "p95": 68,
+        "p99": 184,
+        "max": 266,
+        "mean": 45,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 606,
+        "p95": 882,
+        "p99": 1032,
+        "max": 2293
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|databricks_fake|19",
+      "scenario": "mcp_proxy",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5922,
+          "p50": 6935,
+          "p95": 17794,
+          "p99": 22129,
+          "max": 23493,
+          "mean": 7856
+        },
+        {
+          "n": 200,
+          "min": 5972,
+          "p50": 6943,
+          "p95": 17406,
+          "p99": 23755,
+          "max": 34975,
+          "mean": 8032
+        },
+        {
+          "n": 200,
+          "min": 6029,
+          "p50": 7077,
+          "p95": 19749,
+          "p99": 23411,
+          "max": 23776,
+          "mean": 8123
+        }
+      ],
+      "median": {
+        "p50": 6943,
+        "p95": 17794,
+        "p99": 23411,
+        "max": 23776,
+        "mean": 8032,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 204,
+        "p95": 1316,
+        "p99": 694,
+        "max": 4829
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|databricks_fake|200",
+      "scenario": "gate_inproc",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 783,
+          "p50": 1220,
+          "p95": 2137,
+          "p99": 2903,
+          "max": 15584,
+          "mean": 1416
+        },
+        {
+          "n": 2000,
+          "min": 774,
+          "p50": 1231,
+          "p95": 2148,
+          "p99": 3162,
+          "max": 15505,
+          "mean": 1429
+        },
+        {
+          "n": 2000,
+          "min": 763,
+          "p50": 1215,
+          "p95": 2134,
+          "p99": 3095,
+          "max": 17440,
+          "mean": 1426
+        }
+      ],
+      "median": {
+        "p50": 1220,
+        "p95": 2137,
+        "p99": 3095,
+        "max": 15584,
+        "mean": 1426,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 131,
+        "p95": 65,
+        "p99": 836,
+        "max": 1241
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|databricks_fake|200",
+      "scenario": "chain_append",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 134,
+          "p50": 150,
+          "p95": 184,
+          "p99": 529,
+          "max": 885,
+          "mean": 161
+        },
+        {
+          "n": 2000,
+          "min": 133,
+          "p50": 149,
+          "p95": 186,
+          "p99": 524,
+          "max": 902,
+          "mean": 160
+        },
+        {
+          "n": 2000,
+          "min": 132,
+          "p50": 150,
+          "p95": 186,
+          "p99": 526,
+          "max": 829,
+          "mean": 160
+        }
+      ],
+      "median": {
+        "p50": 150,
+        "p95": 186,
+        "p99": 526,
+        "max": 885,
+        "mean": 160,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 66,
+        "p95": 107,
+        "p99": 95,
+        "max": 824
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|databricks_fake|200",
+      "scenario": "otlp_inproc_1span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 205,
+          "p50": 223,
+          "p95": 252,
+          "p99": 322,
+          "max": 513,
+          "mean": 228
+        },
+        {
+          "n": 600,
+          "min": 204,
+          "p50": 223,
+          "p95": 252,
+          "p99": 317,
+          "max": 508,
+          "mean": 227
+        },
+        {
+          "n": 600,
+          "min": 202,
+          "p50": 223,
+          "p95": 250,
+          "p99": 485,
+          "max": 894,
+          "mean": 229
+        }
+      ],
+      "median": {
+        "p50": 223,
+        "p95": 252,
+        "p99": 322,
+        "max": 513,
+        "mean": 228,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 0,
+        "p95": 79,
+        "p99": 5217,
+        "max": 7524
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|databricks_fake|200",
+      "scenario": "otlp_inproc_20span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 3005,
+          "p50": 3055,
+          "p95": 3181,
+          "p99": 3673,
+          "max": 3689,
+          "mean": 3083
+        },
+        {
+          "n": 200,
+          "min": 3002,
+          "p50": 3053,
+          "p95": 3171,
+          "p99": 3665,
+          "max": 3697,
+          "mean": 3081
+        },
+        {
+          "n": 200,
+          "min": 3015,
+          "p50": 3070,
+          "p95": 3244,
+          "p99": 3682,
+          "max": 3741,
+          "mean": 3106
+        }
+      ],
+      "median": {
+        "p50": 3055,
+        "p95": 3181,
+        "p99": 3673,
+        "max": 3697,
+        "mean": 3083,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 55,
+        "p95": 229,
+        "p99": 46,
+        "max": 140
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|databricks_fake|200",
+      "scenario": "asgi_passthrough",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 714,
+          "p50": 1871,
+          "p95": 2946,
+          "p99": 3360,
+          "max": 4272,
+          "mean": 1896
+        },
+        {
+          "n": 600,
+          "min": 668,
+          "p50": 1809,
+          "p95": 2726,
+          "p99": 2954,
+          "max": 3351,
+          "mean": 1827
+        },
+        {
+          "n": 600,
+          "min": 656,
+          "p50": 1817,
+          "p95": 2766,
+          "p99": 3103,
+          "max": 3434,
+          "mean": 1819
+        }
+      ],
+      "median": {
+        "p50": 1817,
+        "p95": 2766,
+        "p99": 3103,
+        "max": 3434,
+        "mean": 1827,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 341,
+        "p95": 795,
+        "p99": 1308,
+        "max": 2682
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1059,
+          "p99": 2068
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_gate|databricks_fake|200",
+      "scenario": "asgi_gate",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1927,
+          "p50": 3497,
+          "p95": 4848,
+          "p99": 5692,
+          "max": 25276,
+          "mean": 3690
+        },
+        {
+          "n": 600,
+          "min": 1702,
+          "p50": 3643,
+          "p95": 5233,
+          "p99": 6150,
+          "max": 23162,
+          "mean": 3820
+        },
+        {
+          "n": 600,
+          "min": 2212,
+          "p50": 3656,
+          "p95": 5009,
+          "p99": 6201,
+          "max": 26534,
+          "mean": 3799
+        }
+      ],
+      "median": {
+        "p50": 3643,
+        "p95": 5009,
+        "p99": 6150,
+        "max": 25276,
+        "mean": 3799,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 436,
+        "p95": 768,
+        "p99": 827,
+        "max": 1334
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 531,
+          "p99": 1071
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_1span|databricks_fake|200",
+      "scenario": "otlp_asgi_1span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1460,
+          "p50": 2382,
+          "p95": 3686,
+          "p99": 4197,
+          "max": 4543,
+          "mean": 2556
+        },
+        {
+          "n": 600,
+          "min": 1410,
+          "p50": 2522,
+          "p95": 3794,
+          "p99": 4455,
+          "max": 5919,
+          "mean": 2635
+        },
+        {
+          "n": 600,
+          "min": 1365,
+          "p50": 2518,
+          "p95": 3801,
+          "p99": 4437,
+          "max": 4996,
+          "mean": 2601
+        }
+      ],
+      "median": {
+        "p50": 2518,
+        "p95": 3794,
+        "p99": 4437,
+        "max": 4996,
+        "mean": 2601,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 555,
+        "p95": 303,
+        "p99": 581,
+        "max": 2754
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 824,
+          "p99": 2048
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|databricks_fake|200",
+      "scenario": "otlp_asgi_20span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4475,
+          "p50": 6271,
+          "p95": 7865,
+          "p99": 8758,
+          "max": 8846,
+          "mean": 6335
+        },
+        {
+          "n": 200,
+          "min": 4463,
+          "p50": 5592,
+          "p95": 7837,
+          "p99": 8500,
+          "max": 9374,
+          "mean": 5901
+        },
+        {
+          "n": 200,
+          "min": 4862,
+          "p50": 6664,
+          "p95": 8366,
+          "p99": 9143,
+          "max": 10028,
+          "mean": 6873
+        }
+      ],
+      "median": {
+        "p50": 6271,
+        "p95": 7865,
+        "p99": 8758,
+        "max": 9374,
+        "mean": 6335,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 1709,
+        "p95": 672,
+        "p99": 734,
+        "max": 1260
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 897,
+          "p99": 2119
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 4
+    },
+    {
+      "id": "uvicorn_passthrough|databricks_fake|200",
+      "scenario": "uvicorn_passthrough",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1330,
+          "p50": 2266,
+          "p95": 3585,
+          "p99": 3999,
+          "max": 4325,
+          "mean": 2485
+        },
+        {
+          "n": 600,
+          "min": 1297,
+          "p50": 2287,
+          "p95": 3625,
+          "p99": 4137,
+          "max": 4933,
+          "mean": 2451
+        },
+        {
+          "n": 600,
+          "min": 1285,
+          "p50": 2245,
+          "p95": 3538,
+          "p99": 3779,
+          "max": 4454,
+          "mean": 2408
+        }
+      ],
+      "median": {
+        "p50": 2266,
+        "p95": 3585,
+        "p99": 3999,
+        "max": 4454,
+        "mean": 2451,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 185,
+        "p95": 242,
+        "p99": 895,
+        "max": 1365
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 937,
+          "p99": 2093
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|databricks_fake|200",
+      "scenario": "uvicorn_gate",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2471,
+          "p50": 4022,
+          "p95": 5665,
+          "p99": 24961,
+          "max": 85022,
+          "mean": 4898
+        },
+        {
+          "n": 600,
+          "min": 2599,
+          "p50": 4277,
+          "p95": 6068,
+          "p99": 7323,
+          "max": 22135,
+          "mean": 4501
+        },
+        {
+          "n": 600,
+          "min": 2634,
+          "p50": 4190,
+          "p95": 5665,
+          "p99": 7584,
+          "max": 25868,
+          "mean": 4391
+        }
+      ],
+      "median": {
+        "p50": 4190,
+        "p95": 5665,
+        "p99": 7584,
+        "max": 25868,
+        "mean": 4501,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 608,
+        "p95": 711,
+        "p99": 23256,
+        "max": 24310
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 569,
+          "p99": 1086
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|databricks_fake|200",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1992,
+          "p50": 2748,
+          "p95": 3910,
+          "p99": 4649,
+          "max": 6284,
+          "mean": 2844
+        },
+        {
+          "n": 600,
+          "min": 1964,
+          "p50": 2848,
+          "p95": 3759,
+          "p99": 4516,
+          "max": 5163,
+          "mean": 2892
+        },
+        {
+          "n": 600,
+          "min": 1942,
+          "p50": 2689,
+          "p95": 3591,
+          "p99": 4499,
+          "max": 5253,
+          "mean": 2759
+        }
+      ],
+      "median": {
+        "p50": 2748,
+        "p95": 3759,
+        "p99": 4516,
+        "max": 5253,
+        "mean": 2844,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 578,
+        "p95": 848,
+        "p99": 332,
+        "max": 2134
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 554,
+          "p99": 1056
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|databricks_fake|200",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5192,
+          "p50": 6178,
+          "p95": 8156,
+          "p99": 95403,
+          "max": 131897,
+          "mean": 8712
+        },
+        {
+          "n": 200,
+          "min": 5243,
+          "p50": 6149,
+          "p95": 9003,
+          "p99": 10094,
+          "max": 10247,
+          "mean": 6543
+        },
+        {
+          "n": 200,
+          "min": 5113,
+          "p50": 6171,
+          "p95": 8299,
+          "p99": 8693,
+          "max": 9284,
+          "mean": 6418
+        }
+      ],
+      "median": {
+        "p50": 6171,
+        "p95": 8299,
+        "p99": 10094,
+        "max": 10247,
+        "mean": 6543,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 46,
+        "p95": 1020,
+        "p99": 85902,
+        "max": 119657
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 617,
+          "p99": 1613
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "mcp_direct|databricks_fake|200",
+      "scenario": "mcp_direct",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 45,
+          "p95": 81,
+          "p99": 156,
+          "max": 293,
+          "mean": 51
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 43,
+          "p95": 72,
+          "p99": 146,
+          "max": 236,
+          "mean": 48
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 59,
+          "p95": 91,
+          "p99": 160,
+          "max": 209,
+          "mean": 59
+        }
+      ],
+      "median": {
+        "p50": 45,
+        "p95": 81,
+        "p99": 156,
+        "max": 236,
+        "mean": 51,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 3555,
+        "p95": 2345,
+        "p99": 897,
+        "max": 3559
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|databricks_fake|200",
+      "scenario": "mcp_proxy",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 7153,
+          "p50": 8308,
+          "p95": 16616,
+          "p99": 18359,
+          "max": 21319,
+          "mean": 9154
+        },
+        {
+          "n": 200,
+          "min": 7428,
+          "p50": 8519,
+          "p95": 16498,
+          "p99": 22926,
+          "max": 60176,
+          "mean": 9637
+        },
+        {
+          "n": 200,
+          "min": 7113,
+          "p50": 8482,
+          "p95": 17076,
+          "p99": 19042,
+          "max": 23544,
+          "mean": 9269
+        }
+      ],
+      "median": {
+        "p50": 8482,
+        "p95": 16616,
+        "p99": 19042,
+        "max": 23544,
+        "mean": 9269,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 248,
+        "p95": 347,
+        "p99": 2398,
+        "max": 16503
+      },
+      "extra": {},
+      "attempts": 1
+    }
+  ],
+  "deltas": [
+    {
+      "transport": "asgi",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "p95_with_gate_us": 7053,
+      "p95_without_gate_us": 2826,
+      "delta_p95_us": 4227,
+      "p50_delta_us": 2104,
+      "p99_delta_us": 7337
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "p95_with_gate_us": 6892,
+      "p95_without_gate_us": 3666,
+      "delta_p95_us": 3226,
+      "p50_delta_us": 2354,
+      "p99_delta_us": 4277
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "p95_with_gate_us": 19905,
+      "p95_without_gate_us": 66,
+      "delta_p95_us": 19839,
+      "p50_delta_us": 8685,
+      "p99_delta_us": 24513
+    },
+    {
+      "transport": "asgi",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "p95_with_gate_us": 8075,
+      "p95_without_gate_us": 2839,
+      "delta_p95_us": 5236,
+      "p50_delta_us": 2806,
+      "p99_delta_us": 25408
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "p95_with_gate_us": 7560,
+      "p95_without_gate_us": 3566,
+      "delta_p95_us": 3994,
+      "p50_delta_us": 3050,
+      "p99_delta_us": 7046
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "p95_with_gate_us": 21778,
+      "p95_without_gate_us": 79,
+      "delta_p95_us": 21699,
+      "p50_delta_us": 10477,
+      "p99_delta_us": 26690
+    },
+    {
+      "transport": "asgi",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "p95_with_gate_us": 3830,
+      "p95_without_gate_us": 2726,
+      "delta_p95_us": 1104,
+      "p50_delta_us": 684,
+      "p99_delta_us": 1398
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "p95_with_gate_us": 4133,
+      "p95_without_gate_us": 3626,
+      "delta_p95_us": 507,
+      "p50_delta_us": 674,
+      "p99_delta_us": 842
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "p95_with_gate_us": 15192,
+      "p95_without_gate_us": 82,
+      "delta_p95_us": 15110,
+      "p50_delta_us": 6307,
+      "p99_delta_us": 23237
+    },
+    {
+      "transport": "asgi",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "p95_with_gate_us": 4490,
+      "p95_without_gate_us": 2702,
+      "delta_p95_us": 1788,
+      "p50_delta_us": 1377,
+      "p99_delta_us": 3524
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "p95_with_gate_us": 5210,
+      "p95_without_gate_us": 3601,
+      "delta_p95_us": 1609,
+      "p50_delta_us": 1466,
+      "p99_delta_us": 2617
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "p95_with_gate_us": 16597,
+      "p95_without_gate_us": 67,
+      "delta_p95_us": 16530,
+      "p50_delta_us": 8041,
+      "p99_delta_us": 21584
+    },
+    {
+      "transport": "asgi",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "p95_with_gate_us": 3807,
+      "p95_without_gate_us": 2649,
+      "delta_p95_us": 1158,
+      "p50_delta_us": 661,
+      "p99_delta_us": 1290
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "p95_with_gate_us": 4812,
+      "p95_without_gate_us": 3739,
+      "delta_p95_us": 1073,
+      "p50_delta_us": 1071,
+      "p99_delta_us": 1274
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "p95_with_gate_us": 17794,
+      "p95_without_gate_us": 68,
+      "delta_p95_us": 17726,
+      "p50_delta_us": 6910,
+      "p99_delta_us": 23227
+    },
+    {
+      "transport": "asgi",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "p95_with_gate_us": 5009,
+      "p95_without_gate_us": 2766,
+      "delta_p95_us": 2243,
+      "p50_delta_us": 1826,
+      "p99_delta_us": 3047
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "p95_with_gate_us": 5665,
+      "p95_without_gate_us": 3585,
+      "delta_p95_us": 2080,
+      "p50_delta_us": 1924,
+      "p99_delta_us": 3585
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "p95_with_gate_us": 16616,
+      "p95_without_gate_us": 81,
+      "delta_p95_us": 16535,
+      "p50_delta_us": 8437,
+      "p99_delta_us": 18886
+    }
+  ],
+  "breakdown": [
+    {
+      "backend": "sqlite_file",
+      "rules": 19,
+      "components_us": {
+        "parse": {
+          "p50": 13,
+          "p95": 29
+        },
+        "policy_eval": {
+          "p50": 106,
+          "p95": 277
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 1
+        },
+        "store_write": {
+          "p50": 690,
+          "p95": 1166
+        },
+        "chain_append": {
+          "p50": 616,
+          "p95": 944
+        },
+        "record_other": {
+          "p50": 99,
+          "p95": 154
+        },
+        "handoff": {
+          "p50": 50,
+          "p95": 153
+        },
+        "total": {
+          "p50": 1581,
+          "p95": 2552
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "sqlite_file",
+      "rules": 200,
+      "components_us": {
+        "parse": {
+          "p50": 14,
+          "p95": 34
+        },
+        "policy_eval": {
+          "p50": 568,
+          "p95": 1470
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 8
+        },
+        "store_write": {
+          "p50": 785,
+          "p95": 1211
+        },
+        "chain_append": {
+          "p50": 601,
+          "p95": 1073
+        },
+        "record_other": {
+          "p50": 154,
+          "p95": 194
+        },
+        "handoff": {
+          "p50": 56,
+          "p95": 166
+        },
+        "total": {
+          "p50": 2339,
+          "p95": 3787
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "components_us": {
+        "parse": {
+          "p50": 10,
+          "p95": 21
+        },
+        "policy_eval": {
+          "p50": 111,
+          "p95": 239
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 1
+        },
+        "store_write": {
+          "p50": 125,
+          "p95": 245
+        },
+        "chain_append": {
+          "p50": 115,
+          "p95": 152
+        },
+        "record_other": {
+          "p50": 71,
+          "p95": 96
+        },
+        "handoff": {
+          "p50": 49,
+          "p95": 137
+        },
+        "total": {
+          "p50": 517,
+          "p95": 740
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "components_us": {
+        "parse": {
+          "p50": 11,
+          "p95": 23
+        },
+        "policy_eval": {
+          "p50": 516,
+          "p95": 1390
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 7
+        },
+        "store_write": {
+          "p50": 126,
+          "p95": 237
+        },
+        "chain_append": {
+          "p50": 116,
+          "p95": 160
+        },
+        "record_other": {
+          "p50": 121,
+          "p95": 147
+        },
+        "handoff": {
+          "p50": 43,
+          "p95": 132
+        },
+        "total": {
+          "p50": 988,
+          "p95": 1867
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "databricks_fake",
+      "rules": 19,
+      "components_us": {
+        "parse": {
+          "p50": 10,
+          "p95": 13
+        },
+        "policy_eval": {
+          "p50": 110,
+          "p95": 188
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 1
+        },
+        "store_write": {
+          "p50": 262,
+          "p95": 361
+        },
+        "chain_append": {
+          "p50": 197,
+          "p95": 231
+        },
+        "record_other": {
+          "p50": 67,
+          "p95": 85
+        },
+        "handoff": {
+          "p50": 47,
+          "p95": 125
+        },
+        "total": {
+          "p50": 729,
+          "p95": 867
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "databricks_fake",
+      "rules": 200,
+      "components_us": {
+        "parse": {
+          "p50": 10,
+          "p95": 23
+        },
+        "policy_eval": {
+          "p50": 523,
+          "p95": 1403
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 7
+        },
+        "store_write": {
+          "p50": 281,
+          "p95": 414
+        },
+        "chain_append": {
+          "p50": 213,
+          "p95": 253
+        },
+        "record_other": {
+          "p50": 125,
+          "p95": 148
+        },
+        "handoff": {
+          "p50": 48,
+          "p95": 142
+        },
+        "total": {
+          "p50": 1259,
+          "p95": 2158
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    }
+  ],
+  "reproducibility": {
+    "enforced": true,
+    "tolerance_bp": 1000,
+    "tolerance_p95_bp": 2000,
+    "abs_floor_us": 50,
+    "gated_statistics": [
+      "p50",
+      "p95"
+    ],
+    "failures": [
+      "otlp_inproc_1span|sqlite_file|200: p95 varies 56.7% across repeats (values [866, 691, 1182] us, tolerance 20%)",
+      "otlp_asgi_20span|databricks_fake|200: p50 varies 17.1% across repeats (values [6271, 5592, 6664] us, tolerance 10%)"
+    ],
+    "attempts": {
+      "otlp_inproc_1span|sqlite_file|19": 3,
+      "otlp_inproc_20span|sqlite_file|19": 2,
+      "uvicorn_passthrough|sqlite_file|19": 2,
+      "uvicorn_gate|sqlite_file|19": 2,
+      "otlp_uvicorn_20span|sqlite_file|19": 2,
+      "otlp_inproc_1span|sqlite_file|200": 4,
+      "otlp_uvicorn_20span|sqlite_file|200": 2,
+      "otlp_asgi_20span|sqlite_memory|19": 3,
+      "asgi_passthrough|sqlite_memory|200": 2,
+      "asgi_gate|sqlite_memory|200": 2,
+      "otlp_asgi_20span|sqlite_memory|200": 2,
+      "otlp_uvicorn_20span|sqlite_memory|200": 2,
+      "otlp_asgi_20span|databricks_fake|19": 2,
+      "otlp_uvicorn_1span|databricks_fake|19": 2,
+      "otlp_asgi_20span|databricks_fake|200": 4,
+      "otlp_uvicorn_20span|databricks_fake|200": 2
+    }
+  },
+  "budgets": {
+    "laptop_sqlite_p99_us": 50000,
+    "laptop_sqlite_status": "ILLUSTRATIVE until the bank sets it",
+    "databricks_app": "FILL-ME: owner must confirm (see docs/latency.md)"
+  },
+  "not_measured": [
+    "Real Delta REST round trip: databricks_fake is SQLite plus the adapter's marshalling code; the warehouse, its queue, cold start and the network are not in the numbers. Use notebooks/latency_delta.py in the workspace.",
+    "Network: the HTTP arms use the loopback interface or an in-process transport; no router, proxy, load balancer or Databricks Apps front door.",
+    "TLS: no handshake and no encryption cost.",
+    "Authentication: ingress auth (WP20) and SSO header checks are not in the request path here.",
+    "The agent's own work, the tool call itself and any LLM judge (judges are advisory and run off the gate path).",
+    "Tier 0b (asynchronous regex classifier) runs as in production, after the answer is returned; its work is not timed, it only shows up as contention in the next call.",
+    "Real fact sources: the fact arm is an in-memory dict; a bank system of record adds its own latency to every fact rule that fires.",
+    "Several agents and many clients at once: the load is one stream at a fixed rate on a shared host, not a capacity test.",
+    "Long-lived growth: the stores are fresh at the start of each combination."
+  ]
+}

@@ -77,3 +77,9 @@
 | WP24: lineage (who reads which UC table) comes from the fixture only; the live reader does not call the lineage API | Add `lineage-tracking` table-lineage reads when the metastore enables it |
 | WP24: risk inheritance uses `uses` edges only; datasets carry no own level; no per-node Decision 33 tasks | WP29 risk register and WP30 task list decide what else passes up |
 | WP24: shadow case severity is fixed `low` | Owner decision (ADR D16 open 3) |
+| WP23: Delta (Databricks) latency is not measured: `databricks_fake` is SQLite plus adapter code. Each gate check issues 4 sequential write statements, so p99 is about code + 4 x REST round trip | Run `notebooks/latency_delta.py` in the workspace and fill the Databricks App budget in `docs/latency.md` |
+| WP23: Databricks App p99 budget | Owner decision (candidates A: within the 2 s gate timeout, B: within 500 ms) |
+| WP23: recording (verdict, agent_event, chain) is inside the caller's wait and the 2 s timeout; on Delta it dominates | Owner decision, then asynchronous or batched recording on the Delta path (changes the audit guarantee at answer time) |
+| WP23: aggregate and prior-call rules scan the in-memory window; with 200 rules and 10,000 events per tool in the day the p99 is 58 ms (over the 50 ms laptop budget) | Per-key index or running totals in `WindowStore`, then re-run `window_depth_*` |
+| WP23: MCP stdio proxy builds a new httpx client and connection per `tools/call` (p50 8.7 ms against 4.7 ms for the gate call alone) | Keep-alive client in `HttpGate`/`post_json`, then re-run `mcp_proxy` |
+| WP23: no capacity or multi-client test, no TLS, no ingress auth (WP20) in the numbers; numbers come from a shared VM, 2 of 88 results in run 1 broke the spread rule | A dedicated quiet host (isolated cores), a load generator host, and a re-run of the full benchmark with WP20 on |
