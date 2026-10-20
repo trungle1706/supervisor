@@ -42,7 +42,9 @@ tails, size-based rotation), ``http`` (``WebhookSiemSink``: HEC-style POST, boun
 with backoff, dead-letter file, idempotency key per batch; off unless the URL is filled) and
 ``delta`` (``DeltaSiemSink``: append to the ``siem_event`` table through the SQL adapter).
 ``build_siem_sink`` returns None when SIEM is off. ``ChainEventFeed`` keeps one cursor per
-chain lane in ``monitor_state`` so a restart does not send an event twice.
+chain lane in ``monitor_state`` so a restart does not skip an event. Delivery is at least
+once: a crash between the send and the cursor save resends the last batch, so the receiver
+dedupes on ``event_id``.
 """
 
 from __future__ import annotations
@@ -571,7 +573,7 @@ def build_siem_sink(
             cfg.siem_webhook_url,
             transport=HttpTransport(token, cfg.siem_http_auth_scheme),
             fmt=fmt,
-            dead_letter=DeadLetter(dl_path),
+            dead_letter=DeadLetter(dl_path, cfg.siem_dead_letter_max_bytes),
         )
     if cfg.siem_sink == "delta":
         if tables is None:
@@ -592,9 +594,9 @@ class ChainEventFeed:
 
     With a ``state`` store the cursor of each lane (and of the anchors) lives in
     ``monitor_state`` (monitor ``siem``) and is saved only after the sink accepted the batch,
-    so a restart neither loses nor repeats events. Without ``state`` the cursor is in memory
-    (tests, one-shot use). ``event_id`` = ``<lane>:<seq>`` lets the SIEM drop duplicates
-    after a crash between the send and the save."""
+    so a restart never loses an event. Delivery is at least once: a crash between the send
+    and the save resends the batch. Without ``state`` the cursor is in memory (tests,
+    one-shot use). ``event_id`` = ``<lane>:<seq>`` lets the SIEM drop those duplicates."""
 
     def __init__(
         self,

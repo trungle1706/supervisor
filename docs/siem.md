@@ -31,6 +31,7 @@ alert rows ----------------------------------------------------------^          
 | `SIEM_HTTP_TOKEN` | empty | Secret from the bank vault. Sent as `Authorization: <scheme> <token>`. Never logged, never in the dead-letter file |
 | `SIEM_HTTP_AUTH_SCHEME` | `Bearer` | `Splunk` for Splunk HEC |
 | `SIEM_DEAD_LETTER_PATH` | `<DATA_DIR>\siem\dead_letter.jsonl` | Where failed batches wait |
+| `SIEM_DEAD_LETTER_MAX_BYTES` | `67108864` (64 MiB) | When the file is full the send raises and the cursor stays (the chain is the buffer) |
 
 Run once by hand (the app must be stopped, or let the scheduler do it):
 
@@ -50,9 +51,14 @@ Idempotency: every event has a stable `event_id` (`<lane>:<seq>`, `anchor:<id>`,
 in the body and in the `Idempotency-Key` header. A replay sends the same key.
 
 Cursor: one per chain lane, stored in `monitor_state` (monitor `siem`, key `cursor:<lane>`),
-saved only after the sink accepted the batch. A restart neither skips nor repeats events. If
-the sink raises, nothing is saved and the next run sends the same events again. A batch that
-went to the dead-letter file counts as accepted (the file keeps it).
+saved only after the sink accepted the batch. Delivery is **at least once**, not exactly once:
+a restart never skips an event, but a crash between the send and the cursor save sends the
+last batch again (and a later batch can then hold more events, so its batch key differs). The
+receiver must dedupe on `event_id`; the `delta` sink does this itself (primary key). If the
+sink raises, nothing is saved and the next run sends the same events again. A batch that
+went to the dead-letter file counts as accepted (the file keeps it). When the dead-letter file
+is full (`SIEM_DEAD_LETTER_MAX_BYTES`, default 64 MiB) the send raises instead, so the cursor
+stays and the evidence chain itself is the buffer until the receiver is back.
 
 ## What leaves, and what never leaves
 

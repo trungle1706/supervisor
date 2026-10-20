@@ -481,3 +481,65 @@ def test_file_sink_keeps_writing_when_rotation_is_blocked(
     monkeypatch.setattr(S.os, "replace", blocked)
     assert sink.emit([_ev(n=2)]) == 1  # no exception, the event is not lost
     assert len(path.read_text("utf-8").splitlines()) == 2
+
+
+# --------------------------------------------------------------------------- review fixes
+
+
+def test_transport_treats_a_2xx_non_json_body_as_accepted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review: a collector answering 200 "OK" (or HTML, or a JSON list) accepted the batch.
+    Raising there kept the feed cursor and resent the same batch on every poll."""
+    bodies = [b"OK", b"<html>ok</html>", b"[1, 2]"]
+
+    def fake_post(url: str, **kw: Any) -> httpx.Response:
+        return httpx.Response(200, request=httpx.Request("POST", url), content=bodies.pop(0))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    tr = HttpTransport()
+    for _ in range(3):
+        assert tr("https://h.invalid/x", {}, 5.0) == {}
+
+
+def test_dead_letter_is_bounded_and_a_full_file_keeps_the_feed_cursor(
+    env: Env, tmp_path: Path
+) -> None:
+    """Review: the dead-letter file had no bound. Full -> the send raises, nothing is parked,
+    the feed cursor stays (the chain is the buffer until the receiver is back)."""
+    dl = DeadLetter(tmp_path / "dead.jsonl", max_bytes=2048)
+    sink = S.WebhookSiemSink(
+        "https://h.invalid/x", transport=FlakyTransport(10**6), sleep=lambda _s: None,
+        dead_letter=dl,
+    )  # fmt: skip
+    w = make_writer(env)
+    for i in range(20):
+        w.record("gate_decision", f"d:{i}", {"agent_id": "a1", "action": "block", "allow": False})
+    feed = S.ChainEventFeed(env.adapters.tables, sink, env.adapters.state, max_events=1)
+
+    def saved() -> dict[str, Any]:
+        rows = env.adapters.state.query("monitor_state", {"monitor": "siem"})
+        return {r["state_key"]: r["value"] for r in rows}
+
+    raised = False
+    for _ in range(20):
+        snap = saved()
+        try:
+            feed.poll()
+        except IntegrationError as exc:
+            assert "dead-letter file is full" in str(exc)
+            raised = True
+            break
+    assert raised and dl.count() >= 1
+    assert (tmp_path / "dead.jsonl").stat().st_size <= 2048
+    assert saved() == snap  # the failed poll saved no cursor
+
+
+def test_build_siem_sink_passes_the_dead_letter_limit(tmp_path: Path) -> None:
+    cfg = load_integration_settings(
+        _env_file=None, siem_enabled=True, siem_sink="http",
+        siem_webhook_url="https://h.invalid/x", siem_dead_letter_max_bytes=4096,
+    )  # fmt: skip
+    sink = S.build_siem_sink(cfg, tmp_path)
+    assert isinstance(sink, S.WebhookSiemSink) and sink.dead_letter is not None
+    assert sink.dead_letter.max_bytes == 4096

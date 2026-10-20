@@ -5,6 +5,11 @@ payload is exactly what would have been sent (ids, hashes, masked text), so the 
 nothing the SIEM or webhook would not have received. ``replay`` re-sends the entries through
 a callable and keeps the ones that fail again. The idempotency ``key`` makes a replay safe
 for a receiver that deduplicates.
+
+The file is bounded (``max_bytes``, default 64 MiB). When a new entry would pass the limit,
+``put`` raises ``IntegrationError`` and stores nothing: the caller then keeps its own
+cursor (the SIEM feed resends from the evidence chain later) or reports the route
+``failed`` (retried by the alert job), so a long outage never fills the disk.
 """
 
 from __future__ import annotations
@@ -17,10 +22,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from supervisor.adapters.integrations import IntegrationError
+
+DEFAULT_MAX_BYTES = 64 * 1024 * 1024
+
 
 class DeadLetter:
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, max_bytes: int = DEFAULT_MAX_BYTES) -> None:
         self.path = Path(path)
+        self.max_bytes = int(max_bytes)
         self._lock = threading.Lock()
 
     def put(self, kind: str, key: str, payload: Any, error: str, attempts: int) -> None:
@@ -35,6 +45,12 @@ class DeadLetter:
         line = json.dumps(rec, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
         with self._lock:
             self.path.parent.mkdir(parents=True, exist_ok=True)
+            size = self.path.stat().st_size if self.path.exists() else 0
+            if size + len(line) + 1 > self.max_bytes:
+                raise IntegrationError(
+                    f"dead-letter file is full ({size} bytes, limit {self.max_bytes}); "
+                    "replay it or raise the limit"
+                )
             with self.path.open("a", encoding="utf-8", newline="\n") as fh:
                 fh.write(line + "\n")
 
@@ -83,4 +99,4 @@ class DeadLetter:
             return sent, len(keep)
 
 
-__all__ = ["DeadLetter"]
+__all__ = ["DEFAULT_MAX_BYTES", "DeadLetter"]

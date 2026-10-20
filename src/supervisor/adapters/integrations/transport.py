@@ -41,6 +41,11 @@ def post_json_mapped(
         raise IntegrationError(f"HTTP {code} from the receiver (not retried)") from None
     except httpx.HTTPError as exc:  # connect error, timeout, protocol error
         raise ConnectionError(type(exc).__name__) from None
+    except ValueError:
+        # 2xx with a body that is not a JSON object ("OK", an HTML page, a JSON list): the
+        # receiver accepted the batch. Raising here would keep the cursor and resend the same
+        # batch on every poll.
+        return {}
 
 
 class HttpTransport:

@@ -23,7 +23,9 @@ SIEM_FILE_BACKUPS      5        rotated files kept (``events.log.1`` ... )
 SIEM_WEBHOOK_URL       -        FILL-ME; needs SIEM_SINK=http (alias SIEM_HTTP_URL)
 SIEM_HTTP_TOKEN        -        secret from the bank vault; sent in the Authorization header
 SIEM_HTTP_AUTH_SCHEME  Bearer   e.g. ``Splunk`` for Splunk HEC
-SIEM_DEAD_LETTER_PATH  -        default ``<DATA_DIR>/siem/dead_letter.jsonl``
+SIEM_DEAD_LETTER_PATH  -        default ``<DATA_DIR>/siem/dead_letter.jsonl``; bounded by
+                                ``SIEM_DEAD_LETTER_MAX_BYTES`` (64 MiB): when full the send
+                                raises and the feed cursor stays
 ITSM_ENABLED           0        open / update tickets for cases (fake until wired)
 PAGER_ENABLED          0        page on critical cases (fake until wired)
 SCIM_ENABLED           0        group -> role report from a SCIM directory (fake)
@@ -66,6 +68,7 @@ class IntegrationSettings(BaseSettings):
     siem_http_token: SecretStr | None = None  # never logged, never committed
     siem_http_auth_scheme: str = Field(default="Bearer", pattern=r"^[A-Za-z][A-Za-z0-9_-]*$")
     siem_dead_letter_path: Path | None = None
+    siem_dead_letter_max_bytes: int = Field(default=64 * 1024 * 1024, ge=1024)
     itsm_enabled: bool = False
     pager_enabled: bool = False
     scim_enabled: bool = False

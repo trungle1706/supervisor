@@ -5,7 +5,8 @@ Also callable in-process (scheduler): ``run(ctx, settings)``; on by SIEM_ENABLED
 
 Sink and format come from SIEM_SINK / SIEM_FORMAT (docs/siem.md). The cursor of each chain
 lane lives in ``monitor_state`` (monitor ``siem``) and moves only after the sink accepted the
-batch, so a restart does not send an event twice.
+batch, so a restart does not skip an event. Delivery is at least once (a crash between the
+send and the save resends that batch); receivers dedupe on ``event_id``.
 """
 
 from __future__ import annotations
