@@ -141,6 +141,7 @@ def coverage_bp(rows: Sequence[Mapping[str, Any]]) -> int | None:
 
 
 MONITOR_ORDER = ("quality", "fairness", "drift", "multiagent")
+MONITOR_STATUSES = ("ok", "not_applicable", "no_data")
 
 
 def monitor_status_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -161,7 +162,8 @@ def monitor_status_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any
             continue
         agent = str(r["agent_id"])
         for name, entry in raw.items():
-            if isinstance(entry, Mapping):
+            # A hand-edited or older row may lack a known status; skip it, never fail the page.
+            if isinstance(entry, Mapping) and entry.get("status") in MONITOR_STATUSES:
                 latest.setdefault(agent, {})[str(name)] = dict(entry)
                 day_of.setdefault(agent, {})[str(name)] = r["metric_date"]
     out = []

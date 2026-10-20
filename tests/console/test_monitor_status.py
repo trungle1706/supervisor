@@ -32,3 +32,28 @@ def test_metrics_page_shows_not_applicable_with_reason(console: Console) -> None
     assert "not applicable" in r.text and "no reply tool bound and none derivable" in r.text
     assert "n=120" in r.text
     assert "monitor_status" not in r.text.split('id="monitor-status"')[1].split("</section>")[1]
+
+
+def test_metrics_page_survives_partial_or_bad_status(console: Console) -> None:
+    """Review fix: an entry without a status, or a null column is no 500."""
+    ctx = console.ctx
+    for i, value in enumerate(
+        (
+            {"quality": {"code": "x"}, "drift": {"status": "weird"}, "fairness": "nope"},
+            None,
+            {"multiagent": {"status": "no_data"}},
+        )
+    ):
+        ctx.state.insert(
+            "oversight_metric",
+            {
+                "metric_date": dt.date(2026, 10, 1 + i),
+                "agent_id": f"partial_{i}",
+                "computed_at": ctx.clock.now(),
+                "monitor_status": value,
+            },
+        )
+    r = console.get("/console/metrics")
+    assert r.status_code == 200
+    section = r.text.split('id="monitor-status"')[1].split("</section>")[0]
+    assert 'data-agent="partial_2"' in section and 'data-agent="partial_0"' not in section
