@@ -191,6 +191,9 @@ class Collector:
     _loaded: bool = False
     # One pass asks the same (agents, control) question for many risks; answer it once.
     _memo: dict[tuple[Any, ...], Any] = field(default_factory=dict)
+    # WP30: a ``control`` link is read through the runtime sources of the catalogue control
+    # (control id -> [(kind, target)] of kinds rule, pack, monitor). None = such links are ignored.
+    control_sources: Callable[[str], Iterable[tuple[str, str]]] | None = None
 
     def _agent_rows(self) -> dict[str, tuple[str, str]]:
         """lower-case id -> (id as stored, gate_state)."""
@@ -282,8 +285,15 @@ class Collector:
         supervised, dropped = self.split_agents(agents)
         key_agents, key_win = tuple(supervised), (w.start, w.end)
         c = Counts(agents_n=len(supervised), agents_excluded=dropped)
-        for kind, target in sorted(set(links)):
-            if kind not in CONTROL_KINDS:
+        pairs: set[tuple[str, str]] = set()
+        for kind, target in links:
+            if kind == "control":  # WP30: the control stands for its own runtime sources
+                if self.control_sources is not None:
+                    pairs.update(self.control_sources(target))
+            else:
+                pairs.add((kind, target))
+        for kind, target in sorted(pairs):
+            if kind not in CONTROL_KINDS or kind == "control":
                 continue
             if kind == "rule":
                 c.rule_links += 1

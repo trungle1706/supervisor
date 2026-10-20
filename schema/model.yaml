@@ -878,3 +878,136 @@ tables:
       residual_impact: int
       digest: string            # sha256 of the facts above
       chain_hash: string?       # entry hash of the chain record
+
+  # --- WP30 control catalogue and task list (ADR D30) ------------------------------------
+  control:
+    kind: state
+    description: >
+      WP30 control: an action the bank or the product takes to meet obligations and hold risks
+      down. One control covers many obligations and many risks (control_map). type is
+      preventive, detective or corrective; implemented_by is product or bank. scope_agents is a
+      JSON list of agent ids, or ["*"] for every supervised agent. Evidence status is computed
+      from runtime facts (control_status), never typed in.
+    primary_key: [control_id]
+    indexes:
+      - [status]
+    columns:
+      control_id: string
+      title: string
+      objective: text
+      control_type: string     # preventive | detective | corrective
+      implemented_by: string   # product | bank
+      owner: string
+      status: string           # draft | active | retired
+      review_date: date?
+      scope_agents: string     # JSON list of agent ids, or ["*"]
+      source: string           # manual | import | starter
+      created_at: timestamp
+      created_by: string
+
+  control_map:
+    kind: state
+    description: >
+      WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk
+      id of the register; rule, pack, monitor, detector and document are evidence sources. Only
+      rule, pack and monitor are observed at runtime; detector and document are references.
+    primary_key: [map_id]
+    indexes:
+      - [control_id]
+      - [kind, target]
+    columns:
+      map_id: string           # hash of (control_id, kind, target): a repeat is a no-op
+      control_id: string
+      kind: string             # matrix | risk | rule | pack | monitor | detector | document
+      target: string
+      active: bool             # false after a removal (the row stays as history)
+      created_at: timestamp
+      created_by: string
+
+  control_status:
+    kind: append_only
+    evidence: true
+    description: >
+      WP30. One row per control, agent and window: working, failing or no_data, a fixed reason
+      code and integer counts of the evidence sources. No text. The matching chain record is
+      control_status (one per agent and pass, carrying the compliance bp). A repeat for the same
+      window is a no-op (status_id is a hash).
+    primary_key: [status_id]
+    indexes:
+      - [control_id, agent_id, ts]
+      - [agent_id, ts]
+    columns:
+      status_id: string
+      control_id: string
+      agent_id: string
+      ts: timestamp
+      window_start: timestamp
+      window_end: timestamp
+      status: string           # working | failing | no_data
+      reason: string           # fixed code, see supervisor.controls.evidence.REASONS
+      sources_n: int           # runtime sources (rule, pack, monitor) of the control
+      working_n: int
+      failing_n: int
+      idle_n: int
+      refs_n: int              # reference-only sources (detector, document)
+      digest: string           # sha256 of the facts above
+      chain_hash: string?      # entry hash of the chain record
+
+  task:
+    kind: state
+    description: >
+      WP30 lifecycle task of one agent, made from a template in config/tasks.yaml. kind move is
+      the lifecycle move itself (a task); it is done only when no required task of the stage is
+      open. Waiving needs a reason and a second person (waive_requested_by, waive_approved_by).
+      evidence_kind says what proves the task done: control, pack, document or none.
+    primary_key: [task_id]
+    indexes:
+      - [agent_id, stage]
+      - [status]
+    columns:
+      task_id: string          # hash of (agent_id, template_id): a repeat is a no-op
+      agent_id: string
+      template_id: string
+      kind: string             # task | move | custom
+      stage: string            # initiation | design | validation | deployment | operation | re_evaluation | retirement
+      target_stage: string?    # for a move: the stage the agent enters
+      title: string
+      owner_role: string
+      required: bool
+      status: string           # open | in_progress | done | waived
+      due_at: timestamp?
+      evidence_kind: string    # control | pack | document | none
+      evidence_ref: string?    # control id, pack id or document reference
+      level: string            # effective level the set was sized for (low | medium | high | critical)
+      d33_class: string        # high_risk | not_high_risk | unclassified, at generation
+      waive_reason: text?
+      waive_requested_by: string?
+      waive_approved_by: string?
+      done_by: string?
+      done_at: timestamp?
+      created_at: timestamp
+      created_by: string
+
+  task_event:
+    kind: append_only
+    evidence: true
+    description: >
+      WP30. Every change of a task: generate, start, done, waive_request, waive_approve,
+      waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored
+      as a hash only. The matching chain record is task_change.
+    primary_key: [event_id]
+    indexes:
+      - [task_id, ts]
+      - [agent_id, ts]
+    columns:
+      event_id: string
+      task_id: string
+      agent_id: string
+      ts: timestamp
+      action: string
+      actor: string
+      from_status: string?
+      to_status: string?
+      reason_sha256: string?
+      row_hash: string         # sha256 of the task row after the change
+      chain_hash: string?      # entry hash of the chain record

@@ -838,3 +838,118 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`risk_evidence` (
 USING DELTA
 COMMENT 'WP29. One row per risk and window: what the linked controls did (counts), the state (working | failing | no_evidence), the reason code and the residual score the evidence rule allows. Integers, codes and hashes only; no text. The matching chain record is risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- control (state): WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or ["*"] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.
+-- primary key (enforced by the app, not by Delta): control_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`control` (
+  control_id STRING NOT NULL,
+  title STRING NOT NULL,
+  objective STRING NOT NULL,
+  control_type STRING NOT NULL,
+  implemented_by STRING NOT NULL,
+  owner STRING NOT NULL,
+  status STRING NOT NULL,
+  review_date DATE,
+  scope_agents STRING NOT NULL,
+  source STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or ["*"] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- control_map (state): WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk id of the register; rule, pack, monitor, detector and document are evidence sources. Only rule, pack and monitor are observed at runtime; detector and document are references.
+-- primary key (enforced by the app, not by Delta): map_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`control_map` (
+  map_id STRING NOT NULL,
+  control_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  target STRING NOT NULL,
+  active BOOLEAN NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk id of the register; rule, pack, monitor, detector and document are evidence sources. Only rule, pack and monitor are observed at runtime; detector and document are references.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- control_status (append_only): WP30. One row per control, agent and window: working, failing or no_data, a fixed reason code and integer counts of the evidence sources. No text. The matching chain record is control_status (one per agent and pass, carrying the compliance bp). A repeat for the same window is a no-op (status_id is a hash).
+-- primary key (enforced by the app, not by Delta): status_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`control_status` (
+  status_id STRING NOT NULL,
+  control_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  window_start TIMESTAMP NOT NULL,
+  window_end TIMESTAMP NOT NULL,
+  status STRING NOT NULL,
+  reason STRING NOT NULL,
+  sources_n BIGINT NOT NULL,
+  working_n BIGINT NOT NULL,
+  failing_n BIGINT NOT NULL,
+  idle_n BIGINT NOT NULL,
+  refs_n BIGINT NOT NULL,
+  digest STRING NOT NULL,
+  chain_hash STRING
+)
+USING DELTA
+COMMENT 'WP30. One row per control, agent and window: working, failing or no_data, a fixed reason code and integer counts of the evidence sources. No text. The matching chain record is control_status (one per agent and pass, carrying the compliance bp). A repeat for the same window is a no-op (status_id is a hash).'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- task (state): WP30 lifecycle task of one agent, made from a template in config/tasks.yaml. kind move is the lifecycle move itself (a task); it is done only when no required task of the stage is open. Waiving needs a reason and a second person (waive_requested_by, waive_approved_by). evidence_kind says what proves the task done: control, pack, document or none.
+-- primary key (enforced by the app, not by Delta): task_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`task` (
+  task_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  template_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  stage STRING NOT NULL,
+  target_stage STRING,
+  title STRING NOT NULL,
+  owner_role STRING NOT NULL,
+  required BOOLEAN NOT NULL,
+  status STRING NOT NULL,
+  due_at TIMESTAMP,
+  evidence_kind STRING NOT NULL,
+  evidence_ref STRING,
+  level STRING NOT NULL,
+  d33_class STRING NOT NULL,
+  waive_reason STRING,
+  waive_requested_by STRING,
+  waive_approved_by STRING,
+  done_by STRING,
+  done_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP30 lifecycle task of one agent, made from a template in config/tasks.yaml. kind move is the lifecycle move itself (a task); it is done only when no required task of the stage is open. Waiving needs a reason and a second person (waive_requested_by, waive_approved_by). evidence_kind says what proves the task done: control, pack, document or none.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- task_event (append_only): WP30. Every change of a task: generate, start, done, waive_request, waive_approve, waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored as a hash only. The matching chain record is task_change.
+-- primary key (enforced by the app, not by Delta): event_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`task_event` (
+  event_id STRING NOT NULL,
+  task_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  action STRING NOT NULL,
+  actor STRING NOT NULL,
+  from_status STRING,
+  to_status STRING,
+  reason_sha256 STRING,
+  row_hash STRING NOT NULL,
+  chain_hash STRING
+)
+USING DELTA
+COMMENT 'WP30. Every change of a task: generate, start, done, waive_request, waive_approve, waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored as a hash only. The matching chain record is task_change.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');

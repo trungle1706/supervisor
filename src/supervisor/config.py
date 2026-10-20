@@ -489,6 +489,20 @@ class Settings(BaseSettings):
         "config/risks"
     )  # starter risks (python -m supervisor.risk import)
 
+    # --- WP30 --- control catalogue and task list (ADR D30, docs/controls.md). All off by default.
+    # CONTROLS_ENABLED: /v1/controls and /v1/tasks routes, the jobs control_status and task_due,
+    # the CLIs. CONSOLE_CONTROLS_ENABLED: the Controls and Tasks pages and Agent tabs (needs the
+    # first flag too). TASKS_LAUNCH_GATE_ENABLED: Launch is NO-GO while a required task of the
+    # agent's current lifecycle stage is open (needs CONTROLS_ENABLED). The sizing rules and the
+    # task templates live in config/tasks.yaml (ILLUSTRATIVE).
+    controls_enabled: bool = False
+    console_controls_enabled: bool = False
+    tasks_launch_gate_enabled: bool = False
+    sched_control_status_s: int = Field(default=21600, ge=60)  # one status pass per 6 hours
+    sched_task_due_s: int = Field(default=3600, ge=60)
+    controls_starter_dir: Path = Path("config/controls")
+    tasks_config: Path = Path("config/tasks.yaml")
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -518,6 +532,8 @@ class Settings(BaseSettings):
         "fact_query_map",
         "risk_config",
         "risk_starter_dir",
+        "controls_starter_dir",
+        "tasks_config",
         mode="after",
     )
     @classmethod

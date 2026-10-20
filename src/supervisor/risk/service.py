@@ -480,7 +480,14 @@ class RiskService:
 
     # ------------------------------------------------------------------ evidence
     def collector(self) -> ev.Collector:
-        return ev.Collector(self.tables, self.state, self._fresh().rule_ids())
+        from supervisor.controls.refs import runtime_sources  # WP30; lazy: no import cycle
+
+        return ev.Collector(
+            self.tables,
+            self.state,
+            self._fresh().rule_ids(),
+            control_sources=lambda cid: runtime_sources(self.state, cid),
+        )
 
     def run_evidence(self, now: dt.datetime | None = None) -> dict[str, Any]:
         """One evidence pass: a ``risk_evidence`` row and a chain record for every active risk

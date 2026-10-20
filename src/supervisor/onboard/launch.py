@@ -179,10 +179,14 @@ def launch(
     min_catch_rate_bp: int = MIN_CATCH_RATE_BP,
     max_false_alarm_bp: int = MAX_FALSE_ALARM_BP,
     assurance: Sequence[Any] | None = None,
+    tasks: Sequence[Mapping[str, Any]] | None = None,
 ) -> LaunchReport:
     """Run Launch. ``assurance`` = results of assurance packs (``PackResult`` or stored row
     dicts) to judge instead of running the agent packs; with ``None`` the agent packs run
-    only when ``ASSURANCE_LAUNCH_ENABLED`` is on. Flag off and ``None``: nothing changes."""
+    only when ``ASSURANCE_LAUNCH_ENABLED`` is on. ``tasks`` = open required tasks of the
+    agent's current lifecycle stage (stored row dicts) to judge instead of reading the task
+    list; with ``None`` the list is read only when ``TASKS_LAUNCH_GATE_ENABLED`` (and
+    ``CONTROLS_ENABLED``) is on. Flags off and both ``None``: nothing changes."""
     report = _launch_core(
         policy,
         agent_id,
@@ -192,9 +196,57 @@ def launch(
         min_catch_rate_bp=min_catch_rate_bp,
         max_false_alarm_bp=max_false_alarm_bp,
     )
-    if assurance is None and not load_settings().assurance_launch_enabled:
-        return report
-    return _with_assurance(report, agent_id, work_dir, assurance, policy)
+    settings = load_settings()
+    if assurance is not None or settings.assurance_launch_enabled:
+        report = _with_assurance(report, agent_id, work_dir, assurance, policy)
+    if tasks is not None or (settings.controls_enabled and settings.tasks_launch_gate_enabled):
+        report = _with_tasks(report, agent_id, tasks, settings)
+    return report
+
+
+def _with_tasks(
+    report: LaunchReport,
+    agent_id: str,
+    given: Sequence[Mapping[str, Any]] | None,
+    settings: Any,
+) -> LaunchReport:
+    """Add the task NO-GO reasons (gates.py, WP30): a required task of the current lifecycle
+    stage that is open blocks GO. A task list that cannot be read blocks too: a gate does not
+    pass on an unknown. An agent with no task list yet gets a note, not a NO-GO."""
+    from supervisor.assurance.gates import task_launch_items
+
+    generated = True
+    error: str | None = None
+    if given is not None:
+        rows = list(given)
+    else:
+        try:
+            from supervisor.tasks.service import launch_tasks_for
+
+            rows, generated = launch_tasks_for(settings, agent_id)
+        except Exception as exc:  # noqa: BLE001 - fail closed on any read problem
+            rows, error = [], type(exc).__name__
+    items = task_launch_items(rows)
+    if error:
+        items.append(f"the task list could not be read ({error}); Launch stays NO-GO")
+    reasons = list(report.reasons)
+    if items:
+        reasons = ([] if report.go else reasons) + items
+    elif report.go and not generated:
+        reasons.append(
+            "tasks: no task list for this agent yet "
+            f"(python -m supervisor.tasks generate --agent {agent_id})"
+        )
+    elif report.go:
+        reasons.append("tasks: no required task of the current lifecycle stage is open")
+    return report.model_copy(
+        update={
+            "go": report.go and not items,
+            "reasons": reasons,
+            "tasks_enabled": True,
+            "task_reasons": items,
+        }
+    )
 
 
 def _compact(r: Any, pack: Any) -> dict[str, Any]:

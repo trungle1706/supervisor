@@ -101,6 +101,21 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "owner", "admin"),
         "Create and change risks, link them to controls and rules (WP29)",
     ),
+    # --- WP30 ---
+    "controls.view": (_ALL, "Controls page, Controls tab and /v1/controls (read-only, WP30)"),
+    "controls.edit": (
+        ("reviewer", "owner", "admin"),
+        "Create and change controls and what they cover (WP30)",
+    ),
+    "tasks.view": (_ALL, "Tasks page, Tasks tab and GET /v1/tasks (read-only, WP30)"),
+    "tasks.edit": (
+        ("reviewer", "owner", "admin"),
+        "Generate, start and finish tasks, ask to waive one (WP30)",
+    ),
+    "tasks.approve": (
+        ("approver", "admin"),
+        "Second person for a task waiver; approve a lifecycle move at high level (WP30)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -243,6 +258,29 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/risks"): "risks.edit",
     ("POST", "/v1/risks/{risk_id}"): "risks.edit",
     ("POST", "/v1/risks/{risk_id}/links"): "risks.edit",
+    # --- WP30 ---
+    ("GET", "/console/controls"): "controls.view",
+    ("GET", "/console/controls/rows"): "controls.view",
+    ("GET", "/console/controls/{control_id}/drawer"): "controls.view",
+    ("GET", "/console/tasks"): "tasks.view",
+    ("GET", "/console/tasks/rows"): "tasks.view",
+    ("GET", "/console/tasks/{task_id}/drawer"): "tasks.view",
+    ("GET", "/v1/controls"): "controls.view",
+    ("GET", "/v1/controls/agents/{agent_id}"): "controls.view",
+    ("GET", "/v1/controls/{control_id}"): "controls.view",
+    ("POST", "/v1/controls"): "controls.edit",
+    ("POST", "/v1/controls/{control_id}"): "controls.edit",
+    ("POST", "/v1/controls/{control_id}/maps"): "controls.edit",
+    ("GET", "/v1/tasks"): "tasks.view",
+    ("GET", "/v1/tasks/agents/{agent_id}"): "tasks.view",
+    ("GET", "/v1/tasks/{task_id}"): "tasks.view",
+    ("POST", "/v1/tasks"): "tasks.edit",
+    ("POST", "/v1/tasks/agents/{agent_id}/generate"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/start"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/done"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/waive"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/waive/approve"): "tasks.approve",
+    ("POST", "/v1/tasks/{task_id}/waive/reject"): "tasks.approve",
 }
 
 

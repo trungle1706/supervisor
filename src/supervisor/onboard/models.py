@@ -429,6 +429,10 @@ class LaunchReport(_M):
     assurance_reasons: list[str] = Field(default_factory=list)
     # "none" | "mixed" | "all": mock pack results in the run (gates.assurance_mock_state)
     assurance_mock: str = "none"
+    # WP30 task list (off by default: TASKS_LAUNCH_GATE_ENABLED). NO-GO items from required
+    # tasks of the current lifecycle stage that are still open (gates.task_launch_items).
+    tasks_enabled: bool = False
+    task_reasons: list[str] = Field(default_factory=list)
 
 
 # ------------------------------------------------------------------ Operate

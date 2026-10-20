@@ -1,0 +1,247 @@
+# Lifecycle task templates and sizing rules (WP30, docs/controls.md).
+# ILLUSTRATIVE: the task wording, the due times, the class floors and the levels at which a task
+# becomes required are a starting point written by the product team, not the bank's procedure.
+# The bank's risk and compliance functions set and sign the real values.
+#
+# Sizing. The effective level of an agent = the higher of
+#   (a) its risk band (the WP29 register level; else the registry risk tier; else high), and
+#   (b) the floor of its Decision 33 class (class_floor below).
+# A template is in the set when the effective level is at least min_level and the class matches.
+# It is REQUIRED when the effective level is at least required_from (no required_from = never
+# required). Only required tasks block a lifecycle move and the launch gate.
+#
+# Stages: initiation, design, validation, deployment, operation, re_evaluation, retirement. A
+# stage with no template for the agent's size is skipped (low-level agents skip validation and
+# re_evaluation). The lifecycle move into the next stage is itself a task, made by the system.
+#
+# Evidence (what proves a task done):
+#   control   ref = a control id; done only while the control shows "working" for the agent
+#   pack      ref = an assurance pack id; done only with a real (non-mock) "ok" result
+#   document  ref = the name of the document; the person gives its reference when marking done
+#   none      the person marks it done
+illustrative: true
+
+class_floor:
+  high_risk: high          # Decision 33 high-risk class: never the light set
+  unclassified: medium     # not classified yet: more than light, and a task to classify
+  not_high_risk: low
+
+move:
+  approval_from: high      # at or above this level a lifecycle move needs an approver or admin
+  due_days: 14
+
+templates:
+  # ---- initiation ---------------------------------------------------------------------------
+  - id: INI-REGISTER
+    stage: initiation
+    title: Register the agent in the inventory and name the owner
+    owner_role: owner
+    due_days: 7
+    required_from: low
+  - id: INI-PURPOSE
+    stage: initiation
+    title: Write the intended use and the limits of use
+    owner_role: owner
+    due_days: 14
+    required_from: low
+    evidence: {kind: document, ref: use-case-record}
+  - id: INI-D33
+    stage: initiation
+    title: Classify the agent under Decision 33 and record the class
+    owner_role: reviewer
+    due_days: 14
+    classes: [unclassified]
+    required_from: low
+    evidence: {kind: document, ref: decision33-classification-note}
+  - id: INI-RISKS
+    stage: initiation
+    title: Enter the first risks in the risk register
+    owner_role: owner
+    due_days: 21
+    min_level: medium
+    required_from: medium
+
+  # ---- design -------------------------------------------------------------------------------
+  - id: DES-TOOLS
+    stage: design
+    title: Approve the list of tools the agent may call
+    owner_role: owner
+    due_days: 14
+    required_from: low
+    evidence: {kind: document, ref: tool-approval-record}
+  - id: DES-DATA
+    stage: design
+    title: Describe the data the agent reads and the personal data classes
+    owner_role: owner
+    due_days: 21
+    min_level: medium
+    required_from: medium
+    evidence: {kind: document, ref: data-description}
+  - id: DES-CONTROLS
+    stage: design
+    title: Map the controls to the obligations and risks of the agent
+    owner_role: reviewer
+    due_days: 21
+    min_level: medium
+    required_from: high
+  - id: DES-DPIA
+    stage: design
+    title: Prepare the personal data impact assessment
+    owner_role: owner
+    due_days: 30
+    min_level: medium
+    required_from: medium
+    evidence: {kind: document, ref: dpia-file}
+  - id: DES-D33
+    stage: design
+    title: Plan the duties of a Decision 33 high-risk system (registration, notice, oversight)
+    owner_role: reviewer
+    due_days: 30
+    classes: [high_risk]
+    required_from: low
+    evidence: {kind: document, ref: decision33-high-risk-plan}
+
+  # ---- validation (skipped at low level) ------------------------------------------------------
+  - id: VAL-REDTEAM
+    stage: validation
+    title: Run the agentic red-team pack and clear every failed metric
+    owner_role: reviewer
+    due_days: 14
+    min_level: medium
+    required_from: medium
+    evidence: {kind: pack, ref: owasp_agentic_redteam}
+  - id: VAL-PII
+    stage: validation
+    title: Run the personal data canary pack
+    owner_role: reviewer
+    due_days: 14
+    min_level: medium
+    required_from: medium
+    evidence: {kind: pack, ref: pii_canary}
+  - id: VAL-INJECT
+    stage: validation
+    title: Run the indirect injection pack
+    owner_role: reviewer
+    due_days: 14
+    min_level: medium
+    required_from: high
+    evidence: {kind: pack, ref: indirect_injection_vi}
+  - id: VAL-FAIR
+    stage: validation
+    title: Review fairness results on the agent's decisions
+    owner_role: reviewer
+    due_days: 21
+    min_level: high
+    required_from: high
+    evidence: {kind: document, ref: fairness-review}
+  - id: VAL-SECOND
+    stage: validation
+    title: Independent review of the validation report by the second line
+    owner_role: approver
+    due_days: 30
+    min_level: high
+    required_from: high
+    evidence: {kind: document, ref: model-validation-report}
+
+  # ---- deployment -----------------------------------------------------------------------------
+  - id: DEP-SHADOW
+    stage: deployment
+    title: Run in SHADOW and review the list of calls the gate would have stopped
+    owner_role: owner
+    due_days: 14
+    required_from: low
+  - id: DEP-LAUNCH
+    stage: deployment
+    title: Obtain a GO from the launch report
+    owner_role: reviewer
+    due_days: 14
+    required_from: low
+    evidence: {kind: document, ref: launch-report}
+  - id: DEP-OVERSIGHT
+    stage: deployment
+    title: Name who pauses the agent and the two people who approve a resume
+    owner_role: approver
+    due_days: 14
+    min_level: medium
+    required_from: medium
+    evidence: {kind: document, ref: oversight-roster}
+  - id: DEP-D33
+    stage: deployment
+    title: Confirm human supervision for the Decision 33 high-risk class before enforcement
+    owner_role: approver
+    due_days: 14
+    classes: [high_risk]
+    required_from: low
+    evidence: {kind: document, ref: decision33-supervision-note}
+
+  # ---- operation ------------------------------------------------------------------------------
+  - id: OPS-OVERSIGHT
+    stage: operation
+    title: Human oversight metrics show a healthy agent
+    owner_role: owner
+    due_days: 30
+    required_from: low
+    evidence: {kind: control, ref: CTL-MON-OVERSIGHT}
+  - id: OPS-CHAIN
+    stage: operation
+    title: The evidence chain verifies
+    owner_role: owner
+    due_days: 30
+    min_level: medium
+    required_from: medium
+    evidence: {kind: control, ref: CTL-EVD-CHAIN}
+  - id: OPS-MASK
+    stage: operation
+    title: Personal data masking shows working evidence
+    owner_role: owner
+    due_days: 30
+    min_level: medium
+    required_from: medium
+    evidence: {kind: control, ref: CTL-PII-MASK}
+  - id: OPS-DRIFT
+    stage: operation
+    title: The behaviour drift monitor is in its band
+    owner_role: owner
+    due_days: 30
+    min_level: high
+    required_from: high
+    evidence: {kind: control, ref: CTL-MON-DRIFT}
+  - id: OPS-REVIEW
+    stage: operation
+    title: Review the open cases and the risks of the agent
+    owner_role: owner
+    due_days: 30
+    min_level: medium
+    required_from: medium
+
+  # ---- re-evaluation (skipped below high level) ------------------------------------------------
+  - id: REV-RISKS
+    stage: re_evaluation
+    title: Assess the risks again and update the residual scores
+    owner_role: owner
+    due_days: 30
+    min_level: high
+    required_from: high
+  - id: REV-APPROVE
+    stage: re_evaluation
+    title: Approve the agent again for continued use (second line)
+    owner_role: approver
+    due_days: 30
+    min_level: high
+    required_from: high
+    evidence: {kind: document, ref: re-approval-record}
+
+  # ---- retirement -----------------------------------------------------------------------------
+  - id: RET-ARCHIVE
+    stage: retirement
+    title: Archive the case files and the evidence export
+    owner_role: owner
+    due_days: 30
+    required_from: low
+    evidence: {kind: document, ref: archive-record}
+  - id: RET-ACCESS
+    stage: retirement
+    title: Remove the agent identity and its tool access
+    owner_role: admin
+    due_days: 14
+    required_from: low

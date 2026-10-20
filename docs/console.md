@@ -294,6 +294,11 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `integrations.view` | Integrations status page (read-only) | x | x | x | x | x | x | x |
 | `risks.view` | Risks page, Risks tab and /v1/risks (read-only, WP29) | x | x | x | x | x | x | x |
 | `risks.edit` | Create and change risks, link them to controls and rules (WP29) |  | x |  | x | x |  |  |
+| `controls.view` | Controls page, Controls tab and /v1/controls (read-only, WP30) | x | x | x | x | x | x | x |
+| `controls.edit` | Create and change controls and what they cover (WP30) |  | x |  | x | x |  |  |
+| `tasks.view` | Tasks page, Tasks tab and GET /v1/tasks (read-only, WP30) | x | x | x | x | x | x | x |
+| `tasks.edit` | Generate, start and finish tasks, ask to waive one (WP30) |  | x |  | x | x |  |  |
+| `tasks.approve` | Second person for a task waiver; approve a lifecycle move at high level (WP30) |  |  | x |  | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

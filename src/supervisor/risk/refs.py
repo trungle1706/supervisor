@@ -11,6 +11,7 @@ rule       the id is a rule of the deployed policy (``rule`` table); if nothing 
 pack       the id is an assurance pack manifest
 monitor    the name is a monitor of ``regulations/schema/controls.yaml``
 case       the id is a row of ``cases``
+control    the id is a WP30 catalogue control that is not retired
 =========  ==============================================================================
 
 Each lookup is cached for the life of the object (a job run, a request). The class takes plain
@@ -35,8 +36,15 @@ class RefCatalogue:
         packs: Callable[[], Iterable[str]] | None = None,
         monitors: Callable[[], Iterable[str]] | None = None,
         case_exists: Callable[[str], bool] | None = None,
+        controls: Callable[[], Iterable[str]] | None = None,
     ) -> None:
-        self._src = {"matrix": obligations, "rule": rules, "pack": packs, "monitor": monitors}
+        self._src = {
+            "matrix": obligations,
+            "rule": rules,
+            "pack": packs,
+            "monitor": monitors,
+            "control": controls,
+        }
         self._case = case_exists
         self._cache: dict[str, frozenset[str]] = {}
 
@@ -112,7 +120,16 @@ def build_catalogue(state: Any, settings: Any) -> RefCatalogue:
     def case_exists(case_id: str) -> bool:
         return state.get("cases", {"case_id": case_id}) is not None
 
+    def controls() -> list[str]:  # WP30
+        try:
+            return [
+                str(r["control_id"]) for r in state.query("control") if r["status"] != "retired"
+            ]
+        except Exception:  # noqa: BLE001 - an old store without the WP30 tables
+            return []
+
     return RefCatalogue(
+        controls=controls,
         obligations=_obligation_ids,
         rules=rules,
         packs=_pack_ids,
