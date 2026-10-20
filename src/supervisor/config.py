@@ -484,6 +484,8 @@ class Settings(BaseSettings):
     console_risks_enabled: bool = False
     sched_risk_evidence_s: int = Field(default=21600, ge=60)  # one evidence pass per 6 hours
     risk_evidence_window_days: int = Field(default=7, ge=1, le=90)
+    # Packs scored by a judge model count as evidence only when the owner sets this (default 0).
+    risk_evidence_judged_packs: bool = False
     risk_config: Path = Path("config/risk.yaml")
     risk_starter_dir: Path = Path(
         "config/risks"

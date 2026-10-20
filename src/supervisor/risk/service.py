@@ -163,6 +163,17 @@ class RiskService:
             log.exception("risk chain record failed")
             return None
 
+    def actor_ref(self, actor: str) -> str:
+        """Keyed hash of the actor id for chain payloads (an id can be an e-mail; R2). The
+        audited ``console_action`` row keeps the readable actor. Same actor, same ref."""
+        import hashlib
+        import hmac
+
+        key, _ = self.settings.mask_key
+        return (
+            "act_" + hmac.new(key, f"risk-actor:{actor}".encode(), hashlib.sha256).hexdigest()[:16]
+        )
+
     def _changed(self, action: str, row: Mapping[str, Any], actor: str) -> None:
         self._chain(
             "risk_change",
@@ -171,7 +182,7 @@ class RiskService:
                 "risk_id": row["risk_id"],
                 **({"agent_id": row["agent_id"]} if row.get("agent_id") else {}),
                 "action": action,
-                "actor": actor,
+                "actor_ref": self.actor_ref(actor),
                 "status": row["status"],
                 "treatment": row["treatment"],
                 "inherent_score": score_of(row["inherent_likelihood"], row["inherent_impact"]),
@@ -282,11 +293,18 @@ class RiskService:
             return Graph()
 
     def _latest_evidence(self, risk_id: str | None = None) -> dict[str, dict[str, Any]]:
-        where = {"risk_id": risk_id} if risk_id else None
-        rows = self.tables.query("risk_evidence", where, order_by=("-ts",), limit=20000)
+        """Newest evidence row per risk: one bounded query (limit 1) for each risk, so the
+        result does not depend on how many rows other risks wrote (no global row cap)."""
+        ids = (
+            [risk_id]
+            if risk_id
+            else [str(r["risk_id"]) for r in self.state.query("risk", order_by=("risk_id",))]
+        )
         out: dict[str, dict[str, Any]] = {}
-        for r in rows:
-            out.setdefault(str(r["risk_id"]), dict(r))
+        for rid in ids:
+            rows = self.tables.query("risk_evidence", {"risk_id": rid}, order_by=("-ts",), limit=1)
+            if rows:
+                out[rid] = dict(rows[0])
         return out
 
     def window_seconds(self) -> int:
@@ -528,6 +546,7 @@ class RiskService:
             self.state,
             self._fresh().rule_ids(),
             control_sources=lambda cid: runtime_sources(self.state, cid),
+            judged_packs=bool(getattr(self.settings, "risk_evidence_judged_packs", False)),
         )
 
     def run_evidence(self, now: dt.datetime | None = None) -> dict[str, Any]:

@@ -132,3 +132,4 @@
 | WP29 -> WP30 (control catalogue): controls are still the three link kinds (rule, pack, monitor). A catalogue control that covers many risks and obligations should add links through `RiskService.add_link`; `control_links()` is the one read point | WP30 |
 | WP29 -> WP31 (transparency report): the report should read `RiskService.agent_summary()` and `export_json()` (plain data, bands marked illustrative) and not the tables | WP31 |
 | WP29: risk evidence rows have no retention beyond the evidence setting (`EVIDENCE_RETENTION_DAYS`), and `risk` rows are never deleted (retire only) | Retention rule agreed with the bank (records management) |
+| WP29 L6: packs scored by a judge model are references only (`RISK_EVIDENCE_JUDGED_PACKS=0`). Whether they may lower a score is an owner decision (rule R1) | Owner decision; if yes, set the switch and name the judge validation gate it depends on |

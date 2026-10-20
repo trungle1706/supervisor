@@ -1,10 +1,13 @@
 """Risk register CLI (WP29). ASCII output.
 
   python -m supervisor.risk list [--agent A] [--band B] [--category C]  risks with scores
-  python -m supervisor.risk import PATH [--dry-run] [--source starter]  import YAML (file/folder)
+  python -m supervisor.risk import PATH --by USER [--dry-run] [--source starter]  import YAML
   python -m supervisor.risk score [--agent A]                           agent levels (inheritance)
   python -m supervisor.risk export --out DIR [--format json|csv|both]   risks.json, CSV files
 
+``import`` has no login: it runs with the operator's own shell and store access, so it needs
+``--by`` (your own user id). The id is written to a ``console_action`` row (permission
+``risks.edit``, method CLI) and, as a keyed hash, to every ``risk_change`` chain record.
 Needs RISK_REGISTER_ENABLED=1. The evidence pass is ``python -m supervisor.jobs.risk_evidence``.
 The starter risks are in config/risks/*.yaml; the bank's own register is imported the same way
 (docs/risk-register.md).
@@ -17,6 +20,7 @@ from supervisor.bootstrap import bootstrap
 bootstrap()
 
 import argparse  # noqa: E402
+import re  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 from typing import TYPE_CHECKING  # noqa: E402
@@ -29,6 +33,14 @@ if TYPE_CHECKING:
 
 def _say(text: str) -> None:
     print(text.encode("ascii", "replace").decode("ascii"))  # noqa: T201
+
+
+def _by(value: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9_.@+-]{1,64}", value):
+        raise argparse.ArgumentTypeError(
+            "--by must be 1 to 64 characters from A-Z a-z 0-9 _ . @ + -"
+        )
+    return value
 
 
 def _cut(text: str, n: int) -> str:
@@ -45,6 +57,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--owner", default="")
     p = sub.add_parser("import")
     p.add_argument("path", type=Path)
+    p.add_argument(
+        "--by",
+        required=True,
+        type=_by,
+        help="who runs this import (your own user id); recorded in the audit row and the chain",
+    )
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--overwrite-manual", action="store_true")
     p.add_argument("--source", choices=("import", "starter"), default="import")
@@ -87,6 +105,24 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
 
+def _audit_import(svc: RiskService, by: str, res: object) -> None:
+    from supervisor.adapters.auth.audit import write_action
+
+    write_action(
+        svc.tables,
+        svc.clock,
+        request_id=None,
+        actor=None,
+        actor_fallback=(by, "operator", "cli"),
+        permission="risks.edit",
+        method="CLI",
+        path="supervisor.risk import",
+        outcome="ok",
+        target_kind="risk",
+        detail="import",
+    )
+
+
 def _do(args: argparse.Namespace, svc: RiskService) -> int:
     if args.cmd == "list":
         rows = svc.list_risks(
@@ -104,7 +140,7 @@ def _do(args: argparse.Namespace, svc: RiskService) -> int:
     elif args.cmd == "import":
         res = svc.import_path(
             args.path,
-            "cli",
+            args.by,
             source=args.source,
             dry_run=args.dry_run,
             overwrite_manual=args.overwrite_manual,
@@ -116,6 +152,8 @@ def _do(args: argparse.Namespace, svc: RiskService) -> int:
         if res.errors:
             _say("[FAIL] nothing was imported")
             return 1
+        if not args.dry_run:
+            _audit_import(svc, args.by, res)
         tag = "dry run: " if args.dry_run else ""
         _say(
             f"[OK] {tag}created={res.created} updated={res.updated} unchanged={res.unchanged} "
