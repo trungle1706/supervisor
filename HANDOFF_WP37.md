@@ -79,7 +79,7 @@ The adversarial thresholds (5000 / 4000 / 3000 bp) were written before the first
 | | Count |
 |---|---|
 | Before (main, v0.3.0, brief) | 3,684 passed |
-| After (this branch, full suite) | 3,800 passed, 29 skipped (live Databricks, perf and optional-extra tests, as before). 115 are new; the brief figure is rounded to the suite it counted |
+| After (this branch, full suite) | 3,800 passed, 29 skipped (live Databricks, perf and optional-extra tests, as before). 115 are new, so the old part is 3,685 passed (the brief says 3,684; I did not get a clean run on main: my first baseline log was overwritten by another agent, see section 8) |
 | New tests | 115 in `tests/detectors/` (contract 35, gate v2 34, routes 12, persistence 10, harness 23, fingerprint 1) plus 1 edited expectation in `tests/test_retention.py` |
 
 Existing tests changed: `tests/test_retention.py` (expected retention-class map gets the `finding`
