@@ -17,6 +17,10 @@ could not load another policy folder or a fact source.
    agrees; otherwise it needs `JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1`, refused in `databricks_app`
    mode. `family_source` (`derived`, `declared-test-only`, `mock`) is stored in every verdict row
    and chain record, the model card and the validation report.
+   Review addition: `JUDGE_FAMILY_STRICT` (default on). Off, it accepts a declared family
+   only for a model id with no derivable family (custom serving endpoint names), as
+   `declared-unverified`, for one release; a clash with the id is always refused, and
+   `mrm validate` fails its `judge_family_derived` check for any declared source.
    Rejected: keep the declaration and only warn (a warning does not stop a qwen judge watching a
    qwen agent); probe always (a network call at every router build, also in tests and CI).
 2. **Challenger scope (D15).** The challenger is checked against registered non-retired agents

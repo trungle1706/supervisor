@@ -60,7 +60,13 @@ FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
     ("qwen", "qwen"),
     ("llama", "meta"),
     ("gemma", "google"),
+    ("gemini", "google"),
     ("deepseek", "deepseek"),
+    # D05: with the derived family an unknown id cannot be judged, so name the Mistral models.
+    ("mistral", "mistral"),
+    ("mixtral", "mistral"),
+    ("ministral", "mistral"),
+    ("codestral", "mistral"),
 )
 _VENDOR_PREFIXES = ("databricks-", "meta-", "anthropic.", "openai/", "us.")
 

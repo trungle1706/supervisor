@@ -37,6 +37,7 @@ from supervisor.core.errors import SupervisorError
 from supervisor.core.ports import EvidenceSink, TableStore
 from supervisor.judge.eval.datasets import build_eval_sets
 from supervisor.judge.eval.harness import run_eval, run_once
+from supervisor.judge.family import VERIFIED_SOURCES
 from supervisor.judge.mockjudge import MockJudgeChat
 from supervisor.judge.mrm._common import (
     MOCK_CHALLENGER_ID,
@@ -297,6 +298,10 @@ def run_validation(
                 "passed": row["passed"],
             }
         )
+    # D05: a judge whose family was declared, not derived, is not an identified model; a
+    # validation of it cannot count (SR 11-7 model identity). Mock and derived pass.
+    unverified = [j for j in (primary.t1, primary.t2) if j.family_source not in VERIFIED_SOURCES]
+    checks.append(_check("judge_family_derived", 0 if unverified else 10000, 10000, ">="))
     failed = [c["name"] for c in checks if not c["passed"]]
     decision = "GO" if not failed else "NO_GO"
 

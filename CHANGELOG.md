@@ -45,6 +45,7 @@ is given for a model whose family cannot be derived) now stops startup. New null
 | `MASK_AMOUNTS` | Types money amounts as `<AMOUNT:...>` in masked text | - |
 | `LLM_STRICT_SCHEMA` (default `0`), `LLM_SEND_TEMPERATURE` (default `1`) | Strict structured output for endpoints that require it | - |
 | `JUDGE_FAMILY_OVERRIDE_TEST_ONLY` | Accepts a declared judge family (tests only) | `JUDGE_FAMILY_PROBE`, `JUDGE_AGENTS` |
+| `JUDGE_FAMILY_STRICT` (default `1`) | `0` = one-release path: a declared family for a model id with no family (custom endpoint name) is accepted as `declared-unverified`; `mrm validate` gives NO_GO | - |
 | `POLICY_DIR`, `FACT_SOURCE` | Served app loads another policy folder and a fact source | `FACT_QUERY_MAP` |
 
 ### Behaviour changes with flags off

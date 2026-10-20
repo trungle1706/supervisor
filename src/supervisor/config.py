@@ -207,6 +207,9 @@ class Settings(BaseSettings):
     # JUDGE_*_FAMILY that disagrees is refused unless this flag is set; never in databricks_app.
     judge_family_override_test_only: bool = False
     judge_family_probe: bool = False  # ask GET /models of the judge endpoint for its family
+    # D05 transition: 0 = a declared family is accepted (warning, family_source
+    # declared-unverified) for a model id that shows no family. A clash is always refused.
+    judge_family_strict: bool = True
     # D15: manifests of these agent ids (CSV) count as judged by the challenger, besides the
     # registered, non-retired agents of the store. Empty = registry only.
     judge_agents: str = ""

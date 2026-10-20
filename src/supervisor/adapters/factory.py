@@ -131,6 +131,7 @@ def make_judge_chat_model(settings: Settings, role: str) -> ChatModel:
             model,
             family,
             override_test_only=settings.judge_family_override_test_only,
+            strict=settings.judge_family_strict,
             endpoint_family=chat.endpoint_family() if settings.judge_family_probe else None,
         )
     except BaseException:

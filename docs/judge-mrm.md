@@ -114,9 +114,10 @@ Each row becomes a check named `pack:<id>:<metric>`; any failed row forces NO_GO
 
 The family-independence rule uses a derived family, not a declared label (ADR D21, details in
 `docs/llm-adapter.md`). The validation report lists `T1 family` and `T2 family` with their
-`family_source` (`derived`, `declared-test-only` or `mock`); the same two values are in the
-`judge_validation` chain record, the model card tier lines and every `verdict` row. A validation
-with `declared-test-only` must not be used as evidence for a go-live. A judge on a strict endpoint
+`family_source` (`derived`, `declared-test-only`, `declared-unverified` or `mock`); the same two
+values are in the `judge_validation` chain record, the model card tier lines and every `verdict`
+row. The check `judge_family_derived` fails (NO_GO) when either source is declared, so such a
+validation cannot be evidence for a go-live. A judge on a strict endpoint
 (Anthropic's OpenAI-compatible endpoint) needs `LLM_STRICT_SCHEMA=1` and `LLM_SEND_TEMPERATURE=0`;
 the report notes that temperature is not sent in that case. The challenger is checked only against
 the agents it judges (`JUDGE_AGENTS`, the registry), so a challenger from the demo agents' family

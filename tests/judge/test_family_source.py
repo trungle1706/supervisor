@@ -92,6 +92,85 @@ def test_default_flags_are_off() -> None:
     assert s.judge_family_override_test_only is False and s.judge_family_probe is False
 
 
+def test_family_strict_defaults_on() -> None:
+    assert load_settings(_env_file=None).judge_family_strict is True
+
+
+def test_strict_off_accepts_declared_family_only_for_an_unknown_id() -> None:
+    """Review D05: JUDGE_FAMILY_STRICT=0 is the one-release path for a custom endpoint name
+    (no family in the id). It never accepts a declaration that clashes with the id."""
+    fam, src = resolve_family(
+        "JUDGE_T1_FAMILY", "tcb-judge-t1", "anthropic", override_test_only=False, strict=False
+    )
+    assert (fam, src) == ("anthropic", "declared-unverified")
+    with pytest.raises(FamilyDeclarationError, match="JUDGE_FAMILY_STRICT=0"):
+        resolve_family("JUDGE_T1_FAMILY", "tcb-judge-t1", "anthropic", override_test_only=False)
+    with pytest.raises(FamilyDeclarationError, match="does not match"):
+        resolve_family(
+            "JUDGE_T1_FAMILY",
+            "qwen3.8-27b-int4",
+            "anthropic",
+            override_test_only=False,
+            strict=False,
+        )
+
+
+def test_strict_off_is_allowed_in_databricks_app_mode() -> None:
+    s = load_settings(
+        _env_file=None,
+        supervisor_mode="databricks_app",
+        judge_family_strict=False,
+        databricks_host="https://adb-1.example.invalid",
+    )
+    assert s.judge_family_strict is False
+
+
+@pytest.mark.parametrize("source", ["declared-unverified", "declared-test-only"])
+def test_validation_is_no_go_for_a_declared_family(
+    monkeypatch: pytest.MonkeyPatch, source: str
+) -> None:
+    """Review D05 (SR 11-7 model identity): a judge whose family was declared, not derived,
+    cannot get a GO from `mrm validate`, whatever its numbers."""
+    import supervisor.judge.mrm.validation as validation
+
+    class Declared:
+        """A non-mock chat (scores from the mock) whose family was declared."""
+
+        is_mock = False
+        family = "anthropic"
+        family_source = source
+
+        def __init__(self, tier: int, model_id: str) -> None:
+            self.model_id, self._inner = model_id, MockJudgeChat(tier)
+
+        def complete_json(self, messages, json_schema, timeout_s=None):  # type: ignore[no-untyped-def]
+            return self._inner.complete_json(messages, json_schema, timeout_s)
+
+    real_factory = validation.router_factory
+
+    def factory(settings, model="mock", *, gullible=False):  # type: ignore[no-untyped-def]
+        if gullible:
+            return real_factory(settings, model, gullible=True)
+        chats = {
+            "t1": Declared(1, model_id="tcb-judge-t1@1"),
+            "t2": Declared(2, model_id="tcb-judge-t2@1"),
+        }
+        return lambda: JudgeRouter.from_settings(settings, chats=chats)
+
+    monkeypatch.setattr(validation, "router_factory", factory)
+    report = run_validation(load_settings(_env_file=None), runs=1, record=False)
+    check = next(c for c in report["checks"] if c["name"] == "judge_family_derived")
+    assert check["passed"] is False and check["value_bp"] == 0
+    assert "judge_family_derived" in report["failed_checks"] and report["decision"] == "NO_GO"
+    assert source in render_md(report)
+
+
+def test_validation_family_check_passes_for_mock() -> None:
+    report = run_validation(load_settings(_env_file=None), runs=1, record=False)
+    check = next(c for c in report["checks"] if c["name"] == "judge_family_derived")
+    assert check["passed"] is True
+
+
 def test_resolve_family_endpoint_disagreement_is_refused() -> None:
     with pytest.raises(FamilyDeclarationError, match="endpoint metadata"):
         resolve_family(

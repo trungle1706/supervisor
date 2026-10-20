@@ -44,7 +44,12 @@ records. Say so in the validation report notes.
 The rule "judge family differs from agent family" only works if the judge family is true. It is
 now taken from the model, in this order:
 
-1. the model id prefix table (`claude` -> anthropic, `gpt` -> openai, `qwen` -> qwen, ...);
+1. the model id prefix table after vendor prefixes are cut (`databricks-`, `meta-`,
+   `anthropic.`, `openai/`, `us.`, and any `org/`): `claude` -> anthropic, `gpt` (also
+   `gpt-oss`) -> openai, `qwen` -> qwen, `llama` -> meta, `gemma` / `gemini` -> google,
+   `deepseek` -> deepseek, `mistral` / `mixtral` / `ministral` / `codestral` -> mistral. So
+   `databricks-claude-*` is anthropic, `databricks-meta-llama-*` is meta and
+   `databricks-gpt-oss-*` is openai;
 2. with `JUDGE_FAMILY_PROBE=1`, the endpoint's own `GET /models` entry (`root`, `id`,
    `display_name`). If the id and the endpoint name different families, startup is refused.
 
@@ -53,10 +58,23 @@ when it agrees with the derived family. Any other declaration, including one for
 family cannot be derived, is refused at startup, unless `JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1`.
 That flag is refused when `SUPERVISOR_MODE=databricks_app`.
 
+Transition flag `JUDGE_FAMILY_STRICT` (default `1`). A Databricks serving endpoint often has a
+custom name (`tcb-judge-t1`) that shows no family, and the test-only override is refused in
+`databricks_app` mode, so such a judge cannot start. For one release, `JUDGE_FAMILY_STRICT=0`
+accepts a declared family for a model id with NO derivable family, logs a warning and writes
+`family_source = declared-unverified`. It never accepts a declaration that clashes with the
+family in the id (that is the D05 attack). It is allowed in every mode. Better: name the
+endpoint after its model (`databricks-claude-...`), or use `JUDGE_FAMILY_PROBE=1` where the
+endpoint reports its weights.
+
+`mrm validate` has a check `judge_family_derived`: it fails (NO_GO) when the Tier 1 or Tier 2
+family source is `declared-test-only` or `declared-unverified`.
+
 | `family_source` | Meaning |
 |---|---|
 | `derived` | From the model id / endpoint metadata (a declaration that agrees counts as derived) |
-| `declared-test-only` | Declared under the test-only override. Do not use for a validation that counts |
+| `declared-test-only` | Declared under the test-only override. `mrm validate` gives NO_GO |
+| `declared-unverified` | Declared with `JUDGE_FAMILY_STRICT=0` for an id with no family. `mrm validate` gives NO_GO |
 | `mock` | Mock judge (no real model) |
 
 `family_source` is written to: every judge verdict row (`verdict.family_source`, new column) and
