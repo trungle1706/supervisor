@@ -86,8 +86,16 @@ def _default_signed_transport(
     return post_bytes(url, body, dict(headers), timeout_s)
 
 
+GATE_PATH = "/v1/gate/check"
+LEGACY_GATE_PATH = "/gate/check"  # deprecated alias, used only as a fallback on 404
+
+
 class HttpGate:
-    """GateHook that POSTs to ``{base_url}/gate/check``; applies the fail mode locally.
+    """GateHook that POSTs to ``{base_url}/v1/gate/check`` (D12); applies the fail mode locally.
+
+    A server that answers 404 on the versioned path (an older Supervisor) is retried once
+    on the legacy ``/gate/check`` and the SDK then keeps using it. A signed request signs
+    the path it actually sends (method + path are covered by the WP20 signature).
 
     With ``credential`` (WP20, ingress auth) every request carries the agent's signature or
     bearer token (``gateway/ingress_sign.py``) and goes through ``signed_transport``. Without
@@ -109,6 +117,7 @@ class HttpGate:
         self.timeout_s = timeout_s
         self.transport: Transport = transport or _default_transport
         self.fail_modes: dict[str, str] = dict(fail_modes or {})
+        self.gate_path = GATE_PATH
 
     def _fallback(self, tool_name: str, t0: float) -> dict[str, Any]:
         latency = int((time.perf_counter() - t0) * 1000)
@@ -151,20 +160,29 @@ class HttpGate:
                 return _closed_decision("GATE-AUTH", "gateway refused the credential", t0)
             return self._fallback(tool_name, t0)
 
+    def _send(self, path: str, payload: dict[str, Any]) -> Mapping[str, Any]:
+        url = f"{self.base_url}{path}"
+        if self.credential is None:
+            return self.transport(url, payload, self.timeout_s)
+        body = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode()
+        headers = self.credential.headers_for("POST", urlparse(url).path, body)
+        headers["Content-Type"] = "application/json"
+        return self.signed_transport(url, body, headers, self.timeout_s)
+
     def _call(self, payload: dict[str, Any]) -> Mapping[str, Any]:
         """Run the transport with a hard deadline, even if the transport ignores it."""
         box: dict[str, Any] = {}
 
         def run() -> None:
             try:
-                url = f"{self.base_url}/gate/check"
-                if self.credential is None:
-                    box["value"] = self.transport(url, payload, self.timeout_s)
-                else:
-                    body = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode()
-                    headers = self.credential.headers_for("POST", urlparse(url).path, body)
-                    headers["Content-Type"] = "application/json"
-                    box["value"] = self.signed_transport(url, body, headers, self.timeout_s)
+                try:
+                    box["value"] = self._send(self.gate_path, payload)
+                except Exception as exc:  # noqa: BLE001
+                    status = getattr(getattr(exc, "response", None), "status_code", None)
+                    if status != 404 or self.gate_path != GATE_PATH:
+                        raise
+                    box["value"] = self._send(LEGACY_GATE_PATH, payload)
+                    self.gate_path = LEGACY_GATE_PATH  # an older server: stop probing
             except BaseException as exc:  # noqa: BLE001
                 box["error"] = exc
 
