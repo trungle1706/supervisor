@@ -1,0 +1,21 @@
+{# Row drawer content (WP-UX1). The <aside id="drawer"> container lives in base.html; this
+   macro fills it. Header: previous / next row, Copy JSON, close. console.js shows the
+   container when htmx swaps into it, moves focus to the title, closes on Esc and returns
+   focus to the row link. `pills` and `tabs_html` are safe HTML; the call block is the body. #}
+{% macro drawer(title, pills, tabs_html, json_text, prev_href=None, prev_hx=None, next_href=None, next_hx=None) %}
+<div class="drawer-head">
+  <span class="nav2">
+    {% if prev_href %}<a class="chipbtn" href="{{ prev_href }}" hx-get="{{ prev_hx }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('drawer_prev') }}" title="{{ t('drawer_prev') }}">↑</a>{% endif %}
+    {% if next_href %}<a class="chipbtn" href="{{ next_href }}" hx-get="{{ next_hx }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('drawer_next') }}" title="{{ t('drawer_next') }}">↓</a>{% endif %}
+  </span>
+  <h2 id="drawer-title" tabindex="-1">{{ title }}</h2>
+  <span class="acts">
+    <button type="button" class="chipbtn" data-copy="#drawer-json">{{ t('copy_json') }}</button>
+    <button type="button" class="chipbtn" data-drawer-close aria-label="{{ t('drawer_close') }}">✕</button>
+  </span>
+</div>
+{% if pills %}<div class="drawer-pills">{{ pills }}</div>{% endif %}
+{{ tabs_html }}
+<div class="drawer-body" id="tab-body">{{ caller() }}</div>
+<pre id="drawer-json" hidden>{{ json_text }}</pre>
+{% endmacro %}

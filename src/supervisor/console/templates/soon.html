@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t(title_key) }}{% endblock %}
+{% block content %}
+{{ ui.pagehead(t(title_key), ui.pill(t('soon_pill'), 'neutral')) }}
+{{ ui.empty(t('soon_line'), t('soon_why'), '/console/?lang=' ~ lang, t('nav_overview')) }}
+{% endblock %}

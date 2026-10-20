@@ -1,0 +1,13 @@
+{# Reduced top bar for the sidebar layout: menu button (narrow screens), global search, and the
+   shared right-hand cluster (env badge, inbox, language, theme, role, user menu). #}
+{% set sh = shell() %}
+<header class="topbar">
+  <button type="button" class="chipbtn menu-btn" data-side-open aria-controls="sidebar" aria-expanded="false" aria-label="{{ t('nav_menu') }}"><span aria-hidden="true">&#9776;</span></button>
+  <form class="gsearch" role="search" action="/console/search" method="get">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <label class="sr" for="gsearch-q">{{ t('search_label') }}</label>
+    <input id="gsearch-q" type="search" name="q" placeholder="{{ t('search_placeholder') }}" maxlength="64" autocomplete="off" aria-controls="search-results" hx-get="/console/search" hx-include="closest form" hx-trigger="keyup changed delay:300ms, search" hx-target="#search-results" hx-push-url="false">
+    <div id="search-results" class="search-pop" aria-live="polite"></div>
+  </form>
+  {% include "_c_who.html" %}
+</header>

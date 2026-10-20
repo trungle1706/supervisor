@@ -154,6 +154,10 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/v1/inventory/unmanaged"): "inventory.view",
     ("GET", "/v1/inventory/{agent_id}"): "inventory.view",
     ("GET", "/console/exports/{name}"): "evidence.download",
+    ("GET", "/console/search"): "console.view",  # WP-UX1, read-only
+    ("GET", "/console/soon/{page}"): "console.view",  # WP-UX1 placeholder pages
+    ("GET", "/console/agents/rows"): "console.view",
+    ("GET", "/console/agents/{agent_id}/drawer"): "console.view",
     ("GET", "/console/tools"): "tools.view",  # WP22
     ("GET", "/console/tools/{agent_id}/diff"): "tools.download",
     ("GET", "/v1/analytics/tools"): "tools.view",

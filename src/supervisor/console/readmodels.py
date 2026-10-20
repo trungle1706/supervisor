@@ -107,6 +107,21 @@ def open_cases(ctx: Any) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------- shell
 
 
+def signoff_waiting(ctx: Any, cases: list[dict[str, Any]]) -> int:
+    """Open high / critical cases that still need a sign-off (fewer than two approvals)."""
+    from supervisor.cases.service import TWO_PERSON_SEVERITIES
+
+    n = 0
+    try:
+        for c in cases:
+            if c["severity"] in TWO_PERSON_SEVERITIES and c["status"] in ("triaged", "contained"):
+                if len(ctx.cases._approvals(c["case_id"])) < 2:  # noqa: SLF001 - read-only count
+                    n += 1
+    except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
+        return 0
+    return n
+
+
 def shell(ctx: Any, me: Any) -> dict[str, Any]:
     """Header data for every full page: counts on the pills, environment badge, identity."""
     agents = ctx.state.query("agent")
@@ -121,7 +136,14 @@ def shell(ctx: Any, me: Any) -> dict[str, Any]:
             inventory_n = len(ctx.state.query("inventory_node", {"status": "unmanaged"}))
         except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
             inventory_n = 0
+    try:  # WP-UX1: open alerts on the Alerts item (the section still lives on Metrics)
+        alerts_n = int(ctx.alerts.counts().get("open", 0))
+    except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
+        alerts_n = 0
     return {
+        "alerts_n": alerts_n,
+        "signoff_n": signoff_waiting(ctx, cases),
+        "placeholders": bool(getattr(ctx.settings, "console_nav_placeholders", False)),
         "inventory_n": inventory_n,
         "agents_n": len(agents),
         "cases_n": len(cases),

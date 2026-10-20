@@ -1,0 +1,34 @@
+{# Agents table + pager: the swap target #list of the agents page (WP-UX1 list components). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+<div class="tablewrap">
+<table class="queue agents-tbl">
+  <caption class="sr">{{ t('agents') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('agent_id', t('agent'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
+      {{ tb.th('state', t('state'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
+      {{ tb.th('owner_team', t('owner'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
+      {{ tb.th('risk_tier', t('risk'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
+      {{ tb.th('coverage', t('coverage'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
+      {{ tb.th('open_cases', t('cases'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs, numeric=True) }}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for a in page.items %}
+    {% set dq = list_qs ~ '&lang=' ~ lang %}
+    <tr class="row" data-row="{{ a.agent_id }}">
+      <td><a class="head rowlink" href="/console/agents?drawer={{ a.agent_id }}&amp;{{ dq }}" hx-get="/console/agents/{{ a.agent_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ a.agent_id }}</a><div class="idline">{{ a.name }}</div></td>
+      <td>{{ ui.state_pill(a.state) }}</td>
+      <td>{{ a.owner_team or '-' }}</td>
+      <td>{{ t(a.risk_tier) if a.risk_tier else '-' }}</td>
+      <td>{% set bp = a.coverage.bp %}<span class="mono">{{ '%d%%'|format(bp // 100) if bp is not none else '-' }}</span></td>
+      <td class="n">{{ a.open_cases }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">{{ ui.empty(t('no_agents'), t('no_agents_filtered')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/agents', '/console/agents/rows', list_qs) }}

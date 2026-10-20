@@ -22,29 +22,22 @@
 </div>
 
 <div class="grid g4" id="numbers">
-  <div class="card" data-num="checked">
-    <h3>{{ t('num_checked') }}</h3>
-    <div class="bignum">{{ g.checked }}{% if g.capped %}+{% endif %}</div>
-    <div class="sub">{{ t('num_checked_sub', n=g.agents) }}{% if g.median_ms is not none %} · {{ t('median_ms', ms=g.median_ms) }}{% endif %}</div>
-  </div>
-  <div class="card" data-num="stopped">
-    <h3>{{ t('num_stopped') }}</h3>
-    <div class="bignum">{{ g.stopped }}<small>{{ t('blocked_paused', b=g.blocked, p=g.paused) }}</small></div>
-    <div class="sub">{{ t('num_stopped_sub') }}{% if g.stop_median_ms is not none %} · {{ t('median_ms', ms=g.stop_median_ms) }}{% endif %}</div>
-  </div>
-  <a class="card" data-num="cases" href="/console/cases?lang={{ lang }}" style="text-decoration:none;color:inherit">
-    <h3>{{ t('num_cases') }}</h3>
-    <div class="bignum">{{ ov.cases_n }}{% if ov.critical_n %}<small>{{ t('n_critical', n=ov.critical_n) }}</small>{% endif %}</div>
-    <div class="sub">{{ t('num_cases_sub', n=ov.clock_running_n) }}</div>
-  </a>
-  <a class="card" data-num="chain" href="/console/evidence?lang={{ lang }}" style="text-decoration:none;color:inherit">
+{% set v_checked %}{{ g.checked }}{% if g.capped %}+{% endif %}{% endset %}
+{% set s_checked %}{{ t('num_checked_sub', n=g.agents) }}{% if g.median_ms is not none %} · {{ t('median_ms', ms=g.median_ms) }}{% endif %}{% endset %}
+{{ ui.stat(t('num_checked'), v_checked, s_checked, 'checked') }}
+{% set v_stopped %}{{ g.stopped }}<small>{{ t('blocked_paused', b=g.blocked, p=g.paused) }}</small>{% endset %}
+{% set s_stopped %}{{ t('num_stopped_sub') }}{% if g.stop_median_ms is not none %} · {{ t('median_ms', ms=g.stop_median_ms) }}{% endif %}{% endset %}
+{{ ui.stat(t('num_stopped'), v_stopped, s_stopped, 'stopped') }}
+{% set v_cases %}{{ ov.cases_n }}{% if ov.critical_n %}<small>{{ t('n_critical', n=ov.critical_n) }}</small>{% endif %}{% endset %}
+{{ ui.stat(t('num_cases'), v_cases, t('num_cases_sub', n=ov.clock_running_n), 'cases', '/console/cases?lang=' ~ lang) }}
+  <a class="card stat" data-num="chain" href="/console/evidence?lang={{ lang }}">
     <h3>{{ t('chain') }}</h3>
     <div style="margin:4px 0 2px">{{ ui.verify_pill(ov.chain.verify) }}</div>
     <div class="sub">{{ t('n_entries', n=ov.chain.entries) }} · {% if ov.chain.signed %}{{ t('signed_root') }}{% else %}{{ t('no_signed_root') }}{% endif %} · {% if ov.chain.anchored %}{{ t('anchored') }}{% else %}{{ t('not_anchored') }}{% endif %}</div>
   </a>
 </div>
 
-<h2 class="sec">{{ t('latest_decisions') }} <a href="/console/cases?lang={{ lang }}">{{ t('all_cases') }} →</a></h2>
+<h2 class="sec">{{ t('latest_decisions') }} <a href="{{ '/console/soon/decisions' if shell().placeholders else '/console/cases' }}?lang={{ lang }}">{{ t('see_all') if shell().placeholders else t('all_cases') }} →</a></h2>
 {% if ov.latest %}
 <div class="strip" id="latest">
   {% for d in ov.latest %}
@@ -58,7 +51,7 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="card empty">{{ t('no_decisions') }}</div>
+{{ ui.empty(t('no_decisions'), t('no_decisions_line')) }}
 {% endif %}
 {% if ov.demo %}<div class="note">{{ t('demo_note') }}</div>{% endif %}
 {% endblock %}

@@ -39,14 +39,17 @@ from supervisor.adapters.auth.authz import needs
 from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
 from supervisor.cases.service import RESOLUTIONS, SEVERITIES, CaseError, PermissionDenied
 from supervisor.console import (
+    agents_list,
     assurance_views,
     auditpack,
     compliance_view,
     health,
     integration_reports,
     inventory_views,
+    nav,
     onboard_runs,
     readmodels,
+    search,
     tools_views,
     views,
 )
@@ -145,15 +148,21 @@ def render(
 
     data.setdefault("section", "")
     data["compliance_enabled"] = bool(ctx.settings.console_compliance_enabled)  # WP14 nav link
+    compliance_on = data["compliance_enabled"]
+    integration_on = bool(ctx.settings.console_integration_enabled)
     body = _env.get_template(template).render(
         t=translator(lang),
         dur=lambda secs: views.duration_text(secs, lang),
         shell=shell,
+        side_nav=ctx.settings.console_nav != "top",  # CONSOLE_NAV=top is the rollback
+        nav_groups=lambda: nav.groups(
+            shell(), compliance=compliance_on, integration=integration_on, lang=lang
+        ),
         lang=lang,
         other_lang="vi" if lang == "en" else "en",
         me=me,
         mode=ctx.settings.supervisor_mode,
-        integration_on=bool(ctx.settings.console_integration_enabled),
+        integration_on=integration_on,
         auth_kind=ctx.provider.name,
         known_users=ctx.provider.known_users(),
         now=ctx.clock.now(),
@@ -634,10 +643,59 @@ def _agents_data(ctx: ConsoleContext, me: AuthPrincipal) -> dict[str, Any]:
     return {"agents": readmodels.agent_cards(ctx, me)}
 
 
+def _agents_page_data(
+    ctx: ConsoleContext, me: AuthPrincipal, query: Mapping[str, str]
+) -> dict[str, Any]:
+    data = _agents_data(ctx, me)
+    data.update(agents_list.list_view(data["agents"], query))
+    return data
+
+
 @router.get("/agents", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def agents(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
-    data = await _call(_agents_data, ctx, me)
+    query = dict(request.query_params)
+    data = await _call(_agents_page_data, ctx, me, query)
+    opened = query.get("drawer")
+    if opened:  # no-JS fallback of the row drawer: the same content, rendered with the page
+        _check_id(opened, "agent id")
+        dq = {k: v for k, v in query.items() if k not in ("drawer", "dtab", "lang")}
+        data["drawer"] = await _call(
+            agents_list.drawer_view,
+            ctx,
+            data["agents"],
+            opened,
+            query.get("dtab") or "overview",
+            dq,
+        )
+        data["drawer_open"] = True
     return render(request, ctx, me, "agents.html", section="agents", **data)
+
+
+@router.get(
+    "/agents/rows", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def agents_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    data = await _call(_agents_page_data, ctx, me, dict(request.query_params))
+    return render(request, ctx, me, "_agents_list.html", **data)
+
+
+@router.get(
+    "/agents/{agent_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("console.view"))],
+)
+async def agent_drawer(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _check_id(agent_id, "agent id")
+    query = dict(request.query_params)
+    tab = query.pop("tab", "overview")
+    query.pop("lang", None)
+    cards = await _call(readmodels.agent_cards, ctx, me)
+    data = await _call(agents_list.drawer_view, ctx, cards, agent_id, tab, query)
+    return render(request, ctx, me, "_agent_drawer.html", drawer=data)
 
 
 def _policy_precheck(ctx: ConsoleContext, agent_id: str, action: str, me: AuthPrincipal) -> None:
@@ -731,9 +789,17 @@ async def agent_action(
         msg = f"{agent_id}: {action} -> {result.get('state')}"
     if warn:
         msg += f" (WARNING: the console evidence record failed: {warn}; see the server log)"
-    data = await _call(_agents_data, ctx, me)
+    data = await _call(_agents_page_data, ctx, me, {})
     resp = render(request, ctx, me, "_agents_table.html", **data)
-    resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
+    # the list above the cards shows the new state too (out-of-band swap, default filters)
+    oob = render(request, ctx, me, "_agents_list.html", **data).body
+    resp.body = (
+        resp.body
+        + b'<div id="list" hx-swap-oob="innerHTML">'
+        + oob
+        + b"</div>"
+        + message_html(msg, ok=True, oob=True).encode()
+    )
     resp.headers["content-length"] = str(len(resp.body))
     return resp
 
@@ -790,7 +856,7 @@ async def metrics(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     data = await _call(_metrics_data, ctx)
-    return render(request, ctx, me, "metrics.html", **data)
+    return render(request, ctx, me, "metrics.html", section="metrics", **data)
 
 
 @router.post(
@@ -1225,6 +1291,44 @@ async def inventory_page(
     return render(request, ctx, me, "inventory.html", section="inventory", **data)
 
 
+# ---------------------------------------------------------------------------- search, soon
+
+
+@router.get("/search", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
+async def global_search(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Top-bar search: agents, cases and exact trace ids. htmx gets the popover partial, a
+    plain GET (no JS) gets a full page."""
+    found = await _call(search.run, ctx, request.query_params.get("q"))
+    if request.headers.get("hx-request") == "true":
+        return render(request, ctx, me, "_search_results.html", found=found)
+    return render(request, ctx, me, "search.html", found=found)
+
+
+@router.get(
+    "/soon/{page}", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def soon_page(
+    page: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Placeholder for pages that WP-UX3 builds. HTTP 400 unless CONSOLE_NAV_PLACEHOLDERS=1."""
+    if page not in nav.PLACEHOLDERS:
+        raise ConsoleInputError("unknown page")
+    if not ctx.settings.console_nav_placeholders:
+        raise ConsoleInputError(
+            "This page is not built yet (CONSOLE_NAV_PLACEHOLDERS=1 shows its placeholder)"
+        )
+    return render(
+        request,
+        ctx,
+        me,
+        "soon.html",
+        section=f"soon-{page}",
+        title_key=nav.PLACEHOLDERS[page],
+    )
+
+
 # ---------------------------------------------------------------------------- health
 
 
@@ -1242,7 +1346,7 @@ async def health_page(
 @router.get("/inbox", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def inbox(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     notices = await _call(ctx.inbox.list)
-    return render(request, ctx, me, "inbox.html", notices=notices)
+    return render(request, ctx, me, "inbox.html", section="inbox", notices=notices)
 
 
 @router.post(

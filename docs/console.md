@@ -23,20 +23,111 @@ Open `http://127.0.0.1:8000/` (it redirects to `/console/`).
 
 ## Layout
 
-One header row: brand mark, pill navigation with counts (agents, open cases; the case count
-turns red when a case is critical), environment badge (`laptop`, `databricks_app`, plus
-`demo data` when `DATA_DIR` is a demo store), inbox, language, theme, the role pill and the
-avatar (the menu shows the user id, the sign-in method, the roles and, on the laptop, the
-dev user switch). Every screen opens with a one-sentence purpose box and a "why" line.
+Since WP-UX1 (phase 3) the default layout has a **left sidebar** and a reduced **top bar**
+(the structure follows the owner's reference console; colours, type and wording are ours).
 
-Brand colour: one CSS token, `--brand` in `static/console.css` (E4002B, a placeholder for the
-Techcombank brand-guide value). Gold is used only for evidence and signatures. Status is
-always a word in a coloured pill.
+```
++-----------------+--------------------------------------------------------------+
+| supervisor  [<<]| [ Search agents, cases, traces ]   laptop  inbox  EN.vi  role |
+| Overview        +--------------------------------------------------------------+
+| WATCH           | Watch / Agents                                                |
+|  Agents      n  | Page header: title . pills . [actions]                        |
+|  Gate decisions | purpose line and why line                                     |
+|  Traces         | (tiles) (filter bar)                                          |
+|  Alerts      n  | table with sortable headers and a pager       +-------------+ |
+| ACT             |                                                | row drawer  | |
+|  Cases  Sign-off|                                                | tabs        | |
+|  Inbox          |                                                +-------------+ |
+| PROVE           +--------------------------------------------------------------+
+|  Evidence ...   | footer: version . mode . ICT time                             |
++-----------------+--------------------------------------------------------------+
+```
+
+Every screen opens with a one-sentence purpose box and a "why" line. Brand colour: one CSS
+token, `--brand` in `static/console.css` (E4002B, a placeholder for the Techcombank brand-guide
+value). Gold is used only for evidence and signatures. Status is always a word in a coloured
+pill.
+
+Sidebar groups and items (`console/nav.py` holds the list):
+
+| Group | Items |
+|---|---|
+| (top) | Overview |
+| Watch | Agents (count), Gate decisions, Traces, Alerts (open count; opens the Alerts section of Metrics) |
+| Act | Cases (count, red when a case is critical), Sign-off (cases waiting for a signature; opens the open-case list until WP-UX2 adds a list page), Inbox (unread) |
+| Prove | Evidence, Assurance (flag), Compliance (flag) |
+| Onboard | Onboard, Inventory (flag; unmanaged count), Integration (flag) |
+| Analytics | Tools (flag), Metrics |
+| Settings | Policies, Credentials, Users and roles, Audit log, Integrations, Health |
+
+* Items for pages that do not exist yet (Gate decisions, Traces, Policies, Credentials, Users
+  and roles, Audit log, Settings > Integrations) open a placeholder page ("coming in WP-UX3").
+  They show only when `CONSOLE_NAV_PLACEHOLDERS=1`; with the flag off the link is hidden and
+  `/console/soon/<page>` answers HTTP 400 with a message. WP-UX3 replaces each placeholder with
+  its page and its own flag.
+* Flagged pages (Compliance, Integration, Assurance, Tools, Inventory) show only when their
+  flag is on, exactly as before. Hidden navigation is not security: every route still checks its
+  permission (`core/rbac.py`).
+* The sidebar collapses to one letter per item (button `<<`; the choice is kept in the browser
+  only). Under 1100 px it hides behind the menu button. Arrow keys move between items.
+* Top bar: environment and data badge, **global search** (`GET /console/search?q=`: agents and
+  cases by id or name, traces by exact trace id; at least 2 characters; 5 hits per kind; it
+  works with htmx as a popover and without JS as a page), inbox with the unread count, `EN . vi`
+  switch, theme button, role pill and the user menu (with "Switch user" in `dev_header` mode).
+* Accessibility: skip link to `#main`, `aria-current="page"` on the active item, `aria-sort`
+  on sorted columns, `aria-live` on the flash area and the search results, visible focus ring,
+  Esc closes the drawer and the search popover and focus returns to the row. No inline script
+  (the content security policy stays `script-src 'self'`).
+
+### CONSOLE_NAV: the rollback
+
+| Value | Layout |
+|---|---|
+| `sidebar` (default) | The layout above |
+| `top` | The phase 2 header: one row of pills, with the count badges, and the same right-hand cluster. Pages render the same content inside it |
+
+Windows cmd: `set CONSOLE_NAV=top` and restart. Nothing else changes: the same routes, the same
+templates below the header, the same tests. The pages migrated in WP-UX1 (Overview, Agents)
+keep working in `top` mode.
+
+### Components
+
+Server-rendered Jinja2 macros and partials; htmx only; the CSS is in `static/console.css`
+(same colour tokens, no new colours); `static/console.js` holds the small glue (sidebar,
+drawer, tab keys).
+
+| Component | Where | Notes |
+|---|---|---|
+| Sidebar nav | `_c_sidebar.html`, `console/nav.py` | Counts come from `readmodels.shell()` (agents, cases, critical, alerts, sign-off, unread, inventory) |
+| Top bar | `_c_topbar.html`, `_c_who.html` | `_c_who.html` is shared with the `top` header |
+| Breadcrumb | `ui.crumbs(items)` | `aria-current` on the last item |
+| Page header with actions | `ui.pagehead(title, pills)` with a `call` block for actions | Reuses `.pagehead` |
+| Tiles as filter | `ui.tiles(items, url, rows_url)` | Each tile is a link that sets one filter |
+| Filter bar | `ui.filterbar(...)` | A plain GET form; with htmx it swaps the rows partial |
+| Data table | `_c_table.html`: `tb.th` (sort link, `aria-sort`) and `tb.pager`; `console/listing.py`: `paginate`, `parse_sort` (allow-listed columns), `sort_rows` | Works without JS. A page outside 1..N is HTTP 400, never 500. An unknown sort column falls back to the default |
+| Status pills | `ui.pill`, `ui.sev`, `ui.state_pill`, `ui.verify_pill`, new `ui.action_pill` | A word plus a colour, never a colour alone |
+| Row drawer | `_c_drawer.html` (`dr.drawer`), container in `base.html`, `_agent_drawer.html` | Side panel with previous / next row, Copy JSON, close, tabs. Opens by htmx; `?drawer=<id>` is the no-JS fallback |
+| Tabs | `ui.tabs(...)` | `role=tablist`; arrow keys; htmx or a full page |
+| Key-value panel | `ui.kv(rows)` | Third item `True` = monospace |
+| Timeline | `ui.timeline(items)` | Reuses `.timeline` |
+| Empty state | `ui.empty(title, line, href, label)` | |
+| Stat tile, bar cell | `ui.stat(...)`, `ui.barcell(value, max)` | CSS bar, no chart library |
+| Toast | `ui.toast(message, kind)`; `#flash` | An ok message fades after 6 s by CSS only |
+
+Migrated in WP-UX1 as proof: **Overview** (stat tiles, empty state, "see all" link) and
+**Agents** (breadcrumb, page header, state tiles, filter bar, sortable paged table, row drawer
+with tabs Overview / Policy / Cases). Pause, resume and quarantine stay in the agent cards under
+the table ("Lifecycle and controls") until WP-UX2 adds the agent page; the action answers also
+refresh the table. The other pages render inside the new shell unchanged.
+
+Not done (WP-UX2 and WP-UX3): see `BACKLOG.md`.
 
 ## Screens
 
 | Screen | URL | What it shows | Actions |
 |---|---|---|---|
+| Search | `/console/search?q=` | Agents, cases and exact trace ids that match (WP-UX1). Read-only | - |
+| Placeholders | `/console/soon/<page>` | "Coming in WP-UX3" for seven pages (WP-UX1, needs `CONSOLE_NAV_PLACEHOLDERS=1`) | - |
 | Overview | `/console/` | Greeting by the ICT hour with the live counts (agents under supervision, actions stopped today, cases needing a decision, nearest SBV clock); what Supervisor is; the three pillars; four numbers from the stores (gate decisions today and median latency; stops split blocked / paused; open cases with the critical count; evidence chain entries, signed root, anchor, last verify); latest gate decisions (the newest stops always included) linked to their cases; the demo-data line on a demo store. | - |
 | Agents | `/console/agents` | One card per agent, attention first: state pill with the rule or person that paused / quarantined it, owner, risk, Decision 33 class (registry, else the Onboard proposal), model and judge family (`mock` labelled), lifecycle stepper (Discover .. Operate; registered = Operate, SHADOW = Launch), coverage bar (capabilities on; else the daily metric; else gated / seen tool calls; planned capabilities named, never counted), open cases, tools (count, money-moving, fail mode). | The one relevant action with its rule under it: Pause now (one click); Approve resume (shows the pending approval, who you are, disabled after your own approval); Quarantine / Release (admin, reason required). These call the gateway state machine in-process. |
 | Cases | `/console/cases` | Severity, agent, a plain headline built from the stopping rule and the stopped tool (rule id and case id under it), opened-by pill (gate / judge / monitor / person), SBV 24 h clock as a bar and text, status, assignee. Filters: severity, agent, opened by; Open / Archive / All. Refreshes every 30 s. | Refresh cases: the explicit case intake (a GET never writes). |
@@ -229,6 +320,8 @@ set that header.
 | `USERS_FILE` | `config\users.yaml` | Dev users (laptop) |
 | `AUTH_CONFIG_FILE` | `config\auth.yaml` | Role map (Databricks App) |
 | `CONSOLE_LANG` | `en` | Default UI language (`en` or `vi`) |
+| `CONSOLE_NAV` | `sidebar` | WP-UX1: `sidebar` (left sidebar, default) or `top` (the phase 2 pill header). One setting rolls the layout back. Windows cmd: `set CONSOLE_NAV=top` |
+| `CONSOLE_NAV_PLACEHOLDERS` | `0` | WP-UX1: show the sidebar links of pages that WP-UX3 builds (Gate decisions, Traces, Policies, Credentials, Users and roles, Audit log, Integrations); they open a "coming in WP-UX3" page. Off: links hidden, `/console/soon/<page>` answers 400 |
 | `CONSOLE_ONBOARD_ENABLED` | `0` | WP12: the Onboard screen may start runs (new feature, off by default) |
 | `ONBOARD_COMPLIANCE_ENABLED` | `0` | WP14: the onboarding run also writes `compliance_matrix.json`, `.md` and `.html` (advisory only) |
 | `CONSOLE_COMPLIANCE_ENABLED` | `0` | WP14: the Compliance tab (`/console/compliance`, read-only, advisory only) |

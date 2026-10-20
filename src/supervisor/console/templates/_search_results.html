@@ -1,0 +1,20 @@
+{# Global search hits (htmx popover and the no-JS page). Variable: found (console/search.run). #}
+{% import "_ui.html" as ui with context %}
+{% if found.q|length < 2 %}
+  <p class="muted sr-hint">{{ t('search_min') }}</p>
+{% elif not (found.agents or found.cases or found.traces) %}
+  <p class="muted">{{ t('search_none', q=found.q) }}</p>
+{% else %}
+  {% if found.agents %}
+  <h3 class="sres-h">{{ t('agents') }}</h3>
+  <ul class="sres">{% for a in found.agents %}<li><a href="/console/agents?q={{ a.agent_id }}&amp;lang={{ lang }}">{{ a.agent_id }}</a> <span class="muted">{{ a.name }}</span></li>{% endfor %}</ul>
+  {% endif %}
+  {% if found.cases %}
+  <h3 class="sres-h">{{ t('cases') }}</h3>
+  <ul class="sres">{% for c in found.cases %}<li><a href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{{ c.case_id }}</a> {{ ui.sev(c.severity) }} <span class="muted">{{ c.agent_id }}</span></li>{% endfor %}</ul>
+  {% endif %}
+  {% if found.traces %}
+  <h3 class="sres-h">{{ t('nav_traces') }}</h3>
+  <ul class="sres">{% for r in found.traces %}<li><span class="mono">{{ r.trace_id }}</span> <a href="/console/agents?q={{ r.agent_id }}&amp;lang={{ lang }}">{{ r.agent_id }}</a></li>{% endfor %}</ul>
+  {% endif %}
+{% endif %}

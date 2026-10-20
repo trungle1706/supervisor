@@ -1,0 +1,54 @@
+{# Row drawer of the agents list: tabs Overview / Policy / Cases. Variable: drawer (agents_list.drawer_view). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set a = drawer.a %}
+{% set tab = drawer.tab %}
+{% set qs = drawer.qs %}
+{% set base = '/console/agents/' ~ a.agent_id ~ '/drawer?tab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set page_base = '/console/agents?drawer=' ~ a.agent_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set pills %}{{ ui.state_pill(a.state) }}{% if a.risk_tier %} {{ ui.pill(t('risk') ~ ' ' ~ t(a.risk_tier), 'neutral') }}{% endif %}{% if a.judge.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}{% endset %}
+{% set labels = {'overview': t('dtab_overview'), 'policy': t('dtab_policy'), 'cases': t('dtab_cases')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base, counts={'policy': a.rules_n, 'cases': a.open_cases}) }}{% endset %}
+{% set prev_href = ('/console/agents?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/agents/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/agents?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/agents/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% call dr.drawer(a.agent_id, pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {% if tab == 'overview' %}
+    {{ ui.kv([
+      (t('name'), a.name),
+      (t('owner'), a.owner_team),
+      (t('risk'), t(a.risk_tier) if a.risk_tier else None),
+      (t('model_family'), a.model_family),
+      (t('judge_family'), a.judge.family),
+      (t('coverage'), ('%d%%'|format(a.coverage.bp // 100)) if a.coverage.bp is not none else None),
+      (t('cases'), a.open_cases),
+      (t('tools'), a.tools_n),
+    ]) }}
+    <p class="btnrow"><a class="btn" href="/console/agents?lang={{ lang }}#controls">{{ t('agent_controls') }}</a></p>
+  {% elif tab == 'policy' %}
+    {% if drawer.rules %}
+    <div class="tablewrap flat"><table>
+      <thead><tr><th scope="col">{{ t('rule_word') }}</th><th scope="col">{{ t('action') }}</th><th scope="col">{{ t('severity') }}</th><th scope="col">{{ t('fail_mode') }}</th></tr></thead>
+      <tbody>
+      {% for r in drawer.rules %}
+        <tr><td><span class="mono">{{ r.rule_id }}</span><div class="idline">{{ r.description }}</div></td><td>{{ ui.action_pill(r.action) }}</td><td>{{ ui.sev(r.severity) if r.severity else '-' }}</td><td>{{ r.fail_mode or '-' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    {{ ui.empty(t('no_rules'), t('no_rules_line')) }}
+    {% endif %}
+  {% else %}
+    {% if drawer.cases %}
+    <ul class="drawer-list">
+      {% for c in drawer.cases %}
+      <li><a href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{{ c.case_id }}</a> {{ ui.sev(c.severity) }} <span class="pill neutral">{{ t(c.status) }}</span>
+        <div class="idline">{% set h = c.head %}{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary[:160] }}{% endif %}</div></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    {{ ui.empty(t('no_cases'), t('no_cases_agent')) }}
+    {% endif %}
+  {% endif %}
+{% endcall %}

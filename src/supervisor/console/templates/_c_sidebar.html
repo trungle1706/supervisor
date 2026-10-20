@@ -1,0 +1,26 @@
+{# Left sidebar (CONSOLE_NAV=sidebar). Groups and items come from console/nav.py through
+   nav_groups(); an item shows only when its flag is on. Collapse state is a per-browser
+   convenience (localStorage, console.js); without JS the sidebar is always open. #}
+<aside class="side" id="sidebar" aria-label="{{ t('nav_label') }}">
+  <div class="side-head">
+    <a class="brand" href="/console/?lang={{ lang }}" aria-label="Supervisor - {{ t('nav_overview') }}">
+      <span class="mark" aria-hidden="true">S</span>
+      <span class="brand-t">supervisor<small>{{ t('tagline') }}</small></span>
+    </a>
+    <button type="button" class="chipbtn side-collapse" data-side-collapse aria-controls="sidebar" aria-expanded="true" title="{{ t('nav_collapse') }}" aria-label="{{ t('nav_collapse') }}"><span aria-hidden="true">«</span></button>
+  </div>
+  <nav aria-label="{{ t('nav_label') }}" data-sidenav>
+  {% for g in nav_groups() %}
+    <div class="side-group"{% if g.label %} role="group" aria-labelledby="sg-{{ loop.index }}"{% endif %}>
+      {% if g.label %}<h2 class="side-h" id="sg-{{ loop.index }}">{{ t(g.label) }}</h2>{% endif %}
+      <ul>
+      {% for r in g['items'] %}
+        {% set it = r.item %}
+        <li><a href="{{ r.href }}" class="{{ 'active' if section == it.key else '' }}" title="{{ t(it.label) }}"{% if section == it.key %} aria-current="page"{% endif %}><span class="ni" aria-hidden="true">{{ t(it.label)[:1]|upper }}</span><span class="nl">{{ t(it.label) }}{% if r.n is not none %} <span class="k {{ 'hot' if r.hot else '' }}">{{ r.n }}</span>{% endif %}</span></a></li>
+      {% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+  </nav>
+  <div class="side-foot">v{{ version }} · {{ mode }}</div>
+</aside>
