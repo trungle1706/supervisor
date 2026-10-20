@@ -128,3 +128,24 @@ def test_metrics_tab_keeps_a_summary_tile_that_links_here(console: Console) -> N
 def test_vietnamese_and_empty_state(console: Console) -> None:
     r = console.get("/console/alerts?lang=vi")
     assert r.status_code == 200 and "Cảnh báo" in r.text and "Không có cảnh báo" in r.text
+
+
+def test_ack_of_the_last_row_on_the_last_page_answers_the_new_last_page(
+    console: Console, monkeypatch: Any
+) -> None:
+    """Review fix: under status=open, page 2 with one alert; acking it removes page 2. The
+    action succeeded, so the answer is page 1, not a 400."""
+    from supervisor.console import alerts_list
+
+    monkeypatch.setattr(alerts_list, "PAGE_SIZE", 1)
+    rows = _seed(console)
+    page2 = console.get("/console/alerts/rows?status=open&sort=rule_id&dir=asc&page=2", headers=HX)
+    assert page2.status_code == 200 and _ids(page2.text) == ["b" * 32]
+    r = console.post(
+        f"/console/alerts/{'b' * 32}/ack?status=open&sort=rule_id&dir=asc&page=2",
+        {"row_version": str(rows["b"]["row_version"])},
+        user="operator.khanh",
+    )
+    assert r.status_code == 200, r.text
+    assert _ids(r.text) == ["a" * 32]
+    assert console.ctx.state.get("alert", {"alert_id": "b" * 32})["status"] == "acknowledged"

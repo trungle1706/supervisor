@@ -75,3 +75,35 @@ def test_drawer_sits_beside_the_list_only_from_1600_px() -> None:
         CSS,
     )
     assert m and int(m.group(1)) >= 1600
+
+
+# databricks_app mode (SSO headers; the store adapter is covered by the fake-based tests)
+from .test_databricks_mode import REVIEWER, TOKEN, dbx  # noqa: E402,F401
+
+
+def test_ux2_pages_render_in_databricks_app_mode(dbx) -> None:  # noqa: F811
+    client, ctx = dbx
+    hx = {"HX-Request": "true", **REVIEWER}
+    for url in (
+        "/console/agents/credit_prequal",
+        "/console/agents/credit_prequal/tab/policy",
+        "/console/agents/credit_prequal/tab/traces",
+        "/console/agents/credit_prequal/tab/cases",
+        "/console/alerts",
+        "/console/signoff",
+        "/console/analytics?tab=gate",
+        "/console/analytics?tab=metrics",
+        "/console/analytics/tab/latency",
+        "/console/cases",
+        "/console/inbox",
+    ):
+        r = client.get(url, headers=hx if "/tab/" in url else REVIEWER)
+        assert r.status_code == 200, (url, r.text[:300])
+        assert TOKEN not in r.text
+    # the service principal (no SSO header) reads but may not act
+    r = client.post(
+        "/console/agents/credit_prequal/pause", data={"reason": "x"}, headers={"HX-Request": "1"}
+    )
+    assert r.status_code == 403
+    r = client.get("/console/metrics?lang=vi", headers=REVIEWER, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"].startswith("/console/analytics?")

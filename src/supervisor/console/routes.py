@@ -61,6 +61,7 @@ from supervisor.console import (
 )
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
+from supervisor.console.listing import ListingError
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
@@ -1399,7 +1400,7 @@ async def inbox_read(
         raise PermissionDenied("marking a notice read needs a signed-in person")
     await _call(ctx.inbox.mark_read, notice_id, me.user_id, _version(d))
     notices = await _call(ctx.inbox.list)
-    data = inbox_list.list_view(notices, request.query_params)  # --- WP-UX2 ---
+    data = _list_after_write(inbox_list.list_view, notices, query=dict(request.query_params))
     return render(request, ctx, me, "_inbox_rows.html", **data)
 
 
@@ -1418,8 +1419,25 @@ async def alert_ack(
         raise PermissionDenied("acknowledging an alert needs a signed-in person")
     await _call(ctx.alerts.acknowledge, alert_id, me.user_id, _version(d))
     # --- WP-UX2 --- the answer is the list on the Alerts page, with the filters in the URL
-    data = await _call(alerts_list.list_view, ctx, dict(request.query_params))
+    data = await _call(
+        _list_after_write, alerts_list.list_view, ctx, query=dict(request.query_params)
+    )
     return render(request, ctx, me, "_alerts_list.html", **data)
+
+
+def _list_after_write(view: Callable[..., Any], *args: Any, query: dict[str, str]) -> Any:
+    """The list answer of a POST that already succeeded (WP-UX2 review): when the write
+    took the last row off the current page (ack under ``status=open``, mark read under
+    ``status=unread``), that page no longer exists; show the last page instead of a 400 that
+    would hide a successful action."""
+    try:
+        return view(*args, query)
+    except ListingError:
+        if not query.get("page"):
+            raise
+        first = view(*args, {k: v for k, v in query.items() if k != "page"})
+        last = first["page"].pages
+        return first if last == 1 else view(*args, {**query, "page": str(last)})
 
 
 # ---------------------------------------------------------------------------- dev user
