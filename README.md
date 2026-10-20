@@ -50,7 +50,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Assurance packs | 33 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
 | Tool analytics | Per-tool calls, outcomes, latency; allowed-but-unused tools; least-privilege diff (suggestion only) | `docs/tool-analytics.md`, `docs/adr/D18-tool-analytics.md` |
 | Judge MRM | Model card, validation report, change control, retire | `docs/judge-mrm.md` |
-| LLM adapter and judge models | Strict endpoints, derived judge family, challenger scope | `docs/llm-adapter.md`, `docs/adr/D19-derived-judge-family-and-served-config.md` |
+| LLM adapter and judge models | Strict endpoints, derived judge family, challenger scope | `docs/llm-adapter.md`, `docs/adr/D20-derived-judge-family-and-served-config.md` |
 | Policy folder and fact source | `POLICY_DIR`, `FACT_SOURCE` for the served app | `docs/fact-sources.md` |
 | Inventory graph | Agents, models, endpoints, tools, MCP servers and datasets with evidence; risk passes up; flags Apps and endpoints with no manifest (shadow AI) | `docs/inventory.md`, `docs/adr/D16-inventory-graph.md` |
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
