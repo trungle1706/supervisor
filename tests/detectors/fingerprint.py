@@ -50,6 +50,7 @@ WP37_NULL_COLUMNS = {
     "correlation_id",
     "coverage_json",
     # WP39 additive columns: also NULL unless DETECTORS_ENABLED
+    "request_id",
     "consumer_id",
     "latency_rules_us",
     "latency_detectors_us",

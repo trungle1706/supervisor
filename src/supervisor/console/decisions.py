@@ -148,7 +148,16 @@ def ordered(rows: list[dict[str, Any]], p: Mapping[str, str]) -> tuple[list[Any]
     return sort_rows(shown, col, direction, keys), col, direction
 
 
+def v2_on(ctx: Any) -> bool:
+    """WP39: CONSOLE_DECISIONS_V2 (default off): verdict v2 list, filters and drawer."""
+    return bool(getattr(ctx.settings, "console_decisions_v2", False))
+
+
 def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
+    if v2_on(ctx):
+        from supervisor.console import decisions_v2
+
+        return decisions_v2.list_view(ctx, query)
     p = parse_params(query)
     rows, opts = rows_for(ctx, p)
     shown, col, direction = ordered(rows, p)
@@ -193,6 +202,12 @@ def _chain(ctx: Any, event_id: str) -> dict[str, Any] | None:
 
 
 def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> dict[str, Any]:
+    if v2_on(ctx):
+        from supervisor.console import decisions_v2
+
+        return decisions_v2.drawer_view(
+            ctx, event_id, tab if tab != "details" else "request", query
+        )
     if tab not in DRAWER_TABS:
         raise ListingError("unknown drawer tab")
     events = ctx.tables.query("agent_event", {"event_id": event_id, "event_type": "gate_decision"})

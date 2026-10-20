@@ -483,6 +483,14 @@ class Settings(BaseSettings):
     detectors_enabled: bool = False
     detectors_config: Path = Path("config/detectors.yaml")
 
+    # --- WP39 --- activity and analytics parity (ADR D32, docs/console.md, docs/alerts.md).
+    # Off: the Decisions drawer and list, the Traces pages and the Analytics tabs are as before.
+    # On: verdict v2 drawer (Request, Response, Detections, Metadata), new filters, masked CSV
+    # export, Gate tables and a Detectors tab in Analytics (read from decision_daily).
+    console_decisions_v2: bool = False
+    console_export_max_rows: int = Field(default=5000, ge=1, le=100_000)  # CSV rows, masked cols
+    sched_decision_rollup_s: int = Field(default=3600, ge=60)  # decision_daily rollup job
+
     @field_validator(
         "data_dir",
         "sqlite_path",

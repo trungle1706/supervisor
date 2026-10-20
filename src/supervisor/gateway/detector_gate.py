@@ -294,6 +294,7 @@ def event_fields(d: Any) -> dict[str, Any]:
         "correlation_id": v2["correlation_id"],
         "coverage_json": canonical_json(v2["coverage"]),
         # WP39 additive facts (nullable on older rows)
+        "request_id": v2["request_id"],
         "consumer_id": det.consumer_id,
         "latency_rules_us": det.rules_us,
         "latency_detectors_us": det.detectors_us,

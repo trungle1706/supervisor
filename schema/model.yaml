@@ -140,6 +140,7 @@ tables:
       # evaluation, detectors = the detector pass; overhead = latency_us - rules - detectors.
       # detector_latency_json holds {detector slug: microseconds} (a detector that found
       # nothing leaves no finding row, so its time is kept here).
+      request_id: string?       # the gate call's request id (X-Request-ID); deep link ?event=
       consumer_id: string?
       latency_rules_us: int?
       latency_detectors_us: int?

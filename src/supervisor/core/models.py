@@ -116,6 +116,7 @@ class AgentEvent(Record):
     correlation_id: str | None = None
     coverage_json: dict[str, Any] | None = None
     # WP39 (null unless DETECTORS_ENABLED): caller application and the latency split (us)
+    request_id: str | None = None
     consumer_id: str | None = None
     latency_rules_us: int | None = None
     latency_detectors_us: int | None = None

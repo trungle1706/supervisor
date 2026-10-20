@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`agent_event` (
   verdict_status STRING,
   correlation_id STRING,
   coverage_json STRING,
+  request_id STRING,
   consumer_id STRING,
   latency_rules_us BIGINT,
   latency_detectors_us BIGINT,

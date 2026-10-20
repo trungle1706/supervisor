@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS agent_event (
   verdict_status TEXT,
   correlation_id TEXT,
   coverage_json TEXT,
+  request_id TEXT,
   consumer_id TEXT,
   latency_rules_us INTEGER,
   latency_detectors_us INTEGER,
@@ -123,7 +124,7 @@ CREATE INDEX IF NOT EXISTS ix_agent_event_trace_id ON agent_event (trace_id);
 DROP TRIGGER IF EXISTS trg_agent_event_no_update;
 
 CREATE TRIGGER trg_agent_event_no_update
-BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us, verdict_status, correlation_id, coverage_json, consumer_id, latency_rules_us, latency_detectors_us, detector_latency_json ON agent_event
+BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us, verdict_status, correlation_id, coverage_json, request_id, consumer_id, latency_rules_us, latency_detectors_us, detector_latency_json ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
 END;

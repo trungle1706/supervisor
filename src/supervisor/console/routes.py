@@ -51,6 +51,7 @@ from supervisor.console import (
     compliance_view,
     credentials_view,
     decisions,
+    decisions_v2,
     health,
     inbox_list,  # --- WP-UX2 ---
     integration_reports,
@@ -1394,7 +1395,11 @@ def _ux3_off(ctx: ConsoleContext, page: str) -> None:
 
 
 def _drawer_query(query: Mapping[str, str]) -> dict[str, str]:
-    return {k: v for k, v in query.items() if k not in ("drawer", "dtab", "tab", "lang")}
+    return {
+        k: v
+        for k, v in query.items()
+        if k not in ("drawer", "dtab", "tab", "lang", "event", "correlation")
+    }
 
 
 # -- gate decisions
@@ -1410,11 +1415,24 @@ async def decisions_page(
     query = dict(request.query_params)
     data = await _call(decisions.list_view, ctx, query)
     opened = query.get("drawer")
-    if opened:  # no-JS fallback of the row drawer
+    if decisions.v2_on(ctx):  # WP39: deep links ?event=<id> and ?correlation=<id>
+        data["can_export"] = agent_detail.can(me, "decisions.export")
+        deep = [k for k in ("event", "correlation") if query.get(k)]
+        if deep and not opened:
+            opened = await _call(
+                decisions_v2.resolve_ref,
+                ctx,
+                event=query.get("event") or "",
+                correlation=query.get("correlation") or "",
+            )
+            data["strip_params"] = " ".join(deep)  # console.js removes them from the address bar
+    if opened:  # no-JS fallback of the row drawer, and the deep links
         _check_id(opened, "decision id")
         data["drawer"] = await _call(
             decisions.drawer_view, ctx, opened, query.get("dtab") or "details", _drawer_query(query)
         )
+        if decisions.v2_on(ctx):
+            data["drawer_open"] = True
     return render(request, ctx, me, "decisions.html", section="decisions", **data)
 
 
@@ -1428,7 +1446,9 @@ async def decisions_rows(
 ) -> Response:
     _ux3_off(ctx, "decisions")
     data = await _call(decisions.list_view, ctx, dict(request.query_params))
-    return render(request, ctx, me, "_decisions_list.html", **data)
+    data["can_export"] = decisions.v2_on(ctx) and agent_detail.can(me, "decisions.export")
+    tpl = "_decisions_list_v2.html" if data.get("v2") else "_decisions_list.html"
+    return render(request, ctx, me, tpl, **data)
 
 
 @router.get(
@@ -1445,7 +1465,44 @@ async def decision_drawer(
     data = await _call(
         decisions.drawer_view, ctx, event_id, query.get("tab") or "details", _drawer_query(query)
     )
-    return render(request, ctx, me, "_decision_drawer.html", drawer=data)
+    tpl = "_decision_drawer_v2.html" if data.get("v2") else "_decision_drawer.html"
+    return render(request, ctx, me, tpl, drawer=data)
+
+
+@router.post(
+    "/decisions/export",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("decisions.export"))],
+)
+@audited("decisions.export")
+async def decisions_export(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Build the masked CSV of the filtered list (WP39). Audited like every action: two
+    ``console_action`` rows, with the row counts as the fixed note. The file is downloaded
+    through the GET below."""
+    _ux3_off(ctx, "decisions")
+    if not decisions.v2_on(ctx):
+        raise ConsoleInputError("The CSV export needs CONSOLE_DECISIONS_V2=1")
+    data = await form(request)
+    built = await _call(decisions_v2.export_csv, ctx, data)
+    await _call(decisions_v2.save_export, ctx, built)
+    request.state.audit_detail = (
+        f"rows={built['rows']};total={built['total']};truncated={int(built['truncated'])}"
+    )
+    return render(request, ctx, me, "_decisions_export_result.html", export=built)
+
+
+@router.get(
+    "/decisions/exports/{name}",
+    dependencies=[Depends(needs("decisions.export"))],
+)
+async def decisions_export_download(
+    name: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "decisions")
+    path = await _call(decisions_v2.export_path, ctx, name)
+    return FileResponse(path, media_type="text/csv; charset=utf-8", filename=name)
 
 
 # -- traces

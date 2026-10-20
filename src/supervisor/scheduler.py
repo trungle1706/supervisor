@@ -22,6 +22,7 @@ tool_analytics TOOL_ANALYTICS_ENABLED daily ``tool_usage_daily`` rollup + least-
 siem           SIEM_ENABLED           send new evidence-chain events to the SIEM sink (WP21)
 notify         NOTIFY_WEBHOOK_ENABLED send queued webhook notices (WP21; needs a URL)
 alerts         ALERTS_ENABLED         evaluate config/alerts.yaml, raise and route alerts (WP21)
+decision_rollup CONSOLE_DECISIONS_V2  daily ``decision_daily`` rollup for Analytics (WP39)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -368,6 +369,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import alerts as alerts_job
     from supervisor.jobs import anchor as anchor_job
     from supervisor.jobs import case_intake as case_intake_job
+    from supervisor.jobs import decision_rollup as decision_rollup_job
     from supervisor.jobs import drift as drift_job
     from supervisor.jobs import fairness as fairness_job
     from supervisor.jobs import ingest as ingest_job
@@ -442,6 +444,8 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 notify_job.enabled(settings)),
         JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
                 settings.alerts_enabled),
+        JobSpec("decision_rollup", settings.sched_decision_rollup_s,
+                lambda: decision_rollup_job.run(ctx, settings), settings.console_decisions_v2),
     ]  # fmt: skip
     from supervisor.jobs import inventory as inventory_job
 

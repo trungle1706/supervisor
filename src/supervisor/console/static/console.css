@@ -606,3 +606,8 @@ pre.payload { margin: 6px 0 12px; padding: 10px 12px; background: var(--surface-
 .decisions-tbl td.mono:first-child, .audit-tbl td.mono:first-child, .traces-tbl td.mono { white-space: nowrap; }
 .decisions-tbl td.n, .decisions-tbl td:nth-child(4) { white-space: nowrap; }
 .spanlink .muted { white-space: nowrap; }
+
+/* WP39: a fragment located in masked text, and the line that holds it */
+mark.hl { background: var(--amber-soft); color: var(--amber); border-radius: 4px; padding: 0 3px; font-weight: 600; }
+mark.hl sup { font-size: 10px; margin-left: 2px; }
+.leafline { display: block; margin: 0 0 6px; overflow-wrap: anywhere; }
