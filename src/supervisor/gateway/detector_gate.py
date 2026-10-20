@@ -220,6 +220,8 @@ class DetectorGate:
             d.reason = f"{FAILED_RULE}: detector could not run ({who}): fail closed"
             d.fail_mode = "closed"
             transformed = None
+            # A blocked call has no transformed arguments (WP24b filled them while it was allowed).
+            d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0
         # 1b. WP25: a pause-capable detector (the injection classifier) may turn an ALLOW into a
         # PAUSE, never a block, on a money / credit / pii_export tool. The detector set the hint
         # only above its frozen threshold and only for its configured classes. A human resumes.

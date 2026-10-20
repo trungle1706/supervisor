@@ -74,8 +74,10 @@ scan planned for WP26 would each add another private shape.
   the fake executor), SIEM attributes, harness regression.
 * The `agent_event` table gets three nullable columns; older rows and the flag-off path leave them
   NULL.
-* A timeout is checked after the detector returns; it does not interrupt a hung detector. The
-  gateway's own 2 s timeout still protects the call.
+* Each detector call runs in a daemon thread with a deadline of `limits.timeout_ms` (review fix):
+  a hung detector is reported `timed_out` and never holds a gate worker. A hung thread lives on
+  until it returns; at most 32 run at once, after that a detector is not started (`timed_out`).
+* An `advisory` detector never fails closed, whatever `config/detectors.yaml` says (R1).
 * A wrong detector config stops start-up, not the gate at run time.
 * WP25, WP26 and WP27 emit findings through this contract; WP39 reads `finding` and the new
   columns for the decisions drawer.

@@ -86,7 +86,7 @@ def score_tool_description(text: str) -> int:
 class InjectionClassifierDetector:
     slug = "injection_classifier"
     name = "Prompt injection (classifier, Vietnamese and English)"
-    category = "prompt_security"
+    category = "content_security"
     version = MODEL_VERSION
     sides = ("input", "output")
     protocols = ("all",)

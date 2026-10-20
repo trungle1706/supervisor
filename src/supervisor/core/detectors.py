@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import threading
 import time
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -74,6 +75,50 @@ FRAGMENT_TEXT_MAX = 120
 SCORE_MAX = 10_000
 
 REPORT_ONLY_HINTS: frozenset[str] = frozenset({"pause", "block"})  # clamped to report (R1)
+
+# Detector categories that may never fail closed, whatever the config says (R1: a judge or an
+# advisor that cannot answer must not stop a payment). Enforced in ``DetectorRegistry.run``.
+ADVISORY_CATEGORIES: frozenset[str] = frozenset({"advisory"})
+
+# Bounded execution: each detector call runs in its own daemon thread and the gate waits at
+# most ``RunConfig.timeout_ms``. A hung detector keeps its thread (Python cannot kill one) but
+# never the gate worker. At most MAX_DETECTOR_THREADS calls may be in flight; with no free slot
+# the call is not started and is reported ``timed_out`` at once (bounded threads, bounded wait).
+MAX_DETECTOR_THREADS = 32
+_SLOTS = threading.BoundedSemaphore(MAX_DETECTOR_THREADS)
+
+
+class _NoSlot(Exception):
+    """Every detector thread slot is held (hung detectors)."""
+
+
+def _call_bounded(fn: Callable[[], Any], timeout_s: float) -> Any:
+    """Run ``fn`` in a daemon thread; wait at most ``timeout_s``. Raises ``TimeoutError`` on a
+    deadline miss, ``_NoSlot`` when no thread slot is free, else re-raises ``fn``'s error."""
+    if not _SLOTS.acquire(blocking=False):
+        raise _NoSlot
+    box: dict[str, Any] = {}
+    done = threading.Event()
+
+    def target() -> None:
+        try:
+            box["value"] = fn()
+        except BaseException as exc:  # noqa: BLE001 - handed back to the caller
+            box["error"] = exc
+        finally:
+            _SLOTS.release()
+            done.set()
+
+    try:
+        threading.Thread(target=target, name="detector", daemon=True).start()
+    except BaseException:
+        _SLOTS.release()
+        raise
+    if not done.wait(timeout_s):
+        raise TimeoutError
+    if "error" in box:
+        raise box["error"]
+    return box["value"]
 
 
 # ---------------------------------------------------------------------------- settings schema
@@ -540,6 +585,11 @@ class DetectorRegistry:
     def slugs(self) -> list[str]:
         return list(self._by_slug)
 
+    def may_fail_closed(self, slug: str) -> bool:
+        """False for an unknown slug and for an advisory detector (R1), whatever the config."""
+        det = self._by_slug.get(slug)
+        return det is not None and det.category not in ADVISORY_CATEGORIES
+
     def catalogue(self) -> list[dict[str, Any]]:
         """The catalogue served from code: one entry per detector, schema included."""
         out = []
@@ -643,7 +693,16 @@ class DetectorRegistry:
                 continue
             t0 = clock_ns()
             try:
-                found = det.evaluate(payload, clean, direction)
+                found = _call_bounded(
+                    lambda det=det, clean=clean: det.evaluate(payload, clean, direction),
+                    config.timeout_ms / 1000,
+                )
+            except (TimeoutError, _NoSlot) as exc:
+                took_us = (clock_ns() - t0) // 1000
+                res.per_detector_us[slug] = took_us
+                detail = "no free detector slot" if isinstance(exc, _NoSlot) else "deadline"
+                res.not_executed.append(not_executed(slug, did, "timed_out", detail, preset=preset))
+                continue
             except Exception as exc:  # noqa: BLE001 - a detector must never break the gate
                 res.not_executed.append(
                     not_executed(slug, did, "execution_failed", type(exc).__name__, preset=preset)
@@ -686,12 +745,14 @@ class DetectorRegistry:
                     continue
                 if ne.detector_slug == "*":
                     closed = any(
-                        s.enabled and s.fail_closed and slug in self._by_slug
+                        s.enabled and s.fail_closed and self.may_fail_closed(slug)
                         for slug, s in config.detectors.items()
                     )
                 else:
                     st = config.detectors.get(ne.detector_slug)
-                    closed = st is not None and st.fail_closed
+                    closed = (
+                        st is not None and st.fail_closed and self.may_fail_closed(ne.detector_slug)
+                    )
                 if closed:
                     res.failed_closed.append(ne)
         res.latency_us = (clock_ns() - t_start) // 1000
@@ -723,15 +784,17 @@ def derive_status(
     * ``report``: the call is allowed and something fired: a finding, or a rule whose action is
       ``log`` or ``alert`` (including a rule that failed open).
     * ``skip``: only when a policy rule asked the gate not to run detectors for this call and
-      the deterministic decision would not have been a block or a pause.
+      the deterministic decision would not have been a block or a pause. A transform (WP24b
+      inline redaction still runs on a skipped call) wins over skip: a changed payload is
+      always visible in the status.
     * ``allow``: none of the above.
     """
     if not allow:
         return "block" if action != "pause" or "block" in set(matched_actions) else "pause"
-    if skipped:
-        return "skip"
     if has_transform:
         return "transform"
+    if skipped:
+        return "skip"
     if findings or action in ("log", "alert"):
         return "report"
     return "allow"

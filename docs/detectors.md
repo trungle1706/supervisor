@@ -55,7 +55,7 @@ Reasons a detector did not run (fixed list):
 | `payload_too_large` | The inspected text is longer than `limits.max_payload_chars` |
 | `content_uninspectable` | A part has content no detector can read (bytes, an object, nesting deeper than 12) |
 | `not_applicable_for_direction` | The detector is enabled but its `sides` do not include this direction. Informational, not a failure |
-| `timed_out` | The detector took longer than `limits.timeout_ms`. The result is discarded. The timeout is checked after the call, it does not interrupt the detector |
+| `timed_out` | The detector did not answer within `limits.timeout_ms`. Each detector call runs in its own daemon thread and the gate waits at most `timeout_ms` for it, so a hung detector cannot hold a gate worker or delay a money decision past the gate budget. A hung thread stays until it returns (Python cannot kill a thread); at most 32 run at once, and with no free slot the detector is not started and is reported `timed_out` (detail `no free detector slot`) at once. Keep the sum of `timeout_ms` over enabled detectors below the gate timeout (2 s) |
 
 `DetectorRegistry` lists the catalogue from code (`GET /v1/gate/detectors`,
 `python -m supervisor.detectors.harness --catalogue`), validates settings against the schema, and
@@ -82,7 +82,9 @@ hit. At the `balanced` preset an urgent-transfer phrase alone does not fire. Kno
 ## 3. Settings: file and per-agent override
 
 `config/detectors.yaml` holds the defaults (`default_preset`, `limits`, one entry per detector with
-`enabled`, `fail_closed`, `settings`). A wrong value stops the start-up with a message.
+`enabled`, `fail_closed`, `settings`). A wrong value stops the start-up with one ASCII line that
+names `DETECTORS_CONFIG` (the gateway routes then fail closed until it is fixed), and
+`python -m supervisor.preflight` shows it as `[FAIL] detectors` before any start.
 
 A policy file can override per agent (`agents.<id>.detectors`):
 
@@ -113,7 +115,7 @@ The status of a verdict:
 | 3 | `transform` | The call is allowed and `dlp_vn` (or WP24b redaction) produced a masked payload |
 | 2 | `report` | The call is allowed and a finding fired, or a rule with action `log` or `alert` matched |
 | 1 | `allow` | None of the above |
-| - | `skip` | Only from a policy value (`skip_tools`), only when the deterministic decision would be allow or report. A block or pause is never hidden by skip |
+| - | `skip` | Only from a policy value (`skip_tools`), only when the deterministic decision would be allow or report. A block or pause is never hidden by skip, and a transform (WP24b inline redaction still runs on a skipped tool) shows as `transform` |
 
 Precedence: **block > pause > transform > report > allow**. The old `action` field keeps the gate
 order (a pause rule decides before a block rule), so one call can show `action: pause` and
@@ -125,8 +127,9 @@ What a detector may do to the decision (R1):
 1. `dlp_vn` may add a transform to an allowed, non-shadow call.
 2. A detector that is `fail_closed` and could not run makes an allowed call to a `money`, `credit`
    or `pii_export` tool a block with rule id **`GATE-DETECTOR-FAILED`** (`fail_mode: closed`).
-   On any other tool the failure is only an entry in `not_executed`. `judge_advisory` is
-   `fail_closed: false`: a judge outage never blocks a payment.
+   On any other tool the failure is only an entry in `not_executed`. An `advisory` detector
+   (`judge_advisory`) never fails closed: the registry ignores `fail_closed: true` for it (a
+   warning is logged at start-up), so a judge outage never blocks a payment.
 3. Nothing else. A finding with `action_hint` `pause` or `block` counts as `report`. A shadow agent
    is never blocked or transformed; the findings are still reported.
 
@@ -219,4 +222,4 @@ entities or the transformed payload).
 
 See `BACKLOG.md` (WP37 rows): a console page for findings (WP39), per-entity mask tokens and
 custom keyword rules for `dlp_vn`, tool-description scanning, the ML injection classifier
-(WP25), a preemptive detector timeout, a per-consumer policy binding (WP38).
+(WP25), a per-consumer policy binding (WP38).
