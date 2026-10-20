@@ -1,5 +1,5 @@
 """WP30 harness: golden set shape and provenance, baseline regression, adversarial probes,
-starter consistency, determinism (rubrics: compliance officer, internal auditor under Three Lines)."""
+starter consistency, determinism. Rubrics: compliance officer, internal auditor (Three Lines)."""
 
 from __future__ import annotations
 

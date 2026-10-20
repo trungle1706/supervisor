@@ -19,7 +19,6 @@ from supervisor.core.schema import load_model
 from supervisor.tasks.service import TaskService
 from tests.conftest import REPO_ROOT
 from tests.risk.test_databricks_mode import T0, MirrorFake
-
 from tests.tasks.test_tasks import ADMIN
 
 
