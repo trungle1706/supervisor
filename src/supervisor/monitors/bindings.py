@@ -214,17 +214,35 @@ def _abs(path: Any) -> Path:
     return p if p.is_absolute() else REPO_ROOT / p
 
 
-def _pick(layers: Sequence[tuple[str, MonitorBindings | None]], attr: str) -> tuple[str, Any]:
-    for source, b in layers:
-        if b is not None and getattr(b, attr) is not None:
-            return source, getattr(b, attr)
-    return NONE, None
+def _pick(
+    layers: Sequence[tuple[str, MonitorBindings | None]], attr: str, key: str | None = None
+) -> tuple[str, Any]:
+    """Merge one section field by field: a field set in the policy wins over the same field in
+    the manifest, and a field the policy leaves out keeps the manifest value. The source is
+    the layer that set ``key`` (the field that binds the monitor), else the first layer that
+    set anything."""
+    merged: dict[str, Any] = {}
+    cls: Any = None
+    source = key_source = NONE
+    for layer, b in reversed(layers):  # lowest precedence first, so higher layers overwrite
+        sub = getattr(b, attr) if b is not None else None
+        if sub is None:
+            continue
+        cls = type(sub)
+        fields = sub.model_dump(exclude_unset=True)
+        merged.update(fields)
+        source = layer
+        if key is not None and fields.get(key):
+            key_source = layer
+    if cls is None:
+        return NONE, None
+    return (key_source if key_source != NONE else source), cls.model_validate(merged)
 
 
 def _quality(
     layers: Sequence[tuple[str, MonitorBindings | None]], tools: Mapping[str, str]
 ) -> QualityResolved:
-    source, b = _pick(layers, "quality")
+    source, b = _pick(layers, "quality", "reply_tools")
     if isinstance(b, QualityBinding) and b.reply_tools:
         return QualityResolved(tuple(b.reply_tools), b.text_arg, source, None)
     derived = sorted(
@@ -241,7 +259,7 @@ def _quality(
 def _fairness(
     layers: Sequence[tuple[str, MonitorBindings | None]], tools: Mapping[str, str]
 ) -> FairnessResolved:
-    source, b = _pick(layers, "fairness")
+    source, b = _pick(layers, "fairness", "decision_tool")
     if isinstance(b, FairnessBinding) and b.decision_tool:
         return FairnessResolved(
             b.decision_tool,
@@ -269,7 +287,7 @@ def _fairness(
 def _split(
     layers: Sequence[tuple[str, MonitorBindings | None]], tools: Mapping[str, str]
 ) -> SplitResolved:
-    source, b = _pick(layers, "split_payment")
+    source, b = _pick(layers, "split_payment", "tool")
     if isinstance(b, SplitPaymentBinding) and b.tool:
         return SplitResolved(b.tool, b.customer_key, b.payee_key, source, None)
     money = sorted(n for n, c in tools.items() if c == "money")

@@ -13,12 +13,18 @@ binding cannot silently switch a monitor off.
 
 from __future__ import annotations
 
+import re
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Never sliced, whatever a binding says (same list as monitors/fairness.py).
 FORBIDDEN_ATTRIBUTES = frozenset(
     {"ethnicity", "ethnic_group", "race", "religion", "dan_toc", "ton_giao", "faith"}
 )
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", name.strip().lower()).strip("_")
 
 
 class _Strict(BaseModel):
@@ -42,9 +48,12 @@ class FairnessBinding(_Strict):
     @field_validator("protected_attribute_keys")
     @classmethod
     def _no_forbidden(cls, v: dict[str, str]) -> dict[str, str]:
-        for name in v:
-            if name.strip().lower() in FORBIDDEN_ATTRIBUTES:
-                raise ValueError(f"attribute {name!r} is never allowed in fairness slices")
+        # Both sides are checked: {"group": "ethnicity"} would slice by ethnicity under
+        # another name. "Dan-Toc", " religion " and "dan toc" normalise to the listed form.
+        for name, arg_key in v.items():
+            for side in (name, arg_key):
+                if _norm(side) in FORBIDDEN_ATTRIBUTES:
+                    raise ValueError(f"attribute {side!r} is never allowed in fairness slices")
         return {k.strip().lower(): val for k, val in v.items()}
 
 

@@ -94,6 +94,23 @@ def test_policy_wins_over_manifest_over_derived(tmp_path: Path) -> None:
     assert {only_derived.quality.source, only_derived.fairness.source} == {DERIVED}
 
 
+def test_policy_overrides_field_by_field_not_whole_section(tmp_path: Path) -> None:
+    """Review fix: a policy that sets only approve_values keeps the manifest decision tool."""
+    manifest = (
+        "id: a1\ntools:\n  - {name: pick, risk_class: credit}\n"
+        "monitors:\n  fairness: {decision_tool: manifest_pick, subject_arg: cid}\n"
+        "  drift: {window_s: 3600, min_n: 5}\n"
+    )
+    policy = (
+        "policy_version: 1\nagents:\n  a1:\n    name: x\n    owner_user: u\n    owner_team: t\n"
+        "    monitors:\n      fairness: {approve_values: [approved]}\n      drift: {min_n: 9}\n"
+    )
+    r = _write(tmp_path, policy, manifest).resolve("a1")
+    assert (r.fairness.decision_tool, r.fairness.source) == ("manifest_pick", MANIFEST)
+    assert (r.fairness.subject_arg, r.fairness.approve_values) == ("cid", ("approved",))
+    assert r.drift is not None and (r.drift.window_s, r.drift.min_n) == (3600, 9)
+
+
 def test_ambiguous_tools_are_not_guessed(tmp_path: Path) -> None:
     manifest = (
         "id: a1\ntools:\n  - {name: c1, risk_class: credit}\n  - {name: c2, risk_class: credit}\n"
@@ -122,6 +139,11 @@ def test_bad_binding_is_a_config_error_not_a_silent_off(tmp_path: Path) -> None:
 
 
 def test_ethnicity_and_religion_can_never_be_protected_keys() -> None:
+    for bad in ({"group": "ethnicity"}, {"Dan-Toc": "k"}, {"faith": "x"}, {"g": " Religion "}):
+        with pytest.raises(ValueError):
+            MonitorBindings.model_validate(
+                {"fairness": {"decision_tool": "d", "protected_attribute_keys": bad}}
+            )
     for name in ("ethnicity", "Religion", "dan_toc"):
         with pytest.raises(ValueError):
             MonitorBindings.model_validate(
