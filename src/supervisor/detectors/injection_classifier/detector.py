@@ -39,6 +39,7 @@ from supervisor.core.detectors import (
     threshold_for,
 )
 from supervisor.core.ports import Masker
+from supervisor.detectors.injection_classifier import features as F
 from supervisor.detectors.injection_classifier import units as U
 from supervisor.detectors.injection_classifier.model import (
     LinearModel,
@@ -214,7 +215,11 @@ class InjectionClassifierDetector:
             if not leaf.text.strip():
                 continue
             masked = self.masker.mask(leaf.text)[:max_chars]
-            cands.append((model.score_bp(leaf.text[:max_chars], surface), leaf, masked))
+            if len(unit.leaves) == 1:
+                sc = 10_000  # the only leaf: no need to score it again
+            else:
+                sc = model.score_bp(leaf.text[:max_chars], surface) if F.usable(leaf.text) else 0
+            cands.append((sc, leaf, masked))
         cands.sort(key=lambda c: -c[0])
         out: list[Fragment] = []
         for _score, leaf, masked in cands[:MAX_FRAGMENT_LEAVES]:

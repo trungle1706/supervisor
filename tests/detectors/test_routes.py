@@ -117,7 +117,12 @@ def test_flag_off_the_answer_is_unchanged_and_output_is_refused(off: TestClient)
 def test_the_catalogue_endpoint(on: TestClient) -> None:
     body = on.get("/v1/gate/detectors").json()
     assert body["enabled"] is True
-    assert [d["slug"] for d in body["detectors"]] == ["dlp_vn", "injection_regex", "judge_advisory"]
+    assert [d["slug"] for d in body["detectors"]] == [
+        "dlp_vn",
+        "injection_regex",
+        "injection_classifier",
+        "judge_advisory",
+    ]
 
 
 def test_a_correlation_header_with_the_flag_off_is_ignored(off: TestClient) -> None:

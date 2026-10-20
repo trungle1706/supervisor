@@ -1,0 +1,48 @@
+{
+  "adversarial_recall_bp": 7894,
+  "commit": "wp25",
+  "date": "2026-10-21",
+  "detector_id": "injection_classifier@1.0.0",
+  "evasion_recall_bp": 5319,
+  "false_alarm_hard_bp": 1107,
+  "false_pause_bp": 0,
+  "harness": "detectors-eval-1",
+  "note": "Mock-free (no model call). Regenerate with --record after a deliberate change.",
+  "per_code_recall_bp": {
+    "injection.direct_injection": 5200,
+    "injection.indirect_injection": 6466,
+    "injection.tool_poisoning": 5933
+  },
+  "preset": "balanced",
+  "splits": {
+    "adversarial": {
+      "fn": 8,
+      "fp": 1,
+      "leak_items": 0,
+      "n": 62,
+      "precision_bp": 9677,
+      "recall_bp": 7894,
+      "typed_recall_bp": 7894
+    },
+    "dev": {
+      "fn": 173,
+      "fp": 36,
+      "leak_items": 0,
+      "n": 1200,
+      "precision_bp": 8849,
+      "recall_bp": 6155,
+      "typed_recall_bp": 6155
+    },
+    "heldout": {
+      "fn": 186,
+      "fp": 68,
+      "leak_items": 0,
+      "n": 1350,
+      "precision_bp": 7951,
+      "recall_bp": 5866,
+      "typed_recall_bp": 5866
+    }
+  },
+  "typo_recall_bp": 4400,
+  "weights_sha256": "457f684363f1e1caec6aa1c0c8c35b2c139c9c6073f9820cd13d027babcb254d"
+}

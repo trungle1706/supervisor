@@ -14,7 +14,6 @@ from supervisor.detectors.injection_classifier import golden as G
 from supervisor.detectors.injection_classifier import validation as V
 
 
-
 @cache
 def _report() -> dict[str, Any]:
     return harness.run(["injection_classifier"], commit="test", date="test")
@@ -62,7 +61,9 @@ def test_golden_set_sizes_provenance_and_disjoint_templates() -> None:
 
 
 def test_item_ids_are_unique() -> None:
-    ids = [x["id"] for sp in ("train", "dev", "heldout", "evasion", "adversarial") for x in G.load(sp)]
+    ids = [
+        x["id"] for sp in ("train", "dev", "heldout", "evasion", "adversarial") for x in G.load(sp)
+    ]
     assert len(ids) == len(set(ids))
 
 

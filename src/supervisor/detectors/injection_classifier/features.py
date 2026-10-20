@@ -223,6 +223,9 @@ def windows(text: str) -> list[str]:
     return out
 
 
+_SEEDS = ((3, zlib.crc32(b"3")), (4, zlib.crc32(b"4")), (5, zlib.crc32(b"5")))
+
+
 def features(window: str) -> list[int]:
     """Sorted unique feature ids of one window of one variant: hashed n-grams and words below
     BUCKETS, concept features (concepts.py) from BUCKETS up."""
@@ -231,9 +234,16 @@ def features(window: str) -> list[int]:
     padded = f" {t} "
     n = len(padded)
     crc = zlib.crc32
-    for k, tag in ((3, b"3"), (4, b"4"), (5, b"5")):
-        for i in range(n - k + 1):
-            ids.add(crc(tag + padded[i : i + k].encode("utf-8")) & MASK)
+    if padded.isascii():
+        # same ids as crc32(tag + gram), computed with the tag as the CRC seed (no concatenation)
+        pb = padded.encode("ascii")
+        for k, seed in _SEEDS:
+            ids.update({crc(pb[i : i + k], seed) & MASK for i in range(n - k + 1)})
+    else:
+        for k, seed in _SEEDS:
+            ids.update(
+                {crc(padded[i : i + k].encode("utf-8"), seed) & MASK for i in range(n - k + 1)}
+            )
     words = _ALNUM.findall(t)
     prev = ""
     for w in words:

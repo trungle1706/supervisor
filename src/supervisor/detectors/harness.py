@@ -652,8 +652,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.record:
         base = to_baseline(report)
         base["detectors"].pop(CLASSIFIER, None)  # the classifier has its own baseline file
-        BASELINE.write_text(json.dumps(base, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        print(f"[OK] baseline written: {BASELINE}")
+        if base["detectors"]:  # a classifier-only run must not empty the shared baseline
+            BASELINE.write_text(json.dumps(base, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            print(f"[OK] baseline written: {BASELINE}")
         if CLASSIFIER in report["detectors"]:
             from supervisor.detectors.injection_classifier import validation
 
