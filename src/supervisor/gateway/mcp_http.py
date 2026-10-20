@@ -34,7 +34,9 @@ import hmac
 import json
 import logging
 import os
+import random
 import re
+import socket
 import sys
 import threading
 import time
@@ -61,6 +63,7 @@ RULE_UNREVIEWED = "MCP-TOOL-UNREVIEWED"
 RULE_LOCK_UNAVAILABLE = "MCP-LOCK-UNAVAILABLE"
 MAX_BODY = 4 * 1024 * 1024
 MAX_PAGES = 50
+FREE_PORTS = (20000, 29999)
 DEFAULT_PATH = "/mcp"
 DEFAULT_AGENT_VERSION = "mcp-http-1"
 TOFU_WARNING = (
@@ -344,6 +347,21 @@ class McpHttpGateProxy(McpGateProxy):
 
 
 # ---------------------------------------------------------------------------------- HTTP server
+def bind_httpd(cls: Any, host: str, port: int, handler: Any) -> Any:
+    """``cls((host, port), handler)``. Port 0 means "a free port in 20000-29999": the host
+    runs other services on 3000-3002, 5432, 6379, 8000-8080 and 55000-59999, which the
+    system's own port 0 (the whole ephemeral range) could land on."""
+    if port != 0:
+        return cls((host, port), handler)
+    rnd = random.SystemRandom()
+    for _ in range(300):
+        try:
+            return cls((host, rnd.randint(*FREE_PORTS)), handler)
+        except OSError:
+            continue
+    raise OSError("no free port in 20000-29999")
+
+
 def _loopback(host: str) -> bool:
     return host in ("127.0.0.1", "localhost", "::1", "[::1]")
 
@@ -371,7 +389,7 @@ class McpHttpServer:
         self.path = path
         self.listen_token = listen_token
         self.allow_origins = allow_origins
-        self._httpd = ThreadingHTTPServer((host, port), _make_handler(self))
+        self._httpd = bind_httpd(ThreadingHTTPServer, host, port, _make_handler(self))
         self._httpd.daemon_threads = True
         self._thread: threading.Thread | None = None
 
@@ -422,6 +440,12 @@ def _make_handler(server: McpHttpServer) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"  # keep-alive towards the agent
         server_version = "SupervisorMcp/1"
+
+        def setup(self) -> None:
+            super().setup()
+            # headers and body leave in two writes; without NODELAY a kept-alive connection
+            # waits for the delayed ACK (about 40 ms per call)
+            self.request.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
         def log_message(self, fmt: str, *args: Any) -> None:  # no access log (no payloads)
             pass
@@ -639,14 +663,24 @@ def run_proxy(argv: list[str]) -> int:
     )
     lock_on = settings.mcp_tool_lock and not ns.no_tool_lock
     server_id = ns.server_name or server_id_for_url(ns.upstream)
-    lock = HttpLockClient(ns.gate_url, credential) if lock_on else None
+    from supervisor.adapters.http_json import PooledJson
+
+    pool = (
+        PooledJson()
+    )  # keep-alive to the gate too (the stdio proxy opens one connection per call)
+    lock = HttpLockClient(ns.gate_url, credential, transport=pool.post_bytes) if lock_on else None
     if ns.trust_on_first_use:
         if not lock_on:
             _say("[FAIL] --trust-on-first-use needs the tool lock (MCP_TOOL_LOCK=1)")
             return 2
         sys.stderr.write(TOFU_WARNING + "\n")
     proxy = McpHttpGateProxy(
-        HttpGate(ns.gate_url, credential=credential),
+        HttpGate(
+            ns.gate_url,
+            credential=credential,
+            transport=pool.post_json,
+            signed_transport=pool.post_bytes,
+        ),
         ns.agent,
         ns.agent_version,
         upstream,

@@ -14,6 +14,7 @@ Everything labelled ``mock``: this is not an MCP server of any vendor.
 from __future__ import annotations
 
 import json
+import socket
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -46,7 +47,9 @@ class FakeMcpServer:
         self.connections = 0  # TCP connections accepted (keep-alive evidence)
         self._n = 0
         self._lock = threading.Lock()
-        self._httpd = ThreadingHTTPServer(("127.0.0.1", 0), _handler(self))
+        from supervisor.gateway.mcp_http import bind_httpd  # free port in 20000-29999
+
+        self._httpd = bind_httpd(ThreadingHTTPServer, "127.0.0.1", 0, _handler(self))
         self._httpd.daemon_threads = True
         self._thread: threading.Thread | None = None
 
@@ -146,6 +149,7 @@ def _handler(srv: FakeMcpServer) -> type[BaseHTTPRequestHandler]:
 
         def setup(self) -> None:
             super().setup()
+            self.request.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             with srv._lock:
                 srv.connections += 1
 
