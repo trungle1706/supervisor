@@ -1,5 +1,5 @@
 {
-  "commit": "a863866",
+  "commit": "5442117",
   "date": "2026-10-20",
   "fingerprint": {
     "export_columns_exact": true,
@@ -22,11 +22,11 @@
   },
   "probes": {
     "ci_bp": [
-      8513,
+      8864,
       10000
     ],
-    "n": 22,
-    "passed": 22,
+    "n": 30,
+    "passed": 30,
     "passed_bp": 10000
   }
 }
