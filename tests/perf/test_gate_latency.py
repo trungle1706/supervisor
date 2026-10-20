@@ -1,112 +1,38 @@
-"""Tier 0a latency bench (ADR D02): 20 rules, 2,000 checks, in-process, SQLite store.
+"""Tier 0a latency budget (ADR D02, WP23): p99 under 50 ms on the laptop SQLite path.
 
-Publishes p50/p95/p99 as integer microseconds. Each check includes the full path:
-policy + agent state read, rule evaluation, verdict + agent_event append, evidence record.
+The test runs the benchmark itself (``python -m tools.bench_latency --quick``, scenario
+``inproc``), so the test and the published numbers use one code path and cannot drift apart.
+Each check is the full gate path: policy and agent state read, rule evaluation (19 rules and
+200 mixed rules), verdict and agent_event append, signed evidence chain record.
 Run alone: uv run python -m pytest -q -s tests/perf
+Full benchmark and the numbers: docs/latency.md.
 """
 
 from __future__ import annotations
 
-import random
-from pathlib import Path
-
 import pytest
 
-from supervisor.adapters.clock import FixedClock
-from supervisor.adapters.factory import build_adapters
-from supervisor.config import load_settings
-from supervisor.gateway.engine import GateMetrics, Gateway
-from supervisor.gateway.policy import StaticPolicyProvider, load_policy_texts
-from supervisor.jobs import bootstrap_schema
-from tests.gateway.conftest import POLICY_DIR, T0, MemoryEvidence
+from tools import bench_latency as bl
 
-N_CHECKS = 2_000
-P99_BUDGET_US = 50_000
-
-EXTRA_RULE = """
-  - id: PERF-{i:02d}
-    version: 1
-    description: synthetic rule {i}
-    agent_scope: [payments]
-    when:
-      tool: {{in: [transfer, get_balance]}}
-      all:
-        - {{arg: channel, op: eq, value: "branch-{i}"}}
-        - {{arg: memo, op: matches, value: "(?i)ref-{i}-[0-9]+"}}
-    action: alert
-    severity: low
-    risk_class: read_only
-    owner: perf
-"""
-
-
-def _policy_20_rules():  # type: ignore[no-untyped-def]
-    base = (POLICY_DIR / "baseline.yaml").read_text(encoding="utf-8")
-    n_base = base.count("\n  - id: ")
-    extra = "".join(EXTRA_RULE.format(i=i) for i in range(20 - n_base))
-    policy = load_policy_texts([("baseline.yaml", base + extra)])
-    assert len(policy.rules) == 20
-    return policy
+P99_BUDGET_US = bl.GATE_BUDGET_P99_US  # 50_000
 
 
 @pytest.mark.perf
-def test_gate_latency_p99_under_50ms(tmp_path: Path) -> None:
-    clock = FixedClock(T0)
-    settings = load_settings(sql_backend="sqlite", data_dir=tmp_path / "data")
-    adapters = build_adapters(settings, clock=clock)
-    bootstrap_schema.run(settings, adapters)
-    gw = Gateway(
-        StaticPolicyProvider(_policy_20_rules()),
-        adapters.tables,
-        adapters.state,
-        MemoryEvidence(),
-        clock,
-        tier0b_enabled=False,
+def test_gate_latency_p99_under_50ms() -> None:
+    opts = bl.Options.quick_mode(
+        backends=("sqlite_file",), sizes=(19, 200), scenarios=("inproc",), n=800, warm=100
     )
-    rng = random.Random(7)
-    gw.check("payments", "1", "lookup_customer", {"customer_id": "WARM"})
-    gw.metrics = GateMetrics()
-    decide_us: list[int] = []
-    for i in range(N_CHECKS):
-        clock.advance(1)
-        cust = f"CUS-{rng.randrange(200):04d}"
-        kind = i % 4
-        if kind == 0:
-            res = gw.check("payments", "1", "get_balance", {"customer_id": cust})
-        elif kind == 1:
-            res = gw.check(
-                "payments",
-                "1",
-                "transfer",
-                {
-                    "customer_id": cust,
-                    "payee_id": f"P{rng.randrange(50)}",
-                    "amount_minor": rng.randrange(1, 5_000_000),
-                    "channel": "app",
-                    "memo": f"ref-{i}",
-                },
-            )
-        elif kind == 2:
-            res = gw.check(
-                "customer_service",
-                "1",
-                "waive_fee",
-                {"customer_id": cust, "amount_minor": 10_000},
-            )
-        else:
-            res = gw.check("credit_prequal", "1", "fetch_application", {"application_id": f"A{i}"})
-        decide_us.append(int(res["latency_us"]))
-    snap = gw.metrics.snapshot()
-    gw.close()
-    adapters.close()
-    lat = snap["latency_us"]
-    print(
-        f"\n[OK] gate end-to-end incl. SQLite writes, 20 rules, {snap['samples']} checks (us): "
-        f"p50={lat['p50']} p95={lat['p95']} p99={lat['p99']} max={lat['max']}"
-    )
-    dec = sorted(decide_us)
-    d50, d95, d99 = (GateMetrics.percentile(dec, p) for p in (50, 95, 99))
-    print(f"[OK] decision only, before recording (us): p50={d50} p95={d95} p99={d99}")
-    assert snap["samples"] == N_CHECKS
-    assert all(isinstance(lat[k], int) for k in ("p50", "p95", "p99"))
-    assert lat["p99"] < P99_BUDGET_US
+    report = bl.run_suite(opts)
+    results = report["results"]
+    assert {r["rules"] for r in results} == {19, 200}
+    for res in results:
+        med = res["median"]
+        print(
+            f"\n[OK] gate end to end, {res['backend']}, {res['rules']} rules, "
+            f"{med['n']} checks x {len(res['repeats'])} repeats (us): "
+            f"p50={med['p50']} p95={med['p95']} p99={med['p99']} max={med['max']}"
+        )
+        assert all(isinstance(med[k], int) for k in ("p50", "p95", "p99"))
+        # the reported statistic is the median over the repeats (one disk stall on a shared
+        # host can move a single repeat's p99; the median cannot be moved by one repeat)
+        assert med["p99"] < P99_BUDGET_US, f"{res['id']}: p99 {med['p99']} us over budget"
