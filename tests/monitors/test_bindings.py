@@ -198,3 +198,25 @@ def test_status_row_is_idempotent_and_merges(adapters, clock, evidence) -> None:
     with pytest.raises(ValueError):
         set_status(ctx, day, "x", "nonsense", OK)
     assert evidence.entries == []  # derived data: nothing goes on the chain
+
+
+def test_from_settings_reads_policy_dir_like_the_gate(tmp_path: Path) -> None:
+    """D13 x D06: with POLICY_DIR set, monitor bindings (and so the quality sweep, drift,
+    fairness and multi-agent jobs) come from the same folder the gate enforces."""
+    from supervisor.config import load_settings
+    from supervisor.monitors.bindings import DEFAULT_POLICY_DIR
+
+    _write(
+        tmp_path,
+        "policy_version: 1\nagents:\n  a1:\n    name: x\n    owner_user: u\n    owner_team: t\n"
+        "    monitors:\n      quality: {reply_tools: [from_policy_dir]}\n",
+    )
+    settings = load_settings(
+        policy_dir=tmp_path / "policies", monitor_manifest_dir=tmp_path / "agents"
+    )
+    r = BindingResolver.from_settings(settings).resolve("a1")
+    assert (r.quality.reply_tools, r.quality.source) == (("from_policy_dir",), POLICY)
+    # without POLICY_DIR the built-in folder is read, as before
+    plain = BindingResolver.from_settings(load_settings(monitor_manifest_dir=tmp_path / "agents"))
+    assert plain.resolve("a1").quality.reply_tools != ("from_policy_dir",)
+    assert DEFAULT_POLICY_DIR == REPO_ROOT / "policies"

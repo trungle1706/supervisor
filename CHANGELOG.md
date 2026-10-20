@@ -14,6 +14,7 @@ Integration branch `phase3-wave1`. `__version__` stays `0.2.0` until the release
 | WP24 | Inventory graph (agents, models, endpoints, tools, MCP servers, datasets), shadow-AI scan with low-severity cases (no incident clocks), console Inventory page, `GET /v1/inventory/...` | `docs/inventory.md` | D16 |
 | WP23 | Latency benchmark `python -m tools.bench_latency` (in process, HTTP open loop with GAF delta, OTLP, MCP proxy; SQLite and a labelled MOCK Delta path), Delta round-trip notebook, two committed full runs. Laptop gate p99 4.6 ms (19 rules), 6.8 ms (200 rules) against 50 ms. The 50 ms test runs with `RUN_PERF=1` | `docs/latency.md` | D19 |
 | WP1b-B | Onboarding: FastAPI routes are `entrypoints` (file:line), not tools; `deepagents` framework; MCP `tools/list`, `create_react_agent` / `create_deep_agent` tool lists; model family from endpoint names and env / `app.yaml` values via the judge alias table; corpus repo `fastapi_deepagents_credit_toy`, eval with precision, recall, Wilson intervals. Monitors: per-agent bindings (manifest and `policies/*.yaml`), defaults from tool classes, `monitor_status` with `not_applicable` reasons on the Metrics page, harness `python -m supervisor.monitors.binding_harness` | `docs/onboard.md`, `docs/onboard-eval.md`, `docs/monitors.md` | D20 |
+| WP1b-A | Judge config fixes D05, D12, D13, D14, D15: derived judge family with `family_source`, strict structured output for Anthropic-compatible endpoints, challenger scope, served `POLICY_DIR` and `FACT_SOURCE`, SDK on `/v1/gate/check` (details in the next section) | `docs/llm-adapter.md`, `docs/fact-sources.md`, `docs/judge-mrm.md` | D21 |
 | WP24b | Masker `vn_regex-3` (names in every case form, addresses, amounts kept), inline redaction of `pii_export` tool arguments at the gate, `pii_canary` v2, PII eval harness | `docs/masking.md`, `docs/masker-validation-report.md` | D17 |
 
 ### WP1b-A: benchmark defects D05, D12, D13, D14, D15
@@ -62,6 +63,12 @@ is given for a model whose family cannot be derived) now stops startup. New null
   `monitor_status`; the policy schema accepts `agents.<id>.monitors`; the inventory graph has an
   `entrypoint` node kind. New settings `MONITOR_POLICY_DIR`, `MONITOR_MANIFEST_DIR` (no flag:
   bindings are additive and the existing monitor flags are unchanged).
+- WP1b-A: `HttpGate` posts to `/v1/gate/check` (one fallback to `/gate/check` on HTTP 404); a
+  declared judge family that disagrees with the model id stops startup; `verdict` gains the
+  nullable column `family_source`.
+- Integration: with `POLICY_DIR` set, the monitor bindings (quality sweep, drift, fairness,
+  multi-agent) read that folder too, like the gate. Other readers of `<repo>/policies` are
+  listed in BACKLOG.
 
 ### Deploy note for Delta (databricks_app mode)
 
@@ -71,8 +78,9 @@ app version:
     python -m supervisor.jobs.bootstrap_schema
 
 (or the migration cell in `notebooks/bootstrap_and_smoke.py`). It adds the columns
-`agent_event.latency_us` and `oversight_metric.monitor_status` (WP1b-B) and the new tables
+`agent_event.latency_us`, `oversight_metric.monitor_status` (WP1b-B) and `verdict.family_source`
+(WP1b-A) and the new tables
 `alert`, `siem_event`, `tool_usage_daily`, `inventory_node` and `inventory_edge`. If the app runs
 first, every gate decision insert fails on the unknown column `latency_us`, and the monitor jobs
-fail on `monitor_status`. SQLite (laptop) is bootstrapped at app start and needs no
+fail on `monitor_status`, and judge verdict inserts fail on `family_source`. SQLite (laptop) is bootstrapped at app start and needs no
 step.

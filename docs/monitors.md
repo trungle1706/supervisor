@@ -27,7 +27,7 @@ on the evidence chain.
 
 For every field the first hit wins:
 
-1. `policies/*.yaml`, `agents.<id>.monitors` (the policy is the control surface),
+1. `policies/*.yaml` (or the `POLICY_DIR` folder when it is set, the same folder the gate reads), `agents.<id>.monitors` (the policy is the control surface),
 2. the agent manifest `monitors:` key,
 3. derived from the tool risk classes (below),
 4. nothing: the monitor writes `not_applicable`.
@@ -90,7 +90,7 @@ binding anywhere, an agent gets derived defaults or `not_applicable` rows.
 
 | Setting | Meaning |
 |---|---|
-| `MONITOR_POLICY_DIR` | Extra folder of policy `*.yaml`, read after `policies/` (its `agents.<id>.monitors` wins) |
+| `MONITOR_POLICY_DIR` | Extra folder of policy `*.yaml`, read after `policies/` (or `POLICY_DIR`) (its `agents.<id>.monitors` wins) |
 | `MONITOR_MANIFEST_DIR` | Extra folder of `<agent>/manifest.yaml`, read after `src/supervisor_agents/` |
 
 The served app cannot load a second gateway policy folder yet (benchmark defect D13); these two

@@ -138,7 +138,11 @@ class BindingResolver:
         extra = getattr(settings, "monitor_manifest_dir", None)
         if extra:
             roots.append(_abs(extra))
-        pdirs = [DEFAULT_POLICY_DIR]
+        # POLICY_DIR (D13): the monitors read the same policy folder as the gate enforces.
+        from supervisor.wiring import resolve_policy_dir
+
+        has_dir = hasattr(settings, "policy_dir")
+        pdirs = [_abs(resolve_policy_dir(settings)) if has_dir else DEFAULT_POLICY_DIR]
         extra_p = getattr(settings, "monitor_policy_dir", None)
         if extra_p:
             pdirs.append(_abs(extra_p))
