@@ -80,3 +80,18 @@ Verdict (validation report): **GO** for structured identifiers, addresses, label
 New: `src/supervisor/adapters/masking/vn_text.py`, `src/supervisor/gateway/redact.py`, `src/supervisor/assurance/pii_matrix.py`, `src/supervisor/pii_eval/{__init__,__main__,generate,harness}.py`, `data/eval/pii_vn/*`, `tests/pii_eval/*`, `tests/gateway/test_inline_redaction.py`, `tests/recorder/test_masking_vn_regex3.py`, `docs/masking.md`, `docs/masker-model-card.md`, `docs/masker-validation-report.md`, `docs/adr/D17-masker-v3-inline-redaction.md`, `HANDOFF_WP24b.md`.
 Edited (shared files, minimal additive edits): `config.py` (WP24b block at the end of the settings class, plus one property), `wiring.py` (gateway masker args + `_redaction_masker`), `adapters/factory.py` (`mask_amounts`), `gateway/engine.py`, `gateway/sdk.py`, `gateway/mcp_proxy.py`, `adapters/masking/vn_regex.py`, `assurance/runners/security.py`, `assurance/packs/pii_canary.yaml` (version 2), `README.md`, `BACKLOG.md`, `.env.example`, `docs/index.md`, `docs/recorder.md`, `docs/threat-model.md`, and the four test files named in section 5.
 No schema / DDL change, no new dependency, no subprocess, no network.
+
+## 10. Review follow-up (REVIEW_WP24b.md findings 5, 6, 10, 11)
+
+Code commit `d4e8015`; baselines re-recorded with that id. Suite: **2926 passed, 28 skipped**
+(was 2896 before the review fixes and this follow-up). Ruff check and format clean.
+
+| Finding | Done |
+|---|---|
+| 5 full lexicon | Production ships the full lexicon (Duy, Lâm, Khôi, Thịnh, Quách, Kiều, Tân, Nhân, Thạch, Tống, ... added; `_HELD_BLOCK` removed). `python -m supervisor.pii_eval --ablate-heldout-lexicon` removes the held-out pools at evaluation time only (`vn_text.ablate`, restores on exit). Baseline holds dev (production lexicon), held-out (ablated) and `heldout_production_lexicon` (information only). The lexicon test checks the ablation path and that the shipped lexicon has the common names |
+| 6 negatives | `src/supervisor/pii_eval/negatives.py`: 310 negative prose items (UPPER headers with and without diacritics, street and brand names, places, products, amounts, dates, code, English) plus the hand-written negatives. Metric `false_mask` per entity with Wilson interval; ILLUSTRATIVE limit 500 bp; regression test fails on a rise over 100 bp or above the limit. Fixes (dev recall unchanged): `LÝ DO TỪ CHỐI`, `Ho Chi Minh City` and other 3-word provinces, `Võ Văn Kiệt Street` (brand/street suffix within 3 words; `kiệt` no longer a street keyword), product names after `Gói`/`Sản phẩm`, `DO TU` two-word case |
+| 10, 11 | SDK (`supervised_tool` on a `pii_export` tool) and `McpGateProxy` log ONE warning per process when the local inline flag is on: it only works if the server flag is on too. Test added |
+
+Numbers (bp; Wilson 95%). Dev (production lexicon): PERSON recall 9920 (9768-9973), ADDRESS 10000, all IDs 10000, amounts intact 10000, false-mask 0 for every entity over 190 negatives (dev was used to fix them). Held-out (lexicon ablated): PERSON 5297 (4579-6004), ADDRESS 10000, IDs 10000, false-mask PERSON 373 (160-844; 5 of 134), others 0. Held-out with production lexicon: PERSON 9891 (contaminated, information only). v2 for contrast: false-mask PERSON 210 dev / 223 held-out, BANK_ACCOUNT 105 / 74.
+
+Not done: `Vũ Trụ Bao La`-style brand names (surname + two unknown words) are still masked; `DO TU` as a 2-word pair is now skipped but `Do Tu` as a real name is lost; the held-out negative failures were not inspected item by item.

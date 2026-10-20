@@ -1,5 +1,5 @@
 {
-  "commit": "tmp",
+  "commit": "d4e8015",
   "lexicon": {
     "dev": "production",
     "heldout": "ablated"
@@ -314,8 +314,8 @@
           "touched": 0
         }
       },
-      "latency_us_p50": 242,
-      "latency_us_p95": 408,
+      "latency_us_p50": 240,
+      "latency_us_p95": 403,
       "micro_leak_recall_bp": 9970,
       "n_items": 666,
       "over_mask_amount_count": 0,
@@ -625,8 +625,8 @@
           "touched": 0
         }
       },
-      "latency_us_p50": 225,
-      "latency_us_p95": 397,
+      "latency_us_p50": 215,
+      "latency_us_p95": 386,
       "micro_leak_recall_bp": 8228,
       "n_items": 365,
       "over_mask_amount_count": 0,
@@ -945,8 +945,8 @@
           "touched": 0
         }
       },
-      "latency_us_p50": 223,
-      "latency_us_p95": 401,
+      "latency_us_p50": 222,
+      "latency_us_p95": 395,
       "micro_leak_recall_bp": 9959,
       "n_items": 365,
       "over_mask_amount_count": 0,
