@@ -226,6 +226,14 @@ def _has_account_cue(text: str, start: int, pat: re.Pattern[str] = _RE_ACCOUNT_C
     return bool(pat.search(_fold(window[last_digit + 1 :]).lower()))
 
 
+def _currency_after(text: str, m: re.Match[str]) -> bool:
+    """A currency word follows the run and the run is not an identifier ("CCCD 079203001234
+    đồng thời": "đồng" is also a word, the CCCD must still be masked)."""
+    return bool(_RE_CURRENCY_AFTER.match(text, m.end())) and not vn_text.id_shaped(
+        text, m.start(), m.group()
+    )
+
+
 def _amount_shaped(run: str) -> bool:
     """Thousands format (1-3 digits, then exact 3-digit groups, dot or space), or several such
     dot-grouped amounts in a row ("20.000.000 20.000.000", "5.000.000-10.000.000")."""
@@ -282,7 +290,7 @@ def _classify_sep_run(text: str, m: re.Match[str]) -> tuple[str, str] | None:
     * Everything else (dates, times, short refs, < 9 digits): not masked.
     """
     run = m.group()
-    if _RE_CURRENCY_AFTER.match(text, m.end()):
+    if _currency_after(text, m):
         return None
     if ("/" in run or "_" in run) and not _has_account_cue(text, m.start(), _RE_SLASH_CUE):
         return None
@@ -370,7 +378,7 @@ class VnRegexMasker:
                     strong = False
                 add(m.start(), m.end(), "card_strong" if strong else "card_weak", "CARD_NUMBER")
         for m in _RE_RUN.finditer(text):
-            if _RE_CURRENCY_AFTER.match(text, m.end()):
+            if _currency_after(text, m):
                 continue  # "123456789012 VND" is an amount
             kind = _classify_run(text, m.start(), m.group())
             if kind:
@@ -380,7 +388,7 @@ class VnRegexMasker:
             if (
                 (_amount_shaped(m.group()) and not _label_adjacent(text, m))
                 or _date_like(groups)
-                or _RE_CURRENCY_AFTER.match(text, m.end())
+                or _currency_after(text, m)
             ):
                 continue
             if _nearest_label(text, m.start()) == "BANK_ACCOUNT":

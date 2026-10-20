@@ -208,3 +208,45 @@ def test_no_quadratic_blowup_on_long_input(m: VnRegexMasker, text: str) -> None:
     t0 = time.perf_counter()
     m.mask(text)
     assert time.perf_counter() - t0 < 8.0  # about 1 s on a laptop for 100 KB
+
+
+# ------------------------------------------------------------------ review WP24b (Opus)
+@pytest.mark.parametrize(
+    "text,secret",
+    [
+        ("CCCD 079203001234 đồng thời là chủ hộ", "079203001234"),
+        ("CCCD 079 203 001 234 đồng thời", "079 203 001 234"),
+        ("079.203.001.234 đồng thời", "079.203.001.234"),
+        ("CMND 123 456 789 đồng thời", "123 456 789"),
+        ("SĐT 0912 345 678 đồng ý nhận tin", "0912 345 678"),
+        ("goi 0912345678 dong y vay", "0912345678"),
+        ("STK: 1903 4567 8901 23 đồng chủ sở hữu", "1903 4567 8901 23"),
+        ("tai khoan 19034567890123 dong bang", "19034567890123"),
+        ("the 4111 1111 1111 1111 đồng thời", "4111 1111 1111 1111"),
+    ],
+)
+def test_identifier_before_dong_word_is_not_an_amount(
+    m: VnRegexMasker, text: str, secret: str
+) -> None:
+    """ "đồng" is also a word ("đồng ý", "đồng thời"): an id before it must still be masked."""
+    assert secret not in m.mask(text)
+
+
+@pytest.mark.parametrize(
+    "amt",
+    ["1 500 000 VND", "12.345.678 đ", "9100000000 VND", "25000000 dong", "500.000 đ"],
+)
+def test_amount_guard_keeps_real_amounts(m: VnRegexMasker, amt: str) -> None:
+    for text in (f"so tien {amt}", f"so du tai khoan {amt}", f"Ngay 12 thang 3 nam 2025 {amt}"):
+        assert amt in m.mask(text), text
+
+
+@pytest.mark.parametrize(
+    "text", ["Nguyễn Anh Tuấn gọi lại", "Mai Anh Tuấn sẽ gọi lại.", "Lê Chi Mai", "NGUYEN ANH TUAN"]
+)
+def test_title_word_inside_a_name_does_not_cut_the_name(m: VnRegexMasker, text: str) -> None:
+    """ "Anh" / "Chi" are also middle names: the whole name is one span, no part survives."""
+    out = m.mask(text)
+    assert len(_tok(out, "PERSON")) == 1
+    rest = out.split("<")[0] + out.split(">")[-1]
+    assert not re.search(r"(?i)\b(nguy|mai|le|lê|anh|chi)\b", rest)

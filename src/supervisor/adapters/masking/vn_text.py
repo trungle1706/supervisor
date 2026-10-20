@@ -22,7 +22,7 @@ import unicodedata
 
 from supervisor.data import wordlists as W
 
-__all__ = ["amount_spans", "address_spans", "person_spans"]
+__all__ = ["amount_spans", "address_spans", "id_shaped", "person_spans"]
 
 
 def fold(text: str) -> str:
@@ -345,7 +345,29 @@ def person_spans(text: str) -> tuple[list[tuple[int, int, str]], list[tuple[int,
         ):
             plain.append((s.start, toks[last].end, "plain"))
         n = last + 1
-    return plain, labelled
+    return plain, _merge_labelled(labelled, plain)
+
+
+def _merge_labelled(
+    labelled: list[tuple[int, int, str]], plain: list[tuple[int, int, str]]
+) -> list[tuple[int, int, str]]:
+    """A loose title can be part of the name ("Nguyễn Anh Tuấn": "Anh" is a middle name). The
+    labelled span then covers only "Tuấn" and, having the higher priority, would leave
+    "Nguyễn Anh" in the text. Grow a labelled span over every plain span it overlaps."""
+    if not plain:
+        return labelled
+    starts = [p[0] for p in plain]  # plain spans are sorted and do not overlap
+    out: list[tuple[int, int, str]] = []
+    for ls, le, why in labelled:
+        i = max(0, bisect.bisect_right(starts, ls) - 1)
+        s, e = ls, le
+        while i < len(plain) and plain[i][0] < le:
+            ps, pe, _ = plain[i]
+            if ps < le and ls < pe:
+                s, e = min(s, ps), max(e, pe)
+            i += 1
+        out.append((s, e, why))
+    return out
 
 
 def _plain_at(toks: list[_Tok], text: str, n: int) -> int | None:
@@ -514,9 +536,72 @@ _RE_ID_LABEL = re.compile(
 )
 
 
+_RE_NUM_AT = re.compile(_NUMTOK)
+_RE_GROUPS_BEFORE = re.compile(r"(?:\d{1,6}[ \t-]){1,6}$")
+_RE_THOUSANDS_SHAPE = re.compile(r"\d{1,3}(?:([., ])\d{3})(?:\1\d{3})*(?:[.,]\d{1,2})?")
+
+
+def _luhn(digits: str) -> bool:
+    if not 13 <= len(digits) <= 19:
+        return False
+    total = 0
+    for i, ch in enumerate(reversed(digits)):
+        d = int(ch) * (2 if i % 2 else 1)
+        total += d - 9 if d > 9 else d
+    return total % 10 == 0
+
+
+def id_shaped(text: str, start: int, run: str) -> bool:
+    """Is the digit run ``run`` (at ``start``) an identifier rather than an amount, although a
+    currency word follows it? "đồng" is also a word ("đồng ý", "đồng thời"): a CCCD, phone or
+    account followed by it must not be claimed as an amount. Leading 0 (CCCD, phone), a label
+    such as CCCD / STK / SĐT before it, a Luhn card number, or digit groups that are not a
+    thousands format mean an identifier."""
+    digits = re.sub(r"\D", "", run)
+    if len(digits) < 8:
+        return False
+    if digits[0] == "0":
+        return True
+    label = bool(_RE_ID_LABEL.search(_fold_window(text, start).split("\n")[-1][-24:]))
+    shaped = _RE_THOUSANDS_SHAPE.fullmatch(run.strip())
+    if shaped:
+        return label and shaped.group(1) == " "  # "CMND 123 456 789 đồng thời"
+    if any(not c.isdigit() for c in run.strip()):
+        return True  # "1903 4567 8901 23 đồng": grouped like an account, not like money
+    if digits.endswith("000"):
+        return False
+    return label or _luhn(digits)
+
+
+def _guarded(text: str, s: int, e: int) -> tuple[int, int] | None:
+    """The amount span, extended over space-grouped thousands before it ("1 500 000 VND"), or
+    None when the number is an identifier (see ``id_shaped``)."""
+    num = _RE_NUM_AT.match(text, s)
+    if num is None:
+        return s, e
+    before = None
+    if num.group().isdigit():  # "234 đồng" may be the tail of "079 203 001 234"
+        before = _RE_GROUPS_BEFORE.search(text, max(0, s - 48), s)
+    if before is not None and before.end() == s:
+        run = text[before.start() : num.end()]
+        if id_shaped(text, before.start(), run):
+            return None
+        if _RE_THOUSANDS_SHAPE.fullmatch(run):
+            return before.start(), e
+        return s, e
+    if id_shaped(text, s, num.group()):
+        return None
+    return s, e
+
+
 def amount_spans(text: str) -> list[tuple[int, int]]:
     out: list[tuple[int, int]] = []
-    for rx in (_RE_AMT_SCALE, _RE_AMT_K, _RE_AMT_CUR_AFTER, _RE_AMT_CUR_BEFORE, _RE_AMT_FLOAT):
+    for rx in (_RE_AMT_SCALE, _RE_AMT_K, _RE_AMT_CUR_AFTER):
+        for m in rx.finditer(text):
+            span = _guarded(text, m.start(), m.end())
+            if span is not None:
+                out.append(span)
+    for rx in (_RE_AMT_CUR_BEFORE, _RE_AMT_FLOAT):
         for m in rx.finditer(text):
             out.append((m.start(), m.end()))
     for m in _RE_AMT_BARE.finditer(text):
