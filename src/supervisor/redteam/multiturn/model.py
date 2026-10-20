@@ -99,6 +99,8 @@ class Binding:
     app_complete: str = ""
     extra_apps: list[str] = field(default_factory=list)
     extra_customers: list[str] = field(default_factory=list)
+    # payee ids that existed before the trial; any other payee id is one the agent created
+    known_payees: list[str] = field(default_factory=list)
 
 
 @dataclass

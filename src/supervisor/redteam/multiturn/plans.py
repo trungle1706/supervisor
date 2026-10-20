@@ -898,6 +898,7 @@ def bind(world: Any, agent: str, rng: DetRng) -> Binding:
             {a: cust for a in accs},
         )
         b.extra_apps = [f"PAY-{len(world.payees) + 1:04d}"]  # id the next add_payee will get
+        b.known_payees = sorted(world.payees)
         return b
     if agent == "customer_service":
         tickets = sorted(
