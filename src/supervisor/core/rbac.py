@@ -95,6 +95,11 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "users.view": (("admin",), "Users and roles page (read-only)"),
     "audit.view": (("auditor", "admin"), "Audit log page: console_action rows (read-only)"),
     "integrations.view": (_ALL, "Integrations status page (read-only)"),
+    # --- WP38 ---
+    "collectors.add": (
+        ("admin", "operator"),
+        "Integrations catalogue: Add a collector (issues the first agent key, WP38)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -227,6 +232,9 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/audit/rows"): "audit.view",
     ("GET", "/console/audit/{action_id}/drawer"): "audit.view",
     ("GET", "/console/integrations"): "integrations.view",
+    # --- WP38 ---
+    ("GET", "/console/integrations/agent/{agent_id}/drawer"): "integrations.view",
+    ("POST", "/console/integrations/{agent_id}/connect"): "collectors.add",
 }
 
 

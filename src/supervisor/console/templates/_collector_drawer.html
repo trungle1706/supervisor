@@ -1,0 +1,70 @@
+{# Agent drawer of the Integrations catalogue (WP38): tabs Connection, Credential, Policy binding.
+   Variable: drawer (collectors_view.drawer). Credential: metadata only. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set tab = drawer.tab %}
+{% set aid = drawer.agent_id %}
+{% set tid = drawer.template_id %}
+{% set base = '/console/integrations/agent/' ~ aid ~ '/drawer?tab={tab}&template=' ~ tid ~ '&lang=' ~ lang %}
+{% set page_base = '/console/integrations?drawer=' ~ aid ~ '&dtab={tab}&template=' ~ tid ~ '&lang=' ~ lang %}
+{% set pills %}{{ drawer.agent.gate_state or '-' }}{% endset %}
+{% set labels = {'connection': t('dtab_connection'), 'credential': t('dtab_credential'), 'policy': t('dtab_binding')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base) }}{% endset %}
+{% call dr.drawer(aid, pills, tabs_html, drawer.json_text) %}
+  {% if tab == 'connection' %}
+    <p class="idline">{{ t('col_template') }}:
+      {% for tid2, tname, avail in drawer.templates %}{% if avail %}<a class="chipbtn{{ ' on' if tid2 == tid else '' }}" href="/console/integrations?drawer={{ aid }}&amp;dtab=connection&amp;template={{ tid2 }}&amp;lang={{ lang }}" hx-get="/console/integrations/agent/{{ aid }}/drawer?tab=connection&amp;template={{ tid2 }}&amp;lang={{ lang }}" hx-target="#drawer" hx-push-url="false">{{ tname }}</a> {% endif %}{% endfor %}
+    </p>
+    <h3 class="sec">{{ t('col_steps') }}</h3>
+    <ol>{% for step in drawer.tpl.steps %}<li>{{ step }}</li>{% endfor %}</ol>
+    <h3 class="sec">{{ t('col_snippet') }}</h3>
+    <pre class="mono wrap payload">{{ drawer.tpl.snippet }}</pre>
+  {% elif tab == 'credential' %}
+    {% if not drawer.ingress_on %}<div class="msg msg-warn" role="status">{{ t('col_ingress_off') }}</div>{% endif %}
+    <p class="hint">{{ t('col_cred_note') }}</p>
+    {% if drawer.key_rows %}
+    <div class="tablewrap flat"><table>
+      <thead><tr><th scope="col">{{ t('key_id') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('issued') }}</th><th scope="col">{{ t('expires') }}</th></tr></thead>
+      <tbody>
+      {% for k in drawer.key_rows %}
+        <tr><td class="mono">{{ k.key_id }}</td><td>{{ ui.pill(t('key_' ~ k.state) if k.state in ('current', 'previous') else k.state, 'ok' if k.active else 'neutral', True) }}</td><td class="mono">{{ k.issued|day if k.issued else '-' }}</td><td class="mono">{{ k.expires_at|day if k.expires_at else '-' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="hint">{{ t('col_no_keys_agent') }}</p>
+    {% endif %}
+    <h3 class="sec">{{ t('col_rotate') }}</h3>
+    <pre class="mono wrap payload">{{ drawer.rotate_cli }}</pre>
+    <p class="btnrow"><a class="btn" href="/console/credentials?lang={{ lang }}">{{ t('nav_credentials') }}</a></p>
+  {% else %}
+    {% set b = drawer.binding %}
+    {% if not b.available %}
+      <p class="hint">{{ t('col_bind_unavailable') }}</p>
+    {% else %}
+    {{ ui.kv([
+      (t('col_bind_mode'), t('mode_' ~ b.mode)),
+      (t('state'), b.state),
+      (t('col_bind_preset'), b.detector_preset),
+      (t('col_bind_rules'), b.rules_in_scope),
+      (t('col_bind_disabled'), b.disabled_rules|join(', ') or '-', True),
+      (t('policy_hash'), b.policy_hash[:16], True),
+    ]) }}
+    <h3 class="sec">{{ t('col_bind_consumers') }}</h3>
+    {% if b.consumers %}
+    <div class="tablewrap flat"><table>
+      <thead><tr><th scope="col">{{ t('pg_consumer') }}</th><th scope="col">{{ t('mode') }}</th><th scope="col">{{ t('col_bind_preset') }}</th><th scope="col">{{ t('col_bind_disable') }}</th><th scope="col">{{ t('col_bind_enable') }}</th></tr></thead>
+      <tbody>
+      {% for c in b.consumers %}
+        <tr><td class="mono">{{ c.consumer_id }}</td><td>{{ c.mode }}</td><td>{{ c.preset }}</td><td class="mono">{{ c.disable|join(', ') or '-' }}</td><td class="mono">{{ c.enable|join(', ') or '-' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="hint">{{ t('col_bind_none') }}</p>
+    {% endif %}
+    <p class="hint">{{ t('col_bind_note') }}</p>
+    {% endif %}
+    <p class="btnrow">{% if drawer.policies_on %}<a class="btn" href="/console/policies?lang={{ lang }}">{{ t('nav_policies') }}</a>{% endif %}</p>
+  {% endif %}
+{% endcall %}

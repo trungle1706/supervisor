@@ -1,0 +1,21 @@
+{# Answer of Add (WP38). Variables: tpl (filled template), issued (the key, shown once),
+   agent_id, ingress_on. The secret is rendered here and nowhere else. #}
+{% import "_ui.html" as ui with context %}
+<div class="card">
+  <h2 class="sec">{{ t('col_result_title', agent=agent_id) }} {{ ui.pill(tpl.name, 'teal') }}</h2>
+  <div class="msg msg-warn" role="alert">{{ t('col_secret_once') }}</div>
+  {% if not issued.written %}
+  <p>{{ t('col_manual', store=issued.store) }}</p>
+  <ol>{% for step in issued.manual_steps %}<li>{{ step }}</li>{% endfor %}</ol>
+  {% endif %}
+  {{ ui.kv([
+    (t('agent'), agent_id, True),
+    (t('key_id'), issued.key_id, True),
+    (t('col_secret'), issued.secret, True),
+  ]) }}
+  {% if not ingress_on %}<div class="msg msg-warn" role="status">{{ t('col_ingress_off') }}</div>{% endif %}
+  <h3 class="sec">{{ t('col_steps') }}</h3>
+  <ol>{% for step in tpl.steps %}<li>{{ step }}</li>{% endfor %}</ol>
+  <h3 class="sec">{{ t('col_snippet') }}</h3>
+  <pre class="mono wrap payload">{{ tpl.snippet }}</pre>
+</div>
