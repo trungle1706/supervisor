@@ -33,7 +33,10 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/regulations.md` | Regulation knowledge base: coverage, format, internal rules | 2L, Dev |
 | `docs/compliance-advisor.md` | Obligations matrix, Decision 33, threshold check | 2L, Dev |
 | `docs/inventory.md` | Inventory graph, risk inheritance, shadow-AI scan (WP24) | 2L, Platform admin, Dev |
-| `docs/assurance.md` | 33 eval packs with licence and data mode | 2L, Dev |
+| `docs/assurance.md` | 34 eval packs with licence and data mode | 2L, Dev |
+| `docs/redteam-multiturn.md` | Multi-turn Vietnamese red team: families, objectives, oracle, report, nightly job, Playground samples (WP28) | 2L, Dev, Op |
+| `docs/redteam-attacker-model-card.md` | Model card of the optional LLM attacker and evidence judge (WP28) | 2L, Aud |
+| `docs/redteam-multiturn-validation.md` | Validation report of the multi-turn harness: GO / NO-GO per metric, probes, live run (WP28) | 2L, Aud |
 | `docs/tool-analytics.md` | Tool usage rollup, least-privilege suggestion, Tools page (WP22) | 2L, Op, Dev |
 | `docs/judge-mrm.md` | Model card, validation, change control of the judge | 2L, Aud |
 | `docs/llm-adapter.md` | LLM adapter flags, strict endpoints, derived judge family, challenger scope (WP1b-A) | Build, 2L |
@@ -47,7 +50,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/BUILD_PLAN.md` | Phase 1 plan (WP0 to WP12) | Build |
 | `docs/BUILD_PLAN_PHASE2.md` | Phase 2 plan (WP13 to WP19) and status | Build |
 | `docs/ingress-auth.md` | Per-agent credentials on agent ingress: setup, rotation, rubric (WP20) | Build, Sec |
-| `docs/adr/` (D01 to D22) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22) | Build, Aud |
+| `docs/adr/` (D01 to D22, D25) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22) | Build, Aud |
 | `docs/phase3/wave1/` | Phase 3 wave 1: handoff and review of each WP, integration report (`INTEGRATION_WAVE1.md`) | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |
