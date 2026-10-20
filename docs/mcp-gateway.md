@@ -16,6 +16,7 @@ or changed tool is hidden and cannot be called until two different people approv
 | `MCP_HTTP_ENABLED` | `0` | `1` turns on the `/v1/mcp/tools` routes (otherwise HTTP 400 with the flag name) and lets the proxy process start (it refuses to start with `[SKIP]` and exit code 2 otherwise). |
 | `MCP_TOOL_LOCK` | `1` | Inside the proxy: hold new or changed tools. `0` (or `--no-tool-lock`) gives the gate only. |
 | `MCP_LOCK_REFRESH_S` | `60` | How long the proxy trusts one view of the server's tool list before it lists the server again. |
+| `MCP_TOFU_INGRESS` | `0` | App side. `1` lets a proxy that talks to the app (`/v1/mcp/tools/observe`) use `--trust-on-first-use`. Off: the app answers 400 and the proxy fails closed. |
 | `INVENTORY_ENABLED` | `0` | With `1`, the first sight of a server registers an `mcp_server` inventory node and a `uses` edge from the agent. |
 
 ## 2. How it fits
@@ -73,7 +74,10 @@ The agent's MCP client then points at `http://127.0.0.1:9701/mcp`.
 Transport rules: one POST per JSON-RPC message; the answer is JSON or an event stream; a
 notification gets 202; JSON-RPC batches work; `Mcp-Session-Id` and `MCP-Protocol-Version` are
 passed through; `DELETE` ends an upstream session. If the upstream sends server messages before
-the response (an event stream), the client gets an event stream with them and the response. Not
+the response (an event stream), the client gets an event stream with them and the response.
+Only server requests and notifications (messages with a `method`) are passed on: a response
+with another id is dropped, so a hostile server cannot answer the client's `tools/list` ahead of
+the filtered answer. A lock view that is not a list of tool names fails closed. Not
 offered: the optional `GET` stream for server-initiated messages (405) and stream resumption.
 
 The proxy keeps one `httpx` client per upstream and one for the Supervisor, so both hops reuse
@@ -124,7 +128,11 @@ review elsewhere. It is ignored when the server is already known.
 The chain gets `mcp_manifest_seeded` with `seeded_by`, the list hash and the tool count; each
 tool row carries `seeded_by`. It works only while the server has no manifest rows. It is a
 human act claimed by the process owner, signed with the agent's key; the Supervisor cannot
-check the name, so keep the start command in change control.
+check the name, so keep the start command in change control. When the proxy talks to the app
+over HTTP (the normal case), the app accepts the seed only with `MCP_TOFU_INGRESS=1` (default
+off: an agent credential, or anyone while `INGRESS_AUTH_ENABLED=0`, could otherwise seed any
+server under any name). Turn it on for the first start only. The chain record names the
+credential that sent the seed (`via`, for example `ingress:hmac:credit_agent`).
 
 ## 6. Review: list, diff, propose, approve
 
@@ -134,11 +142,12 @@ the routes on a laptop):
 ```cmd
 python -m supervisor.gateway.mcp_http tools list credit-mcp.bank.example_mcp
 python -m supervisor.gateway.mcp_http tools diff credit-mcp.bank.example_mcp get_balance
-python -m supervisor.gateway.mcp_http tools propose credit-mcp.bank.example_mcp get_balance --by khanh --hash 3f9a1c07b2d4
-python -m supervisor.gateway.mcp_http tools approve credit-mcp.bank.example_mcp get_balance --by an    --hash 3f9a1c07b2d4
+python -m supervisor.gateway.mcp_http tools propose credit-mcp.bank.example_mcp get_balance --by khanh --hash <64-hex hash from diff>
+python -m supervisor.gateway.mcp_http tools approve credit-mcp.bank.example_mcp get_balance --by an    --hash <64-hex hash from diff>
 ```
 
-`--hash` is the observed hash from `list` or `diff` (12 or more characters). It binds your
+`--hash` is the full observed hash from `list` or `diff` (64 hex characters; a prefix is
+refused, because a short prefix can be matched by a crafted definition). It binds your
 approval to what you read: if the server changed the tool since, the approval is refused with
 "the tool changed since you reviewed it". Output is ASCII; non-ASCII text in a definition is
 shown as `\uXXXX`.
@@ -155,7 +164,8 @@ Routes (permission in brackets; the person is the authenticated principal, never
 | `POST /v1/mcp/tools/blocked` | agent ingress (signed) | the proxy |
 
 The rule: two DIFFERENT people (case-insensitive) approve the SAME observed hash. The first
-may be an operator (`propose`), the second must hold `mcp.tools.approve`. Errors are HTTP 400
+may be an operator (`propose`), the second must hold `mcp.tools.approve` and use `approve`:
+`propose` never completes the lock, even when it would be the second approval. Errors are HTTP 400
 with a message ("already approved this change; a second, different person must approve", "the
 tool changed since you reviewed it", "the tool is already approved"). Every approval and every
 lock is a chain record with the principals.

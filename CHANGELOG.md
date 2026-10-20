@@ -21,6 +21,12 @@
 * Harness `python -m supervisor.gateway.mcp_http_harness` (110 template items, 33 probes outside
   the templates, Wilson intervals, latency with and without the gate) and its regression test.
 * Docs: `docs/mcp-gateway.md`, ADR D24, pattern C in the integration guide, threat model.
+* Review fixes (`REVIEW_WP26.md`): the proxy passes only server requests and notifications from an
+  upstream event stream (a forged response could reach the client ahead of the filtered
+  `tools/list`); `tools/list` with `"id": null` is filtered; `propose` never completes a lock;
+  approvals need the full 64-character hash; trust-on-first-use over the agent ingress needs
+  `MCP_TOFU_INGRESS=1` (default off) and records the sending credential; a non-loopback listener
+  needs the inbound token; a malformed lock view fails closed; a tool named `*` is refused.
 
 ## v0.3.0 (phase 3, wave 1) - 2026-10-20
 

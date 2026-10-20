@@ -34,8 +34,9 @@ the stdio proxy never had:
    stay as they are (WP37 owns them).
 3. **Two-person approval, same pattern as resume and sign-off.** Two DIFFERENT people approve
    the SAME observed hash; an approval names the hash the reviewer saw (a change between look
-   and approve is refused); a new hash drops the approvals so far. The first approval can come
-   from an operator (`mcp.tools.propose`), the second needs `mcp.tools.approve`. The acting
+   and approve is refused; the full 64-character hash is required); a new hash drops the
+   approvals so far. The first approval can come from an operator (`mcp.tools.propose`), the
+   second needs `mcp.tools.approve` (`propose` never completes the lock). The acting
    person is the authenticated principal (`control=True`: explicit identity, no cookie).
 4. **State lives in one table, `mcp_tool_manifest`** (both DDLs, `schema/model.yaml`): one row
    per server and tool, plus a server row (`tool_name = '*'`) with the whole-list hash. It has
@@ -60,7 +61,8 @@ the stdio proxy never had:
 8. **Trust on first use is explicit.** Without a seed, the first listing holds every tool.
    `--trust-on-first-use --by NAME` locks the current list as approved with no second person,
    prints an ASCII warning, records who ran it in the chain, and is ignored when the server is
-   already known.
+   already known. Over the agent ingress the app accepts it only with `MCP_TOFU_INGRESS=1`
+   (default off, review WP26 F3) and records the sending credential (`via`).
 9. **A review case opens by itself.** Type `mcp_tool_review` (case source kind), medium, high
    when suspicious, one per tool and observed hash (one per server for the first listing). It
    carries no incident clock (`NO_CLOCK_SOURCES`, like the inventory flag cases).

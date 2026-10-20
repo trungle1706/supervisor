@@ -110,8 +110,9 @@ python -m supervisor.gateway.mcp_http --upstream https://mcp.bank.example/mcp --
 The decision path, the evidence, the ingress signing and the masked arguments are those of the
 stdio proxy. New: a tool that is new or changed since two people approved it is hidden from
 `tools/list` and refused on `tools/call` (`MCP-TOOL-UNREVIEWED`); a review case opens. Seed the
-first manifest with `--trust-on-first-use --by NAME` or review each tool with
-`python -m supervisor.gateway.mcp_http tools ...`. One proxy process per application.
+first manifest with `--trust-on-first-use --by NAME` (the app must have `MCP_TOFU_INGRESS=1`
+for that start) or review each tool with `python -m supervisor.gateway.mcp_http tools ...`.
+One proxy process per application.
 
 Limits of the proxy: it sees the tool name and arguments only. It has no risk class, so
 every tool fails closed when the gate is unreachable, read-only tools too. Only `tools/call`
