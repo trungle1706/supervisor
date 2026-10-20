@@ -199,8 +199,9 @@ class GateClient:
         self.default_risk_class = default_risk_class
         self.max_payload_bytes = max_payload_bytes
         self.protocol = protocol if protocol in ("llm", "mcp", "a2a") else "llm"
+        self._fn = getattr(gate, "check_v2", None) or gate.check
         try:
-            params = inspect.signature(gate.check).parameters
+            params = inspect.signature(self._fn).parameters
             self._v2 = "direction" in params or any(
                 p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
             )
@@ -266,7 +267,7 @@ class GateClient:
             )
         try:
             if self._v2:
-                raw = self.gate.check(
+                raw = self._fn(
                     self.agent_id,
                     self.agent_version,
                     tool,

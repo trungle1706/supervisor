@@ -64,10 +64,21 @@ class InProcessGate:
         tool_name: str,
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        return self.check_v2(agent_id, agent_version, tool_name, args, context)
+
+    def check_v2(
+        self,
+        agent_id: str,
+        agent_version: str,
+        tool_name: str,
+        args: Mapping[str, Any],
+        context: Mapping[str, Any] | None = None,
         *,
         direction: str = "input",
         correlation_id: str | None = None,
     ) -> Mapping[str, Any]:
+        """``check`` plus ``direction`` and ``correlation_id`` (WP38 adapters)."""
         t0 = time.perf_counter()
         try:
             if direction == "input" and correlation_id is None:
@@ -161,12 +172,22 @@ class HttpGate:
         tool_name: str,
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        return self.check_v2(agent_id, agent_version, tool_name, args, context)
+
+    def check_v2(
+        self,
+        agent_id: str,
+        agent_version: str,
+        tool_name: str,
+        args: Mapping[str, Any],
+        context: Mapping[str, Any] | None = None,
         *,
         direction: str = "input",
         correlation_id: str | None = None,
     ) -> Mapping[str, Any]:
-        """``direction`` and ``correlation_id`` (WP38) are sent only when set: ``direction`` as a
-        body field when it is not ``input`` (an older server rejects unknown fields), the
+        """``check`` plus ``direction`` and ``correlation_id`` (WP38), sent only when set:
+        ``direction`` as a body field when it is not ``input`` (an older server rejects unknown fields), the
         correlation id as the ``X-Supervisor-Correlation-Id`` header."""
         t0 = time.perf_counter()
         payload: dict[str, Any] = {

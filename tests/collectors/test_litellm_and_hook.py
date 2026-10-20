@@ -238,7 +238,7 @@ def test_http_gate_sends_direction_only_when_output_and_the_header_when_given() 
     gate = HttpGate("http://s", transport=transport, signed_transport=signed_transport)
     gate.check("a", "1", "t", {"x": 1}, {})
     assert "direction" not in sent[0][1] and not signed  # the old call is unchanged
-    gate.check("a", "1", "t", {}, {"output": "x"}, direction="output", correlation_id="cid-1")
+    gate.check_v2("a", "1", "t", {}, {"output": "x"}, direction="output", correlation_id="cid-1")
     body, headers = signed[0]
     assert json.loads(body)["direction"] == "output"
     assert headers["X-Supervisor-Correlation-Id"] == "cid-1"
@@ -266,7 +266,7 @@ def test_in_process_gate_forwards_direction_and_refuses_output_without_detectors
     gw = GW()
     g = InProcessGate(gw)
     assert g.check("a", "1", "t", {}, None)["allow"] is True and gw.kw == {}
-    assert g.check("a", "1", "t", {}, {"output": "x"}, direction="output")["allow"] is False
+    assert g.check_v2("a", "1", "t", {}, {"output": "x"}, direction="output")["allow"] is False
     gw.detectors_on = True
-    assert g.check("a", "1", "t", {}, {"output": "x"}, direction="output")["allow"] is True
+    assert g.check_v2("a", "1", "t", {}, {"output": "x"}, direction="output")["allow"] is True
     assert gw.kw == {"direction": "output", "correlation_id": None}
