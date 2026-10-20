@@ -3,7 +3,7 @@
 How long the gate takes, how that was measured, what the numbers are, and what they do not say.
 One tool makes every number here: `python -m tools.bench_latency`. The test
 `tests/perf/test_gate_latency.py` runs the same code (`--quick`), so the test and this page cannot
-drift. Design record: `docs/adr/D14-latency-benchmark.md`.
+drift. Design record: `docs/adr/D19-latency-benchmark.md`.
 
 ## Budgets
 
@@ -213,7 +213,9 @@ What follows from the code, before any measurement:
 
 Rule (`reproducibility` in the JSON): across the 3 repeats of every result, p50 must stay within 10%
 and p95 within 20%, ignoring spreads under 50 us (below the jitter of a virtual machine).
-p95 has the wider limit because it rests on the slowest 5% of the samples. p99 and max are reported
+**This is a deviation from the phase 3 brief**, which asks for 10% on every reported number: here
+only p50 has the 10% limit, p95 has 20% (ADR D19). p95 has the wider limit because it rests on the
+slowest 5% of the samples. p99 and max are reported
 and not gated: at 2,000 samples they stand on 20 observations or fewer.
 In a full run a measurement that breaks the rule is run again, up to 4 tries; the tries used are in
 the `tries` column and the `attempts` field. If a measurement never passes, the run prints the list
