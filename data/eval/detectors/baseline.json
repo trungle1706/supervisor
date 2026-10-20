@@ -1,0 +1,114 @@
+{
+  "commit": "991a808c54b8",
+  "date": "2026-10-20",
+  "detectors": {
+    "dlp_vn": {
+      "detector_id": "dlp_vn@1.0.0",
+      "splits": {
+        "adversarial": {
+          "fn": 6,
+          "fp": 0,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 14,
+          "precision_bp": 10000,
+          "recall_bp": 5000,
+          "typed_recall_bp": 5000
+        },
+        "dev": {
+          "fn": 0,
+          "fp": 0,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        },
+        "heldout": {
+          "fn": 0,
+          "fp": 1,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 9756,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        }
+      }
+    },
+    "injection_regex": {
+      "detector_id": "injection_regex@1.0.0",
+      "splits": {
+        "adversarial": {
+          "fn": 8,
+          "fp": 2,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 20,
+          "precision_bp": 8181,
+          "recall_bp": 5294,
+          "typed_recall_bp": 10000
+        },
+        "dev": {
+          "fn": 4,
+          "fp": 0,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 9000,
+          "typed_recall_bp": 9000
+        },
+        "heldout": {
+          "fn": 4,
+          "fp": 0,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 9000,
+          "typed_recall_bp": 9000
+        }
+      }
+    },
+    "judge_advisory": {
+      "detector_id": "judge_advisory@1.0.0",
+      "splits": {
+        "adversarial": {
+          "fn": 2,
+          "fp": 0,
+          "fragment_exact_bp": null,
+          "leak_items": 0,
+          "n": 4,
+          "precision_bp": 10000,
+          "recall_bp": 3333,
+          "typed_recall_bp": 10000
+        },
+        "dev": {
+          "fn": 0,
+          "fp": 0,
+          "fragment_exact_bp": null,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        },
+        "heldout": {
+          "fn": 0,
+          "fp": 0,
+          "fragment_exact_bp": null,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        }
+      }
+    }
+  },
+  "harness": "detectors-eval-1",
+  "note": "Mock path. Regenerate with --record after a deliberate change and commit it.",
+  "preset": "balanced"
+}

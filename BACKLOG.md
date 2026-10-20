@@ -114,3 +114,16 @@
 | WP-UX3: Users and roles shows ids and group names from the config file; it does not resolve group membership (`group_lookup: scim_me` is per request) | - |
 | WP-UX3: Integrations: pager, ITSM and SCIM are fakes (last delivery empty); webhook last delivery is the newest `sent` notice | Real clients (WP11 wiring by the bank) |
 | WP-UX3: the audit-log flag is `CONSOLE_AUDITLOG_ENABLED` because `CONSOLE_AUDIT_ENABLED` already means "write audit rows" | Rename in a major version if the owner prefers one name |
+| WP37: `dlp_vn` has no per-entity mask token, no `preserve_len` and no custom keyword or regex rules (the bridge plan row 8 asks for them) | Masker settings: a mapping type -> token format and a bank list of custom rules, with golden items |
+| WP37: `injection_regex` misses typos, leetspeak, base64, reversed text, text split across two fields, paraphrases without a trigger word, and anything past 20,000 characters; two benign look-alikes ("do not ignore the instructions", "system prompt design") fire (see the adversarial row of `docs/detectors-validation-report.md`) | WP25 classifier as a detector; decoding pass (base64, leetspeak) with its own probes |
+| WP37: the `urgent_transfer` group (6500 bp) does not fire at the `balanced` preset (7000 bp); the golden set shows it as `below_threshold` | Owner or bank sets the thresholds; today they are illustrative |
+| WP37: `dlp_vn` misses spelled-out digits, letter O for zero, dotted names, obfuscated e-mail, base64 and a value split across two fields (6 of 12 adversarial probes) | Masker work in `vn_text.py` / `vn_regex.py` with the probes as new golden items |
+| WP37: tool and function descriptions (`tools[]`, MCP `tools/list`) are not scanned | WP26 (tool locking) with the WP25 classifier |
+| WP37: a detector timeout is checked after the detector returns; it does not interrupt a hung detector | Run detectors in a worker thread with a deadline, or a process pool |
+| WP37: `judge_advisory` with a real judge model adds the model latency to the gate answer; it is off in `config/detectors.yaml` and has no MRM record of its own (the Tier 1 judge keeps the WP19 record) | Decide whether a real judge may run inline; an async path that attaches the finding later |
+| WP37: `finding` rows are written inside the gate lock with the decision (one more append per call that has findings) | Move the finding append out of the lock if the latency benchmark (WP23) shows it |
+| WP37: `GET /v1/gate/detectors` is read-only; there is no write API for detector settings (policy and `config/detectors.yaml` stay the source of truth) | WP40 policy editor produces diffs |
+| WP37: the SDK (`HttpGate`) does not yet send `direction`, `context.output` or `X-Supervisor-Correlation-Id`, and does not read `status`; the in-repo agent runtime only copies `correlation_id` and `status` to its span | WP38 collectors and the LangGraph middleware |
+| WP37: no console page for findings, no latency split rules / detectors / overhead, no "not evaluated" badge | WP39 (reads `finding`, `agent_event.verdict_status`, `coverage_json`) |
+| WP37: the pii_vn golden set feeds `dlp_vn` items (derived text); a bank-supplied set would be a better held-out set | Bank provides labelled examples under the DPO rubric |
+

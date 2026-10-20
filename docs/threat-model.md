@@ -162,6 +162,25 @@ again; a `digest` event shows no text, and no masker means no text. Every new pa
 behind its own permission and flag, and every filter value is checked against an allow-list or a
 strict pattern (bad input is HTTP 400); filters reach the store only as named parameters.
 
+### 3.10 Detector findings (WP37, ADR D23)
+
+Trust boundary: the verdict that the gate returns to the agent and stores. With
+`DETECTORS_ENABLED=1` the answer, the `finding` table, the `agent_event` columns, the chain record
+and the SIEM event carry detector results. The risk is that a finding repeats the data it found:
+a phone number in an entity, a name in a fragment, a key that is a name in a path. Controls:
+entities hold pseudonym tokens only; fragments are located on MASKED text (the masker runs first,
+offsets index the masked text, the excerpt is a masked substring, the raw text is never copied);
+a path shows dict keys that are plain identifiers and `*` for any other key; an exception message
+is never copied (only the class name); the chain gets finding codes, counts, coverage reasons and
+SHA-256 digests, never text; the harness checks every answer for a raw sensitive string
+(`leak_items` must be 0). The second risk is a detector that can stop a payment. A finding never
+blocks or pauses (a `pause` or `block` hint counts as `report`); only the rule `GATE-DETECTOR-FAILED`
+blocks, when a fail-closed detector could not look at a money, credit or pii_export call, and the
+Tier 1 judge detector can never trigger it. It does not stop: a payload an attacker shapes so that
+no detector matches (the adversarial probes in the validation report list the known misses), a
+finding that is kept past its retention class in a copy outside the store, or an operator who
+edits `config/detectors.yaml` to disable a detector (the file is in change control).
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |
