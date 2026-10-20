@@ -1322,7 +1322,7 @@ class Options:
     mcp_n: int = 200
     tolerance_pct: int = 10
     strict: bool = True
-    attempts: int = 3
+    attempts: int = 4
     seed: int = 7
     sim_step_s: float = 120.0
     fake_rtt_ms: int = 0
@@ -1397,6 +1397,28 @@ def _delta_row(
     }
 
 
+Measure = Callable[[], dict[str, tuple[list[dict[str, int]], dict]]]
+
+
+def _stable(
+    opts: Options, label: str, measure: Measure
+) -> tuple[dict[str, tuple[list[dict[str, int]], dict]], int]:
+    """Run ``measure`` (one or more arms, 3 repeats each) and run it again while p50 or p95 of an
+    arm moves more than the tolerance across its repeats (strict mode, up to ``attempts``).
+    The number of attempts used is returned and stored with each result."""
+    tol_bp = opts.tolerance_pct * 100
+    attempt = 1
+    while True:
+        out = measure()
+        bad: list[str] = []
+        for name, (reps, _) in out.items():
+            bad += reproducibility_failures([{"id": name, "repeats": reps}], tol_bp)
+        if not bad or not opts.strict or attempt >= max(1, opts.attempts):
+            return out, attempt
+        opts.log(f"[{label}] spread above tolerance, attempt {attempt}: {bad[0]}")
+        attempt += 1
+
+
 def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
     """All scenarios for one (backend, policy size). Returns results, deltas and breakdowns."""
     results: list[dict[str, Any]] = []
@@ -1405,6 +1427,60 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
     want = set(opts.scenarios)
     tag = f"{backend}|{size}"
     plan = HttpPlan(opts.http_n, opts.http_warm, opts.rate_hz)
+    state = {"otlp": 1}
+
+    def otlp_plan(spans: int) -> HttpPlan:
+        return HttpPlan(
+            opts.http_n if spans == 1 else max(40, opts.http_n // 3),
+            opts.http_warm,
+            opts.rate_hz,
+            otlp_rate_hz=100 if spans == 1 else 50,
+        )
+
+    def record(
+        out: dict[str, tuple[list[dict[str, int]], dict]],
+        attempts: int,
+        rules: int,
+    ) -> dict[str, dict[str, Any]]:
+        got = {}
+        for name, (reps, meta) in out.items():
+            res = _result(f"{name}|{tag}", name, backend, rules, reps, meta)
+            res["attempts"] = attempts
+            results.append(res)
+            got[name] = res
+        return got
+
+    def repeat_arm(name: str, fn: Callable[[int], tuple[list[int], dict]]) -> Measure:
+        def measure() -> dict[str, tuple[list[dict[str, int]], dict]]:
+            reps, meta = _repeat(fn, opts.repeats)
+            return {name: (reps, meta)}
+
+        return measure
+
+    def pair_arm(prefix: str, make: Callable[[], Any], wl_gate: Workload) -> Measure:
+        def measure() -> dict[str, tuple[list[dict[str, int]], dict]]:
+            runs = []
+            for r in range(opts.repeats):
+                gc.collect()
+                runs.append(run_http_gate_pair(make, plan, wl_gate, r))
+            return {
+                f"{prefix}_gate": ([summarise(x["gate"][0]) for x in runs], runs[-1]["gate"][1]),
+                f"{prefix}_passthrough": (
+                    [summarise(x["passthrough"][0]) for x in runs],
+                    runs[-1]["passthrough"][1],
+                ),
+            }
+
+        return measure
+
+    def otlp_arm(name: str, make: Callable[[], Any], spans: int, base: int = 0) -> Measure:
+        pl = otlp_plan(spans)
+
+        def run_it(r: int) -> tuple[list[int], dict]:
+            state["otlp"] += (pl.n + pl.warm + 5) * spans
+            return run_http_otlp(make, pl, spans, base + state["otlp"])
+
+        return repeat_arm(name, run_it)
 
     with tempfile.TemporaryDirectory(prefix="bench-latency-") as tmp, isolated_env(Path(tmp)):
         workdir = Path(tmp)
@@ -1413,24 +1489,19 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
         )
         rules = stack.rules
         wl = Workload(opts.seed)
-        otlp_base = [1]
         try:
             if "inproc" in want:
                 opts.log(f"[{tag}] gate_inproc")
-                reps, meta = _repeat(
-                    lambda r: run_gate_inproc(stack, wl, opts.n, opts.warm), opts.repeats
+                fn = repeat_arm(
+                    "gate_inproc", lambda r: run_gate_inproc(stack, wl, opts.n, opts.warm)
                 )
-                results.append(
-                    _result(f"gate_inproc|{tag}", "gate_inproc", backend, rules, reps, meta)
-                )
+                record(*_stable(opts, tag, fn), rules)
             if "chain" in want:
                 opts.log(f"[{tag}] chain_append")
-                reps, meta = _repeat(
-                    lambda r: run_chain_append(stack, opts.n, opts.warm), opts.repeats
+                fn = repeat_arm(
+                    "chain_append", lambda r: run_chain_append(stack, opts.n, opts.warm)
                 )
-                results.append(
-                    _result(f"chain_append|{tag}", "chain_append", backend, rules, reps, meta)
-                )
+                record(*_stable(opts, tag, fn), rules)
             if "breakdown" in want:
                 opts.log(f"[{tag}] breakdown")
                 bd = run_breakdown(stack, wl, max(100, opts.n // 2), opts.warm // 2)
@@ -1438,98 +1509,53 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
             if "window" in want and backend == "sqlite_memory":
                 for depth in opts.window_depths:
                     opts.log(f"[{tag}] window_depth {depth}")
-                    saved = stack.sim_step_s
-                    stack.sim_step_s = 1.0  # the injected events must stay inside the window
 
-                    def run(r: int, depth: int = depth) -> tuple[list[int], dict]:
+                    def run_w(r: int, depth: int = depth) -> tuple[list[int], dict]:
+                        stack.sim_step_s = 1.0  # injected events must stay inside the window
                         remove_injected(stack)
                         total = inject_window(stack, depth)
                         lat, meta = run_gate_inproc(stack, wl, opts.n // 2, opts.warm // 3)
                         meta["window_events"] = total
+                        stack.sim_step_s = opts.sim_step_s
                         return lat, meta
 
-                    reps, meta = _repeat(run, opts.repeats)
-                    stack.sim_step_s = saved
-                    results.append(
-                        _result(
-                            f"window_depth_{depth}|{tag}",
-                            f"window_depth_{depth}",
-                            backend,
-                            rules,
-                            reps,
-                            meta,
-                        )  # fmt: skip
-                    )
+                    fn = repeat_arm(f"window_depth_{depth}", run_w)
+                    record(*_stable(opts, tag, fn), rules)
+                remove_injected(stack)
             if "otlp" in want:
                 for spans in (1, 20):
                     opts.log(f"[{tag}] otlp_inproc x{spans}")
-                    nn = opts.http_n if spans == 1 else max(40, opts.http_n // 3)
+                    pl = otlp_plan(spans)
 
-                    def run_o(r: int, spans: int = spans, nn: int = nn) -> tuple[list[int], dict]:
-                        otlp_base[0] += (nn + opts.http_warm + 5) * spans
-                        return run_otlp_inproc(stack, spans, nn, opts.http_warm, otlp_base[0])
+                    def run_o(
+                        r: int, spans: int = spans, pl: HttpPlan = pl
+                    ) -> tuple[list[int], dict]:
+                        state["otlp"] += (pl.n + pl.warm + 5) * spans
+                        return run_otlp_inproc(stack, spans, pl.n, pl.warm, state["otlp"])
 
-                    reps, meta = _repeat(run_o, opts.repeats)
-                    results.append(
-                        _result(
-                            f"otlp_inproc_{spans}span|{tag}",
-                            f"otlp_inproc_{spans}span",
-                            backend,
-                            rules,
-                            reps,
-                            meta,
-                        )
-                    )
-            if "asgi" in want or ("otlp" in want):
-                app = build_bench_app(stack)
+                    fn = repeat_arm(f"otlp_inproc_{spans}span", run_o)
+                    record(*_stable(opts, tag, fn), rules)
+            if "asgi" in want or "otlp" in want:
                 from supervisor.gateway import wiring as gate_wiring
 
-                make = asgi_client_factory(app)
-            if "asgi" in want:
-                opts.log(f"[{tag}] asgi gate vs passthrough")
-                runs: list[dict[str, tuple[list[int], dict]]] = []
-                for r in range(opts.repeats):
-                    gc.collect()
-                    runs.append(run_http_gate_pair(make, plan, wl, r))
-                gate_r = _result(
-                    f"asgi_gate|{tag}", "asgi_gate", backend, rules,
-                    [summarise(x["gate"][0]) for x in runs], runs[-1]["gate"][1],
-                )  # fmt: skip
-                pass_r = _result(
-                    f"asgi_passthrough|{tag}", "asgi_passthrough", backend, rules,
-                    [summarise(x["passthrough"][0]) for x in runs], runs[-1]["passthrough"][1],
-                )  # fmt: skip
-                results += [gate_r, pass_r]
-                deltas.append(_delta_row("asgi", backend, rules, gate_r, pass_r))
-            if "otlp" in want:
-                for spans in (1, 20):
-                    opts.log(f"[{tag}] otlp asgi x{spans}")
-                    plan_o = HttpPlan(
-                        opts.http_n if spans == 1 else max(40, opts.http_n // 3),
-                        opts.http_warm,
-                        opts.rate_hz,
-                        otlp_rate_hz=100 if spans == 1 else 50,
-                    )
-
-                    def run_a(
-                        r: int, spans: int = spans, plan_o: HttpPlan = plan_o
-                    ) -> tuple[list[int], dict]:
-                        otlp_base[0] += (plan_o.n + plan_o.warm + 5) * spans
-                        return run_http_otlp(make, plan_o, spans, otlp_base[0])
-
-                    reps, meta = _repeat(run_a, opts.repeats)
-                    results.append(
-                        _result(
-                            f"otlp_asgi_{spans}span|{tag}",
-                            f"otlp_asgi_{spans}span",
-                            backend,
-                            rules,
-                            reps,
-                            meta,
+                make = asgi_client_factory(build_bench_app(stack))
+            try:
+                if "asgi" in want:
+                    opts.log(f"[{tag}] asgi gate vs passthrough")
+                    got = record(*_stable(opts, tag, pair_arm("asgi", make, wl)), rules)
+                    deltas.append(
+                        _delta_row(
+                            "asgi", backend, rules, got["asgi_gate"], got["asgi_passthrough"]
                         )
                     )
-            if "asgi" in want or "otlp" in want:
-                gate_wiring.set_gateway(None)
+                if "otlp" in want:
+                    for spans in (1, 20):
+                        opts.log(f"[{tag}] otlp asgi x{spans}")
+                        fn = otlp_arm(f"otlp_asgi_{spans}span", make, spans)
+                        record(*_stable(opts, tag, fn), rules)
+            finally:
+                if "asgi" in want or "otlp" in want:
+                    gate_wiring.set_gateway(None)
         finally:
             stack.close()
 
@@ -1537,57 +1563,35 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
         with tempfile.TemporaryDirectory(prefix="bench-latency-srv-") as tmp2:
             wd2 = Path(tmp2)
             with server_child(backend, size, wd2, opts.fake_rtt_ms) as port:
-                wl2 = Workload(opts.seed + 1)
                 make_t = tcp_client_factory(port)
                 if "server" in want:
                     opts.log(f"[{tag}] uvicorn gate vs passthrough (port {port})")
-                    runs = []
-                    for r in range(opts.repeats):
-                        gc.collect()
-                        runs.append(run_http_gate_pair(make_t, plan, wl2, r))
-                    gate_r = _result(
-                        f"uvicorn_gate|{tag}", "uvicorn_gate", backend, rules,
-                        [summarise(x["gate"][0]) for x in runs], runs[-1]["gate"][1],
-                    )  # fmt: skip
-                    pass_r = _result(
-                        f"uvicorn_passthrough|{tag}", "uvicorn_passthrough", backend, rules,
-                        [summarise(x["passthrough"][0]) for x in runs], runs[-1]["passthrough"][1],
-                    )  # fmt: skip
-                    results += [gate_r, pass_r]
-                    deltas.append(_delta_row("uvicorn", backend, rules, gate_r, pass_r))
+                    pair = pair_arm("uvicorn", make_t, Workload(opts.seed + 1))
+                    got = record(*_stable(opts, tag, pair), rules)
+                    deltas.append(
+                        _delta_row(
+                            "uvicorn",
+                            backend,
+                            rules,
+                            got["uvicorn_gate"],
+                            got["uvicorn_passthrough"],
+                        )
+                    )
                     for spans in (1, 20):
                         opts.log(f"[{tag}] otlp uvicorn x{spans}")
-                        plan_o = HttpPlan(
-                            opts.http_n if spans == 1 else max(40, opts.http_n // 3),
-                            opts.http_warm,
-                            opts.rate_hz,
-                            otlp_rate_hz=100 if spans == 1 else 50,
-                        )
-
-                        def run_u(
-                            r: int, spans: int = spans, plan_o: HttpPlan = plan_o
-                        ) -> tuple[list[int], dict]:
-                            otlp_base[0] += (plan_o.n + plan_o.warm + 5) * spans
-                            return run_http_otlp(make_t, plan_o, spans, 5_000_000 + otlp_base[0])
-
-                        reps, meta = _repeat(run_u, opts.repeats)
-                        results.append(
-                            _result(
-                                f"otlp_uvicorn_{spans}span|{tag}",
-                                f"otlp_uvicorn_{spans}span",
-                                backend,
-                                rules,
-                                reps,
-                                meta,
-                            )
-                        )
+                        fn = otlp_arm(f"otlp_uvicorn_{spans}span", make_t, spans, 5_000_000)
+                        record(*_stable(opts, tag, fn), rules)
                 if "mcp" in want:
                     opts.log(f"[{tag}] mcp stdio proxy")
-                    mcp = run_mcp(port, wd2, opts.mcp_n, max(20, opts.mcp_n // 4), opts.repeats)
-                    d = _result(f"mcp_direct|{tag}", "mcp_direct", backend, rules, mcp["direct"])
-                    p = _result(f"mcp_proxy|{tag}", "mcp_proxy", backend, rules, mcp["proxy"])
-                    results += [d, p]
-                    deltas.append(_delta_row("mcp_stdio", backend, rules, p, d))
+
+                    def run_m() -> dict[str, tuple[list[dict[str, int]], dict]]:
+                        mcp = run_mcp(port, wd2, opts.mcp_n, max(20, opts.mcp_n // 4), opts.repeats)
+                        return {"mcp_direct": (mcp["direct"], {}), "mcp_proxy": (mcp["proxy"], {})}
+
+                    got = record(*_stable(opts, tag, run_m), rules)
+                    deltas.append(
+                        _delta_row("mcp_stdio", backend, rules, got["mcp_proxy"], got["mcp_direct"])
+                    )
     return {"results": results, "deltas": deltas, "breakdowns": breakdowns}
 
 
@@ -1596,32 +1600,18 @@ def run_suite(opts: Options) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     deltas: list[dict[str, Any]] = []
     breakdowns: list[dict[str, Any]] = []
-    tol_bp = opts.tolerance_pct * 100
-    attempts: list[dict[str, Any]] = []
     for backend in opts.backends:
         for size in opts.sizes:
-            # A busy host breaks reproducibility. Strict runs retry the whole combination (up to
-            # ``attempts``); every attempt, its failures and the load average are recorded.
-            for attempt in range(1, max(1, opts.attempts) + 1):
-                part = run_combo(backend, size, opts)
-                fails = reproducibility_failures(part["results"], tol_bp)
-                load = [round(x, 2) for x in os.getloadavg()] if hasattr(os, "getloadavg") else []
-                attempts.append(
-                    {
-                        "backend": backend, "rules": size, "attempt": attempt,
-                        "failures": fails, "load_avg_1_5_15": load,
-                    }
-                )  # fmt: skip
-                if not fails or not opts.strict:
-                    break
-                opts.log(f"[{backend}|{size}] not reproducible (attempt {attempt}); {fails[0]}")
+            part = run_combo(backend, size, opts)
             results += part["results"]
             deltas += part["deltas"]
             breakdowns += part["breakdowns"]
     env["load_avg_end"] = (
         [round(x, 2) for x in os.getloadavg()] if hasattr(os, "getloadavg") else []
     )
+    tol_bp = opts.tolerance_pct * 100
     failures = reproducibility_failures(results, tol_bp)
+    attempts = {r["id"]: r.get("attempts", 1) for r in results if r.get("attempts", 1) > 1}
     return {
         "schema": SCHEMA,
         "mode": "quick" if opts.quick else "full",
@@ -1687,14 +1677,15 @@ def markdown(report: dict[str, Any]) -> str:
         "",
         "All values are integer microseconds (us): median over the repeats of each statistic.",
         "",
-        "| Scenario | Store | Rules | p50 | p95 | p99 | max | spread p50 / p95 (%) |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Scenario | Store | Rules | p50 | p95 | p99 | max | spread p50 / p95 (%) | tries |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for r in report["results"]:
         m, s = r["median"], r["spread_bp"]
         lines.append(
             f"| {r['scenario']} | {r['backend']} | {r['rules']} | {m['p50']} | {m['p95']} | "
-            f"{m['p99']} | {m['max']} | {s['p50'] / 100:.1f} / {s['p95'] / 100:.1f} |"
+            f"{m['p99']} | {m['max']} | {s['p50'] / 100:.1f} / {s['p95'] / 100:.1f} | "
+            f"{r.get('attempts', 1)} |"
         )
     if report["deltas"]:
         lines += [
@@ -1773,7 +1764,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--iterations", type=int, help="in-process iterations per repeat")
     p.add_argument("--rate", type=int, help="HTTP arrival rate, requests per second")
     p.add_argument("--tolerance-pct", type=int, default=10)
-    p.add_argument("--attempts", type=int, default=3, help="strict runs: retries per combination")
+    p.add_argument("--attempts", type=int, default=4, help="strict runs: tries per measurement")
     p.add_argument("--no-strict", action="store_true", help="report, but do not fail, on spread")
     p.add_argument("--seed", type=int, default=7)
     p.add_argument(
