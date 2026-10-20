@@ -12,6 +12,14 @@
 # gate_state_change(agent_id, event, to_state), verdict(agent_id, tier, label, action, rule_id,
 # is_mock), job_run(job, status), chain_verify(ok), ingress_reject(agent_id, reason_code),
 # failmode_drill(ok), case(agent_id, severity).
+# WP39 adds: gate_decision(status, direction, agent_state, detector_failed, not_evaluated,
+# latency_us), gate_finding(agent_id, code, finding_class, direction, detector_slug, action_hint,
+# enforcement), gate_request(agent_id, outcome_class, reason_code), coverage_gap(agent_id,
+# seen_in, registered). Two optional rule keys: where_min {field: number} (a floor, for
+# example latency_us) and rate {min_bp, of} (fire only when the matching signals are at least
+# min_bp basis points of all signals of the source and group in the window; threshold is then
+# the minimum count, so a quiet agent does not alert on 1 of 2). Every rate and count below is
+# ILLUSTRATIVE until the bank SOC sets it.
 version: 1
 
 rules:
@@ -103,6 +111,122 @@ rules:
     severity: medium
     dedupe_s: 3600
     routes: [inbox, siem]
+
+  # --- WP39: nine use cases a bank SOC expects (docs/alerts.md, drills in the alert harness) ---
+
+  # An agent seen in traces or in the inventory during the window with no gate decision in it:
+  # it reaches its tools without passing the gate (a bypass or a collector that is not wired).
+  - id: AL-COVERAGE-GAP
+    title: Agent active without any gate decision
+    source: coverage_gap
+    group_by: agent_id
+    window_s: 3600
+    threshold: 1
+    severity: high
+    dedupe_s: 21600
+    routes: [inbox, siem, webhook]
+
+  # Detectors that could not look (failed or timed out) on a share of the calls of one agent.
+  - id: AL-DETECTOR-FAILED
+    title: Detectors failed or timed out on many calls
+    source: gate_decision
+    where: {detector_failed: true}
+    group_by: agent_id
+    window_s: 900
+    threshold: 3
+    rate: {min_bp: 500}
+    severity: high
+    dedupe_s: 1800
+    routes: [inbox, siem]
+
+  # A finding that asks for a pause or a block on an agent that is in SHADOW (or a policy in
+  # observe mode): the threat was seen and nothing was enforced.
+  - id: AL-THREAT-NOT-ENFORCED
+    title: Threat detected but not enforced
+    source: gate_finding
+    where: {action_hint: [pause, block], enforcement: [shadow, observe]}
+    group_by: agent_id
+    window_s: 900
+    threshold: 1
+    severity: high
+    dedupe_s: 3600
+    routes: [inbox, siem]
+
+  - id: AL-SECRETS-OUTPUT
+    title: Secret found in an agent output
+    source: gate_finding
+    where: {finding_class: secret, direction: output}
+    group_by: agent_id
+    window_s: 0
+    threshold: 1
+    severity: critical
+    dedupe_s: 1800
+    routes: [inbox, siem, webhook, pager]
+
+  - id: AL-PII-OUTPUT
+    title: Personal data found in agent outputs
+    source: gate_finding
+    where: {finding_class: pii, direction: output}
+    group_by: agent_id
+    window_s: 600
+    threshold: 3
+    severity: high
+    dedupe_s: 1800
+    routes: [inbox, siem]
+
+  # Masking is the dlp transform: a jump in its share means a new data flow or a leak upstream.
+  - id: AL-REDACTION-SPIKE
+    title: Redaction rate above the usual level
+    source: gate_decision
+    where: {status: transform}
+    group_by: agent_id
+    window_s: 900
+    threshold: 10
+    rate: {min_bp: 3000}
+    severity: medium
+    dedupe_s: 3600
+    routes: [inbox, siem]
+
+  # p95 above the budget is the same as more than 5 percent of calls above it (500 bp).
+  # Budget 50 ms is ILLUSTRATIVE; see docs/latency.md for the measured p95.
+  - id: AL-LATENCY-DEGRADATION
+    title: Gate p95 latency above budget
+    source: gate_decision
+    where_min: {latency_us: 50000}
+    group_by: none
+    window_s: 900
+    threshold: 20
+    rate: {min_bp: 500}
+    severity: medium
+    dedupe_s: 3600
+    routes: [inbox, siem]
+
+  # Failed requests on the gate routes: 401 and 403 rejections, 4xx others, and decisions the
+  # fail mode had to make. HTTP statuses are not stored, so this is derived (docs/alerts.md).
+  - id: AL-ERROR-RATE
+    title: Error rate on the gate routes above the limit
+    source: gate_request
+    where: {outcome_class: [gate_error, rejected_401, rejected_403, rejected_4xx]}
+    group_by: none
+    window_s: 300
+    threshold: 10
+    rate: {min_bp: 1000}
+    severity: high
+    dedupe_s: 1800
+    routes: [inbox, siem, webhook]
+
+  # New keys (an agent id or key the gate does not know) and nonce replays, per agent. Lower
+  # threshold than AL-INGRESS-REJECT-AGENT because these reasons are never an expired key.
+  - id: AL-INGRESS-AUTH-ANOMALY
+    title: Unknown key or replayed nonce at the gate
+    source: ingress_reject
+    where: {reason_code: [unknown_agent, replayed_nonce, agent_mismatch, unknown_principal]}
+    group_by: agent_id
+    window_s: 300
+    threshold: 3
+    severity: high
+    dedupe_s: 1800
+    routes: [inbox, siem, webhook]
 
 # Planned maintenance. Deterministic and time-boxed: a matching candidate is dropped (and
 # counted in the job result) until "until"; nothing else changes.
