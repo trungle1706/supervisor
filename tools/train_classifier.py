@@ -48,7 +48,15 @@ from supervisor.detectors.injection_classifier.model import (
 DATA = REPO_ROOT / "data" / "eval" / "injection_vi_en"
 SEED = 20261023
 VERSION = "1.0.0"
-HYPER = {"epochs": 12, "lr": 0.8, "l2": 2e-6, "eps": 1e-6, "pos_weight": 1.0, "hard_weight": 1.0}
+HYPER = {
+    "epochs": 6,
+    "lr": 0.03,
+    "l2": 1e-4,
+    "eps": 1e-6,
+    "pos_weight": 1.0,
+    "hard_weight": 2.0,
+    "average": True,
+}
 
 
 def load_items(name: str) -> list[dict[str, Any]]:

@@ -1,0 +1,69 @@
+{
+  "buckets": 65536,
+  "change_log": [
+    {
+      "change": "first model",
+      "version": "1.0.0"
+    }
+  ],
+  "feature_version": "feat-2",
+  "format": "linear logistic regression over hashed character n-gram features (pure Python)",
+  "intended_use": "Advisory score for prompt injection (direct, indirect, tool poisoning) in Vietnamese and English in tool arguments, tool results and tool descriptions. It may only PAUSE money and credit tools above the frozen pause threshold, and only through GATE-CLASSIFIER-PAUSE (a human resumes). It never blocks (R1).",
+  "known_limits": [
+    "trained on synthetic template text: real attacks are less regular",
+    "spaced-out letters and other languages are not recognised",
+    "a long document dilutes a short instruction (windows of 240 characters, max over windows)",
+    "no state across calls: split attacks need the caller to pass prior calls"
+  ],
+  "licence": "synthetic, this repo (weights derived from synthetic data only)",
+  "model_id": "injection_vi_en",
+  "out_of_scope": [
+    "languages other than Vietnamese and English",
+    "image, audio or file content",
+    "multi-turn attacks (WP27)",
+    "any use as the only control"
+  ],
+  "owner_roles": {
+    "approver": "FILL-ME (MRM_APPROVER)",
+    "model_developer": "FILL-ME (MRM_MODEL_DEVELOPER)",
+    "model_owner": "FILL-ME (MRM_MODEL_OWNER)",
+    "validator": "FILL-ME (MRM_VALIDATOR)"
+  },
+  "scale": 10000,
+  "surfaces": [
+    "args",
+    "tool_results",
+    "tool_description"
+  ],
+  "thresholds_bp": {
+    "balanced": 6000,
+    "lenient": 7000,
+    "pause": 8500,
+    "strict": 5500
+  },
+  "thresholds_note": "chosen on the dev split: strict = dev false alarm <= 800 bp, balanced <= 500 bp, lenient <= 300 bp, pause <= 50 bp (dev numbers in the validation report); ILLUSTRATIVE until the bank sets them",
+  "training": {
+    "command": "uv run python -m tools.train_classifier",
+    "data": "data/eval/injection_vi_en/train.jsonl",
+    "data_sha256": "5c7963b71ed4c7e538686ce0b8ea7d6a5c60e9e57316c12ba1d4e36faf41c155",
+    "dev_data_sha256": "5e70e9da54c2626fc593054f3722abe187c4fea33ed2435d359e4f8110c41c07",
+    "hyperparameters": {
+      "average": true,
+      "epochs": 6,
+      "eps": 1e-06,
+      "hard_weight": 2.0,
+      "l2": 0.0001,
+      "lr": 0.03,
+      "pos_weight": 1.0
+    },
+    "labeller": "synthetic (templates written for this repo; no LLM paraphrase)",
+    "n_items": 4800,
+    "seed": 20261023
+  },
+  "validation": {
+    "status": "not validated yet; run python -m supervisor.detectors.harness"
+  },
+  "version": "1.0.0",
+  "weights_file": "weights.json",
+  "weights_sha256": "457f684363f1e1caec6aa1c0c8c35b2c139c9c6073f9820cd13d027babcb254d"
+}

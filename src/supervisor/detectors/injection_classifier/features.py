@@ -43,7 +43,7 @@ from supervisor.gateway import tier0b
 FEATURE_VERSION = "feat-2"
 BUCKETS = 1 << 16  # character n-gram and word buckets
 MASK = BUCKETS - 1
-CONCEPT_SCALE = 0.6  # value of a concept feature (n-gram features have 1/sqrt(n))
+CONCEPT_SCALE = 0.25  # value of a concept feature (n-gram features have 1/sqrt(n))
 TOTAL = BUCKETS + C.CBUCKETS  # concept features (concepts.py) live above BUCKETS
 WINDOW = 150  # characters per scoring window
 STRIDE = 75

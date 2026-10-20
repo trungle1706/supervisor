@@ -50,10 +50,10 @@ MODEL_VERSION = "1.0.0"
 
 # Frozen with MODEL_VERSION (a test compares them with the model card). Detection thresholds in
 # basis points, chosen on the dev split by false-alarm rate; ILLUSTRATIVE until the bank sets them.
-PRESETS: dict[str, int] = {"strict": 5_000, "balanced": 7_000, "lenient": 8_500}
+PRESETS: dict[str, int] = {"strict": 5_500, "balanced": 6_000, "lenient": 7_000}
 # At or above this score a finding on a pause class tool carries the pause hint. Frozen per model
 # version; the setting can only raise it.
-PAUSE_THRESHOLD_BP = 9_500
+PAUSE_THRESHOLD_BP = 8_500
 PAUSE_CLASSES_DEFAULT = ["money", "credit"]
 PAUSE_CLASSES_ALLOWED = ("money", "credit", "pii_export")  # read_only can never pause
 
