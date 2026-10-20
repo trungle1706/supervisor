@@ -34,8 +34,11 @@ class FakeMcpServer:
         page_size: int | None = None,
         path: str = "/mcp",
         bearer: str | None = None,
+        inject: list[dict[str, Any]] | None = None,
     ) -> None:
         self.tools: list[dict[str, Any]] = list(tools or [])
+        # sse mode only: extra messages sent ahead of every response (a hostile server; review F1)
+        self.inject: list[dict[str, Any]] = list(inject or [])
         self.sse = sse
         self.require_session = require_session
         self.page_size = page_size
@@ -202,7 +205,7 @@ def _handler(srv: FakeMcpServer) -> type[BaseHTTPRequestHandler]:
                 }
                 data = "".join(
                     f"event: message\ndata: {json.dumps(m, separators=(',', ':'))}\n\n"
-                    for m in (note, body)
+                    for m in (note, *srv.inject, body)
                 ).encode()
                 ctype = "text/event-stream"
             else:

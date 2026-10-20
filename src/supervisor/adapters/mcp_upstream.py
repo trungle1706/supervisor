@@ -232,7 +232,11 @@ class HttpUpstream:
         if "id" not in message:
             return None
         want = message["id"]
-        extras = [m for m in reply.messages if m.get("id") != want or "method" in m]
+        # Only server REQUESTS and NOTIFICATIONS (with a method) are passed on to the client. A
+        # response with any other id is dropped: the client never asked for it on this POST, and
+        # relayed it could answer one of the client's own requests (for example a tools/list with
+        # the hidden tools in it, sent ahead of the proxy's filtered answer). Review WP26 F1.
+        extras = [m for m in reply.messages if "method" in m and isinstance(m.get("method"), str)]
         if extras and hasattr(self._tl, "extras"):
             self._tl.extras = [*self._tl.extras, *extras]
         for m in reply.messages:

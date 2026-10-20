@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import hmac
+import itertools
 import json
 import logging
 import os
@@ -170,6 +171,17 @@ def _err(id_: Any, code: int, message: str) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": id_, "error": {"code": code, "message": message}}
 
 
+def _view_ok(view: Any) -> bool:
+    if not isinstance(view, Mapping):
+        return False
+    visible, hidden = view.get("visible"), view.get("hidden", {})
+    return (
+        isinstance(visible, (list, tuple))
+        and all(isinstance(n, str) for n in visible)
+        and isinstance(hidden, Mapping)
+    )
+
+
 class McpHttpGateProxy(McpGateProxy):
     """``McpGateProxy`` plus the tool lock. The gate path of a ``tools/call`` is inherited
     unchanged; the lock runs before it."""
@@ -197,7 +209,7 @@ class McpHttpGateProxy(McpGateProxy):
         self._view: dict[str, Any] | None = None
         self._view_at = 0.0
         self._refresh_lock = threading.Lock()
-        self._seq = 0
+        self._seq = itertools.count(1)  # next() is atomic: ids never repeat across threads
 
     # ------------------------------------------------------------------ helpers
     @property
@@ -205,8 +217,7 @@ class McpHttpGateProxy(McpGateProxy):
         return self._lock_client is not None
 
     def _next_id(self) -> str:
-        self._seq += 1
-        return f"sup-lock-{self._seq}"
+        return f"sup-lock-{next(self._seq)}"
 
     def _own_session(self) -> Any:
         fn = getattr(self._upstream, "own_session", None)
@@ -248,6 +259,10 @@ class McpHttpGateProxy(McpGateProxy):
         except Exception as exc:  # noqa: BLE001 - fail closed
             self._tofu_by = tofu
             raise LockUnavailable(f"lock service failed: {type(exc).__name__}") from None
+        if not _view_ok(view):  # F11: a malformed answer ("visible": "a string") fails closed
+            self._tofu_by = tofu
+            raise LockUnavailable("lock service answered without a valid view")
+        view = {**view, "visible": frozenset(view["visible"])}  # exact names, never substrings
         self._view, self._view_at = view, self._mono()
         return view
 
@@ -321,7 +336,8 @@ class McpHttpGateProxy(McpGateProxy):
     # ------------------------------------------------------------------ list and initialize
     def _forward(self, message: dict[str, Any]) -> dict[str, Any] | None:
         method = message.get("method")
-        if self.lock_on and method == "tools/list" and message.get("id") is not None:
+        # every tools/list that can get an answer is filtered, ``"id": null`` included (F6)
+        if self.lock_on and method == "tools/list" and "id" in message:
             return self._filtered_list(message)
         reply = super()._forward(message)
         if self.lock_on and method == "initialize" and reply is not None and "result" in reply:
@@ -383,7 +399,7 @@ class McpHttpServer:
         allow_origins: tuple[str, ...] = (),
         allow_non_loopback: bool = False,
     ) -> None:
-        if not _loopback(host) and not allow_non_loopback:
+        if not _loopback(host) and (not allow_non_loopback or not listen_token):
             raise ValueError(
                 "the proxy has no inbound login: bind to 127.0.0.1, or pass "
                 "--allow-non-loopback with --listen-token-env"
@@ -538,7 +554,7 @@ def _make_handler(server: McpHttpServer) -> type[BaseHTTPRequestHandler]:
             raw = self.rfile.read(n)
             try:
                 message = json.loads(raw)
-            except ValueError:
+            except (ValueError, RecursionError):  # deep nesting is a parse error, not a drop
                 self._json(400, _err(None, PARSE_ERROR, "parse error"))
                 return
             up = proxy._upstream
@@ -740,7 +756,7 @@ def build_tools_parser() -> argparse.ArgumentParser:
         s.add_argument("server")
         s.add_argument("tool")
         s.add_argument("--by", required=True, help="your user name")
-        s.add_argument("--hash", required=True, help="observed hash you reviewed (12+ chars)")
+        s.add_argument("--hash", required=True, help="full observed hash you reviewed (64 hex)")
     return p
 
 
@@ -751,7 +767,7 @@ def _print_rows(rows: list[dict[str, Any]]) -> None:
         have = len(r["approvals"])
         _say(
             f"{r['server_id']:30} {r['tool']:30} {mark:8}{sus} "
-            f"approvals {have}/{r['approvals_needed']} hash {str(r['observed_hash'])[:12]}"
+            f"approvals {have}/{r['approvals_needed']} hash {r['observed_hash']}"
             f" case {r.get('case_id') or '-'}"
         )
     _say(f"[OK] {len(rows)} tool(s)")
