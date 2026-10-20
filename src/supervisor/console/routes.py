@@ -847,13 +847,24 @@ async def agent_action(
 # --- WP-UX2 --- Metrics moved into the Analytics page (tab "metrics"); the old URL redirects.
 
 
+_MOVED_KEYS = {"lang", "days", "agent", "sort", "dir"}  # what the Analytics page reads
+_MOVED_RENAME = {"agent_id": "agent"}  # old /console/tools name
+_MOVED_VALUE = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
+
+
 def _moved(request: Request, target: str, **query: str) -> RedirectResponse:
-    """303 to ``target`` with the extra ``query`` first, then the caller's own query string
-    (``lang``, filters, sort), so a bookmark keeps its meaning."""
+    """303 to the fixed local path ``target`` with ``query`` (it always wins, so a caller
+    cannot pick another tab) and the known keys of the caller's query string (``lang``,
+    range, agent, sort), so a bookmark keeps its meaning. Unknown keys and values outside the
+    id pattern are dropped: the Location header carries nothing the caller made up."""
     from urllib.parse import urlencode
 
-    merged = {**query, **dict(request.query_params)}
-    return RedirectResponse(f"{target}?{urlencode(merged)}", status_code=303)
+    kept: dict[str, str] = {}
+    for key, value in request.query_params.items():
+        key = _MOVED_RENAME.get(key, key)
+        if key in _MOVED_KEYS and key not in kept and _MOVED_VALUE.match(value):
+            kept[key] = value
+    return RedirectResponse(f"{target}?{urlencode({**kept, **query})}", status_code=303)
 
 
 @router.get("/metrics", dependencies=[Depends(needs("metrics.view"))])

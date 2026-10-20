@@ -39,11 +39,26 @@ def test_tools_redirect_keeps_filters_and_sort(console: Console) -> None:
     q = _query(r.headers["location"])
     assert q == {
         "tab": "tools",
-        "agent_id": "payments",
+        "agent": "payments",  # the old name agent_id is renamed
         "sort": "calls",
         "dir": "desc",
         "days": "7",
     }
+
+
+def test_redirect_passes_only_known_keys_and_keeps_its_tab(console: Console) -> None:
+    """Review fix: the Location header holds only keys the Analytics page reads, values that
+    match the id pattern, and the redirect's own tab (a caller cannot override it)."""
+    r = console.get(
+        "/console/metrics?tab=tools&next=https://evil.example&lang=vi&agent=a%0d%0aX:1"
+        "&days=7&x=<script>",
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    loc = r.headers["location"]
+    assert loc.startswith("/console/analytics?")
+    assert _query(loc) == {"tab": "metrics", "lang": "vi", "days": "7"}
+    assert "evil" not in loc and "script" not in loc and "\n" not in loc
 
 
 def test_redirect_target_renders_in_the_requested_language(console: Console) -> None:
