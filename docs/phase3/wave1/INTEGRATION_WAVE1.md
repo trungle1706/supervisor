@@ -8,15 +8,16 @@ Review this commit: see "Branch and commit" at the end.
 
 | Check | Result |
 |---|---|
-| Merges | 8 of 8 (`git merge --no-ff`; WP23, WP1b-B and WP1b-A merged in later passes), all conflicts resolved by union of the additive blocks |
-| `ruff check .` / `ruff format --check .` | clean / clean (644 files) |
-| Full suite `uv run python -m pytest -q` (no `-x`, `RUN_PERF` off) | **3426 passed**, 29 skipped, 0 failed (main: 2791). History: five WPs 3283 / 28; + WP23 3303 / 29 (the 50 ms timing test is skipped without `RUN_PERF=1`); + WP1b-B 3349 / 29; + WP1b-A and the POLICY_DIR binding test **3426 / 29** (final) |
+| Merges | 11 of 11 (`git merge --no-ff`; WP23, WP1b-B, WP1b-A and the console WP-UX1, WP-UX2, WP-UX3 merged in later passes), conflicts resolved by union of the additive blocks |
+| `ruff check .` / `ruff format --check .` | clean / clean (667 files) |
+| Full suite `uv run python -m pytest -q` (no `-x`, `RUN_PERF` off) | **3684 passed**, 29 skipped, 0 failed (main: 2791). History: five WPs 3283 / 28; + WP23 3303 / 29 (the 50 ms timing test is skipped without `RUN_PERF=1`); + WP1b-B 3349 / 29; + WP1b-A and the POLICY_DIR binding test 3426 / 29; + WP-UX1, WP-UX2, WP-UX3 and the i18n duplicate-key test **3684 / 29** (final) |
 | `python -m supervisor.pii_eval` (both splits) | same as the WP24b baseline (table in section 6) |
 | `python -m supervisor.alerts.harness` | `[OK] all GO` on dev and held-out, 8 of 8 alerts |
 | Offline chain verify after inventory + alert jobs (fresh SQLite) | `RESULT: OK`, 15 signed roots, 5 lanes incl. `agent:inventory` |
 | `python -m tools.bench_latency --quick` (after the WP23 merge) | exit 0; gate in process p99 4.8 ms (19 rules), 5.6 ms (200 rules) against 50 ms. 10 spread FAILs reported, not enforced in quick mode (the full suite ran on the same host at the same time) |
 | `python -m supervisor.monitors.binding_harness` (after the WP1b-B merge) | 12 of 12 cells `[OK]`, golden match (`memo_agent` 4 ok; `helpdesk` quality ok, 3 not_applicable; `lookup_agent` 4 not_applicable, each with a reason) |
 | Strict contract test `tests/unit/test_llm_strict_contract.py` + DDL-current `tests/test_schema.py` (after WP1b-A) | 22 passed |
+| Console boot (after the WP-UX merges, port 18797): every `CONSOLE_*_ENABLED` on, `CONSOLE_NAV_PLACEHOLDERS=0`, Playground on, tool analytics, inventory and alerts on, judge off | 22 sidebar links (admin view) all 200 (Audit log as `auditor.dung`); `/console/soon/policies` 400 (placeholders off); Playground dry run as `operator.khanh` 200 with the decision pills, no raw phone number in the answer, `agent_event` and `chain_entry` counts unchanged (581 / 154 before and after); viewer POST 403; no ERROR in the log |
 | Final boot (after WP1b-A): all wave-1 flags + `LLM_STRICT_SCHEMA=1`, `JUDGE_ENABLED=0`, `QUALITY_ENABLED=0` (no live LLM) | Same probes as below, all pass. The SDK now posts to `/v1/gate/check` (access log: 2 x 200 signed, 2 x 401 = unsigned and wrong-agent key); Metrics page includes the Monitor status section; no ERROR in the log |
 | Boot with all wave-1 flags on (port 18431) | /health, /ready, Tools, Inventory, Metrics 200; signed SDK check allowed; unsigned 401; all jobs `ok` |
 
@@ -35,7 +36,11 @@ main bf3a23a
   |-- 7. WP1b-B onboarding D08 + monitor bindings D06 (based on de8a2ca)       3 conflicts
   |-- report commit
   |-- 8. WP1b-A judge config D05, D12-D15 (based on de8a2ca)                  2 conflicts
-  `-- integration commits (POLICY_DIR for monitor bindings, ADR range, CHANGELOG, report, move to docs/phase3/wave1/)
+  |-- integration commits (POLICY_DIR for monitor bindings, ADR range, CHANGELOG, report, move to docs/phase3/wave1/)
+  |-- 9.  WP-UX1 console shell and components (based on eacb549)               no conflict
+  |-- 10. WP-UX2 agent page, Alerts, Sign-off, Analytics (based on WP-UX1)      no conflict
+  |-- 11. WP-UX3 new pages and Playground (based on WP-UX1)                     5 conflicts
+  `-- integration commits (i18n duplicates, Traces-tab link, screenshots, report, file move)
 ```
 
 Reason: the two WPs that change the gate path (WP20, WP24b) go first, so the SDK / MCP proxy
@@ -70,6 +75,11 @@ so `model.yaml` is merged in order and the DDL is generated twice only.
 | WP1b-B | BACKLOG, CHANGELOG | union (WP23 and WP1b-B feature rows both kept) |
 | WP1b-A | `config.py` | WP1b-B block (`monitor_policy_dir`, `monitor_manifest_dir`) then WP1b-A block (`policy_dir`, `fact_source`, `fact_query_map`, `fact_callable_allow_prefix`); WP1b-A's `_absolute` additions (`policy_dir`, `fact_query_map`) kept |
 | WP1b-A | BACKLOG | union |
+| WP-UX3 | `console/nav.py` `CODES` | union on the merged item keys: WP-UX2 `analytics` AN (tools / metrics codes removed with their items), WP-UX3 `policies` PO, `credentials` CR, `users` US, `audit` AU, `integrations` IS, `playground` PG (the old `soon-*` code keys are gone: WP-UX3 items use the page key). Codes unique (test) |
+| WP-UX3 | `static/console.css` | both appended blocks (WP-UX2 then WP-UX3); the drawer breakpoint stays at 1600 px (WP-UX2) |
+| WP-UX3 | `tools/console_screenshots.py` | built from the WP-UX2 version plus every WP-UX3 hunk (per-shot user cookie, `_first_trace`, `UX3_SCREENS` / `UX3_FLAGS`, `--ux3`). Both modes ran on the merged console: 57 + 25 screens OK |
+| WP-UX3 | README Console row, BACKLOG | one Console row naming WP-UX1, WP-UX2 and WP-UX3; BACKLOG: dropped the three WP-UX1 rows that WP-UX2 closed (agent page, components, Alerts / Sign-off pages), the older WP-UX1 placeholder row (WP-UX3 has the updated one) and a duplicated row |
+| WP-UX | auto-merged, checked | `console/routes.py` (WP-UX2 in-place edits `_moved` / `_MOVED_KEYS`, `_list_after_write`, `alert_ack` kept; WP-UX3 block before Health), `console/i18n.py` (WP-UX3 block inside `_T`, before the `# --- WP-UX2:` `_T.update` marker that `test_ux2_review.py` reads), `core/rbac.py` (union; `docs/console.md` matrix equals `rbac.matrix_markdown()`, test green), `console/readmodels.py` (`signoff_waiting`, `allowed_tools`, `pages`, `ux3_pages`, `main_role` with operator), `config.py` (UX1 and UX3 blocks), `templates/_ui.html` tabs (`data-tab` then `class` then id / aria-controls). `tools.html`, `metrics.html`, `_alerts_panel.html` stay removed. ADR D22 (Playground dry run) came with WP-UX3; `docs/index.md` says D01 to D22 |
 | WP1b-B | `docs/index.md` | `docs/latency.md` and `docs/monitors.md` rows both kept; one ADR row "(D01 to D20)" naming latency benchmark (D19) and monitor bindings (D20) |
 
 Auto-merged without conflict, then checked by hand: `core/rbac.py` (PERMISSIONS, NON_USER_OK,
@@ -90,6 +100,9 @@ ROUTES of WP21, WP22, WP24 all present), `gateway/engine.py`, `gateway/routes.py
 | WP1b-A schema | `schema/model.yaml` auto-merged with both `oversight_metric.monitor_status` (WP1b-B) and `verdict.family_source` (WP1b-A). Regenerated both DDLs and the smoke notebook: no diff to the merged result; DDL-current test passes |
 | POLICY_DIR for monitors (review WP1b-A item 11) | `monitors/bindings.py` `BindingResolver.from_settings` now takes the policy folder from `wiring.resolve_policy_dir(settings)` (POLICY_DIR, else `<repo>/policies`), then `MONITOR_POLICY_DIR`. `monitors/sweeps.py` (quality sweep) and the drift, fairness and multi-agent jobs all build their resolver through `from_settings`, so they follow. New test `test_from_settings_reads_policy_dir_like_the_gate`. `docs/monitors.md` updated. The other readers of `<repo>/policies` (`analytics/tools*`, `assurance/targets.py`, the drill, `inventory/service.py`, `regkb/loader.py`, `advisory/compliance/demo.py`) are one BACKLOG row |
 | ADR / CHANGELOG (WP1b-A) | `docs/index.md` row "(D01 to D21)" adds derived judge family and served config (D21). CHANGELOG: WP1b-A feature row, behaviour changes (SDK path, family refusal, POLICY_DIR for monitors), deploy note now lists `verdict.family_source` |
+| WP-UX fix 1: i18n duplicates | An AST pass found 6 keys defined both in the WP-UX3 block of `_T` and in the WP-UX2 `_T.update` (the update silently won). `no_traces`, `no_traces_line`, `policy_rules` meant something else on the WP-UX3 pages: renamed there (`traces_no_match`, `traces_no_match_line`, `policies_in_force`). `outcome`, `policy_hash`, `open_case` had the same meaning: the WP-UX3 copy was dropped. New test `test_no_key_is_defined_twice` (fails on the plain merge) |
+| WP-UX fix 2: agent Traces tab | After the merge `/console/traces/{id}` exists, so the WP-UX2 tab linked to the viewer even with `CONSOLE_TRACES_ENABLED` off (the viewer then answers 400). The link now needs the route AND the flag. `test_traces_tab_links_case_transcript_then_traces_page` updated: route exists; flag off links the case transcript; flag on links the viewer and the viewer answers 200 |
+| WP-UX screenshots | 12 PNGs (EN, light, 1360x900, 2.4 MB) re-taken on the merged console (`tools/console_screenshots.py --reseed`, then `--ux3`, port 18793, scratch store) replace the 36 pill-header PNGs (7.6 MB) in `docs/design/screens/`: overview, agents-drawer, agent-overview, case, alerts, signoff, analytics-gate, decisions-drawer, trace, playground, policies, audit. Listed in `docs/console.md`; `docs/design/README.md` updated |
 | WP1b-B regenerated files | After the merge: `python -m schema.generate`, `python -m supervisor.databricks.notebook` and `policies/schema.json` from `policy_json_schema()`. All three gave no diff (the branch already carried the `monitor_status` column and the policy `monitors` field; no other WP touched `gateway/policy.py`). Auto-merged shared files checked: `config.py` (`# --- WP1b-B ---` block after WP24), `templates/metrics.html` (WP21 Alerts panel above the new Monitor status section), `monitors/sweeps.py` |
 | `ops/openapi.py` | `ruff format` of the merged prefix tuple |
 | `CHANGELOG.md` (new) | v0.3.0-pre: feature table, flags table, behaviour changes with flags off, Delta deploy order. README: `INGRESS_AUTH_ENABLED` row (was missing from the flag table) and a CHANGELOG pointer; `docs/index.md` row |
@@ -196,6 +209,13 @@ Owner questions (from the five handoffs and reviews):
 31. WP1b-A: should `JUDGE_FAMILY_PROBE` default on in `databricks_app` mode? (It helps only where the endpoint reports weights; a Databricks serving-endpoint probe is a BACKLOG candidate.)
 32. WP1b-A: which system of record will the bank use for facts? It decides the next `FACT_SOURCE` kind (today `sqlite:` and allow-listed `callable:`).
 33. WP1b-A: when is `JUDGE_FAMILY_STRICT=0` removed (next phase), or should it refuse in `databricks_app` once endpoint naming or the probe is in place?
+34. WP-UX3: allow the Playground on the shared Databricks App (`PLAYGROUND_ALLOW_APP=1`)?
+35. WP-UX3: widen the roles for Credentials (spec: also operator, auditor) and Audit log (spec: also reviewer, approver)? Today `credentials.view` = owner, admin and `audit.view` = auditor, admin.
+36. WP-UX3: CSV export of the visible page (Gate decisions, Audit log)? It needs its own permission and audit row.
+37. WP-UX1 / WP-UX3: remove `CONSOLE_NAV_PLACEHOLDERS` now that every placeholder has a real page?
+38. Console brand red: `--brand` is `#e4002b` in `static/console.css` (a placeholder "swap for the brand-guide value"); confirm the bank brand-guide hex.
+39. WP-UX3: keep the flag name `CONSOLE_AUDITLOG_ENABLED` (because `CONSOLE_AUDIT_ENABLED` already means "write audit rows")?
+40. WP-UX2: should the Sign-off count and list include cases with 0 signatures (today yes, same rule as the badge)? Is a blank Analytics range meaning "each tab's own window" acceptable?
 
 Integration notes (not owner decisions):
 
@@ -209,7 +229,8 @@ Integration notes (not owner decisions):
 - WP24 reported one flaky run of `tests/integrations/test_integrations.py::test_chain_feed_writes_schema_events_once` on main (a random 10-digit run in a hash matched the PII regex). It passed in both full runs here.
 - `docs/assurance.md` pack table row for `pii_canary` is not regenerated (lists 2 metrics, the pack has 4).
 - WP20 author commits carry a Sonnet `Co-Authored-By` trailer, not the Fable line. History was not rewritten.
-- All HANDOFF_*, REVIEW_* files and this report are in `docs/phase3/wave1/` (moved in the last commit; the repo root is clean).
+- All HANDOFF_*, REVIEW_* files (including WP-UX1, WP-UX2, WP-UX3) and this report are in `docs/phase3/wave1/`; the repo root is clean.
+- Console residual risks from the UX reviews (in BACKLOG): two span-tree components; scan caps with Python-side filters on Delta (`CONSOLE_SCAN_CAP`, `CONSOLE_TRACE_SCAN`); gate span has no parent span id; Playground does not evaluate window rules; no browser test of the drawer / tab keyboard behaviour; `console.js` additions above the 40-line target.
 
 ## 9. Branch and commit
 
@@ -217,12 +238,18 @@ Integration notes (not owner decisions):
 |---|---|
 | Branch | `phase3-wave1` |
 | Worktree | `/home/trung/supervisor/.claude/worktrees/agent-a1f4b3e7345d4debe` |
-| Head | the last commit on `phase3-wave1` (the move of the wave-1 files into `docs/phase3/wave1/`); code and tests are final at `9628684` |
+| Head | the last commit on `phase3-wave1` (UX file move and this report); code and tests are final at `4a35322` (docs and screenshots at `0eb4850`) |
 
 Commits on top of main (first parent):
 
 ```
-(head)  Integration wave 1: move HANDOFF, REVIEW and INTEGRATION files to docs/phase3/wave1/
+(head)  Integration UX: move the WP-UX handoff and review files to docs/phase3/wave1/, report
+0eb4850 Integration UX: 12 reference screenshots of the merged console, docs/console.md list, BACKLOG
+4a35322 Integration UX: i18n duplicate keys removed + AST test; Traces-tab viewer link needs its flag
+8764bac Merge WP-UX3 new console pages and Playground (wp-ux3-new-pages)
+86d4741 Merge WP-UX2 console pages (wp-ux2-pages)
+37e4cab Merge WP-UX1 console shell and components (wp-ux1-shell)
+eacb549 Integration wave 1: move HANDOFF, REVIEW and INTEGRATION files to docs/phase3/wave1/
 (report) Integration wave 1: WP1b-A in INTEGRATION_WAVE1.md
 9628684 Integration wave 1: monitor bindings honour POLICY_DIR via resolve_policy_dir; BACKLOG row; ADR range D01 to D21; CHANGELOG
 475b276 Merge WP1b-A judge config, derived family, served config (wp1b-a-judge-config)
@@ -245,4 +272,4 @@ d59ca9d Merge WP24b masker v3 + inline redaction (worktree-agent-a44bc574614ace4
 3a9fba1 Merge WP20 ingress auth (worktree-agent-a038a49e4b494fc59)
 ```
 
-Merged branch heads: WP20 `edd5efb`, WP24b `cbe57ce`, WP22 `684f4ef`, WP21 `34d1552`, WP24 `0b87bb3`, WP23 `5eab20b`, WP1b-B `97c4d60`, WP1b-A `335357a`.
+Merged branch heads: WP20 `edd5efb`, WP24b `cbe57ce`, WP22 `684f4ef`, WP21 `34d1552`, WP24 `0b87bb3`, WP23 `5eab20b`, WP1b-B `97c4d60`, WP1b-A `335357a`, WP-UX1 `7e55d89`, WP-UX2 `8031b69`, WP-UX3 `87bf9ec`.
