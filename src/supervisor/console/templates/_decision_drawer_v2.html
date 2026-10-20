@@ -1,0 +1,135 @@
+{# Row drawer of the gate decisions list under verdict v2 (WP39): Request, Response, Detections,
+   Metadata. Variable: drawer (decisions_v2.drawer_view). Masked text only (R2). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set e = drawer.e %}
+{% set r = drawer.row %}
+{% set tab = drawer.tab %}
+{% set qs = drawer.qs %}
+{% set base = '/console/decisions/' ~ e.event_id ~ '/drawer?tab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set page_base = '/console/decisions?drawer=' ~ e.event_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set pills %}{{ ui.status_pill(r.status) }} {{ ui.ne_badge(r.not_eval) }} <span class="mono">{{ r.agent_id }} · {{ r.tool }}{% if r.rule_id %} · {{ r.rule_id }}{% endif %}</span>{% endset %}
+{% set labels = {'request': t('dtab_request'), 'response': t('dtab_response'), 'detections': t('dtab_detections'), 'metadata': t('dtab_metadata')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base, counts={'detections': drawer.fired|length + drawer.not_executed|length}) }}{% endset %}
+{% set prev_href = ('/console/decisions?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/decisions/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/decisions?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/decisions/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+
+{% macro leaf_parts(view) %}
+  {% for part in view.parts %}
+  <h4 style="margin:10px 0 4px">{{ t('part_' ~ part.part) }}</h4>
+  {% for lf in part.leaves %}
+  <span class="leafline"><span class="idline">{{ lf.path }}</span><span class="excerpt" style="display:block">{% for s in lf.segments %}{% if s.hl %}<mark class="hl">{{ s.t }}<sup>{{ s.hl|join(',') }}</sup></mark>{% else %}{{ s.t }}{% endif %}{% endfor %}</span></span>
+  {% endfor %}
+  {% endfor %}
+{% endmacro %}
+
+{% call dr.drawer(t('nav_decisions'), pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {% if tab == 'request' %}
+    {% if drawer.view.parts %}
+    <p class="hint">{{ t('request_note') }}</p>
+    {{ leaf_parts(drawer.view) }}
+    {% else %}
+    {{ ui.empty(t('no_request_text'), t('no_request_text_line')) }}
+    {% endif %}
+    <h4 style="margin:14px 0 4px">{{ t('masked_record') }}</h4>
+    <pre class="excerpt" id="masked-record">{{ drawer.json_text }}</pre>
+  {% elif tab == 'response' %}
+    {{ ui.kv([
+      (t('status'), t('st_' ~ r.status)),
+      (t('decision'), t('act_' ~ r.action) ~ ' · ' ~ (t('allowed') if e.status == 'allowed' else t('denied'))),
+      (t('rule_col'), r.rule_ids|join(', ')),
+      (t('reason'), drawer.reason),
+      (t('direction'), t('dir_' ~ r.direction)),
+    ]) }}
+    {% if drawer.rules %}
+    <div class="tablewrap flat"><table>
+      <thead><tr><th scope="col">{{ t('rule_col') }}</th><th scope="col">{{ t('action') }}</th><th scope="col">{{ t('severity') }}</th></tr></thead>
+      <tbody>
+      {% for h in drawer.rules %}
+        <tr><td><span class="mono">{{ h.rule_id }}</span><div class="idline">{{ h.text }}</div></td><td>{{ ui.action_pill(h.action) }}</td><td>{{ ui.sev(h.severity) if h.severity else '-' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% endif %}
+    <h4 style="margin:14px 0 4px">{{ t('transformed_payload') }}</h4>
+    {% if r.status == 'transform' and drawer.view.parts %}
+    <p class="hint">{{ t('transformed_note') }}</p>
+    {{ leaf_parts(drawer.view) }}
+    {% elif r.status == 'transform' %}
+    <p class="muted">{{ t('no_request_text_line') }}</p>
+    {% else %}
+    <p class="muted">{{ t('no_transform') }}</p>
+    {% endif %}
+  {% elif tab == 'detections' %}
+    {% if drawer.fired or drawer.not_executed %}
+    <div class="tablewrap flat"><table id="detections-table">
+      <thead><tr><th scope="col">{{ t('detector') }}</th><th scope="col">{{ t('code') }}</th><th scope="col" class="n">{{ t('score_bp') }}</th><th scope="col">{{ t('entities') }}</th><th scope="col">{{ t('action_hint') }}</th></tr></thead>
+      <tbody>
+      {% for f in drawer.fired %}
+        <tr data-code="{{ f.code }}">
+          <td class="mono">{{ f.detector_id }}{% if f.mock %} <span class="pill neutral">mock</span>{% endif %}</td>
+          <td class="mono">{{ f.code }}</td>
+          <td class="n mono">{{ f.score_bp }} / {{ f.threshold_bp }}</td>
+          <td>{% for x in f.entities %}<div class="idline">{{ x.type }} {{ x.token or '-' }} x{{ x.count }}</div>{% else %}-{% endfor %}
+            {% for fr in f.fragments %}<div class="idline">{{ fr.part }} {{ fr.path }} [{{ fr.start }}:{{ fr.end }}] {{ fr.text if fr.text is not none else '-' }}{% if fr.precision == 'leaf' %} ({{ t('leaf_precision') }}){% endif %}</div>{% endfor %}</td>
+          <td>{{ f.hint }}</td>
+        </tr>
+      {% endfor %}
+      {% for f in drawer.not_executed %}
+        <tr data-code="{{ f.code }}" class="ne-row">
+          <td class="mono">{{ f.detector_id }}</td>
+          <td class="mono">{{ f.code }}</td>
+          <td class="n">-</td>
+          <td colspan="2">{{ ui.pill(t('not_evaluated'), 'warn') }} {{ t('ne_' ~ f.reason) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    {{ ui.empty(t('no_detections'), t('no_detections_line')) }}
+    {% endif %}
+    {% if drawer.view.parts and drawer.fired %}
+    <h4 style="margin:14px 0 4px">{{ t('located_fragments') }}</h4>
+    {{ leaf_parts(drawer.view) }}
+    {% endif %}
+    {% if drawer.view.unlocated %}
+    <h4 style="margin:14px 0 4px">{{ t('unlocated_fragments') }}</h4>
+    {% for u in drawer.view.unlocated %}<div class="idline">{{ u.code }} {{ u.part }} {{ u.path }} {{ u.text if u.text is not none else '-' }}</div>{% endfor %}
+    {% endif %}
+    {% if drawer.coverage.get('not_inspected') %}
+    <h4 style="margin:14px 0 4px">{{ t('coverage') }}</h4>
+    {% for n in drawer.coverage.not_inspected %}<div class="idline">{{ n.part }}: {{ n.reason }}</div>{% endfor %}
+    {% endif %}
+  {% else %}
+    {% set sp = drawer.split %}
+    {{ ui.kv([
+      (t('request_id'), drawer.request_id, True),
+      (t('correlation_id'), e.correlation_id, True),
+      (t('time'), e.ts|day),
+      (t('agent'), e.agent_id),
+      (t('consumer'), e.consumer_id),
+      (t('version'), e.agent_version),
+      (t('caller_agent'), e.caller_agent_id),
+      (t('tool'), e.tool_name, True),
+      (t('trace_id'), e.trace_id, True),
+      (t('span_id'), e.span_id, True),
+      (t('lat_total'), (sp.total ~ ' us') if sp.total is not none else None),
+      (t('lat_rules'), (sp.rules ~ ' us') if sp.rules is not none else None),
+      (t('lat_detectors'), (sp.detectors ~ ' us') if sp.detectors is not none else None),
+      (t('lat_overhead'), (sp.overhead ~ ' us') if sp.overhead is not none else None),
+      (t('capture_level'), e.capture_level),
+    ]) }}
+    {% if sp.per_detector %}<p class="idline">{% for k, v in sp.per_detector.items() %}{{ k }} {{ v }} us{{ '; ' if not loop.last }}{% endfor %}</p>{% endif %}
+    {% if drawer.chain %}
+    {{ ui.kv([(t('chain_lane'), drawer.chain.lane, True), (t('chain_seq'), drawer.chain.seq), (t('entry_hash'), drawer.chain.entry_hash, True)]) }}
+    {% endif %}
+    <p class="btnrow">
+      {% if drawer.traces_on and e.trace_id %}<a class="btn" href="/console/traces/{{ e.trace_id|urlencode }}?span={{ e.span_id|urlencode }}&amp;lang={{ lang }}">{{ t('open_trace_span') }}</a>{% endif %}
+      {% if e.correlation_id and drawer.shared > 1 %}<a class="btn" href="/console/decisions?corr={{ e.correlation_id|urlencode }}&amp;lang={{ lang }}">{{ t('same_correlation', n=drawer.shared) }}</a>{% endif %}
+      {% for a in drawer.alerts %}<a class="btn" href="/console/alerts?status=all&amp;drawer={{ a.alert_id|urlencode }}&amp;lang={{ lang }}">{{ t('open_alert') }} {{ a.rule_id }}</a>{% endfor %}
+      {% if r.case_id %}<a class="btn" href="/console/cases/{{ r.case_id|urlencode }}?lang={{ lang }}">{{ t('open_case') }} {{ r.case_id }}</a>{% endif %}
+    </p>
+  {% endif %}
+{% endcall %}

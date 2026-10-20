@@ -1,0 +1,50 @@
+{# Gate decisions table + pager under verdict v2 (WP39, CONSOLE_DECISIONS_V2). Status pill and the
+   "Not evaluated" badge with its reasons on every row; export button for auditor and admin. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% if capped %}<p class="hint">{{ t('scan_capped') }}</p>{% endif %}
+{% if can_export %}
+<form class="btnrow" hx-post="/console/decisions/export" hx-target="#export-result" hx-swap="innerHTML" style="margin:0 0 8px">
+  {% for k, v in params.items() %}{% if v and k not in ('page',) %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+  <button class="btn" type="submit" id="export-csv">{{ t('export_csv') }}</button>
+  <span class="hint">{{ t('export_hint', n=export_max) }}</span>
+</form>
+<div id="export-result" aria-live="polite"></div>
+{% endif %}
+<div class="tablewrap">
+<table class="queue decisions-tbl">
+  <caption class="sr">{{ t('nav_decisions') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('ts', t('time'), sort_col, sort_dir, '/console/decisions', '/console/decisions/rows', base_qs) }}
+      {{ tb.th('agent_id', t('agent'), sort_col, sort_dir, '/console/decisions', '/console/decisions/rows', base_qs) }}
+      {{ tb.th('tool', t('tool'), sort_col, sort_dir, '/console/decisions', '/console/decisions/rows', base_qs) }}
+      {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/decisions', '/console/decisions/rows', base_qs) }}
+      {{ tb.th('rule_id', t('rule_col'), sort_col, sort_dir, '/console/decisions', '/console/decisions/rows', base_qs) }}
+      <th scope="col">{{ t('detections') }}</th>
+      <th scope="col">{{ t('consumer') }}</th>
+      {{ tb.th('latency_us', t('latency'), sort_col, sort_dir, '/console/decisions', '/console/decisions/rows', base_qs, numeric=True) }}
+      <th scope="col">{{ t('case') }}</th>
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for r in page.items %}
+    {% set dq = list_qs ~ '&lang=' ~ lang %}
+    <tr class="row" data-row="{{ r.event_id }}" data-status="{{ r.status }}">
+      <td class="mono"><a class="head rowlink" href="/console/decisions?drawer={{ r.event_id }}&amp;{{ dq }}" hx-get="/console/decisions/{{ r.event_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.ts|day }}</a></td>
+      <td>{{ r.agent_id }}</td>
+      <td class="mono">{{ r.tool }}<div class="idline">{{ t('dir_' ~ r.direction) }}</div></td>
+      <td>{{ ui.status_pill(r.status) }} {{ ui.ne_badge(r.not_eval) }}</td>
+      <td class="mono">{{ r.rule_id or '-' }}</td>
+      <td class="mono">{% for c in r.codes %}<span class="pill mono neutral">{{ c }}</span> {% else %}<span class="muted">-</span>{% endfor %}</td>
+      <td class="mono">{{ r.consumer_id or '-' }}</td>
+      <td class="n mono">{{ ((r.latency_us / 1000)|round(1)) ~ ' ms' if r.latency_us is not none else '-' }}</td>
+      <td>{% if r.case_id %}<a href="/console/cases/{{ r.case_id }}?lang={{ lang }}">{{ r.case_id }}</a>{% else %}<span class="muted">-</span>{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9">{{ ui.empty(t('no_decisions'), t('no_decisions_line')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/decisions', '/console/decisions/rows', list_qs) }}
