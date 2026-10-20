@@ -14,10 +14,17 @@ Supervisor knew agents, their parts (WP24 inventory) and what each rule did at r
 4. **Inheritance reuses the WP24 graph code.** The register builds a copy of the inventory graph whose node levels are the bands of the risks on the node, and calls `Graph.effective_risk`. No second SCC. A second function lists which risks reach an agent; a property test checks that both agree. Only active risks count; `gone` nodes and inactive edges pass nothing (same rules as WP24).
 5. **Controls are links of three kinds** (gate rule, assurance pack, monitor); matrix rows and cases are references. A link is accepted only when its target exists today.
 6. **Evidence rule: residual may only be lowered by working evidence.** For `mitigate` risks the residual is the declared value only while no linked control is failing and at least one is working in the last window; in every other state it is the inherent score. For other treatments it is the declared value. So the lowest value a risk can show is what its owner declared, and a broken, removed or silent control puts the score back up. Evidence is: tier-0 gate verdicts with a rule id, non-mock assurance results, monitor status. SHADOW, retired and unknown agents are excluded. Judges and classifiers are not inputs (rule R1).
-7. **One row and one chain record per risk and window.** The row id is a hash of (risk, window end), so a repeat is a no-op on both SQLite and Delta (insert-only MERGE). Payloads hold integers, fixed reason codes and hashes (rules R2 and R3: no names, no text, no network).
+7. **One row and one chain record per risk and window.** The row id is a hash of (risk, window end, evidence basis), so a repeat is a no-op on both SQLite and Delta (insert-only MERGE). The basis is a hash of the anchor, treatment, inherent and declared values and the control links: a row computed for another basis does not count (`changed_since_evidence`), and a pass after the edit writes a new row in the same window. Payloads hold integers, fixed reason codes and hashes (rules R2 and R3: no names, no text, no network).
 8. **Edits are audited twice**: two `console_action` rows (attempted, outcome with the hash of the risk and its links before and after) through the existing `audited` wrapper, plus a `risk_change` chain record with the actor. Roles: `risks.view` for all, `risks.edit` for reviewer, owner and admin.
 9. **Import is the bank's change control.** One YAML format, all or nothing, idempotent; a risk edited by hand is not overwritten unless asked.
 10. **Flags** `RISK_REGISTER_ENABLED` (API, job, CLI) and `CONSOLE_RISKS_ENABLED` (page and tab), both off. Off path: tables stay empty, routes answer 400, nav entry and tab hidden.
+
+### Amendment (WP29 review, 2026-10-20)
+
+* A rule hit counts only when the gate enforced it: verdict rows labelled `shadow_*` (a SHADOW agent), `rule_error`, the fail-mode rows and mock rows are not hits. The label is written at the time of the call, so this answers "gate state at the time of the hit" without a new column.
+* For a risk that applies to several agents, a pack or monitor is `working` only when it is `ok` for every supervised agent; a rule hit of any of them still counts (rules are scoped per agent).
+* Monitor evidence comes only from the deterministic monitors that write `monitor_status` (`fairness`, `drift`, `multiagent`). `quality` is an LLM scorer and is advisory (R1); `oversight` and `sweeps` write no status.
+* `avoid` and `transfer` with a residual below the inherent score need a `treatment_note`.
 
 ## Alternatives rejected
 

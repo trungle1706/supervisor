@@ -33,7 +33,7 @@ Risk --1:n--> risk_evidence (one row per window, append-only)
 | anchor | `agent_id` (the agent's own node), or `node_id` (an inventory node id `inv_...`). One of them is required. |
 | inherent | `inherent_likelihood` and `inherent_impact`, whole numbers 1 to 5. |
 | `marginal_risk`, `marginal_note` | The change caused by using AI instead of a fixed process: 1 (much smaller) to 5 (much higher), with a short note. Information only; it is not part of the score. |
-| `treatment` | `avoid`, `mitigate`, `accept`, `transfer`. `accept` needs a `treatment_note` (the justification) and a residual equal to the inherent score. |
+| `treatment` | `avoid`, `mitigate`, `accept`, `transfer`. `accept` needs a `treatment_note` (the justification) and a residual equal to the inherent score. `avoid` and `transfer` with a residual below the inherent score need a `treatment_note` too: no runtime evidence checks them. |
 | residual | `residual_likelihood`, `residual_impact`: what the owner declares for the treated risk. Not above the inherent value on either axis. Defaults to the inherent value. |
 | `owner`, `review_date` | An active risk needs both. A risk is `review_overdue` after `review_date` (plus `review_grace_days`). |
 | `status` | `draft` (listed, not counted), `active`, `retired` (kept as history, not counted). |
@@ -73,9 +73,9 @@ agent level = max( band of every ACTIVE risk on a node the agent reaches along A
 
 | Link | A control is `working` when | `failing` when | otherwise |
 |---|---|---|---|
-| rule | at least one tier-0, non-advisory verdict of that rule id with action `log`, `alert`, `block` or `pause` in the window | the rule id is not in the deployed policy any more | `idle` (no hit proves nothing) |
-| pack | newest non-mock `eval_result` of a supervised agent has status `ok` | status `fail` or `error` | `idle` (`warn`, `skip`, none, mock) |
-| monitor | newest daily `monitor_status` of a supervised agent has status `ok` | never | `idle` (`not_applicable`, `no_data`, missing) |
+| rule | at least one tier-0, non-advisory, non-mock verdict of that rule id with action `log`, `alert`, `block` or `pause` in the window that the gate enforced: a SHADOW "would" row (label `shadow_*`), a rule error (`rule_error`) and a fail-mode row are not hits | the rule id is not in the deployed policy any more | `idle` (no hit proves nothing) |
+| pack | newest non-mock `eval_result` of **every** supervised agent the risk applies to has status `ok` (or `skip`) | any status `fail` or `error` | `idle` (`warn`, an agent with no result, none, mock) |
+| monitor | newest daily `monitor_status` of **every** supervised agent is `ok`, for the deterministic monitors `fairness`, `drift` and `multiagent` (`ok` = the monitor ran and produced values) | never | `idle` (`not_applicable`, `no_data`, missing for one agent). `quality` is an advisory LLM scorer (rule R1) and `oversight` and `sweeps` write no status: a link to them is a reference, never evidence |
 
 Matrix and case links are references. They never count as a control.
 
@@ -83,12 +83,12 @@ Matrix and case links are references. They never count as a control.
 
 1. Only a `mitigate` risk can be lowered. For `avoid`, `accept` and `transfer` the residual is the declared value (the gate cannot see a contract or a decision).
 2. The risk state is `failing` if any linked control is failing; `working` if none is failing and at least `min_working_controls` (default 1) are working; otherwise `no_evidence`. With no supervised agent or no linked control the state is `no_evidence`.
-3. Residual = the **declared** residual only in state `working`. In every other state, and when the job has not run or the last row is older than two windows (`stale_evidence`), residual = the **inherent** score. So evidence can lower a score from the inherent value to the declared value, never below the declared value, and a broken control raises it again.
-4. Every row stores the reason as a fixed code: `controls_working`, `control_failing`, `no_working_control`, `no_links`, `no_supervised_agent`, `treatment_declared`, `stale_evidence`, `no_evidence_yet`.
+3. Residual = the **declared** residual only in state `working`. In every other state, and when the job has not run, the last row is older than two windows (`stale_evidence`) or the risk changed after the last row (`changed_since_evidence`: a new anchor, treatment, inherent or declared value, or a control link added or removed; a text edit does not count), residual = the **inherent** score. So evidence can lower a score from the inherent value to the declared value, never below the declared value, and a broken control raises it again.
+4. Every row stores the reason as a fixed code: `controls_working`, `control_failing`, `no_working_control`, `no_links`, `no_supervised_agent`, `treatment_declared`, `stale_evidence`, `no_evidence_yet`, `changed_since_evidence`.
 
-Output per run and risk: one row in `risk_evidence` (append-only; ids `rev_` + hash of the risk and window end, so a second run in the same window writes nothing) and one `risk_evidence` chain record (lane `agent:<id>` for an agent risk, root lane for a shared-component risk). Both hold integers, codes and hashes only: no text, no names (rules R1 to R3). No judge or classifier is an input.
+Output per run and risk: one row in `risk_evidence` (append-only; ids `rev_` + hash of the risk, the window end and the evidence basis, so a second run in the same window writes nothing unless the risk or its controls changed) and one `risk_evidence` chain record (lane `agent:<id>` for an agent risk, root lane for a shared-component risk). Both hold integers, codes and hashes only: no text, no names (rules R1 to R3). No judge or classifier is an input.
 
-Limits to know: a rule that fires rarely (for example "unapproved tool") stays `idle`, so a mitigated risk linked only to such a rule keeps its inherent score until a pack or monitor shows the control works; link an assurance pack that replays the red-team cases to such a risk. The gate state is read now, not as it was at the time of each hit; an agent moved from SHADOW to RUNNING inside the window counts in full.
+Limits to know: a rule that fires rarely (for example "unapproved tool") stays `idle`, so a mitigated risk linked only to such a rule keeps its inherent score until a pack or monitor shows the control works; link an assurance pack that replays the red-team cases to such a risk. The agent's gate state is read now to choose the supervised agents; the hits themselves carry the gate's label from the time of the call, so a hit written while the agent was in SHADOW never counts. A shared risk counts rule hits of any supervised agent that reaches it (a rule may be in scope for one agent only), but a pack or monitor must be `ok` for every one of them. Agents that start to use a shared component count from the next pass.
 
 ## Console
 

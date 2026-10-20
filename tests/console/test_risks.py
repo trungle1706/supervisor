@@ -317,3 +317,91 @@ def test_workspace_fixture_unmanaged_items_do_not_break_the_page(
     )
     assert seeded_risks.get("/console/risks").status_code == 200
     assert isinstance(seeded_risks.ctx.risks, RiskService)
+
+
+# ---- review (WP29): more bad calls, viewer writes, no lowering through the route ------------
+
+
+@pytest.mark.parametrize(
+    ("url", "body"),
+    [
+        ("/v1/risks", {**NEW, "links": "PAY-02"}),
+        ("/v1/risks", {**NEW, "links": [{"kind": "rule"}]}),
+        ("/v1/risks", {**NEW, "links": [{"kind": "rule", "target": 7}]}),
+        ("/v1/risks", {**NEW, "links": [{"kind": "zzz", "target": "PAY-02"}]}),
+        ("/v1/risks", {**NEW, "risk_id": 12}),
+        ("/v1/risks", {**NEW, "risk_id": "bad id"}),
+        ("/v1/risks", {**NEW, "inherent_likelihood": True}),
+        ("/v1/risks", {**NEW, "inherent_likelihood": 3.0}),
+        ("/v1/risks", {**NEW, "review_date": "tomorrow"}),
+        ("/v1/risks", {**NEW, "agent_id": "a b"}),
+        ("/v1/risks", {**NEW, "title": "x" * 5000}),
+        ("/v1/risks/RSK-PAY-001", {"row_version": "1"}),
+        ("/v1/risks/RSK-PAY-001", {"risk_id": "RSK-OTHER"}),
+        ("/v1/risks/RSK-PAY-001", {"source": "starter"}),
+        ("/v1/risks/RSK-PAY-001", {"residual_likelihood": 5, "residual_impact": 5}),
+        ("/v1/risks/RSK-PAY-001", {"status": "gone"}),
+        ("/v1/risks/RSK-PAY-001/links", {"kind": "rule", "target": None}),
+        ("/v1/risks/RSK-PAY-001/links", {"kind": ["rule"], "target": "PAY-02"}),
+        ("/v1/risks/RSK-PAY-001/links", {"action": None, "kind": "rule", "target": "PAY-02"}),
+        ("/v1/risks/bad%20id/links", {"kind": "rule", "target": "PAY-02"}),
+    ],
+)
+def test_bad_bodies_are_400(seeded_risks: Console, url: str, body: Any) -> None:
+    r = _post(seeded_risks, url, body)
+    assert r.status_code == 400, (url, body, r.status_code, r.text[:200])
+    assert "error" in r.json()
+
+
+def test_oversized_body_is_refused_not_500(seeded_risks: Console) -> None:
+    big = {**NEW, "description": "x" * 70_000}
+    r = _post(seeded_risks, "/v1/risks", big)
+    assert r.status_code in (400, 413), r.status_code
+
+
+def test_bad_agent_id_on_the_agent_route_is_400(seeded_risks: Console) -> None:
+    assert seeded_risks.get("/v1/risks/agents/a%20b").status_code == 400
+    assert seeded_risks.get("/v1/risks/agents/nobody").status_code == 200  # no risks, no error
+
+
+@pytest.mark.parametrize(
+    ("url", "body"),
+    [
+        ("/v1/risks/RSK-PAY-001", {"owner": "viewer"}),
+        ("/v1/risks/RSK-PAY-001/links", {"action": "remove", "kind": "rule", "target": "PAY-02"}),
+    ],
+)
+def test_viewer_cannot_write_through_any_route(seeded_risks: Console, url: str, body: Any) -> None:
+    c = seeded_risks
+    before = c.get("/v1/risks/RSK-PAY-001").json()
+    r = _post(c, url, body, "viewer.hoa")
+    assert r.status_code == 403
+    denied = [x for x in _outcome_rows(c) if x["outcome"] == "denied"]
+    assert denied and denied[-1]["actor"] == "viewer.hoa"
+    after = c.get("/v1/risks/RSK-PAY-001").json()
+    assert (after["owner"], after["links"], after["row_version"]) == (
+        before["owner"],
+        before["links"],
+        before["row_version"],
+    )
+
+
+def test_link_route_audits_before_and_after_hashes(seeded_risks: Console) -> None:
+    c = seeded_risks
+    n = len(_outcome_rows(c))
+    r = _post(
+        c, "/v1/risks/RSK-PAY-001/links", {"action": "add", "kind": "monitor", "target": "drift"}
+    )
+    assert r.status_code == 200
+    att, out = _outcome_rows(c)[n:]
+    assert (att["outcome"], out["outcome"]) == ("attempted", "ok")
+    assert out["before_hash"] and out["after_hash"] and out["before_hash"] != out["after_hash"]
+
+
+def test_update_route_cannot_lower_the_residual_without_evidence(seeded_risks: Console) -> None:
+    c = seeded_risks
+    r = _post(c, "/v1/risks/RSK-PAY-001", {"residual_likelihood": 1, "residual_impact": 1})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["declared_residual_score"] == 1
+    assert body["residual_score"] == body["inherent_score"] == 20

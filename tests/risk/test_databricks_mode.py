@@ -74,7 +74,14 @@ def pair(env: _Env) -> tuple[RiskService, RiskService, MirrorFake]:
     rid = env.risk(
         "delta read", "pay", [("rule", "PAY-02"), ("pack", "pack_a"), ("matrix", "OB-1")]
     )
-    env.risk("second", "pay", [("monitor", "oversight")], treatment="avoid", residual_likelihood=1)
+    env.risk(
+        "second",
+        "pay",
+        [("monitor", "oversight")],
+        treatment="avoid",
+        residual_likelihood=1,
+        treatment_note="activity stopped",
+    )
     env.verdict("pay", "PAY-02", "block", env.window_time())
     env.pack("pay", "pack_a", "ok", env.window_time())
     env.svc.run_evidence()
