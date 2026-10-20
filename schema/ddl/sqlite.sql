@@ -1025,3 +1025,39 @@ BEFORE DELETE ON risk_evidence
 BEGIN
   SELECT RAISE(ABORT, 'risk_evidence is append-only');
 END;
+
+-- transparency_report (append_only): WP31. One row per generated report file set: agent, variant (regulator | customer | internal), language, version (a whole number per agent and variant) and the sha256 of the JSON and of each rendered file. The report data holds ids, integers, hashes and masked text only; this row holds hashes, counts and section hashes (for the diff to the next version), no text. The matching chain record is transparency_report. A repeat for the same (agent, variant, lang, version) is a no-op (report_id is a hash).
+CREATE TABLE IF NOT EXISTS transparency_report (
+  report_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  variant TEXT NOT NULL,
+  lang TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  schema_version INTEGER NOT NULL,
+  generated_at TEXT NOT NULL,
+  generated_by TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  json_hash TEXT NOT NULL,
+  html_hash TEXT,
+  pdf_hash TEXT,
+  sections_total INTEGER NOT NULL,
+  sections_available INTEGER NOT NULL,
+  section_hashes TEXT NOT NULL,
+  verify_state TEXT NOT NULL,
+  chain_hash TEXT,
+  PRIMARY KEY (report_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_transparency_report_agent_id_variant_version ON transparency_report (agent_id, variant, version);
+
+CREATE TRIGGER IF NOT EXISTS trg_transparency_report_no_update
+BEFORE UPDATE ON transparency_report
+BEGIN
+  SELECT RAISE(ABORT, 'transparency_report is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_transparency_report_no_delete
+BEFORE DELETE ON transparency_report
+BEGIN
+  SELECT RAISE(ABORT, 'transparency_report is append-only');
+END;
