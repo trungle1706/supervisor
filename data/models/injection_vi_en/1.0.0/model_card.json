@@ -34,6 +34,11 @@
     "validator": "FILL-ME (MRM_VALIDATOR)"
   },
   "scale": 10000,
+  "sealed_sets": {
+    "adversarial.jsonl": "fa2faf19f8228cfc984e4ce7910b9260c62139f8e82e48c2525d13e47ec48cfc",
+    "evasion.jsonl": "45a601324d09eee8ce4833deafcdab36d5a93e2e17942bad29205b5a3a895466",
+    "heldout.jsonl": "09b4d170e6c69de36af6f776d7222301c59ea9cc0c1d9cef166326303999d785"
+  },
   "surfaces": [
     "args",
     "tool_results",

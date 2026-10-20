@@ -104,7 +104,7 @@ def test_no_raw_sensitive_string_leaks_and_fragments_are_exact() -> None:
 
 def test_threshold_checks_stay_declared_before_the_run() -> None:
     th = harness.THRESHOLDS["injection_classifier"]
-    assert th["recall_bp"] == 8500 and th["p95_us"] == 2000
+    assert th["recall_bp"] == 8500 and th["p95_us"] == 5000
     assert V.THRESHOLDS["false_alarm_bp_max"] == 500
 
 

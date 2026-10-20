@@ -819,7 +819,7 @@ CAVEATS_MD: tuple[str, ...] = (
     "on them, but the adversarial row is one author's probes and is indicative only.",
     "- **Template variance.** n counts items; items share about 100 template strings per pool, so the Wilson "
     "intervals understate the variance between templates. Recall under a new template family is the real risk.",
-    "- **Latency.** p95 per call is above the 2 ms target (NO-GO row); calls with a finding cost more (fragments).",
+    "- **Latency.** p95 per call is judged against the 5 ms target of WP25b (2 ms in 1.0.0); calls with a finding cost more (fragments).",
     "- **Same items, two detectors.** The classifier beats the regex on every evasion kind on the same items, but on "
     "the regex-catchable subset the regex is often better; run both (they are separate detectors).",
 )

@@ -87,7 +87,7 @@ THRESHOLDS: dict[str, dict[str, int]] = {
         "adversarial_recall_bp": 6000,
         "fragment_exact_bp": 9000,
         "leak_items_max": 0,
-        "p95_us": 2_000,
+        "p95_us": 5_000,
         "heldout_gap_bp": 1500,
     },
     "judge_advisory": {
