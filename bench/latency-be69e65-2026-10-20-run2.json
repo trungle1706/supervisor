@@ -1,0 +1,5567 @@
+{
+  "schema": "supervisor-latency-bench/1",
+  "mode": "full",
+  "environment": {
+    "commit": "be69e65df2bd96cdcbfa5cf96b2d7a1b229fdd8d",
+    "date_utc": "2026-10-20T06:29:18Z",
+    "python": "3.11.17",
+    "python_impl": "CPython",
+    "platform": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "cpu_model": "QEMU Virtual CPU version 2.5+",
+    "cpu_count": 16,
+    "load_avg_1_5_15": [
+      2.01,
+      2.35,
+      2.78
+    ],
+    "versions": {
+      "fastapi": "0.143.1",
+      "starlette": "1.8.0",
+      "uvicorn": "0.54.0",
+      "httpx": "0.28.1",
+      "pydantic": "2.14.1",
+      "supervisor": "0.2.0"
+    },
+    "env_flags": {
+      "python_optimize": 0,
+      "python_dev_mode": false,
+      "pythonhashseed": "unset",
+      "gil_enabled": true,
+      "gc_enabled": true,
+      "uvloop": "absent",
+      "httptools": "absent",
+      "cpu_governor": "n/a",
+      "hypervisor": "yes"
+    },
+    "load_avg_end": [
+      1.87,
+      2.59,
+      2.56
+    ]
+  },
+  "parameters": {
+    "backends": [
+      "sqlite_file",
+      "sqlite_memory",
+      "databricks_fake"
+    ],
+    "policy_sizes": [
+      19,
+      200
+    ],
+    "scenarios": [
+      "inproc",
+      "chain",
+      "breakdown",
+      "window",
+      "asgi",
+      "otlp",
+      "server",
+      "mcp"
+    ],
+    "repeats": 3,
+    "iterations": 2000,
+    "warmup": 300,
+    "http_iterations": 600,
+    "http_warmup": 100,
+    "http_rate_hz": 100,
+    "mcp_iterations": 200,
+    "seed": 7,
+    "sim_step_s": 120.0,
+    "fake_rtt_ms": 0,
+    "window_depths": [
+      1000,
+      10000
+    ]
+  },
+  "method": {
+    "clock": "time.perf_counter_ns (monotonic), integer microseconds",
+    "percentile": "nearest rank: sorted[ceil(p*n/100)-1]",
+    "reported": "median over repeats of each statistic; all repeats are kept",
+    "http_load": "open loop, fixed schedule, latency from intended send time",
+    "delta": "GAF: delta = p95(with gate) - p95(without gate); without = same JSON parse, same thread hop, fixed answer, no evaluation",
+    "mock_backend": "databricks_fake is SQLite memory plus REST marshalling code: MOCK"
+  },
+  "results": [
+    {
+      "id": "gate_inproc|sqlite_file|19",
+      "scenario": "gate_inproc",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 1125,
+          "p50": 1507,
+          "p95": 2165,
+          "p99": 4995,
+          "max": 6782,
+          "mean": 1609
+        },
+        {
+          "n": 2000,
+          "min": 1064,
+          "p50": 1484,
+          "p95": 2199,
+          "p99": 5117,
+          "max": 6980,
+          "mean": 1592
+        },
+        {
+          "n": 2000,
+          "min": 1095,
+          "p50": 1504,
+          "p95": 2367,
+          "p99": 4894,
+          "max": 8780,
+          "mean": 1623
+        }
+      ],
+      "median": {
+        "p50": 1504,
+        "p95": 2199,
+        "p99": 4995,
+        "max": 6980,
+        "mean": 1609,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 152,
+        "p95": 918,
+        "p99": 446,
+        "max": 2862
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 2
+    },
+    {
+      "id": "chain_append|sqlite_file|19",
+      "scenario": "chain_append",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 374,
+          "p50": 575,
+          "p95": 1037,
+          "p99": 1849,
+          "max": 4645,
+          "mean": 603
+        },
+        {
+          "n": 2000,
+          "min": 373,
+          "p50": 584,
+          "p95": 1122,
+          "p99": 2024,
+          "max": 6777,
+          "mean": 625
+        },
+        {
+          "n": 2000,
+          "min": 366,
+          "p50": 578,
+          "p95": 1209,
+          "p99": 1957,
+          "max": 5922,
+          "mean": 626
+        }
+      ],
+      "median": {
+        "p50": 578,
+        "p95": 1122,
+        "p99": 1957,
+        "max": 5922,
+        "mean": 625,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 155,
+        "p95": 1532,
+        "p99": 894,
+        "max": 3600
+      },
+      "extra": {},
+      "attempts": 3
+    },
+    {
+      "id": "otlp_inproc_1span|sqlite_file|19",
+      "scenario": "otlp_inproc_1span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 334,
+          "p50": 455,
+          "p95": 628,
+          "p99": 1073,
+          "max": 1421,
+          "mean": 479
+        },
+        {
+          "n": 600,
+          "min": 334,
+          "p50": 437,
+          "p95": 636,
+          "p99": 1116,
+          "max": 1539,
+          "mean": 473
+        },
+        {
+          "n": 600,
+          "min": 330,
+          "p50": 453,
+          "p95": 618,
+          "p99": 1127,
+          "max": 5218,
+          "mean": 484
+        }
+      ],
+      "median": {
+        "p50": 453,
+        "p95": 628,
+        "p99": 1116,
+        "max": 1539,
+        "mean": 479,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 397,
+        "p95": 286,
+        "p99": 483,
+        "max": 24671
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|sqlite_file|19",
+      "scenario": "otlp_inproc_20span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2900,
+          "p50": 3080,
+          "p95": 3613,
+          "p99": 5121,
+          "max": 5431,
+          "mean": 3165
+        },
+        {
+          "n": 200,
+          "min": 2969,
+          "p50": 3105,
+          "p95": 3571,
+          "p99": 5148,
+          "max": 5405,
+          "mean": 3172
+        },
+        {
+          "n": 200,
+          "min": 2930,
+          "p50": 3057,
+          "p95": 3593,
+          "p99": 5082,
+          "max": 5380,
+          "mean": 3143
+        }
+      ],
+      "median": {
+        "p50": 3080,
+        "p95": 3593,
+        "p99": 5121,
+        "max": 5405,
+        "mean": 3165,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 155,
+        "p95": 116,
+        "p99": 128,
+        "max": 94
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|sqlite_file|19",
+      "scenario": "asgi_passthrough",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 686,
+          "p50": 1770,
+          "p95": 2698,
+          "p99": 2899,
+          "max": 3727,
+          "mean": 1785
+        },
+        {
+          "n": 600,
+          "min": 620,
+          "p50": 1820,
+          "p95": 2894,
+          "p99": 3318,
+          "max": 3679,
+          "mean": 1873
+        },
+        {
+          "n": 600,
+          "min": 692,
+          "p50": 1801,
+          "p95": 2767,
+          "p99": 3034,
+          "max": 4289,
+          "mean": 1830
+        }
+      ],
+      "median": {
+        "p50": 1801,
+        "p95": 2767,
+        "p99": 3034,
+        "max": 3727,
+        "mean": 1830,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 277,
+        "p95": 708,
+        "p99": 1381,
+        "max": 1636
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 978,
+          "p99": 2093
+        }
+      },
+      "attempts": 4
+    },
+    {
+      "id": "asgi_gate|sqlite_file|19",
+      "scenario": "asgi_gate",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2669,
+          "p50": 3933,
+          "p95": 5761,
+          "p99": 8746,
+          "max": 13845,
+          "mean": 4165
+        },
+        {
+          "n": 600,
+          "min": 2653,
+          "p50": 3833,
+          "p95": 52124,
+          "p99": 98383,
+          "max": 139262,
+          "mean": 8792
+        },
+        {
+          "n": 600,
+          "min": 2550,
+          "p50": 3899,
+          "p95": 6731,
+          "p99": 26958,
+          "max": 83120,
+          "mean": 4715
+        }
+      ],
+      "median": {
+        "p50": 3899,
+        "p95": 6731,
+        "p99": 26958,
+        "max": 83120,
+        "mean": 4715,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 256,
+        "p95": 68879,
+        "p99": 33250,
+        "max": 15088
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 453,
+          "p99": 1089
+        }
+      },
+      "attempts": 4
+    },
+    {
+      "id": "otlp_asgi_1span|sqlite_file|19",
+      "scenario": "otlp_asgi_1span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1171,
+          "p50": 2291,
+          "p95": 3689,
+          "p99": 4355,
+          "max": 4663,
+          "mean": 2484
+        },
+        {
+          "n": 600,
+          "min": 1309,
+          "p50": 2278,
+          "p95": 3686,
+          "p99": 4189,
+          "max": 4800,
+          "mean": 2487
+        },
+        {
+          "n": 600,
+          "min": 1213,
+          "p50": 2410,
+          "p95": 3636,
+          "p99": 4071,
+          "max": 4621,
+          "mean": 2532
+        }
+      ],
+      "median": {
+        "p50": 2291,
+        "p95": 3686,
+        "p99": 4189,
+        "max": 4663,
+        "mean": 2487,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 576,
+        "p95": 143,
+        "p99": 677,
+        "max": 383
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 622,
+          "p99": 1764
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|sqlite_file|19",
+      "scenario": "otlp_asgi_20span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4920,
+          "p50": 6001,
+          "p95": 7418,
+          "p99": 8520,
+          "max": 12448,
+          "mean": 6154
+        },
+        {
+          "n": 200,
+          "min": 4401,
+          "p50": 5608,
+          "p95": 6646,
+          "p99": 7531,
+          "max": 8571,
+          "mean": 5655
+        },
+        {
+          "n": 200,
+          "min": 4487,
+          "p50": 6034,
+          "p95": 7719,
+          "p99": 8332,
+          "max": 9244,
+          "mean": 6155
+        }
+      ],
+      "median": {
+        "p50": 6001,
+        "p95": 7418,
+        "p99": 8332,
+        "max": 9244,
+        "mean": 6154,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 709,
+        "p95": 1446,
+        "p99": 1186,
+        "max": 4194
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 633,
+          "p99": 1934
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_passthrough|sqlite_file|19",
+      "scenario": "uvicorn_passthrough",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1342,
+          "p50": 2307,
+          "p95": 3520,
+          "p99": 3984,
+          "max": 4923,
+          "mean": 2463
+        },
+        {
+          "n": 600,
+          "min": 1240,
+          "p50": 2314,
+          "p95": 3581,
+          "p99": 4563,
+          "max": 5740,
+          "mean": 2465
+        },
+        {
+          "n": 600,
+          "min": 1257,
+          "p50": 2247,
+          "p95": 3541,
+          "p99": 3740,
+          "max": 4374,
+          "mean": 2390
+        }
+      ],
+      "median": {
+        "p50": 2307,
+        "p95": 3541,
+        "p99": 3984,
+        "max": 4923,
+        "mean": 2463,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 290,
+        "p95": 172,
+        "p99": 2065,
+        "max": 2774
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 877,
+          "p99": 2086
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|sqlite_file|19",
+      "scenario": "uvicorn_gate",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2729,
+          "p50": 4650,
+          "p95": 9605,
+          "p99": 56749,
+          "max": 91408,
+          "mean": 6533
+        },
+        {
+          "n": 600,
+          "min": 3040,
+          "p50": 4406,
+          "p95": 9548,
+          "p99": 42045,
+          "max": 69420,
+          "mean": 5849
+        },
+        {
+          "n": 600,
+          "min": 3108,
+          "p50": 4447,
+          "p95": 7712,
+          "p99": 21578,
+          "max": 79256,
+          "mean": 5348
+        }
+      ],
+      "median": {
+        "p50": 4447,
+        "p95": 9548,
+        "p99": 42045,
+        "max": 79256,
+        "mean": 5849,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 548,
+        "p95": 1982,
+        "p99": 8365,
+        "max": 2774
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 530,
+          "p99": 1079
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|sqlite_file|19",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2327,
+          "p50": 3251,
+          "p95": 4590,
+          "p99": 5322,
+          "max": 8197,
+          "mean": 3362
+        },
+        {
+          "n": 600,
+          "min": 2252,
+          "p50": 3254,
+          "p95": 4471,
+          "p99": 6473,
+          "max": 31507,
+          "mean": 3463
+        },
+        {
+          "n": 600,
+          "min": 2341,
+          "p50": 3336,
+          "p95": 4596,
+          "p99": 5156,
+          "max": 7442,
+          "mean": 3441
+        }
+      ],
+      "median": {
+        "p50": 3254,
+        "p95": 4590,
+        "p99": 5322,
+        "max": 8197,
+        "mean": 3441,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 261,
+        "p95": 272,
+        "p99": 2474,
+        "max": 29358
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 528,
+          "p99": 1063
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|sqlite_file|19",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5253,
+          "p50": 6266,
+          "p95": 7660,
+          "p99": 9073,
+          "max": 9612,
+          "mean": 6393
+        },
+        {
+          "n": 200,
+          "min": 5093,
+          "p50": 6346,
+          "p95": 7898,
+          "p99": 9430,
+          "max": 10289,
+          "mean": 6462
+        },
+        {
+          "n": 200,
+          "min": 5104,
+          "p50": 6657,
+          "p95": 8778,
+          "p99": 9830,
+          "max": 11071,
+          "mean": 6829
+        }
+      ],
+      "median": {
+        "p50": 6346,
+        "p95": 7898,
+        "p99": 9430,
+        "max": 10289,
+        "mean": 6462,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 616,
+        "p95": 1415,
+        "p99": 802,
+        "max": 1418
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 644,
+          "p99": 1420
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "mcp_direct|sqlite_file|19",
+      "scenario": "mcp_direct",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 54,
+          "p95": 73,
+          "p99": 185,
+          "max": 189,
+          "mean": 48
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 46,
+          "p95": 74,
+          "p99": 164,
+          "max": 188,
+          "mean": 49
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 54,
+          "p95": 76,
+          "p99": 180,
+          "max": 206,
+          "mean": 51
+        }
+      ],
+      "median": {
+        "p50": 54,
+        "p95": 74,
+        "p99": 180,
+        "max": 189,
+        "mean": 49,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 1481,
+        "p95": 405,
+        "p99": 1166,
+        "max": 952
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|sqlite_file|19",
+      "scenario": "mcp_proxy",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 6698,
+          "p50": 8394,
+          "p95": 16609,
+          "p99": 23341,
+          "max": 25699,
+          "mean": 9418
+        },
+        {
+          "n": 200,
+          "min": 6564,
+          "p50": 8271,
+          "p95": 18726,
+          "p99": 24270,
+          "max": 37954,
+          "mean": 9476
+        },
+        {
+          "n": 200,
+          "min": 6451,
+          "p50": 8126,
+          "p95": 19208,
+          "p99": 25449,
+          "max": 26598,
+          "mean": 9370
+        }
+      ],
+      "median": {
+        "p50": 8271,
+        "p95": 18726,
+        "p99": 24270,
+        "max": 26598,
+        "mean": 9418,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 324,
+        "p95": 1387,
+        "p99": 868,
+        "max": 4607
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|sqlite_file|200",
+      "scenario": "gate_inproc",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 1368,
+          "p50": 2265,
+          "p95": 4508,
+          "p99": 6712,
+          "max": 60596,
+          "mean": 2552
+        },
+        {
+          "n": 2000,
+          "min": 1330,
+          "p50": 2226,
+          "p95": 4081,
+          "p99": 6580,
+          "max": 19787,
+          "mean": 2470
+        },
+        {
+          "n": 2000,
+          "min": 1343,
+          "p50": 2203,
+          "p95": 3824,
+          "p99": 5368,
+          "max": 21894,
+          "mean": 2422
+        }
+      ],
+      "median": {
+        "p50": 2226,
+        "p95": 4081,
+        "p99": 6580,
+        "max": 21894,
+        "mean": 2470,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 278,
+        "p95": 1676,
+        "p99": 2042,
+        "max": 18639
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|sqlite_file|200",
+      "scenario": "chain_append",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 372,
+          "p50": 548,
+          "p95": 702,
+          "p99": 1510,
+          "max": 2055,
+          "mean": 553
+        },
+        {
+          "n": 2000,
+          "min": 364,
+          "p50": 542,
+          "p95": 677,
+          "p99": 1476,
+          "max": 2285,
+          "mean": 545
+        },
+        {
+          "n": 2000,
+          "min": 371,
+          "p50": 541,
+          "p95": 721,
+          "p99": 1647,
+          "max": 4272,
+          "mean": 559
+        }
+      ],
+      "median": {
+        "p50": 542,
+        "p95": 702,
+        "p99": 1510,
+        "max": 2285,
+        "mean": 553,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 129,
+        "p95": 626,
+        "p99": 1132,
+        "max": 9702
+      },
+      "extra": {},
+      "attempts": 2
+    },
+    {
+      "id": "otlp_inproc_1span|sqlite_file|200",
+      "scenario": "otlp_inproc_1span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 347,
+          "p50": 481,
+          "p95": 636,
+          "p99": 937,
+          "max": 1888,
+          "mean": 492
+        },
+        {
+          "n": 600,
+          "min": 329,
+          "p50": 480,
+          "p95": 668,
+          "p99": 1215,
+          "max": 3515,
+          "mean": 501
+        },
+        {
+          "n": 600,
+          "min": 349,
+          "p50": 511,
+          "p95": 672,
+          "p99": 1248,
+          "max": 1594,
+          "mean": 506
+        }
+      ],
+      "median": {
+        "p50": 481,
+        "p95": 668,
+        "p99": 1215,
+        "max": 1888,
+        "mean": 501,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 644,
+        "p95": 538,
+        "p99": 2559,
+        "max": 10174
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|sqlite_file|200",
+      "scenario": "otlp_inproc_20span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2860,
+          "p50": 2964,
+          "p95": 3074,
+          "p99": 4726,
+          "max": 4768,
+          "mean": 2998
+        },
+        {
+          "n": 200,
+          "min": 2877,
+          "p50": 2981,
+          "p95": 3197,
+          "p99": 4809,
+          "max": 5065,
+          "mean": 3039
+        },
+        {
+          "n": 200,
+          "min": 2855,
+          "p50": 2991,
+          "p95": 3280,
+          "p99": 5011,
+          "max": 5598,
+          "mean": 3060
+        }
+      ],
+      "median": {
+        "p50": 2981,
+        "p95": 3197,
+        "p99": 4809,
+        "max": 5065,
+        "mean": 3039,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 90,
+        "p95": 644,
+        "p99": 592,
+        "max": 1638
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "asgi_passthrough|sqlite_file|200",
+      "scenario": "asgi_passthrough",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 722,
+          "p50": 1859,
+          "p95": 2821,
+          "p99": 3247,
+          "max": 3851,
+          "mean": 1869
+        },
+        {
+          "n": 600,
+          "min": 646,
+          "p50": 1757,
+          "p95": 2678,
+          "p99": 2921,
+          "max": 3406,
+          "mean": 1770
+        },
+        {
+          "n": 600,
+          "min": 711,
+          "p50": 1857,
+          "p95": 2869,
+          "p99": 3332,
+          "max": 4412,
+          "mean": 1891
+        }
+      ],
+      "median": {
+        "p50": 1857,
+        "p95": 2821,
+        "p99": 3247,
+        "max": 3851,
+        "mean": 1869,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 549,
+        "p95": 677,
+        "p99": 1265,
+        "max": 2612
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1085,
+          "p99": 2050
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "asgi_gate|sqlite_file|200",
+      "scenario": "asgi_gate",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 3081,
+          "p50": 4817,
+          "p95": 6845,
+          "p99": 9519,
+          "max": 25579,
+          "mean": 5039
+        },
+        {
+          "n": 600,
+          "min": 2865,
+          "p50": 4581,
+          "p95": 6471,
+          "p99": 9869,
+          "max": 31263,
+          "mean": 4883
+        },
+        {
+          "n": 600,
+          "min": 2950,
+          "p50": 4694,
+          "p95": 6432,
+          "p99": 15332,
+          "max": 30025,
+          "mean": 5000
+        }
+      ],
+      "median": {
+        "p50": 4694,
+        "p95": 6471,
+        "p99": 9869,
+        "max": 30025,
+        "mean": 5000,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 502,
+        "p95": 638,
+        "p99": 5890,
+        "max": 1893
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 638,
+          "p99": 1094
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "otlp_asgi_1span|sqlite_file|200",
+      "scenario": "otlp_asgi_1span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1215,
+          "p50": 2272,
+          "p95": 3617,
+          "p99": 3988,
+          "max": 4404,
+          "mean": 2472
+        },
+        {
+          "n": 600,
+          "min": 1207,
+          "p50": 2349,
+          "p95": 3617,
+          "p99": 3958,
+          "max": 5265,
+          "mean": 2473
+        },
+        {
+          "n": 600,
+          "min": 1202,
+          "p50": 2479,
+          "p95": 3622,
+          "p99": 4082,
+          "max": 5973,
+          "mean": 2558
+        }
+      ],
+      "median": {
+        "p50": 2349,
+        "p95": 3617,
+        "p99": 3988,
+        "max": 5265,
+        "mean": 2473,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 881,
+        "p95": 13,
+        "p99": 310,
+        "max": 2980
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 693,
+          "p99": 1967
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|sqlite_file|200",
+      "scenario": "otlp_asgi_20span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4132,
+          "p50": 5351,
+          "p95": 7228,
+          "p99": 9060,
+          "max": 15720,
+          "mean": 5627
+        },
+        {
+          "n": 200,
+          "min": 4161,
+          "p50": 5757,
+          "p95": 6948,
+          "p99": 7644,
+          "max": 7725,
+          "mean": 5773
+        },
+        {
+          "n": 200,
+          "min": 4366,
+          "p50": 5699,
+          "p95": 7123,
+          "p99": 8477,
+          "max": 9875,
+          "mean": 5793
+        }
+      ],
+      "median": {
+        "p50": 5699,
+        "p95": 7123,
+        "p99": 8477,
+        "max": 9875,
+        "mean": 5773,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 712,
+        "p95": 393,
+        "p99": 1670,
+        "max": 8096
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 672,
+          "p99": 1458
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 4
+    },
+    {
+      "id": "uvicorn_passthrough|sqlite_file|200",
+      "scenario": "uvicorn_passthrough",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1322,
+          "p50": 2336,
+          "p95": 3565,
+          "p99": 3854,
+          "max": 4571,
+          "mean": 2508
+        },
+        {
+          "n": 600,
+          "min": 1296,
+          "p50": 2231,
+          "p95": 3534,
+          "p99": 4152,
+          "max": 4623,
+          "mean": 2448
+        },
+        {
+          "n": 600,
+          "min": 1285,
+          "p50": 2343,
+          "p95": 3497,
+          "p99": 4314,
+          "max": 5561,
+          "mean": 2442
+        }
+      ],
+      "median": {
+        "p50": 2336,
+        "p95": 3534,
+        "p99": 4152,
+        "max": 4623,
+        "mean": 2448,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 479,
+        "p95": 192,
+        "p99": 1107,
+        "max": 2141
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 774,
+          "p99": 2095
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "uvicorn_gate|sqlite_file|200",
+      "scenario": "uvicorn_gate",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 3753,
+          "p50": 5735,
+          "p95": 8840,
+          "p99": 18992,
+          "max": 55181,
+          "mean": 6264
+        },
+        {
+          "n": 600,
+          "min": 3535,
+          "p50": 5572,
+          "p95": 8878,
+          "p99": 17665,
+          "max": 28288,
+          "mean": 5986
+        },
+        {
+          "n": 600,
+          "min": 3498,
+          "p50": 5507,
+          "p95": 7572,
+          "p99": 19938,
+          "max": 46421,
+          "mean": 6001
+        }
+      ],
+      "median": {
+        "p50": 5572,
+        "p95": 8840,
+        "p99": 18992,
+        "max": 46421,
+        "mean": 6001,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 409,
+        "p95": 1477,
+        "p99": 1196,
+        "max": 5793
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 661,
+          "p99": 1083
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "otlp_uvicorn_1span|sqlite_file|200",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2296,
+          "p50": 3338,
+          "p95": 4862,
+          "p99": 5865,
+          "max": 8661,
+          "mean": 3478
+        },
+        {
+          "n": 600,
+          "min": 2256,
+          "p50": 3290,
+          "p95": 4411,
+          "p99": 5175,
+          "max": 7210,
+          "mean": 3356
+        },
+        {
+          "n": 600,
+          "min": 2290,
+          "p50": 3325,
+          "p95": 4504,
+          "p99": 5915,
+          "max": 45559,
+          "mean": 3592
+        }
+      ],
+      "median": {
+        "p50": 3325,
+        "p95": 4504,
+        "p99": 5865,
+        "max": 8661,
+        "mean": 3478,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 144,
+        "p95": 1001,
+        "p99": 1261,
+        "max": 44277
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 612,
+          "p99": 1056
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|sqlite_file|200",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5127,
+          "p50": 6163,
+          "p95": 7987,
+          "p99": 8969,
+          "max": 10376,
+          "mean": 6347
+        },
+        {
+          "n": 200,
+          "min": 5262,
+          "p50": 6193,
+          "p95": 8022,
+          "p99": 8503,
+          "max": 8937,
+          "mean": 6396
+        },
+        {
+          "n": 200,
+          "min": 5323,
+          "p50": 7269,
+          "p95": 8832,
+          "p99": 10187,
+          "max": 10812,
+          "mean": 7333
+        }
+      ],
+      "median": {
+        "p50": 6193,
+        "p95": 8022,
+        "p99": 8969,
+        "max": 10376,
+        "mean": 6396,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 1785,
+        "p95": 1053,
+        "p99": 1877,
+        "max": 1807
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 931,
+          "p99": 2058
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 4
+    },
+    {
+      "id": "mcp_direct|sqlite_file|200",
+      "scenario": "mcp_direct",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 43,
+          "p50": 52,
+          "p95": 69,
+          "p99": 176,
+          "max": 228,
+          "mean": 54
+        },
+        {
+          "n": 200,
+          "min": 28,
+          "p50": 48,
+          "p95": 71,
+          "p99": 178,
+          "max": 207,
+          "mean": 51
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 46,
+          "p95": 71,
+          "p99": 191,
+          "max": 206,
+          "mean": 51
+        }
+      ],
+      "median": {
+        "p50": 48,
+        "p95": 71,
+        "p99": 178,
+        "max": 207,
+        "mean": 51,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 1250,
+        "p95": 281,
+        "p99": 842,
+        "max": 1062
+      },
+      "extra": {},
+      "attempts": 2
+    },
+    {
+      "id": "mcp_proxy|sqlite_file|200",
+      "scenario": "mcp_proxy",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 7967,
+          "p50": 9653,
+          "p95": 20068,
+          "p99": 23898,
+          "max": 26243,
+          "mean": 10668
+        },
+        {
+          "n": 200,
+          "min": 7859,
+          "p50": 9534,
+          "p95": 17550,
+          "p99": 21818,
+          "max": 32164,
+          "mean": 10481
+        },
+        {
+          "n": 200,
+          "min": 7779,
+          "p50": 9537,
+          "p95": 17536,
+          "p99": 22456,
+          "max": 26564,
+          "mean": 10298
+        }
+      ],
+      "median": {
+        "p50": 9537,
+        "p95": 17550,
+        "p99": 22456,
+        "max": 26564,
+        "mean": 10481,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 124,
+        "p95": 1442,
+        "p99": 926,
+        "max": 2228
+      },
+      "extra": {},
+      "attempts": 2
+    },
+    {
+      "id": "gate_inproc|sqlite_memory|19",
+      "scenario": "gate_inproc",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 277,
+          "p50": 394,
+          "p95": 606,
+          "p99": 740,
+          "max": 1022,
+          "mean": 413
+        },
+        {
+          "n": 2000,
+          "min": 275,
+          "p50": 391,
+          "p95": 571,
+          "p99": 700,
+          "max": 893,
+          "mean": 409
+        },
+        {
+          "n": 2000,
+          "min": 277,
+          "p50": 389,
+          "p95": 577,
+          "p99": 732,
+          "max": 2617,
+          "mean": 409
+        }
+      ],
+      "median": {
+        "p50": 391,
+        "p95": 577,
+        "p99": 732,
+        "max": 1022,
+        "mean": 409,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 127,
+        "p95": 606,
+        "p99": 546,
+        "max": 16868
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|sqlite_memory|19",
+      "scenario": "chain_append",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 58,
+          "p50": 65,
+          "p95": 93,
+          "p99": 263,
+          "max": 395,
+          "mean": 72
+        },
+        {
+          "n": 2000,
+          "min": 59,
+          "p50": 65,
+          "p95": 92,
+          "p99": 270,
+          "max": 404,
+          "mean": 71
+        },
+        {
+          "n": 2000,
+          "min": 59,
+          "p50": 65,
+          "p95": 92,
+          "p99": 267,
+          "max": 405,
+          "mean": 71
+        }
+      ],
+      "median": {
+        "p50": 65,
+        "p95": 92,
+        "p99": 267,
+        "max": 404,
+        "mean": 71,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 0,
+        "p95": 108,
+        "p99": 262,
+        "max": 247
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "window_depth_1000|sqlite_memory|19",
+      "scenario": "window_depth_1000",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 1000,
+          "min": 275,
+          "p50": 412,
+          "p95": 854,
+          "p99": 1077,
+          "max": 1473,
+          "mean": 498
+        },
+        {
+          "n": 1000,
+          "min": 275,
+          "p50": 413,
+          "p95": 848,
+          "p99": 1079,
+          "max": 1671,
+          "mean": 493
+        },
+        {
+          "n": 1000,
+          "min": 279,
+          "p50": 420,
+          "p95": 864,
+          "p99": 1099,
+          "max": 1559,
+          "mean": 502
+        }
+      ],
+      "median": {
+        "p50": 413,
+        "p95": 854,
+        "p99": 1079,
+        "max": 1559,
+        "mean": 498,
+        "n": 1000
+      },
+      "spread_bp": {
+        "p50": 193,
+        "p95": 187,
+        "p99": 203,
+        "max": 1270
+      },
+      "extra": {
+        "allowed": 100,
+        "window_events": 7000
+      },
+      "attempts": 1
+    },
+    {
+      "id": "window_depth_10000|sqlite_memory|19",
+      "scenario": "window_depth_10000",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 1000,
+          "min": 282,
+          "p50": 430,
+          "p95": 2785,
+          "p99": 3475,
+          "max": 4516,
+          "mean": 993
+        },
+        {
+          "n": 1000,
+          "min": 286,
+          "p50": 426,
+          "p95": 2645,
+          "p99": 3637,
+          "max": 5824,
+          "mean": 970
+        },
+        {
+          "n": 1000,
+          "min": 285,
+          "p50": 425,
+          "p95": 2759,
+          "p99": 3772,
+          "max": 5367,
+          "mean": 978
+        }
+      ],
+      "median": {
+        "p50": 426,
+        "p95": 2759,
+        "p99": 3637,
+        "max": 5367,
+        "mean": 978,
+        "n": 1000
+      },
+      "spread_bp": {
+        "p50": 117,
+        "p95": 507,
+        "p99": 816,
+        "max": 2437
+      },
+      "extra": {
+        "allowed": 100,
+        "window_events": 70000
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|sqlite_memory|19",
+      "scenario": "otlp_inproc_1span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 136,
+          "p50": 147,
+          "p95": 178,
+          "p99": 215,
+          "max": 366,
+          "mean": 153
+        },
+        {
+          "n": 600,
+          "min": 137,
+          "p50": 147,
+          "p95": 184,
+          "p99": 330,
+          "max": 427,
+          "mean": 154
+        },
+        {
+          "n": 600,
+          "min": 135,
+          "p50": 147,
+          "p95": 180,
+          "p99": 217,
+          "max": 389,
+          "mean": 154
+        }
+      ],
+      "median": {
+        "p50": 147,
+        "p95": 180,
+        "p99": 217,
+        "max": 389,
+        "mean": 154,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 0,
+        "p95": 333,
+        "p99": 5299,
+        "max": 1568
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|sqlite_memory|19",
+      "scenario": "otlp_inproc_20span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2401,
+          "p50": 2446,
+          "p95": 2522,
+          "p99": 2717,
+          "max": 2739,
+          "mean": 2456
+        },
+        {
+          "n": 200,
+          "min": 2401,
+          "p50": 2443,
+          "p95": 2481,
+          "p99": 2515,
+          "max": 2726,
+          "mean": 2447
+        },
+        {
+          "n": 200,
+          "min": 2407,
+          "p50": 2446,
+          "p95": 2490,
+          "p99": 2623,
+          "max": 2755,
+          "mean": 2453
+        }
+      ],
+      "median": {
+        "p50": 2446,
+        "p95": 2490,
+        "p99": 2623,
+        "max": 2739,
+        "mean": 2453,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 12,
+        "p95": 164,
+        "p99": 770,
+        "max": 105
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|sqlite_memory|19",
+      "scenario": "asgi_passthrough",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 716,
+          "p50": 1772,
+          "p95": 2681,
+          "p99": 3069,
+          "max": 4733,
+          "mean": 1781
+        },
+        {
+          "n": 600,
+          "min": 648,
+          "p50": 1827,
+          "p95": 2799,
+          "p99": 3237,
+          "max": 3735,
+          "mean": 1836
+        },
+        {
+          "n": 600,
+          "min": 686,
+          "p50": 1773,
+          "p95": 2671,
+          "p99": 2840,
+          "max": 3504,
+          "mean": 1770
+        }
+      ],
+      "median": {
+        "p50": 1773,
+        "p95": 2681,
+        "p99": 3069,
+        "max": 3735,
+        "mean": 1781,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 310,
+        "p95": 477,
+        "p99": 1293,
+        "max": 3290
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1084,
+          "p99": 2065
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_gate|sqlite_memory|19",
+      "scenario": "asgi_gate",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1272,
+          "p50": 2491,
+          "p95": 3796,
+          "p99": 4273,
+          "max": 5718,
+          "mean": 2572
+        },
+        {
+          "n": 600,
+          "min": 1206,
+          "p50": 2500,
+          "p95": 3784,
+          "p99": 4509,
+          "max": 5128,
+          "mean": 2589
+        },
+        {
+          "n": 600,
+          "min": 1251,
+          "p50": 2370,
+          "p95": 3687,
+          "p99": 4278,
+          "max": 5568,
+          "mean": 2521
+        }
+      ],
+      "median": {
+        "p50": 2491,
+        "p95": 3784,
+        "p99": 4278,
+        "max": 5568,
+        "mean": 2572,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 521,
+        "p95": 288,
+        "p99": 551,
+        "max": 1059
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 660,
+          "p99": 2078
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_1span|sqlite_memory|19",
+      "scenario": "otlp_asgi_1span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1179,
+          "p50": 2163,
+          "p95": 3348,
+          "p99": 3571,
+          "max": 3695,
+          "mean": 2287
+        },
+        {
+          "n": 600,
+          "min": 1145,
+          "p50": 2219,
+          "p95": 3297,
+          "p99": 3489,
+          "max": 3684,
+          "mean": 2294
+        },
+        {
+          "n": 600,
+          "min": 1187,
+          "p50": 2208,
+          "p95": 3313,
+          "p99": 3657,
+          "max": 4913,
+          "mean": 2293
+        }
+      ],
+      "median": {
+        "p50": 2208,
+        "p95": 3313,
+        "p99": 3571,
+        "max": 3695,
+        "mean": 2293,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 253,
+        "p95": 153,
+        "p99": 470,
+        "max": 3326
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 920,
+          "p99": 2023
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|sqlite_memory|19",
+      "scenario": "otlp_asgi_20span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 3613,
+          "p50": 4437,
+          "p95": 5420,
+          "p99": 5560,
+          "max": 6047,
+          "mean": 4527
+        },
+        {
+          "n": 200,
+          "min": 3740,
+          "p50": 4603,
+          "p95": 5354,
+          "p99": 5749,
+          "max": 6312,
+          "mean": 4607
+        },
+        {
+          "n": 200,
+          "min": 3683,
+          "p50": 4520,
+          "p95": 5473,
+          "p99": 7302,
+          "max": 7930,
+          "mean": 4615
+        }
+      ],
+      "median": {
+        "p50": 4520,
+        "p95": 5420,
+        "p99": 5749,
+        "max": 6312,
+        "mean": 4607,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 367,
+        "p95": 219,
+        "p99": 3030,
+        "max": 2983
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 564,
+          "p99": 1097
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_passthrough|sqlite_memory|19",
+      "scenario": "uvicorn_passthrough",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1267,
+          "p50": 2219,
+          "p95": 3323,
+          "p99": 3557,
+          "max": 4390,
+          "mean": 2296
+        },
+        {
+          "n": 600,
+          "min": 1283,
+          "p50": 2326,
+          "p95": 3349,
+          "p99": 3702,
+          "max": 5059,
+          "mean": 2367
+        },
+        {
+          "n": 600,
+          "min": 1307,
+          "p50": 2244,
+          "p95": 3343,
+          "p99": 3624,
+          "max": 4033,
+          "mean": 2321
+        }
+      ],
+      "median": {
+        "p50": 2244,
+        "p95": 3343,
+        "p99": 3624,
+        "max": 4390,
+        "mean": 2321,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 476,
+        "p95": 77,
+        "p99": 400,
+        "max": 2337
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 944,
+          "p99": 1997
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|sqlite_memory|19",
+      "scenario": "uvicorn_gate",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1852,
+          "p50": 2679,
+          "p95": 3764,
+          "p99": 4248,
+          "max": 4892,
+          "mean": 2745
+        },
+        {
+          "n": 600,
+          "min": 1855,
+          "p50": 2661,
+          "p95": 3345,
+          "p99": 4025,
+          "max": 4433,
+          "mean": 2678
+        },
+        {
+          "n": 600,
+          "min": 1946,
+          "p50": 2695,
+          "p95": 3640,
+          "p99": 3999,
+          "max": 4469,
+          "mean": 2764
+        }
+      ],
+      "median": {
+        "p50": 2679,
+        "p95": 3640,
+        "p99": 4025,
+        "max": 4469,
+        "mean": 2745,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 126,
+        "p95": 1151,
+        "p99": 618,
+        "max": 1027
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 585,
+          "p99": 1071
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|sqlite_memory|19",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1755,
+          "p50": 2705,
+          "p95": 3808,
+          "p99": 4375,
+          "max": 6975,
+          "mean": 2774
+        },
+        {
+          "n": 600,
+          "min": 1808,
+          "p50": 2582,
+          "p95": 3696,
+          "p99": 3996,
+          "max": 4823,
+          "mean": 2660
+        },
+        {
+          "n": 600,
+          "min": 1761,
+          "p50": 2599,
+          "p95": 3840,
+          "p99": 4452,
+          "max": 5050,
+          "mean": 2692
+        }
+      ],
+      "median": {
+        "p50": 2599,
+        "p95": 3808,
+        "p99": 4375,
+        "max": 5050,
+        "mean": 2692,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 473,
+        "p95": 378,
+        "p99": 1042,
+        "max": 4261
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 674,
+          "p99": 2086
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|sqlite_memory|19",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4375,
+          "p50": 5139,
+          "p95": 6231,
+          "p99": 7146,
+          "max": 7197,
+          "mean": 5214
+        },
+        {
+          "n": 200,
+          "min": 4593,
+          "p50": 5492,
+          "p95": 7238,
+          "p99": 7891,
+          "max": 8255,
+          "mean": 5653
+        },
+        {
+          "n": 200,
+          "min": 4397,
+          "p50": 5654,
+          "p95": 6603,
+          "p99": 7251,
+          "max": 8012,
+          "mean": 5722
+        }
+      ],
+      "median": {
+        "p50": 5492,
+        "p95": 6603,
+        "p99": 7251,
+        "max": 8012,
+        "mean": 5653,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 937,
+        "p95": 1525,
+        "p99": 1027,
+        "max": 1320
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 591,
+          "p99": 1075
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "mcp_direct|sqlite_memory|19",
+      "scenario": "mcp_direct",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 32,
+          "p50": 51,
+          "p95": 77,
+          "p99": 160,
+          "max": 341,
+          "mean": 55
+        },
+        {
+          "n": 200,
+          "min": 35,
+          "p50": 61,
+          "p95": 91,
+          "p99": 168,
+          "max": 201,
+          "mean": 60
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 62,
+          "p95": 89,
+          "p99": 172,
+          "max": 220,
+          "mean": 59
+        }
+      ],
+      "median": {
+        "p50": 61,
+        "p95": 89,
+        "p99": 168,
+        "max": 220,
+        "mean": 59,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 1803,
+        "p95": 1573,
+        "p99": 714,
+        "max": 6363
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|sqlite_memory|19",
+      "scenario": "mcp_proxy",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5457,
+          "p50": 6247,
+          "p95": 13677,
+          "p99": 16099,
+          "max": 19001,
+          "mean": 6971
+        },
+        {
+          "n": 200,
+          "min": 5349,
+          "p50": 6066,
+          "p95": 12537,
+          "p99": 20026,
+          "max": 24309,
+          "mean": 6941
+        },
+        {
+          "n": 200,
+          "min": 5528,
+          "p50": 6276,
+          "p95": 14036,
+          "p99": 17638,
+          "max": 18836,
+          "mean": 7096
+        }
+      ],
+      "median": {
+        "p50": 6247,
+        "p95": 13677,
+        "p99": 17638,
+        "max": 19001,
+        "mean": 6971,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 336,
+        "p95": 1096,
+        "p99": 2226,
+        "max": 2880
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|sqlite_memory|200",
+      "scenario": "gate_inproc",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 562,
+          "p50": 965,
+          "p95": 1882,
+          "p99": 2418,
+          "max": 17149,
+          "mean": 1168
+        },
+        {
+          "n": 2000,
+          "min": 542,
+          "p50": 958,
+          "p95": 1885,
+          "p99": 2493,
+          "max": 17660,
+          "mean": 1163
+        },
+        {
+          "n": 2000,
+          "min": 531,
+          "p50": 963,
+          "p95": 1884,
+          "p99": 2338,
+          "max": 3711,
+          "mean": 1156
+        }
+      ],
+      "median": {
+        "p50": 963,
+        "p95": 1884,
+        "p99": 2418,
+        "max": 17149,
+        "mean": 1163,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 72,
+        "p95": 15,
+        "p99": 641,
+        "max": 8134
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|sqlite_memory|200",
+      "scenario": "chain_append",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 57,
+          "p50": 64,
+          "p95": 91,
+          "p99": 269,
+          "max": 398,
+          "mean": 71
+        },
+        {
+          "n": 2000,
+          "min": 57,
+          "p50": 64,
+          "p95": 89,
+          "p99": 270,
+          "max": 373,
+          "mean": 70
+        },
+        {
+          "n": 2000,
+          "min": 58,
+          "p50": 64,
+          "p95": 90,
+          "p99": 270,
+          "max": 374,
+          "mean": 71
+        }
+      ],
+      "median": {
+        "p50": 64,
+        "p95": 90,
+        "p99": 270,
+        "max": 374,
+        "mean": 71,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 0,
+        "p95": 222,
+        "p99": 37,
+        "max": 668
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "window_depth_1000|sqlite_memory|200",
+      "scenario": "window_depth_1000",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 1000,
+          "min": 562,
+          "p50": 1416,
+          "p95": 8685,
+          "p99": 9134,
+          "max": 12052,
+          "mean": 3206
+        },
+        {
+          "n": 1000,
+          "min": 560,
+          "p50": 1416,
+          "p95": 8821,
+          "p99": 9507,
+          "max": 13821,
+          "mean": 3246
+        },
+        {
+          "n": 1000,
+          "min": 553,
+          "p50": 1373,
+          "p95": 8834,
+          "p99": 9214,
+          "max": 19966,
+          "mean": 3229
+        }
+      ],
+      "median": {
+        "p50": 1416,
+        "p95": 8821,
+        "p99": 9214,
+        "max": 13821,
+        "mean": 3229,
+        "n": 1000
+      },
+      "spread_bp": {
+        "p50": 303,
+        "p95": 168,
+        "p99": 404,
+        "max": 5726
+      },
+      "extra": {
+        "allowed": 100,
+        "window_events": 8000
+      },
+      "attempts": 1
+    },
+    {
+      "id": "window_depth_10000|sqlite_memory|200",
+      "scenario": "window_depth_10000",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 1000,
+          "min": 629,
+          "p50": 3618,
+          "p95": 59375,
+          "p99": 61567,
+          "max": 71174,
+          "mean": 18508
+        },
+        {
+          "n": 1000,
+          "min": 631,
+          "p50": 3661,
+          "p95": 58963,
+          "p99": 60618,
+          "max": 63250,
+          "mean": 18262
+        },
+        {
+          "n": 1000,
+          "min": 628,
+          "p50": 3560,
+          "p95": 58446,
+          "p99": 61120,
+          "max": 68569,
+          "mean": 18088
+        }
+      ],
+      "median": {
+        "p50": 3618,
+        "p95": 58963,
+        "p99": 61120,
+        "max": 68569,
+        "mean": 18262,
+        "n": 1000
+      },
+      "spread_bp": {
+        "p50": 279,
+        "p95": 157,
+        "p99": 155,
+        "max": 1155
+      },
+      "extra": {
+        "allowed": 100,
+        "window_events": 80000
+      },
+      "attempts": 2
+    },
+    {
+      "id": "otlp_inproc_1span|sqlite_memory|200",
+      "scenario": "otlp_inproc_1span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 136,
+          "p50": 148,
+          "p95": 172,
+          "p99": 233,
+          "max": 354,
+          "mean": 152
+        },
+        {
+          "n": 600,
+          "min": 134,
+          "p50": 147,
+          "p95": 172,
+          "p99": 238,
+          "max": 342,
+          "mean": 152
+        },
+        {
+          "n": 600,
+          "min": 133,
+          "p50": 150,
+          "p95": 199,
+          "p99": 297,
+          "max": 348,
+          "mean": 157
+        }
+      ],
+      "median": {
+        "p50": 148,
+        "p95": 172,
+        "p99": 238,
+        "max": 348,
+        "mean": 152,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 202,
+        "p95": 1569,
+        "p99": 2689,
+        "max": 344
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 3
+    },
+    {
+      "id": "otlp_inproc_20span|sqlite_memory|200",
+      "scenario": "otlp_inproc_20span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2380,
+          "p50": 2426,
+          "p95": 2460,
+          "p99": 2707,
+          "max": 3075,
+          "mean": 2435
+        },
+        {
+          "n": 200,
+          "min": 2386,
+          "p50": 2433,
+          "p95": 2523,
+          "p99": 2747,
+          "max": 3047,
+          "mean": 2450
+        },
+        {
+          "n": 200,
+          "min": 2386,
+          "p50": 2421,
+          "p95": 2470,
+          "p99": 2756,
+          "max": 3038,
+          "mean": 2432
+        }
+      ],
+      "median": {
+        "p50": 2426,
+        "p95": 2470,
+        "p99": 2747,
+        "max": 3047,
+        "mean": 2435,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 49,
+        "p95": 255,
+        "p99": 178,
+        "max": 121
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|sqlite_memory|200",
+      "scenario": "asgi_passthrough",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 618,
+          "p50": 1773,
+          "p95": 2696,
+          "p99": 2933,
+          "max": 3543,
+          "mean": 1783
+        },
+        {
+          "n": 600,
+          "min": 633,
+          "p50": 1808,
+          "p95": 2742,
+          "p99": 3084,
+          "max": 3540,
+          "mean": 1810
+        },
+        {
+          "n": 600,
+          "min": 646,
+          "p50": 1772,
+          "p95": 2687,
+          "p99": 3072,
+          "max": 3525,
+          "mean": 1770
+        }
+      ],
+      "median": {
+        "p50": 1773,
+        "p95": 2696,
+        "p99": 3072,
+        "max": 3540,
+        "mean": 1783,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 203,
+        "p95": 204,
+        "p99": 491,
+        "max": 50
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1098,
+          "p99": 2088
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "asgi_gate|sqlite_memory|200",
+      "scenario": "asgi_gate",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1554,
+          "p50": 2983,
+          "p95": 4513,
+          "p99": 5028,
+          "max": 28186,
+          "mean": 3107
+        },
+        {
+          "n": 600,
+          "min": 1719,
+          "p50": 3196,
+          "p95": 4770,
+          "p99": 7045,
+          "max": 21567,
+          "mean": 3396
+        },
+        {
+          "n": 600,
+          "min": 1575,
+          "p50": 3010,
+          "p95": 4662,
+          "p99": 6646,
+          "max": 25859,
+          "mean": 3244
+        }
+      ],
+      "median": {
+        "p50": 3010,
+        "p95": 4662,
+        "p99": 6646,
+        "max": 25859,
+        "mean": 3244,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 707,
+        "p95": 551,
+        "p99": 3034,
+        "max": 2559
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 626,
+          "p99": 1987
+        }
+      },
+      "attempts": 2
+    },
+    {
+      "id": "otlp_asgi_1span|sqlite_memory|200",
+      "scenario": "otlp_asgi_1span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1161,
+          "p50": 2248,
+          "p95": 3585,
+          "p99": 3980,
+          "max": 4392,
+          "mean": 2432
+        },
+        {
+          "n": 600,
+          "min": 1145,
+          "p50": 2243,
+          "p95": 3572,
+          "p99": 3995,
+          "max": 4765,
+          "mean": 2406
+        },
+        {
+          "n": 600,
+          "min": 1146,
+          "p50": 2236,
+          "p95": 3554,
+          "p99": 3974,
+          "max": 4914,
+          "mean": 2395
+        }
+      ],
+      "median": {
+        "p50": 2243,
+        "p95": 3572,
+        "p99": 3980,
+        "max": 4765,
+        "mean": 2406,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 53,
+        "p95": 86,
+        "p99": 52,
+        "max": 1095
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 713,
+          "p99": 2090
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|sqlite_memory|200",
+      "scenario": "otlp_asgi_20span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 3610,
+          "p50": 4701,
+          "p95": 5666,
+          "p99": 6213,
+          "max": 6657,
+          "mean": 4744
+        },
+        {
+          "n": 200,
+          "min": 4088,
+          "p50": 5287,
+          "p95": 6442,
+          "p99": 6886,
+          "max": 7400,
+          "mean": 5359
+        },
+        {
+          "n": 200,
+          "min": 3720,
+          "p50": 4616,
+          "p95": 5508,
+          "p99": 6053,
+          "max": 6348,
+          "mean": 4648
+        }
+      ],
+      "median": {
+        "p50": 4701,
+        "p95": 5666,
+        "p99": 6213,
+        "max": 6657,
+        "mean": 4744,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 1427,
+        "p95": 1648,
+        "p99": 1340,
+        "max": 1580
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 588,
+          "p99": 1099
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 4
+    },
+    {
+      "id": "uvicorn_passthrough|sqlite_memory|200",
+      "scenario": "uvicorn_passthrough",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1387,
+          "p50": 2264,
+          "p95": 3656,
+          "p99": 4005,
+          "max": 4800,
+          "mean": 2530
+        },
+        {
+          "n": 600,
+          "min": 1291,
+          "p50": 2362,
+          "p95": 3630,
+          "p99": 4363,
+          "max": 4825,
+          "mean": 2495
+        },
+        {
+          "n": 600,
+          "min": 1397,
+          "p50": 2322,
+          "p95": 3681,
+          "p99": 3993,
+          "max": 4511,
+          "mean": 2516
+        }
+      ],
+      "median": {
+        "p50": 2322,
+        "p95": 3656,
+        "p99": 4005,
+        "max": 4800,
+        "mean": 2516,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 422,
+        "p95": 139,
+        "p99": 923,
+        "max": 654
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 638,
+          "p99": 2071
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|sqlite_memory|200",
+      "scenario": "uvicorn_gate",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2293,
+          "p50": 3835,
+          "p95": 5416,
+          "p99": 6834,
+          "max": 22618,
+          "mean": 4070
+        },
+        {
+          "n": 600,
+          "min": 2493,
+          "p50": 3904,
+          "p95": 5377,
+          "p99": 6086,
+          "max": 21669,
+          "mean": 4068
+        },
+        {
+          "n": 600,
+          "min": 2079,
+          "p50": 3871,
+          "p95": 5215,
+          "p99": 6637,
+          "max": 22063,
+          "mean": 4006
+        }
+      ],
+      "median": {
+        "p50": 3871,
+        "p95": 5377,
+        "p99": 6637,
+        "max": 22063,
+        "mean": 4068,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 178,
+        "p95": 373,
+        "p99": 1127,
+        "max": 430
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 574,
+          "p99": 1086
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|sqlite_memory|200",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2007,
+          "p50": 3004,
+          "p95": 4226,
+          "p99": 4864,
+          "max": 5469,
+          "mean": 3094
+        },
+        {
+          "n": 600,
+          "min": 1927,
+          "p50": 2970,
+          "p95": 4029,
+          "p99": 4720,
+          "max": 6618,
+          "mean": 3044
+        },
+        {
+          "n": 600,
+          "min": 2088,
+          "p50": 2979,
+          "p95": 3801,
+          "p99": 4513,
+          "max": 4923,
+          "mean": 3018
+        }
+      ],
+      "median": {
+        "p50": 2979,
+        "p95": 4029,
+        "p99": 4720,
+        "max": 5469,
+        "mean": 3044,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 114,
+        "p95": 1054,
+        "p99": 743,
+        "max": 3099
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 584,
+          "p99": 1089
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|sqlite_memory|200",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4769,
+          "p50": 6261,
+          "p95": 8199,
+          "p99": 8681,
+          "max": 9632,
+          "mean": 6409
+        },
+        {
+          "n": 200,
+          "min": 5015,
+          "p50": 6021,
+          "p95": 6938,
+          "p99": 7478,
+          "max": 8432,
+          "mean": 6064
+        },
+        {
+          "n": 200,
+          "min": 5142,
+          "p50": 6181,
+          "p95": 8463,
+          "p99": 9607,
+          "max": 10391,
+          "mean": 6452
+        }
+      ],
+      "median": {
+        "p50": 6181,
+        "p95": 8199,
+        "p99": 8681,
+        "max": 9632,
+        "mean": 6409,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 388,
+        "p95": 1859,
+        "p99": 2452,
+        "max": 2033
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 768,
+          "p99": 2091
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "mcp_direct|sqlite_memory|200",
+      "scenario": "mcp_direct",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 42,
+          "p50": 60,
+          "p95": 77,
+          "p99": 196,
+          "max": 265,
+          "mean": 60
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 53,
+          "p95": 72,
+          "p99": 228,
+          "max": 279,
+          "mean": 54
+        },
+        {
+          "n": 200,
+          "min": 43,
+          "p50": 55,
+          "p95": 76,
+          "p99": 227,
+          "max": 486,
+          "mean": 61
+        }
+      ],
+      "median": {
+        "p50": 55,
+        "p95": 76,
+        "p99": 227,
+        "max": 279,
+        "mean": 60,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 1272,
+        "p95": 657,
+        "p99": 1409,
+        "max": 7921
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|sqlite_memory|200",
+      "scenario": "mcp_proxy",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 6431,
+          "p50": 7939,
+          "p95": 19184,
+          "p99": 20920,
+          "max": 30903,
+          "mean": 8929
+        },
+        {
+          "n": 200,
+          "min": 6532,
+          "p50": 7995,
+          "p95": 18047,
+          "p99": 20218,
+          "max": 29789,
+          "mean": 8810
+        },
+        {
+          "n": 200,
+          "min": 6648,
+          "p50": 7958,
+          "p95": 17334,
+          "p99": 19488,
+          "max": 20368,
+          "mean": 8649
+        }
+      ],
+      "median": {
+        "p50": 7958,
+        "p95": 18047,
+        "p99": 20218,
+        "max": 29789,
+        "mean": 8810,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 70,
+        "p95": 1025,
+        "p99": 708,
+        "max": 3536
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|databricks_fake|19",
+      "scenario": "gate_inproc",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 490,
+          "p50": 666,
+          "p95": 907,
+          "p99": 1276,
+          "max": 1822,
+          "mean": 691
+        },
+        {
+          "n": 2000,
+          "min": 490,
+          "p50": 666,
+          "p95": 958,
+          "p99": 1407,
+          "max": 2709,
+          "mean": 697
+        },
+        {
+          "n": 2000,
+          "min": 481,
+          "p50": 671,
+          "p95": 926,
+          "p99": 1331,
+          "max": 3267,
+          "mean": 698
+        }
+      ],
+      "median": {
+        "p50": 666,
+        "p95": 926,
+        "p99": 1331,
+        "max": 2709,
+        "mean": 697,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 75,
+        "p95": 550,
+        "p99": 984,
+        "max": 5334
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|databricks_fake|19",
+      "scenario": "chain_append",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 133,
+          "p50": 146,
+          "p95": 189,
+          "p99": 512,
+          "max": 1159,
+          "mean": 158
+        },
+        {
+          "n": 2000,
+          "min": 133,
+          "p50": 146,
+          "p95": 184,
+          "p99": 499,
+          "max": 785,
+          "mean": 158
+        },
+        {
+          "n": 2000,
+          "min": 133,
+          "p50": 146,
+          "p95": 188,
+          "p99": 506,
+          "max": 805,
+          "mean": 158
+        }
+      ],
+      "median": {
+        "p50": 146,
+        "p95": 188,
+        "p99": 506,
+        "max": 805,
+        "mean": 158,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 0,
+        "p95": 265,
+        "p99": 256,
+        "max": 4645
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|databricks_fake|19",
+      "scenario": "otlp_inproc_1span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 201,
+          "p50": 218,
+          "p95": 256,
+          "p99": 334,
+          "max": 534,
+          "mean": 226
+        },
+        {
+          "n": 600,
+          "min": 202,
+          "p50": 218,
+          "p95": 252,
+          "p99": 321,
+          "max": 541,
+          "mean": 226
+        },
+        {
+          "n": 600,
+          "min": 200,
+          "p50": 219,
+          "p95": 257,
+          "p99": 501,
+          "max": 891,
+          "mean": 228
+        }
+      ],
+      "median": {
+        "p50": 218,
+        "p95": 256,
+        "p99": 334,
+        "max": 541,
+        "mean": 226,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 45,
+        "p95": 195,
+        "p99": 5389,
+        "max": 6598
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|databricks_fake|19",
+      "scenario": "otlp_inproc_20span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 2969,
+          "p50": 3020,
+          "p95": 3090,
+          "p99": 3633,
+          "max": 3651,
+          "mean": 3041
+        },
+        {
+          "n": 200,
+          "min": 2969,
+          "p50": 3015,
+          "p95": 3127,
+          "p99": 3631,
+          "max": 3694,
+          "mean": 3040
+        },
+        {
+          "n": 200,
+          "min": 2975,
+          "p50": 3024,
+          "p95": 3120,
+          "p99": 3652,
+          "max": 3657,
+          "mean": 3048
+        }
+      ],
+      "median": {
+        "p50": 3020,
+        "p95": 3120,
+        "p99": 3633,
+        "max": 3657,
+        "mean": 3041,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 29,
+        "p95": 118,
+        "p99": 57,
+        "max": 117
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|databricks_fake|19",
+      "scenario": "asgi_passthrough",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 709,
+          "p50": 1841,
+          "p95": 2759,
+          "p99": 3262,
+          "max": 3747,
+          "mean": 1836
+        },
+        {
+          "n": 600,
+          "min": 759,
+          "p50": 1827,
+          "p95": 2769,
+          "p99": 3140,
+          "max": 3799,
+          "mean": 1833
+        },
+        {
+          "n": 600,
+          "min": 659,
+          "p50": 1804,
+          "p95": 2738,
+          "p99": 2967,
+          "max": 3397,
+          "mean": 1803
+        }
+      ],
+      "median": {
+        "p50": 1827,
+        "p95": 2759,
+        "p99": 3140,
+        "max": 3747,
+        "mean": 1833,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 202,
+        "p95": 112,
+        "p99": 939,
+        "max": 1072
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1088,
+          "p99": 2086
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_gate|databricks_fake|19",
+      "scenario": "asgi_gate",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1544,
+          "p50": 2636,
+          "p95": 3983,
+          "p99": 4456,
+          "max": 4985,
+          "mean": 2736
+        },
+        {
+          "n": 600,
+          "min": 1537,
+          "p50": 2533,
+          "p95": 3948,
+          "p99": 4432,
+          "max": 5465,
+          "mean": 2677
+        },
+        {
+          "n": 600,
+          "min": 1634,
+          "p50": 2574,
+          "p95": 3854,
+          "p99": 4305,
+          "max": 5434,
+          "mean": 2665
+        }
+      ],
+      "median": {
+        "p50": 2574,
+        "p95": 3948,
+        "p99": 4432,
+        "max": 5434,
+        "mean": 2677,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 400,
+        "p95": 326,
+        "p99": 340,
+        "max": 883
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 589,
+          "p99": 1091
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_1span|databricks_fake|19",
+      "scenario": "otlp_asgi_1span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1407,
+          "p50": 2411,
+          "p95": 3862,
+          "p99": 4253,
+          "max": 5569,
+          "mean": 2575
+        },
+        {
+          "n": 600,
+          "min": 1497,
+          "p50": 2458,
+          "p95": 3824,
+          "p99": 4247,
+          "max": 5240,
+          "mean": 2617
+        },
+        {
+          "n": 600,
+          "min": 1319,
+          "p50": 2545,
+          "p95": 3857,
+          "p99": 4256,
+          "max": 5191,
+          "mean": 2647
+        }
+      ],
+      "median": {
+        "p50": 2458,
+        "p95": 3857,
+        "p99": 4253,
+        "max": 5240,
+        "mean": 2617,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 545,
+        "p95": 98,
+        "p99": 21,
+        "max": 721
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 787,
+          "p99": 2080
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|databricks_fake|19",
+      "scenario": "otlp_asgi_20span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4682,
+          "p50": 6042,
+          "p95": 7428,
+          "p99": 7952,
+          "max": 9043,
+          "mean": 6054
+        },
+        {
+          "n": 200,
+          "min": 4678,
+          "p50": 5851,
+          "p95": 7275,
+          "p99": 7736,
+          "max": 8310,
+          "mean": 5956
+        },
+        {
+          "n": 200,
+          "min": 4752,
+          "p50": 6390,
+          "p95": 8422,
+          "p99": 8906,
+          "max": 10551,
+          "mean": 6472
+        }
+      ],
+      "median": {
+        "p50": 6042,
+        "p95": 7428,
+        "p99": 7952,
+        "max": 9043,
+        "mean": 6054,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 892,
+        "p95": 1544,
+        "p99": 1471,
+        "max": 2478
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 685,
+          "p99": 2058
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_passthrough|databricks_fake|19",
+      "scenario": "uvicorn_passthrough",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1382,
+          "p50": 2529,
+          "p95": 3643,
+          "p99": 4209,
+          "max": 4783,
+          "mean": 2567
+        },
+        {
+          "n": 600,
+          "min": 1369,
+          "p50": 2408,
+          "p95": 3558,
+          "p99": 4084,
+          "max": 4745,
+          "mean": 2504
+        },
+        {
+          "n": 600,
+          "min": 1373,
+          "p50": 2385,
+          "p95": 3545,
+          "p99": 4458,
+          "max": 4941,
+          "mean": 2520
+        }
+      ],
+      "median": {
+        "p50": 2408,
+        "p95": 3558,
+        "p99": 4209,
+        "max": 4783,
+        "mean": 2520,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 598,
+        "p95": 275,
+        "p99": 888,
+        "max": 409
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 814,
+          "p99": 2068
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|databricks_fake|19",
+      "scenario": "uvicorn_gate",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2306,
+          "p50": 3196,
+          "p95": 3911,
+          "p99": 4805,
+          "max": 6451,
+          "mean": 3218
+        },
+        {
+          "n": 600,
+          "min": 2277,
+          "p50": 3220,
+          "p95": 4630,
+          "p99": 5559,
+          "max": 7126,
+          "mean": 3298
+        },
+        {
+          "n": 600,
+          "min": 2300,
+          "p50": 3209,
+          "p95": 4416,
+          "p99": 5335,
+          "max": 6479,
+          "mean": 3303
+        }
+      ],
+      "median": {
+        "p50": 3209,
+        "p95": 4416,
+        "p99": 5335,
+        "max": 6479,
+        "mean": 3298,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 74,
+        "p95": 1628,
+        "p99": 1413,
+        "max": 1041
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 599,
+          "p99": 1094
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|databricks_fake|19",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2091,
+          "p50": 3037,
+          "p95": 3860,
+          "p99": 4659,
+          "max": 7139,
+          "mean": 3062
+        },
+        {
+          "n": 600,
+          "min": 2092,
+          "p50": 3015,
+          "p95": 4095,
+          "p99": 4984,
+          "max": 6065,
+          "mean": 3082
+        },
+        {
+          "n": 600,
+          "min": 2090,
+          "p50": 3105,
+          "p95": 4553,
+          "p99": 5236,
+          "max": 8685,
+          "mean": 3228
+        }
+      ],
+      "median": {
+        "p50": 3037,
+        "p95": 4095,
+        "p99": 4984,
+        "max": 7139,
+        "mean": 3082,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 296,
+        "p95": 1692,
+        "p99": 1157,
+        "max": 3669
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 587,
+          "p99": 1089
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|databricks_fake|19",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5857,
+          "p50": 7809,
+          "p95": 9721,
+          "p99": 10190,
+          "max": 11553,
+          "mean": 7896
+        },
+        {
+          "n": 200,
+          "min": 5494,
+          "p50": 7626,
+          "p95": 10003,
+          "p99": 79007,
+          "max": 114135,
+          "mean": 9364
+        },
+        {
+          "n": 200,
+          "min": 6301,
+          "p50": 7638,
+          "p95": 9234,
+          "p99": 9543,
+          "max": 10320,
+          "mean": 7736
+        }
+      ],
+      "median": {
+        "p50": 7638,
+        "p95": 9721,
+        "p99": 10190,
+        "max": 11553,
+        "mean": 7896,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 239,
+        "p95": 791,
+        "p99": 68168,
+        "max": 89859
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 834,
+          "p99": 2084
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "mcp_direct|databricks_fake|19",
+      "scenario": "mcp_direct",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 30,
+          "p50": 52,
+          "p95": 95,
+          "p99": 197,
+          "max": 206,
+          "mean": 58
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 49,
+          "p95": 72,
+          "p99": 222,
+          "max": 288,
+          "mean": 50
+        },
+        {
+          "n": 200,
+          "min": 41,
+          "p50": 52,
+          "p95": 74,
+          "p99": 216,
+          "max": 246,
+          "mean": 55
+        }
+      ],
+      "median": {
+        "p50": 52,
+        "p95": 74,
+        "p99": 216,
+        "max": 246,
+        "mean": 55,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 576,
+        "p95": 3108,
+        "p99": 1157,
+        "max": 3333
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|databricks_fake|19",
+      "scenario": "mcp_proxy",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5828,
+          "p50": 7164,
+          "p95": 18160,
+          "p99": 21527,
+          "max": 24418,
+          "mean": 8151
+        },
+        {
+          "n": 200,
+          "min": 5945,
+          "p50": 7085,
+          "p95": 18245,
+          "p99": 21125,
+          "max": 29535,
+          "mean": 8105
+        },
+        {
+          "n": 200,
+          "min": 5934,
+          "p50": 6985,
+          "p95": 17785,
+          "p99": 22135,
+          "max": 27200,
+          "mean": 8050
+        }
+      ],
+      "median": {
+        "p50": 7085,
+        "p95": 18160,
+        "p99": 21527,
+        "max": 27200,
+        "mean": 8105,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 252,
+        "p95": 253,
+        "p99": 469,
+        "max": 1881
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "gate_inproc|databricks_fake|200",
+      "scenario": "gate_inproc",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 778,
+          "p50": 1281,
+          "p95": 2299,
+          "p99": 3396,
+          "max": 19845,
+          "mean": 1508
+        },
+        {
+          "n": 2000,
+          "min": 779,
+          "p50": 1289,
+          "p95": 2292,
+          "p99": 3262,
+          "max": 21174,
+          "mean": 1514
+        },
+        {
+          "n": 2000,
+          "min": 775,
+          "p50": 1283,
+          "p95": 2305,
+          "p99": 3299,
+          "max": 18043,
+          "mean": 1503
+        }
+      ],
+      "median": {
+        "p50": 1283,
+        "p95": 2299,
+        "p99": 3299,
+        "max": 19845,
+        "mean": 1508,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 62,
+        "p95": 56,
+        "p99": 406,
+        "max": 1577
+      },
+      "extra": {
+        "allowed": 100
+      },
+      "attempts": 1
+    },
+    {
+      "id": "chain_append|databricks_fake|200",
+      "scenario": "chain_append",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 2000,
+          "min": 134,
+          "p50": 150,
+          "p95": 198,
+          "p99": 640,
+          "max": 766,
+          "mean": 165
+        },
+        {
+          "n": 2000,
+          "min": 134,
+          "p50": 149,
+          "p95": 196,
+          "p99": 634,
+          "max": 750,
+          "mean": 164
+        },
+        {
+          "n": 2000,
+          "min": 133,
+          "p50": 150,
+          "p95": 196,
+          "p99": 629,
+          "max": 773,
+          "mean": 165
+        }
+      ],
+      "median": {
+        "p50": 150,
+        "p95": 196,
+        "p99": 634,
+        "max": 766,
+        "mean": 165,
+        "n": 2000
+      },
+      "spread_bp": {
+        "p50": 66,
+        "p95": 102,
+        "p99": 173,
+        "max": 300
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_1span|databricks_fake|200",
+      "scenario": "otlp_inproc_1span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 205,
+          "p50": 236,
+          "p95": 310,
+          "p99": 468,
+          "max": 633,
+          "mean": 247
+        },
+        {
+          "n": 600,
+          "min": 204,
+          "p50": 230,
+          "p95": 318,
+          "p99": 434,
+          "max": 574,
+          "mean": 244
+        },
+        {
+          "n": 600,
+          "min": 204,
+          "p50": 227,
+          "p95": 284,
+          "p99": 510,
+          "max": 902,
+          "mean": 238
+        }
+      ],
+      "median": {
+        "p50": 230,
+        "p95": 310,
+        "p99": 468,
+        "max": 633,
+        "mean": 244,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 391,
+        "p95": 1096,
+        "p99": 1623,
+        "max": 5181
+      },
+      "extra": {
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_inproc_20span|databricks_fake|200",
+      "scenario": "otlp_inproc_20span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 3030,
+          "p50": 3090,
+          "p95": 3170,
+          "p99": 3720,
+          "max": 3811,
+          "mean": 3107
+        },
+        {
+          "n": 200,
+          "min": 3012,
+          "p50": 3065,
+          "p95": 3144,
+          "p99": 3716,
+          "max": 3723,
+          "mean": 3083
+        },
+        {
+          "n": 200,
+          "min": 3018,
+          "p50": 3065,
+          "p95": 3140,
+          "p99": 3723,
+          "max": 3791,
+          "mean": 3086
+        }
+      ],
+      "median": {
+        "p50": 3065,
+        "p95": 3144,
+        "p99": 3720,
+        "max": 3791,
+        "mean": 3086,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 81,
+        "p95": 95,
+        "p99": 18,
+        "max": 232
+      },
+      "extra": {
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_passthrough|databricks_fake|200",
+      "scenario": "asgi_passthrough",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 655,
+          "p50": 1833,
+          "p95": 2718,
+          "p99": 3059,
+          "max": 3577,
+          "mean": 1839
+        },
+        {
+          "n": 600,
+          "min": 691,
+          "p50": 1869,
+          "p95": 2776,
+          "p99": 3367,
+          "max": 3831,
+          "mean": 1870
+        },
+        {
+          "n": 600,
+          "min": 726,
+          "p50": 1816,
+          "p95": 2757,
+          "p99": 3204,
+          "max": 4532,
+          "mean": 1825
+        }
+      ],
+      "median": {
+        "p50": 1833,
+        "p95": 2757,
+        "p99": 3204,
+        "max": 3831,
+        "mean": 1839,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 289,
+        "p95": 210,
+        "p99": 961,
+        "max": 2492
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 1101,
+          "p99": 2083
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "asgi_gate|databricks_fake|200",
+      "scenario": "asgi_gate",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2010,
+          "p50": 3723,
+          "p95": 5242,
+          "p99": 7053,
+          "max": 23999,
+          "mean": 3891
+        },
+        {
+          "n": 600,
+          "min": 2015,
+          "p50": 3646,
+          "p95": 5120,
+          "p99": 8387,
+          "max": 24997,
+          "mean": 3860
+        },
+        {
+          "n": 600,
+          "min": 2057,
+          "p50": 3756,
+          "p95": 5208,
+          "p99": 10526,
+          "max": 43010,
+          "mean": 3979
+        }
+      ],
+      "median": {
+        "p50": 3723,
+        "p95": 5208,
+        "p99": 8387,
+        "max": 24997,
+        "mean": 3891,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 295,
+        "p95": 234,
+        "p99": 4140,
+        "max": 7605
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 547,
+          "p99": 1093
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_1span|databricks_fake|200",
+      "scenario": "otlp_asgi_1span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1500,
+          "p50": 2509,
+          "p95": 3817,
+          "p99": 4378,
+          "max": 4830,
+          "mean": 2650
+        },
+        {
+          "n": 600,
+          "min": 1455,
+          "p50": 2460,
+          "p95": 3747,
+          "p99": 4189,
+          "max": 6491,
+          "mean": 2596
+        },
+        {
+          "n": 600,
+          "min": 1409,
+          "p50": 2478,
+          "p95": 3878,
+          "p99": 4234,
+          "max": 4870,
+          "mean": 2593
+        }
+      ],
+      "median": {
+        "p50": 2478,
+        "p95": 3817,
+        "p99": 4234,
+        "max": 4870,
+        "mean": 2596,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 197,
+        "p95": 343,
+        "p99": 446,
+        "max": 3410
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 729,
+          "p99": 2081
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_asgi_20span|databricks_fake|200",
+      "scenario": "otlp_asgi_20span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 4790,
+          "p50": 6102,
+          "p95": 7431,
+          "p99": 8362,
+          "max": 8453,
+          "mean": 6140
+        },
+        {
+          "n": 200,
+          "min": 4790,
+          "p50": 6364,
+          "p95": 7915,
+          "p99": 9579,
+          "max": 10981,
+          "mean": 6442
+        },
+        {
+          "n": 200,
+          "min": 4770,
+          "p50": 5996,
+          "p95": 8713,
+          "p99": 9893,
+          "max": 10290,
+          "mean": 6275
+        }
+      ],
+      "median": {
+        "p50": 6102,
+        "p95": 7915,
+        "p99": 9579,
+        "max": 10290,
+        "mean": 6275,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 603,
+        "p95": 1619,
+        "p99": 1598,
+        "max": 2456
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 652,
+          "p99": 1939
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 2
+    },
+    {
+      "id": "uvicorn_passthrough|databricks_fake|200",
+      "scenario": "uvicorn_passthrough",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 1336,
+          "p50": 2323,
+          "p95": 3565,
+          "p99": 3878,
+          "max": 5196,
+          "mean": 2476
+        },
+        {
+          "n": 600,
+          "min": 1365,
+          "p50": 2389,
+          "p95": 3653,
+          "p99": 4338,
+          "max": 5442,
+          "mean": 2585
+        },
+        {
+          "n": 600,
+          "min": 1353,
+          "p50": 2380,
+          "p95": 3621,
+          "p99": 4104,
+          "max": 5390,
+          "mean": 2522
+        }
+      ],
+      "median": {
+        "p50": 2380,
+        "p95": 3621,
+        "p99": 4104,
+        "max": 5390,
+        "mean": 2522,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 277,
+        "p95": 243,
+        "p99": 1120,
+        "max": 456
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 575,
+          "p99": 2058
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "uvicorn_gate|databricks_fake|200",
+      "scenario": "uvicorn_gate",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2756,
+          "p50": 4531,
+          "p95": 6621,
+          "p99": 115014,
+          "max": 194737,
+          "mean": 7389
+        },
+        {
+          "n": 600,
+          "min": 2695,
+          "p50": 4365,
+          "p95": 6438,
+          "p99": 9965,
+          "max": 25967,
+          "mean": 4657
+        },
+        {
+          "n": 600,
+          "min": 2764,
+          "p50": 4611,
+          "p95": 7334,
+          "p99": 9213,
+          "max": 28417,
+          "mean": 4931
+        }
+      ],
+      "median": {
+        "p50": 4531,
+        "p95": 6621,
+        "p99": 9965,
+        "max": 28417,
+        "mean": 4931,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 542,
+        "p95": 1353,
+        "p99": 106172,
+        "max": 59390
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 513,
+          "p99": 1071
+        }
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_1span|databricks_fake|200",
+      "scenario": "otlp_uvicorn_1span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 600,
+          "min": 2110,
+          "p50": 3073,
+          "p95": 4347,
+          "p99": 5557,
+          "max": 6084,
+          "mean": 3180
+        },
+        {
+          "n": 600,
+          "min": 2040,
+          "p50": 2883,
+          "p95": 3756,
+          "p99": 4517,
+          "max": 5484,
+          "mean": 2923
+        },
+        {
+          "n": 600,
+          "min": 2104,
+          "p50": 2897,
+          "p95": 3752,
+          "p99": 4439,
+          "max": 5608,
+          "mean": 2945
+        }
+      ],
+      "median": {
+        "p50": 2897,
+        "p95": 3756,
+        "p99": 4517,
+        "max": 5608,
+        "mean": 2945,
+        "n": 600
+      },
+      "spread_bp": {
+        "p50": 655,
+        "p95": 1584,
+        "p99": 2475,
+        "max": 1069
+      },
+      "extra": {
+        "rate_hz": 100,
+        "achieved_rate_hz": 100,
+        "generator_lag_us": {
+          "p50": 551,
+          "p99": 1056
+        },
+        "spans_per_request": 1
+      },
+      "attempts": 1
+    },
+    {
+      "id": "otlp_uvicorn_20span|databricks_fake|200",
+      "scenario": "otlp_uvicorn_20span",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 5680,
+          "p50": 7589,
+          "p95": 9542,
+          "p99": 98185,
+          "max": 135470,
+          "mean": 10030
+        },
+        {
+          "n": 200,
+          "min": 5439,
+          "p50": 6900,
+          "p95": 9111,
+          "p99": 10439,
+          "max": 11587,
+          "mean": 7101
+        },
+        {
+          "n": 200,
+          "min": 5527,
+          "p50": 7602,
+          "p95": 9861,
+          "p99": 10803,
+          "max": 11528,
+          "mean": 7672
+        }
+      ],
+      "median": {
+        "p50": 7589,
+        "p95": 9542,
+        "p99": 10803,
+        "max": 11587,
+        "mean": 7672,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 925,
+        "p95": 785,
+        "p99": 81223,
+        "max": 106966
+      },
+      "extra": {
+        "rate_hz": 50,
+        "achieved_rate_hz": 50,
+        "generator_lag_us": {
+          "p50": 747,
+          "p99": 2085
+        },
+        "spans_per_request": 20
+      },
+      "attempts": 1
+    },
+    {
+      "id": "mcp_direct|databricks_fake|200",
+      "scenario": "mcp_direct",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 28,
+          "p50": 43,
+          "p95": 68,
+          "p99": 233,
+          "max": 291,
+          "mean": 47
+        },
+        {
+          "n": 200,
+          "min": 29,
+          "p50": 35,
+          "p95": 57,
+          "p99": 199,
+          "max": 245,
+          "mean": 41
+        },
+        {
+          "n": 200,
+          "min": 28,
+          "p50": 35,
+          "p95": 58,
+          "p99": 192,
+          "max": 295,
+          "mean": 42
+        }
+      ],
+      "median": {
+        "p50": 35,
+        "p95": 58,
+        "p99": 199,
+        "max": 291,
+        "mean": 42,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 2285,
+        "p95": 1896,
+        "p99": 2060,
+        "max": 1718
+      },
+      "extra": {},
+      "attempts": 1
+    },
+    {
+      "id": "mcp_proxy|databricks_fake|200",
+      "scenario": "mcp_proxy",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "unit": "us",
+      "repeats": [
+        {
+          "n": 200,
+          "min": 7186,
+          "p50": 7894,
+          "p95": 18898,
+          "p99": 26234,
+          "max": 31227,
+          "mean": 9281
+        },
+        {
+          "n": 200,
+          "min": 7213,
+          "p50": 7750,
+          "p95": 18920,
+          "p99": 23602,
+          "max": 127203,
+          "mean": 9455
+        },
+        {
+          "n": 200,
+          "min": 7245,
+          "p50": 7905,
+          "p95": 18896,
+          "p99": 23235,
+          "max": 24748,
+          "mean": 9056
+        }
+      ],
+      "median": {
+        "p50": 7894,
+        "p95": 18898,
+        "p99": 23602,
+        "max": 31227,
+        "mean": 9281,
+        "n": 200
+      },
+      "spread_bp": {
+        "p50": 196,
+        "p95": 12,
+        "p99": 1270,
+        "max": 32809
+      },
+      "extra": {},
+      "attempts": 1
+    }
+  ],
+  "deltas": [
+    {
+      "transport": "asgi",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "p95_with_gate_us": 6731,
+      "p95_without_gate_us": 2767,
+      "delta_p95_us": 3964,
+      "p50_delta_us": 2098,
+      "p99_delta_us": 23924
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "p95_with_gate_us": 9548,
+      "p95_without_gate_us": 3541,
+      "delta_p95_us": 6007,
+      "p50_delta_us": 2140,
+      "p99_delta_us": 38061
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "sqlite_file",
+      "rules": 19,
+      "p95_with_gate_us": 18726,
+      "p95_without_gate_us": 74,
+      "delta_p95_us": 18652,
+      "p50_delta_us": 8217,
+      "p99_delta_us": 24090
+    },
+    {
+      "transport": "asgi",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "p95_with_gate_us": 6471,
+      "p95_without_gate_us": 2821,
+      "delta_p95_us": 3650,
+      "p50_delta_us": 2837,
+      "p99_delta_us": 6622
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "p95_with_gate_us": 8840,
+      "p95_without_gate_us": 3534,
+      "delta_p95_us": 5306,
+      "p50_delta_us": 3236,
+      "p99_delta_us": 14840
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "sqlite_file",
+      "rules": 200,
+      "p95_with_gate_us": 17550,
+      "p95_without_gate_us": 71,
+      "delta_p95_us": 17479,
+      "p50_delta_us": 9489,
+      "p99_delta_us": 22278
+    },
+    {
+      "transport": "asgi",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "p95_with_gate_us": 3784,
+      "p95_without_gate_us": 2681,
+      "delta_p95_us": 1103,
+      "p50_delta_us": 718,
+      "p99_delta_us": 1209
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "p95_with_gate_us": 3640,
+      "p95_without_gate_us": 3343,
+      "delta_p95_us": 297,
+      "p50_delta_us": 435,
+      "p99_delta_us": 401
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "p95_with_gate_us": 13677,
+      "p95_without_gate_us": 89,
+      "delta_p95_us": 13588,
+      "p50_delta_us": 6186,
+      "p99_delta_us": 17470
+    },
+    {
+      "transport": "asgi",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "p95_with_gate_us": 4662,
+      "p95_without_gate_us": 2696,
+      "delta_p95_us": 1966,
+      "p50_delta_us": 1237,
+      "p99_delta_us": 3574
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "p95_with_gate_us": 5377,
+      "p95_without_gate_us": 3656,
+      "delta_p95_us": 1721,
+      "p50_delta_us": 1549,
+      "p99_delta_us": 2632
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "p95_with_gate_us": 18047,
+      "p95_without_gate_us": 76,
+      "delta_p95_us": 17971,
+      "p50_delta_us": 7903,
+      "p99_delta_us": 19991
+    },
+    {
+      "transport": "asgi",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "p95_with_gate_us": 3948,
+      "p95_without_gate_us": 2759,
+      "delta_p95_us": 1189,
+      "p50_delta_us": 747,
+      "p99_delta_us": 1292
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "p95_with_gate_us": 4416,
+      "p95_without_gate_us": 3558,
+      "delta_p95_us": 858,
+      "p50_delta_us": 801,
+      "p99_delta_us": 1126
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "databricks_fake",
+      "rules": 19,
+      "p95_with_gate_us": 18160,
+      "p95_without_gate_us": 74,
+      "delta_p95_us": 18086,
+      "p50_delta_us": 7033,
+      "p99_delta_us": 21311
+    },
+    {
+      "transport": "asgi",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "p95_with_gate_us": 5208,
+      "p95_without_gate_us": 2757,
+      "delta_p95_us": 2451,
+      "p50_delta_us": 1890,
+      "p99_delta_us": 5183
+    },
+    {
+      "transport": "uvicorn",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "p95_with_gate_us": 6621,
+      "p95_without_gate_us": 3621,
+      "delta_p95_us": 3000,
+      "p50_delta_us": 2151,
+      "p99_delta_us": 5861
+    },
+    {
+      "transport": "mcp_stdio",
+      "backend": "databricks_fake",
+      "rules": 200,
+      "p95_with_gate_us": 18898,
+      "p95_without_gate_us": 58,
+      "delta_p95_us": 18840,
+      "p50_delta_us": 7859,
+      "p99_delta_us": 23403
+    }
+  ],
+  "breakdown": [
+    {
+      "backend": "sqlite_file",
+      "rules": 19,
+      "components_us": {
+        "parse": {
+          "p50": 10,
+          "p95": 18
+        },
+        "policy_eval": {
+          "p50": 86,
+          "p95": 208
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 1
+        },
+        "store_write": {
+          "p50": 686,
+          "p95": 906
+        },
+        "chain_append": {
+          "p50": 619,
+          "p95": 791
+        },
+        "record_other": {
+          "p50": 93,
+          "p95": 120
+        },
+        "handoff": {
+          "p50": 42,
+          "p95": 130
+        },
+        "total": {
+          "p50": 1531,
+          "p95": 2103
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "sqlite_file",
+      "rules": 200,
+      "components_us": {
+        "parse": {
+          "p50": 13,
+          "p95": 27
+        },
+        "policy_eval": {
+          "p50": 536,
+          "p95": 1476
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 7
+        },
+        "store_write": {
+          "p50": 799,
+          "p95": 1144
+        },
+        "chain_append": {
+          "p50": 623,
+          "p95": 853
+        },
+        "record_other": {
+          "p50": 152,
+          "p95": 196
+        },
+        "handoff": {
+          "p50": 54,
+          "p95": 154
+        },
+        "total": {
+          "p50": 2344,
+          "p95": 3514
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "sqlite_memory",
+      "rules": 19,
+      "components_us": {
+        "parse": {
+          "p50": 6,
+          "p95": 12
+        },
+        "policy_eval": {
+          "p50": 71,
+          "p95": 155
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 0
+        },
+        "store_write": {
+          "p50": 103,
+          "p95": 181
+        },
+        "chain_append": {
+          "p50": 102,
+          "p95": 139
+        },
+        "record_other": {
+          "p50": 57,
+          "p95": 77
+        },
+        "handoff": {
+          "p50": 28,
+          "p95": 89
+        },
+        "total": {
+          "p50": 394,
+          "p95": 554
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "sqlite_memory",
+      "rules": 200,
+      "components_us": {
+        "parse": {
+          "p50": 10,
+          "p95": 18
+        },
+        "policy_eval": {
+          "p50": 515,
+          "p95": 1433
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 7
+        },
+        "store_write": {
+          "p50": 123,
+          "p95": 212
+        },
+        "chain_append": {
+          "p50": 117,
+          "p95": 150
+        },
+        "record_other": {
+          "p50": 127,
+          "p95": 152
+        },
+        "handoff": {
+          "p50": 52,
+          "p95": 122
+        },
+        "total": {
+          "p50": 993,
+          "p95": 1882
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "databricks_fake",
+      "rules": 19,
+      "components_us": {
+        "parse": {
+          "p50": 10,
+          "p95": 15
+        },
+        "policy_eval": {
+          "p50": 90,
+          "p95": 197
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 0
+        },
+        "store_write": {
+          "p50": 258,
+          "p95": 384
+        },
+        "chain_append": {
+          "p50": 197,
+          "p95": 240
+        },
+        "record_other": {
+          "p50": 67,
+          "p95": 86
+        },
+        "handoff": {
+          "p50": 45,
+          "p95": 122
+        },
+        "total": {
+          "p50": 706,
+          "p95": 933
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    },
+    {
+      "backend": "databricks_fake",
+      "rules": 200,
+      "components_us": {
+        "parse": {
+          "p50": 9,
+          "p95": 22
+        },
+        "policy_eval": {
+          "p50": 522,
+          "p95": 1425
+        },
+        "fact_lookup": {
+          "p50": 0,
+          "p95": 7
+        },
+        "store_write": {
+          "p50": 284,
+          "p95": 417
+        },
+        "chain_append": {
+          "p50": 208,
+          "p95": 246
+        },
+        "record_other": {
+          "p50": 131,
+          "p95": 153
+        },
+        "handoff": {
+          "p50": 49,
+          "p95": 148
+        },
+        "total": {
+          "p50": 1287,
+          "p95": 2178
+        }
+      },
+      "statements": {
+        "execute_per_check_x100": 403,
+        "query_per_check_x100": 0
+      },
+      "n": 1000
+    }
+  ],
+  "reproducibility": {
+    "enforced": true,
+    "tolerance_bp": 1000,
+    "tolerance_p95_bp": 2000,
+    "abs_floor_us": 50,
+    "gated_statistics": [
+      "p50",
+      "p95"
+    ],
+    "failures": [
+      "asgi_gate|sqlite_file|19: p95 varies 688.8% across repeats (values [5761, 52124, 6731] us, tolerance 20%)",
+      "otlp_uvicorn_20span|sqlite_file|200: p50 varies 17.9% across repeats (values [6163, 6193, 7269] us, tolerance 10%)",
+      "otlp_asgi_20span|sqlite_memory|200: p50 varies 14.3% across repeats (values [4701, 5287, 4616] us, tolerance 10%)"
+    ],
+    "attempts": {
+      "gate_inproc|sqlite_file|19": 2,
+      "chain_append|sqlite_file|19": 3,
+      "asgi_passthrough|sqlite_file|19": 4,
+      "asgi_gate|sqlite_file|19": 4,
+      "chain_append|sqlite_file|200": 2,
+      "otlp_inproc_20span|sqlite_file|200": 2,
+      "asgi_passthrough|sqlite_file|200": 2,
+      "asgi_gate|sqlite_file|200": 2,
+      "otlp_asgi_20span|sqlite_file|200": 4,
+      "uvicorn_passthrough|sqlite_file|200": 2,
+      "uvicorn_gate|sqlite_file|200": 2,
+      "otlp_uvicorn_20span|sqlite_file|200": 4,
+      "mcp_direct|sqlite_file|200": 2,
+      "mcp_proxy|sqlite_file|200": 2,
+      "window_depth_10000|sqlite_memory|200": 2,
+      "otlp_inproc_1span|sqlite_memory|200": 3,
+      "asgi_passthrough|sqlite_memory|200": 2,
+      "asgi_gate|sqlite_memory|200": 2,
+      "otlp_asgi_20span|sqlite_memory|200": 4,
+      "otlp_uvicorn_20span|databricks_fake|19": 2,
+      "otlp_asgi_20span|databricks_fake|200": 2
+    }
+  },
+  "budgets": {
+    "laptop_sqlite_p99_us": 50000,
+    "laptop_sqlite_status": "ILLUSTRATIVE until the bank sets it",
+    "databricks_app": "FILL-ME: owner must confirm (see docs/latency.md)"
+  },
+  "not_measured": [
+    "Real Delta REST round trip: databricks_fake is SQLite plus the adapter's marshalling code; the warehouse, its queue, cold start and the network are not in the numbers. Use notebooks/latency_delta.py in the workspace.",
+    "Network: the HTTP arms use the loopback interface or an in-process transport; no router, proxy, load balancer or Databricks Apps front door.",
+    "TLS: no handshake and no encryption cost.",
+    "Authentication: ingress auth (WP20) and SSO header checks are not in the request path here.",
+    "The agent's own work, the tool call itself and any LLM judge (judges are advisory and run off the gate path).",
+    "Tier 0b (asynchronous regex classifier) runs as in production, after the answer is returned; its work is not timed, it only shows up as contention in the next call.",
+    "Real fact sources: the fact arm is an in-memory dict; a bank system of record adds its own latency to every fact rule that fires.",
+    "Several agents and many clients at once: the load is one stream at a fixed rate on a shared host, not a capacity test.",
+    "Long-lived growth: the stores are fresh at the start of each combination."
+  ]
+}

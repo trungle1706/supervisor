@@ -39,8 +39,10 @@ WARMUP = 20
 REPEATS = 3
 # From the laptop benchmark JSON, results of scenario "breakdown" (statements per check):
 # bench/latency-<commit>-<date>.json -> breakdown[...].statements (x100 values -> divide by 100).
-READS_PER_CHECK = 1  # FILL-ME check: query_per_check_x100 / 100, rounded up
-WRITES_PER_CHECK = 3  # FILL-ME check: execute_per_check_x100 / 100, rounded up
+# At commit df28be5: 4 writes and 0 reads per check (agent state is cached 1 s, the policy 5 s;
+# add one state read per second per agent and one policy read per 5 s on top).
+READS_PER_CHECK = 0  # check: query_per_check_x100 / 100, rounded up
+WRITES_PER_CHECK = 4  # check: execute_per_check_x100 / 100, rounded up
 # From the same JSON, results[...] of "gate_inproc" on databricks_fake (code overhead, no network):
 CODE_OVERHEAD_P99_US = 0  # FILL-ME: median p99 of gate_inproc / databricks_fake / your policy size
 GATE_TIMEOUT_US = 2_000_000  # HARD_TIMEOUT_S in gateway/engine.py
@@ -49,7 +51,7 @@ DROP_AFTER = True
 
 # COMMAND ----------
 
-# ruff: noqa: F821, T201, E501, S608
+# ruff: noqa: F821, T201, E501, S608, E402
 import json
 import math
 import time
@@ -72,7 +74,10 @@ TABLE = f"`{CATALOG}`.`{SCHEMA}`.`{PREFIX}probe`"
 
 def run(sql, params=None):
     """One statement through the Statement Execution API, polled to the end (inline JSON)."""
-    items = [StatementParameterListItem(name=k, value=str(v), type=t) for k, (v, t) in (params or {}).items()]
+    items = [
+        StatementParameterListItem(name=k, value=str(v), type=t)
+        for k, (v, t) in (params or {}).items()
+    ]
     resp = w.statement_execution.execute_statement(
         statement=sql,
         warehouse_id=WAREHOUSE_ID,
@@ -90,7 +95,9 @@ def run(sql, params=None):
         delay = min(delay * 2, 2.0)
         resp = w.statement_execution.get_statement(resp.statement_id)
     if resp.status.state.value != "SUCCEEDED":
-        raise RuntimeError(f"{resp.status.state.value}: {getattr(resp.status.error, 'message', '')}")
+        raise RuntimeError(
+            f"{resp.status.state.value}: {getattr(resp.status.error, 'message', '')}"
+        )
     return resp
 
 
@@ -103,7 +110,13 @@ def percentile(sorted_values, p):
 
 def summarise(samples):
     v = sorted(samples)
-    return {"n": len(v), "p50": percentile(v, 50), "p95": percentile(v, 95), "p99": percentile(v, 99), "max": v[-1]}
+    return {
+        "n": len(v),
+        "p50": percentile(v, 50),
+        "p95": percentile(v, 95),
+        "p99": percentile(v, 99),
+        "max": v[-1],
+    }
 
 
 def median_int(values):
@@ -180,7 +193,9 @@ for name, fn in ARMS:
 print("arm            p50 us     p95 us     p99 us     max us   spread p50/p95 (%)")
 for name, r in results.items():
     m, s = r["median"], r["spread_bp"]
-    print(f"{name:<14}{m['p50']:>10}{m['p95']:>11}{m['p99']:>11}{m['max']:>11}   {s['p50'] / 100:.1f} / {s['p95'] / 100:.1f}")
+    print(
+        f"{name:<14}{m['p50']:>10}{m['p95']:>11}{m['p99']:>11}{m['max']:>11}   {s['p50'] / 100:.1f} / {s['p95'] / 100:.1f}"
+    )
 unstable = [n for n, r in results.items() if max(r["spread_bp"].values()) > 1000]
 if unstable:
     print(f"[WARN] spread above 10 percent for {unstable}: re-run at a quieter time before quoting")
@@ -192,15 +207,35 @@ if unstable:
 # upper-bound style estimate; the real end-to-end number needs the App under load (see docs/latency.md).
 seq = results["gate_sequence"]["median"]
 est_p99 = CODE_OVERHEAD_P99_US + seq["p99"]
-print(f"estimated gate p99 on Delta ~ {est_p99 / 1000:.0f} ms (code {CODE_OVERHEAD_P99_US / 1000:.1f} ms + statements {seq['p99'] / 1000:.0f} ms)")
+print(
+    f"estimated gate p99 on Delta ~ {est_p99 / 1000:.0f} ms (code {CODE_OVERHEAD_P99_US / 1000:.1f} ms + statements {seq['p99'] / 1000:.0f} ms)"
+)
 if est_p99 >= GATE_TIMEOUT_US:
-    print("[WARN] above the 2 s gate hard timeout: callers would see the timeout fail mode, not the decision time")
+    print(
+        "[WARN] above the 2 s gate hard timeout: callers would see the timeout fail mode, not the decision time"
+    )
 if BUDGET_P99_US:
-    print("[OK] within budget" if est_p99 <= BUDGET_P99_US else f"[FAIL] over the budget of {BUDGET_P99_US / 1000:.0f} ms")
+    print(
+        "[OK] within budget"
+        if est_p99 <= BUDGET_P99_US
+        else f"[FAIL] over the budget of {BUDGET_P99_US / 1000:.0f} ms"
+    )
 else:
     print("[SKIP] no budget set (BUDGET_P99_US): the owner must confirm it")
 
 if DROP_AFTER:
     run(f"DROP TABLE IF EXISTS {TABLE}")
 
-print("SUPERVISOR-LATENCY-JSON: " + json.dumps({"first_statement_us": t_first, "arms": results, "estimated_gate_p99_us": est_p99, "reads": READS_PER_CHECK, "writes": WRITES_PER_CHECK}, sort_keys=True))
+print(
+    "SUPERVISOR-LATENCY-JSON: "
+    + json.dumps(
+        {
+            "first_statement_us": t_first,
+            "arms": results,
+            "estimated_gate_p99_us": est_p99,
+            "reads": READS_PER_CHECK,
+            "writes": WRITES_PER_CHECK,
+        },
+        sort_keys=True,
+    )
+)

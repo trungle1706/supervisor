@@ -47,3 +47,9 @@
 | Compliance advisor counts a monitor as present when it is planned, not when its runtime flag is on (`FAIRNESS_ENABLED` etc.) | Read deployment settings into the product facts |
 | Onboard eval: held-out set is no longer blind after the post-blind fixes | Write a fresh blind set (new repos, worker does not read the analyser) before quoting the gates externally |
 | `model_version` is the model tag; include the endpoint-reported digest when available | A model endpoint that reports a digest or revision |
+| WP23: Delta (Databricks) latency is not measured: `databricks_fake` is SQLite plus adapter code. Each gate check issues 4 sequential write statements, so p99 is about code + 4 x REST round trip | Run `notebooks/latency_delta.py` in the workspace and fill the Databricks App budget in `docs/latency.md` |
+| WP23: Databricks App p99 budget | Owner decision (candidates A: within the 2 s gate timeout, B: within 500 ms) |
+| WP23: recording (verdict, agent_event, chain) is inside the caller's wait and the 2 s timeout; on Delta it dominates | Owner decision, then asynchronous or batched recording on the Delta path (changes the audit guarantee at answer time) |
+| WP23: aggregate and prior-call rules scan the in-memory window; with 200 rules and 10,000 events per tool in the day the p99 is 58 ms (over the 50 ms laptop budget) | Per-key index or running totals in `WindowStore`, then re-run `window_depth_*` |
+| WP23: MCP stdio proxy builds a new httpx client and connection per `tools/call` (p50 8.7 ms against 4.7 ms for the gate call alone) | Keep-alive client in `HttpGate`/`post_json`, then re-run `mcp_proxy` |
+| WP23: no capacity or multi-client test, no TLS, no ingress auth (WP20) in the numbers; numbers come from a shared VM, 2 of 88 results in run 1 broke the spread rule | A dedicated quiet host (isolated cores), a load generator host, and a re-run of the full benchmark with WP20 on |

@@ -49,6 +49,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Assurance packs | 33 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
 | Judge MRM | Model card, validation report, change control, retire | `docs/judge-mrm.md` |
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
+| Latency | Gate p99 on a laptop (SQLite): 4.6 ms with 19 rules, 6.8 ms with 200 (budget 50 ms). HTTP overhead p95 (GAF delta): +3.2 ms. Delta not measured yet. `python -m tools.bench_latency` | `docs/latency.md` |
 
 ## 10-minute tour
 

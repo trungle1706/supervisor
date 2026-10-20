@@ -1,5 +1,5 @@
 # Linux/macOS convenience only. Bank users: see docs/RUNBOOK.md (Windows cmd).
-.PHONY: sync test lint fmt ddl reqs reqs-nexus preflight serve
+.PHONY: sync test lint fmt ddl reqs reqs-nexus preflight serve bench bench-quick
 
 sync:
 	uv sync --python 3.11
@@ -30,3 +30,10 @@ preflight:
 
 serve:
 	uv run python -m supervisor.cli serve
+
+# WP23: latency benchmark (docs/latency.md). Full run takes about 40 minutes.
+bench:
+	uv run python -m tools.bench_latency
+
+bench-quick:
+	uv run python -m tools.bench_latency --quick
