@@ -264,3 +264,25 @@ def test_evidence_round_trip_values(env: _Env) -> None:
     ]  # fmt: skip
     assert all(isinstance(row[k], int) for k in ints)
     assert (row["residual_likelihood"], row["residual_impact"]) == (2, 5)
+
+
+def test_one_pass_asks_the_same_control_question_once(env: _Env) -> None:
+    """Two risks that share an agent and a rule cost one verdict query in a pass."""
+    env.agent("pay")
+    env.risk("first", "pay", [("rule", "PAY-02")])
+    env.risk("second", "pay", [("rule", "PAY-02")])
+    env.verdict("pay", "PAY-02", "block", env.window_time())
+    seen: list[str] = []
+    real = env.adapters.tables.query
+
+    def spy(table: str, *a: Any, **k: Any) -> Any:
+        seen.append(table)
+        return real(table, *a, **k)
+
+    env.adapters.tables.query = spy  # type: ignore[method-assign]
+    try:
+        out = env.svc.run_evidence()
+    finally:
+        env.adapters.tables.query = real  # type: ignore[method-assign]
+    assert out["written"] == 2 and out["working"] == 2
+    assert seen.count("verdict") == 1

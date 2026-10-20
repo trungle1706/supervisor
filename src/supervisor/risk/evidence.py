@@ -40,7 +40,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -189,6 +189,8 @@ class Collector:
     rule_ids: Collection[str]
     _agents: dict[str, tuple[str, str]] = field(default_factory=dict)
     _loaded: bool = False
+    # One pass asks the same (agents, control) question for many risks; answer it once.
+    _memo: dict[tuple[Any, ...], Any] = field(default_factory=dict)
 
     def _agent_rows(self) -> dict[str, tuple[str, str]]:
         """lower-case id -> (id as stored, gate_state)."""
@@ -212,6 +214,11 @@ class Collector:
             else:
                 dropped += 1
         return keep, dropped
+
+    def _cached(self, key: tuple[Any, ...], fn: Callable[[], Any]) -> Any:
+        if key not in self._memo:
+            self._memo[key] = fn()
+        return self._memo[key]
 
     # -- one control of each kind ------------------------------------------------------
     def rule_hits(self, agents: list[str], rule_id: str, w: Window) -> tuple[int, int]:
@@ -273,6 +280,7 @@ class Collector:
     def count(self, agents: Iterable[str], links: Iterable[tuple[str, str]], w: Window) -> Counts:
         """Counts for the agents a risk applies to and its control links (kind, target)."""
         supervised, dropped = self.split_agents(agents)
+        key_agents, key_win = tuple(supervised), (w.start, w.end)
         c = Counts(agents_n=len(supervised), agents_excluded=dropped)
         for kind, target in sorted(set(links)):
             if kind not in CONTROL_KINDS:
@@ -283,7 +291,10 @@ class Collector:
                     c.rules_missing += 1
                     c.controls_failing += 1
                     continue
-                hits, stops = self.rule_hits(supervised, target, w)
+                hits, stops = self._cached(
+                    ("rule", key_agents, target, key_win),
+                    lambda t=target: self.rule_hits(supervised, t, w),
+                )
                 c.rule_hits += hits
                 c.rule_stops += stops
                 if hits:
@@ -292,7 +303,10 @@ class Collector:
                     c.controls_idle += 1
             elif kind == "pack":
                 c.pack_links += 1
-                st = self.pack_status(supervised, target, w)
+                st = self._cached(
+                    ("pack", key_agents, target, key_win),
+                    lambda t=target: self.pack_status(supervised, t, w),
+                )
                 setattr(c, f"pack_{st}", getattr(c, f"pack_{st}") + 1)
                 if st == "fail":
                     c.controls_failing += 1
@@ -302,7 +316,10 @@ class Collector:
                     c.controls_idle += 1
             else:
                 c.monitor_links += 1
-                if self.monitor_ok(supervised, target, w):
+                if self._cached(
+                    ("monitor", key_agents, target, key_win),
+                    lambda t=target: self.monitor_ok(supervised, t, w),
+                ):
                     c.monitor_ok += 1
                     c.controls_working += 1
                 else:
