@@ -26,12 +26,13 @@ from supervisor.core.errors import SupervisorError
 
 log = logging.getLogger("supervisor.audit")
 
-TARGET_KINDS = ("case", "agent", "notice", "export", "job", "session")
+TARGET_KINDS = ("case", "agent", "notice", "export", "job", "session", "alert")
 # path parameter name -> target kind (the first one present on the route wins)
 _PARAM_KIND = {
     "case_id": "case",
     "agent_id": "agent",
     "notice_id": "notice",
+    "alert_id": "alert",
     "name": "export",
 }
 # route template -> target kind when the route has no id parameter
@@ -94,6 +95,8 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
         return row_hash(state.get("cases", {"case_id": target_id}))
     if kind == "notice":
         return row_hash(state.get("notice", {"notice_id": target_id}))
+    if kind == "alert":
+        return row_hash(state.get("alert", {"alert_id": target_id}))
     if kind == "agent":
         agent = state.get("agent", {"agent_id": target_id})
         controls = [

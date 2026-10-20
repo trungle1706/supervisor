@@ -73,6 +73,7 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "agent.resume": (("reviewer", "owner", "admin"), "Approve a resume (D04, two people)"),
     "agent.quarantine": (("admin",), "Quarantine an agent"),
     "agent.release": (("admin",), "Release an agent from quarantine"),
+    "alert.ack": (("operator", "admin"), "Acknowledge an alert (WP21)"),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -157,6 +158,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/export"): "evidence.export",
     ("POST", "/console/onboard/start"): "onboard.start",
     ("POST", "/console/inbox/{notice_id}/read"): "inbox.read",
+    ("POST", "/console/alerts/{alert_id}/ack"): "alert.ack",
 }
 
 

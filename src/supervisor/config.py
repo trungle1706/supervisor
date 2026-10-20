@@ -355,6 +355,17 @@ class Settings(BaseSettings):
     assurance_judge_allow_warn: bool = False
     console_assurance_enabled: bool = False
 
+    # --- WP21 (SIEM and alerts live). Both default off. SIEM sink details (kind, format,
+    # URL, token) are read by supervisor.adapters.integrations.IntegrationSettings from the
+    # same environment (SIEM_SINK, SIEM_FORMAT, SIEM_HTTP_URL, ...); only the on/off switch and
+    # the job interval live here. ADR D15, docs/siem.md, docs/alerts.md.
+    siem_enabled: bool = False
+    sched_siem_s: int = Field(default=60, ge=5)
+    alerts_enabled: bool = False
+    alerts_config: Path = Path("config/alerts.yaml")
+    sched_alerts_s: int = Field(default=60, ge=5)
+    notify_webhook_dead_letter: Path | None = None  # default: <data_dir>/notify/webhook.dead.jsonl
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -372,6 +383,8 @@ class Settings(BaseSettings):
         "log_file",
         "assurance_data_dir",
         "osv_db_path",
+        "alerts_config",
+        "notify_webhook_dead_letter",
         mode="after",
     )
     @classmethod

@@ -13,10 +13,17 @@ Settings (environment or ``.env``; read by ``IntegrationSettings``, not by the c
 Variable               Default  Meaning
 =====================  =======  ==================================================
 SIEM_ENABLED           0        emit SIEM events from the evidence chain
-SIEM_SINK              file     ``file`` (LogSiemSink) or ``webhook`` (HEC-style POST)
-SIEM_FORMAT            json     ``json`` (one object per line) or ``cef``
+SIEM_SINK              file     ``file`` (JSONL for a forwarder), ``http`` (HEC-style POST,
+                                dead-letter file) or ``delta`` (``siem_event`` table);
+                                ``webhook`` is the old name of ``http``
+SIEM_FORMAT            jsonl    ``jsonl`` (``json`` is an alias), ``cef`` or ``ocsf``
 SIEM_FILE_PATH         -        default ``<DATA_DIR>/siem/events.log``
-SIEM_WEBHOOK_URL       -        FILL-ME; needs SIEM_SINK=webhook
+SIEM_FILE_MAX_BYTES    0        rotate the file sink at this size (0 = never)
+SIEM_FILE_BACKUPS      5        rotated files kept (``events.log.1`` ... )
+SIEM_WEBHOOK_URL       -        FILL-ME; needs SIEM_SINK=http (alias SIEM_HTTP_URL)
+SIEM_HTTP_TOKEN        -        secret from the bank vault; sent in the Authorization header
+SIEM_HTTP_AUTH_SCHEME  Bearer   e.g. ``Splunk`` for Splunk HEC
+SIEM_DEAD_LETTER_PATH  -        default ``<DATA_DIR>/siem/dead_letter.jsonl``
 ITSM_ENABLED           0        open / update tickets for cases (fake until wired)
 PAGER_ENABLED          0        page on critical cases (fake until wired)
 SCIM_ENABLED           0        group -> role report from a SCIM directory (fake)
@@ -31,6 +38,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, TypeVar
 
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from supervisor.config import env_file_path
@@ -47,10 +55,17 @@ class IntegrationSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore", case_sensitive=False)
 
     siem_enabled: bool = False
-    siem_sink: Literal["file", "webhook"] = "file"
-    siem_format: Literal["json", "cef"] = "json"
+    siem_sink: Literal["file", "http", "delta", "webhook"] = "file"  # webhook = old name of http
+    siem_format: Literal["jsonl", "json", "cef", "ocsf"] = "jsonl"  # json = old name of jsonl
     siem_file_path: Path | None = None
-    siem_webhook_url: str = ""
+    siem_file_max_bytes: int = Field(default=0, ge=0)
+    siem_file_backups: int = Field(default=5, ge=0, le=100)
+    siem_webhook_url: str = Field(
+        default="", validation_alias=AliasChoices("siem_webhook_url", "siem_http_url")
+    )
+    siem_http_token: SecretStr | None = None  # never logged, never committed
+    siem_http_auth_scheme: str = Field(default="Bearer", pattern=r"^[A-Za-z][A-Za-z0-9_-]*$")
+    siem_dead_letter_path: Path | None = None
     itsm_enabled: bool = False
     pager_enabled: bool = False
     scim_enabled: bool = False

@@ -17,6 +17,8 @@ case_intake    scheduler on           gate block/pause verdicts become cases (al
 judge_sweep    JUDGE_ENABLED          advisory judges over new events
 quality        QUALITY_ENABLED        groundedness / guideline scores (sampled)
 retention      RETENTION_ENABLED      null personal-data columns past their TTL (ADR D13)
+siem           SIEM_ENABLED           send new evidence-chain events to the SIEM sink (WP21)
+alerts         ALERTS_ENABLED         evaluate config/alerts.yaml, raise and route alerts (WP21)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -359,6 +361,7 @@ class SupervisorScheduler:
 
 def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec]:
     """The job list for the app. ``runtime`` is ``supervisor.wiring.Runtime``."""
+    from supervisor.jobs import alerts as alerts_job
     from supervisor.jobs import anchor as anchor_job
     from supervisor.jobs import case_intake as case_intake_job
     from supervisor.jobs import drift as drift_job
@@ -369,6 +372,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import multiagent as multiagent_job
     from supervisor.jobs import quality as quality_job
     from supervisor.jobs import retention as retention_job
+    from supervisor.jobs import siem as siem_job
     from supervisor.monitors.sweeps import build_judge_sweep, build_quality_sweep
 
     adapters = runtime.adapters
@@ -417,6 +421,10 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
         JobSpec("retention", settings.sched_retention_s,
                 lambda: retention_job.run(settings, adapters, chain=runtime.chain),
                 settings.retention_enabled),
+        JobSpec("siem", settings.sched_siem_s, lambda: siem_job.run(ctx, settings),
+                settings.siem_enabled),
+        JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
+                settings.alerts_enabled),
     ]  # fmt: skip
 
 

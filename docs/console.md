@@ -81,7 +81,7 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | owner | Resume (as the owner half), comment, pause, start an onboarding run, verify case and chain, mark inbox read |
 | auditor | Read pages, verify case and chain, mark inbox read, build and download audit packs and chain exports |
 | admin | Everything a reviewer can do, plus quarantine and release a quarantine |
-| operator | Read pages, run case intake, verify the chain |
+| operator | Read pages, run case intake, verify the chain, acknowledge alerts |
 
 ### Role matrix
 
@@ -111,6 +111,7 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | `agent.resume` | Approve a resume (D04, two people) |  | x |  | x | x |  |  |
 | `agent.quarantine` | Quarantine an agent |  |  |  |  | x |  |  |
 | `agent.release` | Release an agent from quarantine |  |  |  |  | x |  |  |
+| `alert.ack` | Acknowledge an alert (WP21) |  |  |  |  | x |  | x |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

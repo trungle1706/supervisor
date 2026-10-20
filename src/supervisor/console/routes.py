@@ -763,6 +763,7 @@ def _metrics_data(ctx: ConsoleContext) -> dict[str, Any]:
     heads = ctx.runtime.chain.heads()
     gate = ctx.gateway.metrics.snapshot()
     return {
+        **_alerts_data(ctx),
         "metric_cols": cols,
         "summary": summary,
         "rows": rows[-200:],
@@ -771,6 +772,13 @@ def _metrics_data(ctx: ConsoleContext) -> dict[str, Any]:
         "verify": ctx.last_verify.get("all"),
         "gate": gate,
     }
+
+
+def _alerts_data(ctx: ConsoleContext) -> dict[str, Any]:
+    """Alerts panel (WP21): counts and the open / acknowledged alerts, newest first."""
+    counts = ctx.alerts.counts()
+    shown = [a for a in ctx.alerts.list(limit=50) if a["status"] in ("open", "acknowledged")]
+    return {"alert_counts": counts, "alert_rows": shown}
 
 
 @router.get("/metrics", response_class=HTMLResponse, dependencies=[Depends(needs("metrics.view"))])
@@ -1175,6 +1183,24 @@ async def inbox_read(
     await _call(ctx.inbox.mark_read, notice_id, me.user_id, _version(d))
     notices = await _call(ctx.inbox.list)
     return render(request, ctx, me, "_inbox_rows.html", notices=notices)
+
+
+@router.post(
+    "/alerts/{alert_id}/ack",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("alert.ack"))],
+)
+@audited("alert.ack")
+async def alert_ack(
+    alert_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _check_id(alert_id, "alert id")
+    d = await form(request)
+    if me.kind != "user":
+        raise PermissionDenied("acknowledging an alert needs a signed-in person")
+    await _call(ctx.alerts.acknowledge, alert_id, me.user_id, _version(d))
+    data = await _call(_alerts_data, ctx)
+    return render(request, ctx, me, "_alerts_panel.html", **data)
 
 
 # ---------------------------------------------------------------------------- dev user
