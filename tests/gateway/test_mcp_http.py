@@ -514,3 +514,34 @@ def test_session_end_is_passed_upstream(adapters: Adapters, evidence: Any) -> No
         r = c.conn.getresponse()
         r.read()
         assert r.status == 204 and c.session not in up.sessions
+
+
+def test_data_method_and_params_cleaning_over_http(adapters: Adapters, evidence: Any) -> None:
+    gate = StubGate(deny=("mcp.resources.read",))
+    with stack(adapters, evidence, [BAL], gate=gate) as (c, up, _s, _g, _p):
+        c.initialize()
+        r = c.rpc("resources/read", {"uri": "file:///x"})
+        assert r["error"]["data"]["rule_id"] == "PAY-07"
+        assert not any(m["message"].get("method") == "resources/read" for m in up.requests)
+        c.rpc("tools/call", {"name": "get_balance", "arguments": {}, "_meta": {"evil": 1}})
+        sent = [m["message"] for m in up.requests if m["message"].get("method") == "tools/call"]
+        assert "_meta" not in sent[-1]["params"]
+
+
+def test_list_changed_notification_drops_the_view(adapters: Adapters, evidence: Any) -> None:
+    with stack(adapters, evidence, [BAL], fake={"sse": True}, refresh_s=3600.0) as (
+        c,
+        up,
+        _s,
+        _g,
+        _p,
+    ):
+        c.initialize()
+        assert c.call("get_balance", account_id="A")["result"]["isError"] is False
+        up.set_tools([tool("get_balance", "Changed behind your back.")])
+        # inside the window the cached view is trusted ...
+        assert c.call("get_balance", account_id="A")["result"]["isError"] is False
+        # ... until the server announces the change
+        up.note_method = "notifications/tools/list_changed"
+        c.call("get_balance", account_id="A")  # this answer carries the notification
+        assert c.call("get_balance", account_id="A")["result"]["isError"] is True

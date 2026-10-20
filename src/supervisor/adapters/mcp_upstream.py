@@ -101,6 +101,7 @@ class HttpUpstream:
         self._own_lock = threading.Lock()
         self._own_session: str | None = None
         self._own_ready = False
+        self.list_changed = False  # set when the server sent notifications/tools/list_changed
 
     # ------------------------------------------------------------------ context
     def bind(self, session_id: str | None, protocol_version: str | None) -> None:
@@ -237,6 +238,8 @@ class HttpUpstream:
         # relayed it could answer one of the client's own requests (for example a tools/list with
         # the hidden tools in it, sent ahead of the proxy's filtered answer). Review WP26 F1.
         extras = [m for m in reply.messages if "method" in m and isinstance(m.get("method"), str)]
+        if any(m.get("method") == "notifications/tools/list_changed" for m in extras):
+            self.list_changed = True  # F14: the proxy drops its lock view on the next call
         if extras and hasattr(self._tl, "extras"):
             self._tl.extras = [*self._tl.extras, *extras]
         for m in reply.messages:

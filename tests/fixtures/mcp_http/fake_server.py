@@ -47,6 +47,7 @@ class FakeMcpServer:
         self.calls: list[dict[str, Any]] = []  # tools/call params the server really executed
         self.requests: list[dict[str, Any]] = []  # every JSON-RPC message with its headers
         self.sessions: set[str] = set()
+        self.note_method = "notifications/message"  # sent before each answer in sse mode
         self.connections = 0  # TCP connections accepted (keep-alive evidence)
         self._n = 0
         self._lock = threading.Lock()
@@ -200,7 +201,7 @@ def _handler(srv: FakeMcpServer) -> type[BaseHTTPRequestHandler]:
             if srv.sse:
                 note = {
                     "jsonrpc": "2.0",
-                    "method": "notifications/message",
+                    "method": srv.note_method,
                     "params": {"data": "n"},
                 }
                 data = "".join(

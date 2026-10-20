@@ -287,6 +287,9 @@ class McpHttpGateProxy(McpGateProxy):
             return self._observe(tools)
 
     def view_now(self) -> dict[str, Any]:
+        if getattr(self._upstream, "list_changed", False):  # F14: the server said it changed
+            self._upstream.list_changed = False
+            self._view = None
         if self._view is not None and self._mono() - self._view_at < self._refresh_s:
             return self._view
         return self._refresh()
