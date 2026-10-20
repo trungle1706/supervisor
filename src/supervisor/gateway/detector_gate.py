@@ -16,10 +16,12 @@ Everything stored or returned from here is masked text, ids and integers (R2).
 from __future__ import annotations
 
 import re
+import uuid
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from supervisor.analytics.decisions import looks_personal
 from supervisor.core.detectors import (
     PARTS,
     PARTS_BY_DIRECTION,
@@ -36,6 +38,18 @@ CORRELATION_HEADER = "X-Supervisor-Correlation-Id"
 ID_PATTERN = r"^[A-Za-z0-9_.:@-]{1,128}$"
 DEFAULT_FAIL_CLOSED_RISK = frozenset({"money", "credit", "pii_export"})
 FAILED_RULE = "GATE-DETECTOR-FAILED"
+
+
+def caller_id(value: str | None) -> str:
+    """WP39 review (R2): a correlation or request id from the caller, or a new one when it is
+    missing or holds personal data (an e-mail or a phone number passes the plain-id pattern).
+    A generated id is drawn again in the rare case it looks like a number the masker knows."""
+    if value and not looks_personal(value):
+        return value
+    new = uuid.uuid4().hex
+    while looks_personal(new):
+        new = uuid.uuid4().hex
+    return new
 
 
 @dataclass(frozen=True)
@@ -138,8 +152,8 @@ class DetectorGate:
     ) -> PreDetect:
         pre = PreDetect(direction=req.direction)
         cid = ctx.get("consumer_id")
-        if isinstance(cid, str) and re.fullmatch(ID_PATTERN, cid):
-            pre.consumer_id = cid
+        if isinstance(cid, str) and re.fullmatch(ID_PATTERN, cid) and not looks_personal(cid):
+            pre.consumer_id = cid  # WP39 review: an e-mail or phone as consumer id is dropped
         try:
             pre.risk_class = policy.risk_class(tool_name)
             run_cfg, skip_tools = self.resolved.for_agent(policy.agent_detectors(agent_id))

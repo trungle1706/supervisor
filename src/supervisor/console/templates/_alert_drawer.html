@@ -21,7 +21,7 @@
     (t('correlation_id'), al.correlation_id, True),
   ]) }}
   <p class="btnrow">
-    {% if al.correlation_id and drawer.settings_v2 %}<a class="btn" href="/console/decisions?correlation={{ al.correlation_id|urlencode }}&amp;lang={{ lang }}">{{ t('open_decision') }}</a>{% endif %}
+    {% if drawer.corr_link and drawer.settings_v2 %}<a class="btn" href="/console/decisions?correlation={{ drawer.corr_link|urlencode }}{% if al.agent_id %}&amp;agent={{ al.agent_id|urlencode }}{% endif %}&amp;lang={{ lang }}">{{ t('open_decision') }}</a>{% endif %}
     {% if al.case_id %}<a class="btn" href="/console/cases/{{ al.case_id }}?lang={{ lang }}">{{ t('case') }} {{ al.case_id }}</a>{% endif %}
     {% if al.status == 'open' %}
     <form hx-post="/console/alerts/{{ al.alert_id }}/ack?lang={{ lang }}" hx-target="#list" style="display:inline">

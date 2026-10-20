@@ -139,13 +139,13 @@ rules:
     dedupe_s: 1800
     routes: [inbox, siem]
 
-  # A finding that asks for a pause or a block on an agent that is in SHADOW, or a decision the
-  # policy observe mode let through (verdict label observe_would_block / observe_would_pause):
-  # the threat was seen and nothing was enforced.
+  # A finding that asks for a pause or a block on a call that no rule stopped (findings advise,
+  # R1), on an agent in SHADOW, or a decision the policy observe mode let through (verdict label
+  # observe_would_block / observe_would_pause): the threat was seen and nothing was enforced.
   - id: AL-THREAT-NOT-ENFORCED
     title: Threat detected but not enforced
     source: gate_finding
-    where: {action_hint: [pause, block], enforcement: [shadow, observe]}
+    where: {action_hint: [pause, block], enforcement: [shadow, observe, not_enforced]}
     group_by: agent_id
     window_s: 900
     threshold: 1

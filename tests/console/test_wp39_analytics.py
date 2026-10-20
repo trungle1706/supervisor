@@ -241,17 +241,32 @@ def test_shadow_agent_with_block_findings_raises_threat_not_enforced(v2console: 
     eid = add_decision(
         v2console, agent="shadow-agent", codes=("injection.ignore_previous",), hint="block"
     )
+    stopped = add_decision(
+        v2console,
+        agent="rule-agent",
+        status="block",
+        action="block",
+        codes=("injection.ignore_previous",),
+        hint="block",
+    )
     now = v2console.ctx.clock.now()
     sigs = load_signals(ctx, now - timedelta(hours=1), now + timedelta(minutes=1))
-    # no chain entry for this synthetic row: it counts as enforced, so no alert yet
-    f = [s for s in sigs if s.kind == "gate_finding" and s.fields["agent_id"] == "shadow-agent"]
-    assert f and f[0].fields["enforcement"] == "enforced"
-    assert not evaluate(_rules(), f, only_rules={"AL-THREAT-NOT-ENFORCED"}).fired
+    # WP39 review: a block hint on a call no rule stopped is "not_enforced" (findings advise,
+    # R1); a call a rule blocked anyway is "enforced" and raises nothing
+    f = {s.fields["agent_id"]: s for s in sigs if s.kind == "gate_finding"}
+    assert f["shadow-agent"].fields["enforcement"] == "not_enforced"
+    assert f["rule-agent"].fields["enforcement"] == "enforced"
+    res = evaluate(_rules(), list(f.values()), only_rules={"AL-THREAT-NOT-ENFORCED"})
+    assert [a.agent_id for a in res.fired] == ["shadow-agent"]
     from supervisor.alerts import signals as S
 
     shadow = S._finding_signals(
-        ctx, now - timedelta(hours=1), now + timedelta(minutes=1), {eid: "SHADOW"}
+        ctx,
+        now - timedelta(hours=1),
+        now + timedelta(minutes=1),
+        {eid: ("SHADOW", "report"), stopped: ("RUNNING", "block")},
     )
+    assert {s.fields["enforcement"] for s in shadow} == {"shadow", "enforced"}
     res = evaluate(_rules(), shadow, only_rules={"AL-THREAT-NOT-ENFORCED"})
     assert len(res.fired) == 1 and res.fired[0].agent_id == "shadow-agent"
 
@@ -303,7 +318,7 @@ def test_agent_under_two_valid_ids_gives_a_gap_for_the_unknown_one(v2console: Co
                 "trace_id": "ta",
                 "span_id": "sa",
                 "agent_id": "payments-v2",
-                "event_type": "llm_call",
+                "event_type": "tool_call",  # WP39 review: only tool calls must pass the gate
                 "env": "test",
                 "source": "otel",
                 "capture_level": "digest",

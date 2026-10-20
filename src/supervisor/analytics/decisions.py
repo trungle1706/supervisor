@@ -39,6 +39,43 @@ CODE_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
 ID_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 
 
+_ID_CHECK: Any = None  # the masker used only to FIND personal data in an id (never to mask it)
+
+
+def looks_personal(value: Any) -> bool:
+    """True when an id-shaped value given by a caller (correlation id, request id, consumer id)
+    holds personal data: an e-mail, a phone number, an ID number, an account number (R2). The
+    plain-id pattern allows ``@``, ``.`` and digits, so ``thu.nguyen@example.com`` or
+    ``0912345678`` pass it; the Vietnamese regex masker decides. Deterministic, no key used."""
+    global _ID_CHECK
+    if not isinstance(value, str) or not value:
+        return False
+    if _ID_CHECK is None:
+        from supervisor.adapters.masking.vn_regex import VnRegexMasker
+
+        _ID_CHECK = VnRegexMasker(b"id-check-only", "id-check")
+    try:
+        return bool(_ID_CHECK.find(value))
+    except Exception:  # noqa: BLE001 - a check that fails treats the value as personal
+        return True
+
+
+def safe_id(value: Any) -> str | None:
+    """``value`` when it is a plain id with no personal data in it, else None (R2)."""
+    if isinstance(value, str) and ID_RE.fullmatch(value) and not looks_personal(value):
+        return value
+    return None
+
+
+def shown_id(value: Any) -> Any:
+    """An id for a page or an export: as stored when it is safe, else a fixed marker (personal
+    data, or not a plain id). Rows written before the gate checked ids, or by another writer,
+    can still hold personal data."""
+    if value is None or value == "":
+        return value
+    return value if safe_id(str(value)) is not None else "<id-hidden>"
+
+
 def loads(value: Any, default: Any) -> Any:
     if value is None:
         return default

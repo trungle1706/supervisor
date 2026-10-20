@@ -44,6 +44,7 @@ from supervisor.gateway.detector_gate import (
     DetectorGate,
     PreDetect,
     Req,
+    caller_id,
     chain_fields,
     event_fields,
     fallback_v2,
@@ -449,8 +450,8 @@ class Gateway:
             return None
         return Req(
             direction if direction in ("input", "output") else "input",
-            correlation_id or uuid.uuid4().hex,
-            request_id or uuid.uuid4().hex,
+            caller_id(correlation_id),  # WP39 review: an id that holds personal data is replaced
+            caller_id(request_id),
         )
 
     def check(

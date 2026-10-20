@@ -3,7 +3,9 @@ involved). Synthetic data only: every name, number and id below is made up."""
 
 from __future__ import annotations
 
+import html
 import json
+import re
 import uuid
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
@@ -263,6 +265,15 @@ def plant_calls(runtime: Any, ctx: Any) -> dict[str, str]:
         "b": b["decision_id"],
         "c": c["decision_id"],
     }
+
+
+EXPORT_HREF = re.compile(r'href="(/console/decisions/exports/[^"]+)"')
+
+
+def export_href(html_text: str) -> str | None:
+    """The one-time download link in the answer of the CSV export action (WP39 review)."""
+    m = EXPORT_HREF.search(html_text)
+    return html.unescape(m.group(1)) if m else None
 
 
 class Kit:

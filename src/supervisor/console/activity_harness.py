@@ -16,7 +16,7 @@ the Decisions, Traces, Analytics and Alerts pages the way two experts would:
   export hold only the allow-listed columns?
 
 Parts: (1) the all-pages probe in the three flag states and both languages, (2) the fingerprint
-test with planted personal data, (3) 22 adversarial probes that no template generates, (4) the
+test with planted personal data, (3) 30 adversarial probes that no template generates (22 by the author, 8 by the review), (4) the
 alert drills with Wilson intervals, (5) the SOC and DPO metrics. Numbers are integers (counts,
 bp); thresholds are ILLUSTRATIVE; there is no model, so the run is deterministic. A GO needs
 every check to pass; a capability that passes only its own templates would be NO-GO, so the
@@ -157,10 +157,10 @@ def _p_export_cap(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
     k.ctx.tables.append("agent_event", rows)
     r = k.post("/console/decisions/export", {}, user="auditor.dung")
     cap = int(k.ctx.settings.console_export_max_rows)
-    m = re.search(r"/console/decisions/exports/([A-Za-z0-9._-]+\.csv)", r.text)
+    m = seed.export_href(r.text)
     if r.status_code != 200 or not m or f"truncated: {cap} of " not in r.text:
         return False, f"status {r.status_code}"
-    body = k.get(f"/console/decisions/exports/{m.group(1)}", user="auditor.dung").text
+    body = k.get(m, user="auditor.dung").text
     n = len(list(csv.reader(io.StringIO(body))))
     return n == cap + 1, f"{n - 1} rows of {cap}"
 
@@ -182,7 +182,7 @@ def _p_two_ids(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
     k.ctx.tables.append(
         "agent_event",
         [{"event_id": "alias" + "0" * 27, "ts": now - timedelta(seconds=20), "trace_id": "ta",
-          "span_id": "sa", "agent_id": "payments-v2", "event_type": "llm_call", "env": "test",
+          "span_id": "sa", "agent_id": "payments-v2", "event_type": "tool_call", "env": "test",
           "source": "otel", "capture_level": "digest"}],
     )  # fmt: skip
     mctx = MonitorContext.from_adapters(k.runtime.adapters, k.runtime.chain)
@@ -207,7 +207,7 @@ def _p_shadow(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
     now = k.ctx.clock.now()
     mctx = MonitorContext.from_adapters(k.runtime.adapters, k.runtime.chain)
     sigs = S._finding_signals(
-        mctx, now - timedelta(hours=1), now + timedelta(minutes=1), {eid: "SHADOW"}
+        mctx, now - timedelta(hours=1), now + timedelta(minutes=1), {eid: ("SHADOW", "report")}
     )
     res = evaluate(load_rules(REPO_ROOT / "config" / "alerts.yaml"), sigs,
                    only_rules={"AL-THREAT-NOT-ENFORCED"})  # fmt: skip
@@ -249,14 +249,10 @@ def _p_buggy(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
 def _p_formula(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
     _add(k, corr='=HYPERLINK("http://x")', consumer="@cmd")
     r = k.post("/console/decisions/export", {"consumer": "@cmd"}, user="auditor.dung")
-    m = re.search(r"/console/decisions/exports/([A-Za-z0-9._-]+\.csv)", r.text)
+    m = seed.export_href(r.text)
     if not m:
         return False, f"status {r.status_code}"
-    cells = [
-        c
-        for row in csv.reader(io.StringIO(k.get(m.group(0), user="auditor.dung").text))
-        for c in row
-    ]
+    cells = [c for row in csv.reader(io.StringIO(k.get(m, user="auditor.dung").text)) for c in row]
     return not any(c.startswith(("=", "+", "@")) for c in cells), "leading quote added"
 
 
@@ -274,8 +270,8 @@ def _p_cols(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
     from supervisor.console.decisions_v2 import EXPORT_COLUMNS
 
     r = k.post("/console/decisions/export", {}, user="admin.chi")
-    m = re.search(r"/console/decisions/exports/([A-Za-z0-9._-]+\.csv)", r.text)
-    head = next(csv.reader(io.StringIO(k.get(m.group(0), user="admin.chi").text))) if m else []
+    m = seed.export_href(r.text)
+    head = next(csv.reader(io.StringIO(k.get(m, user="admin.chi").text))) if m else []
     bad = [
         c for c in head if any(w in c for w in ("args", "fragment", "hash", "key", "token", "text"))
     ]
@@ -371,6 +367,151 @@ def _p_trace_corr(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
     return k.get("/console/traces?corr=%3Cb%3E").status_code == 400, "400"
 
 
+# ------------------------------------------------------------- reviewer probes (WP39 review)
+# Eight shapes added by the Opus review: Vietnamese personal data with diacritics, ids that
+# hold personal data, scheme injection, a forged cap, HTML in a code, a missing recorder event,
+# a suppression flood, an alert of another agent and bidi control characters.
+
+REVIEW_RAW = ("Nguyễn Văn Thắng", "0987654321", "thang.nguyen@vidu.vn", "079203001234",
+              "19033456789012")  # fmt: skip
+
+
+def _raw_in(text: str) -> bool:
+    """Raw value, or its JSON-escaped form (the raw JSON view escapes non-ASCII)."""
+    return any(v in text or json.dumps(v)[1:-1] in text for v in REVIEW_RAW)
+
+
+@probe("review_pii_fragment_spanning_two_masked_tokens_is_masked")
+def _p_r_span(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
+    tr, sp = "tr-r-span", "sp-r-span"
+    eid = _add(
+        k, codes=("pii.person",), trace=tr, span=sp, corr="0987654321",
+        consumer="thang.nguyen@vidu.vn",
+        fragments=[{"part": "args", "path": "$.note", "start": 3, "end": 30,
+                    "text": "<PERSON:aaaaaa> Nguyễn Văn Thắng <PHONE:bbbbbb>"},
+                   {"part": "args", "path": "$.note", "start": 0, "end": 99999,
+                    "text": "19033456789012"}],
+        entities=[{"type": "CCCD", "token": "079203001234", "count": 1}],
+    )  # fmt: skip
+    k.ctx.tables.append(
+        "agent_event",
+        [{"event_id": "rspan" + "0" * 27, "ts": k.ctx.clock.now(), "trace_id": tr,
+          "span_id": sp, "agent_id": "payments", "event_type": "tool_call",
+          "args_masked": '{"note": "<PERSON:aaaaaa><PHONE:bbbbbb> Nguyễn Văn Thắng"}',
+          "env": "test", "source": "otel", "capture_level": "masked"}],
+    )  # fmt: skip
+    for tab in ("request", "response", "detections", "metadata"):
+        r = k.get(f"/console/decisions/{eid}/drawer?tab={tab}")
+        if r.status_code != 200 or _raw_in(r.text):
+            return False, f"tab {tab} status {r.status_code}"
+    href = seed.export_href(k.post("/console/decisions/export", {}, user="auditor.dung").text)
+    body = k.get(href, user="auditor.dung").text if href else "NO EXPORT"
+    return not _raw_in(body) and href is not None, "4 tabs, JSON view and CSV masked"
+
+
+@probe("review_javascript_scheme_correlation_id_is_never_a_link_scheme")
+def _p_r_js(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
+    _add(k, corr="javascript:alert", trace="tr-r-js", span="sp-r-js")
+    _add(k, corr="javascript:alert")
+    texts = [k.get(u).text for u in (
+        "/console/decisions?correlation=javascript:alert", "/console/traces/tr-r-js",
+        "/console/decisions?corr=javascript:alert")]  # fmt: skip
+    bad = k.get("/console/decisions?correlation=javascript:alert(1)").status_code
+    ok = all('href="javascript:' not in t.lower() for t in texts) and bad == 400
+    return ok, "only percent-encoded query values; with () a 400"
+
+
+@probe("review_forged_50000_row_export_stays_at_the_cap")
+def _p_r_cap(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
+    cap = int(k.ctx.settings.console_export_max_rows)
+    r = k.post("/console/decisions/export",
+               {"max_rows": "50000", "limit": "50000", "page": "999"}, user="auditor.dung")  # fmt: skip
+    href = seed.export_href(r.text)
+    if r.status_code != 200 or not href:
+        return False, f"status {r.status_code}"
+    n = len(list(csv.reader(io.StringIO(k.get(href, user="auditor.dung").text)))) - 1
+    return n <= cap, f"{n} rows, cap {cap}"
+
+
+@probe("review_finding_code_with_html_is_escaped_and_not_a_filter")
+def _p_r_code(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
+    eid = _add(k, codes=('<img src=x onerror="alert(1)">',))
+    d = k.get(f"/console/decisions/{eid}/drawer?tab=detections")
+    lst = k.get("/console/decisions")
+    f = k.get("/console/decisions?code=%3Cimg%3E")
+    ok = d.status_code == 200 and "<img src=x" not in d.text and "<img src=x" not in lst.text
+    return ok and f.status_code == 400, "escaped; filter 400"
+
+
+@probe("review_decision_without_recorder_event_opens_every_tab")
+def _p_r_norec(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
+    eid = _add(k, codes=("pii.phone",), trace="tr-r-norec", span="sp-r-norec",
+               fragments=[{"part": "args", "path": "$.x", "start": 0, "end": 5,
+                           "text": "<PHONE:cccccc>"}])  # fmt: skip
+    codes = [k.get(f"/console/decisions/{eid}/drawer?tab={t}").status_code
+             for t in ("request", "response", "detections", "metadata")]  # fmt: skip
+    req = k.get(f"/console/decisions/{eid}/drawer?tab=request").text
+    det = k.get(f"/console/decisions/{eid}/drawer?tab=detections").text
+    return codes == [200] * 4 and "&lt;PHONE:cccccc&gt;" in det and "masked-record" in req, (
+        "fragment listed as not located"
+    )
+
+
+@probe("review_shadow_agent_1000_block_findings_in_a_minute_one_alert")
+def _p_r_flood(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
+    from supervisor.alerts.engine import evaluate
+    from supervisor.alerts.rules import load_rules
+    from supervisor.alerts.signals import Signal
+    from supervisor.config import REPO_ROOT
+
+    t0 = k.ctx.clock.now()
+    sigs = [Signal(sid=f"finding:{i:06d}", kind="gate_finding",
+                   ts=t0 + timedelta(milliseconds=60 * i), derived=True,
+                   fields={"agent_id": "shadow-flood", "code": "injection.ignore_previous",
+                           "finding_class": "injection", "direction": "input",
+                           "detector_slug": "injection_regex", "action_hint": "block",
+                           "enforcement": "shadow", "is_mock": False, "correlation_id": f"c{i}"})
+            for i in range(1000)]  # fmt: skip
+    res = evaluate(load_rules(REPO_ROOT / "config" / "alerts.yaml"), sigs,
+                   only_rules={"AL-THREAT-NOT-ENFORCED"})  # fmt: skip
+    ok = len(res.fired) == 1 and res.fired[0].suppressed_count == 999
+    return (
+        ok,
+        f"{len(res.fired)} alert, {res.fired[0].suppressed_count if res.fired else 0} suppressed",
+    )
+
+
+@probe("review_alert_with_a_correlation_id_of_another_agent_links_its_own_decision")
+def _p_r_other(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
+    from supervisor.console import decisions_v2
+
+    mine = _add(k, agent="payments", corr="corr-r-shared", age_s=300)
+    other = _add(k, agent="customer_service", corr="corr-r-shared", age_s=5)
+    now = k.ctx.clock.now()
+    k.ctx.state.insert("alert", {
+        "alert_id": "f" * 32, "ts": now, "dedupe_key": "AL-R:x", "rule_id": "AL-R-OTHER",
+        "rule_hash": "d" * 64, "severity": "high", "status": "open", "title": "t",
+        "agent_id": "customer_service", "group_value": "customer_service", "window_s": 60,
+        "window_count": 1, "threshold": 1, "first_ts": now, "last_ts": now,
+        "suppressed_count": 0, "refs": [], "routes": ["inbox"], "route_status": {},
+        "correlation_id": "corr-r-shared"})  # fmt: skip
+    got = decisions_v2.resolve_ref(k.ctx, correlation="corr-r-shared", agent="payments")
+    meta = k.get(f"/console/decisions/{mine}/drawer?tab=metadata").text
+    drawer = k.get(f"/console/alerts/{'f' * 32}/drawer").text
+    ok = got == mine and "AL-R-OTHER" not in meta and "agent=customer_service" in drawer
+    return ok and other != mine, "scoped by the agent of the alert"
+
+
+@probe("review_consumer_id_with_rtl_override_is_dropped_and_refused")
+def _p_r_rtl(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
+    rtl = "app\u202eelibom"
+    out = k.runtime.gateway.check("payments", "1.0.0", "get_balance", {"account_id": "A-1"},
+                                  {"consumer_id": rtl})  # fmt: skip
+    e = k.ctx.tables.query("agent_event", {"event_id": out["decision_id"]})[0]
+    f = k.get("/console/decisions?consumer=app%E2%80%AEelibom")
+    return e["consumer_id"] is None and f.status_code == 400, "not stored; filter 400"
+
+
 # --------------------------------------------------------------------------- parts
 
 
@@ -441,8 +582,8 @@ def fingerprint_and_metrics(workdir: Path) -> dict[str, Any]:
             for tab in ("request", "response", "detections", "metadata"):
                 pages.append(k.get(f"/console/decisions/{ids[key]}/drawer?tab={tab}").text)
         exp = k.post("/console/decisions/export", {}, user="auditor.dung")
-        m = re.search(r"/console/decisions/exports/([A-Za-z0-9._-]+\.csv)", exp.text)
-        csv_text = k.get(m.group(0), user="auditor.dung").text if m else ""
+        m = seed.export_href(exp.text)
+        csv_text = k.get(m, user="auditor.dung").text if m else ""
         pages.append(csv_text)
         leaks = sum(text.count(raw) for text in pages for raw in RAW)
         out["pages_scanned"] = len(pages)

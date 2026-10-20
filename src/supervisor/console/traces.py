@@ -16,6 +16,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from supervisor.analytics.decisions import looks_personal, safe_id, shown_id
 from supervisor.console import ux3
 from supervisor.console.listing import (
     ListingError,
@@ -44,13 +45,21 @@ def parse_params(query: Mapping[str, str]) -> dict[str, str]:
         "status": ux3.choice(query, "status", STATUSES),
         "range": ux3.choice(query, "range", ux3.RANGES),
         "q": ux3.token(query, "q"),
-        "corr": ux3.ident(query, "corr"),  # WP39: correlation id (shown with CONSOLE_DECISIONS_V2)
+        "corr": _corr_filter(query),  # WP39: correlation id (shown with CONSOLE_DECISIONS_V2)
         "sort": query.get("sort") or "",
         "dir": query.get("dir") or "",
         "page": query.get("page") or "",
     }
     parse_int(p["page"], "page", 1)
     return p
+
+
+def _corr_filter(query: Mapping[str, str]) -> str:
+    """WP39 review: a correlation id filter that refuses personal data (R2)."""
+    value = ux3.ident(query, "corr")
+    if value and looks_personal(value):
+        raise ListingError("corr: looks like personal data, not an id")
+    return value
 
 
 def v2_on(ctx: Any) -> bool:
@@ -251,7 +260,8 @@ def trace_detail(ctx: Any, trace_id: str, span_id: str | None = None) -> dict[st
         gates = [e for e in n["events"] if e["event_type"] == "gate_decision"]
         n["decision_id"] = str(gates[0]["event_id"]) if gates else None
         n["correlation_id"] = next(
-            (e.get("correlation_id") for e in n["events"] if e.get("correlation_id")), None
+            (e.get("correlation_id") for e in n["events"] if safe_id(e.get("correlation_id"))),
+            None,
         )
         n["finding_codes"] = sorted({c for g in gates for c in fired.get(str(g["event_id"]), [])})
         n["verdicts"] = [vv for e in n["events"] for vv in by_event.get(str(e["event_id"]), [])]
@@ -279,8 +289,8 @@ def trace_detail(ctx: Any, trace_id: str, span_id: str | None = None) -> dict[st
         "started": min(stamps),
         "duration_ms": int((max(stamps) - min(stamps)).total_seconds() * 1000),
         "status": _worst(stops),
-        "correlation_ids": sorted(
-            {str(e["correlation_id"]) for e in events if e.get("correlation_id")}
+        "correlation_ids": sorted(  # WP39 review: ids that hold personal data are not shown
+            {str(e["correlation_id"]) for e in events if safe_id(e.get("correlation_id"))}
         )[:5],
         "case_ids": sorted(
             {cases[str(e["event_id"])] for e in events if str(e["event_id"]) in cases}
@@ -316,6 +326,8 @@ def span_detail(
                 "chain_entry", {"record_ref": e["event_id"], "record_type": "gate_decision"}
             )
             chain = {"lane": rows[0]["lane"], "seq": int(rows[0]["seq"])} if rows else None
+        if e.get("correlation_id"):  # WP39 review: a caller-given id is shown only when safe
+            e = {**e, "correlation_id": shown_id(e.get("correlation_id"))}
         items.append(
             {
                 "e": e,

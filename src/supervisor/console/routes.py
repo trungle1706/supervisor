@@ -1424,6 +1424,7 @@ async def decisions_page(
                 ctx,
                 event=query.get("event") or "",
                 correlation=query.get("correlation") or "",
+                agent=query.get("agent") or "",
             )
             data["strip_params"] = " ".join(deep)  # console.js removes them from the address bar
     if opened:  # no-JS fallback of the row drawer, and the deep links
@@ -1486,9 +1487,10 @@ async def decisions_export(
         raise ConsoleInputError("The CSV export needs CONSOLE_DECISIONS_V2=1")
     data = await form(request)
     built = await _call(decisions_v2.export_csv, ctx, data)
-    await _call(decisions_v2.save_export, ctx, built)
-    request.state.audit_detail = (
-        f"rows={built['rows']};total={built['total']};truncated={int(built['truncated'])}"
+    await _call(decisions_v2.save_export, ctx, built, me.user_id)
+    request.state.audit_detail = (  # WP39 review: the filter hash ties the file to its query
+        f"rows={built['rows']};total={built['total']};truncated={int(built['truncated'])};"
+        f"filters={decisions_v2.filter_hash(data)}"
     )
     return render(request, ctx, me, "_decisions_export_result.html", export=built)
 
@@ -1498,11 +1500,22 @@ async def decisions_export(
     dependencies=[Depends(needs("decisions.export"))],
 )
 async def decisions_export_download(
-    name: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+    name: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
+    """The file of one export, once, for the user who built it, within EXPORT_TTL_S."""
     _ux3_off(ctx, "decisions")
-    path = await _call(decisions_v2.export_path, ctx, name)
-    return FileResponse(path, media_type="text/csv; charset=utf-8", filename=name)
+    q = request.query_params
+    data = await _call(
+        decisions_v2.take_export, ctx, name, me.user_id, q.get("exp") or "", q.get("t") or ""
+    )
+    return Response(
+        data,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 # -- traces

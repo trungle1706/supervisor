@@ -11,6 +11,7 @@ from typing import Any
 import pytest
 
 from supervisor.console import decisions_v2
+from supervisor.demo.activity_seed import export_href
 
 from .conftest import Console
 from .wp39_fixtures import CORR, PLANTED, plant
@@ -289,8 +290,8 @@ def _export(c: Console, qs: dict[str, str] | None = None, user: str = "auditor.d
 
 
 def _csv_of(c: Console, resp: Any) -> list[list[str]]:
-    name = re.search(r"/console/decisions/exports/([A-Za-z0-9._-]+\.csv)", resp.text).group(1)
-    got = c.get(f"/console/decisions/exports/{name}", user="auditor.dung")
+    href = export_href(resp.text)  # WP39 review: one-time link bound to the user
+    got = c.get(href, user="auditor.dung")
     assert got.status_code == 200 and "text/csv" in got.headers["content-type"]
     return list(csv.reader(io.StringIO(got.text)))
 
@@ -322,7 +323,7 @@ def test_export_is_audited_as_a_console_action(v2console: Console) -> None:
     ]
     assert sorted(a["outcome"] for a in acts) == ["attempted", "ok"]
     ok = next(a for a in acts if a["outcome"] == "ok")
-    assert re.fullmatch(r"rows=\d+;total=\d+;truncated=0", ok["detail"])
+    assert re.fullmatch(r"rows=\d+;total=\d+;truncated=0;filters=[0-9a-f]{16}", ok["detail"])
 
 
 def test_export_cap_with_ascii_truncated_notice(
@@ -364,13 +365,16 @@ def test_export_cap_with_ascii_truncated_notice(
 
 def test_export_neutralises_formulas_and_control_characters(v2console: Console) -> None:
     add_decision(v2console, corr="=cmd|' /C calc'!A0", consumer="app-web")
-    add_decision(v2console, corr="a\r\nb", consumer="app-web")
+    add_decision(v2console, corr="a\r\nb", consumer="app-web", tool="+cmd|' /C calc'!A0")
+    add_decision(v2console, tool="@SUM(1+1)\r\n=x", consumer="app-web")
     # stored ids are untrusted: the export must still be safe
     out = _csv_of(v2console, _export(v2console))
     cells = [c for row in out[1:] for c in row]
-    assert not any(c.startswith(("=", "+", "@")) for c in cells)
+    assert not any(c.startswith(("=", "+", "@", "-")) for c in cells)
     assert not any("\r" in c or "\n" in c for c in cells)
-    assert any(c.startswith("'=cmd") for c in cells)
+    assert any(c.startswith("'+cmd") for c in cells) and any(c.startswith("'@SUM") for c in cells)
+    # WP39 review: a caller id that is not a plain id is hidden, not exported
+    assert not any("=cmd" in c for c in cells) and "<id-hidden>" in cells
 
 
 def test_export_follows_the_filters(v2console: Console) -> None:
@@ -509,8 +513,9 @@ def test_hostile_stored_correlation_id_is_escaped_everywhere(v2console: Console)
         assert "<script>alert(1)" not in r.text, url
         assert "X-Evil" not in r.headers
     meta = v2console.get(f"/console/decisions/{eid}/drawer?tab=metadata").text
-    assert "&lt;script&gt;" in meta  # escaped, shown as text
-    assert "%3Cscript%3E" in meta  # the link is percent-encoded
+    # WP39 review: a stored id that is not a plain id is hidden (shown as a marker, no link)
+    assert "&lt;id-hidden&gt;" in meta
+    assert "%3Cscript%3E" not in meta and "&lt;script&gt;" not in meta
 
 
 @pytest.mark.parametrize(

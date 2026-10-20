@@ -20,9 +20,13 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+import hashlib
+import hmac
 import io
 import json
 import re
+import secrets
+import time
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -35,7 +39,10 @@ from supervisor.analytics.decisions import (
     STATUSES,
     direction_of,
     loads,
+    looks_personal,
     not_evaluated,
+    safe_id,
+    shown_id,
     status_of,
 )
 from supervisor.console import decisions as v1
@@ -102,6 +109,15 @@ EXPORT_COLUMNS = (
 # ---------------------------------------------------------------------------- list
 
 
+def _id_filter(query: Mapping[str, str], name: str) -> str:
+    """An id filter that refuses personal data (an e-mail or a phone typed as an id): the value
+    would be echoed on the page and kept in the address bar and the access log (R2)."""
+    value = ux3.ident(query, name)
+    if value and looks_personal(value):
+        raise ListingError(f"{name}: looks like personal data, not an id")
+    return value
+
+
 def parse_params(query: Mapping[str, str]) -> dict[str, str]:
     p = v1.parse_params(query)
     code = (query.get("code") or "").strip()
@@ -114,9 +130,9 @@ def parse_params(query: Mapping[str, str]) -> dict[str, str]:
         status=ux3.choice(query, "status", STATUSES),
         code=code,
         noteval=noteval,
-        consumer=ux3.ident(query, "consumer"),
+        consumer=_id_filter(query, "consumer"),
         direction=ux3.choice(query, "direction", DIRECTIONS),
-        corr=ux3.ident(query, "corr"),
+        corr=_id_filter(query, "corr"),
     )
     return p
 
@@ -140,9 +156,10 @@ def _row(
     row.update(
         status=status_of(e),
         direction=direction_of(e),
-        consumer_id=e.get("consumer_id"),
-        correlation_id=e.get("correlation_id"),
-        request_id=e.get("request_id"),
+        # caller-given ids: shown as stored only when they hold no personal data (R2)
+        consumer_id=shown_id(e.get("consumer_id")),
+        correlation_id=shown_id(e.get("correlation_id")),
+        request_id=shown_id(e.get("request_id")),
         codes=fired,
         not_eval=not_evaluated(e, fs),
         latency_rules_us=e.get("latency_rules_us"),
@@ -309,7 +326,9 @@ def _linked_events(ctx: Any, e: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [
         x
         for x in evs
-        if x["event_type"] != "gate_decision" and str(x.get("capture_level")) != "digest"
+        # a row without a level counts as digest (same rule as the Traces page)
+        if x["event_type"] != "gate_decision"
+        and str(x.get("capture_level") or "digest") != "digest"
     ]
 
 
@@ -488,8 +507,16 @@ def _observed(verdicts: Sequence[Mapping[str, Any]], payload: Mapping[str, Any])
     rows (labels ``observe_would_block`` / ``observe_would_pause``, also written for a lifted
     GATE-DETECTOR-FAILED); ``approvals`` comes from the chain record when it has the key."""
     would = [OBSERVE_LABELS[v["label"]] for v in verdicts if v.get("label") in OBSERVE_LABELS]
+    # WP38 (read on branch wp38-collectors in the WP39 review): the chain record carries
+    # ``mode`` and ``observed_decision: {action, rule_id}`` for agents that use a mode
+    od = payload.get("observed_decision")
+    if isinstance(od, Mapping) and od.get("action") in ("block", "pause"):
+        would.append(str(od["action"]))
     state = str(payload.get("agent_state") or "")
-    mode = "observe" if would else ("shadow" if state == "SHADOW" else "enforce")
+    pmode = payload.get("mode")
+    mode = (
+        "observe" if would or pmode == "observe" else ("shadow" if state == "SHADOW" else "enforce")
+    )
     ap = payload.get("approvals")
     approvals = None if ap is None else bool(ap)
     return {
@@ -499,11 +526,11 @@ def _observed(verdicts: Sequence[Mapping[str, Any]], payload: Mapping[str, Any])
     }
 
 
-def resolve_ref(ctx: Any, *, event: str = "", correlation: str = "") -> str:
+def resolve_ref(ctx: Any, *, event: str = "", correlation: str = "", agent: str = "") -> str:
     """Decision id for a deep link: ``?event=`` (decision id, else request id) or
-    ``?correlation=`` (the newest decision of that correlation id)."""
+    ``?correlation=`` (the newest decision of that correlation id, of ``agent`` when given)."""
     if event:
-        if not ux3.ID.match(event):
+        if not ux3.ID.match(event) or looks_personal(event):
             raise ListingError("event: not a valid id")
         for col in ("event_id", "request_id"):
             rows = ctx.tables.query(
@@ -515,11 +542,16 @@ def resolve_ref(ctx: Any, *, event: str = "", correlation: str = "") -> str:
             if rows:
                 return str(rows[0]["event_id"])
         raise ListingError("no gate decision has that event or request id")
-    if not ux3.ID.match(correlation):
+    if not ux3.ID.match(correlation) or looks_personal(correlation):
         raise ListingError("correlation: not a valid id")
+    if agent and not ux3.ID.match(agent):
+        raise ListingError("agent: not a valid id")
+    where = {"correlation_id": correlation, "event_type": "gate_decision"}
+    if agent:  # an alert links to the decision of ITS agent: one correlation id may span agents
+        where["agent_id"] = agent
     rows = ctx.tables.query(
         "agent_event",
-        {"correlation_id": correlation, "event_type": "gate_decision"},
+        where,
         order_by=("-ts",),
         limit=1,
     )
@@ -534,7 +566,9 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
     events = ctx.tables.query("agent_event", {"event_id": event_id, "event_type": "gate_decision"})
     if not events:
         raise ListingError(f"gate decision {event_id} not found")
-    e = events[0]
+    e = dict(events[0])
+    for k in ("correlation_id", "request_id", "consumer_id"):  # caller-given ids (R2)
+        e[k] = shown_id(e.get(k))
     masked = _Masked(ctx)
     vs = ctx.tables.query("verdict", {"event_id": event_id}, order_by=("ts",))
     t0 = [v for v in vs if int(v["tier"]) == 0]
@@ -561,11 +595,12 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
         pr = ctx.tables.query("chain_payload", {"lane": chain["lane"], "seq": chain["seq"]})
         loaded = loads(pr[0]["payload"], {}) if pr else {}
         payload = loaded if isinstance(loaded, dict) else {}
-    cid = e.get("correlation_id")
+    cid = safe_id(e.get("correlation_id"))
     alerts = (
         [
             {"alert_id": a["alert_id"], "rule_id": a["rule_id"], "severity": a["severity"]}
             for a in ctx.state.query("alert", {"correlation_id": cid})
+            if a.get("agent_id") in (None, e["agent_id"])  # not the alert of another agent
         ][:20]
         if cid
         else []
@@ -613,8 +648,8 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
     )
     doc = {
         "event_id": event_id,
-        "request_id": e.get("request_id") or payload.get("request_id"),
-        "correlation_id": cid,
+        "request_id": e.get("request_id") or shown_id(payload.get("request_id")),
+        "correlation_id": e.get("correlation_id"),
         "ts": e["ts"].isoformat() if isinstance(e["ts"], dt.datetime) else str(e["ts"]),
         "agent_id": e["agent_id"],
         "consumer_id": e.get("consumer_id"),
@@ -726,7 +761,7 @@ def export_csv(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     now = ctx.clock.now()
     truncated = len(shown) > cap
     name = (
-        f"{EXPORT_PREFIX}{now:%Y%m%dT%H%M%S}Z-{uuid.uuid4().hex[:6]}"
+        f"{EXPORT_PREFIX}{now:%Y%m%dT%H%M%S}Z-{uuid.uuid4().hex[:16]}"
         f"{'-truncated' if truncated else ''}.csv"
     )
     return {
@@ -740,21 +775,75 @@ def export_csv(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     }
 
 
-def save_export(ctx: Any, built: Mapping[str, Any]) -> Path:
-    root = Path(ctx.settings.console_export_dir)
+# The download link of an export is bound to the user who built it and to a short time
+# (WP39 review): ``?exp=<unix seconds>&t=<HMAC(name|user|exp)>``. The key lives in this process
+# only (files and links die together on a restart; the App wipes /tmp anyway). The file is
+# served once, then deleted; files older than EXPORT_TTL_S are removed on every export and
+# download. They sit in their own folder, apart from the audit packs.
+EXPORT_TTL_S = 900
+EXPORT_SUBDIR = "decisions"
+_EXPORT_KEY = secrets.token_bytes(32)
+EXPORT_RE = re.compile(r"^decisions-\d{8}T\d{6}Z-[0-9a-f]{16}(-truncated)?\.csv$")
+
+
+def _export_root(ctx: Any) -> Path:
+    return Path(ctx.settings.console_export_dir) / EXPORT_SUBDIR
+
+
+def _sign(name: str, user: str, exp: int) -> str:
+    msg = f"{name}|{user}|{exp}".encode()
+    return hmac.new(_EXPORT_KEY, msg, hashlib.sha256).hexdigest()[:40]
+
+
+def cleanup_exports(ctx: Any) -> int:
+    """Delete export files older than EXPORT_TTL_S. Returns how many were removed."""
+    root = _export_root(ctx)
+    if not root.is_dir():
+        return 0
+    limit = time.time() - EXPORT_TTL_S
+    n = 0
+    for f in root.iterdir():
+        try:
+            if EXPORT_RE.match(f.name) and f.stat().st_mtime < limit:
+                f.unlink()
+                n += 1
+        except OSError:  # another worker removed it first
+            continue
+    return n
+
+
+def filter_hash(query: Mapping[str, str]) -> str:
+    """Short hash of the filters of an export, for the audit row (the values stay out of it)."""
+    p = parse_params(query)
+    body = json.dumps({k: p[k] for k in (*FILTERS, "sort", "dir")}, sort_keys=True)
+    return hashlib.sha256(body.encode()).hexdigest()[:16]
+
+
+def save_export(ctx: Any, built: dict[str, Any], user: str) -> str:
+    """Write the file and return its download link, valid for ``user`` for EXPORT_TTL_S."""
+    cleanup_exports(ctx)
+    root = _export_root(ctx)
     root.mkdir(parents=True, exist_ok=True)
-    path = root / str(built["name"])
-    path.write_text(str(built["text"]), encoding="utf-8", newline="")
-    return path
+    name = str(built["name"])
+    (root / name).write_text(str(built["text"]), encoding="utf-8", newline="")
+    exp = int(time.time()) + EXPORT_TTL_S
+    built["href"] = f"/console/decisions/exports/{name}?exp={exp}&t={_sign(name, user, exp)}"
+    return str(built["href"])
 
 
-EXPORT_RE = re.compile(r"^decisions-\d{8}T\d{6}Z-[0-9a-f]{6}(-truncated)?\.csv$")
-
-
-def export_path(ctx: Any, name: str) -> Path:
-    if not EXPORT_RE.match(name):
-        raise ListingError("unknown export name")
-    path = Path(ctx.settings.console_export_dir) / name
-    if not path.is_file():
-        raise ListingError(f"export {name} does not exist (the App wipes /tmp on restart)")
-    return path
+def take_export(ctx: Any, name: str, user: str, exp: str, token: str) -> bytes:
+    """The file of a valid link, read once and deleted. Any other case is a 400 that says
+    nothing about whether the file exists."""
+    cleanup_exports(ctx)
+    bad = ListingError("export link is not valid for you, was used already or has expired")
+    if not EXPORT_RE.match(name) or not exp.isdigit() or not re.fullmatch(r"[0-9a-f]{40}", token):
+        raise bad
+    if int(exp) < time.time() or not hmac.compare_digest(_sign(name, user, int(exp)), token):
+        raise bad
+    path = _export_root(ctx) / name
+    try:
+        data = path.read_bytes()
+        path.unlink()
+    except OSError as exc:
+        raise bad from exc
+    return data

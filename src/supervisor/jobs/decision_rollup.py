@@ -43,7 +43,7 @@ from dataclasses import dataclass  # noqa: E402
 from datetime import UTC, date, datetime, timedelta  # noqa: E402
 from typing import Any  # noqa: E402
 
-from supervisor.analytics.decisions import COVERAGE_GAP_REASONS  # noqa: E402
+from supervisor.analytics.decisions import COVERAGE_GAP_REASONS, shown_id  # noqa: E402
 from supervisor.analytics.tools import _day_expr, percentile_from_histogram  # noqa: E402
 from supervisor.config import Settings  # noqa: E402
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, SupervisorError  # noqa: E402
@@ -164,8 +164,8 @@ def _scan(
         d, status, n, flag = str(r["d"]), str(r["st"]), int(r["n"]), int(r["ne"] or 0)
         out[(d, "total", _STAR, _STAR)].add(status, n, flag)
         out[(d, "agent", str(r["agent_id"]), _STAR)].add(status, n, flag)
-        if r["consumer"] != _STAR:
-            out[(d, "consumer", str(r["consumer"]), _STAR)].add(status, n, flag)
+        if r["consumer"] != _STAR:  # WP39 review: a consumer id with personal data is hidden
+            out[(d, "consumer", str(shown_id(str(r["consumer"]))), _STAR)].add(status, n, flag)
 
     rows = x.query(
         f"SELECT v.rule_id AS rule_id, {day} AS d, {st} AS st, {ne} AS ne, "  # noqa: S608

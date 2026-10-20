@@ -98,8 +98,12 @@ _CORR = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 
 def _corr(value: Any) -> str | None:
     """The correlation id of the trigger signal, only when it is a plain id (it may come from a
-    caller; anything else is dropped, never stored)."""
-    return str(value) if isinstance(value, str) and _CORR.fullmatch(value) else None
+    caller; anything else, or an id that holds personal data, is dropped, never stored)."""
+    from supervisor.analytics.decisions import looks_personal
+
+    if not isinstance(value, str) or not _CORR.fullmatch(value) or looks_personal(value):
+        return None  # WP39 review: an e-mail or a phone used as an id never reaches the SIEM
+    return value
 
 
 def _ts(v: Any) -> str:

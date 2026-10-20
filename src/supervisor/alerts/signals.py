@@ -119,7 +119,8 @@ def load_signals(
     """All signals with ``ts_from <= ts < ts_to``, in a deterministic order. With
     ``gap_window_s`` the coverage-gap check (agents seen with no gate decision) also runs."""
     out: list[Signal] = []
-    state_of: dict[str, str] = {}  # decision id -> agent state at the decision (WP39)
+    # decision id -> (agent state, v2 status) at the decision (WP39)
+    state_of: dict[str, tuple[str, Any]] = {}
     for e in read_range(ctx, "chain_entry", ts_from, ts_to):
         kind = CHAIN_KINDS.get(str(e["record_type"]))
         if kind is None:
@@ -127,7 +128,7 @@ def load_signals(
         rows = ctx.tables.query("chain_payload", {"lane": e["lane"], "seq": e["seq"]})
         p = json.loads(rows[0]["payload"]) if rows else {}
         if kind == "gate_decision":
-            state_of[str(e["record_ref"])] = str(p.get("agent_state") or "")
+            state_of[str(e["record_ref"])] = (str(p.get("agent_state") or ""), p.get("status"))
             out.append(_request_signal(f"{e['lane']}:{e['seq']}", as_dt(e["ts"]), p))
         out.append(
             Signal(
@@ -261,17 +262,29 @@ def _ingress_requests(ingress: list[Signal]) -> list[Signal]:
     return out
 
 
+def _enforcement(state: str, status: Any) -> str:
+    """What the gate did with the call of a finding (WP39 review). Findings never stop a call
+    (R1), so a ``pause`` or ``block`` hint is enforced only when a deterministic rule stopped
+    the call anyway: ``enforced`` when the decision status is block or pause, ``shadow`` when
+    the agent was in SHADOW, else ``not_enforced``. Observe verdict rows get ``observe``."""
+    if state == "SHADOW":
+        return "shadow"
+    return "enforced" if status in ("block", "pause") else "not_enforced"
+
+
 def _finding_signals(
-    ctx: MonitorContext, ts_from: datetime, ts_to: datetime, state_of: Mapping[str, str]
+    ctx: MonitorContext,
+    ts_from: datetime,
+    ts_to: datetime,
+    state_of: Mapping[str, tuple[str, Any]],
 ) -> list[Signal]:
-    """One ``gate_finding`` per fired finding row. ``enforcement`` is ``shadow`` when the agent
-    was in SHADOW at the decision (nothing is enforced there) and ``enforced`` otherwise;
-    ``observe`` is reserved for the policy observe mode of a later package."""
+    """One ``gate_finding`` per fired finding row; ``enforcement`` from :func:`_enforcement`
+    (the decision is read from the chain record in the same range, else from the finding)."""
     out = []
     for f in read_range(ctx, "finding", ts_from, ts_to):
         if f.get("not_executed_reason"):
             continue
-        state = state_of.get(str(f["event_id"]), "")
+        state, status = state_of.get(str(f["event_id"]), ("", f.get("verdict_status")))
         out.append(
             Signal(
                 sid=f"finding:{f['finding_id']}",
@@ -285,7 +298,7 @@ def _finding_signals(
                     "direction": f["direction"],
                     "detector_slug": f["detector_slug"],
                     "action_hint": f["action_hint"],
-                    "enforcement": "shadow" if state == "SHADOW" else "enforced",
+                    "enforcement": _enforcement(state, status),
                     "is_mock": bool(f["is_mock"]),
                     "correlation_id": f.get("correlation_id"),
                 },
@@ -342,25 +355,39 @@ def _loads(value: Any) -> dict[str, Any]:
 
 
 def _coverage_gaps(ctx: MonitorContext, now: datetime, window_s: int) -> list[Signal]:
-    """Agents seen in traces (any recorded event) or in the inventory during the last
-    ``window_s`` seconds that have NO gate decision in the same window: the agent reaches its
-    tools without passing the gate (a bypass or a mis-wired collector). One signal per agent,
-    stamped ``now`` (the read watermark) with an id that changes once per window."""
+    """Agents that called a tool during the last ``window_s`` seconds (a recorded ``tool_call``
+    event) with NO gate decision in the same window: the agent reaches its tools without
+    passing the gate (a bypass, a mis-wired collector, or a gate it could not reach on a
+    read-only tool). One signal per agent, stamped ``now`` (the read watermark) with an id that
+    changes once per window. Decided in the WP39 review (docs/alerts.md):
+
+    * only ``tool_call`` events count. LLM calls and messages never go through the gate, so an
+      agent that only talks (in SHADOW or not) is not a gap;
+    * an active inventory system node counts only for an agent that is NOT in the registry
+      (a deployed app the gate does not know). A registered agent that is idle, or RETIRED
+      while its workspace node is still listed, is not a gap;
+    * a RETIRED agent that still calls tools is a gap: the gate answers every call of a
+      retired agent with a recorded block, so a tool call without a decision bypassed it.
+    """
     lo = now - timedelta(seconds=window_s)
     events = read_range(ctx, "agent_event", lo, now)
     decided = {str(e["agent_id"]) for e in events if e["event_type"] == "gate_decision"}
+    registered = {str(a["agent_id"]) for a in ctx.state.query("agent")}
     seen: dict[str, str] = {}
     for e in events:
-        if e["event_type"] != "gate_decision":
+        if e["event_type"] == "tool_call":
             seen.setdefault(str(e["agent_id"]), "trace")
     try:
         for n in ctx.state.query("inventory_node", {"kind": "system", "status": "active"}):
             name = str(n["name"])
-            if not name.startswith("app:") and lo < as_dt(n["last_seen"]) <= now:
+            if (
+                not name.startswith("app:")
+                and name not in registered
+                and lo < as_dt(n["last_seen"]) <= now
+            ):
                 seen.setdefault(name, "inventory")
     except Exception as exc:  # noqa: BLE001 - no inventory table: traces only
         log.debug("coverage gap: inventory not read (%s)", type(exc).__name__)
-    registered = {str(a["agent_id"]) for a in ctx.state.query("agent")}
     bucket = int(now.timestamp()) // max(1, window_s)
     return [
         Signal(
