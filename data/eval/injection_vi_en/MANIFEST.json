@@ -1,0 +1,47 @@
+{
+  "files": {
+    "adversarial.jsonl": {
+      "n_items": 62,
+      "n_positive": 38,
+      "sha256": "c306873c481c9cf2597704a382f9fe7a829ada073fec85345f47f9268437033c"
+    },
+    "dev.jsonl": {
+      "n_items": 1200,
+      "n_positive": 450,
+      "sha256": "196ecee579176712a8eda741b27baa4c84eddee8f386851598b43728d309dc8f"
+    },
+    "evasion.jsonl": {
+      "n_items": 1440,
+      "n_positive": 720,
+      "sha256": "a31934ebafb23d25bcdfe104b69e775aa32ee40d17099701e62c7c463745f59c"
+    },
+    "heldout.jsonl": {
+      "n_items": 1350,
+      "n_positive": 450,
+      "sha256": "c92c5021a790d924d839347a27646328924ce3fc8e159b46cc1f720ed7f71f03"
+    },
+    "train.jsonl": {
+      "n_items": 4800,
+      "n_positive": 2400,
+      "sha256": "577c7830874e5160e9d3a62f6f6f8d1e5000ea6784309dc37631a76c00a4bfb7"
+    }
+  },
+  "labellers": [
+    "synthetic",
+    "synthetic, LLM-paraphrased",
+    "human (hand-written probe)"
+  ],
+  "licence": "synthetic, this repo",
+  "llm_paraphrase": {
+    "model": "qwen3.8-27b-int4 (local, inference only, concurrency 2)",
+    "n_paraphrases": 1701,
+    "paraphrases_sha256": "d60270bd382ccca9ca8261ed4c8f3d8eb8dcdca16b38794302c736c5d715f4bc"
+  },
+  "name": "injection_vi_en",
+  "seed": 20261022,
+  "template_strings": {
+    "dev": 99,
+    "heldout": 108,
+    "train": 135
+  }
+}
