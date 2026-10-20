@@ -82,7 +82,7 @@
           <td class="mono">{{ f.detector_id }}</td>
           <td class="mono">{{ f.code }}</td>
           <td class="n">-</td>
-          <td colspan="2">{{ ui.pill(t('not_evaluated'), 'warn') }} {{ t('ne_' ~ f.reason) }}</td>
+          <td colspan="2">{% if f.reason == 'not_applicable_for_direction' %}{{ ui.pill(t('not_applicable'), 'neutral') }}{% else %}{{ ui.pill(t('not_evaluated'), 'warn') }} {{ t('ne_' ~ f.reason) }}{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>

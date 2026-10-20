@@ -1818,6 +1818,102 @@ _T.update(
 )
 
 
+# --- WP39 --- verdict v2 drawer, filters, export, analytics tables, alert use cases
+_T.update(
+    {
+        "decisions_purpose_v2": (
+            "Every decision the gate made, with its verdict status, findings and coverage.",
+            "Mọi quyết định của cổng, kèm trạng thái phán quyết, phát hiện và phạm vi kiểm tra.",
+        ),
+        "decisions_why_v2": (
+            "Open a row for the masked request, the response, one line per finding and the latency split.",
+            "Mở một dòng để xem yêu cầu đã che, phản hồi, từng phát hiện và cách chia độ trễ.",
+        ),
+        "detection_code": ("Detection code", "Mã phát hiện"),
+        "not_evaluated": ("Not evaluated", "Chưa được đánh giá"),
+        "ne_only": ("Not evaluated only", "Chỉ chưa được đánh giá"),
+        "consumer": ("Consumer", "Ứng dụng gọi"),
+        "direction": ("Direction", "Chiều"),
+        "correlation_id": ("Correlation id", "Mã tương quan"),
+        "detections": ("Detections", "Phát hiện"),
+        "dir_input": ("input", "đầu vào"),
+        "dir_output": ("output", "đầu ra"),
+        "st_allow": ("Allow", "Cho phép"),
+        "st_report": ("Report", "Báo cáo"),
+        "st_transform": ("Transform", "Biến đổi"),
+        "st_pause": ("Pause", "Tạm dừng"),
+        "st_block": ("Block", "Chặn"),
+        "st_skip": ("Skip", "Bỏ qua"),
+        "ne_execution_failed": ("a detector failed", "một bộ phát hiện bị lỗi"),
+        "ne_invalid_config": ("a detector had a bad setting", "một bộ phát hiện sai cấu hình"),
+        "ne_payload_too_large": ("payload too large", "dữ liệu quá lớn"),
+        "ne_content_uninspectable": ("content could not be read", "không đọc được nội dung"),
+        "ne_timed_out": ("a detector timed out", "một bộ phát hiện quá thời gian"),
+        "ne_skipped_by_policy": ("skipped by policy", "bị bỏ qua theo chính sách"),
+        "ne_gate_failed": ("the gate could not decide", "cổng không thể quyết định"),
+        "not_applicable": ("Not applicable", "Không áp dụng"),
+        "ne_not_applicable_for_direction": (
+            "not applicable to this direction",
+            "không áp dụng cho chiều này",
+        ),
+        "dtab_request": ("Request", "Yêu cầu"),
+        "dtab_response": ("Response", "Phản hồi"),
+        "dtab_detections": ("Detections", "Phát hiện"),
+        "dtab_metadata": ("Metadata", "Siêu dữ liệu"),
+        "part_args": ("Arguments", "Tham số"),
+        "part_tool_results": ("Tool results", "Kết quả công cụ"),
+        "part_output": ("Output", "Đầu ra"),
+        "request_note": (
+            "Masked text from the recorder. The gate stores only a keyed hash of the arguments.",
+            "Văn bản đã che từ bộ ghi. Cổng chỉ lưu mã băm có khóa của tham số.",
+        ),
+        "no_request_text": ("No request text", "Không có văn bản yêu cầu"),
+        "no_request_text_line": (
+            "No masked text is stored for this call, or no masker is set.",
+            "Không có văn bản đã che cho lệnh gọi này, hoặc chưa cấu hình bộ che.",
+        ),
+        "masked_record": ("Masked record (JSON)", "Bản ghi đã che (JSON)"),
+        "decision": ("Decision", "Quyết định"),
+        "allowed": ("allowed", "được phép"),
+        "denied": ("denied", "bị từ chối"),
+        "transformed_payload": ("Payload after masking", "Dữ liệu sau khi che"),
+        "transformed_note": (
+            "Rebuilt from the masked record; the gate does not store the transformed payload.",
+            "Dựng lại từ bản ghi đã che; cổng không lưu dữ liệu đã biến đổi.",
+        ),
+        "no_transform": ("The payload was not changed.", "Dữ liệu không bị thay đổi."),
+        "detector": ("Detector", "Bộ phát hiện"),
+        "code": ("Code", "Mã"),
+        "entities": ("Entities and fragments (masked)", "Thực thể và đoạn (đã che)"),
+        "action_hint": ("Action hint", "Gợi ý hành động"),
+        "leaf_precision": ("whole text", "toàn văn bản"),
+        "no_detections": ("No findings", "Không có phát hiện"),
+        "no_detections_line": (
+            "No detector fired on this decision.",
+            "Không bộ phát hiện nào kích hoạt cho quyết định này.",
+        ),
+        "located_fragments": ("Fragments in the masked text", "Đoạn trong văn bản đã che"),
+        "unlocated_fragments": ("Fragments not located", "Đoạn không định vị được"),
+        "lat_total": ("Latency total", "Tổng độ trễ"),
+        "lat_rules": ("Rules", "Quy tắc"),
+        "lat_detectors": ("Detectors", "Bộ phát hiện"),
+        "lat_overhead": ("Overhead", "Chi phí chung"),
+        "open_trace_span": ("Open the trace span", "Mở đoạn dấu vết"),
+        "same_correlation": ("{n} decisions share this id", "{n} quyết định cùng mã này"),
+        "open_alert": ("Open alert", "Mở cảnh báo"),
+        "export_csv": ("Export CSV", "Xuất CSV"),
+        "export_hint": (
+            "Masked columns only, at most {n} rows.",
+            "Chỉ các cột đã che, tối đa {n} dòng.",
+        ),
+        "export_done": (
+            "CSV built: {n} rows, {cols} columns.",
+            "Đã tạo CSV: {n} dòng, {cols} cột.",
+        ),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

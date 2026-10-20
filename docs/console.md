@@ -285,6 +285,7 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `alert.ack` | Acknowledge an alert (WP21) |  |  |  |  | x |  | x |
 | `decisions.view` | Gate decisions list and drawer (read-only) | x | x | x | x | x | x | x |
 | `traces.view` | Traces list and span viewer (masked payloads only) | x | x | x | x | x | x | x |
+| `decisions.export` | Export the filtered Gate decisions list as CSV: masked columns only, row cap (WP39) |  |  |  |  | x | x |  |
 | `playground.run` | Playground: dry-run gate check, no side effect (WP-UX3) |  | x | x | x | x |  | x |
 | `policies.view` | Policies page: deployed rules and versions (read-only) | x | x | x | x | x | x | x |
 | `credentials.view` | Credentials page: agent key metadata, never a secret (read-only) |  |  |  | x | x |  |  |
