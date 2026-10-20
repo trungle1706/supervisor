@@ -426,6 +426,12 @@ class Settings(BaseSettings):
     inventory_allowlist_file: Path | None = None  # default config/inventory_allowlist.yaml
     inventory_workspace_fixture: Path | None = None  # offline: JSON fixture instead of a workspace
 
+    # --- WP1b-B --- per-agent monitor bindings (D06, docs/monitors.md). Additive: the
+    # monitor flags above keep their meaning. A second folder is read after the built-in
+    # policies/ and src/supervisor_agents/ (relative paths resolve against the repo root).
+    monitor_policy_dir: Path | None = None  # extra folder of policy *.yaml (agents.<id>.monitors)
+    monitor_manifest_dir: Path | None = None  # extra folder of <agent>/manifest.yaml
+
     @field_validator(
         "data_dir",
         "sqlite_path",

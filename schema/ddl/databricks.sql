@@ -380,6 +380,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`oversight_metric` (
   judge_latency_ms BIGINT,
   judge_human_pairs BIGINT,
   judge_human_agree_bp BIGINT,
+  monitor_status STRING,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )

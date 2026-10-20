@@ -849,6 +849,21 @@ _T: dict[str, tuple[str, str]] = {
         "These are the numbers a risk committee asks for. Definitions: docs/metrics.md.",
         "Đây là số liệu hội đồng rủi ro cần. Định nghĩa: docs/metrics.md.",
     ),
+    # ---- WP1b-B monitor status on the Metrics page
+    "monitor_status": ("Monitor status", "Trạng thái bộ giám sát"),
+    "monitor_status_purpose": (
+        "Each monitor says what it did for each agent. 'not applicable' names the missing "
+        "binding; 'no data' means the binding exists but nothing was computed yet.",
+        "Mỗi bộ giám sát cho biết nó đã làm gì với từng tác tử. 'không áp dụng' nêu cấu hình "
+        "còn thiếu; 'chưa có dữ liệu' nghĩa là đã cấu hình nhưng chưa tính được gì.",
+    ),
+    "no_monitor_status": (
+        "No monitor has reported yet.",
+        "Chưa có bộ giám sát nào báo cáo.",
+    ),
+    "ms_ok": ("ok", "bình thường"),
+    "ms_not_applicable": ("not applicable", "không áp dụng"),
+    "ms_no_data": ("no data", "chưa có dữ liệu"),
     # ---- WP21 alerts panel on the Metrics page
     "alerts": ("Alerts", "Cảnh báo"),
     "alerts_purpose": (

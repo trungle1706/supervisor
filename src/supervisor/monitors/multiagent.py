@@ -22,9 +22,9 @@ scan state is rebuilt after a restart.
 from __future__ import annotations
 
 import json
-from collections import deque
+from collections import Counter, deque
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -36,6 +36,14 @@ from supervisor.monitors.common import (
     open_case,
     put_state,
     read_range,
+)
+from supervisor.monitors.status import (
+    NO_DATA,
+    NOT_APPLICABLE,
+    OK,
+    known_agents,
+    observed_tools,
+    set_status,
 )
 
 ACTOR = "monitor:multiagent"
@@ -158,33 +166,95 @@ class MultiAgentResult:
 
 
 class MultiAgentMonitor:
-    def __init__(self, ctx: MonitorContext, cfg: SplitPaymentConfig | None = None) -> None:
+    def __init__(
+        self,
+        ctx: MonitorContext,
+        cfg: SplitPaymentConfig | None = None,
+        resolver: Any | None = None,
+    ) -> None:
+        """``resolver``: a ``BindingResolver`` (WP1b-B). With it the scan also reads the
+        money tool each agent binds (``monitors.split_payment``) and every known agent gets
+        a status; without it only ``cfg.tool`` is scanned, as before."""
         self.ctx = ctx
         self.cfg = cfg or SplitPaymentConfig()
+        self.resolver = resolver
 
     def run(self, now: datetime | None = None) -> MultiAgentResult:
         now = now or self.ctx.clock.now()
-        state = get_state(self.ctx, MONITOR, "cursor")
+        res = MultiAgentResult()
+        if self.resolver is None:
+            self._scan(self.cfg, "cursor", now, res)
+            return res
+        observed = observed_tools(self.ctx, now - timedelta(seconds=self.cfg.first_run_lookback_s))
+        agents = known_agents(self.ctx, self.resolver, observed)
+        variants: dict[tuple[str, str, str], SplitPaymentConfig] = {
+            (self.cfg.tool, self.cfg.customer_key, self.cfg.payee_key): self.cfg
+        }
+        bound: dict[str, tuple[str, str, str]] = {}
+        gaps: dict[str, str] = {}
+        for agent_id in agents:
+            r = self.resolver.resolve(agent_id, observed.get(agent_id, ())).split
+            if not r.bound:
+                gaps[agent_id] = r.gap or ""
+                continue
+            key = (
+                str(r.tool),
+                r.customer_key or self.cfg.customer_key,
+                r.payee_key or self.cfg.payee_key,
+            )
+            bound[agent_id] = key
+            variants.setdefault(
+                key, replace(self.cfg, tool=key[0], customer_key=key[1], payee_key=key[2])
+            )
+        per_agent: dict[tuple[str, str, str], Counter[str]] = {}
+        for key, cfg in sorted(variants.items()):
+            name = "cursor" if cfg is self.cfg else f"cursor:{key[0]}:{key[1]}:{key[2]}"
+            per_agent[key] = self._scan(cfg, name, now, res)
+        day = now.date()
+        for agent_id in agents:
+            if agent_id in gaps:
+                set_status(
+                    self.ctx, day, agent_id, "multiagent", NOT_APPLICABLE, code="no_binding",
+                    reason=gaps[agent_id],
+                )  # fmt: skip
+                continue
+            n = per_agent[bound[agent_id]].get(agent_id, 0)
+            if n:
+                set_status(self.ctx, day, agent_id, "multiagent", OK, n=n)
+            else:
+                set_status(
+                    self.ctx, day, agent_id, "multiagent", NO_DATA, code="no_events",
+                    reason=f"no gate_decision events for {bound[agent_id][0]} in the last "
+                    f"{self.cfg.window_s} s",
+                )  # fmt: skip
+        return res
+
+    def _scan(
+        self, cfg: SplitPaymentConfig, cursor_key: str, now: datetime, res: MultiAgentResult
+    ) -> Counter[str]:
+        """One scan of one (tool, keys) variant. Returns events read per agent."""
+        state = get_state(self.ctx, MONITOR, cursor_key)
         cursor = (
             as_dt(state["ts"])
             if state and state.get("ts")
-            else now - timedelta(seconds=self.cfg.first_run_lookback_s)
+            else now - timedelta(seconds=cfg.first_run_lookback_s)
         )
-        window = timedelta(seconds=self.cfg.window_s)
+        window = timedelta(seconds=cfg.window_s)
         # Scan only settled time: a late-ingested event older than the cursor would
         # otherwise be read but its finding skipped forever.
-        end = max(cursor, now - timedelta(seconds=self.cfg.settle_s))
+        end = max(cursor, now - timedelta(seconds=cfg.settle_s))
         rows = read_range(
             self.ctx,
             "agent_event",
             cursor - window,
             end,
-            {"event_type": "gate_decision", "tool_name": self.cfg.tool},
+            {"event_type": "gate_decision", "tool_name": cfg.tool},
         )
-        scanner = SplitPaymentScanner(self.cfg)
-        res = MultiAgentResult()
+        scanner = SplitPaymentScanner(cfg)
+        seen: Counter[str] = Counter()
         for row in rows:
             res.events_scanned += 1
+            seen[str(row.get("agent_id"))] += 1
             f = scanner.feed(row)
             if f is None or f.ts < cursor:
                 continue  # found (or not new) in an earlier run
@@ -193,16 +263,17 @@ class MultiAgentMonitor:
             prev = get_state(self.ctx, MONITOR, mark)
             if prev and f.ts - as_dt(prev["ts"]) <= window:
                 continue
-            case_id = self._open(f)
+            case_id = self._open(f, cfg)
             put_state(self.ctx, MONITOR, mark, {"ts": format_ts(f.ts), "case_id": case_id})
             res.cases_opened.append(case_id)
-        put_state(self.ctx, MONITOR, "cursor", {"ts": format_ts(end)})
-        return res
+        put_state(self.ctx, MONITOR, cursor_key, {"ts": format_ts(end)})
+        return seen
 
-    def _open(self, f: Finding) -> str:
+    def _open(self, f: Finding, cfg: SplitPaymentConfig | None = None) -> str:
+        cfg = cfg or self.cfg
         summary = (
             f"Split payment across callers: {f.total_minor} minor units to one payee within "
-            f"{self.cfg.window_s} s via {', '.join(f.callers)}; agents {', '.join(f.agents)}"
+            f"{cfg.window_s} s via {', '.join(f.callers)}; agents {', '.join(f.agents)}"
         )
         return open_case(
             self.ctx,
@@ -221,8 +292,8 @@ class MultiAgentMonitor:
                 "agents": f.agents,
                 "total_minor": f.total_minor,
                 "allowed_minor": f.allowed_minor,
-                "limit_minor": self.cfg.limit_minor,
-                "window_s": self.cfg.window_s,
+                "limit_minor": cfg.limit_minor,
+                "window_s": cfg.window_s,
                 "event_ids": f.events,
                 "detected_at": format_ts(f.ts),
             },

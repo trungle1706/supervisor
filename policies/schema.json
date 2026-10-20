@@ -22,6 +22,17 @@
           "title": "Model Family",
           "type": "string"
         },
+        "monitors": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MonitorBindings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "name": {
           "minLength": 1,
           "title": "Name",
@@ -152,6 +163,173 @@
       "title": "Aggregate",
       "type": "object"
     },
+    "DriftBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_windows": {
+          "anyOf": [
+            {
+              "minimum": 2,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Windows"
+        },
+        "min_baseline_windows": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Baseline Windows"
+        },
+        "min_n": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min N"
+        },
+        "window_s": {
+          "anyOf": [
+            {
+              "minimum": 60,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window S"
+        }
+      },
+      "title": "DriftBinding",
+      "type": "object"
+    },
+    "FairnessBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "approve_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Approve Values",
+          "type": "array"
+        },
+        "decision_arg": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision Arg"
+        },
+        "decision_tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision Tool"
+        },
+        "protected_attribute_keys": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Protected Attribute Keys",
+          "type": "object"
+        },
+        "subject_arg": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject Arg"
+        }
+      },
+      "title": "FairnessBinding",
+      "type": "object"
+    },
+    "MonitorBindings": {
+      "additionalProperties": false,
+      "properties": {
+        "drift": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DriftBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fairness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FairnessBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "quality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QualityBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "split_payment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SplitPaymentBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "MonitorBindings",
+      "type": "object"
+    },
     "Predicate": {
       "additionalProperties": false,
       "description": "``arg`` is a dotted path into the tool args; ``ctx.`` reads the call context;\n``fact.<source>.<field>`` reads the system of record (missing record -> rule error).",
@@ -233,6 +411,25 @@
         "mode"
       ],
       "title": "Prior",
+      "type": "object"
+    },
+    "QualityBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "reply_tools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reply Tools",
+          "type": "array"
+        },
+        "text_arg": {
+          "default": "text",
+          "title": "Text Arg",
+          "type": "string"
+        }
+      },
+      "title": "QualityBinding",
       "type": "object"
     },
     "RuleSpec": {
@@ -377,6 +574,49 @@
         "owner"
       ],
       "title": "RuleSpec",
+      "type": "object"
+    },
+    "SplitPaymentBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "customer_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Customer Key"
+        },
+        "payee_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payee Key"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool"
+        }
+      },
+      "title": "SplitPaymentBinding",
       "type": "object"
     },
     "ToolMatch": {

@@ -37,6 +37,31 @@ decision is in `launch_report.md`.
 | 5 Launch | `onboard/launch.py` | `launch_report.json`, `launch_report.md`, `baseline.json`: catch rate and false-alarm rate (bp), 8+ integration checks, rule-by-rule enforce / stay-in-shadow list. |
 | 6 Operate | `onboard/operate.py` | `handover.json`: what to enforce first, what stays in shadow, artefact hashes, next steps. |
 
+### Tools, entrypoints, framework and model family (WP1b-B)
+
+Discover keeps four things apart that a benchmark showed were mixed up (defect D08):
+
+| Item | What counts | Where in `inventory.json` |
+|---|---|---|
+| Tool | A function the model can call: `@tool`, `StructuredTool`, `FunctionTool`, `BaseTool`, `create_react_agent` / `create_deep_agent` tool lists, deepagents sub-agent `tools`, schema + dispatch, registries, and routes of a tool server (path root `/tools/`, `/functions/`, `/actions/`, `/mcp`) | `tools` |
+| Entrypoint | An HTTP route of the agent app (FastAPI `app` / `APIRouter`, prefix included), with the `def` line as evidence. Name is `METHOD /path`, `detail` is `route:<function>`. A route is never a tool unless it is on a tool server | `entrypoints` |
+| Dynamic tools | `session.list_tools()` or a `"tools/list"` call: the tool list comes from an MCP server at run time and cannot be named from code | `dynamic_tool_sources` |
+| Framework | One value. `deepagents` is checked before `langgraph` (it is built on it), then `langgraph`, `crewai`, `llamaindex`, `databricks_agents`, `langchain`, `fastmcp`, `fastapi`, the SDKs | `framework` |
+
+Model family comes from the model id or serving endpoint name: vendor prefixes are cut
+(`databricks-`, `meta-`, `us.anthropic.`), then the leading word goes through the alias table
+of the judge router (`judge.router.FAMILY_ALIASES`, imported, not copied). So
+`databricks-claude-sonnet-4` is `anthropic`, `databricks-meta-llama-3-3-70b-instruct` is
+`meta`, `databricks-gpt-oss-120b` is `openai`, `qwen3.8-27b-int4` is `qwen`. A name that is
+not a string literal is followed to `os.environ.get("X", default)` / `os.environ["X"]` and to
+the values in `app.yaml` (`env:` list) and `.env*` files. The manifest wins when it names a
+family; otherwise `Inventory.model_family` / `model_id` come from the code (the most common
+known family among the model call sites) and `model_family_source` says `code`. If nothing is
+static the family stays `unknown`. The judge family check still compares families, so an
+`unknown` agent family must be filled by hand.
+
+Eval and numbers: `docs/onboard-eval.md`. Monitor bindings for the new agent: `docs/monitors.md`.
+
 ## Safety rules (ADR D12)
 
 - Read-only: `LocalGitRepoReader` has no write method; size cap per file; binary files

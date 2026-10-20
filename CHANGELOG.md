@@ -14,6 +14,7 @@ benchmark) is not in this wave yet; it adds `tests/perf/`, `tools/bench_latency.
 | WP21 | SIEM export (file, http, delta; jsonl, CEF, OCSF 1.1 subset), alert engine (`config/alerts.yaml`), Alerts section on Metrics with acknowledge, queued webhook notifier | `docs/siem.md`, `docs/alerts.md` | D15 |
 | WP22 | Tool usage rollup `tool_usage_daily`, least-privilege diff (suggestion only), console Tools page, `GET /v1/analytics/tools` | `docs/tool-analytics.md` | D18 |
 | WP24 | Inventory graph (agents, models, endpoints, tools, MCP servers, datasets), shadow-AI scan with low-severity cases (no incident clocks), console Inventory page, `GET /v1/inventory/...` | `docs/inventory.md` | D16 |
+| WP1b-B | Onboarding: FastAPI routes are `entrypoints` (file:line), not tools; `deepagents` framework; MCP `tools/list`, `create_react_agent` / `create_deep_agent` tool lists; model family from endpoint names and env / `app.yaml` values via the judge alias table; corpus repo `fastapi_deepagents_credit_toy`, eval with precision, recall, Wilson intervals. Monitors: per-agent bindings (manifest and `policies/*.yaml`), defaults from tool classes, `monitor_status` with `not_applicable` reasons on the Metrics page, harness `python -m supervisor.monitors.binding_harness` | `docs/onboard.md`, `docs/onboard-eval.md`, `docs/monitors.md` | D19 |
 | WP24b | Masker `vn_regex-3` (names in every case form, addresses, amounts kept), inline redaction of `pii_export` tool arguments at the gate, `pii_canary` v2, PII eval harness | `docs/masking.md`, `docs/masker-validation-report.md` | D17 |
 
 ### New flags (all default off)
@@ -38,6 +39,12 @@ benchmark) is not in this wave yet; it adds `tests/perf/`, `tools/bench_latency.
 - `post_json` (gate SDK transport) returns `{}` for an empty 2xx body instead of raising.
 - Reserved agent ids `inventory` and `app:*` are refused at registration and Discover.
 - Console "Verify chain" writes a `chain_verify` record after each verify.
+- WP1b-B: a FastAPI route outside a `/tools/` path is no longer a tool in the onboarding inventory
+  (it is an `entrypoints` item); `Inventory.model_family` / `model_id` are filled from code when
+  the manifest has none (`model_family_source`); `oversight_metric` gains the nullable column
+  `monitor_status`; the policy schema accepts `agents.<id>.monitors`; the inventory graph has an
+  `entrypoint` node kind. New settings `MONITOR_POLICY_DIR`, `MONITOR_MANIFEST_DIR` (no flag:
+  bindings are additive and the existing monitor flags are unchanged).
 
 ### Deploy note for Delta (databricks_app mode)
 

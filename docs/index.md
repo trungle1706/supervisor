@@ -38,6 +38,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/judge-mrm.md` | Model card, validation, change control of the judge | 2L, Aud |
 | `docs/enterprise-readiness.md` | Scored gaps (ISO 42001, NIST AI RMF, ASVS, ops) | 2L, Aud, Op |
 | `docs/metrics.md` | Oversight metrics and their definitions | 2L, Op |
+| `docs/monitors.md` | Per-agent monitor bindings and monitor status (`not_applicable`) | Dev, Op, 2L |
 | `docs/threat-model.md` | Threat model of Supervisor itself | 2L, Aud |
 | `docs/LICENSES.md` | Licence log for packages, assets, datasets | 2L, Aud |
 | `docs/BUILD_PLAN.md` | Phase 1 plan (WP0 to WP12) | Build |

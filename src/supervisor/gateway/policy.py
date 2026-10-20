@@ -29,6 +29,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from supervisor.core.canonical import sha256_hex
 from supervisor.core.errors import ConcurrencyError, SupervisorError
+from supervisor.core.monitor_bindings import MonitorBindings
 from supervisor.core.ports import Clock, StateStore
 
 MAX_POLICY_BYTES = 256 * 1024
@@ -275,6 +276,8 @@ class AgentManifest(_Strict):
     host_type: str = "python"
     plug_point: str = "sdk"
     initial_state: Literal["RUNNING", "SHADOW"] = "SHADOW"
+    # WP1b-B (D06): which tools the quality / fairness / drift / multi-agent monitors read.
+    monitors: MonitorBindings | None = None
 
 
 class PolicyDoc(_Strict):
