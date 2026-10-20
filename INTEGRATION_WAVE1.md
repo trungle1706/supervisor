@@ -11,7 +11,7 @@ Review this commit: see "Branch and commit" at the end.
 | Merges | 5 of 5 (`git merge --no-ff`), all conflicts resolved by union of the additive blocks |
 | `ruff check .` / `ruff format --check .` | clean / clean (621 files) |
 | Full suite `uv run python -m pytest -q` (no `-x`) | **3283 passed**, 28 skipped, 0 failed, 1 warning (main: 2791, so +492 new; more than the ~330 estimate because the review follow-ups added tests). Same count on the first run after the merges and on the final head |
-| `python -m supervisor.pii_eval` (both splits) | same as the WP24b baseline (table in section 5) |
+| `python -m supervisor.pii_eval` (both splits) | same as the WP24b baseline (table in section 6) |
 | `python -m supervisor.alerts.harness` | `[OK] all GO` on dev and held-out, 8 of 8 alerts |
 | Offline chain verify after inventory + alert jobs (fresh SQLite) | `RESULT: OK`, 15 signed roots, 5 lanes incl. `agent:inventory` |
 | Boot with all wave-1 flags on (port 18431) | /health, /ready, Tools, Inventory, Metrics 200; signed SDK check allowed; unsigned 401; all jobs `ok` |
@@ -181,7 +181,7 @@ Integration notes (not owner decisions):
 |---|---|
 | Branch | `phase3-wave1` |
 | Worktree | `/home/trung/supervisor/.claude/worktrees/agent-a1f4b3e7345d4debe` |
-| Head | see `git log -1 phase3-wave1` (this file is the last commit) |
+| Head | the last commit on `phase3-wave1` (report-only commits on top of `e1730f3`; code and tests are final at `e1730f3`) |
 | Diff vs main | 200+ files, about 28,200 insertions, 226 deletions |
 
 Commits on top of main (first parent):
