@@ -852,6 +852,10 @@ class CaseService:
 
     # ------------------------------------------------------------------ sign-off
 
+    def approvals(self, case_id: str) -> dict[str, str]:
+        """Current approvals {reviewer_id: role} (read-only; for the console counts and panels)."""
+        return self._approvals(case_id)
+
     def _approvals(self, case_id: str) -> dict[str, str]:
         """Current approvals {reviewer_id: role}; a reject clears earlier approvals."""
         out: dict[str, str] = {}

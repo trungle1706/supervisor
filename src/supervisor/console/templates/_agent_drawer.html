@@ -8,7 +8,7 @@
 {% set page_base = '/console/agents?drawer=' ~ a.agent_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
 {% set pills %}{{ ui.state_pill(a.state) }}{% if a.risk_tier %} {{ ui.pill(t('risk') ~ ' ' ~ t(a.risk_tier), 'neutral') }}{% endif %}{% if a.judge.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}{% endset %}
 {% set labels = {'overview': t('dtab_overview'), 'policy': t('dtab_policy'), 'cases': t('dtab_cases')} %}
-{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base, counts={'policy': a.rules_n, 'cases': a.open_cases}) }}{% endset %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base, counts={'policy': a.rules_n, 'cases': a.open_cases}, panel='tab-body') }}{% endset %}
 {% set prev_href = ('/console/agents?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
 {% set prev_hx = ('/console/agents/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
 {% set next_href = ('/console/agents?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
