@@ -16,6 +16,20 @@ benchmark) is not in this wave yet; it adds `tests/perf/`, `tools/bench_latency.
 | WP24 | Inventory graph (agents, models, endpoints, tools, MCP servers, datasets), shadow-AI scan with low-severity cases (no incident clocks), console Inventory page, `GET /v1/inventory/...` | `docs/inventory.md` | D16 |
 | WP24b | Masker `vn_regex-3` (names in every case form, addresses, amounts kept), inline redaction of `pii_export` tool arguments at the gate, `pii_canary` v2, PII eval harness | `docs/masking.md`, `docs/masker-validation-report.md` | D17 |
 
+### WP1b-A: benchmark defects D05, D12, D13, D14, D15
+
+| Defect | Change | Docs |
+|---|---|---|
+| D14 | `LLM_STRICT_SCHEMA`, `LLM_SEND_TEMPERATURE`: the adapter can talk to Anthropic's OpenAI-compatible endpoint (stripped schema copy, local validation against the full schema); contract test on recorded 400s and a recorded 200 | `docs/llm-adapter.md` |
+| D05 | Judge family derived from the model id (and endpoint metadata with `JUDGE_FAMILY_PROBE`); declared family only with `JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1` (refused in `databricks_app`); `family_source` in `verdict` rows, chain records, model card, validation report | `docs/llm-adapter.md`, `docs/judge-mrm.md`, ADR D19 |
+| D15 | Challenger checked only against registered non-retired agents and `JUDGE_AGENTS`; `mrm validate` mock mode no longer calls a configured real challenger | `docs/llm-adapter.md` |
+| D13 | `POLICY_DIR`, `FACT_SOURCE` (`sqlite:` read-only with `FACT_QUERY_MAP`, `callable:`) wired through `wiring.py` and `gateway/wiring.py` | `docs/fact-sources.md` |
+| D12 | `HttpGate` posts to `/v1/gate/check`; falls back once to `/gate/check` on HTTP 404 | `docs/api.md` |
+
+Behaviour change with flags off: a declared `JUDGE_*_FAMILY` that disagrees with the model id (or
+is given for a model whose family cannot be derived) now stops startup. New nullable column
+`verdict.family_source`: run `python -m supervisor.jobs.bootstrap_schema` before deploying on Delta.
+
 ### New flags (all default off)
 
 | Flag | Turns on | Related settings |
@@ -29,6 +43,9 @@ benchmark) is not in this wave yet; it adds `tests/perf/`, `tools/bench_latency.
 | `INVENTORY_ENABLED` | Inventory fill, scheduler job `inventory`, console Inventory page, `/v1/inventory/...` | `INVENTORY_SCAN_SCHEMAS`, `INVENTORY_SELF_APP`, `INVENTORY_ALLOWLIST_FILE`, `INVENTORY_WORKSPACE_FIXTURE`, `SCHED_INVENTORY_S` |
 | `INLINE_REDACTION_ENABLED` | Gate answer carries masked `transformed_args` for `pii_export` tools (SDK / MCP proxy switch must also be on) | `INLINE_REDACTION_TOOLS` |
 | `MASK_AMOUNTS` | Types money amounts as `<AMOUNT:...>` in masked text | - |
+| `LLM_STRICT_SCHEMA` (default `0`), `LLM_SEND_TEMPERATURE` (default `1`) | Strict structured output for endpoints that require it | - |
+| `JUDGE_FAMILY_OVERRIDE_TEST_ONLY` | Accepts a declared judge family (tests only) | `JUDGE_FAMILY_PROBE`, `JUDGE_AGENTS` |
+| `POLICY_DIR`, `FACT_SOURCE` | Served app loads another policy folder and a fact source | `FACT_QUERY_MAP` |
 
 ### Behaviour changes with flags off
 

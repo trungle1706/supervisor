@@ -77,3 +77,9 @@
 | WP24: lineage (who reads which UC table) comes from the fixture only; the live reader does not call the lineage API | Add `lineage-tracking` table-lineage reads when the metastore enables it |
 | WP24: risk inheritance uses `uses` edges only; datasets carry no own level; no per-node Decision 33 tasks | WP29 risk register and WP30 task list decide what else passes up |
 | WP24: shadow case severity is fixed `low` | Owner decision (ADR D16 open 3) |
+| WP1b-A: `FACT_SOURCE` has `callable` and read-only `sqlite` kinds only; no Databricks SQL warehouse kind, no REST kind, no cache | Add a `databricks_sql` kind (statement execution, read-only identity) when the bank names the system of record |
+| WP1b-A: `POLICY_DIR` is read by `wiring.py` and `gateway/wiring.py`; `analytics/tools*`, `assurance/targets.py` and the drill still read `<repo>/policies` | Pass `settings.policy_dir` to those readers |
+| WP1b-A: `JUDGE_FAMILY_PROBE` reads `GET /models` once at build; vLLM reports the weights name in `root`, Anthropic gives only the id, Databricks serving gives no family | Endpoint-reported digest/revision (see the `model_version` row above) |
+| WP1b-A: T1 and T2 are still checked against all manifests and all registry rows, retired agents included | Skip retired agents for T1/T2 too once a retirement test covers it |
+| WP1b-A: strict mode strips constraints from the request; the model can return a value outside them and costs one retry before the local check rejects it | Prompt-side limits are already in the template; measure the invalid-output rate per model in the validation report |
+| WP1b-A: Anthropic's endpoint refuses `temperature`, so determinism rests on model id and prompt version, not on temperature 0 | Run `--runs 3` stability on the real model before a go-live validation |

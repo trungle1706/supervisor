@@ -50,6 +50,8 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Assurance packs | 33 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
 | Tool analytics | Per-tool calls, outcomes, latency; allowed-but-unused tools; least-privilege diff (suggestion only) | `docs/tool-analytics.md`, `docs/adr/D18-tool-analytics.md` |
 | Judge MRM | Model card, validation report, change control, retire | `docs/judge-mrm.md` |
+| LLM adapter and judge models | Strict endpoints, derived judge family, challenger scope | `docs/llm-adapter.md`, `docs/adr/D19-derived-judge-family-and-served-config.md` |
+| Policy folder and fact source | `POLICY_DIR`, `FACT_SOURCE` for the served app | `docs/fact-sources.md` |
 | Inventory graph | Agents, models, endpoints, tools, MCP servers and datasets with evidence; risk passes up; flags Apps and endpoints with no manifest (shadow AI) | `docs/inventory.md`, `docs/adr/D16-inventory-graph.md` |
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
 | Ingress auth (WP20, off by default) | Per-agent HMAC key or Databricks service-principal token on `/gate/check` and `/v1/traces`; `INGRESS_AUTH_ENABLED=1` | `docs/ingress-auth.md`, `docs/adr/D14-ingress-auth.md` |
@@ -102,6 +104,9 @@ until you turn its flag on.
 | `INGRESS_AUTH_ENABLED` | Requires a per-agent credential (HMAC key, Databricks SP token or Apps proxy identity) on `/gate/check`, `/v1/gate/check` and `/v1/traces`; refusals are 401 / 403 and audited. See `docs/ingress-auth.md` |
 | `RATE_LIMIT_ENABLED` | Rate-limits mutating routes (429); agent check path is exempt |
 | `INVENTORY_ENABLED` | Fills the inventory graph, runs the workspace refresh job (databricks_app mode), shows the Inventory tab and `/v1/inventory/...`; shadow-AI items open low-severity cases |
+| `LLM_STRICT_SCHEMA` / `LLM_SEND_TEMPERATURE` | Strict json_schema without the keywords Anthropic's OpenAI-compatible endpoint refuses (`1`), and leaving `temperature` out of the request (`0`). Defaults `0` and `1` keep the old request. See `docs/llm-adapter.md` |
+| `JUDGE_FAMILY_OVERRIDE_TEST_ONLY` | Lets a declared `JUDGE_*_FAMILY` replace the family derived from the model id (tests only; refused in `databricks_app` mode). Rows then say `family_source=declared-test-only`. `JUDGE_FAMILY_PROBE=1` also asks the endpoint's `/models`. `JUDGE_AGENTS` lists agent ids whose manifests the challenger is checked against. See `docs/llm-adapter.md` |
+| `POLICY_DIR` / `FACT_SOURCE` / `FACT_QUERY_MAP` | The served app loads another policy folder and a fact source (`sqlite:/abs/file.db` read-only with a query map, or `callable:pkg.mod:factory`). See `docs/fact-sources.md` |
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
 | `MASK_AMOUNTS` | Types money amounts `<AMOUNT:...>` in masked text (default: amounts stay intact, the rules need them). See `docs/masking.md` |
 | `INLINE_REDACTION_ENABLED` | Gate answer carries masked `transformed_args` for `pii_export` tools; the SDK and the MCP proxy apply them when their own switch is on. `INLINE_REDACTION_TOOLS` adds tools. See `docs/masking.md` |
