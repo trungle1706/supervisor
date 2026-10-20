@@ -141,9 +141,11 @@ def drawer_view(ctx: Any, alert_id: str) -> dict[str, Any]:
             "entry_hash",
             "route_status",
             "acknowledged_by",
+            "correlation_id",
         )
     }
     return {
+        "settings_v2": bool(getattr(ctx.settings, "console_decisions_v2", False)),
         "al": row,
         "agent": _agent_of(row),
         "json_text": json.dumps(shown, sort_keys=True, indent=2, default=str),

@@ -18,8 +18,10 @@
     (t('alert_rule_hash'), al.rule_hash, True),
     (t('alert_routes'), (al.route_status or {}).items()|map('join', '=')|join(', ')),
     (t('alert_acked_by'), al.acknowledged_by),
+    (t('correlation_id'), al.correlation_id, True),
   ]) }}
   <p class="btnrow">
+    {% if al.correlation_id and drawer.settings_v2 %}<a class="btn" href="/console/decisions?correlation={{ al.correlation_id|urlencode }}&amp;lang={{ lang }}">{{ t('open_decision') }}</a>{% endif %}
     {% if al.case_id %}<a class="btn" href="/console/cases/{{ al.case_id }}?lang={{ lang }}">{{ t('case') }} {{ al.case_id }}</a>{% endif %}
     {% if al.status == 'open' %}
     <form hx-post="/console/alerts/{{ al.alert_id }}/ack?lang={{ lang }}" hx-target="#list" style="display:inline">
