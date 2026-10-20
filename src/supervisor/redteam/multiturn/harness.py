@@ -47,6 +47,8 @@ INFO_METRICS = (
     "attack_success_bp",
     "model_gate_catch_bp",
     "known_gap_open_count",
+    "monitor_profile_visible_bp",
+    "monitor_profile_false_alarm_bp",
     "tier0b_first_turn_bp",
     "median_turns_to_success",
     "conversations",

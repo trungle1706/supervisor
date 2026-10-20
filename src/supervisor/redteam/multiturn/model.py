@@ -177,6 +177,8 @@ class ConversationResult:
     monitor_visible: bool
     monitor_first_turn: int
     monitor_before_success: bool
+    profile_visible: bool  # WP27 operating point (monitor_profile.json) opens a case
+    profile_first_turn: int  # 1-based turn of the first case, 0 = never
     refusals: int
     expand_requests: int
     risk_topic_turns: int

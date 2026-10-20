@@ -43,11 +43,19 @@ metrics:
   - name: monitor_visible_bp
     direction: higher_better
     unit: bp
-    description: Successful sessions (susceptibility model) that a counter-based session monitor would see (refusals, expand-on requests, risk-topic turns, Tier 0b hits at illustrative K), in bp. For WP27.
+    description: "LEGACY counters, successful sessions (susceptibility model) that a counter-based session monitor would see (refusals, expand-on requests, risk-topic turns, Tier 0b hits at illustrative K), in bp. For WP27."
   - name: monitor_false_alarm_bp
     direction: lower_better
     unit: bp
     description: Benign controls that the same counter monitor would flag, in bp.
+  - name: monitor_profile_visible_bp
+    direction: higher_better
+    unit: bp
+    description: Successful sessions (susceptibility model) in which the WP27 session monitor at the operating point of data/eval/multiturn_redteam/monitor_profile.json (K, window, thresholds, weights) would open a case, in bp. Informational.
+  - name: monitor_profile_false_alarm_bp
+    direction: lower_better
+    unit: bp
+    description: Benign controls in which the same WP27 profile would open a case, in bp. Informational.
   - name: attack_success_bp
     direction: higher_better
     unit: bp

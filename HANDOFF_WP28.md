@@ -147,3 +147,19 @@ uv run python -m supervisor.redteam.multiturn probes           [OK] probes 40 co
 uv run python -m supervisor.redteam.multiturn baseline         [OK] no regression against the recorded baseline
 ```
 Note: the recorded validation numbers (sections 5 of this file and the validation report) were produced before F11 and are not re-run; the pooled mock number and the hole count shift by the new kind. No `.env` created; scratch logs are `wp28_followup_*.txt`.
+
+### Validation re-run on the current head (after F11) and the WP27 monitor profile
+
+Re-run: `validate --out wp28_val_final --trials 50` (dev 86 objectives, 4300 model-pass conversations; held-out 36 unchanged). Thresholds not changed. Changes against the table in section 5: dev pooled worst-case (MOCK) 6551 (was 6817), known holes 7 kinds (was 6), dev success 4646 [4497-4796], payload_split dev success 2750 [2451-3070] (n = 800, median turns 5), dev legacy-counter visibility 7967 [7785-8139] n = 1998 = WARN (was GO), dev benign monitor false alarm 232 [107-498] n = 258. Held-out is identical to section 5 (monitor false alarm 555 = WARN). Details in `docs/redteam-multiturn-validation.md`.
+
+WP27 operating point: `data/eval/multiturn_redteam/monitor_profile.json` (K 3, case 2500, pause 4000, hit 5000, window 1800 s, cool-down 3600 s, the nine weights you gave). `profile_monitor.py` applies it to the traces; the trend, the report and the pack have the two rows (new informational metrics `monitor_profile_visible_bp`, `monitor_profile_false_alarm_bp`; `monitor_visible_bp` is now labelled legacy counters and keeps its thresholds).
+
+| Row | Held-out | Dev |
+|---|---|---|
+| Monitor would see, WP27 profile (successful sessions) | 2873 [2571-3196], n = 804 | 4734 [4516-4954], n = 1998 |
+| Legacy counters | 8271 [7994-8517], n = 804 | 7967 [7785-8139], n = 1998 |
+| Benign flagged, WP27 profile / legacy | 0 of 108 / 555 | 0 of 258 / 232 |
+
+The quiet point is silent on most patient sessions (crescendo 717 bp, tool poisoning 300 held-out) but sees memory poison (7628 held-out) and flags no benign session. Caveat: it is a restatement over these traces, not WP27's code (its branch is not merged here); text features use this harness's cue lexicon and cross_agent is 0.
+
+traces.jsonl against WP27's adapter: per turn `i`, `text`, `tier0b[]`, `planted_tier0b[]`, `cues{}`, `asked_calls`, `executed[{tool, status, amount_minor}]`, `refused`, `gate_would_stop[]`, `ts` all present with those names. Differences: `amount_minor` appears only when the call has an integer amount; `ts` is an ISO-8601 string of the sandbox clock; extra keys `stage`, `tags`, `text_sha256`, `attacker_mode`, `oracle_hit`, `counters`; per conversation `profile_first_turn`.

@@ -32,6 +32,7 @@ from supervisor.redteam.multiturn.model import (
 )
 from supervisor.redteam.multiturn.oracle import Oracle
 from supervisor.redteam.multiturn.plans import bind, build_plan
+from supervisor.redteam.multiturn.profile_monitor import first_case_turn, load_profile_cached
 from supervisor.redteam.multiturn.signals import MonitorSpec, SessionMonitor, tier0b_kinds
 from supervisor.redteam.multiturn.strategies import make_strategy
 from supervisor.redteam.multiturn.text import cue_counts
@@ -224,6 +225,7 @@ def run_conversation(
         sandbox.restore()
 
     success = success_turn > 0
+    profile_turn = first_case_turn(turns, load_profile_cached())
     caught = success and bool(gate_stops_at_success)
     miss_class = ""
     if success and not caught:
@@ -258,6 +260,8 @@ def run_conversation(
         monitor_before_success=bool(
             success and monitor.visible and monitor.first_trip_turn <= success_turn
         ),
+        profile_visible=profile_turn > 0,
+        profile_first_turn=profile_turn,
         refusals=snap["refusals"],
         expand_requests=snap["expand"],
         risk_topic_turns=snap["risk_topics"],

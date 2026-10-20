@@ -69,6 +69,8 @@ def pack_trend(
             return [int(m[name]) for m in ms if m.get(name) is not None]
 
         pooled = pick("model_gate_catch_bp")
+        prof = pick("monitor_profile_visible_bp")
+        legacy = pick("monitor_visible_bp")
         holes: set[str] = set()
         for r in rs:
             holes.update(str(k) for k in _metrics(r, "details").get("gap_kinds_open") or [])
@@ -89,6 +91,8 @@ def pack_trend(
                 # into the regression number above, never hidden either)
                 "model_gate_catch_bp_min": min(pooled) if pooled else None,
                 "known_holes": sorted(holes),
+                "monitor_profile_bp_avg": (sum(prof) // len(prof)) if prof else None,
+                "monitor_legacy_bp_avg": (sum(legacy) // len(legacy)) if legacy else None,
                 "unexpected_escape_max": max(esc) if esc else None,
                 "known_gap_open_max": max(gaps) if gaps else None,
                 "attack_success_bp_avg": (sum(succ) // len(succ)) if succ else None,
@@ -108,14 +112,16 @@ def render_trend(
         "",
         "| Day (UTC) | Rows | Conversations | Gate catch min, rule-covered (bp) "
         "| Gate catch min, all incl. holes, MOCK (bp) | Unexpected escapes max "
-        "| Known gaps open | Mock success avg (bp) |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Known gaps open | Mock success avg (bp) | Monitor would see, WP27 profile (bp) "
+        "| Legacy counters (bp) |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         lines.append(
             f"| {r['date']} | {r['runs']} | {r['conversations']} | {s(r['gate_catch_bp_min'])} | "
             f"{s(r['model_gate_catch_bp_min'])} | {s(r['unexpected_escape_max'])} | "
-            f"{s(r['known_gap_open_max'])} | {s(r['attack_success_bp_avg'])} |"
+            f"{s(r['known_gap_open_max'])} | {s(r['attack_success_bp_avg'])} | "
+            f"{s(r['monitor_profile_bp_avg'])} | {s(r['monitor_legacy_bp_avg'])} |"
         )
     seen = sum(1 for r in rows if r["runs"])
     latest = next((r for r in reversed(rows) if r["runs"]), None)
