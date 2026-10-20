@@ -813,3 +813,74 @@ CREATE TABLE IF NOT EXISTS tool_usage_daily (
 );
 
 CREATE INDEX IF NOT EXISTS ix_tool_usage_daily_agent_id_usage_date ON tool_usage_daily (agent_id, usage_date);
+
+-- alert (state): WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.
+CREATE TABLE IF NOT EXISTS alert (
+  alert_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  dedupe_key TEXT NOT NULL,
+  rule_id TEXT NOT NULL,
+  rule_hash TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  status TEXT NOT NULL,
+  title TEXT NOT NULL,
+  agent_id TEXT,
+  group_value TEXT,
+  window_s INTEGER NOT NULL,
+  window_count INTEGER NOT NULL,
+  threshold INTEGER NOT NULL,
+  first_ts TEXT NOT NULL,
+  last_ts TEXT NOT NULL,
+  suppressed_count INTEGER NOT NULL,
+  case_id TEXT,
+  chain_lane TEXT,
+  chain_seq INTEGER,
+  entry_hash TEXT,
+  refs TEXT NOT NULL,
+  routes TEXT NOT NULL,
+  route_status TEXT NOT NULL,
+  acknowledged_by TEXT,
+  acknowledged_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (alert_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_alert_status_ts ON alert (status, ts);
+
+CREATE INDEX IF NOT EXISTS ix_alert_dedupe_key_ts ON alert (dedupe_key, ts);
+
+-- siem_event (append_only): WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it. Ids, hashes and enums only. event_id is the idempotency key.
+CREATE TABLE IF NOT EXISTS siem_event (
+  event_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  severity INTEGER NOT NULL,
+  outcome TEXT NOT NULL,
+  agent_id TEXT,
+  rule_id TEXT,
+  case_id TEXT,
+  actor TEXT,
+  chain_lane TEXT,
+  chain_seq INTEGER,
+  entry_hash TEXT,
+  env TEXT NOT NULL,
+  event_schema TEXT NOT NULL,
+  ocsf_class_uid INTEGER NOT NULL,
+  ocsf_json TEXT NOT NULL,
+  PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_siem_event_ts ON siem_event (ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_siem_event_no_update
+BEFORE UPDATE ON siem_event
+BEGIN
+  SELECT RAISE(ABORT, 'siem_event is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_siem_event_no_delete
+BEFORE DELETE ON siem_event
+BEGIN
+  SELECT RAISE(ABORT, 'siem_event is append-only');
+END;

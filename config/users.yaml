@@ -5,7 +5,7 @@
 # Roles: viewer | reviewer | approver | owner | auditor | admin | operator
 # (the full role x permission table is in docs/console.md, "Role matrix")
 #   viewer    read-only console pages
-#   operator  views + run case intake + verify the chain
+#   operator  views + run case intake + verify the chain + acknowledge alerts
 #   reviewer  assign, triage, contain, close, comment, ITSM ref, sign-off, record report sent,
 #             pause, resume (reviewer half), intake, start onboarding, verify, export
 #   approver  sign-off (approver half), record report sent, comment, pause, verify, export

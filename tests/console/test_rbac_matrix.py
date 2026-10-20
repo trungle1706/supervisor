@@ -323,6 +323,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "evidence.export",
         "onboard.start",
         "inbox.read",
+        "alert.ack",
         "dev.user",
     }
     posts = {

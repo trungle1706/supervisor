@@ -400,6 +400,24 @@ class Settings(BaseSettings):
     tool_analytics_dir: Path | None = None  # suggested diffs; default <data_dir>/analytics
     console_tools_enabled: bool = False  # the Tools page
 
+    # --- WP21 (SIEM and alerts live). Both default off. SIEM sink details (kind, format,
+    # URL, token) are read by supervisor.adapters.integrations.IntegrationSettings from the
+    # same environment (SIEM_SINK, SIEM_FORMAT, SIEM_HTTP_URL, ...); only the on/off switch and
+    # the job interval live here. ADR D15, docs/siem.md, docs/alerts.md.
+    siem_enabled: bool = False
+    sched_siem_s: int = Field(default=60, ge=5)
+    alerts_enabled: bool = False
+    alerts_config: Path = Path("config/alerts.yaml")
+    sched_alerts_s: int = Field(default=60, ge=5)
+    sched_notify_s: int = Field(default=15, ge=5)
+    # Watermark lag: a signal is judged only when it is at least this old. A chain entry gets
+    # its ts before its rows commit (seconds on Delta), and lanes commit in any order, so a
+    # cursor at "now" would skip entries that become visible late.
+    alerts_suppression_max_s: int = Field(default=30 * 86400, ge=0)  # longest planned mute
+    alerts_lag_s: int = Field(default=30, ge=0, le=3600)
+    notify_webhook_dead_letter: Path | None = None  # default: <data_dir>/notify/webhook.dead.jsonl
+    notify_webhook_token: SecretStr | None = None  # bank vault; Authorization: Bearer <token>
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -421,6 +439,8 @@ class Settings(BaseSettings):
         "osv_db_path",
         "ingress_keys_file",
         "ingress_identities_file",
+        "alerts_config",
+        "notify_webhook_dead_letter",
         mode="after",
     )
     @classmethod

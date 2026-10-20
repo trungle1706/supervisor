@@ -28,6 +28,7 @@ import argparse
 import shutil
 import sys
 import tempfile
+import uuid
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -83,18 +84,24 @@ def _show(d: dict[str, Any]) -> str:
     )
 
 
-def run_drill(data_dir: Path | None = None, echo: Echo = default_echo) -> DrillReport:
-    """Run the drill. ``data_dir=None`` uses a fresh temporary directory (removed after)."""
+def run_drill(
+    data_dir: Path | None = None, echo: Echo = default_echo, sink: Any = None
+) -> DrillReport:
+    """Run the drill. ``data_dir=None`` uses a fresh temporary directory (removed after).
+
+    The result is written as a ``failmode_drill`` record ``{ok, failures}`` on the drill's own
+    chain and, when ``sink`` (an EvidenceSink of the real store) is given, on that chain too, so
+    the alert rule AL-FAILCLOSED-DRILL-FAIL can see it (WP21)."""
     if data_dir is None:
         tmp = Path(tempfile.mkdtemp(prefix="supervisor-drill-"))
         try:
-            return _drill(tmp, echo)
+            return _drill(tmp, echo, sink)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
-    return _drill(Path(data_dir), echo)
+    return _drill(Path(data_dir), echo, sink)
 
 
-def _drill(data_dir: Path, echo: Echo) -> DrillReport:
+def _drill(data_dir: Path, echo: Echo, sink: Any = None) -> DrillReport:
     from supervisor.core.canonical import sha256_hex
     from supervisor.demo.seed import wipe
     from supervisor.evidence.export import export_chain
@@ -212,6 +219,11 @@ def _drill(data_dir: Path, echo: Echo) -> DrillReport:
             "(e) the chain accepts new entries after the restore",
             "(e) no new chain entry after the restore",
         )
+        payload = {"ok": rep.ok, "failures": rep.failures}
+        rt.chain.record("failmode_drill", "failmode_drill:local", payload)
+        if sink is not None:
+            sink.record("failmode_drill", f"failmode_drill:{uuid.uuid4().hex}", payload)
+            say("[OK] drill result written to the evidence chain (failmode_drill)")
     finally:
         try:
             session.close()
@@ -224,9 +236,21 @@ def _drill(data_dir: Path, echo: Echo) -> DrillReport:
 def main(argv: Sequence[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m supervisor.demo drill", description=__doc__)
     p.add_argument("--data-dir", default=None, help="throwaway data dir (default: a temp dir)")
+    p.add_argument(
+        "--record",
+        action="store_true",
+        help="also write the result to the configured evidence chain (run with the app stopped)",
+    )
     args = p.parse_args(list(argv) if argv is not None else None)
     try:
-        rep = run_drill(Path(args.data_dir).resolve() if args.data_dir else None)
+        data_dir = Path(args.data_dir).resolve() if args.data_dir else None
+        if args.record:
+            from supervisor.monitors.jobctx import standalone
+
+            with standalone() as (_s, _a, ctx):
+                rep = run_drill(data_dir, sink=ctx.evidence)
+        else:
+            rep = run_drill(data_dir)
     except SupervisorError as exc:
         default_echo(f"[FAIL] {exc}")
         return 1

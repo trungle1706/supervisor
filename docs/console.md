@@ -82,7 +82,15 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | owner | Resume (as the owner half), comment, pause, start an onboarding run, verify case and chain, mark inbox read |
 | auditor | Read pages, verify case and chain, mark inbox read, build and download audit packs and chain exports |
 | admin | Everything a reviewer can do, plus quarantine and release a quarantine |
-| operator | Read pages, run case intake, verify the chain |
+| operator | Read pages, run case intake, verify the chain, acknowledge alerts |
+
+### Alerts (WP21)
+
+The Metrics page has an **Alerts** section (flag `ALERTS_ENABLED` makes the job that fills it;
+the section itself always shows the table). It lists open and acknowledged alerts with rule,
+severity, agent, window count, repeats, case link and chain position. The **Acknowledge**
+button needs the `alert.ack` permission (operator, admin) and writes two audit rows and an
+`alert_ack` evidence record. See `docs/alerts.md`.
 
 ### Role matrix
 
@@ -114,6 +122,7 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | `agent.resume` | Approve a resume (D04, two people) |  | x |  | x | x |  |  |
 | `agent.quarantine` | Quarantine an agent |  |  |  |  | x |  |  |
 | `agent.release` | Release an agent from quarantine |  |  |  |  | x |  |  |
+| `alert.ack` | Acknowledge an alert (WP21) |  |  |  |  | x |  | x |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

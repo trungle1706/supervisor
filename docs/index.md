@@ -21,6 +21,8 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/api.md` | API versioning policy and paths | Dev |
 | `docs/INTEGRATION_GUIDE.md` | Three ways to fit a product into Supervisor | Dev |
 | `docs/bank-integration.md` | Bank-side integration contracts (stubs) | Dev, Op |
+| `docs/siem.md` | SIEM export: sinks, jsonl / CEF / OCSF field mapping, Splunk, Sentinel, Databricks examples | Op, Dev |
+| `docs/alerts.md` | Alert rules, dedupe, routes, acknowledge, harness | Op, 2L |
 | `docs/recorder.md` | Trace recorder, OTLP, masking | Dev |
 | `docs/masking.md` | PII masker `vn_regex-3`, amounts, inline redaction, eval harness, `pii_canary` | Dev, 2L |
 | `docs/masker-model-card.md` | Model card of the masker (identity, use, metrics, failure modes, change log) | 2L, Aud |
@@ -39,6 +41,6 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/BUILD_PLAN.md` | Phase 1 plan (WP0 to WP12) | Build |
 | `docs/BUILD_PLAN_PHASE2.md` | Phase 2 plan (WP13 to WP19) and status | Build |
 | `docs/ingress-auth.md` | Per-agent credentials on agent ingress: setup, rotation, rubric (WP20) | Build, Sec |
-| `docs/adr/` (D01 to D14, D17) | Design decisions: gateway, evidence chain, judges, retention | Build, Aud |
+| `docs/adr/` (D01 to D15, D17) | Design decisions: gateway, evidence chain, judges, retention | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |

@@ -849,6 +849,22 @@ _T: dict[str, tuple[str, str]] = {
         "These are the numbers a risk committee asks for. Definitions: docs/metrics.md.",
         "Đây là số liệu hội đồng rủi ro cần. Định nghĩa: docs/metrics.md.",
     ),
+    # ---- WP21 alerts panel on the Metrics page
+    "alerts": ("Alerts", "Cảnh báo"),
+    "alerts_purpose": (
+        "Alerts raised by the rules in config/alerts.yaml. An operator acknowledges an alert; "
+        "the action is audited.",
+        "Cảnh báo do các quy tắc trong config/alerts.yaml tạo ra. Người vận hành xác nhận cảnh "
+        "báo; hành động được ghi nhật ký.",
+    ),
+    "alerts_open": ("open", "đang mở"),
+    "alerts_ack": ("acknowledged", "đã xác nhận"),
+    "alert_ack_btn": ("Acknowledge", "Xác nhận"),
+    "alert_rule": ("Rule", "Quy tắc"),
+    "alert_window": ("Window", "Cửa sổ"),
+    "alert_repeats": ("Repeats", "Lặp lại"),
+    "alert_chain": ("Chain", "Chuỗi"),
+    "no_alerts": ("No alerts.", "Không có cảnh báo."),
     "day": ("Day", "Ngày"),
     "all_rows": ("All rows ({n})", "Tất cả các dòng ({n})"),
     "flow_open": ("open", "mở"),

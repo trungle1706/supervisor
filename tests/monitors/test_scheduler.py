@@ -158,6 +158,9 @@ def test_build_jobs_defaults_and_anchor_seals_chain(runtime, clock) -> None:
 def test_build_jobs_all_flags_run(runtime, clock) -> None:
     settings, rt = runtime(drift_enabled=True, fairness_enabled=True, metrics_enabled=True,
                            retention_enabled=True, tool_analytics_enabled=True,
+                           siem_enabled=True, alerts_enabled=True,
+                           notify_webhook_enabled=True,
+                           notify_webhook_url="https://hook.invalid/x",
                            multiagent_enabled=True, quality_enabled=True, judge_enabled=True,
                            llm_mock=True, judge_t1_family="llama",
                            judge_t2_family="mistral")  # fmt: skip

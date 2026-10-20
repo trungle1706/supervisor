@@ -649,3 +649,63 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`tool_usage_daily` (
 USING DELTA
 COMMENT 'WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- alert (state): WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.
+-- primary key (enforced by the app, not by Delta): alert_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`alert` (
+  alert_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  dedupe_key STRING NOT NULL,
+  rule_id STRING NOT NULL,
+  rule_hash STRING NOT NULL,
+  severity STRING NOT NULL,
+  status STRING NOT NULL,
+  title STRING NOT NULL,
+  agent_id STRING,
+  group_value STRING,
+  window_s BIGINT NOT NULL,
+  window_count BIGINT NOT NULL,
+  threshold BIGINT NOT NULL,
+  first_ts TIMESTAMP NOT NULL,
+  last_ts TIMESTAMP NOT NULL,
+  suppressed_count BIGINT NOT NULL,
+  case_id STRING,
+  chain_lane STRING,
+  chain_seq BIGINT,
+  entry_hash STRING,
+  refs STRING NOT NULL,
+  routes STRING NOT NULL,
+  route_status STRING NOT NULL,
+  acknowledged_by STRING,
+  acknowledged_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule''s dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- siem_event (append_only): WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it. Ids, hashes and enums only. event_id is the idempotency key.
+-- primary key (enforced by the app, not by Delta): event_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`siem_event` (
+  event_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  event_type STRING NOT NULL,
+  severity BIGINT NOT NULL,
+  outcome STRING NOT NULL,
+  agent_id STRING,
+  rule_id STRING,
+  case_id STRING,
+  actor STRING,
+  chain_lane STRING,
+  chain_seq BIGINT,
+  entry_hash STRING,
+  env STRING NOT NULL,
+  event_schema STRING NOT NULL,
+  ocsf_class_uid BIGINT NOT NULL,
+  ocsf_json STRING NOT NULL
+)
+USING DELTA
+COMMENT 'WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it. Ids, hashes and enums only. event_id is the idempotency key.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');

@@ -1,0 +1,111 @@
+# Alert rules (WP21, ADR D15, docs/alerts.md). Read by the scheduler job "alerts"
+# (ALERTS_ENABLED=1). Declarative only: no expressions, no code. Check with
+#   python -m supervisor.alerts validate
+#   python -m supervisor.alerts test AL-BLOCK-BURST
+# Thresholds and windows below are ILLUSTRATIVE until the bank SOC sets them (see
+# tests/fixtures/alerts/README.md for how they behave on synthetic incidents).
+#
+# Fields: id, title (fixed text), source, where (equality or any-of list), group_by
+# (agent_id | job | rule_id | none), window_s, threshold, severity (low|medium|high|critical),
+# dedupe_s, routes (inbox | siem | webhook | pager).
+# Sources and their filter fields: gate_decision(agent_id, action, rule_id, allow),
+# gate_state_change(agent_id, event, to_state), verdict(agent_id, tier, label, action, rule_id,
+# is_mock), job_run(job, status), chain_verify(ok), ingress_reject(agent_id, reason_code),
+# failmode_drill(ok), case(agent_id, severity).
+version: 1
+
+rules:
+  - id: AL-BLOCK-BURST
+    title: Repeated gate blocks for one agent
+    source: gate_decision
+    where: {action: block}
+    group_by: agent_id
+    window_s: 600
+    threshold: 5
+    severity: high
+    dedupe_s: 1800
+    routes: [inbox, siem]
+
+  - id: AL-QUARANTINE
+    title: Agent quarantined
+    source: gate_state_change
+    where: {event: quarantine}
+    group_by: agent_id
+    window_s: 0
+    threshold: 1
+    severity: critical
+    dedupe_s: 3600
+    routes: [inbox, siem, webhook, pager]
+
+  - id: AL-CHAIN-VERIFY-FAIL
+    title: Evidence chain verification failed
+    source: chain_verify
+    where: {ok: false}
+    group_by: none
+    window_s: 0
+    threshold: 1
+    severity: critical
+    dedupe_s: 3600
+    routes: [inbox, siem, webhook, pager]
+
+  - id: AL-JUDGE-ESCALATION
+    title: Judge escalated to tier 2
+    source: verdict
+    where: {tier: 2, is_mock: false}
+    group_by: agent_id
+    window_s: 0
+    threshold: 1
+    severity: medium
+    dedupe_s: 3600
+    routes: [inbox, siem]
+
+  # One agent with a bad or expired credential: low volume, one agent to fix.
+  - id: AL-INGRESS-REJECT-AGENT
+    title: Repeated rejected ingress credentials for one agent
+    source: ingress_reject
+    group_by: agent_id
+    window_s: 300
+    threshold: 5
+    severity: high
+    dedupe_s: 1800
+    routes: [inbox, siem]
+
+  # Many rejections over all agents: credential stuffing. Higher threshold, so one noisy
+  # agent does not hide it inside the dedupe window of the per-agent rule.
+  - id: AL-INGRESS-REJECT-BURST
+    title: Burst of rejected ingress credentials
+    source: ingress_reject
+    group_by: none
+    window_s: 300
+    threshold: 20
+    severity: high
+    dedupe_s: 1800
+    routes: [inbox, siem, webhook]
+
+  - id: AL-FAILCLOSED-DRILL-FAIL
+    title: Fail-closed drill failed
+    source: failmode_drill
+    where: {ok: false}
+    group_by: none
+    window_s: 0
+    threshold: 1
+    severity: critical
+    dedupe_s: 86400
+    routes: [inbox, siem, webhook, pager]
+
+  - id: AL-JOB-FAILURE
+    title: Scheduled job failed
+    source: job_run
+    where: {status: error}
+    group_by: job
+    window_s: 0
+    threshold: 1
+    severity: medium
+    dedupe_s: 3600
+    routes: [inbox, siem]
+
+# Planned maintenance. Deterministic and time-boxed: a matching candidate is dropped (and
+# counted in the job result) until "until"; nothing else changes.
+suppressions: []
+#  - {rule_id: AL-BLOCK-BURST, agent_id: FILL-ME-agent-id, until: "2026-12-01T00:00:00Z",
+#     reason_code: planned_test}

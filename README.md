@@ -102,6 +102,9 @@ until you turn its flag on.
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
 | `MASK_AMOUNTS` | Types money amounts `<AMOUNT:...>` in masked text (default: amounts stay intact, the rules need them). See `docs/masking.md` |
 | `INLINE_REDACTION_ENABLED` | Gate answer carries masked `transformed_args` for `pii_export` tools; the SDK and the MCP proxy apply them when their own switch is on. `INLINE_REDACTION_TOOLS` adds tools. See `docs/masking.md` |
+| `SIEM_ENABLED` | Sends evidence events to the bank SIEM through `SIEM_SINK` (`file`, `http`, `delta`) in `SIEM_FORMAT` (`jsonl`, `cef`, `ocsf`); see `docs/siem.md` |
+| `ALERTS_ENABLED` | Runs the alert rules in `config/alerts.yaml` and routes alerts to inbox, SIEM, webhook, pager; Alerts section on the Metrics page; see `docs/alerts.md` |
+| `NOTIFY_WEBHOOK_ENABLED` | Webhook notifier sends notices to `NOTIFY_WEBHOOK_URL` from the scheduler job `notify` (a console request only queues; retry, dead-letter file); without a URL it only queues |
 | `LOG_FORMAT` | Value `json` writes one JSON log line with request id and principal id (default `text`) |
 
 ## What is mock

@@ -662,3 +662,69 @@ tables:
       first_seen: timestamp?
       last_seen: timestamp?
       computed_at: timestamp
+
+  # --- WP21 (SIEM and alerts) ---
+  alert:
+    kind: state
+    description: >
+      WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never
+      free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window
+      raise suppressed_count on the open row instead of making a new row. status: open,
+      acknowledged (by an operator, audited), closed.
+    primary_key: [alert_id]
+    indexes:
+      - [status, ts]
+      - [dedupe_key, ts]
+    columns:
+      alert_id: string
+      ts: timestamp
+      dedupe_key: string
+      rule_id: string
+      rule_hash: string
+      severity: string
+      status: string
+      title: string
+      agent_id: string?
+      group_value: string?
+      window_s: int
+      window_count: int
+      threshold: int
+      first_ts: timestamp
+      last_ts: timestamp
+      suppressed_count: int
+      case_id: string?
+      chain_lane: string?
+      chain_seq: int?
+      entry_hash: string?
+      refs: json
+      routes: json
+      route_status: json
+      acknowledged_by: string?
+      acknowledged_at: timestamp?
+
+  siem_event:
+    kind: append_only
+    description: >
+      WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF
+      document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it.
+      Ids, hashes and enums only. event_id is the idempotency key.
+    primary_key: [event_id]
+    indexes:
+      - [ts]
+    columns:
+      event_id: string
+      ts: timestamp
+      event_type: string
+      severity: int
+      outcome: string
+      agent_id: string?
+      rule_id: string?
+      case_id: string?
+      actor: string?
+      chain_lane: string?
+      chain_seq: int?
+      entry_hash: string?
+      env: string
+      event_schema: string
+      ocsf_class_uid: int
+      ocsf_json: text

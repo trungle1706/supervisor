@@ -4,6 +4,11 @@
 {% block content %}
 <div class="pagehead"><h1>{{ t('oversight') }}</h1></div>
 {{ ui.purpose(t('metrics_purpose'), t('metrics_why')) }}
+<section class="card" id="alerts">
+  <h3>{{ t('alerts') }}</h3>
+  <p class="muted" style="margin:0 0 8px">{{ t('alerts_purpose') }}</p>
+  <div id="alerts-panel">{% include "_alerts_panel.html" %}</div>
+</section>
 <section class="card">
   <h3>{{ t('oversight') }}</h3>
   {% if summary %}

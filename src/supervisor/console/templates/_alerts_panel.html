@@ -1,0 +1,32 @@
+{% import "_ui.html" as ui with context %}
+<p style="margin:0 0 8px">
+  {{ ui.pill(alert_counts.open ~ ' ' ~ t('alerts_open'), 'warn' if alert_counts.open else 'ok') }}
+  {{ ui.pill(alert_counts.acknowledged ~ ' ' ~ t('alerts_ack'), 'neutral') }}
+</p>
+{% if alert_rows %}
+<div class="tablewrap flat"><table class="alerts">
+  <thead><tr><th>{{ t('time') }}</th><th>{{ t('alert_rule') }}</th><th>{{ t('severity') }}</th><th>{{ t('agent') }}</th><th>{{ t('alert_window') }}</th><th>{{ t('alert_repeats') }}</th><th>{{ t('case') }}</th><th>{{ t('alert_chain') }}</th><th>{{ t('status') }}</th><th></th></tr></thead>
+  <tbody>
+  {% for a in alert_rows %}
+  <tr data-alert="{{ a.alert_id }}" data-status="{{ a.status }}">
+    <td class="mono">{{ a.ts|day }}</td>
+    <td><strong>{{ a.rule_id }}</strong><div class="idline">{{ a.title }}</div></td>
+    <td>{{ ui.sev(a.severity) }}</td>
+    <td>{{ a.agent_id or a.group_value or '-' }}</td>
+    <td class="mono">{{ a.window_count }}/{{ a.threshold }} in {{ a.window_s }} s</td>
+    <td class="n">{{ a.suppressed_count }}</td>
+    <td>{% if a.case_id %}<a href="/console/cases/{{ a.case_id }}?lang={{ lang }}">{{ a.case_id }}</a>{% else %}-{% endif %}</td>
+    <td class="mono" style="font-size:12px">{% if a.chain_lane %}{{ a.chain_lane }}:{{ a.chain_seq }}<div class="idline">{{ (a.entry_hash or '')[:12] }}</div>{% else %}-{% endif %}</td>
+    <td>{{ ui.pill(a.status, 'warn' if a.status == 'open' else 'ok') }}{% if a.acknowledged_by %}<div class="idline">{{ a.acknowledged_by }}</div>{% endif %}</td>
+    <td>{% if a.status == 'open' %}
+      <form hx-post="/console/alerts/{{ a.alert_id }}/ack?lang={{ lang }}" hx-target="#alerts-panel">
+        <input type="hidden" name="row_version" value="{{ a.row_version }}">
+        <button class="btn sm">{{ t('alert_ack_btn') }}</button>
+      </form>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<p class="muted">{{ t('no_alerts') }}</p>
+{% endif %}
