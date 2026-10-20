@@ -118,7 +118,10 @@ def main(argv: list[str] | None = None) -> int:
     env = {"PYTHONPATH": str(REPO / "src"), "DATA_DIR": str(data_dir)}
     if args.reseed:
         cli = [py, "-m", "supervisor.cli"]
-        steps = [[*cli, "demo", "seed"]] + [[*cli, "demo", "inject", n] for n in "4231"]
+        # the demo harness reads --data-dir, not DATA_DIR: without it the seed went to the
+        # default data/local/demo while the server below served --data-dir
+        dd = ["--data-dir", str(data_dir)]
+        steps = [[*cli, "demo", "seed", *dd]] + [[*cli, "demo", "inject", n, *dd] for n in "4231"]
         # one onboarding run (mock model, labelled) so the Onboard cards have real artefacts
         out = data_dir / "onboard" / "payments"
         steps.append(
