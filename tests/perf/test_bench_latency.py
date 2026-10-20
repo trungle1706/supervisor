@@ -300,3 +300,25 @@ def test_unknown_backend_and_scenario_are_user_errors(tmp_path: Path) -> None:
     with bl.isolated_env(tmp_path), pytest.raises(bl.BenchError, match="unknown backend"):
         bl.build_stack("oracle", 19, tmp_path)
     assert bl.main(["--quick", "--scenarios", "nope", "--out-dir", str(tmp_path)]) == 2
+
+
+def test_window_injection_is_removed_cleanly(tmp_path: Path) -> None:
+    """Injected window events deepen the aggregate scan, can be taken out again, and never take
+    a real event with them (object ids of freed events get reused)."""
+    with bl.isolated_env(tmp_path):
+        stack = bl.build_stack("sqlite_memory", 200, tmp_path)
+        try:
+            wl = bl.Workload(4)
+            bl.run_gate_inproc(stack, wl, 120, 20)  # real events: fetches that decisions rely on
+            real_before = sum(len(d) for d in stack.gateway.windows.by_tool.values())
+            total = bl.inject_window(stack, 300)
+            assert total > 0 and stack.injected
+            stack.sim_step_s = 10.0
+            bl.run_gate_inproc(stack, wl, 150, 10)
+            bl.remove_injected(stack)
+            assert not stack.injected and not stack.injected_refs
+            real_after = sum(len(d) for d in stack.gateway.windows.by_tool.values())
+            assert real_after >= real_before  # nothing real was dropped, more were added
+            bl.run_gate_inproc(stack, wl, 150, 10)  # still all allowed (checked inside)
+        finally:
+            stack.close()

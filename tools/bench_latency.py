@@ -589,6 +589,7 @@ class Stack:
     sim_step_s: float = 120.0
     closed: bool = False
     injected: set = field(default_factory=set)
+    injected_refs: list = field(default_factory=list)
 
     @property
     def gateway(self) -> Any:
@@ -902,6 +903,7 @@ def inject_window(stack: Stack, depth: int) -> int:
         merged = sorted([*gw.windows.by_tool.get(tool, ()), *events], key=lambda e: e.ts_us)
         gw.windows.by_tool[tool] = engine.deque(merged)  # the window scan needs ascending time
         stack.injected.update(id(e) for e in events)
+        stack.injected_refs.extend(events)  # keep them alive: ids of freed objects get reused
     return len(tools) * depth
 
 
@@ -910,6 +912,7 @@ def remove_injected(stack: Stack) -> None:
     for tool, dq in list(stack.gateway.windows.by_tool.items()):
         stack.gateway.windows.by_tool[tool] = type(dq)(e for e in dq if id(e) not in ids)
     ids.clear()
+    stack.injected_refs.clear()
 
 
 # ----------------------------------------------------------------------------- HTTP (open loop)
