@@ -366,11 +366,15 @@ def _cross_check(doc: PolicyDoc) -> None:
 
 def _dump(doc: PolicyDoc, exclude: set[str] | None = None) -> dict[str, Any]:
     """JSON dump of a policy document. An agent's ``detectors`` key is dropped when unset, so
-    adding the WP37 field did not change the hash of any existing policy file."""
+    adding the WP37 field did not change the hash of any existing policy file. Same for
+    ``monitors.session`` (WP27)."""
     out = doc.model_dump(mode="json", by_alias=True, exclude=exclude)
     for agent in out.get("agents", {}).values():
         if agent.get("detectors") is None:
             agent.pop("detectors", None)
+        mons = agent.get("monitors")
+        if isinstance(mons, dict) and mons.get("session") is None:
+            mons.pop("session", None)  # WP27: same rule, the hash of an old file is unchanged
     return out
 
 

@@ -483,6 +483,15 @@ class Settings(BaseSettings):
     detectors_enabled: bool = False
     detectors_config: Path = Path("config/detectors.yaml")
 
+    # --- WP27 --- session monitor (ADR D29, docs/session-monitor.md). Default off. Per-agent
+    # values (thresholds, weights, pause scope) live in the policy file under
+    # agents.<id>.monitors.session; these are the global defaults.
+    session_monitor_enabled: bool = False
+    sched_session_s: int = Field(default=300, ge=10)
+    session_window_s: int = Field(default=1800, ge=60, le=86400)
+    session_k: int = Field(default=3, ge=1, le=8)
+    session_cooldown_s: int = Field(default=3600, ge=60)
+
     @field_validator(
         "data_dir",
         "sqlite_path",

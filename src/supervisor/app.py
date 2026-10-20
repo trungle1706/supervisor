@@ -30,6 +30,7 @@ from supervisor.gateway import ingress_auth  # noqa: E402
 from supervisor.gateway import wiring as gate_wiring  # noqa: E402
 from supervisor.gateway.routes import router as gate_router  # noqa: E402
 from supervisor.inventory.api import router as inventory_router  # noqa: E402
+from supervisor.monitors.session_api import router as session_router  # noqa: E402
 from supervisor.ops import middleware as ops_middleware  # noqa: E402
 from supervisor.ops import openapi as openapi_doc  # noqa: E402
 from supervisor.ops.logging_setup import configure_logging  # noqa: E402
@@ -94,6 +95,7 @@ app.include_router(otlp_router)  # WP4: POST /v1/traces (OTLP/HTTP JSON)
 app.include_router(console_router)  # WP8: reviewer console (/console)
 app.include_router(tools_analytics_router, prefix="/v1")  # WP22: GET /v1/analytics/tools
 app.include_router(inventory_router)  # WP24: GET /v1/inventory/... (off unless INVENTORY_ENABLED)
+app.include_router(session_router)  # WP27: /v1/sessions/{id} (off unless SESSION_MONITOR_ENABLED)
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 

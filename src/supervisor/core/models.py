@@ -115,6 +115,10 @@ class AgentEvent(Record):
     verdict_status: str | None = None
     correlation_id: str | None = None
     coverage_json: dict[str, Any] | None = None
+    # WP27 session monitor (null unless a session id was sent or the monitor is on)
+    session_id: str | None = None
+    session_source: str | None = None
+    session_json: dict[str, Any] | None = None
 
 
 class Rule(StateRecord):

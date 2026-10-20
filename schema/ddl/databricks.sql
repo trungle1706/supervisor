@@ -114,7 +114,10 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`agent_event` (
   latency_us BIGINT,
   verdict_status STRING,
   correlation_id STRING,
-  coverage_json STRING
+  coverage_json STRING,
+  session_id STRING,
+  session_source STRING,
+  session_json STRING
 )
 USING DELTA
 COMMENT 'Normalised OTel-shaped events. Single read model for Watch. Masked only.'
@@ -754,6 +757,30 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_edge` (
 )
 USING DELTA
 COMMENT 'WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- session_control (state): WP27 session-scoped pause of money / credit tools. One row per pause: active until a two-person resume (owner + reviewer, same rule as an agent resume) or until expires_at (cool-down). Written only by a deterministic rule of the session monitor. The gate reads active rows (GATE-SESSION-PAUSE). Free text never lands here.
+-- primary key (enforced by the app, not by Delta): control_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`session_control` (
+  control_id STRING NOT NULL,
+  session_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  scope STRING NOT NULL,
+  status STRING NOT NULL,
+  score_bp BIGINT NOT NULL,
+  case_id STRING,
+  created_at TIMESTAMP NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  approver_1 STRING,
+  approver_1_role STRING,
+  approver_1_at TIMESTAMP,
+  lifted_by STRING,
+  lifted_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP27 session-scoped pause of money / credit tools. One row per pause: active until a two-person resume (owner + reviewer, same rule as an agent resume) or until expires_at (cool-down). Written only by a deterministic rule of the session monitor. The gate reads active rows (GATE-SESSION-PAUSE). Free text never lands here.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
 -- finding (append_only): WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.

@@ -124,6 +124,7 @@ def build_runtime(
             policy_refresh_s,
             state_cache_ttl_s,
             detector_gate=make_detector_gate(settings, policy),
+            session_gate=make_session_gate(settings, adapters, chain),
         )
     except BaseException:
         chain.close(seal=False)
@@ -141,6 +142,7 @@ def _make_gateway(
     policy_refresh_s: float,
     state_cache_ttl_s: float,
     detector_gate: Any = None,
+    session_gate: Any = None,
 ) -> Gateway:
     return Gateway(
         StorePolicyProvider(adapters.state, refresh_s=policy_refresh_s),
@@ -161,6 +163,23 @@ def _make_gateway(
         inline_redaction=settings.inline_redaction_enabled,
         redact_tools=settings.inline_redaction_tool_set,
         detector_gate=detector_gate,  # WP37 (default off)
+        session_gate=session_gate,  # WP27 (default off)
+    )
+
+
+def make_session_gate(settings: Settings, adapters: Adapters, evidence: Any) -> Any:
+    """WP27: the session monitor's gate hook, or None when SESSION_MONITOR_ENABLED is off."""
+    if not settings.session_monitor_enabled:
+        return None
+    from supervisor.gateway.session_gate import SessionGate
+    from supervisor.monitors.common import MonitorContext
+
+    return SessionGate(
+        settings,
+        MonitorContext.from_adapters(adapters, evidence),
+        key=settings.args_hash_key.get_secret_value()
+        if settings.args_hash_key is not None
+        else None,
     )
 
 

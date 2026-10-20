@@ -21,10 +21,11 @@ only their SHA-256 (PII never enters the chain).
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import timedelta
 from typing import Any, Literal
 
@@ -32,6 +33,8 @@ from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, SupervisorError
 from supervisor.core.ports import Clock, EvidenceSink, StateStore
 from supervisor.gateway.policy import Policy, PolicyProvider
+
+log = logging.getLogger("supervisor.gateway.state")
 
 GateStateT = Literal["RUNNING", "SHADOW", "PAUSED", "QUARANTINED", "RETIRED"]
 STATUS_FOR_STATE = {
@@ -76,6 +79,8 @@ class AgentStateMachine:
         self.retries = retries
         self._cache: dict[str, tuple[dict[str, Any] | None, float]] = {}
         self._lock = threading.RLock()
+        # WP27: called (agent_id, principal) after a completed two-person resume.
+        self.on_resume: Callable[[str, str], None] | None = None
 
     # ------------------------------------------------------------ reads
 
@@ -415,6 +420,12 @@ class AgentStateMachine:
             f"{principal} may not approve a resume (needs the agent owner or a reviewer)"
         )
 
+    def approver_role(self, agent_id: str, principal: str) -> str:
+        """owner or reviewer for ``principal``, else ``TransitionError`` (WP27 reuses it for
+        the two-person lift of a session pause)."""
+        with self._lock:
+            return self._role(agent_id, principal)
+
     def resume(
         self,
         agent_id: str,
@@ -497,6 +508,11 @@ class AgentStateMachine:
             self._close_control(partner, "used")
             for a in active:
                 self._close_control(a, "closed")
+            if self.on_resume is not None:  # WP27: session pauses end with the agent's resume
+                try:
+                    self.on_resume(agent_id, principal)
+                except Exception:  # noqa: BLE001 - a hook problem must not undo the resume
+                    log.exception("on_resume hook failed")
             return {
                 "agent_id": agent_id,
                 "state": resume_to,

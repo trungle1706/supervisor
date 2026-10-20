@@ -1,0 +1,773 @@
+"""Session monitor (WP27, ADR D29, docs/session-monitor.md): what per-call checks miss.
+
+A conversation can be steered over many turns toward a payment split, a limit breach or a PII
+leak while every single call looks fine. This module is the PURE part: no store, no clock, no
+network. It keeps a sliding window of turns per session, turns them into eight integer
+signals and one score, and says whether the session meets the case rule or the pause rule.
+The actions (case, pause) live in ``session_actions.py``; the gate hook in
+``gateway/session_gate.py``; the batch job in ``jobs/session_monitor.py``.
+
+Rule R1: everything here is arithmetic on counters. Judges and detector findings are inputs
+(a finding code is one counter), never deciders. Every number is an integer.
+
+Signals (strength 0..10000 bp each; a "hit" is a strength at or above ``hit_bp``):
+
+==============  ==============================================================================
+``findings``    detector and Tier 0b finding codes seen in the window (saturates at 3)
+``refusals``    blocked or paused decisions in the window (saturates at 3)
+``expand``      "expand on" / "continue" style requests, VN and EN phrase list (saturates at 3)
+``drift``       topic drift markers reused from the drift monitor: a tool the agent's drift
+                baseline calls rare, or a step up in tool risk class after read-only turns
+``money``       money moved in the window as a share of the daily cap (the aggregate rule fact)
+``near_dup``    repeated near-duplicate arguments (bottom-k shingle sketch, no model)
+``timing``      burst rate against the session's own median gap
+``cross_agent`` the same consumer touching money tools of two agents inside the window
+==============  ==============================================================================
+
+``memory`` is the one STATE signal: an authority or permission fact asserted in an early turn
+("management approved ...", "my limit is raised") that comes back, by a recall phrase or a shared
+identifier, in a money or credit tool call at least ``MEMORY_MIN_GAP`` turns later. Counters miss it
+(a quiet plant, filler turns, one ask), so it can open a case on its own (``solo_signals``).
+A PII-shaped token (account number, phone, e-mail) is NOT an attack signal by itself: codes that
+start with ``pii`` never count in ``findings`` (a legitimate add-payee request carries one).
+
+``timing``, ``near_dup`` and ``cross_agent`` are the three anomaly signals of the vendor-parity
+row 30 (timing pattern, content similarity, cross-agent correlation). Their weights, like the
+others, are policy values (``agents.<id>.monitors.session.weights``) and sum to 10000.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import re
+import unicodedata
+from collections import OrderedDict, deque
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
+from typing import Any
+
+from supervisor.core.args_hmac import as_key
+from supervisor.core.errors import ConfigError
+from supervisor.core.monitor_bindings import (
+    DEFAULT_WEIGHTS,
+    PAUSE_SCOPES,
+    SIGNALS,
+    SessionBinding,
+)
+
+SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")  # no "@": never an e-mail address
+RISK_RANK = {"read_only": 0, "pii_export": 1, "credit": 2, "money": 3}
+MONEY_CLASSES = frozenset({"money"})
+SKETCH_K = 16  # bottom-k hashes kept per turn (4 bytes each)
+MAX_TEXT = 4000  # characters of a turn text that are read
+MAX_TOKENS = 400
+MAX_TURNS_PER_SESSION = 300
+MAX_SESSIONS = 20000
+DUP_LOOKBACK = 24  # earlier turns a turn is compared with
+CODE_CAP_PER_TURN = 2  # a noisy turn cannot fill the findings signal alone
+DRIFT_MIN_PRIOR = 3  # read-only turns before a step up in risk class counts as a marker
+MEMORY_MIN_GAP = 3  # turns between the asserted fact and the call that uses it
+MAX_ID_TOKENS = 8
+TIMING_MIN_TURNS = 8
+TIMING_RECENT_GAPS = 4
+
+# Counts at which a count based signal reaches strength 10000 (policy may not change them: they
+# define the unit of "one hit"; the weights and the thresholds are the tuning surface).
+SATURATION: Mapping[str, int] = {
+    "findings": 3,
+    "refusals": 3,
+    "expand": 3,
+    "drift": 3,
+    "near_dup": 3,
+}
+
+# Small phrase list, folded to lower case without diacritics. VN with and without diacritics
+# fold to the same text. Not a model; the golden set shows what it misses.
+EXPAND_PHRASES: tuple[str, ...] = (
+    "expand on",
+    "expand that",
+    "expand the",
+    "expand it",
+    "continue",
+    "go on",
+    "keep going",
+    "carry on",
+    "tell me more",
+    "elaborate",
+    "more detail",
+    "next step",
+    "step two",
+    "step 2",
+    "and then what",
+    "mo rong",
+    "tiep tuc",
+    "noi them",
+    "chi tiet hon",
+    "lam tiep",
+    "buoc hai",
+    "buoc 2",
+    "buoc tiep theo",
+    "giai thich them",
+    "phat trien them",
+)
+# An authority or permission assertion (not a data fact such as "my usual payee is X"), and a
+# phrase that points back to something said earlier. Folded text, VN with and without diacritics.
+ASSERT_PHRASES: tuple[str, ...] = (
+    "approved",
+    "authorized",
+    "authorised",
+    "confirmed it",
+    "management confirmed",
+    "limit is raised",
+    "limit was raised",
+    "raised limit",
+    "exempt",
+    "special permission",
+    "pre approved",
+    "from now on",
+    "da duoc phe duyet",
+    "giam doc da duyet",
+    "da duyet",
+    "duoc phep",
+    "nang han muc",
+    "mien han muc",
+    "tu bay gio",
+    "ban lanh dao da",
+)
+RECALL_PHRASES: tuple[str, ...] = (
+    "as remembered",
+    "as i said",
+    "as i told you",
+    "as agreed",
+    "as approved",
+    "as we discussed",
+    "like before",
+    "as before",
+    "as mentioned earlier",
+    "at the start of this chat",
+    "nhu da noi",
+    "nhu da nho",
+    "nhu da thong nhat",
+    "nhu da duyet",
+    "nhu luc dau",
+    "nhu da trao doi",
+    "nhu dau cuoc tro chuyen",
+)
+_ID_TOKEN_RE = re.compile(r"[a-z]{2,6}[-_]?\d{3,}|\d{6,}")
+_EXPAND_RE = re.compile(
+    r"(?<![a-z0-9])(?:" + "|".join(re.escape(p) for p in EXPAND_PHRASES) + r")(?![a-z0-9])"
+)
+
+
+def _phrase_re(phrases: Sequence[str]) -> re.Pattern[str]:
+    return re.compile(
+        r"(?<![a-z0-9])(?:" + "|".join(re.escape(p) for p in phrases) + r")(?![a-z0-9])"
+    )
+
+
+_ASSERT_RE = _phrase_re(ASSERT_PHRASES)
+_RECALL_RE = _phrase_re(RECALL_PHRASES)
+_WORD_RE = re.compile(r"[a-z0-9]+")
+_SKIP_KEYS = frozenset({"amount_minor", "amount", "currency"})
+
+
+def fold(text: str) -> str:
+    """Lower case, no diacritics (VN included, d-stroke -> d)."""
+    s = unicodedata.normalize("NFD", text[:MAX_TEXT].lower().replace("đ", "d"))
+    return "".join(c for c in s if not unicodedata.combining(c))
+
+
+# --------------------------------------------------------------------------- config
+
+
+@dataclass(frozen=True)
+class SessionConfig:
+    """Effective settings of one agent: policy value, else the global setting, else default."""
+
+    enabled: bool = True
+    window_s: int = 1800
+    k: int = 3
+    cooldown_s: int = 3600
+    hit_bp: int = 5000
+    case_threshold_bp: int = 4500
+    pause_threshold_bp: int = 8000
+    pause_scope: tuple[str, ...] = ()
+    weights: Mapping[str, int] = field(default_factory=lambda: dict(DEFAULT_WEIGHTS))
+    solo_signals: tuple[str, ...] = ("memory",)
+    dup_bp: int = 8000
+    cap_minor: int | None = None  # None: use the daily cap of the policy's aggregate rule
+
+    def __post_init__(self) -> None:
+        if set(self.weights) != set(SIGNALS) or sum(self.weights.values()) != 10000:
+            raise ConfigError("session weights must name every signal and sum to 10000")
+        if self.pause_scope and self.pause_threshold_bp < self.case_threshold_bp:
+            raise ConfigError("pause_threshold_bp must not be below case_threshold_bp")
+
+    @property
+    def pause_on(self) -> bool:
+        return bool(self.pause_scope)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "enabled": self.enabled,
+            "window_s": self.window_s,
+            "k": self.k,
+            "cooldown_s": self.cooldown_s,
+            "hit_bp": self.hit_bp,
+            "case_threshold_bp": self.case_threshold_bp,
+            "pause_threshold_bp": self.pause_threshold_bp,
+            "pause_scope": list(self.pause_scope),
+            "weights": dict(self.weights),
+            "solo_signals": list(self.solo_signals),
+            "dup_bp": self.dup_bp,
+            "cap_minor": self.cap_minor,
+        }
+
+
+def resolve_config(settings: Any, binding: SessionBinding | None) -> SessionConfig:
+    """Global settings (``SESSION_*``), overridden field by field by the agent's policy entry."""
+    b = binding or SessionBinding()
+
+    def pick(name: str, default: Any) -> Any:
+        v = getattr(b, name)
+        return v if v is not None else default
+
+    scope = tuple(sorted(b.pause_scope)) if b.pause_scope is not None else ()
+    if any(s not in PAUSE_SCOPES for s in scope):
+        raise ConfigError(f"pause_scope may hold only {', '.join(PAUSE_SCOPES)}")
+    return SessionConfig(
+        enabled=pick("enabled", True),
+        window_s=pick("window_s", int(getattr(settings, "session_window_s", 1800))),
+        k=pick("k", int(getattr(settings, "session_k", 3))),
+        cooldown_s=pick("cooldown_s", int(getattr(settings, "session_cooldown_s", 3600))),
+        hit_bp=pick("hit_bp", 5000),
+        case_threshold_bp=pick("case_threshold_bp", 4500),
+        pause_threshold_bp=pick("pause_threshold_bp", 8000),
+        pause_scope=scope,
+        weights=dict(b.weights) if b.weights is not None else dict(DEFAULT_WEIGHTS),
+        solo_signals=tuple(b.solo_signals) if b.solo_signals is not None else ("memory",),
+        cap_minor=b.cap_minor,
+    )
+
+
+# --------------------------------------------------------------------------- identity
+
+
+def session_key(key: str | bytes | None) -> bytes:
+    return as_key(key)
+
+
+def _h(data: str, key: bytes, n: int = 8) -> str:
+    return hashlib.blake2s(data.encode("utf-8"), key=key[:32], digest_size=n).hexdigest()
+
+
+def hash_consumer(consumer_id: str, key: bytes) -> str:
+    """Keyed 6 byte hash of a consumer id (the raw id is never stored)."""
+    return _h("consumer:" + consumer_id, key, 6)
+
+
+def identify(
+    agent_id: str, ctx: Mapping[str, Any], day: str, key: bytes
+) -> tuple[str, str, str | None]:
+    """(session_id, source, consumer hash). ``source`` is ``client`` when the caller sent a valid
+    ``session_id`` in the context, else ``derived``: a stable id from agent + consumer + day.
+    A derived id can join two real conversations of one consumer on one day (documented)."""
+    raw_consumer = ctx.get("consumer_id")
+    consumer = (
+        hash_consumer(raw_consumer, key)
+        if isinstance(raw_consumer, str) and 0 < len(raw_consumer) <= 256
+        else None
+    )
+    sid = ctx.get("session_id")
+    if isinstance(sid, str) and SESSION_ID_PATTERN.fullmatch(sid):
+        return sid, "client", consumer
+    return "d-" + _h(f"{agent_id}|{consumer or '-'}|{day}", key, 12), "derived", consumer
+
+
+# --------------------------------------------------------------------------- features
+
+
+def has_expand(text: str | None) -> bool:
+    return bool(text) and _EXPAND_RE.search(fold(text or "")) is not None
+
+
+def has_assert(text: str | None) -> bool:
+    return bool(text) and _ASSERT_RE.search(fold(text or "")) is not None
+
+
+def has_recall(text: str | None) -> bool:
+    return bool(text) and _RECALL_RE.search(fold(text or "")) is not None
+
+
+def is_attack_code(code: str) -> bool:
+    """A finding code that counts in the ``findings`` signal. PII-shaped findings do not: an
+    account number in a legitimate add-payee request must not look like an attack."""
+    bare = code[2:] if code[:2] in ("d:", "t:") else code
+    return not bare.lower().startswith("pii")
+
+
+def id_tokens(text: str | None, args: Mapping[str, Any] | None, key: bytes) -> tuple[int, ...]:
+    """Keyed hashes of identifier-shaped tokens (payee id, account id) in text and arguments."""
+    parts = [fold(text)] if text else []
+    if args:
+        parts += [
+            fold(str(v))
+            for k, v in args.items()
+            if k not in _SKIP_KEYS and isinstance(v, str | int)
+        ]
+    found = {m for p in parts for m in _ID_TOKEN_RE.findall(p)}
+    hs = {
+        int(hashlib.blake2s(t.encode(), key=key[:32], digest_size=4).hexdigest(), 16) for t in found
+    }
+    return tuple(sorted(hs)[:MAX_ID_TOKENS])
+
+
+def _tokens(text: str | None, args: Mapping[str, Any] | None) -> list[str]:
+    """Tokens of a turn for the near-duplicate signal: the argument pairs when the call has any
+    (amounts left out, so a split into three transfers to one payee matches), else the words."""
+    toks: list[str] = []
+    if args:
+        for k in sorted(args):
+            if k in _SKIP_KEYS:
+                continue
+            v = args[k]
+            if isinstance(v, str | int) and not isinstance(v, bool):
+                toks.append(f"{k}={fold(str(v))[:64]}")
+    if not toks and text:
+        toks.extend(_WORD_RE.findall(fold(text)))
+    return toks[:MAX_TOKENS]
+
+
+def sketch(text: str | None, args: Mapping[str, Any] | None, key: bytes) -> tuple[int, ...]:
+    """Bottom-k sketch of the 3-token shingles of the turn (keyed hash, no raw text kept)."""
+    toks = _tokens(text, args)
+    if not toks:
+        return ()
+    grams = (
+        [" ".join(toks[i : i + 3]) for i in range(len(toks) - 2)]
+        if len(toks) >= 3
+        else [" ".join(toks)]
+    )
+    hs = {
+        int(hashlib.blake2s(g.encode(), key=key[:32], digest_size=4).hexdigest(), 16) for g in grams
+    }
+    return tuple(sorted(hs)[:SKETCH_K])
+
+
+def similarity_bp(a: Sequence[int], b: Sequence[int]) -> int:
+    """Jaccard estimate (bp) of two bottom-k sketches."""
+    if not a or not b:
+        return 0
+    union = sorted(set(a) | set(b))[: max(len(a), len(b), 1)]
+    sa, sb = set(a), set(b)
+    both = sum(1 for h in union if h in sa and h in sb)
+    return both * 10000 // len(union)
+
+
+def encode_sig(sig: Sequence[int]) -> str:
+    return "".join(f"{h:08x}" for h in sig)
+
+
+def decode_sig(text: str | None) -> tuple[int, ...]:
+    if not text:
+        return ()
+    return tuple(int(text[i : i + 8], 16) for i in range(0, len(text) - len(text) % 8, 8))
+
+
+@dataclass(frozen=True)
+class Features:
+    """What the gate computes from the transient text of one turn. Nothing here is text."""
+
+    expand: bool = False
+    sig: tuple[int, ...] = ()
+    rare: bool = False  # the tool is rare or unknown in the agent's drift baseline
+    assert_: bool = False  # the turn asserts an authority or permission fact
+    recall: bool = False  # the turn points back to something said earlier
+    toks: tuple[int, ...] = ()  # keyed hashes of identifier-shaped tokens
+
+
+def extract(
+    text: str | None,
+    args: Mapping[str, Any] | None,
+    *,
+    risk: str | None,
+    key: bytes,
+    rare: bool = False,
+) -> Features:
+    """Features of one turn. The sketch is kept only for tools that move or release something:
+    a repeated read-only question is not a signal."""
+    keep = risk in ("money", "credit", "pii_export")
+    asserted = has_assert(text)
+    recall = has_recall(text)
+    use = asserted or risk in ("money", "credit")
+    return Features(
+        has_expand(text),
+        sketch(text, args, key) if keep else (),
+        rare,
+        asserted,
+        recall and risk in ("money", "credit"),
+        id_tokens(text, args, key) if use else (),
+    )
+
+
+# --------------------------------------------------------------------------- turns
+
+
+@dataclass
+class Turn:
+    event_id: str
+    ts_ms: int
+    agent_id: str
+    tool: str
+    risk: str  # money | credit | pii_export | read_only | unknown
+    refused: bool
+    amount_minor: int | None = None
+    codes: tuple[str, ...] = ()  # "d:<code>" detector finding, "t:<kind>" Tier 0b
+    expand: bool = False
+    rare: bool = False
+    sig: tuple[int, ...] = ()
+    consumer: str | None = None
+    rule_id: str | None = None
+    assert_: bool = False
+    recall: bool = False
+    toks: tuple[int, ...] = ()
+
+    def features_json(self) -> dict[str, Any]:
+        """The ``agent_event.session_json`` content (hashes, flags and codes; no text)."""
+        out: dict[str, Any] = {}
+        if self.consumer:
+            out["c"] = self.consumer
+        if self.expand:
+            out["x"] = 1
+        if self.rare:
+            out["d"] = 1
+        if self.sig:
+            out["s"] = encode_sig(self.sig)
+        if self.assert_:
+            out["a"] = 1
+        if self.recall:
+            out["r"] = 1
+        if self.toks:
+            out["k"] = encode_sig(self.toks)
+        det = [c[2:] for c in self.codes if c.startswith("d:")]
+        if det:
+            out["f"] = det
+        return out
+
+
+@dataclass
+class Assessment:
+    session_id: str
+    agent_id: str
+    now_ms: int
+    turns: int
+    strengths: dict[str, int]
+    hits: list[str]
+    score_bp: int
+    k: int
+    case_due: bool
+    pause_due: bool
+    money_involved: bool
+    amount_minor: int
+    cap_minor: int | None
+    first_ms: int
+    last_ms: int
+    consumer: str | None = None
+    counts: dict[str, int] = field(default_factory=dict)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "session_id": self.session_id,
+            "agent_id": self.agent_id,
+            "turns": self.turns,
+            "score_bp": self.score_bp,
+            "hits": list(self.hits),
+            "k": self.k,
+            "strengths": dict(self.strengths),
+            "counts": dict(self.counts),
+            "case_due": self.case_due,
+            "pause_due": self.pause_due,
+            "money_involved": self.money_involved,
+            "amount_minor": self.amount_minor,
+            "cap_minor": self.cap_minor,
+            "first_ts_ms": self.first_ms,
+            "last_ts_ms": self.last_ms,
+        }
+
+
+def _clamp(v: int) -> int:
+    return 0 if v < 0 else 10000 if v > 10000 else v
+
+
+def _median(values: Sequence[int]) -> int:
+    ordered = sorted(values)
+    return ordered[(len(ordered) - 1) // 2]
+
+
+class SessionEngine:
+    """In-memory windows. Thread-safe use is the caller's job (the gate hook holds a lock).
+
+    ``add`` stores a turn; ``assess`` is a pure function of the stored turns, the clock value
+    given and the config, so the in-request path and the batch path give the same answer for
+    the same turns."""
+
+    def __init__(self) -> None:
+        self._sessions: OrderedDict[tuple[str, str], deque[Turn]] = OrderedDict()
+        self._consumers: dict[str, deque[tuple[int, str]]] = {}
+
+    # -- state --------------------------------------------------------------------------------
+    def add(self, session_id: str, turn: Turn) -> None:
+        key = (turn.agent_id, session_id)
+        q = self._sessions.get(key)
+        if q is None:
+            q = self._sessions[key] = deque(maxlen=MAX_TURNS_PER_SESSION)
+            while len(self._sessions) > MAX_SESSIONS:
+                self._sessions.popitem(last=False)
+        else:
+            self._sessions.move_to_end(key)
+        q.append(turn)
+        if turn.consumer and turn.risk in MONEY_CLASSES:
+            cq = self._consumers.setdefault(turn.consumer, deque(maxlen=200))
+            cq.append((turn.ts_ms, turn.agent_id))
+
+    def add_codes(
+        self, session_id: str, agent_id: str, event_id: str, codes: Iterable[str]
+    ) -> None:
+        """Late finding codes (Tier 0b runs after the decision) join the turn they belong to."""
+        q = self._sessions.get((agent_id, session_id))
+        if q is None:
+            return
+        for t in reversed(q):
+            if t.event_id == event_id:
+                t.codes = tuple(dict.fromkeys((*t.codes, *codes)))
+                return
+
+    def turns(self, session_id: str, agent_id: str) -> list[Turn]:
+        return list(self._sessions.get((agent_id, session_id), ()))
+
+    def sessions(self) -> list[tuple[str, str]]:
+        return [(a, s) for (a, s) in self._sessions]
+
+    def forget(self, before_ms: int) -> int:
+        """Drop sessions whose last turn is older than ``before_ms``. Returns how many."""
+        dead = [k for k, q in self._sessions.items() if not q or q[-1].ts_ms < before_ms]
+        for k in dead:
+            del self._sessions[k]
+        for c in list(self._consumers):
+            dq = self._consumers[c]
+            while dq and dq[0][0] < before_ms:
+                dq.popleft()
+            if not dq:
+                del self._consumers[c]
+        return len(dead)
+
+    # -- assessment ---------------------------------------------------------------------------
+    def assess(
+        self,
+        session_id: str,
+        agent_id: str,
+        now_ms: int,
+        cfg: SessionConfig,
+        cap_minor: int | None = None,
+    ) -> Assessment | None:
+        allturns = self._sessions.get((agent_id, session_id))
+        if not allturns:
+            return None
+        start = now_ms - cfg.window_s * 1000
+        win = [t for t in allturns if start <= t.ts_ms <= now_ms]
+        if not win:
+            return None
+        cap = cfg.cap_minor if cfg.cap_minor is not None else cap_minor
+        counts: dict[str, int] = {}
+        counts["findings"] = sum(
+            min(sum(1 for c in t.codes if is_attack_code(c)), CODE_CAP_PER_TURN) for t in win
+        )
+        counts["refusals"] = sum(1 for t in win if t.refused)
+        counts["expand"] = sum(1 for t in win if t.expand)
+        counts["drift"] = self._drift(allturns, win)
+        counts["near_dup"] = self._near_dup(win, cfg.dup_bp)
+        counts["memory_links"] = self._memory(allturns, win)
+        moved = sum(
+            t.amount_minor
+            for t in win
+            if t.risk in MONEY_CLASSES and not t.refused and isinstance(t.amount_minor, int)
+        )
+        counts["money_minor"] = moved
+        timing = self._timing(win)
+        cross = self._cross(win, start, now_ms)
+        counts["cross_agents"] = cross
+        strengths = {name: _clamp(counts[name] * 10000 // SATURATION[name]) for name in SATURATION}
+        strengths["money"] = _clamp(moved * 10000 // cap) if cap and cap > 0 else 0
+        strengths["timing"] = timing
+        strengths["cross_agent"] = _clamp(cross * 10000)
+        strengths["memory"] = 10000 if counts["memory_links"] else 0
+        hits = [s for s in SIGNALS if strengths[s] >= cfg.hit_bp]
+        score = sum(cfg.weights[s] * strengths[s] for s in SIGNALS) // 10000
+        money_involved = any(t.risk in ("money", "credit") for t in win)
+        solo = any(s in hits for s in cfg.solo_signals)
+        case_due = len(hits) >= cfg.k or score >= cfg.case_threshold_bp or solo
+        return Assessment(
+            session_id=session_id,
+            agent_id=agent_id,
+            now_ms=now_ms,
+            turns=len(win),
+            strengths=strengths,
+            hits=hits,
+            score_bp=score,
+            k=cfg.k,
+            case_due=case_due,
+            pause_due=case_due and cfg.pause_on and score >= cfg.pause_threshold_bp,
+            money_involved=money_involved,
+            amount_minor=moved,
+            cap_minor=cap,
+            first_ms=win[0].ts_ms,
+            last_ms=win[-1].ts_ms,
+            consumer=next((t.consumer for t in win if t.consumer), None),
+            counts=counts,
+        )
+
+    @staticmethod
+    def _drift(allturns: Sequence[Turn], win: Sequence[Turn]) -> int:
+        """Markers in the window: rare tools (drift baseline) and steps up in risk class after
+        at least DRIFT_MIN_PRIOR read-only turns, judged on the whole kept history."""
+        n = prior_read = highest = 0
+        for t in allturns:
+            r = RISK_RANK.get(t.risk, 0)
+            marker = t.rare or (r > highest and (highest > 0 or prior_read >= DRIFT_MIN_PRIOR))
+            if marker and t.ts_ms >= win[0].ts_ms:
+                n += 1
+            if r == 0:
+                prior_read += 1
+            highest = max(highest, r)
+        return n
+
+    @staticmethod
+    def _memory(allturns: Sequence[Turn], win: Sequence[Turn]) -> int:
+        """Money or credit calls in the window that use an authority fact asserted at least
+        MEMORY_MIN_GAP turns earlier (recall phrase, or a shared identifier token)."""
+        first = win[0].ts_ms
+        turns = list(allturns)
+        n = 0
+        for j, t in enumerate(turns):
+            if t.ts_ms < first or t.risk not in ("money", "credit"):
+                continue
+            tt = set(t.toks)
+            for a in turns[: max(0, j - MEMORY_MIN_GAP + 1)]:
+                if a.assert_ and (t.recall or (tt and tt & set(a.toks))):
+                    n += 1
+                    break
+        return n
+
+    @staticmethod
+    def _near_dup(win: Sequence[Turn], dup_bp: int) -> int:
+        n = 0
+        for i, t in enumerate(win):
+            if not t.sig:
+                continue
+            for u in win[max(0, i - DUP_LOOKBACK) : i]:
+                if u.sig and u.tool == t.tool and similarity_bp(t.sig, u.sig) >= dup_bp:
+                    n += 1
+                    break
+        return n
+
+    @staticmethod
+    def _timing(win: Sequence[Turn]) -> int:
+        if len(win) < TIMING_MIN_TURNS:
+            return 0
+        gaps = [win[i].ts_ms - win[i - 1].ts_ms for i in range(1, len(win))]
+        recent = gaps[-TIMING_RECENT_GAPS:]
+        median = _median(gaps)
+        mean_recent = max(sum(recent) // len(recent), 1)
+        if median < 1000:  # a session that is always fast has no burst against itself
+            return 0
+        ratio_x100 = median * 100 // mean_recent
+        return _clamp((ratio_x100 - 200) * 10000 // 600)
+
+    def _cross(self, win: Sequence[Turn], start: int, now_ms: int) -> int:
+        consumer = next((t.consumer for t in win if t.consumer), None)
+        if consumer is None:
+            return 0
+        agent = win[0].agent_id
+        others = {
+            a for ts, a in self._consumers.get(consumer, ()) if start <= ts <= now_ms and a != agent
+        }
+        return len(others)
+
+
+# --------------------------------------------------------------------------- timeline
+
+
+def timeline(turns: Sequence[Turn], limit: int = 60) -> list[dict[str, Any]]:
+    """Masked timeline: tool, class, outcome, amount, flags, codes. No text exists to show."""
+    if not turns:
+        return []
+    t0 = turns[0].ts_ms
+    out = []
+    for i, t in enumerate(turns[-limit:], start=max(0, len(turns) - limit)):
+        flags = [n for n, on in (("expand", t.expand), ("rare_tool", t.rare)) if on]
+        out.append(
+            {
+                "n": i + 1,
+                "t_s": (t.ts_ms - t0) // 1000,
+                "event_id": t.event_id,
+                "agent_id": t.agent_id,
+                "tool": t.tool,
+                "risk_class": t.risk,
+                "outcome": "denied" if t.refused else "allowed",
+                "amount_minor": t.amount_minor,
+                "flags": flags,
+                "codes": list(t.codes),
+            }
+        )
+    return out
+
+
+def timeline_text(rows: Sequence[Mapping[str, Any]], limit: int = 25) -> str:
+    """Compact one-line-per-turn text of ids and integers for a case summary (ASCII)."""
+    lines = []
+    for r in list(rows)[-limit:]:
+        amt = f" amt={r['amount_minor']}" if r.get("amount_minor") is not None else ""
+        fl = f" [{','.join(r['flags'])}]" if r.get("flags") else ""
+        cd = f" codes={','.join(r['codes'])}" if r.get("codes") else ""
+        lines.append(
+            f"{r['n']}. +{r['t_s']}s {r['tool']} ({r['risk_class']}) {r['outcome']}{amt}{fl}{cd}"
+        )
+    return "\n".join(lines)
+
+
+def daily_cap_minor(policy: Any, agent_id: str) -> int | None:
+    """Daily cap of money moved, from the policy's own aggregate rules (the fact the gate
+    enforces): the lowest ``limit`` of a ``sum`` aggregate over at least one day that blocks or
+    pauses, in scope for the agent. None when the policy has no such rule."""
+    caps = []
+    for r in getattr(policy, "rules", []):
+        agg = getattr(r, "aggregate", None)
+        if agg is None or agg.fn != "sum" or agg.window_s < 86400:
+            continue
+        if r.action not in ("block", "pause") or not r.in_scope(agent_id):
+            continue
+        caps.append(int(agg.limit))
+    return min(caps) if caps else None
+
+
+__all__ = [
+    "Assessment",
+    "EXPAND_PHRASES",
+    "Features",
+    "SATURATION",
+    "SessionConfig",
+    "SessionEngine",
+    "Turn",
+    "daily_cap_minor",
+    "decode_sig",
+    "encode_sig",
+    "extract",
+    "fold",
+    "has_expand",
+    "hash_consumer",
+    "identify",
+    "resolve_config",
+    "similarity_bp",
+    "timeline",
+    "timeline_text",
+]

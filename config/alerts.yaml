@@ -11,7 +11,7 @@
 # Sources and their filter fields: gate_decision(agent_id, action, rule_id, allow),
 # gate_state_change(agent_id, event, to_state), verdict(agent_id, tier, label, action, rule_id,
 # is_mock), job_run(job, status), chain_verify(ok), ingress_reject(agent_id, reason_code),
-# failmode_drill(ok), case(agent_id, severity).
+# failmode_drill(ok), case(agent_id, severity, case_type).
 version: 1
 
 rules:
@@ -101,6 +101,19 @@ rules:
     window_s: 0
     threshold: 1
     severity: medium
+    dedupe_s: 3600
+    routes: [inbox, siem]
+
+  # WP27: the session monitor opened a case for one conversation (steering over many turns,
+  # a split payment, a burst). One alert per agent per hour; the case holds the masked timeline.
+  - id: AL-SESSION-ESCALATION
+    title: Session escalation case opened
+    source: case
+    where: {case_type: session_escalation}
+    group_by: agent_id
+    window_s: 0
+    threshold: 1
+    severity: high
     dedupe_s: 3600
     routes: [inbox, siem]
 

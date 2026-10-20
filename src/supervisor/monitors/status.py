@@ -28,7 +28,7 @@ OK = "ok"
 NOT_APPLICABLE = "not_applicable"
 NO_DATA = "no_data"
 STATUSES = (OK, NOT_APPLICABLE, NO_DATA)
-MONITORS = ("quality", "fairness", "drift", "multiagent")
+MONITORS = ("quality", "fairness", "drift", "multiagent", "session")
 
 
 def _load(value: Any) -> dict[str, Any]:

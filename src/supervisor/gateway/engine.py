@@ -38,7 +38,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from supervisor.core.args_hmac import args_hmac, as_key, key_id
-from supervisor.core.canonical import canonical_json, format_ts
+from supervisor.core.canonical import canonical_json, format_ts, sha256_hex
 from supervisor.core.ports import Clock, EvidenceSink, Masker, StateStore, TableStore
 from supervisor.gateway.detector_gate import (
     DetectorGate,
@@ -61,6 +61,8 @@ from supervisor.gateway.policy import (
     ToolMatch,
 )
 from supervisor.gateway.redact import redact_args
+from supervisor.gateway.session_gate import PAUSE_RULE as SESSION_PAUSE_RULE
+from supervisor.gateway.session_gate import SessionCall, SessionGate
 from supervisor.gateway.state import AgentStateMachine
 from supervisor.gateway.tier0b import Classifier, RegexClassifier
 
@@ -338,6 +340,8 @@ class Decision:
     v2: dict[str, Any] | None = None
     det: Any = None  # DetectorOutcome: the findings to record
     transformed_payload: dict[str, Any] | None = None
+    # WP27 session monitor (None when SESSION_MONITOR_ENABLED is off: the answer is unchanged).
+    sess: SessionCall | None = None
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -362,6 +366,9 @@ class Decision:
             out["redaction_count"] = self.redaction_count
         if self.v2 is not None:  # absent with the flag off: same output as before
             out.update(self.v2)
+        if self.sess is not None:  # WP27: absent with SESSION_MONITOR_ENABLED off
+            out["session_id"] = self.sess.session_id
+            out["session_source"] = self.sess.source
         return out
 
 
@@ -397,6 +404,7 @@ class Gateway:
         inline_redaction: bool = False,
         redact_tools: frozenset[str] | set[str] | None = None,
         detector_gate: DetectorGate | None = None,
+        session_gate: SessionGate | None = None,
     ) -> None:
         self.policy = policy
         self.tables = tables
@@ -422,10 +430,22 @@ class Gateway:
         self.redact_tools = frozenset(redact_tools or ())
         # WP37: detector framework and verdict contract v2 (None = off, today's behaviour).
         self.detector_gate = detector_gate
+        # WP27: session monitor (None = off, today's behaviour).
+        self.session_gate = session_gate
         # Tools seen as pii_export: their masker pass runs BEFORE the gate lock (a 2 KB payload
         # costs about 3 ms; inside the lock it would delay every other agent's decision).
         self._redact_hint: frozenset[str] = frozenset()
         self.metrics = GateMetrics()
+        if session_gate is not None:  # WP27: the same two-person rule lifts a session pause
+            sg = session_gate
+            sg.actions.role_of = self.states.approver_role
+            sg.actions.resume_window_s = self.states.resume_window_s
+
+            def _lift(agent_id: str, principal: str) -> None:
+                sg.actions.lift_for_agent(agent_id, principal)
+                sg.drop_pauses(agent_id)
+
+            self.states.on_resume = _lift
         self.windows = WindowStore()
         self._lock = threading.RLock()
         self._pool = cf.ThreadPoolExecutor(max_workers=workers, thread_name_prefix="gate0a")
@@ -545,8 +565,21 @@ class Gateway:
         _, now_us = self._now_us()
         pre = self._pre_redact(tool_name, args, ctx)
         det = self._pre_detect(policy, agent_id, agent_version, tool_name, args, ctx, req)
+        sess = self._pre_session(agent_id, tool_name, args, ctx, req, dry=True)
         d, matches, shadow, builtin = self._evaluate(
-            policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us, skipped, det, req
+            policy,
+            state,
+            risk,
+            agent_id,
+            tool_name,
+            args,
+            ctx,
+            pre,
+            now_us,
+            skipped,
+            det,
+            req,
+            sess,
         )
         d.latency_us = (time.perf_counter_ns() - t0) // 1000
         out = d.as_result()
@@ -698,6 +731,7 @@ class Gateway:
     ) -> Decision:
         pre = self._pre_redact(tool_name, args, ctx)
         det = self._pre_detect(None, agent_id, agent_version, tool_name, args, ctx, req)
+        sess = self._pre_session(agent_id, tool_name, args, ctx, req)
         with self._lock:
             policy = self.policy.current()
             if not self.windows.warm or self.windows.policy_hash != policy.policy_hash:
@@ -707,7 +741,19 @@ class Gateway:
             now, now_us = self._now_us()
             self.windows.prune(now_us, policy.max_window_s)
             d, matches, shadow, builtin = self._evaluate(
-                policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us, None, det, req
+                policy,
+                state,
+                risk,
+                agent_id,
+                tool_name,
+                args,
+                ctx,
+                pre,
+                now_us,
+                None,
+                det,
+                req,
+                sess,
             )
             with call.lock:
                 if call.abandoned:
@@ -735,7 +781,8 @@ class Gateway:
             d.allow,
             "shadow" if shadow else (f"fail_{d.fail_mode}" if d.fail_mode else None),
         )
-        self._tier0b(d, agent_id, tool_name, args, risk, ctx)
+        self._tier0b(d, agent_id, tool_name, args, risk, ctx, sess)
+        self._session_observe(d, now, agent_id, tool_name, args, sess)
         return d
 
     def _evaluate(
@@ -752,6 +799,7 @@ class Gateway:
         skipped: list[str] | None = None,
         det: PreDetect | None = None,
         req: Req | None = None,
+        sess: SessionCall | None = None,
     ) -> tuple[Decision, list[Match], bool, tuple[str, str] | None]:
         """Pure decision from a policy snapshot: rule matching, built-in blocks, shadow,
         inline redaction. No store write, no state change. ``skipped`` not None = dry run
@@ -768,6 +816,13 @@ class Gateway:
             builtin = ("GATE-RETIRED", "agent retired")
         elif state == "PAUSED" and risk != "read_only":
             builtin = ("GATE-PAUSED", "agent paused")
+        elif sess is not None and sess.pause_id and state != "SHADOW":
+            # WP27: a deterministic session pause (score over the policy threshold, tool class in
+            # the policy scope). Ends by two-person resume or when the cool-down runs out.
+            builtin = (
+                SESSION_PAUSE_RULE,
+                f"conversation paused for {risk} tools (session pause {sess.pause_id[:12]})",
+            )
         elif risk is None and state != "SHADOW":
             builtin = ("GATE-UNKNOWN-TOOL", f"unknown tool {tool_name}: fail closed")
         elif (
@@ -853,6 +908,7 @@ class Gateway:
                 action, rid, reason = "allow", None, "allowed"
             d = Decision(decision_id, True, action, rid, reason, state, policy.policy_hash, risk)
         d.fail_mode = fail_mode
+        d.sess = sess
         if d.allow and not shadow and builtin is None:
             self._redact(d, risk, tool_name, args, pre, dry=dry)
         d.matched = [
@@ -877,6 +933,45 @@ class Gateway:
                 hmac_fn=lambda a: args_hmac(a, self._args_key),
             )
         return d, matches, shadow, builtin
+
+    def _pre_session(
+        self,
+        agent_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+        ctx: dict[str, Any],
+        req: Req | None,
+        dry: bool = False,
+    ) -> SessionCall | None:
+        """WP27: session identity, turn features and pause lookup, outside the gate lock. None
+        with the monitor off, for an output check, or when the agent's policy turns it off."""
+        if self.session_gate is None or (req is not None and req.direction == "output"):
+            return None
+        try:
+            policy = self.policy.current()
+        except Exception:  # noqa: BLE001 - the decision path reports a policy problem itself
+            return None
+        return self.session_gate.prepare(
+            policy, self.clock.now(), agent_id, tool_name, args, ctx, dry=dry
+        )
+
+    def _session_observe(
+        self,
+        d: Decision,
+        now: datetime,
+        agent_id: str,
+        tool_name: str,
+        args: Mapping[str, Any],
+        sess: SessionCall | None,
+    ) -> None:
+        """WP27: add the turn to its session and apply the rules. Never raises, never changes d."""
+        if sess is None or self.session_gate is None:
+            return
+        try:
+            policy = self.policy.current()
+        except Exception:  # noqa: BLE001
+            return
+        self.session_gate.observe(policy, now, d, agent_id, tool_name, args, sess)
 
     def _pre_detect(
         self,
@@ -1072,6 +1167,8 @@ class Gateway:
         currency = args.get("currency")
         caller = ctx.get("caller_agent_id")
         extra = event_fields(d) if d.v2 is not None else {}
+        if d.sess is not None:  # WP27: session columns (hashes, flags and integers only)
+            extra = {**extra, **self._session_fields(d)}
         self.tables.append(
             "agent_event",
             [
@@ -1103,6 +1200,38 @@ class Gateway:
                 }
             ],
         )
+
+    def _session_fields(self, d: Decision) -> dict[str, Any]:
+        s = d.sess
+        assert s is not None
+        det = getattr(d, "det", None)
+        codes = [f.code for f in getattr(det, "findings", ()) or ()]
+        feats: dict[str, Any] = {}
+        if s.consumer:
+            feats["c"] = s.consumer
+        if s.features.expand:
+            feats["x"] = 1
+        if s.features.rare:
+            feats["d"] = 1
+        if s.features.sig:
+            from supervisor.monitors.session import encode_sig
+
+            feats["s"] = encode_sig(s.features.sig)
+        if codes:
+            feats["f"] = codes
+        if s.features.assert_:
+            feats["a"] = 1
+        if s.features.recall:
+            feats["r"] = 1
+        if s.features.toks:
+            from supervisor.monitors.session import encode_sig as _enc
+
+            feats["k"] = _enc(s.features.toks)
+        return {
+            "session_id": s.session_id,
+            "session_source": s.source,
+            "session_json": canonical_json(feats) if feats else None,
+        }
 
     def _payload(
         self,
@@ -1150,6 +1279,11 @@ class Gateway:
             out["masker_version"] = str(getattr(self.masker, "mask_version", "unknown"))
         if d.v2 is not None:  # WP37: ids, codes and hashes only
             out.update(chain_fields(d))
+        if d.sess is not None:  # WP27: the session id as a hash, never the id itself
+            out["session_sha256"] = sha256_hex(d.sess.session_id)
+            out["session_source"] = d.sess.source
+            if d.sess.pause_id:
+                out["session_pause_id"] = d.sess.pause_id
         return out
 
     # ------------------------------------------------------------------ fail mode
@@ -1282,6 +1416,7 @@ class Gateway:
         args: Mapping[str, Any],
         risk: str | None,
         ctx: Mapping[str, Any],
+        sess: SessionCall | None = None,
     ) -> None:
         if not self.tier0b_enabled or risk == "read_only":
             return
@@ -1293,6 +1428,7 @@ class Gateway:
             tool_name,
             dict(args),
             ctx.get("trace_id"),
+            sess,
         )
         with self._lock:
             self._bg_futures = [f for f in self._bg_futures if not f.done()]
@@ -1306,6 +1442,7 @@ class Gateway:
         tool_name: str,
         args: Mapping[str, Any],
         trace_id: Any,
+        sess: SessionCall | None = None,
     ) -> None:
         t0 = time.perf_counter_ns()
         try:
@@ -1353,6 +1490,10 @@ class Gateway:
                 },
             )
             self.metrics.bump("tier0b_alerts")
+            if sess is not None and self.session_gate is not None:  # WP27: a late finding code
+                self.session_gate.note_codes(
+                    sess, agent_id, decision_id, [f"t:{f.kind}" for f in findings]
+                )
         except Exception:  # noqa: BLE001 - 0b never affects the call
             log.exception("tier 0b failed")
             self.metrics.bump("tier0b_errors")

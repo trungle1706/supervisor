@@ -58,6 +58,7 @@ A_ENV = "supervisor.env"
 A_CLASSIFICATION = "supervisor.classification"
 A_CAPTURE = "supervisor.capture_level"
 A_GATE_CORRELATION = "supervisor.gate.correlation_id"  # WP37
+A_SESSION = "supervisor.session_id"  # WP27
 
 ARGS_KEYS = (
     A_ARGS,
@@ -535,6 +536,7 @@ class Normaliser:
         if classification is None and self.masker is not None and (args_text or result_text):
             classification = "pii" if found_pii else "internal"
         event_id = f"{span.trace_id}-{span.span_id}"
+        session_id = self._ident(attrs.get(A_SESSION) or attrs.get("gen_ai.conversation.id"))
         ts = ns_to_datetime(span.start_ns)
         event = AgentEvent(
             event_id=event_id,
@@ -564,6 +566,9 @@ class Normaliser:
             mask_version=self.mask_version if level != "digest" else None,
             # WP37: the id the gate returned for this call (span attribute set by the agent SDK)
             correlation_id=self._ident(attrs.get(A_GATE_CORRELATION)),
+            # WP27: the conversation id; our own attribute wins over gen_ai.conversation.id
+            session_id=session_id,
+            session_source="span" if session_id else None,
         )
         raw = None
         if level == "raw" and (args_text is not None or result_text is not None):
