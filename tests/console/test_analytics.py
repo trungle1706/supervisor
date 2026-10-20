@@ -53,10 +53,18 @@ def test_each_tab_renders_and_the_no_js_page_equals_the_partial(
 def test_gate_tab_counts_the_demo_decisions(console: Console) -> None:
     r = console.get("/console/analytics?tab=gate&days=90")
     assert r.status_code == 200 and 'id="gate-totals"' in r.text
-    n = int(re.search(r'data-num="checked">\s*<h3>[^<]*</h3>\s*<div class="bignum">(\d+)', r.text).group(1))  # type: ignore[union-attr]
+    n = int(
+        re.search(
+            r'data-num="checked">\s*<h3>[^<]*</h3>\s*<div class="bignum">(\d+)', r.text
+        ).group(1)
+    )  # type: ignore[union-attr]
     events = console.ctx.tables.query("agent_event", {"event_type": "gate_decision"})
     assert 0 < n <= len(events)
-    blocked = int(re.search(r'data-num="blocked">\s*<h3>[^<]*</h3>\s*<div class="bignum">(\d+)', r.text).group(1))  # type: ignore[union-attr]
+    blocked = int(
+        re.search(
+            r'data-num="blocked">\s*<h3>[^<]*</h3>\s*<div class="bignum">(\d+)', r.text
+        ).group(1)
+    )  # type: ignore[union-attr]
     assert blocked >= 1  # the demo has gate blocks
     assert 'id="gate-table"' in r.text and "/console/agents/payments?lang=en" in r.text
     only = console.get("/console/analytics/tab/gate?agent=payments&days=90", headers=HX)
@@ -127,7 +135,11 @@ def test_tools_tab_is_the_old_tools_page(console: Console, monkeypatch: pytest.M
     assert r.status_code == 200 and 'id="tools-totals"' in r.text and 'data-tools="1"' in r.text
     assert 'aria-sort="descending"' in r.text and 'data-tool="add_payee"' in r.text
     assert "/console/analytics?tab=tools" in r.text  # sort links stay on this page
-    calls = int(re.search(r'data-num="calls">\s*<h3>[^<]*</h3>\s*<div class="bignum">(\d+)', r.text).group(1))  # type: ignore[union-attr]
+    calls = int(
+        re.search(r'data-num="calls">\s*<h3>[^<]*</h3>\s*<div class="bignum">(\d+)', r.text).group(
+            1
+        )
+    )  # type: ignore[union-attr]
     assert calls > 0
     agent = console.get("/console/analytics/tab/tools?agent=payments&days=30", headers=HX).text
     assert 'data-agent="payments"' in agent and 'data-agent="credit_prequal"' not in agent
@@ -142,7 +154,9 @@ def test_range_options_include_a_custom_value(console: Console) -> None:
     assert opts == [7, 30, 45, 90]
 
 
-def test_no_inline_script_or_external_url(console: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_no_inline_script_or_external_url(
+    console: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _on(console, monkeypatch)
     for tab in TABS:
         html = console.get(f"/console/analytics?tab={tab}").text

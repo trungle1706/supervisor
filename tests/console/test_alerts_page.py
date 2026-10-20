@@ -106,10 +106,15 @@ def test_ack_answer_keeps_filters_and_counts(console: Console) -> None:
 def test_viewer_cannot_ack_from_the_page(console: Console) -> None:
     row = _row(console)
     r = console.post(
-        f"/console/alerts/{ALERT_ID}/ack", {"row_version": str(row["row_version"])}, user="viewer.hoa"
+        f"/console/alerts/{ALERT_ID}/ack",
+        {"row_version": str(row["row_version"])},
+        user="viewer.hoa",
     )
     assert r.status_code == 403
-    assert len([x for x in console.ctx.tables.query("console_action") if x["outcome"] == "denied"]) == 1
+    assert (
+        len([x for x in console.ctx.tables.query("console_action") if x["outcome"] == "denied"])
+        == 1
+    )
 
 
 def test_metrics_tab_keeps_a_summary_tile_that_links_here(console: Console) -> None:

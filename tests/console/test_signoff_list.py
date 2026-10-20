@@ -22,7 +22,8 @@ def _triage(console: Console, severity: str | None = None) -> dict[str, Any]:
     case = next(
         c
         for c in svc.list_cases(statuses=["open"])
-        if c["severity"] in TWO_PERSON_SEVERITIES and (severity is None or c["severity"] == severity)
+        if c["severity"] in TWO_PERSON_SEVERITIES
+        and (severity is None or c["severity"] == severity)
     )
     return svc.transition(
         case["case_id"],
@@ -98,7 +99,9 @@ def test_drawer_holds_the_existing_signoff_panel(console: Console) -> None:
     # signing from the drawer: audited, two rows, the answer is the panel
     r = _sign(console, case, "reviewer.an")
     assert r.status_code == 200 and "(1/2)" in r.text
-    rows = [x for x in console.ctx.tables.query("console_action") if x["permission"] == "case.signoff"]
+    rows = [
+        x for x in console.ctx.tables.query("console_action") if x["permission"] == "case.signoff"
+    ]
     assert [x["outcome"] for x in rows] == ["attempted", "ok"]
 
 

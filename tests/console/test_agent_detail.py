@@ -32,9 +32,9 @@ def _tab_hrefs(html: str) -> list[str]:
 
 def _body(html: str) -> str:
     """The inside of #tab-body of a full page."""
-    return html.split('id="tab-body" class="tabpanel" role="tabpanel">', 1)[1].split(
-        "</main>", 1
-    )[0]
+    return html.split('id="tab-body" class="tabpanel" role="tabpanel">', 1)[1].split("</main>", 1)[
+        0
+    ]
 
 
 def test_every_tab_renders_for_every_demo_agent(
@@ -128,9 +128,10 @@ def test_flags_show_their_tabs(console: Console, monkeypatch: pytest.MonkeyPatch
     assert "/console/compliance/payments" in comp
     inv = console.get("/console/agents/payments/tab/inventory", headers=HX).text
     assert "not in the inventory" in inv
-    assert "No assurance result" in console.get(
-        "/console/agents/payments/tab/assurance", headers=HX
-    ).text
+    assert (
+        "No assurance result"
+        in console.get("/console/agents/payments/tab/assurance", headers=HX).text
+    )
     tools = console.get("/console/agents/payments/tab/tools", headers=HX).text
     assert 'data-tools="1"' in tools
 
