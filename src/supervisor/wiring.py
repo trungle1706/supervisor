@@ -41,6 +41,11 @@ log = logging.getLogger("supervisor.wiring")
 POLICY_DIR = REPO_ROOT / "policies"
 
 
+def resolve_policy_dir(settings: Settings, explicit: Path | None = None) -> Path:
+    """An explicit folder (tests, CLI), else ``POLICY_DIR`` (D13), else ``<repo>/policies``."""
+    return explicit or settings.policy_dir or POLICY_DIR
+
+
 class RegistrableAgent(Protocol):
     """What the registry needs from an agent manifest (``supervisor_agents`` manifests)."""
 
@@ -94,7 +99,7 @@ def build_runtime(
             from supervisor.jobs import bootstrap_schema
 
             bootstrap_schema.run(settings, adapters)
-        policy = load_policy_dir(policy_dir or POLICY_DIR)
+        policy = load_policy_dir(resolve_policy_dir(settings, policy_dir))
         deploy_with_retry(policy, adapters.state, adapters.clock, git_sha)
         chain = build_chain_writer(settings, adapters.tables, adapters.clock)
     except BaseException:
@@ -107,6 +112,10 @@ def build_runtime(
         settings.args_hash_key.get_secret_value() if settings.args_hash_key is not None else None
     )
     try:
+        if facts is None:  # D13: FACT_SOURCE (default none)
+            from supervisor.adapters.facts import make_fact_source
+
+            facts = make_fact_source(settings)
         gateway = _make_gateway(
             settings, adapters, chain, facts, policy_refresh_s, state_cache_ttl_s
         )
@@ -210,4 +219,11 @@ def register_agents(
     return done
 
 
-__all__ = ["POLICY_DIR", "RegistrableAgent", "Runtime", "build_runtime", "register_agents"]
+__all__ = [
+    "POLICY_DIR",
+    "RegistrableAgent",
+    "Runtime",
+    "build_runtime",
+    "register_agents",
+    "resolve_policy_dir",
+]

@@ -76,7 +76,10 @@ def build_gateway(
         from supervisor.jobs import bootstrap_schema
 
         bootstrap_schema.run(settings, adapters)
-    policy = load_policy_dir(policy_dir or POLICY_DIR)
+    from supervisor.adapters.facts import make_fact_source
+    from supervisor.wiring import resolve_policy_dir
+
+    policy = load_policy_dir(resolve_policy_dir(settings, policy_dir))
     deploy_with_retry(policy, adapters.state, adapters.clock)
     return Gateway(
         StorePolicyProvider(adapters.state, refresh_s=5.0),
@@ -84,6 +87,7 @@ def build_gateway(
         adapters.state,
         evidence,
         adapters.clock,
+        facts=make_fact_source(settings),  # D13: FACT_SOURCE (default none)
         env=settings.supervisor_mode,
     )
 

@@ -51,6 +51,7 @@ class JudgeCall:
     checker_id: str
     model_id: str
     model_family: str
+    family_source: str  # derived | declared-test-only | mock (D05)
     model_version: str
     region: str
     mask_version: str
@@ -134,6 +135,7 @@ class TierJudge:
             "checker_id": m.checker_id,
             "model_id": m.model_id,
             "model_family": m.family,
+            "family_source": m.family_source,
             "model_version": m.model_version,
             "region": m.region,
             "mask_version": mask_version_of(self.masker),

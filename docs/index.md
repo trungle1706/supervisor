@@ -36,6 +36,8 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/assurance.md` | 33 eval packs with licence and data mode | 2L, Dev |
 | `docs/tool-analytics.md` | Tool usage rollup, least-privilege suggestion, Tools page (WP22) | 2L, Op, Dev |
 | `docs/judge-mrm.md` | Model card, validation, change control of the judge | 2L, Aud |
+| `docs/llm-adapter.md` | LLM adapter flags, strict endpoints, derived judge family, challenger scope (WP1b-A) | Build, 2L |
+| `docs/fact-sources.md` | `POLICY_DIR` and `FACT_SOURCE` for the served app (WP1b-A) | Build, Sec |
 | `docs/enterprise-readiness.md` | Scored gaps (ISO 42001, NIST AI RMF, ASVS, ops) | 2L, Aud, Op |
 | `docs/metrics.md` | Oversight metrics and their definitions | 2L, Op |
 | `docs/latency.md` | Gate latency: method, numbers from `tools/bench_latency.py`, budgets, what is not measured | Op, Dev, Aud |

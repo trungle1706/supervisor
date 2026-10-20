@@ -163,6 +163,8 @@ class Verdict(Record):
     # WP19 (additive): change control fields for judge verdicts.
     prompt_hash: str | None = None
     rubric_version: str | None = None
+    # D05 (additive): where model_family came from: derived | declared-test-only | mock.
+    family_source: str | None = None
 
     @model_validator(mode="after")
     def _judges_only_advise(self) -> Verdict:

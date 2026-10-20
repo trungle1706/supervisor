@@ -163,6 +163,23 @@ forged alert cannot pause or block anything.
 | Inventory reads workspace metadata (WP24) | With `INVENTORY_ENABLED=1` the app lists Apps, serving endpoints, registered models and UC table names (read only, OAuth identity of the app). Object names are untrusted text: the console escapes them, CSV export guards formula cells, case summaries pass the masker, and nothing from the workspace reaches an LLM prompt. Shadow-AI cases are flags for a person; the scan never pauses or blocks. The check is only as complete as the app identity's visibility: an App the service principal cannot list is not seen | Grant the app principal list rights on Apps and serving endpoints; review the allow-list file in change control |
 | Mock judges in the demo | The demo judge is a keyword MockJudge; its numbers prove the protocol, not a model | Real judge model behind `JUDGE_*` settings, measured by the eval harness |
 
+### Judge family and served config (WP1b-A, ADR D21)
+
+Trust boundary B3 (judge / model) and the operator settings. The judge family was a free-text
+declaration; a qwen judge could be declared as another family and watch a qwen agent. The family
+is now derived from the model id and, with `JUDGE_FAMILY_PROBE=1`, the endpoint metadata; a
+disagreeing declaration stops startup unless `JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1`, which
+`databricks_app` mode refuses, and every verdict row, chain record, the model card and the
+validation report carry `family_source`; `mrm validate` gives NO_GO for a declared source. The
+transition flag `JUDGE_FAMILY_STRICT=0` accepts a declaration only for an id with no family
+(custom endpoint names) and records `declared-unverified`. A model id that lies about its weights is caught only
+by the probe, and only on endpoints that report them. `POLICY_DIR` and `FACT_SOURCE` are operator
+settings: `callable:` imports a module named in the environment, which runs its code, so the
+module must sit under a package prefix in `FACT_CALLABLE_ALLOW_PREFIX` (default `supervisor.`;
+the bank adds its own package); one changed variable cannot load `os` or a planted module. And `sqlite:` opens the file read-only with queries from a map that must be one `SELECT`
+with a bound key (no SQL built from agent input). A fact error returns no record, so the rule
+fails by its fail mode. They do not defend against an operator who can edit the settings.
+
 ### Ingress authentication (WP20, ADR D14)
 
 Trust boundary: the agent-facing write routes `POST /gate/check`, `/v1/gate/check` and `/v1/traces`. With `INGRESS_AUTH_ENABLED=1` each call carries a per-agent credential: an HMAC-SHA256 signature over (agent id, timestamp, nonce, method, path, body hash) with a 5-minute window and a single-use nonce, or a Databricks service-principal bearer token checked through SCIM `Me` and mapped to an allow-list of agent ids. This stops a caller that only has network access from posting gate checks or spans for an agent id it does not own, from replaying a captured request, and from spoofing the agent id in the body (the body id must be one the credential speaks for; a trace batch with a foreign span is refused whole). Every refusal is a 401 or 403, is counted in `/gate/metrics` and writes a `console_action` row with the body hash only. It does not stop: a stolen agent key (rotation limits the window; keep keys in the secret scope), a compromised agent process that holds its own key (it can still lie about its own tool calls: the gate stays cooperative), flooding by a caller that has no key (each refusal writes an audit row; use network or platform limits), or replay across a restart inside the 5-minute window (the nonce cache is in memory, one process). Default is off, so the two gap rows above stay true until the bank turns it on.

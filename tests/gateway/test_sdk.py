@@ -116,14 +116,14 @@ def test_in_process_gate_never_raises() -> None:
 
 def test_http_gate_via_test_client(gateway: Gateway) -> None:
     app = FastAPI()
-    app.include_router(router)
+    app.include_router(router, prefix="/v1")
     wiring.set_gateway(gateway)
     try:
         client = TestClient(app)
 
         def transport(url: str, payload: dict[str, Any], timeout_s: float) -> Mapping[str, Any]:
-            assert url == "http://gw/gate/check"
-            r = client.post("/gate/check", json=payload)
+            assert url == "http://gw/v1/gate/check"
+            r = client.post("/v1/gate/check", json=payload)
             r.raise_for_status()
             return r.json()  # type: ignore[no-any-return]
 
@@ -167,3 +167,64 @@ def test_http_gate_timeout_fail_modes(mode: str) -> None:
 
     with pytest.raises(SupervisorBlocked):
         transfer(1)
+
+
+def test_http_gate_uses_versioned_path_and_signs_it() -> None:
+    """D12: the SDK posts to /v1/gate/check; a signed call signs the path it sends."""
+    from supervisor.gateway.ingress_sign import IngressCredential
+
+    seen: dict[str, Any] = {}
+
+    def signed(url: str, body: bytes, headers: Mapping[str, str], timeout_s: float):  # type: ignore[no-untyped-def]
+        seen["url"], seen["headers"] = url, dict(headers)
+        return {"allow": True, "action": "allow"}
+
+    gate = HttpGate(
+        "http://gw", credential=IngressCredential("payments", "s" * 32), signed_transport=signed
+    )
+    assert gate.check("payments", "1", "t", {})["allow"] is True
+    assert seen["url"] == "http://gw/v1/gate/check"
+    assert gate.gate_path == "/v1/gate/check"
+
+
+def test_http_gate_falls_back_to_legacy_path_on_404_once() -> None:
+    import httpx
+
+    urls: list[str] = []
+
+    def transport(url: str, payload: dict[str, Any], timeout_s: float) -> Mapping[str, Any]:
+        urls.append(url)
+        if url.endswith("/v1/gate/check"):
+            req = httpx.Request("POST", url)
+            raise httpx.HTTPStatusError(
+                "nf", request=req, response=httpx.Response(404, request=req)
+            )
+        return {"allow": True, "action": "allow"}
+
+    gate = HttpGate("http://gw", transport=transport)
+    assert gate.check("a", "1", "t", {})["allow"] is True
+    assert gate.check("a", "1", "t", {})["allow"] is True
+    assert urls == ["http://gw/v1/gate/check", "http://gw/gate/check", "http://gw/gate/check"]
+
+
+def test_http_gate_other_errors_do_not_fall_back() -> None:
+    urls: list[str] = []
+
+    def transport(url: str, payload: dict[str, Any], timeout_s: float) -> Mapping[str, Any]:
+        urls.append(url)
+        raise ConnectionError("down")
+
+    gate = HttpGate("http://gw", transport=transport)
+    assert gate.check("a", "1", "t", {})["rule_id"] == "GATE-UNREACHABLE"
+    assert urls == ["http://gw/v1/gate/check"]
+
+
+def test_http_gate_base_url_with_v1_is_not_doubled() -> None:
+    urls: list[str] = []
+
+    def transport(url: str, payload: dict[str, Any], timeout_s: float) -> Mapping[str, Any]:
+        urls.append(url)
+        return {"allow": True, "action": "allow"}
+
+    HttpGate("http://gw/v1/", transport=transport).check("a", "1", "t", {})
+    assert urls == ["http://gw/v1/gate/check"]

@@ -90,9 +90,11 @@ class JudgeIdentity:
     t1_model_id: str
     t1_model_version: str
     t1_family: str
+    t1_family_source: str
     t2_model_id: str
     t2_model_version: str
     t2_family: str
+    t2_family_source: str
     is_mock: bool
     prompt_version: str
     t1_prompt_hash: str
@@ -127,9 +129,11 @@ def identity_from_router(
         t1_model_id=t1.model_id,
         t1_model_version=t1.model_version,
         t1_family=t1.family,
+        t1_family_source=t1.family_source,
         t2_model_id=t2.model_id,
         t2_model_version=t2.model_version,
         t2_family=t2.family,
+        t2_family_source=t2.family_source,
         is_mock=bool(router.is_mock),
         prompt_version=PROMPT_VERSION,
         t1_prompt_hash=h1,
