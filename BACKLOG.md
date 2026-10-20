@@ -47,3 +47,9 @@
 | Compliance advisor counts a monitor as present when it is planned, not when its runtime flag is on (`FAIRNESS_ENABLED` etc.) | Read deployment settings into the product facts |
 | Onboard eval: held-out set is no longer blind after the post-blind fixes | Write a fresh blind set (new repos, worker does not read the analyser) before quoting the gates externally |
 | `model_version` is the model tag; include the endpoint-reported digest when available | A model endpoint that reports a digest or revision |
+| WP20: OTLP exporters cannot sign HMAC requests (static headers). Laptop traces need a signing sidecar or the SDK; on the App use a bearer token | A signing OTel collector processor or SDK `post_traces` helper |
+| WP20: nonce cache is in memory (one process); a restart inside the 5-minute window forgets nonces | Shared nonce store if the app ever runs more than one worker |
+| WP20: rejection floods write one audit row each (no throttle on the audit write) | Platform or network rate limit; sampled audit for repeated identical rejections |
+| WP20: `DatabricksSecretReader` and `ScimMeIdentityVerifier` (real) are not run against a live workspace; tests use fakes. Add to the live kit | Owner runs the live kit; confirm whether Apps forwards `Authorization` or only `X-Forwarded-Access-Token`; confirm the "no secret-scope resources" rule allows SDK reads |
+| WP20: mTLS credential kind, bank vault key store, per-agent key expiry reminders in the console | Bank names the PKI or vault |
+| WP20: console action routes (`/console/...`) and `/gate/pause` etc. use RBAC, not agent credentials; they are out of scope | n/a |
