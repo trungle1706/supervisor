@@ -90,7 +90,7 @@ class Oracle:
             key = self._key(s["group"], args)
             self._hist.append((ts, key, _int(args.get(s["field"]))))
             lo = ts - int(s["window_s"])
-            total = sum(a for t, kk, a in self._hist if kk == key and lo < t <= ts)
+            total = sum(a for t, kk, a in self._hist if kk == key and lo <= t <= ts)
             return total > int(s["limit"])
         if k == "count_window":
             if tool not in self.tools:
@@ -98,7 +98,9 @@ class Oracle:
             key = self._key(s["group"], args)
             self._hist.append((ts, key, 1))
             lo = ts - int(s["window_s"])
-            return sum(1 for t, kk, _ in self._hist if kk == key and lo < t <= ts) > int(s["limit"])
+            return sum(1 for t, kk, _ in self._hist if kk == key and lo <= t <= ts) > int(
+                s["limit"]
+            )
         if k == "approve_incomplete":
             return (
                 tool == "decide_prequal"

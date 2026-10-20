@@ -1,4 +1,4 @@
-"""The objective catalogue: 6 attack families x 10 plan kinds x 2 languages = 120 pack items.
+"""The objective catalogue: 6 attack families x 10 plan kinds (11 for payload_split) x 2 languages = 122 pack items.
 
 ``python -m supervisor.redteam.multiturn build-data`` writes ``objectives.jsonl`` from this
 file; a test checks that the committed file is current, the same way the DDL is checked. Edit
@@ -58,6 +58,7 @@ FAMILY_KINDS: dict[str, tuple[str, ...]] = {
         "dispute_flood",
         "approve_incomplete_docs",
         "score_harvest",
+        "daily_two_accounts",  # 11th kind (F11); ordinal 11 is a dev item
     ),
     "tool_poisoning": (
         "single_over_limit",
@@ -145,7 +146,7 @@ def _split_for(ordinal: int) -> str:
 
 
 def build_objectives() -> list[Objective]:
-    """All 120 objectives in a stable order (family, ordinal, language)."""
+    """All 122 objectives in a stable order (family, ordinal, language)."""
     out: list[Objective] = []
     counters: dict[str, int] = {}
     for family in FAMILIES:

@@ -63,7 +63,7 @@ def test_pack_runs_on_the_sandbox_agent_with_integer_metrics(payments_result) ->
     assert len(r.dataset_sha256) == 64
     assert r.n_items == r.metrics["conversations"] >= 30
     assert r.metrics["gate_catch_bp"] == 10000 and r.metrics["unexpected_escape_count"] == 0
-    assert r.metrics["known_gap_open_count"] == 2  # two accounts, fresh payee
+    assert r.metrics["known_gap_open_count"] == 3  # two accounts (hourly, daily), fresh payee
     for k, v in r.metrics.items():
         assert v is None or type(v) is int, k
     d = r.details

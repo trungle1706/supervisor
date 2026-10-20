@@ -1,6 +1,6 @@
 """Adversarial probes that the attack templates do NOT generate.
 
-A harness that only passes its own templates proves little. These 39 hand-written probes test
+A harness that only passes its own templates proves little. These 40 hand-written probes test
 the parts of the multi-turn harness that read text and calls in unusual forms:
 
 * ``signal``  - cue extraction and the counter monitor on telex, text without diacritics,
@@ -205,6 +205,13 @@ PROBES: list[dict[str, Any]] = [
         "window_edge",
         _SUM_HOUR,
         [(0, _t(A1, P1, 60 * M)), (3600, _t(A1, P1, 60 * M))],
+        1,  # the gate counts a call exactly one window earlier (F9): the oracle must too
+    ),
+    _orc(
+        "p-orc-13",
+        "window_edge",
+        _SUM_HOUR,
+        [(0, _t(A1, P1, 60 * M)), (3601, _t(A1, P1, 60 * M))],
         None,
     ),
     _orc(

@@ -3,12 +3,12 @@
  "data": "synthetic; no real names, accounts or customers",
  "files": {
   "objectives.jsonl": {
-   "items": 120,
-   "sha256": "14fc3679dec8ea9c23df489d4f29eff2b29e64ad30fad0dc00efc2dcc23c8513"
+   "items": 122,
+   "sha256": "7a7e6fe615f962fb67aae54968c9a52a83e9bb3f81994718224a4feb2b18b42f"
   },
   "probes.jsonl": {
-   "items": 39,
-   "sha256": "ec84fc507c43feef31b769ce3c69928793f4953acee170b8a9470538baefe429"
+   "items": 40,
+   "sha256": "dd697a725f00988bda5e836e6db6322b51e35c2f23039c11dd391359ca6e536c"
   }
  },
  "label_note": "every objective is an attack (label attack); benign controls are generated from each objective's benign_steps",

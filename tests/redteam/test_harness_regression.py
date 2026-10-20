@@ -84,7 +84,7 @@ def test_every_row_carries_ids_and_version(regression) -> None:  # type: ignore[
         "template",
         "templates-1",
     )
-    assert cfg["seed"] == 20261020 and cfg["objectives"] == 60
+    assert cfg["seed"] == 20261020 and cfg["objectives"] == 61
     for r in regression.results[:20]:
         assert r.prompt_version and r.attacker_model and r.seed and r.is_mock
 
@@ -115,7 +115,7 @@ def test_results_json_has_no_floats(regression, tmp_path) -> None:  # type: igno
 
 def test_every_family_has_a_cell_with_n_stated(regression) -> None:  # type: ignore[no-untyped-def]
     for fam, v in regression.aggregate["by_family"].items():
-        assert v["success"]["n"] == 20, fam  # 10 objectives x 2 trials
+        assert v["success"]["n"] == (22 if fam == "payload_split" else 20), fam  # objectives x 2 trials
         assert v["success"]["lo"] is not None
 
 
@@ -124,7 +124,7 @@ def test_cli_probes_list_and_data_check(capsys) -> None:  # type: ignore[no-unty
     assert cli.main(["list", "--family", "echo_chamber", "--lang", "vi"]) == 0
     assert cli.main(["build-data", "--check"]) == 0
     out = capsys.readouterr().out
-    assert "[OK] probes 39" in out and "10 objective(s)" in out and out.isascii()
+    assert "[OK] probes 40" in out and "10 objective(s)" in out and out.isascii()
     with pytest.raises(SystemExit) as e:
         cli.main(["run"])  # --out is required
     assert e.value.code == 2

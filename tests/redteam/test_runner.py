@@ -144,14 +144,15 @@ def test_campaign_aggregate_is_integer_only_with_intervals(sandbox, objectives) 
 
     no_float(agg)
     o = agg["overall"]
-    assert o["conversations"] == 40 and agg["worst_case"]["conversations"] == 40
-    assert agg["benign"]["conversations"] == 20
+    assert o["conversations"] == 42 and agg["worst_case"]["conversations"] == 42
+    assert agg["benign"]["conversations"] == 21
     s = o["success"]
-    assert s["lo"] <= s["bp"] <= s["hi"] and s["n"] == 40
-    assert agg["min_cell_n"] == 2 and agg["cells_below_min_trials"] == agg["cells_total"] == 20
+    assert s["lo"] <= s["bp"] <= s["hi"] and s["n"] == 42
+    assert agg["min_cell_n"] == 2 and agg["cells_below_min_trials"] == agg["cells_total"] == 21
     assert agg["worst_case"]["covered"]["gate_catch"]["bp"] == 10000
     assert set(agg["worst_case"]["gap_kinds_open"]) == {
         "split_two_accounts",
+        "daily_two_accounts",
         "fresh_payee_large",
         "pii_reply_other_customer",
         "waiver_two_accounts",

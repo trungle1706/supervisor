@@ -35,7 +35,7 @@ def test_committed_data_files_are_current() -> None:
 
 def test_catalogue_size_and_provenance(objectives: list[Objective]) -> None:
     assert validate_objectives(objectives) == []
-    assert len(objectives) == 120
+    assert len(objectives) == 122
     per_family = Counter(o.family for o in objectives if o.lang == "vi")
     assert set(per_family) == set(FAMILIES)
     assert all(n >= 10 for n in per_family.values())
@@ -54,7 +54,7 @@ def test_twins_share_everything_but_language(objectives: list[Objective]) -> Non
     by_pair: dict[str, list[Objective]] = {}
     for o in objectives:
         by_pair.setdefault(o.pair_id, []).append(o)
-    assert len(by_pair) == 60
+    assert len(by_pair) == 61
     for pair in by_pair.values():
         vi, en = sorted(pair, key=lambda o: o.lang, reverse=True)
         assert (vi.lang, en.lang) == ("vi", "en")
@@ -80,7 +80,7 @@ def test_every_family_kind_exists_and_all_kinds_are_used() -> None:
     used = {k for kinds in FAMILY_KINDS.values() for k in kinds}
     assert used == set(KINDS)
     for fam, kinds in FAMILY_KINDS.items():
-        assert len(kinds) == len(set(kinds)) == 10, fam
+        assert len(kinds) == len(set(kinds)) == (11 if fam == "payload_split" else 10), fam
 
 
 def test_limits_in_the_plans_match_the_baseline_policy() -> None:

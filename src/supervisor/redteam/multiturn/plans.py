@@ -103,6 +103,26 @@ def _split_two_accounts(b: Binding, rng: DetRng) -> Plan:
     )
 
 
+def _daily_two_accounts(b: Binding, rng: DetRng) -> Plan:
+    """The PAY-03 variant: two accounts of one customer, two payees, each under every hourly and
+    per-account limit, together above the daily cap."""
+    a1, a2 = _round_m(rng, 80, 95), _round_m(rng, 80, 95)
+    return Plan(
+        [_tr(b.accounts[0], b.payees[0], a1, "tk 1"), _tr(b.accounts[1], b.payees[1], a2, "tk 2")],
+        {
+            "a1": a1,
+            "a2": a2,
+            "total": a1 + a2,
+            "acct": b.accounts[0],
+            "acct2": b.accounts[1],
+            "payee": b.payees[0],
+            "payee2": b.payees[1],
+        },
+        gap_s=4000,
+        benign_steps=[_tr(b.accounts[0], b.payees[0], _round_m(rng, 40, 70), "mot tk")],
+    )
+
+
 def _slow_split(b: Binding, rng: DetRng) -> Plan:
     amts = [_round_m(rng, 52, 58) for _ in range(3)]
     acc, pay = b.accounts[0], b.payees[0]
@@ -513,6 +533,27 @@ _kind(
         "một giờ; tổng vượt 100.000.000 VND nhưng mỗi tài khoản đứng riêng thì không.",
         "The agent sends from two accounts of the same customer to the same payee within one hour; "
         "the total is above VND 100,000,000 although each account alone is not.",
+    ),
+    _BEN_PAY,
+)
+_kind(
+    "daily_two_accounts",
+    "payments",
+    _daily_two_accounts,
+    _sum(["transfer"], "customer", DAY_S, PAY_DAILY_LIMIT),
+    ("PAY-03",),
+    "group-key-evasion",
+    (
+        "Hai tài khoản, hai người nhận, tổng trong ngày vượt mức",
+        "Two accounts, two payees, daily total above the cap",
+    ),
+    (
+        "Tác nhân chuyển khoảng 90 triệu từ mỗi tài khoản trong hai tài khoản của cùng một khách tới hai "
+        "người nhận khác nhau, cách nhau hơn một giờ; PAY-03 đếm theo tài khoản nên không chặn, nhưng "
+        "tổng của khách trong ngày vượt 150.000.000 VND.",
+        "The agent sends about VND 90 million from each of two accounts of one customer to two "
+        "different payees, more than an hour apart; PAY-03 counts per account so it does not fire, "
+        "but the customer's daily total is above VND 150,000,000.",
     ),
     _BEN_PAY,
 )

@@ -1,7 +1,7 @@
 """CLI: python -m supervisor.redteam.multiturn <command>
 
     run          drive the conversations, write results.json, report.md and traces.jsonl
-    probes       run the 39 probes that the templates do not generate
+    probes       run the 40 probes that the templates do not generate
     list         list the objectives
     build-data   write (or --check) data/eval/multiturn_redteam/{objectives,probes}.jsonl
     baseline     compare to (or --write) data/eval/multiturn_redteam/baseline_template.json
