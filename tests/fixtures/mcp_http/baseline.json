@@ -1,5 +1,5 @@
 {
- "commit": "2e0548da0bc3",
+ "commit": "de2539c17af2",
  "false_alarms": {
   "scan:benign_lookalike:injection_phrase": 1
  },
