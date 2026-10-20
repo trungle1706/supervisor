@@ -4,7 +4,7 @@ Who did what in the console: actor, permission, target, outcome, and the SHA-256
 row before and after. ``detail`` is a fixed short note by design (an error class name or a
 denial code), never text a user typed, so the page shows it as is. The table is append-only; this
 module only reads it. Equality filters (actor, permission, outcome) go to the store, the rest is
-applied in Python over the newest ``SCAN_CAP`` rows."""
+applied in Python over the newest ``CONSOLE_SCAN_CAP`` rows."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from supervisor.console.listing import (
     query_string,
     sort_rows,
 )
-from supervisor.console.readmodels import SCAN_CAP, jloads
+from supervisor.console.readmodels import jloads
 from supervisor.core import rbac
 
 OUTCOMES = ("attempted", "ok", "denied", "error")
@@ -75,7 +75,7 @@ def rows_for(ctx: Any, p: Mapping[str, str]) -> list[dict[str, Any]]:
     for key, col in (("actor", "actor"), ("permission", "permission"), ("outcome", "outcome")):
         if p[key]:
             where[col] = p[key]
-    rows = ctx.tables.query("console_action", where, order_by=("-ts",), limit=SCAN_CAP)
+    rows = ctx.tables.query("console_action", where, order_by=("-ts",), limit=ux3.scan_cap(ctx))
     start = ux3.range_start(ctx.clock.now(), p["range"])
     out = []
     for raw in rows:
@@ -113,7 +113,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
         "permission_opts": [(k, k) for k in sorted(rbac.PERMISSIONS)],
         "outcome_opts": [(o, f"outcome_{o}") for o in OUTCOMES],
         "range_opts": [(k, f"range_{k}") for k in ux3.RANGES],
-        "capped": len(rows) >= SCAN_CAP,
+        "capped": len(rows) >= ux3.scan_cap(ctx),
         "base_qs": query_string(base),
         "list_qs": query_string({**base, "sort": col, "dir": direction}),
     }

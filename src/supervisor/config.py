@@ -471,6 +471,10 @@ class Settings(BaseSettings):
     console_users_enabled: bool = False  # /console/users (read-only role map)
     console_auditlog_enabled: bool = False  # /console/audit (console_action rows)
     console_integrations_enabled: bool = False  # /console/integrations (status, read-only)
+    # Newest rows a list page reads before it filters in Python (decisions, audit log; the
+    # traces list reads CONSOLE_TRACE_SCAN events). A capped list says so. Pilot sizes.
+    console_scan_cap: int = Field(default=20000, ge=100, le=200_000)
+    console_trace_scan: int = Field(default=5000, ge=100, le=50_000)
 
     @field_validator(
         "data_dir",

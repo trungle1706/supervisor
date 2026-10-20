@@ -41,6 +41,16 @@ def choice(query: Mapping[str, str], name: str, allowed: Iterable[str]) -> str:
     return value
 
 
+def scan_cap(ctx: object) -> int:
+    """CONSOLE_SCAN_CAP: newest rows a list page reads (decisions, audit log)."""
+    return int(getattr(getattr(ctx, "settings", None), "console_scan_cap", 20000))
+
+
+def trace_scan(ctx: object) -> int:
+    """CONSOLE_TRACE_SCAN: newest events (and verdicts) the traces list reads."""
+    return int(getattr(getattr(ctx, "settings", None), "console_trace_scan", 5000))
+
+
 def range_start(now: dt.datetime, key: str) -> dt.datetime | None:
     """Start of the time range ``key`` (None = all time)."""
     secs = RANGES.get(key)

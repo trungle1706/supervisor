@@ -27,7 +27,6 @@ from supervisor.console.listing import (
 )
 from supervisor.console.readmodels import _verdict_row, rules_index
 
-TRACE_SCAN = 5000  # newest events/verdicts read for the list
 MAX_SPANS = 500  # spans drawn per trace; the rest is counted ("+N more")
 TEXT_CAP = 1000  # characters of a masked excerpt shown
 PAGE_SIZE = 25
@@ -62,7 +61,8 @@ def summaries(ctx: Any, p: Mapping[str, str]) -> tuple[list[dict[str, Any]], boo
     where: dict[str, Any] = {}
     if p["agent"]:
         where["agent_id"] = p["agent"]
-    events = ctx.tables.query("agent_event", where, order_by=("-ts",), limit=TRACE_SCAN)
+    cap = ux3.trace_scan(ctx)  # CONSOLE_TRACE_SCAN: newest events/verdicts read for the list
+    events = ctx.tables.query("agent_event", where, order_by=("-ts",), limit=cap)
     start = ux3.range_start(ctx.clock.now(), p["range"])
     by_trace: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for e in events:
@@ -72,7 +72,7 @@ def summaries(ctx: Any, p: Mapping[str, str]) -> tuple[list[dict[str, Any]], boo
     advisory: dict[str, int] = defaultdict(int)
     vwhere: dict[str, Any] = {"agent_id": p["agent"]} if p["agent"] else {}
     of_event = {str(e["event_id"]): tid for tid, evs in by_trace.items() for e in evs}
-    for v in ctx.tables.query("verdict", vwhere, order_by=("-ts",), limit=TRACE_SCAN):
+    for v in ctx.tables.query("verdict", vwhere, order_by=("-ts",), limit=cap):
         # a gate verdict may carry no trace id (the call gave none): its event does
         tid = str(v["trace_id"]) if v.get("trace_id") else of_event.get(str(v.get("event_id")), "")
         if tid not in by_trace:
@@ -105,7 +105,7 @@ def summaries(ctx: Any, p: Mapping[str, str]) -> tuple[list[dict[str, Any]], boo
                 "judge_n": advisory.get(tid, 0),
             }
         )
-    return out, len(events) >= TRACE_SCAN
+    return out, len(events) >= cap
 
 
 def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:

@@ -250,3 +250,30 @@ def test_decisions_paging(ux: Console) -> None:
     html = _decisions(ux).text
     assert "pager" in html
     assert _decisions(ux, "page=1&sort=agent_id&dir=asc").status_code == 200
+
+
+def test_scan_cap_is_a_setting(ux: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Review WP-UX3: CONSOLE_SCAN_CAP / CONSOLE_TRACE_SCAN bound the rows a list reads."""
+    from supervisor.config import Settings
+    from supervisor.console import decisions, traces, ux3
+
+    fields = Settings.model_fields
+    assert fields["console_scan_cap"].default == 20000
+    assert fields["console_trace_scan"].default == 5000
+    seen: list[int] = []
+    real = ux.ctx.tables.query
+
+    def spy(table: str, where: Any = None, **kw: Any) -> Any:
+        if kw.get("limit") is not None and table in ("agent_event", "verdict"):
+            seen.append(kw["limit"])
+        return real(table, where, **kw)
+
+    monkeypatch.setattr(ux.ctx.settings, "console_scan_cap", 150)
+    monkeypatch.setattr(ux.ctx.settings, "console_trace_scan", 120)
+    monkeypatch.setattr(ux.ctx.tables, "query", spy)
+    assert ux3.scan_cap(ux.ctx) == 150
+    decisions.list_view(ux.ctx, {})
+    assert seen and set(seen) == {150}
+    seen.clear()
+    traces.list_view(ux.ctx, {})
+    assert seen and set(seen) == {120}

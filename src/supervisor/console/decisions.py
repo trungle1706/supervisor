@@ -3,8 +3,8 @@
 A read model over ``agent_event`` (event_type ``gate_decision``), the tier-0 ``verdict`` rows
 that share its ``event_id`` (the rule hits), ``case_link`` (the case a stop opened) and
 ``chain_entry`` (the evidence position). Only equality filters go to the store (agent, tool);
-the rest is applied in Python over the newest ``SCAN_CAP`` rows, so the page works the same on
-SQLite and on Delta. Nothing is written. Arguments are never shown: the event holds a keyed
+the rest is applied in Python over the newest ``CONSOLE_SCAN_CAP`` rows, so the page works the
+same on SQLite and on Delta. Nothing is written. Arguments are never shown: the event holds a keyed
 HMAC of the arguments and hashed key values only (R2)."""
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from supervisor.console.listing import (
     query_string,
     sort_rows,
 )
-from supervisor.console.readmodels import SCAN_CAP, jloads, rules_index
+from supervisor.console.readmodels import jloads, rules_index
 
 ACTIONS = ("allow", "log", "alert", "block", "pause")
 _RANK = {"pause": 0, "block": 1, "alert": 2, "log": 3, "allow": 4}
@@ -68,7 +68,7 @@ def _verdicts_by_event(ctx: Any, agent: str) -> dict[str, list[dict[str, Any]]]:
         where: dict[str, Any] = {"tier": 0, "action": action}
         if agent:
             where["agent_id"] = agent
-        for v in ctx.tables.query("verdict", where, order_by=("-ts",), limit=SCAN_CAP):
+        for v in ctx.tables.query("verdict", where, order_by=("-ts",), limit=ux3.scan_cap(ctx)):
             if v.get("event_id"):
                 out.setdefault(str(v["event_id"]), []).append(v)
     return out
@@ -114,7 +114,7 @@ def rows_for(ctx: Any, p: Mapping[str, str]) -> tuple[list[dict[str, Any]], dict
     where: dict[str, Any] = {"event_type": "gate_decision"}
     if p["agent"]:
         where["agent_id"] = p["agent"]
-    events = ctx.tables.query("agent_event", where, order_by=("-ts",), limit=SCAN_CAP)
+    events = ctx.tables.query("agent_event", where, order_by=("-ts",), limit=ux3.scan_cap(ctx))
     start = ux3.range_start(ctx.clock.now(), p["range"])
     if start is not None:
         events = [e for e in events if e["ts"] >= start]
@@ -172,7 +172,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
         "rule_opts": [(r, r) for r in opts["rules"]],
         "tool_opts": [(t, t) for t in opts["tools"]],
         "range_opts": [(k, f"range_{k}") for k in ux3.RANGES],
-        "capped": len(rows) >= SCAN_CAP,
+        "capped": len(rows) >= ux3.scan_cap(ctx),
         "base_qs": query_string(base),
         "list_qs": query_string({**base, "sort": col, "dir": direction}),
     }
