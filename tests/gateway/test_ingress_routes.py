@@ -113,9 +113,8 @@ def test_unsigned_call_is_401_with_audit_row_and_metric(
     assert len(rows) == 1
     row = rows[0]
     assert row["outcome"] == "denied" and row["detail"] == "missing_credential"
-    import hashlib
 
-    assert row["before_hash"] == hashlib.sha256(body).hexdigest()
+    assert row["before_hash"] is None  # F11: refused on headers, the body was never read
     assert PIN not in json.dumps(row, default=str)  # hash only, no body, no PII
     counts = gateway.metrics.snapshot()["counts"]
     assert counts["ingress_rejected"] == 1 and counts["ingress_rejected_missing_credential"] == 1
@@ -256,5 +255,6 @@ def test_chunked_body_over_the_app_limit_is_413_not_401(secured: TestClient) -> 
         for _ in range(200):
             yield b"x" * 100_000
 
-    r = secured.post("/gate/check", content=gen(), headers={"content-type": "application/json"})
+    headers = signed("/gate/check", b"{}")  # header-valid, so the guard reaches the body read
+    r = secured.post("/gate/check", content=gen(), headers=headers)
     assert r.status_code == 413

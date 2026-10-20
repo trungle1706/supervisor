@@ -43,3 +43,20 @@ No new dependency. Merge hints: WP24b also edits `gateway/routes.py` and `engine
 
 ## Self-review notes
 R1-R3 hold (no model, no PII in audit/log, only SCIM Me to the configured host). No `exec`/`subprocess`. CLI ASCII (tested). Uses Starlette's private `request._body` to keep the body readable after signature check (covered by the e2e and route tests; revisit on a Starlette upgrade).
+
+## Review follow-up (after REVIEW_WP20.md)
+
+Tests: 2906 passed, 28 skipped (was 2879 at first handoff, 2888 after the Opus review fixes; +18 in `tests/gateway/test_ingress_followup.py`, a few existing tests adjusted). Ruff check and format clean.
+
+| Item | Done |
+|---|---|
+| F8 | Claimed agent id checked before any secret-scope read (agent registry via gateway state, cached) and, for bearer, against `agent_identities.yaml` before any SCIM call. SCIM semaphore (`INGRESS_SCIM_MAX_CONCURRENT`, 4; waiters get 401 after 5 s). Refused tokens cached `INGRESS_IDENTITY_NEGATIVE_TTL_S` (30). HMAC always does two compares (F12). |
+| F9 | `INGRESS_AUDIT_THROTTLE_S` (default 0 = audit all). Key (reason, client ip or claimed agent), 10k-key bounded map, `ingress_audit_suppressed` in `/gate/metrics`, next row carries `;suppressed=n`. Owner decision documented. |
+| F10 | Per-agent nonce cap `INGRESS_NONCE_CAP_PER_AGENT` (20000) plus global cap; ordered dict, expired entries dropped from the front (O(1) amortised), no full scan. |
+| F11 | `IngressVerifier.precheck(headers)` runs before the body is buffered (sizes, shape, timestamp, claimed agent). Header-stage audit rows have an empty `before_hash`. |
+| Proxy kind | New `databricks_proxy` (X-Forwarded-Email, else X-Forwarded-User, mapped by `agent_identities.yaml`, case-insensitive for e-mails). Default in `databricks_app` mode; ignored with an error log outside it (header could be typed). `all` = hmac + sp + proxy. Bearer stays as `databricks_sp`. |
+| Docs | `docs/ingress-auth.md` (preconditions: `--workers 1`, throttle decision, revocation delay, unsigned query string; live-kit check 1 = which headers reach the app), `docs/live-test-kit.md` item 11, ADR D14 follow-up section and open items. |
+
+New settings: `INGRESS_SCIM_MAX_CONCURRENT`, `INGRESS_IDENTITY_NEGATIVE_TTL_S`, `INGRESS_AUDIT_THROTTLE_S`, `INGRESS_NONCE_CAP_PER_AGENT`; `INGRESS_CREDENTIAL_KIND` gains `databricks_proxy` and `all`.
+Behaviour changes: `databricks_app` default kind is now `databricks_proxy` (was `databricks_sp`); e2e test selects `databricks_sp` explicitly. Files also touched: `adapters/auth/agent_creds_identity.py`, `docs/live-test-kit.md`.
+Commit trailer: this follow-up uses the Fable 5.1 trailer from the brief.

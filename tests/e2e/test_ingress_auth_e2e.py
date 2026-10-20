@@ -88,9 +88,10 @@ def databricks_fake(tmp_path: Path) -> Iterator[Runtime]:
         llm_base_url="",
         ingress_auth_enabled=True,
         ingress_identities_file=ids,
+        ingress_credential_kind="databricks_sp",  # the bearer option (the App default is proxy)
         databricks_host="https://fake-workspace.invalid",
     )
-    assert settings.effective_ingress_kind == "databricks_sp"  # the mode default
+    assert settings.effective_ingress_kind == "databricks_sp"
     for rt in _runtime(settings):
         guard = ingress_auth.build_guard(settings)
         assert guard.verifier is not None

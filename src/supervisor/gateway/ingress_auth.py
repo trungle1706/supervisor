@@ -34,6 +34,7 @@ import os
 import sys
 import threading
 import time
+from collections import OrderedDict
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -80,7 +81,18 @@ INGRESS_ATTR = "_supervisor_ingress_guard"  # set on a dependency that enforces 
 BEARER_MAX_BYTES = 4096
 BODY_FALLBACK_CAP = 10_000_000
 NONCE_CACHE_MAX = 200_000
+NONCE_PER_AGENT_MAX = 20_000
 FWD_TOKEN_HEADER = "x-forwarded-access-token"  # noqa: S105 - a header name, not a secret
+# Identity headers set by the Databricks Apps proxy (same trust as the console auth).
+PROXY_USER_HEADERS = ("x-forwarded-email", "x-forwarded-user")
+AUDIT_THROTTLE_MAX_KEYS = 10_000
+KIND_SETS: dict[str, frozenset[str]] = {
+    "hmac": frozenset({"hmac"}),
+    "databricks_sp": frozenset({"databricks_sp"}),
+    "databricks_proxy": frozenset({"databricks_proxy"}),
+    "both": frozenset({"hmac", "databricks_sp"}),
+    "all": frozenset({"hmac", "databricks_sp", "databricks_proxy"}),
+}
 
 # reason code -> (HTTP status, public message). unknown_agent and bad_signature share a
 # message on purpose: the caller cannot learn which agent ids exist.
@@ -128,31 +140,56 @@ class IngressIdentity:
 
 
 class NonceCache:
-    """Single-use nonces per agent, kept for ``ttl_s`` seconds (memory only: one process)."""
+    """Single-use nonces per agent, kept for ``ttl_s`` seconds (memory only: ONE process, so
+    the app must run with ``--workers 1``; see docs/ingress-auth.md).
 
-    def __init__(self, ttl_s: int, clock: Callable[[], float] = time.time, max_entries: int = 0):
+    Entries are appended in time order with a constant TTL, so expired ones are always at the
+    front: eviction is O(1) amortised, never a full scan. Two caps: global and per agent (one
+    agent that holds a valid key cannot fill the cache for the others)."""
+
+    def __init__(
+        self,
+        ttl_s: int,
+        clock: Callable[[], float] = time.time,
+        max_entries: int = 0,
+        per_agent_max: int = 0,
+    ):
         self._ttl = ttl_s
         self._clock = clock
         self._max = max_entries or NONCE_CACHE_MAX
-        self._seen: dict[tuple[str, str], float] = {}
+        self._per_agent = per_agent_max or NONCE_PER_AGENT_MAX
+        self._seen: OrderedDict[tuple[str, str], float] = OrderedDict()
+        self._count: dict[str, int] = {}
         self._lock = threading.Lock()
 
     def __len__(self) -> int:
         return len(self._seen)
 
+    def _drop_expired(self, now: float) -> None:
+        while self._seen:
+            (agent, _), exp = next(iter(self._seen.items()))
+            if exp > now:
+                break
+            self._seen.popitem(last=False)
+            n = self._count.get(agent, 1) - 1
+            if n > 0:
+                self._count[agent] = n
+            else:
+                self._count.pop(agent, None)
+
     def use(self, agent_id: str, nonce: str) -> str:
         """Record the nonce. Returns ``ok``, ``replayed`` or ``full``."""
         now = self._clock()
         with self._lock:
+            self._drop_expired(now)
             key = (agent_id, nonce)
             exp = self._seen.get(key)
             if exp is not None and exp > now:
                 return "replayed"
-            if len(self._seen) >= self._max:
-                self._seen = {k: v for k, v in self._seen.items() if v > now}
-                if len(self._seen) >= self._max:
-                    return "full"
+            if len(self._seen) >= self._max or self._count.get(agent_id, 0) >= self._per_agent:
+                return "full"
             self._seen[key] = now + self._ttl
+            self._count[agent_id] = self._count.get(agent_id, 0) + 1
             return "ok"
 
 
@@ -178,13 +215,15 @@ def _count(headers: Any, name: str) -> int:
 
 
 class IngressVerifier:
-    """Pure check of one request: no web objects, no I/O besides the key store and the
-    identity verifier. ``authenticate`` raises ``IngressRejected``."""
+    """Pure check of one request: no web objects, no I/O besides the key store, the identity
+    verifier and the agent registry. ``precheck`` looks at headers only (cheap, runs before the
+    body is buffered); ``authenticate`` does everything. Both raise ``IngressRejected``."""
 
     def __init__(
         self,
         *,
         kind: str,
+        kinds: frozenset[str] | None = None,
         keys: KeyStore | None,
         identity: IdentityVerifier | None = None,
         identities: AgentIdentityMap | None = None,
@@ -192,15 +231,25 @@ class IngressVerifier:
         max_header: int = 512,
         clock: Callable[[], float] = time.time,
         nonces: NonceCache | None = None,
+        known_agent: Callable[[str], bool] | None = None,
+        registry_before_keys: bool = False,
+        nonce_cap_per_agent: int = 0,
     ) -> None:
-        self.kind = kind  # hmac | databricks_sp | both
+        self.kind = kind  # hmac | databricks_sp | databricks_proxy | both | all
+        self.kinds = kinds if kinds is not None else KIND_SETS[kind]
         self.keys = keys
         self.identity = identity
         self.identities = identities or AgentIdentityMap({})
         self.window_s = window_s
         self.max_header = max_header
         self.clock = clock
-        self.nonces = nonces or NonceCache(2 * window_s + 5, clock)
+        self.nonces = nonces or NonceCache(
+            2 * window_s + 5, clock, per_agent_max=nonce_cap_per_agent
+        )
+        # F8: the agent registry is asked BEFORE a secret-scope or SCIM call, so a random agent
+        # id costs a local lookup, not a network call. None = no registry check.
+        self.known_agent = known_agent
+        self.registry_before_keys = registry_before_keys
 
     # -- helpers --------------------------------------------------------------
 
@@ -216,11 +265,28 @@ class IngressVerifier:
         fwd = headers.get(FWD_TOKEN_HEADER)
         return fwd.strip() if isinstance(fwd, str) and fwd.strip() else None
 
-    # -- main -----------------------------------------------------------------
+    def _proxy_user(self, headers: _HeadersLike) -> str | None:
+        for name in PROXY_USER_HEADERS:
+            v = headers.get(name)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return None
 
-    def authenticate(
-        self, method: str, path: str, headers: _HeadersLike, body: bytes
-    ) -> IngressIdentity:
+    def _route(self, headers: _HeadersLike) -> str:
+        """Which credential this request carries: hmac | databricks_sp | databricks_proxy."""
+        if headers.get(H_SIGNATURE) is not None and "hmac" in self.kinds:
+            return "hmac"
+        if "databricks_sp" in self.kinds and self._bearer(headers):
+            return "databricks_sp"
+        if "databricks_proxy" in self.kinds and self._proxy_user(headers):
+            return "databricks_proxy"
+        raise IngressRejected("missing_credential")
+
+    # -- header-only checks (F11) --------------------------------------------------
+
+    def precheck(self, headers: _HeadersLike) -> str:
+        """Everything that needs no body: header sizes and shape, timestamp window, the claimed
+        agent against the registry. Returns the credential route. Run it before buffering."""
         if isinstance(headers, dict):
             headers = _CIHeaders(headers)
         for name in (H_AGENT, H_TIMESTAMP, H_NONCE, H_SIGNATURE):
@@ -230,27 +296,65 @@ class IngressVerifier:
         bearer = self._bearer(headers)
         if bearer is not None and len(bearer) > BEARER_MAX_BYTES:
             raise IngressRejected("header_too_large")
-        sig = headers.get(H_SIGNATURE)
-        if sig is not None and self.kind in ("hmac", "both"):
-            return self._hmac(method, path, headers, body, sig)
-        if bearer and self.kind in ("databricks_sp", "both"):
-            return self._bearer_identity(headers, bearer)
-        raise IngressRejected("missing_credential")
+        for name in PROXY_USER_HEADERS:
+            v = headers.get(name)
+            if isinstance(v, str) and (len(v) > self.max_header or _count(headers, name) > 1):
+                raise IngressRejected("header_too_large")
+        route = self._route(headers)
+        if route == "hmac":
+            agent = headers.get(H_AGENT)
+            ts = headers.get(H_TIMESTAMP)
+            nonce = headers.get(H_NONCE)
+            sig = headers.get(H_SIGNATURE)
+            if not (agent and ts and nonce):
+                raise IngressRejected("malformed_credential")
+            if not (AGENT_ID_RE.match(agent) and NONCE_RE.match(nonce) and SIG_RE.match(sig)):
+                raise IngressRejected("malformed_credential")
+            if not (ts.isascii() and ts.isdigit() and len(ts) <= 12):
+                raise IngressRejected("malformed_credential")
+            if abs(self.clock() - int(ts)) > self.window_s:
+                raise IngressRejected("stale_timestamp")
+            if self.registry_before_keys and not self._registered(agent):
+                raise IngressRejected("unknown_agent")
+        else:
+            claimed = headers.get(H_AGENT)
+            if claimed is not None:
+                if not AGENT_ID_RE.match(claimed):
+                    raise IngressRejected("malformed_credential")
+                if route == "databricks_sp" and claimed not in self.identities.all_agents():
+                    raise IngressRejected("agent_mismatch")  # local check, before the SCIM call
+        return route
 
-    def _hmac(
-        self, method: str, path: str, headers: _HeadersLike, body: bytes, sig: str
+    def _registered(self, agent: str) -> bool:
+        if self.known_agent is None:
+            return True
+        try:
+            return bool(self.known_agent(agent))
+        except Exception as exc:  # noqa: BLE001 - registry outage: refuse, never 500
+            log.error("ingress agent registry failed: %s", type(exc).__name__)
+            return False
+
+    # -- main -----------------------------------------------------------------
+
+    def authenticate(
+        self, method: str, path: str, headers: _HeadersLike, body: bytes
     ) -> IngressIdentity:
+        if isinstance(headers, dict):
+            headers = _CIHeaders(headers)
+        route = self.precheck(headers)
+        if route == "hmac":
+            return self._hmac(method, path, headers, body)
+        if route == "databricks_sp":
+            token = self._bearer(headers)
+            assert token is not None
+            return self._bearer_identity(headers, token)
+        return self._proxy_identity(headers)
+
+    def _hmac(self, method: str, path: str, headers: _HeadersLike, body: bytes) -> IngressIdentity:
         agent = headers.get(H_AGENT)
         ts = headers.get(H_TIMESTAMP)
         nonce = headers.get(H_NONCE)
-        if not (agent and ts and nonce):
-            raise IngressRejected("malformed_credential")
-        if not (AGENT_ID_RE.match(agent) and NONCE_RE.match(nonce) and SIG_RE.match(sig)):
-            raise IngressRejected("malformed_credential")
-        if not (ts.isascii() and ts.isdigit() and len(ts) <= 12):
-            raise IngressRejected("malformed_credential")
-        if abs(self.clock() - int(ts)) > self.window_s:
-            raise IngressRejected("stale_timestamp")
+        sig = headers.get(H_SIGNATURE)
         try:
             keys = (
                 self.keys.keys_for(agent, datetime.fromtimestamp(self.clock(), UTC))
@@ -260,9 +364,9 @@ class IngressVerifier:
         except KeyStoreError as exc:
             log.error("ingress key store unavailable: %s", type(exc).__name__)
             raise IngressRejected("key_store_unavailable") from exc
-        # Always run the compare, with a dummy key for an unknown agent, so timing does not
-        # tell a known agent id from an unknown one.
-        candidates = [k.secret for k in keys] or ["x" * 32]
+        # Always do two HMACs and compares (F12): a dummy key stands in for a missing one, so
+        # the work does not tell a known agent id from an unknown one, or one key from two.
+        candidates = ([k.secret for k in keys] + ["x" * 32, "y" * 32])[:2]
         ok = False
         for secret in candidates:
             expected = compute_signature(secret, agent, ts, nonce, method, path, body)
@@ -285,13 +389,24 @@ class IngressVerifier:
             who = self.identity.verify(token)
         except IdentityError as exc:
             raise IngressRejected("invalid_token") from exc
-        agents = self.identities.agents_for(who.principal)
+        return self._mapped("databricks_sp", who.principal, headers)
+
+    def _proxy_identity(self, headers: _HeadersLike) -> IngressIdentity:
+        """Identity header set by the Apps proxy: no token, no SCIM call. Trusted the same way
+        the console auth trusts it in databricks_app mode (the app is reachable only through
+        the proxy)."""
+        user = self._proxy_user(headers)
+        assert user is not None
+        return self._mapped("databricks_proxy", user, headers)
+
+    def _mapped(self, kind: str, principal: str, headers: _HeadersLike) -> IngressIdentity:
+        agents = self.identities.agents_for(principal)
         if not agents:
             raise IngressRejected("unknown_principal")
         claimed = headers.get(H_AGENT)
         if claimed is not None and claimed not in agents:
             raise IngressRejected("agent_mismatch")
-        return IngressIdentity("databricks_sp", who.principal, agents, claimed)
+        return IngressIdentity(kind, principal, agents, claimed)
 
 
 # ---------------------------------------------------------------------------- guard
@@ -310,6 +425,12 @@ class IngressGuard:
     bump: Callable[[str], None] | None = None
     body_cap: Callable[[str], int] = field(default=lambda _p: BODY_FALLBACK_CAP)
     counts: dict[str, int] = field(default_factory=dict)
+    # F9: 0 = one audit row per rejection. N = one row per (reason, client ip or claimed agent)
+    # per N seconds; the rest are counted in ingress_audit_suppressed.
+    audit_throttle_s: int = 0
+    clock: Callable[[], float] = time.monotonic
+    _throttle: OrderedDict[tuple[str, str], list[float]] = field(default_factory=OrderedDict)
+    _throttle_lock: threading.Lock = field(default_factory=threading.Lock)
 
     def _count(self, name: str) -> None:
         self.counts[name] = self.counts.get(name, 0) + 1
@@ -331,6 +452,10 @@ class IngressGuard:
         )
         if self.audit is None:
             return
+        suppressed = self._throttled(request, reason, claimed)
+        if suppressed is None:
+            self._count("ingress_audit_suppressed")
+            return
         try:
             await run_in_threadpool(
                 self.audit,
@@ -339,10 +464,32 @@ class IngressGuard:
                     "reason": reason,
                     "body_hash": body_hash,
                     "claimed": claimed,
+                    "suppressed": suppressed,
                 },
             )
         except Exception as exc:  # noqa: BLE001 - an audit failure must not become a 500
             log.error("ingress audit write failed: %s", type(exc).__name__)
+
+    def _throttled(self, request: Request, reason: str, claimed: str | None) -> int | None:
+        """None = skip this audit row. Otherwise the number of rows skipped for the same key
+        since the last written one (0 when the throttle is off). Bounded to 10k keys."""
+        if self.audit_throttle_s <= 0:
+            return 0
+        who = claimed or (request.client.host if request.client else "-")
+        key = (reason, who)
+        now = self.clock()
+        with self._throttle_lock:
+            hit = self._throttle.get(key)
+            if hit is not None and now - hit[0] < self.audit_throttle_s:
+                hit[1] += 1
+                self._throttle.move_to_end(key)
+                return None
+            skipped = int(hit[1]) if hit is not None else 0
+            self._throttle[key] = [now, 0]
+            self._throttle.move_to_end(key)
+            while len(self._throttle) > AUDIT_THROTTLE_MAX_KEYS:
+                self._throttle.popitem(last=False)
+            return skipped
 
     async def authenticate(self, request: Request) -> IngressIdentity | None:
         """The FastAPI-side entry: read the body, check the credential, bind the identity to
@@ -358,6 +505,14 @@ class IngressGuard:
             if self.verifier is None:
                 raise IngressRejected("auth_unavailable")
             claimed = self.verifier.claimed_agent(request.headers)
+            # F11: header-only checks first, so a bad request never makes us buffer a body
+            try:
+                await run_in_threadpool(self.verifier.precheck, request.headers)
+            except IngressRejected:
+                raise
+            except Exception as exc:  # noqa: BLE001 - a verifier bug: 401, never 500
+                log.error("ingress precheck failed: %s", type(exc).__name__)
+                raise IngressRejected("auth_unavailable") from exc
             body = await _read_capped(request, self.body_cap(request.url.path))
             body_hash = body_sha256(body)
             request.state.ingress_body_hash = body_hash
@@ -436,27 +591,71 @@ def build_key_store(settings: Settings) -> KeyStore:
     return FileKeyStore(settings.ingress_keys_file)
 
 
+def _registry_check() -> Callable[[str], bool] | None:
+    """Agent registry lookup against the installed gateway's state, cached for a short time
+    (positive 60 s, negative 10 s, bounded). None when no gateway is installed yet."""
+    from supervisor.gateway import wiring
+
+    cache: dict[str, tuple[float, bool]] = {}
+    lock = threading.Lock()
+
+    def known(agent_id: str) -> bool:
+        now = time.monotonic()
+        with lock:
+            hit = cache.get(agent_id)
+            if hit is not None and hit[0] > now:
+                return hit[1]
+        gw = wiring.peek_gateway()
+        if gw is None:
+            return False  # no store to ask: refuse rather than call out
+        found = gw.states.state.get("agent", {"agent_id": agent_id}) is not None
+        with lock:
+            if len(cache) >= 4096:
+                cache.clear()
+            cache[agent_id] = (now + (60 if found else 10), found)
+        return found
+
+    return known
+
+
 def build_verifier(settings: Settings) -> IngressVerifier:
     kind = settings.effective_ingress_kind
-    keys = build_key_store(settings) if kind in ("hmac", "both") else None
+    kinds = KIND_SETS[kind]
+    if "databricks_proxy" in kinds and settings.supervisor_mode != "databricks_app":
+        # The proxy header is only trustworthy behind the Apps proxy; anywhere else a caller
+        # could type it. Drop that kind (an empty set refuses every call) and say so.
+        log.error("INGRESS kind databricks_proxy is only valid in databricks_app mode; ignored")
+        kinds = kinds - {"databricks_proxy"}
+    keys = build_key_store(settings) if "hmac" in kinds else None
     identity: IdentityVerifier | None = None
     identities = None
-    if kind in ("databricks_sp", "both"):
+    if kinds & {"databricks_sp", "databricks_proxy"}:
         assert settings.ingress_identities_file is not None
         identities = AgentIdentityMap.from_file(settings.ingress_identities_file)
+    if "databricks_sp" in kinds:
         if settings.databricks_host:
             identity = ScimMeIdentityVerifier(
-                settings.databricks_host, settings.ingress_identity_cache_ttl_s
+                settings.databricks_host,
+                settings.ingress_identity_cache_ttl_s,
+                max_concurrent=settings.ingress_scim_max_concurrent,
+                negative_ttl_s=settings.ingress_identity_negative_ttl_s,
             )
         else:
             log.error("INGRESS credential kind needs DATABRICKS_HOST; bearer tokens are refused")
+    # The agent registry is asked before the key lookup when keys live behind a network call.
+    # A bearer's claimed agent id is checked against the identity map (local) before SCIM.
+    use_registry = "hmac" in kinds and settings.effective_ingress_key_store == "secret_scope"
     return IngressVerifier(
         kind=kind,
+        kinds=kinds,
         keys=keys,
         identity=identity,
         identities=identities,
         window_s=settings.ingress_replay_window_s,
         max_header=settings.ingress_max_header_bytes,
+        known_agent=_registry_check() if use_registry else None,
+        registry_before_keys=use_registry,
+        nonce_cap_per_agent=settings.ingress_nonce_cap_per_agent,
     )
 
 
@@ -487,7 +686,10 @@ def _audit_to_gateway(settings: Settings) -> AuditFn:
             target_kind="agent" if claimed else None,
             target_id=claimed,
             before_hash=info["body_hash"],
-            detail=info["reason"],
+            detail=(
+                info["reason"]
+                + (f";suppressed={info['suppressed']}" if info.get("suppressed") else "")
+            ),
         )
 
     return audit
@@ -521,6 +723,7 @@ def build_guard(settings: Settings) -> IngressGuard:
         audit=_audit_to_gateway(settings),
         bump=_bump_gateway,
         body_cap=cap,
+        audit_throttle_s=settings.ingress_audit_throttle_s,
     )
 
 

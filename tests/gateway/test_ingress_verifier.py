@@ -166,7 +166,7 @@ def test_compare_is_constant_time(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(calls) == 2
     calls.clear()
     reason_of(v, sign(agent="ghost"))
-    assert len(calls) == 1  # unknown agent: a dummy compare keeps the timing shape
+    assert len(calls) == 2  # unknown agent: dummy keys, same work (F12)
 
 
 def test_no_plain_equality_on_signatures() -> None:
@@ -472,7 +472,11 @@ def test_scim_me_verifier_caches_successes_only_and_hides_the_token() -> None:
     assert "bad" not in str(ei.value)
     with pytest.raises(IdentityError):
         v.verify("bad")
-    assert calls.count("bad") == 2  # failures are not cached
+    assert calls.count("bad") == 1  # a refused token is cached briefly (F8, 30 s)
+    t[0] += 31
+    with pytest.raises(IdentityError):
+        v.verify("bad")
+    assert calls.count("bad") == 2  # negative TTL passed
     with pytest.raises(IdentityError):
         ScimMeIdentityVerifier("FILL-ME-host")
 

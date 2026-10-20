@@ -19,6 +19,7 @@ You run it on the bank laptop and send back the results file. All commands are W
 | 08 | Serving endpoint (optional) | Does the endpoint answer an OpenAI-compatible JSON request? (needs `LLM_ENDPOINT`) |
 | 09 | Command Execution runner (optional) | Does one execution context run cells, return the sentinel line and get destroyed? (needs `DATABRICKS_CLUSTER_NAME`) |
 | 10 | Environment summary | Prints settings that matter (no secrets) |
+| 11 | Ingress headers (WP20, manual, do this first) | Which identity headers reach the App: `X-Forwarded-User` / `X-Forwarded-Email` / `X-Forwarded-Access-Token` / `Authorization`, for a service-principal caller and a user caller? Decides the ingress credential kind (`docs/ingress-auth.md`, "Databricks App setup") |
 
 The command below also runs the SQL contract tests (`tests\contract`) against your
 workspace: the same tests that pass on SQLite here.

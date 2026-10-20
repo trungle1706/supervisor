@@ -88,7 +88,7 @@ def test_defaults_are_off_and_kind_follows_the_mode() -> None:
     assert s.ingress_replay_window_s == 300
     assert (s.effective_ingress_kind, s.effective_ingress_key_store) == ("hmac", "file")
     app = load_settings(supervisor_mode="databricks_app")
-    assert app.effective_ingress_kind == "databricks_sp"  # databricks_app defaults to SP bearer
+    assert app.effective_ingress_kind == "databricks_proxy"  # the App default; sp is an option
     assert app.effective_ingress_key_store == "env"
     assert (
         load_settings(

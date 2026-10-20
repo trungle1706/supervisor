@@ -99,6 +99,9 @@ class ScimMeIdentityVerifier:
         call: MeCall | None = None,
         clock: Callable[[], float] = time.monotonic,
         max_entries: int = 1024,
+        max_concurrent: int = 4,
+        negative_ttl_s: int = 30,
+        wait_s: float = 5.0,
     ) -> None:
         if is_placeholder(host):
             raise IdentityError("DATABRICKS_HOST is not configured")
@@ -108,6 +111,10 @@ class ScimMeIdentityVerifier:
         self._clock = clock
         self._max = max_entries
         self._cache: dict[str, tuple[float, VerifiedIdentity]] = {}
+        self._refused: dict[str, float] = {}  # token hash -> until (short negative cache)
+        self._neg_ttl = negative_ttl_s
+        self._sem = threading.BoundedSemaphore(max_concurrent)  # F8: cap parallel SCIM calls
+        self._wait_s = wait_s
         self._lock = threading.Lock()
 
     def verify(self, token: str) -> VerifiedIdentity:
@@ -117,13 +124,22 @@ class ScimMeIdentityVerifier:
             hit = self._cache.get(key)
             if hit is not None and now < hit[0]:
                 return hit[1]
+            if self._refused.get(key, 0.0) > now:
+                raise IdentityError("token not accepted (cached)")
+        if not self._sem.acquire(timeout=self._wait_s):
+            log.warning("scim me busy: too many parallel identity calls")
+            raise IdentityError("identity service busy")
         try:
             ident = self._call(token)
-        except IdentityError:
-            raise
         except Exception as exc:  # noqa: BLE001 - SDK errors: refuse, never 500; no token text
-            log.warning("scim me failed: %s", type(exc).__name__)
+            if not isinstance(exc, IdentityError):
+                log.warning("scim me failed: %s", type(exc).__name__)
+            self._remember_refusal(key)
+            if isinstance(exc, IdentityError):
+                raise
             raise IdentityError("identity service refused the token") from exc
+        finally:
+            self._sem.release()
         with self._lock:
             if len(self._cache) >= self._max:
                 self._cache = {k: v for k, v in self._cache.items() if v[0] > now}
@@ -131,6 +147,17 @@ class ScimMeIdentityVerifier:
                     self._cache.clear()
             self._cache[key] = (now + self._ttl, ident)
         return ident
+
+    def _remember_refusal(self, key: str) -> None:
+        if self._neg_ttl <= 0:
+            return
+        now = self._clock()
+        with self._lock:
+            if len(self._refused) >= self._max:
+                self._refused = {k: v for k, v in self._refused.items() if v > now}
+                if len(self._refused) >= self._max:
+                    self._refused.clear()
+            self._refused[key] = now + self._neg_ttl
 
 
 class AgentIdentityMap:
@@ -159,7 +186,14 @@ class AgentIdentityMap:
             }
             agents.discard("*")  # no wildcard: every agent id is listed on purpose
             out.setdefault(principal, set()).update(agents)
-        return cls({p: frozenset(a) for p, a in out.items()})
+        return cls({p.lower() if "@" in p else p: frozenset(a) for p, a in out.items()})
+
+    def all_agents(self) -> frozenset[str]:
+        """Every agent id that any principal may speak for (local, no I/O)."""
+        return frozenset().union(*self._map.values()) if self._map else frozenset()
 
     def agents_for(self, principal: str) -> frozenset[str]:
-        return self._map.get(principal, frozenset())
+        got = self._map.get(principal)
+        if got is None:  # e-mail style principals from the proxy: case does not matter
+            got = self._map.get(principal.lower())
+        return got if got is not None else frozenset()
