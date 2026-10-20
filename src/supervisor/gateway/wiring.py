@@ -121,6 +121,12 @@ def get_gateway() -> Gateway:
         return _gateway
 
 
+def peek_gateway() -> Gateway | None:
+    """The installed gateway, or None. Never builds one (WP20 ingress audit and metrics)."""
+    with _lock:
+        return _gateway
+
+
 def set_gateway(gateway: Gateway | None) -> None:
     """Install a gateway (tests, or embedding with another evidence sink)."""
     global _gateway

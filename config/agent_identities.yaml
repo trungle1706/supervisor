@@ -1,0 +1,10 @@
+# WP20 ingress auth, credential kind databricks_sp (docs/ingress-auth.md).
+# Maps a Databricks service principal (or user) to the agent ids it may speak for on
+# /gate/check and /v1/traces. The principal is the SCIM userName that "Me" returns for the
+# caller's bearer token: for a service principal this is its application (client) id.
+# A principal that is not listed gets HTTP 403. No wildcard: list every agent id.
+# Edit INLINE in your local copy only. Never commit real ids. FILL-ME entries are ignored.
+principals:
+  - principal: FILL-ME-service-principal-application-id
+    agents:
+      - FILL-ME-agent-id

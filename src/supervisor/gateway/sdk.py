@@ -8,16 +8,21 @@ from __future__ import annotations
 import asyncio
 import functools
 import inspect
+import json
 import threading
 import time
 from collections.abc import Callable, Mapping
 from typing import Any, TypeVar
+from urllib.parse import urlparse
 
 from supervisor.core.ports import GateHook
+from supervisor.gateway.ingress_sign import IngressCredential
 
 F = TypeVar("F", bound=Callable[..., Any])
 
 Transport = Callable[[str, dict[str, Any], float], Mapping[str, Any]]
+# WP20: a signed call sends exact bytes plus headers: (url, body, headers, timeout_s) -> JSON.
+SignedTransport = Callable[[str, bytes, Mapping[str, str], float], Mapping[str, Any]]
 
 
 class SupervisorBlocked(Exception):
@@ -71,8 +76,21 @@ def _default_transport(url: str, payload: dict[str, Any], timeout_s: float) -> M
     return post_json(url, payload, timeout_s)
 
 
+def _default_signed_transport(
+    url: str, body: bytes, headers: Mapping[str, str], timeout_s: float
+) -> Mapping[str, Any]:
+    from supervisor.adapters.http_json import post_bytes
+
+    return post_bytes(url, body, dict(headers), timeout_s)
+
+
 class HttpGate:
-    """GateHook that POSTs to ``{base_url}/gate/check``; applies the fail mode locally."""
+    """GateHook that POSTs to ``{base_url}/gate/check``; applies the fail mode locally.
+
+    With ``credential`` (WP20, ingress auth) every request carries the agent's signature or
+    bearer token (``gateway/ingress_sign.py``) and goes through ``signed_transport``. Without
+    it the request is sent as before. A 401/403 answer is a configuration fault, not an
+    outage: it always fails closed (rule ``GATE-AUTH``), even for a read-only tool."""
 
     def __init__(
         self,
@@ -80,7 +98,11 @@ class HttpGate:
         timeout_s: float = 2.0,
         transport: Transport | None = None,
         fail_modes: Mapping[str, str] | None = None,
+        credential: IngressCredential | None = None,
+        signed_transport: SignedTransport | None = None,
     ) -> None:
+        self.credential = credential
+        self.signed_transport: SignedTransport = signed_transport or _default_signed_transport
         self.base_url = base_url.rstrip("/")
         self.timeout_s = timeout_s
         self.transport: Transport = transport or _default_transport
@@ -121,7 +143,10 @@ class HttpGate:
             out = dict(result)
             out["latency_ms"] = int(out.get("latency_ms") or 0)
             return out
-        except Exception:  # noqa: BLE001 - timeouts and transport errors: fail mode
+        except Exception as exc:  # noqa: BLE001 - timeouts and transport errors: fail mode
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status in (401, 403):
+                return _closed_decision("GATE-AUTH", "gateway refused the credential", t0)
             return self._fallback(tool_name, t0)
 
     def _call(self, payload: dict[str, Any]) -> Mapping[str, Any]:
@@ -130,9 +155,14 @@ class HttpGate:
 
         def run() -> None:
             try:
-                box["value"] = self.transport(
-                    f"{self.base_url}/gate/check", payload, self.timeout_s
-                )
+                url = f"{self.base_url}/gate/check"
+                if self.credential is None:
+                    box["value"] = self.transport(url, payload, self.timeout_s)
+                else:
+                    body = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode()
+                    headers = self.credential.headers_for("POST", urlparse(url).path, body)
+                    headers["Content-Type"] = "application/json"
+                    box["value"] = self.signed_transport(url, body, headers, self.timeout_s)
             except BaseException as exc:  # noqa: BLE001
                 box["error"] = exc
 

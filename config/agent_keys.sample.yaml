@@ -1,0 +1,13 @@
+# WP20 ingress auth, credential kind hmac, key store "file" (laptop). SAMPLE ONLY.
+# The real file is config/agent_keys.yaml (git-ignored, chmod 600), written by:
+#   python -m supervisor.gateway.ingress_auth issue <agent_id>
+#   python -m supervisor.gateway.ingress_auth rotate <agent_id>
+# Each agent has at most two active keys: "current" and "previous" (until expires_at).
+# Secrets are at least 32 characters. FILL-ME values are ignored.
+agents:
+  FILL-ME-agent-id:
+    keys:
+      - key_id: FILL-ME-key-id
+        state: current
+        secret: FILL-ME-secret-at-least-32-characters
+        expires_at: null

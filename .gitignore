@@ -16,3 +16,4 @@ uv.toml
 node_modules/
 .claude/
 data/*.log
+config/agent_keys.yaml

@@ -7,7 +7,10 @@
 * Malformed JSON or OTLP shape, too many spans, too large a body: HTTP 400 with a message.
 * Success: HTTP 200 with an OTLP ``ExportTraceServiceResponse`` body (``{}``); counts are in
   ``X-Supervisor-*`` headers. Spans that are not agent events are ignored, not rejected.
-* Auth: ``authorize`` is a placeholder; WP8 replaces it with the Principal port.
+* Auth (WP20): ``authorize`` checks the per-agent credential when ``INGRESS_AUTH_ENABLED=1``
+  (401/403, ``gateway/ingress_auth.py``). A batch may only carry spans of the authenticated
+  agent id(s); otherwise HTTP 403, nothing is written, ``X-Supervisor-Rejected`` = foreign spans.
+  With the flag off, ``authorize`` only reads the SSO header and accepts every caller.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from supervisor.config import get_settings
+from supervisor.gateway.ingress_auth import INGRESS_ATTR, check_span_agents, ingress_traces
 from supervisor.recorder.normalise import OtlpFormatError, spans_from_otlp_json
 from supervisor.recorder.service import Recorder, get_recorder
 
@@ -37,14 +41,19 @@ def recorder_dep() -> Recorder:
     return get_recorder()
 
 
-def authorize(request: Request) -> str | None:
-    """Placeholder auth hook. Returns the caller principal id or None.
+async def authorize(request: Request) -> str | None:
+    """Auth hook (WP20). Returns the caller principal id or None.
 
-    WP8 replaces this dependency (``app.dependency_overrides[authorize]``) with the
-    Principal port; today it reads the SSO header only and accepts every caller."""
-    # TODO(WP8): bind the principal to the agent ids it may write (today any caller can
-    # send spans for any agent_id, including one whose manifest allows raw capture).
+    Ingress auth on: the credential is verified (``IngressRejected`` = 401/403 otherwise) and
+    the identity is kept on ``request.state.ingress`` for the span check. Off: the SSO header
+    is read and every caller is accepted, as before."""
+    ident = await ingress_traces(request)
+    if ident is not None:
+        return ident.principal
     return request.headers.get("x-forwarded-user") or None
+
+
+setattr(authorize, INGRESS_ATTR, True)  # noqa: B010 - the ingress contract test looks for it
 
 
 _REC: Recorder = Depends(recorder_dep)
@@ -115,6 +124,9 @@ async def receive_traces(request: Request, rec: Recorder = _REC, who: str | None
         return _bad(f"invalid OTLP JSON: {exc}")
     if len(spans) > max_spans:
         return _bad(f"{len(spans)} spans in one request; the limit is {max_spans} (OTLP_MAX_SPANS)")
+    agent_of = getattr(getattr(rec, "normaliser", None), "agent_id_of", None)
+    if agent_of is not None:  # WP20: spans of another agent than the credential's: batch 403
+        check_span_agents(request, [agent_of(sp) for sp in spans])
     result = await run_in_threadpool(rec.ingest_spans, spans, "otlp")
     headers = {
         "X-Supervisor-Accepted": str(result.written),
