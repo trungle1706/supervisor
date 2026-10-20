@@ -656,6 +656,8 @@ def _prefix_provider(model: str | None) -> str:
     head = model.split("/", 1)[0].lower() if "/" in model else ""
     if head in ("anthropic", "openai", "azure", "databricks", "ollama"):
         return "azure_openai" if head == "azure" else head
+    if model.lower().startswith("databricks-"):  # a Databricks serving endpoint name
+        return "databricks"
     fam = model_family(model)
     return {"anthropic": "anthropic", "openai": "openai"}.get(fam, "unknown")
 
@@ -1012,15 +1014,28 @@ def _dynamic_tools(files: Sequence[_File]) -> list[Fact]:
     return sorted(out, key=lambda x: (x.file, x.line))
 
 
+# Env names that may hold a credential. Their values are never read, even when the scrubber
+# missed them (short or unusual secrets): only endpoint names and model ids are wanted here.
+_SECRET_ENV = re.compile(
+    r"(?i)(key|token|secret|pass|pwd|credential|auth|private|cert|signature|salt|cookie|"
+    r"session|dsn|conn|(^|_)pat($|_))"
+)
 _ENV_LINE = re.compile(
     r"^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=\s*['\"]?([^'\"#\s]+)['\"]?\s*(?:#.*)?$"
 )
 
 
+def _put_env(env: dict[str, str], name: str, value: str) -> None:
+    """First value wins; credential-like names and redaction markers are dropped."""
+    if not _SECRET_ENV.search(name) and "[REDACTED" not in value:
+        env.setdefault(name, value)
+
+
 def _env_values(lines: Mapping[str, Sequence[str]]) -> dict[str, str]:
     """Non-secret env values a deployment file sets: ``env:`` lists in app.yaml / YAML
     configs (``- name: X`` + ``value: Y``) and ``KEY=value`` lines of ``.env*`` files. Used
-    to resolve ``os.environ.get("X")`` to a serving endpoint name."""
+    to resolve ``os.environ.get("X")`` to a serving endpoint name. A name that looks like a
+    credential (``_SECRET_ENV``) is skipped, so its value never enters the facts."""
     env: dict[str, str] = {}
     for path in sorted(lines):
         base = path.rsplit("/", 1)[-1]
@@ -1039,19 +1054,19 @@ def _env_values(lines: Mapping[str, Sequence[str]]) -> dict[str, str]:
                                 if isinstance(item, dict) and isinstance(item.get("name"), str):
                                     val = item.get("value")
                                     if isinstance(val, str):
-                                        env.setdefault(item["name"], val)
+                                        _put_env(env, item["name"], val)
                         elif str(k).lower() in ("env", "environment") and isinstance(v, dict):
                             for ek, ev in v.items():
                                 if isinstance(ev, str):
-                                    env.setdefault(str(ek), ev)
+                                    _put_env(env, str(ek), ev)
                         stack.append(v)
                 elif isinstance(cur, list):
                     stack.extend(cur)
         elif base.startswith(".env") or base.endswith(".env"):
             for row in lines[path]:
                 m = _ENV_LINE.match(row)
-                if m and "[REDACTED" not in m.group(2):
-                    env.setdefault(m.group(1), m.group(2))
+                if m:
+                    _put_env(env, m.group(1), m.group(2))
     return env
 
 

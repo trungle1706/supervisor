@@ -113,6 +113,35 @@ def test_env_value_resolves_endpoint_name() -> None:
     assert [(c.model, c.family) for c in facts.llm_calls] == [("databricks-gpt-oss-20b", "openai")]
 
 
+def test_env_files_never_yield_credential_values() -> None:
+    """Review fix: only non-secret names (endpoint, model) are read from env files. A short
+    or odd secret the scrubber misses must still never reach the facts."""
+    src = (
+        "import os\nfrom langgraph.prebuilt import create_react_agent\n"
+        'API_KEY = os.environ["OPENAI_API_KEY"]\nTOK = os.getenv("HF_TOKEN")\n'
+        'agent = create_react_agent(os.getenv("MODEL_NAME"), [])\n'
+    )
+    files = {
+        "a.py": src.splitlines(),
+        ".env.example": [
+            "OPENAI_API_KEY=abc12",
+            "HF_TOKEN=hfshort",
+            "DB_PASSWORD=x9",
+            "MODEL_NAME=databricks-gpt-oss-120b",
+        ],
+        "app.yaml": ["env:", "  - name: SERVICE_SECRET", "    value: s3cr3t-value"],
+    }
+    env = codefacts._env_values(files)
+    assert env == {"MODEL_NAME": "databricks-gpt-oss-120b"}
+    facts = codefacts.analyse(files)
+    blob = repr(facts.llm_calls) + repr([vars(f) for f in facts.data_access])
+    for secret in ("abc12", "hfshort", "x9", "s3cr3t-value"):
+        assert secret not in blob
+    assert [(c.provider, c.model) for c in facts.llm_calls] == [
+        ("databricks", "databricks-gpt-oss-120b")
+    ]
+
+
 def test_agent_factories_tools_and_dynamic_mcp() -> None:
     src = """
 from langgraph.prebuilt import create_react_agent
