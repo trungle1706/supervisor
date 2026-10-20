@@ -93,6 +93,7 @@ LEGACY_GATE_PATH = "/gate/check"  # deprecated alias, used only as a fallback on
 class HttpGate:
     """GateHook that POSTs to ``{base_url}/v1/gate/check`` (D12); applies the fail mode locally.
 
+    A base URL that already ends in ``/v1`` posts to ``{base_url}/gate/check`` (the same URL).
     A server that answers 404 on the versioned path (an older Supervisor) is retried once
     on the legacy ``/gate/check`` and the SDK then keeps using it. A signed request signs
     the path it actually sends (method + path are covered by the WP20 signature).
@@ -117,7 +118,9 @@ class HttpGate:
         self.timeout_s = timeout_s
         self.transport: Transport = transport or _default_transport
         self.fail_modes: dict[str, str] = dict(fail_modes or {})
-        self.gate_path = GATE_PATH
+        # A base URL that already ends in /v1 (a common setting) keeps working: /v1 + /gate/check.
+        self.versioned = not self.base_url.endswith("/v1")
+        self.gate_path = GATE_PATH if self.versioned else LEGACY_GATE_PATH
 
     def _fallback(self, tool_name: str, t0: float) -> dict[str, Any]:
         latency = int((time.perf_counter() - t0) * 1000)
@@ -179,7 +182,7 @@ class HttpGate:
                     box["value"] = self._send(self.gate_path, payload)
                 except Exception as exc:  # noqa: BLE001
                     status = getattr(getattr(exc, "response", None), "status_code", None)
-                    if status != 404 or self.gate_path != GATE_PATH:
+                    if status != 404 or not self.versioned or self.gate_path != GATE_PATH:
                         raise
                     box["value"] = self._send(LEGACY_GATE_PATH, payload)
                     self.gate_path = LEGACY_GATE_PATH  # an older server: stop probing

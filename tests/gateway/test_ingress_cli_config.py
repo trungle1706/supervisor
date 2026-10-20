@@ -168,7 +168,7 @@ def test_http_gate_without_credential_is_unchanged() -> None:
         return {"allow": True, "action": "allow"}
 
     assert HttpGate("http://gw.invalid", transport=transport).check("a", "1", "t", {})["allow"]
-    assert calls[0][0] == "http://gw.invalid/gate/check"
+    assert calls[0][0] == "http://gw.invalid/v1/gate/check"  # D12
 
 
 @pytest.mark.parametrize("status", [401, 403])

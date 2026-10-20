@@ -217,3 +217,14 @@ def test_http_gate_other_errors_do_not_fall_back() -> None:
     gate = HttpGate("http://gw", transport=transport)
     assert gate.check("a", "1", "t", {})["rule_id"] == "GATE-UNREACHABLE"
     assert urls == ["http://gw/v1/gate/check"]
+
+
+def test_http_gate_base_url_with_v1_is_not_doubled() -> None:
+    urls: list[str] = []
+
+    def transport(url: str, payload: dict[str, Any], timeout_s: float) -> Mapping[str, Any]:
+        urls.append(url)
+        return {"allow": True, "action": "allow"}
+
+    HttpGate("http://gw/v1/", transport=transport).check("a", "1", "t", {})
+    assert urls == ["http://gw/v1/gate/check"]
