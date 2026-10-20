@@ -412,6 +412,9 @@ class Gateway:
         self._lock = threading.RLock()
         self._pool = cf.ThreadPoolExecutor(max_workers=workers, thread_name_prefix="gate0a")
         self._bg = cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="gate0b")
+        # WP-UX3 dry runs (Playground) get their own small pool: a slow FactSource in a dry run
+        # keeps its worker after the timeout, and it must never take a worker of the real gate.
+        self._dry_pool = cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="gate-dry")
         self._bg_futures: list[cf.Future[None]] = []
 
     # ------------------------------------------------------------------ public
@@ -471,7 +474,7 @@ class Gateway:
         ctx = dict(context or {})
         args = dict(args or {})
         try:
-            fut = self._pool.submit(self._dry, agent_id, agent_version, tool_name, args, ctx)
+            fut = self._dry_pool.submit(self._dry, agent_id, agent_version, tool_name, args, ctx)
             return fut.result(timeout=self.timeout_s)
         except cf.TimeoutError:
             return {"dry_run": True, "error": f"no decision within {self.timeout_s:g} s"}
@@ -519,6 +522,7 @@ class Gateway:
         self.drain()
         self._pool.shutdown(wait=False, cancel_futures=True)
         self._bg.shutdown(wait=False, cancel_futures=True)
+        self._dry_pool.shutdown(wait=False, cancel_futures=True)
 
     # ------------------------------------------------------------------ 0a
 

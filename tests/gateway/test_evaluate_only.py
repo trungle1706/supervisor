@@ -146,3 +146,32 @@ def test_the_fingerprint_is_sensitive(
     after = snapshot(gateway, adapters, evidence)
     assert after["store"] != before["store"] and after["evidence"] == before["evidence"] + 1
     assert after["metrics"] != before["metrics"]
+
+
+def test_slow_dry_run_times_out_and_never_takes_a_gate_worker(
+    gateway: Gateway, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review WP-UX3: a dry run that hangs (for example a slow FactSource) gives the timeout
+    message, and it runs on its own pool, so real checks still get a worker."""
+    import threading
+    import time
+
+    release = threading.Event()
+
+    def hang(*_a: Any, **_k: Any) -> dict[str, Any]:
+        release.wait(10)
+        return {"dry_run": True}
+
+    monkeypatch.setattr(gateway, "_dry", hang)
+    monkeypatch.setattr(gateway, "timeout_s", 0.2)
+    try:
+        for _ in range(10):  # more hung dry runs than the gate has workers (8)
+            res = gateway.evaluate_only("payments", "1.0", "get_balance", {"account_id": A1}, {})
+            assert res["dry_run"] is True and "no decision within" in res["error"]
+        monkeypatch.setattr(gateway, "timeout_s", 2.0)
+        t0 = time.perf_counter()
+        real = call(gateway, "payments", "get_balance", account_id=A1)
+        assert real["allow"] is True and real["fail_mode"] is None
+        assert time.perf_counter() - t0 < 1.5
+    finally:
+        release.set()
