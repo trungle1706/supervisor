@@ -334,8 +334,10 @@ def probes() -> list[tuple[str, Callable[[Any], bool]]]:
         env.classify("pay", "not_high_risk", "low")
         env.tasks.generate("pay", ADMIN)
         down = {r["template_id"]: r for r in env.tasks.rows_of("pay")}
-        return before <= set(up) and set(up) == set(down) and all(
-            r["required"] == up[t]["required"] for t, r in down.items()
+        return (
+            before <= set(up)
+            and set(up) == set(down)
+            and all(r["required"] == up[t]["required"] for t, r in down.items())
         )
 
     def p_covers_nothing(env: Any) -> bool:
@@ -422,9 +424,7 @@ def probes() -> list[tuple[str, Callable[[Any], bool]]]:
 
     def p_bad_ids(env: Any) -> bool:
         ids = ["../x", "a" * 65, "", "a b", "x;drop", "é"]
-        ok = all(
-            _refused(lambda i=i: env.controls.get(i), ControlError, "control id") for i in ids
-        )
+        ok = all(_refused(lambda i=i: env.controls.get(i), ControlError, "control id") for i in ids)
         ok = ok and _refused(lambda: env.tasks.done("../x", OWNER), TaskError, "task id")
         return ok and _refused(
             lambda: env.controls.add_map("C1", "rule", "bad target", "u"), ControlError
@@ -439,7 +439,9 @@ def probes() -> list[tuple[str, Callable[[Any], bool]]]:
         bot = _person("svc", "admin", kind="service")
         return (
             _refused(lambda: env.tasks.approve_waive(tid, bot), TaskError, "signed-in")
-            and _refused(lambda: env.tasks.approve_waive(tid, OWNER), TaskError, "approver or admin")
+            and _refused(
+                lambda: env.tasks.approve_waive(tid, OWNER), TaskError, "approver or admin"
+            )
             and env.tasks.approve_waive(tid, APPROVER)["status"] == "waived"
         )
 
@@ -512,16 +514,18 @@ def probes() -> list[tuple[str, Callable[[Any], bool]]]:
 
     def p_evidence_for_done(env: Any) -> bool:
         env.agent("pay")
-        env.classify("pay", "not_high_risk", "low")
+        env.classify("pay", None, "low")
+        for pack in ("owasp_agentic_redteam", "pii_canary", "indirect_injection_vi"):
+            env.pack("pay", pack, "ok", env.window_time())
         env.tasks.generate("pay", ADMIN)
         purpose = next(r for r in env.tasks.rows_of("pay") if r["template_id"] == "INI-PURPOSE")
         no_ref = _refused(
             lambda: env.tasks.done(purpose["task_id"], OWNER), TaskError, "document reference"
         )
-        env.control("CTL-MON-OVERSIGHT", evidence=[("rule", "PAY-02")])
+        env.control("CTL-PII-MASK", evidence=[("rule", "PAY-02")])
         while env.tasks.current_stage("pay") != "operation":
             _finish_stage(env, "pay")
-        ops = next(r for r in env.tasks.rows_of("pay") if r["template_id"] == "OPS-OVERSIGHT")
+        ops = next(r for r in env.tasks.rows_of("pay") if r["template_id"] == "OPS-MASK")
         no_data = _refused(lambda: env.tasks.done(ops["task_id"], OWNER), TaskError, "no_data")
         env.verdict("pay", "PAY-02", "block", env.window_time())
         env.controls.run_status()
@@ -679,9 +683,7 @@ def _baseline_view(res: dict[str, Any]) -> dict[str, Any]:
             for s, g in res["golden"].items()
         },
         "determinism_bp": res["determinism"]["bp"],
-        "starters": {
-            k: res["starters"][k] for k in ("controls", "maps", "risks_covered", "bp")
-        },
+        "starters": {k: res["starters"][k] for k in ("controls", "maps", "risks_covered", "bp")},
         "adversarial": {k: res["adversarial"][k] for k in ("n", "passed", "bp")},
         "verdicts": res["verdicts"],
     }

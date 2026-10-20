@@ -239,20 +239,19 @@ def test_done_by_document_needs_a_reference(env: CtlEnv) -> None:
 
 def test_control_task_needs_working_evidence(env: CtlEnv) -> None:
     env.agent("pay")
-    env.classify("pay", "not_high_risk", "low")
-    env.control("CTL-MON-OVERSIGHT", evidence=[("rule", "PAY-02")], agents=["pay"])
+    env.classify("pay", None, "low")
+    env.control("CTL-PII-MASK", evidence=[("rule", "PAY-02")], agents=["pay"])
+    for pack in ("owasp_agentic_redteam", "pii_canary", "indirect_injection_vi"):
+        env.pack("pay", pack, "ok", env.window_time())
     env.tasks.generate("pay", ADMIN)
     for r in env.tasks.rows_of("pay"):
         if r["kind"] != "move":
             env.tasks.done(r["task_id"], ADMIN, "d" if r["evidence_kind"] == "document" else None)
-    for _ in range(3):  # initiation -> design -> deployment -> operation
-        stage = env.tasks.current_stage("pay")
-        if stage == "operation":
-            break
+    while env.tasks.current_stage("pay") != "operation":
         _finish_stage(env, "pay")
     assert env.tasks.current_stage("pay") == "operation"
-    t = _ids(env, "pay", "operation")["OPS-OVERSIGHT"]
-    with pytest.raises(TaskError, match="CTL-MON-OVERSIGHT is no_data"):
+    t = _ids(env, "pay", "operation")["OPS-MASK"]
+    with pytest.raises(TaskError, match="CTL-PII-MASK is no_data"):
         env.tasks.done(t["task_id"], OWNER)
     env.verdict("pay", "PAY-02", "block", env.window_time())
     env.controls.run_status()
@@ -261,8 +260,10 @@ def test_control_task_needs_working_evidence(env: CtlEnv) -> None:
 
 def test_sync_closes_template_tasks_whose_evidence_is_there(env: CtlEnv) -> None:
     env.agent("pay")
-    env.classify("pay", "not_high_risk", "low")
-    env.control("CTL-MON-OVERSIGHT", evidence=[("rule", "PAY-02")], agents=["pay"])
+    env.classify("pay", None, "low")
+    env.control("CTL-PII-MASK", evidence=[("rule", "PAY-02")], agents=["pay"])
+    for pack in ("owasp_agentic_redteam", "pii_canary", "indirect_injection_vi"):
+        env.pack("pay", pack, "ok", env.window_time())
     env.tasks.generate("pay", ADMIN)
     while env.tasks.current_stage("pay") != "operation":
         _finish_stage(env, "pay")
@@ -270,7 +271,7 @@ def test_sync_closes_template_tasks_whose_evidence_is_there(env: CtlEnv) -> None
     env.controls.run_status()
     out = env.tasks.sync("pay")
     assert out["closed"] == 1
-    t = _ids(env, "pay", "operation")["OPS-OVERSIGHT"]
+    t = _ids(env, "pay", "operation")["OPS-MASK"]
     assert t["status"] == "done" and t["done_by"] == "supervisor-system"
 
 

@@ -177,19 +177,17 @@ templates:
   # ---- operation ------------------------------------------------------------------------------
   - id: OPS-OVERSIGHT
     stage: operation
-    title: Human oversight metrics show a healthy agent
+    title: Review the human oversight metrics and record that the agent is healthy
     owner_role: owner
     due_days: 30
     required_from: low
-    evidence: {kind: control, ref: CTL-MON-OVERSIGHT}
   - id: OPS-CHAIN
     stage: operation
-    title: The evidence chain verifies
+    title: Verify the evidence chain and record the result
     owner_role: owner
     due_days: 30
     min_level: medium
     required_from: medium
-    evidence: {kind: control, ref: CTL-EVD-CHAIN}
   - id: OPS-MASK
     stage: operation
     title: Personal data masking shows working evidence

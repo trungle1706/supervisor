@@ -416,7 +416,9 @@ def evidence_basis(row: Mapping[str, Any], controls: Iterable[tuple[str, str]]) 
             "treatment": row["treatment"],
             "inherent": [int(row["inherent_likelihood"]), int(row["inherent_impact"])],
             "declared": [int(row["residual_likelihood"]), int(row["residual_impact"])],
-            "controls": sorted([k, t] for k, t in set(controls) if k in CONTROL_KINDS),
+            "controls": sorted(
+                [k, t] for k, t in set(controls) if k in CONTROL_KINDS or k == "control_map"
+            ),
         }
     )[:32]
 

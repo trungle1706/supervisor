@@ -197,9 +197,19 @@ class RiskService:
     def control_links(self, risk_id: str) -> list[tuple[str, str]]:
         """(kind, target) of the links the evidence rule looks at (rule, pack, monitor).
         Extension point for the WP30 control catalogue."""
-        return [
+        out = [
             (r["kind"], r["target"]) for r in self._link_rows(risk_id) if r["kind"] in CONTROL_KINDS
         ]
+        # WP30: a change to the map of a linked control changes the evidence basis (the pseudo
+        # kind control_map is ignored when counting, and is part of the hash only).
+        from supervisor.controls.refs import map_fingerprint
+
+        out += [
+            ("control_map", f"{t}:{map_fingerprint(self.state, t)}")
+            for k, t in out
+            if k == "control"
+        ]
+        return out
 
     def _controls_by_risk(self) -> dict[str, list[tuple[str, str]]]:
         """risk id -> its active control links, from one read of ``risk_link``."""

@@ -51,6 +51,7 @@ REASONS = (
     "no_supervised_agent",
     "not_evaluated",
     "stale",
+    "changed_since_evidence",
 )
 
 STALE_WINDOWS = ev.STALE_WINDOWS
@@ -100,9 +101,11 @@ def evaluate(
     agent_id: str,
     sources: list[tuple[str, str]],
     w: ev.Window,
+    w_pack: ev.Window | None = None,
 ) -> Result:
-    """Status of one control for one agent in window ``w``. ``sources`` = (kind, target) pairs
-    of the active control map (all evidence kinds)."""
+    """Status of one control for one agent. ``sources`` = (kind, target) pairs of the active
+    control map (all evidence kinds). Rules and monitors are read in window ``w``; a pack result
+    in ``w_pack`` (longer: packs run less often), default ``w``."""
     supervised, _ = col.split_agents([agent_id])
     refs_n = sum(1 for k, _t in sources if k in REF_KINDS)
     runtime = sorted({(k, t) for k, t in sources if k in RUNTIME_KINDS})
@@ -110,7 +113,7 @@ def evaluate(
         return decide(len(runtime), 0, 0, refs_n, False)
     working = failing = 0
     for kind, target in runtime:
-        c = col.count(supervised, [(kind, target)], w)
+        c = col.count(supervised, [(kind, target)], (w_pack or w) if kind == "pack" else w)
         if c.controls_failing:
             failing += 1
         elif c.controls_working:
@@ -118,8 +121,13 @@ def evaluate(
     return decide(len(runtime), working, failing, refs_n, True)
 
 
-def status_id(control_id: str, agent_id: str, w: ev.Window) -> str:
-    return "cs_" + sha256_hex({"c": control_id, "a": agent_id, "end": format_ts(w.end)})[:24]
+def status_id(control_id: str, agent_id: str, w: ev.Window, basis: str = "") -> str:
+    """Row id: one row per control, agent, window and basis (a repeat is a no-op). The basis is
+    the map fingerprint, so a changed map needs a new pass before its status counts again."""
+    key = {"c": control_id, "a": agent_id, "end": format_ts(w.end)}
+    if basis:
+        key["basis"] = basis
+    return "cs_" + sha256_hex(key)[:24]
 
 
 def status_digest(control_id: str, agent_id: str, w: ev.Window, r: Result) -> str:

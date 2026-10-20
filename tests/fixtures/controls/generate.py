@@ -127,7 +127,9 @@ def build() -> list[dict]:
     items: list[dict] = []
 
     def add(task: str, rubric: str, inp: dict, expected: dict, note: str) -> None:
-        items.append({"task": task, "rubric": rubric, "input": inp, "expected": expected, "note": note})
+        items.append(
+            {"task": task, "rubric": rubric, "input": inp, "expected": expected, "note": note}
+        )
 
     # status: 12 -- (sources, working, failing, refs, supervised)
     status_cases = [
@@ -188,10 +190,25 @@ def build() -> list[dict]:
     gate_cases = [
         ([t("A", "task", True, "open"), t("MOVE-X", "move", True, "open")], "low", False, "open"),
         ([t("A", "task", True, "done"), t("MOVE-X", "move", True, "open")], "low", False, "done"),
-        ([t("A", "task", True, "waived"), t("MOVE-X", "move", True, "open")], "low", False, "waived"),
-        ([t("A", "task", False, "open"), t("MOVE-X", "move", True, "open")], "low", False, "optional"),
+        (
+            [t("A", "task", True, "waived"), t("MOVE-X", "move", True, "open")],
+            "low",
+            False,
+            "waived",
+        ),
+        (
+            [t("A", "task", False, "open"), t("MOVE-X", "move", True, "open")],
+            "low",
+            False,
+            "optional",
+        ),
         ([t("A", "task", True, "in_progress")], "medium", False, "in progress blocks"),
-        ([t("A", "task", True, "done"), t("B", "task", True, "open")], "high", True, "blocker at high"),
+        (
+            [t("A", "task", True, "done"), t("B", "task", True, "open")],
+            "high",
+            True,
+            "blocker at high",
+        ),
         ([t("A", "task", True, "done")], "high", False, "high needs approver"),
         ([t("A", "task", True, "done")], "high", True, "high with approver"),
         ([t("A", "task", True, "done")], "critical", False, "critical needs approver"),

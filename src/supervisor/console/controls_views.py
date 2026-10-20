@@ -160,4 +160,8 @@ def agent_tab(ctx: Any, agent_id: str) -> dict[str, Any]:
     if not ctx.settings.controls_enabled:
         return {"ct_off": True}
     comp = ctx.controls.agent_compliance(agent_id)
-    return {"ct_off": False, "ct": comp, "ct_obligations": ctx.controls.obligation_coverage(agent_id)}
+    return {
+        "ct_off": False,
+        "ct": comp,
+        "ct_obligations": ctx.controls.obligation_coverage(agent_id),
+    }

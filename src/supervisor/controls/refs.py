@@ -148,6 +148,22 @@ def runtime_sources(state: Any, control_id: str) -> list[tuple[str, str]]:
     )
 
 
+def map_fingerprint(state: Any, control_id: str) -> str:
+    """Short hash of what decides the evidence of a control: its status, its agents and its whole
+    active map. Any change gives another value, so old evidence stops counting."""
+    from supervisor.core.canonical import sha256_hex
+
+    row = state.get("control", {"control_id": control_id})
+    if row is None:
+        return "gone"
+    maps = sorted(
+        f"{r['kind']}:{r['target']}"
+        for r in state.query("control_map", {"control_id": control_id})
+        if _on(r["active"])
+    )
+    return sha256_hex([row["status"], str(row.get("scope_agents")), maps])[:16]
+
+
 def _on(value: Any) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in ("1", "true")

@@ -484,6 +484,8 @@ class ControlService:
         col = self.collector()
         controls = [dict(r) for r in self.state.query("control", order_by=("control_id",))]
         pairs = {r["control_id"]: self.pairs(r["control_id"]) for r in controls}
+        bases = self.bases()
+        w_pack = ev.window_for(now, int(self.settings.controls_pack_window_days))
         out = {"agents": 0, "controls": 0, "written": 0, "repeat": 0}
         out.update({s: 0 for s in EVIDENCE_STATUSES})
         for agent in sorted(self.agent_rows().values(), key=lambda r: str(r["agent_id"])):
@@ -497,14 +499,14 @@ class ControlService:
             digests: list[str] = []
             for c in scope:
                 out["controls"] += 1
-                sid = cev.status_id(c["control_id"], aid, w)
+                sid = cev.status_id(c["control_id"], aid, w, bases[c["control_id"]])
                 done = self.tables.query("control_status", {"status_id": sid}, limit=1)
                 if done:
                     out["repeat"] += 1
                     tally[done[0]["status"]] += 1
                     digests.append(str(done[0]["digest"]))
                     continue
-                res = cev.evaluate(col, aid, pairs[c["control_id"]], w)
+                res = cev.evaluate(col, aid, pairs[c["control_id"]], w, w_pack)
                 digest = cev.status_digest(c["control_id"], aid, w, res)
                 tally[res.status] += 1
                 digests.append(digest)
@@ -547,6 +549,28 @@ class ControlService:
             out["written"] += len(new_rows)
         return out
 
+    def bases(self) -> dict[str, str]:
+        """control id -> map fingerprint (what the evidence of the control depends on)."""
+        from supervisor.controls.refs import map_fingerprint
+
+        return {
+            str(r["control_id"]): map_fingerprint(self.state, str(r["control_id"]))
+            for r in self.state.query("control")
+        }
+
+    def _verdict(self, row: Mapping[str, Any], bases: Mapping[str, str]) -> tuple[str, str]:
+        """(status, reason) a stored row gives now: stale after two windows, and no longer valid
+        after a change to the map, the scope or the status of the control."""
+        if self._stale(row):
+            return STATUS_NO_DATA, "stale"
+        w = ev.Window(ev._ts(row["window_start"]), ev._ts(row["window_end"]))  # noqa: SLF001
+        want = cev.status_id(
+            str(row["control_id"]), str(row["agent_id"]), w, bases.get(str(row["control_id"]), "")
+        )
+        if want != row["status_id"]:
+            return STATUS_NO_DATA, "changed_since_evidence"
+        return str(row["status"]), str(row["reason"])
+
     def _stale(self, row: Mapping[str, Any]) -> bool:
         end = ev._ts(row["window_end"])  # noqa: SLF001 - one parser for stored timestamps
         if end is None:
@@ -573,16 +597,16 @@ class ControlService:
         aid = str(a["agent_id"]) if a else agent_id
         scope = self.controls_for(aid) if a else []
         latest = self._latest_for_agent(aid)
+        bases = self.bases()
         items = []
         tally = dict.fromkeys(EVIDENCE_STATUSES, 0)
         for c in scope:
             row = latest.get(c["control_id"])
             if row is None:
                 status, reason, ts, stale = STATUS_NO_DATA, "not_evaluated", None, False
-            elif self._stale(row):
-                status, reason, ts, stale = STATUS_NO_DATA, "stale", row["window_end"], True
             else:
-                status, reason, ts, stale = row["status"], row["reason"], row["window_end"], False
+                status, reason = self._verdict(row, bases)
+                ts, stale = row["window_end"], reason in ("stale", "changed_since_evidence")
             tally[status] += 1
             maps = self.maps(c["control_id"])
             items.append(
@@ -653,6 +677,7 @@ class ControlService:
         """control id -> {working, failing, no_data}: the newest status of the control for each
         agent (a status older than two windows counts as no_data). One query; for the list page."""
         rows = self.tables.query("control_status", order_by=("-ts",), limit=20000)
+        bases = self.bases()
         seen: set[tuple[str, str]] = set()
         out: dict[str, dict[str, int]] = {}
         for r in rows:
@@ -660,7 +685,7 @@ class ControlService:
             if key in seen:
                 continue
             seen.add(key)
-            st = STATUS_NO_DATA if self._stale(r) else str(r["status"])
+            st = self._verdict(r, bases)[0]
             bucket = out.setdefault(key[0], dict.fromkeys(EVIDENCE_STATUSES, 0))
             bucket[st] += 1
         return out

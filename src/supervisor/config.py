@@ -500,6 +500,9 @@ class Settings(BaseSettings):
     tasks_launch_gate_enabled: bool = False
     sched_control_status_s: int = Field(default=21600, ge=60)  # one status pass per 6 hours
     sched_task_due_s: int = Field(default=3600, ge=60)
+    # Window of a pack result as control evidence (packs run less often than rules fire).
+    # Rules and monitors use RISK_EVIDENCE_WINDOW_DAYS (7).
+    controls_pack_window_days: int = Field(default=30, ge=1, le=365)
     controls_starter_dir: Path = Path("config/controls")
     tasks_config: Path = Path("config/tasks.yaml")
 
