@@ -1,0 +1,53 @@
+{# Gate tab additions (WP39, CONSOLE_DECISIONS_V2): tables per agent, application, rule and
+   detector code, and the policy actions over time. Data: decision_daily (analytics_v2). #}
+{% import "_ui.html" as ui with context %}
+{% macro dd_table(id, title, rows, key_label, link_agent=False, two_keys=False) %}
+<section class="card" style="margin:12px 0" id="{{ id }}">
+  <h3>{{ title }}</h3>
+  {% if rows %}
+  <div class="tablewrap flat"><table>
+    <caption class="sr">{{ title }}</caption>
+    <thead><tr>
+      <th scope="col">{{ key_label }}</th><th scope="col" class="n">{{ t('dd_requests') }}</th>
+      <th scope="col" class="n">{{ t('st_report') }}</th><th scope="col" class="n">{{ t('st_transform') }}</th>
+      <th scope="col" class="n">{{ t('st_pause') }}</th><th scope="col" class="n">{{ t('st_block') }}</th>
+      <th scope="col" class="n">{{ t('st_skip') }}</th><th scope="col" class="n">{{ t('not_evaluated') }}</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr data-key="{{ r.key }}">
+        <td class="mono">{% if link_agent %}<a class="head" href="/console/agents/{{ r.key|urlencode }}?lang={{ lang }}">{{ r.key }}</a>{% else %}{{ r.key }}{% endif %}{% if two_keys %} <span class="idline">{{ r.key2 }}</span>{% endif %}</td>
+        <td class="n">{{ r.requests }}</td>
+        {% for c in ['reports', 'transforms', 'pauses', 'blocks', 'skips', 'not_evaluated'] %}
+        <td class="n mono">{{ r[c] }} <span class="idline">{{ r[c ~ '_bp'] }} bp</span></td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="muted">{{ t('dd_none') }}</p>
+  {% endif %}
+</section>
+{% endmacro %}
+
+{% if dd_empty %}
+{{ ui.empty(t('dd_empty'), t('dd_empty_line')) }}
+{% endif %}
+<section class="card" style="margin:12px 0" id="dd-series">
+  <h3>{{ t('dd_series') }}</h3>
+  <div class="grid g4">
+  {% for c in ['reports', 'transforms', 'pauses', 'blocks'] %}
+    <div class="stat" data-series="{{ c }}">
+      <div class="sub">{{ t('st_' ~ {'reports': 'report', 'transforms': 'transform', 'pauses': 'pause', 'blocks': 'block'}[c]) }}</div>
+      <div class="bignum">{{ dd_series[c].total }}</div>
+      {{ dd_series[c].spark }}
+    </div>
+  {% endfor %}
+  </div>
+  <p class="hint">{{ dd_days[0] }} .. {{ dd_days[-1] }} (UTC)</p>
+</section>
+{{ dd_table('dd-agent', t('dd_per_agent'), dd_tables.agent, t('agent'), link_agent=True) }}
+{{ dd_table('dd-consumer', t('dd_per_consumer'), dd_tables.consumer, t('consumer')) }}
+{{ dd_table('dd-rule', t('dd_per_rule'), dd_tables.rule, t('rule_col')) }}
+{{ dd_table('dd-detector', t('dd_per_detector'), dd_tables.detector_code, t('detector'), two_keys=True) }}

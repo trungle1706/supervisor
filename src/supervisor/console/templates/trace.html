@@ -8,7 +8,8 @@
   <button type="button" class="chipbtn" data-copy="#trace-id">{{ t('copy_id') }}</button>
 {% endcall %}
 <p class="idline"><span class="mono wrap" id="trace-id">{{ head.trace_id }}</span> · {{ head.agent_id }} · {{ t('n_spans', n=head.spans) }} · {{ head.duration_ms }} ms · {{ head.started|day }}
-{% for c in head.case_ids %} · <a href="/console/cases/{{ c }}?lang={{ lang }}">{{ c }}</a>{% endfor %}</p>
+{% for c in head.case_ids %} · <a href="/console/cases/{{ c }}?lang={{ lang }}">{{ c }}</a>{% endfor %}
+{% if v2 %}{% for c in head.correlation_ids %} · {{ t('correlation_id') }} <a class="mono" href="/console/decisions?correlation={{ c|urlencode }}&amp;lang={{ lang }}">{{ c }}</a>{% endfor %}{% endif %}</p>
 {% if truncated or extra %}<p class="hint">{{ t('trace_capped', n=extra) }}</p>{% endif %}
 <div class="tracegrid">
   <nav class="card spantree" aria-label="{{ t('span_tree') }}">
@@ -20,6 +21,7 @@
           <span class="mono">{{ n.name }}</span>
           <span class="muted">{{ n.ts|hhmmss }}{% if n.latency_ms %} · {{ n.latency_ms }} ms{% endif %}</span>
           {% if n.mark %}<span class="pill {{ {'P': 'warn', 'B': 'bad', 'A': 'warn'}[n.mark] }}" title="{{ t('act_' ~ n.stop) }}">{{ n.mark }}</span>{% endif %}
+          {% if v2 and n.finding_codes %}<span class="pill teal" title="{{ n.finding_codes|join(', ') }}">{{ t('findings_chip', n=n.finding_codes|length) }}</span>{% endif %}
           {% if n.judge %}<span class="pill neutral" title="{{ t('judge_word') }}">J</span>{% endif %}
         </a>
       </li>

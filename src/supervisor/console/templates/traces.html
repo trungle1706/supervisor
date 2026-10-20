@@ -10,7 +10,7 @@
   {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
   {'name': 'range', 'label': t('time_range'), 'kind': 'select', 'value': params.range, 'options': range_opts},
   {'name': 'q', 'label': t('trace_id'), 'kind': 'search', 'value': params.q},
-], '/console/traces?lang=' ~ lang) }}
+] + ([{'name': 'corr', 'label': t('correlation_id'), 'kind': 'search', 'value': params.corr}] if v2 else []), '/console/traces?lang=' ~ lang) }}
 <div id="list">
 {% include "_traces_list.html" %}
 </div>

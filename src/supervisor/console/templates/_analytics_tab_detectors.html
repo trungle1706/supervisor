@@ -1,0 +1,38 @@
+{# Detectors tab (WP39, CONSOLE_DECISIONS_V2): latency per detector from the recorded facts, the
+   findings per code, and the harness verdicts. Variables from analytics_v2.detectors_data. #}
+{% import "_ui.html" as ui with context %}
+<div class="hint">{{ t('tl_window') }}: {{ det_from }} .. {{ det_to }} ({{ det_days }} d, UTC)</div>
+{% if det_empty %}{{ ui.empty(t('dd_empty'), t('dd_empty_line')) }}{% endif %}
+<section class="card" style="margin:12px 0" id="det-latency">
+  <h3>{{ t('det_latency') }}</h3>
+  {% if det_latency %}
+  <div class="tablewrap flat"><table>
+    <caption class="sr">{{ t('det_latency') }}</caption>
+    <thead><tr><th scope="col">{{ t('detector') }}</th><th scope="col" class="n">{{ t('det_runs') }}</th><th scope="col" class="n">p50 (us)</th><th scope="col" class="n">p95 (us)</th><th scope="col">{{ t('det_verdict') }}</th></tr></thead>
+    <tbody>
+    {% for r in det_latency %}
+      {% set v = det_validation.get(r.detector) %}
+      <tr data-detector="{{ r.detector }}">
+        <td class="mono">{{ r.detector }}</td><td class="n">{{ r.runs }}</td>
+        <td class="n">{{ r.p50_us if r.p50_us is not none else '-' }}</td><td class="n">{{ r.p95_us if r.p95_us is not none else '-' }}</td>
+        <td>{% if v %}{{ v.overall }} <span class="idline">{{ t('det_adversarial') }}: {{ v.adversarial }}{% if v.mock %} · mock{% endif %}</span>{% else %}-{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="hint">{{ t('det_approx') }}</p>
+  {% else %}<p class="muted">{{ t('dd_none') }}</p>{% endif %}
+</section>
+<section class="card" style="margin:12px 0" id="det-codes">
+  <h3>{{ t('dd_per_detector') }}</h3>
+  {% if det_codes %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th scope="col">{{ t('detector') }}</th><th scope="col">{{ t('code') }}</th><th scope="col" class="n">{{ t('dd_requests') }}</th><th scope="col" class="n">{{ t('st_transform') }}</th><th scope="col" class="n">{{ t('not_evaluated') }}</th></tr></thead>
+    <tbody>
+    {% for r in det_codes %}
+      <tr><td class="mono">{{ r.key }}</td><td class="mono">{{ r.key2 }}</td><td class="n">{{ r.requests }}</td><td class="n">{{ r.transforms }}</td><td class="n">{{ r.not_evaluated }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('dd_none') }}</p>{% endif %}
+</section>

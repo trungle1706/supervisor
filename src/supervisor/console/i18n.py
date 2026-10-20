@@ -1826,7 +1826,7 @@ _T.update(
             "Mọi quyết định của cổng, kèm trạng thái phán quyết, phát hiện và phạm vi kiểm tra.",
         ),
         "decisions_why_v2": (
-            "Open a row for the masked request, the response, one line per finding and the latency split.",
+            "Open a row for the masked request, the response, each finding and the latency split.",
             "Mở một dòng để xem yêu cầu đã che, phản hồi, từng phát hiện và cách chia độ trễ.",
         ),
         "detection_code": ("Detection code", "Mã phát hiện"),
@@ -1901,6 +1901,33 @@ _T.update(
         "open_trace_span": ("Open the trace span", "Mở đoạn dấu vết"),
         "same_correlation": ("{n} decisions share this id", "{n} quyết định cùng mã này"),
         "open_alert": ("Open alert", "Mở cảnh báo"),
+        "an_tab_detectors": ("Detectors", "Bộ phát hiện"),
+        "dd_requests": ("Requests", "Yêu cầu"),
+        "dd_none": ("No rows in this window.", "Không có dòng nào trong khoảng này."),
+        "dd_empty": ("No rollup rows yet", "Chưa có dữ liệu tổng hợp"),
+        "dd_empty_line": (
+            "Run python -m supervisor.jobs.decision_rollup (the scheduler does it every hour).",
+            "Chạy python -m supervisor.jobs.decision_rollup (bộ lập lịch chạy mỗi giờ).",
+        ),
+        "dd_series": ("Policy actions over time", "Hành động chính sách theo thời gian"),
+        "dd_per_agent": ("Per agent", "Theo tác tử"),
+        "dd_per_consumer": ("Per application", "Theo ứng dụng"),
+        "dd_per_rule": ("Per rule", "Theo quy tắc"),
+        "dd_per_detector": ("Per detector and code", "Theo bộ phát hiện và mã"),
+        "det_latency": ("Detector latency", "Độ trễ bộ phát hiện"),
+        "det_runs": ("Runs", "Lượt chạy"),
+        "det_verdict": ("Harness verdict", "Kết luận kiểm thử"),
+        "det_adversarial": ("adversarial recall", "độ phủ đối kháng"),
+        "det_approx": (
+            "Over several days p50 is the weighted mean of daily p50; p95 is the highest "
+            "daily p95. GO (indicative): the point value passes, the 95 percent interval "
+            "does not prove it.",
+            "Nhiều ngày: p50 là trung bình có trọng số của p50 từng ngày; p95 là p95 cao "
+            "nhất của một ngày. GO (indicative): giá trị điểm đạt, khoảng tin cậy 95 phần "
+            "trăm chưa chứng minh.",
+        ),
+        "findings_chip": ("{n} findings", "{n} phát hiện"),
+        "open_decision": ("Open the gate decision", "Mở quyết định của cổng"),
         "export_csv": ("Export CSV", "Xuất CSV"),
         "export_hint": (
             "Masked columns only, at most {n} rows.",
