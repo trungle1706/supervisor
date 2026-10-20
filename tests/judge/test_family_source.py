@@ -384,3 +384,58 @@ def test_challenger_comparison_section_accepts_a_qwen_challenger(
     items = [i for i in build_eval_sets() if i.split == "heldout"][:6]
     section = _challenger_section(settings, "settings", items, primary)
     assert section["status"] == "ok" and section["n"] == len(items)
+
+
+# -- D15 review: a mock run makes no network call, even with a real challenger configured ----
+@pytest.fixture
+def no_network(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Any HTTP request or socket connect fails the test (and is recorded)."""
+    import socket
+
+    calls: list[str] = []
+
+    def refuse_http(self: Any, request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        raise AssertionError(f"network call in a mock run: {request.url}")
+
+    def refuse_socket(self: Any, address: Any) -> None:
+        calls.append(repr(address))
+        raise AssertionError(f"socket connect in a mock run: {address!r}")
+
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", refuse_http)
+    monkeypatch.setattr(socket.socket, "connect", refuse_socket)
+    return calls
+
+
+def _remote_challenger(monkeypatch: pytest.MonkeyPatch) -> None:
+    _env(
+        monkeypatch,
+        JUDGE_CHALLENGER_MODEL="claude-haiku-5-5",
+        JUDGE_CHALLENGER_BASE_URL="https://judge.example.invalid/v1",
+        JUDGE_CHALLENGER_SAMPLE_BP="10000",
+    )
+
+
+def test_mrm_validate_mock_makes_no_network_call(
+    monkeypatch: pytest.MonkeyPatch, no_network: list[str]
+) -> None:
+    _remote_challenger(monkeypatch)
+    report = run_validation(load_settings(_env_file=None), runs=1, record=False)
+    assert no_network == []
+    assert report["is_mock"] is True and report["challenger"]["status"] == "ok"
+    assert report["challenger"]["challenger_model_id"].startswith("mock")
+
+
+def test_judge_eval_and_mock_target_make_no_network_call(
+    monkeypatch: pytest.MonkeyPatch, no_network: list[str]
+) -> None:
+    from supervisor.assurance.targets import MockJudgeTarget
+    from supervisor.judge.eval.__main__ import _router_factory
+
+    _remote_challenger(monkeypatch)
+    router = _router_factory("mock")()
+    assert router.challenger is not None and router.challenger.is_mock
+    target = MockJudgeTarget(load_settings(_env_file=None))
+    built = target._make_factory()()  # noqa: SLF001
+    assert built.challenger is not None and built.challenger.is_mock
+    assert no_network == []
