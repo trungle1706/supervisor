@@ -116,7 +116,13 @@ One proxy process per application.
 
 Limits of the proxy: it sees the tool name and arguments only. It has no risk class, so
 every tool fails closed when the gate is unreachable, read-only tools too. Only `tools/call`
-is gated; `initialize`, `tools/list`, notifications and `ping` pass through.
+is gated; `initialize`, `tools/list`, notifications and `ping` pass through. What the proxy
+forwards for a gated `tools/call` is only `name`, `arguments` and `_meta.progressToken`; any other
+key in `params` is dropped. The methods `resources/read`, `resources/templates/list`, `prompts/get`
+and `completion/complete` also pass the gate, as the tool `mcp.resources.read`, `mcp.resources.templates.list`,
+`mcp.prompts.get`, `mcp.completion.complete` (arguments = the request params). Add them to the
+agent's policy as `read_only` tools where the agent may use them; otherwise the gate refuses them and
+the client gets a JSON-RPC error `-32000` with the rule id in `error.data` (same for both proxies).
 
 ## 2. Code samples per framework
 

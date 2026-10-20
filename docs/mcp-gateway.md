@@ -16,6 +16,7 @@ or changed tool is hidden and cannot be called until two different people approv
 | `MCP_HTTP_ENABLED` | `0` | `1` turns on the `/v1/mcp/tools` routes (otherwise HTTP 400 with the flag name) and lets the proxy process start (it refuses to start with `[SKIP]` and exit code 2 otherwise). |
 | `MCP_TOOL_LOCK` | `1` | Inside the proxy: hold new or changed tools. `0` (or `--no-tool-lock`) gives the gate only. |
 | `MCP_LOCK_REFRESH_S` | `60` | How long the proxy trusts one view of the server's tool list before it lists the server again. |
+| `MCP_SERVER_AGENTS` | empty | App side. Extra agents allowed on a server another agent registered (`server=agentA|agentB;...`); others get 403. |
 | `MCP_TOFU_INGRESS` | `0` | App side. `1` lets a proxy that talks to the app (`/v1/mcp/tools/observe`) use `--trust-on-first-use`. Off: the app answers 400 and the proxy fails closed. |
 | `INVENTORY_ENABLED` | `0` | With `1`, the first sight of a server registers an `mcp_server` inventory node and a `uses` edge from the agent. |
 
@@ -82,6 +83,25 @@ offered: the optional `GET` stream for server-initiated messages (405) and strea
 
 The proxy keeps one `httpx` client per upstream and one for the Supervisor, so both hops reuse
 their connections.
+
+### Params and data methods (both proxies)
+
+* A gated `tools/call` is forwarded with `name`, `arguments` (or the gate's masked arguments) and
+  `_meta.progressToken` only. Other `params` keys, such as a smuggled `_meta` field, are dropped
+  because the gate never judged them.
+* `resources/read`, `resources/templates/list`, `prompts/get` and `completion/complete` reach data,
+  so they go through the gate as the tools `mcp.resources.read`, `mcp.resources.templates.list`,
+  `mcp.prompts.get`, `mcp.completion.complete` with the request params as arguments and the context
+  field `mcp_method`. List them in the agent's policy (class `read_only`) to allow them. If the gate
+  refuses one (or is unreachable), the client gets JSON-RPC error `-32000`, text
+  `blocked by supervisor: <rule>: <reason>` and `error.data.rule_id`. `resources/list`, `prompts/list`
+  and `tools/list` still pass (tools/list is filtered by the lock).
+* The upstream notification `notifications/tools/list_changed` drops the lock view at once; the next
+  `tools/call` lists the server again, so an honest change announced by the server is seen without
+  waiting for `MCP_LOCK_REFRESH_S`. A server that does not announce its changes still has the window.
+* `MCP_SERVER_AGENTS` (app side, default empty): `/v1/mcp/tools/observe` and `/blocked` accept an agent
+  only for a server it registered first, or a new server. Another agent gets HTTP 403. To let a second
+  agent share a server: `MCP_SERVER_AGENTS=credit-mcp.bank.example_mcp=agent_b|agent_c;other=agent_d`.
 
 ## 4. What the lock does
 
