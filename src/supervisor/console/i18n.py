@@ -2218,7 +2218,7 @@ _T.update(
         "tp_f_by_band": ("By band", "Theo mức"),
         "tp_f_by_evidence": ("By evidence", "Theo bằng chứng"),
         "tp_f_links": ("Links (evidence / reference)", "Liên kết (bằng chứng / tham chiếu)"),
-        "tp_links_val": ("{e} / {r}", "{e} / {r}"),
+        "tp_links_val": ("{e} evidence / {r} reference", "{e} bằng chứng / {r} tham chiếu"),
         "tp_evidence_rule": (
             "Only rule links, pack links and these monitors count as evidence: {m}. Other monitor "
             "links, matrix links and case links are references and never lower a score.",

@@ -5,6 +5,7 @@ reviewer and admin generate; a generate writes two console_action rows and the c
 
 from __future__ import annotations
 
+import hashlib
 import json
 
 import pytest
@@ -47,7 +48,7 @@ def test_generate_then_read_every_format(tp_on: Console) -> None:
     assert j.status_code == 200 and j.headers["x-report-status"] == "signed"
     body = json.loads(j.text)
     assert body["agent_id"] == "payments" and body["report_version"] == 1
-    assert j.headers["x-report-sha256"] == __import__("hashlib").sha256(j.content).hexdigest()
+    assert j.headers["x-report-sha256"] == hashlib.sha256(j.content).hexdigest()
     h = tp_on.get("/v1/transparency/payments?variant=customer&format=html&lang=vi")
     assert h.status_code == 200 and "text/html" in h.headers["content-type"]
     assert "payments" not in h.text.replace("executes_payments", "")
