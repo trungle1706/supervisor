@@ -228,6 +228,29 @@ def test_onboarding_fragment_exact() -> None:
     assert {"tools.py:7", "g.py:3", "t.py:9"} <= refs
 
 
+def test_onboarding_routes_become_entrypoint_nodes() -> None:
+    """WP1b-B: HTTP routes are `entrypoint` nodes; a build_agent function is not."""
+    inv = {
+        "agent_id": "demo",
+        "name": "Demo",
+        "owner_team": "FILL-ME-owner-team",
+        "tools": [{"name": "lookup", "risk_class": "read_only"}],
+        "entrypoints": [
+            {
+                "name": "POST /memos",
+                "detail": "route:create_memo",
+                "evidence": {"file": "main.py", "line": 17},
+            },
+            {"name": "build_agent", "detail": "function", "evidence": {"file": "a.py", "line": 2}},
+        ],
+    }
+    nodes, edges = _shape(fill_from_onboarding(inv))
+    assert ("entrypoint", "demo/post /memos") in nodes
+    assert not any(k == "entrypoint" and "build_agent" in n for k, n in nodes)
+    assert ("tool", "demo/lookup") in nodes and ("tool", "demo/post /memos") not in nodes
+    assert ("system:demo", "uses", "entrypoint:demo/post /memos", "onboarding") in edges
+
+
 def _agent_row(adapters, class_):
     return {
         "agent_id": "pay",

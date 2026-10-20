@@ -13,7 +13,7 @@ Status: built, off by default (`INVENTORY_ENABLED=1` turns it on). Design choice
 
 ## Model
 
-Nodes (table `inventory_node`): `system` (an agent, or a Databricks App seen in the workspace), `model`, `model_endpoint`, `tool`, `mcp_server`, `dataset` (table or file), `prompt`, `supplier` (model vendor, the platform host, or an owner team; `attrs.party` says which).
+Nodes (table `inventory_node`): `system` (an agent, or a Databricks App seen in the workspace), `model`, `model_endpoint`, `tool`, `mcp_server`, `dataset` (table or file), `prompt`, `supplier` (model vendor, the platform host, or an owner team; `attrs.party` says which), `entrypoint` (an HTTP route of the agent app, from onboarding; a route is never a tool, WP1b-B).
 
 Edges (table `inventory_edge`): `uses`, `serves`, `reads`, `writes`, `hosted_on`, `owned_by`.
 

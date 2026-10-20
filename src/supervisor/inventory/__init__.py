@@ -1,6 +1,6 @@
 """Inventory graph and shadow-AI scan (WP24, ADR D16; docs/inventory.md).
 
-Typed nodes (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier) and
+Typed nodes (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier, entrypoint) and
 edges (uses, serves, reads, writes, hosted_on, owned_by) with evidence, filled from agent
 manifests, onboarding output and the Databricks workspace. Off by default (INVENTORY_ENABLED).
 """

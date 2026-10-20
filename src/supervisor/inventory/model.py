@@ -19,6 +19,7 @@ NODE_KINDS: tuple[str, ...] = (
     "dataset",  # table or file
     "prompt",
     "supplier",  # model vendor, or an owner team (attrs.party)
+    "entrypoint",  # an HTTP route of an agent app (WP1b-B); never a tool
 )
 EDGE_KINDS: tuple[str, ...] = ("uses", "serves", "reads", "writes", "hosted_on", "owned_by")
 SOURCES: tuple[str, ...] = ("manifest", "onboarding", "workspace_scan", "manual")
