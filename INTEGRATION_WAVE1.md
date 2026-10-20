@@ -8,14 +8,16 @@ Review this commit: see "Branch and commit" at the end.
 
 | Check | Result |
 |---|---|
-| Merges | 7 of 7 (`git merge --no-ff`; WP23 and WP1b-B merged in later passes), all conflicts resolved by union of the additive blocks |
-| `ruff check .` / `ruff format --check .` | clean / clean (637 files) |
-| Full suite `uv run python -m pytest -q` (no `-x`, `RUN_PERF` off) | **3349 passed**, 29 skipped, 0 failed (main: 2791). History: five WPs 3283 / 28; + WP23 3303 / 29 (the 50 ms timing test is skipped without `RUN_PERF=1`); + WP1b-B 3349 / 29 |
+| Merges | 8 of 8 (`git merge --no-ff`; WP23, WP1b-B and WP1b-A merged in later passes), all conflicts resolved by union of the additive blocks |
+| `ruff check .` / `ruff format --check .` | clean / clean (644 files) |
+| Full suite `uv run python -m pytest -q` (no `-x`, `RUN_PERF` off) | **3426 passed**, 29 skipped, 0 failed (main: 2791). History: five WPs 3283 / 28; + WP23 3303 / 29 (the 50 ms timing test is skipped without `RUN_PERF=1`); + WP1b-B 3349 / 29; + WP1b-A and the POLICY_DIR binding test **3426 / 29** (final) |
 | `python -m supervisor.pii_eval` (both splits) | same as the WP24b baseline (table in section 6) |
 | `python -m supervisor.alerts.harness` | `[OK] all GO` on dev and held-out, 8 of 8 alerts |
 | Offline chain verify after inventory + alert jobs (fresh SQLite) | `RESULT: OK`, 15 signed roots, 5 lanes incl. `agent:inventory` |
 | `python -m tools.bench_latency --quick` (after the WP23 merge) | exit 0; gate in process p99 4.8 ms (19 rules), 5.6 ms (200 rules) against 50 ms. 10 spread FAILs reported, not enforced in quick mode (the full suite ran on the same host at the same time) |
 | `python -m supervisor.monitors.binding_harness` (after the WP1b-B merge) | 12 of 12 cells `[OK]`, golden match (`memo_agent` 4 ok; `helpdesk` quality ok, 3 not_applicable; `lookup_agent` 4 not_applicable, each with a reason) |
+| Strict contract test `tests/unit/test_llm_strict_contract.py` + DDL-current `tests/test_schema.py` (after WP1b-A) | 22 passed |
+| Final boot (after WP1b-A): all wave-1 flags + `LLM_STRICT_SCHEMA=1`, `JUDGE_ENABLED=0`, `QUALITY_ENABLED=0` (no live LLM) | Same probes as below, all pass. The SDK now posts to `/v1/gate/check` (access log: 2 x 200 signed, 2 x 401 = unsigned and wrong-agent key); Metrics page includes the Monitor status section; no ERROR in the log |
 | Boot with all wave-1 flags on (port 18431) | /health, /ready, Tools, Inventory, Metrics 200; signed SDK check allowed; unsigned 401; all jobs `ok` |
 
 ## 2. Merge order and why
@@ -31,7 +33,9 @@ main bf3a23a
   |-- 6. WP23  latency benchmark   (README, BACKLOG, docs/index; no src/ change)      3 conflicts
   |-- integration commits (ADR D19, RUN_PERF gate, CHANGELOG row, report)
   |-- 7. WP1b-B onboarding D08 + monitor bindings D06 (based on de8a2ca)       3 conflicts
-  `-- report commit
+  |-- report commit
+  |-- 8. WP1b-A judge config D05, D12-D15 (based on de8a2ca)                  2 conflicts
+  `-- integration commits (POLICY_DIR for monitor bindings, ADR range, CHANGELOG, report, move to docs/phase3/wave1/)
 ```
 
 Reason: the two WPs that change the gate path (WP20, WP24b) go first, so the SDK / MCP proxy
@@ -64,6 +68,8 @@ so `model.yaml` is merged in order and the DDL is generated twice only.
 | WP23 | README, BACKLOG | union (Latency capability row; 6 BACKLOG rows) |
 | WP23 | `docs/index.md` | dropped the WP23 "D01 to D14" ADR row; kept the merged row, now "D01 to D19" |
 | WP1b-B | BACKLOG, CHANGELOG | union (WP23 and WP1b-B feature rows both kept) |
+| WP1b-A | `config.py` | WP1b-B block (`monitor_policy_dir`, `monitor_manifest_dir`) then WP1b-A block (`policy_dir`, `fact_source`, `fact_query_map`, `fact_callable_allow_prefix`); WP1b-A's `_absolute` additions (`policy_dir`, `fact_query_map`) kept |
+| WP1b-A | BACKLOG | union |
 | WP1b-B | `docs/index.md` | `docs/latency.md` and `docs/monitors.md` rows both kept; one ADR row "(D01 to D20)" naming latency benchmark (D19) and monitor bindings (D20) |
 
 Auto-merged without conflict, then checked by hand: `core/rbac.py` (PERMISSIONS, NON_USER_OK,
@@ -81,6 +87,9 @@ ROUTES of WP21, WP22, WP24 all present), `gateway/engine.py`, `gateway/routes.py
 | WP23 light review (performance engineer) | Open-loop driver: latency counts from the intended send time; the stall test proves that a 250 ms stall is charged to the requests behind it (no coordinated omission). Percentile: nearest rank, checked against a definition-based reference on skewed samples and equal to `GateMetrics.percentile`. Reproducibility rule p50 10% / p95 20%: accepted. The ADR text said 10 percent for both, which did not match the code, so I corrected D19 and added a plain "deviation from the phase 3 brief" sentence in `docs/latency.md`. The two committed bench JSONs list their failures (exit 3): accepted as is |
 | WP23 perf gate | `tests/perf/test_gate_latency.py` took 24.7 s here (load average 2.5 to 3.3), over the 10 s limit. It now has `@pytest.mark.perf` and `skipif(not RUN_PERF)`, the same gate as the WP22 rollup test. With `RUN_PERF=1` it passed in 16 s. The budget row in `docs/latency.md` says so. The 21 benchmark self-tests stay in the default suite (7.7 s together) |
 | `CHANGELOG.md` | WP23 feature row; removed the "WP23 not in this wave" sentence |
+| WP1b-A schema | `schema/model.yaml` auto-merged with both `oversight_metric.monitor_status` (WP1b-B) and `verdict.family_source` (WP1b-A). Regenerated both DDLs and the smoke notebook: no diff to the merged result; DDL-current test passes |
+| POLICY_DIR for monitors (review WP1b-A item 11) | `monitors/bindings.py` `BindingResolver.from_settings` now takes the policy folder from `wiring.resolve_policy_dir(settings)` (POLICY_DIR, else `<repo>/policies`), then `MONITOR_POLICY_DIR`. `monitors/sweeps.py` (quality sweep) and the drift, fairness and multi-agent jobs all build their resolver through `from_settings`, so they follow. New test `test_from_settings_reads_policy_dir_like_the_gate`. `docs/monitors.md` updated. The other readers of `<repo>/policies` (`analytics/tools*`, `assurance/targets.py`, the drill, `inventory/service.py`, `regkb/loader.py`, `advisory/compliance/demo.py`) are one BACKLOG row |
+| ADR / CHANGELOG (WP1b-A) | `docs/index.md` row "(D01 to D21)" adds derived judge family and served config (D21). CHANGELOG: WP1b-A feature row, behaviour changes (SDK path, family refusal, POLICY_DIR for monitors), deploy note now lists `verdict.family_source` |
 | WP1b-B regenerated files | After the merge: `python -m schema.generate`, `python -m supervisor.databricks.notebook` and `policies/schema.json` from `policy_json_schema()`. All three gave no diff (the branch already carried the `monitor_status` column and the policy `monitors` field; no other WP touched `gateway/policy.py`). Auto-merged shared files checked: `config.py` (`# --- WP1b-B ---` block after WP24), `templates/metrics.html` (WP21 Alerts panel above the new Monitor status section), `monitors/sweeps.py` |
 | `ops/openapi.py` | `ruff format` of the merged prefix tuple |
 | `CHANGELOG.md` (new) | v0.3.0-pre: feature table, flags table, behaviour changes with flags off, Delta deploy order. README: `INGRESS_AUTH_ENABLED` row (was missing from the flag table) and a CHANGELOG pointer; `docs/index.md` row |
@@ -183,10 +192,15 @@ Owner questions (from the five handoffs and reviews):
 27. WP1b-B: should a high-risk agent with a `not_applicable` monitor raise an alert or open a low-severity case, and at which severity?
 28. WP1b-B: do auditors need monitor status ("monitor not applicable") as evidence on the chain? Today it is only in `oversight_metric.monitor_status`.
 29. WP1b-B: who supplies a blind held-out repo for the onboarding eval? The new fixture, labels and rules are by the same engineer; entrypoints n = 8 (Wilson 67.55 to 100 %).
+30. WP1b-A: is refusing a declared judge family that disagrees with the model id the wanted default? (The review kept it a hard refusal: a warning mode would reopen D05. `JUDGE_FAMILY_STRICT=0` is the narrow one-release path for custom endpoint names.)
+31. WP1b-A: should `JUDGE_FAMILY_PROBE` default on in `databricks_app` mode? (It helps only where the endpoint reports weights; a Databricks serving-endpoint probe is a BACKLOG candidate.)
+32. WP1b-A: which system of record will the bank use for facts? It decides the next `FACT_SOURCE` kind (today `sqlite:` and allow-listed `callable:`).
+33. WP1b-A: when is `JUDGE_FAMILY_STRICT=0` removed (next phase), or should it refuse in `databricks_app` once endpoint naming or the probe is in place?
 
 Integration notes (not owner decisions):
 
-- WP1b-B: live Delta `ADD COLUMNS monitor_status` is tested offline only (add to the live kit and to the CHANGELOG deploy step: run `bootstrap_schema` first). `onboard/codefacts.py` imports `judge.router.FAMILY_ALIASES`: WP1b-A (judge config) must keep that name or change the import. WP1b-A ADR will be D21.
+- WP1b-A: strict mode cannot enforce `maxItems` / `maxLength`; the live run had 12 retries (9 from `policy_refs` > 5). Proposed `repair` hook is in BACKLOG. Family check is still a name match; `JUDGE_FAMILY_PROBE` only where the endpoint reports `root`. Live LLM was not called during integration (judge off in the boot).
+- WP1b-B: live Delta `ADD COLUMNS monitor_status` is tested offline only (add to the live kit and to the CHANGELOG deploy step: run `bootstrap_schema` first). `onboard/codefacts.py` imports `judge.router.FAMILY_ALIASES`: WP1b-A keeps that name (its new gemini / mistral prefixes are in `adapters/llm/openai_compatible.py` `FAMILY_PREFIXES`, so codefacts does not know them yet; BACKLOG candidate).
 - WP23 findings outside its scope (in BACKLOG): aggregate and prior-call rules scan the in-memory window (200 rules with 10,000 events per tool per day: p99 58 ms, over budget); the MCP stdio proxy opens a new HTTP connection per call (p50 8.7 ms against 4.7 ms for the gate). The WP23 numbers were taken before the wave-1 merge: ingress auth and inline redaction are not in its request path, and `latency_us` now includes the inline-redaction pass for pii_export tools.
 - Delta deploy order: run `python -m supervisor.jobs.bootstrap_schema` BEFORE the new app (column `agent_event.latency_us`; tables `alert`, `siem_event`, `tool_usage_daily`, `inventory_node`, `inventory_edge`). In `CHANGELOG.md`.
 - Nothing in wave 1 ran against a live workspace: SCIM `Me`, `DatabricksSecretReader`, Apps proxy headers, Delta SQL of the rollup, workspace inventory listing, SIEM Delta sink. Add to the live kit.
@@ -195,7 +209,7 @@ Integration notes (not owner decisions):
 - WP24 reported one flaky run of `tests/integrations/test_integrations.py::test_chain_feed_writes_schema_events_once` on main (a random 10-digit run in a hash matched the PII regex). It passed in both full runs here.
 - `docs/assurance.md` pack table row for `pii_canary` is not regenerated (lists 2 metrics, the pack has 4).
 - WP20 author commits carry a Sonnet `Co-Authored-By` trailer, not the Fable line. History was not rewritten.
-- HANDOFF_* and REVIEW_* files of the five WPs are at the branch root (they came with the merges). Delete or move them to `docs/handoff/phase3/` before the release if you prefer.
+- All HANDOFF_*, REVIEW_* files and this report are in `docs/phase3/wave1/` (moved in the last commit; the repo root is clean).
 
 ## 9. Branch and commit
 
@@ -203,12 +217,16 @@ Integration notes (not owner decisions):
 |---|---|
 | Branch | `phase3-wave1` |
 | Worktree | `/home/trung/supervisor/.claude/worktrees/agent-a1f4b3e7345d4debe` |
-| Head | the last commit on `phase3-wave1` (this report); code and tests are final at `c5d8235` |
+| Head | the last commit on `phase3-wave1` (the move of the wave-1 files into `docs/phase3/wave1/`); code and tests are final at `9628684` |
 
 Commits on top of main (first parent):
 
 ```
-(head)  Integration wave 1: WP1b-B in INTEGRATION_WAVE1.md and CHANGELOG
+(head)  Integration wave 1: move HANDOFF, REVIEW and INTEGRATION files to docs/phase3/wave1/
+(report) Integration wave 1: WP1b-A in INTEGRATION_WAVE1.md
+9628684 Integration wave 1: monitor bindings honour POLICY_DIR via resolve_policy_dir; BACKLOG row; ADR range D01 to D21; CHANGELOG
+475b276 Merge WP1b-A judge config, derived family, served config (wp1b-a-judge-config)
+8c86977 Integration wave 1: WP1b-B in INTEGRATION_WAVE1.md and CHANGELOG deploy note (monitor_status column)
 c5d8235 Merge WP1b-B onboarding precision D08 + monitor bindings D06 (wp1b-b-onboard-monitors)
 f0b6bf4 Integration wave 1: WP23 in INTEGRATION_WAVE1.md and CHANGELOG
 56bf53b Integration wave 1: WP23 50 ms gate test runs only with RUN_PERF=1 (25 s on this host), marker perf as in WP22
@@ -227,4 +245,4 @@ d59ca9d Merge WP24b masker v3 + inline redaction (worktree-agent-a44bc574614ace4
 3a9fba1 Merge WP20 ingress auth (worktree-agent-a038a49e4b494fc59)
 ```
 
-Merged branch heads: WP20 `edd5efb`, WP24b `cbe57ce`, WP22 `684f4ef`, WP21 `34d1552`, WP24 `0b87bb3`, WP23 `5eab20b`, WP1b-B `97c4d60`.
+Merged branch heads: WP20 `edd5efb`, WP24b `cbe57ce`, WP22 `684f4ef`, WP21 `34d1552`, WP24 `0b87bb3`, WP23 `5eab20b`, WP1b-B `97c4d60`, WP1b-A `335357a`.
