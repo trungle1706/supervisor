@@ -248,3 +248,20 @@ def test_http_route_and_http_gate_carry_transformed_args(gw_on: Gateway) -> None
         assert seen[0].startswith("<PERSON:")
     finally:
         wiring.set_gateway(None)
+
+
+def test_settings_defaults_and_wiring_flags() -> None:
+    from supervisor.adapters.factory import make_masker
+    from supervisor.config import load_settings
+    from supervisor.wiring import _redaction_masker
+
+    s = load_settings()
+    assert s.mask_amounts is False and s.inline_redaction_enabled is False
+    assert s.inline_redaction_tool_set == frozenset()
+    s2 = load_settings(mask_amounts=True, inline_redaction_tools=" a, b ,,c")
+    assert s2.inline_redaction_tool_set == frozenset({"a", "b", "c"})
+    m = make_masker(s2)
+    assert getattr(m, "mask_version", "").endswith("+amt")
+    assert getattr(make_masker(s), "mask_version", "").startswith("vn_regex-3:")
+    # the gate masker never types amounts, whatever MASK_AMOUNTS says
+    assert not getattr(_redaction_masker(s2), "mask_version", "").endswith("+amt")

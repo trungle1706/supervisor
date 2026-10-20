@@ -14,7 +14,10 @@
 | YAML → Cedar policy compiler (D11) | H1 2027 when policies need formal analysis |
 | gitleaks binary for repo scrubbing | Bank supplies an approved binary; regex scrubber until then |
 | OTLP receiver authentication (any caller can write spans for any agent id) | WP8 Principal adapters; per-agent ingest tokens |
-| Masking recall measured on real Vietnamese text (synthetic set scores 1.000 by construction) | Bank supplies a labelled sample; a masking miss is an incident |
+| Masking recall measured on real Vietnamese text (synthetic set scores 1.000 by construction). WP24b: golden set `data/eval/pii_vn` exists and reports per entity, but is still synthetic | Bank supplies a labelled sample; a masking miss is an incident |
+| Masker `vn_regex-3` gaps: person names with no title, label or known surname (held-out PERSON recall about 53%); lower-case names with an ambiguous surname (`do`, `ho`, `mai`, `cao`) and no label; addresses with no number and no street word | Bank sample; an optional NER extra (needs model wheels on Nexus); decide recall against false masks (D14 Open 4) |
+| Inline redaction (WP24b) leaves bare JSON numbers unchanged (a phone sent as an integer); no per-tool policy-schema flag (setting `INLINE_REDACTION_TOOLS` instead); SDK and server flags must both be on; HTTP MCP gateway (WP26) must reuse `McpGateProxy` | WP26; policy schema change with the next policy version |
+| `pii_canary` on traces detects with the tier0b patterns and the masker finders, so a name type the masker cannot recognise is invisible there; the planted matrix covers supported contexts only. Sample `agent:<id>` mock targets fail the pack (the mock responder echoes context PII) | Real agent target; bank-supplied probes in `<ASSURANCE_DATA_DIR>/pii_canary/probes.jsonl` |
 | Payee cooling-period rule (new payee then transfer within N minutes) | Needs the `add_payee` result (`payee_id`) as a fact in the gate context; add a result-fact channel to the gateway |
 | FactSource adapter to the bank's system of record (documents on file, approved payees) | Demo uses the in-memory BankWorld; the app has no fact source, so CRD-01 fails closed outside the demo |
 | Judge retries only on timeouts; `--split dev` default in the eval CLI | Reviewer suggestions from WP5, low priority |

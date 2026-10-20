@@ -189,3 +189,22 @@ def test_idempotent_and_version(m: VnRegexMasker, ma: VnRegexMasker) -> None:
     once = ma.mask(text)
     assert ma.mask(once) == once
     assert m.mask_version == "vn_regex-3:t3" and ma.mask_version == "vn_regex-3:t3+amt"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Ông Nguyễn Văn Thử " * 2500,
+        "anh chị ông bà tên " * 4000,
+        "12 Nguyễn Huệ, " * 4000,
+        "Phường Quận Huyện " * 4000,
+        "1.500.000 1,5 tỷ 500tr " * 3000,
+        "9" * 50000,
+    ],
+)
+def test_no_quadratic_blowup_on_long_input(m: VnRegexMasker, text: str) -> None:
+    import time
+
+    t0 = time.perf_counter()
+    m.mask(text)
+    assert time.perf_counter() - t0 < 8.0  # about 1 s on a laptop for 100 KB

@@ -16,6 +16,7 @@ Each finder returns ``(start, end)`` tuples on the canonical text.
 
 from __future__ import annotations
 
+import bisect
 import re
 import unicodedata
 
@@ -267,11 +268,16 @@ def person_spans(text: str) -> tuple[list[tuple[int, int, str]], list[tuple[int,
     plain: list[tuple[int, int, str]] = []
     labelled: list[tuple[int, int, str]] = []
 
+    starts = [t.start for t in toks]
+
     def first_token_at(pos: int) -> int | None:
-        for n in range(len(toks)):
-            if toks[n].start >= pos:
-                return n if toks[n].start - pos <= 3 else None
+        n = bisect.bisect_left(starts, pos)
+        if n < len(toks) and toks[n].start - pos <= 3:
+            return n
         return None
+
+    def street_before(pos: int) -> bool:
+        return bool(_STREET_BEFORE.search(text[max(0, pos - 24) : pos]))
 
     # ---- labelled: honorific / role / JSON key
     for m in list(_RE_LABEL.finditer(text)) + list(_RE_JSON_KEY.finditer(text)):
@@ -285,7 +291,7 @@ def person_spans(text: str) -> tuple[list[tuple[int, int, str]], list[tuple[int,
         chain = _take_chain(toks, text, n0, 4 if not strong else 5)
         if not chain:
             continue
-        if _STREET_BEFORE.search(text[: toks[n0].start]):
+        if street_before(toks[n0].start):
             continue
         words = [t.text for t in chain]
         if _place_like(words):
@@ -334,7 +340,7 @@ def person_spans(text: str) -> tuple[list[tuple[int, int, str]], list[tuple[int,
         in_company = last - n == 1 and _COMPANY_CTX.search(text[max(0, s.start - 80) : s.start])
         if (
             not in_company  # "Công ty TNHH Hoàng Long": a brand, not a person
-            and not _STREET_BEFORE.search(text[: s.start])
+            and not street_before(s.start)
             and not _place_like([t.text for t in toks[n : last + 1]])
         ):
             plain.append((s.start, toks[last].end, "plain"))
