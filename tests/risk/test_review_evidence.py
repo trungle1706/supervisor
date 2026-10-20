@@ -249,3 +249,26 @@ def test_window_is_the_same_instant_in_every_time_zone() -> None:
     naive = utc.replace(tzinfo=None)  # a naive time is read as UTC, never as host local time
     ends = {ev.window_for(t, 7).end for t in (utc, ict, naive)}
     assert ends == {dt.datetime(2026, 10, 20, 17, 0, tzinfo=dt.UTC)}
+
+
+# ---- both modes: bootstrap on an existing SQLite file -------------------------------------
+
+
+def test_bootstrap_on_an_existing_store_adds_the_risk_tables_and_keeps_rows(env: _Env) -> None:
+    from supervisor.jobs import bootstrap_schema
+
+    env.agent("keep")
+    x = env.adapters.executor
+    for trg in ("trg_risk_evidence_no_update", "trg_risk_evidence_no_delete"):
+        x.execute(f"DROP TRIGGER {trg}")
+    for table in ("risk_evidence", "risk_link", "risk"):
+        x.execute(f"DROP TABLE {table}")  # a store from before WP29
+    bootstrap_schema.run(env.settings, env.adapters)
+    assert env.adapters.state.get("agent", {"agent_id": "keep"}) is not None
+    rid = env.risk("after upgrade", "keep", [("rule", "PAY-02")])
+    env.svc.run_evidence()
+    assert env.svc.get(rid)["evidence"]
+    from supervisor.core.errors import AppendOnlyError
+
+    with pytest.raises(AppendOnlyError):
+        x.execute("DELETE FROM risk_evidence")
