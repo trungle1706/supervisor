@@ -1,0 +1,389 @@
+# Supervisor gateway baseline policy (WP3, names aligned with the WP2 agent manifests).
+# Source: product spec (docs/handoff/docs/02-product-spec.md, 07-demo-and-video.md) and ADRs D01-D04, D10, D11.
+# Tool and agent names come from src/supervisor_agents/*/manifest.yaml (a test keeps them in step).
+# Money is integer minor units (VND has no minor unit: 1 VND = 1).
+# Regulation references are working labels; confirm wording with the bank's legal and risk teams.
+# Approver ids and owners are synthetic demo identities.
+# Schema: policies/schema.json. Loader: supervisor.gateway.policy.
+
+policy_version: 1
+
+tools:
+  # customer_service
+  lookup_customer: read_only
+  read_ticket: read_only
+  reply: read_only
+  waive_fee: money
+  open_dispute: money
+  # credit_prequal
+  fetch_application: pii_export
+  credit_score_lookup: read_only
+  decide_prequal: credit
+  request_documents: read_only
+  # payments
+  get_balance: read_only
+  list_payees: read_only
+  add_payee: pii_export
+  transfer: money
+  ext_transfer_api: money
+
+agents:
+  payments:
+    name: Payments assistant agent
+    owner_user: payops-lead@example.invalid
+    owner_team: Payments Ops
+    risk_tier: critical
+    model_family: qwen
+    host_type: python_inprocess
+    plug_point: gate_hook
+    initial_state: RUNNING
+  customer_service:
+    name: Customer service agent
+    owner_user: cc-lead@example.invalid
+    owner_team: Retail Customer Care
+    risk_tier: high
+    model_family: qwen
+    host_type: python_inprocess
+    plug_point: gate_hook
+    initial_state: RUNNING
+  credit_prequal:
+    name: Loan pre-qualification agent
+    owner_user: lending-lead@example.invalid
+    owner_team: Consumer Lending
+    risk_tier: high
+    model_family: qwen
+    host_type: python_inprocess
+    plug_point: gate_hook
+    initial_state: RUNNING
+
+reviewers: [reviewer.an, reviewer.binh]
+admins: [admin.chi]
+
+rules:
+  # ---- approved tools per agent (allow-lists). ext_transfer_api is registered for the
+  # ---- payments agent but NOT approved for it (operations staff only).
+  - id: PAY-07
+    version: 1
+    description: Payments agent may call approved tools only
+    agent_scope: [payments]
+    when:
+      tool:
+        not_in: [get_balance, list_payees, add_payee, transfer]
+    action: pause
+    severity: critical
+    risk_class: money
+    regulation_ref: Decision 33 (banking) - approved tools
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-07
+    version: 1
+    description: Customer service agent may call approved tools only
+    agent_scope: [customer_service]
+    when:
+      tool:
+        not_in: [lookup_customer, read_ticket, reply, waive_fee, open_dispute]
+    action: pause
+    severity: critical
+    risk_class: money
+    regulation_ref: Decision 33 (banking) - approved tools
+    owner: Retail Customer Care
+    approvals: [risk.lead, compliance.officer]
+
+  - id: CRD-07
+    version: 1
+    description: Credit pre-qualification agent may call approved tools only
+    agent_scope: [credit_prequal]
+    when:
+      tool:
+        not_in: [fetch_application, credit_score_lookup, decide_prequal, request_documents]
+    action: pause
+    severity: critical
+    risk_class: credit
+    regulation_ref: Decision 33 (banking) - approved tools
+    owner: Consumer Lending
+    approvals: [risk.lead, compliance.officer]
+
+  # ---- payments limits
+  - id: PAY-01
+    version: 1
+    description: A transfer must state amount_minor as an integer
+    agent_scope: [payments]
+    when:
+      tool: {in: [transfer, ext_transfer_api]}
+      all:
+        - {arg: amount_minor, op: absent}
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Internal payment control - complete instruction
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-06
+    version: 1
+    description: A transfer amount must be a positive integer
+    agent_scope: [payments]
+    when:
+      tool: {in: [transfer, ext_transfer_api]}
+      all:
+        - {arg: amount_minor, op: le, value: 0}
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Internal payment control - valid instruction
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-02
+    version: 1
+    description: Single transfer limit 100,000,000 VND
+    agent_scope: [payments]
+    when:
+      tool: {in: [transfer, ext_transfer_api]}
+      all:
+        - {arg: amount_minor, op: gt, value: 100000000}
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Internal limit - single agent-initiated transfer
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-03
+    version: 1
+    description: Daily transfers from one customer account above 150,000,000 VND (structuring)
+    agent_scope: [payments]
+    when:
+      tool: transfer
+    aggregate:
+      fn: sum
+      field: amount_minor
+      window_s: 86400
+      group_by: customer
+      customer_arg: from_account_id
+      op: gt
+      limit: 150000000
+    action: pause
+    severity: critical
+    risk_class: money
+    regulation_ref: AML structuring control - daily aggregate per customer account
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-08
+    version: 1
+    description: >-
+      Split payment - transfers from one account to one payee within 1 hour above the
+      100,000,000 VND single-transfer limit, whichever agent handed the work over
+    agent_scope: [payments]
+    when:
+      tool: transfer
+    aggregate:
+      fn: sum
+      field: amount_minor
+      window_s: 3600
+      group_by: customer
+      customer_arg: from_account_id
+      also_by: [payee_id]
+      op: gt
+      limit: 100000000
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: AML structuring control - split payment (ADR D10)
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  - id: PAY-09
+    version: 1
+    description: At most 3 new payees per customer per day
+    agent_scope: [payments]
+    when:
+      tool: add_payee
+    aggregate:
+      fn: count
+      window_s: 86400
+      group_by: customer
+      customer_arg: customer_id
+      op: gt
+      limit: 3
+    action: block
+    severity: high
+    risk_class: pii_export
+    regulation_ref: Fraud control - payee changes
+    owner: Payments Ops
+    approvals: [risk.lead, compliance.officer]
+
+  # ---- fee waivers and disputes
+  - id: SVC-01
+    version: 1
+    description: Single fee waiver limit 500,000 VND
+    agent_scope: [customer_service]
+    when:
+      tool: waive_fee
+      all:
+        - {arg: amount_minor, op: gt, value: 500000}
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Fee policy - waiver authority
+    owner: Retail Customer Care
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-02
+    version: 1
+    description: At most 2 fee waivers per account per day
+    agent_scope: [customer_service]
+    when:
+      tool: waive_fee
+    aggregate:
+      fn: count
+      window_s: 86400
+      group_by: customer
+      customer_arg: account_id
+      op: gt
+      limit: 2
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Fee policy - waiver frequency
+    owner: Retail Customer Care
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-03
+    version: 1
+    description: A fee waiver must state amount_minor as an integer
+    agent_scope: [customer_service]
+    when:
+      tool: waive_fee
+      all:
+        - {arg: amount_minor, op: absent}
+    action: block
+    severity: medium
+    risk_class: money
+    regulation_ref: Fee policy - complete instruction
+    owner: Retail Customer Care
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-04
+    version: 1
+    description: A fee waiver amount must be a positive integer
+    agent_scope: [customer_service]
+    when:
+      tool: waive_fee
+      all:
+        - {arg: amount_minor, op: le, value: 0}
+    action: block
+    severity: medium
+    risk_class: money
+    regulation_ref: Fee policy - valid instruction
+    owner: Retail Customer Care
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-05
+    version: 1
+    description: A card dispute must state a positive integer amount_minor
+    agent_scope: [customer_service]
+    when:
+      tool: open_dispute
+      any:
+        - {arg: amount_minor, op: absent}
+        - {arg: amount_minor, op: le, value: 0}
+    action: block
+    severity: medium
+    risk_class: money
+    regulation_ref: Card dispute procedure - complete instruction
+    owner: Retail Customer Care
+    approvals: [risk.lead, compliance.officer]
+
+  - id: SVC-06
+    version: 1
+    description: At most 2 card disputes per customer per day
+    agent_scope: [customer_service]
+    when:
+      tool: open_dispute
+    aggregate:
+      fn: count
+      window_s: 86400
+      group_by: customer
+      customer_arg: customer_id
+      op: gt
+      limit: 2
+    action: block
+    severity: high
+    risk_class: money
+    regulation_ref: Card dispute procedure - frequency
+    owner: Retail Customer Care
+    approvals: [risk.lead, compliance.officer]
+
+  # ---- credit
+  - id: CRD-01
+    version: 1
+    description: Approve only when the required documents are on file (system of record)
+    agent_scope: [credit_prequal]
+    when:
+      tool: decide_prequal
+      all:
+        - {arg: decision, op: eq, value: approve}
+        - {arg: fact.application.documents_complete, op: ne, value: true}
+    action: block
+    severity: high
+    risk_class: credit
+    regulation_ref: Credit policy - complete file before approval
+    owner: Consumer Lending
+    approvals: [risk.lead, compliance.officer]
+
+  - id: CRD-02
+    version: 1
+    description: A pre-qualification decision needs the application read first
+    agent_scope: [credit_prequal]
+    when:
+      tool: decide_prequal
+    prior:
+      tool: fetch_application
+      within_s: 86400
+      match_args: [application_id]
+      mode: absent
+      same_agent: true
+    action: block
+    severity: high
+    risk_class: credit
+    regulation_ref: Credit policy - documented decision
+    owner: Consumer Lending
+    approvals: [risk.lead, compliance.officer]
+
+  - id: CRD-03
+    version: 1
+    description: Pre-qualification amount limit 2,000,000,000 VND
+    agent_scope: [credit_prequal]
+    when:
+      tool: decide_prequal
+      all:
+        - {arg: amount_minor, op: gt, value: 2000000000}
+    action: block
+    severity: high
+    risk_class: credit
+    regulation_ref: Credit policy - agent pre-qualification authority
+    owner: Consumer Lending
+    approvals: [risk.lead, compliance.officer]
+
+  # ---- personal data
+  - id: PII-02
+    version: 1
+    description: At most 200 loan applications read per agent per hour (bulk personal data)
+    agent_scope: [credit_prequal]
+    when:
+      tool: fetch_application
+    aggregate:
+      fn: count
+      window_s: 3600
+      group_by: agent
+      op: gt
+      limit: 200
+    action: block
+    severity: high
+    risk_class: pii_export
+    regulation_ref: Decree 13/2023/ND-CP (personal data protection)
+    owner: Data Protection Office
+    approvals: [risk.lead, dpo.officer]

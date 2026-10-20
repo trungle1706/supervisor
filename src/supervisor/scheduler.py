@@ -17,6 +17,8 @@ case_intake    scheduler on           gate block/pause verdicts become cases (al
 judge_sweep    JUDGE_ENABLED          advisory judges over new events
 quality        QUALITY_ENABLED        groundedness / guideline scores (sampled)
 retention      RETENTION_ENABLED      null personal-data columns past their TTL (ADR D13)
+tool_analytics TOOL_ANALYTICS_ENABLED daily ``tool_usage_daily`` rollup + least-privilege
+                                      suggestion files (WP22; never applied)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -359,6 +361,7 @@ class SupervisorScheduler:
 
 def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec]:
     """The job list for the app. ``runtime`` is ``supervisor.wiring.Runtime``."""
+    from supervisor.analytics import tools as tools_job
     from supervisor.jobs import anchor as anchor_job
     from supervisor.jobs import case_intake as case_intake_job
     from supervisor.jobs import drift as drift_job
@@ -417,6 +420,8 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
         JobSpec("retention", settings.sched_retention_s,
                 lambda: retention_job.run(settings, adapters, chain=runtime.chain),
                 settings.retention_enabled),
+        JobSpec("tool_analytics", settings.sched_tool_analytics_s,
+                lambda: tools_job.run(ctx, settings), settings.tool_analytics_enabled),
     ]  # fmt: skip
 
 

@@ -1083,6 +1083,62 @@ _T: dict[str, tuple[str, str]] = {
         "Narrative",
         "Diễn giải",
     ),
+    # ---- WP22 tools (analytics and least privilege)
+    "nav_tools": ("Tools", "Công cụ"),
+    "tl_purpose": (
+        "Gate decisions per agent and tool: calls, outcomes, latency, and which allowed tools "
+        "were never used. Review each allowed tool against its use or a documented exception.",
+        "Quyết định của cổng theo tác tử và công cụ: số lần gọi, kết quả, độ trễ, và công cụ "
+        "được phép nhưng chưa từng dùng. Mỗi công cụ được phép cần có lý do sử dụng hoặc ngoại "
+        "lệ được ghi nhận.",
+    ),
+    "tl_why": (
+        "Least privilege (NIST SP 800-53 AC-6). The suggestion is a diff for a person to review. "
+        "Nothing is applied from this screen.",
+        "Đặc quyền tối thiểu (NIST SP 800-53 AC-6). Đề xuất chỉ là bản diff để người xem xét. "
+        "Không có gì được áp dụng từ màn hình này.",
+    ),
+    "tl_window": ("Window", "Khoảng thời gian"),
+    "tl_tool": ("Tool", "Công cụ"),
+    "tl_risk": ("Risk", "Rủi ro"),
+    "tl_status": ("Status", "Trạng thái"),
+    "tl_calls": ("Calls", "Số lần gọi"),
+    "tl_allow": ("Allow", "Cho phép"),
+    "tl_block": ("Block", "Chặn"),
+    "tl_pause": ("Pause", "Tạm dừng"),
+    "tl_err": ("Err", "Lỗi"),
+    "tl_p50": ("p50 us", "p50 us"),
+    "tl_p95": ("p95 us (worst day)", "p95 us (ngày tệ nhất)"),
+    "tl_users": ("Users/day max", "Người dùng/ngày tối đa"),
+    "tl_last": ("Last seen", "Lần cuối"),
+    "tl_declared_from": ("declared from", "khai báo từ"),
+    "tl_st_used": ("used", "đã dùng"),
+    "tl_st_unused": ("unused", "chưa dùng"),
+    "tl_st_undeclared": ("not declared", "chưa khai báo"),
+    "tl_st_exception": ("exception", "ngoại lệ"),
+    "tl_conf_ok": ("data ok", "dữ liệu đủ"),
+    "tl_conf_low": ("low history", "ít dữ liệu"),
+    "tl_conf_no_data": ("no data", "chưa có dữ liệu"),
+    "tl_suggest": ("Least-privilege suggestion", "Đề xuất đặc quyền tối thiểu"),
+    "tl_remove": ("Remove (unused, risky first)", "Gỡ bỏ (chưa dùng, rủi ro trước)"),
+    "tl_none": ("No unused tool in this window.", "Không có công cụ chưa dùng trong khoảng này."),
+    "tl_undeclared": ("Called but not declared", "Đã gọi nhưng chưa khai báo"),
+    "tl_warning": ("Warning", "Cảnh báo"),
+    "tl_not_applied": (
+        "Suggestion only. Nothing was changed. Apply it through the policy change path "
+        "(docs/tool-analytics.md).",
+        "Chỉ là đề xuất. Chưa có gì bị thay đổi. Áp dụng qua quy trình thay đổi chính sách "
+        "(docs/tool-analytics.md).",
+    ),
+    "tl_download": ("Download diff", "Tải bản diff"),
+    "tl_download_owner": (
+        "Only the agent owner can download the diff.",
+        "Chỉ chủ sở hữu tác tử được tải bản diff.",
+    ),
+    "tl_nodata": (
+        "No usage data yet. Run:",
+        "Chưa có dữ liệu sử dụng. Hãy chạy:",
+    ),
     # ---- WP17 assurance
     "nav_assurance": ("Assurance", "Đảm bảo chất lượng"),
     "as_purpose": (

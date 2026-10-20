@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response  # noqa: 
 
 from supervisor import __version__, scheduler  # noqa: E402
 from supervisor.adapters.auth.audit import request_id_of  # noqa: E402
+from supervisor.analytics.tools_routes import router as tools_analytics_router  # noqa: E402
 from supervisor.cases.service import PermissionDenied  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
 from supervisor.console import context as console_context  # noqa: E402
@@ -90,6 +91,7 @@ app.include_router(gate_router, prefix="/v1")
 app.include_router(gate_router, deprecated=True)
 app.include_router(otlp_router)  # WP4: POST /v1/traces (OTLP/HTTP JSON)
 app.include_router(console_router)  # WP8: reviewer console (/console)
+app.include_router(tools_analytics_router, prefix="/v1")  # WP22: GET /v1/analytics/tools
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 

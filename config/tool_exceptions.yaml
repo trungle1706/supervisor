@@ -1,0 +1,17 @@
+# Documented exceptions to least privilege (WP22, docs/tool-analytics.md).
+#
+# An allowed tool that shows no use in the analytics window is proposed for removal, unless an
+# unexpired exception for (agent_id, tool) is listed here. Every entry needs a reason, the
+# person who approved it and an expiry date (YYYY-MM-DD). After the expiry the tool is treated
+# as unused again, so the exception is reviewed on a fixed date (access recertification).
+# Changes to this file go through the same pull request and approval as a policy change.
+#
+# Example (synthetic, commented out):
+#
+# exceptions:
+#   - agent_id: payments
+#     tool: add_payee
+#     reason: Seasonal use at year end; removing it would block the January payee load.
+#     approver: risk.lead
+#     expires: 2027-01-31
+exceptions: []

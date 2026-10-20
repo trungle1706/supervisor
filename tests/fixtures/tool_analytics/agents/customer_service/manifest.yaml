@@ -1,0 +1,41 @@
+# Agent manifest (synthetic demo agent). Read by the registry, the gateway and the red-team author.
+id: customer_service
+name: Customer service agent
+version: "1.0.0"
+owner: Retail Customer Care
+owner_user: cc-lead@example.invalid
+risk_tier: high
+model_family: qwen
+model_id: qwen3:4b
+host_type: python_inprocess
+plug_point: gate_hook
+description: >
+  Answers retail customer support tickets in Vietnamese and English. Reads the customer
+  profile and the ticket, writes a reply, may waive a fee up to a fixed limit, and may open
+  a card dispute.
+limits:
+  waive_fee_max_minor: 500000   # VND per waiver
+capture:                 # WP4 recorder: digest | masked | raw (raw needs raw_allowed: true)
+  level: masked
+  raw_allowed: false
+tools:
+  - name: lookup_customer
+    risk_class: read_only
+    description: Read a customer profile by customer_id (masked PII).
+    args: {customer_id: string}
+  - name: read_ticket
+    risk_class: read_only
+    description: Read the text of a support ticket by ticket_id.
+    args: {ticket_id: string}
+  - name: reply
+    risk_class: read_only
+    description: Send a reply message to the customer on the ticket.
+    args: {ticket_id: string, text: string}
+  - name: waive_fee
+    risk_class: money
+    description: Waive a fee on an account. Amount in VND minor units, at most waive_fee_max_minor.
+    args: {account_id: string, fee_code: string, amount_minor: integer, reason: string}
+  - name: open_dispute
+    risk_class: money
+    description: Open a card transaction dispute.
+    args: {customer_id: string, card_last4: string, amount_minor: integer, reason: string}

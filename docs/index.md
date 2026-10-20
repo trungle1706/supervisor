@@ -30,6 +30,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/regulations.md` | Regulation knowledge base: coverage, format, internal rules | 2L, Dev |
 | `docs/compliance-advisor.md` | Obligations matrix, Decision 33, threshold check | 2L, Dev |
 | `docs/assurance.md` | 33 eval packs with licence and data mode | 2L, Dev |
+| `docs/tool-analytics.md` | Tool usage rollup, least-privilege suggestion, Tools page (WP22) | 2L, Op, Dev |
 | `docs/judge-mrm.md` | Model card, validation, change control of the judge | 2L, Aud |
 | `docs/enterprise-readiness.md` | Scored gaps (ISO 42001, NIST AI RMF, ASVS, ops) | 2L, Aud, Op |
 | `docs/metrics.md` | Oversight metrics and their definitions | 2L, Op |

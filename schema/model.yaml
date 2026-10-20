@@ -126,6 +126,9 @@ tables:
       source: string
       capture_level: string
       mask_version: string?
+      # WP22 (additive): gate decision latency in integer microseconds (latency_ms keeps the
+      # old millisecond value; a sub-millisecond gate call is 0 ms). Null on older rows.
+      latency_us: int?
 
   agent_event_raw:
     kind: append_only
@@ -629,3 +632,33 @@ tables:
       judge_gate: bool
       details: json
       evidence_hash: string?
+
+  # --- WP22 ---
+  tool_usage_daily:
+    kind: state
+    description: >
+      WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct
+      callers and end users (counts only; hashed ids are never stored), first and last call.
+      Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent:
+      a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the
+      least-privilege suggestion. Integers only.
+    primary_key: [usage_date, agent_id, tool_name]
+    indexes:
+      - [agent_id, usage_date]
+    columns:
+      usage_date: date
+      agent_id: string
+      tool_name: string
+      risk_class: string?        # money | credit | pii_export | read_only | unknown
+      calls: int
+      allows: int                # status allowed (includes alert and log outcomes)
+      blocks: int                # denied and not a pause
+      pauses: int                # outcome pause
+      errors: int                # decisions with a rule_error verdict
+      p50_us: int?               # nearest-rank percentile of gate latency, microseconds
+      p95_us: int?
+      distinct_callers: int      # distinct caller_agent_id that day
+      distinct_users: int        # distinct hashed customer_id that day
+      first_seen: timestamp?
+      last_seen: timestamp?
+      computed_at: timestamp
