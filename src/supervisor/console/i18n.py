@@ -176,6 +176,7 @@ _T: dict[str, tuple[str, str]] = {
     "role_owner": ("owner", "chủ sở hữu"),
     "role_auditor": ("auditor", "kiểm toán"),
     "role_service": ("service", "dịch vụ"),
+    "role_operator": ("operator", "vận hành"),  # WP-UX3 review: the header showed "viewer"
     "role_viewer": ("viewer", "người xem"),
     # ---- WP12 overview
     "greet_morning": ("Good morning, {name}", "Chào buổi sáng, {name}"),

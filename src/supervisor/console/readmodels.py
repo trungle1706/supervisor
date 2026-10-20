@@ -75,7 +75,7 @@ def initials(me: Any) -> str:
 
 
 def main_role(me: Any) -> str:
-    order = ("admin", "approver", "reviewer", "owner", "auditor")
+    order = ("admin", "approver", "reviewer", "owner", "auditor", "operator")  # operator: WP21
     roles = set(getattr(me, "roles", ()) or ())
     for r in order:
         if r in roles:

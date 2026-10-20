@@ -95,3 +95,12 @@ def test_playground_never_logs_the_typed_arguments(
     assert ux.post("/console/playground/run", bad, user="operator.khanh").status_code == 400
     text = caplog.text + json.dumps([r.__dict__ for r in caplog.records], default=str)
     assert PHONE not in text and RAW not in text and "Tran Thi B" not in text
+
+
+def test_operator_header_role_is_operator_not_viewer(ux: Console) -> None:
+    """Review WP-UX3: the header role pill showed "viewer" for an operator (main_role had no
+    operator), which looked wrong on the Playground, where a viewer gets 403."""
+    html = ux.get("/console/playground", user="operator.khanh").text
+    assert '<span class="role">operator</span>' in html
+    vi = ux.get("/console/playground?lang=vi", user="operator.khanh").text
+    assert '<span class="role">vận hành</span>' in vi
