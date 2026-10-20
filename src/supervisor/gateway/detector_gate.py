@@ -15,6 +15,7 @@ Everything stored or returned from here is masked text, ids and integers (R2).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -56,6 +57,7 @@ class PreDetect:
     risk_class: str | None = None
     direction: str = "input"
     fail_closed_risk: frozenset[str] = DEFAULT_FAIL_CLOSED_RISK
+    consumer_id: str | None = None  # WP39: context.consumer_id when it is a plain id
 
 
 @dataclass
@@ -64,6 +66,11 @@ class DetectorOutcome:
 
     findings: list[Finding] = field(default_factory=list)  # fired
     not_executed: list[Finding] = field(default_factory=list)
+    # WP39: facts for the latency split and the consumer column (recorded, never returned)
+    consumer_id: str | None = None
+    rules_us: int | None = None
+    detectors_us: int | None = None
+    per_detector_us: dict[str, int] = field(default_factory=dict)
 
 
 def _ne_dict(f: Finding) -> dict[str, Any]:
@@ -121,6 +128,9 @@ class DetectorGate:
         req: Req,
     ) -> PreDetect:
         pre = PreDetect(direction=req.direction)
+        cid = ctx.get("consumer_id")
+        if isinstance(cid, str) and re.match(ID_PATTERN, cid):
+            pre.consumer_id = cid
         try:
             pre.risk_class = policy.risk_class(tool_name)
             run_cfg, skip_tools = self.resolved.for_agent(policy.agent_detectors(agent_id))
@@ -155,10 +165,11 @@ class DetectorGate:
         builtin: bool,
         matched_actions: Iterable[str],
         hmac_fn: Callable[[Mapping[str, Any]], str],
+        rules_us: int | None = None,
     ) -> None:
         """Fill ``d.v2`` (the response fields) and ``d.det`` (what to record)."""
         direction = pre.direction
-        out = DetectorOutcome()
+        out = DetectorOutcome(consumer_id=pre.consumer_id, rules_us=rules_us)
         coverage: dict[str, Any]
         transformed: dict[str, Any] | None = None
         detectors_run: list[str] = []
@@ -198,6 +209,7 @@ class DetectorGate:
             transformed = res.transformed_payload
             detectors_run = [detector_id(self.registry.get(s)) for s in res.evaluated]
             latency = res.latency_us
+            out.per_detector_us = {k: int(v) for k, v in res.per_detector_us.items()}
             failed = list(res.failed_closed)
 
         # 1. The one way a detector can stop a call: it could not look at a risky tool.
@@ -228,6 +240,7 @@ class DetectorGate:
             skipped=pre.skipped,
             matched_actions=matched_actions,
         )
+        out.detectors_us = latency
         d.det = out
         d.v2 = {
             "status": status,
@@ -275,10 +288,18 @@ def event_fields(d: Any) -> dict[str, Any]:
     from supervisor.core.canonical import canonical_json
 
     v2 = d.v2
+    det = d.det
     return {
         "verdict_status": v2["status"],
         "correlation_id": v2["correlation_id"],
         "coverage_json": canonical_json(v2["coverage"]),
+        # WP39 additive facts (nullable on older rows)
+        "consumer_id": det.consumer_id,
+        "latency_rules_us": det.rules_us,
+        "latency_detectors_us": det.detectors_us,
+        "detector_latency_json": canonical_json(det.per_detector_us)
+        if det.per_detector_us
+        else None,
     }
 
 

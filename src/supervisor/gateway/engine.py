@@ -758,6 +758,7 @@ class Gateway:
         (WP-UX3 ``evaluate_only``): window rules (aggregate / prior) are not evaluated, their
         ids are appended to ``skipped``, and the redaction hint cache is left alone."""
         dry = skipped is not None
+        eval_t0 = time.perf_counter_ns()  # WP39: rules latency = this call, detector pass excluded
         matches: list[Match] = []
         builtin: tuple[str, str] | None = None
         if state is None:
@@ -875,6 +876,7 @@ class Gateway:
                 builtin=builtin is not None,
                 matched_actions=[m.action for m in matches],
                 hmac_fn=lambda a: args_hmac(a, self._args_key),
+                rules_us=(time.perf_counter_ns() - eval_t0) // 1000,
             )
         return d, matches, shadow, builtin
 

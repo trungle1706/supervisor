@@ -135,6 +135,15 @@ tables:
       verdict_status: string?
       correlation_id: string?
       coverage_json: json?
+      # WP39 (additive, null unless DETECTORS_ENABLED): who called (context.consumer_id, an id),
+      # and the latency split of the decision in integer microseconds: rules = deterministic
+      # evaluation, detectors = the detector pass; overhead = latency_us - rules - detectors.
+      # detector_latency_json holds {detector slug: microseconds} (a detector that found
+      # nothing leaves no finding row, so its time is kept here).
+      consumer_id: string?
+      latency_rules_us: int?
+      latency_detectors_us: int?
+      detector_latency_json: json?
 
   agent_event_raw:
     kind: append_only
@@ -674,6 +683,36 @@ tables:
       last_seen: timestamp?
       computed_at: timestamp
 
+  # --- WP39 ---
+  decision_daily:
+    kind: state
+    description: >
+      WP39. Per UTC day and dimension: gate decision counts by verdict status, the not-evaluated
+      count and, for dimension detector_latency, latency percentiles. Recomputed from
+      agent_event and finding by python -m supervisor.jobs.decision_rollup (idempotent: a day is
+      overwritten). Feeds the console Analytics Gate and Detectors tabs so the App never scans
+      the raw table on page load. dimension: total | agent | consumer | rule | detector_code |
+      detector_latency. Integers and ids only; no text.
+    primary_key: [usage_date, dimension, dim_key, dim_key2]
+    indexes:
+      - [dimension, usage_date]
+    columns:
+      usage_date: date
+      dimension: string
+      dim_key: string          # agent id, consumer id, rule id, detector slug, or "*"
+      dim_key2: string         # finding code for detector_code, else "*"
+      requests: int
+      allows: int
+      reports: int
+      transforms: int
+      pauses: int
+      blocks: int
+      skips: int
+      not_evaluated: int       # decisions (or detector runs) that could not be fully inspected
+      p50_us: int?             # detector_latency only
+      p95_us: int?
+      computed_at: timestamp
+
   # --- WP21 (SIEM and alerts) ---
   alert:
     kind: state
@@ -712,6 +751,9 @@ tables:
       route_status: json
       acknowledged_by: string?
       acknowledged_at: timestamp?
+      # WP39 (additive): correlation id of the signal that fired the alert (ties alert,
+      # decision and trace span). Null for rules whose signals carry none.
+      correlation_id: string?
 
   siem_event:
     kind: append_only

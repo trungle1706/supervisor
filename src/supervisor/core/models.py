@@ -115,6 +115,11 @@ class AgentEvent(Record):
     verdict_status: str | None = None
     correlation_id: str | None = None
     coverage_json: dict[str, Any] | None = None
+    # WP39 (null unless DETECTORS_ENABLED): caller application and the latency split (us)
+    consumer_id: str | None = None
+    latency_rules_us: int | None = None
+    latency_detectors_us: int | None = None
+    detector_latency_json: dict[str, Any] | None = None
 
 
 class Rule(StateRecord):
