@@ -81,26 +81,32 @@ Rules the code keeps:
 
 ## 3. Measuring it
 
-Golden set: `data/eval/pii_vn/` (`dev.jsonl`, `heldout.jsonl`, `MANIFEST.json`), over 700 items.
+Golden set: `data/eval/pii_vn/` (`dev.jsonl`, `heldout.jsonl`, `MANIFEST.json`), 1031 items
+(666 dev, 365 held-out) including 310 negative prose items.
 Every item has id, source, licence, labeller (`synthetic` or `expert rubric`), tags, text, gold
-spans and `keep` strings. The held-out split uses its own name pools that the masker lexicon must
-not contain (a test checks it); never tune on it.
+spans and `keep` strings. The held-out split uses its own name pools. Production ships the FULL lexicon; the held-out
+split is scored with `--ablate-heldout-lexicon`, which removes those pools at evaluation time only
+(a test checks the ablation path and that the shipped lexicon has the common names). Never tune
+on it.
 
 ```
 python -m supervisor.pii_eval                 # per-entity table, both splits
 python -m supervisor.pii_eval --show-failures # failing DEV item ids per failure class
 python -m supervisor.pii_eval --json          # machine-readable report
-python -m supervisor.pii_eval --record        # write baseline_<masker>.json (commit it)
+python -m supervisor.pii_eval --ablate-heldout-lexicon   # held-out with its name pools removed
+python -m supervisor.pii_eval --ablate-heldout-lexicon --record --commit <id>  # baseline (commit it)
 python -m supervisor.pii_eval --generate      # rewrite the golden set from the seed
 ```
 
 Metrics (integers, basis points): per entity leak recall (no character of the value survives),
 typed recall, precision, each with a Wilson 95% interval; amount-intact rate; failure taxonomy
-(`missed-person-uppercase-nodiac`, `partial-address-...`, `over-mask-amount`, ...). Thresholds are
+(`missed-person-uppercase-nodiac`, `partial-address-...`, `over-mask-amount`, ...), and the
+false-mask rate per entity on the negative items with a Wilson interval (ILLUSTRATIVE limit 500 bp). Thresholds are
 ILLUSTRATIVE until the bank sets them.
 
 Regression gate: `tests/pii_eval/test_regression.py` fails on any per-entity recall drop below
-`baseline_vn_regex-3.json`, on any over-masked amount, and on a precision drop above 100 bp.
+`baseline_vn_regex-3.json`, on any over-masked amount, on a precision drop above 100 bp, and on a false-mask rate rise above
+100 bp or above 500 bp.
 Baselines: `baseline_vn_regex-2.json` (before the fix) and `baseline_vn_regex-3.json` (after).
 
 ## 4. The `pii_canary` assurance pack

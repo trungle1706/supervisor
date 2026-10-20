@@ -15,7 +15,6 @@ import pytest
 
 from supervisor.adapters.masking import vn_text
 from supervisor.adapters.masking.vn_regex import VnRegexMasker
-from supervisor.data import wordlists as W
 from supervisor.pii_eval import generate as G
 from supervisor.pii_eval.harness import (
     DATA_DIR,
@@ -33,7 +32,7 @@ PRECISION_SLACK_BP = 100
 
 @lru_cache(maxsize=1)
 def _report() -> dict[str, Any]:
-    return run_all()
+    return run_all(ablate_heldout=True)  # held-out scored with its name pools ablated
 
 
 def test_golden_set_shape() -> None:
@@ -70,15 +69,31 @@ def test_generator_is_deterministic_and_matches_committed_files() -> None:
     assert G.all_items() == items
 
 
-def test_heldout_name_pools_stay_out_of_the_lexicon() -> None:
-    base = {
-        vn_text._k(w)
-        for w in W.SURNAMES + W.MIDDLE_MALE + W.MIDDLE_FEMALE + W.GIVEN_MALE + W.GIVEN_FEMALE
-    }
-    held = {vn_text._k(w) for w in G.HELD_SURNAMES + G.HELD_MIDDLE + G.HELD_GIVEN} - base
-    assert held, "held-out pools must add words the generator lists do not have"
-    leaked = held & vn_text.NAME_LEXICON
-    assert not leaked, f"never tune on the held-out split: {sorted(leaked)}"
+def test_shipped_lexicon_is_full_and_ablation_removes_the_heldout_pools() -> None:
+    words = G.heldout_ablation_words()
+    assert len(words) >= 20
+    keys = {vn_text._k(w) for w in words}
+    # production ships common real names (finding 5)
+    for w in ("Duy", "Lâm", "Khôi", "Thịnh", "Quách", "Kiều", "Tân", "Nhân", "Thạch", "Tống"):
+        assert vn_text._k(w) in vn_text.NAME_LEXICON, w
+    assert keys <= vn_text.NAME_LEXICON
+    before = (set(vn_text.SURS), set(vn_text.MIDS), set(vn_text.GIVENS), set(vn_text.NAME_LEXICON))
+    with vn_text.ablate(words):
+        assert not (keys & vn_text.NAME_LEXICON)
+        assert vn_text._in("Quách", vn_text.SURS) is False
+        assert vn_text._in("Nguyễn", vn_text.SURS) is True  # base names stay
+    after = (set(vn_text.SURS), set(vn_text.MIDS), set(vn_text.GIVENS), set(vn_text.NAME_LEXICON))
+    assert before == after  # restored
+    assert vn_text._in("Quách", vn_text.SURS) is True
+
+
+def test_ablation_changes_the_masker_only_inside_the_block() -> None:
+    m = make_masker()
+    text = "Quầy ghi nhận Quách Duy Hậu vừa đến"
+    assert "Quách" not in m.mask(text)
+    with vn_text.ablate(G.heldout_ablation_words()):
+        assert "Quách" in m.mask(text) or "Hậu" in m.mask(text)  # lexicon gone: weaker
+    assert "Quách" not in m.mask(text)
 
 
 def test_wilson_interval_known_values() -> None:
@@ -139,3 +154,35 @@ def test_masker_is_deterministic_on_the_golden_set() -> None:
     assert isinstance(a, VnRegexMasker)
     for it in load_items("dev")[:60]:
         assert a.mask(it["text"]) == b.mask(it["text"])
+
+
+def test_negative_corpus_shape() -> None:
+    neg = [it for it in load_items() if "negative-corpus" in it["tags"]]
+    assert len(neg) >= 300 and all(not it["spans"] for it in neg)
+    assert {it["split"] for it in neg} == {"dev", "heldout"}
+    text = " ".join(it["text"] for it in neg)
+    for want in ("LÝ DO TỪ CHỐI", "Hồ Chí Minh", "Street", "Gói"):
+        assert want in text
+
+
+FALSE_MASK_LIMIT_BP = 500  # ILLUSTRATIVE: at most 5% of negative items with a false mask per type
+FALSE_MASK_SLACK_BP = 100
+
+
+@pytest.mark.parametrize("split", ["dev", "heldout"])
+def test_false_mask_rate_per_entity(split: str) -> None:
+    base = json.loads(BASELINE_V3.read_text())["splits"][split]["false_mask"]
+    now = _report()["splits"][split]["false_mask"]
+    assert set(now) == set(G.ENTITY_TYPES)
+    for ent, b in base.items():
+        cur = now[ent]
+        assert cur["n_items"] >= 130
+        assert cur["rate_bp"] <= b["rate_bp"] + FALSE_MASK_SLACK_BP, f"{split} {ent} false masks up"
+        assert cur["rate_bp"] <= FALSE_MASK_LIMIT_BP, f"{split} {ent} above the limit"
+        assert cur["rate_wilson_bp"] is not None
+
+
+def test_amounts_and_dates_in_negatives_stay_intact() -> None:
+    for split in ("dev", "heldout"):
+        r = _report()["splits"][split]
+        assert r["keep"]["DATE"]["touched"] == 0 and r["keep"]["AMOUNT"]["touched"] == 0

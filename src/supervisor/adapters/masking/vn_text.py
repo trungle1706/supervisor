@@ -17,8 +17,10 @@ Each finder returns ``(start, end)`` tuples on the canonical text.
 from __future__ import annotations
 
 import bisect
+import contextlib
 import re
 import unicodedata
+from collections.abc import Iterable, Iterator
 
 from supervisor.data import wordlists as W
 
@@ -42,21 +44,14 @@ def _k(word: str) -> str:
 SURNAMES_EXTRA: tuple[str, ...] = (
     "Trương", "Lương", "Phùng", "Tạ", "Đoàn", "Châu", "Hà", "Từ", "La", "Thái", "Triệu",
     "Diệp", "Ninh", "Doãn", "Chu", "Mạc", "Bạch", "Lưu", "Tô", "Tăng", "Khúc", "Hứa",
-    "Liêu", "Trình", "Âu", "Nghiêm", "Vương", "Lê", "Giang",
+    "Liêu", "Trình", "Âu", "Nghiêm", "Vương", "Lê", "Giang", "Thạch", "Quách", "Tống",
+    "Lữ", "Kiều",
 )  # fmt: skip
 MIDDLE_EXTRA: tuple[str, ...] = (
     "Bích", "Hồng", "Tuyết", "Diệu", "Thúy", "Xuân", "Hải", "Tiến", "Thái", "Ngọc", "Lan",
     "Yến", "Nhi", "Đình", "Hoàng", "Trọng", "Thùy", "Như", "Tú", "Quốc", "Hoài", "Thế",
     "Trung", "Đăng", "Nhật", "Bá", "Chí", "Hiền", "Hạ", "Lệ", "Cẩm", "Tâm", "Vĩnh",
-)  # fmt: skip
-# "Nhật" and "Vĩnh" would break the held-out disjointness: removed below.
-_HELD_BLOCK = frozenset(
-    _k(w)
-    for w in (
-        "Duy", "Khắc", "Nhật", "Diễm", "Tường", "Bách", "Cảnh", "Duyên", "Hậu", "Huệ", "Khôi",
-        "Lâm", "Mẫn", "Nhàn", "Nghiêu", "Rạng", "Sinh", "Tấn", "Thịnh", "Triều", "Tuyền", "Út",
-        "Vĩnh", "Xuyến", "Thạch", "Quách", "Tống", "Lữ", "Kiều",
-    )
+    "Duy", "Khắc", "Diễm", "Tường",
 )  # fmt: skip
 GIVEN_EXTRA: tuple[str, ...] = (
     "Thử", "Tâm", "Tùng", "Đạt", "Hiếu", "Nghĩa", "Kiên", "Lộc", "Thuận", "Uyên", "Vân",
@@ -66,13 +61,15 @@ GIVEN_EXTRA: tuple[str, ...] = (
     "Trường", "Vinh", "Vương", "Diệp", "Đan", "Đào", "Điệp", "Đông", "Giàu", "Hân", "Hiển",
     "Hoan", "Huân", "Kha", "Khải", "Lực", "Mạnh", "Nga", "Nghi", "Nhân", "Như", "Phát",
     "Phi", "Quỳnh", "Thắm", "Thanh", "Thành", "Thủy", "Tiến", "Trọng", "Tuyết", "Ánh",
-    "Bảo", "Cúc", "Duyên_", "Hạ", "Hồng", "Huyền", "Lệ", "Loan", "Ly", "Ngọc", "Nhung",
+    "Bảo", "Cúc", "Duyên", "Bách", "Cảnh", "Hậu", "Huệ", "Khôi", "Lâm", "Mẫn", "Nhàn", "Nghiêu",
+    "Rạng", "Sinh", "Tấn", "Thịnh", "Triều", "Tuyền", "Út", "Xuyến", "Hạ", "Hồng", "Huyền",
+    "Lệ", "Loan", "Ly", "Ngọc", "Nhung",
     "Phượng", "Thơm", "Thư", "Thúy", "Xuân", "Tú", "Tuấn", "Hải", "Lan", "Minh", "Hoàng",
 )  # fmt: skip
 
 
 def _clean(words: tuple[str, ...]) -> set[str]:
-    return {_k(w) for w in words if not w.endswith("_")} - _HELD_BLOCK
+    return {_k(w) for w in words if not w.endswith("_")}
 
 
 SURS = _clean(tuple(W.SURNAMES) + SURNAMES_EXTRA)
@@ -94,6 +91,31 @@ _EXACT_OF: dict[int, frozenset[str]] = {
     id(GIVENS): _GIVENS_EX,
     id(NAME_LEXICON): _SURS_EX | _MIDS_EX | _GIVENS_EX,
 }
+_EXACT_FULL = dict(_EXACT_OF)
+
+
+@contextlib.contextmanager
+def ablate(words: Iterable[str]) -> Iterator[None]:
+    """Remove ``words`` from the lexicon for the duration of the block. EVALUATION ONLY: the
+    held-out split of the golden set is scored with its own name pools removed, so the figure
+    measures generalisation to names the lexicon does not know. Production always ships the
+    full lexicon. Not thread safe."""
+    keys = {_k(w) for w in words}
+    exact = {unicodedata.normalize("NFC", w).lower() for w in words}
+    saved = [(lex, set(lex)) for lex in (SURS, MIDS, GIVENS, NAME_LEXICON)]
+    try:
+        for lex, _old in saved:
+            lex -= keys
+        for k, v in _EXACT_FULL.items():
+            _EXACT_OF[k] = v - exact
+        yield
+    finally:
+        for lex, old in saved:
+            lex.clear()
+            lex.update(old)
+        _EXACT_OF.update(_EXACT_FULL)
+
+
 # Surnames that are also ordinary words are accepted in lower-case text only when spelled
 # like a name with a distinctive surname.
 LOWER_SURS = frozenset(
@@ -118,6 +140,26 @@ _PLACE_FOLDED = frozenset(
     | {"ho chi minh", "sai gon", "ha noi", "viet nam", "da nang", "hue", "can tho"}
 )
 
+_PLACES3 = sorted(
+    {v for v in W.PROVINCES.values() if len(v.split()) >= 3}
+    | {_k(v) for v in W.PROVINCES.values() if len(v.split()) >= 3}
+    | {"Hồ Chí Minh", "Ho Chi Minh"},
+    key=lambda x: (-len(x), x),
+)
+_RE_PLACE3 = re.compile(
+    r"(?<!\w)(?i:"
+    + "|".join(re.escape(x).replace(r"\ ", r"\s+") for x in _PLACES3)
+    + r")(?:\s+(?i:city))?(?!\w)"
+)
+# A brand or street written in English after a surname-like pair is not a person.
+_BRAND_SUFFIX = frozenset(
+    "street st road rd avenue ave group corp corporation company co ltd jsc holdings holding "
+    "walking hospital school university bank mobile plaza city center centre tower park hotel "
+    "resort mall market shop store "
+    "club studio media tech technology".split()
+)
+# Surnames that are ordinary function words: never a middle or given name.
+_FUNC_SURS = frozenset({"do", "la", "ho"})
 _WORD = re.compile(r"[^\W\d_]+")
 
 
@@ -262,6 +304,24 @@ def _take_chain(toks: list[_Tok], text: str, i: int, limit: int) -> list[_Tok]:
     return out
 
 
+_PRODUCT_BEFORE = re.compile(
+    r"(?i:gói|goi|sản phẩm|san pham|chương trình|chuong trinh|dịch vụ|dich vu|tiết kiệm|"
+    r"tiet kiem|bảo hiểm|bao hiem)\s+$"
+)
+
+
+def _brand_follows(toks: list[_Tok], text: str, last: int) -> bool:
+    """A brand or street suffix ("Street", "Group", "Tower") within 3 words after the match."""
+    prev = toks[last]
+    for t in toks[last + 1 : last + 4]:
+        if not _chain_ok(text, prev, t):
+            return False
+        if _k(t.text) in _BRAND_SUFFIX:
+            return True
+        prev = t
+    return False
+
+
 def person_spans(text: str) -> tuple[list[tuple[int, int, str]], list[tuple[int, int, str]]]:
     """(plain, labelled) person spans as ``(start, end, why)``."""
     toks = _tokens(text)
@@ -343,8 +403,18 @@ def person_spans(text: str) -> tuple[list[tuple[int, int, str]], list[tuple[int,
             and not street_before(s.start)
             and not _place_like([t.text for t in toks[n : last + 1]])
         ):
+            if _brand_follows(toks, text, last) or _PRODUCT_BEFORE.search(
+                text[max(0, s.start - 24) : s.start]
+            ):
+                n = last + 1
+                continue
             plain.append((s.start, toks[last].end, "plain"))
         n = last + 1
+    places = [(m.start(), m.end()) for m in _RE_PLACE3.finditer(text)]
+    if places:  # "Hồ Chí Minh", "Ho Chi Minh City": a province, not a person
+        keep = lambda sp: not any(sp[0] < pe and ps < sp[1] for ps, pe in places)  # noqa: E731
+        plain = [sp for sp in plain if keep(sp)]
+        labelled = [sp for sp in labelled if keep(sp)]
     return plain, _merge_labelled(labelled, plain)
 
 
@@ -371,6 +441,13 @@ def _merge_labelled(
 
 
 def _plain_at(toks: list[_Tok], text: str, n: int) -> int | None:
+    end = _plain_end(toks, text, n)
+    if end is not None and _k(toks[n].text) in _FUNC_SURS and end - n < 2:
+        return None  # "DO TU" in "LY DO TU CHOI": a two-word name needs a real surname
+    return end
+
+
+def _plain_end(toks: list[_Tok], text: str, n: int) -> int | None:
     """Index of the last token of a name that starts at ``toks[n]`` (a surname), or None."""
     s = toks[n]
     if not _in(s.text, SURS):
@@ -381,7 +458,7 @@ def _plain_at(toks: list[_Tok], text: str, n: int) -> int | None:
     rest: list[_Tok] = []
     for t in toks[n + 1 : n + 5]:
         prev = rest[-1] if rest else s
-        if not _chain_ok(text, prev, t) or _is_stop(t.text):
+        if not _chain_ok(text, prev, t) or _is_stop(t.text) or _k(t.text) in _FUNC_SURS:
             break
         if cased and not (_cased(t.text) and (_in(t.text, NAME_LEXICON) or _open_ok(t.text))):
             break
@@ -449,7 +526,7 @@ _UNIT = (
     rf"(?:(?<![\w]){_UNIT_KW}\.?\s*{_UNIT_NAME}"
     rf"|(?<![\w])(?:[PQpq]\.\s?|[PQ](?=\d))(?:\d{{1,2}}\b|{_CAP}(?: {_CAP}){{0,2}}))"
 )
-_STREET_KW = r"(?i:đường|duong|phố|pho|ngõ|ngo|ngách|ngach|hẻm|hem|kiệt|kiet|đại lộ|dai lo)"
+_STREET_KW = r"(?i:đường|duong|phố|pho|ngõ|ngo|ngách|ngach|hẻm|hem|đại lộ|dai lo)"
 _NUM = r"(?:(?i:số|so|no\.?|sn)\.?\s*)?\d{1,4}[A-Za-z]?(?:[/-]\d{1,4}[A-Za-z]?){0,3}"
 _STREET_NAME = (
     rf"(?:(?:{_CAP}|\d+)(?: (?:{_CAP}|\d+)){{0,5}}"

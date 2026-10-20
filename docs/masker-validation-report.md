@@ -7,7 +7,9 @@ hard fail because the credit rules read the amount. Thresholds are ILLUSTRATIVE 
 sets them. Not legal advice.
 
 Date 2026-10-20. Reproduce: `python -m supervisor.pii_eval` (data `data/eval/pii_vn/`, seed
-`20261020`, 721 synthetic items, 61 of them hand-written hard cases; dev 486, held-out 235).
+`20261020`, 1031 synthetic items: dev 666, held-out 365; 61 hand-written hard cases; 310 negative
+prose items). Held-out is scored with the held-out name pools REMOVED from the lexicon
+(`--ablate-heldout-lexicon`, evaluation only; production ships the full lexicon).
 Baselines: `baseline_vn_regex-2.json` (before, commit bf3a23a), `baseline_vn_regex-3.json` (after).
 Everything is synthetic: **these numbers are not bank numbers** (BACKLOG: measure on a bank sample).
 
@@ -18,8 +20,9 @@ Everything is synthetic: **these numbers are not bank numbers** (BACKLOG: measur
 | Structured identifiers (CCCD, CMND, phone, e-mail, tax code, account, card): leak recall 10000 bp on both splits | 10000 on dev and held-out; Wilson lower bounds 8388 to 9699 | GO |
 | ADDRESS leak recall: point >= 9500 bp on held-out | 10000 (interval 9425 - 10000) | GO |
 | PERSON, dev: point >= 9500 bp | 9920 (9768 - 9973) | GO |
-| PERSON, held-out (unseen surnames, mostly no title): point >= 9000 bp | 5297 (4579 - 6004) | **NO-GO** |
-| Amounts left intact: 10000 bp, 0 over-masked | 10000, 0 of 496 amounts touched | GO (hard rule met) |
+| PERSON, held-out, lexicon ablated (out-of-lexicon generalisation, mostly no title): point >= 9000 bp | 5297 (4579 - 6004). With the production lexicon the same split scores 9891 (9614 - 9971), which is contaminated: the pools are the lexicon, so it is shown for information only | **NO-GO** |
+| False-mask rate per entity on negative prose (310 items + hand-written negatives; ILLUSTRATIVE limit 500 bp, Wilson interval in the baseline) | dev (production lexicon, tuned on): 0 for every entity of 190 items. Held-out (ablated): PERSON 373 bp (160 - 844, 5 of 134), every other entity 0 | GO (dev), GO (held-out, below the limit; interval upper bound 844 is above it, so treat as watch) |
+| Amounts left intact: 10000 bp, 0 over-masked | 10000, 0 amounts touched in positive and negative items | GO (hard rule met) |
 | Precision per entity: >= 9500 bp | 10000 for every entity on both splits | GO |
 | No recall drop per entity vs baseline (regression test) | Test passes | GO |
 | `pii_canary` masker metrics (`--target demo`: 3 `traces:` and 3 `agent:` targets) | `masker_unmasked_count` 0 of 256 canaries, 0 false masks on all six; the three `traces:` targets OK | GO (masker); the `agent:` targets FAIL on the agent reply, see section 4 |
@@ -43,6 +46,24 @@ labelled names and amounts.** Mitigation until a bank sample is measured: keep t
 | BANK_ACCOUNT (84 / 41) | 9166 (5350) | 10000 (10000) | 9512 (5125) | 10000 (10000) |
 | CARD_NUMBER (41 / 20) | 10000 (10000) | 10000 (10000) | 10000 (10000) | 10000 (10000) |
 | Amounts intact (333 / 163) | 7477 | 10000 | 7484 | 10000 |
+
+False-mask rate on negative prose (items with at least one typed span / negative items):
+
+| Entity | v2 dev (190) | v3 dev (190) | v2 held-out (134) | v3 held-out, ablated (134) |
+|---|---|---|---|---|
+| PERSON | 210 bp (4) | 0 | 223 bp (3) | 373 bp (5), Wilson 160 - 844 |
+| BANK_ACCOUNT | 105 bp (2) | 0 | 74 bp (1) | 0 |
+| all others | 0 | 0 | 0 | 0 |
+
+The negative corpus (`src/supervisor/pii_eval/negatives.py`) holds UPPER-case headers with and
+without diacritics (`LÝ DO TỪ CHỐI`), street and brand names that look like person names
+(`Võ Văn Kiệt Street`, `Hoang Long Group`), place names (`Hồ Chí Minh`, `Hà Nam`), product names,
+amounts, dates, reference numbers, code and English sentences. Over-masks found by the review
+(`LÝ DO TỪ CHỐI`, `Ho Chi Minh City`, `Võ Văn Kiệt Street`, product and tower names) are fixed on
+dev without lowering any dev recall. Known remaining dev-pool false mask kept as a record: the
+ASCII pair `DO TU` inside `LY DO TU CHOI` is fixed only for the 2-word case; `Vũ Trụ Bao La`
+style brand names (surname + two unknown words) are still masked. The held-out figure was not
+inspected item by item.
 
 The BANK_ACCOUNT precision of about 5300 bp in v2 is the amount defect: about half of the
 "accounts" it found were VND amounts.

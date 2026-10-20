@@ -18,6 +18,7 @@ Failure taxonomy: every miss and every false hit gets one label (``missed-upperc
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import math
 import sys
@@ -122,6 +123,8 @@ def evaluate(
     taxonomy: Counter[str] = Counter()
     fail_ids: dict[str, list[str]] = defaultdict(list)
     n_items = 0
+    neg_n = 0
+    neg_false: Counter[str] = Counter()
     t_ns: list[int] = []
     for item in items:
         n_items += 1
@@ -132,6 +135,10 @@ def evaluate(
         t0 = time.perf_counter_ns()
         preds = list(masker.find(text))
         t_ns.append(time.perf_counter_ns() - t0)
+        if not item["spans"]:  # a negative item: anything typed here is a false mask
+            neg_n += 1
+            for typ in {p.type for p in preds if p.type != "AMOUNT"}:
+                neg_false[typ] += 1
         spans = item["spans"] + (
             [
                 {"type": "AMOUNT", "start": k["start"], "end": k["end"], "text": k["text"]}
@@ -225,6 +232,15 @@ def evaluate(
         }
         for k in sorted(keep_n)
     }
+    false_mask = {
+        t: {
+            "n_items": neg_n,
+            "items_with_false_mask": neg_false[t],
+            "rate_bp": _bp(neg_false[t], neg_n),
+            "rate_wilson_bp": wilson_bp(neg_false[t], neg_n),
+        }
+        for t in ENTITY_TYPES
+    }
     total_gold = sum(gold_n.values())
     total_leak = sum(leak_hit.values())
     t_ns.sort()
@@ -234,6 +250,7 @@ def evaluate(
         "entities": entities,
         "micro_leak_recall_bp": _bp(total_leak, total_gold),
         "keep": keeps,
+        "false_mask": false_mask,
         "over_mask_amount_count": keep_touched["AMOUNT"],
         "taxonomy": dict(sorted(taxonomy.items())),
         "latency_us_p50": (t_ns[len(t_ns) // 2] // 1000) if t_ns else 0,
@@ -255,12 +272,32 @@ def make_masker(amounts: bool = False) -> Any:
     return VnRegexMasker(key, "eval")
 
 
-def run_all(data_dir: Path = DATA_DIR) -> dict[str, Any]:
+def _ablation() -> Any:
+    """Context manager that removes the held-out name pools from the lexicon (evaluation only).
+    A masker version without ``vn_text`` (vn_regex-2) has no lexicon to ablate: no-op."""
+    try:
+        from supervisor.adapters.masking import vn_text
+    except ImportError:
+        return contextlib.nullcontext()
+    from supervisor.pii_eval.generate import heldout_ablation_words
+
+    return vn_text.ablate(heldout_ablation_words())
+
+
+def run_all(data_dir: Path = DATA_DIR, *, ablate_heldout: bool = False) -> dict[str, Any]:
+    """Dev with the production lexicon. Held-out with the production lexicon, or, with
+    ``ablate_heldout``, with the held-out name pools removed (out-of-lexicon generalisation);
+    then the production-lexicon figure is kept as ``heldout_production_lexicon``."""
     keep = make_masker()
     amt = make_masker(amounts=True)
     version = str(getattr(keep, "mask_version", "unknown")).split(":")[0]
-    report: dict[str, Any] = {"masker": version, "splits": {}}
-    for split in ("dev", "heldout"):
+    report: dict[str, Any] = {
+        "masker": version,
+        "lexicon": {"dev": "production", "heldout": "ablated" if ablate_heldout else "production"},
+        "splits": {},
+    }
+
+    def score(split: str) -> dict[str, Any]:
         items = load_items(split, data_dir)
         r = evaluate(keep, items)
         if amt is not None:
@@ -271,7 +308,15 @@ def run_all(data_dir: Path = DATA_DIR) -> dict[str, Any]:
                     v for k, v in ra["taxonomy"].items() if k.startswith("over-mask")
                 ),
             }
-        report["splits"][split] = r
+        return r
+
+    report["splits"]["dev"] = score("dev")
+    if ablate_heldout:
+        report["splits"]["heldout_production_lexicon"] = score("heldout")
+        with _ablation():
+            report["splits"]["heldout"] = score("heldout")
+    else:
+        report["splits"]["heldout"] = score("heldout")
     return report
 
 
@@ -304,6 +349,16 @@ def format_table(report: dict[str, Any]) -> str:
                 f"keep {k:<8} n={v['n']:>3} touched={v['touched']} intact_bp={v['intact_bp']}"
             )
         lines.append(f"over_mask_amount_count={r['over_mask_amount_count']}")
+        fm = r.get("false_mask") or {}
+        bad = {t: v for t, v in fm.items() if v["items_with_false_mask"]}
+        n_neg = next(iter(fm.values()))["n_items"] if fm else 0
+        lines.append(
+            f"false-mask over {n_neg} negative items: "
+            + (
+                ", ".join(f"{t} {v['rate_bp']} bp {v['rate_wilson_bp']}" for t, v in bad.items())
+                or "none"
+            )
+        )
         if r["taxonomy"]:
             lines.append("taxonomy: " + ", ".join(f"{k}={v}" for k, v in r["taxonomy"].items()))
         if "amount_entity_mode" in r:
@@ -329,6 +384,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--show-failures", action="store_true", help="list failing DEV item ids per class"
     )
+    p.add_argument(
+        "--ablate-heldout-lexicon",
+        action="store_true",
+        help="score the held-out split with its name pools removed from the lexicon "
+        "(evaluation only; production ships the full lexicon)",
+    )
     p.add_argument("--commit", default="unrecorded", help="commit id stored with --record")
     ns = p.parse_args(sys.argv[1:] if argv is None else argv)
     if ns.generate:
@@ -336,7 +397,7 @@ def main(argv: list[str] | None = None) -> int:
 
         for path in write():
             print(f"[OK] wrote {path.name}")  # noqa: T201 (CLI output)
-    report = run_all()
+    report = run_all(ablate_heldout=ns.ablate_heldout_lexicon)
     if ns.json:
         print(json.dumps(_strip_ids(report), indent=2, sort_keys=True))  # noqa: T201 (CLI output)
     else:

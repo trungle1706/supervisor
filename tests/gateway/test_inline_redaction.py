@@ -342,3 +342,32 @@ def test_pre_lock_pass_gives_the_same_answer(gw_on: Gateway) -> None:
         "payments", "1", "get_balance", {"who": NAME}, {"declared_risk_class": "pii_export"}
     )
     assert "transformed_args" not in r
+
+
+def test_sdk_warns_once_when_local_flag_is_on(
+    gw_on: Gateway, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    sdk._warned_inline = False
+    sdk.set_inline_redaction(True)
+    with caplog.at_level(logging.WARNING, logger="supervisor.gateway.sdk"):
+
+        @supervised_tool("payments", "1", "add_payee", "pii_export", InProcessGate(gw_on))
+        def a(customer_id: str) -> None: ...
+
+        @supervised_tool("payments", "1", "add_payee", "pii_export", InProcessGate(gw_on))
+        def b(customer_id: str) -> None: ...
+
+        McpGateProxy(gw_on, "payments", "1", FakeUpstream(), inline_redaction=True)
+    msgs = [r for r in caplog.records if "inline redaction is ON" in r.getMessage()]
+    assert len(msgs) == 1  # one warning per process
+    sdk._warned_inline = False
+    caplog.clear()
+    sdk.set_inline_redaction(False)
+    with caplog.at_level(logging.WARNING, logger="supervisor.gateway.sdk"):
+
+        @supervised_tool("payments", "1", "add_payee", "pii_export", InProcessGate(gw_on))
+        def c(customer_id: str) -> None: ...
+
+    assert not caplog.records  # flag off: silent

@@ -769,7 +769,18 @@ def hard_items() -> list[dict[str, Any]]:
 
 
 def all_items() -> list[dict[str, Any]]:
-    return generate() + hard_items()
+    from supervisor.pii_eval.negatives import negatives
+
+    return generate() + hard_items() + negatives()
+
+
+def heldout_ablation_words() -> list[str]:
+    """Held-out name pool words that are NOT in the generator word lists. The masker ships the
+    full lexicon; the held-out split is scored with these words removed (``vn_text.ablate``)."""
+    base = {fold(w).lower() for w in W.SURNAMES + W.MIDDLE_MALE + W.MIDDLE_FEMALE}
+    base |= {fold(w).lower() for w in W.GIVEN_MALE + W.GIVEN_FEMALE}
+    pool = HELD_SURNAMES + HELD_MIDDLE + HELD_GIVEN
+    return sorted({w for w in pool if fold(w).lower() not in base})
 
 
 def write(out_dir: Path = DATA_DIR) -> list[Path]:

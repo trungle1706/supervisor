@@ -53,9 +53,9 @@ assessment ask for a masker that handles these forms and for masking before a PI
 * Cost: one masker pass per `pii_export` gate call when the server flag is on (about 0.3 ms
   for short arguments, about 3.2 ms for a 2 KB payload). Review: the pass runs before the gate
   lock; a masker error blocks the call (`GATE-REDACTION`, fail closed).
-* Note (review): the held-out name pools are subtracted from the shipped lexicon
-  (`vn_text._HELD_BLOCK`), so common real names (`Duy`, `Lâm`, `Khôi`, `Thịnh`, `Quách`, `Kiều`,
-  and by folding `Tân`, `Nhân`, `Lam`) are not lexicon words in production. See REVIEW_WP24b.md.
+* Review follow-up (findings 5, 6): the shipped lexicon is now FULL. The held-out split is
+  measured with `--ablate-heldout-lexicon` (`vn_text.ablate`, evaluation only), and a negative
+  prose corpus gives a false-mask rate per entity. See `docs/masker-validation-report.md`.
 * Trust boundary: the gate answer now may carry masked arguments. See `docs/threat-model.md` 3.1.
 
 ## Open

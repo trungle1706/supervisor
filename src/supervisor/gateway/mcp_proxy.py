@@ -57,6 +57,10 @@ class McpGateProxy:
         # WP24b: forward the gate's masked ``transformed_args`` instead of the original arguments.
         # None -> INLINE_REDACTION_ENABLED in the environment. Off by default.
         self._inline = _env_on() if inline_redaction is None else inline_redaction
+        if self._inline:
+            from supervisor.gateway.sdk import warn_inline_once
+
+            warn_inline_once()
         self._agent_id = agent_id
         self._agent_version = agent_version
         self._upstream = upstream

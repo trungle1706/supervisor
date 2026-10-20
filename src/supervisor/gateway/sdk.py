@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import inspect
+import logging
 import os
 import threading
 import time
@@ -153,6 +154,25 @@ _default_gate: GateHook | None = None
 # tool) before the tool runs. Off by default. ``set_inline_redaction(None)`` falls back to the
 # INLINE_REDACTION_ENABLED environment variable (1/true/yes/on).
 INLINE_REDACTION_ENABLED = False
+log = logging.getLogger("supervisor.gateway.sdk")
+_warned_inline = False
+
+
+def warn_inline_once() -> None:
+    """One warning per process when the local switch is on. The SDK cannot see the server
+    flag: if the gateway runs without INLINE_REDACTION_ENABLED, a pii_export tool still gets
+    the original arguments, silently. Called at decoration time and by the MCP proxy."""
+    global _warned_inline
+    if _warned_inline:
+        return
+    _warned_inline = True
+    log.warning(
+        "inline redaction is ON in this process; it only has effect when the gateway server "
+        "also runs with INLINE_REDACTION_ENABLED=1, otherwise pii_export tools get the "
+        "original arguments"
+    )
+
+
 _inline_override: bool | None = None
 
 
@@ -250,6 +270,8 @@ def supervised_tool(
                 return dict(kwargs)
 
         context = {"declared_risk_class": risk_class}
+        if risk_class == "pii_export" and inline_redaction_on():
+            warn_inline_once()
 
         if inspect.iscoroutinefunction(fn):
 

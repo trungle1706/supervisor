@@ -31,9 +31,11 @@ Vietnamese and English, images and scans.
 * Lexicons: `src/supervisor/data/wordlists.py` (own lists) plus additions in `vn_text.py`
   (surnames, middle and given names, 63 province names, ward / district words). Own data, no
   third-party lists.
-* Evaluation: `data/eval/pii_vn/` synthetic golden set, 721 items (486 dev, 235 held-out), seed
-  `20261020`, plus 61 hand-written hard cases (inside the 721). No real customer data.
-* Held-out name pools are kept out of the lexicon on purpose, so the held-out split measures
+* Evaluation: `data/eval/pii_vn/` synthetic golden set, 1031 items (666 dev, 365 held-out), seed
+  `20261020`, including 61 hand-written hard cases and 310 negative prose items. No real customer data.
+* The shipped lexicon is FULL (common names such as Duy, Lâm, Khôi, Thịnh, Quách, Kiều included).
+  The held-out split is scored with its name pools removed at evaluation time only
+  (`python -m supervisor.pii_eval --ablate-heldout-lexicon`, `vn_text.ablate`), so it measures
   generalisation to unseen names.
 
 ## Metrics (integer basis points; Wilson 95% interval)
