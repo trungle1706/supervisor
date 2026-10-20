@@ -7,8 +7,9 @@ instruction to hijack).
 
 Fragments are located on MASKED text. The leaf is masked first, then the patterns run on a
 per-character folded copy (lower case, no diacritics, same length), so the offsets index the
-masked leaf. A phrase that only matches after Telex decoding or look-alike folding cannot be
-mapped to offsets; it is reported with ``precision = "leaf"`` and points at the whole leaf.
+masked leaf. A phrase that only matches after Telex decoding, look-alike folding, or on the
+unmasked text (the masker swallowed a word of it) cannot be mapped to offsets; it is reported
+with ``precision = "leaf"`` and points at the whole masked leaf.
 """
 
 from __future__ import annotations
@@ -133,8 +134,15 @@ class InjectionRegexDetector:
                             for m in found
                         )
                         continue
-                    if others is None:  # Telex decoding and look-alike folding: no offsets
-                        others = [c for c in tier0b.candidates(masked) if c != aligned]
+                    if others is None:
+                        # Forms with no usable offsets: Telex decoding, look-alike folding, and
+                        # the unmasked text (a name before "Ignore" can be swallowed by the
+                        # masker). Only counts leave this function, never the raw text.
+                        both = (
+                            *tier0b.candidates(masked),
+                            *tier0b.candidates(leaf.text[:max_chars]),
+                        )
+                        others = [c for c in dict.fromkeys(both) if c != aligned]
                     n = max((len(rx.findall(c)) for c in others), default=0)
                     if n:
                         hits[name] = hits.get(name, 0) + n

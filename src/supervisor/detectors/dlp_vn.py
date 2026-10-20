@@ -70,7 +70,7 @@ class DlpVnDetector:
                 "enum",
                 default="transform",
                 enum=("report", "transform"),
-                description="transform: mask the payload for tools in scope; report: findings only.",
+                description="transform: mask payloads of tools in scope; report: findings only.",
             ),
             SettingField(
                 "transform_risk_classes",

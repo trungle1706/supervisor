@@ -77,7 +77,7 @@ def build_gateway(
 
         bootstrap_schema.run(settings, adapters)
     from supervisor.adapters.facts import make_fact_source
-    from supervisor.wiring import resolve_policy_dir
+    from supervisor.wiring import make_detector_gate, resolve_policy_dir
 
     policy = load_policy_dir(resolve_policy_dir(settings, policy_dir))
     deploy_with_retry(policy, adapters.state, adapters.clock)
@@ -89,6 +89,7 @@ def build_gateway(
         adapters.clock,
         facts=make_fact_source(settings),  # D13: FACT_SOURCE (default none)
         env=settings.supervisor_mode,
+        detector_gate=make_detector_gate(settings, policy),  # WP37 (default off)
     )
 
 

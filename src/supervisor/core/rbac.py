@@ -141,6 +141,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/gate/release"): "agent.release",
     ("GET", "/gate/agents/{agent_id}/state"): "gate.read",
     ("GET", "/gate/metrics"): "gate.read",
+    ("GET", "/gate/detectors"): "gate.read",  # WP37
     # console pages
     ("GET", "/console/"): "console.view",
     ("GET", "/console/cases"): "console.view",
