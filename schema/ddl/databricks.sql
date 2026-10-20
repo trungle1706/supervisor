@@ -839,7 +839,7 @@ USING DELTA
 COMMENT 'WP29. One row per risk and window: what the linked controls did (counts), the state (working | failing | no_evidence), the reason code and the residual score the evidence rule allows. Integers, codes and hashes only; no text. The matching chain record is risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
 
--- control (state): WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or ["*"] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.
+-- control (state): WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.
 -- primary key (enforced by the app, not by Delta): control_id
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`control` (
   control_id STRING NOT NULL,
@@ -858,7 +858,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`control` (
   updated_at TIMESTAMP NOT NULL
 )
 USING DELTA
-COMMENT 'WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or ["*"] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.'
+COMMENT 'WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
 -- control_map (state): WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk id of the register; rule, pack, monitor, detector and document are evidence sources. Only rule, pack and monitor are observed at runtime; detector and document are references.

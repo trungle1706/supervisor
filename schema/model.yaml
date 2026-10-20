@@ -886,7 +886,7 @@ tables:
       WP30 control: an action the bank or the product takes to meet obligations and hold risks
       down. One control covers many obligations and many risks (control_map). type is
       preventive, detective or corrective; implemented_by is product or bank. scope_agents is a
-      JSON list of agent ids, or ["*"] for every supervised agent. Evidence status is computed
+      JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed
       from runtime facts (control_status), never typed in.
     primary_key: [control_id]
     indexes:

@@ -1026,7 +1026,7 @@ BEGIN
   SELECT RAISE(ABORT, 'risk_evidence is append-only');
 END;
 
--- control (state): WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or ["*"] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.
+-- control (state): WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.
 CREATE TABLE IF NOT EXISTS control (
   control_id TEXT NOT NULL,
   title TEXT NOT NULL,
