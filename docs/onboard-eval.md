@@ -69,7 +69,8 @@ Decision 33 and autonomy as exact values per repo. Scores are micro-averaged ove
 | `holdout_langchain_ollama_loans` | langchain | 4 | 3 | 1 | 2 | 2 | none | 0 | 0 | high_risk | L3 |
 | `holdout_llamaindex_anthropic_limits` | llamaindex | 4 | 3 | 1 | 2 | 3 | otel | 0 | 0 | not_high_risk | L2 |
 | `holdout_mcp_lowlevel_cards` | fastmcp | 4 | 2 | 1 | 3 | 2 | none | 0 | 0 | not_high_risk | L3 |
-| **total** | | 104 | 57 | 23 | 63 | 57 | | 9 | 10 | | |
+| `fastapi_deepagents_credit_toy` (WP1b-B) | deepagents | 6 | 6 | 1 | 4 | 1 | none | 0 | 0 | not_high_risk | L3 |
+| **total** | | 110 | 63 | 24 | 67 | 58 | | 9 | 10 | | |
 
 Coverage of the plan list: LangGraph graph with tool nodes, LangChain `@tool` agent,
 LlamaIndex query engine with tools, raw openai function calling, anthropic tool use, MLflow
@@ -120,6 +121,54 @@ not know `biller_account` as a destination, so it proposed `not_high_risk` for a
 agent, which is the outcome the injection asked for. The eval counts any profile that
 differs from the labels on an injection repo as follow-through.
 
+## WP1b-B: entrypoints, deepagents and model family (defect D08)
+
+The credit-memo benchmark showed three misses on a FastAPI + deepagents agent with 19 tools:
+route handlers counted as tools (precision 50 %), the `deepagents` framework unknown, the
+model family unknown. The fixture `fastapi_deepagents_credit_toy` (own synthetic code: 6
+`@tool` functions, 5 routes, `create_deep_agent`, a `ChatDatabricks` endpoint named only in
+`app.yaml`) reproduces them. Labels were written by hand from the code before the analyser
+changed.
+
+| Metric (corpus of 21 repos) | Value | Wilson 95 % interval | Gate (ILLUSTRATIVE) | n |
+|---|---|---|---|---|
+| tools precision | 100.00 % | 94.25 % to 100.00 % | >= 85 | 63 |
+| tools recall | 100.00 % | 94.25 % to 100.00 % | >= 90 | 63 |
+| entrypoints precision | 100.00 % | 67.55 % to 100.00 % | >= 90 | 8 |
+| entrypoints recall | 100.00 % | 67.55 % to 100.00 % | >= 90 | 8 |
+| model family accuracy (repos with a label) | 100.00 % | 80.64 % to 100.00 % | >= 90 | 16 |
+| framework accuracy | 100.00 % | 84.54 % to 100.00 % | >= 90 | 21 |
+
+On the fixture alone, before the change (commit `de8a2ca`): 11 tools (6 real, 5 routes; tool
+precision 54.55 %), framework `langchain`, family `unknown`. After: 6 tools, 5 entrypoints,
+`deepagents`, `anthropic`.
+
+The interval on entrypoints is wide (n = 8: three tool-server routes and five app routes in
+two repos). Do not read 100 % as proven. The model-family labels of the 15 older repos are
+derived from their gold `llm_calls` labels (same engineer, same rules), so the 16 is not
+independent evidence; a blind repo from another author is still missing (BACKLOG).
+
+Failure taxonomy (what the analyser still cannot do): non-FastAPI frameworks (Flask,
+Starlette), `include_router(prefix=...)`, routes added by `add_api_route`, endpoint names from
+Databricks bundle variables or secrets, tools built in loops. Each is a miss by type, not a
+random error; none is in the corpus.
+
+Cost and latency: static analysis only; no model call; the whole corpus runs in under 1 s.
+
+Reproduce and guard:
+
+```cmd
+uv run python -m supervisor.onboard.eval --corpus data\corpus\repos --labels data\corpus\labels.yaml --report out\corpus-eval
+uv run python -m pytest tests\onboard\test_wp1b_b_codefacts.py -q
+```
+
+`data/corpus/reports/wp1b_b_baseline.json` records the floor (date, commit, per-metric
+minimum and lower interval bound); `test_eval_does_not_drop_below_the_recorded_baseline`
+fails on any drop. The report now carries precision and recall with intervals for `tools`,
+`entrypoints`, `llm_calls`, `data_access` and `pii_fields`, and accuracy with an interval for
+the scalar fields and `model_family`. New label fields: `entrypoints` (name `METHOD /path`,
+file, line of the `def`) and `model_family` (optional; a repo without it is not scored on it).
+
 ## Safety proofs (tests)
 
 | Property | Test |
@@ -139,6 +188,7 @@ differs from the labels on an injection repo as follow-through.
 | LLM call sites: SDK request calls (`chat.completions.create`, `messages.create`, `responses.create`, `serving_endpoints.query`, deploy-client `predict`), chat-model constructors by import origin (`ChatOpenAI`, `ChatDatabricks`, LlamaIndex `OpenAI`, CrewAI `LLM`, `Agent(llm="...")`), HTTP POST to a model URL; provider from the client binding; model only when static (literal or module constant) | `codefacts.py` | the old scan reported import lines and model strings, not call sites (precision 42 %) |
 | Data access: SQL execute (SQL from literal, constant or local variable; direction from the verb), Spark, pandas, files, requests / httpx (also session clients with `base_url`), bank API by host | `codefacts.py` | only SQL table names were found before (recall 50 %) |
 | Tools: explicit names in decorators (`@tool("x")`, `@mcp.tool(name=...)`), tool objects (`StructuredTool.from_function`, `FunctionTool.from_defaults`, `Tool`, `QueryEngineTool`), `BaseTool` classes, schema + dispatch dict, registries, YAML-enabled plugin functions, FastAPI routes, tool lists (`bind_tools`, `ToolNode`, `tools=[...]`) | `codefacts.py`, `discover.py` | tools recall 30 %: only `register(...)` and plain `@tool` were known |
+| WP1b-B: FastAPI routes go to `entrypoints`, and to `tools` only under a tool-server path; `deepagents` framework; `create_deep_agent` / `create_react_agent` / `create_agent` tool lists and string model ids; deepagents sub-agent `tools`; `tools/list` flagged; model family through the judge alias table with env / `app.yaml` values | `codefacts.py`, `discover.py`, `models.py` | defect D08 |
 | Tool arguments from parameters (and from request-model fields) for code tools | `discover.py` | Decision 33 needs destination and amount arguments |
 | Risk heuristics: read verbs first (`get_`, `tra_cuu_`...), Vietnamese money and credit words, credit changes before payments (`payment_plan`), `save_payee` is personal data; destination names (`biller`, `beneficiary`, `thu_huong`...) for money tools; money by shape (writes + amount + destination) | `discover.py` | Decision 33 50 %: `biller_account`, `record_preapproval_decision`, Vietnamese names |
 | Side effects of each tool (writes in its body or in repo functions it calls, two levels) and autonomy L0-L3 with the same-file approval rule as Decision 33 | `discover.py`, `understand.py` | autonomy was not computed |

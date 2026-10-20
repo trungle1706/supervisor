@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response  # noqa: 
 
 from supervisor import __version__, scheduler  # noqa: E402
 from supervisor.adapters.auth.audit import request_id_of  # noqa: E402
+from supervisor.analytics.tools_routes import router as tools_analytics_router  # noqa: E402
 from supervisor.cases.service import PermissionDenied  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
 from supervisor.console import context as console_context  # noqa: E402
@@ -25,8 +26,10 @@ from supervisor.console.errors import console_error, is_console  # noqa: E402
 from supervisor.console.routes import router as console_router  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
 from supervisor.evidence.casefile.builder import CaseFileError  # noqa: E402
+from supervisor.gateway import ingress_auth  # noqa: E402
 from supervisor.gateway import wiring as gate_wiring  # noqa: E402
 from supervisor.gateway.routes import router as gate_router  # noqa: E402
+from supervisor.inventory.api import router as inventory_router  # noqa: E402
 from supervisor.ops import middleware as ops_middleware  # noqa: E402
 from supervisor.ops import openapi as openapi_doc  # noqa: E402
 from supervisor.ops.logging_setup import configure_logging  # noqa: E402
@@ -48,6 +51,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     runtime = None
     if not get_settings().console_audit_enabled:
         log.warning("CONSOLE_AUDIT_ENABLED=0 (dev mode): console actions are NOT audited")
+    try:  # WP20: one log line when ingress auth is off (non-dev) or cannot work
+        ingress_auth.startup_check(get_settings())
+    except Exception:  # noqa: BLE001 - never block startup
+        log.exception("ingress auth startup check failed")
     try:
         runtime = await run_in_threadpool(gate_wiring.install_runtime, get_settings())
     except Exception:  # noqa: BLE001 - startup must not crash the app process
@@ -85,8 +92,18 @@ app.include_router(gate_router, prefix="/v1")
 app.include_router(gate_router, deprecated=True)
 app.include_router(otlp_router)  # WP4: POST /v1/traces (OTLP/HTTP JSON)
 app.include_router(console_router)  # WP8: reviewer console (/console)
+app.include_router(tools_analytics_router, prefix="/v1")  # WP22: GET /v1/analytics/tools
+app.include_router(inventory_router)  # WP24: GET /v1/inventory/... (off unless INVENTORY_ENABLED)
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
+
+
+@app.exception_handler(ingress_auth.IngressRejected)
+async def _ingress_rejected(request: Request, exc: ingress_auth.IngressRejected) -> Response:
+    # WP20: 401/403 (and 413/429) with a short message and no detail; the reason is audited.
+    return JSONResponse(
+        status_code=exc.status_code, content={"error": exc.detail}, headers=exc.headers
+    )
 
 
 @app.exception_handler(PermissionDenied)

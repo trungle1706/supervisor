@@ -32,6 +32,7 @@ import yaml
 
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import ConfigError
+from supervisor.core.monitor_bindings import FORBIDDEN_ATTRIBUTES
 from supervisor.monitors.common import (
     MonitorContext,
     find_open_case,
@@ -39,13 +40,18 @@ from supervisor.monitors.common import (
     read_range,
     upsert_metric,
 )
+from supervisor.monitors.status import (
+    NO_DATA,
+    NOT_APPLICABLE,
+    OK,
+    known_agents,
+    observed_tools,
+    set_status,
+)
 
 log = logging.getLogger("supervisor.monitors.fairness")
 
 ACTOR = "monitor:fairness"
-FORBIDDEN_ATTRIBUTES = frozenset(
-    {"ethnicity", "ethnic_group", "race", "religion", "dan_toc", "ton_giao", "faith"}
-)
 BLOCKED_STATUSES = ("blocked", "paused", "denied")
 
 
@@ -184,23 +190,43 @@ class DecisionSource(Protocol):
     ) -> list[FairnessRecord]: ...
 
 
+class NullLookup:
+    """No attribute source: attributes can come from the decision call arguments only."""
+
+    def attributes(self, subject_hash: str) -> Mapping[str, str] | None:
+        return None
+
+
 class EventDecisionSource:
     """Decisions from recorder ``tool_call`` events (masked args JSON) + an attribute lookup.
 
-    The subject id in the args is hashed at once; the raw id is not kept."""
+    The subject id in the args is hashed at once; the raw id is not kept. Per agent, the
+    monitor calls :meth:`bind` with the resolved binding (WP1b-B): decision tool, argument
+    names and the argument keys that carry protected attributes. An agent never bound reads
+    the global ``config/fairness.yaml`` values, as before."""
 
     def __init__(
         self, ctx: MonitorContext, cfg: FairnessConfig, lookup: AttributeLookup, key: bytes
     ) -> None:
         self.ctx, self.cfg, self.lookup, self.key = ctx, cfg, lookup, key
+        self._bound: dict[str, Any] = {}
+
+    def bind(self, agent_id: str, resolved: Any) -> None:
+        self._bound[agent_id] = resolved
 
     def records(self, agent_id: str, ts_from: datetime, ts_to: datetime) -> list[FairnessRecord]:
+        b = self._bound.get(agent_id)
+        tool = (b.decision_tool if b is not None else None) or self.cfg.decision_tool
+        decision_arg = (b.decision_arg if b is not None else None) or self.cfg.decision_arg
+        subject_arg = (b.subject_arg if b is not None else None) or self.cfg.subject_arg
+        approve = (tuple(b.approve_values) if b is not None else ()) or self.cfg.approve_values
+        attr_keys: Mapping[str, str] = b.protected_attribute_keys if b is not None else {}
         rows = read_range(
             self.ctx,
             "agent_event",
             ts_from,
             ts_to,
-            {"agent_id": agent_id, "tool_name": self.cfg.decision_tool, "event_type": "tool_call"},
+            {"agent_id": agent_id, "tool_name": tool, "event_type": "tool_call"},
         )
         latest: dict[str, FairnessRecord] = {}
         for r in rows:
@@ -210,17 +236,21 @@ class EventDecisionSource:
                 continue
             if not isinstance(args, Mapping):
                 continue
-            sid, decision = args.get(self.cfg.subject_arg), args.get(self.cfg.decision_arg)
+            sid, decision = args.get(subject_arg), args.get(decision_arg)
             if not isinstance(sid, str) or not isinstance(decision, str):
                 continue
             h = subject_hash(self.key, sid)
-            attrs = self.lookup.attributes(h)
-            if attrs is None:
+            attrs: dict[str, str] = dict(self.lookup.attributes(h) or {})
+            for attribute, arg_key in attr_keys.items():
+                value = args.get(arg_key)
+                if isinstance(value, str | int) and not isinstance(value, bool):
+                    attrs[attribute] = str(value)
+            if not attrs:
                 continue
             latest[h] = FairnessRecord(
                 h,
                 attrs,
-                decision in self.cfg.approve_values,
+                decision in approve,
                 str(r.get("status")) in BLOCKED_STATUSES,
             )
         return list(latest.values())
@@ -392,16 +422,59 @@ class FairnessMonitor:
         source: DecisionSource,
         *,
         method: str = "auto",
+        resolver: Any | None = None,
     ) -> None:
+        """``resolver``: a ``BindingResolver`` (WP1b-B). With it every known agent is
+        checked: bound agents are sliced, the others get a ``not_applicable`` status. Without
+        it only ``cfg.agents`` are sliced, as before."""
         self.ctx, self.cfg, self.source, self.method = ctx, cfg, source, method
+        self.resolver = resolver
+
+    def _binding(self, agent_id: str, observed: Mapping[str, set[str]]) -> Any:
+        """Resolved binding of the agent, or the global config for a listed agent."""
+        from supervisor.monitors.bindings import FairnessResolved
+
+        r = self.resolver.resolve(agent_id, observed.get(agent_id, ())).fairness
+        if r.bound or agent_id not in self.cfg.agents:
+            return r
+        return FairnessResolved(self.cfg.decision_tool, source="config", gap=None)
 
     def run(self, now: datetime | None = None) -> FairnessRunResult:
         now = now or self.ctx.clock.now()
         ts_from = now - timedelta(days=self.cfg.window_days)
         res = FairnessRunResult(run_id=f"fair-{uuid.uuid4().hex[:16]}")
-        for agent_id in self.cfg.agents:
+        observed: dict[str, set[str]] = {}
+        agents: list[str] = list(self.cfg.agents)
+        if self.resolver is not None:
+            observed = observed_tools(self.ctx, ts_from)
+            agents = sorted(set(agents) | set(known_agents(self.ctx, self.resolver, observed)))
+        day = now.date()
+        for agent_id in agents:
+            if self.resolver is not None:
+                b = self._binding(agent_id, observed)
+                if not b.bound:
+                    set_status(
+                        self.ctx, day, agent_id, "fairness", NOT_APPLICABLE,
+                        code="no_binding", reason=b.gap or "",
+                    )  # fmt: skip
+                    continue
+                if self.cfg.attribute_source == "none" and not b.protected_attribute_keys:
+                    set_status(
+                        self.ctx, day, agent_id, "fairness", NOT_APPLICABLE,
+                        code="no_attribute_source",
+                        reason="attribute_source is none and no protected_attribute_keys bound",
+                    )  # fmt: skip
+                    continue
+                bind = getattr(self.source, "bind", None)
+                if bind is not None:
+                    bind(agent_id, b)
             records = self.source.records(agent_id, ts_from, now)
             if not records:
+                if self.resolver is not None:
+                    set_status(
+                        self.ctx, day, agent_id, "fairness", NO_DATA, code="no_decisions",
+                        reason=f"no decision events with attributes in {self.cfg.window_days} days",
+                    )  # fmt: skip
                 continue
             report = compute(
                 records,
@@ -411,6 +484,15 @@ class FairnessMonitor:
             )
             res.reports[agent_id] = report
             self._write(res.run_id, agent_id, report, ts_from, now)
+            if self.resolver is not None:
+                if report.max_approval_gap_bp is None:
+                    set_status(
+                        self.ctx, day, agent_id, "fairness", NO_DATA, code="suppressed",
+                        reason=f"fewer than two cells reach min_cell_n ({self.cfg.min_cell_n})",
+                        n=len(records),
+                    )  # fmt: skip
+                else:
+                    set_status(self.ctx, day, agent_id, "fairness", OK, n=len(records))
             case_id = self._maybe_case(res.run_id, agent_id, report, ts_from, now)
             if case_id:
                 res.cases_opened.append(case_id)
@@ -526,10 +608,15 @@ def _evidence_attrs(
     return out
 
 
-def build_source(ctx: MonitorContext, cfg: FairnessConfig, key: bytes) -> DecisionSource | None:
-    """The configured decision source, or None when ``attribute_source`` is ``none``."""
+def build_source(
+    ctx: MonitorContext, cfg: FairnessConfig, key: bytes, *, allow_arg_attributes: bool = False
+) -> DecisionSource | None:
+    """The configured decision source, or None when ``attribute_source`` is ``none``.
+
+    ``allow_arg_attributes`` (WP1b-B): keep a source even with ``attribute_source: none``, so
+    agents whose binding names ``protected_attribute_keys`` can still be sliced."""
     if cfg.attribute_source == "none":
-        return None
+        return EventDecisionSource(ctx, cfg, NullLookup(), key) if allow_arg_attributes else None
     lookup = SyntheticAttributeLookup(key, cfg.synthetic_seed, cfg.synthetic_customers)
     return EventDecisionSource(ctx, cfg, lookup, key)
 
@@ -543,6 +630,7 @@ __all__ = [
     "FairnessMonitor",
     "FairnessRecord",
     "FairnessReport",
+    "NullLookup",
     "SyntheticAttributeLookup",
     "build_source",
     "compute",

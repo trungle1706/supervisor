@@ -1,0 +1,39 @@
+{# Overview tab: the agent card (lifecycle, coverage, the one action with its rule), the last
+   24 hours of the gate, the evidence lane and the open cases. Variables: a, agents, gate24,
+   lane, open_cases. #}
+{% import "_ui.html" as ui with context %}
+<div class="two">
+  <div id="agents-table" class="grid" style="gap:12px">
+{% include "_agents_table.html" %}
+  </div>
+  <div class="stack">
+    <section class="card" data-section="gate24" aria-label="{{ t('gate_24h') }}">
+      <h3>{{ t('gate_24h') }}</h3>
+      <dl class="kv">
+        <dt>{{ t('gate_checked') }}</dt><dd class="mono" data-num="checked">{{ gate24.checked }}</dd>
+        <dt>{{ t('gate_blocked') }}</dt><dd class="mono" data-num="blocked">{{ gate24.blocked }}</dd>
+        <dt>{{ t('gate_paused') }}</dt><dd class="mono" data-num="paused">{{ gate24.paused }}</dd>
+        <dt>{{ t('gate_median') }}</dt><dd class="mono">{{ gate24.median_ms ~ ' ms' if gate24.median_ms is not none else '-' }}</dd>
+      </dl>
+    </section>
+    <section class="card gold-card" data-section="lane" aria-label="{{ t('chain_lane') }}">
+      <h3>{{ t('nav_evidence') }}</h3>
+      <div style="font-size:13px">{{ t('chain_lane') }} <span class="mono">{{ lane.name }}</span> · {{ t('n_entries', n=lane.entries) }}</div>
+      <div style="margin-top:8px">{{ ui.verify_pill(lane.verify) }}</div>
+      <div class="btnrow"><a class="btn" href="/console/evidence?lang={{ lang }}">{{ t('nav_evidence') }}</a></div>
+    </section>
+    <section class="card" data-section="open-cases" aria-label="{{ t('open_cases') }}">
+      <h3>{{ t('open_cases') }} <span class="k">{{ a.open_cases }}</span></h3>
+      {% if open_cases %}
+      <ul class="drawer-list">
+        {% for c in open_cases %}
+        <li><a href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{{ c.case_id }}</a> {{ ui.sev(c.severity) }} <span class="pill neutral">{{ t(c.status) }}</span>
+          <div class="idline">{% set h = c.head %}{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary[:160] }}{% endif %}</div></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted">{{ t('no_cases_agent') }}</p>
+      {% endif %}
+    </section>
+  </div>
+</div>

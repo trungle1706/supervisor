@@ -70,3 +70,15 @@ def run_detail(tables: Any, run_id: str) -> dict[str, Any]:
         d["evidence_hash"] = d.get("evidence_hash") or ""
         results.append(d)
     return {"run": dict(found[0]) if found else None, "run_id": run_id, "results": results}
+
+
+def agent_results(tables: Any, agent_id: str, limit: int = RUN_LIMIT) -> list[dict[str, Any]]:
+    """Newest results whose target is this agent (WP-UX2 agent page, Assurance tab)."""
+    check_run_id(agent_id)
+    out = []
+    for r in tables.query("eval_result", {"target_id": agent_id}, order_by=("-ts",), limit=limit):
+        d = dict(r)
+        d["metric_rows"] = _metric_rows(d)
+        d["pill"] = STATUS_PILL.get(str(d.get("status")), "neutral")
+        out.append(d)
+    return out

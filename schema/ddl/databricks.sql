@@ -110,7 +110,8 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`agent_event` (
   classification STRING,
   source STRING NOT NULL,
   capture_level STRING NOT NULL,
-  mask_version STRING
+  mask_version STRING,
+  latency_us BIGINT
 )
 USING DELTA
 COMMENT 'Normalised OTel-shaped events. Single read model for Watch. Masked only.'
@@ -201,7 +202,8 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`verdict` (
   model_version STRING,
   mask_version STRING,
   prompt_hash STRING,
-  rubric_version STRING
+  rubric_version STRING,
+  family_source STRING
 )
 USING DELTA
 COMMENT 'One row per check outcome (rule, Tier 1 or Tier 2 judge). Judges are advisory.'
@@ -379,6 +381,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`oversight_metric` (
   judge_latency_ms BIGINT,
   judge_human_pairs BIGINT,
   judge_human_agree_bp BIGINT,
+  monitor_status STRING,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )
@@ -622,3 +625,130 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`eval_result` (
 USING DELTA
 COMMENT 'WP17 assurance eval packs. One row per pack x target x run: integer metrics, the per-metric status against the manifest thresholds, the dataset digest and the hash of the assurance_result chain record. Mock runs are labelled is_mock.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- tool_usage_daily (state): WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.
+-- primary key (enforced by the app, not by Delta): usage_date, agent_id, tool_name
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`tool_usage_daily` (
+  usage_date DATE NOT NULL,
+  agent_id STRING NOT NULL,
+  tool_name STRING NOT NULL,
+  risk_class STRING,
+  calls BIGINT NOT NULL,
+  allows BIGINT NOT NULL,
+  blocks BIGINT NOT NULL,
+  pauses BIGINT NOT NULL,
+  errors BIGINT NOT NULL,
+  p50_us BIGINT,
+  p95_us BIGINT,
+  distinct_callers BIGINT NOT NULL,
+  distinct_users BIGINT NOT NULL,
+  first_seen TIMESTAMP,
+  last_seen TIMESTAMP,
+  computed_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- alert (state): WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.
+-- primary key (enforced by the app, not by Delta): alert_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`alert` (
+  alert_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  dedupe_key STRING NOT NULL,
+  rule_id STRING NOT NULL,
+  rule_hash STRING NOT NULL,
+  severity STRING NOT NULL,
+  status STRING NOT NULL,
+  title STRING NOT NULL,
+  agent_id STRING,
+  group_value STRING,
+  window_s BIGINT NOT NULL,
+  window_count BIGINT NOT NULL,
+  threshold BIGINT NOT NULL,
+  first_ts TIMESTAMP NOT NULL,
+  last_ts TIMESTAMP NOT NULL,
+  suppressed_count BIGINT NOT NULL,
+  case_id STRING,
+  chain_lane STRING,
+  chain_seq BIGINT,
+  entry_hash STRING,
+  refs STRING NOT NULL,
+  routes STRING NOT NULL,
+  route_status STRING NOT NULL,
+  acknowledged_by STRING,
+  acknowledged_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule''s dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- siem_event (append_only): WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it. Ids, hashes and enums only. event_id is the idempotency key.
+-- primary key (enforced by the app, not by Delta): event_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`siem_event` (
+  event_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  event_type STRING NOT NULL,
+  severity BIGINT NOT NULL,
+  outcome STRING NOT NULL,
+  agent_id STRING,
+  rule_id STRING,
+  case_id STRING,
+  actor STRING,
+  chain_lane STRING,
+  chain_seq BIGINT,
+  entry_hash STRING,
+  env STRING NOT NULL,
+  event_schema STRING NOT NULL,
+  ocsf_class_uid BIGINT NOT NULL,
+  ocsf_json STRING NOT NULL
+)
+USING DELTA
+COMMENT 'WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it. Ids, hashes and enums only. event_id is the idempotency key.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+
+-- inventory_node (state): WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).
+-- primary key (enforced by the app, not by Delta): node_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_node` (
+  node_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  name STRING NOT NULL,
+  display_name STRING NOT NULL,
+  status STRING NOT NULL,
+  own_risk STRING,
+  risk_source STRING NOT NULL,
+  decision33_class STRING,
+  attrs STRING NOT NULL,
+  evidence STRING NOT NULL,
+  first_seen TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- inventory_edge (state): WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.
+-- primary key (enforced by the app, not by Delta): edge_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_edge` (
+  edge_id STRING NOT NULL,
+  src_id STRING NOT NULL,
+  dst_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  source STRING NOT NULL,
+  evidence_ref STRING NOT NULL,
+  active BOOLEAN NOT NULL,
+  first_seen TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

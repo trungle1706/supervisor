@@ -126,6 +126,9 @@ tables:
       source: string
       capture_level: string
       mask_version: string?
+      # WP22 (additive): gate decision latency in integer microseconds (latency_ms keeps the
+      # old millisecond value; a sub-millisecond gate call is 0 ms). Null on older rows.
+      latency_us: int?
 
   agent_event_raw:
     kind: append_only
@@ -222,6 +225,8 @@ tables:
       # (same value as policy_hash for judge rows); rubric_version = judge rubric id.
       prompt_hash: string?
       rubric_version: string?
+      # D05 (additive): derived | declared-test-only | mock (how model_family was obtained).
+      family_source: string?
 
   cases:
     kind: state
@@ -393,6 +398,9 @@ tables:
       # WP19 (additive): judge-vs-human agreement from sign-offs (docs/metrics.md).
       judge_human_pairs: int?     # signed-off cases with a judge label that day
       judge_human_agree_bp: int?  # pairs where the reviewer agreed with the judge, bp
+      # WP1b-B (additive): status of the quality / fairness / drift / multiagent monitors for
+      # this agent and day: {monitor: {status: ok|not_applicable|no_data, code, reason, n}}.
+      monitor_status: json?
 
   model_validation:
     kind: append_only
@@ -629,3 +637,147 @@ tables:
       judge_gate: bool
       details: json
       evidence_hash: string?
+
+  # --- WP22 ---
+  tool_usage_daily:
+    kind: state
+    description: >
+      WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct
+      callers and end users (counts only; hashed ids are never stored), first and last call.
+      Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent:
+      a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the
+      least-privilege suggestion. Integers only.
+    primary_key: [usage_date, agent_id, tool_name]
+    indexes:
+      - [agent_id, usage_date]
+    columns:
+      usage_date: date
+      agent_id: string
+      tool_name: string
+      risk_class: string?        # money | credit | pii_export | read_only | unknown
+      calls: int
+      allows: int                # status allowed (includes alert and log outcomes)
+      blocks: int                # denied and not a pause
+      pauses: int                # outcome pause
+      errors: int                # decisions with a rule_error verdict
+      p50_us: int?               # nearest-rank percentile of gate latency, microseconds
+      p95_us: int?
+      distinct_callers: int      # distinct caller_agent_id that day
+      distinct_users: int        # distinct hashed customer_id that day
+      first_seen: timestamp?
+      last_seen: timestamp?
+      computed_at: timestamp
+
+  # --- WP21 (SIEM and alerts) ---
+  alert:
+    kind: state
+    description: >
+      WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never
+      free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window
+      raise suppressed_count on the open row instead of making a new row. status: open,
+      acknowledged (by an operator, audited), closed.
+    primary_key: [alert_id]
+    indexes:
+      - [status, ts]
+      - [dedupe_key, ts]
+    columns:
+      alert_id: string
+      ts: timestamp
+      dedupe_key: string
+      rule_id: string
+      rule_hash: string
+      severity: string
+      status: string
+      title: string
+      agent_id: string?
+      group_value: string?
+      window_s: int
+      window_count: int
+      threshold: int
+      first_ts: timestamp
+      last_ts: timestamp
+      suppressed_count: int
+      case_id: string?
+      chain_lane: string?
+      chain_seq: int?
+      entry_hash: string?
+      refs: json
+      routes: json
+      route_status: json
+      acknowledged_by: string?
+      acknowledged_at: timestamp?
+
+  siem_event:
+    kind: append_only
+    description: >
+      WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF
+      document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it.
+      Ids, hashes and enums only. event_id is the idempotency key.
+    primary_key: [event_id]
+    indexes:
+      - [ts]
+    columns:
+      event_id: string
+      ts: timestamp
+      event_type: string
+      severity: int
+      outcome: string
+      agent_id: string?
+      rule_id: string?
+      case_id: string?
+      actor: string?
+      chain_lane: string?
+      chain_seq: int?
+      entry_hash: string?
+      env: string
+      event_schema: string
+      ocsf_class_uid: int
+      ocsf_json: text
+
+  # --- WP24 inventory graph (ADR D16) -------------------------------------------------
+  inventory_node:
+    kind: state
+    description: >
+      WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset,
+      prompt, supplier). node_id is a hash of kind + canonical name, so a refill never
+      duplicates. own_risk is low|medium|high|critical or NULL; the effective level is
+      computed on read, never stored. decision33_class is human-set (copied from the agent
+      row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding |
+      workspace_scan | manual, plus file:line or a workspace reference).
+    primary_key: [node_id]
+    indexes:
+      - [kind, status]
+    columns:
+      node_id: string
+      kind: string
+      name: string
+      display_name: string
+      status: string          # active | unmanaged | allowlisted | gone
+      own_risk: string?
+      risk_source: string     # none | manifest | onboarding | manual
+      decision33_class: string?
+      attrs: json
+      evidence: json
+      first_seen: timestamp
+      last_seen: timestamp
+
+  inventory_edge:
+    kind: state
+    description: >
+      WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per
+      (src, kind, dst, source) so every claim keeps its own evidence. active is false when the
+      source no longer reports the edge.
+    primary_key: [edge_id]
+    indexes:
+      - [src_id]
+      - [dst_id]
+    columns:
+      edge_id: string
+      src_id: string
+      dst_id: string
+      kind: string
+      source: string          # manifest | onboarding | workspace_scan | manual
+      evidence_ref: string
+      active: bool
+      first_seen: timestamp
+      last_seen: timestamp

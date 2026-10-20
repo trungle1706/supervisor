@@ -110,6 +110,21 @@ rejected). Sources, in this order:
 
 Each row becomes a check named `pack:<id>:<metric>`; any failed row forces NO_GO.
 
+### Family source and strict endpoints (WP1b-A)
+
+The family-independence rule uses a derived family, not a declared label (ADR D21, details in
+`docs/llm-adapter.md`). The validation report lists `T1 family` and `T2 family` with their
+`family_source` (`derived`, `declared-test-only`, `declared-unverified` or `mock`); the same two
+values are in the `judge_validation` chain record, the model card tier lines and every `verdict`
+row. The check `judge_family_derived` fails (NO_GO) when either source is declared, so such a
+validation cannot be evidence for a go-live. A judge on a strict endpoint
+(Anthropic's OpenAI-compatible endpoint) needs `LLM_STRICT_SCHEMA=1` and `LLM_SEND_TEMPERATURE=0`;
+the report notes that temperature is not sent in that case. The challenger is checked only against
+the agents it judges (`JUDGE_AGENTS`, the registry), so a challenger from the demo agents' family
+does not stop `mrm validate`.
+
+Command: `python -m supervisor.judge.mrm validate --model settings --out OUT --runs 1`.
+
 ## 4. Change control
 
 Every judge verdict (`verdict` table and `judge_verdict` evidence) carries:
@@ -196,6 +211,8 @@ golden set (`cohen_kappa_bp()` is ready).
 | `prelim_report_due_at` | urgent: detected + 72 h; standard: detected + 5 Vietnam working days (Mon-Fri, UTC+7, minus `config/vn_holidays.yaml`) |
 | `formal_report_due_at` | 15 days (calendar, ASSUMED) after the preliminary report was sent, else after its due time |
 | `prelim_report_sent_at`, `formal_report_sent_at` | set by "mark report sent" in the case view (`case.report_sent` permission) |
+
+**No clock for internal flags (WP24).** A case whose source kind is in `cases.service.NO_CLOCK_SOURCES` (today `inventory`: shadow-AI flags) is not an incident. It opens with the ordinary case timestamps only: `report_due_at`, `incident_detected_at`, `urgency_class` and the report due times stay empty, the chain record carries no clock fields, `incident_status` returns `clocked: false` with no overdue flags, the case view hides the clocks and the "mark report sent" button, and `record_report_sent` refuses. If a person decides a flagged item is a real incident, open a new case from a clocked source.
 
 `config/vn_holidays.yaml` is illustrative; the bank edits it each year (`INCIDENT_HOLIDAYS_FILE`).
 

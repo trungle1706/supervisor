@@ -26,6 +26,18 @@ class ConsoleContext:
     onboard: OnboardRunner = field(default_factory=OnboardRunner)
 
     @property
+    def alerts(self) -> Any:
+        """The alert service (WP21): reads and acknowledges ``alert`` rows. Sending is the
+        scheduler job's work, so this one has no routes."""
+        from supervisor.alerts import AlertService
+
+        svc = getattr(self, "_alerts", None)
+        if svc is None:
+            svc = AlertService(self.state, self.clock, self.runtime.chain)
+            self._alerts = svc
+        return svc
+
+    @property
     def gateway(self) -> Any:
         return self.runtime.gateway
 

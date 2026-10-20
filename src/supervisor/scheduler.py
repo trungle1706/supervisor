@@ -17,6 +17,11 @@ case_intake    scheduler on           gate block/pause verdicts become cases (al
 judge_sweep    JUDGE_ENABLED          advisory judges over new events
 quality        QUALITY_ENABLED        groundedness / guideline scores (sampled)
 retention      RETENTION_ENABLED      null personal-data columns past their TTL (ADR D13)
+tool_analytics TOOL_ANALYTICS_ENABLED daily ``tool_usage_daily`` rollup + least-privilege
+                                      suggestion files (WP22; never applied)
+siem           SIEM_ENABLED           send new evidence-chain events to the SIEM sink (WP21)
+notify         NOTIFY_WEBHOOK_ENABLED send queued webhook notices (WP21; needs a URL)
+alerts         ALERTS_ENABLED         evaluate config/alerts.yaml, raise and route alerts (WP21)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -359,6 +364,8 @@ class SupervisorScheduler:
 
 def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec]:
     """The job list for the app. ``runtime`` is ``supervisor.wiring.Runtime``."""
+    from supervisor.analytics import tools as tools_job
+    from supervisor.jobs import alerts as alerts_job
     from supervisor.jobs import anchor as anchor_job
     from supervisor.jobs import case_intake as case_intake_job
     from supervisor.jobs import drift as drift_job
@@ -367,21 +374,31 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import judge_sweep as judge_job
     from supervisor.jobs import metrics as metrics_job
     from supervisor.jobs import multiagent as multiagent_job
+    from supervisor.jobs import notify as notify_job
     from supervisor.jobs import quality as quality_job
     from supervisor.jobs import retention as retention_job
+    from supervisor.jobs import siem as siem_job
     from supervisor.monitors.sweeps import build_judge_sweep, build_quality_sweep
 
     adapters = runtime.adapters
     cases: list[Any] = []
 
-    def intake() -> list[str]:
+    def case_service() -> Any:
         if not cases:  # the console's case service when the app built one (it notifies)
             from supervisor.cases import build_case_service
             from supervisor.console.context import peek_context
 
             ctx_ = peek_context()
             cases.append(ctx_.cases if ctx_ is not None else build_case_service(runtime))
-        return case_intake_job.run(cases[0])
+        return cases[0]
+
+    def intake() -> list[str]:
+        return case_intake_job.run(case_service())
+
+    def inventory() -> Any:  # WP24: manifests + workspace + shadow-AI cases
+        from supervisor.jobs import inventory as inventory_job
+
+        return inventory_job.run(adapters, settings, cases=case_service())
 
     judge = quality = None
     if settings.judge_enabled:
@@ -394,7 +411,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
             quality = build_quality_sweep(ctx, settings)
         except Exception:  # noqa: BLE001
             log.exception("quality sweep disabled: the scorer could not be built")
-    return [
+    jobs = [
         JobSpec("ingest", settings.sched_ingest_s, lambda: ingest_job.run(settings, adapters)),
         JobSpec(
             "anchor",
@@ -417,7 +434,20 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
         JobSpec("retention", settings.sched_retention_s,
                 lambda: retention_job.run(settings, adapters, chain=runtime.chain),
                 settings.retention_enabled),
+        JobSpec("tool_analytics", settings.sched_tool_analytics_s,
+                lambda: tools_job.run(ctx, settings), settings.tool_analytics_enabled),
+        JobSpec("siem", settings.sched_siem_s, lambda: siem_job.run(ctx, settings),
+                settings.siem_enabled),
+        JobSpec("notify", settings.sched_notify_s, lambda: notify_job.run(ctx, settings),
+                notify_job.enabled(settings)),
+        JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
+                settings.alerts_enabled),
     ]  # fmt: skip
+    from supervisor.jobs import inventory as inventory_job
+
+    if inventory_job.scheduled(settings):  # WP24: listed only when it can run
+        jobs.append(JobSpec("inventory", settings.sched_inventory_s, inventory))
+    return jobs
 
 
 def build_scheduler(settings: Any, runtime: Any) -> SupervisorScheduler:

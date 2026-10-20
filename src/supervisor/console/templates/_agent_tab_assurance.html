@@ -1,0 +1,28 @@
+{# Assurance tab: eval results whose target is this agent (CONSOLE_ASSURANCE_ENABLED). #}
+{% import "_ui.html" as ui with context %}
+{% if results %}
+<div class="tablewrap">
+<table class="queue" id="agent-assurance">
+  <caption class="sr">{{ t('atab_assurance') }}</caption>
+  <thead><tr>
+    <th scope="col">{{ t('as_run') }}</th><th scope="col">{{ t('time') }}</th><th scope="col">{{ t('as_pack') }}</th>
+    <th scope="col">{{ t('as_dimension') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('as_metrics') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in results %}
+    <tr class="row" data-pack="{{ r.pack_id }}" data-status="{{ r.status }}">
+      <td><a class="head mono" href="/console/assurance/{{ r.run_id }}?lang={{ lang }}">{{ r.run_id }}</a></td>
+      <td class="mono">{{ r.ts|day }}</td>
+      <td><b>{{ r.pack_id }}</b> <span class="muted mono">v{{ r.pack_version }}</span></td>
+      <td>{{ r.dimension }}</td>
+      <td>{{ ui.pill(r.status, r.pill, True) }}{% if r.is_mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</td>
+      <td>{% for m in r.metric_rows %}<div class="mono">{{ m.name }} = {{ '-' if m.value is none else m.value }}{% if m.status in ('fail', 'warn') %} {{ ui.pill(m.status, 'bad' if m.status == 'fail' else 'warn') }}{% endif %}</div>{% else %}-{% endfor %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint">{{ t('as_illustrative') }} <a href="/console/assurance?lang={{ lang }}">{{ t('nav_assurance') }}</a></p>
+{% else %}
+{{ ui.empty(t('as_no_agent_results'), t('as_no_agent_results_line'), '/console/assurance?lang=' ~ lang, t('nav_assurance')) }}
+{% endif %}

@@ -2,9 +2,20 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('agents') }}{% endblock %}
 {% block content %}
-<div class="pagehead"><h1>{{ t('agents') }}</h1></div>
+{{ ui.crumbs([(t('nav_g_watch'), None), (t('agents'), None)]) }}
+{% call ui.pagehead(t('agents')) %}
+  <a class="btn" href="/console/onboard?lang={{ lang }}">{{ t('nav_onboard') }}</a>
+{% endcall %}
 {{ ui.purpose(t('agents_purpose'), t('agents_why')) }}
-<div id="agents-table" class="grid" style="gap:12px">
-{% include "_agents_table.html" %}
+{{ ui.tiles(tiles, '/console/agents', '/console/agents/rows') }}
+{{ ui.filterbar('/console/agents', '/console/agents/rows', [
+  {'name': 'q', 'label': t('search_agents'), 'kind': 'search', 'value': params.q},
+  {'name': 'state', 'label': t('state'), 'kind': 'select', 'value': params.state, 'options': state_opts},
+  {'name': 'risk', 'label': t('risk'), 'kind': 'select', 'value': params.risk, 'options': risk_opts},
+], '/console/agents?lang=' ~ lang) }}
+<div id="list">
+{% include "_agents_list.html" %}
 </div>
+<p class="hint">{{ t('agent_controls_hint') }}</p>
 {% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_agent_drawer.html" %}{% endif %}{% endblock %}

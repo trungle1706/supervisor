@@ -1,0 +1,16 @@
+{
+  "licence": "own (synthetic, MIT)",
+  "seed": 20261020,
+  "splits": {
+    "dev": {
+      "n_items": 666,
+      "n_spans": 1000,
+      "sha256": "29e0c8cf74e828587e79b32acd85753c95a00f63ee85200b11667f6678e3abef"
+    },
+    "heldout": {
+      "n_items": 365,
+      "n_spans": 491,
+      "sha256": "093c995bc5a2da07653aa051998f9b7fb80ce1c44948d1d2b5eea210c49bc077"
+    }
+  }
+}

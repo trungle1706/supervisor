@@ -3,7 +3,8 @@
 Each detected span becomes ``<TYPE:hex>`` where hex is a keyed HMAC-SHA256 pseudonym, so the
 same person or number gets the same token across formats, and a key change changes the tokens.
 
-Masked output is NORMALISED (``vn_regex-2``). Before matching, the text is stripped of every
+Masked output is NORMALISED (``vn_regex-2``, unchanged in ``vn_regex-3``). Before matching, the
+text is stripped of every
 Unicode format character (category Cf: zero-width space, soft hyphen, word joiner, BOM, bidi
 marks) and put through NFKC (full-width digits become ASCII, no-break space becomes a space);
 Unicode dashes become ``-``. ``mask()`` returns the normalised text with PII spans replaced,
@@ -20,6 +21,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
+from supervisor.adapters.masking import vn_text
 from supervisor.data import wordlists as W
 
 __all__ = ["PiiSpan", "VnRegexMasker"]
@@ -104,32 +106,6 @@ def _alt(words: set[str]) -> str:
     return "|".join(re.escape(w) for w in sorted(words, key=lambda w: (-len(w), w)))
 
 
-def _with_folded(words: tuple[str, ...]) -> set[str]:
-    return set(words) | {_fold(w) for w in words}
-
-
-# Name words beyond the generator lists, so real 4-word names (Trần Thị Bích Ngọc) still match.
-_EXTRA_NAME_WORDS: tuple[str, ...] = (
-    "Bích", "Hồng", "Tuyết", "Diệu", "Thúy", "Xuân", "Hải", "Tiến", "Thái", "Ngọc", "Lan",
-    "Yến", "Nhi", "Đình", "Hoàng", "Trọng", "Xuân", "Thùy", "Như", "Tú",
-)  # fmt: skip
-_SUR = _alt(_with_folded(W.SURNAMES))
-_MID = _alt(_with_folded(W.MIDDLE_MALE + W.MIDDLE_FEMALE + _EXTRA_NAME_WORDS))
-_LAST = _alt(
-    _with_folded(
-        W.GIVEN_MALE + W.GIVEN_FEMALE + W.MIDDLE_MALE + W.MIDDLE_FEMALE + _EXTRA_NAME_WORDS
-    )
-)
-_ANY_NAME = _alt(
-    _with_folded(
-        W.SURNAMES
-        + W.MIDDLE_MALE
-        + W.MIDDLE_FEMALE
-        + W.GIVEN_MALE
-        + W.GIVEN_FEMALE
-        + _EXTRA_NAME_WORDS
-    )
-)
 _PROVINCES = _alt(set(W.PROVINCES.values()) | {_fold(p) for p in W.PROVINCES.values()})
 _PROV_TAIL = rf"(?:TP\.? ?)?(?:{_PROVINCES})|TP\.? ?(?:HCM|HN|HCMC)|TPHCM"
 
@@ -143,8 +119,11 @@ _RE_PHONE = re.compile(
     r"|84[35789]\d{8}"
     r")(?!\d)"
 )
+_RE_PHONE_GLUED = re.compile(
+    r"(?i:sdt|dt|tel|zalo|phone|hotline)((?:\+84|0084|84|0)[2-9](?:[ .-]?\d){8})(?!\d)"
+)
 _RE_RUN = re.compile(r"(?<![\w.+-])\d{6,19}(?![\w])")
-_RE_GROUPED = re.compile(r"(?<![\w.+-])\d{3,6}(?:[ \t.-]\d{2,6}){1,5}(?![\w])")
+_RE_GROUPED = re.compile(r"(?<![\w.+-])\d{3,6}(?:[ \t.-]\d{2,6}){1,4}(?:[ \t.-]\d{1,6})?(?![\w])")
 # Digit groups written with single space / dot / dash separators. First group 2-6 digits, then
 # 1-5 more. Not preceded by another digit group ("12 345 678 901 234" must not match at "345").
 # Separator: one dot or dash, or 1-2 spaces/tabs (never a newline). "/" and "_" are accepted
@@ -163,18 +142,6 @@ _RE_ACCOUNT_CUE = re.compile(
 )
 _RE_STRONG_CUE = re.compile(r"\b(?:stk|tk|tai khoan|account|acct)\b")
 _RE_THOUSANDS = re.compile(r"\d{1,3}(?:([. ])\d{3})+")
-_RE_PERSON_PLAIN = re.compile(
-    rf"(?<!\w)(?:{_SUR})(?: (?:{_MID})){{1,2}} (?:{_LAST})(?!\w)", re.IGNORECASE
-)
-_HONORIFICS = (
-    r"anh|chị|ông|bà|cô|chú|mr\.?|ms\.?|mrs\.?|miss|khách hàng|customer|người nhận|của|"
-    r"applicant|tôi là|tên|họ tên|holder|this is|name|payee|beneficiary|"
-    r"ong|khach hang|nguoi nhan|cua|toi la|ten|ho ten"
-)
-_RE_PERSON_LABELLED = re.compile(
-    rf"(?<!\w)(?:{_HONORIFICS})[:,]? +((?:{_ANY_NAME})(?: (?:{_ANY_NAME})){{1,3}})(?!\w)",
-    re.IGNORECASE,
-)
 _DISTRICT = r"(?:Quận|Huyện|Thành phố|Thị xã|Thị trấn|Quan|Huyen|Thanh pho|Thi xa) [^,\n;()]{1,30}"
 _WARD = r"(?:Phường|Xã|Thị trấn|Phuong|Xa) [^,\n;()]{1,30}"
 _ADDR_TAIL = rf"(?:{_WARD}, )?{_DISTRICT}(?:, (?:{_PROV_TAIL})(?!\w))?"
@@ -198,6 +165,7 @@ _LABELS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 _PRIORITY = {
+    "amount": 110,  # vn_regex-3: amounts are claimed BEFORE any account or id rule
     "label": 100,
     "email": 90,
     "card_strong": 102,
@@ -258,6 +226,14 @@ def _has_account_cue(text: str, start: int, pat: re.Pattern[str] = _RE_ACCOUNT_C
     return bool(pat.search(_fold(window[last_digit + 1 :]).lower()))
 
 
+def _currency_after(text: str, m: re.Match[str]) -> bool:
+    """A currency word follows the run and the run is not an identifier ("CCCD 079203001234
+    đồng thời": "đồng" is also a word, the CCCD must still be masked)."""
+    return bool(_RE_CURRENCY_AFTER.match(text, m.end())) and not vn_text.id_shaped(
+        text, m.start(), m.group()
+    )
+
+
 def _amount_shaped(run: str) -> bool:
     """Thousands format (1-3 digits, then exact 3-digit groups, dot or space), or several such
     dot-grouped amounts in a row ("20.000.000 20.000.000", "5.000.000-10.000.000")."""
@@ -314,7 +290,7 @@ def _classify_sep_run(text: str, m: re.Match[str]) -> tuple[str, str] | None:
     * Everything else (dates, times, short refs, < 9 digits): not masked.
     """
     run = m.group()
-    if _RE_CURRENCY_AFTER.match(text, m.end()):
+    if _currency_after(text, m):
         return None
     if ("/" in run or "_" in run) and not _has_account_cue(text, m.start(), _RE_SLASH_CUE):
         return None
@@ -343,20 +319,26 @@ def _classify_sep_run(text: str, m: re.Match[str]) -> tuple[str, str] | None:
 class VnRegexMasker:
     """Masker for Vietnamese banking text. Implements the ``Masker`` protocol."""
 
-    def __init__(self, key: bytes, key_id: str = "dev", *, token_len: int = 6) -> None:
+    def __init__(
+        self, key: bytes, key_id: str = "dev", *, token_len: int = 6, mask_amounts: bool = False
+    ) -> None:
         if not key:
             raise ValueError("masking key must not be empty")
         self._key = key
         self.key_id = key_id
         self.token_len = token_len
-        self.mask_version = f"vn_regex-2:{key_id}"
+        # vn_regex-3: money amounts are found first so no account rule can take them. They are
+        # typed ``<AMOUNT:...>`` only when the capture level asks (``mask_amounts``); by default
+        # they stay in the text, because the credit rules need the amount.
+        self.mask_amounts = mask_amounts
+        self.mask_version = f"vn_regex-3:{key_id}" + ("+amt" if mask_amounts else "")
 
     # -- pseudonyms -------------------------------------------------------------
     @staticmethod
     def normalise(type_: str, value: str) -> str:
         if type_ == "EMAIL":
             return value.strip().lower()
-        if type_ in ("PERSON", "ADDRESS"):
+        if type_ in ("PERSON", "ADDRESS", "AMOUNT"):
             return " ".join(_fold(value).lower().split())
         digits = re.sub(r"\D", "", value)
         if type_ == "PHONE":
@@ -396,7 +378,7 @@ class VnRegexMasker:
                     strong = False
                 add(m.start(), m.end(), "card_strong" if strong else "card_weak", "CARD_NUMBER")
         for m in _RE_RUN.finditer(text):
-            if _RE_CURRENCY_AFTER.match(text, m.end()):
+            if _currency_after(text, m):
                 continue  # "123456789012 VND" is an amount
             kind = _classify_run(text, m.start(), m.group())
             if kind:
@@ -406,7 +388,7 @@ class VnRegexMasker:
             if (
                 (_amount_shaped(m.group()) and not _label_adjacent(text, m))
                 or _date_like(groups)
-                or _RE_CURRENCY_AFTER.match(text, m.end())
+                or _currency_after(text, m)
             ):
                 continue
             if _nearest_label(text, m.start()) == "BANK_ACCOUNT":
@@ -415,10 +397,17 @@ class VnRegexMasker:
             kind = _classify_sep_run(text, m)
             if kind:
                 add(m.start(), m.end(), kind[0], kind[1])
-        for m in _RE_PERSON_PLAIN.finditer(text):
-            add(m.start(), m.end(), "person_plain", "PERSON")
-        for m in _RE_PERSON_LABELLED.finditer(text):
-            add(m.start(1), m.end(1), "person_label", "PERSON")
+        for s, e in vn_text.amount_spans(text):
+            add(s, e, "amount", "AMOUNT")
+        for m in _RE_PHONE_GLUED.finditer(text):
+            add(m.start(1), m.end(1), "phone", "PHONE")
+        plain, labelled = vn_text.person_spans(text)
+        for s, e, _why in plain:
+            add(s, e, "person_plain", "PERSON")
+        for s, e, _why in labelled:
+            add(s, e, "person_label", "PERSON")
+        for s, e in vn_text.address_spans(text):
+            add(s, e, "address", "ADDRESS")
         for rx in (_RE_ADDRESS, _RE_ADDRESS_BARE):
             for m in rx.finditer(text):
                 add(m.start(), m.end(), "address", "ADDRESS")
@@ -443,7 +432,9 @@ class VnRegexMasker:
             if all(e <= cs or s >= ce for cs, ce, _ in chosen):
                 chosen.append((s, e, t))
         chosen.sort()
-        return [PiiSpan(s, e, t, text[s:e]) for s, e, t in chosen]
+        return [
+            PiiSpan(s, e, t, text[s:e]) for s, e, t in chosen if t != "AMOUNT" or self.mask_amounts
+        ]
 
     def mask(self, text: str) -> str:
         """Mask ``canonical(text)``: the result is normalised, see the module docstring."""

@@ -7,6 +7,11 @@ Guards for small CPU models (docs/BANK_DEPLOY_GUIDE.md section 2.4):
 * ``finish_reason == "length"`` -> :class:`TruncatedError` (no blind retry);
 * invalid JSON / schema mismatch / visible repetition -> exactly one retry with an
   anti-repetition instruction, then :class:`LLMOutputError`;
+* strict endpoints (``LLM_STRICT_SCHEMA=1``, D14): ``strict: true`` and a copy of the schema
+  without the keywords such endpoints refuse (minimum, maximum, pattern, maxItems, ...); the
+  reply is still checked against the FULL schema here;
+* ``LLM_SEND_TEMPERATURE=0`` leaves ``temperature`` out of the request (Anthropic's
+  OpenAI-compatible endpoint refuses it);
 * per-call timeout (settings ``LLM_TIMEOUT_S``) -> :class:`LLMTimeoutError`.
 
 The API key is sent only in the ``Authorization`` header. It never appears in logs,
@@ -55,7 +60,13 @@ FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
     ("qwen", "qwen"),
     ("llama", "meta"),
     ("gemma", "google"),
+    ("gemini", "google"),
     ("deepseek", "deepseek"),
+    # D05: with the derived family an unknown id cannot be judged, so name the Mistral models.
+    ("mistral", "mistral"),
+    ("mixtral", "mistral"),
+    ("ministral", "mistral"),
+    ("codestral", "mistral"),
 )
 _VENDOR_PREFIXES = ("databricks-", "meta-", "anthropic.", "openai/", "us.")
 
@@ -115,18 +126,23 @@ class OpenAICompatibleChat:
         timeout_s: float = 600.0,
         max_tokens: int = 8192,
         family: str | None = None,
+        family_source: str | None = None,
         transport: httpx.BaseTransport | None = None,
         strict_schema: bool = False,
+        send_temperature: bool = True,
     ) -> None:
         if not base_url:
             raise LLMError("LLM_BASE_URL is empty; use MockChat")
         self.base_url = base_url.rstrip("/")
         self.model_id = model
         self.family = family or model_family(model)
+        # D05: where the family came from (derived | declared-test-only); set by the factory.
+        self.family_source = family_source or "derived"
         self.default_timeout_s = float(timeout_s)
         self.max_tokens = int(max_tokens)
         # OpenAI strict mode rejects open objects (tool args); Ollama enforces the grammar anyway.
         self.strict_schema = strict_schema
+        self.send_temperature = send_temperature
         self.__api_key = api_key or None
         # Loopback endpoints must not go through a corporate HTTP(S)_PROXY.
         self._client = httpx.Client(transport=transport, trust_env=not _is_loopback(base_url))
@@ -149,10 +165,33 @@ class OpenAICompatibleChat:
             timeout_s=settings.llm_timeout_s,
             max_tokens=settings.llm_max_tokens,
             transport=transport,
+            strict_schema=settings.llm_strict_schema,
+            send_temperature=settings.llm_send_temperature,
         )
 
     def close(self) -> None:
         self._client.close()
+
+    def endpoint_family(self, timeout_s: float = 5.0) -> str | None:
+        """Family named by the endpoint's own ``GET /models`` metadata (D05), else None.
+
+        Looks at ``root``, ``id`` and ``display_name`` of the entry for this model (vLLM puts
+        the weights name in ``root``). Any failure gives None: the probe only adds evidence,
+        it never blocks a working endpoint."""
+        headers = {"Authorization": f"Bearer {self.__api_key}"} if self.__api_key else {}
+        try:
+            resp = self._client.get(f"{self.base_url}/models", headers=headers, timeout=timeout_s)
+            entries = resp.json()["data"] if resp.status_code == 200 else []
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            return None
+        for entry in entries if isinstance(entries, list) else []:
+            if not isinstance(entry, Mapping) or entry.get("id") != self.model_id:
+                continue
+            for field in ("root", "id", "display_name"):
+                fam = model_family(str(entry.get(field) or ""))
+                if fam != "unknown":
+                    return fam
+        return None
 
     # -- ChatModel ---------------------------------------------------------------
     def complete_json(
@@ -182,20 +221,23 @@ class OpenAICompatibleChat:
 
     # -- internals ---------------------------------------------------------------
     def _post(self, msgs: list[dict[str, str]], schema: Mapping[str, Any], timeout: float) -> str:
-        body = {
+        # Strict endpoints refuse some keywords: send a stripped copy, validate with the full one.
+        sent = jsonschema_lite.strict_compatible(schema) if self.strict_schema else dict(schema)
+        body: dict[str, Any] = {
             "model": self.model_id,
             "messages": msgs,
-            "temperature": 0,
             "max_tokens": self.max_tokens,
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
                     "name": "reply",
-                    "schema": dict(schema),
+                    "schema": sent,
                     "strict": self.strict_schema,
                 },
             },
         }
+        if self.send_temperature:
+            body["temperature"] = 0
         headers = {"Content-Type": "application/json"}
         if self.__api_key:
             headers["Authorization"] = f"Bearer {self.__api_key}"

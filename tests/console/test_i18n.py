@@ -89,3 +89,20 @@ def test_translator_formats_and_falls_back() -> None:
     assert t_vi("greet_evening", name="An") == "Chào buổi tối, An"
     assert t_en("no_such_key") == "no_such_key"
     assert t_en("greet_evening") == "Good evening, {name}"  # no kwargs: raw text
+
+
+def test_no_key_is_defined_twice() -> None:
+    """A key in the ``_T`` literal and again in a ``_T.update({...})`` block (or twice in one
+    literal) silently overrides the first text. Found at the wave-1 merge of WP-UX2 and WP-UX3."""
+    import ast
+    from collections import Counter
+
+    tree = ast.parse(Path(i18n.__file__).read_text(encoding="utf-8"))
+    keys = Counter(
+        k.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Dict)
+        for k in node.keys
+        if isinstance(k, ast.Constant) and isinstance(k.value, str)
+    )
+    assert [k for k, n in keys.items() if n > 1] == []

@@ -1,16 +1,25 @@
+{# Inbox table and pager: swap target #inbox-rows and answer of "mark read" (WP-UX2). #}
 {% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
 <div class="tablewrap">
 <table>
-  <thead><tr><th>{{ t('time') }}</th><th>{{ t('channel') }}</th><th>{{ t('subject') }}</th><th>{{ t('status') }}</th><th></th></tr></thead>
+  <caption class="sr">{{ t('inbox') }}</caption>
+  <thead><tr>
+    {{ tb.th('ts', t('time'), sort_col, sort_dir, '/console/inbox', '/console/inbox/rows', base_qs, '#inbox-rows') }}
+    {{ tb.th('channel', t('channel'), sort_col, sort_dir, '/console/inbox', '/console/inbox/rows', base_qs, '#inbox-rows') }}
+    <th scope="col">{{ t('subject') }}</th>
+    {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/inbox', '/console/inbox/rows', base_qs, '#inbox-rows') }}
+    <th scope="col"><span class="sr">{{ t('mark_read') }}</span></th>
+  </tr></thead>
   <tbody>
-  {% for n in notices %}
+  {% for n in page.items %}
   <tr class="row" data-notice="{{ n.notice_id }}" data-status="{{ n.status }}">
     <td class="mono">{{ n.ts|day }}</td>
     <td>{{ ui.pill(n.channel, 'neutral') }}</td>
     <td><strong>{{ n.subject }}</strong><div class="muted" style="white-space:pre-wrap;font-size:13px">{{ n.body }}</div></td>
     <td>{{ ui.pill(n.status, 'warn' if n.status == 'unread' else 'ok') }}{% if n.read_by %}<div class="idline">{{ n.read_by }}</div>{% endif %}</td>
     <td>{% if n.status == 'unread' %}
-      <form hx-post="/console/inbox/{{ n.notice_id }}/read?lang={{ lang }}" hx-target="#inbox-rows">
+      <form hx-post="/console/inbox/{{ n.notice_id }}/read?{{ list_qs }}&amp;page={{ page.page }}&amp;lang={{ lang }}" hx-target="#inbox-rows">
         <input type="hidden" name="row_version" value="{{ n.row_version }}">
         <button class="btn sm">{{ t('mark_read') }}</button>
       </form>{% endif %}</td>
@@ -21,3 +30,4 @@
   </tbody>
 </table>
 </div>
+{{ tb.pager(page, '/console/inbox', '/console/inbox/rows', list_qs, '#inbox-rows') }}

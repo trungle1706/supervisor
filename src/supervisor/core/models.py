@@ -110,6 +110,7 @@ class AgentEvent(Record):
     source: EventSource
     capture_level: CaptureLevel = "masked"
     mask_version: str | None = None  # masker + HMAC key id (WP4); None at digest level
+    latency_us: int | None = None  # WP22: gate decision latency, microseconds (null on old rows)
 
 
 class Rule(StateRecord):
@@ -162,6 +163,8 @@ class Verdict(Record):
     # WP19 (additive): change control fields for judge verdicts.
     prompt_hash: str | None = None
     rubric_version: str | None = None
+    # D05 (additive): where model_family came from: derived | declared-test-only | mock.
+    family_source: str | None = None
 
     @model_validator(mode="after")
     def _judges_only_advise(self) -> Verdict:
@@ -279,6 +282,8 @@ class OversightMetric(StateRecord):
     # WP19 (additive): judge-vs-human agreement from sign-offs.
     judge_human_pairs: int | None = None
     judge_human_agree_bp: int | None = None
+    # WP1b-B: {monitor: {status, code, reason, n}} for quality / fairness / drift / multiagent
+    monitor_status: dict[str, Any] | None = None
 
 
 ALL_RECORDS: tuple[type[Record], ...] = (

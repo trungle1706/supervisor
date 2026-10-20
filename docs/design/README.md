@@ -1,6 +1,6 @@
 # Console design reference (2026-10-15)
 
-`console-prototype.html` is the approved look and information architecture for the reviewer console (WP12 rebuild). Open it in a browser; the left rail switches screens. The PNGs are reference renders at 1360x900.
+`console-prototype.html` is the approved look and information architecture for the reviewer console (WP12 rebuild). Open it in a browser; the left rail switches screens. The PNGs in `screens/` are reference renders of the phase 3 console at 1360x900 (list in `docs/console.md`).
 
 Design rules the real console must keep:
 - Every screen opens with a one-sentence purpose box (what this screen is for), plus one plain-language "why" line.

@@ -1,0 +1,23 @@
+{
+  "apps": [
+    {"name": "payments", "description": "Payments assistant (managed: same name as an agent)"},
+    {"name": "credit-prequal", "description": "Loan pre-qualification (managed: dash form of an agent id)"},
+    {"name": "loan-bot-sandbox", "description": "Unregistered loan chatbot (shadow AI)"},
+    {"name": "hr-chat-assistant", "description": "Unregistered HR assistant (shadow AI)"},
+    {"name": "bi-portal", "description": "Dashboard portal, not an agent (allow-listed)"}
+  ],
+  "serving_endpoints": [
+    {"name": "qwen3:4b", "task": "llm/v1/chat", "served": ["qwen3:4b"], "family": "qwen"},
+    {"name": "adhoc-llama-endpoint", "task": "llm/v1/chat", "served": ["main.ml.adhoc_llama"], "family": "meta"}
+  ],
+  "registered_models": [
+    {"name": "main.ml.adhoc_llama", "owner": "FILL-ME-owner"},
+    {"name": "main.ml.fraud_scorer", "owner": "FILL-ME-owner"}
+  ],
+  "tables": {
+    "main.lending": ["loan_applications", "bureau_scores"]
+  },
+  "lineage": [
+    {"agent": "payments", "table": "main.lending.bureau_scores", "direction": "read"}
+  ]
+}

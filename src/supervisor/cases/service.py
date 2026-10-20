@@ -55,6 +55,8 @@ from supervisor.evidence.casefile.builder import (
 log = logging.getLogger("supervisor.cases")
 
 SEVERITIES = ("low", "medium", "high", "critical")
+# Sources whose cases are internal flags, not incidents: no Decree 142 report clocks (WP24).
+NO_CLOCK_SOURCES = ("inventory",)
 TWO_PERSON_SEVERITIES = ("high", "critical")
 RESOLUTIONS = ("confirmed", "false_alarm")
 SIGNOFF_DECISIONS = ("approve", "reject")
@@ -244,6 +246,18 @@ class CaseService:
         """Decree 142 Art. 19 clock of a case: urgency, due and sent times, overdue flags."""
         case = self.get(case_id)
         now = now or self.clock.now()
+        if self.unclocked(case_id):  # internal flag (WP24): no regulatory clock
+            return {
+                "clocked": False,
+                "detected_at": None,
+                "urgency": None,
+                "prelim_due_at": None,
+                "formal_due_at": None,
+                "prelim_sent_at": None,
+                "formal_sent_at": None,
+                "prelim_overdue": False,
+                "formal_overdue": False,
+            }
         if case.get("prelim_report_due_at") is None:  # a case opened before WP19
             detected = self.case_file(case_id, now=now).sbv.incident_detected_at
             c = compute_clock(
@@ -259,6 +273,7 @@ class CaseService:
             urgency = case["urgency_class"]
         p_sent, f_sent = case.get("prelim_report_sent_at"), case.get("formal_report_sent_at")
         return {
+            "clocked": True,
             "detected_at": detected,
             "urgency": urgency,
             "prelim_due_at": prelim_due,
@@ -268,6 +283,11 @@ class CaseService:
             "prelim_overdue": p_sent is None and now > prelim_due,
             "formal_overdue": f_sent is None and now > formal_due,
         }
+
+    def unclocked(self, case_id: str) -> bool:
+        """True for a case whose source is an internal flag (``NO_CLOCK_SOURCES``): it has no
+        Decree 142 report clocks."""
+        return any(link["source_kind"] in NO_CLOCK_SOURCES for link in self.links(case_id))
 
     def _clock_fields(
         self,
@@ -461,41 +481,46 @@ class CaseService:
                 case = self.state.insert("cases", row)
             except DuplicateKeyError:
                 return self.get(case_id)
-            sbv = self.case_file(case_id, now=now).sbv
-            due = sbv.report_due_at  # DEPRECATED 24 h clock, kept for old readers
-            clock_cols = self._clock_fields(sbv.incident_detected_at, severity)
-            case = self.state.update(
-                "cases",
-                {"case_id": case_id},
-                {"report_due_at": due, **clock_cols},
-                case["row_version"],
-            )
-            self.evidence.record(
-                "case",
-                f"case:{case_id}",
-                {
-                    "agent_id": agent_id,
-                    "case_id": case_id,
-                    "severity": severity,
-                    "source_kind": source_kind,
-                    "source_ref": source_ref,
-                    "summary_sha256": sha256_hex(summary),
-                    "report_due_at": format_ts(due),
-                    "urgency_class": clock_cols["urgency_class"],
-                    "prelim_report_due_at": format_ts(clock_cols["prelim_report_due_at"]),
-                    "formal_report_due_at": format_ts(clock_cols["formal_report_due_at"]),
-                    "opened_by": actor.user_id,
-                    "auth_method": actor.auth_method,
-                    "ts": format_ts(now),
-                },
-            )
+            clocked = source_kind not in NO_CLOCK_SOURCES
+            payload: dict[str, Any] = {
+                "agent_id": agent_id,
+                "case_id": case_id,
+                "severity": severity,
+                "source_kind": source_kind,
+                "source_ref": source_ref,
+                "summary_sha256": sha256_hex(summary),
+                "opened_by": actor.user_id,
+                "auth_method": actor.auth_method,
+                "ts": format_ts(now),
+            }
+            clock_cols: dict[str, Any] = {}
+            if clocked:
+                sbv = self.case_file(case_id, now=now).sbv
+                due = sbv.report_due_at  # DEPRECATED 24 h clock, kept for old readers
+                clock_cols = self._clock_fields(sbv.incident_detected_at, severity)
+                case = self.state.update(
+                    "cases",
+                    {"case_id": case_id},
+                    {"report_due_at": due, **clock_cols},
+                    case["row_version"],
+                )
+                payload.update(
+                    report_due_at=format_ts(due),
+                    urgency_class=clock_cols["urgency_class"],
+                    prelim_report_due_at=format_ts(clock_cols["prelim_report_due_at"]),
+                    formal_report_due_at=format_ts(clock_cols["formal_report_due_at"]),
+                )
+            self.evidence.record("case", f"case:{case_id}", payload)
             self._event(
                 case, actor, "open", extra={"source_kind": source_kind, "source_ref": source_ref}
             )
         self._notify(
             "reviewers",
             f"[{severity}] new case {case_id} ({agent_id})",
-            f"{summary}\nPreliminary report due {format_ts(clock_cols['prelim_report_due_at'])}",
+            summary
+            if not clocked
+            else f"{summary}\nPreliminary report due "
+            f"{format_ts(clock_cols['prelim_report_due_at'])}",
         )
         return case
 
@@ -795,6 +820,8 @@ class CaseService:
         if sent_at is not None and sent_at.tzinfo is None:
             raise CaseError("sent_at must include a time zone")
         with self._lock:
+            if self.unclocked(case_id):
+                raise CaseError("this case has no incident report clock (internal inventory flag)")
             current = self.get(case_id)
             now = self.clock.now()
             sent = (sent_at or now).astimezone(UTC)
@@ -825,6 +852,10 @@ class CaseService:
 
     # ------------------------------------------------------------------ sign-off
 
+    def approvals(self, case_id: str) -> dict[str, str]:
+        """Current approvals {reviewer_id: role} (read-only; for the console counts and panels)."""
+        return self._approvals(case_id)
+
     def _approvals(self, case_id: str) -> dict[str, str]:
         """Current approvals {reviewer_id: role}; a reject clears earlier approvals."""
         out: dict[str, str] = {}
@@ -834,6 +865,27 @@ class CaseService:
                 out.clear()
             elif decision == "approve":
                 out[s["reviewer_id"]] = role
+        return out
+
+    def waiting_approvals(
+        self, cases: Iterable[Mapping[str, Any]] | None = None
+    ) -> list[dict[str, Any]]:
+        """Open high / critical cases that still need a sign-off (WP-UX2). Read only.
+
+        Each item: ``case`` (the row), ``approvals`` ({reviewer_id: role}) and ``missing``
+        (how many more people must sign, 1 or 2). Same rule as the sidebar badge: status
+        triaged or contained, severity in ``TWO_PERSON_SEVERITIES``, fewer than two approvals.
+        Pass ``cases`` to reuse rows already loaded."""
+        rows = cases if cases is not None else self.list_cases(statuses=("triaged", "contained"))
+        out: list[dict[str, Any]] = []
+        for c in rows:
+            if c["severity"] not in TWO_PERSON_SEVERITIES:
+                continue
+            if c["status"] not in ("triaged", "contained"):
+                continue
+            approvals = self._approvals(c["case_id"])
+            if len(approvals) < 2:
+                out.append({"case": dict(c), "approvals": approvals, "missing": 2 - len(approvals)})
         return out
 
     def _signoff_row(

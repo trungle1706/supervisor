@@ -1,0 +1,68 @@
+{# Oversight metrics tab (the old Metrics page minus the Alerts section, which has its own
+   page; a summary tile links to it). Variables: alert_counts, monitor_rows, monitor_order,
+   summary, metric_cols, rows, heads, entries, verify. #}
+{% import "_ui.html" as ui with context %}
+<div class="grid g4" style="margin:0 0 10px">
+  <a class="card stat" id="alerts" data-num="alerts" href="/console/alerts?lang={{ lang }}">
+    <h3>{{ t('alerts') }}</h3>
+    <div class="bignum">{{ alert_counts.open }}</div>
+    <div class="sub">{{ t('alerts_open') }} · {{ alert_counts.acknowledged }} {{ t('alerts_ack') }} · {{ t('an_see_alerts') }} →</div>
+  </a>
+</div>
+<section class="card" id="monitor-status">
+  <h3>{{ t('monitor_status') }}</h3>
+  <p class="muted" style="margin:0 0 8px">{{ t('monitor_status_purpose') }}</p>
+  {% if monitor_rows %}
+  <div class="tablewrap flat"><table class="monitor-status">
+    <thead><tr><th>{{ t('agent') }}</th>{% for m in monitor_order %}<th>{{ m }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for r in monitor_rows %}
+      <tr data-agent="{{ r.agent_id }}"><td><strong>{{ r.agent_id }}</strong></td>
+      {% for m in monitor_order %}{% set c = r.monitors.get(m) %}
+        <td data-monitor="{{ m }}">{% if c %}{{ ui.pill(t('ms_' ~ c.status), {'ok': 'ok', 'not_applicable': 'neutral', 'no_data': 'warn'}.get(c.status, 'neutral')) }}{% if c.get('n') is not none %} <span class="mono">n={{ c.n }}</span>{% endif %}{% if c.get('reason') %}<div class="idline">{{ c.reason }}</div>{% endif %}{% else %}<span class="muted">-</span>{% endif %}</td>
+      {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="muted">{{ t('no_monitor_status') }}</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h3>{{ t('oversight') }}</h3>
+  {% if summary %}
+  <div class="tablewrap flat"><table class="metrics">
+    <thead><tr><th>{{ t('agent') }}</th><th>{{ t('day') }}</th>
+      {% for c in metric_cols %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for s in summary %}
+      <tr data-agent="{{ s.agent_id }}">
+        <td><strong>{{ s.agent_id }}</strong><div class="idline">{{ s.points }} day(s)</div></td>
+        <td class="mono">{{ s.metric_date }}</td>
+        {% for c in metric_cols %}
+        <td class="mono" style="font-size:12px">{{ s.latest.get(c)|metric(c) }}<br>{{ s.sparks[c] }}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <details class="more"><summary>{{ t('all_rows', n=rows|length) }}</summary>
+    <div class="tablewrap flat"><table><tr><th>{{ t('day') }}</th><th>{{ t('agent') }}</th>{% for c in metric_cols %}<th>{{ c }}</th>{% endfor %}</tr>
+    {% for r in rows %}<tr><td class="mono">{{ r.metric_date }}</td><td>{{ r.agent_id }}</td>
+      {% for c in metric_cols %}<td class="mono" style="font-size:12px">{{ r.get(c)|metric(c) }}</td>{% endfor %}</tr>{% endfor %}
+    </table></div>
+  </details>
+  {% else %}
+  <p class="muted">{{ t('no_metrics') }}</p>
+  {% endif %}
+</section>
+<section class="card gold-card" style="margin-top:16px">
+  <h3>{{ t('chain_status') }}</h3>
+  <p style="margin:0 0 8px">{{ t('lanes') }}: {{ heads|length }} · {{ t('entries') }}: {{ entries }}</p>
+  <div class="tablewrap flat"><table><tr><th>Lane</th><th class="n">Seq</th><th>{{ t('head') }}</th></tr>
+  {% for lane, h in heads.items() %}<tr><td class="mono">{{ lane }}</td><td class="n">{{ h.seq }}</td><td class="mono">{{ h.entry_hash[:16] }}…</td></tr>{% endfor %}
+  </table></div>
+  <div id="verify-result" style="margin-top:10px">{% include "_verify_result.html" %}</div>
+  <div class="btnrow"><button class="btn" hx-post="/console/chain/verify?lang={{ lang }}" hx-target="#verify-result">{{ t('verify_now') }}</button></div>
+</section>

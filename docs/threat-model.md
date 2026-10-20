@@ -117,6 +117,51 @@ Goal: edit or delete evidence after the fact.
 | No `exec`, `eval`, `compile` or `subprocess` outside one module (AST test) | `src/supervisor/sandbox.py`, `tests/test_architecture.py` |
 | No PAT: preflight and settings refuse `DATABRICKS_TOKEN` | `config.py`, `preflight.py` |
 
+### 3.7 Tool analytics and least-privilege suggestions (WP22)
+
+New read surface: `GET /v1/analytics/tools` and the console Tools page show per-tool usage; the
+owner can download a suggested policy diff. The rollup stores counts only (distinct callers and
+users are counted from HMAC hashes, never stored), so it adds no personal data. The risk is
+a wrong suggestion, not a leak: a diff that removes a needed tool would stop a business flow,
+and a diff that is applied blindly would weaken review. Controls: nothing is applied by code
+(a test hashes `policies/` and the manifests); the diff raises the rule version, so it must pass
+the two-approver policy PR; no data or too little history means nothing is proposed;
+documented exceptions carry an approver and an expiry; tools called but not declared are only
+flagged, never added. The suggestion cannot add a permission, so a poisoned usage log cannot
+widen an agent's access; it can only make a removal proposal look wrong, which a reviewer sees
+in the table.
+
+### 3.8 Trust boundary added by WP21 (SIEM export, alerts, webhook)
+
+Supervisor can now open outbound connections: the SIEM `http` sink and the webhook notifier
+(both off by default, URL and token are `FILL-ME` values from the bank vault). Controls: only
+ids, enums, counts and hashes are sent (a fixed field list builds every event and alert; tests
+plant free text and a phone number and assert they never appear); the token is a `SecretStr`,
+sent only in the `Authorization` header and never logged or written to the dead-letter file;
+sends are bounded (3 attempts, 10 s timeout) and a failure never blocks a gate decision, a case
+action or the alert row; a failed batch waits in a local dead-letter file with an idempotency key
+for replay. The receiver is trusted by the bank, not by us: a wrong URL sends metadata (agent
+ids, rule ids, counts) to the wrong place, so the URL is a reviewed setting. Alert rules are
+YAML read with `safe_load` and validated, never evaluated as code. Acknowledging an alert needs
+a signed-in person with `alert.ack` and is audited. Alerts do not act on agents (R1), so a
+forged alert cannot pause or block anything.
+
+### 3.9 Console pages added by WP-UX3 (Playground, Credentials, Audit log, ...)
+
+The Playground (`POST /console/playground/run`, role `operator` and up, flag off by default, a
+second flag on the App) lets a person send arbitrary JSON to the gate's evaluation. Risks and
+controls: (1) side effects, removed by construction (`Gateway.evaluate_only` shares the decision
+function and writes nothing; a byte-for-byte test, ADR D22); (2) personal data typed into the
+form, never echoed or stored (the audit row keeps a keyed HMAC, not the input; the answer shows a
+masked preview); (3) abuse as a load or ReDoS vector, bounded by 16 KB and 4 KB input caps, a
+nesting limit, strict JSON object checks, the gate's own 2 s timeout, and the existing rule
+regex limits (D11). The Credentials page reads only key id, state and expiry, never a secret
+(a test plants a secret and checks the page and headers), and an unreadable key store shows the
+error class only. The Traces page shows only masked columns and passes them through the masker
+again; a `digest` event shows no text, and no masker means no text. Every new page is read-only,
+behind its own permission and flag, and every filter value is checked against an allow-list or a
+strict pattern (bad input is HTTP 400); filters reach the store only as named parameters.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |
@@ -124,13 +169,36 @@ Goal: edit or delete evidence after the fact.
 | Cooperative enforcement | An agent that does not call the gate is not stopped. No credential brokering and no egress proxy in front of tools yet | Bank-side credential broker / egress allow-list (analysis 02, open question 5) |
 | Dev signing key | The default key is a file under `DATA_DIR`, labelled `key_kind=dev` unless the setting `signer_key_managed` is true (env `SIGNER_KEY_MANAGED=1`). Whoever can read it can re-sign a rewritten chain | Bank KMS / HSM custody; pin the public key in the verifier; anchors to object-lock storage |
 | Dev HMAC keys | Without `ARGS_HASH_KEY` / `MASK_HMAC_KEY` the dev keys are used (key id `dev`, visible in evidence) | Keys from the bank vault |
-| No OTLP auth yet | `recorder/otlp_receiver.py` `authorize` is a placeholder; any caller that reaches the port can post spans (data only, never gate state) | Principal port on the receiver; network restriction |
-| Gate routes have no caller auth | `/gate/check` trusts the network position (laptop binds 127.0.0.1; on the App, the platform's auth). Gate control routes (`pause`, `resume`, `quarantine`, `release`) need an authenticated Principal (laptop: `X-Dev-User` naming a user of the users file; App: SSO headers) and the role from the matrix, always; a body `principal` and a raw `X-Forwarded-User` are ignored | Per-agent credentials at the gate |
+| OTLP auth off by default | `recorder/otlp_receiver.py` `authorize` accepts every caller unless `INGRESS_AUTH_ENABLED=1` (WP20, see "Ingress authentication" below) | Turn the flag on; network restriction |
+| Gate check has no caller auth by default | `/gate/check` trusts the network position unless `INGRESS_AUTH_ENABLED=1` (WP20) (laptop binds 127.0.0.1; on the App, the platform's auth). Gate control routes (`pause`, `resume`, `quarantine`, `release`) need an authenticated Principal (laptop: `X-Dev-User` naming a user of the users file; App: SSO headers) and the role from the matrix, always; a body `principal` and a raw `X-Forwarded-User` are ignored | Turn on `INGRESS_AUTH_ENABLED` (ADR D14) |
 | Service-principal read fallback | On the App, a request without SSO headers runs as the App service principal with `service_principal_roles` (empty = read-only) | Keep empty; review in `config/auth.yaml` |
 | Laptop operator has full local control | The SQLite file and key file are writable by the laptop user; the chain detects edits but cannot prevent them | Anchors off the laptop; Delta with no UPDATE / DELETE grants on the App |
 | Policy deploy not on the chain | A policy change is visible through `policy_hash` in every gate decision, but the deploy itself is not a chain record | Policy PR + second approver (bank change process) |
 | No rate limiting | Flooding the gate or console is not throttled | Platform limits; backlog |
+| Inline redaction is cooperative and one-sided (WP24b) | The gate answer carries masked `transformed_args`; an agent or proxy that ignores it still sends the original arguments to the tool. The server flag and the SDK / proxy flag must both be on. The values never enter the chain (hashes only), but masked copies travel in the gate response over the same trust boundary as the arguments | Credential broker / egress proxy that applies the redaction itself (see the cooperative enforcement gap) |
+| Inventory reads workspace metadata (WP24) | With `INVENTORY_ENABLED=1` the app lists Apps, serving endpoints, registered models and UC table names (read only, OAuth identity of the app). Object names are untrusted text: the console escapes them, CSV export guards formula cells, case summaries pass the masker, and nothing from the workspace reaches an LLM prompt. Shadow-AI cases are flags for a person; the scan never pauses or blocks. The check is only as complete as the app identity's visibility: an App the service principal cannot list is not seen | Grant the app principal list rights on Apps and serving endpoints; review the allow-list file in change control |
 | Mock judges in the demo | The demo judge is a keyword MockJudge; its numbers prove the protocol, not a model | Real judge model behind `JUDGE_*` settings, measured by the eval harness |
+
+### Judge family and served config (WP1b-A, ADR D21)
+
+Trust boundary B3 (judge / model) and the operator settings. The judge family was a free-text
+declaration; a qwen judge could be declared as another family and watch a qwen agent. The family
+is now derived from the model id and, with `JUDGE_FAMILY_PROBE=1`, the endpoint metadata; a
+disagreeing declaration stops startup unless `JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1`, which
+`databricks_app` mode refuses, and every verdict row, chain record, the model card and the
+validation report carry `family_source`; `mrm validate` gives NO_GO for a declared source. The
+transition flag `JUDGE_FAMILY_STRICT=0` accepts a declaration only for an id with no family
+(custom endpoint names) and records `declared-unverified`. A model id that lies about its weights is caught only
+by the probe, and only on endpoints that report them. `POLICY_DIR` and `FACT_SOURCE` are operator
+settings: `callable:` imports a module named in the environment, which runs its code, so the
+module must sit under a package prefix in `FACT_CALLABLE_ALLOW_PREFIX` (default `supervisor.`;
+the bank adds its own package); one changed variable cannot load `os` or a planted module. And `sqlite:` opens the file read-only with queries from a map that must be one `SELECT`
+with a bound key (no SQL built from agent input). A fact error returns no record, so the rule
+fails by its fail mode. They do not defend against an operator who can edit the settings.
+
+### Ingress authentication (WP20, ADR D14)
+
+Trust boundary: the agent-facing write routes `POST /gate/check`, `/v1/gate/check` and `/v1/traces`. With `INGRESS_AUTH_ENABLED=1` each call carries a per-agent credential: an HMAC-SHA256 signature over (agent id, timestamp, nonce, method, path, body hash) with a 5-minute window and a single-use nonce, or a Databricks service-principal bearer token checked through SCIM `Me` and mapped to an allow-list of agent ids. This stops a caller that only has network access from posting gate checks or spans for an agent id it does not own, from replaying a captured request, and from spoofing the agent id in the body (the body id must be one the credential speaks for; a trace batch with a foreign span is refused whole). Every refusal is a 401 or 403, is counted in `/gate/metrics` and writes a `console_action` row with the body hash only. It does not stop: a stolen agent key (rotation limits the window; keep keys in the secret scope), a compromised agent process that holds its own key (it can still lie about its own tool calls: the gate stays cooperative), flooding by a caller that has no key (each refusal writes an audit row; use network or platform limits), or replay across a restart inside the 5-minute window (the nonce cache is in memory, one process). Default is off, so the two gap rows above stay true until the bank turns it on.
 
 ## 5. Kill switch
 

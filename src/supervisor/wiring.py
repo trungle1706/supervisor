@@ -24,6 +24,7 @@ from typing import Any, Protocol
 from supervisor.adapters.factory import Adapters, build_adapters
 from supervisor.config import REPO_ROOT, Settings, load_settings
 from supervisor.core.canonical import format_ts
+from supervisor.core.errors import check_agent_id
 from supervisor.evidence.chain import ChainWriter, build_chain_writer
 from supervisor.gateway.engine import Gateway
 from supervisor.gateway.facts import FactSource
@@ -38,6 +39,11 @@ from supervisor.gateway.state import STATUS_FOR_STATE
 log = logging.getLogger("supervisor.wiring")
 
 POLICY_DIR = REPO_ROOT / "policies"
+
+
+def resolve_policy_dir(settings: Settings, explicit: Path | None = None) -> Path:
+    """An explicit folder (tests, CLI), else ``POLICY_DIR`` (D13), else ``<repo>/policies``."""
+    return explicit or settings.policy_dir or POLICY_DIR
 
 
 class RegistrableAgent(Protocol):
@@ -93,7 +99,7 @@ def build_runtime(
             from supervisor.jobs import bootstrap_schema
 
             bootstrap_schema.run(settings, adapters)
-        policy = load_policy_dir(policy_dir or POLICY_DIR)
+        policy = load_policy_dir(resolve_policy_dir(settings, policy_dir))
         deploy_with_retry(policy, adapters.state, adapters.clock, git_sha)
         chain = build_chain_writer(settings, adapters.tables, adapters.clock)
     except BaseException:
@@ -106,6 +112,10 @@ def build_runtime(
         settings.args_hash_key.get_secret_value() if settings.args_hash_key is not None else None
     )
     try:
+        if facts is None:  # D13: FACT_SOURCE (default none)
+            from supervisor.adapters.facts import make_fact_source
+
+            facts = make_fact_source(settings)
         gateway = _make_gateway(
             settings, adapters, chain, facts, policy_refresh_s, state_cache_ttl_s
         )
@@ -138,7 +148,18 @@ def _make_gateway(
         env=settings.supervisor_mode,
         state_cache_ttl_s=state_cache_ttl_s,
         require_caller_id=settings.require_caller_id,  # WP7, ADR D10 (default off)
+        # WP24b inline redaction (default off). The gate's masker keeps amounts in the text:
+        # redaction must not change a value the rules or the tool need.
+        masker=_redaction_masker(settings) if settings.inline_redaction_enabled else None,
+        inline_redaction=settings.inline_redaction_enabled,
+        redact_tools=settings.inline_redaction_tool_set,
     )
+
+
+def _redaction_masker(settings: Settings) -> Any:
+    from supervisor.adapters.factory import make_masker
+
+    return make_masker(settings.model_copy(update={"mask_amounts": False}))
 
 
 def register_agents(
@@ -156,6 +177,7 @@ def register_agents(
     policy_agents = runtime.policy.doc.agents
     done: list[str] = []
     for m in manifests:
+        check_agent_id(m.id)
         if m.id not in policy_agents:
             raise ValueError(f"agent {m.id} is not in the deployed policy")
         initial = policy_agents[m.id].initial_state
@@ -197,4 +219,11 @@ def register_agents(
     return done
 
 
-__all__ = ["POLICY_DIR", "RegistrableAgent", "Runtime", "build_runtime", "register_agents"]
+__all__ = [
+    "POLICY_DIR",
+    "RegistrableAgent",
+    "Runtime",
+    "build_runtime",
+    "register_agents",
+    "resolve_policy_dir",
+]

@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS agent_event (
   source TEXT NOT NULL,
   capture_level TEXT NOT NULL,
   mask_version TEXT,
+  latency_us INTEGER,
   PRIMARY KEY (event_id)
 );
 
@@ -115,7 +116,7 @@ CREATE INDEX IF NOT EXISTS ix_agent_event_trace_id ON agent_event (trace_id);
 DROP TRIGGER IF EXISTS trg_agent_event_no_update;
 
 CREATE TRIGGER trg_agent_event_no_update
-BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version ON agent_event
+BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
 END;
@@ -241,6 +242,7 @@ CREATE TABLE IF NOT EXISTS verdict (
   mask_version TEXT,
   prompt_hash TEXT,
   rubric_version TEXT,
+  family_source TEXT,
   PRIMARY KEY (verdict_id)
 );
 
@@ -251,7 +253,7 @@ CREATE INDEX IF NOT EXISTS ix_verdict_trace_id ON verdict (trace_id);
 DROP TRIGGER IF EXISTS trg_verdict_no_update;
 
 CREATE TRIGGER trg_verdict_no_update
-BEFORE UPDATE OF verdict_id, ts, trace_id, event_id, agent_id, tier, checker_id, model_id, model_family, is_mock, advisory, score, label, action, latency_ms, rule_id, policy_hash, score_bp, role, region, model_version, mask_version, prompt_hash, rubric_version ON verdict
+BEFORE UPDATE OF verdict_id, ts, trace_id, event_id, agent_id, tier, checker_id, model_id, model_family, is_mock, advisory, score, label, action, latency_ms, rule_id, policy_hash, score_bp, role, region, model_version, mask_version, prompt_hash, rubric_version, family_source ON verdict
 BEGIN
   SELECT RAISE(ABORT, 'verdict is append-only');
 END;
@@ -508,6 +510,7 @@ CREATE TABLE IF NOT EXISTS oversight_metric (
   judge_latency_ms INTEGER,
   judge_human_pairs INTEGER,
   judge_human_agree_bp INTEGER,
+  monitor_status TEXT,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (metric_date, agent_id)
@@ -787,3 +790,140 @@ BEFORE DELETE ON eval_result
 BEGIN
   SELECT RAISE(ABORT, 'eval_result is append-only');
 END;
+
+-- tool_usage_daily (state): WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.
+CREATE TABLE IF NOT EXISTS tool_usage_daily (
+  usage_date TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  risk_class TEXT,
+  calls INTEGER NOT NULL,
+  allows INTEGER NOT NULL,
+  blocks INTEGER NOT NULL,
+  pauses INTEGER NOT NULL,
+  errors INTEGER NOT NULL,
+  p50_us INTEGER,
+  p95_us INTEGER,
+  distinct_callers INTEGER NOT NULL,
+  distinct_users INTEGER NOT NULL,
+  first_seen TEXT,
+  last_seen TEXT,
+  computed_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (usage_date, agent_id, tool_name)
+);
+
+CREATE INDEX IF NOT EXISTS ix_tool_usage_daily_agent_id_usage_date ON tool_usage_daily (agent_id, usage_date);
+
+-- alert (state): WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.
+CREATE TABLE IF NOT EXISTS alert (
+  alert_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  dedupe_key TEXT NOT NULL,
+  rule_id TEXT NOT NULL,
+  rule_hash TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  status TEXT NOT NULL,
+  title TEXT NOT NULL,
+  agent_id TEXT,
+  group_value TEXT,
+  window_s INTEGER NOT NULL,
+  window_count INTEGER NOT NULL,
+  threshold INTEGER NOT NULL,
+  first_ts TEXT NOT NULL,
+  last_ts TEXT NOT NULL,
+  suppressed_count INTEGER NOT NULL,
+  case_id TEXT,
+  chain_lane TEXT,
+  chain_seq INTEGER,
+  entry_hash TEXT,
+  refs TEXT NOT NULL,
+  routes TEXT NOT NULL,
+  route_status TEXT NOT NULL,
+  acknowledged_by TEXT,
+  acknowledged_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (alert_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_alert_status_ts ON alert (status, ts);
+
+CREATE INDEX IF NOT EXISTS ix_alert_dedupe_key_ts ON alert (dedupe_key, ts);
+
+-- siem_event (append_only): WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it. Ids, hashes and enums only. event_id is the idempotency key.
+CREATE TABLE IF NOT EXISTS siem_event (
+  event_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  severity INTEGER NOT NULL,
+  outcome TEXT NOT NULL,
+  agent_id TEXT,
+  rule_id TEXT,
+  case_id TEXT,
+  actor TEXT,
+  chain_lane TEXT,
+  chain_seq INTEGER,
+  entry_hash TEXT,
+  env TEXT NOT NULL,
+  event_schema TEXT NOT NULL,
+  ocsf_class_uid INTEGER NOT NULL,
+  ocsf_json TEXT NOT NULL,
+  PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_siem_event_ts ON siem_event (ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_siem_event_no_update
+BEFORE UPDATE ON siem_event
+BEGIN
+  SELECT RAISE(ABORT, 'siem_event is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_siem_event_no_delete
+BEFORE DELETE ON siem_event
+BEGIN
+  SELECT RAISE(ABORT, 'siem_event is append-only');
+END;
+
+-- inventory_node (state): WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).
+CREATE TABLE IF NOT EXISTS inventory_node (
+  node_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  name TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  own_risk TEXT,
+  risk_source TEXT NOT NULL,
+  decision33_class TEXT,
+  attrs TEXT NOT NULL,
+  evidence TEXT NOT NULL,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (node_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_inventory_node_kind_status ON inventory_node (kind, status);
+
+-- inventory_edge (state): WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.
+CREATE TABLE IF NOT EXISTS inventory_edge (
+  edge_id TEXT NOT NULL,
+  src_id TEXT NOT NULL,
+  dst_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL,
+  evidence_ref TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (edge_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_inventory_edge_src_id ON inventory_edge (src_id);
+
+CREATE INDEX IF NOT EXISTS ix_inventory_edge_dst_id ON inventory_edge (dst_id);

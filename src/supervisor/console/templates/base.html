@@ -10,57 +10,30 @@
 <script src="/console/static/console.js"></script>
 <script src="/console/static/htmx.min.js" defer></script>
 </head>
-<body>
+<body class="{{ 'nav-side' if side_nav else 'nav-top' }}">
 {% set sh = shell() %}
-<header class="top">
-  <a class="brand" href="/console/?lang={{ lang }}" aria-label="Supervisor - {{ t('nav_overview') }}">
-    <span class="mark" aria-hidden="true">S</span>
-    <span>supervisor<small>{{ t('tagline') }}</small></span>
-  </a>
-  <nav class="nav" aria-label="{{ t('nav_label') }}">
-    <a href="/console/?lang={{ lang }}" class="{{ 'active' if section == 'overview' else '' }}">{{ t('nav_overview') }}</a>
-    <a href="/console/agents?lang={{ lang }}" class="{{ 'active' if section == 'agents' else '' }}">{{ t('agents') }} <span class="k">{{ sh.agents_n }}</span></a>
-    <a href="/console/cases?lang={{ lang }}" class="{{ 'active' if section == 'cases' else '' }}">{{ t('cases') }} <span class="k {{ 'hot' if sh.critical_n else '' }}">{{ sh.cases_n }}</span></a>
-    <a href="/console/evidence?lang={{ lang }}" class="{{ 'active' if section == 'evidence' else '' }}">{{ t('nav_evidence') }}</a>
-    <a href="/console/onboard?lang={{ lang }}" class="{{ 'active' if section == 'onboard' else '' }}">{{ t('nav_onboard') }}</a>
-    {% if compliance_enabled %}<a href="/console/compliance?lang={{ lang }}" class="{{ 'active' if section == 'compliance' else '' }}">{{ t('nav_compliance') }}</a>{% endif %}
-    {% if integration_on %}<a href="/console/integration?lang={{ lang }}" class="{{ 'active' if section == 'integration' else '' }}">{{ t('nav_integration') }}</a>{% endif %}
-    {% if sh.assurance %}<a href="/console/assurance?lang={{ lang }}" class="{{ 'active' if section == 'assurance' else '' }}">{{ t('nav_assurance') }}</a>{% endif %}
-    <a href="/console/health?lang={{ lang }}" class="{{ 'active' if section == 'health' else '' }}">{{ t('nav_health') }}</a>
-  </nav>
-  <div class="who">
-    <span class="env {{ 'demo' if sh.demo else '' }}" title="{{ t('env_title') }}">{{ sh.mode }}{% if sh.demo %} · {{ t('demo_data') }}{% endif %}</span>
-    <a class="chipbtn inboxlink" href="/console/inbox?lang={{ lang }}" title="{{ t('inbox') }}" aria-label="{{ t('inbox') }}"><svg width="14" height="12" viewBox="0 0 14 12" aria-hidden="true" style="vertical-align:-1px"><rect x="0.75" y="0.75" width="12.5" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 2l5.5 4.2L12.5 2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>{% if sh.unread %}<span class="dotn">{{ sh.unread }}</span>{% endif %}</a>
-    <a class="chipbtn" href="?lang={{ other_lang }}" hreflang="{{ other_lang }}" title="{{ t('language') }}">{{ 'EN · vi' if lang == 'en' else 'VI · en' }}</a>
-    <button type="button" class="chipbtn" data-theme-toggle title="{{ t('theme_toggle') }}" aria-label="{{ t('theme_toggle') }}">&#9680;</button>
-    <span class="role">{{ t('role_' ~ sh.role) }}</span>
-    <details class="me">
-      <summary title="{{ me.user_id }}"><span class="me-name">{{ me.label }}</span><span class="avatar" aria-hidden="true">{{ sh.initials }}</span><span class="sr">{{ t('signed_in_as') }} {{ me.label }}</span></summary>
-      <div class="me-pop">
-        <div class="row"><span class="muted">{{ t('signed_in_as') }}</span><strong>{{ me.label }}</strong></div>
-        <div class="row"><span class="muted">ID</span><span class="mono">{{ me.user_id }}</span></div>
-        <div class="row"><span class="muted">{{ t('auth_method') }}</span><span class="mono">{{ me.auth_method }}</span></div>
-        <div class="row"><span class="muted">{{ t('roles') }}</span><span>{{ me.roles|sort|join(', ') or '-' }}</span></div>
-        {% if known_users %}
-        <form hx-post="/console/dev/user" hx-trigger="change" hx-swap="none">
-          <label class="f" for="dev-user">{{ t('switch_user') }}
-          <select id="dev-user" name="user">
-            {% for u in known_users %}
-            <option value="{{ u.user_id }}" {{ 'selected' if u.user_id == me.user_id else '' }}>{{ u.user_id }} ({{ u.roles|sort|join('/') }})</option>
-            {% endfor %}
-          </select></label>
-        </form>
-        {% endif %}
-      </div>
-    </details>
-  </div>
-</header>
+<a class="skip" href="#main">{{ t('skip_to_main') }}</a>
+{# CONSOLE_NAV=sidebar (default): left sidebar + reduced top bar. CONSOLE_NAV=top: the phase-2
+   pill header, unchanged. Everything below the header is the same in both. #}
+{% if side_nav %}
+<div class="shell">
+{% include "_c_sidebar.html" %}
+<div class="shell-main">
+{% include "_c_topbar.html" %}
+{% else %}
+{% include "_c_header_top.html" %}
+{% endif %}
 {% if auth_kind == 'dev_header' or sh.demo %}<div class="notice"{% if sh.demo %} data-demo="1"{% endif %}><span class="dot"></span>{% if auth_kind == 'dev_header' %}{{ t('dev_banner') }}{% endif %}{% if sh.demo %} {{ t('demo_line') }}{% endif %}</div>{% endif %}
 {% if me.kind == 'service_principal' %}<div class="notice sp"><span class="dot"></span>{{ t('sp_banner') }}</div>{% endif %}
-<main id="main">
+<main id="main" tabindex="-1">
   <div id="flash" aria-live="polite"></div>
   {% block content %}{% endblock %}
 </main>
-<footer class="foot">Supervisor {{ version }} · {{ t('mode') }} {{ mode }} · {{ now|ict }} · <a href="/console/metrics?lang={{ lang }}">{{ t('metrics') }}</a></footer>
+<footer class="foot">Supervisor {{ version }} · {{ t('mode') }} {{ mode }} · {{ now|ict }} · <a href="/console/analytics?tab=metrics&amp;lang={{ lang }}">{{ t('metrics') }}</a></footer>
+{% if side_nav %}
+</div>
+</div>
+{% endif %}
+<aside id="drawer" class="drawer" role="dialog" aria-modal="false" aria-labelledby="drawer-title" tabindex="-1"{% if drawer_open is not defined %} hidden{% endif %}>{% block drawer %}{% endblock %}</aside>
 </body>
 </html>

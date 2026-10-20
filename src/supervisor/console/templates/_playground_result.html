@@ -1,0 +1,51 @@
+{# Dry-run answer (WP-UX3). Variable: result (playground.run). Nothing here was recorded. #}
+{% import "_ui.html" as ui with context %}
+{% set res = result.res %}
+{% if result.error %}
+  <div class="msg msg-error" role="alert">{{ t('pg_error') }}: {{ result.error }}</div>
+{% else %}
+  <h2 class="sec">{{ t('pg_result') }} {{ ui.pill(t('dry_run_pill'), 'teal') }}</h2>
+  <p class="verdict-line">
+    {{ ui.action_pill(res.action) }}
+    {% if res.would_pause %}{{ ui.pill(t('pg_would_pause'), 'warn', True) }}{% endif %}
+    {% if res.shadow %}{{ ui.pill(t('state_SHADOW'), 'teal') }}{% endif %}
+  </p>
+  {{ ui.kv([
+    (t('pg_allow'), t('yes') if res.allow else t('no')),
+    (t('rule_col'), res.rule_id, True),
+    (t('reason'), res.reason),
+    (t('agent'), result.agent_id),
+    (t('tool'), result.tool, True),
+    (t('state'), res.agent_state),
+    (t('risk_class'), res.risk_class),
+    (t('policy_hash'), res.policy_hash, True),
+    (t('fail_mode'), res.fail_mode),
+    (t('latency_us'), res.latency_us),
+  ]) }}
+  <p class="hint">{{ t('pg_state_unchanged') }}</p>
+  <h3 class="sec">{{ t('pg_rule_hits') }}</h3>
+  {% if result.hits %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th scope="col">{{ t('rule_col') }}</th><th scope="col">{{ t('action') }}</th><th scope="col">{{ t('severity') }}</th></tr></thead>
+    <tbody>
+    {% for h in result.hits %}
+      <tr><td><span class="mono">{{ h.rule_id }}</span>{% if h.error %} {{ ui.pill(t('rule_error'), 'bad') }}{% endif %}<div class="idline">{{ h.text }}</div></td><td>{{ ui.action_pill(h.action) }}</td><td>{{ ui.sev(h.severity) if h.severity else '-' }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="hint">{{ t('no_rule_hits_line') }}</p>
+  {% endif %}
+  {% if result.not_evaluated %}
+  <p class="hint">{{ t('pg_not_evaluated') }}: <span class="mono">{{ result.not_evaluated|join(', ') }}</span></p>
+  {% endif %}
+  <h3 class="sec">{{ t('pg_transformed') }}</h3>
+  {% if result.transformed %}
+    <pre class="mono wrap payload">{{ result.transformed }}</pre>
+  {% elif result.preview %}
+    <p class="hint">{{ t('pg_preview_line', n=result.preview_changed) }}</p>
+    <pre class="mono wrap payload">{{ result.preview }}</pre>
+  {% else %}
+    <p class="hint">{{ t('pg_no_masker') }}</p>
+  {% endif %}
+{% endif %}

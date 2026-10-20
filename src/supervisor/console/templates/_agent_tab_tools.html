@@ -1,0 +1,6 @@
+{# Tools tab: the WP22 rollup and least-privilege panel of this agent (CONSOLE_TOOLS_ENABLED). #}
+{% set tools_base = '/console/agents/' ~ a.agent_id ~ '?tab=tools' %}
+{% set tools_hx = '/console/agents/' ~ a.agent_id ~ '/tab/tools?tab=tools' %}
+{% set tools_all_href = None %}
+{% include "_tools_agents.html" %}
+<p class="hint"><a href="/console/analytics?tab=tools&amp;agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('tl_in_analytics') }}</a></p>

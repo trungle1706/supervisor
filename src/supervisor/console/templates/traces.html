@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_traces') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_watch'), None), (t('nav_traces'), None)]) }}
+{{ ui.pagehead(t('nav_traces')) }}
+{{ ui.purpose(t('traces_purpose'), t('traces_why')) }}
+{{ ui.filterbar('/console/traces', '/console/traces/rows', [
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+  {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
+  {'name': 'range', 'label': t('time_range'), 'kind': 'select', 'value': params.range, 'options': range_opts},
+  {'name': 'q', 'label': t('trace_id'), 'kind': 'search', 'value': params.q},
+], '/console/traces?lang=' ~ lang) }}
+<div id="list">
+{% include "_traces_list.html" %}
+</div>
+{% endblock %}

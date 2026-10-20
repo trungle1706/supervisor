@@ -167,7 +167,19 @@ def test_from_settings_and_factory(monkeypatch: pytest.MonkeyPatch) -> None:
         ("databricks-meta-llama-3-3-70b-instruct", "meta"),
         ("gemma3:4b", "google"),
         ("deepseek-r1:7b", "deepseek"),
-        ("mistral:7b", "unknown"),
+        # D05 review: the derived family table (unknown ids cannot be judged any more).
+        ("mistral:7b", "mistral"),
+        ("mistralai/Mixtral-8x7B-Instruct", "mistral"),
+        ("gemini-2.5-pro", "google"),
+        ("databricks-gpt-oss-120b", "openai"),
+        ("openai/gpt-oss-20b", "openai"),
+        ("databricks-claude-sonnet-4-5", "anthropic"),
+        ("us.anthropic.claude-haiku-5-5", "anthropic"),
+        ("databricks-meta-llama-3-1-8b-instruct", "meta"),
+        ("meta-llama/Llama-3.1-8B-Instruct", "meta"),
+        ("databricks-gemma-3-12b", "google"),
+        ("databricks-qwen3-next-80b-a3b-instruct", "qwen"),
+        ("tcb-judge-endpoint", "unknown"),
     ],
 )
 def test_model_family(name: str, family: str) -> None:

@@ -1,0 +1,66 @@
+{# Row drawer of the gate decisions list: tabs Details / Rules / Evidence. Variable: drawer
+   (decisions.drawer_view). Only masked data: the arguments are a keyed hash (R2). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set e = drawer.e %}
+{% set r = drawer.row %}
+{% set tab = drawer.tab %}
+{% set qs = drawer.qs %}
+{% set base = '/console/decisions/' ~ e.event_id ~ '/drawer?tab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set page_base = '/console/decisions?drawer=' ~ e.event_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set pills %}{{ ui.action_pill(r.action) }} <span class="mono">{{ r.agent_id }} · {{ r.tool }}{% if r.rule_id %} · {{ r.rule_id }}{% endif %}</span>{% endset %}
+{% set labels = {'details': t('dtab_details'), 'rules': t('dtab_rules'), 'evidence': t('dtab_evidence')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base, counts={'rules': drawer.rules|length}) }}{% endset %}
+{% set prev_href = ('/console/decisions?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/decisions/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/decisions?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/decisions/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% call dr.drawer(t('nav_decisions'), pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {% if tab == 'details' %}
+    {{ ui.kv([
+      (t('time'), e.ts|day),
+      (t('agent'), e.agent_id),
+      (t('version'), e.agent_version),
+      (t('caller_agent'), e.caller_agent_id),
+      (t('tool'), e.tool_name, True),
+      (t('trace_id'), e.trace_id, True),
+      (t('span_id'), e.span_id, True),
+      (t('args_hash'), e.args_hash, True),
+      (t('arg_keys'), drawer.arg_keys|join(', '), True),
+      (t('amount_vnd'), (e.amount_minor|vnd) if e.amount_minor is not none else None),
+      (t('latency_us'), r.latency_us),
+      (t('reason'), drawer.reason),
+      (t('capture_level'), e.capture_level),
+    ]) }}
+    <p class="btnrow">
+      {% if drawer.traces_on and e.trace_id %}<a class="btn" href="/console/traces/{{ e.trace_id }}?lang={{ lang }}">{{ t('open_trace') }}</a>{% endif %}
+      {% if r.case_id %}<a class="btn" href="/console/cases/{{ r.case_id }}?lang={{ lang }}">{{ t('open_case') }} {{ r.case_id }}</a>{% endif %}
+    </p>
+  {% elif tab == 'rules' %}
+    {% if drawer.rules %}
+    <div class="tablewrap flat"><table>
+      <thead><tr><th scope="col">{{ t('rule_col') }}</th><th scope="col">{{ t('action') }}</th><th scope="col">{{ t('severity') }}</th></tr></thead>
+      <tbody>
+      {% for h in drawer.rules %}
+        <tr><td><span class="mono">{{ h.rule_id }}</span><div class="idline">{{ h.text }}</div>{% if h.regulation_ref %}<div class="idline">{{ h.regulation_ref }}</div>{% endif %}</td><td>{{ ui.action_pill(h.action) }}{% if h.label %}<div class="idline">{{ h.label }}</div>{% endif %}</td><td>{{ ui.sev(h.severity) if h.severity else '-' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    {{ ui.empty(t('no_rule_hits'), t('no_rule_hits_line')) }}
+    {% endif %}
+  {% else %}
+    {% if drawer.chain %}
+    {{ ui.kv([
+      (t('chain_lane'), drawer.chain.lane, True),
+      (t('chain_seq'), drawer.chain.seq),
+      (t('entry_hash'), drawer.chain.entry_hash, True),
+      (t('payload_hash'), drawer.chain.payload_hash, True),
+      (t('time'), drawer.chain.ts|day),
+    ]) }}
+    <p class="btnrow"><a class="btn" href="/console/evidence?lang={{ lang }}">{{ t('nav_evidence') }}</a></p>
+    {% else %}
+    {{ ui.empty(t('no_chain_entry'), t('no_chain_entry_line')) }}
+    {% endif %}
+  {% endif %}
+{% endcall %}

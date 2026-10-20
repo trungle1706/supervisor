@@ -130,6 +130,7 @@ def build_card(
             "model_id": d["model_id"],
             "model_version": d["model_version"],
             "family": d["family"],
+            "family_source": d["family_source"],
             "kind": "mock" if d["is_mock"] else "model",
         }
     report = _load_report(eval_report_path)
@@ -204,7 +205,7 @@ def render_card_md(card: dict[str, Any]) -> str:
         d = i["tiers"][t]
         lines.append(
             f"- {t.upper()}: {d['model_id']} (version {d['model_version']}, "
-            f"family {d['family']}, {d['kind']})"
+            f"family {d['family']} [{d['family_source']}], {d['kind']})"
         )
     lines += [
         f"- prompt version: {i['prompt_version']}",

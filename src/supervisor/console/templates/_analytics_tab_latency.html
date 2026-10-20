@@ -1,0 +1,8 @@
+{# Latency tab: the live gateway counters of this process (the old "Gate latency" card). #}
+<section class="card">
+  <h3>{{ t('gate_latency') }}</h3>
+  <div class="tablewrap flat"><table id="latency-table">
+  {% for k, v in gate.items() %}{% if v is not mapping %}<tr><td>{{ k }}</td><td class="n">{{ v }}</td></tr>{% else %}{% for k2, v2 in v.items() %}<tr><td>{{ k }}.{{ k2 }}</td><td class="n">{{ v2 }}</td></tr>{% endfor %}{% endif %}{% endfor %}
+  </table></div>
+  <p class="hint">{{ t('an_latency_note') }}</p>
+</section>

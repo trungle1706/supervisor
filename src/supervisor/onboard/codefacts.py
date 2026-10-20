@@ -17,6 +17,10 @@ from dataclasses import dataclass, field
 
 import yaml
 
+# The judge router owns the family alias table (claude -> anthropic, ...). Import it so the
+# onboarding family and the judge family can never disagree on a name (WP1b-B, D08).
+from supervisor.judge.router import FAMILY_ALIASES
+
 PII_VOCAB = frozenset(
     """customer_id full_name customer_name payee_name national_id cccd cmnd id_number phone
     phone_number email address dob date_of_birth account_number account_id card_number income
@@ -26,6 +30,7 @@ PII_VOCAB = frozenset(
 
 # Framework by import prefix; first rule that matches any import wins.
 _FRAMEWORKS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("deepagents", ("deepagents",)),  # built on LangGraph, so it must come first
     ("langgraph", ("langgraph",)),
     ("crewai", ("crewai",)),
     ("llamaindex", ("llama_index",)),
@@ -96,7 +101,20 @@ _FILE_WRITE = ("write_text", "write_bytes")
 _PD_READ = ("read_csv", "read_excel", "read_parquet", "read_json")
 _PD_WRITE = ("to_csv", "to_excel", "to_parquet", "to_json")
 _TOOL_LIST_KW = ("tools", "functions")
-_TOOL_LIST_CALLS = ("bind_tools", "ToolNode", "create_react_agent", "bind_functions")
+_TOOL_LIST_CALLS = (
+    "bind_tools",
+    "ToolNode",
+    "create_react_agent",
+    "create_deep_agent",
+    "create_agent",
+    "bind_functions",
+)
+# Agent factories that take the model as a string (``"provider:model"`` or a bare id).
+_AGENT_FACTORIES = {
+    "create_deep_agent": "deepagents",
+    "create_react_agent": "langgraph",
+    "create_agent": "langchain",
+}
 _TOOL_CTORS = {
     "Tool": ("func", "name"),
     "StructuredTool.from_function": ("func", "name"),
@@ -106,6 +124,9 @@ _TOOL_CTORS = {
 }
 _TOOL_BASES = ("BaseTool",)
 _ROUTE_METHODS = ("get", "post", "put", "patch", "delete")
+# A route under one of these path roots is a tool server endpoint (the model calls it as a
+# tool); every other route is an entrypoint of the agent app (WP1b-B, D08).
+_TOOL_PATH = re.compile(r"^/(tools?|functions?|actions?|mcp)(/|$)", re.IGNORECASE)
 _NOT_TOOL_DECOS = ("resource", "prompt", "on_event", "middleware", "exception_handler")
 
 
@@ -138,6 +159,19 @@ class ToolFact(Fact):
 
 
 @dataclass
+class EntrypointFact(Fact):
+    """An HTTP route of the agent app (not a tool the model can call)."""
+
+    method: str
+    path: str
+    func: str
+
+    @property
+    def name(self) -> str:
+        return f"{self.method} {self.path}"
+
+
+@dataclass
 class CodeFacts:
     framework: str = "custom"
     framework_evidence: Fact | None = None
@@ -145,36 +179,62 @@ class CodeFacts:
     data_access: list[DataFact] = field(default_factory=list)
     tracing: dict[str, Fact] = field(default_factory=dict)
     tools: list[ToolFact] = field(default_factory=list)
+    entrypoints: list[EntrypointFact] = field(default_factory=list)
+    dynamic_tools: list[Fact] = field(default_factory=list)  # MCP ``tools/list`` at runtime
     pii: dict[str, Fact] = field(default_factory=dict)
     trees: dict[str, ast.Module] = field(default_factory=dict)
 
 
+_ID_PREFIXES = (
+    "us.anthropic.",
+    "eu.anthropic.",
+    "global.anthropic.",
+    "anthropic.",
+    "anthropic/",
+    "openai/",
+    "databricks/",
+    "databricks-",
+    "meta-",
+    "meta/",
+)
+_FAMILY_TOKEN = re.compile(r"[a-z]+\d*")
+# Families that the router alias table does not list: model-id token -> family.
+_EXTRA_TOKENS: dict[str, str] = {
+    "o3": "openai",
+    "o4": "openai",
+    "deepseek": "deepseek",
+    "mistral": "mistral",
+    "mixtral": "mistral",
+    "dbrx": "databricks",
+    "qwen": "qwen",
+}
+
+
 def model_family(model: str | None) -> str:
-    """README table: claude->anthropic, gpt/o1/o3/o4->openai, qwen, llama->meta, ..."""
+    """Family of a model id or serving endpoint name (``databricks-claude-*`` -> anthropic,
+    ``databricks-meta-llama-*`` -> meta, ``databricks-gpt-oss-*`` -> openai, ``qwen3.8-*`` ->
+    qwen). Vendor prefixes are cut first; the leading word is then looked up in the judge
+    router alias table (``judge.router.FAMILY_ALIASES``), so both sides use one vocabulary."""
     if not model:
         return "unknown"
-    name = model.strip().lower()
-    for p in ("us.anthropic.", "anthropic.", "anthropic/", "openai/", "databricks-", "meta-"):
-        if name.startswith(p):
-            name = name[len(p) :]
-    name = name.rsplit("/", 1)[-1]
-    for prefix, fam in (
-        ("claude", "anthropic"),
-        ("gpt", "openai"),
-        ("o1", "openai"),
-        ("o3", "openai"),
-        ("o4", "openai"),
-        ("qwen", "qwen"),
-        ("llama", "meta"),
-        ("meta-llama", "meta"),
-        ("gemma", "google"),
-        ("deepseek", "deepseek"),
-        ("mistral", "mistral"),
-        ("mixtral", "mistral"),
-        ("dbrx", "databricks"),
-    ):
-        if name.startswith(prefix):
-            return fam
+    name = model.strip().lower().rsplit("/", 1)[-1] if "/" in model else model.strip().lower()
+    changed = True
+    while changed:
+        changed = False
+        for p in _ID_PREFIXES:
+            if name.startswith(p):
+                name, changed = name[len(p) :], True
+    m = _FAMILY_TOKEN.match(name)
+    if not m:
+        return "unknown"
+    tok = m.group(0)
+    base = tok.rstrip("0123456789")
+    for key in (tok, base):
+        if key in FAMILY_ALIASES:
+            return FAMILY_ALIASES[key]
+    for key in (tok, base):
+        if key in _EXTRA_TOKENS:
+            return _EXTRA_TOKENS[key]
     return "unknown"
 
 
@@ -191,6 +251,7 @@ class _File:
     binds: dict[str, str] = field(default_factory=dict)  # var -> qualified callee
     bind_kws: dict[str, ast.Call] = field(default_factory=dict)
     defs: dict[str, ast.FunctionDef | ast.AsyncFunctionDef] = field(default_factory=dict)
+    env: Mapping[str, str] = field(default_factory=dict)  # env values from app.yaml / .env files
 
     def qual(self, node: ast.AST) -> str:
         parts: list[str] = []
@@ -226,6 +287,18 @@ class _File:
             if a is None and b is None:
                 return None
             return (a or "{}") + (b or "{}")
+        if isinstance(node, ast.Call) and self.qual(node.func) in ("os.getenv", "os.environ.get"):
+            key = self.text(node.args[0]) if node.args else None
+            if key and key in self.env:
+                return self.env[key]
+            default = node.args[1] if len(node.args) > 1 else _kw(node, "default")
+            return self.text(default)
+        if (
+            isinstance(node, ast.Subscript)
+            and self.qual(node.value) == "os.environ"
+            and isinstance(node.slice, ast.Constant)
+        ):
+            return self.env.get(str(node.slice.value))
         if isinstance(node, ast.Call) and self.qual(node.func).endswith(("text", "format")):
             if isinstance(node.func, ast.Attribute) and node.func.attr == "format":
                 return self.text(node.func.value)
@@ -233,8 +306,8 @@ class _File:
         return None
 
 
-def _load(path: str, tree: ast.Module) -> _File:
-    f = _File(path, tree)
+def _load(path: str, tree: ast.Module, env: Mapping[str, str] | None = None) -> _File:
+    f = _File(path, tree, env=env or {})
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for a in node.names:
@@ -258,7 +331,9 @@ def _load(path: str, tree: ast.Module) -> _File:
                     if isinstance(t, ast.Name):
                         f.consts[t.id] = val.value
     for node in tree.body:  # second pass: f-string constants built from constants
-        if isinstance(node, ast.Assign) and isinstance(node.value, ast.JoinedStr | ast.BinOp):
+        if isinstance(node, ast.Assign) and isinstance(
+            node.value, ast.JoinedStr | ast.BinOp | ast.Call | ast.Subscript
+        ):
             v = f.text(node.value)
             for t in node.targets:
                 if isinstance(t, ast.Name) and v is not None:
@@ -311,6 +386,7 @@ def _receiver(call: ast.Call) -> str:
 def analyse(lines: Mapping[str, Sequence[str]]) -> CodeFacts:
     facts = CodeFacts()
     files: list[_File] = []
+    env = _env_values(lines)
     for path in sorted(lines):
         if not path.endswith(".py"):
             continue
@@ -319,7 +395,7 @@ def analyse(lines: Mapping[str, Sequence[str]]) -> CodeFacts:
         except SyntaxError:
             continue
         facts.trees[path] = tree
-        files.append(_load(path, tree))
+        files.append(_load(path, tree, env))
     all_defs = {name: (f, fn) for f in files for name, fn in f.defs.items()}
     facts.framework, facts.framework_evidence = _framework(files)
     for f in files:
@@ -327,6 +403,8 @@ def analyse(lines: Mapping[str, Sequence[str]]) -> CodeFacts:
         _tracing(f, facts)
         _pii(f, facts)
     facts.tools = _tools(files, all_defs, _yaml_lists(lines))
+    facts.entrypoints = _routes(files)
+    facts.dynamic_tools = _dynamic_tools(files)
     facts.llm_calls.sort(key=lambda x: (x.file, x.line))
     facts.data_access.sort(key=lambda x: (x.file, x.line, x.kind))
     return facts
@@ -443,6 +521,22 @@ def _llm_and_data(f: _File, facts: CodeFacts) -> None:
             facts.llm_calls.append(
                 LlmCallFact(f.path, line, _LLAMA_LLMS[ctor], model_family(model), model, ctor)
             )
+            continue
+        if ctor in _AGENT_FACTORIES and origin.startswith(_AGENT_FACTORIES[ctor]):
+            # create_deep_agent(model="..."), create_react_agent("provider:model", tools)
+            node_m = _kw(node, "model", "llm")
+            if node_m is None and ctor != "create_deep_agent" and node.args:
+                node_m = node.args[0]
+            model = f.text(node_m) if node_m is not None else None
+            if model and "{}" not in model:
+                prov, _, rest = model.partition(":")
+                if rest and prov.isalpha():
+                    model = rest
+                else:
+                    prov = _prefix_provider(model)
+                facts.llm_calls.append(
+                    LlmCallFact(f.path, line, prov, model_family(model), model, ctor)
+                )
             continue
         if origin.startswith("crewai") and ctor == "LLM":
             model = _model_of(f, node) or (f.text(node.args[0]) if node.args else None)
@@ -562,6 +656,8 @@ def _prefix_provider(model: str | None) -> str:
     head = model.split("/", 1)[0].lower() if "/" in model else ""
     if head in ("anthropic", "openai", "azure", "databricks", "ollama"):
         return "azure_openai" if head == "azure" else head
+    if model.lower().startswith("databricks-"):  # a Databricks serving endpoint name
+        return "databricks"
     fam = model_family(model)
     return {"anthropic": "anthropic", "openai": "openai"}.get(fam, "unknown")
 
@@ -770,7 +866,9 @@ def _tools(
                         explicit[node.name] = name or node.name
                         add(name or node.name, node.name, f.path, node.lineno, "decorator")
                     elif _is_route(f, dec):
-                        add(node.name, node.name, f.path, node.lineno, "route")
+                        # A route is a tool only on a tool server (path root /tools/...).
+                        if _TOOL_PATH.match(_route_path(f, dec)):
+                            add(node.name, node.name, f.path, node.lineno, "route")
             elif isinstance(node, ast.ClassDef):
                 bases = {ast.unparse(b).rsplit(".", 1)[-1] for b in node.bases}
                 if bases & set(_TOOL_BASES):
@@ -788,6 +886,12 @@ def _tools(
                     for k, v in zip(node.keys, node.values, strict=False)
                     if isinstance(k, ast.Constant) and isinstance(k.value, str)
                 }
+                sub_tools = keys.get("tools")
+                if isinstance(sub_tools, ast.List | ast.Tuple) and "name" in keys:
+                    # deepagents sub-agent spec: {"name": ..., "tools": [fn, ...]}
+                    for elt in sub_tools.elts:
+                        if isinstance(elt, ast.Name) and elt.id in all_defs:
+                            add(explicit.get(elt.id, elt.id), elt.id, f.path, elt.lineno, "list")
                 if "name" in keys and ("input_schema" in keys or "parameters" in keys):
                     n = f.text(keys["name"])
                     if n:
@@ -850,6 +954,120 @@ def _tools(
         if name in all_defs and name not in found:
             add(name, name, "", 0, "config")
     return sorted(found.values(), key=lambda t: (t.file, t.line, t.name))
+
+
+def _route_path(f: _File, dec: ast.AST) -> str:
+    """Full path of a FastAPI route decorator (router prefix + path), '' if not static."""
+    if not isinstance(dec, ast.Call) or not isinstance(dec.func, ast.Attribute):
+        return ""
+    raw = f.text(dec.args[0]) if dec.args else f.text(_kw(dec, "path"))
+    if raw is None:
+        return ""
+    owner = ast.unparse(dec.func.value)
+    ctor = f.bind_kws.get(owner)
+    prefix = f.text(_kw(ctor, "prefix")) if ctor is not None else None
+    return (prefix or "") + raw
+
+
+def _routes(files: Sequence[_File]) -> list[EntrypointFact]:
+    """HTTP routes of FastAPI apps and routers, with file:line of the handler ``def``."""
+    out: list[EntrypointFact] = []
+    for f in files:
+        for node in ast.walk(f.tree):
+            if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                continue
+            for dec in node.decorator_list:
+                if _is_route(f, dec) and isinstance(dec, ast.Call):
+                    if not isinstance(dec.func, ast.Attribute):
+                        continue
+                    out.append(
+                        EntrypointFact(
+                            f.path,
+                            node.lineno,
+                            dec.func.attr.upper(),
+                            _route_path(f, dec) or "{}",
+                            node.name,
+                        )
+                    )
+    return sorted(out, key=lambda e: (e.file, e.line, e.method))
+
+
+def _dynamic_tools(files: Sequence[_File]) -> list[Fact]:
+    """Places where the tool list comes from an MCP server at run time (``tools/list``,
+    ``session.list_tools()``). Those tools cannot be named from code."""
+    out: list[Fact] = []
+    for f in files:
+        decorators = {
+            id(d)
+            for n in ast.walk(f.tree)
+            if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)
+            for d in n.decorator_list
+        }
+        for node in ast.walk(f.tree):
+            if isinstance(node, ast.Call) and id(node) not in decorators:
+                if f.qual(node.func).rsplit(".", 1)[-1] == "list_tools" and isinstance(
+                    node.func, ast.Attribute
+                ):
+                    out.append(Fact(f.path, node.lineno))
+            elif isinstance(node, ast.Constant) and node.value == "tools/list":
+                out.append(Fact(f.path, node.lineno))
+    return sorted(out, key=lambda x: (x.file, x.line))
+
+
+# Env names that may hold a credential. Their values are never read, even when the scrubber
+# missed them (short or unusual secrets): only endpoint names and model ids are wanted here.
+_SECRET_ENV = re.compile(
+    r"(?i)(key|token|secret|pass|pwd|credential|auth|private|cert|signature|salt|cookie|"
+    r"session|dsn|conn|(^|_)pat($|_))"
+)
+_ENV_LINE = re.compile(
+    r"^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=\s*['\"]?([^'\"#\s]+)['\"]?\s*(?:#.*)?$"
+)
+
+
+def _put_env(env: dict[str, str], name: str, value: str) -> None:
+    """First value wins; credential-like names and redaction markers are dropped."""
+    if not _SECRET_ENV.search(name) and "[REDACTED" not in value:
+        env.setdefault(name, value)
+
+
+def _env_values(lines: Mapping[str, Sequence[str]]) -> dict[str, str]:
+    """Non-secret env values a deployment file sets: ``env:`` lists in app.yaml / YAML
+    configs (``- name: X`` + ``value: Y``) and ``KEY=value`` lines of ``.env*`` files. Used
+    to resolve ``os.environ.get("X")`` to a serving endpoint name. A name that looks like a
+    credential (``_SECRET_ENV``) is skipped, so its value never enters the facts."""
+    env: dict[str, str] = {}
+    for path in sorted(lines):
+        base = path.rsplit("/", 1)[-1]
+        if path.endswith((".yaml", ".yml")):
+            try:
+                data = yaml.safe_load("\n".join(lines[path]))
+            except yaml.YAMLError:
+                continue
+            stack = [data]
+            while stack:
+                cur = stack.pop()
+                if isinstance(cur, dict):
+                    for k, v in cur.items():
+                        if str(k).lower() in ("env", "environment") and isinstance(v, list):
+                            for item in v:
+                                if isinstance(item, dict) and isinstance(item.get("name"), str):
+                                    val = item.get("value")
+                                    if isinstance(val, str):
+                                        _put_env(env, item["name"], val)
+                        elif str(k).lower() in ("env", "environment") and isinstance(v, dict):
+                            for ek, ev in v.items():
+                                if isinstance(ev, str):
+                                    _put_env(env, str(ek), ev)
+                        stack.append(v)
+                elif isinstance(cur, list):
+                    stack.extend(cur)
+        elif base.startswith(".env") or base.endswith(".env"):
+            for row in lines[path]:
+                m = _ENV_LINE.match(row)
+                if m:
+                    _put_env(env, m.group(1), m.group(2))
+    return env
 
 
 def _dict_owner(files: Sequence[_File], key: str) -> str:

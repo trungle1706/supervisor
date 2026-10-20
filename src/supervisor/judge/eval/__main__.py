@@ -22,6 +22,7 @@ from supervisor.core.errors import SupervisorError
 from supervisor.judge.eval.datasets import build_eval_sets
 from supervisor.judge.eval.harness import ascii_table, run_eval
 from supervisor.judge.mockjudge import MockJudgeChat
+from supervisor.judge.mrm._common import with_mock_challenger
 from supervisor.judge.router import JudgeRouter
 
 DEFAULT_OUT = REPO_ROOT / "data" / "golden" / "eval_report.json"
@@ -38,7 +39,8 @@ def _router_factory(model: str):  # noqa: ANN202 - local factory
             "t1": MockJudgeChat(1, model_id="mock-judge-t1-v1", gullible=gullible),
             "t2": MockJudgeChat(2, model_id="mock-judge-t2-v1", gullible=gullible),
         }
-        return JudgeRouter.from_settings(settings, chats=chats)
+        # A mock run never calls a configured real challenger (D15 review).
+        return JudgeRouter.from_settings(settings, chats=with_mock_challenger(settings, chats))
 
     return build
 

@@ -46,6 +46,7 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "metrics.view": (_ALL, "Metrics page"),
     "onboard.view": (_ALL, "Onboarding page, status and generated files"),
     "compliance.view": (_ALL, "Compliance tab (advisory obligations matrix, read-only)"),
+    "inventory.view": (_ALL, "Inventory page and /v1/inventory (read-only, WP24)"),
     "gate.read": (_ALL, "Read agent gate state and gate metrics (API)"),
     "case.assign": (("reviewer", "admin"), "Assign a case"),
     "case.itsm": (("reviewer", "admin"), "Set the ITSM reference of a case"),
@@ -68,11 +69,32 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "approver", "admin", "auditor"),
         "Download a built audit pack",
     ),
+    "tools.view": (_ALL, "Tools page and /v1/analytics/tools (tool usage, read-only)"),
+    "tools.download": (
+        ("owner", "admin"),
+        "Download the least-privilege diff of an agent (WP22; a suggestion, never applied)",
+    ),
     "onboard.start": (("reviewer", "owner", "admin"), "Start an onboarding run"),
     "agent.pause": (("reviewer", "approver", "owner", "admin"), "Pause an agent (D04)"),
     "agent.resume": (("reviewer", "owner", "admin"), "Approve a resume (D04, two people)"),
     "agent.quarantine": (("admin",), "Quarantine an agent"),
     "agent.release": (("admin",), "Release an agent from quarantine"),
+    "alert.ack": (("operator", "admin"), "Acknowledge an alert (WP21)"),
+    # --- WP-UX3 ---
+    "decisions.view": (_ALL, "Gate decisions list and drawer (read-only)"),
+    "traces.view": (_ALL, "Traces list and span viewer (masked payloads only)"),
+    "playground.run": (
+        ("reviewer", "approver", "owner", "admin", "operator"),
+        "Playground: dry-run gate check, no side effect (WP-UX3)",
+    ),
+    "policies.view": (_ALL, "Policies page: deployed rules and versions (read-only)"),
+    "credentials.view": (
+        ("owner", "admin"),
+        "Credentials page: agent key metadata, never a secret (read-only)",
+    ),
+    "users.view": (("admin",), "Users and roles page (read-only)"),
+    "audit.view": (("auditor", "admin"), "Audit log page: console_action rows (read-only)"),
+    "integrations.view": (_ALL, "Integrations status page (read-only)"),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -84,7 +106,9 @@ NON_USER_OK: frozenset[str] = frozenset(
         "metrics.view",
         "onboard.view",
         "compliance.view",
+        "inventory.view",
         "gate.read",
+        "tools.view",
         "case.verify",
         "chain.verify",
     }
@@ -141,7 +165,32 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/integration/{name}/patches/{file}"): "onboard.view",
     ("GET", "/console/assurance"): "console.view",  # WP17, read-only
     ("GET", "/console/assurance/{run_id}"): "console.view",
+    ("GET", "/console/inventory"): "inventory.view",  # WP24, read-only
+    ("GET", "/v1/inventory/unmanaged"): "inventory.view",
+    ("GET", "/v1/inventory/{agent_id}"): "inventory.view",
     ("GET", "/console/exports/{name}"): "evidence.download",
+    ("GET", "/console/search"): "console.view",  # WP-UX1, read-only
+    ("GET", "/console/soon/{page}"): "console.view",  # WP-UX1 placeholder pages
+    ("GET", "/console/agents/rows"): "console.view",
+    ("GET", "/console/agents/{agent_id}/drawer"): "console.view",
+    # --- WP-UX2 ---
+    ("GET", "/console/agents/{agent_id}"): "console.view",
+    ("GET", "/console/agents/{agent_id}/tab/{tab}"): "console.view",
+    ("GET", "/console/cases/{case_id}/drawer"): "console.view",
+    ("GET", "/console/alerts"): "metrics.view",
+    ("GET", "/console/alerts/rows"): "metrics.view",
+    ("GET", "/console/alerts/{alert_id}/drawer"): "metrics.view",
+    ("GET", "/console/signoff"): "console.view",
+    ("GET", "/console/signoff/rows"): "console.view",
+    ("GET", "/console/signoff/{case_id}/drawer"): "console.view",
+    ("GET", "/console/analytics"): "metrics.view",
+    ("GET", "/console/analytics/tab/{tab}"): "metrics.view",
+    ("GET", "/console/inbox/rows"): "console.view",
+    ("GET", "/console/inventory/rows"): "inventory.view",
+    # --- end WP-UX2 ---
+    ("GET", "/console/tools"): "tools.view",  # WP22
+    ("GET", "/console/tools/{agent_id}/diff"): "tools.download",
+    ("GET", "/v1/analytics/tools"): "tools.view",
     # console actions
     ("POST", "/console/cases/{case_id}/assign"): "case.assign",
     ("POST", "/console/cases/{case_id}/comment"): "case.comment",
@@ -157,6 +206,26 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/export"): "evidence.export",
     ("POST", "/console/onboard/start"): "onboard.start",
     ("POST", "/console/inbox/{notice_id}/read"): "inbox.read",
+    ("POST", "/console/alerts/{alert_id}/ack"): "alert.ack",
+    # --- WP-UX3 ---
+    ("GET", "/console/decisions"): "decisions.view",
+    ("GET", "/console/decisions/rows"): "decisions.view",
+    ("GET", "/console/decisions/{event_id}/drawer"): "decisions.view",
+    ("GET", "/console/traces"): "traces.view",
+    ("GET", "/console/traces/rows"): "traces.view",
+    ("GET", "/console/traces/{trace_id}"): "traces.view",
+    ("GET", "/console/traces/{trace_id}/span/{span_id}"): "traces.view",
+    ("GET", "/console/playground"): "playground.run",
+    ("POST", "/console/playground/run"): "playground.run",
+    ("GET", "/console/policies"): "policies.view",
+    ("GET", "/console/policies/rows"): "policies.view",
+    ("GET", "/console/policies/{rule_id}/drawer"): "policies.view",
+    ("GET", "/console/credentials"): "credentials.view",
+    ("GET", "/console/users"): "users.view",
+    ("GET", "/console/audit"): "audit.view",
+    ("GET", "/console/audit/rows"): "audit.view",
+    ("GET", "/console/audit/{action_id}/drawer"): "audit.view",
+    ("GET", "/console/integrations"): "integrations.view",
 }
 
 

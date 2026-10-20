@@ -20,7 +20,7 @@ import json
 import logging
 import time
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -32,7 +32,10 @@ from supervisor.judge.router import FamilyConflictError, normalize_family, sampl
 
 log = logging.getLogger("supervisor.monitors.quality")
 
-REPLY_TOOLS = ("reply",)
+REPLY_TOOLS = ("reply",)  # legacy default; per-agent bindings replace it (WP1b-B, D06)
+REPLY_TEXT_ARG = "text"
+# agent_id -> (reply tools, text argument), set by the sweep from the binding resolver.
+ReplyBinding = Callable[[str], tuple[Sequence[str], str]]
 CHECKER_GROUNDED = "quality.groundedness"
 CHECKER_GUIDELINE = "quality.guideline"
 EVIDENCE_TYPE = "quality_score"
@@ -72,7 +75,7 @@ class QualityResult:
     verdict_ids: list[str]
 
 
-def _reply_text(event: Mapping[str, Any]) -> str | None:
+def _reply_text(event: Mapping[str, Any], text_arg: str = REPLY_TEXT_ARG) -> str | None:
     raw = event.get("args_masked")
     if not raw:
         return None
@@ -80,13 +83,13 @@ def _reply_text(event: Mapping[str, Any]) -> str | None:
         args = json.loads(raw)
     except ValueError:
         return str(raw)
-    if isinstance(args, Mapping) and isinstance(args.get("text"), str):
-        return args["text"]
+    if isinstance(args, Mapping) and isinstance(args.get(text_arg), str):
+        return args[text_arg]
     return None
 
 
-def is_customer_reply(event: Mapping[str, Any]) -> bool:
-    return event.get("event_type") == "tool_call" and event.get("tool_name") in REPLY_TOOLS
+def is_customer_reply(event: Mapping[str, Any], reply_tools: Sequence[str] = REPLY_TOOLS) -> bool:
+    return event.get("event_type") == "tool_call" and event.get("tool_name") in reply_tools
 
 
 class QualityScorer:
@@ -103,7 +106,9 @@ class QualityScorer:
         salt: str = "supervisor-quality-v1",
         timeout_s: float = 60.0,
         region: str = "local",
+        reply_binding: ReplyBinding | None = None,
     ) -> None:
+        self.reply_binding = reply_binding
         self.chat = chat
         self.clock = clock
         self.masker = masker
@@ -122,6 +127,11 @@ class QualityScorer:
                 f"agent(s) {clash}; scorer and agent families must differ"
             )
 
+    def _reply_of(self, agent_id: str) -> tuple[Sequence[str], str]:
+        if self.reply_binding is None:
+            return REPLY_TOOLS, REPLY_TEXT_ARG
+        return self.reply_binding(agent_id)
+
     def sampled(self, event_id: str) -> bool:
         return sample_hit(self.salt, event_id, self.sample_bp)
 
@@ -136,14 +146,16 @@ class QualityScorer:
             by_trace.setdefault(str(e.get("trace_id")), []).append(e)
         out = []
         for e in events:
-            if is_customer_reply(e) and self.sampled(str(e["event_id"])):
+            if is_customer_reply(e, self._reply_of(str(e.get("agent_id")))[0]) and self.sampled(
+                str(e["event_id"])
+            ):
                 out.append(self.score(e, by_trace.get(str(e.get("trace_id")), [])))
         return out
 
     def score(
         self, reply: Mapping[str, Any], trace: Sequence[Mapping[str, Any]] = ()
     ) -> QualityResult:
-        text = _reply_text(reply) or ""
+        text = _reply_text(reply, self._reply_of(str(reply.get("agent_id")))[1]) or ""
         results = [
             f"- {t.get('tool_name')}: {self._mask(str(t.get('result_masked')))}"
             for t in trace

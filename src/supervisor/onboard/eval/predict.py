@@ -96,6 +96,8 @@ class Prediction:
     tools: list[Item] = field(default_factory=list)
     llm_calls: list[Item] = field(default_factory=list)
     data_access: list[Item] = field(default_factory=list)
+    entrypoints: list[Item] = field(default_factory=list)
+    model_family: str = "unknown"
     pii_fields: list[str] = field(default_factory=list)
     tracing: list[str] = field(default_factory=list)
     framework: str = "unknown"
@@ -116,6 +118,17 @@ def _tools(inv: Any) -> list[Item]:
     for t in inv.tools:
         file, line = _ev(t.definition or t.manifest_entry)
         out.append(Item(file=file, line=line, name=t.name))
+    return out
+
+
+def _entrypoints(inv: Any) -> list[Item]:
+    """HTTP routes only (Discover also lists ``build_agent`` and friends as entrypoints)."""
+    out = []
+    for e in getattr(inv, "entrypoints", None) or []:
+        if not str(getattr(e, "detail", "")).startswith("route:"):
+            continue
+        file, line = _ev(getattr(e, "evidence", None))
+        out.append(Item(file=file, line=line, name=e.name))
     return out
 
 
@@ -212,6 +225,8 @@ def predict_repo(repo_dir: str | Path) -> Prediction:
     artefacts["profile.md"] = profile_md(inv, profile)
     return Prediction(
         tools=_tools(inv),
+        entrypoints=_entrypoints(inv),
+        model_family=str(getattr(inv, "model_family", None) or "unknown"),
         llm_calls=_llm_calls(inv),
         data_access=_data_access(inv),
         pii_fields=sorted(set(inv.pii_fields) | set(getattr(inv, "pii_identifiers", {}))),

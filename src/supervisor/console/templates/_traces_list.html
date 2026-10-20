@@ -1,0 +1,34 @@
+{# Traces table + pager: the swap target #list of the traces page (WP-UX3). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% if capped %}<p class="hint">{{ t('scan_capped') }}</p>{% endif %}
+<div class="tablewrap">
+<table class="queue traces-tbl">
+  <caption class="sr">{{ t('nav_traces') }}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{{ t('trace_id') }}</th>
+      {{ tb.th('agent_id', t('agent'), sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs) }}
+      {{ tb.th('started', t('started'), sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs) }}
+      {{ tb.th('spans', t('spans'), sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs, numeric=True) }}
+      <th scope="col">{{ t('verdict_labels') }}</th>
+      {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs) }}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for r in page.items %}
+    <tr class="row" data-row="{{ r.trace_id }}">
+      <td class="mono"><a class="head rowlink" href="/console/traces/{{ r.trace_id }}?lang={{ lang }}" title="{{ r.trace_id }}">{{ r.trace_id[:24] }}{% if r.trace_id|length > 24 %}…{% endif %}</a></td>
+      <td>{{ r.agent_id }}</td>
+      <td class="mono">{{ r.started|day }}</td>
+      <td class="n">{{ r.spans }}</td>
+      <td>{% for a in r.labels %}{{ ui.action_pill(a) }} {% endfor %}{% if r.judge_n %}{{ ui.pill(t('judge_n', n=r.judge_n), 'neutral') }}{% endif %}{% if not r.labels and not r.judge_n %}<span class="muted">-</span>{% endif %}</td>
+      <td>{{ ui.pill(t('trace_' ~ r.status), {'ok': 'ok', 'alert': 'warn', 'blocked': 'bad', 'paused': 'warn'}[r.status], True) }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">{{ ui.empty(t('traces_no_match'), t('traces_no_match_line')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/traces', '/console/traces/rows', list_qs) }}

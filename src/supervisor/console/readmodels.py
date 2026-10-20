@@ -75,7 +75,7 @@ def initials(me: Any) -> str:
 
 
 def main_role(me: Any) -> str:
-    order = ("admin", "approver", "reviewer", "owner", "auditor")
+    order = ("admin", "approver", "reviewer", "owner", "auditor", "operator")  # operator: WP21
     roles = set(getattr(me, "roles", ()) or ())
     for r in order:
         if r in roles:
@@ -107,6 +107,24 @@ def open_cases(ctx: Any) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------- shell
 
 
+def signoff_waiting(ctx: Any, cases: list[dict[str, Any]]) -> int:
+    """Open high / critical cases that still need a sign-off (fewer than two approvals)."""
+    try:
+        return len(ctx.cases.waiting_approvals(cases))
+    except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
+        return 0
+
+
+def ux3_pages(settings: Any) -> dict[str, bool]:
+    """WP-UX3 page flags by page key (Playground also needs PLAYGROUND_ALLOW_APP on the App)."""
+    from supervisor.console import nav
+
+    out = {page: bool(getattr(settings, flag, False)) for page, flag in nav.PAGES.items()}
+    if out.get("playground") and settings.supervisor_mode == "databricks_app":
+        out["playground"] = bool(getattr(settings, "playground_allow_app", False))
+    return out
+
+
 def shell(ctx: Any, me: Any) -> dict[str, Any]:
     """Header data for every full page: counts on the pills, environment badge, identity."""
     agents = ctx.state.query("agent")
@@ -115,7 +133,22 @@ def shell(ctx: Any, me: Any) -> dict[str, Any]:
         unread = sum(1 for n in ctx.inbox.list() if n.get("status") == "unread")
     except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
         unread = 0
+    inventory_n = None  # WP24: unmanaged workspace items (None = tab off)
+    if ctx.settings.inventory_enabled:
+        try:
+            inventory_n = len(ctx.state.query("inventory_node", {"status": "unmanaged"}))
+        except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
+            inventory_n = 0
+    try:  # WP-UX1: open alerts on the Alerts item (the section still lives on Metrics)
+        alerts_n = int(ctx.alerts.counts().get("open", 0))
+    except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
+        alerts_n = 0
     return {
+        "alerts_n": alerts_n,
+        "signoff_n": signoff_waiting(ctx, cases),
+        "placeholders": bool(getattr(ctx.settings, "console_nav_placeholders", False)),
+        "pages": ux3_pages(ctx.settings),  # WP-UX3: which new pages are on
+        "inventory_n": inventory_n,
         "agents_n": len(agents),
         "cases_n": len(cases),
         "critical_n": sum(1 for c in cases if c["severity"] == "critical"),
@@ -126,6 +159,7 @@ def shell(ctx: Any, me: Any) -> dict[str, Any]:
         "first_name": first_name(me),
         "role": main_role(me),
         "assurance": bool(ctx.settings.console_assurance_enabled),
+        "tools": bool(ctx.settings.console_tools_enabled),  # WP22
     }
 
 
@@ -382,6 +416,11 @@ def _allowed_tools(rules: Mapping[str, Mapping[str, Any]], agent_id: str) -> lis
     return out
 
 
+def allowed_tools(rules: Mapping[str, Mapping[str, Any]], agent_id: str) -> list[str]:
+    """Public read of the approved-tools allow-list of one agent (agent page, Policy tab)."""
+    return _allowed_tools(rules, agent_id)
+
+
 def _coverage(ctx: Any, agent_id: str) -> dict[str, Any]:
     """Coverage in basis points and where the number comes from.
 
@@ -480,7 +519,8 @@ def decision33(ctx: Any, agent: Mapping[str, Any]) -> dict[str, Any]:
     return {"cls": None, "source": None}
 
 
-def agent_cards(ctx: Any, me: Any) -> list[dict[str, Any]]:
+def agent_cards(ctx: Any, me: Any, only: str | None = None) -> list[dict[str, Any]]:
+    """One card per agent; ``only`` builds the card of that agent alone (the row drawer)."""
     from supervisor.core.errors import SupervisorError
 
     states = ctx.gateway.states
@@ -497,6 +537,8 @@ def agent_cards(ctx: Any, me: Any) -> list[dict[str, Any]]:
     cards = []
     for a in sorted(ctx.state.query("agent"), key=lambda r: r["agent_id"]):
         aid = a["agent_id"]
+        if only is not None and aid != only:
+            continue
         try:
             desc = states.describe(aid)
         except SupervisorError:
@@ -884,7 +926,7 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
 
     status = case["status"]
     next_steps = list(TRANSITIONS.get(status, ()))
-    approvals = ctx.cases._approvals(case_id)
+    approvals = ctx.cases.approvals(case_id)
     two_person = case["severity"] in TWO_PERSON_SEVERITIES
     agent_row = ctx.state.get("agent", {"agent_id": case["agent_id"]}) or {}
     try:
@@ -895,6 +937,7 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
     d33 = None if d33_text.startswith("FILL-ME") else d33_text
     lane = f"agent:{case['agent_id']}"
     closed = status == "closed"
+    unclocked = ctx.cases.unclocked(case_id)  # WP24: internal flag, no Decree 142 clock
     flow_idx = CASE_FLOW.index(status) if status in CASE_FLOW else 0
     return {
         "case": case,
@@ -909,10 +952,10 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
         "approvals": approvals,
         "links": ctx.cases.links(case_id),
         "report_clock": None
-        if closed
+        if closed or unclocked
         else views.countdown(cf.sbv.report_due_at, now, severity=case["severity"]),
         "remediation_clock": None
-        if closed
+        if closed or unclocked
         else views.countdown(cf.sbv.remediation_due_at, now, 5 * 86400),
         "incident": ctx.cases.incident_status(case_id, now=now),  # WP19: Decree 142 Art. 19
         "lane": lane,
@@ -1021,4 +1064,95 @@ def overview(ctx: Any, now: dt.datetime) -> dict[str, Any]:
         "chain": chain_summary(ctx),
         "latest": latest_decisions(ctx),
         "demo": is_demo_store(ctx.settings),
+    }
+
+
+# ---------------------------------------------------------------------------- span tree
+
+SPAN_CAP = 500  # spans per tree; the rest is cut and the tree says so
+SPAN_DEPTH = 48  # deeper spans hang under the "unparented" node (keeps the template shallow)
+
+
+def span_tree(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    """The events of one trace as a span tree for ``_c_spantree.html`` (WP-UX1 component).
+
+    One node per ``span_id`` (its events in time order). A span whose parent is missing goes
+    under the ``unparented`` list; a span inside a parent loop is cut there too (``cut``), so
+    every span shows once and the walk always ends. At most ``SPAN_CAP`` spans (first in time).
+    Node: ``{span_id, events, children, ts, event_type, tool_name, status, latency_ms, cut}``."""
+    rows = sorted(events, key=lambda e: (str(e.get("ts") or ""), str(e.get("event_id") or "")))
+    nodes: dict[str, dict[str, Any]] = {}
+    parent: dict[str, str | None] = {}
+    truncated = False
+    for e in rows:
+        sid = str(e.get("span_id") or "")
+        if not sid:
+            continue
+        node = nodes.get(sid)
+        if node is None:
+            if len(nodes) >= SPAN_CAP:
+                truncated = True
+                continue
+            node = nodes[sid] = {
+                "span_id": sid,
+                "events": [],
+                "children": [],
+                "ts": e.get("ts"),
+                "event_type": e.get("event_type"),
+                "tool_name": e.get("tool_name"),
+                "status": e.get("status"),
+                "latency_ms": None,
+                "cut": False,
+            }
+            parent[sid] = None
+        node["events"].append(e)
+        node["tool_name"] = node["tool_name"] or e.get("tool_name")
+        if e.get("latency_ms") is not None:
+            node["latency_ms"] = max(node["latency_ms"] or 0, int(e["latency_ms"]))
+        p = e.get("parent_span_id")
+        if p and parent[sid] is None and p != sid:
+            parent[sid] = str(p)
+    roots: list[dict[str, Any]] = []
+    unparented: list[dict[str, Any]] = []
+    for sid, node in nodes.items():  # insertion order = time order
+        p = parent[sid]
+        if p is None:
+            roots.append(node)
+        elif p in nodes:
+            nodes[p]["children"].append(node)
+        else:
+            unparented.append(node)
+    # Walk from the roots; whatever the walk does not reach sits in a parent loop: cut it there.
+    seen: set[str] = set()
+
+    def walk(start: list[dict[str, Any]]) -> None:
+        stack = [(n, 1) for n in reversed(start)]
+        while stack:
+            n, depth = stack.pop()
+            seen.add(n["span_id"])
+            if depth >= SPAN_DEPTH and n["children"]:
+                unparented.extend(n["children"])
+                stack.extend((c, 1) for c in reversed(n["children"]))
+                n["children"] = []
+                continue
+            stack.extend((c, depth + 1) for c in reversed(n["children"]))
+
+    walk(roots)
+    walk(list(unparented))
+    for sid, node in nodes.items():
+        if sid in seen:
+            continue
+        loop_parent = parent[sid]
+        if loop_parent in nodes:  # detach from its parent in the loop
+            kids = nodes[loop_parent]["children"]
+            nodes[loop_parent]["children"] = [k for k in kids if k["span_id"] != sid]
+        node["cut"] = True
+        unparented.append(node)
+        walk([node])
+    return {
+        "roots": roots,
+        "unparented": unparented,
+        "n": len(nodes),
+        "cap": SPAN_CAP,
+        "truncated": truncated,
     }

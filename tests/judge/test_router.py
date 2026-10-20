@@ -72,7 +72,13 @@ def test_unknown_family_needs_explicit_setting(monkeypatch: pytest.MonkeyPatch) 
     with pytest.raises(FamilyConflictError, match="JUDGE_T2_FAMILY"):
         JudgeRouter.from_settings(load_settings())
     monkeypatch.setenv("JUDGE_T2_FAMILY", "mistral")
-    assert JudgeRouter.from_settings(load_settings()).t2.family == "mistral"
+    # D05: a declared family for a model that does not show its family is refused ...
+    with pytest.raises(ConfigError, match="JUDGE_FAMILY_OVERRIDE_TEST_ONLY"):
+        JudgeRouter.from_settings(load_settings())
+    # ... unless the explicit test-only override is set.
+    monkeypatch.setenv("JUDGE_FAMILY_OVERRIDE_TEST_ONLY", "1")
+    t2 = JudgeRouter.from_settings(load_settings()).t2
+    assert t2.family == "mistral" and t2.family_source == "declared-test-only"
 
 
 def test_registry_rows_are_checked_too() -> None:

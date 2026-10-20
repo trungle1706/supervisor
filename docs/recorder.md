@@ -49,6 +49,10 @@ set MASK_HMAC_KEY=<long random value from the bank key store>
 set MASK_KEY_ID=k2026q4
 ```
 
+> `vn_regex-3` (WP24b) adds upper-case and no-diacritics names, street addresses and amount handling
+> (amounts are found first and left intact). See `docs/masking.md`. The text below describes the
+> `vn_regex-2` rules that `vn_regex-3` keeps.
+
 `vn_regex-2` also catches CCCD written with spaces, dots or dashes (`001 203 004 567`), grouped
 account numbers after a cue word (`chuyen den 1903 4567 8901 23`) or of 13-19 digits, and PII with
 invisible characters inside. **Masked output is normalised**: before matching, Unicode format
@@ -59,7 +63,7 @@ dashes become `-`). `mask()` returns this normalised text with the PII replaced,
 `15.000.000đ`, dates and times are not masked: a dot-grouped or space-grouped number with 1-3
 digits and then groups of exactly 3 is an amount, even after an account word. A separated 12-digit run is a CCCD only when it starts with 0 (province code), for example `001.203.004.567`; `100.000.000.000` is an amount.
 
-Without `MASK_HMAC_KEY` the dev key is used and `mask_version` is `vn_regex-2:dev`. A new
+Without `MASK_HMAC_KEY` the dev key is used and `mask_version` is `vn_regex-3:dev`. A new
 `MASK_KEY_ID` + key gives new tokens; `mask_version` on each row tells which key made it.
 `MASKER_KIND=presidio` needs the optional `presidio` extra (off by default).
 

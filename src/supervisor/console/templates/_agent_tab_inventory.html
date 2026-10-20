@@ -1,0 +1,26 @@
+{# Inventory tab: the subgraph tree and node table of this agent (INVENTORY_ENABLED). #}
+{% import "_ui.html" as ui with context %}
+{% if inv_missing %}
+{{ ui.empty(t('inv_not_listed'), t('inv_not_listed_line'), '/console/inventory?lang=' ~ lang, t('nav_inventory')) }}
+{% else %}
+<section class="card" data-section="inventory-tree">
+  <h3>{{ t('inv_tree') }}</h3>
+  <pre class="excerpt" id="inv-tree">{{ tree }}</pre>
+</section>
+<section class="card" data-section="inventory-nodes">
+  <h3>{{ t('inv_nodes') }} <span class="k">{{ node_rows|length }}</span></h3>
+  <div class="tablewrap flat"><table class="queue" id="inv-nodes">
+    <thead><tr><th scope="col">{{ t('inv_kind') }}</th><th scope="col">{{ t('inv_name') }}</th><th scope="col">{{ t('inv_own') }}</th><th scope="col">{{ t('inv_eff') }}</th><th scope="col">{{ t('inv_evidence') }}</th></tr></thead>
+    <tbody>
+    {% for r in node_rows %}
+      <tr class="row">
+        <td>{{ r.kind }}</td><td class="mono">{{ r.name }}</td>
+        <td>{{ r.own_risk or '-' }}</td><td>{{ r.effective_risk or '-' }}</td>
+        <td class="mono">{{ r.evidence }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+<p class="hint"><a href="/console/inventory?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('inv_all_link') }}</a></p>
+{% endif %}

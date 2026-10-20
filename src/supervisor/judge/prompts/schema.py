@@ -62,6 +62,11 @@ OUTPUT_SCHEMA: dict[str, Any] = {
 }
 
 
+# D14: the copy sent to strict endpoints (Anthropic's OpenAI-compatible endpoint refuses
+# minimum, maximum, pattern, maxItems, ...). validate_output() still checks the FULL schema.
+STRICT_OUTPUT_SCHEMA: dict[str, Any] = jsonschema_lite.strict_compatible(OUTPUT_SCHEMA)
+
+
 class JudgeOutputError(ValueError):
     """The judge reply does not match the output schema."""
 

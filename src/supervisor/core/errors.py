@@ -33,3 +33,22 @@ class DuplicateKeyError(SqlError):
 
 class AppendOnlyError(SqlError):
     """An UPDATE or DELETE hit an append-only table."""
+
+
+class ReservedAgentIdError(SupervisorError):
+    """The agent id is reserved by the product (HTTP 400)."""
+
+
+RESERVED_AGENT_IDS = ("inventory",)  # the evidence lane of shadow-AI cases (WP24)
+RESERVED_AGENT_PREFIXES = ("app:",)  # inventory node names of Databricks Apps (WP24)
+
+
+def check_agent_id(agent_id: str) -> str:
+    """Refuse ids the inventory uses for its own purposes; return the id unchanged."""
+    low = agent_id.strip().lower()
+    if low in RESERVED_AGENT_IDS or low.startswith(RESERVED_AGENT_PREFIXES):
+        raise ReservedAgentIdError(
+            f"agent id {agent_id!r} is reserved (ids 'inventory' and 'app:...' are used by the "
+            "inventory); rename the agent folder or set a different id in its manifest"
+        )
+    return agent_id

@@ -5,6 +5,7 @@
 | Area | Path | Kind |
 |---|---|---|
 | Gate (agents) | `POST /v1/gate/check` | JSON API, agent ingress |
+| Analytics (read) | `GET /v1/analytics/tools?agent_id=&days=&view=daily` or `summary` (flag `TOOL_ANALYTICS_ENABLED`; `docs/tool-analytics.md`) | JSON API |
 | Gate (people) | `POST /v1/gate/pause`, `resume`, `quarantine`, `release`; `GET /v1/gate/agents/{id}/state`, `/v1/gate/metrics` | JSON API |
 | Traces | `POST /v1/traces` (OTLP/HTTP JSON) | JSON API, agent ingress |
 | Console | `/console/...` | UI for people, not an API; no stability promise |

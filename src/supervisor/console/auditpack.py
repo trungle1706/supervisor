@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import shutil
 import uuid
@@ -30,6 +31,8 @@ from supervisor.core.errors import SupervisorError
 from supervisor.evidence.casefile.builder import write_case_file
 from supervisor.evidence.export import export_chain
 from supervisor.evidence.verify import verify_export
+
+log = logging.getLogger("supervisor.auditpack")
 
 PACK_RE = re.compile(r"^(audit-pack|chain-export)-\d{8}T\d{6}Z-[0-9a-f]{6}\.zip$")
 EVAL_REPORT_CANDIDATES = ("eval_report.json",)
@@ -85,6 +88,22 @@ def verify_chain(ctx: Any, lane: str | None = None) -> dict[str, Any]:
         "ts": ctx.clock.now(),
     }
     ctx.last_verify[lane or "all"] = result
+    # WP21: the result is evidence too, and the alert rule AL-CHAIN-VERIFY-FAIL reads it. No
+    # agent_id in the payload, so it lands on the root lane. A write failure never hides the
+    # verify result from the person who asked.
+    try:
+        ctx.runtime.chain.record(
+            "chain_verify",
+            f"chain_verify:{uuid.uuid4().hex}",
+            {
+                "ok": bool(result["ok"]),
+                "failures": int(report.failures),
+                "scope": lane or "all",
+                "ts": format_ts(ctx.clock.now()),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        log.exception("chain_verify evidence record failed")
     return result
 
 

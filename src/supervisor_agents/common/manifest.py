@@ -12,6 +12,7 @@ from typing import Any, Literal
 import yaml
 
 from supervisor.core.models import Agent, AgentVersion
+from supervisor.core.monitor_bindings import MonitorBindings
 
 RiskClass = Literal["money", "credit", "pii_export", "read_only"]
 RISK_CLASSES: tuple[str, ...] = ("money", "credit", "pii_export", "read_only")
@@ -42,6 +43,7 @@ class AgentManifest:
     description: str
     tools: tuple[ToolSpec, ...]
     limits: dict[str, int] = field(default_factory=dict)
+    monitors: MonitorBindings | None = None  # WP1b-B: per-agent monitor bindings (optional)
 
     def tool(self, name: str) -> ToolSpec | None:
         return next((t for t in self.tools if t.name == name), None)
@@ -109,6 +111,7 @@ def parse_manifest(data: dict[str, Any]) -> AgentManifest:
         description=" ".join(str(data.get("description", "")).split()),
         tools=tuple(tools),
         limits=limits,
+        monitors=MonitorBindings.model_validate(data["monitors"]) if data.get("monitors") else None,
     )
 
 

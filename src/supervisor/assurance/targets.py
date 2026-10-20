@@ -666,6 +666,7 @@ class MockJudgeTarget(_JudgeTargetBase):
 
     def _make_factory(self) -> Callable[[], Any]:
         from supervisor.judge.mockjudge import MockJudgeChat
+        from supervisor.judge.mrm._common import with_mock_challenger
         from supervisor.judge.router import JudgeRouter
 
         settings, gullible = self.settings, self.gullible
@@ -675,7 +676,8 @@ class MockJudgeTarget(_JudgeTargetBase):
                 "t1": MockJudgeChat(1, model_id="mock-judge-t1-v1", gullible=gullible),
                 "t2": MockJudgeChat(2, model_id="mock-judge-t2-v1", gullible=gullible),
             }
-            return JudgeRouter.from_settings(settings, chats=chats)
+            # A mock target never calls a configured real challenger (D15 review).
+            return JudgeRouter.from_settings(settings, chats=with_mock_challenger(settings, chats))
 
         return build
 

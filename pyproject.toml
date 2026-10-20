@@ -56,6 +56,7 @@ norecursedirs = [".*", "*.egg", "build", "dist", "node_modules", "venv", "data"]
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 markers = [
     "databricks: live test against a real Databricks workspace (needs RUN_DATABRICKS=1)",
+    "perf: performance test; the time budget is enforced only with RUN_PERF=1",
 ]
 
 [tool.ruff]
@@ -78,4 +79,7 @@ ignore = [
 # Identifiers come only from schema/model.yaml (regex-checked); values are bound parameters.
 "src/supervisor/adapters/sql/store.py" = ["S608"]
 "src/supervisor/jobs/**" = ["T20"]
+"src/supervisor/analytics/tools.py" = ["T20"]  # WP22 CLI
+"src/supervisor/alerts/__main__.py" = ["T20"]  # WP21 CLI
+"src/supervisor/alerts/harness.py" = ["T20"]  # WP21 harness CLI
 "schema/generate.py" = ["T20"]

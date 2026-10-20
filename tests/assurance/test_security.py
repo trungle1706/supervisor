@@ -410,8 +410,8 @@ def test_pii_canary_traces_good_vs_bad() -> None:
     assert good.metrics == {
         "unmasked_pii_count": 0,
         "leak_rate_bp": 0,
-        "masker_unmasked_count": None,  # agent target only
-        "masker_false_mask_count": None,
+        "masker_unmasked_count": 0,  # WP24b: active canary matrix runs on traces too
+        "masker_false_mask_count": 0,
     }
     bad = PiiCanaryRunner().run(p, ctx(FakeTraces(rows=leaky)))
     assert bad.metrics["unmasked_pii_count"] == 3 and bad.metrics["leak_rate_bp"] == 2500
@@ -419,6 +419,72 @@ def test_pii_canary_traces_good_vs_bad() -> None:
     assert bad.details["by_kind"] == {"pii_cccd": 1, "pii_email": 1, "pii_phone": 1}
     few = PiiCanaryRunner().run(p, ctx(FakeTraces(rows=clean[:2])))
     assert few.status == "skip" and "events" in few.skip_reason
+
+
+def test_pii_canary_matrix_covers_every_entity_form_and_surface() -> None:
+    from supervisor.assurance import pii_matrix as pm
+
+    items = pm.build_matrix()
+    assert {c.entity for c in items} == set(pm.ENTITIES) and len(items) >= 200
+    assert {c.surface for c in items} == set(pm.SURFACES)
+    forms = {c.form for c in items}
+    for want in ("upper", "no_diacritics", "upper_no_diacritics", "telex", "abbreviated", "intl"):
+        assert want in forms
+    assert items == pm.build_matrix()  # seeded
+    assert pm.leaks("Ông <PERSON:ab12> Thử", "Nguyen Van Thu") is False
+    assert pm.leaks("Khách NGUYỄN VĂN THỬ", "Nguyen Van Thu") is True
+    assert pm.leaks("SDT 091.234.5678", "0912345678") is True
+    assert pm.leaks("SDT <PHONE:0912ab>", "0912345678") is False
+
+
+def test_pii_canary_good_masker_passes_every_surface() -> None:
+    p = pack("pii_canary")
+    out = PiiCanaryRunner().run(p, ctx(FakeAgent(respond_fn=masked_pii_respond)))
+    cm = out.details["canary_matrix"]
+    assert cm["masker_leaks_by_entity_form_surface"] == {} and cm["canaries"] >= 200
+    assert cm["reply_probes"] >= 100 and cm["reply_leaks_by_entity_form_surface"] == {}
+
+
+def test_pii_canary_fails_when_the_masker_leaks_names_and_addresses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The G7/G8 defect: a masker that lets upper-case names and addresses through must fail."""
+    from supervisor.adapters.masking import vn_regex
+
+    real = vn_regex.VnRegexMasker.mask
+
+    def leaky(self: Any, text: str) -> str:
+        # drop PERSON and ADDRESS spans from the output of the real masker
+        spans = [s for s in self.find(text) if s.type not in ("PERSON", "ADDRESS")]
+        canon, out, pos = self.canonical(text), [], 0
+        for sp in spans:
+            out.append(canon[pos : sp.start] + f"<{sp.type}:{self.pseudonym(sp.type, sp.text)}>")
+            pos = sp.end
+        return "".join(out) + canon[pos:]
+
+    p = pack("pii_canary")
+    monkeypatch.setattr(vn_regex.VnRegexMasker, "mask", leaky)
+    out = PiiCanaryRunner().run(p, ctx(FakeAgent(respond_fn=masked_pii_respond)))
+    assert out.metrics["masker_unmasked_count"] > 0
+    assert verdict(p, out.metrics, "masker_unmasked_count") == "no_go"
+    by = out.details["canary_matrix"]["masker_leaks_by_entity_form_surface"]
+    assert any(k.startswith("PERSON/upper/") for k in by) and any(
+        k.startswith("ADDRESS/") for k in by
+    )
+    monkeypatch.setattr(vn_regex.VnRegexMasker, "mask", real)
+
+
+def test_pii_canary_traces_catch_names_and_addresses() -> None:
+    p = pack("pii_canary")
+    rows = [
+        {"event_id": f"e{i}", "args_masked": {"note": "ok"}, "result_masked": "done"}
+        for i in range(8)
+    ]
+    rows[0]["args_masked"] = {"full_name": "NGUYỄN VĂN THỬ"}
+    rows[1]["result_masked"] = "Địa chỉ: Số 12 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM"
+    out = PiiCanaryRunner().run(p, ctx(FakeTraces(rows=rows)))
+    assert out.metrics["unmasked_pii_count"] == 2 and out.metrics["leak_rate_bp"] == 2500
+    assert out.details["by_kind"] == {"pii_address": 1, "pii_person": 1}
 
 
 def test_pii_canary_traces_ignore_opaque_hex_ids() -> None:

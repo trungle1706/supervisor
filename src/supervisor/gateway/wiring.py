@@ -76,7 +76,10 @@ def build_gateway(
         from supervisor.jobs import bootstrap_schema
 
         bootstrap_schema.run(settings, adapters)
-    policy = load_policy_dir(policy_dir or POLICY_DIR)
+    from supervisor.adapters.facts import make_fact_source
+    from supervisor.wiring import resolve_policy_dir
+
+    policy = load_policy_dir(resolve_policy_dir(settings, policy_dir))
     deploy_with_retry(policy, adapters.state, adapters.clock)
     return Gateway(
         StorePolicyProvider(adapters.state, refresh_s=5.0),
@@ -84,6 +87,7 @@ def build_gateway(
         adapters.state,
         evidence,
         adapters.clock,
+        facts=make_fact_source(settings),  # D13: FACT_SOURCE (default none)
         env=settings.supervisor_mode,
     )
 
@@ -118,6 +122,12 @@ def get_gateway() -> Gateway:
     with _lock:
         if _gateway is None:
             _gateway = install_runtime().gateway
+        return _gateway
+
+
+def peek_gateway() -> Gateway | None:
+    """The installed gateway, or None. Never builds one (WP20 ingress audit and metrics)."""
+    with _lock:
         return _gateway
 
 

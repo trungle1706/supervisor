@@ -2,7 +2,8 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_health') }}{% endblock %}
 {% block content %}
-<div class="pagehead"><h1>{{ t('nav_health') }}</h1></div>
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_health'), None)]) }}
+{{ ui.pagehead(t('nav_health')) }}
 <div class="purpose">
   <p><strong>{{ t('health_lead') }}</strong> {{ t('health_rest') }}</p>
   <p class="why">{{ t('health_why') }}</p>

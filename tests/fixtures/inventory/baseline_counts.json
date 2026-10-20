@@ -1,0 +1,1 @@
+{"manifests": {"nodes_by_kind": {"tool": 14, "supplier": 4, "system": 3, "model": 1, "model_endpoint": 1}, "edges": 22}, "manifests_plus_workspace_7": {"nodes": 34, "edges": 34, "unmanaged": 3}, "measured": "2026-10-20 on bf3a23a plus WP24", "illustrative": true}

@@ -6,7 +6,11 @@ read the reason) and the decision in ``result._meta.supervisor``. All other meth
 (initialize, tools/list, notifications, ping) pass through unchanged.
 
 Run: python -m supervisor.gateway.mcp_proxy --agent-id X --agent-version V
-     --gate-url http://127.0.0.1:8000 -- <upstream command...>
+     --gate-url http://127.0.0.1:8000 [--key-file PATH] -- <upstream command...>
+
+Ingress auth (WP20): with ``--key-file`` (or env SUPERVISOR_AGENT_KEY_FILE / SUPERVISOR_AGENT_KEY)
+every gate call is signed for the agent id; ``--bearer-token-env NAME`` sends the bearer token in
+that environment variable instead (Databricks service principal). Without them: unsigned, as before.
 """
 
 from __future__ import annotations
@@ -30,15 +34,37 @@ class Upstream(Protocol):
     def close(self) -> None: ...
 
 
+def _env_on() -> bool:
+    return os.environ.get("INLINE_REDACTION_ENABLED", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
 def _error(id_: Any, code: int, message: str) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": id_, "error": {"code": code, "message": message}}
 
 
 class McpGateProxy:
     def __init__(
-        self, gate: GateHook, agent_id: str, agent_version: str, upstream: Upstream
+        self,
+        gate: GateHook,
+        agent_id: str,
+        agent_version: str,
+        upstream: Upstream,
+        *,
+        inline_redaction: bool | None = None,
     ) -> None:
         self._gate = gate
+        # WP24b: forward the gate's masked ``transformed_args`` instead of the original arguments.
+        # None -> INLINE_REDACTION_ENABLED in the environment. Off by default.
+        self._inline = _env_on() if inline_redaction is None else inline_redaction
+        if self._inline:
+            from supervisor.gateway.sdk import warn_inline_once
+
+            warn_inline_once()
         self._agent_id = agent_id
         self._agent_version = agent_version
         self._upstream = upstream
@@ -72,6 +98,9 @@ class McpGateProxy:
                 "reason": f"gate failure: {type(exc).__name__}",
             }
         if verdict.get("allow") is True:
+            transformed = verdict.get("transformed_args")
+            if self._inline and isinstance(transformed, dict):
+                message = {**message, "params": {**params, "arguments": transformed}}
             return self._forward(message)
         if id_ is None:  # a notification cannot receive a response
             return None
@@ -146,6 +175,21 @@ class StdioUpstream:
         self._proc.stop()
 
 
+def make_credential(agent_id: str, key_file: str | None, bearer_env: str | None) -> Any:
+    """The proxy's ingress credential (WP20) or None for an unsigned proxy."""
+    from supervisor.gateway.ingress_sign import (
+        CredentialError,
+        IngressCredential,
+        credential_from_env,
+    )
+
+    if bearer_env:
+        if not os.environ.get(bearer_env):
+            raise CredentialError(f"environment variable {bearer_env} is empty")
+        return IngressCredential(agent_id, bearer=lambda: os.environ.get(bearer_env, ""))
+    return credential_from_env(agent_id, key_file)
+
+
 def main(argv: list[str] | None = None) -> int:
     from supervisor.bootstrap import bootstrap
 
@@ -161,16 +205,35 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--agent-id", required=True)
     p.add_argument("--agent-version", required=True)
     p.add_argument("--gate-url", default="http://127.0.0.1:8000")
+    p.add_argument("--key-file", default=None, help="HMAC key file (first line = secret)")
+    p.add_argument("--bearer-token-env", default=None, help="env var holding a bearer token")
+    p.add_argument(
+        "--inline-redaction",
+        action="store_true",
+        help="forward the gate's masked arguments (also INLINE_REDACTION_ENABLED=1)",
+    )
     ns = p.parse_args(args_in[:cut])
     command = args_in[cut + 1 :]
     if not command:
         sys.stderr.write("[FAIL] no upstream command after --\n")
         return 2
+    from supervisor.gateway.ingress_sign import CredentialError
     from supervisor.gateway.sdk import HttpGate
 
+    try:
+        credential = make_credential(ns.agent_id, ns.key_file, ns.bearer_token_env)
+    except CredentialError as exc:
+        sys.stderr.write(f"[FAIL] ingress credential: {exc}\n")
+        return 2
     upstream = StdioUpstream(command)
     try:
-        proxy = McpGateProxy(HttpGate(ns.gate_url), ns.agent_id, ns.agent_version, upstream)
+        proxy = McpGateProxy(
+            HttpGate(ns.gate_url, credential=credential),
+            ns.agent_id,
+            ns.agent_version,
+            upstream,
+            inline_redaction=True if ns.inline_redaction else None,
+        )
         run_stdio(proxy, sys.stdin, sys.stdout)
     finally:
         upstream.close()

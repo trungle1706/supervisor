@@ -172,6 +172,7 @@ class Inventory(_M):
     declared_risk_tier: TierT | None = None
     model_family: str = "unknown"
     model_id: str | None = None
+    model_family_source: Literal["manifest", "code", "unknown"] = "unknown"
     host_type: str = "python"
     plug_point: str = "gate_hook"
     manifest_file: str | None = None
@@ -202,6 +203,8 @@ class Inventory(_M):
     tracing: list[str] = Field(default_factory=list)
     pii_identifiers: dict[str, Evidence] = Field(default_factory=dict)
     injection_refs: list[Evidence] = Field(default_factory=list)
+    # WP1b-B: places where an MCP tool list is read at run time (tools not enumerable)
+    dynamic_tool_sources: list[Evidence] = Field(default_factory=list)
 
     def tool(self, name: str) -> ToolInfo | None:
         return next((t for t in self.tools if t.name == name), None)

@@ -19,6 +19,7 @@ Framework = Literal[
     "databricks_agents",
     "fastmcp",
     "fastapi",
+    "deepagents",
     "crewai",
     "custom",
 ]
@@ -29,6 +30,14 @@ class _L(BaseModel):
 
 
 class ToolLabel(_L):
+    name: str
+    file: str
+    line: int = Field(ge=1)
+
+
+class EntrypointLabel(_L):
+    """An HTTP route of the agent app: ``name`` is ``"METHOD /path"``, line the ``def`` line."""
+
     name: str
     file: str
     line: int = Field(ge=1)
@@ -68,6 +77,8 @@ class RepoLabels(_L):
     framework: Framework
     summary: str = ""
     tools: list[ToolLabel] = Field(default_factory=list)
+    entrypoints: list[EntrypointLabel] = Field(default_factory=list)
+    model_family: str | None = None  # agent model family; None = not scored for this repo
     llm_calls: list[LlmCallLabel] = Field(default_factory=list)
     data_access: list[DataAccessLabel] = Field(default_factory=list)
     pii_fields: list[str] = Field(default_factory=list)
@@ -93,6 +104,9 @@ def _located(lab: RepoLabels) -> list[tuple[str, str, int, str | None]]:
     """(what, file, line, needle) for every label that points into a file."""
     out: list[tuple[str, str, int, str | None]] = []
     out += [(f"tool {t.name}", t.file, t.line, t.name) for t in lab.tools]
+    out += [
+        (f"entrypoint {e.name}", e.file, e.line, e.name.split("/")[-1]) for e in lab.entrypoints
+    ]
     out += [("llm_call", c.file, c.line, None) for c in lab.llm_calls]
     out += [("data_access", d.file, d.line, None) for d in lab.data_access]
     out += [("secret", s.file, s.line, s.needle) for s in lab.secrets]
@@ -133,7 +147,7 @@ def check_labels(corpus_dir: str | Path, labels: Labels) -> list[str]:
                 problems.append(f"{where}: {what}: line out of range (file has {len(rows)})")
                 continue
             text = rows[line - 1]
-            if what.startswith("tool"):
+            if what.startswith(("tool", "entrypoint")):
                 head = text.strip()
                 if not head.startswith(("def ", "async def ", "class ")) and needle not in text:
                     problems.append(f"{where}: {what}: line is not a def/class and lacks the name")

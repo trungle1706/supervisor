@@ -1,0 +1,28 @@
+{# Right-hand cluster shared by both headers: env badge, inbox, language, theme, role, user menu. #}
+{% set sh = shell() %}
+<div class="who">
+  <span class="env {{ 'demo' if sh.demo else '' }}" title="{{ t('env_title') }}">{{ sh.mode }}{% if sh.demo %} · {{ t('demo_data') }}{% endif %}</span>
+  <a class="chipbtn inboxlink" href="/console/inbox?lang={{ lang }}" title="{{ t('inbox') }}" aria-label="{{ t('inbox') }}"><svg width="14" height="12" viewBox="0 0 14 12" aria-hidden="true" style="vertical-align:-1px"><rect x="0.75" y="0.75" width="12.5" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 2l5.5 4.2L12.5 2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>{% if sh.unread %}<span class="dotn">{{ sh.unread }}</span>{% endif %}</a>
+  <a class="chipbtn" href="?lang={{ other_lang }}" hreflang="{{ other_lang }}" title="{{ t('language') }}">{{ 'EN · vi' if lang == 'en' else 'VI · en' }}</a>
+  <button type="button" class="chipbtn" data-theme-toggle title="{{ t('theme_toggle') }}" aria-label="{{ t('theme_toggle') }}">&#9680;</button>
+  <span class="role">{{ t('role_' ~ sh.role) }}</span>
+  <details class="me">
+    <summary title="{{ me.user_id }}"><span class="me-name">{{ me.label }}</span><span class="avatar" aria-hidden="true">{{ sh.initials }}</span><span class="sr">{{ t('signed_in_as') }} {{ me.label }}</span></summary>
+    <div class="me-pop">
+      <div class="row"><span class="muted">{{ t('signed_in_as') }}</span><strong>{{ me.label }}</strong></div>
+      <div class="row"><span class="muted">ID</span><span class="mono">{{ me.user_id }}</span></div>
+      <div class="row"><span class="muted">{{ t('auth_method') }}</span><span class="mono">{{ me.auth_method }}</span></div>
+      <div class="row"><span class="muted">{{ t('roles') }}</span><span>{{ me.roles|sort|join(', ') or '-' }}</span></div>
+      {% if known_users %}
+      <form hx-post="/console/dev/user" hx-trigger="change" hx-swap="none">
+        <label class="f" for="dev-user">{{ t('switch_user') }}
+        <select id="dev-user" name="user">
+          {% for u in known_users %}
+          <option value="{{ u.user_id }}" {{ 'selected' if u.user_id == me.user_id else '' }}>{{ u.user_id }} ({{ u.roles|sort|join('/') }})</option>
+          {% endfor %}
+        </select></label>
+      </form>
+      {% endif %}
+    </div>
+  </details>
+</div>

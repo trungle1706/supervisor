@@ -2,8 +2,13 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('inbox') }}{% endblock %}
 {% block content %}
-<div class="pagehead"><h1>{{ t('inbox') }}</h1></div>
+{{ ui.crumbs([(t('nav_g_act'), None), (t('inbox'), None)]) }}
+{{ ui.pagehead(t('inbox')) }}
 {{ ui.purpose(t('inbox_purpose'), t('inbox_why')) }}
+{{ ui.filterbar('/console/inbox', '/console/inbox/rows', [
+  {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
+  {'name': 'channel', 'label': t('channel'), 'kind': 'select', 'value': params.channel, 'options': channel_opts},
+], '/console/inbox?lang=' ~ lang, '#inbox-rows') }}
 <div id="inbox-rows">
 {% include "_inbox_rows.html" %}
 </div>

@@ -1,0 +1,9 @@
+{# State, risk, Decision 33 and mock pills of the agent page header (also an out-of-band swap
+   after a lifecycle action). Variable: a. #}
+{% import "_ui.html" as ui with context %}
+{% if a.cause and a.cause.rule %}{{ ui.state_pill(a.state, t('by_rule', rule=a.cause.rule), ' ') }}
+{% elif a.cause and a.cause.principal %}{{ ui.state_pill(a.state, t('by_person', who=a.cause.principal), ' ') }}
+{% else %}{{ ui.state_pill(a.state) }}{% endif %}
+{% if a.risk_tier %} {{ ui.pill(t('risk') ~ ' ' ~ t(a.risk_tier), 'neutral') }}{% endif %}
+{% if a.d33.cls == 'high_risk' %} {{ ui.pill(t('d33_high') ~ (' (' ~ t('proposal') ~ ')' if a.d33.source == 'proposal' else ''), 'bad') }}{% endif %}
+{% if a.judge.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}

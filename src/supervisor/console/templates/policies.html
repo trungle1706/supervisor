@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_policies') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_policies'), None)]) }}
+{{ ui.pagehead(t('nav_policies'), ui.pill(t('read_only'), 'neutral')) }}
+{{ ui.purpose(t('policies_purpose'), t('policies_why')) }}
+<h2 class="sec">{{ t('policy_versions') }}</h2>
+<div class="tablewrap">
+<table class="queue">
+  <caption class="sr">{{ t('policy_versions') }}</caption>
+  <thead><tr><th scope="col">{{ t('policy_hash') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('effective_from') }}</th><th scope="col">{{ t('git_sha') }}</th><th scope="col" class="n">{{ t('rules_n') }}</th></tr></thead>
+  <tbody>
+  {% for v in versions %}
+    <tr><td class="mono">{{ v.policy_hash[:16] }}</td><td>{{ ui.pill(t('policy_active') if v.active else t('policy_retired'), 'ok' if v.active else 'neutral', True) }}</td><td class="mono">{{ v.from|day }}</td><td class="mono">{{ v.git_sha or '-' }}</td><td class="n">{{ v.rules_n }}</td></tr>
+  {% else %}
+    <tr><td colspan="5">{{ ui.empty(t('no_policy'), t('no_policy_line')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if tools %}
+<h2 class="sec">{{ t('policy_tools') }}</h2>
+<p class="idline">{% for name, cls in tools %}<span class="mono">{{ name }}</span> ({{ cls }}){{ ', ' if not loop.last else '' }}{% endfor %}</p>
+{% endif %}
+<h2 class="sec">{{ t('policies_in_force') }} <span class="k">{{ total_rules }}</span></h2>
+{{ ui.filterbar('/console/policies', '/console/policies/rows', [
+  {'name': 'q', 'label': t('search_rules'), 'kind': 'search', 'value': params.q},
+  {'name': 'agent', 'label': t('agent_scope'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+  {'name': 'action', 'label': t('action'), 'kind': 'select', 'value': params.action, 'options': action_opts},
+  {'name': 'severity', 'label': t('severity'), 'kind': 'select', 'value': params.severity, 'options': severity_opts},
+  {'name': 'risk', 'label': t('risk_class'), 'kind': 'select', 'value': params.risk, 'options': risk_opts},
+], '/console/policies?lang=' ~ lang) }}
+<div id="list">
+{% include "_policies_list.html" %}
+</div>
+<p class="hint">{{ t('policies_git_note') }}</p>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_policy_drawer.html" %}{% endif %}{% endblock %}

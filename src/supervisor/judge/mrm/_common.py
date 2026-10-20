@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any
 
 from supervisor.config import Settings
 from supervisor.judge.masking import IdentityMasker, mask_version_of
@@ -26,6 +27,18 @@ def utc_now(now: datetime | None) -> datetime:
     return (now or datetime.now(UTC)).astimezone(UTC).replace(microsecond=0)
 
 
+def with_mock_challenger(settings: Settings, chats: dict[str, Any]) -> dict[str, Any]:
+    """A mock-mode run must not call a configured real challenger: swap in a mock one."""
+    if settings.judge_challenger_model and "challenger" not in chats:
+        chats = {
+            **chats,
+            "challenger": MockJudgeChat(
+                settings.judge_challenger_tier, model_id=MOCK_CHALLENGER_ID
+            ),
+        }
+    return chats
+
+
 def router_factory(
     settings: Settings, model: str = "mock", *, gullible: bool = False
 ) -> Callable[[], JudgeRouter]:
@@ -39,7 +52,7 @@ def router_factory(
             "t1": MockJudgeChat(1, model_id="mock-judge-t1-v1", gullible=gullible),
             "t2": MockJudgeChat(2, model_id="mock-judge-t2-v1", gullible=gullible),
         }
-        return JudgeRouter.from_settings(settings, chats=chats)
+        return JudgeRouter.from_settings(settings, chats=with_mock_challenger(settings, chats))
 
     return build
 

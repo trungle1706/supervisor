@@ -37,6 +37,7 @@ from supervisor.core.errors import SupervisorError
 from supervisor.core.ports import EvidenceSink, TableStore
 from supervisor.judge.eval.datasets import build_eval_sets
 from supervisor.judge.eval.harness import run_eval, run_once
+from supervisor.judge.family import VERIFIED_SOURCES
 from supervisor.judge.mockjudge import MockJudgeChat
 from supervisor.judge.mrm._common import (
     MOCK_CHALLENGER_ID,
@@ -45,6 +46,7 @@ from supervisor.judge.mrm._common import (
     parse_now,
     router_factory,
     utc_now,
+    with_mock_challenger,
 )
 from supervisor.judge.mrm.inputs import (
     EvalResultPacks,
@@ -104,7 +106,13 @@ def _challenger_section(
     sample = [i for i in items if i.split == "heldout" and _sampled(i.id, sample_bp)]
     thr = settings.judge_t1_threshold_bp
     base = run_once(sample, primary, 0, thr)
-    chal_router = JudgeRouter.from_settings(settings, chats=chats)
+    # The challenger sits in the T1 slot of this comparison router. Its family was already
+    # checked as a challenger when `primary` was built (D15), so no agents are listed here.
+    chal_router = JudgeRouter.from_settings(
+        settings,
+        chats=chats if model == "settings" else with_mock_challenger(settings, chats),
+        agent_families={},
+    )
     chal = run_once(sample, chal_router, 0, thr)
 
     def flag(bp: int | None) -> bool:
@@ -290,6 +298,10 @@ def run_validation(
                 "passed": row["passed"],
             }
         )
+    # D05: a judge whose family was declared, not derived, is not an identified model; a
+    # validation of it cannot count (SR 11-7 model identity). Mock and derived pass.
+    unverified = [j for j in (primary.t1, primary.t2) if j.family_source not in VERIFIED_SOURCES]
+    checks.append(_check("judge_family_derived", 0 if unverified else 10000, 10000, ">="))
     failed = [c["name"] for c in checks if not c["passed"]]
     decision = "GO" if not failed else "NO_GO"
 
@@ -429,6 +441,10 @@ def _record(
             {
                 "judge_id": ident["judge_id"],
                 "model_version": ident["model_version"],
+                "t1_family": ident["t1_family"],
+                "t1_family_source": ident["t1_family_source"],
+                "t2_family": ident["t2_family"],
+                "t2_family_source": ident["t2_family_source"],
                 "prompt_hash": ident["prompt_hash"],
                 "rubric_version": ident["rubric_version"],
                 "mask_version": ident["mask_version"],
@@ -459,6 +475,8 @@ def render_md(report: dict[str, Any]) -> str:
         "",
         f"- judge: {ident['judge_id']}",
         f"- model_version: {ident['model_version']}",
+        f"- T1 family: {ident['t1_family']} (family_source: {ident['t1_family_source']})",
+        f"- T2 family: {ident['t2_family']} (family_source: {ident['t2_family_source']})",
         f"- prompt_hash: {ident['prompt_hash']}",
         f"- rubric_version: {ident['rubric_version']}",
         f"- mask_version: {ident['mask_version']}",

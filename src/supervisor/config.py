@@ -171,6 +171,10 @@ class Settings(BaseSettings):
     llm_max_tokens: int = Field(default=8192, ge=16)  # WP2: cap against repetition loops
     llm_mock: bool = False  # WP2: LLM_MOCK=1 forces MockChat even when LLM_BASE_URL is set
     llm_endpoint: str | None = None  # Databricks serving endpoint name (App binding)
+    # D14: Anthropic's OpenAI-compatible endpoint needs strict json_schema without minimum,
+    # maximum, pattern, maxItems and refuses `temperature`. Defaults keep the old request.
+    llm_strict_schema: bool = False  # strict:true + schema copy without the refused keywords
+    llm_send_temperature: bool = True  # false = leave temperature out of the request
 
     # Judges (WP5). Advisory only. Empty JUDGE_T*_MODEL = MockJudge (labelled mock).
     # Empty JUDGE_T*_BASE_URL = LLM_BASE_URL. JUDGE_T*_FAMILY overrides the family that is
@@ -199,6 +203,16 @@ class Settings(BaseSettings):
     judge_region: str = "local"  # logged in each verdict (residency, analysis 07 3.1)
     judge_api_key: SecretStr | None = None  # empty = LLM_API_KEY
     judge_sample_salt: str = "supervisor-judge-v1"
+    # D05: the judge family is derived from the model id (and endpoint metadata). A declared
+    # JUDGE_*_FAMILY that disagrees is refused unless this flag is set; never in databricks_app.
+    judge_family_override_test_only: bool = False
+    judge_family_probe: bool = False  # ask GET /models of the judge endpoint for its family
+    # D05 transition: 0 = a declared family is accepted (warning, family_source
+    # declared-unverified) for a model id that shows no family. A clash is always refused.
+    judge_family_strict: bool = True
+    # D15: manifests of these agent ids (CSV) count as judged by the challenger, besides the
+    # registered, non-retired agents of the store. Empty = registry only.
+    judge_agents: str = ""
     # Judge model-risk management (WP19, docs/judge-mrm.md). Role names are FILL-ME until
     # the bank names them. Thresholds are illustrative defaults; second line sets them.
     judge_require_validation: bool = False  # new: refuse to judge without a passing record
@@ -355,6 +369,113 @@ class Settings(BaseSettings):
     assurance_judge_allow_warn: bool = False
     console_assurance_enabled: bool = False
 
+    # --- WP20: ingress auth (ADR D14, docs/ingress-auth.md) ---
+    ingress_auth_enabled: bool = False  # per-agent credential on /gate/check and /v1/traces
+    # hmac = per-agent HMAC key; databricks_sp = service-principal bearer token (SCIM Me);
+    # databricks_proxy = identity header set by the Apps proxy (App mode only, no SCIM call);
+    # both = hmac or databricks_sp; all = the three; auto = databricks_proxy in
+    # databricks_app mode, else hmac.
+    ingress_credential_kind: Literal[
+        "auto", "hmac", "databricks_sp", "databricks_proxy", "both", "all"
+    ] = "auto"
+    # auto = file on the laptop / dev, env in databricks_app mode.
+    ingress_key_store: Literal["auto", "file", "env", "secret_scope"] = "auto"
+    ingress_keys_file: Path | None = None  # default: <repo>/config/agent_keys.yaml (chmod 600)
+    ingress_identities_file: Path | None = None  # default: <repo>/config/agent_identities.yaml
+    ingress_secret_scope: str = ""  # Databricks secret scope for ingress_key_store=secret_scope
+    ingress_replay_window_s: int = Field(default=300, ge=1, le=3600)  # timestamp window + nonce TTL
+    ingress_max_header_bytes: int = Field(default=512, ge=64, le=8192)  # per credential header
+    ingress_identity_cache_ttl_s: int = Field(default=300, ge=0)  # SCIM Me result cache
+    ingress_key_cache_ttl_s: int = Field(default=60, ge=0)  # secret scope read cache
+    ingress_key_overlap_hours: int = Field(default=24, ge=1)  # rotation: previous key lifetime
+    # Review follow-up (F8-F10): pre-auth cost and flood limits.
+    ingress_scim_max_concurrent: int = Field(default=4, ge=1)  # parallel SCIM Me calls
+    ingress_identity_negative_ttl_s: int = Field(default=30, ge=0)  # cache a refused token
+    # 0 = audit every rejection. N = at most one row per (reason, client ip or claimed agent)
+    # per N seconds; skipped rows are counted in ingress_audit_suppressed.
+    ingress_audit_throttle_s: int = Field(default=0, ge=0)
+    ingress_nonce_cap_per_agent: int = Field(default=20_000, ge=1)  # plus the global cap
+
+    # --- WP24b --- masker amounts and inline redaction at the gate (docs/masking.md).
+    # MASK_AMOUNTS: type money amounts <AMOUNT:...> in masked text; off = amounts stay in the text
+    # (the credit rules need them). INLINE_REDACTION_ENABLED: for pii_export tools (and the tools
+    # in INLINE_REDACTION_TOOLS, comma separated) an allowed gate answer carries transformed_args;
+    # the SDK / MCP proxy apply them when their own INLINE_REDACTION_ENABLED is on.
+    mask_amounts: bool = False
+    inline_redaction_enabled: bool = False
+    inline_redaction_tools: str = Field(default="", pattern=r"^[A-Za-z0-9_.:@, -]*$")
+
+    # --- WP22 --- tool analytics and least privilege (docs/tool-analytics.md)
+    tool_analytics_enabled: bool = False  # scheduler job, /v1/analytics/tools
+    sched_tool_analytics_s: int = Field(default=3600, ge=1)
+    tool_analytics_window_days: int = Field(default=30, ge=1, le=366)  # "used" lookback
+    tool_analytics_min_history_days: int = Field(default=14, ge=1)  # less data = low confidence
+    tool_analytics_exceptions_file: Path = Path("config/tool_exceptions.yaml")
+    tool_analytics_dir: Path | None = None  # suggested diffs; default <data_dir>/analytics
+    console_tools_enabled: bool = False  # the Tools page
+
+    # --- WP21 (SIEM and alerts live). Both default off. SIEM sink details (kind, format,
+    # URL, token) are read by supervisor.adapters.integrations.IntegrationSettings from the
+    # same environment (SIEM_SINK, SIEM_FORMAT, SIEM_HTTP_URL, ...); only the on/off switch and
+    # the job interval live here. ADR D15, docs/siem.md, docs/alerts.md.
+    siem_enabled: bool = False
+    sched_siem_s: int = Field(default=60, ge=5)
+    alerts_enabled: bool = False
+    alerts_config: Path = Path("config/alerts.yaml")
+    sched_alerts_s: int = Field(default=60, ge=5)
+    sched_notify_s: int = Field(default=15, ge=5)
+    # Watermark lag: a signal is judged only when it is at least this old. A chain entry gets
+    # its ts before its rows commit (seconds on Delta), and lanes commit in any order, so a
+    # cursor at "now" would skip entries that become visible late.
+    alerts_suppression_max_s: int = Field(default=30 * 86400, ge=0)  # longest planned mute
+    alerts_lag_s: int = Field(default=30, ge=0, le=3600)
+    notify_webhook_dead_letter: Path | None = None  # default: <data_dir>/notify/webhook.dead.jsonl
+    notify_webhook_token: SecretStr | None = None  # bank vault; Authorization: Bearer <token>
+
+    # --- WP24 --- inventory graph and shadow-AI scan (ADR D16; all off by default)
+    inventory_enabled: bool = False  # tables are filled, /v1/inventory and the Inventory page work
+    sched_inventory_s: int = Field(default=3600, ge=60)  # workspace refresh (databricks_app mode)
+    inventory_scan_schemas: str = ""  # "catalog.schema,catalog.schema": UC schemas to list
+    inventory_self_app: str = ""  # name of this Databricks App (never reported as shadow AI)
+    inventory_allowlist_file: Path | None = None  # default config/inventory_allowlist.yaml
+    inventory_workspace_fixture: Path | None = None  # offline: JSON fixture instead of a workspace
+
+    # --- WP1b-B --- per-agent monitor bindings (D06, docs/monitors.md). Additive: the
+    # monitor flags above keep their meaning. A second folder is read after the built-in
+    # policies/ and src/supervisor_agents/ (relative paths resolve against the repo root).
+    monitor_policy_dir: Path | None = None  # extra folder of policy *.yaml (agents.<id>.monitors)
+    monitor_manifest_dir: Path | None = None  # extra folder of <agent>/manifest.yaml
+
+    # --- WP1b-A --- policy folder and fact source of the served app (D13; docs/fact-sources.md)
+    policy_dir: Path | None = None  # absolute folder of policy *.yaml; default <repo>/policies
+    fact_source: str = ""  # "" = none | sqlite:/abs/file.db | callable:pkg.mod:factory
+    fact_query_map: Path | None = None  # YAML query map; required for FACT_SOURCE=sqlite:...
+    # CSV package prefixes a FACT_SOURCE=callable: module must sit under (import = code run).
+    fact_callable_allow_prefix: str = "supervisor."
+
+    # --- WP-UX1 --- console shell (docs/console.md). CONSOLE_NAV=top is the one-setting rollback
+    # to the pill header; the second flag shows the links of pages that WP-UX3 has not built yet
+    # (they open a "coming in WP-UX3" page).
+    console_nav: Literal["sidebar", "top"] = "sidebar"
+    console_nav_placeholders: bool = False
+
+    # --- WP-UX3 --- new console pages, each behind its own flag (all off by default; off = HTTP
+    # 400 with a message and no nav link). The audit-log page flag is CONSOLE_AUDITLOG_ENABLED
+    # because CONSOLE_AUDIT_ENABLED already means "write console_action rows" (WP18).
+    console_decisions_enabled: bool = False  # /console/decisions
+    console_traces_enabled: bool = False  # /console/traces and the span viewer
+    console_playground_enabled: bool = False  # /console/playground (dry-run gate check)
+    playground_allow_app: bool = False  # PLAYGROUND_ALLOW_APP=1: Playground in databricks_app mode
+    console_policies_enabled: bool = False  # /console/policies (read-only)
+    console_credentials_enabled: bool = False  # /console/credentials (metadata, never a secret)
+    console_users_enabled: bool = False  # /console/users (read-only role map)
+    console_auditlog_enabled: bool = False  # /console/audit (console_action rows)
+    console_integrations_enabled: bool = False  # /console/integrations (status, read-only)
+    # Newest rows a list page reads before it filters in Python (decisions, audit log; the
+    # traces list reads CONSOLE_TRACE_SCAN events). A capped list says so. Pilot sizes.
+    console_scan_cap: int = Field(default=20000, ge=100, le=200_000)
+    console_trace_scan: int = Field(default=5000, ge=100, le=50_000)
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -368,10 +489,20 @@ class Settings(BaseSettings):
         "integration_reports_dir",
         "scheduler_lock_path",
         "fairness_config",
+        "tool_analytics_exceptions_file",
+        "tool_analytics_dir",
         "incident_holidays_file",
         "log_file",
         "assurance_data_dir",
         "osv_db_path",
+        "ingress_keys_file",
+        "ingress_identities_file",
+        "alerts_config",
+        "notify_webhook_dead_letter",
+        "inventory_allowlist_file",
+        "inventory_workspace_fixture",
+        "policy_dir",
+        "fact_query_map",
         mode="after",
     )
     @classmethod
@@ -440,6 +571,8 @@ class Settings(BaseSettings):
             self.auth_config_file = REPO_ROOT / "config" / "auth.yaml"
         if self.console_export_dir is None:
             self.console_export_dir = self.data_dir / "exports"
+        if self.tool_analytics_dir is None:
+            self.tool_analytics_dir = self.data_dir / "analytics"
         if self.integration_reports_dir is None:
             self.integration_reports_dir = self.data_dir / "integration"
         if self.auth_kind == "dev_header" and self.supervisor_mode == "databricks_app":
@@ -452,6 +585,31 @@ class Settings(BaseSettings):
                 "CONSOLE_AUDIT_ENABLED=0 is only allowed with SUPERVISOR_MODE=dev "
                 "(the console audit trail cannot be switched off in laptop or databricks_app mode)"
             )
+        if self.policy_dir is not None and not self.policy_dir.is_dir():
+            raise ValueError(f"POLICY_DIR is not a folder: {self.policy_dir}")
+        if self.fact_source.strip():
+            from supervisor.adapters.facts import callable_target, split_fact_source
+
+            kind, target = split_fact_source(self.fact_source)  # raises ValueError
+            if kind == "callable":
+                callable_target(target, self.fact_callable_allow_prefix)  # raises ValueError
+            if kind == "sqlite":
+                db = Path(target).expanduser()
+                db = db if db.is_absolute() else REPO_ROOT / db
+                self.fact_source = f"sqlite:{os.path.abspath(db)}"
+                if self.fact_query_map is None:
+                    raise ValueError("FACT_SOURCE=sqlite:... needs FACT_QUERY_MAP")
+                if not self.fact_query_map.is_file():
+                    raise ValueError(f"FACT_QUERY_MAP is not a file: {self.fact_query_map}")
+        if self.judge_family_override_test_only and self.supervisor_mode == "databricks_app":
+            raise ValueError(
+                "JUDGE_FAMILY_OVERRIDE_TEST_ONLY=1 is not allowed with "
+                "SUPERVISOR_MODE=databricks_app (a declared judge family is not an identity)"
+            )
+        if self.ingress_keys_file is None:
+            self.ingress_keys_file = REPO_ROOT / "config" / "agent_keys.yaml"
+        if self.ingress_identities_file is None:
+            self.ingress_identities_file = REPO_ROOT / "config" / "agent_identities.yaml"
         if self.scheduler_lock_path is None:
             self.scheduler_lock_path = self.data_dir / "scheduler.lock"
         if self.anchor_kind == "worm_dir":
@@ -546,11 +704,29 @@ class Settings(BaseSettings):
         return "databricks_app" if self.supervisor_mode == "databricks_app" else "dev_header"
 
     @property
+    def effective_ingress_kind(
+        self,
+    ) -> Literal["hmac", "databricks_sp", "databricks_proxy", "both", "all"]:
+        if self.ingress_credential_kind != "auto":
+            return self.ingress_credential_kind
+        return "databricks_proxy" if self.supervisor_mode == "databricks_app" else "hmac"
+
+    @property
+    def effective_ingress_key_store(self) -> Literal["file", "env", "secret_scope"]:
+        if self.ingress_key_store != "auto":
+            return self.ingress_key_store
+        return "env" if self.supervisor_mode == "databricks_app" else "file"
+
+    @property
     def scheduler_on(self) -> bool:
         """SCHEDULER_ENABLED if set, else on in laptop mode only (WP7)."""
         if self.scheduler_enabled is not None:
             return self.scheduler_enabled
         return self.supervisor_mode == "laptop"
+
+    @property
+    def inline_redaction_tool_set(self) -> frozenset[str]:
+        return frozenset(t.strip() for t in self.inline_redaction_tools.split(",") if t.strip())
 
     @property
     def mask_key(self) -> tuple[bytes, str]:

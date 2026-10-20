@@ -64,6 +64,9 @@ def _event(
     )
 
 
+event = _event  # public name for harnesses that build their own traffic (WP1b-B)
+
+
 def drift_weeks(
     start: datetime,
     *,
@@ -197,6 +200,7 @@ __all__ = [
     "LoanDecision",
     "as_rows",
     "drift_weeks",
+    "event",
     "loan_decision_events",
     "loan_decisions",
     "split_payment_events",

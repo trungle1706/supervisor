@@ -1,0 +1,23 @@
+{# Compliance tab: the matrix summary of this agent from the advisor read API
+   (CONSOLE_COMPLIANCE_ENABLED). Advisory only, not legal advice. Variables: cmp, cmp_statuses. #}
+{% import "_ui.html" as ui with context %}
+{% if cmp %}
+<div class="grid g2">
+  <section class="card" data-section="counts">
+    <h3>{{ t('cp_counts') }} {{ ui.pill(t('cp_advisory'), 'info') }}</h3>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      {% for s in cmp_statuses %}{{ ui.pill(cw('status.' ~ s) ~ ' ' ~ cmp.by_status.get(s, 0), status_pill[s], True) }}{% endfor %}
+    </div>
+    <div class="hint">{{ t('cp_needs_answer') }} <b>{{ cmp.needs_answer }}</b> · {{ t('cp_questions') }} <b>{{ cmp.questions }}</b> · {{ t('cp_threshold_gaps') }} <b>{{ cmp.threshold_gaps }}</b></div>
+  </section>
+  <section class="card" data-section="decision33">
+    <h3>{{ t('cp_d33') }}</h3>
+    <div>{{ ui.pill(cw('d33.' ~ cmp.d33), d33_pill.get(cmp.d33, 'neutral'), True) }}</div>
+    <div class="hint">{{ cmp.name }} · RegKB {{ cmp.regkb_version[:12] }} · {{ cmp.as_of }}</div>
+  </section>
+</div>
+<p class="btnrow"><a class="btn" href="/console/compliance/{{ a.agent_id }}?lang={{ lang }}">{{ t('cp_open') }}</a></p>
+{% include "_compliance_note.html" %}
+{% else %}
+{{ ui.empty(t('cp_no_matrix'), t('cp_no_matrix_line'), '/console/compliance?lang=' ~ lang, t('nav_compliance')) }}
+{% endif %}

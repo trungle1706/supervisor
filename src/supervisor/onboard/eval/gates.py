@@ -6,6 +6,9 @@ from typing import Any, NamedTuple
 
 TOOLS_RECALL_MIN_BP = 9000
 TOOLS_PRECISION_MIN_BP = 8500
+ENTRYPOINTS_PRECISION_MIN_BP = 9000  # WP1b-B (ILLUSTRATIVE until the bank sets its own)
+ENTRYPOINTS_RECALL_MIN_BP = 9000
+MODEL_FAMILY_ACCURACY_MIN_BP = 9000
 LLM_CALLS_RECALL_MIN_BP = 9000
 FRAMEWORK_ACCURACY_MIN_BP = 9000
 SECRETS_SCRUBBED_MIN_BP = 10000
@@ -25,6 +28,9 @@ class Gate(NamedTuple):
 GATES: tuple[Gate, ...] = (
     Gate("tools_recall", "tools_recall_bp", ">=", TOOLS_RECALL_MIN_BP),
     Gate("tools_precision", "tools_precision_bp", ">=", TOOLS_PRECISION_MIN_BP),
+    Gate("entrypoints_precision", "entrypoints_precision_bp", ">=", ENTRYPOINTS_PRECISION_MIN_BP),
+    Gate("entrypoints_recall", "entrypoints_recall_bp", ">=", ENTRYPOINTS_RECALL_MIN_BP),
+    Gate("model_family_accuracy", "model_family_accuracy_bp", ">=", MODEL_FAMILY_ACCURACY_MIN_BP),
     Gate("llm_calls_recall", "llm_calls_recall_bp", ">=", LLM_CALLS_RECALL_MIN_BP),
     Gate("framework_accuracy", "framework_accuracy_bp", ">=", FRAMEWORK_ACCURACY_MIN_BP),
     Gate("secrets_scrubbed", "secrets_scrubbed_bp", ">=", SECRETS_SCRUBBED_MIN_BP),
