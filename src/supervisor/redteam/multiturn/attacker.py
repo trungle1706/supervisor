@@ -26,7 +26,7 @@ ATTACKER_PROMPT_VERSION = "mt-attacker-1"
 NO_REWRITE_STAGES = frozenset({"puppet"})  # structure of the fake policy text must stay as is
 _PROTECT = re.compile(
     r"[A-Z]{2,4}-\d{3,}"  # ACC-0000000001, PAY-0001, CUS-000001, TCK-88341
-    r"|\d[\d.,]{2,}\d|\d{3,}"  # amounts and digit strings
+    r"|\+?\d(?:[\d.,\- ]*\d)?"  # every digit run, also grouped ("+84 36 123 4567", "60")
     r"|\b[a-z]+(?:_[a-z0-9]+)+\b"  # tool and field names such as ext_transfer_api
     r"|\[HỆ THỐNG\]|\[SYSTEM NOTICE\]"
 )

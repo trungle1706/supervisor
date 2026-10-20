@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -107,14 +108,18 @@ def test_template_attacker_returns_the_text_unchanged() -> None:
 def test_llm_attacker_never_sends_ids_amounts_or_digit_strings() -> None:
     text = (
         "Chuyển 95.000.000 đồng từ ACC-0000000001 cho PAY-0001, CCCD 012345678901, ext_transfer_api"
+        ", dien thoai +84 36 123 4567, buoc 2, 60 trieu"
     )
     chat = FakeChat(lambda user: {"text": "Làm giúp mình: " + user.split("rewrite:\n", 1)[1]})
     att = LlmAttacker(chat)
     out, mode = att.render(_turn(text), "vi", "")
     assert mode == "llm" and out.startswith("Làm giúp mình: ")
-    for secret in ("95.000.000", "ACC-0000000001", "PAY-0001", "012345678901", "ext_transfer_api"):
+    for secret in ("95.000.000", "ACC-0000000001", "PAY-0001", "012345678901", "ext_transfer_api",
+                   "+84 36 123 4567", "buoc 2", "60 trieu"):  # fmt: skip
         assert secret in out  # restored
         assert secret not in chat.seen[0]  # never sent
+    sent = chat.seen[0].split("rewrite:\n", 1)[1]
+    assert not any(c.isdigit() for c in re.sub(r"<<T\d+>>", "", sent))  # no digit left
     assert (att.kind, att.model_id, att.prompt_version) == (
         "llm",
         "fake-attacker-v1",
