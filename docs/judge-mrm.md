@@ -112,7 +112,7 @@ Each row becomes a check named `pack:<id>:<metric>`; any failed row forces NO_GO
 
 ### Family source and strict endpoints (WP1b-A)
 
-The family-independence rule uses a derived family, not a declared label (ADR D20, details in
+The family-independence rule uses a derived family, not a declared label (ADR D21, details in
 `docs/llm-adapter.md`). The validation report lists `T1 family` and `T2 family` with their
 `family_source` (`derived`, `declared-test-only` or `mock`); the same two values are in the
 `judge_validation` chain record, the model card tier lines and every `verdict` row. A validation

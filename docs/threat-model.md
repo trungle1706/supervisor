@@ -163,7 +163,7 @@ forged alert cannot pause or block anything.
 | Inventory reads workspace metadata (WP24) | With `INVENTORY_ENABLED=1` the app lists Apps, serving endpoints, registered models and UC table names (read only, OAuth identity of the app). Object names are untrusted text: the console escapes them, CSV export guards formula cells, case summaries pass the masker, and nothing from the workspace reaches an LLM prompt. Shadow-AI cases are flags for a person; the scan never pauses or blocks. The check is only as complete as the app identity's visibility: an App the service principal cannot list is not seen | Grant the app principal list rights on Apps and serving endpoints; review the allow-list file in change control |
 | Mock judges in the demo | The demo judge is a keyword MockJudge; its numbers prove the protocol, not a model | Real judge model behind `JUDGE_*` settings, measured by the eval harness |
 
-### Judge family and served config (WP1b-A, ADR D20)
+### Judge family and served config (WP1b-A, ADR D21)
 
 Trust boundary B3 (judge / model) and the operator settings. The judge family was a free-text
 declaration; a qwen judge could be declared as another family and watch a qwen agent. The family

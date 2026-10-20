@@ -1,4 +1,4 @@
-# D20: Judge family is derived; challenger scope; strict endpoints; served config
+# D21: Judge family is derived; challenger scope; strict endpoints; served config
 
 Status: accepted (WP1b-A, phase 3). Source: credit-memo benchmark defects D05, D12, D13, D14, D15.
 
