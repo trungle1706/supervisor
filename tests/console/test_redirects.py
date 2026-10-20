@@ -57,8 +57,11 @@ def test_redirect_passes_only_known_keys_and_keeps_its_tab(console: Console) -> 
     assert r.status_code == 303
     loc = r.headers["location"]
     assert loc.startswith("/console/analytics?")
-    assert _query(loc) == {"tab": "metrics", "lang": "vi", "days": "7"}
-    assert "evil" not in loc and "script" not in loc and "\n" not in loc
+    q = _query(loc)
+    assert q == {"tab": "metrics", "lang": "vi", "agent": "a\r\nX:1", "days": "7"}
+    assert "evil" not in loc and "script" not in loc and "\n" not in loc and "%0D%0A" in loc
+    # the bad agent value is checked by the target page: 400, not silently dropped
+    assert console.get(loc).status_code == 400
 
 
 def test_redirect_target_renders_in_the_requested_language(console: Console) -> None:

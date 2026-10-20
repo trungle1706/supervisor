@@ -850,21 +850,21 @@ async def agent_action(
 
 _MOVED_KEYS = {"lang", "days", "agent", "sort", "dir"}  # what the Analytics page reads
 _MOVED_RENAME = {"agent_id": "agent"}  # old /console/tools name
-_MOVED_VALUE = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 
 
 def _moved(request: Request, target: str, **query: str) -> RedirectResponse:
     """303 to the fixed local path ``target`` with ``query`` (it always wins, so a caller
     cannot pick another tab) and the known keys of the caller's query string (``lang``,
-    range, agent, sort), so a bookmark keeps its meaning. Unknown keys and values outside the
-    id pattern are dropped: the Location header carries nothing the caller made up."""
+    range, agent, sort), so a bookmark keeps its meaning. Unknown keys are dropped; values
+    are URL-encoded (no CR / LF reaches the header) and checked by the target page, so a bad
+    value still answers 400 there."""
     from urllib.parse import urlencode
 
     kept: dict[str, str] = {}
     for key, value in request.query_params.items():
         key = _MOVED_RENAME.get(key, key)
-        if key in _MOVED_KEYS and key not in kept and _MOVED_VALUE.match(value):
-            kept[key] = value
+        if key in _MOVED_KEYS and key not in kept:
+            kept[key] = value[:256]
     return RedirectResponse(f"{target}?{urlencode({**kept, **query})}", status_code=303)
 
 
