@@ -345,3 +345,55 @@ def test_each_new_rule_has_a_doc_row() -> None:
             "AL-INGRESS-AUTH-ANOMALY",
         ):
             assert f"`{rule.id}`" in text, rule.id
+
+
+def _observe_verdict(c: Console, eid: str, label: str, agent: str = "payments") -> None:
+    c.ctx.tables.append(
+        "verdict",
+        [
+            {
+                "verdict_id": f"ob{abs(hash((eid, label))) % 10**16:016d}",
+                "ts": c.ctx.clock.now(),
+                "trace_id": "t-ob",
+                "event_id": eid,
+                "agent_id": agent,
+                "tier": 0,
+                "checker_id": "gate.tier0a",
+                "is_mock": False,
+                "advisory": False,
+                "label": label,
+                "action": "log",
+                "rule_id": "PAY-OBS",
+                "rationale_masked": "observe",
+            }
+        ],
+    )
+
+
+def test_observe_verdict_rows_raise_threat_not_enforced(v2console: Console) -> None:
+    ctx = _mctx(v2console)
+    eid = add_decision(v2console, agent="payments", corr="corr-obs", direction="output")
+    _observe_verdict(v2console, eid, "observe_would_block")
+    now = v2console.ctx.clock.now()
+    sigs = load_signals(ctx, now - timedelta(hours=1), now + timedelta(minutes=1))
+    obs = [s for s in sigs if s.sid.startswith("observe:")]
+    assert len(obs) == 1 and obs[0].fields["enforcement"] == "observe"
+    assert obs[0].fields["action_hint"] == "block" and obs[0].fields["correlation_id"] == "corr-obs"
+    assert obs[0].fields["direction"] == "output"
+    res = evaluate(_rules(), obs, only_rules={"AL-THREAT-NOT-ENFORCED"})
+    assert len(res.fired) == 1 and res.fired[0].agent_id == "payments"
+
+
+def test_response_tab_shows_the_observed_decision_line(v2console: Console) -> None:
+    eid = add_decision(v2console, agent="payments")
+    plain = _tab(v2console, eid)
+    assert "Mode" in plain and "enforce" in plain and "Observed decision" in plain
+    _observe_verdict(v2console, eid, "observe_would_pause")
+    obs = _tab(v2console, eid)
+    assert "observe" in obs and "would have paused (not enforced)" in obs
+    assert "Approvals" in obs
+
+
+def _tab(c: Console, eid: str) -> str:
+    html = c.get(f"/console/decisions/{eid}/drawer?tab=response").text
+    return html.split('id="tab-body"')[1]

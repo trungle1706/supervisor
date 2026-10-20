@@ -145,6 +145,7 @@ def load_signals(
     out.extend(ingress)
     out.extend(_ingress_requests(ingress))
     out.extend(_finding_signals(ctx, ts_from, ts_to, state_of))
+    out.extend(_observe_signals(ctx, ts_from, ts_to))
     if gap_window_s:
         out.extend(_coverage_gaps(ctx, ts_to, gap_window_s))
     for v in read_range(ctx, "verdict", ts_from, ts_to, {"tier": 2}):
@@ -291,6 +292,53 @@ def _finding_signals(
             )
         )
     return out
+
+
+OBSERVE_LABELS = {"observe_would_block": "block", "observe_would_pause": "pause"}
+
+
+def _observe_signals(ctx: MonitorContext, ts_from: datetime, ts_to: datetime) -> list[Signal]:
+    """Decisions the policy observe mode (WP38) let through but would have stopped: tier 0
+    ``verdict`` rows with label ``observe_would_block`` or ``observe_would_pause`` (also written
+    for a lifted GATE-DETECTOR-FAILED), joined to the decision (``agent_event``) by the decision
+    id. There is no observed-decision column on ``agent_event``; these rows are the record. They
+    are ``gate_finding`` signals with ``enforcement: observe`` so that AL-THREAT-NOT-ENFORCED
+    reads them with the shadow findings."""
+    out = []
+    for label, hint in OBSERVE_LABELS.items():
+        for v in read_range(ctx, "verdict", ts_from, ts_to, {"tier": 0, "label": label}):
+            ev = ctx.tables.query("agent_event", {"event_id": v.get("event_id")}, limit=1)
+            e = ev[0] if ev else {}
+            cov = e.get("coverage_json")
+            cov = cov if isinstance(cov, dict) else _loads(cov)
+            out.append(
+                Signal(
+                    sid=f"observe:{v['verdict_id']}",
+                    kind="gate_finding",
+                    ts=as_dt(v["ts"]),
+                    derived=True,
+                    fields={
+                        "agent_id": v["agent_id"],
+                        "code": label,
+                        "finding_class": "policy",
+                        "direction": cov.get("direction") or "input",
+                        "detector_slug": "policy",
+                        "action_hint": hint,
+                        "enforcement": "observe",
+                        "is_mock": False,
+                        "correlation_id": e.get("correlation_id"),
+                    },
+                )
+            )
+    return out
+
+
+def _loads(value: Any) -> dict[str, Any]:
+    try:
+        out = json.loads(value) if isinstance(value, str) else {}
+    except ValueError:
+        return {}
+    return out if isinstance(out, dict) else {}
 
 
 def _coverage_gaps(ctx: MonitorContext, now: datetime, window_s: int) -> list[Signal]:

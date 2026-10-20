@@ -479,6 +479,26 @@ def _finding_view(f: Mapping[str, Any], masked: _Masked) -> dict[str, Any]:
     }
 
 
+OBSERVE_LABELS = {"observe_would_block": "block", "observe_would_pause": "pause"}
+
+
+def _observed(verdicts: Sequence[Mapping[str, Any]], payload: Mapping[str, Any]) -> dict[str, Any]:
+    """The "Observed decision" line (WP38 policy observe mode): the mode of the decision, what
+    the policy would have done, and whether approvals were present. Read from the tier-0 verdict
+    rows (labels ``observe_would_block`` / ``observe_would_pause``, also written for a lifted
+    GATE-DETECTOR-FAILED); ``approvals`` comes from the chain record when it has the key."""
+    would = [OBSERVE_LABELS[v["label"]] for v in verdicts if v.get("label") in OBSERVE_LABELS]
+    state = str(payload.get("agent_state") or "")
+    mode = "observe" if would else ("shadow" if state == "SHADOW" else "enforce")
+    ap = payload.get("approvals")
+    approvals = None if ap is None else bool(ap)
+    return {
+        "mode": mode,
+        "decision": ("pause" if "pause" in would else "block") if would else None,
+        "approvals": approvals,
+    }
+
+
 def resolve_ref(ctx: Any, *, event: str = "", correlation: str = "") -> str:
     """Decision id for a deep link: ``?event=`` (decision id, else request id) or
     ``?correlation=`` (the newest decision of that correlation id)."""
@@ -583,6 +603,7 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
     }
     cov = loads(e.get("coverage_json"), {})
     cov = cov if isinstance(cov, dict) else {}
+    observed = _observed(t0, payload)
     p = parse_params(query)
     rows, _ = rows_for(ctx, p)
     ids = [r["event_id"] for r in ordered(rows, p)[0]]
@@ -639,6 +660,7 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
         "alerts": alerts,
         "shared": shared,
         "split": split,
+        "observed": observed,
         "request_id": doc["request_id"],
         "prev_id": ids[i - 1] if i > 0 else None,
         "next_id": ids[i + 1] if 0 <= i < len(ids) - 1 else None,

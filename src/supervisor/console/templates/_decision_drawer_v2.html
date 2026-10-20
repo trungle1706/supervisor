@@ -42,6 +42,9 @@
       (t('rule_col'), r.rule_ids|join(', ')),
       (t('reason'), drawer.reason),
       (t('direction'), t('dir_' ~ r.direction)),
+      (t('observed_mode'), t('mode_' ~ drawer.observed.mode)),
+      (t('observed_decision'), (t('would_' ~ drawer.observed.decision)) if drawer.observed.decision else '-'),
+      (t('observed_approvals'), (t('approvals_yes') if drawer.observed.approvals else t('approvals_no')) if drawer.observed.approvals is not none else '-'),
     ]) }}
     {% if drawer.rules %}
     <div class="tablewrap flat"><table>

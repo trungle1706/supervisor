@@ -1926,6 +1926,22 @@ _T.update(
             "nhất của một ngày. GO (indicative): giá trị điểm đạt, khoảng tin cậy 95 phần "
             "trăm chưa chứng minh.",
         ),
+        "observed_mode": ("Mode", "Chế độ"),
+        "mode_enforce": ("enforce", "thực thi"),
+        "mode_shadow": ("shadow", "chạy ngầm"),
+        "mode_observe": ("observe", "quan sát"),
+        "observed_decision": ("Observed decision", "Quyết định quan sát được"),
+        "would_block": (
+            "would have blocked (not enforced)",
+            "đã chặn nếu thực thi (chưa thực thi)",
+        ),
+        "would_pause": (
+            "would have paused (not enforced)",
+            "đã tạm dừng nếu thực thi (chưa thực thi)",
+        ),
+        "observed_approvals": ("Approvals", "Phê duyệt"),
+        "approvals_yes": ("present", "có"),
+        "approvals_no": ("not present", "không có"),
         "findings_chip": ("{n} findings", "{n} phát hiện"),
         "open_decision": ("Open the gate decision", "Mở quyết định của cổng"),
         "export_csv": ("Export CSV", "Xuất CSV"),
