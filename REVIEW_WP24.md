@@ -9,7 +9,7 @@ docs/inventory.md, ADR D16, full `git diff main...HEAD` (52 files).
 The design is sound: the ids are deterministic, the risk inheritance uses SCCs and is correct,
 the workspace scan is rule-based (R1 holds), and Decision 33 is never inferred. Two governance
 defects made the A.6 inventory wrong for the real Databricks path. One Databricks API use was
-incomplete. The notebook CSV mode could not run. All four are fixed on the branch (5 commits,
+incomplete. The notebook CSV mode could not run. All four are fixed on the branch (4 fix commits plus this file,
 see below). No item needs rework. The open items are owner decisions or BACKLOG items.
 
 ## Review commits (on the branch, not pushed)
