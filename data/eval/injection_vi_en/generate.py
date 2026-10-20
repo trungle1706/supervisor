@@ -48,7 +48,7 @@ CODES = {
     "tool_description": "injection.tool_poisoning",
 }
 # items per split: (positives, negatives) per surface (= per code)
-SIZES = {"train": (800, 800), "dev": (150, 250), "heldout": (150, 300)}
+SIZES = {"train": (800, 800), "dev": (150, 250), "heldout": (150, 300), "train_b": (500, 500)}
 EVADE_TRAIN_RATE = 0.45
 EVASION_KINDS = (
     "typo",
@@ -436,7 +436,7 @@ def build_split(split: str, rng: random.Random) -> list[dict[str, Any]]:
                 if key in seen:
                     continue
                 seen.add(key)
-                if split == "train" and rng.random() < EVADE_TRAIN_RATE:
+                if split in ("train", "train_b") and rng.random() < EVADE_TRAIN_RATE:
                     kind = rng.choice(EVASION_KINDS)
                     it = apply_evasion(it, kind, rng, rng.randrange(1 << 30))
                 made += 1
@@ -531,10 +531,13 @@ def build_all() -> dict[str, str]:
     train = build_split("train", rng)
     dev = build_split("dev", rng)
     held = build_split("heldout", rng)
+    # WP25b: the extra training pool uses its own stream, so the files above keep their bytes
+    train_b = build_split("train_b", random.Random(SEED + 7))  # noqa: S311
     evas = build_evasion(held, rng)
     adv = build_adversarial()
     return {
         "train.jsonl": dump(train),
+        "train_b.jsonl": dump(train_b),
         "dev.jsonl": dump(dev),
         "heldout.jsonl": dump(held),
         "evasion.jsonl": dump(evas),

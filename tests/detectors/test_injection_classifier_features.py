@@ -64,7 +64,7 @@ def test_windows_cover_long_text_and_features_are_in_range_and_deterministic() -
     assert len(wins) > 5 and all(len(w) <= F.WINDOW + 20 for w in wins)
     assert " ".join(wins).count("word3") >= text.count("word3") // 2
     ids = F.features(wins[0])
-    assert ids == F.features(wins[0]) and ids == sorted(set(ids))
+    assert ids == F.features(wins[0]) and list(ids) == sorted(set(ids))
     assert all(0 <= i < F.BUCKETS for i in ids)
     # digits are generalised: two different amounts give the same features
     assert F.features("send 5000 now") == F.features("send 9999 now")

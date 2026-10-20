@@ -49,13 +49,14 @@ DATA = REPO_ROOT / "data" / "eval" / "injection_vi_en"
 SEED = 20261023
 VERSION = "1.0.0"
 HYPER = {
-    "epochs": 6,
-    "lr": 0.03,
-    "l2": 1e-4,
+    "epochs": 3,
+    "lr": 0.1,
+    "l2": 1e-3,
     "eps": 1e-6,
     "pos_weight": 1.0,
-    "hard_weight": 2.0,
+    "hard_weight": 4.0,
     "average": True,
+    "bags": 1,
 }
 
 
@@ -87,7 +88,9 @@ def make_samples(items: list[dict[str, Any]]) -> list[Sample]:
     for it in items:
         surf, text = unit_of(it)
         wins = (
-            [array("I", ids) for var in F.variant_feature_sets(text) for ids in var] if text else []
+            [array("I", ids) for var in F.variant_feature_sets(text, surf) for ids in var]
+            if text
+            else []
         )
         out.append(
             Sample(surf, int(it["label"]), wins or [array("I")], it["category"] == "benign-hard")
@@ -95,7 +98,9 @@ def make_samples(items: list[dict[str, Any]]) -> list[Sample]:
     return out
 
 
-def train(samples: list[Sample], hyper: dict[str, Any], seed: int, log: bool = True) -> LinearModel:
+def train_one(
+    samples: list[Sample], hyper: dict[str, Any], seed: int, log: bool = True
+) -> LinearModel:
     rng = random.Random(seed)  # noqa: S311 - seeded shuffle, not security
     w = [0.0] * F.TOTAL
     g2 = [0.0] * F.TOTAL
@@ -152,6 +157,25 @@ def train(samples: list[Sample], hyper: dict[str, Any], seed: int, log: bool = T
     ints = [int(round(x * SCALE)) for x in w]
     b_int = {s: int(round(bias[s] * SCALE)) for s in SURFACES}
     return LinearModel(VERSION, ints, b_int, {})
+
+
+def train(samples: list[Sample], hyper: dict[str, Any], seed: int, log: bool = True) -> LinearModel:
+    """One model, or the average of ``bags`` models each fitted on a seeded 80 percent subsample
+    (bagging by weight averaging: the logit of the average is the average of the logits)."""
+    bags = int(hyper.get("bags", 1))
+    if bags <= 1:
+        return train_one(samples, hyper, seed, log)
+    rng = random.Random(seed + 101)  # noqa: S311 - seeded subsampling, not security
+    models = []
+    for b in range(bags):
+        sub = rng.sample(samples, max(1, len(samples) * 4 // 5))
+        models.append(train_one(sub, hyper, seed + b, log=False))
+        if log:
+            print(f"  bag {b + 1}/{bags} done")
+    n = len(models)
+    weights = [sum(m.weights[i] for m in models) // n for i in range(F.TOTAL)]
+    bias = {k: sum(m.bias[k] for m in models) // n for k in SURFACES}
+    return LinearModel(VERSION, weights, bias, {})
 
 
 def scores_bp(model: LinearModel, samples: list[Sample]) -> list[int]:

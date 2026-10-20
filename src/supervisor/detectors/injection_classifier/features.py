@@ -30,6 +30,7 @@ from __future__ import annotations
 import base64
 import binascii
 import codecs
+import functools
 import json
 import re
 import unicodedata
@@ -40,7 +41,7 @@ from typing import Any
 from supervisor.detectors.injection_classifier import concepts as C
 from supervisor.gateway import tier0b
 
-FEATURE_VERSION = "feat-2"
+FEATURE_VERSION = "feat-3"
 BUCKETS = 1 << 16  # character n-gram and word buckets
 MASK = BUCKETS - 1
 CONCEPT_SCALE = 0.25  # value of a concept feature (n-gram features have 1/sqrt(n))
@@ -79,6 +80,31 @@ _LEXICON = frozenset(
     "transfer rules limit password admin reveal forget qua huong dan quy tac bo chuyen "
     "hang muc duyet tai khoan".split()
 )
+
+# Common words (English and Vietnamese without diacritics). A text with almost none of them whose
+# ROT13 or reversed form has many is probably encoded. Plausibility only, never a verdict.
+_COMMON = frozenset(
+    (
+        "the a an of to in on for is are was were be and or with by at from that this it as your you i "
+        "we they not no yes please if then do does did can will would should must all any each every "
+        "my our their its his her me us them what when where which who how why have has had but so "
+        "than too very just also into out up down over under about after before again more most some "
+        "such only own same new old send transfer account customer payment approve instruction "
+        "va cua la co cho cac nhung mot duoc voi khong nay do thi de khi trong tai theo tu ve da se "
+        "dang ban toi anh chi em quy khach vui long xin hay dung nhe nha ma neu thi cung con cho "
+        "nhu rat hon nhat tat ca moi sau truoc tren duoi ngay thang nam gio phut so tien tai khoan "
+        "chuyen gui duyet giao dich"
+    ).split()
+)
+
+
+def common_share(text: str) -> int:
+    """Share of the words of ``text`` that are common words, in basis points (0 for no words)."""
+    words = [w for w in _ALNUM.findall(text) if w.isalpha()]
+    if len(words) < 3:
+        return 0
+    return sum(1 for w in words if w in _COMMON) * 10_000 // len(words)
+
 
 # Marker words appended to a variant (they never occur in normal text).
 MARK_COMMENT = "zzcmt"
@@ -237,10 +263,12 @@ def prepare(text: str) -> list[str]:
     telex = tier0b.strip_diacritics(tier0b.telex_decode(main))
     if telex != main:
         variants.append((telex + " " + " ".join(marks)).strip())
-    # decoding triggers: ROT13 and reversed text, only when the lexicon says so
-    if _lexicon_hits(main) == 0 and len(main) >= 12:
+    # decoding: ROT13 and reversed text, when the decoded form reads as normal text and the plain
+    # form does not (common-word share), or when the lexicon fires on it (WP25 1.0.0 rule)
+    if len(main) >= 12 and _lexicon_hits(main) == 0:
+        plain_share = common_share(main)
         for alt in (codecs.encode(main, "rot13"), main[::-1]):
-            if _lexicon_hits(alt) >= 2:
+            if _lexicon_hits(alt) >= 2 or (plain_share < 1_500 and common_share(alt) >= 3_500):
                 variants.append(f"{alt} {MARK_ROT} " + " ".join(marks))
     return variants
 
@@ -267,11 +295,18 @@ def windows(text: str) -> list[str]:
 
 
 _SEEDS = ((3, zlib.crc32(b"3")), (4, zlib.crc32(b"4")), (5, zlib.crc32(b"5")))
+_SURFACE_SEED = {
+    "args": zlib.crc32(b"s:args"),
+    "tool_results": zlib.crc32(b"s:tool_results"),
+    "tool_description": zlib.crc32(b"s:tool_description"),
+}
 
 
-def features(window: str) -> list[int]:
-    """Sorted unique feature ids of one window of one variant: hashed n-grams and words below
-    BUCKETS, concept features (concepts.py) from BUCKETS up."""
+@functools.lru_cache(maxsize=4096)
+def features(window: str, surface: str = "args") -> tuple[int, ...]:
+    """Sorted unique feature ids of one window of one variant on one surface: hashed character
+    n-grams (shared by the surfaces), words and stems (shared and tagged with the surface), below
+    BUCKETS; concept features (concepts.py, shared and tagged) from BUCKETS up. Cached."""
     t = _DIGITS.sub("#", window)
     ids: set[int] = set()
     padded = f" {t} "
@@ -287,30 +322,36 @@ def features(window: str) -> list[int]:
             ids.update(
                 {crc(padded[i : i + k].encode("utf-8"), seed) & MASK for i in range(n - k + 1)}
             )
+    ss = _SURFACE_SEED.get(surface, _SURFACE_SEED["args"])
     words = _ALNUM.findall(t)
     prev = ""
     for w in words:
-        ids.add(crc(b"w" + w.encode("utf-8")) & MASK)
+        sw = C.stem(w) if w.isalpha() else w
+        wb = b"w" + sw.encode("utf-8")
+        ids.add(crc(wb) & MASK)
+        ids.add(crc(wb, ss) & MASK)
         if prev:
-            ids.add(crc(b"b" + prev.encode("utf-8") + b" " + w.encode("utf-8")) & MASK)
-        prev = w
-    ids.update(BUCKETS + i for i in C.concept_features(t))
-    return sorted(ids)
+            bb = b"b" + prev.encode("utf-8") + b" " + sw.encode("utf-8")
+            ids.add(crc(bb) & MASK)
+            ids.add(crc(bb, ss) & MASK)
+        prev = sw
+    ids.update(BUCKETS + i for i in C.concept_features(t, surface))
+    return tuple(sorted(ids))
 
 
-def unit_feature_sets(text: str) -> list[list[int]]:
+def unit_feature_sets(text: str, surface: str = "args") -> list[tuple[int, ...]]:
     """Feature lists of every window of every variant of ``text`` (training uses the variant
     structure: ``prepare`` then ``windows`` then ``features``)."""
-    out: list[list[int]] = []
+    out: list[tuple[int, ...]] = []
     for v in prepare(text):
         for w in windows(v):
-            out.append(features(w))
+            out.append(features(w, surface))
     return out
 
 
-def variant_feature_sets(text: str) -> list[list[list[int]]]:
+def variant_feature_sets(text: str, surface: str = "args") -> list[list[tuple[int, ...]]]:
     """Per variant, the feature lists of its windows."""
-    return [[features(w) for w in windows(v)] for v in prepare(text)]
+    return [[features(w, surface) for w in windows(v)] for v in prepare(text)]
 
 
 def usable(text: str) -> bool:

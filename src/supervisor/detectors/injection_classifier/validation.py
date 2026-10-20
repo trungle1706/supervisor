@@ -56,6 +56,7 @@ THRESHOLDS: dict[str, int] = {
     "false_pause_bp_max": 100,  # benign calls to money / credit tools that would pause
     "determinism_mismatches_max": 0,
 }
+_SURFACE_OF_CODE = {code: surface for surface, code in U.CODE_BY_SURFACE.items()}
 EVASION_BASELINE_MIN_GAIN_BP = 1  # classifier typo recall must exceed the regex by at least this
 
 
@@ -135,12 +136,15 @@ def score_items(
 
 
 def _operating(
-    items: list[dict[str, Any]], scores: list[dict[str, int]], thr: int
+    items: list[dict[str, Any]], scores: list[dict[str, int]], thr: int | dict[str, int]
 ) -> dict[str, Any]:
     tp = fn = fp = tn = 0
     hard_fp = hard_n = 0
     for it, sc in zip(items, scores, strict=True):
-        hit = any(v >= thr for v in sc.values())
+        hit = any(
+            v >= (thr if isinstance(thr, int) else thr[_SURFACE_OF_CODE[code]])
+            for code, v in sc.items()
+        )
         if it["label"]:
             tp += hit
             fn += not hit
@@ -151,7 +155,8 @@ def _operating(
                 hard_n += 1
                 hard_fp += hit
     return {
-        "threshold_bp": thr,
+        "threshold_bp": thr if isinstance(thr, int) else max(thr.values()),
+        "threshold_by_surface": thr if isinstance(thr, dict) else None,
         "recall_bp": _bp(tp, tp + fn),
         "recall_ci_bp": _w(tp, tp + fn),
         "false_alarm_bp": _bp(fp, fp + tn),
@@ -388,7 +393,7 @@ def compute(
     fresh = D.InjectionClassifierDetector(masker, model=M.load_model(D.MODEL_VERSION))
     sc_dev = score_items(fresh, dev)
     sc_held = score_items(fresh, heldout)
-    points = {**D.PRESETS, "pause": D.PAUSE_THRESHOLD_BP}
+    points = {**D.SURFACE_PRESETS, "pause": D.PAUSE_THRESHOLD_BP}
     mrm["operating_points"] = {
         sp: {name: _operating(its, scs, thr) for name, thr in points.items()}
         for sp, its, scs in (("dev", dev, sc_dev), ("heldout", heldout, sc_held))
@@ -403,7 +408,7 @@ def compute(
     card = json.loads(CARD.read_text(encoding="utf-8"))
     mrm["card"] = {
         "thresholds_match_code": card["thresholds_bp"]
-        == {**D.PRESETS, "pause": D.PAUSE_THRESHOLD_BP},
+        == {**D.SURFACE_PRESETS, "pause": D.PAUSE_THRESHOLD_BP},
         "version": card["version"],
         "weights_sha256": card["weights_sha256"],
         "weights_sha256_matches_file": M.sha256_file(M.model_dir(D.MODEL_VERSION) / "weights.json")

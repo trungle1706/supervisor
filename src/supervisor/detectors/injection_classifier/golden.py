@@ -15,7 +15,7 @@ from typing import Any
 from supervisor.config import REPO_ROOT
 
 DATA_DIR = REPO_ROOT / "data" / "eval" / "injection_vi_en"
-SPLITS = ("train", "dev", "heldout", "evasion", "adversarial")
+SPLITS = ("train", "train_b", "dev", "heldout", "evasion", "adversarial")
 
 
 def load(split: str) -> list[dict[str, Any]]:

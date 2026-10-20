@@ -82,7 +82,7 @@ class LinearModel:
         self.meta = meta
 
     # ------------------------------------------------------------------ scoring
-    def window_logit(self, ids: list[int], surface: str) -> float:
+    def window_logit(self, ids: tuple[int, ...] | list[int], surface: str) -> float:
         w = self.weights
         sw = sc = n = 0
         for i in ids:
@@ -110,7 +110,7 @@ class LinearModel:
         if not F.usable(text):
             z = self.bias[surface] / SCALE
             return Scored(sigmoid_bp(z), z, 0, 0)
-        z, vi, wi = self.score_variants(F.variant_feature_sets(text), surface)
+        z, vi, wi = self.score_variants(F.variant_feature_sets(text, surface), surface)
         return Scored(sigmoid_bp(z), z, vi, wi)
 
     def score_bp(self, text: str, surface: str) -> int:

@@ -676,3 +676,8 @@ TOOLS_READ = [
 ]
 TOOLS_PII = ["add_payee", "fetch_application"]
 FREE_FIELDS = ["memo", "note", "reason", "description", "message", "comment", "customer_message"]
+
+# WP25b: a fourth pool (training only), kept in its own file.
+from templates_b import POOL_B  # noqa: E402
+
+POOLS["train_b"] = POOL_B

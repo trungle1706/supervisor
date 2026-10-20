@@ -588,7 +588,11 @@ class DetectorRegistry:
     def may_fail_closed(self, slug: str) -> bool:
         """False for an unknown slug and for an advisory detector (R1), whatever the config."""
         det = self._by_slug.get(slug)
-        return det is not None and det.category not in ADVISORY_CATEGORIES
+        if det is None or det.category in ADVISORY_CATEGORIES:
+            return False
+        # WP25: a detector may veto fail-closed itself (the classifier needs a named approver)
+        veto = getattr(det, "fail_closed_allowed", None)
+        return bool(veto()) if callable(veto) else True
 
     def catalogue(self) -> list[dict[str, Any]]:
         """The catalogue served from code: one entry per detector, schema included."""

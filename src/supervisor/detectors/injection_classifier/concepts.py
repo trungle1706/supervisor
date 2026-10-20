@@ -17,10 +17,11 @@ discussion markers, REQ polite customer request markers, TAG role tags.
 
 from __future__ import annotations
 
+import functools
 import re
 import zlib
 
-CBUCKETS = 1 << 12
+CBUCKETS = 1 << 14
 _TOKEN = re.compile(r"[a-z0-9<>/\[\]]+|[.!?;:\n]")
 
 _WORDS: dict[str, tuple[str, ...]] = {
@@ -68,6 +69,12 @@ _WORDS: dict[str, tuple[str, ...]] = {
     "YOU": "you your ban".split(),
     "ME": "i my me mine toi em".split(),
     "SUBJ": "staff employee employees officer officers customers clients personnel clerk teller".split(),
+    "REF": (
+        "previous previously above earlier prior preceding former before aforementioned truoc tren "
+        "cu"
+    ).split(),
+    "INS": "instead rather thay".split(),
+    "MOD": "must should shall required need needs phai nen can".split(),
     "TAG": (
         "<system>",
         "</system>",
@@ -115,6 +122,9 @@ _BIGRAMS: dict[str, tuple[str, ...]] = {
     "AUT": ("i am", "this is", "on behalf", "as the", "tu cach"),
     "NOW": ("new instructions", "from now", "tu gio", "chi thi", "nhiem vu"),
     "AGT": ("language model", "tro ly"),
+    "REF": ("truoc do", "o tren", "luc truoc", "ban dau", "da neu", "nhu tren"),
+    "INS": ("thay vao", "thay vi", "no longer", "khong con"),
+    "MOD": ("co the", "can phai", "ban phai"),
     "EXF": ("in ra", "liet ke", "gui toan", "gui ban"),
     "DAT": ("khach hang", "tai khoan", "so du", "ma otp", "co so", "system prompt"),
     "SUBJ": ("nhan vien", "can bo", "khach hang", "bo phan"),
@@ -142,6 +152,20 @@ _WEAK = frozenset(
     "the an ai bo huong quy phe xac kiem rang gioi chinh buoc cam chua tuyet lift drop stop note "
     "per system owner manager control step now".split()
 )
+# Verbs that open an instruction when they start a clause (also after please / hay / xin).
+_IMP_VERBS = frozenset(
+    (
+        "ignore disregard forget bypass skip override send forward transfer wire pay release approve "
+        "reveal print show list set mark add update call run execute copy output repeat pretend act "
+        "treat disable switch stop cancel confirm sign take put leave give reply respond tell "
+        "delete remove change replace append include disclose dump paste move make let turn "
+        "hay dung bo quen chuyen gui duyet in liet dat danh them goi chay sao thuc tat huy xac ky "
+        "lay cho phat doi xoa tiet cap tra noi"
+    ).split()
+)
+_IMP_LEAD = frozenset("please kindly just now then also hay xin vui long lam on nhe".split())
+_VOWELS = frozenset("aeiou")
+
 _SPAN = 6
 _TRIPLE_SPAN = 9
 _TRIPLE_CLASSES = frozenset(
@@ -165,8 +189,69 @@ _TRIPLE_CLASSES = frozenset(
 )
 
 
-def classify_tokens(tokens: list[str]) -> list[tuple[int, str]]:
-    """(position, class) pairs for the tokens of one window."""
+def stem(t: str) -> str:
+    """Light English stemmer for lookup: ignoring -> ignor, instructions -> instruction."""
+    n = len(t)
+    if n > 5 and t.endswith("ing"):
+        return t[:-3]
+    if n > 4 and t.endswith("ed"):
+        return t[:-2]
+    if n > 4 and t.endswith("es") and t[-3] in "sxz":
+        return t[:-2]
+    if n > 4 and t.endswith("s") and not t.endswith("ss"):
+        return t[:-1]
+    if n > 5 and t.endswith("ly"):
+        return t[:-2]
+    return t
+
+
+# Typo tolerance (Damerau distance 1) for words of five letters or more, without a model: a symmetric
+# delete index of the lexicon words. A token that is not a lexicon word but is one edit away from one
+# gets that word's classes.
+_FUZZY_VOCAB = sorted({w for w in _WORD_CLASSES if len(w) >= 5 and w.isalpha()})
+_DELETES: dict[str, set[str]] = {}
+for _w in _FUZZY_VOCAB:
+    _DELETES.setdefault(_w, set()).add(_w)
+    for _i in range(len(_w)):
+        _DELETES.setdefault(_w[:_i] + _w[_i + 1 :], set()).add(_w)
+
+
+@functools.lru_cache(maxsize=8192)
+def _fuzzy(t: str) -> tuple[str, ...]:
+    """Classes of the lexicon word within one edit of ``t`` ('' when none or ambiguous)."""
+    if len(t) < 5 or len(t) > 20 or not t.isalpha():
+        return ()
+    found: set[str] = set()
+    for d in [t] + [t[:i] + t[i + 1 :] for i in range(len(t))]:
+        for w in _DELETES.get(d, ()):
+            if w != t and abs(len(w) - len(t)) <= 1:
+                found.add(w)
+    for i in range(len(t) - 1):  # adjacent transposition
+        sw = t[:i] + t[i + 1] + t[i] + t[i + 2 :]
+        if sw in _WORD_CLASSES and len(sw) >= 5:
+            found.add(sw)
+    if len(found) != 1:
+        return ()
+    return tuple(sorted(_WORD_CLASSES[next(iter(found))]))
+
+
+def _word_classes(t: str) -> list[str]:
+    cls = _WORD_CLASSES.get(t)
+    if cls:
+        return list(cls)
+    st = stem(t)
+    if st != t:
+        cls = _WORD_CLASSES.get(st) or _WORD_CLASSES.get(st + "e")
+        if cls:
+            return list(cls)
+    return list(_fuzzy(t))
+
+
+def classify_tokens(
+    tokens: list[str], starts: frozenset[int] | set[int] = frozenset()
+) -> list[tuple[int, str]]:
+    """(position, class) pairs for the tokens of one window. ``starts`` are clause start positions:
+    a verb of instruction at a clause start (after please / hay) gets the class IMP."""
     out: list[tuple[int, str]] = []
     n = len(tokens)
     for i, t in enumerate(tokens):
@@ -175,13 +260,19 @@ def classify_tokens(tokens: list[str]) -> list[tuple[int, str]]:
             for c in _BIGRAM_CLASSES.get(f"{t} {tokens[i + 1]}", ()):
                 cls.add(c)
         if t not in _WEAK:
-            for c in _WORD_CLASSES.get(t, ()):
+            for c in _word_classes(t):
                 cls.add(c)
             for c, pre in _PREFIX.items():
                 if t.startswith(pre):
                     cls.add(c)
         elif t in ("must", "never", "not"):
             cls.add("NEG")
+        if t in _IMP_VERBS or stem(t) in _IMP_VERBS:
+            j = i
+            while j > 0 and tokens[j - 1] in _IMP_LEAD:
+                j -= 1
+            if j in starts:
+                cls.add("IMP")
         for c in sorted(cls):
             out.append((i, c))
     return out
@@ -191,8 +282,9 @@ def _h(name: str) -> int:
     return zlib.crc32(name.encode("ascii")) & (CBUCKETS - 1)
 
 
-def concept_features(text: str) -> list[int]:
-    """Sorted unique concept feature ids (0 .. CBUCKETS-1) of one window of one variant."""
+def concept_features(text: str, surface: str = "args") -> list[int]:
+    """Sorted unique concept feature ids (0 .. CBUCKETS-1) of one window of one variant. Each feature
+    is emitted twice: shared by all surfaces, and tagged with the surface (own weight block)."""
     raw = _TOKEN.findall(text)
     tokens: list[str] = []
     starts: set[int] = {0}
@@ -201,7 +293,7 @@ def concept_features(text: str) -> list[int]:
             starts.add(len(tokens))
         else:
             tokens.append(t)
-    marks = classify_tokens(tokens)
+    marks = classify_tokens(tokens, starts)
     names: set[str] = set()
     for pos, c in marks:
         # a class at the start of a clause (or right after one word): imperative or declarative
@@ -228,4 +320,7 @@ def concept_features(text: str) -> list[int]:
         names.add("g:question")
     if text.count(" ") < 3:
         names.add("g:short")
-    return sorted({_h(n) for n in names})
+    names.add(f"n:{min(8, len(marks) // 2)}")  # how many concept marks (length normalisation)
+    shared = {_h(n) for n in names}
+    tagged = {_h(f"{surface}|{n}") for n in names}
+    return sorted(shared | tagged)

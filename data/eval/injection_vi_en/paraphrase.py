@@ -38,7 +38,7 @@ URL = "http://127.0.0.1:8001/v1/chat/completions"
 MODEL = "qwen3.8-27b-int4"
 OUT = HERE / "paraphrases.json"
 OUT_EXTRA = HERE / "paraphrases_train2.json"  # second round for the train pool only (--extra)
-N_PER = {"train": 7, "dev": 5, "heldout": 5}
+N_PER = {"train": 7, "dev": 5, "heldout": 5, "train_b": 10}
 SLOT = re.compile(r"\{[a-z]+\}")
 
 PROMPT = """You help build a test set for a bank's text-safety classifier. Rewrite the text below in {n} different ways.

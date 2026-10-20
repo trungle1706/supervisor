@@ -23,6 +23,8 @@ The detector is registered in ``build_registry`` and listed in ``config/detector
 
 from __future__ import annotations
 
+import json
+import os
 import re
 from collections.abc import Mapping
 from typing import Any
@@ -36,11 +38,11 @@ from supervisor.core.detectors import (
     SettingsSchema,
     clip,
     detector_id,
-    threshold_for,
 )
 from supervisor.core.ports import Masker
 from supervisor.detectors.injection_classifier import features as F
 from supervisor.detectors.injection_classifier import units as U
+from supervisor.detectors.injection_classifier import model as M
 from supervisor.detectors.injection_classifier.model import (
     LinearModel,
     ModelIntegrityError,
@@ -51,7 +53,24 @@ MODEL_VERSION = "1.0.0"
 
 # Frozen with MODEL_VERSION (a test compares them with the model card). Detection thresholds in
 # basis points, chosen on the dev split by false-alarm rate; ILLUSTRATIVE until the bank sets them.
-PRESETS: dict[str, int] = {"strict": 5_500, "balanced": 6_000, "lenient": 7_000}
+# Per surface (WP25b): descriptions, results and arguments have different score distributions.
+SURFACE_PRESETS: dict[str, dict[str, int]] = {
+    "strict": {"args": 5_500, "tool_results": 5_500, "tool_description": 5_500},
+    "balanced": {"args": 6_000, "tool_results": 6_000, "tool_description": 6_000},
+    "lenient": {"args": 7_000, "tool_results": 7_000, "tool_description": 7_000},
+}
+# The catalogue shows one number per preset: the threshold of the arguments surface.
+PRESETS: dict[str, int] = {k: v["args"] for k, v in SURFACE_PRESETS.items()}
+
+
+def surface_threshold(settings: Mapping[str, Any], surface: str) -> int:
+    """Threshold of one surface: the explicit ``threshold_bp`` (all surfaces) or the preset's."""
+    explicit = settings.get("threshold_bp")
+    if isinstance(explicit, int) and not isinstance(explicit, bool):
+        return explicit
+    return SURFACE_PRESETS[str(settings.get("preset") or "balanced")][surface]
+
+
 # At or above this score a finding on a pause class tool carries the pause hint. Frozen per model
 # version; the setting can only raise it.
 PAUSE_THRESHOLD_BP = 8_500
@@ -158,12 +177,28 @@ class InjectionClassifierDetector:
             self._model = default_model()
         return self._model
 
+    # ------------------------------------------------------------------ fail closed (F11)
+    @staticmethod
+    def fail_closed_allowed() -> bool:
+        """False unless ``CLASSIFIER_FAIL_CLOSED_APPROVED=1`` is set AND the model card names an
+        approver (not a FILL-ME placeholder). Until then the loader forces ``fail_closed: false`` for
+        this detector (R1: a model outage must not stop payments without a named owner)."""
+        if os.environ.get("CLASSIFIER_FAIL_CLOSED_APPROVED") != "1":
+            return False
+        try:
+            card = json.loads(
+                (M.model_dir(MODEL_VERSION) / "model_card.json").read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError):
+            return False
+        approver = str((card.get("owner_roles") or {}).get("approver") or "").strip()
+        return bool(approver) and not approver.upper().startswith("FILL-ME")
+
     # ------------------------------------------------------------------ evaluate
     def evaluate(
         self, payload: Mapping[str, Any], settings: Mapping[str, Any], direction: str
     ) -> list[Finding]:
         model = self.model
-        threshold = threshold_for(self, settings)
         preset = str(settings.get("preset") or "balanced")
         did = detector_id(self)
         max_chars = int(settings.get("max_chars") or 12_000)
@@ -195,6 +230,7 @@ class InjectionClassifierDetector:
             if surface not in best:
                 continue
             score, unit = best[surface]
+            threshold = surface_threshold(settings, surface)
             fired = score >= threshold
             frags: tuple[Fragment, ...] = ()
             if fired:
@@ -322,6 +358,7 @@ __all__ = [
     "PAUSE_CLASSES_DEFAULT",
     "PAUSE_THRESHOLD_BP",
     "PRESETS",
+    "SURFACE_PRESETS",
     "InjectionClassifierDetector",
     "ModelIntegrityError",
     "default_model",

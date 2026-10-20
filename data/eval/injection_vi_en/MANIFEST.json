@@ -24,6 +24,11 @@
       "n_items": 4800,
       "n_positive": 2400,
       "sha256": "05ce53f712e1454f47bc742546cc2869f5b1d21f1fac6db9812588cf9ebe7605"
+    },
+    "train_b.jsonl": {
+      "n_items": 3000,
+      "n_positive": 1500,
+      "sha256": "01450b1c294ff97a6a1cf01d19938a11d136c06045d578643caa1914d73e5a52"
     }
   },
   "labellers": [
@@ -34,14 +39,15 @@
   "licence": "synthetic, this repo",
   "llm_paraphrase": {
     "model": "qwen3.8-27b-int4 (local, inference only, concurrency 2)",
-    "n_paraphrases": 3704,
-    "paraphrases_sha256": "d7c05b489218c1ecdccff8ec5d1169e5ba80d48e3ad8fb400e6b6b1b716ddac9"
+    "n_paraphrases": 5484,
+    "paraphrases_sha256": "207df32faacad9e47b3c464d58d381b7c2d1ed5f25908881d265e6f8dd33b59e"
   },
   "name": "injection_vi_en",
   "seed": 20261022,
   "template_strings": {
     "dev": 99,
     "heldout": 108,
-    "train": 201
+    "train": 201,
+    "train_b": 198
   }
 }
