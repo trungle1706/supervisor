@@ -265,3 +265,63 @@ def test_settings_defaults_and_wiring_flags() -> None:
     assert getattr(make_masker(s), "mask_version", "").startswith("vn_regex-3:")
     # the gate masker never types amounts, whatever MASK_AMOUNTS says
     assert not getattr(_redaction_masker(s2), "mask_version", "").endswith("+amt")
+
+
+# ---------------------------------------------------------------- review WP24b (Opus)
+def test_shadow_mode_is_unaffected(gw_on: Gateway, evidence: MemoryEvidence) -> None:
+    gw_on.states.set_mode("payments", "SHADOW", "reviewer.an")
+    r = gw_on.check("payments", "1", "add_payee", ARGS)
+    assert r["allow"] is True and r["agent_state"] == "SHADOW"
+    assert "transformed_args" not in r
+    assert "inline_redaction" not in evidence.of_type("gate_decision")[-1]
+
+
+def test_paused_agent_is_blocked_without_transformed_args(gw_on: Gateway) -> None:
+    gw_on.states.pause("payments", "reviewer.an", "review")
+    r = gw_on.check("payments", "1", "add_payee", ARGS)
+    assert r["allow"] is False and r["rule_id"] == "GATE-PAUSED"
+    assert "transformed_args" not in r
+
+
+def test_rules_see_the_original_arguments(gw_on: Gateway) -> None:
+    """PAY-09 counts new payees per customer: the window keys on the ORIGINAL customer id,
+    although the masker would turn this phone-shaped id into a pseudonym."""
+    args = {**ARGS, "customer_id": "0912345678"}
+    first = gw_on.check("payments", "1", "add_payee", args)
+    assert "0912345678" not in json.dumps(first["transformed_args"])
+    for _ in range(2):
+        assert gw_on.check("payments", "1", "add_payee", args)["allow"] is True
+    r = gw_on.check("payments", "1", "add_payee", args)
+    assert r["allow"] is False and r["rule_id"] == "PAY-09"
+
+
+def test_redaction_failure_fails_closed(gw_on: Gateway, evidence: MemoryEvidence) -> None:
+    class Broken:
+        mask_version = "broken"
+
+        def mask(self, text: str) -> str:
+            raise RuntimeError("boom")
+
+    gw_on.masker = Broken()  # type: ignore[assignment]
+    r = gw_on.check("payments", "1", "add_payee", ARGS)
+    assert r["allow"] is False and r["rule_id"] == "GATE-REDACTION"
+    assert "transformed_args" not in r
+    assert evidence.of_type("gate_decision")[-1]["rule_id"] == "GATE-REDACTION"
+    # a tool outside the redaction scope is not affected by a broken masker
+    assert gw_on.check("payments", "1", "get_balance", {"account_id": "A-1"})["allow"] is True
+
+
+def test_sdk_refuses_when_it_cannot_map_the_answer() -> None:
+    import inspect
+
+    def tool(a: str) -> None: ...
+
+    sdk.set_inline_redaction(True)
+    with pytest.raises(sdk.SupervisorBlocked):
+        sdk.apply_transformed(
+            inspect.signature(tool), ("x", "extra"), {}, {"transformed_args": {"a": "<PERSON:1>"}}
+        )
+    args, kwargs = sdk.apply_transformed(
+        inspect.signature(tool), ("x",), {}, {"transformed_args": {"a": "<PERSON:1>"}}
+    )
+    assert args == ("<PERSON:1>",) and kwargs == {}

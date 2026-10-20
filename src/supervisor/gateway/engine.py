@@ -714,8 +714,13 @@ class Gateway:
             return
         try:
             new, n = redact_args(self.masker, args)
-        except Exception as exc:  # noqa: BLE001 - redaction must not break the decision
+        except Exception as exc:  # noqa: BLE001 - the decision must still be recorded
+            # Fail closed: the caller asked for masked arguments and cannot get them, so the
+            # pii_export tool must not run with the raw values (deterministic, rule R1 holds).
             log.error("inline redaction failed: %s", type(exc).__name__)
+            d.allow, d.action, d.rule_id = False, "block", "GATE-REDACTION"
+            d.reason = f"inline redaction failed ({type(exc).__name__}): fail closed"
+            d.fail_mode = "closed"
             return
         if n == 0:
             return
