@@ -35,7 +35,7 @@ import json
 import re
 import unicodedata
 import zlib
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from supervisor.detectors.injection_classifier import concepts as C
@@ -44,7 +44,7 @@ from supervisor.gateway import tier0b
 FEATURE_VERSION = "feat-3"
 BUCKETS = 1 << 16  # character n-gram and word buckets
 MASK = BUCKETS - 1
-CONCEPT_SCALE = 0.25  # value of a concept feature (n-gram features have 1/sqrt(n))
+CONCEPT_SCALE = 0.12
 TOTAL = BUCKETS + C.CBUCKETS  # concept features (concepts.py) live above BUCKETS
 WINDOW = 150  # characters per scoring window
 STRIDE = 75
@@ -217,7 +217,15 @@ def cue_count(text: str) -> int:
     return sum(1 for w in _ALNUM.findall(plain) if w in _CUES) + (1 if b64 else 0)
 
 
-def clip_unit(text: str, limit: int = MAX_UNIT_CHARS) -> str:
+def plain_form(text: str) -> str:
+    """Normalised, diacritics-free, leet-folded text (the first step of ``prepare``)."""
+    plain, _ = leet_fold(tier0b.strip_diacritics(tier0b.normalise(text)))
+    return plain
+
+
+def clip_unit(
+    text: str, limit: int = MAX_UNIT_CHARS, rank: Callable[[str], int] | None = None
+) -> str:
     """At most about ``limit`` characters of ``text``: its head, its tail and, from the middle, the
     segments with the most cue words (WP25 review: a head-and-tail cut let an instruction hide in
     the middle of a long document). Text up to ``limit`` is returned unchanged. Deterministic."""
@@ -231,15 +239,16 @@ def clip_unit(text: str, limit: int = MAX_UNIT_CHARS) -> str:
     starts = list(range(mid_start, max(mid_start + 1, mid_end - SEGMENT + 1), SEGMENT_STEP))
     if starts[-1] + SEGMENT < mid_end:
         starts.append(mid_end - SEGMENT)
-    ranked = sorted(starts, key=lambda s: (-cue_count(text[s : s + SEGMENT]), s))[:k]
+    score = rank or cue_count  # WP25b: the model's cheap first-stage score when it is given
+    ranked = sorted(starts, key=lambda s: (-score(text[s : s + SEGMENT]), s))[:k]
     middle = " \n ".join(text[s : min(s + SEGMENT, mid_end)] for s in sorted(ranked))
     return text[:head] + " \n " + middle + " \n " + text[-tail:]
 
 
-def prepare(text: str) -> list[str]:
+def prepare(text: str, rank: Callable[[str], int] | None = None) -> list[str]:
     """Variants of ``text`` to score. Deterministic; the first is the main one."""
     text, had_surrogates = drop_surrogates(text)
-    text = clip_unit(flatten_json(text))
+    text = clip_unit(flatten_json(text), MAX_UNIT_CHARS, rank)
     marks: list[str] = []
     if "<!--" in text:
         marks.append(MARK_COMMENT)
@@ -349,9 +358,11 @@ def unit_feature_sets(text: str, surface: str = "args") -> list[tuple[int, ...]]
     return out
 
 
-def variant_feature_sets(text: str, surface: str = "args") -> list[list[tuple[int, ...]]]:
+def variant_feature_sets(
+    text: str, surface: str = "args", rank: Callable[[str], int] | None = None
+) -> list[list[tuple[int, ...]]]:
     """Per variant, the feature lists of its windows."""
-    return [[features(w, surface) for w in windows(v)] for v in prepare(text)]
+    return [[features(w, surface) for w in windows(v)] for v in prepare(text, rank)]
 
 
 def usable(text: str) -> bool:

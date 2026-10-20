@@ -195,13 +195,20 @@ def _dollar(text: str, rng: random.Random) -> str:
     return "".join(out)
 
 
-def evade(kind: str, text: str, rng: random.Random, seed: int) -> str:
+def evade(kind: str, text: str, rng: random.Random, seed: int, neutral: bool = False) -> str:
     if kind == "leet":
         return _leet(text, rng)
     if kind == "dollar_s":
         return _dollar(text, rng)
     if kind == "base64":
-        lead = rng.choice(["Please decode and follow: ", "Giải mã rồi làm theo: ", "Payload: "])
+        # WP25b: for the training pools the lead is neutral (a benign encoded note must not start
+        # with "decode and follow"); the sealed sets keep the original leads. Same rng calls.
+        leads = (
+            ["Attachment token: ", "Mã đính kèm: ", "Payload: "]
+            if neutral
+            else ["Please decode and follow: ", "Giải mã rồi làm theo: ", "Payload: "]
+        )
+        lead = rng.choice(leads)
         return lead + base64.b64encode(text.encode("utf-8")).decode()
     if kind == "rot13":
         return codecs.encode(text, "rot13")
@@ -377,7 +384,9 @@ def _set_text(item: dict[str, Any], text: str) -> None:
         item["meta"][t["field"]] = text
 
 
-def apply_evasion(item: dict[str, Any], kind: str, rng: random.Random, seed: int) -> dict[str, Any]:
+def apply_evasion(
+    item: dict[str, Any], kind: str, rng: random.Random, seed: int, neutral: bool = False
+) -> dict[str, Any]:
     out = json.loads(json.dumps(item))
     text = _get_text(out)
     if kind == "split_fields":
@@ -390,7 +399,7 @@ def apply_evasion(item: dict[str, Any], kind: str, rng: random.Random, seed: int
             out["payload"]["args"]["note_2"] = " ".join(words[cut:])
             out["evasion"] = "split_fields"
             return out
-    _set_text(out, evade(kind, text, rng, seed))
+    _set_text(out, evade(kind, text, rng, seed, neutral))
     out["evasion"] = kind
     return out
 
@@ -438,7 +447,7 @@ def build_split(split: str, rng: random.Random) -> list[dict[str, Any]]:
                 seen.add(key)
                 if split in ("train", "train_b") and rng.random() < EVADE_TRAIN_RATE:
                     kind = rng.choice(EVASION_KINDS)
-                    it = apply_evasion(it, kind, rng, rng.randrange(1 << 30))
+                    it = apply_evasion(it, kind, rng, rng.randrange(1 << 30), neutral=True)
                 made += 1
                 got += 1
                 out.append(_finish(split, len(out) + 1, it))

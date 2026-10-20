@@ -23,6 +23,7 @@ The run is deterministic: same data, same seed, same bytes (a test trains a tiny
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import random
@@ -47,7 +48,8 @@ from supervisor.detectors.injection_classifier.model import (
 
 DATA = REPO_ROOT / "data" / "eval" / "injection_vi_en"
 SEED = 20261023
-VERSION = "1.0.0"
+VERSION = "1.1.0"
+TRAINING_POOLS = frozenset({"train", "dev", "train_b"})
 HYPER = {
     "epochs": 3,
     "lr": 0.1,
@@ -214,19 +216,28 @@ def build_card(
     model: LinearModel,
     wsha: str,
     hyper: dict[str, Any],
-    thresholds: dict[str, int],
-    sizes: dict[str, Any],
+    thresholds: dict[str, Any],
+    pools: dict[str, int],
     seed: int,
+    oof: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    manifest = json.loads((DATA / "MANIFEST.json").read_text(encoding="utf-8"))["files"]
+    files = {
+        name: {
+            "path": f"data/eval/injection_vi_en/{name}.jsonl",
+            "sha256": hashlib.sha256((DATA / f"{name}.jsonl").read_bytes()).hexdigest(),
+            "n_items": n,
+        }
+        for name, n in pools.items()
+    }
+    sealed = json.loads((DATA / "SEALED.json").read_text(encoding="utf-8"))["sha256"]
     return {
         "model_id": MODEL_NAME,
         "version": model.version,
         "weights_file": "weights.json",
         "weights_sha256": wsha,
-        "format": "linear logistic regression over hashed character n-gram features (pure Python)",
+        "format": "linear logistic regression over hashed character n-gram, word, stem and concept features (pure Python)",
         "feature_version": F.FEATURE_VERSION,
-        "buckets": F.BUCKETS,
+        "buckets": F.TOTAL,
         "scale": SCALE,
         "surfaces": list(SURFACES),
         "licence": "synthetic, this repo (weights derived from synthetic data only)",
@@ -249,17 +260,26 @@ def build_card(
             "any use as the only control",
         ],
         "training": {
-            "data": "data/eval/injection_vi_en/train.jsonl",
-            "data_sha256": manifest["train.jsonl"]["sha256"],
-            "n_items": sizes["train"],
-            "dev_data_sha256": manifest["dev.jsonl"]["sha256"],
+            "files": files,
+            "data_note": (
+                "the card hashes are those of the committed files; the files were committed before the "
+                "final run (WP25b closes review finding F6)"
+            ),
             "labeller": "synthetic (templates written for this repo); most items use templates reworded offline by the local LLM ('synthetic, LLM-paraphrased')",
             "seed": seed,
             "hyperparameters": hyper,
-            "command": "uv run python -m tools.train_classifier",
+            "command": "uv run python -m tools.cross_validate --thresholds-out T.json; uv run python -m tools.train_classifier --thresholds T.json",
+            "selection": "grouped cross-validation, leave-one-pool-out over train, dev and train_b (data/eval/injection_vi_en/WP25B_PROTOCOL.md)",
         },
         "thresholds_bp": thresholds,
-        "thresholds_note": "chosen on the dev split by false-alarm rate; ILLUSTRATIVE until the bank sets them",
+        "thresholds_note": (
+            "per surface, from the out-of-fold scores of the 3 folds: strict = false alarm <= 800 bp, "
+            "balanced <= 500 bp, lenient <= 300 bp, pause (global) <= 50 bp; rounded up to 50 bp. "
+            "The final weights are trained on all three pools, so scores run a little higher than in "
+            "the folds. ILLUSTRATIVE until the bank sets them."
+        ),
+        "oof_summary": oof or {},
+        "sealed_sets": sealed,
         "validation": {"status": "not validated yet; run python -m supervisor.detectors.harness"},
         "known_limits": [
             "trained on synthetic template text: real attacks are less regular",
@@ -267,7 +287,16 @@ def build_card(
             "a long document dilutes a short instruction (windows of 150 characters, max over windows; text over 12000 characters keeps head, tail and the cue-richest middle segments)",
             "no state across calls: split attacks need the caller to pass prior calls",
         ],
-        "change_log": [{"version": model.version, "change": "first model"}],
+        "change_log": [
+            {
+                "version": "1.0.0",
+                "change": "first model (feat-2), trained on train.jsonl, thresholds from dev",
+            },
+            {
+                "version": model.version,
+                "change": "feat-3: surface weight blocks, instruction-form cues, stems, typo tolerance, plausibility decoding; new training pool train_b; thresholds per surface from out-of-fold scores",
+            },
+        ],
     }
 
 
@@ -282,53 +311,53 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--epochs", type=int, default=HYPER["epochs"])
     ap.add_argument("--seed", type=int, default=SEED)
     ap.add_argument(
+        "--pools",
+        default="train,dev,train_b",
+        help="comma list of pools to fit (never a sealed one)",
+    )
+    ap.add_argument(
         "--limit", type=int, default=0, help="use only the first N training items (tests)"
+    )
+    ap.add_argument(
+        "--thresholds",
+        type=Path,
+        default=None,
+        help="JSON written by tools.cross_validate --thresholds-out (needed to write the card)",
     )
     ap.add_argument("--no-card", action="store_true", help="do not write model_card.json")
     args = ap.parse_args(argv)
     hyper = dict(HYPER, epochs=args.epochs)
-    train_items = load_items("train")
-    if args.limit:
-        train_items = train_items[: args.limit]
-    dev_items = load_items("dev")
-    print(f"[..] features for {len(train_items)} train and {len(dev_items)} dev items")
-    tr, dv = make_samples(train_items), make_samples(dev_items)
+    names = [x for x in args.pools.split(",") if x]
+    assert set(names) <= TRAINING_POOLS, "only the training pools may be fitted (the others are sealed)"
+    items: list[dict[str, Any]] = []
+    sizes: dict[str, int] = {}
+    for name in names:
+        got = load_items(name)
+        if args.limit:
+            got = got[: args.limit]
+        sizes[name] = len(got)
+        items += got
+    print(f"[..] features for {len(items)} items from {names}")
+    samples = make_samples(items)
     print("[..] training")
-    model = train(tr, hyper, args.seed)
+    model = train(samples, hyper, args.seed)
     out = args.out or (MODELS_DIR / VERSION)
     wpath = write_model(model, out)
     wsha = sha256_file(wpath)
-    labels = [s.label for s in dv]
-    sc = scores_bp(model, dv)
-    rows = threshold_table(sc, labels)
-    print("threshold_bp  recall_bp  false_alarm_bp   (dev split)")
-    for r in rows:
-        print(f"{r['threshold_bp']:>12} {r['recall_bp']:>10} {r['false_alarm_bp']:>15}")
-    suggest = {
-        # the selection rule of the model card (thresholds_note): the lowest threshold whose dev
-        # false alarm is at most 800 / 500 / 300 / 50 bp
-        "strict": pick(rows, 800),
-        "balanced": pick(rows, 500),
-        "lenient": pick(rows, 300),
-        "pause": pick(rows, 50),
-    }
-    print(f"suggested thresholds (dev false alarm <= 800 / 500 / 300 / 50 bp): {suggest}")
     print(f"[OK] weights: {wpath}  sha256={wsha}  nonzero={sum(1 for x in model.weights if x)}")
     if not args.no_card:
-        thresholds = (
-            json.loads((out / "model_card.json").read_text(encoding="utf-8"))["thresholds_bp"]
-            if (out / "model_card.json").is_file()
-            else suggest
-        )
-        card = build_card(model, wsha, hyper, thresholds, {"train": len(train_items)}, args.seed)
+        if args.thresholds is None:
+            print("[FAIL] --thresholds is needed to write the card (or pass --no-card)")
+            return 2
+        th = json.loads(args.thresholds.read_text(encoding="utf-8"))
+        thresholds = {k: th[k] for k in ("strict", "balanced", "lenient", "pause")}
+        card = build_card(model, wsha, hyper, thresholds, sizes, args.seed, th.get("oof"))
         (out / "model_card.json").write_text(
             json.dumps(card, indent=2, sort_keys=True, ensure_ascii=True) + "\n",
             encoding="utf-8",
             newline="\n",
         )
-        print(
-            f"[OK] card: {out / 'model_card.json'} (thresholds_bp from {'the old card' if (out / 'model_card.json').is_file() else 'this run'})"
-        )
+        print(f"[OK] card: {out / 'model_card.json'}")
     return 0
 
 

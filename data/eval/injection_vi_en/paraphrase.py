@@ -119,8 +119,9 @@ def main(argv: list[str] | None = None) -> int:
     global OUT
     if args.extra:
         OUT = OUT_EXTRA
-        N_PER["train"] = args.extra
-        args.pool = ["train"]
+        args.pool = [x for x in (args.pool or ["train"]) if x in ("train", "train_b")]
+        for x in args.pool:
+            N_PER[x] = args.extra
     done: dict[str, Any] = json.loads(OUT.read_text(encoding="utf-8")) if OUT.is_file() else {}
     for pool in args.pool or list(T.POOLS):
         todo = jobs(pool)

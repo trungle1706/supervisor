@@ -105,12 +105,24 @@ class LinearModel:
                     best = (z, vi, wi)
         return best
 
+    def cheap_score(self, segment: str, surface: str) -> int:
+        """First-stage score of a text segment, used to choose which parts of a long text to read:
+        the concept weights of its concept features (no n-grams) times 100, plus its cue-word count.
+        An integer; deterministic."""
+        from supervisor.detectors.injection_classifier import concepts as C
+
+        ids = [F.BUCKETS + i for i in C.concept_features(F.plain_form(segment), surface)]
+        return sum(self.weights[i] for i in ids) * 100 // SCALE + F.cue_count(segment)
+
     def score_text(self, text: str, surface: str) -> Scored:
         """Score one text (all its variants and windows). Texts too short score the bias."""
         if not F.usable(text):
             z = self.bias[surface] / SCALE
             return Scored(sigmoid_bp(z), z, 0, 0)
-        z, vi, wi = self.score_variants(F.variant_feature_sets(text, surface), surface)
+        rank = None
+        if len(text) > F.MAX_UNIT_CHARS:  # long text: choose middle segments by a cheap model score
+            rank = lambda seg: self.cheap_score(seg, surface)  # noqa: E731
+        z, vi, wi = self.score_variants(F.variant_feature_sets(text, surface, rank), surface)
         return Scored(sigmoid_bp(z), z, vi, wi)
 
     def score_bp(self, text: str, surface: str) -> int:

@@ -87,6 +87,32 @@ def run(
     return out
 
 
+def round_up_50(x: int) -> int:
+    return -(-x // 50) * 50
+
+
+def thresholds_from_oof(res: dict[str, Any]) -> dict[str, Any]:
+    """The protocol rule: per surface, strict/balanced/lenient = false alarm <= 800/500/300 bp on the
+    out-of-fold scores; pause = false alarm <= 50 bp over all surfaces; rounded up to 50 bp."""
+    oof = res["oof"]
+    out: dict[str, Any] = {"strict": {}, "balanced": {}, "lenient": {}}
+    for surf in SURFACES:
+        idx = [i for i, s in enumerate(oof["surface"]) if s == surf]
+        rows = table([oof["scores"][i] for i in idx], [oof["labels"][i] for i in idx])
+        for name, fa in (("strict", 800), ("balanced", 500), ("lenient", 300)):
+            out[name][surf] = round_up_50(recall_at(rows, fa)[1])
+    rows = table(oof["scores"], oof["labels"])
+    out["pause"] = round_up_50(recall_at(rows, 50)[1])
+    out["oof"] = {
+        "recall_at_fa_bp": {
+            surf: {str(fa): res["per_surface"][surf][fa][0] for fa in LEVELS}
+            for surf in res["per_surface"]
+        },
+        "per_fold": res["per_fold"],
+    }
+    return out
+
+
 def summarise(res: dict[str, Any]) -> list[str]:
     lines = ["surface            recall@FA300 (thr)  recall@FA500 (thr)  recall@FA800 (thr)"]
     for surf, d in res["per_surface"].items():
@@ -115,6 +141,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--hard-weight", type=float, default=TC.HYPER["hard_weight"])
     ap.add_argument("--bags", type=int, default=1)
     ap.add_argument("--seed", type=int, default=TC.SEED)
+    ap.add_argument(
+        "--thresholds-out",
+        metavar="PATH",
+        help="write the presets chosen from the out-of-fold scores",
+    )
     ap.add_argument("--json", metavar="PATH", help="write the result (without OOF scores) as JSON")
     args = ap.parse_args(argv)
     hyper = dict(
@@ -127,6 +158,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     res = run(hyper, args.seed)
     print("\n".join(summarise(res)))
+    if args.thresholds_out:
+        with open(args.thresholds_out, "w", encoding="utf-8") as fh:
+            json.dump(thresholds_from_oof(res), fh, indent=1, sort_keys=True)
+        print(f"[OK] thresholds: {args.thresholds_out}")
     if args.json:
         slim = {k: v for k, v in res.items() if k != "oof"}
         with open(args.json, "w", encoding="utf-8") as fh:

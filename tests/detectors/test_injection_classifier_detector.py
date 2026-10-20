@@ -66,12 +66,11 @@ def test_catalogue_entry_and_defaults(registry: DetectorRegistry) -> None:
 
 
 def test_presets_are_frozen_for_this_model_version() -> None:
-    assert D.MODEL_VERSION == "1.0.0"
-    assert D.PRESETS == {"strict": 5000, "balanced": 7000, "lenient": 8500} or True  # see card test
+    assert D.MODEL_VERSION == "1.1.0"
     card = json.loads(
         (M.model_dir(D.MODEL_VERSION) / "model_card.json").read_text(encoding="utf-8")
     )
-    assert card["thresholds_bp"] == {**D.PRESETS, "pause": D.PAUSE_THRESHOLD_BP}
+    assert card["thresholds_bp"] == {**D.SURFACE_PRESETS, "pause": D.PAUSE_THRESHOLD_BP}
 
 
 def test_pause_threshold_can_be_raised_never_lowered(registry: DetectorRegistry) -> None:

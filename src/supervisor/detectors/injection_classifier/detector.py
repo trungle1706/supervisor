@@ -49,7 +49,7 @@ from supervisor.detectors.injection_classifier.model import (
     load_model,
 )
 
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = "1.1.0"
 
 # Frozen with MODEL_VERSION (a test compares them with the model card). Detection thresholds in
 # basis points, chosen on the dev split by false-alarm rate; ILLUSTRATIVE until the bank sets them.
@@ -222,7 +222,12 @@ class InjectionClassifierDetector:
         per_unit = min(max_chars, max(MIN_UNIT_CHARS, CALL_BUDGET_CHARS // max(1, len(units))))
         for unit in units:
             # head, tail and the cue-richest middle segments (features.clip_unit)
-            score = model.score_bp(F.clip_unit(unit.text, per_unit), unit.surface)
+            surf = unit.surface
+
+            def rank(seg: str, _surf: str = surf) -> int:
+                return model.cheap_score(seg, _surf)
+
+            score = model.score_bp(F.clip_unit(unit.text, per_unit, rank), surf)
             if unit.surface not in best or score > best[unit.surface][0]:
                 best[unit.surface] = (score, unit)
         out: list[Finding] = []

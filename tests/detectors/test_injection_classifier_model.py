@@ -90,8 +90,10 @@ def test_shipped_model_matches_its_card_and_the_frozen_constants() -> None:
     assert card["weights_sha256"] == M.sha256_file(d / "weights.json")
     assert card["version"] == D.MODEL_VERSION == D.InjectionClassifierDetector.version
     assert card["feature_version"] == F.FEATURE_VERSION
-    assert card["thresholds_bp"] == {**D.PRESETS, "pause": D.PAUSE_THRESHOLD_BP}
-    assert D.PRESETS["strict"] < D.PRESETS["balanced"] < D.PRESETS["lenient"] < D.PAUSE_THRESHOLD_BP
+    assert card["thresholds_bp"] == {**D.SURFACE_PRESETS, "pause": D.PAUSE_THRESHOLD_BP}
+    for s in D.SURFACE_PRESETS["strict"]:
+        p = D.SURFACE_PRESETS
+        assert p["strict"][s] <= p["balanced"][s] <= p["lenient"][s] < D.PAUSE_THRESHOLD_BP
     assert "synthetic, this repo" in card["licence"]
     assert M.load_model(D.MODEL_VERSION).version == D.MODEL_VERSION
 
