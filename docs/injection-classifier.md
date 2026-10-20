@@ -31,7 +31,7 @@ keeps no state: for an attack split across two calls, the caller passes the earl
 ## 2. Method
 
 ```
- text --> prepare --> variants --> windows (240 chars) --> features --> logit --> score_bp
+ text --> prepare --> variants --> windows (150 chars, stride 75) --> features --> logit --> score_bp
           |
           +- JSON-in-string flattened, <!-- --> and invisible characters marked
           +- NFKC, zero-width dropped, case fold, look-alike letters folded (Tier 0b normaliser)
@@ -114,7 +114,7 @@ never blocks, a shadow agent is never paused, the dry run says `would_pause`, a 
 | `scan_tool_descriptions` | true | scan `context.tool_description` |
 | `pause_tool_classes` | [money, credit] | classes that may get the pause hint (also `pii_export`; never `read_only`) |
 | `pause_threshold_bp` | frozen value | can only be raised |
-| `max_chars` | 12000 | characters scanned per text (head and tail kept) |
+| `max_chars` | 12000 | characters scanned per text, at most 12000 (head, tail and the cue-richest middle segments kept); a call scores at most about 30,000 characters in all, tool results beyond 16 are joined |
 
 ## 7. WP26 adapter
 
@@ -146,4 +146,5 @@ path never acts outside money and credit, the weights are pinned.
 
 See the validation report and `BACKLOG.md` (WP25 rows): synthetic data; Vietnamese and English only;
 spaced-out letters and other languages are not recognised; a long document dilutes a short
-instruction; no state across calls; the thresholds are not calibrated on real traffic.
+instruction, and in text over 12,000 characters the middle is sampled by cue words, so cue-word decoys can push an
+instruction out of the sample; lone surrogates are dropped before scoring; no state across calls; the thresholds are not calibrated on real traffic.

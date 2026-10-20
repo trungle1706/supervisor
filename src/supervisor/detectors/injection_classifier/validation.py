@@ -798,5 +798,28 @@ def render_markdown(mrm: dict[str, Any]) -> list[str]:
         "",
         f"Data: {mrm['data']['licence']}; independent template strings per pool {mrm['data']['independent_templates']}. "
         + mrm["data"]["note"],
+        "",
+        *CAVEATS_MD,
     ]
     return out
+
+
+# Validation caveats a reader of the report must see next to the numbers (WP25 review).
+CAVEATS_MD: tuple[str, ...] = (
+    "### Caveats (read before using any number above)",
+    "",
+    "- **Targets declared first.** `THRESHOLDS` in `validation.py` were committed in 87ada25, before the first model "
+    "(0e8410d) and before any held-out run; they are unchanged since.",
+    "- **Dev drift.** The weights and the frozen presets come from the train and dev files of commit 0e8410d "
+    "(model card `training.data_commit`). Commit 040cb19 regenerated every golden file from the same template pools "
+    "(new random draws). The dev numbers above are on the regenerated dev file: balanced dev false alarm reads 613 bp "
+    "where the presets were picked at 480 bp. Held-out stayed held-out (no template is shared with train or dev), "
+    "but it is also a new draw. Re-running the trainer on the 0e8410d files gives the same weights (same SHA-256).",
+    "- **Late probes.** 15 adversarial positives were added after the first run (to reach n >= 50); nothing was tuned "
+    "on them, but the adversarial row is one author's probes and is indicative only.",
+    "- **Template variance.** n counts items; items share about 100 template strings per pool, so the Wilson "
+    "intervals understate the variance between templates. Recall under a new template family is the real risk.",
+    "- **Latency.** p95 per call is above the 2 ms target (NO-GO row); calls with a finding cost more (fragments).",
+    "- **Same items, two detectors.** The classifier beats the regex on every evasion kind on the same items, but on "
+    "the regex-catchable subset the regex is often better; run both (they are separate detectors).",
+)

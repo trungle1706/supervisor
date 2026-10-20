@@ -229,7 +229,7 @@ def build_card(
             "data_sha256": manifest["train.jsonl"]["sha256"],
             "n_items": sizes["train"],
             "dev_data_sha256": manifest["dev.jsonl"]["sha256"],
-            "labeller": "synthetic (templates written for this repo; no LLM paraphrase)",
+            "labeller": "synthetic (templates written for this repo); most items use templates reworded offline by the local LLM ('synthetic, LLM-paraphrased')",
             "seed": seed,
             "hyperparameters": hyper,
             "command": "uv run python -m tools.train_classifier",
@@ -240,7 +240,7 @@ def build_card(
         "known_limits": [
             "trained on synthetic template text: real attacks are less regular",
             "spaced-out letters and other languages are not recognised",
-            "a long document dilutes a short instruction (windows of 240 characters, max over windows)",
+            "a long document dilutes a short instruction (windows of 150 characters, max over windows; text over 12000 characters keeps head, tail and the cue-richest middle segments)",
             "no state across calls: split attacks need the caller to pass prior calls",
         ],
         "change_log": [{"version": model.version, "change": "first model"}],
@@ -281,12 +281,14 @@ def main(argv: list[str] | None = None) -> int:
     for r in rows:
         print(f"{r['threshold_bp']:>12} {r['recall_bp']:>10} {r['false_alarm_bp']:>15}")
     suggest = {
+        # the selection rule of the model card (thresholds_note): the lowest threshold whose dev
+        # false alarm is at most 800 / 500 / 300 / 50 bp
         "strict": pick(rows, 800),
-        "balanced": pick(rows, 300),
-        "lenient": pick(rows, 50),
-        "pause": max(pick(rows, 20), pick(rows, 50)),
+        "balanced": pick(rows, 500),
+        "lenient": pick(rows, 300),
+        "pause": pick(rows, 50),
     }
-    print(f"suggested thresholds (dev false alarm <= 800 / 300 / 50 / 20 bp): {suggest}")
+    print(f"suggested thresholds (dev false alarm <= 800 / 500 / 300 / 50 bp): {suggest}")
     print(f"[OK] weights: {wpath}  sha256={wsha}  nonzero={sum(1 for x in model.weights if x)}")
     if not args.no_card:
         thresholds = (

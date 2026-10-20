@@ -1,6 +1,6 @@
 # Detectors: validation report (WP37)
 
-Harness `detectors-eval-1`, preset `balanced`, mode `mock`, commit `89e2268`, date 2026-10-21. Thresholds are ILLUSTRATIVE until the bank sets them. Reproduce: `python -m supervisor.detectors.harness`.
+Harness `detectors-eval-1`, preset `balanced`, mode `mock`, commit `unknown`, date unknown. Thresholds are ILLUSTRATIVE until the bank sets them. Reproduce: `python -m supervisor.detectors.harness`.
 
 **Overall: NO-GO**
 
@@ -12,9 +12,9 @@ Expert rubrics: SOC analyst reading a verdict (typed recall, fragment exactness,
 
 | split | n | pos | tp | fn | fp | recall bp (95% CI) | precision bp (95% CI) | typed recall bp | fragment exact bp | leaks | p95 us |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| dev | 1200 | 450 | 279 | 171 | 46 | 6200 [5743, 6637] | 8584 [8163, 8922] | 6200 | 10000 | 0 | 3948 |
-| heldout | 1350 | 450 | 252 | 198 | 59 | 5600 [5138, 6052] | 8102 [7630, 8500] | 5600 | 10000 | 0 | 3437 |
-| adversarial | 77 | 53 | 41 | 12 | 1 | 7735 [6447, 8655] | 9761 [8767, 9958] | 7735 | 10000 | 0 | 2681 |
+| dev | 1200 | 450 | 279 | 171 | 46 | 6200 [5743, 6637] | 8584 [8163, 8922] | 6200 | 10000 | 0 | 4474 |
+| heldout | 1350 | 450 | 252 | 198 | 59 | 5600 [5138, 6052] | 8102 [7630, 8500] | 5600 | 10000 | 0 | 3614 |
+| adversarial | 77 | 53 | 41 | 12 | 1 | 7735 [6447, 8655] | 9761 [8767, 9958] | 7735 | 10000 | 0 | 2851 |
 
 Failure taxonomy (counts):
 
@@ -29,13 +29,13 @@ Failure taxonomy (counts):
 | typed_recall_bp.dev | 6200 | 8500 | NO-GO |
 | leak_items.dev | 0 | 0 | GO |
 | fragment_exact_bp.dev | 10000 | 9000 | GO |
-| p95_us.dev | 3948 | 2000 | NO-GO |
+| p95_us.dev | 4474 | 2000 | NO-GO |
 | recall_bp.heldout | 5600 | 8500 | NO-GO |
 | precision_bp.heldout | 8102 | 9000 | NO-GO |
 | typed_recall_bp.heldout | 5600 | 8500 | NO-GO |
 | leak_items.heldout | 0 | 0 | GO |
 | fragment_exact_bp.heldout | 10000 | 9000 | GO |
-| p95_us.heldout | 3437 | 2000 | NO-GO |
+| p95_us.heldout | 3614 | 2000 | NO-GO |
 | heldout_gap_bp | 600 | 1500 | GO |
 | adversarial_recall_bp | 7735 | 6000 | GO |
 | adversarial_leak_items | 0 | 0 | GO |
@@ -180,8 +180,17 @@ Failure taxonomy (counts only, no item text):
 - adversarial categories missed: `json-in-string`, `markdown-comment`, `mixed-vi-en`, `other-language`, `paraphrase`, `paraphrase-vi`, `spaced-letters`, `telex`, `typo`
 - adversarial categories with a false alarm: `benign-topic`
 
-Latency per call (whole registry run, microseconds, n 2627): p50 1339, p95 3599, p99 4766, max 97635; calls with no finding p95 2307, calls with a finding p95 4647 (includes the masker for fragments).
+Latency per call (whole registry run, microseconds, n 2627): p50 1437, p95 4025, p99 5373, max 73520; calls with no finding p95 2545, calls with a finding p95 5175 (includes the masker for fragments).
 
 Determinism: 0 score mismatches over 2550 items between two independent model loads.
 
 Data: synthetic, this repo; independent template strings per pool {'dev': 99, 'heldout': 108, 'train': 201}. n counts items; items share templates, so a Wilson interval understates template-level variance. See the miss list by template id.
+
+### Caveats (read before using any number above)
+
+- **Targets declared first.** `THRESHOLDS` in `validation.py` were committed in 87ada25, before the first model (0e8410d) and before any held-out run; they are unchanged since.
+- **Dev drift.** The weights and the frozen presets come from the train and dev files of commit 0e8410d (model card `training.data_commit`). Commit 040cb19 regenerated every golden file from the same template pools (new random draws). The dev numbers above are on the regenerated dev file: balanced dev false alarm reads 613 bp where the presets were picked at 480 bp. Held-out stayed held-out (no template is shared with train or dev), but it is also a new draw. Re-running the trainer on the 0e8410d files gives the same weights (same SHA-256).
+- **Late probes.** 15 adversarial positives were added after the first run (to reach n >= 50); nothing was tuned on them, but the adversarial row is one author's probes and is indicative only.
+- **Template variance.** n counts items; items share about 100 template strings per pool, so the Wilson intervals understate the variance between templates. Recall under a new template family is the real risk.
+- **Latency.** p95 per call is above the 2 ms target (NO-GO row); calls with a finding cost more (fragments).
+- **Same items, two detectors.** The classifier beats the regex on every evasion kind on the same items, but on the regex-catchable subset the regex is often better; run both (they are separate detectors).
