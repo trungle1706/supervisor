@@ -13,6 +13,7 @@ for which the gate does not run detectors at all (status ``skip``, a determinist
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from supervisor.core.detectors import DetectorRegistry, DetectorSetting, RunConfig
 from supervisor.core.errors import ConfigError
 from supervisor.gateway.policy import AgentDetectors
+
+log = logging.getLogger(__name__)
 
 MAX_CONFIG_BYTES = 64 * 1024
 PRESET_NAMES = ("strict", "balanced", "lenient")
@@ -98,6 +101,9 @@ class ResolvedDetectors:
                 continue
             _, errs = registry.validate_settings(slug, self._merged(slug, entry, None, None))
             problems += [f"detectors.{slug}.{e}" for e in errs]
+            if entry.fail_closed and not registry.may_fail_closed(slug):
+                # R1: an advisory detector never fails closed; the value is ignored, loudly.
+                log.warning("detectors.%s.fail_closed: ignored (advisory detector, R1)", slug)
         if problems:
             raise ConfigError("detectors config invalid: " + "; ".join(problems))
         self._base = RunConfig(
@@ -138,7 +144,7 @@ class ResolvedDetectors:
             out[slug] = DetectorSetting(
                 enabled=on,
                 settings=self._merged(slug, entry, agent, agent_preset),
-                fail_closed=entry.fail_closed,
+                fail_closed=entry.fail_closed and self.registry.may_fail_closed(slug),
             )
         run = RunConfig(
             detectors=out,
