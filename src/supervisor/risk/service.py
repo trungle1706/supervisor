@@ -201,6 +201,14 @@ class RiskService:
             (r["kind"], r["target"]) for r in self._link_rows(risk_id) if r["kind"] in CONTROL_KINDS
         ]
 
+    def _controls_by_risk(self) -> dict[str, list[tuple[str, str]]]:
+        """risk id -> its active control links, from one read of ``risk_link``."""
+        out: dict[str, list[tuple[str, str]]] = {}
+        for r in self.state.query("risk_link"):
+            if _on(r["active"]) and r["kind"] in CONTROL_KINDS:
+                out.setdefault(str(r["risk_id"]), []).append((r["kind"], r["target"]))
+        return out
+
     def links(self, risk_id: str) -> list[dict[str, Any]]:
         return sorted(
             ({"kind": r["kind"], "target": r["target"]} for r in self._link_rows(risk_id)),
@@ -275,9 +283,16 @@ class RiskService:
         return int(self.settings.risk_evidence_window_days) * 86400
 
     def effective(
-        self, row: Mapping[str, Any], latest: Mapping[str, Any] | None, now: dt.datetime
+        self,
+        row: Mapping[str, Any],
+        latest: Mapping[str, Any] | None,
+        now: dt.datetime,
+        controls: Iterable[tuple[str, str]] | None = None,
     ) -> dict[str, Any]:
-        """Scores, bands and the evidence state of one risk row (the evidence rule applied)."""
+        """Scores, bands and the evidence state of one risk row (the evidence rule applied).
+        ``controls`` are the risk's control links (read from the store when not given): the
+        latest evidence row counts only if it was computed for the same anchor, treatment,
+        scores and controls as the risk has now (``changed_since_evidence`` otherwise)."""
         th = self.cfg.thresholds
         inh = (int(row["inherent_likelihood"]), int(row["inherent_impact"]))
         dec = (int(row["residual_likelihood"]), int(row["residual_impact"]))
@@ -289,8 +304,15 @@ class RiskService:
             res, reason = inh, "no_evidence_yet"  # a declared residual is a claim, not a fact
         else:
             end = ev_ts(latest["window_end"])
+            if controls is None:
+                controls = self.control_links(row["risk_id"])
+            basis = ev.evidence_basis(row, controls)
             if end is None or ev.is_stale(end, self.window_seconds(), now):
                 state, reason, res = ev.STATE_NONE, "stale_evidence", inh
+            elif latest["evidence_id"] != ev.evidence_id(
+                row["risk_id"], ev.Window(end, end), basis
+            ):
+                state, reason, res = ev.STATE_NONE, "changed_since_evidence", inh
             else:
                 reason = latest["reason"]
                 res = dec if state == ev.STATE_WORKING else inh
@@ -342,10 +364,12 @@ class RiskService:
             raise RiskError("unknown band filter")
         rows, g = self._all()
         latest = self._latest_evidence()
+        controls = self._controls_by_risk()
         now = self.clock.now()
         out = []
         for row in rows:
-            eff = self.effective(row, latest.get(row["risk_id"]), now)
+            rid = row["risk_id"]
+            eff = self.effective(row, latest.get(rid), now, controls.get(rid, []))
             agents = (
                 inherit.agents_reached_by(
                     g,
@@ -386,8 +410,15 @@ class RiskService:
         """Register level of every agent: the maximum band over the risks it reaches."""
         rows, g = self._all()
         latest = self._latest_evidence()
+        controls = self._controls_by_risk()
         now = self.clock.now()
-        points = [self._point(r, self.effective(r, latest.get(r["risk_id"]), now)) for r in rows]
+        points = [
+            self._point(
+                r,
+                self.effective(r, latest.get(r["risk_id"]), now, controls.get(r["risk_id"], [])),
+            )
+            for r in rows
+        ]
         known = [str(a["agent_id"]) for a in self.state.query("agent")]
         return inherit.compute(g, points, self.cfg.thresholds, known_agents=known)
 
@@ -501,7 +532,8 @@ class RiskService:
             if row["status"] != "active":
                 continue
             out["risks"] += 1
-            eid = ev.evidence_id(row["risk_id"], w)
+            controls = self.control_links(row["risk_id"])
+            eid = ev.evidence_id(row["risk_id"], w, ev.evidence_basis(row, controls))
             if self.tables.query("risk_evidence", {"evidence_id": eid}, limit=1):
                 out["repeat"] += 1
                 continue
@@ -510,7 +542,7 @@ class RiskService:
                 inherit.anchor_for(row.get("agent_id"), row.get("node_id")),
                 None if row.get("node_id") else row.get("agent_id"),
             )
-            counts = col.count(agents, self.control_links(row["risk_id"]), w)
+            counts = col.count(agents, controls, w)
             inh = (int(row["inherent_likelihood"]), int(row["inherent_impact"]))
             dec = (int(row["residual_likelihood"]), int(row["residual_impact"]))
             d = ev.assess(row["treatment"], inh, dec, counts, self.cfg)

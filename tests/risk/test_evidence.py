@@ -97,7 +97,7 @@ def _seed_monitor(env: _Env, agent: str, status: str, day: dt.date) -> None:
             "metric_date": day,
             "agent_id": agent,
             "computed_at": env.adapters.clock.now(),
-            "monitor_status": {"oversight": {"status": status, "code": "x", "reason": "x", "n": 1}},
+            "monitor_status": {"drift": {"status": status, "code": "x", "reason": "x", "n": 1}},
         },
     )
 
@@ -175,7 +175,7 @@ def test_log_and_alert_hits_count_as_hits_but_not_stops(env: _Env) -> None:
 def test_pack_ok_and_monitor_ok_are_working(env: _Env) -> None:
     env.agent("pay")
     r1 = env.risk("pack", "pay", [("pack", "pack_a")])
-    r2 = env.risk("monitor", "pay", [("monitor", "oversight")])
+    r2 = env.risk("monitor", "pay", [("monitor", "drift")])
     env.pack("pay", "pack_a", "ok", env.window_time())
     _seed_monitor(env, "pay", "ok", (env.adapters.clock.now() - dt.timedelta(days=1)).date())
     env.svc.run_evidence()
@@ -185,7 +185,7 @@ def test_pack_ok_and_monitor_ok_are_working(env: _Env) -> None:
 
 def test_monitor_not_applicable_is_idle_and_pack_warn_is_idle(env: _Env) -> None:
     env.agent("pay")
-    r1 = env.risk("monitor idle", "pay", [("monitor", "oversight")])
+    r1 = env.risk("monitor idle", "pay", [("monitor", "drift")])
     r2 = env.risk("pack warn", "pay", [("pack", "pack_a")])
     env.pack("pay", "pack_a", "warn", env.window_time())
     _seed_monitor(

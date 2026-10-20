@@ -273,6 +273,14 @@ def normalise(data: Mapping[str, Any], *, source: str = "manual") -> dict[str, A
             raise RiskError("treatment accept leaves the residual equal to the inherent score")
         if not out["treatment_note"]:
             raise RiskError("treatment accept needs a justification (treatment_note)")
+    lowered = (out["residual_likelihood"], out["residual_impact"]) != (il, ii)
+    if out["treatment"] in ("avoid", "transfer") and lowered and not out["treatment_note"]:
+        # No runtime evidence can confirm these (a contract, a stopped activity): the declared
+        # value stands, so it needs a written justification (WP29 review).
+        raise RiskError(
+            f"treatment {out['treatment']} with a residual below the inherent value needs a "
+            "justification (treatment_note)"
+        )
     if out["status"] == "active" and out["review_date"] is None:
         raise RiskError("an active risk needs a review_date")
     return out
