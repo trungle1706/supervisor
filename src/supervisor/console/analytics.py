@@ -190,6 +190,8 @@ def metrics_data(ctx: Any, days: int | None, agent: str) -> dict[str, Any]:
         "monitor_order": views.MONITOR_ORDER,
         "summary": summary,
         "rows": rows[-200:],
+        "metric_from": str(min(r["metric_date"] for r in rows)) if rows else "",
+        "metric_to": str(max(r["metric_date"] for r in rows)) if rows else "",
         "heads": {k: {"seq": v.seq, "entry_hash": v.entry_hash} for k, v in sorted(heads.items())},
         "entries": sum(v.seq + 1 for v in heads.values()),
         "verify": ctx.last_verify.get("all"),
@@ -198,6 +200,46 @@ def metrics_data(ctx: Any, days: int | None, agent: str) -> dict[str, Any]:
 
 def latency_data(ctx: Any) -> dict[str, Any]:
     return {"gate": ctx.gateway.metrics.snapshot()}
+
+
+def effective_window(
+    ctx: Any, tab: str, days: int | None, data: Mapping[str, Any]
+) -> dict[str, Any]:
+    """The window the shown tab really uses, for the toolbar (a blank range means each tab's
+    own default, so the toolbar always says which days the numbers cover).
+
+    ``kind``: ``days`` (``from`` .. ``to``, ``n`` days, UTC, ``default`` True when the range was
+    blank), ``stored`` (Oversight metrics with a blank range: every stored day, ``from`` ..
+    ``to`` or empty when there is no row) or ``live`` (Latency: counters since the process
+    started)."""
+    if tab == "gate":
+        return {
+            "kind": "days",
+            "from": data["gate_from"],
+            "to": data["gate_to"],
+            "n": data["gate_days"],
+            "default": days is None,
+        }
+    if tab == "tools":
+        return {
+            "kind": "days",
+            "from": data["window_from"],
+            "to": data["window_to"],
+            "n": data["days"],
+            "default": days is None,
+        }
+    if tab == "metrics":
+        if days:
+            start, end = tools.window_bounds(_as_of(ctx), days)
+            return {
+                "kind": "days",
+                "from": start.isoformat(),
+                "to": end.isoformat(),
+                "n": days,
+                "default": False,
+            }
+        return {"kind": "stored", "from": data["metric_from"], "to": data["metric_to"]}
+    return {"kind": "live"}
 
 
 def tab_data(

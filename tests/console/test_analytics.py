@@ -163,3 +163,35 @@ def test_no_inline_script_or_external_url(
         assert not re.search(r"<script(?![^>]*\bsrc=)", html), tab
         assert not re.search(r"\son[a-z]+=\"", html), tab
         assert not re.search(r"https?://", html, re.I), tab
+
+
+def test_toolbar_always_names_the_effective_window(
+    console: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review fix: a blank range keeps each tab's own window, and the toolbar says which."""
+    _on(console, monkeypatch)
+    kinds = {"gate": "days", "tools": "days", "metrics": "stored", "latency": "live"}
+    for tab, kind in kinds.items():
+        r = console.get(f"/console/analytics?tab={tab}")
+        m = re.search(r'id="an-window" data-window="(\w+)">([^<]+)<', r.text)
+        assert m and m.group(1) == kind, (tab, m)
+        assert "Window:" in m.group(2), tab
+        if kind == "days":
+            assert re.search(r"\d{4}-\d\d-\d\d \.\. \d{4}-\d\d-\d\d", m.group(2))
+            assert "(default)" in m.group(2), tab
+    r = console.get("/console/analytics?tab=metrics&days=30")
+    m = re.search(r'id="an-window" data-window="(\w+)">([^<]+)<', r.text)
+    assert m and m.group(1) == "days" and "30 days" in m.group(2) and "default" not in m.group(2)
+    vi = console.get("/console/analytics?tab=gate&lang=vi").text
+    assert "Khoảng:" in vi and "ngày, UTC" in vi
+
+
+def test_tab_click_swaps_main_so_the_toolbar_follows_the_tab(console: Console) -> None:
+    """Review fix: the toolbar form holds the tab in a hidden field; a tab click that swapped
+    only #tab-body left it on the first tab, so a range change jumped back. Tabs now swap
+    #main from the full page."""
+    r = console.get("/console/analytics")
+    tabs = re.findall(r'<a role="tab"[^>]*>', r.text)
+    assert tabs and all('hx-select="#main"' in a and 'hx-target="#main"' in a for a in tabs)
+    assert all('hx-get="/console/analytics?tab=' in a for a in tabs)
+    assert 'aria-labelledby="tab-body-tab-gate"' in r.text and 'id="tab-body-tab-gate"' in r.text

@@ -1593,6 +1593,7 @@ def _analytics_data(
     toolbar = analytics.parse_toolbar(ctx, query)
     data = analytics.tab_data(ctx, agent_detail.can(me, "tools.download"), tab, toolbar, query)
     data.update(tab=tab, toolbar=toolbar, **analytics.toolbar_options(ctx, toolbar["days"]))
+    data["window"] = analytics.effective_window(ctx, tab, toolbar["days"], data)
     return data
 
 

@@ -33,7 +33,7 @@
 </section>
 
 {% set tab_labels = {'story': t('tab_story'), 'rules': t('tab_rules'), 'transcript': t('tab_transcript'), 'evidence': t('tab_evidence'), 'casefile': t('tab_casefile')} %}
-{{ ui.tabs(('story', 'rules', 'transcript', 'evidence', 'casefile'), tab, tab_labels, '/console/cases/' ~ case.case_id ~ '?tab={tab}&lang=' ~ lang, '/console/cases/' ~ case.case_id ~ '/tab/{tab}?lang=' ~ lang, target='#tab-body') }}
+{{ ui.tabs(('story', 'rules', 'transcript', 'evidence', 'casefile'), tab, tab_labels, '/console/cases/' ~ case.case_id ~ '?tab={tab}&lang=' ~ lang, '/console/cases/' ~ case.case_id ~ '/tab/{tab}?lang=' ~ lang, target='#tab-body', panel='tab-body') }}
 
 <div class="two">
   <div id="tab-body" role="tabpanel">
