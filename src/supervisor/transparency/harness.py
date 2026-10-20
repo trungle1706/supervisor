@@ -701,11 +701,12 @@ def probes(env: Env) -> list[tuple[str, Callable[[], bool]]]:
         b.register("controls", lambda c: ok({"controls_n": 3, "tasks_open": 2}))
         reg = b.build("payments", "regulator")
         internal = b.build("payments", "internal")
+        saved = allowlist.SPECS["regulator"]["controls"]
         allowlist.set_spec("regulator", "controls", {"controls_n": True})
         try:
             reg2 = b.build("payments", "regulator")
         finally:
-            allowlist.set_spec("regulator", "controls", {})
+            allowlist.set_spec("regulator", "controls", saved)
         return (
             reg["sections"]["controls"]["data"] == {}  # no spec yet: nothing is copied
             and internal["sections"]["controls"]["data"]["tasks_open"] == 2

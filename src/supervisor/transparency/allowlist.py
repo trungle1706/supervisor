@@ -106,7 +106,42 @@ REGULATOR: dict[str, Spec] = {
         "top": [_RISK_ROW],
         "more": True,
     },
-    "controls": {},
+    # WP30 control catalogue (controls_adapter.collect); owners are left out
+    "controls": {
+        **{
+            k: True
+            for k in (
+                "in_scope",
+                "working",
+                "failing",
+                "no_data",
+                "compliance_bp",
+                "product_in_scope",
+                "product_working",
+                "product_bp",
+                "bank_in_scope",
+                "bank_note",
+                "more",
+                "uncovered_risks_n",
+                "tasks",
+            )
+        },
+        "controls": [
+            {
+                k: True
+                for k in (
+                    "control_id",
+                    "title",
+                    "control_type",
+                    "implemented_by",
+                    "status",
+                    "reason",
+                    "stale",
+                )
+            }
+        ],
+        "coverage": [{"obligation": True, "status": True, "controls_n": True}],
+    },
     "evidence": True,
     "cases": {
         "total_n": True,

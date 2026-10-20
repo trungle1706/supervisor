@@ -2229,6 +2229,33 @@ _T.update(
             "phép), liên kết bộ giám sát khác, ma trận và vụ việc chỉ là tham chiếu và không bao "
             "giờ làm giảm điểm.",
         ),
+        "tp_f_ctl_in_scope": ("Controls in scope", "Số kiểm soát trong phạm vi"),
+        "tp_f_ctl_working": ("Working", "Đang hoạt động"),
+        "tp_f_ctl_failing": ("Failing", "Đang lỗi"),
+        "tp_f_ctl_no_data": ("No data", "Chưa có dữ liệu"),
+        "tp_f_ctl_bp": ("Share working (bp)", "Tỷ lệ hoạt động (bp)"),
+        "tp_f_ctl_product": (
+            "Product controls working / in scope",
+            "Kiểm soát của sản phẩm hoạt động / trong phạm vi",
+        ),
+        "tp_f_ctl_product_bp": ("Product share working (bp)", "Tỷ lệ hoạt động của sản phẩm (bp)"),
+        "tp_f_ctl_bank": ("Bank-owned controls in scope", "Kiểm soát do ngân hàng sở hữu"),
+        "tp_f_ctl_uncovered": (
+            "Active risks with no control",
+            "Rủi ro đang hoạt động chưa có kiểm soát",
+        ),
+        "tp_f_ctl_id": ("Control", "Kiểm soát"),
+        "tp_f_ctl_title": ("Title", "Tên"),
+        "tp_f_ctl_by": ("Implemented by", "Do ai thực hiện"),
+        "tp_f_ctl_n": ("Controls", "Số kiểm soát"),
+        "tp_ctl_bank_note": (
+            "Controls the bank owns cannot be observed by the product, so they never read "
+            "working. Read the figure above with that in mind: it is not a statement that the "
+            "bank is non-compliant.",
+            "Kiểm soát do ngân hàng sở hữu không thể được sản phẩm quan sát nên không bao giờ "
+            "hiển thị là hoạt động. Hãy đọc tỷ lệ trên với lưu ý đó: đây không phải khẳng định "
+            "ngân hàng không tuân thủ.",
+        ),
         "tp_f_risk": ("Risk", "Rủi ro"),
         "tp_f_category": ("Category", "Nhóm"),
         "tp_f_evidence": ("Evidence", "Bằng chứng"),

@@ -92,7 +92,7 @@ On Delta run `python -m supervisor.jobs.bootstrap_schema` first (one new table).
 
 ## Hooks (WP30)
 
-`ReportBuilder.register("controls", fn)` where `fn(ctx) -> {"available": ..., "data": {...}}` (helpers `ok` and `na`); then `allowlist.set_spec(variant, "controls", spec)` for each variant that may show it. Nothing else changes.
+The `controls` section is filled by `transparency/controls_adapter.py`, which imports `supervisor.controls` and `supervisor.tasks` lazily and reads `ControlService.agent_compliance`, `obligation_coverage`, `uncovered_risks` and `TaskService.agent_summary`. Package absent: "not built". Package present and `CONTROLS_ENABLED` off: "flag off". On: compliance in integer bp with the product-versus-bank split, controls in scope with status, obligation coverage, count of active risks with no control, task counts (plain values only). Controls the bank owns never read "working"; when any are in scope the report says so. Owners are shown in the internal version only. After the merge of WP30 nothing but `CONTROLS_ENABLED=1` is needed. Another package can replace it with `ReportBuilder.register("controls", fn)` where `fn(ctx) -> {"available": ..., "data": {...}}` (helpers `ok` and `na`); then `allowlist.set_spec(variant, "controls", spec)` for each variant that may show it. Nothing else changes.
 
 ## PDF
 

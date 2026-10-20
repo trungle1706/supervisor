@@ -447,9 +447,63 @@ def _risks(w: Words, d: Mapping[str, Any]) -> list[Block]:
 
 
 def _controls(w: Words, d: Mapping[str, Any]) -> list[Block]:
+    t = w.t
     if not d:
-        return [para(w.t("tp_controls_empty"), "note")]
-    return [kv([(str(k), w.v(v)) for k, v in sorted(d.items()) if not isinstance(v, dict | list)])]
+        return [para(t("tp_controls_empty"), "note")]
+    if "in_scope" not in d:  # data of another collector: its plain values
+        return [
+            kv([(str(k), w.v(v)) for k, v in sorted(d.items()) if not isinstance(v, dict | list)])
+        ]
+    out: list[Block] = [
+        kv(
+            [
+                (t("tp_f_ctl_in_scope"), d.get("in_scope")),
+                (t("tp_f_ctl_working"), d.get("working")),
+                (t("tp_f_ctl_failing"), d.get("failing")),
+                (t("tp_f_ctl_no_data"), d.get("no_data")),
+                (t("tp_f_ctl_bp"), d.get("compliance_bp")),
+                (
+                    t("tp_f_ctl_product"),
+                    f"{d.get('product_working')} / {d.get('product_in_scope')}",
+                ),
+                (t("tp_f_ctl_product_bp"), d.get("product_bp")),
+                (t("tp_f_ctl_bank"), d.get("bank_in_scope")),
+                (t("tp_f_ctl_uncovered"), d.get("uncovered_risks_n")),
+            ]
+        )
+    ]
+    if d.get("bank_note"):
+        out.append(para(t("tp_ctl_bank_note"), "note"))
+    if d.get("controls"):
+        out.append(
+            table(
+                [t("tp_f_ctl_id"), t("tp_f_ctl_title"), t("tp_f_ctl_by"), t("tp_f_status")],
+                [
+                    [
+                        x.get("control_id"),
+                        x.get("title"),
+                        x.get("implemented_by"),
+                        f"{x.get('status')} ({x.get('reason')})",
+                    ]
+                    for x in d["controls"]
+                ],
+            )
+        )
+    if d.get("coverage"):
+        out.append(
+            table(
+                [t("tp_f_obligation"), t("tp_f_status"), t("tp_f_ctl_n")],
+                [
+                    [x.get("obligation"), x.get("status"), x.get("controls_n")]
+                    for x in d["coverage"]
+                ],
+            )
+        )
+    if d.get("tasks"):
+        out.append(kv([(str(k), w.v(v)) for k, v in sorted(d["tasks"].items())]))
+    if d.get("more"):
+        out.append(para(t("tp_more", n=d["more"]), "note"))
+    return out
 
 
 def _evidence(w: Words, d: Mapping[str, Any]) -> list[Block]:

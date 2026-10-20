@@ -26,6 +26,10 @@ Branch `wp31-transparency`, built on `wp29-risk-register` (merged three times; f
 | WP30 hook: `ReportBuilder.register("controls", fn)` + `allowlist.set_spec(...)`; section says "not built" until then | `builder.py` |
 | Harness: 54 golden scenarios (36 dev, 18 held-out), 24 adversarial probes, determinism, baseline | `harness.py`, `tests/fixtures/transparency/` |
 
+## WP30 adapter (optional, not merged)
+
+`transparency/controls_adapter.py` reads `ControlService.agent_compliance`, `obligation_coverage`, `uncovered_risks` and `TaskService.agent_summary` (signatures checked on branch `wp30-controls` with `git show`; I did not merge it) through lazy imports, gated by `CONTROLS_ENABLED`. Absent package: section "not built"; present and flag off: "flag off" (ref `CONTROLS_ENABLED`). The regulator allow-list already lists the fields (no owners); internal shows all. Shows integer bp, the product-versus-bank split and the note that bank-owned controls never read "working". `TaskService.agent_summary` is read as top-level plain values only (its exact shape is unverified), `export_json` and `preview` are not used. Test `tests/transparency/test_controls_adapter.py` runs with the package absent and with fake modules injected. Integrator after merging WP30: set `CONTROLS_ENABLED=1`, run the harness, check the `tasks` fields in the report, and add WP30 chain types (`control_change`, `control_status`, `task_change`, `task_resize`) nowhere (the report does not read them).
+
 ## Flags
 
 `TRANSPARENCY_ENABLED=0` (routes answer HTTP 400 when off, job, CLI), `CONSOLE_TRANSPARENCY_ENABLED=0` (page and tab, needs the first), `SCHED_TRANSPARENCY_S=86400`, `TRANSPARENCY_DIR` (default `<data_dir>/transparency`), `TRANSPARENCY_BACKLOG_FILE` (`BACKLOG.md`). On Delta run `python -m supervisor.jobs.bootstrap_schema` (one new table).

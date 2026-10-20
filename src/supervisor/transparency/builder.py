@@ -458,9 +458,13 @@ def c_risks(c: Ctx) -> dict[str, Any]:
     )
 
 
-def c_controls(_c: Ctx) -> dict[str, Any]:
-    """WP30 hook: replaced by ``ReportBuilder.register("controls", ...)``."""
-    return na("not_built", "WP30")
+def c_controls(c: Ctx) -> dict[str, Any]:
+    """WP30 hook: the optional adapter reads the control catalogue and task list when that
+    package is present and CONTROLS_ENABLED is on; else "not built" or "flag off". Another
+    collector can replace it with ``ReportBuilder.register("controls", ...)``."""
+    from supervisor.transparency import controls_adapter
+
+    return controls_adapter.collect(c)
 
 
 def c_evidence(c: Ctx) -> dict[str, Any]:
