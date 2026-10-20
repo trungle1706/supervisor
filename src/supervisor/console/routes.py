@@ -49,6 +49,7 @@ from supervisor.console import (
     cases_list,  # --- WP-UX2 ---
     compliance_view,
     health,
+    inbox_list,  # --- WP-UX2 ---
     integration_reports,
     inventory_views,
     nav,
@@ -1278,7 +1279,27 @@ async def inventory_page(
             "python -m supervisor.jobs.inventory fills it"
         )
     data = await _call(inventory_views.page, ctx, agent)
+    data.update(inventory_views.unmanaged_view(data["unmanaged"], request.query_params, agent))
     return render(request, ctx, me, "inventory.html", section="inventory", **data)
+
+
+@router.get(
+    "/inventory/rows",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("inventory.view"))],
+)
+async def inventory_rows(
+    request: Request,
+    agent: str | None = None,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    """Unmanaged table and pager of the Inventory page (htmx partial, WP-UX2)."""
+    if not ctx.settings.inventory_enabled:
+        raise ConsoleInputError("The Inventory tab is off (INVENTORY_ENABLED=1 turns it on)")
+    data = await _call(inventory_views.page, ctx, agent)
+    data.update(inventory_views.unmanaged_view(data["unmanaged"], request.query_params, agent))
+    return render(request, ctx, me, "_inventory_unmanaged.html", **data)
 
 
 # ---------------------------------------------------------------------------- search, soon
@@ -1336,7 +1357,20 @@ async def health_page(
 @router.get("/inbox", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def inbox(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     notices = await _call(ctx.inbox.list)
-    return render(request, ctx, me, "inbox.html", section="inbox", notices=notices)
+    data = inbox_list.list_view(notices, request.query_params)  # --- WP-UX2 ---
+    return render(request, ctx, me, "inbox.html", section="inbox", **data)
+
+
+@router.get(
+    "/inbox/rows", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def inbox_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Table and pager of the Inbox page (htmx partial, WP-UX2)."""
+    notices = await _call(ctx.inbox.list)
+    data = inbox_list.list_view(notices, request.query_params)
+    return render(request, ctx, me, "_inbox_rows.html", **data)
 
 
 @router.post(
@@ -1354,7 +1388,8 @@ async def inbox_read(
         raise PermissionDenied("marking a notice read needs a signed-in person")
     await _call(ctx.inbox.mark_read, notice_id, me.user_id, _version(d))
     notices = await _call(ctx.inbox.list)
-    return render(request, ctx, me, "_inbox_rows.html", notices=notices)
+    data = inbox_list.list_view(notices, request.query_params)  # --- WP-UX2 ---
+    return render(request, ctx, me, "_inbox_rows.html", **data)
 
 
 @router.post(

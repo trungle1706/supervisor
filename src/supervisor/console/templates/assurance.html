@@ -2,7 +2,8 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_assurance') }}{% endblock %}
 {% block content %}
-<div class="pagehead"><h1>{{ t('nav_assurance') }}</h1></div>
+{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_assurance'), None)]) }}
+{{ ui.pagehead(t('nav_assurance')) }}
 {{ ui.purpose(t('as_purpose'), t('as_why')) }}
 <div id="assurance-body" data-assurance="1">
 {% if run_id is defined and run_id %}

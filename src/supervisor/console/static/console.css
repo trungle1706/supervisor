@@ -560,3 +560,10 @@ a.rowlink::after { content: ""; position: absolute; inset: 0; }
   .gsearch { flex-basis: 100%; max-width: none; order: 3; }
 }
 @media print { .side, .topbar, .drawer, .skip { display: none; } .shell { display: block; } }
+
+/* --- WP-UX2: agent page, alerts, sign-off, analytics (existing tokens only) --- */
+.tabpanel { margin-top: 14px; }
+td .chipbtn, td .btn.sm { white-space: nowrap; }
+table.alerts td:nth-child(2), table.signoff-tbl td:nth-child(3) { min-width: 180px; }
+.fbar select { max-width: 220px; }
+#alerts-section, a.card.stat[href] { text-decoration: none; color: inherit; }

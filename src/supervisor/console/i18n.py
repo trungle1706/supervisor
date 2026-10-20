@@ -1468,6 +1468,9 @@ _T.update(
             "Bộ đếm trực tiếp của tiến trình này từ lúc khởi động.",
         ),
         "open_case": ("Open the case", "Mở vụ việc"),
+        "inbox_st_unread": ("Unread", "Chưa đọc"),
+        "inbox_st_read": ("Read", "Đã đọc"),
+        "inbox_st_queued": ("Queued", "Đang chờ gửi"),
         "cp_no_matrix": ("No compliance matrix", "Chưa có ma trận tuân thủ"),
         "cp_no_matrix_line": (
             "This agent has no matrix yet. Build one with the advisor command.",

@@ -5,7 +5,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_analytics') }}{% endblock %}
 {% block content %}
-{{ ui.crumbs([(t('nav_g_analytics'), None), (t('nav_analytics'), None)]) }}
+{{ ui.crumbs([(t('nav_analytics'), None)]) }}
 {% call ui.pagehead(t('nav_analytics')) %}
   <a class="btn" href="/console/alerts?lang={{ lang }}">{{ t('alerts') }}</a>
 {% endcall %}
