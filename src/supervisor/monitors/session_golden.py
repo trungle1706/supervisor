@@ -33,7 +33,7 @@ N_ATTACK_PER_FAMILY = 12
 N_BENIGN = 60
 
 # ---------------------------------------------------------------------------- text banks
-# Each bank is a list of variants; dev takes index 0, 2, 4 ..., heldout 1, 3, 5 ...
+# Each bank is a list of (Vietnamese, English) pairs; dev takes the even pairs, heldout the odd ones.
 BANK: dict[str, list[str]] = {
     "greet": [
         "Chao ban, toi muon kiem tra tai khoan.",
@@ -159,9 +159,11 @@ MEMO_INJECT = [
 
 
 def pick(rng: random.Random, name: str, split: str) -> str:
+    """Variants come in (Vietnamese, English) pairs; dev draws from the even pairs and heldout
+    from the odd ones, so the splits share no sentence and each has both languages."""
     variants = BANK[name]
     parity = 0 if split == "dev" else 1
-    mine = [v for i, v in enumerate(variants) if i % 2 == parity] or variants
+    mine = [v for i, v in enumerate(variants) if (i // 2) % 2 == parity] or variants
     return mine[rng.randrange(len(mine))]
 
 
