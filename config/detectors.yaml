@@ -2,12 +2,12 @@
 # A per-agent override goes in the policy file: agents.<id>.detectors (preset, enable, disable,
 # settings, skip_tools). Presets are named thresholds in basis points, frozen per detector
 # version; the values are ILLUSTRATIVE until the bank sets them (see the catalogue:
-# GET /v1/detectors, or python -m supervisor.detectors.harness --catalogue).
+# GET /v1/gate/detectors, or python -m supervisor.detectors.harness --catalogue).
 version: 1
 default_preset: balanced        # strict | balanced | lenient
 limits:
   max_payload_chars: 100000     # above this no detector runs: reason payload_too_large
-  timeout_ms: 500               # a slower detector is discarded: reason timed_out
+  timeout_ms: 500               # the gate waits at most this per detector: reason timed_out
   # A detector that is set fail_closed and cannot run blocks a call to a tool of these risk
   # classes (rule GATE-DETECTOR-FAILED). On any other tool the failure is only listed.
   fail_closed_risk_classes: [money, credit, pii_export]
@@ -23,7 +23,8 @@ detectors:
     enabled: true
     fail_closed: true
     settings: {}
-  judge_advisory:               # Tier 1 judge opinion; report only, never fail closed (R1).
+  judge_advisory:               # Tier 1 judge opinion; report only, never fail closed (R1:
+                                # fail_closed: true is ignored for an advisory detector).
     enabled: false              # Off: a real judge model is slow. With no judge model set it
     fail_closed: false          # uses the mock judge and every finding is labelled mock.
     settings: {}
