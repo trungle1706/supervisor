@@ -10,11 +10,11 @@ in `tests/gateway/test_wp38_policy.py` (the test name starts with `test_order_`)
 agents:
   payments:
     mode: observe            # enforce (default) | observe
+    observe_approvals: [risk.lead, compliance.officer]   # needed: payments has money rules
     rules: {disable: [PAY-09]}            # switch single rules off (or on, see below)
     consumers:                            # per-consumer override, key = context.consumer_id
       web-banking: {mode: enforce}
       call-centre:
-        mode: observe
         detectors: {preset: lenient}      # same shape as agents.<id>.detectors (WP37)
         rules: {disable: [SVC-04], enable: [PAY-09]}
 ```
@@ -40,10 +40,18 @@ other characters is ignored: the agent's own settings apply, never an override. 
 for an id without an entry; the answer then shows `consumer_ignored: true`. The same rule
 validates the keys in the policy file.
 
-Safety guard: a consumer may not switch off a `block` or `pause` rule whose risk class is
-`money` or `credit` (the policy fails to load). The consumer id is asserted by the caller, so it
-must not be a way around the money controls. Setting `mode: observe` for a consumer is allowed;
-see the open question in the ADR.
+Safety guards (WP38 review; the consumer id is asserted by the caller, so it must not be a way
+around the money controls). A *money agent* is an agent with at least one rule in scope whose risk
+class is `money`, `credit` or `pii_export`.
+
+| Guard | Where |
+|---|---|
+| A consumer may not switch off a `block` or `pause` rule of risk class `money`, `credit` or `pii_export` | load error |
+| A consumer of a money agent may not set `mode: observe` | load error |
+| `mode: observe` on a money agent needs `initial_state: SHADOW` or two distinct ids in `observe_approvals` | load error |
+| Observe lifts a decision on a `money`, `credit` or `pii_export` tool only when the agent has `observe_approvals` (so a SHADOW agent without them is enforced on those tools once it runs) | gate |
+| A consumer's `detectors` block never applies to a call of a `money`, `credit` or `pii_export` tool; the agent's block applies | gate |
+| `observe_approvals`, like `mode`, is left out of the dump when unset (hash unchanged) | loader |
 
 ## 2. Gate order
 
@@ -71,7 +79,12 @@ see the open question in the ADR.
    `GATE-DETECTOR-FAILED`, become a `report`: the call is allowed, `observed_decision` keeps the
    original (allow, action, rule id, reason), the agent is not paused, and the status is
    `report`. The legacy `action` is `log`, because older clients only know `allow`, `log`,
-   `alert`, `block` and `pause`. State blocks (step 1) and `GATE-REDACTION` stay blocks.
+   `alert`, `block` and `pause`. State blocks (step 1) and `GATE-REDACTION` stay blocks, and so
+   does `GATE-DETECTOR-FAILED` on a `pii_export` tool. A rule block is lifted before the
+   redaction and the detectors run, so an observed call still gets its masked arguments; its
+   status is then `transform`, not `report`. On `money`, `credit` and `pii_export` tools observe
+   acts only for an agent with `observe_approvals` (section 1). A rule that cannot be evaluated
+   (fail closed) counts as a block from that rule.
 8. **SHADOW keeps precedence.** An agent in the SHADOW state is never stopped, whatever its mode.
    Its decision is the SHADOW one (`action: log`, reason `shadow: would block ...`) and has no
    `observed_decision`.
@@ -81,7 +94,8 @@ see the open question in the ADR.
 | Place | Content |
 |---|---|
 | Answer | `allow: true`, `action: log`, `status: report`, `mode: observe`, `observed_decision`, `consumer_id` |
-| `verdict` rows | the matched rule with action `log` and label `observe_would_block` or `observe_would_pause` |
+| `verdict` rows | the matched rule with action `log` and label `observe_would_block` or `observe_would_pause`; a lifted `GATE-DETECTOR-FAILED` gets its own row with that label (WP39 AL-THREAT-NOT-ENFORCED reads these rows) |
+| Console Decisions drawer | "Observed decision" line on the Details tab, label on the Rules tab |
 | Evidence chain (`gate_decision`) | `mode`, `consumer_id`, `observed_decision` (action and rule id) next to `allow: true` |
 | SIEM event | outcome `log`, attrs `mode`, `observed_action`, `observed_rule_id`, `consumer_id` |
 | Metrics | counter `observe` |

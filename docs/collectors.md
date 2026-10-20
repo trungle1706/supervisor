@@ -66,7 +66,14 @@ All four new adapters share `GateClient` (`gateway/adapters/common.py`):
 * Applies `transformed_payload`: the whole `args` (or `output`) is replaced, never merged by key
   (the masker also masks dict keys). A `transform` status without values is a block
   (`SDK-TRANSFORM-UNAPPLIED`). `skip` and `report` mean the call goes on; if the masker redacted
-  a skipped call the status is `transform`.
+  a skipped call the status is `transform`. Masked values are applied whenever they are in an
+  allowed answer, also from an older gate that sends `transformed_args` with no `status`
+  (WP38 review). Values that cannot be applied (a `transformed_payload` that is not an object,
+  LiteLLM values without `messages`, ASGI values without `body` or `text`) are a block.
+  `apply_transform=False` (LangGraph) is ignored for money, credit and pii_export tools.
+* An `allow: true` answer that also says `block` or `pause` (in `action` or `status`), or has an
+  action or status this client does not know, is a block (`SDK-ANSWER-CONTRADICTS`). The observe
+  answer (`action: log`, `status: report`, `observed_decision`) passes.
 * A `timed_out` entry in `not_executed` is for the log; the adapter does not fail open on it.
 
 ### LangGraph and deepagents
@@ -84,7 +91,8 @@ agent = create_agent(model, tools, middleware=[guard.as_agent_middleware()])
 
 Input phase: the body is `args` of the tool `http_inbound`. Output phase: the response is held
 back, checked, then sent; a block (403), a pause or outage (503), or a response above the cap
-(502) replaces it, so nothing of a refused response leaves the process. Binary responses are not
+(502, in both fail modes: the part above the cap is not kept, so a cut response is never sent)
+replaces it, so nothing of a refused response leaves the process. Binary responses are not
 inspected. A request above the cap is 413.
 
 ### LiteLLM
@@ -96,7 +104,9 @@ Streaming answers are not checked.
 
 Settings from the environment (`SUPERVISOR_URL`, `SUPERVISOR_AGENT_ID`, key, `SUPERVISOR_FAIL_MODE`,
 `SUPERVISOR_CLOSED_TOOLS`). Exit 0 allow, exit 2 refuse with one ASCII line on stderr. A masked
-input is printed as the assistant's `updatedInput` answer.
+input is printed as the assistant's `updatedInput` answer. The hook sends with `urllib` (standard
+library), so a developer laptop needs the Supervisor package and nothing else; `SUPERVISOR_URL`
+must be `http://` or `https://`.
 
 ## 4. Evaluation
 

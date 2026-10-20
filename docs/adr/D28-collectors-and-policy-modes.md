@@ -46,8 +46,10 @@ Python SDK, LangGraph middleware, MCP proxy first; policy source of truth stays 
   consumer id inside is not. An agent that is compromised can name a lenient consumer. Mitigations:
   the guard of item 6, the id and mode are in every decision, the chain and the SIEM event, and
   overrides are reviewed in git like any rule.
-* Observe mode on a money agent lets the calls through. It is a policy decision of the owner of
-  the agent, visible in the Policy binding tab and in every decision.
+* Observe mode on a money agent needs `initial_state: SHADOW` or two `observe_approvals`; only
+  the approvals let observe lift a decision on a money, credit or pii_export tool. A consumer of a
+  money agent cannot be in observe mode, and a consumer detector override never applies to those
+  tools (WP38 review, owner question 1 decided).
 * The `agent_event` row has no column for the observed decision; the `verdict` rows (label
   `observe_would_*`), the chain and the SIEM carry it. A column can come with WP39.
 

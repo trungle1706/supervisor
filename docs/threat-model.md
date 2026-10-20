@@ -188,7 +188,11 @@ correlation id, headers of an inbound request) and the console action that issue
 Controls: the adapters drop or replace any id that is not 1 to 128 characters of `A-Za-z0-9_.:@-`
 (no header injection, no 400 from the route), map tool names to safe names, cap payload size and fail
 closed on every malformed answer; the gate ignores an invalid or unknown consumer id and then applies
-the agent's own settings, and a consumer cannot switch off a money or credit block or pause rule.
+the agent's own settings, and a consumer cannot switch off a money, credit or pii_export block or
+pause rule, cannot set observe mode on an agent with money rules, and its detector override never
+applies to a money, credit or pii_export tool; observe lifts nothing on those tools unless the agent
+has two `observe_approvals` (WP38 review). An `allow: true` answer that contradicts itself fails
+closed in the adapters.
 The consumer id is asserted by the caller: a compromised agent can name a lenient consumer such as
 an observe-mode channel, so the mode and the consumer id are in every decision, chain record and SIEM
 event, and overrides are changed only through the reviewed policy file. The Add action passes the new
