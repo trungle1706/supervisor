@@ -781,3 +781,35 @@ tables:
       active: bool
       first_seen: timestamp
       last_seen: timestamp
+
+  # --- WP26 MCP tool locking (ADR D24) --------------------------------------------------
+  mcp_tool_manifest:
+    kind: state
+    description: >
+      WP26 locked tool manifest per upstream MCP server. One row per (server, tool) plus one
+      server row (tool_name '*') that holds the whole-list hash. locked_hash is what two
+      different reviewers approved; observed_hash is what the server shows now. A tool whose
+      status is new or changed is hidden from the agent and its tools/call is blocked
+      (MCP-TOOL-UNREVIEWED). approvals lists {by, role, at, hash}; they count only for the
+      observed hash. scan is the report-only poisoning scan (kinds and counts, no text).
+    primary_key: [manifest_id]
+    indexes:
+      - [server_id]
+    columns:
+      manifest_id: string     # hash of server_id + tool_name
+      server_id: string
+      tool_name: string       # '*' for the server row
+      row_kind: string        # server | tool
+      agent_id: string        # the application that first observed the server
+      status: string          # tool: approved | new | changed | removed; server: locked | open
+      locked_hash: string?
+      observed_hash: string?
+      locked_def: json?
+      observed_def: json?
+      suspicious: bool
+      scan: json?
+      approvals: json
+      case_id: string?
+      seeded_by: string?      # who ran trust-on-first-use, when it was used
+      first_seen: timestamp
+      last_seen: timestamp

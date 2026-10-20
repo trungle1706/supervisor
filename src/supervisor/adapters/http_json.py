@@ -38,3 +38,15 @@ def post_bytes(url: str, body: bytes, headers: dict[str, str], timeout_s: float)
     if not isinstance(data, dict):
         raise ValueError("gateway returned a non-object response")
     return data
+
+
+def get_json(
+    url: str, timeout_s: float, *, headers: Mapping[str, str] | None = None
+) -> dict[str, Any]:
+    """GET and return the JSON object (human CLI against the app's routes). Raises on non-2xx."""
+    resp = httpx.get(url, timeout=timeout_s, headers=dict(headers or {}))
+    resp.raise_for_status()
+    data = resp.json()
+    if not isinstance(data, dict):
+        raise ValueError("server returned a non-object response")
+    return data

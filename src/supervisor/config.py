@@ -476,6 +476,15 @@ class Settings(BaseSettings):
     console_scan_cap: int = Field(default=20000, ge=100, le=200_000)
     console_trace_scan: int = Field(default=5000, ge=100, le=50_000)
 
+    # --- WP26 --- HTTP MCP gateway with tool locking (ADR D24, docs/mcp-gateway.md)
+    # MCP_HTTP_ENABLED: the /v1/mcp/tools routes work and the proxy process may start (default
+    # off). MCP_TOOL_LOCK: inside the proxy, hold new or changed tools for two-person review
+    # (default on; the lock is deterministic and safe). MCP_LOCK_REFRESH_S: how long the proxy
+    # trusts one tools/list view before it asks the upstream server again.
+    mcp_http_enabled: bool = False
+    mcp_tool_lock: bool = True
+    mcp_lock_refresh_s: int = Field(default=60, ge=1, le=3600)
+
     @field_validator(
         "data_dir",
         "sqlite_path",

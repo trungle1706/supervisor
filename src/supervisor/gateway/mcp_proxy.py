@@ -47,6 +47,27 @@ def _error(id_: Any, code: int, message: str) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": id_, "error": {"code": code, "message": message}}
 
 
+def deny_response(id_: Any, verdict: dict[str, Any]) -> dict[str, Any]:
+    """The MCP tool-error result for a refused call (shared with the HTTP proxy, WP26)."""
+    text = f"blocked by supervisor: {verdict.get('rule_id')}: {verdict.get('reason')}"
+    return {
+        "jsonrpc": "2.0",
+        "id": id_,
+        "result": {
+            "isError": True,
+            "content": [{"type": "text", "text": text}],
+            "_meta": {
+                "supervisor": {
+                    "action": verdict.get("action"),
+                    "rule_id": verdict.get("rule_id"),
+                    "decision_id": verdict.get("decision_id"),
+                    "allow": False,
+                }
+            },
+        },
+    }
+
+
 class McpGateProxy:
     def __init__(
         self,
@@ -104,23 +125,7 @@ class McpGateProxy:
             return self._forward(message)
         if id_ is None:  # a notification cannot receive a response
             return None
-        text = f"blocked by supervisor: {verdict.get('rule_id')}: {verdict.get('reason')}"
-        return {
-            "jsonrpc": "2.0",
-            "id": id_,
-            "result": {
-                "isError": True,
-                "content": [{"type": "text", "text": text}],
-                "_meta": {
-                    "supervisor": {
-                        "action": verdict.get("action"),
-                        "rule_id": verdict.get("rule_id"),
-                        "decision_id": verdict.get("decision_id"),
-                        "allow": False,
-                    }
-                },
-            },
-        }
+        return deny_response(id_, verdict)
 
     def _forward(self, message: dict[str, Any]) -> dict[str, Any] | None:
         try:
