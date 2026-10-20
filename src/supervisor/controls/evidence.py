@@ -105,14 +105,13 @@ def evaluate(
     agent_id: str,
     sources: list[tuple[str, str]],
     w: ev.Window,
-    w_pack: ev.Window | None = None,
     *,
     bank: bool = False,
 ) -> Result:
     """Status of one control for one agent. ``sources`` = (kind, target) pairs of the active
     control map (all evidence kinds). Rules and monitors are read in window ``w``; a pack result
-    in ``w_pack`` (longer: packs run less often), default ``w``. ``bank`` = the bank owns the
-    control: never working (reason ``bank_owned``)."""
+    in the longer pack window (``col.pack_days``, ``risk.evidence.source_window``). ``bank`` = the
+    bank owns the control: never working (reason ``bank_owned``)."""
     supervised, _ = col.split_agents([agent_id])
     refs_n = sum(1 for k, _t in sources if k in REF_KINDS)
     runtime = sorted({(k, t) for k, t in sources if k in RUNTIME_KINDS})
@@ -123,7 +122,7 @@ def evaluate(
         return decide(len(runtime), 0, 0, refs_n, False)
     working = failing = 0
     for kind, target in runtime:
-        c = col.count(supervised, [(kind, target)], (w_pack or w) if kind == "pack" else w)
+        c = col.count(supervised, [(kind, target)], ev.source_window(kind, w, col.pack_days))
         if c.controls_failing:
             failing += 1
         elif c.controls_working:

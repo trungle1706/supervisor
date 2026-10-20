@@ -149,6 +149,21 @@ def runtime_sources(state: Any, control_id: str) -> list[tuple[str, str]]:
     )
 
 
+def control_scope(state: Any, control_id: str) -> list[str]:
+    """The agents a control applies to: ``["*"]`` or a list of lower-case agent ids."""
+    import json
+
+    row = state.get("control", {"control_id": control_id})
+    if row is None:
+        return []
+    raw = row.get("scope_agents")
+    try:
+        value = raw if isinstance(raw, list) else json.loads(raw or '["*"]')
+    except (TypeError, ValueError):
+        return ["*"]
+    return [str(x).lower() if x != "*" else "*" for x in value] or ["*"]
+
+
 def map_fingerprint(state: Any, control_id: str) -> str:
     """Short hash of what decides the evidence of a control: its status, who implements it, its
     agents and its whole active map. Any change gives another value, so old evidence stops

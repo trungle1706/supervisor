@@ -482,6 +482,7 @@ class ControlService:
             self.state,
             self._fresh().rule_ids(),
             control_sources=lambda cid: runtime_sources(self.state, cid),
+            pack_days=int(self.settings.controls_pack_window_days),
             # the same owner switch as the risk register (rule R1; review WP30)
             judged_packs=bool(getattr(self.settings, "risk_evidence_judged_packs", False)),
         )
@@ -496,7 +497,6 @@ class ControlService:
         controls = [dict(r) for r in self.state.query("control", order_by=("control_id",))]
         pairs = {r["control_id"]: self.pairs(r["control_id"]) for r in controls}
         bases = self.bases()
-        w_pack = ev.window_for(now, int(self.settings.controls_pack_window_days))
         out = {"agents": 0, "controls": 0, "written": 0, "repeat": 0}
         out.update({s: 0 for s in EVIDENCE_STATUSES})
         for agent in sorted(self.agent_rows().values(), key=lambda r: str(r["agent_id"])):
@@ -518,7 +518,7 @@ class ControlService:
                     digests.append(str(done[0]["digest"]))
                     continue
                 res = cev.evaluate(
-                    col, aid, pairs[c["control_id"]], w, w_pack, bank=c["implemented_by"] == "bank"
+                    col, aid, pairs[c["control_id"]], w, bank=c["implemented_by"] == "bank"
                 )
                 digest = cev.status_digest(c["control_id"], aid, w, res)
                 tally[res.status] += 1
