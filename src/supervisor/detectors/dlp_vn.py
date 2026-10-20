@@ -17,6 +17,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.core.detectors import (
+    MAX_DEPTH,
     PARTS_BY_DIRECTION,
     SCORE_MAX,
     Entity,
@@ -52,6 +53,19 @@ RISK_CLASSES = ("money", "credit", "pii_export", "read_only")
 
 # Frozen with the version string: change a number, change the version.
 PRESETS: dict[str, int] = {"strict": 5_000, "balanced": 8_000, "lenient": 9_500}
+
+
+def _mask_tree(value: Any, mask: Any, depth: int = 0) -> Any:
+    """``map_leaves`` that also masks string dict keys: a transformed payload goes on to a
+    pii_export tool, and a name used as a key must not reach it in clear (R2)."""
+    if isinstance(value, Mapping) and depth <= MAX_DEPTH:
+        return {
+            (mask(k) if isinstance(k, str) else k): _mask_tree(v, mask, depth + 1)
+            for k, v in value.items()
+        }
+    if isinstance(value, list | tuple) and depth <= MAX_DEPTH:
+        return [_mask_tree(v, mask, depth + 1) for v in value]
+    return map_leaves(value, mask, depth)
 
 
 class DlpVnDetector:
@@ -139,7 +153,7 @@ class DlpVnDetector:
         out_payload: dict[str, Any] | None = None
         if transform:
             out_payload = {
-                part: map_leaves(payload[part], self.masker.mask)
+                part: _mask_tree(payload[part], self.masker.mask)
                 for part in PARTS_BY_DIRECTION[direction]
                 if payload.get(part) is not None
             }
