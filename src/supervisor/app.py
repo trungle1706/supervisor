@@ -36,6 +36,7 @@ from supervisor.ops.logging_setup import configure_logging  # noqa: E402
 from supervisor.ops.readiness import readiness  # noqa: E402
 from supervisor.recorder.otlp_receiver import router as otlp_router  # noqa: E402
 from supervisor.risk.api import router as risk_router  # noqa: E402
+from supervisor.transparency.api import router as transparency_router  # noqa: E402
 
 log = logging.getLogger("supervisor.app")
 configure_logging(get_settings())  # WP18: LOG_LEVEL / LOG_FORMAT / LOG_FILE (idempotent)
@@ -96,6 +97,9 @@ app.include_router(console_router)  # WP8: reviewer console (/console)
 app.include_router(tools_analytics_router, prefix="/v1")  # WP22: GET /v1/analytics/tools
 app.include_router(inventory_router)  # WP24: GET /v1/inventory/... (off unless INVENTORY_ENABLED)
 app.include_router(risk_router)  # WP29: /v1/risks/... (off unless RISK_REGISTER_ENABLED)
+app.include_router(
+    transparency_router
+)  # WP31: /v1/transparency/... (off unless TRANSPARENCY_ENABLED)
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 

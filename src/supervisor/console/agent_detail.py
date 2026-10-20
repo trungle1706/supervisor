@@ -21,6 +21,7 @@ from supervisor.console import (
     readmodels,
     risks_views,
     tools_views,
+    transparency_views,
 )
 from supervisor.core import rbac
 from supervisor.core.errors import SupervisorError
@@ -36,6 +37,7 @@ TABS = (
     "assurance",
     "compliance",
     "risks",  # WP29
+    "transparency",  # WP31
 )
 TRACE_LIMIT = 20  # traces shown on the Traces tab
 CASE_LIMIT = 50
@@ -71,6 +73,12 @@ GATED: dict[str, tuple[str, str, str, str]] = {
         "risks.view",
         "CONSOLE_RISKS_ENABLED",
         "python -m supervisor.risk score --agent <id>",
+    ),
+    "transparency": (
+        "console_transparency_enabled",
+        "transparency.view",
+        "CONSOLE_TRANSPARENCY_ENABLED",
+        "python -m supervisor.transparency build <agent> --variant regulator --format html",
     ),
 }
 
@@ -322,6 +330,12 @@ def _risks(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> 
     return data
 
 
+def _transparency(
+    ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]
+) -> dict[str, Any]:
+    return transparency_views.agent_tab(ctx, me, card["agent_id"])
+
+
 _BUILDERS = {
     "overview": _overview,
     "policy": _policy,
@@ -332,6 +346,7 @@ _BUILDERS = {
     "assurance": _assurance,
     "compliance": _compliance,
     "risks": _risks,
+    "transparency": _transparency,
 }
 
 

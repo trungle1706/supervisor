@@ -1,0 +1,21 @@
+{# Transparency drawer: the sections of one report, one tab per variant (WP31, read-only).
+   Variable: drawer (transparency_views.drawer_view). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% import "_tp_blocks.html" as tp with context %}
+{% set d = drawer %}
+{% set base = '/console/transparency/' ~ d.agent_id ~ '/drawer?variant={tab}&lang=' ~ lang %}
+{% set page_base = '/console/transparency?drawer=' ~ d.agent_id ~ '&variant={tab}&lang=' ~ lang %}
+{% set pills %}{{ ui.pill(t('tp_status_signed') if d.info.status == 'signed' else t('tp_preview_line'), 'ok' if d.info.status == 'signed' else 'warn', True) }}{% if d.info.version %} {{ ui.pill('v' ~ d.info.version, 'neutral') }}{% endif %} {{ ui.pill(t('tp_sections_ok', n=d.avail, m=d.total), 'neutral') }}{% endset %}
+{% set labels = {'regulator': t('tp_title_regulator'), 'customer': t('tp_title_customer'), 'internal': t('tp_title_internal')} %}
+{% set tabs_html %}{{ ui.tabs(d.variants, d.variant, labels, page_base, base) }}{% endset %}
+{% call dr.drawer(d.agent_id, pills, tabs_html, d.json_text) %}
+  <p class="hint">
+    {{ t('tp_download') }}:
+    <a href="/v1/transparency/{{ d.agent_id }}?variant={{ d.variant }}&amp;format=json&amp;lang={{ lang }}">JSON</a> ·
+    <a href="/v1/transparency/{{ d.agent_id }}?variant={{ d.variant }}&amp;format=html&amp;lang={{ lang }}">HTML</a> ·
+    <a href="/v1/transparency/{{ d.agent_id }}?variant={{ d.variant }}&amp;format=pdf&amp;lang={{ lang }}">PDF</a>
+  </p>
+  {% if d.info.status == 'signed' and d.info.hash %}<p class="hint mono wrap">sha256 {{ d.info.hash }}</p>{% endif %}
+  {{ tp.blocks(d.doc.sections) }}
+{% endcall %}

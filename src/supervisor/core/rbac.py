@@ -101,6 +101,12 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "owner", "admin"),
         "Create and change risks, link them to controls and rules (WP29)",
     ),
+    # --- WP31 ---
+    "transparency.view": (_ALL, "Transparency page, Agent tab and GET /v1/transparency (WP31)"),
+    "transparency.generate": (
+        ("reviewer", "admin"),
+        "Build and sign a transparency report (WP31)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -243,6 +249,14 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/risks"): "risks.edit",
     ("POST", "/v1/risks/{risk_id}"): "risks.edit",
     ("POST", "/v1/risks/{risk_id}/links"): "risks.edit",
+    # --- WP31 ---
+    ("GET", "/console/transparency"): "transparency.view",
+    ("GET", "/console/transparency/rows"): "transparency.view",
+    ("GET", "/console/transparency/{agent_id}/drawer"): "transparency.view",
+    ("POST", "/console/transparency/{agent_id}/generate"): "transparency.generate",
+    ("GET", "/v1/transparency"): "transparency.view",
+    ("GET", "/v1/transparency/{agent_id}"): "transparency.view",
+    ("POST", "/v1/transparency/{agent_id}/generate"): "transparency.generate",
 }
 
 

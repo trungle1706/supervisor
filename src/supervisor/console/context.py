@@ -51,6 +51,17 @@ class ConsoleContext:
         return svc
 
     @property
+    def transparency(self) -> Any:
+        """The transparency report service (WP31, ADR D31). Signed reports go on the chain."""
+        from supervisor.transparency.service import TransparencyService
+
+        svc = getattr(self, "_transparency", None)
+        if svc is None:
+            svc = TransparencyService.from_context(self)
+            self._transparency = svc
+        return svc
+
+    @property
     def gateway(self) -> Any:
         return self.runtime.gateway
 

@@ -14,7 +14,7 @@
   'overview': t('atab_overview'), 'policy': t('atab_policy'), 'tools': t('atab_tools'),
   'inventory': t('atab_inventory'), 'traces': t('atab_traces'), 'cases': t('atab_cases'),
   'assurance': t('atab_assurance'), 'compliance': t('atab_compliance'),
-  'risks': t('atab_risks')} %}
+  'risks': t('atab_risks'), 'transparency': t('atab_transparency')} %}
 {{ ui.tabs(tabs, tab, tab_labels, '/console/agents/' ~ a.agent_id ~ '?tab={tab}&lang=' ~ lang, '/console/agents/' ~ a.agent_id ~ '/tab/{tab}?lang=' ~ lang, target='#tab-body', counts=tab_counts, panel='tab-body') }}
 <div id="tab-body" class="tabpanel" role="tabpanel">
 {% include "_agent_tab_" ~ tab ~ ".html" %}

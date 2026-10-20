@@ -1,0 +1,30 @@
+{# Transparency tab of the Agent page (WP31): the latest report per variant, with downloads.
+   Read only; generating is on the Transparency page. #}
+{% import "_ui.html" as ui with context %}
+{% if tp_off %}
+{{ ui.empty(t('tp_tab_off')) }}
+{% else %}
+<section class="card" data-section="transparency">
+  <h3>{{ t('nav_transparency') }}</h3>
+  <div class="tablewrap flat"><table class="queue" id="agent-transparency">
+    <thead><tr><th scope="col">{{ t('tp_col_variant') }}</th><th scope="col">{{ t('tp_col_ver') }}</th><th scope="col">{{ t('tp_col_last') }}</th><th scope="col">{{ t('tp_col_state') }}</th><th scope="col">{{ t('tp_col_files') }}</th></tr></thead>
+    <tbody>
+    {% for v in tp_variants %}
+      {% set x = tp[v] %}
+      <tr class="row">
+        <td>{{ t('tp_title_' ~ v) }}</td>
+        <td class="n">{% if x %}v{{ x.version }}{% else %}-{% endif %}</td>
+        <td class="mono">{% if x %}{{ x.generated_at|day }}{% else %}{{ t('tp_never') }}{% endif %}</td>
+        <td>{% if x %}{{ ui.pill(t('tp_ver_' ~ x.verify_state), {'ok': 'ok', 'failed': 'bad'}.get(x.verify_state, 'warn'), True) }}{% else %}<span class="muted">{{ t('tp_preview_line') }}</span>{% endif %}</td>
+        <td>
+          <a href="/v1/transparency/{{ a.agent_id }}?variant={{ v }}&amp;format=json&amp;lang={{ lang }}">JSON</a> ·
+          <a href="/v1/transparency/{{ a.agent_id }}?variant={{ v }}&amp;format=html&amp;lang={{ lang }}">HTML</a> ·
+          <a href="/v1/transparency/{{ a.agent_id }}?variant={{ v }}&amp;format=pdf&amp;lang={{ lang }}">PDF</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% if tp_page %}<p class="hint"><a href="/console/transparency?lang={{ lang }}">{{ t('tp_open_page') }}</a></p>{% endif %}
+{% endif %}

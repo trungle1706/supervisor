@@ -1,0 +1,18 @@
+{# Transparency page (WP31): one line per agent with the latest report per variant, a row drawer
+   with the sections (?drawer=<agent>&variant=<v> is the no-JS fallback), a generate button for
+   reviewer and admin. Variables: transparency_views.list_view. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_transparency') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_transparency'), None)]) }}
+{{ ui.pagehead(t('nav_transparency'), ui.pill(t('read_only'), 'neutral') if not can_generate else None) }}
+{{ ui.purpose(t('tp_purpose'), t('tp_why')) }}
+{% if not pdf_ready %}<p class="hint">{{ t('tp_no_pdf') }}</p>{% endif %}
+<section id="transparency" aria-label="{{ t('nav_transparency') }}">
+<div id="list" aria-live="polite">
+{% include "_transparency_list.html" %}
+</div>
+</section>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_transparency_drawer.html" %}{% endif %}{% endblock %}

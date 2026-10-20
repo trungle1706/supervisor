@@ -47,6 +47,7 @@ PAGES: dict[str, str] = {
     "integrations": "console_integrations_enabled",
     "playground": "console_playground_enabled",
     "risks": "console_risks_enabled",  # WP29
+    "transparency": "console_transparency_enabled",  # WP31
 }
 
 
@@ -87,6 +88,9 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
             Item("assurance", "nav_assurance", "/console/assurance", flag="assurance"),
             Item("compliance", "nav_compliance", "/console/compliance", flag="compliance"),
             Item("risks", "nav_risks", "/console/risks", page="risks"),  # WP29
+            Item(
+                "transparency", "nav_transparency", "/console/transparency", page="transparency"
+            ),  # WP31
         ),
     ),
     (
@@ -152,6 +156,7 @@ CODES: dict[str, str] = {
     "integrations": "IS",
     "playground": "PG",  # WP-UX3
     "risks": "RK",  # WP29
+    "transparency": "TP",  # WP31
     "health": "HL",
 }
 

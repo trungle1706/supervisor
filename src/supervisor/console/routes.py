@@ -65,6 +65,7 @@ from supervisor.console import (
     search,
     tools_views,
     traces,
+    transparency_views,  # --- WP31 ---
     users_view,
     views,
 )
@@ -77,6 +78,7 @@ from supervisor.core.errors import SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
 from supervisor.jobs import case_intake
 from supervisor.risk.model import ensure_on as ensure_risks_on
+from supervisor.transparency.model import ensure_on as ensure_transparency_on
 
 router = APIRouter(prefix="/console", tags=["console"])
 log = logging.getLogger("supervisor.console")
@@ -1377,6 +1379,7 @@ _UX3_FLAGS = {
     "audit": ("CONSOLE_AUDITLOG_ENABLED", "Audit log"),
     "integrations": ("CONSOLE_INTEGRATIONS_ENABLED", "Integrations"),
     "risks": ("CONSOLE_RISKS_ENABLED", "Risks"),  # WP29
+    "transparency": ("CONSOLE_TRANSPARENCY_ENABLED", "Transparency"),  # WP31
 }
 
 
@@ -1653,6 +1656,104 @@ async def risk_drawer(
         risks_views.drawer_view, ctx, risk_id, query.get("tab") or "details", _drawer_query(query)
     )
     return render(request, ctx, me, "_risk_drawer.html", drawer=data)
+
+
+# -- transparency report (WP31)
+
+
+def _transparency_off(ctx: ConsoleContext) -> None:
+    """HTTP 400 unless both CONSOLE_TRANSPARENCY_ENABLED and TRANSPARENCY_ENABLED are on."""
+    _ux3_off(ctx, "transparency")
+    ensure_transparency_on(ctx.settings)
+
+
+@router.get(
+    "/transparency", response_class=HTMLResponse, dependencies=[Depends(needs("transparency.view"))]
+)
+async def transparency_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _transparency_off(ctx)
+    query = dict(request.query_params)
+    data = await _call(transparency_views.list_view, ctx, me)
+    opened = query.get("drawer")
+    if opened:  # no-JS fallback of the row drawer
+        _check_id(opened, "agent id")
+        data["drawer"] = await _call(
+            transparency_views.drawer_view,
+            ctx,
+            opened,
+            query.get("variant") or "regulator",
+            _lang(request, ctx),
+        )
+    return render(request, ctx, me, "transparency.html", section="transparency", **data)
+
+
+@router.get(
+    "/transparency/rows",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("transparency.view"))],
+)
+async def transparency_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _transparency_off(ctx)
+    data = await _call(transparency_views.list_view, ctx, me)
+    return render(request, ctx, me, "_transparency_list.html", **data)
+
+
+@router.get(
+    "/transparency/{agent_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("transparency.view"))],
+)
+async def transparency_drawer(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _transparency_off(ctx)
+    _check_id(agent_id, "agent id")
+    query = dict(request.query_params)
+    data = await _call(
+        transparency_views.drawer_view,
+        ctx,
+        agent_id,
+        query.get("variant") or "regulator",
+        _lang(request, ctx),
+    )
+    return render(request, ctx, me, "_transparency_drawer.html", drawer=data)
+
+
+@router.post(
+    "/transparency/{agent_id}/generate",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("transparency.generate"))],
+)
+@audited("transparency.generate")
+async def transparency_generate(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _transparency_off(ctx)
+    _check_id(agent_id, "agent id")
+    d = await form(request)
+    variants = transparency_views.check_generate_input(d)
+    if me.kind != "user":
+        raise PermissionDenied("generating a report needs a signed-in person")
+    out = await _call(
+        lambda: ctx.transparency.generate(agent_id, variants, actor=me.user_id, force=False)
+    )
+    made = [r for r in out if r["status"] == "made"]
+    request.state.audit_detail = f"generate:{len(made)}"
+    data = await _call(transparency_views.list_view, ctx, me)
+    resp = render(request, ctx, me, "_transparency_list.html", **data)
+    t = translator(_lang(request, ctx))
+    note = (
+        t("tp_generated", v=max(r["version"] for r in made))
+        if made
+        else t("tp_unchanged", v=max(r["version"] for r in out))
+    )
+    resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
+    resp.headers["content-length"] = str(len(resp.body))
+    return resp
 
 
 # -- credentials, users, integrations (read-only)

@@ -1,0 +1,26 @@
+{# The display blocks of one transparency report (transparency.render.document) as HTML. #}
+{% macro blocks(sections) %}
+{% for s in sections %}
+<h3 class="sec">{{ s.title }}</h3>
+{% for b in s.blocks %}
+{% if b.k == "kv" %}
+<dl class="kv">
+{% for label, value in b.rows %}<dt>{{ label }}</dt><dd class="wrap">{{ value if value not in (None, '') else '-' }}</dd>
+{% endfor %}
+</dl>
+{% elif b.k == "table" %}
+<div class="tablewrap flat"><table>
+<thead><tr>{% for h in b.head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+<tbody>
+{% for row in b.rows %}<tr>{% for c in row %}<td class="wrap">{{ c if c is not none else '-' }}</td>{% endfor %}</tr>
+{% endfor %}
+</tbody>
+</table></div>
+{% elif b.k == "ul" %}
+<ul class="drawer-list">{% for i in b.li %}<li>{{ i }}</li>{% endfor %}</ul>
+{% else %}
+<p class="{{ 'hint' if b.cls in ('note', 'mock') else '' }}">{{ b.text }}</p>
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endmacro %}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+{{ style | safe }}
+</head>
+<body>
+<h1>{{ title }}</h1>
+<table>
+{% for label, value in meta %}
+<tr><th>{{ label }}</th><td>{{ value }}</td></tr>
+{% endfor %}
+</table>
+{% if preview %}
+<p class="note mock">{{ preview }}</p>
+{% endif %}
+{% for s in sections %}
+
+<h2>{{ s.title }}</h2>
+{% for b in s.blocks %}
+{% if b.k == "kv" %}
+<table>
+{% for label, value in b.rows %}
+<tr><th>{{ label }}</th><td>{{ value if value is not none else "-" }}</td></tr>
+{% endfor %}
+</table>
+{% elif b.k == "table" %}
+<table>
+<tr>{% for h in b.head %}<th>{{ h }}</th>{% endfor %}</tr>
+{% for row in b.rows %}
+<tr>{% for c in row %}<td>{{ c if c is not none else "-" }}</td>{% endfor %}</tr>
+{% endfor %}
+</table>
+{% elif b.k == "ul" %}
+<ul>
+{% for i in b.li %}
+<li>{{ i }}</li>
+{% endfor %}
+</ul>
+{% elif b.cls == "h3" %}
+<h3>{{ b.text }}</h3>
+{% else %}
+<p{% if b.cls %} class="{{ b.cls }}"{% endif %}>{{ b.text }}</p>
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+<footer>{{ footer }}</footer>
+</body>
+</html>
