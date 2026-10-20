@@ -31,10 +31,26 @@ class Item:
     hot: str | None = None  # key in shell() that turns the badge red when truthy
     flag: str | None = None  # "compliance" | "integration" | "assurance" | "tools" | "inventory"
     placeholder: bool = False
+    page: str | None = None  # WP-UX3: key in PAGES; shows the real page when its flag is on
+
+
+# --- WP-UX3 --- the seven pages and the Playground, each behind its own setting. With the flag
+# on the sidebar item opens the real page; with it off the item opens the "coming" placeholder
+# when CONSOLE_NAV_PLACEHOLDERS=1, else it is hidden.
+PAGES: dict[str, str] = {
+    "decisions": "console_decisions_enabled",
+    "traces": "console_traces_enabled",
+    "policies": "console_policies_enabled",
+    "credentials": "console_credentials_enabled",
+    "users": "console_users_enabled",
+    "audit": "console_auditlog_enabled",
+    "integrations": "console_integrations_enabled",
+    "playground": "console_playground_enabled",
+}
 
 
 def _soon(page: str) -> Item:
-    return Item(f"soon-{page}", PLACEHOLDERS[page], f"/console/soon/{page}", placeholder=True)
+    return Item(page, PLACEHOLDERS[page], f"/console/soon/{page}", placeholder=True, page=page)
 
 
 # (group i18n key or None, items). Order is the reading order of the sidebar.
@@ -84,6 +100,7 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
                 flag="inventory",
             ),
             Item("integration", "nav_integration", "/console/integration", flag="integration"),
+            Item("playground", "nav_playground", "/console/playground", page="playground"),
         ),
     ),
     (
@@ -113,8 +130,8 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
 CODES: dict[str, str] = {
     "overview": "OV",
     "agents": "AG",
-    "soon-decisions": "GD",
-    "soon-traces": "TR",
+    "decisions": "GD",
+    "traces": "TR",
     "alerts": "AL",
     "cases": "CS",
     "signoff": "SO",
@@ -126,18 +143,27 @@ CODES: dict[str, str] = {
     "inventory": "IV",
     "integration": "IG",
     "analytics": "AN",  # WP-UX2: Tools and Metrics are tabs of Analytics
-    "soon-policies": "PO",
-    "soon-credentials": "CR",
-    "soon-users": "US",
-    "soon-audit": "AU",
-    "soon-integrations": "IS",
+    "policies": "PO",
+    "credentials": "CR",
+    "users": "US",
+    "audit": "AU",
+    "integrations": "IS",
+    "playground": "PG",  # WP-UX3
     "health": "HL",
 }
 
 
+def _page_on(item: Item, sh: dict[str, Any]) -> bool:
+    return bool(item.page and (sh.get("pages") or {}).get(item.page))
+
+
 def _visible(item: Item, sh: dict[str, Any], compliance: bool, integration: bool) -> bool:
+    if item.page and _page_on(item, sh):
+        return True
     if item.placeholder:
         return bool(sh.get("placeholders"))
+    if item.page:
+        return False
     return {
         None: True,
         "compliance": compliance,
@@ -146,6 +172,10 @@ def _visible(item: Item, sh: dict[str, Any], compliance: bool, integration: bool
         "tools": bool(sh.get("tools")),
         "inventory": sh.get("inventory_n") is not None,
     }[item.flag]
+
+
+def _real_path(item: Item) -> str:
+    return f"/console/{item.page}"
 
 
 def href(path: str, lang: str) -> str:
@@ -167,11 +197,12 @@ def groups(
             if not _visible(it, sh, compliance, integration):
                 continue
             n = sh.get(it.count) if it.count else None
+            path = _real_path(it) if _page_on(it, sh) else it.href
             rows.append(
                 {
                     "item": it,
                     "code": CODES[it.key],
-                    "href": href(it.href, lang),
+                    "href": href(path, lang),
                     "n": n,
                     "hot": bool(it.hot and sh.get(it.hot)),
                 }

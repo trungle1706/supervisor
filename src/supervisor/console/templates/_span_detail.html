@@ -1,0 +1,55 @@
+{# Right-hand panel of the span viewer (WP-UX3): key-value detail of the selected span, its
+   verdicts (rule hits, Tier 0b findings, judge verdicts) and masked excerpts only. Variable:
+   selected (traces.span_detail). The capture level of each event decides what text appears. #}
+{% import "_ui.html" as ui with context %}
+{% if selected %}
+{% set n = selected.node %}
+<h2 class="sec">{{ n.name }} {% if n.stop %}{{ ui.action_pill(n.stop) }}{% endif %}</h2>
+{% for it in selected.evs %}
+  {% set e = it.e %}
+  <h3 class="sec">{{ t('event_word') }} {{ e.event_type }}</h3>
+  {{ ui.kv([
+    (t('agent'), e.agent_id),
+    (t('tool'), e.tool_name, True),
+    (t('status'), e.status),
+    (t('span_id'), e.span_id, True),
+    (t('parent_span'), e.parent_span_id, True),
+    (t('time'), e.ts|hhmmss),
+    (t('latency'), (e.latency_ms ~ ' ms') if e.latency_ms is not none else None),
+    (t('amount_vnd'), (e.amount_minor|vnd) if e.amount_minor is not none else None),
+    (t('args_hash'), e.args_hash, True),
+    (t('capture_level'), it.level),
+    (t('source'), e.source),
+  ]) }}
+  {% if it.digest_only %}
+    <p class="hint">{{ t('digest_only') }}</p>
+  {% else %}
+    {% if it.args %}<h4 class="sec">{{ t('args_masked') }}</h4><pre class="mono wrap payload">{{ it.args }}</pre>{% endif %}
+    {% if it.result %}<h4 class="sec">{{ t('result_masked') }}</h4><pre class="mono wrap payload">{{ it.result }}</pre>{% endif %}
+  {% endif %}
+  <p class="btnrow">
+    {% if it.case_id %}<a class="btn" href="/console/cases/{{ it.case_id }}?lang={{ lang }}">{{ t('open_case') }} {{ it.case_id }}</a>{% endif %}
+    {% if it.chain %}<a class="btn" href="/console/evidence?lang={{ lang }}">{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}</a>{% endif %}
+  </p>
+{% endfor %}
+<h3 class="sec">{{ t('verdicts') }}</h3>
+{% if n.verdicts %}
+<div class="tablewrap flat"><table>
+  <thead><tr><th scope="col">{{ t('source') }}</th><th scope="col">{{ t('rule_col') }}</th><th scope="col">{{ t('action') }}</th><th scope="col">{{ t('reason') }}</th></tr></thead>
+  <tbody>
+  {% for v in n.verdicts %}
+    <tr>
+      <td>{{ t('src_' ~ v.source) }}{% if v.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}{% if v.advisory %} {{ ui.pill(t('advisory'), 'neutral') }}{% endif %}</td>
+      <td class="mono">{{ v.rule_id or v.checker_id }}</td>
+      <td>{{ ui.action_pill(v.action) }}{% if v.label %}<div class="idline">{{ v.label }}</div>{% endif %}{% if v.model_family %}<div class="idline">{{ v.model_family }}</div>{% endif %}</td>
+      <td>{{ v.rationale }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<p class="hint">{{ t('no_verdicts_span') }}</p>
+{% endif %}
+{% else %}
+{{ ui.empty(t('no_span'), t('no_span_line')) }}
+{% endif %}

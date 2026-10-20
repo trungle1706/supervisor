@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_users') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_users'), None)]) }}
+{{ ui.pagehead(t('nav_users'), ui.pill(t('read_only'), 'neutral')) }}
+{{ ui.purpose(t('users_purpose'), t('users_why')) }}
+<p class="idline">{{ t('users_source') }}: <span class="mono">{{ source }}</span>{% if group_lookup %} · group_lookup: <span class="mono">{{ group_lookup }}</span>{% endif %}{% if service_principal %} · {{ t('service_principal') }}: <span class="mono">{{ service_principal.id }}</span> ({{ service_principal.roles|join(', ') or t('read_only') }}){% endif %}</p>
+
+<h2 class="sec">{{ t('users_users') }}</h2>
+<div class="tablewrap">
+<table class="queue users-tbl">
+  <caption class="sr">{{ t('users_users') }}</caption>
+  <thead><tr><th scope="col">{{ t('user') }}</th><th scope="col">{{ t('name') }}</th><th scope="col">{{ t('roles') }}</th><th scope="col">{{ t('source') }}</th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    <tr><td class="mono">{{ u.user_id }}</td><td>{{ u.name or '-' }}</td><td>{% for r in u.roles %}{{ ui.pill(r, 'neutral') }} {% endfor %}</td><td class="mono">{{ u.source }}</td></tr>
+  {% else %}
+    <tr><td colspan="4">{{ ui.empty(t('no_users'), t('no_users_line')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2 class="sec">{{ t('users_roles') }}</h2>
+<div class="tablewrap">
+<table class="queue">
+  <caption class="sr">{{ t('users_roles') }}</caption>
+  <thead><tr><th scope="col">{{ t('role') }}</th><th scope="col" class="n">{{ t('holders') }}</th>{% if role_map %}<th scope="col">{{ t('groups') }}</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for r in roles %}
+    <tr><td>{{ r.role }}</td><td class="n">{{ r.n }}</td>{% if role_map %}<td class="mono">{{ (role_map|selectattr('role', 'equalto', r.role)|first).groups|join(', ') or '-' }}</td>{% endif %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2 class="sec" id="matrix">{{ t('users_matrix') }}</h2>
+<p class="hint">{{ t('users_matrix_note') }} <span class="mono">docs/console.md</span></p>
+<div class="tablewrap">
+<table class="queue matrix-tbl">
+  <caption class="sr">{{ t('users_matrix') }}</caption>
+  <thead><tr><th scope="col">{{ t('permission') }}</th>{% for r in role_names %}<th scope="col">{{ r }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for m in matrix %}
+    <tr><th scope="row"><span class="mono">{{ m.permission }}</span><div class="idline">{{ m.text }}</div></th>{% for r in role_names %}<td>{% if m.roles[r] %}<span aria-label="{{ t('yes') }}">x</span>{% else %}<span class="muted" aria-label="{{ t('no') }}">-</span>{% endif %}</td>{% endfor %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

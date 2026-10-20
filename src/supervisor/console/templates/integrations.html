@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_integrations') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_integrations'), None)]) }}
+{{ ui.pagehead(t('nav_integrations'), ui.pill(t('read_only'), 'neutral')) }}
+{{ ui.purpose(t('integrations_purpose'), t('integrations_why')) }}
+<div class="tablewrap">
+<table class="queue integ-tbl">
+  <caption class="sr">{{ t('nav_integrations') }}</caption>
+  <thead><tr><th scope="col">{{ t('integration_word') }}</th><th scope="col">{{ t('configured') }}</th><th scope="col">{{ t('enabled') }}</th><th scope="col">{{ t('last_delivery') }}</th><th scope="col" class="n">{{ t('dead_letter') }}</th><th scope="col">{{ t('detail') }}</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr data-row="{{ r.key }}">
+      <th scope="row">{{ t('integ_' ~ r.key) }}{% if r.stub %} {{ ui.pill(t('stub_fake'), 'neutral') }}{% endif %}</th>
+      <td>{{ ui.pill(t('yes') if r.configured else t('no'), 'ok' if r.configured else 'neutral', True) }}</td>
+      <td>{{ ui.pill(t('on') if r.enabled else t('off'), 'ok' if r.enabled else 'neutral', True) }}</td>
+      <td class="mono">{{ r.last|day if r.last else '-' }}</td>
+      <td class="n">{% if r.dead_letter is none %}-{% elif r.dead_letter %}{{ ui.pill(r.dead_letter, 'bad') }}{% else %}0{% endif %}</td>
+      <td class="mono">{{ r.detail or '-' }}{% if r.lanes is defined %} · {{ t('integ_lanes', n=r.lanes) }}{% endif %}{% if r.queued is defined %} · {{ t('integ_queued', n=r.queued) }}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint">{{ t('integrations_note') }}</p>
+{% endblock %}

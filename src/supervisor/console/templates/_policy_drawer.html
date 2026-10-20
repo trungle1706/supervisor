@@ -1,0 +1,53 @@
+{# Rule drawer of the policies page: tabs Details / YAML / Versions (read-only). Variable:
+   drawer (policies_view.drawer_view). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set r = drawer.r %}
+{% set tab = drawer.tab %}
+{% set qs = drawer.qs %}
+{% set base = '/console/policies/' ~ r.rule_id ~ '/drawer?tab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set page_base = '/console/policies?drawer=' ~ r.rule_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set pills %}{{ ui.action_pill(r.action) }} {{ ui.sev(r.severity) }}{% endset %}
+{% set labels = {'details': t('dtab_details'), 'yaml': 'YAML', 'versions': t('dtab_versions')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base) }}{% endset %}
+{% set prev_href = ('/console/policies?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/policies/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/policies?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/policies/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% call dr.drawer(r.rule_id, pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {% if tab == 'details' %}
+    {{ ui.kv([
+      (t('description'), r.description),
+      (t('agent_scope'), r.scope|join(', '), True),
+      (t('fail_mode'), r.fail_mode),
+      (t('risk_class'), r.risk_class),
+      (t('version'), r.version),
+      (t('regulation_refs'), r.regulation_ref),
+      (t('owner'), r.owner),
+      (t('approvals'), r.approvals|join(', ')),
+      (t('effective_from'), r.effective_from|day),
+      (t('policy_hash'), r.policy_hash, True),
+      (t('git_sha'), r.git_sha, True),
+    ]) }}
+    <h3 class="sec">{{ t('catalogue_caps') }}</h3>
+    {% if drawer.capabilities %}
+    <ul class="drawer-list">
+      {% for c in drawer.capabilities %}<li><strong>{{ c.name }}</strong> <span class="mono idline">{{ c.file }}</span></li>{% endfor %}
+    </ul>
+    {% else %}
+    <p class="hint">{{ t('catalogue_none') }}</p>
+    {% endif %}
+    {% if drawer.decisions_on %}<p class="btnrow"><a class="btn" href="/console/decisions?rule={{ r.rule_id }}&amp;lang={{ lang }}">{{ t('nav_decisions') }}</a></p>{% endif %}
+  {% elif tab == 'yaml' %}
+    <pre class="mono wrap payload">{{ drawer.yaml_text }}</pre>
+  {% else %}
+    <div class="tablewrap flat"><table>
+      <thead><tr><th scope="col">{{ t('version') }}</th><th scope="col">{{ t('effective_from') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('policy_hash') }}</th></tr></thead>
+      <tbody>
+      {% for h in drawer.history %}
+        <tr><td>{{ h.version }}</td><td class="mono">{{ h.effective_from|day }}</td><td>{{ ui.pill(t('policy_retired') if h.effective_to else t('policy_active'), 'neutral' if h.effective_to else 'ok') }}</td><td class="mono">{{ h.policy_hash[:12] }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% endif %}
+{% endcall %}

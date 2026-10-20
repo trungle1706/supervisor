@@ -1,0 +1,34 @@
+{# Row drawer of the audit log: one console_action row and the rows of the same request.
+   Variable: drawer (audit_view.drawer_view). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set r = drawer.r %}
+{% set qs = drawer.qs %}
+{% set pills %}{{ ui.pill(t('outcome_' ~ r.outcome), {'ok': 'ok', 'attempted': 'neutral', 'denied': 'warn', 'error': 'bad'}.get(r.outcome, 'neutral'), True) }} <span class="mono">{{ r.permission }}</span>{% endset %}
+{% set prev_href = ('/console/audit?drawer=' ~ drawer.prev_id ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/audit/' ~ drawer.prev_id ~ '/drawer?' ~ qs ~ ('&' if qs else '') ~ 'lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/audit?drawer=' ~ drawer.next_id ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/audit/' ~ drawer.next_id ~ '/drawer?' ~ qs ~ ('&' if qs else '') ~ 'lang=' ~ lang) if drawer.next_id else None %}
+{% call dr.drawer(t('nav_audit'), pills, '', drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {{ ui.kv([
+    (t('time'), r.ts|day),
+    (t('actor'), r.actor),
+    (t('actor_kind'), r.actor_kind),
+    (t('auth_method'), r.auth_method),
+    (t('roles'), r.roles|join(', ')),
+    (t('permission'), r.permission, True),
+    (t('request'), r.method ~ ' ' ~ r.path, True),
+    (t('target'), r.target, True),
+    (t('request_id'), r.request_id, True),
+    (t('before_hash'), r.before_hash, True),
+    (t('after_hash'), r.after_hash, True),
+    (t('hash_changed'), t('yes') if drawer.changed else t('no')),
+    (t('detail'), r.detail),
+  ]) }}
+  {% if drawer.same_request|length > 1 %}
+  <h3 class="sec">{{ t('same_request') }}</h3>
+  <ul class="drawer-list">
+    {% for s in drawer.same_request %}<li class="mono">{{ s.ts|hhmmss }} {{ t('outcome_' ~ s.outcome) }}{% if s.action_id == r.action_id %} ({{ t('this_row') }}){% endif %}</li>{% endfor %}
+  </ul>
+  {% endif %}
+{% endcall %}

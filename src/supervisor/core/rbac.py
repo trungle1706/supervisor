@@ -80,6 +80,21 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "agent.quarantine": (("admin",), "Quarantine an agent"),
     "agent.release": (("admin",), "Release an agent from quarantine"),
     "alert.ack": (("operator", "admin"), "Acknowledge an alert (WP21)"),
+    # --- WP-UX3 ---
+    "decisions.view": (_ALL, "Gate decisions list and drawer (read-only)"),
+    "traces.view": (_ALL, "Traces list and span viewer (masked payloads only)"),
+    "playground.run": (
+        ("reviewer", "approver", "owner", "admin", "operator"),
+        "Playground: dry-run gate check, no side effect (WP-UX3)",
+    ),
+    "policies.view": (_ALL, "Policies page: deployed rules and versions (read-only)"),
+    "credentials.view": (
+        ("owner", "admin"),
+        "Credentials page: agent key metadata, never a secret (read-only)",
+    ),
+    "users.view": (("admin",), "Users and roles page (read-only)"),
+    "audit.view": (("auditor", "admin"), "Audit log page: console_action rows (read-only)"),
+    "integrations.view": (_ALL, "Integrations status page (read-only)"),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -192,6 +207,25 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/onboard/start"): "onboard.start",
     ("POST", "/console/inbox/{notice_id}/read"): "inbox.read",
     ("POST", "/console/alerts/{alert_id}/ack"): "alert.ack",
+    # --- WP-UX3 ---
+    ("GET", "/console/decisions"): "decisions.view",
+    ("GET", "/console/decisions/rows"): "decisions.view",
+    ("GET", "/console/decisions/{event_id}/drawer"): "decisions.view",
+    ("GET", "/console/traces"): "traces.view",
+    ("GET", "/console/traces/rows"): "traces.view",
+    ("GET", "/console/traces/{trace_id}"): "traces.view",
+    ("GET", "/console/traces/{trace_id}/span/{span_id}"): "traces.view",
+    ("GET", "/console/playground"): "playground.run",
+    ("POST", "/console/playground/run"): "playground.run",
+    ("GET", "/console/policies"): "policies.view",
+    ("GET", "/console/policies/rows"): "policies.view",
+    ("GET", "/console/policies/{rule_id}/drawer"): "policies.view",
+    ("GET", "/console/credentials"): "credentials.view",
+    ("GET", "/console/users"): "users.view",
+    ("GET", "/console/audit"): "audit.view",
+    ("GET", "/console/audit/rows"): "audit.view",
+    ("GET", "/console/audit/{action_id}/drawer"): "audit.view",
+    ("GET", "/console/integrations"): "integrations.view",
 }
 
 
