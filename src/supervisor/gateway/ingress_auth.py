@@ -369,6 +369,10 @@ class IngressGuard:
         except IngressRejected as exc:
             self.record_reject(request, exc.reason, body_hash, claimed)
             raise
+        except Exception as exc:  # noqa: BLE001 - a store or verifier bug: 401, never 500
+            log.error("ingress verifier failed: %s", type(exc).__name__)
+            self.record_reject(request, "auth_unavailable", body_hash, claimed)
+            raise IngressRejected("auth_unavailable") from exc
         request.state.ingress = ident
         self._count("ingress_accepted")
         return ident

@@ -128,9 +128,16 @@ class FileKeyStore:
                 raise KeyStoreError(f"cannot read key file: {type(exc).__name__}") from exc
             out: dict[str, list[AgentKey]] = {}
             agents = doc.get("agents") if isinstance(doc, dict) else None
+            if agents is not None and not isinstance(agents, dict):
+                raise KeyStoreError("key file: 'agents' must be a mapping")
             for agent_id, entry in (agents or {}).items():
                 keys = []
-                for k in (entry or {}).get("keys") or []:
+                if entry is not None and not isinstance(entry, dict):
+                    raise KeyStoreError("key file: each agent must be a mapping with 'keys'")
+                raw_keys = entry.get("keys") if entry else None
+                if raw_keys is not None and not isinstance(raw_keys, list):
+                    raise KeyStoreError("key file: 'keys' must be a list")
+                for k in raw_keys or []:
                     if not isinstance(k, dict):
                         continue
                     keys.append(

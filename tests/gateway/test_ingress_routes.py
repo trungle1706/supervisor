@@ -7,6 +7,7 @@ row that holds a body hash and no body text, and is counted in /gate/metrics.
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -219,3 +220,31 @@ def test_misconfigured_verifier_fails_closed(gateway: Gateway) -> None:
     finally:
         ingress_auth.set_guard(None)
         wiring.set_gateway(None)
+
+
+@pytest.mark.parametrize("doc", ["agents: [a, b]\n", "agents:\n  customer_service: [1]\n"])
+def test_malformed_key_file_is_401_not_500(
+    secured: TestClient, keys_file: Path, adapters: Adapters, doc: str
+) -> None:
+    # Review fix: a key file with the wrong shape raised AttributeError (HTTP 500).
+    keys_file.write_text(doc, encoding="utf-8")
+    os.chmod(keys_file, 0o600)
+    body = make_body()
+    r = secured.post("/gate/check", content=body, headers=signed("/gate/check", body))
+    assert r.status_code == 401
+    assert [row["detail"] for row in audit_rows(adapters)] == ["key_store_unavailable"]
+
+
+def test_unexpected_verifier_error_is_401_not_500(secured: TestClient) -> None:
+    class Exploding:
+        name = "boom"
+
+        def keys_for(self, agent_id: str, now: Any = None) -> list[Any]:
+            raise RuntimeError("bug")
+
+    guard = ingress_auth.get_guard()
+    assert guard.verifier is not None
+    guard.verifier.keys = Exploding()
+    body = make_body()
+    r = secured.post("/gate/check", content=body, headers=signed("/gate/check", body))
+    assert r.status_code == 401 and r.json() == {"error": "authentication failed"}
