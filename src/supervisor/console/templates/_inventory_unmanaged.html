@@ -1,0 +1,27 @@
+{# Unmanaged items: sortable, paged table (swap target #um-list of the Inventory page). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+<div class="tablewrap">
+<table class="queue" id="inv-unmanaged">
+  <caption class="sr">{{ t('inv_unmanaged') }}</caption>
+  <thead><tr>
+    {{ tb.th('kind', t('inv_kind'), um_sort_col, um_sort_dir, '/console/inventory', '/console/inventory/rows', um_base_qs, '#um-list') }}
+    {{ tb.th('display_name', t('inv_name'), um_sort_col, um_sort_dir, '/console/inventory', '/console/inventory/rows', um_base_qs, '#um-list') }}
+    <th scope="col">{{ t('inv_evidence') }}</th>
+    {{ tb.th('case_id', t('inv_case'), um_sort_col, um_sort_dir, '/console/inventory', '/console/inventory/rows', um_base_qs, '#um-list') }}
+  </tr></thead>
+  <tbody>
+  {% for u in um_page.items %}
+    <tr class="row">
+      <td>{{ u.kind }}</td>
+      <td class="mono">{{ u.display_name }}</td>
+      <td class="mono">{% for e in u.evidence[:2] %}{{ e.source }}: {{ e.ref }}{% if not loop.last %}; {% endif %}{% endfor %}</td>
+      <td>{% if u.case_id %}<a class="head mono" href="/console/cases/{{ u.case_id }}?lang={{ lang }}">{{ u.case_id }}</a>{% else %}-{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="empty">{{ t('inv_no_unmanaged') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(um_page, '/console/inventory', '/console/inventory/rows', um_list_qs, '#um-list') }}

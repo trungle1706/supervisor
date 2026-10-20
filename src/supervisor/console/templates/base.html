@@ -29,7 +29,7 @@
   <div id="flash" aria-live="polite"></div>
   {% block content %}{% endblock %}
 </main>
-<footer class="foot">Supervisor {{ version }} · {{ t('mode') }} {{ mode }} · {{ now|ict }} · <a href="/console/metrics?lang={{ lang }}">{{ t('metrics') }}</a></footer>
+<footer class="foot">Supervisor {{ version }} · {{ t('mode') }} {{ mode }} · {{ now|ict }} · <a href="/console/analytics?tab=metrics&amp;lang={{ lang }}">{{ t('metrics') }}</a></footer>
 {% if side_nav %}
 </div>
 </div>

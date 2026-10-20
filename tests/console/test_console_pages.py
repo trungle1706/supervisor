@@ -47,7 +47,7 @@ def test_case_page_shows_rules_excerpts_chain(console: Console) -> None:
 
 def test_agents_metrics_export_inbox_render(console: Console) -> None:
     a = console.get("/console/agents")
-    assert a.status_code == 200 and 'data-agent="payments"' in a.text
+    assert a.status_code == 200 and 'data-row="payments"' in a.text  # WP-UX2: table rows
     m = console.get("/console/metrics")
     assert m.status_code == 200 and "Chain status" in m.text
     e = console.get("/console/export")

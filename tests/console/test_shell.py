@@ -83,7 +83,6 @@ FLAGS = {
     "console_compliance_enabled": "/console/compliance",
     "console_integration_enabled": "/console/integration",
     "console_assurance_enabled": "/console/assurance",
-    "console_tools_enabled": "/console/tools",
     "inventory_enabled": "/console/inventory",
 }
 
@@ -213,10 +212,12 @@ def test_agents_list_filters_sorts_pages_and_drawer(console: Console) -> None:
     assert "hidden>" not in fallback.text.split('id="drawer"', 1)[1].split(">", 1)[0] + ">"
 
 
-def test_agent_action_still_works_and_refreshes_the_list(console: Console) -> None:
+def test_agent_action_still_works_and_refreshes_the_card(console: Console) -> None:
+    # WP-UX2: the controls are on the agent page; the answer is that agent's card, the header
+    # pills (out of band) and the flash message
     p = console.post("/console/agents/credit_prequal/pause", {"reason": "x"})
     assert p.status_code == 200
-    assert 'id="list" hx-swap-oob="innerHTML"' in p.text
+    assert 'id="agent-pills" hx-swap-oob="innerHTML"' in p.text
     assert 'data-state="PAUSED"' in p.text
 
 

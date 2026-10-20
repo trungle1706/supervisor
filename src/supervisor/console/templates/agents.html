@@ -16,11 +16,6 @@
 <div id="list">
 {% include "_agents_list.html" %}
 </div>
-
-<h2 class="sec" id="controls">{{ t('agent_controls') }}</h2>
 <p class="hint">{{ t('agent_controls_hint') }}</p>
-<div id="agents-table" class="grid" style="gap:12px">
-{% include "_agents_table.html" %}
-</div>
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_agent_drawer.html" %}{% endif %}{% endblock %}

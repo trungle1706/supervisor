@@ -2,7 +2,8 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_compliance') }}{% endblock %}
 {% block content %}
-<div class="pagehead"><h1>{{ t('cp_title') }} {{ ui.pill(t('cp_advisory'), 'info') }}</h1></div>
+{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_compliance'), None)]) }}
+{{ ui.pagehead(t('cp_title'), ui.pill(t('cp_advisory'), 'info')) }}
 {{ ui.purpose(t('cp_purpose'), t('cp_why')) }}
 {% include "_compliance_note.html" %}
 {% if not enabled %}

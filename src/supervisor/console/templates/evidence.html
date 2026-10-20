@@ -3,7 +3,8 @@
 {% block title %}{{ t('nav_evidence') }}{% endblock %}
 {% block content %}
 {% set c = chain %}
-<div class="pagehead"><h1>{{ t('nav_evidence') }}</h1></div>
+{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_evidence'), None)]) }}
+{{ ui.pagehead(t('nav_evidence')) }}
 <div class="purpose">
   <p><strong>{{ t('ev_purpose_lead') }}</strong> {{ t('ev_purpose_rest') }}</p>
   <p class="why">{{ t('ev_why') }}</p>

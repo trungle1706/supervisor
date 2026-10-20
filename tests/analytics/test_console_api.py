@@ -53,7 +53,8 @@ def test_tools_page_shows_table_and_suggestion(on: Console) -> None:
     assert r.status_code == 200, r.text
     assert 'data-agent="payments"' in r.text and 'data-tool="add_payee"' in r.text
     assert 'data-status="unused"' in r.text and 'data-status="undeclared"' in r.text
-    assert "/console/tools?lang=" in r.text  # nav entry
+    assert "/console/analytics?lang=" in r.text  # nav entry (WP-UX2: Tools is a tab)
+    assert "/console/analytics?tab=tools" in r.text
     assert 'data-suggestion="payments"' in r.text and "Suggestion only" in r.text
     # a viewer reads but cannot download
     assert "/diff?days=" not in r.text and "Only the agent owner" in r.text

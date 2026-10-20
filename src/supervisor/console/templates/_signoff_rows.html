@@ -1,0 +1,40 @@
+{# Sign-off list table and pager: swap target #list of the Sign-off page (WP-UX2).
+   Variables: page (items = case rows + approvals + missing), sort_col, sort_dir, base_qs, list_qs. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+<div class="tablewrap">
+<table class="queue signoff-tbl">
+  <caption class="sr">{{ t('signoff') }}</caption>
+  <thead><tr>
+    {{ tb.th('severity', t('severity'), sort_col, sort_dir, '/console/signoff', '/console/signoff/rows', base_qs) }}
+    {{ tb.th('agent_id', t('agent'), sort_col, sort_dir, '/console/signoff', '/console/signoff/rows', base_qs) }}
+    <th scope="col">{{ t('what_happened') }}</th>
+    {{ tb.th('missing', t('so_signatures'), sort_col, sort_dir, '/console/signoff', '/console/signoff/rows', base_qs) }}
+    {{ tb.th('clock', t('sbv_clock'), sort_col, sort_dir, '/console/signoff', '/console/signoff/rows', base_qs) }}
+    <th scope="col">{{ t('status') }}</th>
+    <th scope="col"><span class="sr">{{ t('details') }}</span></th>
+  </tr></thead>
+  <tbody>
+  {% for c in page.items %}
+    {% set h = c.head %}
+    <tr class="row" data-case="{{ c.case_id }}" data-missing="{{ c.missing }}">
+      <td>{{ ui.sev(c.severity) }}</td>
+      <td>{{ c.agent_id }}</td>
+      <td>
+        <a class="head" href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary[:160] }}{% endif %}</a>
+        <div class="idline">{% if h.rule_id %}{{ h.rule_id }} · {% endif %}{{ c.case_id }}</div>
+      </td>
+      <td><b>{{ t('so_sig_n', n=2 - c.missing) }}</b>
+        {% for who, role in c.approvals.items() %}<div class="idline">{{ who }} ({{ t('role_' ~ role) }})</div>{% else %}<div class="idline">{{ t('no_signoffs') }}</div>{% endfor %}
+      </td>
+      <td>{{ ui.clock(c.clock) }}</td>
+      <td><span class="pill neutral" data-status="{{ c.status }}">{{ t(c.status) }}</span></td>
+      <td><a class="chipbtn" href="/console/cases/{{ c.case_id }}/signoff?lang={{ lang }}" hx-get="/console/signoff/{{ c.case_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('signoff') }} {{ c.case_id }}">{{ t('signoff') }}</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7">{{ ui.empty(t('so_none'), t('so_none_line'), '/console/cases?lang=' ~ lang, t('cases')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/signoff', '/console/signoff/rows', list_qs) }}

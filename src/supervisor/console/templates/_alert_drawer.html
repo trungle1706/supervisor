@@ -1,0 +1,31 @@
+{# Row drawer of the Alerts page. Variable: drawer (alerts_list.drawer_view). Read only; the
+   acknowledge button posts to the same audited route as the list. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set al = drawer.al %}
+{% set pills %}{{ ui.sev(al.severity) }} {{ ui.pill(al.status, 'warn' if al.status == 'open' else 'ok') }}{% endset %}
+{% call dr.drawer(al.rule_id, pills, '', drawer.json_text) %}
+  <p style="margin:0 0 10px"><strong>{{ al.title }}</strong></p>
+  {{ ui.kv([
+    (t('agent'), drawer.agent),
+    (t('time'), al.ts|day),
+    (t('alert_window'), t('alert_window_val', n=al.window_count, max=al.threshold, s=al.window_s)),
+    (t('alert_repeats'), al.suppressed_count),
+    (t('alert_first'), al.first_ts|day),
+    (t('alert_last'), al.last_ts|day),
+    (t('alert_chain'), (al.chain_lane ~ ':' ~ al.chain_seq) if al.chain_lane else None, True),
+    (t('alert_entry_hash'), al.entry_hash, True),
+    (t('alert_rule_hash'), al.rule_hash, True),
+    (t('alert_routes'), (al.route_status or {}).items()|map('join', '=')|join(', ')),
+    (t('alert_acked_by'), al.acknowledged_by),
+  ]) }}
+  <p class="btnrow">
+    {% if al.case_id %}<a class="btn" href="/console/cases/{{ al.case_id }}?lang={{ lang }}">{{ t('case') }} {{ al.case_id }}</a>{% endif %}
+    {% if al.status == 'open' %}
+    <form hx-post="/console/alerts/{{ al.alert_id }}/ack?lang={{ lang }}" hx-target="#list" style="display:inline">
+      <input type="hidden" name="row_version" value="{{ al.row_version }}">
+      <button class="btn primary">{{ t('alert_ack_btn') }}</button>
+    </form>
+    {% endif %}
+  </p>
+{% endcall %}

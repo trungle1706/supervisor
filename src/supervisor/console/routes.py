@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import functools
+import json
 import logging
 import re
 from collections.abc import Callable, Mapping
@@ -39,11 +40,16 @@ from supervisor.adapters.auth.authz import needs
 from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
 from supervisor.cases.service import RESOLUTIONS, SEVERITIES, CaseError, PermissionDenied
 from supervisor.console import (
+    agent_detail,  # --- WP-UX2 ---
     agents_list,
+    alerts_list,  # --- WP-UX2 ---
+    analytics,  # --- WP-UX2 ---
     assurance_views,
     auditpack,
+    cases_list,  # --- WP-UX2 ---
     compliance_view,
     health,
+    inbox_list,  # --- WP-UX2 ---
     integration_reports,
     inventory_views,
     nav,
@@ -55,6 +61,7 @@ from supervisor.console import (
 )
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
+from supervisor.console.listing import ListingError
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
@@ -372,6 +379,11 @@ def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
         "sources": SOURCE_KINDS,
         "agent_ids": agents,
         "closed_n": len(ctx.cases.list_cases(statuses=["closed"])),
+        # --- WP-UX2 --- filter bar options, sort and pages (cases_list)
+        "severity_opts": [(s, s) for s in reversed(SEVERITIES)],
+        "agent_opts": [(a, a) for a in agents],
+        "source_opts": [(s, f"src_{s}") for s in SOURCE_KINDS],
+        **cases_list.list_view(items, filters, request.query_params),
     }
 
 
@@ -395,7 +407,32 @@ async def overview(
 @router.get("/cases", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def queue(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     data = await _call(_queue_data, ctx, request)
+    opened = request.query_params.get("drawer")
+    if opened:  # --- WP-UX2 --- no-JS fallback of the row drawer: same content, full page
+        data["drawer"] = await _call(_case_drawer_data, ctx, opened)
+        data["drawer_open"] = True
     return render(request, ctx, me, "queue.html", section="cases", **data)
+
+
+def _case_drawer_data(ctx: ConsoleContext, case_id: str) -> dict[str, Any]:  # --- WP-UX2 ---
+    _check_id(case_id, "case id")
+    row = ctx.cases.get(case_id)
+    item = readmodels.case_rows(ctx, [row], ctx.clock.now())[0]
+    known = ctx.state.get("agent", {"agent_id": row["agent_id"]}) is not None
+    return cases_list.drawer_view(item, known)
+
+
+@router.get(
+    "/cases/{case_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("console.view"))],
+)
+async def case_drawer(
+    case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Row drawer of the Cases list (WP-UX2). A view: nothing is written."""
+    data = await _call(_case_drawer_data, ctx, case_id)
+    return render(request, ctx, me, "_case_drawer.html", drawer=data)
 
 
 @router.get(
@@ -789,15 +826,16 @@ async def agent_action(
         msg = f"{agent_id}: {action} -> {result.get('state')}"
     if warn:
         msg += f" (WARNING: the console evidence record failed: {warn}; see the server log)"
-    data = await _call(_agents_page_data, ctx, me, {})
-    resp = render(request, ctx, me, "_agents_table.html", **data)
-    # the list above the cards shows the new state too (out-of-band swap, default filters)
-    oob = render(request, ctx, me, "_agents_list.html", **data).body
+    # --- WP-UX2 --- the controls live on the agent page: answer with this agent's card (the
+    # swap target #agents-table) and refresh the header pills out of band.
+    card = await _call(agent_detail.card_of, ctx, me, agent_id)
+    resp = render(request, ctx, me, "_agents_table.html", agents=[card])
+    pills = render(request, ctx, me, "_agent_pills.html", a=card).body
     resp.body = (
         resp.body
-        + b'<div id="list" hx-swap-oob="innerHTML">'
-        + oob
-        + b"</div>"
+        + b'<span id="agent-pills" hx-swap-oob="innerHTML">'
+        + pills
+        + b"</span>"
         + message_html(msg, ok=True, oob=True).encode()
     )
     resp.headers["content-length"] = str(len(resp.body))
@@ -807,56 +845,34 @@ async def agent_action(
 # ---------------------------------------------------------------------------- metrics
 
 
-def _metrics_data(ctx: ConsoleContext) -> dict[str, Any]:
-    rows = ctx.state.query("oversight_metric")
-    rows.sort(key=lambda r: (r["agent_id"], r["metric_date"]))
-    cols = views.metric_columns(rows)
-    by_agent: dict[str, list[dict[str, Any]]] = {}
-    for r in rows:
-        by_agent.setdefault(r["agent_id"], []).append(r)
-    summary = []
-    for agent_id, series in sorted(by_agent.items()):
-        latest = series[-1]
-        summary.append(
-            {
-                "agent_id": agent_id,
-                "metric_date": latest["metric_date"],
-                "latest": latest,
-                "sparks": {
-                    c: views.sparkline([views.to_int(r.get(c)) for r in series]) for c in cols
-                },
-                "points": len(series),
-            }
-        )
-    heads = ctx.runtime.chain.heads()
-    gate = ctx.gateway.metrics.snapshot()
-    return {
-        **_alerts_data(ctx),
-        "metric_cols": cols,
-        "monitor_rows": views.monitor_status_rows(rows),
-        "monitor_order": views.MONITOR_ORDER,
-        "summary": summary,
-        "rows": rows[-200:],
-        "heads": {k: {"seq": v.seq, "entry_hash": v.entry_hash} for k, v in sorted(heads.items())},
-        "entries": sum(v.seq + 1 for v in heads.values()),
-        "verify": ctx.last_verify.get("all"),
-        "gate": gate,
-    }
+# --- WP-UX2 --- Metrics moved into the Analytics page (tab "metrics"); the old URL redirects.
 
 
-def _alerts_data(ctx: ConsoleContext) -> dict[str, Any]:
-    """Alerts panel (WP21): counts and the open / acknowledged alerts, newest first."""
-    counts = ctx.alerts.counts()
-    shown = [a for a in ctx.alerts.list(limit=50) if a["status"] in ("open", "acknowledged")]
-    return {"alert_counts": counts, "alert_rows": shown}
+_MOVED_KEYS = {"lang", "days", "agent", "sort", "dir"}  # what the Analytics page reads
+_MOVED_RENAME = {"agent_id": "agent"}  # old /console/tools name
 
 
-@router.get("/metrics", response_class=HTMLResponse, dependencies=[Depends(needs("metrics.view"))])
-async def metrics(
-    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
-) -> Response:
-    data = await _call(_metrics_data, ctx)
-    return render(request, ctx, me, "metrics.html", section="metrics", **data)
+def _moved(request: Request, target: str, **query: str) -> RedirectResponse:
+    """303 to the fixed local path ``target`` with ``query`` (it always wins, so a caller
+    cannot pick another tab) and the known keys of the caller's query string (``lang``,
+    range, agent, sort), so a bookmark keeps its meaning. Unknown keys are dropped; values
+    are URL-encoded (no CR / LF reaches the header) and checked by the target page, so a bad
+    value still answers 400 there."""
+    from urllib.parse import urlencode
+
+    kept: dict[str, str] = {}
+    for key, value in request.query_params.items():
+        key = _MOVED_RENAME.get(key, key)
+        if key in _MOVED_KEYS and key not in kept:
+            kept[key] = value[:256]
+    return RedirectResponse(f"{target}?{urlencode({**kept, **query})}", status_code=303)
+
+
+@router.get("/metrics", dependencies=[Depends(needs("metrics.view"))])
+async def metrics(request: Request) -> RedirectResponse:
+    """Old Metrics URL: 303 to Analytics, tab Oversight metrics (the Alerts section is now
+    ``/console/alerts``; the tile ``#alerts`` on the new tab keeps old ``#alerts`` bookmarks)."""
+    return _moved(request, "/console/analytics", tab="metrics")
 
 
 @router.post(
@@ -1229,24 +1245,11 @@ def _tools_off(ctx: ConsoleContext) -> None:
         )
 
 
-@router.get("/tools", response_class=HTMLResponse, dependencies=[Depends(needs("tools.view"))])
-async def tools_page(
-    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
-) -> Response:
-    _tools_off(ctx)
-    q = request.query_params
-    data = await _call(
-        tools_views.page,
-        ctx,
-        agent_id=q.get("agent_id"),
-        days=q.get("days"),
-        sort=q.get("sort", "default"),
-        desc=q.get("dir") == "desc",
-    )
-    can_download = rbac.allowed(me.roles, "tools.download")
-    return render(
-        request, ctx, me, "tools.html", section="tools", can_download=can_download, **data
-    )
+@router.get("/tools", dependencies=[Depends(needs("tools.view"))])
+async def tools_page(request: Request) -> RedirectResponse:
+    """Old Tools URL (WP-UX2): 303 to Analytics, tab Tools. The query string is kept, the
+    old ``agent_id`` filter is read as ``agent``."""
+    return _moved(request, "/console/analytics", tab="tools")
 
 
 @router.get("/tools/{agent_id}/diff", dependencies=[Depends(needs("tools.download"))])
@@ -1288,7 +1291,27 @@ async def inventory_page(
             "python -m supervisor.jobs.inventory fills it"
         )
     data = await _call(inventory_views.page, ctx, agent)
+    data.update(inventory_views.unmanaged_view(data["unmanaged"], request.query_params, agent))
     return render(request, ctx, me, "inventory.html", section="inventory", **data)
+
+
+@router.get(
+    "/inventory/rows",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("inventory.view"))],
+)
+async def inventory_rows(
+    request: Request,
+    agent: str | None = None,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    """Unmanaged table and pager of the Inventory page (htmx partial, WP-UX2)."""
+    if not ctx.settings.inventory_enabled:
+        raise ConsoleInputError("The Inventory tab is off (INVENTORY_ENABLED=1 turns it on)")
+    data = await _call(inventory_views.page, ctx, agent)
+    data.update(inventory_views.unmanaged_view(data["unmanaged"], request.query_params, agent))
+    return render(request, ctx, me, "_inventory_unmanaged.html", **data)
 
 
 # ---------------------------------------------------------------------------- search, soon
@@ -1346,7 +1369,20 @@ async def health_page(
 @router.get("/inbox", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def inbox(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     notices = await _call(ctx.inbox.list)
-    return render(request, ctx, me, "inbox.html", section="inbox", notices=notices)
+    data = inbox_list.list_view(notices, request.query_params)  # --- WP-UX2 ---
+    return render(request, ctx, me, "inbox.html", section="inbox", **data)
+
+
+@router.get(
+    "/inbox/rows", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def inbox_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Table and pager of the Inbox page (htmx partial, WP-UX2)."""
+    notices = await _call(ctx.inbox.list)
+    data = inbox_list.list_view(notices, request.query_params)
+    return render(request, ctx, me, "_inbox_rows.html", **data)
 
 
 @router.post(
@@ -1364,7 +1400,8 @@ async def inbox_read(
         raise PermissionDenied("marking a notice read needs a signed-in person")
     await _call(ctx.inbox.mark_read, notice_id, me.user_id, _version(d))
     notices = await _call(ctx.inbox.list)
-    return render(request, ctx, me, "_inbox_rows.html", notices=notices)
+    data = _list_after_write(inbox_list.list_view, notices, query=dict(request.query_params))
+    return render(request, ctx, me, "_inbox_rows.html", **data)
 
 
 @router.post(
@@ -1381,8 +1418,26 @@ async def alert_ack(
     if me.kind != "user":
         raise PermissionDenied("acknowledging an alert needs a signed-in person")
     await _call(ctx.alerts.acknowledge, alert_id, me.user_id, _version(d))
-    data = await _call(_alerts_data, ctx)
-    return render(request, ctx, me, "_alerts_panel.html", **data)
+    # --- WP-UX2 --- the answer is the list on the Alerts page, with the filters in the URL
+    data = await _call(
+        _list_after_write, alerts_list.list_view, ctx, query=dict(request.query_params)
+    )
+    return render(request, ctx, me, "_alerts_list.html", **data)
+
+
+def _list_after_write(view: Callable[..., Any], *args: Any, query: dict[str, str]) -> Any:
+    """The list answer of a POST that already succeeded (WP-UX2 review): when the write
+    took the last row off the current page (ack under ``status=open``, mark read under
+    ``status=unread``), that page no longer exists; show the last page instead of a 400 that
+    would hide a successful action."""
+    try:
+        return view(*args, query)
+    except ListingError:
+        if not query.get("page"):
+            raise
+        first = view(*args, {k: v for k, v in query.items() if k != "page"})
+        last = first["page"].pages
+        return first if last == 1 else view(*args, {**query, "page": str(last)})
 
 
 # ---------------------------------------------------------------------------- dev user
@@ -1401,6 +1456,190 @@ async def dev_user(request: Request, ctx: ConsoleContext = _CTX) -> Response:
     resp.set_cookie(DEV_COOKIE, uid, samesite="strict", httponly=True)
     resp.headers["HX-Refresh"] = "true"
     return resp
+
+
+# --- WP-UX2 ---------------------------------------------------------------- page migrations
+# Agent detail, Alerts, Sign-off list and Analytics. All GETs are read only (no audit row);
+# the actions they offer are the existing audited POSTs (agent lifecycle, alert ack, sign-off).
+# Old URLs that moved answer 303 (see docs/console.md "Old URLs"): /console/metrics,
+# /console/tools. Tab and drawer partials answer 400 with a message for a bad value, never 500.
+
+
+def _agent_detail_data(
+    ctx: ConsoleContext, me: AuthPrincipal, agent_id: str, tab: str, query: Mapping[str, str]
+) -> dict[str, Any]:
+    _check_id(agent_id, "agent id")
+    tab = agent_detail.check_tab(ctx, me, tab)
+    card = agent_detail.card_of(ctx, me, agent_id)
+    data = agent_detail.tab_data(ctx, me, card, tab, query)
+    data.update(a=card, tab=tab)
+    return data
+
+
+@router.get(
+    "/agents/{agent_id}", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def agent_page(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Agent detail: header, eight tabs, one tab body. ``?tab=`` is the no-JS link."""
+    query = dict(request.query_params)
+    data = await _call(_agent_detail_data, ctx, me, agent_id, query.get("tab") or "overview", query)
+    data["tabs"] = agent_detail.visible_tabs(ctx, me)
+    data["tab_counts"] = agent_detail.counts(data["a"])
+    comp = _compliance_ctx(request, ctx)
+    comp.pop("section")
+    return render(request, ctx, me, "agent.html", section="agents", **comp, **data)
+
+
+@router.get(
+    "/agents/{agent_id}/tab/{tab}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("console.view"))],
+)
+async def agent_tab(
+    agent_id: str, tab: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """One tab body of the agent page (htmx partial)."""
+    data = await _call(_agent_detail_data, ctx, me, agent_id, tab, dict(request.query_params))
+    comp = _compliance_ctx(request, ctx)
+    comp.pop("section")
+    return render(request, ctx, me, f"_agent_tab_{data['tab']}.html", **comp, **data)
+
+
+# ---- Alerts (moved out of Metrics)
+
+
+@router.get("/alerts", response_class=HTMLResponse, dependencies=[Depends(needs("metrics.view"))])
+async def alerts_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    query = dict(request.query_params)
+    data = await _call(alerts_list.list_view, ctx, query)
+    opened = query.get("drawer")
+    if opened:  # no-JS fallback of the row drawer
+        data["drawer"] = await _call(alerts_list.drawer_view, ctx, opened)
+        data["drawer_open"] = True
+    return render(request, ctx, me, "alerts.html", section="alerts", **data)
+
+
+@router.get(
+    "/alerts/rows", response_class=HTMLResponse, dependencies=[Depends(needs("metrics.view"))]
+)
+async def alerts_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    data = await _call(alerts_list.list_view, ctx, dict(request.query_params))
+    return render(request, ctx, me, "_alerts_list.html", **data)
+
+
+@router.get(
+    "/alerts/{alert_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("metrics.view"))],
+)
+async def alert_drawer(
+    alert_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    data = await _call(alerts_list.drawer_view, ctx, alert_id)
+    return render(request, ctx, me, "_alert_drawer.html", drawer=data)
+
+
+# ---- Sign-off list (cases waiting for a signature)
+
+
+def _signoff_data(ctx: ConsoleContext, query: Mapping[str, str]) -> dict[str, Any]:
+    waiting = ctx.cases.waiting_approvals()
+    rows = readmodels.case_rows(ctx, [w["case"] for w in waiting], ctx.clock.now())
+    items = [
+        {**r, "approvals": w["approvals"], "missing": w["missing"]}
+        for r, w in zip(rows, waiting, strict=True)
+    ]
+    return cases_list.list_view(items, {}, query, columns=cases_list.SIGNOFF_COLUMNS)
+
+
+@router.get("/signoff", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
+async def signoff_list(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    data = await _call(_signoff_data, ctx, request.query_params)
+    return render(request, ctx, me, "signoff_list.html", section="signoff", **data)
+
+
+@router.get(
+    "/signoff/rows", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def signoff_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    data = await _call(_signoff_data, ctx, request.query_params)
+    return render(request, ctx, me, "_signoff_rows.html", **data)
+
+
+@router.get(
+    "/signoff/{case_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("console.view"))],
+)
+async def signoff_drawer(
+    case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """The sign-off panel of one case inside the row drawer (the POST is the audited
+    ``/cases/{id}/signoff``)."""
+    data = await _call(_case_data, ctx, case_id, me)
+    data["json_text"] = json.dumps(
+        {
+            "case_id": case_id,
+            "severity": data["case"]["severity"],
+            "status": data["case"]["status"],
+            "approvals": sorted(data["approvals"]),
+        },
+        indent=2,
+    )
+    return render(request, ctx, me, "_signoff_drawer.html", **data)
+
+
+# ---- Analytics (Gate, Tools, Oversight metrics, Latency under one toolbar)
+
+
+def _analytics_data(
+    ctx: ConsoleContext, me: AuthPrincipal, tab: str, query: Mapping[str, str]
+) -> dict[str, Any]:
+    analytics.check_tab(ctx, tab)
+    if tab == "tools" and not agent_detail.can(me, "tools.view"):
+        raise PermissionDenied("your role may not open the Tools tab")
+    toolbar = analytics.parse_toolbar(ctx, query)
+    data = analytics.tab_data(ctx, agent_detail.can(me, "tools.download"), tab, toolbar, query)
+    data.update(tab=tab, toolbar=toolbar, **analytics.toolbar_options(ctx, toolbar["days"]))
+    data["window"] = analytics.effective_window(ctx, tab, toolbar["days"], data)
+    return data
+
+
+@router.get(
+    "/analytics", response_class=HTMLResponse, dependencies=[Depends(needs("metrics.view"))]
+)
+async def analytics_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    query = dict(request.query_params)
+    data = await _call(_analytics_data, ctx, me, query.get("tab") or "gate", query)
+    data["tabs"] = analytics.visible_tabs(ctx)
+    return render(request, ctx, me, "analytics.html", section="analytics", **data)
+
+
+@router.get(
+    "/analytics/tab/{tab}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("metrics.view"))],
+)
+async def analytics_tab(
+    tab: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    data = await _call(_analytics_data, ctx, me, tab, dict(request.query_params))
+    return render(request, ctx, me, f"_analytics_tab_{tab}.html", **data)
+
+
+# --- end WP-UX2 ---
 
 
 @router.get("/home")

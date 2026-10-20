@@ -1,0 +1,30 @@
+{# Traces tab: the newest traces of this agent. Each row links to the trace viewer when
+   WP-UX3 has built it (traces_page), else to the transcript of the case that holds the
+   trace; a trace with no case has no link. Variables: a, traces, traces_page. #}
+{% import "_ui.html" as ui with context %}
+{% if traces %}
+<div class="tablewrap">
+<table class="queue" id="agent-traces">
+  <caption class="sr">{{ t('atab_traces') }}</caption>
+  <thead><tr>
+    <th scope="col">{{ t('time') }}</th><th scope="col">{{ t('trace') }}</th><th scope="col">{{ t('tools') }}</th>
+    <th scope="col" class="n">{{ t('trace_events') }}</th><th scope="col">{{ t('outcome') }}</th><th scope="col">{{ t('case') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in traces %}
+    <tr class="row" data-trace="{{ r.trace_id }}">
+      <td class="mono">{{ r.ts|day }}</td>
+      <td class="mono">{% if traces_page %}<a class="head" href="/console/traces/{{ r.trace_id }}?lang={{ lang }}">{{ r.trace_id }}</a>{% elif r.case_id %}<a class="head" href="/console/cases/{{ r.case_id }}?tab=transcript&amp;lang={{ lang }}">{{ r.trace_id }}</a>{% else %}{{ r.trace_id }}{% endif %}</td>
+      <td class="mono">{{ r.tools|join(', ') or '-' }}</td>
+      <td class="n">{{ r.events }}</td>
+      <td>{% if r.stop %}{{ ui.action_pill(r.stop) }}{% elif r.gate %}{{ ui.action_pill('allow') }}{% else %}<span class="muted">-</span>{% endif %}</td>
+      <td>{% if r.case_id %}<a href="/console/cases/{{ r.case_id }}?lang={{ lang }}">{{ r.case_id }}</a>{% else %}-{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint">{{ t('traces_last_n', n=traces|length) }}</p>
+{% else %}
+{{ ui.empty(t('no_traces'), t('no_traces_line')) }}
+{% endif %}

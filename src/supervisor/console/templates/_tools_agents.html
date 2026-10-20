@@ -1,17 +1,18 @@
-{% extends "base.html" %}
+{# Tool usage per agent (WP22) and the least-privilege suggestion. Shared by the Analytics
+   Tools tab and the Tools tab of the agent page. Variables: agents, days, window_from,
+   window_to, sort, desc, can_download, tools_base (URL that already holds a "?"), tools_hx
+   (partial URL, same rule), tools_all_href (agent link target or None). Sort links are plain
+   GETs; with htmx they swap #tab-body. #}
 {% import "_ui.html" as ui with context %}
-{% block title %}{{ t('nav_tools') }}{% endblock %}
 {% macro th(key, label) -%}
-<th scope="col"><a href="/console/tools?sort={{ key }}&amp;dir={{ 'asc' if (sort == key and desc) else 'desc' }}&amp;days={{ days }}{% if agent_id %}&amp;agent_id={{ agent_id }}{% endif %}&amp;lang={{ lang }}">{{ label }}{% if sort == key %} {{ 'v' if desc else '^' }}{% endif %}</a></th>
+{% set q = 'sort=' ~ key ~ '&dir=' ~ ('asc' if (sort == key and desc) else 'desc') ~ '&days=' ~ days ~ '&lang=' ~ lang %}
+<th scope="col"{% if sort == key %} aria-sort="{{ 'descending' if desc else 'ascending' }}"{% endif %}><a class="sortlink" href="{{ tools_base }}&amp;{{ q }}" hx-get="{{ tools_hx }}&amp;{{ q }}" hx-target="#tab-body" hx-push-url="false">{{ label }}{% if sort == key %} {{ 'v' if desc else '^' }}{% endif %}</a></th>
 {%- endmacro %}
-{% block content %}
-<div class="pagehead"><h1>{{ t('nav_tools') }}</h1></div>
-{{ ui.purpose(t('tl_purpose'), t('tl_why')) }}
 <div class="hint">{{ t('tl_window') }}: {{ window_from }} .. {{ window_to }} ({{ days }} d, UTC)</div>
 <div id="tools-body" data-tools="1">
 {% for a in agents %}
 <section class="tools-agent" data-agent="{{ a.agent_id }}">
-  <h2><a class="mono" href="/console/tools?agent_id={{ a.agent_id }}&amp;lang={{ lang }}">{{ a.agent_id }}</a>
+  <h2>{% if tools_all_href %}<a class="mono" href="{{ tools_all_href }}{{ a.agent_id }}&amp;lang={{ lang }}">{{ a.agent_id }}</a>{% else %}<span class="mono">{{ a.agent_id }}</span>{% endif %}
     {{ ui.pill(t('tl_conf_' ~ a.confidence), 'ok' if a.confidence == 'ok' else 'warn') }}
     <span class="muted">{{ t('tl_declared_from') }}: {{ a.declared_source }}{% if a.rule_ids %} ({{ a.rule_ids|join(', ') }}){% endif %}</span></h2>
   <div class="tablewrap">
@@ -22,12 +23,13 @@
       {{ th('errors', t('tl_err')) }}<th scope="col">{{ t('tl_p50') }}</th>{{ th('p95', t('tl_p95')) }}<th scope="col">{{ t('tl_users') }}</th>{{ th('last', t('tl_last')) }}
     </tr></thead>
     <tbody>
+    {% set maxcalls = (a.rows|map(attribute='calls')|max) if a.rows else 0 %}
     {% for r in a.rows %}
       <tr class="row" data-tool="{{ r.tool }}" data-status="{{ r.status }}">
         <td class="mono">{{ r.tool }}</td>
         <td>{{ r.risk_class }}</td>
         <td>{{ ui.pill(t('tl_st_' ~ r.status), r.pill) }}{% if r.exception %} <span class="idline" title="{{ r.exception.reason }}">{{ r.exception.approver }} / {{ r.exception.expires }}</span>{% endif %}</td>
-        <td class="num">{{ r.calls }}</td><td class="num">{{ r.allows }}</td><td class="num">{{ r.blocks }}</td><td class="num">{{ r.pauses }}</td>
+        <td class="num">{{ ui.barcell(r.calls, maxcalls) }}</td><td class="num">{{ r.allows }}</td><td class="num">{{ r.blocks }}</td><td class="num">{{ r.pauses }}</td>
         <td class="num">{{ r.errors }}</td>
         <td class="num">{{ r.p50_us if r.p50_us is not none else '-' }}</td><td class="num">{{ r.p95_us if r.p95_us is not none else '-' }}</td>
         <td class="num">{{ r.users_max }}</td><td class="mono">{{ r.last_seen_text }}</td>
@@ -57,4 +59,3 @@
 <div class="empty">{{ t('tl_nodata') }} <code>python -m supervisor.analytics.tools rollup --backfill</code></div>
 {% endfor %}
 </div>
-{% endblock %}

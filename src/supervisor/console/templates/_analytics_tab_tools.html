@@ -1,0 +1,13 @@
+{# Tools tab (CONSOLE_TOOLS_ENABLED): totals, then one block per agent (the WP22 table and the
+   least-privilege suggestion). Variables: the tools_views.page dict, tools_total, can_download. #}
+{% import "_ui.html" as ui with context %}
+<div class="grid g4" id="tools-totals" style="margin:0 0 10px">
+  {{ ui.stat(t('tl_calls'), tools_total.calls, '', 'calls') }}
+  {{ ui.stat(t('tl_block'), tools_total.blocks, '', 'blocks') }}
+  {{ ui.stat(t('tl_pause'), tools_total.pauses, '', 'pauses') }}
+  {{ ui.stat(t('tl_p95'), tools_total.p95_us if tools_total.p95_us is not none else '-', '', 'p95') }}
+</div>
+{% set tools_base = '/console/analytics?tab=tools' ~ ('&agent=' ~ agent_id if agent_id else '') %}
+{% set tools_hx = '/console/analytics/tab/tools?tab=tools' ~ ('&agent=' ~ agent_id if agent_id else '') %}
+{% set tools_all_href = '/console/analytics?tab=tools&agent=' %}
+{% include "_tools_agents.html" %}

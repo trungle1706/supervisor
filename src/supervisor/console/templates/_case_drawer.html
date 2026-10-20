@@ -1,0 +1,21 @@
+{# Row drawer of the Cases list (WP-UX2). Variable: drawer (cases_list.drawer_view). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set c = drawer.c %}
+{% set h = c.head %}
+{% set pills %}{{ ui.sev(c.severity) }} <span class="pill neutral">{{ t(c.status) }}</span>{% for s in c.sources %} <span class="pill src-{{ s }} {{ 'info' if s == 'gate' else ('teal' if s == 'judge' else 'neutral') }}">{{ t('src_' ~ s) }}</span>{% endfor %}{% endset %}
+{% call dr.drawer(c.case_id, pills, '', drawer.json_text) %}
+  <p style="margin:0 0 10px"><strong>{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary[:160] }}{% endif %}</strong></p>
+  {{ ui.kv([
+    (t('agent'), c.agent_id),
+    (t('assignee'), c.assignee),
+    (t('rule_word'), h.rule_id),
+    (t('sbv_clock'), (ui.clocktext(c.clock) if c.clock and c.clock.text != '-' else None)),
+    (t('opened'), c.opened_at|day),
+    (t('regulation'), (c.regulation_refs|join('; ')) if c.regulation_refs else None),
+  ]) }}
+  <p class="btnrow">
+    <a class="btn primary" href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{{ t('open_case') }}</a>
+    {% if drawer.agent_known %}<a class="btn" href="/console/agents/{{ c.agent_id }}?tab=cases&amp;lang={{ lang }}">{{ t('agent') }} {{ c.agent_id }}</a>{% endif %}
+  </p>
+{% endcall %}

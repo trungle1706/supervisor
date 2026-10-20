@@ -2,43 +2,26 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('cases') }}{% endblock %}
 {% block content %}
-<div class="pagehead">
-  <h1>{{ t('cases') if filters.status != 'closed' else t('archive') }}</h1>
-  <div class="actions">
-    {% if me.has('reviewer', 'admin') %}
-    <button type="button" class="btn" hx-post="/console/intake/run?{{ query }}&amp;lang={{ lang }}" hx-target="#queue-rows" hx-swap="innerHTML">{{ t('refresh_cases') }}</button>
-    {% endif %}
-  </div>
-</div>
+{{ ui.crumbs([(t('nav_g_act'), None), (t('cases') if filters.status != 'closed' else t('archive'), None)]) }}
+{% call ui.pagehead(t('cases') if filters.status != 'closed' else t('archive')) %}
+  {% if me.has('reviewer', 'admin') %}
+  <button type="button" class="btn" hx-post="/console/intake/run?{{ query }}&amp;lang={{ lang }}" hx-target="#queue-rows" hx-swap="innerHTML">{{ t('refresh_cases') }}</button>
+  {% endif %}
+{% endcall %}
 {{ ui.purpose(t('cases_purpose'), t('cases_why')) }}
-<div class="filters">
-  <nav class="segm" aria-label="{{ t('status') }}">
-    <a href="/console/cases?lang={{ lang }}" class="{{ 'on' if filters.status == 'open' else '' }}">{{ t('open_cases') }}</a>
-    <a href="/console/cases?status=closed&amp;lang={{ lang }}" class="{{ 'on' if filters.status == 'closed' else '' }}">{{ t('archive') }} <span class="mono">{{ closed_n }}</span></a>
-    <a href="/console/cases?status=all&amp;lang={{ lang }}" class="{{ 'on' if filters.status == 'all' else '' }}">{{ t('all') }}</a>
-  </nav>
-  <form class="filters" style="margin:0" hx-get="/console/queue/rows" hx-target="#queue-rows" hx-trigger="change" hx-push-url="false">
-    <input type="hidden" name="status" value="{{ filters.status }}">
-    <input type="hidden" name="lang" value="{{ lang }}">
-    <label class="sr" for="f-sev">{{ t('severity') }}</label>
-    <select id="f-sev" name="severity">
-      <option value="">{{ t('severity') }}: {{ t('all') }}</option>
-      {% for s in severities|reverse %}<option value="{{ s }}" {{ 'selected' if filters.severity == s else '' }}>{{ t(s) }}</option>{% endfor %}
-    </select>
-    <label class="sr" for="f-agent">{{ t('agent') }}</label>
-    <select id="f-agent" name="agent">
-      <option value="">{{ t('agent') }}: {{ t('all') }}</option>
-      {% for a in agent_ids %}<option value="{{ a }}" {{ 'selected' if filters.agent == a else '' }}>{{ a }}</option>{% endfor %}
-    </select>
-    <label class="sr" for="f-src">{{ t('opened_by') }}</label>
-    <select id="f-src" name="source">
-      <option value="">{{ t('opened_by') }}: {{ t('all') }}</option>
-      {% for s in sources %}<option value="{{ s }}" {{ 'selected' if filters.source == s else '' }}>{{ t('src_' ~ s) }}</option>{% endfor %}
-    </select>
-  </form>
-</div>
-<div id="queue-rows" hx-get="/console/queue/rows?{{ query }}&amp;lang={{ lang }}" hx-trigger="every 30s" hx-swap="innerHTML">
+<nav class="segm" aria-label="{{ t('status') }}" style="margin-bottom:10px">
+  <a href="/console/cases?lang={{ lang }}" class="{{ 'on' if filters.status == 'open' else '' }}">{{ t('open_cases') }}</a>
+  <a href="/console/cases?status=closed&amp;lang={{ lang }}" class="{{ 'on' if filters.status == 'closed' else '' }}">{{ t('archive') }} <span class="mono">{{ closed_n }}</span></a>
+  <a href="/console/cases?status=all&amp;lang={{ lang }}" class="{{ 'on' if filters.status == 'all' else '' }}">{{ t('all') }}</a>
+</nav>
+{{ ui.filterbar('/console/cases', '/console/queue/rows', [
+  {'name': 'severity', 'label': t('severity'), 'kind': 'select', 'value': filters.severity, 'options': severity_opts},
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': filters.agent, 'options': agent_opts},
+  {'name': 'source', 'label': t('opened_by'), 'kind': 'select', 'value': filters.source, 'options': source_opts},
+], '/console/cases?status=' ~ filters.status ~ '&lang=' ~ lang, '#queue-rows', {'status': filters.status}) }}
+<div id="queue-rows" hx-get="/console/queue/rows?{{ list_qs }}&amp;page={{ page.page }}&amp;lang={{ lang }}" hx-trigger="every 30s" hx-swap="innerHTML">
 {% include "_queue_rows.html" %}
 </div>
 <div class="note">{{ t('cases_note') }}</div>
 {% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_case_drawer.html" %}{% endif %}{% endblock %}

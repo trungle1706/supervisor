@@ -67,9 +67,9 @@
 {# Pill tabs. href_pattern holds {tab}; hx_pattern is the partial URL (same {tab}). The
    active one gets aria-selected; arrow keys, Home and End move between tabs (console.js);
    `panel` is the id of the role=tabpanel element the tabs fill. #}
-{% macro tabs(keys, current, labels, href_pattern, hx_pattern, target='#drawer', counts=None, panel=None) %}
+{% macro tabs(keys, current, labels, href_pattern, hx_pattern, target='#drawer', counts=None, panel=None, select=None) %}
 <div class="tabs" role="tablist" aria-label="{{ t('tabs_label') }}">
-{% for k in keys %}<a role="tab" data-tab="{{ k }}"{% if panel %} aria-controls="{{ panel }}"{% endif %} class="{{ 'on' if k == current else '' }}" aria-selected="{{ 'true' if k == current else 'false' }}" tabindex="{{ '0' if k == current else '-1' }}" href="{{ href_pattern|replace('{tab}', k) }}" hx-get="{{ hx_pattern|replace('{tab}', k) }}" hx-target="{{ target }}" hx-push-url="false">{{ labels[k] }}{% if counts and counts.get(k) is not none %} <span class="k">{{ counts[k] }}</span>{% endif %}</a>
+{% for k in keys %}<a role="tab" data-tab="{{ k }}" class="{{ 'on' if k == current else '' }}"{% if panel %} id="{{ panel }}-tab-{{ k }}" aria-controls="{{ panel }}"{% endif %} aria-selected="{{ 'true' if k == current else 'false' }}" tabindex="{{ '0' if k == current else '-1' }}" href="{{ href_pattern|replace('{tab}', k) }}" hx-get="{{ hx_pattern|replace('{tab}', k) }}" hx-target="{{ target }}"{% if select %} hx-select="{{ select }}" hx-swap="outerHTML"{% endif %} hx-push-url="false">{{ labels[k] }}{% if counts and counts.get(k) is not none %} <span class="k">{{ counts[k] }}</span>{% endif %}</a>
 {% endfor %}
 </div>
 {% endmacro %}

@@ -158,6 +158,21 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/soon/{page}"): "console.view",  # WP-UX1 placeholder pages
     ("GET", "/console/agents/rows"): "console.view",
     ("GET", "/console/agents/{agent_id}/drawer"): "console.view",
+    # --- WP-UX2 ---
+    ("GET", "/console/agents/{agent_id}"): "console.view",
+    ("GET", "/console/agents/{agent_id}/tab/{tab}"): "console.view",
+    ("GET", "/console/cases/{case_id}/drawer"): "console.view",
+    ("GET", "/console/alerts"): "metrics.view",
+    ("GET", "/console/alerts/rows"): "metrics.view",
+    ("GET", "/console/alerts/{alert_id}/drawer"): "metrics.view",
+    ("GET", "/console/signoff"): "console.view",
+    ("GET", "/console/signoff/rows"): "console.view",
+    ("GET", "/console/signoff/{case_id}/drawer"): "console.view",
+    ("GET", "/console/analytics"): "metrics.view",
+    ("GET", "/console/analytics/tab/{tab}"): "metrics.view",
+    ("GET", "/console/inbox/rows"): "console.view",
+    ("GET", "/console/inventory/rows"): "inventory.view",
+    # --- end WP-UX2 ---
     ("GET", "/console/tools"): "tools.view",  # WP22
     ("GET", "/console/tools/{agent_id}/diff"): "tools.download",
     ("GET", "/v1/analytics/tools"): "tools.view",

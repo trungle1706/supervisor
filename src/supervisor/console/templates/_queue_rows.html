@@ -1,30 +1,6 @@
-{% import "_ui.html" as ui with context %}
-<div class="tablewrap">
-<table class="queue">
-  <thead>
-    <tr>
-      <th>{{ t('severity') }}</th><th>{{ t('agent') }}</th><th>{{ t('what_happened') }}</th>
-      <th>{{ t('opened_by') }}</th><th>{{ t('sbv_clock') }}</th><th>{{ t('status') }}</th><th>{{ t('assignee') }}</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for c in items %}
-    {% set h = c.head %}
-    <tr class="row" data-case="{{ c.case_id }}">
-      <td>{{ ui.sev(c.severity) }}</td>
-      <td>{{ c.agent_id }}</td>
-      <td>
-        <a class="head" href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary[:160] }}{% endif %}</a>
-        <div class="idline">{% if h.rule_id %}{{ h.rule_id }} · {% endif %}{% if h.joined %}{{ t('joined_n', n=h.joined) }} · {% endif %}{{ c.case_id }}</div>
-      </td>
-      <td>{% for s in c.sources %}<span class="pill src-{{ s }} {{ 'info' if s == 'gate' else ('teal' if s == 'judge' else 'neutral') }}">{{ t('src_' ~ s) }}</span> {% endfor %}</td>
-      <td>{% if c.status == 'closed' %}<span class="muted">{{ t('closed') }} {{ c.closed_at|day }}</span>{% else %}{{ ui.clock(c.clock) }}{% endif %}</td>
-      <td><span class="pill neutral" data-status="{{ c.status }}">{{ t(c.status) }}</span></td>
-      <td>{{ c.assignee or '—' }}</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="7" class="empty">{{ t('no_cases') }}</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
-</div>
+{# Cases table and pager: the swap target #queue-rows of the Cases page (WP-UX2). #}
+{% import "_c_table.html" as tb with context %}
+{% set items = page.items %}
+{% set sortable = True %}
+{% include "_cases_table.html" %}
+{{ tb.pager(page, '/console/cases', '/console/queue/rows', list_qs, '#queue-rows') }}

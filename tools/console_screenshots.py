@@ -93,6 +93,112 @@ def _first_case(data_dir: Path) -> str | None:
         a.close()
 
 
+def _seed_ux2(data_dir: Path, py: str, env: dict[str, str]) -> None:
+    """WP-UX2: rows for the new pages (alerts, tool rollup, inventory). Failures are [SKIP]."""
+    steps = [
+        [py, "-m", "supervisor.analytics.tools", "rollup", "--backfill"],
+        [
+            py,
+            "-m",
+            "supervisor.jobs.inventory",
+            "--fixture",
+            str(REPO / "tests" / "fixtures" / "inventory" / "workspace_7.json"),
+        ],
+    ]
+    flags = {"TOOL_ANALYTICS_ENABLED": "1", "INVENTORY_ENABLED": "1"}
+    for step in steps:
+        r = sandbox.run(step, cwd=REPO, timeout_s=300, env={**env, **flags})
+        say(("[OK] " if r.returncode == 0 else "[SKIP] ") + " ".join(step[2:4]))
+    from supervisor.adapters.factory import build_adapters
+    from supervisor.config import load_settings
+
+    a = build_adapters(load_settings(data_dir=data_dir, sql_backend="sqlite"))
+    try:
+        if not a.state.query("alert"):
+            now = a.clock.now()
+            for i, (sev, rule, agent) in enumerate(
+                [
+                    ("critical", "AL-BLOCK-BURST", "payments"),
+                    ("high", "AL-PAUSE-REPEAT", "credit_prequal"),
+                    ("medium", "AL-CHAIN-VERIFY-FAIL", None),
+                ]
+            ):
+                a.state.insert(
+                    "alert",
+                    {
+                        "alert_id": f"{i:032x}",
+                        "ts": now,
+                        "dedupe_key": f"{rule}:{i}",
+                        "rule_id": rule,
+                        "rule_hash": "h" * 64,
+                        "severity": sev,
+                        "status": "open",
+                        "title": f"Demo alert {rule}",
+                        "agent_id": agent,
+                        "group_value": agent,
+                        "window_s": 600,
+                        "window_count": 5,
+                        "threshold": 5,
+                        "first_ts": now,
+                        "last_ts": now,
+                        "suppressed_count": i,
+                        "case_id": None,
+                        "chain_lane": "root",
+                        "chain_seq": i,
+                        "entry_hash": "e" * 64,
+                        "refs": ["demo"],
+                        "routes": ["inbox"],
+                        "route_status": {"inbox": "sent"},
+                    },
+                )
+    finally:
+        a.close()
+
+
+def _post(base: str, path: str, data: dict[str, str], user: str) -> int:
+    from urllib.parse import urlencode
+
+    req = urllib.request.Request(  # noqa: S310 - localhost
+        base + path,
+        data=urlencode(data).encode(),
+        headers={"HX-Request": "true", "X-Dev-User": user},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310
+            return resp.status
+    except urllib.error.HTTPError as exc:
+        return exc.code
+
+
+def _row_version(data_dir: Path, case_id: str) -> int:
+    from supervisor.adapters.factory import build_adapters
+    from supervisor.config import load_settings
+
+    a = build_adapters(load_settings(data_dir=data_dir, sql_backend="sqlite"))
+    try:
+        return int(a.state.get("cases", {"case_id": case_id})["row_version"])
+    finally:
+        a.close()
+
+
+def _waiting_case(data_dir: Path) -> str | None:
+    """A high / critical open case (the sign-off list needs one that is triaged)."""
+    from supervisor.adapters.factory import build_adapters
+    from supervisor.config import load_settings
+
+    a = build_adapters(load_settings(data_dir=data_dir, sql_backend="sqlite"))
+    try:
+        rows = [
+            r
+            for r in a.state.query("cases")
+            if r["status"] == "open" and r["severity"] in ("high", "critical")
+        ]
+        return rows[0]["case_id"] if rows else None
+    finally:
+        a.close()
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python tools/console_screenshots.py")
     ap.add_argument("--data-dir", default=str(REPO / "data" / "local" / "demo"))
@@ -145,6 +251,8 @@ def main(argv: list[str] | None = None) -> int:
         say(f"[FAIL] no demo store at {data_dir}; run with --reseed")
         return 1
     case_id = _first_case(data_dir)
+    if args.reseed:
+        _seed_ux2(data_dir, py, env)
 
     out = Path(os.path.abspath(args.out))
     out.mkdir(parents=True, exist_ok=True)
@@ -158,6 +266,12 @@ def main(argv: list[str] | None = None) -> int:
             "CONSOLE_ONBOARD_ENABLED": "1",
             "CONSOLE_NAV": args.nav,
             "CONSOLE_NAV_PLACEHOLDERS": "1",  # WP-UX1: show the whole sidebar
+            # WP-UX2: every agent tab and the Tools tab of Analytics
+            "CONSOLE_TOOLS_ENABLED": "1",
+            "TOOL_ANALYTICS_ENABLED": "1",
+            "INVENTORY_ENABLED": "1",
+            "CONSOLE_ASSURANCE_ENABLED": "1",
+            "CONSOLE_COMPLIANCE_ENABLED": "1",
         },
     )
     try:
@@ -167,6 +281,22 @@ def main(argv: list[str] | None = None) -> int:
                 say("[FAIL] the console did not answer within 60 s")
                 return 1
             time.sleep(0.5)
+        waiting = _waiting_case(data_dir)
+        if waiting and args.reseed:
+            v = _row_version(data_dir, waiting)
+            _post(
+                base,
+                f"/console/cases/{waiting}/assign",
+                {"assignee": "reviewer.an", "row_version": str(v)},
+                "reviewer.an",
+            )
+            v = _row_version(data_dir, waiting)
+            _post(
+                base,
+                f"/console/cases/{waiting}/transition",
+                {"to": "triaged", "note": "demo", "row_version": str(v)},
+                "reviewer.an",
+            )
         screens = [
             ("overview", "/console/", None),
             ("agents", "/console/agents", None),
@@ -178,6 +308,27 @@ def main(argv: list[str] | None = None) -> int:
         if args.nav == "sidebar":  # WP-UX1: the row drawer open, and the collapsed sidebar
             screens.insert(2, ("agents-drawer", "/console/agents", "a.rowlink"))
             screens.insert(3, ("agents-collapsed", "/console/agents", "[data-side-collapse]"))
+        if args.nav == "sidebar":  # WP-UX2 pages
+            screens += [
+                ("agent-overview", "/console/agents/payments", None),
+                ("agent-policy", "/console/agents/payments?tab=policy", None),
+                ("agent-tools", "/console/agents/payments?tab=tools", None),
+                ("agent-inventory", "/console/agents/payments?tab=inventory", None),
+                ("agent-traces", "/console/agents/payments?tab=traces", None),
+                ("agent-cases", "/console/agents/payments?tab=cases", None),
+                ("agent-assurance", "/console/agents/payments?tab=assurance", None),
+                ("agent-compliance", "/console/agents/payments?tab=compliance", None),
+                ("alerts", "/console/alerts", None),
+                ("alerts-drawer", "/console/alerts", "a.chipbtn[hx-get*='/drawer']"),
+                ("signoff", "/console/signoff", None),
+                ("analytics-gate", "/console/analytics?tab=gate", None),
+                ("analytics-tools", "/console/analytics?tab=tools", None),
+                ("analytics-metrics", "/console/analytics?tab=metrics", None),
+                ("analytics-latency", "/console/analytics?tab=latency", None),
+                ("cases-drawer", "/console/cases", "a.chipbtn[hx-get*='/drawer']"),
+                ("inbox", "/console/inbox", None),
+                ("inventory", "/console/inventory", None),
+            ]
         if case_id:
             screens.insert(3, ("case", f"/console/cases/{case_id}", None))
             screens.insert(4, ("case-rules", f"/console/cases/{case_id}", "a[data-tab=rules]"))

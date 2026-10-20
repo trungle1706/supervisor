@@ -53,11 +53,11 @@ Sidebar groups and items (`console/nav.py` holds the list):
 | Group | Items |
 |---|---|
 | (top) | Overview |
-| Watch | Agents (count), Gate decisions, Traces, Alerts (open count; opens the Alerts section of Metrics) |
-| Act | Cases (count, red when a case is critical), Sign-off (cases waiting for a signature; opens the open-case list until WP-UX2 adds a list page), Inbox (unread) |
+| Watch | Agents (count), Gate decisions, Traces, Alerts (open count; opens `/console/alerts`) |
+| Act | Cases (count, red when a case is critical), Sign-off (cases waiting for a signature; opens `/console/signoff`), Inbox (unread) |
 | Prove | Evidence, Assurance (flag), Compliance (flag) |
 | Onboard | Onboard, Inventory (flag; unmanaged count), Integration (flag) |
-| Analytics | Tools (flag), Metrics |
+| Analytics | Analytics (Gate, Tools (flag), Oversight metrics, Latency tabs) |
 | Settings | Policies, Credentials, Users and roles, Audit log, Integrations, Health |
 
 * Items for pages that do not exist yet (Gate decisions, Traces, Policies, Credentials, Users
@@ -121,11 +121,12 @@ drawer, tab keys).
 | Toast | `ui.toast(message, kind)`; `#flash` | An ok message fades after 6 s by CSS only |
 | Span tree | `_c_spantree.html` (`st.spantree(tree)`), `readmodels.span_tree(events)` | One node per span, `<details>` per parent (no JS). Spans with a missing parent and spans in a parent loop (marked "loop cut") go under "Spans without a parent"; at most 500 spans. No page uses it yet (Traces viewer, WP-UX3) |
 
-Migrated in WP-UX1 as proof: **Overview** (stat tiles, empty state, "see all" link) and
-**Agents** (breadcrumb, page header, state tiles, filter bar, sortable paged table, row drawer
-with tabs Overview / Policy / Cases). Pause, resume and quarantine stay in the agent cards under
-the table ("Lifecycle and controls") until WP-UX2 adds the agent page; the action answers also
-refresh the table. The other pages render inside the new shell unchanged.
+Migrated in WP-UX1: **Overview** and **Agents**. Migrated in WP-UX2: **Cases** (filter bar,
+sortable paged table, row drawer), **Inbox** (filter bar, sort, pages), **Inventory** (sortable
+paged unmanaged table), **Evidence**, **Assurance**, **Compliance** and **Health** (breadcrumb
+and page header), the **Case** page (shared tabs macro, same five tabs), and the new pages
+**Agent**, **Alerts**, **Sign-off list** and **Analytics**. The lifecycle controls moved from the
+Agents list cards to the Overview tab of the agent page.
 
 Not done (WP-UX2 and WP-UX3): see `BACKLOG.md`.
 
@@ -136,9 +137,11 @@ Not done (WP-UX2 and WP-UX3): see `BACKLOG.md`.
 | Search | `/console/search?q=` | Agents, cases and exact trace ids that match (WP-UX1). Read-only | - |
 | Placeholders | `/console/soon/<page>` | "Coming in WP-UX3" for seven pages (WP-UX1, needs `CONSOLE_NAV_PLACEHOLDERS=1`) | - |
 | Overview | `/console/` | Greeting by the ICT hour with the live counts (agents under supervision, actions stopped today, cases needing a decision, nearest SBV clock); what Supervisor is; the three pillars; four numbers from the stores (gate decisions today and median latency; stops split blocked / paused; open cases with the critical count; evidence chain entries, signed root, anchor, last verify); latest gate decisions (the newest stops always included) linked to their cases; the demo-data line on a demo store. | - |
-| Agents | `/console/agents` | One card per agent, attention first: state pill with the rule or person that paused / quarantined it, owner, risk, Decision 33 class (registry, else the Onboard proposal), model and judge family (`mock` labelled), lifecycle stepper (Discover .. Operate; registered = Operate, SHADOW = Launch), coverage bar (capabilities on; else the daily metric; else gated / seen tool calls; planned capabilities named, never counted), open cases, tools (count, money-moving, fail mode). | The one relevant action with its rule under it: Pause now (one click); Approve resume (shows the pending approval, who you are, disabled after your own approval); Quarantine / Release (admin, reason required). These call the gateway state machine in-process. |
-| Cases | `/console/cases` | Severity, agent, a plain headline built from the stopping rule and the stopped tool (rule id and case id under it), opened-by pill (gate / judge / monitor / person), SBV 24 h clock as a bar and text, status, assignee. Filters: severity, agent, opened by; Open / Archive / All. Refreshes every 30 s. | Refresh cases: the explicit case intake (a GET never writes). |
+| Agents | `/console/agents` | Sortable, paged table with state tiles and a filter bar (search, state, risk); a row opens a drawer (Overview, Policy, Cases; `?drawer=<id>&dtab=` without JS) that links to the agent page. | Open the agent page. |
+| Agent | `/console/agents/<id>` (WP-UX2) | Header with state pill (rule or person), risk, Decision 33, mock label. Eight tabs, each an htmx partial at `/console/agents/<id>/tab/<name>` (`?tab=<name>` is the no-JS full page with the same body): **Overview** (the card: owner, risk, lifecycle stepper, coverage, the one action; gate last 24 h; evidence lane; open cases), **Policy** (rules in scope with version, action, severity, fail mode, regulation, approvers; policy hash; approved-tools allow-list with tool classes), **Tools** (WP22 table and least-privilege panel of this agent; `CONSOLE_TOOLS_ENABLED`), **Inventory** (WP24 subgraph tree and nodes; `INVENTORY_ENABLED`), **Traces** (newest 20 traces; links to the trace viewer when WP-UX3 has built `/console/traces/<id>`, else to the case transcript), **Cases**, **Assurance** (results whose target is this agent; `CONSOLE_ASSURANCE_ENABLED`), **Compliance** (matrix summary from the advisor read API; `CONSOLE_COMPLIANCE_ENABLED`). A tab whose flag is off is not shown and its URL answers 400 with the flag name. | Pause now, Approve resume (two people), Quarantine, Release: the same audited routes as before (`POST /console/agents/<id>/<action>`), moved here from the Agents list cards. |
+| Cases | `/console/cases` | Severity, agent, a plain headline built from the stopping rule and the stopped tool (rule id and case id under it), opened-by pill (gate / judge / monitor / person), SBV 24 h clock as a bar and text, status, assignee. Filter bar (severity, agent, opened by) plus Open / Archive / All; sortable headers (severity, agent, SBV clock, status, assignee) and pages of 25 (WP-UX2); a Details button opens a row drawer (`/console/cases/<id>/drawer`, `?drawer=<id>` without JS). Refreshes every 30 s. | Refresh cases: the explicit case intake (a GET never writes). |
 | Case | `/console/cases/<id>` | Header card (pills, headline, one-line explanation with amount and detect-to-stop time, SBV 24 h and 5-day clocks, Decision 33 line, regulation). Pill tabs (htmx partials at `/console/cases/<id>/tab/<name>`; `?tab=` for a full page): Story (timeline from stored rows only, rules and judges, masked transcript excerpt), Rules & judges, Transcript, Evidence, Case file. | Right column "Your decision": flow open -> triaged -> contained -> closed, the two-person rule, Assign to me, Mark triaged + note, Contain + note, Sign-off (high / critical), Close (disabled with the reason until allowed), comment, ITSM ticket. Evidence card: Verify again, Case file (`/casefile.html`, `/casefile.json`, read-only views). |
+| Sign-off list | `/console/signoff` (WP-UX2) | Open high and critical cases that wait for a signature (triaged or contained, fewer than two approvals), with signatures so far (`0/2`, `1/2` and who), SBV clock, sortable and paged. Same count as the sidebar badge (`CaseService.waiting_approvals`). | Sign-off button opens a drawer with the existing sign-off panel; the audited `POST /console/cases/<id>/signoff` is unchanged. Without JS the button links to the full page below. |
 | Sign-off | `/console/cases/<id>/signoff` | Sign-offs so far with the statement text verbatim. | Approve or reject with a statement; the signer ticks "I sign this statement as myself". |
 | Evidence | `/console/evidence` (`/console/export` redirects) | Entries, last signed root (key id, dev / managed key), last anchor; every lane as squares (one per entry, newest 60, "+N" for earlier ones; colour by record type; root lane gold, signed roots filled); "How to verify offline" with the cmd commands; earlier exports. | Verify now; Export chain (zip: chain export + offline verify report; recorded on the chain); Build audit pack (zip: chain export + verify report + case files + judge eval report + manifest). Auditor, reviewer, approver, admin. |
 | Onboard | `/console/onboard` | Six-step wizard (stage from the artefacts of the latest run), last-run cards: profile (Decision 33 proposal, tools, money-moving, human approval step in code), plan (capabilities, rules proposed, judges), launch report (GO / NO-GO, red-team catch rate, false alarms, branch), links to the artefact files. | Start (off by default, `CONSOLE_ONBOARD_ENABLED=1`): runs `supervisor.onboard` in a background thread on the console's own store and chain writer, one run at a time, progress every 2 s. MockChat (labelled) unless the configured LLM answers the preflight probe. Reviewer, owner, admin. |
@@ -146,10 +149,11 @@ Not done (WP-UX2 and WP-UX3): see `BACKLOG.md`.
 | Integration | `/console/integration` | Off by default (`CONSOLE_INTEGRATION_ENABLED=1`). List of integration reports (agent, framework, readiness, patch count); one report shows the score per area, what was found (framework, LLM calls, tools with risk class, data access, PII fields, tracing), what Supervisor needs (semantic attributes, gate call sites, MCP proxy, catalogue, settings, test plan) and each patch as escaped text (`/console/integration/{name}/patches/{file}` serves it as `text/plain`). Read-only; a malformed report shows a message. | - (permission `onboard.view`) |
 | Inventory | `/console/inventory` | Off by default (`INVENTORY_ENABLED=1`; off = 400 and no nav entry). Unmanaged workspace items (shadow AI) with case links, per-agent subgraph as an indented ASCII tree, node table with own and effective risk and evidence. See `docs/inventory.md`. | Read only. |
 | Assurance | `/console/assurance`, `/console/assurance/<run_id>` | Off by default (`CONSOLE_ASSURANCE_ENABLED=1`; off = 400 with a message and no nav entry). Runs newest first (time, target spec, counts, mock label); per run: pack, dimension, target, status, each metric against go / no-go, data mode, items, reasons, and the hash of the `assurance_result` chain record (links to Evidence; Evidence has no per-record page). | Read only. Run packs with `python -m supervisor.assurance run all --target demo --out out\assurance`. |
-| Tools | `/console/tools`, `/console/tools/<agent>/diff` | Off by default (`CONSOLE_TOOLS_ENABLED=1`; off = 400 with a message and no nav entry). One block per agent: a sortable table (calls, allow, block, pause, errors, p50, p95, users, last seen, status used / unused / not declared / exception) and the least-privilege suggestion with a download link for the diff. Plain numbers, no charts. | Read: any role (`tools.view`). Download the diff: owner or admin (`tools.download`). Nothing is applied from the screen; see `docs/tool-analytics.md`. |
+| Tools | tab of Analytics; `/console/tools` redirects (303); `/console/tools/<agent>/diff` is unchanged | Off by default (`CONSOLE_TOOLS_ENABLED=1`; off = 400 with a message and no tab). Totals (calls, blocks, pauses, worst p95) and one block per agent: a sortable table (calls with a bar, allow, block, pause, errors, p50, p95, users, last seen, status used / unused / not declared / exception) and the least-privilege suggestion with a download link for the diff. Plain numbers, no charts. | Read: any role (`tools.view`). Download the diff: owner or admin (`tools.download`). Nothing is applied from the screen; see `docs/tool-analytics.md`. |
 | Health | `/console/health` | A plain setup summary (mode and store, identity, judge model or mock, signing key, anchor, Databricks, Onboard start) and the local preflight checks with status pills and fix hints. Secrets are never shown. The live Databricks checks write probes, so they run only from `python -m supervisor.cli preflight`. | - |
-| Metrics | `/console/metrics` (footer link) | Oversight metrics per agent with sparklines; chain lanes and heads; gateway latency counters. | Verify the whole chain now. |
-| Inbox | `/console/inbox` (envelope in the header) | Notices from the case workflow (new case, sign-off needed, case closed). | Mark read. |
+| Alerts | `/console/alerts` (WP-UX2, moved out of Metrics) | Tiles (Active, Open, Acknowledged, Closed), filter bar (severity, agent, rule), sortable paged table: rule, severity, agent, window count, repeats, case link, chain position, status. A Details button opens a drawer with every field (hashes, routes, who acknowledged). Default view hides closed alerts. | Acknowledge (`alert.ack`: operator, admin): the audited `POST /console/alerts/<id>/ack`, unchanged. |
+| Analytics | `/console/analytics?tab=gate\|tools\|metrics\|latency` (WP-UX2) | One toolbar (range 7 / 30 / 90 days or default, agent) for four tabs, each an htmx partial at `/console/analytics/tab/<name>`. **Gate**: calls checked, blocked, paused and p95 per agent. **Tools**: see above. **Oversight metrics**: the old Metrics page (monitor status, per-agent metrics with sparklines, chain status) with a tile that links to Alerts (`#alerts`). **Latency**: live gateway counters. Blank range = each tab's own window (Tools: `TOOL_ANALYTICS_WINDOW_DAYS`; Gate: 7 days; metrics: all stored days). | Verify the whole chain now (Oversight metrics tab). |
+| Inbox | `/console/inbox` (envelope in the header) | Notices from the case workflow (new case, sign-off needed, case closed). Filter bar (status, channel), sortable and paged (WP-UX2). | Mark read. |
 
 Screenshots for review: `uv run python tools/console_screenshots.py --reseed` (dev only; it
 needs Playwright in `PLAYWRIGHT_PYTHON`, else it prints `[SKIP]`) writes every screen at
@@ -185,11 +189,24 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 
 ### Alerts (WP21)
 
-The Metrics page has an **Alerts** section (flag `ALERTS_ENABLED` makes the job that fills it;
-the section itself always shows the table). It lists open and acknowledged alerts with rule,
+The **Alerts** page (`/console/alerts`; before WP-UX2 a section of Metrics; flag `ALERTS_ENABLED`
+makes the job that fills it, the page itself always shows the table). It lists open and acknowledged alerts with rule,
 severity, agent, window count, repeats, case link and chain position. The **Acknowledge**
 button needs the `alert.ack` permission (operator, admin) and writes two audit rows and an
 `alert_ack` evidence record. See `docs/alerts.md`.
+
+### Old URLs (WP-UX2)
+
+A moved page answers `303 See Other` to its new place. The query string is kept (`lang`, filters,
+sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
+
+| Old URL | Goes to | Note |
+|---|---|---|
+| `/console/metrics` | `/console/analytics?tab=metrics` | `/console/metrics#alerts` lands on the Alerts tile of that tab, which links to `/console/alerts` |
+| `/console/tools` | `/console/analytics?tab=tools` | `agent_id=` is read as `agent=`; `sort`, `dir`, `days` are kept; off = 400 with the flag name, as before |
+| `/console/export` | `/console/evidence` | unchanged since phase 2 |
+| agent cards on `/console/agents` | `/console/agents/<id>` | no redirect (a list, not a page): the drawer links to the agent page |
+| `/console/cases?status=open` (sidebar Sign-off) | `/console/signoff` | the URL still works; only the sidebar link changed |
 
 ### Role matrix
 

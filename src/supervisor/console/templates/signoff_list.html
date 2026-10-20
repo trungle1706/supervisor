@@ -1,0 +1,15 @@
+{# Sign-off list (WP-UX2): open high and critical cases that still wait for a signature. The
+   signing itself is the existing audited POST /console/cases/{id}/signoff (two people). #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('signoff') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_act'), None), (t('signoff'), None)]) }}
+{% call ui.pagehead(t('signoff')) %}
+  <a class="btn" href="/console/cases?lang={{ lang }}">{{ t('cases') }}</a>
+{% endcall %}
+{{ ui.purpose(t('so_purpose'), t('signoff_rule')) }}
+<div id="list" hx-get="/console/signoff/rows?{{ list_qs }}&amp;page={{ page.page }}&amp;lang={{ lang }}" hx-trigger="every 30s" hx-swap="innerHTML">
+{% include "_signoff_rows.html" %}
+</div>
+{% endblock %}
