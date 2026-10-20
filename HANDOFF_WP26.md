@@ -117,3 +117,24 @@ the MOCK fake); no TLS cost measured.
 5. Close or comment the `mcp_tool_review` case automatically when the tool is locked?
 6. Port policy for the proxy listeners in production (one per application, who assigns the ports)?
 7. Does the bank want `OAuth` to the upstream servers before the pilot (wave 4 today)?
+
+## Follow-ups after review
+
+Reviewer commits (6194e0a, 3674064, 3bfbd5e, 2ff5281, a82ee23) kept as they are. Four items closed on top, history not rewritten.
+
+| Item | Commit | What changed |
+|---|---|---|
+| F13 | a3ad754 | Both proxies forward `tools/call` params as `name`, `arguments` (or masked args) and `_meta.progressToken` only. `resources/read`, `resources/templates/list`, `prompts/get`, `completion/complete` go through the gate as `mcp.resources.read` etc. (context `mcp_method`); a refusal is JSON-RPC error -32000 with `error.data.rule_id`. The policy must list them (read_only) to allow them. Tests: `tests/gateway/test_mcp_proxy_params.py` (stdio, real gate) and `test_mcp_http.py` (HTTP). |
+| F12 | 2b5f5e4 | `/observe` and `/blocked` return 403 when the server was registered by another agent. `MCP_SERVER_AGENTS` (`server=a|b;...`) shares a server. Deviation: the policy has no per-agent MCP server list, so the registering agent (server row) plus this setting is the rule. Test in `tests/console/test_mcp_tools_api.py`. |
+| F14 | e8192e7 | `HttpUpstream` flags `notifications/tools/list_changed`; the proxy drops its lock view and re-lists on the next call. Test: change inside a 3600 s window is caught after the notification. |
+| F15 | c7f8165 | 56 new hand-written probes (89 in total): 28 poison variants, 23 drift variants, 5 benign sets (40 tools). Probe n: drift 79, poison 51, scan negatives 73. New measured misses kept as `known_gap`: X-41 (forward-conversation phrase), X-58 (markdown heading, the line-start rule is lost by normalisation), X-65..X-68 (base64, hex, ROT13, leetspeak), plus false alarm X-121 ("Bo qua cac dong" in a CSV tool). Scan rules not tuned on probes. |
+
+Harness (`--no-latency`): OVERALL GO. Template and held-out numbers unchanged. Probe row now: drift 9873 bp (78/79), poison 8039 bp (41/51, Wilson 6754-8899), scan false alarm 273 bp (2/73), held call refused 93/94, leaked 0. `baseline.json` was re-recorded only because the probe set grew (n and k of the probe row changed).
+
+Checks (log `wp26_followup_full.txt` in the scratchpad):
+```text
+uv run python -m pytest -q -x          -> 3819 passed, 29 skipped, 1 warning in 481.20s
+uv run python -m ruff check            -> All checks passed!
+uv run python -m ruff format --check   -> 680 files already formatted
+```
+New test count: 3,819 (was 3,785 before the review; +34 from reviewer and follow-ups). Follow-up commits: a3ad754, 2b5f5e4, e8192e7, c7f8165, cc43754 (docs, BACKLOG: the three closed rows removed). No .env created.
