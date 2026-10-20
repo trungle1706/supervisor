@@ -1864,12 +1864,14 @@ def compare_reports(old: dict[str, Any], new: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_outputs(report: dict[str, Any], out_dir: Path) -> tuple[Path, Path]:
+def write_outputs(report: dict[str, Any], out_dir: Path, tag: str = "") -> tuple[Path, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     env = report["environment"]
     stem = f"latency-{env['commit'][:7]}-{env['date_utc'][:10]}"
     if report["mode"] == "quick":
         stem += "-quick"
+    if tag:
+        stem += f"-{tag}"
     jpath, mpath = out_dir / f"{stem}.json", out_dir / f"{stem}.md"
     jpath.write_text(json.dumps(report, indent=2, sort_keys=False) + "\n", encoding="utf-8")
     mpath.write_text(markdown(report), encoding="utf-8")
@@ -1901,6 +1903,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--attempts", type=int, default=4, help="strict runs: tries per measurement")
     p.add_argument("--abs-floor-us", type=int, default=50, help="spreads below this are ignored")
     p.add_argument("--compare", nargs=2, metavar=("OLD", "NEW"), help="compare two JSON reports")
+    p.add_argument("--tag", default="", help="suffix for the output file names (run1, run2)")
     p.add_argument("--no-strict", action="store_true", help="report, but do not fail, on spread")
     p.add_argument("--seed", type=int, default=7)
     p.add_argument(
@@ -1967,7 +1970,7 @@ def main(argv: list[str] | None = None) -> int:
     except BenchError as exc:
         print(f"[FAIL] {exc}", file=sys.stderr)  # noqa: T201
         return 2
-    jpath, mpath = write_outputs(report, Path(ns.out_dir))
+    jpath, mpath = write_outputs(report, Path(ns.out_dir), ns.tag)
     if opts.partial_path is not None:
         opts.partial_path.unlink(missing_ok=True)
     print(markdown(report))  # noqa: T201
