@@ -100,6 +100,20 @@ agents:
       skip_tools: [get_balance] # no detector runs for these tools: status "skip"
 ```
 
+`skip_tools` may not name a `money`, `credit` or `pii_export` tool: the policy loader refuses such a
+policy with a message that names the agent and the tool (a skip would switch off the
+`GATE-DETECTOR-FAILED` protection). Read-only tools and tools not listed in `tools:` are allowed.
+Until `skip` becomes a rule action with two approvers, this is the only skip.
+
+Every policy reload runs the same check as start-up on the per-agent overrides. A reload with a bad
+override (unknown detector, wrong setting value) is rejected: the old policy stays in force, one
+ASCII line is logged, and `StorePolicyProvider.rejected_hash` / `rejected_reason` say why. The first
+load of a bad policy fails with the same message. A bad override therefore never reaches a money
+call as `invalid_config`.
+
+The span attribute `supervisor.gate.correlation_id` is copied into `agent_event.correlation_id` by
+the recorder only when `DETECTORS_ENABLED=1`.
+
 Order, strongest first: agent `settings.<slug>`, agent `preset`, `detectors.<slug>` in the file,
 `default_preset`, the detector default. The key is left out of the policy hash when unset, so an
 existing policy file keeps the hash it had.

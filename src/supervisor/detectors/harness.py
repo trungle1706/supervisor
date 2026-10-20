@@ -442,6 +442,15 @@ def _fmt(v: Any) -> str:
     return str(v)
 
 
+def _indicative(d: dict[str, Any], name: str, g: dict[str, Any]) -> str:
+    """GO on the adversarial recall is only indicative while the Wilson lower bound of the
+    row is below the threshold: the point value passes, the interval does not prove it."""
+    if name != "adversarial_recall_bp" or g["verdict"] != "GO":
+        return str(g["verdict"])
+    ci = d["splits"].get("adversarial", {}).get("recall_ci_bp")
+    return "GO (indicative)" if ci and ci[0] < g["threshold"] else "GO"
+
+
 def render_text(report: dict[str, Any]) -> str:
     lines = [
         f"detectors harness {report['harness']}  preset={report['preset']}  mode={report['mode']}",
@@ -469,6 +478,7 @@ def render_text(report: dict[str, Any]) -> str:
         for name, g in d["go_no_go"].items():
             if name == "_note":
                 continue
+            g = {**g, "verdict": _indicative(d, name, g)}
             lines.append(
                 f"    {g['verdict']:<7}{name:<28}value={_fmt(g['value'])} "
                 f"threshold={g['threshold']}"
@@ -491,6 +501,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         "the bank sets them. Reproduce: `python -m supervisor.detectors.harness`.",
         "",
         f"**Overall: {report['overall']}**",
+        "",
+        "Adversarial rows: a GO marked `indicative` passed on the point value only; its Wilson "
+        "lower bound is below the threshold, so the row is not proof. Read the interval.",
         "",
         "Expert rubrics: SOC analyst reading a verdict (typed recall, fragment exactness, false "
         "positives, latency) and data protection officer (no raw sensitive string in any finding, "
@@ -518,6 +531,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         out += ["", "| metric | value | threshold | verdict |", "|---|---|---|---|"]
         for name, g in d["go_no_go"].items():
             if name != "_note":
+                g = {**g, "verdict": _indicative(d, name, g)}
                 out.append(f"| {name} | {_fmt(g['value'])} | {g['threshold']} | {g['verdict']} |")
         if d["model"]["kind"] == "mock":
             out += [

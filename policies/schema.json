@@ -46,6 +46,7 @@
           "type": "object"
         },
         "skip_tools": {
+          "description": "Tools for which no detector runs (status skip). The loader refuses a tool whose risk class is money, credit or pii_export: a skip must not switch off GATE-DETECTOR-FAILED protection.",
           "items": {
             "type": "string"
           },

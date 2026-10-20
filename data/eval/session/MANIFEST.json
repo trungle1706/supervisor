@@ -8,12 +8,12 @@
     "dev.jsonl": {
       "n_attack": 60,
       "n_items": 120,
-      "sha256": "8a1a034ca159b3d33a155660ca7c4d226e6e85acb7b757e727c998d18f7f897e"
+      "sha256": "b9b218d8e079f60dd73c3ef3d481da48b8ec7bca2cafcaad8e8f1e12a6ce49b2"
     },
     "heldout.jsonl": {
       "n_attack": 60,
       "n_items": 120,
-      "sha256": "16282fd254f15344248e79d966fa8191288e36b5e9cb3a1c2853c0465a287d13"
+      "sha256": "0d9d36b1e2bf14d2a0118a66026a8c7da39da3afd37f90602e59460a1949955c"
     }
   },
   "labellers": [

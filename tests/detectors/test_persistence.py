@@ -237,7 +237,9 @@ def test_a_span_event_carries_the_gate_correlation_id() -> None:
         "supervisor.event_type": "tool_call",
         "supervisor.tool_name": "add_payee",
     }
-    norm = Normaliser(None, CapturePolicy({"payments": AgentCapture("digest")}), "dev")
+    norm = Normaliser(
+        None, CapturePolicy({"payments": AgentCapture("digest")}), "dev", keep_correlation_id=True
+    )
     (item,) = norm.normalise_many(
         [span({**base, "supervisor.gate.correlation_id": "corr-span-1"})], "otel"
     )
