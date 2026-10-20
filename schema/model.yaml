@@ -396,6 +396,9 @@ tables:
       # WP19 (additive): judge-vs-human agreement from sign-offs (docs/metrics.md).
       judge_human_pairs: int?     # signed-off cases with a judge label that day
       judge_human_agree_bp: int?  # pairs where the reviewer agreed with the judge, bp
+      # WP1b-B (additive): status of the quality / fairness / drift / multiagent monitors for
+      # this agent and day: {monitor: {status: ok|not_applicable|no_data, code, reason, n}}.
+      monitor_status: json?
 
   model_validation:
     kind: append_only

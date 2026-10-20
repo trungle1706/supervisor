@@ -9,6 +9,26 @@
   <p class="muted" style="margin:0 0 8px">{{ t('alerts_purpose') }}</p>
   <div id="alerts-panel">{% include "_alerts_panel.html" %}</div>
 </section>
+<section class="card" id="monitor-status">
+  <h3>{{ t('monitor_status') }}</h3>
+  <p class="muted" style="margin:0 0 8px">{{ t('monitor_status_purpose') }}</p>
+  {% if monitor_rows %}
+  <div class="tablewrap flat"><table class="monitor-status">
+    <thead><tr><th>{{ t('agent') }}</th>{% for m in monitor_order %}<th>{{ m }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for r in monitor_rows %}
+      <tr data-agent="{{ r.agent_id }}"><td><strong>{{ r.agent_id }}</strong></td>
+      {% for m in monitor_order %}{% set c = r.monitors.get(m) %}
+        <td data-monitor="{{ m }}">{% if c %}{{ ui.pill(t('ms_' ~ c.status), {'ok': 'ok', 'not_applicable': 'neutral', 'no_data': 'warn'}.get(c.status, 'neutral')) }}{% if c.get('n') is not none %} <span class="mono">n={{ c.n }}</span>{% endif %}{% if c.get('reason') %}<div class="idline">{{ c.reason }}</div>{% endif %}{% else %}<span class="muted">-</span>{% endif %}</td>
+      {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="muted">{{ t('no_monitor_status') }}</p>
+  {% endif %}
+</section>
 <section class="card">
   <h3>{{ t('oversight') }}</h3>
   {% if summary %}

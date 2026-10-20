@@ -509,6 +509,7 @@ CREATE TABLE IF NOT EXISTS oversight_metric (
   judge_latency_ms INTEGER,
   judge_human_pairs INTEGER,
   judge_human_agree_bp INTEGER,
+  monitor_status TEXT,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (metric_date, agent_id)

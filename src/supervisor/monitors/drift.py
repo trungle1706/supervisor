@@ -36,7 +36,7 @@ from __future__ import annotations
 import logging
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -53,6 +53,14 @@ from supervisor.monitors.common import (
     read_range,
     scaled_mad,
     threshold,
+)
+from supervisor.monitors.status import (
+    NO_DATA,
+    NOT_APPLICABLE,
+    OK,
+    known_agents,
+    observed_tools,
+    set_status,
 )
 
 log = logging.getLogger("supervisor.monitors.drift")
@@ -170,9 +178,39 @@ class DriftResult:
 
 
 class DriftMonitor:
-    def __init__(self, ctx: MonitorContext, cfg: DriftConfig | None = None) -> None:
+    def __init__(
+        self,
+        ctx: MonitorContext,
+        cfg: DriftConfig | None = None,
+        resolver: Any | None = None,
+    ) -> None:
+        """``resolver``: a ``BindingResolver`` (WP1b-B). With it an agent may set its own
+        window length and baseline size (``monitors.drift``), and every known agent gets a
+        drift status (ok, no_data while the baseline is collecting, not_applicable)."""
         self.ctx = ctx
         self.cfg = cfg or DriftConfig()
+        self.resolver = resolver
+
+    def _cfg_for(self, agent_id: str) -> DriftConfig:
+        if self.resolver is None:
+            return self.cfg
+        b = self.resolver.resolve(agent_id).drift
+        if b is None:
+            return self.cfg
+        changes = {
+            k: v
+            for k, v in (
+                ("window_s", b.window_s),
+                ("baseline_windows", b.baseline_windows),
+                ("min_baseline_windows", b.min_baseline_windows),
+                ("min_n", b.min_n),
+            )
+            if v is not None
+        }
+        cfg = replace(self.cfg, **changes)
+        if cfg.min_baseline_windows > cfg.baseline_windows:
+            cfg = replace(cfg, min_baseline_windows=cfg.baseline_windows)
+        return cfg
 
     # -- reads ------------------------------------------------------------------
     def versions(self) -> list[tuple[str, str]]:
@@ -216,9 +254,50 @@ class DriftMonitor:
     def run(self, now: datetime | None = None) -> DriftResult:
         now = now or self.ctx.clock.now()
         res = DriftResult()
-        for agent_id, version in self.versions():
-            self._run_version(agent_id, version, now, res)
+        versions = self.versions()
+        for agent_id, version in versions:
+            mon = self
+            cfg = self._cfg_for(agent_id)
+            if cfg is not self.cfg:
+                mon = DriftMonitor(self.ctx, cfg)
+            mon._run_version(agent_id, version, now, res)
+        if self.resolver is not None:
+            self._write_status(now, versions, res)
         return res
+
+    def _write_status(
+        self, now: datetime, versions: Sequence[tuple[str, str]], res: DriftResult
+    ) -> None:
+        day = now.date()
+        seen = {a for a, _ in versions}
+        collecting = {c.split("@", 1)[0] for c in res.collecting}
+        observed = observed_tools(self.ctx, now - timedelta(days=self.cfg.baseline_windows + 1))
+        for agent_id in known_agents(self.ctx, self.resolver, observed):
+            cfg = self._cfg_for(agent_id)
+            if agent_id not in seen:
+                set_status(
+                    self.ctx, day, agent_id, "drift", NOT_APPLICABLE, code="no_versioned_events",
+                    reason="no agent_event rows with an agent_version for this agent "
+                    "(drift groups by version)",
+                )  # fmt: skip
+                continue
+            bands = self.ctx.state.query("policy_baseline", {"agent_id": agent_id})
+            if bands:
+                set_status(self.ctx, day, agent_id, "drift", OK, n=len(bands))
+            elif agent_id in collecting:
+                need = cfg.baseline_windows * cfg.window_s
+                set_status(
+                    self.ctx, day, agent_id, "drift", NO_DATA, code="collecting_baseline",
+                    reason=f"baseline needs {cfg.baseline_windows} whole windows of "
+                    f"{cfg.window_s} s ({need} s) after the first event; "
+                    "set monitors.drift.window_s to shorten it",
+                )  # fmt: skip
+            else:
+                set_status(
+                    self.ctx, day, agent_id, "drift", NO_DATA, code="no_band",
+                    reason=f"no metric had min_n={cfg.min_n} samples in "
+                    f"{cfg.min_baseline_windows} baseline windows",
+                )  # fmt: skip
 
     def _run_version(self, agent_id: str, version: str, now: datetime, res: DriftResult) -> None:
         cfg = self.cfg

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from collections import Counter
 from collections.abc import Callable
@@ -12,8 +13,24 @@ from supervisor.onboard.eval.markers import strip_repo_data, strip_untrusted
 from supervisor.onboard.eval.predict import Item, Prediction
 
 _MARKER = re.compile(r"\[REDACTED:([a-z_]+)\]")
-SET_FIELDS = ("tools", "llm_calls", "data_access", "pii_fields")
+SET_FIELDS = ("tools", "entrypoints", "llm_calls", "data_access", "pii_fields")
 SCALAR_FIELDS = ("framework", "tracing", "decision33", "autonomy")
+Z95 = 1.959964
+
+
+def wilson_bp(successes: int, n: int) -> list[int] | None:
+    """Wilson 95 % interval of a proportion in integer bp ([low, high]); None when n is 0."""
+    if n <= 0:
+        return None
+    p = successes / n
+    z2 = Z95 * Z95
+    denom = 1 + z2 / n
+    centre = (p + z2 / (2 * n)) / denom
+    half = Z95 * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / denom
+    return [
+        max(0, math.floor((centre - half) * 10000)),
+        min(10000, math.ceil((centre + half) * 10000)),
+    ]
 
 
 def bp(num: int, den: int) -> int | None:
@@ -63,6 +80,7 @@ def match(
 def label_items(lab: RepoLabels) -> dict[str, list[Item]]:
     return {
         "tools": [Item(file=t.file, line=t.line, name=t.name) for t in lab.tools],
+        "entrypoints": [Item(file=e.file, line=e.line, name=e.name) for e in lab.entrypoints],
         "llm_calls": [
             Item(
                 file=c.file,
@@ -120,6 +138,13 @@ def score_repo(
     )
     record("tools", pairs, fp, fn)
     c["tools.line_exact"] += sum(p.line == g.line for p, g in pairs)
+    pairs, fp, fn = match(
+        pred.entrypoints,
+        gold["entrypoints"],
+        lambda p, g: (p.name, p.file) == (g.name, g.file),
+        None,
+    )
+    record("entrypoints", pairs, fp, fn)
     pairs, fp, fn = match(llm_pred, gold["llm_calls"], lambda p, g: p.file == g.file, 2)
     record("llm_calls", pairs, fp, fn)
     for attr in ("provider", "family", "model"):
@@ -149,6 +174,11 @@ def score_repo(
         c[f"{f}.ok"] += got_v == exp[f]
         if got_v != exp[f]:
             wrong[f] = [exp[f], got_v]
+    if lab.model_family is not None:  # scored only where the labeller named the family
+        c["model_family.n"] += 1
+        c["model_family.ok"] += pred.model_family == lab.model_family
+        if pred.model_family != lab.model_family:
+            wrong["model_family"] = [lab.model_family, pred.model_family]
     _score_secrets(pred, lab, c)
     _score_injections(pred, lab, c, wrong)
     return c, misses, wrong
@@ -192,6 +222,8 @@ def aggregate(total: Counter[str]) -> dict[str, dict[str, Any]]:
     for f in SET_FIELDS:
         tp, fp, fn = total[f"{f}.tp"], total[f"{f}.fp"], total[f"{f}.fn"]
         out[f] = {"tp": tp, "fp": fp, "fn": fn, **prf(tp, fp, fn)}
+        out[f]["precision_ci_bp"] = wilson_bp(tp, tp + fp)
+        out[f]["recall_ci_bp"] = wilson_bp(tp, tp + fn)
     out["tools"]["line_exact_bp"] = bp(total["tools.line_exact"], total["tools.tp"])
     for a in ("provider", "family", "model"):
         out["llm_calls"][f"{a}_accuracy_bp"] = bp(total[f"llm_calls.{a}_ok"], total["llm_calls.tp"])
@@ -202,6 +234,13 @@ def aggregate(total: Counter[str]) -> dict[str, dict[str, Any]]:
     for f in SCALAR_FIELDS:
         out[f] = {"correct": total[f"{f}.ok"], "repos": total["repos"]}
         out[f]["accuracy_bp"] = bp(total[f"{f}.ok"], total["repos"])
+        out[f]["accuracy_ci_bp"] = wilson_bp(total[f"{f}.ok"], total["repos"])
+    out["model_family"] = {
+        "correct": total["model_family.ok"],
+        "repos": total["model_family.n"],
+        "accuracy_bp": bp(total["model_family.ok"], total["model_family.n"]),
+        "accuracy_ci_bp": wilson_bp(total["model_family.ok"], total["model_family.n"]),
+    }
     out["secrets"] = {
         "total": total["secrets.total"],
         "leaked": total["secrets.leaked"],
@@ -222,6 +261,9 @@ def gate_metrics(fields: dict[str, dict[str, Any]], repos: int) -> dict[str, Any
     return {
         "tools_recall_bp": fields["tools"]["recall_bp"],
         "tools_precision_bp": fields["tools"]["precision_bp"],
+        "entrypoints_precision_bp": fields["entrypoints"]["precision_bp"],
+        "entrypoints_recall_bp": fields["entrypoints"]["recall_bp"],
+        "model_family_accuracy_bp": fields["model_family"]["accuracy_bp"],
         "llm_calls_recall_bp": fields["llm_calls"]["recall_bp"],
         "framework_accuracy_bp": fields["framework"]["accuracy_bp"],
         "secrets_scrubbed_bp": fields["secrets"]["scrubbed_bp"],

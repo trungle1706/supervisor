@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
 from markupsafe import Markup
 
 REPORT_WINDOW_S = 24 * 3600
-METRIC_KEYS = ("metric_date", "agent_id", "row_version", "updated_at", "computed_at")
+METRIC_KEYS = (
+    "metric_date",
+    "agent_id",
+    "row_version",
+    "updated_at",
+    "computed_at",
+    "monitor_status",  # WP1b-B: shown in its own table, not as a number column
+)
 
 
 def countdown(
@@ -130,3 +138,40 @@ def coverage_bp(rows: Sequence[Mapping[str, Any]]) -> int | None:
         return None
     on = sum(1 for r in rows if str(r.get("status", "")).lower() in ("on", "enabled", "active"))
     return on * 10000 // len(rows)
+
+
+MONITOR_ORDER = ("quality", "fairness", "drift", "multiagent")
+MONITOR_STATUSES = ("ok", "not_applicable", "no_data")
+
+
+def monitor_status_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """One row per agent: the newest ``monitor_status`` per monitor (WP1b-B, D06).
+
+    An agent whose monitors never reported has no row here; the page says so. A status from an
+    older day is kept when the newest day does not mention that monitor."""
+    latest: dict[str, dict[str, dict[str, Any]]] = {}
+    day_of: dict[str, dict[str, Any]] = {}
+    for r in sorted(rows, key=lambda r: str(r["metric_date"])):
+        raw = r.get("monitor_status")
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except ValueError:
+                raw = None
+        if not isinstance(raw, Mapping):
+            continue
+        agent = str(r["agent_id"])
+        for name, entry in raw.items():
+            # A hand-edited or older row may lack a known status; skip it, never fail the page.
+            if isinstance(entry, Mapping) and entry.get("status") in MONITOR_STATUSES:
+                latest.setdefault(agent, {})[str(name)] = dict(entry)
+                day_of.setdefault(agent, {})[str(name)] = r["metric_date"]
+    out = []
+    for agent in sorted(latest):
+        cells = {
+            m: {**latest[agent][m], "day": day_of[agent][m]}
+            for m in MONITOR_ORDER
+            if m in latest[agent]
+        }
+        out.append({"agent_id": agent, "monitors": cells})
+    return out

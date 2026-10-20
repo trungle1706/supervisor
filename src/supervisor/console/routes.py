@@ -767,6 +767,8 @@ def _metrics_data(ctx: ConsoleContext) -> dict[str, Any]:
     return {
         **_alerts_data(ctx),
         "metric_cols": cols,
+        "monitor_rows": views.monitor_status_rows(rows),
+        "monitor_order": views.MONITOR_ORDER,
         "summary": summary,
         "rows": rows[-200:],
         "heads": {k: {"seq": v.seq, "entry_hash": v.entry_hash} for k, v in sorted(heads.items())},

@@ -21,6 +21,7 @@ from typing import Any  # noqa: E402
 
 from supervisor.config import Settings  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
+from supervisor.monitors.bindings import BindingResolver  # noqa: E402
 from supervisor.monitors.common import MonitorContext  # noqa: E402
 from supervisor.monitors.fairness import (  # noqa: E402
     FairnessConfig,
@@ -38,10 +39,18 @@ def run(
     method: str = "auto",
 ) -> dict[str, Any]:
     cfg = FairnessConfig.load(config_path or settings.fairness_config)
-    source = build_source(ctx, cfg, settings.mask_key[0])
-    if source is None:
+    resolver = BindingResolver.from_settings(settings)
+    # WP1b-B: an agent whose binding names protected_attribute_keys is sliced from its own
+    # call arguments even when the global attribute source is none.
+    arg_keys = any(
+        resolver.resolve(a).fairness.protected_attribute_keys for a in resolver.agent_ids()
+    )
+    source = build_source(ctx, cfg, settings.mask_key[0], allow_arg_attributes=True)
+    if source is None:  # unreachable with allow_arg_attributes; keeps the type narrow
         return {"status": "skipped", "reason": "attribute_source is none"}
-    res = FairnessMonitor(ctx, cfg, source, method=method).run()
+    res = FairnessMonitor(ctx, cfg, source, method=method, resolver=resolver).run()
+    if cfg.attribute_source == "none" and not arg_keys:
+        return {"status": "skipped", "reason": "attribute_source is none (statuses written)"}
     return {
         "status": "ok",
         "agents": len(res.reports),

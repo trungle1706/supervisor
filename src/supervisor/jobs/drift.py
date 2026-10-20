@@ -19,13 +19,15 @@ from typing import Any  # noqa: E402
 
 from supervisor.config import Settings  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
+from supervisor.monitors.bindings import BindingResolver  # noqa: E402
 from supervisor.monitors.common import MonitorContext  # noqa: E402
 from supervisor.monitors.drift import DriftConfig, DriftMonitor  # noqa: E402
 from supervisor.monitors.jobctx import ascii_line, standalone  # noqa: E402
 
 
 def run(ctx: MonitorContext, settings: Settings) -> dict[str, Any]:
-    res = DriftMonitor(ctx, DriftConfig.from_settings(settings)).run()
+    resolver = BindingResolver.from_settings(settings)
+    res = DriftMonitor(ctx, DriftConfig.from_settings(settings), resolver).run()
     return {
         "baselines_built": len(res.baselines_built),
         "windows_checked": res.windows_checked,

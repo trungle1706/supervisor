@@ -1,0 +1,31 @@
+{
+  "what": "Golden monitor statuses for the 3-agent synthetic trace of python -m supervisor.monitors.binding_harness (WP1b-B, D06). Gate = exact match of status and code. Thresholds ILLUSTRATIVE.",
+  "provenance": {
+    "source": "synthetic: invented agents and traffic built in supervisor/monitors/binding_harness.py",
+    "licence": "MIT (this repo)",
+    "labeller": "synthetic (hand-written from the binding rules in docs/monitors.md before the harness first ran)",
+    "rubric": "platform engineer / model risk validator: a monitor that is on must either produce a value or say why it cannot (benchmark defect D06)",
+    "split": "dev only: 3 agents x 4 monitors = 12 cells; no held-out split (rule-based, no tuning)",
+    "date": "2026-10-20"
+  },
+  "expected": {
+    "memo_agent": {
+      "quality": {"status": "ok"},
+      "fairness": {"status": "ok"},
+      "drift": {"status": "ok"},
+      "multiagent": {"status": "ok"}
+    },
+    "helpdesk": {
+      "quality": {"status": "ok"},
+      "fairness": {"status": "not_applicable", "code": "no_binding"},
+      "drift": {"status": "not_applicable", "code": "no_versioned_events"},
+      "multiagent": {"status": "not_applicable", "code": "no_binding"}
+    },
+    "lookup_agent": {
+      "quality": {"status": "not_applicable", "code": "no_binding"},
+      "fairness": {"status": "not_applicable", "code": "no_binding"},
+      "drift": {"status": "not_applicable", "code": "no_versioned_events"},
+      "multiagent": {"status": "not_applicable", "code": "no_binding"}
+    }
+  }
+}

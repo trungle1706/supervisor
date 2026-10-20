@@ -306,6 +306,16 @@ def fill_from_onboarding(
         tool.add_evidence("onboarding", ref)
         g.add_node(tool)
         g.link(sysn, "uses", g.nodes[tool.node_id], "onboarding", ref)
+    for e in inv.get("entrypoints") or []:
+        # WP1b-B: HTTP routes only (Discover also lists build_agent and similar functions)
+        name = str(e.get("name", "")).strip()
+        if not name or not str(e.get("detail", "")).startswith("route:"):
+            continue
+        ref = _ev(e.get("evidence")) or f"inventory.json:entrypoints/{name}"
+        en = Node("entrypoint", f"{agent_id}/{name}", display_name=name, attrs={"agent": agent_id})
+        en.add_evidence("onboarding", ref)
+        g.add_node(en)
+        g.link(sysn, "uses", g.nodes[en.node_id], "onboarding", ref)
     endpoints = list(inv.get("model_endpoints") or [])
     for ep in endpoints:
         name = str(ep.get("name", "")).strip()

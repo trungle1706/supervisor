@@ -17,6 +17,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import re
+from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -207,6 +208,12 @@ def discover(
                 injection_refs.append(index.evidence(f, i))
     facts = codefacts.analyse(index.lines)
     _add_code_tools(facts, index, st)
+    for ep in facts.entrypoints:  # WP1b-B: routes are entrypoints, not tools
+        st.entrypoints.append(
+            NamedRef(
+                name=ep.name, detail=f"route:{ep.func}", evidence=index.evidence(ep.file, ep.line)
+            )
+        )
 
     folder_id = _folder_id(repo)
     aid = check_agent_id(agent_id or str(manifest.get("id") or folder_id or "agent"))
@@ -217,6 +224,7 @@ def discover(
     _link_limits_in_code(limits, index)
     if workspace is not None:
         _scan_workspace(workspace, aid, scrubber, st, str(manifest.get("model_id") or ""))
+    model_family, model_id, model_source = _model_identity(manifest, facts)
     inv = Inventory(
         agent_id=aid,
         name=str(manifest.get("name") or aid),
@@ -227,8 +235,9 @@ def discover(
         declared_risk_tier=manifest.get("risk_tier")
         if manifest.get("risk_tier") in ("low", "medium", "high", "critical")
         else None,
-        model_family=str(manifest.get("model_family") or "unknown"),
-        model_id=str(manifest["model_id"]) if manifest.get("model_id") else None,
+        model_family=model_family,
+        model_id=model_id,
+        model_family_source=model_source,
         host_type=str(manifest.get("host_type") or "python"),
         plug_point=str(manifest.get("plug_point") or "gate_hook"),
         manifest_file=manifest_file,
@@ -274,11 +283,33 @@ def discover(
         tracing=sorted(facts.tracing),
         pii_identifiers={k: index.evidence(v.file, v.line) for k, v in sorted(facts.pii.items())},
         injection_refs=injection_refs,
+        dynamic_tool_sources=[index.evidence(d.file, d.line) for d in facts.dynamic_tools],
     )
     inv.features = features_of(inv)
     # Repo text that looks like a prompt injection never reaches an artefact (ADR D12).
     inv = Inventory.model_validate(neutralize_tree(inv.model_dump()))
     return Discovery(inv, index)
+
+
+def _model_identity(
+    manifest: Mapping[str, Any], facts: codefacts.CodeFacts
+) -> tuple[str, str | None, str]:
+    """(family, model id, source). The manifest wins; otherwise the most common known family
+    among the model call sites that name a model (endpoint names and ids go through the same
+    alias table as the judge router)."""
+    m_family = str(manifest.get("model_family") or "")
+    m_id = str(manifest["model_id"]) if manifest.get("model_id") else None
+    if m_family and m_family != "unknown":
+        return m_family, m_id, "manifest"
+    if m_id and codefacts.model_family(m_id) != "unknown":
+        return codefacts.model_family(m_id), m_id, "manifest"
+    known = [c for c in facts.llm_calls if c.model and c.family != "unknown"]
+    if known:
+        counts = Counter(c.family for c in known)
+        fam = sorted(counts, key=lambda k: (-counts[k], k))[0]
+        mid = next(c.model for c in known if c.family == fam)
+        return fam, m_id or mid, "code"
+    return m_family or "unknown", m_id, "unknown"
 
 
 _AMOUNT_RE = re.compile(r"(?i)(^amount|_minor$|_vnd$|^so_tien|^so_tien_|amount$)")

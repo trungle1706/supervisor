@@ -16,10 +16,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from supervisor.core.canonical import format_ts
+from supervisor.monitors.bindings import BindingResolver
 from supervisor.monitors.common import (
     MonitorContext,
     as_dt,
@@ -30,10 +31,23 @@ from supervisor.monitors.common import (
     raise_severity,
     read_range,
 )
+from supervisor.monitors.quality import CHECKER_GROUNDED
+from supervisor.monitors.status import (
+    NO_DATA,
+    NOT_APPLICABLE,
+    OK,
+    count_events,
+    count_verdicts,
+    day_bounds,
+    known_agents,
+    observed_tools,
+    set_status,
+)
 
 log = logging.getLogger("supervisor.monitors.sweeps")
 
 FIRST_RUN_LOOKBACK_S = 86400
+OBSERVE_DAYS = 7  # tool names seen in this many days feed the derived bindings
 
 
 @dataclass
@@ -113,17 +127,87 @@ class JudgeSweep:
 class QualitySweep:
     MONITOR = "quality_sweep"
 
-    def __init__(self, ctx: MonitorContext, scorer: Any, *, settle_s: int = 60) -> None:
+    def __init__(
+        self,
+        ctx: MonitorContext,
+        scorer: Any,
+        *,
+        settle_s: int = 60,
+        resolver: Any | None = None,
+        sample_bp: int | None = None,
+    ) -> None:
+        """``resolver``: a ``BindingResolver``. With it the scorer reads each agent's bound
+        reply tools and every agent gets a quality status (WP1b-B); without it the legacy
+        ``reply`` tool is scored and no status is written."""
         self.ctx, self.scorer, self.settle_s = ctx, scorer, settle_s
+        self.resolver = resolver
+        self.sample_bp = sample_bp
+        self._observed: dict[str, set[str]] = {}
+        if resolver is not None:
+            scorer.reply_binding = self._reply_binding
+
+    def _reply_binding(self, agent_id: str) -> tuple[Sequence[str], str]:
+        q = self.resolver.resolve(agent_id, self._observed.get(agent_id, ())).quality
+        return q.reply_tools, q.text_arg
 
     def run(self, now: datetime | None = None) -> SweepResult:
         now = now or self.ctx.clock.now()
+        if self.resolver is not None:
+            self._observed = observed_tools(self.ctx, now - timedelta(days=OBSERVE_DAYS))
         start, end = _window(self.ctx, self.MONITOR, now, self.settle_s)
         events: Sequence[dict[str, Any]] = _agent_events(self.ctx, start, end)
         res = SweepResult(events=len(events))
         res.traces = len(self.scorer.sweep(events)) if events else 0
         put_state(self.ctx, self.MONITOR, "cursor", {"ts": format_ts(end)})
+        if self.resolver is not None:
+            self._write_status(now)
         return res
+
+    def _write_status(self, now: datetime) -> None:
+        day = now.astimezone(UTC).date()
+        d0, d1 = day_bounds(day)
+        for agent_id in known_agents(self.ctx, self.resolver, self._observed):
+            q = self.resolver.resolve(agent_id, self._observed.get(agent_id, ())).quality
+            if not q.bound:
+                set_status(
+                    self.ctx,
+                    day,
+                    agent_id,
+                    "quality",
+                    NOT_APPLICABLE,
+                    code="no_binding",
+                    reason=q.gap or "",
+                )
+                continue
+            scored = count_verdicts(self.ctx, agent_id, CHECKER_GROUNDED, d0, d1)
+            if scored:
+                set_status(self.ctx, day, agent_id, "quality", OK, n=scored)
+                continue
+            replies = count_events(
+                self.ctx, agent_id, d0, d1, event_types=("tool_call",), tools=q.reply_tools
+            )
+            if replies == 0:
+                set_status(
+                    self.ctx,
+                    day,
+                    agent_id,
+                    "quality",
+                    NO_DATA,
+                    code="no_reply_calls",
+                    reason=f"no call of {', '.join(q.reply_tools)} on {day.isoformat()}",
+                )
+            else:
+                rate = f" (sample {self.sample_bp} bp)" if self.sample_bp is not None else ""
+                set_status(
+                    self.ctx,
+                    day,
+                    agent_id,
+                    "quality",
+                    NO_DATA,
+                    code="not_sampled",
+                    reason=f"{replies} reply call(s) today, none scored yet{rate}",
+                    n=replies,
+                )
 
 
 def build_judge_sweep(ctx: MonitorContext, settings: Any) -> JudgeSweep | None:
@@ -166,7 +250,13 @@ def build_quality_sweep(ctx: MonitorContext, settings: Any) -> QualitySweep | No
         timeout_s=settings.judge_timeout_s,
         region=settings.judge_region,
     )
-    return QualitySweep(ctx, scorer, settle_s=settings.judge_sweep_settle_s)
+    return QualitySweep(
+        ctx,
+        scorer,
+        settle_s=settings.judge_sweep_settle_s,
+        resolver=BindingResolver.from_settings(settings),
+        sample_bp=settings.quality_sample_bp,
+    )
 
 
 __all__ = [

@@ -39,11 +39,12 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/enterprise-readiness.md` | Scored gaps (ISO 42001, NIST AI RMF, ASVS, ops) | 2L, Aud, Op |
 | `docs/metrics.md` | Oversight metrics and their definitions | 2L, Op |
 | `docs/latency.md` | Gate latency: method, numbers from `tools/bench_latency.py`, budgets, what is not measured | Op, Dev, Aud |
+| `docs/monitors.md` | Per-agent monitor bindings and monitor status (`not_applicable`) | Dev, Op, 2L |
 | `docs/threat-model.md` | Threat model of Supervisor itself | 2L, Aud |
 | `docs/LICENSES.md` | Licence log for packages, assets, datasets | 2L, Aud |
 | `docs/BUILD_PLAN.md` | Phase 1 plan (WP0 to WP12) | Build |
 | `docs/BUILD_PLAN_PHASE2.md` | Phase 2 plan (WP13 to WP19) and status | Build |
 | `docs/ingress-auth.md` | Per-agent credentials on agent ingress: setup, rotation, rubric (WP20) | Build, Sec |
-| `docs/adr/` (D01 to D19) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark | Build, Aud |
+| `docs/adr/` (D01 to D20) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20) | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |

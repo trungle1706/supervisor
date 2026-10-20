@@ -46,6 +46,14 @@ and hold the same value divided by 10000. Floats never go to the evidence chain.
 `bp` = basis points, 0 to 10000. "Nearest-rank median" is always one of the observed
 values (no interpolation).
 
+## Monitor status (WP1b-B)
+
+Column `monitor_status` (JSON, nullable): one entry per monitor (`quality`, `fairness`,
+`drift`, `multiagent`) with `status` (`ok`, `not_applicable`, `no_data`), `code`, `reason` and
+`n`. A monitor that cannot run for an agent says so here instead of writing nothing. The
+Metrics page shows it in the section "Monitor status". Bindings, defaults and codes:
+`docs/monitors.md`. Not on the evidence chain.
+
 ## Evidence
 
 When the integer columns of a row change, the job records one `oversight_metric` entry on

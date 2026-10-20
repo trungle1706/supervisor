@@ -15,8 +15,8 @@ from supervisor.advisory.integration.render import render_html, render_json, ren
 from tests.advisory.conftest import REPOS, target_of
 
 
-def test_corpus_has_twenty_repos() -> None:
-    assert len(REPOS) == 20
+def test_corpus_has_twenty_one_repos() -> None:
+    assert len(REPOS) == 21  # WP1b-B added fastapi_deepagents_credit_toy
 
 
 @pytest.mark.parametrize("name", REPOS)

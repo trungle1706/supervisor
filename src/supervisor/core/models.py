@@ -280,6 +280,8 @@ class OversightMetric(StateRecord):
     # WP19 (additive): judge-vs-human agreement from sign-offs.
     judge_human_pairs: int | None = None
     judge_human_agree_bp: int | None = None
+    # WP1b-B: {monitor: {status, code, reason, n}} for quality / fairness / drift / multiagent
+    monitor_status: dict[str, Any] | None = None
 
 
 ALL_RECORDS: tuple[type[Record], ...] = (
