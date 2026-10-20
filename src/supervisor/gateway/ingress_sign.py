@@ -36,9 +36,9 @@ MIN_SECRET_CHARS = 32
 ENV_KEY = "SUPERVISOR_AGENT_KEY"
 ENV_KEY_FILE = "SUPERVISOR_AGENT_KEY_FILE"
 
-AGENT_ID_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
-NONCE_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
-SIG_RE = re.compile(r"^v1=[0-9a-f]{64}$")
+AGENT_ID_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}\Z")
+NONCE_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}\Z")
+SIG_RE = re.compile(r"^v1=[0-9a-f]{64}\Z")
 
 
 class CredentialError(Exception):
