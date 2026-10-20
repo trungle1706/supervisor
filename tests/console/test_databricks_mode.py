@@ -137,3 +137,23 @@ def test_sso_actions_record_identity_and_sp_is_read_only(dbx: tuple[TestClient, 
         "/console/agents/credit_prequal/resume", data={"reason": "ok"}, headers={**hx, **OWNER}
     )
     assert r.status_code == 200 and "needs the reviewer" in r.text, r.text
+
+
+def test_shell_routes_with_sso_headers(dbx: tuple[TestClient, Any]) -> None:
+    """WP-UX1: sidebar, search, list rows and the row drawer in databricks_app mode; the user
+    menu offers no user switch and lists no user file."""
+    client, ctx = dbx
+    hx = {**REVIEWER, "HX-Request": "true"}
+    page = client.get("/console/agents", headers=REVIEWER)
+    assert page.status_code == 200 and '<aside class="side"' in page.text
+    assert "dev-user" not in page.text and "/console/dev/user" not in page.text
+    agent = ctx.state.query("agent")[0]["agent_id"]
+    for url in (
+        f"/console/search?q={agent[:4]}",
+        "/console/agents/rows?sort=agent_id&dir=desc",
+        f"/console/agents/{agent}/drawer?tab=policy",
+        f"/console/agents/{agent}/drawer?tab=cases",
+    ):
+        r = client.get(url, headers=hx)
+        assert r.status_code == 200, (url, r.text[:300])
+        assert TOKEN not in r.text and "<html" not in r.text

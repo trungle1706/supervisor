@@ -68,10 +68,16 @@ Sidebar groups and items (`console/nav.py` holds the list):
 * Flagged pages (Compliance, Integration, Assurance, Tools, Inventory) show only when their
   flag is on, exactly as before. Hidden navigation is not security: every route still checks its
   permission (`core/rbac.py`).
-* The sidebar collapses to one letter per item (button `<<`; the choice is kept in the browser
-  only). Under 1100 px it hides behind the menu button. Arrow keys move between items.
+* The sidebar collapses to a two-letter code per item (button `<<`; the choice is kept in the
+  browser only). The codes are the same in EN and VI (`console/nav.py` `CODES`: OV Overview,
+  AG Agents, GD Gate decisions, TR Traces, AL Alerts, CS Cases, SO Sign-off, IB Inbox,
+  EV Evidence, AS Assurance, CO Compliance, ON Onboard, IV Inventory, IG Integration, TL Tools,
+  MT Metrics, PO Policies, CR Credentials, US Users and roles, AU Audit log, IS Settings >
+  Integrations, HL Health); the full label is the hover tooltip and the accessible name. Under
+  1100 px the sidebar hides behind the menu button. Arrow keys move between items.
 * Top bar: environment and data badge, **global search** (`GET /console/search?q=`: agents and
-  cases by id or name, traces by exact trace id; at least 2 characters; 5 hits per kind; it
+  cases by id or name, traces by exact trace id from 8 characters (one SQL call per lookup);
+  at least 2 characters; 5 hits per kind; it
   works with htmx as a popover and without JS as a page), inbox with the unread count, `EN . vi`
   switch, theme button, role pill and the user menu (with "Switch user" in `dev_header` mode).
 * Accessibility: skip link to `#main`, `aria-current="page"` on the active item, `aria-sort`
@@ -106,8 +112,8 @@ drawer, tab keys).
 | Filter bar | `ui.filterbar(...)` | A plain GET form; with htmx it swaps the rows partial |
 | Data table | `_c_table.html`: `tb.th` (sort link, `aria-sort`) and `tb.pager`; `console/listing.py`: `paginate`, `parse_sort` (allow-listed columns), `sort_rows` | Works without JS. A page outside 1..N is HTTP 400, never 500. An unknown sort column falls back to the default |
 | Status pills | `ui.pill`, `ui.sev`, `ui.state_pill`, `ui.verify_pill`, new `ui.action_pill` | A word plus a colour, never a colour alone |
-| Row drawer | `_c_drawer.html` (`dr.drawer`), container in `base.html`, `_agent_drawer.html` | Side panel with previous / next row, Copy JSON, close, tabs. Opens by htmx; `?drawer=<id>` is the no-JS fallback |
-| Tabs | `ui.tabs(...)` | `role=tablist`; arrow keys; htmx or a full page |
+| Row drawer | `_c_drawer.html` (`dr.drawer`), container in `base.html`, `_agent_drawer.html` | Side panel with previous / next row, Copy JSON, close, tabs. Opens by htmx; `?drawer=<id>` is the no-JS fallback. The htmx drawer builds the card of one agent only (previous / next come from light rows, or from all cards when the list is sorted by coverage) |
+| Tabs | `ui.tabs(...)` | `role=tablist`, `aria-controls` to the `role=tabpanel`; arrow keys, Home, End; focus stays on the tab after an htmx swap; htmx or a full page |
 | Key-value panel | `ui.kv(rows)` | Third item `True` = monospace |
 | Timeline | `ui.timeline(items)` | Reuses `.timeline` |
 | Empty state | `ui.empty(title, line, href, label)` | |

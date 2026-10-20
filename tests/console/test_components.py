@@ -172,3 +172,36 @@ def test_new_labels_exist_in_both_languages() -> None:
     ):
         en, vi = table[key]
         assert en and vi and en != vi, key
+
+
+def test_every_wp_ux1_key_has_both_languages() -> None:
+    """Every key of the WP-UX1 block in i18n.py has a non-empty EN and VI text, and every label
+    key the sidebar uses exists."""
+    from supervisor.console import nav
+
+    src = Path(i18n.__file__).read_text(encoding="utf-8")
+    block = src.split("# --- WP-UX1", 1)[1].split("\n}\n", 1)[0]
+    keys = re.findall(r'^    "([a-z0-9_A-Z]+)": \(', block, re.M)
+    assert len(keys) >= 60
+    table = i18n.table()
+    for key in keys:
+        en, vi = table[key]
+        assert en.strip() and vi.strip(), key
+    for _, items in nav.GROUPS:
+        for it in items:
+            assert all(table[it.label]), it.label
+    for g, _ in nav.GROUPS:
+        assert g is None or all(table[g]), g
+
+
+def test_tabs_point_at_their_panel() -> None:
+    html = _render(
+        UI
+        + "{{ ui.tabs(['a'], 'a', {'a': 'A'}, '/p?tab={tab}', '/h?tab={tab}', panel='tab-body') }}"
+    )  # noqa: E501
+    assert 'aria-controls="tab-body"' in html
+    d = _render(
+        '{% import "_c_drawer.html" as dr with context %}'
+        "{% call dr.drawer('x', '', 'TABS', '{}') %}B{% endcall %}"
+    )
+    assert 'id="tab-body" role="tabpanel"' in d

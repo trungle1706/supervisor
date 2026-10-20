@@ -115,7 +115,7 @@ def signoff_waiting(ctx: Any, cases: list[dict[str, Any]]) -> int:
     try:
         for c in cases:
             if c["severity"] in TWO_PERSON_SEVERITIES and c["status"] in ("triaged", "contained"):
-                if len(ctx.cases._approvals(c["case_id"])) < 2:  # noqa: SLF001 - read-only count
+                if len(ctx.cases.approvals(c["case_id"])) < 2:
                     n += 1
     except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
         return 0
@@ -510,7 +510,8 @@ def decision33(ctx: Any, agent: Mapping[str, Any]) -> dict[str, Any]:
     return {"cls": None, "source": None}
 
 
-def agent_cards(ctx: Any, me: Any) -> list[dict[str, Any]]:
+def agent_cards(ctx: Any, me: Any, only: str | None = None) -> list[dict[str, Any]]:
+    """One card per agent; ``only`` builds the card of that agent alone (the row drawer)."""
     from supervisor.core.errors import SupervisorError
 
     states = ctx.gateway.states
@@ -527,6 +528,8 @@ def agent_cards(ctx: Any, me: Any) -> list[dict[str, Any]]:
     cards = []
     for a in sorted(ctx.state.query("agent"), key=lambda r: r["agent_id"]):
         aid = a["agent_id"]
+        if only is not None and aid != only:
+            continue
         try:
             desc = states.describe(aid)
         except SupervisorError:
@@ -914,7 +917,7 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
 
     status = case["status"]
     next_steps = list(TRANSITIONS.get(status, ()))
-    approvals = ctx.cases._approvals(case_id)
+    approvals = ctx.cases.approvals(case_id)
     two_person = case["severity"] in TWO_PERSON_SEVERITIES
     agent_row = ctx.state.get("agent", {"agent_id": case["agent_id"]}) or {}
     try:

@@ -109,6 +109,35 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
 )
 
 
+# Short codes shown when the sidebar is collapsed (wide screens). Two letters, unique, the same in
+# EN and VI (like unit symbols); the full label stays in the link's title tooltip and is the
+# link's accessible name. One-letter initials were ambiguous (Agents, Alerts, Assurance...).
+CODES: dict[str, str] = {
+    "overview": "OV",
+    "agents": "AG",
+    "soon-decisions": "GD",
+    "soon-traces": "TR",
+    "alerts": "AL",
+    "cases": "CS",
+    "signoff": "SO",
+    "inbox": "IB",
+    "evidence": "EV",
+    "assurance": "AS",
+    "compliance": "CO",
+    "onboard": "ON",
+    "inventory": "IV",
+    "integration": "IG",
+    "tools": "TL",
+    "metrics": "MT",
+    "soon-policies": "PO",
+    "soon-credentials": "CR",
+    "soon-users": "US",
+    "soon-audit": "AU",
+    "soon-integrations": "IS",
+    "health": "HL",
+}
+
+
 def _visible(item: Item, sh: dict[str, Any], compliance: bool, integration: bool) -> bool:
     if item.placeholder:
         return bool(sh.get("placeholders"))
@@ -132,7 +161,7 @@ def href(path: str, lang: str) -> str:
 def groups(
     sh: dict[str, Any], *, compliance: bool, integration: bool, lang: str = "en"
 ) -> list[dict[str, Any]]:
-    """Visible groups with resolved counts: ``[{label, items: [{item, href, n, hot}]}]``. A
+    """Visible groups with resolved counts: ``[{label, items: [{item, code, href, n, hot}]}]``. A
     group with no visible item is dropped."""
     out: list[dict[str, Any]] = []
     for label, items in GROUPS:
@@ -144,6 +173,7 @@ def groups(
             rows.append(
                 {
                     "item": it,
+                    "code": CODES[it.key],
                     "href": href(it.href, lang),
                     "n": n,
                     "hot": bool(it.hot and sh.get(it.hot)),

@@ -16,6 +16,6 @@
 </div>
 {% if pills %}<div class="drawer-pills">{{ pills }}</div>{% endif %}
 {{ tabs_html }}
-<div class="drawer-body" id="tab-body">{{ caller() }}</div>
+<div class="drawer-body" id="tab-body"{% if tabs_html %} role="tabpanel"{% endif %}>{{ caller() }}</div>
 <pre id="drawer-json" hidden>{{ json_text }}</pre>
 {% endmacro %}
