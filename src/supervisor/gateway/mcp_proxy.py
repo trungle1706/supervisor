@@ -68,6 +68,28 @@ def deny_response(id_: Any, verdict: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# Methods that read data without being a tools/call. Each goes through the gate as the tool
+# ``mcp.<method with dots>`` (for example ``mcp.resources.read``) with the params as arguments, so
+# the policy must list it (class read_only) or the gate refuses it by its own rule (WP26 F13).
+DATA_METHODS = ("resources/read", "resources/templates/list", "prompts/get", "completion/complete")
+
+
+def data_tool_name(method: str) -> str:
+    return "mcp." + method.replace("/", ".")
+
+
+def clean_call_params(params: dict[str, Any]) -> dict[str, Any]:
+    """tools/call params as forwarded: name, arguments and _meta.progressToken only. Any other
+    key (a smuggled _meta field, an extension) is dropped, because the gate never saw it."""
+    out: dict[str, Any] = {"name": params["name"]}
+    if "arguments" in params:
+        out["arguments"] = params["arguments"]
+    meta = params.get("_meta")
+    if isinstance(meta, dict) and isinstance(meta.get("progressToken"), (str, int)):
+        out["_meta"] = {"progressToken": meta["progressToken"]}
+    return out
+
+
 class McpGateProxy:
     def __init__(
         self,
@@ -93,7 +115,10 @@ class McpGateProxy:
     def handle(self, message: Any) -> dict[str, Any] | None:
         if not isinstance(message, dict) or message.get("jsonrpc") != "2.0":
             return _error(None, INVALID_REQUEST, "invalid request")
-        if message.get("method") != "tools/call":
+        method = message.get("method")
+        if method in DATA_METHODS:
+            return self._gated_data_method(message)
+        if method != "tools/call":
             return self._forward(message)
         id_ = message.get("id")
         params = message.get("params")
@@ -119,13 +144,44 @@ class McpGateProxy:
                 "reason": f"gate failure: {type(exc).__name__}",
             }
         if verdict.get("allow") is True:
+            params = clean_call_params(params)
             transformed = verdict.get("transformed_args")
             if self._inline and isinstance(transformed, dict):
-                message = {**message, "params": {**params, "arguments": transformed}}
-            return self._forward(message)
+                params["arguments"] = transformed
+            return self._forward({**message, "params": params})
         if id_ is None:  # a notification cannot receive a response
             return None
         return deny_response(id_, verdict)
+
+    def _gated_data_method(self, message: dict[str, Any]) -> dict[str, Any] | None:
+        id_ = message.get("id")
+        params = message.get("params")
+        args = params if isinstance(params, dict) else {}
+        ctx = {"transport": "mcp", "mcp_method": message["method"]}
+        try:
+            verdict = dict(
+                self._gate.check(
+                    self._agent_id,
+                    self._agent_version,
+                    data_tool_name(message["method"]),
+                    args,
+                    context=ctx,
+                )
+            )
+        except Exception as exc:  # fail closed
+            verdict = {
+                "allow": False,
+                "rule_id": "GATE-ERROR",
+                "reason": f"gate failure: {type(exc).__name__}",
+            }
+        if verdict.get("allow") is True:
+            return self._forward(message)
+        if id_ is None:
+            return None
+        text = f"blocked by supervisor: {verdict.get('rule_id')}: {verdict.get('reason')}"
+        err = _error(id_, -32000, text)
+        err["error"]["data"] = {"rule_id": verdict.get("rule_id"), "allow": False}
+        return err
 
     def _forward(self, message: dict[str, Any]) -> dict[str, Any] | None:
         try:
