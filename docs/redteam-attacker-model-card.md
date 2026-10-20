@@ -35,11 +35,14 @@ the sandbox, use as a gate or a classifier, scoring a model's safety from its ow
 ## Data and what leaves the process (R2, R3)
 
 Only the configured endpoint is called. The prompt holds the system text, the language, the
-stage name and ONE template turn in which every id, amount, tool name and digit string is replaced
-by `<<Tn>>` and restored afterwards. No customer text exists in the sandbox (synthetic world).
+stage name and ONE template turn in which every id, amount, tool name and digit run (also one
+or two digits and grouped runs such as `+84 36 123 4567`) is replaced by `<<Tn>>` and restored
+afterwards. No customer text exists in the sandbox (synthetic world).
 The evidence judge receives a compact transcript with digit runs of six or more masked. Neither
-component writes model text to the chain: the chain holds integers; traces hold turn text (digit
-runs masked) in files.
+component writes model text to the chain: the chain holds integers; traces hold turn text (runs of
+9 or more digits masked, also when grouped) in files. A live run prints how many rephrase attempts
+fell back to the template text (`llm_fallback_turns`), so an unreachable endpoint cannot pass for
+an LLM run.
 
 ## Metrics (live check, see the validation report)
 
@@ -77,6 +80,7 @@ all three agents, model pass only). Full context: `docs/redteam-multiturn-valida
 | Version | Date | Change |
 |---|---|---|
 | `mt-attacker-1`, `mt-evidence-1` | 2026-10-20 | First version (WP28): protected tokens, fallback, cap of 60 conversations, two-stage judge |
+| `mt-attacker-1` (prompt unchanged) | 2026-10-20 | WP28 review: every digit run is a protected token (before: 1 and 2 digit numbers and the first groups of a spaced phone number were sent); fallback count printed. Live re-check: 6 conversations, 0 of 54 rephrase attempts fell back |
 
 ## Change control
 

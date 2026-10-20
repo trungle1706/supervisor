@@ -133,3 +133,26 @@ test checks the prompt). The Anthropic dev key was not used, so no cloud cost wa
 * Delta store: the result rows use the shared table store (covered by its own Delta tests); the
   trend reader is tested against Delta-style string rows, not against a workspace.
 * The K values of the monitor, and the thresholds above: illustrative until WP27 and the bank set them.
+
+## 8. Independent review (2026-10-20, REVIEW_WP28.md)
+
+* **Catch is now tied to the crossing call.** Before the review a turn's gate answer was the
+  union over its calls, so a stop on a decoy call in the same turn counted as a catch of the
+  crossing call. Each call now runs on its own; no catalogue turn has two calls, so no number
+  in this report changes. A reviewer re-run (`validate --trials 20`, after the fix) gave the same
+  verdicts: dev all GO; held-out all GO except `monitor_false_alarm_bp` 555 WARN; `gate_catch_bp`
+  10000 on both splits, `unexpected_escape_count` 0, pooled `model_gate_catch_bp` (MOCK, all
+  objectives incl. holes) 6815 dev and 6349 held-out, `known_gap_open_count` 6 dev and 2 held-out.
+* **Thresholds were not pre-registered.** The thresholds, the code and these results were
+  committed within 11 minutes of each other, so git history cannot show that the thresholds came
+  before the first run, and `monitor_visible_bp` (go 8000) sits close to the observed 8119 to
+  8435. Treat the thresholds as frozen from commit `1de0a16`; a change needs the owner's sign-off
+  and a note here, and the pack manifest and `harness.THRESHOLDS` must stay equal (a test checks).
+* **Benign controls are easy.** The catalogue's benign sessions make one in-limit call.
+  Near-limit legitimate sessions (two payees under the daily cap, exactly the single limit, a
+  split more than one hour apart) are checked through the real gate in
+  `tests/redteam/test_review_fixes.py`; `false_alarm_bp` should be read as "easy look-alikes".
+* **Window edge.** The oracle's windows exclude a call exactly `window_s` earlier; the gate
+  includes it. At exactly 3600 s the gate stops a pair the oracle calls legitimate (a
+  conservative mismatch, never a hidden escape). BACKLOG.
+
