@@ -604,6 +604,8 @@ def _write_client_file(path: Path, secret: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
     fd = os.open(path, flags, 0o600)
+    if os.name == "posix":
+        os.fchmod(fd, 0o600)  # an existing file keeps its mode on open: fix it before writing
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
         fh.write(secret + "\n")
     if os.name == "posix":
