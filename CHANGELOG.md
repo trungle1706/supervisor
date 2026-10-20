@@ -1,8 +1,10 @@
 # Changelog
 
-## v0.3.0-pre (phase 3, wave 1) - not released
+## v0.3.0 (phase 3, wave 1) - 2026-10-20
 
-Integration branch `phase3-wave1`. `__version__` stays `0.2.0` until the release.
+Merged from the integration branch `phase3-wave1` (3,684 tests, 29 skipped). Every new feature is behind a
+flag that is off by default. On Delta, run `python -m supervisor.jobs.bootstrap_schema` before deploying
+(new columns and tables listed below).
 
 ### What is new
 
