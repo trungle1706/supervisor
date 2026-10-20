@@ -31,6 +31,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/onboard-eval.md` | Precision and recall of the code analysers on the corpus | Dev, 2L |
 | `docs/regulations.md` | Regulation knowledge base: coverage, format, internal rules | 2L, Dev |
 | `docs/compliance-advisor.md` | Obligations matrix, Decision 33, threshold check | 2L, Dev |
+| `docs/inventory.md` | Inventory graph, risk inheritance, shadow-AI scan (WP24) | 2L, Platform admin, Dev |
 | `docs/assurance.md` | 33 eval packs with licence and data mode | 2L, Dev |
 | `docs/tool-analytics.md` | Tool usage rollup, least-privilege suggestion, Tools page (WP22) | 2L, Op, Dev |
 | `docs/judge-mrm.md` | Model card, validation, change control of the judge | 2L, Aud |

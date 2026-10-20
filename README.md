@@ -50,6 +50,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Assurance packs | 33 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
 | Tool analytics | Per-tool calls, outcomes, latency; allowed-but-unused tools; least-privilege diff (suggestion only) | `docs/tool-analytics.md` |
 | Judge MRM | Model card, validation report, change control, retire | `docs/judge-mrm.md` |
+| Inventory graph | Agents, models, endpoints, tools, MCP servers and datasets with evidence; risk passes up; flags Apps and endpoints with no manifest (shadow AI) | `docs/inventory.md`, `docs/adr/D16-inventory-graph.md` |
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
 | Ingress auth (WP20, off by default) | Per-agent HMAC key or Databricks service-principal token on `/gate/check` and `/v1/traces`; `INGRESS_AUTH_ENABLED=1` | `docs/ingress-auth.md`, `docs/adr/D14-ingress-auth.md` |
 
@@ -99,6 +100,7 @@ until you turn its flag on.
 | `JUDGE_REQUIRE_VALIDATION` | Judge refuses to start without a passing MRM validation for its current identity |
 | `API_RBAC_ENABLED` | Enforces the role matrix on the agent-facing `/gate/*` read routes (`/gate/agents/{id}/state`, `/gate/metrics`). The control routes (pause, resume, quarantine, release) always check identity and role |
 | `RATE_LIMIT_ENABLED` | Rate-limits mutating routes (429); agent check path is exempt |
+| `INVENTORY_ENABLED` | Fills the inventory graph, runs the workspace refresh job (databricks_app mode), shows the Inventory tab and `/v1/inventory/...`; shadow-AI items open low-severity cases |
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
 | `MASK_AMOUNTS` | Types money amounts `<AMOUNT:...>` in masked text (default: amounts stay intact, the rules need them). See `docs/masking.md` |
 | `INLINE_REDACTION_ENABLED` | Gate answer carries masked `transformed_args` for `pii_export` tools; the SDK and the MCP proxy apply them when their own switch is on. `INLINE_REDACTION_TOOLS` adds tools. See `docs/masking.md` |

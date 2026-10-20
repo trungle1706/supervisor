@@ -383,14 +383,22 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     adapters = runtime.adapters
     cases: list[Any] = []
 
-    def intake() -> list[str]:
+    def case_service() -> Any:
         if not cases:  # the console's case service when the app built one (it notifies)
             from supervisor.cases import build_case_service
             from supervisor.console.context import peek_context
 
             ctx_ = peek_context()
             cases.append(ctx_.cases if ctx_ is not None else build_case_service(runtime))
-        return case_intake_job.run(cases[0])
+        return cases[0]
+
+    def intake() -> list[str]:
+        return case_intake_job.run(case_service())
+
+    def inventory() -> Any:  # WP24: manifests + workspace + shadow-AI cases
+        from supervisor.jobs import inventory as inventory_job
+
+        return inventory_job.run(adapters, settings, cases=case_service())
 
     judge = quality = None
     if settings.judge_enabled:
@@ -403,7 +411,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
             quality = build_quality_sweep(ctx, settings)
         except Exception:  # noqa: BLE001
             log.exception("quality sweep disabled: the scorer could not be built")
-    return [
+    jobs = [
         JobSpec("ingest", settings.sched_ingest_s, lambda: ingest_job.run(settings, adapters)),
         JobSpec(
             "anchor",
@@ -435,6 +443,11 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
         JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
                 settings.alerts_enabled),
     ]  # fmt: skip
+    from supervisor.jobs import inventory as inventory_job
+
+    if inventory_job.scheduled(settings):  # WP24: listed only when it can run
+        jobs.append(JobSpec("inventory", settings.sched_inventory_s, inventory))
+    return jobs
 
 
 def build_scheduler(settings: Any, runtime: Any) -> SupervisorScheduler:

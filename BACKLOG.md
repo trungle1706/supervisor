@@ -69,3 +69,11 @@
 | WP21: the alert job reads up to `ALERTS_LAG_S` (30 s) before now; a chain entry that commits later than that behind its own timestamp is still not seen | Per-lane seq cursors in the alert job |
 | WP21: alert thresholds are illustrative and tuned on 7 synthetic alerts per split (Wilson lower bound 6456 bp) | Replay a week of the bank's own gate decisions with `python -m supervisor.alerts test` |
 | WP21: `alert` and `siem_event` have no retention class; dead-letter files are bounded (64 MiB, then the send raises) but not rotated | Bank decision on retention for alert history; rotate the dead-letter files |
+| WP24: the compliance advisor and the launch report do not yet read the inventory (the read API `supervisor.inventory.read.inventory_for_agent` exists and is tested) | Wire it in with the advisor owner (use the endpoint, tools and datasets as product facts) |
+| WP24: no console action to set a manual risk or an allow-list entry; manual risk is `InventoryStore.set_manual_risk` only; allow-list is a file | Bank decision on who may edit the inventory, then an `inventory.edit` permission and a chain record |
+| WP24: Delta writes are one statement per changed row (no batching); fine for thousands of nodes, slow beyond | Batch MERGE if the workspace has more than a few thousand objects |
+| WP24: workspace scan sees Apps, serving endpoints, registered models and UC tables; not Genie spaces, Vector Search endpoints, notebooks/jobs that call a model, or agents on Agent Bricks | Extend the reader per owner priority |
+| WP24: Apps are matched to agents by name or by an explicit `databricks_app` in the manifest; there is no read of an App's bound resources (`resources` of the App spec) to find its serving endpoint | Read App resources through the SDK and add `uses` edges automatically |
+| WP24: lineage (who reads which UC table) comes from the fixture only; the live reader does not call the lineage API | Add `lineage-tracking` table-lineage reads when the metastore enables it |
+| WP24: risk inheritance uses `uses` edges only; datasets carry no own level; no per-node Decision 33 tasks | WP29 risk register and WP30 task list decide what else passes up |
+| WP24: shadow case severity is fixed `low` | Owner decision (ADR D16 open 3) |

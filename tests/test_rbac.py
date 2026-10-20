@@ -63,6 +63,7 @@ def test_new_roles() -> None:
         "metrics.view",
         "onboard.view",
         "compliance.view",
+        "inventory.view",  # WP24
         "gate.read",
         "tools.view",  # WP22
     }

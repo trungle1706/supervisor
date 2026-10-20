@@ -44,6 +44,7 @@ from supervisor.console import (
     compliance_view,
     health,
     integration_reports,
+    inventory_views,
     onboard_runs,
     readmodels,
     tools_views,
@@ -1195,6 +1196,31 @@ async def tools_diff(
         media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{name}"'},
     )
+
+
+# ---------------------------------------------------------------------------- inventory
+
+
+@router.get(
+    "/inventory",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("inventory.view"))],
+)
+async def inventory_page(
+    request: Request,
+    agent: str | None = None,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    """WP24: per-agent inventory subgraph and the unmanaged workspace items. Off unless
+    INVENTORY_ENABLED is on: HTTP 400 with a message and no nav entry."""
+    if not ctx.settings.inventory_enabled:
+        raise ConsoleInputError(
+            "The Inventory tab is off (INVENTORY_ENABLED=1 turns it on); "
+            "python -m supervisor.jobs.inventory fills it"
+        )
+    data = await _call(inventory_views.page, ctx, agent)
+    return render(request, ctx, me, "inventory.html", section="inventory", **data)
 
 
 # ---------------------------------------------------------------------------- health

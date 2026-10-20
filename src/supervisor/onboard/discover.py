@@ -24,6 +24,7 @@ from typing import Any
 import yaml
 
 from supervisor.adapters.repo.local_git import RepoReadError
+from supervisor.core.errors import check_agent_id
 from supervisor.core.ports import RepoReader, WorkspaceReader
 from supervisor.onboard import codefacts
 from supervisor.onboard.injection import WITHHELD, find_injection, neutralize_tree
@@ -208,7 +209,7 @@ def discover(
     _add_code_tools(facts, index, st)
 
     folder_id = _folder_id(repo)
-    aid = agent_id or str(manifest.get("id") or folder_id or "agent")
+    aid = check_agent_id(agent_id or str(manifest.get("id") or folder_id or "agent"))
     tools = _merge_tools(manifest_file, manifest, st, index)
     _side_effects(tools, facts)
     _money_by_shape(tools)

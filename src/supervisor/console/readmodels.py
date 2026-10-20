@@ -115,7 +115,14 @@ def shell(ctx: Any, me: Any) -> dict[str, Any]:
         unread = sum(1 for n in ctx.inbox.list() if n.get("status") == "unread")
     except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
         unread = 0
+    inventory_n = None  # WP24: unmanaged workspace items (None = tab off)
+    if ctx.settings.inventory_enabled:
+        try:
+            inventory_n = len(ctx.state.query("inventory_node", {"status": "unmanaged"}))
+        except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
+            inventory_n = 0
     return {
+        "inventory_n": inventory_n,
         "agents_n": len(agents),
         "cases_n": len(cases),
         "critical_n": sum(1 for c in cases if c["severity"] == "critical"),
@@ -896,6 +903,7 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
     d33 = None if d33_text.startswith("FILL-ME") else d33_text
     lane = f"agent:{case['agent_id']}"
     closed = status == "closed"
+    unclocked = ctx.cases.unclocked(case_id)  # WP24: internal flag, no Decree 142 clock
     flow_idx = CASE_FLOW.index(status) if status in CASE_FLOW else 0
     return {
         "case": case,
@@ -910,10 +918,10 @@ def case_detail(ctx: Any, case_id: str, me: Any, now: dt.datetime) -> dict[str, 
         "approvals": approvals,
         "links": ctx.cases.links(case_id),
         "report_clock": None
-        if closed
+        if closed or unclocked
         else views.countdown(cf.sbv.report_due_at, now, severity=case["severity"]),
         "remediation_clock": None
-        if closed
+        if closed or unclocked
         else views.countdown(cf.sbv.remediation_due_at, now, 5 * 86400),
         "incident": ctx.cases.incident_status(case_id, now=now),  # WP19: Decree 142 Art. 19
         "lane": lane,

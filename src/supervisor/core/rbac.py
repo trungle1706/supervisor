@@ -46,6 +46,7 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "metrics.view": (_ALL, "Metrics page"),
     "onboard.view": (_ALL, "Onboarding page, status and generated files"),
     "compliance.view": (_ALL, "Compliance tab (advisory obligations matrix, read-only)"),
+    "inventory.view": (_ALL, "Inventory page and /v1/inventory (read-only, WP24)"),
     "gate.read": (_ALL, "Read agent gate state and gate metrics (API)"),
     "case.assign": (("reviewer", "admin"), "Assign a case"),
     "case.itsm": (("reviewer", "admin"), "Set the ITSM reference of a case"),
@@ -90,6 +91,7 @@ NON_USER_OK: frozenset[str] = frozenset(
         "metrics.view",
         "onboard.view",
         "compliance.view",
+        "inventory.view",
         "gate.read",
         "tools.view",
         "case.verify",
@@ -148,6 +150,9 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/integration/{name}/patches/{file}"): "onboard.view",
     ("GET", "/console/assurance"): "console.view",  # WP17, read-only
     ("GET", "/console/assurance/{run_id}"): "console.view",
+    ("GET", "/console/inventory"): "inventory.view",  # WP24, read-only
+    ("GET", "/v1/inventory/unmanaged"): "inventory.view",
+    ("GET", "/v1/inventory/{agent_id}"): "inventory.view",
     ("GET", "/console/exports/{name}"): "evidence.download",
     ("GET", "/console/tools"): "tools.view",  # WP22
     ("GET", "/console/tools/{agent_id}/diff"): "tools.download",

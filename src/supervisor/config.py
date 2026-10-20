@@ -418,6 +418,14 @@ class Settings(BaseSettings):
     notify_webhook_dead_letter: Path | None = None  # default: <data_dir>/notify/webhook.dead.jsonl
     notify_webhook_token: SecretStr | None = None  # bank vault; Authorization: Bearer <token>
 
+    # --- WP24 --- inventory graph and shadow-AI scan (ADR D16; all off by default)
+    inventory_enabled: bool = False  # tables are filled, /v1/inventory and the Inventory page work
+    sched_inventory_s: int = Field(default=3600, ge=60)  # workspace refresh (databricks_app mode)
+    inventory_scan_schemas: str = ""  # "catalog.schema,catalog.schema": UC schemas to list
+    inventory_self_app: str = ""  # name of this Databricks App (never reported as shadow AI)
+    inventory_allowlist_file: Path | None = None  # default config/inventory_allowlist.yaml
+    inventory_workspace_fixture: Path | None = None  # offline: JSON fixture instead of a workspace
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -441,6 +449,8 @@ class Settings(BaseSettings):
         "ingress_identities_file",
         "alerts_config",
         "notify_webhook_dead_letter",
+        "inventory_allowlist_file",
+        "inventory_workspace_fixture",
         mode="after",
     )
     @classmethod

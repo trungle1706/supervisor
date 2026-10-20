@@ -1,0 +1,9 @@
+# Shadow-AI allow-list (WP24, docs/inventory.md). Items here are known and are NOT AI agents,
+# so the inventory scan does not report them as unmanaged and opens no case for them.
+# Matching: exact name or a glob (* and ?), case-insensitive, against the workspace name.
+# Replace every FILL-ME value with real names in your local copy; an entry that still contains
+# FILL-ME never matches anything. Do not commit real workspace names.
+apps:
+  - FILL-ME-known-non-agent-app-name          # for example a BI portal or a data-quality UI
+serving_endpoints:
+  - FILL-ME-known-non-agent-endpoint-pattern-*

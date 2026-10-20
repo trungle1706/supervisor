@@ -5,6 +5,7 @@ Fixture layout (all keys optional)::
     {
       "apps": [{"name": "...", "url": "...", "description": "..."}],
       "serving_endpoints": [{"name": "...", "model": "...", "family": "...", "task": "..."}],
+      "registered_models": [{"name": "catalog.schema.model", "owner": "..."}],
       "tables": {"catalog.schema": ["table_a", "table_b"]},
       "lineage": [{"agent": "payments", "table": "cat.sch.t", "direction": "read"}],
       "traces": [{"agent": "payments", "source": "mlflow", "count": 120}]
@@ -47,6 +48,9 @@ class FixtureWorkspaceReader:
 
     def list_serving_endpoints(self) -> Sequence[Mapping[str, Any]]:
         return [dict(e) for e in self.data.get("serving_endpoints", [])]
+
+    def list_registered_models(self) -> Sequence[Mapping[str, Any]]:
+        return [dict(m) for m in self.data.get("registered_models", [])]
 
     def list_tables(self, catalog: str, schema: str) -> Sequence[str]:
         return sorted(str(t) for t in self.data.get("tables", {}).get(f"{catalog}.{schema}", []))
