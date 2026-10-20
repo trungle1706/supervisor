@@ -161,22 +161,65 @@ def _lexicon_hits(text: str) -> int:
     return sum(1 for w in _ALNUM.findall(text) if w in _LEXICON)
 
 
+# Words that make a part of a long text worth scoring (selection only, never a verdict).
+_CUES = frozenset(
+    _LEXICON
+    | set(C._WORDS["OVR"])  # noqa: SLF001 - the concept lexicon is the shared definition
+    | set(C._WORDS["RUL"])  # noqa: SLF001
+    | set(C._WORDS["SEC"])  # noqa: SLF001
+    | set(C._WORDS["AGT"])  # noqa: SLF001
+)
+SEGMENT = 600  # characters per middle segment of a long text
+SEGMENT_STEP = 450  # segments overlap by 150 characters (one window), so no cut hides a clause
+_B64_RUN = re.compile(r"[A-Za-z0-9+/]{24,}")  # linear scan; a run with a digit or + / counts
+MAX_SCAN_CHARS = 200_000  # a longer text is cut to its head and tail before segments are chosen
+_SURROGATES = re.compile("[\ud800-\udfff]")
+
+
+def drop_surrogates(text: str) -> tuple[str, bool]:
+    """Lone surrogates (possible in JSON input, ``"\\ud800"``) cannot be encoded: drop them."""
+    if text.isascii():
+        return text, False
+    out = _SURROGATES.sub("", text)
+    return out, out != text
+
+
+def cue_count(text: str) -> int:
+    """Number of cue words in ``text`` after normalisation (used to choose segments)."""
+    plain, _ = leet_fold(tier0b.strip_diacritics(tier0b.normalise(text)))
+    b64 = any(any(c.isdigit() or c in "+/" for c in m.group(0)) for m in _B64_RUN.finditer(text))
+    return sum(1 for w in _ALNUM.findall(plain) if w in _CUES) + (1 if b64 else 0)
+
+
 def clip_unit(text: str, limit: int = MAX_UNIT_CHARS) -> str:
+    """At most about ``limit`` characters of ``text``: its head, its tail and, from the middle, the
+    segments with the most cue words (WP25 review: a head-and-tail cut let an instruction hide in
+    the middle of a long document). Text up to ``limit`` is returned unchanged. Deterministic."""
     if len(text) <= limit:
         return text
-    head = limit * 2 // 3
-    return text[:head] + " \n " + text[-(limit - head) :]
+    if len(text) > MAX_SCAN_CHARS:  # bounded work (the gate refuses payloads over 100,000 chars)
+        text = text[: MAX_SCAN_CHARS // 2] + " \n " + text[-(MAX_SCAN_CHARS // 2) :]
+    head, tail = limit * 5 // 12, limit // 4
+    mid_start, mid_end = head, len(text) - tail
+    k = max(1, (limit - head - tail) // SEGMENT)
+    starts = list(range(mid_start, max(mid_start + 1, mid_end - SEGMENT + 1), SEGMENT_STEP))
+    if starts[-1] + SEGMENT < mid_end:
+        starts.append(mid_end - SEGMENT)
+    ranked = sorted(starts, key=lambda s: (-cue_count(text[s : s + SEGMENT]), s))[:k]
+    middle = " \n ".join(text[s : min(s + SEGMENT, mid_end)] for s in sorted(ranked))
+    return text[:head] + " \n " + middle + " \n " + text[-tail:]
 
 
 def prepare(text: str) -> list[str]:
     """Variants of ``text`` to score. Deterministic; the first is the main one."""
+    text, had_surrogates = drop_surrogates(text)
     text = clip_unit(flatten_json(text))
     marks: list[str] = []
     if "<!--" in text:
         marks.append(MARK_COMMENT)
     text = _HTML_COMMENT.sub(" ", text)
     base = unicodedata.normalize("NFKC", text)
-    if any(_is_invisible(c) for c in base):
+    if had_surrogates or any(_is_invisible(c) for c in base):
         marks.append(MARK_INVISIBLE)
     plain = tier0b.strip_diacritics(tier0b.normalise(text))
     plain, leeted = leet_fold(plain)

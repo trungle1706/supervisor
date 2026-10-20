@@ -6,8 +6,10 @@ REFUSES a weight file whose SHA-256 differs from the card, whose feature version
 ``features.FEATURE_VERSION``, or whose version differs from the card (``ModelIntegrityError``).
 
 Weights are integers (scale ``SCALE``), so the sum over features is exact whatever the order.
-The only float steps are one square root, one division and one ``exp``; the result is rounded to
-an integer score in basis points. Same input, same weights: same score (tested).
+The only float steps are one square root and divisions (IEEE 754, correctly rounded on every
+platform); the exponential of the sigmoid uses ``decimal`` (correctly rounded, platform
+independent) and the result is rounded to an integer score in basis points. Same input, same
+weights: same score (tested).
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
+from decimal import ROUND_HALF_EVEN, Decimal, localcontext
 from pathlib import Path
 from typing import Any
 
@@ -38,11 +41,17 @@ def sha256_file(path: Path) -> str:
 
 
 def sigmoid_bp(z: float) -> int:
+    """10000 * sigmoid(z) rounded half-even to an integer. The exponential is computed with the
+    ``decimal`` module (correctly rounded, the same on every platform) rather than the C library
+    ``exp``, whose last bit may differ between platforms (WP25 review)."""
     if z >= 30:
         return 10_000
     if z <= -30:
         return 0
-    return int(round(10_000 / (1.0 + math.exp(-z))))
+    with localcontext() as ctx:
+        ctx.prec = 34
+        value = Decimal(10_000) / (1 + (-Decimal(z)).exp())
+        return int(value.to_integral_value(rounding=ROUND_HALF_EVEN))
 
 
 def logit(sum_w: int, n: int, bias: int, sum_c: int = 0) -> float:

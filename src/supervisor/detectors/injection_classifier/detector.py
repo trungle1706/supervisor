@@ -61,6 +61,13 @@ PAUSE_CLASSES_ALLOWED = ("money", "credit", "pii_export")  # read_only can never
 _SENTENCE = re.compile(r"(?<=[.!?;:\n])\s+|(?=<!--)|(?<=-->)")
 MAX_CLAUSES = 80
 MAX_FRAGMENT_LEAVES = 2
+# Bounded work per call (WP25 review): a call with many or long texts must finish well inside the
+# gate's per-detector deadline, or a timeout (not fail closed) would silently skip the classifier.
+CALL_BUDGET_CHARS = 30_000  # characters scored per call, all units together
+MIN_UNIT_CHARS = 1_500  # every unit keeps at least this much (head, cue segments, tail)
+MAX_RESULT_UNITS = 16  # tool results beyond this are scored as one joined text
+FRAGMENT_RANK_CHARS = 8_000  # characters scored to rank the leaves of a fired unit
+CLAUSE_BUDGET_CHARS = 4_000  # characters of clauses scored to place a fragment in one leaf
 
 _MODEL_CACHE: dict[str, LinearModel] = {}
 
@@ -134,8 +141,9 @@ class InjectionClassifierDetector:
                 "integer",
                 default=12_000,
                 minimum=500,
-                maximum=100_000,
-                description="Longer text keeps its head and its tail.",
+                maximum=F.MAX_UNIT_CHARS,
+                description="Longer text keeps its head, its tail and the middle segments with "
+                "the most cue words.",
             ),
         )
     )
@@ -165,18 +173,21 @@ class InjectionClassifierDetector:
         )
         meta = payload.get("meta") or {}
         risk = meta.get("risk_class")
+        max_chars = min(max_chars, F.MAX_UNIT_CHARS)
         best: dict[str, tuple[int, U.Unit]] = {}
-        for unit in U.collect(payload, direction):
-            if unit.surface == "tool_results" and not settings.get("scan_tool_results", True):
-                continue
-            if unit.surface == "tool_description" and not settings.get(
-                "scan_tool_descriptions", True
-            ):
-                continue
-            text = unit.text
-            if len(text) > max_chars:  # head and tail (features.clip_unit keeps both)
-                text = text[: max_chars * 2 // 3] + "\n" + text[-(max_chars // 3) :]
-            score = model.score_bp(text, unit.surface)
+        units = [
+            u
+            for u in U.collect(payload, direction)
+            if not (u.surface == "tool_results" and not settings.get("scan_tool_results", True))
+            and not (
+                u.surface == "tool_description" and not settings.get("scan_tool_descriptions", True)
+            )
+        ]
+        units = _bounded_units(units)
+        per_unit = min(max_chars, max(MIN_UNIT_CHARS, CALL_BUDGET_CHARS // max(1, len(units))))
+        for unit in units:
+            # head, tail and the cue-richest middle segments (features.clip_unit)
+            score = model.score_bp(F.clip_unit(unit.text, per_unit), unit.surface)
             if unit.surface not in best or score > best[unit.surface][0]:
                 best[unit.surface] = (score, unit)
         out: list[Finding] = []
@@ -210,19 +221,28 @@ class InjectionClassifierDetector:
         self, model: LinearModel, unit: U.Unit, surface: str, threshold: int, max_chars: int
     ) -> tuple[Fragment, ...]:
         """The best clause of the best leaves, located on MASKED text (R2)."""
-        cands: list[tuple[int, Leaf, str]] = []
-        for leaf in unit.leaves[:40]:
-            if not leaf.text.strip():
-                continue
-            masked = self.masker.mask(leaf.text)[:max_chars]
-            if len(unit.leaves) == 1:
+        cands: list[tuple[int, Leaf]] = []
+        leaves = [x for x in unit.leaves if x.text.strip()]
+        if len(leaves) > 40:  # keep the 40 leaves with the most cue words (bounded work)
+            order = sorted(
+                range(len(leaves)), key=lambda i: (-F.cue_count(leaves[i].text[:2_000]), i)
+            )
+            leaves = [leaves[i] for i in sorted(order[:40])]
+        rank_chars = max(600, FRAGMENT_RANK_CHARS // max(1, len(leaves)))
+        for leaf in leaves:
+            if len(leaves) == 1:
                 sc = 10_000  # the only leaf: no need to score it again
+            elif F.usable(leaf.text):
+                sc = model.score_bp(F.clip_unit(leaf.text, rank_chars), surface)
             else:
-                sc = model.score_bp(leaf.text[:max_chars], surface) if F.usable(leaf.text) else 0
-            cands.append((sc, leaf, masked))
+                sc = 0
+            cands.append((sc, leaf))
         cands.sort(key=lambda c: -c[0])
         out: list[Fragment] = []
-        for _score, leaf, masked in cands[:MAX_FRAGMENT_LEAVES]:
+        for _score, leaf in cands[:MAX_FRAGMENT_LEAVES]:
+            # R2: the fragment is located on the MASKED head of the leaf (a margin keeps a value
+            # cut at the end whole); only the leaves that give a fragment are masked
+            masked = self.masker.mask(leaf.text[: max_chars + 200])[:max_chars]
             span = self._best_clause(model, masked, surface, threshold)
             if span is not None:
                 s, e = span
@@ -257,6 +277,15 @@ class InjectionClassifierDetector:
             ]
         if len(spans) <= 1:
             return None
+        if sum(e - s for s, e in spans) > CLAUSE_BUDGET_CHARS:  # score the cue-richest clauses
+            order = sorted(spans, key=lambda se: (-F.cue_count(masked[se[0] : se[1]]), se[0]))
+            chosen, used = [], 0
+            for s, e in order:
+                if used and used + (e - s) > CLAUSE_BUDGET_CHARS:
+                    continue
+                chosen.append((s, e))
+                used += e - s
+            spans = sorted(chosen)
         best_score, best_span = -1, None
         for s, e in spans:
             sc = model.score_bp(masked[s:e], surface)
@@ -268,6 +297,23 @@ class InjectionClassifierDetector:
                 s += 1
             return s, e
         return None
+
+
+def _bounded_units(units: list[U.Unit]) -> list[U.Unit]:
+    """At most MAX_RESULT_UNITS tool-result units: the rest are joined into the last one (their
+    text is still scored, inside the call budget)."""
+    res = [u for u in units if u.surface == "tool_results" and u.part == "tool_results"]
+    if len(res) <= MAX_RESULT_UNITS:
+        return units
+    others = [u for u in units if not (u.surface == "tool_results" and u.part == "tool_results")]
+    keep, rest = res[: MAX_RESULT_UNITS - 1], res[MAX_RESULT_UNITS - 1 :]
+    joined = U.Unit(
+        "tool_results",
+        "tool_results",
+        "\n".join(u.text for u in rest),
+        tuple(x for u in rest for x in u.leaves),
+    )
+    return [*others, *keep, joined]
 
 
 __all__ = [
