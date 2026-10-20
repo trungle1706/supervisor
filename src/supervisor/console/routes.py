@@ -1518,7 +1518,10 @@ async def playground_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _ux3_off(ctx, "playground")
-    data = await _call(playground.form_options, ctx)
+    sample = request.query_params.get("sample")
+    if sample:
+        _check_id(sample, "sample id")
+    data = await _call(playground.form_options, ctx, sample)
     return render(request, ctx, me, "playground.html", section="playground", **data)
 
 

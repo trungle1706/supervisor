@@ -5,22 +5,43 @@
 {{ ui.crumbs([(t('nav_g_onboard'), None), (t('nav_playground'), None)]) }}
 {{ ui.pagehead(t('nav_playground'), ui.pill(t('dry_run_pill'), 'teal')) }}
 {{ ui.purpose(t('playground_purpose'), t('playground_why')) }}
+{% if samples %}
+<section class="card" id="pg-samples" aria-label="{{ t('pg_samples') }}">
+  <h2 class="sec">{{ t('pg_samples') }}</h2>
+  <p class="hint">{{ t('pg_samples_line') }}</p>
+  <p class="idline">{% for sm in samples %}<a class="chipbtn{{ ' on' if prefill and prefill.sample_id == sm.id else '' }}" data-sample="{{ sm.id }}" href="/console/playground?sample={{ sm.id }}&amp;lang={{ lang }}">{{ sm['title_' ~ lang] or sm.title_en }}</a> {% endfor %}</p>
+  {% if prefill and prefill.note %}<p class="hint">{{ prefill.note }}</p>{% endif %}
+</section>
+{% endif %}
 <div class="grid2 playgrid">
   <form class="card pgform" id="pg-form" hx-post="/console/playground/run" hx-target="#result" hx-swap="innerHTML" hx-push-url="false" aria-describedby="pg-note">
     <h2 class="sec">{{ t('pg_inputs') }}</h2>
     <label for="pg-agent">{{ t('agent') }}</label>
     <select id="pg-agent" name="agent_id" required>
-      {% for a in agent_opts %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+      {% for a in agent_opts %}<option value="{{ a }}"{% if prefill and prefill.agent_id == a %} selected{% endif %}>{{ a }}</option>{% endfor %}
     </select>
     <label for="pg-version">{{ t('version') }}</label>
     <input id="pg-version" type="text" name="version" value="playground" maxlength="64" autocomplete="off">
     <label for="pg-tool">{{ t('tool') }}</label>
-    <input id="pg-tool" type="text" name="tool" list="pg-tools" required maxlength="128" autocomplete="off">
+    <input id="pg-tool" type="text" name="tool" list="pg-tools" required maxlength="128" autocomplete="off" value="{{ prefill.tool if prefill else '' }}">
     <datalist id="pg-tools">{% for tl in tool_opts %}<option value="{{ tl }}">{% endfor %}</datalist>
     <label for="pg-args">{{ t('pg_args') }}</label>
-    <textarea id="pg-args" name="args" rows="7" spellcheck="false" class="mono">{}</textarea>
+    <textarea id="pg-args" name="args" rows="7" spellcheck="false" class="mono">{{ prefill.args if prefill else '{}' }}</textarea>
     <label for="pg-context">{{ t('pg_context') }}</label>
-    <textarea id="pg-context" name="context" rows="3" spellcheck="false" class="mono">{}</textarea>
+    <textarea id="pg-context" name="context" rows="3" spellcheck="false" class="mono">{{ prefill.context if prefill else '{}' }}</textarea>
+    <h2 class="sec">{{ t('pg_extra') }}</h2>
+    <p class="hint">{{ t('pg_extra_line') }}</p>
+    <label for="pg-consumer">{{ t('pg_consumer') }}</label>
+    <input id="pg-consumer" type="text" name="consumer_id" maxlength="128" autocomplete="off" value="{{ prefill.consumer_id if prefill else '' }}">
+    <label for="pg-direction">{{ t('pg_direction') }}</label>
+    <select id="pg-direction" name="direction">
+      <option value="input"{% if not prefill or prefill.direction == 'input' %} selected{% endif %}>{{ t('pg_dir_input') }}</option>
+      <option value="output"{% if prefill and prefill.direction == 'output' %} selected{% endif %}>{{ t('pg_dir_output') }}</option>
+    </select>
+    <label for="pg-class">{{ t('pg_tool_class') }}</label>
+    <select id="pg-class" name="tool_class">
+      {% for c in tool_classes %}<option value="{{ c }}">{{ c or '-' }}</option>{% endfor %}
+    </select>
     <p class="hint" id="pg-note">{{ t('pg_note') }}</p>
     <p class="btnrow"><button class="btn" type="submit">{{ t('pg_check') }}</button></p>
   </form>
