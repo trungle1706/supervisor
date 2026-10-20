@@ -176,6 +176,13 @@ def _cmd_run(a: argparse.Namespace) -> int:
         max_attack_conversations=cap,
     )
     res = H.run_harness(hc, work_dir=a.out / "work")
+    if attacker is not None:
+        # an unreachable endpoint or bad model id silently falls back to the templates; say so
+        cost = res.aggregate["cost"]
+        tried, fell = int(cost.get("llm_turns", 0)), int(cost.get("llm_fallback_turns", 0))
+        note = f"LLM attacker: {fell} of {tried} rephrase attempts fell back to the template text"
+        res.notes.append(note)
+        _out(f"[{'WARN' if fell else 'INFO'}] {note}")
     files = H.write_outputs(res, a.out, traces=not a.no_traces)
     m = res.metrics
     _out(

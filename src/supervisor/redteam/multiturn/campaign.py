@@ -136,6 +136,9 @@ def aggregate(results: Sequence[ConversationResult]) -> dict[str, Any]:
         if r.success:
             rules.update(r.gate_stops_at_success or ["(none)"])
     llm_turns = sum(1 for r in attack for t in r.turns if t.attacker_mode.startswith("llm"))
+    llm_fallback_turns = sum(
+        1 for r in attack for t in r.turns if t.attacker_mode == "llm_fallback"
+    )
     return {
         "overall": _stats(attack),
         "by_family": _group(attack, lambda r: r.family),
@@ -175,6 +178,7 @@ def aggregate(results: Sequence[ConversationResult]) -> dict[str, Any]:
             "benign_conversations": len(benign),
             "turns": sum(r.n_turns for r in results),
             "llm_turns": llm_turns,
+            "llm_fallback_turns": llm_fallback_turns,  # included in llm_turns
             "ms_total": sum(r.ms for r in results),
             "ms_mean": (sum(r.ms for r in results) // len(results)) if results else 0,
         },

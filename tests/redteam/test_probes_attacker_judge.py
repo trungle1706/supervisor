@@ -282,3 +282,27 @@ def test_samples_match_the_real_gate_dry_run_and_tier0b(gateway) -> None:  # typ
         kinds = sorted({f.kind for f in clf.classify(s["tool"], s["args"])})
         assert kinds == s["expect"]["tier0b"], (s["id"], kinds)
         assert set(s["expect"]["not_evaluated"]) <= set(res["not_evaluated"]), s["id"]
+
+
+def test_cli_llm_run_reports_fallbacks_when_the_endpoint_is_down(
+    tmp_path, monkeypatch, capsys
+) -> None:  # type: ignore[no-untyped-def]
+    """Review finding: an unreachable endpoint turned an LLM run into a template run labelled
+    llm without saying so. The CLI and the report now print the fallback count."""
+    from supervisor.redteam.multiturn import __main__ as cli
+    from supervisor.redteam.multiturn import harness as H
+
+    def boom(_u: str) -> dict[str, str]:
+        raise ConnectionError("down")
+
+    monkeypatch.setattr(H, "settings_attacker", lambda settings=None: LlmAttacker(FakeChat(boom)))
+    out_dir = tmp_path / "o"
+    rc = cli.main(
+        ["run", "--out", str(out_dir), "--attacker", "llm", "--trials", "1", "--agent",
+         "credit_prequal", "--family", "crescendo", "--benign-trials", "0", "--no-traces"]
+    )  # fmt: skip
+    text = capsys.readouterr().out
+    assert rc in (0, 1) and "[WARN] LLM attacker:" in text and "fell back" in text
+    assert "fell back to the template text" in (out_dir / "report.md").read_text(encoding="utf-8")
+    cost = json.loads((out_dir / "results.json").read_text(encoding="utf-8"))["aggregate"]["cost"]
+    assert cost["llm_fallback_turns"] == cost["llm_turns"] > 0
