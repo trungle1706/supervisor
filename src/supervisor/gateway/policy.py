@@ -366,6 +366,19 @@ class AgentManifest(_Strict):
     mode: ModeT | None = None
     rules: RuleSwitches | None = None
     consumers: dict[str, ConsumerOverride] = Field(default_factory=dict)
+    # WP38 review: two distinct approver ids that allow observe mode to lift a decision on a
+    # money, credit or pii_export tool (see _cross_check_modes). Left out of the hash when empty.
+    observe_approvals: list[str] = Field(default_factory=list, max_length=2)
+
+    @field_validator("observe_approvals")
+    @classmethod
+    def _two_approvers(cls, v: list[str]) -> list[str]:
+        if v and (len(v) != 2 or len(set(v)) != 2):
+            raise ValueError("observe_approvals needs two distinct approver ids")
+        for a in v:
+            if not re.match(_NAME_RE, a):
+                raise ValueError(f"bad approver id {a!r}")
+        return v
 
     @field_validator("consumers")
     @classmethod
@@ -415,9 +428,15 @@ def _merge(docs: Sequence[PolicyDoc]) -> PolicyDoc:
     )
 
 
-# Rules a consumer override may not switch off: a block or pause rule on a money or credit tool.
-# The consumer id is asserted by the caller; it must not be a way around the money controls.
-_PROTECTED_RISK = ("money", "credit")
+# Rules a consumer override may not switch off: a block or pause rule on a money, credit or
+# pii_export tool. The consumer id is asserted by the caller; it must not be a way around the
+# money controls.
+_PROTECTED_RISK = ("money", "credit", "pii_export")
+
+
+def money_agent(doc: PolicyDoc, agent_id: str) -> bool:
+    """The agent has a rule in scope whose risk class is money, credit or pii_export."""
+    return any(r.in_scope(agent_id) and r.risk_class in _PROTECTED_RISK for r in doc.rules)
 
 
 def _cross_check_modes(doc: PolicyDoc) -> None:
@@ -431,7 +450,25 @@ def _cross_check_modes(doc: PolicyDoc) -> None:
             for rid in [*sw.enable, *sw.disable]:
                 if rid not in by_id:
                     raise PolicyError(f"{where}: rule {rid} is not in the rules section")
+        money = money_agent(doc, agent_id)
+        if agent.mode == "observe" and money:
+            if agent.initial_state != "SHADOW" and not agent.observe_approvals:
+                raise PolicyError(
+                    _ascii(
+                        f"agent {agent_id}: mode observe on an agent with money, credit or "
+                        "pii_export rules needs initial_state SHADOW or two approver ids in "
+                        "observe_approvals"
+                    )
+                )
         for cid, over in agent.consumers.items():
+            if over.mode == "observe" and money:
+                raise PolicyError(
+                    _ascii(
+                        f"agent {agent_id} consumer {cid}: mode observe is not allowed for a "
+                        "consumer of an agent with money, credit or pii_export rules (the "
+                        "consumer id is asserted by the caller)"
+                    )
+                )
             for rid in over.rules.disable if over.rules else []:
                 r = by_id[rid]
                 if r.action in ("block", "pause") and r.risk_class in _PROTECTED_RISK:
@@ -488,6 +525,8 @@ def _dump(doc: PolicyDoc, exclude: set[str] | None = None) -> dict[str, Any]:
         for key in ("mode", "rules"):  # WP38: unset keys are not part of the hash
             if agent.get(key) is None:
                 agent.pop(key, None)
+        if not agent.get("observe_approvals"):
+            agent.pop("observe_approvals", None)
         if not agent.get("consumers"):
             agent.pop("consumers", None)
         else:
@@ -510,6 +549,9 @@ class Effective:
     detectors: AgentDetectors | None = None
     disabled: frozenset[str] = frozenset()
     active: bool = False
+    # Observe may lift a decision on a money, credit or pii_export tool only when the agent has
+    # two observe_approvals (WP38 review). Without them those tools stay enforced.
+    observe_approved: bool = False
 
 
 class Policy:
@@ -591,6 +633,7 @@ class Policy:
             detectors=detectors,
             disabled=frozenset(disabled),
             active=active,
+            observe_approved=len(set(agent.observe_approvals)) == 2,
         )
 
     def tracked_keys(self) -> dict[str, set[str]]:
@@ -874,6 +917,7 @@ __all__ = [
     "load_deployed",
     "load_policy_dir",
     "load_policy_texts",
+    "money_agent",
     "parse_policy_text",
     "policy_json_schema",
     "valid_consumer_id",

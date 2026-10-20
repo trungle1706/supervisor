@@ -375,8 +375,24 @@ class Decision:
             out.update(self.sem)
             if self.observed is not None:
                 out["observed_decision"] = self.observed
-                out["status"] = "report"
+                out["status"] = observed_status(self)
         return out
+
+
+_OBSERVE_CLOSED_RISK = frozenset({"money", "credit", "pii_export"})
+
+
+def observed_status(d: Decision) -> str:
+    """v2 status of a decision that observe mode touched (WP38 review). ``report`` when the
+    call is allowed, but a transform stays ``transform`` (a client must still apply the masked
+    values) and a decision that ended as a block (GATE-REDACTION, or GATE-DETECTOR-FAILED on a
+    pii_export tool) stays ``block``."""
+    current = (d.v2 or {}).get("status")
+    if not d.allow:
+        return str(current or "block")
+    if current == "transform" or (d.v2 is None and d.transformed_args is not None):
+        return "transform"
+    return "report"
 
 
 class _Call:
@@ -876,6 +892,10 @@ class Gateway:
                 action, rid, reason = "allow", None, "allowed"
             d = Decision(decision_id, True, action, rid, reason, state, policy.policy_hash, risk)
         d.fail_mode = fail_mode
+        if eff.active and decisive is not None and not shadow and builtin is None:
+            # WP38 review: observe lifts a rule block BEFORE the redaction and the detectors, so
+            # an observed call still gets its masked arguments (pii_export) and its transform.
+            self._observe(d, eff, risk)
         if d.allow and not shadow and builtin is None:
             self._redact(d, risk, tool_name, args, pre, dry=dry)
         d.matched = [
@@ -900,39 +920,52 @@ class Gateway:
                 hmac_fn=lambda a: args_hmac(a, self._args_key),
             )
         if eff.active:
-            self._apply_mode(d, eff, shadow, builtin is not None, decisive is not None)
+            self._apply_mode(d, eff, shadow, builtin is not None, risk)
         return d, matches, shadow, builtin
 
     @staticmethod
+    def _observe(d: Decision, eff: Effective, risk: str | None) -> None:
+        """WP38 observe mode: turn the block or pause in ``d`` into a report and keep the
+        original in ``observed``. Called only for a decision a rule (or GATE-DETECTOR-FAILED)
+        made, never for SHADOW or a built-in state block. On a money, credit or pii_export tool
+        observe acts only when the agent has two ``observe_approvals`` (WP38 review): a consumer
+        id or a mode switch alone never lets a money call through."""
+        if eff.mode != "observe" or d.allow:
+            return
+        if risk in _OBSERVE_CLOSED_RISK and not eff.observe_approved:
+            return
+        if d.observed is None:
+            d.observed = {
+                "allow": False,
+                "action": d.action,
+                "rule_id": d.rule_id,
+                "reason": d.reason[:500],
+            }
+        d.allow, d.action, d.fail_mode = True, "log", None
+        d.reason = f"observe: would {d.observed['action']} by {d.observed['rule_id']}"
+
+    @classmethod
     def _apply_mode(
-        d: Decision, eff: Effective, shadow: bool, builtin: bool, rule_decided: bool
+        cls, d: Decision, eff: Effective, shadow: bool, builtin: bool, risk: str | None
     ) -> None:
-        """WP38 observe mode. A block or pause that a rule decided (or that GATE-DETECTOR-FAILED
-        decided) becomes a report: the call is allowed, the original decision is kept in
-        ``observed``. Not changed: SHADOW (it has its own downgrade and keeps precedence), the
-        built-in state blocks (paused, quarantined, retired, unknown agent or tool, missing
-        caller id) and GATE-REDACTION (the caller asked for masked arguments and cannot get
-        them). ``skip`` is not a block, so observe never touches it."""
+        """WP38 answer fields, and observe mode for GATE-DETECTOR-FAILED (a rule block was
+        lifted earlier, in ``_observe``). Not changed by observe: SHADOW (it has its own
+        downgrade and keeps precedence), the built-in state blocks (paused, quarantined,
+        retired, unknown agent or tool, missing caller id), GATE-REDACTION and
+        GATE-DETECTOR-FAILED on a pii_export tool (the caller cannot get masked values, so raw
+        PII would flow). ``skip`` is not a block, so observe never touches it."""
         sem: dict[str, Any] = {"mode": eff.mode}
         if eff.consumer_id is not None:
             sem["consumer_id"] = eff.consumer_id
         if eff.consumer_ignored:
             sem["consumer_ignored"] = True
         d.sem = sem
-        if eff.mode != "observe" or shadow or builtin or d.allow:
+        if eff.mode != "observe" or shadow or builtin:
             return
-        if not (rule_decided or d.rule_id == DETECTOR_FAILED_RULE):
-            return
-        d.observed = {
-            "allow": False,
-            "action": d.action,
-            "rule_id": d.rule_id,
-            "reason": d.reason[:500],
-        }
-        d.allow, d.action, d.fail_mode = True, "log", None
-        d.reason = f"observe: would {d.observed['action']} by {d.rule_id}"
-        if d.v2 is not None:
-            d.v2["status"] = "report"
+        if not d.allow and d.rule_id == DETECTOR_FAILED_RULE and risk != "pii_export":
+            cls._observe(d, eff, risk)
+        if d.observed is not None and d.v2 is not None:
+            d.v2["status"] = observed_status(d)
 
     def _pre_detect(
         self,
@@ -952,7 +985,10 @@ class Gateway:
         except Exception as exc:  # noqa: BLE001 - becomes a detector failure, not a crash
             return PreDetect(error=type(exc).__name__, direction=req.direction)
         eff = pol.effective(agent_id, ctx.get("consumer_id"))
-        if eff.consumer_id is not None:  # WP38: the consumer's detector override, if it has one
+        # WP38: the consumer's detector override, if it has one. Never on a money, credit or
+        # pii_export tool (WP38 review): the consumer id is asserted by the caller, so it must
+        # not switch off a detector (or GATE-DETECTOR-FAILED) there; the agent's block applies.
+        if eff.consumer_id is not None and pol.risk_class(tool_name) not in _OBSERVE_CLOSED_RISK:
             pol = _ConsumerView(pol, eff)  # type: ignore[assignment]
         return self.detector_gate.prepare(pol, agent_id, agent_version, tool_name, args, ctx, req)
 
@@ -1104,6 +1140,20 @@ class Gateway:
                     "rationale_masked": d.reason[:500],
                 }
             )
+        if d.observed is not None and d.observed["rule_id"] not in {m.rule.id for m in matches}:
+            # WP38 review: a lifted GATE-DETECTOR-FAILED has no rule match; one row keeps the
+            # observe period auditable (label observe_would_*, as for a rule).
+            rows = [r for r in rows if r["rule_id"] != d.observed["rule_id"]] + [
+                {
+                    **base,
+                    "verdict_id": uuid.uuid4().hex,
+                    "checker_id": CHECKER_0A,
+                    "label": f"observe_would_{d.observed['action']}",
+                    "action": "log",
+                    "rule_id": d.observed["rule_id"],
+                    "rationale_masked": str(d.observed["reason"])[:500],
+                }
+            ]
         self.tables.append("verdict", rows)
         self._append_event(d, now, agent_id, agent_version, tool_name, args, ctx)
         if d.v2 is not None and (d.det.findings or d.det.not_executed):
@@ -1218,7 +1268,7 @@ class Gateway:
                     "action": d.observed["action"],
                     "rule_id": d.observed["rule_id"],
                 }
-                out["status"] = "report"
+                out["status"] = observed_status(d)
         return out
 
     # ------------------------------------------------------------------ fail mode

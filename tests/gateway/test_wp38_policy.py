@@ -65,12 +65,32 @@ AGENT = """
 {extra}"""
 
 
-def policy_text(agents: dict[str, tuple[str, str]] | None = None) -> str:
+# The money rules scoped to agent "payer" only: every other agent has no money rule (WP38
+# review: consumer observe and unapproved observe are refused for agents with money rules).
+RULES_SCOPED = (
+    RULES.replace(
+        'R-PAY-BLOCK, version: 1, description: big pay, agent_scope: "*"',
+        "R-PAY-BLOCK, version: 1, description: big pay, agent_scope: [payer]",
+    )
+    .replace(
+        'R-PAY-PAUSE, version: 1, description: huge pay, agent_scope: "*"',
+        "R-PAY-PAUSE, version: 1, description: huge pay, agent_scope: [payer]",
+    )
+    .replace(
+        'R-LOG2, version: 1, description: second log, agent_scope: "*"',
+        "R-LOG2, version: 1, description: second log, agent_scope: [payer]",
+    )
+)
+
+
+def policy_text(agents: dict[str, tuple[str, str]] | None = None, rules: str = RULES) -> str:
     """agents: id -> (initial_state, extra yaml lines, already indented by 4)."""
-    agents = agents or {"a1": ("RUNNING", "")}
+    agents = dict(agents or {"a1": ("RUNNING", "")})
+    if rules is RULES_SCOPED:
+        agents.setdefault("payer", ("RUNNING", ""))
     body = "".join(AGENT.format(name=n, state=s, extra=e) for n, (s, e) in agents.items())
     return (
-        f"policy_version: 1\ntools: {{lookup: read_only, pay: money}}\nagents:{body}\nrules:{RULES}"
+        f"policy_version: 1\ntools: {{lookup: read_only, pay: money}}\nagents:{body}\nrules:{rules}"
     )
 
 
@@ -101,7 +121,8 @@ def gw_for(adapters: Adapters, evidence: MemoryEvidence) -> Iterator[Any]:
         gw.close()
 
 
-OBSERVE = "    mode: observe\n"
+APPROVED = "    observe_approvals: [risk.lead, compliance.officer]\n"
+OBSERVE = "    mode: observe\n" + APPROVED  # money rules in scope: observe needs two approvers
 
 
 # ------------------------------------------------------------------ schema, hash, validation
@@ -309,13 +330,26 @@ def test_per_consumer_detector_override_is_used(gw_for: Any) -> None:
     masker = VnRegexMasker(b"test-key", "t")
     extra = "    consumers:\n      quiet: {detectors: {disable: [bad]}}\n"
     gw = gw_for(make(policy_text({"a1": ("RUNNING", extra)})), _failing_gate(masker))
+    slugs = [n["detector_slug"] for n in gw.check("a1", "1", "lookup", {})["not_executed"]]
+    assert "bad" in slugs
+    r = gw.check("a1", "1", "lookup", {}, {"consumer_id": "quiet"})
+    assert r["consumer_id"] == "quiet"
+    assert "bad" not in [n["detector_slug"] for n in r["not_executed"]]
+
+
+def test_review_a_consumer_detector_override_never_applies_to_a_money_tool(gw_for: Any) -> None:
+    """WP38 review: a caller-asserted consumer id must not switch off GATE-DETECTOR-FAILED."""
+    masker = VnRegexMasker(b"test-key", "t")
+    extra = "    consumers:\n      quiet: {detectors: {disable: [bad]}}\n"
+    gw = gw_for(make(policy_text({"a1": ("RUNNING", extra)})), _failing_gate(masker))
     assert gw.check("a1", "1", "pay", {"amount_minor": 1})["rule_id"] == "GATE-DETECTOR-FAILED"
     r = gw.check("a1", "1", "pay", {"amount_minor": 1}, {"consumer_id": "quiet"})
-    assert r["allow"] is True and r["consumer_id"] == "quiet"
+    assert r["allow"] is False and r["rule_id"] == "GATE-DETECTOR-FAILED"
 
 
 # ------------------------------------------------------------------ per-consumer override
 
+BAD = {"tag": "bad"}  # R-READ-BLOCK (read_only) matches
 CONSUMERS = """    consumers:
       relaxed: {mode: observe}
       strict: {mode: enforce}
@@ -324,10 +358,10 @@ CONSUMERS = """    consumers:
 
 
 def test_consumer_mode_wins_over_the_agent_mode(gw_for: Any) -> None:
-    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)})))
-    r = gw.check("a1", "1", "pay", {"amount_minor": 500}, {"consumer_id": "relaxed"})
+    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)}, RULES_SCOPED)))
+    r = gw.check("a1", "1", "lookup", BAD, {"consumer_id": "relaxed"})
     assert r["allow"] is True and r["consumer_id"] == "relaxed" and r["mode"] == "observe"
-    r = gw.check("a1", "1", "pay", {"amount_minor": 500}, {"consumer_id": "strict"})
+    r = gw.check("a1", "1", "lookup", BAD, {"consumer_id": "strict"})
     assert r["allow"] is False and r["consumer_id"] == "strict" and r["mode"] == "enforce"
 
 
@@ -340,21 +374,21 @@ def test_a_consumer_can_be_stricter_than_an_observing_agent(gw_for: Any) -> None
 
 
 def test_a_consumer_without_an_entry_gets_the_agent_settings(gw_for: Any) -> None:
-    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)})))
-    r = gw.check("a1", "1", "pay", {"amount_minor": 500}, {"consumer_id": "someone-else"})
+    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)}, RULES_SCOPED)))
+    r = gw.check("a1", "1", "lookup", BAD, {"consumer_id": "someone-else"})
     assert r["allow"] is False and r["mode"] == "enforce" and r["consumer_ignored"] is True
     assert "consumer_id" not in r
 
 
 @pytest.mark.parametrize("cid", ["", "a b", "x" * 129, "café", 42, ["relaxed"], {"a": 1}])
 def test_an_invalid_consumer_id_never_selects_an_override(gw_for: Any, cid: Any) -> None:
-    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)})))
-    r = gw.check("a1", "1", "pay", {"amount_minor": 500}, {"consumer_id": cid})
+    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)}, RULES_SCOPED)))
+    r = gw.check("a1", "1", "lookup", BAD, {"consumer_id": cid})
     assert r["allow"] is False and r["mode"] == "enforce" and "consumer_id" not in r
 
 
 def test_consumer_rule_switch_removes_a_rule_for_that_consumer_only(gw_for: Any) -> None:
-    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)})))
+    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)}, RULES_SCOPED)))
     args = {"tag": "bad"}
     assert gw.check("a1", "1", "lookup", args)["rule_id"] == "R-READ-BLOCK"
     r = gw.check("a1", "1", "lookup", args, {"consumer_id": "noread"})
@@ -375,18 +409,18 @@ def test_consumer_enable_undoes_the_agent_disable(gw_for: Any) -> None:
 
 def test_a_consumer_entry_of_one_agent_does_not_apply_to_another(gw_for: Any) -> None:
     both = {"a1": ("RUNNING", CONSUMERS), "a2": ("RUNNING", "")}
-    gw = gw_for(make(policy_text(both)))
-    r = gw.check("a2", "1", "pay", {"amount_minor": 500}, {"consumer_id": "relaxed"})
+    gw = gw_for(make(policy_text(both, RULES_SCOPED)))
+    r = gw.check("a2", "1", "lookup", BAD, {"consumer_id": "relaxed"})
     assert r["allow"] is False and "mode" not in r
 
 
 def test_policy_hash_changes_when_a_consumer_is_added() -> None:
-    a = make(policy_text()).policy_hash
-    assert a != make(policy_text({"a1": ("RUNNING", CONSUMERS)})).policy_hash
+    a = make(policy_text(rules=RULES_SCOPED)).policy_hash
+    assert a != make(policy_text({"a1": ("RUNNING", CONSUMERS)}, RULES_SCOPED)).policy_hash
 
 
 def test_deployed_policy_round_trips_the_new_keys(adapters: Adapters) -> None:
-    p = make(policy_text({"a1": ("RUNNING", OBSERVE + CONSUMERS)}))
+    p = make(policy_text({"a1": ("RUNNING", OBSERVE + CONSUMERS)}, RULES_SCOPED))
     deploy_policy(p, adapters.state, adapters.clock)
     back = load_deployed(adapters.state)
     assert back.policy_hash == p.policy_hash

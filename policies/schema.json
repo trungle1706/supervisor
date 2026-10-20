@@ -130,6 +130,14 @@
           "title": "Name",
           "type": "string"
         },
+        "observe_approvals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Observe Approvals",
+          "type": "array"
+        },
         "owner_team": {
           "minLength": 1,
           "title": "Owner Team",
