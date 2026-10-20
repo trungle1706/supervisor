@@ -8,6 +8,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | Document | Purpose | Audience |
 |---|---|---|
 | `README.md` (root) | Product overview, capabilities, 10-minute tour, flags | All |
+| `CHANGELOG.md` (root) | Release notes: new flags, behaviour changes, deploy order (v0.3.0-pre) | All |
 | `SECURITY.md` (root) | How to report a vulnerability; known gaps | Op, 2L, Aud |
 | `CLAUDE.md` (root) | Rules for agents that write code in this repo | Build |
 | `BACKLOG.md` (root) | Open work that is out of phase | Build |

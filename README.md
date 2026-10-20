@@ -99,6 +99,7 @@ until you turn its flag on.
 | `ASSURANCE_JUDGE_ALLOW_WARN` | Lets a judge pack result with status `warn` validate a real judge (default off: only `ok` counts) |
 | `JUDGE_REQUIRE_VALIDATION` | Judge refuses to start without a passing MRM validation for its current identity |
 | `API_RBAC_ENABLED` | Enforces the role matrix on the agent-facing `/gate/*` read routes (`/gate/agents/{id}/state`, `/gate/metrics`). The control routes (pause, resume, quarantine, release) always check identity and role |
+| `INGRESS_AUTH_ENABLED` | Requires a per-agent credential (HMAC key, Databricks SP token or Apps proxy identity) on `/gate/check`, `/v1/gate/check` and `/v1/traces`; refusals are 401 / 403 and audited. See `docs/ingress-auth.md` |
 | `RATE_LIMIT_ENABLED` | Rate-limits mutating routes (429); agent check path is exempt |
 | `INVENTORY_ENABLED` | Fills the inventory graph, runs the workspace refresh job (databricks_app mode), shows the Inventory tab and `/v1/inventory/...`; shadow-AI items open low-severity cases |
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
@@ -133,6 +134,7 @@ All files are listed with audience in `docs/index.md`. Start with these:
 | Stage demo | `docs/DEMO.md` |
 | Phase plans | `docs/BUILD_PLAN.md`, `docs/BUILD_PLAN_PHASE2.md` |
 | Every doc | `docs/index.md` |
+| Release notes (v0.3.0-pre: new flags, Delta deploy order) | `CHANGELOG.md` |
 
 ## Licence and security
 
