@@ -472,6 +472,14 @@ class ToolLockService:
                 self._update(fresh or cur, {"case_id": case_id})
 
     # ------------------------------------------------------------------ reads
+    def registered_agent(self, server_id: str) -> str | None:
+        """The agent whose proxy first listed the server (None while the server is unknown)."""
+        check_server_id(server_id)
+        row = self.state.get(
+            "mcp_tool_manifest", {"manifest_id": manifest_id(server_id, SERVER_ROW)}
+        )
+        return str(row["agent_id"]) if row is not None else None
+
     def view(self, server_id: str) -> dict[str, Any]:
         """What the proxy needs: visible and hidden tool names with their status."""
         check_server_id(server_id)

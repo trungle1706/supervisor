@@ -141,3 +141,22 @@ def test_observe_needs_a_signature_when_ingress_auth_is_on(mcp: Any) -> None:
         assert mcp.client.post("/v1/mcp/tools/blocked", json={}).status_code in (401, 403)
     finally:
         ingress_auth.set_guard(None)
+
+
+def test_server_is_bound_to_the_agent_that_registered_it(mcp: Any) -> None:
+    """F12: another agent's credential cannot re-list or report on the server (403)."""
+    assert observe(mcp).status_code == 200  # registered by "payments"
+    other = {"agent_id": "customer_service", "server_id": SERVER, "tools": []}
+    assert mcp.client.post("/v1/mcp/tools/observe", json=other).status_code == 403
+    blk = {"agent_id": "customer_service", "server_id": SERVER, "tool": "t", "rule_id": "X"}
+    assert mcp.client.post("/v1/mcp/tools/blocked", json=blk).status_code == 403
+    assert observe(mcp).status_code == 200  # the owner is unaffected
+    # a new server of the other agent is fine, and the allow-list can share one
+    assert (
+        mcp.client.post(
+            "/v1/mcp/tools/observe", json={**other, "server_id": "own.example"}
+        ).status_code
+        == 200
+    )
+    mcp.ctx.settings.mcp_server_agents = f"{SERVER}=customer_service|x"
+    assert mcp.client.post("/v1/mcp/tools/observe", json=other).status_code == 200

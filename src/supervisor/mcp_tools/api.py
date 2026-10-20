@@ -28,6 +28,7 @@ from starlette.concurrency import run_in_threadpool
 
 from supervisor.adapters.auth import AuthPrincipal
 from supervisor.adapters.auth.authz import needs
+from supervisor.cases.service import PermissionDenied
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.core.errors import SupervisorError
 from supervisor.gateway import mcp_lock
@@ -57,6 +58,21 @@ def service_for(ctx: ConsoleContext) -> ToolLockService:
         )
         ctx._mcp_lock = svc  # type: ignore[attr-defined]
     return svc  # type: ignore[no-any-return]
+
+
+def check_server_agent(
+    ctx: ConsoleContext, svc: ToolLockService, server_id: str, agent_id: str
+) -> None:
+    """F12: an agent may report on a server only if its own proxy registered it, if the server is
+    new, or if MCP_SERVER_AGENTS lists the agent for it. Otherwise 403."""
+    owner = svc.registered_agent(server_id)
+    if owner is None or owner == agent_id:
+        return
+    for part in ctx.settings.mcp_server_agents.split(";"):
+        name, _, agents = part.partition("=")
+        if name == server_id and agent_id in agents.split("|"):
+            return
+    raise PermissionDenied(f"agent {agent_id} is not bound to MCP server {server_id}")
 
 
 class ReviewRequest(BaseModel):
@@ -124,6 +140,7 @@ async def observe(
     ident: IngressIdentity | None = _INGRESS,
 ) -> Any:
     svc = service_for(ctx)
+    check_server_agent(ctx, svc, body.server_id, body.agent_id)
     tofu = body.trust_on_first_use_by
     if tofu is not None and not ctx.settings.mcp_tofu_ingress:
         # F3: a machine credential (or anyone, while INGRESS_AUTH_ENABLED=0) must not be able to
@@ -145,6 +162,7 @@ async def observe(
 @router.post("/blocked", dependencies=[Depends(ingress_gate)])
 async def blocked(body: BlockedRequest, ctx: ConsoleContext = _CTX) -> JSONResponse:
     svc = service_for(ctx)
+    check_server_agent(ctx, svc, body.server_id, body.agent_id)
     await run_in_threadpool(
         svc.report_block, body.server_id, body.tool, body.agent_id, body.rule_id
     )
