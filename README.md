@@ -38,6 +38,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 |---|---|---|
 | Gateway | Rule engine that allows, blocks or pauses a tool call; fail-closed for money tools | `docs/adr/D01-gateway.md` |
 | Recorder | Takes traces (OTLP, OTel GenAI attributes), masks PII, stores them | `docs/recorder.md` |
+| PII masking | `vn_regex-3` masker, per-entity eval harness (`python -m supervisor.pii_eval`), inline redaction at the gate | `docs/masking.md`, `docs/masker-validation-report.md` |
 | Judges | Tier 1 and Tier 2 AI judges; advise only, never call the gate | `docs/adr/D06-judge-hardening.md` |
 | Evidence chain | SHA-256 chain, one lane per agent, signed head, offline `verify` | `docs/adr/D05-evidence-chain.md` |
 | Monitors | Drift, fairness, groundedness, oversight metrics | `docs/metrics.md` |
@@ -96,6 +97,8 @@ until you turn its flag on.
 | `API_RBAC_ENABLED` | Enforces the role matrix on the agent-facing `/gate/*` read routes (`/gate/agents/{id}/state`, `/gate/metrics`). The control routes (pause, resume, quarantine, release) always check identity and role |
 | `RATE_LIMIT_ENABLED` | Rate-limits mutating routes (429); agent check path is exempt |
 | `RETENTION_ENABLED` | Runs the PDPL retention job: nulls personal columns after their TTL, keeps digests and chain |
+| `MASK_AMOUNTS` | Types money amounts `<AMOUNT:...>` in masked text (default: amounts stay intact, the rules need them). See `docs/masking.md` |
+| `INLINE_REDACTION_ENABLED` | Gate answer carries masked `transformed_args` for `pii_export` tools; the SDK and the MCP proxy apply them when their own switch is on. `INLINE_REDACTION_TOOLS` adds tools. See `docs/masking.md` |
 | `LOG_FORMAT` | Value `json` writes one JSON log line with request id and principal id (default `text`) |
 
 ## What is mock

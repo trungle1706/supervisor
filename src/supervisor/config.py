@@ -381,6 +381,14 @@ class Settings(BaseSettings):
     # per N seconds; skipped rows are counted in ingress_audit_suppressed.
     ingress_audit_throttle_s: int = Field(default=0, ge=0)
     ingress_nonce_cap_per_agent: int = Field(default=20_000, ge=1)  # plus the global cap
+    # --- WP24b --- masker amounts and inline redaction at the gate (docs/masking.md).
+    # MASK_AMOUNTS: type money amounts <AMOUNT:...> in masked text; off = amounts stay in the text
+    # (the credit rules need them). INLINE_REDACTION_ENABLED: for pii_export tools (and the tools
+    # in INLINE_REDACTION_TOOLS, comma separated) an allowed gate answer carries transformed_args;
+    # the SDK / MCP proxy apply them when their own INLINE_REDACTION_ENABLED is on.
+    mask_amounts: bool = False
+    inline_redaction_enabled: bool = False
+    inline_redaction_tools: str = Field(default="", pattern=r"^[A-Za-z0-9_.:@, -]*$")
 
     @field_validator(
         "data_dir",
@@ -598,6 +606,10 @@ class Settings(BaseSettings):
         if self.scheduler_enabled is not None:
             return self.scheduler_enabled
         return self.supervisor_mode == "laptop"
+
+    @property
+    def inline_redaction_tool_set(self) -> frozenset[str]:
+        return frozenset(t.strip() for t in self.inline_redaction_tools.split(",") if t.strip())
 
     @property
     def mask_key(self) -> tuple[bytes, str]:

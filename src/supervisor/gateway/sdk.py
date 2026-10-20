@@ -9,6 +9,8 @@ import asyncio
 import functools
 import inspect
 import json
+import logging
+import os
 import threading
 import time
 from collections.abc import Callable, Mapping
@@ -178,6 +180,73 @@ class HttpGate:
 
 _default_gate: GateHook | None = None
 
+# WP24b: apply the gate's ``transformed_args`` (masked copy of the arguments of a pii_export
+# tool) before the tool runs. Off by default. ``set_inline_redaction(None)`` falls back to the
+# INLINE_REDACTION_ENABLED environment variable (1/true/yes/on).
+INLINE_REDACTION_ENABLED = False
+log = logging.getLogger("supervisor.gateway.sdk")
+_warned_inline = False
+
+
+def warn_inline_once() -> None:
+    """One warning per process when the local switch is on. The SDK cannot see the server
+    flag: if the gateway runs without INLINE_REDACTION_ENABLED, a pii_export tool still gets
+    the original arguments, silently. Called at decoration time and by the MCP proxy."""
+    global _warned_inline
+    if _warned_inline:
+        return
+    _warned_inline = True
+    log.warning(
+        "inline redaction is ON in this process; it only has effect when the gateway server "
+        "also runs with INLINE_REDACTION_ENABLED=1, otherwise pii_export tools get the "
+        "original arguments"
+    )
+
+
+_inline_override: bool | None = None
+
+
+def set_inline_redaction(value: bool | None) -> None:
+    global _inline_override
+    _inline_override = value
+
+
+def inline_redaction_on() -> bool:
+    if _inline_override is not None:
+        return _inline_override
+    env = os.environ.get("INLINE_REDACTION_ENABLED", "").strip().lower()
+    return INLINE_REDACTION_ENABLED or env in ("1", "true", "yes", "on")
+
+
+def apply_transformed(
+    sig: inspect.Signature,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    decision: Mapping[str, Any],
+) -> tuple[tuple[Any, ...], dict[str, Any]]:
+    """(args, kwargs) for the tool call: the gate's masked values when redaction is on and the
+    decision carries ``transformed_args``; otherwise the original call, untouched."""
+    transformed = decision.get("transformed_args")
+    if not inline_redaction_on() or not isinstance(transformed, Mapping):
+        return args, kwargs
+    try:
+        bound = sig.bind(*args, **kwargs)
+        bound.apply_defaults()
+        for name, value in transformed.items():
+            if name in bound.arguments:
+                bound.arguments[name] = value
+        return bound.args, bound.kwargs
+    except TypeError:
+        # cannot map the answer onto the signature: the safe choice is to refuse the call
+        raise SupervisorBlocked(
+            {
+                "allow": False,
+                "action": "block",
+                "rule_id": "GATE-REDACTION",
+                "reason": "inline redaction could not be applied: fail closed",
+            }
+        ) from None
+
 
 def set_default_gate(gate: GateHook | None) -> None:
     global _default_gate
@@ -231,6 +300,8 @@ def supervised_tool(
                 return dict(kwargs)
 
         context = {"declared_risk_class": risk_class}
+        if risk_class == "pii_export" and inline_redaction_on():
+            warn_inline_once()
 
         if inspect.iscoroutinefunction(fn):
 
@@ -241,6 +312,7 @@ def supervised_tool(
                     g.check, agent_id, agent_version, tool_name, bind(args, kwargs), context
                 )
                 _enforce(decision)
+                args, kwargs = apply_transformed(sig, args, kwargs, decision)
                 return await fn(*args, **kwargs)
 
             return awrapper  # type: ignore[return-value]
@@ -250,6 +322,7 @@ def supervised_tool(
             g = resolve()
             decision = g.check(agent_id, agent_version, tool_name, bind(args, kwargs), context)
             _enforce(decision)
+            args, kwargs = apply_transformed(sig, args, kwargs, decision)
             return fn(*args, **kwargs)
 
         return wrapper  # type: ignore[return-value]

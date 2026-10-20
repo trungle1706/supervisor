@@ -34,15 +34,37 @@ class Upstream(Protocol):
     def close(self) -> None: ...
 
 
+def _env_on() -> bool:
+    return os.environ.get("INLINE_REDACTION_ENABLED", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
 def _error(id_: Any, code: int, message: str) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": id_, "error": {"code": code, "message": message}}
 
 
 class McpGateProxy:
     def __init__(
-        self, gate: GateHook, agent_id: str, agent_version: str, upstream: Upstream
+        self,
+        gate: GateHook,
+        agent_id: str,
+        agent_version: str,
+        upstream: Upstream,
+        *,
+        inline_redaction: bool | None = None,
     ) -> None:
         self._gate = gate
+        # WP24b: forward the gate's masked ``transformed_args`` instead of the original arguments.
+        # None -> INLINE_REDACTION_ENABLED in the environment. Off by default.
+        self._inline = _env_on() if inline_redaction is None else inline_redaction
+        if self._inline:
+            from supervisor.gateway.sdk import warn_inline_once
+
+            warn_inline_once()
         self._agent_id = agent_id
         self._agent_version = agent_version
         self._upstream = upstream
@@ -76,6 +98,9 @@ class McpGateProxy:
                 "reason": f"gate failure: {type(exc).__name__}",
             }
         if verdict.get("allow") is True:
+            transformed = verdict.get("transformed_args")
+            if self._inline and isinstance(transformed, dict):
+                message = {**message, "params": {**params, "arguments": transformed}}
             return self._forward(message)
         if id_ is None:  # a notification cannot receive a response
             return None
@@ -182,6 +207,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--gate-url", default="http://127.0.0.1:8000")
     p.add_argument("--key-file", default=None, help="HMAC key file (first line = secret)")
     p.add_argument("--bearer-token-env", default=None, help="env var holding a bearer token")
+    p.add_argument(
+        "--inline-redaction",
+        action="store_true",
+        help="forward the gate's masked arguments (also INLINE_REDACTION_ENABLED=1)",
+    )
     ns = p.parse_args(args_in[:cut])
     command = args_in[cut + 1 :]
     if not command:
@@ -197,8 +227,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     upstream = StdioUpstream(command)
     try:
-        gate = HttpGate(ns.gate_url, credential=credential)
-        proxy = McpGateProxy(gate, ns.agent_id, ns.agent_version, upstream)
+        proxy = McpGateProxy(
+            HttpGate(ns.gate_url, credential=credential),
+            ns.agent_id,
+            ns.agent_version,
+            upstream,
+            inline_redaction=True if ns.inline_redaction else None,
+        )
         run_stdio(proxy, sys.stdin, sys.stdout)
     finally:
         upstream.close()

@@ -130,6 +130,7 @@ Goal: edit or delete evidence after the fact.
 | Laptop operator has full local control | The SQLite file and key file are writable by the laptop user; the chain detects edits but cannot prevent them | Anchors off the laptop; Delta with no UPDATE / DELETE grants on the App |
 | Policy deploy not on the chain | A policy change is visible through `policy_hash` in every gate decision, but the deploy itself is not a chain record | Policy PR + second approver (bank change process) |
 | No rate limiting | Flooding the gate or console is not throttled | Platform limits; backlog |
+| Inline redaction is cooperative and one-sided (WP24b) | The gate answer carries masked `transformed_args`; an agent or proxy that ignores it still sends the original arguments to the tool. The server flag and the SDK / proxy flag must both be on. The values never enter the chain (hashes only), but masked copies travel in the gate response over the same trust boundary as the arguments | Credential broker / egress proxy that applies the redaction itself (see the cooperative enforcement gap) |
 | Mock judges in the demo | The demo judge is a keyword MockJudge; its numbers prove the protocol, not a model | Real judge model behind `JUDGE_*` settings, measured by the eval harness |
 
 ### Ingress authentication (WP20, ADR D14)

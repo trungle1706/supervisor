@@ -138,7 +138,18 @@ def _make_gateway(
         env=settings.supervisor_mode,
         state_cache_ttl_s=state_cache_ttl_s,
         require_caller_id=settings.require_caller_id,  # WP7, ADR D10 (default off)
+        # WP24b inline redaction (default off). The gate's masker keeps amounts in the text:
+        # redaction must not change a value the rules or the tool need.
+        masker=_redaction_masker(settings) if settings.inline_redaction_enabled else None,
+        inline_redaction=settings.inline_redaction_enabled,
+        redact_tools=settings.inline_redaction_tool_set,
     )
+
+
+def _redaction_masker(settings: Settings) -> Any:
+    from supervisor.adapters.factory import make_masker
+
+    return make_masker(settings.model_copy(update={"mask_amounts": False}))
 
 
 def register_agents(

@@ -1,4 +1,4 @@
-"""vn_regex-2: separator-written ids, grouped accounts, invisible characters, amounts untouched."""
+"""vn_regex-3: separator-written ids, grouped accounts, invisible characters, amounts untouched."""
 
 from __future__ import annotations
 
@@ -175,7 +175,7 @@ def test_find_offsets_refer_to_canonical_text(m: VnRegexMasker) -> None:
 
 
 def test_mask_version(m: VnRegexMasker) -> None:
-    assert m.mask_version == "vn_regex-2:t1"
+    assert m.mask_version == "vn_regex-3:t1"
 
 
 def test_scrub_uses_canonical_offsets() -> None:

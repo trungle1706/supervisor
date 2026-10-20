@@ -1,0 +1,960 @@
+{
+  "commit": "d4e8015",
+  "lexicon": {
+    "dev": "production",
+    "heldout": "ablated"
+  },
+  "masker": "vn_regex-3",
+  "recorded_at": "2026-10-20",
+  "splits": {
+    "dev": {
+      "amount_entity_mode": {
+        "AMOUNT": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9903,
+            10000
+          ],
+          "n": 393,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9903,
+            10000
+          ],
+          "predicted": 393,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9903,
+            10000
+          ]
+        },
+        "over_mask_other_count": 0
+      },
+      "amounts_masked": false,
+      "entities": {
+        "ADDRESS": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9706,
+            10000
+          ],
+          "n": 127,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9706,
+            10000
+          ],
+          "predicted": 127,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9706,
+            10000
+          ]
+        },
+        "BANK_ACCOUNT": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9562,
+            10000
+          ],
+          "n": 84,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9562,
+            10000
+          ],
+          "predicted": 84,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9562,
+            10000
+          ]
+        },
+        "CARD_NUMBER": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        },
+        "CCCD": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9557,
+            10000
+          ],
+          "n": 83,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9557,
+            10000
+          ],
+          "predicted": 83,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9557,
+            10000
+          ]
+        },
+        "CMND": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        },
+        "EMAIL": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9557,
+            10000
+          ],
+          "n": 83,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9557,
+            10000
+          ],
+          "predicted": 83,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9557,
+            10000
+          ]
+        },
+        "PERSON": {
+          "leak_recall_bp": 9920,
+          "leak_recall_wilson_bp": [
+            9768,
+            9973
+          ],
+          "n": 376,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9898,
+            10000
+          ],
+          "predicted": 373,
+          "typed_recall_bp": 9920,
+          "typed_recall_wilson_bp": [
+            9768,
+            9973
+          ]
+        },
+        "PHONE": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9699,
+            10000
+          ],
+          "n": 124,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9699,
+            10000
+          ],
+          "predicted": 124,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9699,
+            10000
+          ]
+        },
+        "TAX_CODE": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        }
+      },
+      "false_mask": {
+        "ADDRESS": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        },
+        "BANK_ACCOUNT": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        },
+        "CARD_NUMBER": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        },
+        "CCCD": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        },
+        "CMND": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        },
+        "EMAIL": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        },
+        "PERSON": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        },
+        "PHONE": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        },
+        "TAX_CODE": {
+          "items_with_false_mask": 0,
+          "n_items": 190,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            199
+          ]
+        }
+      },
+      "keep": {
+        "AMOUNT": {
+          "intact_bp": 10000,
+          "n": 393,
+          "touched": 0
+        },
+        "DATE": {
+          "intact_bp": 10000,
+          "n": 166,
+          "touched": 0
+        },
+        "EXPIRY": {
+          "intact_bp": 10000,
+          "n": 1,
+          "touched": 0
+        },
+        "HOTLINE": {
+          "intact_bp": 10000,
+          "n": 1,
+          "touched": 0
+        },
+        "TERM": {
+          "intact_bp": 10000,
+          "n": 56,
+          "touched": 0
+        }
+      },
+      "latency_us_p50": 240,
+      "latency_us_p95": 403,
+      "micro_leak_recall_bp": 9970,
+      "n_items": 666,
+      "over_mask_amount_count": 0,
+      "taxonomy": {
+        "missed-person-lowercase-nodiac": 3
+      }
+    },
+    "heldout": {
+      "amount_entity_mode": {
+        "AMOUNT": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9817,
+            10000
+          ],
+          "n": 207,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9817,
+            10000
+          ],
+          "predicted": 207,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9817,
+            10000
+          ]
+        },
+        "over_mask_other_count": 0
+      },
+      "amounts_masked": false,
+      "entities": {
+        "ADDRESS": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9425,
+            10000
+          ],
+          "n": 63,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9425,
+            10000
+          ],
+          "predicted": 63,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9425,
+            10000
+          ]
+        },
+        "BANK_ACCOUNT": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        },
+        "CARD_NUMBER": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            8388,
+            10000
+          ],
+          "n": 20,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            8388,
+            10000
+          ],
+          "predicted": 20,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            8388,
+            10000
+          ]
+        },
+        "CCCD": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        },
+        "CMND": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            8388,
+            10000
+          ],
+          "n": 20,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            8388,
+            10000
+          ],
+          "predicted": 20,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            8388,
+            10000
+          ]
+        },
+        "EMAIL": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        },
+        "PERSON": {
+          "leak_recall_bp": 5297,
+          "leak_recall_wilson_bp": [
+            4579,
+            6004
+          ],
+          "n": 185,
+          "precision_bp": 9590,
+          "precision_wilson_bp": [
+            9076,
+            9824
+          ],
+          "predicted": 122,
+          "typed_recall_bp": 5297,
+          "typed_recall_wilson_bp": [
+            4579,
+            6004
+          ]
+        },
+        "PHONE": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9398,
+            10000
+          ],
+          "n": 60,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9398,
+            10000
+          ],
+          "predicted": 60,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9398,
+            10000
+          ]
+        },
+        "TAX_CODE": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            8388,
+            10000
+          ],
+          "n": 20,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            8388,
+            10000
+          ],
+          "predicted": 20,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            8388,
+            10000
+          ]
+        }
+      },
+      "false_mask": {
+        "ADDRESS": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "BANK_ACCOUNT": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "CARD_NUMBER": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "CCCD": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "CMND": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "EMAIL": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "PERSON": {
+          "items_with_false_mask": 5,
+          "n_items": 134,
+          "rate_bp": 373,
+          "rate_wilson_bp": [
+            160,
+            844
+          ]
+        },
+        "PHONE": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "TAX_CODE": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        }
+      },
+      "keep": {
+        "AMOUNT": {
+          "intact_bp": 10000,
+          "n": 207,
+          "touched": 0
+        },
+        "DATE": {
+          "intact_bp": 10000,
+          "n": 93,
+          "touched": 0
+        },
+        "REF": {
+          "intact_bp": 10000,
+          "n": 1,
+          "touched": 0
+        },
+        "TERM": {
+          "intact_bp": 10000,
+          "n": 31,
+          "touched": 0
+        }
+      },
+      "latency_us_p50": 215,
+      "latency_us_p95": 386,
+      "micro_leak_recall_bp": 8228,
+      "n_items": 365,
+      "over_mask_amount_count": 0,
+      "taxonomy": {
+        "false-person": 5,
+        "missed-person-lowercase-nodiac": 20,
+        "missed-person-mixed": 19,
+        "missed-person-mixed-nodiac": 11,
+        "missed-person-uppercase": 15,
+        "missed-person-uppercase-nodiac": 3,
+        "partial-person-mixed": 3,
+        "partial-person-mixed-nodiac": 4,
+        "partial-person-uppercase": 7,
+        "partial-person-uppercase-nodiac": 5
+      }
+    },
+    "heldout_production_lexicon": {
+      "amount_entity_mode": {
+        "AMOUNT": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9817,
+            10000
+          ],
+          "n": 207,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9817,
+            10000
+          ],
+          "predicted": 207,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9817,
+            10000
+          ]
+        },
+        "over_mask_other_count": 0
+      },
+      "amounts_masked": false,
+      "entities": {
+        "ADDRESS": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9425,
+            10000
+          ],
+          "n": 63,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9425,
+            10000
+          ],
+          "predicted": 63,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9425,
+            10000
+          ]
+        },
+        "BANK_ACCOUNT": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        },
+        "CARD_NUMBER": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            8388,
+            10000
+          ],
+          "n": 20,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            8388,
+            10000
+          ],
+          "predicted": 20,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            8388,
+            10000
+          ]
+        },
+        "CCCD": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        },
+        "CMND": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            8388,
+            10000
+          ],
+          "n": 20,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            8388,
+            10000
+          ],
+          "predicted": 20,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            8388,
+            10000
+          ]
+        },
+        "EMAIL": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9143,
+            10000
+          ],
+          "n": 41,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9143,
+            10000
+          ],
+          "predicted": 41,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9143,
+            10000
+          ]
+        },
+        "PERSON": {
+          "leak_recall_bp": 9891,
+          "leak_recall_wilson_bp": [
+            9614,
+            9971
+          ],
+          "n": 185,
+          "precision_bp": 9734,
+          "precision_wilson_bp": [
+            9392,
+            9886
+          ],
+          "predicted": 188,
+          "typed_recall_bp": 9891,
+          "typed_recall_wilson_bp": [
+            9614,
+            9971
+          ]
+        },
+        "PHONE": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            9398,
+            10000
+          ],
+          "n": 60,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            9398,
+            10000
+          ],
+          "predicted": 60,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            9398,
+            10000
+          ]
+        },
+        "TAX_CODE": {
+          "leak_recall_bp": 10000,
+          "leak_recall_wilson_bp": [
+            8388,
+            10000
+          ],
+          "n": 20,
+          "precision_bp": 10000,
+          "precision_wilson_bp": [
+            8388,
+            10000
+          ],
+          "predicted": 20,
+          "typed_recall_bp": 10000,
+          "typed_recall_wilson_bp": [
+            8388,
+            10000
+          ]
+        }
+      },
+      "false_mask": {
+        "ADDRESS": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "BANK_ACCOUNT": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "CARD_NUMBER": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "CCCD": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "CMND": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "EMAIL": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "PERSON": {
+          "items_with_false_mask": 5,
+          "n_items": 134,
+          "rate_bp": 373,
+          "rate_wilson_bp": [
+            160,
+            844
+          ]
+        },
+        "PHONE": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        },
+        "TAX_CODE": {
+          "items_with_false_mask": 0,
+          "n_items": 134,
+          "rate_bp": 0,
+          "rate_wilson_bp": [
+            0,
+            279
+          ]
+        }
+      },
+      "keep": {
+        "AMOUNT": {
+          "intact_bp": 10000,
+          "n": 207,
+          "touched": 0
+        },
+        "DATE": {
+          "intact_bp": 10000,
+          "n": 93,
+          "touched": 0
+        },
+        "REF": {
+          "intact_bp": 10000,
+          "n": 1,
+          "touched": 0
+        },
+        "TERM": {
+          "intact_bp": 10000,
+          "n": 31,
+          "touched": 0
+        }
+      },
+      "latency_us_p50": 222,
+      "latency_us_p95": 395,
+      "micro_leak_recall_bp": 9959,
+      "n_items": 365,
+      "over_mask_amount_count": 0,
+      "taxonomy": {
+        "false-person": 5,
+        "missed-person-lowercase-nodiac": 2
+      }
+    }
+  },
+  "thresholds": "ILLUSTRATIVE until the bank sets them"
+}

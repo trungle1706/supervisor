@@ -56,7 +56,7 @@ def test_inprocess_and_otlp_json_give_identical_rows(masked: bool, masker: VnReg
     assert len(payee.args_hash or "") == 64 and payee.parent_span_id
     if masked:
         assert payee.args_masked and "<PERSON:" in payee.args_masked
-        assert payee.classification == "pii" and payee.mask_version == "vn_regex-2:t1"
+        assert payee.classification == "pii" and payee.mask_version == "vn_regex-3:t1"
     else:
         assert payee.args_masked is None and payee.mask_version is None
 
