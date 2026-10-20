@@ -49,6 +49,7 @@ from supervisor.console import (
     auditpack,
     cases_list,  # --- WP-UX2 ---
     compliance_view,
+    controls_views,  # --- WP30 ---
     credentials_view,
     decisions,
     health,
@@ -63,6 +64,7 @@ from supervisor.console import (
     readmodels,
     risks_views,  # --- WP29 ---
     search,
+    tasks_views,
     tools_views,
     traces,
     users_view,
@@ -71,6 +73,7 @@ from supervisor.console import (
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.console.listing import ListingError
+from supervisor.controls.model import ensure_on as ensure_controls_on
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
@@ -1377,6 +1380,8 @@ _UX3_FLAGS = {
     "audit": ("CONSOLE_AUDITLOG_ENABLED", "Audit log"),
     "integrations": ("CONSOLE_INTEGRATIONS_ENABLED", "Integrations"),
     "risks": ("CONSOLE_RISKS_ENABLED", "Risks"),  # WP29
+    "controls": ("CONSOLE_CONTROLS_ENABLED", "Controls"),  # WP30
+    "tasks": ("CONSOLE_CONTROLS_ENABLED", "Tasks"),  # WP30
 }
 
 
@@ -1653,6 +1658,75 @@ async def risk_drawer(
         risks_views.drawer_view, ctx, risk_id, query.get("tab") or "details", _drawer_query(query)
     )
     return render(request, ctx, me, "_risk_drawer.html", drawer=data)
+
+
+# -- controls and tasks (WP30, read-only)
+
+
+def _controls_off(ctx: ConsoleContext, page: str) -> None:
+    """HTTP 400 unless both CONSOLE_CONTROLS_ENABLED and CONTROLS_ENABLED are on."""
+    _ux3_off(ctx, page)
+    ensure_controls_on(ctx.settings)
+
+
+def _register_page(name: str, views: Any, perm: str, noun: str) -> None:
+    list_tpl, rows_tpl, drawer_tpl = f"{name}.html", f"_{name}_list.html", f"_{noun}_drawer.html"
+
+    async def page(
+        request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+    ) -> Response:
+        _controls_off(ctx, name)
+        query = dict(request.query_params)
+        data = await _call(views.list_view, ctx, query)
+        opened = query.get("drawer")
+        if opened:  # no-JS fallback of the row drawer
+            _check_id(opened, f"{noun} id")
+            data["drawer"] = await _call(
+                views.drawer_view,
+                ctx,
+                opened,
+                query.get("dtab") or "details",
+                _drawer_query(query),
+            )
+        return render(request, ctx, me, list_tpl, section=name, **data)
+
+    async def rows(
+        request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+    ) -> Response:
+        _controls_off(ctx, name)
+        data = await _call(views.list_view, ctx, dict(request.query_params))
+        return render(request, ctx, me, rows_tpl, **data)
+
+    async def drawer(
+        request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+    ) -> Response:
+        _controls_off(ctx, name)
+        item_id = str(request.path_params[f"{noun}_id"])
+        _check_id(item_id, f"{noun} id")
+        query = dict(request.query_params)
+        data = await _call(
+            views.drawer_view, ctx, item_id, query.get("tab") or "details", _drawer_query(query)
+        )
+        return render(request, ctx, me, drawer_tpl, drawer=data)
+
+    dep = [Depends(needs(perm))]
+    router.add_api_route(
+        f"/{name}", page, methods=["GET"], response_class=HTMLResponse, dependencies=dep
+    )
+    router.add_api_route(
+        f"/{name}/rows", rows, methods=["GET"], response_class=HTMLResponse, dependencies=dep
+    )
+    router.add_api_route(
+        f"/{name}/{{{noun}_id}}/drawer",
+        drawer,
+        methods=["GET"],
+        response_class=HTMLResponse,
+        dependencies=dep,
+    )
+
+
+_register_page("controls", controls_views, "controls.view", "control")
+_register_page("tasks", tasks_views, "tasks.view", "task")
 
 
 # -- credentials, users, integrations (read-only)

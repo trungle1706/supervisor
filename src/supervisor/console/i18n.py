@@ -1786,6 +1786,185 @@ _T.update(
 )
 
 
+# --- WP30: control catalogue and task list (pages, drawers, Agent tabs) ---
+_T.update(
+    {
+        "nav_controls": ("Controls", "Kiểm soát"),
+        "nav_tasks": ("Tasks", "Nhiệm vụ"),
+        "atab_controls": ("Controls", "Kiểm soát"),
+        "atab_tasks": ("Tasks", "Nhiệm vụ"),
+        "rk_lnk_control": ("Catalogue controls", "Kiểm soát trong danh mục"),
+        "ct_purpose": (
+            "The control catalogue: what the bank and the product do, what each control covers, and whether it works.",  # noqa: E501
+            "Danh mục kiểm soát: ngân hàng và sản phẩm làm gì, mỗi kiểm soát bao phủ gì, và nó có hoạt động không.",  # noqa: E501
+        ),
+        "ct_why": (
+            "One control covers many obligations and risks. It works only when runtime facts show it: a rule that fired, a real pack that passed, a monitor that is ok.",  # noqa: E501
+            "Một kiểm soát bao phủ nhiều nghĩa vụ và rủi ro. Nó chỉ hoạt động khi dữ liệu chạy thật cho thấy: quy tắc đã kích hoạt, gói thật đã đạt, bộ giám sát ổn.",  # noqa: E501
+        ),
+        "ct_edit_note": (
+            "Read only. Edit through /v1/controls or python -m supervisor.controls import.",
+            "Chỉ đọc. Sửa qua /v1/controls hoặc python -m supervisor.controls import.",
+        ),
+        "ct_tile_active": ("Active", "Đang áp dụng"),
+        "ct_tile_product": ("By the product", "Do sản phẩm"),
+        "ct_tile_bank": ("By the bank", "Do ngân hàng"),
+        "ct_failing_line": (
+            "{n} active control(s) fail for at least one agent.",
+            "{n} kiểm soát đang áp dụng bị lỗi với ít nhất một tác tử.",
+        ),
+        "ct_uncovered_line": (
+            "{n} active risk(s) have no control.",
+            "{n} rủi ro đang áp dụng chưa có kiểm soát.",
+        ),
+        "ct_col_control": ("Control", "Kiểm soát"),
+        "ct_col_type": ("Type", "Loại"),
+        "ct_col_by": ("Implemented by", "Thực hiện bởi"),
+        "ct_col_covers": ("Obligations / risks", "Nghĩa vụ / rủi ro"),
+        "ct_col_sources": ("Evidence sources", "Nguồn bằng chứng"),
+        "ct_col_status": ("Evidence", "Bằng chứng"),
+        "ct_type_preventive": ("Preventive", "Phòng ngừa"),
+        "ct_type_detective": ("Detective", "Phát hiện"),
+        "ct_type_corrective": ("Corrective", "Khắc phục"),
+        "ct_by_product": ("Product", "Sản phẩm"),
+        "ct_by_bank": ("Bank", "Ngân hàng"),
+        "ct_ev_working": ("working", "hoạt động"),
+        "ct_ev_failing": ("failing", "lỗi"),
+        "ct_ev_no_data": ("no data", "chưa có dữ liệu"),
+        "ct_no_controls": ("No controls", "Chưa có kiểm soát"),
+        "ct_no_controls_line": (
+            "python -m supervisor.controls import config/controls loads the starter catalogue.",
+            "python -m supervisor.controls import config/controls nạp danh mục mẫu.",
+        ),
+        "ct_dtab_map": ("Map", "Ánh xạ"),
+        "ct_dtab_status": ("Status", "Trạng thái"),
+        "ct_objective": ("Objective", "Mục tiêu"),
+        "ct_agents": ("Agents", "Tác tử"),
+        "ct_map_matrix": ("Obligations (matrix rows)", "Nghĩa vụ (dòng ma trận)"),
+        "ct_map_risk": ("Risks", "Rủi ro"),
+        "ct_map_rule": ("Gate rules", "Quy tắc cổng"),
+        "ct_map_pack": ("Assurance packs", "Gói đánh giá"),
+        "ct_map_monitor": ("Monitors", "Bộ giám sát"),
+        "ct_map_detector": ("Detectors (reference)", "Bộ phát hiện (tham chiếu)"),
+        "ct_map_document": ("Documents (reference)", "Tài liệu (tham chiếu)"),
+        "ct_no_map": ("Nothing mapped", "Chưa ánh xạ gì"),
+        "ct_status_by_agent": ("Status by agent", "Trạng thái theo tác tử"),
+        "ct_refs": ("References", "Tham chiếu"),
+        "ct_no_status": (
+            "No status yet. python -m supervisor.jobs.control_status writes it.",
+            "Chưa có trạng thái. python -m supervisor.jobs.control_status sẽ tạo.",
+        ),
+        "ct_reason_sources_working": ("a source works", "có nguồn hoạt động"),
+        "ct_reason_source_failing": ("a source fails", "có nguồn bị lỗi"),
+        "ct_reason_no_working_source": (
+            "no source shows it works",
+            "không nguồn nào cho thấy hoạt động",
+        ),
+        "ct_reason_reference_only": ("documents only", "chỉ có tài liệu"),
+        "ct_reason_no_sources": ("no evidence source", "chưa có nguồn bằng chứng"),
+        "ct_reason_no_supervised_agent": ("agent is not supervised", "tác tử chưa được giám sát"),
+        "ct_reason_not_evaluated": ("not evaluated yet", "chưa được đánh giá"),
+        "ct_reason_stale": ("too old", "đã cũ"),
+        "ct_reason_changed_since_evidence": (
+            "changed since the evidence",
+            "đã đổi sau khi có bằng chứng",
+        ),
+        "ct_tab_off": (
+            "The control catalogue is off (CONTROLS_ENABLED=1 turns it on).",
+            "Danh mục kiểm soát đang tắt (đặt CONTROLS_ENABLED=1 để bật).",
+        ),
+        "ct_tab_none": (
+            "No control is in scope for this agent.",
+            "Không có kiểm soát nào áp dụng cho tác tử này.",
+        ),
+        "ct_compliance": ("Controls with working evidence", "Kiểm soát có bằng chứng hoạt động"),
+        "ct_none_in_scope": (
+            "No control in scope: no figure.",
+            "Không có kiểm soát: chưa có số liệu.",
+        ),
+        "ct_in_scope": ("in scope", "áp dụng"),
+        "ct_product_line": (
+            "Product controls: {n} in scope, {bp} bp working. Bank-owned controls in scope: {b} (they never show working).",  # noqa: E501
+            "Kiểm soát của sản phẩm: {n} áp dụng, {bp} bp hoạt động. Kiểm soát của ngân hàng: {b} (không bao giờ hiện là hoạt động).",  # noqa: E501
+        ),
+        "ct_obligations": ("Obligations", "Nghĩa vụ"),
+        "ct_open_page": ("Open the Controls page", "Mở trang Kiểm soát"),
+        "tk_purpose": (
+            "The task list: a right-sized set of tasks for each agent and lifecycle stage.",
+            "Danh sách nhiệm vụ: bộ nhiệm vụ vừa đủ cho mỗi tác tử và giai đoạn vòng đời.",
+        ),
+        "tk_why": (
+            "The set depends on the Decision 33 class and the risk level. A required task of the current stage blocks the move to the next stage and the launch GO.",  # noqa: E501
+            "Bộ nhiệm vụ phụ thuộc phân loại Quyết định 33 và mức rủi ro. Nhiệm vụ bắt buộc của giai đoạn hiện tại chặn việc chuyển giai đoạn và GO khi ra mắt.",  # noqa: E501
+        ),
+        "tk_illustrative": (
+            "Task sets and thresholds are ILLUSTRATIVE until the bank sets them (config/tasks.yaml).",  # noqa: E501
+            "Bộ nhiệm vụ và ngưỡng chỉ MINH HỌA cho đến khi ngân hàng quy định (config/tasks.yaml).",  # noqa: E501
+        ),
+        "tk_edit_note": (
+            "Read only. Change tasks through /v1/tasks or python -m supervisor.tasks.",
+            "Chỉ đọc. Đổi nhiệm vụ qua /v1/tasks hoặc python -m supervisor.tasks.",
+        ),
+        "tk_tile_open_required": ("Required, open", "Bắt buộc, chưa xong"),
+        "tk_tile_overdue": ("Overdue", "Quá hạn"),
+        "tk_tile_waiver": ("Waiver waiting", "Chờ người thứ hai"),
+        "tk_col_task": ("Task", "Nhiệm vụ"),
+        "tk_col_stage": ("Stage", "Giai đoạn"),
+        "tk_col_required": ("Required", "Bắt buộc"),
+        "tk_col_role": ("Owner role", "Vai trò"),
+        "tk_col_due": ("Due", "Hạn"),
+        "tk_stage_initiation": ("Initiation", "Khởi tạo"),
+        "tk_stage_design": ("Design", "Thiết kế"),
+        "tk_stage_validation": ("Validation", "Thẩm định"),
+        "tk_stage_deployment": ("Deployment", "Triển khai"),
+        "tk_stage_operation": ("Operation", "Vận hành"),
+        "tk_stage_re_evaluation": ("Re-evaluation", "Đánh giá lại"),
+        "tk_stage_retirement": ("Retirement", "Ngừng sử dụng"),
+        "tk_st_open": ("open", "chưa làm"),
+        "tk_st_in_progress": ("in progress", "đang làm"),
+        "tk_st_done": ("done", "xong"),
+        "tk_st_waived": ("waived", "miễn"),
+        "tk_required": ("required", "bắt buộc"),
+        "tk_optional": ("optional", "tùy chọn"),
+        "tk_waive_pending": ("waiver waiting", "chờ miễn"),
+        "tk_no_tasks": ("No tasks", "Chưa có nhiệm vụ"),
+        "tk_no_match": ("No task matches the filters.", "Không có nhiệm vụ khớp bộ lọc."),
+        "tk_no_tasks_line": (
+            "python -m supervisor.tasks generate --agent <id> --user <name> makes the list of an agent.",  # noqa: E501
+            "python -m supervisor.tasks generate --agent <id> --user <name> tạo danh sách cho tác tử.",  # noqa: E501
+        ),
+        "tk_dtab_history": ("History", "Lịch sử"),
+        "tk_level": ("Sized for (level, class)", "Cỡ bộ nhiệm vụ (mức, phân loại)"),
+        "tk_evidence": ("Evidence", "Bằng chứng"),
+        "tk_done_by": ("Done by", "Hoàn thành bởi"),
+        "tk_waive_reason": ("Waiver reason", "Lý do miễn"),
+        "tk_waive_by": ("Waiver (asked, approved)", "Miễn (đề nghị, duyệt)"),
+        "tk_action": ("Action", "Hành động"),
+        "tk_actor": ("Person", "Người"),
+        "tk_no_history": ("No events.", "Chưa có sự kiện."),
+        "tk_tab_off": (
+            "The task list is off (CONTROLS_ENABLED=1 turns it on).",
+            "Danh sách nhiệm vụ đang tắt (đặt CONTROLS_ENABLED=1 để bật).",
+        ),
+        "tk_tab_none": (
+            "No task list for this agent yet.",
+            "Tác tử này chưa có danh sách nhiệm vụ.",
+        ),
+        "tk_stage_now": ("Stage", "Giai đoạn"),
+        "tk_sizing": (
+            "Sized for class {cls}, band {band} ({src}): level {level}.",
+            "Cỡ theo phân loại {cls}, mức {band} ({src}): cấp {level}.",
+        ),
+        "tk_required_open": (
+            "{n} of {total} required tasks open",
+            "{n} trên {total} nhiệm vụ bắt buộc chưa xong",
+        ),
+        "tk_next_stage": ("next stage", "giai đoạn tiếp"),
+        "tk_open_page": ("Open the Tasks page", "Mở trang Nhiệm vụ"),
+    }
+)
+
+
 # --- WP-UX2: agent page, Alerts, Sign-off list, Analytics, Cases list ---
 _T.update(
     {

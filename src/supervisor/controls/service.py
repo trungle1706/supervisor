@@ -31,10 +31,12 @@ import yaml
 from supervisor.controls import evidence as cev
 from supervisor.controls.model import (
     ANY_AGENT,
+    CONTROL_TYPES,
     COVER_KINDS,
     EDITABLE,
     EVIDENCE_KINDS,
     EVIDENCE_STATUSES,
+    IMPLEMENTERS,
     MAP_KINDS,
     MAX_MAPS,
     RUNTIME_KINDS,
@@ -325,6 +327,12 @@ class ControlService:
                 raise ControlError(f"unknown filter {k!r}")
         if f.get("status") and f["status"] not in STATUSES:
             raise ControlError("unknown status filter")
+        if f.get("type") and f["type"] not in CONTROL_TYPES:
+            raise ControlError("unknown type filter")
+        if f.get("implemented_by") and f["implemented_by"] not in IMPLEMENTERS:
+            raise ControlError("unknown implemented_by filter")
+        if f.get("agent"):
+            check_id(f["agent"], "agent")
         by_control: dict[str, list[dict[str, Any]]] = {}
         for m in self.state.query("control_map"):
             if _on(m["active"]):

@@ -1,0 +1,38 @@
+{# Controls tab of the Agent page (WP30): the controls in scope of the agent, their evidence
+   status and the compliance figure in basis points. Read only. #}
+{% import "_ui.html" as ui with context %}
+{% if ct_off %}
+{{ ui.empty(t('ct_tab_off')) }}
+{% else %}
+<section class="card" data-section="control-bp">
+  <h3>{{ t('ct_compliance') }}</h3>
+  {% if ct.compliance_bp is none %}
+  <p class="hint">{{ t('ct_none_in_scope') }}</p>
+  {% else %}
+  {{ ui.bar(ct.compliance_bp, 'ok' if ct.compliance_bp >= 8000 else 'warn') }}
+  <p>{{ ct.compliance_bp // 100 }}% ({{ ct.compliance_bp }} bp) · {{ t('ct_ev_working') }} {{ ct.working }} · {{ t('ct_ev_failing') }} {{ ct.failing }} · {{ t('ct_ev_no_data') }} {{ ct.no_data }} · {{ t('ct_in_scope') }} {{ ct.in_scope }}</p>
+  <p class="hint">{{ t('ct_product_line', n=ct.product_in_scope, bp=ct.product_bp if ct.product_bp is not none else 0, b=ct.bank_in_scope) }}</p>
+  {% endif %}
+</section>
+{% if ct.controls %}
+<section class="card" data-section="control-list">
+  <h3>{{ t('nav_controls') }} <span class="k">{{ ct.controls|length }}</span></h3>
+  <div class="tablewrap flat"><table class="queue" id="agent-controls">
+    <thead><tr><th scope="col">{{ t('ct_col_control') }}</th><th scope="col">{{ t('ct_col_by') }}</th><th scope="col">{{ t('ct_col_status') }}</th><th scope="col" class="n">{{ t('ct_obligations') }}</th></tr></thead>
+    <tbody>
+    {% for c in ct.controls %}
+      <tr class="row">
+        <td><a class="mono" href="/console/controls?drawer={{ c.control_id }}&amp;lang={{ lang }}">{{ c.control_id }}</a><div class="idline">{{ c.title }}</div></td>
+        <td>{{ t('ct_by_' ~ c.implemented_by) }}</td>
+        <td>{{ ui.pill(t('ct_ev_' ~ c.status), {'working': 'ok', 'failing': 'bad'}.get(c.status, 'warn'), True) }}<div class="idline">{{ t('ct_reason_' ~ c.reason) }}</div></td>
+        <td class="n">{{ c.matrix|length }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% else %}
+{{ ui.empty(t('ct_tab_none')) }}
+{% endif %}
+<p class="hint"><a href="/console/controls?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('ct_open_page') }}</a></p>
+{% endif %}

@@ -1,0 +1,46 @@
+{# Controls table + pager: the swap target #list of the Controls page (WP30, read-only). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% if page.items %}
+<div class="tablewrap">
+<table class="queue controls-tbl">
+  <caption class="sr">{{ t('nav_controls') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('control_id', t('ct_col_control'), sort_col, sort_dir, '/console/controls', '/console/controls/rows', base_qs) }}
+      <th scope="col">{{ t('ct_col_type') }}</th>
+      <th scope="col">{{ t('ct_col_by') }}</th>
+      <th scope="col" class="n">{{ t('ct_col_covers') }}</th>
+      <th scope="col" class="n">{{ t('ct_col_sources') }}</th>
+      <th scope="col">{{ t('ct_col_status') }}</th>
+      {{ tb.th('owner', t('owner'), sort_col, sort_dir, '/console/controls', '/console/controls/rows', base_qs) }}
+      {{ tb.th('review_date', t('rk_col_review'), sort_col, sort_dir, '/console/controls', '/console/controls/rows', base_qs) }}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for c in page.items %}
+    {% set dq = list_qs ~ '&lang=' ~ lang %}
+    <tr class="row" data-row="{{ c.control_id }}" data-status="{{ c.status }}">
+      <td><a class="head rowlink mono" href="/console/controls?drawer={{ c.control_id }}&amp;{{ dq }}" hx-get="/console/controls/{{ c.control_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ c.control_id }}</a>{% if c.status != 'active' %} {{ ui.pill(t('rk_st_' ~ c.status), 'neutral') }}{% endif %}<div class="idline">{{ c.title }}</div></td>
+      <td>{{ t('ct_type_' ~ c.control_type) }}</td>
+      <td>{{ t('ct_by_' ~ c.implemented_by) }}</td>
+      <td class="n">{{ c.matrix_n }} / {{ c.risk_n }}</td>
+      <td class="n">{{ c.sources_n }}</td>
+      <td>{% if c.st.working or c.st.failing or c.st.no_data %}
+        {% if c.st.failing %}{{ ui.pill(t('ct_ev_failing') ~ ' ' ~ c.st.failing, 'bad', True) }}{% endif %}
+        {% if c.st.working %}{{ ui.pill(t('ct_ev_working') ~ ' ' ~ c.st.working, 'ok', True) }}{% endif %}
+        {% if c.st.no_data %}{{ ui.pill(t('ct_ev_no_data') ~ ' ' ~ c.st.no_data, 'warn') }}{% endif %}
+        {% else %}<span class="muted">{{ t('rk_ev_none') }}</span>{% endif %}</td>
+      <td>{{ c.owner }}</td>
+      <td class="mono">{{ c.review_date or '-' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/controls', '/console/controls/rows', list_qs) }}
+{% elif total_controls %}
+{{ ui.empty(t('ct_no_controls'), t('rk_no_match')) }}
+{% else %}
+{{ ui.empty(t('ct_no_controls'), t('ct_no_controls_line')) }}
+{% endif %}
