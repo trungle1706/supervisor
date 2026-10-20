@@ -39,7 +39,7 @@ def test_off_by_default(console: Any) -> None:
         observe(console),
         console.client.post(
             "/v1/mcp/tools/approve",
-            json={"server_id": SERVER, "tool": "x", "observed_hash": "0" * 16},
+            json={"server_id": SERVER, "tool": "x", "observed_hash": "0" * 64},
             headers={"X-Dev-User": "reviewer.an"},
         ),
     ):
@@ -82,7 +82,7 @@ def test_operator_proposes_and_a_second_person_approves(mcp: Any) -> None:
 
 def test_stale_hash_and_bad_input_are_400_never_500(mcp: Any) -> None:
     observe(mcp)
-    r = review(mcp, "approve", "reviewer.an", "0" * 16)
+    r = review(mcp, "approve", "reviewer.an", "0" * 64)
     assert r.status_code == 400 and "changed since you reviewed" in r.json()["error"]
     r = mcp.client.post(
         "/v1/mcp/tools/approve",

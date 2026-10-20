@@ -22,6 +22,7 @@ suspicious, else medium). The case never calls the gate; the lock does.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
 import re
 import threading
@@ -44,6 +45,7 @@ RULE_UNREVIEWED = "MCP-TOOL-UNREVIEWED"
 _USER = re.compile(r"^[A-Za-z0-9_.@+-]{1,128}\Z")
 _SERVER = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}\Z")
 _AGENT = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}\Z")
+_FULL_HASH = re.compile(r"^[0-9a-fA-F]{64}\Z")
 
 
 class ToolLockError(SupervisorError):
@@ -171,6 +173,7 @@ class ToolLockService:
         tools: list[dict[str, Any]],
         *,
         tofu_by: str | None = None,
+        tofu_via: str | None = None,
     ) -> dict[str, Any]:
         """Compare a ``tools/list`` result with the locked manifest, record every change, and
         return the view the proxy needs (which tools the agent may see and call)."""
@@ -180,8 +183,10 @@ class ToolLockService:
         if tofu_by is not None and not _USER.match(tofu_by):
             raise ToolLockError("trust-on-first-use needs a valid user name")
         by_name = mcp_lock.group_tools(tools)
+        if SERVER_ROW in by_name:  # F9: would collide with the server row; fail closed
+            raise ToolLockError("a tool named '*' is not allowed (reserved for the server row)")
         with self._lock:
-            return self._observe(server_id, agent_id, by_name, tofu_by)
+            return self._observe(server_id, agent_id, by_name, tofu_by, tofu_via)
 
     def _observe(
         self,
@@ -189,6 +194,7 @@ class ToolLockService:
         agent_id: str,
         by_name: dict[str, dict[str, Any]],
         tofu_by: str | None,
+        tofu_via: str | None = None,
     ) -> dict[str, Any]:
         now = self.clock.now()
         rows = self._rows(server_id)
@@ -273,6 +279,8 @@ class ToolLockService:
                 {
                     "server_id": server_id,
                     "seeded_by": seed,
+                    # the name is claimed, not verified; "via" is who sent it (F3)
+                    "via": _ascii(tofu_via or "local"),
                     "method": "trust_on_first_use",
                     "list_hash": lhash,
                     "tool_count": len(by_name),
@@ -538,9 +546,12 @@ class ToolLockService:
     ) -> dict[str, Any]:
         if not isinstance(by, str) or not _USER.match(by):
             raise ToolLockError("the approving user name is not valid")
-        if not isinstance(observed_hash, str) or len(observed_hash) < 12:
+        if not isinstance(observed_hash, str) or not _FULL_HASH.match(observed_hash):
+            # the FULL hash (F5): a 12-character prefix is 48 bits, which an upstream server can
+            # match with a poisoned definition by brute force between "look" and "approve"
             raise ToolLockError(
-                "observed_hash (at least 12 hex characters) is required: approve what you reviewed"
+                "observed_hash (all 64 hex characters, from diff) is required: approve what you "
+                "reviewed"
             )
         with self._lock:
             row = self._tool_row(server_id, tool)
@@ -548,7 +559,7 @@ class ToolLockService:
                 raise ToolLockError("this tool is already approved")
             if row["status"] == "removed":
                 raise ToolLockError("this tool is no longer listed by the server")
-            if not str(row["observed_hash"]).startswith(observed_hash.lower()):
+            if not hmac.compare_digest(str(row["observed_hash"]), observed_hash.lower()):
                 raise ToolLockError(
                     "the tool changed since you reviewed it (hash differs); review the diff again"
                 )
@@ -562,6 +573,12 @@ class ToolLockService:
             others = [a for a in _json(row.get("approvals"), []) if a not in ap]
             approvals = [*others, *ap, entry][-20:]
             done = len(ap) + 1 >= APPROVALS_NEEDED
+            if done and role == "proposer":
+                # F2: ``propose`` (operators may) never completes the lock; the approval that
+                # locks needs ``mcp.tools.approve`` (ADR D24 decision 3)
+                raise ToolLockError(
+                    "the second approval needs mcp.tools.approve: use approve, not propose"
+                )
             agent_id = row["agent_id"]
             if not done:
                 self._update(row, {"approvals": approvals})

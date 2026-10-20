@@ -38,7 +38,7 @@ def test_list_diff_propose_approve(seeded_db: str, capsys: pytest.CaptureFixture
     assert mcp_http.main(["tools", "diff", SERVER, "get_balance"]) == 0
     out = capsys.readouterr().out
     assert "never approved" in out and out.isascii() and "\\u0111" in out  # escaped, not raw
-    h = seeded_db[:16]
+    h = seeded_db  # the full hash (review F5)
     args = ["tools", "propose", SERVER, "get_balance", "--by", "op.khanh", "--hash", h]
     assert mcp_http.main(args) == 0
     assert "waiting for a second" in capsys.readouterr().out
@@ -79,10 +79,10 @@ def test_cli_over_http_uses_the_routes(monkeypatch: pytest.MonkeyPatch, capsys: 
     monkeypatch.setattr(hj, "post_json", fake_post)
     base = ["tools", "--supervisor-url", "http://127.0.0.1:1"]
     assert mcp_http.main([*base, "list", SERVER]) == 0
-    assert mcp_http.main([*base, "approve", SERVER, "t", "--by", "rev.an", "--hash", "a" * 12]) == 0
+    assert mcp_http.main([*base, "approve", SERVER, "t", "--by", "rev.an", "--hash", "a" * 64]) == 0
     assert seen[0][1].endswith(f"/v1/mcp/tools?server_id={SERVER}")
     assert seen[1][2][1] == {"X-Dev-User": "rev.an"}
-    assert seen[1][2][0]["observed_hash"] == "a" * 12
+    assert seen[1][2][0]["observed_hash"] == "a" * 64
 
 
 def test_flag_defaults() -> None:

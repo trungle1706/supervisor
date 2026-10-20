@@ -484,6 +484,9 @@ class Settings(BaseSettings):
     mcp_http_enabled: bool = False
     mcp_tool_lock: bool = True
     mcp_lock_refresh_s: int = Field(default=60, ge=1, le=3600)
+    # MCP_TOFU_INGRESS: accept --trust-on-first-use from a proxy over POST /v1/mcp/tools/observe
+    # (the name is claimed by the process owner, not verified). Default off (review WP26 F3).
+    mcp_tofu_ingress: bool = False
 
     @field_validator(
         "data_dir",

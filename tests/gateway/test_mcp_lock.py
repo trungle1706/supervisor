@@ -213,7 +213,7 @@ def test_changed_tool_is_hidden_and_removed_is_logged(
 def test_two_different_people_lock_a_tool(svc: ToolLockService, evidence: MemoryEvidence) -> None:
     svc.observe(SERVER, "payments", [balance()])
     h = svc.list_tools(SERVER)[0]["observed_hash"]
-    first = svc.propose(SERVER, H, "op.khanh", h[:16])
+    first = svc.propose(SERVER, H, "op.khanh", h)
     assert first["locked"] is False and first["status"] == "new"
     with pytest.raises(ToolLockError, match="second, different person"):
         svc.approve(SERVER, H, "OP.KHANH", h)  # same person, any case
@@ -236,7 +236,7 @@ def test_approval_must_name_the_hash_the_reviewer_saw(svc: ToolLockService) -> N
     h2 = svc.list_tools(SERVER)[0]["observed_hash"]
     out = svc.approve(SERVER, H, "b.two", h2)  # the first approval was for the old hash
     assert out["locked"] is False and out["approvals"][0]["by"] == "b.two"
-    with pytest.raises(ToolLockError, match="at least 12"):
+    with pytest.raises(ToolLockError, match="all 64 hex"):
         svc.approve(SERVER, H, "c.three", "abc")
 
 

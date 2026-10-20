@@ -31,13 +31,14 @@ from supervisor.adapters.auth.authz import needs
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.core.errors import SupervisorError
 from supervisor.gateway import mcp_lock
-from supervisor.gateway.ingress_auth import ingress_gate
+from supervisor.gateway.ingress_auth import IngressIdentity, ingress_gate
 from supervisor.gateway.mcp_lock_service import ToolLockError, ToolLockService, inventory_hook
 
 router = APIRouter(prefix="/v1/mcp/tools", tags=["console"])
 _CTX = Depends(get_context)
 _PROPOSER = Depends(needs("mcp.tools.propose", control=True))
 _APPROVER = Depends(needs("mcp.tools.approve", control=True))
+_INGRESS = Depends(ingress_gate)
 _ID = r"^[A-Za-z0-9_.:@-]{1,128}$"
 
 
@@ -62,7 +63,7 @@ class ReviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     server_id: str = Field(pattern=_ID)
     tool: str = Field(min_length=1, max_length=512)
-    observed_hash: str = Field(min_length=12, max_length=64, pattern=r"^[0-9a-fA-F]+$")
+    observed_hash: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-fA-F]+$")
 
 
 class ObserveRequest(BaseModel):
@@ -116,17 +117,28 @@ async def approve(
     )
 
 
-@router.post("/observe", dependencies=[Depends(ingress_gate)])
-async def observe(body: ObserveRequest, ctx: ConsoleContext = _CTX) -> Any:
+@router.post("/observe")
+async def observe(
+    body: ObserveRequest,
+    ctx: ConsoleContext = _CTX,
+    ident: IngressIdentity | None = _INGRESS,
+) -> Any:
     svc = service_for(ctx)
+    tofu = body.trust_on_first_use_by
+    if tofu is not None and not ctx.settings.mcp_tofu_ingress:
+        # F3: a machine credential (or anyone, while INGRESS_AUTH_ENABLED=0) must not be able to
+        # seed a server as approved under a claimed human name. Off unless the owner turns it on.
+        raise ToolLockError(
+            "trust-on-first-use over the agent ingress is off (MCP_TOFU_INGRESS=1 allows it); "
+            "review the tools with propose and approve instead"
+        )
     try:
         tools = mcp_lock.parse_tools({"tools": body.tools})
     except mcp_lock.ToolListError as exc:
         raise ToolLockError(str(exc)) from None
+    via = f"ingress:{ident.kind}:{ident.principal}" if ident is not None else "ingress:unsigned"
     return await run_in_threadpool(
-        lambda: svc.observe(
-            body.server_id, body.agent_id, tools, tofu_by=body.trust_on_first_use_by
-        )
+        lambda: svc.observe(body.server_id, body.agent_id, tools, tofu_by=tofu, tofu_via=via)
     )
 
 
