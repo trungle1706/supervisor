@@ -55,7 +55,9 @@ def wilson_bp(k: int, n: int, z: float = 1.96) -> tuple[int, int] | None:
     denom = 1 + z * z / n
     centre = (p + z * z / (2 * n)) / denom
     half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
-    return max(0, math.floor((centre - half) * 10000)), min(10000, math.ceil((centre + half) * 10000))
+    return max(0, math.floor((centre - half) * 10000)), min(
+        10000, math.ceil((centre + half) * 10000)
+    )
 
 
 def _bp(k: int, n: int) -> int | None:
@@ -168,14 +170,18 @@ def evaluate(
             if p.type == "AMOUNT" and not amounts_masked:
                 continue
             pred_n[p.type] += 1
-            if any(g["type"] == p.type and g["start"] < p.end and p.start < g["end"] for g in spans):
+            if any(
+                g["type"] == p.type and g["start"] < p.end and p.start < g["end"] for g in spans
+            ):
                 pred_ok[p.type] += 1
                 continue
             touched_keep = next(
                 (
                     k
                     for k in item["keep"]
-                    if k["start"] < p.end and p.start < k["end"] and not (amounts_masked and k["kind"] == "AMOUNT")
+                    if k["start"] < p.end
+                    and p.start < k["end"]
+                    and not (amounts_masked and k["kind"] == "AMOUNT")
                 ),
                 None,
             )
@@ -192,7 +198,9 @@ def evaluate(
                 continue
             keep_n[k["kind"]] += 1
             if any(
-                p.start < k["end"] and k["start"] < p.end and not (p.type == "AMOUNT" and not amounts_masked)
+                p.start < k["end"]
+                and k["start"] < p.end
+                and not (p.type == "AMOUNT" and not amounts_masked)
                 for p in preds
             ):
                 keep_touched[k["kind"]] += 1
@@ -210,7 +218,11 @@ def evaluate(
             "precision_wilson_bp": wilson_bp(pred_ok[t], pred_n[t]),
         }
     keeps = {
-        k: {"n": keep_n[k], "touched": keep_touched[k], "intact_bp": _bp(keep_n[k] - keep_touched[k], keep_n[k])}
+        k: {
+            "n": keep_n[k],
+            "touched": keep_touched[k],
+            "intact_bp": _bp(keep_n[k] - keep_touched[k], keep_n[k]),
+        }
         for k in sorted(keep_n)
     }
     total_gold = sum(gold_n.values())
@@ -273,18 +285,24 @@ def _strip_ids(report: dict[str, Any]) -> dict[str, Any]:
 def format_table(report: dict[str, Any]) -> str:
     lines = [f"masker {report['masker']}"]
     for split, r in report["splits"].items():
-        lines.append(f"-- {split}: {r['n_items']} items, micro leak recall {r['micro_leak_recall_bp']} bp")
+        lines.append(
+            f"-- {split}: {r['n_items']} items, micro leak recall {r['micro_leak_recall_bp']} bp"
+        )
         lines.append("entity        n  leak_rec_bp  wilson95          typed_bp  prec_bp  wilson95")
         for t in ENTITY_TYPES:
             e = r["entities"].get(t)
             if not e:
                 continue
             lines.append(
-                f"{t:<12} {e['n']:>3}  {e['leak_recall_bp']:>10}  {str(e['leak_recall_wilson_bp']):<16}"
-                f"  {e['typed_recall_bp']:>8}  {str(e['precision_bp']):>7}  {e['precision_wilson_bp']}"
+                f"{t:<12} {e['n']:>3}  {e['leak_recall_bp']:>10}  "
+                f"{e['leak_recall_wilson_bp']!s:<16}"
+                f"  {e['typed_recall_bp']:>8}  {e['precision_bp']!s:>7}  "
+                f"{e['precision_wilson_bp']}"
             )
         for k, v in r["keep"].items():
-            lines.append(f"keep {k:<8} n={v['n']:>3} touched={v['touched']} intact_bp={v['intact_bp']}")
+            lines.append(
+                f"keep {k:<8} n={v['n']:>3} touched={v['touched']} intact_bp={v['intact_bp']}"
+            )
         lines.append(f"over_mask_amount_count={r['over_mask_amount_count']}")
         if r["taxonomy"]:
             lines.append("taxonomy: " + ", ".join(f"{k}={v}" for k, v in r["taxonomy"].items()))
@@ -296,27 +314,29 @@ def format_table(report: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="python -m supervisor.pii_eval",
-        description="Score the vn_regex masker on the Vietnamese PII golden set (data/eval/pii_vn).",
+        description="Score the vn_regex masker on the Vietnamese PII golden set (pii_vn).",
     )
     p.add_argument("--generate", action="store_true", help="rewrite the golden set from the seed")
     p.add_argument("--record", metavar="PATH", help="write the JSON report (baseline) to PATH")
     p.add_argument("--json", action="store_true", help="print the JSON report")
-    p.add_argument("--show-failures", action="store_true", help="list failing DEV item ids per class")
+    p.add_argument(
+        "--show-failures", action="store_true", help="list failing DEV item ids per class"
+    )
     p.add_argument("--commit", default="unrecorded", help="commit id stored with --record")
     ns = p.parse_args(sys.argv[1:] if argv is None else argv)
     if ns.generate:
         from supervisor.pii_eval.generate import write
 
         for path in write():
-            print(f"[OK] wrote {path.name}")
+            print(f"[OK] wrote {path.name}")  # noqa: T201 (CLI output)
     report = run_all()
     if ns.json:
-        print(json.dumps(_strip_ids(report), indent=2, sort_keys=True))
+        print(json.dumps(_strip_ids(report), indent=2, sort_keys=True))  # noqa: T201 (CLI output)
     else:
-        print(format_table(report))
+        print(format_table(report))  # noqa: T201 (CLI output)
     if ns.show_failures:
         for k, ids in report["splits"]["dev"]["_failing_ids"].items():
-            print(f"  dev {k}: {', '.join(ids)}")
+            print(f"  dev {k}: {', '.join(ids)}")  # noqa: T201 (CLI output)
     if ns.record:
         doc = {
             "recorded_at": time.strftime("%Y-%m-%d", time.gmtime()),
@@ -324,8 +344,10 @@ def main(argv: list[str] | None = None) -> int:
             "thresholds": "ILLUSTRATIVE until the bank sets them",
             **_strip_ids(report),
         }
-        Path(ns.record).write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        print(f"[OK] baseline written to {ns.record}")
+        Path(ns.record).write_text(
+            json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(f"[OK] baseline written to {ns.record}")  # noqa: T201 (CLI output)
     return 0
 
 

@@ -205,8 +205,8 @@
           "touched": 0
         }
       },
-      "latency_us_p50": 143,
-      "latency_us_p95": 222,
+      "latency_us_p50": 144,
+      "latency_us_p95": 227,
       "micro_leak_recall_bp": 7066,
       "n_items": 406,
       "over_mask_amount_count": 69,
@@ -429,8 +429,8 @@
           "touched": 0
         }
       },
-      "latency_us_p50": 142,
-      "latency_us_p95": 219,
+      "latency_us_p50": 145,
+      "latency_us_p95": 220,
       "micro_leak_recall_bp": 5235,
       "n_items": 175,
       "over_mask_amount_count": 30,

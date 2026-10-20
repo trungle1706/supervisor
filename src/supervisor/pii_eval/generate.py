@@ -52,7 +52,7 @@ DEV_GIVEN = tuple(W.GIVEN_MALE + W.GIVEN_FEMALE) + (
 HELD_SURNAMES = ("Thạch", "Quách", "Tống", "Lữ", "Kiều")
 HELD_MIDDLE = ("Duy", "Anh", "Tuấn", "Khắc", "Nhật", "Diễm", "Tường")
 HELD_GIVEN = (
-    "Bách", "Cảnh", "Duyên", "Hậu", "Huệ", "Khôi", "Lâm", "Mẫn", "Nhàn", "Phụng",
+    "Bách", "Cảnh", "Duyên", "Hậu", "Huệ", "Khôi", "Lâm", "Mẫn", "Nhàn", "Nghiêu",
     "Quang", "Rạng", "Sinh", "Tấn", "Thịnh", "Triều", "Tuyền", "Út", "Vĩnh", "Xuyến",
 )  # fmt: skip
 HELD_STREETS = ("Cao Thắng", "Pasteur", "Võ Thị Sáu", "Lạc Long Quân", "Hoàng Hoa Thám")
@@ -84,8 +84,7 @@ def telex_word(word: str) -> str:
     for ch in unicodedata.normalize("NFD", word):
         cat = unicodedata.category(ch)
         if cat == "Mn":
-            tone = {"́": "s", "̀": "f", "̉": "r", "̃": "x", "̣": "j"}.get(
-                ch, "") or tone
+            tone = {"́": "s", "̀": "f", "̉": "r", "̃": "x", "̣": "j"}.get(ch, "") or tone
             if ch == "̆":
                 out.append("w")
             elif ch == "̛":
@@ -309,7 +308,9 @@ class Gen:
         return f"{n // 1000:,}".replace(",", ".") + " nghìn đồng"
 
     def date(self) -> str:
-        return f"{self.rng.randrange(1, 29):02d}/{self.rng.randrange(1, 13):02d}/{self.rng.randrange(2022, 2027)}"
+        r = self.rng
+        d, m, y = r.randrange(1, 29), r.randrange(1, 13), r.randrange(2022, 2027)
+        return f"{d:02d}/{m:02d}/{y}"
 
     def ref(self) -> str:
         return f"HD-{self.rng.randrange(2023, 2027)}-{self.digits(5)}"
@@ -329,20 +330,26 @@ def build_item(g: Gen, template: int) -> Doc:
     if template == 0:  # labelled person + CCCD + loan amount
         cc, ct = g.cccd_surface()
         d.t(f"{title} ").e("PERSON", name).t(", CCCD ").e("CCCD", cc)
-        d.t(" đề nghị vay ").k("AMOUNT", g.amount()).t(" kỳ hạn ").k("TERM", f"{r.choice((12, 24, 36, 60))} tháng")
+        d.t(" đề nghị vay ").k("AMOUNT", g.amount()).t(" kỳ hạn ").k(
+            "TERM", f"{r.choice((12, 24, 36, 60))} tháng"
+        )
         d.t(f", hợp đồng {g.ref()}.")
     elif template == 1:  # JSON args
         em, _ = g.email(parts)
         ph, _ = g.phone()
         d.t('{"full_name": "').e("PERSON", name).t('", "phone": "').e("PHONE", ph)
-        d.t('", "email": "').e("EMAIL", em).t('", "limit_minor": ').k("AMOUNT", str(r.randrange(1, 99) * 100_000_000)).t("}")
+        d.t('", "email": "').e("EMAIL", em).t('", "limit_minor": ').k(
+            "AMOUNT", str(r.randrange(1, 99) * 100_000_000)
+        ).t("}")
     elif template == 2:  # transfer: amount next to account number
         acct, _ = g.account()
         d.t("Chuyển ").k("AMOUNT", g.amount()).t(" đến STK ").e("BANK_ACCOUNT", acct)
-        d.t(" của ").e("PERSON", name).t(f" ngày ").k("DATE", g.date()).t(".")
+        d.t(" của ").e("PERSON", name).t(" ngày ").k("DATE", g.date()).t(".")
     elif template == 3:  # address
         addr, _ = g.address()
-        d.t("Địa chỉ thường trú: ").e("ADDRESS", addr).t(". Người liên hệ: ").e("PERSON", name).t(".")
+        d.t("Địa chỉ thường trú: ").e("ADDRESS", addr).t(". Người liên hệ: ").e("PERSON", name).t(
+            "."
+        )
     elif template == 4:  # phone + email, name in email
         ph, _ = g.phone()
         em, _ = g.email(parts)
@@ -351,7 +358,9 @@ def build_item(g: Gen, template: int) -> Doc:
         d.t("MST ").e("TAX_CODE", g.tax()).t(", thẻ ").e("CARD_NUMBER", g.card()).t(", tài khoản ")
         d.e("BANK_ACCOUNT", g.account()[0]).t(", số dư ").k("AMOUNT", g.amount()).t(".")
     elif template == 6:  # CMND old id
-        d.t(f"{title} ").e("PERSON", name).t(", CMND ").e("CMND", f"{r.choice('0123')}{g.digits(8)}")
+        d.t(f"{title} ").e("PERSON", name).t(", CMND ").e(
+            "CMND", f"{r.choice('0123')}{g.digits(8)}"
+        )
         d.t(", cấp ngày ").k("DATE", g.date()).t(".")
     elif template == 7:  # unlabelled name in prose
         d.t("Hợp đồng được ký bởi ").e("PERSON", name).t(" tại chi nhánh vào ").k("DATE", g.date())
@@ -404,18 +413,60 @@ HardCase = tuple[str, list[tuple[str, str]], list[tuple[str, str]], list[str], s
 
 HARD: list[HardCase] = [
     # upper-case names
-    ('{"full_name": "NGUYỄN VĂN THỬ"}', [("PERSON", "NGUYỄN VĂN THỬ")], [], ["uppercase", "g7"], "dev"),
-    ("Giám đốc: TRẦN THỊ BÍCH NGỌC ký tên.", [("PERSON", "TRẦN THỊ BÍCH NGỌC")], [], ["uppercase"], "dev"),
+    (
+        '{"full_name": "NGUYỄN VĂN THỬ"}',
+        [("PERSON", "NGUYỄN VĂN THỬ")],
+        [],
+        ["uppercase", "g7"],
+        "dev",
+    ),
+    (
+        "Giám đốc: TRẦN THỊ BÍCH NGỌC ký tên.",
+        [("PERSON", "TRẦN THỊ BÍCH NGỌC")],
+        [],
+        ["uppercase"],
+        "dev",
+    ),
     ("ĐẠI DIỆN PHÁP LUẬT: LÊ HOÀNG NAM", [("PERSON", "LÊ HOÀNG NAM")], [], ["uppercase"], "dev"),
-    ("Chủ thẻ PHAM VAN HUNG vui long xac nhan.", [("PERSON", "PHAM VAN HUNG")], [], ["uppercase", "no-diacritics"], "dev"),
+    (
+        "Chủ thẻ PHAM VAN HUNG vui long xac nhan.",
+        [("PERSON", "PHAM VAN HUNG")],
+        [],
+        ["uppercase", "no-diacritics"],
+        "dev",
+    ),
     ("Ông Nguyễn Văn Thử đã đến chi nhánh.", [("PERSON", "Nguyễn Văn Thử")], [], ["g7"], "dev"),
-    ("Ong Nguyen Van Thu den chi nhanh", [("PERSON", "Nguyen Van Thu")], [], ["no-diacritics", "g7"], "dev"),
+    (
+        "Ong Nguyen Van Thu den chi nhanh",
+        [("PERSON", "Nguyen Van Thu")],
+        [],
+        ["no-diacritics", "g7"],
+        "dev",
+    ),
     ("Bà Đặng Thị Hồng Nhung vay thế chấp.", [("PERSON", "Đặng Thị Hồng Nhung")], [], [], "dev"),
     ("Anh Tuấn gọi lúc 9h sáng.", [("PERSON", "Tuấn")], [], ["single-name"], "dev"),
     ("Chị Lan xác nhận giao dịch.", [("PERSON", "Lan")], [], ["single-name"], "dev"),
-    ("Khach hang: nguyen thi mai hoa", [("PERSON", "nguyen thi mai hoa")], [], ["lowercase", "no-diacritics"], "dev"),
-    ("Nguyeenx Vawn Thuwr vay 500 trieu", [("PERSON", "Nguyeenx Vawn Thuwr")], [("AMOUNT", "500 trieu")], ["telex"], "dev"),
-    ("Hoang Thi Thanh Thuy chuyen khoan", [("PERSON", "Hoang Thi Thanh Thuy")], [], ["no-diacritics"], "dev"),
+    (
+        "Khach hang: nguyen thi mai hoa",
+        [("PERSON", "nguyen thi mai hoa")],
+        [],
+        ["lowercase", "no-diacritics"],
+        "dev",
+    ),
+    (
+        "Nguyeenx Vawn Thuwr vay 500 trieu",
+        [("PERSON", "Nguyeenx Vawn Thuwr")],
+        [("AMOUNT", "500 trieu")],
+        ["telex"],
+        "dev",
+    ),
+    (
+        "Hoang Thi Thanh Thuy chuyen khoan",
+        [("PERSON", "Hoang Thi Thanh Thuy")],
+        [],
+        ["no-diacritics"],
+        "dev",
+    ),
     ("Người thụ hưởng: LƯƠNG ĐÌNH KHÔI", [("PERSON", "LƯƠNG ĐÌNH KHÔI")], [], ["uppercase"], "dev"),
     ("Họ và tên: Tống Khắc Triều", [("PERSON", "Tống Khắc Triều")], [], [], "heldout"),
     ("Giám đốc: QUÁCH DUY HẬU", [("PERSON", "QUÁCH DUY HẬU")], [], ["uppercase"], "heldout"),
@@ -423,55 +474,259 @@ HARD: list[HardCase] = [
     ("Bà Kiều Diễm Xuyến nhận tiền", [("PERSON", "Kiều Diễm Xuyến")], [], [], "heldout"),
     ("Ong Lu Nhat Thinh dang ky", [("PERSON", "Lu Nhat Thinh")], [], ["no-diacritics"], "heldout"),
     # titles with companies (company name must NOT be masked as a person)
-    ("Công ty TNHH Thương mại Sao Mai, người đại diện: Ông Trần Văn Bách", [("PERSON", "Trần Văn Bách")], [], ["company"], "dev"),
-    ("Cong ty TNHH Hoang Long do ba Pham Thi Lien dai dien", [("PERSON", "Pham Thi Lien")], [], ["company", "no-diacritics"], "dev"),
+    (
+        "Công ty TNHH Thương mại Sao Mai, người đại diện: Ông Trần Văn Bách",
+        [("PERSON", "Trần Văn Bách")],
+        [],
+        ["company"],
+        "dev",
+    ),
+    (
+        "Cong ty TNHH Hoang Long do ba Pham Thi Lien dai dien",
+        [("PERSON", "Pham Thi Lien")],
+        [],
+        ["company", "no-diacritics"],
+        "dev",
+    ),
     # addresses
-    ("Địa chỉ: Số 12 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM", [("ADDRESS", "Số 12 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM")], [], ["address"], "dev"),
-    ("DIA CHI: SO 45 LE LOI, PHUONG 3, QUAN 5, TP HO CHI MINH", [("ADDRESS", "SO 45 LE LOI, PHUONG 3, QUAN 5, TP HO CHI MINH")], [], ["address", "uppercase", "no-diacritics"], "dev"),
-    ("ĐỊA CHỈ: 18/2 ĐƯỜNG TRẦN HƯNG ĐẠO, PHƯỜNG CỬA NAM, QUẬN HOÀN KIẾM, HÀ NỘI", [("ADDRESS", "18/2 ĐƯỜNG TRẦN HƯNG ĐẠO, PHƯỜNG CỬA NAM, QUẬN HOÀN KIẾM, HÀ NỘI")], [], ["address", "uppercase", "g7"], "dev"),
-    ("ở 99 Hai Bà Trưng, P.6, Q.3, TPHCM nhé", [("ADDRESS", "99 Hai Bà Trưng, P.6, Q.3, TPHCM")], [], ["address"], "dev"),
-    ("Thường trú tại số 7 ngõ 120 Trần Duy Hưng, Cầu Giấy, Hà Nội", [("ADDRESS", "số 7 ngõ 120 Trần Duy Hưng, Cầu Giấy, Hà Nội")], [], ["address"], "dev"),
-    ("Tổ 4, Khu phố 2, Phường Tân Phong, Quận 7, TP.HCM", [("ADDRESS", "Tổ 4, Khu phố 2, Phường Tân Phong, Quận 7, TP.HCM")], [], ["address"], "dev"),
-    ("so 5 nguyen trai, phuong thuong dinh, quan thanh xuan, ha noi", [("ADDRESS", "so 5 nguyen trai, phuong thuong dinh, quan thanh xuan, ha noi")], [], ["address", "lowercase", "no-diacritics"], "dev"),
-    ("Nhà ở 221B đường Võ Thị Sáu, Phường Võ Thị Sáu, Quận 3, TP.HCM", [("ADDRESS", "221B đường Võ Thị Sáu, Phường Võ Thị Sáu, Quận 3, TP.HCM")], [], ["address", "name-in-address"], "heldout"),
-    ("ĐỊA CHỈ: 64 PASTEUR, PHƯỜNG BẾN NGHÉ, QUẬN 1, TP.HCM", [("ADDRESS", "64 PASTEUR, PHƯỜNG BẾN NGHÉ, QUẬN 1, TP.HCM")], [], ["address", "uppercase"], "heldout"),
-    ("Giao hàng tới 15 Lạc Long Quân, Phường 10, Quận 11, TP.HCM", [("ADDRESS", "15 Lạc Long Quân, Phường 10, Quận 11, TP.HCM")], [], ["address"], "heldout"),
+    (
+        "Địa chỉ: Số 12 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM",
+        [("ADDRESS", "Số 12 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM")],
+        [],
+        ["address"],
+        "dev",
+    ),
+    (
+        "DIA CHI: SO 45 LE LOI, PHUONG 3, QUAN 5, TP HO CHI MINH",
+        [("ADDRESS", "SO 45 LE LOI, PHUONG 3, QUAN 5, TP HO CHI MINH")],
+        [],
+        ["address", "uppercase", "no-diacritics"],
+        "dev",
+    ),
+    (
+        "ĐỊA CHỈ: 18/2 ĐƯỜNG TRẦN HƯNG ĐẠO, PHƯỜNG CỬA NAM, QUẬN HOÀN KIẾM, HÀ NỘI",
+        [("ADDRESS", "18/2 ĐƯỜNG TRẦN HƯNG ĐẠO, PHƯỜNG CỬA NAM, QUẬN HOÀN KIẾM, HÀ NỘI")],
+        [],
+        ["address", "uppercase", "g7"],
+        "dev",
+    ),
+    (
+        "ở 99 Hai Bà Trưng, P.6, Q.3, TPHCM nhé",
+        [("ADDRESS", "99 Hai Bà Trưng, P.6, Q.3, TPHCM")],
+        [],
+        ["address"],
+        "dev",
+    ),
+    (
+        "Thường trú tại số 7 ngõ 120 Trần Duy Hưng, Cầu Giấy, Hà Nội",
+        [("ADDRESS", "số 7 ngõ 120 Trần Duy Hưng, Cầu Giấy, Hà Nội")],
+        [],
+        ["address"],
+        "dev",
+    ),
+    (
+        "Tổ 4, Khu phố 2, Phường Tân Phong, Quận 7, TP.HCM",
+        [("ADDRESS", "Tổ 4, Khu phố 2, Phường Tân Phong, Quận 7, TP.HCM")],
+        [],
+        ["address"],
+        "dev",
+    ),
+    (
+        "so 5 nguyen trai, phuong thuong dinh, quan thanh xuan, ha noi",
+        [("ADDRESS", "so 5 nguyen trai, phuong thuong dinh, quan thanh xuan, ha noi")],
+        [],
+        ["address", "lowercase", "no-diacritics"],
+        "dev",
+    ),
+    (
+        "Nhà ở 221B đường Võ Thị Sáu, Phường Võ Thị Sáu, Quận 3, TP.HCM",
+        [("ADDRESS", "221B đường Võ Thị Sáu, Phường Võ Thị Sáu, Quận 3, TP.HCM")],
+        [],
+        ["address", "name-in-address"],
+        "heldout",
+    ),
+    (
+        "ĐỊA CHỈ: 64 PASTEUR, PHƯỜNG BẾN NGHÉ, QUẬN 1, TP.HCM",
+        [("ADDRESS", "64 PASTEUR, PHƯỜNG BẾN NGHÉ, QUẬN 1, TP.HCM")],
+        [],
+        ["address", "uppercase"],
+        "heldout",
+    ),
+    (
+        "Giao hàng tới 15 Lạc Long Quân, Phường 10, Quận 11, TP.HCM",
+        [("ADDRESS", "15 Lạc Long Quân, Phường 10, Quận 11, TP.HCM")],
+        [],
+        ["address"],
+        "heldout",
+    ),
     # amounts (must stay intact) and account numbers next to them
-    ("Số dư 1.500.000.000 VND, STK 19034567890123", [("BANK_ACCOUNT", "19034567890123")], [("AMOUNT", "1.500.000.000 VND")], ["amount-next-to-account"], "dev"),
+    (
+        "Số dư 1.500.000.000 VND, STK 19034567890123",
+        [("BANK_ACCOUNT", "19034567890123")],
+        [("AMOUNT", "1.500.000.000 VND")],
+        ["amount-next-to-account"],
+        "dev",
+    ),
     ("Hạn mức 1,5 tỷ đồng cho khách hàng", [], [("AMOUNT", "1,5 tỷ đồng")], ["amount"], "dev"),
     ("Khoản vay 2 tỷ rưỡi, lãi 8,5%/năm", [], [("AMOUNT", "2 tỷ rưỡi")], ["amount"], "dev"),
-    ('{"item_27": 9100000000.0, "item_28": 1250000000.0}', [], [("AMOUNT", "9100000000.0"), ("AMOUNT", "1250000000.0")], ["amount", "g7"], "dev"),
-    ('{"total_assets": 12500000000, "revenue": 8700000000}', [], [("AMOUNT", "12500000000"), ("AMOUNT", "8700000000")], ["amount", "bare-digits"], "dev"),
-    ("Doanh thu 250.000.000.000 đồng, lợi nhuận 12.300.000.000đ", [], [("AMOUNT", "250.000.000.000 đồng"), ("AMOUNT", "12.300.000.000đ")], ["amount"], "dev"),
-    ("Chuyển 500tr cho anh Hùng, STK 0123456789012", [("PERSON", "Hùng"), ("BANK_ACCOUNT", "0123456789012")], [("AMOUNT", "500tr")], ["amount-next-to-account"], "dev"),
-    ("Giải ngân 3.000.000.000 VND vào tài khoản 190 3456 7890 12", [("BANK_ACCOUNT", "190 3456 7890 12")], [("AMOUNT", "3.000.000.000 VND")], ["amount-next-to-account"], "dev"),
-    ("Loan 750,000,000 VND to account 9704220101010101", [("BANK_ACCOUNT", "9704220101010101")], [("AMOUNT", "750,000,000 VND")], ["amount-next-to-account", "en"], "dev"),
-    ("Tổng dư nợ 4,2 tỷ, ngày 15/10/2026, hợp đồng HD-2026-00123", [], [("AMOUNT", "4,2 tỷ"), ("DATE", "15/10/2026"), ("REF", "HD-2026-00123")], ["amount", "date"], "heldout"),
-    ('{"principal": 6400000000.0, "rate": 8.5}', [], [("AMOUNT", "6400000000.0")], ["amount", "g7"], "heldout"),
-    ("Giá trị tài sản đảm bảo 7.800.000.000 đ, STK 1234567890", [("BANK_ACCOUNT", "1234567890")], [("AMOUNT", "7.800.000.000 đ")], ["amount-next-to-account"], "heldout"),
+    (
+        '{"item_27": 9100000000.0, "item_28": 1250000000.0}',
+        [],
+        [("AMOUNT", "9100000000.0"), ("AMOUNT", "1250000000.0")],
+        ["amount", "g7"],
+        "dev",
+    ),
+    (
+        '{"total_assets": 12500000000, "revenue": 8700000000}',
+        [],
+        [("AMOUNT", "12500000000"), ("AMOUNT", "8700000000")],
+        ["amount", "bare-digits"],
+        "dev",
+    ),
+    (
+        "Doanh thu 250.000.000.000 đồng, lợi nhuận 12.300.000.000đ",
+        [],
+        [("AMOUNT", "250.000.000.000 đồng"), ("AMOUNT", "12.300.000.000đ")],
+        ["amount"],
+        "dev",
+    ),
+    (
+        "Chuyển 500tr cho Anh Hùng, STK 0123456789012",
+        [("PERSON", "Hùng"), ("BANK_ACCOUNT", "0123456789012")],
+        [("AMOUNT", "500tr")],
+        ["amount-next-to-account"],
+        "dev",
+    ),
+    (
+        "Giải ngân 3.000.000.000 VND vào tài khoản 190 3456 7890 12",
+        [("BANK_ACCOUNT", "190 3456 7890 12")],
+        [("AMOUNT", "3.000.000.000 VND")],
+        ["amount-next-to-account"],
+        "dev",
+    ),
+    (
+        "Loan 750,000,000 VND to account 9704220101010101",
+        [("BANK_ACCOUNT", "9704220101010101")],
+        [("AMOUNT", "750,000,000 VND")],
+        ["amount-next-to-account", "en"],
+        "dev",
+    ),
+    (
+        "Tổng dư nợ 4,2 tỷ, ngày 15/10/2026, hợp đồng HD-2026-00123",
+        [],
+        [("AMOUNT", "4,2 tỷ"), ("DATE", "15/10/2026"), ("REF", "HD-2026-00123")],
+        ["amount", "date"],
+        "heldout",
+    ),
+    (
+        '{"principal": 6400000000.0, "rate": 8.5}',
+        [],
+        [("AMOUNT", "6400000000.0")],
+        ["amount", "g7"],
+        "heldout",
+    ),
+    (
+        "Giá trị tài sản đảm bảo 7.800.000.000 đ, STK 1234567890",
+        [("BANK_ACCOUNT", "1234567890")],
+        [("AMOUNT", "7.800.000.000 đ")],
+        ["amount-next-to-account"],
+        "heldout",
+    ),
     # CCCD vs phone collisions
-    ("CCCD 001203004567, SĐT 0912345678", [("CCCD", "001203004567"), ("PHONE", "0912345678")], [], ["cccd-phone"], "dev"),
+    (
+        "CCCD 001203004567, SĐT 0912345678",
+        [("CCCD", "001203004567"), ("PHONE", "0912345678")],
+        [],
+        ["cccd-phone"],
+        "dev",
+    ),
     ("Số 079203004567 là căn cước", [("CCCD", "079203004567")], [], ["cccd-phone"], "dev"),
-    ("Gọi 84912345678 hoặc +84 912 345 678", [("PHONE", "84912345678"), ("PHONE", "+84 912 345 678")], [], ["cccd-phone", "intl"], "dev"),
-    ("CMND 024678123 và CCCD 034090123456", [("CMND", "024678123"), ("CCCD", "034090123456")], [], ["cccd-phone"], "dev"),
+    (
+        "Gọi 84912345678 hoặc +84 912 345 678",
+        [("PHONE", "84912345678"), ("PHONE", "+84 912 345 678")],
+        [],
+        ["cccd-phone", "intl"],
+        "dev",
+    ),
+    (
+        "CMND 024678123 và CCCD 034090123456",
+        [("CMND", "024678123"), ("CCCD", "034090123456")],
+        [],
+        ["cccd-phone"],
+        "dev",
+    ),
     ("sdt0912345678", [("PHONE", "0912345678")], [], ["glued"], "dev"),
     ("CCCD: 092 303 004 567", [("CCCD", "092 303 004 567")], [], ["cccd-phone"], "heldout"),
-    ("Hotline 1900 5588 98 (không phải số cá nhân)", [], [("HOTLINE", "1900 5588 98")], ["negative"], "dev"),
+    (
+        "Hotline 1900 5588 98 (không phải số cá nhân)",
+        [],
+        [("HOTLINE", "1900 5588 98")],
+        ["negative"],
+        "dev",
+    ),
     # emails with names
-    ("Email: nguyen.van.thu@example.invalid", [("EMAIL", "nguyen.van.thu@example.invalid")], [], ["name-in-email"], "dev"),
-    ("EMAIL: TRANTHIBICHNGOC@EXAMPLE.INVALID", [("EMAIL", "TRANTHIBICHNGOC@EXAMPLE.INVALID")], [], ["name-in-email", "uppercase"], "dev"),
-    ("gửi tới lephamquynh_92@mail.example.invalid ạ", [("EMAIL", "lephamquynh_92@mail.example.invalid")], [], ["name-in-email"], "dev"),
-    ("Mail: quach.duy.hau@bank-test.invalid", [("EMAIL", "quach.duy.hau@bank-test.invalid")], [], ["name-in-email"], "heldout"),
+    (
+        "Email: nguyen.van.thu@example.invalid",
+        [("EMAIL", "nguyen.van.thu@example.invalid")],
+        [],
+        ["name-in-email"],
+        "dev",
+    ),
+    (
+        "EMAIL: TRANTHIBICHNGOC@EXAMPLE.INVALID",
+        [("EMAIL", "TRANTHIBICHNGOC@EXAMPLE.INVALID")],
+        [],
+        ["name-in-email", "uppercase"],
+        "dev",
+    ),
+    (
+        "gửi tới lephamquynh_92@mail.example.invalid ạ",
+        [("EMAIL", "lephamquynh_92@mail.example.invalid")],
+        [],
+        ["name-in-email"],
+        "dev",
+    ),
+    (
+        "Mail: quach.duy.hau@bank-test.invalid",
+        [("EMAIL", "quach.duy.hau@bank-test.invalid")],
+        [],
+        ["name-in-email"],
+        "heldout",
+    ),
     # tax, card
     ("Mã số thuế 0100109106", [("TAX_CODE", "0100109106")], [], ["tax"], "dev"),
-    ("Thẻ 4111 1111 1111 1111 hết hạn 12/28", [("CARD_NUMBER", "4111 1111 1111 1111")], [("EXPIRY", "12/28")], ["card"], "dev"),
+    (
+        "Thẻ 4111 1111 1111 1111 hết hạn 12/28",
+        [("CARD_NUMBER", "4111 1111 1111 1111")],
+        [("EXPIRY", "12/28")],
+        ["card"],
+        "dev",
+    ),
     # negatives: nothing to mask
-    ("Chi nhánh Hà Nội mở cửa lúc 8h30, ngày 15/10/2026.", [], [("DATE", "15/10/2026")], ["negative"], "dev"),
+    (
+        "Chi nhánh Hà Nội mở cửa lúc 8h30, ngày 15/10/2026.",
+        [],
+        [("DATE", "15/10/2026")],
+        ["negative"],
+        "dev",
+    ),
     ("Minh bạch thông tin và quản trị rủi ro tín dụng.", [], [], ["negative"], "dev"),
-    ("Lãi suất 8,5%/năm, kỳ hạn 36 tháng, phí 0,5%.", [], [("TERM", "36 tháng")], ["negative"], "dev"),
+    (
+        "Lãi suất 8,5%/năm, kỳ hạn 36 tháng, phí 0,5%.",
+        [],
+        [("TERM", "36 tháng")],
+        ["negative"],
+        "dev",
+    ),
     ("Tổng cộng 12 hồ sơ, 3 hồ sơ chờ duyệt, 1 hồ sơ bị từ chối.", [], [], ["negative"], "dev"),
     ("Mai gửi hồ sơ, Cao Bằng chưa có số liệu.", [], [], ["negative"], "heldout"),
-    ("Quy trình thẩm định 5 bước, thời gian xử lý 2 ngày làm việc.", [], [], ["negative"], "heldout"),
+    (
+        "Quy trình thẩm định 5 bước, thời gian xử lý 2 ngày làm việc.",
+        [],
+        [],
+        ["negative"],
+        "heldout",
+    ),
 ]
 
 
@@ -541,4 +796,4 @@ def write(out_dir: Path = DATA_DIR) -> list[Path]:
 
 if __name__ == "__main__":
     for p in write():
-        print(f"[OK] wrote {p}")
+        print(f"[OK] wrote {p}")  # noqa: T201 (CLI output)
