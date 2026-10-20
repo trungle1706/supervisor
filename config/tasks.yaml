@@ -14,6 +14,13 @@
 # stage with no template for the agent's size is skipped (low-level agents skip validation and
 # re_evaluation). The lifecycle move into the next stage is itself a task, made by the system.
 #
+# Launch gate (TASKS_LAUNCH_GATE_ENABLED): NO-GO while the agent has no task list, is before the
+# deployment stage, or has a required task of its stage open. The move out of the stage and a
+# template with blocks_launch: false are done after the launch and do not hold it.
+#
+# Who marks a task done: owner tasks, anyone with tasks.edit; a reviewer, approver, auditor or
+# admin task, a person with that role or an admin (approver: POST /v1/tasks/<id>/approve).
+#
 # Evidence (what proves a task done):
 #   control   ref = a control id; done only while the control shows "working" for the agent
 #   pack      ref = an assurance pack id; done only with a real (non-mock) "ok" result
@@ -157,6 +164,7 @@ templates:
     due_days: 14
     required_from: low
     evidence: {kind: document, ref: launch-report}
+    blocks_launch: false   # done after the launch: it records the GO (holds the move, not Launch)
   - id: DEP-OVERSIGHT
     stage: deployment
     title: Name who pauses the agent and the two people who approve a resume
