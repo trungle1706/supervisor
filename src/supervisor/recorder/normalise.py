@@ -452,6 +452,9 @@ class Normaliser:
     policy: CapturePolicy = field(default_factory=CapturePolicy)
     default_env: str = "dev"
     use_semconv: bool = True  # WP15: map OTel GenAI names (settings.recorder_semconv)
+    # WP37: keep the gate correlation id of a span. Only with DETECTORS_ENABLED=1 (F12): with the
+    # flag off the column stays NULL, whatever an OTLP sender puts in the attribute.
+    keep_correlation_id: bool = False
 
     @property
     def mask_version(self) -> str | None:
@@ -563,7 +566,9 @@ class Normaliser:
             capture_level=level,
             mask_version=self.mask_version if level != "digest" else None,
             # WP37: the id the gate returned for this call (span attribute set by the agent SDK)
-            correlation_id=self._ident(attrs.get(A_GATE_CORRELATION)),
+            correlation_id=(
+                self._ident(attrs.get(A_GATE_CORRELATION)) if self.keep_correlation_id else None
+            ),
         )
         raw = None
         if level == "raw" and (args_text is not None or result_text is not None):
