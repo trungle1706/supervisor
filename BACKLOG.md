@@ -93,7 +93,7 @@
 | WP1b-A: strict mode strips constraints from the request; the model can return a value outside them and costs one retry before the local check rejects it | Prompt-side limits are already in the template; measure the invalid-output rate per model in the validation report |
 | WP1b-A: Anthropic's endpoint refuses `temperature`, so determinism rests on model id and prompt version, not on temperature 0 | Run `--runs 3` stability on the real model before a go-live validation |
 | WP1b-A: strict mode lets the model exceed `maxItems`/`maxLength` (live: 12 rejected replies in one validation, 9 of them `policy_refs` > 5 from sonnet); each costs a retry | Judge-runner repair step (truncate rationale and quote, cap policy_refs at 5) with a repair count in the verdict row |
-| WP-UX1: filter, sort and page links do not push the URL (back button and copy-link keep the page, not the filter); drawer Copy JSON needs a secure context (localhost or https); the old screenshots in `docs/design/screens/` show the pill header | Decide whether to push state; regenerate with `tools/console_screenshots.py --reseed` after WP-UX2 |
+| WP-UX1: filter, sort and page links do not push the URL (back button and copy-link keep the page, not the filter); drawer Copy JSON needs a secure context (localhost or https) | Decide whether to push state (screens in `docs/design/screens/` were replaced at the wave-1 merge) |
 | WP-UX2: Case Story tab does not use the span tree yet (`_c_spantree.html` exists; the Traces viewer of WP-UX3 is its first user) | WP-UX3 or later |
 | WP-UX2: agent Traces tab links to `/console/traces/<id>` only when a route with that prefix exists; it never links to a span view of its own | Check after the WP-UX3 merge |
 | WP-UX2: Analytics Gate tab scans at most 20 000 gate events (a note shows when the cap is hit); a rollup table for gate counts would remove the scan | Later |
@@ -114,4 +114,3 @@
 | WP-UX3: Users and roles shows ids and group names from the config file; it does not resolve group membership (`group_lookup: scim_me` is per request) | - |
 | WP-UX3: Integrations: pager, ITSM and SCIM are fakes (last delivery empty); webhook last delivery is the newest `sent` notice | Real clients (WP11 wiring by the bank) |
 | WP-UX3: the audit-log flag is `CONSOLE_AUDITLOG_ENABLED` because `CONSOLE_AUDIT_ENABLED` already means "write audit rows" | Rename in a major version if the owner prefers one name |
-| WP-UX3: screenshots are in `/home/trung/supervisor-testbed/phase3/ux3-shots/`, not committed to `docs/design/screens/` | Commit after WP-UX2 merges, with one `--reseed` run for all pages |

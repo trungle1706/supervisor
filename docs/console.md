@@ -182,7 +182,25 @@ it needs, in English and Vietnamese, plus a dark shot.
 
 Screenshots for review: `uv run python tools/console_screenshots.py --reseed` (dev only; it
 needs Playwright in `PLAYWRIGHT_PYTHON`, else it prints `[SKIP]`) writes every screen at
-1360x900 in English and Vietnamese to `docs/design/screens/`.
+1360x900 in English and Vietnamese (`--out DIR`; `--ux3` adds the WP-UX3 pages).
+
+Committed reference set in `docs/design/screens/` (English, light theme, 1360x900, synthetic
+demo store; taken on the merged phase3-wave1 console with `--reseed` and then `--ux3`):
+
+| File | Screen |
+|---|---|
+| `overview-en.png` | Overview with stat tiles and the sidebar (WP-UX1) |
+| `agents-drawer-en.png` | Agents list with the row drawer open (WP-UX1) |
+| `agent-overview-en.png` | Agent page, Overview tab (WP-UX2) |
+| `case-en.png` | Case page (WP-UX2 header) |
+| `alerts-en.png` | Alerts list (WP-UX2) |
+| `signoff-en.png` | Sign-off list (WP-UX2) |
+| `analytics-gate-en.png` | Analytics, Gate tab (WP-UX2) |
+| `decisions-drawer-en.png` | Gate decisions with the drawer open (WP-UX3) |
+| `trace-en.png` | Trace viewer: span tree and the gate stop (WP-UX3) |
+| `playground-en.png` | Playground dry-run form (WP-UX3) |
+| `policies-en.png` | Policies in force (WP-UX3) |
+| `audit-en.png` | Audit log (WP-UX3) |
 
 ## Case states
 
