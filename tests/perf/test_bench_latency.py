@@ -79,6 +79,44 @@ def test_reproducibility_rule_flags_and_passes() -> None:
     msgs = bl.reproducibility_failures([noisy], 1000)
     assert len(msgs) == 1 and "b: p95 varies" in msgs[0] and "tolerance 10%" in msgs[0]
     assert bl.reproducibility_failures([noisy], 1000, abs_floor_us=200) == []
+    # p95 has its own, wider tolerance: 200 -> 300 is a 40% spread
+    assert bl.reproducibility_failures([noisy], 1000, tolerance_p95_bp=5000) == []
+    assert len(bl.reproducibility_failures([noisy], 1000, tolerance_p95_bp=2000)) == 1
+    # p50 keeps the tight tolerance even when p95 is wide
+    wobbly_p50 = {"id": "c", "repeats": [{"p50": 100, "p95": 200}, {"p50": 130, "p95": 200}]}
+    assert (
+        "c: p50 varies" in bl.reproducibility_failures([wobbly_p50], 1000, tolerance_p95_bp=5000)[0]
+    )
+
+
+def test_stable_retries_until_the_spread_is_small() -> None:
+    calls = {"n": 0}
+
+    def good(p50: int) -> dict[str, int]:
+        return {
+            "n": 10,
+            "min": 1,
+            "p50": p50,
+            "p95": 2 * p50,
+            "p99": 3 * p50,
+            "max": 4 * p50,
+            "mean": p50,
+        }
+
+    def measure() -> dict[str, tuple[list[dict[str, int]], dict]]:
+        calls["n"] += 1
+        # the first two tries are noisy, the third is steady
+        reps = [good(1000), good(1500), good(1000)] if calls["n"] < 3 else [good(1000)] * 3
+        return {"arm": (reps, {})}
+
+    opts = bl.Options(attempts=4, strict=True)
+    out, tries = bl._stable(opts, "unit", measure)
+    assert tries == 3 and out["arm"][0][1]["p50"] == 1000
+    calls["n"] = 0
+    out, tries = bl._stable(bl.Options(attempts=2, strict=True), "unit", measure)
+    assert tries == 2  # gives up after the allowed tries; the caller then reports the failure
+    calls["n"] = 0
+    assert bl._stable(bl.Options(attempts=4, strict=False), "unit", measure)[1] == 1
 
 
 # --------------------------------------------------------------------------- open loop

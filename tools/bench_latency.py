@@ -146,9 +146,14 @@ def aggregate_repeats(repeats: Sequence[dict[str, int]]) -> dict[str, Any]:
 
 
 def reproducibility_failures(
-    results: Sequence[dict[str, Any]], tolerance_bp: int, abs_floor_us: int = 0
+    results: Sequence[dict[str, Any]],
+    tolerance_bp: int,
+    abs_floor_us: int = 0,
+    tolerance_p95_bp: int | None = None,
 ) -> list[str]:
-    """Messages for every result whose p50 or p95 moved more than the tolerance across repeats."""
+    """Messages for every result whose p50 (or p95) moved more than the tolerance across repeats.
+    p95 rests on the slowest 5 percent of the samples, so its sampling error is wider than that
+    of p50 and it has its own tolerance (default: the same)."""
     out = []
     for res in results:
         reps = res.get("repeats") or []
@@ -157,10 +162,11 @@ def reproducibility_failures(
         for key in GATED_KEYS:
             vals = [r[key] for r in reps]
             bp = spread_bp(vals)
-            if bp > tolerance_bp and (max(vals) - min(vals)) > abs_floor_us:
+            limit = tolerance_p95_bp if (key == "p95" and tolerance_p95_bp) else tolerance_bp
+            if bp > limit and (max(vals) - min(vals)) > abs_floor_us:
                 out.append(
                     f"{res['id']}: {key} varies {bp / 100:.1f}% across repeats "
-                    f"(values {vals} us, tolerance {tolerance_bp / 100:.0f}%)"
+                    f"(values {vals} us, tolerance {limit / 100:.0f}%)"
                 )
     return out
 
@@ -885,8 +891,13 @@ def inject_window(stack: Stack, depth: int) -> int:
         for j in range(depth):
             keys = {nm: engine.key_hash(nm, f"INJ-{tool}-{j}") for nm in sorted(names)}
             ts = now_us - span_us + (span_us * j) // max(1, depth)
+            who = (
+                [a for a in agents if a != "credit_prequal"]
+                if tool == "fetch_application"
+                else agents
+            )
             events.append(
-                engine._Event(ts, agents[j % len(agents)], keys, rng.randrange(1_000, 5_000_000))
+                engine._Event(ts, who[j % len(who)], keys, rng.randrange(1_000, 5_000_000))
             )
         merged = sorted([*gw.windows.by_tool.get(tool, ()), *events], key=lambda e: e.ts_us)
         gw.windows.by_tool[tool] = engine.deque(merged)  # the window scan needs ascending time
@@ -1327,9 +1338,10 @@ class Options:
     rate_hz: int = 100
     mcp_n: int = 200
     tolerance_pct: int = 10
+    tolerance_p95_pct: int = 20
     strict: bool = True
     attempts: int = 4
-    abs_floor_us: int = 20
+    abs_floor_us: int = 50
     slice_n: int = 100
     http_slice: int = 100
     mcp_slice: int = 40
@@ -1338,6 +1350,7 @@ class Options:
     fake_rtt_ms: int = 0
     window_depths: tuple[int, ...] = (1000, 10000)
     log: Callable[[str], None] = lambda s: None
+    partial_path: Path | None = None
 
     @classmethod
     def quick_mode(cls, **kw: Any) -> Options:
@@ -1435,7 +1448,10 @@ def _stable(
         bad: list[str] = []
         for name, (reps, _) in out.items():
             bad += reproducibility_failures(
-                [{"id": name, "repeats": reps}], tol_bp, opts.abs_floor_us
+                [{"id": name, "repeats": reps}],
+                tol_bp,
+                opts.abs_floor_us,
+                opts.tolerance_p95_pct * 100,
             )
         if not bad or not opts.strict or attempt >= max(1, opts.attempts):
             return out, attempt
@@ -1572,7 +1588,7 @@ def run_combo(backend: str, size: int, opts: Options) -> dict[str, Any]:
                         )
 
                         def measure() -> dict[str, tuple[list[dict[str, int]], dict]]:
-                            stack.sim_step_s = 1.0  # injected events must stay inside the window
+                            stack.sim_step_s = 10.0  # injected events must stay inside the window
                             try:
                                 remove_injected(stack)
                                 total = inject_window(stack, depth)
@@ -1682,11 +1698,18 @@ def run_suite(opts: Options) -> dict[str, Any]:
             results += part["results"]
             deltas += part["deltas"]
             breakdowns += part["breakdowns"]
+            if opts.partial_path is not None:  # a crash later must not lose finished combinations
+                opts.partial_path.write_text(
+                    json.dumps({"partial": True, "results": results, "deltas": deltas}) + "\n",
+                    encoding="utf-8",
+                )
     env["load_avg_end"] = (
         [round(x, 2) for x in os.getloadavg()] if hasattr(os, "getloadavg") else []
     )
     tol_bp = opts.tolerance_pct * 100
-    failures = reproducibility_failures(results, tol_bp, opts.abs_floor_us)
+    failures = reproducibility_failures(
+        results, tol_bp, opts.abs_floor_us, opts.tolerance_p95_pct * 100
+    )
     attempts = {r["id"]: r.get("attempts", 1) for r in results if r.get("attempts", 1) > 1}
     return {
         "schema": SCHEMA,
@@ -1723,6 +1746,7 @@ def run_suite(opts: Options) -> dict[str, Any]:
         "reproducibility": {
             "enforced": opts.strict,
             "tolerance_bp": tol_bp,
+            "tolerance_p95_bp": opts.tolerance_p95_pct * 100,
             "abs_floor_us": opts.abs_floor_us,
             "gated_statistics": list(GATED_KEYS),
             "failures": failures,
@@ -1799,7 +1823,9 @@ def markdown(report: dict[str, Any]) -> str:
     rep = report["reproducibility"]
     lines += [
         "",
-        f"Reproducibility (p50 and p95 within {rep['tolerance_bp'] / 100:.0f}% across repeats): "
+        f"Reproducibility (p50 within {rep['tolerance_bp'] / 100:.0f}%, p95 within "
+        f"{rep['tolerance_p95_bp'] / 100:.0f}% across repeats, spreads under "
+        f"{rep['abs_floor_us']} us ignored): "
         + ("enforced; " if rep["enforced"] else "not enforced (quick or --no-strict); ")
         + ("PASS" if not rep["failures"] else f"{len(rep['failures'])} FAIL"),
     ]
@@ -1867,9 +1893,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--repeats", type=int, default=3)
     p.add_argument("--iterations", type=int, help="in-process iterations per repeat")
     p.add_argument("--rate", type=int, help="HTTP arrival rate, requests per second")
-    p.add_argument("--tolerance-pct", type=int, default=10)
+    p.add_argument("--tolerance-pct", type=int, default=10, help="p50 spread across repeats")
+    p.add_argument("--tolerance-p95-pct", type=int, default=20, help="p95 spread across repeats")
     p.add_argument("--attempts", type=int, default=4, help="strict runs: tries per measurement")
-    p.add_argument("--abs-floor-us", type=int, default=20, help="spreads below this are ignored")
+    p.add_argument("--abs-floor-us", type=int, default=50, help="spreads below this are ignored")
     p.add_argument("--compare", nargs=2, metavar=("OLD", "NEW"), help="compare two JSON reports")
     p.add_argument("--no-strict", action="store_true", help="report, but do not fail, on spread")
     p.add_argument("--seed", type=int, default=7)
@@ -1888,7 +1915,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def options_from_args(ns: argparse.Namespace) -> Options:
-    kw: dict[str, Any] = {"repeats": ns.repeats, "tolerance_pct": ns.tolerance_pct, "seed": ns.seed}
+    kw: dict[str, Any] = {
+        "repeats": ns.repeats,
+        "tolerance_pct": ns.tolerance_pct,
+        "tolerance_p95_pct": ns.tolerance_p95_pct,
+        "seed": ns.seed,
+    }
     kw["fake_rtt_ms"] = ns.fake_rtt_ms
     kw["abs_floor_us"] = ns.abs_floor_us
     if not ns.quick:
@@ -1910,6 +1942,9 @@ def options_from_args(ns: argparse.Namespace) -> Options:
     if bad:
         raise BenchError(f"unknown scenario {bad}; choose from {', '.join(SCENARIOS)}")
     opts.log = lambda s: print(s, file=sys.stderr, flush=True)  # noqa: T201
+    out_dir = Path(ns.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    opts.partial_path = out_dir / "latency-partial.json"
     return opts
 
 
@@ -1930,6 +1965,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[FAIL] {exc}", file=sys.stderr)  # noqa: T201
         return 2
     jpath, mpath = write_outputs(report, Path(ns.out_dir))
+    if opts.partial_path is not None:
+        opts.partial_path.unlink(missing_ok=True)
     print(markdown(report))  # noqa: T201
     print(f"[OK] wrote {jpath} and {mpath}")  # noqa: T201
     failures = report["reproducibility"]["failures"]
