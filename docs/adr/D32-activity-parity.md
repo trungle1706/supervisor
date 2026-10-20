@@ -62,3 +62,23 @@ anomalies).
 * The coverage gap check treats an agent seen under a second id as a gap for the id the gate never
   saw. That is a feature (it shows the naming problem) and a source of one extra alert.
 * Thresholds of the nine rules are ILLUSTRATIVE until the bank SOC sets them.
+
+## Review addendum (WP39 Opus review, 2026-10-20)
+
+* **Caller ids are not trusted to be ids.** The plain-id pattern accepts `@`, `.` and digits, so
+  an e-mail or a phone number passes it. The gate (one choke point, `Gateway._req`) replaces a
+  correlation or request id that the Vietnamese masker finds personal data in with a new id,
+  and drops such a consumer id; the alert row drops such a correlation id; every console page,
+  the export and the rollup show older rows of that kind as `<id-hidden>`. Cost: about 1 in
+  4000 random hex ids and ids with a 9 to 19 digit run look like a number to the masker.
+* **Export download.** One-time link, bound to the user who built it and to 15 minutes, signed
+  with a key held in the process; the file is deleted when served; stale files are removed on
+  every export; the audit note carries a hash of the filters.
+* **AL-THREAT-NOT-ENFORCED.** `enforcement` is read from the decision: `enforced` only when a
+  rule stopped the call (block or pause), `shadow` in SHADOW, `observe` for an observe verdict
+  row, else `not_enforced` (findings never stop a call, R1). The rule fires on `shadow`,
+  `observe` and `not_enforced`.
+* **AL-COVERAGE-GAP.** Only `tool_call` events count (LLM calls and messages never pass the
+  gate); the inventory counts only for systems not in the registry; a RETIRED agent that still
+  calls tools is a gap (the gate records a block for each call of a retired agent).
+

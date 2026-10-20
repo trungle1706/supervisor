@@ -137,5 +137,8 @@
 | WP39: `enforcement: observe` of `AL-THREAT-NOT-ENFORCED` waits for the policy observe mode (WP38); consumer id arrives with `context.consumer_id` (WP38 SDK) | WP38 |
 | WP39: detector latency over several days is approximate (p50 weighted, p95 highest daily); no per-hour series | Keep a histogram per day in `decision_daily` or read hourly rows |
 | WP39: coverage gap takes the inventory from system nodes of `inventory_node`; an agent id that differs only by case or a suffix gives a second gap | Alias map in the inventory; normalise ids at ingress |
-| WP39: the CSV export is built in memory and saved to `CONSOLE_EXPORT_DIR` (wiped on App restart) | Stream to a UC volume path; signed download link |
+| WP39: the CSV export is built in memory and saved to `CONSOLE_EXPORT_DIR` (wiped on App restart); the one-time link (review) dies with the process | Stream to a UC volume path |
+| WP39 review: the gate replaces a caller correlation or request id that holds personal data with a new id, so the caller cannot find its call by its own id; ids like `corr-12345678901234` (14 digits) look like an account number to the masker and are replaced too | An id format rule in the SDK (WP38) and a `correlation_id_replaced` flag in the answer |
+| WP39 review: `consumer_id` is recorded from `context.consumer_id` as the caller says it; WP38 resolves it against the registered consumers (`consumer_ignored`) | Record the WP38 resolved consumer at merge |
+| WP39 review: `AL-THREAT-NOT-ENFORCED` reads detector findings and `observe_would_*` rows, not the `shadow_would_*` rule matches of a SHADOW agent | Decide with the SOC whether rule matches in SHADOW are a "threat not enforced" (they are expected during a shadow rollout) |
 | WP39: the Decisions list scans the newest `CONSOLE_SCAN_CAP` events and as many findings; filters on code and not-evaluated see only that window | Push the filters to SQL (a join with `finding`) when the cap is reached |

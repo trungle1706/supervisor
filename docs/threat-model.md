@@ -195,7 +195,11 @@ enums and integers, capped at `CONSOLE_EXPORT_MAX_ROWS`, for auditor and admin o
 as an audited action (two `console_action` rows). `tests/console/test_wp39_decisions.py` and
 `python -m supervisor.console.activity_harness` plant a name, a phone number, an ID number and an
 e-mail in arguments, tool results, an output, a case title and a verdict text, and fail on any
-page or export that shows one. Gap: the export file sits in `CONSOLE_EXPORT_DIR` until removed.
+page or export that shows one. WP39 review: the download link is bound to the user and to 15
+minutes (HMAC with a key held in the process), the file is served once and deleted, and stale
+files are removed on every export; caller-given ids (correlation, request, consumer) that hold
+personal data are replaced or dropped at the gate and hidden on every page, so an e-mail used as
+an id does not reach the chain, the SIEM event or the CSV.
 
 ## 4. Known gaps (not controls yet)
 
