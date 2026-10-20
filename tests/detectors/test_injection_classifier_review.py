@@ -277,3 +277,31 @@ rules:
     rows = adapters.tables.query("verdict", {"event_id": r["decision_id"]})
     got = sorted((v["rule_id"], v["action"]) for v in rows)
     assert got == [(CLASSIFIER_PAUSE_RULE, "pause"), ("TST-ALERT-1", "alert")]
+
+
+def test_a_policy_rule_named_like_the_classifier_rule_does_not_pause(
+    make_gateway: GatewayFactory, masker: VnRegexMasker
+) -> None:
+    """Only the gate's classifier path may pause through GATE-CLASSIFIER-PAUSE: a policy rule
+    that reuses the id (an alert) must not pause the agent, with the detectors flag off too."""
+    extra = f"""
+policy_version: 1
+rules:
+  - id: {CLASSIFIER_PAUSE_RULE}
+    version: 1
+    description: name clash (test)
+    agent_scope: [payments]
+    when:
+      tool: transfer
+    action: alert
+    severity: low
+    risk_class: money
+    owner: Payments Ops
+"""
+    base = (REPO_ROOT / "policies" / "baseline.yaml").read_text(encoding="utf-8")
+    policy = load_policy_texts([("baseline.yaml", base), ("zz-test.yaml", extra)])
+    gw = make_gateway(
+        policy=policy, gate=make_gate(masker, config_text="version: 1\ndetectors: {}\n")
+    )
+    r = gw.check("payments", "1", "transfer", MONEY)
+    assert r["agent_paused"] is False and gw.states.get_state("payments") == "RUNNING"

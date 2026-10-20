@@ -249,6 +249,7 @@ class DetectorGate:
             if pausers:
                 top = max(pausers, key=lambda f: f.score_bp)
                 d.allow, d.action, d.rule_id = False, "pause", CLASSIFIER_PAUSE_RULE
+                d.classifier_pause = True  # the engine pauses on this flag, not on the rule id
                 d.reason = (
                     f"{CLASSIFIER_PAUSE_RULE}: {top.code} score {top.score_bp} bp at or above "
                     f"the pause threshold on a {pre.risk_class} tool (the classifier advises; a "

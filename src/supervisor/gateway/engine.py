@@ -339,6 +339,8 @@ class Decision:
     v2: dict[str, Any] | None = None
     det: Any = None  # DetectorOutcome: the findings to record
     transformed_payload: dict[str, Any] | None = None
+    # WP25: set only by the detector gate's classifier pause path (never by a policy rule id)
+    classifier_pause: bool = False
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -559,7 +561,7 @@ class Gateway:
         out["would_pause"] = (
             builtin is None
             and not shadow
-            and (any(m.action == "pause" for m in matches) or d.rule_id == CLASSIFIER_PAUSE_RULE)
+            and (any(m.action == "pause" for m in matches) or d.classifier_pause)
         )
         out["not_evaluated"] = sorted(skipped)
         return out
@@ -729,7 +731,7 @@ class Gateway:
                     actor_kind="system",
                 )
                 d.paused = True
-            elif d.rule_id == CLASSIFIER_PAUSE_RULE and not shadow and builtin is None:
+            elif d.classifier_pause and not shadow and builtin is None:
                 # WP25: the injection classifier asked for a pause above its frozen threshold on a
                 # money / credit tool. Same state change as a pause rule; a human resumes.
                 self.states.pause(
@@ -1045,7 +1047,7 @@ class Gateway:
                         "rationale_masked": m.rule.description,
                     }
                 )
-        if d.rule_id == CLASSIFIER_PAUSE_RULE and matches:
+        if d.classifier_pause and matches:
             # WP25: a pause by the classifier next to alert / log rule matches still needs its own
             # tier 0 pause row, or no case would open (cases read the verdict rows)
             rows.append(
