@@ -187,3 +187,41 @@ Risks for the integrator:
    pause), instead of `skip_tools` in the agent override?
 7. Fragments and entity tokens are stored under the `masked` retention class (`finding` table). Same
    retention days as `agent_event.args_masked`: confirm.
+
+## Follow-ups after review
+
+Read `REVIEW_WP37.md` first (verdict: approved with follow-ups; six review commits `ca15ce3`..`36b9bdd`,
+not touched). All changes below are additive; the contract table in the review stays true.
+
+| Item | Commit | What |
+|---|---|---|
+| F11 | `cff336e` | `StorePolicyProvider.validator` (set by the composition root when detectors are on, in both `wiring.py` files) runs `DetectorGate.check_policy` on every policy reload, the same check as start-up. A bad override: reload rejected, old policy kept, one ASCII log line per bad policy, `rejected_hash` / `rejected_reason` set; the first load raises `PolicyError`. A money call is never failed closed with `invalid_config` because of it |
+| F12 | `cff336e` | `Normaliser.keep_correlation_id` (default False); the recorder service passes `settings.detectors_enabled`. With the flag off the column stays NULL whatever an OTLP sender sets. Flag-off fingerprint test unchanged and green |
+| F14 | `cff336e` | The policy loader (`_cross_check`) refuses `skip_tools` naming a money, credit or pii_export tool, with an ASCII message that names the agent, the class and the tool. Read-only and unlisted tools are allowed. Documented in `docs/detectors.md` (section 3) and in `policies/schema.json` (field description, regenerated) |
+| F13 | `bd0d75c` | Hand-written probes in `src/supervisor/detectors/golden_probes.py`: adversarial positives now 60 (dlp), 66 (injection), 51 (judge), each with 12 benign look-alikes (rows 74 / 81 / 64). Harness prints and the report marks an adversarial GO as `indicative` when the Wilson lower bound is below the threshold |
+| F10 | already there | BACKLOG row "a phone or CCCD sent as a JSON number is not detected" exists (added in review); the probes `phone-as-json-number` and `cccd-as-json-number` now show it in the report |
+
+Baseline: only the three adversarial rows moved; dev and held-out rows are identical, and the
+thresholds were not changed. Why they moved: n grew (14 / 20 / 4 -> 74 / 81 / 64) with new probes.
+dlp adversarial recall 5000 -> 7333 bp (44 of 60), injection 5294 -> 4696 (31 of 66; the new paraphrase
+probes are mostly missed, 4 false positives on look-alikes), judge mock 3333 -> 3725 (19 of 51; 4
+false positives). All stay GO against the old thresholds (5000 / 4000 / 3000), but injection (Wilson
+lower 3543) and judge (2532) are `indicative`: the interval does not clear the threshold. Baseline
+commit field is `cff336e+wp37-f13`. BACKLOG: the F11 row was removed (closed), the dlp row updated,
+one row added for single-author probes.
+
+Tests: 13 new in `tests/detectors/test_followup_wp37.py` (11) and `test_followup_f13.py` (2).
+
+Last lines:
+```
+$ uv run python -m pytest -q -x -p no:cacheprovider     (log: wp37_followup_full.txt, private folder)
+3829 passed, 29 skipped, 1 warning in 512.97s (0:08:32)
+$ uv run python -m ruff check
+All checks passed!
+$ uv run python -m ruff format --check
+687 files already formatted
+$ uv run python -m supervisor.detectors.harness --check
+OVERALL: GO
+[OK] no drop below the baseline
+```
+Test count: 3816 (review) -> 3829 passed. Commits: `cff336e` (F11, F12, F14), `bd0d75c` (F13), plus the handoff commit that follows. No `.env` created.
