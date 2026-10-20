@@ -187,8 +187,8 @@ class HttpGate:
         correlation_id: str | None = None,
     ) -> Mapping[str, Any]:
         """``check`` plus ``direction`` and ``correlation_id`` (WP38), sent only when set:
-        ``direction`` as a body field when it is not ``input`` (an older server rejects unknown fields), the
-        correlation id as the ``X-Supervisor-Correlation-Id`` header."""
+        ``direction`` as a body field when it is not ``input`` (an older server rejects
+        unknown fields), the correlation id as the ``X-Supervisor-Correlation-Id`` header."""
         t0 = time.perf_counter()
         payload: dict[str, Any] = {
             "agent_id": agent_id,
