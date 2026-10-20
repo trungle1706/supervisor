@@ -2,6 +2,7 @@
 
 * ``GET /v1/tasks`` (tasks.view): list; filters agent, stage, status, required, overdue, q.
 * ``GET /v1/tasks/agents/{agent_id}`` (tasks.view): stage, sizing inputs, counts and tasks.
+* ``GET /v1/tasks/export.csv`` (tasks.view): CSV of the list (formula-safe, at most 5000 rows).
 * ``GET /v1/tasks/{task_id}`` (tasks.view): one task with its events.
 * ``POST /v1/tasks`` (tasks.edit): add a custom task (agent_id, title).
 * ``POST /v1/tasks/agents/{agent_id}/generate`` (tasks.edit): make or complete the current stage.
@@ -76,6 +77,25 @@ def list_tasks(request: Request, ctx: ConsoleContext = _CTX) -> Any:
     svc = _service(ctx)
     rows = svc.list_tasks(dict(request.query_params))
     return {"count": len(rows), "illustrative": svc.cfg.illustrative, "tasks": rows}
+
+
+@router.get("/export.csv", dependencies=[Depends(needs("tasks.view"))])
+def export_tasks(request: Request, ctx: ConsoleContext = _CTX) -> Any:
+    from fastapi.responses import Response
+
+    svc = _service(ctx)
+    agent = request.query_params.get("agent") or None
+    if agent:
+        check_id(agent, "agent id")
+    raw = request.query_params.get("limit", "5000")
+    if not raw.isdigit() or int(raw) < 1:
+        raise TaskError("limit must be a whole number from 1")
+    text, truncated = svc.export_csv(agent, int(raw))
+    return Response(
+        text,
+        media_type="text/csv; charset=utf-8",
+        headers={"X-Rows-Truncated": "true" if truncated else "false"},
+    )
 
 
 @router.get("/agents/{agent_id}", dependencies=[Depends(needs("tasks.view"))])

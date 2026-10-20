@@ -44,6 +44,7 @@ from supervisor.tasks.model import (
     plan,
     plan_at,
     same_person,
+    sod_refusal,
     stages_in_use,
     waive_refusal,
 )
@@ -52,6 +53,7 @@ log = logging.getLogger("supervisor.tasks")
 
 FILTERS = ("agent", "stage", "status", "required", "overdue", "q")
 MAX_CUSTOM_PER_AGENT = 200
+MAX_EXPORT_ROWS = 5000
 MAX_TITLE = 200
 TASK_CSV = (
     "task_id",
@@ -649,11 +651,24 @@ class TaskService:
                 order_by=("-ts",),
                 limit=50,
             )
+            from supervisor.risk import evidence as rev
+
+            if ref in rev.JUDGED_PACKS and not getattr(
+                self.settings, "risk_evidence_judged_packs", False
+            ):
+                return (
+                    f"pack {ref} is scored by a judge; it is a reference, not evidence "
+                    "(RISK_EVIDENCE_JUDGED_PACKS=1 allows it)"
+                )
             real = [r for r in rows if not r.get("is_mock")]
             if not real:
                 return f"pack {ref} has no real (non-mock) result for this agent"
             if real[0]["status"] != "ok":
                 return f"the newest real result of pack {ref} is {real[0]['status']}"
+            ts = _ts(real[0]["ts"])
+            days = int(getattr(self.settings, "controls_pack_window_days", 30))
+            if ts is None or self.clock.now() - ts > dt.timedelta(days=days):
+                return f"the newest real result of pack {ref} is older than {days} days"
             return None
         return None
 
@@ -734,6 +749,17 @@ class TaskService:
             raise TaskError(
                 f"a move at level {row['level']} needs an approver or an admin (stage approval)"
             )
+        if needs_stage_approval(self.cfg, row["level"]):
+            self._check_sod(stage_rows, _name(actor), "approve this move")
+
+    def _check_sod(self, stage_rows: list[dict[str, Any]], who: str, what: str) -> None:
+        """Segregation of duties across the stage (review WP30): see ``tm.sod_refusal``."""
+        worked = sod_refusal([r for r in stage_rows if r["kind"] != "move"], who)
+        if worked:
+            raise TaskError(
+                f"segregation of duties: {who} worked on task(s) {', '.join(worked)} of this "
+                f"stage for this agent and cannot {what}"
+            )
 
     def request_waive(self, task_id: str, actor: Any, reason: str) -> dict[str, Any]:
         row = self._need(task_id)
@@ -778,6 +804,15 @@ class TaskService:
             raise TaskError(
                 f"{who} asked for this waiver; the second person must be a different person"
             )
+        self._check_sod(
+            [
+                r
+                for r in self.rows_of(row["agent_id"])
+                if r["stage"] == row["stage"] and r["task_id"] != row["task_id"]
+            ],
+            who,
+            "answer this waiver",
+        )
         stored = self._update(row, {"status": "waived", "waive_approved_by": who})
         self._event(stored, "waive_approve", who, row["status"])
         return self.get(task_id)
@@ -790,6 +825,15 @@ class TaskService:
             raise TaskError(f"{who} cannot reject a waiver: needs role approver or admin")
         if not row.get("waive_requested_by") or row["status"] not in OPEN_STATUSES:
             raise TaskError(f"task {task_id} has no waiver waiting for a second person")
+        self._check_sod(
+            [
+                r
+                for r in self.rows_of(row["agent_id"])
+                if r["stage"] == row["stage"] and r["task_id"] != row["task_id"]
+            ],
+            who,
+            "answer this waiver",
+        )
         stored = self._update(
             row, {"waive_requested_by": None, "waive_reason": None, "waive_approved_by": None}
         )
@@ -931,6 +975,24 @@ class TaskService:
         return problems
 
     # ------------------------------------------------------------------ export
+    def export_csv(
+        self, agent_id: str | None = None, limit: int = MAX_EXPORT_ROWS
+    ) -> tuple[str, bool]:
+        """(tasks.csv text, truncated). Formula-safe cells; at most ``MAX_EXPORT_ROWS`` rows."""
+        import csv
+        import io
+
+        from supervisor.controls.service import csv_cell
+
+        rows = self.list_tasks({"agent": agent_id} if agent_id else None)
+        cap = max(1, min(int(limit), MAX_EXPORT_ROWS))
+        buf = io.StringIO()
+        w = csv.writer(buf, lineterminator="\n")
+        w.writerow(TASK_CSV)
+        for r in rows[:cap]:
+            w.writerow([csv_cell(r.get(k)) for k in TASK_CSV])
+        return buf.getvalue(), len(rows) > cap
+
     def export_json(self, agent_id: str | None = None) -> dict[str, Any]:
         rows = self.list_tasks({"agent": agent_id} if agent_id else None)
         return {"version": 1, "illustrative": self.cfg.illustrative, "tasks": rows}

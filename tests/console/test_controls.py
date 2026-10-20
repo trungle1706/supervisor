@@ -158,3 +158,16 @@ def test_pages_drawers_and_tabs(on: Console) -> None:
 def test_tab_without_a_task_list(on: Console) -> None:
     r = on.get("/console/agents/payments/tab/tasks", headers=HX)
     assert r.status_code == 200 and "supervisor.tasks generate" in r.text
+
+
+def test_tasks_csv_route(on: Console) -> None:
+    c = on
+    _post(c, "/v1/tasks/agents/payments/generate", {})
+    r = c.get("/v1/tasks/export.csv", user="viewer.hoa")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
+    assert r.text.splitlines()[0].startswith("task_id,agent_id") and r.text.isascii()
+    assert r.headers["x-rows-truncated"] == "false"
+    capped = c.get("/v1/tasks/export.csv?limit=2")
+    assert len(capped.text.splitlines()) == 3 and capped.headers["x-rows-truncated"] == "true"
+    assert c.get("/v1/tasks/export.csv?limit=0").status_code == 400
+    assert c.get("/v1/tasks/export.csv?agent=bad%20id").status_code == 400

@@ -125,7 +125,7 @@ the keyboard can ask as one user id and answer as another. That is accepted for 
 the Databricks App uses SSO, where the same identity is always refused. The CLI trusts `--by` and
 `--role` in the same way (shell access to the store is write access). A class change in the middle of the lifecycle
 is additive: new tasks are added and tasks become required, nothing is removed or relaxed by
-itself. Every change writes a `task_event` row and a `task_change` chain record (hashes and
+itself. **Segregation of duties across the stage:** the person who answers a waiver (approve or reject) or approves a high-level move must not have marked any task done, or asked for a waiver, in the same stage of the same agent (case-insensitive; refusal text starts `segregation of duties:`). A pack task closes only on an `ok` non-mock result newer than `CONTROLS_PACK_WINDOW_DAYS` and not from a judge-scored pack (unless `RISK_EVIDENCE_JUDGED_PACKS=1`). `GET /v1/tasks/export.csv` (`tasks.view`; `?agent=`, `?limit=`, at most 5000 rows, header `X-Rows-Truncated`) gives a formula-safe CSV. A risk that looks through a control reads its sources for the agents the control applies to and in the same per-source windows as control status (`risk.evidence.source_window`). Every change writes a `task_event` row and a `task_change` chain record (hashes and
 integers; the reason is a hash on the chain and text in the row).
 
 ## 6. Where to use it

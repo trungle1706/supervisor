@@ -264,6 +264,26 @@ def waive_refusal(requester: str | None, approver: str, kind: str, can_approve: 
     return None
 
 
+def stage_participants(stage_tasks: list[Mapping[str, Any]]) -> set[str]:
+    """People (case-folded) who worked on the tasks of one stage of one agent: who marked a task
+    done and who asked for a waiver. The system user is not a person here."""
+    out: set[str] = set()
+    for t in stage_tasks:
+        for field_ in ("done_by", "waive_requested_by"):
+            who = t.get(field_)
+            if who and who != "supervisor-system":
+                out.add(str(who).casefold())
+    return out
+
+
+def sod_refusal(stage_tasks: list[Mapping[str, Any]], person: str) -> list[str]:
+    """Segregation of duties across a stage: the person who answers a waiver or approves a
+    high-level move must not have worked on a task of the same stage for the same agent.
+    Returns the template ids that person worked on (empty = allowed)."""
+    me = person.casefold()
+    return sorted(str(t["template_id"]) for t in stage_tasks if me in stage_participants([t]))
+
+
 # ---------------------------------------------------------------------- config file
 
 

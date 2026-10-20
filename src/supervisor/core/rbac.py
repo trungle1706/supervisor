@@ -272,6 +272,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/controls/{control_id}"): "controls.edit",
     ("POST", "/v1/controls/{control_id}/maps"): "controls.edit",
     ("GET", "/v1/tasks"): "tasks.view",
+    ("GET", "/v1/tasks/export.csv"): "tasks.view",
     ("GET", "/v1/tasks/agents/{agent_id}"): "tasks.view",
     ("GET", "/v1/tasks/{task_id}"): "tasks.view",
     ("POST", "/v1/tasks"): "tasks.edit",
