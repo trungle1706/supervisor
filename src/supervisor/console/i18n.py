@@ -1897,7 +1897,7 @@ _T.update(
         "lat_total": ("Latency total", "Tổng độ trễ"),
         "lat_rules": ("Rules", "Quy tắc"),
         "lat_detectors": ("Detectors", "Bộ phát hiện"),
-        "lat_overhead": ("Overhead", "Chi phí chung"),
+        "lat_overhead": ("Overhead", "Thời gian còn lại"),
         "open_trace_span": ("Open the trace span", "Mở đoạn dấu vết"),
         "same_correlation": ("{n} decisions share this id", "{n} quyết định cùng mã này"),
         "open_alert": ("Open alert", "Mở cảnh báo"),
@@ -1909,7 +1909,7 @@ _T.update(
             "Run python -m supervisor.jobs.decision_rollup (the scheduler does it every hour).",
             "Chạy python -m supervisor.jobs.decision_rollup (bộ lập lịch chạy mỗi giờ).",
         ),
-        "dd_series": ("Policy actions over time", "Hành động chính sách theo thời gian"),
+        "dd_series": ("Gate outcomes by day", "Kết quả của cổng theo ngày"),
         "dd_per_agent": ("Per agent", "Theo tác tử"),
         "dd_per_consumer": ("Per application", "Theo ứng dụng"),
         "dd_per_rule": ("Per rule", "Theo quy tắc"),
@@ -1933,11 +1933,11 @@ _T.update(
         "observed_decision": ("Observed decision", "Quyết định quan sát được"),
         "would_block": (
             "would have blocked (not enforced)",
-            "đã chặn nếu thực thi (chưa thực thi)",
+            "sẽ chặn nếu thực thi (chưa thực thi)",
         ),
         "would_pause": (
             "would have paused (not enforced)",
-            "đã tạm dừng nếu thực thi (chưa thực thi)",
+            "sẽ tạm dừng nếu thực thi (chưa thực thi)",
         ),
         "observed_approvals": ("Approvals", "Phê duyệt"),
         "approvals_yes": ("present", "có"),
@@ -1952,6 +1952,10 @@ _T.update(
         "export_done": (
             "CSV built: {n} rows, {cols} columns.",
             "Đã tạo CSV: {n} dòng, {cols} cột.",
+        ),
+        "export_once": (
+            "The link works once, for you only, for 15 minutes.",
+            "Liên kết chỉ dùng được một lần, chỉ cho bạn, trong 15 phút.",
         ),
     }
 )
