@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import Any
 
 import pytest
 
@@ -104,3 +105,50 @@ def test_page_drawer_generate_button_and_tab(tp_on: Console) -> None:
     assert tab.status_code == 200 and "v1" in tab.text
     vi = tp_on.get("/console/transparency?lang=vi")
     assert "Minh bạch" in vi.text
+
+
+def test_login_is_required_and_a_service_principal_cannot_read(
+    tp_on: Console, users: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review of WP31: the customer variant is public-safe but still behind login. With no
+    default user an unsigned call is refused (HTTP 400, never 500); a service principal is not
+    in NON_USER_OK for transparency.view (HTTP 403), whatever API_RBAC_ENABLED says."""
+    from supervisor.adapters.auth import AuthPrincipal, set_provider
+    from supervisor.adapters.auth.dev_header import DevHeaderPrincipal
+
+    set_provider(DevHeaderPrincipal(users, None))
+    for rbac_on in (False, True):
+        monkeypatch.setattr(tp_on.ctx.settings, "api_rbac_enabled", rbac_on)
+        for url in ("/v1/transparency", "/v1/transparency/payments?variant=customer"):
+            assert tp_on.get(url, user=None).status_code == 400, (rbac_on, url)
+            assert tp_on.get(url, user="viewer.hoa").status_code == 200, (rbac_on, url)
+        assert tp_on.get("/console/transparency", user=None).status_code in (302, 303, 400, 401)
+
+    class _Service(DevHeaderPrincipal):
+        def resolve(self, headers: Any, cookies: Any) -> Any:
+            return AuthPrincipal("sp-reader", "service", "test", frozenset()), None
+
+    set_provider(_Service(users, None))
+    r = tp_on.get("/v1/transparency/payments?variant=customer", user=None)
+    assert r.status_code == 403
+
+
+def test_route_refuses_a_changed_file_and_live_writes_nothing(tp_on: Console) -> None:
+    gen = tp_on.client.post(
+        "/v1/transparency/payments/generate",
+        json={"variants": ["regulator"]},
+        headers={"X-Dev-User": "reviewer.an"},
+    )
+    assert gen.status_code == 200, gen.text
+    svc = tp_on.ctx.transparency
+    rows = len(svc.rows("payments"))
+    chain = len(tp_on.ctx.tables.query("chain_entry", {"lane": "agent:payments"}))
+    for _ in range(2):
+        r = tp_on.get("/v1/transparency/payments?variant=regulator&format=html&lang=vi&live=1")
+        assert r.status_code == 200 and r.headers["x-report-status"] == "preview"
+    assert len(svc.rows("payments")) == rows
+    assert len(tp_on.ctx.tables.query("chain_entry", {"lane": "agent:payments"})) == chain
+    path = svc._dir("payments", "regulator", 1) / "report.vi.html"
+    path.write_bytes(path.read_bytes() + b"<!-- edited -->")
+    r = tp_on.get("/v1/transparency/payments?variant=regulator&format=html&lang=vi")
+    assert r.status_code == 400 and "does not match" in r.json()["error"]
