@@ -181,6 +181,10 @@ no detector matches (the adversarial probes in the validation report list the kn
 finding that is kept past its retention class in a copy outside the store, or an operator who
 edits `config/detectors.yaml` to disable a detector (the file is in change control).
 
+### 3.10 Multi-turn red team and its LLM attacker (WP28, ADR D25)
+
+Trust boundary: with `--attacker llm` (manual, never scheduled) the text of an attacker turn goes to the configured LLM endpoint (`LLM_BASE_URL`, model `REDTEAM_ATTACKER_MODEL`, temperature 0, at most 60 conversations per run). Before the call every id, amount, tool name and digit string is replaced by a `<<Tn>>` placeholder and restored afterwards, so no personal-data shape and no identifier leaves the process, and a reply that drops or invents a placeholder is discarded. The model only rephrases: the calls, their order and the deterministic oracle are fixed in code, so a hostile or wrong reply cannot turn a failure into a pass, cannot add a tool call and cannot reach the gate. The sandbox agents, the policy, the store and the chain are private to the run; the nightly job writes aggregates only (integers) to the chain. The optional evidence judge sends a transcript with digit runs masked and its verdict never changes a result (R1).
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

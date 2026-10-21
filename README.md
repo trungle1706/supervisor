@@ -47,7 +47,8 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Regulation knowledge base | 31 instruments, 528 obligations, cited, versioned; internal rules load too | `docs/regulations.md` |
 | Compliance advisor | Obligation matrix, gaps, open questions for any product | `docs/compliance-advisor.md` |
 | Integration advisor | Readiness score and patches to fit a product into Supervisor | `docs/INTEGRATION_GUIDE.md` |
-| Assurance packs | 33 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
+| Assurance packs | 34 eval packs: accuracy, bias, dependency, security, robustness | `docs/assurance.md` |
+| Multi-turn red team (WP28, nightly job off by default) | Six attack families in Vietnamese and English (echo chamber, crescendo, payload split, tool poisoning, memory poison, policy puppetry) against the sandbox agents with the gate in SHADOW; deterministic oracle; per-turn gate decision and session signals; pack `multiturn_redteam_vi`; `python -m supervisor.redteam.multiturn --help`, `python -m supervisor.jobs.redteam_nightly`; Playground samples in `data/eval/playground_samples/` | `docs/redteam-multiturn.md`, `docs/adr/D25-multiturn-redteam.md` |
 | Tool analytics | Per-tool calls, outcomes, latency; allowed-but-unused tools; least-privilege diff (suggestion only) | `docs/tool-analytics.md`, `docs/adr/D18-tool-analytics.md` |
 | Judge MRM | Model card, validation report, change control, retire | `docs/judge-mrm.md` |
 | LLM adapter and judge models | Strict endpoints, derived judge family, challenger scope | `docs/llm-adapter.md`, `docs/adr/D21-derived-judge-family-and-served-config.md` |
