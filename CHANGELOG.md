@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Console: two-section sidebar and Catalog page
+
+Two new flags, both off by default (off = the console as in v0.4.1).
+
+- `CONSOLE_NAV_SECTIONS=1`: the sidebar is split into "AI Management and Governance" and "AI
+  Guardian and Supervisor". The existing groups become sub-groups of the two sections.
+- `CONSOLE_CATALOG_ENABLED=1`: new read-only page `/console/catalog` that lists the guardian
+  capabilities by category, with their on/off status and the setting that turns each one on.
+
 ## v0.4.1 (M2 triage fixes) - 2026-10-21
 
 Fixes from the second benchmark on the bank agent, reviewed (two further High findings fixed in review: a cut argument

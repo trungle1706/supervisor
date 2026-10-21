@@ -3013,6 +3013,200 @@ _T.update(
 )
 
 
+# --- Two-section sidebar (CONSOLE_NAV_SECTIONS) and the Catalog page (CONSOLE_CATALOG_ENABLED) ---
+_T.update(
+    {
+        "nav_s_gov": ("AI Management and Governance", "Quản lý và quản trị AI"),
+        "nav_s_gov_k": ("Governance", "Quản trị"),
+        "nav_s_guard": ("AI Guardian and Supervisor", "Bảo vệ và giám sát AI"),
+        "nav_s_guard_k": ("Runtime", "Vận hành"),
+        "nav_g_protect": ("Protect", "Bảo vệ"),
+        "nav_catalog": ("Catalog", "Danh mục"),
+        "cat_lede": (
+            "Browse the guardian capabilities of this Supervisor.",
+            "Xem các năng lực bảo vệ của Supervisor này.",
+        ),
+        "cat_tab_catalog": ("Catalog", "Danh mục"),
+        "cat_tab_active": ("Active", "Đang bật"),
+        "cat_rule": (
+            "Only deterministic rules block or pause an agent. Judges advise: they open a case "
+            "or raise severity. Settings come from the environment and config/detectors.yaml; "
+            "this page shows them and never changes them.",
+            "Chỉ các quy tắc xác định mới chặn hoặc tạm dừng tác tử. Giám khảo chỉ tư vấn: mở hồ "
+            "sơ hoặc nâng mức nghiêm trọng. Cài đặt lấy từ biến môi trường và "
+            "config/detectors.yaml; trang này chỉ hiển thị, không thay đổi.",
+        ),
+        "cat_none": ("Nothing is on", "Chưa bật năng lực nào"),
+        "cat_none_line": (
+            "No capability is on in this instance.",
+            "Không có năng lực nào đang bật trong phiên bản này.",
+        ),
+        "cat_on": ("On", "Đang bật"),
+        "cat_turn_on": ("Turn on:", "Bật bằng:"),
+        "cat_open": ("Open", "Mở"),
+        "catg_gate": ("Gateway controls", "Kiểm soát tại cổng"),
+        "catg_detect": ("Detectors", "Bộ phát hiện"),
+        "catg_judge": ("AI judges and red team", "Giám khảo AI và red team"),
+        "catg_monitor": ("Monitors", "Giám sát"),
+        "catg_prove": ("Evidence and assurance", "Bằng chứng và bảo đảm"),
+        "catg_connect": ("Connectors", "Kết nối"),
+        "catk_blocks": ("Can block", "Có thể chặn"),
+        "catk_transforms": ("Masks", "Che dữ liệu"),
+        "catk_advises": ("Advises", "Tư vấn"),
+        "catk_watches": ("Reports", "Báo cáo"),
+        "catk_proves": ("Proves", "Chứng minh"),
+        "cat_policy_rules": ("Policy rules", "Quy tắc chính sách"),
+        "cat_policy_rules_d": (
+            "Deterministic rules per agent and tool: allow, log, alert, block or pause a call "
+            "before it reaches the tool.",
+            "Quy tắc xác định theo tác tử và công cụ: cho phép, ghi nhận, cảnh báo, chặn hoặc tạm "
+            "dừng lệnh gọi trước khi đến công cụ.",
+        ),
+        "cat_pause_switch": ("Pause switch and quarantine", "Công tắc tạm dừng và cách ly"),
+        "cat_pause_switch_d": (
+            "Pause or quarantine an agent: every later call is refused until a person resumes it.",
+            "Tạm dừng hoặc cách ly tác tử: mọi lệnh gọi sau đó bị từ chối cho đến khi có người "
+            "cho chạy lại.",
+        ),
+        "cat_session_monitor": ("Session monitor", "Giám sát phiên"),
+        "cat_session_monitor_d": (
+            "Scores a whole session (findings, spend, tool mix) and pauses the session above "
+            "its threshold.",
+            "Chấm điểm cả phiên (phát hiện, chi tiêu, loại công cụ) và tạm dừng phiên khi vượt "
+            "ngưỡng.",
+        ),
+        "cat_ingress_auth": ("Agent credentials", "Thông tin xác thực tác tử"),
+        "cat_ingress_auth_d": (
+            "Each agent signs its gate checks and traces with its own credential; an unknown "
+            "caller is refused.",
+            "Mỗi tác tử ký yêu cầu kiểm tra và trace bằng thông tin xác thực riêng; bên gọi lạ "
+            "bị từ chối.",
+        ),
+        "cat_mcp_gateway": ("MCP gateway", "Cổng MCP"),
+        "cat_mcp_gateway_d": (
+            "Puts the gate in front of MCP tools/call and scores tool descriptions from "
+            "tools/list.",
+            "Đặt cổng trước MCP tools/call và chấm điểm mô tả công cụ từ tools/list.",
+        ),
+        "cat_dlp_vn": ("Vietnamese data loss prevention", "Chống rò rỉ dữ liệu tiếng Việt"),
+        "cat_dlp_vn_d": (
+            "Finds Vietnamese personal data (CCCD, phone, account, address) in tool arguments "
+            "and masks it on PII-export tools.",
+            "Tìm dữ liệu cá nhân tiếng Việt (CCCD, điện thoại, tài khoản, địa chỉ) trong tham số "
+            "công cụ và che trên công cụ xuất dữ liệu cá nhân.",
+        ),
+        "cat_injection_regex": ("Prompt injection patterns", "Mẫu tấn công chèn lệnh"),
+        "cat_injection_regex_d": (
+            "Known prompt-injection patterns in Vietnamese and English; reports a finding, "
+            "never blocks.",
+            "Các mẫu chèn lệnh đã biết bằng tiếng Việt và tiếng Anh; báo phát hiện, không chặn.",
+        ),
+        "cat_injection_classifier": ("Indirect prompt injection", "Chèn lệnh gián tiếp"),
+        "cat_injection_classifier_d": (
+            "Local classifier over tool results and tool descriptions; may only pause money "
+            "and credit tools.",
+            "Bộ phân loại cục bộ trên kết quả và mô tả công cụ; chỉ được tạm dừng công cụ tiền "
+            "và tín dụng.",
+        ),
+        "cat_inline_redaction": ("Inline redaction", "Che dữ liệu tại cổng"),
+        "cat_inline_redaction_d": (
+            "Masks amounts and personal data in the arguments of listed tools before the tool "
+            "sees them.",
+            "Che số tiền và dữ liệu cá nhân trong tham số của công cụ được liệt kê trước khi "
+            "công cụ nhận.",
+        ),
+        "cat_judge_tiers": ("Tiered AI judges", "Giám khảo AI nhiều tầng"),
+        "cat_judge_tiers_d": (
+            "Tier 1 scores every trace, Tier 2 confirms. A verdict opens a case or raises "
+            "severity; it never calls the gate.",
+            "Tầng 1 chấm mọi trace, tầng 2 xác nhận. Phán quyết mở hồ sơ hoặc nâng mức nghiêm "
+            "trọng; không bao giờ gọi cổng.",
+        ),
+        "cat_judge_advisory": ("Judge advisory detector", "Bộ phát hiện tư vấn của giám khảo"),
+        "cat_judge_advisory_d": (
+            "Asks the Tier 1 judge for an opinion inside the gate call; report only, never "
+            "fail closed.",
+            "Hỏi ý kiến giám khảo tầng 1 trong lệnh gọi cổng; chỉ báo cáo, không bao giờ chặn "
+            "khi lỗi.",
+        ),
+        "cat_redteam": ("Multi-turn red team", "Red team nhiều lượt"),
+        "cat_redteam_d": (
+            "Nightly Vietnamese multi-turn attacks against each agent; results feed the "
+            "assurance packs.",
+            "Tấn công nhiều lượt bằng tiếng Việt hằng đêm vào từng tác tử; kết quả đưa vào gói "
+            "bảo đảm.",
+        ),
+        "cat_drift": ("Drift monitor", "Giám sát trôi dạt"),
+        "cat_drift_d": (
+            "A baseline band per agent version; a case opens when a metric stays outside it.",
+            "Dải chuẩn theo từng phiên bản tác tử; mở hồ sơ khi một chỉ số liên tục nằm ngoài dải.",
+        ),
+        "cat_fairness": ("Fairness monitor", "Giám sát công bằng"),
+        "cat_fairness_d": (
+            "Approval and block rates across permitted customer groups; a gap above the "
+            "threshold opens a case.",
+            "Tỷ lệ phê duyệt và chặn giữa các nhóm khách hàng được phép; chênh lệch vượt ngưỡng "
+            "sẽ mở hồ sơ.",
+        ),
+        "cat_quality": ("Quality monitor", "Giám sát chất lượng"),
+        "cat_quality_d": (
+            "Scores customer replies for groundedness and the bank reply guidelines.",
+            "Chấm điểm câu trả lời khách hàng về tính có căn cứ và hướng dẫn trả lời của ngân "
+            "hàng.",
+        ),
+        "cat_multiagent": ("Multi-agent monitor", "Giám sát đa tác tử"),
+        "cat_multiagent_d": (
+            "Finds a payment split across several agents to stay under a limit, and opens a case.",
+            "Phát hiện khoản thanh toán bị chia qua nhiều tác tử để né hạn mức và mở hồ sơ.",
+        ),
+        "cat_tool_analytics": ("Tool analytics", "Phân tích công cụ"),
+        "cat_tool_analytics_d": (
+            "Tool use per agent and least-privilege advice: tools granted but never used.",
+            "Mức dùng công cụ theo tác tử và tư vấn đặc quyền tối thiểu: công cụ được cấp nhưng "
+            "không dùng.",
+        ),
+        "cat_alerts": ("Alerts", "Cảnh báo"),
+        "cat_alerts_d": (
+            "Turns monitor and gate signals into alerts with an owner and a clock.",
+            "Biến tín hiệu từ giám sát và cổng thành cảnh báo có người phụ trách và thời hạn.",
+        ),
+        "cat_evidence_chain": ("Hash-chained evidence", "Bằng chứng chuỗi băm"),
+        "cat_evidence_chain_d": (
+            "Every decision goes into a SHA-256 chain with a signed head; supervisor-verify "
+            "checks it offline.",
+            "Mọi quyết định được ghi vào chuỗi SHA-256 có đầu chuỗi được ký; supervisor-verify "
+            "kiểm tra ngoại tuyến.",
+        ),
+        "cat_case_files": ("Case files", "Hồ sơ vụ việc"),
+        "cat_case_files_d": (
+            "One file per case with the decisions, verdicts and sign-offs an auditor needs.",
+            "Mỗi vụ việc một hồ sơ gồm quyết định, phán quyết và phê duyệt mà kiểm toán viên cần.",
+        ),
+        "cat_assurance": ("Assurance packs", "Gói bảo đảm"),
+        "cat_assurance_d": (
+            "Test packs for the agent and its judge, with a go or no-go before launch.",
+            "Bộ kiểm thử cho tác tử và giám khảo của nó, kết luận đạt hoặc không đạt trước khi "
+            "triển khai.",
+        ),
+        "cat_transparency": ("Transparency report", "Báo cáo minh bạch"),
+        "cat_transparency_d": (
+            "A plain-language report per agent: what it does, its limits and its controls.",
+            "Báo cáo dễ hiểu cho từng tác tử: chức năng, giới hạn và các biện pháp kiểm soát.",
+        ),
+        "cat_collectors": ("Trace collectors", "Bộ thu thập trace"),
+        "cat_collectors_d": (
+            "Connect an agent framework so its traces reach the recorder.",
+            "Kết nối framework của tác tử để trace được gửi đến bộ ghi.",
+        ),
+        "cat_siem": ("SIEM export", "Xuất sang SIEM"),
+        "cat_siem_d": (
+            "Sends gate decisions and alerts to the bank SIEM.",
+            "Gửi quyết định của cổng và cảnh báo sang SIEM của ngân hàng.",
+        ),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

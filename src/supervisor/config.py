@@ -458,6 +458,10 @@ class Settings(BaseSettings):
     # (they open a "coming in WP-UX3" page).
     console_nav: Literal["sidebar", "top"] = "sidebar"
     console_nav_placeholders: bool = False
+    # Two-section sidebar: "AI Management and Governance" and "AI Guardian and Supervisor",
+    # each holding the groups above (new: off; off = the six-group sidebar as before).
+    console_nav_sections: bool = False
+    console_catalog_enabled: bool = False  # /console/catalog: guardian capabilities, on or off
 
     # --- WP-UX3 --- new console pages, each behind its own flag (all off by default; off = HTTP
     # 400 with a message and no nav link). The audit-log page flag is CONSOLE_AUDITLOG_ENABLED

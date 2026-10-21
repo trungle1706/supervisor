@@ -1,0 +1,47 @@
+{# Catalog page (CONSOLE_CATALOG_ENABLED, read-only): guardian capabilities as cards, grouped by
+   category, with the on/off status of this instance and the setting that turns each one on.
+   Two tabs: Catalog (all) and Active (on only). Variables: catalog_view.page. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_catalog') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_s_guard'), None), (t('nav_catalog'), None)]) }}
+<div class="pagehead"><h1>{{ t('nav_catalog') }}</h1><span class="pills"><span class="cat-lede">{{ t('cat_lede') }}</span></span></div>
+<nav class="subtabs" aria-label="{{ t('tabs_label') }}">
+  <a href="/console/catalog?tab=catalog&amp;lang={{ lang }}" class="{{ 'on' if tab == 'catalog' else '' }}"{% if tab == 'catalog' %} aria-current="page"{% endif %}>{{ t('cat_tab_catalog') }} <span class="k">{{ n_all }}</span></a>
+  <a href="/console/catalog?tab=active&amp;lang={{ lang }}" class="{{ 'on' if tab == 'active' else '' }}"{% if tab == 'active' %} aria-current="page"{% endif %}>{{ t('cat_tab_active') }} <span class="k">{{ n_on }}</span></a>
+</nav>
+<p class="hint">{{ t('cat_rule') }}</p>
+{% if not cats %}
+{{ ui.empty(t('cat_none'), t('cat_none_line'), '/console/catalog?tab=catalog&lang=' ~ lang, t('cat_tab_catalog')) }}
+{% endif %}
+{% for c in cats %}
+<section class="cat-sec" aria-labelledby="cat-{{ c.key }}">
+  <h2 class="cat-h" id="cat-{{ c.key }}"><span class="dot" aria-hidden="true"></span>{{ t(c.label) }}</h2>
+  <ul class="cat-grid">
+  {% for card in c.cards %}
+    {% set e = card.e %}
+    <li class="cat-card{{ ' is-off' if not card.on else '' }}">
+      <div class="cat-body">
+        <div class="cat-top">
+          <span class="cat-ico" aria-hidden="true">{{ e.icon }}</span>
+          <span class="pill {{ card.kind[0] }}">{{ t(card.kind[1]) }}</span>
+        </div>
+        <h3>{{ t('cat_' ~ e.key) }}</h3>
+        <p>{{ t('cat_' ~ e.key ~ '_d') }}</p>
+        {% if e.doc %}<p class="cat-doc">{{ e.doc }}</p>{% endif %}
+      </div>
+      <div class="cat-foot">
+        {% if card.on %}
+          {{ ui.pill(t('cat_on') ~ (' · mock' if card.mock else ''), 'ok', True) }}
+        {% else %}
+          <span class="cat-env" title="{{ t('cat_turn_on') }}"><span class="muted">{{ t('cat_turn_on') }}</span> <code>{{ e.env }}</code></span>
+        {% endif %}
+        {% if card.href %}<a class="btn" href="{{ card.href }}">{{ t('cat_open') }}</a>{% endif %}
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}
