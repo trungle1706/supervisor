@@ -66,7 +66,7 @@ from supervisor.gateway.policy import (
     RuleSpec,
     ToolMatch,
 )
-from supervisor.gateway.redact import redact_args
+from supervisor.gateway.redact import over_budget, redact_args
 from supervisor.gateway.session_gate import PAUSE_RULE as SESSION_PAUSE_RULE
 from supervisor.gateway.session_gate import SessionCall, SessionGate, finding_codes
 from supervisor.gateway.state import AgentStateMachine
@@ -369,6 +369,9 @@ class Decision:
     sess: SessionCall | None = None
     # WP25: set only by the detector gate's classifier pause path (never by a policy rule id)
     classifier_pause: bool = False
+    # WP41b (D26): the built-in state or session pause denied this call. The old ``action`` stays
+    # ``block`` (contract kept); only the v2 ``status`` says ``pause``.
+    pause_status: bool = False
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -962,6 +965,7 @@ class Gateway:
                 policy.policy_hash,
                 risk,
             )
+            d.pause_status = builtin[0] in ("GATE-PAUSED", SESSION_PAUSE_RULE)  # WP41b (D26)
         elif decisive is not None and not shadow:
             reason = (
                 f"{decisive.rule.id}: {decisive.rule.description}"
@@ -1153,10 +1157,20 @@ class Gateway:
             or ctx.get("declared_risk_class") == "pii_export"
         ):
             return None
+        if self._redact_over_budget(args):
+            return None  # WP41b (D32): not masked here; _redact decides under the lock
         try:
             return redact_args(self.masker, args)
         except Exception as exc:  # noqa: BLE001 - handled under the lock (fail closed)
             return exc
+
+    def _redact_over_budget(self, args: Mapping[str, Any]) -> bool:
+        """WP41b (D32): with the detector gate on, the masker reads at most the dlp_vn scan
+        budget. Beyond it dlp_vn is cut and the call fails closed on a risky tool, so masking
+        the full text (879 ms for 99 KB) is wasted time. False when there is no budget."""
+        gate = self.detector_gate
+        limit = gate.redact_budget_bytes() if gate is not None else None
+        return limit is not None and over_budget(args, limit)
 
     def _redact(
         self,
@@ -1174,6 +1188,11 @@ class Gateway:
             return
         if not dry and risk == "pii_export" and tool_name not in self._redact_hint:
             self._redact_hint = self._redact_hint | {tool_name}
+        if pre is None and self._redact_over_budget(args):
+            # WP41b (D32): too big to mask within the scan budget. The detector gate fails the
+            # call closed on a money, credit or pii_export tool (GATE-DETECTOR-FAILED, with the
+            # coverage reason); nothing reads the text past the budget on any path.
+            return
         try:
             if isinstance(pre, BaseException):
                 raise pre

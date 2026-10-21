@@ -24,6 +24,7 @@ from typing import Any
 
 from supervisor.analytics.decisions import looks_personal
 from supervisor.core.detectors import (
+    DEFAULT_MAX_SCAN_BYTES,
     PARTS,
     PARTS_BY_DIRECTION,
     DetectorRegistry,
@@ -117,6 +118,16 @@ class DetectorGate:
         self.registry = registry
         self.resolved = resolved
         self.weigh_slugs = resolved.weighing_slugs()
+
+    def redact_budget_bytes(self) -> int | None:
+        """WP41b (D32): the bytes of argument text the inline masker may read for one call, or
+        None (no limit: dlp_vn is off, so nothing cuts the arguments). It is the dlp_vn
+        ``max_scan_bytes``: above it dlp_vn is cut and the call fails closed on a risky tool, so
+        masking the full text would only cost time (879 ms for 99 KB) and be thrown away."""
+        entry = self.resolved.cfg.detectors.get("dlp_vn")
+        if entry is None or not entry.enabled:
+            return None
+        return int(entry.settings.get("max_scan_bytes") or DEFAULT_MAX_SCAN_BYTES)
 
     def check_policy(self, policy: Policy) -> list[str]:
         """Problems in the per-agent detector overrides of a policy (empty = fine). Used at
@@ -377,7 +388,7 @@ class DetectorGate:
                 coverage = {**coverage, "kept_args": kept}
         status = derive_status(
             allow=d.allow,
-            action=d.action,
+            action="pause" if getattr(d, "pause_status", False) else d.action,
             findings=out.findings,
             has_transform=d.transformed_payload is not None,
             skipped=pre.skipped,

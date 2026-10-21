@@ -228,6 +228,30 @@ numbers in `HANDOFF_WP41.md` and `REVIEW_WP41.md`): 8 KB of tool results cost 20
 and 12 to 15 ms now (p50, detector time, host load about 3.6), and the 99 KB argument is
 answered in under 70 ms instead of 2 s or more. The target "under 10 ms added" is **not met**.
 
+### Cut arguments fail closed on every risky tool (WP41b, D31 and D32)
+
+The second benchmark showed two gaps in the rules above.
+
+* **D31 (High).** Only a detector that would transform the call (`dlp_vn`) failed closed on a
+  cut argument. A `credit` or `money` tool whose argument was cut by the scan budget (a 118 KB
+  argument, 16 KB read) was allowed with status `report` and 85 percent of the text unread. Now,
+  when the scan budget cuts **any argument** of a `money`, `credit` or `pii_export` call, the
+  decision is a block with rule `GATE-DETECTOR-FAILED` and the reason
+  `*:payload_too_large` (one `not_executed` row with the detector slug `*`, detail "arguments
+  cut by scan budget"), whatever detectors are on (at least one enabled detector must be
+  `fail_closed`, as for every other failure). A `read_only` tool and a cut tool result stay
+  coverage only. Observe mode and the `fail_closed_risk_classes` limit apply as before.
+* **D32 (Medium).** The 99 KB `pii_export` call failed closed as designed but took 879 ms p50
+  on the benchmark host (18 ms in the lab). The cost was the inline masker (`INLINE_REDACTION`),
+  which read all 99 KB before the gate knew the call would be refused; the detectors, the
+  record (`args_masked` holds argument names and key hashes, never text) and the SIEM event were
+  cheap. With the detector gate on, the masker now reads at most the `dlp_vn` `max_scan_bytes`
+  (a check that stops at the limit): a larger argument is not masked, `dlp_vn` is cut, and
+  `GATE-DETECTOR-FAILED` answers in 15 to 17 ms. The full argument is still covered by
+  `args_hmac` (a keyed hash of all of it); the record holds the byte count in the coverage
+  (`bytes`, `scanned_bytes`). With `dlp_vn` off, or with no detector gate, nothing cuts the
+  argument and the masker runs as in WP24b.
+
 ## 3c. `mrm_status` per detector (D24, D25)
 
 Each detector entry in `config/detectors.yaml` has `mrm_status: GO | NO-GO` (default `NO-GO`).
@@ -245,7 +269,7 @@ The status of a verdict:
 | Rank | Status | When |
 |---|---|---|
 | 5 | `block` | A deterministic rule, a built-in block or `GATE-DETECTOR-FAILED` denied the call. Also when a block rule matched together with a pause rule that decided first |
-| 4 | `pause` | A pause rule denied the call (no block rule matched) |
+| 4 | `pause` | A pause denied the call and no block rule matched: a pause rule, the classifier pause (`GATE-CLASSIFIER-PAUSE`), the state pause of an already paused agent (`GATE-PAUSED`) or the session pause (`GATE-SESSION-PAUSE`) (D26, WP41b). The old `action` field of the two built-in pauses stays `block` |
 | 3 | `transform` | The call is allowed and `dlp_vn` (or WP24b redaction) produced a masked payload |
 | 2 | `report` | The call is allowed and a finding fired, or a rule with action `log` or `alert` matched |
 | 1 | `allow` | None of the above |

@@ -48,6 +48,20 @@ No new flag; every change is behind a flag that exists or in an adapter option.
 - D27: Agent page Tools tab answers 200 with a hint for an agent with no policy record; reads the
   served `POLICY_DIR`.
 
+### WP41b: triage of the second benchmark (ADR D33, `HANDOFF_WP41B.md`)
+
+No new flag; all three changes act only with `DETECTORS_ENABLED` on.
+
+- D31 (High): a cut (`payload_too_large`) argument of a money, credit or pii_export tool is now
+  `GATE-DETECTOR-FAILED` for any detector set (before, only a transforming detector did that, so a
+  credit call with 85 percent of its text unread was allowed with status `report`). A read_only
+  tool stays coverage only.
+- D32 (Medium): the fail-closed 99 KB pii_export call took 879 ms on the bench host because the
+  inline masker read the whole text; above the `dlp_vn` scan budget it does not run (15 to 17 ms).
+- D26 (Medium): status `pause` (not `block`) for the state pause `GATE-PAUSED` and the session
+  pause `GATE-SESSION-PAUSE`, in the answer, `agent_event.verdict_status`, the chain record, the
+  SIEM `attrs.status`, the drawer and the rollup. The old `action` field stays `block`.
+
 ### New flags and settings (all features default off)
 
 | Flag | Turns on | Related settings |

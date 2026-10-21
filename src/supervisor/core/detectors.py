@@ -878,6 +878,17 @@ class DetectorRegistry:
             res.coverage["inspected"] = [p for p in inspected if p not in {c["part"] for c in cut}]
             res.coverage["not_inspected"] = [*not_inspected, *cut]
             res.coverage["bytes"] = sum(part_bytes.values())
+        if (
+            any(c["part"] == "args" for c in cut)
+            and risk_class in config.fail_closed_risk_classes
+            and not any(n.not_executed_reason == "payload_too_large" for n in res.not_executed)
+        ):
+            # WP41b (D31): the scan budget cut an argument of a money, credit or pii_export call.
+            # The rest of it was not looked at, so no detector did the whole job: fail closed,
+            # whatever the detector kind (a read_only tool stays coverage-only).
+            res.not_executed.append(
+                not_executed("*", "*", "payload_too_large", "arguments cut by scan budget")
+            )
         if uninspectable:
             res.not_executed.append(
                 Finding(

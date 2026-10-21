@@ -16,7 +16,7 @@ from typing import Any
 
 from supervisor.core.ports import Masker
 
-__all__ = ["redact_args"]
+__all__ = ["over_budget", "redact_args"]
 
 MAX_DEPTH = 12
 
@@ -43,3 +43,23 @@ def redact_args(masker: Masker, args: Mapping[str, Any]) -> tuple[dict[str, Any]
     count = [0]
     out = _walk(dict(args), masker, 0, count)
     return out, count[0]
+
+
+def over_budget(args: Any, limit: int, depth: int = 0) -> bool:
+    """True when the string leaves of ``args`` hold more than ``limit`` bytes. Stops reading at
+    the limit, so the answer costs a few microseconds even for a 10 MB argument (WP41b, D32)."""
+    left = [limit]
+
+    def _eat(value: Any, d: int) -> bool:
+        if d > MAX_DEPTH:
+            return False
+        if isinstance(value, str):
+            left[0] -= len(value) if value.isascii() else len(value.encode("utf-8", "replace"))
+            return left[0] < 0
+        if isinstance(value, Mapping):
+            return any(_eat(v, d + 1) for v in value.values())
+        if isinstance(value, (list, tuple)):
+            return any(_eat(v, d + 1) for v in value)
+        return False
+
+    return _eat(args, depth)
