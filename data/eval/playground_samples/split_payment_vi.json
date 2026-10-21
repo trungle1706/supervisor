@@ -1,0 +1,22 @@
+{
+  "agent_hint": "payments",
+  "args": {
+    "amount_minor": 90000000,
+    "customer_id": "C-001",
+    "from_account_id": "ACC-001",
+    "payee_id": "P-001"
+  },
+  "category": "split_payment",
+  "consumer_id": null,
+  "context": {},
+  "direction": "input",
+  "id": "split_payment_vi",
+  "labeller": "synthetic",
+  "language": "vi",
+  "licence": "project-internal, no real data",
+  "note": "Window rules are not evaluated in a dry run; they are listed as not evaluated.",
+  "source": "synthetic (WP38)",
+  "title_en": "Split payment (window rule)",
+  "title_vi": "Chia nhỏ khoản chuyển (quy tắc cửa sổ)",
+  "tool": "transfer"
+}

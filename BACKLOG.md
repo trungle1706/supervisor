@@ -127,6 +127,17 @@
 | WP37: the SDK (`HttpGate`) does not yet send `direction`, `context.output` or `X-Supervisor-Correlation-Id`, and does not read `status`; the in-repo agent runtime only copies `correlation_id` and `status` to its span | WP38 collectors and the LangGraph middleware |
 | WP37: no console page for findings, no latency split rules / detectors / overhead, no "not evaluated" badge | WP39 (reads `finding`, `agent_event.verdict_status`, `coverage_json`) |
 | WP37: the pii_vn golden set feeds `dlp_vn` items (derived text); a bank-supplied set would be a better held-out set | Bank provides labelled examples under the DPO rubric |
+| WP38: `consumer_id` is asserted by the caller; the policy cannot tie it to an authenticated identity (a compromised agent can name a lenient consumer) | WP33 end-user identity; bind consumer ids to the credential in `config/agent_identities.yaml` |
+| WP38 review: "money agent" means a money, credit or pii_export rule in scope; an agent with no such rule that calls a money tool is still protected at the gate (observe lifts nothing on those tools without `observe_approvals`, consumer detector overrides do not apply), but the loader does not refuse its consumer observe | Per-agent tool lists in the policy (WP40 editor) to tighten the definition |
+| WP38 review: agent-level `rules.disable` may switch off a money block rule with one edit (rules themselves need two approvers) | Require `observe_approvals`-style approvers for agent-level disables of money, credit and pii_export rules |
+| WP38 review: the Claude Code hook prints `updatedInput`; an assistant version that ignores it runs the raw input | Refuse (exit 2) on a transform for tools in `SUPERVISOR_CLOSED_TOOLS` once the bank fixes the assistant version |
+| WP38: `agent_event` has no column for the observed decision. Verdict rows (label `observe_would_*`, also for a lifted GATE-DETECTOR-FAILED), chain and SIEM carry it, and the Decisions drawer shows it (WP38 review): AL-THREAT-NOT-ENFORCED can be computed from verdict rows | WP39: add a column only if the alert query needs it without a join |
+| WP38: the mcp_http_proxy card is a placeholder; the Databricks AI Gateway template is not built | WP26; second wave of collectors |
+| WP38: Add is for the first key only; rotation stays on the command line; env and secret-scope stores cannot be written from the console | A rotate button with a two-person check, if the owner wants the secret to pass the browser again |
+| WP38: the LiteLLM guardrail and the FastAPI middleware do not check streamed answers; the middleware buffers a response up to 1 MB | Chunked output check with a window; needs a decision on what to do with bytes already sent |
+| WP38: adapters were tested with fake framework objects; no run against an installed LangGraph, deepagents or LiteLLM | A nightly job in an environment with the frameworks (not a dependency of the repo) |
+| WP38: no policy editor; mode and consumers are changed by editing YAML | WP40 |
+| WP38: HttpGate.check still has no direction; `supervised_tool` does not send a correlation id | Use `check_v2` in the decorator once old servers are gone |
 
 
 | WP37: adversarial rows are hand-written by one author (n = 60 / 66 / 51 positives); injection (4696 bp) and judge mock (3725 bp) pass their thresholds on the point value only, their Wilson lower bounds are below the threshold, and the report marks them `indicative` | A second labeller; bank-supplied probes; raise n until the lower bound clears the threshold or the threshold moves |
@@ -165,3 +176,4 @@
 | WP29 -> WP31 (transparency report): the report should read `RiskService.agent_summary()` and `export_json()` (plain data, bands marked illustrative) and not the tables | WP31 |
 | WP29: risk evidence rows have no retention beyond the evidence setting (`EVIDENCE_RETENTION_DAYS`), and `risk` rows are never deleted (retire only) | Retention rule agreed with the bank (records management) |
 | WP29 L6: packs scored by a judge model are references only (`RISK_EVIDENCE_JUDGED_PACKS=0`). Whether they may lower a score is an owner decision (rule R1) | Owner decision; if yes, set the switch and name the judge validation gate it depends on |
+| WP38 F16: an old assistant version that ignores `updatedInput` runs the raw input of the Claude Code hook; the catalogue text gives the version rule and a self-test but no exact minimum version number | Owner or the bank's tooling team names the minimum assistant version; the hook could refuse unless it is told the version |

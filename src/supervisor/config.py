@@ -525,6 +525,14 @@ class Settings(BaseSettings):
         "config/risks"
     )  # starter risks (python -m supervisor.risk import)
 
+    # --- WP38 --- collector catalogue on the Integrations page (ADR D28, docs/collectors.md).
+    # Off: the Integrations page is the delivery status page of v0.3.0. On: it is the catalogue
+    # (cards, Add creates the agent credential, detail drawer). The policy keys mode and
+    # consumers need no flag: they only act when a policy file uses them.
+    collectors_enabled: bool = False
+    # Base URL shown in the setup text; empty = the address the console was opened with.
+    collectors_public_url: str = ""
+
     @field_validator(
         "data_dir",
         "sqlite_path",

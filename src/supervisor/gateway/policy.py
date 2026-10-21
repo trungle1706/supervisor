@@ -22,6 +22,7 @@ import logging
 import re
 import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
@@ -306,6 +307,47 @@ class AgentDetectors(_Strict):
         return v
 
 
+CONSUMER_ID_RE = r"^[A-Za-z0-9_.:@-]{1,128}$"
+MAX_CONSUMERS = 200
+ModeT = Literal["enforce", "observe"]
+
+
+def valid_consumer_id(value: Any) -> bool:
+    """A consumer id from the request context: text, 1..128 characters from ``A-Za-z0-9_.:@-``.
+    Anything else is ignored by the gate (the agent's own settings then apply)."""
+    return isinstance(value, str) and re.fullmatch(CONSUMER_ID_RE, value) is not None
+
+
+class RuleSwitches(_Strict):
+    """WP38 (ADR D28): switch single rules off or on for an agent or one consumer.
+
+    A disabled rule is not evaluated for that agent or consumer (no hit, no record). ``enable``
+    on a consumer undoes a ``disable`` of the agent. Rule ids must exist in the policy."""
+
+    enable: list[str] = Field(default_factory=list, max_length=64)
+    disable: list[str] = Field(default_factory=list, max_length=64)
+
+    @model_validator(mode="after")
+    def _check(self) -> RuleSwitches:
+        for rid in [*self.enable, *self.disable]:
+            if not re.match(_ID_RE, rid):
+                raise ValueError(f"bad rule id {rid!r}")
+        both = set(self.enable) & set(self.disable)
+        if both:
+            raise ValueError(f"rule(s) both enabled and disabled: {sorted(both)}")
+        return self
+
+
+class ConsumerOverride(_Strict):
+    """WP38 (ADR D28): ``agents.<id>.consumers.<consumer_id>``. A field that is set replaces the
+    agent's value for calls whose ``context.consumer_id`` is this consumer; a field left out
+    keeps the agent's value. ``rules`` merges with the agent's switches."""
+
+    mode: ModeT | None = None
+    detectors: AgentDetectors | None = None
+    rules: RuleSwitches | None = None
+
+
 class AgentManifest(_Strict):
     name: str = Field(min_length=1)
     owner_user: str = Field(min_length=1)
@@ -319,6 +361,38 @@ class AgentManifest(_Strict):
     monitors: MonitorBindings | None = None
     # WP37 (D23): per-agent detector override; absent from the dump (and the hash) when None.
     detectors: AgentDetectors | None = None
+    # WP38 (D28): observe mode, rule switches and per-consumer overrides. All three are left out
+    # of the dump (and the hash) when unset, so a file without them keeps its old hash.
+    mode: ModeT | None = None
+    rules: RuleSwitches | None = None
+    consumers: dict[str, ConsumerOverride] = Field(default_factory=dict)
+    # WP38 review: two distinct approver ids that allow observe mode to lift a decision on a
+    # money, credit or pii_export tool (see _cross_check_modes). Left out of the hash when empty.
+    observe_approvals: list[str] = Field(default_factory=list, max_length=2)
+
+    # WP38 follow-up F14: two distinct approver ids that allow ``rules.disable`` to name a block
+    # or pause rule of risk class money, credit or pii_export. Left out of the hash when empty.
+    rule_approvals: list[str] = Field(default_factory=list, max_length=2)
+
+    @field_validator("observe_approvals", "rule_approvals")
+    @classmethod
+    def _two_approvers(cls, v: list[str]) -> list[str]:
+        if v and (len(v) != 2 or len(set(v)) != 2):
+            raise ValueError("approvals need two distinct approver ids")
+        for a in v:
+            if not re.match(_NAME_RE, a):
+                raise ValueError(f"bad approver id {a!r}")
+        return v
+
+    @field_validator("consumers")
+    @classmethod
+    def _consumer_ids(cls, v: dict[str, ConsumerOverride]) -> dict[str, ConsumerOverride]:
+        if len(v) > MAX_CONSUMERS:
+            raise ValueError(f"at most {MAX_CONSUMERS} consumers per agent")
+        for cid in v:
+            if not valid_consumer_id(cid):
+                raise ValueError(f"bad consumer id {cid!r} (1..128 of A-Za-z0-9_.:@-)")
+        return v
 
 
 class PolicyDoc(_Strict):
@@ -358,19 +432,87 @@ def _merge(docs: Sequence[PolicyDoc]) -> PolicyDoc:
     )
 
 
+# Rules a consumer override may not switch off: a block or pause rule on a money, credit or
+# pii_export tool. The consumer id is asserted by the caller; it must not be a way around the
+# money controls.
+_PROTECTED_RISK = ("money", "credit", "pii_export")
+
+
+def money_agent(doc: PolicyDoc, agent_id: str) -> bool:
+    """The agent has a rule in scope whose risk class is money, credit or pii_export."""
+    return any(r.in_scope(agent_id) and r.risk_class in _PROTECTED_RISK for r in doc.rules)
+
+
+def _cross_check_modes(doc: PolicyDoc) -> None:
+    by_id = {r.id: r for r in doc.rules}
+    for agent_id, agent in doc.agents.items():
+        groups: list[tuple[str, RuleSwitches | None]] = [(f"agent {agent_id}", agent.rules)]
+        groups += [(f"agent {agent_id} consumer {c}", o.rules) for c, o in agent.consumers.items()]
+        for where, sw in groups:
+            if sw is None:
+                continue
+            for rid in [*sw.enable, *sw.disable]:
+                if rid not in by_id:
+                    raise PolicyError(f"{where}: rule {rid} is not in the rules section")
+        money = money_agent(doc, agent_id)
+        for rid in agent.rules.disable if agent.rules else []:
+            r = by_id[rid]
+            if (
+                r.action in ("block", "pause")
+                and r.risk_class in _PROTECTED_RISK
+                and len(set(agent.rule_approvals)) != 2
+            ):
+                raise PolicyError(
+                    _ascii(
+                        f"agent {agent_id}: rules.disable names {r.action} rule {rid} "
+                        f"({r.risk_class}); that needs two distinct ids in rule_approvals"
+                    )
+                )
+        if agent.mode == "observe" and money:
+            if agent.initial_state != "SHADOW" and not agent.observe_approvals:
+                raise PolicyError(
+                    _ascii(
+                        f"agent {agent_id}: mode observe on an agent with money, credit or "
+                        "pii_export rules needs initial_state SHADOW or two approver ids in "
+                        "observe_approvals"
+                    )
+                )
+        for cid, over in agent.consumers.items():
+            if over.mode == "observe":  # F15: no consumer of any agent may observe
+                raise PolicyError(
+                    _ascii(
+                        f"agent {agent_id} consumer {cid}: mode observe is not allowed for a "
+                        "consumer (the consumer id is asserted by the caller); set mode on "
+                        "the agent"
+                    )
+                )
+            for rid in over.rules.disable if over.rules else []:
+                r = by_id[rid]
+                if r.action in ("block", "pause") and r.risk_class in _PROTECTED_RISK:
+                    raise PolicyError(
+                        f"agent {agent_id} consumer {cid}: rule {rid} ({r.action}, "
+                        f"{r.risk_class}) cannot be switched off for a consumer"
+                    )
+
+
 SKIP_FORBIDDEN_RISK = ("money", "credit", "pii_export")
 
 
 def _cross_check(doc: PolicyDoc) -> None:
+    _cross_check_modes(doc)
     for agent_id, agent in doc.agents.items():
-        for tool in agent.detectors.skip_tools if agent.detectors else []:
-            if doc.tools.get(tool) in SKIP_FORBIDDEN_RISK:
-                raise PolicyError(
-                    _ascii(
-                        f"agent {agent_id}: skip_tools names the {doc.tools[tool]} tool {tool}; "
-                        "detectors cannot be skipped for money, credit or pii_export tools"
+        blocks = [(agent_id, agent.detectors)]
+        blocks += [(f"{agent_id}/{c}", o.detectors) for c, o in agent.consumers.items()]
+        for where, det in blocks:
+            for tool in det.skip_tools if det else []:
+                if doc.tools.get(tool) in SKIP_FORBIDDEN_RISK:
+                    raise PolicyError(
+                        _ascii(
+                            f"agent {where}: skip_tools names the {doc.tools[tool]} tool "
+                            f"{tool}; detectors cannot be skipped for money, credit or "
+                            "pii_export tools"
+                        )
                     )
-                )
     seen: set[str] = set()
     for r in doc.rules:
         if r.id in seen:
@@ -397,7 +539,37 @@ def _dump(doc: PolicyDoc, exclude: set[str] | None = None) -> dict[str, Any]:
     for agent in out.get("agents", {}).values():
         if agent.get("detectors") is None:
             agent.pop("detectors", None)
+        for key in ("mode", "rules"):  # WP38: unset keys are not part of the hash
+            if agent.get(key) is None:
+                agent.pop(key, None)
+        for key in ("observe_approvals", "rule_approvals"):
+            if not agent.get(key):
+                agent.pop(key, None)
+        if not agent.get("consumers"):
+            agent.pop("consumers", None)
+        else:
+            for over in agent["consumers"].values():
+                for key in [k for k, v in over.items() if v is None]:
+                    del over[key]
     return out
+
+
+@dataclass(frozen=True)
+class Effective:
+    """What applies to one call after ``consumers[context.consumer_id] ?? agent`` (WP38).
+
+    ``active`` is true when the agent uses mode, rule switches or consumers at all; only then
+    does the gate add ``mode`` (and the other WP38 fields) to its answer."""
+
+    mode: str = "enforce"
+    consumer_id: str | None = None  # the consumer whose override was applied
+    consumer_ignored: bool = False  # a consumer id was sent but is invalid or has no entry
+    detectors: AgentDetectors | None = None
+    disabled: frozenset[str] = frozenset()
+    active: bool = False
+    # Observe may lift a decision on a money, credit or pii_export tool only when the agent has
+    # two observe_approvals (WP38 review). Without them those tools stay enforced.
+    observe_approved: bool = False
 
 
 class Policy:
@@ -447,6 +619,40 @@ class Policy:
         """WP37: the agent's detector override, or None."""
         agent = self.doc.agents.get(agent_id)
         return agent.detectors if agent is not None else None
+
+    def effective(self, agent_id: str, consumer_id: Any = None) -> Effective:
+        """Mode, detector override and disabled rules for this agent and consumer.
+
+        Resolved as ``consumers[consumer_id] ?? agent`` field by field: a consumer field that is
+        set wins, a field left out keeps the agent's value, and rule switches merge (the
+        consumer's ``enable`` undoes the agent's ``disable``). An invalid consumer id, or one
+        without an entry, gives the agent's own settings."""
+        agent = self.doc.agents.get(agent_id)
+        if agent is None:
+            return Effective()
+        active = bool(agent.mode or agent.rules or agent.consumers)
+        mode = agent.mode or "enforce"
+        detectors = agent.detectors
+        disabled = set(agent.rules.disable) if agent.rules else set()
+        over = None
+        ignored = False
+        if consumer_id is not None and agent.consumers:
+            over = agent.consumers.get(consumer_id) if valid_consumer_id(consumer_id) else None
+            ignored = over is None
+        if over is not None:
+            mode = over.mode or mode
+            detectors = over.detectors or detectors
+            if over.rules:
+                disabled = (disabled - set(over.rules.enable)) | set(over.rules.disable)
+        return Effective(
+            mode=mode,
+            consumer_id=consumer_id if over is not None else None,
+            consumer_ignored=ignored,
+            detectors=detectors,
+            disabled=frozenset(disabled),
+            active=active,
+            observe_approved=len(set(agent.observe_approvals)) == 2,
+        )
 
     def tracked_keys(self) -> dict[str, set[str]]:
         """Per tool: the arg paths that aggregates and prior rules group by."""
@@ -712,6 +918,8 @@ __all__ = [
     "FACT_PREFIX",
     "Aggregate",
     "AgentManifest",
+    "ConsumerOverride",
+    "Effective",
     "Policy",
     "PolicyDoc",
     "PolicyError",
@@ -719,6 +927,7 @@ __all__ = [
     "Predicate",
     "Prior",
     "RuleSpec",
+    "RuleSwitches",
     "StaticPolicyProvider",
     "StorePolicyProvider",
     "deploy_policy",
@@ -726,6 +935,8 @@ __all__ = [
     "load_deployed",
     "load_policy_dir",
     "load_policy_texts",
+    "money_agent",
     "parse_policy_text",
     "policy_json_schema",
+    "valid_consumer_id",
 ]

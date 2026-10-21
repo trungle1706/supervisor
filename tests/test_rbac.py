@@ -81,6 +81,7 @@ def test_new_roles() -> None:
         "alert.ack",
         "playground.run",
         "mcp.tools.propose",  # WP26
+        "collectors.add",  # WP38: admin and operator may add a collector
     }
     auditor = {p for p in rbac.PERMISSIONS if rbac.allowed(["auditor"], p)}
     assert {"evidence.export", "evidence.download", "chain.verify", "console.view"} <= auditor

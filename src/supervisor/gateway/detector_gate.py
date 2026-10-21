@@ -87,6 +87,11 @@ class DetectorGate:
         for agent_id, manifest in policy.doc.agents.items():
             if manifest.detectors is not None:
                 problems += self.resolved.check_agent(agent_id, manifest.detectors)
+            for consumer_id, over in manifest.consumers.items():  # WP38
+                if over.detectors is not None:
+                    problems += self.resolved.check_agent(
+                        f"{agent_id}/{consumer_id}", over.detectors
+                    )
         return problems
 
     # ------------------------------------------------------------------ before the lock

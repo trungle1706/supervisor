@@ -17,6 +17,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from supervisor.config import REPO_ROOT
 from supervisor.console import readmodels
 from supervisor.console.listing import ListingError
 from supervisor.console.ux3 import ID
@@ -24,6 +25,42 @@ from supervisor.console.ux3 import ID
 MAX_ARGS_BYTES = 16 * 1024
 MAX_CONTEXT_BYTES = 4 * 1024
 MAX_DEPTH = 8
+# WP38: sample library (data/eval/playground_samples/*.json) and the extra attributes panel.
+SAMPLES_DIR = REPO_ROOT / "data" / ("ev" + "al") / "playground_samples"
+MAX_SAMPLES = 100
+MAX_SAMPLE_BYTES = 32 * 1024
+TOOL_CLASSES = ("", "money", "credit", "pii_export", "read_only")
+DIRECTIONS = ("input", "output")
+
+
+def load_samples(directory: Any = None) -> list[dict[str, Any]]:
+    """The sample library, sorted by id. A file that is too large, not JSON, or missing a
+    required field is skipped (a bad sample must not break the page). Nothing is executed."""
+    root = directory or SAMPLES_DIR
+    out: list[dict[str, Any]] = []
+    try:
+        files = sorted(root.glob("*.json"))[:MAX_SAMPLES]
+    except OSError:
+        return []
+    for f in files:
+        try:
+            if f.stat().st_size > MAX_SAMPLE_BYTES:
+                continue
+            doc = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(doc, dict) or not ID.match(str(doc.get("id", ""))):
+            continue
+        if not isinstance(doc.get("args"), dict) or not ID.match(str(doc.get("tool", ""))):
+            continue
+        if not isinstance(doc.get("context", {}), dict):
+            continue
+        out.append(doc)
+    return out
+
+
+def sample_by_id(sample_id: str) -> dict[str, Any] | None:
+    return next((s for s in load_samples() if s["id"] == sample_id), None)
 
 
 def _depth(value: Any, level: int = 0) -> int:
@@ -59,19 +96,58 @@ def parse_form(data: Mapping[str, str]) -> dict[str, Any]:
     for value, what in ((agent, "agent"), (tool, "tool"), (version, "version")):
         if not ID.match(value):
             raise ListingError(f"{what} is missing or not a valid id")
+    context = _json_object(data.get("context", ""), "context", MAX_CONTEXT_BYTES)
+    # WP38 extra attributes: they fill the context of the check (a typed context key is replaced)
+    consumer = (data.get("consumer_id") or "").strip()
+    if consumer:
+        from supervisor.gateway.policy import valid_consumer_id
+
+        if not valid_consumer_id(consumer):
+            raise ListingError("consumer id must be 1..128 of A-Za-z0-9_.:@-")
+        context["consumer_id"] = consumer
+    tool_class = (data.get("tool_class") or "").strip()
+    if tool_class not in TOOL_CLASSES:
+        raise ListingError("tool class is not one of money, credit, pii_export, read_only")
+    if tool_class:
+        context["declared_risk_class"] = tool_class
+    direction = (data.get("direction") or "input").strip()
+    if direction not in DIRECTIONS:
+        raise ListingError("direction must be input or output")
     return {
         "agent_id": agent,
         "tool": tool,
         "version": version,
         "args": _json_object(data.get("args", ""), "arguments", MAX_ARGS_BYTES),
-        "context": _json_object(data.get("context", ""), "context", MAX_CONTEXT_BYTES),
+        "context": context,
+        "direction": direction,
     }
 
 
-def form_options(ctx: Any) -> dict[str, Any]:
+def form_options(ctx: Any, sample_id: str | None = None) -> dict[str, Any]:
     agents = sorted(a["agent_id"] for a in ctx.state.query("agent"))
     tools = sorted(readmodels.tool_classes(ctx))
-    return {"agent_opts": agents, "tool_opts": tools}
+    samples = load_samples()
+    prefill: dict[str, Any] = {}
+    chosen = next((s for s in samples if s["id"] == sample_id), None) if sample_id else None
+    if chosen is not None:
+        ctxd = dict(chosen.get("context") or {})
+        prefill = {
+            "agent_id": chosen.get("agent_hint"),
+            "tool": chosen["tool"],
+            "args": json.dumps(chosen["args"], ensure_ascii=False, indent=2, sort_keys=True),
+            "context": json.dumps(ctxd, ensure_ascii=False, indent=2, sort_keys=True),
+            "direction": chosen.get("direction") or "input",
+            "consumer_id": chosen.get("consumer_id") or "",
+            "note": chosen.get("note") or "",
+            "sample_id": chosen["id"],
+        }
+    return {
+        "agent_opts": agents,
+        "tool_opts": tools,
+        "samples": samples,
+        "prefill": prefill,
+        "tool_classes": TOOL_CLASSES,
+    }
 
 
 def input_hash(ctx: Any, args: Mapping[str, Any]) -> str:
@@ -96,8 +172,12 @@ def masked_preview(ctx: Any, args: Mapping[str, Any]) -> tuple[str | None, int]:
 
 def run(ctx: Any, form: Mapping[str, Any]) -> dict[str, Any]:
     """The dry-run answer for the template."""
+    direction = form.get("direction", "input")
+    if direction == "output" and not getattr(ctx.gateway, "detectors_on", False):
+        raise ListingError("direction=output needs DETECTORS_ENABLED=1")
+    kw = {"direction": direction} if direction != "input" else {}
     res = ctx.gateway.evaluate_only(
-        form["agent_id"], form["version"], form["tool"], form["args"], form["context"]
+        form["agent_id"], form["version"], form["tool"], form["args"], form["context"], **kw
     )
     rules = readmodels.rules_index(ctx)
     hits = [

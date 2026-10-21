@@ -48,6 +48,7 @@ from supervisor.console import (
     audit_view,
     auditpack,
     cases_list,  # --- WP-UX2 ---
+    collectors_view,
     compliance_view,
     credentials_view,
     decisions,
@@ -1520,7 +1521,10 @@ async def playground_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _ux3_off(ctx, "playground")
-    data = await _call(playground.form_options, ctx)
+    sample = request.query_params.get("sample")
+    if sample:
+        _check_id(sample, "sample id")
+    data = await _call(playground.form_options, ctx, sample)
     return render(request, ctx, me, "playground.html", section="playground", **data)
 
 
@@ -1689,8 +1693,82 @@ async def integrations_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _ux3_off(ctx, "integrations")
+    if ctx.settings.collectors_enabled:  # WP38: the page is the collector catalogue
+        query = dict(request.query_params)
+        selected = query.get("agent")
+        if selected:
+            _check_id(selected, "agent id")
+        data = await _call(collectors_view.page, ctx, selected or None)
+        opened = query.get("drawer")
+        if opened:
+            _check_id(opened, "agent id")
+            data["drawer"] = await _call(
+                collectors_view.drawer,
+                ctx,
+                opened,
+                query.get("dtab") or "connection",
+                query.get("template") or "python_sdk",
+                str(request.base_url),
+            )
+        return render(
+            request, ctx, me, "integrations_collectors.html", section="integrations", **data
+        )
     data = await _call(integrations_view.page, ctx)
     return render(request, ctx, me, "integrations.html", section="integrations", **data)
+
+
+# -- collector catalogue (WP38, COLLECTORS_ENABLED)
+
+
+def _collectors_off(ctx: ConsoleContext) -> None:
+    _ux3_off(ctx, "integrations")
+    if not ctx.settings.collectors_enabled:
+        raise ConsoleInputError("The collector catalogue is off (COLLECTORS_ENABLED=1 turns it on)")
+
+
+@router.get(
+    "/integrations/agent/{agent_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("integrations.view"))],
+)
+async def collector_drawer(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _collectors_off(ctx)
+    _check_id(agent_id, "agent id")
+    query = dict(request.query_params)
+    data = await _call(
+        collectors_view.drawer,
+        ctx,
+        agent_id,
+        query.get("tab") or "connection",
+        query.get("template") or "python_sdk",
+        str(request.base_url),
+    )
+    return render(request, ctx, me, "_collector_drawer.html", drawer=data)
+
+
+@router.post(
+    "/integrations/{agent_id}/connect",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("collectors.add"))],
+)
+@audited("collectors.add")
+async def collector_connect(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Add: issue the first agent key and show the setup text once. The audit row carries the
+    agent id (path) and the template id; the secret is only in this response (no-store)."""
+    _collectors_off(ctx)
+    _check_id(agent_id, "agent id")
+    d = await form(request)
+    template = d.get("template", "")
+    _check_id(template, "template id")
+    data = await _call(collectors_view.connect, ctx, agent_id, template, str(request.base_url))
+    request.state.audit_detail = f"template:{template}|key:{data['issued'].key_id}"
+    resp = render(request, ctx, me, "_collector_connected.html", **data)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 # -- audit log (read-only)

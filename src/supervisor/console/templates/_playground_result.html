@@ -21,7 +21,13 @@
     (t('policy_hash'), res.policy_hash, True),
     (t('fail_mode'), res.fail_mode),
     (t('latency_us'), res.latency_us),
+    (t('pg_result_mode'), t('mode_' ~ res.get('mode')) if res.get('mode') in ('enforce', 'observe') else none),
+    (t('pg_consumer'), res.get('consumer_id'), True),
   ]) }}
+  {% if res.get('observed_decision') %}
+  <div class="msg msg-warn" role="status"><strong>{{ t('pg_observed') }}:</strong> {{ res.observed_decision.action }} {{ res.observed_decision.rule_id }}. {{ t('pg_observed_line') }}</div>
+  {% endif %}
+  {% if res.get('consumer_ignored') %}<p class="hint">{{ t('pg_consumer_ignored') }}</p>{% endif %}
   <p class="hint">{{ t('pg_state_unchanged') }}</p>
   <h3 class="sec">{{ t('pg_rule_hits') }}</h3>
   {% if result.hits %}

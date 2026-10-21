@@ -217,6 +217,15 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
         for h in hits
     ]
     chain = _chain(ctx, event_id)
+    # WP38 review: an observe-mode decision shows what it would have done (verdict label).
+    observed = next(
+        (
+            f"{str(h['label'])[len('observe_would_') :]} {h['rule_id']}"
+            for h in hits
+            if str(h.get("label") or "").startswith("observe_would_")
+        ),
+        None,
+    )
     keys = jloads(e.get("args_masked"), {})
     p = parse_params(query)
     rows, _ = rows_for(ctx, p)
@@ -248,6 +257,8 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
         "case_id": row["case_id"],
         "chain": {k: chain[k] for k in ("lane", "seq", "entry_hash")} if chain else None,
     }
+    if observed is not None:
+        doc["observed_decision"] = observed
     return {
         "e": e,
         "row": row,
@@ -256,6 +267,7 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
         "rules": rule_rows,
         "chain": chain,
         "reason": reason,
+        "observed": observed,
         "arg_keys": doc["arg_keys"],
         "prev_id": ids[i - 1] if i > 0 else None,
         "next_id": ids[i + 1] if 0 <= i < len(ids) - 1 else None,

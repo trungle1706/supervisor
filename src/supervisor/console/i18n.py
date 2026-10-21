@@ -1953,6 +1953,130 @@ _T.update(
 )
 
 
+# --- WP38 --- Integrations catalogue, Playground samples and attributes.
+_T.update(
+    {
+        "col_purpose": (
+            "Attach an agent to Supervisor. Pick a way, choose the agent, press Add, and follow "
+            "the steps.",
+            "Gắn một tác tử vào Supervisor. Chọn cách gắn, chọn tác tử, nhấn Thêm và làm theo "
+            "các bước.",
+        ),
+        "col_why": (
+            "Add issues the first key of the agent. The key is shown once; Supervisor cannot "
+            "show it again.",
+            "Thêm sẽ cấp khóa đầu tiên của tác tử. Khóa chỉ hiện một lần; Supervisor không thể "
+            "hiện lại.",
+        ),
+        "col_cat_sdk": ("SDK", "SDK (thư viện)"),
+        "col_cat_middleware": ("Middleware", "Middleware (lớp trung gian)"),
+        "col_cat_gateway": ("Gateway and API", "Cổng và API"),
+        "col_cat_mcp": ("MCP", "MCP (giao thức công cụ)"),
+        "col_cat_ide": ("Developer tools", "Công cụ lập trình"),
+        "col_add": ("Add", "Thêm"),
+        "col_pick_agent": ("Agent without a key", "Tác tử chưa có khóa"),
+        "col_no_free_agent": (
+            "Every registered agent has a key. Open one below to see its steps.",
+            "Mọi tác tử đã đăng ký đều có khóa. Mở một tác tử bên dưới để xem các bước.",
+        ),
+        "col_unavailable": ("Not available yet", "Chưa dùng được"),
+        "col_agents": ("Agents and keys", "Tác tử và khóa"),
+        "col_key_state": ("Key", "Khóa"),
+        "col_key_active": ("active", "đang dùng"),
+        "col_key_none": ("none", "chưa có"),
+        "col_consumers": ("Consumers", "Bên dùng"),
+        "col_open": ("Open", "Mở"),
+        "col_none_agents": ("No agent is registered", "Chưa có tác tử nào được đăng ký"),
+        "col_none_agents_line": (
+            "Register the agent in the policy file first.",
+            "Hãy đăng ký tác tử trong tệp chính sách trước.",
+        ),
+        "col_status_title": ("Delivery integrations", "Tích hợp gửi dữ liệu"),
+        "col_store_error": ("The key store could not be read", "Không đọc được kho khóa"),
+        "col_result_title": ("Connected: {agent}", "Đã kết nối: {agent}"),
+        "col_secret_once": (
+            "Copy this key now. It is shown once and Supervisor cannot show it again.",
+            "Hãy sao chép khóa này ngay. Khóa chỉ hiện một lần và Supervisor không thể hiện lại.",
+        ),
+        "col_secret": ("Key (secret)", "Khóa (bí mật)"),
+        "col_steps": ("Setup steps", "Các bước cài đặt"),
+        "col_snippet": ("Code", "Mã"),
+        "col_manual": (
+            "The key store is {store}. Supervisor could not save the key. Do this first:",
+            "Kho khóa là {store}. Supervisor không thể lưu khóa. Hãy làm bước này trước:",
+        ),
+        "col_ingress_off": (
+            "Ingress authentication is off (INGRESS_AUTH_ENABLED=0). The key is not checked yet. "
+            "Turn it on before production.",
+            "Xác thực đầu vào đang tắt (INGRESS_AUTH_ENABLED=0). Khóa chưa được kiểm tra. "
+            "Hãy bật trước khi chạy thật.",
+        ),
+        "col_template": ("Way to attach", "Cách gắn"),
+        "dtab_connection": ("Connection", "Kết nối"),
+        "dtab_credential": ("Credential", "Thông tin xác thực"),
+        "dtab_binding": ("Policy binding", "Gắn chính sách"),
+        "col_cred_note": (
+            "Only the key id, state and dates are shown. The secret is never shown again.",
+            "Chỉ hiện mã khóa, trạng thái và ngày. Bí mật không bao giờ hiện lại.",
+        ),
+        "col_rotate": ("Rotate the key on the command line", "Đổi khóa bằng dòng lệnh"),
+        "col_no_keys_agent": (
+            "This agent has no active key. Use Add on the catalogue.",
+            "Tác tử này chưa có khóa đang dùng. Dùng Thêm trong danh mục.",
+        ),
+        "col_bind_mode": ("Policy mode", "Chế độ chính sách"),
+        "col_bind_preset": ("Detector preset", "Mức nhạy của bộ dò"),
+        "col_bind_disabled": ("Rules switched off", "Quy tắc đã tắt"),
+        "col_bind_rules": ("Rules in scope", "Quy tắc áp dụng"),
+        "col_bind_consumers": ("Consumer overrides", "Cấu hình riêng theo bên dùng"),
+        "col_bind_none": (
+            "No consumer override. Every caller gets the agent settings.",
+            "Không có cấu hình riêng. Mọi bên gọi dùng cấu hình của tác tử.",
+        ),
+        "col_bind_note": (
+            "The policy lives in git. To change mode or consumers, edit the policy file and "
+            "review it like any other change.",
+            "Chính sách nằm trong git. Muốn đổi chế độ hoặc bên dùng, hãy sửa tệp chính sách "
+            "và duyệt như mọi thay đổi khác.",
+        ),
+        "col_bind_enable": ("switch on", "bật"),
+        "col_bind_disable": ("switch off", "tắt"),
+        "col_bind_unavailable": (
+            "The policy could not be read.",
+            "Không đọc được chính sách.",
+        ),
+        "mode_enforce": ("enforce", "thực thi"),
+        "mode_observe": ("observe", "quan sát"),
+        "pg_samples": ("Sample library", "Thư viện mẫu"),
+        "pg_samples_line": (
+            "Pick a sample to fill the form. Nothing is sent until you press Check.",
+            "Chọn một mẫu để điền biểu mẫu. Không có gì được gửi cho đến khi bạn nhấn Kiểm tra.",
+        ),
+        "pg_sample_pick": ("Load a sample", "Nạp một mẫu"),
+        "pg_extra": ("Extra attributes", "Thuộc tính bổ sung"),
+        "pg_extra_line": (
+            "These fill the context of the check.",
+            "Các thuộc tính này được điền vào ngữ cảnh của lần kiểm tra.",
+        ),
+        "pg_consumer": ("Consumer id", "Mã bên dùng"),
+        "pg_direction": ("Direction", "Hướng"),
+        "pg_dir_input": ("input (what the agent sends)", "input (agent gửi đi)"),
+        "pg_dir_output": ("output (what a tool returned)", "output (công cụ trả về)"),
+        "pg_tool_class": ("Declared tool class", "Loại công cụ khai báo"),
+        "pg_result_mode": ("Policy mode", "Chế độ chính sách"),
+        "pg_observed": ("Observed decision", "Quyết định đã quan sát"),
+        "pg_observed_line": (
+            "In observe mode this decision would have stopped the call. The call is allowed.",
+            "Ở chế độ quan sát, quyết định này lẽ ra đã chặn lệnh gọi. Lệnh gọi vẫn được phép.",
+        ),
+        "pg_consumer_ignored": (
+            "The consumer id has no entry for this agent: the agent settings were used.",
+            "Mã bên dùng không có cấu hình riêng cho tác tử này: đã dùng cấu hình của tác tử.",
+        ),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

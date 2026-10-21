@@ -1,0 +1,21 @@
+{
+  "agent_hint": "payments",
+  "args": {
+    "cccd": "001203004567",
+    "payee_name": "NGUYEN VAN THU",
+    "phone": "0912345678"
+  },
+  "category": "pii",
+  "consumer_id": null,
+  "context": {},
+  "direction": "input",
+  "id": "pii_vi",
+  "labeller": "synthetic",
+  "language": "vi",
+  "licence": "project-internal, no real data",
+  "note": "A pii_export tool: the masked copy is shown.",
+  "source": "synthetic (WP38)",
+  "title_en": "Personal data in a payee record",
+  "title_vi": "Dữ liệu cá nhân trong hồ sơ người nhận",
+  "tool": "add_payee"
+}

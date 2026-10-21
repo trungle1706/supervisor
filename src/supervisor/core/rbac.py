@@ -111,6 +111,11 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "owner", "admin"),
         "Create and change risks, link them to controls and rules (WP29)",
     ),
+    # --- WP38 ---
+    "collectors.add": (
+        ("admin", "operator"),
+        "Integrations catalogue: Add a collector (issues the first agent key, WP38)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -262,6 +267,9 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/risks"): "risks.edit",
     ("POST", "/v1/risks/{risk_id}"): "risks.edit",
     ("POST", "/v1/risks/{risk_id}/links"): "risks.edit",
+    # --- WP38 ---
+    ("GET", "/console/integrations/agent/{agent_id}/drawer"): "integrations.view",
+    ("POST", "/console/integrations/{agent_id}/connect"): "collectors.add",
 }
 
 

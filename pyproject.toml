@@ -86,4 +86,6 @@ ignore = [
 "src/supervisor/alerts/__main__.py" = ["T20"]  # WP21 CLI
 "src/supervisor/alerts/harness.py" = ["T20"]  # WP21 harness CLI
 "src/supervisor/detectors/harness.py" = ["T20"]  # WP37 harness CLI
+"src/supervisor/collectors/harness.py" = ["E501"]  # WP38 report text
+"src/supervisor/collectors/probes.py" = ["E501"]  # WP38 probe table
 "schema/generate.py" = ["T20"]

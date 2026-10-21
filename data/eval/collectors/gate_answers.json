@@ -1,0 +1,823 @@
+{
+  "entries": [
+    {
+      "answer": {
+        "action": "allow",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": true,
+        "correlation_id": "c84054af2f694be5a730ffe122f2d17a",
+        "coverage": {
+          "chars": 5,
+          "direction": "input",
+          "inspected": [
+            "args"
+          ],
+          "not_inspected": [
+            {
+              "part": "tool_results",
+              "reason": "not_provided"
+            },
+            {
+              "part": "output",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "bedb174cc5384e048acbd08c63ee0d3f",
+        "detector_latency_us": 721,
+        "detectors": [
+          "dlp_vn@1.0.0",
+          "injection_regex@1.0.0"
+        ],
+        "direction": "input",
+        "fail_mode": null,
+        "findings": [],
+        "latency_ms": 64,
+        "latency_us": 2821,
+        "matched_rules": [],
+        "not_executed": [],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "allowed",
+        "request_id": "3c6ba3faa5354f20838b957160696401",
+        "risk_class": "read_only",
+        "rule_id": null,
+        "status": "allow",
+        "total_us": 64436,
+        "transformed_payload": null
+      },
+      "direction": "input",
+      "scenario": "allow",
+      "shape": "flat",
+      "tool": "reply"
+    },
+    {
+      "answer": {
+        "action": "allow",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": true,
+        "correlation_id": "ff71eab0fc954e5cad2b45f00fa458f6",
+        "coverage": {
+          "chars": 51,
+          "direction": "input",
+          "inspected": [
+            "args"
+          ],
+          "not_inspected": [
+            {
+              "part": "tool_results",
+              "reason": "not_provided"
+            },
+            {
+              "part": "output",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "fd891a39523349eab7a002900f9a83a5",
+        "detector_latency_us": 1096,
+        "detectors": [
+          "dlp_vn@1.0.0",
+          "injection_regex@1.0.0"
+        ],
+        "direction": "input",
+        "fail_mode": null,
+        "findings": [
+          {
+            "action_hint": "report",
+            "code": "injection.instruction_override",
+            "detector_id": "injection_regex@1.0.0",
+            "detector_slug": "injection_regex",
+            "entities": [],
+            "fragments": [
+              {
+                "end": 32,
+                "part": "args",
+                "path": "$.text",
+                "precision": "span",
+                "start": 0,
+                "text": "Ignore all previous instructions"
+              }
+            ],
+            "masked_count": 0,
+            "mock": false,
+            "not_executed_reason": null,
+            "preset": "balanced",
+            "score_bp": 9000,
+            "threshold_bp": 7000
+          }
+        ],
+        "latency_ms": 7,
+        "latency_us": 2640,
+        "matched_rules": [],
+        "not_executed": [],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "allowed",
+        "request_id": "8b07aaede1414d86ac91e974fcd89d44",
+        "risk_class": "read_only",
+        "rule_id": null,
+        "status": "report",
+        "total_us": 7406,
+        "transformed_payload": null
+      },
+      "direction": "input",
+      "scenario": "report",
+      "shape": "flat",
+      "tool": "reply"
+    },
+    {
+      "answer": {
+        "action": "allow",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": true,
+        "correlation_id": "0268c2c6fe3a44289ec0cb8e36aa8836",
+        "coverage": {
+          "chars": 0,
+          "direction": "input",
+          "inspected": [],
+          "not_inspected": [
+            {
+              "part": "args",
+              "reason": "skipped_by_policy"
+            },
+            {
+              "part": "tool_results",
+              "reason": "skipped_by_policy"
+            },
+            {
+              "part": "output",
+              "reason": "skipped_by_policy"
+            }
+          ]
+        },
+        "decision_id": "eb7f99de867b4a9a9b1491b3b6e4c82c",
+        "detector_latency_us": 0,
+        "detectors": [],
+        "direction": "input",
+        "fail_mode": null,
+        "findings": [],
+        "latency_ms": 3,
+        "latency_us": 1101,
+        "matched_rules": [],
+        "not_executed": [],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "allowed",
+        "request_id": "53e845846226430788bdf7361dfe80d2",
+        "risk_class": "read_only",
+        "rule_id": null,
+        "status": "skip",
+        "total_us": 3134,
+        "transformed_payload": null
+      },
+      "direction": "input",
+      "scenario": "skip",
+      "shape": "flat",
+      "tool": "lookup"
+    },
+    {
+      "answer": {
+        "action": "pause",
+        "agent_paused": true,
+        "agent_state": "RUNNING",
+        "allow": false,
+        "correlation_id": "536fa87308c94e17893eb20604c487e8",
+        "coverage": {
+          "chars": 0,
+          "direction": "input",
+          "inspected": [
+            "args"
+          ],
+          "not_inspected": [
+            {
+              "part": "tool_results",
+              "reason": "not_provided"
+            },
+            {
+              "part": "output",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "c60c4d188a464e86add4e3d09a0d9bd6",
+        "detector_latency_us": 515,
+        "detectors": [
+          "dlp_vn@1.0.0",
+          "injection_regex@1.0.0"
+        ],
+        "direction": "input",
+        "fail_mode": null,
+        "findings": [],
+        "latency_ms": 10,
+        "latency_us": 5793,
+        "matched_rules": [
+          {
+            "action": "pause",
+            "error": false,
+            "rule_id": "REC-PAUSE",
+            "severity": "critical",
+            "version": 1
+          }
+        ],
+        "not_executed": [],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "REC-PAUSE: huge amount",
+        "request_id": "7051cc144af6452392c3f21394f01459",
+        "risk_class": "money",
+        "rule_id": "REC-PAUSE",
+        "status": "pause",
+        "total_us": 10249,
+        "transformed_payload": null
+      },
+      "direction": "input",
+      "scenario": "pause",
+      "shape": "flat",
+      "tool": "pay"
+    },
+    {
+      "answer": {
+        "action": "block",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": false,
+        "correlation_id": "410b8cabcfd64afd98b93d976ec3459a",
+        "coverage": {
+          "chars": 0,
+          "direction": "input",
+          "inspected": [
+            "args"
+          ],
+          "not_inspected": [
+            {
+              "part": "tool_results",
+              "reason": "not_provided"
+            },
+            {
+              "part": "output",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "df14f75ed5534e0593638f0a021d3b70",
+        "detector_latency_us": 576,
+        "detectors": [
+          "dlp_vn@1.0.0",
+          "injection_regex@1.0.0"
+        ],
+        "direction": "input",
+        "fail_mode": null,
+        "findings": [],
+        "latency_ms": 5,
+        "latency_us": 1781,
+        "matched_rules": [
+          {
+            "action": "block",
+            "error": false,
+            "rule_id": "REC-BLOCK",
+            "severity": "high",
+            "version": 1
+          }
+        ],
+        "not_executed": [],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "REC-BLOCK: amount must be positive",
+        "request_id": "eb5608baf7af4e21837aaa5360c256cc",
+        "risk_class": "money",
+        "rule_id": "REC-BLOCK",
+        "status": "block",
+        "total_us": 5123,
+        "transformed_payload": null
+      },
+      "direction": "input",
+      "scenario": "block",
+      "shape": "flat",
+      "tool": "pay"
+    },
+    {
+      "answer": {
+        "action": "allow",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": true,
+        "args_hmac_transformed": "0e25934111961a36b6226dc91cd37cf64aad41799ccab517b76d00062cfebcb4",
+        "correlation_id": "cb8c6790ade94465971ba9fef5f301dd",
+        "coverage": {
+          "chars": 24,
+          "direction": "input",
+          "inspected": [
+            "args"
+          ],
+          "not_inspected": [
+            {
+              "part": "tool_results",
+              "reason": "not_provided"
+            },
+            {
+              "part": "output",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "ded2a348e22b4357ad9386c442505cf5",
+        "detector_latency_us": 1481,
+        "detectors": [
+          "dlp_vn@1.0.0",
+          "injection_regex@1.0.0"
+        ],
+        "direction": "input",
+        "fail_mode": null,
+        "findings": [
+          {
+            "action_hint": "transform",
+            "code": "pii.person",
+            "detector_id": "dlp_vn@1.0.0",
+            "detector_slug": "dlp_vn",
+            "entities": [
+              {
+                "count": 1,
+                "token": "<PERSON:5ba2e6>",
+                "type": "PERSON"
+              }
+            ],
+            "fragments": [
+              {
+                "end": 15,
+                "part": "args",
+                "path": "$.name",
+                "precision": "span",
+                "start": 0,
+                "text": "<PERSON:5ba2e6>"
+              }
+            ],
+            "masked_count": 1,
+            "mock": false,
+            "not_executed_reason": null,
+            "preset": "balanced",
+            "score_bp": 8000,
+            "threshold_bp": 8000
+          },
+          {
+            "action_hint": "transform",
+            "code": "pii.phone",
+            "detector_id": "dlp_vn@1.0.0",
+            "detector_slug": "dlp_vn",
+            "entities": [
+              {
+                "count": 1,
+                "token": "<PHONE:329a29>",
+                "type": "PHONE"
+              }
+            ],
+            "fragments": [
+              {
+                "end": 14,
+                "part": "args",
+                "path": "$.phone",
+                "precision": "span",
+                "start": 0,
+                "text": "<PHONE:329a29>"
+              }
+            ],
+            "masked_count": 1,
+            "mock": false,
+            "not_executed_reason": null,
+            "preset": "balanced",
+            "score_bp": 9500,
+            "threshold_bp": 8000
+          }
+        ],
+        "latency_ms": 6,
+        "latency_us": 3450,
+        "matched_rules": [],
+        "not_executed": [],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "allowed",
+        "redaction_count": 2,
+        "request_id": "d328b4cf584740f78e4274e17010d54f",
+        "risk_class": "pii_export",
+        "rule_id": null,
+        "status": "transform",
+        "total_us": 6826,
+        "transformed_args": {
+          "name": "<PERSON:5ba2e6>",
+          "phone": "<PHONE:329a29>"
+        },
+        "transformed_payload": {
+          "args": {
+            "name": "<PERSON:5ba2e6>",
+            "phone": "<PHONE:329a29>"
+          }
+        }
+      },
+      "direction": "input",
+      "scenario": "transform",
+      "shape": "flat",
+      "tool": "export"
+    },
+    {
+      "answer": {
+        "action": "allow",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": true,
+        "args_hmac_transformed": "f1ffdcc6d1cecb7dd223bad8489960a5edd6462280bfe59f9584c4a71d6a601e",
+        "correlation_id": "85b289d06b5346ffa25372ed41f26616",
+        "coverage": {
+          "chars": 33,
+          "direction": "input",
+          "inspected": [
+            "args"
+          ],
+          "not_inspected": [
+            {
+              "part": "tool_results",
+              "reason": "not_provided"
+            },
+            {
+              "part": "output",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "d9c7741672bb4442a37df8205d9e8e60",
+        "detector_latency_us": 1460,
+        "detectors": [
+          "dlp_vn@1.0.0",
+          "injection_regex@1.0.0"
+        ],
+        "direction": "input",
+        "fail_mode": null,
+        "findings": [
+          {
+            "action_hint": "transform",
+            "code": "pii.person",
+            "detector_id": "dlp_vn@1.0.0",
+            "detector_slug": "dlp_vn",
+            "entities": [
+              {
+                "count": 1,
+                "token": "<PERSON:5ba2e6>",
+                "type": "PERSON"
+              }
+            ],
+            "fragments": [
+              {
+                "end": 15,
+                "part": "args",
+                "path": "$.body.name",
+                "precision": "span",
+                "start": 0,
+                "text": "<PERSON:5ba2e6>"
+              }
+            ],
+            "masked_count": 1,
+            "mock": false,
+            "not_executed_reason": null,
+            "preset": "balanced",
+            "score_bp": 8000,
+            "threshold_bp": 8000
+          },
+          {
+            "action_hint": "transform",
+            "code": "pii.phone",
+            "detector_id": "dlp_vn@1.0.0",
+            "detector_slug": "dlp_vn",
+            "entities": [
+              {
+                "count": 1,
+                "token": "<PHONE:329a29>",
+                "type": "PHONE"
+              }
+            ],
+            "fragments": [
+              {
+                "end": 14,
+                "part": "args",
+                "path": "$.body.phone",
+                "precision": "span",
+                "start": 0,
+                "text": "<PHONE:329a29>"
+              }
+            ],
+            "masked_count": 1,
+            "mock": false,
+            "not_executed_reason": null,
+            "preset": "balanced",
+            "score_bp": 9500,
+            "threshold_bp": 8000
+          }
+        ],
+        "latency_ms": 6,
+        "latency_us": 3657,
+        "matched_rules": [],
+        "not_executed": [],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "allowed",
+        "redaction_count": 2,
+        "request_id": "a434cbed50ee4dd4be687b15765c9bea",
+        "risk_class": "pii_export",
+        "rule_id": null,
+        "status": "transform",
+        "total_us": 6209,
+        "transformed_args": {
+          "body": {
+            "name": "<PERSON:5ba2e6>",
+            "phone": "<PHONE:329a29>"
+          },
+          "method": "POST",
+          "path": "/chat"
+        },
+        "transformed_payload": {
+          "args": {
+            "body": {
+              "name": "<PERSON:5ba2e6>",
+              "phone": "<PHONE:329a29>"
+            },
+            "method": "POST",
+            "path": "/chat"
+          }
+        }
+      },
+      "direction": "input",
+      "scenario": "transform",
+      "shape": "body",
+      "tool": "export"
+    },
+    {
+      "answer": {
+        "action": "allow",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": true,
+        "args_hmac_transformed": "869724efb8be5d92758d79288c437c0c10ef420d1224c1005744bd74a4d70c94",
+        "correlation_id": "32c40a0f2ac643a4b73d827bf128e2fb",
+        "coverage": {
+          "chars": 25,
+          "direction": "input",
+          "inspected": [
+            "args"
+          ],
+          "not_inspected": [
+            {
+              "part": "tool_results",
+              "reason": "not_provided"
+            },
+            {
+              "part": "output",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "b5c982dd3b054247ad3f87ace61a9da1",
+        "detector_latency_us": 1171,
+        "detectors": [
+          "dlp_vn@1.0.0",
+          "injection_regex@1.0.0"
+        ],
+        "direction": "input",
+        "fail_mode": null,
+        "findings": [
+          {
+            "action_hint": "transform",
+            "code": "pii.phone",
+            "detector_id": "dlp_vn@1.0.0",
+            "detector_slug": "dlp_vn",
+            "entities": [
+              {
+                "count": 1,
+                "token": "<PHONE:329a29>",
+                "type": "PHONE"
+              }
+            ],
+            "fragments": [
+              {
+                "end": 25,
+                "part": "args",
+                "path": "$.messages[0].content",
+                "precision": "span",
+                "start": 11,
+                "text": "<PHONE:329a29>"
+              }
+            ],
+            "masked_count": 1,
+            "mock": false,
+            "not_executed_reason": null,
+            "preset": "balanced",
+            "score_bp": 9500,
+            "threshold_bp": 8000
+          }
+        ],
+        "latency_ms": 5,
+        "latency_us": 2612,
+        "matched_rules": [],
+        "not_executed": [],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "allowed",
+        "redaction_count": 1,
+        "request_id": "bd3d5815e31b4beda6f91065bd7765c4",
+        "risk_class": "pii_export",
+        "rule_id": null,
+        "status": "transform",
+        "total_us": 5381,
+        "transformed_args": {
+          "messages": [
+            {
+              "content": "call me on <PHONE:329a29>",
+              "role": "user"
+            }
+          ]
+        },
+        "transformed_payload": {
+          "args": {
+            "messages": [
+              {
+                "content": "call me on <PHONE:329a29>",
+                "role": "user"
+              }
+            ]
+          }
+        }
+      },
+      "direction": "input",
+      "scenario": "transform",
+      "shape": "messages",
+      "tool": "export"
+    },
+    {
+      "answer": {
+        "action": "allow",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": true,
+        "correlation_id": "92c4fb0350904b01a03e189b1936ecfd",
+        "coverage": {
+          "chars": 8,
+          "direction": "output",
+          "inspected": [
+            "output"
+          ],
+          "not_inspected": [
+            {
+              "part": "args",
+              "reason": "not_applicable_for_direction"
+            },
+            {
+              "part": "tool_results",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "518c3d3fc7db4afe806475b5f4b39d59",
+        "detector_latency_us": 386,
+        "detectors": [
+          "dlp_vn@1.0.0"
+        ],
+        "direction": "output",
+        "fail_mode": null,
+        "findings": [],
+        "latency_ms": 4,
+        "latency_us": 2597,
+        "matched_rules": [],
+        "not_executed": [
+          {
+            "detail": "",
+            "detector_id": "injection_regex@1.0.0",
+            "detector_slug": "injection_regex",
+            "reason": "not_applicable_for_direction"
+          }
+        ],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "allowed",
+        "request_id": "b9f20c17d52b4ea99e18cbbb90cb32a7",
+        "risk_class": "read_only",
+        "rule_id": null,
+        "status": "allow",
+        "total_us": 4937,
+        "transformed_payload": null
+      },
+      "direction": "output",
+      "scenario": "output_allow",
+      "shape": "flat",
+      "tool": "reply"
+    },
+    {
+      "answer": {
+        "action": "allow",
+        "agent_paused": false,
+        "agent_state": "RUNNING",
+        "allow": true,
+        "correlation_id": "581d4333227a4b6eaea95e81b58f9bd5",
+        "coverage": {
+          "chars": 39,
+          "direction": "output",
+          "inspected": [
+            "output"
+          ],
+          "not_inspected": [
+            {
+              "part": "args",
+              "reason": "not_applicable_for_direction"
+            },
+            {
+              "part": "tool_results",
+              "reason": "not_applicable_for_direction"
+            }
+          ]
+        },
+        "decision_id": "dae445fd66b14d81ba9a4b7d318d0b59",
+        "detector_latency_us": 540,
+        "detectors": [
+          "dlp_vn@1.0.0"
+        ],
+        "direction": "output",
+        "fail_mode": null,
+        "findings": [
+          {
+            "action_hint": "report",
+            "code": "pii.cccd",
+            "detector_id": "dlp_vn@1.0.0",
+            "detector_slug": "dlp_vn",
+            "entities": [
+              {
+                "count": 1,
+                "token": "<CCCD:8d311f>",
+                "type": "CCCD"
+              }
+            ],
+            "fragments": [
+              {
+                "end": 44,
+                "part": "output",
+                "path": "$",
+                "precision": "span",
+                "start": 31,
+                "text": "<CCCD:8d311f>"
+              }
+            ],
+            "masked_count": 1,
+            "mock": false,
+            "not_executed_reason": null,
+            "preset": "balanced",
+            "score_bp": 9500,
+            "threshold_bp": 8000
+          },
+          {
+            "action_hint": "report",
+            "code": "pii.phone",
+            "detector_id": "dlp_vn@1.0.0",
+            "detector_slug": "dlp_vn",
+            "entities": [
+              {
+                "count": 1,
+                "token": "<PHONE:329a29>",
+                "type": "PHONE"
+              }
+            ],
+            "fragments": [
+              {
+                "end": 27,
+                "part": "output",
+                "path": "$",
+                "precision": "span",
+                "start": 13,
+                "text": "<PHONE:329a29>"
+              }
+            ],
+            "masked_count": 1,
+            "mock": false,
+            "not_executed_reason": null,
+            "preset": "balanced",
+            "score_bp": 9500,
+            "threshold_bp": 8000
+          }
+        ],
+        "latency_ms": 4,
+        "latency_us": 1475,
+        "matched_rules": [],
+        "not_executed": [
+          {
+            "detail": "",
+            "detector_id": "injection_regex@1.0.0",
+            "detector_slug": "injection_regex",
+            "reason": "not_applicable_for_direction"
+          }
+        ],
+        "policy_hash": "32f460f202c87b6ddb5eee663dae935e5b2164e63dd4d90b9ea097566b9b6a50",
+        "reason": "allowed",
+        "request_id": "c68b60241a624fb4ab3de85a2d197ef4",
+        "risk_class": "read_only",
+        "rule_id": null,
+        "status": "report",
+        "total_us": 4126,
+        "transformed_payload": null
+      },
+      "direction": "output",
+      "scenario": "output_transform",
+      "shape": "flat",
+      "tool": "reply"
+    }
+  ],
+  "harness": "collectors-eval-1",
+  "note": "answers of a real Gateway (detectors on, SQLite); ids and timings are as recorded"
+}
