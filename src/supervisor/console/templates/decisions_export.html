@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('export_csv') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_watch'), None), (t('nav_decisions'), '/console/decisions?lang=' ~ lang), (t('export_csv'), None)]) }}
+{{ ui.pagehead(t('export_csv')) }}
+{% include "_decisions_export_result.html" %}
+<p class="btnrow"><a class="btn" href="/console/decisions?{{ back ~ '&' if back }}lang={{ lang }}">{{ t('back_to_list') }}</a></p>
+{% endblock %}

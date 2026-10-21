@@ -117,6 +117,15 @@
     var h = tab || document.getElementById("drawer-title");
     if (h) { h.focus(); }
   });
+  /* WP39: a deep link (?event=, ?correlation=) opens the drawer on the server; take those
+   * parameters out of the address bar so a reload or a shared URL shows the plain list. */
+  document.addEventListener("DOMContentLoaded", function () {
+    var d = drawer(), names = d ? (d.getAttribute("data-strip") || "") : "";
+    if (!names || !window.history || !history.replaceState) { return; }
+    var url = new URL(window.location.href);
+    names.split(" ").forEach(function (n) { if (n) { url.searchParams.delete(n); } });
+    history.replaceState(null, "", url.pathname + (url.search || "") + url.hash);
+  });
   document.addEventListener("keydown", function (evt) {
     if (evt.key === "Escape") {
       var pop = document.getElementById("search-results");

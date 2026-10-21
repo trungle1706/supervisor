@@ -320,7 +320,7 @@ def test_bad_config_fails_the_run_with_a_clear_error(s: Setup, tmp_path: Path) -
 
 def test_cli_list_validate_and_unknown_rule(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli_main(["validate", "--config", str(RULES)]) == 0
-    assert "[OK] 9 rule(s)" in capsys.readouterr().out
+    assert "[OK] 18 rule(s)" in capsys.readouterr().out
     assert cli_main(["list", "--config", str(RULES)]) == 0
     out = capsys.readouterr().out
     assert "AL-BLOCK-BURST" in out and out.isascii()
@@ -380,7 +380,7 @@ def _alert_row(**kw: Any) -> dict[str, Any]:
         "first_ts": T0, "last_ts": T0, "suppressed_count": 0, "case_id": None,
         "chain_lane": "agent:a1", "chain_seq": 3, "entry_hash": "e" * 64, "refs": ["a1:1"],
         "routes": ["inbox"], "route_status": {"inbox": "pending"}, "acknowledged_by": None,
-        "acknowledged_at": None,
+        "acknowledged_at": None, "correlation_id": None,
     }  # fmt: skip
     row.update(kw)
     return row

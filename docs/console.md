@@ -160,6 +160,41 @@ flags. Screenshots: `python tools\console_screenshots.py --ux3 --reseed --out <d
 turns the eight flags on in the server it starts and captures only these pages, each as the role
 it needs, in English and Vietnamese, plus a dark shot.
 
+### Activity and analytics parity (WP39, `CONSOLE_DECISIONS_V2`)
+
+Default off: every page below is as in v0.3.0. With `CONSOLE_DECISIONS_V2=1` (and
+`CONSOLE_DECISIONS_ENABLED=1`, `CONSOLE_TRACES_ENABLED=1`; verdict data needs `DETECTORS_ENABLED=1`):
+
+| Page | What changes |
+|---|---|
+| Gate decisions | Count tiles are the **status** (allow, report, transform, pause, block, skip). New filters: status, detection code, not evaluated, consumer (application), direction, correlation id (`corr`), next to agent, action, rule, tool, range, trace id. Each row shows the status, a **Not evaluated** badge with the reasons (a hover title), the finding codes, the consumer and the latency. Scan caps as before (`CONSOLE_SCAN_CAP`, events and findings) |
+| Decision drawer | Four tabs. **Request**: the masked request (arguments, tool results, output) with each located fragment highlighted in place and numbered, and the masked record as formatted text and as JSON. **Response**: status, decision, rule ids with severity and regulation, reason (masked), the **Observed decision** line (mode `enforce`, `shadow` or `observe`; what the policy would have done from the `observe_would_block` / `observe_would_pause` verdict rows; approvals present or not when the chain record has them), and the payload after masking (rebuilt from the masked record). **Detections**: one row per finding (detector id, code, score and threshold in bp, entities and fragments as masked tokens, action hint, `mock` label), one row per `not_executed` with its reason, the fragments located in the text and those not located, the coverage. **Metadata**: request id, correlation id, consumer, ids of trace and span, the latency split (total, rules, detectors, overhead, per detector), evidence lane and sequence, links to the trace span, to the other decisions with the same correlation id, to any alert that carries it, and to the case |
+| Deep links | `/console/decisions?event=<id>` (a decision id, else a request id) and `?correlation=<id>` (newest decision with that id; with `&agent=<id>` the newest of that agent, which is what the Alerts drawer links to) open the drawer; `console.js` then removes the parameter from the address bar. Unknown or hostile values give HTTP 400 |
+| CSV export | Button on the list for `decisions.export` (auditor, admin). POST builds the file for the **current filters**; a link downloads it **once**, only for the user who built it, within 15 minutes (`?exp=` and an HMAC token `t=` with a key that lives in the process; WP39 review). The file is deleted when it is served, and files older than 15 minutes are removed on every export and download; they sit in `CONSOLE_EXPORT_DIR/decisions/`, apart from the audit packs. Columns (an allow-list, 18): `time_utc, decision_id, request_id, correlation_id, trace_id, agent_id, consumer_id, tool, direction, status, action, rule_ids, finding_codes, not_evaluated_reasons, latency_us, latency_rules_us, latency_detectors_us, case_id`. No arguments, no fragments, no entity tokens, no argument hash. At most `CONSOLE_EXPORT_MAX_ROWS` rows (default 5000); a cut file is named `...-truncated.csv` and the answer says `truncated: N of M rows`. Audited as `decisions.export` (two `console_action` rows; the note is `rows=N;total=M;truncated=0|1;filters=<16 hex>`, a hash of the filters and sort, so the file can be tied to its query without the values) |
+| Traces | The list filters on the correlation id (`corr`). The span tree shows a chip with the number of findings on a span that has them; the head and the span detail show the correlation id and link to the decision |
+| Analytics, Gate tab | Tables per agent, per application (consumer), per rule id, per detector and code; columns requests, report, transform, pause, block, skip, not evaluated, each with its share in bp; "Gate outcomes by day" (four inline-SVG series, report, transform, pause, block). Data from `decision_daily` |
+| Analytics, Detectors tab | Latency p50 and p95 per detector from the recorded facts, findings per detector and code, and the harness verdict of each detector (`GO (indicative)` when the adversarial recall passes on the point value but its Wilson 95 percent lower bound is under the threshold) |
+| Alerts drawer | Shows the correlation id and links to the decision of the same agent |
+| Caller ids (WP39 review) | A correlation id, request id or consumer id is a value the caller sends. An e-mail, a phone number, an ID or account number passes the plain-id pattern, so the gate replaces such a correlation or request id with a new one and drops such a consumer id (R2: it would reach the chain, the SIEM and the export). Rows written before that are shown as `<id-hidden>` on every page, in the export and in the rollup, and filters refuse such values (HTTP 400) |
+
+The Analytics tables are read from the table `decision_daily`. Fill it with
+`python -m supervisor.jobs.decision_rollup` (`--days N`, `--from D --to D`, `--backfill`); the
+scheduler runs it every `SCHED_DECISION_ROLLUP_S` seconds (default 3600) when the flag is on.
+Until it has run, the page says so. On Delta run `python -m supervisor.jobs.bootstrap_schema`
+first (new columns on `agent_event` and `alert`, new table `decision_daily`).
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `CONSOLE_DECISIONS_V2` | `0` | WP39: everything in the table above |
+| `CONSOLE_EXPORT_MAX_ROWS` | `5000` | WP39: rows of one CSV export (1 to 100,000) |
+| `SCHED_DECISION_ROLLUP_S` | `3600` | WP39: interval of the `decision_rollup` job |
+
+Screenshots: `docs/design/screens/wp39-*.png` (made by
+`python tools/console_screenshots.py --wp39 --data-dir NEW_FOLDER`). Harness:
+`python -m supervisor.console.activity_harness` (all pages in three flag states and both languages,
+fingerprint test with planted personal data, 30 adversarial probes (22 by the author, 8 by the review), the alert drills; `--check`
+compares with `data/eval/activity/baseline.json`).
+
 ## Screens
 
 | Screen | URL | What it shows | Actions |
@@ -291,6 +326,7 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `alert.ack` | Acknowledge an alert (WP21) |  |  |  |  | x |  | x |
 | `decisions.view` | Gate decisions list and drawer (read-only) | x | x | x | x | x | x | x |
 | `traces.view` | Traces list and span viewer (masked payloads only) | x | x | x | x | x | x | x |
+| `decisions.export` | Export the filtered Gate decisions list as CSV: masked columns only, row cap (WP39) |  |  |  |  | x | x |  |
 | `playground.run` | Playground: dry-run gate check, no side effect (WP-UX3) |  | x | x | x | x |  | x |
 | `policies.view` | Policies page: deployed rules and versions (read-only) | x | x | x | x | x | x | x |
 | `credentials.view` | Credentials page: agent key metadata, never a secret (read-only) |  |  |  | x | x |  |  |

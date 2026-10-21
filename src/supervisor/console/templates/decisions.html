@@ -4,8 +4,28 @@
 {% block content %}
 {{ ui.crumbs([(t('nav_g_watch'), None), (t('nav_decisions'), None)]) }}
 {{ ui.pagehead(t('nav_decisions')) }}
+{% if v2 is defined and v2 %}
+{{ ui.purpose(t('decisions_purpose_v2'), t('decisions_why_v2')) }}
+{% else %}
 {{ ui.purpose(t('decisions_purpose'), t('decisions_why')) }}
+{% endif %}
 {{ ui.tiles(tiles, '/console/decisions', '/console/decisions/rows') }}
+{% if v2 is defined and v2 %}
+{{ ui.filterbar('/console/decisions', '/console/decisions/rows', [
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+  {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
+  {'name': 'action', 'label': t('action'), 'kind': 'select', 'value': params.action, 'options': action_opts},
+  {'name': 'rule', 'label': t('rule_col'), 'kind': 'select', 'value': params.rule, 'options': rule_opts},
+  {'name': 'code', 'label': t('detection_code'), 'kind': 'select', 'value': params.code, 'options': code_opts},
+  {'name': 'noteval', 'label': t('not_evaluated'), 'kind': 'select', 'value': params.noteval, 'options': noteval_opts},
+  {'name': 'consumer', 'label': t('consumer'), 'kind': 'select', 'value': params.consumer, 'options': consumer_opts},
+  {'name': 'direction', 'label': t('direction'), 'kind': 'select', 'value': params.direction, 'options': direction_opts},
+  {'name': 'tool', 'label': t('tool'), 'kind': 'select', 'value': params.tool, 'options': tool_opts},
+  {'name': 'range', 'label': t('time_range'), 'kind': 'select', 'value': params.range, 'options': range_opts},
+  {'name': 'corr', 'label': t('correlation_id'), 'kind': 'search', 'value': params.corr},
+  {'name': 'trace', 'label': t('trace_id'), 'kind': 'search', 'value': params.trace},
+], '/console/decisions?lang=' ~ lang) }}
+{% else %}
 {{ ui.filterbar('/console/decisions', '/console/decisions/rows', [
   {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
   {'name': 'action', 'label': t('action'), 'kind': 'select', 'value': params.action, 'options': action_opts},
@@ -14,8 +34,9 @@
   {'name': 'range', 'label': t('time_range'), 'kind': 'select', 'value': params.range, 'options': range_opts},
   {'name': 'trace', 'label': t('trace_id'), 'kind': 'search', 'value': params.trace},
 ], '/console/decisions?lang=' ~ lang) }}
+{% endif %}
 <div id="list">
-{% include "_decisions_list.html" %}
+{% if v2 is defined and v2 %}{% include "_decisions_list_v2.html" %}{% else %}{% include "_decisions_list.html" %}{% endif %}
 </div>
 {% endblock %}
-{% block drawer %}{% if drawer is defined %}{% include "_decision_drawer.html" %}{% endif %}{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% if drawer.v2 is defined and drawer.v2 %}{% include "_decision_drawer_v2.html" %}{% else %}{% include "_decision_drawer.html" %}{% endif %}{% endif %}{% endblock %}

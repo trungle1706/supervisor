@@ -224,3 +224,7 @@ first).
 See `BACKLOG.md` (WP21 lines): native Splunk HEC batching, QRadar LEEF, live checks against
 a real SIEM, a range read instead of a full chain scan per poll, OCSF schema validation
 against the official JSON schema (needs the bank to pick the version).
+
+## Alert events and the correlation id (WP39)
+
+An `alert` event now carries `attrs.correlation_id`: the correlation id of the signal that fired the alert (gate findings, requests and decisions have one; ingress rejections and coverage gaps do not, so it is empty). Search the SIEM for that id to see the alert, the gate decision (`attrs.correlation_id` of the `gate_decision` event) and the trace together.

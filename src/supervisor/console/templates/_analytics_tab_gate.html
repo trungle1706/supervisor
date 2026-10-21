@@ -32,3 +32,4 @@
 {% else %}
 {{ ui.empty(t('an_gate_none'), t('an_gate_none_line')) }}
 {% endif %}
+{% if dd_on is defined and dd_on %}{% include "_analytics_dd.html" %}{% endif %}

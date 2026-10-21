@@ -114,3 +114,8 @@
 {% macro toast(message, kind='ok') %}
 <div class="msg msg-{{ kind }} toast" role="{{ 'status' if kind == 'ok' else 'alert' }}">{{ message }}</div>
 {% endmacro %}
+
+{# WP39: verdict v2 status as a word in a pill; and the "Not evaluated" badge with its reasons. #}
+{% macro status_pill(status) %}{{ pill(t('st_' ~ status), {'allow': 'ok', 'report': 'teal', 'transform': 'teal', 'pause': 'warn', 'block': 'bad', 'skip': 'neutral'}.get(status, 'neutral')) }}{% endmacro %}
+
+{% macro ne_badge(reasons) %}{% if reasons %}<span class="pill warn ne-badge" title="{% for r in reasons %}{{ t('ne_' ~ r) }}{{ '; ' if not loop.last }}{% endfor %}">{{ t('not_evaluated') }}</span>{% endif %}{% endmacro %}

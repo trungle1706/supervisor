@@ -20,7 +20,7 @@
     (t('args_hash'), e.args_hash, True),
     (t('capture_level'), it.level),
     (t('source'), e.source),
-  ]) }}
+  ] + ([(t('correlation_id'), e.correlation_id, True)] if v2 and e.correlation_id else [])) }}
   {% if it.digest_only %}
     <p class="hint">{{ t('digest_only') }}</p>
   {% else %}
@@ -28,6 +28,7 @@
     {% if it.result %}<h4 class="sec">{{ t('result_masked') }}</h4><pre class="mono wrap payload">{{ it.result }}</pre>{% endif %}
   {% endif %}
   <p class="btnrow">
+    {% if v2 and e.event_type == 'gate_decision' %}<a class="btn" href="/console/decisions?event={{ e.event_id|urlencode }}&amp;lang={{ lang }}">{{ t('open_decision') }}</a>{% endif %}
     {% if it.case_id %}<a class="btn" href="/console/cases/{{ it.case_id }}?lang={{ lang }}">{{ t('open_case') }} {{ it.case_id }}</a>{% endif %}
     {% if it.chain %}<a class="btn" href="/console/evidence?lang={{ lang }}">{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}</a>{% endif %}
   </p>

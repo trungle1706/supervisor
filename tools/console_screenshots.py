@@ -143,6 +143,47 @@ UX3_FLAGS = {
 }
 
 
+# WP39: (name, path, who, click) for the verdict v2 pages. The planted decision has the request id
+# req-planted-01; ?event= opens its drawer (the address bar is cleaned by console.js).
+WP39_SCREENS = [
+    ("wp39-decisions", "/console/decisions", "reviewer.an", None),
+    (
+        "wp39-decisions-drawer-request",
+        "/console/decisions?event=req-planted-01",
+        "reviewer.an",
+        None,
+    ),
+    (
+        "wp39-decisions-drawer-response",  # WP39 review: the Observed-decision line
+        "/console/decisions?event=req-planted-01&dtab=response",
+        "reviewer.an",
+        None,
+    ),
+    (
+        "wp39-decisions-drawer-detections",
+        "/console/decisions?event=req-planted-01&dtab=detections",
+        "reviewer.an",
+        None,
+    ),
+    (
+        "wp39-decisions-drawer-metadata",
+        "/console/decisions?event=req-planted-01&dtab=metadata",
+        "reviewer.an",
+        None,
+    ),
+    ("wp39-analytics-gate", "/console/analytics?tab=gate", "reviewer.an", None),
+    ("wp39-analytics-detectors", "/console/analytics?tab=detectors", "reviewer.an", None),
+    ("wp39-alerts", "/console/alerts?status=all", "operator.khanh", None),
+    ("wp39-trace", "/console/traces/trace-planted-0001", "reviewer.an", None),
+]
+WP39_FLAGS = {
+    **UX3_FLAGS,
+    "DETECTORS_ENABLED": "1",
+    "CONSOLE_DECISIONS_V2": "1",
+    "ALERTS_ENABLED": "1",
+}
+
+
 def _seed_ux2(data_dir: Path, py: str, env: dict[str, str]) -> None:
     """WP-UX2: rows for the new pages (alerts, tool rollup, inventory). Failures are [SKIP]."""
     steps = [
@@ -261,6 +302,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--ux3", action="store_true", help="WP-UX3: turn the new pages on and capture only them"
     )
+    ap.add_argument(
+        "--wp39", action="store_true", help="WP39: seed a v2 store and capture the new screens"
+    )
     args = ap.parse_args(argv)
 
     pw = os.environ.get("PLAYWRIGHT_PYTHON", DEFAULT_PW)
@@ -275,6 +319,21 @@ def main(argv: list[str] | None = None) -> int:
     py = sandbox.python_executable()
     data_dir = Path(os.path.abspath(args.data_dir))
     env = {"PYTHONPATH": str(REPO / "src"), "DATA_DIR": str(data_dir)}
+    if args.wp39:  # a throwaway store with verdict v2 data (synthetic), seeded in a child process
+        if data_dir.exists():
+            say(f"[FAIL] {data_dir} exists; WP39 seeds a fresh folder (pass --data-dir NEW)")
+            return 1
+        r = sandbox.run(
+            [py, "-m", "supervisor.demo.activity_seed", "--data-dir", str(data_dir)],
+            cwd=REPO,
+            timeout_s=600,
+            env=env,
+        )
+        say(
+            r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "[FAIL] seed printed nothing"
+        )
+        if r.returncode != 0:
+            return 1
     if args.reseed:
         cli = [py, "-m", "supervisor.cli"]
         # the demo harness reads --data-dir, not DATA_DIR: without it the seed went to the
@@ -326,6 +385,7 @@ def main(argv: list[str] | None = None) -> int:
             "CONSOLE_ASSURANCE_ENABLED": "1",
             "CONSOLE_COMPLIANCE_ENABLED": "1",
             **(UX3_FLAGS if args.ux3 else {}),
+            **(WP39_FLAGS if args.wp39 else {}),
         },
     )
     try:
@@ -383,13 +443,16 @@ def main(argv: list[str] | None = None) -> int:
                 ("inbox", "/console/inbox", None),
                 ("inventory", "/console/inventory", None),
             ]
-        if args.ux3:  # only the WP-UX3 pages, with the role each one needs
+        if args.wp39:  # only the WP39 screens, with the role each one needs
+            screens = [(n, p, c) for n, p, _, c in WP39_SCREENS]
+            who = {n: u for n, _, u, _ in WP39_SCREENS}
+        elif args.ux3:  # only the WP-UX3 pages, with the role each one needs
             trace = _first_trace(data_dir) or "none"
             screens = [(n, p.replace("{trace}", trace), c) for n, p, _, c in UX3_SCREENS]
             who = {n: u for n, _, u, _ in UX3_SCREENS}
         else:
             who = {}
-        if case_id and not args.ux3:
+        if case_id and not args.ux3 and not args.wp39:
             screens.insert(3, ("case", f"/console/cases/{case_id}", None))
             screens.insert(4, ("case-rules", f"/console/cases/{case_id}", "a[data-tab=rules]"))
         shots = []
@@ -402,7 +465,10 @@ def main(argv: list[str] | None = None) -> int:
                 if name in who:
                     shot["user"] = who[name]
                 shots.append(shot)
-        if args.ux3:
+        if args.wp39:
+            dark = {"path": "/console/decisions?lang=en", "user": "reviewer.an"}
+            dark["file"] = str(out / "wp39-decisions-en-dark.png")
+        elif args.ux3:
             dark = {"path": "/console/decisions?lang=en", "user": "reviewer.an"}
             dark["file"] = str(out / "decisions-en-dark.png")
         else:

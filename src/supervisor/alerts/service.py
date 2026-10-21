@@ -13,6 +13,7 @@ not enabled) | ``dead_letter`` (parked after the retries) | ``failed`` | ``pendi
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -39,7 +40,7 @@ ALERT_FIELDS = (
     "alert_id", "ts", "dedupe_key", "rule_id", "rule_hash", "severity", "status", "title",
     "agent_id", "group_value", "window_s", "window_count", "threshold", "first_ts", "last_ts",
     "suppressed_count", "case_id", "chain_lane", "chain_seq", "entry_hash", "refs", "routes",
-    "route_status", "acknowledged_by", "acknowledged_at",
+    "route_status", "acknowledged_by", "acknowledged_at", "correlation_id",
 )  # fmt: skip
 
 
@@ -87,7 +88,22 @@ def triage_text(alert: Mapping[str, Any], console_base: str = "/console") -> tup
         f"entry_hash: {alert.get('entry_hash') or '-'}",
         f"console: {console_base}/metrics#alerts",
     ]
+    if alert.get("correlation_id"):  # WP39: the one id that ties alert, decision and trace span
+        lines.insert(-1, f"correlation_id: {alert['correlation_id']}")
     return subject, "\n".join(lines)
+
+
+_CORR = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
+
+
+def _corr(value: Any) -> str | None:
+    """The correlation id of the trigger signal, only when it is a plain id (it may come from a
+    caller; anything else, or an id that holds personal data, is dropped, never stored)."""
+    from supervisor.analytics.decisions import looks_personal
+
+    if not isinstance(value, str) or not _CORR.fullmatch(value) or looks_personal(value):
+        return None  # WP39 review: an e-mail or a phone used as an id never reaches the SIEM
+    return value
 
 
 def _ts(v: Any) -> str:
@@ -175,6 +191,7 @@ class AlertService:
             "refs": list(fired.refs),
             "routes": list(rule.routes),
             "route_status": {r: "pending" for r in rule.routes},
+            "correlation_id": _corr(t.fields.get("correlation_id")),
         }
 
     def raise_alert(self, fired: FiredAlert) -> dict[str, Any] | None:
@@ -202,6 +219,7 @@ class AlertService:
                         "trigger_lane": row["chain_lane"],
                         "trigger_seq": row["chain_seq"],
                         "trigger_hash": row["entry_hash"],
+                        "correlation_id": row.get("correlation_id"),
                         "ts": format_ts(row["ts"]),
                     },
                 )

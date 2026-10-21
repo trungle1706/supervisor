@@ -117,7 +117,12 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`agent_event` (
   coverage_json STRING,
   session_id STRING,
   session_source STRING,
-  session_json STRING
+  session_json STRING,
+  request_id STRING,
+  consumer_id STRING,
+  latency_rules_us BIGINT,
+  latency_detectors_us BIGINT,
+  detector_latency_json STRING
 )
 USING DELTA
 COMMENT 'Normalised OTel-shaped events. Single read model for Watch. Masked only.'
@@ -658,6 +663,31 @@ USING DELTA
 COMMENT 'WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
+-- decision_daily (state): WP39. Per UTC day and dimension: gate decision counts by verdict status, the not-evaluated count and, for dimension detector_latency, latency percentiles. Recomputed from agent_event and finding by python -m supervisor.jobs.decision_rollup (idempotent: a day is overwritten). Feeds the console Analytics Gate and Detectors tabs so the App never scans the raw table on page load. dimension: total | agent | consumer | rule | detector_code | detector_latency. Integers and ids only; no text.
+-- primary key (enforced by the app, not by Delta): usage_date, dimension, dim_key, dim_key2
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`decision_daily` (
+  usage_date DATE NOT NULL,
+  dimension STRING NOT NULL,
+  dim_key STRING NOT NULL,
+  dim_key2 STRING NOT NULL,
+  requests BIGINT NOT NULL,
+  allows BIGINT NOT NULL,
+  reports BIGINT NOT NULL,
+  transforms BIGINT NOT NULL,
+  pauses BIGINT NOT NULL,
+  blocks BIGINT NOT NULL,
+  skips BIGINT NOT NULL,
+  not_evaluated BIGINT NOT NULL,
+  p50_us BIGINT,
+  p95_us BIGINT,
+  computed_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP39. Per UTC day and dimension: gate decision counts by verdict status, the not-evaluated count and, for dimension detector_latency, latency percentiles. Recomputed from agent_event and finding by python -m supervisor.jobs.decision_rollup (idempotent: a day is overwritten). Feeds the console Analytics Gate and Detectors tabs so the App never scans the raw table on page load. dimension: total | agent | consumer | rule | detector_code | detector_latency. Integers and ids only; no text.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
 -- alert (state): WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.
 -- primary key (enforced by the app, not by Delta): alert_id
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`alert` (
@@ -686,6 +716,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`alert` (
   route_status STRING NOT NULL,
   acknowledged_by STRING,
   acknowledged_at TIMESTAMP,
+  correlation_id STRING,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )

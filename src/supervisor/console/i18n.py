@@ -2841,6 +2841,163 @@ _T.update(
 )
 
 
+# --- WP39 --- verdict v2 drawer, filters, export, analytics tables, alert use cases
+_T.update(
+    {
+        "decisions_purpose_v2": (
+            "Every decision the gate made, with its verdict status, findings and coverage.",
+            "Mọi quyết định của cổng, kèm trạng thái phán quyết, phát hiện và phạm vi kiểm tra.",
+        ),
+        "decisions_why_v2": (
+            "Open a row for the masked request, the response, each finding and the latency split.",
+            "Mở một dòng để xem yêu cầu đã che, phản hồi, từng phát hiện và cách chia độ trễ.",
+        ),
+        "detection_code": ("Detection code", "Mã phát hiện"),
+        "not_evaluated": ("Not evaluated", "Chưa được đánh giá"),
+        "ne_only": ("Not evaluated only", "Chỉ chưa được đánh giá"),
+        "consumer": ("Consumer", "Ứng dụng gọi"),
+        "direction": ("Direction", "Chiều"),
+        "correlation_id": ("Correlation id", "Mã tương quan"),
+        "detections": ("Detections", "Phát hiện"),
+        "dir_input": ("input", "đầu vào"),
+        "dir_output": ("output", "đầu ra"),
+        "st_allow": ("Allow", "Cho phép"),
+        "st_report": ("Report", "Báo cáo"),
+        "st_transform": ("Transform", "Biến đổi"),
+        "st_pause": ("Pause", "Tạm dừng"),
+        "st_block": ("Block", "Chặn"),
+        "st_skip": ("Skip", "Bỏ qua"),
+        "ne_execution_failed": ("a detector failed", "một bộ phát hiện bị lỗi"),
+        "ne_invalid_config": ("a detector had a bad setting", "một bộ phát hiện sai cấu hình"),
+        "ne_payload_too_large": ("payload too large", "dữ liệu quá lớn"),
+        "ne_content_uninspectable": ("content could not be read", "không đọc được nội dung"),
+        "ne_timed_out": ("a detector timed out", "một bộ phát hiện quá thời gian"),
+        "ne_skipped_by_policy": ("skipped by policy", "bị bỏ qua theo chính sách"),
+        "ne_gate_failed": ("the gate could not decide", "cổng không thể quyết định"),
+        "not_applicable": ("Not applicable", "Không áp dụng"),
+        "ne_not_applicable_for_direction": (
+            "not applicable to this direction",
+            "không áp dụng cho chiều này",
+        ),
+        "dtab_request": ("Request", "Yêu cầu"),
+        "dtab_response": ("Response", "Phản hồi"),
+        "dtab_detections": ("Detections", "Phát hiện"),
+        "dtab_metadata": ("Metadata", "Siêu dữ liệu"),
+        "part_args": ("Arguments", "Tham số"),
+        "part_tool_results": ("Tool results", "Kết quả công cụ"),
+        "part_output": ("Output", "Đầu ra"),
+        "request_note": (
+            "Masked text from the recorder. The gate stores only a keyed hash of the arguments.",
+            "Văn bản đã che từ bộ ghi. Cổng chỉ lưu mã băm có khóa của tham số.",
+        ),
+        "no_request_text": ("No request text", "Không có văn bản yêu cầu"),
+        "no_request_text_line": (
+            "No masked text is stored for this call, or no masker is set.",
+            "Không có văn bản đã che cho lệnh gọi này, hoặc chưa cấu hình bộ che.",
+        ),
+        "masked_record": ("Masked record (JSON)", "Bản ghi đã che (JSON)"),
+        "decision": ("Decision", "Quyết định"),
+        "allowed": ("allowed", "được phép"),
+        "denied": ("denied", "bị từ chối"),
+        "transformed_payload": ("Payload after masking", "Dữ liệu sau khi che"),
+        "transformed_note": (
+            "Rebuilt from the masked record; the gate does not store the transformed payload.",
+            "Dựng lại từ bản ghi đã che; cổng không lưu dữ liệu đã biến đổi.",
+        ),
+        "no_transform": ("The payload was not changed.", "Dữ liệu không bị thay đổi."),
+        "detector": ("Detector", "Bộ phát hiện"),
+        "code": ("Code", "Mã"),
+        "entities": ("Entities and fragments (masked)", "Thực thể và đoạn (đã che)"),
+        "action_hint": ("Action hint", "Gợi ý hành động"),
+        "leaf_precision": ("whole text", "toàn văn bản"),
+        "no_detections": ("No findings", "Không có phát hiện"),
+        "no_detections_line": (
+            "No detector fired on this decision.",
+            "Không bộ phát hiện nào kích hoạt cho quyết định này.",
+        ),
+        "located_fragments": ("Fragments in the masked text", "Đoạn trong văn bản đã che"),
+        "unlocated_fragments": ("Fragments not located", "Đoạn không định vị được"),
+        "lat_total": ("Latency total", "Tổng độ trễ"),
+        "lat_rules": ("Rules", "Quy tắc"),
+        "lat_detectors": ("Detectors", "Bộ phát hiện"),
+        "lat_overhead": ("Overhead", "Thời gian còn lại"),
+        "open_trace_span": ("Open the trace span", "Mở đoạn dấu vết"),
+        "same_correlation": ("{n} decisions share this id", "{n} quyết định cùng mã này"),
+        "open_alert": ("Open alert", "Mở cảnh báo"),
+        "an_tab_detectors": ("Detectors", "Bộ phát hiện"),
+        "dd_requests": ("Requests", "Yêu cầu"),
+        "dd_none": ("No rows in this window.", "Không có dòng nào trong khoảng này."),
+        "dd_empty": ("No rollup rows yet", "Chưa có dữ liệu tổng hợp"),
+        "dd_empty_line": (
+            "Run python -m supervisor.jobs.decision_rollup (the scheduler does it every hour).",
+            "Chạy python -m supervisor.jobs.decision_rollup (bộ lập lịch chạy mỗi giờ).",
+        ),
+        "dd_series": ("Gate outcomes by day", "Kết quả của cổng theo ngày"),
+        "dd_per_agent": ("Per agent", "Theo tác tử"),
+        "dd_per_consumer": ("Per application", "Theo ứng dụng"),
+        "dd_per_rule": ("Per rule", "Theo quy tắc"),
+        "dd_per_detector": ("Per detector and code", "Theo bộ phát hiện và mã"),
+        "det_latency": ("Detector latency", "Độ trễ bộ phát hiện"),
+        "det_runs": ("Runs", "Lượt chạy"),
+        "det_verdict": ("Harness verdict", "Kết luận kiểm thử"),
+        "det_adversarial": ("adversarial recall", "độ phủ đối kháng"),
+        "det_approx": (
+            "Over several days p50 is the weighted mean of daily p50; p95 is the highest "
+            "daily p95. GO (indicative): the point value passes, the 95 percent interval "
+            "does not prove it.",
+            "Nhiều ngày: p50 là trung bình có trọng số của p50 từng ngày; p95 là p95 cao "
+            "nhất của một ngày. GO (indicative): giá trị điểm đạt, khoảng tin cậy 95 phần "
+            "trăm chưa chứng minh.",
+        ),
+        "observed_mode": ("Mode", "Chế độ"),
+        "mode_shadow": ("shadow", "chạy ngầm"),
+        "observed_decision": ("Observed decision", "Quyết định quan sát được"),
+        "would_block": (
+            "would have blocked (not enforced)",
+            "sẽ chặn nếu thực thi (chưa thực thi)",
+        ),
+        "would_pause": (
+            "would have paused (not enforced)",
+            "sẽ tạm dừng nếu thực thi (chưa thực thi)",
+        ),
+        "observed_approvals": ("Approvals", "Phê duyệt"),
+        "approvals_yes": ("present", "có"),
+        "approvals_no": ("not present", "không có"),
+        "back_to_list": ("Back to the list", "Quay lại danh sách"),
+        "det_not_run": ("not run", "chưa chạy"),
+        "det_not_run_line": (
+            "The harness verdict is read from a report file; none is recorded. Run "
+            "python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json",
+            "Kết luận kiểm thử được đọc từ tệp báo cáo; chưa có tệp. Chạy "
+            "python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json",
+        ),
+        "dd_series_note": (
+            "Counts decisions by verdict status (block before pause). The Blocked and Paused tiles "
+            "above count the stopping rule (pause before block), so a call that matched both is "
+            "Paused there and Block here.",
+            "Đếm quyết định theo trạng thái phán quyết (chặn trước tạm dừng). Ô Đã chặn và Tạm "
+            "dừng ở trên đếm theo quy tắc dừng (tạm dừng trước chặn), nên một lệnh khớp cả hai "
+            "là Tạm dừng ở trên và Chặn ở đây.",
+        ),
+        "findings_chip": ("{n} findings", "{n} phát hiện"),
+        "open_decision": ("Open the gate decision", "Mở quyết định của cổng"),
+        "export_csv": ("Export CSV", "Xuất CSV"),
+        "export_hint": (
+            "Masked columns only, at most {n} rows.",
+            "Chỉ các cột đã che, tối đa {n} dòng.",
+        ),
+        "export_done": (
+            "CSV built: {n} rows, {cols} columns.",
+            "Đã tạo CSV: {n} dòng, {cols} cột.",
+        ),
+        "export_once": (
+            "The link works once, for you only, for 15 minutes.",
+            "Liên kết chỉ dùng được một lần, chỉ cho bạn, trong 15 phút.",
+        ),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

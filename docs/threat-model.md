@@ -254,6 +254,26 @@ the probes and BACKLOG).
 
 The report crosses the trust boundary on purpose: its customer and regulator versions leave the bank. Controls: explicit allow-lists per variant (a field not listed is not copied); a second check that refuses a customer or regulator report holding an agent id, rule or obligation id, hash, owner field or a person name read from the raw sources, applied to the data and to the rendered text of both languages; free text masked or dropped (never raw); no personal data and no text in the chain (hashes, counts and fixed codes only); files never overwritten and checked against the hash on every read; HTML autoescaped with no script and no external asset; routes behind the sign-in with `transparency.generate` limited to reviewer and admin and audited. After the projection every text value of the outer versions is masked again and scrubbed of e-mail, phone and long digit runs (fields copied as they are included), and the guard refuses those patterns; the chain record and the append-only row name a person only as a keyed hash. Residual risk: names the masker misses can appear in the internal version, and in a free-text or config text field of the regulator version when the masker misses them (vn_regex catches Vietnamese names with diacritics, not every name) (BACKLOG).
 
+### 3.11 Console activity pages and the CSV export (WP39, ADR D32)
+
+The Decisions drawer, the Traces pages and the Analytics tabs show text of calls that carried
+personal data. Controls: the gate stores no arguments (a keyed hash only); the Request tab is
+rebuilt from recorder events at capture level `masked` and masked again before it is shown (no
+masker or `digest` level: no text); finding text, entity tokens and reasons are masked again on
+the way out, so a faulty detector row does not leak; ids from stored rows are escaped in HTML,
+percent-encoded in links and neutralised in CSV (leading quote for `=`, `+`, `-`, `@`; control
+characters removed); filter and deep-link values must match an id pattern (HTTP 400, never a
+header or a query to the store). The CSV export is an allow-list of 18 columns of ids, codes,
+enums and integers, capped at `CONSOLE_EXPORT_MAX_ROWS`, for auditor and admin only, and written
+as an audited action (two `console_action` rows). `tests/console/test_wp39_decisions.py` and
+`python -m supervisor.console.activity_harness` plant a name, a phone number, an ID number and an
+e-mail in arguments, tool results, an output, a case title and a verdict text, and fail on any
+page or export that shows one. WP39 review: the download link is bound to the user and to 15
+minutes (HMAC with a key held in the process), the file is served once and deleted, and stale
+files are removed on every export; caller-given ids (correlation, request, consumer) that hold
+personal data are replaced or dropped at the gate and hidden on every page, so an e-mail used as
+an id does not reach the chain, the SIEM event or the CSV.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

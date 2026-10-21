@@ -83,6 +83,10 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     # --- WP-UX3 ---
     "decisions.view": (_ALL, "Gate decisions list and drawer (read-only)"),
     "traces.view": (_ALL, "Traces list and span viewer (masked payloads only)"),
+    "decisions.export": (
+        ("auditor", "admin"),
+        "Export the filtered Gate decisions list as CSV: masked columns only, row cap (WP39)",
+    ),
     "playground.run": (
         ("reviewer", "approver", "owner", "admin", "operator"),
         "Playground: dry-run gate check, no side effect (WP-UX3)",
@@ -260,6 +264,8 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/decisions"): "decisions.view",
     ("GET", "/console/decisions/rows"): "decisions.view",
     ("GET", "/console/decisions/{event_id}/drawer"): "decisions.view",
+    ("POST", "/console/decisions/export"): "decisions.export",
+    ("GET", "/console/decisions/exports/{name}"): "decisions.export",
     ("GET", "/console/traces"): "traces.view",
     ("GET", "/console/traces/rows"): "traces.view",
     ("GET", "/console/traces/{trace_id}"): "traces.view",

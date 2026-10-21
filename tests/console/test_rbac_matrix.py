@@ -329,6 +329,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "alert.ack",
         "playground.run",  # WP-UX3: tests/console/test_ux3_playground.py
         "collectors.add",  # WP38: tests/console/test_collectors_page.py (two audit rows)
+        "decisions.export",  # WP39: tests/console/test_wp39_decisions.py
         "dev.user",
         "transparency.generate",  # WP31: tests/console/test_transparency.py
     }

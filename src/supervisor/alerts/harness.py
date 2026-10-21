@@ -173,6 +173,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--fixtures", help="fixture folder (default: tests/fixtures/alerts)")
     ap.add_argument("--config", help="alerts.yaml (default: config/alerts.yaml)")
     ap.add_argument("--write-baseline", action="store_true", help="rewrite baseline.json")
+    ap.add_argument(
+        "--no-drills", action="store_true", help="skip the WP39 drills of the nine use cases"
+    )
     args = ap.parse_args(argv)
     from supervisor.config import REPO_ROOT
 
@@ -213,6 +216,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             newline="\n",
         )
         print("[OK] wrote baseline.json")
+    if not args.no_drills:  # WP39: fire, quiet, suppress, SIEM correlation id, rate sweeps, storm
+        from supervisor.alerts import drills
+
+        result = drills.run_all(ruleset)
+        for line in drills.render(result):
+            print(line)
+        bad += 0 if result["go"] else 1
     print("[OK] all GO" if not bad else f"[FAIL] {bad} NO-GO verdict(s)")
     return 1 if bad else 0
 

@@ -54,6 +54,7 @@ Request additions (all optional):
 |---|---|
 | `direction` | `input` (default) or `output`. `output` checks what a tool returned; the text is in `context.output`. No rule is evaluated and no window changes. With the flag off, `output` is HTTP 400 |
 | `context.tool_results` | Input side: the tool results that fed this call (text, list or object). Scanned for indirect injection |
+| `context.consumer_id` | WP39: the calling application, a plain id (letters, digits, `._:@-`, up to 128). Stored on the decision (`agent_event.consumer_id`, only with the flag on) and shown in the console (column, filter, Analytics table). Not used by any rule. Anything else is ignored |
 | `context.protocol` | `llm` (default), `mcp` or `a2a`. A detector that does not list the protocol is skipped |
 | header `X-Supervisor-Correlation-Id` | Your id (1 to 128 characters of `A-Za-z0-9_.:@-`). Another value is HTTP 400. Missing: the gate generates one. Echoed in the response header |
 

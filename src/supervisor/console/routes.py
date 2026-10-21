@@ -53,6 +53,7 @@ from supervisor.console import (
     controls_views,  # --- WP30 ---
     credentials_view,
     decisions,
+    decisions_v2,
     health,
     inbox_list,  # --- WP-UX2 ---
     integration_reports,
@@ -228,6 +229,29 @@ async def form(request: Request) -> dict[str, str]:
     except UnicodeDecodeError:
         raise ConsoleInputError("form must be UTF-8") from None
     return {k: v[-1] for k, v in parsed.items()}
+
+
+async def form_or_plain(request: Request) -> tuple[dict[str, str], bool]:
+    """Like ``form`` but also takes a plain browser form post (no JavaScript). A plain post has
+    no ``HX-Request`` header, which is the CSRF guard of every other action, so it must come from
+    this site: ``Origin`` (else ``Referer``) has to name the host of the request. Returns the form
+    and whether it was a plain post."""
+    if request.headers.get("hx-request") == "true":
+        return await form(request), False
+    from urllib.parse import urlsplit
+
+    source = request.headers.get("origin") or request.headers.get("referer") or ""
+    host = request.headers.get("host", "")
+    if not source or urlsplit(source).netloc != host:
+        raise ConsoleInputError("this action must come from the console page")
+    body = await request.body()
+    if len(body) > MAX_FORM_BYTES:
+        raise ConsoleInputError("form is too large")
+    try:
+        parsed = parse_qs(body.decode("utf-8"), keep_blank_values=True, strict_parsing=False)
+    except UnicodeDecodeError:
+        raise ConsoleInputError("form must be UTF-8") from None
+    return {k: v[-1] for k, v in parsed.items()}, True
 
 
 def _version(data: Mapping[str, str]) -> int:
@@ -1406,7 +1430,20 @@ def _ux3_off(ctx: ConsoleContext, page: str) -> None:
 
 
 def _drawer_query(query: Mapping[str, str]) -> dict[str, str]:
-    return {k: v for k, v in query.items() if k not in ("drawer", "dtab", "tab", "lang")}
+    return {
+        k: v
+        for k, v in query.items()
+        if k not in ("drawer", "dtab", "tab", "lang", "event", "correlation")
+    }
+
+
+def query_string_of(data: Mapping[str, str]) -> str:
+    """The filters of a list page as a query string (for the "back to the list" link)."""
+    from supervisor.console.listing import query_string
+
+    keep = ("agent", "action", "rule", "tool", "range", "trace", "status", "code", "noteval",
+            "consumer", "direction", "corr", "sort", "dir")  # fmt: skip
+    return query_string({k: data[k] for k in keep if data.get(k)})
 
 
 # -- gate decisions
@@ -1422,11 +1459,25 @@ async def decisions_page(
     query = dict(request.query_params)
     data = await _call(decisions.list_view, ctx, query)
     opened = query.get("drawer")
-    if opened:  # no-JS fallback of the row drawer
+    if decisions.v2_on(ctx):  # WP39: deep links ?event=<id> and ?correlation=<id>
+        data["can_export"] = agent_detail.can(me, "decisions.export")
+        deep = [k for k in ("event", "correlation") if query.get(k)]
+        if deep and not opened:
+            opened = await _call(
+                decisions_v2.resolve_ref,
+                ctx,
+                event=query.get("event") or "",
+                correlation=query.get("correlation") or "",
+                agent=query.get("agent") or "",
+            )
+            data["strip_params"] = " ".join(deep)  # console.js removes them from the address bar
+    if opened:  # no-JS fallback of the row drawer, and the deep links
         _check_id(opened, "decision id")
         data["drawer"] = await _call(
             decisions.drawer_view, ctx, opened, query.get("dtab") or "details", _drawer_query(query)
         )
+        if decisions.v2_on(ctx):
+            data["drawer_open"] = True
     return render(request, ctx, me, "decisions.html", section="decisions", **data)
 
 
@@ -1440,7 +1491,9 @@ async def decisions_rows(
 ) -> Response:
     _ux3_off(ctx, "decisions")
     data = await _call(decisions.list_view, ctx, dict(request.query_params))
-    return render(request, ctx, me, "_decisions_list.html", **data)
+    data["can_export"] = decisions.v2_on(ctx) and agent_detail.can(me, "decisions.export")
+    tpl = "_decisions_list_v2.html" if data.get("v2") else "_decisions_list.html"
+    return render(request, ctx, me, tpl, **data)
 
 
 @router.get(
@@ -1457,7 +1510,61 @@ async def decision_drawer(
     data = await _call(
         decisions.drawer_view, ctx, event_id, query.get("tab") or "details", _drawer_query(query)
     )
-    return render(request, ctx, me, "_decision_drawer.html", drawer=data)
+    tpl = "_decision_drawer_v2.html" if data.get("v2") else "_decision_drawer.html"
+    return render(request, ctx, me, tpl, drawer=data)
+
+
+@router.post(
+    "/decisions/export",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("decisions.export"))],
+)
+@audited("decisions.export")
+async def decisions_export(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Build the masked CSV of the filtered list (WP39). Audited like every action: two
+    ``console_action`` rows, with the row counts as the fixed note. The file is downloaded
+    through the GET below."""
+    _ux3_off(ctx, "decisions")
+    if not decisions.v2_on(ctx):
+        raise ConsoleInputError("The CSV export needs CONSOLE_DECISIONS_V2=1")
+    data, plain = await form_or_plain(request)
+    built = await _call(decisions_v2.export_csv, ctx, data)
+    await _call(decisions_v2.save_export, ctx, built, me.user_id)
+    request.state.audit_detail = (  # WP39 review: the filter hash ties the file to its query
+        f"rows={built['rows']};total={built['total']};truncated={int(built['truncated'])};"
+        f"filters={decisions_v2.filter_hash(data)}"
+    )
+    if plain:  # no JavaScript: a whole page with the signed link and a way back
+        back = query_string_of(data)
+        return render(
+            request, ctx, me, "decisions_export.html", section="decisions", export=built, back=back
+        )
+    return render(request, ctx, me, "_decisions_export_result.html", export=built)
+
+
+@router.get(
+    "/decisions/exports/{name}",
+    dependencies=[Depends(needs("decisions.export"))],
+)
+async def decisions_export_download(
+    name: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """The file of one export, once, for the user who built it, within EXPORT_TTL_S."""
+    _ux3_off(ctx, "decisions")
+    q = request.query_params
+    data = await _call(
+        decisions_v2.take_export, ctx, name, me.user_id, q.get("exp") or "", q.get("t") or ""
+    )
+    return Response(
+        data,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 # -- traces

@@ -30,6 +30,7 @@ task_due       CONTROLS_ENABLED       close tasks whose evidence is there; one c
                                       overdue required task (WP30)
 transparency   TRANSPARENCY_ENABLED   build and sign the transparency reports of every running
                                       agent when the facts changed (WP31)
+decision_rollup CONSOLE_DECISIONS_V2  daily ``decision_daily`` rollup for Analytics (WP39)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -376,6 +377,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import alerts as alerts_job
     from supervisor.jobs import anchor as anchor_job
     from supervisor.jobs import case_intake as case_intake_job
+    from supervisor.jobs import decision_rollup as decision_rollup_job
     from supervisor.jobs import drift as drift_job
     from supervisor.jobs import fairness as fairness_job
     from supervisor.jobs import ingest as ingest_job
@@ -490,6 +492,14 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 "transparency",
                 settings.sched_transparency_s,
                 lambda: transparency_job.run(ctx, settings),
+            )
+        )
+    if settings.console_decisions_v2:  # WP39: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "decision_rollup",
+                settings.sched_decision_rollup_s,
+                lambda: decision_rollup_job.run(ctx, settings),
             )
         )
     from supervisor.jobs import inventory as inventory_job

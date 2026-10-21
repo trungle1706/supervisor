@@ -212,3 +212,15 @@
 | WP27: Tier 0b runs after the decision; a late code re-assesses the session at that turn, but the first assessment of a turn may not include it | Run Tier 0b before the decision for money tools if latency allows |
 | WP27: no console page for sessions (WP39); the route and the case summary carry the timeline | WP39 |
 | WP27: the pause is not applied to MCP proxy or SDK local gates that bypass `/v1/gate/check` | WP26 / WP38 pass the context through |
+| WP39: the gate stores no masked payload, so the Request tab depends on the recorder event of the same trace and the transformed payload is rebuilt, not read | Gate stores a masked copy of the payload parts (nullable column or a `payload` table, masked retention class), with an R2 test |
+| WP39: HTTP statuses of the gate routes are not stored; `AL-ERROR-RATE` counts ingress rejections and fail-mode decisions only (a plain 400 for a bad payload is invisible) | Persist route status (a counter table or a `gate_request` record) and read it in the signal loader |
+| WP39: `AL-REDACTION-SPIKE` uses a fixed share (3000 bp), not a rolling baseline per agent | Baseline from `decision_daily` (median of the last 14 days) and a `rate.baseline` key |
+| WP39: `AL-SECRETS-OUTPUT` needs a detector with `secret.*` codes; none ships | A secrets detector (WP25 or a regex pack) with golden items |
+| WP39: `enforcement: observe` of `AL-THREAT-NOT-ENFORCED` waits for the policy observe mode (WP38); consumer id arrives with `context.consumer_id` (WP38 SDK) | WP38 |
+| WP39: detector latency over several days is approximate (p50 weighted, p95 highest daily); no per-hour series | Keep a histogram per day in `decision_daily` or read hourly rows |
+| WP39: coverage gap takes the inventory from system nodes of `inventory_node`; an agent id that differs only by case or a suffix gives a second gap | Alias map in the inventory; normalise ids at ingress |
+| WP39: the CSV export is built in memory and saved to `CONSOLE_EXPORT_DIR` (wiped on App restart); the one-time link (review) dies with the process | Stream to a UC volume path |
+| WP39 review: the gate replaces a caller correlation or request id that holds personal data with a new id, so the caller cannot find its call by its own id; ids like `corr-12345678901234` (14 digits) look like an account number to the masker and are replaced too | An id format rule in the SDK (WP38) and a `correlation_id_replaced` flag in the answer |
+| WP39 review: `consumer_id` is recorded from `context.consumer_id` as the caller says it; WP38 resolves it against the registered consumers (`consumer_ignored`) | Record the WP38 resolved consumer at merge |
+| WP39 review: `AL-THREAT-NOT-ENFORCED` reads detector findings and `observe_would_*` rows, not the `shadow_would_*` rule matches of a SHADOW agent | Decide with the SOC whether rule matches in SHADOW are a "threat not enforced" (they are expected during a shadow rollout) |
+| WP39: the Decisions list scans the newest `CONSOLE_SCAN_CAP` events and as many findings; filters on code and not-evaluated see only that window | Push the filters to SQL (a join with `finding`) when the cap is reached |

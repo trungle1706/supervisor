@@ -15,10 +15,13 @@ Everything stored or returned from here is masked text, ids and integers (R2).
 
 from __future__ import annotations
 
+import re
+import uuid
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from supervisor.analytics.decisions import looks_personal
 from supervisor.core.detectors import (
     PARTS,
     PARTS_BY_DIRECTION,
@@ -35,6 +38,18 @@ CORRELATION_HEADER = "X-Supervisor-Correlation-Id"
 ID_PATTERN = r"^[A-Za-z0-9_.:@-]{1,128}$"
 DEFAULT_FAIL_CLOSED_RISK = frozenset({"money", "credit", "pii_export"})
 FAILED_RULE = "GATE-DETECTOR-FAILED"
+
+
+def caller_id(value: str | None) -> str:
+    """WP39 review (R2): a correlation or request id from the caller, or a new one when it is
+    missing or holds personal data (an e-mail or a phone number passes the plain-id pattern).
+    A generated id is drawn again in the rare case it looks like a number the masker knows."""
+    if value and not looks_personal(value):
+        return value
+    new = uuid.uuid4().hex
+    while looks_personal(new):
+        new = uuid.uuid4().hex
+    return new
 
 
 @dataclass(frozen=True)
@@ -56,6 +71,7 @@ class PreDetect:
     risk_class: str | None = None
     direction: str = "input"
     fail_closed_risk: frozenset[str] = DEFAULT_FAIL_CLOSED_RISK
+    consumer_id: str | None = None  # WP39: context.consumer_id when it is a plain id (checked)
 
 
 @dataclass
@@ -64,6 +80,11 @@ class DetectorOutcome:
 
     findings: list[Finding] = field(default_factory=list)  # fired
     not_executed: list[Finding] = field(default_factory=list)
+    # WP39: facts for the latency split and the consumer column (recorded, never returned)
+    consumer_id: str | None = None
+    rules_us: int | None = None
+    detectors_us: int | None = None
+    per_detector_us: dict[str, int] = field(default_factory=dict)
 
 
 def _ne_dict(f: Finding) -> dict[str, Any]:
@@ -135,6 +156,9 @@ class DetectorGate:
         req: Req,
     ) -> PreDetect:
         pre = PreDetect(direction=req.direction)
+        cid = ctx.get("consumer_id")
+        if isinstance(cid, str) and re.fullmatch(ID_PATTERN, cid) and not looks_personal(cid):
+            pre.consumer_id = cid  # WP39 review: an e-mail or phone as consumer id is dropped
         try:
             pre.risk_class = policy.risk_class(tool_name)
             run_cfg, skip_tools = self.resolved.for_agent(policy.agent_detectors(agent_id))
@@ -169,10 +193,11 @@ class DetectorGate:
         builtin: bool,
         matched_actions: Iterable[str],
         hmac_fn: Callable[[Mapping[str, Any]], str],
+        rules_us: int | None = None,
     ) -> None:
         """Fill ``d.v2`` (the response fields) and ``d.det`` (what to record)."""
         direction = pre.direction
-        out = DetectorOutcome()
+        out = DetectorOutcome(consumer_id=pre.consumer_id, rules_us=rules_us)
         coverage: dict[str, Any]
         transformed: dict[str, Any] | None = None
         detectors_run: list[str] = []
@@ -212,6 +237,7 @@ class DetectorGate:
             transformed = res.transformed_payload
             detectors_run = [detector_id(self.registry.get(s)) for s in res.evaluated]
             latency = res.latency_us
+            out.per_detector_us = {k: int(v) for k, v in res.per_detector_us.items()}
             failed = list(res.failed_closed)
 
         # 1. The one way a detector can stop a call: it could not look at a risky tool.
@@ -242,6 +268,7 @@ class DetectorGate:
             skipped=pre.skipped,
             matched_actions=matched_actions,
         )
+        out.detectors_us = latency
         d.det = out
         d.v2 = {
             "status": status,
@@ -284,15 +311,36 @@ def fallback_v2(d: Any, req: Req) -> None:
 # ---------------------------------------------------------------------------- recording
 
 
+def recorded_consumer_id(d: Any, det: Any) -> str | None:
+    """The consumer id written to ``agent_event.consumer_id`` (integration wave 2, WP39 review
+    F18): the id the WP38 policy resolved (``Decision.consumer_id``: the policy has an entry for
+    it), never the raw value the caller sent. A caller that names a consumer the policy does not
+    know is recorded as None, so an asserted id cannot fill the per-application tables. The WP39
+    plain-id check (``det.consumer_id``) must hold too."""
+    resolved = getattr(d, "consumer_id", None)
+    if not isinstance(resolved, str) or det is None or det.consumer_id != resolved:
+        return None
+    return resolved
+
+
 def event_fields(d: Any) -> dict[str, Any]:
     """Extra ``agent_event`` columns (WP37). ``coverage_json`` holds parts and reasons only."""
     from supervisor.core.canonical import canonical_json
 
     v2 = d.v2
+    det = d.det
     return {
         "verdict_status": v2["status"],
         "correlation_id": v2["correlation_id"],
         "coverage_json": canonical_json(v2["coverage"]),
+        # WP39 additive facts (nullable on older rows)
+        "request_id": v2["request_id"],
+        "consumer_id": recorded_consumer_id(d, det),
+        "latency_rules_us": det.rules_us,
+        "latency_detectors_us": det.detectors_us,
+        "detector_latency_json": canonical_json(det.per_detector_us)
+        if det.per_detector_us
+        else None,
     }
 
 

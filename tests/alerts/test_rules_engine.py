@@ -64,6 +64,16 @@ def test_shipped_config_is_valid_and_complete() -> None:
         "AL-FAILCLOSED-DRILL-FAIL",
         "AL-JOB-FAILURE",
         "AL-SESSION-ESCALATION",  # WP27
+        # WP39: nine use cases of a bank SOC
+        "AL-COVERAGE-GAP",
+        "AL-DETECTOR-FAILED",
+        "AL-THREAT-NOT-ENFORCED",
+        "AL-SECRETS-OUTPUT",
+        "AL-PII-OUTPUT",
+        "AL-REDACTION-SPIKE",
+        "AL-LATENCY-DEGRADATION",
+        "AL-ERROR-RATE",
+        "AL-INGRESS-AUTH-ANOMALY",
     }
     for r in rs.rules:
         assert r.routes and r.severity and r.rule_hash and r.dedupe_s >= 0

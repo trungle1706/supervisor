@@ -52,6 +52,12 @@ WP37_NULL_COLUMNS = {
     "session_id",  # WP27: written only with SESSION_MONITOR_ENABLED
     "session_source",
     "session_json",
+    # WP39 additive columns: also NULL unless DETECTORS_ENABLED
+    "request_id",
+    "consumer_id",
+    "latency_rules_us",
+    "latency_detectors_us",
+    "detector_latency_json",
 }
 
 

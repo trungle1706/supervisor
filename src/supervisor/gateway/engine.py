@@ -47,6 +47,7 @@ from supervisor.gateway.detector_gate import (
     DetectorGate,
     PreDetect,
     Req,
+    caller_id,
     chain_fields,
     event_fields,
     fallback_v2,
@@ -509,8 +510,8 @@ class Gateway:
             return None
         return Req(
             direction if direction in ("input", "output") else "input",
-            correlation_id or uuid.uuid4().hex,
-            request_id or uuid.uuid4().hex,
+            caller_id(correlation_id),  # WP39 review: an id that holds personal data is replaced
+            caller_id(request_id),
         )
 
     def check(
@@ -851,6 +852,7 @@ class Gateway:
         (WP-UX3 ``evaluate_only``): window rules (aggregate / prior) are not evaluated, their
         ids are appended to ``skipped``, and the redaction hint cache is left alone."""
         dry = skipped is not None
+        eval_t0 = time.perf_counter_ns()  # WP39: rules latency = this call, detector pass excluded
         matches: list[Match] = []
         builtin: tuple[str, str] | None = None
         eff = policy.effective(agent_id, ctx.get("consumer_id"))  # WP38
@@ -984,6 +986,7 @@ class Gateway:
                 builtin=builtin is not None,
                 matched_actions=[m.action for m in matches],
                 hmac_fn=lambda a: args_hmac(a, self._args_key),
+                rules_us=(time.perf_counter_ns() - eval_t0) // 1000,
             )
         if eff.active:
             self._apply_mode(d, eff, shadow, builtin is not None, risk)

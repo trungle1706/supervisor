@@ -112,6 +112,11 @@ CREATE TABLE IF NOT EXISTS agent_event (
   session_id TEXT,
   session_source TEXT,
   session_json TEXT,
+  request_id TEXT,
+  consumer_id TEXT,
+  latency_rules_us INTEGER,
+  latency_detectors_us INTEGER,
+  detector_latency_json TEXT,
   PRIMARY KEY (event_id)
 );
 
@@ -122,7 +127,7 @@ CREATE INDEX IF NOT EXISTS ix_agent_event_trace_id ON agent_event (trace_id);
 DROP TRIGGER IF EXISTS trg_agent_event_no_update;
 
 CREATE TRIGGER trg_agent_event_no_update
-BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us, verdict_status, correlation_id, coverage_json, session_id, session_source, session_json ON agent_event
+BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us, verdict_status, correlation_id, coverage_json, session_id, session_source, session_json, request_id, consumer_id, latency_rules_us, latency_detectors_us, detector_latency_json ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
 END;
@@ -822,6 +827,30 @@ CREATE TABLE IF NOT EXISTS tool_usage_daily (
 
 CREATE INDEX IF NOT EXISTS ix_tool_usage_daily_agent_id_usage_date ON tool_usage_daily (agent_id, usage_date);
 
+-- decision_daily (state): WP39. Per UTC day and dimension: gate decision counts by verdict status, the not-evaluated count and, for dimension detector_latency, latency percentiles. Recomputed from agent_event and finding by python -m supervisor.jobs.decision_rollup (idempotent: a day is overwritten). Feeds the console Analytics Gate and Detectors tabs so the App never scans the raw table on page load. dimension: total | agent | consumer | rule | detector_code | detector_latency. Integers and ids only; no text.
+CREATE TABLE IF NOT EXISTS decision_daily (
+  usage_date TEXT NOT NULL,
+  dimension TEXT NOT NULL,
+  dim_key TEXT NOT NULL,
+  dim_key2 TEXT NOT NULL,
+  requests INTEGER NOT NULL,
+  allows INTEGER NOT NULL,
+  reports INTEGER NOT NULL,
+  transforms INTEGER NOT NULL,
+  pauses INTEGER NOT NULL,
+  blocks INTEGER NOT NULL,
+  skips INTEGER NOT NULL,
+  not_evaluated INTEGER NOT NULL,
+  p50_us INTEGER,
+  p95_us INTEGER,
+  computed_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (usage_date, dimension, dim_key, dim_key2)
+);
+
+CREATE INDEX IF NOT EXISTS ix_decision_daily_dimension_usage_date ON decision_daily (dimension, usage_date);
+
 -- alert (state): WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.
 CREATE TABLE IF NOT EXISTS alert (
   alert_id TEXT NOT NULL,
@@ -849,6 +878,7 @@ CREATE TABLE IF NOT EXISTS alert (
   route_status TEXT NOT NULL,
   acknowledged_by TEXT,
   acknowledged_at TEXT,
+  correlation_id TEXT,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (alert_id)

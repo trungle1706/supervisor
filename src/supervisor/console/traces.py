@@ -16,6 +16,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from supervisor.analytics.decisions import looks_personal, safe_id, shown_id
 from supervisor.console import ux3
 from supervisor.console.listing import (
     ListingError,
@@ -44,12 +45,26 @@ def parse_params(query: Mapping[str, str]) -> dict[str, str]:
         "status": ux3.choice(query, "status", STATUSES),
         "range": ux3.choice(query, "range", ux3.RANGES),
         "q": ux3.token(query, "q"),
+        "corr": _corr_filter(query),  # WP39: correlation id (shown with CONSOLE_DECISIONS_V2)
         "sort": query.get("sort") or "",
         "dir": query.get("dir") or "",
         "page": query.get("page") or "",
     }
     parse_int(p["page"], "page", 1)
     return p
+
+
+def _corr_filter(query: Mapping[str, str]) -> str:
+    """WP39 review: a correlation id filter that refuses personal data (R2)."""
+    value = ux3.ident(query, "corr")
+    if value and looks_personal(value):
+        raise ListingError("corr: looks like personal data, not an id")
+    return value
+
+
+def v2_on(ctx: Any) -> bool:
+    """WP39: correlation ids, finding chips and the correlation filter (CONSOLE_DECISIONS_V2)."""
+    return bool(getattr(ctx.settings, "console_decisions_v2", False))
 
 
 def _worst(actions: Sequence[str]) -> str:
@@ -85,6 +100,8 @@ def summaries(ctx: Any, p: Mapping[str, str]) -> tuple[list[dict[str, Any]], boo
     for tid, evs in by_trace.items():
         if p["q"] and p["q"] not in tid:
             continue
+        if p["corr"] and not any(e.get("correlation_id") == p["corr"] for e in evs):
+            continue
         stamps = [e["ts"] for e in evs]
         gate = [e.get("classification") or "" for e in evs if e["event_type"] == "gate_decision"]
         acts = [v["action"] for v in verdicts.get(tid, [])] + gate
@@ -116,7 +133,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     shown = sort_rows(rows, col, direction, keys)
     page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
     agents = sorted(a["agent_id"] for a in ctx.state.query("agent"))
-    base = {k: p[k] for k in ("agent", "status", "range", "q")}
+    base = {k: p[k] for k in ("agent", "status", "range", "q", "corr")}
     return {
         "page": page,
         "params": p,
@@ -126,6 +143,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
         "status_opts": [(s, f"trace_{s}") for s in STATUSES],
         "range_opts": [(k, f"range_{k}") for k in ux3.RANGES],
         "capped": capped,
+        "v2": v2_on(ctx),
         "base_qs": query_string(base),
         "list_qs": query_string({**base, "sort": col, "dir": direction}),
     }
@@ -233,7 +251,19 @@ def trace_detail(ctx: Any, trace_id: str, span_id: str | None = None) -> dict[st
     for v in vs:
         by_event[str(v.get("event_id"))].append(_verdict_view(v, rules, text))
     nodes, extra = build_tree(events)
+    fired: dict[str, list[str]] = defaultdict(list)
+    if v2_on(ctx):  # WP39: finding rows of this trace, by decision
+        for f in ctx.tables.query("finding", {"trace_id": trace_id}, limit=2000):
+            if not f.get("not_executed_reason"):
+                fired[str(f["event_id"])].append(str(f["code"]))
     for n in nodes:
+        gates = [e for e in n["events"] if e["event_type"] == "gate_decision"]
+        n["decision_id"] = str(gates[0]["event_id"]) if gates else None
+        n["correlation_id"] = next(
+            (e.get("correlation_id") for e in n["events"] if safe_id(e.get("correlation_id"))),
+            None,
+        )
+        n["finding_codes"] = sorted({c for g in gates for c in fired.get(str(g["event_id"]), [])})
         n["verdicts"] = [vv for e in n["events"] for vv in by_event.get(str(e["event_id"]), [])]
         stops = [v["action"] for v in n["verdicts"] if v["action"] in _MARK and not v["advisory"]]
         gate = [e.get("classification") for e in n["events"] if e["event_type"] == "gate_decision"]
@@ -259,6 +289,9 @@ def trace_detail(ctx: Any, trace_id: str, span_id: str | None = None) -> dict[st
         "started": min(stamps),
         "duration_ms": int((max(stamps) - min(stamps)).total_seconds() * 1000),
         "status": _worst(stops),
+        "correlation_ids": sorted(  # WP39 review: ids that hold personal data are not shown
+            {str(e["correlation_id"]) for e in events if safe_id(e.get("correlation_id"))}
+        )[:5],
         "case_ids": sorted(
             {cases[str(e["event_id"])] for e in events if str(e["event_id"]) in cases}
         ),
@@ -270,6 +303,7 @@ def trace_detail(ctx: Any, trace_id: str, span_id: str | None = None) -> dict[st
         "selected": span_detail(ctx, nodes, chosen, text, cases),
         "selected_id": chosen,
         "truncated": len(events) >= MAX_SPANS * 4,
+        "v2": v2_on(ctx),
     }
 
 
@@ -292,6 +326,8 @@ def span_detail(
                 "chain_entry", {"record_ref": e["event_id"], "record_type": "gate_decision"}
             )
             chain = {"lane": rows[0]["lane"], "seq": int(rows[0]["seq"])} if rows else None
+        if e.get("correlation_id"):  # WP39 review: a caller-given id is shown only when safe
+            e = {**e, "correlation_id": shown_id(e.get("correlation_id"))}
         items.append(
             {
                 "e": e,
@@ -311,4 +347,4 @@ def span_view(ctx: Any, trace_id: str, span_id: str) -> dict[str, Any]:
     if not ux3.ID.match(span_id or ""):
         raise ListingError("invalid span id")
     data = trace_detail(ctx, trace_id, span_id)
-    return {"selected": data["selected"], "head": data["head"]}
+    return {"selected": data["selected"], "head": data["head"], "v2": data["v2"]}
