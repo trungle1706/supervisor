@@ -281,7 +281,12 @@ class SessionConfig:
     pause_threshold_bp: int = 4000
     pause_scope: tuple[str, ...] = ()
     weights: Mapping[str, int] = field(default_factory=lambda: dict(DEFAULT_WEIGHTS))
-    solo_signals: tuple[str, ...] = ("memory", "split_cue")
+    solo_signals: tuple[str, ...] = ("memory",)
+    # WP41 review: signals whose hit counts as TWO hits towards K. ``split_cue`` is here, not
+    # in ``solo_signals``: alone it opened a case on benign credit and payment texts ("... a
+    # limit override" then "Limit within policy"; "chuyen gap ..." then "... vao tai khoan"),
+    # with one more signal (drift, refusals, a finding) it reaches K=3.
+    double_signals: tuple[str, ...] = ("split_cue",)
     dup_bp: int = 8000
     cap_minor: int | None = None  # None: use the daily cap of the policy's aggregate rule
     daily: DailyConfig | None = None  # per-consumer daily window; None = off
@@ -316,6 +321,7 @@ class SessionConfig:
             "pause_scope": list(self.pause_scope),
             "weights": dict(self.weights),
             "solo_signals": list(self.solo_signals),
+            "double_signals": list(self.double_signals),
             "dup_bp": self.dup_bp,
             "daily": None
             if self.daily is None
@@ -345,9 +351,7 @@ def resolve_config(settings: Any, binding: SessionBinding | None) -> SessionConf
         pause_threshold_bp=pick("pause_threshold_bp", 4000),
         pause_scope=scope,
         weights=dict(b.weights) if b.weights is not None else dict(DEFAULT_WEIGHTS),
-        solo_signals=tuple(b.solo_signals)
-        if b.solo_signals is not None
-        else ("memory", "split_cue"),
+        solo_signals=tuple(b.solo_signals) if b.solo_signals is not None else ("memory",),
         cap_minor=b.cap_minor,
         daily=(
             DailyConfig(b.daily.window_s, b.daily.k, b.daily.case_threshold_bp)
@@ -467,20 +471,31 @@ CUE_FAMILIES: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = (
         re.compile(r"\byou are now(?: in)?$"),
         re.compile(r"^(?:in )?(?:developer|admin|dan) mode\b"),
     ),
+    # WP41 review: the head needs the article ("override the" | "policy ..."). A bare
+    # "... a credit limit override" followed by "Limit within policy" is ordinary credit text.
     (
         "policy_override",
-        re.compile(r"\boverride(?: the)?$"),
-        re.compile(r"^(?:the )?(?:policy|limit|rules)\b"),
+        re.compile(r"\boverride (?:the|all|any|your)$"),
+        re.compile(r"^(?:policy|polic(?:ies)|limits?|rules|restrictions)\b"),
     ),
+    # WP41 review: the tail must START with the destination ("sang tai khoan ..."); a later
+    # text that only contains it ("Giai ngan vao tai khoan ...") is ordinary loan text.
     (
         "urgent_transfer",
         re.compile(r"\bchuyen (?:ngay|gap)(?! (?:hom nay|trong ngay|ngay mai))(?:\s+\w+){0,6}$"),
-        re.compile(r"^(?:\w+\s+){0,3}?(?:sang|vao|toi|den) (?:tai khoan|tk|account)\b"),
+        re.compile(r"^(?:sang|vao|toi|den) (?:tai khoan|tk|account)\b"),
     ),
     (
         "role_tag",
         re.compile(r"<\s*/?\s*$"),
         re.compile(r"^(?:system|assistant)\s*>"),
+    ),
+    # WP41 review: the bare head "override" needs the article in the tail ("the policy ...").
+    # Appended (not inserted) so the ids of the families above stay as they were stored.
+    (
+        "policy_override_bare",
+        re.compile(r"\boverride$"),
+        re.compile(r"^(?:the|all|any|your) (?:policy|policies|limits?|rules|restrictions)\b"),
     ),
 )
 
@@ -906,7 +921,9 @@ class SessionEngine:
         score = sum(cfg.weights[s] * strengths[s] for s in SIGNALS) // 10000
         money_involved = any(t.risk in ("money", "credit") for t in win)
         solo = any(s in hits for s in cfg.solo_signals)
-        case_due = len(hits) >= cfg.k or score >= cfg.case_threshold_bp or solo
+        # WP41 review: a double signal (split_cue) counts as two hits towards K
+        counts["hit_units"] = len(hits) + sum(1 for s in hits if s in cfg.double_signals)
+        case_due = counts["hit_units"] >= cfg.k or score >= cfg.case_threshold_bp or solo
         return Assessment(
             session_id=session_id,
             agent_id=agent_id,

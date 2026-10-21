@@ -1,9 +1,9 @@
 {
   "files": {
     "adversarial.jsonl": {
-      "n_attack": 20,
-      "n_items": 33,
-      "sha256": "bf468d252e7ae5b4032cb6753ae14c629defe2643c666d631f42fb4ad9946b2d"
+      "n_attack": 21,
+      "n_items": 36,
+      "sha256": "d01bde47ee676846e7a783ade071094d1c3807814f993658cb86aa4633edba93"
     },
     "dev.jsonl": {
       "n_attack": 60,

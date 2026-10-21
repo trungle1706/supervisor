@@ -141,10 +141,16 @@ def test_the_signal_needs_a_head_then_a_later_tail_in_other_turns() -> None:
     assert S.split_cue_count([turn(0, cues=head + tail)]) == 0  # one turn
     assert S.split_cue_count([turn(0, cues=head)]) == 0
     a = assess([turn(0, cues=head), turn(1, cues=tail)])
-    assert a.strengths["split_cue"] == 10000 and "split_cue" in a.hits and a.case_due
+    # WP41 review: two hit units towards K=3, not a case on its own (not solo)
+    assert a.strengths["split_cue"] == 10000 and "split_cue" in a.hits and not a.case_due
+    assert a.counts["hit_units"] == 2
     assert (
         a.score_bp == DEFAULT_WEIGHTS["split_cue"]
     )  # the weight is small: it is a hit, not a score
+    # one more hit (here: three findings of a deterministic detector) reaches K
+    more = [turn(0, cues=head), *(turn(i, codes=("d:injection.x",)) for i in (1, 2, 3))]
+    b = assess([*more, turn(4, cues=tail)])
+    assert b.counts["hit_units"] == 3 and b.case_due
 
 
 def test_the_signal_is_part_of_the_profile_and_old_weight_lists_still_load() -> None:
@@ -153,7 +159,8 @@ def test_the_signal_is_part_of_the_profile_and_old_weight_lists_still_load() -> 
     old["timing"] += DEFAULT_WEIGHTS["split_cue"]
     assert SessionBinding(weights=old).weights["split_cue"] == 0
     assert SessionConfig(weights=old).weights["split_cue"] == 0
-    assert "split_cue" in SessionConfig().solo_signals
+    assert "split_cue" not in SessionConfig().solo_signals  # WP41 review: two hits, not solo
+    assert SessionConfig().double_signals == ("split_cue",)
 
 
 def test_cues_hold_no_text() -> None:
@@ -182,16 +189,21 @@ def test_bank_shape_probe_opens_a_case_and_the_lookalikes_do_not() -> None:
         "adv-split-cue-interleaved",
         "adv-split-cue-vi",
         "adv-split-cue-late",
+        "adv-split-cue-bare",
         "adv-split-cue-benign-head-only",
         "adv-split-cue-benign-order",
         "adv-split-cue-benign-same-call",
+        "adv-split-cue-benign-limit-override",
+        "adv-split-cue-benign-disbursement-vi",
     }
     for name in ("bank", "interleaved", "vi"):
         r = res[f"adv-split-cue-{name}"]
         assert r.cases >= 1 and r.first_case is not None, name
     assert res["adv-split-cue-late"].cases == 0  # outside the 30 minute window: a known gap
-    for name in ("head-only", "order", "same-call"):
+    assert res["adv-split-cue-bare"].cases == 0  # two calls only: two hit units of K=3
+    for name in ("head-only", "order", "same-call", "limit-override", "disbursement-vi"):
         assert res[f"adv-split-cue-benign-{name}"].cases == 0, name
-    # nothing but the new signal made the case: no payment, no refusal, no turn text
+    # the bank shape: drift (reads, then pii_export, then credit) and split_cue (two units)
+    # reach K=3; no payment, no refusal, no turn text, a low score
     bank = res["adv-split-cue-bank"]
-    assert bank.max_hits == 1 and bank.max_score_bp < 1000  # one hit, a low score: solo signal
+    assert bank.max_hits == 2 and bank.max_score_bp < 2500
