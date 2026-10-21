@@ -97,3 +97,22 @@ Controls section (WP30 hook only); electronic signature of the file itself, PDF/
 4. Names are kept out of the regulator and customer versions by omission because the masker misses names; accept, or add the NER extra first?
 5. Commit trailers: the brief says `Claude Fable 5.1`, the session reminder says `Claude Sonnet 5.5`. My first commit carries Sonnet, the later ones Fable (I did not rewrite history). Pick one for the merge.
 6. PDF needs `fpdf2` (optional extra, in `uv.lock`) and a local font; the bank laptop must have both for PDFs.
+
+## Follow-ups after review
+
+Review result: approved with follow-ups (REVIEW_WP31.md; the reviewer commits 1ae6d2e, 518aad8, 0e5fa65, 8516d02, 83881bc and 6a1098d are kept as they are). Closed in commit 44f7e2f (code and tests together, one commit):
+
+| Finding | Fix | Tests |
+|---|---|---|
+| F11 agent id and the filesystem | `check_agent` refuses a leading or trailing dot and `..` anywhere (path separators, spaces and other characters were already outside the charset). `_dir()` also calls `check_agent`, resolves the path and refuses any folder outside `TRANSPARENCY_DIR` | `tests/transparency/test_followups.py`: 12 bad ids, 5 good ids, a registered agent named `a..b` is refused by generate and read |
+| F12 failed row write | If the rows cannot be written after the chain record, the files are removed, a `transparency_report_failed` chain entry (ids, version, error class) is recorded and the error is raised; the next generate writes the same version again. If the chain record itself fails, the files are removed as before | Both orders: rows fail then the next generate works; chain fails then the next generate works |
+
+F8 correction: question 2 above wrongly said that with `API_RBAC_ENABLED` off an unsigned caller acts as a read-only service principal. `needs()` always enforces on these routes. A service principal gets 403 (`transparency.view` is not in `NON_USER_OK`); no identity and no `default_user` gives 400; in laptop dev mode `default_user` signs every unsigned call in. Test: `test_login_is_required_and_a_service_principal_cannot_read`.
+
+Last lines:
+```
+uv run python -m pytest -q -x        3986 passed, 28 skipped, 1 warning in 571.17s (0:09:31)
+uv run python -m ruff check          All checks passed!
+uv run python -m ruff format --check 718 files already formatted
+uv run python -m supervisor.transparency.harness   [adversarial] 24/24 ... [determinism] 10000bp ... [OK] all GO
+```
