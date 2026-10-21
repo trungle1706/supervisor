@@ -35,7 +35,7 @@ FIELDS = (
 
 @lru_cache(maxsize=1)
 def _report() -> dict[str, Any]:
-    return H.run()
+    return H.run(list(SLUGS))  # WP25: the classifier has its own tests
 
 
 def _texts(item: dict[str, Any]) -> str:
@@ -130,7 +130,7 @@ def _stable(report: dict[str, Any]) -> str:
 
 
 def test_run_is_deterministic_apart_from_latency() -> None:
-    assert _stable(H.run()) == _stable(_report())
+    assert _stable(H.run(list(SLUGS))) == _stable(_report())
 
 
 def test_report_has_what_the_brief_asks_for() -> None:
@@ -230,7 +230,7 @@ def test_command_help_and_ascii_output(capsys: pytest.CaptureFixture[str]) -> No
     assert out.isascii() and "dlp_vn@1.0.0" in out and "ILLUSTRATIVE" in out
     assert H.main(["--catalogue"]) == 0
     cat = json.loads(capsys.readouterr().out)
-    assert [c["slug"] for c in cat] == list(SLUGS)
+    assert [c["slug"] for c in cat] == [*SLUGS[:2], "injection_classifier", SLUGS[2]]
 
 
 def test_check_flag_passes_on_the_committed_baseline(capsys: pytest.CaptureFixture[str]) -> None:

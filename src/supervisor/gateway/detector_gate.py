@@ -38,6 +38,13 @@ CORRELATION_HEADER = "X-Supervisor-Correlation-Id"
 ID_PATTERN = r"^[A-Za-z0-9_.:@-]{1,128}$"
 DEFAULT_FAIL_CLOSED_RISK = frozenset({"money", "credit", "pii_export"})
 FAILED_RULE = "GATE-DETECTOR-FAILED"
+# WP25 (ADR D27): the one pause a detector may cause. Only a detector listed here is allowed to
+# turn a pause hint into a pause, and never on a tool whose risk class is outside the set below
+# (a read_only tool cannot be paused by a finding). The detector itself also checks the classes it
+# is configured with; this is the gate's own backstop.
+CLASSIFIER_PAUSE_RULE = "GATE-CLASSIFIER-PAUSE"
+PAUSE_CAPABLE_DETECTORS: frozenset[str] = frozenset({"injection_classifier"})
+PAUSE_RISK_CLASSES: frozenset[str] = frozenset({"money", "credit", "pii_export"})
 
 
 def caller_id(value: str | None) -> str:
@@ -141,6 +148,12 @@ class DetectorGate:
             view["args"] = dict(args)
             if ctx.get("tool_results") is not None:
                 view["tool_results"] = ctx["tool_results"]
+            # WP25: text of the called tool's description, and earlier calls of the same trace
+            # (split attacks). Both are optional context keys; a detector reads them from meta.
+            if isinstance(ctx.get("tool_description"), str):
+                view["meta"]["tool_description"] = ctx["tool_description"]
+            if ctx.get("prior_calls") is not None:
+                view["meta"]["prior_calls"] = ctx["prior_calls"]
         elif ctx.get("output") is not None:
             view["output"] = ctx["output"]
         return view
@@ -249,6 +262,31 @@ class DetectorGate:
             transformed = None
             # A blocked call has no transformed arguments (WP24b filled them while it was allowed).
             d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0
+        # 1b. WP25: a pause-capable detector (the injection classifier) may turn an ALLOW into a
+        # PAUSE, never a block, on a money / credit / pii_export tool. The detector set the hint
+        # only above its frozen threshold and only for its configured classes. A human resumes.
+        if (
+            d.allow
+            and not shadow
+            and not builtin
+            and direction == "input"
+            and pre.risk_class in PAUSE_RISK_CLASSES
+        ):
+            pausers = [
+                f
+                for f in out.findings
+                if f.action_hint == "pause" and f.detector_slug in PAUSE_CAPABLE_DETECTORS
+            ]
+            if pausers:
+                top = max(pausers, key=lambda f: f.score_bp)
+                d.allow, d.action, d.rule_id = False, "pause", CLASSIFIER_PAUSE_RULE
+                d.classifier_pause = True  # the engine pauses on this flag, not on the rule id
+                d.reason = (
+                    f"{CLASSIFIER_PAUSE_RULE}: {top.code} score {top.score_bp} bp at or above "
+                    f"the pause threshold on a {pre.risk_class} tool (the classifier advises; a "
+                    "human resumes)"
+                )
+                transformed = None
         # 2. The dlp transform: only on an allowed, non-shadow call (same rule as WP24b).
         if transformed and d.allow and not shadow and not builtin:
             d.transformed_payload = {k: transformed[k] for k in sorted(transformed)}

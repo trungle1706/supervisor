@@ -1,0 +1,42 @@
+{
+  "note": "Published result of model 1.0.0 (docs/injection-classifier-validation-report.md at commit 3ffde31, balanced preset 6000 bp, held-out run at the time). Kept for the 1.0.0 versus 1.1.0 table.",
+  "commit": "3ffde31",
+  "heldout": {
+    "recall_bp": 5600,
+    "precision_bp": 8102,
+    "false_alarm_all_benign_bp": 655,
+    "false_alarm_hard_negatives_bp": 907,
+    "recall_by_code_bp": {
+      "injection.direct_injection": 4666,
+      "injection.indirect_injection": 7000,
+      "injection.tool_poisoning": 5133
+    },
+    "precision_by_code_bp": {
+      "injection.direct_injection": 9589,
+      "injection.indirect_injection": 8400,
+      "injection.tool_poisoning": 6814
+    }
+  },
+  "evasion": {
+    "typo_recall_bp": 4133,
+    "typo_regex_recall_bp": 400,
+    "all_kinds_recall_bp": 5069,
+    "all_kinds_regex_recall_bp": 1125,
+    "benign_false_alarm_bp": 486
+  },
+  "adversarial": {
+    "recall_bp": 7735,
+    "regex_recall_bp": 3773,
+    "benign_false_alarm_bp": 416
+  },
+  "pause": {
+    "pause_recall_bp": 1011,
+    "false_pause_bp": 0
+  },
+  "latency_us": {
+    "p50": 1437,
+    "p95": 4025,
+    "no_finding_p95": 2545,
+    "finding_p95": 5175
+  }
+}

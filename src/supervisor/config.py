@@ -577,6 +577,12 @@ class Settings(BaseSettings):
     console_export_max_rows: int = Field(default=5000, ge=1, le=100_000)  # CSV rows, masked cols
     sched_decision_rollup_s: int = Field(default=3600, ge=60)  # decision_daily rollup job
 
+    # --- WP25 --- injection classifier (ADR D27, docs/injection-classifier.md).
+    # Fail-closed for the classifier is honoured only when this is true AND the model card has an
+    # approval (approver + the weights_sha256 it approves). Default false: an outage never stops
+    # payments without a named owner (R1). Env name: CLASSIFIER_FAIL_CLOSED_APPROVED.
+    classifier_fail_closed_approved: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",

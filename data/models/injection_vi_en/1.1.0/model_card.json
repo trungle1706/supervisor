@@ -1,0 +1,178 @@
+{
+  "approval": {
+    "approver": "FILL-ME (MRM_APPROVER)",
+    "note": "fail_closed for the classifier is honoured only when CLASSIFIER_FAIL_CLOSED_APPROVED=1 and this block names an approver and the weights_sha256 approved (it must equal the loaded weights)",
+    "weights_sha256": null
+  },
+  "buckets": 81920,
+  "change_log": [
+    {
+      "change": "first model (feat-2), trained on train.jsonl, thresholds from dev",
+      "version": "1.0.0"
+    },
+    {
+      "change": "feat-3: surface weight blocks, instruction-form cues, stems, typo tolerance, plausibility decoding; new training pool train_b; thresholds per surface from out-of-fold scores",
+      "version": "1.1.0"
+    }
+  ],
+  "feature_version": "feat-3",
+  "format": "linear logistic regression over hashed character n-gram, word, stem and concept features (pure Python)",
+  "intended_use": "Advisory score for prompt injection (direct, indirect, tool poisoning) in Vietnamese and English in tool arguments, tool results and tool descriptions. It may only PAUSE money and credit tools above the frozen pause threshold, and only through GATE-CLASSIFIER-PAUSE (a human resumes). It never blocks (R1).",
+  "known_limits": [
+    "trained on synthetic template text: real attacks are less regular",
+    "spaced-out letters and other languages are not recognised",
+    "a long document dilutes a short instruction (windows of 150 characters, max over windows; text over 12000 characters keeps head, tail and the cue-richest middle segments)",
+    "no state across calls: split attacks need the caller to pass prior calls"
+  ],
+  "licence": "synthetic, this repo (weights derived from synthetic data only)",
+  "model_id": "injection_vi_en",
+  "oof_summary": {
+    "per_fold": {
+      "dev": {
+        "false_alarm_bp": [
+          800,
+          640,
+          360
+        ],
+        "recall_bp": [
+          8800,
+          7933,
+          6533
+        ]
+      },
+      "train": {
+        "false_alarm_bp": [
+          512,
+          275,
+          525
+        ],
+        "recall_bp": [
+          7462,
+          7375,
+          6662
+        ]
+      },
+      "train_b": {
+        "false_alarm_bp": [
+          200,
+          620,
+          480
+        ],
+        "recall_bp": [
+          4260,
+          6620,
+          4240
+        ]
+      }
+    },
+    "recall_at_fa_bp": {
+      "all": {
+        "300": 5298,
+        "500": 6356,
+        "800": 7232
+      },
+      "args": {
+        "300": 5710,
+        "500": 6496,
+        "800": 7200
+      },
+      "tool_description": {
+        "300": 4544,
+        "500": 5813,
+        "800": 6889
+      },
+      "tool_results": {
+        "300": 6110,
+        "500": 7172,
+        "800": 8041
+      }
+    }
+  },
+  "out_of_scope": [
+    "languages other than Vietnamese and English",
+    "image, audio or file content",
+    "multi-turn attacks (WP27)",
+    "any use as the only control"
+  ],
+  "owner_roles": {
+    "approver": "FILL-ME (MRM_APPROVER)",
+    "model_developer": "FILL-ME (MRM_MODEL_DEVELOPER)",
+    "model_owner": "FILL-ME (MRM_MODEL_OWNER)",
+    "validator": "FILL-ME (MRM_VALIDATOR)"
+  },
+  "scale": 10000,
+  "sealed_sets": {
+    "adversarial.jsonl": "fa2faf19f8228cfc984e4ce7910b9260c62139f8e82e48c2525d13e47ec48cfc",
+    "evasion.jsonl": "45a601324d09eee8ce4833deafcdab36d5a93e2e17942bad29205b5a3a895466",
+    "heldout.jsonl": "09b4d170e6c69de36af6f776d7222301c59ea9cc0c1d9cef166326303999d785"
+  },
+  "superseded": null,
+  "surfaces": [
+    "args",
+    "tool_results",
+    "tool_description"
+  ],
+  "thresholds_bp": {
+    "balanced": {
+      "args": 4750,
+      "tool_description": 4500,
+      "tool_results": 4000
+    },
+    "lenient": {
+      "args": 5500,
+      "tool_description": 5250,
+      "tool_results": 4750
+    },
+    "pause": 7250,
+    "strict": {
+      "args": 4000,
+      "tool_description": 3750,
+      "tool_results": 3250
+    }
+  },
+  "thresholds_note": "per surface, from the out-of-fold scores of the 3 folds: strict = false alarm <= 800 bp, balanced <= 500 bp, lenient <= 300 bp, pause (global) <= 50 bp; rounded up to 50 bp. The final weights are trained on all three pools, so scores run a little higher than in the folds. ILLUSTRATIVE until the bank sets them.",
+  "training": {
+    "command": "uv run python -m tools.cross_validate --thresholds-out T.json; uv run python -m tools.train_classifier --thresholds T.json",
+    "data_note": "the card hashes are those of the committed files; the files were committed before the final run (WP25b closes review finding F6)",
+    "files": {
+      "dev": {
+        "n_items": 1200,
+        "path": "data/eval/injection_vi_en/dev.jsonl",
+        "sha256": "85e892c98c94c948808f13b29b1aab38e9edce7eaddbf69443ccd3865a2a3cb3"
+      },
+      "train": {
+        "n_items": 4800,
+        "path": "data/eval/injection_vi_en/train.jsonl",
+        "sha256": "837d508c55bd4557314221ffd7814980a0462d3f1e829544a4d2489ad1ec977b"
+      },
+      "train_b": {
+        "n_items": 3000,
+        "path": "data/eval/injection_vi_en/train_b.jsonl",
+        "sha256": "c5c83af22720e6fa6b569f22ae2e36174af6dd5b7135f71b5cb0c9ecd0cb9aad"
+      }
+    },
+    "hyperparameters": {
+      "average": true,
+      "bags": 1,
+      "epochs": 3,
+      "eps": 1e-06,
+      "hard_weight": 4.0,
+      "l2": 0.001,
+      "lr": 0.1,
+      "pos_weight": 1.0
+    },
+    "labeller": "synthetic (templates written for this repo); most items use templates reworded offline by the local LLM ('synthetic, LLM-paraphrased')",
+    "seed": 20261023,
+    "selection": "grouped cross-validation, leave-one-pool-out over train, dev and train_b (data/eval/injection_vi_en/WP25B_PROTOCOL.md)"
+  },
+  "validation": {
+    "baseline": "data/eval/injection_vi_en/baseline.json",
+    "command": "python -m supervisor.detectors.harness --detector injection_classifier",
+    "pause_use": "not recommended: the entry stays disabled; thresholds need recalibration on data the final model has not seen (see HANDOFF_WP25.md, WP25b)",
+    "report": "docs/injection-classifier-validation-report.md",
+    "status": "validated once on the sealed sets: NO-GO (recall 8111 bp against 8500, precision 6165 against 9000, false alarm 2522 against 500 at the balanced preset); GO on typo recall, evasion recall, probes recall, latency (5 ms target), determinism, leaks, integrity, false pause"
+  },
+  "version": "1.1.0",
+  "weights_file": "weights.json",
+  "weights_sha256": "6ccaede10bbabb73c11a82c17f62b038ab4ba25182a3308198ed11c22b773ae2"
+}

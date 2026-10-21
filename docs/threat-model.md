@@ -344,3 +344,19 @@ highest level and every class the agent had, so a move keeps its stage approval 
 skipped; (8) **Launch passes on an unknown**: no task list, a stage before deployment, an
 unreadable list or the gate flag on with CONTROLS_ENABLED off are each NO-GO; (9) **a bank process
 shows working because a product rule fired**: a bank-owned control is always `bank_owned`.
+
+### 3.11 Injection classifier (WP25, ADR D27)
+
+The classifier reads text from three untrusted places: tool arguments, tool results and tool
+descriptions. The text is only turned into hashed numbers and a score; it is not stored, sent to a
+model or logged, and a finding carries fragments of MASKED text (R2). The trust boundary change is one
+new way to stop a call: a score at or above the frozen pause threshold on a money or credit tool pauses
+the agent (`GATE-CLASSIFIER-PAUSE`), never blocks it, and a human resumes with two people (R1). An
+attacker who learns the model could craft text that stays under the threshold (evasion; see the
+validation report for the measured recall) or craft benign-looking text that triggers pauses (a
+denial-of-service on one agent; the pause is per agent and visible as a case). The weight file is
+pinned by SHA-256 in the model card; the loader refuses a changed file, so the model cannot be swapped
+silently. Training data are synthetic; the model is not a replacement for the rules.
+
+The classifier keeps two small in-process caches (feature ids per text window, word classes per token). They are keyed by a 16-byte
+BLAKE2b digest of the text and hold only integers, so text of a call (names, account digits) does not stay in process memory after the call (WP25c, review G5).

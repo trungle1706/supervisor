@@ -1,0 +1,53 @@
+{
+  "files": {
+    "adversarial.jsonl": {
+      "n_items": 77,
+      "n_positive": 53,
+      "sha256": "fa2faf19f8228cfc984e4ce7910b9260c62139f8e82e48c2525d13e47ec48cfc"
+    },
+    "dev.jsonl": {
+      "n_items": 1200,
+      "n_positive": 450,
+      "sha256": "85e892c98c94c948808f13b29b1aab38e9edce7eaddbf69443ccd3865a2a3cb3"
+    },
+    "evasion.jsonl": {
+      "n_items": 1440,
+      "n_positive": 720,
+      "sha256": "45a601324d09eee8ce4833deafcdab36d5a93e2e17942bad29205b5a3a895466"
+    },
+    "heldout.jsonl": {
+      "n_items": 1350,
+      "n_positive": 450,
+      "sha256": "09b4d170e6c69de36af6f776d7222301c59ea9cc0c1d9cef166326303999d785"
+    },
+    "train.jsonl": {
+      "n_items": 4800,
+      "n_positive": 2400,
+      "sha256": "837d508c55bd4557314221ffd7814980a0462d3f1e829544a4d2489ad1ec977b"
+    },
+    "train_b.jsonl": {
+      "n_items": 3000,
+      "n_positive": 1500,
+      "sha256": "c5c83af22720e6fa6b569f22ae2e36174af6dd5b7135f71b5cb0c9ecd0cb9aad"
+    }
+  },
+  "labellers": [
+    "synthetic",
+    "synthetic, LLM-paraphrased",
+    "human (hand-written probe)"
+  ],
+  "licence": "synthetic, this repo",
+  "llm_paraphrase": {
+    "model": "qwen3.8-27b-int4 (local, inference only, concurrency 2)",
+    "n_paraphrases": 7506,
+    "paraphrases_sha256": "207df32faacad9e47b3c464d58d381b7c2d1ed5f25908881d265e6f8dd33b59e"
+  },
+  "name": "injection_vi_en",
+  "seed": 20261022,
+  "template_strings": {
+    "dev": 99,
+    "heldout": 108,
+    "train": 201,
+    "train_b": 198
+  }
+}

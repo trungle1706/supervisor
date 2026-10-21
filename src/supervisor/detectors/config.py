@@ -103,7 +103,9 @@ class ResolvedDetectors:
             problems += [f"detectors.{slug}.{e}" for e in errs]
             if entry.fail_closed and not registry.may_fail_closed(slug):
                 # R1: an advisory detector never fails closed; the value is ignored, loudly.
-                log.warning("detectors.%s.fail_closed: ignored (advisory detector, R1)", slug)
+                log.warning(
+                    "detectors.%s.fail_closed: ignored (advisory detector or no approval, R1)", slug
+                )
         if problems:
             raise ConfigError("detectors config invalid: " + "; ".join(problems))
         self._base = RunConfig(

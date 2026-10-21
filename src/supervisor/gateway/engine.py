@@ -41,9 +41,7 @@ from supervisor.core.args_hmac import args_hmac, as_key, key_id
 from supervisor.core.canonical import canonical_json, format_ts, sha256_hex
 from supervisor.core.ports import Clock, EvidenceSink, Masker, StateStore, TableStore
 from supervisor.gateway.detector_gate import (
-    FAILED_RULE as DETECTOR_FAILED_RULE,
-)
-from supervisor.gateway.detector_gate import (
+    CLASSIFIER_PAUSE_RULE,
     DetectorGate,
     PreDetect,
     Req,
@@ -52,6 +50,9 @@ from supervisor.gateway.detector_gate import (
     event_fields,
     fallback_v2,
     finding_rows,
+)
+from supervisor.gateway.detector_gate import (
+    FAILED_RULE as DETECTOR_FAILED_RULE,
 )
 from supervisor.gateway.facts import FactSource
 from supervisor.gateway.policy import (
@@ -362,6 +363,8 @@ class Decision:
 
     # WP27 session monitor (None when SESSION_MONITOR_ENABLED is off: the answer is unchanged).
     sess: SessionCall | None = None
+    # WP25: set only by the detector gate's classifier pause path (never by a policy rule id)
+    classifier_pause: bool = False
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -633,7 +636,7 @@ class Gateway:
             builtin is None
             and not shadow
             and d.observed is None
-            and any(m.action == "pause" for m in matches)
+            and (any(m.action == "pause" for m in matches) or d.classifier_pause)
         )
         out["not_evaluated"] = sorted(skipped)
         return out
@@ -812,6 +815,17 @@ class Gateway:
                     agent_id,
                     f"rule:{pause_rule.rule.id}",
                     f"{pause_rule.rule.id}: {pause_rule.rule.description}",
+                    auth_method="local_system",
+                    actor_kind="system",
+                )
+                d.paused = True
+            elif d.classifier_pause and not shadow and builtin is None:
+                # WP25: the injection classifier asked for a pause above its frozen threshold on a
+                # money / credit tool. Same state change as a pause rule; a human resumes.
+                self.states.pause(
+                    agent_id,
+                    f"rule:{CLASSIFIER_PAUSE_RULE}",
+                    d.reason[:240],
                     auth_method="local_system",
                     actor_kind="system",
                 )
@@ -1237,7 +1251,21 @@ class Gateway:
                         "rationale_masked": m.rule.description,
                     }
                 )
-        else:
+        if d.classifier_pause and matches:
+            # WP25: a pause by the classifier next to alert / log rule matches still needs its own
+            # tier 0 pause row, or no case would open (cases read the verdict rows)
+            rows.append(
+                {
+                    **base,
+                    "verdict_id": uuid.uuid4().hex,
+                    "checker_id": CHECKER_0A,
+                    "label": "classifier_pause",
+                    "action": "pause",
+                    "rule_id": d.rule_id,
+                    "rationale_masked": d.reason[:500],
+                }
+            )
+        if not matches:
             rows.append(
                 {
                     **base,
