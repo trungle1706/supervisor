@@ -140,3 +140,35 @@ taken before the Observed-decision line was added to the Response tab.
 4. Thresholds of the nine rules (latency budget 50 ms, redaction 30 percent, detector failure 5 percent, PII output 3 in 10 minutes): set by the bank SOC?
 5. Should `consumer_id` be required in the SDK (WP38) so the per-application table is never empty?
 6. Coverage gap: should an agent id that is not in the registry raise a gap at all, or only a separate "unknown agent" alert?
+
+## 10. Follow-ups after review
+
+Review `REVIEW_WP39.md` (commits `38812eb`..`1a69c4a`, not changed). Five Low items closed in commit
+`50567b9` (one commit for the five; they share the test file and the i18n block). Tests: `tests/console/test_wp39_followups.py` (11 new).
+
+| Item | What I did |
+|---|---|
+| F13 export without JS | The export form has `action` and `method="post"`. `form_or_plain()` in `routes.py` takes a plain post when `Origin` (else `Referer`) names this host (the replacement for the missing `HX-Request` guard); anything else is HTTP 400. Same permission, same two audit rows, same signed one-time link. A plain post returns a whole page (`decisions_export.html`) with the link and a way back that keeps the filters |
+| F14 harness in a request | `analytics_v2._validation` now reads `<DATA_DIR>/eval/detectors_report.json` (write it with `python -m supervisor.detectors.harness --json <DATA_DIR>/eval/detectors_report.json`). No file, or a bad one: the column says "not run" and a hint gives the command. A test makes `harness.run` raise inside a request. The marker `GO (indicative)` shows when the report has it |
+| F15 rollup subquery | `not_evaluated_sql` adds `ts >= :r_from AND ts < :r_to` to the `finding` subquery. Tests: SQL text; a store with a 10-day-old row (a recent window never sees it, a window that covers it counts it once); a stray old finding row does not mark a recent decision |
+| F16 Blocked vs Block | Cause found: two parts. (1) The synthetic stops of the demo seed had no tier 0 verdict rows, which the v1 tile counts; `add_decision` now writes the verdict row of a block or pause, so the tiles agree (test: blocked and paused of v1 equal blocks and pauses of `decision_daily`). (2) A real difference stays: v1 counts the stopping rule (pause first), v2 the verdict status (block first), so a call that matched both is Paused in v1 and Block in v2. The series title now has a note that says so (`dd-series-note`, EN and VI), and a test pins the difference (sums equal, one call moves from paused to block) |
+| F17 window line | Removed from the Detectors tab; test counts one window range on the page |
+
+Notes: the first full run stopped at `tests/integrations/test_integrations.py::test_chain_feed_writes_schema_events_once` (it scans the
+chain feed for any run of 9 to 12 digits and a random id contained one; passes on 4 reruns, not caused by WP39; log
+`wp39_followup_full.txt`). The rerun is clean (`wp39_followup_full2.txt`). I did not retake the screenshots (no visible change except the series note).
+
+```
+$ uv run python -m pytest -q -x -p no:cacheprovider
+3940 passed, 29 skipped, 1 warning in 536.26s (0:08:56)        (review: 3929; +11)
+$ uv run python -m ruff check
+All checks passed!
+$ uv run python -m ruff format --check
+704 files already formatted
+$ uv run python -m supervisor.alerts.harness
+[OK] drills GO
+[OK] all GO
+$ uv run python -m supervisor.console.activity_harness
+OVERALL: GO
+```
+Commit ids: `50567b9` (F13 to F17). Handoff section: this one.
