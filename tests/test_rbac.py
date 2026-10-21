@@ -66,6 +66,7 @@ def test_new_roles() -> None:
         "inventory.view",  # WP24
         "gate.read",
         "tools.view",  # WP22
+        "mcp.tools.view",  # WP26
         # WP-UX3: read-only pages for everyone
         "decisions.view",
         "traces.view",
@@ -73,7 +74,13 @@ def test_new_roles() -> None:
         "integrations.view",
     }
     operator = {p for p in rbac.PERMISSIONS if rbac.allowed(["operator"], p)}
-    assert operator == viewer | {"intake.run", "chain.verify", "alert.ack", "playground.run"}
+    assert operator == viewer | {
+        "intake.run",
+        "chain.verify",
+        "alert.ack",
+        "playground.run",
+        "mcp.tools.propose",  # WP26
+    }
     auditor = {p for p in rbac.PERMISSIONS if rbac.allowed(["auditor"], p)}
     assert {"evidence.export", "evidence.download", "chain.verify", "console.view"} <= auditor
     assert not auditor & {"case.assign", "case.signoff", "agent.pause", "intake.run"}

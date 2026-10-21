@@ -21,7 +21,10 @@ PINNED = {
     ("POST", "/gate/check"),
     ("POST", "/v1/gate/check"),
     ("POST", "/v1/traces"),
+    ("POST", "/v1/mcp/tools/observe"),  # WP26: HTTP MCP proxy reports a tools/list
+    ("POST", "/v1/mcp/tools/blocked"),  # WP26: HTTP MCP proxy reports a refused call
 }
+MCP_RATE_LIMITED = {"/v1/mcp/tools/observe", "/v1/mcp/tools/blocked"}  # signed, but not exempt
 
 
 def _deps(dependant: Any) -> Iterator[Any]:
@@ -73,4 +76,4 @@ def test_no_unlisted_post_route_in_the_agent_packages() -> None:
 def test_rate_limit_exempt_set_matches_the_ingress_routes() -> None:
     from supervisor.ops.middleware import RATE_LIMIT_EXEMPT
 
-    assert RATE_LIMIT_EXEMPT == {p for _, p in PINNED}
+    assert RATE_LIMIT_EXEMPT == {p for _, p in PINNED} - MCP_RATE_LIMITED

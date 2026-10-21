@@ -5,6 +5,33 @@
 | WP | Feature | Docs | ADR |
 |---|---|---|---|
 | WP37 | Verdict contract v2 on `/v1/gate/check` (`status`, `findings`, `not_executed`, `coverage`, `transformed_payload`, `request_id`, `correlation_id`, `direction`; old fields kept), detector framework (`dlp_vn`, `injection_regex`, `judge_advisory`), `GET /v1/gate/detectors`, table `finding` and three nullable `agent_event` columns (run `python -m supervisor.jobs.bootstrap_schema` on Delta), harness `python -m supervisor.detectors.harness`. Flag `DETECTORS_ENABLED` (default off: answers and rows as in v0.3.0) | `docs/detectors.md`, `docs/api.md` | D23 |
+## Unreleased (phase 3, wave 2)
+
+### WP26: HTTP MCP gateway with tool locking (flag `MCP_HTTP_ENABLED`, default off)
+
+* `python -m supervisor.gateway.mcp_http --upstream URL --agent ID --listen 127.0.0.1:PORT`: a
+  streamable-HTTP MCP proxy that reuses `McpGateProxy` (same gate path, evidence, ingress signing
+  and masked arguments as the stdio proxy), one kept-alive upstream client, one listener per
+  application. Refuses to start with the flag off.
+* Tool locking: every tool is hashed (name, description, input schema, annotations); a new or
+  changed tool is hidden from `tools/list` and refused on `tools/call` (`MCP-TOOL-UNREVIEWED`)
+  until two different people approve the same hash; a removed tool is logged; a review case
+  `mcp_tool_review` opens. New table `mcp_tool_manifest` (run `bootstrap_schema` on Delta).
+  `MCP_TOOL_LOCK` (default `1`), `MCP_LOCK_REFRESH_S` (default `60`).
+* Review: `python -m supervisor.gateway.mcp_http tools list|diff|propose|approve`, and routes
+  `/v1/mcp/tools` (permissions `mcp.tools.view`, `mcp.tools.propose`, `mcp.tools.approve`; the
+  role table in `docs/console.md` changed). Two new ingress routes `/v1/mcp/tools/observe` and
+  `/blocked` (signed like gate calls).
+* Report-only poisoning scan with a hook for the WP25 classifier score.
+* Harness `python -m supervisor.gateway.mcp_http_harness` (110 template items, 33 probes outside
+  the templates, Wilson intervals, latency with and without the gate) and its regression test.
+* Docs: `docs/mcp-gateway.md`, ADR D24, pattern C in the integration guide, threat model.
+* Review fixes (`REVIEW_WP26.md`): the proxy passes only server requests and notifications from an
+  upstream event stream (a forged response could reach the client ahead of the filtered
+  `tools/list`); `tools/list` with `"id": null` is filtered; `propose` never completes a lock;
+  approvals need the full 64-character hash; trust-on-first-use over the agent ingress needs
+  `MCP_TOFU_INGRESS=1` (default off) and records the sending credential; a non-loopback listener
+  needs the inbound token; a malformed lock view fails closed; a tool named `*` is refused.
 
 ## v0.3.0 (phase 3, wave 1) - 2026-10-20
 

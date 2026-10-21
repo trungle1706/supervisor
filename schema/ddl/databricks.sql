@@ -786,3 +786,30 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`finding` (
 USING DELTA
 COMMENT 'WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- mcp_tool_manifest (state): WP26 locked tool manifest per upstream MCP server. One row per (server, tool) plus one server row (tool_name '*') that holds the whole-list hash. locked_hash is what two different reviewers approved; observed_hash is what the server shows now. A tool whose status is new or changed is hidden from the agent and its tools/call is blocked (MCP-TOOL-UNREVIEWED). approvals lists {by, role, at, hash}; they count only for the observed hash. scan is the report-only poisoning scan (kinds and counts, no text).
+-- primary key (enforced by the app, not by Delta): manifest_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`mcp_tool_manifest` (
+  manifest_id STRING NOT NULL,
+  server_id STRING NOT NULL,
+  tool_name STRING NOT NULL,
+  row_kind STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  status STRING NOT NULL,
+  locked_hash STRING,
+  observed_hash STRING,
+  locked_def STRING,
+  observed_def STRING,
+  suspicious BOOLEAN NOT NULL,
+  scan STRING,
+  approvals STRING NOT NULL,
+  case_id STRING,
+  seeded_by STRING,
+  first_seen TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP26 locked tool manifest per upstream MCP server. One row per (server, tool) plus one server row (tool_name ''*'') that holds the whole-list hash. locked_hash is what two different reviewers approved; observed_hash is what the server shows now. A tool whose status is new or changed is hidden from the agent and its tools/call is blocked (MCP-TOOL-UNREVIEWED). approvals lists {by, role, at, hash}; they count only for the observed hash. scan is the report-only poisoning scan (kinds and counts, no text).'
+TBLPROPERTIES ('supervisor.kind' = 'state');

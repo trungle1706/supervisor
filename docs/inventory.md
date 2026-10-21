@@ -170,3 +170,12 @@ python -m supervisor.inventory export --out out\inventory
 | No regression | `tests/fixtures/inventory/baseline_counts.json` (dated 2026-10-20): 23 nodes and 22 edges from the three manifests; 34 and 34 after the 7-item workspace |
 
 The shadow check is a rule set, not a model, so there is no precision/recall estimate to report: each rule has a test, and the fixture labels are synthetic (`tests/fixtures/inventory/README.md`). Limits are in BACKLOG.
+
+## MCP servers seen by the HTTP MCP gateway (WP26)
+
+With `INVENTORY_ENABLED=1` and `MCP_HTTP_ENABLED=1`, the first time the HTTP MCP proxy lists a
+remote server, the app registers it as an `mcp_server` node named after the lock id
+(`--server-name`, default from the URL) with evidence source `manual` and reference
+`mcp_tool_manifest:<server>`, and a `uses` edge from the agent. A manifest `mcp_servers:` entry
+with the same name merges into the same node. The tool lock itself is in the table
+`mcp_tool_manifest`; see `docs/mcp-gateway.md`.

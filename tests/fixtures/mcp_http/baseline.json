@@ -1,0 +1,116 @@
+{
+ "commit": "a82ee23a6def",
+ "false_alarms": {
+  "scan:benign_lookalike:injection_phrase": 1,
+  "scan:benign_lookalike:instruction_phrase_vi": 1
+ },
+ "known_gap_probes": [
+  "X-121",
+  "X-20",
+  "X-21",
+  "X-22",
+  "X-26",
+  "X-30",
+  "X-41",
+  "X-58",
+  "X-65",
+  "X-66",
+  "X-67",
+  "X-68"
+ ],
+ "metrics": {
+  "heldout": {
+   "call_block": {
+    "k": 62,
+    "n": 62
+   },
+   "drift_catch": {
+    "k": 26,
+    "n": 26
+   },
+   "held_calls_leaked": 0,
+   "lock_false_alarm": {
+    "k": 0,
+    "n": 139
+   },
+   "poison_catch": {
+    "k": 17,
+    "n": 17
+   },
+   "removed_logged": {
+    "k": 1,
+    "n": 1
+   },
+   "scan_false_alarm": {
+    "k": 0,
+    "n": 148
+   }
+  },
+  "probes": {
+   "call_block": {
+    "k": 93,
+    "n": 94
+   },
+   "drift_catch": {
+    "k": 78,
+    "n": 79
+   },
+   "held_calls_leaked": 0,
+   "lock_false_alarm": {
+    "k": 0,
+    "n": 45
+   },
+   "poison_catch": {
+    "k": 41,
+    "n": 51
+   },
+   "removed_logged": {
+    "k": 4,
+    "n": 4
+   },
+   "scan_false_alarm": {
+    "k": 2,
+    "n": 73
+   }
+  },
+  "templates": {
+   "call_block": {
+    "k": 194,
+    "n": 194
+   },
+   "drift_catch": {
+    "k": 84,
+    "n": 84
+   },
+   "held_calls_leaked": 0,
+   "lock_false_alarm": {
+    "k": 0,
+    "n": 400
+   },
+   "poison_catch": {
+    "k": 52,
+    "n": 52
+   },
+   "removed_logged": {
+    "k": 10,
+    "n": 10
+   },
+   "scan_false_alarm": {
+    "k": 0,
+    "n": 432
+   }
+  }
+ },
+ "misses": {
+  "drift:unhashed_field": 1,
+  "poison:base64": 1,
+  "poison:leetspeak": 1,
+  "poison:poison_variant": 6,
+  "poison:rot13": 1,
+  "poison:unhashed_field": 1
+ },
+ "n_items": 199,
+ "note": "Quality run on the mock upstream, SQLite. Latency is not pinned (machine dependent).",
+ "recorded_on": "2026-10-20",
+ "schema": "supervisor-mcp-http-harness/1"
+}

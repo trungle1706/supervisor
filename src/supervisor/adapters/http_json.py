@@ -38,3 +38,56 @@ def post_bytes(url: str, body: bytes, headers: dict[str, str], timeout_s: float)
     if not isinstance(data, dict):
         raise ValueError("gateway returned a non-object response")
     return data
+
+
+def get_json(
+    url: str, timeout_s: float, *, headers: Mapping[str, str] | None = None
+) -> dict[str, Any]:
+    """GET and return the JSON object (human CLI against the app's routes). Raises on non-2xx."""
+    resp = httpx.get(url, timeout=timeout_s, headers=dict(headers or {}))
+    resp.raise_for_status()
+    data = resp.json()
+    if not isinstance(data, dict):
+        raise ValueError("server returned a non-object response")
+    return data
+
+
+class PooledJson:
+    """JSON POST client that keeps its connections (WP26: the HTTP MCP proxy talks to the gate
+    on every tools/call; a new connection per call cost about 8 ms in the stdio proxy).
+
+    ``post_json`` and ``post_bytes`` have the signatures ``HttpGate`` expects for its
+    ``transport`` and ``signed_transport`` arguments."""
+
+    def __init__(self) -> None:
+        self._client = httpx.Client(limits=httpx.Limits(max_keepalive_connections=20))
+
+    def post_json(
+        self,
+        url: str,
+        payload: dict[str, Any],
+        timeout_s: float,
+        *,
+        headers: Mapping[str, str] | None = None,
+    ) -> dict[str, Any]:
+        resp = self._client.post(url, json=payload, timeout=timeout_s, headers=dict(headers or {}))
+        return _object(resp)
+
+    def post_bytes(
+        self, url: str, body: bytes, headers: Mapping[str, str], timeout_s: float
+    ) -> dict[str, Any]:
+        resp = self._client.post(url, content=body, headers=dict(headers), timeout=timeout_s)
+        return _object(resp)
+
+    def close(self) -> None:
+        self._client.close()
+
+
+def _object(resp: httpx.Response) -> dict[str, Any]:
+    resp.raise_for_status()
+    if not resp.content:
+        return {}
+    data = resp.json()
+    if not isinstance(data, dict):
+        raise ValueError("server returned a non-object response")
+    return data

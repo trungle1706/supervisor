@@ -984,3 +984,29 @@ BEFORE DELETE ON finding
 BEGIN
   SELECT RAISE(ABORT, 'finding is append-only');
 END;
+
+-- mcp_tool_manifest (state): WP26 locked tool manifest per upstream MCP server. One row per (server, tool) plus one server row (tool_name '*') that holds the whole-list hash. locked_hash is what two different reviewers approved; observed_hash is what the server shows now. A tool whose status is new or changed is hidden from the agent and its tools/call is blocked (MCP-TOOL-UNREVIEWED). approvals lists {by, role, at, hash}; they count only for the observed hash. scan is the report-only poisoning scan (kinds and counts, no text).
+CREATE TABLE IF NOT EXISTS mcp_tool_manifest (
+  manifest_id TEXT NOT NULL,
+  server_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  row_kind TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  locked_hash TEXT,
+  observed_hash TEXT,
+  locked_def TEXT,
+  observed_def TEXT,
+  suspicious INTEGER NOT NULL,
+  scan TEXT,
+  approvals TEXT NOT NULL,
+  case_id TEXT,
+  seeded_by TEXT,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (manifest_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_mcp_tool_manifest_server_id ON mcp_tool_manifest (server_id);

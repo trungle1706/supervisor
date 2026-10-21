@@ -483,6 +483,21 @@ class Settings(BaseSettings):
     detectors_enabled: bool = False
     detectors_config: Path = Path("config/detectors.yaml")
 
+    # --- WP26 --- HTTP MCP gateway with tool locking (ADR D24, docs/mcp-gateway.md)
+    # MCP_HTTP_ENABLED: the /v1/mcp/tools routes work and the proxy process may start (default
+    # off). MCP_TOOL_LOCK: inside the proxy, hold new or changed tools for two-person review
+    # (default on; the lock is deterministic and safe). MCP_LOCK_REFRESH_S: how long the proxy
+    # trusts one tools/list view before it asks the upstream server again.
+    mcp_http_enabled: bool = False
+    mcp_tool_lock: bool = True
+    mcp_lock_refresh_s: int = Field(default=60, ge=1, le=3600)
+    # MCP_TOFU_INGRESS: accept --trust-on-first-use from a proxy over POST /v1/mcp/tools/observe
+    # (the name is claimed by the process owner, not verified). Default off (review WP26 F3).
+    mcp_tofu_ingress: bool = False
+    # MCP_SERVER_AGENTS: extra agents allowed to report on a server another agent registered,
+    # "server=agent1|agent2;server2=agent3" (review WP26 F12). Default: only the registering agent.
+    mcp_server_agents: str = Field(default="", pattern=r"^[A-Za-z0-9_.:@=|;-]*$")
+
     @field_validator(
         "data_dir",
         "sqlite_path",

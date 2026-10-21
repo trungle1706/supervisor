@@ -95,6 +95,16 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "users.view": (("admin",), "Users and roles page (read-only)"),
     "audit.view": (("auditor", "admin"), "Audit log page: console_action rows (read-only)"),
     "integrations.view": (_ALL, "Integrations status page (read-only)"),
+    # --- WP26 ---
+    "mcp.tools.view": (_ALL, "List MCP tools and their diffs (read-only, WP26)"),
+    "mcp.tools.propose": (
+        ("reviewer", "approver", "owner", "admin", "operator"),
+        "Give the first approval of a new or changed MCP tool (WP26)",
+    ),
+    "mcp.tools.approve": (
+        ("reviewer", "approver", "owner", "admin"),
+        "Approve a new or changed MCP tool; the second different person locks it (WP26)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -109,6 +119,7 @@ NON_USER_OK: frozenset[str] = frozenset(
         "inventory.view",
         "gate.read",
         "tools.view",
+        "mcp.tools.view",
         "case.verify",
         "chain.verify",
     }
@@ -227,6 +238,13 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/audit/rows"): "audit.view",
     ("GET", "/console/audit/{action_id}/drawer"): "audit.view",
     ("GET", "/console/integrations"): "integrations.view",
+    # --- WP26 ---
+    ("GET", "/v1/mcp/tools"): "mcp.tools.view",
+    ("GET", "/v1/mcp/tools/diff"): "mcp.tools.view",
+    ("POST", "/v1/mcp/tools/propose"): "mcp.tools.propose",
+    ("POST", "/v1/mcp/tools/approve"): "mcp.tools.approve",
+    ("POST", "/v1/mcp/tools/observe"): AGENT,
+    ("POST", "/v1/mcp/tools/blocked"): AGENT,
 }
 
 
