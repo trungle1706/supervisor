@@ -66,7 +66,7 @@ from supervisor.gateway.policy import (
     RuleSpec,
     ToolMatch,
 )
-from supervisor.gateway.redact import redact_args
+from supervisor.gateway.redact import over_budget, redact_args
 from supervisor.gateway.session_gate import PAUSE_RULE as SESSION_PAUSE_RULE
 from supervisor.gateway.session_gate import SessionCall, SessionGate, finding_codes
 from supervisor.gateway.state import AgentStateMachine
@@ -369,6 +369,9 @@ class Decision:
     sess: SessionCall | None = None
     # WP25: set only by the detector gate's classifier pause path (never by a policy rule id)
     classifier_pause: bool = False
+    # WP41b (D26): the built-in state or session pause denied this call. The old ``action`` stays
+    # ``block`` (contract kept); only the v2 ``status`` says ``pause``.
+    pause_status: bool = False
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -425,6 +428,16 @@ class _Call:
         self.lock = threading.Lock()
         self.abandoned = False
         self.decision: Decision | None = None
+
+
+def _detector_fails_closed(det: PreDetect | None, risk: str | None, eff: Effective | None) -> bool:
+    """WP41b review: True when ``DetectorGate.apply`` will turn this allowed call into
+    GATE-DETECTOR-FAILED and observe mode will not lift it (see ``Gateway._apply_mode``)."""
+    if det is None or det.skipped or det.risk_class not in det.fail_closed_risk:
+        return False
+    if det.result is not None and not det.result.failed_closed:
+        return False
+    return not (eff is not None and eff.mode == "observe" and risk != "pii_export")
 
 
 class Gateway:
@@ -616,8 +629,8 @@ class Gateway:
         state = self.states.get_state(agent_id, policy)
         risk = policy.risk_class(tool_name)
         _, now_us = self._now_us()
-        pre = self._pre_redact(tool_name, args, ctx)
         det = self._pre_detect(policy, agent_id, agent_version, tool_name, args, ctx, req)
+        pre = self._pre_redact(tool_name, args, ctx, det)
         sess = self._pre_session(agent_id, tool_name, args, ctx, req, dry=True)
         d, matches, shadow, builtin = self._evaluate(
             policy,
@@ -785,8 +798,8 @@ class Gateway:
         ctx: dict[str, Any],
         req: Req | None = None,
     ) -> Decision:
-        pre = self._pre_redact(tool_name, args, ctx)
         det = self._pre_detect(None, agent_id, agent_version, tool_name, args, ctx, req)
+        pre = self._pre_redact(tool_name, args, ctx, det)
         sess = self._pre_session(agent_id, tool_name, args, ctx, req)
         with self._lock:
             policy = self.policy.current()
@@ -962,6 +975,7 @@ class Gateway:
                 policy.policy_hash,
                 risk,
             )
+            d.pause_status = builtin[0] in ("GATE-PAUSED", SESSION_PAUSE_RULE)  # WP41b (D26)
         elif decisive is not None and not shadow:
             reason = (
                 f"{decisive.rule.id}: {decisive.rule.description}"
@@ -1003,7 +1017,7 @@ class Gateway:
             self._observe(d, eff, risk)
         d.sess = sess
         if d.allow and not shadow and builtin is None:
-            self._redact(d, risk, tool_name, args, pre, dry=dry)
+            self._redact(d, risk, tool_name, args, pre, dry=dry, det=det, eff=eff)
         d.matched = [
             {
                 "rule_id": m.rule.id,
@@ -1140,7 +1154,11 @@ class Gateway:
         return self.detector_gate.prepare(pol, agent_id, agent_version, tool_name, args, ctx, req)
 
     def _pre_redact(
-        self, tool_name: str, args: dict[str, Any], ctx: Mapping[str, Any]
+        self,
+        tool_name: str,
+        args: dict[str, Any],
+        ctx: Mapping[str, Any],
+        det: PreDetect | None = None,
     ) -> tuple[dict[str, Any], int] | BaseException | None:
         """Masker pass outside the gate lock for a tool that is likely in scope (a hint only:
         ``_redact`` decides under the lock on the policy risk class, and masks there when the
@@ -1153,10 +1171,20 @@ class Gateway:
             or ctx.get("declared_risk_class") == "pii_export"
         ):
             return None
+        if self._redact_over_budget(args) and _detector_fails_closed(det, None, None):
+            return None  # WP41b (D32): the gate will refuse it; _redact decides under the lock
         try:
             return redact_args(self.masker, args)
         except Exception as exc:  # noqa: BLE001 - handled under the lock (fail closed)
             return exc
+
+    def _redact_over_budget(self, args: Mapping[str, Any]) -> bool:
+        """WP41b (D32): with the detector gate on, the masker reads at most the dlp_vn scan
+        budget. Beyond it dlp_vn is cut and the call fails closed on a risky tool, so masking
+        the full text (879 ms for 99 KB) is wasted time. False when there is no budget."""
+        gate = self.detector_gate
+        limit = gate.redact_budget_bytes() if gate is not None else None
+        return limit is not None and over_budget(args, limit)
 
     def _redact(
         self,
@@ -1166,6 +1194,8 @@ class Gateway:
         args: dict[str, Any],
         pre: tuple[dict[str, Any], int] | BaseException | None = None,
         dry: bool = False,
+        det: PreDetect | None = None,
+        eff: Effective | None = None,
     ) -> None:
         """Fill ``transformed_args`` for a pii_export tool (never in SHADOW, never on a block)."""
         if not self.inline_redaction or self.masker is None:
@@ -1174,6 +1204,18 @@ class Gateway:
             return
         if not dry and risk == "pii_export" and tool_name not in self._redact_hint:
             self._redact_hint = self._redact_hint | {tool_name}
+        if (
+            pre is None
+            and self._redact_over_budget(args)
+            and _detector_fails_closed(det, risk, eff)
+        ):
+            # WP41b (D32): too big to mask within the scan budget, and the detector gate will
+            # refuse the call (GATE-DETECTOR-FAILED, with the coverage reason), so masking the
+            # full text is wasted time. WP41b review: only then. When nothing refuses the call
+            # (fail_closed false, the risk class not fail-closed, every detector off for the
+            # agent, observe lifting the block) the masker runs on the full text as in WP24b,
+            # so a big pii_export argument never reaches the tool unmasked.
+            return
         try:
             if isinstance(pre, BaseException):
                 raise pre

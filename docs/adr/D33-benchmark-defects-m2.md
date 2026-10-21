@@ -75,3 +75,25 @@ data reaches the chain or a prompt, and nothing calls out of the host.
   money, credit and pii_export tools (`keep_args_approvals`).
 * Sending `turn_text` from every collector (the stock adapters send none; `expand`, `memory` and
   the topic markers need it).
+
+## Addendum: WP41b triage of the second benchmark (2026-10-21)
+
+Severity first: D31 High, D32 Medium, D26 Medium; the rest of the triage went to BACKLOG.
+
+* **D31.** The WP41 review made a transforming detector fail closed on a cut argument. The rule
+  is stated for the call instead of the detector: when the scan budget cuts any argument of a
+  money, credit or pii_export call, some part of what the tool receives was never read, so the
+  call is `GATE-DETECTOR-FAILED` (`*:payload_too_large`). read_only stays coverage only, as does
+  a cut tool result. Rejected: raising the budget (hides the limit, costs latency).
+* **D32.** Cause: the inline masker read the full text of a call the gate then refused. Choice:
+  above the `dlp_vn` scan limit the masker does not run when the detector gate is on. Rejected:
+  mask the first 16 KB for the record. The record never holds masked argument text (keys and
+  keyed hashes only), so there is nothing to shorten; `args_hmac` already hashes the whole
+  argument. Measured 15 to 17 ms p50 on a loaded host (load about 4) against 817 to 879 ms.
+  Review: the masker is skipped only when the detector result already fails the call closed
+  and observe will not lift it; in every other configuration the loader accepts it masks the
+  full text (slow, as WP24b), so a big pii_export argument never reaches a tool unmasked.
+  Rejected: refusing those configurations at load (they are valid for small arguments).
+* **D26.** The two built-in pauses (`GATE-PAUSED`, `GATE-SESSION-PAUSE`) keep `action: block`
+  (contract v1) and report status `pause` in v2. Precedence block > pause is unchanged: a
+  quarantined agent stays `block`, and a block rule that matched next to a pause rule wins.
