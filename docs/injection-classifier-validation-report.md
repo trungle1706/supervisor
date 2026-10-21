@@ -181,7 +181,7 @@ Adversarial probes (hand-written, outside the templates): recall 9433 [8462, 980
 | typo | 3 | 3 | 0 | 0 | 0 |
 | zero-width | 3 | 3 | 2 | 0 | 0 |
 
-Operating points at the frozen thresholds (dev: where they were chosen; held-out: reported):
+Operating points at the frozen thresholds (presets from out-of-fold scores; dev is in the final training data; threshold bp = the highest surface threshold of the preset):
 
 | split | point | threshold bp | recall bp (95% CI) | false alarm bp (95% CI) | hard negatives false alarm bp |
 |---|---|---|---|---|---|
@@ -214,8 +214,10 @@ Data: synthetic, this repo; independent template strings per pool {'dev': 99, 'h
 
 ### Caveats (read before using any number above)
 
-- **Targets declared first.** `THRESHOLDS` in `validation.py` were committed in 87ada25, before the first model (0e8410d) and before any held-out run; they are unchanged since.
-- **Dev drift.** The weights and the frozen presets come from the train and dev files of commit 0e8410d (model card `training.data_commit`). Commit 040cb19 regenerated every golden file from the same template pools (new random draws). The dev numbers above are on the regenerated dev file: balanced dev false alarm reads 613 bp where the presets were picked at 480 bp. Held-out stayed held-out (no template is shared with train or dev), but it is also a new draw. Re-running the trainer on the 0e8410d files gives the same weights (same SHA-256).
+- **Targets declared first.** `THRESHOLDS` in `validation.py` were committed in 87ada25, before the first model (0e8410d) and before any held-out run. The only later change is the latency target (p95 2 ms to 5 ms), declared in `WP25B_PROTOCOL.md` (efce71e) before the 1.1.0 run.
+- **Calibration (1.1.0).** The presets come from out-of-fold scores (each fold model saw two of the three pools); the final weights saw all three pools, so their scores run higher and `strict` and `balanced` fire far more often on unseen benign text than the rule intended. The operating points of other presets read from this report are descriptive (read after the run), not tuned; the shipped presets were not changed after the run.
+- **Dev is in-sample (1.1.0).** dev.jsonl is one of the three training pools of the final weights, so the dev rows and `heldout_gap_bp` compare in-sample with held-out numbers; they are not a validation split.
+- **Burnt held-out.** The 1.0.0 held-out failure taxonomy shaped the 1.1.0 design (pool train_b targets its false-alarm clusters and missed families). The sealed sets were run once for 1.1.0, but they are no longer a clean test of a design: heldout-v1 is now dev. The next held-out set must come from another author or from bank red-team traffic.
 - **Late probes.** 15 adversarial positives were added after the first run (to reach n >= 50); nothing was tuned on them, but the adversarial row is one author's probes and is indicative only.
 - **Template variance.** n counts items; items share about 100 template strings per pool, so the Wilson intervals understate the variance between templates. Recall under a new template family is the real risk.
 - **Latency.** p95 per call is judged against the 5 ms target of WP25b (2 ms in 1.0.0); calls with a finding cost more (fragments).
