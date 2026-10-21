@@ -1,7 +1,6 @@
 {# Detectors tab (WP39, CONSOLE_DECISIONS_V2): latency per detector from the recorded facts, the
    findings per code, and the harness verdicts. Variables from analytics_v2.detectors_data. #}
 {% import "_ui.html" as ui with context %}
-<div class="hint">{{ t('tl_window') }}: {{ det_from }} .. {{ det_to }} ({{ det_days }} d, UTC)</div>
 {% if det_empty %}{{ ui.empty(t('dd_empty'), t('dd_empty_line')) }}{% endif %}
 <section class="card" style="margin:12px 0" id="det-latency">
   <h3>{{ t('det_latency') }}</h3>
@@ -15,12 +14,13 @@
       <tr data-detector="{{ r.detector }}">
         <td class="mono">{{ r.detector }}</td><td class="n">{{ r.runs }}</td>
         <td class="n">{{ r.p50_us if r.p50_us is not none else '-' }}</td><td class="n">{{ r.p95_us if r.p95_us is not none else '-' }}</td>
-        <td>{% if v %}{{ v.overall }} <span class="idline">{{ t('det_adversarial') }}: {{ v.adversarial }}{% if v.mock %} · mock{% endif %}</span>{% else %}-{% endif %}</td>
+        <td>{% if v %}{{ v.overall }} <span class="idline">{{ t('det_adversarial') }}: {{ v.adversarial }}{% if v.mock %} · mock{% endif %}</span>{% else %}<span class="muted">{{ t('det_not_run') }}</span>{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>
   </table></div>
   <p class="hint">{{ t('det_approx') }}</p>
+  {% if not det_validation %}<p class="hint" id="det-not-run">{{ t('det_not_run_line') }}</p>{% endif %}
   {% else %}<p class="muted">{{ t('dd_none') }}</p>{% endif %}
 </section>
 <section class="card" style="margin:12px 0" id="det-codes">

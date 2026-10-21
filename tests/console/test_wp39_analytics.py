@@ -185,6 +185,9 @@ def test_gate_tab_filters_series_to_one_agent(v2console: Console) -> None:
 def test_detectors_tab_latency_and_the_indicative_marker(v2console: Console) -> None:
     _seed_known(v2console)
     decision_rollup.run(_mctx(v2console), v2console.ctx.settings)
+    from .test_wp39_followups import _write_report
+
+    _write_report(v2console)  # the tab reads the recorded report; it never runs the harness
     page = v2console.get("/console/analytics?tab=detectors").text
     assert 'id="det-latency"' in page and 'data-detector="dlp_vn"' in page
     assert "p50 (us)" in page and "p95 (us)" in page

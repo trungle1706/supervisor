@@ -223,6 +223,29 @@ async def form(request: Request) -> dict[str, str]:
     return {k: v[-1] for k, v in parsed.items()}
 
 
+async def form_or_plain(request: Request) -> tuple[dict[str, str], bool]:
+    """Like ``form`` but also takes a plain browser form post (no JavaScript). A plain post has
+    no ``HX-Request`` header, which is the CSRF guard of every other action, so it must come from
+    this site: ``Origin`` (else ``Referer``) has to name the host of the request. Returns the form
+    and whether it was a plain post."""
+    if request.headers.get("hx-request") == "true":
+        return await form(request), False
+    from urllib.parse import urlsplit
+
+    source = request.headers.get("origin") or request.headers.get("referer") or ""
+    host = request.headers.get("host", "")
+    if not source or urlsplit(source).netloc != host:
+        raise ConsoleInputError("this action must come from the console page")
+    body = await request.body()
+    if len(body) > MAX_FORM_BYTES:
+        raise ConsoleInputError("form is too large")
+    try:
+        parsed = parse_qs(body.decode("utf-8"), keep_blank_values=True, strict_parsing=False)
+    except UnicodeDecodeError:
+        raise ConsoleInputError("form must be UTF-8") from None
+    return {k: v[-1] for k, v in parsed.items()}, True
+
+
 def _version(data: Mapping[str, str]) -> int:
     raw = data.get("row_version", "")
     if not (raw.isascii() and raw.isdigit() and len(raw) < 12):
@@ -1402,6 +1425,15 @@ def _drawer_query(query: Mapping[str, str]) -> dict[str, str]:
     }
 
 
+def query_string_of(data: Mapping[str, str]) -> str:
+    """The filters of a list page as a query string (for the "back to the list" link)."""
+    from supervisor.console.listing import query_string
+
+    keep = ("agent", "action", "rule", "tool", "range", "trace", "status", "code", "noteval",
+            "consumer", "direction", "corr", "sort", "dir")  # fmt: skip
+    return query_string({k: data[k] for k in keep if data.get(k)})
+
+
 # -- gate decisions
 
 
@@ -1485,13 +1517,18 @@ async def decisions_export(
     _ux3_off(ctx, "decisions")
     if not decisions.v2_on(ctx):
         raise ConsoleInputError("The CSV export needs CONSOLE_DECISIONS_V2=1")
-    data = await form(request)
+    data, plain = await form_or_plain(request)
     built = await _call(decisions_v2.export_csv, ctx, data)
     await _call(decisions_v2.save_export, ctx, built, me.user_id)
     request.state.audit_detail = (  # WP39 review: the filter hash ties the file to its query
         f"rows={built['rows']};total={built['total']};truncated={int(built['truncated'])};"
         f"filters={decisions_v2.filter_hash(data)}"
     )
+    if plain:  # no JavaScript: a whole page with the signed link and a way back
+        back = query_string_of(data)
+        return render(
+            request, ctx, me, "decisions_export.html", section="decisions", export=built, back=back
+        )
     return render(request, ctx, me, "_decisions_export_result.html", export=built)
 
 

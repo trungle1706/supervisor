@@ -112,9 +112,13 @@ def not_evaluated_sql(alias: str, finding_table: str) -> str:
     p = f"{alias}." if alias else ""
     likes = " OR ".join(f'{p}coverage_json LIKE \'%"reason":"{r}"%\'' for r in COVERAGE_GAP_REASONS)
     # the table name comes from the executor, the rest is constant
+    # the table name comes from the executor, the rest is constant. The subquery has the same
+    # date bounds as the outer query (a finding row has the time of its decision), so it never
+    # reads the whole finding table.
     sub = (
         f"SELECT event_id FROM {finding_table} WHERE not_executed_reason IS NOT NULL "  # noqa: S608
-        "AND not_executed_reason <> 'not_applicable_for_direction'"
+        "AND not_executed_reason <> 'not_applicable_for_direction' "
+        "AND ts >= :r_from AND ts < :r_to"
     )
     return f"CASE WHEN ({likes} OR {p}event_id IN ({sub})) THEN 1 ELSE 0 END"  # noqa: S608
 

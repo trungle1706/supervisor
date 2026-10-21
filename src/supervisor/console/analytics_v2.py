@@ -11,8 +11,9 @@ exactly). One day is exact.
 from __future__ import annotations
 
 import datetime as dt
-import functools
+import json
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 from supervisor.analytics import tools
@@ -93,25 +94,37 @@ def gate_tables(ctx: Any, days: int | None, agent: str) -> dict[str, Any]:
     }
 
 
-@functools.lru_cache(maxsize=1)
-def _validation() -> dict[str, dict[str, str]]:
-    """Harness verdicts of the shipped detectors (mock path, a second at most), cached for the
-    process. A GO on the adversarial recall whose Wilson lower bound is below the threshold is
-    marked "GO (indicative)" by the harness; the tab shows that marker as it is."""
+REPORT_NAME = "detectors_report.json"
+
+
+def report_path(ctx: Any) -> Path:
+    """Where the recorded detectors harness report is read from (never computed in a request)."""
+    return Path(ctx.settings.data_dir) / "eval" / REPORT_NAME
+
+
+def _validation(ctx: Any) -> dict[str, dict[str, str]]:
+    """Harness verdicts of the shipped detectors, read from the report file written by
+    ``python -m supervisor.detectors.harness --json <DATA_DIR>/eval/detectors_report.json``.
+    Nothing runs here: no file (or a bad one) gives an empty dict and the tab says "not run".
+    A GO on the adversarial recall whose Wilson lower bound is below the threshold is marked
+    "GO (indicative)" by the harness; the tab shows that marker as it is."""
     from supervisor.detectors import harness
 
-    report = harness.run(commit="-", date="-")
-    out: dict[str, dict[str, str]] = {}
-    for slug, d in report["detectors"].items():
-        adv = harness._indicative(
-            d, "adversarial_recall_bp", d["go_no_go"]["adversarial_recall_bp"]
-        )
-        out[slug.split("@")[0]] = {
-            "overall": str(d["verdict"]),
-            "adversarial": adv,
-            "mock": "1" if d["model"]["kind"] == "mock" else "",
-        }
-    return out
+    try:
+        report = json.loads(report_path(ctx).read_text(encoding="utf-8"))
+        out: dict[str, dict[str, str]] = {}
+        for slug, d in report["detectors"].items():
+            adv = harness._indicative(
+                d, "adversarial_recall_bp", d["go_no_go"]["adversarial_recall_bp"]
+            )
+            out[slug.split("@")[0]] = {
+                "overall": str(d["verdict"]),
+                "adversarial": adv,
+                "mock": "1" if d["model"]["kind"] == "mock" else "",
+            }
+        return out
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return {}
 
 
 def detectors_data(ctx: Any, days: int | None, agent: str) -> dict[str, Any]:
@@ -136,10 +149,7 @@ def detectors_data(ctx: Any, days: int | None, agent: str) -> dict[str, Any]:
             }
         )
     codes = _fold(_rows(ctx, "detector_code", start, end))
-    try:
-        validation = _validation()
-    except Exception:  # noqa: BLE001 - the tab shows the rest when the harness cannot run
-        validation = {}
+    validation = _validation(ctx)
     return {
         "det_latency": latency,
         "det_codes": codes,

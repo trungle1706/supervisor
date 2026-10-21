@@ -4,7 +4,7 @@
 {% import "_c_table.html" as tb with context %}
 {% if capped %}<p class="hint">{{ t('scan_capped') }}</p>{% endif %}
 {% if can_export %}
-<form class="btnrow" hx-post="/console/decisions/export" hx-target="#export-result" hx-swap="innerHTML" style="margin:0 0 8px">
+<form class="btnrow" action="/console/decisions/export" method="post" hx-post="/console/decisions/export" hx-target="#export-result" hx-swap="innerHTML" style="margin:0 0 8px">
   {% for k, v in params.items() %}{% if v and k not in ('page',) %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
   <button class="btn" type="submit" id="export-csv">{{ t('export_csv') }}</button>
   <span class="hint">{{ t('export_hint', n=export_max) }}</span>

@@ -1942,6 +1942,22 @@ _T.update(
         "observed_approvals": ("Approvals", "Phê duyệt"),
         "approvals_yes": ("present", "có"),
         "approvals_no": ("not present", "không có"),
+        "back_to_list": ("Back to the list", "Quay lại danh sách"),
+        "det_not_run": ("not run", "chưa chạy"),
+        "det_not_run_line": (
+            "The harness verdict is read from a report file; none is recorded. Run "
+            "python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json",
+            "Kết luận kiểm thử được đọc từ tệp báo cáo; chưa có tệp. Chạy "
+            "python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json",
+        ),
+        "dd_series_note": (
+            "Counts decisions by verdict status (block before pause). The Blocked and Paused tiles "
+            "above count the stopping rule (pause before block), so a call that matched both is "
+            "Paused there and Block here.",
+            "Đếm quyết định theo trạng thái phán quyết (chặn trước tạm dừng). Ô Đã chặn và Tạm "
+            "dừng ở trên đếm theo quy tắc dừng (tạm dừng trước chặn), nên một lệnh khớp cả hai "
+            "là Tạm dừng ở trên và Chặn ở đây.",
+        ),
         "findings_chip": ("{n} findings", "{n} phát hiện"),
         "open_decision": ("Open the gate decision", "Mở quyết định của cổng"),
         "export_csv": ("Export CSV", "Xuất CSV"),

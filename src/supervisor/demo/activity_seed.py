@@ -87,6 +87,27 @@ def add_decision(
             }
         ],
     )
+    if status in ("block", "pause"):  # a stop has its tier 0 verdict row, as from the real gate
+        tables.append(
+            "verdict",
+            [
+                {
+                    "verdict_id": uuid.uuid4().hex,
+                    "ts": now,
+                    "trace_id": trace,
+                    "event_id": eid,
+                    "agent_id": agent,
+                    "tier": 0,
+                    "checker_id": "gate.tier0a",
+                    "is_mock": False,
+                    "advisory": False,
+                    "label": "matched",
+                    "action": status,
+                    "rule_id": rule or f"DEMO-{status.upper()}",
+                    "rationale_masked": "synthetic demo rule",
+                }
+            ],
+        )
     rows = []
     for code in codes:
         rows.append(

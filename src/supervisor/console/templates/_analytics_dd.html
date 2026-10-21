@@ -45,7 +45,7 @@
     </div>
   {% endfor %}
   </div>
-  <p class="hint">{{ dd_days[0] }} .. {{ dd_days[-1] }} (UTC)</p>
+  <p class="hint" id="dd-series-note">{{ dd_days[0] }} .. {{ dd_days[-1] }} (UTC) · {{ t('dd_series_note') }}</p>
 </section>
 {{ dd_table('dd-agent', t('dd_per_agent'), dd_tables.agent, t('agent'), link_agent=True) }}
 {{ dd_table('dd-consumer', t('dd_per_consumer'), dd_tables.consumer, t('consumer')) }}
