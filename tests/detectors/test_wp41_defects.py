@@ -39,8 +39,13 @@ def _policy(doc: dict[str, Any]) -> Policy:
     return load_policy_texts([("p.yaml", yaml.safe_dump(doc))])
 
 
+APPROVERS = ["dpo.lan", "sec.minh"]  # WP41 review: keep_args on a pii_export tool needs two
+
+
 def _with_dlp(doc: dict[str, Any], **dlp: Any) -> dict[str, Any]:
     doc["agents"][AGENT]["detectors"] = {"settings": {"dlp_vn": dlp}}
+    if dlp.get("keep_args"):
+        doc["agents"][AGENT]["keep_args_approvals"] = list(APPROVERS)
     return doc
 
 
@@ -110,6 +115,7 @@ def test_keep_args_never_applies_to_a_blocked_call(make_gateway: GatewayFactory)
     doc["agents"]["payments"]["detectors"] = {
         "settings": {"dlp_vn": {"keep_args": {"transfer": ["note"]}}}
     }
+    doc["agents"]["payments"]["keep_args_approvals"] = list(APPROVERS)
     gw = make_gateway(policy=_policy(doc))
     r = gw.check("payments", "1", "transfer", {"amount_minor": 0, "note": "0912345678"})
     assert r["allow"] is False and "kept_args" not in r
@@ -164,10 +170,11 @@ def test_keep_args_is_refused_in_a_consumer_block(make_gateway: GatewayFactory) 
     doc["agents"][AGENT]["consumers"] = {
         "app-web": {"detectors": {"settings": {"dlp_vn": {"keep_args": {LOOKUP: ["tax_code"]}}}}}
     }
-    gw = make_gateway(policy=_policy(_doc()))
-    assert gw.detector_gate is not None
-    problems = gw.detector_gate.check_policy(_policy(doc))
-    assert problems and "agent setting" in problems[0]
+    from supervisor.gateway.policy import PolicyError
+
+    # WP41 review: refused by the policy loader itself (detectors on or off)
+    with pytest.raises(PolicyError, match="agent setting"):
+        _policy(doc)
 
 
 def test_typed_pseudonym_keeps_the_class_visible(make_gateway: GatewayFactory) -> None:

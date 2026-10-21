@@ -125,6 +125,13 @@ class ResolvedDetectors:
             if slug not in registry:
                 problems.append(f"detectors.{slug}: not in the catalogue {registry.slugs}")
                 continue
+            if slug == "dlp_vn" and entry.settings.get("keep_args"):
+                # WP41 review: keep_args is a per-agent policy setting (audited, approved, in the
+                # policy hash); the shared file would apply it to every agent without either
+                problems.append(
+                    "detectors.dlp_vn.keep_args: set it per agent in the policy "
+                    "(agents.<id>.detectors.settings.dlp_vn.keep_args), not in this file"
+                )
             merged = self._merged(slug, entry, None, None)
             _, errs = registry.validate_settings(slug, merged)
             problems += [f"detectors.{slug}.{e}" for e in [*errs, *_extra_problems(slug, merged)]]

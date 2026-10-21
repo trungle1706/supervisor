@@ -142,7 +142,11 @@ class DetectorGate:
             keep = ((det.settings.get("dlp_vn") or {}).get("keep_args") if det else None) or {}
             if keep:
                 out.append(
-                    {"agent_id": agent_id, "tools": {t: sorted(n) for t, n in sorted(keep.items())}}
+                    {
+                        "agent_id": agent_id,
+                        "tools": {t: sorted(n) for t, n in sorted(keep.items())},
+                        "approvals": sorted(manifest.keep_args_approvals),
+                    }
                 )
         return out
 
@@ -153,10 +157,11 @@ class DetectorGate:
             for item in self.keep_args_loaded(policy):
                 who = item["agent_id"]
                 log.warning(
-                    "audit: dlp_vn keep_args loaded for %s: %s (policy %s)",
+                    "audit: dlp_vn keep_args loaded for %s: %s (policy %s, approvals %s)",
                     who,
                     "; ".join(f"{t}={','.join(n)}" for t, n in item["tools"].items()),
                     policy.policy_hash[:16],
+                    ",".join(item["approvals"]) or "none",
                 )
                 if evidence is not None:
                     evidence.record(
@@ -167,6 +172,7 @@ class DetectorGate:
                             "scope": who,
                             "policy_hash": policy.policy_hash,
                             "tools": item["tools"],
+                            "approvals": item["approvals"],
                         },
                     )
         except Exception as exc:  # noqa: BLE001 - an audit failure must not stop the gate
@@ -230,7 +236,8 @@ class DetectorGate:
                 pre.skipped = True
                 return pre
             dlp = run_cfg.detectors.get("dlp_vn")
-            if dlp is not None and dlp.enabled:
+            # WP41 review: input direction only (an output check never passes a value through)
+            if dlp is not None and dlp.enabled and req.direction == "input":
                 names = (dlp.settings.get("keep_args") or {}).get(tool_name) or []
                 pre.kept = {n: args[n] for n in names if n in args}
             protocol = ctx.get("protocol")
