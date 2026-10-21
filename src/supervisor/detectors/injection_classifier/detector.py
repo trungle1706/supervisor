@@ -121,7 +121,7 @@ def reset_approval_cache() -> None:
 
 
 def _approval_matches(directory: str) -> bool:
-    """The card's approval names an approver and the SHA-256 of the weights file in the same folder."""
+    """The card approval names an approver and the SHA-256 of the weights file next to it."""
     folder = Path(directory)
     try:
         card = json.loads((folder / "model_card.json").read_text(encoding="utf-8"))
@@ -207,7 +207,7 @@ class InjectionClassifierDetector:
         """False unless the setting ``classifier_fail_closed_approved`` (env
         ``CLASSIFIER_FAIL_CLOSED_APPROVED=1``) is on AND the model card carries an approval: a named
         approver (not a FILL-ME placeholder) and the ``weights_sha256`` it approves, equal to the
-        SHA-256 of the weight file that is loaded. Until then the loader forces fail_closed false for
+        SHA-256 of the weight file that is loaded. Until then the loader forces fail_closed false
         this detector (R1: a model outage must not stop payments without a named owner)."""
         now = time.monotonic()
         hit = _APPROVAL_CACHE.get("v")

@@ -484,8 +484,8 @@ class Settings(BaseSettings):
     detectors_config: Path = Path("config/detectors.yaml")
 
     # --- WP25 --- injection classifier (ADR D27, docs/injection-classifier.md).
-    # Fail-closed for the classifier is honoured only when this is true AND the model card carries an
-    # approval (approver + the weights_sha256 it approves). Default false: a model outage never stops
+    # Fail-closed for the classifier is honoured only when this is true AND the model card has an
+    # approval (approver + the weights_sha256 it approves). Default false: an outage never stops
     # payments without a named owner (R1). Env name: CLASSIFIER_FAIL_CLOSED_APPROVED.
     classifier_fail_closed_approved: bool = False
 
