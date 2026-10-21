@@ -552,3 +552,42 @@ def test_f15_consumer_observe_is_refused_on_every_agent() -> None:
     with pytest.raises(PolicyError, match="not allowed for a consumer"):
         make(policy_text({"a1": ("RUNNING", OBSERVE + APPROVED + cons)}))  # money agent
     make(policy_text({"a1": ("RUNNING", "    consumers:\n      c1: {mode: enforce}\n")}))
+
+
+def test_observe_approved_is_in_the_chain_record_and_the_siem_attrs(
+    gw_for: Any, evidence: MemoryEvidence
+) -> None:
+    from supervisor.adapters.integrations.siem import event_from_chain
+
+    entry = {
+        "record_type": "gate_decision",
+        "ts": "2026-10-14T02:00:00.000000Z",
+        "lane": "a1",
+        "seq": 1,
+        "entry_hash": "0" * 64,
+        "record_ref": "x",
+    }
+    for approvals, want in (("", False), (APPROVED, True)):
+        evidence.entries.clear()
+        gw = gw_for(
+            make(policy_text({"a1": ("RUNNING", "    mode: observe\n" + approvals)}, RULES_SCOPED))
+        )
+        gw.check("a1", "1", "lookup", BAD)
+        (p,) = evidence.of_type("gate_decision")
+        assert p["observed_decision"]["rule_id"] == "R-READ-BLOCK"
+        assert p["observe_approved"] is want, (approvals, p["observe_approved"])
+        ev = event_from_chain(entry, p)
+        assert ev is not None and ev.attrs is not None and ev.attrs["observe_approved"] is want
+
+
+def test_the_resolved_consumer_id_is_on_the_decision(gw_for: Any) -> None:
+    from supervisor.gateway.engine import Decision
+
+    gw = gw_for(make(policy_text({"a1": ("RUNNING", CONSUMERS)}, RULES_SCOPED)))
+    r = gw.check("a1", "1", "lookup", BAD, {"consumer_id": "strict"})
+    assert r["consumer_id"] == "strict"
+    r = gw.check("a1", "1", "lookup", BAD, {"consumer_id": "unknown-one"})
+    assert "consumer_id" not in r and r["consumer_ignored"] is True  # raw value not echoed
+    d = Decision("x", True, "allow", None, "ok", None, None, None, sem={"consumer_id": "c"})
+    assert d.consumer_id == "c"
+    assert Decision("x", True, "allow", None, "", None, None, None).consumer_id is None

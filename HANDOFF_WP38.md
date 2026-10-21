@@ -81,3 +81,7 @@ uv run python -m ruff format --check  -> 714 files already formatted
 uv run python -m supervisor.collectors.harness --check -> OVERALL: GO / [OK] no drop below the baseline
 ```
 Test count before the follow-ups: 4049 (review). After: 4053 (+4 net: 4 new F14/F15 tests; the consumer observe tests were rewritten in place). One earlier run with `-x` stopped on `tests/integrations/test_integrations.py::test_chain_feed_writes_schema_events_once`: a random 10-digit run inside a hash matched the "no long digit run" regex. It passed on rerun and is unrelated to WP38 (flaky, worth a note for the integrator). Scratch logs: `wp38_followup_pytest.txt`, `wp38_followup_pytest2.txt` (untracked).
+
+## 7. Alignment with WP39
+
+`observe_approved` (bool) is now in the chain record of an observed decision (next to `observed_decision`) and in the SIEM attrs. `Decision.consumer_id` exposes the resolved consumer id (only when the policy has an entry for the caller value; the raw value is never echoed). Integrator: make WP39 record `Decision.consumer_id` / the answer field `consumer_id` instead of the raw `context.consumer_id`. Documented in docs/policy.md. Tests in tests/gateway/test_wp38_policy.py.

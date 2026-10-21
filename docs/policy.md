@@ -91,6 +91,13 @@ class is `money`, `credit` or `pii_export`.
    Its decision is the SHADOW one (`action: log`, reason `shadow: would block ...`) and has no
    `observed_decision`.
 
+The answer's `consumer_id` is the **resolved** id: it is present only when the policy has an entry
+for the id the caller sent (`Decision.consumer_id` in the engine). The raw value of the caller is
+never copied into it; an invalid or unknown id gives `consumer_ignored: true` and no `consumer_id`.
+A recorder that wants the consumer of a decision should store this field, not `context.consumer_id`.
+The chain record of an observed decision also holds `observe_approved` (true when the agent has two
+`observe_approvals`); the SIEM event has it as an attribute.
+
 ## 3. What is recorded in observe mode
 
 | Place | Content |

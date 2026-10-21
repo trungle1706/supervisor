@@ -185,6 +185,7 @@ def event_from_chain(entry: Mapping[str, Any], payload: Mapping[str, Any]) -> Si
             if isinstance(od, dict):
                 attrs["observed_action"] = str(od.get("action") or "")[:16]
                 attrs["observed_rule_id"] = str(od.get("rule_id") or "")[:64]
+                attrs["observe_approved"] = bool(p.get("observe_approved"))
     elif etype == "gate_state_change":
         outcome = str(p.get("event") or "state_change")
         sev = SEVERITY.get(outcome, 5)

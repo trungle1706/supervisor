@@ -347,6 +347,15 @@ class Decision:
     # observe mode turned into a report (None = nothing was downgraded).
     sem: dict[str, Any] | None = None
     observed: dict[str, Any] | None = None
+    # WP38 follow-up: true when the agent has two observe_approvals (written to the chain record
+    # of an observed decision; WP39 reads it).
+    observe_approved: bool = False
+
+    @property
+    def consumer_id(self) -> str | None:
+        """The consumer id the policy resolved (an entry exists for it), not the raw value the
+        caller sent. None when no consumer override applied."""
+        return self.sem.get("consumer_id") if self.sem else None
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -960,6 +969,7 @@ class Gateway:
         if eff.consumer_ignored:
             sem["consumer_ignored"] = True
         d.sem = sem
+        d.observe_approved = eff.observe_approved
         if eff.mode != "observe" or shadow or builtin:
             return
         if not d.allow and d.rule_id == DETECTOR_FAILED_RULE and risk != "pii_export":
@@ -1268,6 +1278,7 @@ class Gateway:
                     "action": d.observed["action"],
                     "rule_id": d.observed["rule_id"],
                 }
+                out["observe_approved"] = d.observe_approved
                 out["status"] = observed_status(d)
         return out
 
