@@ -181,11 +181,11 @@ no detector matches (the adversarial probes in the validation report list the kn
 finding that is kept past its retention class in a copy outside the store, or an operator who
 edits `config/detectors.yaml` to disable a detector (the file is in change control).
 
-### 3.10 Multi-turn red team and its LLM attacker (WP28, ADR D25)
+### 3.11 Multi-turn red team and its LLM attacker (WP28, ADR D25)
 
 Trust boundary: with `--attacker llm` (manual, never scheduled) the text of an attacker turn goes to the configured LLM endpoint (`LLM_BASE_URL`, model `REDTEAM_ATTACKER_MODEL`, temperature 0, at most 60 conversations per run). Before the call every id, amount, tool name and digit string is replaced by a `<<Tn>>` placeholder and restored afterwards, so no personal-data shape and no identifier leaves the process, and a reply that drops or invents a placeholder is discarded. The model only rephrases: the calls, their order and the deterministic oracle are fixed in code, so a hostile or wrong reply cannot turn a failure into a pass, cannot add a tool call and cannot reach the gate. The sandbox agents, the policy, the store and the chain are private to the run; the nightly job writes aggregates only (integers) to the chain. The optional evidence judge sends a transcript with digit runs masked and its verdict never changes a result (R1).
 
-### 3.10 Risk register (WP29, ADR D26)
+### 3.12 Risk register (WP29, ADR D26)
 
 The register adds a write path for people (`POST /v1/risks/...`, flag `RISK_REGISTER_ENABLED`, off by
 default) and a job that reads gate verdicts, assurance results and monitor status. Threats and
@@ -207,7 +207,7 @@ description. Not covered: a reviewer, owner or admin who creates a false `accept
 justification note (there is no four-eyes step yet, see BACKLOG) and who is the only check on their own
 scoring.
 
-### 3.11 Collectors, consumer ids and the Add flow (WP38, ADR D28)
+### 3.13 Collectors, consumer ids and the Add flow (WP38, ADR D28)
 
 Trust boundary: values that a framework or a caller supplies (tool name, consumer id, session id,
 correlation id, headers of an inbound request) and the console action that issues an agent key.
@@ -228,7 +228,7 @@ URL put in snippets is validated. Observe mode lets calls that rules would stop 
 per-agent policy value in git and shows in the Policy binding tab. It does not stop: a person who
 can edit the policy file or read the key file.
 
-### 3.11 Session monitor (WP27, ADR D29)
+### 3.14 Session monitor (WP27, ADR D29)
 
 Trust boundary: the conversation id and the turn text that a caller sends in the gate context. The
 risks: (1) personal data in a session id, or turn text kept somewhere. The id is limited to
@@ -250,11 +250,11 @@ is in no session, so anonymous customers are never merged into one pause. It doe
 spreads steps over more than the window, obfuscates the phrases, or paraphrases a planted fact (see
 the probes and BACKLOG).
 
-### 3.11 Transparency report (WP31)
+### 3.15 Transparency report (WP31)
 
 The report crosses the trust boundary on purpose: its customer and regulator versions leave the bank. Controls: explicit allow-lists per variant (a field not listed is not copied); a second check that refuses a customer or regulator report holding an agent id, rule or obligation id, hash, owner field or a person name read from the raw sources, applied to the data and to the rendered text of both languages; free text masked or dropped (never raw); no personal data and no text in the chain (hashes, counts and fixed codes only); files never overwritten and checked against the hash on every read; HTML autoescaped with no script and no external asset; routes behind the sign-in with `transparency.generate` limited to reviewer and admin and audited. After the projection every text value of the outer versions is masked again and scrubbed of e-mail, phone and long digit runs (fields copied as they are included), and the guard refuses those patterns; the chain record and the append-only row name a person only as a keyed hash. Residual risk: names the masker misses can appear in the internal version, and in a free-text or config text field of the regulator version when the masker misses them (vn_regex catches Vietnamese names with diacritics, not every name) (BACKLOG).
 
-### 3.11 Console activity pages and the CSV export (WP39, ADR D32)
+### 3.16 Console activity pages and the CSV export (WP39, ADR D32)
 
 The Decisions drawer, the Traces pages and the Analytics tabs show text of calls that carried
 personal data. Controls: the gate stores no arguments (a keyed hash only); the Request tab is
@@ -273,6 +273,43 @@ minutes (HMAC with a key held in the process), the file is served once and delet
 files are removed on every export; caller-given ids (correlation, request, consumer) that hold
 personal data are replaced or dropped at the gate and hidden on every page, so an e-mail used as
 an id does not reach the chain, the SIEM event or the CSV.
+
+### 3.17 Control catalogue and task list (WP30, ADR D30)
+
+The catalogue adds write paths for people (`POST /v1/controls/...`, `POST /v1/tasks/...`, flag
+`CONTROLS_ENABLED`, off by default), two jobs and a launch NO-GO source. Threats and controls: (1)
+**a person marks a control working without proof**: status is computed from enforced gate hits, real
+packs and deterministic monitors, never typed, and a document or a detector slug never counts; (2)
+**a control is changed after it showed working**: its status and the evidence of the risks that link
+it stop counting until the next pass (`changed_since_evidence`); (3) **one person waives a required
+task alone**: a waiver needs a reason and a different signed-in approver or admin, the move itself
+cannot be waived, and an integrity query finds a forged row; (4) **a stage is skipped**: the
+lifecycle move is refused while a required task is open, and Launch is NO-GO; (5) **the chain leaks
+text**: payloads hold ids, integers, codes and hashes, and reasons only as a hash. Reasons are stored
+as text in the task row (do not type personal data). The CLI trusts the operator on the host (as the
+other CLIs do); the second person of a waiver can answer only through the authenticated route.
+Review additions: (6) **the first line closes a second-line task**: a reviewer, approver, auditor
+or admin task needs that role (or admin); (7) **a downgrade relaxes the list**: sizing keeps the
+highest level and every class the agent had, so a move keeps its stage approval and no stage is
+skipped; (8) **Launch passes on an unknown**: no task list, a stage before deployment, an
+unreadable list or the gate flag on with CONTROLS_ENABLED off are each NO-GO; (9) **a bank process
+shows working because a product rule fired**: a bank-owned control is always `bank_owned`.
+
+### 3.18 Injection classifier (WP25, ADR D27)
+
+The classifier reads text from three untrusted places: tool arguments, tool results and tool
+descriptions. The text is only turned into hashed numbers and a score; it is not stored, sent to a
+model or logged, and a finding carries fragments of MASKED text (R2). The trust boundary change is one
+new way to stop a call: a score at or above the frozen pause threshold on a money or credit tool pauses
+the agent (`GATE-CLASSIFIER-PAUSE`), never blocks it, and a human resumes with two people (R1). An
+attacker who learns the model could craft text that stays under the threshold (evasion; see the
+validation report for the measured recall) or craft benign-looking text that triggers pauses (a
+denial-of-service on one agent; the pause is per agent and visible as a case). The weight file is
+pinned by SHA-256 in the model card; the loader refuses a changed file, so the model cannot be swapped
+silently. Training data are synthetic; the model is not a replacement for the rules.
+
+The classifier keeps two small in-process caches (feature ids per text window, word classes per token). They are keyed by a 16-byte
+BLAKE2b digest of the text and hold only integers, so text of a call (names, account digits) does not stay in process memory after the call (WP25c, review G5).
 
 ## 4. Known gaps (not controls yet)
 
@@ -323,40 +360,3 @@ Pause is cheap: one rule, one console click or `POST /gate/pause`. Resume is har
 different people (owner + reviewer). Quarantine release needs an admin listed in the
 policy. All three are real state changes on the gateway, recorded on the chain, and
 never faked in the demo (`demo/inject.py` reads the state back from the store).
-
-### 3.11 Control catalogue and task list (WP30, ADR D30)
-
-The catalogue adds write paths for people (`POST /v1/controls/...`, `POST /v1/tasks/...`, flag
-`CONTROLS_ENABLED`, off by default), two jobs and a launch NO-GO source. Threats and controls: (1)
-**a person marks a control working without proof**: status is computed from enforced gate hits, real
-packs and deterministic monitors, never typed, and a document or a detector slug never counts; (2)
-**a control is changed after it showed working**: its status and the evidence of the risks that link
-it stop counting until the next pass (`changed_since_evidence`); (3) **one person waives a required
-task alone**: a waiver needs a reason and a different signed-in approver or admin, the move itself
-cannot be waived, and an integrity query finds a forged row; (4) **a stage is skipped**: the
-lifecycle move is refused while a required task is open, and Launch is NO-GO; (5) **the chain leaks
-text**: payloads hold ids, integers, codes and hashes, and reasons only as a hash. Reasons are stored
-as text in the task row (do not type personal data). The CLI trusts the operator on the host (as the
-other CLIs do); the second person of a waiver can answer only through the authenticated route.
-Review additions: (6) **the first line closes a second-line task**: a reviewer, approver, auditor
-or admin task needs that role (or admin); (7) **a downgrade relaxes the list**: sizing keeps the
-highest level and every class the agent had, so a move keeps its stage approval and no stage is
-skipped; (8) **Launch passes on an unknown**: no task list, a stage before deployment, an
-unreadable list or the gate flag on with CONTROLS_ENABLED off are each NO-GO; (9) **a bank process
-shows working because a product rule fired**: a bank-owned control is always `bank_owned`.
-
-### 3.11 Injection classifier (WP25, ADR D27)
-
-The classifier reads text from three untrusted places: tool arguments, tool results and tool
-descriptions. The text is only turned into hashed numbers and a score; it is not stored, sent to a
-model or logged, and a finding carries fragments of MASKED text (R2). The trust boundary change is one
-new way to stop a call: a score at or above the frozen pause threshold on a money or credit tool pauses
-the agent (`GATE-CLASSIFIER-PAUSE`), never blocks it, and a human resumes with two people (R1). An
-attacker who learns the model could craft text that stays under the threshold (evasion; see the
-validation report for the measured recall) or craft benign-looking text that triggers pauses (a
-denial-of-service on one agent; the pause is per agent and visible as a case). The weight file is
-pinned by SHA-256 in the model card; the loader refuses a changed file, so the model cannot be swapped
-silently. Training data are synthetic; the model is not a replacement for the rules.
-
-The classifier keeps two small in-process caches (feature ids per text window, word classes per token). They are keyed by a 16-byte
-BLAKE2b digest of the text and hold only integers, so text of a call (names, account digits) does not stay in process memory after the call (WP25c, review G5).
