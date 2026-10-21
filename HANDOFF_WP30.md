@@ -99,3 +99,27 @@ Four draft starters need a deterministic source; bank controls cannot show worki
 5. Starter controls draft until a source exists (oversight, chain, quality, groundedness): build deterministic monitors, or accept judge-scored packs with `RISK_EVIDENCE_JUDGED_PACKS=1`?
 6. The CLI trusts `--by`; the task waiver answer exists only on the route. Is that enough for the bank, or should CLI writes need a signed identity?
 7. ADR number D30 as asked; check for a clash at merge.
+
+## Follow-ups after review
+
+Review verdict was APPROVED WITH FOLLOW-UPS (REVIEW_WP30.md; reviewer commits `eb02c1b`, `7c9979e`, `aeda3a6`, `fa722cd`, `9ba1f4f`, `c7ab3d5` kept as they are). Closed in two commits:
+`ab33957` (L3, L2 risk side) and `3c56986` (L4, L6, segregation of duties, tests, docs).
+
+| Item | What changed |
+|---|---|
+| L3 shared scope and window | New `risk.evidence.source_window(kind, w, pack_days)` is the only definition of the per-source window (packs 30 days, rules and monitors 7). `controls/evidence.py::evaluate` uses it. `Collector.count` reads a `control` link for the agents the control applies to (`control_scope`, new `controls.refs.control_scope`) and with the same pack window; a control that applies to none of the risk's agents counts as idle. A pack linked directly to a risk keeps the 7-day window. WP29 file edits (additive): `risk/evidence.py` (`source_window`, `Collector.control_scope`, `Collector.pack_days`, `count`), `risk/service.py` (`collector()` wiring, `_row_for_basis`) |
+| L4 pack tasks | A pack task closes only on an `ok` non-mock result newer than `CONTROLS_PACK_WINDOW_DAYS`, and not from a judge-scored pack unless `RISK_EVIDENCE_JUDGED_PACKS=1` |
+| L2 risk side | `RiskService.effective` compares the evidence basis hash: if the newest row is for another basis, a recent row of the current basis still counts (`_row_for_basis`). Control side was already done by the reviewer. Tests for both |
+| L6 tasks CSV | `GET /v1/tasks/export.csv` (`tasks.view`, `?agent=`, `?limit=`, at most 5000 rows, header `X-Rows-Truncated`), formula-safe via `csv_cell`; `TaskService.export_csv` |
+| Segregation of duties across a stage | `tm.sod_refusal`: whoever answers a waiver (approve or reject) or approves a high-level move must not have marked a task done or asked for a waiver in the same stage of the same agent (case-insensitive). Refusal starts `segregation of duties:` and is ASCII. Documented in `docs/controls.md` |
+
+New tests: `tests/controls/test_followups.py` (11) and `test_tasks_csv_route` in `tests/console/test_controls.py`.
+
+Commands (last lines):
+```
+uv run python -m pytest -q -x          4058 passed, 29 skipped, 1 warning in 561.67s   (log wp30_followup_full.txt)
+uv run python -m ruff check            All checks passed!
+uv run python -m ruff format --check   725 files already formatted
+uv run python -m supervisor.controls.harness   ... adversarial: GO   [OK] all GO
+```
+Test count: 4,027 before the review, 4,058 now. Still open: owner questions in the handoff above and the reviewer's owner-decision items.
