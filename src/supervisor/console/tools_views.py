@@ -63,8 +63,11 @@ def page(
     days: str | int | None = None,
     sort: str = "default",
     desc: bool = False,
+    lenient_agent: bool = False,
 ) -> dict[str, Any]:
-    """Data for ``tools.html``: one block per agent, one screen each."""
+    """Data for ``tools.html``: one block per agent, one screen each. With ``lenient_agent`` (the
+    Agent page tab, WP41 D27) an agent that is not in the policy gives an empty page with
+    ``unknown_agent`` set, not an error: a gate-only agent has no onboarding record yet."""
     agent_id = check_agent(agent_id)
     days_n = check_days(days, ctx.settings)
     if sort not in SORTS:
@@ -76,7 +79,9 @@ def page(
             ctx.state, ctx.settings, as_of=as_of, days=days_n, agent_id=agent_id
         )
     except tools.AnalyticsError as exc:
-        raise ToolsInputError(str(exc)) from exc
+        if not (lenient_agent and str(exc).startswith("unknown agent")):
+            raise ToolsInputError(str(exc)) from exc
+        sug = []
     summary = {
         (r["agent_id"], r["tool_name"]): r
         for r in tools.summarise(
@@ -121,6 +126,7 @@ def page(
         "sort": sort,
         "desc": desc,
         "sorts": SORTS,
+        "unknown_agent": bool(lenient_agent and agent_id and not agents),
     }
 
 

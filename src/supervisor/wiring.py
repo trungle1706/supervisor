@@ -168,7 +168,18 @@ def _make_gateway(
         redact_tools=settings.inline_redaction_tool_set,
         detector_gate=detector_gate,  # WP37 (default off)
         session_gate=session_gate,  # WP27 (default off)
+        agent_registrar=_agent_registrar(settings, adapters),  # WP41 (INVENTORY_ENABLED)
     )
+
+
+def _agent_registrar(settings: Settings, adapters: Adapters) -> Any:
+    """WP41 (D19): the callable that puts a gate-only agent into the inventory, or None when
+    INVENTORY_ENABLED is off."""
+    if not settings.inventory_enabled:
+        return None
+    from supervisor.inventory.gate_register import GateRegistrar
+
+    return GateRegistrar(adapters.state, adapters.clock).register
 
 
 def make_session_gate(settings: Settings, adapters: Adapters, evidence: Any) -> Any:

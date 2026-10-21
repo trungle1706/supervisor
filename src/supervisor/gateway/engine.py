@@ -32,7 +32,7 @@ import threading
 import time
 import uuid
 from collections import Counter, deque
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -453,6 +453,7 @@ class Gateway:
         redact_tools: frozenset[str] | set[str] | None = None,
         detector_gate: DetectorGate | None = None,
         session_gate: SessionGate | None = None,
+        agent_registrar: Callable[[str], Any] | None = None,
     ) -> None:
         self.policy = policy
         self.tables = tables
@@ -480,6 +481,10 @@ class Gateway:
         self.detector_gate = detector_gate
         # WP27: session monitor (None = off, today's behaviour).
         self.session_gate = session_gate
+        # WP41 (D19): registers a gate-only agent in the inventory on its first decision (None =
+        # INVENTORY_ENABLED off, today's behaviour). Runs in the background pool.
+        self.agent_registrar = agent_registrar
+        self._registered: set[str] = set()
         # Tools seen as pii_export: their masker pass runs BEFORE the gate lock (a 2 KB payload
         # costs about 3 ms; inside the lock it would delay every other agent's decision).
         self._redact_hint: frozenset[str] = frozenset()
@@ -847,7 +852,22 @@ class Gateway:
         )
         self._tier0b(d, agent_id, tool_name, args, risk, ctx, sess)
         self._session_observe(d, now, agent_id, tool_name, args, sess)
+        self._register_agent(agent_id, policy)
         return d
+
+    def _register_agent(self, agent_id: str, policy: Policy) -> None:
+        """WP41: first decision of an agent the policy knows -> inventory node (background).
+        An id the policy does not list is never registered (anonymous input must not fill the
+        inventory)."""
+        if self.agent_registrar is None or agent_id in self._registered:
+            return
+        if agent_id not in policy.doc.agents:
+            return
+        self._registered.add(agent_id)
+        try:
+            self._bg.submit(self.agent_registrar, agent_id)
+        except Exception:  # noqa: BLE001 - a closed pool at shutdown: nothing to do
+            self._registered.discard(agent_id)
 
     def _evaluate(
         self,
