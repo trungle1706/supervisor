@@ -92,7 +92,7 @@ Controls section (WP30 hook only); electronic signature of the file itself, PDF/
 ## Open questions for the owner
 
 1. May the customer version name the product? Now it uses generic wording per agent class (so no id can leak).
-2. Which roles may hand on the customer version? Now every signed-in role reads it; with `API_RBAC_ENABLED` off an unsigned caller acts as a read-only service principal, as for every other read route.
+2. Which roles may hand on the customer version? Now every signed-in role reads it. Correction (review F8): my first text said that with `API_RBAC_ENABLED` off an unsigned caller acts as a read-only service principal. That is wrong: `needs()` always enforces on these routes. A service principal gets 403 (`transparency.view` is not in `NON_USER_OK`), no identity and no `default_user` gives 400, and in laptop dev mode `default_user` signs every unsigned call in. Test: `test_login_is_required_and_a_service_principal_cannot_read`.
 3. Should the regulator version show the owner team, or a role only?
 4. Names are kept out of the regulator and customer versions by omission because the masker misses names; accept, or add the NER extra first?
 5. Commit trailers: the brief says `Claude Fable 5.1`, the session reminder says `Claude Sonnet 5.5`. My first commit carries Sonnet, the later ones Fable (I did not rewrite history). Pick one for the merge.

@@ -57,6 +57,7 @@ REASONS: tuple[str, ...] = (
 )
 
 _ID = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
+FAILED_RECORD_TYPE = "transparency_report_failed"
 
 
 class TransparencyError(SupervisorError):
@@ -83,6 +84,9 @@ def ensure_on(settings: Any) -> None:
 def check_agent(value: Any) -> str:
     if not isinstance(value, str) or not _ID.match(value):
         raise TransparencyError("agent id must be 1 to 64 characters from A-Z a-z 0-9 _ . : -")
+    # The id becomes a folder name: no dot-only or dot-edged name, no ``..`` anywhere.
+    if value.startswith(".") or value.endswith(".") or ".." in value:
+        raise TransparencyError("agent id must not start or end with a dot or contain '..'")
     return value
 
 

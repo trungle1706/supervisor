@@ -31,6 +31,7 @@ from supervisor.transparency.builder import (
 )
 from supervisor.transparency.facts import Facts, Sources
 from supervisor.transparency.model import (
+    FAILED_RECORD_TYPE,
     LANGS,
     RECORD_TYPE,
     SCHEMA_VERSION,
@@ -153,7 +154,11 @@ class TransparencyService:
 
     # ------------------------------------------------------------------ files
     def _dir(self, agent_id: str, variant: str, version: int) -> Path:
-        return Path(self.settings.transparency_dir) / agent_id / variant / f"v{version}"
+        base = Path(self.settings.transparency_dir).resolve()
+        path = (base / check_agent(agent_id) / variant / f"v{version}").resolve()
+        if base not in path.parents:  # belt and braces after check_agent
+            raise TransparencyError("report folder is outside the report directory")
+        return path
 
     def _write(self, path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -286,7 +291,14 @@ class TransparencyService:
             }
             for lang in LANGS
         ]
-        self.tables.append("transparency_report", new_rows)
+        try:
+            self.tables.append("transparency_report", new_rows)
+        except Exception as exc:
+            # The chain record exists but the rows do not: take the files away so the next
+            # generate can write this version again, and say so on the chain.
+            shutil.rmtree(folder, ignore_errors=True)
+            self._failed(agent_id, variant, version, type(exc).__name__)
+            raise
         return {
             "agent_id": agent_id,
             "variant": variant,
@@ -300,6 +312,25 @@ class TransparencyService:
             "notices": sorted(set(notices)),
             "generated_at": format_ts(now),
         }
+
+    def _failed(self, agent_id: str, variant: str, version: int, reason: str) -> None:
+        """Best effort: a ``transparency_report_failed`` chain entry (ids, version, error class)."""
+        if self.evidence_sink is None:
+            return
+        try:
+            self.evidence_sink.record(
+                FAILED_RECORD_TYPE,
+                f"transparency:{agent_id}:{variant}:{version}:failed",
+                {
+                    "agent_id": agent_id,
+                    "variant": variant,
+                    "version": version,
+                    "reason": reason,
+                    "ts": format_ts(self.src.clock.now()),
+                },
+            )
+        except Exception:  # noqa: BLE001 - the original error is the one to show
+            log.warning("transparency: could not record the failed write")
 
     # ------------------------------------------------------------------ serve
     def report(
