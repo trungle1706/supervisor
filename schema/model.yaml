@@ -1124,3 +1124,36 @@ tables:
       reason_sha256: string?
       row_hash: string         # sha256 of the task row after the change
       chain_hash: string?      # entry hash of the chain record
+
+  # --- WP31 transparency report (ADR D31) -----------------------------------------------
+  transparency_report:
+    kind: append_only
+    evidence: true
+    description: >
+      WP31. One row per generated report file set: agent, variant (regulator | customer |
+      internal), language, version (a whole number per agent and variant) and the sha256 of the
+      JSON and of each rendered file. The report data holds ids, integers, hashes and masked text
+      only; this row holds hashes, counts and section hashes (for the diff to the next version),
+      no text. The matching chain record is transparency_report. A repeat for the same
+      (agent, variant, lang, version) is a no-op (report_id is a hash).
+    primary_key: [report_id]
+    indexes:
+      - [agent_id, variant, version]
+    columns:
+      report_id: string
+      agent_id: string
+      variant: string          # regulator | customer | internal
+      lang: string             # vi | en
+      version: int             # per (agent, variant); same for both languages of one pass
+      schema_version: int      # data model version (transparency.model.SCHEMA_VERSION)
+      generated_at: timestamp
+      generated_by: string
+      content_hash: string     # sha256 of the facts only (no version, no time): same facts, same hash
+      json_hash: string        # sha256 of the JSON file
+      html_hash: string?       # sha256 of the HTML file
+      pdf_hash: string?        # sha256 of the PDF file; null when no PDF was produced
+      sections_total: int
+      sections_available: int
+      section_hashes: json     # section id -> sha256 of that section (for the diff)
+      verify_state: string     # ok | failed | not_run: the chain check made for this report
+      chain_hash: string?      # entry hash of the transparency_report chain record

@@ -28,6 +28,8 @@ control_status CONTROLS_ENABLED       evidence status of each control per agent 
                                       compliance figure (WP30)
 task_due       CONTROLS_ENABLED       close tasks whose evidence is there; one case for each
                                       overdue required task (WP30)
+transparency   TRANSPARENCY_ENABLED   build and sign the transparency reports of every running
+                                      agent when the facts changed (WP31)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -478,6 +480,16 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 "task_due",
                 settings.sched_task_due_s,
                 lambda: task_due_job.run(ctx, settings, case_service()),
+            )
+        )
+    if settings.transparency_enabled:  # WP31: listed only when it can run
+        from supervisor.jobs import transparency as transparency_job
+
+        jobs.append(
+            JobSpec(
+                "transparency",
+                settings.sched_transparency_s,
+                lambda: transparency_job.run(ctx, settings),
             )
         )
     from supervisor.jobs import inventory as inventory_job

@@ -358,6 +358,7 @@ class Decision:
         """The consumer id the policy resolved (an entry exists for it), not the raw value the
         caller sent. None when no consumer override applied."""
         return self.sem.get("consumer_id") if self.sem else None
+
     # WP27 session monitor (None when SESSION_MONITOR_ENABLED is off: the answer is unchanged).
     sess: SessionCall | None = None
 
@@ -1032,6 +1033,7 @@ class Gateway:
             cls._observe(d, eff, risk)
         if d.observed is not None and d.v2 is not None:
             d.v2["status"] = observed_status(d)
+
     def _pre_session(
         self,
         agent_id: str,

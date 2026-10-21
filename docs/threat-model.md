@@ -250,6 +250,10 @@ is in no session, so anonymous customers are never merged into one pause. It doe
 spreads steps over more than the window, obfuscates the phrases, or paraphrases a planted fact (see
 the probes and BACKLOG).
 
+### 3.11 Transparency report (WP31)
+
+The report crosses the trust boundary on purpose: its customer and regulator versions leave the bank. Controls: explicit allow-lists per variant (a field not listed is not copied); a second check that refuses a customer or regulator report holding an agent id, rule or obligation id, hash, owner field or a person name read from the raw sources, applied to the data and to the rendered text of both languages; free text masked or dropped (never raw); no personal data and no text in the chain (hashes, counts and fixed codes only); files never overwritten and checked against the hash on every read; HTML autoescaped with no script and no external asset; routes behind the sign-in with `transparency.generate` limited to reviewer and admin and audited. After the projection every text value of the outer versions is masked again and scrubbed of e-mail, phone and long digit runs (fields copied as they are included), and the guard refuses those patterns; the chain record and the append-only row name a person only as a keyed hash. Residual risk: names the masker misses can appear in the internal version, and in a free-text or config text field of the regulator version when the masker misses them (vn_regex catches Vietnamese names with diacritics, not every name) (BACKLOG).
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

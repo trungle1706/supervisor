@@ -40,6 +40,7 @@ from supervisor.ops.readiness import readiness  # noqa: E402
 from supervisor.recorder.otlp_receiver import router as otlp_router  # noqa: E402
 from supervisor.risk.api import router as risk_router  # noqa: E402
 from supervisor.tasks.api import router as tasks_router  # noqa: E402
+from supervisor.transparency.api import router as transparency_router  # noqa: E402
 
 log = logging.getLogger("supervisor.app")
 configure_logging(get_settings())  # WP18: LOG_LEVEL / LOG_FORMAT / LOG_FILE (idempotent)
@@ -104,6 +105,9 @@ app.include_router(risk_router)  # WP29: /v1/risks/... (off unless RISK_REGISTER
 app.include_router(session_router)  # WP27: /v1/sessions/{id} (off unless SESSION_MONITOR_ENABLED)
 app.include_router(controls_router)  # WP30: /v1/controls/... (off unless CONTROLS_ENABLED)
 app.include_router(tasks_router)  # WP30: /v1/tasks/... (off unless CONTROLS_ENABLED)
+app.include_router(
+    transparency_router
+)  # WP31: /v1/transparency/... (off unless TRANSPARENCY_ENABLED)
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 

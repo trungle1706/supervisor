@@ -1041,3 +1041,29 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`task_event` (
 USING DELTA
 COMMENT 'WP30. Every change of a task: generate, start, done, waive_request, waive_approve, waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored as a hash only. The matching chain record is task_change.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- transparency_report (append_only): WP31. One row per generated report file set: agent, variant (regulator | customer | internal), language, version (a whole number per agent and variant) and the sha256 of the JSON and of each rendered file. The report data holds ids, integers, hashes and masked text only; this row holds hashes, counts and section hashes (for the diff to the next version), no text. The matching chain record is transparency_report. A repeat for the same (agent, variant, lang, version) is a no-op (report_id is a hash).
+-- primary key (enforced by the app, not by Delta): report_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`transparency_report` (
+  report_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  variant STRING NOT NULL,
+  lang STRING NOT NULL,
+  version BIGINT NOT NULL,
+  schema_version BIGINT NOT NULL,
+  generated_at TIMESTAMP NOT NULL,
+  generated_by STRING NOT NULL,
+  content_hash STRING NOT NULL,
+  json_hash STRING NOT NULL,
+  html_hash STRING,
+  pdf_hash STRING,
+  sections_total BIGINT NOT NULL,
+  sections_available BIGINT NOT NULL,
+  section_hashes STRING NOT NULL,
+  verify_state STRING NOT NULL,
+  chain_hash STRING
+)
+USING DELTA
+COMMENT 'WP31. One row per generated report file set: agent, variant (regulator | customer | internal), language, version (a whole number per agent and variant) and the sha256 of the JSON and of each rendered file. The report data holds ids, integers, hashes and masked text only; this row holds hashes, counts and section hashes (for the diff to the next version), no text. The matching chain record is transparency_report. A repeat for the same (agent, variant, lang, version) is a no-op (report_id is a hash).'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');

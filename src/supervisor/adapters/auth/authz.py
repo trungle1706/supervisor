@@ -94,7 +94,9 @@ def _audit_denied(request: Request, me: AuthPrincipal, permission: str, detail: 
         return ""
     path = request.url.path
     if not (
-        path.startswith(("/console", "/v1/risks", "/v1/controls", "/v1/tasks"))  # WP29, WP30
+        path.startswith(
+            ("/console", "/v1/risks", "/v1/controls", "/v1/tasks", "/v1/transparency")
+        )  # WP29, WP30, WP31: audited too
         or rbac.normalise_path(path).startswith("/gate/")
     ):
         return ""

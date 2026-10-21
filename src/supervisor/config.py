@@ -559,6 +559,16 @@ class Settings(BaseSettings):
     controls_starter_dir: Path = Path("config/controls")
     tasks_config: Path = Path("config/tasks.yaml")
 
+    # --- WP31 --- transparency report (ADR D31, docs/transparency-report.md). Off by default.
+    # TRANSPARENCY_ENABLED: /v1/transparency routes, the scheduler job and the CLI build and sign
+    # reports. CONSOLE_TRANSPARENCY_ENABLED: the Transparency page and the Agent tab (needs the
+    # first flag too). Files go to TRANSPARENCY_DIR (default <data_dir>/transparency).
+    transparency_enabled: bool = False
+    console_transparency_enabled: bool = False
+    sched_transparency_s: int = Field(default=86400, ge=60)  # one pass per day
+    transparency_dir: Path | None = None
+    transparency_backlog_file: Path = Path("BACKLOG.md")  # the internal variant lists open items
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -591,6 +601,8 @@ class Settings(BaseSettings):
         "risk_starter_dir",
         "controls_starter_dir",
         "tasks_config",
+        "transparency_dir",
+        "transparency_backlog_file",
         mode="after",
     )
     @classmethod
@@ -659,6 +671,8 @@ class Settings(BaseSettings):
             self.auth_config_file = REPO_ROOT / "config" / "auth.yaml"
         if self.console_export_dir is None:
             self.console_export_dir = self.data_dir / "exports"
+        if self.transparency_dir is None:  # WP31
+            self.transparency_dir = self.data_dir / "transparency"
         if self.tool_analytics_dir is None:
             self.tool_analytics_dir = self.data_dir / "analytics"
         if self.integration_reports_dir is None:

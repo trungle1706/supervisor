@@ -82,6 +82,7 @@ def _is_human_path(path: str) -> bool:
             "/v1/risks",
             "/v1/controls",  # WP30
             "/v1/tasks",  # WP30
+            "/v1/transparency",  # WP31
         )
     )
 

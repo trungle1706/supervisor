@@ -330,6 +330,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "playground.run",  # WP-UX3: tests/console/test_ux3_playground.py
         "collectors.add",  # WP38: tests/console/test_collectors_page.py (two audit rows)
         "dev.user",
+        "transparency.generate",  # WP31: tests/console/test_transparency.py
     }
     posts = {
         rbac.resolve_permission(e, {"action": "pause"}) if e != rbac.DEV_ONLY else "dev.user"
