@@ -24,9 +24,10 @@ The detector is registered in ``build_registry`` and listed in ``config/detector
 from __future__ import annotations
 
 import json
-import os
 import re
+import time
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 from supervisor.core.detectors import (
@@ -110,6 +111,29 @@ def score_tool_description(text: str) -> int:
     return default_model().score_bp(text, "tool_description")
 
 
+APPROVAL_TTL_S = 5.0
+_APPROVAL_CACHE: dict[str, tuple[float, bool]] = {}
+
+
+def reset_approval_cache() -> None:
+    """Forget the cached fail-closed approval (tests; a changed card is seen after the TTL)."""
+    _APPROVAL_CACHE.clear()
+
+
+def _approval_matches(directory: str) -> bool:
+    """The card's approval names an approver and the SHA-256 of the weights file in the same folder."""
+    folder = Path(directory)
+    try:
+        card = json.loads((folder / "model_card.json").read_text(encoding="utf-8"))
+        actual = M.sha256_file(folder / "weights.json")
+    except (OSError, ValueError):
+        return False
+    approval = card.get("approval") or {}
+    approver = str(approval.get("approver") or "").strip()
+    named = bool(approver) and not approver.upper().startswith("FILL-ME")
+    return named and approval.get("weights_sha256") == actual == card.get("weights_sha256")
+
+
 class InjectionClassifierDetector:
     slug = "injection_classifier"
     name = "Prompt injection (classifier, Vietnamese and English)"
@@ -180,19 +204,24 @@ class InjectionClassifierDetector:
     # ------------------------------------------------------------------ fail closed (F11)
     @staticmethod
     def fail_closed_allowed() -> bool:
-        """False unless ``CLASSIFIER_FAIL_CLOSED_APPROVED=1`` is set AND the model card names an
-        approver (not a FILL-ME placeholder). Until then the loader forces fail_closed false for
+        """False unless the setting ``classifier_fail_closed_approved`` (env
+        ``CLASSIFIER_FAIL_CLOSED_APPROVED=1``) is on AND the model card carries an approval: a named
+        approver (not a FILL-ME placeholder) and the ``weights_sha256`` it approves, equal to the
+        SHA-256 of the weight file that is loaded. Until then the loader forces fail_closed false for
         this detector (R1: a model outage must not stop payments without a named owner)."""
-        if os.environ.get("CLASSIFIER_FAIL_CLOSED_APPROVED") != "1":
-            return False
+        now = time.monotonic()
+        hit = _APPROVAL_CACHE.get("v")
+        if hit is not None and now - hit[0] < APPROVAL_TTL_S:
+            return hit[1]  # settings and card are read at most once per TTL (not per gate call)
         try:
-            card = json.loads(
-                (M.model_dir(MODEL_VERSION) / "model_card.json").read_text(encoding="utf-8")
-            )
-        except (OSError, ValueError):
-            return False
-        approver = str((card.get("owner_roles") or {}).get("approver") or "").strip()
-        return bool(approver) and not approver.upper().startswith("FILL-ME")
+            from supervisor.config import load_settings
+
+            ok = bool(load_settings().classifier_fail_closed_approved)
+        except Exception:  # noqa: BLE001 - a settings problem means "not approved"
+            ok = False
+        ok = ok and _approval_matches(str(M.model_dir(MODEL_VERSION)))
+        _APPROVAL_CACHE["v"] = (now, ok)
+        return ok
 
     # ------------------------------------------------------------------ evaluate
     def evaluate(

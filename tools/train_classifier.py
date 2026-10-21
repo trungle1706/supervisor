@@ -251,6 +251,12 @@ def build_card(
             "validator": "FILL-ME (MRM_VALIDATOR)",
             "approver": "FILL-ME (MRM_APPROVER)",
         },
+        "approval": {
+            "approver": "FILL-ME (MRM_APPROVER)",
+            "weights_sha256": None,
+            "note": "fail_closed for the classifier is honoured only when CLASSIFIER_FAIL_CLOSED_APPROVED=1 and "
+            "this block names an approver and the weights_sha256 approved (it must equal the loaded weights)",
+        },
         "intended_use": (
             "Advisory score for prompt injection (direct, indirect, tool poisoning) in Vietnamese and "
             "English in tool arguments, tool results and tool descriptions. It may only PAUSE money and "

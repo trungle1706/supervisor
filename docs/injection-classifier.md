@@ -156,7 +156,7 @@ do, modal verbs), English stems, typo-tolerant lexicon (distance 1), decoding of
 plausibility, a new training pool `train_b` (counter-examples for the 1.0.0 false-alarm clusters), grouped
 cross-validation (`python -m tools.cross_validate`), long-text segments chosen by a cheap model score.
 Result: NO-GO. Recall and evasion recall rose, false alarm rose more because the thresholds are mis-calibrated
-(section 4). `CLASSIFIER_FAIL_CLOSED_APPROVED=1` plus a named approver in the model card are needed before
+(section 4). `CLASSIFIER_FAIL_CLOSED_APPROVED=1` (setting `classifier_fail_closed_approved` in `config.py`) plus an `approval` block in the model card (named approver and the `weights_sha256` it approves, equal to the loaded weights) are needed before
 `fail_closed: true` is honoured for this detector (otherwise the loader forces false and logs a warning).
 The 1.0.0 versus 1.1.0 table is in the validation report.
 

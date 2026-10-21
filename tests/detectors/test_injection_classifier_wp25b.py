@@ -90,7 +90,26 @@ def _resolved(masker: VnRegexMasker) -> ResolvedDetectors:
     return ResolvedDetectors(parse_config(CFG, "test"), reg)
 
 
-def test_fail_closed_is_forced_off_without_the_env_flag(
+@pytest.fixture(autouse=True)
+def _fresh_approval_cache() -> None:
+    D.reset_approval_cache()
+    yield
+    D.reset_approval_cache()
+
+
+def _copy_model(tmp_path: Path, approval: dict | None) -> Path:
+    src = M.model_dir(D.MODEL_VERSION)
+    dst = tmp_path / D.MODEL_VERSION
+    dst.mkdir()
+    (dst / "weights.json").write_bytes((src / "weights.json").read_bytes())
+    card = json.loads((src / "model_card.json").read_text(encoding="utf-8"))
+    if approval is not None:
+        card["approval"] = approval
+    (dst / "model_card.json").write_text(json.dumps(card), encoding="utf-8")
+    return dst
+
+
+def test_fail_closed_is_forced_off_without_the_setting(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.delenv("CLASSIFIER_FAIL_CLOSED_APPROVED", raising=False)
@@ -102,7 +121,15 @@ def test_fail_closed_is_forced_off_without_the_env_flag(
     assert any(SLUG in r.getMessage() and r.getMessage().isascii() for r in caplog.records)
 
 
-def test_env_flag_alone_is_not_enough_the_card_needs_an_approver(
+def test_the_flag_is_a_settings_field_read_through_config_not_os_environ() -> None:
+    from supervisor.config import Settings
+
+    assert Settings.model_fields["classifier_fail_closed_approved"].default is False
+    src = Path(D.__file__).read_text(encoding="utf-8")
+    assert "os.environ" not in src and "import os" not in src
+
+
+def test_setting_alone_is_not_enough_the_card_needs_an_approval(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("CLASSIFIER_FAIL_CLOSED_APPROVED", "1")
@@ -110,29 +137,42 @@ def test_env_flag_alone_is_not_enough_the_card_needs_an_approver(
     card = json.loads(
         (M.model_dir(D.MODEL_VERSION) / "model_card.json").read_text(encoding="utf-8")
     )
-    assert str(card["owner_roles"]["approver"]).upper().startswith("FILL-ME")
+    assert str(card["approval"]["approver"]).upper().startswith("FILL-ME")
     run, _ = _resolved(masker).for_agent(None)
     assert run.detectors[SLUG].fail_closed is False
 
 
-def test_env_flag_and_a_named_approver_allow_fail_closed(
+def test_approval_must_name_the_weights_it_approves(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    src = M.model_dir(D.MODEL_VERSION)
-    dst = tmp_path / D.MODEL_VERSION
-    dst.mkdir()
-    (dst / "weights.json").write_bytes((src / "weights.json").read_bytes())
-    card = json.loads((src / "model_card.json").read_text(encoding="utf-8"))
-    card["owner_roles"]["approver"] = "Model risk committee (test)"
-    (dst / "model_card.json").write_text(json.dumps(card), encoding="utf-8")
-    monkeypatch.setattr(M, "MODELS_DIR", tmp_path)
+    good = M.sha256_file(M.model_dir(D.MODEL_VERSION) / "weights.json")
     monkeypatch.setenv("CLASSIFIER_FAIL_CLOSED_APPROVED", "1")
     masker = VnRegexMasker(b"k", "t")
-    run, _ = _resolved(masker).for_agent(None)
-    assert run.detectors[SLUG].fail_closed is True
-    monkeypatch.setenv("CLASSIFIER_FAIL_CLOSED_APPROVED", "0")
-    run, _ = _resolved(masker).for_agent(None)
-    assert run.detectors[SLUG].fail_closed is False
+    cases = {
+        "approved": ({"approver": "Model risk committee (test)", "weights_sha256": good}, True),
+        "other weights": (
+            {"approver": "Model risk committee (test)", "weights_sha256": "0" * 64},
+            False,
+        ),
+        "no sha": ({"approver": "Model risk committee (test)", "weights_sha256": None}, False),
+        "placeholder": ({"approver": "FILL-ME (MRM_APPROVER)", "weights_sha256": good}, False),
+    }
+    for name, (approval, want) in cases.items():
+        sub = tmp_path / name.replace(" ", "_")
+        sub.mkdir()
+        _copy_model(sub, approval)
+        monkeypatch.setattr(M, "MODELS_DIR", sub)
+        D.reset_approval_cache()
+        run, _ = _resolved(masker).for_agent(None)
+        assert run.detectors[SLUG].fail_closed is want, name
+    # changing the weights after the approval withdraws it
+    sub = tmp_path / "tampered"
+    sub.mkdir()
+    dst = _copy_model(sub, {"approver": "Model risk committee (test)", "weights_sha256": good})
+    (dst / "weights.json").write_bytes((dst / "weights.json").read_bytes() + b" ")
+    monkeypatch.setattr(M, "MODELS_DIR", sub)
+    D.reset_approval_cache()
+    assert D.InjectionClassifierDetector.fail_closed_allowed() is False
 
 
 def test_long_text_with_decoys_still_reaches_the_instruction() -> None:

@@ -1,4 +1,9 @@
 {
+  "approval": {
+    "approver": "FILL-ME (MRM_APPROVER)",
+    "note": "fail_closed for the classifier is honoured only when CLASSIFIER_FAIL_CLOSED_APPROVED=1 and this block names an approver and the weights_sha256 approved (it must equal the loaded weights)",
+    "weights_sha256": null
+  },
   "buckets": 81920,
   "change_log": [
     {
