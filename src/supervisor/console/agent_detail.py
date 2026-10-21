@@ -17,9 +17,11 @@ from supervisor.cases.service import PermissionDenied
 from supervisor.console import (
     assurance_views,
     compliance_view,
+    controls_views,
     inventory_views,
     readmodels,
     risks_views,
+    tasks_views,
     tools_views,
 )
 from supervisor.core import rbac
@@ -36,6 +38,8 @@ TABS = (
     "assurance",
     "compliance",
     "risks",  # WP29
+    "controls",  # WP30
+    "tasks",  # WP30
 )
 TRACE_LIMIT = 20  # traces shown on the Traces tab
 CASE_LIMIT = 50
@@ -71,6 +75,18 @@ GATED: dict[str, tuple[str, str, str, str]] = {
         "risks.view",
         "CONSOLE_RISKS_ENABLED",
         "python -m supervisor.risk score --agent <id>",
+    ),
+    "controls": (
+        "console_controls_enabled",
+        "controls.view",
+        "CONSOLE_CONTROLS_ENABLED",
+        "python -m supervisor.controls status --agent <id>",
+    ),
+    "tasks": (
+        "console_controls_enabled",
+        "tasks.view",
+        "CONSOLE_CONTROLS_ENABLED",
+        "python -m supervisor.tasks list --agent <id>",
     ),
 }
 
@@ -322,6 +338,14 @@ def _risks(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> 
     return data
 
 
+def _controls(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    return controls_views.agent_tab(ctx, card["agent_id"])
+
+
+def _tasks(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    return tasks_views.agent_tab(ctx, card["agent_id"])
+
+
 _BUILDERS = {
     "overview": _overview,
     "policy": _policy,
@@ -332,6 +356,8 @@ _BUILDERS = {
     "assurance": _assurance,
     "compliance": _compliance,
     "risks": _risks,
+    "controls": _controls,
+    "tasks": _tasks,
 }
 
 

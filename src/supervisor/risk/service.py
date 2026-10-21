@@ -208,9 +208,19 @@ class RiskService:
     def control_links(self, risk_id: str) -> list[tuple[str, str]]:
         """(kind, target) of the links the evidence rule looks at (rule, pack, monitor).
         Extension point for the WP30 control catalogue."""
-        return [
+        out = [
             (r["kind"], r["target"]) for r in self._link_rows(risk_id) if r["kind"] in CONTROL_KINDS
         ]
+        # WP30: a change to the map of a linked control changes the evidence basis (the pseudo
+        # kind control_map is ignored when counting, and is part of the hash only).
+        from supervisor.controls.refs import map_fingerprint
+
+        out += [
+            ("control_map", f"{t}:{map_fingerprint(self.state, t)}")
+            for k, t in out
+            if k == "control"
+        ]
+        return out
 
     def _controls_by_risk(self) -> dict[str, list[tuple[str, str]]]:
         """risk id -> its active control links, from one read of ``risk_link``."""
@@ -297,6 +307,20 @@ class RiskService:
                 out[rid] = dict(rows[0])
         return out
 
+    def _row_for_basis(self, risk_id: str, basis: str) -> dict[str, Any] | None:
+        """The newest recent evidence row of the risk that was computed for ``basis`` and is not
+        stale; None when there is none. Compares the basis hash, not the change event."""
+        now = self.clock.now()
+        for r in self.tables.query(
+            "risk_evidence", {"risk_id": risk_id}, order_by=("-ts",), limit=12
+        ):
+            end = ev_ts(r["window_end"])
+            if end is None or ev.is_stale(end, self.window_seconds(), now):
+                continue
+            if r["evidence_id"] == ev.evidence_id(risk_id, ev.Window(end, end), basis):
+                return dict(r)
+        return None
+
     def window_seconds(self) -> int:
         return int(self.settings.risk_evidence_window_days) * 86400
 
@@ -329,8 +353,15 @@ class RiskService:
                 state, reason, res = ev.STATE_NONE, "stale_evidence", inh
             elif latest["evidence_id"] != ev.evidence_id(
                 row["risk_id"], ev.Window(end, end), basis
-            ):
+            ) and not (alt := self._row_for_basis(row["risk_id"], basis)):
                 state, reason, res = ev.STATE_NONE, "changed_since_evidence", inh
+            elif latest["evidence_id"] != ev.evidence_id(
+                row["risk_id"], ev.Window(end, end), basis
+            ):
+                # changed and changed back: an older row of this very basis still counts
+                latest = alt
+                state, reason = alt["state"], alt["reason"]
+                res = dec if state == ev.STATE_WORKING else inh
             else:
                 reason = latest["reason"]
                 res = dec if state == ev.STATE_WORKING else inh
@@ -529,10 +560,15 @@ class RiskService:
 
     # ------------------------------------------------------------------ evidence
     def collector(self) -> ev.Collector:
+        from supervisor.controls.refs import control_scope, runtime_sources  # WP30; lazy
+
         return ev.Collector(
             self.tables,
             self.state,
             self._fresh().rule_ids(),
+            control_sources=lambda cid: runtime_sources(self.state, cid),
+            control_scope=lambda cid: control_scope(self.state, cid),
+            pack_days=int(getattr(self.settings, "controls_pack_window_days", 0) or 0) or None,
             judged_packs=bool(getattr(self.settings, "risk_evidence_judged_packs", False)),
         )
 

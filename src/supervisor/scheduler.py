@@ -24,6 +24,10 @@ notify         NOTIFY_WEBHOOK_ENABLED send queued webhook notices (WP21; needs a
 alerts         ALERTS_ENABLED         evaluate config/alerts.yaml, raise and route alerts (WP21)
 risk_evidence  RISK_REGISTER_ENABLED  count gate rule hits, pack verdicts and monitor states
                                       per risk; residual score from facts (WP29)
+control_status CONTROLS_ENABLED       evidence status of each control per agent and the
+                                      compliance figure (WP30)
+task_due       CONTROLS_ENABLED       close tasks whose evidence is there; one case for each
+                                      overdue required task (WP30)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -456,6 +460,24 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 "risk_evidence",
                 settings.sched_risk_evidence_s,
                 lambda: risk_evidence_job.run(ctx, settings),
+            )
+        )
+    if settings.controls_enabled:  # WP30: listed only when they can run
+        from supervisor.jobs import control_status as control_status_job
+        from supervisor.jobs import task_due as task_due_job
+
+        jobs.append(
+            JobSpec(
+                "control_status",
+                settings.sched_control_status_s,
+                lambda: control_status_job.run(ctx, settings),
+            )
+        )
+        jobs.append(
+            JobSpec(
+                "task_due",
+                settings.sched_task_due_s,
+                lambda: task_due_job.run(ctx, settings, case_service()),
             )
         )
     from supervisor.jobs import inventory as inventory_job

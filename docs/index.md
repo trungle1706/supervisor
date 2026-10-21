@@ -33,6 +33,8 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/onboard-eval.md` | Precision and recall of the code analysers on the corpus | Dev, 2L |
 | `docs/regulations.md` | Regulation knowledge base: coverage, format, internal rules | 2L, Dev |
 | `docs/compliance-advisor.md` | Obligations matrix, Decision 33, threshold check | 2L, Dev |
+| `docs/risk-register.md` | Risk register: scoring, inheritance up the inventory graph, evidence from runtime, import, harness (WP29) | 2L, Risk, Audit, Dev |
+| `docs/controls.md` | Control catalogue, evidence status, compliance figure, task list sized by Decision 33 class, import (WP30) | 2L, Risk, Audit, Dev |
 | `docs/inventory.md` | Inventory graph, risk inheritance, shadow-AI scan (WP24) | 2L, Platform admin, Dev |
 | `docs/assurance.md` | 33 eval packs with licence and data mode | 2L, Dev |
 | `docs/tool-analytics.md` | Tool usage rollup, least-privilege suggestion, Tools page (WP22) | 2L, Op, Dev |
@@ -53,6 +55,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/BUILD_PLAN_PHASE2.md` | Phase 2 plan (WP13 to WP19) and status | Build |
 | `docs/ingress-auth.md` | Per-agent credentials on agent ingress: setup, rotation, rubric (WP20) | Build, Sec |
 | `docs/adr/` (D01 to D23, D28) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22), verdict contract v2 and detector framework (D23), collectors and policy modes (D28) | Build, Aud |
+| `docs/adr/` (D01 to D22, D26, D30) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22), risk register (D26), control catalogue and tasks (D30) | Build, Aud |
 | `docs/phase3/wave1/` | Phase 3 wave 1: handoff and review of each WP, integration report (`INTEGRATION_WAVE1.md`) | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |

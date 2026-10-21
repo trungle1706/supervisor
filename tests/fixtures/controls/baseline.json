@@ -1,0 +1,104 @@
+{
+  "base_commit": "316a039",
+  "branch": "wp30-controls",
+  "date": "2026-10-20",
+  "note": "Recorded by `python -m supervisor.controls.harness --write-baseline`. tests/controls/test_harness.py fails if a metric drops below this.",
+  "results": {
+    "adversarial": {
+      "bp": 10000,
+      "n": 24,
+      "passed": 24
+    },
+    "determinism_bp": 10000,
+    "golden": {
+      "dev": {
+        "accuracy_bp": 10000,
+        "accuracy_ci_bp": [
+          8864,
+          10000
+        ],
+        "by_task": {
+          "bp": {
+            "bp": 10000,
+            "correct": 4,
+            "n": 4
+          },
+          "gate": {
+            "bp": 10000,
+            "correct": 6,
+            "n": 6
+          },
+          "plan": {
+            "bp": 10000,
+            "correct": 8,
+            "n": 8
+          },
+          "status": {
+            "bp": 10000,
+            "correct": 8,
+            "n": 8
+          },
+          "waive": {
+            "bp": 10000,
+            "correct": 4,
+            "n": 4
+          }
+        },
+        "correct": 30,
+        "n": 30,
+        "result_hash": "c7a2d0f266da6a9cba07badd7749c44eeb7614bf627eea609c360f13bc1d2e09"
+      },
+      "held_out": {
+        "accuracy_bp": 10000,
+        "accuracy_ci_bp": [
+          8388,
+          10000
+        ],
+        "by_task": {
+          "bp": {
+            "bp": 10000,
+            "correct": 4,
+            "n": 4
+          },
+          "gate": {
+            "bp": 10000,
+            "correct": 4,
+            "n": 4
+          },
+          "plan": {
+            "bp": 10000,
+            "correct": 4,
+            "n": 4
+          },
+          "status": {
+            "bp": 10000,
+            "correct": 4,
+            "n": 4
+          },
+          "waive": {
+            "bp": 10000,
+            "correct": 4,
+            "n": 4
+          }
+        },
+        "correct": 20,
+        "n": 20,
+        "result_hash": "29cb056752ddea0e42310c89b3830ebd18c0f154f0e404168faa69fce6bb2e9d"
+      }
+    },
+    "starters": {
+      "bp": 10000,
+      "controls": 28,
+      "maps": 165,
+      "risks_covered": 19
+    },
+    "verdicts": {
+      "adversarial": "GO",
+      "determinism": "GO",
+      "golden_dev": "GO",
+      "golden_held_out": "GO",
+      "starters": "GO"
+    }
+  },
+  "tasks_config_sha256": "9ffe48915204af2daf1d8ab10177d8eac958b2c7fbf14b919a8bcf629188b93d"
+}

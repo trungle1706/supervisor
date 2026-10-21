@@ -26,7 +26,18 @@ from supervisor.core.errors import SupervisorError
 
 log = logging.getLogger("supervisor.audit")
 
-TARGET_KINDS = ("case", "agent", "notice", "export", "job", "session", "alert", "risk")
+TARGET_KINDS = (
+    "case",
+    "agent",
+    "notice",
+    "export",
+    "job",
+    "session",
+    "alert",
+    "risk",
+    "control",
+    "task",
+)
 # path parameter name -> target kind (the first one present on the route wins)
 _PARAM_KIND = {
     "case_id": "case",
@@ -34,6 +45,8 @@ _PARAM_KIND = {
     "notice_id": "notice",
     "alert_id": "alert",
     "risk_id": "risk",  # WP29
+    "control_id": "control",  # WP30
+    "task_id": "task",  # WP30
     "name": "export",
 }
 # route template -> target kind when the route has no id parameter
@@ -43,6 +56,8 @@ _TEMPLATE_KIND = {
     "/console/export": "export",
     "/console/chain/export": "export",
     "/v1/risks": "risk",  # WP29: create (the new id is in the detail note)
+    "/v1/controls": "control",  # WP30: create
+    "/v1/tasks": "task",  # WP30: add a custom task
 }
 _ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 MUTATING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
@@ -111,6 +126,18 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
             ),
         )
         return row_hash({"risk": risk, "links": links})
+    if kind == "control":  # WP30: the control row and its map
+        control = state.get("control", {"control_id": target_id})
+        if control is None:
+            return None
+        maps = sorted(
+            f"{r['kind']}:{r['target']}"
+            for r in state.query("control_map", {"control_id": target_id})
+            if r.get("active")
+        )
+        return row_hash({"control": control, "map": maps})
+    if kind == "task":  # WP30
+        return row_hash(state.get("task", {"task_id": target_id}))
     if kind == "agent":
         agent = state.get("agent", {"agent_id": target_id})
         controls = [

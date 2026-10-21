@@ -33,10 +33,11 @@ TREATMENTS: tuple[str, ...] = ("avoid", "mitigate", "accept", "transfer")
 STATUSES: tuple[str, ...] = ("draft", "active", "retired")
 SOURCES: tuple[str, ...] = ("manual", "import", "starter")
 # matrix = a compliance matrix row (an obligation id); rule = a gate rule id; pack = an
-# assurance pack id; monitor = a monitor name (controls.yaml); case = a case id.
-LINK_KINDS: tuple[str, ...] = ("matrix", "rule", "pack", "monitor", "case")
+# assurance pack id; monitor = a monitor name (controls.yaml); case = a case id; control = a
+# WP30 catalogue control id (the evidence rule looks through it at the control's own sources).
+LINK_KINDS: tuple[str, ...] = ("matrix", "rule", "pack", "monitor", "case", "control")
 # Link kinds that count as a control for the evidence rule. matrix and case are references.
-CONTROL_KINDS: tuple[str, ...] = ("rule", "pack", "monitor")
+CONTROL_KINDS: tuple[str, ...] = ("rule", "pack", "monitor", "control")
 BANDS: tuple[str, ...] = ("low", "medium", "high", "critical")
 BAND_RANK: dict[str | None, int] = {None: 0, **{b: i + 1 for i, b in enumerate(BANDS)}}
 

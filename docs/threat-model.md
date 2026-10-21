@@ -299,3 +299,24 @@ Pause is cheap: one rule, one console click or `POST /gate/pause`. Resume is har
 different people (owner + reviewer). Quarantine release needs an admin listed in the
 policy. All three are real state changes on the gateway, recorded on the chain, and
 never faked in the demo (`demo/inject.py` reads the state back from the store).
+
+### 3.11 Control catalogue and task list (WP30, ADR D30)
+
+The catalogue adds write paths for people (`POST /v1/controls/...`, `POST /v1/tasks/...`, flag
+`CONTROLS_ENABLED`, off by default), two jobs and a launch NO-GO source. Threats and controls: (1)
+**a person marks a control working without proof**: status is computed from enforced gate hits, real
+packs and deterministic monitors, never typed, and a document or a detector slug never counts; (2)
+**a control is changed after it showed working**: its status and the evidence of the risks that link
+it stop counting until the next pass (`changed_since_evidence`); (3) **one person waives a required
+task alone**: a waiver needs a reason and a different signed-in approver or admin, the move itself
+cannot be waived, and an integrity query finds a forged row; (4) **a stage is skipped**: the
+lifecycle move is refused while a required task is open, and Launch is NO-GO; (5) **the chain leaks
+text**: payloads hold ids, integers, codes and hashes, and reasons only as a hash. Reasons are stored
+as text in the task row (do not type personal data). The CLI trusts the operator on the host (as the
+other CLIs do); the second person of a waiver can answer only through the authenticated route.
+Review additions: (6) **the first line closes a second-line task**: a reviewer, approver, auditor
+or admin task needs that role (or admin); (7) **a downgrade relaxes the list**: sizing keeps the
+highest level and every class the agent had, so a move keeps its stage approval and no stage is
+skipped; (8) **Launch passes on an unknown**: no task list, a stage before deployment, an
+unreadable list or the gate flag on with CONTROLS_ENABLED off are each NO-GO; (9) **a bank process
+shows working because a product rule fired**: a bank-owned control is always `bank_owned`.

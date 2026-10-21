@@ -121,6 +121,21 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "approver", "owner", "admin", "auditor", "operator"),
         "GET /v1/sessions/{id}: masked timeline and scores of one conversation (WP27)",
     ),
+    # --- WP30 ---
+    "controls.view": (_ALL, "Controls page, Controls tab and /v1/controls (read-only, WP30)"),
+    "controls.edit": (
+        ("reviewer", "owner", "admin"),
+        "Create and change controls and what they cover (WP30)",
+    ),
+    "tasks.view": (_ALL, "Tasks page, Tasks tab and GET /v1/tasks (read-only, WP30)"),
+    "tasks.edit": (
+        ("reviewer", "owner", "admin"),
+        "Generate, start and finish tasks, ask to waive one (WP30)",
+    ),
+    "tasks.approve": (
+        ("approver", "admin"),
+        "Second person for a task waiver; approve a lifecycle move or an approver task (WP30)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -278,6 +293,31 @@ ROUTES: dict[tuple[str, str], str] = {
     # --- WP27 ---
     ("GET", "/v1/sessions/{session_id}"): "session.view",
     ("POST", "/v1/sessions/{session_id}/resume"): "agent.resume",
+    # --- WP30 ---
+    ("GET", "/console/controls"): "controls.view",
+    ("GET", "/console/controls/rows"): "controls.view",
+    ("GET", "/console/controls/{control_id}/drawer"): "controls.view",
+    ("GET", "/console/tasks"): "tasks.view",
+    ("GET", "/console/tasks/rows"): "tasks.view",
+    ("GET", "/console/tasks/{task_id}/drawer"): "tasks.view",
+    ("GET", "/v1/controls"): "controls.view",
+    ("GET", "/v1/controls/agents/{agent_id}"): "controls.view",
+    ("GET", "/v1/controls/{control_id}"): "controls.view",
+    ("POST", "/v1/controls"): "controls.edit",
+    ("POST", "/v1/controls/{control_id}"): "controls.edit",
+    ("POST", "/v1/controls/{control_id}/maps"): "controls.edit",
+    ("GET", "/v1/tasks"): "tasks.view",
+    ("GET", "/v1/tasks/export.csv"): "tasks.view",
+    ("GET", "/v1/tasks/agents/{agent_id}"): "tasks.view",
+    ("GET", "/v1/tasks/{task_id}"): "tasks.view",
+    ("POST", "/v1/tasks"): "tasks.edit",
+    ("POST", "/v1/tasks/agents/{agent_id}/generate"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/start"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/done"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/approve"): "tasks.approve",  # review WP30
+    ("POST", "/v1/tasks/{task_id}/waive"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/waive/approve"): "tasks.approve",
+    ("POST", "/v1/tasks/{task_id}/waive/reject"): "tasks.approve",
 }
 
 

@@ -73,6 +73,8 @@ def test_new_roles() -> None:
         "policies.view",
         "integrations.view",
         "risks.view",  # WP29: the register is readable by every role
+        "controls.view",  # WP30: the catalogue and the task list are readable by every role
+        "tasks.view",
     }
     operator = {p for p in rbac.PERMISSIONS if rbac.allowed(["operator"], p)}
     assert operator == viewer | {

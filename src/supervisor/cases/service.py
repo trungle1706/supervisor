@@ -55,8 +55,9 @@ from supervisor.evidence.casefile.builder import (
 log = logging.getLogger("supervisor.cases")
 
 SEVERITIES = ("low", "medium", "high", "critical")
-# Sources whose cases are internal flags, not incidents: no Decree 142 report clocks (WP24).
-NO_CLOCK_SOURCES = ("inventory", "mcp_tool_review")
+# Sources whose cases are internal flags, not incidents: no Decree 142 report clocks (WP24,
+# WP26, WP30).
+NO_CLOCK_SOURCES = ("inventory", "mcp_tool_review", "task")
 TWO_PERSON_SEVERITIES = ("high", "critical")
 RESOLUTIONS = ("confirmed", "false_alarm")
 SIGNOFF_DECISIONS = ("approve", "reject")

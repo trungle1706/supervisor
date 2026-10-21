@@ -1,0 +1,53 @@
+# Starter controls the bank owns (WP30). SYNTHETIC and ILLUSTRATIVE. Supervisor cannot observe a
+# bank process, so these controls name a document (the bank's own file) and never show
+# "working": they stay no_data (reference only) until the bank attaches a runtime source.
+# The compliance figure of an agent reports them apart (bank controls in scope).
+version: 1
+controls:
+  - id: CTL-BANK-DPIA
+    title: Personal data processing impact assessment kept current
+    objective: >
+      The data protection officer keeps the impact assessment file for each agent that reads
+      personal or financial records, and updates it when the agent changes.
+    type: preventive
+    implemented_by: bank
+    owner: Data Protection Officer
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [VN-DATA-2024-A25.1-01, VN-DEC356-2025-A4.1-01]
+      risk: [RSK-CRD-003]
+    evidence:
+      document: [dpia-file]
+
+  - id: CTL-BANK-MODELVAL
+    title: Independent model validation by the second line
+    objective: >
+      A validator outside the first line reviews the model, its monitoring thresholds and the
+      limits of use before launch and after a material change.
+    type: detective
+    implemented_by: bank
+    owner: Model Risk Management
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-SR117-2011-S5.2-01, INTL-EUAIA-2024-A15-01, INTL-NISTGAI-2024-S2.2-01]
+      risk: [RSK-SHR-001, RSK-SHR-002, RSK-CRD-005]
+    evidence:
+      document: [model-validation-report]
+
+  - id: CTL-BANK-INCIDENT
+    title: Incident management and regulator reporting procedure
+    objective: >
+      The bank has a written procedure that turns a Supervisor case into an incident report to
+      the authority inside the required hours.
+    type: corrective
+    implemented_by: bank
+    owner: Operational Risk
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [VN-TT53-2026-A11.02-01, VN-AI-2025-A14.02A-01]
+      risk: [RSK-PAY-006]
+    evidence:
+      document: [incident-procedure]

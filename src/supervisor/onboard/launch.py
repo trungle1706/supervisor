@@ -179,10 +179,15 @@ def launch(
     min_catch_rate_bp: int = MIN_CATCH_RATE_BP,
     max_false_alarm_bp: int = MAX_FALSE_ALARM_BP,
     assurance: Sequence[Any] | None = None,
+    tasks: Sequence[Mapping[str, Any]] | None = None,
 ) -> LaunchReport:
     """Run Launch. ``assurance`` = results of assurance packs (``PackResult`` or stored row
     dicts) to judge instead of running the agent packs; with ``None`` the agent packs run
-    only when ``ASSURANCE_LAUNCH_ENABLED`` is on. Flag off and ``None``: nothing changes."""
+    only when ``ASSURANCE_LAUNCH_ENABLED`` is on. ``tasks`` = open required tasks of the
+    agent's current lifecycle stage (stored row dicts) to judge instead of reading the task
+    list; with ``None`` the list is read only when ``TASKS_LAUNCH_GATE_ENABLED`` is on (it needs
+    ``CONTROLS_ENABLED`` too; without it Launch is NO-GO). Flags off and both ``None``: nothing
+    changes."""
     report = _launch_core(
         policy,
         agent_id,
@@ -192,9 +197,79 @@ def launch(
         min_catch_rate_bp=min_catch_rate_bp,
         max_false_alarm_bp=max_false_alarm_bp,
     )
-    if assurance is None and not load_settings().assurance_launch_enabled:
-        return report
-    return _with_assurance(report, agent_id, work_dir, assurance, policy)
+    settings = load_settings()
+    if assurance is not None or settings.assurance_launch_enabled:
+        report = _with_assurance(report, agent_id, work_dir, assurance, policy)
+    if tasks is not None or settings.tasks_launch_gate_enabled:
+        report = _with_tasks(report, agent_id, tasks, settings)
+    return report
+
+
+def _with_tasks(
+    report: LaunchReport,
+    agent_id: str,
+    given: Sequence[Mapping[str, Any]] | None,
+    settings: Any,
+) -> LaunchReport:
+    """Add the task NO-GO reasons (gates.py, WP30). Each of these blocks GO (a gate does not pass
+    on an unknown; review WP30):
+
+    * a required task of the current lifecycle stage is open (the move out of the stage and a
+      task marked ``blocks_launch: false``, such as DEP-LAUNCH, are done after the launch);
+    * the agent has no task list (owner question 2) or is before the deployment stage;
+    * the task list cannot be read, or CONTROLS_ENABLED is off while the gate flag is on.
+
+    ``given`` rows (tests, the harness) are judged as they are."""
+    from supervisor.assurance.gates import task_launch_items
+    from supervisor.tasks.model import LAUNCH_STAGE, STAGES
+
+    generated = True
+    stage: str | None = None
+    error: str | None = None
+    off = False
+    if given is not None:
+        rows = list(given)
+    elif not settings.controls_enabled:
+        rows, off = [], True
+    else:
+        try:
+            from supervisor.tasks.service import launch_tasks_for
+
+            rows, generated, stage = launch_tasks_for(settings, agent_id)
+        except Exception as exc:  # noqa: BLE001 - fail closed on any read problem
+            rows, error = [], type(exc).__name__
+    items = task_launch_items(rows)
+    if off:
+        items.append(
+            "TASKS_LAUNCH_GATE_ENABLED is on but CONTROLS_ENABLED is off: the task list cannot "
+            "be read; Launch stays NO-GO"
+        )
+    if error:
+        items.append(f"the task list could not be read ({error}); Launch stays NO-GO")
+    if given is None and not off and not error:
+        if not generated:
+            items.append(
+                "no task list for this agent; Launch stays NO-GO until it exists "
+                f"(python -m supervisor.tasks generate --agent {agent_id} --by <you>)"
+            )
+        elif stage in STAGES and STAGES.index(stage) < STAGES.index(LAUNCH_STAGE):
+            items.append(
+                f"the agent is in the {stage} stage; Launch needs the {LAUNCH_STAGE} stage "
+                "(finish the earlier stages and their lifecycle moves first)"
+            )
+    reasons = list(report.reasons)
+    if items:
+        reasons = ([] if report.go else reasons) + items
+    elif report.go:
+        reasons.append("tasks: no required task of the current lifecycle stage is open")
+    return report.model_copy(
+        update={
+            "go": report.go and not items,
+            "reasons": reasons,
+            "tasks_enabled": True,
+            "task_reasons": items,
+        }
+    )
 
 
 def _compact(r: Any, pack: Any) -> dict[str, Any]:

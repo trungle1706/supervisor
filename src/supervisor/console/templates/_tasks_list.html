@@ -1,0 +1,40 @@
+{# Tasks table + pager: the swap target #list of the Tasks page (WP30, read-only). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% if page.items %}
+<div class="tablewrap">
+<table class="queue tasks-tbl">
+  <caption class="sr">{{ t('nav_tasks') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('template_id', t('tk_col_task'), sort_col, sort_dir, '/console/tasks', '/console/tasks/rows', base_qs) }}
+      {{ tb.th('agent_id', t('agent'), sort_col, sort_dir, '/console/tasks', '/console/tasks/rows', base_qs) }}
+      {{ tb.th('stage', t('tk_col_stage'), sort_col, sort_dir, '/console/tasks', '/console/tasks/rows', base_qs) }}
+      <th scope="col">{{ t('tk_col_required') }}</th>
+      {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/tasks', '/console/tasks/rows', base_qs) }}
+      <th scope="col">{{ t('tk_col_role') }}</th>
+      {{ tb.th('due_at', t('tk_col_due'), sort_col, sort_dir, '/console/tasks', '/console/tasks/rows', base_qs) }}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for r in page.items %}
+    {% set dq = list_qs ~ '&lang=' ~ lang %}
+    <tr class="row" data-row="{{ r.task_id }}" data-status="{{ r.status }}">
+      <td><a class="head rowlink mono" href="/console/tasks?drawer={{ r.task_id }}&amp;{{ dq }}" hx-get="/console/tasks/{{ r.task_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.template_id }}</a><div class="idline">{{ r.title }}</div></td>
+      <td class="mono">{{ r.agent_id }}</td>
+      <td>{{ t('tk_stage_' ~ r.stage) }}</td>
+      <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
+      <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}{% if r.waive_pending %} {{ ui.pill(t('tk_waive_pending'), 'warn') }}{% endif %}</td>
+      <td>{{ r.owner_role }}</td>
+      <td class="mono">{{ (r.due_at or '-')[:10] }}{% if r.overdue %} {{ ui.pill(t('rk_overdue'), 'bad') }}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/tasks', '/console/tasks/rows', list_qs) }}
+{% elif total_tasks %}
+{{ ui.empty(t('tk_no_tasks'), t('tk_no_match')) }}
+{% else %}
+{{ ui.empty(t('tk_no_tasks'), t('tk_no_tasks_line')) }}
+{% endif %}

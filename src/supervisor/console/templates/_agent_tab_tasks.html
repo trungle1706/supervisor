@@ -1,0 +1,33 @@
+{# Tasks tab of the Agent page (WP30): lifecycle stage, sizing inputs and the tasks. Read only. #}
+{% import "_ui.html" as ui with context %}
+{% if tk_off %}
+{{ ui.empty(t('tk_tab_off')) }}
+{% elif not tk.generated %}
+{{ ui.empty(t('tk_tab_none'), 'python -m supervisor.tasks generate --agent ' ~ a.agent_id ~ ' --user NAME') }}
+{% else %}
+<section class="card" data-section="task-stage">
+  <h3>{{ t('tk_stage_now') }}: {{ t('tk_stage_' ~ tk.stage) }}</h3>
+  <p>{{ t('tk_sizing', cls=tk.d33_class, band=tk.band, src=tk.band_source, level=tk.level) }}</p>
+  {{ ui.bar(tk.stage_done_bp, 'ok') }}
+  <p>{{ t('tk_required_open', n=tk.required_open, total=tk.required_total) }}{% if tk.overdue %} · {{ ui.pill(t('rk_overdue') ~ ' ' ~ tk.overdue, 'bad') }}{% endif %}{% if tk.next_stage %} · {{ t('tk_next_stage') }}: {{ t('tk_stage_' ~ tk.next_stage) }}{% endif %}</p>
+  {% if tk.illustrative %}<p class="hint">{{ t('tk_illustrative') }}</p>{% endif %}
+</section>
+<section class="card" data-section="task-list">
+  <h3>{{ t('nav_tasks') }} <span class="k">{{ tk.tasks|length }}</span></h3>
+  <div class="tablewrap flat"><table class="queue" id="agent-tasks">
+    <thead><tr><th scope="col">{{ t('tk_col_task') }}</th><th scope="col">{{ t('tk_col_stage') }}</th><th scope="col">{{ t('tk_col_required') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('tk_col_due') }}</th></tr></thead>
+    <tbody>
+    {% for r in tk.tasks %}
+      <tr class="row">
+        <td><a class="mono" href="/console/tasks?drawer={{ r.task_id }}&amp;lang={{ lang }}">{{ r.template_id }}</a><div class="idline">{{ r.title }}</div></td>
+        <td>{{ t('tk_stage_' ~ r.stage) }}</td>
+        <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
+        <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}</td>
+        <td class="mono">{{ (r.due_at or '-')[:10] }}{% if r.overdue %} {{ ui.pill(t('rk_overdue'), 'bad') }}{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+<p class="hint"><a href="/console/tasks?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('tk_open_page') }}</a></p>
+{% endif %}

@@ -145,6 +145,15 @@ class Window:
         return int((self.end - self.start).total_seconds())
 
 
+def source_window(kind: str, w: Window, pack_days: int | None) -> Window:
+    """The window one source is read in: a pack result may be as old as ``pack_days`` (packs run
+    less often than rules fire); rules and monitors use ``w``. WP30: the one definition, used by
+    control status and by a risk that looks through a control."""
+    if kind == "pack" and pack_days and pack_days * 86400 > w.seconds:
+        return Window(w.end - dt.timedelta(days=pack_days), w.end)
+    return w
+
+
 def window_for(now: dt.datetime, days: int) -> Window:
     """The window that ends at the last full hour before ``now`` and spans ``days`` days.
     A naive ``now`` is read as UTC (never as the host's local time)."""
@@ -239,6 +248,12 @@ class Collector:
     judged_packs: bool = False
     # One pass asks the same (agents, control) question for many risks; answer it once.
     _memo: dict[tuple[Any, ...], Any] = field(default_factory=dict)
+    # WP30: a ``control`` link is read through the runtime sources of the catalogue control
+    # (control id -> [(kind, target)] of kinds rule, pack, monitor). None = such links are ignored.
+    control_sources: Callable[[str], Iterable[tuple[str, str]]] | None = None
+    # WP30: the agents a control applies to (``["*"]`` = all) and the pack window in days.
+    control_scope: Callable[[str], list[str]] | None = None
+    pack_days: int | None = None
 
     def _agent_rows(self) -> dict[str, tuple[str, str]]:
         """lower-case id -> (id as stored, gate_state)."""
@@ -341,12 +356,38 @@ class Collector:
 
     # -- one risk ------------------------------------------------------------------------
     def count(self, agents: Iterable[str], links: Iterable[tuple[str, str]], w: Window) -> Counts:
-        """Counts for the agents a risk applies to and its control links (kind, target)."""
+        """Counts for the agents a risk applies to and its control links (kind, target).
+
+        A ``control`` link stands for the runtime sources of the catalogue control, read for the
+        agents the control applies to and in the same per-source window as control status."""
         supervised, dropped = self.split_agents(agents)
-        key_agents, key_win = tuple(supervised), (w.start, w.end)
         c = Counts(agents_n=len(supervised), agents_excluded=dropped)
-        for kind, target in sorted(set(links)):
-            if kind not in CONTROL_KINDS:
+        entries: dict[tuple[str, str], tuple[str, ...]] = {}
+        direct: set[tuple[str, str]] = set()
+        for kind, target in links:
+            if kind == "control":
+                if self.control_sources is None:
+                    continue
+                scope = self.control_scope(target) if self.control_scope else ["*"]
+                mine = (
+                    supervised if scope == ["*"] else [a for a in supervised if a.lower() in scope]
+                )
+                for src in self.control_sources(target):
+                    if len(mine) > len(entries.get(src, ())):
+                        entries[src] = tuple(mine)
+            else:
+                entries[(kind, target)] = tuple(supervised)
+                direct.add((kind, target))
+        for (kind, target), who in sorted(entries.items()):
+            if kind not in CONTROL_KINDS or kind == "control":
+                continue
+            ags = list(who)
+            # the longer pack window applies to what a control stands for, not to a direct link
+            kw = source_window(kind, w, None if (kind, target) in direct else self.pack_days)
+            key_agents, key_win = who, (kw.start, kw.end)
+            if not ags:  # the control does not apply to any agent of this risk: it proves nothing
+                setattr(c, f"{kind}_links", getattr(c, f"{kind}_links") + 1)
+                c.controls_idle += 1
                 continue
             if kind == "rule":
                 c.rule_links += 1
@@ -356,7 +397,7 @@ class Collector:
                     continue
                 hits, stops = self._cached(
                     ("rule", key_agents, target, key_win),
-                    lambda t=target: self.rule_hits(supervised, t, w),
+                    lambda t=target, a=ags, k=kw: self.rule_hits(a, t, k),
                 )
                 c.rule_hits += hits
                 c.rule_stops += stops
@@ -368,7 +409,7 @@ class Collector:
                 c.pack_links += 1
                 st = self._cached(
                     ("pack", key_agents, target, key_win),
-                    lambda t=target: self.pack_status(supervised, t, w),
+                    lambda t=target, a=ags, k=kw: self.pack_status(a, t, k),
                 )
                 setattr(c, f"pack_{st}", getattr(c, f"pack_{st}") + 1)
                 if st == "fail":
@@ -381,7 +422,7 @@ class Collector:
                 c.monitor_links += 1
                 if self._cached(
                     ("monitor", key_agents, target, key_win),
-                    lambda t=target: self.monitor_ok(supervised, t, w),
+                    lambda t=target, a=ags, k=kw: self.monitor_ok(a, t, k),
                 ):
                     c.monitor_ok += 1
                     c.controls_working += 1
@@ -419,7 +460,9 @@ def evidence_basis(row: Mapping[str, Any], controls: Iterable[tuple[str, str]]) 
             "treatment": row["treatment"],
             "inherent": [int(row["inherent_likelihood"]), int(row["inherent_impact"])],
             "declared": [int(row["residual_likelihood"]), int(row["residual_impact"])],
-            "controls": sorted([k, t] for k, t in set(controls) if k in CONTROL_KINDS),
+            "controls": sorted(
+                [k, t] for k, t in set(controls) if k in CONTROL_KINDS or k == "control_map"
+            ),
         }
     )[:32]
 

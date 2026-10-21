@@ -1,0 +1,46 @@
+{# Task drawer of the Tasks page: tabs Details / History (read-only). Variable: drawer. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set r = drawer.t %}
+{% set tab = drawer.tab %}
+{% set qs = drawer.qs %}
+{% set base = '/console/tasks/' ~ r.task_id ~ '/drawer?tab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set page_base = '/console/tasks?drawer=' ~ r.task_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set pills %}{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}{% endset %}
+{% set labels = {'details': t('dtab_details'), 'history': t('tk_dtab_history')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base) }}{% endset %}
+{% set prev_href = ('/console/tasks?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/tasks/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/tasks?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/tasks/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% call dr.drawer(r.template_id, pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {% if tab == 'details' %}
+    <p style="margin:0 0 10px"><strong>{{ r.title }}</strong></p>
+    {{ ui.kv([
+      (t('agent'), r.agent_id, True),
+      (t('tk_col_stage'), t('tk_stage_' ~ r.stage)),
+      (t('tk_col_required'), t('tk_required') if r.required else t('tk_optional')),
+      (t('tk_col_role'), r.owner_role),
+      (t('tk_col_due'), r.due_at),
+      (t('tk_level'), r.level ~ ' · ' ~ r.d33_class),
+      (t('tk_evidence'), r.evidence_kind ~ ((': ' ~ r.evidence_ref) if r.evidence_ref else '')),
+      (t('tk_done_by'), (r.done_by ~ ' · ' ~ r.done_at) if r.done_by else None),
+      (t('tk_waive_reason'), r.waive_reason),
+      (t('tk_waive_by'), ((r.waive_requested_by or '') ~ (' → ' ~ r.waive_approved_by if r.waive_approved_by else '')) if r.waive_requested_by else None),
+    ]) }}
+  {% else %}
+    <h3 class="sec">{{ t('tk_dtab_history') }}</h3>
+    {% if r.events %}
+    <div class="tablewrap flat"><table>
+      <thead><tr><th scope="col">{{ t('rk_window_end') }}</th><th scope="col">{{ t('tk_action') }}</th><th scope="col">{{ t('tk_actor') }}</th><th scope="col">{{ t('status') }}</th></tr></thead>
+      <tbody>
+      {% for e in r.events %}
+        <tr><td class="mono">{{ e.ts[:16]|replace('T', ' ') }}</td><td>{{ e.action }}</td><td class="mono">{{ e.actor }}</td><td>{{ e.from_status or '-' }} → {{ e.to_status }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="hint">{{ t('tk_no_history') }}</p>
+    {% endif %}
+  {% endif %}
+{% endcall %}

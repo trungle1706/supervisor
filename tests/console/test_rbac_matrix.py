@@ -26,6 +26,8 @@ PARAMS = {
     "name": "x.json",
     "notice_id": "N1",
     "risk_id": "RSK-X",  # WP29
+    "control_id": "CTL-X",  # WP30
+    "task_id": "tsk_x",  # WP30
 }
 
 

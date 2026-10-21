@@ -17,6 +17,7 @@ FLAGS = (
     "console_assurance_enabled",
     "console_compliance_enabled",
     "console_risks_enabled",  # WP29
+    "console_controls_enabled",  # WP30
     "risk_register_enabled",
 )
 DEMO_AGENTS = ("payments", "credit_prequal", "customer_service")

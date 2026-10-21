@@ -1136,3 +1136,143 @@ BEFORE DELETE ON risk_evidence
 BEGIN
   SELECT RAISE(ABORT, 'risk_evidence is append-only');
 END;
+
+-- control (state): WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.
+CREATE TABLE IF NOT EXISTS control (
+  control_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  objective TEXT NOT NULL,
+  control_type TEXT NOT NULL,
+  implemented_by TEXT NOT NULL,
+  owner TEXT NOT NULL,
+  status TEXT NOT NULL,
+  review_date TEXT,
+  scope_agents TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (control_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_control_status ON control (status);
+
+-- control_map (state): WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk id of the register; rule, pack, monitor, detector and document are evidence sources. Only rule, pack and monitor are observed at runtime; detector and document are references.
+CREATE TABLE IF NOT EXISTS control_map (
+  map_id TEXT NOT NULL,
+  control_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (map_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_control_map_control_id ON control_map (control_id);
+
+CREATE INDEX IF NOT EXISTS ix_control_map_kind_target ON control_map (kind, target);
+
+-- control_status (append_only): WP30. One row per control, agent and window: working, failing or no_data, a fixed reason code and integer counts of the evidence sources. No text. The matching chain record is control_status (one per agent and pass, carrying the compliance bp). A repeat for the same window is a no-op (status_id is a hash).
+CREATE TABLE IF NOT EXISTS control_status (
+  status_id TEXT NOT NULL,
+  control_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  window_start TEXT NOT NULL,
+  window_end TEXT NOT NULL,
+  status TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  sources_n INTEGER NOT NULL,
+  working_n INTEGER NOT NULL,
+  failing_n INTEGER NOT NULL,
+  idle_n INTEGER NOT NULL,
+  refs_n INTEGER NOT NULL,
+  digest TEXT NOT NULL,
+  chain_hash TEXT,
+  PRIMARY KEY (status_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_control_status_control_id_agent_id_ts ON control_status (control_id, agent_id, ts);
+
+CREATE INDEX IF NOT EXISTS ix_control_status_agent_id_ts ON control_status (agent_id, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_control_status_no_update
+BEFORE UPDATE ON control_status
+BEGIN
+  SELECT RAISE(ABORT, 'control_status is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_control_status_no_delete
+BEFORE DELETE ON control_status
+BEGIN
+  SELECT RAISE(ABORT, 'control_status is append-only');
+END;
+
+-- task (state): WP30 lifecycle task of one agent, made from a template in config/tasks.yaml. kind move is the lifecycle move itself (a task); it is done only when no required task of the stage is open. Waiving needs a reason and a second person (waive_requested_by, waive_approved_by). evidence_kind says what proves the task done: control, pack, document or none.
+CREATE TABLE IF NOT EXISTS task (
+  task_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  template_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  target_stage TEXT,
+  title TEXT NOT NULL,
+  owner_role TEXT NOT NULL,
+  required INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  due_at TEXT,
+  evidence_kind TEXT NOT NULL,
+  evidence_ref TEXT,
+  level TEXT NOT NULL,
+  d33_class TEXT NOT NULL,
+  waive_reason TEXT,
+  waive_requested_by TEXT,
+  waive_approved_by TEXT,
+  done_by TEXT,
+  done_at TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (task_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_task_agent_id_stage ON task (agent_id, stage);
+
+CREATE INDEX IF NOT EXISTS ix_task_status ON task (status);
+
+-- task_event (append_only): WP30. Every change of a task: generate, start, done, waive_request, waive_approve, waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored as a hash only. The matching chain record is task_change.
+CREATE TABLE IF NOT EXISTS task_event (
+  event_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  action TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  from_status TEXT,
+  to_status TEXT,
+  reason_sha256 TEXT,
+  row_hash TEXT NOT NULL,
+  chain_hash TEXT,
+  PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_task_event_task_id_ts ON task_event (task_id, ts);
+
+CREATE INDEX IF NOT EXISTS ix_task_event_agent_id_ts ON task_event (agent_id, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_task_event_no_update
+BEFORE UPDATE ON task_event
+BEGIN
+  SELECT RAISE(ABORT, 'task_event is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task_event_no_delete
+BEFORE DELETE ON task_event
+BEGIN
+  SELECT RAISE(ABORT, 'task_event is append-only');
+END;

@@ -24,6 +24,7 @@ from supervisor.config import get_settings  # noqa: E402
 from supervisor.console import context as console_context  # noqa: E402
 from supervisor.console.errors import console_error, is_console  # noqa: E402
 from supervisor.console.routes import router as console_router  # noqa: E402
+from supervisor.controls.api import router as controls_router  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
 from supervisor.evidence.casefile.builder import CaseFileError  # noqa: E402
 from supervisor.gateway import ingress_auth  # noqa: E402
@@ -38,6 +39,7 @@ from supervisor.ops.logging_setup import configure_logging  # noqa: E402
 from supervisor.ops.readiness import readiness  # noqa: E402
 from supervisor.recorder.otlp_receiver import router as otlp_router  # noqa: E402
 from supervisor.risk.api import router as risk_router  # noqa: E402
+from supervisor.tasks.api import router as tasks_router  # noqa: E402
 
 log = logging.getLogger("supervisor.app")
 configure_logging(get_settings())  # WP18: LOG_LEVEL / LOG_FORMAT / LOG_FILE (idempotent)
@@ -100,6 +102,8 @@ app.include_router(inventory_router)  # WP24: GET /v1/inventory/... (off unless 
 app.include_router(mcp_lock_router)  # WP26: /v1/mcp/tools/... (off unless MCP_HTTP_ENABLED)
 app.include_router(risk_router)  # WP29: /v1/risks/... (off unless RISK_REGISTER_ENABLED)
 app.include_router(session_router)  # WP27: /v1/sessions/{id} (off unless SESSION_MONITOR_ENABLED)
+app.include_router(controls_router)  # WP30: /v1/controls/... (off unless CONTROLS_ENABLED)
+app.include_router(tasks_router)  # WP30: /v1/tasks/... (off unless CONTROLS_ENABLED)
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 
