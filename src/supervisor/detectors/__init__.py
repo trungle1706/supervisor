@@ -25,7 +25,9 @@ def build_registry(masker: Masker, *, judge: object | None = None) -> DetectorRe
     from supervisor.detectors.injection_classifier.detector import InjectionClassifierDetector
     from supervisor.detectors.injection_regex import InjectionRegexDetector
     from supervisor.detectors.judge_advisory import JudgeAdvisoryDetector
+    from supervisor.detectors.memo_masker import MemoMasker
 
+    masker = MemoMasker(masker)  # WP41: three detectors mask the same long text once
     return DetectorRegistry(
         [
             DlpVnDetector(masker),

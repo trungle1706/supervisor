@@ -74,6 +74,8 @@ runs the enabled detectors.
 `transformed_payload` (and in `transformed_args` when the tool arguments changed, so the SDK and
 the MCP proxy apply it as they do for WP24b). Outside the scope `dlp_vn` only reports.
 
+`dlp_vn` also has two WP41 settings (section 3b): `keep_args` and `pseudonym_mode`.
+
 `injection_regex` scores per group (illustrative): override 9000, mode switch 9000, policy
 override 8500, role tag 8000, prompt leak 7000, urgent transfer 6500, plus 500 for each extra
 hit. At the `balanced` preset an urgent-transfer phrase alone does not fire. Known gaps are in
@@ -120,6 +122,121 @@ the recorder only when `DETECTORS_ENABLED=1`.
 Order, strongest first: agent `settings.<slug>`, agent `preset`, `detectors.<slug>` in the file,
 `default_preset`, the detector default. The key is left out of the policy hash when unset, so an
 existing policy file keeps the hash it had.
+
+## 3b. Benchmark defects fixed in WP41 (ADR D33)
+
+The M2 benchmark on a real bank agent found two defects in this layer. Both fixes are behind the
+existing flag (`DETECTORS_ENABLED`) and weaken no control.
+
+### Keep a lookup key unmasked (`keep_args`, D29)
+
+The `dlp_vn` transform replaced the only argument of a `pii_export` lookup tool (a ten digit tax
+code in `tax_code`) with a pseudonym, and the tool answered NOT_FOUND on 16 of 16 calls. A tool
+that looks a record up by a personal identifier needs that identifier as sent. The policy can say
+so, per tool and per argument name:
+
+```yaml
+agents:
+  credit_memo_agent:
+    detectors:
+      settings:
+        dlp_vn:
+          keep_args:
+            lookup_customer_basic_info: [tax_code]   # tool: [top-level argument names]
+          pseudonym_mode: typed                       # optional, see below
+    keep_args_approvals: [dpo.lan, sec.minh]          # WP41 review: two distinct ids
+```
+
+What happens on an allowed call to that tool:
+
+| Where | The named argument |
+|---|---|
+| `transformed_args` and `transformed_payload.args` (what the tool receives) | **as sent** |
+| findings (`entities`, `fragments`), `finding` rows, `agent_event`, the chain record, the SIEM event, the session sketch, the `args_hmac` | **masked / hashed**, as without `keep_args` |
+| the answer | `kept_args: ["tax_code"]` (also in `coverage.kept_args`, stored in `coverage_json`) |
+| Decisions drawer (Detections tab) and the CSV export | the names, in the section "Arguments passed unmasked" and in the column `kept_arguments` |
+| chain record `gate_decision` | `kept_args` (names only) |
+
+Rules: it is an agent setting (a `consumers.<id>.detectors` block that names it is refused by
+the policy loader, and `config/detectors.yaml` may not set it: the shared file would apply it to
+every agent without audit or approval); when it names a `money`, `credit` or `pii_export` tool
+the agent needs two distinct approver ids in `keep_args_approvals` (same shape as
+`rule_approvals`; left out of the hash when empty), or the policy is refused (WP41 review); it
+applies to input checks only (never to an output check, never to `tool_results`, never to a
+nested key of the same name); no environment variable or request field can set it; only top-level argument names, at most 8 per tool and 64 tools, plain identifiers. Only
+`dlp_vn` honours it (it does nothing when `dlp_vn` is off for the agent). Other arguments of the
+same call stay masked. A blocked or paused call has no transformed arguments, so nothing is kept.
+**Loading** a policy with a `keep_args` entry writes one WARNING log line (`audit: dlp_vn
+keep_args loaded for <agent>: <tool>=<names> (policy <hash16>, approvals <ids>)`) and one chain
+record `policy_keep_args` (agent lane; agent, scope, policy hash, tool and argument names,
+approver ids) at start and
+at every changed reload. The setting is part of the policy hash, so adding or removing a
+`keep_args` entry changes the hash. A wrong shape is refused when the policy loads (same path as
+any bad override). Use it for a declared lookup key, not for free text: a kept argument is
+personal data that reaches the tool in clear. A threat-model note is in `docs/threat-model.md`.
+
+### Typed pseudonyms (`pseudonym_mode`, D29)
+
+`generic` (default): the masker guesses the class from the value, so a bare ten digit tax code is
+typed `<BANK_ACCOUNT:...>`. `typed`: a text value that sits directly under an argument whose NAME
+says what it is (`tax`, `mst`, `ma_so_thue` / `account`, `acct`, `stk`, `tai_khoan`, as a word of
+the name) is typed by the name: `<TAX_CODE:...>`, `<BANK_ACCOUNT:...>`. The class stays visible in
+the finding code (`pii.tax_code`), the pseudonym is still keyed and not reversible, and the
+nesting is followed (`rows[0].tax_code`).
+
+| Need | Use |
+|---|---|
+| The tool must receive the real value (a lookup key) | `keep_args` |
+| The tool does not need the value but the reviewer must see which class it was | `pseudonym_mode: typed` |
+| Neither | the default |
+
+`typed` alone does not repair a lookup: the tool still receives a pseudonym. It makes records,
+findings and alerts say TAX_CODE where the digits alone looked like an account number.
+
+### Scan limits (`max_scan_bytes`, `DETECTORS_SCAN_BUDGET_BYTES`, D30 and D18)
+
+With three detectors on, 8 KB of tool results added 72 ms (p50) to a decision, and a 99 KB
+argument full of personal data held the gate for 1.7 s. Now:
+
+* every detector has a setting `max_scan_bytes` (default **16384**, 256 to 1,000,000; in the file
+  or per agent): the most text it reads in one call;
+* all detectors together read at most **`DETECTORS_SCAN_BUDGET_BYTES`** (default **65536**; file
+  key `limits.scan_budget_bytes`; the environment value wins) per call. The budget is spent in
+  catalogue order: a detector that finds it empty is listed as not executed with the reason
+  `payload_too_large`;
+* arguments are read first, tool results last (the order of the parts), so a long document
+  cannot push the arguments out;
+* text beyond the limit is **not scanned**. The coverage says so: the part moves from `inspected`
+  to `not_inspected` with `{"reason": "payload_too_large", "bytes": 42000, "scanned_bytes": 16382}`
+  (the least any detector read), and `coverage.bytes` holds the total. The chain keeps the same
+  integers. The drawer shows `scanned / total B`;
+* `dlp_vn` never transforms text it only read in part. If its transform scope covers the call
+  and an **argument** or the **output** was cut, it does not run (`payload_too_large`), whether
+  or not the part it could read held personal data (WP41 review: before, clean padding followed
+  by a phone number passed with `allow` and the raw number reached the tool), and on a `money`, `credit` or `pii_export`
+  tool the existing rule `GATE-DETECTOR-FAILED` blocks the call (fail closed: the unmasked rest
+  must not reach the tool). A cut **tool result** only drops that part from the transformed
+  payload (no caller applies it). To let a larger argument through, raise `max_scan_bytes` for
+  `dlp_vn` on that agent and check the latency;
+* `limits.max_payload_chars` (100,000) stays as the outer bound: above it no detector runs;
+* a shared memoising masker (it keeps the masked text, keyed by SHA-256, never the raw text)
+  makes the second and third detector read a long text for the cost of a hash, and
+  `injection_regex` stops at its byte budget and when every group is already at the top score.
+
+Measured on the development host (SQLite, two detectors on, `dlp_vn` and `injection_regex`;
+numbers in `HANDOFF_WP41.md` and `REVIEW_WP41.md`): 8 KB of tool results cost 20 to 25 ms before
+and 12 to 15 ms now (p50, detector time, host load about 3.6), and the 99 KB argument is
+answered in under 70 ms instead of 2 s or more. The target "under 10 ms added" is **not met**.
+
+## 3c. `mrm_status` per detector (D24, D25)
+
+Each detector entry in `config/detectors.yaml` has `mrm_status: GO | NO-GO` (default `NO-GO`).
+It feeds one reader: the session monitor (`docs/session-monitor.md` section 2). Findings of a
+detector that is deterministic (`dlp_vn`, `injection_regex`: `deterministic = True` in code) or
+has `mrm_status: GO` count in the `findings` signal; findings of any other detector are recorded
+on the turn and weigh 0. Shipped: `dlp_vn` GO, `injection_regex` GO, `injection_classifier`
+NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO. The status never
+changes what the gate answers or records for the decision itself.
 
 ## 4. Verdict v2 and precedence
 
@@ -173,8 +290,10 @@ output` is refused with HTTP 400.
 
 Reasons for a part: `not_provided`, `not_applicable_for_direction`, `content_uninspectable`,
 `payload_too_large`, `skipped_by_policy`, `execution_failed`, `gate_failed`. A part is `inspected`
-when it was provided, every leaf is readable text (or a number) and the total size is within
-`limits.max_payload_chars`. Coverage lists parts and reasons only, never text.
+when it was provided, every leaf is readable text (or a number), the total size is within
+`limits.max_payload_chars` and every detector could read all of it (section 3b: `max_scan_bytes`
+and the scan budget). A part that was read in part is listed with `payload_too_large` and the
+integers `bytes` and `scanned_bytes`. Coverage lists parts, reasons and integers only, never text.
 
 ## 6. Ids
 

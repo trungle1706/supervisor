@@ -67,6 +67,7 @@ class InjectionRegexDetector:
     slug = "injection_regex"
     name = "Prompt injection (patterns)"
     category = "prompt_security"
+    deterministic = True  # patterns, no model: its findings count in the session monitor
     version = "1.0.0"
     sides = ("input",)
     protocols = ("all",)
@@ -108,13 +109,23 @@ class InjectionRegexDetector:
         preset = str(settings.get("preset") or "balanced")
         wanted = set(settings.get("groups") or ()) or {n for n, _ in GROUPS}
         max_chars = int(settings.get("max_chars") or 20_000)
+        # WP41 (D30): early exit. A call-wide character budget (max_scan_bytes, set by the gate),
+        # and a stop once every wanted group is at the top score (more hits cannot change it).
+        budget = int(settings.get("max_scan_bytes") or 0) or None
+        weights0 = dict(GROUPS)
         hits: dict[str, int] = {}
         frags: dict[str, list[Fragment]] = {}
+        saturated = False
         for part in PARTS_BY_DIRECTION[direction]:
-            if payload.get(part) is None:
+            if payload.get(part) is None or saturated:
                 continue
             for leaf in walk_leaves(part, payload[part]):
-                masked = self.masker.mask(leaf.text)[:max_chars]
+                if budget is not None and budget <= 0:
+                    break
+                raw = leaf.text if budget is None else leaf.text[:budget]
+                masked = self.masker.mask(raw)[:max_chars]
+                if budget is not None:
+                    budget -= len(raw)
                 aligned = fold_aligned(masked)
                 others: list[str] | None = None
                 for (name, _w), rx in zip(GROUPS, self._rx, strict=True):
@@ -140,7 +151,7 @@ class InjectionRegexDetector:
                         # masker). Only counts leave this function, never the raw text.
                         both = (
                             *tier0b.candidates(masked),
-                            *tier0b.candidates(leaf.text[:max_chars]),
+                            *tier0b.candidates(raw[:max_chars]),
                         )
                         others = [c for c in dict.fromkeys(both) if c != aligned]
                     n = max((len(rx.findall(c)) for c in others), default=0)
@@ -156,6 +167,12 @@ class InjectionRegexDetector:
                                 "leaf",
                             )
                         )
+                if all(
+                    min(SCORE_MAX, weights0[n] + EXTRA_HIT_BP * (hits.get(n, 0) - 1)) >= SCORE_MAX
+                    for n in wanted
+                ):
+                    saturated = True
+                    break
         weights = dict(GROUPS)
         out = []
         for name in (n for n, _ in GROUPS if n in hits):

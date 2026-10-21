@@ -179,7 +179,8 @@ class SessionActions:
         tl = timeline_text(rows)
         hits = ", ".join(a.hits) or "none"
         summary = (
-            f"Session {a.session_id}: score {a.score_bp} bp, {len(a.hits)} of {a.k} signal hits "
+            f"Session {a.session_id}: score {a.score_bp} bp, "
+            f"{a.counts.get('hit_units', len(a.hits))} of {a.k} signal hits "
             f"({hits}), {a.turns} turns in {cfg.window_s} s, money moved {a.amount_minor}.\n"
             f"Masked timeline (tool, class, outcome, flags; no text):\n{tl}"
         )

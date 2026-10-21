@@ -566,7 +566,8 @@ def build_all(
     """Suggestions for every agent in the policy (or one agent), from the stored rollup."""
     from supervisor.gateway.policy import PolicyError, load_policy_dir
 
-    policy_dir = Path(policy_dir or POLICY_DIR)
+    # WP41 (D27): the served POLICY_DIR (D13), not only the repo folder
+    policy_dir = Path(policy_dir or settings.policy_dir or POLICY_DIR)
     days = days or settings.tool_analytics_window_days
     start, end = window_bounds(as_of, days)
     try:

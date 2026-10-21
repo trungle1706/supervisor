@@ -255,7 +255,10 @@ class GateClient:
             else:
                 ctx.pop(key, None)
         payload_args = dict(args or {})
-        too_big = _size(payload_args) + _size(ctx.get("output")) > self.max_payload_bytes
+        too_big = (
+            _size(payload_args) + _size(ctx.get("output")) + _size(ctx.get("tool_results"))
+            > self.max_payload_bytes
+        )
         if too_big:
             raw = (
                 _local("SDK-PAYLOAD-TOO-LARGE", "payload is too large to inspect: fail closed")

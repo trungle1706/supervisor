@@ -236,6 +236,7 @@ def _tools(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> 
         days=q.get("days"),
         sort=q.get("sort", "default"),
         desc=q.get("dir") == "desc",
+        lenient_agent=True,  # WP41 (D27): no onboarding record is an empty tab, not a 400
     )
     data["can_download"] = can(me, "tools.download")
     return data

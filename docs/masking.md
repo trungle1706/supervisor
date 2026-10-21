@@ -79,6 +79,17 @@ Rules the code keeps:
 * If only one side is on, nothing changes for the tool: server on and SDK off means the tool
   still sees the original arguments. The server flag costs one masker pass per `pii_export` call.
 
+### Lookup keys and typed pseudonyms (WP41, D29)
+
+Masking a value the tool needs breaks the tool. The `dlp_vn` detector has two answers
+(`docs/detectors.md` section 3b): `keep_args` passes a named argument of a named tool as sent
+(records stay masked, an audit line is written when the policy loads), and `pseudonym_mode:
+typed` types a value by the NAME of its argument, so a ten digit company tax code under
+`tax_code` is `<TAX_CODE:..>` and not `<BANK_ACCOUNT:..>`. Use `keep_args` for a lookup key, `typed`
+when only the class must be right, nothing otherwise. The masker itself (`vn_regex-3`) is
+unchanged: the typing is done in the detector by prefixing a label for the masker and cutting it
+off again.
+
 ## 3. Measuring it
 
 Golden set: `data/eval/pii_vn/` (`dev.jsonl`, `heldout.jsonl`, `MANIFEST.json`), 1031 items

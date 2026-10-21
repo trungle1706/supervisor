@@ -340,7 +340,13 @@ class _Env:
         )
 
     def pack(
-        self, agent_id: str, pack_id: str, status: str, when: dt.datetime, mock: bool = False
+        self,
+        agent_id: str,
+        pack_id: str,
+        status: str,
+        when: dt.datetime,
+        mock: bool = False,
+        target_kind: str = "agent",
     ) -> None:
         self.n += 1
         self.adapters.tables.append(
@@ -353,7 +359,7 @@ class _Env:
                     "pack_version": 1,
                     "manifest_sha256": "0" * 64,
                     "dimension": "security",
-                    "target_kind": "agent",
+                    "target_kind": target_kind,
                     "target_id": agent_id,
                     "status": status,
                     "metrics": {},

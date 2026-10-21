@@ -109,6 +109,13 @@ _T: dict[str, tuple[str, str]] = {
     "affirm": ("I sign this statement as myself", "Tôi tự ký lời xác nhận này"),
     "state": ("Gate state", "Trạng thái cổng"),
     "coverage": ("Coverage", "Độ bao phủ"),
+    "kept_args": ("Arguments passed unmasked", "Tham số được chuyển không che"),
+    "kept_args_hint": (
+        "The policy keeps these arguments as sent (a lookup key). Records, chain and findings "
+        "still hold them masked.",
+        "Chính sách giữ nguyên các tham số này (khóa tra cứu). "
+        "Bản ghi, chuỗi và phát hiện vẫn che chúng.",
+    ),
     "owner": ("Owner", "Chủ sở hữu"),
     "pending_resume": ("Pending resume", "Chờ mở lại"),
     "pause": ("Pause", "Tạm dừng"),
@@ -1166,6 +1173,14 @@ _T: dict[str, tuple[str, str]] = {
     "tl_download_owner": (
         "Only the agent owner can download the diff.",
         "Chỉ chủ sở hữu tác tử được tải bản diff.",
+    ),
+    "tl_unknown_agent": (
+        "This agent has no record in the policy yet, so there is no list of declared tools to "
+        "compare with. It is listed here once its policy entry exists (add it to the policy "
+        "folder, or run the onboarding agent).",
+        "Tác nhân này chưa có trong chính sách nên chưa có danh sách công cụ khai báo để so "
+        "sánh. Tác nhân sẽ hiện ở đây khi có mục chính sách (thêm vào thư mục chính sách hoặc "
+        "chạy tác nhân onboarding).",
     ),
     "tl_nodata": (
         "No usage data yet. Run:",

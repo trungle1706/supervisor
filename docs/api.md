@@ -53,7 +53,7 @@ Request additions (all optional):
 | Field or header | Meaning |
 |---|---|
 | `direction` | `input` (default) or `output`. `output` checks what a tool returned; the text is in `context.output`. No rule is evaluated and no window changes. With the flag off, `output` is HTTP 400 |
-| `context.tool_results` | Input side: the tool results that fed this call (text, list or object). Scanned for indirect injection |
+| `context.tool_results` | Input side: the tool results that fed this call (text, list or object). Scanned for indirect injection. The stock LangGraph middleware sends the last 3, 16 KB each (WP41) |
 | `context.consumer_id` | WP39: the calling application, a plain id (letters, digits, `._:@-`, up to 128). Stored on the decision (`agent_event.consumer_id`, only with the flag on) and shown in the console (column, filter, Analytics table). Not used by any rule. Anything else is ignored |
 | `context.protocol` | `llm` (default), `mcp` or `a2a`. A detector that does not list the protocol is skipped |
 | header `X-Supervisor-Correlation-Id` | Your id (1 to 128 characters of `A-Za-z0-9_.:@-`). Another value is HTTP 400. Missing: the gate generates one. Echoed in the response header |
@@ -65,7 +65,8 @@ Answer additions:
 | `status` | `allow` `report` `transform` `pause` `block` `skip` | Precedence block > pause > transform > report > allow; `skip` only from a policy value (`docs/detectors.md` section 4) |
 | `findings[]` | list | `detector_slug`, `detector_id`, `code`, `score_bp`, `threshold_bp`, `entities` (masked), `fragments` (located on masked text), `masked_count`, `action_hint`, `not_executed_reason` (null), `preset`, `mock` |
 | `not_executed[]` | list | `detector_slug`, `detector_id`, `reason` (`execution_failed`, `invalid_config`, `payload_too_large`, `content_uninspectable`, `not_applicable_for_direction`, `timed_out`), `detail` |
-| `coverage` | object | `direction`, `inspected` (parts), `not_inspected` (`part`, `reason`), `chars` |
+| `coverage` | object | `direction`, `inspected` (parts), `not_inspected` (`part`, `reason`; with `payload_too_large` also `bytes` and `scanned_bytes`), `chars`; WP41 adds `bytes` (total) when a part was cut and `kept_args` when the policy passed arguments unmasked |
+| `kept_args` | list, only when present | WP41: names of top-level arguments the policy passed unmasked in `transformed_args` (dlp_vn `keep_args`); the values stay masked in every record |
 | `transformed_payload` | object or null | The payload parts after the dlp transform, for example `{"args": {...}}`. `transformed_args` carries the same arguments for the SDK and the MCP proxy |
 | `request_id`, `correlation_id` | string | Ids that tie the answer to the decision row, the findings, the chain record and the trace span |
 | `direction`, `detectors`, `detector_latency_us` | | Direction checked, ids of the detectors that ran, time spent in detectors |

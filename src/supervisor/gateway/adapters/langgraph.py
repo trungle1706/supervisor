@@ -7,6 +7,12 @@
 2. a block or a pause raises ``SupervisorBlocked`` / ``SupervisorPaused`` (typed, so the agent
    code can show the reason and the correlation id). With ``on_block="message"`` a block (not a
    pause) becomes an error tool message instead, so the model can read the reason;
+   WP41 (D23): with ``send_tool_results`` (default on) the check also carries
+   ``context.tool_results``: the last 3 tool messages of the run state, each cut to
+   ``tool_result_max_bytes`` (default 16384, the detectors' ``max_scan_bytes``). They are what an
+   indirect injection hides in; without them the gate answers ``tool_results: not_provided``.
+   They are sent like ``context.output`` is: raw to the gate, which masks every text it stores
+   (R2); this module logs nothing;
 3. the gate may answer with masked arguments (``transformed_payload``); the tool then runs with
    them;
 4. after the tool ran, the output is checked (``direction=output``, ``context.output``) and may
@@ -66,6 +72,38 @@ def _thread_id(request: Any) -> str | None:
     return None
 
 
+def _is_tool_message(m: Any) -> bool:
+    kind = m.get("type") or m.get("role") if isinstance(m, Mapping) else getattr(m, "type", None)
+    return kind == "tool"
+
+
+def _cut(text: str, max_bytes: int) -> str:
+    raw = text.encode("utf-8", "replace")
+    return text if len(raw) <= max_bytes else raw[:max_bytes].decode("utf-8", "ignore")
+
+
+def recent_tool_results(request: Any, n: int, max_bytes: int) -> list[str]:
+    """Texts of the last ``n`` tool messages of the run state (oldest first), each cut to
+    ``max_bytes``. An empty list when the request has no state or no tool message."""
+    state = getattr(request, "state", None)
+    messages = (
+        state.get("messages") if isinstance(state, Mapping) else getattr(state, "messages", None)
+    )
+    if not isinstance(messages, list | tuple):
+        return []
+    out: list[str] = []
+    for m in reversed(messages):
+        if len(out) >= n:
+            break
+        if not _is_tool_message(m):
+            continue
+        content = m.get("content") if isinstance(m, Mapping) else getattr(m, "content", None)
+        text = text_of(content, max_bytes)
+        if text:
+            out.append(_cut(text, max_bytes))
+    return out[::-1]
+
+
 def _with_args(request: Any, new_args: dict[str, Any]) -> Any:
     """A copy of the request whose tool call has ``new_args``."""
     tc = dict(request.tool_call)
@@ -112,6 +150,9 @@ class SupervisorToolMiddleware:
         apply_transform: bool = True,
         on_block: str = "raise",
         max_payload_bytes: int = 256 * 1024,
+        send_tool_results: bool = True,
+        tool_results_count: int = 3,
+        tool_result_max_bytes: int = 16_384,
     ) -> None:
         if on_block not in ("raise", "message"):
             raise ValueError("on_block must be 'raise' or 'message'")
@@ -129,6 +170,26 @@ class SupervisorToolMiddleware:
         self.check_output = check_output
         self.apply_transform = apply_transform
         self.on_block = on_block
+        self.send_tool_results = send_tool_results
+        self.tool_results_count = max(0, min(int(tool_results_count), 10))
+        self.tool_result_max_bytes = max(256, int(tool_result_max_bytes))
+
+    def _input_ctx(self, request: Any) -> dict[str, Any]:
+        """Context of an input check: the tool call id and, if enabled, the recent tool results."""
+        ctx: dict[str, Any] = {}
+        call_id = clean_id(request.tool_call.get("id"))
+        if call_id:
+            ctx["tool_call_id"] = call_id
+        if self.send_tool_results and self.tool_results_count:
+            try:
+                found = recent_tool_results(
+                    request, self.tool_results_count, self.tool_result_max_bytes
+                )
+            except Exception:  # noqa: BLE001 - a strange state means no results, never an error
+                found = []
+            if found:
+                ctx["tool_results"] = found
+        return ctx
 
     # ------------------------------------------------------------------ pieces
 
@@ -136,10 +197,7 @@ class SupervisorToolMiddleware:
         tc = request.tool_call
         args = tc.get("args")
         args = dict(args) if isinstance(args, Mapping) else {"value": args}
-        ctx: dict[str, Any] = {}
-        call_id = clean_id(tc.get("id"))
-        if call_id:
-            ctx["tool_call_id"] = call_id
+        ctx = self._input_ctx(request)
         return args, self._ask(request, tc.get("name"), args, "input", ctx, cid)
 
     def _ask(
@@ -244,7 +302,7 @@ class SupervisorToolMiddleware:
             tc = request.tool_call
             args = tc.get("args")
             args = dict(args) if isinstance(args, Mapping) else {"value": args}
-            ctx = {"tool_call_id": c} if (c := clean_id(tc.get("id"))) else {}
+            ctx = self._input_ctx(request)
             ans = await asyncio.to_thread(
                 self._ask, request, tc.get("name"), args, "input", ctx, cid
             )

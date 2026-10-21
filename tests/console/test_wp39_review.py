@@ -256,6 +256,7 @@ def test_export_columns_are_pinned_a_new_one_must_be_added_here() -> None:
         "latency_rules_us",
         "latency_detectors_us",
         "case_id",
+        "kept_arguments",
     )
 
 

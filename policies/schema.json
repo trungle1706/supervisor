@@ -93,6 +93,14 @@
           "title": "Initial State",
           "type": "string"
         },
+        "keep_args_approvals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Keep Args Approvals",
+          "type": "array"
+        },
         "mode": {
           "anyOf": [
             {

@@ -16,13 +16,19 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from supervisor.core.detectors import DetectorRegistry, DetectorSetting, RunConfig
+from supervisor.core.detectors import (
+    DEFAULT_SCAN_BUDGET_BYTES,
+    DetectorRegistry,
+    DetectorSetting,
+    RunConfig,
+)
 from supervisor.core.errors import ConfigError
+from supervisor.detectors.dlp_vn import keep_args_problems
 from supervisor.gateway.policy import AgentDetectors
 
 log = logging.getLogger(__name__)
@@ -40,12 +46,20 @@ class DetectorEntry(_Strict):
     enabled: bool = True
     fail_closed: bool = True
     preset: str | None = None
+    # WP41 (D24, D25): the model risk status of the detector. Only a detector that is
+    # deterministic (dlp_vn, injection_regex) or has the status GO counts in the session
+    # monitor's `findings` signal; findings of any other detector are recorded and weigh 0.
+    # Unset = NO-GO: an unvalidated detector never moves a session score.
+    mrm_status: Literal["GO", "NO-GO"] = "NO-GO"
     settings: dict[str, Any] = Field(default_factory=dict)
 
 
 class Limits(_Strict):
     max_payload_chars: int = Field(default=100_000, ge=1_000, le=5_000_000)
     timeout_ms: int = Field(default=500, ge=10, le=60_000)
+    # WP41 (D30, D18): the most text all detectors together scan per call, in bytes. The
+    # environment value DETECTORS_SCAN_BUDGET_BYTES replaces it. Per detector: max_scan_bytes.
+    scan_budget_bytes: int = Field(default=DEFAULT_SCAN_BUDGET_BYTES, ge=1024, le=10_000_000)
     fail_closed_risk_classes: list[str] = Field(default_factory=lambda: list(RISK[:3]))
 
 
@@ -83,10 +97,22 @@ def load_config(path: Path | str) -> DetectorsFile:
     return parse_config(p.read_text(encoding="utf-8"), p.name)
 
 
+def _extra_problems(slug: str, settings: Mapping[str, Any]) -> list[str]:
+    """Checks the declarative schema cannot express (WP41: the shape of dlp_vn keep_args)."""
+    if slug == "dlp_vn":
+        return keep_args_problems(settings.get("keep_args"))
+    return []
+
+
 class ResolvedDetectors:
     """The file checked against the catalogue, ready to resolve per call."""
 
-    def __init__(self, cfg: DetectorsFile, registry: DetectorRegistry) -> None:
+    def __init__(
+        self,
+        cfg: DetectorsFile,
+        registry: DetectorRegistry,
+        scan_budget_bytes: int | None = None,
+    ) -> None:
         self.cfg = cfg
         self.registry = registry
         problems: list[str] = []
@@ -99,8 +125,16 @@ class ResolvedDetectors:
             if slug not in registry:
                 problems.append(f"detectors.{slug}: not in the catalogue {registry.slugs}")
                 continue
-            _, errs = registry.validate_settings(slug, self._merged(slug, entry, None, None))
-            problems += [f"detectors.{slug}.{e}" for e in errs]
+            if slug == "dlp_vn" and entry.settings.get("keep_args"):
+                # WP41 review: keep_args is a per-agent policy setting (audited, approved, in the
+                # policy hash); the shared file would apply it to every agent without either
+                problems.append(
+                    "detectors.dlp_vn.keep_args: set it per agent in the policy "
+                    "(agents.<id>.detectors.settings.dlp_vn.keep_args), not in this file"
+                )
+            merged = self._merged(slug, entry, None, None)
+            _, errs = registry.validate_settings(slug, merged)
+            problems += [f"detectors.{slug}.{e}" for e in [*errs, *_extra_problems(slug, merged)]]
             if entry.fail_closed and not registry.may_fail_closed(slug):
                 # R1: an advisory detector never fails closed; the value is ignored, loudly.
                 log.warning(
@@ -113,6 +147,7 @@ class ResolvedDetectors:
             max_payload_chars=cfg.limits.max_payload_chars,
             timeout_ms=cfg.limits.timeout_ms,
             fail_closed_risk_classes=frozenset(cfg.limits.fail_closed_risk_classes),
+            scan_budget_bytes=scan_budget_bytes or cfg.limits.scan_budget_bytes,
         )
 
     def _merged(
@@ -153,12 +188,29 @@ class ResolvedDetectors:
             max_payload_chars=self._base.max_payload_chars,
             timeout_ms=self._base.timeout_ms,
             fail_closed_risk_classes=self._base.fail_closed_risk_classes,
+            scan_budget_bytes=self._base.scan_budget_bytes,
         )
         return run, frozenset(agent.skip_tools) if agent else frozenset()
+
+    def weighing_slugs(self) -> frozenset[str]:
+        """Detectors whose findings count in the session monitor's ``findings`` signal: the
+        deterministic ones, and those with ``mrm_status: GO``."""
+        out = set()
+        for slug in self.registry.slugs:
+            entry = self.cfg.detectors.get(slug)
+            if getattr(self.registry.get(slug), "deterministic", False) or (
+                entry is not None and entry.mrm_status == "GO"
+            ):
+                out.add(slug)
+        return frozenset(out)
 
     def check_agent(self, agent_id: str, agent: AgentDetectors) -> list[str]:
         """Problems in one agent's override (unknown slug, bad value). Empty = fine."""
         problems = []
+        if "/" in agent_id and (agent.settings.get("dlp_vn") or {}).get("keep_args"):
+            # WP41: a consumer block never applies to a money / credit / pii_export tool (policy
+            # rule), and keep_args is audited per agent: it is an agent setting only
+            problems.append(f"{agent_id}: keep_args is an agent setting, not a consumer setting")
         if agent.preset is not None and agent.preset not in PRESET_NAMES:
             problems.append(f"{agent_id}: preset {agent.preset!r}")
         for slug in [*agent.enable, *agent.disable, *agent.settings]:
@@ -167,8 +219,9 @@ class ResolvedDetectors:
         for slug in agent.settings:
             if slug in self.registry:
                 entry = self.cfg.detectors.get(slug, DetectorEntry())
-                _, errs = self.registry.validate_settings(
-                    slug, self._merged(slug, entry, agent, agent.preset)
-                )
-                problems += [f"{agent_id}: {slug}.{e}" for e in errs]
+                merged = self._merged(slug, entry, agent, agent.preset)
+                _, errs = self.registry.validate_settings(slug, merged)
+                problems += [
+                    f"{agent_id}: {slug}.{e}" for e in [*errs, *_extra_problems(slug, merged)]
+                ]
         return problems

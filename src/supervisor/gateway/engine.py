@@ -32,7 +32,7 @@ import threading
 import time
 import uuid
 from collections import Counter, deque
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -346,6 +346,10 @@ class Decision:
     v2: dict[str, Any] | None = None
     det: Any = None  # DetectorOutcome: the findings to record
     transformed_payload: dict[str, Any] | None = None
+    # WP41 (D29): argument names the policy kept unmasked (dlp_vn keep_args) and the fully masked
+    # copy of the arguments, which every record uses instead of ``transformed_args``.
+    kept_args: list[str] = field(default_factory=list)
+    masked_args: dict[str, Any] | None = None
     # WP38 (ADR D28): mode and consumer. ``sem`` is None unless the agent uses mode, rule
     # switches or consumers: the answer is then unchanged. ``observed`` holds the decision that
     # observe mode turned into a report (None = nothing was downgraded).
@@ -449,6 +453,7 @@ class Gateway:
         redact_tools: frozenset[str] | set[str] | None = None,
         detector_gate: DetectorGate | None = None,
         session_gate: SessionGate | None = None,
+        agent_registrar: Callable[[str], Any] | None = None,
     ) -> None:
         self.policy = policy
         self.tables = tables
@@ -476,6 +481,10 @@ class Gateway:
         self.detector_gate = detector_gate
         # WP27: session monitor (None = off, today's behaviour).
         self.session_gate = session_gate
+        # WP41 (D19): registers a gate-only agent in the inventory on its first decision (None =
+        # INVENTORY_ENABLED off, today's behaviour). Runs in the background pool.
+        self.agent_registrar = agent_registrar
+        self._registered: set[str] = set()
         # Tools seen as pii_export: their masker pass runs BEFORE the gate lock (a 2 KB payload
         # costs about 3 ms; inside the lock it would delay every other agent's decision).
         self._redact_hint: frozenset[str] = frozenset()
@@ -843,7 +852,22 @@ class Gateway:
         )
         self._tier0b(d, agent_id, tool_name, args, risk, ctx, sess)
         self._session_observe(d, now, agent_id, tool_name, args, sess)
+        self._register_agent(agent_id, policy)
         return d
+
+    def _register_agent(self, agent_id: str, policy: Policy) -> None:
+        """WP41: first decision of an agent the policy knows -> inventory node (background).
+        An id the policy does not list is never registered (anonymous input must not fill the
+        inventory)."""
+        if self.agent_registrar is None or agent_id in self._registered:
+            return
+        if agent_id not in policy.doc.agents:
+            return
+        self._registered.add(agent_id)
+        try:
+            self._bg.submit(self.agent_registrar, agent_id)
+        except Exception:  # noqa: BLE001 - a closed pool at shutdown: nothing to do
+            self._registered.discard(agent_id)
 
     def _evaluate(
         self,
@@ -1358,7 +1382,7 @@ class Gateway:
         s = d.sess
         assert s is not None
         if self.session_gate is not None:  # sketch on the masked arguments (WP37 review F3)
-            self.session_gate.finalize(s, d.transformed_args or args, d.risk_class)
+            self.session_gate.finalize(s, d.masked_args or d.transformed_args or args, d.risk_class)
         codes = finding_codes(getattr(d, "det", None))
         feats: dict[str, Any] = {}
         if s.consumer:
@@ -1373,6 +1397,9 @@ class Gateway:
             feats["s"] = encode_sig(s.features.sig)
         if codes:
             feats["f"] = codes
+        rec = finding_codes(getattr(d, "det", None), recorded=True)
+        if rec:
+            feats["g"] = rec  # WP41: findings of a detector that does not weigh (recorded only)
         if s.features.standing:
             feats["p"] = 1
         if d.rule_id == "GATE-DETECTOR-FAILED":
@@ -1387,6 +1414,8 @@ class Gateway:
             from supervisor.monitors.session import encode_sig as _enc
 
             feats["k"] = _enc(s.features.toks)
+        if s.features.cues:
+            feats["q"] = list(s.features.cues)
         return {
             "session_id": s.session_id,
             "session_source": s.source,

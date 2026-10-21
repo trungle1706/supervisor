@@ -30,10 +30,22 @@ system:payments --uses--> tool:payments/transfer
 | Node id | `inv_` + first 16 hex of sha256(kind, NUL, canonical name). Canonical = trimmed, lower-case, single spaces. A re-fill never duplicates. |
 | Tool, prompt names | Scoped to the agent: `payments/transfer`. Models, endpoints, datasets and suppliers are shared across agents. |
 | Edge id | Hash of (src, kind, dst, source): one row per claim, so each source keeps its own evidence. |
-| Evidence | `source` is `manifest`, `onboarding`, `workspace_scan` or `manual`. `evidence_ref` is `path:line` for repo text and `workspace:<kind>/<name>` for a workspace object. Workspace URLs and ids are not stored. |
+| Evidence | `source` is `manifest`, `onboarding`, `workspace_scan`, `manual` or `gate` (WP41: see below).  `evidence_ref` is `path:line` for repo text and `workspace:<kind>/<name>` for a workspace object. Workspace URLs and ids are not stored. |
 | Shared edges | When two agents share an edge (the same model), the smallest reference wins inside one fill, so the result does not depend on fill order. |
 | Status | `active`, `unmanaged`, `allowlisted`, `gone` (the workspace no longer lists it, or the manifest or agent row that was its only evidence was removed or retired). |
 | Writes | State tables with `row_version`. Only changed rows are written, plus a `last_seen` refresh once a day. |
+
+## Gate-only agents (WP41, D19)
+
+An agent that only calls the gate (a collector, no onboarding run, no manifest in `agents/`) used
+to stay out of the inventory, so there was no node for the Agent page, the coverage check or the
+control evidence to point at. With `INVENTORY_ENABLED=1`, the first gate decision of an agent that
+the **policy lists** puts a `system` node in the graph (`attrs.role = agent`, `attrs.registered_by
+= gate`, evidence `{source: gate, ref: first_gate_decision}`), in the background, once per agent and
+process. An id the policy does not list is never registered (anonymous input must not fill the
+inventory). A later manifest or onboarding fill adds its own evidence to the same node; the
+manifest fill's "gone" rule leaves a node that has `gate` evidence alone. It writes no agent row:
+the registry row still comes from onboarding, a state change or `register_agents`.
 
 ## Risk inheritance
 

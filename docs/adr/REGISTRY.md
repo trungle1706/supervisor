@@ -38,6 +38,7 @@ never take the same number. The next free number is **D33**.
 | D30 | `D30-control-catalogue-tasks.md` | Control catalogue and right-sized task list | WP30 (wave 3) | accepted |
 | D31 | `D31-transparency-report.md` | Transparency report per agent, three variants, signed into the chain | WP31 (wave 3) | accepted |
 | D32 | `D32-activity-parity.md` | Activity and analytics parity, nine alert use cases | WP39 (wave 3) | accepted |
+| D33 | `D33-benchmark-defects-m2.md` | Defects of the M2 benchmark on the bank agent: keep_args, scan limits, mrm_status, split_cue, gate registration | WP41 | accepted |
 
 Rules: a number is never reused, also when an ADR is withdrawn (set status `superseded by Dnn`
 or `withdrawn`). The file name starts with the number. A test does not check this file; the

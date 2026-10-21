@@ -12,7 +12,8 @@ rule       ``working`` = at least one tier-0 verdict hit (action other than allo
            not in the deployed policy any more (a control that was removed); otherwise ``idle``
            (no hit: it proves nothing). A SHADOW "would" row, a rule error and a fail-mode row
            are not hits (the label written by the gate at the time says so).
-pack       newest non-mock assurance result of EVERY supervised agent: all ``ok`` (or ``skip``)
+pack       newest non-mock assurance result of EVERY supervised agent, on its ``agent:`` target and
+           on its ``traces:`` target (WP41): all ``ok`` (or ``skip``)
            = working; any ``fail`` or ``error`` = failing; otherwise (``warn``, an agent with no
            result, none at all) = idle.
 monitor    newest daily ``monitor_status`` of EVERY supervised agent is ``ok`` = working;
@@ -143,6 +144,11 @@ class Window:
     @property
     def seconds(self) -> int:
         return int((self.end - self.start).total_seconds())
+
+
+# WP41 (D28): the assurance targets whose id is an agent id. A `judge` target is not bound to an
+# agent and never counts.
+PACK_TARGET_KINDS: tuple[str, ...] = ("agent", "traces")
 
 
 def source_window(kind: str, w: Window, pack_days: int | None) -> Window:
@@ -314,19 +320,23 @@ class Collector:
         missing = False
         for a in agents:
             found = False
-            rows = self.tables.query(
-                "eval_result",
-                {"target_kind": "agent", "target_id": a, "pack_id": pack_id},
-                order_by=("-ts",),
-                limit=50,
-            )
-            for r in rows:
-                ts = _ts(r["ts"])
-                if ts is None or not (w.start <= ts < w.end) or _true(r.get("is_mock")):
-                    continue
-                seen.append(str(r["status"]))
-                found = True
-                break
+            # WP41 (D28): a result on ANY target bound to the agent is evidence: the agent itself
+            # and its recorded traces (target_id is the agent id for both). The newest valid
+            # result of each target kind is read, so a fail on either one shows.
+            for kind in PACK_TARGET_KINDS:
+                rows = self.tables.query(
+                    "eval_result",
+                    {"target_kind": kind, "target_id": a, "pack_id": pack_id},
+                    order_by=("-ts",),
+                    limit=50,
+                )
+                for r in rows:
+                    ts = _ts(r["ts"])
+                    if ts is None or not (w.start <= ts < w.end) or _true(r.get("is_mock")):
+                        continue
+                    seen.append(str(r["status"]))
+                    found = True
+                    break
             missing = missing or not found
         if any(s in ("fail", "error") for s in seen):
             return "fail"

@@ -15,6 +15,7 @@ Everything stored or returned from here is masked text, ids and integers (R2).
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from collections.abc import Callable, Iterable, Mapping
@@ -33,6 +34,8 @@ from supervisor.core.detectors import (
 )
 from supervisor.detectors.config import ResolvedDetectors
 from supervisor.gateway.policy import Policy
+
+log = logging.getLogger(__name__)
 
 CORRELATION_HEADER = "X-Supervisor-Correlation-Id"
 ID_PATTERN = r"^[A-Za-z0-9_.:@-]{1,128}$"
@@ -79,6 +82,9 @@ class PreDetect:
     direction: str = "input"
     fail_closed_risk: frozenset[str] = DEFAULT_FAIL_CLOSED_RISK
     consumer_id: str | None = None  # WP39: context.consumer_id when it is a plain id (checked)
+    # WP41 (D29): the sent values of the arguments the policy keeps unmasked for this tool
+    # (dlp_vn keep_args). Held in memory for this call only; never recorded.
+    kept: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -92,6 +98,9 @@ class DetectorOutcome:
     rules_us: int | None = None
     detectors_us: int | None = None
     per_detector_us: dict[str, int] = field(default_factory=dict)
+    # WP41: slugs whose findings count in the session monitor (None = all, for a gate built
+    # without the config, e.g. in a test)
+    weigh_slugs: frozenset[str] | None = None
 
 
 def _ne_dict(f: Finding) -> dict[str, Any]:
@@ -107,6 +116,7 @@ class DetectorGate:
     def __init__(self, registry: DetectorRegistry, resolved: ResolvedDetectors) -> None:
         self.registry = registry
         self.resolved = resolved
+        self.weigh_slugs = resolved.weighing_slugs()
 
     def check_policy(self, policy: Policy) -> list[str]:
         """Problems in the per-agent detector overrides of a policy (empty = fine). Used at
@@ -121,6 +131,52 @@ class DetectorGate:
                         f"{agent_id}/{consumer_id}", over.detectors
                     )
         return problems
+
+    def keep_args_loaded(self, policy: Policy) -> list[dict[str, Any]]:
+        """WP41 (D29): every ``keep_args`` entry a policy carries, per agent (an agent setting
+        only; a consumer block is refused when it names one). ``[{"agent_id", "tools": {tool:
+        [argument names]}}]``. Names only, never values."""
+        out: list[dict[str, Any]] = []
+        for agent_id, manifest in sorted(policy.doc.agents.items()):
+            det = manifest.detectors
+            keep = ((det.settings.get("dlp_vn") or {}).get("keep_args") if det else None) or {}
+            if keep:
+                out.append(
+                    {
+                        "agent_id": agent_id,
+                        "tools": {t: sorted(n) for t, n in sorted(keep.items())},
+                        "approvals": sorted(manifest.keep_args_approvals),
+                    }
+                )
+        return out
+
+    def audit_policy(self, policy: Policy, evidence: Any) -> None:
+        """Write one audit line (log) and one chain record per agent that keeps an argument
+        unmasked, when a policy is accepted (start and every changed reload). Never raises."""
+        try:
+            for item in self.keep_args_loaded(policy):
+                who = item["agent_id"]
+                log.warning(
+                    "audit: dlp_vn keep_args loaded for %s: %s (policy %s, approvals %s)",
+                    who,
+                    "; ".join(f"{t}={','.join(n)}" for t, n in item["tools"].items()),
+                    policy.policy_hash[:16],
+                    ",".join(item["approvals"]) or "none",
+                )
+                if evidence is not None:
+                    evidence.record(
+                        "policy_keep_args",
+                        f"keep_args:{policy.policy_hash[:16]}:{who}",
+                        {
+                            "agent_id": who.split("/")[0],
+                            "scope": who,
+                            "policy_hash": policy.policy_hash,
+                            "tools": item["tools"],
+                            "approvals": item["approvals"],
+                        },
+                    )
+        except Exception as exc:  # noqa: BLE001 - an audit failure must not stop the gate
+            log.error("keep_args audit failed: %s", type(exc).__name__)
 
     # ------------------------------------------------------------------ before the lock
 
@@ -179,6 +235,11 @@ class DetectorGate:
             if tool_name in skip_tools:
                 pre.skipped = True
                 return pre
+            dlp = run_cfg.detectors.get("dlp_vn")
+            # WP41 review: input direction only (an output check never passes a value through)
+            if dlp is not None and dlp.enabled and req.direction == "input":
+                names = (dlp.settings.get("keep_args") or {}).get(tool_name) or []
+                pre.kept = {n: args[n] for n in names if n in args}
             protocol = ctx.get("protocol")
             pre.result = self.registry.run(
                 self.payload_view(
@@ -210,7 +271,9 @@ class DetectorGate:
     ) -> None:
         """Fill ``d.v2`` (the response fields) and ``d.det`` (what to record)."""
         direction = pre.direction
-        out = DetectorOutcome(consumer_id=pre.consumer_id, rules_us=rules_us)
+        out = DetectorOutcome(
+            consumer_id=pre.consumer_id, rules_us=rules_us, weigh_slugs=self.weigh_slugs
+        )
         coverage: dict[str, Any]
         transformed: dict[str, Any] | None = None
         detectors_run: list[str] = []
@@ -298,6 +361,20 @@ class DetectorGate:
                 )
         elif d.transformed_args is not None and d.transformed_payload is None:
             d.transformed_payload = {"args": d.transformed_args}  # WP24b redaction, same shape
+        # 2b. WP41 (D29): arguments the policy keeps unmasked (a lookup key) go back to the tool
+        # as sent. The fully masked copy stays in ``d.masked_args``: the session sketch and every
+        # record use that one, and the finding already holds masked text only.
+        if pre.kept and d.allow and not shadow and not builtin and d.transformed_args is not None:
+            masked = dict(d.transformed_args)
+            kept = sorted(n for n, v in pre.kept.items() if n in masked and masked[n] != v)
+            if kept:
+                d.masked_args = masked
+                d.transformed_args = {**masked, **{n: pre.kept[n] for n in kept}}
+                d.args_hmac_transformed = hmac_fn(d.transformed_args)
+                d.kept_args = kept
+                if d.transformed_payload is not None:
+                    d.transformed_payload = {**d.transformed_payload, "args": d.transformed_args}
+                coverage = {**coverage, "kept_args": kept}
         status = derive_status(
             allow=d.allow,
             action=d.action,
@@ -320,6 +397,8 @@ class DetectorGate:
             "detectors": detectors_run,
             "detector_latency_us": latency,
         }
+        if d.kept_args:  # WP41: absent unless the policy kept an argument unmasked
+            d.v2["kept_args"] = list(d.kept_args)
 
 
 def fallback_v2(d: Any, req: Req) -> None:
@@ -448,9 +527,12 @@ def chain_fields(d: Any) -> dict[str, Any]:
         "coverage": {
             "inspected": list(cov.get("inspected", [])),
             "not_inspected": [
-                {"part": n["part"], "reason": n["reason"]} for n in cov.get("not_inspected", [])
+                {"part": n["part"], "reason": n["reason"]}
+                | {k: n[k] for k in ("bytes", "scanned_bytes") if isinstance(n.get(k), int)}
+                for n in cov.get("not_inspected", [])
             ],
         },
         "transformed": d.transformed_payload is not None,
         "detectors": list(v2["detectors"]),
+        **({"kept_args": list(v2["kept_args"])} if v2.get("kept_args") else {}),
     }

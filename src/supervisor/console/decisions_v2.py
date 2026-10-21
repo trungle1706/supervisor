@@ -103,6 +103,7 @@ EXPORT_COLUMNS = (
     "latency_rules_us",
     "latency_detectors_us",
     "case_id",
+    "kept_arguments",  # WP41 (D29): names only, the arguments the policy passed unmasked
 )
 
 
@@ -145,6 +146,20 @@ def _findings_by_event(ctx: Any, agent: str) -> dict[str, list[dict[str, Any]]]:
     return out
 
 
+_KEPT_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+
+def kept_args_of(e: Mapping[str, Any]) -> list[str]:
+    """WP41 (D29): argument names the policy passed unmasked on this decision (from the coverage
+    JSON). Names that are not plain identifiers are dropped (R2)."""
+    raw = e.get("coverage_json")
+    if not raw or "kept_args" not in (raw if isinstance(raw, str) else json.dumps(raw)):
+        return []
+    cov = loads(raw, {})
+    names = cov.get("kept_args") if isinstance(cov, dict) else None
+    return [n for n in names if isinstance(n, str) and _KEPT_NAME.match(n)] if names else []
+
+
 def _row(
     e: Mapping[str, Any],
     vs: list[dict[str, Any]],
@@ -164,6 +179,7 @@ def _row(
         not_eval=not_evaluated(e, fs),
         latency_rules_us=e.get("latency_rules_us"),
         latency_detectors_us=e.get("latency_detectors_us"),
+        kept_args=kept_args_of(e),
     )
     return row
 
@@ -668,9 +684,11 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
             "inspected": cov.get("inspected", []),
             "not_inspected": [
                 {"part": n.get("part"), "reason": n.get("reason")}
+                | {k: n[k] for k in ("bytes", "scanned_bytes") if isinstance(n.get(k), int)}
                 for n in cov.get("not_inspected", [])
                 if isinstance(n, dict)
             ],
+            "kept_args": kept_args_of(e),
         },
         "findings": [
             {k: v for k, v in f.items() if k not in ("reason",)}
@@ -758,6 +776,7 @@ def export_csv(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
                     r["latency_rules_us"],
                     r["latency_detectors_us"],
                     r["case_id"],
+                    ";".join(r["kept_args"]),
                 )
             ]
         )

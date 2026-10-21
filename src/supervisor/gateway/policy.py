@@ -374,7 +374,12 @@ class AgentManifest(_Strict):
     # or pause rule of risk class money, credit or pii_export. Left out of the hash when empty.
     rule_approvals: list[str] = Field(default_factory=list, max_length=2)
 
-    @field_validator("observe_approvals", "rule_approvals")
+    # WP41 review: two distinct approver ids that allow ``detectors.settings.dlp_vn.keep_args``
+    # to name a money, credit or pii_export tool (the named argument reaches the tool unmasked).
+    # Left out of the hash when empty.
+    keep_args_approvals: list[str] = Field(default_factory=list, max_length=2)
+
+    @field_validator("observe_approvals", "rule_approvals", "keep_args_approvals")
     @classmethod
     def _two_approvers(cls, v: list[str]) -> list[str]:
         if v and (len(v) != 2 or len(set(v)) != 2):
@@ -498,8 +503,41 @@ def _cross_check_modes(doc: PolicyDoc) -> None:
 SKIP_FORBIDDEN_RISK = ("money", "credit", "pii_export")
 
 
+def keep_args_of(det: AgentDetectors | None) -> dict[str, Any]:
+    """WP41: the ``dlp_vn.keep_args`` mapping of a detector block ({} when absent or not a
+    mapping; the shape itself is checked by the detector gate)."""
+    keep = ((det.settings.get("dlp_vn") or {}).get("keep_args") if det else None) or {}
+    return keep if isinstance(keep, Mapping) else {}
+
+
+def _cross_check_keep_args(doc: PolicyDoc) -> None:
+    """WP41 review: ``keep_args`` is an agent setting (never a consumer one: the consumer id is
+    asserted by the caller), and naming a money, credit or pii_export tool needs two distinct
+    ids in ``keep_args_approvals``, like ``rule_approvals`` for a rule switch."""
+    for agent_id, agent in doc.agents.items():
+        for cid, over in agent.consumers.items():
+            if keep_args_of(over.detectors):
+                raise PolicyError(
+                    _ascii(
+                        f"agent {agent_id} consumer {cid}: dlp_vn keep_args is an agent "
+                        "setting, not a consumer setting"
+                    )
+                )
+        risky = sorted(
+            str(t) for t in keep_args_of(agent.detectors) if doc.tools.get(t) in _PROTECTED_RISK
+        )
+        if risky and len(set(agent.keep_args_approvals)) != 2:
+            raise PolicyError(
+                _ascii(
+                    f"agent {agent_id}: dlp_vn keep_args names {', '.join(risky)} (money, credit "
+                    "or pii_export); that needs two distinct ids in keep_args_approvals"
+                )
+            )
+
+
 def _cross_check(doc: PolicyDoc) -> None:
     _cross_check_modes(doc)
+    _cross_check_keep_args(doc)
     for agent_id, agent in doc.agents.items():
         blocks = [(agent_id, agent.detectors)]
         blocks += [(f"{agent_id}/{c}", o.detectors) for c, o in agent.consumers.items()]
@@ -543,7 +581,7 @@ def _dump(doc: PolicyDoc, exclude: set[str] | None = None) -> dict[str, Any]:
         for key in ("mode", "rules"):  # WP38: unset keys are not part of the hash
             if agent.get(key) is None:
                 agent.pop(key, None)
-        for key in ("observe_approvals", "rule_approvals"):
+        for key in ("observe_approvals", "rule_approvals", "keep_args_approvals"):
             if not agent.get(key):
                 agent.pop(key, None)
         if not agent.get("consumers"):
@@ -876,6 +914,9 @@ class StorePolicyProvider:
         self.validator: Callable[[Policy], list[str]] | None = None
         self.rejected_hash: str | None = None
         self.rejected_reason: str | None = None
+        # WP41: called with each policy that is accepted (first load and every changed reload),
+        # for audit lines. An error in it is logged, never raised.
+        self.on_accept: Callable[[Policy], None] | None = None
 
     def current(self) -> Policy:
         now = time.monotonic()
@@ -898,6 +939,11 @@ class StorePolicyProvider:
                 else:
                     self._policy = policy
                     self.rejected_hash = self.rejected_reason = None
+                    if self.on_accept is not None:
+                        try:
+                            self.on_accept(policy)
+                        except Exception as exc:  # noqa: BLE001 - audit must not stop the gate
+                            log.error("policy on_accept hook failed: %s", type(exc).__name__)
             self._loaded_at = now
         return self._policy
 

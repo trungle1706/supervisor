@@ -76,11 +76,19 @@ def epoch_ms(ts: datetime) -> int:
     return int(ts.timestamp() * 1000)
 
 
-def finding_codes(det: Any) -> list[str]:
+def finding_codes(det: Any, *, recorded: bool = False) -> list[str]:
     """Codes of the fired detector findings that count for the session. A mock finding (the
-    mock judge) is a test value, not evidence about the conversation: it is left out."""
+    mock judge) is a test value, not evidence about the conversation: it is left out.
+
+    WP41 (D24, D25): only findings of a detector that is deterministic or has the MRM status GO
+    count (``det.weigh_slugs``); with ``recorded=True`` the others are returned instead, to be
+    kept on the turn with weight 0 (a report-only classifier must not fill the signal)."""
+    weigh = getattr(det, "weigh_slugs", None)
     return [
-        str(f.code) for f in getattr(det, "findings", ()) or () if not getattr(f, "is_mock", False)
+        str(f.code)
+        for f in getattr(det, "findings", ()) or ()
+        if not getattr(f, "is_mock", False)
+        and (weigh is None or (f.detector_slug in weigh) != recorded)
     ]
 
 
@@ -331,10 +339,15 @@ class SessionGate:
             if not self._warmed:
                 self._warm(policy, now, exclude=d.decision_id)
             risk_class = policy.risk_class(tool_name)
-            self.finalize(call, d.transformed_args or args, risk_class)
+            self.finalize(
+                call, getattr(d, "masked_args", None) or d.transformed_args or args, risk_class
+            )
             amount = args.get("amount_minor")
             det = getattr(d, "det", None)
-            codes = tuple(f"d:{c}" for c in finding_codes(det))
+            codes = tuple(
+                [f"d:{c}" for c in finding_codes(det)]
+                + [f"r:{c}" for c in finding_codes(det, recorded=True)]
+            )
             now_ms = epoch_ms(now)
             turn = Turn(
                 event_id=d.decision_id,
@@ -347,6 +360,7 @@ class SessionGate:
                 if isinstance(amount, int) and not isinstance(amount, bool)
                 else None,
                 codes=codes,
+                cues=call.features.cues,
                 expand=call.features.expand,
                 rare=call.features.rare,
                 sig=call.features.sig,

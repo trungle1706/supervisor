@@ -799,7 +799,7 @@ tables:
       duplicates. own_risk is low|medium|high|critical or NULL; the effective level is
       computed on read, never stored. decision33_class is human-set (copied from the agent
       row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding |
-      workspace_scan | manual, plus file:line or a workspace reference).
+      workspace_scan | manual | gate, plus file:line or a workspace reference).
     primary_key: [node_id]
     indexes:
       - [kind, status]
@@ -832,7 +832,7 @@ tables:
       src_id: string
       dst_id: string
       kind: string
-      source: string          # manifest | onboarding | workspace_scan | manual
+      source: string          # manifest | onboarding | workspace_scan | manual | gate
       evidence_ref: string
       active: bool
       first_seen: timestamp
