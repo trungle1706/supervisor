@@ -184,6 +184,49 @@ WP39_FLAGS = {
 }
 
 
+# Integration wave 2: the pages of WP29, WP30, WP31 and WP38 on a reseeded demo store.
+WAVE2_SCREENS = [
+    ("wave2-risks", "/console/risks", "reviewer.an", None),
+    ("wave2-risks-drawer", "/console/risks", "reviewer.an", "a.rowlink"),
+    ("wave2-controls", "/console/controls", "reviewer.an", None),
+    ("wave2-controls-drawer", "/console/controls", "reviewer.an", "a.rowlink"),
+    ("wave2-tasks", "/console/tasks", "reviewer.an", None),
+    ("wave2-transparency", "/console/transparency", "reviewer.an", None),
+    ("wave2-integrations-collectors", "/console/integrations", "admin.chi", None),
+    ("wave2-agent-risks", "/console/agents/payments?tab=risks", "reviewer.an", None),
+    ("wave2-agent-controls", "/console/agents/payments?tab=controls", "reviewer.an", None),
+    ("wave2-agent-tasks", "/console/agents/payments?tab=tasks", "reviewer.an", None),
+    ("wave2-agent-transparency", "/console/agents/payments?tab=transparency", "reviewer.an", None),
+]
+WAVE2_FLAGS = {
+    **UX3_FLAGS,
+    "RISK_REGISTER_ENABLED": "1",
+    "CONSOLE_RISKS_ENABLED": "1",
+    "CONTROLS_ENABLED": "1",
+    "CONSOLE_CONTROLS_ENABLED": "1",
+    "TRANSPARENCY_ENABLED": "1",
+    "CONSOLE_TRANSPARENCY_ENABLED": "1",
+    "COLLECTORS_ENABLED": "1",
+}
+
+
+def _seed_wave2(data_dir: Path, py: str, env: dict[str, str]) -> None:
+    """Integration wave 2: starter risks and controls, their evidence, the payments task list
+    and one signed transparency report. Failures are [SKIP]."""
+    by = ["--by", "integrator.screens"]
+    steps = [
+        [py, "-m", "supervisor.risk", "import", str(REPO / "config" / "risks"), *by],
+        [py, "-m", "supervisor.controls", "import", str(REPO / "config" / "controls"), *by],
+        [py, "-m", "supervisor.jobs.risk_evidence"],
+        [py, "-m", "supervisor.jobs.control_status"],
+        [py, "-m", "supervisor.tasks", "generate", "--agent", "payments", *by],
+        [py, "-m", "supervisor.transparency", "generate", "payments"],
+    ]
+    for step in steps:
+        r = sandbox.run(step, cwd=REPO, timeout_s=300, env={**env, **WAVE2_FLAGS})
+        say(("[OK] " if r.returncode == 0 else "[SKIP] ") + " ".join(step[2:5]))
+
+
 def _seed_ux2(data_dir: Path, py: str, env: dict[str, str]) -> None:
     """WP-UX2: rows for the new pages (alerts, tool rollup, inventory). Failures are [SKIP]."""
     steps = [
@@ -305,6 +348,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--wp39", action="store_true", help="WP39: seed a v2 store and capture the new screens"
     )
+    ap.add_argument(
+        "--wave2",
+        action="store_true",
+        help="integration wave 2: risks, controls, tasks, transparency, collectors (with --reseed)",
+    )
     args = ap.parse_args(argv)
 
     pw = os.environ.get("PLAYWRIGHT_PYTHON", DEFAULT_PW)
@@ -365,6 +413,8 @@ def main(argv: list[str] | None = None) -> int:
     case_id = _first_case(data_dir)
     if args.reseed:
         _seed_ux2(data_dir, py, env)
+    if args.wave2:
+        _seed_wave2(data_dir, py, env)
 
     out = Path(os.path.abspath(args.out))
     out.mkdir(parents=True, exist_ok=True)
@@ -386,6 +436,7 @@ def main(argv: list[str] | None = None) -> int:
             "CONSOLE_COMPLIANCE_ENABLED": "1",
             **(UX3_FLAGS if args.ux3 else {}),
             **(WP39_FLAGS if args.wp39 else {}),
+            **(WAVE2_FLAGS if args.wave2 else {}),
         },
     )
     try:
@@ -443,7 +494,10 @@ def main(argv: list[str] | None = None) -> int:
                 ("inbox", "/console/inbox", None),
                 ("inventory", "/console/inventory", None),
             ]
-        if args.wp39:  # only the WP39 screens, with the role each one needs
+        if args.wave2:  # only the wave-2 pages, with the role each one needs
+            screens = [(n, p, c) for n, p, _, c in WAVE2_SCREENS]
+            who = {n: u for n, _, u, _ in WAVE2_SCREENS}
+        elif args.wp39:  # only the WP39 screens, with the role each one needs
             screens = [(n, p, c) for n, p, _, c in WP39_SCREENS]
             who = {n: u for n, _, u, _ in WP39_SCREENS}
         elif args.ux3:  # only the WP-UX3 pages, with the role each one needs
@@ -452,7 +506,7 @@ def main(argv: list[str] | None = None) -> int:
             who = {n: u for n, _, u, _ in UX3_SCREENS}
         else:
             who = {}
-        if case_id and not args.ux3 and not args.wp39:
+        if case_id and not args.ux3 and not args.wp39 and not args.wave2:
             screens.insert(3, ("case", f"/console/cases/{case_id}", None))
             screens.insert(4, ("case-rules", f"/console/cases/{case_id}", "a[data-tab=rules]"))
         shots = []
@@ -465,7 +519,10 @@ def main(argv: list[str] | None = None) -> int:
                 if name in who:
                     shot["user"] = who[name]
                 shots.append(shot)
-        if args.wp39:
+        if args.wave2:
+            dark = {"path": "/console/risks?lang=en", "user": "reviewer.an"}
+            dark["file"] = str(out / "wave2-risks-en-dark.png")
+        elif args.wp39:
             dark = {"path": "/console/decisions?lang=en", "user": "reviewer.an"}
             dark["file"] = str(out / "wp39-decisions-en-dark.png")
         elif args.ux3:

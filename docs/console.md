@@ -224,6 +224,13 @@ Screenshots for review: `uv run python tools/console_screenshots.py --reseed` (d
 needs Playwright in `PLAYWRIGHT_PYTHON`, else it prints `[SKIP]`) writes every screen at
 1360x900 in English and Vietnamese (`--out DIR`; `--ux3` adds the WP-UX3 pages).
 
+Phase 3 waves 2 and 3 (integration branch `phase3-wave2`): `docs/design/screens/wave2/` holds
+the Risks, Controls, Tasks, Transparency and Integrations (collector catalogue) pages, their
+drawers and the four new Agent tabs (`wave2-*`, English and Vietnamese, one dark), made with
+`python tools\console_screenshots.py --reseed --wave2 --data-dir <new folder> --out
+docs\design\screens\wave2 --port <free port>`, and the verdict v2 Decisions screens with the
+reconciled Observed-decision line (`wp39-*`, `--wp39`). Viewport images only.
+
 Committed reference set in `docs/design/screens/` (English, light theme, 1360x900, synthetic
 demo store; taken on the merged phase3-wave1 console with `--reseed` and then `--ux3`):
 
