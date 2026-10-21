@@ -7,6 +7,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 from supervisor.config import REPO_ROOT
 
 DATA = REPO_ROOT / "data" / "eval" / "injection_vi_en"
@@ -42,3 +44,13 @@ def test_training_and_tuning_code_never_open_a_sealed_file() -> None:
         for name in SEALED:
             assert not re.search(rf"[\"']{name.split('.')[0]}[\"']", text), (rel, name)
     assert isinstance(Path(__file__), Path)
+
+
+def test_the_loader_refuses_a_sealed_name_at_run_time() -> None:
+    """WP25b review: the name check above is static; the loader must also refuse at run time."""
+    from tools import train_classifier as TC
+
+    for name in SEALED:
+        with pytest.raises(ValueError):
+            TC.load_items(name.split(".")[0])
+    assert TC.main(["--pools", "heldout", "--no-card", "--out", "/nonexistent"]) == 2

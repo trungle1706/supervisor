@@ -63,6 +63,10 @@ HYPER = {
 
 
 def load_items(name: str) -> list[dict[str, Any]]:
+    # WP25b review: the guard sits here, not only in main(), so no caller (the CV tool, a test, a
+    # script) can read a sealed file through this helper; a ValueError survives python -O.
+    if name not in TRAINING_POOLS:
+        raise ValueError(f"{name!r} is not a training pool (the other sets are sealed)")
     path = DATA / f"{name}.jsonl"
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
 
@@ -328,9 +332,9 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     hyper = dict(HYPER, epochs=args.epochs)
     names = [x for x in args.pools.split(",") if x]
-    assert set(names) <= TRAINING_POOLS, (
-        "only the training pools may be fitted (the others are sealed)"
-    )
+    if not set(names) <= TRAINING_POOLS:
+        print("[FAIL] only the training pools may be fitted (the others are sealed)")
+        return 2
     items: list[dict[str, Any]] = []
     sizes: dict[str, int] = {}
     for name in names:
