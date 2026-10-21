@@ -183,13 +183,16 @@ def test_model_card_states_where_the_training_data_is() -> None:
     import json
 
     card = json.loads((M.model_dir(D.MODEL_VERSION) / "model_card.json").read_text("utf-8"))
+    import hashlib
+
     tr = card["training"]
-    assert tr["data_commit"] and "LLM" in tr["labeller"]
-    manifest = json.loads(
-        (REPO_ROOT / "data" / "eval" / "injection_vi_en" / "MANIFEST.json").read_text("utf-8")
-    )["files"]
-    if tr["data_sha256"] != manifest["train.jsonl"]["sha256"]:
-        assert tr["data_commit"] in tr["data_note"]  # the gap is written down
+    assert "LLM" in tr["labeller"]
+    # WP25b closes F6: every training file named in the card has the hash of the committed file
+    assert set(tr["files"]) == {"train", "dev", "train_b"}
+    for name, info in tr["files"].items():
+        path = REPO_ROOT / info["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == info["sha256"], name
+        assert info["n_items"] == len(path.read_text("utf-8").splitlines())
 
 
 # --------------------------------------------------------------------------- gate edges

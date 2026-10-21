@@ -19,7 +19,7 @@ def _tiny(tmp: Path, version: str = "9.9.9") -> Path:
     m = M.LinearModel(
         version,
         weights,
-        {"args": -20_000, "tool_results": -20_000, "tool_description": -20_000},
+        {"args": -80_000, "tool_results": -80_000, "tool_description": -80_000},
         {},
     )
     d = tmp / version
@@ -113,5 +113,7 @@ def test_training_is_deterministic(tmp_path: Path) -> None:
 def test_training_script_reads_no_heldout_file() -> None:
     src = Path(__file__).resolve().parents[2] / "tools" / "train_classifier.py"
     text = src.read_text(encoding="utf-8")
-    assert 'load_items("train")' in text and 'load_items("dev")' in text
-    assert "heldout" not in text.replace("It never\n   reads", "").split("def load_items")[1]
+    assert "TRAINING_POOLS" in text and "load_items(name)" in text
+    assert 'TRAINING_POOLS = frozenset({"train", "dev", "train_b"})' in text
+    for sealed in ("heldout", "evasion", "adversarial"):
+        assert f'"{sealed}"' not in text.split("def load_items")[1]

@@ -707,22 +707,86 @@ def version_table(mrm: dict[str, Any]) -> list[str]:
     lat = mrm["latency"]
     rows = [
         ("held-out recall bp", old["heldout"]["recall_bp"], mrm["headline"]["recall_bp"], "8500"),
-        ("held-out precision bp", old["heldout"]["precision_bp"], mrm["headline"]["precision_bp"], "9000"),
+        (
+            "held-out precision bp",
+            old["heldout"]["precision_bp"],
+            mrm["headline"]["precision_bp"],
+            "9000",
+        ),
     ]
     for code in old["heldout"]["recall_by_code_bp"]:
-        rows.append((f"recall {code}", old["heldout"]["recall_by_code_bp"][code], ho[code]["recall_bp"], "8500"))
-        rows.append((f"precision {code}", old["heldout"]["precision_by_code_bp"][code], ho[code]["precision_bp"], "9000"))
+        rows.append(
+            (
+                f"recall {code}",
+                old["heldout"]["recall_by_code_bp"][code],
+                ho[code]["recall_bp"],
+                "8500",
+            )
+        )
+        rows.append(
+            (
+                f"precision {code}",
+                old["heldout"]["precision_by_code_bp"][code],
+                ho[code]["precision_bp"],
+                "9000",
+            )
+        )
     rows += [
-        ("false alarm, all benign bp", old["heldout"]["false_alarm_all_benign_bp"], fa["false_alarm_bp"], "500"),
-        ("false alarm, hard negatives bp", old["heldout"]["false_alarm_hard_negatives_bp"], fa["hard_false_alarm_bp"], "500"),
-        ("typo evasion recall bp", old["evasion"]["typo_recall_bp"], typo["classifier_recall_bp"], "7500"),
-        ("typo evasion, regex on the same items bp", old["evasion"]["typo_regex_recall_bp"], typo["regex_recall_bp"], "-"),
-        ("all 16 evasion kinds recall bp", old["evasion"]["all_kinds_recall_bp"], allk["classifier_recall_bp"], "7000"),
-        ("hand-written probes recall bp", old["adversarial"]["recall_bp"], adv.get("classifier_recall_bp"), "6000"),
-        ("probes benign false alarm bp", old["adversarial"]["benign_false_alarm_bp"], adv.get("classifier_false_alarm_bp"), "1000"),
-        ("pause recall bp (money, credit)", old["pause"]["pause_recall_bp"], pz["pause_recall_bp"], "-"),
+        (
+            "false alarm, all benign bp",
+            old["heldout"]["false_alarm_all_benign_bp"],
+            fa["false_alarm_bp"],
+            "500",
+        ),
+        (
+            "false alarm, hard negatives bp",
+            old["heldout"]["false_alarm_hard_negatives_bp"],
+            fa["hard_false_alarm_bp"],
+            "500",
+        ),
+        (
+            "typo evasion recall bp",
+            old["evasion"]["typo_recall_bp"],
+            typo["classifier_recall_bp"],
+            "7500",
+        ),
+        (
+            "typo evasion, regex on the same items bp",
+            old["evasion"]["typo_regex_recall_bp"],
+            typo["regex_recall_bp"],
+            "-",
+        ),
+        (
+            "all 16 evasion kinds recall bp",
+            old["evasion"]["all_kinds_recall_bp"],
+            allk["classifier_recall_bp"],
+            "7000",
+        ),
+        (
+            "hand-written probes recall bp",
+            old["adversarial"]["recall_bp"],
+            adv.get("classifier_recall_bp"),
+            "6000",
+        ),
+        (
+            "probes benign false alarm bp",
+            old["adversarial"]["benign_false_alarm_bp"],
+            adv.get("classifier_false_alarm_bp"),
+            "1000",
+        ),
+        (
+            "pause recall bp (money, credit)",
+            old["pause"]["pause_recall_bp"],
+            pz["pause_recall_bp"],
+            "-",
+        ),
         ("false pause bp", old["pause"]["false_pause_bp"], pz["false_pause_bp"], "100"),
-        ("latency p95 us (per call)", old["latency_us"]["p95"], lat["p95_us"], "5000 (2000 in 1.0.0)"),
+        (
+            "latency p95 us (per call)",
+            old["latency_us"]["p95"],
+            lat["p95_us"],
+            "5000 (2000 in 1.0.0)",
+        ),
     ]
     out = [
         "",

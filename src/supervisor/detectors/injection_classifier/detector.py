@@ -55,9 +55,9 @@ MODEL_VERSION = "1.1.0"
 # basis points, chosen on the dev split by false-alarm rate; ILLUSTRATIVE until the bank sets them.
 # Per surface (WP25b): descriptions, results and arguments have different score distributions.
 SURFACE_PRESETS: dict[str, dict[str, int]] = {
-    "strict": {"args": 5_500, "tool_results": 5_500, "tool_description": 5_500},
-    "balanced": {"args": 6_000, "tool_results": 6_000, "tool_description": 6_000},
-    "lenient": {"args": 7_000, "tool_results": 7_000, "tool_description": 7_000},
+    "strict": {"args": 4_000, "tool_results": 3_250, "tool_description": 3_750},
+    "balanced": {"args": 4_750, "tool_results": 4_000, "tool_description": 4_500},
+    "lenient": {"args": 5_500, "tool_results": 4_750, "tool_description": 5_250},
 }
 # The catalogue shows one number per preset: the threshold of the arguments surface.
 PRESETS: dict[str, int] = {k: v["args"] for k, v in SURFACE_PRESETS.items()}
@@ -73,7 +73,7 @@ def surface_threshold(settings: Mapping[str, Any], surface: str) -> int:
 
 # At or above this score a finding on a pause class tool carries the pause hint. Frozen per model
 # version; the setting can only raise it.
-PAUSE_THRESHOLD_BP = 8_500
+PAUSE_THRESHOLD_BP = 7_250
 PAUSE_CLASSES_DEFAULT = ["money", "credit"]
 PAUSE_CLASSES_ALLOWED = ("money", "credit", "pii_export")  # read_only can never pause
 

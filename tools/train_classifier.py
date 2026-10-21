@@ -328,7 +328,9 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     hyper = dict(HYPER, epochs=args.epochs)
     names = [x for x in args.pools.split(",") if x]
-    assert set(names) <= TRAINING_POOLS, "only the training pools may be fitted (the others are sealed)"
+    assert set(names) <= TRAINING_POOLS, (
+        "only the training pools may be fitted (the others are sealed)"
+    )
     items: list[dict[str, Any]] = []
     sizes: dict[str, int] = {}
     for name in names:
