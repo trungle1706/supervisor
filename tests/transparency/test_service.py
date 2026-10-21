@@ -116,7 +116,9 @@ def test_unavailable_sections_say_why(env: Env) -> None:
     r = env.svc.preview("payments", "regulator")
     s = r["sections"]["risks"]
     assert (s["available"], s["reason"], s["ref"]) == (False, "flag_off", "RISK_REGISTER_ENABLED")
-    assert r["sections"]["controls"]["reason"] == "not_built"  # WP30 hook
+    # WP30 is merged (integration wave 2): the package is present, CONTROLS_ENABLED is off
+    c = r["sections"]["controls"]
+    assert (c["reason"], c["ref"]) == ("flag_off", "CONTROLS_ENABLED")
 
 
 def test_both_languages_use_their_own_words(env: Env) -> None:

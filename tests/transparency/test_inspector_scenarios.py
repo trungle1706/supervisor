@@ -70,7 +70,12 @@ def test_s2_every_source_that_is_off_or_mock_is_stated(env: Env) -> None:
     env.settings.inventory_enabled = False
     r = env.svc.preview("credit_prequal", "regulator")
     c = _codes(r)
-    assert set(c["section_flag_off"]) == {"RISK_REGISTER_ENABLED", "INVENTORY_ENABLED"}
+    # CONTROLS_ENABLED: WP30 is merged (integration wave 2) and its flag is off here
+    assert set(c["section_flag_off"]) == {
+        "RISK_REGISTER_ENABLED",
+        "INVENTORY_ENABLED",
+        "CONTROLS_ENABLED",
+    }
     assert c["monitors_off"] == ["drift,fairness,metrics,multiagent,quality"]
     assert "mock_judge" in c and "judge_not_validated" in c
     assert "chain_not_verified" in c  # nobody ran the offline check for this build

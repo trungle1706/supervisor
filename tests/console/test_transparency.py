@@ -6,6 +6,7 @@ reviewer and admin generate; a generate writes two console_action rows and the c
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from typing import Any
 
@@ -53,8 +54,9 @@ def test_generate_then_read_every_format(tp_on: Console) -> None:
     h = tp_on.get("/v1/transparency/payments?variant=customer&format=html&lang=vi")
     assert h.status_code == 200 and "text/html" in h.headers["content-type"]
     assert "payments" not in h.text.replace("executes_payments", "")
-    p = tp_on.get("/v1/transparency/payments?variant=internal&format=pdf&lang=en")
-    assert p.status_code == 200 and p.content.startswith(b"%PDF")
+    if importlib.util.find_spec("fpdf") is not None:  # optional extra `pdf` (fpdf2)
+        p = tp_on.get("/v1/transparency/payments?variant=internal&format=pdf&lang=en")
+        assert p.status_code == 200 and p.content.startswith(b"%PDF")
     audit = [
         r
         for r in tp_on.ctx.tables.query("console_action", order_by=("ts",))

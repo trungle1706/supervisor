@@ -81,7 +81,7 @@ def expected(agent: str, variant: str, profile: str) -> dict:
         "masking": True,
         "monitors": True,
         "risks": risk_on,
-        "controls": False,  # WP30 has not registered a collector
+        "controls": False,  # WP30 is merged but CONTROLS_ENABLED is off in the fixtures
         "evidence": True,
         "cases": True,
         "backlog": True,
@@ -92,7 +92,9 @@ def expected(agent: str, variant: str, profile: str) -> dict:
     has: list[str] = ["advisory_only" if variant != "customer" else "section_not_for_variant"]
     lacks: list[str] = []
     if variant != "customer":
-        has += ["section_not_built", "judge_advice_only", "mock_judge", "no_personal_data"]
+        # controls: section_flag_off (CONTROLS_ENABLED), since the WP30 merge
+        has += ["section_flag_off", "judge_advice_only", "mock_judge", "no_personal_data"]
+        lacks.append("section_not_built")
     if not inv_on and variant != "customer":
         has.append("section_flag_off")
     if not risk_on:
