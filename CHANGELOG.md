@@ -57,7 +57,9 @@ No new flag; all three changes act only with `DETECTORS_ENABLED` on.
   credit call with 85 percent of its text unread was allowed with status `report`). A read_only
   tool stays coverage only.
 - D32 (Medium): the fail-closed 99 KB pii_export call took 879 ms on the bench host because the
-  inline masker read the whole text; above the `dlp_vn` scan budget it does not run (15 to 17 ms).
+  inline masker read the whole text; above the `dlp_vn` scan budget it does not run when the
+  call is refused anyway (15 to 17 ms). Review: when nothing refuses the call (fail_closed off,
+  observe, detectors disabled for the agent) the masker still masks the full text.
 - D26 (Medium): status `pause` (not `block`) for the state pause `GATE-PAUSED` and the session
   pause `GATE-SESSION-PAUSE`, in the answer, `agent_event.verdict_status`, the chain record, the
   SIEM `attrs.status`, the drawer and the rollup. The old `action` field stays `block`.

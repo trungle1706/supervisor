@@ -54,6 +54,8 @@ def over_budget(args: Any, limit: int, depth: int = 0) -> bool:
         if d > MAX_DEPTH:
             return False
         if isinstance(value, str):
+            if len(value) > left[0]:
+                return True  # UTF-8 has at least one byte per character: no need to encode
             left[0] -= len(value) if value.isascii() else len(value.encode("utf-8", "replace"))
             return left[0] < 0
         if isinstance(value, Mapping):

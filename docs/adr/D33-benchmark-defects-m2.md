@@ -90,6 +90,10 @@ Severity first: D31 High, D32 Medium, D26 Medium; the rest of the triage went to
   mask the first 16 KB for the record. The record never holds masked argument text (keys and
   keyed hashes only), so there is nothing to shorten; `args_hmac` already hashes the whole
   argument. Measured 15 to 17 ms p50 on a loaded host (load about 4) against 817 to 879 ms.
+  Review: the masker is skipped only when the detector result already fails the call closed
+  and observe will not lift it; in every other configuration the loader accepts it masks the
+  full text (slow, as WP24b), so a big pii_export argument never reaches a tool unmasked.
+  Rejected: refusing those configurations at load (they are valid for small arguments).
 * **D26.** The two built-in pauses (`GATE-PAUSED`, `GATE-SESSION-PAUSE`) keep `action: block`
   (contract v1) and report status `pause` in v2. Precedence block > pause is unchanged: a
   quarantined agent stays `block`, and a block rule that matched next to a pause rule wins.

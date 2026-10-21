@@ -245,12 +245,18 @@ The second benchmark showed two gaps in the rules above.
   on the benchmark host (18 ms in the lab). The cost was the inline masker (`INLINE_REDACTION_ENABLED`),
   which read all 99 KB before the gate knew the call would be refused; the detectors, the
   record (`args_masked` holds argument names and key hashes, never text) and the SIEM event were
-  cheap. With the detector gate on, the masker now reads at most the `dlp_vn` `max_scan_bytes`
-  (a check that stops at the limit): a larger argument is not masked, `dlp_vn` is cut, and
-  `GATE-DETECTOR-FAILED` answers in 15 to 17 ms. The full argument is still covered by
+  cheap. With the detector gate on, an argument above the `dlp_vn` `max_scan_bytes` (a check
+  that stops at the limit) is not masked **when the detector result already fails the call
+  closed**: `GATE-DETECTOR-FAILED` answers in 15 to 17 ms. The full argument is still covered by
   `args_hmac` (a keyed hash of all of it); the record holds the byte count in the coverage
-  (`bytes`, `scanned_bytes`). With `dlp_vn` off, or with no detector gate, nothing cuts the
-  argument and the masker runs as in WP24b.
+  (`bytes`, `scanned_bytes`). When nothing refuses the call (every detector `fail_closed: false`,
+  `pii_export` left out of `fail_closed_risk_classes`, every detector disabled for the agent,
+  observe mode lifting the block on a non-pii_export tool in `redact_tools`), the masker runs on
+  the full text as in WP24b, so a big `pii_export` argument never reaches the tool unmasked
+  (WP41b review). With `dlp_vn` off, or with no detector gate, the masker runs as in WP24b.
+* A cut row of a detector that is not `fail_closed` (for example `dlp_vn` with
+  `fail_closed: false`) does not replace the `*:payload_too_large` row: the call still fails
+  closed when any other enabled detector is `fail_closed` (WP41b review).
 
 ## 3c. `mrm_status` per detector (D24, D25)
 
