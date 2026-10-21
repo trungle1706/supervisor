@@ -577,6 +577,20 @@ def _without_parts(f: Finding, parts: set[str]) -> Finding:
     return replace(f, transformed_payload=keep or None)
 
 
+# WP41 review: the parts whose transformed copy a caller applies (the tool gets the masked
+# arguments, the user gets the masked output). A cut tool result is never applied.
+APPLIED_PARTS: frozenset[str] = frozenset({"args", "output"})
+
+
+def _transforms_here(det: Any, settings: Mapping[str, Any], meta: Mapping[str, Any]) -> bool:
+    """True when ``det`` would transform this call (its optional ``transforms_here`` hook)."""
+    hook = getattr(det, "transforms_here", None)
+    try:
+        return bool(hook(settings, meta)) if callable(hook) else False
+    except Exception:  # noqa: BLE001 - when in doubt, treat it as a transforming detector
+        return True
+
+
 def _text_chars(part_value: Any) -> int:
     return sum(len(leaf.text) for leaf in walk_leaves("x", part_value))
 
@@ -792,6 +806,18 @@ class DetectorRegistry:
             budget_left -= sum(scanned.values())
             for p, nb in scanned.items():
                 scanned_min[p] = min(scanned_min.get(p, nb), nb)
+            cut_applied = sorted(clipped & APPLIED_PARTS)
+            if cut_applied and _transforms_here(det, clean, payload.get("meta") or {}):
+                # WP41 review: a detector that would transform this call read only part of a
+                # part the caller applies (arguments, output). Personal data after the cut would
+                # pass unmasked even when the scanned part is clean, so it did not do its job:
+                # not executed, and the fail-closed rule applies on a risky tool.
+                res.not_executed.append(
+                    not_executed(
+                        slug, did, "payload_too_large", ",".join(cut_applied), preset=preset
+                    )
+                )
+                continue
             t0 = clock_ns()
             try:
                 found = _call_bounded(
@@ -821,7 +847,7 @@ class DetectorRegistry:
                 # A transform of text the detector only saw in part must not go out. If the
                 # arguments were cut, the detector did not do its job (fails closed on a risky
                 # tool); a cut tool result is not applied by any caller, so that part is dropped.
-                if "args" in clipped:
+                if clipped & APPLIED_PARTS:
                     res.not_executed.append(
                         not_executed(slug, did, "payload_too_large", "arguments", preset=preset)
                     )

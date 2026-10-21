@@ -195,6 +195,11 @@ class DlpVnDetector:
             meta.get("tool_name") in (settings.get("transform_tools") or ())
         )
 
+    def transforms_here(self, settings: Mapping[str, Any], meta: Mapping[str, Any]) -> bool:
+        """WP41 review: the registry asks before a cut scan; a transform of text read only in
+        part is never handed out (core.detectors.APPLIED_PARTS)."""
+        return self._in_scope(settings, meta)
+
     def evaluate(
         self, payload: Mapping[str, Any], settings: Mapping[str, Any], direction: str
     ) -> list[Finding]:
