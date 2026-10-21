@@ -109,6 +109,13 @@ _T: dict[str, tuple[str, str]] = {
     "affirm": ("I sign this statement as myself", "Tôi tự ký lời xác nhận này"),
     "state": ("Gate state", "Trạng thái cổng"),
     "coverage": ("Coverage", "Độ bao phủ"),
+    "kept_args": ("Arguments passed unmasked", "Tham số được chuyển không che"),
+    "kept_args_hint": (
+        "The policy keeps these arguments as sent (a lookup key). Records, chain and findings "
+        "still hold them masked.",
+        "Chính sách giữ nguyên các tham số này (khóa tra cứu). "
+        "Bản ghi, chuỗi và phát hiện vẫn che chúng.",
+    ),
     "owner": ("Owner", "Chủ sở hữu"),
     "pending_resume": ("Pending resume", "Chờ mở lại"),
     "pause": ("Pause", "Tạm dừng"),

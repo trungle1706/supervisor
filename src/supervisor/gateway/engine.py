@@ -346,6 +346,10 @@ class Decision:
     v2: dict[str, Any] | None = None
     det: Any = None  # DetectorOutcome: the findings to record
     transformed_payload: dict[str, Any] | None = None
+    # WP41 (D29): argument names the policy kept unmasked (dlp_vn keep_args) and the fully masked
+    # copy of the arguments, which every record uses instead of ``transformed_args``.
+    kept_args: list[str] = field(default_factory=list)
+    masked_args: dict[str, Any] | None = None
     # WP38 (ADR D28): mode and consumer. ``sem`` is None unless the agent uses mode, rule
     # switches or consumers: the answer is then unchanged. ``observed`` holds the decision that
     # observe mode turned into a report (None = nothing was downgraded).
@@ -1358,7 +1362,7 @@ class Gateway:
         s = d.sess
         assert s is not None
         if self.session_gate is not None:  # sketch on the masked arguments (WP37 review F3)
-            self.session_gate.finalize(s, d.transformed_args or args, d.risk_class)
+            self.session_gate.finalize(s, d.masked_args or d.transformed_args or args, d.risk_class)
         codes = finding_codes(getattr(d, "det", None))
         feats: dict[str, Any] = {}
         if s.consumer:

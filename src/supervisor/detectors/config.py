@@ -21,8 +21,14 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from supervisor.core.detectors import DetectorRegistry, DetectorSetting, RunConfig
+from supervisor.core.detectors import (
+    DEFAULT_SCAN_BUDGET_BYTES,
+    DetectorRegistry,
+    DetectorSetting,
+    RunConfig,
+)
 from supervisor.core.errors import ConfigError
+from supervisor.detectors.dlp_vn import keep_args_problems
 from supervisor.gateway.policy import AgentDetectors
 
 log = logging.getLogger(__name__)
@@ -46,6 +52,9 @@ class DetectorEntry(_Strict):
 class Limits(_Strict):
     max_payload_chars: int = Field(default=100_000, ge=1_000, le=5_000_000)
     timeout_ms: int = Field(default=500, ge=10, le=60_000)
+    # WP41 (D30, D18): the most text all detectors together scan per call, in bytes. The
+    # environment value DETECTORS_SCAN_BUDGET_BYTES replaces it. Per detector: max_scan_bytes.
+    scan_budget_bytes: int = Field(default=DEFAULT_SCAN_BUDGET_BYTES, ge=1024, le=10_000_000)
     fail_closed_risk_classes: list[str] = Field(default_factory=lambda: list(RISK[:3]))
 
 
@@ -83,10 +92,22 @@ def load_config(path: Path | str) -> DetectorsFile:
     return parse_config(p.read_text(encoding="utf-8"), p.name)
 
 
+def _extra_problems(slug: str, settings: Mapping[str, Any]) -> list[str]:
+    """Checks the declarative schema cannot express (WP41: the shape of dlp_vn keep_args)."""
+    if slug == "dlp_vn":
+        return keep_args_problems(settings.get("keep_args"))
+    return []
+
+
 class ResolvedDetectors:
     """The file checked against the catalogue, ready to resolve per call."""
 
-    def __init__(self, cfg: DetectorsFile, registry: DetectorRegistry) -> None:
+    def __init__(
+        self,
+        cfg: DetectorsFile,
+        registry: DetectorRegistry,
+        scan_budget_bytes: int | None = None,
+    ) -> None:
         self.cfg = cfg
         self.registry = registry
         problems: list[str] = []
@@ -99,8 +120,9 @@ class ResolvedDetectors:
             if slug not in registry:
                 problems.append(f"detectors.{slug}: not in the catalogue {registry.slugs}")
                 continue
-            _, errs = registry.validate_settings(slug, self._merged(slug, entry, None, None))
-            problems += [f"detectors.{slug}.{e}" for e in errs]
+            merged = self._merged(slug, entry, None, None)
+            _, errs = registry.validate_settings(slug, merged)
+            problems += [f"detectors.{slug}.{e}" for e in [*errs, *_extra_problems(slug, merged)]]
             if entry.fail_closed and not registry.may_fail_closed(slug):
                 # R1: an advisory detector never fails closed; the value is ignored, loudly.
                 log.warning(
@@ -113,6 +135,7 @@ class ResolvedDetectors:
             max_payload_chars=cfg.limits.max_payload_chars,
             timeout_ms=cfg.limits.timeout_ms,
             fail_closed_risk_classes=frozenset(cfg.limits.fail_closed_risk_classes),
+            scan_budget_bytes=scan_budget_bytes or cfg.limits.scan_budget_bytes,
         )
 
     def _merged(
@@ -153,6 +176,7 @@ class ResolvedDetectors:
             max_payload_chars=self._base.max_payload_chars,
             timeout_ms=self._base.timeout_ms,
             fail_closed_risk_classes=self._base.fail_closed_risk_classes,
+            scan_budget_bytes=self._base.scan_budget_bytes,
         )
         return run, frozenset(agent.skip_tools) if agent else frozenset()
 
@@ -167,8 +191,9 @@ class ResolvedDetectors:
         for slug in agent.settings:
             if slug in self.registry:
                 entry = self.cfg.detectors.get(slug, DetectorEntry())
-                _, errs = self.registry.validate_settings(
-                    slug, self._merged(slug, entry, agent, agent.preset)
-                )
-                problems += [f"{agent_id}: {slug}.{e}" for e in errs]
+                merged = self._merged(slug, entry, agent, agent.preset)
+                _, errs = self.registry.validate_settings(slug, merged)
+                problems += [
+                    f"{agent_id}: {slug}.{e}" for e in [*errs, *_extra_problems(slug, merged)]
+                ]
         return problems

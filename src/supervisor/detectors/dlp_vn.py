@@ -55,16 +55,70 @@ RISK_CLASSES = ("money", "credit", "pii_export", "read_only")
 PRESETS: dict[str, int] = {"strict": 5_000, "balanced": 8_000, "lenient": 9_500}
 
 
-def _mask_tree(value: Any, mask: Any, depth: int = 0) -> Any:
+# WP41 (D29): typed pseudonyms. With pseudonym_mode "typed" a text value that sits directly under
+# an argument whose NAME says what it is gets that class, not the one the masker guesses from
+# the digits (a bare 10 digit tax code looks like a bank account). The label goes in front of
+# the value for the masker and is cut off again.
+_KEY_HINTS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"(^|_)(tax|mst|ma_so_thue)(_|$)", re.I), "mã số thuế "),
+    (re.compile(r"(^|_)(account|acct|stk|tai_khoan)(_|$)", re.I), "tài khoản "),
+)
+PSEUDONYM_MODES = ("generic", "typed")
+KEEP_ARG_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+
+def keep_args_problems(value: Any) -> list[str]:
+    """Problems in a ``keep_args`` setting: ``{tool: [argument names]}`` (empty = fine)."""
+    if value in (None, {}):
+        return []
+    if not isinstance(value, Mapping):
+        return ["keep_args: expected a mapping of tool name to a list of argument names"]
+    problems: list[str] = []
+    if len(value) > 64:
+        problems.append("keep_args: more than 64 tools")
+    for tool, names in value.items():
+        if not isinstance(tool, str) or not KEEP_ARG_RE.match(tool):
+            problems.append("keep_args: a tool name is not a plain identifier")
+        elif (
+            not isinstance(names, list)
+            or not 0 < len(names) <= 8
+            or any(not isinstance(n, str) or not KEEP_ARG_RE.match(n) for n in names)
+        ):
+            problems.append(f"keep_args.{tool}: 1..8 argument names (letters, digits, _ . -)")
+    return problems
+
+
+def _hint_label(key: str | None) -> str | None:
+    if not key:
+        return None
+    for rx, label in _KEY_HINTS:
+        if rx.search(key):
+            return label
+    return None
+
+
+def _typed_mask(mask: Any, key: str | None, text: str) -> str:
+    label = _hint_label(key)
+    if label is None:
+        return mask(text)
+    out = mask(label + text)
+    return out[len(label) :] if out.startswith(label) else mask(text)
+
+
+def _mask_tree(value: Any, mask: Any, depth: int = 0, typed: bool = False) -> Any:
     """``map_leaves`` that also masks string dict keys: a transformed payload goes on to a
     pii_export tool, and a name used as a key must not reach it in clear (R2)."""
     if isinstance(value, Mapping) and depth <= MAX_DEPTH:
         return {
-            (mask(k) if isinstance(k, str) else k): _mask_tree(v, mask, depth + 1)
+            (mask(k) if isinstance(k, str) else k): (
+                _typed_mask(mask, k, v)
+                if typed and isinstance(k, str) and isinstance(v, str)
+                else _mask_tree(v, mask, depth + 1, typed)
+            )
             for k, v in value.items()
         }
     if isinstance(value, list | tuple) and depth <= MAX_DEPTH:
-        return [_mask_tree(v, mask, depth + 1) for v in value]
+        return [_mask_tree(v, mask, depth + 1, typed) for v in value]
     return map_leaves(value, mask, depth)
 
 
@@ -103,6 +157,29 @@ class DlpVnDetector:
                 items="string",
                 max_length=64,
             ),
+            SettingField(
+                "keep_args",
+                "Arguments passed unmasked, per tool",
+                "object",
+                default={},
+                description=(
+                    "{tool: [argument names]}. A named top-level argument reaches the tool as "
+                    "sent (a lookup key); it is still masked in every record, chain entry, "
+                    "finding and SIEM event. The decision lists it as kept_args. Loading one "
+                    "writes an audit line."
+                ),
+            ),
+            SettingField(
+                "pseudonym_mode",
+                "Pseudonym typing",
+                "enum",
+                default="generic",
+                enum=PSEUDONYM_MODES,
+                description=(
+                    "generic: the masker guesses the class from the value. typed: the argument "
+                    "name decides for tax and account values, so a tax code stays TAX_CODE."
+                ),
+            ),
         )
     )
 
@@ -121,6 +198,15 @@ class DlpVnDetector:
         self, payload: Mapping[str, Any], settings: Mapping[str, Any], direction: str
     ) -> list[Finding]:
         meta = payload.get("meta") or {}
+        typed = settings.get("pseudonym_mode") == "typed"
+        memo: dict[str, str] = {}
+
+        def mask(text: str) -> str:  # the scan and the transform mask the same text twice
+            out = memo.get(text)
+            if out is None:
+                out = memo[text] = self.masker.mask(text)
+            return out
+
         did = detector_id(self)
         threshold = threshold_for(self, settings)
         preset = str(settings.get("preset") or "balanced")
@@ -131,7 +217,11 @@ class DlpVnDetector:
             if payload.get(part) is None:
                 continue
             for leaf in walk_leaves(part, payload[part]):
-                masked = self.masker.mask(leaf.text)
+                masked = (
+                    _typed_mask(mask, leaf.path.rsplit(".", 1)[-1], leaf.text)
+                    if typed and not leaf.path.endswith("]")
+                    else mask(leaf.text)
+                )
                 if masked == leaf.text:
                     continue
                 before = Counter(m.group(0) for m in _TOKEN.finditer(leaf.text))
@@ -153,7 +243,7 @@ class DlpVnDetector:
         out_payload: dict[str, Any] | None = None
         if transform:
             out_payload = {
-                part: _mask_tree(payload[part], self.masker.mask)
+                part: _mask_tree(payload[part], mask, typed=typed)
                 for part in PARTS_BY_DIRECTION[direction]
                 if payload.get(part) is not None
             }

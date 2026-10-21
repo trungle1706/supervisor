@@ -566,6 +566,10 @@ class Settings(BaseSettings):
     # transformed_payload, request_id and correlation_id; findings are stored (table finding).
     detectors_enabled: bool = False
     detectors_config: Path = Path("config/detectors.yaml")
+    # --- WP41 --- (ADR D33, docs/detectors.md section 3b). DETECTORS_SCAN_BUDGET_BYTES: the most
+    # text all detectors together scan in one call (default 65536; per detector the setting
+    # max_scan_bytes, default 16384). None = the value of limits.scan_budget_bytes in the file.
+    detectors_scan_budget_bytes: int | None = Field(default=None, ge=1024, le=10_000_000)
 
     # --- WP38 --- collector catalogue on the Integrations page (ADR D28, docs/collectors.md).
     # Off: the Integrations page is the delivery status page of v0.3.0. On: it is the catalogue

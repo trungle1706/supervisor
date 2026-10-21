@@ -103,7 +103,12 @@
     {% endif %}
     {% if drawer.coverage.get('not_inspected') %}
     <h4 style="margin:14px 0 4px">{{ t('coverage') }}</h4>
-    {% for n in drawer.coverage.not_inspected %}<div class="idline">{{ n.part }}: {{ n.reason }}</div>{% endfor %}
+    {% for n in drawer.coverage.not_inspected %}<div class="idline">{{ n.part }}: {{ n.reason }}{% if n.bytes is defined %} ({{ n.scanned_bytes }} / {{ n.bytes }} B){% endif %}</div>{% endfor %}
+    {% endif %}
+    {% if drawer.row.kept_args %}
+    <h4 style="margin:14px 0 4px">{{ t('kept_args') }}</h4>
+    <div class="idline">{{ drawer.row.kept_args|join(', ') }}</div>
+    <div class="hint">{{ t('kept_args_hint') }}</div>
     {% endif %}
   {% else %}
     {% set sp = drawer.split %}

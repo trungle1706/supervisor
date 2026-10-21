@@ -876,6 +876,9 @@ class StorePolicyProvider:
         self.validator: Callable[[Policy], list[str]] | None = None
         self.rejected_hash: str | None = None
         self.rejected_reason: str | None = None
+        # WP41: called with each policy that is accepted (first load and every changed reload),
+        # for audit lines. An error in it is logged, never raised.
+        self.on_accept: Callable[[Policy], None] | None = None
 
     def current(self) -> Policy:
         now = time.monotonic()
@@ -898,6 +901,11 @@ class StorePolicyProvider:
                 else:
                     self._policy = policy
                     self.rejected_hash = self.rejected_reason = None
+                    if self.on_accept is not None:
+                        try:
+                            self.on_accept(policy)
+                        except Exception as exc:  # noqa: BLE001 - audit must not stop the gate
+                            log.error("policy on_accept hook failed: %s", type(exc).__name__)
             self._loaded_at = now
         return self._policy
 

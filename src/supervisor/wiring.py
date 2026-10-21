@@ -147,6 +147,7 @@ def _make_gateway(
     provider = StorePolicyProvider(adapters.state, refresh_s=policy_refresh_s)
     if detector_gate is not None:  # F11: the same check on every reload
         provider.validator = detector_gate.check_policy
+        provider.on_accept = lambda p: detector_gate.audit_policy(p, chain)  # WP41
     return Gateway(
         provider,
         adapters.tables,
@@ -205,7 +206,11 @@ def make_detector_gate(settings: Settings, policy: Policy) -> Any:
         masker = VnRegexMasker(key, key_id)
     registry = build_registry(masker, judge=_advisory_judge(settings, masker))
     try:
-        resolved = ResolvedDetectors(load_config(settings.detectors_config), registry)
+        resolved = ResolvedDetectors(
+            load_config(settings.detectors_config),
+            registry,
+            scan_budget_bytes=settings.detectors_scan_budget_bytes,
+        )
     except ConfigError as exc:  # one ASCII line naming the setting, no chained traceback
         msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None

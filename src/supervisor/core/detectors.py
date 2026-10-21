@@ -29,7 +29,7 @@ import re
 import threading
 import time
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal, Protocol, runtime_checkable
 
 from supervisor.core.canonical import canonical_json
@@ -70,6 +70,10 @@ PARTS_BY_DIRECTION: dict[str, tuple[str, ...]] = {
 PRECEDENCE: tuple[str, ...] = ("allow", "report", "transform", "pause", "block")
 
 MAX_DEPTH = 12
+# D30 / D18 (WP41): the most text one detector scans per call, and the most text all detectors
+# together scan per call (the "scan budget"). Both in UTF-8 bytes.
+DEFAULT_MAX_SCAN_BYTES = 16_384
+DEFAULT_SCAN_BUDGET_BYTES = 65_536
 MAX_FRAGMENTS = 20
 FRAGMENT_TEXT_MAX = 120
 SCORE_MAX = 10_000
@@ -273,6 +277,18 @@ def common_fields(presets: Iterable[str]) -> tuple[SettingField, ...]:
             minimum=0,
             maximum=SCORE_MAX,
             description="Explicit threshold in basis points; replaces the preset when set.",
+        ),
+        SettingField(
+            "max_scan_bytes",
+            "Largest text this detector scans per call (bytes)",
+            "integer",
+            default=DEFAULT_MAX_SCAN_BYTES,
+            minimum=256,
+            maximum=1_000_000,
+            description=(
+                "Text beyond this is not scanned (coverage payload_too_large). Arguments are "
+                "scanned first, tool results last."
+            ),
         ),
     )
 
@@ -536,6 +552,7 @@ class RunConfig:
     max_payload_chars: int = 100_000
     timeout_ms: int = 500
     fail_closed_risk_classes: frozenset[str] = frozenset({"money", "credit", "pii_export"})
+    scan_budget_bytes: int = DEFAULT_SCAN_BUDGET_BYTES  # WP41: all detectors together, per call
 
 
 @dataclass
@@ -552,8 +569,69 @@ class RunResult:
     failed_closed: list[Finding] = field(default_factory=list)  # failures that block here
 
 
+def _without_parts(f: Finding, parts: set[str]) -> Finding:
+    """``f`` with the named parts removed from its transformed payload."""
+    if not f.transformed_payload:
+        return f
+    keep = {k: v for k, v in f.transformed_payload.items() if k not in parts}
+    return replace(f, transformed_payload=keep or None)
+
+
 def _text_chars(part_value: Any) -> int:
     return sum(len(leaf.text) for leaf in walk_leaves("x", part_value))
+
+
+def _utf8_len(text: str) -> int:
+    return len(text) if text.isascii() else len(text.encode("utf-8", "replace"))
+
+
+def _clip_text(text: str, nbytes: int) -> str:
+    if nbytes <= 0:
+        return ""
+    if text.isascii():
+        return text[:nbytes]
+    return text.encode("utf-8", "replace")[:nbytes].decode("utf-8", "ignore")
+
+
+def _clip_value(value: Any, left: list[int], depth: int = 0) -> Any:
+    """Copy of ``value`` whose string leaves, in walk order, hold at most ``left[0]`` bytes in
+    all. The shape (and so every leaf path) is kept; a leaf past the limit becomes ''."""
+    if depth > MAX_DEPTH:
+        return value
+    if isinstance(value, str):
+        out = _clip_text(value, left[0])
+        left[0] -= _utf8_len(out)
+        return out
+    if isinstance(value, Mapping):
+        return {k: _clip_value(v, left, depth + 1) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [_clip_value(v, left, depth + 1) for v in value]
+    return value
+
+
+def clipped_view(
+    payload: Mapping[str, Any],
+    parts: Sequence[str],
+    part_bytes: Mapping[str, int],
+    limit: int,
+) -> tuple[Mapping[str, Any], dict[str, int], set[str]]:
+    """The payload as ONE detector may see it: at most ``limit`` bytes of text, parts in
+    ``parts`` order (arguments before tool results). Returns (view, scanned bytes per part,
+    clipped parts). The payload itself is returned when everything fits (no copy)."""
+    present = [p for p in parts if p in part_bytes]
+    if sum(part_bytes[p] for p in present) <= limit:
+        return payload, {p: part_bytes[p] for p in present}, set()
+    view = dict(payload)
+    left = [limit]
+    scanned: dict[str, int] = {}
+    clipped: set[str] = set()
+    for p in present:
+        before = left[0]
+        view[p] = _clip_value(payload[p], left)
+        scanned[p] = before - left[0]
+        if scanned[p] < part_bytes[p]:
+            clipped.add(p)
+    return view, scanned, clipped
 
 
 class DetectorRegistry:
@@ -639,6 +717,7 @@ class DetectorRegistry:
         too_large = False
         uninspectable = False
         total = 0
+        part_bytes: dict[str, int] = {}
         for part in PARTS:
             if part not in parts_here:
                 not_inspected.append({"part": part, "reason": "not_applicable_for_direction"})
@@ -648,9 +727,12 @@ class DetectorRegistry:
                 continue
             bad: list[str] = []
             n = 0
+            nb = 0
             for leaf in walk_leaves(part, payload[part], "$", 0, bad):
                 n += len(leaf.text)
+                nb += _utf8_len(leaf.text)
             total += n
+            part_bytes[part] = nb
             if bad:
                 uninspectable = True
                 not_inspected.append(
@@ -671,6 +753,9 @@ class DetectorRegistry:
             "not_inspected": not_inspected,
             "chars": total,
         }
+        part_bytes = {p: b for p, b in part_bytes.items() if p in inspected}
+        budget_left = config.scan_budget_bytes
+        scanned_min: dict[str, int] = {}  # per part: the least any detector scanned
 
         merged: dict[str, Any] = {}
         for slug, det in self._by_slug.items():
@@ -695,10 +780,22 @@ class DetectorRegistry:
                     not_executed(slug, did, "invalid_config", errors[0], preset=preset)
                 )
                 continue
+            # WP41 (D30, D18): this detector sees at most max_scan_bytes of text, and all
+            # detectors together at most the call's scan budget. Arguments first, results last.
+            limit = min(int(clean.get("max_scan_bytes") or DEFAULT_MAX_SCAN_BYTES), budget_left)
+            if limit <= 0 and sum(part_bytes.values()) > 0:
+                res.not_executed.append(
+                    not_executed(slug, did, "payload_too_large", "scan budget", preset=preset)
+                )
+                continue
+            view, scanned, clipped = clipped_view(payload, parts_here, part_bytes, limit)
+            budget_left -= sum(scanned.values())
+            for p, nb in scanned.items():
+                scanned_min[p] = min(scanned_min.get(p, nb), nb)
             t0 = clock_ns()
             try:
                 found = _call_bounded(
-                    lambda det=det, clean=clean: det.evaluate(payload, clean, direction),
+                    lambda det=det, clean=clean, view=view: det.evaluate(view, clean, direction),
                     config.timeout_ms / 1000,
                 )
             except (TimeoutError, _NoSlot) as exc:
@@ -720,6 +817,16 @@ class DetectorRegistry:
                     not_executed(slug, did, "timed_out", f"{took_us // 1000} ms", preset=preset)
                 )
                 continue
+            if clipped and any(f.transformed_payload for f in found):
+                # A transform of text the detector only saw in part must not go out. If the
+                # arguments were cut, the detector did not do its job (fails closed on a risky
+                # tool); a cut tool result is not applied by any caller, so that part is dropped.
+                if "args" in clipped:
+                    res.not_executed.append(
+                        not_executed(slug, did, "payload_too_large", "arguments", preset=preset)
+                    )
+                    continue
+                found = [_without_parts(f, clipped) for f in found]
             res.evaluated.append(slug)
             for f in found:
                 if f.not_executed_reason is not None:
@@ -731,6 +838,20 @@ class DetectorRegistry:
                             merged[part] = value
         if merged:
             res.transformed_payload = merged
+        cut = [
+            {
+                "part": p,
+                "reason": "payload_too_large",
+                "bytes": part_bytes[p],
+                "scanned_bytes": scanned_min[p],
+            }
+            for p in inspected
+            if p in scanned_min and scanned_min[p] < part_bytes[p]
+        ]
+        if cut:
+            res.coverage["inspected"] = [p for p in inspected if p not in {c["part"] for c in cut}]
+            res.coverage["not_inspected"] = [*not_inspected, *cut]
+            res.coverage["bytes"] = sum(part_bytes.values())
         if uninspectable:
             res.not_executed.append(
                 Finding(

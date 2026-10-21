@@ -331,7 +331,9 @@ class SessionGate:
             if not self._warmed:
                 self._warm(policy, now, exclude=d.decision_id)
             risk_class = policy.risk_class(tool_name)
-            self.finalize(call, d.transformed_args or args, risk_class)
+            self.finalize(
+                call, getattr(d, "masked_args", None) or d.transformed_args or args, risk_class
+            )
             amount = args.get("amount_minor")
             det = getattr(d, "det", None)
             codes = tuple(f"d:{c}" for c in finding_codes(det))
