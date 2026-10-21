@@ -18,9 +18,10 @@ File layout (``policies/*.yaml``)::
 
 from __future__ import annotations
 
+import logging
 import re
 import time
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
@@ -32,6 +33,7 @@ from supervisor.core.errors import ConcurrencyError, SupervisorError
 from supervisor.core.monitor_bindings import MonitorBindings
 from supervisor.core.ports import Clock, StateStore
 
+log = logging.getLogger("supervisor.gateway")
 MAX_POLICY_BYTES = 256 * 1024
 MAX_PATTERN_LEN = 200
 MANIFEST_RULE_ID = "_manifest"
@@ -63,6 +65,10 @@ _NAME_RE = r"^[A-Za-z0-9_.:-]{1,80}$"
 
 class PolicyError(SupervisorError):
     """A policy file is invalid or the deployed policy cannot be read."""
+
+
+def _ascii(text: str) -> str:
+    return text.encode("ascii", "backslashreplace").decode("ascii")
 
 
 Scalar = str | int | bool | None
@@ -267,6 +273,39 @@ class RuleSpec(_Strict):
         return []
 
 
+class AgentDetectors(_Strict):
+    """WP37 (ADR D23): per-agent override of ``config/detectors.yaml`` (``agents.<id>.detectors``).
+
+    ``preset`` is the agent's default sensitivity preset; ``enable`` / ``disable`` switch single
+    detectors; ``settings`` overrides detector settings by slug; ``skip_tools`` lists tools for
+    which the gate runs no detector (verdict status ``skip``, a deterministic policy value).
+    Read only when DETECTORS_ENABLED=1; the key is left out of the policy hash when unset, so a
+    policy file without it keeps the hash it had before WP37."""
+
+    preset: Literal["strict", "balanced", "lenient"] | None = None
+    enable: list[str] = Field(default_factory=list, max_length=16)
+    disable: list[str] = Field(default_factory=list, max_length=16)
+    settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    skip_tools: list[str] = Field(
+        default_factory=list,
+        max_length=64,
+        description=(
+            "Tools for which no detector runs (status skip). The loader refuses a tool whose "
+            "risk class is money, credit or pii_export: a skip must not switch off "
+            "GATE-DETECTOR-FAILED protection."
+        ),
+    )
+
+    @field_validator("settings")
+    @classmethod
+    def _no_floats(cls, v: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        for slug, values in v.items():
+            for key, value in values.items():
+                if isinstance(value, float):
+                    raise ValueError(f"{slug}.{key}: floats are not allowed (use basis points)")
+        return v
+
+
 class AgentManifest(_Strict):
     name: str = Field(min_length=1)
     owner_user: str = Field(min_length=1)
@@ -278,6 +317,8 @@ class AgentManifest(_Strict):
     initial_state: Literal["RUNNING", "SHADOW"] = "SHADOW"
     # WP1b-B (D06): which tools the quality / fairness / drift / multi-agent monitors read.
     monitors: MonitorBindings | None = None
+    # WP37 (D23): per-agent detector override; absent from the dump (and the hash) when None.
+    detectors: AgentDetectors | None = None
 
 
 class PolicyDoc(_Strict):
@@ -317,7 +358,19 @@ def _merge(docs: Sequence[PolicyDoc]) -> PolicyDoc:
     )
 
 
+SKIP_FORBIDDEN_RISK = ("money", "credit", "pii_export")
+
+
 def _cross_check(doc: PolicyDoc) -> None:
+    for agent_id, agent in doc.agents.items():
+        for tool in agent.detectors.skip_tools if agent.detectors else []:
+            if doc.tools.get(tool) in SKIP_FORBIDDEN_RISK:
+                raise PolicyError(
+                    _ascii(
+                        f"agent {agent_id}: skip_tools names the {doc.tools[tool]} tool {tool}; "
+                        "detectors cannot be skipped for money, credit or pii_export tools"
+                    )
+                )
     seen: set[str] = set()
     for r in doc.rules:
         if r.id in seen:
@@ -337,13 +390,23 @@ def _cross_check(doc: PolicyDoc) -> None:
             raise PolicyError(f"{r.id}: aggregate needs tools: [...] or when.tool eq/in")
 
 
+def _dump(doc: PolicyDoc, exclude: set[str] | None = None) -> dict[str, Any]:
+    """JSON dump of a policy document. An agent's ``detectors`` key is dropped when unset, so
+    adding the WP37 field did not change the hash of any existing policy file."""
+    out = doc.model_dump(mode="json", by_alias=True, exclude=exclude)
+    for agent in out.get("agents", {}).values():
+        if agent.get("detectors") is None:
+            agent.pop("detectors", None)
+    return out
+
+
 class Policy:
     """A validated, merged policy with its hash and per-agent rule lists."""
 
     def __init__(self, doc: PolicyDoc) -> None:
         _cross_check(doc)
         self.doc = doc
-        self.policy_hash = sha256_hex(doc.model_dump(mode="json", by_alias=True))
+        self.policy_hash = sha256_hex(_dump(doc))
         self._patterns: dict[str, re.Pattern[str]] = {}
         self._by_agent: dict[str, list[RuleSpec]] = {}
         for r in doc.rules:
@@ -379,6 +442,11 @@ class Policy:
 
     def risk_class(self, tool_name: str) -> str | None:
         return self.doc.tools.get(tool_name)
+
+    def agent_detectors(self, agent_id: str) -> AgentDetectors | None:
+        """WP37: the agent's detector override, or None."""
+        agent = self.doc.agents.get(agent_id)
+        return agent.detectors if agent is not None else None
 
     def tracked_keys(self) -> dict[str, set[str]]:
         """Per tool: the arg paths that aggregates and prior rules group by."""
@@ -448,7 +516,7 @@ def policy_json_schema() -> dict[str, Any]:
 
 
 def _manifest_expression(doc: PolicyDoc) -> dict[str, Any]:
-    return doc.model_dump(mode="json", by_alias=True, exclude={"rules"})
+    return _dump(doc, exclude={"rules"})
 
 
 def deploy_policy(
@@ -592,13 +660,34 @@ class StorePolicyProvider:
         self.refresh_s = refresh_s
         self._policy: Policy | None = None
         self._loaded_at = 0.0
+        # WP37 (F11): set by the composition root when detectors are on. Returns the problems of
+        # a new policy (bad per-agent detector overrides). A policy with problems is rejected on
+        # a reload and the old one stays; the first load raises, like any invalid policy.
+        self.validator: Callable[[Policy], list[str]] | None = None
+        self.rejected_hash: str | None = None
+        self.rejected_reason: str | None = None
 
     def current(self) -> Policy:
         now = time.monotonic()
         if self._policy is None or now - self._loaded_at >= self.refresh_s:
             policy = load_deployed(self.state)
             if self._policy is None or policy.policy_hash != self._policy.policy_hash:
-                self._policy = policy
+                problems = self.validator(policy) if self.validator else []
+                if problems and self._policy is None:
+                    raise PolicyError(_ascii("deployed policy rejected: " + "; ".join(problems)))
+                if problems:
+                    if self.rejected_hash != policy.policy_hash:  # log once per bad policy
+                        log.error(
+                            "%s",
+                            _ascii(
+                                "policy reload rejected, old policy kept: " + "; ".join(problems)
+                            ),
+                        )
+                    self.rejected_hash = policy.policy_hash
+                    self.rejected_reason = _ascii("; ".join(problems))
+                else:
+                    self._policy = policy
+                    self.rejected_hash = self.rejected_reason = None
             self._loaded_at = now
         return self._policy
 

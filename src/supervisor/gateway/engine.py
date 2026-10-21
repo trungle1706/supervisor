@@ -40,6 +40,15 @@ from typing import Any
 from supervisor.core.args_hmac import args_hmac, as_key, key_id
 from supervisor.core.canonical import canonical_json, format_ts
 from supervisor.core.ports import Clock, EvidenceSink, Masker, StateStore, TableStore
+from supervisor.gateway.detector_gate import (
+    DetectorGate,
+    PreDetect,
+    Req,
+    chain_fields,
+    event_fields,
+    fallback_v2,
+    finding_rows,
+)
 from supervisor.gateway.facts import FactSource
 from supervisor.gateway.policy import (
     DEFAULT_FAIL_MODE,
@@ -325,6 +334,10 @@ class Decision:
     transformed_args: dict[str, Any] | None = None
     args_hmac_transformed: str | None = None
     redaction_count: int = 0
+    # WP37 verdict contract v2 (None when DETECTORS_ENABLED is off: the answer is unchanged).
+    v2: dict[str, Any] | None = None
+    det: Any = None  # DetectorOutcome: the findings to record
+    transformed_payload: dict[str, Any] | None = None
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -347,6 +360,8 @@ class Decision:
             out["transformed_args"] = self.transformed_args
             out["args_hmac_transformed"] = self.args_hmac_transformed
             out["redaction_count"] = self.redaction_count
+        if self.v2 is not None:  # absent with the flag off: same output as before
+            out.update(self.v2)
         return out
 
 
@@ -381,6 +396,7 @@ class Gateway:
         masker: Masker | None = None,
         inline_redaction: bool = False,
         redact_tools: frozenset[str] | set[str] | None = None,
+        detector_gate: DetectorGate | None = None,
     ) -> None:
         self.policy = policy
         self.tables = tables
@@ -404,6 +420,8 @@ class Gateway:
         self.masker = masker
         self.inline_redaction = inline_redaction and masker is not None
         self.redact_tools = frozenset(redact_tools or ())
+        # WP37: detector framework and verdict contract v2 (None = off, today's behaviour).
+        self.detector_gate = detector_gate
         # Tools seen as pii_export: their masker pass runs BEFORE the gate lock (a 2 KB payload
         # costs about 3 ms; inside the lock it would delay every other agent's decision).
         self._redact_hint: frozenset[str] = frozenset()
@@ -419,6 +437,22 @@ class Gateway:
 
     # ------------------------------------------------------------------ public
 
+    @property
+    def detectors_on(self) -> bool:
+        return self.detector_gate is not None
+
+    def _req(
+        self, direction: str, correlation_id: str | None, request_id: str | None
+    ) -> Req | None:
+        """The per-call envelope; None with detectors off (nothing is generated or recorded)."""
+        if self.detector_gate is None:
+            return None
+        return Req(
+            direction if direction in ("input", "output") else "input",
+            correlation_id or uuid.uuid4().hex,
+            request_id or uuid.uuid4().hex,
+        )
+
     def check(
         self,
         agent_id: str,
@@ -426,14 +460,19 @@ class Gateway:
         tool_name: str,
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
+        *,
+        direction: str = "input",
+        correlation_id: str | None = None,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         t0 = time.perf_counter_ns()
         ctx = dict(context or {})
         args = dict(args or {})
         call = _Call()
+        req = self._req(direction, correlation_id, request_id)
         try:
             fut = self._pool.submit(
-                self._decide, call, t0, agent_id, agent_version, tool_name, args, ctx
+                self._decide, call, t0, agent_id, agent_version, tool_name, args, ctx, req
             )
             decision = fut.result(timeout=self.timeout_s)
         except cf.TimeoutError:
@@ -453,9 +492,10 @@ class Gateway:
                     args,
                     ctx,
                     TimeoutError(f"no decision within {self.timeout_s:g} s"),
+                    req,
                 )
         except Exception as exc:  # noqa: BLE001 - check() must never raise
-            decision = self._fail(t0, agent_id, agent_version, tool_name, args, ctx, exc)
+            decision = self._fail(t0, agent_id, agent_version, tool_name, args, ctx, exc, req)
         return decision.as_result()
 
     def evaluate_only(
@@ -465,6 +505,10 @@ class Gateway:
         tool_name: str,
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
+        *,
+        direction: str = "input",
+        correlation_id: str | None = None,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         """DRY RUN (WP-UX3 Playground): the decision ``check`` would give now, with no side
         effect. It writes no verdict, event or chain record, changes no agent state (a pause
@@ -473,8 +517,11 @@ class Gateway:
         in ``not_evaluated``. Never raises: a policy read error returns ``error``."""
         ctx = dict(context or {})
         args = dict(args or {})
+        req = self._req(direction, correlation_id, request_id)
         try:
-            fut = self._dry_pool.submit(self._dry, agent_id, agent_version, tool_name, args, ctx)
+            fut = self._dry_pool.submit(
+                self._dry, agent_id, agent_version, tool_name, args, ctx, req
+            )
             return fut.result(timeout=self.timeout_s)
         except cf.TimeoutError:
             return {"dry_run": True, "error": f"no decision within {self.timeout_s:g} s"}
@@ -488,6 +535,7 @@ class Gateway:
         tool_name: str,
         args: dict[str, Any],
         ctx: dict[str, Any],
+        req: Req | None = None,
     ) -> dict[str, Any]:
         t0 = time.perf_counter_ns()
         skipped: list[str] = []
@@ -496,8 +544,9 @@ class Gateway:
         risk = policy.risk_class(tool_name)
         _, now_us = self._now_us()
         pre = self._pre_redact(tool_name, args, ctx)
+        det = self._pre_detect(policy, agent_id, agent_version, tool_name, args, ctx, req)
         d, matches, shadow, builtin = self._evaluate(
-            policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us, skipped
+            policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us, skipped, det, req
         )
         d.latency_us = (time.perf_counter_ns() - t0) // 1000
         out = d.as_result()
@@ -645,8 +694,10 @@ class Gateway:
         tool_name: str,
         args: dict[str, Any],
         ctx: dict[str, Any],
+        req: Req | None = None,
     ) -> Decision:
         pre = self._pre_redact(tool_name, args, ctx)
+        det = self._pre_detect(None, agent_id, agent_version, tool_name, args, ctx, req)
         with self._lock:
             policy = self.policy.current()
             if not self.windows.warm or self.windows.policy_hash != policy.policy_hash:
@@ -656,13 +707,14 @@ class Gateway:
             now, now_us = self._now_us()
             self.windows.prune(now_us, policy.max_window_s)
             d, matches, shadow, builtin = self._evaluate(
-                policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us
+                policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us, None, det, req
             )
             with call.lock:
                 if call.abandoned:
                     return d  # the caller already applied the fail mode and recorded it
                 call.decision = d
-            if d.allow and tool_name in _window_tools(policy):
+            output = req is not None and req.direction == "output"
+            if d.allow and not output and tool_name in _window_tools(policy):
                 self._remember(policy, now_us, agent_id, tool_name, args, ctx)
             pause_rule = next((m for m in matches if m.action == "pause"), None)
             if pause_rule is not None and not shadow and builtin is None:
@@ -698,6 +750,8 @@ class Gateway:
         pre: tuple[dict[str, Any], int] | BaseException | None,
         now_us: int,
         skipped: list[str] | None = None,
+        det: PreDetect | None = None,
+        req: Req | None = None,
     ) -> tuple[Decision, list[Match], bool, tuple[str, str] | None]:
         """Pure decision from a policy snapshot: rule matching, built-in blocks, shadow,
         inline redaction. No store write, no state change. ``skipped`` not None = dry run
@@ -728,7 +782,11 @@ class Gateway:
                 f"handoff to {agent_id} without caller_agent_id: fail closed (ADR D10)",
             )
         else:
-            for rule in policy.rules_for(agent_id):
+            # WP37: an output check (direction=output) is not a tool call. The rules describe
+            # calls (limits, windows, allow-lists), so none is evaluated; the state checks above
+            # still apply, and detectors judge the output.
+            output = req is not None and req.direction == "output"
+            for rule in () if output else policy.rules_for(agent_id):
                 if skipped is not None and (rule.aggregate is not None or rule.prior is not None):
                     try:  # a window rule is listed only when its tool and predicates match
                         if self._rule_static_match(rule, tool_name, args, ctx, policy):
@@ -807,7 +865,37 @@ class Gateway:
             }
             for m in matches
         ]
+        if det is not None and req is not None and self.detector_gate is not None:
+            # WP37: fold in the detector result computed before the lock (see detector_gate.py)
+            self.detector_gate.apply(
+                d,
+                det,
+                req,
+                shadow=shadow,
+                builtin=builtin is not None,
+                matched_actions=[m.action for m in matches],
+                hmac_fn=lambda a: args_hmac(a, self._args_key),
+            )
         return d, matches, shadow, builtin
+
+    def _pre_detect(
+        self,
+        policy: Policy | None,
+        agent_id: str,
+        agent_version: str,
+        tool_name: str,
+        args: dict[str, Any],
+        ctx: dict[str, Any],
+        req: Req | None,
+    ) -> PreDetect | None:
+        """Detector pass outside the gate lock; None with detectors off. Never raises."""
+        if self.detector_gate is None or req is None:
+            return None
+        try:
+            pol = policy or self.policy.current()
+        except Exception as exc:  # noqa: BLE001 - becomes a detector failure, not a crash
+            return PreDetect(error=type(exc).__name__, direction=req.direction)
+        return self.detector_gate.prepare(pol, agent_id, agent_version, tool_name, args, ctx, req)
 
     def _pre_redact(
         self, tool_name: str, args: dict[str, Any], ctx: Mapping[str, Any]
@@ -957,6 +1045,11 @@ class Gateway:
             )
         self.tables.append("verdict", rows)
         self._append_event(d, now, agent_id, agent_version, tool_name, args, ctx)
+        if d.v2 is not None and (d.det.findings or d.det.not_executed):
+            self.tables.append(
+                "finding",
+                finding_rows(d, now, agent_id, tool_name, trace_id, lambda: uuid.uuid4().hex),
+            )
         self.evidence.record(
             "gate_decision",
             d.decision_id,
@@ -978,10 +1071,12 @@ class Gateway:
         amount = args.get("amount_minor")
         currency = args.get("currency")
         caller = ctx.get("caller_agent_id")
+        extra = event_fields(d) if d.v2 is not None else {}
         self.tables.append(
             "agent_event",
             [
                 {
+                    **extra,
                     "event_id": d.decision_id,
                     "ts": now,
                     "trace_id": str(ctx.get("trace_id") or d.decision_id),
@@ -1053,6 +1148,8 @@ class Gateway:
             out["args_hmac_transformed"] = d.args_hmac_transformed
             out["redaction_count"] = d.redaction_count
             out["masker_version"] = str(getattr(self.masker, "mask_version", "unknown"))
+        if d.v2 is not None:  # WP37: ids, codes and hashes only
+            out.update(chain_fields(d))
         return out
 
     # ------------------------------------------------------------------ fail mode
@@ -1098,6 +1195,7 @@ class Gateway:
         args: Mapping[str, Any],
         ctx: Mapping[str, Any],
         exc: BaseException,
+        req: Req | None = None,
     ) -> Decision:
         try:
             mode, rule_id = self.fail_mode_for(agent_id, tool_name)
@@ -1129,6 +1227,8 @@ class Gateway:
                 risk,
             )
         d.fail_mode = mode
+        if req is not None:
+            fallback_v2(d, req)
         d.latency_us = (time.perf_counter_ns() - t0) // 1000
         log.warning("gate fail %s for %s/%s: %r", mode, agent_id, tool_name, exc)
         try:

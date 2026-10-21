@@ -40,6 +40,8 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/fact-sources.md` | `POLICY_DIR` and `FACT_SOURCE` for the served app (WP1b-A) | Build, Sec |
 | `docs/enterprise-readiness.md` | Scored gaps (ISO 42001, NIST AI RMF, ASVS, ops) | 2L, Aud, Op |
 | `docs/metrics.md` | Oversight metrics and their definitions | 2L, Op |
+| `docs/detectors.md` | Detector contract, catalogue, verdict v2, precedence, coverage, harness, how to add a detector (WP37) | Dev, Op, Aud |
+| `docs/detectors-validation-report.md` | Detector harness result on the mock path with GO / NO-GO (WP37) | Aud, 2L |
 | `docs/latency.md` | Gate latency: method, numbers from `tools/bench_latency.py`, budgets, what is not measured | Op, Dev, Aud |
 | `docs/monitors.md` | Per-agent monitor bindings and monitor status (`not_applicable`) | Dev, Op, 2L |
 | `docs/threat-model.md` | Threat model of Supervisor itself | 2L, Aud |
@@ -47,7 +49,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/BUILD_PLAN.md` | Phase 1 plan (WP0 to WP12) | Build |
 | `docs/BUILD_PLAN_PHASE2.md` | Phase 2 plan (WP13 to WP19) and status | Build |
 | `docs/ingress-auth.md` | Per-agent credentials on agent ingress: setup, rotation, rubric (WP20) | Build, Sec |
-| `docs/adr/` (D01 to D22) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22) | Build, Aud |
+| `docs/adr/` (D01 to D23) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22), verdict contract v2 and detector framework (D23) | Build, Aud |
 | `docs/phase3/wave1/` | Phase 3 wave 1: handoff and review of each WP, integration report (`INTEGRATION_WAVE1.md`) | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |

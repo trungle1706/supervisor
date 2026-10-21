@@ -56,7 +56,13 @@ def build_recorder(
         from supervisor.databricks.files import make_spool
 
         spool = make_spool(settings)
-    normaliser = Normaliser(masker, policy, "dev", use_semconv=settings.recorder_semconv)
+    normaliser = Normaliser(
+        masker,
+        policy,
+        "dev",
+        use_semconv=settings.recorder_semconv,
+        keep_correlation_id=settings.detectors_enabled,  # WP37
+    )
     return Recorder(normaliser, EventWriter(tables, spool))
 
 

@@ -287,6 +287,9 @@ class AgentRuntime:
             span.set_attribute(
                 T.A_GATE_LATENCY, decision["latency_ms"] or int((time.monotonic() - start) * 1000)
             )
+            if decision.get("correlation_id"):  # WP37: same id as the decision and the chain
+                span.set_attribute(T.A_GATE_CORRELATION, str(decision["correlation_id"]))
+                span.set_attribute(T.A_GATE_STATUS, str(decision.get("status") or ""))
             if not decision["allow"]:
                 status = "paused" if decision["action"] == "pause" else "blocked"
                 span.set_attribute(T.A_STATUS, status)

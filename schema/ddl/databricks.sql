@@ -111,7 +111,10 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`agent_event` (
   source STRING NOT NULL,
   capture_level STRING NOT NULL,
   mask_version STRING,
-  latency_us BIGINT
+  latency_us BIGINT,
+  verdict_status STRING,
+  correlation_id STRING,
+  coverage_json STRING
 )
 USING DELTA
 COMMENT 'Normalised OTel-shaped events. Single read model for Watch. Masked only.'
@@ -752,3 +755,34 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_edge` (
 USING DELTA
 COMMENT 'WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- finding (append_only): WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.
+-- primary key (enforced by the app, not by Delta): finding_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`finding` (
+  finding_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  event_id STRING NOT NULL,
+  request_id STRING NOT NULL,
+  correlation_id STRING NOT NULL,
+  trace_id STRING,
+  agent_id STRING NOT NULL,
+  tool_name STRING NOT NULL,
+  direction STRING NOT NULL,
+  detector_slug STRING NOT NULL,
+  detector_id STRING NOT NULL,
+  code STRING NOT NULL,
+  score_bp BIGINT NOT NULL,
+  threshold_bp BIGINT NOT NULL,
+  masked_count BIGINT NOT NULL,
+  action_hint STRING NOT NULL,
+  not_executed_reason STRING,
+  preset STRING,
+  is_mock BOOLEAN NOT NULL,
+  verdict_status STRING NOT NULL,
+  entities_masked STRING,
+  fragments_masked STRING
+)
+USING DELTA
+COMMENT 'WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');

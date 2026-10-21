@@ -87,6 +87,7 @@ def test_model_declares_classes() -> None:
         "verdict": {"masked": ("rationale_masked",)},
         "case_event": {"masked": ("comment_masked",)},
         "notice": {"notice": ("body",)},
+        "finding": {"masked": ("entities_masked", "fragments_masked")},  # WP37
     }
     for name in ("chain_entry", "chain_payload", "chain_signature", "anchor"):
         assert not m.table(name).retention

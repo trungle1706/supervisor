@@ -55,6 +55,7 @@ network calls are to the configured LLM endpoint and the configured Databricks w
 | Inventory graph | Agents, models, endpoints, tools, MCP servers and datasets with evidence; risk passes up; flags Apps and endpoints with no manifest (shadow AI) | `docs/inventory.md`, `docs/adr/D16-inventory-graph.md` |
 | Enterprise ops | RBAC, audit table, JSON logs, health, retention, backup, support bundle | `docs/enterprise-readiness.md` |
 | Ingress auth (WP20, off by default) | Per-agent HMAC key or Databricks service-principal token on `/gate/check` and `/v1/traces`; `INGRESS_AUTH_ENABLED=1` | `docs/ingress-auth.md`, `docs/adr/D14-ingress-auth.md` |
+| Detectors and verdict v2 (WP37, off by default) | One detector contract (`dlp_vn`, `injection_regex`, `judge_advisory`), findings on masked text, `status` / `coverage` / `correlation_id` on `POST /v1/gate/check`, `DETECTORS_ENABLED=1`; harness `python -m supervisor.detectors.harness` | `docs/detectors.md`, `docs/detectors-validation-report.md`, `docs/adr/D23-verdict-contract-v2.md` |
 | Latency | Gate p99 on a laptop (SQLite): 4.6 ms with 19 rules, 6.8 ms with 200 (budget 50 ms). HTTP overhead p95 (GAF delta): +3.2 ms. Delta not measured yet. `python -m tools.bench_latency` | `docs/latency.md` |
 
 ## 10-minute tour

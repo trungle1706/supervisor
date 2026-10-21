@@ -1,8 +1,77 @@
 {
   "$defs": {
+    "AgentDetectors": {
+      "additionalProperties": false,
+      "description": "WP37 (ADR D23): per-agent override of ``config/detectors.yaml`` (``agents.<id>.detectors``).\n\n``preset`` is the agent's default sensitivity preset; ``enable`` / ``disable`` switch single\ndetectors; ``settings`` overrides detector settings by slug; ``skip_tools`` lists tools for\nwhich the gate runs no detector (verdict status ``skip``, a deterministic policy value).\nRead only when DETECTORS_ENABLED=1; the key is left out of the policy hash when unset, so a\npolicy file without it keeps the hash it had before WP37.",
+      "properties": {
+        "disable": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Disable",
+          "type": "array"
+        },
+        "enable": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Enable",
+          "type": "array"
+        },
+        "preset": {
+          "anyOf": [
+            {
+              "enum": [
+                "strict",
+                "balanced",
+                "lenient"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preset"
+        },
+        "settings": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Settings",
+          "type": "object"
+        },
+        "skip_tools": {
+          "description": "Tools for which no detector runs (status skip). The loader refuses a tool whose risk class is money, credit or pii_export: a skip must not switch off GATE-DETECTOR-FAILED protection.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Skip Tools",
+          "type": "array"
+        }
+      },
+      "title": "AgentDetectors",
+      "type": "object"
+    },
     "AgentManifest": {
       "additionalProperties": false,
       "properties": {
+        "detectors": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentDetectors"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "host_type": {
           "default": "python",
           "title": "Host Type",

@@ -476,6 +476,13 @@ class Settings(BaseSettings):
     console_scan_cap: int = Field(default=20000, ge=100, le=200_000)
     console_trace_scan: int = Field(default=5000, ge=100, le=50_000)
 
+    # --- WP37 --- detector framework and verdict contract v2 (ADR D23, docs/detectors.md).
+    # Off: the gate answers and records exactly as in v0.3.0. On: detectors run after the
+    # deterministic rules; the answer gains status, findings, not_executed, coverage,
+    # transformed_payload, request_id and correlation_id; findings are stored (table finding).
+    detectors_enabled: bool = False
+    detectors_config: Path = Path("config/detectors.yaml")
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -503,6 +510,7 @@ class Settings(BaseSettings):
         "inventory_workspace_fixture",
         "policy_dir",
         "fact_query_map",
+        "detectors_config",
         mode="after",
     )
     @classmethod

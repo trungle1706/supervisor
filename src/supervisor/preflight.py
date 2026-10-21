@@ -241,6 +241,26 @@ def _check_profile(s: Settings) -> Check:
     return Check("OK", "databricks profile", f"profile {profile} found in {cfg_path}")
 
 
+def _check_detectors(s: Settings) -> Check | None:
+    """WP37: ``config/detectors.yaml`` parses and matches the catalogue (None when the flag is
+    off, so the preflight output is unchanged)."""
+    if not s.detectors_enabled:
+        return None
+    try:
+        from supervisor.adapters.masking.vn_regex import VnRegexMasker
+        from supervisor.detectors import build_registry
+        from supervisor.detectors.config import ResolvedDetectors, load_config
+
+        key, kid = s.mask_key
+        registry = build_registry(VnRegexMasker(key, kid))
+        ResolvedDetectors(load_config(s.detectors_config), registry)
+    except ConfigError as exc:
+        return Check("FAIL", "detectors", str(exc), "fix the file named in DETECTORS_CONFIG")
+    except Exception as exc:  # noqa: BLE001 - reported, never raised
+        return Check("FAIL", "detectors", type(exc).__name__, "see docs/detectors.md")
+    return Check("OK", "detectors", f"{s.detectors_config} ({', '.join(registry.slugs)})")
+
+
 def _check_llm(s: Settings) -> Check:
     url = s.llm_base_url
     if s.llm_uses_workspace_auth:
@@ -625,6 +645,9 @@ def run_checks(
     if signer is not None:
         checks.append(signer)
     checks.extend(_check_extras())
+    detectors = _check_detectors(settings)
+    if detectors is not None:
+        checks.append(detectors)
     checks.append(_check_llm(settings))
     checks.extend(databricks_checks(settings, client_factory=client_factory, cli=cli))
     return checks

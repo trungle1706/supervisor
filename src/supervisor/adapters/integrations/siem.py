@@ -170,6 +170,12 @@ def event_from_chain(entry: Mapping[str, Any], payload: Mapping[str, Any]) -> Si
         outcome = str(p.get("action") or ("allow" if p.get("allow") else "block"))
         sev = SEVERITY.get(outcome, 5)
         actor = None
+        if p.get("status"):  # WP37 verdict v2: status and finding codes (enum-like), never text
+            attrs = {
+                "status": str(p["status"]),
+                "finding_codes": [str(c)[:64] for c in (p.get("finding_codes") or [])[:20]],
+                "correlation_id": str(p.get("correlation_id") or "")[:128],
+            }
     elif etype == "gate_state_change":
         outcome = str(p.get("event") or "state_change")
         sev = SEVERITY.get(outcome, 5)

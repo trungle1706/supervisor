@@ -106,6 +106,9 @@ CREATE TABLE IF NOT EXISTS agent_event (
   capture_level TEXT NOT NULL,
   mask_version TEXT,
   latency_us INTEGER,
+  verdict_status TEXT,
+  correlation_id TEXT,
+  coverage_json TEXT,
   PRIMARY KEY (event_id)
 );
 
@@ -116,7 +119,7 @@ CREATE INDEX IF NOT EXISTS ix_agent_event_trace_id ON agent_event (trace_id);
 DROP TRIGGER IF EXISTS trg_agent_event_no_update;
 
 CREATE TRIGGER trg_agent_event_no_update
-BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us ON agent_event
+BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us, verdict_status, correlation_id, coverage_json ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
 END;
@@ -927,3 +930,57 @@ CREATE TABLE IF NOT EXISTS inventory_edge (
 CREATE INDEX IF NOT EXISTS ix_inventory_edge_src_id ON inventory_edge (src_id);
 
 CREATE INDEX IF NOT EXISTS ix_inventory_edge_dst_id ON inventory_edge (dst_id);
+
+-- finding (append_only): WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.
+CREATE TABLE IF NOT EXISTS finding (
+  finding_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  correlation_id TEXT NOT NULL,
+  trace_id TEXT,
+  agent_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  direction TEXT NOT NULL,
+  detector_slug TEXT NOT NULL,
+  detector_id TEXT NOT NULL,
+  code TEXT NOT NULL,
+  score_bp INTEGER NOT NULL,
+  threshold_bp INTEGER NOT NULL,
+  masked_count INTEGER NOT NULL,
+  action_hint TEXT NOT NULL,
+  not_executed_reason TEXT,
+  preset TEXT,
+  is_mock INTEGER NOT NULL,
+  verdict_status TEXT NOT NULL,
+  entities_masked TEXT,
+  fragments_masked TEXT,
+  PRIMARY KEY (finding_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_finding_agent_id_ts ON finding (agent_id, ts);
+
+CREATE INDEX IF NOT EXISTS ix_finding_event_id ON finding (event_id);
+
+CREATE INDEX IF NOT EXISTS ix_finding_correlation_id ON finding (correlation_id);
+
+DROP TRIGGER IF EXISTS trg_finding_no_update;
+
+CREATE TRIGGER trg_finding_no_update
+BEFORE UPDATE OF finding_id, ts, event_id, request_id, correlation_id, trace_id, agent_id, tool_name, direction, detector_slug, detector_id, code, score_bp, threshold_bp, masked_count, action_hint, not_executed_reason, preset, is_mock, verdict_status ON finding
+BEGIN
+  SELECT RAISE(ABORT, 'finding is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_finding_retention_null_only
+BEFORE UPDATE OF entities_masked, fragments_masked ON finding
+WHEN NEW.entities_masked IS NOT NULL OR NEW.fragments_masked IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'finding is append-only: retention may only set NULL');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_finding_no_delete
+BEFORE DELETE ON finding
+BEGIN
+  SELECT RAISE(ABORT, 'finding is append-only');
+END;
