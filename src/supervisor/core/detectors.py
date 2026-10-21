@@ -677,6 +677,17 @@ class DetectorRegistry:
     def slugs(self) -> list[str]:
         return list(self._by_slug)
 
+    def _closes(self, ne: Finding, config: RunConfig) -> bool:
+        """True when this not-executed row blocks a risky tool: its detector is set to fail
+        closed and may (R1), or, for a row of the whole call (slug ``*``), any enabled one is."""
+        if ne.detector_slug == "*":
+            return any(
+                s.enabled and s.fail_closed and self.may_fail_closed(slug)
+                for slug, s in config.detectors.items()
+            )
+        st = config.detectors.get(ne.detector_slug)
+        return st is not None and st.fail_closed and self.may_fail_closed(ne.detector_slug)
+
     def may_fail_closed(self, slug: str) -> bool:
         """False for an unknown slug and for an advisory detector (R1), whatever the config."""
         det = self._by_slug.get(slug)
@@ -881,11 +892,16 @@ class DetectorRegistry:
         if (
             any(c["part"] == "args" for c in cut)
             and risk_class in config.fail_closed_risk_classes
-            and not any(n.not_executed_reason == "payload_too_large" for n in res.not_executed)
+            and not any(
+                n.not_executed_reason == "payload_too_large" and self._closes(n, config)
+                for n in res.not_executed
+            )
         ):
             # WP41b (D31): the scan budget cut an argument of a money, credit or pii_export call.
             # The rest of it was not looked at, so no detector did the whole job: fail closed,
-            # whatever the detector kind (a read_only tool stays coverage-only).
+            # whatever the detector kind (a read_only tool stays coverage-only). A cut row of a
+            # detector that is not fail_closed (dlp_vn with fail_closed false) does not stand in
+            # for this one (WP41b review).
             res.not_executed.append(
                 not_executed("*", "*", "payload_too_large", "arguments cut by scan budget")
             )
@@ -905,17 +921,7 @@ class DetectorRegistry:
             for ne in res.not_executed:
                 if ne.not_executed_reason not in FAILURE_REASONS:
                     continue
-                if ne.detector_slug == "*":
-                    closed = any(
-                        s.enabled and s.fail_closed and self.may_fail_closed(slug)
-                        for slug, s in config.detectors.items()
-                    )
-                else:
-                    st = config.detectors.get(ne.detector_slug)
-                    closed = (
-                        st is not None and st.fail_closed and self.may_fail_closed(ne.detector_slug)
-                    )
-                if closed:
+                if self._closes(ne, config):
                     res.failed_closed.append(ne)
         res.latency_us = (clock_ns() - t_start) // 1000
         return res
