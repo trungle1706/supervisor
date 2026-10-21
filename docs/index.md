@@ -57,5 +57,6 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/ingress-auth.md` | Per-agent credentials on agent ingress: setup, rotation, rubric (WP20) | Build, Sec |
 | `docs/adr/` (D01 to D32; number registry `docs/adr/REGISTRY.md`) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22), verdict contract v2 and detector framework (D23), HTTP MCP gateway and tool locking (D24), multi-turn red team (D25), risk register (D26), injection classifier (D27), collectors and policy modes (D28), session monitor (D29), control catalogue and tasks (D30), transparency report (D31), activity parity and nine alerts (D32) | Build, Aud |
 | `docs/phase3/wave1/` | Phase 3 wave 1: handoff and review of each WP, integration report (`INTEGRATION_WAVE1.md`) | Build, Aud |
+| `docs/phase3/wave2/` | Phase 3 waves 2 and 3: handoff and review of WP25 to WP31 and WP37 to WP39, integration report (`INTEGRATION_WAVE2.md`) | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |
