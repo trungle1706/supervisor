@@ -320,7 +320,7 @@ def test_bad_config_fails_the_run_with_a_clear_error(s: Setup, tmp_path: Path) -
 
 def test_cli_list_validate_and_unknown_rule(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli_main(["validate", "--config", str(RULES)]) == 0
-    assert "[OK] 8 rule(s)" in capsys.readouterr().out
+    assert "[OK] 9 rule(s)" in capsys.readouterr().out
     assert cli_main(["list", "--config", str(RULES)]) == 0
     out = capsys.readouterr().out
     assert "AL-BLOCK-BURST" in out and out.isascii()

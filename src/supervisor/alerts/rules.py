@@ -48,7 +48,7 @@ SOURCES: dict[str, tuple[str, ...]] = {
     "chain_verify": ("ok",),
     "ingress_reject": ("agent_id", "reason_code"),
     "failmode_drill": ("ok",),
-    "case": ("agent_id", "severity"),
+    "case": ("agent_id", "severity", "case_type"),
 }
 GROUP_BY = ("none", "agent_id", "job", "rule_id")
 MAX_WINDOW_S = 7 * 86400

@@ -228,6 +228,28 @@ URL put in snippets is validated. Observe mode lets calls that rules would stop 
 per-agent policy value in git and shows in the Policy binding tab. It does not stop: a person who
 can edit the policy file or read the key file.
 
+### 3.11 Session monitor (WP27, ADR D29)
+
+Trust boundary: the conversation id and the turn text that a caller sends in the gate context. The
+risks: (1) personal data in a session id, or turn text kept somewhere. The id is limited to
+`A-Za-z0-9_.:-` (no `@`) and is a technical id by contract; the turn text is read in memory, reduced
+to flags, a keyed 4-byte shingle sketch and keyed identifier hashes, and dropped; cases, the chain
+and `session_json` hold tools, classes, amounts, flags, finding codes and hashes only; the consumer
+id is stored as a keyed 6-byte hash; the harness scans cases, chain records and event columns for
+the raw text (`leak_items` must be 0). (2) A caller who makes the monitor stop a payment: only the
+deterministic rule `GATE-SESSION-PAUSE` blocks, only when the policy lists the tool class in
+`pause_scope`, only for that session, and only from a score over integer thresholds; a forged
+`session_id` can pause only the forger's own session, but a caller who sends someone else's session
+id could add turns to it (the gate cannot tell; ingress auth identifies the agent, not the user).
+(3) A detector outage must not raise the score: a timed-out detector is no finding and a
+`GATE-DETECTOR-FAILED` block is no refusal. (4) The `consumer_id` is asserted by the calling agent;
+ingress auth (WP20) verifies the agent, not the customer. A faulty or compromised agent can split
+one person over two ids (no cross-agent link) or add a cross-agent hit to someone else's session
+(one hit, 1300 bp: no case and no pause alone). A call with neither a session id nor a consumer id
+is in no session, so anonymous customers are never merged into one pause. It does not stop: an attacker who rotates the session id,
+spreads steps over more than the window, obfuscates the phrases, or paraphrases a planted fact (see
+the probes and BACKLOG).
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

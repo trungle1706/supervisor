@@ -381,6 +381,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import redteam_nightly as redteam_job
     from supervisor.jobs import retention as retention_job
     from supervisor.jobs import risk_evidence as risk_evidence_job
+    from supervisor.jobs import session_monitor as session_job
     from supervisor.jobs import siem as siem_job
     from supervisor.monitors.sweeps import build_judge_sweep, build_quality_sweep
 
@@ -446,6 +447,8 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 notify_job.enabled(settings)),
         JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
                 settings.alerts_enabled),
+        JobSpec("session_monitor", settings.sched_session_s,
+                lambda: session_job.run(ctx, settings), settings.session_monitor_enabled),
     ]  # fmt: skip
     if settings.risk_register_enabled:  # WP29: listed only when it can run
         jobs.append(

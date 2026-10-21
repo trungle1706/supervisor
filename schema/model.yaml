@@ -135,6 +135,13 @@ tables:
       verdict_status: string?
       correlation_id: string?
       coverage_json: json?
+      # WP27 (additive, null unless the caller sent a session id or SESSION_MONITOR_ENABLED=1):
+      # the conversation the call belongs to. session_source is client | derived | span.
+      # session_json holds the per-turn features of the session monitor: flags, a keyed
+      # shingle sketch, a keyed consumer hash and detector finding codes. No text, no raw ids.
+      session_id: string?
+      session_source: string?
+      session_json: json?
 
   agent_event_raw:
     kind: append_only
@@ -787,6 +794,34 @@ tables:
       active: bool
       first_seen: timestamp
       last_seen: timestamp
+
+  # --- WP27 session monitor (ADR D29) ---------------------------------------------------
+  session_control:
+    kind: state
+    description: >
+      WP27 session-scoped pause of money / credit tools. One row per pause: active until a
+      two-person resume (owner + reviewer, same rule as an agent resume) or until expires_at
+      (cool-down). Written only by a deterministic rule of the session monitor. The gate reads
+      active rows (GATE-SESSION-PAUSE). Free text never lands here.
+    primary_key: [control_id]
+    indexes:
+      - [agent_id, status]
+      - [session_id]
+    columns:
+      control_id: string
+      session_id: string
+      agent_id: string
+      scope: string            # comma separated tool classes: money, credit
+      status: string           # active | lifted | expired
+      score_bp: int
+      case_id: string?
+      created_at: timestamp
+      expires_at: timestamp
+      approver_1: string?      # first approval of a resume (principal id)
+      approver_1_role: string?
+      approver_1_at: timestamp?
+      lifted_by: string?       # second approver, or "cooldown"
+      lifted_at: timestamp?
 
   # --- WP37 detector findings (ADR D23) ------------------------------------------------
   finding:

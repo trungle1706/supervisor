@@ -298,6 +298,7 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `risks.view` | Risks page, Risks tab and /v1/risks (read-only, WP29) | x | x | x | x | x | x | x |
 | `risks.edit` | Create and change risks, link them to controls and rules (WP29) |  | x |  | x | x |  |  |
 | `collectors.add` | Integrations catalogue: Add a collector (issues the first agent key, WP38) |  |  |  |  | x |  | x |
+| `session.view` | GET /v1/sessions/{id}: masked timeline and scores of one conversation (WP27) |  | x | x | x | x | x | x |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).
@@ -418,6 +419,7 @@ set that header.
 | `CONSOLE_INTEGRATION_ENABLED` | `0` | WP15: the Integration tab (reads reports from `INTEGRATION_REPORTS_DIR`, default `<data_dir>/integration`; off: no nav link, routes answer HTTP 400) |
 | `ONBOARD_ADVISOR_ENABLED` | `0` | WP15: `supervisor.onboard` also writes `integration_report.*` and `integration_patch_NN_*.patch` (never applied) |
 | `INVENTORY_ENABLED` | `0` | WP24: the Inventory screen (`/console/inventory`, nav entry with the unmanaged count), `/v1/inventory/{agent_id}` and `/v1/inventory/unmanaged`, the `inventory` scheduler job and the onboarding hook; off: the paths answer 400. See `docs/inventory.md` (also `SCHED_INVENTORY_S`, `INVENTORY_SCAN_SCHEMAS`, `INVENTORY_SELF_APP`, `INVENTORY_ALLOWLIST_FILE`, `INVENTORY_WORKSPACE_FIXTURE`). Windows cmd: `set INVENTORY_ENABLED=1` |
+| `SESSION_MONITOR_ENABLED` | `0` | WP27: session monitor (session id on every decision, session score, case `session_escalation`, opt-in session pause, `GET /v1/sessions/<id>`, scheduler job `session_monitor`); off: answers and rows as before. See `docs/session-monitor.md` (also `SCHED_SESSION_S`, `SESSION_WINDOW_S`, `SESSION_K`, `SESSION_COOLDOWN_S`). Windows cmd: `set SESSION_MONITOR_ENABLED=1` |
 | `CONSOLE_ASSURANCE_ENABLED` | `0` | WP17: the Assurance screen (`/console/assurance`, run list and per-pack results) and its nav entry; off: the paths answer 400 with a message. Windows cmd: `set CONSOLE_ASSURANCE_ENABLED=1` |
 | `ASSURANCE_DATA_DIR` | (none) | WP17: bank-supplied datasets, one folder per pack: `<dir>\<pack_id>\`. Windows cmd: `set ASSURANCE_DATA_DIR=C:\supervisor\assurance-data` |
 | `OSV_DB_PATH` | (none) | WP17: local OSV vulnerability dump for the `osv_offline` pack. Windows cmd: `set OSV_DB_PATH=C:\supervisor\osv\osv-db.json` |

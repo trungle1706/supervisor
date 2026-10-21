@@ -91,7 +91,11 @@ def _fields_from_chain(kind: str, record_type: str, p: Mapping[str, Any]) -> dic
         return {"ok": bool(ok)}
     if kind == "failmode_drill":
         return {"ok": bool(p.get("ok"))}
-    return {"agent_id": p.get("agent_id"), "severity": p.get("severity")}  # case
+    return {
+        "agent_id": p.get("agent_id"),
+        "severity": p.get("severity"),
+        "case_type": p.get("case_type"),
+    }  # case
 
 
 def load_signals(ctx: MonitorContext, ts_from: datetime, ts_to: datetime) -> list[Signal]:

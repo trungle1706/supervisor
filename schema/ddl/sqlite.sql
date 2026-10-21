@@ -109,6 +109,9 @@ CREATE TABLE IF NOT EXISTS agent_event (
   verdict_status TEXT,
   correlation_id TEXT,
   coverage_json TEXT,
+  session_id TEXT,
+  session_source TEXT,
+  session_json TEXT,
   PRIMARY KEY (event_id)
 );
 
@@ -119,7 +122,7 @@ CREATE INDEX IF NOT EXISTS ix_agent_event_trace_id ON agent_event (trace_id);
 DROP TRIGGER IF EXISTS trg_agent_event_no_update;
 
 CREATE TRIGGER trg_agent_event_no_update
-BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us, verdict_status, correlation_id, coverage_json ON agent_event
+BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us, verdict_status, correlation_id, coverage_json, session_id, session_source, session_json ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
 END;
@@ -930,6 +933,31 @@ CREATE TABLE IF NOT EXISTS inventory_edge (
 CREATE INDEX IF NOT EXISTS ix_inventory_edge_src_id ON inventory_edge (src_id);
 
 CREATE INDEX IF NOT EXISTS ix_inventory_edge_dst_id ON inventory_edge (dst_id);
+
+-- session_control (state): WP27 session-scoped pause of money / credit tools. One row per pause: active until a two-person resume (owner + reviewer, same rule as an agent resume) or until expires_at (cool-down). Written only by a deterministic rule of the session monitor. The gate reads active rows (GATE-SESSION-PAUSE). Free text never lands here.
+CREATE TABLE IF NOT EXISTS session_control (
+  control_id TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  status TEXT NOT NULL,
+  score_bp INTEGER NOT NULL,
+  case_id TEXT,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  approver_1 TEXT,
+  approver_1_role TEXT,
+  approver_1_at TEXT,
+  lifted_by TEXT,
+  lifted_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (control_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_session_control_agent_id_status ON session_control (agent_id, status);
+
+CREATE INDEX IF NOT EXISTS ix_session_control_session_id ON session_control (session_id);
 
 -- finding (append_only): WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.
 CREATE TABLE IF NOT EXISTS finding (

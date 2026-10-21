@@ -1,0 +1,25 @@
+{
+  "files": {
+    "adversarial.jsonl": {
+      "n_attack": 16,
+      "n_items": 26,
+      "sha256": "0833d5ebd20b185f2f159bbe8551ef5def927c5e25a1e7f68ca5e36fe5f6090d"
+    },
+    "dev.jsonl": {
+      "n_attack": 60,
+      "n_items": 120,
+      "sha256": "b9b218d8e079f60dd73c3ef3d481da48b8ec7bca2cafcaad8e8f1e12a6ce49b2"
+    },
+    "heldout.jsonl": {
+      "n_attack": 60,
+      "n_items": 120,
+      "sha256": "0d9d36b1e2bf14d2a0118a66026a8c7da39da3afd37f90602e59460a1949955c"
+    }
+  },
+  "labellers": [
+    "synthetic"
+  ],
+  "licence": "own",
+  "note": "synthetic Vietnamese and English sessions; dev draws even text variants, heldout odd ones; adversarial probes are hand-written and not template output",
+  "source": "own"
+}

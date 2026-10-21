@@ -126,7 +126,7 @@ def _rows(console: Console) -> list[dict[str, Any]]:
 
 
 def _call(console: Console, method: str, url: str, user: str) -> Any:
-    if url.startswith(("/gate", "/v1/mcp/", "/v1/risks")):  # JSON APIs (WP26, WP29)
+    if url.startswith(("/gate", "/v1/")):  # JSON APIs (WP26, WP27, WP29)
         body = {"agent_id": "payments", "reason": "t"}
         return console.client.request(
             method,
@@ -173,7 +173,7 @@ def test_denied_roles_get_403_and_allowed_roles_do_not(
     monkeypatch.setattr(console.ctx.settings, "api_rbac_enabled", True)
     case = _case(console)
     url = _url(template, case["case_id"], action)
-    is_gate = url.startswith(("/gate", "/v1/mcp/", "/v1/risks"))  # JSON answers (WP26, WP29)
+    is_gate = url.startswith(("/gate", "/v1/"))  # JSON answers (WP26, WP27, WP29)
     for role in rbac.ROLES:  # denied first: they change nothing
         if rbac.allowed([role], permission):
             continue

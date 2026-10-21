@@ -4,6 +4,7 @@
 
 | WP | Feature | Docs | ADR |
 |---|---|---|---|
+| WP27 | Session monitor: `session_id` on every gate decision and span, nine-signal session score with policy weights, case `session_escalation` at K hits, opt-in session pause `GATE-SESSION-PAUSE` (two-person resume or cool-down), `GET /v1/sessions/<id>`, job `python -m supervisor.jobs.session_monitor`, alert `AL-SESSION-ESCALATION`, table `session_control` and three nullable `agent_event` columns (run `python -m supervisor.jobs.bootstrap_schema` on Delta), harness `python -m supervisor.monitors.session_harness`. Flag `SESSION_MONITOR_ENABLED` (default off) | `docs/session-monitor.md`, `docs/session-monitor-validation-report.md` | D29 |
 | WP37 | Verdict contract v2 on `/v1/gate/check` (`status`, `findings`, `not_executed`, `coverage`, `transformed_payload`, `request_id`, `correlation_id`, `direction`; old fields kept), detector framework (`dlp_vn`, `injection_regex`, `judge_advisory`), `GET /v1/gate/detectors`, table `finding` and three nullable `agent_event` columns (run `python -m supervisor.jobs.bootstrap_schema` on Delta), harness `python -m supervisor.detectors.harness`. Flag `DETECTORS_ENABLED` (default off: answers and rows as in v0.3.0) | `docs/detectors.md`, `docs/api.md` | D23 |
 ## Unreleased (phase 3, wave 2)
 

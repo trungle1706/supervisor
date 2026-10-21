@@ -63,6 +63,7 @@ def test_shipped_config_is_valid_and_complete() -> None:
         "AL-INGRESS-REJECT-AGENT",
         "AL-FAILCLOSED-DRILL-FAIL",
         "AL-JOB-FAILURE",
+        "AL-SESSION-ESCALATION",  # WP27
     }
     for r in rs.rules:
         assert r.routes and r.severity and r.rule_hash and r.dedupe_s >= 0
