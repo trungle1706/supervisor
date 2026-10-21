@@ -17,9 +17,10 @@ discussion markers, REQ polite customer request markers, TAG role tags.
 
 from __future__ import annotations
 
-import functools
 import re
 import zlib
+
+from supervisor.detectors.injection_classifier._cache import HashedLRU
 
 CBUCKETS = 1 << 14
 _TOKEN = re.compile(r"[a-z0-9<>/\[\]]+|[.!?;:\n]")
@@ -216,8 +217,7 @@ for _w in _FUZZY_VOCAB:
         _DELETES.setdefault(_w[:_i] + _w[_i + 1 :], set()).add(_w)
 
 
-@functools.lru_cache(maxsize=8192)
-def _fuzzy(t: str) -> tuple[str, ...]:
+def _fuzzy_uncached(t: str) -> tuple[str, ...]:
     """Classes of the lexicon word within one edit of ``t`` ('' when none or ambiguous)."""
     if len(t) < 5 or len(t) > 20 or not t.isalpha():
         return ()
@@ -233,6 +233,13 @@ def _fuzzy(t: str) -> tuple[str, ...]:
     if len(found) != 1:
         return ()
     return tuple(sorted(_WORD_CLASSES[next(iter(found))]))
+
+
+_FUZZY_CACHE = HashedLRU(_fuzzy_uncached, 8192)  # keyed by a hash of the token (G5)
+
+
+def _fuzzy(t: str) -> tuple[str, ...]:
+    return _FUZZY_CACHE(t)
 
 
 def _word_classes(t: str) -> list[str]:

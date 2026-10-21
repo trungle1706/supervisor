@@ -31,7 +31,6 @@ from __future__ import annotations
 import base64
 import binascii
 import codecs
-import functools
 import json
 import re
 import unicodedata
@@ -40,6 +39,7 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from supervisor.detectors.injection_classifier import concepts as C
+from supervisor.detectors.injection_classifier._cache import HashedLRU
 from supervisor.gateway import tier0b
 
 FEATURE_VERSION = "feat-3"
@@ -197,6 +197,7 @@ _CUES = frozenset(
     | set(C._WORDS["AGT"])  # noqa: SLF001
 )
 SEGMENT = 600  # characters per middle segment of a long text
+MAX_RANKED = 8  # segments the model scores in a long text (G6)
 SEGMENT_STEP = 450  # segments overlap by 150 characters (one window), so no cut hides a clause
 _B64_RUN = re.compile(r"[A-Za-z0-9+/]{24,}")  # linear scan; a run with a digit or + / counts
 MAX_SCAN_CHARS = 200_000  # a longer text is cut to its head and tail before segments are chosen
@@ -216,6 +217,15 @@ def cue_count(text: str) -> int:
     plain, _ = leet_fold(tier0b.strip_diacritics(tier0b.normalise(text)))
     b64 = any(any(c.isdigit() or c in "+/" for c in m.group(0)) for m in _B64_RUN.finditer(text))
     return sum(1 for w in _ALNUM.findall(plain) if w in _CUES) + (1 if b64 else 0)
+
+
+def cue_profile(text: str) -> tuple[int, int]:
+    """(number of distinct cue words, number of cue words) of ``text``: the pre-selection key of
+    segments (distinct first, so a segment that mixes override, secrecy and money words beats
+    one that repeats a single decoy phrase)."""
+    plain, _ = leet_fold(tier0b.strip_diacritics(tier0b.normalise(text)))
+    hits = [w for w in _ALNUM.findall(plain) if w in _CUES]
+    return len(set(hits)), len(hits)
 
 
 def plain_form(text: str) -> str:
@@ -241,6 +251,12 @@ def clip_unit(
     if starts[-1] + SEGMENT < mid_end:
         starts.append(mid_end - SEGMENT)
     score = rank or cue_count  # WP25b: the model's cheap first-stage score when it is given
+    if rank is not None and len(starts) > MAX_RANKED:
+        # WP25c (G6): the model ranks only the MAX_RANKED segments with the most cue words, so the
+        # cost of a long text does not grow with its length. Texts with fewer candidates (every
+        # document up to about 30,000 characters) are ranked in full, as before.
+        prof = {s: cue_profile(text[s : s + SEGMENT]) for s in starts}
+        starts = sorted(starts, key=lambda s: (-prof[s][0], -prof[s][1], s))[:MAX_RANKED]
     ranked = sorted(starts, key=lambda s: (-score(text[s : s + SEGMENT]), s))[:k]
     middle = " \n ".join(text[s : min(s + SEGMENT, mid_end)] for s in sorted(ranked))
     return text[:head] + " \n " + middle + " \n " + text[-tail:]
@@ -312,8 +328,7 @@ _SURFACE_SEED = {
 }
 
 
-@functools.lru_cache(maxsize=4096)
-def features(window: str, surface: str = "args") -> tuple[int, ...]:
+def _features(window: str, surface: str) -> tuple[int, ...]:
     """Sorted unique feature ids of one window of one variant on one surface: hashed character
     n-grams (shared by the surfaces), words and stems (shared and tagged with the surface), below
     BUCKETS; concept features (concepts.py, shared and tagged) from BUCKETS up. Cached."""
@@ -347,6 +362,14 @@ def features(window: str, surface: str = "args") -> tuple[int, ...]:
         prev = sw
     ids.update(BUCKETS + i for i in C.concept_features(t, surface))
     return tuple(sorted(ids))
+
+
+_FEATURE_CACHE = HashedLRU(_features, 4096)  # keyed by a hash of the window, not the window (G5)
+
+
+def features(window: str, surface: str = "args") -> tuple[int, ...]:
+    """``_features`` with a cache keyed by a BLAKE2b digest of the window (no text kept)."""
+    return _FEATURE_CACHE(window, surface)
 
 
 def unit_feature_sets(text: str, surface: str = "args") -> list[tuple[int, ...]]:

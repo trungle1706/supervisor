@@ -238,3 +238,6 @@ validation report for the measured recall) or craft benign-looking text that tri
 denial-of-service on one agent; the pause is per agent and visible as a case). The weight file is
 pinned by SHA-256 in the model card; the loader refuses a changed file, so the model cannot be swapped
 silently. Training data are synthetic; the model is not a replacement for the rules.
+
+The classifier keeps two small in-process caches (feature ids per text window, word classes per token). They are keyed by a 16-byte
+BLAKE2b digest of the text and hold only integers, so text of a call (names, account digits) does not stay in process memory after the call (WP25c, review G5).
