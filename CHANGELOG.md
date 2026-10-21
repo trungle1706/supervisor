@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.4.0-pre (phase 3 wave 2 and 3) - not released
+## v0.4.0 (phase 3 waves 2 and 3) - 2026-10-21
 
 Integration branch `phase3-wave2` (ten packages, merge report `docs/phase3/wave2/INTEGRATION_WAVE2.md`).
 `__version__` stays `0.3.0`. Every new feature is behind a flag that is off by default; the
