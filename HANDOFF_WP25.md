@@ -192,3 +192,15 @@ Note: one WP25b commit (8c651a3) was made without the brief's trailers; I did no
 1. Calibrate on unseen data: either a fresh pool (bank red-team or another author) or a nested scheme; heldout-v1 is now burnt for tuning. Until then ship only as report-only (`pause_tool_classes: []`) on one agent, with `lenient`.
 2. Is `lenient` (recall about 7200, false alarm about 300) plus `pause` (recall about 4800 at 11 bp false alarm) an acceptable pilot operating point, given it is a post-hoc reading?
 3. Name the model owner, validator and approver in the card (F11 stays closed until then).
+
+---
+
+# WP25c: three Low review items closed (G4, G5, G6)
+
+| Item | Commit | What |
+|---|---|---|
+| G4 | 073b2a3, 736f333 | `classifier_fail_closed_approved` is a field in the WP25 block of `config.py` (env `CLASSIFIER_FAIL_CLOSED_APPROVED`); the detector no longer uses `os.environ`. The card has an `approval` block (approver + `weights_sha256`); the veto needs a named approver and the approved sha equal to the sha-256 of the loaded weight file, and a changed weight file withdraws the approval. The result is cached for 5 s (settings are not re-read per gate call). Tests: 4. |
+| G6, G5 | 2af8f68 | `clip_unit` pre-selects at most `MAX_RANKED = 8` segments by distinct cue words and lets the model rank only those: 1 MiB 41 ms (was 176), 64 x 12 kB 125 ms (was 316). The instruction is still found in decoy and 1 MiB texts (tests). The two caches are keyed by a 16-byte BLAKE2b digest (`_cache.py`), threat-model line added. No number of the harness moved (report diff: only the p95 latency column); sealed sets untouched; baseline not re-recorded. Tests: 7. |
+
+Gates: `pytest -q -x` 3,923 passed, 29 skipped; `ruff check` clean; `ruff format --check` clean; classifier harness `--check` OK (OVERALL NO-GO as before).
+G6 and G5 share one commit because both edit `features.py` and could not be split cleanly.
