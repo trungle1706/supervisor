@@ -101,9 +101,10 @@ areas (logs `wave2_int_m*.txt` in the scratchpad) and two full runs in the middl
 | main v0.3.0 (CHANGELOG) | 3684 | 29 |
 | after WP31 merge (full run) | 4887 + 6 failed (fixed in `7ee4aa4`) | 30 |
 | after WP25 merge (full run) | 5100 | 30 |
-| final (`3e3cb08` code; later commits are tools and docs only) | **5108** | **30** |
+| `3e3cb08` (all code and tests) | 5108 | 30 |
+| final, on `affe849` (this report committed) | **5108** | **30** |
 
-Last line of the final full run: `5108 passed, 30 skipped, 1 warning in 959.22s (0:15:59)`.
+Last line of the final full run: `5108 passed, 30 skipped, 1 warning in 951.82s (0:15:51)`.
 
 ## 6. Harness commands and their last line
 
@@ -280,8 +281,6 @@ Started with `python -m uvicorn supervisor.app:app --host 127.0.0.1 --port 8143`
   observe-mode policy yet (BACKLOG).
 * `tools/console_screenshots.py --wave2` needs `--reseed`; the WP29 page had not been captured
   before this integration.
-* The second full run after the last tools / docs commits was not repeated after this report;
-  `63f6c90` and this report change no test input (tools and docs only).
 
 No open defect: every failure met during the merges was fixed in this branch (section 3).
 
@@ -291,5 +290,5 @@ No open defect: every failure met during the merges was fixed in this branch (se
 |---|---|
 | Branch | `phase3-wave2` |
 | Worktree | `/home/trung/supervisor/.claude/worktrees/agent-a28c62b5d9020b7a5` |
-| Head | the commit that adds this report (see the final message) |
+| Head | the commit after `affe849` that records the final run in this report (code and tests final at `affe849`) |
 | Merged heads | WP37 `bfc6e09`, WP26 `0e5460f`, WP28 `1ec5936`, WP29 `5c0d887`, WP38 `71a79f8`, WP27 `a9907e0`, WP30 `2432f60`, WP31 `8bc25a1`, WP39 `21a4bec`, WP25 `ec535ee` |
