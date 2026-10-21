@@ -76,6 +76,22 @@ misses by template id.
 
 ## 4. Thresholds (ILLUSTRATIVE, frozen per model version)
 
+Model 1.1.0 has one threshold per surface (arguments / results / descriptions), chosen from out-of-fold
+scores (protocol: `data/eval/injection_vi_en/WP25B_PROTOCOL.md`):
+
+| Preset | args | tool_results | tool_description |
+|---|---|---|---|
+| strict | 4000 | 3250 | 3750 |
+| balanced | 4750 | 4000 | 4500 |
+| lenient | 5500 | 4750 | 5250 |
+| pause (all surfaces) | 7250 | 7250 | 7250 |
+
+Known calibration error: the final weights are trained on all three pools, so their scores run higher than the
+out-of-fold scores the thresholds came from. On the sealed held-out set `strict` and `balanced` therefore fire
+on about 25 percent of benign items, `lenient` on about 3 percent (recall 7155), `pause` on 0.1 percent
+(recall 4777). The thresholds stay frozen as published; the next iteration must calibrate on data the final
+model has not seen. The table below is the 1.0.0 one (single threshold).
+
 | Name | bp | Use |
 |---|---|---|
 | `strict` | 5500 | more sensitive (dev false alarm 900 bp) |
@@ -132,7 +148,19 @@ uv run python -m supervisor.detectors.harness --detector injection_classifier --
 uv run python -m supervisor.detectors.harness --detector injection_classifier --md docs/injection-classifier-validation-report.md
 ```
 
-## 8b. Result (see the validation report for every number)
+## 8a. WP25b (model 1.1.0)
+
+Sealed protocol (held-out, evasion and adversarial sets opened once), features `feat-3`: surface weight blocks for
+words and concepts, instruction-form cues (clause-start imperative, references to earlier text, instead / thay vao
+do, modal verbs), English stems, typo-tolerant lexicon (distance 1), decoding of ROT13 and reversed text by
+plausibility, a new training pool `train_b` (counter-examples for the 1.0.0 false-alarm clusters), grouped
+cross-validation (`python -m tools.cross_validate`), long-text segments chosen by a cheap model score.
+Result: NO-GO. Recall and evasion recall rose, false alarm rose more because the thresholds are mis-calibrated
+(section 4). `CLASSIFIER_FAIL_CLOSED_APPROVED=1` plus a named approver in the model card are needed before
+`fail_closed: true` is honoured for this detector (otherwise the loader forces false and logs a warning).
+The 1.0.0 versus 1.1.0 table is in the validation report.
+
+## 8b. Result of 1.0.0 (see the validation report for the 1.1.0 numbers)
 
 Verdict **NO-GO** against the illustrative targets, so the entry stays disabled and the pause
 path should not be switched on before the bank validates on its own data. Held-out at the balanced preset:

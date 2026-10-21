@@ -45,7 +45,9 @@ def test_golden_set_sizes_provenance_and_disjoint_templates() -> None:
     # no template is shared between splits (template ids are pool-local strings of one pool;
     # the TEXT of a template must not appear in two pools)
     import importlib.util
+    import sys
 
+    sys.path.insert(0, str(G.DATA_DIR))
     spec = importlib.util.spec_from_file_location("tpl", G.DATA_DIR / "templates.py")
     assert spec and spec.loader
     tpl = importlib.util.module_from_spec(spec)
@@ -55,6 +57,8 @@ def test_golden_set_sizes_provenance_and_disjoint_templates() -> None:
         texts[pool] = {t for sec in d.values() for lst in sec.values() for t in lst if len(t) > 20}
     assert not texts["train"] & texts["dev"] and not texts["train"] & texts["heldout"]
     assert not texts["dev"] & texts["heldout"]
+    for other in ("train", "dev", "heldout"):
+        assert not texts["train_b"] & texts[other], other
     # train data never contains a held-out item text
     held = {x["payload"]["args"].get("memo") for x in sets["heldout"]}
     assert not held & {x["payload"]["args"].get("memo") for x in sets["train"]} - {None}

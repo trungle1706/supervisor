@@ -41,8 +41,8 @@ from supervisor.core.detectors import (
 )
 from supervisor.core.ports import Masker
 from supervisor.detectors.injection_classifier import features as F
-from supervisor.detectors.injection_classifier import units as U
 from supervisor.detectors.injection_classifier import model as M
+from supervisor.detectors.injection_classifier import units as U
 from supervisor.detectors.injection_classifier.model import (
     LinearModel,
     ModelIntegrityError,
@@ -181,7 +181,7 @@ class InjectionClassifierDetector:
     @staticmethod
     def fail_closed_allowed() -> bool:
         """False unless ``CLASSIFIER_FAIL_CLOSED_APPROVED=1`` is set AND the model card names an
-        approver (not a FILL-ME placeholder). Until then the loader forces ``fail_closed: false`` for
+        approver (not a FILL-ME placeholder). Until then the loader forces fail_closed false for
         this detector (R1: a model outage must not stop payments without a named owner)."""
         if os.environ.get("CLASSIFIER_FAIL_CLOSED_APPROVED") != "1":
             return False

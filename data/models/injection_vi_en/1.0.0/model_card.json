@@ -39,6 +39,7 @@
     "evasion.jsonl": "45a601324d09eee8ce4833deafcdab36d5a93e2e17942bad29205b5a3a895466",
     "heldout.jsonl": "09b4d170e6c69de36af6f776d7222301c59ea9cc0c1d9cef166326303999d785"
   },
+  "superseded_by": "1.1.0 (feature version feat-3; these weights no longer load with the current code)",
   "surfaces": [
     "args",
     "tool_results",

@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Text to features for the injection classifier (WP25, ADR D27). Pure Python, no model file here.
 
 The same code runs at training time (``tools/train_classifier.py``) and at run time, so a change
