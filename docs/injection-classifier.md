@@ -135,8 +135,13 @@ never blocks, a shadow agent is never paused, the dry run says `would_pause`, a 
 ## 7. WP26 adapter
 
 `supervisor.detectors.injection_classifier.score_tool_description(text) -> bp` scores one tool
-description (0 to 10000). WP26 can register it with `mcp_lock.register_description_scorer`; the
-integrator decides the fail mode (hold the tool for review when the weights are refused).
+description (0 to 10000). Integration wave 2 registers it in the MCP tool lock
+(`supervisor.gateway.mcp_scorer.install`, called by the `/v1/mcp/tools` routes and the review
+CLI) only when `DETECTORS_ENABLED=1` and this entry has `enabled: true`. The score is stored as
+`scan.score_bp` (report only). When the weights are refused (`ModelIntegrityError`) the tool is
+held for two-person review, also on trust-on-first-use, and a high `mcp_tool_review` case opens
+(scan finding `scorer_refused`). See `docs/mcp-gateway.md` section 7. Test:
+`tests/gateway/test_mcp_scorer.py`.
 
 ## 8. Commands
 

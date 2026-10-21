@@ -86,6 +86,14 @@ their connections.
 
 ### Params and data methods (both proxies)
 
+**Behaviour change (v0.4.0-pre, no flag): this applies to the stdio proxy
+`python -m supervisor.gateway.mcp_proxy` too, also with `MCP_HTTP_ENABLED=0`.** Before, the stdio
+proxy sent every `params` key upstream and passed the data methods below without a gate check.
+It is kept as the security default (integration wave 2; review WP26 F13). A policy that does not
+list the `mcp.*` tools below refuses those calls. The demo agents and `policies/baseline.yaml`
+make no MCP data-method call, so the baseline policy needs no new tool; an agent that reads MCP
+resources needs, for example, `mcp.resources.read: read_only` in the `tools` map of its policy.
+
 * A gated `tools/call` is forwarded with `name`, `arguments` (or the gate's masked arguments) and
   `_meta.progressToken` only. Other `params` keys, such as a smuggled `_meta` field, are dropped
   because the gate never judged them.
@@ -211,12 +219,22 @@ diacritics removed, telex decoded). Finding kinds:
 | `name_nonstandard` | A tool name outside `A-Za-z0-9_.:-` (homoglyphs, trailing blanks). |
 | `duplicate_name` | Two tools with one name. |
 | `oversized_description` | A description over 4000 characters. |
+| `scorer_refused` | The registered scorer (WP25 classifier) refused its model weights; the tool is held (see below). |
 
 A phrase split across two fields ("ignore" in the description, "previous instructions" in an
 annotation) is found at the seam. A finding is `{kind, field, count}`; no matched text is stored.
 The tool gets `suspicious = true` in the manifest and in the case. The scan does not block: the
 lock does. The hook for the WP25 classifier is `mcp_lock.register_description_scorer(fn)`;
 `fn(text) -> bp` is stored as `scan.score_bp` and never changes `suspicious`.
+
+The app (routes) and the review CLI register the WP25 classifier there
+(`supervisor.gateway.mcp_scorer.install`) only when the classifier is switched on: the same
+switch as the detector, `DETECTORS_ENABLED=1` and `detectors.injection_classifier.enabled: true`
+in `config/detectors.yaml` (shipped `false`). The score is report only. If the classifier's model
+weights are refused (SHA-256 not equal to the model card), the scan records the finding
+`scorer_refused`: the tool is held for two-person review even on trust-on-first-use and the
+review case is high. That is a hold on a fact (the model did not verify), not a classifier
+verdict. Any other scorer error leaves `score_bp` empty and changes nothing.
 
 Known limits (probes X-20 to X-22, X-26, X-30): base64, ROT13 and leetspeak pass; a field that
 the hash does not cover can change without drift; an LLM-ops tool whose description says

@@ -476,12 +476,11 @@ class Settings(BaseSettings):
     console_scan_cap: int = Field(default=20000, ge=100, le=200_000)
     console_trace_scan: int = Field(default=5000, ge=100, le=50_000)
 
-    # --- WP37 --- detector framework and verdict contract v2 (ADR D23, docs/detectors.md).
-    # Off: the gate answers and records exactly as in v0.3.0. On: detectors run after the
-    # deterministic rules; the answer gains status, findings, not_executed, coverage,
-    # transformed_payload, request_id and correlation_id; findings are stored (table finding).
-    detectors_enabled: bool = False
-    detectors_config: Path = Path("config/detectors.yaml")
+    # --- WP25 --- injection classifier (ADR D27, docs/injection-classifier.md).
+    # Fail-closed for the classifier is honoured only when this is true AND the model card has an
+    # approval (approver + the weights_sha256 it approves). Default false: an outage never stops
+    # payments without a named owner (R1). Env name: CLASSIFIER_FAIL_CLOSED_APPROVED.
+    classifier_fail_closed_approved: bool = False
 
     # --- WP26 --- HTTP MCP gateway with tool locking (ADR D24, docs/mcp-gateway.md)
     # MCP_HTTP_ENABLED: the /v1/mcp/tools routes work and the proxy process may start (default
@@ -497,6 +496,15 @@ class Settings(BaseSettings):
     # MCP_SERVER_AGENTS: extra agents allowed to report on a server another agent registered,
     # "server=agent1|agent2;server2=agent3" (review WP26 F12). Default: only the registering agent.
     mcp_server_agents: str = Field(default="", pattern=r"^[A-Za-z0-9_.:@=|;-]*$")
+
+    # --- WP27 --- session monitor (ADR D29, docs/session-monitor.md). Default off. Per-agent
+    # values (thresholds, weights, pause scope) live in the policy file under
+    # agents.<id>.monitors.session; these are the global defaults.
+    session_monitor_enabled: bool = False
+    sched_session_s: int = Field(default=300, ge=10)
+    session_window_s: int = Field(default=1800, ge=60, le=86400)
+    session_k: int = Field(default=3, ge=1, le=8)
+    session_cooldown_s: int = Field(default=3600, ge=60)
 
     # --- WP28 --- multi-turn Vietnamese red team (docs/redteam-multiturn.md, ADR D25).
     # The nightly job is off by default. The attacker is the offline template attacker unless
@@ -525,23 +533,6 @@ class Settings(BaseSettings):
         "config/risks"
     )  # starter risks (python -m supervisor.risk import)
 
-    # --- WP38 --- collector catalogue on the Integrations page (ADR D28, docs/collectors.md).
-    # Off: the Integrations page is the delivery status page of v0.3.0. On: it is the catalogue
-    # (cards, Add creates the agent credential, detail drawer). The policy keys mode and
-    # consumers need no flag: they only act when a policy file uses them.
-    collectors_enabled: bool = False
-    # Base URL shown in the setup text; empty = the address the console was opened with.
-    collectors_public_url: str = ""
-
-    # --- WP27 --- session monitor (ADR D29, docs/session-monitor.md). Default off. Per-agent
-    # values (thresholds, weights, pause scope) live in the policy file under
-    # agents.<id>.monitors.session; these are the global defaults.
-    session_monitor_enabled: bool = False
-    sched_session_s: int = Field(default=300, ge=10)
-    session_window_s: int = Field(default=1800, ge=60, le=86400)
-    session_k: int = Field(default=3, ge=1, le=8)
-    session_cooldown_s: int = Field(default=3600, ge=60)
-
     # --- WP30 --- control catalogue and task list (ADR D30, docs/controls.md). All off by default.
     # CONTROLS_ENABLED: /v1/controls and /v1/tasks routes, the jobs control_status and task_due,
     # the CLIs. CONSOLE_CONTROLS_ENABLED: the Controls and Tasks pages and Agent tabs (needs the
@@ -569,6 +560,21 @@ class Settings(BaseSettings):
     transparency_dir: Path | None = None
     transparency_backlog_file: Path = Path("BACKLOG.md")  # the internal variant lists open items
 
+    # --- WP37 --- detector framework and verdict contract v2 (ADR D23, docs/detectors.md).
+    # Off: the gate answers and records exactly as in v0.3.0. On: detectors run after the
+    # deterministic rules; the answer gains status, findings, not_executed, coverage,
+    # transformed_payload, request_id and correlation_id; findings are stored (table finding).
+    detectors_enabled: bool = False
+    detectors_config: Path = Path("config/detectors.yaml")
+
+    # --- WP38 --- collector catalogue on the Integrations page (ADR D28, docs/collectors.md).
+    # Off: the Integrations page is the delivery status page of v0.3.0. On: it is the catalogue
+    # (cards, Add creates the agent credential, detail drawer). The policy keys mode and
+    # consumers need no flag: they only act when a policy file uses them.
+    collectors_enabled: bool = False
+    # Base URL shown in the setup text; empty = the address the console was opened with.
+    collectors_public_url: str = ""
+
     # --- WP39 --- activity and analytics parity (ADR D32, docs/console.md, docs/alerts.md).
     # Off: the Decisions drawer and list, the Traces pages and the Analytics tabs are as before.
     # On: verdict v2 drawer (Request, Response, Detections, Metadata), new filters, masked CSV
@@ -576,12 +582,6 @@ class Settings(BaseSettings):
     console_decisions_v2: bool = False
     console_export_max_rows: int = Field(default=5000, ge=1, le=100_000)  # CSV rows, masked cols
     sched_decision_rollup_s: int = Field(default=3600, ge=60)  # decision_daily rollup job
-
-    # --- WP25 --- injection classifier (ADR D27, docs/injection-classifier.md).
-    # Fail-closed for the classifier is honoured only when this is true AND the model card has an
-    # approval (approver + the weights_sha256 it approves). Default false: an outage never stops
-    # payments without a named owner (R1). Env name: CLASSIFIER_FAIL_CLOSED_APPROVED.
-    classifier_fail_closed_approved: bool = False
 
     @field_validator(
         "data_dir",

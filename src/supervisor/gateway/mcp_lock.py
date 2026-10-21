@@ -229,11 +229,22 @@ def _walk(value: Any, depth: int = 0) -> Iterator[str]:
 Scorer = Callable[[str], int]
 _scorer: Scorer | None = None
 
+# Finding kind of a tool the registered scorer could not check (its model weights were refused).
+SCORER_REFUSED = "scorer_refused"
+
+
+class ScorerRefused(Exception):  # noqa: N818 - the name says what happened
+    """Raised by a registered scorer that cannot score at all (for example the WP25 classifier
+    with weights that do not match the model card). The scan records ``scorer_refused`` and the
+    tool is held for review (``held``); every other scorer error is ignored."""
+
 
 def register_description_scorer(fn: Scorer | None) -> None:
     """WP25 hook: ``fn(text) -> int`` in basis points (0-10000), run once per tool over the
     description and schema text. The score is stored as ``scan.score_bp``. It is advice: it
-    never sets ``suspicious`` and never blocks (R1)."""
+    never sets ``suspicious`` and never blocks (R1). Exception: a scorer that raises
+    ``ScorerRefused`` adds the finding ``scorer_refused`` (a deterministic fact, not a score), so
+    the tool is held for two-person review (integration wave 2)."""
     global _scorer
     _scorer = fn
 
@@ -313,6 +324,9 @@ def scan_tool(tool: Mapping[str, Any]) -> dict[str, Any]:
     if _scorer is not None:
         try:
             score = max(0, min(10000, int(_scorer("\n".join(joined_parts)[:MAX_SCAN_CHARS]))))
+        except ScorerRefused:  # the model could not be trusted: hold the tool for review
+            add(SCORER_REFUSED, "model")
+            score = None
         except Exception:  # noqa: BLE001 - a broken scorer never affects the lock
             score = None
     rows = [{"kind": k, "field": f, "count": n} for (k, f), n in sorted(findings.items())]
@@ -322,6 +336,12 @@ def scan_tool(tool: Mapping[str, Any]) -> dict[str, Any]:
         "score_bp": score,
         "scan_version": SCAN_VERSION,
     }
+
+
+def held(scan: Mapping[str, Any]) -> bool:
+    """True when the scan says the tool must be reviewed even on trust-on-first-use (the
+    registered scorer refused its model)."""
+    return SCORER_REFUSED in finding_kinds(scan)
 
 
 def finding_kinds(scan: Mapping[str, Any]) -> list[str]:

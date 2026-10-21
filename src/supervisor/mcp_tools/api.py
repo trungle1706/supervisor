@@ -31,7 +31,7 @@ from supervisor.adapters.auth.authz import needs
 from supervisor.cases.service import PermissionDenied
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.core.errors import SupervisorError
-from supervisor.gateway import mcp_lock
+from supervisor.gateway import mcp_lock, mcp_scorer
 from supervisor.gateway.ingress_auth import IngressIdentity, ingress_gate
 from supervisor.gateway.mcp_lock_service import ToolLockError, ToolLockService, inventory_hook
 
@@ -53,6 +53,7 @@ def service_for(ctx: ConsoleContext) -> ToolLockService:
     svc = getattr(ctx, "_mcp_lock", None)
     if svc is None:
         hook = inventory_hook(ctx.state, ctx.clock) if ctx.settings.inventory_enabled else None
+        mcp_scorer.install(ctx.settings)  # WP25 score, report only; off unless the classifier is on
         svc = ToolLockService(
             ctx.state, ctx.runtime.chain, ctx.clock, ctx.cases, on_new_server=hook
         )

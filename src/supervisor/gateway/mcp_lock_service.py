@@ -228,10 +228,12 @@ class ToolLockService:
             scan = mcp_lock.scan_tool(tool)
             definition = mcp_lock.stored_definition(tool)
             if row is None:
+                # a tool the scorer could not check is never seeded (integration wave 2)
+                tool_seed = None if mcp_lock.held(scan) else seed
                 self._insert_tool(
-                    server_id, name, agent_id, h, definition, scan, now, seed, initial_case
+                    server_id, name, agent_id, h, definition, scan, now, tool_seed, initial_case
                 )
-                kind = "seeded" if seed else "new"
+                kind = "seeded" if tool_seed else "new"
                 changes.append({"tool": name, "change": kind})
                 self._chain(
                     "mcp_tool_lock_change",
@@ -241,12 +243,12 @@ class ToolLockService:
                         "tool_name": _ascii(name),
                         "change": kind,
                         "observed_hash": h,
-                        "locked_hash": h if seed else None,
+                        "locked_hash": h if tool_seed else None,
                         "suspicious": bool(scan["suspicious"]),
                         "finding_kinds": mcp_lock.finding_kinds(scan),
                     },
                 )
-                if not seed and initial_case is None:
+                if not tool_seed and initial_case is None:
                     self._attach_case(server_id, name, agent_id, h, scan)
                 continue
             changes.append(self._moved(row, h, definition, scan, agent_id, now))

@@ -821,6 +821,7 @@ def run_tools(argv: list[str]) -> int:
 def _tools_direct(ns: argparse.Namespace) -> int:
     from supervisor.cases import build_case_service
     from supervisor.config import load_settings
+    from supervisor.gateway import mcp_scorer
     from supervisor.gateway.mcp_lock_service import ToolLockService, inventory_hook
     from supervisor.wiring import build_runtime
 
@@ -831,6 +832,7 @@ def _tools_direct(ns: argparse.Namespace) -> int:
     runtime = build_runtime(settings)
     try:
         a = runtime.adapters
+        mcp_scorer.install(settings)  # WP25 score, report only; off unless the classifier is on
         svc = ToolLockService(
             a.state,
             runtime.chain,
