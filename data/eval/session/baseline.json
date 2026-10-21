@@ -1,10 +1,10 @@
 {
   "adversarial": {
-    "attack_recall_bp": 6250,
+    "attack_recall_bp": 6500,
     "expect_match_bp": 10000,
     "false_alarm_bp": 0
   },
-  "commit": "a141eda",
+  "commit": "13f34e4",
   "config": {
     "case_threshold_bp": 2500,
     "cooldown_s": 3600,
@@ -21,7 +21,7 @@
     "pause_threshold_bp": 4000,
     "window_s": 1800
   },
-  "date": "2026-10-20",
+  "date": "2026-10-21",
   "harness": "session-eval-1",
   "splits": {
     "dev": {
