@@ -4,7 +4,7 @@
     "expect_match_bp": 10000,
     "false_alarm_bp": 0
   },
-  "commit": "followup",
+  "commit": "a141eda",
   "config": {
     "case_threshold_bp": 2500,
     "cooldown_s": 3600,

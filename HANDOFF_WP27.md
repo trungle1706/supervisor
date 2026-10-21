@@ -131,3 +131,37 @@ WP37 final head (`recorder/normalise.py`, `gateway/wiring.py`) were resolved by 
 ## 10. Self-review notes
 
 R1: only `GATE-SESSION-PAUSE` blocks (policy opt-in, integers). R2: no text stored, consumer and tokens keyed-hashed, leak scan 0. R3: no network. No new dependency. Errors are 400/404, never 500. ASCII CLI. Defaults off with a fingerprint test. Not done: console page (WP39), slow-attack window, id-churn defence (BACKLOG).
+
+## 11. Follow-ups after review
+
+Review: `REVIEW_WP27.md` (APPROVED WITH FOLLOW-UPS; reviewer commits ea12550, 44603ec, 5fbac51, 6c06bdb, 88359b1, e64f701 kept as they are). Closing code commit: `a141eda`.
+
+| Item | What I did | Test |
+|---|---|---|
+| F8 handoff | Section 5 now has the reviewer's held-out table: quiet 9500 bp / 0 of 60 false alarms, WP28 blind held-out 4099 bp / 0 of 108; sensitive 10000 bp / 14 of 60, WP28 7132 bp / 4 of 108 (the old row used K=2 numbers) | n/a |
+| F16 claim of a dead process | The claim stores `claim_expires` (now + cool-down). A live claim blocks (`claimed`); after its expiry the next path opens the case. | `test_a_claim_left_by_a_dead_process_expires`, `test_a_live_claim_carries_its_own_expiry` |
+| F17 span path | `Normaliser.keep_session_id`, set from `SESSION_MONITOR_ENABLED` in `recorder/service.py`; flag off: no `session_id` or `session_source` from a span. Flag-off fingerprint test stays green. | `test_span_path_writes_session_id_only_with_the_flag`, `test_recorder_service_ties_the_span_flag_to_the_setting` |
+| F18 GET rows | `GET /v1/sessions/<id>` reads the newest 2000 rows (`-ts`), then keeps those inside the look-back of the newest row | `test_get_session_shows_the_newest_rows_of_a_long_session`, `test_get_session_view_is_bounded_by_the_lookback` |
+| F15 one depth | `lookback_s(window_s) = 2 x window_s` in `monitors/session.py`; the batch job, the cold-start warm-up, the engine's forget and the GET route all use it | `test_batch_and_in_request_paths_give_the_same_score_on_the_same_rows` (memory assertion older than the window: same score, counts, hits) |
+| Daily window | `agents.<id>.monitors.session.daily` (`enabled` false by default, `window_s` 86400, `k` 3, `case_threshold_bp` 2500). Batch job only: the turns of one consumer on one agent over the window are scored as one pseudo-session (`daily:<consumer hash>`); case only (pause scope forced empty), one case per consumer and agent per window. `policies/schema.json` regenerated. | `test_daily_window_is_off_by_default_and_validated`, `test_a_rotating_session_id_is_missed_by_the_session_window_and_caught_by_the_daily_one` (also: no pause, masked summary, second run opens nothing), `test_daily_window_does_not_flag_the_benign_routine_session` |
+| Probe rv-1 | New probe `adv-id-rotation` (26th probe, `expect: daily_catch`): `session_id` rotates every turn, one consumer. The harness runs the batch job after each item with the daily window on and attributes daily cases by the item's consumer hash. | `test_harness_carries_the_rv1_probe_and_expects_the_daily_catch`; harness row "adversarial daily-window catches (rv-1)" |
+
+Harness after the follow-ups: OVERALL GO, `--check` no drop. Daily window: extra attacks caught 3 on dev, 0 on held-out, 3 of the probes (`id-churn`, `slow-drip`, `id-rotation`); benign flagged 0 of 60 dev, 0 of 60 held-out, 0 of 10 benign probes. An earlier run showed 2 false alarms that were my harness attributing an earlier item's daily case to the next item; fixed by matching the consumer hash. The 30-minute session numbers did not move. F19 (client ids not namespaced by consumer) stays a BACKLOG row. BACKLOG rows for F15 to F18 are removed; the slow-attack and id-rotation rows now say what the daily window covers and what it does not (no stable consumer id, attacks spread over days). The validation report was regenerated with the blind WP28 held-out traces.
+
+Commands (last lines):
+
+```
+$ uv run python -m pytest -q -p no:cacheprovider      (full suite, before the one-line probe-test fix)
+1 failed, 3946 passed, 29 skipped, 1 warning in 525.91s (0:08:45)
+$ uv run python -m pytest -q -p no:cacheprovider tests/monitors/test_session_harness.py   (the 1 failure, now fixed)
+20 passed in 25.85s
+$ uv run python -m ruff check
+All checks passed!
+$ uv run python -m ruff format --check
+704 files already formatted
+$ uv run python -m supervisor.monitors.session_harness --check
+OVERALL: GO
+[OK] no drop below the baseline
+```
+
+Test count: 3947 passed, 29 skipped (3936 at the review plus 11 new in `tests/monitors/test_session_followup_wp27.py`; one expectation list fixed in `test_session_harness.py`). An earlier `-x` run stopped once on a stale `policies/schema.json` (regenerated, then the full run above). Scratch logs `wp27_followup_*.txt` stay in the worktree root, not committed. No `.env` touched.
