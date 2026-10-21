@@ -242,7 +242,7 @@ The second benchmark showed two gaps in the rules above.
   `fail_closed`, as for every other failure). A `read_only` tool and a cut tool result stay
   coverage only. Observe mode and the `fail_closed_risk_classes` limit apply as before.
 * **D32 (Medium).** The 99 KB `pii_export` call failed closed as designed but took 879 ms p50
-  on the benchmark host (18 ms in the lab). The cost was the inline masker (`INLINE_REDACTION`),
+  on the benchmark host (18 ms in the lab). The cost was the inline masker (`INLINE_REDACTION_ENABLED`),
   which read all 99 KB before the gate knew the call would be refused; the detectors, the
   record (`args_masked` holds argument names and key hashes, never text) and the SIEM event were
   cheap. With the detector gate on, the masker now reads at most the `dlp_vn` `max_scan_bytes`
