@@ -19,13 +19,24 @@ from supervisor.console import (
     compliance_view,
     inventory_views,
     readmodels,
+    risks_views,
     tools_views,
 )
 from supervisor.core import rbac
 from supervisor.core.errors import SupervisorError
 from supervisor.inventory.api import InventoryInputError
 
-TABS = ("overview", "policy", "tools", "inventory", "traces", "cases", "assurance", "compliance")
+TABS = (
+    "overview",
+    "policy",
+    "tools",
+    "inventory",
+    "traces",
+    "cases",
+    "assurance",
+    "compliance",
+    "risks",  # WP29
+)
 TRACE_LIMIT = 20  # traces shown on the Traces tab
 CASE_LIMIT = 50
 ASSURANCE_LIMIT = 50
@@ -54,6 +65,12 @@ GATED: dict[str, tuple[str, str, str, str]] = {
         "compliance.view",
         "CONSOLE_COMPLIANCE_ENABLED",
         "python -m supervisor.advisory.compliance --profile <file> --out <folder>",
+    ),
+    "risks": (
+        "console_risks_enabled",
+        "risks.view",
+        "CONSOLE_RISKS_ENABLED",
+        "python -m supervisor.risk score --agent <id>",
     ),
 }
 
@@ -299,6 +316,12 @@ def _compliance(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]
     }
 
 
+def _risks(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    data = risks_views.agent_tab(ctx, card["agent_id"])
+    data["risks_page"] = bool(ctx.settings.risk_register_enabled)  # the page needs both flags
+    return data
+
+
 _BUILDERS = {
     "overview": _overview,
     "policy": _policy,
@@ -308,6 +331,7 @@ _BUILDERS = {
     "cases": _cases,
     "assurance": _assurance,
     "compliance": _compliance,
+    "risks": _risks,
 }
 
 

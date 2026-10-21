@@ -859,3 +859,100 @@ tables:
       seeded_by: string?      # who ran trust-on-first-use, when it was used
       first_seen: timestamp
       last_seen: timestamp
+
+  # --- WP29 risk register (ADR D26) -----------------------------------------------------
+  risk:
+    kind: state
+    description: >
+      WP29 risk register entry. Anchored on an agent or on an inventory node (a shared model,
+      tool, MCP server or dataset, which every agent that reaches it inherits). Likelihood and
+      impact are whole numbers 1 to 5; the score is their product and is computed on read,
+      never stored. residual_* is what the person declares for the treated risk; the value
+      the product uses is decided by the evidence rule (risk_evidence), see docs/risk-register.md.
+    primary_key: [risk_id]
+    indexes:
+      - [agent_id]
+      - [status]
+    columns:
+      risk_id: string
+      title: string
+      description: text
+      category: string         # money_movement | credit_decision | pii | injection | model_behaviour | availability | third_party
+      agent_id: string?
+      node_id: string?         # inventory node id (inv_...); null = the agent's own system node
+      inherent_likelihood: int
+      inherent_impact: int
+      marginal_risk: int?      # 1 to 5: change caused by using AI (1 much smaller, 5 much higher)
+      marginal_note: text?
+      treatment: string        # avoid | mitigate | accept | transfer
+      treatment_note: text?    # justification (required for accept)
+      residual_likelihood: int
+      residual_impact: int
+      owner: string
+      review_date: date?
+      status: string           # draft | active | retired
+      source: string           # manual | import | starter
+      created_at: timestamp
+      created_by: string
+
+  risk_link:
+    kind: state
+    description: >
+      WP29 link of a risk to a compliance matrix row (obligation id), a gate rule id, an
+      assurance pack id, a monitor name or a case id. rule, pack and monitor links are the
+      controls the evidence rule looks at; matrix and case links are references.
+    primary_key: [link_id]
+    indexes:
+      - [risk_id]
+      - [kind, target]
+    columns:
+      link_id: string          # hash of (risk_id, kind, target): a repeat is a no-op
+      risk_id: string
+      kind: string             # matrix | rule | pack | monitor | case
+      target: string
+      active: bool             # false after an unlink (the row stays as history)
+      created_at: timestamp
+      created_by: string
+
+  risk_evidence:
+    kind: append_only
+    evidence: true
+    description: >
+      WP29. One row per risk and window: what the linked controls did (counts), the state
+      (working | failing | no_evidence), the reason code and the residual score the evidence rule
+      allows. Integers, codes and hashes only; no text. The matching chain record is
+      risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).
+    primary_key: [evidence_id]
+    indexes:
+      - [risk_id, ts]
+    columns:
+      evidence_id: string
+      risk_id: string
+      ts: timestamp
+      window_start: timestamp
+      window_end: timestamp
+      state: string            # working | failing | no_evidence
+      reason: string           # fixed code, see supervisor.risk.evidence.REASONS
+      agents_n: int            # supervised agents the risk applies to
+      agents_excluded: int     # SHADOW, RETIRED or unknown agents (their rows are not evidence)
+      rule_links: int
+      rule_hits: int
+      rule_stops: int
+      rules_missing: int
+      pack_links: int
+      pack_ok: int
+      pack_warn: int
+      pack_fail: int
+      pack_nodata: int
+      monitor_links: int
+      monitor_ok: int
+      monitor_other: int
+      controls_working: int
+      controls_failing: int
+      controls_idle: int
+      declared_residual_likelihood: int
+      declared_residual_impact: int
+      residual_likelihood: int  # after the evidence rule
+      residual_impact: int
+      digest: string            # sha256 of the facts above
+      chain_hash: string?       # entry hash of the chain record

@@ -105,6 +105,12 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "approver", "owner", "admin"),
         "Approve a new or changed MCP tool; the second different person locks it (WP26)",
     ),
+    # --- WP29 ---
+    "risks.view": (_ALL, "Risks page, Risks tab and /v1/risks (read-only, WP29)"),
+    "risks.edit": (
+        ("reviewer", "owner", "admin"),
+        "Create and change risks, link them to controls and rules (WP29)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -245,6 +251,17 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/mcp/tools/approve"): "mcp.tools.approve",
     ("POST", "/v1/mcp/tools/observe"): AGENT,
     ("POST", "/v1/mcp/tools/blocked"): AGENT,
+    # --- WP29 ---
+    ("GET", "/console/risks"): "risks.view",
+    ("GET", "/console/risks/rows"): "risks.view",
+    ("GET", "/console/risks/{risk_id}/drawer"): "risks.view",
+    ("GET", "/v1/risks"): "risks.view",
+    ("GET", "/v1/risks/agents/{agent_id}"): "risks.view",
+    ("GET", "/v1/risks/{risk_id}"): "risks.view",
+    ("GET", "/v1/risks/{risk_id}/evidence"): "risks.view",
+    ("POST", "/v1/risks"): "risks.edit",
+    ("POST", "/v1/risks/{risk_id}"): "risks.edit",
+    ("POST", "/v1/risks/{risk_id}/links"): "risks.edit",
 }
 
 

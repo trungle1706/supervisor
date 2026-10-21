@@ -1,0 +1,79 @@
+{# Risk drawer of the Risks page: tabs Details / Links / Evidence (read-only).
+   Variable: drawer (risks_views.drawer_view). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set r = drawer.r %}
+{% set tab = drawer.tab %}
+{% set qs = drawer.qs %}
+{% set base = '/console/risks/' ~ r.risk_id ~ '/drawer?tab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set page_base = '/console/risks?drawer=' ~ r.risk_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set pills %}{{ ui.sev(r.residual_band) }} {% if r.evidence_state %}{{ ui.pill(t('rk_ev_' ~ r.evidence_state), {'working': 'ok', 'failing': 'bad', 'no_evidence': 'warn'}.get(r.evidence_state, 'neutral'), True) }}{% endif %}{% endset %}
+{% set labels = {'details': t('dtab_details'), 'links': t('dtab_links'), 'evidence': t('dtab_evidence')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base) }}{% endset %}
+{% set prev_href = ('/console/risks?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/risks/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/risks?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/risks/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% call dr.drawer(r.risk_id, pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {% if tab == 'details' %}
+    <p style="margin:0 0 10px"><strong>{{ r.title }}</strong></p>
+    {{ ui.kv([
+      (t('description'), r.description),
+      (t('rk_col_category'), t('rk_cat_' ~ r.category)),
+      (t('rk_anchor'), (r.agent_id or r.node_id), True),
+      (t('rk_applies_to'), r.agents|join(', '), True),
+      (t('rk_col_inherent'), t('rk_score_val', s=r.inherent_score, l=r.inherent_likelihood, i=r.inherent_impact) ~ ' · ' ~ t(r.inherent_band)),
+      (t('rk_declared'), t('rk_score_val', s=r.declared_residual_score, l=r.residual_likelihood, i=r.residual_impact)),
+      (t('rk_col_residual'), t('rk_score_val', s=r.residual_score, l=r.residual_likelihood_effective, i=r.residual_impact_effective) ~ ' · ' ~ t(r.residual_band) ~ ' · ' ~ t('rk_reason_' ~ r.evidence_reason)),
+      (t('rk_marginal'), ((r.marginal_risk ~ '/5') if r.marginal_risk else '') ~ ((' · ' ~ r.marginal_note) if r.marginal_note else '')),
+      (t('rk_col_treatment'), t('rk_treat_' ~ r.treatment)),
+      (t('rk_treatment_note'), r.treatment_note),
+      (t('owner'), r.owner),
+      (t('rk_col_review'), (r.review_date ~ ((' · ' ~ t('rk_overdue')) if r.review_overdue else '')) if r.review_date else None),
+      (t('status'), t('rk_st_' ~ r.status)),
+    ]) }}
+    {% if drawer.illustrative %}<p class="hint">{{ t('rk_illustrative_short') }}</p>{% endif %}
+  {% elif tab == 'links' %}
+    {% if drawer.link_groups %}
+      {% for kind, targets in drawer.link_groups %}
+      <h3 class="sec">{{ t('rk_lnk_' ~ kind) }} <span class="k">{{ targets|length }}</span></h3>
+      <ul class="drawer-list">
+        {% for x in targets %}<li class="mono">{{ x }}</li>{% endfor %}
+      </ul>
+      {% endfor %}
+    {% else %}
+      <p class="hint">{{ t('rk_no_links') }}</p>
+    {% endif %}
+  {% else %}
+    <h3 class="sec">{{ t('rk_trend') }}</h3>
+    {% if drawer.trend %}
+    <div class="tablewrap flat"><table>
+      <thead><tr>
+        <th scope="col">{{ t('rk_window_end') }}</th><th scope="col">{{ t('status') }}</th>
+        <th scope="col" class="n">{{ t('rk_col_residual') }}</th>
+        <th scope="col" class="n">{{ t('rk_rule_hits') }}</th><th scope="col" class="n">{{ t('rk_rules_missing') }}</th>
+        <th scope="col" class="n">{{ t('rk_pack_ok') }}</th><th scope="col" class="n">{{ t('rk_pack_fail') }}</th>
+        <th scope="col" class="n">{{ t('rk_mon_ok') }}</th>
+        <th scope="col" class="n">{{ t('rk_ctl_working') }}/{{ t('rk_ctl_failing') }}/{{ t('rk_ctl_idle') }}</th>
+        <th scope="col" class="n">{{ t('rk_agents_n') }}</th>
+      </tr></thead>
+      <tbody>
+      {% for e in drawer.trend %}
+        <tr>
+          <td class="mono">{{ e.window_end[:16]|replace('T', ' ') }}</td>
+          <td>{{ ui.pill(t('rk_ev_' ~ e.state), {'working': 'ok', 'failing': 'bad', 'no_evidence': 'warn'}.get(e.state, 'neutral')) }}<div class="idline">{{ t('rk_reason_' ~ e.reason) }}</div></td>
+          <td>{{ ui.barcell(e.residual_score, 25) }}</td>
+          <td class="n">{{ e.rule_hits }}</td><td class="n">{{ e.rules_missing }}</td>
+          <td class="n">{{ e.pack_ok }}</td><td class="n">{{ e.pack_fail }}</td>
+          <td class="n">{{ e.monitor_ok }}</td>
+          <td class="n">{{ e.controls_working }}/{{ e.controls_failing }}/{{ e.controls_idle }}</td>
+          <td class="n">{{ e.agents_n }}{% if e.agents_excluded %} <span class="muted">(+{{ e.agents_excluded }} {{ t('rk_agents_excl') }})</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="hint">{{ t('rk_no_trend') }}</p>
+    {% endif %}
+  {% endif %}
+{% endcall %}

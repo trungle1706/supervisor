@@ -185,6 +185,28 @@ edits `config/detectors.yaml` to disable a detector (the file is in change contr
 
 Trust boundary: with `--attacker llm` (manual, never scheduled) the text of an attacker turn goes to the configured LLM endpoint (`LLM_BASE_URL`, model `REDTEAM_ATTACKER_MODEL`, temperature 0, at most 60 conversations per run). Before the call every id, amount, tool name and digit string is replaced by a `<<Tn>>` placeholder and restored afterwards, so no personal-data shape and no identifier leaves the process, and a reply that drops or invents a placeholder is discarded. The model only rephrases: the calls, their order and the deterministic oracle are fixed in code, so a hostile or wrong reply cannot turn a failure into a pass, cannot add a tool call and cannot reach the gate. The sandbox agents, the policy, the store and the chain are private to the run; the nightly job writes aggregates only (integers) to the chain. The optional evidence judge sends a transcript with digit runs masked and its verdict never changes a result (R1).
 
+### 3.10 Risk register (WP29, ADR D26)
+
+The register adds a write path for people (`POST /v1/risks/...`, flag `RISK_REGISTER_ENABLED`, off by
+default) and a job that reads gate verdicts, assurance results and monitor status. Threats and
+controls: (1) **a person lowers a risk score without proof**: the stored residual is only a claim; the
+product shows the declared value only while the linked controls are `working` in the last window,
+so editing the number does not change what the page shows, and every edit writes two
+`console_action` rows and a `risk_change` chain record with the actor; (2) **fake evidence**: the
+job reads tier-0 gate verdicts, non-mock assurance rows and monitor status only (no judge, no
+classifier, no text from a user), ignores SHADOW, retired and unknown agents and mock results, and
+a removed rule or a failed pack counts against the risk; a person with write access to the
+verdict or `eval_result` tables could still plant rows (those tables are append-only and chained;
+the register adds no new write path to them); (3) **injection through free text**: titles and notes
+are stored and shown as text (templates escape them), exports start a cell with `'` when it begins
+with `=`, `+`, `-` or `@`, ids and link targets must match a strict pattern and a link must point at
+something that exists, and no SQL is built from input (named parameters only); (4) **personal data**:
+the register holds risk descriptions written by staff; the chain payloads hold integers, codes and
+hashes only, and the evidence row has no text column; a person must not write customer data into a
+description. Not covered: a reviewer, owner or admin who creates a false `accept` risk with a
+justification note (there is no four-eyes step yet, see BACKLOG) and who is the only check on their own
+scoring.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |

@@ -61,6 +61,7 @@ from supervisor.console import (
     playground,
     policies_view,
     readmodels,
+    risks_views,  # --- WP29 ---
     search,
     tools_views,
     traces,
@@ -75,6 +76,7 @@ from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
 from supervisor.jobs import case_intake
+from supervisor.risk.model import ensure_on as ensure_risks_on
 
 router = APIRouter(prefix="/console", tags=["console"])
 log = logging.getLogger("supervisor.console")
@@ -1374,6 +1376,7 @@ _UX3_FLAGS = {
     "users": ("CONSOLE_USERS_ENABLED", "Users and roles"),
     "audit": ("CONSOLE_AUDITLOG_ENABLED", "Audit log"),
     "integrations": ("CONSOLE_INTEGRATIONS_ENABLED", "Integrations"),
+    "risks": ("CONSOLE_RISKS_ENABLED", "Risks"),  # WP29
 }
 
 
@@ -1595,6 +1598,61 @@ async def policy_drawer(
         _drawer_query(query),
     )
     return render(request, ctx, me, "_policy_drawer.html", drawer=data)
+
+
+# -- risks (WP29, read-only)
+
+
+def _risks_off(ctx: ConsoleContext) -> None:
+    """HTTP 400 unless both CONSOLE_RISKS_ENABLED and RISK_REGISTER_ENABLED are on."""
+    _ux3_off(ctx, "risks")
+    ensure_risks_on(ctx.settings)
+
+
+@router.get("/risks", response_class=HTMLResponse, dependencies=[Depends(needs("risks.view"))])
+async def risks_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _risks_off(ctx)
+    query = dict(request.query_params)
+    data = await _call(risks_views.list_view, ctx, query)
+    opened = query.get("drawer")
+    if opened:  # no-JS fallback of the row drawer
+        _check_id(opened, "risk id")
+        data["drawer"] = await _call(
+            risks_views.drawer_view,
+            ctx,
+            opened,
+            query.get("dtab") or "details",
+            _drawer_query(query),
+        )
+    return render(request, ctx, me, "risks.html", section="risks", **data)
+
+
+@router.get("/risks/rows", response_class=HTMLResponse, dependencies=[Depends(needs("risks.view"))])
+async def risks_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _risks_off(ctx)
+    data = await _call(risks_views.list_view, ctx, dict(request.query_params))
+    return render(request, ctx, me, "_risks_list.html", **data)
+
+
+@router.get(
+    "/risks/{risk_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("risks.view"))],
+)
+async def risk_drawer(
+    risk_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _risks_off(ctx)
+    _check_id(risk_id, "risk id")
+    query = dict(request.query_params)
+    data = await _call(
+        risks_views.drawer_view, ctx, risk_id, query.get("tab") or "details", _drawer_query(query)
+    )
+    return render(request, ctx, me, "_risk_drawer.html", drawer=data)
 
 
 # -- credentials, users, integrations (read-only)

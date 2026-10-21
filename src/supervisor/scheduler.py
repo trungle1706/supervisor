@@ -22,6 +22,8 @@ tool_analytics TOOL_ANALYTICS_ENABLED daily ``tool_usage_daily`` rollup + least-
 siem           SIEM_ENABLED           send new evidence-chain events to the SIEM sink (WP21)
 notify         NOTIFY_WEBHOOK_ENABLED send queued webhook notices (WP21; needs a URL)
 alerts         ALERTS_ENABLED         evaluate config/alerts.yaml, raise and route alerts (WP21)
+risk_evidence  RISK_REGISTER_ENABLED  count gate rule hits, pack verdicts and monitor states
+                                      per risk; residual score from facts (WP29)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -378,6 +380,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import quality as quality_job
     from supervisor.jobs import redteam_nightly as redteam_job
     from supervisor.jobs import retention as retention_job
+    from supervisor.jobs import risk_evidence as risk_evidence_job
     from supervisor.jobs import siem as siem_job
     from supervisor.monitors.sweeps import build_judge_sweep, build_quality_sweep
 
@@ -444,6 +447,14 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
         JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
                 settings.alerts_enabled),
     ]  # fmt: skip
+    if settings.risk_register_enabled:  # WP29: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "risk_evidence",
+                settings.sched_risk_evidence_s,
+                lambda: risk_evidence_job.run(ctx, settings),
+            )
+        )
     from supervisor.jobs import inventory as inventory_job
 
     if inventory_job.scheduled(settings):  # WP24: listed only when it can run

@@ -1010,3 +1010,101 @@ CREATE TABLE IF NOT EXISTS mcp_tool_manifest (
 );
 
 CREATE INDEX IF NOT EXISTS ix_mcp_tool_manifest_server_id ON mcp_tool_manifest (server_id);
+
+-- risk (state): WP29 risk register entry. Anchored on an agent or on an inventory node (a shared model, tool, MCP server or dataset, which every agent that reaches it inherits). Likelihood and impact are whole numbers 1 to 5; the score is their product and is computed on read, never stored. residual_* is what the person declares for the treated risk; the value the product uses is decided by the evidence rule (risk_evidence), see docs/risk-register.md.
+CREATE TABLE IF NOT EXISTS risk (
+  risk_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL,
+  agent_id TEXT,
+  node_id TEXT,
+  inherent_likelihood INTEGER NOT NULL,
+  inherent_impact INTEGER NOT NULL,
+  marginal_risk INTEGER,
+  marginal_note TEXT,
+  treatment TEXT NOT NULL,
+  treatment_note TEXT,
+  residual_likelihood INTEGER NOT NULL,
+  residual_impact INTEGER NOT NULL,
+  owner TEXT NOT NULL,
+  review_date TEXT,
+  status TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (risk_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_risk_agent_id ON risk (agent_id);
+
+CREATE INDEX IF NOT EXISTS ix_risk_status ON risk (status);
+
+-- risk_link (state): WP29 link of a risk to a compliance matrix row (obligation id), a gate rule id, an assurance pack id, a monitor name or a case id. rule, pack and monitor links are the controls the evidence rule looks at; matrix and case links are references.
+CREATE TABLE IF NOT EXISTS risk_link (
+  link_id TEXT NOT NULL,
+  risk_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (link_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_risk_link_risk_id ON risk_link (risk_id);
+
+CREATE INDEX IF NOT EXISTS ix_risk_link_kind_target ON risk_link (kind, target);
+
+-- risk_evidence (append_only): WP29. One row per risk and window: what the linked controls did (counts), the state (working | failing | no_evidence), the reason code and the residual score the evidence rule allows. Integers, codes and hashes only; no text. The matching chain record is risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).
+CREATE TABLE IF NOT EXISTS risk_evidence (
+  evidence_id TEXT NOT NULL,
+  risk_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  window_start TEXT NOT NULL,
+  window_end TEXT NOT NULL,
+  state TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  agents_n INTEGER NOT NULL,
+  agents_excluded INTEGER NOT NULL,
+  rule_links INTEGER NOT NULL,
+  rule_hits INTEGER NOT NULL,
+  rule_stops INTEGER NOT NULL,
+  rules_missing INTEGER NOT NULL,
+  pack_links INTEGER NOT NULL,
+  pack_ok INTEGER NOT NULL,
+  pack_warn INTEGER NOT NULL,
+  pack_fail INTEGER NOT NULL,
+  pack_nodata INTEGER NOT NULL,
+  monitor_links INTEGER NOT NULL,
+  monitor_ok INTEGER NOT NULL,
+  monitor_other INTEGER NOT NULL,
+  controls_working INTEGER NOT NULL,
+  controls_failing INTEGER NOT NULL,
+  controls_idle INTEGER NOT NULL,
+  declared_residual_likelihood INTEGER NOT NULL,
+  declared_residual_impact INTEGER NOT NULL,
+  residual_likelihood INTEGER NOT NULL,
+  residual_impact INTEGER NOT NULL,
+  digest TEXT NOT NULL,
+  chain_hash TEXT,
+  PRIMARY KEY (evidence_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_risk_evidence_risk_id_ts ON risk_evidence (risk_id, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_risk_evidence_no_update
+BEFORE UPDATE ON risk_evidence
+BEGIN
+  SELECT RAISE(ABORT, 'risk_evidence is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_risk_evidence_no_delete
+BEFORE DELETE ON risk_evidence
+BEGIN
+  SELECT RAISE(ABORT, 'risk_evidence is append-only');
+END;

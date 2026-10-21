@@ -72,7 +72,15 @@ def _is_human_path(path: str) -> bool:
     if path in _INGRESS:
         return False
     return path.startswith(
-        ("/console", "/gate/", "/v1/gate/", "/v1/analytics/", "/v1/inventory/", "/v1/mcp/tools")
+        (
+            "/console",
+            "/gate/",
+            "/v1/gate/",
+            "/v1/analytics/",
+            "/v1/inventory/",
+            "/v1/mcp/tools",
+            "/v1/risks",
+        )
     )
 
 
