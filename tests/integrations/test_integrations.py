@@ -91,17 +91,40 @@ def test_chain_feed_writes_schema_events_once(demo: DemoSession, tmp_path: Path)
 # (CASE-5607640249): the digit grep read it as PII and the test failed now and then (WP29
 # review). Case ids are product ids, not PII, so they are taken out before the grep.
 _CASE_ID = re.compile(r"CASE-[0-9A-F]{10}(?![0-9A-Za-z])")
+# Integration wave 2: the second trigger (seen on wp38) was a digit run inside a hash or a hex id.
+# SHA-256 / MD5-size hex digests (64 or 32 hex), keyed actor refs (act_ + hex, WP29 L3) and any
+# other hex token of 16 or more characters that holds a letter a-f are ids, not PII: a phone, a
+# CCCD or an account number never holds a hex letter. They are taken out before the digit grep.
+_HEX_DIGEST = re.compile(r"(?<![0-9A-Za-z])(?:[0-9a-fA-F]{64}|[0-9a-fA-F]{32})(?![0-9A-Za-z])")
+_ACT_REF = re.compile(r"act_[0-9a-fA-F]+(?![0-9A-Za-z])")
+_HEX_ID = re.compile(r"(?<![0-9A-Za-z])(?=[0-9a-fA-F]*[a-fA-F])[0-9a-fA-F]{16,}(?![0-9A-Za-z])")
 _DIGIT_RUN = re.compile(r"(?<![0-9a-f])\d{9,12}(?![0-9a-f])")
 
 
 def _pii_digit_runs(text: str) -> list[str]:
-    return _DIGIT_RUN.findall(_CASE_ID.sub("CASE-<id>", text))
+    text = _CASE_ID.sub("CASE-<id>", text)
+    text = _ACT_REF.sub("act_<ref>", text)
+    text = _HEX_DIGEST.sub("<hash>", text)
+    text = _HEX_ID.sub("<hex>", text)
+    return _DIGIT_RUN.findall(text)
 
 
 def test_pii_digit_grep_ignores_case_ids_only() -> None:
     assert _pii_digit_runs('{"case_id": "CASE-5607640249", "lane": "case:CASE-123456789A"}') == []
     assert _pii_digit_runs('{"actor": "0912345678"}') == ["0912345678"]
     assert _pii_digit_runs('{"x": "CASE-5607640249 079123456789"}') == ["079123456789"]
+
+
+def test_pii_digit_grep_ignores_hashes_hex_ids_and_actor_refs_only() -> None:
+    sha = "1234567890" + "ab" * 27  # 64 hex, starts with a 10-digit run
+    assert _pii_digit_runs('{"entry_hash": "' + sha + '"}') == []
+    assert _pii_digit_runs('{"md5": "' + "0912345678" + "c" * 22 + '"}') == []
+    assert _pii_digit_runs('{"actor_ref": "act_0912345678123456"}') == []
+    assert _pii_digit_runs('{"decision_id": "f0912345678a1b2c3d"}') == []
+    # the grep still sees PII digits next to such ids; an all-digit token is never an id
+    assert _pii_digit_runs('{"h": "' + sha + '", "phone": "0912345678"}') == ["0912345678"]
+    assert _pii_digit_runs('{"cccd": "079123456789"}') == ["079123456789"]
+    assert _pii_digit_runs('{"id": "0912345678912345"}') == []  # 16 digits: not 9 to 12
 
 
 def test_anchor_event() -> None:
