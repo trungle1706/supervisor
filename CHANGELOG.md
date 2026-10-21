@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.4.1 (M2 triage fixes) - 2026-10-21
+
+Fixes from the second benchmark on the bank agent, reviewed (two further High findings fixed in review: a cut argument
+on a PII-export tool was allowed when the masker was not fail-closed; an over-budget argument reached the tool unmasked
+when nothing blocked the call). Tests: 5,232 passed, 32 skipped. No new flag.
+
+### WP41b: triage of the second benchmark (ADR D33, `HANDOFF_WP41B.md`)
+
+No new flag; all three changes act only with `DETECTORS_ENABLED` on.
+
+- D31 (High): a cut (`payload_too_large`) argument of a money, credit or pii_export tool is now
+  `GATE-DETECTOR-FAILED` for any detector set (before, only a transforming detector did that, so a
+  credit call with 85 percent of its text unread was allowed with status `report`). A read_only
+  tool stays coverage only.
+- D32 (Medium): the fail-closed 99 KB pii_export call took 879 ms on the bench host because the
+  inline masker read the whole text; above the `dlp_vn` scan budget it does not run when the
+  call is refused anyway (15 to 17 ms). Review: when nothing refuses the call (fail_closed off,
+  observe, detectors disabled for the agent) the masker still masks the full text.
+- D26 (Medium): status `pause` (not `block`) for the state pause `GATE-PAUSED` and the session
+  pause `GATE-SESSION-PAUSE`, in the answer, `agent_event.verdict_status`, the chain record, the
+  SIEM `attrs.status`, the drawer and the rollup. The old `action` field stays `block`.
+
+
 ## v0.4.0 (phase 3 waves 2 and 3) - 2026-10-21
 
 Integration branch `phase3-wave2` (ten packages, merge report `docs/phase3/wave2/INTEGRATION_WAVE2.md`).
@@ -47,22 +70,6 @@ No new flag; every change is behind a flag that exists or in an adapter option.
 - D28: pack results on the `traces:` target count as evidence for risks and controls.
 - D27: Agent page Tools tab answers 200 with a hint for an agent with no policy record; reads the
   served `POLICY_DIR`.
-
-### WP41b: triage of the second benchmark (ADR D33, `HANDOFF_WP41B.md`)
-
-No new flag; all three changes act only with `DETECTORS_ENABLED` on.
-
-- D31 (High): a cut (`payload_too_large`) argument of a money, credit or pii_export tool is now
-  `GATE-DETECTOR-FAILED` for any detector set (before, only a transforming detector did that, so a
-  credit call with 85 percent of its text unread was allowed with status `report`). A read_only
-  tool stays coverage only.
-- D32 (Medium): the fail-closed 99 KB pii_export call took 879 ms on the bench host because the
-  inline masker read the whole text; above the `dlp_vn` scan budget it does not run when the
-  call is refused anyway (15 to 17 ms). Review: when nothing refuses the call (fail_closed off,
-  observe, detectors disabled for the agent) the masker still masks the full text.
-- D26 (Medium): status `pause` (not `block`) for the state pause `GATE-PAUSED` and the session
-  pause `GATE-SESSION-PAUSE`, in the answer, `agent_event.verdict_status`, the chain record, the
-  SIEM `attrs.status`, the drawer and the rollup. The old `action` field stays `block`.
 
 ### New flags and settings (all features default off)
 
