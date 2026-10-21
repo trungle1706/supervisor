@@ -21,7 +21,9 @@ data reaches the chain or a prompt, and nothing calls out of the host.
    `transformed_args` / `transformed_payload` and keeps the fully masked copy for every record
    (findings, rows, chain, SIEM, the session sketch). The decision lists `kept_args`. The setting
    is part of the policy hash; loading it writes an audit log line and a chain record
-   `policy_keep_args`; it is an agent setting (refused in a consumer block); the shape is
+   `policy_keep_args`; it is an agent setting (refused in a consumer block and in
+   `config/detectors.yaml`); on a money, credit or pii_export tool it needs two distinct ids in
+   `keep_args_approvals` (review decision, same shape as `rule_approvals`); input only; the shape is
    checked at load. *Why not the other options in the report:* typing the tax code is not enough
    (the tool still gets a pseudonym), and a report-only mode on the tool switches protection off
    for every argument of the call. *Why the setting lives under `detectors.settings.dlp_vn` and
@@ -44,12 +46,13 @@ data reaches the chain or a prompt, and nothing calls out of the host.
    turn and weigh 0. Default `NO-GO`. The status feeds one reader and never changes the decision.
 5. **`split_cue` (D04).** A tenth session signal: the head of an injection phrase at the end of
    one call and its tail at the start of a later call of the window, found with the halves of the
-   Tier 0b patterns on the same normalised forms. Deterministic, ids only, a solo signal like
-   `memory`, weight 300. Default weights: `timing` 400 to 100, `split_cue` 300 (the only change
-   that left every harness number as it was). *Why solo:* with the classifier noise gone, the bank
-   shape has `drift` and `split_cue` (2 of K=3) and no payment; counters miss a cut phrase by
-   construction. *Cost:* a known false positive when a text ends with a head and a later call
-   starts with a tail by chance; the look-alike probes show what does not fire.
+   Tier 0b patterns on the same normalised forms. Deterministic, ids only, weight 300. Default
+   weights: `timing` 400 to 100, `split_cue` 300 (the only change that left every harness number
+   as it was). *Review change:* a hit counts as **two hits towards K** (`double_signals`), not as
+   a solo signal. As a solo signal it opened a case on 3 of 8 benign bank sessions written by the
+   reviewer; with two units the bank shape (`drift` plus `split_cue`) still reaches K=3, and the
+   bare two-call shape is a recorded known miss. The weakest halves were made stricter
+   (`policy_override` needs its article, the `urgent_transfer` tail starts with the destination).
 6. **Registration, tool results, evidence (D19, D23, D28).** The first gate decision of a policy
    agent writes an inventory node (source `gate`) when `INVENTORY_ENABLED=1`. The stock LangGraph
    middleware sends the last 3 tool results, 16 KB each, option `send_tool_results` (default on).
@@ -68,6 +71,7 @@ data reaches the chain or a prompt, and nothing calls out of the host.
 ## Not decided
 
 * Whether the next benchmark should run the sensitive session point (K=3, 1500 bp) report-only.
-* Whether a `keep_args` entry should need two approvers (today: review of the policy diff).
+* ~~Whether a `keep_args` entry should need two approvers~~: decided in the review, yes for
+  money, credit and pii_export tools (`keep_args_approvals`).
 * Sending `turn_text` from every collector (the stock adapters send none; `expand`, `memory` and
   the topic markers need it).

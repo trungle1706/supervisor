@@ -36,8 +36,12 @@ No new flag; every change is behind a flag that exists or in an adapter option.
   (`GATE-DETECTOR-FAILED`); a memoising masker and an early exit in `injection_regex`.
 - D24, D25: per-detector `mrm_status` in `config/detectors.yaml`; the session `findings` signal
   counts only deterministic or GO detectors (others are recorded, weight 0).
-- D04: session signal `split_cue` (solo signal, weight 300; `timing` 400 to 100); seven new
-  harness probes.
+- D04: session signal `split_cue` (weight 300; `timing` 400 to 100; after the review it counts
+  as two hits towards K, not as a solo signal); ten new harness probes.
+- Review (Opus): a cut argument or output of a call that `dlp_vn` would transform fails closed
+  even when the scanned part is clean; `keep_args` needs `keep_args_approvals` (two ids) on a
+  money / credit / pii_export tool, is refused in a consumer block and in
+  `config/detectors.yaml`, and applies to input checks only; `split_cue` halves are stricter.
 - D19: gate-only agents are registered in the inventory (source `gate`) on the first decision.
 - D23: the stock LangGraph middleware sends the last 3 tool results (`send_tool_results`).
 - D28: pack results on the `traces:` target count as evidence for risks and controls.
@@ -66,7 +70,7 @@ No new flag; every change is behind a flag that exists or in an adapter option.
   the limit is no longer scanned in full (coverage says so), and a pii_export call whose argument
   is longer than 16 KB is blocked by `GATE-DETECTOR-FAILED` instead of being masked in full (raise
   `max_scan_bytes` for `dlp_vn` on that agent). The default session weights changed (`timing`
-  400 to 100, new `split_cue` 300) and `split_cue` is a default solo signal; both act only with
+  400 to 100, new `split_cue` 300) and a `split_cue` hit counts as two hits towards K; both act only with
   `SESSION_MONITOR_ENABLED=1`. A detector with no `mrm_status` counts 0 in the session `findings`
   signal. `python -m supervisor.analytics.tools` and the Tools views read `POLICY_DIR` when it is
   set. The stock LangGraph middleware sends `context.tool_results` (option `send_tool_results`,

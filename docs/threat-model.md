@@ -299,7 +299,9 @@ shows working because a product rule fired**: a bank-owned control is always `ba
 
 `dlp_vn` `keep_args` (a policy setting) sends a named top-level argument of a named tool to the
 tool as sent. This is a deliberate hole in the pii_export transform, so it is narrow and visible:
-agent level only (not per consumer), names only, at most 8 per tool, part of the policy hash,
+agent level only (not per consumer, not in the shared detector file), two approver ids in
+`keep_args_approvals` when the tool is money, credit or pii_export, input checks only, names
+only, at most 8 per tool, part of the policy hash,
 audited when the policy loads (log line and chain record `policy_keep_args`), and listed on every
 decision it touched (`kept_args` in the answer, the drawer, the export column `kept_arguments` and
 the chain record). Findings, rows, chain, SIEM and the session sketch keep the masked form; the

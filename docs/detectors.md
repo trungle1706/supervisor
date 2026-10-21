@@ -144,6 +144,7 @@ agents:
           keep_args:
             lookup_customer_basic_info: [tax_code]   # tool: [top-level argument names]
           pseudonym_mode: typed                       # optional, see below
+    keep_args_approvals: [dpo.lan, sec.minh]          # WP41 review: two distinct ids
 ```
 
 What happens on an allowed call to that tool:
@@ -156,12 +157,19 @@ What happens on an allowed call to that tool:
 | Decisions drawer (Detections tab) and the CSV export | the names, in the section "Arguments passed unmasked" and in the column `kept_arguments` |
 | chain record `gate_decision` | `kept_args` (names only) |
 
-Rules: it is an agent setting (a `consumers.<id>.detectors` block that names it is refused at load); only top-level argument names, at most 8 per tool and 64 tools, plain identifiers. Only
+Rules: it is an agent setting (a `consumers.<id>.detectors` block that names it is refused by
+the policy loader, and `config/detectors.yaml` may not set it: the shared file would apply it to
+every agent without audit or approval); when it names a `money`, `credit` or `pii_export` tool
+the agent needs two distinct approver ids in `keep_args_approvals` (same shape as
+`rule_approvals`; left out of the hash when empty), or the policy is refused (WP41 review); it
+applies to input checks only (never to an output check, never to `tool_results`, never to a
+nested key of the same name); no environment variable or request field can set it; only top-level argument names, at most 8 per tool and 64 tools, plain identifiers. Only
 `dlp_vn` honours it (it does nothing when `dlp_vn` is off for the agent). Other arguments of the
 same call stay masked. A blocked or paused call has no transformed arguments, so nothing is kept.
 **Loading** a policy with a `keep_args` entry writes one WARNING log line (`audit: dlp_vn
-keep_args loaded for <agent>: <tool>=<names> (policy <hash16>)`) and one chain record
-`policy_keep_args` (agent lane; agent, scope, policy hash, tool and argument names) at start and
+keep_args loaded for <agent>: <tool>=<names> (policy <hash16>, approvals <ids>)`) and one chain
+record `policy_keep_args` (agent lane; agent, scope, policy hash, tool and argument names,
+approver ids) at start and
 at every changed reload. The setting is part of the policy hash, so adding or removing a
 `keep_args` entry changes the hash. A wrong shape is refused when the policy loads (same path as
 any bad override). Use it for a declared lookup key, not for free text: a kept argument is
@@ -202,8 +210,10 @@ argument full of personal data held the gate for 1.7 s. Now:
   to `not_inspected` with `{"reason": "payload_too_large", "bytes": 42000, "scanned_bytes": 16382}`
   (the least any detector read), and `coverage.bytes` holds the total. The chain keeps the same
   integers. The drawer shows `scanned / total B`;
-* `dlp_vn` never transforms text it only read in part. If its transform scope needs a cut
-  **argument**, it does not run (`payload_too_large`), and on a `money`, `credit` or `pii_export`
+* `dlp_vn` never transforms text it only read in part. If its transform scope covers the call
+  and an **argument** or the **output** was cut, it does not run (`payload_too_large`), whether
+  or not the part it could read held personal data (WP41 review: before, clean padding followed
+  by a phone number passed with `allow` and the raw number reached the tool), and on a `money`, `credit` or `pii_export`
   tool the existing rule `GATE-DETECTOR-FAILED` blocks the call (fail closed: the unmasked rest
   must not reach the tool). A cut **tool result** only drops that part from the transformed
   payload (no caller applies it). To let a larger argument through, raise `max_scan_bytes` for
@@ -214,8 +224,9 @@ argument full of personal data held the gate for 1.7 s. Now:
   `injection_regex` stops at its byte budget and when every group is already at the top score.
 
 Measured on the development host (SQLite, two detectors on, `dlp_vn` and `injection_regex`;
-numbers in `HANDOFF_WP41.md`): 8 KB of tool results cost 20.5 ms before and about 11 ms now (p50,
-detector time), and the 99 KB argument is answered in about 70 ms instead of 1.7 s.
+numbers in `HANDOFF_WP41.md` and `REVIEW_WP41.md`): 8 KB of tool results cost 20 to 25 ms before
+and 12 to 15 ms now (p50, detector time, host load about 3.6), and the 99 KB argument is
+answered in under 70 ms instead of 2 s or more. The target "under 10 ms added" is **not met**.
 
 ## 3c. `mrm_status` per detector (D24, D25)
 
