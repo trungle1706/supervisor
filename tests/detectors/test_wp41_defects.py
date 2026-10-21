@@ -159,6 +159,17 @@ def test_keep_args_shape_is_checked_when_the_policy_loads(
     assert gw.detector_gate.check_policy(pol)  # at least one problem is reported
 
 
+def test_keep_args_is_refused_in_a_consumer_block(make_gateway: GatewayFactory) -> None:
+    doc = _doc()
+    doc["agents"][AGENT]["consumers"] = {
+        "app-web": {"detectors": {"settings": {"dlp_vn": {"keep_args": {LOOKUP: ["tax_code"]}}}}}
+    }
+    gw = make_gateway(policy=_policy(_doc()))
+    assert gw.detector_gate is not None
+    problems = gw.detector_gate.check_policy(_policy(doc))
+    assert problems and "agent setting" in problems[0]
+
+
 def test_typed_pseudonym_keeps_the_class_visible(make_gateway: GatewayFactory) -> None:
     generic = make_gateway(policy=_policy(_doc())).check(AGENT, "1", LOOKUP, {"tax_code": TAX})
     assert generic["transformed_args"]["tax_code"].startswith("<BANK_ACCOUNT:")  # the guess

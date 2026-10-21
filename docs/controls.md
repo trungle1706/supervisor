@@ -57,7 +57,7 @@ Computed per control and per agent from the same facts the risk register uses
 | Source | Counts as |
 |---|---|
 | rule | working = at least one **enforced** tier-0 hit of the agent in the window (shadow, rule_error, fail-mode and mock rows are not hits); failing = the rule is not in the deployed policy any more |
-| pack | newest **non-mock** result of the agent: ok working; fail or error failing; warn, skip, none idle. A judge-scored pack (`groundedness_monitor`, `halueval_vi`, ...) is a reference, not evidence, unless `RISK_EVIDENCE_JUDGED_PACKS=1` (rule R1) |
+| pack | newest **non-mock** result of the agent, on its `agent:` target **and** on its `traces:` target (WP41, D28: a fail on either one makes the control failing; a `judge` target is not bound to an agent and never counts): ok working; fail or error failing; warn, skip, none idle. A judge-scored pack (`groundedness_monitor`, `halueval_vi`, ...) is a reference, not evidence, unless `RISK_EVIDENCE_JUDGED_PACKS=1` (rule R1) |
 | monitor | only `fairness`, `drift`, `multiagent` can be working (`quality` is an LLM scorer; `oversight` and `sweeps` write no status). They are idle |
 | detector, document | recorded and checked for shape or existence; never working |
 

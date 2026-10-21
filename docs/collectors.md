@@ -87,6 +87,17 @@ agent = create_agent(model, tools, middleware=[guard.as_agent_middleware()])
 `on_block="message"` turns a block (not a pause) into an error tool message the model can read.
 `session_id` defaults to the run's `thread_id`.
 
+**Tool results (WP41, D23).** The stock middleware used to send none, so the gate answered
+`tool_results: not_provided` and the indirect-injection path never saw a document. Now an input
+check carries `context.tool_results`: the last 3 tool messages of the run state
+(`request.state["messages"]`), oldest first, each cut to 16384 bytes (the detectors'
+`max_scan_bytes`, so what is sent is what can be read). Options of `SupervisorToolMiddleware`:
+`send_tool_results=True` (default; `False` sends none), `tool_results_count=3` (0 to 10),
+`tool_result_max_bytes=16384`. They are sent the way `context.output` is: as they are to the gate,
+which masks every text it stores (R2); the adapter logs nothing and keeps nothing. They count in
+`max_payload_bytes` (a payload above it is the usual local refusal). A state the adapter cannot
+read means no key, never an error. The output check (`direction=output`) is unchanged.
+
 ### FastAPI (any ASGI app)
 
 Input phase: the body is `args` of the tool `http_inbound`. Output phase: the response is held

@@ -22,6 +22,28 @@ behaviour changes that apply with the flags off are listed below. On Delta, run
 | WP31 | Transparency report per agent in three variants (regulator, customer, internal) with allow-lists and a second leak check, "what this report does not show", JSON / HTML / PDF in Vietnamese and English, content-hash versions signed into the chain, `/v1/transparency...` (`transparency.view`, `transparency.generate`), Transparency page and Agent tab, job `python -m supervisor.jobs.transparency`, CLI `python -m supervisor.transparency`, table `transparency_report`, controls section from WP30 when `CONTROLS_ENABLED=1`, harness `python -m supervisor.transparency.harness` | `docs/transparency-report.md` | D31 |
 | WP39 | Verdict v2 Decisions drawer (Request, Response with the Observed-decision line, Detections, Metadata; masked text only), filters, masked CSV export (`decisions.export`, row cap, one-time link), deep links and correlation id across decision, trace and alert, Gate tables and Detectors tab in Analytics from `decision_daily` (job `python -m supervisor.jobs.decision_rollup`), nine SOC alert rules with `where_min` and `rate`, alert drills, console activity harness `python -m supervisor.console.activity_harness` | `docs/console.md`, `docs/alerts.md` | D32 |
 
+### WP41: defects of the M2 benchmark on the bank agent (ADR D33, `HANDOFF_WP41.md`)
+
+No new flag; every change is behind a flag that exists or in an adapter option.
+
+- D29: `agents.<id>.detectors.settings.dlp_vn.keep_args` (a lookup key reaches the tool as sent,
+  stays masked in every record, `kept_args` on the decision, the drawer and the export column
+  `kept_arguments`, audit log line and chain record `policy_keep_args` when the policy loads) and
+  `dlp_vn.pseudonym_mode: typed`.
+- D30, D18: detector setting `max_scan_bytes` (16384) and `DETECTORS_SCAN_BUDGET_BYTES` (65536
+  per call); arguments first; the cut is coverage `payload_too_large` with `bytes` and
+  `scanned_bytes`; a cut argument of a pii_export tool is never transformed in part
+  (`GATE-DETECTOR-FAILED`); a memoising masker and an early exit in `injection_regex`.
+- D24, D25: per-detector `mrm_status` in `config/detectors.yaml`; the session `findings` signal
+  counts only deterministic or GO detectors (others are recorded, weight 0).
+- D04: session signal `split_cue` (solo signal, weight 300; `timing` 400 to 100); seven new
+  harness probes.
+- D19: gate-only agents are registered in the inventory (source `gate`) on the first decision.
+- D23: the stock LangGraph middleware sends the last 3 tool results (`send_tool_results`).
+- D28: pack results on the `traces:` target count as evidence for risks and controls.
+- D27: Agent page Tools tab answers 200 with a hint for an agent with no policy record; reads the
+  served `POLICY_DIR`.
+
 ### New flags and settings (all features default off)
 
 | Flag | Turns on | Related settings |
@@ -38,6 +60,18 @@ behaviour changes that apply with the flags off are listed below. On Delta, run
 | `CONSOLE_DECISIONS_V2` (WP39) | Verdict v2 Decisions list and drawer, export, Analytics tables, job `decision_rollup` | `CONSOLE_EXPORT_MAX_ROWS` (`5000`), `SCHED_DECISION_ROLLUP_S`; the alert rules need `ALERTS_ENABLED` |
 
 ### Behaviour changes with the flags off
+
+- **WP41, settings and defaults.** `DETECTORS_SCAN_BUDGET_BYTES` (default 65536) and the detector
+  setting `max_scan_bytes` (default 16384) apply with `DETECTORS_ENABLED=1`: a text longer than
+  the limit is no longer scanned in full (coverage says so), and a pii_export call whose argument
+  is longer than 16 KB is blocked by `GATE-DETECTOR-FAILED` instead of being masked in full (raise
+  `max_scan_bytes` for `dlp_vn` on that agent). The default session weights changed (`timing`
+  400 to 100, new `split_cue` 300) and `split_cue` is a default solo signal; both act only with
+  `SESSION_MONITOR_ENABLED=1`. A detector with no `mrm_status` counts 0 in the session `findings`
+  signal. `python -m supervisor.analytics.tools` and the Tools views read `POLICY_DIR` when it is
+  set. The stock LangGraph middleware sends `context.tool_results` (option `send_tool_results`,
+  default on). The Decisions CSV export has the column `kept_arguments`. The DDL files changed in
+  comments only (no column changed).
 
 - **WP26 F13, stdio MCP proxy (no flag; kept as the security default).** `resources/read`,
   `resources/templates/list`, `prompts/get` and `completion/complete` now go through the gate as

@@ -21,7 +21,7 @@ agents:
 ```
 
 * `mode` is per agent, and a consumer may override it.
-* `consumers.<consumer_id>` may set `mode`, `detectors` and `rules` (`enable`, `disable`).
+* `consumers.<consumer_id>` may set `mode`, `detectors` and `rules` (`enable`, `disable`). A consumer `detectors` block may not name `dlp_vn.keep_args` (WP41: an agent setting, audited when the policy loads; see `docs/detectors.md` section 3b).
 * A policy file that uses none of these keys has the same `policy_hash` as before (test).
   Files that use them need no flag: the keys only act when they are in the file.
 

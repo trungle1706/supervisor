@@ -200,6 +200,10 @@ class ResolvedDetectors:
     def check_agent(self, agent_id: str, agent: AgentDetectors) -> list[str]:
         """Problems in one agent's override (unknown slug, bad value). Empty = fine."""
         problems = []
+        if "/" in agent_id and (agent.settings.get("dlp_vn") or {}).get("keep_args"):
+            # WP41: a consumer block never applies to a money / credit / pii_export tool (policy
+            # rule), and keep_args is audited per agent: it is an agent setting only
+            problems.append(f"{agent_id}: keep_args is an agent setting, not a consumer setting")
         if agent.preset is not None and agent.preset not in PRESET_NAMES:
             problems.append(f"{agent_id}: preset {agent.preset!r}")
         for slug in [*agent.enable, *agent.disable, *agent.settings]:

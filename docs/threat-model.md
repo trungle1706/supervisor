@@ -295,6 +295,23 @@ skipped; (8) **Launch passes on an unknown**: no task list, a stage before deplo
 unreadable list or the gate flag on with CONTROLS_ENABLED off are each NO-GO; (9) **a bank process
 shows working because a product rule fired**: a bank-owned control is always `bank_owned`.
 
+### 3.19 Unmasked lookup keys and scan limits (WP41, ADR D33)
+
+`dlp_vn` `keep_args` (a policy setting) sends a named top-level argument of a named tool to the
+tool as sent. This is a deliberate hole in the pii_export transform, so it is narrow and visible:
+agent level only (not per consumer), names only, at most 8 per tool, part of the policy hash,
+audited when the policy loads (log line and chain record `policy_keep_args`), and listed on every
+decision it touched (`kept_args` in the answer, the drawer, the export column `kept_arguments` and
+the chain record). Findings, rows, chain, SIEM and the session sketch keep the masked form; the
+`args_hmac_transformed` is a keyed hash of what the tool received. The risk that remains is a
+policy author who names a free-text argument: review of the policy diff is the control (policy
+source of truth is YAML in git). The scan limits (`max_scan_bytes`, `DETECTORS_SCAN_BUDGET_BYTES`)
+bound the work a hostile payload can cause; text past a limit is not read, which the coverage
+states with byte counts. A cut **argument** of a pii_export tool is never transformed in part:
+`GATE-DETECTOR-FAILED` blocks the call (fail closed). A cut tool result or argument on a
+read-only tool is reported, not blocked (detectors advise, rule R1). `split_cue` keeps only ids of
+phrase halves on a turn, never text.
+
 ### 3.18 Injection classifier (WP25, ADR D27)
 
 The classifier reads text from three untrusted places: tool arguments, tool results and tool

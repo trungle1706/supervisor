@@ -133,20 +133,17 @@ class DetectorGate:
         return problems
 
     def keep_args_loaded(self, policy: Policy) -> list[dict[str, Any]]:
-        """WP41 (D29): every ``keep_args`` entry a policy carries, per agent (and per consumer):
-        ``[{"agent_id", "tools": {tool: [argument names]}}]``. Names only, never values."""
+        """WP41 (D29): every ``keep_args`` entry a policy carries, per agent (an agent setting
+        only; a consumer block is refused when it names one). ``[{"agent_id", "tools": {tool:
+        [argument names]}}]``. Names only, never values."""
         out: list[dict[str, Any]] = []
         for agent_id, manifest in sorted(policy.doc.agents.items()):
-            places = [(agent_id, manifest.detectors)]
-            places += [
-                (f"{agent_id}/{c}", o.detectors) for c, o in sorted(manifest.consumers.items())
-            ]
-            for who, det in places:
-                keep = ((det.settings.get("dlp_vn") or {}).get("keep_args") if det else None) or {}
-                if keep:
-                    out.append(
-                        {"agent_id": who, "tools": {t: sorted(n) for t, n in sorted(keep.items())}}
-                    )
+            det = manifest.detectors
+            keep = ((det.settings.get("dlp_vn") or {}).get("keep_args") if det else None) or {}
+            if keep:
+                out.append(
+                    {"agent_id": agent_id, "tools": {t: sorted(n) for t, n in sorted(keep.items())}}
+                )
         return out
 
     def audit_policy(self, policy: Policy, evidence: Any) -> None:
