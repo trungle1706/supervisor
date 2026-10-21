@@ -121,8 +121,8 @@ def test_r1_timed_out_and_mock_findings_are_not_findings() -> None:
 
 def test_r1_findings_weight_at_or_over_the_pause_threshold_is_rejected() -> None:
     w = dict(S.DEFAULT_WEIGHTS)
-    w["findings"], w["cross_agent"], w["memory"] = 4000, 0, 0  # 1800 + 1300 + 1400 = 4500
-    w["timing"] += 500
+    w["findings"], w["cross_agent"], w["memory"] = 4000, 0, 0
+    w["timing"] += 10000 - sum(w.values())  # keep the sum at 10000 whatever the defaults are
     assert sum(w.values()) == 10000
     with pytest.raises(ConfigError) as info:
         SessionConfig(pause_scope=("money",), weights=w)

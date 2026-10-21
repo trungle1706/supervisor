@@ -67,6 +67,7 @@ class InjectionRegexDetector:
     slug = "injection_regex"
     name = "Prompt injection (patterns)"
     category = "prompt_security"
+    deterministic = True  # patterns, no model: its findings count in the session monitor
     version = "1.0.0"
     sides = ("input",)
     protocols = ("all",)

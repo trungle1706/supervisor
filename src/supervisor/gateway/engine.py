@@ -1377,6 +1377,9 @@ class Gateway:
             feats["s"] = encode_sig(s.features.sig)
         if codes:
             feats["f"] = codes
+        rec = finding_codes(getattr(d, "det", None), recorded=True)
+        if rec:
+            feats["g"] = rec  # WP41: findings of a detector that does not weigh (recorded only)
         if s.features.standing:
             feats["p"] = 1
         if d.rule_id == "GATE-DETECTOR-FAILED":
@@ -1391,6 +1394,8 @@ class Gateway:
             from supervisor.monitors.session import encode_sig as _enc
 
             feats["k"] = _enc(s.features.toks)
+        if s.features.cues:
+            feats["q"] = list(s.features.cues)
         return {
             "session_id": s.session_id,
             "session_source": s.source,

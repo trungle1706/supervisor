@@ -126,6 +126,7 @@ class DlpVnDetector:
     slug = "dlp_vn"
     name = "Vietnamese personal data (DLP)"
     category = "data_protection"
+    deterministic = True  # rules and a masker, no model: its findings count in the session monitor
     version = "1.0.0"
     sides = ("input", "output")
     protocols = ("all",)

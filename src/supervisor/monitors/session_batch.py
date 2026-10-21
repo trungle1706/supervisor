@@ -47,7 +47,15 @@ def turn_from_row(row: Mapping[str, Any], risk: str, extra_codes: Iterable[str] 
         import json
 
         feats = json.loads(feats)
-    codes = tuple(dict.fromkeys([*(f"d:{c}" for c in feats.get("f", [])), *extra_codes]))
+    codes = tuple(
+        dict.fromkeys(
+            [
+                *(f"d:{c}" for c in feats.get("f", [])),
+                *(f"r:{c}" for c in feats.get("g", [])),  # WP41: recorded, weight 0
+                *extra_codes,
+            ]
+        )
+    )
     amount = row.get("amount_minor")
     return Turn(
         event_id=str(row["event_id"]),
@@ -65,6 +73,7 @@ def turn_from_row(row: Mapping[str, Any], risk: str, extra_codes: Iterable[str] 
         assert_=bool(feats.get("a")),
         recall=bool(feats.get("r")),
         toks=decode_sig(feats.get("k")),
+        cues=tuple(int(c) for c in feats.get("q", []) if isinstance(c, int)),
         topic=bool(feats.get("t")),
         infra=bool(feats.get("i")),
         standing=bool(feats.get("p")),

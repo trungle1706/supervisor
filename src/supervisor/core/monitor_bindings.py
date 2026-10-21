@@ -73,6 +73,8 @@ class DriftBinding(_Strict):
 
 # WP27 (ADR D29): the nine signals of the session monitor, in a fixed order, and the default
 # weights (basis points, sum 10000). A policy may replace them; the sum is checked below.
+# WP41 (ADR D33): a tenth signal, ``split_cue``. A policy that lists the nine older names keeps
+# working: ``split_cue`` then has weight 0 (its hit still counts for K and for solo_signals).
 SIGNALS: tuple[str, ...] = (
     "findings",
     "refusals",
@@ -83,7 +85,9 @@ SIGNALS: tuple[str, ...] = (
     "timing",
     "cross_agent",
     "memory",
+    "split_cue",
 )
+LEGACY_SIGNALS: tuple[str, ...] = SIGNALS[:-1]
 DEFAULT_WEIGHTS: dict[str, int] = {
     "findings": 1800,
     "refusals": 900,
@@ -91,9 +95,10 @@ DEFAULT_WEIGHTS: dict[str, int] = {
     "drift": 800,
     "money": 1300,
     "near_dup": 800,
-    "timing": 400,
+    "timing": 100,  # was 400 before split_cue: the harness numbers do not move (ADR D33)
     "cross_agent": 1300,
     "memory": 1400,
+    "split_cue": 300,
 }
 PAUSE_SCOPES: tuple[str, ...] = ("money", "credit")
 
@@ -141,6 +146,8 @@ class SessionBinding(_Strict):
     def _weights(cls, v: dict[str, int] | None) -> dict[str, int] | None:
         if v is None:
             return v
+        if set(v) == set(LEGACY_SIGNALS):  # WP41: a list from before split_cue
+            v = {**v, "split_cue": 0}
         if set(v) != set(SIGNALS):
             raise ValueError(f"weights must name exactly these signals: {', '.join(SIGNALS)}")
         if any(isinstance(w, bool) or not isinstance(w, int) or w < 0 for w in v.values()):

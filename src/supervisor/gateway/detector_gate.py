@@ -98,6 +98,9 @@ class DetectorOutcome:
     rules_us: int | None = None
     detectors_us: int | None = None
     per_detector_us: dict[str, int] = field(default_factory=dict)
+    # WP41: slugs whose findings count in the session monitor (None = all, for a gate built
+    # without the config, e.g. in a test)
+    weigh_slugs: frozenset[str] | None = None
 
 
 def _ne_dict(f: Finding) -> dict[str, Any]:
@@ -113,6 +116,7 @@ class DetectorGate:
     def __init__(self, registry: DetectorRegistry, resolved: ResolvedDetectors) -> None:
         self.registry = registry
         self.resolved = resolved
+        self.weigh_slugs = resolved.weighing_slugs()
 
     def check_policy(self, policy: Policy) -> list[str]:
         """Problems in the per-agent detector overrides of a policy (empty = fine). Used at
@@ -263,7 +267,9 @@ class DetectorGate:
     ) -> None:
         """Fill ``d.v2`` (the response fields) and ``d.det`` (what to record)."""
         direction = pre.direction
-        out = DetectorOutcome(consumer_id=pre.consumer_id, rules_us=rules_us)
+        out = DetectorOutcome(
+            consumer_id=pre.consumer_id, rules_us=rules_us, weigh_slugs=self.weigh_slugs
+        )
         coverage: dict[str, Any]
         transformed: dict[str, Any] | None = None
         detectors_run: list[str] = []

@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -46,6 +46,11 @@ class DetectorEntry(_Strict):
     enabled: bool = True
     fail_closed: bool = True
     preset: str | None = None
+    # WP41 (D24, D25): the model risk status of the detector. Only a detector that is
+    # deterministic (dlp_vn, injection_regex) or has the status GO counts in the session
+    # monitor's `findings` signal; findings of any other detector are recorded and weigh 0.
+    # Unset = NO-GO: an unvalidated detector never moves a session score.
+    mrm_status: Literal["GO", "NO-GO"] = "NO-GO"
     settings: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -179,6 +184,18 @@ class ResolvedDetectors:
             scan_budget_bytes=self._base.scan_budget_bytes,
         )
         return run, frozenset(agent.skip_tools) if agent else frozenset()
+
+    def weighing_slugs(self) -> frozenset[str]:
+        """Detectors whose findings count in the session monitor's ``findings`` signal: the
+        deterministic ones, and those with ``mrm_status: GO``."""
+        out = set()
+        for slug in self.registry.slugs:
+            entry = self.cfg.detectors.get(slug)
+            if getattr(self.registry.get(slug), "deterministic", False) or (
+                entry is not None and entry.mrm_status == "GO"
+            ):
+                out.add(slug)
+        return frozenset(out)
 
     def check_agent(self, agent_id: str, agent: AgentDetectors) -> list[str]:
         """Problems in one agent's override (unknown slug, bad value). Empty = fine."""
