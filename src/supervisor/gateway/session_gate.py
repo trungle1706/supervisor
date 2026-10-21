@@ -39,6 +39,7 @@ from supervisor.monitors.session import (
     daily_cap_minor,
     extract_flags,
     identify,
+    lookback_s,
     resolve_config,
     session_key,
     timeline,
@@ -383,7 +384,7 @@ class SessionGate:
             mono = time.monotonic()
             if mono - self._forgot > FORGET_EVERY_S:
                 self._forgot = mono
-                self.engine.forget(now_ms - 2 * cfg.window_s * 1000)
+                self.engine.forget(now_ms - lookback_s(cfg.window_s) * 1000)
         if a is None or not (a.case_due or a.pause_due):
             return
         with self._act_lock:
@@ -408,7 +409,7 @@ class SessionGate:
 
             from supervisor.monitors.session_batch import load_turns
 
-            span = int(getattr(self.settings, "session_window_s", 1800))
+            span = lookback_s(int(getattr(self.settings, "session_window_s", 1800)))
             loaded = load_turns(self.ctx, policy, now - timedelta(seconds=span), now)
             with self._lock:
                 for (_, sid), turns in loaded.items():

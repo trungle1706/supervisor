@@ -456,6 +456,7 @@ class Normaliser:
     # WP37: keep the gate correlation id of a span. Only with DETECTORS_ENABLED=1 (F12): with the
     # flag off the column stays NULL, whatever an OTLP sender puts in the attribute.
     keep_correlation_id: bool = False
+    keep_session_id: bool = False  # WP27: SESSION_MONITOR_ENABLED
 
     @property
     def mask_version(self) -> str | None:
@@ -539,7 +540,11 @@ class Normaliser:
         if classification is None and self.masker is not None and (args_text or result_text):
             classification = "pii" if found_pii else "internal"
         event_id = f"{span.trace_id}-{span.span_id}"
-        session_id = self._ident(attrs.get(A_SESSION) or attrs.get("gen_ai.conversation.id"))
+        session_id = (
+            self._ident(attrs.get(A_SESSION) or attrs.get("gen_ai.conversation.id"))
+            if self.keep_session_id
+            else None
+        )
         ts = ns_to_datetime(span.start_ns)
         event = AgentEvent(
             event_id=event_id,

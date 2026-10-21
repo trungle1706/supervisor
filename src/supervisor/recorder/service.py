@@ -62,6 +62,7 @@ def build_recorder(
         "dev",
         use_semconv=settings.recorder_semconv,
         keep_correlation_id=settings.detectors_enabled,  # WP37
+        keep_session_id=settings.session_monitor_enabled,  # WP27
     )
     return Recorder(normaliser, EventWriter(tables, spool))
 

@@ -260,6 +260,15 @@ def fold(text: str) -> str:
 
 
 @dataclass(frozen=True)
+class DailyConfig:
+    """The per-consumer daily window (batch job only, case only)."""
+
+    window_s: int = 86400
+    k: int = 3
+    case_threshold_bp: int = 2500
+
+
+@dataclass(frozen=True)
 class SessionConfig:
     """Effective settings of one agent: policy value, else the global setting, else default."""
 
@@ -275,6 +284,7 @@ class SessionConfig:
     solo_signals: tuple[str, ...] = ("memory",)
     dup_bp: int = 8000
     cap_minor: int | None = None  # None: use the daily cap of the policy's aggregate rule
+    daily: DailyConfig | None = None  # per-consumer daily window; None = off
 
     def __post_init__(self) -> None:
         if set(self.weights) != set(SIGNALS) or sum(self.weights.values()) != 10000:
@@ -305,6 +315,9 @@ class SessionConfig:
             "weights": dict(self.weights),
             "solo_signals": list(self.solo_signals),
             "dup_bp": self.dup_bp,
+            "daily": None
+            if self.daily is None
+            else [self.daily.window_s, self.daily.k, self.daily.case_threshold_bp],
             "cap_minor": self.cap_minor,
         }
 
@@ -332,10 +345,22 @@ def resolve_config(settings: Any, binding: SessionBinding | None) -> SessionConf
         weights=dict(b.weights) if b.weights is not None else dict(DEFAULT_WEIGHTS),
         solo_signals=tuple(b.solo_signals) if b.solo_signals is not None else ("memory",),
         cap_minor=b.cap_minor,
+        daily=(
+            DailyConfig(b.daily.window_s, b.daily.k, b.daily.case_threshold_bp)
+            if b.daily is not None and b.daily.enabled
+            else None
+        ),
     )
 
 
 # --------------------------------------------------------------------------- identity
+
+
+def lookback_s(window_s: int) -> int:
+    """How far back history is read (and kept): the in-request engine keeps turns for twice the
+    window (a memory assertion can be older than the window), so the batch job and the cold-start
+    warm-up read the same depth. One helper, so the two paths give the same score."""
+    return 2 * int(window_s)
 
 
 def session_key(key: str | bytes | None) -> bytes:
@@ -1027,6 +1052,7 @@ def first_trip(
 
 __all__ = [
     "Assessment",
+    "DailyConfig",
     "EXPAND_PHRASES",
     "Features",
     "SATURATION",
@@ -1045,6 +1071,7 @@ __all__ = [
     "has_expand",
     "hash_consumer",
     "identify",
+    "lookback_s",
     "resolve_config",
     "similarity_bp",
     "timeline",

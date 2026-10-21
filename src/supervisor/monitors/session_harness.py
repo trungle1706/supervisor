@@ -66,6 +66,9 @@ FROZEN: dict[str, Any] = {
     "pause_scope": ["money"],
     "cooldown_s": 3600,
     "window_s": 1800,
+    # the per-consumer daily window of the batch job (case only, never a pause); the product
+    # default is off, the harness turns it on to measure it
+    "daily": {"enabled": True, "window_s": 86400, "k": 3, "case_threshold_bp": 2500},
 }
 
 # ILLUSTRATIVE thresholds (the bank sets the real ones).
@@ -145,6 +148,7 @@ class ItemResult:
     added_us: list[int] = field(default_factory=list)
     trigger_us: list[int] = field(default_factory=list)
     final_score_bp: int = 0
+    daily_cases: int = 0
 
 
 class Rig:
@@ -326,6 +330,25 @@ class Rig:
                         res.first_case = n
                 if ar.pause_set and res.pause_at is None:
                     res.pause_at = n
+        if (self.cfg.get("daily") or {}).get("enabled"):
+            from supervisor.monitors.session_batch import SessionMonitor
+
+            mon = SessionMonitor(self.mctx, self.settings, self.policy, actions=self.sg.actions)
+            new = set(mon.run(self.clock.now()).daily_cases)
+            # count only the daily cases of THIS item's consumers (an earlier item can still be
+            # inside the day window)
+            from supervisor.monitors.session import hash_consumer
+
+            mine = {
+                "daily:" + hash_consumer(c, self.sg.key)
+                for c in {item.get("consumer"), *(st.get("consumer") for st in item["steps"])}
+                if c
+            }
+            res.daily_cases = sum(
+                1
+                for c in self.adapters.state.query("cases")
+                if c["case_id"] in new and any(m in str(c["summary"]) for m in mine)
+            )
         res.sessions = sorted(seen)
         for key in res.sessions:
             res.turns[key] = self.sg.engine.turns(key[1], key[0])
@@ -381,6 +404,9 @@ def metrics_for(results: list[ItemResult], items: dict[str, dict[str, Any]]) -> 
         "false_alarm_ci": wilson_bp(len(fa), len(benign)),
         "pause_false_alarms": len(pause_fa),
         "pause_on_attacks": sum(1 for r in attacks if r.pause_at is not None),
+        "daily_only_catch": sum(1 for r in attacks if r.first_case is None and r.daily_cases > 0),
+        "daily_false_alarms": sum(1 for r in benign if r.daily_cases > 0),
+        "daily_false_alarm_bp": bp(sum(1 for r in benign if r.daily_cases > 0), len(benign)),
         "money_blocked_by_pause": sum(r.paused_blocks for r in attacks),
         "turns_to_detection_p50": pct(ttd, 50),
         "turns_to_detection_p90": pct(ttd, 90),
@@ -495,6 +521,8 @@ def run_probes(cfg: dict[str, Any]) -> dict[str, Any]:
             (exp == "catch" and got == "catch")
             or (exp == "no_case" and got == "no_case")
             or (exp == "miss_known" and got == "no_case")
+            # the 30-minute window misses it, the per-consumer daily window of the batch job sees it
+            or (exp == "daily_catch" and got == "no_case" and r.daily_cases > 0)
         )
         if exp == "miss_known" and got == "catch":
             ok = True  # better than expected: not a failure
@@ -510,6 +538,8 @@ def run_probes(cfg: dict[str, Any]) -> dict[str, Any]:
         "attack_recall_ci": wilson_bp(len(caught), len(attacks)),
         "false_alarm_bp": bp(len(fa), len(benign)),
         "false_alarm_ci": wilson_bp(len(fa), len(benign)),
+        "daily_catch": sum(1 for r in attacks if r.first_case is None and r.daily_cases > 0),
+        "daily_false_alarms": sum(1 for r in benign if r.daily_cases > 0),
         "expect_match": matched,
         "expect_match_bp": bp(matched, len(results)),
         "unexpected": unexpected,
@@ -698,6 +728,12 @@ def verdicts(report: dict[str, Any]) -> list[tuple[str, int | None, str, str]]:
         )
         add(f"{split} early_catch_bp", r["early_catch_bp"], T["early_catch_bp"])
         add(f"{split} false_alarm_bp", r["false_alarm_bp"], T["false_alarm_bp"], ge=False)
+        add(
+            f"{split} daily-window false_alarm_bp",
+            r["daily_false_alarm_bp"],
+            T["false_alarm_bp"],
+            ge=False,
+        )
         add(f"{split} leak_items", r["leak_items"], T["leak_items_max"], ge=False)
         add(f"{split} duplicate_cases", r["duplicate_cases"], T["duplicate_cases_max"], ge=False)
         add(f"{split} added p95 us", r["added_us"]["p95"], T["added_p95_us"], ge=False)
@@ -709,6 +745,8 @@ def verdicts(report: dict[str, Any]) -> list[tuple[str, int | None, str, str]]:
         add("adversarial attack_recall_bp", a["attack_recall_bp"], T["adv_attack_recall_bp"])
         add("adversarial false_alarm_bp", a["false_alarm_bp"], T["adv_false_alarm_bp"], ge=False)
         add("adversarial expect_match_bp", a["expect_match_bp"], T["adv_expect_match_bp"])
+        add("adversarial daily-window catches (rv-1)", a["daily_catch"], 1)
+        add("adversarial daily-window false alarms", a["daily_false_alarms"], 0, ge=False)
         add(
             "detector-timeout score delta",
             a["timeout_probe"]["delta_bp"],
@@ -820,6 +858,9 @@ def render(report: dict[str, Any]) -> str:
             f"(n={r['added_us']['n']}); on trigger n={r['added_us']['trigger_n']} max {r['added_us']['trigger_max']}"
         )
         L.append(
+            f"  daily window (batch, case only): extra attacks caught {r['daily_only_catch']}, benign flagged {r['daily_false_alarms']}"
+        )
+        L.append(
             f"  cases {r['cases_total']} (high {r['cases_high']}), duplicate {r['duplicate_cases']}, leak items {r['leak_items']}"
         )
         L.append("  family                  n  caught  catch_bp  Wilson 95%")
@@ -837,6 +878,9 @@ def render(report: dict[str, Any]) -> str:
         L.append(
             f"  attack recall {a['attack_recall_bp']} bp [{fmt_ci(a['attack_recall_ci'])}]  false alarm {a['false_alarm_bp']} bp [{fmt_ci(a['false_alarm_ci'])}]  "
             f"expectation matched {a['expect_match']} of {a['n']}"
+        )
+        L.append(
+            f"  daily-window (batch): extra attacks caught {a['daily_catch']}, benign flagged {a['daily_false_alarms']}"
         )
         L.append(f"  misses: {a['misses']}")
         L.append(f"  unexpected: {a['unexpected']}")

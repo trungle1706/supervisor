@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -24,6 +24,7 @@ from supervisor.monitors.session import (
     Turn,
     daily_cap_minor,
     decode_sig,
+    lookback_s,
     resolve_config,
     timeline,
 )
@@ -94,6 +95,7 @@ class BatchResult:
     sessions: int = 0
     assessed: int = 0
     cases_opened: list[str] = field(default_factory=list)
+    daily_cases: list[str] = field(default_factory=list)
     pauses_set: list[str] = field(default_factory=list)
     expired: list[str] = field(default_factory=list)
     skipped: dict[str, int] = field(default_factory=dict)
@@ -127,7 +129,9 @@ class SessionMonitor:
         agents = sorted(set(agents) | set(self.policy.doc.agents))
         cfgs = {a: self.config_for(a) for a in agents}
         longest = max((c.window_s for c, _ in cfgs.values()), default=1800)
-        by_session = load_turns(self.ctx, self.policy, now - timedelta(seconds=longest), now)
+        by_session = load_turns(
+            self.ctx, self.policy, now - timedelta(seconds=lookback_s(longest)), now
+        )
         engine = SessionEngine()
         for (_, sid), turns in sorted(by_session.items()):
             for t in turns:
@@ -154,6 +158,7 @@ class SessionMonitor:
                 res.pauses_set.append(r.pause_id)
             if r.skipped:
                 res.skipped[r.skipped] = res.skipped.get(r.skipped, 0) + 1
+        self._run_daily(now, agents, cfgs, res)
         day = now.date()
         for agent_id in agents:
             cfg, _ = cfgs[agent_id]
@@ -176,6 +181,53 @@ class SessionMonitor:
             except Exception:  # noqa: BLE001 - a status write must not stop the run
                 log.exception("session monitor status write failed")
         return res
+
+    def _run_daily(
+        self,
+        now: datetime,
+        agents: list[str],
+        cfgs: dict[str, tuple[SessionConfig, int | None]],
+        res: BatchResult,
+    ) -> None:
+        """Per-consumer daily window (``monitors.session.daily``): the turns of one consumer on
+        one agent over a day are scored as one pseudo-session. It sees what the 30-minute window
+        cannot: a slow attack, and a caller that rotates ``session_id`` (same consumer). Case only,
+        never a pause; one case per consumer and agent per window."""
+        on = [a for a in agents if cfgs[a][0].enabled and cfgs[a][0].daily is not None]
+        if not on:
+            return
+        span = max(cfgs[a][0].daily.window_s for a in on)  # type: ignore[union-attr]
+        by_session = load_turns(self.ctx, self.policy, now - timedelta(seconds=span), now)
+        engine = SessionEngine()
+        groups: dict[tuple[str, str], list[Any]] = {}
+        for (agent_id, _), turns in sorted(by_session.items()):
+            for t in turns:
+                if t.consumer:
+                    groups.setdefault((agent_id, "daily:" + t.consumer), []).append(t)
+        for (_agent, pseudo), turns in groups.items():
+            for t in sorted(turns, key=lambda x: x.ts_ms):
+                engine.add(pseudo, t)
+        now_ms = epoch_ms(now)
+        for agent_id, pseudo in sorted(groups):
+            base, cap = cfgs[agent_id]
+            d = base.daily
+            if not base.enabled or d is None:
+                continue
+            cfg = replace(
+                base,
+                window_s=d.window_s,
+                k=d.k,
+                case_threshold_bp=d.case_threshold_bp,
+                cooldown_s=d.window_s,
+                pause_scope=(),
+                daily=None,
+            )
+            a = engine.assess(pseudo, agent_id, now_ms, cfg, cap)
+            if a is None or not a.case_due:
+                continue
+            r = self.actions.act(a, cfg, timeline(engine.turns(pseudo, agent_id)), source="daily")
+            if r.case_opened and r.case_id:
+                res.daily_cases.append(r.case_id)
 
 
 __all__ = ["BatchResult", "SessionMonitor", "epoch_ms", "load_turns", "turn_from_row"]

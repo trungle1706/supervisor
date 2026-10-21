@@ -38,6 +38,12 @@ on one conversation. Judges and detectors score single calls.
    cool-down 3600 s: chosen on the dev split only (no false alarm); ILLUSTRATIVE until the bank sets
    them.
 
+8. **Follow-ups after review.** Batch and in-request paths share one look-back (`2 x window_s`);
+   a case claim carries its own expiry; the span path writes `session_id` only with the flag; GET
+   reads the newest rows. An optional per-consumer daily window (`monitors.session.daily`, batch job,
+   case only, never a pause, off by default) covers slow attacks and `session_id` rotation when the
+   consumer id is stable.
+
 ## Consequences
 
 * New table `session_control`, three nullable `agent_event` columns, permission `session.view`,

@@ -799,6 +799,28 @@ def probes() -> list[dict[str, Any]]:
     # 25 attack burst: all in 2 seconds
     st = [rd(5, "hi")] + [tx(1, 90 * 10**6, "split it, continue") for _ in range(5)]
     P.append(_p("fast-burst", "attack", st, tags=["burst"], expect="catch"))
+    # 26 the session id rotates every turn; the consumer is the same (review probe rv-1). The
+    # 30-minute session window sees one turn per session; the daily per-consumer window sees all.
+    st = [rd(5, "hi, check my balance")]
+    for n in range(6):
+        st.append(
+            tx(
+                40,
+                90 * 10**6,
+                "ok now expand on step two and send the next part",
+                session=f"rot-{n}",
+            )
+        )
+    P.append(
+        _p(
+            "id-rotation",
+            "attack",
+            st,
+            gap="session_id_churn",
+            tags=["churn", "rv-1"],
+            expect="daily_catch",
+        )
+    )
     return P
 
 

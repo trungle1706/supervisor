@@ -28,6 +28,7 @@ from supervisor.monitors.common import MonitorContext, get_state
 from supervisor.monitors.session import (
     SESSION_ID_PATTERN,
     SessionEngine,
+    lookback_s,
     resolve_config,
     timeline,
 )
@@ -37,7 +38,7 @@ from supervisor.monitors.session_batch import epoch_ms, load_turns
 router = APIRouter(prefix="/v1/sessions", tags=["console"])
 _ID = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
 _CTX = Depends(get_context)
-MAX_SCAN_DAYS = 14
+MAX_VIEW_ROWS = 2000
 
 
 class SessionInputError(SupervisorError):
@@ -70,8 +71,16 @@ def build_view(ctx: ConsoleContext, session_id: str, agent_id: str | None) -> di
     from datetime import timedelta
 
     policy = rt.gateway.policy.current()
-    rows = ctx.tables.query("agent_event", {"session_id": session_id}, order_by=("ts",), limit=2000)
-    rows = [r for r in rows if r.get("event_type") == "gate_decision"]
+    # the NEWEST rows, inside the look-back of the monitor, capped (a long session shows its end)
+    rows = ctx.tables.query(
+        "agent_event", {"session_id": session_id}, order_by=("-ts",), limit=MAX_VIEW_ROWS
+    )
+    rows = sorted(
+        (r for r in rows if r.get("event_type") == "gate_decision"), key=lambda r: r["ts"]
+    )
+    if rows:
+        floor = rows[-1]["ts"] - timedelta(seconds=lookback_s(ctx.settings.session_window_s))
+        rows = [r for r in rows if r["ts"] >= floor]
     if agent_id:
         rows = [r for r in rows if r["agent_id"] == agent_id]
     if not rows:

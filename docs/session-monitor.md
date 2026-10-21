@@ -107,14 +107,35 @@ agents:
         weights: {findings: 1800, refusals: 900, expand: 1300, drift: 800, money: 1300,
                   near_dup: 800, timing: 400, cross_agent: 1300, memory: 1400}   # must sum to 10000
         enabled: true
+        daily:                  # per-consumer daily window, batch job only, case only (default off)
+          enabled: false
+          window_s: 86400
+          k: 3
+          case_threshold_bp: 2500
 ```
+
+### Depth, claims, daily window
+
+* **One look-back.** The in-request engine keeps a session's turns for twice the window (a memory
+  assertion can be older than the window). The batch job and the cold-start warm-up read the same
+  depth (`lookback_s`, `2 x window_s`), so both paths give the same score on the same rows.
+* **Claim time to live.** Before a case is opened the process claims the session (compare-and-set
+  on `monitor_state`). The claim stores its own expiry (`claim_expires` = now + cool-down); a process
+  that dies between the claim and the case suppresses that session for at most one cool-down.
+* **Span path.** `agent_event.session_id` from a span (`supervisor.session_id`) is written only
+  with `SESSION_MONITOR_ENABLED=1`.
+* **Daily window** (`monitors.session.daily`, off by default). The batch job scores the turns of one
+  consumer on one agent over a day (default 86400 s, its own `k` and threshold) as one pseudo-session.
+  It sees what the 30-minute window cannot: a slow attack and a caller that rotates `session_id`
+  (probe `id-rotation`). It opens a case (`session_escalation`, summary names `daily:<consumer hash>`),
+  one per consumer and agent per window, and **never pauses**. It needs a stable `consumer_id`.
 
 ## 5. Where to look
 
 | What | How |
 |---|---|
 | Monitor status | `oversight_metric.monitor_status` key `session` per agent and day (`ok`, `no_data`) |
-| One conversation | `GET /v1/sessions/<id>[?agent_id=]`: masked timeline, scores, config, case id, pauses. Permission `session.view` (every role but viewer). 400 when the flag is off, 404 when unknown. |
+| One conversation | `GET /v1/sessions/<id>[?agent_id=]`: masked timeline of the newest rows (look-back and a 2000 row cap), scores, config, case id, pauses. Permission `session.view` (every role but viewer). 400 when the flag is off, 404 when unknown. |
 | Lift a pause | `POST /v1/sessions/<id>/resume` body `{"agent_id": ..., "reason": ...}`, permission `agent.resume`, two different people |
 | Batch path | `python -m supervisor.jobs.session_monitor` (also in the scheduler); idempotent next to the in-request path |
 | Alert | `AL-SESSION-ESCALATION` in `config/alerts.yaml` (source `case`, `case_type` filter) |
@@ -159,6 +180,6 @@ rule first fires.
 
 ## 7. Not done
 
-See the WP27 rows of `BACKLOG.md`: slow attacks over days, session id churn, obfuscated phrases,
+See the WP27 rows of `BACKLOG.md`: slow attacks over several days, session id churn without a consumer id, obfuscated phrases,
 paraphrased memory poison, per-consumer cross-session view, a console page, a background pause
 refresher on Delta.

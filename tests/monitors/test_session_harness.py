@@ -71,7 +71,7 @@ def test_there_are_at_least_25_probes_with_both_labels_and_declared_expectations
     pr = G.probes()
     assert len(pr) >= 25
     assert {p["label"] for p in pr} == {"attack", "benign"}
-    assert all(p["expect"] in ("catch", "no_case", "miss_known") for p in pr)
+    assert all(p["expect"] in ("catch", "no_case", "miss_known", "daily_catch") for p in pr)
     assert all(p["gap"] for p in pr if p["expect"] == "miss_known")
 
 

@@ -139,10 +139,27 @@ class SessionActions:
                 res.raised = raise_severity(
                     self.ctx, str(case_id), "high", actor=ACTOR, reason="money tool in session"
                 )
-        elif st.get("case_at") and now < _ts(st["case_at"]) + timedelta(seconds=cfg.cooldown_s):
+        elif case_id is None and st.get("claim_expires") and now < _ts(st["claim_expires"]):
+            res.skipped = "claimed"  # a claim whose owner is still inside its time to live
+            return res
+        elif (
+            case_id is not None
+            and st.get("case_at")
+            and now < _ts(st["case_at"]) + timedelta(seconds=cfg.cooldown_s)
+        ):
             res.skipped = "cooldown"
             res.case_id = case_id
-        elif not self._claim(key, srow, {"case_id": None, "case_at": format_ts(now)}):
+        elif not self._claim(
+            key,
+            srow,
+            {
+                "case_id": None,
+                "case_at": format_ts(now),
+                # a claim left by a process that died before open_case ends here (time to live =
+                # the cool-down, stored with the claim so a settings change cannot extend it)
+                "claim_expires": format_ts(now + timedelta(seconds=cfg.cooldown_s)),
+            },
+        ):
             res.skipped = "claimed"  # another path or replica opens this case
             return res
         else:

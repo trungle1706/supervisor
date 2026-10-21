@@ -232,6 +232,40 @@
       "title": "Aggregate",
       "type": "object"
     },
+    "DailyBinding": {
+      "additionalProperties": false,
+      "description": "``monitors.session.daily`` (WP27 follow-up): a per-consumer window over a day, read by the\nbatch job only. It sees slow attacks and a rotating ``session_id`` (the sessions share one\nconsumer). Case only, never a pause. Off by default.",
+      "properties": {
+        "case_threshold_bp": {
+          "default": 2500,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Case Threshold Bp",
+          "type": "integer"
+        },
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "k": {
+          "default": 3,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "K",
+          "type": "integer"
+        },
+        "window_s": {
+          "default": 86400,
+          "maximum": 604800,
+          "minimum": 3600,
+          "title": "Window S",
+          "type": "integer"
+        }
+      },
+      "title": "DailyBinding",
+      "type": "object"
+    },
     "DriftBinding": {
       "additionalProperties": false,
       "properties": {
@@ -700,6 +734,17 @@
           ],
           "default": null,
           "title": "Cooldown S"
+        },
+        "daily": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DailyBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "enabled": {
           "anyOf": [

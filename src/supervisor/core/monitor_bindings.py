@@ -98,6 +98,17 @@ DEFAULT_WEIGHTS: dict[str, int] = {
 PAUSE_SCOPES: tuple[str, ...] = ("money", "credit")
 
 
+class DailyBinding(_Strict):
+    """``monitors.session.daily`` (WP27 follow-up): a per-consumer window over a day, read by the
+    batch job only. It sees slow attacks and a rotating ``session_id`` (the sessions share one
+    consumer). Case only, never a pause. Off by default."""
+
+    enabled: bool = False
+    window_s: int = Field(default=86400, ge=3600, le=7 * 86400)
+    k: int = Field(default=3, ge=1, le=8)
+    case_threshold_bp: int = Field(default=2500, ge=1, le=10000)
+
+
 class SessionBinding(_Strict):
     """``agents.<id>.monitors.session`` (WP27): per-agent settings of the session monitor.
 
@@ -116,6 +127,7 @@ class SessionBinding(_Strict):
     # signals that open a case on their own, without K hits (default: memory, the state signal)
     solo_signals: list[str] | None = None
     cap_minor: int | None = Field(default=None, ge=1)
+    daily: DailyBinding | None = None  # per-consumer daily window, batch only
 
     @field_validator("solo_signals")
     @classmethod
@@ -166,6 +178,7 @@ class MonitorBindings(_Strict):
 
 __all__ = [
     "DEFAULT_WEIGHTS",
+    "DailyBinding",
     "FORBIDDEN_ATTRIBUTES",
     "PAUSE_SCOPES",
     "SIGNALS",
