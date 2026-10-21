@@ -28,7 +28,7 @@
     "train_b.jsonl": {
       "n_items": 3000,
       "n_positive": 1500,
-      "sha256": "559abea91fb8be404754ad10d049eaa3e12fbedb0f91b11a0d2a9b7bd279074e"
+      "sha256": "c5c83af22720e6fa6b569f22ae2e36174af6dd5b7135f71b5cb0c9ecd0cb9aad"
     }
   },
   "labellers": [
@@ -39,7 +39,7 @@
   "licence": "synthetic, this repo",
   "llm_paraphrase": {
     "model": "qwen3.8-27b-int4 (local, inference only, concurrency 2)",
-    "n_paraphrases": 6071,
+    "n_paraphrases": 7506,
     "paraphrases_sha256": "207df32faacad9e47b3c464d58d381b7c2d1ed5f25908881d265e6f8dd33b59e"
   },
   "name": "injection_vi_en",
