@@ -115,3 +115,81 @@ worktree root are not committed.
 | 4 | Latency target | Relax the classifier's target to p95 5 ms. The whole gate budget is 50 ms and WP23 measured gate p99 at 4.6 ms. Then add feature caching (WP25b item 7) and aim back at 2 to 3 ms. |
 | 5 | MRM roles, inventory | Model owner: the Supervisor product owner (first line). Developer: the WP25 team. Validator: independent model risk (second line). Approver: the model risk committee or a CRO delegate. Yes, join `python -m supervisor.judge.mrm` inventory and change control, so that a new weights SHA needs approval. |
 | 6 | WP26 adapter | The WP26 integrator registers `score_tool_description` at merge. If the weights are refused, hold the tool for human review. That is a deterministic registration hold, not a classifier block of a call, so R1 is kept. Log the hold as a case. |
+
+## WP25b review (model 1.1.0)
+
+Reviewer: Opus (model risk validator and security reviewer). Delta: `git diff 3ffde31...HEAD` (6 author commits,
+efce71e to 146c6cc, 40 files). Nothing pushed, merged or rewritten. No `.env`. No retrain. The sealed sets were opened
+only by the harness `--check` and the test suite, as every run of the regression test does; no number was tuned.
+
+**Verdict: APPROVED WITH FOLLOW-UPS** for integration as a **disabled** detector. The author's NO-GO holds
+(held-out false alarm 2522 bp, precision 6165 bp, recall 8111 bp at `balanced`). R1, R2 and the bounds hold.
+One Medium finding (the report caveats) is fixed. No High finding.
+
+### Findings
+
+| id | sev | where | what | fix |
+|---|---|---|---|---|
+| G1 | Medium | `docs/injection-classifier-validation-report.md`, `validation.py` `CAVEATS_MD` | The published MRM report carried the 1.0.0 caveats: "Dev drift ... presets from 0e8410d" (false for 1.1.0), "targets unchanged since" (the latency target changed in efce71e), and the operating-point table said "dev: where they were chosen" (they came from out-of-fold scores; dev is in the final training data, so the dev rows and `heldout_gap_bp` are in-sample). The miscalibration cause and the burnt held-out statement were only in the handoff and `docs/injection-classifier.md`, not in the report. | 6dcea93: caveats for 1.1.0 (calibration cause, post-run points are descriptive, dev in-sample, burnt held-out, latency change) in the code and in the report text. Text only, no rerun, no number moved. |
+| G2 | Low | `tools/train_classifier.py` | The sealed-set guard was an `assert` in `main()` (removed by `python -O`); `load_items()`, which the CV tool also uses, had no guard. The test was a static regex on quoted names only. | 7401269: `load_items` raises `ValueError` for any non-training pool; `main` returns 2; a runtime test. |
+| G3 | Low | `README.md` | The handoff lists README as changed; it was not. | b2029b0: the row names 1.1.0 and `CLASSIFIER_FAIL_CLOSED_APPROVED`. |
+| G4 | Low | `detector.py` `fail_closed_allowed` | The flag is read from `os.environ`, not from `config.py` (brief convention). The approver is any non-FILL-ME text in an unhashed card: control is git review, not a signature. | open: move the flag into the WP25 settings block; MRM inventory should bind the approval to `weights_sha256`. |
+| G5 | Low | `features.features` (lru 4096), `concepts._fuzzy` (lru 8192) | The cache keys are raw window text and tokens (account digits included) and stay in process memory after the call. Not the evidence chain and not a prompt, so R2 holds. | open: one line in the threat model, or key the cache on a hash. |
+| G6 | Low | `clip_unit` with `cheap_score` | Cost of a 1 MiB text rose from 7 to 41 ms (1.0.0 review) to 201 to 215 ms (about 440 ranked segments of the 200k scan). Under the 500 ms deadline, and the gate refuses more than 100k chars (100k probes: 78 to 118 ms). Worst probe 64 leaves x 12 kB: 265 ms (1.9x margin; the suite ran in parallel). | open: cap the ranked segments, or rank on the cue count first and then the model score on the top segments. |
+| G7 | Low | 1.1.0 `model_card.json` `known_limits` | Still says "cue-richest middle segments" and has no calibration limit. | open: correct at the next version (I did not edit the card of the sealed run). |
+| G8 | Info | git order | efce71e (seal, protocol) at 22:03, then a2fdf46 (6.5k lines of code and data) at 22:13: the code was written before the seal commit. Git proves commit order only. Mitigation: the targets (87ada25) and the threshold rule 800/500/300/50 bp (the 1.0.0 card rule, F7) are unchanged; only the latency target moved, as the first review recommended. | none |
+| G9 | Info | 6dbc551, e7d3622 | Training files were committed 84 s before the weights. The binding property holds: the card hashes equal the committed train, dev and train_b files (checked). | none |
+| G10 | Info | 8c651a3 | Commit without the brief's trailers. Recorded for the integrator; not rewritten. | integrator |
+| G11 | Info | version table | The 1.0.0 / 1.1.0 table compares at `balanced`, which is not the same false alarm. At a similar false alarm: 1.0.0 `lenient` 188 bp gives recall 3466; 1.1.0 `lenient` 288 bp gives recall 7155. The gain is real. But held-out `lenient` (7155 at 288 bp) beats the out-of-fold estimate (5298 at 300 bp): held-out is closer to pools A and B (same author) than to pool C. Plan with about 5300 to 6400 bp for new families. | in recommendations |
+
+### Protocol checks
+
+| Check | Result |
+|---|---|
+| `SEALED.json` hashes = committed held-out, evasion, adversarial | Yes (sha256sum). Byte-identical to 3ffde31; last change to the files is 040cb19 (WP25). Both cards and MANIFEST carry the same hashes (test). |
+| Trainer and CV tool never read a sealed file | Yes. Pools are fixed tuples (`train`, `dev`, `train_b`); `load_items` is the only reader and now refuses other names (G2). No glob, no `golden` import in the tools. |
+| Pools disjoint | Test plus my check: 0 near-duplicates (4-gram Jaccard >= 0.5) between the 197 train_b template strings and train (196), dev (94), held-out (104). |
+| Thresholds and protocol before the WP25b model code | Commit order yes (efce71e before a2fdf46); see G8. |
+| Sealed run once | Weights and presets change only in e7d3622. 146c6cc (after the run) changes only an import order, a docstring, a `noqa`, card text and tests. The harness numbers today equal the report (recall 8111, precision 6165, false alarm 2522 / 2436, typo 7733, probes 9433). |
+| Post-run operating points labelled descriptive, presets unchanged | Yes in the handoff and docs; now also in the report (G1). |
+| Baseline | `data/eval/injection_vi_en/baseline.json` re-recorded for `injection_classifier@1.1.0` only; `data/eval/detectors/baseline.json` and `docs/detectors-validation-report.md` (WP37) untouched (diff empty). |
+| 1.0.0 column | `results_1.0.0.json` equals the 3ffde31 report and the old baseline (5600 / 8102 / 655 / 907 / 4133 / 5069 / 7735 / 1011). |
+
+### R1, R2 and bounds after the delta
+
+| Check | Result |
+|---|---|
+| Fail-closed veto | `may_fail_closed` is the only path (loader `for_agent`, base config, and the gate's `failed_closed` loop). Per-agent overrides carry only `settings`, not `fail_closed`. Env `=1` with the FILL-ME card: refused (test). |
+| Pause raise-only | Schema `minimum=PAUSE_THRESHOLD_BP` (7250) and `max()` in `evaluate`. Probe `pause_threshold_bp: 1`: the pause still needs 7250. Probe `threshold_bp: 0`: a benign text gives a `report` finding, never a pause. Per-surface thresholds only gate `fired`; the pause compares the score with the global pause value, and a test checks `lenient < pause` for every surface. |
+| WP37 review tests, flag-off fingerprint | Pass (full suite). |
+| Bounds | 16 x 12 kB units: 25,443 chars into `prepare` (budget 30,000). ROT13 and reversed: one pass each, only when the lexicon is silent; `_fuzzy` limited to tokens of 5 to 20 letters. Times in G6. |
+| Fragments | 0 raw-text and 0 CCCD-shaped leaks in every probe finding. |
+| `train_b` | 2971 of 3000 items labelled `synthetic, LLM-paraphrased`, 29 `synthetic`; 0 phones, 0 card numbers; emails only `attacker@example.invalid`; 12-digit values are random `Fill` slots as in the other pools; the paraphrase file has no PII shape. |
+
+### Commands (last lines)
+
+```
+$ uv run python -m pytest -q -x                     (review start, HEAD 146c6cc)
+3915 passed, 29 skipped, 1 warning in 502.89s (0:08:22)
+$ uv run python -m supervisor.detectors.harness --detector injection_classifier --check
+OVERALL: NO-GO
+[OK] no drop below the baseline
+$ uv run python -m pytest -q -x                     (after the review fixes)
+3916 passed, 29 skipped, 1 warning in 496.07s (0:08:16)
+$ uv run python -m ruff check
+All checks passed!
+$ uv run python -m ruff format --check
+713 files already formatted
+```
+
+The warning is the known APScheduler thread warning in `tests/monitors/test_scheduler.py`. Final test count:
+**3916 passed, 29 skipped** (+1: `test_the_loader_refuses_a_sealed_name_at_run_time`). Review commits: 7401269,
+6dcea93, b2029b0 (plus this section). Scratch logs `wp25b_review_*.txt` in the worktree root are not committed.
+
+### Owner questions: recommendations
+
+| # | Question | Recommendation |
+|---|---|---|
+| 1 | Calibration data source | Do not recalibrate on heldout-v1 (burnt). Now, at no data cost: choose presets by cross-fitting at full size (thresholds from scores of models trained on the same amount of data as the final model, e.g. K folds over template families inside all three pools). Next: the benign side is what is mis-calibrated, so collect masked benign traffic from a report-only shadow pilot and calibrate false alarm on it; positives from the bank red team or WP28 attack traffic. Keep a new held-out from another author, sealed the same way. |
+| 2 | Pilot: `lenient` plus pause | `lenient` as **report-only** on one agent: yes (held-out 288 bp [197, 420] on synthetic data; expect more on real text). Pause: not in phase 1. The 7250 value came from the protocol rule, but its evidence is one synthetic run (recall 4777, false pause 0 of 539, upper bound 71 bp), and an attacker-written tool result can pause an agent. Enable pause on `money` only after the shadow pilot shows 0 false pauses on at least 800 benign money calls (Wilson upper bound under 50 bp). Record the `lenient` choice in the card change log as an owner decision, not as a validated preset. |
+| 3 | MRM roles | Owner: the Supervisor product owner (first line). Developer: the WP25 team. Validator: independent second-line model risk (this AI review is an input, not the validation). Approver: the model risk committee or a CRO delegate. The approval must name `weights_sha256`; F11 stays closed until the card has a real approver. |
