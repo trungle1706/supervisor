@@ -1,0 +1,183 @@
+# Injection classifier, Vietnamese and English (WP25)
+
+Detector slug `injection_classifier`. Decision record: `docs/adr/D27-injection-classifier.md`.
+Model card: `data/models/injection_vi_en/1.0.0/model_card.json`. Validation report (GO / NO-GO):
+`docs/injection-classifier-validation-report.md`. Contract and precedence: `docs/detectors.md`.
+
+**Switch.** The detector is listed in `config/detectors.yaml` with `enabled: false`. That `enabled` key
+is the only switch (and `DETECTORS_ENABLED=1` must be on for any detector to run). A per-agent policy
+override can enable it for one agent (`agents.<id>.detectors.enable: [injection_classifier]`).
+With the flag off, or the entry off, the gate behaves as before (the WP37 fingerprint test still holds).
+
+## 1. What it does
+
+It reads text and gives a score from 0 to 10000 bp for "this text tries to give instructions to the
+agent". It looks at three places:
+
+| Surface | Source | Code of the finding |
+|---|---|---|
+| tool arguments | `args` (all string leaves, joined; `context.prior_calls` placed in front) | `injection.direct_injection` |
+| tool results | `context.tool_results` (each result) and, on the output side, `context.output` | `injection.indirect_injection` |
+| tool description | `context.tool_description` (the description of the tool being called) | `injection.tool_poisoning` |
+
+A finding fires when the score is at or above the threshold of the preset (`strict` / `balanced` /
+`lenient`, see section 4). Fragments point into the MASKED text (best clause of the best leaf;
+`precision: leaf` when the evidence is spread over the leaf). Raw text never leaves the detector (R2).
+
+Read-only tools are scanned too (Tier 0b skips them; credit benchmark finding D04). The detector
+keeps no state: for an attack split across two calls, the caller passes the earlier text in
+`context.prior_calls` (a per-trace buffer is WP27).
+
+## 2. Method
+
+```
+ text --> prepare --> variants --> windows (150 chars, stride 75) --> features --> logit --> score_bp
+          |
+          +- JSON-in-string flattened, <!-- --> and invisible characters marked
+          +- NFKC, zero-width dropped, case fold, look-alike letters folded (Tier 0b normaliser)
+          +- diacritics removed ("no-diacritic form"), leetspeak and $-for-s folded inside words
+          +- base64 tokens decoded; ROT13 and reversed text only when a trigger lexicon fires
+          +- Telex-decoded second variant
+```
+
+* **Features.** Per window: character 3-, 4- and 5-grams (digit runs become `#`), word unigrams and
+  bigrams, hashed with CRC-32 into 65,536 buckets; plus concept features (4,096 buckets): a small
+  bilingual lexicon (`concepts.py`) maps words to classes such as override verb, rule noun, negation,
+  quote or training marker, authority claim, secrecy, exfiltration, address to the assistant, and the
+  model sees how classes combine in a clause (for example negation before an override verb is
+  policy text; an override verb at the start of a clause followed by a rule noun is an instruction).
+* **Model.** Logistic regression, integer weights (scale 10,000) in `weights.json`. Logit =
+  surface bias + sum of n-gram weights / sqrt(n) + 0.25 * sum of concept weights. The score of a text
+  is the maximum over its variants and windows. Same input, same weights, same score.
+* **Training.** `uv run python -m tools.train_classifier` (stdlib only; about two minutes). It reads
+  `data/eval/injection_vi_en/train.jsonl` and `dev.jsonl` only, trains with Adagrad and L2, max-pooling
+  over windows and variants, prints the dev false-alarm table that the presets were chosen from, and
+  writes `weights.json` and the model card with the SHA-256 of the weight file.
+* **No new dependency.** NumPy is already in `uv.lock` but is not used. No torch, no download.
+
+## 3. Data (licence "synthetic, this repo")
+
+`data/eval/injection_vi_en/`: `generate.py` (seeded, `--check` verifies the files), `templates.py`
+(three template pools: train, dev, held-out; no template text is shared; the test
+`test_golden_set_sizes_provenance_and_disjoint_templates` checks it), `paraphrases*.json` (rewordings of
+the templates made OFFLINE by the local LLM with `paraphrase.py`, concurrency 2; every item built from one
+carries the labeller "synthetic, LLM-paraphrased"), `adversarial.py` (62 probes written by hand, outside
+the templates), and the generated `train` / `dev` / `heldout` / `evasion` / `adversarial` `.jsonl` files
+with `MANIFEST.json`. Every item has id, source, licence, label and labeller. The detector never calls a model.
+
+Split use: train fits the weights; dev picks hyper-parameters and the frozen thresholds; held-out is
+reported and never tuned on; `evasion.jsonl` is the held-out set re-written with 16 evasion kinds
+(typo, no diacritics, Telex, code switch, look-alikes, zero-width, NFD, full-width digits, leetspeak,
+`$` for `s`, base64, ROT13, reversed, hidden comment, JSON in a string, split fields).
+
+Limits of the data: n counts items, but items share templates, so a Wilson interval understates
+variance between templates. The report lists the number of independent template strings and the
+misses by template id.
+
+## 4. Thresholds (ILLUSTRATIVE, frozen per model version)
+
+Model 1.1.0 has one threshold per surface (arguments / results / descriptions), chosen from out-of-fold
+scores (protocol: `data/eval/injection_vi_en/WP25B_PROTOCOL.md`):
+
+| Preset | args | tool_results | tool_description |
+|---|---|---|---|
+| strict | 4000 | 3250 | 3750 |
+| balanced | 4750 | 4000 | 4500 |
+| lenient | 5500 | 4750 | 5250 |
+| pause (all surfaces) | 7250 | 7250 | 7250 |
+
+Known calibration error: the final weights are trained on all three pools, so their scores run higher than the
+out-of-fold scores the thresholds came from. On the sealed held-out set `strict` and `balanced` therefore fire
+on about 25 percent of benign items, `lenient` on about 3 percent (recall 7155), `pause` on 0.1 percent
+(recall 4777). The thresholds stay frozen as published; the next iteration must calibrate on data the final
+model has not seen. The table below is the 1.0.0 one (single threshold).
+
+| Name | bp | Use |
+|---|---|---|
+| `strict` | 5500 | more sensitive (dev false alarm 900 bp) |
+| `balanced` | 6000 | default (dev false alarm 613 bp) |
+| `lenient` | 7000 | fewer false alarms (dev about 300 bp) |
+| pause | 8500 | pause hint for the configured classes (dev false alarm 40 bp) |
+
+The numbers live in the model card and in `detector.py` (`PRESETS`, `PAUSE_THRESHOLD_BP`); a test
+compares them. Changing one means a new model version. `pause_threshold_bp` can be raised in the
+settings, never lowered.
+
+## 5. The pause rule (R1)
+
+```
+ finding score >= pause threshold
+   AND tool risk class in pause_tool_classes (default money, credit)   <- the detector sets the hint
+   AND detector is the classifier AND call was allowed AND not shadow    <- the gate checks
+   AND direction = input AND risk class in money / credit / pii_export
+ -> allow becomes PAUSE, rule id GATE-CLASSIFIER-PAUSE (never block)
+ -> agent PAUSED (principal rule:GATE-CLASSIFIER-PAUSE), tier 0 pause verdict row,
+    a case opens (sync_gate_cases), two people resume (owner + reviewer)
+ otherwise: report only
+```
+
+Tests (`tests/detectors/test_injection_classifier_gate.py`): an allow only becomes a pause, a block
+stays the same block, a read-only tool gets a report, only the classifier may pause, a `block` hint
+never blocks, a shadow agent is never paused, the dry run says `would_pause`, a corrupt weight file is
+`execution_failed` and does not stop a payment (the entry is not fail closed).
+
+## 6. Settings
+
+| Key | Default | Meaning |
+|---|---|---|
+| `preset` / `threshold_bp` | balanced | detection threshold |
+| `scan_tool_results` | true | scan results and the output side |
+| `scan_tool_descriptions` | true | scan `context.tool_description` |
+| `pause_tool_classes` | [money, credit] | classes that may get the pause hint (also `pii_export`; never `read_only`) |
+| `pause_threshold_bp` | frozen value | can only be raised |
+| `max_chars` | 12000 | characters scanned per text, at most 12000 (head, tail and the cue-richest middle segments kept); a call scores at most about 30,000 characters in all, tool results beyond 16 are joined |
+
+## 7. WP26 adapter
+
+`supervisor.detectors.injection_classifier.score_tool_description(text) -> bp` scores one tool
+description (0 to 10000). Integration wave 2 registers it in the MCP tool lock
+(`supervisor.gateway.mcp_scorer.install`, called by the `/v1/mcp/tools` routes and the review
+CLI) only when `DETECTORS_ENABLED=1` and this entry has `enabled: true`. The score is stored as
+`scan.score_bp` (report only). When the weights are refused (`ModelIntegrityError`) the tool is
+held for two-person review, also on trust-on-first-use, and a high `mcp_tool_review` case opens
+(scan finding `scorer_refused`). See `docs/mcp-gateway.md` section 7. Test:
+`tests/gateway/test_mcp_scorer.py`.
+
+## 8. Commands
+
+```
+uv run python data/eval/injection_vi_en/generate.py --check
+uv run python -m tools.train_classifier                       # retrain (new version = new card)
+uv run python -m supervisor.detectors.harness --detector injection_classifier
+uv run python -m supervisor.detectors.harness --detector injection_classifier --check
+uv run python -m supervisor.detectors.harness --detector injection_classifier --md docs/injection-classifier-validation-report.md
+```
+
+## 8a. WP25b (model 1.1.0)
+
+Sealed protocol (held-out, evasion and adversarial sets opened once), features `feat-3`: surface weight blocks for
+words and concepts, instruction-form cues (clause-start imperative, references to earlier text, instead / thay vao
+do, modal verbs), English stems, typo-tolerant lexicon (distance 1), decoding of ROT13 and reversed text by
+plausibility, a new training pool `train_b` (counter-examples for the 1.0.0 false-alarm clusters), grouped
+cross-validation (`python -m tools.cross_validate`), long-text segments chosen by a cheap model score.
+Result: NO-GO. Recall and evasion recall rose, false alarm rose more because the thresholds are mis-calibrated
+(section 4). `CLASSIFIER_FAIL_CLOSED_APPROVED=1` (setting `classifier_fail_closed_approved` in `config.py`) plus an `approval` block in the model card (named approver and the `weights_sha256` it approves, equal to the loaded weights) are needed before
+`fail_closed: true` is honoured for this detector (otherwise the loader forces false and logs a warning).
+The 1.0.0 versus 1.1.0 table is in the validation report.
+
+## 8b. Result of 1.0.0 (see the validation report for the 1.1.0 numbers)
+
+Verdict **NO-GO** against the illustrative targets, so the entry stays disabled and the pause
+path should not be switched on before the bank validates on its own data. Held-out at the balanced preset:
+recall 5600 bp, hard-negative false alarm 907 bp, typo recall 4133 bp against 400 bp for the regex on the same items,
+hand-written probes 7735 bp recall against 3773 bp for the regex, p95 about 3.6 ms per call. The presets were chosen on an earlier
+version of the dev split (balanced false alarm 480 bp); after the final paraphrase round it reads 613 bp. What holds: the
+classifier beats the regex on every evasion kind, scores are deterministic, no raw text leaks, the pause
+path never acts outside money and credit, the weights are pinned.
+
+## 9. Limits
+
+See the validation report and `BACKLOG.md` (WP25 rows): synthetic data; Vietnamese and English only;
+spaced-out letters and other languages are not recognised; a long document dilutes a short
+instruction, and in text over 12,000 characters the middle is sampled by cue words, so cue-word decoys can push an
+instruction out of the sample; lone surrogates are dropped before scoring; no state across calls; the thresholds are not calibrated on real traffic.

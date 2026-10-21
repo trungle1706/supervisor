@@ -95,6 +95,12 @@ def _build_parser() -> argparse.ArgumentParser:
     src.add_argument("--in", dest="in_dir", type=Path, help="folder with results.json")
     src.add_argument("--run-id", help="run id in the configured store")
     rep.add_argument("--format", choices=("md", "json"), default="md")
+    rep.add_argument(
+        "--trend",
+        action="store_true",
+        help="append the 7-day trend of the multi-turn red team pack from the store "
+        "(on by default when the report holds that pack)",
+    )
     return p
 
 
@@ -278,8 +284,28 @@ def _cmd_report(args: argparse.Namespace) -> int:
         finally:
             adapters.close()
     text = render_json(summary) if args.format == "json" else render_markdown(summary)
+    has_pack = any(r.pack_id == "multiturn_redteam_vi" for r in summary.results)
+    if args.format == "md" and (args.trend or has_pack):
+        text = text.rstrip("\n") + "\n\n" + _trend_section(summary)
     _out(text.rstrip("\n"))
     return 0
+
+
+def _trend_section(summary: Any) -> str:
+    """7-day trend of the multi-turn red team pack (WP28) from the configured store; a store
+    problem gives a one-line note, never an error."""
+    from supervisor.redteam.multiturn.trend import PACK_ID, pack_trend, render_trend
+
+    try:
+        from supervisor.adapters.factory import build_adapters
+
+        adapters = build_adapters(load_settings())
+        try:
+            return render_trend(pack_trend(adapters.tables, PACK_ID))
+        finally:
+            adapters.close()
+    except Exception as exc:  # noqa: BLE001 - the report is still useful without the trend
+        return f"(7-day trend not available: {type(exc).__name__})\n"
 
 
 def main(argv: Sequence[str] | None = None) -> int:

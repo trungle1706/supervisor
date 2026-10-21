@@ -162,6 +162,174 @@ again; a `digest` event shows no text, and no masker means no text. Every new pa
 behind its own permission and flag, and every filter value is checked against an allow-list or a
 strict pattern (bad input is HTTP 400); filters reach the store only as named parameters.
 
+### 3.10 Detector findings (WP37, ADR D23)
+
+Trust boundary: the verdict that the gate returns to the agent and stores. With
+`DETECTORS_ENABLED=1` the answer, the `finding` table, the `agent_event` columns, the chain record
+and the SIEM event carry detector results. The risk is that a finding repeats the data it found:
+a phone number in an entity, a name in a fragment, a key that is a name in a path. Controls:
+entities hold pseudonym tokens only; fragments are located on MASKED text (the masker runs first,
+offsets index the masked text, the excerpt is a masked substring, the raw text is never copied);
+a path shows dict keys that are plain identifiers and `*` for any other key; an exception message
+is never copied (only the class name); the chain gets finding codes, counts, coverage reasons and
+SHA-256 digests, never text; the harness checks every answer for a raw sensitive string
+(`leak_items` must be 0). The second risk is a detector that can stop a payment. A finding never
+blocks or pauses (a `pause` or `block` hint counts as `report`); only the rule `GATE-DETECTOR-FAILED`
+blocks, when a fail-closed detector could not look at a money, credit or pii_export call, and the
+Tier 1 judge detector can never trigger it. It does not stop: a payload an attacker shapes so that
+no detector matches (the adversarial probes in the validation report list the known misses), a
+finding that is kept past its retention class in a copy outside the store, or an operator who
+edits `config/detectors.yaml` to disable a detector (the file is in change control).
+
+### 3.11 Multi-turn red team and its LLM attacker (WP28, ADR D25)
+
+Trust boundary: with `--attacker llm` (manual, never scheduled) the text of an attacker turn goes to the configured LLM endpoint (`LLM_BASE_URL`, model `REDTEAM_ATTACKER_MODEL`, temperature 0, at most 60 conversations per run). Before the call every id, amount, tool name and digit string is replaced by a `<<Tn>>` placeholder and restored afterwards, so no personal-data shape and no identifier leaves the process, and a reply that drops or invents a placeholder is discarded. The model only rephrases: the calls, their order and the deterministic oracle are fixed in code, so a hostile or wrong reply cannot turn a failure into a pass, cannot add a tool call and cannot reach the gate. The sandbox agents, the policy, the store and the chain are private to the run; the nightly job writes aggregates only (integers) to the chain. The optional evidence judge sends a transcript with digit runs masked and its verdict never changes a result (R1).
+
+### 3.12 Risk register (WP29, ADR D26)
+
+The register adds a write path for people (`POST /v1/risks/...`, flag `RISK_REGISTER_ENABLED`, off by
+default) and a job that reads gate verdicts, assurance results and monitor status. Threats and
+controls: (1) **a person lowers a risk score without proof**: the stored residual is only a claim; the
+product shows the declared value only while the linked controls are `working` in the last window,
+so editing the number does not change what the page shows, and every edit writes two
+`console_action` rows and a `risk_change` chain record with the actor; (2) **fake evidence**: the
+job reads tier-0 gate verdicts, non-mock assurance rows and monitor status only (no judge, no
+classifier, no text from a user), ignores SHADOW, retired and unknown agents and mock results, and
+a removed rule or a failed pack counts against the risk; a person with write access to the
+verdict or `eval_result` tables could still plant rows (those tables are append-only and chained;
+the register adds no new write path to them); (3) **injection through free text**: titles and notes
+are stored and shown as text (templates escape them), exports start a cell with `'` when it begins
+with `=`, `+`, `-` or `@`, ids and link targets must match a strict pattern and a link must point at
+something that exists, and no SQL is built from input (named parameters only); (4) **personal data**:
+the register holds risk descriptions written by staff; the chain payloads hold integers, codes and
+hashes only, and the evidence row has no text column; a person must not write customer data into a
+description. Not covered: a reviewer, owner or admin who creates a false `accept` risk with a
+justification note (there is no four-eyes step yet, see BACKLOG) and who is the only check on their own
+scoring.
+
+### 3.13 Collectors, consumer ids and the Add flow (WP38, ADR D28)
+
+Trust boundary: values that a framework or a caller supplies (tool name, consumer id, session id,
+correlation id, headers of an inbound request) and the console action that issues an agent key.
+Controls: the adapters drop or replace any id that is not 1 to 128 characters of `A-Za-z0-9_.:@-`
+(no header injection, no 400 from the route), map tool names to safe names, cap payload size and fail
+closed on every malformed answer; the gate ignores an invalid or unknown consumer id and then applies
+the agent's own settings, and a consumer cannot switch off a money, credit or pii_export block or
+pause rule, cannot set observe mode on an agent with money rules, and its detector override never
+applies to a money, credit or pii_export tool; observe lifts nothing on those tools unless the agent
+has two `observe_approvals` (WP38 review). An `allow: true` answer that contradicts itself fails
+closed in the adapters.
+The consumer id is asserted by the caller: a compromised agent can name a lenient consumer such as
+an observe-mode channel, so the mode and the consumer id are in every decision, chain record and SIEM
+event, and overrides are changed only through the reviewed policy file. The Add action passes the new
+secret through the browser once (`Cache-Control: no-store`); the audit row has the agent id, template
+id and key id only; the page needs `collectors.add` (admin, operator) and an htmx request; the base
+URL put in snippets is validated. Observe mode lets calls that rules would stop go through; it is a
+per-agent policy value in git and shows in the Policy binding tab. It does not stop: a person who
+can edit the policy file or read the key file.
+
+### 3.14 Session monitor (WP27, ADR D29)
+
+Trust boundary: the conversation id and the turn text that a caller sends in the gate context. The
+risks: (1) personal data in a session id, or turn text kept somewhere. The id is limited to
+`A-Za-z0-9_.:-` (no `@`) and is a technical id by contract; the turn text is read in memory, reduced
+to flags, a keyed 4-byte shingle sketch and keyed identifier hashes, and dropped; cases, the chain
+and `session_json` hold tools, classes, amounts, flags, finding codes and hashes only; the consumer
+id is stored as a keyed 6-byte hash; the harness scans cases, chain records and event columns for
+the raw text (`leak_items` must be 0). (2) A caller who makes the monitor stop a payment: only the
+deterministic rule `GATE-SESSION-PAUSE` blocks, only when the policy lists the tool class in
+`pause_scope`, only for that session, and only from a score over integer thresholds; a forged
+`session_id` can pause only the forger's own session, but a caller who sends someone else's session
+id could add turns to it (the gate cannot tell; ingress auth identifies the agent, not the user).
+(3) A detector outage must not raise the score: a timed-out detector is no finding and a
+`GATE-DETECTOR-FAILED` block is no refusal. (4) The `consumer_id` is asserted by the calling agent;
+ingress auth (WP20) verifies the agent, not the customer. A faulty or compromised agent can split
+one person over two ids (no cross-agent link) or add a cross-agent hit to someone else's session
+(one hit, 1300 bp: no case and no pause alone). A call with neither a session id nor a consumer id
+is in no session, so anonymous customers are never merged into one pause. It does not stop: an attacker who rotates the session id,
+spreads steps over more than the window, obfuscates the phrases, or paraphrases a planted fact (see
+the probes and BACKLOG).
+
+### 3.15 Transparency report (WP31)
+
+The report crosses the trust boundary on purpose: its customer and regulator versions leave the bank. Controls: explicit allow-lists per variant (a field not listed is not copied); a second check that refuses a customer or regulator report holding an agent id, rule or obligation id, hash, owner field or a person name read from the raw sources, applied to the data and to the rendered text of both languages; free text masked or dropped (never raw); no personal data and no text in the chain (hashes, counts and fixed codes only); files never overwritten and checked against the hash on every read; HTML autoescaped with no script and no external asset; routes behind the sign-in with `transparency.generate` limited to reviewer and admin and audited. After the projection every text value of the outer versions is masked again and scrubbed of e-mail, phone and long digit runs (fields copied as they are included), and the guard refuses those patterns; the chain record and the append-only row name a person only as a keyed hash. Residual risk: names the masker misses can appear in the internal version, and in a free-text or config text field of the regulator version when the masker misses them (vn_regex catches Vietnamese names with diacritics, not every name) (BACKLOG).
+
+### 3.16 Console activity pages and the CSV export (WP39, ADR D32)
+
+The Decisions drawer, the Traces pages and the Analytics tabs show text of calls that carried
+personal data. Controls: the gate stores no arguments (a keyed hash only); the Request tab is
+rebuilt from recorder events at capture level `masked` and masked again before it is shown (no
+masker or `digest` level: no text); finding text, entity tokens and reasons are masked again on
+the way out, so a faulty detector row does not leak; ids from stored rows are escaped in HTML,
+percent-encoded in links and neutralised in CSV (leading quote for `=`, `+`, `-`, `@`; control
+characters removed); filter and deep-link values must match an id pattern (HTTP 400, never a
+header or a query to the store). The CSV export is an allow-list of 18 columns of ids, codes,
+enums and integers, capped at `CONSOLE_EXPORT_MAX_ROWS`, for auditor and admin only, and written
+as an audited action (two `console_action` rows). `tests/console/test_wp39_decisions.py` and
+`python -m supervisor.console.activity_harness` plant a name, a phone number, an ID number and an
+e-mail in arguments, tool results, an output, a case title and a verdict text, and fail on any
+page or export that shows one. WP39 review: the download link is bound to the user and to 15
+minutes (HMAC with a key held in the process), the file is served once and deleted, and stale
+files are removed on every export; caller-given ids (correlation, request, consumer) that hold
+personal data are replaced or dropped at the gate and hidden on every page, so an e-mail used as
+an id does not reach the chain, the SIEM event or the CSV.
+
+### 3.17 Control catalogue and task list (WP30, ADR D30)
+
+The catalogue adds write paths for people (`POST /v1/controls/...`, `POST /v1/tasks/...`, flag
+`CONTROLS_ENABLED`, off by default), two jobs and a launch NO-GO source. Threats and controls: (1)
+**a person marks a control working without proof**: status is computed from enforced gate hits, real
+packs and deterministic monitors, never typed, and a document or a detector slug never counts; (2)
+**a control is changed after it showed working**: its status and the evidence of the risks that link
+it stop counting until the next pass (`changed_since_evidence`); (3) **one person waives a required
+task alone**: a waiver needs a reason and a different signed-in approver or admin, the move itself
+cannot be waived, and an integrity query finds a forged row; (4) **a stage is skipped**: the
+lifecycle move is refused while a required task is open, and Launch is NO-GO; (5) **the chain leaks
+text**: payloads hold ids, integers, codes and hashes, and reasons only as a hash. Reasons are stored
+as text in the task row (do not type personal data). The CLI trusts the operator on the host (as the
+other CLIs do); the second person of a waiver can answer only through the authenticated route.
+Review additions: (6) **the first line closes a second-line task**: a reviewer, approver, auditor
+or admin task needs that role (or admin); (7) **a downgrade relaxes the list**: sizing keeps the
+highest level and every class the agent had, so a move keeps its stage approval and no stage is
+skipped; (8) **Launch passes on an unknown**: no task list, a stage before deployment, an
+unreadable list or the gate flag on with CONTROLS_ENABLED off are each NO-GO; (9) **a bank process
+shows working because a product rule fired**: a bank-owned control is always `bank_owned`.
+
+### 3.19 Unmasked lookup keys and scan limits (WP41, ADR D33)
+
+`dlp_vn` `keep_args` (a policy setting) sends a named top-level argument of a named tool to the
+tool as sent. This is a deliberate hole in the pii_export transform, so it is narrow and visible:
+agent level only (not per consumer, not in the shared detector file), two approver ids in
+`keep_args_approvals` when the tool is money, credit or pii_export, input checks only, names
+only, at most 8 per tool, part of the policy hash,
+audited when the policy loads (log line and chain record `policy_keep_args`), and listed on every
+decision it touched (`kept_args` in the answer, the drawer, the export column `kept_arguments` and
+the chain record). Findings, rows, chain, SIEM and the session sketch keep the masked form; the
+`args_hmac_transformed` is a keyed hash of what the tool received. The risk that remains is a
+policy author who names a free-text argument: review of the policy diff is the control (policy
+source of truth is YAML in git). The scan limits (`max_scan_bytes`, `DETECTORS_SCAN_BUDGET_BYTES`)
+bound the work a hostile payload can cause; text past a limit is not read, which the coverage
+states with byte counts. A cut **argument** of a pii_export tool is never transformed in part:
+`GATE-DETECTOR-FAILED` blocks the call (fail closed). A cut tool result or argument on a
+read-only tool is reported, not blocked (detectors advise, rule R1). `split_cue` keeps only ids of
+phrase halves on a turn, never text.
+
+### 3.18 Injection classifier (WP25, ADR D27)
+
+The classifier reads text from three untrusted places: tool arguments, tool results and tool
+descriptions. The text is only turned into hashed numbers and a score; it is not stored, sent to a
+model or logged, and a finding carries fragments of MASKED text (R2). The trust boundary change is one
+new way to stop a call: a score at or above the frozen pause threshold on a money or credit tool pauses
+the agent (`GATE-CLASSIFIER-PAUSE`), never blocks it, and a human resumes with two people (R1). An
+attacker who learns the model could craft text that stays under the threshold (evasion; see the
+validation report for the measured recall) or craft benign-looking text that triggers pauses (a
+denial-of-service on one agent; the pause is per agent and visible as a case). The weight file is
+pinned by SHA-256 in the model card; the loader refuses a changed file, so the model cannot be swapped
+silently. Training data are synthetic; the model is not a replacement for the rules.
+
+The classifier keeps two small in-process caches (feature ids per text window, word classes per token). They are keyed by a 16-byte
+BLAKE2b digest of the text and hold only integers, so text of a call (names, account digits) does not stay in process memory after the call (WP25c, review G5).
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |
@@ -177,6 +345,7 @@ strict pattern (bad input is HTTP 400); filters reach the store only as named pa
 | No rate limiting | Flooding the gate or console is not throttled | Platform limits; backlog |
 | Inline redaction is cooperative and one-sided (WP24b) | The gate answer carries masked `transformed_args`; an agent or proxy that ignores it still sends the original arguments to the tool. The server flag and the SDK / proxy flag must both be on. The values never enter the chain (hashes only), but masked copies travel in the gate response over the same trust boundary as the arguments | Credential broker / egress proxy that applies the redaction itself (see the cooperative enforcement gap) |
 | Inventory reads workspace metadata (WP24) | With `INVENTORY_ENABLED=1` the app lists Apps, serving endpoints, registered models and UC table names (read only, OAuth identity of the app). Object names are untrusted text: the console escapes them, CSV export guards formula cells, case summaries pass the masker, and nothing from the workspace reaches an LLM prompt. Shadow-AI cases are flags for a person; the scan never pauses or blocks. The check is only as complete as the app identity's visibility: an App the service principal cannot list is not seen | Grant the app principal list rights on Apps and serving endpoints; review the allow-list file in change control |
+| Remote MCP servers (WP26) | A third-party server controls its tool list. Without `MCP_HTTP_ENABLED` and the HTTP proxy, a remote server's descriptions reach the model unchecked; with the proxy, a new or changed tool is held for two people. The lock does not read intent: it protects against change, not against a hostile first version that two reviewers approve | Review the diff and the scan findings; keep the list small; WP25 classifier score |
 | Mock judges in the demo | The demo judge is a keyword MockJudge; its numbers prove the protocol, not a model | Real judge model behind `JUDGE_*` settings, measured by the eval harness |
 
 ### Judge family and served config (WP1b-A, ADR D21)
@@ -199,6 +368,10 @@ fails by its fail mode. They do not defend against an operator who can edit the 
 ### Ingress authentication (WP20, ADR D14)
 
 Trust boundary: the agent-facing write routes `POST /gate/check`, `/v1/gate/check` and `/v1/traces`. With `INGRESS_AUTH_ENABLED=1` each call carries a per-agent credential: an HMAC-SHA256 signature over (agent id, timestamp, nonce, method, path, body hash) with a 5-minute window and a single-use nonce, or a Databricks service-principal bearer token checked through SCIM `Me` and mapped to an allow-list of agent ids. This stops a caller that only has network access from posting gate checks or spans for an agent id it does not own, from replaying a captured request, and from spoofing the agent id in the body (the body id must be one the credential speaks for; a trace batch with a foreign span is refused whole). Every refusal is a 401 or 403, is counted in `/gate/metrics` and writes a `console_action` row with the body hash only. It does not stop: a stolen agent key (rotation limits the window; keep keys in the secret scope), a compromised agent process that holds its own key (it can still lie about its own tool calls: the gate stays cooperative), flooding by a caller that has no key (each refusal writes an audit row; use network or platform limits), or replay across a restart inside the 5-minute window (the nonce cache is in memory, one process). Default is off, so the two gap rows above stay true until the bank turns it on.
+
+### HTTP MCP gateway and tool locking (WP26, ADR D24)
+
+Trust boundary added: the remote MCP server (a third party, over HTTP) and the proxy listener on the agent host. Threats: (1) a rug pull, where an approved tool's description or schema changes after review; (2) tool poisoning, where a description or schema holds instructions for the model (including hidden Unicode, look-alike names, text split across fields, Vietnamese and English); (3) a new tool that shadows an old one; (4) a web page that talks to the loopback listener (DNS rebinding); (5) a caller on the host network that uses the proxy to reach the upstream with its token. Controls: every tool is hashed byte exact and compared with the locked manifest on every `tools/list`, at `initialize`, and at `tools/call` after `MCP_LOCK_REFRESH_S`; a new or changed tool is hidden and refused (`MCP-TOOL-UNREVIEWED`) until two different people approve the same hash; the lock fails closed when the Supervisor or the upstream is unreachable; a deterministic scan marks suspicious tools for the reviewer (report only); the listener binds loopback, checks Host and Origin, caps the body, and can require a bearer token; descriptions never enter the chain (hashes, names and finding kinds only); every lock change, approval, seed and refusal is a chain record. It does not stop: a hostile tool that two reviewers approve, a change inside the refresh window (one call), a change in a field outside the hash (`_meta`), encoded instructions (base64, ROT13, leetspeak), trust-on-first-use abuse by whoever starts the proxy (the name is claimed, not verified; over the agent ingress the app accepts a seed only with `MCP_TOFU_INGRESS=1`, default off, and records the sending credential), or a compromised agent host that bypasses the proxy and calls the server directly (cooperative enforcement, as in the gap table above). The upstream bearer token lives in an environment variable of the proxy process and is sent only to the upstream URL.
 
 ## 5. Kill switch
 

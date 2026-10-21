@@ -17,15 +17,32 @@ from supervisor.cases.service import PermissionDenied
 from supervisor.console import (
     assurance_views,
     compliance_view,
+    controls_views,
     inventory_views,
     readmodels,
+    risks_views,
+    tasks_views,
     tools_views,
+    transparency_views,
 )
 from supervisor.core import rbac
 from supervisor.core.errors import SupervisorError
 from supervisor.inventory.api import InventoryInputError
 
-TABS = ("overview", "policy", "tools", "inventory", "traces", "cases", "assurance", "compliance")
+TABS = (
+    "overview",
+    "policy",
+    "tools",
+    "inventory",
+    "traces",
+    "cases",
+    "assurance",
+    "compliance",
+    "risks",  # WP29
+    "controls",  # WP30
+    "tasks",  # WP30
+    "transparency",  # WP31
+)
 TRACE_LIMIT = 20  # traces shown on the Traces tab
 CASE_LIMIT = 50
 ASSURANCE_LIMIT = 50
@@ -54,6 +71,30 @@ GATED: dict[str, tuple[str, str, str, str]] = {
         "compliance.view",
         "CONSOLE_COMPLIANCE_ENABLED",
         "python -m supervisor.advisory.compliance --profile <file> --out <folder>",
+    ),
+    "risks": (
+        "console_risks_enabled",
+        "risks.view",
+        "CONSOLE_RISKS_ENABLED",
+        "python -m supervisor.risk score --agent <id>",
+    ),
+    "controls": (
+        "console_controls_enabled",
+        "controls.view",
+        "CONSOLE_CONTROLS_ENABLED",
+        "python -m supervisor.controls status --agent <id>",
+    ),
+    "tasks": (
+        "console_controls_enabled",
+        "tasks.view",
+        "CONSOLE_CONTROLS_ENABLED",
+        "python -m supervisor.tasks list --agent <id>",
+    ),
+    "transparency": (
+        "console_transparency_enabled",
+        "transparency.view",
+        "CONSOLE_TRANSPARENCY_ENABLED",
+        "python -m supervisor.transparency build <agent> --variant regulator --format html",
     ),
 }
 
@@ -195,6 +236,7 @@ def _tools(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> 
         days=q.get("days"),
         sort=q.get("sort", "default"),
         desc=q.get("dir") == "desc",
+        lenient_agent=True,  # WP41 (D27): no onboarding record is an empty tab, not a 400
     )
     data["can_download"] = can(me, "tools.download")
     return data
@@ -299,6 +341,26 @@ def _compliance(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]
     }
 
 
+def _risks(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    data = risks_views.agent_tab(ctx, card["agent_id"])
+    data["risks_page"] = bool(ctx.settings.risk_register_enabled)  # the page needs both flags
+    return data
+
+
+def _controls(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    return controls_views.agent_tab(ctx, card["agent_id"])
+
+
+def _tasks(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    return tasks_views.agent_tab(ctx, card["agent_id"])
+
+
+def _transparency(
+    ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]
+) -> dict[str, Any]:
+    return transparency_views.agent_tab(ctx, me, card["agent_id"])
+
+
 _BUILDERS = {
     "overview": _overview,
     "policy": _policy,
@@ -308,6 +370,10 @@ _BUILDERS = {
     "cases": _cases,
     "assurance": _assurance,
     "compliance": _compliance,
+    "risks": _risks,
+    "controls": _controls,
+    "tasks": _tasks,
+    "transparency": _transparency,
 }
 
 

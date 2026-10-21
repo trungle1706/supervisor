@@ -83,6 +83,10 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     # --- WP-UX3 ---
     "decisions.view": (_ALL, "Gate decisions list and drawer (read-only)"),
     "traces.view": (_ALL, "Traces list and span viewer (masked payloads only)"),
+    "decisions.export": (
+        ("auditor", "admin"),
+        "Export the filtered Gate decisions list as CSV: masked columns only, row cap (WP39)",
+    ),
     "playground.run": (
         ("reviewer", "approver", "owner", "admin", "operator"),
         "Playground: dry-run gate check, no side effect (WP-UX3)",
@@ -95,6 +99,53 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     "users.view": (("admin",), "Users and roles page (read-only)"),
     "audit.view": (("auditor", "admin"), "Audit log page: console_action rows (read-only)"),
     "integrations.view": (_ALL, "Integrations status page (read-only)"),
+    # --- WP26 ---
+    "mcp.tools.view": (_ALL, "List MCP tools and their diffs (read-only, WP26)"),
+    "mcp.tools.propose": (
+        ("reviewer", "approver", "owner", "admin", "operator"),
+        "Give the first approval of a new or changed MCP tool (WP26)",
+    ),
+    "mcp.tools.approve": (
+        ("reviewer", "approver", "owner", "admin"),
+        "Approve a new or changed MCP tool; the second different person locks it (WP26)",
+    ),
+    # --- WP29 ---
+    "risks.view": (_ALL, "Risks page, Risks tab and /v1/risks (read-only, WP29)"),
+    "risks.edit": (
+        ("reviewer", "owner", "admin"),
+        "Create and change risks, link them to controls and rules (WP29)",
+    ),
+    # --- WP38 ---
+    "collectors.add": (
+        ("admin", "operator"),
+        "Integrations catalogue: Add a collector (issues the first agent key, WP38)",
+    ),
+    # --- WP27 ---
+    "session.view": (
+        ("reviewer", "approver", "owner", "admin", "auditor", "operator"),
+        "GET /v1/sessions/{id}: masked timeline and scores of one conversation (WP27)",
+    ),
+    # --- WP30 ---
+    "controls.view": (_ALL, "Controls page, Controls tab and /v1/controls (read-only, WP30)"),
+    "controls.edit": (
+        ("reviewer", "owner", "admin"),
+        "Create and change controls and what they cover (WP30)",
+    ),
+    "tasks.view": (_ALL, "Tasks page, Tasks tab and GET /v1/tasks (read-only, WP30)"),
+    "tasks.edit": (
+        ("reviewer", "owner", "admin"),
+        "Generate, start and finish tasks, ask to waive one (WP30)",
+    ),
+    "tasks.approve": (
+        ("approver", "admin"),
+        "Second person for a task waiver; approve a lifecycle move or an approver task (WP30)",
+    ),
+    # --- WP31 ---
+    "transparency.view": (_ALL, "Transparency page, Agent tab and GET /v1/transparency (WP31)"),
+    "transparency.generate": (
+        ("reviewer", "admin"),
+        "Build and sign a transparency report (WP31)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -109,6 +160,7 @@ NON_USER_OK: frozenset[str] = frozenset(
         "inventory.view",
         "gate.read",
         "tools.view",
+        "mcp.tools.view",
         "case.verify",
         "chain.verify",
     }
@@ -141,6 +193,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/gate/release"): "agent.release",
     ("GET", "/gate/agents/{agent_id}/state"): "gate.read",
     ("GET", "/gate/metrics"): "gate.read",
+    ("GET", "/gate/detectors"): "gate.read",  # WP37
     # console pages
     ("GET", "/console/"): "console.view",
     ("GET", "/console/cases"): "console.view",
@@ -211,6 +264,8 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/decisions"): "decisions.view",
     ("GET", "/console/decisions/rows"): "decisions.view",
     ("GET", "/console/decisions/{event_id}/drawer"): "decisions.view",
+    ("POST", "/console/decisions/export"): "decisions.export",
+    ("GET", "/console/decisions/exports/{name}"): "decisions.export",
     ("GET", "/console/traces"): "traces.view",
     ("GET", "/console/traces/rows"): "traces.view",
     ("GET", "/console/traces/{trace_id}"): "traces.view",
@@ -226,6 +281,63 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/audit/rows"): "audit.view",
     ("GET", "/console/audit/{action_id}/drawer"): "audit.view",
     ("GET", "/console/integrations"): "integrations.view",
+    # --- WP26 ---
+    ("GET", "/v1/mcp/tools"): "mcp.tools.view",
+    ("GET", "/v1/mcp/tools/diff"): "mcp.tools.view",
+    ("POST", "/v1/mcp/tools/propose"): "mcp.tools.propose",
+    ("POST", "/v1/mcp/tools/approve"): "mcp.tools.approve",
+    ("POST", "/v1/mcp/tools/observe"): AGENT,
+    ("POST", "/v1/mcp/tools/blocked"): AGENT,
+    # --- WP29 ---
+    ("GET", "/console/risks"): "risks.view",
+    ("GET", "/console/risks/rows"): "risks.view",
+    ("GET", "/console/risks/{risk_id}/drawer"): "risks.view",
+    ("GET", "/v1/risks"): "risks.view",
+    ("GET", "/v1/risks/agents/{agent_id}"): "risks.view",
+    ("GET", "/v1/risks/{risk_id}"): "risks.view",
+    ("GET", "/v1/risks/{risk_id}/evidence"): "risks.view",
+    ("POST", "/v1/risks"): "risks.edit",
+    ("POST", "/v1/risks/{risk_id}"): "risks.edit",
+    ("POST", "/v1/risks/{risk_id}/links"): "risks.edit",
+    # --- WP38 ---
+    ("GET", "/console/integrations/agent/{agent_id}/drawer"): "integrations.view",
+    ("POST", "/console/integrations/{agent_id}/connect"): "collectors.add",
+    # --- WP27 ---
+    ("GET", "/v1/sessions/{session_id}"): "session.view",
+    ("POST", "/v1/sessions/{session_id}/resume"): "agent.resume",
+    # --- WP30 ---
+    ("GET", "/console/controls"): "controls.view",
+    ("GET", "/console/controls/rows"): "controls.view",
+    ("GET", "/console/controls/{control_id}/drawer"): "controls.view",
+    ("GET", "/console/tasks"): "tasks.view",
+    ("GET", "/console/tasks/rows"): "tasks.view",
+    ("GET", "/console/tasks/{task_id}/drawer"): "tasks.view",
+    ("GET", "/v1/controls"): "controls.view",
+    ("GET", "/v1/controls/agents/{agent_id}"): "controls.view",
+    ("GET", "/v1/controls/{control_id}"): "controls.view",
+    ("POST", "/v1/controls"): "controls.edit",
+    ("POST", "/v1/controls/{control_id}"): "controls.edit",
+    ("POST", "/v1/controls/{control_id}/maps"): "controls.edit",
+    ("GET", "/v1/tasks"): "tasks.view",
+    ("GET", "/v1/tasks/export.csv"): "tasks.view",
+    ("GET", "/v1/tasks/agents/{agent_id}"): "tasks.view",
+    ("GET", "/v1/tasks/{task_id}"): "tasks.view",
+    ("POST", "/v1/tasks"): "tasks.edit",
+    ("POST", "/v1/tasks/agents/{agent_id}/generate"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/start"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/done"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/approve"): "tasks.approve",  # review WP30
+    ("POST", "/v1/tasks/{task_id}/waive"): "tasks.edit",
+    ("POST", "/v1/tasks/{task_id}/waive/approve"): "tasks.approve",
+    ("POST", "/v1/tasks/{task_id}/waive/reject"): "tasks.approve",
+    # --- WP31 ---
+    ("GET", "/console/transparency"): "transparency.view",
+    ("GET", "/console/transparency/rows"): "transparency.view",
+    ("GET", "/console/transparency/{agent_id}/drawer"): "transparency.view",
+    ("POST", "/console/transparency/{agent_id}/generate"): "transparency.generate",
+    ("GET", "/v1/transparency"): "transparency.view",
+    ("GET", "/v1/transparency/{agent_id}"): "transparency.view",
+    ("POST", "/v1/transparency/{agent_id}/generate"): "transparency.generate",
 }
 
 

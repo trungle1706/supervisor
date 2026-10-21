@@ -129,6 +129,29 @@ tables:
       # WP22 (additive): gate decision latency in integer microseconds (latency_ms keeps the
       # old millisecond value; a sub-millisecond gate call is 0 ms). Null on older rows.
       latency_us: int?
+      # WP37 (additive, null unless DETECTORS_ENABLED): verdict contract v2 on gate decisions.
+      # verdict_status is allow|report|transform|pause|block|skip (the old ``status`` column keeps
+      # allowed|denied). coverage_json lists the payload parts inspected and not inspected.
+      verdict_status: string?
+      correlation_id: string?
+      coverage_json: json?
+      # WP27 (additive, null unless the caller sent a session id or SESSION_MONITOR_ENABLED=1):
+      # the conversation the call belongs to. session_source is client | derived | span.
+      # session_json holds the per-turn features of the session monitor: flags, a keyed
+      # shingle sketch, a keyed consumer hash and detector finding codes. No text, no raw ids.
+      session_id: string?
+      session_source: string?
+      session_json: json?
+      # WP39 (additive, null unless DETECTORS_ENABLED): who called (context.consumer_id, an id),
+      # and the latency split of the decision in integer microseconds: rules = deterministic
+      # evaluation, detectors = the detector pass; overhead = latency_us - rules - detectors.
+      # detector_latency_json holds {detector slug: microseconds} (a detector that found
+      # nothing leaves no finding row, so its time is kept here).
+      request_id: string?       # the gate call's request id (X-Request-ID); deep link ?event=
+      consumer_id: string?
+      latency_rules_us: int?
+      latency_detectors_us: int?
+      detector_latency_json: json?
 
   agent_event_raw:
     kind: append_only
@@ -668,6 +691,36 @@ tables:
       last_seen: timestamp?
       computed_at: timestamp
 
+  # --- WP39 ---
+  decision_daily:
+    kind: state
+    description: >
+      WP39. Per UTC day and dimension: gate decision counts by verdict status, the not-evaluated
+      count and, for dimension detector_latency, latency percentiles. Recomputed from
+      agent_event and finding by python -m supervisor.jobs.decision_rollup (idempotent: a day is
+      overwritten). Feeds the console Analytics Gate and Detectors tabs so the App never scans
+      the raw table on page load. dimension: total | agent | consumer | rule | detector_code |
+      detector_latency. Integers and ids only; no text.
+    primary_key: [usage_date, dimension, dim_key, dim_key2]
+    indexes:
+      - [dimension, usage_date]
+    columns:
+      usage_date: date
+      dimension: string
+      dim_key: string          # agent id, consumer id, rule id, detector slug, or "*"
+      dim_key2: string         # finding code for detector_code, else "*"
+      requests: int
+      allows: int
+      reports: int
+      transforms: int
+      pauses: int
+      blocks: int
+      skips: int
+      not_evaluated: int       # decisions (or detector runs) that could not be fully inspected
+      p50_us: int?             # detector_latency only
+      p95_us: int?
+      computed_at: timestamp
+
   # --- WP21 (SIEM and alerts) ---
   alert:
     kind: state
@@ -706,6 +759,9 @@ tables:
       route_status: json
       acknowledged_by: string?
       acknowledged_at: timestamp?
+      # WP39 (additive): correlation id of the signal that fired the alert (ties alert,
+      # decision and trace span). Null for rules whose signals carry none.
+      correlation_id: string?
 
   siem_event:
     kind: append_only
@@ -743,7 +799,7 @@ tables:
       duplicates. own_risk is low|medium|high|critical or NULL; the effective level is
       computed on read, never stored. decision33_class is human-set (copied from the agent
       row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding |
-      workspace_scan | manual, plus file:line or a workspace reference).
+      workspace_scan | manual | gate, plus file:line or a workspace reference).
     primary_key: [node_id]
     indexes:
       - [kind, status]
@@ -776,8 +832,371 @@ tables:
       src_id: string
       dst_id: string
       kind: string
-      source: string          # manifest | onboarding | workspace_scan | manual
+      source: string          # manifest | onboarding | workspace_scan | manual | gate
       evidence_ref: string
       active: bool
       first_seen: timestamp
       last_seen: timestamp
+
+  # --- WP27 session monitor (ADR D29) ---------------------------------------------------
+  session_control:
+    kind: state
+    description: >
+      WP27 session-scoped pause of money / credit tools. One row per pause: active until a
+      two-person resume (owner + reviewer, same rule as an agent resume) or until expires_at
+      (cool-down). Written only by a deterministic rule of the session monitor. The gate reads
+      active rows (GATE-SESSION-PAUSE). Free text never lands here.
+    primary_key: [control_id]
+    indexes:
+      - [agent_id, status]
+      - [session_id]
+    columns:
+      control_id: string
+      session_id: string
+      agent_id: string
+      scope: string            # comma separated tool classes: money, credit
+      status: string           # active | lifted | expired
+      score_bp: int
+      case_id: string?
+      created_at: timestamp
+      expires_at: timestamp
+      approver_1: string?      # first approval of a resume (principal id)
+      approver_1_role: string?
+      approver_1_at: timestamp?
+      lifted_by: string?       # second approver, or "cooldown"
+      lifted_at: timestamp?
+
+  # --- WP37 detector findings (ADR D23) ------------------------------------------------
+  finding:
+    kind: append_only
+    evidence: true
+    description: >
+      WP37 one row per detector result of a gate decision: a fired finding, or a detector that
+      did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only
+      (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the
+      gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.
+    primary_key: [finding_id]
+    retention:
+      masked: [entities_masked, fragments_masked]
+    indexes:
+      - [agent_id, ts]
+      - [event_id]
+      - [correlation_id]
+    columns:
+      finding_id: string
+      ts: timestamp
+      event_id: string
+      request_id: string
+      correlation_id: string
+      trace_id: string?
+      agent_id: string
+      tool_name: string
+      direction: string       # input | output
+      detector_slug: string
+      detector_id: string     # slug@version
+      code: string
+      score_bp: int
+      threshold_bp: int
+      masked_count: int
+      action_hint: string     # report | transform | pause | block
+      not_executed_reason: string?
+      preset: string?
+      is_mock: bool
+      verdict_status: string  # status of the whole decision
+      entities_masked: json?
+      fragments_masked: json?
+
+  # --- WP26 MCP tool locking (ADR D24) --------------------------------------------------
+  mcp_tool_manifest:
+    kind: state
+    description: >
+      WP26 locked tool manifest per upstream MCP server. One row per (server, tool) plus one
+      server row (tool_name '*') that holds the whole-list hash. locked_hash is what two
+      different reviewers approved; observed_hash is what the server shows now. A tool whose
+      status is new or changed is hidden from the agent and its tools/call is blocked
+      (MCP-TOOL-UNREVIEWED). approvals lists {by, role, at, hash}; they count only for the
+      observed hash. scan is the report-only poisoning scan (kinds and counts, no text).
+    primary_key: [manifest_id]
+    indexes:
+      - [server_id]
+    columns:
+      manifest_id: string     # hash of server_id + tool_name
+      server_id: string
+      tool_name: string       # '*' for the server row
+      row_kind: string        # server | tool
+      agent_id: string        # the application that first observed the server
+      status: string          # tool: approved | new | changed | removed; server: locked | open
+      locked_hash: string?
+      observed_hash: string?
+      locked_def: json?
+      observed_def: json?
+      suspicious: bool
+      scan: json?
+      approvals: json
+      case_id: string?
+      seeded_by: string?      # who ran trust-on-first-use, when it was used
+      first_seen: timestamp
+      last_seen: timestamp
+
+  # --- WP29 risk register (ADR D26) -----------------------------------------------------
+  risk:
+    kind: state
+    description: >
+      WP29 risk register entry. Anchored on an agent or on an inventory node (a shared model,
+      tool, MCP server or dataset, which every agent that reaches it inherits). Likelihood and
+      impact are whole numbers 1 to 5; the score is their product and is computed on read,
+      never stored. residual_* is what the person declares for the treated risk; the value
+      the product uses is decided by the evidence rule (risk_evidence), see docs/risk-register.md.
+    primary_key: [risk_id]
+    indexes:
+      - [agent_id]
+      - [status]
+    columns:
+      risk_id: string
+      title: string
+      description: text
+      category: string         # money_movement | credit_decision | pii | injection | model_behaviour | availability | third_party
+      agent_id: string?
+      node_id: string?         # inventory node id (inv_...); null = the agent's own system node
+      inherent_likelihood: int
+      inherent_impact: int
+      marginal_risk: int?      # 1 to 5: change caused by using AI (1 much smaller, 5 much higher)
+      marginal_note: text?
+      treatment: string        # avoid | mitigate | accept | transfer
+      treatment_note: text?    # justification (required for accept)
+      residual_likelihood: int
+      residual_impact: int
+      owner: string
+      review_date: date?
+      status: string           # draft | active | retired
+      source: string           # manual | import | starter
+      created_at: timestamp
+      created_by: string
+
+  risk_link:
+    kind: state
+    description: >
+      WP29 link of a risk to a compliance matrix row (obligation id), a gate rule id, an
+      assurance pack id, a monitor name or a case id. rule, pack and monitor links are the
+      controls the evidence rule looks at; matrix and case links are references.
+    primary_key: [link_id]
+    indexes:
+      - [risk_id]
+      - [kind, target]
+    columns:
+      link_id: string          # hash of (risk_id, kind, target): a repeat is a no-op
+      risk_id: string
+      kind: string             # matrix | rule | pack | monitor | case
+      target: string
+      active: bool             # false after an unlink (the row stays as history)
+      created_at: timestamp
+      created_by: string
+
+  risk_evidence:
+    kind: append_only
+    evidence: true
+    description: >
+      WP29. One row per risk and window: what the linked controls did (counts), the state
+      (working | failing | no_evidence), the reason code and the residual score the evidence rule
+      allows. Integers, codes and hashes only; no text. The matching chain record is
+      risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).
+    primary_key: [evidence_id]
+    indexes:
+      - [risk_id, ts]
+    columns:
+      evidence_id: string
+      risk_id: string
+      ts: timestamp
+      window_start: timestamp
+      window_end: timestamp
+      state: string            # working | failing | no_evidence
+      reason: string           # fixed code, see supervisor.risk.evidence.REASONS
+      agents_n: int            # supervised agents the risk applies to
+      agents_excluded: int     # SHADOW, RETIRED or unknown agents (their rows are not evidence)
+      rule_links: int
+      rule_hits: int
+      rule_stops: int
+      rules_missing: int
+      pack_links: int
+      pack_ok: int
+      pack_warn: int
+      pack_fail: int
+      pack_nodata: int
+      monitor_links: int
+      monitor_ok: int
+      monitor_other: int
+      controls_working: int
+      controls_failing: int
+      controls_idle: int
+      declared_residual_likelihood: int
+      declared_residual_impact: int
+      residual_likelihood: int  # after the evidence rule
+      residual_impact: int
+      digest: string            # sha256 of the facts above
+      chain_hash: string?       # entry hash of the chain record
+
+  # --- WP30 control catalogue and task list (ADR D30) ------------------------------------
+  control:
+    kind: state
+    description: >
+      WP30 control: an action the bank or the product takes to meet obligations and hold risks
+      down. One control covers many obligations and many risks (control_map). type is
+      preventive, detective or corrective; implemented_by is product or bank. scope_agents is a
+      JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed
+      from runtime facts (control_status), never typed in.
+    primary_key: [control_id]
+    indexes:
+      - [status]
+    columns:
+      control_id: string
+      title: string
+      objective: text
+      control_type: string     # preventive | detective | corrective
+      implemented_by: string   # product | bank
+      owner: string
+      status: string           # draft | active | retired
+      review_date: date?
+      scope_agents: string     # JSON list of agent ids, or ["*"]
+      source: string           # manual | import | starter
+      created_at: timestamp
+      created_by: string
+
+  control_map:
+    kind: state
+    description: >
+      WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk
+      id of the register; rule, pack, monitor, detector and document are evidence sources. Only
+      rule, pack and monitor are observed at runtime; detector and document are references.
+    primary_key: [map_id]
+    indexes:
+      - [control_id]
+      - [kind, target]
+    columns:
+      map_id: string           # hash of (control_id, kind, target): a repeat is a no-op
+      control_id: string
+      kind: string             # matrix | risk | rule | pack | monitor | detector | document
+      target: string
+      active: bool             # false after a removal (the row stays as history)
+      created_at: timestamp
+      created_by: string
+
+  control_status:
+    kind: append_only
+    evidence: true
+    description: >
+      WP30. One row per control, agent and window: working, failing or no_data, a fixed reason
+      code and integer counts of the evidence sources. No text. The matching chain record is
+      control_status (one per agent and pass, carrying the compliance bp). A repeat for the same
+      window is a no-op (status_id is a hash).
+    primary_key: [status_id]
+    indexes:
+      - [control_id, agent_id, ts]
+      - [agent_id, ts]
+    columns:
+      status_id: string
+      control_id: string
+      agent_id: string
+      ts: timestamp
+      window_start: timestamp
+      window_end: timestamp
+      status: string           # working | failing | no_data
+      reason: string           # fixed code, see supervisor.controls.evidence.REASONS
+      sources_n: int           # runtime sources (rule, pack, monitor) of the control
+      working_n: int
+      failing_n: int
+      idle_n: int
+      refs_n: int              # reference-only sources (detector, document)
+      digest: string           # sha256 of the facts above
+      chain_hash: string?      # entry hash of the chain record
+
+  task:
+    kind: state
+    description: >
+      WP30 lifecycle task of one agent, made from a template in config/tasks.yaml. kind move is
+      the lifecycle move itself (a task); it is done only when no required task of the stage is
+      open. Waiving needs a reason and a second person (waive_requested_by, waive_approved_by).
+      evidence_kind says what proves the task done: control, pack, document or none.
+    primary_key: [task_id]
+    indexes:
+      - [agent_id, stage]
+      - [status]
+    columns:
+      task_id: string          # hash of (agent_id, template_id): a repeat is a no-op
+      agent_id: string
+      template_id: string
+      kind: string             # task | move | custom
+      stage: string            # initiation | design | validation | deployment | operation | re_evaluation | retirement
+      target_stage: string?    # for a move: the stage the agent enters
+      title: string
+      owner_role: string
+      required: bool
+      status: string           # open | in_progress | done | waived
+      due_at: timestamp?
+      evidence_kind: string    # control | pack | document | none
+      evidence_ref: string?    # control id, pack id or document reference
+      level: string            # effective level the set was sized for (low | medium | high | critical)
+      d33_class: string        # high_risk | not_high_risk | unclassified, at generation
+      waive_reason: text?
+      waive_requested_by: string?
+      waive_approved_by: string?
+      done_by: string?
+      done_at: timestamp?
+      created_at: timestamp
+      created_by: string
+
+  task_event:
+    kind: append_only
+    evidence: true
+    description: >
+      WP30. Every change of a task: generate, start, done, waive_request, waive_approve,
+      waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored
+      as a hash only. The matching chain record is task_change.
+    primary_key: [event_id]
+    indexes:
+      - [task_id, ts]
+      - [agent_id, ts]
+    columns:
+      event_id: string
+      task_id: string
+      agent_id: string
+      ts: timestamp
+      action: string
+      actor: string
+      from_status: string?
+      to_status: string?
+      reason_sha256: string?
+      row_hash: string         # sha256 of the task row after the change
+      chain_hash: string?      # entry hash of the chain record
+
+  # --- WP31 transparency report (ADR D31) -----------------------------------------------
+  transparency_report:
+    kind: append_only
+    evidence: true
+    description: >
+      WP31. One row per generated report file set: agent, variant (regulator | customer |
+      internal), language, version (a whole number per agent and variant) and the sha256 of the
+      JSON and of each rendered file. The report data holds ids, integers, hashes and masked text
+      only; this row holds hashes, counts and section hashes (for the diff to the next version),
+      no text. The matching chain record is transparency_report. A repeat for the same
+      (agent, variant, lang, version) is a no-op (report_id is a hash).
+    primary_key: [report_id]
+    indexes:
+      - [agent_id, variant, version]
+    columns:
+      report_id: string
+      agent_id: string
+      variant: string          # regulator | customer | internal
+      lang: string             # vi | en
+      version: int             # per (agent, variant); same for both languages of one pass
+      schema_version: int      # data model version (transparency.model.SCHEMA_VERSION)
+      generated_at: timestamp
+      generated_by: string
+      content_hash: string     # sha256 of the facts only (no version, no time): same facts, same hash
+      json_hash: string        # sha256 of the JSON file
+      html_hash: string?       # sha256 of the HTML file
+      pdf_hash: string?        # sha256 of the PDF file; null when no PDF was produced
+      sections_total: int
+      sections_available: int
+      section_hashes: json     # section id -> sha256 of that section (for the diff)
+      verify_state: string     # ok | failed | not_run: the chain check made for this report
+      chain_hash: string?      # entry hash of the transparency_report chain record

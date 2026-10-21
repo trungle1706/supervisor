@@ -44,7 +44,7 @@ def _config_path(arg: str | None) -> Path:
     return load_settings().alerts_config
 
 
-def _live_signals(since_s: int) -> list[Signal]:
+def _live_signals(since_s: int, gap_window_s: int | None = None) -> list[Signal]:
     from supervisor.adapters.factory import build_adapters
     from supervisor.monitors.common import MonitorContext
 
@@ -53,7 +53,12 @@ def _live_signals(since_s: int) -> list[Signal]:
     try:
         ctx = MonitorContext.from_adapters(adapters, _NoEvidence())  # type: ignore[arg-type]
         now = ctx.clock.now()
-        return load_signals(ctx, now - timedelta(seconds=since_s), now + timedelta(seconds=1))
+        return load_signals(
+            ctx,
+            now - timedelta(seconds=since_s),
+            now + timedelta(seconds=1),
+            gap_window_s=gap_window_s,
+        )
     finally:
         adapters.close()
 
@@ -102,7 +107,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 1
     try:
-        signals = read_jsonl(Path(args.signals)) if args.signals else _live_signals(args.since_s)
+        signals = (
+            read_jsonl(Path(args.signals))
+            if args.signals
+            else (
+                _live_signals(args.since_s, rule.window_s)
+                if rule.source == "coverage_gap"
+                else _live_signals(args.since_s)
+            )
+        )
     except (OSError, ValueError, KeyError, SupervisorError) as exc:
         print(ascii_line(f"[FAIL] cannot read signals: {type(exc).__name__}: {exc}"))
         return 1

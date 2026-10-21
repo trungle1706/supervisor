@@ -1,8 +1,84 @@
 {
   "$defs": {
+    "AgentDetectors": {
+      "additionalProperties": false,
+      "description": "WP37 (ADR D23): per-agent override of ``config/detectors.yaml`` (``agents.<id>.detectors``).\n\n``preset`` is the agent's default sensitivity preset; ``enable`` / ``disable`` switch single\ndetectors; ``settings`` overrides detector settings by slug; ``skip_tools`` lists tools for\nwhich the gate runs no detector (verdict status ``skip``, a deterministic policy value).\nRead only when DETECTORS_ENABLED=1; the key is left out of the policy hash when unset, so a\npolicy file without it keeps the hash it had before WP37.",
+      "properties": {
+        "disable": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Disable",
+          "type": "array"
+        },
+        "enable": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Enable",
+          "type": "array"
+        },
+        "preset": {
+          "anyOf": [
+            {
+              "enum": [
+                "strict",
+                "balanced",
+                "lenient"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preset"
+        },
+        "settings": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Settings",
+          "type": "object"
+        },
+        "skip_tools": {
+          "description": "Tools for which no detector runs (status skip). The loader refuses a tool whose risk class is money, credit or pii_export: a skip must not switch off GATE-DETECTOR-FAILED protection.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Skip Tools",
+          "type": "array"
+        }
+      },
+      "title": "AgentDetectors",
+      "type": "object"
+    },
     "AgentManifest": {
       "additionalProperties": false,
       "properties": {
+        "consumers": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ConsumerOverride"
+          },
+          "title": "Consumers",
+          "type": "object"
+        },
+        "detectors": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentDetectors"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "host_type": {
           "default": "python",
           "title": "Host Type",
@@ -16,6 +92,30 @@
           ],
           "title": "Initial State",
           "type": "string"
+        },
+        "keep_args_approvals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Keep Args Approvals",
+          "type": "array"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "enforce",
+                "observe"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
         },
         "model_family": {
           "default": "unknown",
@@ -37,6 +137,14 @@
           "minLength": 1,
           "title": "Name",
           "type": "string"
+        },
+        "observe_approvals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Observe Approvals",
+          "type": "array"
         },
         "owner_team": {
           "minLength": 1,
@@ -63,6 +171,25 @@
           ],
           "title": "Risk Tier",
           "type": "string"
+        },
+        "rule_approvals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Rule Approvals",
+          "type": "array"
+        },
+        "rules": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleSwitches"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -161,6 +288,86 @@
         "limit"
       ],
       "title": "Aggregate",
+      "type": "object"
+    },
+    "ConsumerOverride": {
+      "additionalProperties": false,
+      "description": "WP38 (ADR D28): ``agents.<id>.consumers.<consumer_id>``. A field that is set replaces the\nagent's value for calls whose ``context.consumer_id`` is this consumer; a field left out\nkeeps the agent's value. ``rules`` merges with the agent's switches.",
+      "properties": {
+        "detectors": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentDetectors"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "enforce",
+                "observe"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "rules": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleSwitches"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "ConsumerOverride",
+      "type": "object"
+    },
+    "DailyBinding": {
+      "additionalProperties": false,
+      "description": "``monitors.session.daily`` (WP27 follow-up): a per-consumer window over a day, read by the\nbatch job only. It sees slow attacks and a rotating ``session_id`` (the sessions share one\nconsumer). Case only, never a pause. Off by default.",
+      "properties": {
+        "case_threshold_bp": {
+          "default": 2500,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Case Threshold Bp",
+          "type": "integer"
+        },
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "k": {
+          "default": 3,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "K",
+          "type": "integer"
+        },
+        "window_s": {
+          "default": 86400,
+          "maximum": 604800,
+          "minimum": 3600,
+          "title": "Window S",
+          "type": "integer"
+        }
+      },
+      "title": "DailyBinding",
       "type": "object"
     },
     "DriftBinding": {
@@ -308,6 +515,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/QualityBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "session": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionBinding"
             },
             {
               "type": "null"
@@ -574,6 +792,207 @@
         "owner"
       ],
       "title": "RuleSpec",
+      "type": "object"
+    },
+    "RuleSwitches": {
+      "additionalProperties": false,
+      "description": "WP38 (ADR D28): switch single rules off or on for an agent or one consumer.\n\nA disabled rule is not evaluated for that agent or consumer (no hit, no record). ``enable``\non a consumer undoes a ``disable`` of the agent. Rule ids must exist in the policy.",
+      "properties": {
+        "disable": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Disable",
+          "type": "array"
+        },
+        "enable": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Enable",
+          "type": "array"
+        }
+      },
+      "title": "RuleSwitches",
+      "type": "object"
+    },
+    "SessionBinding": {
+      "additionalProperties": false,
+      "description": "``agents.<id>.monitors.session`` (WP27): per-agent settings of the session monitor.\n\nEvery field is optional; a field left out takes the global ``SESSION_*`` setting or the\nbuilt-in default. ``pause_scope`` empty (the default) means case only, no pause.",
+      "properties": {
+        "cap_minor": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cap Minor"
+        },
+        "case_threshold_bp": {
+          "anyOf": [
+            {
+              "maximum": 10000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Case Threshold Bp"
+        },
+        "cooldown_s": {
+          "anyOf": [
+            {
+              "maximum": 604800,
+              "minimum": 60,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cooldown S"
+        },
+        "daily": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DailyBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Enabled"
+        },
+        "hit_bp": {
+          "anyOf": [
+            {
+              "maximum": 10000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hit Bp"
+        },
+        "k": {
+          "anyOf": [
+            {
+              "maximum": 8,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "K"
+        },
+        "pause_scope": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "money",
+                  "credit"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pause Scope"
+        },
+        "pause_threshold_bp": {
+          "anyOf": [
+            {
+              "maximum": 10000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pause Threshold Bp"
+        },
+        "solo_signals": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Solo Signals"
+        },
+        "weights": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weights"
+        },
+        "window_s": {
+          "anyOf": [
+            {
+              "maximum": 86400,
+              "minimum": 60,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window S"
+        }
+      },
+      "title": "SessionBinding",
       "type": "object"
     },
     "SplitPaymentBinding": {

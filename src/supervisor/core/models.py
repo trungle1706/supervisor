@@ -111,6 +111,20 @@ class AgentEvent(Record):
     capture_level: CaptureLevel = "masked"
     mask_version: str | None = None  # masker + HMAC key id (WP4); None at digest level
     latency_us: int | None = None  # WP22: gate decision latency, microseconds (null on old rows)
+    # WP37 verdict contract v2 (null unless DETECTORS_ENABLED; a span event carries only the id)
+    verdict_status: str | None = None
+    correlation_id: str | None = None
+    coverage_json: dict[str, Any] | None = None
+    # WP27 session monitor (null unless a session id was sent or the monitor is on)
+    session_id: str | None = None
+    session_source: str | None = None
+    session_json: dict[str, Any] | None = None
+    # WP39 (null unless DETECTORS_ENABLED): caller application and the latency split (us)
+    request_id: str | None = None
+    consumer_id: str | None = None
+    latency_rules_us: int | None = None
+    latency_detectors_us: int | None = None
+    detector_latency_json: dict[str, Any] | None = None
 
 
 class Rule(StateRecord):

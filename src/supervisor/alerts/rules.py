@@ -41,15 +41,27 @@ SEVERITIES = ("low", "medium", "high", "critical")
 ROUTES = ("inbox", "siem", "webhook", "pager")
 # signal kind -> fields a rule may filter on (see signals.py)
 SOURCES: dict[str, tuple[str, ...]] = {
-    "gate_decision": ("agent_id", "action", "rule_id", "allow"),
+    "gate_decision": (
+        "agent_id", "action", "rule_id", "allow",
+        # WP39 (verdict v2; None on records written without detectors)
+        "status", "direction", "agent_state", "detector_failed", "not_evaluated",
+        "correlation_id", "latency_us",
+    ),  # fmt: skip
     "gate_state_change": ("agent_id", "event", "to_state"),
     "verdict": ("agent_id", "tier", "label", "action", "rule_id", "is_mock"),
     "job_run": ("job", "status"),
     "chain_verify": ("ok",),
     "ingress_reject": ("agent_id", "reason_code"),
     "failmode_drill": ("ok",),
-    "case": ("agent_id", "severity"),
-}
+    "case": ("agent_id", "severity", "case_type"),
+    # --- WP39 --- findings of verdict v2, request outcomes, and agents seen without a decision
+    "gate_finding": (
+        "agent_id", "code", "finding_class", "direction", "detector_slug", "action_hint",
+        "enforcement", "is_mock", "correlation_id",
+    ),
+    "gate_request": ("agent_id", "outcome_class", "reason_code", "correlation_id"),
+    "coverage_gap": ("agent_id", "seen_in", "registered"),
+}  # fmt: skip
 GROUP_BY = ("none", "agent_id", "job", "rule_id")
 MAX_WINDOW_S = 7 * 86400
 MAX_SUPPRESSION_S = 30 * 86400  # default cap on how far ahead a suppression may end
@@ -74,12 +86,25 @@ class Rule:
     dedupe_s: int
     routes: tuple[str, ...]
     rule_hash: str
+    # WP39: numeric lower bounds ("latency_us >= budget") and a rate condition. With ``rate_min_bp``
+    # the rule fires only when matching signals are at least that share (basis points) of the
+    # signals of the same source and group in the window (``rate_of`` narrows the denominator).
+    where_min: tuple[tuple[str, int], ...] = ()
+    rate_min_bp: int | None = None
+    rate_of: tuple[tuple[str, tuple[Any, ...]], ...] = ()
 
     def matches(self, fields: Mapping[str, Any]) -> bool:
         for name, allowed in self.where:
             if fields.get(name) not in allowed:
                 return False
+        for name, low in self.where_min:
+            v = fields.get(name)
+            if isinstance(v, bool) or not isinstance(v, int) or v < low:
+                return False
         return True
+
+    def in_denominator(self, fields: Mapping[str, Any]) -> bool:
+        return all(fields.get(name) in allowed for name, allowed in self.rate_of)
 
     def group_of(self, fields: Mapping[str, Any]) -> str:
         if self.group_by == "none":
@@ -140,7 +165,7 @@ def _rule(raw: Any, i: int, errors: list[str]) -> Rule | None:
     where_s = f"rule {rid or i}"
     known = {
         "id", "title", "source", "where", "group_by", "window_s", "threshold",
-        "severity", "dedupe_s", "routes", "enabled",
+        "severity", "dedupe_s", "routes", "enabled", "where_min", "rate",
     }  # fmt: skip
     for k in sorted(set(raw) - known):
         errors.append(f"{where_s}: unknown key {k!r}")
@@ -167,6 +192,42 @@ def _rule(raw: Any, i: int, errors: list[str]) -> Rule | None:
             errors.append(f"{where_s}: where {name} must be text, number, bool or a list of them")
             continue
         conds.append((str(name), vals))
+    mins: list[tuple[str, int]] = []
+    raw_min = raw.get("where_min", {})
+    if not isinstance(raw_min, dict):
+        errors.append(f"{where_s}: where_min must be a mapping")
+        raw_min = {}
+    for name, val in sorted(raw_min.items()):
+        if source in SOURCES and name not in SOURCES[source]:
+            errors.append(f"{where_s}: where_min field {name!r} is not a field of {source}")
+        elif isinstance(val, bool) or not isinstance(val, int) or val < 0:
+            errors.append(f"{where_s}: where_min {name} must be a whole number >= 0")
+        else:
+            mins.append((str(name), val))
+    rate_min_bp: int | None = None
+    rate_of: list[tuple[str, tuple[Any, ...]]] = []
+    raw_rate = raw.get("rate")
+    if raw_rate is not None:
+        if not isinstance(raw_rate, dict) or set(raw_rate) - {"min_bp", "of"}:
+            errors.append(f"{where_s}: rate must be a mapping with min_bp (and optional of)")
+        else:
+            mb = raw_rate.get("min_bp")
+            if isinstance(mb, bool) or not isinstance(mb, int) or not 1 <= mb <= 10000:
+                errors.append(f"{where_s}: rate.min_bp must be an integer 1..10000")
+            else:
+                rate_min_bp = mb
+            of = raw_rate.get("of", {})
+            if not isinstance(of, dict):
+                errors.append(f"{where_s}: rate.of must be a mapping")
+                of = {}
+            for name, val in sorted(of.items()):
+                vals = tuple(val) if isinstance(val, list) else (val,)
+                if source in SOURCES and name not in SOURCES[source]:
+                    errors.append(f"{where_s}: rate.of field {name!r} is not a field of {source}")
+                elif not vals or not all(isinstance(v, (str, int, bool)) for v in vals):
+                    errors.append(f"{where_s}: rate.of {name} must be text, number, bool or a list")
+                else:
+                    rate_of.append((str(name), vals))
     group_by = raw.get("group_by", "none")
     if group_by not in GROUP_BY:
         errors.append(f"{where_s}: group_by must be one of {', '.join(GROUP_BY)}")
@@ -184,6 +245,8 @@ def _rule(raw: Any, i: int, errors: list[str]) -> Rule | None:
             errors.append(f"{where_s}: {name} must be an integer {lo}..{hi}")
     if isinstance(threshold, int) and threshold > 1 and window_s == 0:
         errors.append(f"{where_s}: threshold > 1 needs window_s > 0")
+    if raw_rate is not None and window_s == 0:
+        errors.append(f"{where_s}: rate needs window_s > 0")
     severity = raw.get("severity")
     if severity not in SEVERITIES:
         errors.append(f"{where_s}: severity must be one of {', '.join(SEVERITIES)}")
@@ -201,6 +264,10 @@ def _rule(raw: Any, i: int, errors: list[str]) -> Rule | None:
         "group_by": group_by, "window_s": window_s, "threshold": threshold,
         "severity": severity, "dedupe_s": dedupe_s, "routes": sorted(set(routes)),
     }  # fmt: skip
+    if mins:  # keys are added only when used, so the hash of an older rule does not change
+        body["where_min"] = {k: v for k, v in mins}
+    if rate_min_bp is not None:
+        body["rate"] = {"min_bp": rate_min_bp, "of": {k: list(v) for k, v in rate_of}}
     return Rule(
         id=rid,
         title=str(title),
@@ -213,6 +280,9 @@ def _rule(raw: Any, i: int, errors: list[str]) -> Rule | None:
         dedupe_s=int(dedupe_s),
         routes=tuple(body["routes"]),
         rule_hash=sha256_hex(body),
+        where_min=tuple(mins),
+        rate_min_bp=rate_min_bp,
+        rate_of=tuple(rate_of),
     )
 
 

@@ -38,6 +38,61 @@ class ConsoleContext:
         return svc
 
     @property
+    def risks(self) -> Any:
+        """The risk register service (WP29, ADR D26). Changes and evidence go on the chain."""
+        from supervisor.risk.service import RiskService
+
+        svc = getattr(self, "_risks", None)
+        if svc is None:
+            svc = RiskService(
+                self.state, self.tables, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._risks = svc
+        return svc
+
+    @property
+    def controls(self) -> Any:
+        """The control catalogue service (WP30, ADR D30). Changes and status go on the chain."""
+        from supervisor.controls.service import ControlService
+
+        svc = getattr(self, "_controls", None)
+        if svc is None:
+            svc = ControlService(
+                self.state, self.tables, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._controls = svc
+        return svc
+
+    @property
+    def tasks(self) -> Any:
+        """The task list service (WP30, ADR D30). Every change goes on the chain."""
+        from supervisor.tasks.service import TaskService
+
+        svc = getattr(self, "_tasks", None)
+        if svc is None:
+            svc = TaskService(
+                self.state,
+                self.tables,
+                self.clock,
+                self.settings,
+                evidence=self.runtime.chain,
+                controls=self.controls,
+            )
+            self._tasks = svc
+        return svc
+
+    @property
+    def transparency(self) -> Any:
+        """The transparency report service (WP31, ADR D31). Signed reports go on the chain."""
+        from supervisor.transparency.service import TransparencyService
+
+        svc = getattr(self, "_transparency", None)
+        if svc is None:
+            svc = TransparencyService.from_context(self)
+            self._transparency = svc
+        return svc
+
+    @property
     def gateway(self) -> Any:
         return self.runtime.gateway
 

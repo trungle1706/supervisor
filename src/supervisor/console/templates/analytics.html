@@ -10,7 +10,7 @@
   <a class="btn" href="/console/alerts?lang={{ lang }}">{{ t('alerts') }}</a>
 {% endcall %}
 {{ ui.purpose(t('an_purpose'), t('an_why')) }}
-{% set tab_labels = {'gate': t('an_tab_gate'), 'tools': t('an_tab_tools'), 'metrics': t('an_tab_metrics'), 'latency': t('an_tab_latency')} %}
+{% set tab_labels = {'gate': t('an_tab_gate'), 'tools': t('an_tab_tools'), 'metrics': t('an_tab_metrics'), 'latency': t('an_tab_latency'), 'detectors': t('an_tab_detectors')} %}
 {% set tb_qs = ('&days=' ~ toolbar.days if toolbar.days else '') ~ ('&agent=' ~ toolbar.agent if toolbar.agent else '') %}
 {# a tab click swaps the whole #main (not only the tab body), so the toolbar's hidden tab
    field and its window line follow the tab (review fix) #}

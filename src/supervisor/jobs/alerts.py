@@ -68,7 +68,8 @@ def run(
     # earlier than its commit (Delta latency, another lane committing first) is still ahead
     # of the cursor when it becomes visible. Entries later than the lag are still missed.
     upper = now - timedelta(seconds=settings.alerts_lag_s)
-    signals = load_signals(ctx, ts_from, upper)
+    gap = ruleset.get("AL-COVERAGE-GAP")  # WP39: the coverage check runs only when the rule is on
+    signals = load_signals(ctx, ts_from, upper, gap_window_s=gap.window_s if gap else None)
     result = evaluate(ruleset, signals, cursor=cursor, last_fired=service.last_fired())
     stored = 0
     for fired in result.fired:

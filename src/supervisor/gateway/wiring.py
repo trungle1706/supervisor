@@ -77,18 +77,24 @@ def build_gateway(
 
         bootstrap_schema.run(settings, adapters)
     from supervisor.adapters.facts import make_fact_source
-    from supervisor.wiring import resolve_policy_dir
+    from supervisor.wiring import make_detector_gate, make_session_gate, resolve_policy_dir
 
     policy = load_policy_dir(resolve_policy_dir(settings, policy_dir))
     deploy_with_retry(policy, adapters.state, adapters.clock)
+    provider = StorePolicyProvider(adapters.state, refresh_s=5.0)
+    detector_gate = make_detector_gate(settings, policy)  # WP37 (default off)
+    if detector_gate is not None:
+        provider.validator = detector_gate.check_policy
     return Gateway(
-        StorePolicyProvider(adapters.state, refresh_s=5.0),
+        provider,
         adapters.tables,
         adapters.state,
         evidence,
         adapters.clock,
         facts=make_fact_source(settings),  # D13: FACT_SOURCE (default none)
         env=settings.supervisor_mode,
+        detector_gate=detector_gate,
+        session_gate=make_session_gate(settings, adapters, evidence),  # WP27 (default off)
     )
 
 

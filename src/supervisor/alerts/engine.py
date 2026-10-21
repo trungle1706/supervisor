@@ -84,6 +84,7 @@ def evaluate(
     last = last_fired if last_fired is not None else {}
     result = EvalResult()
     windows: dict[tuple[str, str], deque[tuple[datetime, str]]] = {}
+    denoms: dict[tuple[str, str], deque[datetime]] = {}  # WP39 rate rules: the base of the share
     by_source: dict[str, list[Rule]] = {}
     for r in ruleset.rules:
         if only_rules is None or r.id in only_rules:
@@ -92,10 +93,16 @@ def evaluate(
     for s in sorted_signals(signals):
         is_new = cursor is None or (s.ts, s.sid) > cursor
         if is_new:
-            result.judged += 1
+            result.judged += 0 if s.derived else 1
             if result.cursor is None or (s.ts, s.sid) > result.cursor:
                 result.cursor = (s.ts, s.sid)
         for rule in by_source.get(s.kind, ()):
+            if rule.rate_min_bp is not None and rule.in_denominator(s.fields):
+                den = denoms.setdefault((rule.id, rule.group_of(s.fields)), deque())
+                den.append(s.ts)
+                horizon = s.ts - timedelta(seconds=rule.window_s)
+                while den[0] <= horizon:
+                    den.popleft()
             if not rule.matches(s.fields):
                 continue
             group = rule.group_of(s.fields)
@@ -110,6 +117,10 @@ def evaluate(
                     win.popleft()
             if not is_new or len(win) < rule.threshold:
                 continue
+            if rule.rate_min_bp is not None:
+                base = len(denoms.get((rule.id, group), ()))
+                if base == 0 or len(win) * 10000 < rule.rate_min_bp * base:
+                    continue
             if rule.group_by == "agent_id":
                 agent = group if group not in ("-", "*") else None
             else:

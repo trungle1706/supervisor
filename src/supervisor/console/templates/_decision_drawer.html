@@ -32,6 +32,7 @@
       (t('reason'), drawer.reason),
       (t('capture_level'), e.capture_level),
     ]) }}
+    {% if drawer.observed %}<div class="msg msg-warn" role="status"><strong>{{ t('pg_observed') }}:</strong> <span class="mono">{{ drawer.observed }}</span>. {{ t('pg_observed_line') }}</div>{% endif %}
     <p class="btnrow">
       {% if drawer.traces_on and e.trace_id %}<a class="btn" href="/console/traces/{{ e.trace_id }}?lang={{ lang }}">{{ t('open_trace') }}</a>{% endif %}
       {% if r.case_id %}<a class="btn" href="/console/cases/{{ r.case_id }}?lang={{ lang }}">{{ t('open_case') }} {{ r.case_id }}</a>{% endif %}

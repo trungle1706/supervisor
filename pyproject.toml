@@ -79,7 +79,18 @@ ignore = [
 # Identifiers come only from schema/model.yaml (regex-checked); values are bound parameters.
 "src/supervisor/adapters/sql/store.py" = ["S608"]
 "src/supervisor/jobs/**" = ["T20"]
+# WP26: golden-set texts and the harness report strings are long on purpose
+"src/supervisor/gateway/mcp_http_harness.py" = ["E501"]
+"tests/fixtures/mcp_http/*.py" = ["E501"]
 "src/supervisor/analytics/tools.py" = ["T20"]  # WP22 CLI
 "src/supervisor/alerts/__main__.py" = ["T20"]  # WP21 CLI
 "src/supervisor/alerts/harness.py" = ["T20"]  # WP21 harness CLI
+"src/supervisor/detectors/harness.py" = ["T20"]  # WP37 harness CLI
+"src/supervisor/collectors/harness.py" = ["E501"]  # WP38 report text
+"src/supervisor/collectors/probes.py" = ["E501"]  # WP38 probe table
+"tools/train_classifier.py" = ["T20", "E501"]  # WP25 training CLI
+"tools/cross_validate.py" = ["T20", "E501"]  # WP25b CV CLI
+"data/eval/injection_vi_en/*.py" = ["T20", "E501", "S310", "RUF001", "RUF003"]  # WP25 data tools
+"src/supervisor/detectors/injection_classifier/concepts.py" = ["E501"]  # lexicon lines
+"src/supervisor/detectors/injection_classifier/validation.py" = ["E501"]  # report tables
 "schema/generate.py" = ["T20"]

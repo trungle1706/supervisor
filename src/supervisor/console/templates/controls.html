@@ -1,0 +1,29 @@
+{# Controls page (WP30, read-only): tiles, filter bar, sortable paged table, row drawer
+   (?drawer=<id> is the no-JS fallback). Variables: controls_views.list_view. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_controls') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_controls'), None)]) }}
+{{ ui.pagehead(t('nav_controls'), ui.pill(t('read_only'), 'neutral')) }}
+{{ ui.purpose(t('ct_purpose'), t('ct_why')) }}
+<section id="controls" aria-label="{{ t('nav_controls') }}">
+{{ ui.tiles(tiles, '/console/controls', '/console/controls/rows') }}
+{% if failing_n %}<p class="hint">{{ t('ct_failing_line', n=failing_n) }}</p>{% endif %}
+{% if overdue_n %}<p class="hint">{{ t('rk_overdue_line', n=overdue_n) }}</p>{% endif %}
+{% if uncovered %}<p class="hint">{{ t('ct_uncovered_line', n=uncovered|length) }}</p>{% endif %}
+{{ ui.filterbar('/console/controls', '/console/controls/rows', [
+  {'name': 'q', 'label': t('ct_col_control'), 'kind': 'search', 'value': params.q},
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+  {'name': 'type', 'label': t('ct_col_type'), 'kind': 'select', 'value': params.type, 'options': type_opts},
+  {'name': 'implemented_by', 'label': t('ct_col_by'), 'kind': 'select', 'value': params.implemented_by, 'options': by_opts},
+  {'name': 'owner', 'label': t('owner'), 'kind': 'select', 'value': params.owner, 'options': owner_opts},
+  {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
+], '/console/controls?lang=' ~ lang) }}
+<div id="list" aria-live="polite">
+{% include "_controls_list.html" %}
+</div>
+</section>
+<p class="hint">{{ t('ct_edit_note') }}</p>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_control_drawer.html" %}{% endif %}{% endblock %}

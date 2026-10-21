@@ -82,6 +82,14 @@ Fairness attributes: without `protected_attribute_keys` the global attribute sou
 read from the decision call's own arguments; the subject id is still hashed at once and the
 raw value is not stored.
 
+## Session monitor (WP27)
+
+A fifth monitor, `session`, watches one conversation at a time instead of one agent per day. It
+writes `monitor_status` key `session` (`ok` with the number of sessions assessed, `no_data` when
+no decision with a session id is in the window). Its per-agent settings sit in the same place as the
+bindings, under `agents.<id>.monitors.session` (policy file). Full description: `docs/session-monitor.md`.
+Flag `SESSION_MONITOR_ENABLED`, job `python -m supervisor.jobs.session_monitor`, `SCHED_SESSION_S`.
+
 ## Settings
 
 The existing flags are unchanged and still switch each job on (`QUALITY_ENABLED`,

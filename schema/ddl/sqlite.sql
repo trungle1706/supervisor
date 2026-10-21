@@ -106,6 +106,17 @@ CREATE TABLE IF NOT EXISTS agent_event (
   capture_level TEXT NOT NULL,
   mask_version TEXT,
   latency_us INTEGER,
+  verdict_status TEXT,
+  correlation_id TEXT,
+  coverage_json TEXT,
+  session_id TEXT,
+  session_source TEXT,
+  session_json TEXT,
+  request_id TEXT,
+  consumer_id TEXT,
+  latency_rules_us INTEGER,
+  latency_detectors_us INTEGER,
+  detector_latency_json TEXT,
   PRIMARY KEY (event_id)
 );
 
@@ -116,7 +127,7 @@ CREATE INDEX IF NOT EXISTS ix_agent_event_trace_id ON agent_event (trace_id);
 DROP TRIGGER IF EXISTS trg_agent_event_no_update;
 
 CREATE TRIGGER trg_agent_event_no_update
-BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us ON agent_event
+BEFORE UPDATE OF event_id, ts, trace_id, span_id, parent_span_id, agent_id, agent_version, caller_agent_id, event_type, tool_name, args_hash, amount_minor, currency, status, latency_ms, env, classification, source, capture_level, mask_version, latency_us, verdict_status, correlation_id, coverage_json, session_id, session_source, session_json, request_id, consumer_id, latency_rules_us, latency_detectors_us, detector_latency_json ON agent_event
 BEGIN
   SELECT RAISE(ABORT, 'agent_event is append-only');
 END;
@@ -816,6 +827,30 @@ CREATE TABLE IF NOT EXISTS tool_usage_daily (
 
 CREATE INDEX IF NOT EXISTS ix_tool_usage_daily_agent_id_usage_date ON tool_usage_daily (agent_id, usage_date);
 
+-- decision_daily (state): WP39. Per UTC day and dimension: gate decision counts by verdict status, the not-evaluated count and, for dimension detector_latency, latency percentiles. Recomputed from agent_event and finding by python -m supervisor.jobs.decision_rollup (idempotent: a day is overwritten). Feeds the console Analytics Gate and Detectors tabs so the App never scans the raw table on page load. dimension: total | agent | consumer | rule | detector_code | detector_latency. Integers and ids only; no text.
+CREATE TABLE IF NOT EXISTS decision_daily (
+  usage_date TEXT NOT NULL,
+  dimension TEXT NOT NULL,
+  dim_key TEXT NOT NULL,
+  dim_key2 TEXT NOT NULL,
+  requests INTEGER NOT NULL,
+  allows INTEGER NOT NULL,
+  reports INTEGER NOT NULL,
+  transforms INTEGER NOT NULL,
+  pauses INTEGER NOT NULL,
+  blocks INTEGER NOT NULL,
+  skips INTEGER NOT NULL,
+  not_evaluated INTEGER NOT NULL,
+  p50_us INTEGER,
+  p95_us INTEGER,
+  computed_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (usage_date, dimension, dim_key, dim_key2)
+);
+
+CREATE INDEX IF NOT EXISTS ix_decision_daily_dimension_usage_date ON decision_daily (dimension, usage_date);
+
 -- alert (state): WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.
 CREATE TABLE IF NOT EXISTS alert (
   alert_id TEXT NOT NULL,
@@ -843,6 +878,7 @@ CREATE TABLE IF NOT EXISTS alert (
   route_status TEXT NOT NULL,
   acknowledged_by TEXT,
   acknowledged_at TEXT,
+  correlation_id TEXT,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (alert_id)
@@ -887,7 +923,7 @@ BEGIN
   SELECT RAISE(ABORT, 'siem_event is append-only');
 END;
 
--- inventory_node (state): WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).
+-- inventory_node (state): WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual | gate, plus file:line or a workspace reference).
 CREATE TABLE IF NOT EXISTS inventory_node (
   node_id TEXT NOT NULL,
   kind TEXT NOT NULL,
@@ -927,3 +963,382 @@ CREATE TABLE IF NOT EXISTS inventory_edge (
 CREATE INDEX IF NOT EXISTS ix_inventory_edge_src_id ON inventory_edge (src_id);
 
 CREATE INDEX IF NOT EXISTS ix_inventory_edge_dst_id ON inventory_edge (dst_id);
+
+-- session_control (state): WP27 session-scoped pause of money / credit tools. One row per pause: active until a two-person resume (owner + reviewer, same rule as an agent resume) or until expires_at (cool-down). Written only by a deterministic rule of the session monitor. The gate reads active rows (GATE-SESSION-PAUSE). Free text never lands here.
+CREATE TABLE IF NOT EXISTS session_control (
+  control_id TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  status TEXT NOT NULL,
+  score_bp INTEGER NOT NULL,
+  case_id TEXT,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  approver_1 TEXT,
+  approver_1_role TEXT,
+  approver_1_at TEXT,
+  lifted_by TEXT,
+  lifted_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (control_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_session_control_agent_id_status ON session_control (agent_id, status);
+
+CREATE INDEX IF NOT EXISTS ix_session_control_session_id ON session_control (session_id);
+
+-- finding (append_only): WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.
+CREATE TABLE IF NOT EXISTS finding (
+  finding_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  correlation_id TEXT NOT NULL,
+  trace_id TEXT,
+  agent_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  direction TEXT NOT NULL,
+  detector_slug TEXT NOT NULL,
+  detector_id TEXT NOT NULL,
+  code TEXT NOT NULL,
+  score_bp INTEGER NOT NULL,
+  threshold_bp INTEGER NOT NULL,
+  masked_count INTEGER NOT NULL,
+  action_hint TEXT NOT NULL,
+  not_executed_reason TEXT,
+  preset TEXT,
+  is_mock INTEGER NOT NULL,
+  verdict_status TEXT NOT NULL,
+  entities_masked TEXT,
+  fragments_masked TEXT,
+  PRIMARY KEY (finding_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_finding_agent_id_ts ON finding (agent_id, ts);
+
+CREATE INDEX IF NOT EXISTS ix_finding_event_id ON finding (event_id);
+
+CREATE INDEX IF NOT EXISTS ix_finding_correlation_id ON finding (correlation_id);
+
+DROP TRIGGER IF EXISTS trg_finding_no_update;
+
+CREATE TRIGGER trg_finding_no_update
+BEFORE UPDATE OF finding_id, ts, event_id, request_id, correlation_id, trace_id, agent_id, tool_name, direction, detector_slug, detector_id, code, score_bp, threshold_bp, masked_count, action_hint, not_executed_reason, preset, is_mock, verdict_status ON finding
+BEGIN
+  SELECT RAISE(ABORT, 'finding is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_finding_retention_null_only
+BEFORE UPDATE OF entities_masked, fragments_masked ON finding
+WHEN NEW.entities_masked IS NOT NULL OR NEW.fragments_masked IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'finding is append-only: retention may only set NULL');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_finding_no_delete
+BEFORE DELETE ON finding
+BEGIN
+  SELECT RAISE(ABORT, 'finding is append-only');
+END;
+
+-- mcp_tool_manifest (state): WP26 locked tool manifest per upstream MCP server. One row per (server, tool) plus one server row (tool_name '*') that holds the whole-list hash. locked_hash is what two different reviewers approved; observed_hash is what the server shows now. A tool whose status is new or changed is hidden from the agent and its tools/call is blocked (MCP-TOOL-UNREVIEWED). approvals lists {by, role, at, hash}; they count only for the observed hash. scan is the report-only poisoning scan (kinds and counts, no text).
+CREATE TABLE IF NOT EXISTS mcp_tool_manifest (
+  manifest_id TEXT NOT NULL,
+  server_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  row_kind TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  locked_hash TEXT,
+  observed_hash TEXT,
+  locked_def TEXT,
+  observed_def TEXT,
+  suspicious INTEGER NOT NULL,
+  scan TEXT,
+  approvals TEXT NOT NULL,
+  case_id TEXT,
+  seeded_by TEXT,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (manifest_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_mcp_tool_manifest_server_id ON mcp_tool_manifest (server_id);
+
+-- risk (state): WP29 risk register entry. Anchored on an agent or on an inventory node (a shared model, tool, MCP server or dataset, which every agent that reaches it inherits). Likelihood and impact are whole numbers 1 to 5; the score is their product and is computed on read, never stored. residual_* is what the person declares for the treated risk; the value the product uses is decided by the evidence rule (risk_evidence), see docs/risk-register.md.
+CREATE TABLE IF NOT EXISTS risk (
+  risk_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL,
+  agent_id TEXT,
+  node_id TEXT,
+  inherent_likelihood INTEGER NOT NULL,
+  inherent_impact INTEGER NOT NULL,
+  marginal_risk INTEGER,
+  marginal_note TEXT,
+  treatment TEXT NOT NULL,
+  treatment_note TEXT,
+  residual_likelihood INTEGER NOT NULL,
+  residual_impact INTEGER NOT NULL,
+  owner TEXT NOT NULL,
+  review_date TEXT,
+  status TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (risk_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_risk_agent_id ON risk (agent_id);
+
+CREATE INDEX IF NOT EXISTS ix_risk_status ON risk (status);
+
+-- risk_link (state): WP29 link of a risk to a compliance matrix row (obligation id), a gate rule id, an assurance pack id, a monitor name or a case id. rule, pack and monitor links are the controls the evidence rule looks at; matrix and case links are references.
+CREATE TABLE IF NOT EXISTS risk_link (
+  link_id TEXT NOT NULL,
+  risk_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (link_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_risk_link_risk_id ON risk_link (risk_id);
+
+CREATE INDEX IF NOT EXISTS ix_risk_link_kind_target ON risk_link (kind, target);
+
+-- risk_evidence (append_only): WP29. One row per risk and window: what the linked controls did (counts), the state (working | failing | no_evidence), the reason code and the residual score the evidence rule allows. Integers, codes and hashes only; no text. The matching chain record is risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).
+CREATE TABLE IF NOT EXISTS risk_evidence (
+  evidence_id TEXT NOT NULL,
+  risk_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  window_start TEXT NOT NULL,
+  window_end TEXT NOT NULL,
+  state TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  agents_n INTEGER NOT NULL,
+  agents_excluded INTEGER NOT NULL,
+  rule_links INTEGER NOT NULL,
+  rule_hits INTEGER NOT NULL,
+  rule_stops INTEGER NOT NULL,
+  rules_missing INTEGER NOT NULL,
+  pack_links INTEGER NOT NULL,
+  pack_ok INTEGER NOT NULL,
+  pack_warn INTEGER NOT NULL,
+  pack_fail INTEGER NOT NULL,
+  pack_nodata INTEGER NOT NULL,
+  monitor_links INTEGER NOT NULL,
+  monitor_ok INTEGER NOT NULL,
+  monitor_other INTEGER NOT NULL,
+  controls_working INTEGER NOT NULL,
+  controls_failing INTEGER NOT NULL,
+  controls_idle INTEGER NOT NULL,
+  declared_residual_likelihood INTEGER NOT NULL,
+  declared_residual_impact INTEGER NOT NULL,
+  residual_likelihood INTEGER NOT NULL,
+  residual_impact INTEGER NOT NULL,
+  digest TEXT NOT NULL,
+  chain_hash TEXT,
+  PRIMARY KEY (evidence_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_risk_evidence_risk_id_ts ON risk_evidence (risk_id, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_risk_evidence_no_update
+BEFORE UPDATE ON risk_evidence
+BEGIN
+  SELECT RAISE(ABORT, 'risk_evidence is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_risk_evidence_no_delete
+BEFORE DELETE ON risk_evidence
+BEGIN
+  SELECT RAISE(ABORT, 'risk_evidence is append-only');
+END;
+
+-- control (state): WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.
+CREATE TABLE IF NOT EXISTS control (
+  control_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  objective TEXT NOT NULL,
+  control_type TEXT NOT NULL,
+  implemented_by TEXT NOT NULL,
+  owner TEXT NOT NULL,
+  status TEXT NOT NULL,
+  review_date TEXT,
+  scope_agents TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (control_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_control_status ON control (status);
+
+-- control_map (state): WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk id of the register; rule, pack, monitor, detector and document are evidence sources. Only rule, pack and monitor are observed at runtime; detector and document are references.
+CREATE TABLE IF NOT EXISTS control_map (
+  map_id TEXT NOT NULL,
+  control_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (map_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_control_map_control_id ON control_map (control_id);
+
+CREATE INDEX IF NOT EXISTS ix_control_map_kind_target ON control_map (kind, target);
+
+-- control_status (append_only): WP30. One row per control, agent and window: working, failing or no_data, a fixed reason code and integer counts of the evidence sources. No text. The matching chain record is control_status (one per agent and pass, carrying the compliance bp). A repeat for the same window is a no-op (status_id is a hash).
+CREATE TABLE IF NOT EXISTS control_status (
+  status_id TEXT NOT NULL,
+  control_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  window_start TEXT NOT NULL,
+  window_end TEXT NOT NULL,
+  status TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  sources_n INTEGER NOT NULL,
+  working_n INTEGER NOT NULL,
+  failing_n INTEGER NOT NULL,
+  idle_n INTEGER NOT NULL,
+  refs_n INTEGER NOT NULL,
+  digest TEXT NOT NULL,
+  chain_hash TEXT,
+  PRIMARY KEY (status_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_control_status_control_id_agent_id_ts ON control_status (control_id, agent_id, ts);
+
+CREATE INDEX IF NOT EXISTS ix_control_status_agent_id_ts ON control_status (agent_id, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_control_status_no_update
+BEFORE UPDATE ON control_status
+BEGIN
+  SELECT RAISE(ABORT, 'control_status is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_control_status_no_delete
+BEFORE DELETE ON control_status
+BEGIN
+  SELECT RAISE(ABORT, 'control_status is append-only');
+END;
+
+-- task (state): WP30 lifecycle task of one agent, made from a template in config/tasks.yaml. kind move is the lifecycle move itself (a task); it is done only when no required task of the stage is open. Waiving needs a reason and a second person (waive_requested_by, waive_approved_by). evidence_kind says what proves the task done: control, pack, document or none.
+CREATE TABLE IF NOT EXISTS task (
+  task_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  template_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  target_stage TEXT,
+  title TEXT NOT NULL,
+  owner_role TEXT NOT NULL,
+  required INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  due_at TEXT,
+  evidence_kind TEXT NOT NULL,
+  evidence_ref TEXT,
+  level TEXT NOT NULL,
+  d33_class TEXT NOT NULL,
+  waive_reason TEXT,
+  waive_requested_by TEXT,
+  waive_approved_by TEXT,
+  done_by TEXT,
+  done_at TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (task_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_task_agent_id_stage ON task (agent_id, stage);
+
+CREATE INDEX IF NOT EXISTS ix_task_status ON task (status);
+
+-- task_event (append_only): WP30. Every change of a task: generate, start, done, waive_request, waive_approve, waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored as a hash only. The matching chain record is task_change.
+CREATE TABLE IF NOT EXISTS task_event (
+  event_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  action TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  from_status TEXT,
+  to_status TEXT,
+  reason_sha256 TEXT,
+  row_hash TEXT NOT NULL,
+  chain_hash TEXT,
+  PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_task_event_task_id_ts ON task_event (task_id, ts);
+
+CREATE INDEX IF NOT EXISTS ix_task_event_agent_id_ts ON task_event (agent_id, ts);
+
+CREATE TRIGGER IF NOT EXISTS trg_task_event_no_update
+BEFORE UPDATE ON task_event
+BEGIN
+  SELECT RAISE(ABORT, 'task_event is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task_event_no_delete
+BEFORE DELETE ON task_event
+BEGIN
+  SELECT RAISE(ABORT, 'task_event is append-only');
+END;
+
+-- transparency_report (append_only): WP31. One row per generated report file set: agent, variant (regulator | customer | internal), language, version (a whole number per agent and variant) and the sha256 of the JSON and of each rendered file. The report data holds ids, integers, hashes and masked text only; this row holds hashes, counts and section hashes (for the diff to the next version), no text. The matching chain record is transparency_report. A repeat for the same (agent, variant, lang, version) is a no-op (report_id is a hash).
+CREATE TABLE IF NOT EXISTS transparency_report (
+  report_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  variant TEXT NOT NULL,
+  lang TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  schema_version INTEGER NOT NULL,
+  generated_at TEXT NOT NULL,
+  generated_by TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  json_hash TEXT NOT NULL,
+  html_hash TEXT,
+  pdf_hash TEXT,
+  sections_total INTEGER NOT NULL,
+  sections_available INTEGER NOT NULL,
+  section_hashes TEXT NOT NULL,
+  verify_state TEXT NOT NULL,
+  chain_hash TEXT,
+  PRIMARY KEY (report_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_transparency_report_agent_id_variant_version ON transparency_report (agent_id, variant, version);
+
+CREATE TRIGGER IF NOT EXISTS trg_transparency_report_no_update
+BEFORE UPDATE ON transparency_report
+BEGIN
+  SELECT RAISE(ABORT, 'transparency_report is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_transparency_report_no_delete
+BEFORE DELETE ON transparency_report
+BEGIN
+  SELECT RAISE(ABORT, 'transparency_report is append-only');
+END;

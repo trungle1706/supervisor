@@ -93,7 +93,12 @@ def _audit_denied(request: Request, me: AuthPrincipal, permission: str, detail: 
     if request.method not in MUTATING:
         return ""
     path = request.url.path
-    if not (path.startswith("/console") or rbac.normalise_path(path).startswith("/gate/")):
+    if not (
+        path.startswith(
+            ("/console", "/v1/risks", "/v1/controls", "/v1/tasks", "/v1/transparency")
+        )  # WP29, WP30, WP31: audited too
+        or rbac.normalise_path(path).startswith("/gate/")
+    ):
         return ""
     handles = _audit_handles(request)
     if handles is None:

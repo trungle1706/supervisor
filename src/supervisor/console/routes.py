@@ -48,9 +48,12 @@ from supervisor.console import (
     audit_view,
     auditpack,
     cases_list,  # --- WP-UX2 ---
+    collectors_view,
     compliance_view,
+    controls_views,  # --- WP30 ---
     credentials_view,
     decisions,
+    decisions_v2,
     health,
     inbox_list,  # --- WP-UX2 ---
     integration_reports,
@@ -61,20 +64,26 @@ from supervisor.console import (
     playground,
     policies_view,
     readmodels,
+    risks_views,  # --- WP29 ---
     search,
+    tasks_views,
     tools_views,
     traces,
+    transparency_views,  # --- WP31 ---
     users_view,
     views,
 )
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.console.listing import ListingError
+from supervisor.controls.model import ensure_on as ensure_controls_on
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
 from supervisor.jobs import case_intake
+from supervisor.risk.model import ensure_on as ensure_risks_on
+from supervisor.transparency.model import ensure_on as ensure_transparency_on
 
 router = APIRouter(prefix="/console", tags=["console"])
 log = logging.getLogger("supervisor.console")
@@ -220,6 +229,29 @@ async def form(request: Request) -> dict[str, str]:
     except UnicodeDecodeError:
         raise ConsoleInputError("form must be UTF-8") from None
     return {k: v[-1] for k, v in parsed.items()}
+
+
+async def form_or_plain(request: Request) -> tuple[dict[str, str], bool]:
+    """Like ``form`` but also takes a plain browser form post (no JavaScript). A plain post has
+    no ``HX-Request`` header, which is the CSRF guard of every other action, so it must come from
+    this site: ``Origin`` (else ``Referer``) has to name the host of the request. Returns the form
+    and whether it was a plain post."""
+    if request.headers.get("hx-request") == "true":
+        return await form(request), False
+    from urllib.parse import urlsplit
+
+    source = request.headers.get("origin") or request.headers.get("referer") or ""
+    host = request.headers.get("host", "")
+    if not source or urlsplit(source).netloc != host:
+        raise ConsoleInputError("this action must come from the console page")
+    body = await request.body()
+    if len(body) > MAX_FORM_BYTES:
+        raise ConsoleInputError("form is too large")
+    try:
+        parsed = parse_qs(body.decode("utf-8"), keep_blank_values=True, strict_parsing=False)
+    except UnicodeDecodeError:
+        raise ConsoleInputError("form must be UTF-8") from None
+    return {k: v[-1] for k, v in parsed.items()}, True
 
 
 def _version(data: Mapping[str, str]) -> int:
@@ -1374,6 +1406,10 @@ _UX3_FLAGS = {
     "users": ("CONSOLE_USERS_ENABLED", "Users and roles"),
     "audit": ("CONSOLE_AUDITLOG_ENABLED", "Audit log"),
     "integrations": ("CONSOLE_INTEGRATIONS_ENABLED", "Integrations"),
+    "risks": ("CONSOLE_RISKS_ENABLED", "Risks"),  # WP29
+    "controls": ("CONSOLE_CONTROLS_ENABLED", "Controls"),  # WP30
+    "tasks": ("CONSOLE_CONTROLS_ENABLED", "Tasks"),  # WP30
+    "transparency": ("CONSOLE_TRANSPARENCY_ENABLED", "Transparency"),  # WP31
 }
 
 
@@ -1394,7 +1430,20 @@ def _ux3_off(ctx: ConsoleContext, page: str) -> None:
 
 
 def _drawer_query(query: Mapping[str, str]) -> dict[str, str]:
-    return {k: v for k, v in query.items() if k not in ("drawer", "dtab", "tab", "lang")}
+    return {
+        k: v
+        for k, v in query.items()
+        if k not in ("drawer", "dtab", "tab", "lang", "event", "correlation")
+    }
+
+
+def query_string_of(data: Mapping[str, str]) -> str:
+    """The filters of a list page as a query string (for the "back to the list" link)."""
+    from supervisor.console.listing import query_string
+
+    keep = ("agent", "action", "rule", "tool", "range", "trace", "status", "code", "noteval",
+            "consumer", "direction", "corr", "sort", "dir")  # fmt: skip
+    return query_string({k: data[k] for k in keep if data.get(k)})
 
 
 # -- gate decisions
@@ -1410,11 +1459,25 @@ async def decisions_page(
     query = dict(request.query_params)
     data = await _call(decisions.list_view, ctx, query)
     opened = query.get("drawer")
-    if opened:  # no-JS fallback of the row drawer
+    if decisions.v2_on(ctx):  # WP39: deep links ?event=<id> and ?correlation=<id>
+        data["can_export"] = agent_detail.can(me, "decisions.export")
+        deep = [k for k in ("event", "correlation") if query.get(k)]
+        if deep and not opened:
+            opened = await _call(
+                decisions_v2.resolve_ref,
+                ctx,
+                event=query.get("event") or "",
+                correlation=query.get("correlation") or "",
+                agent=query.get("agent") or "",
+            )
+            data["strip_params"] = " ".join(deep)  # console.js removes them from the address bar
+    if opened:  # no-JS fallback of the row drawer, and the deep links
         _check_id(opened, "decision id")
         data["drawer"] = await _call(
             decisions.drawer_view, ctx, opened, query.get("dtab") or "details", _drawer_query(query)
         )
+        if decisions.v2_on(ctx):
+            data["drawer_open"] = True
     return render(request, ctx, me, "decisions.html", section="decisions", **data)
 
 
@@ -1428,7 +1491,9 @@ async def decisions_rows(
 ) -> Response:
     _ux3_off(ctx, "decisions")
     data = await _call(decisions.list_view, ctx, dict(request.query_params))
-    return render(request, ctx, me, "_decisions_list.html", **data)
+    data["can_export"] = decisions.v2_on(ctx) and agent_detail.can(me, "decisions.export")
+    tpl = "_decisions_list_v2.html" if data.get("v2") else "_decisions_list.html"
+    return render(request, ctx, me, tpl, **data)
 
 
 @router.get(
@@ -1445,7 +1510,61 @@ async def decision_drawer(
     data = await _call(
         decisions.drawer_view, ctx, event_id, query.get("tab") or "details", _drawer_query(query)
     )
-    return render(request, ctx, me, "_decision_drawer.html", drawer=data)
+    tpl = "_decision_drawer_v2.html" if data.get("v2") else "_decision_drawer.html"
+    return render(request, ctx, me, tpl, drawer=data)
+
+
+@router.post(
+    "/decisions/export",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("decisions.export"))],
+)
+@audited("decisions.export")
+async def decisions_export(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Build the masked CSV of the filtered list (WP39). Audited like every action: two
+    ``console_action`` rows, with the row counts as the fixed note. The file is downloaded
+    through the GET below."""
+    _ux3_off(ctx, "decisions")
+    if not decisions.v2_on(ctx):
+        raise ConsoleInputError("The CSV export needs CONSOLE_DECISIONS_V2=1")
+    data, plain = await form_or_plain(request)
+    built = await _call(decisions_v2.export_csv, ctx, data)
+    await _call(decisions_v2.save_export, ctx, built, me.user_id)
+    request.state.audit_detail = (  # WP39 review: the filter hash ties the file to its query
+        f"rows={built['rows']};total={built['total']};truncated={int(built['truncated'])};"
+        f"filters={decisions_v2.filter_hash(data)}"
+    )
+    if plain:  # no JavaScript: a whole page with the signed link and a way back
+        back = query_string_of(data)
+        return render(
+            request, ctx, me, "decisions_export.html", section="decisions", export=built, back=back
+        )
+    return render(request, ctx, me, "_decisions_export_result.html", export=built)
+
+
+@router.get(
+    "/decisions/exports/{name}",
+    dependencies=[Depends(needs("decisions.export"))],
+)
+async def decisions_export_download(
+    name: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """The file of one export, once, for the user who built it, within EXPORT_TTL_S."""
+    _ux3_off(ctx, "decisions")
+    q = request.query_params
+    data = await _call(
+        decisions_v2.take_export, ctx, name, me.user_id, q.get("exp") or "", q.get("t") or ""
+    )
+    return Response(
+        data,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 # -- traces
@@ -1517,7 +1636,10 @@ async def playground_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _ux3_off(ctx, "playground")
-    data = await _call(playground.form_options, ctx)
+    sample = request.query_params.get("sample")
+    if sample:
+        _check_id(sample, "sample id")
+    data = await _call(playground.form_options, ctx, sample)
     return render(request, ctx, me, "playground.html", section="playground", **data)
 
 
@@ -1597,6 +1719,226 @@ async def policy_drawer(
     return render(request, ctx, me, "_policy_drawer.html", drawer=data)
 
 
+# -- risks (WP29, read-only)
+
+
+def _risks_off(ctx: ConsoleContext) -> None:
+    """HTTP 400 unless both CONSOLE_RISKS_ENABLED and RISK_REGISTER_ENABLED are on."""
+    _ux3_off(ctx, "risks")
+    ensure_risks_on(ctx.settings)
+
+
+@router.get("/risks", response_class=HTMLResponse, dependencies=[Depends(needs("risks.view"))])
+async def risks_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _risks_off(ctx)
+    query = dict(request.query_params)
+    data = await _call(risks_views.list_view, ctx, query)
+    opened = query.get("drawer")
+    if opened:  # no-JS fallback of the row drawer
+        _check_id(opened, "risk id")
+        data["drawer"] = await _call(
+            risks_views.drawer_view,
+            ctx,
+            opened,
+            query.get("dtab") or "details",
+            _drawer_query(query),
+        )
+    return render(request, ctx, me, "risks.html", section="risks", **data)
+
+
+@router.get("/risks/rows", response_class=HTMLResponse, dependencies=[Depends(needs("risks.view"))])
+async def risks_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _risks_off(ctx)
+    data = await _call(risks_views.list_view, ctx, dict(request.query_params))
+    return render(request, ctx, me, "_risks_list.html", **data)
+
+
+@router.get(
+    "/risks/{risk_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("risks.view"))],
+)
+async def risk_drawer(
+    risk_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _risks_off(ctx)
+    _check_id(risk_id, "risk id")
+    query = dict(request.query_params)
+    data = await _call(
+        risks_views.drawer_view, ctx, risk_id, query.get("tab") or "details", _drawer_query(query)
+    )
+    return render(request, ctx, me, "_risk_drawer.html", drawer=data)
+
+
+# -- controls and tasks (WP30, read-only)
+
+
+def _controls_off(ctx: ConsoleContext, page: str) -> None:
+    """HTTP 400 unless both CONSOLE_CONTROLS_ENABLED and CONTROLS_ENABLED are on."""
+    _ux3_off(ctx, page)
+    ensure_controls_on(ctx.settings)
+
+
+def _register_page(name: str, views: Any, perm: str, noun: str) -> None:
+    list_tpl, rows_tpl, drawer_tpl = f"{name}.html", f"_{name}_list.html", f"_{noun}_drawer.html"
+
+    async def page(
+        request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+    ) -> Response:
+        _controls_off(ctx, name)
+        query = dict(request.query_params)
+        data = await _call(views.list_view, ctx, query)
+        opened = query.get("drawer")
+        if opened:  # no-JS fallback of the row drawer
+            _check_id(opened, f"{noun} id")
+            data["drawer"] = await _call(
+                views.drawer_view,
+                ctx,
+                opened,
+                query.get("dtab") or "details",
+                _drawer_query(query),
+            )
+        return render(request, ctx, me, list_tpl, section=name, **data)
+
+    async def rows(
+        request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+    ) -> Response:
+        _controls_off(ctx, name)
+        data = await _call(views.list_view, ctx, dict(request.query_params))
+        return render(request, ctx, me, rows_tpl, **data)
+
+    async def drawer(
+        request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+    ) -> Response:
+        _controls_off(ctx, name)
+        item_id = str(request.path_params[f"{noun}_id"])
+        _check_id(item_id, f"{noun} id")
+        query = dict(request.query_params)
+        data = await _call(
+            views.drawer_view, ctx, item_id, query.get("tab") or "details", _drawer_query(query)
+        )
+        return render(request, ctx, me, drawer_tpl, drawer=data)
+
+    dep = [Depends(needs(perm))]
+    router.add_api_route(
+        f"/{name}", page, methods=["GET"], response_class=HTMLResponse, dependencies=dep
+    )
+    router.add_api_route(
+        f"/{name}/rows", rows, methods=["GET"], response_class=HTMLResponse, dependencies=dep
+    )
+    router.add_api_route(
+        f"/{name}/{{{noun}_id}}/drawer",
+        drawer,
+        methods=["GET"],
+        response_class=HTMLResponse,
+        dependencies=dep,
+    )
+
+
+_register_page("controls", controls_views, "controls.view", "control")
+_register_page("tasks", tasks_views, "tasks.view", "task")
+# -- transparency report (WP31)
+
+
+def _transparency_off(ctx: ConsoleContext) -> None:
+    """HTTP 400 unless both CONSOLE_TRANSPARENCY_ENABLED and TRANSPARENCY_ENABLED are on."""
+    _ux3_off(ctx, "transparency")
+    ensure_transparency_on(ctx.settings)
+
+
+@router.get(
+    "/transparency", response_class=HTMLResponse, dependencies=[Depends(needs("transparency.view"))]
+)
+async def transparency_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _transparency_off(ctx)
+    query = dict(request.query_params)
+    data = await _call(transparency_views.list_view, ctx, me)
+    opened = query.get("drawer")
+    if opened:  # no-JS fallback of the row drawer
+        _check_id(opened, "agent id")
+        data["drawer"] = await _call(
+            transparency_views.drawer_view,
+            ctx,
+            opened,
+            query.get("variant") or "regulator",
+            _lang(request, ctx),
+        )
+    return render(request, ctx, me, "transparency.html", section="transparency", **data)
+
+
+@router.get(
+    "/transparency/rows",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("transparency.view"))],
+)
+async def transparency_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _transparency_off(ctx)
+    data = await _call(transparency_views.list_view, ctx, me)
+    return render(request, ctx, me, "_transparency_list.html", **data)
+
+
+@router.get(
+    "/transparency/{agent_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("transparency.view"))],
+)
+async def transparency_drawer(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _transparency_off(ctx)
+    _check_id(agent_id, "agent id")
+    query = dict(request.query_params)
+    data = await _call(
+        transparency_views.drawer_view,
+        ctx,
+        agent_id,
+        query.get("variant") or "regulator",
+        _lang(request, ctx),
+    )
+    return render(request, ctx, me, "_transparency_drawer.html", drawer=data)
+
+
+@router.post(
+    "/transparency/{agent_id}/generate",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("transparency.generate"))],
+)
+@audited("transparency.generate")
+async def transparency_generate(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _transparency_off(ctx)
+    _check_id(agent_id, "agent id")
+    d = await form(request)
+    variants = transparency_views.check_generate_input(d)
+    if me.kind != "user":
+        raise PermissionDenied("generating a report needs a signed-in person")
+    out = await _call(
+        lambda: ctx.transparency.generate(agent_id, variants, actor=me.user_id, force=False)
+    )
+    made = [r for r in out if r["status"] == "made"]
+    request.state.audit_detail = f"generate:{len(made)}"
+    data = await _call(transparency_views.list_view, ctx, me)
+    resp = render(request, ctx, me, "_transparency_list.html", **data)
+    t = translator(_lang(request, ctx))
+    note = (
+        t("tp_generated", v=max(r["version"] for r in made))
+        if made
+        else t("tp_unchanged", v=max(r["version"] for r in out))
+    )
+    resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
+    resp.headers["content-length"] = str(len(resp.body))
+    return resp
+
+
 # -- credentials, users, integrations (read-only)
 
 
@@ -1631,8 +1973,82 @@ async def integrations_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _ux3_off(ctx, "integrations")
+    if ctx.settings.collectors_enabled:  # WP38: the page is the collector catalogue
+        query = dict(request.query_params)
+        selected = query.get("agent")
+        if selected:
+            _check_id(selected, "agent id")
+        data = await _call(collectors_view.page, ctx, selected or None)
+        opened = query.get("drawer")
+        if opened:
+            _check_id(opened, "agent id")
+            data["drawer"] = await _call(
+                collectors_view.drawer,
+                ctx,
+                opened,
+                query.get("dtab") or "connection",
+                query.get("template") or "python_sdk",
+                str(request.base_url),
+            )
+        return render(
+            request, ctx, me, "integrations_collectors.html", section="integrations", **data
+        )
     data = await _call(integrations_view.page, ctx)
     return render(request, ctx, me, "integrations.html", section="integrations", **data)
+
+
+# -- collector catalogue (WP38, COLLECTORS_ENABLED)
+
+
+def _collectors_off(ctx: ConsoleContext) -> None:
+    _ux3_off(ctx, "integrations")
+    if not ctx.settings.collectors_enabled:
+        raise ConsoleInputError("The collector catalogue is off (COLLECTORS_ENABLED=1 turns it on)")
+
+
+@router.get(
+    "/integrations/agent/{agent_id}/drawer",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("integrations.view"))],
+)
+async def collector_drawer(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _collectors_off(ctx)
+    _check_id(agent_id, "agent id")
+    query = dict(request.query_params)
+    data = await _call(
+        collectors_view.drawer,
+        ctx,
+        agent_id,
+        query.get("tab") or "connection",
+        query.get("template") or "python_sdk",
+        str(request.base_url),
+    )
+    return render(request, ctx, me, "_collector_drawer.html", drawer=data)
+
+
+@router.post(
+    "/integrations/{agent_id}/connect",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("collectors.add"))],
+)
+@audited("collectors.add")
+async def collector_connect(
+    agent_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Add: issue the first agent key and show the setup text once. The audit row carries the
+    agent id (path) and the template id; the secret is only in this response (no-store)."""
+    _collectors_off(ctx)
+    _check_id(agent_id, "agent id")
+    d = await form(request)
+    template = d.get("template", "")
+    _check_id(template, "template id")
+    data = await _call(collectors_view.connect, ctx, agent_id, template, str(request.base_url))
+    request.state.audit_detail = f"template:{template}|key:{data['issued'].key_id}"
+    resp = render(request, ctx, me, "_collector_connected.html", **data)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 # -- audit log (read-only)

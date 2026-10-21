@@ -1,0 +1,6 @@
+{# Answer of the CSV export action (WP39). ASCII notice when rows were left out. #}
+<div class="{{ 'bad-big' if export.truncated else 'ok-big' }}" data-export="{{ 'truncated' if export.truncated else 'complete' }}" style="margin-top:8px">
+  {{ t('export_done', n=export.rows, cols=export.columns) }}
+  {% if export.truncated %}<strong id="export-truncated"> truncated: {{ export.rows }} of {{ export.total }} rows (CONSOLE_EXPORT_MAX_ROWS={{ export.cap }}). Narrow the filters to get the rest.</strong>{% endif %}
+  · <a class="mono" href="{{ export.href }}" download>{{ t('download') }} {{ export.name }}</a> <span class="hint">{{ t('export_once') }}</span>
+</div>

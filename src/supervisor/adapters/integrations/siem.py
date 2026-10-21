@@ -170,6 +170,22 @@ def event_from_chain(entry: Mapping[str, Any], payload: Mapping[str, Any]) -> Si
         outcome = str(p.get("action") or ("allow" if p.get("allow") else "block"))
         sev = SEVERITY.get(outcome, 5)
         actor = None
+        if p.get("status"):  # WP37 verdict v2: status and finding codes (enum-like), never text
+            attrs = {
+                "status": str(p["status"]),
+                "finding_codes": [str(c)[:64] for c in (p.get("finding_codes") or [])[:20]],
+                "correlation_id": str(p.get("correlation_id") or "")[:128],
+            }
+        if p.get("mode"):  # WP38: observe mode records the decision it downgraded, and who asked
+            attrs = dict(attrs or {})
+            attrs["mode"] = str(p["mode"])[:16]
+            if p.get("consumer_id"):
+                attrs["consumer_id"] = str(p["consumer_id"])[:128]
+            od = p.get("observed_decision")
+            if isinstance(od, dict):
+                attrs["observed_action"] = str(od.get("action") or "")[:16]
+                attrs["observed_rule_id"] = str(od.get("rule_id") or "")[:64]
+                attrs["observe_approved"] = bool(p.get("observe_approved"))
     elif etype == "gate_state_change":
         outcome = str(p.get("event") or "state_change")
         sev = SEVERITY.get(outcome, 5)
@@ -237,6 +253,7 @@ def event_from_alert(row: Mapping[str, Any], env: str = "") -> SiemEvent:
             "threshold": int(row["threshold"]),
             "suppressed_count": int(row.get("suppressed_count") or 0),
             "dedupe_key": str(row["dedupe_key"]),
+            "correlation_id": str(row.get("correlation_id") or "")[:128],
         },
     )
 

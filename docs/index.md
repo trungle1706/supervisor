@@ -22,6 +22,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/api.md` | API versioning policy and paths | Dev |
 | `docs/INTEGRATION_GUIDE.md` | Three ways to fit a product into Supervisor | Dev |
 | `docs/bank-integration.md` | Bank-side integration contracts (stubs) | Dev, Op |
+| `docs/mcp-gateway.md` | HTTP MCP gateway: streamable-HTTP proxy, tool locking, two-person tool review, poisoning scan, harness, latency | Dev, Op, 2L |
 | `docs/siem.md` | SIEM export: sinks, jsonl / CEF / OCSF field mapping, Splunk, Sentinel, Databricks examples | Op, Dev |
 | `docs/alerts.md` | Alert rules, dedupe, routes, acknowledge, harness | Op, 2L |
 | `docs/recorder.md` | Trace recorder, OTLP, masking | Dev |
@@ -32,6 +33,9 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/onboard-eval.md` | Precision and recall of the code analysers on the corpus | Dev, 2L |
 | `docs/regulations.md` | Regulation knowledge base: coverage, format, internal rules | 2L, Dev |
 | `docs/compliance-advisor.md` | Obligations matrix, Decision 33, threshold check | 2L, Dev |
+| `docs/risk-register.md` | Risk register: scoring, inheritance up the inventory graph, evidence from runtime, import, harness (WP29) | 2L, Risk, Audit, Dev |
+| `docs/controls.md` | Control catalogue, evidence status, compliance figure, task list sized by Decision 33 class, import (WP30) | 2L, Risk, Audit, Dev |
+| `docs/transparency-report.md` | Transparency report: variants, sections, what it does not show, versions and hashes, harness (WP31) | 2L, Risk, Audit, Dev |
 | `docs/inventory.md` | Inventory graph, risk inheritance, shadow-AI scan (WP24) | 2L, Platform admin, Dev |
 | `docs/assurance.md` | 33 eval packs with licence and data mode | 2L, Dev |
 | `docs/tool-analytics.md` | Tool usage rollup, least-privilege suggestion, Tools page (WP22) | 2L, Op, Dev |
@@ -40,6 +44,10 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/fact-sources.md` | `POLICY_DIR` and `FACT_SOURCE` for the served app (WP1b-A) | Build, Sec |
 | `docs/enterprise-readiness.md` | Scored gaps (ISO 42001, NIST AI RMF, ASVS, ops) | 2L, Aud, Op |
 | `docs/metrics.md` | Oversight metrics and their definitions | 2L, Op |
+| `docs/session-monitor.md` | Session monitor: signals, case and pause rules, settings, route, harness (WP27) | Dev, Op, Aud |
+| `docs/session-monitor-validation-report.md` | Session harness result with GO / NO-GO and the WP28 trace catch rates (WP27) | Aud, 2L |
+| `docs/detectors.md` | Detector contract, catalogue, verdict v2, precedence, coverage, harness, how to add a detector (WP37) | Dev, Op, Aud |
+| `docs/detectors-validation-report.md` | Detector harness result on the mock path with GO / NO-GO (WP37) | Aud, 2L |
 | `docs/latency.md` | Gate latency: method, numbers from `tools/bench_latency.py`, budgets, what is not measured | Op, Dev, Aud |
 | `docs/monitors.md` | Per-agent monitor bindings and monitor status (`not_applicable`) | Dev, Op, 2L |
 | `docs/threat-model.md` | Threat model of Supervisor itself | 2L, Aud |
@@ -47,7 +55,8 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/BUILD_PLAN.md` | Phase 1 plan (WP0 to WP12) | Build |
 | `docs/BUILD_PLAN_PHASE2.md` | Phase 2 plan (WP13 to WP19) and status | Build |
 | `docs/ingress-auth.md` | Per-agent credentials on agent ingress: setup, rotation, rubric (WP20) | Build, Sec |
-| `docs/adr/` (D01 to D22) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22) | Build, Aud |
+| `docs/adr/` (D01 to D32; number registry `docs/adr/REGISTRY.md`) | Design decisions: gateway, evidence chain, judges, retention, ingress auth, alerts, inventory, masker, tool analytics, latency benchmark (D19), monitor bindings (D20), derived judge family and served config (D21), Playground dry run (D22), verdict contract v2 and detector framework (D23), HTTP MCP gateway and tool locking (D24), multi-turn red team (D25), risk register (D26), injection classifier (D27), collectors and policy modes (D28), session monitor (D29), control catalogue and tasks (D30), transparency report (D31), activity parity and nine alerts (D32) | Build, Aud |
 | `docs/phase3/wave1/` | Phase 3 wave 1: handoff and review of each WP, integration report (`INTEGRATION_WAVE1.md`) | Build, Aud |
+| `docs/phase3/wave2/` | Phase 3 waves 2 and 3: handoff and review of WP25 to WP31 and WP37 to WP39, integration report (`INTEGRATION_WAVE2.md`) | Build, Aud |
 | `docs/design/` | Console design reference and screens | Build |
 | `docs/handoff/` | Product background and analysis | Build |

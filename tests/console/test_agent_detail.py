@@ -16,6 +16,11 @@ FLAGS = (
     "inventory_enabled",
     "console_assurance_enabled",
     "console_compliance_enabled",
+    "console_risks_enabled",  # WP29
+    "console_controls_enabled",  # WP30
+    "risk_register_enabled",
+    "console_transparency_enabled",  # WP31
+    "transparency_enabled",
 )
 DEMO_AGENTS = ("payments", "credit_prequal", "customer_service")
 HX = {"HX-Request": "true"}

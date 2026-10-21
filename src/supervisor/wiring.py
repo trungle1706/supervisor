@@ -117,7 +117,14 @@ def build_runtime(
 
             facts = make_fact_source(settings)
         gateway = _make_gateway(
-            settings, adapters, chain, facts, policy_refresh_s, state_cache_ttl_s
+            settings,
+            adapters,
+            chain,
+            facts,
+            policy_refresh_s,
+            state_cache_ttl_s,
+            detector_gate=make_detector_gate(settings, policy),
+            session_gate=make_session_gate(settings, adapters, chain),
         )
     except BaseException:
         chain.close(seal=False)
@@ -134,9 +141,15 @@ def _make_gateway(
     facts: FactSource | None,
     policy_refresh_s: float,
     state_cache_ttl_s: float,
+    detector_gate: Any = None,
+    session_gate: Any = None,
 ) -> Gateway:
+    provider = StorePolicyProvider(adapters.state, refresh_s=policy_refresh_s)
+    if detector_gate is not None:  # F11: the same check on every reload
+        provider.validator = detector_gate.check_policy
+        provider.on_accept = lambda p: detector_gate.audit_policy(p, chain)  # WP41
     return Gateway(
-        StorePolicyProvider(adapters.state, refresh_s=policy_refresh_s),
+        provider,
         adapters.tables,
         adapters.state,
         chain,
@@ -153,7 +166,92 @@ def _make_gateway(
         masker=_redaction_masker(settings) if settings.inline_redaction_enabled else None,
         inline_redaction=settings.inline_redaction_enabled,
         redact_tools=settings.inline_redaction_tool_set,
+        detector_gate=detector_gate,  # WP37 (default off)
+        session_gate=session_gate,  # WP27 (default off)
+        agent_registrar=_agent_registrar(settings, adapters),  # WP41 (INVENTORY_ENABLED)
     )
+
+
+def _agent_registrar(settings: Settings, adapters: Adapters) -> Any:
+    """WP41 (D19): the callable that puts a gate-only agent into the inventory, or None when
+    INVENTORY_ENABLED is off."""
+    if not settings.inventory_enabled:
+        return None
+    from supervisor.inventory.gate_register import GateRegistrar
+
+    return GateRegistrar(adapters.state, adapters.clock).register
+
+
+def make_session_gate(settings: Settings, adapters: Adapters, evidence: Any) -> Any:
+    """WP27: the session monitor's gate hook, or None when SESSION_MONITOR_ENABLED is off."""
+    if not settings.session_monitor_enabled:
+        return None
+    from supervisor.gateway.session_gate import SessionGate
+    from supervisor.monitors.common import MonitorContext
+
+    return SessionGate(
+        settings,
+        MonitorContext.from_adapters(adapters, evidence),
+        key=settings.args_hash_key.get_secret_value()
+        if settings.args_hash_key is not None
+        else None,
+    )
+
+
+def make_detector_gate(settings: Settings, policy: Policy) -> Any:
+    """WP37: the detector gate (catalogue, ``config/detectors.yaml``, per-agent overrides of the
+    policy file), or None when DETECTORS_ENABLED is off. A bad config or a bad agent override is
+    a startup error, never a silent default."""
+    if not settings.detectors_enabled:
+        return None
+    from supervisor.core.errors import ConfigError
+    from supervisor.detectors import build_registry
+    from supervisor.detectors.config import ResolvedDetectors, load_config
+    from supervisor.gateway.detector_gate import DetectorGate
+
+    masker = _redaction_masker(settings)
+    if masker is None:  # MASKER_KIND=none: the detectors still need a masker (R2)
+        from supervisor.adapters.masking.vn_regex import VnRegexMasker
+
+        key, key_id = settings.mask_key
+        masker = VnRegexMasker(key, key_id)
+    registry = build_registry(masker, judge=_advisory_judge(settings, masker))
+    try:
+        resolved = ResolvedDetectors(
+            load_config(settings.detectors_config),
+            registry,
+            scan_budget_bytes=settings.detectors_scan_budget_bytes,
+        )
+    except ConfigError as exc:  # one ASCII line naming the setting, no chained traceback
+        msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
+        raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
+    gate = DetectorGate(registry, resolved)
+    problems = gate.check_policy(policy)
+    if problems:
+        msg = "detector overrides in the policy are invalid: " + "; ".join(problems)
+        raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii"))
+    return gate
+
+
+def _advisory_judge(settings: Settings, masker: Any) -> Any:
+    """Tier 1 judge for ``judge_advisory``: the configured one, else None (the mock, labelled)."""
+    if not settings.judge_t1_model or settings.llm_mock:
+        return None
+    try:
+        from supervisor.judge.router import JudgeRouter
+        from supervisor.judge.tier1 import Tier1Judge
+
+        router = JudgeRouter.from_settings(settings)
+        return Tier1Judge(
+            router.t1,
+            masker,
+            timeout_s=float(settings.judge_timeout_s),
+            max_retries=settings.judge_max_retries,
+            max_input_chars=settings.judge_max_input_chars,
+        )
+    except Exception as exc:  # noqa: BLE001 - judge_advisory then runs on the labelled mock
+        log.warning("judge_advisory: judge not available (%s); using the mock", type(exc).__name__)
+        return None
 
 
 def _redaction_masker(settings: Settings) -> Any:

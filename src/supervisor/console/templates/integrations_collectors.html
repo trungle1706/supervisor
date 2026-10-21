@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_integrations') }}{% endblock %}
+{% block content %}
+{# WP38: the Integrations page as a collector catalogue (COLLECTORS_ENABLED=1). #}
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_integrations'), None)]) }}
+{{ ui.pagehead(t('nav_integrations')) }}
+{{ ui.purpose(t('col_purpose'), t('col_why')) }}
+{% if not ingress_on %}<div class="msg msg-warn" role="status">{{ t('col_ingress_off') }}</div>{% endif %}
+{% if store_error %}<div class="msg msg-error" role="alert">{{ t('col_store_error') }}: {{ store_error }}</div>{% endif %}
+
+<section id="connect-result" aria-live="polite"></section>
+
+<form class="card" method="get" action="/console/integrations" id="col-pick">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <label for="col-agent">{{ t('col_pick_agent') }}</label>
+  {% if agent_opts %}
+  <select id="col-agent" name="agent">
+    <option value="">-</option>
+    {% for a in agent_opts %}<option value="{{ a }}"{% if a == sel_agent %} selected{% endif %}>{{ a }}</option>{% endfor %}
+  </select>
+  <button class="btn" type="submit">{{ t('col_open') }}</button>
+  {% else %}
+  <p class="hint">{{ t('col_no_free_agent') }}</p>
+  {% endif %}
+</form>
+
+{% for category, templates in groups %}
+<h2 class="sec">{{ t('col_cat_' ~ category) }}</h2>
+<div class="grid2">
+  {% for tpl in templates %}
+  <div class="card" data-template="{{ tpl.id }}">
+    <h3>{{ tpl.name }}{% if not tpl.available %} {{ ui.pill(tpl.availability_note, 'neutral') }}{% endif %}</h3>
+    <p>{{ tpl.description }}</p>
+    {% if tpl.optional_deps %}<p class="hint mono">{{ tpl.optional_deps|join(', ') }}</p>{% endif %}
+    {% if tpl.available and sel_agent %}
+    <form hx-post="/console/integrations/{{ sel_agent }}/connect?lang={{ lang }}" hx-target="#connect-result" hx-swap="innerHTML" hx-push-url="false">
+      <input type="hidden" name="template" value="{{ tpl.id }}">
+      <p class="btnrow"><button class="btn primary" type="submit">{{ t('col_add') }}: {{ sel_agent }}</button></p>
+    </form>
+    {% elif not tpl.available %}
+    <p class="hint">{{ t('col_unavailable') }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<h2 class="sec">{{ t('col_agents') }} <span class="k">{{ agents|length }}</span></h2>
+<div class="tablewrap">
+<table class="queue">
+  <caption class="sr">{{ t('col_agents') }}</caption>
+  <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('state') }}</th><th scope="col">{{ t('col_key_state') }}</th><th scope="col">{{ t('mode') }}</th><th scope="col" class="n">{{ t('col_consumers') }}</th></tr></thead>
+  <tbody>
+  {% for a in agents %}
+    <tr class="row" data-row="{{ a.agent_id }}">
+      <td><a class="head rowlink mono" href="/console/integrations?drawer={{ a.agent_id }}&amp;lang={{ lang }}" hx-get="/console/integrations/agent/{{ a.agent_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false">{{ a.agent_id }}</a><div class="idline">{{ a.name }}</div></td>
+      <td>{{ a.gate_state or '-' }}</td>
+      <td>{{ ui.pill(t('col_key_active') if a.has_key else t('col_key_none'), 'ok' if a.has_key else 'neutral', True) }}</td>
+      <td>{{ ui.pill(t('mode_' ~ a.mode) if a.mode in ('enforce', 'observe') else a.mode, 'teal' if a.mode == 'observe' else 'neutral') }}</td>
+      <td class="n">{{ a.consumers }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">{{ ui.empty(t('col_none_agents'), t('col_none_agents_line')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2 class="sec">{{ t('col_status_title') }}</h2>
+<div class="tablewrap">
+<table class="queue integ-tbl">
+  <caption class="sr">{{ t('col_status_title') }}</caption>
+  <thead><tr><th scope="col">{{ t('integration_word') }}</th><th scope="col">{{ t('configured') }}</th><th scope="col">{{ t('enabled') }}</th><th scope="col">{{ t('last_delivery') }}</th><th scope="col" class="n">{{ t('dead_letter') }}</th><th scope="col">{{ t('detail') }}</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr data-row="{{ r.key }}">
+      <th scope="row">{{ t('integ_' ~ r.key) }}{% if r.stub %} {{ ui.pill(t('stub_fake'), 'neutral') }}{% endif %}</th>
+      <td>{{ ui.pill(t('yes') if r.configured else t('no'), 'ok' if r.configured else 'neutral', True) }}</td>
+      <td>{{ ui.pill(t('on') if r.enabled else t('off'), 'ok' if r.enabled else 'neutral', True) }}</td>
+      <td class="mono">{{ r.last|day if r.last else '-' }}</td>
+      <td class="n">{% if r.dead_letter is none %}-{% elif r.dead_letter %}{{ ui.pill(r.dead_letter, 'bad') }}{% else %}0{% endif %}</td>
+      <td class="mono">{{ r.detail or '-' }}{% if r.lanes is defined %} · {{ t('integ_lanes', n=r.lanes) }}{% endif %}{% if r.queued is defined %} · {{ t('integ_queued', n=r.queued) }}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint">{{ t('integrations_note') }}</p>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_collector_drawer.html" %}{% endif %}{% endblock %}

@@ -22,6 +22,15 @@ tool_analytics TOOL_ANALYTICS_ENABLED daily ``tool_usage_daily`` rollup + least-
 siem           SIEM_ENABLED           send new evidence-chain events to the SIEM sink (WP21)
 notify         NOTIFY_WEBHOOK_ENABLED send queued webhook notices (WP21; needs a URL)
 alerts         ALERTS_ENABLED         evaluate config/alerts.yaml, raise and route alerts (WP21)
+risk_evidence  RISK_REGISTER_ENABLED  count gate rule hits, pack verdicts and monitor states
+                                      per risk; residual score from facts (WP29)
+control_status CONTROLS_ENABLED       evidence status of each control per agent and the
+                                      compliance figure (WP30)
+task_due       CONTROLS_ENABLED       close tasks whose evidence is there; one case for each
+                                      overdue required task (WP30)
+transparency   TRANSPARENCY_ENABLED   build and sign the transparency reports of every running
+                                      agent when the facts changed (WP31)
+decision_rollup CONSOLE_DECISIONS_V2  daily ``decision_daily`` rollup for Analytics (WP39)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -368,6 +377,7 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import alerts as alerts_job
     from supervisor.jobs import anchor as anchor_job
     from supervisor.jobs import case_intake as case_intake_job
+    from supervisor.jobs import decision_rollup as decision_rollup_job
     from supervisor.jobs import drift as drift_job
     from supervisor.jobs import fairness as fairness_job
     from supervisor.jobs import ingest as ingest_job
@@ -376,7 +386,10 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     from supervisor.jobs import multiagent as multiagent_job
     from supervisor.jobs import notify as notify_job
     from supervisor.jobs import quality as quality_job
+    from supervisor.jobs import redteam_nightly as redteam_job
     from supervisor.jobs import retention as retention_job
+    from supervisor.jobs import risk_evidence as risk_evidence_job
+    from supervisor.jobs import session_monitor as session_job
     from supervisor.jobs import siem as siem_job
     from supervisor.monitors.sweeps import build_judge_sweep, build_quality_sweep
 
@@ -442,11 +455,63 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 notify_job.enabled(settings)),
         JobSpec("alerts", settings.sched_alerts_s, lambda: alerts_job.run(ctx, settings),
                 settings.alerts_enabled),
+        JobSpec("session_monitor", settings.sched_session_s,
+                lambda: session_job.run(ctx, settings), settings.session_monitor_enabled),
     ]  # fmt: skip
+    if settings.risk_register_enabled:  # WP29: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "risk_evidence",
+                settings.sched_risk_evidence_s,
+                lambda: risk_evidence_job.run(ctx, settings),
+            )
+        )
+    if settings.controls_enabled:  # WP30: listed only when they can run
+        from supervisor.jobs import control_status as control_status_job
+        from supervisor.jobs import task_due as task_due_job
+
+        jobs.append(
+            JobSpec(
+                "control_status",
+                settings.sched_control_status_s,
+                lambda: control_status_job.run(ctx, settings),
+            )
+        )
+        jobs.append(
+            JobSpec(
+                "task_due",
+                settings.sched_task_due_s,
+                lambda: task_due_job.run(ctx, settings, case_service()),
+            )
+        )
+    if settings.transparency_enabled:  # WP31: listed only when it can run
+        from supervisor.jobs import transparency as transparency_job
+
+        jobs.append(
+            JobSpec(
+                "transparency",
+                settings.sched_transparency_s,
+                lambda: transparency_job.run(ctx, settings),
+            )
+        )
+    if settings.console_decisions_v2:  # WP39: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "decision_rollup",
+                settings.sched_decision_rollup_s,
+                lambda: decision_rollup_job.run(ctx, settings),
+            )
+        )
     from supervisor.jobs import inventory as inventory_job
 
     if inventory_job.scheduled(settings):  # WP24: listed only when it can run
         jobs.append(JobSpec("inventory", settings.sched_inventory_s, inventory))
+    if redteam_job.enabled(settings):  # WP28: nightly multi-turn red team, listed only when on
+        jobs.append(
+            JobSpec(
+                "redteam_nightly", settings.sched_redteam_s, lambda: redteam_job.run(ctx, settings)
+            )
+        )
     return jobs
 
 

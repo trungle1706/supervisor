@@ -166,7 +166,7 @@ def test_stable_field_names() -> None:
     }  # fmt: skip
     ev = event_from_alert(row)
     assert sorted(ev.attrs or {}) == [
-        "alert_id", "dedupe_key", "severity_label", "suppressed_count",
+        "alert_id", "correlation_id", "dedupe_key", "severity_label", "suppressed_count",
         "threshold", "window_count", "window_s",
     ]  # fmt: skip
     subject, body = triage_text(row)

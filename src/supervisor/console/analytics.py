@@ -15,11 +15,11 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.analytics import tools
-from supervisor.console import readmodels, tools_views, views
+from supervisor.console import analytics_v2, readmodels, tools_views, views
 from supervisor.console.listing import ListingError
 from supervisor.core.errors import SupervisorError
 
-TABS = ("gate", "tools", "metrics", "latency")
+TABS = ("gate", "tools", "metrics", "latency", "detectors")
 RANGES = (7, 30, 90)
 GATE_DEFAULT_DAYS = 7
 _ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
@@ -30,7 +30,12 @@ class AnalyticsInputError(SupervisorError):
 
 
 def visible_tabs(ctx: Any) -> list[str]:
-    return [t for t in TABS if t != "tools" or ctx.settings.console_tools_enabled]
+    return [
+        t
+        for t in TABS
+        if (t != "tools" or ctx.settings.console_tools_enabled)
+        and (t != "detectors" or ctx.settings.console_decisions_v2)
+    ]
 
 
 def check_tab(ctx: Any, tab: str) -> str:
@@ -41,6 +46,8 @@ def check_tab(ctx: Any, tab: str) -> str:
             "The Tools tab is off (CONSOLE_TOOLS_ENABLED=1 turns it on); use "
             "python -m supervisor.analytics.tools report"
         )
+    if tab == "detectors" and not ctx.settings.console_decisions_v2:
+        raise AnalyticsInputError("The Detectors tab is off (CONSOLE_DECISIONS_V2=1 turns it on)")
     return tab
 
 
@@ -220,6 +227,14 @@ def effective_window(
             "n": data["gate_days"],
             "default": days is None,
         }
+    if tab == "detectors":
+        return {
+            "kind": "days",
+            "from": data["det_from"],
+            "to": data["det_to"],
+            "n": data["det_days"],
+            "default": days is None,
+        }
     if tab == "tools":
         return {
             "kind": "days",
@@ -251,7 +266,12 @@ def tab_data(
 ) -> dict[str, Any]:
     days, agent = toolbar["days"], toolbar["agent"]
     if tab == "gate":
-        return gate_data(ctx, days, agent)
+        data = gate_data(ctx, days, agent)
+        if ctx.settings.console_decisions_v2:  # WP39: tables and series from decision_daily
+            data.update(analytics_v2.gate_tables(ctx, days, agent), dd_on=True)
+        return data
+    if tab == "detectors":
+        return analytics_v2.detectors_data(ctx, days, agent)
     if tab == "tools":
         sort = query.get("sort", "default")
         if sort not in tools_views.SORTS:

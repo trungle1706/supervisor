@@ -58,14 +58,33 @@ _INGRESS_NOTE = (
     "Agent ingress: called by agents (SDK or collector), not by people. No human "
     "identity is required."
 )
-_INGRESS = {"/gate/check", "/v1/gate/check", "/v1/traces"}
+_INGRESS = {
+    "/gate/check",
+    "/v1/gate/check",
+    "/v1/traces",
+    "/v1/mcp/tools/observe",
+    "/v1/mcp/tools/blocked",
+}
 _METHODS = {"get", "put", "post", "delete", "patch", "head", "options"}
 
 
 def _is_human_path(path: str) -> bool:
     if path in _INGRESS:
         return False
-    return path.startswith(("/console", "/gate/", "/v1/gate/", "/v1/analytics/", "/v1/inventory/"))
+    return path.startswith(
+        (
+            "/console",
+            "/gate/",
+            "/v1/gate/",
+            "/v1/analytics/",
+            "/v1/inventory/",
+            "/v1/mcp/tools",
+            "/v1/risks",
+            "/v1/controls",  # WP30
+            "/v1/tasks",  # WP30
+            "/v1/transparency",  # WP31
+        )
+    )
 
 
 def build_openapi(app: FastAPI) -> dict[str, Any]:

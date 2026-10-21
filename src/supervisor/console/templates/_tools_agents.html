@@ -56,6 +56,10 @@
   </div>
 </section>
 {% else %}
+{% if unknown_agent %}
+<div class="empty" data-unknown-agent="1">{{ t('tl_unknown_agent') }}</div>
+{% else %}
 <div class="empty">{{ t('tl_nodata') }} <code>python -m supervisor.analytics.tools rollup --backfill</code></div>
+{% endif %}
 {% endfor %}
 </div>

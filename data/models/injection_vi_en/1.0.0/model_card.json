@@ -1,0 +1,85 @@
+{
+  "buckets": 65536,
+  "change_log": [
+    {
+      "change": "first model",
+      "version": "1.0.0"
+    },
+    {
+      "change": "review (no weight change): lone surrogates dropped before features; long text keeps cue-rich middle segments; per-call scan budget; sigmoid exponential with decimal",
+      "version": "1.0.0"
+    }
+  ],
+  "feature_version": "feat-2",
+  "format": "linear logistic regression over hashed character n-gram features (pure Python)",
+  "intended_use": "Advisory score for prompt injection (direct, indirect, tool poisoning) in Vietnamese and English in tool arguments, tool results and tool descriptions. It may only PAUSE money and credit tools above the frozen pause threshold, and only through GATE-CLASSIFIER-PAUSE (a human resumes). It never blocks (R1).",
+  "known_limits": [
+    "trained on synthetic template text: real attacks are less regular",
+    "spaced-out letters and other languages are not recognised",
+    "a long document dilutes a short instruction (windows of 150 characters, max over windows; text over 12000 characters keeps head, tail and the cue-richest middle segments, and a text padded with cue-word decoys can push the instruction out)",
+    "no state across calls: split attacks need the caller to pass prior calls"
+  ],
+  "licence": "synthetic, this repo (weights derived from synthetic data only)",
+  "model_id": "injection_vi_en",
+  "out_of_scope": [
+    "languages other than Vietnamese and English",
+    "image, audio or file content",
+    "multi-turn attacks (WP27)",
+    "any use as the only control"
+  ],
+  "owner_roles": {
+    "approver": "FILL-ME (MRM_APPROVER)",
+    "model_developer": "FILL-ME (MRM_MODEL_DEVELOPER)",
+    "model_owner": "FILL-ME (MRM_MODEL_OWNER)",
+    "validator": "FILL-ME (MRM_VALIDATOR)"
+  },
+  "scale": 10000,
+  "sealed_sets": {
+    "adversarial.jsonl": "fa2faf19f8228cfc984e4ce7910b9260c62139f8e82e48c2525d13e47ec48cfc",
+    "evasion.jsonl": "45a601324d09eee8ce4833deafcdab36d5a93e2e17942bad29205b5a3a895466",
+    "heldout.jsonl": "09b4d170e6c69de36af6f776d7222301c59ea9cc0c1d9cef166326303999d785"
+  },
+  "superseded_by": "1.1.0 (feature version feat-3; these weights no longer load with the current code)",
+  "surfaces": [
+    "args",
+    "tool_results",
+    "tool_description"
+  ],
+  "thresholds_bp": {
+    "balanced": 6000,
+    "lenient": 7000,
+    "pause": 8500,
+    "strict": 5500
+  },
+  "thresholds_note": "chosen on the dev split: strict = dev false alarm <= 800 bp, balanced <= 500 bp, lenient <= 300 bp, pause <= 50 bp (dev numbers in the validation report); ILLUSTRATIVE until the bank sets them",
+  "training": {
+    "command": "uv run python -m tools.train_classifier",
+    "data": "data/eval/injection_vi_en/train.jsonl",
+    "data_commit": "0e8410d",
+    "data_note": "data_sha256 and dev_data_sha256 are the train.jsonl and dev.jsonl of commit 0e8410d. Commit 040cb19 regenerated the golden files (same template pools, new draws), so the committed train.jsonl and dev.jsonl differ; the review re-ran the trainer on the 0e8410d files and got the same weights (sha256 457f6843...). Reproduce: git show 0e8410d:data/eval/injection_vi_en/train.jsonl (and dev.jsonl) in place, then the training command. The presets were chosen on that dev file.",
+    "data_sha256": "5c7963b71ed4c7e538686ce0b8ea7d6a5c60e9e57316c12ba1d4e36faf41c155",
+    "dev_data_sha256": "5e70e9da54c2626fc593054f3722abe187c4fea33ed2435d359e4f8110c41c07",
+    "hyperparameters": {
+      "average": true,
+      "epochs": 6,
+      "eps": 1e-06,
+      "hard_weight": 2.0,
+      "l2": 0.0001,
+      "lr": 0.03,
+      "pos_weight": 1.0
+    },
+    "labeller": "synthetic (templates written for this repo); 4696 of 4800 training items use templates reworded offline by the local LLM ('synthetic, LLM-paraphrased')",
+    "n_items": 4800,
+    "seed": 20261023
+  },
+  "validation": {
+    "baseline": "data/eval/injection_vi_en/baseline.json",
+    "command": "python -m supervisor.detectors.harness --detector injection_classifier",
+    "pause_use": "not recommended until the bank validates on real data; the entry is disabled by default",
+    "report": "docs/injection-classifier-validation-report.md",
+    "status": "validated: NO-GO on recall, precision, hard-negative false alarm, typo recall and latency; GO on determinism, leaks, integrity, false pause, adversarial recall"
+  },
+  "version": "1.0.0",
+  "weights_file": "weights.json",
+  "weights_sha256": "457f684363f1e1caec6aa1c0c8c35b2c139c9c6073f9820cd13d027babcb254d"
+}

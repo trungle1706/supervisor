@@ -32,19 +32,34 @@ import threading
 import time
 import uuid
 from collections import Counter, deque
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
 from supervisor.core.args_hmac import args_hmac, as_key, key_id
-from supervisor.core.canonical import canonical_json, format_ts
+from supervisor.core.canonical import canonical_json, format_ts, sha256_hex
 from supervisor.core.ports import Clock, EvidenceSink, Masker, StateStore, TableStore
+from supervisor.gateway.detector_gate import (
+    CLASSIFIER_PAUSE_RULE,
+    DetectorGate,
+    PreDetect,
+    Req,
+    caller_id,
+    chain_fields,
+    event_fields,
+    fallback_v2,
+    finding_rows,
+)
+from supervisor.gateway.detector_gate import (
+    FAILED_RULE as DETECTOR_FAILED_RULE,
+)
 from supervisor.gateway.facts import FactSource
 from supervisor.gateway.policy import (
     DEFAULT_FAIL_MODE,
     FACT_PREFIX,
     SEVERITY_RANK,
+    Effective,
     Policy,
     PolicyProvider,
     Predicate,
@@ -52,6 +67,8 @@ from supervisor.gateway.policy import (
     ToolMatch,
 )
 from supervisor.gateway.redact import redact_args
+from supervisor.gateway.session_gate import PAUSE_RULE as SESSION_PAUSE_RULE
+from supervisor.gateway.session_gate import SessionCall, SessionGate, finding_codes
 from supervisor.gateway.state import AgentStateMachine
 from supervisor.gateway.tier0b import Classifier, RegexClassifier
 
@@ -325,6 +342,33 @@ class Decision:
     transformed_args: dict[str, Any] | None = None
     args_hmac_transformed: str | None = None
     redaction_count: int = 0
+    # WP37 verdict contract v2 (None when DETECTORS_ENABLED is off: the answer is unchanged).
+    v2: dict[str, Any] | None = None
+    det: Any = None  # DetectorOutcome: the findings to record
+    transformed_payload: dict[str, Any] | None = None
+    # WP41 (D29): argument names the policy kept unmasked (dlp_vn keep_args) and the fully masked
+    # copy of the arguments, which every record uses instead of ``transformed_args``.
+    kept_args: list[str] = field(default_factory=list)
+    masked_args: dict[str, Any] | None = None
+    # WP38 (ADR D28): mode and consumer. ``sem`` is None unless the agent uses mode, rule
+    # switches or consumers: the answer is then unchanged. ``observed`` holds the decision that
+    # observe mode turned into a report (None = nothing was downgraded).
+    sem: dict[str, Any] | None = None
+    observed: dict[str, Any] | None = None
+    # WP38 follow-up: true when the agent has two observe_approvals (written to the chain record
+    # of an observed decision; WP39 reads it).
+    observe_approved: bool = False
+
+    @property
+    def consumer_id(self) -> str | None:
+        """The consumer id the policy resolved (an entry exists for it), not the raw value the
+        caller sent. None when no consumer override applied."""
+        return self.sem.get("consumer_id") if self.sem else None
+
+    # WP27 session monitor (None when SESSION_MONITOR_ENABLED is off: the answer is unchanged).
+    sess: SessionCall | None = None
+    # WP25: set only by the detector gate's classifier pause path (never by a policy rule id)
+    classifier_pause: bool = False
 
     def as_result(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -347,7 +391,33 @@ class Decision:
             out["transformed_args"] = self.transformed_args
             out["args_hmac_transformed"] = self.args_hmac_transformed
             out["redaction_count"] = self.redaction_count
+        if self.v2 is not None:  # absent with the flag off: same output as before
+            out.update(self.v2)
+        if self.sem is not None:  # WP38: only for agents that use mode, switches or consumers
+            out.update(self.sem)
+            if self.observed is not None:
+                out["observed_decision"] = self.observed
+                out["status"] = observed_status(self)
+        if self.sess is not None:  # WP27: absent with SESSION_MONITOR_ENABLED off
+            out["session_id"] = self.sess.session_id
+            out["session_source"] = self.sess.source
         return out
+
+
+_OBSERVE_CLOSED_RISK = frozenset({"money", "credit", "pii_export"})
+
+
+def observed_status(d: Decision) -> str:
+    """v2 status of a decision that observe mode touched (WP38 review). ``report`` when the
+    call is allowed, but a transform stays ``transform`` (a client must still apply the masked
+    values) and a decision that ended as a block (GATE-REDACTION, or GATE-DETECTOR-FAILED on a
+    pii_export tool) stays ``block``."""
+    current = (d.v2 or {}).get("status")
+    if not d.allow:
+        return str(current or "block")
+    if current == "transform" or (d.v2 is None and d.transformed_args is not None):
+        return "transform"
+    return "report"
 
 
 class _Call:
@@ -381,6 +451,9 @@ class Gateway:
         masker: Masker | None = None,
         inline_redaction: bool = False,
         redact_tools: frozenset[str] | set[str] | None = None,
+        detector_gate: DetectorGate | None = None,
+        session_gate: SessionGate | None = None,
+        agent_registrar: Callable[[str], Any] | None = None,
     ) -> None:
         self.policy = policy
         self.tables = tables
@@ -404,10 +477,28 @@ class Gateway:
         self.masker = masker
         self.inline_redaction = inline_redaction and masker is not None
         self.redact_tools = frozenset(redact_tools or ())
+        # WP37: detector framework and verdict contract v2 (None = off, today's behaviour).
+        self.detector_gate = detector_gate
+        # WP27: session monitor (None = off, today's behaviour).
+        self.session_gate = session_gate
+        # WP41 (D19): registers a gate-only agent in the inventory on its first decision (None =
+        # INVENTORY_ENABLED off, today's behaviour). Runs in the background pool.
+        self.agent_registrar = agent_registrar
+        self._registered: set[str] = set()
         # Tools seen as pii_export: their masker pass runs BEFORE the gate lock (a 2 KB payload
         # costs about 3 ms; inside the lock it would delay every other agent's decision).
         self._redact_hint: frozenset[str] = frozenset()
         self.metrics = GateMetrics()
+        if session_gate is not None:  # WP27: the same two-person rule lifts a session pause
+            sg = session_gate
+            sg.actions.role_of = self.states.approver_role
+            sg.actions.resume_window_s = self.states.resume_window_s
+
+            def _lift(agent_id: str, principal: str) -> None:
+                sg.actions.lift_for_agent(agent_id, principal)
+                sg.drop_pauses(agent_id)
+
+            self.states.on_resume = _lift
         self.windows = WindowStore()
         self._lock = threading.RLock()
         self._pool = cf.ThreadPoolExecutor(max_workers=workers, thread_name_prefix="gate0a")
@@ -419,6 +510,22 @@ class Gateway:
 
     # ------------------------------------------------------------------ public
 
+    @property
+    def detectors_on(self) -> bool:
+        return self.detector_gate is not None
+
+    def _req(
+        self, direction: str, correlation_id: str | None, request_id: str | None
+    ) -> Req | None:
+        """The per-call envelope; None with detectors off (nothing is generated or recorded)."""
+        if self.detector_gate is None:
+            return None
+        return Req(
+            direction if direction in ("input", "output") else "input",
+            caller_id(correlation_id),  # WP39 review: an id that holds personal data is replaced
+            caller_id(request_id),
+        )
+
     def check(
         self,
         agent_id: str,
@@ -426,14 +533,19 @@ class Gateway:
         tool_name: str,
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
+        *,
+        direction: str = "input",
+        correlation_id: str | None = None,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         t0 = time.perf_counter_ns()
         ctx = dict(context or {})
         args = dict(args or {})
         call = _Call()
+        req = self._req(direction, correlation_id, request_id)
         try:
             fut = self._pool.submit(
-                self._decide, call, t0, agent_id, agent_version, tool_name, args, ctx
+                self._decide, call, t0, agent_id, agent_version, tool_name, args, ctx, req
             )
             decision = fut.result(timeout=self.timeout_s)
         except cf.TimeoutError:
@@ -453,9 +565,10 @@ class Gateway:
                     args,
                     ctx,
                     TimeoutError(f"no decision within {self.timeout_s:g} s"),
+                    req,
                 )
         except Exception as exc:  # noqa: BLE001 - check() must never raise
-            decision = self._fail(t0, agent_id, agent_version, tool_name, args, ctx, exc)
+            decision = self._fail(t0, agent_id, agent_version, tool_name, args, ctx, exc, req)
         return decision.as_result()
 
     def evaluate_only(
@@ -465,6 +578,10 @@ class Gateway:
         tool_name: str,
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
+        *,
+        direction: str = "input",
+        correlation_id: str | None = None,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         """DRY RUN (WP-UX3 Playground): the decision ``check`` would give now, with no side
         effect. It writes no verdict, event or chain record, changes no agent state (a pause
@@ -473,8 +590,11 @@ class Gateway:
         in ``not_evaluated``. Never raises: a policy read error returns ``error``."""
         ctx = dict(context or {})
         args = dict(args or {})
+        req = self._req(direction, correlation_id, request_id)
         try:
-            fut = self._dry_pool.submit(self._dry, agent_id, agent_version, tool_name, args, ctx)
+            fut = self._dry_pool.submit(
+                self._dry, agent_id, agent_version, tool_name, args, ctx, req
+            )
             return fut.result(timeout=self.timeout_s)
         except cf.TimeoutError:
             return {"dry_run": True, "error": f"no decision within {self.timeout_s:g} s"}
@@ -488,6 +608,7 @@ class Gateway:
         tool_name: str,
         args: dict[str, Any],
         ctx: dict[str, Any],
+        req: Req | None = None,
     ) -> dict[str, Any]:
         t0 = time.perf_counter_ns()
         skipped: list[str] = []
@@ -496,8 +617,22 @@ class Gateway:
         risk = policy.risk_class(tool_name)
         _, now_us = self._now_us()
         pre = self._pre_redact(tool_name, args, ctx)
+        det = self._pre_detect(policy, agent_id, agent_version, tool_name, args, ctx, req)
+        sess = self._pre_session(agent_id, tool_name, args, ctx, req, dry=True)
         d, matches, shadow, builtin = self._evaluate(
-            policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us, skipped
+            policy,
+            state,
+            risk,
+            agent_id,
+            tool_name,
+            args,
+            ctx,
+            pre,
+            now_us,
+            skipped,
+            det,
+            req,
+            sess,
         )
         d.latency_us = (time.perf_counter_ns() - t0) // 1000
         out = d.as_result()
@@ -507,7 +642,10 @@ class Gateway:
         out["shadow"] = shadow
         out["builtin"] = builtin is not None
         out["would_pause"] = (
-            builtin is None and not shadow and any(m.action == "pause" for m in matches)
+            builtin is None
+            and not shadow
+            and d.observed is None
+            and (any(m.action == "pause" for m in matches) or d.classifier_pause)
         )
         out["not_evaluated"] = sorted(skipped)
         return out
@@ -645,8 +783,11 @@ class Gateway:
         tool_name: str,
         args: dict[str, Any],
         ctx: dict[str, Any],
+        req: Req | None = None,
     ) -> Decision:
         pre = self._pre_redact(tool_name, args, ctx)
+        det = self._pre_detect(None, agent_id, agent_version, tool_name, args, ctx, req)
+        sess = self._pre_session(agent_id, tool_name, args, ctx, req)
         with self._lock:
             policy = self.policy.current()
             if not self.windows.warm or self.windows.policy_hash != policy.policy_hash:
@@ -656,20 +797,44 @@ class Gateway:
             now, now_us = self._now_us()
             self.windows.prune(now_us, policy.max_window_s)
             d, matches, shadow, builtin = self._evaluate(
-                policy, state, risk, agent_id, tool_name, args, ctx, pre, now_us
+                policy,
+                state,
+                risk,
+                agent_id,
+                tool_name,
+                args,
+                ctx,
+                pre,
+                now_us,
+                None,
+                det,
+                req,
+                sess,
             )
             with call.lock:
                 if call.abandoned:
                     return d  # the caller already applied the fail mode and recorded it
                 call.decision = d
-            if d.allow and tool_name in _window_tools(policy):
+            output = req is not None and req.direction == "output"
+            if d.allow and not output and tool_name in _window_tools(policy):
                 self._remember(policy, now_us, agent_id, tool_name, args, ctx)
             pause_rule = next((m for m in matches if m.action == "pause"), None)
-            if pause_rule is not None and not shadow and builtin is None:
+            if pause_rule is not None and not shadow and builtin is None and d.observed is None:
                 self.states.pause(
                     agent_id,
                     f"rule:{pause_rule.rule.id}",
                     f"{pause_rule.rule.id}: {pause_rule.rule.description}",
+                    auth_method="local_system",
+                    actor_kind="system",
+                )
+                d.paused = True
+            elif d.classifier_pause and not shadow and builtin is None:
+                # WP25: the injection classifier asked for a pause above its frozen threshold on a
+                # money / credit tool. Same state change as a pause rule; a human resumes.
+                self.states.pause(
+                    agent_id,
+                    f"rule:{CLASSIFIER_PAUSE_RULE}",
+                    d.reason[:240],
                     auth_method="local_system",
                     actor_kind="system",
                 )
@@ -681,10 +846,28 @@ class Gateway:
             d.total_us,
             d.action,
             d.allow,
-            "shadow" if shadow else (f"fail_{d.fail_mode}" if d.fail_mode else None),
+            "shadow"
+            if shadow
+            else ("observe" if d.observed else (f"fail_{d.fail_mode}" if d.fail_mode else None)),
         )
-        self._tier0b(d, agent_id, tool_name, args, risk, ctx)
+        self._tier0b(d, agent_id, tool_name, args, risk, ctx, sess)
+        self._session_observe(d, now, agent_id, tool_name, args, sess)
+        self._register_agent(agent_id, policy)
         return d
+
+    def _register_agent(self, agent_id: str, policy: Policy) -> None:
+        """WP41: first decision of an agent the policy knows -> inventory node (background).
+        An id the policy does not list is never registered (anonymous input must not fill the
+        inventory)."""
+        if self.agent_registrar is None or agent_id in self._registered:
+            return
+        if agent_id not in policy.doc.agents:
+            return
+        self._registered.add(agent_id)
+        try:
+            self._bg.submit(self.agent_registrar, agent_id)
+        except Exception:  # noqa: BLE001 - a closed pool at shutdown: nothing to do
+            self._registered.discard(agent_id)
 
     def _evaluate(
         self,
@@ -698,14 +881,19 @@ class Gateway:
         pre: tuple[dict[str, Any], int] | BaseException | None,
         now_us: int,
         skipped: list[str] | None = None,
+        det: PreDetect | None = None,
+        req: Req | None = None,
+        sess: SessionCall | None = None,
     ) -> tuple[Decision, list[Match], bool, tuple[str, str] | None]:
         """Pure decision from a policy snapshot: rule matching, built-in blocks, shadow,
         inline redaction. No store write, no state change. ``skipped`` not None = dry run
         (WP-UX3 ``evaluate_only``): window rules (aggregate / prior) are not evaluated, their
         ids are appended to ``skipped``, and the redaction hint cache is left alone."""
         dry = skipped is not None
+        eval_t0 = time.perf_counter_ns()  # WP39: rules latency = this call, detector pass excluded
         matches: list[Match] = []
         builtin: tuple[str, str] | None = None
+        eff = policy.effective(agent_id, ctx.get("consumer_id"))  # WP38
         if state is None:
             builtin = ("GATE-UNKNOWN-AGENT", f"unknown agent {agent_id}: fail closed")
         elif state == "QUARANTINED":
@@ -714,6 +902,13 @@ class Gateway:
             builtin = ("GATE-RETIRED", "agent retired")
         elif state == "PAUSED" and risk != "read_only":
             builtin = ("GATE-PAUSED", "agent paused")
+        elif sess is not None and sess.pause_id and state != "SHADOW":
+            # WP27: a deterministic session pause (score over the policy threshold, tool class in
+            # the policy scope). Ends by two-person resume or when the cool-down runs out.
+            builtin = (
+                SESSION_PAUSE_RULE,
+                f"conversation paused for {risk} tools (session pause {sess.pause_id[:12]})",
+            )
         elif risk is None and state != "SHADOW":
             builtin = ("GATE-UNKNOWN-TOOL", f"unknown tool {tool_name}: fail closed")
         elif (
@@ -728,7 +923,14 @@ class Gateway:
                 f"handoff to {agent_id} without caller_agent_id: fail closed (ADR D10)",
             )
         else:
-            for rule in policy.rules_for(agent_id):
+            # WP37: an output check (direction=output) is not a tool call. The rules describe
+            # calls (limits, windows, allow-lists), so none is evaluated; the state checks above
+            # still apply, and detectors judge the output.
+            output = req is not None and req.direction == "output"
+            rules = () if output else policy.rules_for(agent_id)
+            if eff.disabled:  # WP38: rules switched off for this agent or consumer
+                rules = [r for r in rules if r.id not in eff.disabled]
+            for rule in rules:
                 if skipped is not None and (rule.aggregate is not None or rule.prior is not None):
                     try:  # a window rule is listed only when its tool and predicates match
                         if self._rule_static_match(rule, tool_name, args, ctx, policy):
@@ -795,6 +997,11 @@ class Gateway:
                 action, rid, reason = "allow", None, "allowed"
             d = Decision(decision_id, True, action, rid, reason, state, policy.policy_hash, risk)
         d.fail_mode = fail_mode
+        if eff.active and decisive is not None and not shadow and builtin is None:
+            # WP38 review: observe lifts a rule block BEFORE the redaction and the detectors, so
+            # an observed call still gets its masked arguments (pii_export) and its transform.
+            self._observe(d, eff, risk)
+        d.sess = sess
         if d.allow and not shadow and builtin is None:
             self._redact(d, risk, tool_name, args, pre, dry=dry)
         d.matched = [
@@ -807,7 +1014,130 @@ class Gateway:
             }
             for m in matches
         ]
+        if det is not None and req is not None and self.detector_gate is not None:
+            # WP37: fold in the detector result computed before the lock (see detector_gate.py)
+            self.detector_gate.apply(
+                d,
+                det,
+                req,
+                shadow=shadow,
+                builtin=builtin is not None,
+                matched_actions=[m.action for m in matches],
+                hmac_fn=lambda a: args_hmac(a, self._args_key),
+                rules_us=(time.perf_counter_ns() - eval_t0) // 1000,
+            )
+        if eff.active:
+            self._apply_mode(d, eff, shadow, builtin is not None, risk)
         return d, matches, shadow, builtin
+
+    @staticmethod
+    def _observe(d: Decision, eff: Effective, risk: str | None) -> None:
+        """WP38 observe mode: turn the block or pause in ``d`` into a report and keep the
+        original in ``observed``. Called only for a decision a rule (or GATE-DETECTOR-FAILED)
+        made, never for SHADOW or a built-in state block. On a money, credit or pii_export tool
+        observe acts only when the agent has two ``observe_approvals`` (WP38 review): a consumer
+        id or a mode switch alone never lets a money call through."""
+        if eff.mode != "observe" or d.allow:
+            return
+        if risk in _OBSERVE_CLOSED_RISK and not eff.observe_approved:
+            return
+        if d.observed is None:
+            d.observed = {
+                "allow": False,
+                "action": d.action,
+                "rule_id": d.rule_id,
+                "reason": d.reason[:500],
+            }
+        d.allow, d.action, d.fail_mode = True, "log", None
+        d.reason = f"observe: would {d.observed['action']} by {d.observed['rule_id']}"
+
+    @classmethod
+    def _apply_mode(
+        cls, d: Decision, eff: Effective, shadow: bool, builtin: bool, risk: str | None
+    ) -> None:
+        """WP38 answer fields, and observe mode for GATE-DETECTOR-FAILED (a rule block was
+        lifted earlier, in ``_observe``). Not changed by observe: SHADOW (it has its own
+        downgrade and keeps precedence), the built-in state blocks (paused, quarantined,
+        retired, unknown agent or tool, missing caller id), GATE-REDACTION and
+        GATE-DETECTOR-FAILED on a pii_export tool (the caller cannot get masked values, so raw
+        PII would flow). ``skip`` is not a block, so observe never touches it."""
+        sem: dict[str, Any] = {"mode": eff.mode}
+        if eff.consumer_id is not None:
+            sem["consumer_id"] = eff.consumer_id
+        if eff.consumer_ignored:
+            sem["consumer_ignored"] = True
+        d.sem = sem
+        d.observe_approved = eff.observe_approved
+        if eff.mode != "observe" or shadow or builtin:
+            return
+        if not d.allow and d.rule_id == DETECTOR_FAILED_RULE and risk != "pii_export":
+            cls._observe(d, eff, risk)
+        if d.observed is not None and d.v2 is not None:
+            d.v2["status"] = observed_status(d)
+
+    def _pre_session(
+        self,
+        agent_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+        ctx: dict[str, Any],
+        req: Req | None,
+        dry: bool = False,
+    ) -> SessionCall | None:
+        """WP27: session identity, turn features and pause lookup, outside the gate lock. None
+        with the monitor off, for an output check, or when the agent's policy turns it off."""
+        if self.session_gate is None or (req is not None and req.direction == "output"):
+            return None
+        try:
+            policy = self.policy.current()
+        except Exception:  # noqa: BLE001 - the decision path reports a policy problem itself
+            return None
+        return self.session_gate.prepare(
+            policy, self.clock.now(), agent_id, tool_name, args, ctx, dry=dry
+        )
+
+    def _session_observe(
+        self,
+        d: Decision,
+        now: datetime,
+        agent_id: str,
+        tool_name: str,
+        args: Mapping[str, Any],
+        sess: SessionCall | None,
+    ) -> None:
+        """WP27: add the turn to its session and apply the rules. Never raises, never changes d."""
+        if sess is None or self.session_gate is None:
+            return
+        try:
+            policy = self.policy.current()
+        except Exception:  # noqa: BLE001
+            return
+        self.session_gate.observe(policy, now, d, agent_id, tool_name, args, sess)
+
+    def _pre_detect(
+        self,
+        policy: Policy | None,
+        agent_id: str,
+        agent_version: str,
+        tool_name: str,
+        args: dict[str, Any],
+        ctx: dict[str, Any],
+        req: Req | None,
+    ) -> PreDetect | None:
+        """Detector pass outside the gate lock; None with detectors off. Never raises."""
+        if self.detector_gate is None or req is None:
+            return None
+        try:
+            pol = policy or self.policy.current()
+        except Exception as exc:  # noqa: BLE001 - becomes a detector failure, not a crash
+            return PreDetect(error=type(exc).__name__, direction=req.direction)
+        eff = pol.effective(agent_id, ctx.get("consumer_id"))
+        # WP38: the consumer's detector override, if it has one. Never on a money, credit or
+        # pii_export tool (WP38 review): the consumer id is asserted by the caller, so it must
+        # not switch off a detector (or GATE-DETECTOR-FAILED) there; the agent's block applies.
+        if eff.consumer_id is not None and pol.risk_class(tool_name) not in _OBSERVE_CLOSED_RISK:
+            pol = _ConsumerView(pol, eff)  # type: ignore[assignment]
+        return self.detector_gate.prepare(pol, agent_id, agent_version, tool_name, args, ctx, req)
 
     def _pre_redact(
         self, tool_name: str, args: dict[str, Any], ctx: Mapping[str, Any]
@@ -930,6 +1260,8 @@ class Gateway:
             for m in matches:
                 if shadow:
                     action, label = "log", f"shadow_would_{m.action}"
+                elif d.observed is not None and m.action in ("block", "pause"):
+                    action, label = "log", f"observe_would_{m.action}"  # WP38
                 else:
                     action, label = m.action, ("rule_error" if m.error else "matched")
                 rows.append(
@@ -943,7 +1275,21 @@ class Gateway:
                         "rationale_masked": m.rule.description,
                     }
                 )
-        else:
+        if d.classifier_pause and matches:
+            # WP25: a pause by the classifier next to alert / log rule matches still needs its own
+            # tier 0 pause row, or no case would open (cases read the verdict rows)
+            rows.append(
+                {
+                    **base,
+                    "verdict_id": uuid.uuid4().hex,
+                    "checker_id": CHECKER_0A,
+                    "label": "classifier_pause",
+                    "action": "pause",
+                    "rule_id": d.rule_id,
+                    "rationale_masked": d.reason[:500],
+                }
+            )
+        if not matches:
             rows.append(
                 {
                     **base,
@@ -955,8 +1301,27 @@ class Gateway:
                     "rationale_masked": d.reason[:500],
                 }
             )
+        if d.observed is not None and d.observed["rule_id"] not in {m.rule.id for m in matches}:
+            # WP38 review: a lifted GATE-DETECTOR-FAILED has no rule match; one row keeps the
+            # observe period auditable (label observe_would_*, as for a rule).
+            rows = [r for r in rows if r["rule_id"] != d.observed["rule_id"]] + [
+                {
+                    **base,
+                    "verdict_id": uuid.uuid4().hex,
+                    "checker_id": CHECKER_0A,
+                    "label": f"observe_would_{d.observed['action']}",
+                    "action": "log",
+                    "rule_id": d.observed["rule_id"],
+                    "rationale_masked": str(d.observed["reason"])[:500],
+                }
+            ]
         self.tables.append("verdict", rows)
         self._append_event(d, now, agent_id, agent_version, tool_name, args, ctx)
+        if d.v2 is not None and (d.det.findings or d.det.not_executed):
+            self.tables.append(
+                "finding",
+                finding_rows(d, now, agent_id, tool_name, trace_id, lambda: uuid.uuid4().hex),
+            )
         self.evidence.record(
             "gate_decision",
             d.decision_id,
@@ -978,10 +1343,14 @@ class Gateway:
         amount = args.get("amount_minor")
         currency = args.get("currency")
         caller = ctx.get("caller_agent_id")
+        extra = event_fields(d) if d.v2 is not None else {}
+        if d.sess is not None:  # WP27: session columns (hashes, flags and integers only)
+            extra = {**extra, **self._session_fields(d, args)}
         self.tables.append(
             "agent_event",
             [
                 {
+                    **extra,
                     "event_id": d.decision_id,
                     "ts": now,
                     "trace_id": str(ctx.get("trace_id") or d.decision_id),
@@ -1008,6 +1377,50 @@ class Gateway:
                 }
             ],
         )
+
+    def _session_fields(self, d: Decision, args: Mapping[str, Any]) -> dict[str, Any]:
+        s = d.sess
+        assert s is not None
+        if self.session_gate is not None:  # sketch on the masked arguments (WP37 review F3)
+            self.session_gate.finalize(s, d.masked_args or d.transformed_args or args, d.risk_class)
+        codes = finding_codes(getattr(d, "det", None))
+        feats: dict[str, Any] = {}
+        if s.consumer:
+            feats["c"] = s.consumer
+        if s.features.expand:
+            feats["x"] = 1
+        if s.features.rare:
+            feats["d"] = 1
+        if s.features.sig:
+            from supervisor.monitors.session import encode_sig
+
+            feats["s"] = encode_sig(s.features.sig)
+        if codes:
+            feats["f"] = codes
+        rec = finding_codes(getattr(d, "det", None), recorded=True)
+        if rec:
+            feats["g"] = rec  # WP41: findings of a detector that does not weigh (recorded only)
+        if s.features.standing:
+            feats["p"] = 1
+        if d.rule_id == "GATE-DETECTOR-FAILED":
+            feats["i"] = 1
+        if s.features.topic:
+            feats["t"] = 1
+        if s.features.assert_:
+            feats["a"] = 1
+        if s.features.recall:
+            feats["r"] = 1
+        if s.features.toks:
+            from supervisor.monitors.session import encode_sig as _enc
+
+            feats["k"] = _enc(s.features.toks)
+        if s.features.cues:
+            feats["q"] = list(s.features.cues)
+        return {
+            "session_id": s.session_id,
+            "session_source": s.source,
+            "session_json": canonical_json(feats) if feats else None,
+        }
 
     def _payload(
         self,
@@ -1053,6 +1466,22 @@ class Gateway:
             out["args_hmac_transformed"] = d.args_hmac_transformed
             out["redaction_count"] = d.redaction_count
             out["masker_version"] = str(getattr(self.masker, "mask_version", "unknown"))
+        if d.v2 is not None:  # WP37: ids, codes and hashes only
+            out.update(chain_fields(d))
+        if d.sem is not None:  # WP38: mode, consumer and the decision observe mode downgraded
+            out.update(d.sem)
+            if d.observed is not None:
+                out["observed_decision"] = {
+                    "action": d.observed["action"],
+                    "rule_id": d.observed["rule_id"],
+                }
+                out["observe_approved"] = d.observe_approved
+                out["status"] = observed_status(d)
+        if d.sess is not None:  # WP27: the session id as a hash, never the id itself
+            out["session_sha256"] = sha256_hex(d.sess.session_id)
+            out["session_source"] = d.sess.source
+            if d.sess.pause_id:
+                out["session_pause_id"] = d.sess.pause_id
         return out
 
     # ------------------------------------------------------------------ fail mode
@@ -1098,6 +1527,7 @@ class Gateway:
         args: Mapping[str, Any],
         ctx: Mapping[str, Any],
         exc: BaseException,
+        req: Req | None = None,
     ) -> Decision:
         try:
             mode, rule_id = self.fail_mode_for(agent_id, tool_name)
@@ -1129,6 +1559,8 @@ class Gateway:
                 risk,
             )
         d.fail_mode = mode
+        if req is not None:
+            fallback_v2(d, req)
         d.latency_us = (time.perf_counter_ns() - t0) // 1000
         log.warning("gate fail %s for %s/%s: %r", mode, agent_id, tool_name, exc)
         try:
@@ -1182,6 +1614,7 @@ class Gateway:
         args: Mapping[str, Any],
         risk: str | None,
         ctx: Mapping[str, Any],
+        sess: SessionCall | None = None,
     ) -> None:
         if not self.tier0b_enabled or risk == "read_only":
             return
@@ -1193,6 +1626,7 @@ class Gateway:
             tool_name,
             dict(args),
             ctx.get("trace_id"),
+            sess,
         )
         with self._lock:
             self._bg_futures = [f for f in self._bg_futures if not f.done()]
@@ -1206,6 +1640,7 @@ class Gateway:
         tool_name: str,
         args: Mapping[str, Any],
         trace_id: Any,
+        sess: SessionCall | None = None,
     ) -> None:
         t0 = time.perf_counter_ns()
         try:
@@ -1253,6 +1688,10 @@ class Gateway:
                 },
             )
             self.metrics.bump("tier0b_alerts")
+            if sess is not None and self.session_gate is not None:  # WP27: a late finding code
+                self.session_gate.note_codes(
+                    sess, agent_id, decision_id, [f"t:{f.kind}" for f in findings]
+                )
         except Exception:  # noqa: BLE001 - 0b never affects the call
             log.exception("tier 0b failed")
             self.metrics.bump("tier0b_errors")
@@ -1260,6 +1699,21 @@ class Gateway:
 
 # Grouping ids always hashed into gate events, so a new aggregate rule has history.
 DEFAULT_KEYS = frozenset({"customer_id", "payee_id", "application_id", "account_id"})
+
+
+class _ConsumerView:
+    """A policy that answers ``agent_detectors`` with the consumer's override (WP38). The
+    detector gate (WP37) reads only ``risk_class`` and ``agent_detectors`` from a policy."""
+
+    def __init__(self, policy: Policy, eff: Effective) -> None:
+        self._policy = policy
+        self._eff = eff
+
+    def agent_detectors(self, agent_id: str) -> Any:
+        return self._eff.detectors
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._policy, name)
 
 
 def _is_handoff(ctx: Mapping[str, Any]) -> bool:

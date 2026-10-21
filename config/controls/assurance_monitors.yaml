@@ -1,0 +1,236 @@
+# Starter controls: assurance packs, monitors, the masker and the evidence chain (WP30).
+# SYNTHETIC and ILLUSTRATIVE, like gate_rules.yaml. A pack or monitor result counts only when
+# it is a real (non-mock) result of a supervised agent in the window.
+# A product control needs at least one source that can make it work: a gate rule, a pack that
+# is not scored by a judge, or the monitors fairness, drift, multiagent. The controls below
+# marked draft have none yet (oversight, sweeps and quality write no usable status; groundedness
+# packs are judge-scored); they become active when such a source exists (BACKLOG).
+version: 1
+controls:
+  - id: CTL-PII-MASK
+    title: Personal data is masked in traces and before any judge call
+    objective: >
+      The masker replaces Vietnamese personal identifiers (ID numbers, phone, email, tax code,
+      bank and card numbers, names, addresses) with keyed pseudonyms, so traces and judge
+      prompts hold no raw personal data. The canary pack plants known values and checks that
+      none leaks.
+    type: preventive
+    implemented_by: product
+    owner: AI Governance
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [VN-CPL-2023-A10.1M-01, INTL-OWASPLLM-2025-LLM02-01, VN-PDPL-2025-A19.2-01]
+      risk: [RSK-SVC-003, RSK-CRD-003]
+    evidence:
+      pack: [pii_canary]
+      detector:
+        - person
+        - cccd
+        - cmnd
+        - phone
+        - email
+        - tax_code
+        - bank_account
+        - card_number
+        - address
+
+  - id: CTL-PII-SWEEP
+    title: Periodic sweep for personal data in agent replies
+    objective: >
+      A scheduled sweep over recorded events looks for personal data shown to the wrong person
+      or kept where it should not be, and raises a case for a reviewer.
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [VN-AI-2025-A12.01-01, VN-PDPL-2025-A19.2-01]
+      risk: [RSK-SVC-003]
+    evidence:
+      monitor: [sweeps]
+      pack: [pii_canary]
+
+  - id: CTL-ASR-REDTEAM
+    title: Agentic red-team pack before launch and after each change
+    objective: >
+      The OWASP agentic and LLM red-team packs run against the agent and must pass before Launch
+      is GO. A tool abused outside its purpose, or an agent with too much autonomy, shows up as
+      a failed metric.
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-OWASPASI-2026-ASI02-01, INTL-OWASPLLM-2025-LLM06-01]
+      risk: [RSK-PAY-003, RSK-CRD-006, RSK-SVC-004]
+    evidence:
+      pack: [owasp_agentic_redteam, owasp_llm_top10]
+
+  - id: CTL-ASR-INJECTION
+    title: Indirect injection and filter-evasion packs
+    objective: >
+      Packs plant instructions in tool results and customer text, and test the prefilter against
+      typo, no-diacritic and encoded variants, so a hidden instruction does not steer the agent.
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-OWASPLLM-2025-LLM06-01]
+      risk: [RSK-SVC-005, RSK-PAY-005]
+    evidence:
+      pack: [indirect_injection_vi, prefilter_evasion]
+      monitor: [sweeps]
+
+  - id: CTL-ASR-FAIRNESS
+    title: Fairness packs on credit decisions
+    objective: >
+      The four-fifths rule and the fairness metrics run on the decisions of the credit agent;
+      a customer group treated worse than the rest fails the pack and the fairness monitor.
+    type: detective
+    implemented_by: product
+    owner: Consumer Lending
+    status: active
+    review_date: 2027-04-20
+    agents: [credit_prequal]
+    covers:
+      matrix: [INTL-EUAIA-2024-A10-01, INTL-EUAIA-2024-A27-01]
+      risk: [RSK-CRD-004]
+    evidence:
+      pack: [fairness_metrics, four_fifths_rule]
+      monitor: [fairness]
+
+  - id: CTL-ASR-GROUNDED
+    title: Groundedness and hallucination checks
+    objective: >
+      Sampled answers are checked against the data the agent read, and a hallucination pack
+      measures how often the model states what it did not read.
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: draft
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-NISTGAI-2024-S2.2-01]
+      risk: [RSK-CRD-005]
+    evidence:
+      pack: [groundedness_monitor, halueval_vi]
+      monitor: [quality]
+
+  - id: CTL-ASR-SUPPLY
+    title: Model and dependency inventory with pinned hashes
+    objective: >
+      The model, its endpoint and the agent dependencies are listed and pinned by hash, so a
+      provider or version change is seen before the agent behaves differently.
+    type: preventive
+    implemented_by: product
+    owner: AI Governance
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-SR117-2011-S5.2-01]
+      risk: [RSK-SHR-001]
+    evidence:
+      pack: [model_dependency_inventory, pin_hash_check]
+      monitor: [drift]
+
+  - id: CTL-MON-OVERSIGHT
+    title: Human oversight metrics
+    objective: >
+      Daily metrics show how often a person reviews a case, how long a case waits, how many
+      agent calls pass the gate and whether the evidence chain verifies.
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: draft
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-EUAIA-2024-A14-01, VN-AI-2025-A14.02A-01, INTL-HKMAGENAI-2024-G1.A-01]
+      risk: [RSK-PAY-006, RSK-SHR-002]
+    evidence:
+      monitor: [oversight]
+
+  - id: CTL-MON-DRIFT
+    title: Behaviour drift band
+    objective: >
+      Each agent is compared with its own baseline; a move out of the band raises an alert before
+      a change in behaviour becomes a loss.
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-SR117-2011-S5.2-01, INTL-EUAIA-2024-A15-01]
+      risk: [RSK-SHR-001, RSK-SHR-002]
+    evidence:
+      monitor: [drift]
+
+  - id: CTL-MON-MULTIAGENT
+    title: Cross-agent pattern checks
+    objective: >
+      Calls from several agents are read together, so a limit passed by splitting work across
+      agents is seen.
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-OWASPASI-2026-ASI07-01]
+      risk: [RSK-PAY-002]
+    evidence:
+      monitor: [multiagent]
+
+  - id: CTL-MON-QUALITY
+    title: Quality sampling
+    objective: >
+      A sample of answers is scored on a schedule and the scores are tracked against a threshold
+      (model performance monitoring in the sense of SR 11-7).
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: draft
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-NISTGAI-2024-S2.2-01, INTL-SR117-2011-S5.2-01]
+      risk: [RSK-CRD-005]
+    evidence:
+      monitor: [quality]
+
+  - id: CTL-EVD-CHAIN
+    title: Tamper-evident evidence chain
+    objective: >
+      Gate decisions, case changes and sign-offs are written to a hash chain with signed heads;
+      an auditor verifies it offline. The oversight monitor reports whether the chain verifies.
+    type: detective
+    implemented_by: product
+    owner: AI Governance
+    status: draft
+    review_date: 2027-04-20
+    covers:
+      matrix: [VN-AI-2025-A12.02B-01, VN-AI-2025-A28.03-01, INTL-EUAIA-2024-A12-01]
+      risk: [RSK-PAY-006]
+    evidence:
+      monitor: [oversight]
+
+  - id: CTL-GATE-PAUSE
+    title: Pause, quarantine and two-person resume
+    objective: >
+      A person or a rule can pause or quarantine an agent at once; resuming a paused agent needs
+      two different people.
+    type: corrective
+    implemented_by: product
+    owner: Payments Ops
+    agents: [payments]
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-EUAIA-2024-A14-01, INTL-MASAIRM-2025-P5.25-01]
+      risk: [RSK-PAY-006]
+    evidence:
+      rule: [PAY-03, PAY-07]

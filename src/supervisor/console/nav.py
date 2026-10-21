@@ -46,6 +46,10 @@ PAGES: dict[str, str] = {
     "audit": "console_auditlog_enabled",
     "integrations": "console_integrations_enabled",
     "playground": "console_playground_enabled",
+    "risks": "console_risks_enabled",  # WP29
+    "controls": "console_controls_enabled",  # WP30
+    "tasks": "console_controls_enabled",  # WP30
+    "transparency": "console_transparency_enabled",  # WP31
 }
 
 
@@ -85,6 +89,12 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
             Item("evidence", "nav_evidence", "/console/evidence"),
             Item("assurance", "nav_assurance", "/console/assurance", flag="assurance"),
             Item("compliance", "nav_compliance", "/console/compliance", flag="compliance"),
+            Item("risks", "nav_risks", "/console/risks", page="risks"),  # WP29
+            Item("controls", "nav_controls", "/console/controls", page="controls"),  # WP30
+            Item("tasks", "nav_tasks", "/console/tasks", page="tasks"),  # WP30
+            Item(
+                "transparency", "nav_transparency", "/console/transparency", page="transparency"
+            ),  # WP31
         ),
     ),
     (
@@ -149,6 +159,10 @@ CODES: dict[str, str] = {
     "audit": "AU",
     "integrations": "IS",
     "playground": "PG",  # WP-UX3
+    "risks": "RK",  # WP29
+    "controls": "CT",  # WP30
+    "tasks": "TK",  # WP30
+    "transparency": "TP",  # WP31
     "health": "HL",
 }
 

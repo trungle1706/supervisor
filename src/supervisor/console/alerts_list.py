@@ -124,6 +124,9 @@ def drawer_view(ctx: Any, alert_id: str) -> dict[str, Any]:
     row = ctx.state.get("alert", {"alert_id": alert_id})
     if row is None:
         raise ListingError(f"alert {alert_id[:64]} does not exist")
+    from supervisor.analytics.decisions import safe_id, shown_id
+
+    row = {**row, "correlation_id": shown_id(row.get("correlation_id"))}  # WP39 review (R2)
     shown = {
         k: row.get(k)
         for k in (
@@ -141,9 +144,13 @@ def drawer_view(ctx: Any, alert_id: str) -> dict[str, Any]:
             "entry_hash",
             "route_status",
             "acknowledged_by",
+            "correlation_id",
         )
+        if k != "correlation_id" or row.get(k)  # WP39 review: no new key on an old row
     }
     return {
+        "settings_v2": bool(getattr(ctx.settings, "console_decisions_v2", False)),
+        "corr_link": safe_id(row.get("correlation_id")),
         "al": row,
         "agent": _agent_of(row),
         "json_text": json.dumps(shown, sort_keys=True, indent=2, default=str),

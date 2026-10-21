@@ -1,0 +1,29 @@
+{# Risks page (WP29, read-only): tiles, filter bar, sortable paged table, row drawer
+   (?drawer=<id> is the no-JS fallback). Variables: risks_views.list_view. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_risks') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_risks'), None)]) }}
+{{ ui.pagehead(t('nav_risks'), ui.pill(t('read_only'), 'neutral')) }}
+{{ ui.purpose(t('rk_purpose'), t('rk_why')) }}
+{% if illustrative %}<p class="hint">{{ t('rk_illustrative', low=thresholds.low_max, med=thresholds.medium_max, high=thresholds.high_max) }}</p>{% endif %}
+<section id="risks" aria-label="{{ t('nav_risks') }}">
+{{ ui.tiles(tiles, '/console/risks', '/console/risks/rows') }}
+{% if overdue_n %}<p class="hint">{{ t('rk_overdue_line', n=overdue_n) }}</p>{% endif %}
+{% if unproven_n %}<p class="hint">{{ t('rk_unproven_line', n=unproven_n) }}</p>{% endif %}
+{{ ui.filterbar('/console/risks', '/console/risks/rows', [
+  {'name': 'q', 'label': t('rk_col_risk'), 'kind': 'search', 'value': params.q},
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+  {'name': 'category', 'label': t('rk_col_category'), 'kind': 'select', 'value': params.category, 'options': category_opts},
+  {'name': 'band', 'label': t('rk_col_residual'), 'kind': 'select', 'value': params.band, 'options': band_opts},
+  {'name': 'owner', 'label': t('owner'), 'kind': 'select', 'value': params.owner, 'options': owner_opts},
+  {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
+], '/console/risks?lang=' ~ lang) }}
+<div id="list" aria-live="polite">
+{% include "_risks_list.html" %}
+</div>
+</section>
+<p class="hint">{{ t('rk_edit_note') }}</p>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_risk_drawer.html" %}{% endif %}{% endblock %}

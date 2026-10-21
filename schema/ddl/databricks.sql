@@ -111,7 +111,18 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`agent_event` (
   source STRING NOT NULL,
   capture_level STRING NOT NULL,
   mask_version STRING,
-  latency_us BIGINT
+  latency_us BIGINT,
+  verdict_status STRING,
+  correlation_id STRING,
+  coverage_json STRING,
+  session_id STRING,
+  session_source STRING,
+  session_json STRING,
+  request_id STRING,
+  consumer_id STRING,
+  latency_rules_us BIGINT,
+  latency_detectors_us BIGINT,
+  detector_latency_json STRING
 )
 USING DELTA
 COMMENT 'Normalised OTel-shaped events. Single read model for Watch. Masked only.'
@@ -652,6 +663,31 @@ USING DELTA
 COMMENT 'WP22. Per agent, tool and UTC day: gate decision counts, latency percentiles, distinct callers and end users (counts only; hashed ids are never stored), first and last call. Recomputed from agent_event by python -m supervisor.analytics.tools rollup (idempotent: a day is overwritten). Feeds the console Tools page, /v1/analytics/tools and the least-privilege suggestion. Integers only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
+-- decision_daily (state): WP39. Per UTC day and dimension: gate decision counts by verdict status, the not-evaluated count and, for dimension detector_latency, latency percentiles. Recomputed from agent_event and finding by python -m supervisor.jobs.decision_rollup (idempotent: a day is overwritten). Feeds the console Analytics Gate and Detectors tabs so the App never scans the raw table on page load. dimension: total | agent | consumer | rule | detector_code | detector_latency. Integers and ids only; no text.
+-- primary key (enforced by the app, not by Delta): usage_date, dimension, dim_key, dim_key2
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`decision_daily` (
+  usage_date DATE NOT NULL,
+  dimension STRING NOT NULL,
+  dim_key STRING NOT NULL,
+  dim_key2 STRING NOT NULL,
+  requests BIGINT NOT NULL,
+  allows BIGINT NOT NULL,
+  reports BIGINT NOT NULL,
+  transforms BIGINT NOT NULL,
+  pauses BIGINT NOT NULL,
+  blocks BIGINT NOT NULL,
+  skips BIGINT NOT NULL,
+  not_evaluated BIGINT NOT NULL,
+  p50_us BIGINT,
+  p95_us BIGINT,
+  computed_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP39. Per UTC day and dimension: gate decision counts by verdict status, the not-evaluated count and, for dimension detector_latency, latency percentiles. Recomputed from agent_event and finding by python -m supervisor.jobs.decision_rollup (idempotent: a day is overwritten). Feeds the console Analytics Gate and Detectors tabs so the App never scans the raw table on page load. dimension: total | agent | consumer | rule | detector_code | detector_latency. Integers and ids only; no text.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
 -- alert (state): WP21. One row per fired alert (rule engine, ADR D15). Ids, counts and hashes only, never free text. dedupe_key = rule_id + group value; repeats inside the rule's dedupe window raise suppressed_count on the open row instead of making a new row. status: open, acknowledged (by an operator, audited), closed.
 -- primary key (enforced by the app, not by Delta): alert_id
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`alert` (
@@ -680,6 +716,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`alert` (
   route_status STRING NOT NULL,
   acknowledged_by STRING,
   acknowledged_at TIMESTAMP,
+  correlation_id STRING,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )
@@ -712,7 +749,7 @@ USING DELTA
 COMMENT 'WP21. Delta sink of the SIEM export (SIEM_SINK=delta): one row per event, with the OCSF document, so a Databricks-hosted SIEM connector or Lakehouse Monitoring can read it. Ids, hashes and enums only. event_id is the idempotency key.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
 
--- inventory_node (state): WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).
+-- inventory_node (state): WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual | gate, plus file:line or a workspace reference).
 -- primary key (enforced by the app, not by Delta): node_id
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_node` (
   node_id STRING NOT NULL,
@@ -731,7 +768,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_node` (
   updated_at TIMESTAMP NOT NULL
 )
 USING DELTA
-COMMENT 'WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual, plus file:line or a workspace reference).'
+COMMENT 'WP24 inventory graph node (system, model, model_endpoint, tool, mcp_server, dataset, prompt, supplier). node_id is a hash of kind + canonical name, so a refill never duplicates. own_risk is low|medium|high|critical or NULL; the effective level is computed on read, never stored. decision33_class is human-set (copied from the agent row), never inferred. evidence lists {source, ref} pairs (manifest | onboarding | workspace_scan | manual | gate, plus file:line or a workspace reference).'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
 -- inventory_edge (state): WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.
@@ -752,3 +789,312 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`inventory_edge` (
 USING DELTA
 COMMENT 'WP24 inventory graph edge (uses, serves, reads, writes, hosted_on, owned_by). One row per (src, kind, dst, source) so every claim keeps its own evidence. active is false when the source no longer reports the edge.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- session_control (state): WP27 session-scoped pause of money / credit tools. One row per pause: active until a two-person resume (owner + reviewer, same rule as an agent resume) or until expires_at (cool-down). Written only by a deterministic rule of the session monitor. The gate reads active rows (GATE-SESSION-PAUSE). Free text never lands here.
+-- primary key (enforced by the app, not by Delta): control_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`session_control` (
+  control_id STRING NOT NULL,
+  session_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  scope STRING NOT NULL,
+  status STRING NOT NULL,
+  score_bp BIGINT NOT NULL,
+  case_id STRING,
+  created_at TIMESTAMP NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  approver_1 STRING,
+  approver_1_role STRING,
+  approver_1_at TIMESTAMP,
+  lifted_by STRING,
+  lifted_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP27 session-scoped pause of money / credit tools. One row per pause: active until a two-person resume (owner + reviewer, same rule as an agent resume) or until expires_at (cool-down). Written only by a deterministic rule of the session monitor. The gate reads active rows (GATE-SESSION-PAUSE). Free text never lands here.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- finding (append_only): WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.
+-- primary key (enforced by the app, not by Delta): finding_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`finding` (
+  finding_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  event_id STRING NOT NULL,
+  request_id STRING NOT NULL,
+  correlation_id STRING NOT NULL,
+  trace_id STRING,
+  agent_id STRING NOT NULL,
+  tool_name STRING NOT NULL,
+  direction STRING NOT NULL,
+  detector_slug STRING NOT NULL,
+  detector_id STRING NOT NULL,
+  code STRING NOT NULL,
+  score_bp BIGINT NOT NULL,
+  threshold_bp BIGINT NOT NULL,
+  masked_count BIGINT NOT NULL,
+  action_hint STRING NOT NULL,
+  not_executed_reason STRING,
+  preset STRING,
+  is_mock BOOLEAN NOT NULL,
+  verdict_status STRING NOT NULL,
+  entities_masked STRING,
+  fragments_masked STRING
+)
+USING DELTA
+COMMENT 'WP37 one row per detector result of a gate decision: a fired finding, or a detector that did not run (not_executed_reason set, score 0). Entities and fragments are MASKED text only (pseudonym tokens and masked excerpts); raw values never reach this table. event_id is the gate decision (agent_event.event_id); correlation_id ties decision, trace span and finding.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- mcp_tool_manifest (state): WP26 locked tool manifest per upstream MCP server. One row per (server, tool) plus one server row (tool_name '*') that holds the whole-list hash. locked_hash is what two different reviewers approved; observed_hash is what the server shows now. A tool whose status is new or changed is hidden from the agent and its tools/call is blocked (MCP-TOOL-UNREVIEWED). approvals lists {by, role, at, hash}; they count only for the observed hash. scan is the report-only poisoning scan (kinds and counts, no text).
+-- primary key (enforced by the app, not by Delta): manifest_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`mcp_tool_manifest` (
+  manifest_id STRING NOT NULL,
+  server_id STRING NOT NULL,
+  tool_name STRING NOT NULL,
+  row_kind STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  status STRING NOT NULL,
+  locked_hash STRING,
+  observed_hash STRING,
+  locked_def STRING,
+  observed_def STRING,
+  suspicious BOOLEAN NOT NULL,
+  scan STRING,
+  approvals STRING NOT NULL,
+  case_id STRING,
+  seeded_by STRING,
+  first_seen TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP26 locked tool manifest per upstream MCP server. One row per (server, tool) plus one server row (tool_name ''*'') that holds the whole-list hash. locked_hash is what two different reviewers approved; observed_hash is what the server shows now. A tool whose status is new or changed is hidden from the agent and its tools/call is blocked (MCP-TOOL-UNREVIEWED). approvals lists {by, role, at, hash}; they count only for the observed hash. scan is the report-only poisoning scan (kinds and counts, no text).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- risk (state): WP29 risk register entry. Anchored on an agent or on an inventory node (a shared model, tool, MCP server or dataset, which every agent that reaches it inherits). Likelihood and impact are whole numbers 1 to 5; the score is their product and is computed on read, never stored. residual_* is what the person declares for the treated risk; the value the product uses is decided by the evidence rule (risk_evidence), see docs/risk-register.md.
+-- primary key (enforced by the app, not by Delta): risk_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`risk` (
+  risk_id STRING NOT NULL,
+  title STRING NOT NULL,
+  description STRING NOT NULL,
+  category STRING NOT NULL,
+  agent_id STRING,
+  node_id STRING,
+  inherent_likelihood BIGINT NOT NULL,
+  inherent_impact BIGINT NOT NULL,
+  marginal_risk BIGINT,
+  marginal_note STRING,
+  treatment STRING NOT NULL,
+  treatment_note STRING,
+  residual_likelihood BIGINT NOT NULL,
+  residual_impact BIGINT NOT NULL,
+  owner STRING NOT NULL,
+  review_date DATE,
+  status STRING NOT NULL,
+  source STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP29 risk register entry. Anchored on an agent or on an inventory node (a shared model, tool, MCP server or dataset, which every agent that reaches it inherits). Likelihood and impact are whole numbers 1 to 5; the score is their product and is computed on read, never stored. residual_* is what the person declares for the treated risk; the value the product uses is decided by the evidence rule (risk_evidence), see docs/risk-register.md.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- risk_link (state): WP29 link of a risk to a compliance matrix row (obligation id), a gate rule id, an assurance pack id, a monitor name or a case id. rule, pack and monitor links are the controls the evidence rule looks at; matrix and case links are references.
+-- primary key (enforced by the app, not by Delta): link_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`risk_link` (
+  link_id STRING NOT NULL,
+  risk_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  target STRING NOT NULL,
+  active BOOLEAN NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP29 link of a risk to a compliance matrix row (obligation id), a gate rule id, an assurance pack id, a monitor name or a case id. rule, pack and monitor links are the controls the evidence rule looks at; matrix and case links are references.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- risk_evidence (append_only): WP29. One row per risk and window: what the linked controls did (counts), the state (working | failing | no_evidence), the reason code and the residual score the evidence rule allows. Integers, codes and hashes only; no text. The matching chain record is risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).
+-- primary key (enforced by the app, not by Delta): evidence_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`risk_evidence` (
+  evidence_id STRING NOT NULL,
+  risk_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  window_start TIMESTAMP NOT NULL,
+  window_end TIMESTAMP NOT NULL,
+  state STRING NOT NULL,
+  reason STRING NOT NULL,
+  agents_n BIGINT NOT NULL,
+  agents_excluded BIGINT NOT NULL,
+  rule_links BIGINT NOT NULL,
+  rule_hits BIGINT NOT NULL,
+  rule_stops BIGINT NOT NULL,
+  rules_missing BIGINT NOT NULL,
+  pack_links BIGINT NOT NULL,
+  pack_ok BIGINT NOT NULL,
+  pack_warn BIGINT NOT NULL,
+  pack_fail BIGINT NOT NULL,
+  pack_nodata BIGINT NOT NULL,
+  monitor_links BIGINT NOT NULL,
+  monitor_ok BIGINT NOT NULL,
+  monitor_other BIGINT NOT NULL,
+  controls_working BIGINT NOT NULL,
+  controls_failing BIGINT NOT NULL,
+  controls_idle BIGINT NOT NULL,
+  declared_residual_likelihood BIGINT NOT NULL,
+  declared_residual_impact BIGINT NOT NULL,
+  residual_likelihood BIGINT NOT NULL,
+  residual_impact BIGINT NOT NULL,
+  digest STRING NOT NULL,
+  chain_hash STRING
+)
+USING DELTA
+COMMENT 'WP29. One row per risk and window: what the linked controls did (counts), the state (working | failing | no_evidence), the reason code and the residual score the evidence rule allows. Integers, codes and hashes only; no text. The matching chain record is risk_evidence. A repeat for the same window is a no-op (evidence_id is a hash).'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- control (state): WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.
+-- primary key (enforced by the app, not by Delta): control_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`control` (
+  control_id STRING NOT NULL,
+  title STRING NOT NULL,
+  objective STRING NOT NULL,
+  control_type STRING NOT NULL,
+  implemented_by STRING NOT NULL,
+  owner STRING NOT NULL,
+  status STRING NOT NULL,
+  review_date DATE,
+  scope_agents STRING NOT NULL,
+  source STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP30 control: an action the bank or the product takes to meet obligations and hold risks down. One control covers many obligations and many risks (control_map). type is preventive, detective or corrective; implemented_by is product or bank. scope_agents is a JSON list of agent ids, or [*] for every supervised agent. Evidence status is computed from runtime facts (control_status), never typed in.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- control_map (state): WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk id of the register; rule, pack, monitor, detector and document are evidence sources. Only rule, pack and monitor are observed at runtime; detector and document are references.
+-- primary key (enforced by the app, not by Delta): map_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`control_map` (
+  map_id STRING NOT NULL,
+  control_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  target STRING NOT NULL,
+  active BOOLEAN NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP30 map of one control. kind matrix = obligation id of the compliance matrix, risk = risk id of the register; rule, pack, monitor, detector and document are evidence sources. Only rule, pack and monitor are observed at runtime; detector and document are references.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- control_status (append_only): WP30. One row per control, agent and window: working, failing or no_data, a fixed reason code and integer counts of the evidence sources. No text. The matching chain record is control_status (one per agent and pass, carrying the compliance bp). A repeat for the same window is a no-op (status_id is a hash).
+-- primary key (enforced by the app, not by Delta): status_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`control_status` (
+  status_id STRING NOT NULL,
+  control_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  window_start TIMESTAMP NOT NULL,
+  window_end TIMESTAMP NOT NULL,
+  status STRING NOT NULL,
+  reason STRING NOT NULL,
+  sources_n BIGINT NOT NULL,
+  working_n BIGINT NOT NULL,
+  failing_n BIGINT NOT NULL,
+  idle_n BIGINT NOT NULL,
+  refs_n BIGINT NOT NULL,
+  digest STRING NOT NULL,
+  chain_hash STRING
+)
+USING DELTA
+COMMENT 'WP30. One row per control, agent and window: working, failing or no_data, a fixed reason code and integer counts of the evidence sources. No text. The matching chain record is control_status (one per agent and pass, carrying the compliance bp). A repeat for the same window is a no-op (status_id is a hash).'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- task (state): WP30 lifecycle task of one agent, made from a template in config/tasks.yaml. kind move is the lifecycle move itself (a task); it is done only when no required task of the stage is open. Waiving needs a reason and a second person (waive_requested_by, waive_approved_by). evidence_kind says what proves the task done: control, pack, document or none.
+-- primary key (enforced by the app, not by Delta): task_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`task` (
+  task_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  template_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  stage STRING NOT NULL,
+  target_stage STRING,
+  title STRING NOT NULL,
+  owner_role STRING NOT NULL,
+  required BOOLEAN NOT NULL,
+  status STRING NOT NULL,
+  due_at TIMESTAMP,
+  evidence_kind STRING NOT NULL,
+  evidence_ref STRING,
+  level STRING NOT NULL,
+  d33_class STRING NOT NULL,
+  waive_reason STRING,
+  waive_requested_by STRING,
+  waive_approved_by STRING,
+  done_by STRING,
+  done_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP30 lifecycle task of one agent, made from a template in config/tasks.yaml. kind move is the lifecycle move itself (a task); it is done only when no required task of the stage is open. Waiving needs a reason and a second person (waive_requested_by, waive_approved_by). evidence_kind says what proves the task done: control, pack, document or none.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- task_event (append_only): WP30. Every change of a task: generate, start, done, waive_request, waive_approve, waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored as a hash only. The matching chain record is task_change.
+-- primary key (enforced by the app, not by Delta): event_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`task_event` (
+  event_id STRING NOT NULL,
+  task_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  ts TIMESTAMP NOT NULL,
+  action STRING NOT NULL,
+  actor STRING NOT NULL,
+  from_status STRING,
+  to_status STRING,
+  reason_sha256 STRING,
+  row_hash STRING NOT NULL,
+  chain_hash STRING
+)
+USING DELTA
+COMMENT 'WP30. Every change of a task: generate, start, done, waive_request, waive_approve, waive_reject, resize, overdue. From and to status, the actor and hashes; reasons are stored as a hash only. The matching chain record is task_change.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- transparency_report (append_only): WP31. One row per generated report file set: agent, variant (regulator | customer | internal), language, version (a whole number per agent and variant) and the sha256 of the JSON and of each rendered file. The report data holds ids, integers, hashes and masked text only; this row holds hashes, counts and section hashes (for the diff to the next version), no text. The matching chain record is transparency_report. A repeat for the same (agent, variant, lang, version) is a no-op (report_id is a hash).
+-- primary key (enforced by the app, not by Delta): report_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`transparency_report` (
+  report_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  variant STRING NOT NULL,
+  lang STRING NOT NULL,
+  version BIGINT NOT NULL,
+  schema_version BIGINT NOT NULL,
+  generated_at TIMESTAMP NOT NULL,
+  generated_by STRING NOT NULL,
+  content_hash STRING NOT NULL,
+  json_hash STRING NOT NULL,
+  html_hash STRING,
+  pdf_hash STRING,
+  sections_total BIGINT NOT NULL,
+  sections_available BIGINT NOT NULL,
+  section_hashes STRING NOT NULL,
+  verify_state STRING NOT NULL,
+  chain_hash STRING
+)
+USING DELTA
+COMMENT 'WP31. One row per generated report file set: agent, variant (regulator | customer | internal), language, version (a whole number per agent and variant) and the sha256 of the JSON and of each rendered file. The report data holds ids, integers, hashes and masked text only; this row holds hashes, counts and section hashes (for the diff to the next version), no text. The matching chain record is transparency_report. A repeat for the same (agent, variant, lang, version) is a no-op (report_id is a hash).'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');

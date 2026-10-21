@@ -1,0 +1,60 @@
+# PROPOSAL, not policy. Three policy-only rules that close three of the six holes found by the
+# WP28 multi-turn red team (docs/redteam-multiturn.md section 11). This file is a test fixture:
+# policies/baseline.yaml is NOT changed. The owner decides; the limits (3 reads in 10 minutes) must
+# be checked against real volumes at the bank. Merge it with the baseline to use it.
+policy_version: 1
+
+rules:
+  - id: SVC-09
+    version: 1
+    description: A customer reply must not carry a CCCD-shaped or phone-shaped number (proposal)
+    agent_scope: [customer_service]
+    when:
+      tool: reply
+      any:
+        - {arg: text, op: matches, value: '(?<!\d)\d{12}(?!\d)'}
+        - {arg: text, op: matches, value: '(?<!\d)(?:\+?84|0)(?:[ .-]?\d){9}(?!\d)'}
+    action: pause
+    severity: high
+    risk_class: pii_export
+    regulation_ref: Decree 13/2023/ND-CP (personal data protection) - proposal
+    owner: Data Protection Office
+    approvals: [risk.lead, dpo.officer]
+
+  - id: PII-03
+    version: 1
+    description: At most 3 loan applications read per agent per 10 minutes (proposal)
+    agent_scope: [credit_prequal]
+    when:
+      tool: fetch_application
+    aggregate:
+      fn: count
+      window_s: 600
+      group_by: agent
+      op: gt
+      limit: 3
+    action: pause
+    severity: high
+    risk_class: pii_export
+    regulation_ref: Decree 13/2023/ND-CP (personal data protection) - proposal
+    owner: Data Protection Office
+    approvals: [risk.lead, dpo.officer]
+
+  - id: CRD-08
+    version: 1
+    description: At most 3 credit score look-ups per agent per 10 minutes (proposal)
+    agent_scope: [credit_prequal]
+    when:
+      tool: credit_score_lookup
+    aggregate:
+      fn: count
+      window_s: 600
+      group_by: agent
+      op: gt
+      limit: 3
+    action: pause
+    severity: high
+    risk_class: credit
+    regulation_ref: Credit policy - bulk score look-up - proposal
+    owner: Consumer Lending
+    approvals: [risk.lead, compliance.officer]

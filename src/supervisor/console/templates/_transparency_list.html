@@ -1,0 +1,43 @@
+{# Agents with the latest transparency report per variant: the swap target #list (WP31). #}
+{% import "_ui.html" as ui with context %}
+{% if rows %}
+<div class="tablewrap">
+<table class="queue">
+  <caption class="sr">{{ t('nav_transparency') }}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{{ t('tp_col_agent') }}</th>
+      {% for v in variants %}<th scope="col">{{ t('tp_title_' ~ v) }}</th>{% endfor %}
+      {% if can_generate %}<th scope="col"></th>{% endif %}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for r in rows %}
+    <tr class="row" data-row="{{ r.agent_id }}">
+      <td><a class="head mono" href="/console/agents/{{ r.agent_id }}?tab=transparency&amp;lang={{ lang }}">{{ r.agent_id }}</a><div class="idline">{{ r.name }}</div></td>
+      {% for v in variants %}
+      {% set x = r.variants[v] %}
+      <td>
+        {% if x %}
+        <a class="mono" href="/console/transparency?drawer={{ r.agent_id }}&amp;variant={{ v }}&amp;lang={{ lang }}" hx-get="/console/transparency/{{ r.agent_id }}/drawer?variant={{ v }}&amp;lang={{ lang }}" hx-target="#drawer" hx-push-url="false">v{{ x.version }}</a>
+        <span class="muted">{{ x.generated_at|day }}</span>
+        {{ ui.pill(t('tp_ver_' ~ x.verify_state), {'ok': 'ok', 'failed': 'bad'}.get(x.verify_state, 'warn'), True) }}
+        <div class="idline">{{ t('tp_sections_ok', n=x.sections_available, m=x.sections_total) }}</div>
+        {% else %}
+        <a class="muted" href="/console/transparency?drawer={{ r.agent_id }}&amp;variant={{ v }}&amp;lang={{ lang }}" hx-get="/console/transparency/{{ r.agent_id }}/drawer?variant={{ v }}&amp;lang={{ lang }}" hx-target="#drawer" hx-push-url="false">{{ t('tp_never') }}</a>
+        {% endif %}
+      </td>
+      {% endfor %}
+      {% if can_generate %}
+      <td>
+        <button class="btn" hx-post="/console/transparency/{{ r.agent_id }}/generate?lang={{ lang }}" hx-target="#list">{{ t('tp_generate_all') }}</button>
+      </td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+{{ ui.empty(t('tp_no_agents')) }}
+{% endif %}

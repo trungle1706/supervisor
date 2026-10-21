@@ -1,0 +1,25 @@
+{# Tasks page (WP30, read-only): tiles, filter bar, sortable paged table, row drawer
+   (?drawer=<id> is the no-JS fallback). Variables: tasks_views.list_view. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_tasks') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_tasks'), None)]) }}
+{{ ui.pagehead(t('nav_tasks'), ui.pill(t('read_only'), 'neutral')) }}
+{{ ui.purpose(t('tk_purpose'), t('tk_why')) }}
+{% if illustrative %}<p class="hint">{{ t('tk_illustrative') }}</p>{% endif %}
+<section id="tasks" aria-label="{{ t('nav_tasks') }}">
+{{ ui.tiles(tiles, '/console/tasks', '/console/tasks/rows') }}
+{{ ui.filterbar('/console/tasks', '/console/tasks/rows', [
+  {'name': 'q', 'label': t('tk_col_task'), 'kind': 'search', 'value': params.q},
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+  {'name': 'stage', 'label': t('tk_col_stage'), 'kind': 'select', 'value': params.stage, 'options': stage_opts},
+  {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
+], '/console/tasks?lang=' ~ lang) }}
+<div id="list" aria-live="polite">
+{% include "_tasks_list.html" %}
+</div>
+</section>
+<p class="hint">{{ t('tk_edit_note') }}</p>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_task_drawer.html" %}{% endif %}{% endblock %}

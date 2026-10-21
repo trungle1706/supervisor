@@ -205,6 +205,18 @@ def assurance_launch_notes(
     return list(dict.fromkeys(out))
 
 
+def task_launch_items(open_tasks: Sequence[Mapping[str, Any]]) -> list[str]:
+    """NO-GO reasons from required tasks of the agent's current lifecycle stage that are still
+    open (WP30, ``TASKS_LAUNCH_GATE_ENABLED``). Rows have ``template_id``, ``stage``, ``status``
+    and ``title``. Sorted by template id: the same rows give the same list."""
+    return list(
+        dict.fromkeys(
+            f"task {t['template_id']} of the {t['stage']} stage is {t['status']}: {t['title']}"
+            for t in sorted(open_tasks, key=lambda t: str(t["template_id"]))
+        )
+    )
+
+
 REAL_DATA_MODES = ("synthetic", "bank_supplied_path", "vendored_sample")
 
 
@@ -340,4 +352,5 @@ __all__ = [
     "judge_gate_targets",
     "judge_target_id",
     "require_judge_validated",
+    "task_launch_items",
 ]

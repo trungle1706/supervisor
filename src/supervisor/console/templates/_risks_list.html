@@ -1,0 +1,44 @@
+{# Risks table + pager: the swap target #list of the Risks page (WP29, read-only). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% if page.items %}
+<div class="tablewrap">
+<table class="queue risks-tbl">
+  <caption class="sr">{{ t('nav_risks') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('risk_id', t('rk_col_risk'), sort_col, sort_dir, '/console/risks', '/console/risks/rows', base_qs) }}
+      <th scope="col">{{ t('rk_col_category') }}</th>
+      <th scope="col">{{ t('rk_col_agents') }}</th>
+      {{ tb.th('inherent_score', t('rk_col_inherent'), sort_col, sort_dir, '/console/risks', '/console/risks/rows', base_qs, numeric=True) }}
+      {{ tb.th('residual_score', t('rk_col_residual'), sort_col, sort_dir, '/console/risks', '/console/risks/rows', base_qs, numeric=True) }}
+      <th scope="col">{{ t('rk_col_evidence') }}</th>
+      <th scope="col">{{ t('rk_col_treatment') }}</th>
+      {{ tb.th('owner', t('owner'), sort_col, sort_dir, '/console/risks', '/console/risks/rows', base_qs) }}
+      {{ tb.th('review_date', t('rk_col_review'), sort_col, sort_dir, '/console/risks', '/console/risks/rows', base_qs) }}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for r in page.items %}
+    {% set dq = list_qs ~ '&lang=' ~ lang %}
+    <tr class="row" data-row="{{ r.risk_id }}" data-status="{{ r.status }}">
+      <td><a class="head rowlink mono" href="/console/risks?drawer={{ r.risk_id }}&amp;{{ dq }}" hx-get="/console/risks/{{ r.risk_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.risk_id }}</a>{% if r.status != 'active' %} {{ ui.pill(t('rk_st_' ~ r.status), 'neutral') }}{% endif %}<div class="idline">{{ r.title }}</div></td>
+      <td>{{ t('rk_cat_' ~ r.category) }}</td>
+      <td class="mono">{{ r.agents|join(', ') or '-' }}</td>
+      <td class="n">{{ r.inherent_score }} {{ ui.sev(r.inherent_band) }}</td>
+      <td class="n">{{ r.residual_score }} {{ ui.sev(r.residual_band) }}</td>
+      <td>{% if r.evidence_state %}{{ ui.pill(t('rk_ev_' ~ r.evidence_state), {'working': 'ok', 'failing': 'bad', 'no_evidence': 'warn'}.get(r.evidence_state, 'neutral'), True) }}{% else %}<span class="muted">{{ t('rk_ev_none') }}</span>{% endif %}<div class="idline">{{ t('rk_reason_' ~ r.evidence_reason) }}</div></td>
+      <td>{{ t('rk_treat_' ~ r.treatment) }}</td>
+      <td>{{ r.owner }}</td>
+      <td class="mono">{{ r.review_date or '-' }}{% if r.review_overdue %} {{ ui.pill(t('rk_overdue'), 'warn') }}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/risks', '/console/risks/rows', list_qs) }}
+{% elif total_risks %}
+{{ ui.empty(t('rk_no_risks'), t('rk_no_match')) }}
+{% else %}
+{{ ui.empty(t('rk_no_risks'), t('rk_no_risks_line')) }}
+{% endif %}

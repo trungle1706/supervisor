@@ -1,0 +1,92 @@
+{
+  "base_commit": "3aed7f9",
+  "branch": "wp29-risk-register",
+  "date": "2026-10-20",
+  "note": "Recorded by `python -m supervisor.risk.harness --write-baseline`. tests/risk/test_harness.py fails if a metric drops below this.",
+  "results": {
+    "adversarial": {
+      "bp": 10000,
+      "n": 20,
+      "passed": 20
+    },
+    "determinism_bp": 10000,
+    "golden": {
+      "dev": {
+        "accuracy_bp": 10000,
+        "accuracy_ci_bp": [
+          8864,
+          10000
+        ],
+        "by_task": {
+          "evidence": {
+            "bp": 10000,
+            "correct": 7,
+            "n": 7
+          },
+          "inherit": {
+            "bp": 10000,
+            "correct": 7,
+            "n": 7
+          },
+          "link": {
+            "bp": 10000,
+            "correct": 4,
+            "n": 4
+          },
+          "score": {
+            "bp": 10000,
+            "correct": 12,
+            "n": 12
+          }
+        },
+        "correct": 30,
+        "n": 30,
+        "result_hash": "f6ce025a12daac84c25e6d9d7ea84e85c743b7a81ef7c1060559b378203d11a2"
+      },
+      "held_out": {
+        "accuracy_bp": 10000,
+        "accuracy_ci_bp": [
+          8388,
+          10000
+        ],
+        "by_task": {
+          "evidence": {
+            "bp": 10000,
+            "correct": 5,
+            "n": 5
+          },
+          "inherit": {
+            "bp": 10000,
+            "correct": 5,
+            "n": 5
+          },
+          "link": {
+            "bp": 10000,
+            "correct": 2,
+            "n": 2
+          },
+          "score": {
+            "bp": 10000,
+            "correct": 8,
+            "n": 8
+          }
+        },
+        "correct": 20,
+        "n": 20,
+        "result_hash": "0355db7bf19eb3525ea2160f78da36c8f431c3b1c61c3ee20ae141c9ecab67c5"
+      }
+    },
+    "starters": {
+      "bp": 10000,
+      "links": 85,
+      "risks": 19
+    },
+    "verdicts": {
+      "adversarial": "GO",
+      "determinism": "GO",
+      "golden_dev": "GO",
+      "golden_held_out": "GO",
+      "starters": "GO"
+    }
+  }
+}

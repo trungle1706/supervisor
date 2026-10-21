@@ -1,0 +1,226 @@
+# Starter controls: deterministic gate rules (WP30). SYNTHETIC and ILLUSTRATIVE: owners, review
+# dates and the mapping are a worked example, not the bank's control framework. The bank imports
+# its own catalogue with `python -m supervisor.controls import FILE` (docs/controls.md).
+# Every obligation id, risk id, rule id, pack id and monitor name below exists today; a test
+# checks it. A rule alone proves nothing until it fires, so each control also names a pack or a
+# monitor that shows the control works while the rule is quiet.
+version: 1
+controls:
+  - id: CTL-PAY-AMOUNT
+    title: A transfer states a clean positive integer amount
+    objective: >
+      The gate refuses a payment call whose amount is missing, not an integer or not positive,
+      so the agent cannot send a malformed or negative amount.
+    type: preventive
+    implemented_by: product
+    owner: Payments Ops
+    status: active
+    review_date: 2027-04-20
+    agents: [payments]
+    covers:
+      matrix: [INTL-OWASPLLM-2025-LLM05-01, VN-QD2345-2023-A1-01]
+      risk: [RSK-PAY-001]
+    evidence:
+      rule: [PAY-01, PAY-06]
+      pack: [owasp_agentic_redteam]
+      monitor: [oversight]
+
+  - id: CTL-PAY-LIMIT
+    title: Single transfer limit
+    objective: >
+      The gate blocks one transfer above the configured single-transfer limit, so the agent
+      cannot move more than one customer instruction allows.
+    type: preventive
+    implemented_by: product
+    owner: Payments Ops
+    status: active
+    review_date: 2027-04-20
+    agents: [payments]
+    covers:
+      matrix: [VN-QD33-2026-PL4.1-02, VN-TT50-2024-A10.1-01, VN-QD2345-2023-A1-01]
+      risk: [RSK-PAY-001]
+    evidence:
+      rule: [PAY-02]
+      pack: [owasp_agentic_redteam]
+      monitor: [oversight]
+
+  - id: CTL-PAY-DAILY
+    title: Daily total and split-payment cap
+    objective: >
+      The gate pauses or blocks an agent whose transfers from one account add up above the daily
+      total or look like one amount split into small parts.
+    type: preventive
+    implemented_by: product
+    owner: Payments Ops
+    status: active
+    review_date: 2027-04-20
+    agents: [payments]
+    covers:
+      matrix: [VN-TT50-2024-A15.2-01, VN-QD33-2026-PL4.1-02]
+      risk: [RSK-PAY-002]
+    evidence:
+      rule: [PAY-03, PAY-08]
+      monitor: [multiagent]
+
+  - id: CTL-PAY-PAYEE
+    title: New payee velocity limit
+    objective: >
+      The gate blocks the fourth new payee for one customer in one day, a known pattern of
+      account takeover and mule accounts.
+    type: preventive
+    implemented_by: product
+    owner: Payments Ops
+    status: active
+    review_date: 2027-04-20
+    agents: [payments]
+    covers:
+      matrix: [VN-TT50-2024-A15.2-01]
+      risk: [RSK-PAY-004]
+    evidence:
+      rule: [PAY-09]
+      monitor: [sweeps]
+
+  - id: CTL-PAY-TOOLS
+    title: Payments agent may call approved tools only
+    objective: >
+      A call to a tool outside the approved list (for example the operations-only transfer API)
+      is paused at the gate and a person decides.
+    type: preventive
+    implemented_by: product
+    owner: Payments Ops
+    status: active
+    review_date: 2027-04-20
+    agents: [payments]
+    covers:
+      matrix:
+        - VN-QD33-2026-PL4.1-01
+        - INTL-OWASPASI-2026-ASI02-01
+        - VN-TT09-2020-A28.1C-01
+      risk: [RSK-PAY-003, RSK-PAY-005]
+    evidence:
+      rule: [PAY-07]
+      pack: [owasp_agentic_redteam, indirect_injection_vi]
+
+  - id: CTL-SVC-WAIVER
+    title: Fee waiver limits
+    objective: >
+      The gate blocks a fee waiver above the single limit, a second waiver on one account in one
+      day, and a waiver with a bad amount.
+    type: preventive
+    implemented_by: product
+    owner: Retail Customer Care
+    status: active
+    review_date: 2027-04-20
+    agents: [customer_service]
+    covers:
+      matrix: [VN-CPL-2023-A10.1E-01]
+      risk: [RSK-SVC-001]
+    evidence:
+      rule: [SVC-01, SVC-02, SVC-03, SVC-04]
+      monitor: [oversight]
+
+  - id: CTL-SVC-DISPUTE
+    title: Card dispute limits
+    objective: >
+      The gate blocks a card dispute with a bad amount and a third dispute from one customer in
+      one day.
+    type: preventive
+    implemented_by: product
+    owner: Retail Customer Care
+    status: active
+    review_date: 2027-04-20
+    agents: [customer_service]
+    covers:
+      matrix: [VN-CPL-2023-A10.1E-01]
+      risk: [RSK-SVC-002]
+    evidence:
+      rule: [SVC-05, SVC-06]
+      monitor: [oversight]
+
+  - id: CTL-SVC-TOOLS
+    title: Customer service agent may call approved tools only
+    objective: A call to a tool outside the approved list is paused at the gate.
+    type: preventive
+    implemented_by: product
+    owner: Retail Customer Care
+    status: active
+    review_date: 2027-04-20
+    agents: [customer_service]
+    covers:
+      matrix: [INTL-OWASPASI-2026-ASI02-01, INTL-HKMAGENAI-2024-G1.A-01]
+      risk: [RSK-SVC-004]
+    evidence:
+      rule: [SVC-07]
+      pack: [owasp_agentic_redteam]
+
+  - id: CTL-CRD-DOCS
+    title: A credit decision needs the documents and a prior read
+    objective: >
+      The gate blocks an approval when the required documents are not on file in the system of
+      record, and blocks a decision before the application was read.
+    type: preventive
+    implemented_by: product
+    owner: Consumer Lending
+    status: active
+    review_date: 2027-04-20
+    agents: [credit_prequal]
+    covers:
+      matrix: [VN-QD33-2026-PL4.2-02, INTL-OWASPLLM-2025-LLM05-01]
+      risk: [RSK-CRD-001]
+    evidence:
+      rule: [CRD-01, CRD-02]
+      pack: [owasp_agentic_redteam]
+      monitor: [oversight]
+
+  - id: CTL-CRD-LIMIT
+    title: Pre-qualification amount limit
+    objective: >
+      The gate blocks a pre-qualification above the configured amount, so a credit of the size
+      that Circular 53 treats as high risk is never decided by the agent alone.
+    type: preventive
+    implemented_by: product
+    owner: Consumer Lending
+    status: active
+    review_date: 2027-04-20
+    agents: [credit_prequal]
+    covers:
+      matrix: [VN-QD33-2026-PL4.2-03, VN-TT53-2026-A4.02B-01]
+      risk: [RSK-CRD-002]
+    evidence:
+      rule: [CRD-03]
+      monitor: [oversight]
+
+  - id: CTL-CRD-TOOLS
+    title: Credit agent may call approved tools only
+    objective: A call to a tool outside the approved list is paused at the gate.
+    type: preventive
+    implemented_by: product
+    owner: Consumer Lending
+    status: active
+    review_date: 2027-04-20
+    agents: [credit_prequal]
+    covers:
+      matrix: [VN-QD33-2026-PL4.2-01, INTL-OWASPASI-2026-ASI02-01]
+      risk: [RSK-CRD-006]
+    evidence:
+      rule: [CRD-07]
+      pack: [owasp_agentic_redteam]
+
+  - id: CTL-CRD-BULKREAD
+    title: Bulk read cap on loan applications
+    objective: >
+      The gate blocks the agent after 200 loan applications read in one hour, a limit on mass
+      reads of personal and financial records.
+    type: preventive
+    implemented_by: product
+    owner: Consumer Lending
+    status: active
+    review_date: 2027-04-20
+    agents: [credit_prequal]
+    covers:
+      matrix: [VN-DATA-2024-A25.1-01, VN-DEC356-2025-A4.1-01, INTL-OWASPLLM-2025-LLM02-01]
+      risk: [RSK-CRD-003]
+    evidence:
+      rule: [PII-02]
+      pack: [pii_canary]
+      monitor: [sweeps]

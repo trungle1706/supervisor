@@ -476,6 +476,117 @@ class Settings(BaseSettings):
     console_scan_cap: int = Field(default=20000, ge=100, le=200_000)
     console_trace_scan: int = Field(default=5000, ge=100, le=50_000)
 
+    # --- WP25 --- injection classifier (ADR D27, docs/injection-classifier.md).
+    # Fail-closed for the classifier is honoured only when this is true AND the model card has an
+    # approval (approver + the weights_sha256 it approves). Default false: an outage never stops
+    # payments without a named owner (R1). Env name: CLASSIFIER_FAIL_CLOSED_APPROVED.
+    classifier_fail_closed_approved: bool = False
+
+    # --- WP26 --- HTTP MCP gateway with tool locking (ADR D24, docs/mcp-gateway.md)
+    # MCP_HTTP_ENABLED: the /v1/mcp/tools routes work and the proxy process may start (default
+    # off). MCP_TOOL_LOCK: inside the proxy, hold new or changed tools for two-person review
+    # (default on; the lock is deterministic and safe). MCP_LOCK_REFRESH_S: how long the proxy
+    # trusts one tools/list view before it asks the upstream server again.
+    mcp_http_enabled: bool = False
+    mcp_tool_lock: bool = True
+    mcp_lock_refresh_s: int = Field(default=60, ge=1, le=3600)
+    # MCP_TOFU_INGRESS: accept --trust-on-first-use from a proxy over POST /v1/mcp/tools/observe
+    # (the name is claimed by the process owner, not verified). Default off (review WP26 F3).
+    mcp_tofu_ingress: bool = False
+    # MCP_SERVER_AGENTS: extra agents allowed to report on a server another agent registered,
+    # "server=agent1|agent2;server2=agent3" (review WP26 F12). Default: only the registering agent.
+    mcp_server_agents: str = Field(default="", pattern=r"^[A-Za-z0-9_.:@=|;-]*$")
+
+    # --- WP27 --- session monitor (ADR D29, docs/session-monitor.md). Default off. Per-agent
+    # values (thresholds, weights, pause scope) live in the policy file under
+    # agents.<id>.monitors.session; these are the global defaults.
+    session_monitor_enabled: bool = False
+    sched_session_s: int = Field(default=300, ge=10)
+    session_window_s: int = Field(default=1800, ge=60, le=86400)
+    session_k: int = Field(default=3, ge=1, le=8)
+    session_cooldown_s: int = Field(default=3600, ge=60)
+
+    # --- WP28 --- multi-turn Vietnamese red team (docs/redteam-multiturn.md, ADR D25).
+    # The nightly job is off by default. The attacker is the offline template attacker unless
+    # REDTEAM_ATTACKER_MODEL names a model on the configured LLM endpoint (LLM_BASE_URL).
+    redteam_nightly_enabled: bool = False  # scheduler job `redteam_nightly`
+    sched_redteam_s: int = Field(default=86400, ge=60)
+    redteam_trials: int = Field(default=8, ge=1, le=500)  # per objective, assurance pack
+    redteam_nightly_trials: int = Field(default=50, ge=1, le=500)  # per objective, nightly job
+    redteam_seed: int = 20261020
+    redteam_attacker_model: str = Field(default="", pattern=r"^[A-Za-z0-9_.:/@-]*$")
+    redteam_llm_max_conversations: int = Field(default=60, ge=1, le=60)  # hard cap, live runs
+    redteam_langs: str = Field(default="vi", pattern=r"^(vi|en|vi,en)$")
+
+    # --- WP29 --- risk register (ADR D26, docs/risk-register.md). All off by default.
+    # RISK_REGISTER_ENABLED: /v1/risks routes, the scheduler job risk_evidence and the CLI.
+    # CONSOLE_RISKS_ENABLED: the Risks page and the Risks tab on the Agent page (needs the first
+    # flag too). Band thresholds and the evidence rule live in config/risk.yaml (ILLUSTRATIVE).
+    risk_register_enabled: bool = False
+    console_risks_enabled: bool = False
+    sched_risk_evidence_s: int = Field(default=21600, ge=60)  # one evidence pass per 6 hours
+    risk_evidence_window_days: int = Field(default=7, ge=1, le=90)
+    # Packs scored by a judge model count as evidence only when the owner sets this (default 0).
+    risk_evidence_judged_packs: bool = False
+    risk_config: Path = Path("config/risk.yaml")
+    risk_starter_dir: Path = Path(
+        "config/risks"
+    )  # starter risks (python -m supervisor.risk import)
+
+    # --- WP30 --- control catalogue and task list (ADR D30, docs/controls.md). All off by default.
+    # CONTROLS_ENABLED: /v1/controls and /v1/tasks routes, the jobs control_status and task_due,
+    # the CLIs. CONSOLE_CONTROLS_ENABLED: the Controls and Tasks pages and Agent tabs (needs the
+    # first flag too). TASKS_LAUNCH_GATE_ENABLED: Launch is NO-GO while a required task of the
+    # agent's current lifecycle stage is open (needs CONTROLS_ENABLED). The sizing rules and the
+    # task templates live in config/tasks.yaml (ILLUSTRATIVE).
+    controls_enabled: bool = False
+    console_controls_enabled: bool = False
+    tasks_launch_gate_enabled: bool = False
+    sched_control_status_s: int = Field(default=21600, ge=60)  # one status pass per 6 hours
+    sched_task_due_s: int = Field(default=3600, ge=60)
+    # Window of a pack result as control evidence (packs run less often than rules fire).
+    # Rules and monitors use RISK_EVIDENCE_WINDOW_DAYS (7).
+    controls_pack_window_days: int = Field(default=30, ge=1, le=365)
+    controls_starter_dir: Path = Path("config/controls")
+    tasks_config: Path = Path("config/tasks.yaml")
+
+    # --- WP31 --- transparency report (ADR D31, docs/transparency-report.md). Off by default.
+    # TRANSPARENCY_ENABLED: /v1/transparency routes, the scheduler job and the CLI build and sign
+    # reports. CONSOLE_TRANSPARENCY_ENABLED: the Transparency page and the Agent tab (needs the
+    # first flag too). Files go to TRANSPARENCY_DIR (default <data_dir>/transparency).
+    transparency_enabled: bool = False
+    console_transparency_enabled: bool = False
+    sched_transparency_s: int = Field(default=86400, ge=60)  # one pass per day
+    transparency_dir: Path | None = None
+    transparency_backlog_file: Path = Path("BACKLOG.md")  # the internal variant lists open items
+
+    # --- WP37 --- detector framework and verdict contract v2 (ADR D23, docs/detectors.md).
+    # Off: the gate answers and records exactly as in v0.3.0. On: detectors run after the
+    # deterministic rules; the answer gains status, findings, not_executed, coverage,
+    # transformed_payload, request_id and correlation_id; findings are stored (table finding).
+    detectors_enabled: bool = False
+    detectors_config: Path = Path("config/detectors.yaml")
+    # --- WP41 --- (ADR D33, docs/detectors.md section 3b). DETECTORS_SCAN_BUDGET_BYTES: the most
+    # text all detectors together scan in one call (default 65536; per detector the setting
+    # max_scan_bytes, default 16384). None = the value of limits.scan_budget_bytes in the file.
+    detectors_scan_budget_bytes: int | None = Field(default=None, ge=1024, le=10_000_000)
+
+    # --- WP38 --- collector catalogue on the Integrations page (ADR D28, docs/collectors.md).
+    # Off: the Integrations page is the delivery status page of v0.3.0. On: it is the catalogue
+    # (cards, Add creates the agent credential, detail drawer). The policy keys mode and
+    # consumers need no flag: they only act when a policy file uses them.
+    collectors_enabled: bool = False
+    # Base URL shown in the setup text; empty = the address the console was opened with.
+    collectors_public_url: str = ""
+
+    # --- WP39 --- activity and analytics parity (ADR D32, docs/console.md, docs/alerts.md).
+    # Off: the Decisions drawer and list, the Traces pages and the Analytics tabs are as before.
+    # On: verdict v2 drawer (Request, Response, Detections, Metadata), new filters, masked CSV
+    # export, Gate tables and a Detectors tab in Analytics (read from decision_daily).
+    console_decisions_v2: bool = False
+    console_export_max_rows: int = Field(default=5000, ge=1, le=100_000)  # CSV rows, masked cols
+    sched_decision_rollup_s: int = Field(default=3600, ge=60)  # decision_daily rollup job
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -503,6 +614,13 @@ class Settings(BaseSettings):
         "inventory_workspace_fixture",
         "policy_dir",
         "fact_query_map",
+        "detectors_config",
+        "risk_config",
+        "risk_starter_dir",
+        "controls_starter_dir",
+        "tasks_config",
+        "transparency_dir",
+        "transparency_backlog_file",
         mode="after",
     )
     @classmethod
@@ -571,6 +689,8 @@ class Settings(BaseSettings):
             self.auth_config_file = REPO_ROOT / "config" / "auth.yaml"
         if self.console_export_dir is None:
             self.console_export_dir = self.data_dir / "exports"
+        if self.transparency_dir is None:  # WP31
+            self.transparency_dir = self.data_dir / "transparency"
         if self.tool_analytics_dir is None:
             self.tool_analytics_dir = self.data_dir / "analytics"
         if self.integration_reports_dir is None:

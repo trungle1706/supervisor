@@ -1,5 +1,125 @@
 # Changelog
 
+## v0.4.0-pre (phase 3 wave 2 and 3) - not released
+
+Integration branch `phase3-wave2` (ten packages, merge report `docs/phase3/wave2/INTEGRATION_WAVE2.md`).
+`__version__` stays `0.3.0`. Every new feature is behind a flag that is off by default; the
+behaviour changes that apply with the flags off are listed below. On Delta, run
+`python -m supervisor.jobs.bootstrap_schema` BEFORE the new app version (migration note at the end).
+
+### What is new
+
+| WP | Feature | Docs | ADR |
+|---|---|---|---|
+| WP37 | Verdict contract v2 on `POST /v1/gate/check` (`status`, `findings`, `not_executed`, `coverage`, `transformed_payload`, `request_id`, `correlation_id`, `direction`, `detectors`, `detector_latency_us`; old fields kept), header `X-Supervisor-Correlation-Id`, detector framework (`dlp_vn` transform, `injection_regex` and `judge_advisory` report only), precedence block > pause > transform > report > allow, `GATE-DETECTOR-FAILED` for fail-closed detectors on money / credit / pii_export tools (advisory detectors never fail closed), `GET /v1/gate/detectors`, per-agent `agents.<id>.detectors` override, table `finding`, harness `python -m supervisor.detectors.harness` | `docs/detectors.md`, `docs/detectors-validation-report.md`, `docs/api.md` | D23 |
+| WP26 | Streamable-HTTP MCP proxy `python -m supervisor.gateway.mcp_http` (same gate path as the stdio proxy, pooled upstream client), tool locking (hash per tool, new or changed tools hidden and refused with `MCP-TOOL-UNREVIEWED` until two different people approve the full hash, removed tools logged, case `mcp_tool_review` without incident clock), report-only poisoning scan, review CLI `tools list|diff|propose|approve`, routes `/v1/mcp/tools...` (`mcp.tools.view|propose|approve`) and two signed ingress routes, table `mcp_tool_manifest`, harness `python -m supervisor.gateway.mcp_http_harness` | `docs/mcp-gateway.md`, `docs/INTEGRATION_GUIDE.md` (pattern C) | D24 |
+| WP28 | Multi-turn Vietnamese and English red team: 6 attack families, 122 objectives, deterministic oracle, labelled MOCK agent, optional capped LLM attacker (`REDTEAM_ATTACKER_MODEL`, at most 60 conversations), advisory pack `multiturn_redteam_vi` with a 7-day trend, nightly job `python -m supervisor.jobs.redteam_nightly`, 40 probes, Playground samples, harness `python -m supervisor.redteam.multiturn` | `docs/redteam-multiturn.md`, `docs/redteam-multiturn-validation.md`, `docs/redteam-attacker-model-card.md` | D25 |
+| WP29 | Risk register: likelihood x impact (ILLUSTRATIVE bands), inheritance up the inventory graph, links to matrix rows, gate rules, packs and monitors, evidence rule (declared residual only while no linked control fails and one works), job `python -m supervisor.jobs.risk_evidence`, `/v1/risks...` (`risks.view`, `risks.edit`), Risks page and Agent tab, CLI `python -m supervisor.risk`, 19 starter risks, tables `risk`, `risk_link`, `risk_evidence`, harness `python -m supervisor.risk.harness` | `docs/risk-register.md` | D26 |
+| WP25 | Injection classifier `injection_classifier` 1.1.0 (Vietnamese and English, pure-Python linear model, weights pinned by SHA-256 in the model card with an approval block) for tool arguments, tool results and tool descriptions; pause hint obeyed only on allowed input calls to money / credit tools (`GATE-CLASSIFIER-PAUSE`, never a block); training `python -m tools.train_classifier`, grouped CV `python -m tools.cross_validate`, sealed held-out protocol. **Validation NO-GO; the entry ships `enabled: false`.** Integration: registered as the WP26 tool-lock scorer when enabled (report only; refused weights hold the tool) | `docs/injection-classifier.md`, `docs/injection-classifier-validation-report.md`, `docs/mcp-gateway.md` section 7 | D27 |
+| WP38 | Collector catalogue on the Integrations page (Python SDK, LangGraph / deepagents middleware, FastAPI middleware, REST, MCP stdio and HTTP proxy, LiteLLM guardrail, Claude Code hook; Add issues the first agent key, `collectors.add`), SDK `check_v2` with `direction` and correlation id, policy keys `agents.<id>.mode: observe` (money agents need SHADOW or two `observe_approvals`), `rules {enable, disable}` (money / credit / pii_export block rules need `rule_approvals`), `consumers.<id>` override (no consumer observe), resolved `Decision.consumer_id`, Playground sample library, harness `python -m supervisor.collectors.harness` | `docs/collectors.md`, `docs/policy.md`, `docs/collectors-validation-report.md` | D28 |
+| WP27 | Session monitor: `session_id` on every decision and span, nine integer signals with policy weights, case `session_escalation` at K hits (memory may open a case alone), opt-in session pause `GATE-SESSION-PAUSE` (two-person resume or cool-down), daily per-consumer window in the batch job (case only), `GET /v1/sessions/<id>`, `POST /v1/sessions/<id>/resume` (`session.view`), job `python -m supervisor.jobs.session_monitor`, alert `AL-SESSION-ESCALATION`, table `session_control`, harness `python -m supervisor.monitors.session_harness` | `docs/session-monitor.md`, `docs/session-monitor-validation-report.md` | D29 |
+| WP30 | Control catalogue (28 starter controls, working / failing / no_data per agent, compliance figure in bp, `control` as a WP29 link kind) and the lifecycle task list sized by Decision 33 class and band (two-person waiver, segregation of duties per stage, Launch NO-GO while a required task is open with `TASKS_LAUNCH_GATE_ENABLED`), `/v1/controls`, `/v1/tasks` (`controls.view|edit`, `tasks.view|edit|approve`), tasks CSV, Controls and Tasks pages and Agent tabs, jobs `control_status`, `task_due`, CLIs `python -m supervisor.controls`, `python -m supervisor.tasks`, five tables, harness `python -m supervisor.controls.harness` | `docs/controls.md` | D30 |
+| WP31 | Transparency report per agent in three variants (regulator, customer, internal) with allow-lists and a second leak check, "what this report does not show", JSON / HTML / PDF in Vietnamese and English, content-hash versions signed into the chain, `/v1/transparency...` (`transparency.view`, `transparency.generate`), Transparency page and Agent tab, job `python -m supervisor.jobs.transparency`, CLI `python -m supervisor.transparency`, table `transparency_report`, controls section from WP30 when `CONTROLS_ENABLED=1`, harness `python -m supervisor.transparency.harness` | `docs/transparency-report.md` | D31 |
+| WP39 | Verdict v2 Decisions drawer (Request, Response with the Observed-decision line, Detections, Metadata; masked text only), filters, masked CSV export (`decisions.export`, row cap, one-time link), deep links and correlation id across decision, trace and alert, Gate tables and Detectors tab in Analytics from `decision_daily` (job `python -m supervisor.jobs.decision_rollup`), nine SOC alert rules with `where_min` and `rate`, alert drills, console activity harness `python -m supervisor.console.activity_harness` | `docs/console.md`, `docs/alerts.md` | D32 |
+
+### WP41: defects of the M2 benchmark on the bank agent (ADR D33, `HANDOFF_WP41.md`)
+
+No new flag; every change is behind a flag that exists or in an adapter option.
+
+- D29: `agents.<id>.detectors.settings.dlp_vn.keep_args` (a lookup key reaches the tool as sent,
+  stays masked in every record, `kept_args` on the decision, the drawer and the export column
+  `kept_arguments`, audit log line and chain record `policy_keep_args` when the policy loads) and
+  `dlp_vn.pseudonym_mode: typed`.
+- D30, D18: detector setting `max_scan_bytes` (16384) and `DETECTORS_SCAN_BUDGET_BYTES` (65536
+  per call); arguments first; the cut is coverage `payload_too_large` with `bytes` and
+  `scanned_bytes`; a cut argument of a pii_export tool is never transformed in part
+  (`GATE-DETECTOR-FAILED`); a memoising masker and an early exit in `injection_regex`.
+- D24, D25: per-detector `mrm_status` in `config/detectors.yaml`; the session `findings` signal
+  counts only deterministic or GO detectors (others are recorded, weight 0).
+- D04: session signal `split_cue` (weight 300; `timing` 400 to 100; after the review it counts
+  as two hits towards K, not as a solo signal); ten new harness probes.
+- Review (Opus): a cut argument or output of a call that `dlp_vn` would transform fails closed
+  even when the scanned part is clean; `keep_args` needs `keep_args_approvals` (two ids) on a
+  money / credit / pii_export tool, is refused in a consumer block and in
+  `config/detectors.yaml`, and applies to input checks only; `split_cue` halves are stricter.
+- D19: gate-only agents are registered in the inventory (source `gate`) on the first decision.
+- D23: the stock LangGraph middleware sends the last 3 tool results (`send_tool_results`).
+- D28: pack results on the `traces:` target count as evidence for risks and controls.
+- D27: Agent page Tools tab answers 200 with a hint for an agent with no policy record; reads the
+  served `POLICY_DIR`.
+
+### New flags and settings (all features default off)
+
+| Flag | Turns on | Related settings |
+|---|---|---|
+| `DETECTORS_ENABLED` (WP37) | Detectors on the gate, verdict v2 fields, `finding` rows, `GET /v1/gate/detectors`; also needed by the WP25 classifier and the WP39 facts | `DETECTORS_CONFIG` (`config/detectors.yaml`) |
+| `detectors.injection_classifier.enabled` in `DETECTORS_CONFIG` (WP25, shipped `false`) | The injection classifier detector and its tool-lock score | `CLASSIFIER_FAIL_CLOSED_APPROVED` (default `0`; fail-closed also needs a named approver and the weights SHA-256 in the card) |
+| `MCP_HTTP_ENABLED` (WP26) | `/v1/mcp/tools...` routes, the HTTP proxy and the review CLI | `MCP_TOOL_LOCK` (default `1`), `MCP_LOCK_REFRESH_S` (`60`), `MCP_TOFU_INGRESS` (`0`), `MCP_SERVER_AGENTS` (empty) |
+| `REDTEAM_NIGHTLY_ENABLED` (WP28) | Scheduler job `redteam_nightly` | `SCHED_REDTEAM_S`, `REDTEAM_TRIALS`, `REDTEAM_NIGHTLY_TRIALS`, `REDTEAM_SEED`, `REDTEAM_LANGS`, `REDTEAM_ATTACKER_MODEL` (empty = templates), `REDTEAM_LLM_MAX_CONVERSATIONS` (max 60) |
+| `RISK_REGISTER_ENABLED`, `CONSOLE_RISKS_ENABLED` (WP29) | `/v1/risks`, job `risk_evidence`, CLI; Risks page and Agent tab | `SCHED_RISK_EVIDENCE_S`, `RISK_EVIDENCE_WINDOW_DAYS` (`7`), `RISK_EVIDENCE_JUDGED_PACKS` (`0`), `RISK_CONFIG`, `RISK_STARTER_DIR` |
+| `COLLECTORS_ENABLED` (WP38) | Integrations page as the collector catalogue (needs `CONSOLE_INTEGRATIONS_ENABLED`) | `COLLECTORS_PUBLIC_URL`. The policy keys `mode`, `rules`, `consumers` need no flag: they act only when a policy file uses them |
+| `SESSION_MONITOR_ENABLED` (WP27) | Session monitor at the gate, job `session_monitor`, `/v1/sessions` | `SCHED_SESSION_S`, `SESSION_WINDOW_S`, `SESSION_K`, `SESSION_COOLDOWN_S`; per agent `agents.<id>.monitors.session` (pause and daily window off by default) |
+| `CONTROLS_ENABLED`, `CONSOLE_CONTROLS_ENABLED`, `TASKS_LAUNCH_GATE_ENABLED` (WP30) | `/v1/controls`, `/v1/tasks`, jobs `control_status` and `task_due`, CLIs; pages and tabs; the Launch gate on open tasks | `SCHED_CONTROL_STATUS_S`, `SCHED_TASK_DUE_S`, `CONTROLS_PACK_WINDOW_DAYS` (`30`), `CONTROLS_STARTER_DIR`, `TASKS_CONFIG` |
+| `TRANSPARENCY_ENABLED`, `CONSOLE_TRANSPARENCY_ENABLED` (WP31) | `/v1/transparency`, job `transparency`, CLI; page and tab | `SCHED_TRANSPARENCY_S`, `TRANSPARENCY_DIR`, `TRANSPARENCY_BACKLOG_FILE`; PDF needs the optional extra `pdf` (fpdf2) and `CASEFILE_PDF_FONT` |
+| `CONSOLE_DECISIONS_V2` (WP39) | Verdict v2 Decisions list and drawer, export, Analytics tables, job `decision_rollup` | `CONSOLE_EXPORT_MAX_ROWS` (`5000`), `SCHED_DECISION_ROLLUP_S`; the alert rules need `ALERTS_ENABLED` |
+
+### Behaviour changes with the flags off
+
+- **WP41, settings and defaults.** `DETECTORS_SCAN_BUDGET_BYTES` (default 65536) and the detector
+  setting `max_scan_bytes` (default 16384) apply with `DETECTORS_ENABLED=1`: a text longer than
+  the limit is no longer scanned in full (coverage says so), and a pii_export call whose argument
+  is longer than 16 KB is blocked by `GATE-DETECTOR-FAILED` instead of being masked in full (raise
+  `max_scan_bytes` for `dlp_vn` on that agent). The default session weights changed (`timing`
+  400 to 100, new `split_cue` 300) and a `split_cue` hit counts as two hits towards K; both act only with
+  `SESSION_MONITOR_ENABLED=1`. A detector with no `mrm_status` counts 0 in the session `findings`
+  signal. `python -m supervisor.analytics.tools` and the Tools views read `POLICY_DIR` when it is
+  set. The stock LangGraph middleware sends `context.tool_results` (option `send_tool_results`,
+  default on). The Decisions CSV export has the column `kept_arguments`. The DDL files changed in
+  comments only (no column changed).
+
+- **WP26 F13, stdio MCP proxy (no flag; kept as the security default).** `resources/read`,
+  `resources/templates/list`, `prompts/get` and `completion/complete` now go through the gate as
+  the read-only tools `mcp.resources.read`, `mcp.resources.templates.list`, `mcp.prompts.get`,
+  `mcp.completion.complete`; a policy that does not list them refuses them (JSON-RPC error
+  `-32000` with `error.data.rule_id`). A forwarded `tools/call` keeps only `name`, `arguments` and
+  `_meta.progressToken`; other `params` keys are dropped. `policies/baseline.yaml` and the demo
+  agents make no such call (the assurance packs give the same results as v0.3.0 in mock mode),
+  so the baseline policy needs no new tool. See `docs/mcp-gateway.md` section 3.
+- **WP37 F14, policy loader.** `agents.<id>.detectors.skip_tools` that names a money, credit or
+  pii_export tool is refused at load (also for WP38 consumers). Policy files without the new key
+  load and hash as before.
+- WP38: the policy loader refuses `consumers.<id>.mode: observe`, agent `mode: observe` on a
+  money agent without SHADOW or two `observe_approvals`, and an agent `rules.disable` of a
+  money / credit / pii_export block or pause rule without two `rule_approvals`. Only files that
+  use the new keys are affected; `policy_hash` of an old file is unchanged (test).
+- WP28: the assurance catalogue has 34 packs (new advisory pack `multiturn_redteam_vi`); with
+  assurance-at-launch on it also runs at Launch (about 15 s per agent, advisory).
+- WP21 / WP27 / WP39: `config/alerts.yaml` has 18 rules (8 + 1 + 9); the hash of every old rule
+  is unchanged, the rule-set `config_hash` changes. The new rules act only with `ALERTS_ENABLED`.
+- WP27: a completed two-person agent resume also lifts that agent's session pauses (there are
+  none with the monitor off).
+- Integration: `agent_event.consumer_id` (WP39, written only with `DETECTORS_ENABLED=1`) holds the
+  consumer id that the WP38 policy resolved, never the raw caller value.
+- `policies/schema.json` gained the optional keys `detectors`, `mode`, `rules`, `consumers`,
+  `observe_approvals`, `rule_approvals` and `monitors.session` (no key removed).
+
+### Deploy note for Delta (databricks_app mode)
+
+The app does not migrate Delta at start. Run the schema bootstrap BEFORE you deploy the new app
+version:
+
+    python -m supervisor.jobs.bootstrap_schema
+
+(or the migration cell in `notebooks/bootstrap_and_smoke.py`). It adds the tables `finding`,
+`mcp_tool_manifest`, `session_control`, `risk`, `risk_link`, `risk_evidence`, `control`,
+`control_map`, `control_status`, `task`, `task_event`, `transparency_report` and
+`decision_daily`, and the nullable columns `agent_event.verdict_status`, `correlation_id`,
+`coverage_json` (WP37), `session_id`, `session_source`, `session_json` (WP27), `request_id`,
+`consumer_id`, `latency_rules_us`, `latency_detectors_us`, `detector_latency_json` (WP39) and
+`alert.correlation_id` (WP39). If the app runs first with `DETECTORS_ENABLED=1` or
+`SESSION_MONITOR_ENABLED=1`, gate decision inserts fail on the unknown columns. SQLite (laptop) is
+bootstrapped at app start and needs no step.
+
 ## v0.3.0 (phase 3, wave 1) - 2026-10-20
 
 Merged from the integration branch `phase3-wave1` (3,684 tests, 29 skipped). Every new feature is behind a

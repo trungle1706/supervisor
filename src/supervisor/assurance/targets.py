@@ -196,10 +196,11 @@ class DemoAgentTarget:
         script: Sequence[Any],
         *,
         max_steps: int | None = None,
+        gap_s: int | None = None,
     ) -> tuple[Any, list[str]]:
         self._n += 1
         key = f"assurance:{self._n}"
-        self.clock.advance(CASE_GAP_S)
+        self.clock.advance(CASE_GAP_S if gap_s is None else gap_s)
         self.chat.add_script(key, list(script))
         start = len(self._rec.answers)
         self.runtime.max_steps = max_steps or self._max_steps
@@ -305,7 +306,16 @@ class DemoAgentTarget:
                 registry.tools[tool] = original
         return self._reply(result, stops)
 
-    def run_planned(self, prompt: str, planned_calls: Sequence[Mapping[str, Any]]) -> TargetReply:
+    def run_planned(
+        self,
+        prompt: str,
+        planned_calls: Sequence[Mapping[str, Any]],
+        *,
+        gap_s: int | None = None,
+    ) -> TargetReply:
+        # gap_s (WP28): seconds the sandbox clock moves before the run. The default is the
+        # two-day case gap; a multi-turn conversation passes a short gap so that the gate's
+        # one-hour and one-day aggregate windows see earlier turns of the same conversation.
         script: list[Mapping[str, Any]] = [
             {
                 "action": "tool",
@@ -316,7 +326,7 @@ class DemoAgentTarget:
             for c in planned_calls
         ]
         script.append({"action": "final", "tool": "", "args": {}, "message": "done"})
-        result, stops = self._run(prompt[:2000], script, max_steps=len(script) + 1)
+        result, stops = self._run(prompt[:2000], script, max_steps=len(script) + 1, gap_s=gap_s)
         return self._reply(result, stops)
 
     def decide(self, applicant: Mapping[str, Any]) -> Mapping[str, Any]:

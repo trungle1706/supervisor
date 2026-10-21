@@ -1,0 +1,23 @@
+# Risk register settings (WP29, docs/risk-register.md).
+# ILLUSTRATIVE: every number below is a starting point written by the product team, not the
+# bank's risk appetite. The bank's risk function sets and signs the real values.
+illustrative: true
+
+# Score = likelihood x impact (1 to 25). The band of a score:
+#   score <= low_max     -> low
+#   score <= medium_max  -> medium
+#   score <= high_max    -> high
+#   above                -> critical
+bands:
+  low_max: 4
+  medium_max: 9
+  high_max: 15
+
+# The evidence rule (python -m supervisor.jobs.risk_evidence): a mitigated risk keeps its declared
+# residual score only while no linked control is failing and at least this many linked controls
+# (gate rules, assurance packs, monitors) show "working" in the last window.
+evidence:
+  min_working_controls: 1
+
+# An active risk is "review overdue" this many days after its review_date.
+review_grace_days: 0

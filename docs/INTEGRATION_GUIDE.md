@@ -16,9 +16,12 @@ Short rules used in this guide:
 |---|---|---|---|
 | A. In-process SDK | One decorator per tool, one hook module | Gate check before every tool call; optional traces | You own the Python code. This is the default and the strongest control. |
 | B. OTLP traces | Tracer provider and exporter only | Recorded events (what happened). No blocking. | You cannot change tool code yet, or you want evidence first. Also use it with A. |
-| C. MCP proxy | The command that starts the MCP server | Gate check on every `tools/call` | The tools live in an MCP server you do not want to edit, or the agent is not Python. |
+| C. MCP proxy | The command that starts the MCP server (stdio), or the URL of the MCP server (HTTP) | Gate check on every `tools/call`; for HTTP also a locked tool list | The tools live in an MCP server you do not want to edit, or the agent is not Python. |
+| D. Collector (WP38) | One middleware, guardrail or hook from the console catalogue | Input and output check per call, correlation id, masked values applied | LangGraph or deepagents agents, FastAPI apps, a LiteLLM proxy, developer assistants. Add it on the Integrations page (`COLLECTORS_ENABLED=1`); see `docs/collectors.md`. |
 
 Pattern A and B together is the normal target: A gives the block, B gives the record.
+
+Pattern D (WP38) wraps the same gate call in a framework adapter. It sends `direction`, the output text, the session and consumer id and the `X-Supervisor-Correlation-Id` header, applies the masked payload, and raises `SupervisorPaused` on a pause. Fail mode is closed by default. LangGraph and LiteLLM stay your own dependencies. Set `agents.<id>.mode: observe` in the policy to watch before you enforce (`docs/policy.md`).
 
 ### Pattern A: in-process SDK
 
@@ -82,9 +85,47 @@ replaces the command and the old command moves behind `--`:
 }
 ```
 
+#### Pattern C, HTTP MCP servers (WP26)
+
+A remote MCP server (streamable HTTP) is not started by you, so there is no command to wrap.
+Run the HTTP proxy beside the agent and point the MCP client at it. Off unless
+`MCP_HTTP_ENABLED=1`; details in `docs/mcp-gateway.md`.
+
+```text
+ MCP client --HTTP--> supervisor.gateway.mcp_http --HTTPS--> remote MCP server
+   (127.0.0.1:9701)        |  tools/list: hash, hide new or changed tools
+                           |  tools/call: lock check, then Supervisor /v1/gate/check
+```
+
+```cmd
+set MCP_HTTP_ENABLED=1
+python -m supervisor.gateway.mcp_http --upstream https://mcp.bank.example/mcp --agent <agent_id> --listen 127.0.0.1:9701 --gate-url http://127.0.0.1:8000 --key-file C:\secure\<agent_id>.key
+```
+
+```json
+{
+  "mcpServers": {
+    "tai-khoan": { "type": "http", "url": "http://127.0.0.1:9701/mcp" }
+  }
+}
+```
+
+The decision path, the evidence, the ingress signing and the masked arguments are those of the
+stdio proxy. New: a tool that is new or changed since two people approved it is hidden from
+`tools/list` and refused on `tools/call` (`MCP-TOOL-UNREVIEWED`); a review case opens. Seed the
+first manifest with `--trust-on-first-use --by NAME` (the app must have `MCP_TOFU_INGRESS=1`
+for that start) or review each tool with `python -m supervisor.gateway.mcp_http tools ...`.
+One proxy process per application.
+
 Limits of the proxy: it sees the tool name and arguments only. It has no risk class, so
 every tool fails closed when the gate is unreachable, read-only tools too. Only `tools/call`
-is gated; `initialize`, `tools/list`, notifications and `ping` pass through.
+is gated; `initialize`, `tools/list`, notifications and `ping` pass through. What the proxy
+forwards for a gated `tools/call` is only `name`, `arguments` and `_meta.progressToken`; any other
+key in `params` is dropped. The methods `resources/read`, `resources/templates/list`, `prompts/get`
+and `completion/complete` also pass the gate, as the tool `mcp.resources.read`, `mcp.resources.templates.list`,
+`mcp.prompts.get`, `mcp.completion.complete` (arguments = the request params). Add them to the
+agent's policy as `read_only` tools where the agent may use them; otherwise the gate refuses them and
+the client gets a JSON-RPC error `-32000` with the rule id in `error.data` (same for both proxies).
 
 ## 2. Code samples per framework
 

@@ -30,10 +30,22 @@ system:payments --uses--> tool:payments/transfer
 | Node id | `inv_` + first 16 hex of sha256(kind, NUL, canonical name). Canonical = trimmed, lower-case, single spaces. A re-fill never duplicates. |
 | Tool, prompt names | Scoped to the agent: `payments/transfer`. Models, endpoints, datasets and suppliers are shared across agents. |
 | Edge id | Hash of (src, kind, dst, source): one row per claim, so each source keeps its own evidence. |
-| Evidence | `source` is `manifest`, `onboarding`, `workspace_scan` or `manual`. `evidence_ref` is `path:line` for repo text and `workspace:<kind>/<name>` for a workspace object. Workspace URLs and ids are not stored. |
+| Evidence | `source` is `manifest`, `onboarding`, `workspace_scan`, `manual` or `gate` (WP41: see below).  `evidence_ref` is `path:line` for repo text and `workspace:<kind>/<name>` for a workspace object. Workspace URLs and ids are not stored. |
 | Shared edges | When two agents share an edge (the same model), the smallest reference wins inside one fill, so the result does not depend on fill order. |
 | Status | `active`, `unmanaged`, `allowlisted`, `gone` (the workspace no longer lists it, or the manifest or agent row that was its only evidence was removed or retired). |
 | Writes | State tables with `row_version`. Only changed rows are written, plus a `last_seen` refresh once a day. |
+
+## Gate-only agents (WP41, D19)
+
+An agent that only calls the gate (a collector, no onboarding run, no manifest in `agents/`) used
+to stay out of the inventory, so there was no node for the Agent page, the coverage check or the
+control evidence to point at. With `INVENTORY_ENABLED=1`, the first gate decision of an agent that
+the **policy lists** puts a `system` node in the graph (`attrs.role = agent`, `attrs.registered_by
+= gate`, evidence `{source: gate, ref: first_gate_decision}`), in the background, once per agent and
+process. An id the policy does not list is never registered (anonymous input must not fill the
+inventory). A later manifest or onboarding fill adds its own evidence to the same node; the
+manifest fill's "gone" rule leaves a node that has `gate` evidence alone. It writes no agent row:
+the registry row still comes from onboarding, a state change or `register_agents`.
 
 ## Risk inheritance
 
@@ -170,3 +182,12 @@ python -m supervisor.inventory export --out out\inventory
 | No regression | `tests/fixtures/inventory/baseline_counts.json` (dated 2026-10-20): 23 nodes and 22 edges from the three manifests; 34 and 34 after the 7-item workspace |
 
 The shadow check is a rule set, not a model, so there is no precision/recall estimate to report: each rule has a test, and the fixture labels are synthetic (`tests/fixtures/inventory/README.md`). Limits are in BACKLOG.
+
+## MCP servers seen by the HTTP MCP gateway (WP26)
+
+With `INVENTORY_ENABLED=1` and `MCP_HTTP_ENABLED=1`, the first time the HTTP MCP proxy lists a
+remote server, the app registers it as an `mcp_server` node named after the lock id
+(`--server-name`, default from the URL) with evidence source `manual` and reference
+`mcp_tool_manifest:<server>`, and a `uses` edge from the agent. A manifest `mcp_servers:` entry
+with the same name merges into the same node. The tool lock itself is in the table
+`mcp_tool_manifest`; see `docs/mcp-gateway.md`.

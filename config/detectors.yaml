@@ -1,0 +1,45 @@
+# Detector settings (WP37, docs/detectors.md). Read only when DETECTORS_ENABLED=1.
+# A per-agent override goes in the policy file: agents.<id>.detectors (preset, enable, disable,
+# settings, skip_tools). Presets are named thresholds in basis points, frozen per detector
+# version; the values are ILLUSTRATIVE until the bank sets them (see the catalogue:
+# GET /v1/gate/detectors, or python -m supervisor.detectors.harness --catalogue).
+version: 1
+default_preset: balanced        # strict | balanced | lenient
+limits:
+  max_payload_chars: 100000     # above this no detector runs: reason payload_too_large
+  timeout_ms: 500               # the gate waits at most this per detector: reason timed_out
+  # A detector that is set fail_closed and cannot run blocks a call to a tool of these risk
+  # classes (rule GATE-DETECTOR-FAILED). On any other tool the failure is only listed.
+  fail_closed_risk_classes: [money, credit, pii_export]
+detectors:
+  # mrm_status (WP41): GO or NO-GO from the model risk validation. Only a deterministic detector
+  # (dlp_vn, injection_regex) or one with GO counts in the session monitor's `findings` signal;
+  # the findings of any other are recorded there and weigh 0 (docs/session-monitor.md).
+  dlp_vn:                       # Vietnamese personal data; the only detector that may transform
+    enabled: true
+    fail_closed: true
+    mrm_status: GO              # deterministic
+    settings:
+      mode: transform           # transform | report
+      transform_risk_classes: [pii_export]
+      transform_tools: []
+  injection_regex:              # prompt-injection patterns; report only
+    enabled: true
+    fail_closed: true
+    mrm_status: GO              # deterministic
+    settings: {}
+  injection_classifier:         # WP25 local classifier (Vietnamese and English), see
+    enabled: false              # docs/injection-classifier.md. OFF by default: the `enabled` key
+    fail_closed: false          # of this entry is the only switch. It may only PAUSE money and
+    mrm_status: NO-GO           # held-out recall 8111 bp, false alarm 2522 bp: weighs 0 in sessions
+    settings:                   # credit tools (rule GATE-CLASSIFIER-PAUSE), so an outage never
+      scan_tool_results: true   # stops payments (R1): not fail closed.
+      scan_tool_descriptions: true
+      pause_tool_classes: [money, credit]   # empty list = report only
+      # pause_threshold_bp is frozen per model version (it can only be raised)
+  judge_advisory:               # Tier 1 judge opinion; report only, never fail closed (R1:
+                                # fail_closed: true is ignored for an advisory detector).
+    enabled: false              # Off: a real judge model is slow. With no judge model set it
+    fail_closed: false          # uses the mock judge and every finding is labelled mock.
+    mrm_status: NO-GO           # an advisor: weighs 0 in sessions
+    settings: {}

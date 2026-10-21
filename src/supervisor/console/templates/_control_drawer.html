@@ -1,0 +1,66 @@
+{# Control drawer of the Controls page: tabs Details / Map / Status (read-only).
+   Variable: drawer (controls_views.drawer_view). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set c = drawer.c %}
+{% set tab = drawer.tab %}
+{% set qs = drawer.qs %}
+{% set base = '/console/controls/' ~ c.control_id ~ '/drawer?tab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set page_base = '/console/controls?drawer=' ~ c.control_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set pills %}{{ ui.pill(t('rk_st_' ~ c.status), 'ok' if c.status == 'active' else 'neutral') }} {{ ui.pill(t('ct_by_' ~ c.implemented_by), 'neutral') }}{% endset %}
+{% set labels = {'details': t('dtab_details'), 'map': t('ct_dtab_map'), 'status': t('ct_dtab_status')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base) }}{% endset %}
+{% set prev_href = ('/console/controls?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/controls/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/controls?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/controls/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% call dr.drawer(c.control_id, pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {% if tab == 'details' %}
+    <p style="margin:0 0 10px"><strong>{{ c.title }}</strong></p>
+    {{ ui.kv([
+      (t('ct_objective'), c.objective),
+      (t('ct_col_type'), t('ct_type_' ~ c.control_type)),
+      (t('ct_col_by'), t('ct_by_' ~ c.implemented_by)),
+      (t('owner'), c.owner),
+      (t('ct_agents'), c.agents|join(', '), True),
+      (t('rk_col_review'), c.review_date),
+      (t('status'), t('rk_st_' ~ c.status)),
+    ]) }}
+  {% elif tab == 'map' %}
+    {% if drawer.map_groups %}
+      {% for kind, targets in drawer.map_groups %}
+      <h3 class="sec">{{ t('ct_map_' ~ kind) }} <span class="k">{{ targets|length }}</span></h3>
+      <ul class="drawer-list">
+        {% for x in targets %}<li class="mono">{{ x }}</li>{% endfor %}
+      </ul>
+      {% endfor %}
+    {% else %}
+      <p class="hint">{{ t('ct_no_map') }}</p>
+    {% endif %}
+  {% else %}
+    <h3 class="sec">{{ t('ct_status_by_agent') }}</h3>
+    {% if c.status_by_agent %}
+    <div class="tablewrap flat"><table>
+      <thead><tr>
+        <th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('rk_window_end') }}</th>
+        <th scope="col">{{ t('status') }}</th>
+        <th scope="col" class="n">{{ t('rk_ctl_working') }}/{{ t('rk_ctl_failing') }}/{{ t('rk_ctl_idle') }}</th>
+        <th scope="col" class="n">{{ t('ct_refs') }}</th>
+      </tr></thead>
+      <tbody>
+      {% for e in c.status_by_agent %}
+        <tr>
+          <td class="mono">{{ e.agent_id }}</td>
+          <td class="mono">{{ e.window_end[:16]|replace('T', ' ') }}</td>
+          <td>{{ ui.pill(t('ct_ev_' ~ e.status), {'working': 'ok', 'failing': 'bad'}.get(e.status, 'warn'), True) }}<div class="idline">{{ t('ct_reason_' ~ e.reason) }}{% if e.stale %} · {{ t('ct_reason_stale') }}{% endif %}</div></td>
+          <td class="n">{{ e.working_n }}/{{ e.failing_n }}/{{ e.idle_n }}</td>
+          <td class="n">{{ e.refs_n }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="hint">{{ t('ct_no_status') }}</p>
+    {% endif %}
+  {% endif %}
+{% endcall %}

@@ -108,7 +108,12 @@ MAPPING: tuple[Row, ...] = (
     Row("gen_ai.usage.prompt_tokens", None, "deprecated", "alias of input_tokens; not mapped"),
     Row("gen_ai.usage.completion_tokens", None, "deprecated", "alias of output_tokens; not mapped"),
     Row("gen_ai.response.finish_reasons", None, "development", "not mapped (no column)"),
-    Row("gen_ai.conversation.id", None, "development", "not mapped (trace_id groups events)"),
+    Row(
+        "gen_ai.conversation.id",
+        "session_id",
+        "development",
+        "after supervisor.session_id; session_source = span (WP27)",
+    ),
     Row("gen_ai.tool.call.id", None, "development", "not mapped (span_id is the event key)"),
     Row("gen_ai.tool.type", None, "development", "not mapped (no column)"),
 )

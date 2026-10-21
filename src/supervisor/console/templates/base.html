@@ -34,6 +34,6 @@
 </div>
 </div>
 {% endif %}
-<aside id="drawer" class="drawer" role="dialog" aria-modal="false" aria-labelledby="drawer-title" tabindex="-1"{% if drawer_open is not defined %} hidden{% endif %}>{% block drawer %}{% endblock %}</aside>
+<aside id="drawer" class="drawer" role="dialog" aria-modal="false" aria-labelledby="drawer-title" tabindex="-1"{% if drawer_open is not defined %} hidden{% endif %}{% if strip_params is defined and strip_params %} data-strip="{{ strip_params }}"{% endif %}>{% block drawer %}{% endblock %}</aside>
 </body>
 </html>
