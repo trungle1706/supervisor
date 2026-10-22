@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### WP-G0: governance shared core, the AI system entity
+
+Two new flags, both off by default (off = nothing is mounted and the console is as in v0.4.1).
+
+- `GOVERNANCE_ENABLED=1`: new tables `ai_system`, `system_team`, `system_component`; chain record
+  `system_change`; service `supervisor.governance.systems`; routes `/v1/systems` (list, register,
+  get, patch, team, links, archive). People with the roles `owner`, `viewer` or `operator` see only
+  the systems they are on, own, or that their team owns. The risk level of a system is the higher
+  of the level a person set and the level inherited from the linked agents and inventory nodes.
+  The owner of a system cannot be its reviewer or oversight manager.
+- `CONSOLE_SYSTEMS_ENABLED=1`: pages `/console/systems` and `/console/systems/<id>`, nav item
+  under Onboard. EN and VI.
+- New permissions `systems.view` (all roles) and `systems.edit` (reviewer, owner, admin).
+- Docs: `docs/governance.md`.
+
 ### Console: two-section sidebar and Catalog page
 
 Two new flags, both off by default (off = the console as in v0.4.1).
