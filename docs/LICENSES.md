@@ -6,6 +6,7 @@ extra behind a flag, off by default, and is logged here.
 | Package | Licence | Extra / flag | Default | Used by | Note |
 |---|---|---|---|---|---|
 | fpdf2 (>= 2.7) | LGPL-3.0-only | `pdf` (`uv sync --extra pdf`) | off | `supervisor.evidence.casefile.render_pdf` (WP6) | Imported lazily. Pure Python; pulls Pillow (MIT-CMU), fontTools (MIT), defusedxml (PSF). Without the extra, or without a local Unicode TTF (`CASEFILE_PDF_FONT`), the case file is written as HTML and the notice says so. No fonts are downloaded or vendored. |
+| pypdf (>= 5.0; lock: 6.21.2) | BSD-3-Clause | `documents` (`uv sync --extra documents`, `pip install "supervisor[documents]"`) | off | `supervisor.detectors.intake.read_pdf` (WP-D1) | Imported lazily, only when a PDF arrives in `context.documents` and `DOCUMENT_INTAKE_ENABLED=1`. Pure Python wheel (py3-none-any), no dependencies, no binary, no network. Permissive, so it needs no flag by the licence rule; it is an extra because the bank may not want a PDF parser in the process (a parser reads untrusted files). Without it a PDF is reported as unread (`pdf_reader_missing`) and the call fails closed on a money, credit or pii_export tool. `requirements.txt` (App build) does not include it; add the extra when the bank asks for PDF intake. |
 
 ## Vendored static assets
 

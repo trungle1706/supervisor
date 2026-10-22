@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+### WP-D1: document and URL intake
+
+Two flags, both off by default: `DOCUMENT_INTAKE_ENABLED` (with `DETECTORS_ENABLED`) and
+`URL_FETCH_ENABLED` with `URL_FETCH_ALLOWLIST`. Off = `context.documents` is HTTP 400 and every
+answer, row and chain record is as before (tests keep the fingerprint). Details:
+`docs/detectors.md` section 11.
+
+- `context.documents` on `POST /v1/gate/check`, the Playground and the SDK: at most 10 documents,
+  2 MB each, 10 unique URLs, 2 s per document. New payload part `documents`, scored by
+  `injection_regex` and `dlp_vn` (a detector reads it only when it lists it in `parts`); the dlp
+  transform applies to document text only on a `pii_export` tool. Coverage reports the part as
+  scanned, cut or not read, with the reason.
+- `detectors/intake.py`: TXT, CSV, Markdown, JSON, HTML, DOCX (standard library) and PDF
+  (`pypdf`, new optional extra `documents`, BSD-3-Clause, logged in `docs/LICENSES.md`). The first
+  bytes decide the kind. Images, scans, damaged and encrypted files are `document.uninspectable`
+  with a reason; no OCR. Raw bytes and text are never stored: the chain keeps sha256, size and
+  media type per document.
+- New detector `document_intake` (`config/detectors.yaml`, `fail_closed: true`): findings
+  `document.uninspectable`, `document.limit_exceeded`, `url.ssrf_refused`, `url.domain_blocked`.
+  An unread document on a money, credit or pii_export tool is a block through the existing
+  `GATE-DETECTOR-FAILED` path.
+- `adapters/fetch/`: URL fetch behind the two flags. HTTPS only; the address is checked after DNS
+  (private, loopback, link-local, metadata, shared, reserved, site-local, wrapped IPv6 refused) and
+  the connection goes to the address that was checked; redirects only to the same host; 1 MB;
+  3 s. Standard library only.
+- Collectors: the SDK (`supervised_tool(documents_arg=...)`, `GateClient.check(documents=...)`),
+  the LangGraph middleware (attachments of the newest human message) and the FastAPI middleware
+  (multipart uploads) pass attachments when `DOCUMENT_INTAKE_ENABLED` is set in the agent process.
+- Playground: documents in the context (limit 256 KB with documents), two samples
+  (`document_invoice_vi`, `document_cv_vi`), a Documents table in the result.
+- Harness rows `document_injection_vi`, `document_pii_vi`, `url_ssrf`
+  (`python -m supervisor.detectors.intake_eval`, also in the detectors harness), golden set in
+  `data/eval/documents/`, baseline, `docs/document-intake-validation-report.md`.
+  `python -m tools.bench_documents` and `docs/latency.md` have the numbers (100 KB of PDF text:
+  about 240 ms in total).
+- Catalog card and EN and VI labels. `core/bounded.py` (a thread with a deadline and a slot cap).
+- Changed outside the package: `core/detectors.py` (part `documents`, `parts_for`, coverage),
+  `dlp_vn.py` and `injection_regex.py` (read the part), `detector_gate.py`, `engine.py`
+  (`documents_on`), `routes.py`, `wiring.py`, `config.py`, `gateway/sdk.py`,
+  `gateway/adapters/*`, `console/playground.py`, `catalog_view.py`, `guardians_view.py`, `i18n.py`,
+  `detectors/harness.py`, `pyproject.toml` (extra `documents`, one ruff ignore), `uv.lock`.
+
 ### WP-G6: MCP server, skills, KPI endpoint
 
 One new flag, off by default (`MCP_SERVER_ENABLED`). Off = nothing is mounted, no table is read or

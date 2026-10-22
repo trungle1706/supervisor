@@ -389,3 +389,148 @@ entities or the transformed payload).
 See `BACKLOG.md` (WP37 rows): a console page for findings (WP39), per-entity mask tokens and
 custom keyword rules for `dlp_vn`, tool-description scanning, the ML injection classifier
 (WP25), a per-consumer policy binding (WP38).
+
+
+## 11. Documents and URLs (WP-D1)
+
+Flag: `DOCUMENT_INTAKE_ENABLED` (default `0`; needs `DETECTORS_ENABLED=1`). Validation report:
+`docs/document-intake-validation-report.md` (harness rows `document_injection_vi`,
+`document_pii_vi`, `url_ssrf`). Latency: `docs/latency.md`, section "Document intake".
+
+An agent often reads a file or a web page that a person wrote: a CV, an invoice, a ticket
+attachment, a link. The text of that file is not in the arguments, so the arguments scan never
+sees a hidden instruction or a national ID number in it. The intake reads the file first, then
+the existing detectors score the text.
+
+```
+ context.documents --> intake (type by first bytes, extract text, 2 s each)
+   [{name, media_type,       |   url? --> fetch adapter (flag, allow list, SSRF guard)
+     text | bytes_b64 | url}]|
+                             v
+              payload part "documents" = [{name, text}]  (readable files only)
+                             |
+        injection_regex, dlp_vn, document_intake  --> findings, coverage, fail mode
+```
+
+### 11.1 The request
+
+`POST /v1/gate/check`, the playground and the SDK accept `context.documents`: a list of
+`{name?, media_type?, text | bytes_b64 | url}`. Each item has exactly one of `text`, `bytes_b64`
+and `url`. A wrong shape is HTTP 400 with a message. With `DOCUMENT_INTAKE_ENABLED=0` (or
+`DETECTORS_ENABLED=0`) any `context.documents` is HTTP 400 and nothing else changes; an
+in-process `Gateway.check` call ignores the key. An output check (`direction=output`) takes no
+documents.
+
+| Limit | Value | What happens above it |
+|---|---|---|
+| Documents per call | 10 | The surplus is not read. Finding `document.limit_exceeded` |
+| Size of one document | 2 MB after decoding | Not read. `document.limit_exceeded`, and the document is unread (`too_large`) |
+| Unique URLs | 10 (a repeated URL counts once) | Same as the first row |
+| Time to read one document | 2 s | The document is unread (`timeout`) |
+| Time for all documents | 6 s | The rest is unread (`time_budget`) |
+| Whole request | `MAX_REQUEST_BYTES` (10 MB) | HTTP 413. Raise it if you send several large files |
+
+### 11.2 What the intake reads
+
+The kind is decided by the first bytes (`%PDF`, `PK`, an image header) before the declared
+`media_type` or the file name. A PDF sent as `text/plain` is read as a PDF.
+
+| Kind | How | Notes |
+|---|---|---|
+| TXT, CSV, Markdown | UTF-8 (with or without BOM) or UTF-16 with a BOM | Markdown comments are text, so a `<!-- ... -->` instruction is scanned |
+| JSON | The strings and the keys, one per line | `ignore` is read as `ignore`. Text that is not valid JSON is read as text |
+| HTML (pages by URL) | All text, comments, and the attributes `alt`, `title`, `aria-label`, `placeholder`, `content`, `value` | Hidden `display:none` text and script text are included on purpose |
+| DOCX | `word/document.xml`, headers, footers, comments, footnotes (standard library `zipfile`) | Hidden (`w:vanish`) runs are text. A part with a DOCTYPE or an ENTITY is refused (`unsafe_xml`); a part over 16 MB is refused (`zip_too_large`) |
+| PDF | `pypdf` (optional extra `documents`) | White text on a white page is text. Title, subject, keywords and author are read too. An encrypted PDF that does not open with an empty password is unread (`encrypted`). Without the extra the PDF is unread (`pdf_reader_missing`) |
+
+Install the PDF reader with `pip install "supervisor[documents]"` (`uv sync --extra documents`).
+`pypdf` is BSD-3-Clause and pure Python (`docs/LICENSES.md`); it is imported on first use.
+
+**Not read (no OCR).** Images (PNG, JPEG, GIF, WebP, BMP, TIFF), scans, damaged or encrypted
+files, ZIP files that are not DOCX, and any binary format are *unread* with a fixed reason:
+`image_no_ocr`, `parse_failed`, `encrypted`, `unsupported_type`, `binary_content`,
+`undecodable_text`, `bad_base64`, `too_large`, `timeout`, `time_budget`, `pdf_reader_missing`,
+`url_fetch_disabled`. OCR needs a binary, which the bank guide forbids. An empty document, or a
+document with no text, is allowed and is not a failure.
+
+### 11.3 URLs
+
+A document with `url` is fetched by `adapters/fetch/`. It runs only when `URL_FETCH_ENABLED=1`
+and `URL_FETCH_ALLOWLIST` names at least one domain (comma separated; a sub-domain of a listed
+domain is allowed). Without both, a URL document is unread (`url_fetch_disabled`) and nothing is
+fetched. This is the only outbound call of the intake.
+
+| Rule | Detail |
+|---|---|
+| HTTPS only | `http`, `ftp`, `file` and any other scheme: `url.ssrf_refused`. Port 443 only. No user name or password in the URL |
+| Address checked after DNS | Every address the name resolves to must be public. Loopback, private, link-local (the cloud metadata address 169.254.169.254), shared (100.64.0.0/10), multicast, reserved, unspecified and site-local are refused. IPv6 that wraps IPv4 (mapped, 6to4, Teredo, NAT64) is judged as the IPv4 address. One bad address among good ones refuses the name |
+| Odd spellings | `2130706433`, `0x7f.1`, `127.1` and `[::1]` are read as the addresses they are |
+| The connection goes to the checked address | The name is not resolved a second time, so a DNS answer that changes later cannot move the request inside. The certificate is checked for the host name |
+| Redirects | At most 3, only to the same host, each hop checked again. Another host or `http`: `url.ssrf_refused` |
+| Limits | 1 MB, 3 s for the whole fetch, 8 DNS lookups in flight |
+| Allow list | A safe URL on an unlisted domain: `url.domain_blocked`. A literal address that points inside is reported as `url.ssrf_refused` even when the domain is not listed (a probe is a probe) |
+
+A page that cannot be read (timeout, error status, too large, bad redirect) is unread like a file.
+The URL itself is never stored: the chain keeps its SHA-256.
+
+### 11.4 Scoring
+
+The readable text is the payload part `documents` (`[{name, text}]`). A detector reads it only
+when it lists `documents` in its `parts` attribute: `injection_regex` and `dlp_vn` do; the
+classifier and the judge do not; `guard_model` joins when WP-D3 lands. Fragments name the part
+and the path (`documents`, `$[0].text`) and sit on masked text, as for arguments.
+
+* `dlp_vn` transforms the document text **only when the tool class is `pii_export`**, the same
+  rule as the arguments. The masked list is in `transformed_payload.documents` (same order as the
+  readable documents; names are masked too). On any other tool, personal data in a document is
+  reported (`action_hint: report`) and nothing is masked. A caller that forwards the documents
+  must send the masked list instead of the originals.
+* Order of reading: arguments, tool results, documents. The documents are read last, so a long
+  document never pushes the arguments out of the scan budget.
+* The scan limits of section 3b apply to documents. A 100 KB document is cut by the default
+  16 KB per detector and 64 KB per call, and `limits.max_payload_chars` (100,000) bounds the
+  whole call. To read larger documents raise `max_scan_bytes` for `dlp_vn` and `injection_regex`
+  on that agent, `DETECTORS_SCAN_BUDGET_BYTES` and `limits.max_payload_chars` together.
+  A cut document on a `pii_export` tool makes `dlp_vn` fail closed (it never transforms text it
+  only read in part); on other tools the cut is coverage only.
+* Raw document bytes and text are never stored. The chain record `gate_decision` keeps, per
+  document, `index`, `sha256`, `size`, `media_type`, `source` (`inline` or `url`), `status`
+  (`read`, `unread`, `refused`) and `reason`; no name, no text, no URL (a URL document keeps
+  `url_sha256`). The answer carries the same list as `documents`. The `finding` rows hold masked
+  fragments only.
+
+### 11.5 The detector `document_intake`
+
+It reports what happened when the gate read the documents. It looks at nothing itself (it reads
+`meta.intake`), is `deterministic`, report only (R1), and runs only on a call whose documents were
+read, so a call without documents is answered as before. Settings: none (the three presets agree).
+
+| Code | When | Hint |
+|---|---|---|
+| `document.uninspectable` | A document or a page could not be read (reasons above) | report |
+| `document.limit_exceeded` | More than 10 documents or 10 URLs, or a document over 2 MB | report |
+| `url.ssrf_refused` | Scheme, port, credentials, address or redirect is unsafe. Nothing was sent | report |
+| `url.domain_blocked` | The domain is not in `URL_FETCH_ALLOWLIST` | report |
+
+**Fail mode.** For every unread document that is not a refused URL (an image, a damaged file, a
+timeout, a failed fetch, the surplus), the detector also returns one not-executed row with the
+reason `content_uninspectable`. With `fail_closed: true` (the shipped value) on a money, credit or
+`pii_export` tool this is the block `GATE-DETECTOR-FAILED` (`fail_mode: closed`), through the
+same path as any detector that could not run. With `fail_closed: false`, or on a read-only tool,
+the finding `document.uninspectable` is the only effect. A refused URL is its own finding and does
+not fail the call. A per-agent `disable: [document_intake]` turns the report off for that agent;
+the documents are still scored by `injection_regex` and `dlp_vn`.
+
+**Coverage.** `documents` is `inspected` when every document was read and not cut. A cut part is
+`{part: documents, reason: payload_too_large, bytes, scanned_bytes}`. When any document was
+unread the part moves to `not_inspected` with `{reason: content_uninspectable, unread: N}`; the
+readable documents were still scanned.
+
+### 11.6 What this does not do
+
+No OCR. No malware scan: a clean file can carry a hostile sentence, and a hostile file can carry
+none. Links inside a document are not followed (only `url` items are). The playground and the
+dry run fetch a URL like a real call (they use the same allow list). A page is read as it is when
+the call is made; a page that changes later is a different page. Known gaps (the adversarial
+split of the harness names them): an instruction split over two files, in base64 or in leetspeak.
+The session monitor and the decision drawer do not show document text: it is not stored.

@@ -243,6 +243,39 @@ What follows from the code, before any measurement:
    recording moved off the response path (asynchronous or batched writes). B changes what the audit
    trail guarantees at the moment of the answer, so it needs an owner decision. See BACKLOG.md.
 
+## Document intake (WP-D1)
+
+Reading `context.documents` costs time before the detectors run. `python -m tools.bench_documents`
+measures it (`--kb 100 --runs 30` are the defaults; the test `tests/detectors/test_bench_documents.py`
+runs a 5 KB version). 100 KB of text, offline, one document per call, integer microseconds
+(nearest rank, 30 runs after 3 warm-up runs, development host with load average about 4):
+
+| File | Size of the file | Extract p50 / p95 | Score p50 / p95 (`dlp_vn` + `injection_regex`) | Total p50 / p95 |
+|---|---|---|---|---|
+| TXT | 102,453 B | 607 / 725 | 20,341 / 23,654 | 20,999 / 24,210 |
+| DOCX | 29,666 B | 3,500 / 16,496 | 20,701 / 23,375 | 24,413 / 38,171 |
+| PDF (`pypdf`, 40 lines per page) | 373,186 B | 219,744 / 228,796 | 21,266 / 23,963 | 241,102 / 259,954 |
+
+What the numbers say:
+
+* The 100 KB of PDF text costs about 240 ms in total, 90 percent of it in `pypdf`. The scoring of
+  100 KB is about 21 ms (about 0.2 ms per KB for both detectors). Both are inside the 2 s per
+  document limit and the 2 s gate budget, but a PDF of that size is not a "fast path": plan for
+  it on a money or pii_export tool, where the call waits for the answer.
+* These runs use raised scan limits (`max_scan_bytes` and the call budget set to twice the
+  document size, `max_payload_chars` four times). With the shipped defaults (16 KB per detector,
+  64 KB per call, 100,000 characters) a 100 KB document is cut and the detectors read 16 KB of it;
+  the cut is reported in `coverage` (`payload_too_large`, `bytes`, `scanned_bytes`), and on a
+  `pii_export` tool `dlp_vn` fails closed. Raising the limits is a decision of the bank: it costs
+  about 0.2 ms per KB of document per call, on top of the extraction.
+* Extraction is the part that grows with the file, not with the text: a scanned PDF with a large
+  image costs `pypdf` time and gives no text. The 2 s limit applies to the whole document.
+* A URL document adds the fetch (3 s limit, 1 MB) and is the slowest case; it is off unless
+  `URL_FETCH_ENABLED=1`. Not measured: no network in the benchmark.
+* Not measured: the Delta path, the effect of several documents in one call (they add up), and
+  memory. A hung extraction keeps its thread until it returns (at most 8 at once, then a document
+  is unread with the reason `busy`).
+
 ## Reproducibility
 
 Rule (`reproducibility` in the JSON): across the 3 repeats of every result, p50 must stay within 10%

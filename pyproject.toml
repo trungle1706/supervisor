@@ -92,6 +92,7 @@ ignore = [
 "src/supervisor/collectors/probes.py" = ["E501"]  # WP38 probe table
 "tools/train_classifier.py" = ["T20", "E501"]  # WP25 training CLI
 "tools/cross_validate.py" = ["T20", "E501"]  # WP25b CV CLI
+"tools/bench_documents.py" = ["T20"]  # WP-D1 latency CLI
 "data/eval/injection_vi_en/*.py" = ["T20", "E501", "S310", "RUF001", "RUF003"]  # WP25 data tools
 "src/supervisor/detectors/injection_classifier/concepts.py" = ["E501"]  # lexicon lines
 "src/supervisor/detectors/injection_classifier/validation.py" = ["E501"]  # report tables

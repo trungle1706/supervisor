@@ -119,6 +119,29 @@ input is printed as the assistant's `updatedInput` answer. The hook sends with `
 library), so a developer laptop needs the Supervisor package and nothing else; `SUPERVISOR_URL`
 must be `http://` or `https://`.
 
+### File attachments (WP-D1, `DOCUMENT_INTAKE_ENABLED`)
+
+The Python SDK, the LangGraph middleware and the FastAPI middleware send the files a user attached
+as `context.documents` of the input check, **only while `DOCUMENT_INTAKE_ENABLED=1` is set in the
+agent process** (the same name as the gateway flag; `attachments.set_document_intake(True)` does
+the same in code). With the switch off nothing is built or sent and the request is the one the
+adapter sent before. The gateway must have the flag on too, or it answers HTTP 400 and the
+adapter's fail mode applies.
+
+| Adapter | What is sent |
+|---|---|
+| SDK `supervised_tool(..., documents_arg="files")` | The value of that parameter (bytes, `(name, bytes)` pairs, `pathlib.Path` objects, or document dicts) as `context.documents`; the parameter is left out of `args` |
+| `GateClient.check(..., documents=[...])` | The same, for any adapter built on `GateClient` |
+| LangGraph `SupervisorToolMiddleware` | The file, document and image blocks of the newest human message (LangChain standard blocks, Anthropic `document` blocks, OpenAI `image_url` data URLs). `send_documents=False` turns it off; `documents_getter=fn(request)` replaces the search |
+| FastAPI `SupervisorASGIMiddleware` | A `multipart/form-data` request: files become documents, text fields become `args.form`. JSON and other bodies are sent as before |
+
+The helper `gateway/adapters/attachments.py` is standard library only. It reads a file from disk
+only for a `pathlib.Path` the caller passes. It sends at most 11 documents and cuts a file to
+2 MB + 1 byte, so the gate can report `document.limit_exceeded` and nothing larger leaves the
+process. An output check carries no document. A masked list (`transformed_payload.documents`) is
+in the answer on a `pii_export` tool; forwarding the original files after a `transform` answer is
+the caller's mistake to avoid.
+
 ## 4. Evaluation
 
 `python -m supervisor.collectors.harness` (also `--check`, `--record`, `--record-answers`,

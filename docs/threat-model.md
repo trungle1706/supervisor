@@ -330,6 +330,29 @@ silently. Training data are synthetic; the model is not a replacement for the ru
 The classifier keeps two small in-process caches (feature ids per text window, word classes per token). They are keyed by a 16-byte
 BLAKE2b digest of the text and hold only integers, so text of a call (names, account digits) does not stay in process memory after the call (WP25c, review G5).
 
+### 3.20 Documents and URLs (WP-D1)
+
+Off by default (`DOCUMENT_INTAKE_ENABLED`). On, the gate opens files that an agent was given, and
+may fetch a page by URL. Two new things cross a boundary: untrusted file bytes go into parsers
+inside the gate process, and the gate makes one outbound HTTPS request (B8, gate to a listed
+domain).
+
+| Threat | Control |
+|---|---|
+| A file built to harm the parser (zip bomb, XML entity expansion, a PDF that loops) | DOCX parts are read with a size cap (16 MB each) and a part with DOCTYPE or ENTITY is refused; a file is cut at 2 MB; each document has a 2 s deadline and the whole call 6 s; at most 8 reads run at once, then the document is unread (`busy`). A thread that hangs cannot be killed, so it is bounded in number, not in time |
+| A bug in `pypdf` | `pypdf` is an optional extra, off unless the bank installs it; it is pure Python and runs in the gate process, so a parser flaw is a flaw in the gate. The bank may keep it out and accept that a PDF is unread (and fails closed on money, credit and pii_export tools) |
+| A document that hides its text from a reader (white text, hidden run, comment, `display:none`, JSON escapes) | The intake reads all text of the file, not what is drawn |
+| A file labelled with a harmless type | The first bytes decide the kind |
+| A file the gate cannot read (image, scan, damaged, encrypted) | Reported as `document.uninspectable`; on money, credit and pii_export tools the call is blocked (`GATE-DETECTOR-FAILED`) while `document_intake` is `fail_closed`. No OCR: a picture of an instruction is not read, but it is not allowed through a risky tool either |
+| SSRF: a URL that makes the gate reach the bank network or the cloud metadata service | HTTPS only, port 443, no credentials; the host must be on `URL_FETCH_ALLOWLIST`; every resolved address must be public (private, loopback, link-local, metadata, shared, multicast, reserved, site-local, and IPv6 forms that wrap them are refused); the request goes to the address that was checked (no second lookup); redirects only to the same host, checked again; 1 MB and 3 s. Tests use a fake resolver and transport, and the harness row `url_ssrf` has a leak count that must stay 0 |
+| DNS rebinding | The name is resolved once, checked, and the connection uses that address |
+| Raw personal data in the evidence | The bytes and the text are never stored. The chain keeps SHA-256, size and media type; findings keep masked fragments; the URL is kept as a hash |
+| The reader's own error text leaking content | Reasons are a fixed list of short phrases; an exception message is never copied |
+
+Residual risk: the allow list is the main control; a listed domain that serves attacker content
+is read like any page (and scored). A detector that does not find an instruction (split over two
+files, base64, leetspeak) does not block. The fetch adds latency and a dependency on DNS.
+
 ## 4. Known gaps (not controls yet)
 
 | Gap | Effect | Planned answer |
