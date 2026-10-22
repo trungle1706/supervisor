@@ -48,6 +48,7 @@ from supervisor.console import (
     audit_view,
     auditpack,
     cases_list,  # --- WP-UX2 ---
+    catalog_view,
     collectors_view,
     compliance_view,
     controls_views,  # --- WP30 ---
@@ -180,6 +181,10 @@ def render(
         shell=shell,
         side_nav=ctx.settings.console_nav != "top",  # CONSOLE_NAV=top is the rollback
         nav_groups=lambda: nav.groups(
+            shell(), compliance=compliance_on, integration=integration_on, lang=lang
+        ),
+        nav_sections_on=bool(ctx.settings.console_nav_sections),
+        nav_sections=lambda: nav.sections(
             shell(), compliance=compliance_on, integration=integration_on, lang=lang
         ),
         lang=lang,
@@ -1410,6 +1415,7 @@ _UX3_FLAGS = {
     "controls": ("CONSOLE_CONTROLS_ENABLED", "Controls"),  # WP30
     "tasks": ("CONSOLE_CONTROLS_ENABLED", "Tasks"),  # WP30
     "transparency": ("CONSOLE_TRANSPARENCY_ENABLED", "Transparency"),  # WP31
+    "catalog": ("CONSOLE_CATALOG_ENABLED", "Catalog"),
 }
 
 
@@ -1624,6 +1630,21 @@ async def trace_span(
     _check_id(span_id, "span id")
     data = await _call(traces.span_view, ctx, trace_id, span_id)
     return render(request, ctx, me, "_span_detail.html", **data)
+
+
+# -- catalog (guardian capabilities, read-only)
+
+
+@router.get("/catalog", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
+async def catalog_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _ux3_off(ctx, "catalog")
+    tab = request.query_params.get("tab") or "catalog"
+    if tab not in ("catalog", "active"):
+        raise ConsoleInputError("tab must be catalog or active")
+    data = await _call(catalog_view.page, ctx, tab, _lang(request, ctx))
+    return render(request, ctx, me, "catalog.html", section="catalog", **data)
 
 
 # -- playground (dry run)

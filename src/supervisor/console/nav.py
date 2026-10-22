@@ -50,6 +50,7 @@ PAGES: dict[str, str] = {
     "controls": "console_controls_enabled",  # WP30
     "tasks": "console_controls_enabled",  # WP30
     "transparency": "console_transparency_enabled",  # WP31
+    "catalog": "console_catalog_enabled",  # guardian capability catalogue
 }
 
 
@@ -67,6 +68,7 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
             _soon("decisions"),
             _soon("traces"),
             Item("alerts", "nav_alerts", "/console/alerts", count="alerts_n", hot="alerts_n"),
+            Item("catalog", "nav_catalog", "/console/catalog", page="catalog"),
         ),
     ),
     (
@@ -163,8 +165,37 @@ CODES: dict[str, str] = {
     "controls": "CT",  # WP30
     "tasks": "TK",  # WP30
     "transparency": "TP",  # WP31
+    "catalog": "CA",
     "health": "HL",
 }
+
+
+# CONSOLE_NAV_SECTIONS=1: the same items in two sections. (section i18n key, kicker i18n key,
+# ((group i18n key, item keys), ...)). Every item of GROUPS except Overview (which stays on top)
+# sits in exactly one group here (a test checks it); flags and counts work as in GROUPS.
+SECTIONS: tuple[tuple[str, str, tuple[tuple[str, tuple[str, ...]], ...]], ...] = (
+    (
+        "nav_s_gov",
+        "nav_s_gov_k",
+        (
+            ("nav_g_onboard", ("onboard", "inventory", "integration")),
+            ("nav_g_prove", ("evidence", "assurance", "compliance", "risks", "controls", "tasks",
+                             "transparency")),
+            ("nav_g_settings", ("policies", "credentials", "users", "audit", "integrations",
+                                "health")),
+        ),
+    ),
+    (
+        "nav_s_guard",
+        "nav_s_guard_k",
+        (
+            ("nav_g_watch", ("agents", "decisions", "traces", "alerts")),
+            ("nav_g_act", ("cases", "signoff", "inbox")),
+            ("nav_g_protect", ("catalog", "playground")),
+            ("nav_g_analytics", ("analytics",)),
+        ),
+    ),
+)  # fmt: skip
 
 
 def _page_on(item: Item, sh: dict[str, Any]) -> bool:
@@ -199,6 +230,27 @@ def href(path: str, lang: str) -> str:
     return f"{joined}#{frag}" if hash_ else joined
 
 
+def _rows(
+    items: tuple[Item, ...], sh: dict[str, Any], compliance: bool, integration: bool, lang: str
+) -> list[dict[str, Any]]:
+    rows = []
+    for it in items:
+        if not _visible(it, sh, compliance, integration):
+            continue
+        n = sh.get(it.count) if it.count else None
+        path = _real_path(it) if _page_on(it, sh) else it.href
+        rows.append(
+            {
+                "item": it,
+                "code": CODES[it.key],
+                "href": href(path, lang),
+                "n": n,
+                "hot": bool(it.hot and sh.get(it.hot)),
+            }
+        )
+    return rows
+
+
 def groups(
     sh: dict[str, Any], *, compliance: bool, integration: bool, lang: str = "en"
 ) -> list[dict[str, Any]]:
@@ -206,21 +258,27 @@ def groups(
     group with no visible item is dropped."""
     out: list[dict[str, Any]] = []
     for label, items in GROUPS:
-        rows = []
-        for it in items:
-            if not _visible(it, sh, compliance, integration):
-                continue
-            n = sh.get(it.count) if it.count else None
-            path = _real_path(it) if _page_on(it, sh) else it.href
-            rows.append(
-                {
-                    "item": it,
-                    "code": CODES[it.key],
-                    "href": href(path, lang),
-                    "n": n,
-                    "hot": bool(it.hot and sh.get(it.hot)),
-                }
-            )
+        rows = _rows(items, sh, compliance, integration, lang)
         if rows:
             out.append({"label": label, "items": rows})
+    return out
+
+
+def sections(
+    sh: dict[str, Any], *, compliance: bool, integration: bool, lang: str = "en"
+) -> list[dict[str, Any]]:
+    """CONSOLE_NAV_SECTIONS=1: ``[{key, label, kicker, groups}]``; the first entry is the
+    untitled Overview group (key None). Empty groups and sections are dropped."""
+    by_key = {it.key: it for _, items in GROUPS for it in items}
+    top = _rows(GROUPS[0][1], sh, compliance, integration, lang)
+    out: list[dict[str, Any]] = [{"key": None, "label": None, "kicker": None, "groups": [
+        {"label": None, "items": top}]}] if top else []  # fmt: skip
+    for key, kicker, sgroups in SECTIONS:
+        gs = []
+        for label, keys in sgroups:
+            rows = _rows(tuple(by_key[k] for k in keys), sh, compliance, integration, lang)
+            if rows:
+                gs.append({"label": label, "items": rows})
+        if gs:
+            out.append({"key": key, "label": key, "kicker": kicker, "groups": gs})
     return out

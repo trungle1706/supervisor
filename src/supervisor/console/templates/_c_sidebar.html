@@ -12,17 +12,41 @@
     <button type="button" class="chipbtn side-collapse" data-side-collapse aria-controls="sidebar" aria-expanded="true" title="{{ t('nav_collapse') }}" aria-label="{{ t('nav_collapse') }}"><span aria-hidden="true">«</span></button>
   </div>
   <nav aria-label="{{ t('nav_label') }}" data-sidenav>
-  {% for g in nav_groups() %}
-    <div class="side-group"{% if g.label %} role="group" aria-labelledby="sg-{{ loop.index }}"{% endif %}>
-      {% if g.label %}<h2 class="side-h" id="sg-{{ loop.index }}">{{ t(g.label) }}</h2>{% endif %}
+  {% macro links(g) %}
       <ul>
       {% for r in g['items'] %}
         {% set it = r.item %}
         <li><a href="{{ r.href }}" class="{{ 'active' if section == it.key else '' }}" title="{{ t(it.label) }}"{% if section == it.key %} aria-current="page"{% endif %}><span class="ni" aria-hidden="true">{{ r.code }}</span><span class="nl">{{ t(it.label) }}{% if r.n is not none %} <span class="k {{ 'hot' if r.hot else '' }}">{{ r.n }}</span>{% endif %}</span></a></li>
       {% endfor %}
       </ul>
+  {% endmacro %}
+  {% if nav_sections_on %}
+  {# CONSOLE_NAV_SECTIONS=1: two sections (console/nav.py SECTIONS), each a <details> that
+     works without JS; the sub-groups keep their headings. #}
+  {% for s in nav_sections() %}
+    {% if s.key %}
+    <details class="side-sec" open>
+      <summary class="side-sec-h" id="ss-{{ loop.index }}"><span class="side-k">{{ t(s.kicker) }}</span><span class="side-t">{{ t(s.label) }}<span class="side-chev" aria-hidden="true"></span></span></summary>
+      {% set outer = loop.index %}
+      {% for g in s.groups %}
+      <div class="side-group sub" role="group" aria-labelledby="sg-{{ outer }}-{{ loop.index }}">
+        <h2 class="side-h" id="sg-{{ outer }}-{{ loop.index }}">{{ t(g.label) }}</h2>
+        {{ links(g) }}
+      </div>
+      {% endfor %}
+    </details>
+    {% else %}
+    <div class="side-group">{{ links(s.groups[0]) }}</div>
+    {% endif %}
+  {% endfor %}
+  {% else %}
+  {% for g in nav_groups() %}
+    <div class="side-group"{% if g.label %} role="group" aria-labelledby="sg-{{ loop.index }}"{% endif %}>
+      {% if g.label %}<h2 class="side-h" id="sg-{{ loop.index }}">{{ t(g.label) }}</h2>{% endif %}
+      {{ links(g) }}
     </div>
   {% endfor %}
+  {% endif %}
   </nav>
   <div class="side-foot">v{{ version }} · {{ mode }}</div>
 </aside>

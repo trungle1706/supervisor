@@ -273,6 +273,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/playground"): "playground.run",
     ("POST", "/console/playground/run"): "playground.run",
     ("GET", "/console/policies"): "policies.view",
+    ("GET", "/console/catalog"): "console.view",
     ("GET", "/console/policies/rows"): "policies.view",
     ("GET", "/console/policies/{rule_id}/drawer"): "policies.view",
     ("GET", "/console/credentials"): "credentials.view",
