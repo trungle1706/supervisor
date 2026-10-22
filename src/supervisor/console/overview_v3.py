@@ -259,7 +259,7 @@ def my_overview(ctx: Any, me: Any, scope_raw: str | None, now: dt.datetime) -> d
         (
             tile("models", models[0], "", "", unmanaged=models[1])
             if models is not None
-            else tile("models", None, "", "nv3_na_inventory_off")
+            else tile("models", None, "", "nv3_na_inventory_off", unmanaged=0)
         ),
         cover_tile(cov),
         tile(
@@ -370,23 +370,23 @@ def governance_overview(
     class_tile = (
         tile("classified", classified * 10000 // len(scoped), "", "", n=classified, of=len(scoped))
         if scoped
-        else tile("classified", None, "", "nv3_na_no_agents")
+        else tile("classified", None, "", "nv3_na_no_agents", n=0, of=0)
     )
     # control readiness: latest evidence status of each control per agent, working / all
     if not s.controls_enabled:
-        ready = tile("readiness", None, "", "nv3_na_controls_off")
+        ready = tile("readiness", None, "", "nv3_na_controls_off", n=0, of=0)
     else:
         latest = _latest_status(ctx, ids)
         working = sum(1 for v in latest.values() if v == "working")
         ready = (
             tile("readiness", working * 10000 // len(latest), "", "", n=working, of=len(latest))
             if latest
-            else tile("readiness", None, "", "nv3_na_no_status")
+            else tile("readiness", None, "", "nv3_na_no_status", n=0, of=0)
         )
     # tasks: overdue and the stage table
     stage_rows: list[dict[str, Any]] = []
     if not s.controls_enabled:
-        overdue = tile("overdue", None, "", "nv3_na_controls_off")
+        overdue = tile("overdue", None, "", "nv3_na_controls_off", oldest=None)
         stage_na = "nv3_na_controls_off"
     else:
         tasks = ctx.tasks
