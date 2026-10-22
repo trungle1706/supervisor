@@ -225,6 +225,49 @@ def test_secret_block_survives_a_cut_payload(make_gateway: Any, masker: VnRegexM
     assert r["status"] == "block" and AWS not in json.dumps(r)
 
 
+def _oversize(make_gateway: Any, masker: VnRegexMasker, action: str) -> dict[str, Any]:
+    cfg = _config({"secrets": {"enabled": True, "action": action}, "mode": "transform"})
+    gw: Gateway = make_gateway(gate=make_gate(masker, config_text=cfg))
+    big = f"key {AWS} " + "a" * 120_000  # over limits.max_payload_chars
+    return gw.check("customer_service", "1", "read_ticket", {"ticket_id": "T1", "note": big}, {})
+
+
+def test_head_scan_blocks_an_oversize_payload_when_secrets_block(
+    make_gateway: Any, masker: VnRegexMasker
+) -> None:
+    r = _oversize(make_gateway, masker, "block")
+    assert r["allow"] is False and r["rule_id"] == "GATE-SECRET-IN-ARGS"
+    assert {"part": "args", "reason": "payload_too_large"} in r["coverage"]["not_inspected"]
+    (note,) = [n for n in r["coverage"]["notes"] if n["reason"] == "head_only"]
+    assert note["detail"].startswith("head only: 16384 of 12") and AWS not in json.dumps(r)
+
+
+def test_oversize_payload_with_action_report_is_unchanged(
+    make_gateway: Any, masker: VnRegexMasker
+) -> None:
+    r = _oversize(make_gateway, masker, "report")
+    assert r["allow"] is True and r["findings"] == [] and "notes" not in r["coverage"]
+    assert {"part": "args", "reason": "payload_too_large"} in r["coverage"]["not_inspected"]
+
+
+def test_oversize_head_scan_only_runs_for_the_declaring_detector(
+    masker: VnRegexMasker,
+) -> None:
+    reg = build_registry(masker)
+    sec = {"secrets": {"enabled": True, "action": "block"}}
+    cfg = RunConfig(
+        {
+            "dlp_vn": DetectorSetting(True, {"preset": "balanced", **sec}),
+            "injection_regex": DetectorSetting(True, {"preset": "balanced"}),
+        }
+    )
+    payload = {"args": {"n": f"{AWS} " + "a" * 120_000}, "meta": {"tool_name": "t"}}
+    res = reg.run(payload, "input", cfg)
+    assert [f.code for f in res.findings] == ["secret.aws_access_key"]
+    assert res.findings[0].transformed_payload is None and res.transformed_payload is None
+    assert {n.detector_slug for n in res.not_executed} == {"dlp_vn", "injection_regex"}
+
+
 @pytest.fixture
 def det() -> DlpVnDetector:
     return DlpVnDetector(VnRegexMasker(b"d2-key", "t"))

@@ -678,6 +678,58 @@ class DetectorRegistry:
     def slugs(self) -> list[str]:
         return list(self._by_slug)
 
+    def _head_scan(
+        self,
+        res: RunResult,
+        det: Any,
+        st: DetectorSetting,
+        payload: Mapping[str, Any],
+        all_part_bytes: Mapping[str, int],
+        parts_here: Sequence[str],
+        direction: str,
+        config: RunConfig,
+        clock_ns: Callable[[], int],
+    ) -> None:
+        """WP-D2: a payload over ``max_payload_chars`` is skipped by every detector, except one
+        that declares ``scan_head_when_oversize`` and whose ``head_scan_here(settings)`` is
+        true (dlp_vn with secrets.action block). It reads the first ``max_scan_bytes`` of the
+        arguments only, never transforms, and only a ``block`` finding counts. The
+        ``payload_too_large`` row stays (risky tools still fail closed); a coverage note says
+        how much was read. A padded payload must not be a way past the secrets check."""
+        hook = getattr(det, "head_scan_here", None)
+        if (
+            not getattr(det, "scan_head_when_oversize", False)
+            or not callable(hook)
+            or "args" not in parts_here
+            or "args" not in all_part_bytes
+        ):
+            return
+        clean, errors = self.validate_settings(det.slug, st.settings)
+        if errors or not hook(clean):
+            return
+        limit = int(clean.get("max_scan_bytes") or DEFAULT_MAX_SCAN_BYTES)
+        view, scanned, _ = clipped_view(payload, ("args",), {"args": all_part_bytes["args"]}, limit)
+        head = {"args": view["args"], "meta": payload.get("meta")}
+        t0 = clock_ns()
+        try:
+            found = _call_bounded(
+                lambda: det.evaluate(head, clean, direction), config.timeout_ms / 1000
+            )
+        except Exception:  # noqa: BLE001 - the payload_too_large row already stands
+            return
+        res.per_detector_us[det.slug] = (clock_ns() - t0) // 1000
+        res.evaluated.append(det.slug)
+        for f in found:
+            if f.action_hint == "block" and f.not_executed_reason is None and f.fired:
+                res.findings.append(replace(f, transformed_payload=None))
+        res.coverage.setdefault("notes", []).append(
+            {
+                "detector": det.slug,
+                "reason": "head_only",
+                "detail": f"head only: {scanned['args']} of {all_part_bytes['args']} bytes",
+            }
+        )
+
     def _closes(self, ne: Finding, config: RunConfig) -> bool:
         """True when this not-executed row blocks a risky tool: its detector is set to fail
         closed and may (R1), or, for a row of the whole call (slug ``*``), any enabled one is."""
@@ -779,6 +831,7 @@ class DetectorRegistry:
             "not_inspected": not_inspected,
             "chars": total,
         }
+        all_part_bytes = dict(part_bytes)  # WP-D2: for the head scan of an oversize payload
         part_bytes = {p: b for p, b in part_bytes.items() if p in inspected}
         budget_left = config.scan_budget_bytes
         scanned_min: dict[str, int] = {}  # per part: the least any detector scanned
@@ -800,6 +853,9 @@ class DetectorRegistry:
                 continue  # another transport: not a gap, listed nowhere
             if too_large:
                 res.not_executed.append(not_executed(slug, did, "payload_too_large", preset=preset))
+                self._head_scan(
+                    res, det, st, payload, all_part_bytes, parts_here, direction, config, clock_ns
+                )
                 continue
             clean, errors = self.validate_settings(slug, st.settings)
             if errors:
@@ -908,7 +964,7 @@ class DetectorRegistry:
         if merged:
             res.transformed_payload = merged
         if notes:
-            res.coverage["notes"] = notes
+            res.coverage.setdefault("notes", []).extend(notes)
         cut = [
             {
                 "part": p,

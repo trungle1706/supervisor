@@ -372,6 +372,14 @@ class DlpVnDetector:
 
         return full
 
+    # WP-D2: over max_payload_chars the registry skips every detector, except one that asks to
+    # read the head of the arguments (see head_scan_here). Only a secret block counts there.
+    scan_head_when_oversize = True
+
+    def head_scan_here(self, settings: Mapping[str, Any]) -> bool:
+        sec = settings.get("secrets") or {}
+        return bool(sec.get("enabled")) and sec.get("action") == "block"
+
     def _extras(self, settings: Mapping[str, Any]) -> Extras | None:
         """The WP-D2 extras of this call, or None (the old code path) when none is on."""
         if not extras_active(settings):

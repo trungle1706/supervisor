@@ -339,6 +339,16 @@ observe approvals, as before) and the call goes on with the MASKED arguments in
 `transformed_args`, status `report`: never weaker than report mode. On a `pii_export` tool the
 block is held in observe mode, like `GATE-DETECTOR-FAILED`. The detector only sets the hint `block`; the gate decides (R1).
 
+**Oversize payloads.** A payload over `limits.max_payload_chars` is skipped by every detector
+(coverage `payload_too_large`; risky tools fail closed). With `secrets.action: block` `dlp_vn` is
+the one exception: it declares `scan_head_when_oversize` and the registry runs it on the first
+`max_scan_bytes` of the arguments only, with no transform. A `secret.*` block finding from that
+head stands (`GATE-SECRET-IN-ARGS` on every tool class, read-only too), the `payload_too_large`
+coverage stays, and `coverage.notes` gets `{detector: dlp_vn, reason: head_only, detail: "head
+only: <n> of <m> bytes"}`. A secret after the head is not seen: that is the stated limit. With
+`action: report` nothing changes for an oversize payload. Observe mode does not lift a block from
+a cut or oversize payload (there is no masked copy to send).
+
 **Report mode and the transform scope.** In `report` mode a secret is masked only where
 `dlp_vn` transforms (mode `transform` and the tool in `transform_risk_classes` or
 `transform_tools`). In the arguments of a tool outside that scope the secret reaches the tool as
