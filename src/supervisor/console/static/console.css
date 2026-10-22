@@ -671,9 +671,9 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .side-v3 .ni3 { width: 22px; height: 22px; display: grid; place-items: center; flex: none; color: var(--muted); }
 .side-v3 .ni3 svg { width: 18px; height: 18px; }
 .side-v3 li a:hover .ni3, .side-v3 li a.active .ni3 { color: inherit; }
-.side-v3 .side-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.side-v3 .side-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .gear-btn { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid var(--line);
-  border-radius: var(--r-s); color: var(--fg); text-decoration: none; font-size: 12px; }
+  border-radius: var(--r-s); color: var(--fg); text-decoration: none; font-size: 12px; white-space: nowrap; }
 .gear-btn:hover { background: var(--surface-2); }
 .gear-btn svg { width: 16px; height: 16px; }
 .gear-drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(420px, 92vw); z-index: 60;

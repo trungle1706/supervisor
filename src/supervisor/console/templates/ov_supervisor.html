@@ -11,7 +11,7 @@
 {{ v3.scope_switch('/console/supervisor', d.scope, d.scopes) }}
 <div class="grid g4" id="numbers">
 {% for tl in d.tiles %}
-{% if tl.key == 'checked' %}{{ v3.tile(tl, t('nv3_tile_checked'), (tl.value ~ '+') if tl.capped else tl.value, t('num_checked_sub', n=tl.agents)) }}
+{% if tl.key == 'checked' %}{{ v3.tile(tl, t('nv3_tile_checked'), (tl.value ~ '+') if tl.capped else tl.value, t('nv3_checked_sub', n=tl.agents)) }}
 {% elif tl.key == 'stopped' %}{{ v3.tile(tl, t('nv3_tile_stopped'), tl.value, t('blocked_paused', b=tl.blocked, p=tl.paused)) }}
 {% elif tl.key == 'cover' %}{{ v3.tile(tl, t('nv3_tile_cover'), tl.value ~ ' / ' ~ tl.of, t(tl.detail) if tl.detail else '') }}
 {% else %}{{ v3.tile(tl, t('nv3_tile_cases'), tl.value, (t('n_critical', n=tl.critical) ~ ' · ' if tl.critical else '') ~ ((t('greet_clock_over', d=dur(tl.clock.secs)) if tl.clock.overdue else t('greet_clock_left', d=dur(tl.clock.secs))) if tl.clock else t('nv3_no_clock'))) }}
@@ -25,7 +25,7 @@
 <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('nv3_c_coverage') }}</th><th scope="col">{{ t('nv3_c_blocks') }}</th><th scope="col">{{ t('nv3_c_detectors') }}</th><th scope="col">{{ t('nv3_c_p95') }}</th><th scope="col">{{ t('nv3_c_chain') }}</th></tr></thead>
 <tbody>
 {% for r in d.rows %}
-<tr><td><a href="/console/agents?drawer={{ r.agent_id }}&amp;lang={{ lang }}">{{ r.agent_id }}</a></td><td>{{ v3.pct(r.coverage_bp) }}</td><td>{{ r.blocks }}</td><td>{{ v3.cover(r.cover) }}</td><td>{% if r.p95_ms is none %}<span class="muted">-</span>{% else %}{{ t('median_ms', ms=r.p95_ms) }}{% endif %}</td><td>{{ ui.verify_pill(r.verify) }}</td></tr>
+<tr><td><a href="/console/agents?drawer={{ r.agent_id }}&amp;lang={{ lang }}">{{ r.agent_id }}</a></td><td>{{ v3.pct(r.coverage_bp) }}</td><td>{{ r.blocks }}</td><td>{{ v3.cover(r.cover) }}</td><td>{% if r.p95_ms is none %}<span class="muted">-</span>{% else %}{{ t('nv3_ms', ms=r.p95_ms) }}{% endif %}</td><td>{{ ui.verify_pill(r.verify) }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 {% else %}

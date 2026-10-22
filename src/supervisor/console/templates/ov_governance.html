@@ -25,7 +25,7 @@
 {% if d.stage_na %}{{ v3.na(d.stage_na) }}
 {% elif d.stages %}
 <div class="tablewrap flat"><table class="list"><thead><tr><th scope="col">{{ t('nv3_c_stage') }}</th><th scope="col">{{ t('agents') }}</th><th scope="col">{{ t('nv3_c_open_required') }}</th></tr></thead><tbody>
-{% for r in d.stages %}<tr><td>{{ r.stage }}</td><td>{{ r.agents }}</td><td>{{ r.open }}</td></tr>
+{% for r in d.stages %}<tr><td>{% if r.stage == '-' %}<span class="muted">{{ t('nv3_no_task_list') }}</span>{% else %}{{ r.stage }}{% endif %}</td><td>{{ r.agents }}</td><td>{{ r.open }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 {% else %}<p class="muted">{{ t('nv3_no_agents') }}</p>{% endif %}

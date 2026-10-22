@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### WP-UX4a: merged sidebar and the Supervisor-side pages (`CONSOLE_NAV_V3`)
+
+One new flag, off by default (off = the console as before, also with `CONSOLE_NAV_SECTIONS=1`).
+
+- `CONSOLE_NAV_V3=1`: one left bar with My overview, five Governance items, six Supervisor items
+  and a settings gear (inline SVG line icons, section folds remembered in `localStorage`). A tab
+  strip shows on every page that belongs to a section: Activity, Guardians, Cases and alerts,
+  Analytics (with an Evidence chain tab), Catalogues, Risks and controls, Systems.
+- New pages: My overview, Governance overview, Supervisor overview (numbers are integers or
+  basis points from existing services; a figure that cannot be computed shows "not available" and
+  why; judges without a model show `mock`), read-only Workflows, Catalogues asset tabs (models,
+  tools, datasets, MCP servers) and the Detectors, Judges and Monitors tabs of Guardians.
+- Section routes (`/console/systems`, `/activity`, `/risks-controls`, `/catalogues`,
+  `/guardians`) answer 302 to the tab page. Old URLs keep working. A bad tab or scope is 400.
+- `tools/console_screenshots.py --v3` captures the new screens; EN and VI strings; see
+  `docs/console.md`, "Navigation v3".
+
 ### Console: two-section sidebar and Catalog page
 
 Two new flags, both off by default (off = the console as in v0.4.1).

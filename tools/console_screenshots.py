@@ -210,6 +210,34 @@ WAVE2_FLAGS = {
 }
 
 
+# WP-UX4a: the merged bar (CONSOLE_NAV_V3) and the pages behind it, with the role each needs.
+V3_SCREENS = [
+    ("v3-my-overview", "/console/", "reviewer.an", None),
+    ("v3-my-overview-collapsed", "/console/", "reviewer.an", "[data-side-collapse]"),
+    ("v3-settings-drawer", "/console/", "admin.chi", "a.gear-btn"),
+    ("v3-governance", "/console/governance?scope=all", "reviewer.an", None),
+    ("v3-supervisor", "/console/supervisor?scope=all", "reviewer.an", None),
+    ("v3-workflows", "/console/workflows", "reviewer.an", None),
+    ("v3-activity", "/console/activity", "reviewer.an", None),
+    ("v3-guardians-library", "/console/guardians?tab=library", "reviewer.an", None),
+    ("v3-guardians-detectors", "/console/guardians?tab=detectors", "reviewer.an", None),
+    ("v3-cases", "/console/cases", "reviewer.an", None),
+    ("v3-analytics", "/console/analytics", "reviewer.an", None),
+    ("v3-evidence", "/console/evidence", "reviewer.an", None),
+    ("v3-catalogues-models", "/console/catalogues?tab=models", "reviewer.an", None),
+    ("v3-catalogues-agents", "/console/catalogues", "reviewer.an", None),
+    ("v3-risks-controls", "/console/risks-controls", "reviewer.an", None),
+]
+V3_FLAGS = {
+    **WAVE2_FLAGS,
+    "CONSOLE_NAV_V3": "1",
+    "DETECTORS_ENABLED": "1",
+    "CONSOLE_DECISIONS_V2": "1",
+    "ALERTS_ENABLED": "1",
+    "CONSOLE_CATALOG_ENABLED": "1",
+}
+
+
 def _seed_wave2(data_dir: Path, py: str, env: dict[str, str]) -> None:
     """Integration wave 2: starter risks and controls, their evidence, the payments task list
     and one signed transparency report. Failures are [SKIP]."""
@@ -353,6 +381,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="integration wave 2: risks, controls, tasks, transparency, collectors (with --reseed)",
     )
+    ap.add_argument(
+        "--v3",
+        action="store_true",
+        help="WP-UX4a: the merged bar and its pages (CONSOLE_NAV_V3=1; use with --reseed)",
+    )
     args = ap.parse_args(argv)
 
     pw = os.environ.get("PLAYWRIGHT_PYTHON", DEFAULT_PW)
@@ -413,7 +446,7 @@ def main(argv: list[str] | None = None) -> int:
     case_id = _first_case(data_dir)
     if args.reseed:
         _seed_ux2(data_dir, py, env)
-    if args.wave2:
+    if args.wave2 or args.v3:
         _seed_wave2(data_dir, py, env)
 
     out = Path(os.path.abspath(args.out))
@@ -437,6 +470,7 @@ def main(argv: list[str] | None = None) -> int:
             **(UX3_FLAGS if args.ux3 else {}),
             **(WP39_FLAGS if args.wp39 else {}),
             **(WAVE2_FLAGS if args.wave2 else {}),
+            **(V3_FLAGS if args.v3 else {}),
         },
     )
     try:
@@ -494,7 +528,10 @@ def main(argv: list[str] | None = None) -> int:
                 ("inbox", "/console/inbox", None),
                 ("inventory", "/console/inventory", None),
             ]
-        if args.wave2:  # only the wave-2 pages, with the role each one needs
+        if args.v3:  # only the WP-UX4a pages, with the role each one needs
+            screens = [(n, p, c) for n, p, _, c in V3_SCREENS]
+            who = {n: u for n, _, u, _ in V3_SCREENS}
+        elif args.wave2:  # only the wave-2 pages, with the role each one needs
             screens = [(n, p, c) for n, p, _, c in WAVE2_SCREENS]
             who = {n: u for n, _, u, _ in WAVE2_SCREENS}
         elif args.wp39:  # only the WP39 screens, with the role each one needs
@@ -506,7 +543,7 @@ def main(argv: list[str] | None = None) -> int:
             who = {n: u for n, _, u, _ in UX3_SCREENS}
         else:
             who = {}
-        if case_id and not args.ux3 and not args.wp39 and not args.wave2:
+        if case_id and not (args.ux3 or args.wp39 or args.wave2 or args.v3):
             screens.insert(3, ("case", f"/console/cases/{case_id}", None))
             screens.insert(4, ("case-rules", f"/console/cases/{case_id}", "a[data-tab=rules]"))
         shots = []
@@ -519,7 +556,10 @@ def main(argv: list[str] | None = None) -> int:
                 if name in who:
                     shot["user"] = who[name]
                 shots.append(shot)
-        if args.wave2:
+        if args.v3:
+            dark = {"path": "/console/?lang=en", "user": "reviewer.an"}
+            dark["file"] = str(out / "v3-my-overview-en-dark.png")
+        elif args.wave2:
             dark = {"path": "/console/risks?lang=en", "user": "reviewer.an"}
             dark["file"] = str(out / "wave2-risks-en-dark.png")
         elif args.wp39:
