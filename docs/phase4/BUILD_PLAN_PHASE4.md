@@ -152,12 +152,129 @@ tables use existing services only, numbers in integers or basis points, mock jud
 (skip if Playwright is absent; say so). 5. ruff and full pytest green. 6. `docs/console.md`
 section "Navigation v3", `CHANGELOG.md`.
 
-## 4. Later WPs (for reference, specs follow in this file when the wave starts)
+## 4. Wave 2 specs
 
-G1 lifecycle and reviews · G2 assignment rules and Decision 33 flow · G3 workspace scan v2
-and agent auto-define · G4 policy activation and retrieval · G5 governance actions, incidents,
-webhook flag · G6 MCP server, skills, KPI home · S1 per-system guardian bindings and floor ·
-UX4b governance pages on `ai_system` (Systems tabs, Catalogues from inventory, Workflows editor).
+All wave 2 WPs build on `main` after the G0 merge (`src/supervisor/governance/`, tables
+`ai_system`, `system_team`, `system_component`, service `SystemService`, flag
+`GOVERNANCE_ENABLED`). Read `docs/governance.md` first. New tables follow the G0 pattern
+(schema, both DDLs, chain record, service, routes mounted with the governance router, RBAC
+entries appended, tests in `tests/governance/`). Console work in wave 2 is minimal (tabs on the
+system page under `console_systems_enabled`); UX4b restyles later. Shared files: append only.
+
+### 4.1 WP-G1: lifecycle, stage approvals, reviews, outbound events
+
+1. **Task sizing by risk level.** `config/tasks.yaml` templates gain `min_risk_level` and
+   `required_from_level` over the four levels (low, medium, high, prohibited; `unspecified`
+   gets the initiation set only, as Saidot does). For an agent linked to a system, the
+   effective level is the max of the system's effective risk level and the Decision 33 floor;
+   an unlinked agent keeps today's computation (`docs/controls.md` section on sizing). The list
+   never gets lighter (existing rule stays).
+2. **Stage approval.** Table `stage_approval`: approval_id, system_id, from_stage, to_stage,
+   requested_by, status (pending | approved | rejected), decided_by?, reason?, created_at,
+   decided_at?. The lifecycle move of a system needs an approved row when
+   `config/tasks.yaml` marks the target stage `approval: true` (default: deployment and
+   operation). Approver must be a `reviewer` or `oversight_manager` on the team or hold the
+   `approver` role, and must not be the requester or the owner (refusal text starts
+   `segregation of duties:`). Chain record `stage_change`.
+3. **Reviews.** Table `review`: review_id, system_id, kind (internal | external | conformity |
+   classification_audit), title, scope json (list of {kind, id}), reviewer_user, status
+   (planned | in_progress | completed | reopened), window_start?, window_end?, reports json
+   (list of {kind: file | link | note, ref, sha256}), completed_at?, locked bool. Completed
+   locks edits; reopen needs a reason and is recorded. Chain record `review_change`.
+4. **Outbound events.** Table `outbound_event`: event_id, kind (stage_approved, review_completed,
+   system_registered, system_archived), system_id, payload json (ids and enums only), created_at,
+   delivered bool, delivered_at?. Written by the service on those events. A `webhook` notifier
+   stub behind `WEBHOOKS_ENABLED` (default false) that logs and marks delivered; the real HTTP
+   sender is later work. Nothing else consumes the table yet.
+5. API: `GET/POST /v1/systems/{id}/approvals`, `POST /v1/systems/{id}/approvals/{aid}/decide`,
+   `GET/POST /v1/systems/{id}/reviews`, `PATCH /v1/systems/{id}/reviews/{rid}`,
+   `POST /v1/systems/{id}/reviews/{rid}/complete`, `.../reopen`, `POST /v1/systems/{id}/stage`.
+   Console: tabs Tasks and Reviews on the system page. Docs: `docs/governance.md` sections.
+
+### 4.2 WP-G2: assignment rules engine and Decision 33 classification
+
+1. **Rules file** `config/assignment_rules.yaml`, strict schema (unknown keys fail at load):
+   ```yaml
+   - id: AR-PDPL-CUSTOMER
+     title: Customer personal data duties
+     when: {all: [{field: personal_data, in: [identifiable, special]}, {field: user_segment, eq: customer}]}
+     assign: {obligations: [PDPL-*], controls: [CTL-PII-MASK], risks: [RSK-PII-LEAK], tasks: [TSK-PIA], guardian_floor: [dlp_vn, inline_redaction]}
+   ```
+   Conditions: `all`, `any`, `not`; operators `eq`, `in`, `gte`, `is_true`; fields are
+   `ai_system` columns plus derived `component.<kind>.count`, `component.tool.risk_class`
+   (from inventory attrs) and `effective_risk_level`. Ids may end in `*` to match a prefix of
+   regulation KB obligation ids, control ids, risk starter ids, task template ids. Ship starter
+   rules for PDPL, Circular 53 money movement, Decision 33 high risk, and the internal baseline.
+2. **Evaluator** `src/supervisor/governance/rules.py`: `evaluate(system) -> Assignments` is pure
+   and deterministic, returns for each assignment the rule id and the fields that fired.
+   Results persist in table `assignment`: assignment_id (hash of system, kind, ref), system_id,
+   rule_id, kind (obligation | control | risk | task | guardian), ref_id, active bool,
+   first_seen, last_seen. A run deactivates rows whose rule no longer fires and never deletes.
+   Chain record `rule_run` (system id, rule ids fired, counts, rules file sha256). Runs on
+   register, on `update_fields`, on link and unlink, and by `python -m supervisor.governance.rules
+   run [--system ID]`. `explain --system ID` prints the trace in ASCII.
+3. **Hooks into existing engines, additive only:** assigned task template ids are added to the
+   task set (WP30 sizing stays the floor); assigned control ids join `control.scope_agents`
+   resolution for the system's agents; assigned obligation ids are shown on the compliance
+   matrix for the system with source `rule`; `guardian_floor` is exposed by
+   `GET /v1/systems/{id}/guardian-floor` (list of feature slugs, with the rule id per slug) for
+   WP-S1. Do not change how the gate or detectors run.
+4. **Decision 33 classification.** `config/decision33.yaml`: an ordered question flow whose
+   answers are derived from system fields and components where possible (money_movement and
+   human_control != pre_approval → high_risk; credit_decision and human_control !=
+   pre_approval → high_risk; otherwise not_high_risk when every question is answered, else
+   unclassified). Table `classification`: classification_id, system_id, outcome, answers json
+   (question id, answer, source: rules | ai_prefill | person, justification), status (draft |
+   applied), created_by, applied_by?, applied_at?. API: `POST /v1/systems/{id}/classification`
+   (draft from rules), `PATCH` (a person edits answers), `POST .../apply` (a person applies; the
+   caller must hold `systems.edit` and must not be the system's reviewer). Applying sets
+   `decision33_class` and the classifier floor of the risk level (high_risk → high). Optional
+   LLM pre-fill behind `CLASSIFIER_AI_PREFILL=1` through the existing LLM adapter, every such
+   answer tagged `ai_prefill`, mock labelled `mock`; the service never applies by itself. Chain
+   record `classification_change`.
+5. Console: tabs Rules (assignments with rule and fields) and Classification on the system page.
+   Docs: `docs/assignment-rules.md`, `docs/decision33.md`.
+
+### 4.3 WP-G3: Databricks auto-record v2 and agent auto-define
+
+1. **Scan sources.** Extend the WP24 workspace reader (`docs/inventory.md`, adapter in
+   `src/supervisor/adapters/workspace/` or wherever `apps.list` is called) with read-only
+   calls, each behind the same `INVENTORY_ENABLED` flag and unit-tested with fakes: MLflow
+   registered models and versions (`registered_models`, `model_versions`), serving endpoint
+   config (served entities: foundation model provider, external model, agent endpoint flag),
+   Genie spaces, jobs and notebook tasks whose config names an LLM endpoint, Vector Search
+   indexes, Unity Catalog functions (tools), UC connections of kind MCP. New node kinds as
+   needed (`genie_space`, `job`, `vector_index`, `uc_function`); edge kinds stay. Evidence ref
+   `workspace:<kind>/<name>`. No workspace URLs or ids stored. The scan still never blocks.
+2. **Auto-define.** `python -m supervisor.onboard.define --artifact <dir>`: runs the Discover and
+   Understand stages on an MLflow model artifact folder (agent code, tool manifest, prompt
+   files, requirements, MLmodel) instead of a git repo, producing the same `inventory.json` and
+   `profile.json` (tools with risk class, model family, data touched, Decision 33 proposal,
+   file:line evidence). Fixtures: two synthetic artifact folders under `tests/onboard/data/`.
+   Secrets are scrubbed before any LLM sees text (existing scrubber). No network.
+3. **Draft registration.** Behind `INVENTORY_AUTOREGISTER=1` (default false) and
+   `GOVERNANCE_ENABLED`: an unmanaged App, agent endpoint or Genie space creates a draft
+   `ai_system` (status draft, risk_level unspecified, source `workspace_scan`) with a default
+   owner from `config/governance.yaml` (`default_owner_by_group`, `default_owner_by_catalog`,
+   fallback `default_owner`), links the node, and opens the initiation task "confirm context".
+   Dedupe on node id. Never blocks or pauses.
+4. Docs: `docs/inventory.md` section "Scan sources v2", `docs/onboard.md` section "Define from
+   an artifact". CLI output ASCII only.
+
+### 4.4 WP-S1: per-system guardian bindings and the floor (starts after G2)
+
+Table `guardian_binding`: system_id, feature_slug, state (on | off), mandatory bool, set_by,
+set_at, reason?. Effective state for an agent = the instance has the feature on (flags and
+`config/detectors.yaml`) AND (binding on OR slug in the system's guardian floor). Turning off
+a floor slug is refused with 400. Applies to detectors, judge sampling, session monitor,
+monitors (reuse WP1b-B bindings); the gate rules themselves are never bindable. Catalog page
+gets a per-system column with switches for the owner role; the floor shows a lock. Flag
+`GUARDIAN_BINDINGS_ENABLED`. Chain record `binding_change`.
+
+### 4.5 Later
+
+G4 policy activation and retrieval · G5 governance actions, incidents, webhook sender ·
+G6 MCP server, skills, KPI home · UX4b governance pages on `ai_system`.
 
 ## 5. Report format (every WP)
 
