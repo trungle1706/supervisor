@@ -1,0 +1,109 @@
+{# Register wizard, step 2: the result page of the preliminary checks (WP-UX4b). Read only: the
+   readiness band, the risk class proposal, the packs to run and the guardian floor are shown as
+   proposals. The button registers the draft and opens the initiation tasks; nothing else is
+   applied. Variables: d (systems_wizard.checks). #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% block title %}{{ t('ux4b_wiz_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('ux4b_wiz_title'), None)]) }}
+{{ ui.pagehead(d.draft.name) }}
+<ol class="wiz-steps" aria-label="{{ t('ux4b_wiz_steps') }}">
+  <li>{{ t('ux4b_step_intake') }}</li>
+  <li class="on" aria-current="step">{{ t('ux4b_step_checks') }}</li>
+  <li>{{ t('ux4b_step_register') }}</li>
+</ol>
+<div class="notice" data-wizard="proposals"><span class="dot"></span><b>{{ t('ux4b_nothing_applied') }}</b> {{ t('ux4b_nothing_applied_line') }}</div>
+
+<div class="wiz-kpis">
+  <div class="card stat" data-num="readiness">
+    <h3>{{ t('ux4b_readiness') }}</h3>
+    {% if d.ready.total is none %}
+    <div class="bignum"><span class="muted">{{ t('nv3_na') }}</span></div>
+    <div class="sub">{{ t(d.ready.na) }}</div>
+    {% else %}
+    <div class="bignum">{{ d.ready.total }} / 100</div>
+    <div class="sub">{{ t(d.ready.band) }}</div>
+    {% endif %}
+  </div>
+  <div class="card stat" data-num="class">
+    <h3>{{ t('ux4b_class') }}</h3>
+    <div class="bignum">{{ t('sy_d33_' ~ d.cls.d33) }}</div>
+    <div class="sub">{% if d.cls.level %}{{ t('ux4b_class_level', level=t('sy_risk_' ~ d.cls.level)) }}{% else %}{{ t('ux4b_class_nolevel') }}{% endif %} · {{ t('ux4b_class_src_' ~ d.cls.source) }}</div>
+  </div>
+  <div class="card stat" data-num="packs">
+    <h3>{{ t('ux4b_packs') }}</h3>
+    {% if d.packs.na %}
+    <div class="bignum"><span class="muted">{{ t('nv3_na') }}</span></div>
+    <div class="sub">{{ t(d.packs.na) }}</div>
+    {% else %}
+    <div class="bignum">{{ d.packs.rows|length }}</div>
+    <div class="sub">{{ t('ux4b_packs_sub') }}</div>
+    {% endif %}
+  </div>
+  <div class="card stat" data-num="floor">
+    <h3>{{ t('ux4b_floor') }}</h3>
+    {% if d.floor is none %}
+    <div class="bignum"><span class="muted">{{ t('nv3_na') }}</span></div>
+    <div class="sub">{{ t(d.floor_na) }}</div>
+    {% else %}
+    <div class="bignum">{{ d.floor|length }}</div>
+    <div class="sub">{% for f in d.floor %}<code>{{ f.slug }}</code> {% endfor %}</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid g2">
+<section class="card" data-section="wizard-readiness">
+  <h3>{{ t('ux4b_readiness') }}</h3>
+  {% if d.ready.total is none %}
+  {{ v3.na(d.ready.na) }}
+  {% else %}
+  <p>{{ t('ux4b_readiness_line', folder=d.ready.folder, tools=d.ready.tools, patches=d.ready.patches) }}</p>
+  <div class="tablewrap flat"><table data-table="wizard-readiness">
+    <thead><tr><th scope="col">{{ t('ux4b_area') }}</th><th scope="col" class="n">{{ t('ux4b_points') }}</th></tr></thead>
+    <tbody>{% for a in d.ready.areas %}<tr><td class="mono">{{ a.id }}</td><td class="n">{{ a.points }} / {{ a.weight }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="hint">{{ t('ux4b_readiness_note') }}</p>
+  {% endif %}
+</section>
+<section class="card" data-section="wizard-class">
+  <h3>{{ t('ux4b_class') }}</h3>
+  <p>{{ ui.pill(t('sy_d33_' ~ d.cls.d33), {'high_risk': 'bad', 'not_high_risk': 'ok'}.get(d.cls.d33, 'neutral'), True) }}
+     {% if d.cls.level %}{{ t('ux4b_class_level', level=t('sy_risk_' ~ d.cls.level)) }}{% endif %}</p>
+  {% if d.cls.reasons %}<p class="hint">{{ t('ux4b_class_because') }}: {% for r in d.cls.reasons %}{{ t('sy_f_' ~ r) }}{{ ', ' if not loop.last }}{% endfor %} · {{ t('sy_f_human_control') }}: {{ t('sy_human_control_' ~ d.draft.human_control) }}</p>{% endif %}
+  <p class="hint">{{ t('ux4b_class_note') }}</p>
+</section>
+</div>
+
+<section class="card" data-section="wizard-packs">
+  <h3>{{ t('ux4b_packs') }}</h3>
+  {% if d.packs.na %}{{ v3.na(d.packs.na) }}
+  {% else %}
+  <div class="tablewrap flat"><table data-table="wizard-packs">
+    <thead><tr><th scope="col">{{ t('ux4b_pack') }}</th><th scope="col">{{ t('ux4b_dimension') }}</th><th scope="col">{{ t('ux4b_why') }}</th><th scope="col">{{ t('ux4b_gate') }}</th></tr></thead>
+    <tbody>
+    {% for p in d.packs.rows %}<tr><td><span class="mono">{{ p.id }}</span><div class="idline">{{ p.title }}</div></td><td>{{ p.dimension }}</td><td>{{ t(p.why) }}</td><td>{{ p.gate }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="hint">{{ t('ux4b_packs_note') }}</p>
+  {% endif %}
+</section>
+
+<section class="card" data-section="wizard-floor">
+  <h3>{{ t('ux4b_floor') }}</h3>
+  {% if d.floor is none %}{{ v3.na(d.floor_na) }}
+  {% elif d.floor %}<p>{% for f in d.floor %}<code>{{ f.slug }}</code> <span class="muted">({{ f.rule }})</span> {% endfor %}</p>
+  {% else %}<p class="hint">{{ t('ux4b_floor_none') }}</p>{% endif %}
+</section>
+
+<form method="post" action="/console/systems/new?lang={{ lang }}" class="card" data-wizard="confirm">
+  {% for k, v in d.form.items() %}{% if v is sameas true %}<input type="hidden" name="{{ k }}" value="1">{% elif v is sameas false %}{% else %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}
+  {% endfor %}
+  <p>{{ t('ux4b_confirm_line') }}</p>
+  <p><button class="btn" type="submit">{{ t('ux4b_register_draft') }}</button>
+     <a href="/console/systems/new?lang={{ lang }}">{{ t('ux4b_back') }}</a></p>
+</form>
+{% endblock %}

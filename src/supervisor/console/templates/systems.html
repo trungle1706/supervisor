@@ -5,7 +5,7 @@
 {% block title %}{{ t('nav_systems') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_onboard'), None), (t('nav_systems'), None)]) }}
-{{ ui.pagehead(t('nav_systems')) }}
+{{ ui.pagehead(t('nav_systems')) }}{% if wizard %}<p><a class="btn" href="/console/systems/new?lang={{ lang }}" data-wizard="link">{{ t('ux4b_register_wizard') }}</a></p>{% endif %}
 {{ ui.purpose(t('sy_purpose'), t('sy_why')) }}
 {% if not scope_all %}<p class="hint">{{ t('sy_scope_note') }}</p>{% endif %}
 <section id="systems" aria-label="{{ t('nav_systems') }}">

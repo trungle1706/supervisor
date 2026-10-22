@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
 from supervisor.cases.service import PermissionDenied
-from supervisor.console import systems_views
+from supervisor.console import systems_views, systems_wizard
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.routes import (
     ConsoleInputError,
@@ -69,6 +69,66 @@ async def systems_rows(
     _off(ctx)
     data = await _call(systems_views.list_view, ctx, me, dict(request.query_params))
     return render(request, ctx, me, "_systems_list.html", **data)
+
+
+# --- WP-UX4b --- register wizard. Declared before "/systems/{system_id}" so "new" is not an id.
+
+
+def _wizard_off(ctx: ConsoleContext) -> None:
+    """HTTP 400 unless the page flags are on and CONSOLE_NAV_V3 is on (the wizard is a v3 page)."""
+    _off(ctx)
+    if not ctx.settings.console_nav_v3:
+        raise ConsoleInputError("The register wizard needs CONSOLE_NAV_V3=1")
+
+
+def _person(me: AuthPrincipal) -> None:
+    if me.kind != "user":
+        raise PermissionDenied("registering an AI system needs a signed-in person")
+
+
+@router.get(
+    "/systems/new", response_class=HTMLResponse, dependencies=[Depends(needs("systems.edit"))]
+)
+async def system_new_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _wizard_off(ctx)
+    _person(me)
+    data = await _call(systems_wizard.form_view, ctx, me)
+    return render(request, ctx, me, "system_new.html", section="systems", **data)
+
+
+@router.post(
+    "/systems/new/checks",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("systems.edit"))],
+)
+async def system_new_checks(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Step 2: the preliminary checks. Read only; nothing is stored."""
+    _wizard_off(ctx)
+    _person(me)
+    form, _ = await form_or_plain(request)
+    d = await _call(systems_wizard.checks, ctx, me, form)
+    return render(request, ctx, me, "system_new_result.html", section="systems", d=d)
+
+
+@router.post("/systems/new", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def system_new_register(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Step 3: register the draft and open the initiation tasks. Applies nothing else."""
+    _wizard_off(ctx)
+    _person(me)
+    form, plain = await form_or_plain(request)
+    out = await _call(systems_wizard.register, ctx, me, form)
+    request.state.audit_detail = "create"
+    url = f"/console/systems/{out['system_id']}?tab=tasks"
+    if plain:
+        return RedirectResponse(url, status_code=303)
+    return Response(status_code=200, headers={"HX-Redirect": url})
 
 
 @router.get(

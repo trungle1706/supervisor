@@ -62,6 +62,7 @@ _TEMPLATE_KIND = {
     "/v1/tasks": "task",  # WP30: add a custom task
     "/v1/systems": "system",  # WP-G0: register
     "/console/systems": "system",  # WP-G0: register (form)
+    "/console/systems/new": "system",  # WP-UX4b: register wizard, step 3
 }
 _ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 MUTATING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
