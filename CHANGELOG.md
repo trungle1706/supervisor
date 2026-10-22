@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### WP-G6: MCP server, skills, KPI endpoint
+
+One new flag, off by default (`MCP_SERVER_ENABLED`). Off = nothing is mounted, no table is read or
+written, the Governance overview is as before, the command line prints `[SKIP]`. Details:
+`docs/mcp-server.md`.
+
+- `POST /mcp` (streamable HTTP, JSON-RPC 2.0: `initialize`, `tools/list`, `tools/call`, `ping`)
+  in the app, and `python -m supervisor.mcp_server` to serve it alone. The JSON-RPC error shape is
+  the one of the WP26 proxy (`gateway/mcp_proxy.error_response`); no new dependency.
+- Connected apps: table `mcp_app` (pending, approved, blocked; scopes; console roles, never admin),
+  signed with the WP20 HMAC credential (the key store of the agents; the row holds the SHA-256 of
+  the current secret). The first connection is pending until an admin approves it
+  (`POST /v1/mcp/apps/{id}/approve`, permission `mcp.apps`, or the command line). Every refused
+  request leaves a `console_action` row (`mcp.auth`).
+- Tools: governance (`list_entities`, `get_entity`, `register_system`, `link_component`,
+  `propose_risk`, `list_tasks`, `complete_task`, `transparency_report`, `classification_draft`,
+  `kpis`), library (`regulations`, `obligations`, `starter_risks`, `starter_controls`,
+  `guardian_catalog`, `assignment_rules`), supervisor (`gate_state`, `decisions`, `findings`,
+  `chain_verify`, `pack_results`).
+- Every write is a draft and needs `confirm: true` (without it: the planned change, nothing
+  written) and the console permission a person would need; two audit rows per write with the app
+  as actor. A tool that would classify, approve, accept a risk, change a risk level, close an
+  incident or turn a guardian off is refused at registration; a test enumerates the tools.
+- Five skills in `docs/skills/`: `vn-system-registration`, `d33-prep`, `risk-triage`,
+  `transparency-report`, `gov-report`.
+- `GET /v1/kpis` (coverage, quality, speed; integers and basis points; scoped like G0) and a KPI
+  block on the Governance overview (EN and VI) that read the same function.
+- New permission `mcp.apps` (admin). Shared files touched: `schema/model.yaml` (table
+  `mcp_app`), `config.py` (three settings), `core/rbac.py`, `adapters/auth/audit.py` (target kind
+  `mcp_app`), `ops/openapi.py`, `console/i18n.py`, `gateway/mcp_proxy.py` (public alias
+  `error_response`).
+
 ### WP-UX4b: governance pages on the AI system
 
 Needs `CONSOLE_NAV_V3=1` and `CONSOLE_SYSTEMS_ENABLED=1` (with `GOVERNANCE_ENABLED=1`). With the flags off nothing changes; with `GOVERNANCE_ENABLED` off the two overviews keep the agent-based pages of WP-UX4a.
