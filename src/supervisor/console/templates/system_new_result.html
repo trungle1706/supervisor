@@ -73,6 +73,7 @@
   <p>{{ ui.pill(t('sy_d33_' ~ d.cls.d33), {'high_risk': 'bad', 'not_high_risk': 'ok'}.get(d.cls.d33, 'neutral'), True) }}
      {% if d.cls.level %}{{ t('ux4b_class_level', level=t('sy_risk_' ~ d.cls.level)) }}{% endif %}</p>
   {% if d.cls.reasons %}<p class="hint">{{ t('ux4b_class_because') }}: {% for r in d.cls.reasons %}{{ t('sy_f_' ~ r) }}{{ ', ' if not loop.last }}{% endfor %} · {{ t('sy_f_human_control') }}: {{ t('sy_human_control_' ~ d.draft.human_control) }}</p>{% endif %}
+  {% if d.cls.get('why') %}<p class="hint">{{ d.cls.why }}</p>{% endif %}
   {% if d.cls.get('note') %}<p class="hint" data-wizard="class-note">{{ t(d.cls.note) }}</p>{% endif %}
   <p class="hint">{{ t('ux4b_class_note') }}</p>
 </section>
@@ -96,7 +97,7 @@
 <section class="card" data-section="wizard-floor">
   <h3>{{ t('ux4b_floor') }}</h3>
   {% if d.floor is none %}{{ v3.na(d.floor_na) }}
-  {% elif d.floor %}<p>{% for f in d.floor %}<code>{{ f.slug }}</code> <span class="muted">({{ f.rule }})</span> {% endfor %}</p>
+  {% elif d.floor %}<p>{% for f in d.floor %}<code>{{ f.slug }}</code> <span class="muted">({{ f.rules|join(", ") }})</span> {% endfor %}</p>
   {% else %}<p class="hint">{{ t('ux4b_floor_none') }}</p>{% endif %}
 </section>
 

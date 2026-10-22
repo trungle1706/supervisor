@@ -305,7 +305,8 @@ def _autonomy(scoped: list[dict[str, Any]]) -> dict[str, Any] | None:
         return None  # WP-G2 not merged (no column), or no system in scope
     counts: dict[str, int] = {}
     for r in scoped:
-        key = str(r.get("autonomy_level") or "-")
+        level = str(r.get("autonomy_level") or "unspecified")
+        key = "-" if level == "unspecified" else level
         counts[key] = counts.get(key, 0) + 1
     return {"rows": sorted(counts.items())}
 

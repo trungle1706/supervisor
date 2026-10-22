@@ -20,7 +20,6 @@ use of it is guarded with ``getattr`` or ``try`` so the wizard works with or wit
 from __future__ import annotations
 
 import concurrent.futures
-import importlib
 import logging
 import os
 import threading
@@ -65,16 +64,9 @@ TASK_DUE_DAYS = 14
 
 
 def autonomy_choices() -> tuple[str, ...]:
-    """Autonomy levels the form offers: only when WP-G2 made ``autonomy_level`` an editable
-    field. The vocabulary is the one of the onboarding profile (``onboard.autonomy.LEVELS``)."""
-    if "autonomy_level" not in getattr(gm, "EDITABLE", ()):  # WP-G2 adds the column and the field
-        return ()
-    try:
-        from supervisor.onboard.autonomy import LEVELS
-
-        return tuple(LEVELS)
-    except Exception:  # noqa: BLE001 - no vocabulary, no choice
-        return ()
+    """Autonomy levels the form offers (WP-G2 ``governance.model.AUTONOMY_LEVELS``, without
+    "unspecified": a blank choice means not set)."""
+    return tuple(x for x in gm.AUTONOMY_LEVELS if x != "unspecified")
 
 
 def form_view(ctx: Any, me: Any) -> dict[str, Any]:
@@ -247,66 +239,52 @@ def declared_class(f: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _g2_module(name: str) -> Any:
-    try:
-        return importlib.import_module(f"supervisor.governance.{name}")
-    except ImportError:  # WP-G2 not merged
-        return None
+def _facts_of(f: Mapping[str, Any]) -> dict[str, Any]:
+    """The facts the G2 rules see for a system that is not stored yet: its fields only (no
+    parts), made by the function the rules engine uses for a stored system."""
+    from supervisor.governance import rules as R
+
+    return R.facts_of(f, str(f.get("risk_level") or "unspecified"), {}, [])
 
 
-def _g2_class(f: Mapping[str, Any]) -> dict[str, Any] | None:
-    """The WP-G2 classification draft for a system that does not exist yet, when the module
-    offers one. None while WP-G2 is not merged or has no such function."""
-    mod = _g2_module("classification")
-    fn = getattr(mod, "propose", None) or getattr(mod, "classify_draft", None)
-    if fn is None:
-        return None
+def _class_preview(ctx: Any, f: Mapping[str, Any]) -> dict[str, Any] | None:
+    """The Decision 33 draft of the declared system, by the code path of
+    ``ClassificationService.draft`` (``decision33.derive`` then ``decide`` over the flow) without
+    storing a row, because the system does not exist yet. None if the flow cannot be read."""
     try:
-        out = fn(dict(f))
-        outcome = out.get("outcome") if isinstance(out, Mapping) else getattr(out, "outcome", None)
-    except Exception:  # noqa: BLE001 - a rules problem must not stop the wizard
-        log.warning("wizard: G2 classification draft failed")
-        return None
-    if outcome not in gm.DECISION33_CLASSES:
+        from supervisor.governance import decision33 as d33
+
+        flow = ctx.classification.flow()
+        dec = d33.decide(flow, d33.derive(flow, _facts_of(f)))
+    except Exception:  # noqa: BLE001 - a flow problem must not stop the wizard
+        log.warning("wizard: Decision 33 draft failed", exc_info=True)
         return None
     return {
-        "d33": outcome,
-        "level": "high" if outcome == "high_risk" else None,
+        "d33": dec.outcome,
+        "level": "high" if dec.outcome == "high_risk" else None,
         "reasons": [],
         "source": "rules",
+        "why": dec.reason,
+        "note": "" if dec.outcome == "high_risk" else "ux4b_class_open_questions",
     }
 
 
-def _g2_floor(f: Mapping[str, Any]) -> list[dict[str, str]] | None:
-    """The guardian floor the WP-G2 rules assign to the declared system: ``[{slug, rule}]``.
-    None while WP-G2 is not merged or exposes nothing."""
-    mod = _g2_module("rules")
-    fn = getattr(mod, "evaluate", None)
-    if fn is None:
-        return None
+def _floor_preview(ctx: Any, f: Mapping[str, Any]) -> list[dict[str, Any]] | None:
+    """The guardian floor the assignment rules give the declared system (``[{slug, rules}]``, the
+    shape of ``RulesService.guardian_floor``), evaluated without storing anything."""
     try:
-        res = fn(dict(f))
-        raw = getattr(res, "guardian_floor", None)
-        if raw is None and isinstance(res, Mapping):
-            raw = res.get("guardian_floor")
-        if raw is None:
-            return None
-        out = []
-        for x in raw:
-            if isinstance(x, Mapping):
-                out.append(
-                    {
-                        "slug": str(x.get("slug") or x.get("ref_id")),
-                        "rule": str(x.get("rule") or x.get("rule_id") or ""),
-                    }
-                )
-            else:
-                out.append(
-                    {"slug": str(getattr(x, "slug", x)), "rule": str(getattr(x, "rule_id", ""))}
-                )
-        return sorted(out, key=lambda r: r["slug"])
-    except Exception:  # noqa: BLE001
-        log.warning("wizard: G2 guardian floor failed")
+        from supervisor.governance import rules as R
+
+        ev = R.evaluate(ctx.rules.ruleset(), _facts_of(f), ctx.rules.catalogue())
+        return sorted(
+            (
+                {"slug": a.ref_id, "rules": sorted(rid for rid, _ in a.rules)}
+                for a in ev.of("guardian")
+            ),
+            key=lambda r: r["slug"],
+        )
+    except Exception:  # noqa: BLE001 - rules file problem: the floor is not available
+        log.warning("wizard: guardian floor failed", exc_info=True)
         return None
 
 
@@ -314,8 +292,8 @@ def checks(ctx: Any, me: Any, form: Mapping[str, str]) -> dict[str, Any]:
     """The preliminary checks of a draft, for the result page. Writes nothing."""
     draft, fields = validate(ctx, me, form)
     full = {**fields, "owner_user": draft["owner_user"]}
-    cls = _g2_class(full) or declared_class(full)
-    floor = _g2_floor(full)
+    cls = _class_preview(ctx, full) or declared_class(full)
+    floor = _floor_preview(ctx, full)
     svc = ctx.systems
     return {
         "draft": full,
@@ -377,4 +355,11 @@ def register(ctx: Any, me: Any, form: Mapping[str, str]) -> dict[str, Any]:
     out = svc.register(draft, str(me.user_id), for_user=me)
     out["tasks_opened"] = open_tasks(ctx, out["system_id"], str(me.user_id))
     out["tasks_missing"] = missing_tasks(ctx, out["system_id"])
+    # the Decision 33 draft, by the Classification tab's own code path; never applied
+    try:
+        ctx.classification.draft(out["system_id"], str(me.user_id))
+        out["classification_draft"] = True
+    except Exception:  # noqa: BLE001 - the tab can make the draft later
+        log.exception("wizard: could not make the classification draft")
+        out["classification_draft"] = False
     return out  # type: ignore[no-any-return]

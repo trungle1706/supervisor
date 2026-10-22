@@ -36,6 +36,9 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/risk-register.md` | Risk register: scoring, inheritance up the inventory graph, evidence from runtime, import, harness (WP29) | 2L, Risk, Audit, Dev |
 | `docs/controls.md` | Control catalogue, evidence status, compliance figure, task list sized by Decision 33 class, import (WP30) | 2L, Risk, Audit, Dev |
 | `docs/governance.md` | Governance shared core: the AI system entity, team scope, risk inheritance, segregation of duties, API, console (WP-G0) | 2L, Risk, Audit, Dev |
+| `docs/assignment-rules.md` | Assignment rules: `config/assignment_rules.yaml`, the deterministic evaluator, the `assignment` table, hooks into tasks, controls and the obligation matrix, the guardian floor (WP-G2) | 2L, Risk, Audit, Dev |
+| `docs/autonomy-levels.md` | Autonomy levels L0 to L5 of an AI system, the human role, and how each level maps to the guardian floor and the task set (WP-G2) | 2L, Risk, Audit, Dev |
+| `docs/decision33.md` | Decision 33 classification: the question flow, draft, edit and apply by a person, the risk floor, the optional AI pre-fill (WP-G2) | 2L, Risk, Audit, Dev |
 | `docs/transparency-report.md` | Transparency report: variants, sections, what it does not show, versions and hashes, harness (WP31) | 2L, Risk, Audit, Dev |
 | `docs/inventory.md` | Inventory graph, risk inheritance, shadow-AI scan (WP24) | 2L, Platform admin, Dev |
 | `docs/assurance.md` | 33 eval packs with licence and data mode | 2L, Dev |

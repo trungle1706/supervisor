@@ -1,0 +1,100 @@
+# Assignment rules (WP-G2, docs/assignment-rules.md).
+# ILLUSTRATIVE: which duties, controls, risks, tasks and guardian features follow from which
+# intake answers is a starting point written by the product team, not the bank's procedure. The
+# bank's risk and compliance functions set and sign the real rules.
+#
+# Strict schema: an unknown key stops the load. The file is a list of rules.
+#   id      unique
+#   title   short text for the explanation
+#   when    {all: [...]} | {any: [...]} | {not: ...} | {field: F, eq|in|gte|is_true: V}
+#           fields: the ai_system columns (system_type, org_role, user_segment, personal_data,
+#           money_movement, credit_decision, human_control, lifecycle_stage, risk_level,
+#           decision33_class, business_impact, status), effective_risk_level,
+#           component.<kind>.count (agent, model, tool, dataset, ...), component.tool.risk_class
+#   assign  obligations (regulation KB ids), controls, risks (starter risk ids), tasks (template
+#           ids of config/tasks.yaml), guardian_floor (detector slugs the owner cannot switch
+#           off). An id may end in * to match a prefix.
+# The same system and the same file always give the same assignments. A rule that stops firing
+# turns its assignments off (never deletes them).
+
+- id: AR-BASELINE
+  title: Internal baseline for every AI system
+  when: {field: status, in: [draft, active]}
+  assign:
+    controls: [CTL-EVD-CHAIN, CTL-GATE-PAUSE]
+    tasks: [INI-REGISTER, INI-PURPOSE, INI-RISKS]
+
+- id: AR-PDPL-CUSTOMER
+  title: Customer personal data duties
+  when:
+    all:
+      - {field: personal_data, in: [identifiable, special]}
+      - {field: user_segment, eq: customer}
+  assign:
+    obligations: [VN-PDPL-2025-*]
+    controls: [CTL-PII-MASK, CTL-PII-SWEEP, CTL-BANK-DPIA]
+    risks: [RSK-SVC-003]
+    tasks: [DES-DPIA, VAL-PII, OPS-MASK]
+    guardian_floor: [dlp_vn]
+
+- id: AR-PDPL-STAFF
+  title: Personal data of staff or partners
+  when:
+    all:
+      - {field: personal_data, in: [identifiable, special, pseudonymised]}
+      - {not: {field: user_segment, eq: customer}}
+  assign:
+    obligations: [VN-PDPL-2025-*]
+    controls: [CTL-PII-MASK]
+    tasks: [OPS-MASK]
+    guardian_floor: [dlp_vn]
+
+- id: AR-C53-MONEY
+  title: Circular 53 money movement
+  when: {field: money_movement, is_true: true}
+  assign:
+    obligations: [VN-TT53-2026-*]
+    controls: [CTL-MON-OVERSIGHT, CTL-ASR-REDTEAM]
+    risks: [RSK-PAY-001, RSK-PAY-002]
+    tasks: [VAL-REDTEAM, DEP-OVERSIGHT, OPS-OVERSIGHT]
+    guardian_floor: [injection_regex]
+
+- id: AR-D33-HIGH
+  title: Decision 33 high risk
+  when: {field: decision33_class, eq: high_risk}
+  assign:
+    obligations: [VN-QD33-2026-*, VN-AI-2025-*]
+    controls: [CTL-BANK-MODELVAL, CTL-ASR-FAIRNESS, CTL-ASR-INJECTION]
+    tasks: [DES-D33, DEP-D33, VAL-FAIR, VAL-SECOND, REV-APPROVE]
+    guardian_floor: [dlp_vn, injection_regex]
+
+- id: AR-TOOL-PII-EXPORT
+  title: The system reaches a tool that exports personal data
+  when: {field: component.tool.risk_class, eq: pii_export}
+  assign:
+    controls: [CTL-PII-SWEEP]
+    guardian_floor: [dlp_vn]
+
+# ---- autonomy ladder (docs/autonomy-levels.md). `unspecified` never matches gte. ------------------
+- id: AR-AUTONOMY-L3
+  title: The model chooses and calls tools (level l3 and above)
+  when: {field: autonomy_level, gte: l3_tool_using_supervised}
+  assign:
+    guardian_floor: [policy_rules, dlp_vn]
+
+- id: AR-AUTONOMY-L4
+  title: The agent runs a multi-step workflow end to end (level l4 and above)
+  when: {field: autonomy_level, gte: l4_autonomous_bounded}
+  assign:
+    controls: [CTL-BANK-PAUSETEST]
+    tasks: [OPS-RESUME-2P]
+    guardian_floor: [session_monitor]
+
+- id: AR-AUTONOMY-L5
+  title: Self-directed agent (level l5, prohibited by default)
+  when: {field: autonomy_level, eq: l5_self_directed}
+  assign:
+    risks: [RSK-SHR-003]
+    # the initiation tasks, so the decision is documented. Task sizing is NOT limited to them:
+    # it still follows the agent's band (docs/autonomy-levels.md, open question)
+    tasks: [INI-REGISTER, INI-PURPOSE, INI-RISKS, INI-D33]

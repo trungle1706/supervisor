@@ -12,6 +12,7 @@
   (t('sy_f_money_movement'), t('sy_yes') if s.money_movement else t('sy_no')),
   (t('sy_f_credit_decision'), t('sy_yes') if s.credit_decision else t('sy_no')),
   (t('sy_f_human_control'), t('sy_human_control_' ~ s.human_control)),
+  (t('sy_f_autonomy_level'), t('sy_autonomy_level_' ~ (s.autonomy_level or 'unspecified'))),
   (t('sy_col_stage'), t('sy_stage_' ~ s.lifecycle_stage)),
   (t('sy_effective'), t('sy_risk_' ~ s.effective_risk.level) ~ ' (' ~ t('sy_source_' ~ s.effective_risk.source) ~ ')'),
   (t('sy_manual'), t('sy_risk_' ~ s.effective_risk.manual_level)),

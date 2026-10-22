@@ -567,7 +567,7 @@ class RiskService:
             self.state,
             self._fresh().rule_ids(),
             control_sources=lambda cid: runtime_sources(self.state, cid),
-            control_scope=lambda cid: control_scope(self.state, cid),
+            control_scope=lambda cid: control_scope(self.state, cid, self.settings),
             pack_days=int(getattr(self.settings, "controls_pack_window_days", 0) or 0) or None,
             judged_packs=bool(getattr(self.settings, "risk_evidence_judged_packs", False)),
         )

@@ -5,8 +5,6 @@ draft and opens the initiation tasks. Bad input is HTTP 400 with the reason."""
 
 from __future__ import annotations
 
-import sys
-import types
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +28,13 @@ FORM = {
     "human_control": "post_review",
 }
 CHECKS = "/console/systems/new/checks"
+FORM_FIELDS = {
+    **{k: v for k, v in FORM.items()},
+    "owner_user": "reviewer.an",
+    "credit_decision": False,
+    "human_control": "post_review",
+    "status": "draft",
+}
 REPO = "tests/onboard/data/artifact_credit_memo"
 REPO_ROOT_SUB = Path("/tmp")  # a root that does not hold the folder
 
@@ -53,7 +58,9 @@ def counts(c: Console) -> tuple[int, int, int]:
     return (
         len(c.ctx.state.query("ai_system")),
         len(c.ctx.state.query("task")),
-        len(c.ctx.state.query("system_team")),
+        len(c.ctx.state.query("system_team"))
+        + len(c.ctx.state.query("assignment"))
+        + len(c.ctx.state.query("classification")),
     )
 
 
@@ -68,7 +75,8 @@ def test_form_page_renders(v3: Console, lang: str) -> None:
         assert f'name="{name}"' in r.text
     assert 'name="money_movement"' in r.text and 'name="repo_path"' in r.text
     assert 'action="/console/systems/new/checks' in r.text
-    assert 'name="autonomy_level"' not in r.text  # no such column without WP-G2
+    assert 'name="autonomy_level"' in r.text
+    assert lang == "vi" or "L3 Uses tools, supervised" in r.text
     if lang == "vi":
         assert "Đăng ký hệ thống AI" in r.text
 
@@ -86,14 +94,22 @@ def test_viewer_cannot_open_the_wizard(v3: Console) -> None:
     assert counts(v3) == (0, 0, 0)
 
 
-def test_autonomy_choice_appears_only_when_the_field_exists(
-    v3: Console, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    assert systems_wizard.autonomy_choices() == ()
-    monkeypatch.setattr(gm, "EDITABLE", (*gm.EDITABLE, "autonomy_level"))  # what WP-G2 adds
-    assert len(systems_wizard.autonomy_choices()) == 6
-    html = v3.get("/console/systems/new?lang=en").text
-    assert 'name="autonomy_level"' in html and "L3 Uses tools, supervised" in html
+def test_autonomy_level_is_a_real_field_of_the_draft(v3: Console) -> None:
+    assert systems_wizard.autonomy_choices() == tuple(
+        x for x in gm.AUTONOMY_LEVELS if x != "unspecified"
+    )
+    r = v3.post(CHECKS, {**FORM, "autonomy_level": "l3_tool_using_supervised"})
+    assert r.status_code == 200
+    assert 'name="autonomy_level" value="l3_tool_using_supervised"' in r.text
+    assert v3.post(CHECKS, {**FORM, "autonomy_level": "l9"}).status_code == 400
+    r = v3.post("/console/systems/new", {**FORM, "autonomy_level": "l3_tool_using_supervised"})
+    sid = r.headers["HX-Redirect"].split("?")[0].rsplit("/", 1)[1]
+    assert v3.ctx.state.get("ai_system", {"system_id": sid})["autonomy_level"] == (
+        "l3_tool_using_supervised"
+    )
+    # AR-AUTONOMY-L3 puts policy_rules and dlp_vn on the floor of the stored system
+    slugs = {f["slug"] for f in v3.ctx.rules.guardian_floor(sid)}
+    assert {"policy_rules", "dlp_vn"} <= slugs
 
 
 # ------------------------------------------------------------------ step 2: the checks
@@ -111,7 +127,7 @@ def test_checks_page_shows_proposals_and_writes_nothing(v3: Console) -> None:
     assert (
         'data-num="class"' in html and "High risk" in html and "proposed risk level: High" in html
     )
-    assert "Because of" in html and "Moves money" in html
+    assert "Moves money and no person approves before execution" in html  # the G2 flow's reason
     # no folder: the readiness figure is not available, with the reason
     assert 'data-num="readiness"' in html and "not available" in html
     assert "No repository folder was given." in html
@@ -126,30 +142,42 @@ def test_checks_page_shows_proposals_and_writes_nothing(v3: Console) -> None:
     assert packs["rows"] and not packs["na"]
     for p in packs["rows"]:
         assert p["id"] in html
-    # the floor needs WP-G2
-    assert 'data-num="floor"' in html and "rules engine is not installed" in html
+    # the floor is what the G2 rules give the declared system
+    from supervisor.console import systems_wizard as W
+
+    floor = W._floor_preview(v3.ctx, {**FORM_FIELDS, "money_movement": True})  # noqa: SLF001
+    assert floor and 'data-num="floor"' in html
+    for f in floor:
+        assert f"<code>{f['slug']}</code>" in html
     # the confirm form carries the draft
     assert 'data-wizard="confirm"' in html and 'name="money_movement" value="1"' in html
     assert 'name="name" value="Wizard system"' in html
 
 
-def test_checks_class_follows_the_declared_fields(v3: Console) -> None:
+def test_checks_class_is_the_decision33_draft_of_the_rules(v3: Console) -> None:
     lo = v3.post(
         CHECKS, {**FORM, "name": "Low one", "money_movement": "1", "human_control": "pre_approval"}
     )
-    # a declared approval is not proof: never "not high risk" from declared fields alone
+    # a declared approval is not proof, and questions are left to a person: never "not high risk"
     assert lo.status_code == 200 and "Not high risk" not in lo.text
-    assert "Not classified" in lo.text and "declared, but not checked in code" in lo.text
+    assert "Not classified" in lo.text and "Some questions are left to a person" in lo.text
     assert "no level proposed; a person sets it" in lo.text
-    plain = v3.post(CHECKS, {**FORM, "name": "Plain one"})
-    assert (
-        "Not high risk" not in plain.text and "no money movement or credit decision" in plain.text
-    )
     hi = v3.post(
         CHECKS, {**FORM, "name": "Credit one", "credit_decision": "1", "human_control": "none"}
     )
-    assert "High risk" in hi.text and "Takes credit decisions" in hi.text
+    assert "High risk" in hi.text and "proposed risk level: High" in hi.text
+    assert "from the classification rules" in hi.text
     assert counts(v3) == (0, 0, 0)
+
+
+def test_declared_fallback_never_says_not_high_risk() -> None:
+    f = {"money_movement": True, "credit_decision": False, "human_control": "pre_approval"}
+    out = systems_wizard.declared_class(f)
+    assert out["d33"] == "unclassified" and out["note"] == "ux4b_class_approval_unchecked"
+    out = systems_wizard.declared_class({**f, "human_control": "none"})
+    assert out["d33"] == "high_risk" and out["reasons"] == ["money_movement"]
+    out = systems_wizard.declared_class({**f, "money_movement": False})
+    assert out["d33"] == "unclassified" and out["note"] == "ux4b_class_none_declared"
 
 
 def test_checks_vi(v3: Console) -> None:
@@ -300,44 +328,52 @@ def test_tasks_are_opened_once(v3: Console) -> None:
 # ------------------------------------------------------------------ WP-G2 guards
 
 
-def test_g2_rules_and_classification_are_used_when_present(
+def test_preview_equals_what_registering_stores(v3: Console) -> None:
+    """The preview and the stored system come from the same rules code: the floor and the
+    Decision 33 outcome match, and the wizard never applies the class."""
+    form = {
+        **FORM,
+        "user_segment": "customer",
+        "personal_data": "identifiable",
+        "money_movement": "1",
+        "human_control": "none",
+    }
+    page = v3.post(CHECKS, form).text
+    assert "<code>dlp_vn</code>" in page and "AR-PDPL-CUSTOMER" in page
+    assert counts(v3) == (0, 0, 0)
+    r = v3.post("/console/systems/new", form)
+    sid = r.headers["HX-Redirect"].split("?")[0].rsplit("/", 1)[1]
+    stored = {f["slug"]: f["rules"] for f in v3.ctx.rules.guardian_floor(sid)}
+    assert "dlp_vn" in stored and "AR-PDPL-CUSTOMER" in stored["dlp_vn"]
+    # the draft exists, was made by the Classification tab's code path, and is not applied
+    data = v3.ctx.classification.get(sid)
+    assert data["draft"] and data["draft"]["status"] == "draft" and data["applied"] is None
+    assert data["draft"]["outcome"] == "high_risk"
+    assert "High risk" in page
+    row = v3.ctx.state.get("ai_system", {"system_id": sid})
+    assert row["decision33_class"] == "unclassified" and row["risk_level"] == "unspecified"
+    tab = v3.get(f"/console/systems/{sid}?tab=classification").text
+    assert "High risk" in tab or "high_risk" in tab
+
+
+def test_the_scan_proposal_shows_on_the_classification_tab(v3: Console) -> None:
+    sid = v3.ctx.systems.register({**FORM, "owner_user": "reviewer.an"}, "reviewer.an")["system_id"]
+    v3.ctx.systems.update_fields(
+        sid, {"tags": {"autonomy_level_proposal": "l3_tool_using_supervised"}}, "reviewer.an"
+    )
+    html = v3.get(f"/console/systems/{sid}?tab=classification&lang=en").text
+    assert "l3_tool_using_supervised" in html
+
+
+def test_a_broken_rules_file_does_not_stop_the_wizard(
     v3: Console, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen: list[dict[str, Any]] = []
-
-    def evaluate(system: dict[str, Any]) -> Any:
-        seen.append(system)
-        return types.SimpleNamespace(
-            guardian_floor=[
-                {"slug": "dlp_vn", "rule": "AR-PDPL"},
-                {"slug": "inline_redaction", "rule": "AR-PDPL"},
-            ]
-        )
-
-    rules = types.ModuleType("supervisor.governance.rules")
-    rules.evaluate = evaluate  # type: ignore[attr-defined]
-    cls = types.ModuleType("supervisor.governance.classification")
-    cls.propose = lambda system: {"outcome": "high_risk"}  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "supervisor.governance.rules", rules)
-    monkeypatch.setitem(sys.modules, "supervisor.governance.classification", cls)
-    html = v3.post(CHECKS, {**FORM, "human_control": "pre_approval"}).text
-    assert "<code>dlp_vn</code>" in html and "AR-PDPL" in html
-    assert "from the classification rules" in html and "High risk" in html  # rules beat declared
-    assert seen and seen[0]["name"] == "Wizard system"
-    assert "rules engine is not installed" not in html
-
-
-def test_a_failing_g2_module_does_not_stop_the_wizard(
-    v3: Console, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    def boom(system: dict[str, Any]) -> Any:
+    def boom() -> Any:
         raise RuntimeError("rules broke")
 
-    rules = types.ModuleType("supervisor.governance.rules")
-    rules.evaluate = boom  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "supervisor.governance.rules", rules)
+    monkeypatch.setattr(v3.ctx.rules, "ruleset", boom)
     r = v3.post(CHECKS, FORM)
-    assert r.status_code == 200 and "rules engine is not installed" in r.text
+    assert r.status_code == 200 and "assignment rules engine is not installed" in r.text
 
 
 # ------------------------------------------------------------------ review fixes

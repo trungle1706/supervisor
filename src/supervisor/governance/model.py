@@ -34,6 +34,17 @@ RISK_SOURCES: tuple[str, ...] = ("manual", "inherited", "classifier")
 # A person may record only these; "inherited" is a result, computed on read.
 SETTABLE_RISK_SOURCES: tuple[str, ...] = ("manual", "classifier")
 DECISION33_CLASSES: tuple[str, ...] = ("high_risk", "not_high_risk", "unclassified")
+# Order matters: index = level. "unspecified" is not a level; it ranks below l0 and never matches a
+# ``gte`` condition. l5 is prohibited at the bank by default (docs/autonomy-levels.md).
+AUTONOMY_LEVELS: tuple[str, ...] = (
+    "unspecified",
+    "l0_rule_based",
+    "l1_assistive",
+    "l2_workflow_step",
+    "l3_tool_using_supervised",
+    "l4_autonomous_bounded",
+    "l5_self_directed",
+)
 BUSINESS_IMPACTS: tuple[str, ...] = ("high", "medium", "low", "unspecified")
 STATUSES: tuple[str, ...] = ("draft", "active", "archived")
 TEAM_ROLES: tuple[str, ...] = (
@@ -102,6 +113,7 @@ EDITABLE: tuple[str, ...] = (
     "risk_justification",
     "decision33_class",
     "business_impact",
+    "autonomy_level",
     "status",
     "tags",
 )
@@ -207,6 +219,7 @@ _CHOICES: dict[str, tuple[str, ...]] = {
     "risk_level_source": SETTABLE_RISK_SOURCES,
     "decision33_class": DECISION33_CLASSES,
     "business_impact": BUSINESS_IMPACTS,
+    "autonomy_level": AUTONOMY_LEVELS,
     "status": ("draft", "active"),
 }
 
@@ -244,6 +257,7 @@ _DEFAULTS: dict[str, Any] = {
     "risk_justification": None,
     "decision33_class": "unclassified",
     "business_impact": "unspecified",
+    "autonomy_level": "unspecified",
     "tags": {},
 }
 
@@ -288,3 +302,8 @@ def max_level(*levels: str | None) -> str:
         if lv is not None and rank(lv) > rank(best):
             best = lv
     return best
+
+
+def autonomy_rank(level: str | None) -> int:
+    """0 for unspecified (or a row from before WP-G2), 1 for l0 up to 6 for l5."""
+    return AUTONOMY_LEVELS.index(level) if level in AUTONOMY_LEVELS else 0

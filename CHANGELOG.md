@@ -90,6 +90,36 @@ All under `GOVERNANCE_ENABLED=1` (off = nothing is mounted and nothing changes).
 - Console: tabs Tasks and Reviews on the system page. EN and VI.
 - Docs: `docs/governance.md` sections 12 to 19.
 
+### WP-G2: assignment rules engine and Decision 33 classification
+
+No new flag. Everything is under `GOVERNANCE_ENABLED` (off = nothing mounted, nothing changes).
+`CLASSIFIER_AI_PREFILL` (default 0) is new and needs it.
+
+- `config/assignment_rules.yaml` (strict schema, starter rules for PDPL, Circular 53 money movement,
+  Decision 33 high risk and an internal baseline) and a pure, deterministic evaluator
+  (`supervisor.governance.rules`). New table `assignment` (rows are switched off, never deleted);
+  chain record `rule_run` with the sha256 of the rules file. Runs after register, update, link and
+  unlink, and by `python -m supervisor.governance.rules run|explain|check`.
+- Additive hooks: assigned task templates join the task set (sizing stays the floor), assigned
+  controls join the scope of the agents of the system, assigned obligations show on the obligation
+  matrix with source `rule`. `GET /v1/systems/{id}/guardian-floor` for WP-S1. Agents on no system
+  behave exactly as before.
+- `config/decision33.yaml` (question flow), table `classification`, routes to draft, edit and apply
+  (`/v1/systems/{id}/classification`), chain record `classification_change`. Only a person applies,
+  never the system's reviewer or oversight manager. Applying sets `decision33_class` and the floor
+  of the risk level (`high_risk` is at least `high`; the effective level uses the floor too).
+  Optional AI pre-fill, answers tagged `ai_prefill` (and `mock`).
+- Autonomy level: new column `ai_system.autonomy_level` (`unspecified`, `l0_rule_based` ...
+  `l5_self_directed`), an ordered field in the rules (`gte`; `unspecified` never matches), starter
+  rules `AR-AUTONOMY-L3/L4/L5`, a classification cannot be applied while it is `unspecified`, and
+  l5 sets the risk floor to `prohibited`. New starter items: task `OPS-RESUME-2P` (new template
+  key `assigned_only`: sizing never picks it), control `CTL-BANK-PAUSETEST` (kept in `config/controls_pending/`, so the starter catalogue is unchanged), risk `RSK-SHR-003` (kept in `config/risks_pending/`, not in the register until the governing body approves it).
+  Docs: `docs/autonomy-levels.md`.
+- Console: tabs Rules and Classification on the system page. EN and VI.
+- New routes under `/v1/systems/{id}/` (assignments, obligations, guardian-floor, rules/explain,
+  assignments/run, classification) use the existing permissions `systems.view` and `systems.edit`.
+- Docs: `docs/assignment-rules.md`, `docs/decision33.md`.
+
 ### Console: two-section sidebar and Catalog page
 
 Two new flags, both off by default (off = the console as in v0.4.1).

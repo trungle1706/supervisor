@@ -209,3 +209,68 @@ async def systems_register(
     if plain:
         return RedirectResponse(url, status_code=303)
     return Response(status_code=200, headers={"HX-Redirect": url})
+
+
+# --- WP-G2: Rules and Classification tabs (docs/assignment-rules.md, docs/decision33.md) -------
+def _done(request: Request, plain: bool, system_id: str, tab: str) -> Response:
+    lang = request.query_params.get("lang") or ""
+    url = f"/console/systems/{system_id}?tab={tab}" + (f"&lang={lang}" if lang else "")
+    if plain:
+        return RedirectResponse(url, status_code=303)
+    return Response(status_code=200, headers={"HX-Redirect": url})
+
+
+def _person(me: AuthPrincipal) -> str:
+    if me.kind != "user":
+        raise PermissionDenied("this action needs a signed-in person")
+    return str(me.user_id)
+
+
+@router.post("/systems/{system_id}/rules/run", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def system_rules_run(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _off(ctx)
+    actor = _person(me)
+    _, plain = await form_or_plain(request)
+    seen = await _call(systems_views.detail_view, ctx, me, system_id, "overview")
+    sid = seen["s"]["system_id"]
+    await _call(functools.partial(ctx.rules.run, sid, actor, "manual"))
+    request.state.audit_detail = "rules run"
+    return _done(request, plain, sid, "rules")
+
+
+@router.post(
+    "/systems/{system_id}/classification/{step}", dependencies=[Depends(needs("systems.edit"))]
+)
+@audited("systems.edit")
+async def system_classification_step(
+    system_id: str,
+    step: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    _off(ctx)
+    actor = _person(me)
+    if step not in ("draft", "answers", "apply"):
+        raise ConsoleInputError("unknown classification step")
+    form, plain = await form_or_plain(request)
+    seen = await _call(systems_views.detail_view, ctx, me, system_id, "overview")
+    sid = seen["s"]["system_id"]
+    svc = ctx.classification
+    if step == "draft":
+        await _call(functools.partial(svc.draft, sid, actor))
+    elif step == "answers":
+        current = (await _call(svc.get, sid))["draft"]
+        if current is None:
+            raise ConsoleInputError("there is no draft to edit; make one first")
+        changes = systems_views.classification_changes(form, current)
+        if changes:
+            await _call(functools.partial(svc.edit, sid, actor, changes))
+    else:
+        confirm = form.get("confirm_ai_prefill", "") in ("1", "true", "on")
+        await _call(functools.partial(svc.apply, sid, me, confirm_ai_prefill=confirm))
+    request.state.audit_detail = f"classification {step}"
+    return _done(request, plain, sid, "classification")

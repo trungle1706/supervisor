@@ -171,7 +171,13 @@ def test_governance_overview_classification_rate_is_a_basis_point_figure(v3: Con
     a = make(v3, "Alpha")
     make(v3, "Beta")
     make(v3, "Gamma")
-    v3.ctx.systems.update_fields(a["system_id"], {"decision33_class": "high_risk"}, "x")
+    row = v3.ctx.state.get("ai_system", {"system_id": a["system_id"]})  # a person applied it
+    v3.ctx.state.update(
+        "ai_system",
+        {"system_id": a["system_id"]},
+        {"decision33_class": "high_risk"},
+        row["row_version"],
+    )
     html = main(v3.get("/console/governance?scope=all&lang=en").text)
     assert num(html, "systems") == 3
     bp, pct = pct_title(html, "classified")
@@ -284,21 +290,18 @@ def test_governance_overview_risk_posture_follows_the_linked_agents(v3: Console)
     assert "No active risk in scope." in without
 
 
-def test_autonomy_breakdown_appears_only_with_the_column(
-    v3: Console, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    make(v3, "Alpha")
+def test_autonomy_breakdown_counts_systems_by_level(v3: Console) -> None:
+    a = make(v3, "Alpha")
+    make(v3, "Beta")
     html = main(v3.get("/console/governance?scope=all&lang=en").text)
-    assert 'data-section="autonomy"' not in html  # no column without WP-G2
-    real = systems_overview._visible
-
-    def with_level(ctx: Any, me: Any) -> list[dict[str, Any]]:
-        rows = real(ctx, me)
-        return [{**r, "autonomy_level": "l3_tool_using_supervised"} for r in rows]
-
-    monkeypatch.setattr(systems_overview, "_visible", with_level)
+    assert 'data-section="autonomy"' in html and "<td>L1 Assistive</td><td>2</td>" in html
+    v3.ctx.systems.update_fields(
+        a["system_id"], {"autonomy_level": "l3_tool_using_supervised"}, "x"
+    )
     html = main(v3.get("/console/governance?scope=all&lang=en").text)
-    assert 'data-section="autonomy"' in html and "L3 Uses tools, supervised" in html
+    sec = html.split('data-section="autonomy"')[1].split("</section>")[0]
+    assert re.search(r"L3 Uses tools, supervised</td><td>1</td>", sec)
+    assert "<td>L1 Assistive</td><td>1</td>" in sec
 
 
 def test_governance_overview_scoping_and_vi(v3: Console) -> None:

@@ -149,8 +149,10 @@ def runtime_sources(state: Any, control_id: str) -> list[tuple[str, str]]:
     )
 
 
-def control_scope(state: Any, control_id: str) -> list[str]:
-    """The agents a control applies to: ``["*"]`` or a list of lower-case agent ids."""
+def control_scope(state: Any, control_id: str, settings: Any = None) -> list[str]:
+    """The agents a control applies to: ``["*"]`` or a list of lower-case agent ids. With
+    ``settings`` and GOVERNANCE_ENABLED on (WP-G2), the agents of the AI systems the assignment
+    rules gave this control join the list."""
     import json
 
     row = state.get("control", {"control_id": control_id})
@@ -161,7 +163,14 @@ def control_scope(state: Any, control_id: str) -> list[str]:
         value = raw if isinstance(raw, list) else json.loads(raw or '["*"]')
     except (TypeError, ValueError):
         return ["*"]
-    return [str(x).lower() if x != "*" else "*" for x in value] or ["*"]
+    out = [str(x).lower() if x != "*" else "*" for x in value] or ["*"]
+    if settings is not None and "*" not in out:
+        from supervisor.governance.rules_service import agents_assigned_control
+
+        extra = agents_assigned_control(state, settings, control_id)
+        if extra:
+            out = sorted(set(out) | extra)
+    return out
 
 
 def map_fingerprint(state: Any, control_id: str) -> str:

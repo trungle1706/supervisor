@@ -27,7 +27,14 @@ def _tab(c: Console, sid: str, tab: str, lang: str = "en", user: str = REVIEWER)
 
 
 def test_tabs_are_listed_and_unknown_tab_is_400(on: Console) -> None:
-    assert systems_views.DETAIL_TABS == ("overview", "components", "tasks", "reviews")
+    assert systems_views.DETAIL_TABS == (
+        "overview",
+        "components",
+        "tasks",
+        "reviews",
+        "rules",
+        "classification",
+    )
     sid = _system(on)
     html = on.get(f"/console/systems/{sid}?lang=en").text
     assert 'data-tab="tasks"' in html and 'data-tab="reviews"' in html

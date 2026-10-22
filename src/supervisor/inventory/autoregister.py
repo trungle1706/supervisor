@@ -285,25 +285,26 @@ def _register(
 
 
 def _copy_autonomy(systems: Any, system_id: str, node: Node) -> None:
-    """Copy the autonomy level proposal (``node.attrs.autonomy_level_proposal``, set from a
-    ``supervisor.onboard.define`` run) into the draft when ``ai_system.autonomy_level`` exists
-    and is editable (WP-G2). It goes through ``SystemService.update_fields``, so a
-    ``system_change`` record is written. Without the column or a proposal: nothing."""
+    """Keep the autonomy level proposal (``node.attrs.autonomy_level_proposal``, set from a
+    ``supervisor.onboard.define`` run) as a PROPOSAL in ``tags.autonomy_level_proposal`` (plus
+    ``tags.autonomy_level_proposal_ref``, the evidence). It never sets
+    ``ai_system.autonomy_level``: a person sets the level on the Classification tab, so the
+    apply gate of a Decision 33 classification and the level 5 floor are never met by a scan.
+    Goes through ``SystemService.update_fields`` (a ``system_change`` record)."""
     level = node.attrs.get("autonomy_level_proposal")
     if isinstance(level, Mapping):
         level = level.get("level")
     if not level:
         return
     try:
-        from supervisor.governance.model import EDITABLE
-
-        if "autonomy_level" not in EDITABLE:
-            return
-        if "autonomy_level" not in systems.state.model.table("ai_system").column_names:
-            return
-        systems.update_fields(system_id, {"autonomy_level": str(level)}, ACTOR)
-    except Exception:  # noqa: BLE001 - the column is optional; a draft without it is fine
-        log.info("inventory: autonomy level not copied to the draft")
+        tags = dict(systems.get(system_id).get("tags") or {})
+        tags["autonomy_level_proposal"] = str(level)[:100]
+        ref = _first_ref(node)
+        if ref:
+            tags["autonomy_level_proposal_ref"] = str(ref)[:100]
+        systems.update_fields(system_id, {"tags": tags}, ACTOR)
+    except Exception:  # noqa: BLE001 - the proposal is optional; a draft without it is fine
+        log.info("inventory: autonomy level proposal not kept on the draft")
 
 
 def _open_task(tasks: Any, system_id: str, cfg: GovernanceConfig) -> None:

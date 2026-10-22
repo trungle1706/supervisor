@@ -11,7 +11,7 @@ from .conftest import Console, draft
 
 HX = {"HX-Request": "true"}
 NEW_TABS = ("risks", "controls", "policies", "guardians", "reports")
-OLD_TABS = ("overview", "components", "tasks", "reviews")
+OLD_TABS = ("overview", "components", "tasks", "reviews", "rules", "classification")
 
 
 def _system(c: Console, name: str = "Off path system") -> str:

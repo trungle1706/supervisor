@@ -204,6 +204,14 @@ templates:
     min_level: medium
     required_from: medium
     evidence: {kind: control, ref: CTL-PII-MASK}
+  # ---- assigned by rule only (WP-G2): sizing never picks a template with assigned_only --------
+  - id: OPS-RESUME-2P
+    stage: operation
+    title: Two-person resume is approved and tested (a second person approves every resume)
+    owner_role: reviewer
+    due_days: 30
+    required_from: low
+    assigned_only: true
   - id: OPS-DRIFT
     stage: operation
     title: The behaviour drift monitor is in its band

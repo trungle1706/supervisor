@@ -1,0 +1,32 @@
+{# Rules tab of one system (WP-G2). Variables: s, assignments, floor, rules_sha, can_edit. #}
+{% import "_ui.html" as ui with context %}
+<p class="hint">{{ t('sy_rules_intro') }}</p>
+{% if rules_sha %}<p class="hint">{{ t('sy_rules_file') }}: <span class="mono">{{ rules_sha[:16] }}</span></p>{% endif %}
+{% if can_edit %}
+<form method="post" action="/console/systems/{{ s.system_id }}/rules/run?lang={{ lang }}" hx-post="/console/systems/{{ s.system_id }}/rules/run?lang={{ lang }}" hx-swap="none">
+  <button class="btn" type="submit">{{ t('sy_rules_run') }}</button>
+</form>
+{% endif %}
+<h3 class="sec">{{ t('sy_rules_floor') }}</h3>
+{% if floor %}
+<ul class="drawer-list">
+{% for f in floor %}<li><span class="mono">{{ f.slug }}</span> <span class="muted">{{ f.rules|join(', ') }}</span></li>
+{% endfor %}
+</ul>
+{% else %}<p class="hint">{{ t('sy_rules_floor_none') }}</p>{% endif %}
+{% if assignments %}
+<div class="tablewrap flat"><table>
+  <thead><tr><th scope="col">{{ t('sy_rule_col_kind') }}</th><th scope="col">{{ t('sy_rule_col_ref') }}</th><th scope="col">{{ t('sy_rule_col_rule') }}</th><th scope="col">{{ t('sy_rule_col_fields') }}</th><th scope="col">{{ t('sy_rule_col_status') }}</th></tr></thead>
+  <tbody>
+  {% for a in assignments %}<tr>
+    <td>{{ t('sy_kind_' ~ a.kind) }}</td>
+    <td class="mono">{{ a.ref_id }}</td>
+    <td class="mono">{% for r in a.rules %}{{ r.rule }}{{ ', ' if not loop.last }}{% endfor %}</td>
+    <td class="mono">{% for r in a.rules %}{{ r.fields|join(', ') }}{{ '; ' if not loop.last }}{% endfor %}</td>
+    <td>{{ ui.pill(t('sy_rule_active') if a.active else t('sy_rule_inactive'), 'ok' if a.active else 'neutral') }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="hint">{{ t('sy_rules_off_hint') }}</p>
+{% else %}<p class="hint">{{ t('sy_rules_none') }}</p>{% endif %}

@@ -1,0 +1,22 @@
+# Starter risk for the autonomy ladder (WP-G2, docs/autonomy-levels.md). SYNTHETIC and
+# ILLUSTRATIVE. It is anchored on a placeholder node so that no agent inherits it by accident; the
+# assignment rule AR-AUTONOMY-L5 puts it on an AI system at level l5_self_directed. It stays
+# `draft` until the governing body approves it: a level l5 system is prohibited by default.
+version: 1
+risks:
+  - id: RSK-SHR-003
+    node: {kind: model_endpoint, name: "autonomy-unbounded"}
+    title: Unbounded autonomy - the agent sets its own goals, spawns agents or changes its tools
+    description: >
+      No person is in the flow. The agent can widen its own authority, so no fixed limit,
+      approval or review holds. Needs governing-body approval before any use.
+    category: availability
+    inherent: {likelihood: 3, impact: 5}
+    treatment: avoid
+    treatment_note: Not allowed by default; the governing body approves an exception in writing.
+    residual: {likelihood: 3, impact: 5}
+    owner: AI Governance Board
+    review_date: 2027-04-20
+    status: draft
+    links:
+      matrix: [INTL-EUAIA-2024-A14-01]

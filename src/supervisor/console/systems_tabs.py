@@ -223,35 +223,25 @@ def policies_tab(ctx: Any, system: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _rule_obligations(ctx: Any, system: Mapping[str, Any]) -> int | None:
-    """Obligations the WP-G2 rules engine assigned to the system (source ``rule``), or None
-    when the engine or its table is not there."""
+    """Obligations the WP-G2 rules assigned to the system (source ``rule``), or None when they
+    cannot be read."""
     try:
-        rows = ctx.state.query(
-            "assignment", {"system_id": str(system["system_id"]), "kind": "obligation"}
-        )
-        return sum(1 for r in rows if r.get("active") in (True, 1, "1", "true"))
-    except Exception:  # noqa: BLE001 - WP-G2 not merged: no assignment table, no figure
+        return len(ctx.rules.obligations(str(system["system_id"])))
+    except Exception:  # noqa: BLE001 - no figure rather than a broken tab
         return None
 
 
 # ---------------------------------------------------------------------------- Guardians
 
 
-def guardian_floor(ctx: Any, system: Mapping[str, Any]) -> tuple[list[dict[str, str]] | None, str]:
-    """The mandatory guardian floor of the system from the WP-G2 rules: ``[{slug, rule}]``.
-    ``(None, reason key)`` when the rules engine is not there."""
+def guardian_floor(ctx: Any, system: Mapping[str, Any]) -> tuple[list[dict[str, Any]] | None, str]:
+    """The mandatory guardian floor of the system (WP-G2 ``RulesService.guardian_floor``, the
+    reader of ``GET /v1/systems/{id}/guardian-floor``): ``[{slug, rules}]``. ``(None, reason
+    key)`` when it cannot be read."""
     try:
-        rows = ctx.state.query(
-            "assignment", {"system_id": str(system["system_id"]), "kind": "guardian"}
-        )
-    except Exception:  # noqa: BLE001 - WP-G2 not merged: no assignment table
+        return list(ctx.rules.guardian_floor(str(system["system_id"]))), ""
+    except Exception:  # noqa: BLE001 - rules service or its table is not there
         return None, "ux4b_na_no_rules"
-    out = [
-        {"slug": str(r["ref_id"]), "rule": str(r.get("rule_id") or "")}
-        for r in rows
-        if r.get("active") in (True, 1, "1", "true")
-    ]
-    return sorted(out, key=lambda r: r["slug"]), ""
 
 
 def guardians_tab(ctx: Any, system: Mapping[str, Any]) -> dict[str, Any]:

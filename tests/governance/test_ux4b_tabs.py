@@ -19,6 +19,8 @@ HX = {"HX-Request": "true"}
 ORDER = [
     "overview",
     "components",
+    "rules",
+    "classification",
     "risks",
     "controls",
     "policies",
@@ -282,38 +284,43 @@ def test_guardians_tab_labels_the_mock_judge(v3: Console, monkeypatch: pytest.Mo
     assert ">mock<" not in body(page(v3, sid, "guardians"))
 
 
-def test_guardians_floor_is_not_available_without_the_rules_engine(v3: Console) -> None:
-    html = body(page(v3, system(v3), "guardians"))
-    assert "Mandatory guardian floor" in html
-    assert "not available" in html and "rules engine is not installed" in html
-
-
-def test_guardians_floor_shows_the_assignments_when_the_table_exists(
-    v3: Console, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """With WP-G2 merged the floor comes from the assignment rows (guardian kind)."""
-    sid = system(v3)
-    rows = [
-        {
-            "system_id": sid,
-            "kind": "guardian",
-            "ref_id": "dlp_vn",
-            "rule_id": "AR-PDPL",
-            "active": 1,
-        },
-        {"system_id": sid, "kind": "guardian", "ref_id": "gone", "rule_id": "AR-X", "active": 0},
-    ]
-    real = v3.ctx.state.query
-
-    def query(table: str, *a: Any, **kw: Any) -> Any:
-        if table == "assignment":
-            return rows
-        return real(table, *a, **kw)
-
-    monkeypatch.setattr(v3.ctx.state, "query", query)
+def test_guardians_floor_is_what_the_rules_engine_reads(v3: Console) -> None:
+    out = v3.ctx.systems.register(
+        draft(
+            name="Floor system",
+            owner_user="reviewer.an",
+            user_segment="customer",
+            personal_data="identifiable",
+        ),
+        "reviewer.an",
+    )
+    sid = out["system_id"]
+    floor = v3.ctx.rules.guardian_floor(sid)
+    assert floor and floor[0]["slug"] == "dlp_vn"
     html = body(page(v3, sid, "guardians"))
-    assert '<code>dlp_vn</code> <span class="muted">(AR-PDPL)</span>' in html
-    assert "gone" not in html.split("Mandatory guardian floor")[1].split("</section>")[0]
+    section = html.split("Mandatory guardian floor")[1].split("</section>")[0]
+    for f in floor:
+        assert f"<code>{f['slug']}</code>" in section
+        assert ", ".join(f["rules"]) in section
+
+
+def test_guardians_floor_not_available_when_the_service_cannot_be_read() -> None:
+    from types import SimpleNamespace
+
+    def boom(system_id: str) -> Any:
+        raise RuntimeError("no table")
+
+    rows, na = systems_tabs.guardian_floor(
+        SimpleNamespace(rules=SimpleNamespace(guardian_floor=boom)), {"system_id": "sys_x"}
+    )
+    assert rows is None and na == "ux4b_na_no_rules"
+
+
+def test_policies_tab_counts_the_obligations_assigned_by_rules(v3: Console) -> None:
+    sid = system(v3)
+    n = len(v3.ctx.rules.obligations(sid))
+    html = body(page(v3, sid, "policies"))
+    assert f"{n} obligations assigned by rules" in html
 
 
 # ------------------------------------------------------------------ Reports

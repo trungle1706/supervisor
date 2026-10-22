@@ -76,6 +76,8 @@ def ref_plan(cls: str, band: str) -> dict:
     rank = LEVELS.index(level)
     chosen = []
     for t in doc["templates"]:
+        if t.get("assigned_only"):  # WP-G2: only an assignment rule adds it, sizing never does
+            continue
         if LEVELS.index(t.get("min_level", "low")) > rank:
             continue
         classes = t.get("classes", "any")
