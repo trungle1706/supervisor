@@ -55,7 +55,7 @@ def test_off_by_default(console: Console) -> None:
 def test_list_get_and_agent_views(on: Console) -> None:
     c = on
     body = c.get("/v1/controls", user="viewer.hoa").json()
-    assert body["count"] == 28
+    assert body["count"] == 29
     one = c.get("/v1/controls/CTL-PAY-LIMIT", user="viewer.hoa").json()
     assert one["agents"] == ["payments"] and "PAY-02" in one["maps"]["rule"]
     assert c.get("/v1/controls?type=preventive&agent=payments").json()["count"] >= 5
