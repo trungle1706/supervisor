@@ -379,6 +379,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/systems/{system_id}/classification"): "systems.edit",
     ("PATCH", "/v1/systems/{system_id}/classification"): "systems.edit",
     ("POST", "/v1/systems/{system_id}/classification/apply"): "systems.edit",
+    ("POST", "/v1/systems/{system_id}/risk-level/lower"): "systems.edit",
     ("POST", "/console/systems/{system_id}/rules/run"): "systems.edit",
     ("POST", "/console/systems/{system_id}/classification/{step}"): "systems.edit",
     # --- WP-G1 --- stage approvals, stage move, reviews (same flag as /v1/systems)

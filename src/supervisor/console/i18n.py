@@ -3780,6 +3780,12 @@ _T.update(
             "L4 tự chủ trong giới hạn",
         ),
         "sy_autonomy_level_l5_self_directed": ("L5 self-directed", "L5 tự đặt mục tiêu"),
+        "sy_cls_autonomy_proposal": (
+            "A scan proposes autonomy level {level}. It is only a proposal: "
+            "a person sets the level of the system.",
+            "Quá trình quét đề xuất mức tự chủ {level}. Đây chỉ là đề xuất: "
+            "con người đặt mức của hệ thống.",
+        ),
         "sy_cls_history": ("Classifications applied before", "Các phân loại đã áp dụng trước đây"),
     }
 )

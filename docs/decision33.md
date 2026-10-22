@@ -54,11 +54,10 @@ that is not complete, and a draft with AI pre-filled answers unless the body has
 `confirm_ai_prefill: true` (the console shows a check box). Applying:
 
 * sets `decision33_class` to the outcome;
-* is the classifier floor of the risk level: `high_risk` raises `risk_level` to at least `high`
+* is the classifier floor of the risk level: `high_risk` raises `risk_level` to at least `high` (apply never lowers the stored level; `POST /v1/systems/{id}/risk-level/lower` does, with a reason, by a non-owner)
   (source `classifier`; a higher manual level, for example `prohibited`, is kept). The effective
   risk level also uses the floor on read: a system with class `high_risk` is at least `high`
-  whatever the manual level says. Applying `not_high_risk` lifts a floor that an earlier
-  classification set (`risk_level` `high` with source `classifier` goes back to `unspecified`);
+  whatever the manual level says. With GOVERNANCE_ENABLED on, `decision33_class` can no longer be set by PATCH or at registration: only applying a classification sets it. Apply re-derives the rules-sourced answers from the system as it is now and refuses a stale draft ("the system changed since the draft; remake it");
 * updates the system like any change, so the assignment rules run again (rule `AR-D33-HIGH` fires
   for `high_risk`) and the task sizing sees the class.
 
@@ -66,7 +65,7 @@ that is not complete, and a draft with AI pre-filled answers unless the body has
 
 `CLASSIFIER_AI_PREFILL=1` (default 0). When a draft is made, the questions no field can answer may
 be sent to the LLM adapter (`make_chat_model`: the real endpoint, or the mock when no endpoint is
-set). Only name, purpose (after the secret scrubber) and a few enums are sent. The reply is checked
+set). Only a few enums and the purpose are sent, the purpose after the secret scrubber and the repo masker (names, phone, CCCD, accounts); the system name is not sent, and with `MASKER_KIND=none` no purpose is sent. The reply is checked
 against a schema and only yes or no for an open question is kept. Every such answer has
 `source: ai_prefill`, the model id, and `mock: true` with the justification starting `[mock]` when
 the model is the mock. A model failure leaves the draft without a pre-fill. The service never

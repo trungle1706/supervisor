@@ -115,11 +115,12 @@ class ConsoleContext:
 
         svc = getattr(self, "_classification", None)
         if svc is None:
-            chat = None
+            chat = masker = None
             if self.settings.classifier_ai_prefill:
-                from supervisor.adapters.factory import make_chat_model
+                from supervisor.adapters.factory import make_chat_model, make_masker
 
                 chat = make_chat_model(self.settings)
+                masker = make_masker(self.settings)
             svc = ClassificationService(
                 self.state,
                 self.tables,
@@ -127,6 +128,7 @@ class ConsoleContext:
                 self.settings,
                 evidence=self.runtime.chain,
                 chat=chat,
+                masker=masker,
             )
             self._classification = svc
         return svc

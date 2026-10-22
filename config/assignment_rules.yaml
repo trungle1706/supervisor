@@ -95,5 +95,6 @@
   when: {field: autonomy_level, eq: l5_self_directed}
   assign:
     risks: [RSK-SHR-003]
-    # the prohibited task set: initiation tasks only
+    # the initiation tasks, so the decision is documented. Task sizing is NOT limited to them:
+    # it still follows the agent's band (docs/autonomy-levels.md, open question)
     tasks: [INI-REGISTER, INI-PURPOSE, INI-RISKS, INI-D33]

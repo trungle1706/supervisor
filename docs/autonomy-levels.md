@@ -33,7 +33,7 @@ output (`python -m supervisor.governance.rules explain --system ID`) shows the l
 |---|---|---|---|---|
 | `AR-AUTONOMY-L3` | l3 and above | `policy_rules`, `dlp_vn` | - | - |
 | `AR-AUTONOMY-L4` | l4 and above | `session_monitor` | control `CTL-BANK-PAUSETEST` (pause switch tested; the file is `config/controls_pending/autonomy.yaml`, imported when the bank wants it), task `OPS-RESUME-2P` (two-person resume approved; assigned by rule only, sizing never picks it) | - |
-| `AR-AUTONOMY-L5` | l5 | - | the prohibited task set: initiation tasks only (`INI-REGISTER`, `INI-PURPOSE`, `INI-RISKS`, `INI-D33`) | `RSK-SHR-003` unbounded autonomy (status draft: needs governing-body approval; the file is `config/risks_pending/autonomy.yaml`, outside the register until the risk team imports it) |
+| `AR-AUTONOMY-L5` | l5 | - | the five initiation tasks are added (`INI-REGISTER`, `INI-PURPOSE`, `INI-RISKS`, `INI-D33`) so the decision is documented. Task sizing is not limited to them: it still follows the agent's band and class (see open question 1) | `RSK-SHR-003` unbounded autonomy (status draft: needs governing-body approval; the file is `config/risks_pending/autonomy.yaml`, outside the register until the risk team imports it) |
 
 ## Interaction with Decision 33 (`docs/decision33.md`)
 
@@ -42,3 +42,14 @@ The level never lowers a class. A system at l4 or l5 with money movement or a cr
 classifier floor of the risk level to `prohibited`: applying a classification raises `risk_level`
 to `prohibited` (source `classifier`), and the effective risk level is at least `prohibited` while
 the level is l5.
+
+## Open questions
+
+1. Should a prohibited system carry the initiation tasks only? The rule adds them, but sizing
+   (`config/tasks.yaml`, per agent band) is unchanged, so the later stages are still planned.
+2. A scan (workspace auto-register) never sets the level. It keeps its proposal in
+   `tags.autonomy_level_proposal` (and `tags.autonomy_level_proposal_ref`); a person sets
+   `autonomy_level`. The Classification tab shows the proposal.
+3. The stored risk level is never lowered by applying a classification. Lowering (for example
+   after a system leaves l5) is `POST /v1/systems/{id}/risk-level/lower` with a reason, by a person
+   who is not the owner.

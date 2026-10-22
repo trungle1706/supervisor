@@ -227,7 +227,7 @@ def test_apply_sets_the_class_and_the_floor_and_reruns_the_rules(
     assert "rev.an" not in text and "owner.lan" not in text
 
 
-def test_floor_never_lowers_a_higher_manual_level_and_is_lifted_with_the_class(
+def test_floor_never_lowers_a_higher_level_and_apply_never_lowers(
     gsvc: SystemService, gadapters: Adapters
 ) -> None:
     s = gsvc.register(draft(money_movement=True), "owner.lan")
@@ -248,7 +248,8 @@ def test_floor_never_lowers_a_higher_manual_level_and_is_lifted_with_the_class(
     c.edit(tid, "owner.lan", {"Q-OTHER": {"answer": "no", "justification": "Reviewed."}})
     c.apply(tid, person("rev.an", "admin"))
     after = gsvc.get(tid)
-    assert after["decision33_class"] == "not_high_risk" and after["risk_level"] == "unspecified"
+    # apply never lowers the stored level (lower_risk_level does, with a reason)
+    assert after["decision33_class"] == "not_high_risk" and after["risk_level"] == "high"
     assert c.get(tid)["draft"] is None
     assert c.get(tid)["history_n"] == 2
 

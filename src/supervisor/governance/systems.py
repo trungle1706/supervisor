@@ -269,6 +269,14 @@ class SystemService:
         principal: a scoped caller may use only a team already in their scope."""
         check_user(actor, "actor")
         fields = normalise_draft(draft)
+        if (
+            getattr(self.settings, "governance_enabled", False)
+            and fields["decision33_class"] != "unclassified"
+        ):
+            raise SystemsError(
+                "a new system is unclassified; the class is set by applying a classification "
+                "(docs/decision33.md)"
+            )
         self._check_team_in_scope(for_user, fields["owner_team"])
         self._unique_name(fields["name"])
         sid = system_id_for(fields["name"])
@@ -311,7 +319,10 @@ class SystemService:
         expected_version: int | None = None,
         *,
         for_user: Any = None,
+        allow_class: bool = False,
     ) -> dict[str, Any]:
+        """``allow_class`` is for the classification service only (WP-G2): with
+        GOVERNANCE_ENABLED on, ``decision33_class`` is set by applying a classification."""
         check_user(actor, "actor")
         cur = self._need_open(system_id)
         unknown = sorted(set(changes) - set(EDITABLE))
@@ -319,7 +330,24 @@ class SystemService:
             raise SystemsError(f"cannot change: {', '.join(unknown)}")
         if not changes:
             raise SystemsError("nothing to change")
+        governed = bool(getattr(self.settings, "governance_enabled", False))
+        if governed and "decision33_class" in changes and not allow_class:
+            raise SystemsError(
+                "decision33_class is set by a classification: make a draft, then a person "
+                "applies it (POST /v1/systems/{id}/classification, docs/decision33.md)"
+            )
         fields = {k: normalise_field(k, v) for k, v in changes.items()}
+        if (
+            governed
+            and not allow_class
+            and ("risk_level" in fields or "risk_level_source" in fields)
+            and cur["risk_level_source"] == "classifier"
+            and rank(fields.get("risk_level", cur["risk_level"])) < rank(cur["risk_level"])
+        ):
+            raise SystemsError(
+                "the risk level was set by the classifier floor; a downgrade needs a reason "
+                "and a person who is not the owner (POST /v1/systems/{id}/risk-level/lower)"
+            )
         if "lifecycle_stage" in fields:  # WP-G1: a stage move is its own call (approval, chain)
             if fields["lifecycle_stage"] != cur["lifecycle_stage"]:
                 raise SystemsError(
@@ -380,6 +408,55 @@ class SystemService:
                 "(the team of an agent you own or of a system you are owner of)"
             )
 
+    def lower_risk_level(self, system_id: str, level: str, reason: str, by: str) -> dict[str, Any]:
+        """Lower the stored risk level (WP-G2). The only way down once the classifier floor set
+        it. Needs a written reason and a person who is not the owner of the system; refuses a
+        level below the floor the system still has (class high_risk -> high; autonomy l5 ->
+        prohibited). One ``system_change`` record (action ``risk_lower``) with the reason hash."""
+        check_user(by, "by")
+        cur = self._need_open(system_id)
+        choice(level, RISK_LEVELS, "level")
+        text = (reason or "").strip() if isinstance(reason, str) else ""
+        if len(text) < 10 or len(text) > 500:
+            raise SystemsError("reason is required: 10 to 500 characters")
+        if rank(level) >= rank(cur["risk_level"]):
+            raise SystemsError("this call only lowers the risk level")
+        if by == cur["owner_user"] or any(
+            m["user_id"] == by and m["team_role"] == "system_owner"
+            for m in self._team_rows(system_id)
+        ):
+            raise SegregationOfDuties(
+                "segregation of duties: the owner of the system cannot lower its risk level"
+            )
+        floor = "unspecified"
+        if cur.get("decision33_class") == "high_risk":
+            floor = "high"
+        if cur.get("autonomy_level") == "l5_self_directed":
+            floor = "prohibited"
+        if rank(level) < rank(floor):
+            raise SystemsError(
+                f"the system still has a floor of {floor} (class or autonomy level); "
+                "change those first"
+            )
+        stored = self.state.update(
+            "ai_system",
+            {"system_id": system_id},
+            {"risk_level": level, "risk_level_source": "manual", "risk_justification": text},
+            cur["row_version"],
+        )
+        self._changed(
+            "risk_lower",
+            stored,
+            by,
+            {
+                "from_level": cur["risk_level"],
+                "to_level": level,
+                "reason_hash": sha256_hex({"reason": text}),
+            },
+        )
+        self._run_rules(system_id, by, "update")
+        return self.get(system_id)
+
     def archive(self, system_id: str, actor: str) -> dict[str, Any]:
         check_user(actor, "actor")
         cur = self._need(system_id)
@@ -389,6 +466,7 @@ class SystemService:
             "ai_system", {"system_id": system_id}, {"status": "archived"}, cur["row_version"]
         )
         self._changed("archive", stored, actor)
+        self._run_rules(system_id, actor, "archive")  # WP-G2: switches the assignments off
         self._emit("system_archived", system_id, {})
         return self.get(system_id)
 

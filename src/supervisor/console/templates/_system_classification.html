@@ -3,6 +3,7 @@
 {% set base = '/console/systems/' ~ s.system_id ~ '/classification' %}
 <p class="hint">{{ t('sy_cls_intro') }}</p>
 <p class="hint">{{ t('sy_cls_illustrative') }}</p>
+{% if s.tags.get('autonomy_level_proposal') %}<p class="hint">{{ t('sy_cls_autonomy_proposal', level=s.tags.autonomy_level_proposal) }}{% if s.tags.get('autonomy_level_proposal_ref') %} <span class="mono">{{ s.tags.autonomy_level_proposal_ref }}</span>{% endif %}</p>{% endif %}
 <h3 class="sec">{{ t('sy_cls_current') }}</h3>
 {% if cls.applied %}
 {{ ui.pill(t('sy_d33_' ~ cls.applied.outcome), 'bad' if cls.applied.outcome == 'high_risk' else 'ok') }}

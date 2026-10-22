@@ -36,7 +36,15 @@ log = logging.getLogger("supervisor.governance")
 # Guardian features that are not detectors: the gate rules of the policy file and the session
 # monitor (docs/autonomy-levels.md). WP-S1 binds them per system.
 GUARDIAN_EXTRA: frozenset[str] = frozenset({"policy_rules", "session_monitor"})
-TRIGGERS: tuple[str, ...] = ("register", "update", "link", "unlink", "classification", "manual")
+TRIGGERS: tuple[str, ...] = (
+    "register",
+    "update",
+    "link",
+    "unlink",
+    "classification",
+    "archive",
+    "manual",
+)
 
 
 def _on(value: Any) -> bool:
@@ -84,18 +92,20 @@ def _yaml_ids(folder: Path, key: str) -> set[str]:
     return out
 
 
-def build_catalogue(settings: Any, state: Any = None) -> R.Catalogue:
+def build_catalogue(settings: Any, state: Any = None, *, pending: bool = True) -> R.Catalogue:
     """The ids the rules may name: regulation KB obligations, starter and stored controls and
     risks, task templates, detector slugs."""
     controls = _yaml_ids(Path(settings.controls_starter_dir), "controls")
     # controls the rules may name that are not in the catalogue yet (config/controls_pending)
-    controls |= _yaml_ids(
-        Path(settings.controls_starter_dir).parent / "controls_pending", "controls"
-    )
+    if pending:
+        controls |= _yaml_ids(
+            Path(settings.controls_starter_dir).parent / "controls_pending", "controls"
+        )
     risks = _yaml_ids(Path(settings.risk_starter_dir), "risks")
     # risks the rules may name that are not in the register yet (config/risks_pending: a risk
     # that needs governing-body approval before the risk team imports it)
-    risks |= _yaml_ids(Path(settings.risk_starter_dir).parent / "risks_pending", "risks")
+    if pending:
+        risks |= _yaml_ids(Path(settings.risk_starter_dir).parent / "risks_pending", "risks")
     if state is not None:
         controls |= {str(r["control_id"]) for r in state.query("control")}
         risks |= {str(r["risk_id"]) for r in state.query("risk")}
@@ -207,7 +217,10 @@ class RulesService:
     def evaluate(self, system_id: str) -> tuple[R.RuleSet, R.Evaluation]:
         ensure_on(self.settings)
         rs = self.ruleset()
-        return rs, R.evaluate(rs, self.system_facts(system_id), self.catalogue())
+        facts = self.system_facts(system_id)
+        if facts.get("status") == "archived":  # an archived system carries nothing
+            return rs, R.Evaluation((), (), {}, facts)
+        return rs, R.evaluate(rs, facts, self.catalogue())
 
     def run(self, system_id: str, actor: str, trigger: str = "manual") -> dict[str, Any]:
         """Evaluate the rules for one system and save the result. Rows whose rule no longer
@@ -246,7 +259,7 @@ class RulesService:
                 )
                 added += 1
                 continue
-            fields: dict[str, Any] = {"last_seen": now}
+            fields: dict[str, Any] = {}
             if not _on(cur["active"]):
                 fields["active"] = True
                 reactivated += 1
@@ -254,7 +267,9 @@ class RulesService:
                 fields["fired"] = fired
                 fields["rule_id"] = a.rule_id
                 changed += 1
-            self.state.update("assignment", {"assignment_id": aid}, fields, cur["row_version"])
+            if fields:  # last_seen moves only when something changed
+                fields["last_seen"] = now
+                self.state.update("assignment", {"assignment_id": aid}, fields, cur["row_version"])
         deactivated = 0
         for aid, cur in existing.items():
             if aid not in wanted and _on(cur["active"]):
@@ -419,6 +434,12 @@ def agents_assigned_control(state: Any, settings: Any, control_id: str) -> froze
         str(a["system_id"])
         for a in state.query("assignment", {"kind": "control", "ref_id": control_id})
         if _on(a["active"])
+    }
+    systems = {
+        sid
+        for sid in systems
+        if (s := state.get("ai_system", {"system_id": sid})) is not None
+        and s["status"] != "archived"
     }
     if not systems:
         return frozenset()

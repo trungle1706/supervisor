@@ -175,3 +175,25 @@ async def apply_classification(
         return _not_found(exc)
     request.state.audit_detail = "classification apply"
     return out
+
+
+@router.post("/{system_id}/risk-level/lower", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def lower_risk_level(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    """Lower the stored risk level with a written reason, by a person who is not the owner."""
+    svc = _service(ctx)
+    actor = _actor(me)
+    data = await _body(request)
+    try:
+        out = svc.lower_risk_level(
+            _visible(svc, me, system_id),
+            str(data.get("level", "")),
+            data.get("reason", ""),
+            actor,
+        )
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = "risk lower"
+    return out

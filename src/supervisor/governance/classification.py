@@ -100,6 +100,7 @@ class ClassificationService:
         *,
         evidence: Any = None,
         chat: Any = None,
+        masker: Any = None,
     ) -> None:
         self.state = state
         self.tables = tables
@@ -107,10 +108,11 @@ class ClassificationService:
         self.settings = settings
         self.evidence_sink = evidence
         self._chat = chat
+        self._masker = masker
 
     @classmethod
     def from_adapters(
-        cls, adapters: Any, evidence: Any = None, chat: Any = None
+        cls, adapters: Any, evidence: Any = None, chat: Any = None, masker: Any = None
     ) -> ClassificationService:
         return cls(
             adapters.state,
@@ -119,6 +121,7 @@ class ClassificationService:
             adapters.settings,
             evidence=evidence,
             chat=chat,
+            masker=masker,
         )
 
     # ------------------------------------------------------------------ plumbing
@@ -308,9 +311,15 @@ class ClassificationService:
             return info
         from supervisor.onboard.scrub import scrub_text
 
+        # Only enum fields and the purpose, which is masked for personal data (names, phone,
+        # CCCD, accounts: the repo masker) after the secret scrub. The system name is not sent.
+        # With no masker (MASKER_KIND=none) the purpose is not sent at all.
+        masker = self._masker
+        purpose = ""
+        if masker is not None:
+            purpose = str(masker.mask(scrub_text(str(system["purpose"])).text))
         brief = {
-            "name": scrub_text(str(system["name"])).text,
-            "purpose": scrub_text(str(system["purpose"])).text,
+            "purpose": purpose,
             "system_type": system["system_type"],
             "user_segment": system["user_segment"],
             "personal_data": system["personal_data"],
@@ -412,12 +421,39 @@ class ClassificationService:
                 "the draft is not complete: answer every question before it can be applied"
             )
 
+    def _refresh(
+        self, system_id: str, draft: Mapping[str, Any], flow: d33.Flow
+    ) -> dict[str, dict[str, Any]]:
+        """Answers of the draft checked against the system NOW: the rules-sourced answers are
+        derived again from the current fields and the outcome is decided again. A draft that no
+        longer matches (a field changed, or the flow file changed) is refused."""
+        from supervisor.governance.rules_service import RulesService
+
+        stored = _answers_of(draft)
+        facts = RulesService(self.state, self.tables, self.clock, self.settings).system_facts(
+            system_id
+        )
+        fresh = d33.derive(flow, facts)
+        answers = dict(stored)
+        for qid, entry in fresh.items():
+            cur = stored.get(qid)
+            if cur is not None and cur.get("source") == "rules":
+                answers[qid] = entry
+        stale = draft["flow_sha256"] != flow.sha256 or any(
+            stored.get(q, {}).get("answer") != answers[q].get("answer")
+            for q in answers
+            if stored.get(q, {}).get("source") == "rules"
+        )
+        if stale or d33.decide(flow, answers).outcome != draft["outcome"]:
+            raise SystemsError("the system changed since the draft; remake it")
+        return answers
+
     def apply(
         self, system_id: str, user: Any, *, confirm_ai_prefill: bool = False
     ) -> dict[str, Any]:
         """A person applies the draft. Sets ``decision33_class`` and the classifier floor of the
-        risk level (high_risk -> at least high; a floor set by an earlier classification is
-        lifted when the new class is not_high_risk)."""
+        risk level (high_risk -> at least high; l5 -> prohibited). It never lowers the stored
+        level. The draft is checked against the system as it is now."""
         ensure_on(self.settings)
         actor = check_user(str(getattr(user, "user_id", "")), "actor")
         if getattr(user, "kind", "user") != "user":
@@ -433,7 +469,8 @@ class ClassificationService:
                 "autonomy_level is not set: set the autonomy level of the system "
                 "(docs/autonomy-levels.md) before the classification can be applied"
             )
-        answers = _answers_of(draft)
+        flow = self.flow()
+        answers = self._refresh(system_id, draft, flow)
         pending = sorted(q for q, a in answers.items() if a.get("source") == "ai_prefill")
         if pending and not confirm_ai_prefill:
             raise SystemsError(
@@ -447,26 +484,33 @@ class ClassificationService:
             if level == "l5_self_directed"
             else ("high" if outcome == "high_risk" else "unspecified")
         )
+        # Apply never lowers the stored level. A downgrade is a separate, justified call
+        # (SystemService.lower_risk_level).
         if rank(system["risk_level"]) < rank(floor):
             changes.update(risk_level=floor, risk_level_source="classifier")
-        elif (
-            floor == "unspecified"
-            and system["risk_level_source"] == "classifier"
-            and system["risk_level"] == "high"
-        ):
-            changes.update(risk_level="unspecified", risk_level_source="manual")
-        self._systems().update_fields(system_id, changes, actor)
         now = self.clock.now()
+        key = {"classification_id": draft["classification_id"]}
+        # mark applied first; if the system cannot be changed, put the draft back
         stored = self.state.update(
             "classification",
-            {"classification_id": draft["classification_id"]},
+            key,
             {"status": "applied", "applied_by": actor, "applied_at": now},
             draft["row_version"],
         )
+        try:
+            self._systems().update_fields(system_id, changes, actor, allow_class=True)
+        except Exception:
+            self.state.update(
+                "classification",
+                key,
+                {"status": "draft", "applied_by": None, "applied_at": None},
+                stored["row_version"],
+            )
+            raise
         self._changed(
             "apply",
             dict(stored),
             actor,
-            {"risk_floor_set": "risk_level" in changes and floor != "unspecified"},
+            {"risk_floor_set": "risk_level" in changes},
         )
         return self.get(system_id)

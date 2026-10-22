@@ -363,6 +363,19 @@ def main(argv: list[str] | None = None) -> int:
             notes = problems(rs, build_catalogue(settings))
             for n in notes:
                 _say(f"[WARN] {n}")
+            # ids that exist only in config/controls_pending or config/risks_pending
+            strict = build_catalogue(settings, pending=False)
+            named = {
+                (k, p)
+                for r in rs.rules
+                for k in ("control", "risk")
+                for p in r.assign.get(k, ())
+                if not p.endswith("*")
+            }
+            for kind, ref in sorted(named):
+                if ref not in strict.ids(kind):
+                    _say(f"[WARN] pending: {ref}")
+                    notes.append(ref)
             _say(f"[OK] {len(rs.rules)} rule(s), sha256 {rs.sha256[:16]}, {len(notes)} note(s)")
             return 0
         if not settings.governance_enabled:
