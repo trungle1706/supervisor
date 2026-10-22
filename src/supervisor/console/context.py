@@ -108,6 +108,20 @@ class ConsoleContext:
         return svc
 
     @property
+    def guardians(self) -> Any:
+        """The per-system guardian bindings service (WP-S1, docs/guardian-bindings.md). Every
+        change goes on the chain as ``binding_change``."""
+        from supervisor.governance.guardians import GuardianService
+
+        svc = getattr(self, "_guardians", None)
+        if svc is None:
+            svc = GuardianService(
+                self.state, self.tables, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._guardians = svc
+        return svc
+
+    @property
     def classification(self) -> Any:
         """The Decision 33 classification service (WP-G2, docs/decision33.md). The chat model is
         built only when CLASSIFIER_AI_PREFILL is on; the service never applies by itself."""

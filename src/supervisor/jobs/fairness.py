@@ -39,7 +39,7 @@ def run(
     method: str = "auto",
 ) -> dict[str, Any]:
     cfg = FairnessConfig.load(config_path or settings.fairness_config)
-    resolver = BindingResolver.from_settings(settings)
+    resolver = BindingResolver.from_settings(settings, ctx.state)
     # WP1b-B: an agent whose binding names protected_attribute_keys is sliced from its own
     # call arguments even when the global attribute source is none.
     arg_keys = any(

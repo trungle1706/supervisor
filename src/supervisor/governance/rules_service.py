@@ -300,6 +300,9 @@ class RulesService:
             "ts": format_ts(now),
         }
         self._chain("rule_run", f"system:{system_id}", payload)
+        from supervisor.governance.guardians import bump
+
+        bump()  # WP-S1: the floor may have changed
         return {
             "system_id": system_id,
             "trigger": trigger,

@@ -123,12 +123,22 @@ class SessionMonitor:
         self.settings = settings
         self.policy = policy
         self.actions = actions or SessionActions(ctx)
+        from supervisor.governance.guardians import make_narrower  # WP-S1 (None when off)
+
+        self.narrow = make_narrower(settings, getattr(ctx, "state", None))
 
     def config_for(self, agent_id: str) -> tuple[SessionConfig, int | None]:
         manifest = self.policy.doc.agents.get(agent_id)
         mons = manifest.monitors if manifest is not None else None
         binding = mons.session if mons is not None else None
-        return resolve_config(self.settings, binding), daily_cap_minor(self.policy, agent_id)
+        cfg = resolve_config(self.settings, binding)
+        if (
+            self.narrow is not None
+            and cfg.enabled
+            and self.narrow.is_off(agent_id, "session_monitor")
+        ):
+            cfg = replace(cfg, enabled=False)  # WP-S1: switched off for the agent's system
+        return cfg, daily_cap_minor(self.policy, agent_id)
 
     def run(self, now: datetime | None = None) -> BatchResult:
         now = now or self.ctx.clock.now()

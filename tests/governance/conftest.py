@@ -117,6 +117,8 @@ def mounted() -> Iterator[None]:
     take them off again. The app reads the flags once at import, so a test cannot flip them."""
     from supervisor.app import app
     from supervisor.console.systems_routes import router as console_router
+    from supervisor.governance.guardian_routes import console_router as guardians_console  # WP-S1
+    from supervisor.governance.guardian_routes import router as guardians_router  # WP-S1
     from supervisor.governance.routes import router as api_router
     from supervisor.governance.rules_routes import router as rules_router  # WP-G2
 
@@ -124,6 +126,8 @@ def mounted() -> Iterator[None]:
     lifespan = app.router.lifespan_context
     app.include_router(api_router)
     app.include_router(rules_router)
+    app.include_router(guardians_router)  # WP-S1 (the handlers answer 400 while the flag is off)
+    app.include_router(guardians_console)
     app.include_router(console_router)
     try:
         yield

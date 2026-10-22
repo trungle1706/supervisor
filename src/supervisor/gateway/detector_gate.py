@@ -34,7 +34,7 @@ from supervisor.core.detectors import (
     detector_id,
 )
 from supervisor.detectors.config import ResolvedDetectors
-from supervisor.gateway.policy import Policy
+from supervisor.gateway.policy import AgentDetectors, Policy
 
 log = logging.getLogger(__name__)
 
@@ -118,6 +118,9 @@ class DetectorGate:
         self.registry = registry
         self.resolved = resolved
         self.weigh_slugs = resolved.weighing_slugs()
+        # WP-S1: a GuardianNarrower when GUARDIAN_BINDINGS_ENABLED (set by wiring), else None.
+        # It can only add detectors to the agent's ``disable`` list; None = the code as before.
+        self.narrow: Any = None
 
     def redact_budget_bytes(self) -> int | None:
         """WP41b (D32): the bytes of argument text the inline masker may read for one call, or
@@ -128,6 +131,15 @@ class DetectorGate:
         if entry is None or not entry.enabled:
             return None
         return int(entry.settings.get("max_scan_bytes") or DEFAULT_MAX_SCAN_BYTES)
+
+    def _narrowed(self, override: AgentDetectors | None, agent_id: str) -> AgentDetectors | None:
+        """WP-S1: the agent's override with the detectors its systems switched off added to
+        ``disable``. Unchanged (the same object) when no binding is off."""
+        base = override if override is not None else AgentDetectors()
+        new = (self.narrow.off(agent_id) & set(self.registry.slugs)) - set(base.disable)
+        if not new:
+            return override
+        return base.model_copy(update={"disable": [*base.disable, *sorted(new)]})
 
     def check_policy(self, policy: Policy) -> list[str]:
         """Problems in the per-agent detector overrides of a policy (empty = fine). Used at
@@ -241,7 +253,10 @@ class DetectorGate:
             pre.consumer_id = cid  # WP39 review: an e-mail or phone as consumer id is dropped
         try:
             pre.risk_class = policy.risk_class(tool_name)
-            run_cfg, skip_tools = self.resolved.for_agent(policy.agent_detectors(agent_id))
+            override = policy.agent_detectors(agent_id)
+            if self.narrow is not None:  # WP-S1 (flag off: this branch never runs)
+                override = self._narrowed(override, agent_id)
+            run_cfg, skip_tools = self.resolved.for_agent(override)
             pre.fail_closed_risk = run_cfg.fail_closed_risk_classes
             if tool_name in skip_tools:
                 pre.skipped = True

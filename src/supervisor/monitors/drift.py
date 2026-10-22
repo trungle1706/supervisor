@@ -191,6 +191,12 @@ class DriftMonitor:
         self.cfg = cfg or DriftConfig()
         self.resolver = resolver
 
+    def _switched_off(self, agent_id: str) -> bool:
+        """WP-S1: drift is switched off for the agent's AI system (guardian binding)."""
+        return self.resolver is not None and "monitor_drift" in getattr(
+            self.resolver.resolve(agent_id), "off", ()
+        )
+
     def _cfg_for(self, agent_id: str) -> DriftConfig:
         if self.resolver is None:
             return self.cfg
@@ -256,6 +262,8 @@ class DriftMonitor:
         res = DriftResult()
         versions = self.versions()
         for agent_id, version in versions:
+            if self._switched_off(agent_id):  # WP-S1: the product owner switched drift off
+                continue
             mon = self
             cfg = self._cfg_for(agent_id)
             if cfg is not self.cfg:
@@ -274,6 +282,12 @@ class DriftMonitor:
         observed = observed_tools(self.ctx, now - timedelta(days=self.cfg.baseline_windows + 1))
         for agent_id in known_agents(self.ctx, self.resolver, observed):
             cfg = self._cfg_for(agent_id)
+            if self._switched_off(agent_id):
+                set_status(
+                    self.ctx, day, agent_id, "drift", NOT_APPLICABLE, code="switched_off",
+                    reason="drift is switched off for the AI system (guardian binding)",
+                )  # fmt: skip
+                continue
             if agent_id not in seen:
                 set_status(
                     self.ctx, day, agent_id, "drift", NOT_APPLICABLE, code="no_versioned_events",

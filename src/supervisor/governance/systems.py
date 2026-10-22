@@ -182,6 +182,9 @@ class SystemService:
         GOVERNANCE_ENABLED on; a rules problem is logged and never stops the change."""
         if not getattr(self.settings, "governance_enabled", False):
             return
+        from supervisor.governance.guardians import bump
+
+        bump()  # WP-S1: the links changed; the floor may change below
         try:
             from supervisor.governance.rules_service import RulesService
 
@@ -190,6 +193,8 @@ class SystemService:
             ).run(system_id, actor, trigger)
         except Exception:  # noqa: BLE001 - the change is stored; the CLI shows the rules problem
             log.exception("assignment rules run failed for %s", system_id)
+        finally:
+            bump()  # WP-S1: guardian bindings read the floor again at once
 
     def _changed(
         self,

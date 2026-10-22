@@ -41,3 +41,11 @@
 </div>
 <p class="hint">{{ t('ux4b_guardians_readonly') }}</p>
 {% endif %}
+{# WP-S1: per-system bindings (GUARDIAN_BINDINGS_ENABLED). gd_bindings is None when the feature is off. #}
+{% if gd_bindings is not none %}
+<section class="card" data-section="system-guardians-bindings">
+  <h3>{{ t('gb_tab_title') }}</h3>
+  <p>{% for g in gd_bindings if g.state == 'off' or g.locked %}<code>{{ g.slug }}</code> {{ ui.pill(t('gb_locked') if g.locked else t('gb_state_off'), 'warn' if g.locked else 'neutral') }} {% else %}<span class="muted">{{ t('gb_tab_none') }}</span>{% endfor %}</p>
+  <p class="hint"><a href="/console/catalog?system={{ s.system_id }}&amp;lang={{ lang }}">{{ t('gb_tab_link') }}</a></p>
+</section>
+{% endif %}

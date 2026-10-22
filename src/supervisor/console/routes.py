@@ -84,7 +84,7 @@ from supervisor.console.listing import ListingError
 from supervisor.controls.model import ensure_on as ensure_controls_on
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts
-from supervisor.core.errors import SupervisorError
+from supervisor.core.errors import NotFoundError, SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
 from supervisor.jobs import case_intake
 from supervisor.risk.model import ensure_on as ensure_risks_on
@@ -1716,7 +1716,15 @@ async def catalog_page(
     tab = request.query_params.get("tab") or "catalog"
     if tab not in ("catalog", "active"):
         raise ConsoleInputError("tab must be catalog or active")
-    data = await _call(catalog_view.page, ctx, tab, _lang(request, ctx))
+    system = request.query_params.get("system")  # WP-S1: the system whose switches show
+    if system:
+        _check_id(system, "system id")
+    try:
+        data = await _call(catalog_view.page, ctx, tab, _lang(request, ctx), me, system or None)
+    except NotFoundError as exc:  # WP-S1: a system outside the caller's scope
+        from supervisor.console.errors import console_error
+
+        return console_error(request, str(exc), 404)
     return render(request, ctx, me, "catalog.html", section="catalog", **data)
 
 

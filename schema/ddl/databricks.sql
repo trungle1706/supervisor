@@ -1321,3 +1321,20 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`governance_event` (
 USING DELTA
 COMMENT 'WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action (and an attempting entry before an action runs), so a retry of a started event skips what was done or may have been done. A failed action is retried up to 3 runs, then failed_final. Ids and enums only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_binding (state): WP-S1. A product owner's switch for one guardian feature on one AI system: on or off. No row means on. A binding can only narrow what the instance already has on; the assignment rules' guardian floor always wins (a floor feature cannot be set off, and a floor added later overrides an old off row at resolution time). mandatory is the floor state when the row was written (a snapshot for the audit; resolution reads the floor again). Changes go on the chain as binding_change (ids and enums only).
+-- primary key (enforced by the app, not by Delta): system_id, feature_slug
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_binding` (
+  system_id STRING NOT NULL,
+  feature_slug STRING NOT NULL,
+  state STRING NOT NULL,
+  mandatory BOOLEAN NOT NULL,
+  set_by STRING NOT NULL,
+  set_at TIMESTAMP NOT NULL,
+  reason STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-S1. A product owner''s switch for one guardian feature on one AI system: on or off. No row means on. A binding can only narrow what the instance already has on; the assignment rules'' guardian floor always wins (a floor feature cannot be set off, and a floor added later overrides an old off row at resolution time). mandatory is the floor state when the row was written (a snapshot for the audit; resolution reads the floor again). Changes go on the chain as binding_change (ids and enums only).'
+TBLPROPERTIES ('supervisor.kind' = 'state');

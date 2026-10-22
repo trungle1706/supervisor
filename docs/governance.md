@@ -132,7 +132,7 @@ Console context: `ctx.systems`, and from WP-G1 `ctx.lifecycle` (`LifecycleServic
 
 WP-G2 adds `RulesService` (`ctx.rules`) and `ClassificationService` (`ctx.classification`); a change
 of a system re-runs the assignment rules, and the effective risk level also has a classifier floor
-(class `high_risk` is at least `high`). See `docs/assignment-rules.md` and `docs/decision33.md`.
+(class `high_risk` is at least `high`). See `docs/assignment-rules.md` and `docs/decision33.md`. The owner switches the other guardian features per system with `docs/guardian-bindings.md` (WP-S1).
 
 ## 10. Off path
 

@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -96,6 +96,10 @@ class Resolved:
     split: SplitResolved
     drift: DriftBinding | None
     tools: Mapping[str, str]  # tool name -> risk class known for the agent
+    # WP-S1: monitor slugs the product owner switched off for the agent's system. A switched-off
+    # quality, fairness or split-payment monitor reads as unbound (``gap``), so the monitor writes
+    # a not_applicable status; drift reads ``off`` itself.
+    off: frozenset[str] = frozenset()
 
 
 @dataclass
@@ -126,6 +130,7 @@ class BindingResolver:
         policy_dirs: Sequence[Path] = (DEFAULT_POLICY_DIR,),
     ) -> None:
         self._agents: dict[str, _AgentInfo] = {}
+        self.narrow: Any = None  # WP-S1: a GuardianNarrower, or None (the code as before)
         self._policy_tools: dict[str, str] = {}
         for root in manifest_roots:
             self._load_manifests(Path(root))
@@ -133,7 +138,7 @@ class BindingResolver:
             self._load_policies(Path(d))
 
     @classmethod
-    def from_settings(cls, settings: Any) -> BindingResolver:
+    def from_settings(cls, settings: Any, state: Any = None) -> BindingResolver:
         roots = [DEFAULT_MANIFEST_ROOT]
         extra = getattr(settings, "monitor_manifest_dir", None)
         if extra:
@@ -146,7 +151,12 @@ class BindingResolver:
         extra_p = getattr(settings, "monitor_policy_dir", None)
         if extra_p:
             pdirs.append(_abs(extra_p))
-        return cls(manifest_roots=roots, policy_dirs=pdirs)
+        resolver = cls(manifest_roots=roots, policy_dirs=pdirs)
+        if state is not None:  # WP-S1: per-system guardian bindings (None unless the flag is on)
+            from supervisor.governance.guardians import make_narrower
+
+            resolver.narrow = make_narrower(settings, state)
+        return resolver
 
     # -- loading ---------------------------------------------------------------
     def _info(self, agent_id: str) -> _AgentInfo:
@@ -203,7 +213,7 @@ class BindingResolver:
         info = self._agents.get(agent_id, _AgentInfo())
         tools = self.tool_classes(agent_id, observed)
         layers = [(POLICY, info.policy), (MANIFEST, info.manifest)]
-        return Resolved(
+        resolved = Resolved(
             agent_id=agent_id,
             quality=_quality(layers, tools),
             fairness=_fairness(layers, tools),
@@ -211,6 +221,29 @@ class BindingResolver:
             drift=_drift(layers),
             tools=tools,
         )
+        if self.narrow is None:
+            return resolved
+        off = self.narrow.off(agent_id) & _MONITOR_SLUGS
+        if not off:
+            return resolved
+        return _switched_off(resolved, off)
+
+
+_MONITOR_SLUGS = frozenset(
+    {"monitor_quality", "monitor_fairness", "monitor_split_payment", "monitor_drift"}
+)
+OFF_GAP = "switched off for the AI system (guardian binding)"
+
+
+def _switched_off(r: Resolved, off: frozenset[str]) -> Resolved:
+    """WP-S1: the same binding with the switched-off monitors unbound. Only narrows."""
+    return replace(
+        r,
+        quality=QualityResolved(gap=OFF_GAP) if "monitor_quality" in off else r.quality,
+        fairness=FairnessResolved(gap=OFF_GAP) if "monitor_fairness" in off else r.fairness,
+        split=SplitResolved(gap=OFF_GAP) if "monitor_split_payment" in off else r.split,
+        off=off,
+    )
 
 
 def _abs(path: Any) -> Path:

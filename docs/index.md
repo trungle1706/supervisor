@@ -38,6 +38,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/governance.md` | Governance shared core: the AI system entity, team scope, risk inheritance, segregation of duties, API, console (WP-G0) | 2L, Risk, Audit, Dev |
 | `docs/governance-actions.md` | Governance loop: events from alerts, gate, detectors, monitors, packs and the chain become actions by rule; the rules file, the seven actions, dedupe, dry run (WP-G5) | 2L, Risk, SOC, Dev |
 | `docs/incidents.md` | Incidents made by the governance loop: table, states, who closes, API, Incidents tab (WP-G5) | 2L, SOC, Audit |
+| `docs/guardian-bindings.md` | Per-system guardian switches and the mandatory floor: table `guardian_binding`, how detectors, judge sampling, the session monitor and the monitors read it, API, Catalog switches (WP-S1) | 2L, Risk, Dev |
 | `docs/assignment-rules.md` | Assignment rules: `config/assignment_rules.yaml`, the deterministic evaluator, the `assignment` table, hooks into tasks, controls and the obligation matrix, the guardian floor (WP-G2) | 2L, Risk, Audit, Dev |
 | `docs/autonomy-levels.md` | Autonomy levels L0 to L5 of an AI system, the human role, and how each level maps to the guardian floor and the task set (WP-G2) | 2L, Risk, Audit, Dev |
 | `docs/decision33.md` | Decision 33 classification: the question flow, draft, edit and apply by a person, the risk floor, the optional AI pre-fill (WP-G2) | 2L, Risk, Audit, Dev |

@@ -115,6 +115,12 @@ if get_settings().governance_enabled:  # WP-G0: mounted only when the flag is on
     from supervisor.governance.rules_routes import router as rules_router  # WP-G2
 
     app.include_router(rules_router)  # /v1/systems/{id}/assignments, /classification, ...
+if get_settings().governance_enabled and get_settings().guardian_bindings_enabled:  # WP-S1
+    from supervisor.governance.guardian_routes import console_router as guardians_console_router
+    from supervisor.governance.guardian_routes import router as guardians_router
+
+    app.include_router(guardians_router)  # /v1/systems/{id}/guardians
+    app.include_router(guardians_console_router)  # POST /console/systems/{id}/guardians/{slug}
 if get_settings().console_systems_enabled:  # WP-G0: /console/systems (needs the flag above)
     from supervisor.console.systems_routes import router as systems_console_router
 

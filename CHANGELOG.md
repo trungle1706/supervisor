@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### WP-S1: per-system guardian bindings and the mandatory floor
+
+One new flag, off by default: `GUARDIAN_BINDINGS_ENABLED=1` (needs `GOVERNANCE_ENABLED=1`). Off =
+no route is mounted, no engine holds a lookup, the Catalog page is as before and the table stays
+empty. On with no rows = the same answers as off. See `docs/guardian-bindings.md`.
+
+- Table `guardian_binding` (system, feature slug, state on or off, mandatory, set by, set at,
+  reason) and chain record `binding_change` (ids, enums and a reason hash).
+- Effective state of a feature for an agent = the instance has it on AND (binding on OR the slug
+  is in the system's guardian floor). A binding only narrows. The floor is read from
+  `RulesService.guardian_floor` at resolution time. A floor feature cannot be set off (HTTP 400);
+  `policy_rules` (the gate rules) is never bindable.
+- Applied to detectors (`DetectorGate`, through the agent's `disable` list before
+  `ResolvedDetectors.for_agent`), judge sampling (Tier 2 random sample and challenger), the
+  session monitor (gate and batch job) and the monitors (WP1b-B bindings; drift skips the agent).
+- `GET /v1/systems/{id}/guardians`, `PUT /v1/systems/{id}/guardians/{slug}`,
+  `POST /console/systems/{id}/guardians/{slug}`; no new permission (`systems.view`,
+  `systems.edit`). Catalog page: system picker and a switch per capability card, a lock for the
+  floor. EN and VI.
+
 ### WP-UX4b: governance pages on the AI system
 
 Needs `CONSOLE_NAV_V3=1` and `CONSOLE_SYSTEMS_ENABLED=1` (with `GOVERNANCE_ENABLED=1`). With the flags off nothing changes; with `GOVERNANCE_ENABLED` off the two overviews keep the agent-based pages of WP-UX4a.

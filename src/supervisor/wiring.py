@@ -123,7 +123,7 @@ def build_runtime(
             facts,
             policy_refresh_s,
             state_cache_ttl_s,
-            detector_gate=make_detector_gate(settings, policy),
+            detector_gate=make_detector_gate(settings, policy, adapters.state),
             session_gate=make_session_gate(settings, adapters, chain),
         )
     except BaseException:
@@ -198,7 +198,7 @@ def make_session_gate(settings: Settings, adapters: Adapters, evidence: Any) -> 
     )
 
 
-def make_detector_gate(settings: Settings, policy: Policy) -> Any:
+def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) -> Any:
     """WP37: the detector gate (catalogue, ``config/detectors.yaml``, per-agent overrides of the
     policy file), or None when DETECTORS_ENABLED is off. A bad config or a bad agent override is
     a startup error, never a silent default."""
@@ -226,6 +226,10 @@ def make_detector_gate(settings: Settings, policy: Policy) -> Any:
         msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
     gate = DetectorGate(registry, resolved)
+    # WP-S1: per-system guardian bindings (None unless both flags are on)
+    from supervisor.governance.guardians import make_narrower
+
+    gate.narrow = make_narrower(settings, state)
     problems = gate.check_policy(policy)
     if problems:
         msg = "detector overrides in the policy are invalid: " + "; ".join(problems)
