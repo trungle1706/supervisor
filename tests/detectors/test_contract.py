@@ -137,7 +137,9 @@ def test_registry_rejects_bad_detectors() -> None:
 
 def test_catalogue_comes_from_code(masker: VnRegexMasker) -> None:
     cat = build_registry(masker).catalogue()
-    assert [c["slug"] for c in cat] == [
+    slugs = [c["slug"] for c in cat]
+    assert "guard_model" in slugs  # WP-D3: phase 5 detectors are appended after these four
+    assert slugs[:4] == [
         "dlp_vn",
         "injection_regex",
         "injection_classifier",

@@ -47,7 +47,9 @@ FAILED_RULE = "GATE-DETECTOR-FAILED"
 # (a read_only tool cannot be paused by a finding). The detector itself also checks the classes it
 # is configured with; this is the gate's own backstop.
 CLASSIFIER_PAUSE_RULE = "GATE-CLASSIFIER-PAUSE"
-PAUSE_CAPABLE_DETECTORS: frozenset[str] = frozenset({"injection_classifier"})
+PAUSE_CAPABLE_DETECTORS: frozenset[str] = frozenset(
+    {"injection_classifier", "guard_model"}
+)  # WP-D3
 PAUSE_RISK_CLASSES: frozenset[str] = frozenset({"money", "credit", "pii_export"})
 
 

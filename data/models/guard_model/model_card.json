@@ -1,0 +1,32 @@
+{
+  "_comment": "WP-D3. Model card of the guard model the bank chooses (docs/guard-model-decision.md). Shipped as a template: nothing here is approved. The guard_model detector may set the pause hint only when approval.approver names a person (not FILL-ME) and approval.model_id equals model_id and the model id the configured adapter serves. Template for the full card: docs/guard-model-card-template.md.",
+  "card_version": 1,
+  "detector": "guard_model@1.0.0",
+  "model_id": "FILL-ME-guard-model-id",
+  "model_version": "FILL-ME-pinned-revision",
+  "adapter": "FILL-ME-classifier_endpoint-or-chat",
+  "family": "FILL-ME-model-family",
+  "licence": "FILL-ME-licence-checked-by-legal",
+  "languages": ["vi", "en"],
+  "mrm_status": "NO-GO",
+  "validation": {
+    "report": "docs/guard-model-validation-report.md",
+    "mode": "mock",
+    "run_on": "FILL-ME-date-of-the-real-run",
+    "corpus": "data/eval/injection_vi_en (WP25) plus the bank's own samples"
+  },
+  "presets_bp": {
+    "strict": {"jailbreak": 3500, "indirect_injection": 4000},
+    "balanced": {"jailbreak": 5500, "indirect_injection": 6000},
+    "permissive": {"jailbreak": 8000, "indirect_injection": 8500}
+  },
+  "pause_bar_bp": {"jailbreak": 8000, "indirect_injection": 8500},
+  "window_chars": 2000,
+  "window_overlap_chars": 500,
+  "approval": {
+    "approver": "FILL-ME-name-of-the-approver",
+    "model_id": "FILL-ME-guard-model-id",
+    "approved_on": "FILL-ME",
+    "scope": "pause of money and credit tools (rule GATE-CLASSIFIER-PAUSE) and fail closed"
+  }
+}

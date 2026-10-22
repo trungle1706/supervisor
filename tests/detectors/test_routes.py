@@ -117,7 +117,9 @@ def test_flag_off_the_answer_is_unchanged_and_output_is_refused(off: TestClient)
 def test_the_catalogue_endpoint(on: TestClient) -> None:
     body = on.get("/v1/gate/detectors").json()
     assert body["enabled"] is True
-    assert [d["slug"] for d in body["detectors"]] == [
+    slugs = [d["slug"] for d in body["detectors"]]
+    assert "guard_model" in slugs  # WP-D3: phase 5 detectors are appended after these four
+    assert slugs[:4] == [
         "dlp_vn",
         "injection_regex",
         "injection_classifier",

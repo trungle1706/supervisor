@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, TypedDict, runtime_checkable
 
 Row = dict[str, Any]
 Params = Mapping[str, Any]
@@ -219,3 +219,32 @@ class GateHook(Protocol):
         args: Mapping[str, Any],
         context: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]: ...
+
+
+# --- WP-D3 --- guard model (ML jailbreak and indirect-injection scoring)
+class GuardScore(TypedDict):
+    """The answer of a guard model for ONE text, in basis points (0 to 10000).
+
+    ``label`` is the strongest attack label: ``jailbreak`` (a user trying to override the agent's
+    rules), ``indirect_injection`` (an instruction hidden in third-party text), ``malicious`` (the
+    model has one attack class only; the detector gives it the label of the text's surface) or
+    ``benign`` (``score_bp`` is then 0)."""
+
+    label: Literal["jailbreak", "indirect_injection", "malicious", "benign"]
+    score_bp: int
+
+
+@runtime_checkable
+class GuardModelPort(Protocol):
+    """A classification endpoint for the ``guard_model`` detector (WP-D3).
+
+    ``score(texts)`` returns one :class:`GuardScore` per text, in order. The texts are MASKED
+    (the detector masks before it calls). An adapter raises ``GuardModelError`` with reason
+    ``timed_out`` or ``execution_failed``; the detector turns that into a not-executed finding,
+    so a failure never reaches the gate. ``is_mock`` adapters label every finding ``mock``."""
+
+    name: str
+    model_id: str
+    is_mock: bool
+
+    def score(self, texts: Sequence[str]) -> list[GuardScore]: ...

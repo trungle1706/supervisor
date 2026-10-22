@@ -225,6 +225,7 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
     except ConfigError as exc:  # one ASCII line naming the setting, no chained traceback
         msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
+    _wire_guard_model(settings, registry, resolved, state)  # WP-D3
     gate = DetectorGate(registry, resolved)
     # WP-S1: per-system guardian bindings (None unless both flags are on)
     from supervisor.governance.guardians import make_narrower
@@ -235,6 +236,23 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
         msg = "detector overrides in the policy are invalid: " + "; ".join(problems)
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii"))
     return gate
+
+
+def _wire_guard_model(settings: Settings, registry: Any, resolved: Any, state: Any) -> None:
+    """WP-D3: give the ``guard_model`` detector its model. Nothing happens when the slug is not in
+    ``config/detectors.yaml`` (the off path). A bad setting (remote URL, family clash with an agent)
+    is a start-up ``ConfigError``, never an error at call time."""
+    if "guard_model" not in resolved.cfg.detectors or "guard_model" not in registry:
+        return
+    from supervisor.adapters.guard import make_guard_model
+    from supervisor.core.errors import ConfigError
+
+    try:
+        port = make_guard_model(settings, state=state)
+    except ConfigError as exc:
+        msg = f"guard_model: {exc}"
+        raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
+    registry.get("guard_model").set_port(port)
 
 
 def _advisory_judge(settings: Settings, masker: Any) -> Any:
