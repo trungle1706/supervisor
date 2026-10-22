@@ -57,6 +57,13 @@ def _on(value: Any) -> bool:
     return bool(value)
 
 
+def bump() -> None:
+    """Drop every narrower cache in this process. Called after anything that can change what an
+    agent's systems resolve to: a binding write, a rules run (the floor), a link, an unlink."""
+    global _generation
+    _generation += 1
+
+
 def guardian_bindings_on(settings: Any) -> bool:
     return bool(
         getattr(settings, "guardian_bindings_enabled", False)
@@ -216,7 +223,6 @@ class GuardianService:
     ) -> dict[str, Any]:
         """Set one binding. Refused (400) for a floor slug set off, for a gate rule, for an
         unknown slug, for an archived system. A repeat of the current state changes nothing."""
-        global _generation
         ensure_bindings_on(self.settings)
         check_user(actor, "actor")
         row = self._system(system_id)
@@ -236,6 +242,8 @@ class GuardianService:
             raise SystemsError(f"state must be one of {', '.join(STATES)}")
         if reason is not None and (not isinstance(reason, str) or len(reason) > MAX_REASON):
             raise SystemsError(f"reason must be a text of at most {MAX_REASON} characters")
+        if isinstance(reason, str) and any(ord(c) < 32 and c not in "\n\t" for c in reason):
+            raise SystemsError("reason must not hold control characters")
         reason = (reason or "").strip() or None
         floor = {f["slug"]: f["rules"] for f in _floor(self.settings, self.state, system_id)}
         mandatory = slug in floor
@@ -245,8 +253,8 @@ class GuardianService:
                 "it cannot be switched off"
             )
         cur = self.state.get("guardian_binding", {"system_id": system_id, "feature_slug": slug})
-        if cur is not None and str(cur["state"]) == state:
-            return self._one(system_id, slug)
+        if (cur is not None and str(cur["state"]) == state) or (cur is None and state == "on"):
+            return self._one(system_id, slug)  # no effective change: write nothing
         now = self.clock.now()
         fields = {
             "state": state,
@@ -266,7 +274,7 @@ class GuardianService:
                 fields,
                 cur["row_version"],
             )
-        _generation += 1
+        bump()
         payload: dict[str, Any] = {
             "system_id": system_id,
             "feature_slug": slug,

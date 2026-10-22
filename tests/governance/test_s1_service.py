@@ -70,8 +70,8 @@ def test_a_floor_slug_cannot_be_switched_off(
     with pytest.raises(SystemsError, match="guardian floor.*AR-PDPL-CUSTOMER.*cannot be switched"):
         guard.set(sid, "dlp_vn", "off", OWNER)
     assert sink.of("binding_change") == []
-    ok = guard.set(sid, "dlp_vn", "on", OWNER)  # on is allowed; mandatory is recorded
-    assert ok["locked"] and ok["effective"] and sink.of("binding_change")[0]["mandatory"] is True
+    ok = guard.set(sid, "dlp_vn", "on", OWNER)  # on is allowed; no row, so nothing is written
+    assert ok["locked"] and ok["effective"] and sink.of("binding_change") == []
     guard.set(sid, "session_monitor", "off", OWNER)  # a non-floor slug of the same system
 
 
@@ -199,3 +199,37 @@ def test_make_narrower_needs_both_flags(sadapters: Adapters) -> None:
     assert make_narrower(s, sadapters.state) is None
     s.guardian_bindings_enabled, s.governance_enabled = True, False
     assert make_narrower(s, sadapters.state) is None
+
+
+def test_on_without_a_row_writes_nothing(
+    guard: GuardianService, ssvc: SystemService, sink: ListSink, sadapters: Adapters
+) -> None:
+    sid = make_system(ssvc)
+    out = guard.set(sid, "injection_regex", "on", OWNER)
+    assert out["default"] is True and out["state"] == "on"
+    assert sink.of("binding_change") == [] and sadapters.state.query("guardian_binding") == []
+
+
+def test_reason_with_control_characters_is_refused(
+    guard: GuardianService, ssvc: SystemService
+) -> None:
+    sid = make_system(ssvc)
+    with pytest.raises(SystemsError, match="control characters"):
+        guard.set(sid, "injection_regex", "off", OWNER, "bad\x00reason")
+    assert guard.set(sid, "injection_regex", "off", OWNER, "two\nlines\tok")["state"] == "off"
+
+
+def test_a_floor_change_acts_at_once_in_the_same_narrower(
+    sadapters: Adapters, guard: GuardianService, ssvc: SystemService
+) -> None:
+    sid = make_system(ssvc, ("pay-agent",), autonomy_level="l1_assistive")
+    cached = GuardianNarrower(sadapters.state, sadapters.settings, ttl_s=3600)
+    guard.set(sid, "session_monitor", "off", OWNER)
+    assert cached.off("pay-agent") == {"session_monitor"}
+    ssvc.update_fields(sid, {"autonomy_level": "l4_autonomous_bounded"}, OWNER)
+    assert cached.off("pay-agent") == frozenset()  # the floor now holds session_monitor
+    ssvc.update_fields(sid, {"autonomy_level": "l1_assistive"}, OWNER)
+    assert cached.off("pay-agent") == {"session_monitor"}
+    other = make_system(ssvc, (), name="Second")
+    ssvc.link(other, "agent", "pay-agent", OWNER)  # a second system that keeps it on
+    assert cached.off("pay-agent") == frozenset()
