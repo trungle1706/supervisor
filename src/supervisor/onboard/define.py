@@ -43,6 +43,7 @@ from supervisor.adapters.repo.local_git import RepoReadError  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
 from supervisor.core.ports import ChatModel  # noqa: E402
 from supervisor.onboard import render  # noqa: E402
+from supervisor.onboard.autonomy import propose_autonomy_level  # noqa: E402
 from supervisor.onboard.discover import (  # noqa: E402
     ARTIFACT_MANIFEST_NAMES,
     Discovery,
@@ -109,6 +110,7 @@ class DefineResult:
     inventory: Inventory
     profile: AgentProfile
     artifact: dict[str, Any]
+    autonomy: dict[str, Any] = field(default_factory=dict)
     artefacts: dict[str, Path] = field(default_factory=dict)
     lines: list[str] = field(default_factory=list)
 
@@ -287,6 +289,8 @@ def define_artifact(
         f"{scrubber.total} secret(s) redacted"
     )
     profile = understand(disc, chat)
+    autonomy = propose_autonomy_level(disc)
+    say(f"[OK] autonomy level proposal: {autonomy['level']} ({autonomy['why']})")
     say(
         f"[OK] understand: proposed tier {profile.proposed_risk_tier}, Decision 33 proposal "
         f"{profile.decision33.classification} (counsel confirms), LLM used: {profile.llm.used}"
@@ -302,7 +306,9 @@ def define_artifact(
     out.mkdir(parents=True, exist_ok=True)
     texts = {
         "inventory.json": _json(inv),
-        "profile.json": _json(profile),
+        "profile.json": _json(
+            {**profile.model_dump(mode="json"), "autonomy_level_proposal": autonomy}
+        ),
         "profile.md": render.profile_md(inv, profile),
         "artifact.json": _json(facts),
     }
@@ -312,7 +318,7 @@ def define_artifact(
         p.write_text(text, encoding="utf-8", newline="\n")
         paths[name] = p
         say(f"[OK] wrote {p}")
-    return DefineResult(out, inv, profile, facts, paths, lines)
+    return DefineResult(out, inv, profile, facts, autonomy, paths, lines)
 
 
 def _add_artifact_facts(disc: Discovery) -> Discovery:

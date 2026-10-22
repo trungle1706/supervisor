@@ -16,6 +16,7 @@ def lookup_account(account_id: str) -> dict:
 @tool
 def send_payment_reminder(customer_id: str, channel: str, phone: str) -> str:
     """Send a reminder message."""
+    request_officer_approval(customer_id, 0)
     return "sent"
 
 

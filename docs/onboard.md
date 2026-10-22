@@ -141,6 +141,21 @@ code; a sentence in a README or manifest does not. Counsel confirms.
 | credit_prequal | high_risk | `decide_prequal` records decisions; the "human underwriter" is prose only |
 | customer_service | not_high_risk (by default) | money tools (fee waiver, dispute) have no destination |
 
+## Autonomy level proposal (WP-G3)
+
+`python -m supervisor.onboard.define` also writes `autonomy_level_proposal` in `profile.json`: `level`, `why`, `evidence` (file:line) and `is_proposal`. It is a segmentation dimension; a person confirms it. It is separate from the older `autonomy` field (L0 to L3, WP16), which does not change. Code: `src/supervisor/onboard/autonomy.py`.
+
+| Level | Meaning | Rule (first match wins) |
+|---|---|---|
+| `l5_self_directed` | Sets sub-goals, spawns agents or changes its own tools | Code matches agent spawning, run-time tool creation (`register_tool(`, `add_tool(`) or a self-changing prompt |
+| `l0_rule_based` | No model decides | No model call and no model id found |
+| `l1_assistive` | Model writes text, a person acts | Model call, no tool declared, entry point is a chat or HTTP route |
+| `l2_workflow_step` | A fixed workflow calls a model for one step | Model call, no tool declared, entry point is a job, pipeline or batch handler (batch plus HTTP: l2, the higher one) |
+| `l3_tool_using_supervised` | Model picks tools from a bounded set, a person approves consequential actions | Tools declared and every tool with a side effect sits behind a human approval or interrupt step in code (LangGraph `interrupt`, approval node, confirmation); or all tools only read |
+| `l4_autonomous_bounded` | Plans and executes multi-step work inside an authority boundary | Tools with side effects and no approval step, with or without a planner or loop; an approval step that covers only some tools also gives l4 (mixed evidence: the higher level) |
+
+`why` names the rule and, for mixed evidence, says that the higher level was kept. The draft registration (`INVENTORY_AUTOREGISTER`) copies a proposal found on the node (`attrs.autonomy_level_proposal`) into `ai_system.autonomy_level` only when that column exists (WP-G2); otherwise it does nothing. Fixtures: `artifact_batch_summariser` (l2), `artifact_credit_memo` (l4), `artifact_collections_mcp` (l3).
+
 ## Capability catalogue
 
 Manifests: `src/supervisor/catalogue/manifests/*.yaml` (schema

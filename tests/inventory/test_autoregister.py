@@ -264,3 +264,36 @@ def test_job_passes_the_services_through(on: Adapters, sink: ListSink) -> None:
 
     out = job.run(on, on.settings, FixtureWorkspaceReader.from_file(V2))
     assert out["autoregister"]["created"] == 3  # the job builds its own services
+
+
+def test_autonomy_proposal_is_copied_only_when_the_column_exists(
+    on: Adapters, sink: ListSink
+) -> None:
+    from supervisor.inventory.autoregister import _copy_autonomy
+    from supervisor.inventory.model import Node
+
+    systems, _ = _services(on, sink)
+    node = Node(
+        "system",
+        "app:x",
+        attrs={"autonomy_level_proposal": {"level": "l3_tool_using_supervised"}},
+    )
+    _copy_autonomy(systems, "sys_none", node)  # no column in this branch: no error, no change
+
+    class FakeState:
+        calls: list[Any] = []
+
+        class model:  # noqa: N801
+            @staticmethod
+            def table(name: str) -> Any:
+                return type("T", (), {"column_names": ["system_id", "autonomy_level"]})()
+
+        def get(self, table: str, key: Any) -> Any:
+            return {"row_version": 1}
+
+        def update(self, table: str, key: Any, changes: Any, version: int) -> None:
+            self.calls.append(changes)
+
+    fake = type("S", (), {"state": FakeState()})()
+    _copy_autonomy(fake, "sys_1", node)
+    assert FakeState.calls == [{"autonomy_level": "l3_tool_using_supervised"}]

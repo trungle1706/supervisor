@@ -233,3 +233,62 @@ def test_module_has_no_forbidden_imports() -> None:
         "subprocess",
     ):
         assert bad not in src
+
+
+# ------------------------------------------------------------------ autonomy level proposal
+BATCH = DATA / "artifact_batch_summariser"
+
+
+def _autonomy(tmp_path: Path, src: Path) -> dict[str, Any]:
+    res = define_artifact(src, tmp_path / "o")
+    on_disk = json.loads((tmp_path / "o" / "profile.json").read_text(encoding="utf-8"))
+    assert on_disk["autonomy_level_proposal"] == res.autonomy
+    return res.autonomy
+
+
+def _check_evidence(a: dict[str, Any], root: Path) -> None:
+    assert a["evidence"] and a["why"] and a["is_proposal"] is True
+    for ev in a["evidence"]:
+        rows = (root / ev["file"]).read_text(encoding="utf-8").splitlines()
+        assert 1 <= ev["line"] <= len(rows)
+
+
+def test_batch_job_with_no_tool_is_l2(tmp_path: Path) -> None:
+    a = _autonomy(tmp_path, BATCH)
+    assert a["level"] == "l2_workflow_step"
+    _check_evidence(a, BATCH)
+
+
+def test_tools_without_approval_are_l4(tmp_path: Path) -> None:
+    a = _autonomy(tmp_path, CREDIT)
+    assert a["level"] == "l4_autonomous_bounded" and "no approval step" in a["why"]
+    _check_evidence(a, CREDIT)
+
+
+def test_tools_each_behind_an_approval_step_are_l3(tmp_path: Path) -> None:
+    a = _autonomy(tmp_path, COLLECTIONS)
+    assert a["level"] == "l3_tool_using_supervised"
+    _check_evidence(a, COLLECTIONS)
+
+
+def _plain(tmp_path: Path, code: str) -> dict[str, Any]:
+    src = tmp_path / "art"
+    src.mkdir()
+    (src / "agent.py").write_text(code, encoding="utf-8")
+    return define_artifact(src, tmp_path / "o").autonomy
+
+
+def test_no_model_is_l0_chat_endpoint_is_l1_spawning_is_l5(tmp_path: Path) -> None:
+    chat = (
+        "from fastapi import FastAPI\nfrom openai import OpenAI\napp = FastAPI()\n"
+        '@app.post("/chat")\ndef chat(q: str):\n'
+        '    return OpenAI().chat.completions.create(model="gpt-4o", messages=[])\n'
+    )
+    cases = {
+        "a": ("def f(x):\n    return x + 1\n", "l0_rule_based"),
+        "b": (chat, "l1_assistive"),
+        "c": (chat + "def go():\n    spawn_agent('helper')\n", "l5_self_directed"),
+    }
+    for name, (code, level) in cases.items():
+        (tmp_path / name).mkdir()
+        assert _plain(tmp_path / name, code)["level"] == level, name

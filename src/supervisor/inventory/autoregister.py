@@ -269,9 +269,34 @@ def _register(
         source="workspace_scan",
         evidence_ref=_first_ref(node),
     )
+    _copy_autonomy(systems, sid, node)
     if tasks is not None:
         _open_task(tasks, sid, cfg)
     return sid
+
+
+def _copy_autonomy(systems: Any, system_id: str, node: Node) -> None:
+    """Copy the autonomy level proposal (``node.attrs.autonomy_level_proposal``, set from a
+    ``supervisor.onboard.define`` run) into the draft when ``ai_system.autonomy_level`` exists
+    (WP-G2). Without the column or without a proposal this does nothing."""
+    level = node.attrs.get("autonomy_level_proposal")
+    if isinstance(level, Mapping):
+        level = level.get("level")
+    if not level:
+        return
+    try:
+        state = systems.state
+        if "autonomy_level" not in state.model.table("ai_system").column_names:
+            return
+        row = state.get("ai_system", {"system_id": system_id})
+        state.update(
+            "ai_system",
+            {"system_id": system_id},
+            {"autonomy_level": str(level)},
+            row["row_version"],
+        )
+    except Exception:  # noqa: BLE001 - the column is optional; a draft without it is fine
+        log.info("inventory: autonomy level not copied to the draft")
 
 
 def _open_task(tasks: Any, system_id: str, cfg: GovernanceConfig) -> None:
