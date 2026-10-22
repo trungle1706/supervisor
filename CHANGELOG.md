@@ -17,6 +17,30 @@ Two new flags, both off by default (off = nothing is mounted and the console is 
 - New permissions `systems.view` (all roles) and `systems.edit` (reviewer, owner, admin).
 - Docs: `docs/governance.md`.
 
+### WP-G1: lifecycle, stage approvals, reviews, outbound events
+
+All under `GOVERNANCE_ENABLED=1` (off = nothing is mounted and nothing changes). One new flag,
+`WEBHOOKS_ENABLED`, off by default.
+
+- Task sizing: an agent linked to an AI system is sized from the effective risk level of the system
+  and the Decision 33 floor; a system with an unspecified level gives the initiation set only. An
+  agent with no link is sized as before. Task templates accept `min_risk_level` and
+  `required_from_level` (low, medium, high, prohibited).
+- New tables `stage_approval`, `review`, `outbound_event`; chain records `stage_change` and
+  `review_change`.
+- Lifecycle: `POST /v1/systems/{id}/stage`; a move into a stage marked `approval: true` in
+  `config/tasks.yaml` (default deployment and operation) needs an approved stage approval. The
+  approver is a reviewer or oversight manager of the system, or an approver, and is not the
+  requester or the owner (`segregation of duties:`). `PATCH` no longer changes `lifecycle_stage`.
+- Reviews with scope, window and reports; complete locks, reopen needs a reason.
+- Outbound events written on stage approved, review completed, system registered and archived; the
+  webhook stub (`WEBHOOKS_ENABLED=1`) logs and marks them delivered, it sends nothing.
+- Routes under `/v1/systems/{id}`: `approvals`, `approvals/{aid}/decide`, `stage`, `reviews`,
+  `reviews/{rid}`, `reviews/{rid}/complete`, `reviews/{rid}/reopen`. New permissions
+  `systems.approve` and `systems.review`.
+- Console: tabs Tasks and Reviews on the system page. EN and VI.
+- Docs: `docs/governance.md` sections 12 to 19.
+
 ### Console: two-section sidebar and Catalog page
 
 Two new flags, both off by default (off = the console as in v0.4.1).
