@@ -3689,6 +3689,7 @@ _T.update(
 _T.update(
     {
         # --- WP-G5: Incidents tab of Cases & alerts, Reports tab of the system page ---------
+        "sy_source_event": ("raised by a governance event", "do sự kiện quản trị nâng"),
         "nav_incidents": ("Incidents", "Sự cố"),
         "nv3_t_incidents": ("Incidents", "Sự cố"),
         "sy_tab_reports": ("Reports", "Báo cáo"),
