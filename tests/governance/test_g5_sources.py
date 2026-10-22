@@ -41,8 +41,8 @@ def test_gate_stops_only_on_risky_tools(rig: Rig) -> None:
     rig.verdict("v6", "e1", "allow")
     events = src.gate_stops(rig.ctx, LO, NOW, classes=CLASSES)
     assert [(e.ref, e.severity, e.rule_id, e.evidence) for e in events] == [
-        ("verdict:v1", "high", "R-LIMIT", ("rule", "R-LIMIT")),
-        ("verdict:v3", "medium", "R-PAYEE", ("rule", "R-PAYEE")),
+        ("gatestop:agent-a:block:2026102211", "high", "R-LIMIT", ("rule", "R-LIMIT")),
+        ("gatestop:agent-a:pause:2026102211", "medium", "R-PAYEE", ("rule", "R-PAYEE")),
     ]
 
 
@@ -134,3 +134,41 @@ def test_attach_systems_fans_out_per_linked_system_and_skips_archived(rig: Rig) 
     )
     keys = {e.key for e in events}
     assert len(keys) == len(events)  # one dedupe key per source row and system
+
+
+def test_a_burst_of_blocked_calls_is_one_event_per_agent_action_and_hour(rig: Rig) -> None:
+    for i in range(5):
+        rig.event_row(f"b{i}", "transfer")
+        rig.verdict(f"vb{i}", f"b{i}", "block", rule_id=f"R-{i}", ts=ago(100 - i))
+    rig.event_row("o1", "transfer", agent_id="agent-b")
+    rig.verdict("vo1", "o1", "block", agent_id="agent-b")
+    rig.event_row("late", "transfer")
+    rig.verdict("vlate", "late", "block", ts=ago(3700))  # an earlier hour
+    events = src.gate_stops(rig.ctx, NOW - timedelta(hours=3), NOW, classes=CLASSES)
+    assert sorted(e.ref for e in events) == [
+        "gatestop:agent-a:block:2026102210",
+        "gatestop:agent-a:block:2026102211",
+        "gatestop:agent-b:block:2026102211",
+    ]
+    burst = next(e for e in events if e.ref.endswith("agent-a:block:2026102211"))
+    assert burst.rule_id == "R-0" and burst.at == ago(100)  # the first stop of the group
+
+
+def test_the_lookup_of_tools_is_batched(rig: Rig, monkeypatch) -> None:
+    monkeypatch.setattr(src, "TOOL_BATCH", 3)
+    for i in range(7):
+        rig.event_row(f"t{i}", "transfer", agent_id=f"agent-{i}")
+        rig.verdict(f"vt{i}", f"t{i}", "block", agent_id=f"agent-{i}")
+    seen = []
+    real = rig.ctx.executor.query
+
+    def spy(sql: str, *a, **k):
+        seen.append(sql)
+        return real(sql, *a, **k)
+
+    monkeypatch.setattr(rig.ctx.executor, "query", spy)
+    events = src.gate_stops(rig.ctx, LO, NOW, classes=CLASSES)
+    assert len(events) == 7
+    assert (
+        sum("FROM agent_event" in q or "agent_event" in q for q in seen) == 3
+    )  # 7 ids, 3 per batch

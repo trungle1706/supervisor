@@ -51,7 +51,7 @@ log = logging.getLogger("supervisor.governance.actions")
 RISKY_CLASSES = ("money", "credit", "pii_export")
 DETECTOR_FAILED_REASONS = ("execution_failed", "timed_out")
 MONITOR_CASE_TYPES = ("drift", "fairness", "multiagent")
-CASE_SCAN = 500  # newest cases of one type a run reads
+TOOL_BATCH = 200  # decision ids in one lookup
 # Verdict rows that are not a rule decision (the same list as supervisor.risk.evidence).
 NON_HIT_LABEL_PREFIXES = ("shadow_",)
 NON_HIT_LABELS = ("rule_error", "fail_open", "fail_closed")
@@ -97,11 +97,53 @@ def alerts(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[GovernanceEv
     return out
 
 
-def _tool_of(ctx: MonitorContext, event_id: Any) -> str | None:
-    if not event_id:
-        return None
-    rows = ctx.tables.query("agent_event", {"event_id": event_id}, limit=1)
-    return str(rows[0]["tool_name"]) if rows and rows[0].get("tool_name") else None
+def _range(
+    ctx: MonitorContext,
+    table: str,
+    column: str,
+    lo: datetime,
+    hi: datetime,
+    where: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Rows with ``lo <= column < hi`` (and equality filters) read by the store, not in Python.
+    Like ``read_range`` for a table whose time column is not ``ts``."""
+    t = ctx.model.table(table)
+    t.column(column)
+    params: dict[str, Any] = {"r_from": lo, "r_to": hi}
+    types: dict[str, str] = {"r_from": "timestamp", "r_to": "timestamp"}
+    parts = [f"{column} >= :r_from", f"{column} < :r_to"]
+    for i, (name, value) in enumerate(sorted((where or {}).items())):
+        col = t.column(name)
+        parts.append(f"{col.name} = :w{i}")
+        params[f"w{i}"] = value
+        types[f"w{i}"] = col.type
+    sql = (
+        f"SELECT {', '.join(t.column_names)} FROM {ctx.executor.qualify(t.name)} "  # noqa: S608 - names from model.yaml
+        f"WHERE {' AND '.join(parts)} ORDER BY {column}"
+    )
+    return ctx.executor.query(sql, params, column_types=t.types, param_types=types)
+
+
+def _tools_of(ctx: MonitorContext, event_ids: list[str]) -> dict[str, str]:
+    """event id -> tool name for a set of gate decisions, in batches (one query per 200 ids)."""
+    t = ctx.model.table("agent_event")
+    out: dict[str, str] = {}
+    ids = sorted(set(event_ids))
+    for i in range(0, len(ids), TOOL_BATCH):
+        chunk = ids[i : i + TOOL_BATCH]
+        names = [f"e{k}" for k in range(len(chunk))]
+        sql = (
+            f"SELECT event_id, tool_name FROM {ctx.executor.qualify(t.name)} "  # noqa: S608 - names from model.yaml
+            f"WHERE event_id IN ({', '.join(':' + n for n in names)})"
+        )
+        rows = ctx.executor.query(
+            sql,
+            dict(zip(names, chunk, strict=True)),
+            column_types={"event_id": t.types["event_id"], "tool_name": t.types["tool_name"]},
+            param_types=dict.fromkeys(names, "string"),
+        )
+        out.update({str(r["event_id"]): str(r["tool_name"]) for r in rows if r.get("tool_name")})
+    return out
 
 
 def gate_stops(
@@ -112,12 +154,14 @@ def gate_stops(
     classes: Mapping[str, str] | None = None,
 ) -> list[GovernanceEvent]:
     """Gate block or pause on a money, credit or pii_export tool. ``classes`` is tool -> risk
-    class (default: the policy catalogue and the agent manifests, as tool analytics reads it)."""
+    class (default: the policy catalogue and the agent manifests, as tool analytics reads it).
+    One event per agent, action and hour (review L4): a burst of blocked calls is one event; the
+    rule and the evidence are those of the first stop of the group."""
     if classes is None:
         from supervisor.analytics.tools import risk_classes
 
         classes = risk_classes()
-    out = []
+    stops: list[tuple[Mapping[str, Any], str]] = []
     for action, severity in (("block", "high"), ("pause", "medium")):
         for v in read_range(ctx, "verdict", lo, hi, {"tier": 0, "action": action}):
             label = str(v.get("label") or "")
@@ -127,23 +171,32 @@ def gate_stops(
                 or label in NON_HIT_LABELS
                 or label.startswith(NON_HIT_LABEL_PREFIXES)
                 or str(v.get("checker_id") or "") in NON_HIT_CHECKERS
+                or not v.get("event_id")
             ):
                 continue
-            tool = _tool_of(ctx, v.get("event_id"))
-            if tool is None or classes.get(tool) not in RISKY_CLASSES:
-                continue
-            rule = str(v.get("rule_id") or "")
-            out.append(
-                GovernanceEvent(
-                    kind="gate_stop",
-                    severity=severity,
-                    agent_id=_agent(v["agent_id"]),
-                    ref=safe_ref("verdict", v["verdict_id"]),
-                    at=as_dt(v["ts"]),
-                    rule_id=rule,
-                    evidence=("rule", rule) if rule else None,
-                )
+            stops.append((v, severity))
+    tools = _tools_of(ctx, [str(v["event_id"]) for v, _ in stops])
+    groups: dict[tuple[str, str, str], tuple[Mapping[str, Any], str]] = {}
+    for v, severity in sorted(stops, key=lambda x: (as_dt(x[0]["ts"]), str(x[0]["verdict_id"]))):
+        tool = tools.get(str(v["event_id"]))
+        if tool is None or classes.get(tool) not in RISKY_CLASSES:
+            continue
+        key = (_agent(v["agent_id"]), str(v["action"]), as_dt(v["ts"]).strftime("%Y%m%d%H"))
+        groups.setdefault(key, (v, severity))
+    out = []
+    for (agent, action, hour), (v, severity) in sorted(groups.items()):
+        rule = str(v.get("rule_id") or "")
+        out.append(
+            GovernanceEvent(
+                kind="gate_stop",
+                severity=severity,
+                agent_id=agent,
+                ref=safe_ref("gatestop", agent, action, hour),
+                at=as_dt(v["ts"]),
+                rule_id=rule,
+                evidence=("rule", rule) if rule else None,
             )
+        )
     return out
 
 
@@ -170,12 +223,7 @@ def detector_failures(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[G
 def _cases(
     ctx: MonitorContext, case_type: str, lo: datetime, hi: datetime
 ) -> Iterable[Mapping[str, Any]]:
-    rows = ctx.state.query(
-        "cases", {"case_type": case_type}, order_by=("-opened_at",), limit=CASE_SCAN
-    )
-    for r in rows:
-        if lo <= as_dt(r["opened_at"]) < hi:
-            yield r
+    return _range(ctx, "cases", "opened_at", lo, hi, {"case_type": case_type})
 
 
 def monitor_failures(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[GovernanceEvent]:
@@ -260,12 +308,15 @@ def chain_breaks(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[Govern
 
 
 def model_changes(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[GovernanceEvent]:
-    by_agent: dict[str, list[Mapping[str, Any]]] = {}
-    for r in ctx.tables.query("agent_version"):
-        by_agent.setdefault(str(r["agent_id"]), []).append(r)
+    """Only the versions deployed in the range are read by the store; the history of an agent
+    is read (small) only for an agent that has one."""
+    fresh = _range(ctx, "agent_version", "deployed_at", lo, hi)
     out = []
-    for agent, rows in sorted(by_agent.items()):
-        rows.sort(key=lambda r: (as_dt(r["deployed_at"]), str(r["version"])))
+    for agent in sorted({str(r["agent_id"]) for r in fresh}):
+        rows = sorted(
+            ctx.tables.query("agent_version", {"agent_id": agent}),
+            key=lambda r: (as_dt(r["deployed_at"]), str(r["version"])),
+        )
         for i, r in enumerate(rows):
             at = as_dt(r["deployed_at"])
             if i == 0 or not (lo <= at < hi):

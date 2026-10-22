@@ -122,6 +122,8 @@ rules:
     system_class: {risk_level: [high, prohibited]}
     actions: [move_to_re_evaluation, raise_risk_level]
 
+  # One gate_stop event is one agent, one action (block or pause) and one hour, however many
+  # calls were stopped in it. So this rule makes at most one incident per agent and hour.
   - id: GA-GATE-STOP-RISKY-TOOL
     title: The gate blocked or paused a money, credit or personal-data export tool
     kind: gate_stop

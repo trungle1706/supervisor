@@ -30,8 +30,8 @@ re-evaluation, plan a review, fire a webhook event, reopen a control.
 |---|---|
 | R1: no action pauses or blocks an agent | The action list has no such kind. The loader refuses `pause`, `block`, `quarantine`, `retire` and similar words by name. The gate already stopped the call; this loop only records and asks people. |
 | Deterministic | `actions_model.plan(event, rules, facts)` is pure: same event, same rules, same facts give the same actions in a fixed order. A test asserts it, and the dry run equals the real run. |
-| Once per event | A marker row (`governance_event`) is written before the first action. A second run finds it. A marker still `started` (a crash) is resumed: the actions it already holds are not run again. |
-| A raising action stops nothing | Each action has its own try block. The result (`done`, `skipped`, `refused`, `failed`) goes into the marker. A failed action is not retried by itself. |
+| Once per event | A marker row (`governance_event`) is written before the first action. A second run finds it. Before each action an `attempting` entry is saved; after a crash an action found `attempting` is never run again (`skipped`, ref `maybe_done`). `raise_risk_level` also looks for a `system_change` record with the same event key. A runner holds a started event with a lease (`runner_id`, `lease_until`, 120 s, renewed at each save); another runner leaves a held event alone and takes it over only after the lease ran out. |
+| A raising action stops nothing | Each action has its own try block. The result (`done`, `skipped`, `refused`, `failed`) goes into the marker. A failed action is tried again on the next runs (3 runs in all, the event stays `started`, also when it is older than the source overlap); then it is `failed_final`, the event is done and the chain record counts it (`failed_final_n`). |
 | Incidents are auto-created only | No route and no method makes an incident from a person's input. A person moves one on and closes it (`docs/incidents.md`). |
 | Never lower | `raise_risk_level` sets the manual level one step above the effective level, never above `high`, never when the level is already at or above that. |
 | Chain payloads | Canonical JSON, no floats, ids and enums only, no title, no free text, no user id (keyed `actor_ref`). Titles come from templates. |
@@ -56,7 +56,7 @@ last 300 seconds before the cursor; the markers remove the repeats.
 | Event kind | Source | Severity | Notes |
 |---|---|---|---|
 | `alert` | `alert` rows, every rule id | the alert severity | `rule_id` is the alert rule (`AL-QUARANTINE`...) |
-| `gate_stop` | tier 0 `verdict` rows with action `block` or `pause` on a tool of class `money`, `credit` or `pii_export` | block `high`, pause `medium` | Tool from the decision (`agent_event`), class from the policy catalogue and the manifests (as tool analytics reads it). A SHADOW would-block, a rule error and a fail-mode row are not events |
+| `gate_stop` | tier 0 `verdict` rows with action `block` or `pause` on a tool of class `money`, `credit` or `pii_export` | block `high`, pause `medium` | One event per agent, action and hour (a burst of blocked calls is one event; the rule and evidence are those of the first stop). Tool from the decision (`agent_event`, read in batches of 200), class from the policy catalogue and the manifests (as tool analytics reads it). A SHADOW would-block, a rule error and a fail-mode row are not events |
 | `detector_failed` | `finding` rows of a detector that did not run (`execution_failed`, `timed_out`) | `medium` | One event per agent, detector and hour, so a bad hour is one event |
 | `monitor_failing` | cases of type `drift`, `fairness`, `multiagent` (the monitor opened a breach case), and low groundedness verdicts of the quality monitor | case severity; quality `low` | `monitor_status` has no `failing` value (`ok`, `not_applicable`, `no_data` only), so the breach case is the deterministic outcome of a monitor. Quality is advisory: it can open an incident or a notice, never a gate action |
 | `pack_no_go` | `eval_result` rows with status `fail` or `error` on a pack whose launch gate is `required`, not mock, target `agent` or `traces` | `high` | `eval_run` has no agent, so the per-agent result row is the source |
@@ -120,8 +120,10 @@ Run in this fixed order. Result codes are short fixed words, never text from an 
 | `fire_webhook` | `events.emit` of an `outbound_event` of kind `governance_action` (payload: event kind, severity, event key, first rule id, system id). Delivery is the WP-G1 stub behind `WEBHOOKS_ENABLED` | `failed` if the row cannot be written |
 | `reopen_control` | `ControlService.reopen` for each active control in scope of the agent that maps the evidence of the event (`gate_stop`: the rule; `pack_no_go`: the pack; `monitor_failing`: the monitor) or is named in the rule's `controls`. Writes one `failing` row in `control_status` with reason `reopened_by_event` and a `control_reopen` chain record | `controls_off`, `no_agent`, `no_control` |
 
-A reopened control reads `failing` for that agent until a newer status row exists: the next
-`control_status` pass in a later window writes one, and the evidence decides again. The control,
+A reopened control reads `failing` for that agent until a newer status row exists. The evidence
+pass skips a control and agent that hold a reopen row of the same window (it is counted as `held`),
+whatever the order of the two; the next pass in a later window writes a newer row and the evidence
+decides again. Windows end at the last full hour, so "the same window" is the same hour. The control,
 its map and its scope are not changed.
 
 ## 6. The job
@@ -137,7 +139,8 @@ run it. A pass handles at most 200 new events; the cursor of a source waits at t
 it could not take, so nothing is skipped. Output is ASCII (`[OK]`, `[SKIP]`, `[FAIL]`, `[PLAN]`).
 
 Result keys: `events`, `unmatched` (no rule), `already` (marker found), `handled`, `done`,
-`skipped`, `refused`, `failed`, `source_errors`, `deferred`.
+`skipped`, `refused`, `failed` (final), `source_errors`, `deferred`, `busy` (a live runner holds
+the event), `retrying` (a failed action will be tried again).
 
 An event that no rule matches leaves no marker. If the cursor is lost, those events are read
 again and may match a newer rule; the events with a marker are never repeated.
@@ -157,12 +160,27 @@ Ref is `governance_event:<key>` and the record stays on the root lane (the paylo
 `rules_hash` is the hash of the rules in force, so an auditor can tie every automatic action to
 the version of the rules that fired it.
 
-## 8. Open questions
+## 8. Known behaviour
+
+* Reads are bounded: each source reads only its time range in the store (cases by `opened_at`,
+  agent versions by `deployed_at`, the rest by `ts`); the incident list filters by status,
+  severity, kind, system and agent in the query.
+* An event that no rule matches leaves no marker (section 6). A started event is taken up again
+  on every run until it is done, at most 100 per run.
+* An agent that is part of two systems gives two events (section 3).
+* The facts of a system (effective level, class) are read once per run and again after the run
+  changed the level or the stage.
+* `raise_risk_level` and `move_to_re_evaluation` change a system; a person can set the level
+  back or move the stage again. The next event can raise it again.
+* A first run reads back `GOVERNANCE_ACTIONS_LOOKBACK_S` (a day). Turn the job on, then use
+  `--dry-run` first to see what would fire.
+
+## 9. Open questions
 
 1. `raise_risk_level` moves one step per event. Does the second line want a fixed target level
    per rule instead (for example `to: high`)?
-2. A failed action is recorded and not retried. Should a failed `fire_webhook` or `create_review`
-   be retried on the next pass?
+2. A failed action is tried 3 times. Is that the number the SOC wants, and should a final failure
+   raise an alert?
 3. An agent that is part of two systems gives two events and so two incidents. Is that the
    grouping the SOC wants, or one incident per event with the systems listed?
 4. Webhook delivery is the WP-G1 stub. The real HTTP sender is later work.

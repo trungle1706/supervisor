@@ -185,7 +185,30 @@ class IncidentService:
             raise IncidentError(f"severity must be one of {', '.join(SEVERITIES)}")
         if f.get("kind") and f["kind"] not in TITLES:
             raise IncidentError(f"kind must be one of {', '.join(TITLES)}")
-        rows = [dict(r) for r in self.state.query("incident")]
+        where: dict[str, str] = {
+            col: f[key]
+            for key, col in (
+                ("severity", "severity"),
+                ("kind", "kind"),
+                ("system", "system_id"),
+                ("agent", "agent_id"),
+            )
+            if f.get(key)
+        }
+        status = f.get("status") or "active"
+        wanted = (
+            ("open", "investigating", "resolved")
+            if status == "active"
+            else (() if status == "all" else (status,))
+        )
+        if wanted:  # the store filters; one query for each wanted status
+            rows = [
+                dict(r)
+                for st in wanted
+                for r in self.state.query("incident", {**where, "status": st})
+            ]
+        else:
+            rows = [dict(r) for r in self.state.query("incident", where or None)]
         agents = None
         if me is not None and self.systems is not None:
             agents = {str(a["agent_id"]).lower() for a in self.systems.agents_in_scope(me)}
