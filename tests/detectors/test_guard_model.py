@@ -35,6 +35,8 @@ BENIGN: GuardScore = {"label": "benign", "score_bp": 0}
 class FakePort:
     name = "fake"
     model_id = "guard-test-1"
+    model_version = "r1"
+    reported_version = ""
     is_mock = False
 
     def __init__(self, fn: Callable[[str], GuardScore] | None = None) -> None:
@@ -74,11 +76,20 @@ def masker() -> VnRegexMasker:
     return VnRegexMasker(b"test-key", "t")
 
 
-def card(tmp_path: Path, approver: str = "Nguyen Van A", model_id: str = "guard-test-1") -> Path:
+def card(
+    tmp_path: Path,
+    approver: str = "Nguyen Van A",
+    model_id: str = "guard-test-1",
+    version: str = "r1",
+) -> Path:
     path = tmp_path / "model_card.json"
     path.write_text(
         json.dumps(
-            {"model_id": "guard-test-1", "approval": {"approver": approver, "model_id": model_id}}
+            {
+                "model_id": "guard-test-1",
+                "model_version": "r1",
+                "approval": {"approver": approver, "model_id": model_id, "model_version": version},
+            }
         ),
         encoding="utf-8",
     )
@@ -504,3 +515,32 @@ def test_the_shipped_card_carries_the_frozen_numbers() -> None:
     assert card_json["window_chars"] == WINDOW_CHARS
     assert card_json["window_overlap_chars"] == WINDOW_OVERLAP
     assert card_json["detector"] == "guard_model@1.0.0"
+
+
+def test_the_approval_pins_the_version_too(masker: VnRegexMasker, tmp_path: Path) -> None:
+    pc = {"pause_tool_classes": ["money"]}
+    assert hints(det(masker, FakePort(), card_path=card(tmp_path)), **pc) == ["pause"]
+    reset_approval_cache()
+    old = det(
+        masker, FakePort(), card_path=card(tmp_path, version="r0")
+    )  # approved another revision
+    assert hints(old, **pc) == ["report"]
+    reset_approval_cache()
+    for bad in ("", "FILL-ME-rev"):
+        p = FakePort()
+        p.model_version = bad  # the operator did not declare a version
+        assert hints(det(masker, p, card_path=card(tmp_path, version=bad)), **pc) == ["report"]
+        reset_approval_cache()
+
+
+def test_a_version_reported_by_the_endpoint_must_equal_the_pinned_one(
+    masker: VnRegexMasker, tmp_path: Path
+) -> None:
+    pc = {"pause_tool_classes": ["money"]}
+    p = FakePort()
+    d = det(masker, p, card_path=card(tmp_path))
+    p.reported_version = "r1"
+    assert hints(d, **pc) == ["pause"]
+    reset_approval_cache()
+    p.reported_version = "r2"  # the model behind the endpoint changed
+    assert hints(d, **pc) == ["report"]

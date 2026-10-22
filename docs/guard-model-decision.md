@@ -112,10 +112,19 @@ W = min(max_windows, sum over units of ceil((n_u - 500) / 1500))     W_miss = W 
 bound    L <= adapter timeout (GUARD_MODEL_TIMEOUT_MS, default 400 ms)  and  <= limits.timeout_ms
 ```
 
-When `L` exceeds the adapter timeout the finding is `timed_out` and the call goes on. The gate
-deadline `limits.timeout_ms` (default 500 ms) is shared by all detectors. Keep
-`GUARD_MODEL_TIMEOUT_MS` below it, and raise both together after the live run. Worst case added to a
-tool call is `limits.timeout_ms`.
+When `L` exceeds the adapter timeout the finding is `timed_out` and the call goes on. The adapter
+timeout is the TOTAL for one call (batches, credentials and attempts together). The detector has its
+own deadline: the setting `timeout_ms` of `guard_model`, else `limits.timeout_ms` (default 500 ms).
+It takes 90 percent of it and never starts a call with less than the adapter timeout left (reason
+`budget_exhausted`). So set the `timeout_ms` of `guard_model` above `GUARD_MODEL_TIMEOUT_MS`. The time
+it adds to a tool call is the time of the model call, up to that deadline; it is measured in the live
+kit (item 12), not assumed.
+
+**Option (b) cannot meet 400 ms on a real LLM.** One sequential call per window, each with prefill
+and decode, takes seconds on a general chat model. With the default 400 ms timeout every call ends
+in `timed_out`. (b) needs a larger adapter timeout and a larger `timeout_ms` for the detector, so it
+adds seconds to a gate call. Use it for the live-kit cross-check and as a fallback with the detector
+off the hot path (for example on a few agents), not as the default.
 
 **Cost per 1,000 calls.**
 
@@ -127,8 +136,10 @@ tool call is `limits.timeout_ms`.
                                                                     (self-hosted: replace by GPU seconds * P_gpu_hour / 3600)
 ```
 
-`T_out` is small (the JSON answer, about 20 tokens) so (b) is dominated by the input tokens:
-`T_prompt` (the fixed prompt, roughly 250 tokens) plus the window.
+`T_out` and `T_prompt` are ASSUMPTIONS until item 11 of section 6 measures them: take `T_out` as
+the JSON answer (the schema allows far fewer than 64 tokens, `max_tokens` is 64) and `T_prompt` as
+the size of the fixed prompt in `adapters/guard/chat.py` in the model's tokenizer. If they hold, (b) is
+dominated by the input tokens: the prompt plus the window.
 
 **Monthly cost.** `C_month = (calls per month / 1000) * C`. Calls per month = tool calls that pass
 the gate with the detector on. Skip tools (`skip_tools`) and `scan_*` switches lower it.

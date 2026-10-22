@@ -131,8 +131,17 @@ def run(
         surfaces[sp] = {k: dict(v) for k, v in sorted(agg.items())}
     v = harness.verdicts(GUARD, by_split, port.is_mock)
     ok = all(x["verdict"] in ("GO", "MOCK", "REAL", "NO-DATA") for x in v.values())
-    # a mock run proves the harness only: it can never be GO
-    verdict = "GO" if ok and not port.is_mock else "NO-GO"
+    # an item the detector could not score (timeout, error, budget) makes the numbers wrong: the
+    # run is invalid, whatever the recall says
+    not_exec = sum(
+        n
+        for s in by_split.values()
+        for k, n in s["taxonomy"].items()
+        if k.startswith("not_executed")
+    )
+    missing = [sp for sp in SPLITS if sp not in by_split]
+    # GO needs all three splits, a real model and a valid run; a mock run can never be GO
+    verdict = "GO" if ok and not port.is_mock and not not_exec and not missing else "NO-GO"
     return {
         "harness": GUARD_HARNESS_VERSION,
         "mode": "mock" if port.is_mock else "real",
@@ -150,6 +159,9 @@ def run(
         "recall_by_surface": surfaces,
         "go_no_go": v,
         "verdict": verdict,
+        "not_executed_items": not_exec,
+        "run_invalid": bool(not_exec),
+        "missing_splits": missing,
     }
 
 
@@ -215,6 +227,15 @@ def render_text(report: dict[str, Any]) -> str:
             )
     if m["kind"] == "mock":
         lines.append("    note: ran on MockGuardModel; it proves the harness, not a model")
+    if report["run_invalid"]:
+        lines.append(
+            f"    run invalid: {report['not_executed_items']} item(s) were not scored "
+            "(timeout, error or budget); raise --timeout-ms and GUARD_MODEL_TIMEOUT_MS"
+        )
+    if report["missing_splits"]:
+        lines.append(
+            f"    GO needs dev, heldout and adversarial; missing: {report['missing_splits']}"
+        )
     lines += ["", f"VERDICT: {report['verdict']}"]
     return "\n".join(lines)
 
@@ -232,6 +253,12 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"**Verdict: {report['verdict']}**",
         "",
     ]
+    if report["run_invalid"]:
+        out += [
+            f"**Run invalid:** {report['not_executed_items']} item(s) were not scored (timeout, "
+            "error or budget). The numbers below are wrong; fix the cause and run again.",
+            "",
+        ]
     if m["kind"] == "mock":
         out += [
             "This run used `MockGuardModel` (cue words). It proves the harness, the detector path "
@@ -277,6 +304,34 @@ def render_markdown(report: dict[str, Any]) -> str:
     return "\n".join(out) + "\n"
 
 
+def git_commit() -> str:
+    """Short commit id of this checkout, read from the git files (no subprocess); ``unknown``."""
+    try:
+        dot = REPO_ROOT / ".git"
+        gitdir = dot
+        if dot.is_file():
+            gitdir = (
+                REPO_ROOT / dot.read_text(encoding="utf-8").split(":", 1)[1].strip()
+            ).resolve()
+        head = (gitdir / "HEAD").read_text(encoding="utf-8").strip()
+        if not head.startswith("ref:"):
+            return head[:12]
+        ref = head.split(" ", 1)[1].strip()
+        common = gitdir
+        if (gitdir / "commondir").is_file():
+            common = (gitdir / (gitdir / "commondir").read_text(encoding="utf-8").strip()).resolve()
+        for base in (gitdir, common):
+            f = base / ref
+            if f.is_file():
+                return f.read_text(encoding="utf-8").strip()[:12]
+        for line in (common / "packed-refs").read_text(encoding="utf-8").splitlines():
+            if line.endswith(" " + ref):
+                return line.split(" ", 1)[0][:12]
+    except (OSError, IndexError):
+        pass
+    return "unknown"
+
+
 def emit(line: str) -> None:
     sys.stdout.write(line + "\n")
 
@@ -294,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--md", metavar="PATH")
     ap.add_argument("--record", action="store_true", help="write the mock baseline")
     ap.add_argument("--check", action="store_true", help="exit 1 below the mock baseline")
-    ap.add_argument("--commit", default="unknown")
+    ap.add_argument("--commit", default="", help="default: the commit of this checkout")
     ap.add_argument("--date", default="unknown")
     args = ap.parse_args(argv)
     port = real_port_from_env()
@@ -303,7 +358,7 @@ def main(argv: list[str] | None = None) -> int:
         args.preset,
         port=port,
         timeout_ms=args.timeout_ms,
-        commit=args.commit,
+        commit=args.commit or git_commit(),
         date=args.date,
     )
     emit(render_text(report))

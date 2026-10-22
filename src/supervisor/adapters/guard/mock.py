@@ -53,6 +53,8 @@ def mock_score(text: str) -> GuardScore:
 class MockGuardModel:
     name = "mock"
     model_id = "mock-guard-v1"
+    model_version = ""
+    reported_version = ""
     is_mock = True
 
     def __init__(self, score_fn: Callable[[str], GuardScore] | None = None) -> None:

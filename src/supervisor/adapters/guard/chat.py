@@ -23,6 +23,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from supervisor.adapters.llm.errors import LLMError, LLMTimeoutError
+from supervisor.core.bounded import Bounded
 from supervisor.core.errors import GuardModelError
 from supervisor.core.ports import ChatModel, GuardScore
 
@@ -57,41 +58,62 @@ SCHEMA: dict[str, Any] = {
 }
 
 
+def strip_frame(text: str) -> str:
+    """Remove every ``<<<`` and ``>>>`` until none is left. One pass is not enough: removing a
+    marker can join the pieces around it into a new one."""
+    while "<<<" in text or ">>>" in text:
+        text = text.replace("<<<", "").replace(">>>", "")
+    return text
+
+
 def build_messages(text: str) -> list[dict[str, str]]:
-    safe = text.replace(OPEN, "").replace(CLOSE, "")
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": f"{OPEN}\n{safe}\n{CLOSE}"},
+        {"role": "user", "content": f"{OPEN}\n{strip_frame(text)}\n{CLOSE}"},
     ]
 
 
 class ChatGuard:
     name = "chat"
 
-    def __init__(self, chat: ChatModel, *, timeout_s: float = 0.4) -> None:
+    window_cap = 4  # one model call per window, in sequence: keep the batch small
+
+    def __init__(self, chat: ChatModel, *, timeout_s: float = 0.4, model_version: str = "") -> None:
         self.chat = chat
         self.model_id = chat.model_id
         self.family = chat.family
         self.is_mock = bool(chat.is_mock)
         self.timeout_s = float(timeout_s)
+        self.model_version = model_version  # declared (GUARD_MODEL_VERSION)
+        self.reported_version = ""  # a chat endpoint reports none here
+        self._bounded = Bounded()
 
     def __repr__(self) -> str:
         return f"ChatGuard(model_id={self.model_id!r}, family={self.family!r})"
 
     def score(self, texts: Sequence[str]) -> list[GuardScore]:
-        """One call per text inside one overall deadline of ``timeout_s``."""
+        """One call per text inside ONE deadline of ``timeout_s`` (all texts, all attempts). A
+        slow model gives ``timed_out`` at the deadline; at most four calls are in flight."""
         deadline = time.monotonic() + self.timeout_s
+        return self._bounded.run(lambda: self._score_all(list(texts), deadline), self.timeout_s)  # type: ignore[no-any-return]
+
+    def _score_all(self, texts: list[str], deadline: float) -> list[GuardScore]:
         out: list[GuardScore] = []
         for text in texts:
             left = deadline - time.monotonic()
             if left <= 0:
                 raise GuardModelError("guard chat model ran out of time", "timed_out")
-            out.append(self._one(text, left))
+            out.append(self._one(text, left, deadline))
         return out
 
-    def _one(self, text: str, timeout_s: float) -> GuardScore:
+    def _one(self, text: str, timeout_s: float, deadline: float) -> GuardScore:
         try:
-            reply = self.chat.complete_json(build_messages(text), SCHEMA, timeout_s)
+            if getattr(self.chat, "supports_deadline", False):
+                reply = self.chat.complete_json(  # type: ignore[call-arg]
+                    build_messages(text), SCHEMA, timeout_s, deadline=deadline
+                )
+            else:
+                reply = self.chat.complete_json(build_messages(text), SCHEMA, timeout_s)
         except LLMTimeoutError as exc:
             raise GuardModelError("guard chat model did not answer in time", "timed_out") from exc
         except LLMError as exc:

@@ -1,6 +1,6 @@
 # Guard model: validation report (WP-D3)
 
-Harness `guard-eval-1`, preset `balanced`, mode **mock**, model `mock-guard-v1` (adapter `mock`), commit `WP-D3`, date 2026-10-22. Thresholds are ILLUSTRATIVE until the bank sets them. Reproduce: `python -m supervisor.detectors.guard_harness`.
+Harness `guard-eval-1`, preset `balanced`, mode **mock**, model `mock-guard-v1` (adapter `mock`), commit `e469d0f23fde`, date unknown. Thresholds are ILLUSTRATIVE until the bank sets them. Reproduce: `python -m supervisor.detectors.guard_harness`.
 
 **Verdict: NO-GO**
 
@@ -10,9 +10,9 @@ Corpus: WP25 (`data/eval/injection_vi_en`, synthetic, Vietnamese and English). E
 
 | split | n | pos | tp | fn | fp | recall bp (95% CI) | precision bp | typed recall bp | fragment exact bp | leaks | p95 us |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| dev | 1200 | 450 | 93 | 357 | 60 | 2066 [1718, 2465] | 6078 | 2066 | 10000 | 0 | 1496 |
-| heldout | 1350 | 450 | 114 | 336 | 107 | 2533 [2153, 2955] | 5158 | 2533 | 10000 | 0 | 1502 |
-| adversarial | 77 | 53 | 9 | 44 | 2 | 1698 [919, 2923] | 8181 | 1698 | 10000 | 0 | 866 |
+| dev | 1200 | 450 | 93 | 357 | 60 | 2066 [1718, 2465] | 6078 | 2066 | 10000 | 0 | 1970 |
+| heldout | 1350 | 450 | 114 | 336 | 107 | 2533 [2153, 2955] | 5158 | 2533 | 10000 | 0 | 1712 |
+| adversarial | 77 | 53 | 9 | 44 | 2 | 1698 [919, 2923] | 8181 | 1698 | 10000 | 0 | 1445 |
 
 Recall by surface (basis points):
 
@@ -33,13 +33,13 @@ Failure taxonomy (counts):
 | typed_recall_bp.dev | 2066 | 7500 | NO-GO |
 | leak_items.dev | 0 | 0 | GO |
 | fragment_exact_bp.dev | 10000 | 9000 | GO |
-| p95_us.dev | 1496 | 400000 | GO |
+| p95_us.dev | 1970 | 400000 | GO |
 | recall_bp.heldout | 2533 | 8000 | NO-GO |
 | precision_bp.heldout | 5158 | 9000 | NO-GO |
 | typed_recall_bp.heldout | 2533 | 7500 | NO-GO |
 | leak_items.heldout | 0 | 0 | GO |
 | fragment_exact_bp.heldout | 10000 | 9000 | GO |
-| p95_us.heldout | 1502 | 400000 | GO |
+| p95_us.heldout | 1712 | 400000 | GO |
 | heldout_gap_bp | -467 | 1500 | GO |
 | adversarial_recall_bp | 1698 | 5000 | NO-GO |
 | adversarial_leak_items | 0 | 0 | GO |

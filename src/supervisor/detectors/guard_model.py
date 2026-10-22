@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.config import REPO_ROOT
+from supervisor.core.bounded import Bounded
 from supervisor.core.detectors import (
     SCORE_MAX,
     Finding,
@@ -66,6 +67,10 @@ WINDOW_OVERLAP = 500
 WINDOW_STRIDE = WINDOW_CHARS - WINDOW_OVERLAP
 DEFAULT_MAX_WINDOWS = 12
 CACHE_SIZE = 1_024
+DEFAULT_BUDGET_MS = 500  # the gate deadline when the registry passes none
+DEADLINE_SHARE = 0.9  # the detector stops asking at this share of its deadline
+GUARD_SLOTS = 4  # model calls in flight, all agents together (the gate's pool is never used up)
+_GUARD_CALLS = Bounded(GUARD_SLOTS)
 
 LABELS = ("jailbreak", "indirect_injection")
 CODE_BY_LABEL = {"jailbreak": "guard.jailbreak", "indirect_injection": "guard.indirect_injection"}
@@ -139,6 +144,23 @@ def windows(text: str) -> list[tuple[int, int]]:
         start += WINDOW_STRIDE
 
 
+def _allocate(sizes: Sequence[int], cap: int) -> list[int]:
+    """Windows per unit, at most ``cap`` in all, handed out one at a time in unit order (arguments
+    first), never more than a unit has."""
+    alloc = [0] * len(sizes)
+    left = cap
+    while left > 0:
+        moved = False
+        for i, size in enumerate(sizes):
+            if left > 0 and alloc[i] < size:
+                alloc[i] += 1
+                left -= 1
+                moved = True
+        if not moved:
+            break
+    return alloc
+
+
 def spread(items: Sequence[Any], cap: int) -> list[Any]:
     """At most ``cap`` items, evenly spread, first and last kept (when cap >= 2)."""
     if len(items) <= cap:
@@ -196,27 +218,34 @@ def _descriptions(meta: Mapping[str, Any]) -> list[str]:
     return out
 
 
-def _approval_matches(card_path: Path, model_id: str) -> bool:
-    """The card approval names an approver (not a FILL-ME placeholder) and the id of the model
-    it approves, equal to the model the port serves (the WP25 rule, with the model id in place of
-    the weights hash: the weights are served elsewhere)."""
+def _real(value: str) -> bool:
+    return bool(value) and not value.upper().startswith("FILL-ME")
+
+
+def _approval_matches(
+    card_path: Path, model_id: str, version: str = "", reported: str = ""
+) -> bool:
+    """The card approval names an approver (not a FILL-ME placeholder) and pins the model it
+    approves: the id AND the version, both equal to the card and to what the adapter serves
+    (the WP25 rule, with id and version in place of the weights hash: the weights are served
+    elsewhere). When the endpoint reports a version, it must equal the pinned one too. An endpoint
+    that reports none leaves a residual: the version is then the operator's declaration
+    (``GUARD_MODEL_VERSION``), and a model swapped behind the same name is not seen."""
     try:
         card = json.loads(card_path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return False
     approval = card.get("approval") or {}
     approver = str(approval.get("approver") or "").strip()
-    named = bool(approver) and not approver.upper().startswith("FILL-ME")
-    approved = str(approval.get("model_id") or "")
-    return (
-        named
-        and bool(model_id)
-        and not model_id.upper().startswith("FILL-ME")
-        and approved == str(card.get("model_id") or "") == model_id
-    )
+    named = _real(approver)
+    card_id, card_ver = str(card.get("model_id") or ""), str(card.get("model_version") or "")
+    same_id = _real(model_id) and str(approval.get("model_id") or "") == card_id == model_id
+    same_ver = _real(version) and str(approval.get("model_version") or "") == card_ver == version
+    return named and same_id and same_ver and (not reported or reported == version)
 
 
 class GuardModelDetector:
+    budget_aware = True  # the registry passes `_budget_ms` (this detector's deadline)
     slug = "guard_model"
     name = "Jailbreak and indirect injection (guard model)"
     category = "content_security"
@@ -277,6 +306,16 @@ class GuardModelDetector:
                 "never lowered below that.",
             ),
             SettingField(
+                "timeout_ms",
+                "This detector's own deadline (ms)",
+                "integer",
+                default=None,
+                minimum=10,
+                maximum=60_000,
+                description="Empty = limits.timeout_ms. A real model needs more than 500 ms; the "
+                "detector never starts a call with less than the adapter timeout left.",
+            ),
+            SettingField(
                 "max_windows",
                 "Windows scored per call",
                 "integer",
@@ -315,12 +354,14 @@ class GuardModelDetector:
         port = self._port
         if port is None or port.is_mock:
             return False
-        key = f"{self._card}|{port.model_id}"
+        version = str(getattr(port, "model_version", "") or "")
+        reported = str(getattr(port, "reported_version", "") or "")
+        key = f"{self._card}|{port.model_id}|{version}|{reported}"
         now = time.monotonic()
         hit = _APPROVAL_CACHE.get(key)
         if hit is not None and now - hit[0] < APPROVAL_TTL_S:
             return hit[1]
-        ok = _approval_matches(self._card, port.model_id)
+        ok = _approval_matches(self._card, port.model_id, version, reported)
         _APPROVAL_CACHE[key] = (now, ok)
         return ok
 
@@ -381,7 +422,9 @@ class GuardModelDetector:
         return [u for u in units if u.text.strip()]
 
     # ------------------------------------------------------------------ scoring
-    def _score_texts(self, port: GuardModelPort, texts: list[str]) -> dict[str, GuardScore]:
+    def _score_texts(
+        self, port: GuardModelPort, texts: list[str], deadline: float
+    ) -> dict[str, GuardScore]:
         """Score each distinct text once (cache first, then one batch to the port)."""
         out: dict[str, GuardScore] = {}
         todo: list[str] = []
@@ -395,7 +438,14 @@ class GuardModelDetector:
                 else:
                     todo.append(t)
         if todo:
-            scores = port.score(todo)
+            left = deadline - time.monotonic()
+            need = float(getattr(port, "timeout_s", 0) or 0)
+            if left <= 0 or left < need:
+                # never start a call that cannot finish inside this detector's deadline
+                raise GuardModelError("not enough time left for the model", "budget_exhausted")
+            # the model runs in the guard's own bounded pool: a slow model holds at most
+            # GUARD_SLOTS threads, never the gate's shared detector threads
+            scores = _GUARD_CALLS.run(lambda: port.score(todo), left)
             if len(scores) != len(todo):
                 raise GuardModelError("guard model answered the wrong number of scores")
             with self._lock:
@@ -413,15 +463,17 @@ class GuardModelDetector:
         did = detector_id(self)
         preset = str(settings.get("preset") or "balanced")
         port = self._port
+        budget_ms = int(settings.get("_budget_ms") or DEFAULT_BUDGET_MS)
+        deadline = time.monotonic() + DEADLINE_SHARE * budget_ms / 1000
         if port is None:
             return [not_executed(self.slug, did, "execution_failed", "no guard model", preset)]
         try:
-            return self._evaluate(port, payload, settings, direction, did, preset)
+            return self._evaluate(port, payload, settings, direction, did, preset, deadline)
         except GuardModelError as exc:
             reason = (
                 exc.reason
-                if exc.reason in ("timed_out", "execution_failed")
-                else ("execution_failed")
+                if exc.reason in ("timed_out", "execution_failed", "budget_exhausted")
+                else "execution_failed"
             )
             return [not_executed(self.slug, did, reason, str(exc)[:80], preset)]
         except Exception as exc:  # noqa: BLE001 - an adapter bug must never reach the gate
@@ -435,17 +487,22 @@ class GuardModelDetector:
         direction: str,
         did: str,
         preset: str,
+        deadline: float,
     ) -> list[Finding]:
         units = self._units(payload, settings, direction)
         if not units:
             return []
         cap = max(1, int(settings.get("max_windows") or DEFAULT_MAX_WINDOWS))
-        per_unit = max(1, cap // len(units))
+        cap = min(cap, max(1, int(getattr(port, "window_cap", cap) or cap)))
+        all_wins = [windows(u.text) for u in units]
+        alloc = _allocate([len(w) for w in all_wins], cap)
         plan: list[tuple[_Unit, list[tuple[int, int]]]] = [
-            (u, spread(windows(u.text), per_unit)) for u in units
+            (u, spread(w, n)) for u, w, n in zip(units, all_wins, alloc, strict=True) if n > 0
         ]
+        dropped = sum(len(w) for w in all_wins) - sum(len(w) for _, w in plan)
+        note = f"windows dropped: {dropped} of {sum(len(w) for w in all_wins)}" if dropped else ""
         texts = [u.text[s:e] for u, wins in plan for s, e in wins]
-        scored = self._score_texts(port, texts)
+        scored = self._score_texts(port, texts, deadline)
         # the best window of every unit, then the best unit of every label
         best: dict[str, tuple[int, _Unit, tuple[int, int]]] = {}
         for u, wins in plan:
@@ -494,6 +551,7 @@ class GuardModelDetector:
                     action_hint=hint,  # type: ignore[arg-type]
                     preset=preset,
                     is_mock=bool(port.is_mock),
+                    detail=note,
                 )
             )
         return out

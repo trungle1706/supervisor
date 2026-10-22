@@ -112,7 +112,7 @@ def _gate(baseline: Any, tmp_path: Path, text: str, **kw: Any) -> Any:
 def test_wiring_gives_the_detector_the_labelled_mock_when_no_url_is_set(
     baseline: Any, tmp_path: Path
 ) -> None:
-    gate = _gate(baseline, tmp_path, "version: 1\ndetectors:\n  guard_model: {enabled: false}\n")
+    gate = _gate(baseline, tmp_path, "version: 1\ndetectors:\n  guard_model: {enabled: true}\n")
     port = gate.registry.get("guard_model").port
     assert port is not None and port.is_mock is True
 

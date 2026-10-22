@@ -353,7 +353,10 @@ replaces the preset for both labels.
 **Settings** (`config/detectors.yaml`, per agent in the policy file as for any detector):
 `scan_args`, `scan_tool_results`, `scan_tool_descriptions`, `scan_documents` (all true),
 `pause_tool_classes` (default empty), `pause_threshold_bp` (can raise the pause bar, never lower it
-below the `permissive` value of the label), `max_windows`. Common: `preset`, `threshold_bp`,
+below the `permissive` value of the label), `max_windows` (at most this many windows in all, the
+model's own `window_cap` can lower it; a note `windows dropped: n of m` is set in the `detail` of
+the findings when some were left out), `timeout_ms` (this detector's own deadline, empty =
+`limits.timeout_ms`). Common: `preset`, `threshold_bp`,
 `max_scan_bytes`.
 
 **The model** comes from the environment (`GUARD_MODEL_*`, `config.py`), not from the file:
@@ -363,8 +366,9 @@ below the `permissive` value of the label), `max_windows`. Common: `preset`, `th
 | `GUARD_MODEL_ADAPTER` | `auto` (default: `classifier` when `GUARD_MODEL_URL` is set, else the labelled mock), `mock`, `classifier`, `chat` |
 | `GUARD_MODEL_URL` | `classifier`: the endpoint (`POST <url>` with `{"inputs": [...]}`). `chat`: the OpenAI-compatible base URL (default `JUDGE_T1_BASE_URL`, then `LLM_BASE_URL`) |
 | `GUARD_MODEL_NAME` | model id; for `chat` the model (default `JUDGE_T1_MODEL`); it pins the approval |
-| `GUARD_MODEL_API_KEY` | bearer key; in `databricks_app` mode a workspace serving URL uses the App identity instead |
-| `GUARD_MODEL_TIMEOUT_MS` | adapter deadline, default 400. Keep it below `limits.timeout_ms` (the gate deadline for all detectors) and raise both after the live run |
+| `GUARD_MODEL_VERSION` | the pinned revision of that model; it also pins the approval (see below) |
+| `GUARD_MODEL_API_KEY` | bearer key; in `databricks_app` mode a workspace serving URL uses the App identity instead. For `chat` with no key set, the judge or LLM key is used only when `GUARD_MODEL_URL` equals the base URL of that same key (`JUDGE_T1_BASE_URL`, `LLM_BASE_URL`), never for another URL |
+| `GUARD_MODEL_TIMEOUT_MS` | the total time of ONE call to the model, default 400: all batches or texts, the credential call and every attempt together, not a per-phase timeout. The adapter returns `timed_out` at that time even when the server sends one byte at a time. Keep it below the deadline of the detector (`limits.timeout_ms`, or the `timeout_ms` setting of `guard_model`) |
 | `GUARD_MODEL_FAIL_CLOSED_APPROVED` | see below |
 
 A URL that is not loopback needs `LLM_ALLOW_REMOTE=1`, unless it is the workspace's own serving
@@ -375,29 +379,43 @@ must be known, and must differ from every registered agent family, or start-up s
 `execution_failed` (only reachable by a per-agent `enable`, because the wiring sets the port only
 when the slug is in the file).
 
+**Time and threads.** The detector is budget aware (like `judge_moderation`): it takes 90 percent of
+its deadline, never starts a model call with less than the adapter timeout left (reason
+`budget_exhausted`), and runs the call in its own pool of 4 threads for all agents together. A slow
+model therefore holds at most 4 threads and never the shared pool of 32, so `dlp_vn` is not
+starved; when the 4 are taken, a call fails at once with `timed_out` ("busy"). Residual: a server
+that answers the headers one byte at a time can keep its thread until httpx gives up; at most 4 such
+threads exist. A real model needs `timeout_ms` for this detector above the gate default (500).
+
 **Actions (R1).** Findings only. A timeout is `timed_out`, any other error `execution_failed`
 (never an exception, never a block). The detector is **not fail closed**: `fail_closed: true` in the
 file is ignored unless `GUARD_MODEL_FAIL_CLOSED_APPROVED=1` AND the card approval is valid. The
 pause path is the WP25 one (section 5 of `docs/injection-classifier.md`): the finding carries the
 pause hint only when all of these hold, and the gate then turns it into `pause` with rule
-`GATE-CLASSIFIER-PAUSE` (never a block; a shadow agent is never paused):
+`GATE-CLASSIFIER-PAUSE` (never a block; a shadow agent is never paused). Residual: an endpoint
+that reports no version leaves the version as the operator's declaration, and a model swapped
+behind the same name is not seen; the classifier adapter reads `X-Model-Version` or a
+`model_version` field of the answer when there is one:
 
 ```
  direction = input
  AND tool risk class in pause_tool_classes            (default empty = report only)
  AND finding score >= the pause bar of its label      (permissive threshold, can be raised)
  AND data/models/guard_model/model_card.json has approval.approver  (a person, not FILL-ME)
-     AND approval.model_id == model_id == the model id the adapter serves
+     AND approval.model_id == model_id == the model id the adapter serves (GUARD_MODEL_NAME)
+     AND approval.model_version == model_version == GUARD_MODEL_VERSION (set, not FILL-ME)
+     AND the version the endpoint reports, if it reports one, equals GUARD_MODEL_VERSION
  AND the adapter is not the mock
 ```
 
 **Harness.** `python -m supervisor.detectors.guard_harness` runs the WP25 corpus (dev, held-out,
 adversarial; `--split evasion` for the rewritten set) through the WP37 rubric with the mock adapter
 (CI; `data/eval/guard_model/baseline_mock.json`, `--check`), or with the real endpoint when
-`GUARD_MODEL_URL` is set. A mock run is never GO. Report: `docs/guard-model-validation-report.md`.
+`GUARD_MODEL_URL` is set. A mock run is never GO, and neither is a run with any item the detector did not score (printed
+"run invalid") or without all three of dev, held-out and adversarial. Report: `docs/guard-model-validation-report.md`.
 Model card: `docs/guard-model-card-template.md`, `data/models/guard_model/model_card.json`.
 
-Tests: `tests/detectors/test_guard_model.py`, `test_guard_adapters.py`, `test_guard_model_gate.py`,
+Tests: `tests/detectors/test_guard_model_review.py`, `tests/detectors/test_guard_model.py`, `test_guard_adapters.py`, `test_guard_model_gate.py`,
 `test_guard_model_harness.py`, `test_guard_model_catalog.py`.
 
 ## 4. Verdict v2 and precedence

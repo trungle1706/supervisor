@@ -1,5 +1,5 @@
 {
-  "_comment": "WP-D3. Model card of the guard model the bank chooses (docs/guard-model-decision.md). Shipped as a template: nothing here is approved. The guard_model detector may set the pause hint only when approval.approver names a person (not FILL-ME) and approval.model_id equals model_id and the model id the configured adapter serves. Template for the full card: docs/guard-model-card-template.md.",
+  "_comment": "WP-D3. Model card of the guard model the bank chooses (docs/guard-model-decision.md). Shipped as a template: nothing here is approved. The guard_model detector may set the pause hint only when approval.approver names a person (not FILL-ME) and approval.model_id and approval.model_version equal model_id and model_version of this card and the id (GUARD_MODEL_NAME) and version (GUARD_MODEL_VERSION) the configured adapter serves; a version the endpoint reports must equal it too. Template for the full card: docs/guard-model-card-template.md.",
   "card_version": 1,
   "detector": "guard_model@1.0.0",
   "model_id": "FILL-ME-guard-model-id",
@@ -26,6 +26,7 @@
   "approval": {
     "approver": "FILL-ME-name-of-the-approver",
     "model_id": "FILL-ME-guard-model-id",
+    "model_version": "FILL-ME-pinned-revision",
     "approved_on": "FILL-ME",
     "scope": "pause of money and credit tools (rule GATE-CLASSIFIER-PAUSE) and fail closed"
   }

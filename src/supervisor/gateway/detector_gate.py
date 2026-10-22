@@ -42,7 +42,8 @@ CORRELATION_HEADER = "X-Supervisor-Correlation-Id"
 ID_PATTERN = r"^[A-Za-z0-9_.:@-]{1,128}$"
 DEFAULT_FAIL_CLOSED_RISK = frozenset({"money", "credit", "pii_export"})
 FAILED_RULE = "GATE-DETECTOR-FAILED"
-# WP25 (ADR D27): the one pause a detector may cause. Only a detector listed here is allowed to
+# WP25 (ADR D27), WP-D3: the one pause a detector may cause (the classifier or the guard model).
+# Only a detector listed here is allowed to
 # turn a pause hint into a pause, and never on a tool whose risk class is outside the set below
 # (a read_only tool cannot be paused by a finding). The detector itself also checks the classes it
 # is configured with; this is the gate's own backstop.
@@ -353,7 +354,8 @@ class DetectorGate:
             transformed = None
             # A blocked call has no transformed arguments (WP24b filled them while it was allowed).
             d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0
-        # 1b. WP25: a pause-capable detector (the injection classifier) may turn an ALLOW into a
+        # 1b. WP25: a pause-capable detector (the injection classifier or the guard model) may turn
+        # an ALLOW into a
         # PAUSE, never a block, on a money / credit / pii_export tool. The detector set the hint
         # only above its frozen threshold and only for its configured classes. A human resumes.
         if (
@@ -374,7 +376,7 @@ class DetectorGate:
                 d.classifier_pause = True  # the engine pauses on this flag, not on the rule id
                 d.reason = (
                     f"{CLASSIFIER_PAUSE_RULE}: {top.code} score {top.score_bp} bp at or above "
-                    f"the pause threshold on a {pre.risk_class} tool (the classifier advises; a "
+                    f"the pause threshold on a {pre.risk_class} tool (the detector advises; a "
                     "human resumes)"
                 )
                 transformed = None

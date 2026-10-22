@@ -4284,6 +4284,11 @@ _T.update(
             "Hỏi giám khảo xem văn bản có độc hại không và có thuộc tối đa năm chủ đề do bạn "
             "định nghĩa không, trên văn bản người dùng và trên câu trả lời. Chỉ tư vấn và báo "
             "cáo; giám khảo giả được gắn nhãn mock.",
+        ),
+    }
+)
+
+
 _T.update(
     {
         # --- WP-D3: Catalog card of the guard model detector -----------------------------------

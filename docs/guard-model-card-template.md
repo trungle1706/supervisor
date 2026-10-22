@@ -12,7 +12,7 @@ advice.
 |---|---|
 | Component | `guard_model@1.0.0` (`supervisor.detectors.guard_model`) |
 | Adapter | FILL-ME (`classifier_endpoint` or `chat`) |
-| Model id and pinned revision | FILL-ME (the id the endpoint serves; also `GUARD_MODEL_NAME` and `model_id` in the JSON card) |
+| Model id and pinned revision | FILL-ME (the id the endpoint serves: `GUARD_MODEL_NAME` and `model_id` in the JSON card; the revision: `GUARD_MODEL_VERSION` and `model_version`) |
 | Model family | FILL-ME (for `chat`: must differ from every agent family; the start-up check enforces it) |
 | Serving | FILL-ME (workspace, endpoint name, instance type, scale to zero yes or no, region) |
 | Licence | FILL-ME (read by legal on the day of download; copy in `docs/LICENSES.md`) |
@@ -80,7 +80,12 @@ The `approval` block of `data/models/guard_model/model_card.json` must hold:
 | Field | Needed for the pause hint |
 |---|---|
 | `approver` | A person's name. Empty or `FILL-ME...` means no approval |
-| `model_id` | Equal to the card `model_id` and to the model id the adapter serves |
+| `model_id` | Equal to the card `model_id` and to the model id the adapter serves (`GUARD_MODEL_NAME`) |
+| `model_version` | Equal to the card `model_version` and to `GUARD_MODEL_VERSION` (set, not `FILL-ME`). If the endpoint reports a version (`X-Model-Version` header or a `model_version` field), it must equal it too |
+
+Residual: an endpoint that reports no version leaves the version as the operator's declaration. A
+model swapped behind the same name and version is then not seen; re-run the harness after any
+change on the serving side.
 
 Also set `pause_tool_classes` in `config/detectors.yaml`. For fail closed add
 `GUARD_MODEL_FAIL_CLOSED_APPROVED=1` (not recommended).

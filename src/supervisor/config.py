@@ -510,6 +510,7 @@ class Settings(BaseSettings):
     guard_model_adapter: Literal["auto", "mock", "classifier", "chat"] = "auto"
     guard_model_url: str = ""
     guard_model_name: str = ""  # model id (pins the approval in the model card)
+    guard_model_version: str = ""  # pinned revision; the card approval must name the same
     guard_model_api_key: SecretStr | None = None
     guard_model_timeout_ms: int = Field(default=400, ge=10, le=60_000)
     # Fail-closed and the pause path are honoured only when the model card of the guard model has

@@ -116,6 +116,7 @@ class OpenAICompatibleChat:
     """``ChatModel`` adapter. One instance per configured endpoint."""
 
     is_mock = False
+    supports_deadline = True  # WP-D3: complete_json(..., deadline=) bounds all attempts together
 
     def __init__(
         self,
@@ -199,13 +200,25 @@ class OpenAICompatibleChat:
         messages: Sequence[Mapping[str, str]],
         json_schema: Mapping[str, Any],
         timeout_s: float | None = None,
+        deadline: float | None = None,
     ) -> Mapping[str, Any]:
+        """``deadline`` (``time.monotonic()`` value, WP-D3) bounds all attempts together: an
+        attempt gets at most the time left, and the anti-repetition retry is skipped when the time
+        left is under the timeout of one attempt."""
         timeout = float(timeout_s) if timeout_s and timeout_s > 0 else self.default_timeout_s
         msgs = [dict(m) for m in messages]
         problem = ""
         for attempt in (1, 2):
+            attempt_timeout = timeout
+            if deadline is not None:
+                left = deadline - time.monotonic()
+                if left <= 0 or (attempt == 2 and left < timeout):
+                    raise LLMTimeoutError(
+                        f"model {self.model_id}: no time left for attempt {attempt}"
+                    )
+                attempt_timeout = min(timeout, left)
             try:
-                content = self._post(msgs, json_schema, timeout)
+                content = self._post(msgs, json_schema, attempt_timeout)
             except TruncatedError as exc:
                 if attempt == 1:
                     raise

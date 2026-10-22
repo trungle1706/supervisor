@@ -28,7 +28,7 @@ from supervisor.core.ports import GuardModelPort, StateStore
 log = logging.getLogger(__name__)
 
 
-def _check_remote(settings: Settings, url: str, setting: str) -> None:
+def check_remote(settings: Settings, url: str, setting: str) -> None:
     ok = is_loopback_url(url) or settings.llm_allow_remote or _is_workspace_url(settings, url)
     if not ok:
         raise ConfigError(
@@ -111,7 +111,7 @@ def make_guard_model(
     if kind == "classifier":
         if not url:
             raise ConfigError("GUARD_MODEL_ADAPTER=classifier needs GUARD_MODEL_URL")
-        _check_remote(settings, url, "GUARD_MODEL_URL")
+        check_remote(settings, url, "GUARD_MODEL_URL")
         headers = _workspace_headers(settings, client) if _is_workspace_url(settings, url) else None
         return ClassifierEndpointGuard(
             url,
@@ -119,6 +119,7 @@ def make_guard_model(
             api_key=key,
             headers=headers,
             timeout_s=timeout_s,
+            model_version=settings.guard_model_version,
             transport=transport,
         )
     # kind == "chat"
@@ -126,14 +127,21 @@ def make_guard_model(
     base_url = url or settings.judge_t1_base_url or settings.llm_base_url
     if not model or not base_url:
         raise ConfigError("GUARD_MODEL_ADAPTER=chat needs GUARD_MODEL_NAME and a base URL")
-    _check_remote(settings, base_url, "GUARD_MODEL_URL")
+    check_remote(settings, base_url, "GUARD_MODEL_URL")
     from supervisor.adapters.llm.openai_compatible import OpenAICompatibleChat
     from supervisor.judge.family import resolve_family
 
     secret = key
     if secret is None:
-        other = settings.judge_api_key or settings.llm_api_key
-        secret = other.get_secret_value() if other else None
+        # L1: a judge or LLM key goes only to the endpoint it belongs to, never to another URL
+        norm = base_url.rstrip("/")
+        for url_of, other in (
+            (settings.judge_t1_base_url, settings.judge_api_key),
+            (settings.llm_base_url, settings.llm_api_key),
+        ):
+            if other is not None and url_of and url_of.rstrip("/") == norm:
+                secret = other.get_secret_value()
+                break
     chat = OpenAICompatibleChat(
         base_url,
         model,
@@ -158,4 +166,4 @@ def make_guard_model(
     except BaseException:
         chat.close()
         raise
-    return ChatGuard(chat, timeout_s=timeout_s)
+    return ChatGuard(chat, timeout_s=timeout_s, model_version=settings.guard_model_version)
