@@ -40,6 +40,7 @@ SECTIONS_V3: dict[str, Sec] = {
         "nv3_systems",
         "/console/systems",
         (
+            Tab("systems", "nv3_systems", "/console/systems", "ux3:systems", "systems.view"),
             Tab("onboard", "nav_onboard", "/console/onboard", perm="onboard.view"),
             Tab("integration", "nav_integration", "/console/integration", "integration"),
             Tab("transparency", "nav_transparency", "/console/transparency", "ux3:transparency"),
@@ -120,6 +121,7 @@ PAGE_HOME: dict[str, tuple[str, str | None, str | None]] = {
     "sup_overview": ("sup_overview", None, None),
     "workflows": ("workflows", None, None),
     "playground": ("playground", None, None),
+    "systems": ("systems", "systems", "systems"),
     "onboard": ("systems", "systems", "onboard"),
     "integration": ("systems", "systems", "integration"),
     "transparency": ("systems", "systems", "transparency"),
@@ -168,7 +170,14 @@ BAR: tuple[tuple[str, str, str, tuple[BarItem, ...]], ...] = (
         "nv3_gov_k",
         (
             BarItem("gov_overview", "nv3_overview", "overview", "/console/governance"),
-            BarItem("systems", "nv3_systems", "systems", "/console/systems", "systems"),
+            BarItem(
+                "systems",
+                "nv3_systems",
+                "systems",
+                "/console/systems",
+                need="ux3:systems",  # on only with console_systems_enabled and governance_enabled
+                perm="systems.view",
+            ),
             BarItem("catalogues", "nv3_catalogues", "layers", "/console/catalogues", "catalogues"),
             BarItem(
                 "risks_controls",
@@ -273,7 +282,6 @@ def bar(
     lang: str,
     active: str,
     actions_n: int | None,
-    systems_on: bool = False,
 ) -> dict[str, Any]:
     """The bar for one request: ``{home, groups: [{key, label, kicker, items}]}``. An item is
     ``{key, label, icon, href, n, hot, active}``."""
@@ -297,9 +305,6 @@ def bar(
     for gkey, glabel, gkicker, items in BAR:
         rows = []
         for it in items:
-            if it.key == "systems" and not systems_on:
-                # the Systems page is WP-G0's: shown only with console_systems_enabled
-                continue
             if it.sec is not None:
                 if not visible_tabs(
                     it.sec, sh, roles, compliance=compliance, integration=integration
@@ -370,6 +375,8 @@ def tab_strip(
     if home is None or home[1] is None:
         return None
     sec = SECTIONS_V3[home[1]]
+    if sec.key == "systems" and not (sh.get("pages") or {}).get("systems"):
+        return None  # no Systems page: the pages of this section have no strip
     tabs = visible_tabs(sec.key, sh, roles, compliance=compliance, integration=integration)
     if not tabs:
         return None

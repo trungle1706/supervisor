@@ -14,7 +14,7 @@
 <tbody>
 {% for r in d.rows %}
 <tr>
-  <td>{% if r.kind == 'approval' %}{{ t('nv3_wf_' ~ r.name) }}{% elif r.kind == 'sink' %}{{ t('nv3_wf_' ~ r.name) }}{% else %}<code>{{ r.name }}</code>{% endif %}{% if r.detail %} <span class="muted">{{ t(r.detail) }}</span>{% endif %}</td>
+  <td>{% if r.kind == 'approval' %}{{ t('nv3_wf_' ~ r.name) }}{% elif r.kind == 'sink' %}{{ t('nv3_wf_' ~ r.name) }}{% elif r.name == 'scheduler' %}{{ t('nv3_wf_scheduler') }}{% else %}<code>{{ r.name }}</code>{% endif %}{% if r.detail %} <span class="muted">{{ t(r.detail) }}</span>{% endif %}</td>
   <td>{{ t('nv3_kind_wf_' ~ r.kind) }}</td>
   <td>{{ ui.pill(t('nv3_' ~ r.state), 'ok' if r.state == 'on' else 'neutral', True) }}</td>
   <td>{% if r.interval is none %}<span class="muted">-</span>{% else %}{{ dur(r.interval) }}{% if r.threshold is defined %} · {{ t('nv3_threshold', n=r.threshold) }}{% endif %}{% endif %}</td>

@@ -74,15 +74,22 @@ def tier_detail(cards: list[dict[str, Any]]) -> list[tuple[str, int]]:
 
 
 def mandatory_detectors(ctx: Any) -> tuple[list[str], str]:
-    """(slugs, na reason). Mandatory = a detector the file marks ``fail_closed``: when it cannot
-    run, the gate blocks money, credit and PII-export tools. There is no other 'mandatory' flag."""
+    """(slugs, na reason). Mandatory = ``fail_closed`` in the file AND allowed to fail closed by
+    the registry (an advisory detector, or one without its approval, never is): the same test
+    the gate applies (``ResolvedDetectors.for_agent``). There is no other 'mandatory' flag."""
+    from supervisor.adapters.masking.vn_regex import VnRegexMasker
+    from supervisor.detectors import build_registry
     from supervisor.detectors.config import load_config
 
     try:
         conf = load_config(ctx.settings.detectors_config)
+        key, key_id = ctx.settings.mask_key
+        registry = build_registry(VnRegexMasker(key, key_id))
+        slugs = sorted(
+            s for s, e in conf.detectors.items() if e.fail_closed and registry.may_fail_closed(s)
+        )
     except Exception:  # noqa: BLE001 - a bad file is the gate's error, not this page's
         return [], "nv3_na_detector_file"
-    slugs = sorted(s for s, e in conf.detectors.items() if e.fail_closed)
     return (slugs, "") if slugs else ([], "nv3_na_no_mandatory")
 
 
@@ -348,14 +355,18 @@ def asset_page(ctx: Any, tab: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------- Governance
 
 
-def _latest_status(ctx: Any, ids: set[str]) -> dict[tuple[str, str], str]:
-    rows = ctx.tables.query("control_status", None, order_by=("-ts",), limit=20000)
+STATUS_CAP = 20000
+
+
+def _latest_status(ctx: Any, ids: set[str]) -> tuple[dict[tuple[str, str], str], bool]:
+    """Newest status per (control, agent) and whether the scan hit its row limit."""
+    rows = ctx.tables.query("control_status", None, order_by=("-ts",), limit=STATUS_CAP)
     out: dict[tuple[str, str], str] = {}
     for r in rows:
         key = (r["control_id"], r["agent_id"])
         if r["agent_id"] in ids and key not in out:
             out[key] = r["status"]
-    return out
+    return out, len(rows) >= STATUS_CAP
 
 
 def governance_overview(
@@ -374,14 +385,22 @@ def governance_overview(
     )
     # control readiness: latest evidence status of each control per agent, working / all
     if not s.controls_enabled:
-        ready = tile("readiness", None, "", "nv3_na_controls_off", n=0, of=0)
+        ready = tile("readiness", None, "", "nv3_na_controls_off", n=0, of=0, capped=False)
     else:
-        latest = _latest_status(ctx, ids)
+        latest, capped = _latest_status(ctx, ids)
         working = sum(1 for v in latest.values() if v == "working")
         ready = (
-            tile("readiness", working * 10000 // len(latest), "", "", n=working, of=len(latest))
+            tile(
+                "readiness",
+                working * 10000 // len(latest),
+                "",
+                "",
+                n=working,
+                of=len(latest),
+                capped=capped,
+            )
             if latest
-            else tile("readiness", None, "", "nv3_na_no_status", n=0, of=0)
+            else tile("readiness", None, "", "nv3_na_no_status", n=0, of=0, capped=False)
         )
     # tasks: overdue and the stage table
     stage_rows: list[dict[str, Any]] = []

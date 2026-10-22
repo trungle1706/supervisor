@@ -125,6 +125,8 @@ def v3(console: Console, monkeypatch: pytest.MonkeyPatch) -> Console:
 def v3all(v3: Console, monkeypatch: pytest.MonkeyPatch) -> Console:
     for flag in UX3_FLAGS:
         monkeypatch.setattr(v3.ctx.settings, flag, True)
+    for flag in ("console_systems_enabled", "governance_enabled"):
+        monkeypatch.setattr(v3.ctx.settings, flag, True)
     return v3
 
 
@@ -132,12 +134,12 @@ def test_bar_has_one_plus_five_plus_six_items(v3all: Console) -> None:
     side = _v3_side(v3all.get("/console/?lang=en").text)
     assert _labels(side) == [
         "My overview",
-        "Overview", "Catalogues", "Risks & controls", "Workflows",
+        "Overview", "Systems", "Catalogues", "Risks & controls", "Workflows",
         "Overview", "Activity", "Guardians", "Cases & alerts", "Analytics", "Playground",
     ]  # fmt: skip
     kickers = re.findall(r'<span class="side-k">([^<]+)</span><span class="side-t">([^<]+)<', side)
     assert kickers == [("Governance", "AI management"), ("Supervisor", "AI guardian")]
-    assert side.count("<svg") == 12  # 11 items (Systems is WP-G0's) and the gear
+    assert side.count("<svg") == 13  # 12 items and the gear
     assert 'stroke-width="1.8"' in side and 'width="18"' in side
     assert re.search(r'href="/console/\?lang=en" class="active"', side)
     assert 'id="nav-gear"' in v3all.get("/console/").text and "gear-btn" in side
@@ -453,14 +455,63 @@ def test_dynamic_keys_exist() -> None:
     assert [k for k in dynamic if k not in known] == []
 
 
-def test_systems_item_shows_only_with_the_systems_flag() -> None:
+def test_systems_item_follows_the_systems_page_rules(v3all: Console) -> None:
     from supervisor.console import nav_v3
 
-    sh = {"pages": {}, "inventory_n": 0, "assurance": True}
-    kw = {"compliance": True, "integration": True, "lang": "en", "active": "", "actions_n": 0}
-    off = nav_v3.bar(sh, {"reviewer"}, **kw)
-    on = nav_v3.bar(sh, {"reviewer"}, systems_on=True, **kw)
-    keys = lambda b: [i["key"] for g in b["groups"] for i in g["items"]]  # noqa: E731
-    assert "systems" not in keys(off) and "systems" in keys(on)
-    hrefs = [i["href"] for g in on["groups"] for i in g["items"] if i["key"] == "systems"]
-    assert hrefs == ["/console/systems?lang=en"]
+    kw = {"compliance": True, "integration": True, "lang": "en", "actions_n": 0}
+
+    def keys(b: dict) -> list[str]:
+        return [i["key"] for g in b["groups"] for i in g["items"]]
+
+    off = {"pages": {"systems": False}, "inventory_n": 0, "assurance": True}
+    on = {"pages": {"systems": True}, "inventory_n": 0, "assurance": True}
+    assert "systems" not in keys(nav_v3.bar(off, {"reviewer"}, active="", **kw))
+    assert "systems" not in keys(nav_v3.bar(on, set(), active="", **kw))  # no systems.view
+    shown = nav_v3.bar(on, {"reviewer"}, active=nav_v3.active_item("systems"), **kw)
+    row = [i for g in shown["groups"] for i in g["items"] if i["key"] == "systems"]
+    assert row and row[0]["active"] and row[0]["href"] == "/console/systems?lang=en"
+    # the strip: Systems first, then the pages that moved under it; none without the page
+    strip = nav_v3.tab_strip(
+        "onboard", on, {"reviewer"}, lang="en", **{k: kw[k] for k in ("compliance", "integration")}
+    )
+    assert strip and [t["key"] for t in strip["tabs"]][:2] == ["systems", "onboard"]
+    assert (
+        nav_v3.tab_strip("onboard", off, {"reviewer"}, lang="en", compliance=True, integration=True)
+        is None
+    )
+
+
+def test_systems_page_flags_drive_the_bar(v3all: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+    s = v3all.ctx.settings
+    monkeypatch.setattr(s, "console_systems_enabled", True)
+    monkeypatch.setattr(s, "governance_enabled", False)  # G0 rule: both flags are needed
+    assert "Systems" not in _labels(_v3_side(v3all.get("/console/?lang=en").text))
+    assert "subtabs sec-tabs" not in v3all.get("/console/onboard").text
+    monkeypatch.setattr(s, "governance_enabled", True)
+    assert "Systems" in _labels(_v3_side(v3all.get("/console/?lang=en").text))
+    assert "subtabs sec-tabs" in v3all.get("/console/onboard").text
+
+
+def test_guardian_coverage_ignores_a_fail_closed_that_is_not_approved(
+    v3all: Console, monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    from supervisor.console import overview_v3
+
+    conf = tmp_path / "det.yaml"
+    conf.write_text(
+        "version: 1\ndetectors:\n"
+        "  dlp_vn: {enabled: true, fail_closed: true}\n"
+        "  injection_classifier: {enabled: true, fail_closed: true}\n"
+        "  judge_advisory: {enabled: true, fail_closed: true}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(v3all.ctx.settings, "detectors_config", conf)
+    slugs, na = overview_v3.mandatory_detectors(v3all.ctx)
+    # the classifier has no named approval and the judge is advisory: the gate ignores both
+    assert slugs == ["dlp_vn"] and na == ""
+
+
+def test_workflow_and_catalogue_words_are_translated(v3all: Console) -> None:
+    html = v3all.get("/console/workflows?lang=vi").text
+    assert "Bộ lập lịch" in html and "tác vụ định kỳ" in html and ">scheduler job<" not in html
+    assert ">on<" not in html.split("<tbody>")[1]

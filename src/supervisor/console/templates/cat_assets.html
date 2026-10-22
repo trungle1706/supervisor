@@ -14,7 +14,7 @@
 <thead><tr><th scope="col">{{ t('nv3_c_name') }}</th><th scope="col">{{ t('nv3_c_kind') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('nv3_c_own_risk') }}</th><th scope="col">{{ t('nv3_c_last_seen') }}</th></tr></thead>
 <tbody>
 {% for r in d.rows %}
-<tr><td>{{ r.name }}</td><td><code>{{ r.kind }}</code></td><td>{{ ui.pill(r.status, {'active': 'ok', 'unmanaged': 'warn', 'allowlisted': 'neutral'}.get(r.status, 'neutral')) }}</td><td>{% if r.own_risk %}{{ ui.sev(r.own_risk) }}{% else %}<span class="muted">{{ t('nv3_unspecified') }}</span>{% endif %}</td><td>{{ r.last_seen|day }}</td></tr>
+<tr><td>{{ r.name }}</td><td><code>{{ r.kind }}</code></td><td>{{ ui.pill(t('nv3_ast_' ~ r.status), {'active': 'ok', 'unmanaged': 'warn', 'allowlisted': 'neutral'}.get(r.status, 'neutral')) }}</td><td>{% if r.own_risk %}{{ ui.sev(r.own_risk) }}{% else %}<span class="muted">{{ t('nv3_unspecified') }}</span>{% endif %}</td><td>{{ r.last_seen|day }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 {% else %}

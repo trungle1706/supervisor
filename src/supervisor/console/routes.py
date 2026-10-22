@@ -197,7 +197,6 @@ def render(
             compliance=compliance_on,
             integration=integration_on,
             lang=lang,
-            systems_on=bool(getattr(ctx.settings, "console_systems_enabled", False)),
             active=nav_v3.active_item(data["section"]),
             actions_n=_v3_actions(ctx, me, cache),
         ),

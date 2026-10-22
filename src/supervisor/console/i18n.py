@@ -3523,6 +3523,28 @@ _T.update(
         "nv3_c_blocks": ("Stops 24 h", "Bị chặn 24 giờ"),
         "nv3_c_detectors": ("Detectors", "Bộ phát hiện"),
         "nv3_c_p95": ("Latency p95", "Độ trễ p95"),
+        "nv3_capped": (
+            "scan limit reached, newest rows only",
+            "đạt giới hạn quét, chỉ các dòng mới nhất",
+        ),
+        "nv3_classified_note": (
+            "Classified means the agent has a Decision 33 class set in the registry; a proposal "
+            "from Onboard does not count.",
+            "Đã phân loại nghĩa là tác tử có phân loại Quyết định 33 trong sổ đăng ký; đề xuất từ "
+            "Onboard không được tính.",
+        ),
+        "nv3_ast_active": ("active", "đang dùng"),
+        "nv3_ast_unmanaged": ("unmanaged", "chưa quản lý"),
+        "nv3_ast_allowlisted": ("allow-listed", "cho phép"),
+        "nv3_ast_gone": ("gone", "đã biến mất"),
+        "nv3_stage_initiation": ("initiation", "khởi tạo"),
+        "nv3_stage_design": ("design", "thiết kế"),
+        "nv3_stage_validation": ("validation", "thẩm định"),
+        "nv3_stage_deployment": ("deployment", "triển khai"),
+        "nv3_stage_operation": ("operation", "vận hành"),
+        "nv3_stage_re_evaluation": ("re-evaluation", "đánh giá lại"),
+        "nv3_stage_retirement": ("retirement", "ngừng sử dụng"),
+        "nv3_wf_scheduler": ("Scheduler", "Bộ lập lịch"),
         "nv3_ms": ("{ms} ms", "{ms} mili giây"),
         "nv3_checked_sub": ("across {n} agents", "trên {n} tác tử"),
         "nv3_no_task_list": ("no task list yet", "chưa có danh sách công việc"),

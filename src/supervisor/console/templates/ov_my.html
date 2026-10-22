@@ -24,7 +24,7 @@
 <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('nv3_c_risk') }}</th><th scope="col">{{ t('nv3_c_guardian') }}</th><th scope="col">{{ t('nv3_c_cases') }}</th><th scope="col">{{ t('nv3_c_coverage') }}</th></tr></thead>
 <tbody>
 {% for r in d.rows %}
-<tr><td><a href="/console/agents?drawer={{ r.agent_id }}&amp;lang={{ lang }}">{{ r.name }}</a></td><td>{{ ui.state_pill(r.state) }}</td><td>{{ r.risk_tier }}</td><td>{{ v3.cover(r.cover) }}</td><td>{{ r.open_cases }}</td><td>{{ v3.pct(r.coverage_bp) }}</td></tr>
+<tr><td><a href="/console/agents?drawer={{ r.agent_id }}&amp;lang={{ lang }}">{{ r.name }}</a></td><td>{{ ui.state_pill(r.state) }}</td><td>{{ t(r.risk_tier) }}</td><td>{{ v3.cover(r.cover) }}</td><td>{{ r.open_cases }}</td><td>{{ v3.pct(r.coverage_bp) }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 {% else %}

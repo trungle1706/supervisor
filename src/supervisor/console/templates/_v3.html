@@ -27,4 +27,4 @@
 
 {% macro pct(bp) %}{% if bp is none %}<span class="muted">-</span>{% else %}<span title="{{ bp }} bp">{{ bp // 100 }}%</span>{% endif %}{% endmacro %}
 
-{% macro tiers(items) %}{% for tier, n in items %}{{ n }} {{ tier }}{{ ' · ' if not loop.last }}{% endfor %}{% endmacro %}
+{% macro tiers(items) %}{% for tier, n in items %}{{ n }} {{ t(tier) }}{{ ' · ' if not loop.last }}{% endfor %}{% endmacro %}
