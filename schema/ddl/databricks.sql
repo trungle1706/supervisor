@@ -1098,3 +1098,71 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`transparency_report` (
 USING DELTA
 COMMENT 'WP31. One row per generated report file set: agent, variant (regulator | customer | internal), language, version (a whole number per agent and variant) and the sha256 of the JSON and of each rendered file. The report data holds ids, integers, hashes and masked text only; this row holds hashes, counts and section hashes (for the diff to the next version), no text. The matching chain record is transparency_report. A repeat for the same (agent, variant, lang, version) is a no-op (report_id is a hash).'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'delta.logRetentionDuration' = 'interval 1825 days', 'delta.deletedFileRetentionDuration' = 'interval 1825 days', 'supervisor.kind' = 'append_only');
+
+-- ai_system (state): WP-G0. The unit of governance: one AI system (product, platform, feature or use case) with named owners, a few unambiguous intake fields and a manual risk level. The effective risk level (manual level and the level inherited from linked agents and inventory nodes) is computed on read, never stored. decision33_class is human-set. Changes go on the chain as system_change.
+-- primary key (enforced by the app, not by Delta): system_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`ai_system` (
+  system_id STRING NOT NULL,
+  name STRING NOT NULL,
+  owner_user STRING NOT NULL,
+  owner_team STRING NOT NULL,
+  business_owner STRING,
+  purpose STRING NOT NULL,
+  system_type STRING NOT NULL,
+  org_role STRING NOT NULL,
+  user_segment STRING NOT NULL,
+  personal_data STRING NOT NULL,
+  money_movement BOOLEAN NOT NULL,
+  credit_decision BOOLEAN NOT NULL,
+  human_control STRING NOT NULL,
+  lifecycle_stage STRING NOT NULL,
+  risk_level STRING NOT NULL,
+  risk_level_source STRING NOT NULL,
+  risk_justification STRING,
+  decision33_class STRING NOT NULL,
+  business_impact STRING NOT NULL,
+  status STRING NOT NULL,
+  tags STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G0. The unit of governance: one AI system (product, platform, feature or use case) with named owners, a few unambiguous intake fields and a manual risk level. The effective risk level (manual level and the level inherited from linked agents and inventory nodes) is computed on read, never stored. decision33_class is human-set. Changes go on the chain as system_change.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- system_team (state): WP-G0. Who is on an AI system and in which role. A member sees and edits the system; a reviewer or oversight manager cannot be the system owner of the same system (segregation of duties).
+-- primary key (enforced by the app, not by Delta): system_id, user_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`system_team` (
+  system_id STRING NOT NULL,
+  user_id STRING NOT NULL,
+  team_role STRING NOT NULL,
+  added_at TIMESTAMP NOT NULL,
+  added_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G0. Who is on an AI system and in which role. A member sees and edits the system; a reviewer or oversight manager cannot be the system owner of the same system (segregation of duties).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- system_component (state): WP-G0. A link from an AI system to an agent or an inventory node. component_id is a hash of (system_id, ref_kind, ref_id, role), so a repeat is a no-op. active is false after an unlink (the row stays as history).
+-- primary key (enforced by the app, not by Delta): component_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`system_component` (
+  component_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  ref_kind STRING NOT NULL,
+  ref_id STRING NOT NULL,
+  role STRING NOT NULL,
+  source STRING NOT NULL,
+  evidence_ref STRING NOT NULL,
+  active BOOLEAN NOT NULL,
+  first_seen TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G0. A link from an AI system to an agent or an inventory node. component_id is a hash of (system_id, ref_kind, ref_id, role), so a repeat is a no-op. active is false after an unlink (the row stays as history).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
