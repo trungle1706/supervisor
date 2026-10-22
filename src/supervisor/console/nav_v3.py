@@ -273,6 +273,7 @@ def bar(
     lang: str,
     active: str,
     actions_n: int | None,
+    systems_on: bool = False,
 ) -> dict[str, Any]:
     """The bar for one request: ``{home, groups: [{key, label, kicker, items}]}``. An item is
     ``{key, label, icon, href, n, hot, active}``."""
@@ -296,6 +297,9 @@ def bar(
     for gkey, glabel, gkicker, items in BAR:
         rows = []
         for it in items:
+            if it.key == "systems" and not systems_on:
+                # the Systems page is WP-G0's: shown only with console_systems_enabled
+                continue
             if it.sec is not None:
                 if not visible_tabs(
                     it.sec, sh, roles, compliance=compliance, integration=integration

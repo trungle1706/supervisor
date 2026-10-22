@@ -343,7 +343,6 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/governance"): "console.view",
     ("GET", "/console/supervisor"): "console.view",
     ("GET", "/console/workflows"): "console.view",
-    ("GET", "/console/systems"): "console.view",
     ("GET", "/console/catalogues"): "console.view",
     ("GET", "/console/risks-controls"): "console.view",
     ("GET", "/console/activity"): "console.view",

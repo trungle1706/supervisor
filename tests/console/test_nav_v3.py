@@ -19,7 +19,6 @@ NEW_ROUTES = (
     "/console/catalogues",
     "/console/risks-controls",
     "/console/workflows",
-    "/console/systems",
 )
 
 
@@ -133,12 +132,12 @@ def test_bar_has_one_plus_five_plus_six_items(v3all: Console) -> None:
     side = _v3_side(v3all.get("/console/?lang=en").text)
     assert _labels(side) == [
         "My overview",
-        "Overview", "Systems", "Catalogues", "Risks & controls", "Workflows",
+        "Overview", "Catalogues", "Risks & controls", "Workflows",
         "Overview", "Activity", "Guardians", "Cases & alerts", "Analytics", "Playground",
     ]  # fmt: skip
     kickers = re.findall(r'<span class="side-k">([^<]+)</span><span class="side-t">([^<]+)<', side)
     assert kickers == [("Governance", "AI management"), ("Supervisor", "AI guardian")]
-    assert side.count("<svg") == 13  # 12 items and the gear
+    assert side.count("<svg") == 12  # 11 items (Systems is WP-G0's) and the gear
     assert 'stroke-width="1.8"' in side and 'width="18"' in side
     assert re.search(r'href="/console/\?lang=en" class="active"', side)
     assert 'id="nav-gear"' in v3all.get("/console/").text and "gear-btn" in side
@@ -154,7 +153,7 @@ def test_items_hide_when_the_page_flag_is_off(v3: Console) -> None:
     labels = _labels(_v3_side(v3.get("/console/?lang=en").text))
     assert "Playground" not in labels and "Risks & controls" not in labels
     assert "Activity" not in labels
-    assert {"Systems", "Catalogues", "Guardians", "Cases & alerts", "Analytics"} <= set(labels)
+    assert {"Catalogues", "Guardians", "Cases & alerts", "Analytics"} <= set(labels)
 
 
 def test_items_hide_when_the_role_lacks_the_permission(v3all: Console) -> None:
@@ -200,7 +199,6 @@ def test_each_new_page_renders(v3all: Console, path: str, lang: str) -> None:
 @pytest.mark.parametrize(
     ("path", "target"),
     [
-        ("/console/systems", "/console/onboard"),
         ("/console/activity", "/console/decisions"),
         ("/console/risks-controls", "/console/risks"),
         ("/console/catalogues", "/console/agents"),
@@ -225,7 +223,6 @@ def test_section_routes_redirect_to_the_tab_page(v3all: Console, path: str, targ
         "/console/guardians?tab=nope",
         "/console/catalogues?tab=nope",
         "/console/risks-controls?tab=nope",
-        "/console/systems?tab=nope",
         "/console/governance?scope=nope",
         "/console/supervisor?scope=nope",
         "/console/?scope=nope",
@@ -454,3 +451,16 @@ def test_dynamic_keys_exist() -> None:
         + [f"nv3_st_{k}_{v}" for k in ("collectors", "ingress", "audit") for v in ("on", "off")]
     )
     assert [k for k in dynamic if k not in known] == []
+
+
+def test_systems_item_shows_only_with_the_systems_flag() -> None:
+    from supervisor.console import nav_v3
+
+    sh = {"pages": {}, "inventory_n": 0, "assurance": True}
+    kw = {"compliance": True, "integration": True, "lang": "en", "active": "", "actions_n": 0}
+    off = nav_v3.bar(sh, {"reviewer"}, **kw)
+    on = nav_v3.bar(sh, {"reviewer"}, systems_on=True, **kw)
+    keys = lambda b: [i["key"] for g in b["groups"] for i in g["items"]]  # noqa: E731
+    assert "systems" not in keys(off) and "systems" in keys(on)
+    hrefs = [i["href"] for g in on["groups"] for i in g["items"] if i["key"] == "systems"]
+    assert hrefs == ["/console/systems?lang=en"]

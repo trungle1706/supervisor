@@ -197,6 +197,7 @@ def render(
             compliance=compliance_on,
             integration=integration_on,
             lang=lang,
+            systems_on=bool(getattr(ctx.settings, "console_systems_enabled", False)),
             active=nav_v3.active_item(data["section"]),
             actions_n=_v3_actions(ctx, me, cache),
         ),
@@ -2552,7 +2553,8 @@ def _v3_redirect_route(sec: str, path: str) -> None:
         return _v3_go(request, tab.path)
 
 
-for _sec in ("systems", "activity", "risks-controls"):
+# /console/systems belongs to WP-G0 (systems.view), not registered here
+for _sec in ("activity", "risks-controls"):
     _v3_redirect_route(_sec.replace("-", "_"), f"/{_sec}")
 
 

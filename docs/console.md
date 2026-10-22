@@ -137,7 +137,7 @@ The section routes below answer `302` to the first tab that is on (or to the tab
 |---|---|---|
 | My overview | `/console/` | none. Replaces Overview; Inbox stays at `/console/inbox`, linked from the page |
 | Governance, Overview | `/console/governance` | none |
-| Governance, Systems | `/console/systems` (302) | Onboard, Integration, Transparency, Tasks. Waits for WP-UX4b (Systems on `ai_system`) |
+| Governance, Systems | `/console/systems` (route and page owned by WP-G0) | The item shows only with `console_systems_enabled`. The Onboard, Integration, Transparency and Tasks pages carry a Systems tab strip meanwhile |
 | Governance, Catalogues | `/console/catalogues` | Agents (`/console/agents`), Models, Tools, Datasets, MCP servers (inventory nodes, read only), Unmanaged (`/console/inventory`) |
 | Governance, Risks and controls | `/console/risks-controls` (302) | Risks, Controls, Policies (the Compliance page) |
 | Governance, Workflows | `/console/workflows` | none |
