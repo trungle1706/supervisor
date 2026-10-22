@@ -19,7 +19,9 @@ The runner holds the services it calls; the job and the tests build it the same 
 
 from __future__ import annotations
 
+import json
 import logging
+import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -47,6 +49,9 @@ MONITOR = "governance_actions"
 MAX_NEW_PER_RUN = 200  # events newly handled in one run; the cursor waits for the rest
 REVIEWER_ROLES = ("reviewer", "oversight_manager", "compliance_specialist")
 RE_EVAL_FROM = ("deployment", "operation")
+MAX_TRIES = 3  # runs for one action; then it is failed_final
+LEASE_S = 120  # a runner holds a started event for this long
+PENDING_CAP = 100  # started events taken up again in one run
 
 
 def _on(value: Any) -> bool:
@@ -75,6 +80,8 @@ class RunResult:
     failed: int = 0
     source_errors: int = 0
     deferred: int = 0
+    busy: int = 0
+    retrying: int = 0
     planned: list[dict[str, Any]] = field(default_factory=list)  # dry run
 
     def as_dict(self) -> dict[str, int]:
@@ -89,6 +96,8 @@ class RunResult:
             "failed": self.failed,
             "source_errors": self.source_errors,
             "deferred": self.deferred,
+            "busy": self.busy,
+            "retrying": self.retrying,
         }
 
 
@@ -118,6 +127,8 @@ class ActionRunner:
         self.controls = controls
         self.sources = dict(sources) if sources is not None else dict(src.SOURCES)
         self._facts: dict[str, SystemFacts | None] = {}
+        self.runner_id = uuid.uuid4().hex[:16]
+        self._touched: set[str] = set()
 
     # ------------------------------------------------------------------ facts
     def facts(self, system_id: str | None) -> SystemFacts | None:
@@ -146,6 +157,9 @@ class ActionRunner:
         now = self.ctx.clock.now()
         links = src.systems_of(self.ctx.state)
         budget = MAX_NEW_PER_RUN
+        self._touched = set()
+        if not dry_run:
+            self._resume_pending(res)
         for name, reader in sorted(self.sources.items()):
             saved = get_state(self.ctx, MONITOR, f"cursor:{name}")
             if saved and saved.get("ts"):
@@ -183,7 +197,7 @@ class ActionRunner:
             res.unmatched += 1
             return "skip"
         marker = self.ctx.state.get("governance_event", {"event_key": ev.key})
-        if marker is not None and marker["status"] == "done":
+        if ev.key in self._touched or (marker is not None and marker["status"] == "done"):
             res.already += 1
             return "skip"
         if dry_run:
@@ -207,6 +221,25 @@ class ActionRunner:
         return "new"
 
     # ------------------------------------------------------------------ handle
+    def _claim(self, marker: Mapping[str, Any]) -> dict[str, Any] | None:
+        """Take the lease of a started event. None when a live runner holds it or the claim
+        was lost: this runner then leaves the event alone."""
+        now = self.ctx.clock.now()
+        holder, until = marker.get("runner_id"), marker.get("lease_until")
+        if holder and holder != self.runner_id and until is not None and as_dt(until) > now:
+            return None
+        try:
+            return dict(
+                self.ctx.state.update(
+                    "governance_event",
+                    {"event_key": marker["event_key"]},
+                    {"runner_id": self.runner_id, "lease_until": now + timedelta(seconds=LEASE_S)},
+                    int(marker["row_version"]),
+                )
+            )
+        except (ConcurrencyError, SupervisorError):
+            return None
+
     def _handle(
         self,
         ev: GovernanceEvent,
@@ -216,9 +249,11 @@ class ActionRunner:
     ) -> None:
         state = self.ctx.state
         rule_ids = sorted({r for p in planned for r in p.rules})
+        self._touched.add(ev.key)
         if marker is None:
+            now = self.ctx.clock.now()
             try:
-                marker = dict(
+                claimed: dict[str, Any] | None = dict(
                     state.insert(
                         "governance_event",
                         {
@@ -232,31 +267,81 @@ class ActionRunner:
                             "status": "started",
                             "rules": rule_ids,
                             "actions": [],
-                            "started_at": self.ctx.clock.now(),
+                            "started_at": now,
+                            "detail": {
+                                "rule_id": ev.rule_id,
+                                "case_id": ev.case_id,
+                                "evidence": list(ev.evidence) if ev.evidence else None,
+                            },
+                            "runner_id": self.runner_id,
+                            "lease_until": now + timedelta(seconds=LEASE_S),
                         },
                     )
                 )
             except DuplicateKeyError:  # another runner won the race: it owns the event
-                res.already += 1
+                res.busy += 1
                 return
-        results: list[dict[str, str]] = [dict(a) for a in _list(marker.get("actions"))]
-        done = {a["action"] for a in results}
-        version = int(marker["row_version"])
-        incident_id = next((a["ref"] for a in results if a["action"] == "create_incident"), "")
+        else:
+            claimed = self._claim(marker)
+            if claimed is None:
+                res.busy += 1
+                return
+        results: list[dict[str, Any]] = [dict(a) for a in _list(claimed.get("actions"))]
+        version = int(claimed["row_version"])
+
+        def entry_of(action: str) -> dict[str, Any] | None:
+            return next((a for a in results if a["action"] == action), None)
+
+        def save() -> None:
+            nonlocal version
+            version = self._save(ev, results, version)
+
+        incident_id = next(
+            (
+                a["ref"]
+                for a in results
+                if a["action"] == "create_incident" and a["status"] == "done"
+            ),
+            "",
+        )
         for p in planned:
-            if p.action in done:
-                continue
+            entry = entry_of(p.action)
+            tries = 0
+            if entry is not None:
+                if entry["status"] == "attempting":  # a crash after the effect, maybe before save
+                    entry.update(status="skipped", ref="maybe_done")
+                    save()
+                    continue
+                if entry["status"] != "failed":  # done, skipped, refused or failed_final
+                    continue
+                tries = int(entry.get("tries") or 1)
+            else:
+                entry = {"action": p.action}
+                results.append(entry)
+            entry.update(status="attempting", ref="", tries=tries)
+            save()  # written BEFORE the action: a crash now never repeats it
             out = self._run_action(ev, p, incident_id)
+            tries += 1
+            status = out.status
+            if status == "failed" and tries >= MAX_TRIES:
+                status = "failed_final"
+            entry.update(status=status, ref=out.ref[:128], tries=tries)
             if p.action == "create_incident" and out.status == "done":
                 incident_id = out.ref
-            results.append({"action": p.action, "status": out.status, "ref": out.ref[:128]})
-            version = self._save(ev, results, version)
+            save()
         self._finish(ev, rule_ids, results, version, res)
 
-    def _save(self, ev: GovernanceEvent, results: list[dict[str, str]], version: int) -> int:
+    def _save(self, ev: GovernanceEvent, results: list[dict[str, Any]], version: int) -> int:
+        """Store the action list and renew the lease. Returns the new row version."""
         try:
             row = self.ctx.state.update(
-                "governance_event", {"event_key": ev.key}, {"actions": list(results)}, version
+                "governance_event",
+                {"event_key": ev.key},
+                {
+                    "actions": [dict(a) for a in results],
+                    "lease_until": self.ctx.clock.now() + timedelta(seconds=LEASE_S),
+                },
+                version,
             )
             return int(row["row_version"])
         except (ConcurrencyError, SupervisorError):
@@ -268,16 +353,37 @@ class ActionRunner:
         self,
         ev: GovernanceEvent,
         rule_ids: list[str],
-        results: list[dict[str, str]],
+        results: list[dict[str, Any]],
         version: int,
         res: RunResult,
     ) -> None:
         now = self.ctx.clock.now()
+        if any(a["status"] == "failed" for a in results):
+            # a failed action is tried again on a later run (up to MAX_TRIES); the event stays
+            # started and the lease is let go
+            res.retrying += 1
+            try:
+                self.ctx.state.update(
+                    "governance_event",
+                    {"event_key": ev.key},
+                    {"runner_id": None, "lease_until": None, "rules": rule_ids},
+                    version,
+                )
+            except (ConcurrencyError, SupervisorError):
+                log.exception("governance event marker %s could not be released", ev.key)
+            return
         try:
             self.ctx.state.update(
                 "governance_event",
                 {"event_key": ev.key},
-                {"status": "done", "done_at": now, "actions": list(results), "rules": rule_ids},
+                {
+                    "status": "done",
+                    "done_at": now,
+                    "actions": [dict(a) for a in results],
+                    "rules": rule_ids,
+                    "runner_id": None,
+                    "lease_until": None,
+                },
                 version,
             )
         except (ConcurrencyError, SupervisorError):
@@ -287,7 +393,7 @@ class ActionRunner:
         res.done += tally["done"]
         res.skipped += tally["skipped"]
         res.refused += tally["refused"]
-        res.failed += tally["failed"]
+        res.failed += tally["failed_final"]
         try:
             self.ctx.evidence.record(
                 "governance_action",
@@ -304,13 +410,49 @@ class ActionRunner:
                     "done_n": tally["done"],
                     "skipped_n": tally["skipped"],
                     "refused_n": tally["refused"],
-                    "failed_n": tally["failed"],
+                    "failed_n": tally["failed_final"],
+                    "failed_final_n": tally["failed_final"],
+                    "tries_n": sum(int(a.get("tries") or 0) for a in results),
                     "rules_hash": rules_digest(self.rules),
                     "ts": format_ts(now),
                 },
             )
         except Exception:  # noqa: BLE001 - the marker is stored; log and go on
             log.exception("governance_action chain record failed")
+
+    def _event_of(self, m: Mapping[str, Any]) -> GovernanceEvent:
+        d = m.get("detail")
+        if not isinstance(d, Mapping):
+            d = {}
+        ev = d.get("evidence")
+        return GovernanceEvent(
+            kind=str(m["kind"]),
+            severity=str(m["severity"]),
+            agent_id=str(m["agent_id"]),
+            ref=str(m["ref"]),
+            at=as_dt(m["event_at"]),
+            system_id=m.get("system_id"),
+            rule_id=str(d.get("rule_id") or ""),
+            case_id=d.get("case_id"),
+            evidence=(str(ev[0]), str(ev[1])) if isinstance(ev, list) and len(ev) == 2 else None,
+        )
+
+    def _resume_pending(self, res: RunResult) -> None:
+        """Events whose marker is still ``started`` (a failed action to retry, or a crash): take
+        them up again, whatever their age. The source read alone would only find young ones."""
+        rows = self.ctx.state.query(
+            "governance_event", {"status": "started"}, order_by=("started_at",), limit=PENDING_CAP
+        )
+        for m in rows:
+            try:
+                ev = self._event_of(m)
+            except Exception:  # noqa: BLE001 - a marker this code cannot read is left alone
+                log.exception("governance event marker %s cannot be read", m.get("event_key"))
+                continue
+            if ev.key != m["event_key"]:
+                continue
+            planned = plan(ev, self.rules, self.facts(ev.system_id))
+            self._handle(ev, planned, m, res)
 
     # ------------------------------------------------------------------ the actions
     def _run_action(self, ev: GovernanceEvent, p: PlannedAction, incident_id: str) -> Outcome:
@@ -358,7 +500,29 @@ class ActionRunner:
         )
         return Outcome("done", "notice")
 
+    def _raised_before(self, ev: GovernanceEvent) -> bool:
+        """True when a ``system_change`` chain record of this system already carries the event key
+        (the level was raised, the crash came before the marker was saved)."""
+        tables = self.ctx.tables
+        rows = tables.query(
+            "chain_entry",
+            {"record_ref": f"system:{ev.system_id}", "record_type": "system_change"},
+            order_by=("-ts",),
+            limit=200,
+        )
+        for r in rows:
+            for pl in tables.query("chain_payload", {"lane": r["lane"], "seq": r["seq"]}):
+                try:
+                    body = json.loads(pl["payload"])
+                except (TypeError, ValueError):
+                    continue
+                if body.get("action") == "risk_raise" and body.get("event_key") == ev.key:
+                    return True
+        return False
+
     def _do_raise_risk_level(self, ev: GovernanceEvent, p: PlannedAction, _inc: str) -> Outcome:
+        if self._raised_before(ev):
+            return Outcome("skipped", "already_raised")
         try:
             out = self.systems.raise_risk_from_event(str(ev.system_id), ACTOR, ev.key)
         except SystemsError:
@@ -450,7 +614,7 @@ class ActionRunner:
         return Outcome("done", ",".join(opened))
 
 
-_STATUSES = ("done", "skipped", "refused", "failed")
+_STATUSES = ("done", "skipped", "refused", "failed", "failed_final")
 
 
 def _list(value: Any) -> list[Any]:

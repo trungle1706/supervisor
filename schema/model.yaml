@@ -1385,8 +1385,10 @@ tables:
     description: >
       WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref
       and system). Written before the actions run (status started), so an event is processed
-      once across runs; the actions column holds the result of each action, so a retry of a
-      started event skips what was done. Ids and enums only.
+      once across runs; the actions column holds the result of each action (and an attempting
+      entry before an action runs), so a retry of a started event skips what was done or may
+      have been done. A failed action is retried up to 3 runs, then failed_final. Ids and enums
+      only.
     primary_key: [event_key]
     indexes:
       - [status]
@@ -1403,3 +1405,6 @@ tables:
       actions: json            # list of {action, status, ref}
       started_at: timestamp
       done_at: timestamp?
+      detail: json?            # rule_id, case_id, evidence of the event, to resume it later
+      runner_id: string?       # the runner that holds the event now (lease)
+      lease_until: timestamp?  # a runner whose lease ran out may be replaced

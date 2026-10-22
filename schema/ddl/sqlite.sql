@@ -1504,7 +1504,7 @@ CREATE INDEX IF NOT EXISTS ix_incident_system_id ON incident (system_id);
 
 CREATE INDEX IF NOT EXISTS ix_incident_agent_id ON incident (agent_id);
 
--- governance_event (state): WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action, so a retry of a started event skips what was done. Ids and enums only.
+-- governance_event (state): WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action (and an attempting entry before an action runs), so a retry of a started event skips what was done or may have been done. A failed action is retried up to 3 runs, then failed_final. Ids and enums only.
 CREATE TABLE IF NOT EXISTS governance_event (
   event_key TEXT NOT NULL,
   kind TEXT NOT NULL,
@@ -1518,6 +1518,9 @@ CREATE TABLE IF NOT EXISTS governance_event (
   actions TEXT NOT NULL,
   started_at TEXT NOT NULL,
   done_at TEXT,
+  detail TEXT,
+  runner_id TEXT,
+  lease_until TEXT,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (event_key)

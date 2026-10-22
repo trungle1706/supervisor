@@ -1257,7 +1257,7 @@ USING DELTA
 COMMENT 'WP-G5. An incident made by the governance action job from an event (alert, gate stop on a risky tool, failed detector, failing monitor, assurance NO-GO, chain break, model version change, judge escalation). Auto-created only; a person moves it on and closes it. The title comes from a template; no free text from an event. root_cause and affected_scope are typed by a person. Changes go on the chain as incident_change.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
--- governance_event (state): WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action, so a retry of a started event skips what was done. Ids and enums only.
+-- governance_event (state): WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action (and an attempting entry before an action runs), so a retry of a started event skips what was done or may have been done. A failed action is retried up to 3 runs, then failed_final. Ids and enums only.
 -- primary key (enforced by the app, not by Delta): event_key
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`governance_event` (
   event_key STRING NOT NULL,
@@ -1272,9 +1272,12 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`governance_event` (
   actions STRING NOT NULL,
   started_at TIMESTAMP NOT NULL,
   done_at TIMESTAMP,
+  detail STRING,
+  runner_id STRING,
+  lease_until TIMESTAMP,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )
 USING DELTA
-COMMENT 'WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action, so a retry of a started event skips what was done. Ids and enums only.'
+COMMENT 'WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action (and an attempting entry before an action runs), so a retry of a started event skips what was done or may have been done. A failed action is retried up to 3 runs, then failed_final. Ids and enums only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');

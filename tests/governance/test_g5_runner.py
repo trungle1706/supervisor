@@ -3,7 +3,9 @@ resume of a started event, dry run, incidents closed by a person only, clean cha
 
 from __future__ import annotations
 
+import json
 import re
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -273,15 +275,19 @@ def test_the_budget_defers_the_rest_and_the_cursor_waits(
 # ------------------------------------------------------------------------------ failures
 
 
-def test_a_raising_action_does_not_stop_the_others(
+def boom(*a: Any, **k: Any) -> Any:
+    raise RuntimeError("the review store is down")
+
+
+def chain_records(rig: Rig, rtype: str) -> list[dict[str, Any]]:
+    return rig.sink.of(rtype)
+
+
+def test_a_raising_action_does_not_stop_the_others_and_is_retried_then_final(
     rig: Rig, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     deployed_system(rig)
     rig.eval_result("counterfactual_vi", "fail")
-
-    def boom(*a: Any, **k: Any) -> Any:
-        raise RuntimeError("the review store is down")
-
     monkeypatch.setattr(rig.reviews, "create", boom)
     monkeypatch.setattr(rig.systems, "raise_risk_from_event", boom)
     runner = rig.runner(only([rule("pack_no_go", ALL_ACTIONS)]), sources=PACK_ONLY)
@@ -290,12 +296,166 @@ def test_a_raising_action_does_not_stop_the_others(
     assert got["create_review"] == "failed" and got["raise_risk_level"] == "failed"
     assert got["create_incident"] == "done" and got["notify_owner"] == "done"
     assert got["fire_webhook"] == "done" and got["move_to_re_evaluation"] == "done"
-    assert res.failed == 2 and res.handled == 1
     (m,) = marker(rig)
-    assert m["status"] == "done"
+    assert m["status"] == "started" and res.retrying == 1 and res.handled == 0
+    assert chain_records(rig, "governance_action") == []  # not final yet
     assert {a["ref"] for a in m["actions"] if a["status"] == "failed"} == {"RuntimeError"}
-    again = runner.run()  # a failed action is recorded, not retried by itself
+    for expected_tries in (2, 3):
+        res = runner.run()
+        (m,) = marker(rig)
+        tries = {a["action"]: a["tries"] for a in m["actions"]}
+        assert tries["create_review"] == expected_tries
+    assert res.handled == 1 and res.failed == 2 and res.retrying == 0
+    assert m["status"] == "done"
+    assert statuses(rig)["create_review"] == "failed_final"
+    (g,) = chain_records(rig, "governance_action")
+    assert g["failed_final_n"] == 2 and g["tries_n"] >= 6
+    again = runner.run()  # nothing left to do
     assert again.handled == 0 and len(rig.a.state.query("incident")) == 1
+    assert len(rig.a.state.query("notice")) == 1  # the others ran once, not on each retry
+
+
+def test_a_failed_action_recovers_on_a_later_run(rig: Rig, monkeypatch: pytest.MonkeyPatch) -> None:
+    deployed_system(rig)
+    rig.eval_result("counterfactual_vi", "fail")
+    monkeypatch.setattr(rig.reviews, "create", boom)
+    r = only([rule("pack_no_go", ["create_incident", "create_review"])])
+    runner = rig.runner(r, sources=PACK_ONLY)
+    runner.run()
+    monkeypatch.undo()
+    res = rig.runner(r, sources=PACK_ONLY).run()
+    assert res.handled == 1
+    assert statuses(rig) == {"create_incident": "done", "create_review": "done"}
+    assert len(rig.a.state.query("review")) == 1 and len(rig.a.state.query("incident")) == 1
+    assert chain_records(rig, "governance_action")[0]["failed_final_n"] == 0
+
+
+def test_a_pending_event_is_retried_even_when_no_source_returns_it(
+    rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    deployed_system(rig)
+    rig.eval_result("counterfactual_vi", "fail")
+    monkeypatch.setattr(rig.reviews, "create", boom)
+    r = only([rule("pack_no_go", ["create_incident", "create_review"])])
+    rig.runner(r, sources=PACK_ONLY).run()
+    monkeypatch.undo()
+    res = rig.runner(r, sources={}).run()  # an old event: the sources do not give it again
+    assert res.handled == 1 and statuses(rig)["create_review"] == "done"
+
+
+def planned_key(rig: Rig, rules: Any, sources: Any) -> str:
+    return str(rig.runner(rules, sources=sources).run(dry_run=True).planned[0]["key"])
+
+
+def put_marker(rig: Rig, key: str, actions: list[dict[str, Any]], **over: Any) -> None:
+    row = {
+        "event_key": key,
+        "kind": "pack_no_go",
+        "severity": "high",
+        "agent_id": "agent-a",
+        "system_id": None,
+        "ref": "x:1",
+        "event_at": ago(60),
+        "status": "started",
+        "rules": ["T-1"],
+        "actions": actions,
+        "started_at": ago(50),
+    }
+    rig.a.state.insert("governance_event", {**row, **over})
+
+
+def test_an_action_that_was_attempting_at_a_crash_is_never_run_again(rig: Rig) -> None:
+    rig.system()
+    rig.eval_result("counterfactual_vi", "fail")
+    r = only([rule("pack_no_go", ["create_incident", "notify_owner"])])
+    key = planned_key(rig, r, PACK_ONLY)
+    # the notice was written, then the process died before the result was saved
+    put_marker(
+        rig,
+        key,
+        [{"action": "notify_owner", "status": "attempting", "ref": "", "tries": 0}],
+        system_id=rig.a.state.query("ai_system")[0]["system_id"],
+        agent_id="agent-a",
+    )
+    res = rig.runner(r, sources=PACK_ONLY).run()
+    assert res.handled == 1
+    (m,) = marker(rig)
+    by = {a["action"]: a for a in m["actions"]}
+    assert (by["notify_owner"]["status"], by["notify_owner"]["ref"]) == ("skipped", "maybe_done")
+    assert by["create_incident"]["status"] == "done"
+    assert rig.a.state.query("notice") == []  # not written a second time
+
+
+def test_a_raise_that_reached_the_chain_is_not_repeated(rig: Rig) -> None:
+    sid = deployed_system(rig)
+    rig.eval_result("counterfactual_vi", "fail")
+    r = only([rule("pack_no_go", ["raise_risk_level"])])
+    key = planned_key(rig, r, PACK_ONLY)
+    rig.a.tables.append(
+        "chain_entry",
+        [
+            {
+                "lane": "root",
+                "seq": 7,
+                "ts": ago(30),
+                "record_type": "system_change",
+                "record_ref": f"system:{sid}",
+                "payload_hash": "p7",
+                "prev_hash": "0" * 64,
+                "entry_hash": "e7",
+                "writer": "w",
+                "env": "dev",
+            }
+        ],
+    )
+    rig.a.tables.append(
+        "chain_payload",
+        [
+            {
+                "lane": "root",
+                "seq": 7,
+                "payload_hash": "p7",
+                "payload": json.dumps({"action": "risk_raise", "event_key": key}),
+            }
+        ],
+    )
+    rig.runner(r, sources=PACK_ONLY).run()
+    assert statuses(rig) == {"raise_risk_level": "skipped"}
+    assert marker(rig)[0]["actions"][0]["ref"] == "already_raised"
+    assert rig.a.state.get("ai_system", {"system_id": sid})["risk_level"] == "unspecified"
+
+
+def test_a_started_event_held_by_a_live_runner_is_left_alone(rig: Rig) -> None:
+    rig.system()
+    rig.eval_result("counterfactual_vi", "fail")
+    r = only([rule("pack_no_go", ["create_incident"])])
+    key = planned_key(rig, r, PACK_ONLY)
+    put_marker(
+        rig,
+        key,
+        [],
+        system_id=rig.a.state.query("ai_system")[0]["system_id"],
+        runner_id="other-runner",
+        lease_until=rig.a.clock.now() + timedelta(seconds=60),
+    )
+    runner = rig.runner(r, sources=PACK_ONLY)
+    res = runner.run()
+    assert res.busy == 1 and res.handled == 0 and rig.a.state.query("incident") == []
+    rig.a.clock.advance(200)  # the other runner's lease ran out: it is gone
+    res = runner.run()
+    assert res.handled == 1 and len(rig.a.state.query("incident")) == 1
+    assert marker(rig)[0]["runner_id"] is None
+
+
+def test_two_runners_do_not_both_work_one_event(rig: Rig) -> None:
+    rig.system()
+    rig.eval_result("counterfactual_vi", "fail")
+    r = only([rule("pack_no_go", ["create_incident", "notify_owner"])])
+    first, second = rig.runner(r, sources=PACK_ONLY), rig.runner(r, sources=PACK_ONLY)
+    assert first.runner_id != second.runner_id
+    first.run()
+    second.run()
+    assert len(rig.a.state.query("incident")) == 1 and len(rig.a.state.query("notice")) == 1
 
 
 def test_a_failing_source_does_not_stop_the_others(rig: Rig) -> None:
