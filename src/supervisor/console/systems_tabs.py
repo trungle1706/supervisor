@@ -316,7 +316,6 @@ def reports_tab(ctx: Any, system: Mapping[str, Any]) -> dict[str, Any]:
     """Per linked agent: the latest transparency report of each variant (with its verify
     state), and the chain verify state of the agent lane. The audit pack is built on the
     Evidence page; this tab links to it and lists the packs that exist."""
-    from supervisor.console import auditpack
     from supervisor.transparency.model import VARIANTS
 
     agents = agents_of(system)
@@ -355,7 +354,6 @@ def reports_tab(ctx: Any, system: Mapping[str, Any]) -> dict[str, Any]:
         "rp_variants": VARIANTS,
         "rp_tp_on": tp_on,
         "rp_tp_page": bool(ctx.settings.console_transparency_enabled),
-        "rp_packs": auditpack.list_packs(ctx),
         "rp_incidents": incidents,
         "rp_incidents_na": inc_na,
     }

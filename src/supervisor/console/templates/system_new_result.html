@@ -73,6 +73,7 @@
   <p>{{ ui.pill(t('sy_d33_' ~ d.cls.d33), {'high_risk': 'bad', 'not_high_risk': 'ok'}.get(d.cls.d33, 'neutral'), True) }}
      {% if d.cls.level %}{{ t('ux4b_class_level', level=t('sy_risk_' ~ d.cls.level)) }}{% endif %}</p>
   {% if d.cls.reasons %}<p class="hint">{{ t('ux4b_class_because') }}: {% for r in d.cls.reasons %}{{ t('sy_f_' ~ r) }}{{ ', ' if not loop.last }}{% endfor %} · {{ t('sy_f_human_control') }}: {{ t('sy_human_control_' ~ d.draft.human_control) }}</p>{% endif %}
+  {% if d.cls.get('note') %}<p class="hint" data-wizard="class-note">{{ t(d.cls.note) }}</p>{% endif %}
   <p class="hint">{{ t('ux4b_class_note') }}</p>
 </section>
 </div>
@@ -84,7 +85,7 @@
   <div class="tablewrap flat"><table data-table="wizard-packs">
     <thead><tr><th scope="col">{{ t('ux4b_pack') }}</th><th scope="col">{{ t('ux4b_dimension') }}</th><th scope="col">{{ t('ux4b_why') }}</th><th scope="col">{{ t('ux4b_gate') }}</th></tr></thead>
     <tbody>
-    {% for p in d.packs.rows %}<tr><td><span class="mono">{{ p.id }}</span><div class="idline">{{ p.title }}</div></td><td>{{ p.dimension }}</td><td>{{ t(p.why) }}</td><td>{{ p.gate }}</td></tr>
+    {% for p in d.packs.rows %}<tr><td><span class="mono">{{ p.id }}</span><div class="idline">{{ p.title }}</div></td><td>{{ t('ux4b_dimname_' ~ p.dimension) }}</td><td>{{ t(p.why) }}</td><td>{{ t('ux4b_gate_' ~ p.gate) }}</td></tr>
     {% endfor %}
     </tbody>
   </table></div>

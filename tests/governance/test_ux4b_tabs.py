@@ -330,6 +330,8 @@ def test_reports_tab_variants_chain_and_pack(seeded_registers: Console) -> None:
     assert "agent:payments" in html and "agent:credit_prequal" in html
     assert "not verified" in html.lower()
     assert "/console/evidence" in html
+    # a scoped reader sees no global pack count or file name
+    assert ".zip" not in html and "packs on this server" not in html
     # a verified lane shows its state
     c.ctx.last_verify["agent:payments"] = {
         "ok": True,

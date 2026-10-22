@@ -200,13 +200,13 @@ the page it summarises. All tabs read the agents linked to the system.
 | Reports | latest transparency report per variant and agent, chain verify state per agent lane, audit pack link, incidents slot | transparency off; incidents until WP-G5 and its flag |
 
 Register wizard `/console/systems/new` (needs `systems.edit`): step 1 intake (plus `autonomy_level`
-once WP-G2 adds it, and an optional repository folder for people who may start onboarding), step 2
+once WP-G2 adds it, and an optional repository folder for people who may start onboarding; the folder must be inside `ONBOARD_ALLOWED_ROOTS`, default empty = the advisor is off in the wizard; one scan at a time, 30 s limit), step 2
 `POST /console/systems/new/checks` runs the preliminary checks and writes nothing, step 3
 `POST /console/systems/new` registers the draft and opens the tasks `SYS-INTAKE-CONFIRM` and
 `SYS-INTAKE-CHECKS`. The result page shows the readiness score and band (80+ ready, 50-79 needs the
 patches, below 50 needs work; static analysis, no model), the class proposal (money movement or a
-credit decision without a human approval before the action is high risk; WP-G2 rules win when
-merged), the assurance packs per dimension and the guardian floor. Scoped people register for
+credit decision without a human approval before the action is high risk; a declared approval stays
+unclassified because only a step in code counts; WP-G2 rules win when merged), the assurance packs per dimension and the guardian floor. Scoped people register for
 themselves and for a team they already work in. A bad input is HTTP 400 with the reason.
 
 Overviews: with `GOVERNANCE_ENABLED` on, My overview and Governance overview count systems. Scope:
@@ -582,6 +582,7 @@ set that header.
 | `CONSOLE_NAV` | `sidebar` | WP-UX1: `sidebar` (left sidebar, default) or `top` (the phase 2 pill header). One setting rolls the layout back. Windows cmd: `set CONSOLE_NAV=top` |
 | `CONSOLE_NAV_SECTIONS` | `0` | Two-section sidebar: "AI Management and Governance" (Onboard, Prove, Settings) and "AI Guardian and Supervisor" (Watch, Act, Protect, Analytics). Each section folds open and closed without JS. Off = the six-group sidebar. Order in `console/nav.py` `SECTIONS`. Windows cmd: `set CONSOLE_NAV_SECTIONS=1` |
 | `CONSOLE_NAV_V3` | `0` | WP-UX4a: the merged left bar (My overview, Governance, Supervisor, settings gear), section tab strips, the three overview pages and Workflows. Needs `CONSOLE_NAV=sidebar`. Off = the sidebar as before. See "Navigation v3". Windows cmd: `set CONSOLE_NAV_V3=1` |
+| `ONBOARD_ALLOWED_ROOTS` | empty | WP-UX4b: folders (`;` or `,` separated) the register wizard may run the readiness advisor on. Empty = advisor off in the wizard. Windows cmd: `set ONBOARD_ALLOWED_ROOTS=C:\work\agents` |
 | `CONSOLE_CATALOG_ENABLED` | `0` | `/console/catalog`: every guardian capability as a card (gateway controls, detectors, judges, monitors, evidence, connectors), showing whether it is on in this instance and the setting that turns it on. Tabs: Catalog and Active. Read-only: it never changes a setting. Windows cmd: `set CONSOLE_CATALOG_ENABLED=1` |
 | `CONSOLE_NAV_PLACEHOLDERS` | `0` | WP-UX1: show the sidebar links of pages that WP-UX3 builds (Gate decisions, Traces, Policies, Credentials, Users and roles, Audit log, Integrations); they open a "coming in WP-UX3" page. Off: links hidden, `/console/soon/<page>` answers 400 |
 | `CONSOLE_DECISIONS_ENABLED`, `CONSOLE_TRACES_ENABLED`, `CONSOLE_POLICIES_ENABLED`, `CONSOLE_CREDENTIALS_ENABLED`, `CONSOLE_USERS_ENABLED`, `CONSOLE_AUDITLOG_ENABLED`, `CONSOLE_INTEGRATIONS_ENABLED` | `0` | WP-UX3: one flag per new page (see "New pages (WP-UX3)"). Off: no sidebar link, routes answer HTTP 400 |

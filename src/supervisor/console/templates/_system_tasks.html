@@ -2,6 +2,9 @@
    agent linked to the system. Read only; changes go through the API. Variables: s, lifecycle,
    tk_off, task_n, task_agents. #}
 {% import "_ui.html" as ui with context %}
+{% if intake_missing is defined and intake_missing %}<div class="notice" data-wizard="intake-missing"><span class="dot"></span><b>{{ t('ux4b_intake_missing') }}</b>
+  <form method="post" action="/console/systems/{{ s.system_id }}/intake-tasks?lang={{ lang }}" hx-post="/console/systems/{{ s.system_id }}/intake-tasks?lang={{ lang }}" hx-swap="none"><button class="btn" type="submit">{{ t('ux4b_intake_retry') }}</button></form></div>
+{% endif %}
 <section class="card" data-section="system-stage">
   <h3>{{ t('sy_stage_now') }}: {{ t('sy_stage_' ~ lifecycle.lifecycle_stage) }}</h3>
   <p class="hint">{{ t('sy_stage_needs_approval') }}: {% for st in lifecycle.needs_approval %}{{ t('sy_stage_' ~ st) }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</p>

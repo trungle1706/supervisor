@@ -126,9 +126,30 @@ async def system_new_register(
     out = await _call(systems_wizard.register, ctx, me, form)
     request.state.audit_detail = "create"
     url = f"/console/systems/{out['system_id']}?tab=tasks"
+    if out["tasks_missing"]:  # L3: the draft is stored; the tasks page says so and offers a retry
+        url += "&intake=missing"
     if plain:
         return RedirectResponse(url, status_code=303)
     return Response(status_code=200, headers={"HX-Redirect": url})
+
+
+@router.post("/systems/{system_id}/intake-tasks", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def system_intake_tasks(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Open the initiation tasks of a system again (same ids: a repeat is a no-op)."""
+    _wizard_off(ctx)
+    _person(me)
+    _check_id(system_id, "system id")
+    await form_or_plain(request)
+    await _call(systems_views.detail_view, ctx, me, system_id, "overview")  # scope check
+    await _call(systems_wizard.open_tasks, ctx, system_id, str(me.user_id))
+    request.state.audit_detail = "intake_tasks"
+    url = f"/console/systems/{system_id}?tab=tasks"
+    if request.headers.get("hx-request") == "true":
+        return Response(status_code=200, headers={"HX-Redirect": url})
+    return RedirectResponse(url, status_code=303)
 
 
 @router.get(
@@ -165,6 +186,8 @@ async def system_page(
     _check_id(system_id, "system id")
     tab = request.query_params.get("tab") or "overview"
     data = await _call(systems_views.detail_view, ctx, me, system_id, tab)
+    if tab == "tasks" and request.query_params.get("intake") == "missing":  # WP-UX4b L3
+        data["intake_missing"] = bool(await _call(systems_wizard.missing_tasks, ctx, system_id))
     return render(request, ctx, me, "system.html", section="systems", **data)
 
 

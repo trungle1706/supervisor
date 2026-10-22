@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sys
 import types
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -30,12 +31,22 @@ FORM = {
 }
 CHECKS = "/console/systems/new/checks"
 REPO = "tests/onboard/data/artifact_credit_memo"
+REPO_ROOT_SUB = Path("/tmp")  # a root that does not hold the folder
 
 
 @pytest.fixture
 def v3(on: Console, monkeypatch: pytest.MonkeyPatch) -> Console:
     monkeypatch.setattr(on.ctx.settings, "console_nav_v3", True)
     return on
+
+
+@pytest.fixture
+def roots(v3: Console, monkeypatch: pytest.MonkeyPatch) -> Console:
+    """The advisor runs only inside ONBOARD_ALLOWED_ROOTS (empty = off)."""
+    from tests.conftest import REPO_ROOT
+
+    monkeypatch.setattr(v3.ctx.settings, "onboard_allowed_roots", str(REPO_ROOT))
+    return v3
 
 
 def counts(c: Console) -> tuple[int, int, int]:
@@ -126,8 +137,14 @@ def test_checks_class_follows_the_declared_fields(v3: Console) -> None:
     lo = v3.post(
         CHECKS, {**FORM, "name": "Low one", "money_movement": "1", "human_control": "pre_approval"}
     )
-    assert lo.status_code == 200 and "Not high risk" in lo.text
+    # a declared approval is not proof: never "not high risk" from declared fields alone
+    assert lo.status_code == 200 and "Not high risk" not in lo.text
+    assert "Not classified" in lo.text and "declared, but not checked in code" in lo.text
     assert "no level proposed; a person sets it" in lo.text
+    plain = v3.post(CHECKS, {**FORM, "name": "Plain one"})
+    assert (
+        "Not high risk" not in plain.text and "no money movement or credit decision" in plain.text
+    )
     hi = v3.post(
         CHECKS, {**FORM, "name": "Credit one", "credit_decision": "1", "human_control": "none"}
     )
@@ -140,7 +157,8 @@ def test_checks_vi(v3: Console) -> None:
     assert r.status_code == 200 and "Kiểm tra sơ bộ" in r.text and "Chưa áp dụng gì." in r.text
 
 
-def test_readiness_advisor_runs_in_process_on_a_folder(v3: Console) -> None:
+def test_readiness_advisor_runs_in_process_on_a_folder(roots: Console) -> None:
+    v3 = roots
     from supervisor.advisory.integration.advise import advise
     from supervisor.console.onboard_runs import resolve_target
 
@@ -165,7 +183,8 @@ def test_bands_follow_the_rubric() -> None:
     assert systems_wizard.band_of(49) == systems_wizard.band_of(0) == "ux4b_band_work"
 
 
-def test_bad_folder_and_missing_right_are_400(v3: Console) -> None:
+def test_bad_folder_and_missing_right_are_400(roots: Console) -> None:
+    v3 = roots
     for path, text in [
         ("no/such/folder", "folder not found"),
         ("x" * 600, "too long"),
@@ -174,7 +193,7 @@ def test_bad_folder_and_missing_right_are_400(v3: Console) -> None:
         r = v3.post(CHECKS, {**FORM, "repo_path": path})
         assert r.status_code == 400 and text in r.text, path
     with pytest.raises(Exception, match="right to start onboarding"):
-        systems_wizard.readiness(person("v", "viewer"), REPO)
+        systems_wizard.readiness(person("v", "viewer"), REPO, v3.ctx.settings)
 
 
 @pytest.mark.parametrize(
@@ -319,3 +338,108 @@ def test_a_failing_g2_module_does_not_stop_the_wizard(
     monkeypatch.setitem(sys.modules, "supervisor.governance.rules", rules)
     r = v3.post(CHECKS, FORM)
     assert r.status_code == 200 and "rules engine is not installed" in r.text
+
+
+# ------------------------------------------------------------------ review fixes
+
+
+def test_advisor_is_off_without_allowed_roots_and_confined_to_them(
+    v3: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    r = v3.post(CHECKS, {**FORM, "repo_path": REPO})
+    assert r.status_code == 200 and "ONBOARD_ALLOWED_ROOTS is empty" in r.text
+    monkeypatch.setattr(v3.ctx.settings, "onboard_allowed_roots", str(REPO_ROOT_SUB))
+    r = v3.post(CHECKS, {**FORM, "repo_path": REPO})
+    assert r.status_code == 400 and "outside ONBOARD_ALLOWED_ROOTS" in r.text
+
+
+def test_second_check_while_one_runs_is_400_and_a_slow_one_times_out(
+    roots: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import threading
+
+    gate = threading.Event()
+    started = threading.Event()
+    from supervisor.advisory.integration import advise as adv
+
+    real = adv.advise
+
+    def slow(target: Any, chat: Any = None) -> Any:
+        started.set()
+        gate.wait(5)
+        return real(target, chat=chat)
+
+    monkeypatch.setattr(adv, "advise", slow)
+    monkeypatch.setattr(systems_wizard, "ADVISOR_TIMEOUT_S", 0.3)
+    r = roots.post(CHECKS, {**FORM, "repo_path": REPO})
+    assert r.status_code == 200 and "did not finish within 30 s" in r.text
+    assert started.is_set()
+    # the scan still runs: a second call is refused
+    r = roots.post(CHECKS, {**FORM, "name": "Second", "repo_path": REPO})
+    assert r.status_code == 400 and "a check is already running" in r.text
+    gate.set()
+    for _ in range(100):
+        if systems_wizard._ADVISOR_LOCK.acquire(blocking=False):  # noqa: SLF001
+            systems_wizard._ADVISOR_LOCK.release()  # noqa: SLF001
+            break
+        threading.Event().wait(0.1)
+    monkeypatch.setattr(systems_wizard, "ADVISOR_TIMEOUT_S", 30)
+    ok = roots.post(CHECKS, {**FORM, "name": "Third", "repo_path": REPO})
+    assert ok.status_code == 200 and "/ 100" in ok.text
+
+
+def test_plain_post_accepts_sec_fetch_site_when_origin_is_null(v3: Console) -> None:
+    for headers in (
+        {"Origin": "null", "Sec-Fetch-Site": "same-origin"},
+        {"Sec-Fetch-Site": "same-origin"},
+    ):
+        r = v3.post(CHECKS, {**FORM, "name": f"N{len(headers)}"}, htmx=False, headers=headers)
+        assert r.status_code == 200, headers
+    for headers in (
+        {"Sec-Fetch-Site": "cross-site"},
+        {"Origin": "null", "Sec-Fetch-Site": "cross-site"},
+        {"Origin": "http://evil.example", "Sec-Fetch-Site": "same-origin"},
+        {},
+    ):
+        r = v3.post(CHECKS, FORM, htmx=False, headers=headers)
+        assert r.status_code == 400 and "must come from the console page" in r.text, headers
+    # the G0 register form benefits too
+    r = v3.post(
+        "/console/systems",
+        {**FORM, "name": "G0 plain"},
+        htmx=False,
+        headers={"Sec-Fetch-Site": "same-origin"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+
+
+def test_packs_and_gates_are_translated_on_the_vi_page(v3: Console) -> None:
+    r = v3.post(CHECKS + "?lang=vi", FORM)
+    assert "Độ chính xác" in r.text and "bắt buộc" in r.text
+    assert "<td>accuracy</td>" not in r.text and "<td>required</td>" not in r.text
+
+
+def test_failed_task_opening_warns_and_the_button_repeats_it(
+    v3: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = v3.ctx.tasks._insert
+    monkeypatch.setattr(
+        v3.ctx.tasks, "_insert", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("x"))
+    )
+    r = v3.post("/console/systems/new", FORM)
+    assert r.status_code == 200 and r.headers["HX-Redirect"].endswith("tab=tasks&intake=missing")
+    url = r.headers["HX-Redirect"]
+    sid = url.split("?")[0].rsplit("/", 1)[1]
+    assert v3.ctx.state.query("task", {"agent_id": sid}) == []
+    page = v3.get(url).text
+    assert 'data-wizard="intake-missing"' in page and f"/console/systems/{sid}/intake-tasks" in page
+    monkeypatch.setattr(v3.ctx.tasks, "_insert", real)
+    again = v3.post(f"/console/systems/{sid}/intake-tasks", {})
+    assert again.status_code == 200 and again.headers["HX-Redirect"].endswith("?tab=tasks")
+    assert len(v3.ctx.state.query("task", {"agent_id": sid})) == 2
+    v3.post(f"/console/systems/{sid}/intake-tasks", {})  # idempotent
+    assert len(v3.ctx.state.query("task", {"agent_id": sid})) == 2
+    assert 'data-wizard="intake-missing"' not in v3.get(url).text  # nothing missing now
+    # a hidden system looks missing; a viewer is refused
+    assert v3.post(f"/console/systems/{sid}/intake-tasks", {}, user="viewer.hoa").status_code == 403

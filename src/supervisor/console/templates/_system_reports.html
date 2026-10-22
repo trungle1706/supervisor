@@ -45,7 +45,7 @@
 </section>
 <section class="card" data-section="system-reports-pack">
   <h3>{{ t('ux4b_audit_pack') }}</h3>
-  <p>{{ t('ux4b_audit_pack_line', n=rp_packs|length) }}{% if rp_packs %} <span class="mono">{{ rp_packs[0].name }}</span>{% endif %}</p>
+  <p>{{ t('ux4b_audit_pack_line') }}</p>
   <p class="hint"><a href="/console/evidence?lang={{ lang }}">{{ t('ux4b_audit_pack_open') }}</a></p>
 </section>
 {% endif %}
@@ -56,7 +56,7 @@
   {% elif rp_incidents %}
   <div class="tablewrap flat"><table data-table="system-incidents">
     <thead><tr><th scope="col">{{ t('ux4b_incident') }}</th><th scope="col">{{ t('status') }}</th></tr></thead>
-    <tbody>{% for i in rp_incidents %}<tr><td><span class="mono">{{ i.incident_id }}</span><div class="idline">{{ i.title }}</div></td><td>{{ i.status }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for i in rp_incidents %}<tr><td><span class="mono">{{ i.incident_id }}</span><div class="idline">{{ i.title }}</div></td><td>{{ t('ux4b_inc_st_' ~ i.status) }}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% else %}
   <p class="hint">{{ t('ux4b_incidents_none') }}</p>

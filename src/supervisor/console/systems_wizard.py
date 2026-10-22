@@ -19,9 +19,13 @@ use of it is guarded with ``getattr`` or ``try`` so the wizard works with or wit
 
 from __future__ import annotations
 
+import concurrent.futures
 import importlib
 import logging
+import os
+import threading
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 from supervisor.console import systems_views
@@ -33,6 +37,7 @@ from supervisor.governance.systems import ALL
 log = logging.getLogger("supervisor.console")
 
 MAX_PATH = 512
+_POOL = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="wizard-advisor")
 # docs/INTEGRATION_GUIDE.md section 6: the bands of the readiness score (advice, not approval)
 BANDS: tuple[tuple[int, str], ...] = (
     (80, "ux4b_band_ready"),
@@ -119,9 +124,31 @@ def band_of(total: int) -> str:
     return BANDS[-1][1]
 
 
-def readiness(me: Any, raw_path: str) -> dict[str, Any]:
+_ADVISOR_LOCK = threading.Lock()
+ADVISOR_TIMEOUT_S = 30
+
+
+def allowed_roots(settings: Any) -> list[Path]:
+    """Folders the wizard may scan: ``ONBOARD_ALLOWED_ROOTS`` (real paths). Empty = none."""
+    raw = str(getattr(settings, "onboard_allowed_roots", "") or "")
+    return [
+        Path(os.path.realpath(x.strip())) for x in raw.replace(";", ",").split(",") if x.strip()
+    ]
+
+
+def _run_advisor(target: Path) -> Any:
+    from supervisor.advisory.integration.advise import advise
+
+    try:
+        return advise(target, chat=None).report  # chat=None: no model, no narrative
+    finally:
+        _ADVISOR_LOCK.release()
+
+
+def readiness(me: Any, raw_path: str, settings: Any = None) -> dict[str, Any]:
     """The integration readiness advisor on a repository folder, in process and read only. No
-    folder: not available. The advisor needs the same right as starting an onboarding run."""
+    folder: not available. The advisor needs the same right as starting an onboarding run, runs
+    only inside ``ONBOARD_ALLOWED_ROOTS`` (empty: off), one at a time, and for 30 s at most."""
     path = (raw_path or "").strip()
     if not path:
         return {"total": None, "na": "ux4b_na_no_repo"}
@@ -129,13 +156,25 @@ def readiness(me: Any, raw_path: str) -> dict[str, Any]:
         raise ListingError("repository folder is too long")
     if not rbac.allowed(me.roles, "onboard.start"):
         raise ListingError("running the readiness advisor needs the right to start onboarding")
+    roots = allowed_roots(settings)
+    if not roots:
+        return {"total": None, "na": "ux4b_na_repo_disabled"}
     from supervisor.console.onboard_runs import resolve_target
 
     target = resolve_target(path)
-    from supervisor.advisory.integration.advise import advise
-
+    if not any(target == r or r in target.parents for r in roots):
+        raise ListingError("the folder is outside ONBOARD_ALLOWED_ROOTS")
+    if not _ADVISOR_LOCK.acquire(blocking=False):
+        raise ListingError("a check is already running; try again in a moment")
     try:
-        report = advise(target, chat=None).report  # chat=None: no model, no narrative
+        future = _POOL.submit(_run_advisor, target)  # the worker releases the lock
+    except BaseException:
+        _ADVISOR_LOCK.release()
+        raise
+    try:
+        report = future.result(timeout=ADVISOR_TIMEOUT_S)
+    except concurrent.futures.TimeoutError:
+        return {"total": None, "na": "ux4b_na_time_limit"}  # lock held until the scan ends
     except Exception as exc:  # noqa: BLE001 - an advisor failure is a reason on the page
         log.warning("wizard: readiness advisor failed (%s)", type(exc).__name__)
         return {"total": None, "na": "ux4b_na_advisor_failed"}
@@ -191,18 +230,21 @@ def packs_for(f: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def declared_class(f: Mapping[str, Any]) -> dict[str, Any]:
-    """Decision 33 proposal from the declared fields (docs/phase4 plan, WP-G2 item 4): money
-    movement or a credit decision without a human approval before the action is high risk. A
-    proposal for a person to confirm; it is applied nowhere."""
-    reasons = []
-    if f.get("human_control") != "pre_approval":
-        if f.get("money_movement"):
-            reasons.append("money_movement")
-        if f.get("credit_decision"):
-            reasons.append("credit_decision")
-    if reasons:
-        return {"d33": "high_risk", "level": "high", "reasons": reasons, "source": "declared"}
-    return {"d33": "not_high_risk", "level": None, "reasons": [], "source": "declared"}
+    """Decision 33 proposal from the declared fields: money movement or a credit decision without
+    a human approval before the action is high risk. A declared approval is not proof (a human
+    step counts only when it is in code, docs/onboard.md), and declared fields alone never show
+    "not high risk": those cases stay unclassified for a person. Applied nowhere."""
+    flags = [k for k in ("money_movement", "credit_decision") if f.get(k)]
+    if flags and f.get("human_control") != "pre_approval":
+        return {"d33": "high_risk", "level": "high", "reasons": flags, "source": "declared"}
+    note = "ux4b_class_approval_unchecked" if flags else "ux4b_class_none_declared"
+    return {
+        "d33": "unclassified",
+        "level": None,
+        "reasons": flags,
+        "source": "declared",
+        "note": note,
+    }
 
 
 def _g2_module(name: str) -> Any:
@@ -280,7 +322,7 @@ def checks(ctx: Any, me: Any, form: Mapping[str, str]) -> dict[str, Any]:
         "form": {k: v for k, v in draft.items() if k != "tags"},
         "scoped": svc.scope_for(me) is not ALL,
         "repo": (form.get("repo_path") or "").strip(),
-        "ready": readiness(me, form.get("repo_path", "")),
+        "ready": readiness(me, form.get("repo_path", ""), ctx.settings),
         "cls": cls,
         "packs": packs_for(full),
         "floor": floor,
@@ -321,6 +363,12 @@ def open_tasks(ctx: Any, system_id: str, actor: str) -> list[str]:
     return made
 
 
+def missing_tasks(ctx: Any, system_id: str) -> list[str]:
+    """Intake template ids that have no task on the system yet."""
+    have = {t["template_id"] for t in ctx.state.query("task", {"agent_id": system_id})}
+    return [tid for tid, _ in TASKS if tid not in have]
+
+
 def register(ctx: Any, me: Any, form: Mapping[str, str]) -> dict[str, Any]:
     """Register the draft (status draft, stage initiation) and open the initiation tasks. The
     classification and the floor are not applied: they stay proposals on the result page."""
@@ -328,4 +376,5 @@ def register(ctx: Any, me: Any, form: Mapping[str, str]) -> dict[str, Any]:
     draft = draft_of(form, me, svc)
     out = svc.register(draft, str(me.user_id), for_user=me)
     out["tasks_opened"] = open_tasks(ctx, out["system_id"], str(me.user_id))
+    out["tasks_missing"] = missing_tasks(ctx, out["system_id"])
     return out  # type: ignore[no-any-return]

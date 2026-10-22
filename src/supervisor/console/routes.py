@@ -283,16 +283,26 @@ async def form(request: Request) -> dict[str, str]:
 async def form_or_plain(request: Request) -> tuple[dict[str, str], bool]:
     """Like ``form`` but also takes a plain browser form post (no JavaScript). A plain post has
     no ``HX-Request`` header, which is the CSRF guard of every other action, so it must come from
-    this site: ``Origin`` (else ``Referer``) has to name the host of the request. Returns the form
+    this site: ``Origin`` (else ``Referer``) has to name the host of the request, or, when there is
+    no usable Origin, ``Sec-Fetch-Site`` has to be same-origin or none. Returns the form
     and whether it was a plain post."""
     if request.headers.get("hx-request") == "true":
         return await form(request), False
     from urllib.parse import urlsplit
 
-    source = request.headers.get("origin") or request.headers.get("referer") or ""
+    origin = request.headers.get("origin") or ""
     host = request.headers.get("host", "")
-    if not source or urlsplit(source).netloc != host:
-        raise ConsoleInputError("this action must come from the console page")
+    # WP-UX4b: Referrer-Policy is no-referrer, so a browser sends "Origin: null" (or none) on a
+    # form post. The browser-set Sec-Fetch-Site header then says the post is from this site.
+    fetch_site = request.headers.get("sec-fetch-site", "")
+    if origin in ("", "null") and fetch_site in ("same-origin", "none"):
+        pass
+    else:
+        source = (origin if origin not in ("", "null") else "") or request.headers.get(
+            "referer", ""
+        )
+        if not source or urlsplit(source).netloc != host:
+            raise ConsoleInputError("this action must come from the console page")
     body = await request.body()
     if len(body) > MAX_FORM_BYTES:
         raise ConsoleInputError("form is too large")

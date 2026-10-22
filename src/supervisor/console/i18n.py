@@ -3728,6 +3728,43 @@ _T.update(
             "Agents with no matrix (not counted as met or as gap)",
             "Tác tử chưa có ma trận (không tính là đạt hay thiếu)",
         ),
+        "ux4b_class_approval_unchecked": (
+            "Unclassified: a human approval before the action is declared, but not checked in "
+            "code. A person confirms.",
+            "Chưa phân loại: có khai báo người phê duyệt trước khi thực hiện, nhưng chưa kiểm "
+            "tra trong mã. Người có thẩm quyền xác nhận.",
+        ),
+        "ux4b_class_none_declared": (
+            "Unclassified: no money movement or credit decision declared. A person classifies.",
+            "Chưa phân loại: không khai báo chuyển tiền hay quyết định tín dụng. Người có thẩm "
+            "quyền phân loại.",
+        ),
+        "ux4b_na_repo_disabled": (
+            "The readiness advisor is off in the wizard (ONBOARD_ALLOWED_ROOTS is empty).",
+            "Cố vấn mức sẵn sàng đang tắt trong trình hướng dẫn (ONBOARD_ALLOWED_ROOTS trống).",
+        ),
+        "ux4b_na_time_limit": (
+            "The advisor did not finish within 30 s.",
+            "Cố vấn chưa xong trong 30 giây.",
+        ),
+        "ux4b_intake_missing": (
+            "The draft is registered, but its intake tasks could not be opened.",
+            "Bản nháp đã được đăng ký, nhưng chưa mở được các nhiệm vụ khai báo.",
+        ),
+        "ux4b_intake_retry": ("Create the intake tasks", "Tạo các nhiệm vụ khai báo"),
+        "ux4b_dimname_accuracy": ("Accuracy", "Độ chính xác"),
+        "ux4b_dimname_hallucination": ("Hallucination", "Ảo giác"),
+        "ux4b_dimname_bias_fairness": ("Bias and fairness", "Thiên lệch và công bằng"),
+        "ux4b_dimname_dependency": ("Dependency", "Phụ thuộc"),
+        "ux4b_dimname_security": ("Security", "Bảo mật"),
+        "ux4b_dimname_robustness": ("Robustness", "Độ bền vững"),
+        "ux4b_gate_required": ("required", "bắt buộc"),
+        "ux4b_gate_advisory": ("advisory", "tham vấn"),
+        "ux4b_gate_off": ("off", "tắt"),
+        "ux4b_inc_st_open": ("Open", "Đang mở"),
+        "ux4b_inc_st_investigating": ("Investigating", "Đang điều tra"),
+        "ux4b_inc_st_resolved": ("Resolved", "Đã xử lý"),
+        "ux4b_inc_st_closed": ("Closed", "Đã đóng"),
         "ux4b_instrument": ("Instrument", "Văn bản"),
         "ux4b_partial": ("Partial", "Một phần"),
         "ux4b_binding": ("binding", "có hiệu lực bắt buộc"),
@@ -3769,9 +3806,8 @@ _T.update(
         "ux4b_entries": ("Entries", "Số bản ghi"),
         "ux4b_audit_pack": ("Audit pack", "Gói kiểm toán"),
         "ux4b_audit_pack_line": (
-            "{n} packs on this server. The pack covers the whole chain and is built on the "
-            "Evidence page.",
-            "{n} gói trên máy chủ này. Gói bao phủ cả chuỗi và được tạo ở trang Bằng chứng.",
+            "The pack covers the whole chain and is built on the Evidence page.",
+            "Gói bao phủ cả chuỗi và được tạo ở trang Bằng chứng.",
         ),
         "ux4b_audit_pack_open": ("Open the Evidence page", "Mở trang Bằng chứng"),
         "ux4b_incidents": ("Incidents", "Sự cố"),

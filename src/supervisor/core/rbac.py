@@ -364,6 +364,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/systems/new"): "systems.edit",
     ("POST", "/console/systems/new/checks"): "systems.edit",
     ("POST", "/console/systems/new"): "systems.edit",
+    ("POST", "/console/systems/{system_id}/intake-tasks"): "systems.edit",
     ("GET", "/v1/systems"): "systems.view",
     ("POST", "/v1/systems"): "systems.edit",
     ("GET", "/v1/systems/{system_id}"): "systems.view",
