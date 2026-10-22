@@ -50,7 +50,8 @@ impact `unspecified`, money movement and credit decision false.
 the inherited level and the parts the inherited level came from. Computed on read, never stored.
 
 * Manual level: `unspecified < low < medium < high < prohibited`. A person sets it, with source
-  `manual` or `classifier`.
+  `manual` or `classifier`. The governance action `raise_risk_level` (WP-G5) can raise it one step,
+  with source `event`, never down and never above `high` (`docs/governance-actions.md`).
 * Inherited level: for each active part, its effective level in the inventory graph (`uses` edges,
   cycle safe; WP24). An agent with no node in the inventory (inventory off or not filled) uses the
   `risk_tier` of its registry row. The inventory scale has `critical`; at the system it counts as
@@ -281,3 +282,20 @@ through the API. EN and VI strings sit in one block marked WP-G1 in `console/i18
 ## 14. Draft systems from the workspace scan (WP-G3)
 
 With `INVENTORY_AUTOREGISTER=1` the inventory scan registers a draft system (status draft, risk `unspecified`, tag `source=workspace_scan`) for each unmanaged App, agent endpoint or Genie space, with a default owner from `config/governance.yaml`, and opens the task "Confirm context". See `docs/inventory.md`, "Draft registration from the scan".
+
+
+## 20. Governance loop and incidents (WP-G5)
+
+Off by default (`GOVERNANCE_ACTIONS_ENABLED=1`, needs `GOVERNANCE_ENABLED=1`). Events from the
+runtime evidence (alerts, gate stops on risky tools, failed detectors, failing monitors, assurance
+NO-GO, chain break, new model version, judge escalation) are matched to
+`config/governance_actions.yaml` and run seven actions: create an incident, notify the owner,
+raise the risk level, move to re-evaluation, create a review, fire a webhook event, reopen a
+control. The loop never pauses or blocks an agent. New tables `incident` and `governance_event`
+(the marker that an event was processed), chain records `incident_change` and `governance_action`,
+routes `/v1/incidents`, the Incidents tab on Cases & alerts and the Reports tab of the system
+page. Details: `docs/governance-actions.md` and `docs/incidents.md`.
+
+Changes to the G0 and G1 code that the loop needs, all additive: `SystemService.raise_risk_from_event`
+and the risk source `event`; the outbound event kind `governance_action`; the review scope kind
+`event`. Console context: `ctx.incidents` (`IncidentService`).

@@ -246,6 +246,12 @@ nothing about real rates.
 4. Re-run the harness: `precision` and `recall` must stay GO, or change the fixture on purpose
    (and `--write-baseline`) in the same pull request.
 
+## From alert to action (WP-G5)
+
+With `GOVERNANCE_ACTIONS_ENABLED=1` an alert row is also an event of the governance loop: a rule in
+`config/governance_actions.yaml` can turn it into an incident, a notice to the system owner, a review and
+more (`docs/governance-actions.md`). The alert job itself is not changed.
+
 ## Not done
 
 See `BACKLOG.md` (WP21 lines): auto-close, alert-to-case promotion, real pager and ITSM

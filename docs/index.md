@@ -36,6 +36,8 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/risk-register.md` | Risk register: scoring, inheritance up the inventory graph, evidence from runtime, import, harness (WP29) | 2L, Risk, Audit, Dev |
 | `docs/controls.md` | Control catalogue, evidence status, compliance figure, task list sized by Decision 33 class, import (WP30) | 2L, Risk, Audit, Dev |
 | `docs/governance.md` | Governance shared core: the AI system entity, team scope, risk inheritance, segregation of duties, API, console (WP-G0) | 2L, Risk, Audit, Dev |
+| `docs/governance-actions.md` | Governance loop: events from alerts, gate, detectors, monitors, packs and the chain become actions by rule; the rules file, the seven actions, dedupe, dry run (WP-G5) | 2L, Risk, SOC, Dev |
+| `docs/incidents.md` | Incidents made by the governance loop: table, states, who closes, API, Incidents tab (WP-G5) | 2L, SOC, Audit |
 | `docs/transparency-report.md` | Transparency report: variants, sections, what it does not show, versions and hashes, harness (WP31) | 2L, Risk, Audit, Dev |
 | `docs/inventory.md` | Inventory graph, risk inheritance, shadow-AI scan (WP24) | 2L, Platform admin, Dev |
 | `docs/assurance.md` | 33 eval packs with licence and data mode | 2L, Dev |

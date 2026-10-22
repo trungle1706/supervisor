@@ -181,8 +181,8 @@ def test_rbac_viewer_reads_but_cannot_move(g5: Console) -> None:
     r = req(g5, "POST", f"/v1/incidents/{iid}/transition", {"status": "closed"}, user=VIEWER)
     assert r.status_code == 403
     assert req(g5, "GET", f"/v1/incidents/{iid}").json()["status"] == "open"
-    denied = [a for a in audit_rows(g5, "incidents.transition") if a["outcome"] == "denied"]
-    assert denied or r.status_code == 403  # the route gate answers before the audit wrapper
+    assert r.status_code == 403  # the route gate answers before any change or audit row
+    assert audit_rows(g5, "incidents.transition") == []
 
 
 def test_a_transition_writes_two_audit_rows(g5: Console) -> None:
