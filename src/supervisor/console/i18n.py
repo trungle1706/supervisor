@@ -3748,8 +3748,8 @@ _T.update(
         "gb_lede": (
             "Switches for {name}. A switch only turns a feature off for the agents of this system; "
             "it never turns on a feature this instance has off.",
-            "Công tắc cho {name}. Công tắc chỉ tắt một tính năng cho các tác nhân của hệ thống này; "
-            "không bao giờ bật một tính năng mà hệ thống đang tắt.",
+            "Công tắc cho {name}. Công tắc chỉ tắt một tính năng cho các tác nhân của hệ thống "
+            "này; không bao giờ bật một tính năng mà hệ thống đang tắt.",
         ),
         "gb_read_only": (
             "You can see the switches. You need the right to edit this system to change them.",

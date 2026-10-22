@@ -77,7 +77,6 @@ from supervisor.console import (
     views,
 )
 from supervisor.console.context import ConsoleContext, get_context
-from supervisor.console.errors import console_error  # WP-S1
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.console.listing import ListingError
 from supervisor.controls.model import ensure_on as ensure_controls_on
@@ -1697,6 +1696,8 @@ async def catalog_page(
     try:
         data = await _call(catalog_view.page, ctx, tab, _lang(request, ctx), me, system or None)
     except NotFoundError as exc:  # WP-S1: a system outside the caller's scope
+        from supervisor.console.errors import console_error
+
         return console_error(request, str(exc), 404)
     return render(request, ctx, me, "catalog.html", section="catalog", **data)
 
