@@ -509,8 +509,20 @@ class ControlService:
             new_rows: list[dict[str, Any]] = []
             tally = dict.fromkeys(EVIDENCE_STATUSES, 0)
             digests: list[str] = []
+            held = {  # WP-G5: a reopen row of this window holds until the next window
+                str(r["control_id"]): r
+                for r in self.tables.query(
+                    "control_status", {"agent_id": aid, "reason": REOPEN_REASON}, limit=5000
+                )
+                if ev._ts(r["window_end"]) == w.end  # noqa: SLF001 - one parser for stored times
+            }
             for c in scope:
                 out["controls"] += 1
+                if c["control_id"] in held:
+                    out["held"] = out.get("held", 0) + 1
+                    tally[str(held[c["control_id"]]["status"])] += 1
+                    digests.append(str(held[c["control_id"]]["digest"]))
+                    continue
                 sid = cev.status_id(c["control_id"], aid, w, bases[c["control_id"]])
                 done = self.tables.query("control_status", {"status_id": sid}, limit=1)
                 if done:
