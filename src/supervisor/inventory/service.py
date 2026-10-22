@@ -151,7 +151,10 @@ class InventoryService:
         draft AI system (``systems``: a ``SystemService``; ``tasks``: a ``TaskService``); the
         result then has an ``autoregister`` entry. With the flag off the result is unchanged."""
         scan = fill_from_workspace(
-            reader, schemas=self.schemas(), registered=self.declared_apps(self.store.load_graph())
+            reader,
+            schemas=self.schemas(),
+            registered=self.declared_apps(self.store.load_graph()),
+            v2=self.settings.inventory_scan_v2,
         )
         stale = {k for k in scan.ok if k in WORKSPACE_KINDS}
         res = self.store.apply(
@@ -196,7 +199,12 @@ class InventoryService:
 
     def run_shadow(self, cases: Any = None) -> shadow.ShadowResult:
         g = self.store.load_graph()
-        verdicts = shadow.classify(g, self.allowlist(), self_app=self.settings.inventory_self_app)
+        verdicts = shadow.classify(
+            g,
+            self.allowlist(),
+            self_app=self.settings.inventory_self_app,
+            scan_v2=self.settings.inventory_scan_v2,
+        )
         res = shadow.ShadowResult()
         eff = g.effective_risk()
         for nid in sorted(verdicts):

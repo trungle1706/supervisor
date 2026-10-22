@@ -442,6 +442,10 @@ class Settings(BaseSettings):
     # WP-G3: an unmanaged App, agent endpoint or Genie space becomes a draft ai_system with a
     # default owner. Needs INVENTORY_ENABLED and GOVERNANCE_ENABLED. Default off: the scan
     # behaves as before. Owners come from config/governance.yaml (or GOVERNANCE_CONFIG_FILE).
+    # WP-G3 review M2: the six v2 scan sources (model versions, served-entity detail, Genie
+    # spaces, jobs, Vector Search indexes, UC functions, MCP connections) and the Genie shadow
+    # check. Default off: the scan is the WP24 scan, with the same SDK calls.
+    inventory_scan_v2: bool = False
     inventory_autoregister: bool = False
     governance_config_file: Path | None = None
 

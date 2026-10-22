@@ -154,6 +154,8 @@ code; a sentence in a README or manifest does not. Counsel confirms.
 | `l3_tool_using_supervised` | Model picks tools from a bounded set, a person approves consequential actions | Tools declared and every tool with a side effect sits behind a human approval or interrupt step in code (LangGraph `interrupt`, approval node, confirmation); or all tools only read |
 | `l4_autonomous_bounded` | Plans and executes multi-step work inside an authority boundary | Tools with side effects and no approval step, with or without a planner or loop; an approval step that covers only some tools also gives l4 (mixed evidence: the higher level) |
 
+Heuristic limits (accepted): the rules read code text, not behaviour. A batch or chat entry point is guessed from names and decorators, a `__main__` block alone is not a job, and dynamic tool creation is found only by the listed call names. Treat the level as a starting point for a person.
+
 `why` names the rule and, for mixed evidence, says that the higher level was kept. The draft registration (`INVENTORY_AUTOREGISTER`) copies a proposal found on the node (`attrs.autonomy_level_proposal`) into `ai_system.autonomy_level` only when that column exists (WP-G2); otherwise it does nothing. Fixtures: `artifact_batch_summariser` (l2), `artifact_credit_memo` (l4), `artifact_collections_mcp` (l3).
 
 ## Capability catalogue

@@ -83,7 +83,7 @@ A listing that fails is reported (`errors`: kind and exception class only) and i
 
 ## Scan sources v2 (WP-G3)
 
-The workspace reader (section "Fillers", source c) reads more objects. Same flag (`INVENTORY_ENABLED=1`), same rules: read-only SDK calls through the reader adapter, evidence `workspace:<kind>/<name>`, names only (no workspace URL, object id, creator or connection option is stored), and the scan never pauses or blocks anything. A listing that fails is reported by kind and marks nothing as gone. A reader without the method (an older custom reader) skips that source without an error.
+The workspace reader (section "Fillers", source c) can read more objects. It needs `INVENTORY_ENABLED=1` **and** `INVENTORY_SCAN_V2=1` (default off). With the second flag off the scan is the WP24 scan: none of the SDK calls below, no new node kinds, no Genie shadow check, no served-entity detail. Rules: read-only SDK calls through the reader adapter, evidence `workspace:<kind>/<name>`, names only (no workspace URL, object id, creator or connection option is stored), and the scan never pauses or blocks anything. A listing that fails is reported by kind and marks nothing as gone. A reader without the method (an older custom reader) skips that source without an error.
 
 | Source | SDK call (read only) | Node and edges | Evidence ref |
 |---|---|---|---|
@@ -103,7 +103,7 @@ Not confirmed without a live workspace (checked by test 12 of the live kit, `doc
 
 ### Draft registration from the scan (WP-G3)
 
-Off by default. With `INVENTORY_AUTOREGISTER=1` **and** `GOVERNANCE_ENABLED=1`, each refresh turns an **unmanaged** Databricks App, agent serving endpoint (`attrs.agent_endpoint`) or Genie space into a draft AI system (`docs/governance.md`), after the shadow-AI check:
+Off by default. With `INVENTORY_AUTOREGISTER=1` **and** `GOVERNANCE_ENABLED=1` (agent endpoints and Genie spaces are seen only with `INVENTORY_SCAN_V2=1`; Apps need only the first two), each refresh turns an **unmanaged** Databricks App, agent serving endpoint (`attrs.agent_endpoint`) or Genie space into a draft AI system (`docs/governance.md`), after the shadow-AI check:
 
 ```
 unmanaged node --> owner lookup --> ai_system (status draft, risk_level unspecified, tag source=workspace_scan)
@@ -114,7 +114,8 @@ unmanaged node --> owner lookup --> ai_system (status draft, risk_level unspecif
 | Rule | Detail |
 |---|---|
 | Owner | `config/governance.yaml` (or `GOVERNANCE_CONFIG_FILE`): `default_owner_by_group[<owner group>]`, else `default_owner_by_catalog[<catalog of the tables or models the node reads or serves>]`, else `default_owner`. Each value is `owner_user` and `owner_team`. Keys match without case. The committed file holds FILL-ME placeholders: while the chosen owner is a placeholder no draft is made (`skipped_no_owner`). The live SDK reader gives no owner group; the group key works with a fixture or a later reader. |
-| Intake fields | Placeholders from `draft_defaults` in the same file (assistant, deployer, internal, identifiable, no human control: the safe side). The task asks the owner to confirm them. |
+| Intake fields | Placeholders from `draft_defaults` in the same file (assistant, deployer, internal, identifiable, no human control: the safe side). The draft carries the tag `intake_defaults=true` and the task is titled "Confirm context (intake defaults, to confirm)". The task has `agent_id` = the system id; the system page Tasks tab lists it, and an overdue one writes one `overdue` task event instead of a case (a system has no agent evidence lane). |
+| Link failure | If linking the node fails, the draft is archived in the same call, so no unlinked draft survives to be duplicated. |
 | Dedupe | On the inventory node id. A node that has any `system_component` row, active or removed, is never registered again, so an archived or unlinked draft does not come back. A name used by a person gets the suffix `(app)`, `(agent endpoint)` or `(genie space)` once; if that is taken too the node is skipped (`skipped_name`). |
 | Never blocks | A failure on one node is logged and counted (`errors`); the scan result and the shadow-AI cases do not change. Nothing is paused or blocked. At most 100 drafts per refresh. |
 | Chain | The service writes `system_change` (create, link) and `task_change` records as for a person (ids, enums, hashes only; no workspace name). |
@@ -196,6 +197,7 @@ Returns `found`, `own_risk`, `effective_risk`, `decision33_class` and `links` (f
 | `INVENTORY_SELF_APP` | (empty) | Name of this Databricks App; never reported as shadow AI |
 | `INVENTORY_ALLOWLIST_FILE` | `config\inventory_allowlist.yaml` | Allow-list file |
 | `INVENTORY_WORKSPACE_FIXTURE` | (empty) | JSON file read instead of a workspace (offline demo, tests) |
+| `INVENTORY_SCAN_V2` | `0` | WP-G3: the scan sources v2 (model versions, served entities, Genie spaces, jobs, Vector Search indexes, UC functions, MCP connections) and the Genie shadow check. Off: the WP24 scan, unchanged |
 | `INVENTORY_AUTOREGISTER` | `0` | WP-G3: draft AI system for each unmanaged App, agent endpoint or Genie space. Needs `GOVERNANCE_ENABLED=1` |
 | `GOVERNANCE_CONFIG_FILE` | `config\governance.yaml` | Default owners, intake placeholders and the initiation task of the draft |
 

@@ -32,6 +32,9 @@ SOURCES: tuple[str, ...] = ("manifest", "onboarding", "workspace_scan", "manual"
 STATUSES: tuple[str, ...] = ("active", "unmanaged", "allowlisted", "gone")
 RISK_SOURCES: tuple[str, ...] = ("none", "manifest", "onboarding", "manual")
 
+# Node kinds added by WP-G3 (INVENTORY_SCAN_V2); counts() lists them only when present.
+V2_NODE_KINDS: tuple[str, ...] = ("genie_space", "job", "vector_index", "uc_function")
+
 # Risk levels in order. None (unspecified) ranks below "low".
 RISK_LEVELS: tuple[str, ...] = ("low", "medium", "high", "critical")
 RISK_RANK: dict[str | None, int] = {None: 0, **{lv: i + 1 for i, lv in enumerate(RISK_LEVELS)}}

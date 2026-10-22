@@ -43,7 +43,7 @@ _LOOP = re.compile(
 )
 _BATCH = re.compile(
     r"(?i)dbutils\.widgets|def\s+\w*(?:batch|job|pipeline|handler)\w*\s*\(|@dlt\.|"
-    r"\bforeachBatch\b|spark\.read|if\s+__name__\s*==|\bbatch_?size\b"
+    r"\bforeachBatch\b|spark\.read|\bbatch_?size\b"
 )
 
 
@@ -94,6 +94,7 @@ def propose_autonomy_level(disc: Discovery) -> dict[str, Any]:
     if not tools:
         batch = _grep(disc, _BATCH)
         routes = [e.evidence for e in inv.entrypoints if str(e.detail).startswith("route:")]
+        # a ``__main__`` block alone does not make a job: a chat server has one too
         if batch:
             why = "a model call in a job or batch handler; no tool declared"
             if routes:

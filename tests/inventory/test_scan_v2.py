@@ -4,17 +4,22 @@ LLM endpoint, Vector Search indexes, UC functions and MCP connections. Fakes onl
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
+from supervisor.adapters.factory import Adapters, build_adapters
 from supervisor.adapters.workspace.databricks_sdk import DatabricksWorkspaceReader
 from supervisor.adapters.workspace.fixtures import FixtureWorkspaceReader
+from supervisor.config import load_settings
 from supervisor.inventory import shadow
 from supervisor.inventory.fill import fill_from_workspace
 from supervisor.inventory.model import NODE_KINDS
 from supervisor.inventory.service import InventoryService
+from supervisor.jobs import bootstrap_schema
 from tests.conftest import REPO_ROOT
 
 V2 = REPO_ROOT / "tests" / "fixtures" / "inventory" / "workspace_v2.json"
@@ -23,6 +28,81 @@ V2 = REPO_ROOT / "tests" / "fixtures" / "inventory" / "workspace_v2.json"
 @pytest.fixture
 def v2() -> FixtureWorkspaceReader:
     return FixtureWorkspaceReader.from_file(V2)
+
+
+@pytest.fixture
+def adapters(tmp_path: Path, allowlist_file: Path) -> Iterator[Adapters]:
+    """Settings with INVENTORY_SCAN_V2 on (the conftest fixture has it off)."""
+    settings = load_settings(
+        sql_backend="sqlite",
+        data_dir=tmp_path / "data",
+        llm_base_url="",
+        inventory_enabled=True,
+        inventory_scan_v2=True,
+        inventory_allowlist_file=allowlist_file,
+    )
+    a = build_adapters(settings)
+    bootstrap_schema.run(a.settings, a)
+    try:
+        yield a
+    finally:
+        a.close()
+
+
+# ------------------------------------------------------------------ off path first (review M2)
+
+
+class _CountingReader(FixtureWorkspaceReader):
+    """Records which listing methods the scan calls."""
+
+    def __init__(self, data: dict[str, Any]) -> None:
+        super().__init__(data)
+        self.called: list[str] = []
+
+    def __getattribute__(self, name: str) -> Any:
+        if name.startswith("list_") or name in ("lineage", "traces"):
+            object.__getattribute__(self, "called").append(name)
+        return super().__getattribute__(name)
+
+
+def test_scan_v2_default_is_off() -> None:
+    assert load_settings(sql_backend="sqlite").inventory_scan_v2 is False
+
+
+def test_v2_off_makes_no_v2_call_and_no_v2_node(tmp_path: Path, allowlist_file: Path) -> None:
+    settings = load_settings(
+        sql_backend="sqlite",
+        data_dir=tmp_path / "d",
+        llm_base_url="",
+        inventory_enabled=True,
+        inventory_allowlist_file=allowlist_file,
+    )
+    a = build_adapters(settings)
+    bootstrap_schema.run(a.settings, a)
+    try:
+        reader = _CountingReader(json.loads(V2.read_text(encoding="utf-8")))
+        svc = InventoryService.from_adapters(a)
+        out = svc.refresh_workspace(reader)
+        assert out["errors"] == {} and set(out) == {"apply", "shadow", "errors"}
+        v2_calls = {
+            "list_model_versions",
+            "list_genie_spaces",
+            "list_jobs",
+            "list_vector_indexes",
+            "list_functions",
+            "list_connections",
+        }
+        assert not v2_calls & set(reader.called)
+        kinds = {r["kind"] for r in a.state.query("inventory_node")}
+        assert not kinds & {"genie_space", "job", "vector_index", "uc_function"}
+        assert "mcp_server" not in kinds
+        assert not any(k in svc.counts()["nodes"] for k in ("genie_space", "job"))
+        for r in a.state.query("inventory_node"):
+            assert "agent_endpoint" not in r["attrs"] and "versions_n" not in r["attrs"]
+        # a served entity adds no vendor supplier or model detail when v2 is off
+        assert "openai" not in {r["display_name"] for r in a.state.query("inventory_node")}
+    finally:
+        a.close()
 
 
 def _by_kind(svc: InventoryService) -> dict[str, dict[str, Any]]:
@@ -139,7 +219,7 @@ def test_reader_without_v2_methods_is_not_an_error() -> None:
         def list_registered_models(self) -> list[dict[str, Any]]:
             return []
 
-    scan = fill_from_workspace(Old(), schemas=[])
+    scan = fill_from_workspace(Old(), schemas=[], v2=True)
     assert scan.errors.get("genie_space") is None and "genie_space" not in scan.ok
     assert scan.errors.get("uc_function") is None and "uc_function" not in scan.ok
 
@@ -150,7 +230,7 @@ def test_genie_space_is_unmanaged_unless_allowlisted(
     svc.refresh_workspace(v2)
     g = svc.store.load_graph()
     allow = shadow.Allowlist(genie_spaces=["known bi*"])
-    verdict = shadow.classify(g, allow)
+    verdict = shadow.classify(g, allow, scan_v2=True)
     by_name = {g.nodes[nid].display_name: v for nid, v in verdict.items()}
     assert by_name["Lending analytics"] == "unmanaged"
     assert by_name["Known BI space"] == "allowlisted"
@@ -289,7 +369,7 @@ def test_sdk_reader_v2_calls_with_fake_client() -> None:
 
 
 def test_sdk_reader_v2_feeds_the_scan_without_ids_or_urls() -> None:
-    scan = fill_from_workspace(DatabricksWorkspaceReader(_client()), schemas=["main.s"])
+    scan = fill_from_workspace(DatabricksWorkspaceReader(_client()), schemas=["main.s"], v2=True)
     assert scan.errors == {}
     dump = json.dumps(
         [(n.kind, n.name, n.attrs, n.evidence) for n in scan.graph.nodes.values()], default=str

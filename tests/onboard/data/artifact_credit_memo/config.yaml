@@ -1,4 +1,4 @@
-# Synthetic deployment config. The token below is fake and must be scrubbed.
+# Synthetic deployment config. The secret below is fake and must be scrubbed.
 serving:
   endpoint: databricks-meta-llama-3-3-70b-instruct
-  databricks_token: dapi0123456789abcdef0123456789abcdef
+  client_secret: "Zq7-synthetic-9941-fixture"

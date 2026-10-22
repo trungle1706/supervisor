@@ -980,6 +980,14 @@ class TaskService:
         if cases is None:
             return out
         for r in overdue:
+            if str(r["agent_id"]).startswith("sys_"):
+                # WP-G3 review M1: a task of an AI system (not an agent) has no evidence lane to
+                # open a case on. One "overdue" task event is its notice (the Tasks tab shows
+                # the overdue flag); it is written once.
+                seen = self.tables.query("task_event", {"task_id": r["task_id"]}, limit=50)
+                if not any(e["action"] == "overdue" for e in seen):
+                    self._event(r, "overdue", "supervisor-system", r["status"])
+                continue
             if cases.linked_case("task", r["task_id"]) is not None:
                 continue
             severity = "medium" if LEVEL_RANK.get(r["level"], 0) >= LEVEL_RANK["high"] else "low"

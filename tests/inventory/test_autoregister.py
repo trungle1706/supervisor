@@ -50,6 +50,7 @@ def _adapters(tmp_path: Path, **flags: Any) -> Iterator[Adapters]:
         data_dir=tmp_path / "data",
         llm_base_url="",
         inventory_enabled=True,
+        inventory_scan_v2=True,
         governance_config_file=cfg,
         **flags,
     )
@@ -138,6 +139,7 @@ def test_unmanaged_app_agent_endpoint_and_genie_space_get_a_draft(
         assert r["lifecycle_stage"] == "initiation" and r["decision33_class"] == "unclassified"
         tags = r["tags"] if isinstance(r["tags"], dict) else json.loads(r["tags"])
         assert tags["source"] == "workspace_scan" and tags["node_id"].startswith("inv_")
+        assert tags["intake_defaults"] == "true"
     # Owners: catalog MAIN (case-insensitive) for the Genie space and the agent endpoint (its
     # served model lives in catalog main); the App reads no table, so the default owner.
     assert rows["Lending analytics"]["owner_user"] == "owner.main@example.invalid"
@@ -159,7 +161,12 @@ def test_node_is_linked_and_initiation_task_is_open(on: Adapters, sink: ListSink
     tasks = on.state.query("task", {"agent_id": sysrow["system_id"]})
     assert len(tasks) == 1
     t = tasks[0]
-    assert t["title"] == "Confirm context" and t["stage"] == "initiation" and t["status"] == "open"
+    assert (
+        t["title"].startswith("Confirm context")
+        and "to confirm" in t["title"]
+        and t["stage"] == "initiation"
+        and t["status"] == "open"
+    )
     assert t["required"] in (True, 1)
 
 
@@ -267,8 +274,9 @@ def test_job_passes_the_services_through(on: Adapters, sink: ListSink) -> None:
 
 
 def test_autonomy_proposal_is_copied_only_when_the_column_exists(
-    on: Adapters, sink: ListSink
+    on: Adapters, sink: ListSink, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from supervisor.governance import model as governance_model
     from supervisor.inventory.autoregister import _copy_autonomy
     from supervisor.inventory.model import Node
 
@@ -281,19 +289,39 @@ def test_autonomy_proposal_is_copied_only_when_the_column_exists(
     _copy_autonomy(systems, "sys_none", node)  # no column in this branch: no error, no change
 
     class FakeState:
-        calls: list[Any] = []
-
         class model:  # noqa: N801
             @staticmethod
             def table(name: str) -> Any:
                 return type("T", (), {"column_names": ["system_id", "autonomy_level"]})()
 
-        def get(self, table: str, key: Any) -> Any:
-            return {"row_version": 1}
+    calls: list[Any] = []
 
-        def update(self, table: str, key: Any, changes: Any, version: int) -> None:
-            self.calls.append(changes)
+    class FakeSystems:
+        state = FakeState()
 
-    fake = type("S", (), {"state": FakeState()})()
-    _copy_autonomy(fake, "sys_1", node)
-    assert FakeState.calls == [{"autonomy_level": "l3_tool_using_supervised"}]
+        def update_fields(self, sid: str, changes: Any, actor: str) -> None:
+            calls.append((sid, changes, actor))
+
+    _copy_autonomy(FakeSystems(), "sys_1", node)
+    assert calls == []  # the column is not editable on this branch (EDITABLE lacks it)
+    monkeypatch.setattr(
+        governance_model, "EDITABLE", (*governance_model.EDITABLE, "autonomy_level")
+    )
+    _copy_autonomy(FakeSystems(), "sys_1", node)  # goes through update_fields: a chain record
+    assert calls == [("sys_1", {"autonomy_level": "l3_tool_using_supervised"}, "workspace_scan")]
+
+
+def test_link_failure_archives_the_draft(on: Adapters, sink: ListSink) -> None:
+    systems, tasks = _services(on, sink)
+
+    def boom(*a: Any, **k: Any) -> Any:
+        raise RuntimeError("link failed")
+
+    systems.link = boom  # type: ignore[method-assign]
+    out = InventoryService.from_adapters(on).refresh_workspace(
+        FixtureWorkspaceReader.from_file(V2), None, systems, tasks
+    )
+    assert out["autoregister"]["created"] == 0 and out["autoregister"]["errors"] == 3
+    rows = on.state.query("ai_system")
+    assert rows and {r["status"] for r in rows} == {"archived"}  # no live unlinked draft
+    assert on.state.query("task") == []

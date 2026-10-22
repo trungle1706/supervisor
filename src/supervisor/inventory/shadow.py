@@ -93,7 +93,9 @@ def _norm(name: str) -> str:
     return canonical_name(name).replace("-", "_")
 
 
-def classify(graph: Graph, allow: Allowlist, *, self_app: str = "") -> dict[str, str]:
+def classify(
+    graph: Graph, allow: Allowlist, *, self_app: str = "", scan_v2: bool = False
+) -> dict[str, str]:
     """node id -> ``active`` | ``allowlisted`` | ``unmanaged`` for every live workspace app
     and serving endpoint (nodes with workspace_scan evidence)."""
     agents = {
@@ -109,6 +111,8 @@ def classify(graph: Graph, allow: Allowlist, *, self_app: str = "") -> dict[str,
     for nid, n in sorted(graph.nodes.items()):
         wk = n.attrs.get("workspace_kind")
         if wk not in ("app", "serving_endpoint", "genie_space") or n.status == "gone":
+            continue
+        if wk == "genie_space" and not scan_v2:  # WP-G3: Genie spaces need INVENTORY_SCAN_V2
             continue
         if not any(e["source"] == "workspace_scan" for e in n.evidence):
             continue  # declared by a manifest but not seen in the workspace now

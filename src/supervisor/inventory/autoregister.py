@@ -245,6 +245,7 @@ def _register(
             "source": SOURCE_TAG,
             "workspace_kind": str(node.attrs.get("workspace_kind")),
             "node_id": node.node_id,
+            "intake_defaults": "true",  # the intake fields are guesses until the owner confirms
         },
     }
     draft.update(cfg.draft_defaults)
@@ -260,15 +261,23 @@ def _register(
         except SystemsError:
             raise _NameTaken from None
     sid = str(view["system_id"])
-    systems.link(
-        sid,
-        "node",
-        node.node_id,
-        ACTOR,
-        role="component_of",
-        source="workspace_scan",
-        evidence_ref=_first_ref(node),
-    )
+    try:
+        systems.link(
+            sid,
+            "node",
+            node.node_id,
+            ACTOR,
+            role="component_of",
+            source="workspace_scan",
+            evidence_ref=_first_ref(node),
+        )
+    except Exception:
+        # No unlinked draft may survive: it could not be deduplicated on the next scan.
+        try:
+            systems.archive(sid, ACTOR)
+        except Exception:  # noqa: BLE001 - report the link failure, not this one
+            log.exception("inventory: could not archive a draft whose link failed")
+        raise
     _copy_autonomy(systems, sid, node)
     if tasks is not None:
         _open_task(tasks, sid, cfg)
@@ -278,23 +287,21 @@ def _register(
 def _copy_autonomy(systems: Any, system_id: str, node: Node) -> None:
     """Copy the autonomy level proposal (``node.attrs.autonomy_level_proposal``, set from a
     ``supervisor.onboard.define`` run) into the draft when ``ai_system.autonomy_level`` exists
-    (WP-G2). Without the column or without a proposal this does nothing."""
+    and is editable (WP-G2). It goes through ``SystemService.update_fields``, so a
+    ``system_change`` record is written. Without the column or a proposal: nothing."""
     level = node.attrs.get("autonomy_level_proposal")
     if isinstance(level, Mapping):
         level = level.get("level")
     if not level:
         return
     try:
-        state = systems.state
-        if "autonomy_level" not in state.model.table("ai_system").column_names:
+        from supervisor.governance.model import EDITABLE
+
+        if "autonomy_level" not in EDITABLE:
             return
-        row = state.get("ai_system", {"system_id": system_id})
-        state.update(
-            "ai_system",
-            {"system_id": system_id},
-            {"autonomy_level": str(level)},
-            row["row_version"],
-        )
+        if "autonomy_level" not in systems.state.model.table("ai_system").column_names:
+            return
+        systems.update_fields(system_id, {"autonomy_level": str(level)}, ACTOR)
     except Exception:  # noqa: BLE001 - the column is optional; a draft without it is fine
         log.info("inventory: autonomy level not copied to the draft")
 
@@ -307,7 +314,7 @@ def _open_task(tasks: Any, system_id: str, cfg: GovernanceConfig) -> None:
             "initiation",
             template_id=TEMPLATE_ID,
             kind="custom",
-            title=cfg.task_title,
+            title=f"{cfg.task_title} (intake defaults, to confirm)"[:200],
             owner_role=cfg.task_owner_role,
             required=True,
             due_days=cfg.task_due_days,

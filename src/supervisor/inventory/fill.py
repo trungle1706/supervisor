@@ -468,11 +468,14 @@ def fill_from_workspace(
     *,
     schemas: list[str] | None = None,
     registered: Mapping[str, list[str]] | None = None,
+    v2: bool = False,
 ) -> WorkspaceScan:
     """Read Apps, serving endpoints, registered models and UC tables (read only).
 
     ``schemas`` are ``catalog.schema`` names; without them a reader that has ``list_schemas``
     (the fixture reader) is asked, a live reader lists none (set INVENTORY_SCAN_SCHEMAS).
+    ``v2`` (INVENTORY_SCAN_V2, WP-G3) turns on the six v2 sources and the served-entity detail;
+    off, the scan is exactly the WP24 scan.
     ``registered`` maps an agent id to the Databricks App names its manifest declares: an app
     named like an agent, or declared by it, gets a ``hosted_on`` edge from that agent."""
     g = Graph()
@@ -509,7 +512,7 @@ def fill_from_workspace(
                 attrs={
                     "role": "databricks_app",
                     "workspace_kind": "app",
-                    **({"owner_group": str(a["group"])} if a.get("group") else {}),
+                    **({"owner_group": str(a["group"])} if v2 and a.get("group") else {}),
                 },
             )
             n.add_evidence("workspace_scan", ref)
@@ -539,8 +542,8 @@ def fill_from_workspace(
                         "workspace_kind": "serving_endpoint",
                         "task": e.get("task"),
                         "state": e.get("state"),
-                        "agent_endpoint": True if e.get("agent") else None,
-                        "owner_group": str(e["group"]) if e.get("group") else None,
+                        "agent_endpoint": True if v2 and e.get("agent") else None,
+                        "owner_group": str(e["group"]) if v2 and e.get("group") else None,
                     }.items()
                     if v
                 },
@@ -550,7 +553,8 @@ def fill_from_workspace(
             n = g.nodes[n.node_id]
             endpoint_names.append(name)
             g.link(n, "hosted_on", host, "workspace_scan", ref)
-            _served_entities(g, n, e.get("entities") or [], ref)
+            if v2:
+                _served_entities(g, n, e.get("entities") or [], ref)
             served = [str(s) for s in (e.get("served") or []) if s]
             if e.get("model"):
                 served.append(str(e["model"]))
@@ -774,10 +778,11 @@ def fill_from_workspace(
     section("uc_table", tables)
     section("lineage", lineage)
     # v2 sources: after endpoints (jobs are matched against the endpoint names) and tables
-    optional("registered_model_version", "list_model_versions", versions)
-    optional("genie_space", "list_genie_spaces", genie)
-    optional("job", "list_jobs", jobs)
-    optional("vector_index", "list_vector_indexes", vector)
-    optional("uc_connection", "list_connections", connections)
-    section("uc_function", functions)
+    if v2:
+        optional("registered_model_version", "list_model_versions", versions)
+        optional("genie_space", "list_genie_spaces", genie)
+        optional("job", "list_jobs", jobs)
+        optional("vector_index", "list_vector_indexes", vector)
+        optional("uc_connection", "list_connections", connections)
+        section("uc_function", functions)
     return WorkspaceScan(g, ok, errors)

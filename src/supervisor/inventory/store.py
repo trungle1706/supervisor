@@ -20,6 +20,7 @@ from supervisor.core.errors import ConcurrencyError, NotFoundError
 from supervisor.inventory.graph import Graph, _risk_src_rank
 from supervisor.inventory.model import (
     NODE_KINDS,
+    V2_NODE_KINDS,
     Edge,
     InventoryError,
     Node,
@@ -280,7 +281,7 @@ class InventoryStore:
 
     def counts(self) -> dict[str, Any]:
         rows = self.state.query("inventory_node")
-        by_kind = {k: 0 for k in NODE_KINDS}
+        by_kind = {k: 0 for k in NODE_KINDS if k not in V2_NODE_KINDS}
         unmanaged = 0
         for r in rows:
             if r["status"] == "gone":

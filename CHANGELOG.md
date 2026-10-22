@@ -4,9 +4,9 @@
 
 ### WP-G3: Databricks auto-record v2 and agent auto-define
 
-One new flag, off by default (off = the inventory scan and the governance tables are as before).
+Two new flags, both off by default (off = the inventory scan and the governance tables are as before). `INVENTORY_SCAN_V2=1` turns on the scan sources v2; `INVENTORY_AUTOREGISTER=1` the draft registration.
 
-- Inventory scan sources v2 (same `INVENTORY_ENABLED` flag, read-only SDK calls, evidence
+- Inventory scan sources v2 (`INVENTORY_ENABLED` and `INVENTORY_SCAN_V2`, read-only SDK calls, evidence
   `workspace:<kind>/<name>`, no workspace URL or id stored): MLflow model versions, serving
   endpoint config (foundation, external and custom served entities, agent endpoint flag), Genie
   spaces, jobs and notebook tasks that name an LLM endpoint, Vector Search indexes, Unity Catalog
