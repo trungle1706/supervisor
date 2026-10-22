@@ -110,7 +110,6 @@ def mounted_mcp() -> Iterator[None]:
     from supervisor.app import app
     from supervisor.governance.routes import router as systems_router
     from supervisor.mcp_server.routes import admin_router, mcp_router
-
     from tests.governance.conftest import restore_app
 
     saved = list(app.router.routes)
