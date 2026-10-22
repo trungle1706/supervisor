@@ -247,11 +247,15 @@ class SystemService:
         return out
 
     # ------------------------------------------------------------------ writes
-    def register(self, draft: Mapping[str, Any], actor: str) -> dict[str, Any]:
+    def register(
+        self, draft: Mapping[str, Any], actor: str, *, for_user: Any = None
+    ) -> dict[str, Any]:
         """Create a system (status draft). The owner joins the team as system_owner; a business
-        owner who is another person joins as business_owner."""
+        owner who is another person joins as business_owner. ``for_user`` is the calling
+        principal: a scoped caller may use only a team already in their scope."""
         check_user(actor, "actor")
         fields = normalise_draft(draft)
+        self._check_team_in_scope(for_user, fields["owner_team"])
         self._unique_name(fields["name"])
         sid = system_id_for(fields["name"])
         row = {
@@ -283,6 +287,8 @@ class SystemService:
         changes: Mapping[str, Any],
         actor: str,
         expected_version: int | None = None,
+        *,
+        for_user: Any = None,
     ) -> dict[str, Any]:
         check_user(actor, "actor")
         cur = self._need_open(system_id)
@@ -296,6 +302,8 @@ class SystemService:
             fields["tags"] = dict(fields["tags"])
         if "name" in fields:
             self._unique_name(fields["name"], system_id)
+        if "owner_team" in fields and fields["owner_team"] != cur["owner_team"]:
+            self._check_team_in_scope(for_user, fields["owner_team"])
         new_owner = fields.get("owner_user")
         if new_owner and new_owner != cur["owner_user"]:
             self._check_owner(system_id, new_owner)
@@ -308,8 +316,37 @@ class SystemService:
             ) from None
         if new_owner and new_owner != cur["owner_user"]:
             self._put_member(system_id, new_owner, "system_owner", actor)
+            self._demote_old_owner(stored, cur["owner_user"], actor)
         self._changed("update", stored, actor, {"fields_n": len(fields)})
         return self.get(system_id)
+
+    def _demote_old_owner(self, sys_row: Mapping[str, Any], old: str, actor: str) -> None:
+        """After an owner change the old owner becomes a technical specialist (so the
+        person can later hold another role); recorded on the chain as a team change."""
+        key = {"system_id": sys_row["system_id"], "user_id": old}
+        cur = self.state.get("system_team", key)
+        if cur is None or not _on(cur["active"]) or cur["team_role"] != "system_owner":
+            return
+        self._put_member(str(sys_row["system_id"]), old, "technical_specialist", actor)
+        self._changed(
+            "team_add",
+            sys_row,
+            actor,
+            {
+                "member_ref": actor_ref(self.settings, old, "system"),
+                "team_role": "technical_specialist",
+            },
+        )
+
+    def _check_team_in_scope(self, user: Any, team: str) -> None:
+        """A scoped caller may use (register with, change to) only a team in their scope."""
+        if user is None or self.scope_for(user) is ALL:
+            return
+        if team not in self.teams_of(str(user.user_id)):
+            raise SystemsError(
+                "owner_team must be a team you already work in "
+                "(the team of an agent you own or of a system you are owner of)"
+            )
 
     def archive(self, system_id: str, actor: str) -> dict[str, Any]:
         check_user(actor, "actor")
@@ -434,6 +471,28 @@ class SystemService:
             raise NotFoundError(f"inventory node {ref_id} does not exist")
         return ref_id
 
+    def _check_link_scope(self, user: Any, ref_kind: str, ref: str) -> None:
+        """A scoped caller links only an agent in their scope, or an inventory node that those
+        agents reach. Anything else answers like a missing item, so ids cannot be probed."""
+        if user is None or self.scope_for(user) is ALL:
+            return
+        mine = self.agents_in_scope(user)
+        if ref_kind == "agent":
+            if ref.lower() not in {str(a["agent_id"]).lower() for a in mine}:
+                raise NotFoundError(f"agent {ref} does not exist")
+            return
+        g = InventoryStore(self.state, self.clock).load_graph()
+        seen = {node_id_for("system", str(a["agent_id"])) for a in mine}
+        todo = list(seen)
+        while todo:
+            cur = todo.pop()
+            for e in g.edges.values():
+                if e.active and e.src_id == cur and e.dst_id not in seen:
+                    seen.add(e.dst_id)
+                    todo.append(e.dst_id)
+        if ref not in seen:
+            raise NotFoundError(f"inventory node {ref} does not exist")
+
     def link(
         self,
         system_id: str,
@@ -444,6 +503,7 @@ class SystemService:
         role: str = "component_of",
         source: str = "manual",
         evidence_ref: str = "",
+        for_user: Any = None,
     ) -> dict[str, Any]:
         """Link an agent or an inventory node to the system. A repeat is a no-op; a removed
         link comes back."""
@@ -456,6 +516,7 @@ class SystemService:
         if not isinstance(evidence_ref, str) or len(evidence_ref) > 200:
             raise SystemsError("evidence_ref must be text of 200 characters at most")
         ref = self._resolve_ref(ref_kind, ref_id)
+        self._check_link_scope(for_user, ref_kind, ref)
         cid = component_id(system_id, ref_kind, ref, role)
         cur = self.state.get("system_component", {"component_id": cid})
         now = self.clock.now()
@@ -572,15 +633,14 @@ class SystemService:
 
     # ------------------------------------------------------------------ scope
     def teams_of(self, user_id: str) -> frozenset[str]:
-        """Teams a person leads: the owner team of the agents and systems they own, and of the
-        systems where they are system_owner. (The principal carries no team; this is the
-        best fact we have. See docs/governance.md, open question 1.)"""
+        """Teams a person works in: the owner team of the agents they own, and of the systems
+        where they are an active system_owner (a role somebody with edit rights gave them).
+        Systems a person registered do not widen this: registering needs a team already here.
+        (The principal carries no team; see docs/governance.md, open question 1.)"""
         teams: set[str] = set()
         for a in self.state.query("agent", {"owner_user": user_id}):
             if a.get("owner_team"):
                 teams.add(str(a["owner_team"]))
-        for s in self.state.query("ai_system", {"owner_user": user_id}):
-            teams.add(str(s["owner_team"]))
         for m in self.state.query("system_team", {"user_id": user_id}):
             if _on(m["active"]) and m["team_role"] == "system_owner":
                 s = self.state.get("ai_system", {"system_id": m["system_id"]})

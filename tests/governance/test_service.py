@@ -428,3 +428,16 @@ def test_every_change_writes_a_system_change_record(
     assert recs[2]["member_ref"].startswith("act_") and recs[2]["team_role"] == "reviewer"
     assert recs[4]["component_id"] == cid and recs[4]["ref_kind"] == "agent"
     assert recs[0]["row_hash"] != recs[1]["row_hash"]
+
+
+def test_l1_old_owner_is_demoted_so_they_can_become_reviewer(
+    svc: SystemService, sink: ListSink
+) -> None:
+    sid = _make(svc)["system_id"]
+    svc.add_member(sid, "new.owner", "technical_specialist", "owner.lan")
+    svc.update_fields(sid, {"owner_user": "new.owner"}, "owner.lan")
+    roles = {m["user_id"]: m["team_role"] for m in svc.get(sid)["team"]}
+    assert roles == {"owner.lan": "technical_specialist", "new.owner": "system_owner"}
+    assert svc.add_member(sid, "owner.lan", "reviewer", "new.owner")
+    adds = [r for r in sink.of("system_change") if r["action"] == "team_add"]
+    assert any(r["team_role"] == "technical_specialist" for r in adds)

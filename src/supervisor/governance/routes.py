@@ -97,7 +97,7 @@ async def register_system(
     data.setdefault("owner_user", actor)
     if svc.scope_for(me) is not ALL and data.get("owner_user") != actor:
         raise SystemsError("you can register a system only with yourself as owner_user")
-    out = svc.register(data, actor)
+    out = svc.register(data, actor, for_user=me)
     request.state.audit_detail = "create"
     return JSONResponse(status_code=201, content=out)
 
@@ -123,7 +123,7 @@ async def update_system(
     if version is not None and (isinstance(version, bool) or not isinstance(version, int)):
         raise SystemsError("row_version must be a whole number")
     try:
-        return svc.update_fields(_visible(svc, me, system_id), data, actor, version)
+        return svc.update_fields(_visible(svc, me, system_id), data, actor, version, for_user=me)
     except NotFoundError as exc:
         return _not_found(exc)
 
@@ -180,6 +180,7 @@ async def add_link(
             actor,
             role=str(data.get("role", "component_of")),
             evidence_ref=data.get("evidence_ref", "") or "",
+            for_user=me,
         )
     except NotFoundError as exc:
         return _not_found(exc)

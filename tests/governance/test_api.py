@@ -12,7 +12,8 @@ from supervisor.core import rbac
 from .conftest import Console, draft
 
 REVIEWER = "reviewer.an"
-OWNER_USER = "payops-lead@example.invalid"
+OWNER_USER = "payops-lead@example.invalid"  # owns the demo agent "payments"
+PAYOPS = "Payments Ops"  # its owner team
 VIEWER = "viewer.hoa"
 
 
@@ -109,7 +110,7 @@ def test_off_flag_with_routes_mounted_is_400(console: Console, mounted: None) ->
 
 
 def test_scope_for_scoped_roles(on: Console) -> None:
-    mine = create(on, user=OWNER_USER, name="Owner system")["system_id"]
+    mine = create(on, user=OWNER_USER, name="Owner system", owner_team=PAYOPS)["system_id"]
     other = create(on, name="Reviewer system", owner_team="risk-team")["system_id"]
     # the owner role sees its own system only
     body = req(on, "GET", "/v1/systems", user=OWNER_USER).json()
@@ -128,14 +129,18 @@ def test_scope_for_scoped_roles(on: Console) -> None:
         assert req(on, "GET", "/v1/systems", user=user).json()["count"] == 2, user
     # a scoped person registers only with themselves as owner
     r = req(
-        on, "POST", "/v1/systems", draft(name="Mine too", owner_user="someone.else"), OWNER_USER
+        on,
+        "POST",
+        "/v1/systems",
+        draft(name="Mine too", owner_user="someone.else", owner_team=PAYOPS),
+        OWNER_USER,
     )
     assert r.status_code == 400 and "yourself" in r.json()["error"]
     r = req(
         on,
         "POST",
         "/v1/systems",
-        {k: v for k, v in draft(name="Mine too").items() if k != "owner_user"},
+        {k: v for k, v in draft(name="Mine too", owner_team=PAYOPS).items() if k != "owner_user"},
         OWNER_USER,
     )
     assert r.status_code == 201 and r.json()["owner_user"] == OWNER_USER
@@ -225,3 +230,57 @@ def test_denied_roles_get_403_and_allowed_roles_do_not(
 def test_permissions_are_held_as_planned() -> None:
     assert set(rbac.roles_for("systems.view")) == set(rbac.ROLES)
     assert set(rbac.roles_for("systems.edit")) == {"reviewer", "owner", "admin"}
+
+
+# ------------------------------------------------------------------ review fixes (H1, M1)
+
+
+def test_h1_scoped_caller_cannot_widen_scope_by_choosing_owner_team(on: Console) -> None:
+    secret = create(on, name="Secret", owner_team="risk-team")["system_id"]
+    grab = {
+        k: v for k, v in draft(name="Grab", owner_team="risk-team").items() if k != "owner_user"
+    }
+    r = req(on, "POST", "/v1/systems", grab, OWNER_USER)
+    assert r.status_code == 400 and "owner_team" in r.json()["error"]
+    assert req(on, "GET", "/v1/systems", user=OWNER_USER).json()["count"] == 0
+    assert req(on, "GET", f"/v1/systems/{secret}", user=OWNER_USER).status_code == 404
+    for method, url, body in [
+        ("PATCH", f"/v1/systems/{secret}", {"purpose": "x"}),
+        ("POST", f"/v1/systems/{secret}/archive", None),
+        ("POST", f"/v1/systems/{secret}/links", {"ref_kind": "agent", "ref_id": "payments"}),
+    ]:
+        assert req(on, method, url, body, OWNER_USER).status_code == 404, url
+    mine = create(on, user=OWNER_USER, name="Mine", owner_team=PAYOPS)["system_id"]
+    r = req(on, "PATCH", f"/v1/systems/{mine}", {"owner_team": "risk-team"}, OWNER_USER)
+    assert r.status_code == 400 and "owner_team" in r.json()["error"]
+    assert req(on, "GET", f"/v1/systems/{secret}", user=OWNER_USER).status_code == 404
+    r = req(on, "PATCH", f"/v1/systems/{mine}", {"owner_team": PAYOPS}, OWNER_USER)
+    assert r.status_code == 200
+    assert req(on, "PATCH", f"/v1/systems/{mine}", {"owner_team": "risk-team"}).status_code == 200
+
+
+def test_h1_membership_other_than_system_owner_does_not_widen_teams(on: Console) -> None:
+    svc = on.ctx.systems
+    sid = svc.register(draft(name="Foreign", owner_team="risk-team", owner_user="far.p"), "far.p")[
+        "system_id"
+    ]
+    svc.add_member(sid, OWNER_USER, "data_steward", "far.p")
+    assert svc.teams_of(OWNER_USER) == {PAYOPS}
+
+
+def test_m1_scoped_caller_links_only_agents_in_scope(on: Console) -> None:
+    from .conftest import add_agent
+
+    add_agent(on.runtime.adapters, "risk-bot", team="risk-team", owner_user="far.p")
+    mine = create(on, user=OWNER_USER, name="Mine", owner_team=PAYOPS)["system_id"]
+    url = f"/v1/systems/{mine}/links"
+    r = req(on, "POST", url, {"ref_kind": "agent", "ref_id": "risk-bot"}, OWNER_USER)
+    ghost = req(on, "POST", url, {"ref_kind": "agent", "ref_id": "ghost"}, OWNER_USER)
+    assert r.status_code == 404 and ghost.status_code == 404
+    assert r.json()["error"].replace("risk-bot", "x") == ghost.json()["error"].replace("ghost", "x")
+    ok = req(on, "POST", url, {"ref_kind": "agent", "ref_id": "payments"}, OWNER_USER)
+    assert ok.status_code == 200 and ok.json()["components"][0]["ref_id"] == "payments"
+    r = req(on, "POST", url, {"ref_kind": "node", "ref_id": "inv_nope"}, OWNER_USER)
+    assert r.status_code == 404
+    other = req(on, "POST", url, {"ref_kind": "agent", "ref_id": "risk-bot"})
+    assert other.status_code == 200  # a reviewer is not restricted

@@ -4,6 +4,7 @@ when it is off). Minimal pages on the old navigation; the full governance pages 
 
 from __future__ import annotations
 
+import functools
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -119,7 +120,7 @@ async def systems_register(
     draft = systems_views.draft_from_form(form, me)
     if ctx.systems.scope_for(me) is not ALL:
         draft["owner_user"] = str(me.user_id)
-    out = await _call(ctx.systems.register, draft, str(me.user_id))
+    out = await _call(functools.partial(ctx.systems.register, draft, str(me.user_id), for_user=me))
     request.state.audit_detail = "create"
     url = f"/console/systems/{out['system_id']}"
     if plain:

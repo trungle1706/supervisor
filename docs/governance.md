@@ -67,7 +67,12 @@ A person with both kinds of role sees everything. A person with no role sees not
 whose `owner_team` is the person's team. An agent linked only to systems out of scope stays hidden.
 
 A person's team is not a field of the login. It is taken from the facts we have: the owner team of
-the agents and systems they own, and of the systems where they are `system_owner` (open question 1).
+the agents they own, and of the systems where they are an active `system_owner` (a role somebody
+with edit rights gave them). Systems a person registered themselves do not widen it. A scoped
+person can register a system with, or change `owner_team` to, only a team already in their scope
+(HTTP 400 otherwise), and can link only agents in `agents_in_scope` (and inventory nodes those
+agents reach); anything else answers 404 like a missing item (open question 1). When the owner of
+a system changes, the old owner becomes `technical_specialist`.
 
 ## 5. Segregation of duties
 

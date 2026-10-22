@@ -81,7 +81,7 @@ def test_list_filter_sort_drawer_and_scope(on: Console) -> None:
     assert "Alpha assistant" in on.get("/console/systems", user="viewer.hoa").text
     assert on.get(f"/console/systems/{sid}", user="viewer.hoa").status_code == 200
     # the owner role sees its own team's systems only
-    mine = _make(on, user=OWNER_USER, name="Owner thing", owner_team="payops-team")
+    mine = _make(on, user=OWNER_USER, name="Owner thing", owner_team="Payments Ops")
     got = on.get("/console/systems", user=OWNER_USER).text
     assert mine["name"] in got and "Alpha assistant" not in got
 
@@ -143,7 +143,11 @@ def test_register_form_htmx_and_plain(on: Console) -> None:
     assert dup.status_code == 400 and "already" in dup.text
     assert on.post("/console/systems", {**form, "name": "V"}, user="viewer.hoa").status_code == 403
     # a scoped owner cannot register for somebody else
-    r = on.post("/console/systems", {**form, "name": "Owned", "owner_user": "x.y"}, user=OWNER_USER)
+    r = on.post(
+        "/console/systems",
+        {**form, "name": "Owned", "owner_user": "x.y", "owner_team": "Payments Ops"},
+        user=OWNER_USER,
+    )
     assert r.status_code == 200
     assert (
         on.ctx.state.get("ai_system", {"system_id": r.headers["HX-Redirect"].rsplit("/", 1)[1]})[
@@ -203,3 +207,16 @@ def test_pages_are_html_200_for_every_role(on: Console, lang: str) -> None:
         for url in ("/console/systems", f"/console/systems/{sid}", "/console/systems/rows"):
             r = on.get(f"{url}{'&' if '?' in url else '?'}lang={lang}", user=user)
             assert r.status_code == 200, (user, url)
+
+
+def test_m2_nav_item_needs_both_flags(
+    console: Console, mounted: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    s = console.ctx.settings
+    monkeypatch.setattr(s, "console_systems_enabled", True)
+    monkeypatch.setattr(s, "governance_enabled", False)
+    assert "/console/systems" not in console.get("/console/?lang=en").text
+    monkeypatch.setattr(s, "governance_enabled", True)
+    assert "/console/systems" in console.get("/console/?lang=en").text
+    monkeypatch.setattr(s, "console_systems_enabled", False)
+    assert "/console/systems" not in console.get("/console/?lang=en").text
