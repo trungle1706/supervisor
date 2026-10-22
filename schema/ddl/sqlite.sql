@@ -1364,6 +1364,7 @@ CREATE TABLE IF NOT EXISTS ai_system (
   risk_justification TEXT,
   decision33_class TEXT NOT NULL,
   business_impact TEXT NOT NULL,
+  autonomy_level TEXT NOT NULL,
   status TEXT NOT NULL,
   tags TEXT NOT NULL,
   created_at TEXT NOT NULL,
@@ -1412,6 +1413,45 @@ CREATE TABLE IF NOT EXISTS system_component (
 CREATE INDEX IF NOT EXISTS ix_system_component_system_id ON system_component (system_id);
 
 CREATE INDEX IF NOT EXISTS ix_system_component_ref_kind_ref_id ON system_component (ref_kind, ref_id);
+
+-- assignment (state): WP-G2. One thing the assignment rules put on an AI system: an obligation, a control, a risk, a task template or a guardian feature. assignment_id is a hash of (system, kind, ref), so a repeat run keeps the row. active is false when no rule fires for it any more; a row is never deleted. fired lists the rules and the fields that fired, for the explanation. A run writes a rule_run chain record.
+CREATE TABLE IF NOT EXISTS assignment (
+  assignment_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  rule_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  ref_id TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  fired TEXT NOT NULL,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (assignment_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_assignment_system_id ON assignment (system_id);
+
+CREATE INDEX IF NOT EXISTS ix_assignment_kind_ref_id ON assignment (kind, ref_id);
+
+-- classification (state): WP-G2. A Decision 33 classification of one AI system: a draft made from the rules, edited by a person, then applied by a person (never by a model). answers holds, per question, the answer, its source (rules | ai_prefill | person) and the justification. Applying sets decision33_class on the system and the classifier floor of its risk level. Changes go on the chain as classification_change.
+CREATE TABLE IF NOT EXISTS classification (
+  classification_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  outcome TEXT NOT NULL,
+  answers TEXT NOT NULL,
+  flow_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  applied_by TEXT,
+  applied_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (classification_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_classification_system_id ON classification (system_id);
 
 -- stage_approval (state): WP-G1. A request to move an AI system to a lifecycle stage that needs an approval (config/tasks.yaml, stages: ... approval: true), and the answer. The approver is a reviewer or oversight manager of the system or holds the approver role, and is neither the requester nor the owner. applied_at is set when the move used the approval. Changes go on the chain as stage_change.
 CREATE TABLE IF NOT EXISTS stage_approval (

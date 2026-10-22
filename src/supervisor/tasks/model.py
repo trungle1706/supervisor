@@ -117,8 +117,12 @@ class Template:
     # False = the task is done after the launch (for example "obtain a GO from the launch
     # report"), so it does not hold the launch gate. It still holds the lifecycle move.
     blocks_launch: bool = True
+    # True = sizing never picks this template; only an assignment rule (WP-G2) adds it.
+    assigned_only: bool = False
 
     def applies(self, level: str, cls: str | Iterable[str]) -> bool:
+        if self.assigned_only:
+            return False
         if LEVEL_RANK[level] < LEVEL_RANK[self.min_level]:
             return False
         classes = {cls} if isinstance(cls, str) else set(cls)
@@ -373,6 +377,9 @@ def parse_config(doc: Any, name: str = "tasks.yaml") -> TaskConfig:
         blocks = raw.get("blocks_launch", True)
         if not isinstance(blocks, bool):
             raise TaskError(f"{where}: blocks_launch must be true or false")
+        assigned_only = raw.get("assigned_only", False)
+        if not isinstance(assigned_only, bool):
+            raise TaskError(f"{where}: assigned_only must be true or false")
         templates.append(
             Template(
                 id=tid,
@@ -390,6 +397,7 @@ def parse_config(doc: Any, name: str = "tasks.yaml") -> TaskConfig:
                 evidence_kind=str(ekind),
                 evidence_ref=str(eref) if eref else None,
                 blocks_launch=blocks,
+                assigned_only=assigned_only,
             )
         )
     move = doc.get("move") or {}

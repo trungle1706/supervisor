@@ -1121,6 +1121,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`ai_system` (
   risk_justification STRING,
   decision33_class STRING NOT NULL,
   business_impact STRING NOT NULL,
+  autonomy_level STRING NOT NULL,
   status STRING NOT NULL,
   tags STRING NOT NULL,
   created_at TIMESTAMP NOT NULL,
@@ -1166,6 +1167,45 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`system_component` (
 )
 USING DELTA
 COMMENT 'WP-G0. A link from an AI system to an agent or an inventory node. component_id is a hash of (system_id, ref_kind, ref_id, role), so a repeat is a no-op. active is false after an unlink (the row stays as history).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- assignment (state): WP-G2. One thing the assignment rules put on an AI system: an obligation, a control, a risk, a task template or a guardian feature. assignment_id is a hash of (system, kind, ref), so a repeat run keeps the row. active is false when no rule fires for it any more; a row is never deleted. fired lists the rules and the fields that fired, for the explanation. A run writes a rule_run chain record.
+-- primary key (enforced by the app, not by Delta): assignment_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`assignment` (
+  assignment_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  rule_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  ref_id STRING NOT NULL,
+  active BOOLEAN NOT NULL,
+  fired STRING NOT NULL,
+  first_seen TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G2. One thing the assignment rules put on an AI system: an obligation, a control, a risk, a task template or a guardian feature. assignment_id is a hash of (system, kind, ref), so a repeat run keeps the row. active is false when no rule fires for it any more; a row is never deleted. fired lists the rules and the fields that fired, for the explanation. A run writes a rule_run chain record.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- classification (state): WP-G2. A Decision 33 classification of one AI system: a draft made from the rules, edited by a person, then applied by a person (never by a model). answers holds, per question, the answer, its source (rules | ai_prefill | person) and the justification. Applying sets decision33_class on the system and the classifier floor of its risk level. Changes go on the chain as classification_change.
+-- primary key (enforced by the app, not by Delta): classification_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`classification` (
+  classification_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  outcome STRING NOT NULL,
+  answers STRING NOT NULL,
+  flow_sha256 STRING NOT NULL,
+  status STRING NOT NULL,
+  created_by STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  applied_by STRING,
+  applied_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G2. A Decision 33 classification of one AI system: a draft made from the rules, edited by a person, then applied by a person (never by a model). answers holds, per question, the answer, its source (rules | ai_prefill | person) and the justification. Applying sets decision33_class on the system and the classifier floor of its risk level. Changes go on the chain as classification_change.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
 -- stage_approval (state): WP-G1. A request to move an AI system to a lifecycle stage that needs an approval (config/tasks.yaml, stages: ... approval: true), and the answer. The approver is a reviewer or oversight manager of the system or holds the approver role, and is neither the requester nor the owner. applied_at is set when the move used the approval. Changes go on the chain as stage_change.

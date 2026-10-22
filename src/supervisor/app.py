@@ -112,6 +112,9 @@ if get_settings().governance_enabled:  # WP-G0: mounted only when the flag is on
     from supervisor.governance.routes import router as systems_router
 
     app.include_router(systems_router)  # /v1/systems/...
+    from supervisor.governance.rules_routes import router as rules_router  # WP-G2
+
+    app.include_router(rules_router)  # /v1/systems/{id}/assignments, /classification, ...
 if get_settings().console_systems_enabled:  # WP-G0: /console/systems (needs the flag above)
     from supervisor.console.systems_routes import router as systems_console_router
 

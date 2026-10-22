@@ -1,0 +1,48 @@
+{# Classification tab of one system (WP-G2). Variables: s, cls, ai_pending, can_edit. #}
+{% import "_ui.html" as ui with context %}
+{% set base = '/console/systems/' ~ s.system_id ~ '/classification' %}
+<p class="hint">{{ t('sy_cls_intro') }}</p>
+<p class="hint">{{ t('sy_cls_illustrative') }}</p>
+{% if s.tags.get('autonomy_level_proposal') %}<p class="hint">{{ t('sy_cls_autonomy_proposal', level=s.tags.autonomy_level_proposal) }}{% if s.tags.get('autonomy_level_proposal_ref') %} <span class="mono">{{ s.tags.autonomy_level_proposal_ref }}</span>{% endif %}</p>{% endif %}
+<h3 class="sec">{{ t('sy_cls_current') }}</h3>
+{% if cls.applied %}
+{{ ui.pill(t('sy_d33_' ~ cls.applied.outcome), 'bad' if cls.applied.outcome == 'high_risk' else 'ok') }}
+<span class="muted">{{ cls.applied.applied_at }}</span>
+{% else %}<p class="hint">{{ t('sy_cls_none_applied') }}</p>{% endif %}
+{% if cls.history_n > 1 %}<p class="hint">{{ t('sy_cls_history') }}: {{ cls.history_n }}</p>{% endif %}
+<h3 class="sec">{{ t('sy_cls_draft') }}</h3>
+{% if can_edit %}
+<form method="post" action="{{ base }}/draft?lang={{ lang }}" hx-post="{{ base }}/draft?lang={{ lang }}" hx-swap="none">
+  <button class="btn" type="submit">{{ t('sy_cls_remake') if cls.draft else t('sy_cls_make') }}</button>
+</form>
+{% endif %}
+{% if cls.draft %}
+<p>{{ t('sy_cls_outcome') }}: {{ ui.pill(t('sy_d33_' ~ cls.draft.outcome), 'bad' if cls.draft.outcome == 'high_risk' else ('ok' if cls.draft.outcome == 'not_high_risk' else 'neutral')) }}
+  <span class="muted">{{ cls.draft.reason }}{% if cls.draft.decided_by_rule %} ({{ t('sy_cls_rule') }} <span class="mono">{{ cls.draft.decided_by_rule }}</span>){% endif %}</span></p>
+{% if ai_pending %}<p class="hint">{{ t('sy_cls_ai_note') }}</p>{% endif %}
+<form method="post" action="{{ base }}/answers?lang={{ lang }}" hx-post="{{ base }}/answers?lang={{ lang }}" hx-swap="none">
+<div class="tablewrap flat"><table>
+  <thead><tr><th scope="col">{{ t('sy_cls_q') }}</th><th scope="col">{{ t('sy_cls_a') }}</th><th scope="col">{{ t('sy_cls_src') }}</th><th scope="col">{{ t('sy_cls_why') }}</th></tr></thead>
+  <tbody>
+  {% for a in cls.draft.answers %}<tr>
+    <td>{{ a['text_vi'] if lang == 'vi' else a['text_en'] }} <span class="muted mono">{{ a.id }}</span></td>
+    <td>{% if can_edit %}<select name="a_{{ a.id }}" aria-label="{{ a.id }}">
+      <option value="" {{ 'selected' if a.answer is none }}>{{ t('sy_cls_open') }}</option>
+      <option value="yes" {{ 'selected' if a.answer == 'yes' }}>{{ t('sy_cls_yes') }}</option>
+      <option value="no" {{ 'selected' if a.answer == 'no' }}>{{ t('sy_cls_no') }}</option>
+    </select>{% else %}{{ t('sy_cls_' ~ a.answer) if a.answer else t('sy_cls_open') }}{% endif %}</td>
+    <td>{{ t('sy_cls_src_' ~ a.source) }}{% if a.get('mock') %} <span class="pill warn">{{ t('sy_cls_mock') }}</span>{% endif %}</td>
+    <td>{% if can_edit %}<input name="j_{{ a.id }}" value="{{ a.justification }}" maxlength="500" aria-label="{{ t('sy_cls_why') }}">{% else %}{{ a.justification }}{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% if can_edit %}<button class="btn" type="submit">{{ t('sy_cls_save') }}</button>{% endif %}
+</form>
+{% if can_edit %}
+<form method="post" action="{{ base }}/apply?lang={{ lang }}" hx-post="{{ base }}/apply?lang={{ lang }}" hx-swap="none">
+  {% if ai_pending %}<label><input type="checkbox" name="confirm_ai_prefill" value="1"> {{ t('sy_cls_confirm_ai') }}</label>{% endif %}
+  <button class="btn" type="submit">{{ t('sy_cls_apply') }}</button>
+</form>
+{% endif %}
+{% else %}<p class="hint">{{ t('sy_cls_no_draft') }}</p>{% endif %}

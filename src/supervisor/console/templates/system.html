@@ -8,7 +8,7 @@
 {% set pills %}{{ ui.pill(t('sy_st_' ~ s.status), 'ok' if s.status == 'active' else 'neutral') }} {{ ui.pill(t('sy_risk_' ~ s.effective_risk.level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk.level, 'neutral')) }}{% endset %}
 {{ ui.pagehead(s.name, pills) }}
 {{ ui.purpose(t('sy_purpose'), t('sy_why')) }}
-{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components'), 'tasks': t('sy_tab_tasks'), 'reviews': t('sy_tab_reviews'), 'reports': t('sy_tab_reports')} %}
+{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components'), 'tasks': t('sy_tab_tasks'), 'reviews': t('sy_tab_reviews'), 'rules': t('sy_tab_rules'), 'classification': t('sy_tab_classification'), 'reports': t('sy_tab_reports')} %}
 {{ ui.tabs(tabs, tab, labels, '/console/systems/' ~ s.system_id ~ '?tab={tab}&lang=' ~ lang, '/console/systems/' ~ s.system_id ~ '?tab={tab}&lang=' ~ lang, target='#tab-body', counts=tab_counts, panel='tab-body', select='#tab-body') }}
 <div id="tab-body" class="tabpanel" role="tabpanel">
 {% if tab == 'overview' %}
@@ -19,6 +19,10 @@
   {% include "_system_tasks.html" %}
 {% elif tab == 'reviews' %}
   {% include "_system_reviews.html" %}
+{% elif tab == 'rules' %}
+  {% include "_system_rules.html" %}
+{% elif tab == 'classification' %}
+  {% include "_system_classification.html" %}
 {% elif tab == 'reports' %}
   {% include "_system_incidents.html" %}
 {% else %}

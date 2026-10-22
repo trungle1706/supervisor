@@ -273,10 +273,9 @@ def test_job_passes_the_services_through(on: Adapters, sink: ListSink) -> None:
     assert out["autoregister"]["created"] == 3  # the job builds its own services
 
 
-def test_autonomy_proposal_is_copied_only_when_the_column_exists(
-    on: Adapters, sink: ListSink, monkeypatch: pytest.MonkeyPatch
+def test_autonomy_proposal_goes_to_the_tags_and_never_sets_the_level(
+    on: Adapters, sink: ListSink
 ) -> None:
-    from supervisor.governance import model as governance_model
     from supervisor.inventory.autoregister import _copy_autonomy
     from supervisor.inventory.model import Node
 
@@ -286,29 +285,24 @@ def test_autonomy_proposal_is_copied_only_when_the_column_exists(
         "app:x",
         attrs={"autonomy_level_proposal": {"level": "l3_tool_using_supervised"}},
     )
-    _copy_autonomy(systems, "sys_none", node)  # no column in this branch: no error, no change
-
-    class FakeState:
-        class model:  # noqa: N801
-            @staticmethod
-            def table(name: str) -> Any:
-                return type("T", (), {"column_names": ["system_id", "autonomy_level"]})()
+    _copy_autonomy(systems, "sys_none", node)  # unknown system: no error, no change
 
     calls: list[Any] = []
 
     class FakeSystems:
-        state = FakeState()
+        def get(self, sid: str) -> dict[str, Any]:
+            return {"tags": {"env": "prod"}}
 
         def update_fields(self, sid: str, changes: Any, actor: str) -> None:
             calls.append((sid, changes, actor))
 
     _copy_autonomy(FakeSystems(), "sys_1", node)
-    assert calls == []  # the column is not editable on this branch (EDITABLE lacks it)
-    monkeypatch.setattr(
-        governance_model, "EDITABLE", (*governance_model.EDITABLE, "autonomy_level")
-    )
-    _copy_autonomy(FakeSystems(), "sys_1", node)  # goes through update_fields: a chain record
-    assert calls == [("sys_1", {"autonomy_level": "l3_tool_using_supervised"}, "workspace_scan")]
+    # a proposal in the tags only; autonomy_level is never set by a scan (a person sets it)
+    assert len(calls) == 1 and calls[0][0] == "sys_1" and calls[0][2] == "workspace_scan"
+    changes = calls[0][1]
+    assert set(changes) == {"tags"} and "autonomy_level" not in changes
+    assert changes["tags"]["autonomy_level_proposal"] == "l3_tool_using_supervised"
+    assert changes["tags"]["env"] == "prod"
 
 
 def test_link_failure_archives_the_draft(on: Adapters, sink: ListSink) -> None:

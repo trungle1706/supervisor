@@ -1,0 +1,60 @@
+# Decision 33 question flow (WP-G2, docs/decision33.md).
+# ILLUSTRATIVE and NOT legal advice: counsel confirms. The flow follows docs/onboard.md
+# "Decision 33" (Appendix IV, entries 1 and 2, banking). A human step counts only when it is in
+# code: a sentence in a README does not. The Supervisor pause is a control AFTER the agent acts;
+# it is not approval before execution.
+#
+# questions  asked in order. `derive` (optional) is a condition over the fields of the AI system
+#            (same syntax as config/assignment_rules.yaml); the answer is yes when it is true,
+#            no when it is false. A question with no `derive` is answered by a person (or
+#            pre-filled by the AI when CLASSIFIER_AI_PREFILL=1, tagged ai_prefill).
+# outcomes   ordered; the first `when` that is true gives the outcome. A `when` leaf is
+#            {field: <question id>, eq: "yes"|"no"} (quote yes and no).
+# default    when no outcome matches: `complete` (every question answered) or `incomplete`.
+version: 1
+illustrative: true
+
+questions:
+  - id: Q-MONEY
+    ref: VN-QD33-2026-PL4.1-01
+    text_en: Can the system itself create, change, confirm or approve a transaction (move money)?
+    text_vi: Hệ thống có thể tự tạo, thay đổi, xác nhận hoặc phê duyệt giao dịch (chuyển tiền) không?
+    derive: {field: money_movement, is_true: true}
+  - id: Q-CREDIT
+    ref: VN-QD33-2026-PL4.2-01
+    text_en: Does the system make the final decision to approve or reject credit?
+    text_vi: Hệ thống có đưa ra quyết định cuối cùng chấp thuận hoặc từ chối tín dụng không?
+    derive: {field: credit_decision, is_true: true}
+  - id: Q-PRE-APPROVAL
+    ref: VN-QD33-2026-PL4.1-03
+    text_en: Does a person inspect, approve or control each action before it is executed (a step in code, not in a document)?
+    text_vi: Có người kiểm tra, phê duyệt hoặc kiểm soát từng hành động trước khi thực hiện không (bước có trong mã, không chỉ trong tài liệu)?
+    derive: {field: human_control, eq: pre_approval}
+  - id: Q-OTHER
+    ref: VN-QD33-2026-A2-01
+    text_en: Does any other entry of Decision 33 Appendix IV, or the high-risk test of Art. 2, apply to the system?
+    text_vi: Có mục nào khác của Phụ lục IV Quyết định 33, hoặc tiêu chí rủi ro cao tại Điều 2, áp dụng cho hệ thống không?
+
+outcomes:
+  - id: D33-TRANSACTION
+    outcome: high_risk
+    reason: Moves money and no person approves before execution (Appendix IV, entry 1).
+    when:
+      all:
+        - {field: Q-MONEY, eq: "yes"}
+        - {field: Q-PRE-APPROVAL, eq: "no"}
+  - id: D33-CREDIT
+    outcome: high_risk
+    reason: Decides credit and no person approves before execution (Appendix IV, entry 2).
+    when:
+      all:
+        - {field: Q-CREDIT, eq: "yes"}
+        - {field: Q-PRE-APPROVAL, eq: "no"}
+  - id: D33-OTHER
+    outcome: high_risk
+    reason: A person found another high-risk entry or the Art. 2 test applies.
+    when: {field: Q-OTHER, eq: "yes"}
+
+default:
+  complete: not_high_risk
+  incomplete: unclassified

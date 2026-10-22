@@ -1,0 +1,22 @@
+# Control for the autonomy ladder (WP-G2, docs/autonomy-levels.md). SYNTHETIC and ILLUSTRATIVE.
+# It is NOT in config/controls, so no agent has it in scope by itself and the starter catalogue
+# (and its counts) is unchanged. The assignment rule AR-AUTONOMY-L4 names it; import this file
+# with `python -m supervisor.controls import config/controls_pending` when the bank wants it in
+# the catalogue. A bank control: Supervisor cannot observe it, so it stays no_data.
+version: 1
+controls:
+  - id: CTL-BANK-PAUSETEST
+    title: Pause switch tested
+    objective: >
+      The first line pauses the agent with the pause switch on a schedule and after each change,
+      and records that the agent stopped and that resuming needed two different people.
+    type: detective
+    implemented_by: bank
+    owner: AI Platform
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-EUAIA-2024-A14-01]
+      risk: [RSK-PAY-006]
+    evidence:
+      document: [pause-test-record]

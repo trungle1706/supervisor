@@ -42,7 +42,11 @@ Intake fields (all required at registration): name, owner user, owner team, purp
 `both`), user segment (`internal`, `customer`, `partner`), personal data (`none`, `identifiable`,
 `pseudonymised`, `special`), human control (`pre_approval`, `post_review`, `none`). Defaults:
 status `draft`, stage `initiation`, risk `unspecified`, Decision 33 class `unclassified`, business
-impact `unspecified`, money movement and credit decision false.
+impact `unspecified`, autonomy level `unspecified`, money movement and credit decision false.
+
+| Field (WP-G2) | Values (ordered) |
+|---|---|
+| `autonomy_level` | `unspecified` (not a level), `l0_rule_based`, `l1_assistive`, `l2_workflow_step`, `l3_tool_using_supervised`, `l4_autonomous_bounded`, `l5_self_directed`. Set by a person at registration or later. A Decision 33 classification cannot be applied while it is `unspecified`. See `docs/autonomy-levels.md` |
 
 ## 3. Risk level
 
@@ -125,6 +129,10 @@ team changes also `member_ref`). No name, no purpose, no user id, no float.
 `add_member`, `remove_member`, `link`, `unlink`, `effective_risk_level`, `scope_for`, `can_view`,
 `agents_in_scope`, `list_systems`, `get`, constants `ALL`, `SCOPED_ROLES`, `ALL_ROLES`.
 Console context: `ctx.systems`, and from WP-G1 `ctx.lifecycle` (`LifecycleService`: `request`, `decide`, `move`, `approvals`, `status`, `can_decide`) and `ctx.reviews` (`ReviewService`: `create`, `update`, `complete`, `reopen`, `list_reviews`, `get`). Sizing: `supervisor.governance.sizing.linked_sizing`. Events: `supervisor.governance.events.emit`, `deliver_pending`.
+
+WP-G2 adds `RulesService` (`ctx.rules`) and `ClassificationService` (`ctx.classification`); a change
+of a system re-runs the assignment rules, and the effective risk level also has a classifier floor
+(class `high_risk` is at least `high`). See `docs/assignment-rules.md` and `docs/decision33.md`.
 
 ## 10. Off path
 

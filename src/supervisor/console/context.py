@@ -95,6 +95,45 @@ class ConsoleContext:
         return svc
 
     @property
+    def rules(self) -> Any:
+        """The assignment rules service (WP-G2, docs/assignment-rules.md). Runs go on the chain."""
+        from supervisor.governance.rules_service import RulesService
+
+        svc = getattr(self, "_rules", None)
+        if svc is None:
+            svc = RulesService(
+                self.state, self.tables, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._rules = svc
+        return svc
+
+    @property
+    def classification(self) -> Any:
+        """The Decision 33 classification service (WP-G2, docs/decision33.md). The chat model is
+        built only when CLASSIFIER_AI_PREFILL is on; the service never applies by itself."""
+        from supervisor.governance.classification import ClassificationService
+
+        svc = getattr(self, "_classification", None)
+        if svc is None:
+            chat = masker = None
+            if self.settings.classifier_ai_prefill:
+                from supervisor.adapters.factory import make_chat_model, make_masker
+
+                chat = make_chat_model(self.settings)
+                masker = make_masker(self.settings)
+            svc = ClassificationService(
+                self.state,
+                self.tables,
+                self.clock,
+                self.settings,
+                evidence=self.runtime.chain,
+                chat=chat,
+                masker=masker,
+            )
+            self._classification = svc
+        return svc
+
+    @property
     def lifecycle(self) -> Any:
         """Stage approvals and the lifecycle move of an AI system (WP-G1). Shares the system
         service, so every change goes on the chain."""
