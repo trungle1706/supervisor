@@ -90,7 +90,8 @@ def test_catalogue_status_in_the_shipped_config() -> None:
 
     reg = build_registry(VnRegexMasker(b"k", "t"))
     res = ResolvedDetectors(load_config(REPO_ROOT / "config" / "detectors.yaml"), reg)
-    assert res.weighing_slugs() == {"dlp_vn", "injection_regex"}  # classifier and judge: NO-GO
+    # classifier and the two judges: NO-GO; document_intake (phase 5) is deterministic and GO
+    assert res.weighing_slugs() == {"dlp_vn", "injection_regex", "document_intake"}
 
 
 # ---------------------------------------------------------------------------- D04, split_cue

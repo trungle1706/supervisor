@@ -114,14 +114,20 @@ def _validation(ctx: Any) -> dict[str, dict[str, str]]:
         report = json.loads(report_path(ctx).read_text(encoding="utf-8"))
         out: dict[str, dict[str, str]] = {}
         for slug, d in report["detectors"].items():
-            adv = harness._indicative(
-                d, "adversarial_recall_bp", d["go_no_go"]["adversarial_recall_bp"]
-            )
-            out[slug.split("@")[0]] = {
-                "overall": str(d["verdict"]),
-                "adversarial": adv,
-                "mock": "1" if d["model"]["kind"] == "mock" else "",
-            }
+            # Phase 5: the report also holds harness suites (dlp_vn_secrets, document_*) and
+            # detectors whose row has no adversarial split. Skip an entry that lacks the
+            # detector shape instead of rejecting the whole report.
+            try:
+                adv = harness._indicative(
+                    d, "adversarial_recall_bp", d["go_no_go"]["adversarial_recall_bp"]
+                )
+                out[slug.split("@")[0]] = {
+                    "overall": str(d["verdict"]),
+                    "adversarial": adv,
+                    "mock": "1" if d["model"]["kind"] == "mock" else "",
+                }
+            except (KeyError, TypeError, AttributeError):
+                continue
         return out
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return {}
