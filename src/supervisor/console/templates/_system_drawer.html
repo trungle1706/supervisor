@@ -1,0 +1,26 @@
+{# System drawer of the Systems page: tabs Details / Team / Components (read-only).
+   Variable: drawer (systems_views.drawer_view). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set s = drawer.s %}
+{% set tab = drawer.tab %}
+{% set qs = drawer.qs %}
+{% set base = '/console/systems/' ~ s.system_id ~ '/drawer?tab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set page_base = '/console/systems?drawer=' ~ s.system_id ~ '&dtab={tab}' ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang %}
+{% set pills %}{{ ui.pill(t('sy_st_' ~ s.status), 'ok' if s.status == 'active' else 'neutral') }} {{ ui.pill(t('sy_risk_' ~ s.effective_risk.level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk.level, 'neutral')) }}{% endset %}
+{% set labels = {'details': t('dtab_details'), 'team': t('sy_dtab_team'), 'components': t('sy_dtab_components')} %}
+{% set tabs_html %}{{ ui.tabs(drawer.tabs, tab, labels, page_base, base) }}{% endset %}
+{% set prev_href = ('/console/systems?drawer=' ~ drawer.prev_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set prev_hx = ('/console/systems/' ~ drawer.prev_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.prev_id else None %}
+{% set next_href = ('/console/systems?drawer=' ~ drawer.next_id ~ '&dtab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% set next_hx = ('/console/systems/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
+{% call dr.drawer(s.name, pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
+  {% if tab == 'details' %}
+    <p style="margin:0 0 10px"><a class="btn" href="/console/systems/{{ s.system_id }}?lang={{ lang }}">{{ t('sy_open') }}</a></p>
+    {% include "_system_facts.html" %}
+  {% elif tab == 'team' %}
+    {% include "_system_team.html" %}
+  {% else %}
+    {% include "_system_components.html" %}
+  {% endif %}
+{% endcall %}

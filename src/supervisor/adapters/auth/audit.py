@@ -37,6 +37,7 @@ TARGET_KINDS = (
     "risk",
     "control",
     "task",
+    "system",  # WP-G0
 )
 # path parameter name -> target kind (the first one present on the route wins)
 _PARAM_KIND = {
@@ -47,6 +48,7 @@ _PARAM_KIND = {
     "risk_id": "risk",  # WP29
     "control_id": "control",  # WP30
     "task_id": "task",  # WP30
+    "system_id": "system",  # WP-G0
     "name": "export",
 }
 # route template -> target kind when the route has no id parameter
@@ -58,6 +60,8 @@ _TEMPLATE_KIND = {
     "/v1/risks": "risk",  # WP29: create (the new id is in the detail note)
     "/v1/controls": "control",  # WP30: create
     "/v1/tasks": "task",  # WP30: add a custom task
+    "/v1/systems": "system",  # WP-G0: register
+    "/console/systems": "system",  # WP-G0: register (form)
 }
 _ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 MUTATING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
@@ -138,6 +142,21 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
         return row_hash({"control": control, "map": maps})
     if kind == "task":  # WP30
         return row_hash(state.get("task", {"task_id": target_id}))
+    if kind == "system":  # WP-G0: the system row, its team and its links
+        system = state.get("ai_system", {"system_id": target_id})
+        if system is None:
+            return None
+        team = sorted(
+            f"{r['user_id']}:{r['team_role']}"
+            for r in state.query("system_team", {"system_id": target_id})
+            if r.get("active")
+        )
+        links = sorted(
+            r["component_id"]
+            for r in state.query("system_component", {"system_id": target_id})
+            if r.get("active")
+        )
+        return row_hash({"system": system, "team": team, "links": links})
     if kind == "agent":
         agent = state.get("agent", {"agent_id": target_id})
         controls = [

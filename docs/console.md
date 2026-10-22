@@ -353,6 +353,8 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `tasks.approve` | Second person for a task waiver; approve a lifecycle move or an approver task (WP30) |  |  | x |  | x |  |  |
 | `transparency.view` | Transparency page, Agent tab and GET /v1/transparency (WP31) | x | x | x | x | x | x | x |
 | `transparency.generate` | Build and sign a transparency report (WP31) |  | x |  |  | x |  |  |
+| `systems.view` | Systems pages and GET /v1/systems: AI systems in your scope (WP-G0) | x | x | x | x | x | x | x |
+| `systems.edit` | Register and change AI systems, their team and their links (WP-G0) |  | x |  | x | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

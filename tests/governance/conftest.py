@@ -61,9 +61,7 @@ def sink() -> ListSink:
 
 @pytest.fixture
 def adapters(tmp_path: Path) -> Iterator[Adapters]:
-    settings = load_settings(
-        sql_backend="sqlite", data_dir=tmp_path / "data", llm_base_url="", governance_enabled=True
-    )
+    settings = load_settings(sql_backend="sqlite", data_dir=tmp_path / "data", llm_base_url="")
     a = build_adapters(settings)
     bootstrap_schema.run(a.settings, a)
     try:
@@ -94,3 +92,36 @@ def add_agent(adapters: Adapters, agent_id: str, team: str = "payments-team", **
         "created_at": adapters.clock.now(),
     }
     adapters.state.insert("agent", {**row, **over})
+
+
+# --------------------------------------------------------------------------- the real app
+from tests.console.conftest import Console, console, seeded  # noqa: E402, F401  (fixtures)
+
+
+@pytest.fixture
+def mounted() -> Iterator[None]:
+    """Mount the governance routers on the global app (as app.py does with the flags on) and
+    take them off again. The app reads the flags once at import, so a test cannot flip them."""
+    from supervisor.app import app
+    from supervisor.console.systems_routes import router as console_router
+    from supervisor.governance.routes import router as api_router
+
+    saved = list(app.router.routes)
+    app.include_router(api_router)
+    app.include_router(console_router)
+    try:
+        yield
+    finally:
+        app.router.routes[:] = saved
+        app.openapi_schema = None
+
+
+@pytest.fixture
+def on(
+    console: Console,  # noqa: F811
+    mounted: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Console:
+    for flag in ("governance_enabled", "console_systems_enabled"):
+        monkeypatch.setattr(console.ctx.settings, flag, True)
+    return console

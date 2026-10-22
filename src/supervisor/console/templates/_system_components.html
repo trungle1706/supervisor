@@ -1,0 +1,17 @@
+{# Components (links) of one system. Variable: s. #}
+{% if s.components %}
+<div class="tablewrap flat"><table>
+  <thead><tr><th scope="col">{{ t('sy_ref') }}</th><th scope="col">{{ t('sy_link_role') }}</th><th scope="col">{{ t('sy_link_source') }}</th></tr></thead>
+  <tbody>
+  {% for c in s.components %}<tr><td><span class="muted">{{ t('sy_ref_' ~ c.ref_kind) }}</span> <span class="mono">{{ c.ref_id }}</span></td><td>{{ t('sy_link_' ~ c.role) }}</td><td>{{ c.source }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="hint">{{ t('sy_no_components') }}</p>{% endif %}
+{% if s.effective_risk.via %}
+<h3 class="sec">{{ t('sy_inherited_via') }}</h3>
+<ul class="drawer-list">
+{% for v in s.effective_risk.via %}<li class="mono">{{ v.ref_kind }}:{{ v.ref_id }} = {{ v.level }}</li>
+{% endfor %}
+</ul>
+{% endif %}

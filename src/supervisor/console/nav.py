@@ -51,6 +51,7 @@ PAGES: dict[str, str] = {
     "tasks": "console_controls_enabled",  # WP30
     "transparency": "console_transparency_enabled",  # WP31
     "catalog": "console_catalog_enabled",  # guardian capability catalogue
+    "systems": "console_systems_enabled",  # WP-G0
 }
 
 
@@ -113,6 +114,7 @@ GROUPS: tuple[tuple[str | None, tuple[Item, ...]], ...] = (
             ),
             Item("integration", "nav_integration", "/console/integration", flag="integration"),
             Item("playground", "nav_playground", "/console/playground", page="playground"),
+            Item("systems", "nav_systems", "/console/systems", page="systems"),  # WP-G0
         ),
     ),
     (
@@ -167,6 +169,7 @@ CODES: dict[str, str] = {
     "transparency": "TP",  # WP31
     "catalog": "CA",
     "health": "HL",
+    "systems": "SY",  # WP-G0
 }
 
 
@@ -178,7 +181,7 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, tuple[str, ...]], ...]], ...] =
         "nav_s_gov",
         "nav_s_gov_k",
         (
-            ("nav_g_onboard", ("onboard", "inventory", "integration")),
+            ("nav_g_onboard", ("onboard", "inventory", "integration", "systems")),
             ("nav_g_prove", ("evidence", "assurance", "compliance", "risks", "controls", "tasks",
                              "transparency")),
             ("nav_g_settings", ("policies", "credentials", "users", "audit", "integrations",

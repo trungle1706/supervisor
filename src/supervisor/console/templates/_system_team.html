@@ -1,0 +1,10 @@
+{# Team of one system. Variable: s. #}
+{% if s.team %}
+<div class="tablewrap flat"><table>
+  <thead><tr><th scope="col">{{ t('sy_f_owner_user') }}</th><th scope="col">{{ t('sy_team_role') }}</th></tr></thead>
+  <tbody>
+  {% for m in s.team %}<tr><td class="mono">{{ m.user_id }}</td><td>{{ t('sy_role_' ~ m.team_role) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="hint">{{ t('sy_no_team') }}</p>{% endif %}

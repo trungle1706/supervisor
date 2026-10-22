@@ -108,6 +108,14 @@ app.include_router(tasks_router)  # WP30: /v1/tasks/... (off unless CONTROLS_ENA
 app.include_router(
     transparency_router
 )  # WP31: /v1/transparency/... (off unless TRANSPARENCY_ENABLED)
+if get_settings().governance_enabled:  # WP-G0: mounted only when the flag is on
+    from supervisor.governance.routes import router as systems_router
+
+    app.include_router(systems_router)  # /v1/systems/...
+if get_settings().console_systems_enabled:  # WP-G0: /console/systems (needs the flag above)
+    from supervisor.console.systems_routes import router as systems_console_router
+
+    app.include_router(systems_console_router)
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 

@@ -1,0 +1,38 @@
+{# Systems table + pager: the swap target #list of the Systems page (WP-G0). #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% if page.items %}
+<div class="tablewrap">
+<table class="queue systems-tbl">
+  <caption class="sr">{{ t('nav_systems') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('name', t('sy_col_name'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
+      {{ tb.th('owner_team', t('sy_col_team'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
+      {{ tb.th('lifecycle_stage', t('sy_col_stage'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
+      {{ tb.th('risk', t('sy_col_risk'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
+      <th scope="col" class="n">{{ t('sy_col_components') }}</th>
+      {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for s in page.items %}
+    {% set dq = list_qs ~ '&lang=' ~ lang %}
+    <tr class="row" data-row="{{ s.system_id }}" data-status="{{ s.status }}">
+      <td><a class="head rowlink" href="/console/systems?drawer={{ s.system_id }}&amp;{{ dq }}" hx-get="/console/systems/{{ s.system_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ s.name }}</a><div class="idline mono">{{ s.system_id }}</div></td>
+      <td>{{ s.owner_team }}</td>
+      <td>{{ t('sy_stage_' ~ s.lifecycle_stage) }}</td>
+      <td>{{ ui.pill(t('sy_risk_' ~ s.effective_risk_level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk_level, 'neutral')) }}{% if s.effective_risk_source == 'inherited' %} <span class="muted">{{ t('sy_inherited') }}</span>{% endif %}</td>
+      <td class="n">{{ s.components_n }}</td>
+      <td>{{ ui.pill(t('sy_st_' ~ s.status), 'ok' if s.status == 'active' else 'neutral') }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, '/console/systems', '/console/systems/rows', list_qs) }}
+{% elif total_systems %}
+{{ ui.empty(t('sy_no_systems'), t('rk_no_match')) }}
+{% else %}
+{{ ui.empty(t('sy_no_systems'), t('sy_no_systems_line')) }}
+{% endif %}
