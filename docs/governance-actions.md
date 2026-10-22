@@ -172,6 +172,16 @@ the version of the rules that fired it.
   changed the level or the stage.
 * `raise_risk_level` and `move_to_re_evaluation` change a system; a person can set the level
   back or move the stage again. The next event can raise it again.
+* L2. Replay inside the 300 s overlap re-evaluates the plan with the current system facts. If a
+  system-class filter did not match earlier but matches now (for example the risk level was
+  raised in between), the event can fire late. Dedupe still holds, because only done markers
+  stop an event; unmatched events leave no marker.
+* L3. The dry run does not apply the 200-event budget: it plans every event, while a real run
+  defers the ones over `MAX_NEW_PER_RUN`. In a backlog the dry-run plan is a superset of the
+  next real run.
+* L5. A reopened control stays failing until the next evidence window (the next full hour), then
+  the evidence decides again. A reopen that lands in the same hour as the evidence pass holds
+  for that hour only.
 * A first run reads back `GOVERNANCE_ACTIONS_LOOKBACK_S` (a day). Turn the job on, then use
   `--dry-run` first to see what would fire.
 
