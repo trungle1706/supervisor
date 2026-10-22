@@ -3318,7 +3318,7 @@ _T.update(
         "sy_role_compliance_specialist": ("Compliance specialist", "Chuyên viên tuân thủ"),
         "sy_role_reviewer": ("Reviewer", "Người rà soát"),
         "sy_role_oversight_manager": ("Oversight manager", "Người giám sát"),
-        "sy_ref_agent": ("Agent", "Agent"),
+        "sy_ref_agent": ("Agent", "Tác nhân"),
         "sy_ref_node": ("Inventory item", "Mục kiểm kê"),
         "sy_link_component_of": ("Component of", "Là thành phần của"),
         "sy_link_built_on": ("Built on", "Xây dựng trên"),
