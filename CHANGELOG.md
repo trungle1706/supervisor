@@ -22,6 +22,16 @@ empty. On with no rows = the same answers as off. See `docs/guardian-bindings.md
   `systems.edit`). Catalog page: system picker and a switch per capability card, a lock for the
   floor. EN and VI.
 
+### WP-UX4b: governance pages on the AI system
+
+Needs `CONSOLE_NAV_V3=1` and `CONSOLE_SYSTEMS_ENABLED=1` (with `GOVERNANCE_ENABLED=1`). With the flags off nothing changes; with `GOVERNANCE_ENABLED` off the two overviews keep the agent-based pages of WP-UX4a.
+
+- System page tabs Risks, Controls, Policies, Guardians (read only) and Reports, in the order Overview, Components, Risks, Controls, Policies, Guardians, Tasks, Reviews, Reports. Every figure comes from the existing risk, control, compliance, detector and transparency services; a figure that cannot be computed shows "not available" and the reason. The Reports tab has a guarded slot for incidents (WP-G5).
+- Register wizard `/console/systems/new`: intake, preliminary checks (readiness advisor on a repository folder, assurance packs for the declared system, Decision 33 class proposal, guardian floor), one result page. Nothing is applied; confirming registers a draft and opens two initiation tasks.
+- My overview and Governance overview count systems when `GOVERNANCE_ENABLED` is on (risk level, classification rate, control readiness per system, overdue tasks, stage table, by autonomy level when the column exists).
+- Catalogues > Agents: a System column and a linked / unlinked filter.
+- Screenshots in `docs/design/screens-v3` replaced; `tools/console_screenshots.py --v3` seeds four systems.
+
 ### WP-G5: governance loop, incidents
 
 One new flag, off by default (off = nothing is mounted or scheduled, the tables stay empty, the

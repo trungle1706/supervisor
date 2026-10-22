@@ -291,7 +291,6 @@ through the API. EN and VI strings sit in one block marked WP-G1 in `console/i18
 
 With `INVENTORY_AUTOREGISTER=1` the inventory scan registers a draft system (status draft, risk `unspecified`, tag `source=workspace_scan`) for each unmanaged App, agent endpoint or Genie space, with a default owner from `config/governance.yaml`, and opens the task "Confirm context". See `docs/inventory.md`, "Draft registration from the scan".
 
-
 ## 20. Governance loop and incidents (WP-G5)
 
 Off by default (`GOVERNANCE_ACTIONS_ENABLED=1`, needs `GOVERNANCE_ENABLED=1`). Events from the
@@ -307,3 +306,11 @@ page. Details: `docs/governance-actions.md` and `docs/incidents.md`.
 Changes to the G0 and G1 code that the loop needs, all additive: `SystemService.raise_risk_from_event`
 and the risk source `event`; the outbound event kind `governance_action`; the review scope kind
 `event`. Console context: `ctx.incidents` (`IncidentService`).
+
+## 21. Console pages (WP-UX4b)
+
+With `CONSOLE_NAV_V3=1` the system page has the tabs Risks, Controls, Policies, Guardians (read only)
+and Reports, the register wizard is at `/console/systems/new`, and the overviews count systems. See
+`docs/console.md`, "Systems pages". The wizard registers a draft and opens two initiation tasks of the
+system itself (`SYS-INTAKE-CONFIRM`, `SYS-INTAKE-CHECKS`, as the workspace scan does for "Confirm
+context"). It applies no class, level or floor.

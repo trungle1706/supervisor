@@ -10,7 +10,8 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from supervisor.console import ux3
+from supervisor.cases.service import PermissionDenied
+from supervisor.console import systems_tabs, ux3
 from supervisor.console.listing import (
     ListingError,
     paginate,
@@ -33,6 +34,20 @@ DETAIL_TABS = (
     "reviews",  # tasks, reviews: WP-G1
     "rules",
     "classification",  # rules, classification: WP-G2
+)
+# WP-UX4b: the tabs with CONSOLE_NAV_V3 on (G2 tabs after Components).
+DETAIL_TABS_V3 = (
+    "overview",
+    "components",
+    "rules",
+    "classification",
+    "risks",
+    "controls",
+    "policies",
+    "guardians",
+    "tasks",
+    "reviews",
+    "reports",
 )
 PAGE_SIZE = 25
 FILTERS = ("q", "status", "owner_team", "lifecycle_stage", "risk", "system_type")
@@ -122,6 +137,10 @@ def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
         "choices": {k: [(v, f"sy_{k}_{v}") for v in vs] for k, vs in REGISTER_CHOICES.items()},
         "scope_all": svc.scope_for(me) is ALL,
         "can_edit": getattr(me, "kind", "") == "user" and rbac.allowed(me.roles, "systems.edit"),
+        # WP-UX4b: the link to the register wizard, with CONSOLE_NAV_V3
+        "wizard": bool(ctx.settings.console_nav_v3)
+        and getattr(me, "kind", "") == "user"
+        and rbac.allowed(me.roles, "systems.edit"),
     }
 
 
@@ -156,28 +175,49 @@ def drawer_view(
     }
 
 
-def detail_tabs(ctx: Any) -> tuple[str, ...]:
-    """WP-G5: the Reports tab (incidents of the system) appears with GOVERNANCE_ACTIONS_ENABLED,
-    unless the tab list already holds one (WP-UX4b)."""
-    tabs = DETAIL_TABS
-    if getattr(ctx.settings, "governance_actions_enabled", False) and "reports" not in tabs:
-        tabs = (*tabs, "reports")
-    return tabs
+def detail_tabs(ctx: Any, me: Any) -> tuple[str, ...]:
+    """The tabs of the system page. WP-UX4b: with CONSOLE_NAV_V3 on, the governance tabs too (a
+    tab needs the permission of the page it summarises). Off: the tabs of WP-G0 to WP-G2, and
+    WP-G5's Reports tab (incidents) with GOVERNANCE_ACTIONS_ENABLED."""
+    if not ctx.settings.console_nav_v3:
+        tabs = DETAIL_TABS
+        if getattr(ctx.settings, "governance_actions_enabled", False) and "reports" not in tabs:
+            tabs = (*tabs, "reports")
+        return tabs
+    return tuple(
+        t
+        for t in DETAIL_TABS_V3
+        if t not in systems_tabs.TAB_PERM or systems_tabs.may(me, systems_tabs.TAB_PERM[t])
+    )
 
 
 def detail_view(ctx: Any, me: Any, system_id: str, tab: str) -> dict[str, Any]:
-    tabs = detail_tabs(ctx)
+    tabs = detail_tabs(ctx, me)
+    v3 = bool(ctx.settings.console_nav_v3)
     if tab not in tabs:
+        if tab in DETAIL_TABS_V3 and v3:
+            raise PermissionDenied(f"your role may not open the {tab} tab")
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
     extra, counts = g1_tabs(ctx, system, tab)
-    if "reports" in tabs:  # WP-G5: the incidents of the system
+    if v3 and tab in systems_tabs.BUILDERS:  # WP-UX4b
+        gov = systems_tabs.BUILDERS[tab](ctx, system)
+        extra.update(gov)
+        n = systems_tabs.count_of(tab, gov)
+        if n is not None:
+            counts[tab] = n
+    actions_on = bool(getattr(ctx.settings, "governance_actions_enabled", False))
+    if "reports" in tabs and actions_on:  # WP-G5: the incidents of the system
         from supervisor.console.incidents_views import system_incidents
 
         found = system_incidents(ctx, str(system["system_id"]))
-        counts["reports"] = len(found)
+        if not v3:
+            counts["reports"] = len(found)
         if tab == "reports":
-            extra["incidents"] = found
+            extra["incidents"] = found  # the G5 template (CONSOLE_NAV_V3 off)
+            extra["rp_incidents"], extra["rp_incidents_na"] = found, ""  # the UX4b Reports tab
+    elif tab == "reports":
+        extra["rp_incidents"], extra["rp_incidents_na"] = None, "ux4b_na_incidents_flag"
     out = {
         "s": system,
         "tab": tab,
@@ -276,6 +316,32 @@ def g1_tabs(ctx: Any, system: Mapping[str, Any], tab: str) -> tuple[dict[str, An
             )
         extra["task_agents"] = summaries
     return extra, counts
+
+
+def agents_system_col(ctx: Any) -> bool:
+    """WP-UX4b: the System column and the unlinked filter of Catalogues > Agents need both
+    CONSOLE_NAV_V3 and GOVERNANCE_ENABLED (without them the page is the one it was)."""
+    return bool(ctx.settings.console_nav_v3 and ctx.settings.governance_enabled)
+
+
+def annotate_agents(ctx: Any, me: Any, cards: list[dict[str, Any]]) -> None:
+    """Add ``systems`` to each agent card: the systems the caller may see that this agent is
+    linked to (``[{system_id, name}]``), and ``systems_hidden`` when it is linked only to
+    systems outside the caller's scope (shown as linked, never named)."""
+    svc = ctx.systems
+    scope = svc.scope_for(me)
+    names = {r["system_id"]: str(r["name"]) for r in svc.state.query("ai_system")}
+    linked: dict[str, list[str]] = {}
+    for c in svc.state.query("system_component", {"ref_kind": "agent"}):
+        if str(c["active"]).strip().lower() in ("1", "true"):
+            linked.setdefault(str(c["ref_id"]).lower(), []).append(str(c["system_id"]))
+    for card in cards:
+        ids = sorted(set(linked.get(str(card["agent_id"]).lower(), [])))
+        seen = [i for i in ids if i in scope and i in names]
+        card["systems"] = [{"system_id": i, "name": names[i]} for i in seen]
+        card["systems_hidden"] = bool(ids) and not seen
+        if card["systems_hidden"]:
+            card["systems"] = [{"system_id": "", "name": ""}]  # linked, not shown
 
 
 def draft_from_form(form: Mapping[str, str], me: Any) -> dict[str, Any]:

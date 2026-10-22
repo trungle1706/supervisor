@@ -221,3 +221,19 @@ def test_the_catalog_only_lists_systems_in_scope(gon: Console) -> None:
     r = page(gon, other, user=OWNER_USER)
     assert r.status_code == 404
     assert page(gon, "bad id!").status_code == 400
+
+
+def test_the_guardians_tab_lists_locked_and_off_features_and_links_to_the_catalog(
+    gon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(gon.ctx.settings, "console_nav_v3", True)  # the tab is a v3 tab
+    sid = create(gon, user_segment="customer", personal_data="identifiable")
+    req(gon, "PUT", f"/v1/systems/{sid}/guardians/injection_regex", {"state": "off"})
+    html = gon.get(f"/console/systems/{sid}?tab=guardians&lang=en").text
+    assert 'data-section="system-guardians-bindings"' in html
+    assert "<code>dlp_vn</code>" in html and "<code>injection_regex</code>" in html
+    assert f"/console/catalog?system={sid}" in html
+    assert "Công tắc bảo vệ" in gon.get(f"/console/systems/{sid}?tab=guardians&lang=vi").text
+    monkeypatch.setattr(gon.ctx.settings, "guardian_bindings_enabled", False)
+    off = gon.get(f"/console/systems/{sid}?tab=guardians&lang=en").text
+    assert "system-guardians-bindings" not in off

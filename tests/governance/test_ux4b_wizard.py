@@ -1,0 +1,481 @@
+"""WP-UX4b: the register wizard at /console/systems/new.
+
+The wizard applies nothing. Step 2 (preliminary checks) writes nothing; step 3 registers a
+draft and opens the initiation tasks. Bad input is HTTP 400 with the reason."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from supervisor.console import systems_wizard
+from supervisor.governance import model as gm
+
+from .conftest import Console, person
+
+HX = {"HX-Request": "true"}
+OWNER_USER = "payops-lead@example.invalid"
+FORM = {
+    "name": "Wizard system",
+    "owner_team": "payments-team",
+    "purpose": "Answers staff questions about domestic transfers.",
+    "system_type": "assistant",
+    "org_role": "deployer",
+    "user_segment": "internal",
+    "personal_data": "pseudonymised",
+    "human_control": "post_review",
+}
+CHECKS = "/console/systems/new/checks"
+FORM_FIELDS = {
+    **{k: v for k, v in FORM.items()},
+    "owner_user": "reviewer.an",
+    "credit_decision": False,
+    "human_control": "post_review",
+    "status": "draft",
+}
+REPO = "tests/onboard/data/artifact_credit_memo"
+REPO_ROOT_SUB = Path("/tmp")  # a root that does not hold the folder
+
+
+@pytest.fixture
+def v3(on: Console, monkeypatch: pytest.MonkeyPatch) -> Console:
+    monkeypatch.setattr(on.ctx.settings, "console_nav_v3", True)
+    return on
+
+
+@pytest.fixture
+def roots(v3: Console, monkeypatch: pytest.MonkeyPatch) -> Console:
+    """The advisor runs only inside ONBOARD_ALLOWED_ROOTS (empty = off)."""
+    from tests.conftest import REPO_ROOT
+
+    monkeypatch.setattr(v3.ctx.settings, "onboard_allowed_roots", str(REPO_ROOT))
+    return v3
+
+
+def counts(c: Console) -> tuple[int, int, int]:
+    return (
+        len(c.ctx.state.query("ai_system")),
+        len(c.ctx.state.query("task")),
+        len(c.ctx.state.query("system_team"))
+        + len(c.ctx.state.query("assignment"))
+        + len(c.ctx.state.query("classification")),
+    )
+
+
+# ------------------------------------------------------------------ step 1
+
+
+@pytest.mark.parametrize("lang", ["en", "vi"])
+def test_form_page_renders(v3: Console, lang: str) -> None:
+    r = v3.get(f"/console/systems/new?lang={lang}")
+    assert r.status_code == 200
+    for name in ("name", "owner_team", "purpose", "system_type", "org_role", "user_segment"):
+        assert f'name="{name}"' in r.text
+    assert 'name="money_movement"' in r.text and 'name="repo_path"' in r.text
+    assert 'action="/console/systems/new/checks' in r.text
+    assert 'name="autonomy_level"' in r.text
+    assert lang == "vi" or "L3 Uses tools, supervised" in r.text
+    if lang == "vi":
+        assert "Đăng ký hệ thống AI" in r.text
+
+
+def test_systems_page_links_to_the_wizard(v3: Console) -> None:
+    html = v3.get("/console/systems?lang=en").text
+    assert 'data-wizard="link"' in html and "/console/systems/new" in html
+    assert 'data-wizard="link"' not in v3.get("/console/systems", user="viewer.hoa").text
+
+
+def test_viewer_cannot_open_the_wizard(v3: Console) -> None:
+    assert v3.get("/console/systems/new", user="viewer.hoa").status_code == 403
+    assert v3.post(CHECKS, FORM, user="viewer.hoa").status_code == 403
+    assert v3.post("/console/systems/new", FORM, user="viewer.hoa").status_code == 403
+    assert counts(v3) == (0, 0, 0)
+
+
+def test_autonomy_level_is_a_real_field_of_the_draft(v3: Console) -> None:
+    assert systems_wizard.autonomy_choices() == tuple(
+        x for x in gm.AUTONOMY_LEVELS if x != "unspecified"
+    )
+    r = v3.post(CHECKS, {**FORM, "autonomy_level": "l3_tool_using_supervised"})
+    assert r.status_code == 200
+    assert 'name="autonomy_level" value="l3_tool_using_supervised"' in r.text
+    assert v3.post(CHECKS, {**FORM, "autonomy_level": "l9"}).status_code == 400
+    r = v3.post("/console/systems/new", {**FORM, "autonomy_level": "l3_tool_using_supervised"})
+    sid = r.headers["HX-Redirect"].split("?")[0].rsplit("/", 1)[1]
+    assert v3.ctx.state.get("ai_system", {"system_id": sid})["autonomy_level"] == (
+        "l3_tool_using_supervised"
+    )
+    # AR-AUTONOMY-L3 puts policy_rules and dlp_vn on the floor of the stored system
+    slugs = {f["slug"] for f in v3.ctx.rules.guardian_floor(sid)}
+    assert {"policy_rules", "dlp_vn"} <= slugs
+
+
+# ------------------------------------------------------------------ step 2: the checks
+
+
+def test_checks_page_shows_proposals_and_writes_nothing(v3: Console) -> None:
+    form = {**FORM, "money_movement": "1", "human_control": "post_review"}
+    before = counts(v3)
+    r = v3.post(CHECKS, form)
+    assert r.status_code == 200, r.text[:300]
+    html = r.text
+    assert counts(v3) == before == (0, 0, 0)
+    # proposal, not applied
+    assert "Nothing is applied." in html and 'data-wizard="proposals"' in html
+    assert (
+        'data-num="class"' in html and "High risk" in html and "proposed risk level: High" in html
+    )
+    assert "Moves money and no person approves before execution" in html  # the G2 flow's reason
+    # no folder: the readiness figure is not available, with the reason
+    assert 'data-num="readiness"' in html and "not available" in html
+    assert "No repository folder was given." in html
+    # packs for the declared system, from the real manifests
+    packs = systems_wizard.packs_for(
+        {
+            "system_type": "assistant",
+            "personal_data": "pseudonymised",
+            "credit_decision": False,
+        }
+    )
+    assert packs["rows"] and not packs["na"]
+    for p in packs["rows"]:
+        assert p["id"] in html
+    # the floor is what the G2 rules give the declared system
+    from supervisor.console import systems_wizard as W
+
+    floor = W._floor_preview(v3.ctx, {**FORM_FIELDS, "money_movement": True})  # noqa: SLF001
+    assert floor and 'data-num="floor"' in html
+    for f in floor:
+        assert f"<code>{f['slug']}</code>" in html
+    # the confirm form carries the draft
+    assert 'data-wizard="confirm"' in html and 'name="money_movement" value="1"' in html
+    assert 'name="name" value="Wizard system"' in html
+
+
+def test_checks_class_is_the_decision33_draft_of_the_rules(v3: Console) -> None:
+    lo = v3.post(
+        CHECKS, {**FORM, "name": "Low one", "money_movement": "1", "human_control": "pre_approval"}
+    )
+    # a declared approval is not proof, and questions are left to a person: never "not high risk"
+    assert lo.status_code == 200 and "Not high risk" not in lo.text
+    assert "Not classified" in lo.text and "Some questions are left to a person" in lo.text
+    assert "no level proposed; a person sets it" in lo.text
+    hi = v3.post(
+        CHECKS, {**FORM, "name": "Credit one", "credit_decision": "1", "human_control": "none"}
+    )
+    assert "High risk" in hi.text and "proposed risk level: High" in hi.text
+    assert "from the classification rules" in hi.text
+    assert counts(v3) == (0, 0, 0)
+
+
+def test_declared_fallback_never_says_not_high_risk() -> None:
+    f = {"money_movement": True, "credit_decision": False, "human_control": "pre_approval"}
+    out = systems_wizard.declared_class(f)
+    assert out["d33"] == "unclassified" and out["note"] == "ux4b_class_approval_unchecked"
+    out = systems_wizard.declared_class({**f, "human_control": "none"})
+    assert out["d33"] == "high_risk" and out["reasons"] == ["money_movement"]
+    out = systems_wizard.declared_class({**f, "money_movement": False})
+    assert out["d33"] == "unclassified" and out["note"] == "ux4b_class_none_declared"
+
+
+def test_checks_vi(v3: Console) -> None:
+    r = v3.post(CHECKS + "?lang=vi", FORM)
+    assert r.status_code == 200 and "Kiểm tra sơ bộ" in r.text and "Chưa áp dụng gì." in r.text
+
+
+def test_readiness_advisor_runs_in_process_on_a_folder(roots: Console) -> None:
+    v3 = roots
+    from supervisor.advisory.integration.advise import advise
+    from supervisor.console.onboard_runs import resolve_target
+
+    expected = advise(resolve_target(REPO), chat=None).report.readiness
+    r = v3.post(CHECKS, {**FORM, "repo_path": REPO})
+    assert r.status_code == 200, r.text[:300]
+    assert f"{expected.total} / 100" in r.text
+    band = systems_wizard.band_of(expected.total)
+    assert {
+        "ux4b_band_ready": "Ready for shadow onboarding",
+        "ux4b_band_patches": "Needs the patches",
+        "ux4b_band_work": "Needs work first",
+    }[band] in r.text
+    for a in expected.areas:
+        assert f"{a.points} / {a.weight}" in r.text
+    assert counts(v3) == (0, 0, 0)
+
+
+def test_bands_follow_the_rubric() -> None:
+    assert systems_wizard.band_of(100) == systems_wizard.band_of(80) == "ux4b_band_ready"
+    assert systems_wizard.band_of(79) == systems_wizard.band_of(50) == "ux4b_band_patches"
+    assert systems_wizard.band_of(49) == systems_wizard.band_of(0) == "ux4b_band_work"
+
+
+def test_bad_folder_and_missing_right_are_400(roots: Console) -> None:
+    v3 = roots
+    for path, text in [
+        ("no/such/folder", "folder not found"),
+        ("x" * 600, "too long"),
+        ("/", "folder"),
+    ]:
+        r = v3.post(CHECKS, {**FORM, "repo_path": path})
+        assert r.status_code == 400 and text in r.text, path
+    with pytest.raises(Exception, match="right to start onboarding"):
+        systems_wizard.readiness(person("v", "viewer"), REPO, v3.ctx.settings)
+
+
+@pytest.mark.parametrize(
+    ("over", "text"),
+    [
+        ({"system_type": "robot"}, "system_type"),
+        ({"name": ""}, "required"),
+        ({"owner_team": ""}, "required"),
+        ({"purpose": "x" * 2100}, "purpose"),
+        ({"personal_data": "all"}, "personal_data"),
+        ({"owner_user": "bad user!"}, "owner_user"),
+    ],
+)
+def test_checks_refuse_bad_input_with_400(v3: Console, over: dict[str, str], text: str) -> None:
+    r = v3.post(CHECKS, {**FORM, **over})
+    assert r.status_code == 400 and "msg-error" in r.text and text in r.text
+    assert counts(v3) == (0, 0, 0)
+
+
+def test_checks_refuse_a_name_already_used(v3: Console) -> None:
+    assert v3.post("/console/systems/new", FORM).status_code == 200
+    r = v3.post(CHECKS, FORM)
+    assert r.status_code == 400 and "already" in r.text
+
+
+def test_scoping_rules_apply_before_the_checks(v3: Console) -> None:
+    # a scoped owner may use only a team they already work in
+    r = v3.post(CHECKS, {**FORM, "owner_team": "risk-team"}, user=OWNER_USER)
+    assert r.status_code == 400 and "owner_team" in r.text
+    page = v3.get("/console/systems/new?lang=en", user=OWNER_USER).text
+    assert 'data-wizard="scope"' in page and "Payments Ops" in page
+    ok = v3.post(
+        CHECKS,
+        {**FORM, "owner_team": "Payments Ops", "owner_user": "someone.else"},
+        user=OWNER_USER,
+    )
+    assert ok.status_code == 200
+    assert (
+        'name="owner_user" value="payops-lead@example.invalid"' in ok.text
+    )  # forced to the caller
+    assert 'data-wizard="scope"' not in v3.get("/console/systems/new", user="reviewer.an").text
+
+
+# ------------------------------------------------------------------ step 3: register
+
+
+def test_confirm_registers_a_draft_and_opens_the_initiation_tasks(v3: Console) -> None:
+    form = {**FORM, "money_movement": "1", "human_control": "none"}
+    r = v3.post("/console/systems/new", form)
+    assert r.status_code == 200
+    url = r.headers["HX-Redirect"]
+    assert url.startswith("/console/systems/sys_") and url.endswith("?tab=tasks")
+    sid = url.split("?")[0].rsplit("/", 1)[1]
+    row = v3.ctx.state.get("ai_system", {"system_id": sid})
+    # nothing was applied: a draft in initiation, class and level untouched
+    assert row["status"] == "draft" and row["lifecycle_stage"] == "initiation"
+    assert row["decision33_class"] == "unclassified" and row["risk_level"] == "unspecified"
+    assert row["owner_user"] == "reviewer.an"
+    tasks = v3.ctx.state.query("task", {"agent_id": sid})
+    assert sorted(t["template_id"] for t in tasks) == ["SYS-INTAKE-CHECKS", "SYS-INTAKE-CONFIRM"]
+    assert all(t["stage"] == "initiation" and t["required"] for t in tasks)
+    # the Tasks tab of the system shows them
+    page = v3.get(url).text
+    assert "Confirm the intake answers" in page and "Review the preliminary checks" in page
+    # audit: attempted then ok, with a system target; the chain has the create record
+    rows = [
+        x
+        for x in v3.ctx.tables.query("console_action", order_by=("ts",))
+        if x["permission"] == "systems.edit"
+    ]
+    assert [x["outcome"] for x in rows] == ["attempted", "ok"] and rows[1][
+        "target_kind"
+    ] == "system"
+
+
+def test_confirm_plain_post_needs_the_origin_and_redirects(v3: Console) -> None:
+    assert v3.post("/console/systems/new", FORM, htmx=False).status_code == 400
+    r = v3.post(
+        "/console/systems/new",
+        FORM,
+        htmx=False,
+        headers={"Origin": "http://testserver"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303 and r.headers["location"].startswith("/console/systems/sys_")
+
+
+def test_confirm_refuses_bad_input_and_a_duplicate(v3: Console) -> None:
+    bad = v3.post("/console/systems/new", {**FORM, "human_control": "maybe"})
+    assert bad.status_code == 400 and "human_control" in bad.text
+    assert v3.post("/console/systems/new", FORM).status_code == 200
+    dup = v3.post("/console/systems/new", FORM)
+    assert dup.status_code == 400 and "already" in dup.text
+    assert counts(v3)[0] == 1
+
+
+def test_tasks_are_opened_once(v3: Console) -> None:
+    sid = v3.ctx.systems.register({**FORM, "owner_user": "reviewer.an"}, "reviewer.an")["system_id"]
+    assert len(systems_wizard.open_tasks(v3.ctx, sid, "reviewer.an")) == 2
+    assert systems_wizard.open_tasks(v3.ctx, sid, "reviewer.an") == []
+    assert len(v3.ctx.state.query("task", {"agent_id": sid})) == 2
+
+
+# ------------------------------------------------------------------ WP-G2 guards
+
+
+def test_preview_equals_what_registering_stores(v3: Console) -> None:
+    """The preview and the stored system come from the same rules code: the floor and the
+    Decision 33 outcome match, and the wizard never applies the class."""
+    form = {
+        **FORM,
+        "user_segment": "customer",
+        "personal_data": "identifiable",
+        "money_movement": "1",
+        "human_control": "none",
+    }
+    page = v3.post(CHECKS, form).text
+    assert "<code>dlp_vn</code>" in page and "AR-PDPL-CUSTOMER" in page
+    assert counts(v3) == (0, 0, 0)
+    r = v3.post("/console/systems/new", form)
+    sid = r.headers["HX-Redirect"].split("?")[0].rsplit("/", 1)[1]
+    stored = {f["slug"]: f["rules"] for f in v3.ctx.rules.guardian_floor(sid)}
+    assert "dlp_vn" in stored and "AR-PDPL-CUSTOMER" in stored["dlp_vn"]
+    # the draft exists, was made by the Classification tab's code path, and is not applied
+    data = v3.ctx.classification.get(sid)
+    assert data["draft"] and data["draft"]["status"] == "draft" and data["applied"] is None
+    assert data["draft"]["outcome"] == "high_risk"
+    assert "High risk" in page
+    row = v3.ctx.state.get("ai_system", {"system_id": sid})
+    assert row["decision33_class"] == "unclassified" and row["risk_level"] == "unspecified"
+    tab = v3.get(f"/console/systems/{sid}?tab=classification").text
+    assert "High risk" in tab or "high_risk" in tab
+
+
+def test_the_scan_proposal_shows_on_the_classification_tab(v3: Console) -> None:
+    sid = v3.ctx.systems.register({**FORM, "owner_user": "reviewer.an"}, "reviewer.an")["system_id"]
+    v3.ctx.systems.update_fields(
+        sid, {"tags": {"autonomy_level_proposal": "l3_tool_using_supervised"}}, "reviewer.an"
+    )
+    html = v3.get(f"/console/systems/{sid}?tab=classification&lang=en").text
+    assert "l3_tool_using_supervised" in html
+
+
+def test_a_broken_rules_file_does_not_stop_the_wizard(
+    v3: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom() -> Any:
+        raise RuntimeError("rules broke")
+
+    monkeypatch.setattr(v3.ctx.rules, "ruleset", boom)
+    r = v3.post(CHECKS, FORM)
+    assert r.status_code == 200 and "assignment rules engine is not installed" in r.text
+
+
+# ------------------------------------------------------------------ review fixes
+
+
+def test_advisor_is_off_without_allowed_roots_and_confined_to_them(
+    v3: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    r = v3.post(CHECKS, {**FORM, "repo_path": REPO})
+    assert r.status_code == 200 and "ONBOARD_ALLOWED_ROOTS is empty" in r.text
+    monkeypatch.setattr(v3.ctx.settings, "onboard_allowed_roots", str(REPO_ROOT_SUB))
+    r = v3.post(CHECKS, {**FORM, "repo_path": REPO})
+    assert r.status_code == 400 and "outside ONBOARD_ALLOWED_ROOTS" in r.text
+
+
+def test_second_check_while_one_runs_is_400_and_a_slow_one_times_out(
+    roots: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import threading
+
+    gate = threading.Event()
+    started = threading.Event()
+    from supervisor.advisory.integration import advise as adv
+
+    real = adv.advise
+
+    def slow(target: Any, chat: Any = None) -> Any:
+        started.set()
+        gate.wait(5)
+        return real(target, chat=chat)
+
+    monkeypatch.setattr(adv, "advise", slow)
+    monkeypatch.setattr(systems_wizard, "ADVISOR_TIMEOUT_S", 0.3)
+    r = roots.post(CHECKS, {**FORM, "repo_path": REPO})
+    assert r.status_code == 200 and "did not finish within 30 s" in r.text
+    assert started.is_set()
+    # the scan still runs: a second call is refused
+    r = roots.post(CHECKS, {**FORM, "name": "Second", "repo_path": REPO})
+    assert r.status_code == 400 and "a check is already running" in r.text
+    gate.set()
+    for _ in range(100):
+        if systems_wizard._ADVISOR_LOCK.acquire(blocking=False):  # noqa: SLF001
+            systems_wizard._ADVISOR_LOCK.release()  # noqa: SLF001
+            break
+        threading.Event().wait(0.1)
+    monkeypatch.setattr(systems_wizard, "ADVISOR_TIMEOUT_S", 30)
+    ok = roots.post(CHECKS, {**FORM, "name": "Third", "repo_path": REPO})
+    assert ok.status_code == 200 and "/ 100" in ok.text
+
+
+def test_plain_post_accepts_sec_fetch_site_when_origin_is_null(v3: Console) -> None:
+    for headers in (
+        {"Origin": "null", "Sec-Fetch-Site": "same-origin"},
+        {"Sec-Fetch-Site": "same-origin"},
+    ):
+        r = v3.post(CHECKS, {**FORM, "name": f"N{len(headers)}"}, htmx=False, headers=headers)
+        assert r.status_code == 200, headers
+    for headers in (
+        {"Sec-Fetch-Site": "cross-site"},
+        {"Origin": "null", "Sec-Fetch-Site": "cross-site"},
+        {"Origin": "http://evil.example", "Sec-Fetch-Site": "same-origin"},
+        {},
+    ):
+        r = v3.post(CHECKS, FORM, htmx=False, headers=headers)
+        assert r.status_code == 400 and "must come from the console page" in r.text, headers
+    # the G0 register form benefits too
+    r = v3.post(
+        "/console/systems",
+        {**FORM, "name": "G0 plain"},
+        htmx=False,
+        headers={"Sec-Fetch-Site": "same-origin"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+
+
+def test_packs_and_gates_are_translated_on_the_vi_page(v3: Console) -> None:
+    r = v3.post(CHECKS + "?lang=vi", FORM)
+    assert "Độ chính xác" in r.text and "bắt buộc" in r.text
+    assert "<td>accuracy</td>" not in r.text and "<td>required</td>" not in r.text
+
+
+def test_failed_task_opening_warns_and_the_button_repeats_it(
+    v3: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = v3.ctx.tasks._insert
+    monkeypatch.setattr(
+        v3.ctx.tasks, "_insert", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("x"))
+    )
+    r = v3.post("/console/systems/new", FORM)
+    assert r.status_code == 200 and r.headers["HX-Redirect"].endswith("tab=tasks&intake=missing")
+    url = r.headers["HX-Redirect"]
+    sid = url.split("?")[0].rsplit("/", 1)[1]
+    assert v3.ctx.state.query("task", {"agent_id": sid}) == []
+    page = v3.get(url).text
+    assert 'data-wizard="intake-missing"' in page and f"/console/systems/{sid}/intake-tasks" in page
+    monkeypatch.setattr(v3.ctx.tasks, "_insert", real)
+    again = v3.post(f"/console/systems/{sid}/intake-tasks", {})
+    assert again.status_code == 200 and again.headers["HX-Redirect"].endswith("?tab=tasks")
+    assert len(v3.ctx.state.query("task", {"agent_id": sid})) == 2
+    v3.post(f"/console/systems/{sid}/intake-tasks", {})  # idempotent
+    assert len(v3.ctx.state.query("task", {"agent_id": sid})) == 2
+    assert 'data-wizard="intake-missing"' not in v3.get(url).text  # nothing missing now
+    # a hidden system looks missing; a viewer is refused
+    assert v3.post(f"/console/systems/{sid}/intake-tasks", {}, user="viewer.hoa").status_code == 403

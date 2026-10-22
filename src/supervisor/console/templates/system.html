@@ -1,4 +1,4 @@
-{# System detail page (WP-G0): header and tabs Overview, Components, Tasks, Reviews (WP-G1). Variables: s, tab, tabs,
+{# System detail page (WP-G0): header and tabs Overview, Components, Tasks, Reviews (WP-G1); with CONSOLE_NAV_V3 also Risks, Controls, Policies, Guardians, Reports (WP-UX4b). Variables: s, tab, tabs,
    tab_counts, json_text (systems_views.detail_view). #}
 {% extends "base.html" %}
 {% import "_ui.html" as ui with context %}
@@ -8,7 +8,7 @@
 {% set pills %}{{ ui.pill(t('sy_st_' ~ s.status), 'ok' if s.status == 'active' else 'neutral') }} {{ ui.pill(t('sy_risk_' ~ s.effective_risk.level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk.level, 'neutral')) }}{% endset %}
 {{ ui.pagehead(s.name, pills) }}
 {{ ui.purpose(t('sy_purpose'), t('sy_why')) }}
-{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components'), 'tasks': t('sy_tab_tasks'), 'reviews': t('sy_tab_reviews'), 'rules': t('sy_tab_rules'), 'classification': t('sy_tab_classification'), 'reports': t('sy_tab_reports')} %}
+{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components'), 'tasks': t('sy_tab_tasks'), 'reviews': t('sy_tab_reviews'), 'risks': t('nav_risks'), 'controls': t('nav_controls'), 'policies': t('nv3_t_policies'), 'guardians': t('nv3_guardians'), 'reports': t('ux4b_tab_reports'), 'rules': t('sy_tab_rules'), 'classification': t('sy_tab_classification')} %}
 {{ ui.tabs(tabs, tab, labels, '/console/systems/' ~ s.system_id ~ '?tab={tab}&lang=' ~ lang, '/console/systems/' ~ s.system_id ~ '?tab={tab}&lang=' ~ lang, target='#tab-body', counts=tab_counts, panel='tab-body', select='#tab-body') }}
 <div id="tab-body" class="tabpanel" role="tabpanel">
 {% if tab == 'overview' %}
@@ -19,6 +19,16 @@
   {% include "_system_tasks.html" %}
 {% elif tab == 'reviews' %}
   {% include "_system_reviews.html" %}
+{% elif tab == 'risks' %}
+  {% include "_system_risks.html" %}
+{% elif tab == 'controls' %}
+  {% include "_system_controls.html" %}
+{% elif tab == 'policies' %}
+  {% include "_system_policies.html" %}
+{% elif tab == 'guardians' %}
+  {% include "_system_guardians.html" %}
+{% elif tab == 'reports' and rp_rows is defined %}
+  {% include "_system_reports.html" %}
 {% elif tab == 'rules' %}
   {% include "_system_rules.html" %}
 {% elif tab == 'classification' %}

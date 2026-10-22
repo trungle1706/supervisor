@@ -1,0 +1,49 @@
+{# Policies tab of the system page (WP-UX4b): the compliance matrices of the agents of the
+   system, added up by instrument. Advisory only; not legal advice. #}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% if pl_off %}
+{{ v3.na('nv3_na_compliance_off') }}
+{% else %}
+<section class="card" data-section="system-policies-sum">
+  <h3>{{ t('ux4b_policies_sum') }} {{ ui.pill(t('cp_advisory'), 'info') }}</h3>
+  {% if pl_bp is none %}
+  {{ v3.na('ux4b_na_no_matrix') }}
+  {% else %}
+  {{ ui.bar(pl_bp, 'ok' if pl_bp >= 8000 else 'warn') }}
+  <p><span data-num="system-policies-bp">{{ pl_bp // 100 }}%</span> <span class="muted">({{ pl_bp }} bp)</span> · {{ t('nv3_c_obligations') }} {{ pl_applies }} · {{ t('nv3_c_met') }} {{ pl_met }} · {{ t('nv3_c_gap') }} {{ pl_gap }}</p>
+  {% endif %}
+  {% if pl_sources %}<p class="hint">{{ t('ux4b_policies_source') }}: {% for s in pl_sources %}<span class="mono">{{ s.agent_id }}</span> ({{ s.kind or '-' }}){{ ', ' if not loop.last }}{% endfor %}{% if pl_rule_source is not none %} · {{ t('ux4b_policies_rule', n=pl_rule_source) }}{% endif %}</p>{% endif %}
+  {% if pl_missing %}<p class="hint">{{ t('ux4b_policies_missing') }}: {% for a in pl_missing %}<span class="mono">{{ a }}</span>{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
+</section>
+{% if pl_rows %}
+<div class="tablewrap"><table class="queue" id="system-policies" data-table="system-policies">
+  <thead><tr><th scope="col">{{ t('ux4b_instrument') }}</th><th scope="col" class="n">{{ t('nv3_c_obligations') }}</th><th scope="col" class="n">{{ t('nv3_c_met') }}</th><th scope="col" class="n">{{ t('ux4b_partial') }}</th><th scope="col" class="n">{{ t('nv3_c_gap') }}</th><th scope="col">{{ t('nv3_c_progress') }}</th></tr></thead>
+  <tbody>
+  {% for i in pl_rows %}
+    <tr class="row">
+      <td><span class="mono">{{ i.instrument_id }}</span><div class="idline">{{ i.label }}{% if i.binding %} · {{ t('ux4b_binding') }}{% endif %}</div></td>
+      <td class="n">{{ i.applies }}</td><td class="n">{{ i.met }}</td><td class="n">{{ i.partial }}</td><td class="n">{{ i.gap }}</td>
+      <td>{{ v3.pct(i.bp) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% if pl_gaps %}
+<h3 class="sec">{{ t('ux4b_policies_gaps') }}</h3>
+<div class="tablewrap flat"><table data-table="system-gaps">
+  <thead><tr><th scope="col">{{ t('ux4b_obligation') }}</th><th scope="col">{{ t('agent') }}</th></tr></thead>
+  <tbody>
+  {% for g in pl_gaps %}<tr><td><a class="mono" href="/console/compliance/{{ g.agent_id }}/obligation/{{ g.obligation_id }}?lang={{ lang }}">{{ g.obligation_id }}</a><div class="idline">{{ g.article_ref }}</div></td><td class="mono">{{ g.agent_id }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% if pl_gaps_more %}<p class="hint">{{ t('ux4b_more', n=pl_gaps_more) }}</p>{% endif %}
+{% endif %}
+{% elif pl_sources or pl_missing %}
+{{ ui.empty(t('ux4b_policies_none'), t('ux4b_policies_none_line')) }}
+{% else %}
+<p class="hint">{{ t('sy_tasks_no_agents') }}</p>
+{% endif %}
+{% include "_compliance_note.html" %}
+{% endif %}

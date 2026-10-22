@@ -1,0 +1,74 @@
+{# My overview on AI systems (CONSOLE_NAV_V3 and GOVERNANCE_ENABLED, WP-UX4b): what do I own, is it
+   healthy, what must I do. The agent-based page (ov_my.html) is used when GOVERNANCE_ENABLED is
+   off. Variables: systems_overview.my_overview() as d, greet_key. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% block title %}{{ t('nv3_my') }}{% endblock %}
+{% block content %}
+<h1 class="greet" data-page="my-overview" data-unit="systems" data-greeting="{{ greet_key }}">{{ t(greet_key, name=shell().first_name) }}</h1>
+<p class="greet-sub" id="greet-sub">{{ t('ux4b_my_sub', systems=d.tiles[0].value, actions=d.actions_n, cases=d.cases_n) }}{% if d.clock %} {% if d.clock.overdue %}{{ t('greet_clock_over', d=dur(d.clock.secs)) }}{% else %}{{ t('greet_clock_left', d=dur(d.clock.secs)) }}{% endif %}{% endif %}</p>
+{{ v3.scope_switch('/console/', d.scope, d.scopes) }}
+<div class="grid g4" id="numbers">
+{% for tl in d.tiles %}
+{% if tl.key == 'systems' %}{{ v3.tile(tl, t('ux4b_tile_systems'), tl.value, v3.tiers(tl.tiers)) }}
+{% elif tl.key == 'models' %}{{ v3.tile(tl, t('nv3_tile_models'), tl.value, t('nv3_unmanaged_n', n=tl.unmanaged)) }}
+{% elif tl.key == 'cover' %}{{ v3.tile(tl, t('ux4b_tile_cover'), tl.value ~ ' / ' ~ tl.of, (t(tl.detail) if tl.detail else '') ~ (t('ux4b_cover_idle', n=tl.idle) if tl.idle else '')) }}
+{% else %}{{ v3.tile(tl, t('nv3_tile_actions'), tl.value, t('ux4b_actions_split', cases=tl.cases, approvals=tl.approvals, tasks=tl.tasks, stages=tl.stages)) }}
+{% endif %}
+{% endfor %}
+</div>
+
+<h2 class="sec">{{ t('ux4b_health_systems') }}</h2>
+{% if d.rows %}
+<div class="tablewrap"><table class="list" data-table="health" data-unit="systems">
+<thead><tr><th scope="col">{{ t('ux4b_system') }}</th><th scope="col">{{ t('sy_col_stage') }}</th><th scope="col">{{ t('nv3_c_risk') }}</th><th scope="col">{{ t('nv3_c_guardian') }}</th><th scope="col">{{ t('nv3_c_cases') }}</th><th scope="col">{{ t('ux4b_next_action') }}</th></tr></thead>
+<tbody>
+{% for r in d.rows %}
+<tr>
+  <td>{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}<div class="idline">{{ t('ux4b_agents_n', n=r.agents) }}</div></td>
+  <td>{{ t('sy_stage_' ~ r.stage) }}</td>
+  <td>{{ ui.pill(t('sy_risk_' ~ r.risk), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(r.risk, 'neutral')) }}</td>
+  <td>{% if r.guard is none %}<span class="muted">-</span>{% elif r.guard.full %}<span class="pill ok"><span class="dot"></span>{{ t('nv3_cover_full') }}</span>{% else %}<span class="pill warn"><span class="dot"></span>{{ t('nv3_cover_below') }}</span> {% for a in r.guard.below %}<code>{{ a }}</code> {% endfor %}{% endif %}</td>
+  <td>{{ r.open_cases }}</td>
+  <td>{% if r.next %}{{ r.next.text }}{% if r.next.overdue %} {{ ui.pill(t('rk_overdue'), 'bad') }}{% endif %}{% else %}<span class="muted">-</span>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}
+{{ ui.empty(t('ux4b_no_systems'), t('ux4b_no_systems_line'), '/console/?scope=all&lang=' ~ lang, t('nv3_scope_all')) }}
+{% endif %}
+
+<div class="grid g2">
+<section>
+<h2 class="sec">{{ t('nv3_waiting') }}</h2>
+{% if d.actions %}
+<div class="tablewrap"><table class="list"><thead><tr><th scope="col">{{ t('nv3_c_what') }}</th><th scope="col">{{ t('nv3_c_kind') }}</th></tr></thead><tbody>
+{% for a in d.actions %}<tr><td><a href="{{ a.href }}?lang={{ lang }}">{{ a.text }}</a></td><td>{{ ui.pill(t('ux4b_kind_' ~ a.kind) if a.kind == 'stage' else t('nv3_kind_' ~ a.kind), {'case': 'bad', 'approval': 'warn', 'task': 'neutral', 'stage': 'warn'}[a.kind]) }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}
+{{ ui.empty(t('nv3_waiting_none'), t('nv3_waiting_none_line')) }}
+{% endif %}
+{% if shell().unread %}<p class="hint"><a href="/console/inbox?lang={{ lang }}">{{ t('nv3_inbox_n', n=shell().unread) }}</a></p>{% else %}<p class="hint"><a href="/console/inbox?lang={{ lang }}">{{ t('inbox') }}</a></p>{% endif %}
+</section>
+<section>
+<h2 class="sec">{{ t('nv3_recent') }}</h2>
+{% if d.recent %}
+<div class="strip" id="latest">
+  {% for e in d.recent %}
+  <div class="ev" data-outcome="{{ e.outcome }}">
+    <span class="t">{{ e.ts|hhmmss }}</span>
+    <span>{{ ui.pill(t('outcome_' ~ e.outcome), {'blocked': 'bad', 'paused': 'warn', 'allowed': 'ok'}.get(e.outcome, 'neutral')) }}</span>
+    <span>{{ e.agent_id }}</span>
+    <span><code>{{ e.tool }}</code>{% if e.rule_id %} · <span class="mono">{{ t('rule_word') }} {{ e.rule_id }}</span>{% endif %}</span>
+    <span class="go">{% if e.case_id %}<a href="/console/cases/{{ e.case_id }}?lang={{ lang }}">{{ t('case_arrow') }} →</a>{% endif %}</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+{{ ui.empty(t('no_decisions'), t('no_decisions_line')) }}
+{% endif %}
+</section>
+</div>
+{% endblock %}

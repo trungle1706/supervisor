@@ -299,7 +299,11 @@ def test_pages_without_a_section_have_no_strip(v3all: Console) -> None:
 # ------------------------------------------------------------------ numbers
 
 
-def test_my_overview_numbers_are_integers_from_existing_services(v3all: Console) -> None:
+def test_my_overview_numbers_are_integers_from_existing_services(
+    v3all: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # WP-UX4b: with GOVERNANCE_ENABLED on the page counts systems; this is the agent path
+    monkeypatch.setattr(v3all.ctx.settings, "governance_enabled", False)
     main = _main(v3all.get("/console/?lang=en").text)
     agents = v3all.ctx.state.query("agent")
     m = re.search(BIGNUM.format(key="agents"), main)
@@ -311,7 +315,10 @@ def test_my_overview_numbers_are_integers_from_existing_services(v3all: Console)
         assert re.fullmatch(r"\d+\+?|\d+ / \d+|\d+%|not available", text), text
 
 
-def test_my_overview_scope_my_shows_only_owned_agents(v3all: Console) -> None:
+def test_my_overview_scope_my_shows_only_owned_agents(
+    v3all: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(v3all.ctx.settings, "governance_enabled", False)  # WP-UX4b: agent path
     agents = v3all.ctx.state.query("agent")
     owner = sorted({a["owner_user"] for a in agents})[0]
     mine = [a for a in agents if a["owner_user"] == owner]
@@ -349,6 +356,7 @@ def test_governance_numbers_with_controls_on(
     from tests.conftest import REPO_ROOT
 
     s = v3all.ctx.settings
+    monkeypatch.setattr(s, "governance_enabled", False)  # WP-UX4b: this is the agent path
     for flag in ("controls_enabled", "risk_register_enabled"):
         monkeypatch.setattr(s, flag, True)
     risks = v3all.ctx.risks.import_path(REPO_ROOT / "config" / "risks", "t", source="starter")

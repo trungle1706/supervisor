@@ -369,6 +369,11 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/systems/{system_id}"): "systems.view",
     ("GET", "/console/systems/{system_id}/drawer"): "systems.view",
     ("POST", "/console/systems"): "systems.edit",
+    # --- WP-UX4b --- register wizard (CONSOLE_NAV_V3 as well)
+    ("GET", "/console/systems/new"): "systems.edit",
+    ("POST", "/console/systems/new/checks"): "systems.edit",
+    ("POST", "/console/systems/new"): "systems.edit",
+    ("POST", "/console/systems/{system_id}/intake-tasks"): "systems.edit",
     ("GET", "/v1/systems"): "systems.view",
     ("POST", "/v1/systems"): "systems.edit",
     ("GET", "/v1/systems/{system_id}"): "systems.view",

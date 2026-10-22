@@ -1,0 +1,38 @@
+{# Controls tab of the system page (WP-UX4b): control_status of the agents of the system, and the
+   compliance figure in basis points. Read only. #}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% if ct_off %}
+{{ v3.na('nv3_na_controls_off') }}
+{% elif ct_no_agents %}
+<p class="hint">{{ t('sy_tasks_no_agents') }}</p>
+{% else %}
+<section class="card" data-section="system-controls-bp">
+  <h3>{{ t('ct_compliance') }}</h3>
+  {% if ct_bp is none %}
+  {{ v3.na('ct_tab_none') }}
+  {% else %}
+  {{ ui.bar(ct_bp, 'ok' if ct_bp >= 8000 else 'warn') }}
+  <p><span data-num="system-controls-bp">{{ ct_bp // 100 }}%</span> <span class="muted">({{ ct_bp }} bp)</span> · {{ t('ct_ev_working') }} {{ ct_working }} · {{ t('ct_ev_failing') }} {{ ct_failing }} · {{ t('ct_ev_no_data') }} {{ ct_no_data }} · {{ t('ct_in_scope') }} {{ ct_in_scope }}</p>
+  {% endif %}
+  {% if ct_unknown %}<p class="hint">{{ t('ux4b_agents_unregistered') }}: {% for a in ct_unknown %}<span class="mono">{{ a }}</span>{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
+</section>
+{% if ct_rows %}
+<div class="tablewrap"><table class="queue" id="system-controls" data-table="system-controls">
+  <thead><tr><th scope="col">{{ t('ct_col_control') }}</th><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('ct_col_by') }}</th><th scope="col">{{ t('ct_col_status') }}</th></tr></thead>
+  <tbody>
+  {% for c in ct_rows %}
+    <tr class="row">
+      <td>{% if ct_page %}<a class="mono" href="/console/controls?drawer={{ c.control_id }}&amp;lang={{ lang }}">{{ c.control_id }}</a>{% else %}<span class="mono">{{ c.control_id }}</span>{% endif %}<div class="idline">{{ c.title }}</div></td>
+      <td class="mono">{{ c.agent_id }}</td>
+      <td>{{ t('ct_by_' ~ c.implemented_by) }}</td>
+      <td>{{ ui.pill(t('ct_ev_' ~ c.status), {'working': 'ok', 'failing': 'bad'}.get(c.status, 'warn'), True) }}<div class="idline">{{ t('ct_reason_' ~ c.reason) }}</div></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+{{ ui.empty(t('ct_tab_none')) }}
+{% endif %}
+{% if ct_page %}<p class="hint"><a href="/console/controls?lang={{ lang }}">{{ t('ct_open_page') }}</a></p>{% endif %}
+{% endif %}

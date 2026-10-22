@@ -1,0 +1,44 @@
+{# Register wizard, step 1 (WP-UX4b, CONSOLE_NAV_V3): the intake form. Posting it runs the
+   preliminary checks (read only); nothing is stored until the result page is confirmed.
+   Variables: systems_wizard.form_view(). #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('ux4b_wiz_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('ux4b_wiz_title'), None)]) }}
+{{ ui.pagehead(t('ux4b_wiz_title')) }}
+<ol class="wiz-steps" aria-label="{{ t('ux4b_wiz_steps') }}">
+  <li class="on" aria-current="step">{{ t('ux4b_step_intake') }}</li>
+  <li>{{ t('ux4b_step_checks') }}</li>
+  <li>{{ t('ux4b_step_register') }}</li>
+</ol>
+<p class="hint">{{ t('ux4b_wiz_hint') }}</p>
+{% if scoped %}<p class="hint" data-wizard="scope">{{ t('ux4b_wiz_scope', teams=teams|join(', ') or '-') }}</p>{% endif %}
+<form class="card wizform" method="post" action="/console/systems/new/checks?lang={{ lang }}" hx-post="/console/systems/new/checks?lang={{ lang }}" hx-target="#main" hx-select="#main" hx-swap="outerHTML" hx-push-url="false" data-wizard="intake">
+  <label>{{ t('sy_col_name') }} <input type="text" name="name" required maxlength="120"></label>
+  <label>{{ t('sy_col_team') }} <input type="text" name="owner_team" required maxlength="128"{% if teams|length == 1 %} value="{{ teams[0] }}"{% endif %}></label>
+  <label>{{ t('sy_f_purpose') }} <textarea name="purpose" required maxlength="2000" rows="3"></textarea></label>
+  {% for field, opts in choices.items() %}
+  <label>{{ t('sy_f_' ~ field) }}
+    <select name="{{ field }}" required>
+      {% for v, l in opts %}<option value="{{ v }}">{{ t(l) }}</option>{% endfor %}
+    </select>
+  </label>
+  {% endfor %}
+  {% if autonomy %}
+  <label>{{ t('ux4b_f_autonomy') }}
+    <select name="autonomy_level">
+      <option value="">-</option>
+      {% for v, l in autonomy %}<option value="{{ v }}">{{ t(l) }}</option>{% endfor %}
+    </select>
+  </label>
+  {% endif %}
+  <label class="chk"><input type="checkbox" name="money_movement" value="1"> {{ t('sy_f_money_movement') }}</label>
+  <label class="chk"><input type="checkbox" name="credit_decision" value="1"> {{ t('sy_f_credit_decision') }}</label>
+  {% if can_repo %}
+  <label>{{ t('ux4b_f_repo') }} <input type="text" name="repo_path" maxlength="512" placeholder="agents/my-agent"></label>
+  <p class="hint">{{ t('ux4b_f_repo_hint') }}</p>
+  {% endif %}
+  <p><button class="btn" type="submit">{{ t('ux4b_run_checks') }}</button> <a href="/console/systems?lang={{ lang }}">{{ t('ux4b_cancel') }}</a></p>
+</form>
+{% endblock %}

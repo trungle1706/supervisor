@@ -1,0 +1,79 @@
+{# Governance overview on AI systems (CONSOLE_NAV_V3 and GOVERNANCE_ENABLED, WP-UX4b): the second
+   line's view of the portfolio, limited to the systems in scope. The agent-based page
+   (ov_governance.html) is used when GOVERNANCE_ENABLED is off.
+   Variables: systems_overview.governance_overview() as d. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% block title %}{{ t('nv3_gov_overview') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_overview'), None)]) }}
+{{ ui.pagehead(t('nv3_gov_overview')) }}
+<p class="hint" data-unit="systems">{{ t('ux4b_gov_sub', n=d.tiles[0].value, total=d.total) }}</p>
+<p class="hint">{{ t('ux4b_classified_note') }}</p>
+{{ v3.scope_switch('/console/governance', d.scope, d.scopes) }}
+<div class="grid g4" id="numbers">
+{% for tl in d.tiles %}
+{% if tl.key == 'systems' %}{{ v3.tile(tl, t('ux4b_tile_systems'), tl.value, v3.tiers(tl.tiers)) }}
+{% elif tl.key == 'classified' %}{{ v3.tile(tl, t('nv3_tile_classified'), (tl.value // 100) ~ '%' if tl.value is not none else '', t('ux4b_classified_n', n=tl.n, of=tl.of), (tl.value ~ ' bp') if tl.value is not none else '') }}
+{% elif tl.key == 'readiness' %}{{ v3.tile(tl, t('nv3_tile_readiness'), (tl.value // 100) ~ '%' if tl.value is not none else '', t('nv3_readiness_n', n=tl.n, of=tl.of) ~ (' · ' ~ t('nv3_capped') if tl.capped else ''), (tl.value ~ ' bp') if tl.value is not none else '') }}
+{% else %}{{ v3.tile(tl, t('nv3_tile_overdue'), tl.value, t('nv3_overdue_oldest', d=tl.oldest) if tl.oldest is not none else '') }}
+{% endif %}
+{% endfor %}
+</div>
+
+<div class="grid g2">
+<section class="card">
+<h2 class="sec">{{ t('ux4b_by_stage') }}</h2>
+{% if d.stages %}
+<div class="tablewrap flat"><table class="list" data-table="stages"><thead><tr><th scope="col">{{ t('nv3_c_stage') }}</th><th scope="col">{{ t('nv3_systems') }}</th><th scope="col">{{ t('ux4b_pending_approval') }}</th><th scope="col">{{ t('nv3_c_open_required') }}</th></tr></thead><tbody>
+{% for r in d.stages %}<tr><td>{{ t('sy_stage_' ~ r.stage) }}</td><td>{{ r.systems }}</td><td>{{ r.pending if r.pending else '-' }}</td><td>{% if d.open_na %}<span class="muted">{{ t('nv3_na') }}</span>{% else %}{{ r.open }}{% endif %}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% if d.open_na %}<p class="hint">{{ t('nv3_na_controls_off') }}</p>{% endif %}
+{% else %}<p class="muted">{{ t('ux4b_no_systems') }}</p>{% endif %}
+</section>
+<section class="card">
+<h2 class="sec">{{ t('nv3_risk_posture') }}</h2>
+{% if d.risks.na %}{{ v3.na(d.risks.na) }}
+{% elif d.risks.rows %}
+<div class="tablewrap flat"><table class="list"><thead><tr><th scope="col">{{ t('nv3_c_band') }}</th><th scope="col">{{ t('nv3_c_risks') }}</th><th scope="col">{{ t('nv3_c_treated') }}</th><th scope="col">{{ t('nv3_c_accepted') }}</th></tr></thead><tbody>
+{% for r in d.risks.rows %}<tr><td>{{ ui.sev(r.band) }}</td><td>{{ r.n }}</td><td>{{ r.treated }}</td><td>{{ r.accepted }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}<p class="muted">{{ t('nv3_no_risks') }}</p>{% endif %}
+</section>
+</div>
+
+<section class="card">
+<h2 class="sec">{{ t('ux4b_ready_by_system') }}</h2>
+{% if d.ready_rows %}
+<div class="tablewrap flat"><table class="list" data-table="readiness"><thead><tr><th scope="col">{{ t('ux4b_system') }}</th><th scope="col">{{ t('ct_ev_working') }}</th><th scope="col">{{ t('ux4b_controls_n') }}</th><th scope="col">{{ t('nv3_c_progress') }}</th></tr></thead><tbody>
+{% for r in d.ready_rows %}<tr><td>{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?tab=controls&amp;lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td><td>{{ r.working }}</td><td>{{ r.total }}</td><td>{{ v3.pct(r.bp) }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}{{ v3.na('nv3_na_controls_off' if d.tiles[2].na == 'nv3_na_controls_off' else 'nv3_na_no_status') }}{% endif %}
+</section>
+
+<section class="card">
+<h2 class="sec">{{ t('ux4b_policy_by_system') }}</h2>
+{% if d.policy.na %}{{ v3.na(d.policy.na) }}
+{% elif d.policy.rows %}
+<div class="tablewrap flat"><table class="list" data-table="policy"><thead><tr><th scope="col">{{ t('ux4b_system') }}</th><th scope="col">{{ t('nv3_c_obligations') }}</th><th scope="col">{{ t('nv3_c_met') }}</th><th scope="col">{{ t('nv3_c_gap') }}</th><th scope="col">{{ t('nv3_c_progress') }}</th></tr></thead><tbody>
+{% for r in d.policy.rows %}<tr><td>{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?tab=policies&amp;lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td><td>{{ r.applies }}</td><td>{{ r.met }}</td><td>{{ r.gap }}</td><td>{{ v3.pct(r.bp) }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}<p class="muted">{{ t('nv3_no_matrix') }}</p>{% endif %}
+<p class="hint">{{ t('nv3_policy_note') }}</p>
+</section>
+
+{% if d.autonomy %}
+<section class="card" data-section="autonomy">
+<h2 class="sec">{{ t('ux4b_by_autonomy') }}</h2>
+<div class="tablewrap flat"><table class="list" data-table="autonomy"><thead><tr><th scope="col">{{ t('ux4b_f_autonomy') }}</th><th scope="col">{{ t('nv3_systems') }}</th></tr></thead><tbody>
+{% for level, n in d.autonomy.rows %}<tr><td>{% if level == '-' %}<span class="muted">{{ t('ux4b_autonomy_unset') }}</span>{% else %}{{ t('ux4b_autonomy_' ~ level) }}{% endif %}</td><td>{{ n }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+</section>
+{% endif %}
+{% endblock %}

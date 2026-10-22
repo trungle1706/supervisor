@@ -1,0 +1,74 @@
+{# Reports tab of the system page (WP-UX4b): transparency report per variant, audit pack, chain
+   verify state per agent lane, and a slot for incidents (WP-G5). Read only; reports and packs
+   are made on the Transparency and Evidence pages. #}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% if not rp_rows %}
+<p class="hint">{{ t('sy_tasks_no_agents') }}</p>
+{% else %}
+<section class="card" data-section="system-reports-tp">
+  <h3>{{ t('nav_transparency') }}</h3>
+  {% if not rp_tp_on %}
+  {{ v3.na('ux4b_na_transparency_off') }}
+  {% else %}
+  <div class="tablewrap flat"><table data-table="system-reports">
+    <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('tp_col_variant') }}</th><th scope="col">{{ t('tp_col_ver') }}</th><th scope="col">{{ t('tp_col_last') }}</th><th scope="col">{{ t('tp_col_state') }}</th><th scope="col">{{ t('tp_col_files') }}</th></tr></thead>
+    <tbody>
+    {% for r in rp_rows %}{% for v in rp_variants %}{% set x = r.reports[v] %}
+      <tr>
+        <td class="mono">{% if loop.first %}{{ r.agent_id }}{% endif %}</td>
+        <td>{{ t('tp_title_' ~ v) }}</td>
+        <td class="n">{% if x %}v{{ x.version }}{% else %}-{% endif %}</td>
+        <td class="mono">{% if x %}{{ x.generated_at|day }}{% else %}{{ t('tp_never') }}{% endif %}</td>
+        <td>{% if x %}{{ ui.pill(t('tp_ver_' ~ x.verify_state), {'ok': 'ok', 'failed': 'bad'}.get(x.verify_state, 'warn'), True) }}{% else %}<span class="muted">{{ t('tp_preview_line') }}</span>{% endif %}</td>
+        <td>
+          <a href="/v1/transparency/{{ r.agent_id }}?variant={{ v }}&amp;format=json&amp;lang={{ lang }}">JSON</a> ·
+          <a href="/v1/transparency/{{ r.agent_id }}?variant={{ v }}&amp;format=html&amp;lang={{ lang }}">HTML</a> ·
+          <a href="/v1/transparency/{{ r.agent_id }}?variant={{ v }}&amp;format=pdf&amp;lang={{ lang }}">PDF</a>
+        </td>
+      </tr>
+    {% endfor %}{% endfor %}
+    </tbody>
+  </table></div>
+  {% if rp_tp_page %}<p class="hint"><a href="/console/transparency?lang={{ lang }}">{{ t('tp_open_page') }}</a></p>{% endif %}
+  {% endif %}
+</section>
+<section class="card" data-section="system-reports-chain">
+  <h3>{{ t('ux4b_chain') }}</h3>
+  <div class="tablewrap flat"><table data-table="system-chain">
+    <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('ux4b_lane') }}</th><th scope="col" class="n">{{ t('ux4b_entries') }}</th><th scope="col">{{ t('tp_col_state') }}</th></tr></thead>
+    <tbody>
+    {% for r in rp_rows %}<tr><td class="mono">{{ r.agent_id }}</td><td class="mono">{{ r.lane }}</td><td class="n">{{ r.entries }}</td><td>{{ ui.verify_pill(r.verify) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+<section class="card" data-section="system-reports-pack">
+  <h3>{{ t('ux4b_audit_pack') }}</h3>
+  <p>{{ t('ux4b_audit_pack_line') }}</p>
+  <p class="hint"><a href="/console/evidence?lang={{ lang }}">{{ t('ux4b_audit_pack_open') }}</a></p>
+</section>
+{% endif %}
+<section class="card" data-section="system-reports-incidents">
+  <h3>{{ t('ux4b_incidents') }}</h3>
+  {% if rp_incidents is none %}
+  {{ v3.na(rp_incidents_na) }}
+  {% elif rp_incidents %}
+  <div class="tablewrap flat"><table data-table="system-incidents" id="system-incidents">
+    <thead><tr><th scope="col">{{ t('time') }}</th><th scope="col">{{ t('inc_incident') }}</th><th scope="col">{{ t('severity') }}</th><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('status') }}</th></tr></thead>
+    <tbody>
+    {% for i in rp_incidents %}
+      <tr>
+        <td class="mono">{{ i.opened_at|day }}</td>
+        <td><a href="/console/incidents?drawer={{ i.incident_id }}&amp;status=all&amp;lang={{ lang }}">{{ t('inc_kind_' ~ i.kind) }}</a><div class="idline mono">{{ i.incident_id }}</div></td>
+        <td>{{ ui.sev(i.severity) }}</td>
+        <td class="mono">{{ i.agent_id }}</td>
+        <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="hint">{{ t('inc_none') }}</p>
+  {% endif %}
+</section>

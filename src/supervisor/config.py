@@ -278,6 +278,9 @@ class Settings(BaseSettings):
     console_lang: Literal["en", "vi"] = "en"  # default UI language (?lang= overrides)
     console_export_dir: Path | None = None  # audit packs; default: <data_dir>/exports
     console_onboard_enabled: bool = False  # WP12: Onboard "Start" in the console (new: off)
+    # --- WP-UX4b --- folders (separated by ";" or ",") the register wizard may run the readiness
+    # advisor on. Empty (the default) = the advisor is off in the wizard.
+    onboard_allowed_roots: str = ""
     notify_webhook_enabled: bool = False  # new feature: off by default (inbox always on)
     notify_webhook_url: str = ""  # stub: notices are queued, never sent (bank ITSM, WP11)
     # Monitors and in-process scheduler (WP7, ADR D09/D10). Every monitor is off by

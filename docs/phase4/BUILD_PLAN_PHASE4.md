@@ -340,9 +340,53 @@ Flag `GOVERNANCE_ACTIONS_ENABLED` (default false). Follow the G0 and G1 patterns
    not stop the others; incidents closed only by a person; chain payloads clean. Docs:
    `docs/governance-actions.md`, `docs/incidents.md`, CHANGELOG.
 
-### 4.7 Later
+### 4.7 WP-G6: MCP server, skills, KPI endpoint (after G0, G1, G2, G5)
 
-G4 policy activation and retrieval · G6 MCP server, skills, KPI home · S1 bindings (after G2).
+Flag `MCP_SERVER_ENABLED` (default false). Goal: pipelines and AI assistants work through the
+platform the way people do in the console, with the same rules enforced in the server.
+
+1. **Transport.** `python -m supervisor.mcp_server` and a mount under the app at `/mcp`
+   (streamable HTTP, JSON-RPC 2.0: `initialize`, `tools/list`, `tools/call`, `ping`). Reuse the
+   JSON-RPC and streamable-HTTP code of the WP26 MCP proxy (`docs/mcp-gateway.md`,
+   `src/supervisor/gateway/mcp_http*.py`); add no new dependency. Auth: a connected app row
+   (`mcp_app`: app_id, name, scopes json, created_by, approved_by, status pending | approved |
+   blocked, key_hash) using the WP20 HMAC credential path; the first connection of an app is
+   `pending` until an `admin` approves it; every call runs as the app's principal with its
+   scopes, and is audited (two console_action rows per write, as G0).
+2. **Tools, three groups.**
+   - Governance (scope `governance.read` / `governance.write`): `list_entities(kind, filters)`,
+     `get_entity(kind, id)`, `register_system(draft)` (draft only, initiation, same validation
+     and scoping as the API), `link_component`, `propose_risk` (creates a draft risk row,
+     never active), `list_tasks(system_id)`, `complete_task(task_id)` (only tasks owned by the
+     app's principal), `transparency_report(system_id, variant)`, `classification_draft(system_id)`
+     (draft only). No tool applies a classification, approves a stage, accepts a risk, changes
+     a risk level, closes an incident or turns a guardian off; those names are refused at
+     registration with a message that points at the console.
+   - Library (scope `library.read`): `regulations`, `obligations(query)`, `starter_risks`,
+     `starter_controls`, `guardian_catalog`, `assignment_rules`.
+   - Supervisor (scope `supervisor.read`): `gate_state(agent_id)`, `decisions(agent_id, since)`,
+     `findings(agent_id, since)`, `chain_verify(agent_id)`, `pack_results(agent_id)`, all on
+     masked text, same visibility as the console for a viewer.
+   - Every write tool takes `confirm: true`; without it the tool returns the planned change and
+     writes nothing (confirm-before-write, Saidot's rule). Results are JSON with ids and enums;
+     no PII beyond what the console shows to a viewer.
+3. **Skills** as Markdown files under `docs/skills/`: `vn-system-registration`, `d33-prep`,
+   `risk-triage`, `transparency-report`, `gov-report`. Each names the tools it uses and the
+   rule "the server decides; confirm before write; never classify by yourself".
+4. **KPI endpoint** `GET /v1/kpis` (scope governance.read, permission console.view): coverage
+   (assets by kind, systems by risk level and stage, classification rate, policy coverage),
+   quality (risk treatment coverage, acceptable residual rate, control readiness,
+   implementation per policy), speed (average days per stage, overdue tasks, inheritance
+   rate, automation runs and success from `rule_run` and `governance_action` records), all
+   integers or basis points, scoped like G0; the Governance overview reads the same function.
+5. Tests: off path first; auth (pending app refused, blocked app refused, wrong scope refused,
+   bad HMAC refused); every tool; refused tool names; confirm-before-write; audit rows; no
+   PII in results (names masked as in the console); JSON-RPC errors never 500. Docs:
+   `docs/mcp-server.md`, CHANGELOG, `docs/console.md` settings row.
+
+### 4.8 Later
+
+G4 policy activation and retrieval.
 
 ## 5. Report format (every WP)
 

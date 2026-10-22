@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
 from supervisor.cases.service import PermissionDenied
-from supervisor.console import systems_views
+from supervisor.console import systems_views, systems_wizard
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.routes import (
     ConsoleInputError,
@@ -71,6 +71,87 @@ async def systems_rows(
     return render(request, ctx, me, "_systems_list.html", **data)
 
 
+# --- WP-UX4b --- register wizard. Declared before "/systems/{system_id}" so "new" is not an id.
+
+
+def _wizard_off(ctx: ConsoleContext) -> None:
+    """HTTP 400 unless the page flags are on and CONSOLE_NAV_V3 is on (the wizard is a v3 page)."""
+    _off(ctx)
+    if not ctx.settings.console_nav_v3:
+        raise ConsoleInputError("The register wizard needs CONSOLE_NAV_V3=1")
+
+
+def _person(me: AuthPrincipal) -> None:
+    if me.kind != "user":
+        raise PermissionDenied("registering an AI system needs a signed-in person")
+
+
+@router.get(
+    "/systems/new", response_class=HTMLResponse, dependencies=[Depends(needs("systems.edit"))]
+)
+async def system_new_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _wizard_off(ctx)
+    _person(me)
+    data = await _call(systems_wizard.form_view, ctx, me)
+    return render(request, ctx, me, "system_new.html", section="systems", **data)
+
+
+@router.post(
+    "/systems/new/checks",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("systems.edit"))],
+)
+async def system_new_checks(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Step 2: the preliminary checks. Read only; nothing is stored."""
+    _wizard_off(ctx)
+    _person(me)
+    form, _ = await form_or_plain(request)
+    d = await _call(systems_wizard.checks, ctx, me, form)
+    return render(request, ctx, me, "system_new_result.html", section="systems", d=d)
+
+
+@router.post("/systems/new", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def system_new_register(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Step 3: register the draft and open the initiation tasks. Applies nothing else."""
+    _wizard_off(ctx)
+    _person(me)
+    form, plain = await form_or_plain(request)
+    out = await _call(systems_wizard.register, ctx, me, form)
+    request.state.audit_detail = "create"
+    url = f"/console/systems/{out['system_id']}?tab=tasks"
+    if out["tasks_missing"]:  # L3: the draft is stored; the tasks page says so and offers a retry
+        url += "&intake=missing"
+    if plain:
+        return RedirectResponse(url, status_code=303)
+    return Response(status_code=200, headers={"HX-Redirect": url})
+
+
+@router.post("/systems/{system_id}/intake-tasks", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def system_intake_tasks(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Open the initiation tasks of a system again (same ids: a repeat is a no-op)."""
+    _wizard_off(ctx)
+    _person(me)
+    _check_id(system_id, "system id")
+    await form_or_plain(request)
+    await _call(systems_views.detail_view, ctx, me, system_id, "overview")  # scope check
+    await _call(systems_wizard.open_tasks, ctx, system_id, str(me.user_id))
+    request.state.audit_detail = "intake_tasks"
+    url = f"/console/systems/{system_id}?tab=tasks"
+    if request.headers.get("hx-request") == "true":
+        return Response(status_code=200, headers={"HX-Redirect": url})
+    return RedirectResponse(url, status_code=303)
+
+
 @router.get(
     "/systems/{system_id}/drawer",
     response_class=HTMLResponse,
@@ -105,6 +186,8 @@ async def system_page(
     _check_id(system_id, "system id")
     tab = request.query_params.get("tab") or "overview"
     data = await _call(systems_views.detail_view, ctx, me, system_id, tab)
+    if tab == "tasks" and request.query_params.get("intake") == "missing":  # WP-UX4b L3
+        data["intake_missing"] = bool(await _call(systems_wizard.missing_tasks, ctx, system_id))
     return render(request, ctx, me, "system.html", section="systems", **data)
 
 
