@@ -3340,6 +3340,55 @@ _T.update(
 )
 
 
+_T.update(
+    {
+        # --- WP-G1: Tasks and Reviews tabs of the system page (docs/governance.md) ---
+        "sy_tab_tasks": ("Tasks", "Nhiệm vụ"),
+        "sy_tab_reviews": ("Reviews", "Rà soát"),
+        "sy_stage_now": ("Stage of the system", "Giai đoạn của hệ thống"),
+        "sy_stage_needs_approval": (
+            "A move into these stages needs an approval",
+            "Chuyển sang các giai đoạn này cần được phê duyệt",
+        ),
+        "sy_ap_move": ("Move", "Chuyển"),
+        "sy_ap_requested_by": ("Asked by", "Người đề nghị"),
+        "sy_ap_decided_by": ("Answered by", "Người trả lời"),
+        "sy_ap_when": ("Date", "Ngày"),
+        "sy_ap_st_pending": ("Waiting", "Đang chờ"),
+        "sy_ap_st_approved": ("Approved", "Đã duyệt"),
+        "sy_ap_st_rejected": ("Rejected", "Từ chối"),
+        "sy_ap_applied": ("used for the move", "đã dùng để chuyển"),
+        "sy_ap_none": ("No stage approvals yet.", "Chưa có phê duyệt giai đoạn."),
+        "sy_tasks_no_agents": (
+            "No agent is linked to this system, so there is no task list.",
+            "Chưa có tác tử nào liên kết với hệ thống này nên chưa có danh sách nhiệm vụ.",
+        ),
+        "sy_tasks_initiation_only": (
+            "The risk level of the system is not set. Only the initiation tasks are shown "
+            "until a person sets the level.",
+            "Chưa đặt mức rủi ro của hệ thống. Chỉ có nhiệm vụ khởi tạo cho đến khi có người "
+            "đặt mức.",
+        ),
+        "sy_rv_title": ("Review", "Rà soát"),
+        "sy_rv_kind": ("Kind", "Loại"),
+        "sy_rv_kind_internal": ("Internal", "Nội bộ"),
+        "sy_rv_kind_external": ("External", "Bên ngoài"),
+        "sy_rv_kind_conformity": ("Conformity", "Đánh giá sự phù hợp"),
+        "sy_rv_kind_classification_audit": ("Classification audit", "Kiểm toán phân loại"),
+        "sy_rv_reviewer": ("Reviewer", "Người rà soát"),
+        "sy_rv_window": ("Window", "Khoảng thời gian"),
+        "sy_rv_reports": ("Reports", "Báo cáo"),
+        "sy_rv_st_planned": ("Planned", "Đã lên kế hoạch"),
+        "sy_rv_st_in_progress": ("In progress", "Đang thực hiện"),
+        "sy_rv_st_completed": ("Completed", "Hoàn thành"),
+        "sy_rv_st_reopened": ("Reopened", "Mở lại"),
+        "sy_rv_locked": ("locked", "đã khóa"),
+        "sy_rv_reopened_n": ("reopened {n}x", "mở lại {n} lần"),
+        "sy_rv_none": ("No reviews yet.", "Chưa có đợt rà soát."),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""
