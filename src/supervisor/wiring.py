@@ -232,6 +232,7 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
     except ConfigError as exc:  # one ASCII line naming the setting, no chained traceback
         msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
+    _wire_guard_model(settings, registry, resolved, policy, state)  # WP-D3
     gate = DetectorGate(registry, resolved)
     # WP-D1: document and URL intake (None unless DOCUMENT_INTAKE_ENABLED=1)
     gate.intake = make_intake(settings)
@@ -264,6 +265,51 @@ def make_intake(settings: Settings) -> Any:
         return hmac.new(key, b"doc:" + data, hashlib.sha256).hexdigest()
 
     return IntakeService(fetcher, digest=digest)
+
+
+def _guard_wanted(resolved: Any, policy: Policy) -> bool:
+    """True when the ``guard_model`` entry is enabled in the file or a per-agent override of the
+    policy enables it."""
+    entry = resolved.cfg.detectors.get("guard_model")
+    if entry is None:
+        return False
+    if entry.enabled:
+        return True
+    for agent_id in policy.doc.agents:
+        override = policy.agent_detectors(agent_id)
+        if override is not None and "guard_model" in override.enable:
+            return True
+    return False
+
+
+def _wire_guard_model(
+    settings: Settings, registry: Any, resolved: Any, policy: Policy, state: Any
+) -> None:
+    """WP-D3: give the ``guard_model`` detector its model, only when the detector is switched on
+    (the entry is enabled, or a per-agent override enables it). Off, or absent from
+    ``config/detectors.yaml``: nothing is built and nothing can fail at start-up; a bad setting is
+    then only a ``[SKIP]`` line in the log. On, a bad setting (remote URL, family clash with an
+    agent) is a start-up ``ConfigError``, never an error at call time."""
+    if "guard_model" not in registry:
+        return
+    from supervisor.adapters.guard import make_guard_model
+    from supervisor.adapters.guard.factory import check_remote
+    from supervisor.core.errors import ConfigError
+
+    if not _guard_wanted(resolved, policy):
+        url = settings.guard_model_url.strip()
+        if url:
+            try:
+                check_remote(settings, url, "GUARD_MODEL_URL")
+            except ConfigError as exc:
+                log.warning("[SKIP] guard_model is off and its setting is not usable: %s", exc)
+        return
+    try:
+        port = make_guard_model(settings, state=state)
+    except ConfigError as exc:
+        msg = f"guard_model: {exc}"
+        raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
+    registry.get("guard_model").set_port(port)
 
 
 def _advisory_judge(settings: Settings, masker: Any) -> Any:

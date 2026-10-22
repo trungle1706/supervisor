@@ -438,7 +438,7 @@ def test_only_detectors_that_list_the_part_read_documents(masker: Any) -> None:
     reg = build_registry(masker)
     payload = {"args": {}, DOCUMENT_PART: [{"name": "a", "text": "b"}], "meta": {}}
     reading = {s for s in reg.slugs if DOCUMENT_PART in parts_for(payload, "input", reg.get(s))}
-    assert reading == {"dlp_vn", "injection_regex"}  # guard_model joins when WP-D3 lands
+    assert reading == {"dlp_vn", "injection_regex", "guard_model"}
     assert DOCUMENT_PART not in parts_for(payload, "output", reg.get("dlp_vn"))
     assert DOCUMENT_PART not in parts_for({"args": {}}, "input", reg.get("dlp_vn"))
 

@@ -55,6 +55,7 @@ Reasons a detector did not run (fixed list):
 | `payload_too_large` | The inspected text is longer than `limits.max_payload_chars` |
 | `content_uninspectable` | A part has content no detector can read (bytes, an object, nesting deeper than 12) |
 | `not_applicable_for_direction` | The detector is enabled but its `sides` do not include this direction. Informational, not a failure |
+| `budget_exhausted` | WP-D4. A budget-aware detector (`judge_moderation`) stopped before it asked every question: its deadline or `max_calls` came first. Findings found so far are kept. Advisory: never fail closed |
 | `timed_out` | The detector did not answer within `limits.timeout_ms`. Each detector call runs in its own daemon thread and the gate waits at most `timeout_ms` for it, so a hung detector cannot hold a gate worker or delay a money decision past the gate budget. A hung thread stays until it returns (Python cannot kill a thread); at most 32 run at once, and with no free slot the detector is not started and is reported `timed_out` (detail `no free detector slot`) at once. Keep the sum of `timeout_ms` over enabled detectors below the gate timeout (2 s) |
 
 `DetectorRegistry` lists the catalogue from code (`GET /v1/gate/detectors`,
@@ -68,6 +69,7 @@ runs the enabled detectors.
 | `dlp_vn` | input, output | Wraps the `vn_regex-3` masker. One finding per entity type (`pii.person`, `pii.phone`, `pii.cccd`, ...). The only detector that transforms | `transform` for tools in scope, else `report` | 5000 / 8000 / 9500 |
 | `injection_regex` | input | The Tier 0b pattern list as a detector (Vietnamese and English). Scans `args` and `tool_results` (indirect injection). Codes `injection.instruction_override`, `mode_switch`, `prompt_leak`, `policy_override`, `urgent_transfer`, `role_tag` | `report` | 5000 / 7000 / 8500 |
 | `judge_advisory` | input, output | The Tier 1 judge. Without a judge model it uses the MockJudge and every finding says `mock: true`. The judge sees masked text only | `report` | 3000 / 5000 / 7000 |
+| `judge_moderation` (WP-D4, section 3e) | input, output | Toxicity (one yes or no answer) and up to 5 topics with definitions, asked of the judge one question at a time. Codes `moderation.toxic`, `moderation.topic:<name>`. Mock without a judge model, `mock: true` | `report` | 3000 / 5000 / 7000 |
 
 `dlp_vn` settings: `mode` (`transform` or `report`), `transform_risk_classes` (default
 `[pii_export]`), `transform_tools`. In transform scope the call carries the masked payload in
@@ -80,6 +82,10 @@ the MCP proxy apply it as they do for WP24b). Outside the scope `dlp_vn` only re
 override 8500, role tag 8000, prompt leak 7000, urgent transfer 6500, plus 500 for each extra
 hit. At the `balanced` preset an urgent-transfer phrase alone does not fire. Known gaps are in
 `BACKLOG.md` and in the validation report (typos, leetspeak, base64, split fields, paraphrase).
+
+`guard_model` (WP-D3, `enabled: false` by default, section 3d) is a fifth detector: a configured model
+scores jailbreak and indirect injection. Presets `strict` / `balanced` / `permissive` (3500 / 5500 / 8000 bp
+for `guard.jailbreak`); codes `guard.jailbreak`, `guard.indirect_injection`.
 
 `injection_classifier` (WP25, `enabled: false` by default, see `docs/injection-classifier.md`) is a fourth
 detector. It is the only one whose `pause` hint the gate obeys: `GATE-CLASSIFIER-PAUSE`, money and credit tools only.
@@ -265,8 +271,288 @@ It feeds one reader: the session monitor (`docs/session-monitor.md` section 2). 
 detector that is deterministic (`dlp_vn`, `injection_regex`: `deterministic = True` in code) or
 has `mrm_status: GO` count in the `findings` signal; findings of any other detector are recorded
 on the turn and weigh 0. Shipped: `dlp_vn` GO, `injection_regex` GO, `injection_classifier`
-NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO. The status never
+NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO, `judge_moderation` NO-GO. The status never
 changes what the gate answers or records for the decision itself.
+
+## 3d. Secrets group, custom rules and mask tokens (WP-D2)
+
+The build plan calls this section 3c; `3c` was already `mrm_status`, so it is 3d here. Three new
+`dlp_vn` settings. All are off or empty by default. With `secrets` absent (or `enabled: false`),
+`custom_rules` empty and `mask_tokens` empty, the detector takes the old code path and its output
+is byte for byte the same (golden test `tests/detectors/test_dlp_off_path_d2.py`).
+
+```yaml
+detectors:
+  dlp_vn:
+    settings:
+      secrets: {enabled: true, action: report}     # action: report (default) | block
+      custom_rules:
+        - {id: proj, kind: regex, pattern: "PRJ-[0-9]{4}-[A-Z]{2}"}
+        - {id: conf, kind: keyword, pattern: "CONFIDENTIAL", mask_token: "[HIDDEN]"}
+        - {id: emp, kind: regex, pattern: "EMP[0-9]{5}", preserve_length: true}
+      mask_tokens: {pii.phone: "<PHONE>"}
+```
+
+A per-agent value goes in `agents.<id>.detectors.settings.dlp_vn` as for every other setting.
+
+### Secrets are a different kind of finding
+
+A leaked credential is an incident, not a privacy problem, so it has its own finding code
+`secret.<kind>` (never `pii.*`), score 10000. The kinds are in `supervisor.core.secret_patterns`
+(`KINDS`): AWS access and secret keys, Azure storage key, SAS signature and client secret, Google
+API key, private key id and OAuth token, GitHub, GitLab, Hugging Face, npm, Vault, Slack, Stripe
+and SendGrid tokens, OpenAI (`openai_api_key`) and Anthropic (`anthropic_api_key`) keys, JWT,
+bearer header, HTTP basic, URL with a password (a DSN), PEM private key block, Databricks token
+and OAuth secret, three forms of a password assignment, and `password_field`: a string under a
+key whose LAST word is `password`, `passwd`, `pwd`, `passphrase`, `secret`, `token`, `pin`, `pw`,
+`mk`, or two words that join to `apikey`, `secretkey`, `privatekey`, `accesskey`. So
+`client_secret`, `apiKey` and `accessToken` are found; `passwordPolicy`, `password_changed_at`,
+`apiKeyName`, `privateKeyType`, `secrets_manager`, `client_secret_id` and `pwd_reset_url` are
+metadata and are not. The value must be 6 or more characters (4 for `pin`, `pw`, `mk`; a pin is
+digits), with no space, and not a date, a version, a URL, a template (`${X}`), a placeholder or a
+flag; for `secret`, `token`, `apikey` and the like a plain lower-case word (`none`, `enabled`)
+is skipped too. Vietnamese names are covered with the accents removed: `mat_khau`, `matkhau`,
+`matKhau`, `mật_khẩu`, plus `mk` and `pw`. Other Vietnamese or local words are not (add a custom
+rule). A secret hidden in base64 (a run of 24 or more characters that decodes to text with a
+secret in it) is found and masked as a whole, also next to a plain secret in the same text. A
+secret used as a dict KEY is found and masked too (the finding points at the dict, precision
+`leaf`).
+
+**One pattern source.** The onboarding scrubber (`onboard/scrub.py`) and this detector both use
+`src/supervisor/core/secret_patterns.py`. A pattern added there protects both. The scrubber gained
+the kinds it did not have (GitLab, Hugging Face, Stripe, SendGrid, npm, Vault) and a fix: the AWS
+secret key pattern no longer needs a word boundary after a key that ends in `/` or `+`.
+
+**What a finding keeps.** The kind and a keyed hash of the value: the first 12 hex characters
+of an HMAC-SHA256 under the masker key (`VnRegexMasker.keyed_hash`; a masker without one gets a
+random key held in the process), in the entity as `<SECRET:aws_access_key:3c1f...>`. It is never
+an unkeyed hash: with one, anyone who reads the audit store could confirm a guessed password
+offline and link one key across calls. The hash changes with the masker key, so it is stable only
+while the key is. The value is never in a finding, a fragment, a log line, a record or the chain. The transformed payload holds `<SECRET:aws_access_key>` where
+the value was, where `dlp_vn` transforms (mode `transform` and a tool in scope, as for personal
+data). A secret is masked before the personal-data masker runs, so the masker never sees it.
+
+**`action`.** `report` (default): a finding, and the mask above where `dlp_vn` transforms.
+`block`: a secret in a tool ARGUMENT blocks the call with rule `GATE-SECRET-IN-ARGS` for every
+tool class (a masked credential has still left, and a request that carries one is usually a bug
+worth surfacing). The block uses the same fail-closed shape as `GATE-DETECTOR-FAILED`: `allow:
+false`, `fail_mode: closed`, `status: block`, no `transformed_args`. A secret only in a tool
+result, in `output` or in the context does not block; it is reported and masked. In `observe`
+mode the block is lifted on a read-only or money/credit tool (money and credit need the two
+observe approvals, as before) and the call goes on with the MASKED arguments in
+`transformed_args`, status `report`: never weaker than report mode. On a `pii_export` tool the
+block is held in observe mode, like `GATE-DETECTOR-FAILED`. The detector only sets the hint `block`; the gate decides (R1).
+
+**Oversize payloads.** A payload over `limits.max_payload_chars` is skipped by every detector
+(coverage `payload_too_large`; risky tools fail closed). With `secrets.action: block` `dlp_vn` is
+the one exception: it declares `scan_head_when_oversize` and the registry runs it on the first
+`max_scan_bytes` of the arguments only, with no transform. A `secret.*` block finding from that
+head stands (`GATE-SECRET-IN-ARGS` on every tool class, read-only too), the `payload_too_large`
+coverage stays, and `coverage.notes` gets `{detector: dlp_vn, reason: head_only, detail: "head
+only: <n> of <m> bytes"}`. A secret after the head is not seen: that is the stated limit. With
+`action: report` nothing changes for an oversize payload. Observe mode does not lift a block from
+a cut or oversize payload (there is no masked copy to send).
+
+**Report mode and the transform scope.** In `report` mode a secret is masked only where
+`dlp_vn` transforms (mode `transform` and the tool in `transform_risk_classes` or
+`transform_tools`). In the arguments of a tool outside that scope the secret reaches the tool as
+sent and the finding is the only trace. Use `action: block` for money and credit tools.
+
+**Not found, on purpose.** A secret split over two fields, with spaces, a zero-width character, a
+hyphen inside, reversed or percent encoded is not found. The adversarial row of the validation
+report counts them. If that matters, add an egress control on the tool.
+
+### Custom rules
+
+`custom_rules` is a list of at most 32 rules, applied in order after the secrets.
+
+| Field | Meaning |
+|---|---|
+| `id` | `[a-z][a-z0-9_]{0,31}`, unique. The finding code is `custom.<id>` |
+| `kind` | `keyword`: exact, case-sensitive substring. `regex`: Python `re` |
+| `pattern` | 1 to 200 characters |
+| `mask_token` | optional, 1 to 40 characters. Default `<CUSTOM:id>` |
+| `preserve_length` | optional. The match becomes `*` repeated to its length |
+
+A finding holds the rule id, the count and a short hash of each value; the value is never in it.
+Checks at load (a bad value stops the start with a `ConfigError` that names the field, never a
+call): unknown keys, an id used twice, a bad regex, a regex that matches the empty text, and a
+risky shape: a repeat inside a repeat (`(a+)+`), an alternation under an unbounded repeat
+(`(a|b)*`), a back reference, a finite repeat above 1000, groups nested deeper than 4, more than
+two variable repeats (`+ * ? {n,m}`; `?` counts, so `a?a?a?...aaa` is refused) and two unbounded
+repeats in sequence (`.*.*x`, `\w+\w+!`). A mask token
+must not look like a pseudonym (`<TYPE:hex>`).
+
+**Text cap and time budget.** A regex rule reads only the first 2000 characters of one text (a
+leaf of the payload); the rest is not scanned. Keywords are not capped. A regex rule also has
+10 ms for the whole call (all texts together). Python `re` runs in C and cannot be interrupted, so
+the shape check above and the 2000 character cap are what bound one match; the budget is checked
+between matches. A rule that reads less than all of a text, or goes over its budget, is a
+**coverage note** (`coverage.notes: [{detector, reason: cut, detail}]` in the verdict), not a
+`timed_out` row and not a finding: it never fails a call closed on its own. What it found before
+the cut is still masked. Keep an eye on `coverage.notes` for rules that matter.
+
+### Per-entity mask tokens
+
+`mask_tokens: {pii.phone: "<PHONE>"}` replaces the pseudonym of the built-in entity in the
+TRANSFORMED payload only. The keys are `pii.` plus the lower-case entity type. Findings, entities
+and fragments keep the pseudonym (`<PHONE:ab12cd>`), so the fragment offsets refer to the default
+masked text. A configured token loses the consistent pseudonym: two phones both become `<PHONE>`.
+
+### Where the transform applies
+
+**Version.** `dlp_vn` stays at 1.0.0 on purpose: `detector_id` (`dlp_vn@1.0.0`) is in every
+finding, row and chain record, so a bump would change the bytes of the off path, which must be
+identical. The new settings are visible in the catalogue schema.
+
+The transformed payload comes from the `dlp_vn` transform. With inline redaction on
+(`INLINE_REDACTION_ENABLED`) the masker pass of WP24b knows personal data only; when a `secret.*`
+or `custom.*` finding exists, the detector's `args` replace those, so a secret never stays in
+`transformed_args`.
+
+## 3e. `judge_moderation`: toxicity and topic scope (WP-D4)
+
+Phase 5. A judge detector that answers two kinds of question about text. It advises and reports;
+it never blocks, pauses or transforms (R1), it never fails closed, and it is off by default
+(`judge_moderation.enabled: false`, `mrm_status: NO-GO`). With the slug absent from
+`config/detectors.yaml`, or with `enabled: false`, nothing changes: no judge call, no finding.
+
+| Item | Rule |
+|---|---|
+| Sides and parts | `input`: the user text in `args` (the latest `role: user` message when `args.messages` is a list, else every string leaf). `output`: the assistant text in `output` |
+| Questions | `toxicity: {enabled}`: is the text harmful language (abusive, hateful, degrading, threatening)? One answer, no breakdown by kind. `topics: [{name, definition}]`: is the text about this subject? One answer per topic; the other topics never change its score. A "no" answer never gives a finding, on any preset |
+| Limits | At most 5 topics per detector (add a second detector entry for more). `name` 1 to 120 characters and unique. `definition` up to 400 characters. Unknown keys are errors. Checked when the file loads (`DetectorsFile`, per-agent override too), so a bad topic is a startup error, not a runtime surprise |
+| What is scored | The DEFINITION. The name is only the label of the finding |
+| Prompts | ONE prompt per text window carries every enabled question; the judge answers each by `id` with `{answer: yes or no, score_bp, reason}` in a strict schema. A topic definition is escaped, put on one line, quoted and marked in the prompt as a label, not an instruction; a definition with a control character (line break, tab) is refused when the file loads. A reply with the canary token (the model obeyed the data) is dropped and listed as `not_executed` `execution_failed`; it never becomes a finding |
+| Windows | The first 10 000 characters, in windows of 1 200 characters with 200 overlap (at most 10). The highest "yes" score per question over the windows wins, so a subject at the end of a long text is found. Text past 10 000 characters is not read |
+| Findings | `moderation.toxic`, `moderation.topic:<name>`. Score in basis points. A finding is returned when the score reaches the threshold (strict 3000, balanced 5000, lenient 7000; one threshold for all topics). `action_hint` is always `report`. No text in a finding |
+| Judge | The Tier 1 judge the product built for `judge_advisory` (same model, same family rule: the judge family differs from every agent family, checked in `JudgeRouter`). Without a judge model the labelled MockJudge answers (keyword cues; it proves the harness, not a model) and every finding says `mock: true` |
+| Cost and deadline | Model calls per check = number of windows: 1 for text up to 1 200 characters, usually 1 to 3, at most 10 for 10 000 characters, whatever the number of questions (up to 6). Retries count as calls and `max_calls` (default 12, 1 to 30) is a hard cap. The gate tells the detector its deadline (`limits.timeout_ms`, or the `timeout_ms` setting of this detector when set); the detector stops starting calls at 80 percent of it, never waits on a model longer than the time left, and then returns. Questions it did not ask are `not_executed` with reason `budget_exhausted` (the findings found so far are kept). So its thread frees its slot in the shared pool of 32 close to the gate timeout, and a slow judge cannot starve `dlp_vn`. A real judge model needs a larger `timeout_ms` for this detector (for example 8000) and still adds that time to the gate answer: keep it off in the hot path until a latency budget is set |
+
+Settings, in `config/detectors.yaml` or per agent (`agents.<id>.detectors.settings.judge_moderation`):
+
+```yaml
+judge_moderation:
+  enabled: true
+  settings:
+    toxicity: {enabled: true}
+    topics:
+      - name: Financial advice
+        definition: Personal recommendations about what to invest in, buy, sell or borrow ...
+```
+
+Ten editable drafts, in Vietnamese and English, are in `config/moderation_topics.yaml` (financial
+advice, legal advice, politics, loan approval promises, competitor products, internal project names,
+medical advice, illegal activity, adult content, staff and branch security). The file is a menu: the detector never
+reads it and none of the drafts is enabled. Copy a draft into the settings and edit it. Write one
+plain sentence that says what belongs to the topic, in the language of your traffic; do not name a
+neighbouring topic to rule it out; do not paste example messages. After a change, run the harness
+on sample messages before you turn the topic on.
+
+Harness: `python -m supervisor.detectors.harness --detector judge_moderation` (golden set in
+`src/supervisor/detectors/moderation_golden.py`: toxic and benign, on-topic and off-topic, VI and
+EN, 21 dev, 20 held-out and 10 adversarial items; the rubric is in that file; the topics are financial advice, politics and loan approval promises). Report:
+`docs/judge-moderation-validation-report.md`. It ran on the MockJudge, so the numbers prove the
+harness; `mrm_status` stays NO-GO until a real judge model runs the set (see `docs/judge-mrm.md`).
+NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO, `guard_model` NO-GO (WP-D3). The status never
+changes what the gate answers or records for the decision itself.
+
+## 3d. `guard_model`: ML jailbreak and indirect-injection scoring (WP-D3)
+
+A fifth detector asks a configured model whether a text tries to take control of the agent. It
+completes the regex (`injection_regex`) and the local classifier (`injection_classifier`) with a
+model the bank chooses (`docs/guard-model-decision.md`). **Off by default**, `mrm_status: NO-GO`
+until a real run gives GO, and a slug that is absent from `config/detectors.yaml` changes nothing.
+
+| Item | Value |
+|---|---|
+| Sides, protocols | input and output; `llm` and `mcp` |
+| Codes | `guard.jailbreak` (a person writes to the agent), `guard.indirect_injection` (hidden instructions in third-party text) |
+| Parts read | `args` (user text fields), `tool_results`, tool descriptions (`meta.tool_description` and `meta.tool_descriptions`), `documents` (WP-D1; `payload["documents"]`), and `output` on the output side |
+| Never read | system prompts. They are no payload part, and an argument key named `system`, `system_prompt`, `developer`, `developer_message` or `instructions` is left out |
+| Text sent | the **masked** text (the masker runs on every leaf first; `dlp_vn` and the guard share the same masker) |
+| Windows | 2,000 characters, 500 characters of overlap; the highest score wins; at most `max_windows` (12) per call, spread over the text; one batch per call; scores cached by text hash |
+| Label | a model that names its class (`jailbreak`, `injection`) sets the label; a one-class model (`malicious`) takes the label of the surface (arguments: jailbreak; the rest: indirect injection) |
+
+**Presets** are thresholds per label in basis points, frozen with the detector version
+(ILLUSTRATIVE until the harness runs on the real model):
+
+| Preset | jailbreak | indirect_injection |
+|---|---|---|
+| `strict` | 3500 | 4000 |
+| `balanced` (default) | 5500 | 6000 |
+| `permissive` (`lenient` is an alias) | 8000 | 8500 |
+
+The preset moves one thing: how sure the model must be before the detector reports. `threshold_bp`
+replaces the preset for both labels.
+
+**Settings** (`config/detectors.yaml`, per agent in the policy file as for any detector):
+`scan_args`, `scan_tool_results`, `scan_tool_descriptions`, `scan_documents` (all true),
+`pause_tool_classes` (default empty), `pause_threshold_bp` (can raise the pause bar, never lower it
+below the `permissive` value of the label), `max_windows` (at most this many windows in all, the
+model's own `window_cap` can lower it; a note `windows dropped: n of m` is set in the `detail` of
+the findings when some were left out), `timeout_ms` (this detector's own deadline, empty =
+`limits.timeout_ms`). Common: `preset`, `threshold_bp`,
+`max_scan_bytes`.
+
+**The model** comes from the environment (`GUARD_MODEL_*`, `config.py`), not from the file:
+
+| Setting | Meaning |
+|---|---|
+| `GUARD_MODEL_ADAPTER` | `auto` (default: `classifier` when `GUARD_MODEL_URL` is set, else the labelled mock), `mock`, `classifier`, `chat` |
+| `GUARD_MODEL_URL` | `classifier`: the endpoint (`POST <url>` with `{"inputs": [...]}`). `chat`: the OpenAI-compatible base URL (default `JUDGE_T1_BASE_URL`, then `LLM_BASE_URL`) |
+| `GUARD_MODEL_NAME` | model id; for `chat` the model (default `JUDGE_T1_MODEL`); it pins the approval |
+| `GUARD_MODEL_VERSION` | the pinned revision of that model; it also pins the approval (see below) |
+| `GUARD_MODEL_API_KEY` | bearer key; in `databricks_app` mode a workspace serving URL uses the App identity instead. For `chat` with no key set, the judge or LLM key is used only when `GUARD_MODEL_URL` equals the base URL of that same key (`JUDGE_T1_BASE_URL`, `LLM_BASE_URL`), never for another URL |
+| `GUARD_MODEL_TIMEOUT_MS` | the total time of ONE call to the model, default 400: all batches or texts, the credential call and every attempt together, not a per-phase timeout. The adapter returns `timed_out` at that time even when the server sends one byte at a time. Keep it below the deadline of the detector (`limits.timeout_ms`, or the `timeout_ms` setting of `guard_model`) |
+| `GUARD_MODEL_FAIL_CLOSED_APPROVED` | see below |
+
+A URL that is not loopback needs `LLM_ALLOW_REMOTE=1`, unless it is the workspace's own serving
+endpoint. The `chat` adapter obeys the judge family rule: the family is derived from the model id,
+must be known, and must differ from every registered agent family, or start-up stops
+(`FamilyConflictError`). The three adapters are in `src/supervisor/adapters/guard/`; port
+`GuardModelPort.score(texts)` in `core/ports.py`. With no port the detector reports
+`execution_failed` (only reachable by a per-agent `enable`, because the wiring sets the port only
+when the slug is in the file).
+
+**Time and threads.** The detector is budget aware (like `judge_moderation`): it takes 90 percent of
+its deadline, never starts a model call with less than the adapter timeout left (reason
+`budget_exhausted`), and runs the call in its own pool of 4 threads for all agents together. A slow
+model therefore holds at most 4 threads and never the shared pool of 32, so `dlp_vn` is not
+starved; when the 4 are taken, a call fails at once with `timed_out` ("busy"). Residual: a server
+that answers the headers one byte at a time can keep its thread until httpx gives up; at most 4 such
+threads exist. A real model needs `timeout_ms` for this detector above the gate default (500).
+
+**Actions (R1).** Findings only. A timeout is `timed_out`, any other error `execution_failed`
+(never an exception, never a block). The detector is **not fail closed**: `fail_closed: true` in the
+file is ignored unless `GUARD_MODEL_FAIL_CLOSED_APPROVED=1` AND the card approval is valid. The
+pause path is the WP25 one (section 5 of `docs/injection-classifier.md`): the finding carries the
+pause hint only when all of these hold, and the gate then turns it into `pause` with rule
+`GATE-CLASSIFIER-PAUSE` (never a block; a shadow agent is never paused). Residual: an endpoint
+that reports no version leaves the version as the operator's declaration, and a model swapped
+behind the same name is not seen; the classifier adapter reads `X-Model-Version` or a
+`model_version` field of the answer when there is one:
+
+```
+ direction = input
+ AND tool risk class in pause_tool_classes            (default empty = report only)
+ AND finding score >= the pause bar of its label      (permissive threshold, can be raised)
+ AND data/models/guard_model/model_card.json has approval.approver  (a person, not FILL-ME)
+     AND approval.model_id == model_id == the model id the adapter serves (GUARD_MODEL_NAME)
+     AND approval.model_version == model_version == GUARD_MODEL_VERSION (set, not FILL-ME)
+     AND the version the endpoint reports, if it reports one, equals GUARD_MODEL_VERSION
+ AND the adapter is not the mock
+```
+
+**Harness.** `python -m supervisor.detectors.guard_harness` runs the WP25 corpus (dev, held-out,
+adversarial; `--split evasion` for the rewritten set) through the WP37 rubric with the mock adapter
+(CI; `data/eval/guard_model/baseline_mock.json`, `--check`), or with the real endpoint when
+`GUARD_MODEL_URL` is set. A mock run is never GO, and neither is a run with any item the detector did not score (printed
+"run invalid") or without all three of dev, held-out and adversarial. Report: `docs/guard-model-validation-report.md`.
+Model card: `docs/guard-model-card-template.md`, `data/models/guard_model/model_card.json`.
+
+Tests: `tests/detectors/test_guard_model_review.py`, `tests/detectors/test_guard_model.py`, `test_guard_adapters.py`, `test_guard_model_gate.py`,
+`test_guard_model_harness.py`, `test_guard_model_catalog.py`.
 
 ## 4. Verdict v2 and precedence
 
@@ -368,6 +654,11 @@ not a model. `tests/detectors/test_harness.py` fails on a drop below `baseline.j
 Expert rubrics: SOC analyst reading a verdict (typed recall, fragments you can find, false
 positives, speed) and data protection officer (no raw personal data in findings, fragments,
 entities or the transformed payload).
+
+WP-D2 adds the suite `dlp_vn_secrets` (`--detector dlp_vn_secrets`): the secrets group and custom
+rules, with dev, held-out and adversarial items built at run time (no credential-shaped string is
+committed) and its own baseline `data/eval/detectors/baseline_secrets.json`. The DPO rubric covers
+the secret values and the custom matches too: `leak_items` must be 0.
 
 ## 9. How to add a detector
 

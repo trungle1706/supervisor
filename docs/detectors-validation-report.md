@@ -116,3 +116,68 @@ Three harness rows score the intake of `context.documents` (`python -m superviso
 | `url_ssrf` | 10000 / 10000 | 10000 / 10000 | 10000 | 0 (no request reached a forbidden target) |
 
 Known gaps, named in the taxonomy: an instruction split over two files, in base64 or in leetspeak; images have no text (no OCR) and are reported as `document.uninspectable`. The precision of `document_pii_vi` is limited by the vn_regex masker (it reads an upper-case phrase like `LY DO TU CHOI` as a name). Thresholds are ILLUSTRATIVE.
+
+## dlp_vn secrets group and custom rules (WP-D2): GO
+
+Suite `dlp_vn_secrets` of the `dlp_vn` detector, run with `secrets.enabled: true` (action
+`report`) for the secret items and with the item's own `custom_rules` for the custom items.
+Reproduce: `python -m supervisor.detectors.harness --detector dlp_vn_secrets`. The baseline is
+`data/eval/detectors/baseline_secrets.json`; `--check` compares against it.
+
+How the set is built. It is not a committed file. `src/supervisor/detectors/golden_secrets.py`
+builds every planted secret at run time from a seeded generator and split literals, so no
+credential-shaped string is in the repository (`tests/test_no_secrets.py` stays green) and the
+build is deterministic. Dev and held-out hold one positive per secret kind (29 kinds, including
+the password field under a JSON key), the custom keyword and regex rules (with a mask token and
+with preserve-length) and benign look-alikes; they use different wrappers, values and rules.
+The adversarial split is written by hand: base64 (decoded by the detector), the secret split over
+two fields, spaced, with a zero-width character, reversed, percent encoded, a hyphen inside, a
+keyword in another case, and benign look-alikes (base64 of ordinary text, hex runs, a prefix
+alone, a template `${DB_PASSWORD}`). After review the dev and held-out splits also hold
+Vietnamese and short password key names (`mat_khau`, `matkhau`, `mật_khẩu`, `pw`, `mk`) as
+positives and metadata names that merely contain a password word (`passwordPolicy`,
+`password_changed_at`, `apiKeyName`, `privateKeyType`, `secrets_manager`, `client_secret_id`,
+`pwd_reset_url`, `passphrase_required`) as benign.
+
+Reading the numbers.
+
+- Dev and held-out are 100 percent because the secret formats are fixed by their prefixes and
+  the same patterns serve both splits. They prove the harness and the wrappers, not the real
+  traffic. Only the adversarial row is evidence of what is missed.
+- Adversarial recall is 5000 bp with a Wilson lower bound of 3142: GO is indicative only. The 12
+  misses are by design and are listed in the taxonomy: a secret split over two fields, with
+  spaces, a zero-width character, a hyphen, reversed or percent encoded is not found, and a
+  custom keyword is an exact (case-sensitive) substring. A caller who wants these closed needs
+  a different control (an egress filter on the tool); `dlp_vn` does not claim them.
+- `leak_items` is 0 on all three splits: no planted secret, no custom match and no base64 form
+  appears in a finding, a fragment, an entity or the transformed payload. A finding holds the
+  kind and the first 12 hex characters of a keyed HMAC-SHA256 of the value.
+- Latency is the whole registry run for one call, microseconds, on the development host.
+
+| split | n | pos | tp | fn | fp | recall bp (95% CI) | precision bp (95% CI) | typed recall bp | fragment exact bp | leaks | p95 us |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| dev | 55 | 35 | 35 | 0 | 0 | 10000 [9010, 10000] | 10000 [9010, 10000] | 10000 | 10000 | 0 | 502 |
+| heldout | 57 | 37 | 37 | 0 | 0 | 10000 [9059, 10000] | 10000 [9059, 10000] | 10000 | 10000 | 0 | 573 |
+| adversarial | 32 | 24 | 12 | 12 | 0 | 5000 [3142, 6858] | 10000 [7574, 10000] | 10000 | 10000 | 0 | 492 |
+
+Failure taxonomy (counts):
+
+- adversarial: `missed:custom-base64` 1, `missed:custom-case-change` 1, `missed:custom-split-across-fields` 1, `missed:custom-zero-width` 1, `missed:hyphen-inserted` 1, `missed:percent-encoded` 1, `missed:reversed-text` 1, `missed:spaced-letters` 1, `missed:split-across-fields` 3, `missed:zero-width` 1
+
+| metric | value | threshold | verdict |
+|---|---|---|---|
+| recall_bp.dev | 10000 | 9000 | GO |
+| precision_bp.dev | 10000 | 9000 | GO |
+| typed_recall_bp.dev | 10000 | 8500 | GO |
+| leak_items.dev | 0 | 0 | GO |
+| fragment_exact_bp.dev | 10000 | 9900 | GO |
+| p95_us.dev | 502 | 20000 | GO |
+| recall_bp.heldout | 10000 | 9000 | GO |
+| precision_bp.heldout | 10000 | 9000 | GO |
+| typed_recall_bp.heldout | 10000 | 8500 | GO |
+| leak_items.heldout | 0 | 0 | GO |
+| fragment_exact_bp.heldout | 10000 | 9900 | GO |
+| p95_us.heldout | 573 | 20000 | GO |
+| heldout_gap_bp | 0 | 1500 | GO |
+| adversarial_recall_bp | 5000 | 4000 | GO (indicative) |
+| adversarial_leak_items | 0 | 0 | GO |

@@ -1,0 +1,35 @@
+{
+  "harness": "guard-eval-1",
+  "mode": "mock",
+  "note": "Mock adapter. Regenerate with --record after a deliberate change and commit it.",
+  "preset": "balanced",
+  "splits": {
+    "adversarial": {
+      "fn": 44,
+      "fp": 2,
+      "fragment_exact_bp": 10000,
+      "n": 77,
+      "precision_bp": 8181,
+      "recall_bp": 1698,
+      "typed_recall_bp": 1698
+    },
+    "dev": {
+      "fn": 357,
+      "fp": 60,
+      "fragment_exact_bp": 10000,
+      "n": 1200,
+      "precision_bp": 6078,
+      "recall_bp": 2066,
+      "typed_recall_bp": 2066
+    },
+    "heldout": {
+      "fn": 336,
+      "fp": 107,
+      "fragment_exact_bp": 10000,
+      "n": 1350,
+      "precision_bp": 5158,
+      "recall_bp": 2533,
+      "typed_recall_bp": 2533
+    }
+  }
+}

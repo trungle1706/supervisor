@@ -43,7 +43,8 @@ from xml.etree import ElementTree
 
 from supervisor.adapters.fetch.client import Fetcher, FetchFailed
 from supervisor.adapters.fetch.guard import UrlRefused
-from supervisor.core.bounded import BoundedSlots, NoSlot
+from supervisor.core.bounded import Bounded
+from supervisor.core.errors import GuardModelError
 
 MAX_DOCUMENTS = 10
 MAX_DOC_BYTES = 2 * 1024 * 1024
@@ -70,7 +71,7 @@ CODE_LIMIT = "document.limit_exceeded"
 CODE_SSRF = "url.ssrf_refused"
 CODE_DOMAIN = "url.domain_blocked"
 
-_SLOTS = BoundedSlots(4)  # a full pool is "busy" at once: the document is unread
+_SLOTS = Bounded(4)  # a full pool is "busy" at once: the document is unread
 _MEDIA = re.compile(r"^[a-z0-9][a-z0-9!#$&^_.+-]{0,60}/[a-z0-9][a-z0-9!#$&^_.+-]{0,60}$")
 _DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 _TEXT_TYPES = {
@@ -535,18 +536,14 @@ class IntakeService:
         deadline = time.monotonic() + limit
         try:
             return str(
-                _SLOTS.call(
-                    lambda: extract_text(data, media_type, name, deadline=deadline),
-                    limit,
-                    "intake",
-                )
+                _SLOTS.run(lambda: extract_text(data, media_type, name, deadline=deadline), limit)
             )
-        except TimeoutError:
+        except GuardModelError as exc:  # the same bounded pool as the guard model (fail fast)
+            if "busy" in str(exc):
+                raise Uninspectable("busy") from None
             raise Uninspectable(
                 "deadline" if left_s < self.extract_timeout_s else "timeout"
             ) from None
-        except NoSlot:
-            raise Uninspectable("busy") from None
 
     # -- the call -------------------------------------------------------------------------
     def run(self, raw: Any, *, allow_fetch: bool = True) -> IntakeResult:

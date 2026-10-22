@@ -1,9 +1,10 @@
-"""Run a function with a hard deadline in a daemon thread (WP-D1).
+"""A small bounded executor for guard model calls (WP-D3 review fix M1).
 
-Python cannot kill a thread. A function that hangs keeps its thread until it returns, but the
-caller gets ``TimeoutError`` at the deadline and goes on. A ``BoundedSlots`` value caps how many
-such threads exist at once: with no free slot the call is not started and ``NoSlot`` is raised.
-Pure standard library, no I/O of its own.
+``Bounded.run(fn, timeout_s)`` runs ``fn`` in its own daemon thread and waits at most
+``timeout_s`` for it. At most ``slots`` calls are in flight; with no free slot the call fails at
+once with ``GuardModelError(reason="timed_out")``. A call that ran out of time keeps its thread
+until the call ends (Python cannot kill one) but the caller is free, and the slot stays taken, so
+a slow or trickling endpoint can hold at most ``slots`` threads, never the gate's shared pool.
 """
 
 from __future__ import annotations
@@ -12,22 +13,20 @@ import threading
 from collections.abc import Callable
 from typing import Any
 
+from supervisor.core.errors import GuardModelError
 
-class NoSlot(Exception):
-    """Every thread slot is held (hung functions)."""
+DEFAULT_SLOTS = 4
 
 
-class BoundedSlots:
-    """A fixed number of thread slots shared by the callers of one subsystem."""
+class Bounded:
+    def __init__(self, slots: int = DEFAULT_SLOTS) -> None:
+        self._sem = threading.BoundedSemaphore(slots)
 
-    def __init__(self, n: int) -> None:
-        self._sem = threading.BoundedSemaphore(n)
-
-    def call(self, fn: Callable[[], Any], timeout_s: float, name: str = "bounded") -> Any:
-        """Run ``fn`` and wait at most ``timeout_s``. Raises ``TimeoutError`` on a deadline miss,
-        ``NoSlot`` when no slot is free, else re-raises what ``fn`` raised."""
+    def run(self, fn: Callable[[], Any], timeout_s: float) -> Any:
+        if timeout_s <= 0:
+            raise GuardModelError("guard model has no time left", "timed_out")
         if not self._sem.acquire(blocking=False):
-            raise NoSlot
+            raise GuardModelError("guard model is busy (all call slots taken)", "timed_out")
         box: dict[str, Any] = {}
         done = threading.Event()
 
@@ -41,12 +40,12 @@ class BoundedSlots:
                 done.set()
 
         try:
-            threading.Thread(target=target, name=name, daemon=True).start()
+            threading.Thread(target=target, name="guard-model", daemon=True).start()
         except BaseException:
             self._sem.release()
             raise
         if not done.wait(timeout_s):
-            raise TimeoutError
+            raise GuardModelError("guard model did not answer in time", "timed_out")
         if "error" in box:
             raise box["error"]
         return box["value"]

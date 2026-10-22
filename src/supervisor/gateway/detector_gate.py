@@ -43,12 +43,18 @@ CORRELATION_HEADER = "X-Supervisor-Correlation-Id"
 ID_PATTERN = r"^[A-Za-z0-9_.:@-]{1,128}$"
 DEFAULT_FAIL_CLOSED_RISK = frozenset({"money", "credit", "pii_export"})
 FAILED_RULE = "GATE-DETECTOR-FAILED"
-# WP25 (ADR D27): the one pause a detector may cause. Only a detector listed here is allowed to
+# WP-D2: dlp_vn secrets.action = block. A secret in a tool argument blocks the call on every tool
+# class: a masked credential has still left (the bank rule). Same fail-closed shape as above.
+SECRET_RULE = "GATE-SECRET-IN-ARGS"  # noqa: S105 - a rule id, not a password
+# WP25 (ADR D27), WP-D3: the one pause a detector may cause (the classifier or the guard model).
+# Only a detector listed here is allowed to
 # turn a pause hint into a pause, and never on a tool whose risk class is outside the set below
 # (a read_only tool cannot be paused by a finding). The detector itself also checks the classes it
 # is configured with; this is the gate's own backstop.
 CLASSIFIER_PAUSE_RULE = "GATE-CLASSIFIER-PAUSE"
-PAUSE_CAPABLE_DETECTORS: frozenset[str] = frozenset({"injection_classifier"})
+PAUSE_CAPABLE_DETECTORS: frozenset[str] = frozenset(
+    {"injection_classifier", "guard_model"}
+)  # WP-D3
 PAUSE_RISK_CLASSES: frozenset[str] = frozenset({"money", "credit", "pii_export"})
 
 
@@ -406,7 +412,39 @@ class DetectorGate:
             transformed = None
             # A blocked call has no transformed arguments (WP24b filled them while it was allowed).
             d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0
-        # 1b. WP25: a pause-capable detector (the injection classifier) may turn an ALLOW into a
+        # 1a. WP-D2: a secret in a tool argument, dlp_vn secrets.action = block. Every tool class;
+        # the detector set the hint only for a secret found in the arguments (input direction).
+        if d.allow and not shadow and not builtin and direction == "input":
+            leaked = sorted(
+                f.code
+                for f in out.findings
+                if f.action_hint == "block"
+                and f.code.startswith("secret.")
+                and any(fr.part == "args" for fr in f.fragments)
+            )
+            if leaked:
+                # the masked copy of the arguments rides along: observe mode lifts this block
+                # and must then send the masked arguments, not the raw ones (WP-D2 review)
+                masked = next(
+                    (
+                        f.transformed_payload
+                        for f in out.findings
+                        if f.action_hint == "block" and f.transformed_payload
+                    ),
+                    None,
+                )
+                if masked and isinstance(masked.get("args"), Mapping):
+                    d.secret_masked_args = dict(masked["args"])
+                d.allow, d.action, d.rule_id = False, "block", SECRET_RULE
+                d.reason = (
+                    f"{SECRET_RULE}: a secret in the tool arguments ({', '.join(leaked)}): "
+                    "blocked, a masked credential has still left"
+                )
+                d.fail_mode = "closed"
+                transformed = None
+                d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0
+        # 1b. WP25: a pause-capable detector (the injection classifier or the guard model) may turn
+        # an ALLOW into a
         # PAUSE, never a block, on a money / credit / pii_export tool. The detector set the hint
         # only above its frozen threshold and only for its configured classes. A human resumes.
         if (
@@ -427,14 +465,19 @@ class DetectorGate:
                 d.classifier_pause = True  # the engine pauses on this flag, not on the rule id
                 d.reason = (
                     f"{CLASSIFIER_PAUSE_RULE}: {top.code} score {top.score_bp} bp at or above "
-                    f"the pause threshold on a {pre.risk_class} tool (the classifier advises; a "
+                    f"the pause threshold on a {pre.risk_class} tool (the detector advises; a "
                     "human resumes)"
                 )
                 transformed = None
         # 2. The dlp transform: only on an allowed, non-shadow call (same rule as WP24b).
         if transformed and d.allow and not shadow and not builtin:
             d.transformed_payload = {k: transformed[k] for k in sorted(transformed)}
-            if d.transformed_args is None and isinstance(transformed.get("args"), Mapping):
+            # WP-D2: a secret or custom finding means the detector's arguments are the safe ones
+            # (the WP24b masker pass knows personal data only); they replace those.
+            extra = any(f.code.startswith(("secret.", "custom.")) for f in out.findings)
+            if (d.transformed_args is None or extra) and isinstance(
+                transformed.get("args"), Mapping
+            ):
                 d.transformed_args = dict(transformed["args"])
                 d.args_hmac_transformed = hmac_fn(d.transformed_args)
                 d.redaction_count = sum(

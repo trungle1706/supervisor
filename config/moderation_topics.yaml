@@ -1,0 +1,137 @@
+# Draft topics for the judge_moderation detector (WP-D4, docs/detectors.md section 3e).
+#
+# These are EDITABLE DRAFTS for the bank to adapt. None is enabled: this file is a menu and the
+# detector never reads it. To use a topic, copy its `name` and `definition` (in the language of
+# your traffic) into `detectors.judge_moderation.settings.topics` in config/detectors.yaml, or
+# into the per-agent override (agents.<id>.detectors.settings.judge_moderation.topics).
+#
+# Limits: at most 5 topics per detector; a name up to 120 characters and unique; a definition up
+# to 400 characters on one line (no line breaks or other control characters). The judge reads the
+# DEFINITION; the name is only the label of the finding (moderation.topic:<name>).
+#
+# Wording tips. State the subject itself in one plain sentence, in the language most of your
+# customers write in. Keep the sentence about the subject only: a sentence that lists what the
+# subject is NOT tends to attract the very text it excludes, so narrow the subject instead.
+# Leave sample customer messages out of the sentence. Whatever wording is saved is the wording
+# that is used, drafts included, so run the harness on a few real-looking messages before you
+# turn a topic on.
+version: 1
+topics:
+  - key: financial_advice
+    enabled: false
+    en:
+      name: Financial advice
+      definition: >-
+        Personal recommendations about what to invest in, buy, sell or borrow, or predictions
+        about the return of shares, funds, gold, currencies or crypto assets.
+    vi:
+      name: Tư vấn tài chính
+      definition: >-
+        Khuyến nghị cá nhân về nên đầu tư, mua, bán hay vay gì, hoặc dự đoán lợi nhuận của cổ
+        phiếu, quỹ, vàng, ngoại tệ và tài sản tiền mã hóa.
+  - key: legal_advice
+    enabled: false
+    en:
+      name: Legal advice
+      definition: >-
+        Opinions on how a law applies to a person's own situation, what to claim or sign in a
+        dispute, or how to win a case, contract or complaint.
+    vi:
+      name: Tư vấn pháp lý
+      definition: >-
+        Ý kiến về việc luật áp dụng thế nào cho hoàn cảnh riêng của một người, nên khiếu nại
+        hay ký gì khi có tranh chấp, hoặc cách thắng một vụ kiện, hợp đồng hay khiếu nại.
+  - key: politics
+    enabled: false
+    en:
+      name: Politics
+      definition: >-
+        Political parties, elections, politicians, government policy debates, protests and
+        other questions of political power.
+    vi:
+      name: Chính trị
+      definition: >-
+        Đảng phái, bầu cử, chính trị gia, tranh luận về chính sách của nhà nước, biểu tình và
+        các vấn đề quyền lực chính trị khác.
+  - key: loan_approval_promises
+    enabled: false
+    en:
+      name: Loan approval promises
+      definition: >-
+        Promises or guarantees that a loan, credit limit or refund will be approved, or that an
+        interest rate or fee waiver is certain, before any decision is made.
+    vi:
+      name: Hứa hẹn duyệt khoản vay
+      definition: >-
+        Lời hứa hoặc cam kết chắc chắn khoản vay, hạn mức hay hoàn tiền sẽ được duyệt, hoặc lãi
+        suất và miễn phí cố định, trước khi có quyết định.
+  - key: competitor_products
+    enabled: false
+    en:
+      name: Competitor products
+      definition: >-
+        Rates, fees, features or quality of the accounts, cards and loans of other banks and
+        financial companies, or advice to switch to them.
+    vi:
+      name: Sản phẩm của đối thủ
+      definition: >-
+        Lãi suất, phí, tính năng hoặc chất lượng của tài khoản, thẻ và khoản vay của ngân
+        hàng và công ty tài chính khác, hoặc lời khuyên chuyển sang dùng các sản phẩm đó.
+  - key: internal_project_names
+    enabled: false
+    en:
+      name: Internal projects
+      definition: >-
+        Unreleased plans, code names or staff details of internal bank projects. EDIT THIS:
+        add the code names that must stay inside the bank, for example FILL-ME-PROJECT-NAMES.
+    vi:
+      name: Dự án nội bộ
+      definition: >-
+        Kế hoạch chưa công bố, tên mã hoặc thông tin nhân sự của các dự án nội bộ ngân hàng.
+        HÃY SỬA: thêm các tên mã cần giữ trong nội bộ, ví dụ FILL-ME-PROJECT-NAMES.
+  - key: medical_advice
+    enabled: false
+    en:
+      name: Medical advice
+      definition: >-
+        Diagnosis of symptoms, choice or dose of medicines, and treatment recommendations for
+        an illness or injury.
+    vi:
+      name: Tư vấn y tế
+      definition: >-
+        Chẩn đoán triệu chứng, chọn thuốc hoặc liều dùng, và khuyến nghị điều trị cho bệnh
+        hoặc chấn thương.
+  - key: illegal_activity
+    enabled: false
+    en:
+      name: Illegal activity
+      definition: >-
+        Ways to commit or hide a crime, such as fraud, laundering money, evading tax, forging
+        papers, hacking accounts or buying banned goods.
+    vi:
+      name: Hoạt động bất hợp pháp
+      definition: >-
+        Cách thực hiện hoặc che giấu tội phạm, như lừa đảo, rửa tiền, trốn thuế, làm giả giấy
+        tờ, xâm nhập tài khoản hoặc mua hàng cấm.
+  - key: adult_content
+    enabled: false
+    en:
+      name: Adult content
+      definition: >-
+        Sexually explicit material, erotic stories and requests for sexual content.
+    vi:
+      name: Nội dung người lớn
+      definition: >-
+        Tài liệu khiêu dâm, truyện gợi dục và yêu cầu về nội dung tình dục.
+  - key: staff_and_security_details
+    enabled: false
+    en:
+      name: Staff and branch security
+      definition: >-
+        Names, rosters, home details or movements of bank employees, and branch security
+        routines, alarm codes, vault access or cash transport timing.
+    vi:
+      name: Nhân viên và an ninh chi nhánh
+      definition: >-
+        Tên, lịch làm việc, thông tin cá nhân hoặc việc đi lại của nhân viên ngân hàng, và quy
+        trình an ninh chi nhánh, mã báo động, ra vào kho quỹ hoặc lịch vận chuyển tiền mặt.

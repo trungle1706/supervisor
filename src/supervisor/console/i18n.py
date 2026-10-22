@@ -2887,6 +2887,10 @@ _T.update(
         "ne_payload_too_large": ("payload too large", "dữ liệu quá lớn"),
         "ne_content_uninspectable": ("content could not be read", "không đọc được nội dung"),
         "ne_timed_out": ("a detector timed out", "một bộ phát hiện quá thời gian"),
+        "ne_budget_exhausted": (  # WP-D4
+            "a detector ran out of its time or call budget",
+            "một bộ phát hiện hết ngân sách thời gian hoặc số lần gọi",
+        ),
         "ne_skipped_by_policy": ("skipped by policy", "bị bỏ qua theo chính sách"),
         "ne_gate_failed": ("the gate could not decide", "cổng không thể quyết định"),
         "not_applicable": ("Not applicable", "Không áp dụng"),
@@ -3091,9 +3095,13 @@ _T.update(
         "cat_dlp_vn": ("Vietnamese data loss prevention", "Chống rò rỉ dữ liệu tiếng Việt"),
         "cat_dlp_vn_d": (
             "Finds Vietnamese personal data (CCCD, phone, account, address) in tool arguments "
-            "and masks it on PII-export tools.",
+            "and masks it on PII-export tools. WP-D2, optional: a secrets group (API keys, "
+            "tokens, private keys, passwords) reported as secret findings, and your own keyword "
+            "or regex rules.",
             "Tìm dữ liệu cá nhân tiếng Việt (CCCD, điện thoại, tài khoản, địa chỉ) trong tham số "
-            "công cụ và che trên công cụ xuất dữ liệu cá nhân.",
+            "công cụ và che trên công cụ xuất dữ liệu cá nhân. WP-D2, tùy chọn: nhóm bí mật "
+            "(khóa API, token, khóa riêng, mật khẩu) báo thành phát hiện bí mật, và quy tắc từ "
+            "khóa hoặc regex của riêng bạn.",
         ),
         "cat_injection_regex": ("Prompt injection patterns", "Mẫu tấn công chèn lệnh"),
         "cat_injection_regex_d": (
@@ -4290,6 +4298,44 @@ _T.update(
             "Chỉ băm, kích thước và loại của tài liệu được giữ lại. Nội dung không được lưu.",
         ),
         "pg_doc_findings": ("Findings", "Phát hiện"),
+    }
+)
+
+
+# WP-D4: judge moderation detector (Catalog card)
+_T.update(
+    {
+        "cat_judge_moderation": (
+            "Judge moderation detector",
+            "Bộ phát hiện kiểm duyệt của giám khảo",
+        ),
+        "cat_judge_moderation_d": (
+            "Asks the judge whether text is toxic and whether it belongs to up to five topics "
+            "you define, on the user text and on the reply. Advises and reports only; the "
+            "mock judge is labelled mock.",
+            "Hỏi giám khảo xem văn bản có độc hại không và có thuộc tối đa năm chủ đề do bạn "
+            "định nghĩa không, trên văn bản người dùng và trên câu trả lời. Chỉ tư vấn và báo "
+            "cáo; giám khảo giả được gắn nhãn mock.",
+        ),
+    }
+)
+
+
+_T.update(
+    {
+        # --- WP-D3: Catalog card of the guard model detector -----------------------------------
+        "cat_guard_model": (
+            "Guard model (jailbreak and injection)",
+            "Mô hình bảo vệ (jailbreak và chèn lệnh)",
+        ),
+        "cat_guard_model_d": (
+            "A configured model scores user text, tool results, tool descriptions and documents "
+            "for jailbreak and hidden instructions. It reports a finding; on money and credit "
+            "tools it may pause only when the model card names the approver.",
+            "Một mô hình được cấu hình chấm văn bản người dùng, kết quả công cụ, mô tả công cụ "
+            "và tài liệu để tìm jailbreak và lệnh ẩn. Mô hình chỉ báo phát hiện; trên công cụ "
+            "tiền và tín dụng nó chỉ được tạm dừng khi thẻ mô hình ghi tên người phê duyệt.",
+        ),
     }
 )
 

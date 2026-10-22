@@ -32,13 +32,14 @@ from supervisor.adapters.fetch.guard import (
     system_resolver,
 )
 from supervisor.adapters.fetch.transport import HttpsTransport, Transport, TransportResponse
-from supervisor.core.bounded import BoundedSlots, NoSlot
+from supervisor.core.bounded import Bounded
+from supervisor.core.errors import GuardModelError
 
 log = logging.getLogger(__name__)
 MAX_BYTES = 1024 * 1024
 TIMEOUT_S = 3.0
 MAX_REDIRECTS = 3
-_DNS_SLOTS = BoundedSlots(8)
+_DNS_SLOTS = Bounded(8)
 
 
 class FetchFailed(Exception):
@@ -79,8 +80,8 @@ class Fetcher:
 
     def _resolve(self, host: str, left_s: float) -> list[str]:
         try:
-            found = _DNS_SLOTS.call(lambda: self.resolver(host), max(0.05, left_s), "fetch-dns")
-        except (TimeoutError, NoSlot):
+            found = _DNS_SLOTS.run(lambda: self.resolver(host), max(0.05, left_s))
+        except GuardModelError:
             raise FetchFailed("dns timeout") from None
         except OSError:
             raise FetchFailed("dns error") from None

@@ -54,6 +54,111 @@ answer, row and chain record is as before (tests keep the fingerprint). Details:
   `gateway/adapters/*`, `console/playground.py`, `catalog_view.py`, `guardians_view.py`, `i18n.py`,
   `detectors/harness.py`, `pyproject.toml` (extra `documents`, one ruff ignore), `uv.lock`.
 
+### WP-D2: secrets group and custom rules for dlp_vn
+
+No new flag. Three new `dlp_vn` settings, all off or empty by default; with none of them set the
+detector output is byte for byte what it was (golden test). Details: `docs/detectors.md` section 3d,
+`docs/masking.md`.
+
+- `secrets: {enabled, action: report | block}`: 29 secret kinds reported as `secret.<kind>`
+  (cloud keys, API tokens, JWT, PEM, DSN, password assignments and password fields, a secret in
+  base64). A finding keeps the kind and a 12 character hash; the transformed payload holds
+  `<SECRET:kind>`. `action: block` is the new gate rule `GATE-SECRET-IN-ARGS`: a secret in a tool
+  argument blocks the call on every tool class, in the fail-closed shape of
+  `GATE-DETECTOR-FAILED`. Default `report`.
+- `custom_rules: [{id, kind: keyword | regex, pattern, mask_token?, preserve_length?}]`: strict
+  schema, a bad regex or a risky shape (nested quantifiers, back references, length) stops the
+  load; 1 ms per regex rule and text; mask token default `<CUSTOM:id>`.
+- `mask_tokens: {pii.phone: "<PHONE>"}`: a fixed text for a built-in entity in the transformed
+  payload.
+- One pattern source: `src/supervisor/core/secret_patterns.py`, used by `dlp_vn` and by the
+  onboarding scrubber. The scrubber gained GitLab, Hugging Face, Stripe, SendGrid, npm and Vault
+  tokens, and the AWS secret key pattern accepts a key that ends in `/` or `+`.
+- With inline redaction on, a call with a `secret.*` or `custom.*` finding takes the detector's
+  masked `args`, so a secret does not stay in `transformed_args`.
+- Harness suite `dlp_vn_secrets` (`python -m supervisor.detectors.harness --detector
+  dlp_vn_secrets`): items are built at run time, so no credential-shaped string is committed; own
+  baseline `data/eval/detectors/baseline_secrets.json`. Validation report section added.
+  Observe mode lifts `GATE-SECRET-IN-ARGS` like other blocks.
+- Catalog card text of `dlp_vn` extended (English and Vietnamese).
+
+Review fixes (same entry):
+
+- Custom regex: `?` counts as a variable repeat; more than two variable repeats, and two
+  unbounded repeats in sequence, are refused at load (`.*.*.*.*x`, `\w+\w+\w+\w+!`,
+  `a?`x22 `a`x22). A regex reads at most 2000 characters of a text. The budget is 10 ms per
+  rule and call. A cut or an overrun is a `coverage.notes` entry, never `timed_out`.
+- The hash in a secret finding is a keyed HMAC (masker key, else a per-process random key).
+- Observe mode: `GATE-SECRET-IN-ARGS` is held on `pii_export` tools; where it is lifted the
+  call carries the masked `transformed_args`.
+- A base64 secret next to a plain secret is found. `password_field` matches the last word of
+  the key name, covers Vietnamese and short names, and skips dates, versions, URLs and enum
+  words. A secret used as a dict key is found and masked.
+
+### WP-D4: judge moderation detector (toxicity and topic scope)
+
+New detector `judge_moderation` (phase 5), off by default (`enabled: false`, `mrm_status: NO-GO`);
+absent or off = nothing changes. Details: `docs/detectors.md` section 3e.
+
+- Toxicity (one answer) and up to 5 topics `{name, definition}` (definition up to 400 characters on one
+  line, the definition is what the judge reads), input and output, ONE judge prompt per text window on
+  masked text with every question in it (at most 10 calls per check, `max_calls` default 12), overlapping
+  windows, highest "yes" score per topic; a "no" never gives a finding. A deadline (80 percent of the
+  gate timeout, or the per-detector `timeout_ms` setting) stops the calls; unasked questions are
+  `not_executed` `budget_exhausted` (new reason, advisory). Review fixes: topic definitions escaped and
+  quoted in the prompt; two draft topics renamed to bank topics (loan approval promises, staff and
+  branch security). Findings `moderation.toxic` and
+  `moderation.topic:<name>`, report only, never fail closed. MockJudge without a judge model,
+  every finding `mock: true`. Strict topic checks when `config/detectors.yaml` or an agent override
+  loads.
+- `config/moderation_topics.yaml`: 10 editable draft topics in Vietnamese and English, none enabled.
+- Harness rows with a small synthetic VI and EN set and a rubric; report
+  `docs/judge-moderation-validation-report.md`. Catalog card and i18n (EN, VI); Guardians card
+  binding `judge_moderation`.
+### WP-D3: guard model detector and the model decision memo
+
+One new detector, `guard_model`, off by default (`enabled: false`, `mrm_status: NO-GO` in
+`config/detectors.yaml`). A slug that is absent from the file changes nothing. Details:
+`docs/detectors.md` section 3d, memo `docs/guard-model-decision.md`.
+
+- `guard_model`: a configured model scores user text in arguments, tool results, tool descriptions
+  and documents for jailbreak and indirect injection (codes `guard.jailbreak`,
+  `guard.indirect_injection`), input and output side, `llm` and `mcp`. Masked text only, no system
+  prompt, 2,000-character windows with 500 overlap and the highest score wins, scores cached by text
+  hash. Presets `permissive | balanced | strict` are thresholds per label in basis points.
+- Port `GuardModelPort.score(texts)` (`core/ports.py`) and three adapters in
+  `adapters/guard/`: a direct classifier endpoint (`POST <url>` with `{"inputs": [...]}`, the shape
+  of a Databricks serving endpoint), an OpenAI-compatible chat model with a fixed classification
+  prompt (judge family rule applies), and a labelled mock. Settings `GUARD_MODEL_ADAPTER`,
+  `GUARD_MODEL_URL`, `GUARD_MODEL_NAME`, `GUARD_MODEL_VERSION`, `GUARD_MODEL_API_KEY`, `GUARD_MODEL_TIMEOUT_MS`,
+  `GUARD_MODEL_FAIL_CLOSED_APPROVED`.
+- Findings only. A timeout or error is a `timed_out` or `execution_failed` row, never a block and
+  never fail closed by default. The pause hint (rule `GATE-CLASSIFIER-PAUSE`, money and credit
+  tools) needs `pause_tool_classes` and a card approval that names the approver, the model id and the version
+  (`data/models/guard_model/model_card.json`). `gateway/detector_gate.py` lists `guard_model` as a
+  pause-capable detector.
+- Harness `python -m supervisor.detectors.guard_harness` on the WP25 corpus: mock adapter in CI
+  (never GO; baseline `data/eval/guard_model/baseline_mock.json`), real endpoint when
+  `GUARD_MODEL_URL` is set. Report `docs/guard-model-validation-report.md`.
+- Docs: decision memo (prompt-guard class model on Databricks serving, the judge model as
+  classifier, vendor API excluded; latency and cost as formulas; what the live kit measures), model
+  card template, `docs/llm-adapter.md` section 5. Catalog card and i18n EN and VI.
+- The detector is always in the catalogue (`GET /v1/gate/detectors` lists it, like every detector),
+  but its port is built and it runs only when the `guard_model` entry is enabled in
+  `config/detectors.yaml` or a per-agent override enables it. Off, a bad `GUARD_MODEL_*` setting is a
+  `[SKIP]` line in the log, never a start-up failure.
+- Review fixes: one total deadline per model call (the classifier adapter cuts a trickling body, the
+  chat adapter passes the time left to a single attempt and skips the retry), a guard-only pool of 4
+  threads so a slow model cannot starve `dlp_vn`, `budget_aware` with a per-detector `timeout_ms`
+  and reason `budget_exhausted` (WP-D4 mechanism), frame markers stripped until stable, the approval
+  pins `GUARD_MODEL_VERSION` as well as the model id, the judge or LLM key only goes to its own URL,
+  at most `max_windows` windows in all with a `windows dropped` note, harness run invalid when an
+  item was not scored, exact catalogue list in three tests.
+- Shared files touched: `config/detectors.yaml`, `src/supervisor/config.py` (settings block),
+  `core/ports.py`, `core/errors.py`, `wiring.py`, `detectors/__init__.py`, `gateway/detector_gate.py`
+  (one set entry), `console/catalog_view.py`, `console/i18n.py`, `console/guardians_view.py`; tests
+  `test_contract.py`, `test_routes.py`, `test_harness.py` now compare the first four slugs only.
+
 ### WP-G6: MCP server, skills, KPI endpoint
 
 One new flag, off by default (`MCP_SERVER_ENABLED`). Off = nothing is mounted, no table is read or

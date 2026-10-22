@@ -54,6 +54,7 @@ NOT_EXECUTED_REASONS: tuple[str, ...] = (
     "content_uninspectable",
     "not_applicable_for_direction",
     "timed_out",
+    "budget_exhausted",  # WP-D4: a budgeted detector (judge_moderation) stopped asking
 )
 # Reasons that mean "we could not look". Fail closed on money, credit and PII-export tools.
 FAILURE_REASONS: frozenset[str] = frozenset(NOT_EXECUTED_REASONS) - {"not_applicable_for_direction"}
@@ -707,6 +708,58 @@ class DetectorRegistry:
     def slugs(self) -> list[str]:
         return list(self._by_slug)
 
+    def _head_scan(
+        self,
+        res: RunResult,
+        det: Any,
+        st: DetectorSetting,
+        payload: Mapping[str, Any],
+        all_part_bytes: Mapping[str, int],
+        parts_here: Sequence[str],
+        direction: str,
+        config: RunConfig,
+        clock_ns: Callable[[], int],
+    ) -> None:
+        """WP-D2: a payload over ``max_payload_chars`` is skipped by every detector, except one
+        that declares ``scan_head_when_oversize`` and whose ``head_scan_here(settings)`` is
+        true (dlp_vn with secrets.action block). It reads the first ``max_scan_bytes`` of the
+        arguments only, never transforms, and only a ``block`` finding counts. The
+        ``payload_too_large`` row stays (risky tools still fail closed); a coverage note says
+        how much was read. A padded payload must not be a way past the secrets check."""
+        hook = getattr(det, "head_scan_here", None)
+        if (
+            not getattr(det, "scan_head_when_oversize", False)
+            or not callable(hook)
+            or "args" not in parts_here
+            or "args" not in all_part_bytes
+        ):
+            return
+        clean, errors = self.validate_settings(det.slug, st.settings)
+        if errors or not hook(clean):
+            return
+        limit = int(clean.get("max_scan_bytes") or DEFAULT_MAX_SCAN_BYTES)
+        view, scanned, _ = clipped_view(payload, ("args",), {"args": all_part_bytes["args"]}, limit)
+        head = {"args": view["args"], "meta": payload.get("meta")}
+        t0 = clock_ns()
+        try:
+            found = _call_bounded(
+                lambda: det.evaluate(head, clean, direction), config.timeout_ms / 1000
+            )
+        except Exception:  # noqa: BLE001 - the payload_too_large row already stands
+            return
+        res.per_detector_us[det.slug] = (clock_ns() - t0) // 1000
+        res.evaluated.append(det.slug)
+        for f in found:
+            if f.action_hint == "block" and f.not_executed_reason is None and f.fired:
+                res.findings.append(replace(f, transformed_payload=None))
+        res.coverage.setdefault("notes", []).append(
+            {
+                "detector": det.slug,
+                "reason": "head_only",
+                "detail": f"head only: {scanned['args']} of {all_part_bytes['args']} bytes",
+            }
+        )
+
     def _closes(self, ne: Finding, config: RunConfig) -> bool:
         """True when this not-executed row blocks a risky tool: its detector is set to fail
         closed and may (R1), or, for a row of the whole call (slug ``*``), any enabled one is."""
@@ -813,11 +866,13 @@ class DetectorRegistry:
             "not_inspected": not_inspected,
             "chars": total + doc_chars,
         }
+        all_part_bytes = dict(part_bytes)  # WP-D2: for the head scan of an oversize payload
         part_bytes = {p: b for p, b in part_bytes.items() if p in inspected}
         budget_left = config.scan_budget_bytes
         scanned_min: dict[str, int] = {}  # per part: the least any detector scanned
 
         merged: dict[str, Any] = {}
+        notes: list[dict[str, str]] = []  # WP-D2: coverage notes, never a failure
         for slug, det in self._by_slug.items():
             st = config.detectors.get(slug)
             if st is None or not st.enabled:
@@ -833,6 +888,9 @@ class DetectorRegistry:
                 continue  # another transport: not a gap, listed nowhere
             if too_large:
                 res.not_executed.append(not_executed(slug, did, "payload_too_large", preset=preset))
+                self._head_scan(
+                    res, det, st, payload, all_part_bytes, parts_here, direction, config, clock_ns
+                )
                 continue
             clean, errors = self.validate_settings(slug, st.settings)
             if errors:
@@ -888,10 +946,20 @@ class DetectorRegistry:
                     not_executed(slug, did, "payload_too_large", "documents", preset=preset)
                 )
             t0 = clock_ns()
+            # WP-D4: a detector with a `timeout_ms` setting has its own deadline (default: the
+            # gate's). A budget-aware detector is told the deadline so it stops asking its model
+            # and frees its thread slot before the gate gives up on it.
+            own_ms = clean.get("timeout_ms")
+            timeout_ms = own_ms if isinstance(own_ms, int) and own_ms > 0 else config.timeout_ms
+            run_settings = (
+                {**clean, "_budget_ms": timeout_ms}
+                if getattr(det, "budget_aware", False)
+                else clean
+            )
             try:
                 found = _call_bounded(
-                    lambda det=det, clean=clean, view=view: det.evaluate(view, clean, direction),
-                    config.timeout_ms / 1000,
+                    lambda det=det, s=run_settings, view=view: det.evaluate(view, s, direction),
+                    timeout_ms / 1000,
                 )
             except (TimeoutError, _NoSlot) as exc:
                 took_us = (clock_ns() - t0) // 1000
@@ -907,7 +975,7 @@ class DetectorRegistry:
                 continue
             took_us = (clock_ns() - t0) // 1000
             res.per_detector_us[slug] = took_us
-            if took_us > config.timeout_ms * 1000:
+            if took_us > timeout_ms * 1000:
                 res.not_executed.append(
                     not_executed(slug, did, "timed_out", f"{took_us // 1000} ms", preset=preset)
                 )
@@ -920,12 +988,32 @@ class DetectorRegistry:
                     res.not_executed.append(
                         not_executed(slug, did, "payload_too_large", "arguments", preset=preset)
                     )
-                    continue
-                found = [_without_parts(f, clipped) for f in found]
+                    # WP-D2: a block hint (a secret found in the scanned part of the arguments) is
+                    # not a transform and survives the cut, without its masked payload. The block
+                    # must stand on every tool class, whatever the size of the payload.
+                    found = [
+                        replace(f, transformed_payload=None)
+                        for f in found
+                        if f.action_hint == "block" and f.not_executed_reason is None
+                    ]
+                    if not found:
+                        continue
+                else:
+                    found = [_without_parts(f, clipped) for f in found]
             res.evaluated.append(slug)
             for f in found:
                 if f.not_executed_reason is not None:
                     res.not_executed.append(f)
+                elif f.code.startswith("coverage_note."):
+                    # WP-D2: a detector says it read less than all of a text (a cut). Listed in
+                    # coverage.notes; it is not a finding and never fails a call closed.
+                    notes.append(
+                        {
+                            "detector": slug,
+                            "reason": f.code.split(".", 1)[1],
+                            "detail": f.detail,
+                        }
+                    )
                 elif f.fired:
                     res.findings.append(f)
                     if f.action_hint == "transform" and f.transformed_payload:
@@ -933,6 +1021,8 @@ class DetectorRegistry:
                             merged[part] = value
         if merged:
             res.transformed_payload = merged
+        if notes:
+            res.coverage.setdefault("notes", []).extend(notes)
         cut = [
             {
                 "part": p,

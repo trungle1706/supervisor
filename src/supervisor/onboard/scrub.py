@@ -14,70 +14,12 @@ never the matched text. The scrubber is idempotent (a redaction marker never mat
 from __future__ import annotations
 
 import logging
-import re
 from collections import Counter
 from dataclasses import dataclass, field
 
+from supervisor.core.secret_patterns import redact
+
 log = logging.getLogger("supervisor.onboard.scrub")
-
-# (kind, pattern, group to redact: 0 = whole match). Order matters: specific first.
-_PATTERNS: tuple[tuple[str, str, int], ...] = (
-    (
-        "pem_private_key",
-        r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|\Z)",
-        0,
-    ),
-    ("databricks_token", r"\bdapi[0-9a-f]{32}(?:-\d+)?\b", 0),
-    ("databricks_oauth_secret", r"\bdose[0-9a-f]{32}\b", 0),
-    ("aws_access_key", r"\b(?:AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}\b", 0),
-    (
-        "aws_secret_key",
-        r"(?i)aws_?secret_?access_?key\s*[\"']?\s*[:=]\s*[\"']?([A-Za-z0-9/+=]{40})\b",
-        1,
-    ),
-    ("azure_storage_key", r"(?i)AccountKey=([A-Za-z0-9+/]{40,}={0,2})", 1),
-    ("azure_sas_signature", r"(?i)[?&]sig=([A-Za-z0-9%+/=]{30,})", 1),
-    ("azure_client_secret", r"\b[A-Za-z0-9_~.-]{3}8Q~[A-Za-z0-9_~.-]{31,34}\b", 0),
-    ("gcp_api_key", r"\bAIza[0-9A-Za-z_-]{35}\b", 0),
-    ("gcp_private_key_id", r"\"private_key_id\"\s*:\s*\"([0-9a-f]{40})\"", 1),
-    ("github_token", r"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{22,})\b", 0),
-    ("slack_token", r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b", 0),
-    ("llm_api_key", r"\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}\b", 0),
-    (
-        "jwt",
-        r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b",
-        0,
-    ),
-    ("gcp_oauth_token", r"\bya29\.[0-9A-Za-z_-]{20,}", 0),
-    ("bearer_token", r"(?i)\bbearer\s+([A-Za-z0-9._~+/-]{20,}=*)", 1),
-    ("basic_auth", r"(?i)\bbasic\s+([A-Za-z0-9+/]{12,}={0,2})(?![A-Za-z0-9+/=])", 1),
-    ("url_password", r"\b[a-zA-Z][a-zA-Z0-9+.-]*://[^\s/:@\"']*:([^\s@/\"']+)@", 1),
-    (
-        "assigned_secret",
-        r"(?i)\b[\w.-]*(?:password|passwd|pwd|secret|api_?key|access_?token|auth_?token|"
-        r"client_?secret|private_?key)[\w.-]*\s*[\"']?\s*[:=]\s*[\"']([^\"'\s]{6,})[\"']",
-        1,
-    ),
-    (
-        "assigned_secret_env",
-        r"(?m)^\s*(?:export\s+)?[A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|API_KEY|APIKEY)[A-Z0-9_]*"
-        r"\s*=\s*([^\s\"'#]{8,})",
-        1,
-    ),
-    (
-        # Unquoted YAML / INI / .env values: `api_key: abc123def`, `password = hunter22`.
-        # The value must hold a digit and end the line, so code such as
-        # `api_key = settings.llm_api_key` or `token: str` is left alone.
-        "assigned_secret_unquoted",
-        r"(?im)^[ \t-]*[\w.-]*(?:password|passwd|pwd|secret|api_?key|apikey|token|"
-        r"client_?secret|private_?key)[\w.-]*[ \t]*[:=][ \t]*"
-        r"(?![\"'$<{]|os\.|FILL-ME|\[REDACTED)(?=[^\s\"'#,;]*\d)([^\s\"'#,;]{6,})[ \t]*$",
-        1,
-    ),
-)
-
-_COMPILED = tuple((kind, re.compile(p), g) for kind, p, g in _PATTERNS)
-_MARKER = re.compile(r"\[REDACTED:[a-z_]+\]")
 
 
 def _marker(kind: str) -> str:
@@ -97,26 +39,15 @@ class ScrubResult:
 def scrub_text(text: str) -> ScrubResult:
     """Replace every secret-looking span. Returns the clean text and counts per kind."""
     counts: Counter[str] = Counter()
-    out = text
-    for kind, pat, group in _COMPILED:
 
-        def repl(m: re.Match[str], kind: str = kind, group: int = group) -> str:
-            value = m.group(group)
-            if value is None or _MARKER.fullmatch(value) or value.startswith("[REDACTED:"):
-                return m.group(0)
-            if value.startswith("FILL-ME") or set(value) <= {"*", "x", "X", "."}:
-                return m.group(0)  # documented placeholders are not secrets
-            counts[kind] += 1
-            # Keep the line count so file:line evidence stays correct after scrubbing.
-            marker = _marker(kind) + "\n" * value.count("\n")
-            if group == 0:
-                return marker
-            start, end = m.span(group)
-            base = m.start(0)
-            whole = m.group(0)
-            return whole[: start - base] + marker + whole[end - base :]
+    def marker(kind: str, value: str) -> str:
+        # Keep the line count so file:line evidence stays correct after scrubbing.
+        return _marker(kind) + "\n" * value.count("\n")
 
-        out = pat.sub(repl, out)
+    def hit(kind: str, _value: str) -> None:
+        counts[kind] += 1
+
+    out = redact(text, marker, hit)
     return ScrubResult(out, dict(counts))
 
 

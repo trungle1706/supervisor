@@ -64,7 +64,7 @@ Answer additions:
 |---|---|---|
 | `status` | `allow` `report` `transform` `pause` `block` `skip` | Precedence block > pause > transform > report > allow; `skip` only from a policy value (`docs/detectors.md` section 4) |
 | `findings[]` | list | `detector_slug`, `detector_id`, `code`, `score_bp`, `threshold_bp`, `entities` (masked), `fragments` (located on masked text), `masked_count`, `action_hint`, `not_executed_reason` (null), `preset`, `mock` |
-| `not_executed[]` | list | `detector_slug`, `detector_id`, `reason` (`execution_failed`, `invalid_config`, `payload_too_large`, `content_uninspectable`, `not_applicable_for_direction`, `timed_out`), `detail` |
+| `not_executed[]` | list | `detector_slug`, `detector_id`, `reason` (`execution_failed`, `invalid_config`, `payload_too_large`, `content_uninspectable`, `not_applicable_for_direction`, `timed_out`, `budget_exhausted`), `detail` |
 | `coverage` | object | `direction`, `inspected` (parts), `not_inspected` (`part`, `reason`; with `payload_too_large` also `bytes` and `scanned_bytes`), `chars`; WP41 adds `bytes` (total) when a part was cut and `kept_args` when the policy passed arguments unmasked |
 | `kept_args` | list, only when present | WP41: names of top-level arguments the policy passed unmasked in `transformed_args` (dlp_vn `keep_args`); the values stay masked in every record |
 | `transformed_payload` | object or null | The payload parts after the dlp transform, for example `{"args": {...}}`. `transformed_args` carries the same arguments for the SDK and the MCP proxy |

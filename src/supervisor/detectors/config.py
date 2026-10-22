@@ -29,6 +29,7 @@ from supervisor.core.detectors import (
     RunConfig,
 )
 from supervisor.core.errors import ConfigError
+from supervisor.detectors.dlp_extras import extras_problems  # WP-D2
 from supervisor.detectors.dlp_vn import keep_args_problems
 from supervisor.gateway.policy import AgentDetectors
 
@@ -106,7 +107,12 @@ def load_config(path: Path | str) -> DetectorsFile:
 def _extra_problems(slug: str, settings: Mapping[str, Any]) -> list[str]:
     """Checks the declarative schema cannot express (WP41: the shape of dlp_vn keep_args)."""
     if slug == "dlp_vn":
-        return keep_args_problems(settings.get("keep_args"))
+        # WP-D2: secrets, custom_rules and mask_tokens (a bad regex stops the load)
+        return [*keep_args_problems(settings.get("keep_args")), *extras_problems(settings)]
+    if slug == "judge_moderation":  # WP-D4: strict shape of each topic entry
+        from supervisor.detectors.judge_moderation import topic_problems
+
+        return topic_problems(settings.get("topics"))
     return []
 
 

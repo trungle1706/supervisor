@@ -108,6 +108,12 @@ ENTRIES: tuple[Entry, ...] = (
         "DETECTORS_ENABLED=1 + judge_advisory.enabled", "docs/detectors.md", "decisions",
         on=_detector("judge_advisory"),
     ),
+    # WP-D4: toxicity and topic scope by the judge; advises only
+    Entry(
+        "judge_moderation", "judge", "advises", "JM",
+        "DETECTORS_ENABLED=1 + judge_moderation.enabled", "docs/detectors.md", "decisions",
+        on=_detector("judge_moderation"),
+    ),
     Entry(
         "redteam", "judge", "advises", "RT", "REDTEAM_NIGHTLY_ENABLED=1",
         "docs/redteam-multiturn.md", "assurance", on=_flag("redteam_nightly_enabled"),
@@ -156,6 +162,12 @@ ENTRIES: tuple[Entry, ...] = (
     Entry(
         "siem", "connect", "watches", "SI", "SIEM_ENABLED=1", "docs/siem.md",
         on=_flag("siem_enabled"),
+    ),
+    # --- WP-D3: guard model (ML jailbreak and indirect-injection scoring); advises, may only pause
+    Entry(
+        "guard_model", "detect", "advises", "GM",
+        "DETECTORS_ENABLED=1 + guard_model.enabled", "docs/guard-model-decision.md", "decisions",
+        on=_detector("guard_model"),
     ),
 )  # fmt: skip
 

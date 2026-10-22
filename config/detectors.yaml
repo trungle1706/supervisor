@@ -49,6 +49,52 @@ detectors:
     fail_closed: false          # uses the mock judge and every finding is labelled mock.
     mrm_status: NO-GO           # an advisor: weighs 0 in sessions
     settings: {}
+  # WP-D2: dlp_vn secrets group, custom rules and mask tokens (docs/detectors.md section 3d).
+  # Nothing to switch on here by default: with `secrets` absent and `custom_rules` empty dlp_vn
+  # behaves exactly as before. To use them, add under detectors.dlp_vn.settings above:
+  #   secrets: {enabled: true, action: report}      # report (default) | block
+  #   custom_rules:
+  #     - {id: proj, kind: regex, pattern: "PRJ-[0-9]{4}-[A-Z]{2}"}
+  #     - {id: conf, kind: keyword, pattern: "CONFIDENTIAL", mask_token: "[HIDDEN]"}
+  #     - {id: emp, kind: regex, pattern: "EMP[0-9]{5}", preserve_length: true}
+  #   mask_tokens: {pii.phone: "<PHONE>"}
+  # action: block makes a secret in a tool argument the rule GATE-SECRET-IN-ARGS on every tool
+  # class. In report mode a secret in the arguments of a tool OUTSIDE the transform scope
+  # (transform_risk_classes / transform_tools) reaches the tool as sent: use action: block for
+  # money and credit tools. A bad or risky regex (nested quantifiers) stops the load with a message.
+  # WP-D4: toxicity and topic scope by the judge model. Report only, never fail closed (R1).
+  # Both questions are off until you set them: toxicity.enabled, or topics (at most 5 entries,
+  # each {name, definition}; definition up to 400 characters; the definition is what is scored).
+  # Editable drafts to copy from: config/moderation_topics.yaml (none of them is enabled).
+  judge_moderation:
+    enabled: false              # Off: every question is one judge call per text window. With no
+    fail_closed: false          # judge model set it uses the mock judge (labelled mock).
+    mrm_status: NO-GO           # an advisor: weighs 0 in sessions until a real judge run says GO
+    settings:
+      toxicity: {enabled: false}
+      topics: []
+      # max_calls: 12      # hard cap of model calls per check (one call per text window)
+      # timeout_ms: 8000   # this detector's own deadline; empty = limits.timeout_ms. A real judge
+      #                    # model needs seconds; it stops asking at 80 percent of this value.
+  # WP-D3 --- guard_model: ML jailbreak and indirect-injection scoring through a configured model
+  # (docs/detectors.md section 3d, docs/guard-model-decision.md). OFF by default; the `enabled`
+  # key is the only switch. The model comes from GUARD_MODEL_* in the environment (no URL = the
+  # labelled mock). Findings only. It may pause money and credit tools only when
+  # pause_tool_classes is set AND data/models/guard_model/model_card.json carries an approval that
+  # names the approver and the model id (rule GATE-CLASSIFIER-PAUSE). Never fail closed: an outage
+  # is a timed_out / execution_failed row (R1). Raise limits.timeout_ms before a real endpoint.
+  guard_model:
+    enabled: false
+    fail_closed: false
+    mrm_status: NO-GO           # no real run yet: weighs 0 in sessions
+    preset: balanced            # permissive | balanced | strict (lenient = permissive)
+    settings:
+      scan_args: true           # jailbreak in user text fields
+      scan_tool_results: true   # indirect injection (and the output side)
+      scan_tool_descriptions: true
+      scan_documents: true      # text extracted by the document intake (WP-D1)
+      pause_tool_classes: []    # e.g. [money, credit]; empty = report only
+      max_windows: 12           # 2,000-character windows per call
   # WP-D1: document and URL intake (docs/detectors.md "Documents and URLs"). It reports what
   # happened when the gate read context.documents: document.uninspectable, document.limit_exceeded,
   # url.ssrf_refused, url.domain_blocked. The switch for the feature is DOCUMENT_INTAKE_ENABLED

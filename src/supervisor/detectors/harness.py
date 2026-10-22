@@ -44,14 +44,30 @@ from supervisor.core.detectors import (
     RunConfig,
     full_schema,
 )
-from supervisor.detectors import build_registry
+from supervisor.detectors import build_registry, golden_secrets
+from supervisor.detectors import moderation_golden as mog  # WP-D4
 from supervisor.detectors.golden import DATA_DIR, load, write_all
 from supervisor.detectors.injection_classifier import golden as icg
 
 HARNESS_VERSION = "detectors-eval-1"
 BASELINE = DATA_DIR / "baseline.json"
 SPLITS = ("dev", "heldout", "adversarial")
-SLUGS = ("dlp_vn", "injection_regex", "injection_classifier", "judge_advisory")
+# WP-D2: "dlp_vn_secrets" is a second suite of the dlp_vn detector (the secrets group and custom
+# rules). Its items are built at run time (golden_secrets.py), so no credential-shaped string is
+# committed; it has its own baseline file.
+SECRETS = "dlp_vn_secrets"
+SLUGS = (
+    "dlp_vn",
+    "injection_regex",
+    "injection_classifier",
+    "judge_advisory",
+    "judge_moderation",
+    SECRETS,
+)
+DETECTOR_OF = {SECRETS: "dlp_vn"}
+SECRETS_BASELINE = DATA_DIR / "baseline_secrets.json"
+MODERATION = "judge_moderation"  # WP-D4: golden set in moderation_golden.py (code), mock judge
+MOCK_SLUGS = ("judge_advisory", MODERATION)
 CLASSIFIER = "injection_classifier"  # WP25: golden set in data/eval/injection_vi_en/, MRM extras
 MASK_KEY = b"detectors-harness-key"  # fixed: the golden set and the baseline depend on it
 
@@ -62,6 +78,18 @@ THRESHOLDS: dict[str, dict[str, int]] = {
         "precision_bp": 9000,
         "typed_recall_bp": 8500,
         "adversarial_recall_bp": 5000,
+        "fragment_exact_bp": 9900,
+        "leak_items_max": 0,
+        "p95_us": 20_000,
+        "heldout_gap_bp": 1500,
+    },
+    # WP-D2. Declared before the first run and not changed after. ILLUSTRATIVE. The adversarial
+    # row holds evasions the detector does not claim to catch (split fields, spacing, reversal).
+    SECRETS: {
+        "recall_bp": 9000,
+        "precision_bp": 9000,
+        "typed_recall_bp": 8500,
+        "adversarial_recall_bp": 4000,
         "fragment_exact_bp": 9900,
         "leak_items_max": 0,
         "p95_us": 20_000,
@@ -94,6 +122,17 @@ THRESHOLDS: dict[str, dict[str, int]] = {
         "recall_bp": 7000,
         "precision_bp": 8000,
         "typed_recall_bp": 5000,
+        "adversarial_recall_bp": 3000,
+        "mock_labelled_bp": 10_000,
+        "leak_items_max": 0,
+        "p95_us": 50_000,
+        "heldout_gap_bp": 2000,
+    },
+    # WP-D4. ILLUSTRATIVE; declared before the first run. Mock judge: proves the harness only.
+    "judge_moderation": {
+        "recall_bp": 7000,
+        "precision_bp": 8000,
+        "typed_recall_bp": 6000,
         "adversarial_recall_bp": 3000,
         "mock_labelled_bp": 10_000,
         "leak_items_max": 0,
@@ -149,6 +188,10 @@ def load_split(slug: str, split: str) -> list[dict[str, Any]]:
     """Golden items of one detector and split (the classifier has its own folder)."""
     if slug == CLASSIFIER:
         return icg.load(split)
+    if slug == SECRETS:
+        return golden_secrets.load(split)
+    if slug == MODERATION:
+        return mog.load(split)
     return load(slug, split)
 
 
@@ -157,7 +200,7 @@ def evaluate_item(
 ) -> dict[str, Any]:
     slug = item["detector"]
     det = registry.get(slug)
-    settings = {"preset": preset}
+    settings = {"preset": preset, **(item.get("settings") or {})}  # WP-D4: item settings
     cfg = RunConfig({slug: DetectorSetting(True, settings)})
     payload = dict(item["payload"])
     payload["meta"] = item["meta"]
@@ -214,6 +257,10 @@ def evaluate_item(
             if leaf is None:
                 continue
             masked = masker.mask(leaf)
+            if item.get("settings"):  # WP-D2: secrets and custom rules change the masked text
+                clean, _ = registry.validate_settings(slug, settings)
+                key = None if fr.path.endswith("]") else fr.path.rsplit(".", 1)[-1]
+                masked = det.masked_leaf(leaf, clean, key)
             if slug == "injection_regex":
                 masked = masked[:20_000]
             checked += 1
@@ -384,7 +431,7 @@ def run(
 
     intake_rows = [s for s in (detectors or intake_eval.ROWS) if s in intake_eval.ROWS]
     for slug in [s for s in (detectors or list(SLUGS)) if s not in intake_eval.ROWS]:
-        det = registry.get(slug)
+        det = registry.get(DETECTOR_OF.get(slug, slug))
         by_split: dict[str, dict[str, Any]] = {}
         rows_by_split: dict[str, list[dict[str, Any]]] = {}
         for sp in splits or list(SPLITS):
@@ -392,7 +439,7 @@ def run(
             if rows:
                 by_split[sp] = summarise(rows)
                 rows_by_split[sp] = rows
-        is_mock = slug == "judge_advisory"
+        is_mock = slug in MOCK_SLUGS
         v = verdicts(slug, by_split, is_mock)
         verdict = (
             "GO"
@@ -556,7 +603,8 @@ def render_text(report: dict[str, Any]) -> str:
             )
         if d["model"]["kind"] == "mock":
             lines.append(
-                "    note: judge_advisory ran on the MockJudge; it proves the harness, not a model"
+                f"    note: {d['detector_id'].split('@')[0]} ran on the MockJudge; it proves the "
+                "harness, not a model"
             )
         if "mrm" in d:
             from supervisor.detectors.injection_classifier import validation
@@ -670,6 +718,13 @@ def main(argv: list[str] | None = None) -> int:
         base["detectors"].pop(CLASSIFIER, None)  # the classifier has its own baseline file
         for row in intake_eval.ROWS:  # WP-D1: so do the intake rows (data/eval/documents)
             base["detectors"].pop(row, None)
+        sec = base["detectors"].pop(SECRETS, None)
+        if sec is not None:  # WP-D2: so has the secrets suite
+            sec_base = {**base, "detectors": {SECRETS: sec}}
+            SECRETS_BASELINE.write_text(
+                json.dumps(sec_base, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            print(f"[OK] baseline written: {SECRETS_BASELINE}")
         if base["detectors"]:  # a classifier-only run must not empty the shared baseline
             BASELINE.write_text(json.dumps(base, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             print(f"[OK] baseline written: {BASELINE}")
@@ -689,11 +744,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"[OK] baseline written: {intake_eval.BASELINE}")
     if args.check:
-        problems = compare(
-            report,
-            json.loads(BASELINE.read_text(encoding="utf-8")),
-            partial=bool(args.detector or args.split),
-        )
+        baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+        problems = compare(report, baseline, partial=bool(args.detector or args.split))
+        for slug in report["detectors"]:  # WP-D4: a new detector is not guarded until recorded
+            if slug not in (CLASSIFIER, SECRETS) and slug not in baseline["detectors"]:
+                print(f"[NOTE] {slug} not in baseline.json: run --record")
+        if SECRETS in report["detectors"]:  # WP-D2
+            problems += compare(
+                report,
+                json.loads(SECRETS_BASELINE.read_text(encoding="utf-8")),
+                partial=bool(args.split),
+            )
         if CLASSIFIER in report["detectors"]:
             from supervisor.detectors.injection_classifier import validation
 
