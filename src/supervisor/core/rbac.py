@@ -152,6 +152,15 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "owner", "admin"),
         "Register and change AI systems, their team and their links (WP-G0)",
     ),
+    # --- WP-G1 ---
+    "systems.approve": (
+        ("approver", "reviewer", "owner", "admin"),
+        "Answer a stage approval of an AI system (WP-G1)",
+    ),
+    "systems.review": (
+        ("reviewer", "approver", "admin"),
+        "Plan, change, complete and reopen reviews of an AI system (WP-G1)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -360,6 +369,24 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/systems/{system_id}/links"): "systems.edit",
     ("DELETE", "/v1/systems/{system_id}/links/{component_id}"): "systems.edit",
     ("POST", "/v1/systems/{system_id}/archive"): "systems.edit",
+    # --- WP-G1 --- stage approvals, stage move, reviews (same flag as /v1/systems)
+    ("GET", "/v1/systems/{system_id}/approvals"): "systems.view",
+    ("POST", "/v1/systems/{system_id}/approvals"): "systems.edit",
+    ("POST", "/v1/systems/{system_id}/approvals/{approval_id}/decide"): "systems.approve",
+    ("POST", "/v1/systems/{system_id}/stage"): "systems.edit",
+    ("GET", "/v1/systems/{system_id}/reviews"): "systems.view",
+    ("POST", "/v1/systems/{system_id}/reviews"): "systems.review",
+    ("PATCH", "/v1/systems/{system_id}/reviews/{review_id}"): "systems.review",
+    ("POST", "/v1/systems/{system_id}/reviews/{review_id}/complete"): "systems.review",
+    ("POST", "/v1/systems/{system_id}/reviews/{review_id}/reopen"): "systems.review",
+    # --- WP-UX4a --- CONSOLE_NAV_V3 pages and section routes (read only)
+    ("GET", "/console/governance"): "console.view",
+    ("GET", "/console/supervisor"): "console.view",
+    ("GET", "/console/workflows"): "console.view",
+    ("GET", "/console/catalogues"): "console.view",
+    ("GET", "/console/risks-controls"): "console.view",
+    ("GET", "/console/activity"): "console.view",
+    ("GET", "/console/guardians"): "console.view",
 }
 
 

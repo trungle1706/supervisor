@@ -1,0 +1,55 @@
+{# Tasks tab of the system page (WP-G1): the stage, the stage approvals and the task list of every
+   agent linked to the system. Read only; changes go through the API. Variables: s, lifecycle,
+   tk_off, task_n, task_agents. #}
+{% import "_ui.html" as ui with context %}
+<section class="card" data-section="system-stage">
+  <h3>{{ t('sy_stage_now') }}: {{ t('sy_stage_' ~ lifecycle.lifecycle_stage) }}</h3>
+  <p class="hint">{{ t('sy_stage_needs_approval') }}: {% for st in lifecycle.needs_approval %}{{ t('sy_stage_' ~ st) }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</p>
+  {% if lifecycle.approvals %}
+  <div class="tablewrap flat"><table id="system-approvals">
+    <thead><tr><th scope="col">{{ t('sy_ap_move') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('sy_ap_requested_by') }}</th><th scope="col">{{ t('sy_ap_decided_by') }}</th><th scope="col">{{ t('sy_ap_when') }}</th></tr></thead>
+    <tbody>
+    {% for a in lifecycle.approvals %}
+      <tr>
+        <td>{{ t('sy_stage_' ~ a.from_stage) }} &rarr; {{ t('sy_stage_' ~ a.to_stage) }}</td>
+        <td>{{ ui.pill(t('sy_ap_st_' ~ a.status), {'approved': 'ok', 'rejected': 'bad'}.get(a.status, 'warn'), True) }}{% if a.applied_at %} <span class="muted">{{ t('sy_ap_applied') }}</span>{% endif %}</td>
+        <td class="mono">{{ a.requested_by }}</td>
+        <td class="mono">{{ a.decided_by or '-' }}</td>
+        <td class="mono">{{ (a.decided_at or a.created_at or '-')[:10] }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="hint">{{ t('sy_ap_none') }}</p>{% endif %}
+</section>
+{% if not task_n %}
+<p class="hint">{{ t('sy_tasks_no_agents') }}</p>
+{% elif tk_off %}
+{{ ui.empty(t('tk_tab_off')) }}
+{% endif %}
+{% for tk in task_agents %}
+<section class="card" data-section="system-tasks-{{ tk.agent_id }}">
+  <h3><span class="mono">{{ tk.agent_id }}</span></h3>
+  {% if not tk.generated %}
+  <p class="hint">{{ t('tk_tab_none') }}</p>
+  {% else %}
+  <p>{{ t('tk_stage_now') }}: {{ t('tk_stage_' ~ tk.stage) }} · {{ t('tk_sizing', cls=tk.d33_class, band=tk.band, src=tk.band_source, level=tk.level) }}</p>
+  {% if tk.get('initiation_only') %}<p class="hint">{{ t('sy_tasks_initiation_only') }}</p>{% endif %}
+  <p>{{ ui.bar(tk.stage_done_bp, 'ok') }}{{ t('tk_required_open', n=tk.required_open, total=tk.required_total) }}{% if tk.overdue %} · {{ ui.pill(t('rk_overdue') ~ ' ' ~ tk.overdue, 'bad') }}{% endif %}</p>
+  <div class="tablewrap flat"><table>
+    <thead><tr><th scope="col">{{ t('tk_col_task') }}</th><th scope="col">{{ t('tk_col_stage') }}</th><th scope="col">{{ t('tk_col_required') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('tk_col_due') }}</th></tr></thead>
+    <tbody>
+    {% for r in tk.tasks %}
+      <tr>
+        <td><span class="mono">{{ r.template_id }}</span><div class="idline">{{ r.title }}</div></td>
+        <td>{{ t('tk_stage_' ~ r.stage) }}</td>
+        <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
+        <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}</td>
+        <td class="mono">{{ (r.due_at or '-')[:10] }}{% if r.overdue %} {{ ui.pill(t('rk_overdue'), 'bad') }}{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endfor %}

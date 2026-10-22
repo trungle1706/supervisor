@@ -1,0 +1,19 @@
+{# Reviews tab of the system page (WP-G1). Read only; changes go through the API. Variable: reviews. #}
+{% import "_ui.html" as ui with context %}
+{% if reviews %}
+<div class="tablewrap flat"><table id="system-reviews">
+  <thead><tr><th scope="col">{{ t('sy_rv_title') }}</th><th scope="col">{{ t('sy_rv_kind') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('sy_rv_reviewer') }}</th><th scope="col">{{ t('sy_rv_window') }}</th><th scope="col">{{ t('sy_rv_reports') }}</th></tr></thead>
+  <tbody>
+  {% for r in reviews %}
+    <tr>
+      <td>{{ r.title }}<div class="idline mono">{{ r.review_id }}</div></td>
+      <td>{{ t('sy_rv_kind_' ~ r.kind) }}</td>
+      <td>{{ ui.pill(t('sy_rv_st_' ~ r.status), {'completed': 'ok', 'reopened': 'warn', 'in_progress': 'teal'}.get(r.status, 'neutral'), True) }}{% if r.locked %} <span class="muted">{{ t('sy_rv_locked') }}</span>{% endif %}{% if r.reopen_count %} <span class="muted">{{ t('sy_rv_reopened_n', n=r.reopen_count) }}</span>{% endif %}</td>
+      <td class="mono">{{ r.reviewer_user }}</td>
+      <td class="mono">{{ (r.window_start or '-')[:10] }} &ndash; {{ (r.window_end or '-')[:10] }}</td>
+      <td>{{ r.reports|length }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="hint">{{ t('sy_rv_none') }}</p>{% endif %}

@@ -126,6 +126,23 @@
     names.split(" ").forEach(function (n) { if (n) { url.searchParams.delete(n); } });
     history.replaceState(null, "", url.pathname + (url.search || "") + url.hash);
   });
+  /* CONSOLE_NAV_V3: the folded state of each sidebar section is a per-browser convenience; the
+     settings drawer closes with Esc (it opens with :target, so it also works without JS). */
+  (function () {
+    var KEY = "sv.navv3.fold", saved = {};
+    try { saved = JSON.parse(window.localStorage.getItem(KEY) || "{}") || {}; } catch (e) { saved = {}; }
+    document.querySelectorAll("details[data-fold]").forEach(function (d) {
+      var k = d.getAttribute("data-fold");
+      if (saved[k] === false) { d.removeAttribute("open"); }
+      d.addEventListener("toggle", function () {
+        saved[k] = d.hasAttribute("open");
+        try { window.localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) { /* session only */ }
+      });
+    });
+    document.addEventListener("keydown", function (evt) {
+      if (evt.key === "Escape" && window.location.hash === "#nav-gear") { window.location.hash = ""; }
+    });
+  })();
   document.addEventListener("keydown", function (evt) {
     if (evt.key === "Escape") {
       var pop = document.getElementById("search-results");

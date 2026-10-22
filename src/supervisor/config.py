@@ -466,6 +466,9 @@ class Settings(BaseSettings):
     # Two-section sidebar: "AI Management and Governance" and "AI Guardian and Supervisor",
     # each holding the groups above (new: off; off = the six-group sidebar as before).
     console_nav_sections: bool = False
+    # WP-UX4a: one merged left bar (My overview + Governance + Supervisor + a settings gear),
+    # section tab strips and the overview pages (new: off; off = the sidebar as before).
+    console_nav_v3: bool = False
     console_catalog_enabled: bool = False  # /console/catalog: guardian capabilities, on or off
 
     # --- WP-UX3 --- new console pages, each behind its own flag (all off by default; off = HTTP
@@ -601,6 +604,11 @@ class Settings(BaseSettings):
     # Systems pages (needs GOVERNANCE_ENABLED too).
     governance_enabled: bool = False
     console_systems_enabled: bool = False
+
+    # --- WP-G1 --- lifecycle, stage approvals, reviews, outbound events (docs/governance.md).
+    # Everything is under GOVERNANCE_ENABLED. WEBHOOKS_ENABLED: the outbound event stub marks
+    # events delivered and logs them (no network; the real sender is later work).
+    webhooks_enabled: bool = False
 
     @field_validator(
         "data_dir",

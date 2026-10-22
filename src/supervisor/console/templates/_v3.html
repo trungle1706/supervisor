@@ -1,0 +1,30 @@
+{# Shared pieces of the CONSOLE_NAV_V3 pages. #}
+{% macro scope_switch(base, scope, scopes) %}
+<nav class="subtabs scope-sw" aria-label="{{ t('nv3_scope') }}">
+  <span class="sec-tabs-t">{{ t('nv3_scope') }}</span>
+  {% for s in scopes %}<a href="{{ base }}?scope={{ s }}&amp;lang={{ lang }}" class="{{ 'on' if s == scope else '' }}"{% if s == scope %} aria-current="true"{% endif %}>{{ t('nv3_scope_' ~ s) }}</a>{% endfor %}
+</nav>
+{% endmacro %}
+
+{# One number tile. value is None -> "not available" and the reason, never a made-up figure. #}
+{% macro tile(tl, label, value, sub='', title='') %}
+<div class="card stat" data-num="{{ tl.key }}">
+  <h3>{{ label }}</h3>
+  {% if tl.value is none %}
+  <div class="bignum"><span class="muted">{{ t('nv3_na') }}</span></div>
+  <div class="sub">{{ t(tl.na) }}</div>
+  {% else %}
+  <div class="bignum"{% if title %} title="{{ title }}"{% endif %}>{{ value }}</div>
+  {% if sub %}<div class="sub">{{ sub }}</div>{% endif %}
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro na(reason) %}<p class="hint nv3-na"><span class="pill neutral">{{ t('nv3_na') }}</span> {{ t(reason) }}</p>{% endmacro %}
+
+{# Guardian cover of one agent: all mandatory detectors on, or the ones that are off. #}
+{% macro cover(c) %}{% if not c or c.total == 0 %}<span class="muted">-</span>{% elif c.full %}<span class="pill ok"><span class="dot"></span>{{ t('nv3_cover_full') }}</span>{% else %}<span class="pill warn"><span class="dot"></span>{{ t('nv3_cover_below') }}</span> {% for s in c.off %}<code>{{ s }}</code> {% endfor %}{% endif %}{% endmacro %}
+
+{% macro pct(bp) %}{% if bp is none %}<span class="muted">-</span>{% else %}<span title="{{ bp }} bp">{{ bp // 100 }}%</span>{% endif %}{% endmacro %}
+
+{% macro tiers(items) %}{% for tier, n in items %}{{ n }} {{ t(tier) }}{{ ' · ' if not loop.last }}{% endfor %}{% endmacro %}

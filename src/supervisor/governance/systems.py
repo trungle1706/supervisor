@@ -273,7 +273,14 @@ class SystemService:
         if bo and bo != fields["owner_user"]:
             self._put_member(sid, bo, "business_owner", actor)
         self._changed("create", stored, actor)
+        self._emit("system_registered", sid, {"system_type": fields["system_type"]})
         return self.get(sid)
+
+    def _emit(self, kind: str, system_id: str, payload: Mapping[str, Any]) -> None:
+        """WP-G1: one outbound_event row (ids and enums only); never stops the change."""
+        from supervisor.governance import events
+
+        events.emit(self.state, self.clock, self.settings, kind, system_id, payload)
 
     def _unique_name(self, name: str, except_id: str | None = None) -> None:
         low = canonical_name(name)
@@ -298,6 +305,15 @@ class SystemService:
         if not changes:
             raise SystemsError("nothing to change")
         fields = {k: normalise_field(k, v) for k, v in changes.items()}
+        if "lifecycle_stage" in fields:  # WP-G1: a stage move is its own call (approval, chain)
+            if fields["lifecycle_stage"] != cur["lifecycle_stage"]:
+                raise SystemsError(
+                    "lifecycle_stage changes with POST /v1/systems/{id}/stage "
+                    "(a stage that needs approval needs an approved stage approval)"
+                )
+            del fields["lifecycle_stage"]
+            if not fields:
+                raise SystemsError("nothing to change")
         if "tags" in fields:
             fields["tags"] = dict(fields["tags"])
         if "name" in fields:
@@ -357,6 +373,7 @@ class SystemService:
             "ai_system", {"system_id": system_id}, {"status": "archived"}, cur["row_version"]
         )
         self._changed("archive", stored, actor)
+        self._emit("system_archived", system_id, {})
         return self.get(system_id)
 
     # ------------------------------------------------------------------ team
