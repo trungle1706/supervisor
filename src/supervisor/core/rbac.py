@@ -401,6 +401,10 @@ ROUTES: dict[tuple[str, str], str] = {
     ("PATCH", "/v1/systems/{system_id}/reviews/{review_id}"): "systems.review",
     ("POST", "/v1/systems/{system_id}/reviews/{review_id}/complete"): "systems.review",
     ("POST", "/v1/systems/{system_id}/reviews/{review_id}/reopen"): "systems.review",
+    # --- WP-S1 --- per-system guardian bindings (GUARDIAN_BINDINGS_ENABLED + GOVERNANCE_ENABLED)
+    ("GET", "/v1/systems/{system_id}/guardians"): "systems.view",
+    ("PUT", "/v1/systems/{system_id}/guardians/{slug}"): "systems.edit",
+    ("POST", "/console/systems/{system_id}/guardians/{slug}"): "systems.edit",
     # --- WP-G5 --- incidents of the governance loop (GOVERNANCE_ACTIONS_ENABLED)
     ("GET", "/v1/incidents"): "incidents.view",
     ("GET", "/v1/incidents/{incident_id}"): "incidents.view",

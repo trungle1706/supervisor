@@ -698,3 +698,10 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .sec-tabs-t { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
   padding-right: 6px; border-right: 1px solid var(--line); white-space: nowrap; }
 .nv3-na .pill { margin-right: 6px; }
+
+/* WP-S1: per-system guardian switches on the Catalog page */
+.gb-pick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+.cat-gb { padding: 8px 16px 12px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 6px; }
+.gb-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; font-size: 12px; }
+.gb-row form { margin: 0 0 0 auto; }
+.gb-lock { color: var(--muted); flex: none; }

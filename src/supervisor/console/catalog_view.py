@@ -179,7 +179,9 @@ def _page_href(page: str | None, settings: Any, pages: dict[str, bool], lang: st
     return nav.href(f"/console/{page}", lang) if ok else None
 
 
-def page(ctx: Any, tab: str, lang: str = "en") -> dict[str, Any]:
+def page(
+    ctx: Any, tab: str, lang: str = "en", me: Any = None, system: str | None = None
+) -> dict[str, Any]:
     """``tab`` is ``catalog`` (every capability) or ``active`` (only those on)."""
     from supervisor.console import readmodels
 
@@ -205,11 +207,17 @@ def page(ctx: Any, tab: str, lang: str = "en") -> dict[str, Any]:
         rows = [c for c in shown if c["e"].cat == key]
         if rows:
             cats.append({"key": key, "label": label, "cards": rows})
+    gb = None
+    if me is not None:  # WP-S1: per-system switches; None unless GUARDIAN_BINDINGS_ENABLED
+        from supervisor.console import guardians_view
+
+        gb = guardians_view.catalog_panel(ctx, me, system)
     return {
         "tab": tab,
         "cats": cats,
         "n_all": len(cards),
         "n_on": n_on,
+        "gb": gb,
     }
 
 

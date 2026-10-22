@@ -26,7 +26,7 @@ from supervisor.monitors.jobctx import ascii_line, standalone  # noqa: E402
 
 
 def run(ctx: MonitorContext, settings: Settings) -> dict[str, Any]:
-    resolver = BindingResolver.from_settings(settings)
+    resolver = BindingResolver.from_settings(settings, ctx.state)
     res = DriftMonitor(ctx, DriftConfig.from_settings(settings), resolver).run()
     return {
         "baselines_built": len(res.baselines_built),

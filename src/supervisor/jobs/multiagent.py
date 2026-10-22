@@ -25,7 +25,7 @@ from supervisor.monitors.multiagent import MultiAgentMonitor, SplitPaymentConfig
 
 
 def run(ctx: MonitorContext, settings: Settings) -> dict[str, Any]:
-    resolver = BindingResolver.from_settings(settings)
+    resolver = BindingResolver.from_settings(settings, ctx.state)
     res = MultiAgentMonitor(ctx, SplitPaymentConfig.from_settings(settings), resolver).run()
     return {
         "events_scanned": res.events_scanned,
