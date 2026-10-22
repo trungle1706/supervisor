@@ -4,7 +4,6 @@ on the Catalog page (EN and VI)."""
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -20,23 +19,12 @@ PAYOPS = "Payments Ops"
 
 
 @pytest.fixture
-def gon(on: Console, monkeypatch: pytest.MonkeyPatch) -> Iterator[Console]:
-    """Governance on, bindings on, the S1 routers mounted, the Catalog page on."""
-    from supervisor.app import app
-    from supervisor.governance.guardian_routes import console_router, router
-
-    monkeypatch.setattr(on.ctx.settings, "guardian_bindings_enabled", True)
-    monkeypatch.setattr(on.ctx.settings, "console_catalog_enabled", True)
-    monkeypatch.setattr(on.ctx.settings, "detectors_enabled", True)
+def gon(on: Console, monkeypatch: pytest.MonkeyPatch) -> Console:
+    """Governance on, bindings on, the S1 routers mounted (by ``on``), the Catalog page on."""
+    for flag in ("guardian_bindings_enabled", "console_catalog_enabled", "detectors_enabled"):
+        monkeypatch.setattr(on.ctx.settings, flag, True)
     monkeypatch.setattr(on.ctx.settings, "judge_enabled", True)
-    saved = list(app.router.routes)
-    app.include_router(router)
-    app.include_router(console_router)
-    try:
-        yield on
-    finally:
-        app.router.routes[:] = saved
-        app.openapi_schema = None
+    return on
 
 
 def req(c: Console, method: str, url: str, body: Any = None, user: str = REVIEWER) -> Any:
