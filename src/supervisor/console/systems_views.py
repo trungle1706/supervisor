@@ -10,7 +10,8 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from supervisor.console import ux3
+from supervisor.cases.service import PermissionDenied
+from supervisor.console import systems_tabs, ux3
 from supervisor.console.listing import (
     ListingError,
     paginate,
@@ -27,6 +28,19 @@ from supervisor.governance.systems import ALL
 COLUMNS = ("name", "owner_team", "lifecycle_stage", "risk", "status")
 DRAWER_TABS = ("details", "team", "components")
 DETAIL_TABS = ("overview", "components", "tasks", "reviews")  # tasks, reviews: WP-G1
+# WP-UX4b: the tabs with CONSOLE_NAV_V3 on. WP-G2 adds Rules and Classification after
+# Components when it merges; leave the slot.
+DETAIL_TABS_V3 = (
+    "overview",
+    "components",
+    "risks",
+    "controls",
+    "policies",
+    "guardians",
+    "tasks",
+    "reviews",
+    "reports",
+)
 PAGE_SIZE = 25
 FILTERS = ("q", "status", "owner_team", "lifecycle_stage", "risk", "system_type")
 REGISTER_CHOICES = {
@@ -114,6 +128,10 @@ def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
         "choices": {k: [(v, f"sy_{k}_{v}") for v in vs] for k, vs in REGISTER_CHOICES.items()},
         "scope_all": svc.scope_for(me) is ALL,
         "can_edit": getattr(me, "kind", "") == "user" and rbac.allowed(me.roles, "systems.edit"),
+        # WP-UX4b: the link to the register wizard, with CONSOLE_NAV_V3
+        "wizard": bool(ctx.settings.console_nav_v3)
+        and getattr(me, "kind", "") == "user"
+        and rbac.allowed(me.roles, "systems.edit"),
     }
 
 
@@ -148,15 +166,36 @@ def drawer_view(
     }
 
 
+def detail_tabs(ctx: Any, me: Any) -> tuple[str, ...]:
+    """The tabs of the system page. WP-UX4b: with CONSOLE_NAV_V3 on, the governance tabs too
+    (a tab needs the permission of the page it summarises); off, the four of WP-G0 and WP-G1."""
+    if not ctx.settings.console_nav_v3:
+        return DETAIL_TABS
+    return tuple(
+        t
+        for t in DETAIL_TABS_V3
+        if t not in systems_tabs.TAB_PERM or systems_tabs.may(me, systems_tabs.TAB_PERM[t])
+    )
+
+
 def detail_view(ctx: Any, me: Any, system_id: str, tab: str) -> dict[str, Any]:
-    if tab not in DETAIL_TABS:
+    tabs = detail_tabs(ctx, me)
+    if tab not in tabs:
+        if tab in DETAIL_TABS_V3 and ctx.settings.console_nav_v3:
+            raise PermissionDenied(f"your role may not open the {tab} tab")
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
     extra, counts = g1_tabs(ctx, system, tab)
+    if tab in systems_tabs.BUILDERS:  # WP-UX4b
+        gov = systems_tabs.BUILDERS[tab](ctx, system)
+        extra.update(gov)
+        n = systems_tabs.count_of(tab, gov)
+        if n is not None:
+            counts[tab] = n
     return {
         "s": system,
         "tab": tab,
-        "tabs": DETAIL_TABS,
+        "tabs": tabs,
         "tab_counts": {
             "overview": len(system["team"]),
             "components": len(system["components"]),
@@ -197,6 +236,32 @@ def g1_tabs(ctx: Any, system: Mapping[str, Any], tab: str) -> tuple[dict[str, An
             )
         extra["task_agents"] = summaries
     return extra, counts
+
+
+def agents_system_col(ctx: Any) -> bool:
+    """WP-UX4b: the System column and the unlinked filter of Catalogues > Agents need both
+    CONSOLE_NAV_V3 and GOVERNANCE_ENABLED (without them the page is the one it was)."""
+    return bool(ctx.settings.console_nav_v3 and ctx.settings.governance_enabled)
+
+
+def annotate_agents(ctx: Any, me: Any, cards: list[dict[str, Any]]) -> None:
+    """Add ``systems`` to each agent card: the systems the caller may see that this agent is
+    linked to (``[{system_id, name}]``), and ``systems_hidden`` when it is linked only to
+    systems outside the caller's scope (shown as linked, never named)."""
+    svc = ctx.systems
+    scope = svc.scope_for(me)
+    names = {r["system_id"]: str(r["name"]) for r in svc.state.query("ai_system")}
+    linked: dict[str, list[str]] = {}
+    for c in svc.state.query("system_component", {"ref_kind": "agent"}):
+        if str(c["active"]).strip().lower() in ("1", "true"):
+            linked.setdefault(str(c["ref_id"]).lower(), []).append(str(c["system_id"]))
+    for card in cards:
+        ids = sorted(set(linked.get(str(card["agent_id"]).lower(), [])))
+        seen = [i for i in ids if i in scope and i in names]
+        card["systems"] = [{"system_id": i, "name": names[i]} for i in seen]
+        card["systems_hidden"] = bool(ids) and not seen
+        if card["systems_hidden"]:
+            card["systems"] = [{"system_id": "", "name": ""}]  # linked, not shown
 
 
 def draft_from_form(form: Mapping[str, str], me: Any) -> dict[str, Any]:

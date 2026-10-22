@@ -3686,6 +3686,304 @@ _T.update(
 )
 
 
+# --- WP-UX4b --- governance pages on the AI system: tabs, register wizard, overviews on systems
+_T.update(
+    {
+        # tabs of the system page
+        "ux4b_tab_reports": ("Reports", "Báo cáo"),
+        "ux4b_risks_sum": ("Risks that reach this system", "Rủi ro chạm tới hệ thống này"),
+        "ux4b_risks_line": (
+            "{active} active risks, {inherited} of them inherited from a part the system uses.",
+            "{active} rủi ro đang áp dụng, trong đó {inherited} rủi ro thừa hưởng từ thành "
+            "phần hệ thống sử dụng.",
+        ),
+        "ux4b_risks_worst": ("Highest residual score", "Điểm rủi ro còn lại cao nhất"),
+        "ux4b_inherited_from": ("Inherited from", "Thừa hưởng từ"),
+        "ux4b_risks_none": (
+            "No active risk reaches this system.",
+            "Không có rủi ro đang áp dụng nào chạm tới hệ thống này.",
+        ),
+        "ux4b_risks_none_line": (
+            "Link an agent or a node that has risks, or add a risk on the Risks page.",
+            "Hãy liên kết tác tử hoặc nút có rủi ro, hoặc thêm rủi ro ở trang Rủi ro.",
+        ),
+        "ux4b_agents_unregistered": (
+            "Linked agents that are not registered",
+            "Tác tử đã liên kết nhưng chưa đăng ký",
+        ),
+        "ux4b_policies_sum": (
+            "Obligations that apply to this system",
+            "Nghĩa vụ áp dụng cho hệ thống này",
+        ),
+        "ux4b_na_no_matrix": (
+            "No linked agent has a compliance matrix yet.",
+            "Chưa có tác tử nào liên kết có ma trận tuân thủ.",
+        ),
+        "ux4b_policies_source": ("Matrices read from", "Ma trận đọc từ"),
+        "ux4b_policies_rule": (
+            "{n} obligations assigned by rules",
+            "{n} nghĩa vụ do quy tắc gán",
+        ),
+        "ux4b_policies_missing": (
+            "Agents with no matrix (not counted as met or as gap)",
+            "Tác tử chưa có ma trận (không tính là đạt hay thiếu)",
+        ),
+        "ux4b_instrument": ("Instrument", "Văn bản"),
+        "ux4b_partial": ("Partial", "Một phần"),
+        "ux4b_binding": ("binding", "có hiệu lực bắt buộc"),
+        "ux4b_policies_gaps": ("Obligations with a gap", "Nghĩa vụ còn thiếu"),
+        "ux4b_obligation": ("Obligation", "Nghĩa vụ"),
+        "ux4b_more": ("{n} more not shown.", "Còn {n} mục không hiển thị."),
+        "ux4b_policies_none": (
+            "No obligation applies yet.",
+            "Chưa có nghĩa vụ nào áp dụng.",
+        ),
+        "ux4b_policies_none_line": (
+            "The matrices list no obligation with applies = yes.",
+            "Các ma trận không có nghĩa vụ nào được đánh dấu áp dụng.",
+        ),
+        "ux4b_detectors_on": ("Detectors on", "Bộ phát hiện đang bật"),
+        "ux4b_mandatory_file": (
+            "Mandatory in config/detectors.yaml (fail_closed)",
+            "Bắt buộc trong config/detectors.yaml (fail_closed)",
+        ),
+        "ux4b_floor": ("Mandatory guardian floor", "Mức bảo vệ tối thiểu bắt buộc"),
+        "ux4b_floor_none": (
+            "No rule assigns a guardian to this system.",
+            "Chưa có quy tắc nào gán bộ bảo vệ cho hệ thống này.",
+        ),
+        "ux4b_guardians_readonly": (
+            "Read only. Per-system switches come with the guardian bindings work package.",
+            "Chỉ xem. Công tắc theo từng hệ thống sẽ có ở gói công việc liên kết bộ bảo vệ.",
+        ),
+        "ux4b_na_no_rules": (
+            "The assignment rules engine is not installed in this build.",
+            "Bản dựng này chưa có bộ máy quy tắc gán.",
+        ),
+        "ux4b_na_transparency_off": (
+            "Transparency reports are off (TRANSPARENCY_ENABLED=1 turns them on).",
+            "Báo cáo minh bạch đang tắt (TRANSPARENCY_ENABLED=1 để bật).",
+        ),
+        "ux4b_chain": ("Evidence chain", "Chuỗi bằng chứng"),
+        "ux4b_lane": ("Lane", "Làn"),
+        "ux4b_entries": ("Entries", "Số bản ghi"),
+        "ux4b_audit_pack": ("Audit pack", "Gói kiểm toán"),
+        "ux4b_audit_pack_line": (
+            "{n} packs on this server. The pack covers the whole chain and is built on the "
+            "Evidence page.",
+            "{n} gói trên máy chủ này. Gói bao phủ cả chuỗi và được tạo ở trang Bằng chứng.",
+        ),
+        "ux4b_audit_pack_open": ("Open the Evidence page", "Mở trang Bằng chứng"),
+        "ux4b_incidents": ("Incidents", "Sự cố"),
+        "ux4b_incident": ("Incident", "Sự cố"),
+        "ux4b_incidents_none": (
+            "No incident for this system.",
+            "Không có sự cố nào cho hệ thống này.",
+        ),
+        "ux4b_na_incidents": (
+            "Incidents come with the governance actions work package.",
+            "Sự cố sẽ có cùng gói công việc hành động quản trị.",
+        ),
+        "ux4b_na_incidents_flag": (
+            "Incidents are off (GOVERNANCE_ACTIONS_ENABLED=1 turns them on).",
+            "Sự cố đang tắt (GOVERNANCE_ACTIONS_ENABLED=1 để bật).",
+        ),
+        # register wizard
+        "ux4b_register_wizard": ("Register a system", "Đăng ký hệ thống"),
+        "ux4b_wiz_title": ("Register an AI system", "Đăng ký hệ thống AI"),
+        "ux4b_wiz_steps": ("Steps", "Các bước"),
+        "ux4b_step_intake": ("Intake", "Khai báo"),
+        "ux4b_step_checks": ("Preliminary checks", "Kiểm tra sơ bộ"),
+        "ux4b_step_register": ("Register the draft", "Đăng ký bản nháp"),
+        "ux4b_wiz_hint": (
+            "Answer the intake questions. The next page runs the preliminary checks. Nothing is "
+            "stored until you confirm it.",
+            "Trả lời các câu hỏi khai báo. Trang kế tiếp chạy kiểm tra sơ bộ. Chưa lưu gì cho "
+            "đến khi bạn xác nhận.",
+        ),
+        "ux4b_wiz_scope": (
+            "You register for yourself, and only for a team you already work in: {teams}.",
+            "Bạn đăng ký cho chính mình, và chỉ cho nhóm bạn đã làm việc: {teams}.",
+        ),
+        "ux4b_f_autonomy": ("Autonomy level", "Mức tự chủ"),
+        "ux4b_autonomy_unset": ("not set", "chưa đặt"),
+        "ux4b_autonomy_l0_rule_based": ("L0 Rule based", "L0 Theo quy tắc"),
+        "ux4b_autonomy_l1_assistive": ("L1 Assistive", "L1 Hỗ trợ"),
+        "ux4b_autonomy_l2_workflow_step": ("L2 Workflow step", "L2 Một bước quy trình"),
+        "ux4b_autonomy_l3_tool_using_supervised": (
+            "L3 Uses tools, supervised",
+            "L3 Dùng công cụ, có giám sát",
+        ),
+        "ux4b_autonomy_l4_autonomous_bounded": (
+            "L4 Autonomous, bounded",
+            "L4 Tự chủ có giới hạn",
+        ),
+        "ux4b_autonomy_l5_self_directed": ("L5 Self directed", "L5 Tự định hướng"),
+        "ux4b_f_repo": ("Repository folder (optional)", "Thư mục mã nguồn (không bắt buộc)"),
+        "ux4b_f_repo_hint": (
+            "With a folder, the checks run the integration readiness advisor on it. Read only; "
+            "the folder must be inside a git repository.",
+            "Khi có thư mục, kiểm tra sẽ chạy cố vấn mức sẵn sàng tích hợp trên đó. Chỉ đọc; "
+            "thư mục phải nằm trong một kho git.",
+        ),
+        "ux4b_run_checks": ("Run the preliminary checks", "Chạy kiểm tra sơ bộ"),
+        "ux4b_cancel": ("Cancel", "Hủy"),
+        "ux4b_back": ("Back to the form", "Quay lại biểu mẫu"),
+        "ux4b_nothing_applied": ("Nothing is applied.", "Chưa áp dụng gì."),
+        "ux4b_nothing_applied_line": (
+            "These are proposals. Registering stores a draft and opens the initiation tasks. "
+            "A person sets the class and the risk level later.",
+            "Đây chỉ là đề xuất. Đăng ký chỉ lưu bản nháp và mở các nhiệm vụ khởi tạo. "
+            "Người có thẩm quyền sẽ đặt phân loại và mức rủi ro sau.",
+        ),
+        "ux4b_readiness": ("Integration readiness", "Mức sẵn sàng tích hợp"),
+        "ux4b_readiness_line": (
+            "Folder {folder}: {tools} tools found, {patches} patches proposed.",
+            "Thư mục {folder}: tìm thấy {tools} công cụ, đề xuất {patches} bản vá.",
+        ),
+        "ux4b_readiness_note": (
+            "Static analysis only; no model wrote these numbers. The band is advice.",
+            "Chỉ phân tích tĩnh; không mô hình nào tạo các số này. Mức này chỉ là lời khuyên.",
+        ),
+        "ux4b_area": ("Area", "Hạng mục"),
+        "ux4b_points": ("Points", "Điểm"),
+        "ux4b_band_ready": ("Ready for shadow onboarding", "Sẵn sàng đưa vào chế độ bóng"),
+        "ux4b_band_patches": ("Needs the patches", "Cần áp dụng các bản vá"),
+        "ux4b_band_work": ("Needs work first", "Cần xử lý trước"),
+        "ux4b_na_no_repo": (
+            "No repository folder was given.",
+            "Chưa cung cấp thư mục mã nguồn.",
+        ),
+        "ux4b_na_advisor_failed": (
+            "The advisor could not read this folder.",
+            "Cố vấn không đọc được thư mục này.",
+        ),
+        "ux4b_class": ("Risk class proposal", "Đề xuất phân loại rủi ro"),
+        "ux4b_class_level": (
+            "proposed risk level: {level}",
+            "mức rủi ro đề xuất: {level}",
+        ),
+        "ux4b_class_nolevel": (
+            "no level proposed; a person sets it",
+            "chưa đề xuất mức; người có thẩm quyền sẽ đặt",
+        ),
+        "ux4b_class_src_declared": ("from the declared fields", "từ các trường đã khai báo"),
+        "ux4b_class_src_rules": ("from the classification rules", "từ quy tắc phân loại"),
+        "ux4b_class_because": ("Because of", "Vì"),
+        "ux4b_class_note": (
+            "Decision 33: money movement or a credit decision without a human approval before "
+            "the action is high risk. A person confirms the class.",
+            "Quyết định 33: chuyển tiền hoặc quyết định tín dụng mà không có người phê duyệt "
+            "trước khi thực hiện là rủi ro cao. Người có thẩm quyền xác nhận phân loại.",
+        ),
+        "ux4b_packs": ("Assurance packs to run", "Gói đảm bảo cần chạy"),
+        "ux4b_packs_sub": ("for the declared system", "cho hệ thống đã khai báo"),
+        "ux4b_pack": ("Pack", "Gói"),
+        "ux4b_dimension": ("Dimension", "Khía cạnh"),
+        "ux4b_why": ("Why", "Lý do"),
+        "ux4b_gate": ("Launch gate", "Cổng ra mắt"),
+        "ux4b_packs_note": (
+            "Run them once an agent is linked: python -m supervisor.assurance run <pack> "
+            "--target agent:<id>.",
+            "Hãy chạy khi đã liên kết tác tử: python -m supervisor.assurance run <gói> "
+            "--target agent:<id>.",
+        ),
+        "ux4b_na_packs": (
+            "The pack manifests cannot be read or none applies.",
+            "Không đọc được tệp mô tả gói hoặc không có gói nào áp dụng.",
+        ),
+        "ux4b_dim_acts": (
+            "the system answers or acts for people",
+            "hệ thống trả lời hoặc hành động thay cho con người",
+        ),
+        "ux4b_dim_text": (
+            "the system writes free text",
+            "hệ thống viết văn bản tự do",
+        ),
+        "ux4b_dim_bias": (
+            "credit decisions, a decision system or personal data",
+            "quyết định tín dụng, hệ thống ra quyết định hoặc dữ liệu cá nhân",
+        ),
+        "ux4b_dim_dep": (
+            "every system depends on a model provider or an API",
+            "mọi hệ thống đều phụ thuộc nhà cung cấp mô hình hoặc API",
+        ),
+        "ux4b_dim_sec": (
+            "every system can be attacked through its inputs",
+            "mọi hệ thống đều có thể bị tấn công qua đầu vào",
+        ),
+        "ux4b_dim_rob": (
+            "the system runs tools or data flows that can fail",
+            "hệ thống chạy công cụ hoặc luồng dữ liệu có thể lỗi",
+        ),
+        "ux4b_confirm_line": (
+            "Register this draft and open its initiation tasks?",
+            "Đăng ký bản nháp này và mở các nhiệm vụ khởi tạo?",
+        ),
+        "ux4b_register_draft": ("Register the draft", "Đăng ký bản nháp"),
+        # overviews on systems
+        "ux4b_tile_systems": ("Systems in scope", "Hệ thống trong phạm vi"),
+        "ux4b_tile_cover": ("Guardian coverage (systems)", "Độ phủ bộ bảo vệ (hệ thống)"),
+        "ux4b_cover_idle": (
+            " · {n} without an agent",
+            " · {n} chưa có tác tử",
+        ),
+        "ux4b_my_sub": (
+            "{systems} systems under your care. {actions} items wait on you, {cases} cases are "
+            "open.",
+            "{systems} hệ thống bạn phụ trách. {actions} việc đang chờ bạn, {cases} ca đang mở.",
+        ),
+        "ux4b_actions_split": (
+            "{cases} cases · {approvals} approvals · {tasks} tasks · {stages} stage moves",
+            "{cases} ca · {approvals} phê duyệt · {tasks} nhiệm vụ · {stages} lần chuyển giai đoạn",
+        ),
+        "ux4b_kind_stage": ("Stage move", "Chuyển giai đoạn"),
+        "ux4b_health_systems": ("Health of my systems", "Tình trạng các hệ thống của tôi"),
+        "ux4b_system": ("System", "Hệ thống"),
+        "ux4b_agents_n": ("{n} agents", "{n} tác tử"),
+        "ux4b_next_action": ("Next action", "Việc tiếp theo"),
+        "ux4b_no_systems": (
+            "No system in this scope.",
+            "Không có hệ thống nào trong phạm vi này.",
+        ),
+        "ux4b_no_systems_line": (
+            "Register a system, or widen the scope.",
+            "Hãy đăng ký một hệ thống, hoặc mở rộng phạm vi.",
+        ),
+        "ux4b_na_no_systems": ("No system is in scope.", "Không có hệ thống nào trong phạm vi."),
+        "ux4b_gov_sub": (
+            "Aggregated over the systems you may view: {n} of {total}.",
+            "Tổng hợp trên các hệ thống bạn được xem: {n} trong {total}.",
+        ),
+        "ux4b_classified_note": (
+            "Classification rate = systems with a Decision 33 class a person set, over systems "
+            "in scope.",
+            "Tỷ lệ phân loại = số hệ thống đã có phân loại Quyết định 33 do người đặt, trên số "
+            "hệ thống trong phạm vi.",
+        ),
+        "ux4b_classified_n": ("{n} of {of} systems", "{n} trên {of} hệ thống"),
+        "ux4b_by_stage": ("Systems by stage", "Hệ thống theo giai đoạn"),
+        "ux4b_pending_approval": ("Pending approval", "Chờ phê duyệt"),
+        "ux4b_ready_by_system": (
+            "Control readiness by system",
+            "Mức sẵn sàng kiểm soát theo hệ thống",
+        ),
+        "ux4b_controls_n": ("Controls with evidence", "Kiểm soát có bằng chứng"),
+        "ux4b_policy_by_system": (
+            "Policy implementation by system",
+            "Thực hiện chính sách theo hệ thống",
+        ),
+        "ux4b_by_autonomy": ("Systems by autonomy level", "Hệ thống theo mức tự chủ"),
+        # Catalogues > Agents
+        "ux4b_col_system": ("System", "Hệ thống"),
+        "ux4b_sys_linked": ("Linked to a system", "Đã liên kết hệ thống"),
+        "ux4b_sys_unlinked": ("Unlinked", "Chưa liên kết"),
+        "ux4b_sys_none": ("unlinked", "chưa liên kết"),
+        "ux4b_sys_other": ("linked (another team)", "đã liên kết (nhóm khác)"),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

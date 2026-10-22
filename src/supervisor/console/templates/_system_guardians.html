@@ -1,0 +1,43 @@
+{# Guardians tab of the system page (WP-UX4b), read only until WP-S1: the detectors on for each
+   linked agent, the mandatory ones, and the judges and monitors that are on in this instance.
+   Judges that run without a model are labelled mock. #}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% if gd_no_agents %}
+<p class="hint">{{ t('sy_tasks_no_agents') }}</p>
+{% else %}
+<section class="card" data-section="system-guardians-det">
+  <h3>{{ t('catg_detect') }}</h3>
+  {% if not gd_master %}<p class="hint">{{ t('nv3_cover_master_off') }}</p>{% endif %}
+  <div class="tablewrap flat"><table data-table="system-guardians">
+    <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('ux4b_detectors_on') }}</th><th scope="col">{{ t('nv3_c_guardian') }}</th></tr></thead>
+    <tbody>
+    {% for r in gd_rows %}
+      <tr><td class="mono">{{ r.agent_id }}</td><td>{% for s in r.detectors %}<code>{{ s }}</code> {% else %}<span class="muted">-</span>{% endfor %}</td><td>{{ v3.cover(r.cover) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="hint">{% if gd_mand_na %}{{ t('nv3_na') }}: {{ t(gd_mand_na) }}{% else %}{{ t('ux4b_mandatory_file') }}: {% for s in gd_mandatory %}<code>{{ s }}</code> {% endfor %}{% endif %}</p>
+</section>
+<section class="card" data-section="system-guardians-floor">
+  <h3>{{ t('ux4b_floor') }}</h3>
+  {% if gd_floor is none %}
+  {{ v3.na(gd_floor_na) }}
+  {% elif gd_floor %}
+  <p>{% for f in gd_floor %}<code>{{ f.slug }}</code> <span class="muted">({{ f.rule }})</span> {% endfor %}</p>
+  {% else %}
+  <p class="hint">{{ t('ux4b_floor_none') }}</p>
+  {% endif %}
+</section>
+<div class="grid g2">
+<section class="card" data-section="system-guardians-judges">
+  <h3>{{ t('catg_judge') }}{% if gd_judges_on and gd_judge_mock %} {{ ui.pill('mock', 'warn') }}{% endif %}</h3>
+  <p>{% for j in gd_judges %}{{ ui.pill(t('cat_' ~ j.key), 'ok' if j.on else 'neutral', True) }}{% if j.on and j.mock %} <span class="pill warn">mock</span>{% endif %} {% endfor %}</p>
+</section>
+<section class="card" data-section="system-guardians-monitors">
+  <h3>{{ t('catg_monitor') }}</h3>
+  <p>{% for m in gd_monitors %}{{ ui.pill(t('cat_' ~ m.key), 'ok' if m.on else 'neutral', True) }} {% endfor %}</p>
+</section>
+</div>
+<p class="hint">{{ t('ux4b_guardians_readonly') }}</p>
+{% endif %}

@@ -1,0 +1,34 @@
+{# Risks tab of the system page (WP-UX4b): register rows that reach the agents of the system or
+   sit on a node linked to it, with the place each one is anchored (the inherited-from column).
+   Read only. Variables: rk_off, rk_rows, rk_active, rk_inherited, rk_illustrative, rk_page. #}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% if rk_off %}
+{{ v3.na('nv3_na_risks_off') }}
+{% else %}
+<section class="card" data-section="system-risks-sum">
+  <h3>{{ t('ux4b_risks_sum') }}</h3>
+  <p>{{ t('ux4b_risks_line', active=rk_active, inherited=rk_inherited) }}{% if rk_worst_band %} · {{ t('ux4b_risks_worst') }} {{ rk_worst }} {{ ui.sev(rk_worst_band) }}{% endif %}</p>
+  {% if rk_illustrative %}<p class="hint">{{ t('rk_illustrative_short') }}</p>{% endif %}
+</section>
+{% if rk_rows %}
+<div class="tablewrap"><table class="queue" id="system-risks" data-table="system-risks">
+  <thead><tr><th scope="col">{{ t('rk_col_risk') }}</th><th scope="col">{{ t('rk_col_category') }}</th><th scope="col" class="n">{{ t('rk_col_inherent') }}</th><th scope="col" class="n">{{ t('rk_col_residual') }}</th><th scope="col">{{ t('rk_col_evidence') }}</th><th scope="col">{{ t('ux4b_inherited_from') }}</th></tr></thead>
+  <tbody>
+  {% for r in rk_rows %}
+    <tr class="row">
+      <td>{% if rk_page %}<a class="mono" href="/console/risks?drawer={{ r.risk_id }}&amp;lang={{ lang }}">{{ r.risk_id }}</a>{% else %}<span class="mono">{{ r.risk_id }}</span>{% endif %}<div class="idline">{{ r.title }}</div></td>
+      <td>{{ t('rk_cat_' ~ r.category) }}</td>
+      <td class="n">{{ r.inherent_score }} {{ ui.sev(r.inherent_band) }}</td>
+      <td class="n">{{ r.residual_score }} {{ ui.sev(r.residual_band) }}</td>
+      <td>{% if r.evidence_state %}{{ ui.pill(t('rk_ev_' ~ r.evidence_state), {'working': 'ok', 'failing': 'bad', 'no_evidence': 'warn'}.get(r.evidence_state, 'neutral'), True) }}{% else %}<span class="muted">{{ t('rk_ev_none') }}</span>{% endif %}</td>
+      <td class="mono">{% for v in r.via %}{{ v }}{{ ', ' if not loop.last }}{% endfor %} <span class="muted">({{ t('rk_own') if r.own else t('rk_inherited') }})</span></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+{{ ui.empty(t('ux4b_risks_none'), t('ux4b_risks_none_line')) }}
+{% endif %}
+{% if rk_page %}<p class="hint"><a href="/console/risks?lang={{ lang }}">{{ t('rk_open_page') }}</a></p>{% endif %}
+{% endif %}
