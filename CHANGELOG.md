@@ -38,6 +38,16 @@ answer, row and chain record is as before (tests keep the fingerprint). Details:
   `python -m tools.bench_documents` and `docs/latency.md` have the numbers (100 KB of PDF text:
   about 240 ms in total).
 - Catalog card and EN and VI labels. `core/bounded.py` (a thread with a deadline and a slot cap).
+- Review fixes: the intake has 1.4 s in all (the gateway's hard timeout is 2 s), so a slow file is
+  `unread (deadline)` and the arguments are still scanned; one linear pass over DOCX XML (nesting
+  and element caps, 8 MB per part, BOM and NUL refused); any reader error is `parse_failed`;
+  documents have their own scan budget `limits.document_max_scan_bytes` (262,144) outside
+  `max_payload_chars`, and on a pii_export tool only the cut document fails closed; the fetch
+  deadline is checked before every read (headers capped at 16 KB); four reading slots; a dry run
+  never fetches (`PLAYGROUND_URL_FETCH=1` allows it); the guardians view follows the intake flag;
+  a disabled reporter fails closed on risky tools; `transformed_payload.documents` is
+  `[{index, text}]` for changed documents only; digests are keyed with the mask key; non-ASCII
+  URL paths are percent-encoded; `%PDF-` only at offset 0; `pypdf >= 6`.
 - Changed outside the package: `core/detectors.py` (part `documents`, `parts_for`, coverage),
   `dlp_vn.py` and `injection_regex.py` (read the part), `detector_gate.py`, `engine.py`
   (`documents_on`), `routes.py`, `wiring.py`, `config.py`, `gateway/sdk.py`,

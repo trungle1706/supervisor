@@ -252,28 +252,32 @@ runs a 5 KB version). 100 KB of text, offline, one document per call, integer mi
 
 | File | Size of the file | Extract p50 / p95 | Score p50 / p95 (`dlp_vn` + `injection_regex`) | Total p50 / p95 |
 |---|---|---|---|---|
-| TXT | 102,453 B | 607 / 725 | 20,341 / 23,654 | 20,999 / 24,210 |
-| DOCX | 29,666 B | 3,500 / 16,496 | 20,701 / 23,375 | 24,413 / 38,171 |
-| PDF (`pypdf`, 40 lines per page) | 373,186 B | 219,744 / 228,796 | 21,266 / 23,963 | 241,102 / 259,954 |
+| TXT | 102,453 B | 628 / 718 | 17,525 / 19,031 | 18,103 / 19,737 |
+| DOCX | 29,666 B | 4,303 / 5,301 | 16,725 / 18,861 | 21,036 / 23,650 |
+| PDF (`pypdf`, 40 lines per page) | 373,186 B | 218,118 / 220,990 | 17,253 / 18,800 | 235,893 / 242,340 |
 
 What the numbers say:
 
 * The 100 KB of PDF text costs about 240 ms in total, 90 percent of it in `pypdf`. The scoring of
-  100 KB is about 21 ms (about 0.2 ms per KB for both detectors). Both are inside the 2 s per
+  100 KB is about 17 ms (about 0.17 ms per KB for both detectors). Both are inside the 2 s per
   document limit and the 2 s gate budget, but a PDF of that size is not a "fast path": plan for
   it on a money or pii_export tool, where the call waits for the answer.
-* These runs use raised scan limits (`max_scan_bytes` and the call budget set to twice the
-  document size, `max_payload_chars` four times). With the shipped defaults (16 KB per detector,
-  64 KB per call, 100,000 characters) a 100 KB document is cut and the detectors read 16 KB of it;
-  the cut is reported in `coverage` (`payload_too_large`, `bytes`, `scanned_bytes`), and on a
-  `pii_export` tool `dlp_vn` fails closed. Raising the limits is a decision of the bank: it costs
-  about 0.2 ms per KB of document per call, on top of the extraction.
+* Documents have their own scan budget, `limits.document_max_scan_bytes` (default 262,144 bytes
+  per detector per call). They do not count in `max_payload_chars` or in the shared scan budget, so
+  a 100 KB document is read in full with the shipped defaults. A document above the budget is cut
+  and reported in `coverage` (`payload_too_large`, `bytes`, `scanned_bytes`); the arguments are
+  always scanned on their own budget. On a `pii_export` tool the cut part is not masked and the call
+  fails closed.
+* The intake as a whole has 1.4 s (the gateway's 2 s hard timeout minus a 0.6 s margin for the
+  detectors and the record). A file that would take longer is unread (`deadline`); the call is
+  still scored and a read-only call goes on. A 100 KB PDF (about 0.22 s) is far inside it; a
+  scanned PDF with large images may not be.
 * Extraction is the part that grows with the file, not with the text: a scanned PDF with a large
-  image costs `pypdf` time and gives no text. The 2 s limit applies to the whole document.
-* A URL document adds the fetch (3 s limit, 1 MB) and is the slowest case; it is off unless
+  image costs `pypdf` time and gives no text. The limit is the time left of the 1.4 s, never more than 2 s.
+* A URL document adds the fetch (3 s limit, 1 MB, and never more than the time left of the 1.4 s) and is the slowest case; it is off unless
   `URL_FETCH_ENABLED=1`. Not measured: no network in the benchmark.
 * Not measured: the Delta path, the effect of several documents in one call (they add up), and
-  memory. A hung extraction keeps its thread until it returns (at most 8 at once, then a document
+  memory. A hung extraction keeps its thread until it returns (at most 4 at once, then a document
   is unread with the reason `busy`).
 
 ## Reproducibility

@@ -34,6 +34,7 @@ import logging
 import re
 import time
 import zipfile
+import zlib
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
@@ -48,12 +49,19 @@ MAX_DOCUMENTS = 10
 MAX_DOC_BYTES = 2 * 1024 * 1024
 MAX_URLS = 10
 EXTRACT_TIMEOUT_S = 2.0
-TOTAL_BUDGET_S = 6.0
+# The gateway answers within HARD_TIMEOUT_S (engine.py). The intake gets what is left after a
+# margin for the detectors and the record, so a slow file can never push the whole call past the
+# hard timeout (which would fail a read-only call open with nothing scanned).
+HARD_TIMEOUT_S = 2.0
+DEADLINE_MARGIN_S = 0.6
+INTAKE_BUDGET_S = HARD_TIMEOUT_S - DEADLINE_MARGIN_S
 MAX_LIST = 1000  # a longer list is refused with HTTP 400 (the limit above is a finding)
 MAX_NAME = 255
 MAX_URL = 2048
 MAX_PAGES = 500
-MAX_ZIP_MEMBER = 16 * 1024 * 1024
+MAX_ZIP_MEMBER = 8 * 1024 * 1024
+MAX_XML_DEPTH = 64
+MAX_XML_ELEMENTS = 1_000_000
 MAX_XML_PARTS = 40
 ALLOWED_KEYS = frozenset({"name", "media_type", "text", "bytes_b64", "url"})
 
@@ -62,7 +70,7 @@ CODE_LIMIT = "document.limit_exceeded"
 CODE_SSRF = "url.ssrf_refused"
 CODE_DOMAIN = "url.domain_blocked"
 
-_SLOTS = BoundedSlots(8)
+_SLOTS = BoundedSlots(4)  # a full pool is "busy" at once: the document is unread
 _MEDIA = re.compile(r"^[a-z0-9][a-z0-9!#$&^_.+-]{0,60}/[a-z0-9][a-z0-9!#$&^_.+-]{0,60}$")
 _DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 _TEXT_TYPES = {
@@ -186,7 +194,7 @@ def normalise_media_type(value: Any) -> str:
 
 def sniff(data: bytes) -> str | None:
     """``pdf``, ``zip``, ``image`` from the first bytes, else None."""
-    if b"%PDF-" in data[:1024]:
+    if data.startswith(b"%PDF-"):
         return "pdf"
     if data[:4] == b"PK\x03\x04":
         return "zip"
@@ -314,6 +322,7 @@ def read_html(data: bytes) -> str:
 
 
 _DTD = re.compile(rb"<!(DOCTYPE|ENTITY)", re.IGNORECASE)
+_BOMS = (b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff", b"\xff\xfe", b"\xfe\xff")
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 _DOCX_PARTS = re.compile(
     r"^word/(document|comments|footnotes|endnotes|header\d*|footer\d*)\.xml$", re.IGNORECASE
@@ -321,25 +330,46 @@ _DOCX_PARTS = re.compile(
 
 
 def _docx_xml_text(xml: bytes) -> str:
-    if _DTD.search(xml):
-        raise Uninspectable("unsafe_xml")  # no entity expansion: refuse the part
+    """Text of one WordprocessingML part in ONE linear pass (``iterparse``). Refused: a byte order
+    mark or a NUL (a UTF-16 part hides its DOCTYPE from the byte search), a DOCTYPE or ENTITY,
+    nesting deeper than 64 and more than a million elements."""
+    if (
+        xml.startswith(_BOMS)
+        or xml.startswith(b"\xef\xbb\xbf")
+        or b"\x00" in xml
+        or _DTD.search(xml)
+    ):
+        raise Uninspectable("unsafe_xml")  # no entity expansion, no re-encoded part
+    lines: list[str] = []
+    stack: list[list[str]] = []  # the open paragraphs; text goes to the innermost
+    depth = 0
+    count = 0
     try:
-        root = ElementTree.fromstring(xml)  # noqa: S314 - DOCTYPE and ENTITY refused above
+        for event, node in ElementTree.iterparse(io.BytesIO(xml), events=("start", "end")):  # noqa: S314
+            if event == "start":
+                depth += 1
+                count += 1
+                if depth > MAX_XML_DEPTH or count > MAX_XML_ELEMENTS:
+                    raise Uninspectable("unsafe_xml")
+                if node.tag == f"{_W}p":
+                    stack.append([])
+                continue
+            depth -= 1
+            tag = node.tag
+            if tag == f"{_W}p":
+                line = "".join(stack.pop() if stack else [])
+                if line.strip():
+                    lines.append(line)
+            elif stack:
+                if tag == f"{_W}t" and node.text:
+                    stack[-1].append(node.text)
+                elif tag == f"{_W}tab":
+                    stack[-1].append("\t")
+                elif tag in (f"{_W}br", f"{_W}cr"):
+                    stack[-1].append("\n")
+            node.clear()
     except ElementTree.ParseError:
         raise Uninspectable("parse_failed") from None
-    lines: list[str] = []
-    for para in root.iter(f"{_W}p"):
-        buf: list[str] = []
-        for node in para.iter():
-            if node.tag == f"{_W}t" and node.text:
-                buf.append(node.text)
-            elif node.tag == f"{_W}tab":
-                buf.append("\t")
-            elif node.tag in (f"{_W}br", f"{_W}cr"):
-                buf.append("\n")
-        line = "".join(buf)
-        if line.strip():
-            lines.append(line)
     return "\n".join(lines)
 
 
@@ -364,7 +394,15 @@ def read_docx(data: bytes) -> str:
             return "\n".join(t for t in texts if t)
     except Uninspectable:
         raise
-    except (zipfile.BadZipFile, OSError, ValueError, RuntimeError, NotImplementedError):
+    except (
+        zipfile.BadZipFile,
+        zlib.error,
+        EOFError,
+        OSError,
+        ValueError,
+        RuntimeError,
+        NotImplementedError,
+    ):
         raise Uninspectable("parse_failed") from None
 
 
@@ -452,18 +490,23 @@ class IntakeService:
         fetcher: Fetcher | None = None,
         *,
         extract_timeout_s: float = EXTRACT_TIMEOUT_S,
-        total_budget_s: float = TOTAL_BUDGET_S,
+        budget_s: float = INTAKE_BUDGET_S,
         clock: Callable[[], float] = time.monotonic,
+        digest: Callable[[bytes], str] | None = None,
     ) -> None:
         self.fetcher = fetcher
         self.extract_timeout_s = extract_timeout_s
-        self.total_budget_s = total_budget_s
+        self.budget_s = budget_s
         self.clock = clock
+        # keyed hash of a document or a URL (the mask key, set by wiring); plain SHA-256 without it
+        self.digest: Callable[[bytes], str] = digest or _sha
 
     # -- one document ------------------------------------------------------------------
-    def _bytes_of(self, doc: Mapping[str, Any]) -> tuple[bytes, str, str]:
+    def _bytes_of(
+        self, doc: Mapping[str, Any], left_s: float, allow_fetch: bool
+    ) -> tuple[bytes, str, str]:
         """(bytes, media type, source). Raises ``Uninspectable``, ``UrlRefused`` or
-        ``FetchFailed`` (the last two only for a URL)."""
+        ``FetchFailed`` (the last two only for a URL). A fetch gets at most ``left_s``."""
         declared = normalise_media_type(doc.get("media_type"))
         if isinstance(doc.get("text"), str):
             if len(doc["text"]) > MAX_DOC_BYTES:  # at least one byte per character
@@ -477,30 +520,40 @@ class IntakeService:
                 return base64.b64decode(b64, validate=True), declared, "inline"
             except (binascii.Error, ValueError):
                 raise Uninspectable("bad_base64") from None
+        if not allow_fetch:
+            raise Uninspectable("dry_run_no_fetch")  # a dry run never touches the network
         if self.fetcher is None or not self.fetcher.enabled:
             raise Uninspectable("url_fetch_disabled")
-        fetched = self.fetcher.fetch(str(doc["url"]))
+        fetched = self.fetcher.fetch(str(doc["url"]), timeout_s=left_s)
         return fetched.data, declared or normalise_media_type(fetched.media_type), "url"
 
-    def _extract(self, data: bytes, media_type: str, name: str) -> str:
-        deadline = self.clock() + self.extract_timeout_s
+    def _extract(self, data: bytes, media_type: str, name: str, left_s: float) -> str:
+        """Read one document in at most ``left_s`` (never more than the per-document limit)."""
+        limit = min(self.extract_timeout_s, left_s)
+        if limit <= 0:
+            raise Uninspectable("deadline")
+        deadline = time.monotonic() + limit
         try:
             return str(
                 _SLOTS.call(
                     lambda: extract_text(data, media_type, name, deadline=deadline),
-                    self.extract_timeout_s,
+                    limit,
                     "intake",
                 )
             )
         except TimeoutError:
-            raise Uninspectable("timeout") from None
+            raise Uninspectable(
+                "deadline" if left_s < self.extract_timeout_s else "timeout"
+            ) from None
         except NoSlot:
             raise Uninspectable("busy") from None
 
     # -- the call -------------------------------------------------------------------------
-    def run(self, raw: Any) -> IntakeResult:
-        """Read ``context.documents``. Never raises: a document that cannot be read is
-        reported, not thrown."""
+    def run(self, raw: Any, *, allow_fetch: bool = True) -> IntakeResult:
+        """Read ``context.documents`` within ``budget_s`` (1.4 s: what the gateway's 2 s hard
+        timeout leaves). Never raises: a document that cannot be read, for any reason, is
+        reported as unread, and the rest of the call is still scored. ``allow_fetch=False`` (a dry
+        run) reports a URL document as unread without touching the network."""
         out = IntakeResult()
         docs = [d for d in raw if isinstance(d, Mapping)] if isinstance(raw, list) else []
         start = self.clock()
@@ -530,19 +583,20 @@ class IntakeService:
                 "status": "read",
             }
             if url is not None:
-                entry["url_sha256"] = hashlib.sha256(url.encode("utf-8", "replace")).hexdigest()
+                entry["url_sha256"] = self.digest(b"url:" + url.encode("utf-8", "replace"))
             try:
-                if self.clock() - start > self.total_budget_s:
-                    raise Uninspectable("time_budget")
-                data, media_type, _src = self._bytes_of(doc)
-                entry["sha256"], entry["size"] = _sha(data), len(data)
+                left_s = self.budget_s - (self.clock() - start)
+                if left_s <= 0:
+                    raise Uninspectable("deadline")
+                data, media_type, _src = self._bytes_of(doc, left_s, allow_fetch)
+                entry["sha256"], entry["size"] = self.digest(data), len(data)
                 if media_type:
                     entry["media_type"] = media_type
                 if len(data) > MAX_DOC_BYTES:
                     raise _TooLarge(len(data))
                 label = name or (f"document-{index + 1}")
-                text = self._extract(data, media_type, name)
-                out.documents.append({"name": label[:MAX_NAME], "text": text})
+                text = self._extract(data, media_type, name, self.budget_s - (self.clock() - start))
+                out.documents.append({"index": index, "name": label[:MAX_NAME], "text": text})
                 entry["chars"] = len(text)
             except _TooLarge as exc:
                 entry["size"] = exc.size
@@ -569,6 +623,13 @@ class IntakeService:
                 out.closing += 1
                 out.events.append(
                     {"code": CODE_UNINSPECTABLE, "reason": exc.reason, "index": index}
+                )
+            except Exception:  # noqa: BLE001 - nothing a file does may escape (a gate error fails open)
+                entry["status"], entry["reason"] = "unread", "parse_failed"
+                out.unread += 1
+                out.closing += 1
+                out.events.append(
+                    {"code": CODE_UNINSPECTABLE, "reason": "parse_failed", "index": index}
                 )
             out.meta.append(entry)
         if limit_hit:

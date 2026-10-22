@@ -115,3 +115,32 @@ def test_in_process_documents_are_ignored_when_intake_is_off(gw_on: Gateway) -> 
     assert "documents" not in res
     assert res["coverage"]["inspected"] == ["args"]
     assert gw_on.documents_on is False
+
+
+def test_the_guardian_view_shows_the_intake_on_only_with_its_flag() -> None:
+    from supervisor.governance.guardians import instance_on
+
+    yaml_on = {"document_intake": True}
+    assert instance_on(load_settings(detectors_enabled=True), "document_intake", yaml_on) is False
+    s = load_settings(detectors_enabled=True, document_intake_enabled=True)
+    assert instance_on(s, "document_intake", yaml_on) is True
+    assert instance_on(s, "document_intake", {"document_intake": False}) is False
+    off = load_settings(document_intake_enabled=True)  # detectors off
+    assert instance_on(off, "document_intake", yaml_on) is False
+
+
+def test_document_and_url_digests_are_keyed_with_the_mask_key() -> None:
+    import hashlib
+
+    from supervisor.wiring import make_intake
+
+    svc = make_intake(load_settings(document_intake_enabled=True))
+    assert svc is not None
+    d = svc.digest(b"abc")
+    assert d != hashlib.sha256(b"abc").hexdigest() and len(d) == 64 and d == svc.digest(b"abc")
+    other = make_intake(
+        load_settings(document_intake_enabled=True, mask_hmac_key="another-key-123456")
+    )
+    assert other is not None and other.digest(b"abc") != d
+    meta = svc.run([{"text": "abc"}]).meta[0]
+    assert meta["sha256"] == svc.digest(b"abc")

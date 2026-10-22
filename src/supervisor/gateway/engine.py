@@ -24,6 +24,7 @@ record. Chain payloads contain no floats (latency in integer microseconds).
 from __future__ import annotations
 
 import concurrent.futures as cf
+import dataclasses
 import hashlib
 import json
 import logging
@@ -632,6 +633,8 @@ class Gateway:
         req: Req | None = None,
     ) -> dict[str, Any]:
         t0 = time.perf_counter_ns()
+        if req is not None:  # WP-D1: a dry run reads documents but never fetches a URL
+            req = dataclasses.replace(req, dry=True)
         skipped: list[str] = []
         policy = self.policy.current()
         state = self.states.get_state(agent_id, policy)

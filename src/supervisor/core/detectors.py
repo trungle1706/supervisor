@@ -99,6 +99,7 @@ MAX_DEPTH = 12
 # together scan per call (the "scan budget"). Both in UTF-8 bytes.
 DEFAULT_MAX_SCAN_BYTES = 16_384
 DEFAULT_SCAN_BUDGET_BYTES = 65_536
+DEFAULT_DOCUMENT_SCAN_BYTES = 262_144  # WP-D1
 MAX_FRAGMENTS = 20
 FRAGMENT_TEXT_MAX = 120
 SCORE_MAX = 10_000
@@ -578,6 +579,10 @@ class RunConfig:
     timeout_ms: int = 500
     fail_closed_risk_classes: frozenset[str] = frozenset({"money", "credit", "pii_export"})
     scan_budget_bytes: int = DEFAULT_SCAN_BUDGET_BYTES  # WP41: all detectors together, per call
+    # WP-D1: documents have their own budget (per detector, per call) and do not count in
+    # max_payload_chars or in scan_budget_bytes, so a long document can never switch off the
+    # scan of the arguments
+    document_max_scan_bytes: int = DEFAULT_DOCUMENT_SCAN_BYTES
 
 
 @dataclass
@@ -604,7 +609,7 @@ def _without_parts(f: Finding, parts: set[str]) -> Finding:
 
 # WP41 review: the parts whose transformed copy a caller applies (the tool gets the masked
 # arguments, the user gets the masked output). A cut tool result is never applied.
-APPLIED_PARTS: frozenset[str] = frozenset({"args", "output", DOCUMENT_PART})
+APPLIED_PARTS: frozenset[str] = frozenset({"args", "output"})
 
 
 def _transforms_here(det: Any, settings: Mapping[str, Any], meta: Mapping[str, Any]) -> bool:
@@ -768,6 +773,7 @@ class DetectorRegistry:
         too_large = False
         uninspectable = False
         total = 0
+        doc_chars = 0
         part_bytes: dict[str, int] = {}
         for part in (*PARTS, *((DOCUMENT_PART,) if has_docs else ())):
             if part not in parts_here:
@@ -782,7 +788,10 @@ class DetectorRegistry:
             for leaf in walk_leaves(part, payload[part], "$", 0, bad):
                 n += len(leaf.text)
                 nb += _utf8_len(leaf.text)
-            total += n
+            if part == DOCUMENT_PART:
+                doc_chars = n  # WP-D1: not part of max_payload_chars
+            else:
+                total += n
             part_bytes[part] = nb
             if bad:
                 uninspectable = True
@@ -802,7 +811,7 @@ class DetectorRegistry:
             "direction": direction,
             "inspected": inspected,
             "not_inspected": not_inspected,
-            "chars": total,
+            "chars": total + doc_chars,
         }
         part_bytes = {p: b for p, b in part_bytes.items() if p in inspected}
         budget_left = config.scan_budget_bytes
@@ -834,14 +843,25 @@ class DetectorRegistry:
             # WP41 (D30, D18): this detector sees at most max_scan_bytes of text, and all
             # detectors together at most the call's scan budget. Arguments first, results last.
             limit = min(int(clean.get("max_scan_bytes") or DEFAULT_MAX_SCAN_BYTES), budget_left)
-            det_parts = tuple(p for p in parts_here if p != DOCUMENT_PART or _reads_documents(det))
+            det_parts = tuple(p for p in parts_here if p != DOCUMENT_PART)
+            reads_docs = DOCUMENT_PART in parts_here and _reads_documents(det)
             if limit <= 0 and sum(b for p, b in part_bytes.items() if p in det_parts) > 0:
                 res.not_executed.append(
                     not_executed(slug, did, "payload_too_large", "scan budget", preset=preset)
                 )
                 continue
             view, scanned, clipped = clipped_view(payload, det_parts, part_bytes, limit)
-            budget_left -= sum(scanned.values())
+            budget_left -= sum(scanned.values())  # the documents do not spend this budget
+            if reads_docs and DOCUMENT_PART in part_bytes:
+                # WP-D1: the documents have their own budget, per detector
+                view, doc_scanned, doc_clipped = clipped_view(
+                    view,
+                    (DOCUMENT_PART,),
+                    {DOCUMENT_PART: part_bytes[DOCUMENT_PART]},
+                    config.document_max_scan_bytes,
+                )
+                scanned = {**scanned, **doc_scanned}
+                clipped = clipped | doc_clipped
             for p, nb in scanned.items():
                 scanned_min[p] = min(scanned_min.get(p, nb), nb)
             cut_applied = sorted(clipped & APPLIED_PARTS)
@@ -856,6 +876,17 @@ class DetectorRegistry:
                     )
                 )
                 continue
+            if (
+                DOCUMENT_PART in clipped
+                and (payload.get("meta") or {}).get("risk_class") == "pii_export"
+                and _transforms_here(det, clean, payload.get("meta") or {})
+            ):
+                # WP-D1: the cut part of a document is not masked, and a pii_export tool must not
+                # get it: the failure row is for the cut document; the call is still scored in
+                # full (the arguments and the rest are read and transformed as usual)
+                res.not_executed.append(
+                    not_executed(slug, did, "payload_too_large", "documents", preset=preset)
+                )
             t0 = clock_ns()
             try:
                 found = _call_bounded(

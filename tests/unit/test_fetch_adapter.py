@@ -1,26 +1,22 @@
 """WP-D1: the URL fetch adapter and its SSRF guard. A fake transport and a fake resolver; no socket
-is opened (an autouse fixture makes any real socket call fail the test)."""
+is opened (the fixture no_network of tests/conftest.py makes a real DNS or connect call fail)."""
 
 from __future__ import annotations
 
 import ipaddress
 import socket
+import ssl
+import threading
 import time
 from typing import Any
 
 import pytest
 
 from supervisor.adapters.fetch import Fetcher, FetchFailed, UrlRefused, guard, ip_is_public
+from supervisor.adapters.fetch import transport as transport_mod
 from supervisor.adapters.fetch.transport import HttpsTransport, TransportResponse
 
-
-@pytest.fixture(autouse=True)
-def no_network(monkeypatch: pytest.MonkeyPatch) -> None:
-    def boom(*a: Any, **k: Any) -> Any:
-        raise AssertionError("a real network call was attempted")
-
-    monkeypatch.setattr(socket, "getaddrinfo", boom)
-    monkeypatch.setattr(socket, "create_connection", boom)
+pytestmark = pytest.mark.usefixtures("no_network")  # tests/conftest.py
 
 
 class FakeTransport:
@@ -277,3 +273,83 @@ def test_the_real_transport_connects_to_the_given_address_only(
     with pytest.raises(OSError, match="refused"):
         HttpsTransport().request("example.com", "93.184.216.34", "/", 1.0, 1000)
     assert seen == [("93.184.216.34", 443)]  # the address, never the name
+
+
+# ---------------------------------------------------------------------------- review fixes
+
+
+def test_fullwidth_host_letters_normalise_to_the_listed_domain_and_are_fetched_as_such() -> None:
+    f, t = fetcher(page())
+    assert f.fetch("https://ｄocs.example.com/a").data == b"hello"  # fullwidth "d"
+    assert t.calls == [
+        ("docs.example.com", "93.184.216.34", "/a")
+    ]  # the ASCII name goes on the wire
+    with pytest.raises(UrlRefused) as e:  # a different name stays blocked
+        f.fetch("https://ｅvil.test/")
+    assert e.value.code == guard.DOMAIN_BLOCKED
+
+
+def test_a_non_ascii_path_and_query_are_percent_encoded() -> None:
+    p = guard.parse_url("https://docs.example.com/tài-liệu/hồ-sơ.pdf?q=Việt&x=1")
+    assert p.path == "/t%C3%A0i-li%E1%BB%87u/h%E1%BB%93-s%C6%A1.pdf?q=Vi%E1%BB%87t&x=1"
+    assert p.path.isascii()
+    assert guard.parse_url("https://docs.example.com/a%20b?c=%C3%A0").path == "/a%20b?c=%C3%A0"
+
+
+def _drip_server(sock: socket.socket, first: bytes, lines: int, gap: float) -> threading.Thread:
+    def run() -> None:
+        try:
+            sock.recv(65536)
+            sock.sendall(first)
+            for i in range(lines):
+                time.sleep(gap)
+                sock.sendall(f"X-Pad-{i}: v\r\n".encode())
+        except OSError:
+            pass
+
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    return t
+
+
+class _SocketPairTransport(HttpsTransport):
+    """The real request code over a socketpair instead of TLS."""
+
+    def __init__(self, sock: socket.socket) -> None:
+        self._sock = sock
+
+    def _connection(self, host: str, ip: str, timeout_s: float, deadline: float) -> Any:
+        conn = transport_mod._Pinned(host, ip, timeout_s, ssl.create_default_context(), deadline)
+        conn.sock = transport_mod._DeadlineSock(self._sock, deadline)  # type: ignore[assignment]
+        return conn
+
+
+def test_a_server_that_drips_one_header_line_at_a_time_is_cut_at_the_deadline() -> None:
+    client, server = socket.socketpair()
+    _drip_server(server, b"HTTP/1.1 200 OK\r\n", lines=60, gap=0.1)  # would last 6 s
+    t0 = time.monotonic()
+    with pytest.raises((TimeoutError, OSError)):
+        _SocketPairTransport(client).request("example.com", "93.184.216.34", "/", 0.6, 1000)
+    assert time.monotonic() - t0 < 1.2
+    server.close()
+
+
+def test_response_headers_over_the_cap_are_refused() -> None:
+    client, server = socket.socketpair()
+    big = b"HTTP/1.1 200 OK\r\n" + b"".join(
+        b"X-Pad-%d: %s\r\n" % (i, b"v" * 300) for i in range(95)
+    )
+    _drip_server(server, big, lines=0, gap=0)
+    with pytest.raises(OSError, match="headers too large"):
+        _SocketPairTransport(client).request("example.com", "93.184.216.34", "/", 2.0, 1000)
+    server.close()
+
+
+def test_a_normal_response_over_the_socketpair_is_read() -> None:
+    client, server = socket.socketpair()
+    body = b"<p>hello</p>"
+    head = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n" % len(body)
+    _drip_server(server, head + body, lines=0, gap=0)
+    got = _SocketPairTransport(client).request("example.com", "93.184.216.34", "/", 2.0, 1000)
+    assert got.status == 200 and got.body == body and got.headers["content-type"] == "text/html"
+    server.close()

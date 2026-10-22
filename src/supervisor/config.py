@@ -597,6 +597,9 @@ class Settings(BaseSettings):
     # outbound network call of the intake and only to a listed domain.
     document_intake_enabled: bool = False
     url_fetch_enabled: bool = False
+    # PLAYGROUND_URL_FETCH=1: a dry run (Playground) may fetch a URL document. Default 0: a dry
+    # run never touches the network and reports the document as unread (dry_run_no_fetch).
+    playground_url_fetch: bool = False
     url_fetch_allowlist: str = Field(default="", pattern=r"^[A-Za-z0-9.*_, -]*$", max_length=2000)
 
     # --- WP38 --- collector catalogue on the Integrations page (ADR D28, docs/collectors.md).

@@ -21,7 +21,7 @@ import re
 import socket
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 SSRF_REFUSED = "url.ssrf_refused"
 DOMAIN_BLOCKED = "url.domain_blocked"
@@ -127,9 +127,10 @@ def parse_url(url: str) -> ParsedUrl:
             raise UrlRefused(SSRF_REFUSED, "bad host") from None
     if not _HOST.match(host) and parse_ip(host) is None:
         raise UrlRefused(SSRF_REFUSED, "bad host")
-    path = parts.path or "/"
+    # a non-ASCII path or query goes on the wire as UTF-8 percent escapes (HTTP is ASCII)
+    path = quote(parts.path or "/", safe="/%:@!$&'()*+,;=-._~")
     if parts.query:
-        path += "?" + parts.query
+        path += "?" + quote(parts.query, safe="/%:@!$&'()*+,;=?-._~")
     return ParsedUrl(host, 443, path)
 
 

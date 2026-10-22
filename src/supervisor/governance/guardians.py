@@ -123,6 +123,10 @@ def instance_on(settings: Any, slug: str, detectors: Mapping[str, bool] | None =
     if slug in flags:
         return g(flags[slug])
     det = detector_entries(settings) if detectors is None else detectors
+    if slug == "document_intake":  # WP-D1: the yaml entry alone does not switch it on
+        return (
+            g("detectors_enabled") and g("document_intake_enabled") and bool(det.get(slug, False))
+        )
     return g("detectors_enabled") and bool(det.get(slug, False))
 
 

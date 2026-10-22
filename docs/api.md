@@ -119,16 +119,16 @@ Request addition:
 
 | Field | Meaning |
 |---|---|
-| `context.documents` | Input check only. A list of `{name?, media_type?, text, bytes_b64, url}` with exactly one of `text`, `bytes_b64`, `url` per item. At most 10 documents, 2 MB each after decoding, 10 unique URLs. `name` and `media_type` are labels (at most 255 and 100 characters); the first bytes decide the kind. `url` needs `URL_FETCH_ENABLED=1` and `URL_FETCH_ALLOWLIST`. A wrong shape is HTTP 400; a limit hit is a finding, not an error. With `direction=output` it is HTTP 400 |
+| `context.documents` | Input check only. A list of `{name?, media_type?, text, bytes_b64, url}` with exactly one of `text`, `bytes_b64`, `url` per item. At most 10 documents, 2 MB each after decoding, 10 unique URLs. In practice the request body limit (`MAX_REQUEST_BYTES`, 10 MB, HTTP 413) is lower: base64 adds a third, so about 7.5 MB of files fit in one request. The intake has 1.4 s in all (the gateway's hard timeout is 2 s); what is not read by then is `unread` with reason `deadline`. `name` and `media_type` are labels (at most 255 and 100 characters); the first bytes decide the kind. `url` needs `URL_FETCH_ENABLED=1` and `URL_FETCH_ALLOWLIST`. A wrong shape is HTTP 400; a limit hit is a finding, not an error. With `direction=output` it is HTTP 400 |
 
 Answer additions (only on a call that carried documents):
 
 | Field | Meaning |
 |---|---|
-| `documents[]` | One entry per document that was looked at: `index`, `source` (`inline` or `url`), `media_type`, `sha256`, `size`, `status` (`read`, `unread`, `refused`), `reason` (when not read), `url_sha256` (URL documents). No name, no text, no URL |
+| `documents[]` | One entry per document that was looked at: `index`, `source` (`inline` or `url`), `media_type`, `sha256` (HMAC-SHA-256 with the mask key), `size`, `status` (`read`, `unread`, `refused`), `reason` (when not read), `url_sha256` (URL documents, keyed too). No name, no text, no URL |
 | `findings[]` | Adds `document.uninspectable`, `document.limit_exceeded`, `url.ssrf_refused`, `url.domain_blocked` (detector `document_intake`), and the usual `injection.*` and `pii.*` codes with `fragments[].part` = `documents` and `path` like `$[0].text` |
 | `coverage` | `documents` appears in `inspected`, or in `not_inspected` with `payload_too_large` (cut) or `content_uninspectable` (with `unread`, the number of documents not read) |
-| `transformed_payload.documents` | Only on a `pii_export` tool when `dlp_vn` masked something: `[{name, text}]` with masked text, same order as the readable documents |
+| `transformed_payload.documents` | Only on a `pii_export` tool when `dlp_vn` masked something: `[{index, text}]` for the documents whose text changed (`index` = `documents[].index`). Unchanged documents and all names are left out |
 
 A document that cannot be read on a money, credit or pii_export tool gives `allow: false`,
 `rule_id: GATE-DETECTOR-FAILED`, `status: block` while `document_intake` is `fail_closed`.

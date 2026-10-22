@@ -71,6 +71,7 @@ class Req:
     direction: str = "input"
     correlation_id: str | None = None
     request_id: str | None = None
+    dry: bool = False  # WP-D1: a dry run (Playground) never touches the network
 
 
 @dataclass
@@ -126,6 +127,7 @@ class DetectorGate:
         self.narrow: Any = None
         # WP-D1: reads context.documents when DOCUMENT_INTAKE_ENABLED=1 (set by wiring), else None
         self.intake: IntakeService | None = None
+        self.dry_fetch = False  # PLAYGROUND_URL_FETCH: a dry run may fetch a URL (default no)
 
     def redact_budget_bytes(self) -> int | None:
         """WP41b (D32): the bytes of argument text the inline masker may read for one call, or
@@ -288,7 +290,12 @@ class DetectorGate:
                 and req.direction == "input"
                 and ctx.get("documents") is not None
             ):
-                pre.intake = self.intake.run(ctx.get("documents"))
+                pre.intake = self.intake.run(
+                    ctx.get("documents"), allow_fetch=not req.dry or self.dry_fetch
+                )
+            reporter_off = (
+                pre.intake is not None and not run_cfg.detectors["document_intake"].enabled
+            )
             run_cfg = self._intake_cfg(run_cfg, pre.intake is not None)
             dlp = run_cfg.detectors.get("dlp_vn")
             # WP41 review: input direction only (an output check never passes a value through)
@@ -312,6 +319,18 @@ class DetectorGate:
                 protocol=protocol if protocol in ("llm", "mcp", "a2a") else "llm",
                 risk_class=pre.risk_class,
             )
+            if reporter_off and pre.intake.closing and pre.risk_class in pre.fail_closed_risk:
+                # The intake is on but its reporter is off (yaml or per-agent disable): nothing
+                # would report the unread document, so a risky tool fails closed, not open.
+                row = Finding(
+                    detector_slug="document_intake",
+                    detector_id="document_intake",
+                    code="not_executed.content_uninspectable",
+                    not_executed_reason="content_uninspectable",
+                    detail=f"{pre.intake.closing} unread, reporter off",
+                )
+                pre.result.not_executed.append(row)
+                pre.result.failed_closed.append(row)
         except Exception as exc:  # noqa: BLE001 - the detector pass must never raise
             pre.result = None
             pre.error = type(exc).__name__

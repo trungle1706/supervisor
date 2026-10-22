@@ -97,8 +97,9 @@ class Fetcher:
                 log.debug("fetch connect failed: %s", type(exc).__name__)
         raise FetchFailed("connection failed")
 
-    def fetch(self, url: str) -> Fetched:
-        deadline = time.monotonic() + self.timeout_s
+    def fetch(self, url: str, timeout_s: float | None = None) -> Fetched:
+        """Fetch ``url`` in at most ``timeout_s`` (and never more than the adapter's own limit)."""
+        deadline = time.monotonic() + min(self.timeout_s, timeout_s or self.timeout_s)
         parsed = check_before_dns(url, self.allowlist)
         origin = parsed.host
         for _hop in range(self.max_redirects + 1):

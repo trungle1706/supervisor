@@ -125,8 +125,11 @@ The Python SDK, the LangGraph middleware and the FastAPI middleware send the fil
 as `context.documents` of the input check, **only while `DOCUMENT_INTAKE_ENABLED=1` is set in the
 agent process** (the same name as the gateway flag; `attachments.set_document_intake(True)` does
 the same in code). With the switch off nothing is built or sent and the request is the one the
-adapter sent before. The gateway must have the flag on too, or it answers HTTP 400 and the
-adapter's fail mode applies.
+adapter sent before. The two flags must match. Client on, gateway off: the gateway answers HTTP 400, and the adapter's
+fail mode decides (a read-only tool may go on with its documents **unscanned**; money, credit and
+pii_export tools stop). Client off, gateway on: no document is sent, so none is scanned, and the
+gateway sees nothing wrong. Set `DOCUMENT_INTAKE_ENABLED` on both sides and check one decision for
+`documents` in the answer.
 
 | Adapter | What is sent |
 |---|---|

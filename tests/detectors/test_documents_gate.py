@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import base64
 import json
+import time
 from typing import Any
 
 import pytest
@@ -24,6 +25,8 @@ PHONE = "0912345678"
 CV = f"Nguyễn Văn An, CCCD {CCCD}, điện thoại {PHONE}."
 RAW = (CCCD, PHONE, "Nguyễn Văn An")
 
+pytestmark = pytest.mark.usefixtures("no_network")  # tests/conftest.py
+
 
 def b64(data: bytes) -> str:
     return base64.b64encode(data).decode("ascii")
@@ -35,7 +38,7 @@ class FakeFetcher:
     def __init__(self, pages: dict[str, Any]) -> None:
         self.pages = pages
 
-    def fetch(self, url: str) -> Fetched:
+    def fetch(self, url: str, timeout_s: float | None = None) -> Fetched:
         page = self.pages[url]
         if isinstance(page, Exception):
             raise page
@@ -185,9 +188,7 @@ def test_coverage_says_documents_were_cut_by_the_scan_limit(
     make_gateway: GatewayFactory, masker: Any
 ) -> None:
     cfg = CONFIG.read_text(encoding="utf-8").replace(
-        "    settings: {}\n  injection_classifier",
-        "    settings: {max_scan_bytes: 1000}\n  injection_classifier",
-        1,
+        "document_max_scan_bytes: 262144", "document_max_scan_bytes: 1024", 1
     )
     gw = make_docs_gw(make_gateway, masker, config_text=cfg)
     r = check(gw, "get_balance", [{"name": "big.txt", "text": "Doanh thu tang. " * 400}])
@@ -440,3 +441,163 @@ def test_only_detectors_that_list_the_part_read_documents(masker: Any) -> None:
     assert reading == {"dlp_vn", "injection_regex"}  # guard_model joins when WP-D3 lands
     assert DOCUMENT_PART not in parts_for(payload, "output", reg.get("dlp_vn"))
     assert DOCUMENT_PART not in parts_for({"args": {}}, "input", reg.get("dlp_vn"))
+
+
+# ---------------------------------------------------------------------------- review fixes
+
+
+def _slow_extractor(monkeypatch: pytest.MonkeyPatch, seconds: float) -> None:
+    from supervisor.detectors import intake
+
+    real = intake.extract_text
+
+    def slow(data: bytes, media_type: str = "", name: str = "", *, deadline: Any = None) -> str:
+        time.sleep(seconds)
+        return real(data, media_type, name, deadline=deadline)
+
+    monkeypatch.setattr(intake, "extract_text", slow)
+
+
+def test_h1_a_slow_document_cannot_switch_off_the_scan_of_the_arguments(
+    gw: Gateway, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _slow_extractor(monkeypatch, 2.5)
+    t0 = time.monotonic()
+    r = gw.check(
+        "payments",
+        "1",
+        "get_balance",
+        {"account_id": "A-1", "note": INJ},
+        {"documents": [{"text": "x"}]},
+    )
+    assert time.monotonic() - t0 < 1.95
+    assert r["allow"] is True and r["rule_id"] is None  # not the gateway's own timeout
+    assert "injection.instruction_override" in {f["code"] for f in r["findings"]}  # the argument
+    assert [d["reason"] for d in r["documents"]] == ["deadline"]
+    assert "args" in r["coverage"]["inspected"]
+    r = check(gw, "add_payee", [{"text": "x"}])
+    assert r["rule_id"] == "GATE-DETECTOR-FAILED"  # a risky tool fails closed
+
+
+def test_h3_a_corrupt_docx_is_unread_and_the_arguments_are_still_scanned(gw: Gateway) -> None:
+    from tests.detectors.test_intake_extract import corrupt_docx
+
+    doc = {"name": "x.docx", "bytes_b64": b64(corrupt_docx())}
+    r = gw.check(
+        "payments", "1", "get_balance", {"account_id": "A-1", "note": INJ}, {"documents": [doc]}
+    )
+    assert r["allow"] is True and r["rule_id"] is None
+    assert [d["reason"] for d in r["documents"]] == ["parse_failed"]
+    assert "injection.instruction_override" in {f["code"] for f in r["findings"]}
+    assert check(gw, "add_payee", [doc])["rule_id"] == "GATE-DETECTOR-FAILED"
+
+
+def test_m1_a_long_document_never_switches_off_the_scan_of_the_arguments(gw: Gateway) -> None:
+    filler = "Bao cao doanh thu thang nay tang nhe so voi thang truoc. " * 2000  # about 114 KB
+    r = gw.check(
+        "payments",
+        "1",
+        "get_balance",
+        {"account_id": "A-1", "note": INJ},
+        {"documents": [{"text": filler}]},
+    )
+    assert "injection.instruction_override" in {f["code"] for f in r["findings"]}
+    assert r["coverage"]["inspected"] == ["args", "documents"]  # 114 KB is under the 256 KB budget
+    assert not any(n["reason"] == "payload_too_large" for n in r["not_executed"])
+
+
+def test_m1_beyond_the_document_budget_the_part_is_cut_and_the_arguments_are_read(
+    gw: Gateway,
+) -> None:
+    big = "Bao cao doanh thu thang nay tang nhe. " * 9000  # about 340 KB
+    r = gw.check(
+        "payments",
+        "1",
+        "get_balance",
+        {"account_id": "A-1", "note": INJ},
+        {"documents": [{"text": big}]},
+    )
+    (cut,) = [n for n in r["coverage"]["not_inspected"] if n["part"] == "documents"]
+    assert cut["reason"] == "payload_too_large" and cut["scanned_bytes"] == 262144
+    assert "args" in r["coverage"]["inspected"] and r["allow"] is True
+    assert "injection.instruction_override" in {f["code"] for f in r["findings"]}
+
+
+def test_m1_on_pii_export_the_cut_document_fails_closed_but_the_call_is_scored(
+    gw: Gateway,
+) -> None:
+    big = "Bao cao doanh thu thang nay tang nhe. " * 9000
+    r = gw.check(
+        "payments",
+        "1",
+        "add_payee",
+        {"customer_id": "C-1", "note": f"so dien thoai {PHONE}"},
+        {"documents": [{"text": big}]},
+    )
+    assert r["allow"] is False and r["rule_id"] == "GATE-DETECTOR-FAILED"
+    dlp = [n["detail"] for n in r["not_executed"] if n["detector_slug"] == "dlp_vn"]
+    assert dlp == ["documents"]
+    assert "pii.phone" in {f["code"] for f in r["findings"]}  # the arguments were still scanned
+    assert "documents" not in (r["transformed_payload"] or {})
+    # a document under the budget on the same tool is fine
+    ok = gw.check(
+        "payments",
+        "1",
+        "add_payee",
+        {"customer_id": "C-1"},
+        {"documents": [{"text": "Bao cao. " * 4000}]},
+    )
+    assert ok["allow"] is True
+
+
+def test_m1_documents_are_outside_max_payload_chars(gw: Gateway) -> None:
+    r = check(gw, "get_balance", [{"text": "Bao cao. " * 20_000}])  # 180,000 characters
+    assert r["allow"] is True and "args" in r["coverage"]["inspected"]
+    assert r["coverage"]["chars"] > 100_000  # more than max_payload_chars, and still read
+
+
+def test_m4_a_dry_run_never_fetches_unless_playground_url_fetch(
+    make_gateway: GatewayFactory, masker: Any
+) -> None:
+    page = Fetched(f"<p>{INJ_VI}</p>".encode(), "text/html")
+    calls: list[str] = []
+
+    class Counting(FakeFetcher):
+        def fetch(self, url: str, timeout_s: float | None = None) -> Fetched:
+            calls.append(url)
+            return super().fetch(url, timeout_s)
+
+    gw = make_docs_gw(make_gateway, masker, fetcher=Counting({"https://ok.example.com/p": page}))
+    docs = {"documents": [{"url": "https://ok.example.com/p"}]}
+    r = gw.evaluate_only("payments", "1", "get_balance", {"account_id": "A"}, docs)
+    assert calls == [] and [d["reason"] for d in r["documents"]] == ["dry_run_no_fetch"]
+    gw.detector_gate.dry_fetch = True
+    r = gw.evaluate_only("payments", "1", "get_balance", {"account_id": "A"}, docs)
+    assert calls == ["https://ok.example.com/p"]
+    assert "injection.instruction_override" in {x["code"] for x in r["findings"]}
+    gw.check("payments", "1", "get_balance", {"account_id": "A"}, docs)  # a real call fetches
+    assert len(calls) == 2
+
+
+def test_low_a_disabled_reporter_with_the_intake_on_fails_closed_on_a_risky_tool(
+    make_gateway: GatewayFactory, masker: Any
+) -> None:
+    cfg = CONFIG.read_text(encoding="utf-8").replace(
+        "  document_intake:\n    enabled: true", "  document_intake:\n    enabled: false"
+    )
+    gw = make_docs_gw(make_gateway, masker, config_text=cfg)
+    png = [{"bytes_b64": b64(tiny_png())}]
+    assert check(gw, "transfer", png)["rule_id"] == "GATE-DETECTOR-FAILED"
+    assert check(gw, "get_balance", png)["allow"] is True  # nothing reports it; read-only goes on
+    assert check(gw, "transfer", [{"text": "fine"}])["rule_id"] != "GATE-DETECTOR-FAILED"
+
+
+def test_low_the_masked_documents_are_only_the_changed_ones_and_carry_no_name(gw: Gateway) -> None:
+    r = check(
+        gw,
+        "add_payee",
+        [{"name": "Nguyễn Văn An.txt", "text": "Bao cao sach"}, {"name": "cv.txt", "text": CV}],
+    )
+    docs = r["transformed_payload"]["documents"]
+    assert [d["index"] for d in docs] == [1] and set(docs[0]) == {"index", "text"}
+    assert "<CCCD:" in docs[0]["text"] and "Nguyễn" not in json.dumps(docs, ensure_ascii=False)

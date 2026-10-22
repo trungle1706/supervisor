@@ -12,9 +12,9 @@ Expert rubrics: SOC analyst reading a verdict (typed recall, fragment exactness,
 
 | split | n | pos | tp | fn | fp | recall bp (95% CI) | precision bp (95% CI) | typed recall bp | fragment exact bp | leaks | p95 us |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| dev | 60 | 40 | 40 | 0 | 0 | 10000 [9123, 10000] | 10000 [9123, 10000] | 10000 | 10000 | 0 | 3120 |
-| heldout | 60 | 40 | 40 | 0 | 0 | 10000 [9123, 10000] | 10000 [9123, 10000] | 10000 | 10000 | 0 | 2919 |
-| adversarial | 20 | 16 | 13 | 3 | 0 | 8125 [5699, 9341] | 10000 [7718, 10000] | 8125 | 10000 | 0 | 1856 |
+| dev | 60 | 40 | 40 | 0 | 0 | 10000 [9123, 10000] | 10000 [9123, 10000] | 10000 | 10000 | 0 | 2468 |
+| heldout | 60 | 40 | 40 | 0 | 0 | 10000 [9123, 10000] | 10000 [9123, 10000] | 10000 | 10000 | 0 | 2450 |
+| adversarial | 20 | 16 | 13 | 3 | 0 | 8125 [5699, 9341] | 10000 [7718, 10000] | 8125 | 10000 | 0 | 2064 |
 
 Failure taxonomy (counts):
 
@@ -27,13 +27,13 @@ Failure taxonomy (counts):
 | typed_recall_bp.dev | 10000 | 7500 | GO |
 | leak_items.dev | 0 | 0 | GO |
 | fragment_exact_bp.dev | 10000 | 9000 | GO |
-| p95_us.dev | 3120 | 50000 | GO |
+| p95_us.dev | 2468 | 50000 | GO |
 | recall_bp.heldout | 10000 | 8000 | GO |
 | precision_bp.heldout | 10000 | 9000 | GO |
 | typed_recall_bp.heldout | 10000 | 7500 | GO |
 | leak_items.heldout | 0 | 0 | GO |
 | fragment_exact_bp.heldout | 10000 | 9000 | GO |
-| p95_us.heldout | 2919 | 50000 | GO |
+| p95_us.heldout | 2450 | 50000 | GO |
 | heldout_gap_bp | 0 | 1500 | GO |
 | adversarial_recall_bp | 8125 | 4000 | GO |
 | adversarial_leak_items | 0 | 0 | GO |
@@ -42,8 +42,8 @@ Failure taxonomy (counts):
 
 | split | n | pos | tp | fn | fp | recall bp (95% CI) | precision bp (95% CI) | typed recall bp | fragment exact bp | leaks | p95 us |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| dev | 60 | 40 | 40 | 0 | 1 | 10000 [9123, 10000] | 9756 [8740, 9957] | 10000 | 10000 | 0 | 2474 |
-| heldout | 60 | 40 | 40 | 0 | 4 | 10000 [9123, 10000] | 9090 [7884, 9641] | 10000 | 10000 | 0 | 2241 |
+| dev | 60 | 40 | 40 | 0 | 1 | 10000 [9123, 10000] | 9756 [8740, 9957] | 10000 | 10000 | 0 | 2436 |
+| heldout | 60 | 40 | 40 | 0 | 4 | 10000 [9123, 10000] | 9090 [7884, 9641] | 10000 | 10000 | 0 | 2064 |
 
 Failure taxonomy (counts):
 
@@ -57,22 +57,22 @@ Failure taxonomy (counts):
 | typed_recall_bp.dev | 10000 | 8500 | GO |
 | leak_items.dev | 0 | 0 | GO |
 | fragment_exact_bp.dev | 10000 | 9900 | GO |
-| p95_us.dev | 2474 | 50000 | GO |
+| p95_us.dev | 2436 | 50000 | GO |
 | recall_bp.heldout | 10000 | 9000 | GO |
 | precision_bp.heldout | 9090 | 9000 | GO |
 | typed_recall_bp.heldout | 10000 | 8500 | GO |
 | leak_items.heldout | 0 | 0 | GO |
 | fragment_exact_bp.heldout | 10000 | 9900 | GO |
-| p95_us.heldout | 2241 | 50000 | GO |
+| p95_us.heldout | 2064 | 50000 | GO |
 | heldout_gap_bp | 0 | 1500 | GO |
 
 ## url_ssrf@document-intake-eval-1: GO
 
 | split | n | pos | tp | fn | fp | recall bp (95% CI) | precision bp (95% CI) | typed recall bp | fragment exact bp | leaks | p95 us |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| dev | 60 | 40 | 40 | 0 | 0 | 10000 [9123, 10000] | 10000 [9123, 10000] | 10000 | - | 0 | 165 |
-| heldout | 60 | 40 | 40 | 0 | 0 | 10000 [9123, 10000] | 10000 [9123, 10000] | 10000 | - | 0 | 179 |
-| adversarial | 15 | 9 | 9 | 0 | 0 | 10000 [7008, 10000] | 10000 [7008, 10000] | 10000 | - | 0 | 790 |
+| dev | 60 | 40 | 40 | 0 | 0 | 10000 [9123, 10000] | 10000 [9123, 10000] | 10000 | - | 0 | 199 |
+| heldout | 60 | 40 | 40 | 0 | 0 | 10000 [9123, 10000] | 10000 [9123, 10000] | 10000 | - | 0 | 197 |
+| adversarial | 15 | 9 | 9 | 0 | 0 | 10000 [7008, 10000] | 10000 [7008, 10000] | 10000 | - | 0 | 735 |
 
 Failure taxonomy (counts):
 
@@ -83,12 +83,12 @@ Failure taxonomy (counts):
 | precision_bp.dev | 10000 | 9500 | GO |
 | typed_recall_bp.dev | 10000 | 9500 | GO |
 | leak_items.dev | 0 | 0 | GO |
-| p95_us.dev | 165 | 5000 | GO |
+| p95_us.dev | 199 | 5000 | GO |
 | recall_bp.heldout | 10000 | 10000 | GO |
 | precision_bp.heldout | 10000 | 9500 | GO |
 | typed_recall_bp.heldout | 10000 | 9500 | GO |
 | leak_items.heldout | 0 | 0 | GO |
-| p95_us.heldout | 179 | 5000 | GO |
+| p95_us.heldout | 197 | 5000 | GO |
 | heldout_gap_bp | 0 | 500 | GO |
 | adversarial_recall_bp | 10000 | 8000 | GO (indicative) |
 | adversarial_leak_items | 0 | 0 | GO |
@@ -116,3 +116,9 @@ Known gaps (named in the adversarial taxonomy, not hidden): an instruction split
 documents, encoded in base64, or written in leetspeak is not found (the same limits as
 `injection_regex` on text); an image carries no text (no OCR), so it is reported as
 `document.uninspectable` and fails closed on a money, credit or pii_export tool instead.
+
+Fixes this harness found in the SSRF guard (both are covered by unit tests): the IPv6 site-local
+range `fec0::/10` was treated as public and is now refused (`url.ssrf_refused`); and a full-width
+host such as `ｄocs.example.com` is not an attack: IDNA folds it to the listed ASCII name
+`docs.example.com`, which is what the connection and the Host header use. The probe had been
+labelled as a bypass by mistake and is now a benign item.

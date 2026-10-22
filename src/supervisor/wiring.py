@@ -15,6 +15,8 @@ demo replay (``python -m supervisor.demo.replay --gate``).
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -233,6 +235,7 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
     gate = DetectorGate(registry, resolved)
     # WP-D1: document and URL intake (None unless DOCUMENT_INTAKE_ENABLED=1)
     gate.intake = make_intake(settings)
+    gate.dry_fetch = bool(settings.playground_url_fetch)
     # WP-S1: per-system guardian bindings (None unless both flags are on)
     from supervisor.governance.guardians import make_narrower
 
@@ -255,7 +258,12 @@ def make_intake(settings: Settings) -> Any:
 
     domains = settings.url_fetch_domains
     fetcher = Fetcher(domains) if settings.url_fetch_enabled and domains else None
-    return IntakeService(fetcher)
+    key = settings.mask_key[0]  # documents and URLs are digested with the keyed mask hash
+
+    def digest(data: bytes) -> str:
+        return hmac.new(key, b"doc:" + data, hashlib.sha256).hexdigest()
+
+    return IntakeService(fetcher, digest=digest)
 
 
 def _advisory_judge(settings: Settings, masker: Any) -> Any:

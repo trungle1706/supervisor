@@ -22,6 +22,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from supervisor.core.detectors import (
+    DEFAULT_DOCUMENT_SCAN_BYTES,
     DEFAULT_SCAN_BUDGET_BYTES,
     DetectorRegistry,
     DetectorSetting,
@@ -60,6 +61,11 @@ class Limits(_Strict):
     # WP41 (D30, D18): the most text all detectors together scan per call, in bytes. The
     # environment value DETECTORS_SCAN_BUDGET_BYTES replaces it. Per detector: max_scan_bytes.
     scan_budget_bytes: int = Field(default=DEFAULT_SCAN_BUDGET_BYTES, ge=1024, le=10_000_000)
+    # WP-D1: the most text of the documents of one call that each detector reads. Documents are
+    # outside max_payload_chars and scan_budget_bytes (docs/detectors.md section 11.4).
+    document_max_scan_bytes: int = Field(
+        default=DEFAULT_DOCUMENT_SCAN_BYTES, ge=1024, le=10_000_000
+    )
     fail_closed_risk_classes: list[str] = Field(default_factory=lambda: list(RISK[:3]))
 
 
@@ -148,6 +154,7 @@ class ResolvedDetectors:
             timeout_ms=cfg.limits.timeout_ms,
             fail_closed_risk_classes=frozenset(cfg.limits.fail_closed_risk_classes),
             scan_budget_bytes=scan_budget_bytes or cfg.limits.scan_budget_bytes,
+            document_max_scan_bytes=cfg.limits.document_max_scan_bytes,
         )
 
     def _merged(
@@ -189,6 +196,7 @@ class ResolvedDetectors:
             timeout_ms=self._base.timeout_ms,
             fail_closed_risk_classes=self._base.fail_closed_risk_classes,
             scan_budget_bytes=self._base.scan_budget_bytes,
+            document_max_scan_bytes=self._base.document_max_scan_bytes,
         )
         return run, frozenset(agent.skip_tools) if agent else frozenset()
 

@@ -11,6 +11,12 @@ limits:
   # A detector that is set fail_closed and cannot run blocks a call to a tool of these risk
   # classes (rule GATE-DETECTOR-FAILED). On any other tool the failure is only listed.
   fail_closed_risk_classes: [money, credit, pii_export]
+  # WP-D1: the most text of the documents (context.documents) that each detector reads per call.
+  # Documents have their own budget: they do not count in max_payload_chars or in the shared scan
+  # budget, so a long document cannot switch off the scan of the arguments. A document beyond it
+  # is cut (coverage payload_too_large). On a pii_export tool the cut part is not masked, so that
+  # call fails closed (GATE-DETECTOR-FAILED) for the cut document; the rest is still scored.
+  document_max_scan_bytes: 262144
 detectors:
   # mrm_status (WP41): GO or NO-GO from the model risk validation. Only a deterministic detector
   # (dlp_vn, injection_regex) or one with GO counts in the session monitor's `findings` signal;

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import socket
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -17,6 +19,19 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     for var in ("SUPERVISOR_HOST", "SUPERVISOR_PORT", "SQL_BACKEND", "TABLE_PREFIX"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.chdir(tmp_path)
+
+
+@pytest.fixture
+def no_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """WP-D1: any real DNS lookup or outbound connection fails the test. Opt in with
+    ``pytestmark = pytest.mark.usefixtures("no_network")``. It is not autouse: a few suites open
+    loopback sockets on purpose (HTTP servers, MCP, benchmarks)."""
+
+    def boom(*a: Any, **k: Any) -> Any:
+        raise AssertionError("a real network call was attempted")
+
+    monkeypatch.setattr(socket, "getaddrinfo", boom)
+    monkeypatch.setattr(socket, "create_connection", boom)
 
 
 # --- tests that need a git checkout skip inside an unpacked release zip (no .git) -------

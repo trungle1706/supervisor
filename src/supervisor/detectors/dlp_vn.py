@@ -123,6 +123,21 @@ def _mask_tree(value: Any, mask: Any, depth: int = 0, typed: bool = False) -> An
     return map_leaves(value, mask, depth)
 
 
+def _masked_documents(docs: Any, mask: Any) -> list[dict[str, Any]]:
+    """The documents whose text changed, as ``{index, text}`` (the masked text). ``index`` is the
+    position of the document in the request. The name is not returned: it is not changed text,
+    and a name can be personal data."""
+    out = []
+    for pos, doc in enumerate(docs if isinstance(docs, list) else []):
+        text = doc.get("text") if isinstance(doc, Mapping) else None
+        if isinstance(text, str):
+            masked = mask(text)
+            if masked != text:
+                idx = doc.get("index")
+                out.append({"index": idx if isinstance(idx, int) else pos, "text": masked})
+    return out
+
+
 class DlpVnDetector:
     slug = "dlp_vn"
     name = "Vietnamese personal data (DLP)"
@@ -259,8 +274,12 @@ class DlpVnDetector:
             out_payload = {
                 part: _mask_tree(payload[part], mask, typed=typed)
                 for part in parts
-                if payload.get(part) is not None and (part != DOCUMENT_PART or doc_transform)
+                if payload.get(part) is not None and part != DOCUMENT_PART
             }
+            if doc_transform and payload.get(DOCUMENT_PART) is not None:
+                changed = _masked_documents(payload[DOCUMENT_PART], mask)
+                if changed:
+                    out_payload[DOCUMENT_PART] = changed
         findings = []
         for typ in sorted(counts):
             # an entity found only in a document, on a tool that is not pii_export, is reported

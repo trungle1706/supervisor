@@ -2617,7 +2617,7 @@ requires-dist = [
     { name = "presidio-anonymizer", marker = "extra == 'presidio'", specifier = ">=2.2" },
     { name = "pydantic", specifier = ">=2.7,<3" },
     { name = "pydantic-settings", specifier = ">=2.3" },
-    { name = "pypdf", marker = "extra == 'documents'", specifier = ">=5.0" },
+    { name = "pypdf", marker = "extra == 'documents'", specifier = ">=6.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "scikit-learn", marker = "extra == 'monitors'", specifier = ">=1.4" },
     { name = "truststore", specifier = ">=0.9" },

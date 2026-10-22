@@ -8,8 +8,8 @@ percentiles):
 
 * extract: ``IntakeService.run`` (decode, unzip or parse the file, take the text);
 * score: ``DetectorRegistry.run`` with ``dlp_vn`` and ``injection_regex`` on the extracted text,
-  with the scan limits raised to the document size (the defaults, 16 KB per detector and 64 KB per
-  call, would cut a 100 KB document: see docs/detectors.md "Documents and URLs");
+  with the document budget (``document_max_scan_bytes``, default 256 KB) set to twice the
+  document size, so nothing is cut;
 * total: both.
 
 Offline, no network, the synthetic text of the PII golden set. The PDF kind needs the extra
@@ -60,15 +60,13 @@ def _pct(values: list[int], p: int) -> int:
 
 
 def _cfg(limit: int) -> RunConfig:
-    s = {"max_scan_bytes": limit}
     return RunConfig(
         detectors={
-            "dlp_vn": DetectorSetting(True, {"preset": "balanced", **s}),
-            "injection_regex": DetectorSetting(True, {"preset": "balanced", **s}),
+            "dlp_vn": DetectorSetting(True, {"preset": "balanced"}),
+            "injection_regex": DetectorSetting(True, {"preset": "balanced"}),
         },
-        max_payload_chars=limit * 4,
-        scan_budget_bytes=limit * 4,
         timeout_ms=5000,
+        document_max_scan_bytes=limit,
     )
 
 

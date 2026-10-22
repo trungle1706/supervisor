@@ -1195,6 +1195,12 @@ Known gaps (named in the adversarial taxonomy, not hidden): an instruction split
 documents, encoded in base64, or written in leetspeak is not found (the same limits as
 `injection_regex` on text); an image carries no text (no OCR), so it is reported as
 `document.uninspectable` and fails closed on a money, credit or pii_export tool instead.
+
+Fixes this harness found in the SSRF guard (both are covered by unit tests): the IPv6 site-local
+range `fec0::/10` was treated as public and is now refused (`url.ssrf_refused`); and a full-width
+host such as `ｄocs.example.com` is not an attack: IDNA folds it to the listed ASCII name
+`docs.example.com`, which is what the connection and the Host header use. The probe had been
+labelled as a bypass by mistake and is now a benign item.
 """
 
 
