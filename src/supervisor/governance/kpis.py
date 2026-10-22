@@ -59,10 +59,11 @@ def _ts(value: Any) -> dt.datetime | None:
 
 
 def _count_by(items: Iterable[str], order: Iterable[str] = ()) -> dict[str, int]:
-    out: dict[str, int] = dict.fromkeys(order, 0)
+    keys = tuple(order)
+    out: dict[str, int] = dict.fromkeys(keys, 0)
     for i in items:
         out[i] = out.get(i, 0) + 1
-    return {k: v for k, v in out.items() if v or k in set(order)}
+    return out
 
 
 def _latest_control_status(

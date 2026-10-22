@@ -77,7 +77,7 @@
 </section>
 {% endif %}
 {# WP-G6: the KPI block; d.kpis exists only with MCP_SERVER_ENABLED. Same figures as GET /v1/kpis. #}
-{% if d.kpis %}
+{% if d.get('kpis') %}
 {% macro kpi_rate(label, bp, key) %}<tr><td>{{ label }}</td><td>{% if bp is none %}<span class="muted">{{ t('nv3_na') }}</span> <span class="hint">{{ t('g6_na_' ~ d.kpis.unavailable.get(key, '')) if d.kpis.unavailable.get(key) else '' }}</span>{% else %}{{ v3.pct(bp) }}{% endif %}</td></tr>{% endmacro %}
 {% macro kpi_map(items) %}{% for k, n in items.items() %}{{ k }}: {{ n }}{{ ' · ' if not loop.last }}{% else %}{{ t('g6_kpi_none') }}{% endfor %}{% endmacro %}
 <section class="card" data-section="kpis">
