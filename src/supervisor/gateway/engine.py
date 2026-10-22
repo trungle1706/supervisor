@@ -54,6 +54,9 @@ from supervisor.gateway.detector_gate import (
 from supervisor.gateway.detector_gate import (
     FAILED_RULE as DETECTOR_FAILED_RULE,
 )
+from supervisor.gateway.detector_gate import (
+    SECRET_RULE as DETECTOR_SECRET_RULE,
+)
 from supervisor.gateway.facts import FactSource
 from supervisor.gateway.policy import (
     DEFAULT_FAIL_MODE,
@@ -1084,7 +1087,10 @@ class Gateway:
         d.observe_approved = eff.observe_approved
         if eff.mode != "observe" or shadow or builtin:
             return
-        if not d.allow and d.rule_id == DETECTOR_FAILED_RULE and risk != "pii_export":
+        if not d.allow and (
+            (d.rule_id == DETECTOR_FAILED_RULE and risk != "pii_export")
+            or d.rule_id == DETECTOR_SECRET_RULE  # WP-D2: observe lifts it (approvals as usual)
+        ):
             cls._observe(d, eff, risk)
         if d.observed is not None and d.v2 is not None:
             d.v2["status"] = observed_status(d)
