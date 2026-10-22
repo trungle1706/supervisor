@@ -95,6 +95,43 @@ class ConsoleContext:
         return svc
 
     @property
+    def rules(self) -> Any:
+        """The assignment rules service (WP-G2, docs/assignment-rules.md). Runs go on the chain."""
+        from supervisor.governance.rules_service import RulesService
+
+        svc = getattr(self, "_rules", None)
+        if svc is None:
+            svc = RulesService(
+                self.state, self.tables, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._rules = svc
+        return svc
+
+    @property
+    def classification(self) -> Any:
+        """The Decision 33 classification service (WP-G2, docs/decision33.md). The chat model is
+        built only when CLASSIFIER_AI_PREFILL is on; the service never applies by itself."""
+        from supervisor.governance.classification import ClassificationService
+
+        svc = getattr(self, "_classification", None)
+        if svc is None:
+            chat = None
+            if self.settings.classifier_ai_prefill:
+                from supervisor.adapters.factory import make_chat_model
+
+                chat = make_chat_model(self.settings)
+            svc = ClassificationService(
+                self.state,
+                self.tables,
+                self.clock,
+                self.settings,
+                evidence=self.runtime.chain,
+                chat=chat,
+            )
+            self._classification = svc
+        return svc
+
+    @property
     def transparency(self) -> Any:
         """The transparency report service (WP31, ADR D31). Signed reports go on the chain."""
         from supervisor.transparency.service import TransparencyService

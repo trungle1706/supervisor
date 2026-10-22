@@ -1277,3 +1277,50 @@ tables:
       active: bool
       first_seen: timestamp
       last_seen: timestamp
+
+  # --- WP-G2 assignment rules and Decision 33 classification (docs/assignment-rules.md) ------
+  assignment:
+    kind: state
+    description: >
+      WP-G2. One thing the assignment rules put on an AI system: an obligation, a control, a
+      risk, a task template or a guardian feature. assignment_id is a hash of (system, kind,
+      ref), so a repeat run keeps the row. active is false when no rule fires for it any more;
+      a row is never deleted. fired lists the rules and the fields that fired, for the
+      explanation. A run writes a rule_run chain record.
+    primary_key: [assignment_id]
+    indexes:
+      - [system_id]
+      - [kind, ref_id]
+    columns:
+      assignment_id: string
+      system_id: string
+      rule_id: string          # the first rule (by id) that assigns it
+      kind: string             # obligation | control | risk | task | guardian
+      ref_id: string           # obligation id, control id, risk id, task template id, feature slug
+      active: bool
+      fired: json              # [{rule, fields: [...]}] every rule that assigns it
+      first_seen: timestamp
+      last_seen: timestamp
+
+  classification:
+    kind: state
+    description: >
+      WP-G2. A Decision 33 classification of one AI system: a draft made from the rules, edited
+      by a person, then applied by a person (never by a model). answers holds, per question, the
+      answer, its source (rules | ai_prefill | person) and the justification. Applying sets
+      decision33_class on the system and the classifier floor of its risk level. Changes go on the
+      chain as classification_change.
+    primary_key: [classification_id]
+    indexes:
+      - [system_id]
+    columns:
+      classification_id: string
+      system_id: string
+      outcome: string          # high_risk | not_high_risk | unclassified
+      answers: json            # {question id: {answer, source, justification}}
+      flow_sha256: string      # sha256 of config/decision33.yaml used
+      status: string           # draft | applied
+      created_by: string
+      created_at: timestamp
+      applied_by: string?
+      applied_at: timestamp?

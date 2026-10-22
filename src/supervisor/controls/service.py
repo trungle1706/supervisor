@@ -461,12 +461,17 @@ class ControlService:
         """Active controls in scope of the agent, by id."""
         a = agent_id.lower()
         rows = rows if rows is not None else self.state.query("control", order_by=("control_id",))
+        # WP-G2: controls the assignment rules put on the AI system of the agent join its scope
+        # (empty with GOVERNANCE_ENABLED off, or for an agent on no system).
+        from supervisor.governance.rules_service import assigned_refs
+
+        assigned = assigned_refs(self.state, self.settings, agent_id, "control")
         out = []
         for r in rows:
             if r["status"] != "active":
                 continue
             scope = _scope_list(r)
-            if scope == [ANY_AGENT] or a in scope:
+            if scope == [ANY_AGENT] or a in scope or r["control_id"] in assigned:
                 out.append(dict(r))
         return out
 
@@ -682,19 +687,37 @@ class ControlService:
         for c in comp["controls"]:
             for o in c["matrix"]:
                 by_obl.setdefault(o, []).append(c)
+        # WP-G2: obligations the assignment rules put on the AI system of the agent are listed
+        # too, with source "rule" (or "control+rule"). Agents on no system are unchanged.
+        from supervisor.governance.rules_service import assigned_refs
+
+        by_rule = assigned_refs(self.state, self.settings, agent_id, "obligation")
         out = []
-        for o in sorted(by_obl):
+        for o in sorted(set(by_obl) | set(by_rule)):
+            if o not in by_obl:
+                out.append(
+                    {
+                        "obligation": o,
+                        "status": STATUS_NO_DATA,
+                        "controls": [],
+                        "source": "rule",
+                        "systems": by_rule[o],
+                    }
+                )
+                continue
             sts = {c["status"] for c in by_obl[o]}
             best = (
                 "working" if "working" in sts else "failing" if "failing" in sts else STATUS_NO_DATA
             )
-            out.append(
-                {
-                    "obligation": o,
-                    "status": best,
-                    "controls": sorted(c["control_id"] for c in by_obl[o]),
-                }
-            )
+            row = {
+                "obligation": o,
+                "status": best,
+                "controls": sorted(c["control_id"] for c in by_obl[o]),
+            }
+            if o in by_rule:
+                row["source"] = "control+rule"
+                row["systems"] = by_rule[o]
+            out.append(row)
         return out
 
     def status_summary(self) -> dict[str, dict[str, int]]:

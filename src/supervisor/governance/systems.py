@@ -177,6 +177,20 @@ class SystemService:
             log.exception("system chain record failed")
             return None
 
+    def _run_rules(self, system_id: str, actor: str, trigger: str) -> None:
+        """WP-G2: re-evaluate the assignment rules of the system after a change. Only with
+        GOVERNANCE_ENABLED on; a rules problem is logged and never stops the change."""
+        if not getattr(self.settings, "governance_enabled", False):
+            return
+        try:
+            from supervisor.governance.rules_service import RulesService
+
+            RulesService(
+                self.state, self.tables, self.clock, self.settings, evidence=self.evidence_sink
+            ).run(system_id, actor, trigger)
+        except Exception:  # noqa: BLE001 - the change is stored; the CLI shows the rules problem
+            log.exception("assignment rules run failed for %s", system_id)
+
     def _changed(
         self,
         action: str,
@@ -273,6 +287,7 @@ class SystemService:
         if bo and bo != fields["owner_user"]:
             self._put_member(sid, bo, "business_owner", actor)
         self._changed("create", stored, actor)
+        self._run_rules(sid, actor, "register")
         return self.get(sid)
 
     def _unique_name(self, name: str, except_id: str | None = None) -> None:
@@ -318,6 +333,7 @@ class SystemService:
             self._put_member(system_id, new_owner, "system_owner", actor)
             self._demote_old_owner(stored, cur["owner_user"], actor)
         self._changed("update", stored, actor, {"fields_n": len(fields)})
+        self._run_rules(system_id, actor, "update")
         return self.get(system_id)
 
     def _demote_old_owner(self, sys_row: Mapping[str, Any], old: str, actor: str) -> None:
@@ -550,6 +566,7 @@ class SystemService:
         self._changed(
             "link", sys_row, actor, {"component_id": cid, "ref_kind": ref_kind, "role": role}
         )
+        self._run_rules(system_id, actor, "link")
         return self.get(system_id)
 
     def unlink(self, system_id: str, component: str, actor: str) -> dict[str, Any]:
@@ -570,6 +587,7 @@ class SystemService:
             actor,
             {"component_id": component, "ref_kind": cur["ref_kind"], "role": cur["role"]},
         )
+        self._run_rules(system_id, actor, "unlink")
         return self.get(system_id)
 
     # ------------------------------------------------------------------ risk
@@ -616,7 +634,12 @@ class SystemService:
     ) -> EffectiveRisk:
         manual = str(row["risk_level"])
         inherited, via = self._inherited(components, levels, tiers)
-        if rank(inherited) > rank(manual):
+        # WP-G2: the classifier floor. A system classed high risk under Decision 33 is at least
+        # "high", whatever a person typed in the manual level.
+        floor = "high" if row.get("decision33_class") == "high_risk" else "unspecified"
+        if rank(floor) > max(rank(manual), rank(inherited)):
+            level, source = floor, "classifier"
+        elif rank(inherited) > rank(manual):
             level, source = inherited, "inherited"
         else:
             level, source = manual, str(row["risk_level_source"])

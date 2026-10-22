@@ -13,7 +13,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import uuid
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from supervisor.controls.model import actor_ref
@@ -29,6 +29,7 @@ from supervisor.tasks.model import (
     OWNER_ROLES,
     STAGES,
     STATUSES,
+    Planned,
     TaskConfig,
     TaskError,
     check_id,
@@ -40,7 +41,6 @@ from supervisor.tasks.model import (
     move_refusal,
     move_template_id,
     needs_stage_approval,
-    next_stage_at,
     plan,
     plan_at,
     same_person,
@@ -421,8 +421,12 @@ class TaskService:
             "required_total": len(required),
             "stage_done_bp": (len(closed) * 10000 // len(required)) if required else 10000,
             "overdue": sum(1 for v in views if v["overdue"] and v["required"]),
-            "next_stage": next_stage_at(self.cfg, stage, level, classes) if stage else None,
-            "stages_in_use": [s for s, v in plan_at(self.cfg, level, classes).items() if v],
+            "next_stage": self._next_stage(inputs["agent_id"], stage, level, classes)
+            if stage
+            else None,
+            "stages_in_use": [
+                s for s, v in self._plan(inputs["agent_id"], level, classes).items() if v
+            ],
             "illustrative": self.cfg.illustrative,
             "tasks": views,
         }
@@ -454,6 +458,36 @@ class TaskService:
             "required_n": sum(1 for s in STAGES for x in p[s] if x.required),
             "total_n": sum(len(p[s]) for s in STAGES),
         }
+
+    # ------------------------------------------------------------------ rule-assigned templates
+    def _plan(self, agent_id: str, level: str, classes: Iterable[str]) -> dict[str, list[Planned]]:
+        """``plan_at`` plus the task templates that the assignment rules (WP-G2) put on the AI
+        system of this agent. Sizing stays the floor: the assigned templates are added, never
+        replace one. Required follows the template's ``required_from`` at the agent's level.
+        With GOVERNANCE_ENABLED off, or an agent on no system, this is exactly ``plan_at``."""
+        out = plan_at(self.cfg, level, classes)
+        from supervisor.governance.rules_service import assigned_refs
+
+        refs = assigned_refs(self.state, self.settings, agent_id, "task")
+        if not refs:
+            return out
+        by_id = self.cfg.by_id()
+        have = {x.template.id for xs in out.values() for x in xs}
+        for tid in refs:
+            t = by_id.get(tid)
+            if t is not None and tid not in have:
+                out[t.stage].append(Planned(t, t.required(level)))
+        order = {t.id: i for i, t in enumerate(self.cfg.templates)}
+        for xs in out.values():
+            xs.sort(key=lambda x: order[x.template.id])
+        return out
+
+    def _next_stage(
+        self, agent_id: str, current: str, level: str, classes: Iterable[str]
+    ) -> str | None:
+        p = self._plan(agent_id, level, classes)
+        after = [s for s in STAGES if p[s] and STAGES.index(s) > STAGES.index(current)]
+        return after[0] if after else None
 
     # ------------------------------------------------------------------ generate
     def _row_for(
@@ -502,7 +536,7 @@ class TaskService:
         """Create the tasks of ``stage`` (and the move out of it) that do not exist yet, sized by
         ``sizing()`` (never lighter than what the agent had before)."""
         level, classes = self.sizing(agent_id, inputs)
-        p = plan_at(self.cfg, level, classes)[stage]
+        p = self._plan(agent_id, level, classes)[stage]
         cls = inputs["d33_class"]
         created: list[dict[str, Any]] = []
         for x in p:
@@ -523,7 +557,7 @@ class TaskService:
                 actor=actor,
             )
             created += self._insert(row, actor)
-        nxt = next_stage_at(self.cfg, stage, level, classes)
+        nxt = self._next_stage(agent_id, stage, level, classes)
         if nxt is not None:
             row = self._row_for(
                 agent_id,
@@ -578,10 +612,10 @@ class TaskService:
 
     def _resize(self, agent_id: str, stage: str, inputs: Mapping[str, str], who: str) -> int:
         level, classes = self.sizing(agent_id, inputs)
-        planned = {x.template.id: x for x in plan_at(self.cfg, level, classes)[stage]}
+        planned = {x.template.id: x for x in self._plan(agent_id, level, classes)[stage]}
         made = 0
         changed = False
-        nxt = next_stage_at(self.cfg, stage, level, classes)
+        nxt = self._next_stage(agent_id, stage, level, classes)
         for row in self.rows_of(agent_id):
             if row["stage"] != stage or row["status"] not in OPEN_STATUSES:
                 continue

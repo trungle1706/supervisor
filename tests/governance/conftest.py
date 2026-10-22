@@ -105,9 +105,11 @@ def mounted() -> Iterator[None]:
     from supervisor.app import app
     from supervisor.console.systems_routes import router as console_router
     from supervisor.governance.routes import router as api_router
+    from supervisor.governance.rules_routes import router as rules_router  # WP-G2
 
     saved = list(app.router.routes)
     app.include_router(api_router)
+    app.include_router(rules_router)
     app.include_router(console_router)
     try:
         yield
@@ -125,3 +127,26 @@ def on(
     for flag in ("governance_enabled", "console_systems_enabled"):
         monkeypatch.setattr(console.ctx.settings, flag, True)
     return console
+
+
+# --------------------------------------------------------------------------- WP-G2: flag on
+@pytest.fixture
+def gadapters(tmp_path: Path) -> Iterator[Adapters]:
+    """A temporary SQLite store with GOVERNANCE_ENABLED on (the rules run after each change)."""
+    settings = load_settings(
+        sql_backend="sqlite",
+        data_dir=tmp_path / "gdata",
+        llm_base_url="",
+        governance_enabled=True,
+    )
+    a = build_adapters(settings)
+    bootstrap_schema.run(a.settings, a)
+    try:
+        yield a
+    finally:
+        a.close()
+
+
+@pytest.fixture
+def gsvc(gadapters: Adapters, sink: ListSink) -> SystemService:
+    return SystemService.from_adapters(gadapters, evidence=sink)

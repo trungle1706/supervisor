@@ -597,6 +597,13 @@ class Settings(BaseSettings):
     governance_enabled: bool = False
     console_systems_enabled: bool = False
 
+    # --- WP-G2 --- assignment rules and Decision 33 classification (docs/assignment-rules.md,
+    # docs/decision33.md). Both need GOVERNANCE_ENABLED. CLASSIFIER_AI_PREFILL=1 lets the
+    # classification draft ask the LLM adapter for answers (tagged ai_prefill; a person applies).
+    assignment_rules_config: Path = Path("config/assignment_rules.yaml")
+    decision33_config: Path = Path("config/decision33.yaml")
+    classifier_ai_prefill: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -629,6 +636,8 @@ class Settings(BaseSettings):
         "risk_starter_dir",
         "controls_starter_dir",
         "tasks_config",
+        "assignment_rules_config",
+        "decision33_config",
         "transparency_dir",
         "transparency_backlog_file",
         mode="after",

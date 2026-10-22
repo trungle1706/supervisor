@@ -360,6 +360,16 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/systems/{system_id}/links"): "systems.edit",
     ("DELETE", "/v1/systems/{system_id}/links/{component_id}"): "systems.edit",
     ("POST", "/v1/systems/{system_id}/archive"): "systems.edit",
+    # --- WP-G2 --- assignment rules and Decision 33 classification (same flag as WP-G0)
+    ("GET", "/v1/systems/{system_id}/assignments"): "systems.view",
+    ("GET", "/v1/systems/{system_id}/obligations"): "systems.view",
+    ("GET", "/v1/systems/{system_id}/guardian-floor"): "systems.view",
+    ("GET", "/v1/systems/{system_id}/rules/explain"): "systems.view",
+    ("POST", "/v1/systems/{system_id}/assignments/run"): "systems.edit",
+    ("GET", "/v1/systems/{system_id}/classification"): "systems.view",
+    ("POST", "/v1/systems/{system_id}/classification"): "systems.edit",
+    ("PATCH", "/v1/systems/{system_id}/classification"): "systems.edit",
+    ("POST", "/v1/systems/{system_id}/classification/apply"): "systems.edit",
 }
 
 
