@@ -249,7 +249,10 @@ class TaskService:
             cls = "unclassified"
         band: str | None = None
         source = "default"
-        svc = self.risks()
+        linked = self._linked_sizing(str(a["agent_id"]))  # WP-G1: None unless linked to a system
+        if linked is not None:
+            band, source = linked.band, "system"
+        svc = self.risks() if linked is None else None
         if svc is not None:
             try:
                 lv = svc.agent_levels().get(str(a["agent_id"]).lower())
@@ -261,7 +264,7 @@ class TaskService:
             band, source = str(a["risk_tier"]), "risk_tier"
         if band is None:
             band = "high"  # unknown risk is sized as high: more governance, never less
-        return {
+        out = {
             "agent_id": str(a["agent_id"]),
             "d33_class": cls,
             "band": band,
@@ -269,6 +272,35 @@ class TaskService:
             "level": effective_level(self.cfg, cls, band),
             "gate_state": str(a.get("gate_state") or ""),
         }
+        if linked is not None:  # WP-G1: only for a linked agent; an unlinked one is as before
+            out["system_level"] = linked.system_level
+            out["system_ids"] = ",".join(linked.system_ids)
+            if linked.initiation_only:
+                out["initiation_only"] = "1"
+        return out
+
+    def _linked_sizing(self, agent_id: str) -> Any:
+        """WP-G1: the sizing of an agent that is linked to an AI system (docs/governance.md),
+        or None (governance off, or no active link): then the sizing is the one before WP-G1."""
+        if not getattr(self.settings, "governance_enabled", False):
+            return None
+        from supervisor.governance.sizing import linked_sizing
+
+        try:
+            return linked_sizing(self.state, self.tables, self.clock, self.settings, agent_id)
+        except Exception:  # noqa: BLE001 - a system problem must not stop the task list
+            log.exception("system sizing failed; the agent is sized as an unlinked agent")
+            return None
+
+    def _next_stage(
+        self, stage: str, level: str, classes: Any, inputs: Mapping[str, str]
+    ) -> str | None:
+        """The stage after ``stage``. WP-G1: an agent of a system whose risk level is still
+        unspecified gets the initiation set only, so it does not move on until a person sets
+        the level of the system."""
+        if stage == "initiation" and inputs.get("initiation_only") == "1":
+            return None
+        return next_stage_at(self.cfg, stage, level, classes)
 
     def sizing(self, agent_id: str, inputs: Mapping[str, str]) -> tuple[str, tuple[str, ...]]:
         """(level, classes) the task list of the agent is sized with: the highest effective
@@ -421,7 +453,7 @@ class TaskService:
             "required_total": len(required),
             "stage_done_bp": (len(closed) * 10000 // len(required)) if required else 10000,
             "overdue": sum(1 for v in views if v["overdue"] and v["required"]),
-            "next_stage": next_stage_at(self.cfg, stage, level, classes) if stage else None,
+            "next_stage": self._next_stage(stage, level, classes, inputs) if stage else None,
             "stages_in_use": [s for s, v in plan_at(self.cfg, level, classes).items() if v],
             "illustrative": self.cfg.illustrative,
             "tasks": views,
@@ -523,7 +555,7 @@ class TaskService:
                 actor=actor,
             )
             created += self._insert(row, actor)
-        nxt = next_stage_at(self.cfg, stage, level, classes)
+        nxt = self._next_stage(stage, level, classes, inputs)
         if nxt is not None:
             row = self._row_for(
                 agent_id,
@@ -581,7 +613,7 @@ class TaskService:
         planned = {x.template.id: x for x in plan_at(self.cfg, level, classes)[stage]}
         made = 0
         changed = False
-        nxt = next_stage_at(self.cfg, stage, level, classes)
+        nxt = self._next_stage(stage, level, classes, inputs)
         for row in self.rows_of(agent_id):
             if row["stage"] != stage or row["status"] not in OPEN_STATUSES:
                 continue

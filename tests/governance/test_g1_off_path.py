@@ -10,8 +10,15 @@ import pytest
 
 from supervisor.app import app
 from supervisor.config import Settings, load_settings
-from supervisor.tasks.model import CLASSES, LEVELS, STAGES, effective_level, load_config, plan
-from supervisor.tasks.model import stages_in_use
+from supervisor.tasks.model import (
+    CLASSES,
+    LEVELS,
+    STAGES,
+    effective_level,
+    load_config,
+    plan,
+    stages_in_use,
+)
 
 from .conftest import Console
 

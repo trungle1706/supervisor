@@ -251,3 +251,14 @@ templates:
     owner_role: admin
     due_days: 14
     required_from: low
+
+# ---- stage approval of an AI system (WP-G1, docs/governance.md) ---------------------------------
+# The lifecycle move of an AI system (POST /v1/systems/<id>/stage) into a stage marked
+# approval: true needs an approved stage approval first (a reviewer or oversight manager of the
+# system, or an approver, who is neither the requester nor the owner). Without this block the
+# default is the same two stages. Templates may also state their size on the scale of a system with
+# min_risk_level and required_from_level (low, medium, high, prohibited); they mean min_level and
+# required_from (prohibited = critical). ILLUSTRATIVE, like the rest of the file.
+stages:
+  deployment: {approval: true}
+  operation: {approval: true}
