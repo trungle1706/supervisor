@@ -1,0 +1,23 @@
+{# Catalogues, asset tabs (CONSOLE_NAV_V3): models, tools, datasets, MCP servers from the
+   inventory graph, read-only. Variables: overview_v3.asset_page() as d. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% block title %}{{ t('nv3_catalogues') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_catalogues'), None), (t('nv3_t_' ~ d.tab), None)]) }}
+{{ ui.pagehead(t('nv3_t_' ~ d.tab)) }}
+{% if d.off %}
+{{ v3.na('nv3_na_inventory_off') }}
+{% elif d.rows %}
+<div class="tablewrap"><table class="list" data-table="assets">
+<thead><tr><th scope="col">{{ t('nv3_c_name') }}</th><th scope="col">{{ t('nv3_c_kind') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('nv3_c_own_risk') }}</th><th scope="col">{{ t('nv3_c_last_seen') }}</th></tr></thead>
+<tbody>
+{% for r in d.rows %}
+<tr><td>{{ r.name }}</td><td><code>{{ r.kind }}</code></td><td>{{ ui.pill(t('nv3_ast_' ~ r.status), {'active': 'ok', 'unmanaged': 'warn', 'allowlisted': 'neutral'}.get(r.status, 'neutral')) }}</td><td>{% if r.own_risk %}{{ ui.sev(r.own_risk) }}{% else %}<span class="muted">{{ t('nv3_unspecified') }}</span>{% endif %}</td><td>{{ r.last_seen|day }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}
+{{ ui.empty(t('nv3_assets_none'), t('nv3_assets_none_line')) }}
+{% endif %}
+{% endblock %}

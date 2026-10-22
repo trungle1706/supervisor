@@ -1,0 +1,8 @@
+{# Tab strip of the section that holds this page (CONSOLE_NAV_V3). Each tab is a link to a page
+   that exists; the open one is marked. Variables: st = nav_v3.tab_strip(). #}
+<nav class="subtabs sec-tabs" aria-label="{{ t(st.label) }}">
+  <span class="sec-tabs-t">{{ t(st.label) }}</span>
+  {% for tb in st.tabs %}
+  <a href="{{ tb.href }}" class="{{ 'on' if tb.key == st.active else '' }}"{% if tb.key == st.active %} aria-current="page"{% endif %}>{{ t(tb.label) }}</a>
+  {% endfor %}
+</nav>

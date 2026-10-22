@@ -1,0 +1,43 @@
+{# Merged left bar (CONSOLE_NAV_V3): My overview, Governance (5), Supervisor (6), settings gear.
+   Data from console/nav_v3.py through nav_v3_bar() / nav_v3_gear(). Each section is a <details>
+   (open by default, works without JS; console.js remembers the fold in localStorage). The
+   gear opens a drawer with :target, so it works without JS too. #}
+{% import "_icons.html" as ic %}
+{% set bar = nav_v3_bar() %}
+{% macro item(r) %}
+    <li><a href="{{ r.href }}" class="{{ 'active' if r.active else '' }}" title="{{ t(r.label) }}"{% if r.active %} aria-current="page"{% endif %}><span class="ni3" aria-hidden="true">{{ ic.icon(r.icon) }}</span><span class="nl">{{ t(r.label) }}{% if r.n is not none %} <span class="k {{ 'hot' if r.hot else '' }}">{{ r.n }}</span>{% endif %}</span></a></li>
+{% endmacro %}
+<aside class="side side-v3" id="sidebar" data-nav-v3 aria-label="{{ t('nav_label') }}">
+  <div class="side-head">
+    <a class="brand" href="/console/?lang={{ lang }}" aria-label="Supervisor - {{ t('nv3_my') }}">
+      <span class="mark" aria-hidden="true">S</span>
+      <span class="brand-t">supervisor<small>{{ t('tagline') }}</small></span>
+    </a>
+    <button type="button" class="chipbtn side-collapse" data-side-collapse aria-controls="sidebar" aria-expanded="true" title="{{ t('nav_collapse') }}" aria-label="{{ t('nav_collapse') }}"><span aria-hidden="true">«</span></button>
+  </div>
+  <nav aria-label="{{ t('nav_label') }}" data-sidenav>
+    <div class="side-group"><ul>{{ item(bar.home) }}</ul></div>
+    {% for g in bar.groups %}
+    <details class="side-sec" open data-fold="{{ g.key }}">
+      <summary class="side-sec-h" id="ss-{{ g.key }}"><span class="side-k">{{ t(g.kicker) }}</span><span class="side-t">{{ t(g.label) }}<span class="side-chev" aria-hidden="true"></span></span></summary>
+      <div class="side-group sub" role="group" aria-labelledby="ss-{{ g.key }}">
+        <ul>{% for r in g['items'] %}{{ item(r) }}{% endfor %}</ul>
+      </div>
+    </details>
+    {% endfor %}
+  </nav>
+  <div class="side-foot"><span>v{{ version }} · {{ mode }}</span><a class="gear-btn" href="#nav-gear" title="{{ t('nv3_settings') }}" aria-controls="nav-gear">{{ ic.icon('gear') }}<span class="gear-l">{{ t('nv3_settings') }}</span></a></div>
+</aside>
+{% set gear = nav_v3_gear() %}
+<div class="gear-drawer" id="nav-gear" role="dialog" aria-modal="false" aria-labelledby="nav-gear-t">
+  <div class="gear-hd"><b id="nav-gear-t">{{ t('nv3_settings') }}</b><a class="chipbtn" href="#" data-gear-close>{{ t('nv3_close') }}</a></div>
+  {% if gear %}
+  <ul class="gear-list">
+    {% for g in gear %}
+    <li><a href="{{ g.href }}"><span class="gear-n">{{ t(g.label) }}</span><span class="gear-s muted">{{ t(g.status[0], **g.status[1]) }}</span></a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">{{ t('nv3_gear_none') }}</p>
+  {% endif %}
+</div>

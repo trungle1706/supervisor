@@ -1,0 +1,55 @@
+{# Guardians, tabs Detectors / Judges / Monitors (CONSOLE_NAV_V3): the catalogue cards of one
+   category, read-only; the Detectors tab adds the mandatory list from config/detectors.yaml.
+   Variables: overview_v3.guardian_cards() as d. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% block title %}{{ t('nv3_guardians') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_sup'), None), (t('nv3_guardians'), None), (t('nv3_t_' ~ d.tab), None)]) }}
+{{ ui.pagehead(t('nv3_t_' ~ d.tab)) }}
+<p class="hint">{{ t('nv3_g_lede_' ~ d.tab) }}</p>
+{% if d.tab == 'detectors' %}
+{% if not d.master %}{{ v3.na('nv3_cover_master_off') }}{% endif %}
+{% if d.det_na is defined %}{{ v3.na(d.det_na) }}
+{% else %}
+<div class="tablewrap"><table class="list" data-table="detectors">
+<thead><tr><th scope="col">{{ t('nv3_c_detector') }}</th><th scope="col">{{ t('nv3_c_in_file') }}</th><th scope="col">{{ t('nv3_c_mandatory') }}</th><th scope="col">MRM</th></tr></thead>
+<tbody>
+{% for r in d.det_rows %}
+<tr><td><code>{{ r.slug }}</code></td><td>{{ ui.pill(t('nv3_on') if r.enabled else t('nv3_off'), 'ok' if r.enabled else 'neutral', True) }}</td><td>{% if r.mandatory %}{{ ui.pill(t('nv3_yes'), 'warn') }}{% else %}<span class="muted">{{ t('nv3_no') }}</span>{% endif %}</td><td>{{ r.mrm }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+<p class="hint">{{ t('nv3_mandatory_note') }}</p>
+{% endif %}
+{% endif %}
+{% for c in d.cats %}
+<section class="cat-sec" aria-labelledby="cat-{{ c.key }}">
+  <h2 class="cat-h" id="cat-{{ c.key }}"><span class="dot" aria-hidden="true"></span>{{ t(c.label) }}</h2>
+  <ul class="cat-grid">
+  {% for card in c.cards %}
+    {% set e = card.e %}
+    <li class="cat-card{{ ' is-off' if not card.on else '' }}">
+      <div class="cat-body">
+        <div class="cat-top">
+          <span class="cat-ico" aria-hidden="true">{{ e.icon }}</span>
+          <span class="pill {{ card.kind[0] }}">{{ t(card.kind[1]) }}</span>
+        </div>
+        <h3>{{ t('cat_' ~ e.key) }}</h3>
+        <p>{{ t('cat_' ~ e.key ~ '_d') }}</p>
+        {% if e.doc %}<p class="cat-doc">{{ e.doc }}</p>{% endif %}
+      </div>
+      <div class="cat-foot">
+        {% if card.on %}
+          {{ ui.pill(t('cat_on') ~ (' · mock' if card.mock else ''), 'ok', True) }}
+        {% else %}
+          <span class="cat-env" title="{{ t('cat_turn_on') }}"><span class="muted">{{ t('cat_turn_on') }}</span> <code>{{ e.env }}</code></span>
+        {% endif %}
+        {% if card.href %}<a class="btn" href="{{ card.href }}">{{ t('cat_open') }}</a>{% endif %}
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}

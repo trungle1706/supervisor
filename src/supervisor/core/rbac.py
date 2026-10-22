@@ -379,6 +379,14 @@ ROUTES: dict[tuple[str, str], str] = {
     ("PATCH", "/v1/systems/{system_id}/reviews/{review_id}"): "systems.review",
     ("POST", "/v1/systems/{system_id}/reviews/{review_id}/complete"): "systems.review",
     ("POST", "/v1/systems/{system_id}/reviews/{review_id}/reopen"): "systems.review",
+    # --- WP-UX4a --- CONSOLE_NAV_V3 pages and section routes (read only)
+    ("GET", "/console/governance"): "console.view",
+    ("GET", "/console/supervisor"): "console.view",
+    ("GET", "/console/workflows"): "console.view",
+    ("GET", "/console/catalogues"): "console.view",
+    ("GET", "/console/risks-controls"): "console.view",
+    ("GET", "/console/activity"): "console.view",
+    ("GET", "/console/guardians"): "console.view",
 }
 
 

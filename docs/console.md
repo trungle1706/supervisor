@@ -97,6 +97,91 @@ Windows cmd: `set CONSOLE_NAV=top` and restart. Nothing else changes: the same r
 templates below the header, the same tests. The pages migrated in WP-UX1 (Overview, Agents)
 keep working in `top` mode.
 
+### Navigation v3 (WP-UX4a, `CONSOLE_NAV_V3`)
+
+One merged left bar for the two products: Governance (AI management) and Supervisor (AI guardian).
+Off by default. Off = the sidebar of the sections above, byte for byte (also with
+`CONSOLE_NAV_SECTIONS=1`); a test renders the old pages with the flag off and compares them to the
+release before. It needs `CONSOLE_NAV=sidebar` (the default); with `top` the bar is not drawn and
+only the tab strips show.
+
+```
+ [logo]                                         [collapse]
+ My overview                                    (badge: open actions)
+ GOVERNANCE · AI management      (folds, state kept in localStorage)
+   Overview | Systems | Catalogues | Risks & controls | Workflows
+ SUPERVISOR · AI guardian
+   Overview | Activity | Guardians | Cases & alerts (badge) | Analytics | Playground
+ v<version> · <mode>                            [gear] Settings
+```
+
+Icons are inline SVG line icons (`templates/_icons.html`, own paths, 18 px, stroke 1.8,
+`currentColor`): no icon font, no file, no CDN. Items hide when the role lacks the permission or
+the page flag is off, the same rule as the old sidebar. The two section folds work without
+JavaScript (`<details>`); `console.js` only remembers the fold per browser, inside try/catch. The
+**gear** opens a drawer (CSS `:target`, so it works without JavaScript; Esc closes it) with the six
+old Settings items and a one-line status read from settings: Integrations, Credentials, Users and
+roles, Audit log, Health, Policies as code. Each shows only for a role that may open it.
+Badges: My overview shows the open actions of the person (the number on the page); Cases and
+alerts shows open cases plus open alerts.
+
+#### Where the old pages went
+
+A section tab strip (`_c_section_tabs.html`) sits above every page that belongs to a section, so a
+visitor sees where they are. Each tab links to a page that exists; a tab is hidden when its page
+flag is off or the role lacks the permission. The old URLs keep working and answer 200 as before.
+The section routes below answer `302` to the first tab that is on (or to the tab in `?tab=`, with
+`lang` kept); an unknown tab or one that is off answers 400 with a message.
+
+| Bar item | Route | Tabs (page) |
+|---|---|---|
+| My overview | `/console/` | none. Replaces Overview; Inbox stays at `/console/inbox`, linked from the page |
+| Governance, Overview | `/console/governance` | none |
+| Governance, Systems | `/console/systems` (route and page owned by WP-G0) | The item shows only with `console_systems_enabled`. The Onboard, Integration, Transparency and Tasks pages carry a Systems tab strip meanwhile |
+| Governance, Catalogues | `/console/catalogues` | Agents (`/console/agents`), Models, Tools, Datasets, MCP servers (inventory nodes, read only), Unmanaged (`/console/inventory`) |
+| Governance, Risks and controls | `/console/risks-controls` (302) | Risks, Controls, Policies (the Compliance page) |
+| Governance, Workflows | `/console/workflows` | none |
+| Supervisor, Overview | `/console/supervisor` | none |
+| Supervisor, Activity | `/console/activity` (302) | Gate decisions, Traces. There is no Sessions page yet |
+| Supervisor, Guardians | `/console/guardians` | Library (Catalog), Rules (Policies), Detectors, Judges, Monitors, Packs (Assurance) |
+| Supervisor, Cases and alerts | `/console/cases` | Cases, Alerts, Approvals (Sign-off) |
+| Supervisor, Analytics | `/console/analytics` | Analytics, Evidence chain (the Evidence page) |
+| Supervisor, Playground | `/console/playground` | none |
+
+#### The overview pages
+
+All three take `?scope=my|team|all` (anything else is HTTP 400). My = the agents the person owns
+(`agent.owner_user`); team = the agents whose `owner_team` is the team of one of their agents; all =
+every agent. The default is my when the person owns an agent, else all. Every number is an integer
+or basis points (a percent on screen, the basis points in the tooltip) and comes from a service that
+already exists. A figure that cannot be computed shows "not available" and the reason. It is never
+filled in.
+
+| Tile or table | Source | Not available when |
+|---|---|---|
+| Agents in scope, by risk tier | agent registry (`risk_tier`) | never |
+| Models in use | inventory nodes of kind `model` and `model_endpoint` (not gone) | `INVENTORY_ENABLED` off |
+| Guardian coverage | agents with every **mandatory** detector on, over agents in scope. Mandatory = `fail_closed: true` in `config/detectors.yaml` (there is no other flag); an agent's `enable` and `disable` in the policy file apply; all detectors count as off while `DETECTORS_ENABLED` is off | no detector is `fail_closed`, or the file cannot be read |
+| Open actions | open cases assigned to the person, cases that wait for their sign-off, open required tasks of agents they own | never (tasks count only with `CONTROLS_ENABLED`) |
+| Classification rate | agents with a registry Decision 33 class, in basis points | no agent in scope |
+| Control readiness | latest `control_status` per control and agent in scope: working over all | `CONTROLS_ENABLED` off, or the `control_status` job has not run |
+| Overdue tasks | overdue required tasks of agents in scope | `CONTROLS_ENABLED` off |
+| By lifecycle stage | `TaskService.current_stage` and open required tasks | `CONTROLS_ENABLED` off |
+| Risk posture | active risks by effective residual band, treated or accepted | `RISK_REGISTER_ENABLED` off |
+| Policy implementation | compliance matrix per agent: met over applicable, in basis points | `CONSOLE_COMPLIANCE_ENABLED` off |
+| Calls checked 24 h, stopped | gate decisions of the last 24 hours (rolling), blocks and pauses from tier 0 verdicts | never (capped at 20,000 rows, then `+`) |
+| Health per agent | gate coverage, stops 24 h, mandatory detectors, p95 latency of gate calls, last chain verify | latency is `-` with no call in 24 h |
+| Alerts fired 7 d | `alert` rows by rule | never |
+| Judges and packs | `JUDGE_ENABLED`, the newest assurance run. **mock** shows when a judge is on without a model, or the run is a mock run | never |
+
+Workflows is a read-only list of what runs: scheduler jobs (state and last run need the
+scheduler, which exists only in the process that runs it: elsewhere the page says "not available"),
+alert rules from `config/alerts.yaml`, the two-person approvals (case sign-off, resume, waiver) and
+the SIEM and webhook sinks. There is no editor yet.
+
+Errors are HTTP 400 with a message. Screenshots: `uv run python tools/console_screenshots.py --v3
+--reseed --out docs/design/screens-v3 --data-dir <new folder>`.
+
 ### Components
 
 Server-rendered Jinja2 macros and partials; htmx only; the CSS is in `static/console.css`
@@ -464,6 +549,7 @@ set that header.
 | `CONSOLE_LANG` | `en` | Default UI language (`en` or `vi`) |
 | `CONSOLE_NAV` | `sidebar` | WP-UX1: `sidebar` (left sidebar, default) or `top` (the phase 2 pill header). One setting rolls the layout back. Windows cmd: `set CONSOLE_NAV=top` |
 | `CONSOLE_NAV_SECTIONS` | `0` | Two-section sidebar: "AI Management and Governance" (Onboard, Prove, Settings) and "AI Guardian and Supervisor" (Watch, Act, Protect, Analytics). Each section folds open and closed without JS. Off = the six-group sidebar. Order in `console/nav.py` `SECTIONS`. Windows cmd: `set CONSOLE_NAV_SECTIONS=1` |
+| `CONSOLE_NAV_V3` | `0` | WP-UX4a: the merged left bar (My overview, Governance, Supervisor, settings gear), section tab strips, the three overview pages and Workflows. Needs `CONSOLE_NAV=sidebar`. Off = the sidebar as before. See "Navigation v3". Windows cmd: `set CONSOLE_NAV_V3=1` |
 | `CONSOLE_CATALOG_ENABLED` | `0` | `/console/catalog`: every guardian capability as a card (gateway controls, detectors, judges, monitors, evidence, connectors), showing whether it is on in this instance and the setting that turns it on. Tabs: Catalog and Active. Read-only: it never changes a setting. Windows cmd: `set CONSOLE_CATALOG_ENABLED=1` |
 | `CONSOLE_NAV_PLACEHOLDERS` | `0` | WP-UX1: show the sidebar links of pages that WP-UX3 builds (Gate decisions, Traces, Policies, Credentials, Users and roles, Audit log, Integrations); they open a "coming in WP-UX3" page. Off: links hidden, `/console/soon/<page>` answers 400 |
 | `CONSOLE_DECISIONS_ENABLED`, `CONSOLE_TRACES_ENABLED`, `CONSOLE_POLICIES_ENABLED`, `CONSOLE_CREDENTIALS_ENABLED`, `CONSOLE_USERS_ENABLED`, `CONSOLE_AUDITLOG_ENABLED`, `CONSOLE_INTEGRATIONS_ENABLED` | `0` | WP-UX3: one flag per new page (see "New pages (WP-UX3)"). Off: no sidebar link, routes answer HTTP 400 |
