@@ -34,8 +34,13 @@ _KEYS = {
 }
 
 
-def parse_params(query: Mapping[str, str]) -> dict[str, str]:
-    """The list parameters in canonical form (empty string = not set). Raises ListingError."""
+SYSTEM_FILTERS = ("linked", "unlinked")  # WP-UX4b: the System filter of Catalogues > Agents
+
+
+def parse_params(query: Mapping[str, str], with_system: bool = False) -> dict[str, str]:
+    """The list parameters in canonical form (empty string = not set). Raises ListingError.
+    ``with_system`` (WP-UX4b, CONSOLE_NAV_V3 and GOVERNANCE_ENABLED) adds the ``system`` filter:
+    ``linked`` or ``unlinked``; without it the parameter is ignored, as before."""
     q = (query.get("q") or "").strip()
     if not _TOKEN.match(q):
         raise ListingError("search text may hold letters, digits and . _ : @ - only (64 max)")
@@ -46,7 +51,7 @@ def parse_params(query: Mapping[str, str]) -> dict[str, str]:
     if risk and not re.match(r"^[a-z_]{1,24}$", risk):
         raise ListingError("unknown risk filter")
     parse_int(query.get("page"), "page", 1)  # validates the text; paginate() checks the range
-    return {
+    out = {
         "q": q,
         "state": state,
         "risk": risk,
@@ -54,6 +59,12 @@ def parse_params(query: Mapping[str, str]) -> dict[str, str]:
         "dir": query.get("dir") or "",
         "page": query.get("page") or "",
     }
+    if with_system:
+        system = query.get("system") or ""
+        if system and system not in SYSTEM_FILTERS:
+            raise ListingError("system must be linked or unlinked")
+        out["system"] = system
+    return out
 
 
 def _matches(a: Mapping[str, Any], p: Mapping[str, str]) -> bool:
@@ -61,6 +72,9 @@ def _matches(a: Mapping[str, Any], p: Mapping[str, str]) -> bool:
         return False
     if p["risk"] and a.get("risk_tier") != p["risk"]:
         return False
+    if p.get("system"):  # WP-UX4b: cards carry "systems" (a list) only when the filter is on
+        if bool(a.get("systems")) != (p["system"] == "linked"):
+            return False
     if p["q"]:
         hay = f"{a['agent_id']} {a.get('name') or ''} {a.get('owner_team') or ''}".lower()
         if p["q"].lower() not in hay:
@@ -70,7 +84,7 @@ def _matches(a: Mapping[str, Any], p: Mapping[str, str]) -> bool:
 
 def _qs(p: Mapping[str, str], **override: str) -> str:
     """Filter query string (q, state, risk) with overrides; a tile click drops sort and page."""
-    return query_string({k: p[k] for k in ("q", "state", "risk")}, **override)
+    return query_string({k: p[k] for k in ("q", "state", "risk", "system") if k in p}, **override)
 
 
 def ordered(cards: list[dict[str, Any]], p: Mapping[str, str]) -> tuple[list[Any], str, str]:
@@ -80,13 +94,15 @@ def ordered(cards: list[dict[str, Any]], p: Mapping[str, str]) -> tuple[list[Any
     return rows, col, direction
 
 
-def list_view(cards: list[dict[str, Any]], query: Mapping[str, str]) -> dict[str, Any]:
+def list_view(
+    cards: list[dict[str, Any]], query: Mapping[str, str], with_system: bool = False
+) -> dict[str, Any]:
     """Data for ``agents.html`` / ``_agents_list.html``."""
-    p = parse_params(query)
+    p = parse_params(query, with_system)
     rows, col, direction = ordered(cards, p)
     page = paginate(rows, parse_int(p["page"], "page", 1), PAGE_SIZE)
     counts = {s: sum(1 for a in cards if a["state"] == s) for s in STATES}
-    base = {k: v for k, v in p.items() if k in ("q", "state", "risk")}
+    base = {k: v for k, v in p.items() if k in ("q", "state", "risk", "system")}
     tiles = [{"label": "all", "n": len(cards), "on": not p["state"], "qs": _qs(p, state="")}]
     tiles += [
         {"label": f"state_{s}", "n": counts[s], "on": p["state"] == s, "qs": _qs(p, state=s)}

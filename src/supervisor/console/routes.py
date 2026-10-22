@@ -69,6 +69,8 @@ from supervisor.console import (
     readmodels,
     risks_views,  # --- WP29 ---
     search,
+    systems_overview,  # --- WP-UX4b ---
+    systems_views,  # --- WP-UX4b ---
     tasks_views,
     tools_views,
     traces,
@@ -235,7 +237,13 @@ def _v3_actions(ctx: ConsoleContext, me: AuthPrincipal, cache: dict[str, Any]) -
     counted: a missing badge is better than a broken page."""
     if "actions" not in cache:
         try:
-            cache["actions"] = overview_v3.actions_count(ctx, me)
+            # --- WP-UX4b --- the same count as the page: systems when GOVERNANCE_ENABLED is on
+            count = (
+                systems_overview.actions_count
+                if ctx.settings.governance_enabled
+                else overview_v3.actions_count
+            )
+            cache["actions"] = count(ctx, me)
         except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
             log.exception("my overview badge failed")
             cache["actions"] = None
@@ -476,12 +484,15 @@ async def overview(
 ) -> Response:
     now = ctx.clock.now()
     if ctx.settings.console_nav_v3:  # --- WP-UX4a --- My overview replaces Overview and Inbox
-        d = await _call(overview_v3.my_overview, ctx, me, request.query_params.get("scope"), now)
+        # --- WP-UX4b --- with GOVERNANCE_ENABLED the unit is the AI system, not the agent
+        unit = bool(ctx.settings.governance_enabled)
+        build = systems_overview.my_overview if unit else overview_v3.my_overview
+        d = await _call(build, ctx, me, request.query_params.get("scope"), now)
         return render(
             request,
             ctx,
             me,
-            "ov_my.html",
+            "ov_my_systems.html" if unit else "ov_my.html",
             section="overview",
             d=d,
             greet_key=readmodels.greeting_key(now),
@@ -778,7 +789,12 @@ def _agents_page_data(
     ctx: ConsoleContext, me: AuthPrincipal, query: Mapping[str, str]
 ) -> dict[str, Any]:
     data = _agents_data(ctx, me)
-    data.update(agents_list.list_view(data["agents"], query))
+    sys_col = systems_views.agents_system_col(ctx)  # --- WP-UX4b --- System column and filter
+    if sys_col:
+        systems_views.annotate_agents(ctx, me, data["agents"])
+    data.update(agents_list.list_view(data["agents"], query, sys_col))
+    data["sys_col"] = sys_col
+    data["sys_page"] = bool(ctx.settings.console_systems_enabled)
     return data
 
 
@@ -2511,10 +2527,11 @@ async def governance_overview_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     _v3_off(ctx)
-    d = await _call(
-        overview_v3.governance_overview, ctx, me, request.query_params.get("scope"), ctx.clock.now()
-    )
-    return render(request, ctx, me, "ov_governance.html", section="gov_overview", d=d)
+    unit = bool(ctx.settings.governance_enabled)  # --- WP-UX4b --- systems, not agents
+    build = systems_overview.governance_overview if unit else overview_v3.governance_overview
+    d = await _call(build, ctx, me, request.query_params.get("scope"), ctx.clock.now())
+    template = "ov_gov_systems.html" if unit else "ov_governance.html"
+    return render(request, ctx, me, template, section="gov_overview", d=d)
 
 
 @router.get(

@@ -11,7 +11,7 @@
       {{ tb.th('owner_team', t('owner'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
       {{ tb.th('risk_tier', t('risk'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
       {{ tb.th('coverage', t('coverage'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
-      {{ tb.th('open_cases', t('cases'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs, numeric=True) }}
+      {{ tb.th('open_cases', t('cases'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs, numeric=True) }}{% if sys_col %}<th scope="col">{{ t('ux4b_col_system') }}</th>{% endif %}{{ '' }}
     </tr>
   </thead>
   <tbody id="rows">
@@ -23,10 +23,10 @@
       <td>{{ a.owner_team or '-' }}</td>
       <td>{{ t(a.risk_tier) if a.risk_tier else '-' }}</td>
       <td>{% set bp = a.coverage.bp %}<span class="mono">{{ '%d%%'|format(bp // 100) if bp is not none else '-' }}</span></td>
-      <td class="n">{{ a.open_cases }}</td>
+      <td class="n">{{ a.open_cases }}</td>{% if sys_col %}<td data-col="system">{% for sy in a.systems %}{% if sy.system_id %}{% if sys_page %}<a href="/console/systems/{{ sy.system_id }}?lang={{ lang }}">{{ sy.name }}</a>{% else %}{{ sy.name }}{% endif %}{{ ', ' if not loop.last }}{% else %}<span class="muted">{{ t('ux4b_sys_other') }}</span>{% endif %}{% else %}<span class="muted">{{ t('ux4b_sys_none') }}</span>{% endfor %}</td>{% endif %}{{ '' }}
     </tr>
   {% else %}
-    <tr><td colspan="6">{{ ui.empty(t('no_agents'), t('no_agents_filtered')) }}</td></tr>
+    <tr><td colspan="{{ 7 if sys_col else 6 }}">{{ ui.empty(t('no_agents'), t('no_agents_filtered')) }}</td></tr>
   {% endfor %}
   </tbody>
 </table>
