@@ -1382,6 +1382,7 @@ CREATE TABLE IF NOT EXISTS system_team (
   system_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
   team_role TEXT NOT NULL,
+  active INTEGER NOT NULL,
   added_at TEXT NOT NULL,
   added_by TEXT NOT NULL,
   row_version INTEGER NOT NULL,

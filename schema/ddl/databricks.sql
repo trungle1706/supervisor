@@ -1138,6 +1138,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`system_team` (
   system_id STRING NOT NULL,
   user_id STRING NOT NULL,
   team_role STRING NOT NULL,
+  active BOOLEAN NOT NULL,
   added_at TIMESTAMP NOT NULL,
   added_by STRING NOT NULL,
   row_version BIGINT NOT NULL,

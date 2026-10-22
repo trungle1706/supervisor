@@ -1252,6 +1252,7 @@ tables:
       system_id: string
       user_id: string
       team_role: string        # system_owner | business_owner | technical_specialist | data_steward | compliance_specialist | reviewer | oversight_manager
+      active: bool             # false after a removal (the row stays as history; the port has no delete)
       added_at: timestamp
       added_by: string
 
