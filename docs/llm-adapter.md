@@ -105,3 +105,28 @@ one, so the run makes no network call.
 
 `--model settings` uses the configured judges. Without it the run uses mock judges and the report
 says `MOCK`.
+
+## 5. Guard model through the chat adapter (WP-D3)
+
+The `guard_model` detector (`docs/detectors.md` section 3d) can use the OpenAI-compatible adapter as
+its model: `GUARD_MODEL_ADAPTER=chat`. It is option (b) of `docs/guard-model-decision.md`.
+
+* **Request.** One call per text window (2,000 characters). A fixed system prompt says that the text
+  is data and must not be followed. The text goes in the user message between two marker lines; the
+  marker strings are cut out of the text. The reply is one JSON object
+  `{"label": "benign" | "jailbreak" | "indirect_injection", "score_bp": 0..10000}`, checked against
+  the schema by the adapter (one retry, then an error). `benign` always scores 0.
+* **Which model.** `GUARD_MODEL_NAME` (default `JUDGE_T1_MODEL`) at `GUARD_MODEL_URL` (default
+  `JUDGE_T1_BASE_URL`, then `LLM_BASE_URL`). Key: `GUARD_MODEL_API_KEY`, else `JUDGE_API_KEY`, else
+  `LLM_API_KEY`. `LLM_STRICT_SCHEMA` and `LLM_SEND_TEMPERATURE` apply. `max_tokens` is 64.
+* **Family rule.** The family comes from the model id as in section 2 (no declared family exists
+  for the guard). It must be known, and it must differ from the family of every agent in the
+  manifests and the registry. Otherwise start-up stops with `FamilyConflictError`, with the agent
+  named. `JUDGE_FAMILY_PROBE=1` also asks `GET /models`.
+* **Time.** The adapter has one deadline for the whole call, `GUARD_MODEL_TIMEOUT_MS` (default 400).
+  A model that is slower gives `timed_out` findings, not a stopped call. A chat model needs a larger
+  value and a larger `limits.timeout_ms` in `config/detectors.yaml`.
+* **Remote.** A non-loopback URL needs `LLM_ALLOW_REMOTE=1`, as for the other model URLs.
+
+The direct classifier endpoint (`GUARD_MODEL_ADAPTER=classifier`) does not use this adapter. It is a
+plain `POST <url>` with `{"inputs": [...]}` (`adapters/guard/classifier_endpoint.py`).

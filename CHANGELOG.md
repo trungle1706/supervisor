@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### WP-D3: guard model detector and the model decision memo
+
+One new detector, `guard_model`, off by default (`enabled: false`, `mrm_status: NO-GO` in
+`config/detectors.yaml`). A slug that is absent from the file changes nothing. Details:
+`docs/detectors.md` section 3d, memo `docs/guard-model-decision.md`.
+
+- `guard_model`: a configured model scores user text in arguments, tool results, tool descriptions
+  and documents for jailbreak and indirect injection (codes `guard.jailbreak`,
+  `guard.indirect_injection`), input and output side, `llm` and `mcp`. Masked text only, no system
+  prompt, 2,000-character windows with 500 overlap and the highest score wins, scores cached by text
+  hash. Presets `permissive | balanced | strict` are thresholds per label in basis points.
+- Port `GuardModelPort.score(texts)` (`core/ports.py`) and three adapters in
+  `adapters/guard/`: a direct classifier endpoint (`POST <url>` with `{"inputs": [...]}`, the shape
+  of a Databricks serving endpoint), an OpenAI-compatible chat model with a fixed classification
+  prompt (judge family rule applies), and a labelled mock. Settings `GUARD_MODEL_ADAPTER`,
+  `GUARD_MODEL_URL`, `GUARD_MODEL_NAME`, `GUARD_MODEL_API_KEY`, `GUARD_MODEL_TIMEOUT_MS`,
+  `GUARD_MODEL_FAIL_CLOSED_APPROVED`.
+- Findings only. A timeout or error is a `timed_out` or `execution_failed` row, never a block and
+  never fail closed by default. The pause hint (rule `GATE-CLASSIFIER-PAUSE`, money and credit
+  tools) needs `pause_tool_classes` and a card approval that names the approver and the model id
+  (`data/models/guard_model/model_card.json`). `gateway/detector_gate.py` lists `guard_model` as a
+  pause-capable detector.
+- Harness `python -m supervisor.detectors.guard_harness` on the WP25 corpus: mock adapter in CI
+  (never GO; baseline `data/eval/guard_model/baseline_mock.json`), real endpoint when
+  `GUARD_MODEL_URL` is set. Report `docs/guard-model-validation-report.md`.
+- Docs: decision memo (prompt-guard class model on Databricks serving, the judge model as
+  classifier, vendor API excluded; latency and cost as formulas; what the live kit measures), model
+  card template, `docs/llm-adapter.md` section 5. Catalog card and i18n EN and VI.
+- Shared files touched: `config/detectors.yaml`, `src/supervisor/config.py` (settings block),
+  `core/ports.py`, `core/errors.py`, `wiring.py`, `detectors/__init__.py`, `gateway/detector_gate.py`
+  (one set entry), `console/catalog_view.py`, `console/i18n.py`, `console/guardians_view.py`; tests
+  `test_contract.py`, `test_routes.py`, `test_harness.py` now compare the first four slugs only.
+
 ### WP-G6: MCP server, skills, KPI endpoint
 
 One new flag, off by default (`MCP_SERVER_ENABLED`). Off = nothing is mounted, no table is read or
