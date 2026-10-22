@@ -65,3 +65,20 @@ Step 11 can be shown only with fixtures until the live kit runs.
 | Second line | Agree starter thresholds in config/governance_actions.yaml and the risk bands; approve the pending control and risk files from G2; decide who may lower a risk level |
 | Lead | G4 compliance retrieval (BM25); seed the three demo systems; release tag; push to GitHub when told |
 | Later | Signing proxy or OAuth for MCP clients; real webhook sender; Jira and email adapters; smart guardian (auto-tune), deferred by the owner |
+
+## 6. Phase 5 addendum (2026-10-22, evening): guardian detectors
+
+Four detector packages closed most of the TrustGuard catalogue gap. Each is a key in
+`config/detectors.yaml`, shows on the Guardians library, can be bound per system (WP-S1), and
+passed an independent review before merge.
+
+| Detector | What it does | Shipped state |
+|---|---|---|
+| `dlp_vn` secrets and custom rules | 29 secret kinds as `secret.<kind>` findings with keyed digests, optional block on any tool class, keyword and regex custom rules with regex-safety checks and a per-leaf cap, head scan on oversize payloads | on for PII; secrets `enabled: false`, action report |
+| `document_intake` | PDF, DOCX, text and CSV extraction in pure Python; URL fetch behind an allow list with an SSRF guard that held against every probe; extracted text scanned by injection regex, DLP and the guard model; own scan budget; scans and images are uninspectable and fail closed on risky tools | `DOCUMENT_INTAKE_ENABLED` off; no OCR; PDF needs the `documents` extra |
+| `guard_model` | ML jailbreak and indirect-injection scoring over a port with classifier, chat and mock adapters; three presets; own thread pool and deadline; pause only on money and credit with a named approval that pins model id and version | off, NO-GO until a real model run; bank decision memo `docs/guard-model-decision.md` |
+| `judge_moderation` | Toxicity and up to five bank-defined topics on input and output, one prompt per window, call and time budget | off, NO-GO until a judge model run; mock labelled |
+
+What the pitch may say: the catalogue covers the same ground as the TrustGuard cards except OCR
+and Microsoft Purview. What it must not say: that the ML detectors are validated. They are
+built, harnessed and off; the bank must choose and serve a model first.
