@@ -214,6 +214,17 @@ def test_registry_note_reaches_coverage(masker: VnRegexMasker) -> None:
     assert res.findings == [] and res.not_executed == []
 
 
+def test_secret_block_survives_a_cut_payload(make_gateway: Any, masker: VnRegexMasker) -> None:
+    """A read-only tool with 100 KB of arguments: dlp_vn reads only max_scan_bytes, the secret in
+    the first 1 KB is found, and the block stands."""
+    cfg = _config({"secrets": {"enabled": True, "action": "block"}, "mode": "transform"})
+    gw: Gateway = make_gateway(gate=make_gate(masker, config_text=cfg))
+    big = f"key {AWS} " + "a" * 70_000
+    r = gw.check("customer_service", "1", "read_ticket", {"ticket_id": "T1", "note": big}, {})
+    assert r["allow"] is False and r["rule_id"] == "GATE-SECRET-IN-ARGS"
+    assert r["status"] == "block" and AWS not in json.dumps(r)
+
+
 @pytest.fixture
 def det() -> DlpVnDetector:
     return DlpVnDetector(VnRegexMasker(b"d2-key", "t"))

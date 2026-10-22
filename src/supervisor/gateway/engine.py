@@ -1115,6 +1115,8 @@ class Gateway:
         if (
             not d.allow
             and d.rule_id in (DETECTOR_FAILED_RULE, DETECTOR_SECRET_RULE)
+            # a cut payload has no masked copy: observe cannot lift the secret block then
+            and (d.rule_id != DETECTOR_SECRET_RULE or d.secret_masked_args is not None)
             and risk != "pii_export"  # WP-D2 review: GATE-SECRET-IN-ARGS is held there too
         ):
             cls._observe(d, eff, risk)

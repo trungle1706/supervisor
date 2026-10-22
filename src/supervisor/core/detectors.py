@@ -874,8 +874,18 @@ class DetectorRegistry:
                     res.not_executed.append(
                         not_executed(slug, did, "payload_too_large", "arguments", preset=preset)
                     )
-                    continue
-                found = [_without_parts(f, clipped) for f in found]
+                    # WP-D2: a block hint (a secret found in the scanned part of the arguments) is
+                    # not a transform and survives the cut, without its masked payload. The block
+                    # must stand on every tool class, whatever the size of the payload.
+                    found = [
+                        replace(f, transformed_payload=None)
+                        for f in found
+                        if f.action_hint == "block" and f.not_executed_reason is None
+                    ]
+                    if not found:
+                        continue
+                else:
+                    found = [_without_parts(f, clipped) for f in found]
             res.evaluated.append(slug)
             for f in found:
                 if f.not_executed_reason is not None:
