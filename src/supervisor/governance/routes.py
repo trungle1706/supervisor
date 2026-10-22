@@ -11,6 +11,16 @@
 * ``DELETE /v1/systems/{id}/links/{component_id}`` (systems.edit): remove a link.
 * ``POST /v1/systems/{id}/archive`` (systems.edit): archive.
 
+WP-G1 (same router, same flag):
+
+* ``GET|POST /v1/systems/{id}/approvals`` (systems.view | systems.edit): stage approvals; body of
+  the POST: ``to_stage``.
+* ``POST /v1/systems/{id}/approvals/{aid}/decide`` (systems.approve): body ``decision``
+  (approve | reject), ``reason`` (needed for reject).
+* ``POST /v1/systems/{id}/stage`` (systems.edit): body ``to_stage``.
+* ``GET|POST /v1/systems/{id}/reviews`` (systems.view | systems.review), ``PATCH .../{rid}``,
+  ``POST .../{rid}/complete``, ``POST .../{rid}/reopen`` (body ``reason``).
+
 Mounted by ``app.py`` only when GOVERNANCE_ENABLED=1 (nothing is mounted otherwise). A person
 with a scoped role (``SCOPED_ROLES``) sees and changes only the systems in their scope; a system
 outside it answers 404, like a system that does not exist. Every write makes two
@@ -212,5 +222,179 @@ async def archive_system(
     actor = _actor(me)
     try:
         return svc.archive(_visible(svc, me, system_id), actor)
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+# ---------------------------------------------------------------------- WP-G1
+
+
+def _lifecycle(ctx: ConsoleContext) -> Any:
+    ensure_on(ctx.settings)
+    return ctx.lifecycle
+
+
+def _reviews(ctx: ConsoleContext) -> Any:
+    ensure_on(ctx.settings)
+    return ctx.reviews
+
+
+@router.get("/{system_id}/approvals", dependencies=[Depends(needs("systems.view"))])
+def list_approvals(system_id: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Any:
+    svc = _service(ctx)
+    try:
+        sid = _visible(svc, me, system_id)
+        return {"system_id": sid, "approvals": _lifecycle(ctx).approvals(sid)}
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+@router.post("/{system_id}/approvals", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def request_approval(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    svc = _service(ctx)
+    actor = _actor(me)
+    data = await _body(request)
+    try:
+        out = _lifecycle(ctx).request(
+            _visible(svc, me, system_id), str(data.get("to_stage", "")), actor
+        )
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = "approval_request"
+    return JSONResponse(status_code=201, content=out)
+
+
+@router.post(
+    "/{system_id}/approvals/{approval_id}/decide", dependencies=[Depends(needs("systems.approve"))]
+)
+@audited("systems.approve")
+async def decide_approval(
+    system_id: str,
+    approval_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Any:
+    svc = _service(ctx)
+    _actor(me)
+    data = await _body(request)
+    try:
+        out = _lifecycle(ctx).decide(
+            _visible(svc, me, system_id),
+            approval_id,
+            str(data.get("decision", "")),
+            me,
+            data.get("reason"),
+        )
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = f"approval_{out['status']}"
+    return out
+
+
+@router.post("/{system_id}/stage", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def move_stage(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    svc = _service(ctx)
+    actor = _actor(me)
+    data = await _body(request)
+    try:
+        out = _lifecycle(ctx).move(
+            _visible(svc, me, system_id), str(data.get("to_stage", "")), actor
+        )
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = "stage_move"
+    return out
+
+
+@router.get("/{system_id}/reviews", dependencies=[Depends(needs("systems.view"))])
+def list_reviews(system_id: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Any:
+    svc = _service(ctx)
+    try:
+        sid = _visible(svc, me, system_id)
+        rows = _reviews(ctx).list_reviews(sid)
+        return {"system_id": sid, "count": len(rows), "reviews": rows}
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+@router.post("/{system_id}/reviews", dependencies=[Depends(needs("systems.review"))])
+@audited("systems.review")
+async def create_review(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    svc = _service(ctx)
+    actor = _actor(me)
+    data = await _body(request)
+    try:
+        out = _reviews(ctx).create(_visible(svc, me, system_id), data, actor)
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = "review_create"
+    return JSONResponse(status_code=201, content=out)
+
+
+@router.patch("/{system_id}/reviews/{review_id}", dependencies=[Depends(needs("systems.review"))])
+@audited("systems.review")
+async def update_review(
+    system_id: str,
+    review_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Any:
+    svc = _service(ctx)
+    actor = _actor(me)
+    data = await _body(request)
+    version = data.pop("row_version", None)
+    if version is not None and (isinstance(version, bool) or not isinstance(version, int)):
+        raise SystemsError("row_version must be a whole number")
+    try:
+        return _reviews(ctx).update(_visible(svc, me, system_id), review_id, data, actor, version)
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+@router.post(
+    "/{system_id}/reviews/{review_id}/complete", dependencies=[Depends(needs("systems.review"))]
+)
+@audited("systems.review")
+async def complete_review(
+    system_id: str,
+    review_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Any:
+    svc = _service(ctx)
+    _actor(me)
+    try:
+        return _reviews(ctx).complete(_visible(svc, me, system_id), review_id, me)
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+@router.post(
+    "/{system_id}/reviews/{review_id}/reopen", dependencies=[Depends(needs("systems.review"))]
+)
+@audited("systems.review")
+async def reopen_review(
+    system_id: str,
+    review_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Any:
+    svc = _service(ctx)
+    _actor(me)
+    data = await _body(request)
+    try:
+        return _reviews(ctx).reopen(_visible(svc, me, system_id), review_id, me, data.get("reason"))
     except NotFoundError as exc:
         return _not_found(exc)

@@ -356,6 +356,8 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `transparency.generate` | Build and sign a transparency report (WP31) |  | x |  |  | x |  |  |
 | `systems.view` | Systems pages and GET /v1/systems: AI systems in your scope (WP-G0) | x | x | x | x | x | x | x |
 | `systems.edit` | Register and change AI systems, their team and their links (WP-G0) |  | x |  | x | x |  |  |
+| `systems.approve` | Answer a stage approval of an AI system (WP-G1) |  | x | x | x | x |  |  |
+| `systems.review` | Plan, change, complete and reopen reviews of an AI system (WP-G1) |  | x | x |  | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).
