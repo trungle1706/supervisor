@@ -99,6 +99,12 @@ ENTRIES: tuple[Entry, ...] = (
         "DETECTORS_ENABLED=1 + judge_advisory.enabled", "docs/detectors.md", "decisions",
         on=_detector("judge_advisory"),
     ),
+    # WP-D4: toxicity and topic scope by the judge; advises only
+    Entry(
+        "judge_moderation", "judge", "advises", "JM",
+        "DETECTORS_ENABLED=1 + judge_moderation.enabled", "docs/detectors.md", "decisions",
+        on=_detector("judge_moderation"),
+    ),
     Entry(
         "redteam", "judge", "advises", "RT", "REDTEAM_NIGHTLY_ENABLED=1",
         "docs/redteam-multiturn.md", "assurance", on=_flag("redteam_nightly_enabled"),

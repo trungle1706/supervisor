@@ -54,3 +54,17 @@ detectors:
   #   mask_tokens: {pii.phone: "<PHONE>"}
   # action: block makes a secret in a tool argument the rule GATE-SECRET-IN-ARGS on every tool
   # class. A bad or risky regex (nested quantifiers) stops the load with a message.
+  # WP-D4: toxicity and topic scope by the judge model. Report only, never fail closed (R1).
+  # Both questions are off until you set them: toxicity.enabled, or topics (at most 5 entries,
+  # each {name, definition}; definition up to 400 characters; the definition is what is scored).
+  # Editable drafts to copy from: config/moderation_topics.yaml (none of them is enabled).
+  judge_moderation:
+    enabled: false              # Off: every question is one judge call per text window. With no
+    fail_closed: false          # judge model set it uses the mock judge (labelled mock).
+    mrm_status: NO-GO           # an advisor: weighs 0 in sessions until a real judge run says GO
+    settings:
+      toxicity: {enabled: false}
+      topics: []
+      # max_calls: 12      # hard cap of model calls per check (one call per text window)
+      # timeout_ms: 8000   # this detector's own deadline; empty = limits.timeout_ms. A real judge
+      #                    # model needs seconds; it stops asking at 80 percent of this value.

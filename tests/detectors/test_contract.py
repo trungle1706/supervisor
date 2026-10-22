@@ -91,6 +91,7 @@ def test_not_executed_reasons_are_the_fixed_list() -> None:
         "content_uninspectable",
         "not_applicable_for_direction",
         "timed_out",
+        "budget_exhausted",  # WP-D4
     }
     assert "not_applicable_for_direction" not in D.FAILURE_REASONS
 
@@ -142,6 +143,7 @@ def test_catalogue_comes_from_code(masker: VnRegexMasker) -> None:
         "injection_regex",
         "injection_classifier",
         "judge_advisory",
+        "judge_moderation",  # WP-D4
     ]
     for c in cat:
         assert set(c) >= {"slug", "name", "category", "sides", "protocols", "presets"}
@@ -315,6 +317,7 @@ def test_presets_are_frozen_per_version(masker: VnRegexMasker) -> None:
         "dlp_vn": {"strict": 5000, "balanced": 8000, "lenient": 9500},
         "injection_regex": {"strict": 5000, "balanced": 7000, "lenient": 8500},
         "judge_advisory": {"strict": 3000, "balanced": 5000, "lenient": 7000},
+        "judge_moderation": {"strict": 3000, "balanced": 5000, "lenient": 7000},  # WP-D4
     }
     for slug, presets in frozen.items():
         det = reg.get(slug)

@@ -103,6 +103,10 @@ def _extra_problems(slug: str, settings: Mapping[str, Any]) -> list[str]:
     if slug == "dlp_vn":
         # WP-D2: secrets, custom_rules and mask_tokens (a bad regex stops the load)
         return [*keep_args_problems(settings.get("keep_args")), *extras_problems(settings)]
+    if slug == "judge_moderation":  # WP-D4: strict shape of each topic entry
+        from supervisor.detectors.judge_moderation import topic_problems
+
+        return topic_problems(settings.get("topics"))
     return []
 
 
