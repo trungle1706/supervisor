@@ -1,0 +1,54 @@
+{
+  "apps": [
+    {"name": "loan-copilot", "description": "Synthetic unregistered app (shadow AI)"}
+  ],
+  "serving_endpoints": [
+    {
+      "name": "agent-credit-memo", "task": "agent/v1/chat", "agent": true,
+      "served": ["main.ml.credit_memo_agent"],
+      "entities": [{"kind": "custom_model", "name": "main.ml.credit_memo_agent", "version": "4"}]
+    },
+    {
+      "name": "gpt-gateway", "task": "llm/v1/chat", "served": ["gpt-4o"],
+      "entities": [{"kind": "external_model", "name": "gpt-4o", "provider": "openai"}]
+    },
+    {
+      "name": "databricks-meta-llama-3-3-70b-instruct", "task": "llm/v1/chat",
+      "served": ["databricks-meta-llama-3-3-70b-instruct"],
+      "entities": [{"kind": "foundation_model", "name": "databricks-meta-llama-3-3-70b-instruct"}]
+    }
+  ],
+  "registered_models": [{"name": "main.ml.credit_memo_agent"}],
+  "model_versions": [
+    {"model": "main.ml.credit_memo_agent", "version": "3", "aliases": []},
+    {"model": "main.ml.credit_memo_agent", "version": "4", "aliases": ["champion"]}
+  ],
+  "tables": {"main.lending": ["loan_applications"]},
+  "functions": {"main.lending": ["main.lending.lookup_applicant", "get_exposure"]},
+  "genie_spaces": [
+    {"name": "Lending analytics", "tables": ["main.lending.loan_applications"]},
+    {"name": "Known BI space", "tables": []}
+  ],
+  "jobs": [
+    {
+      "name": "nightly-memo-batch",
+      "tasks": [
+        {"key": "score", "kind": "notebook", "values": ["gpt-gateway", "2026-10-01"]},
+        {"key": "clean", "kind": "other", "values": []}
+      ],
+      "parameters": []
+    },
+    {
+      "name": "etl-no-llm",
+      "tasks": [{"key": "load", "kind": "python", "values": ["main.lending.loan_applications"]}],
+      "parameters": []
+    }
+  ],
+  "vector_indexes": [
+    {"name": "main.lending.policy_index", "type": "DELTA_SYNC", "source_table": "main.lending.loan_applications"}
+  ],
+  "connections": [
+    {"name": "mcp_core_banking", "type": "HTTP", "mcp": true},
+    {"name": "sqlserver_dwh", "type": "SQLSERVER", "mcp": false}
+  ]
+}

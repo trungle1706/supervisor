@@ -13,7 +13,7 @@ Status: built, off by default (`INVENTORY_ENABLED=1` turns it on). Design choice
 
 ## Model
 
-Nodes (table `inventory_node`): `system` (an agent, or a Databricks App seen in the workspace), `model`, `model_endpoint`, `tool`, `mcp_server`, `dataset` (table or file), `prompt`, `supplier` (model vendor, the platform host, or an owner team; `attrs.party` says which), `entrypoint` (an HTTP route of the agent app, from onboarding; a route is never a tool, WP1b-B).
+Nodes (table `inventory_node`): `genie_space`, `job`, `vector_index`, `uc_function` (WP-G3, see "Scan sources v2"), `system` (an agent, or a Databricks App seen in the workspace), `model`, `model_endpoint`, `tool`, `mcp_server`, `dataset` (table or file), `prompt`, `supplier` (model vendor, the platform host, or an owner team; `attrs.party` says which), `entrypoint` (an HTTP route of the agent app, from onboarding; a route is never a tool, WP1b-B).
 
 Edges (table `inventory_edge`): `uses`, `serves`, `reads`, `writes`, `hosted_on`, `owned_by`.
 
@@ -80,6 +80,26 @@ A listing that fails is reported (`errors`: kind and exception class only) and i
 ### Scheduler job
 
 `inventory` runs every `SCHED_INVENTORY_S` (default 3600 s, minimum 60) when `INVENTORY_ENABLED=1` and the mode is `databricks_app`, or when `INVENTORY_WORKSPACE_FIXTURE` names a JSON file (laptop demo). One refresh = manifests, workspace, shadow-AI check. A new unmanaged item therefore appears within one interval.
+
+## Scan sources v2 (WP-G3)
+
+The workspace reader (section "Fillers", source c) reads more objects. Same flag (`INVENTORY_ENABLED=1`), same rules: read-only SDK calls through the reader adapter, evidence `workspace:<kind>/<name>`, names only (no workspace URL, object id, creator or connection option is stored), and the scan never pauses or blocks anything. A listing that fails is reported by kind and marks nothing as gone. A reader without the method (an older custom reader) skips that source without an error.
+
+| Source | SDK call (read only) | Node and edges | Evidence ref |
+|---|---|---|---|
+| MLflow registered model versions | `registered_models.list`, `model_versions.list(full_name)` (Unity Catalog); `model_registry.search_model_versions` (workspace registry) | attrs on the `model` node: `versions_n`, `latest_version`, `aliases` or `stages` | `workspace:model-version/<model>/<version>` |
+| Serving endpoint config | `serving_endpoints.list` (config, `served_entities`, task, tags) | `model_endpoint` attrs `agent_endpoint`, `external_providers`; edge `serves` to each served model (foundation, external with a `vendor` supplier through `owned_by`, custom = registered model) | `workspace:serving-endpoint/<name>` |
+| Genie spaces | `genie.list_spaces` | `genie_space` node (status `unmanaged` until classified), `reads` edges to the tables of the space | `workspace:genie-space/<title>` |
+| Jobs and notebook tasks that name an LLM endpoint | `jobs.list(expand_tasks=True)` | `job` node and a `uses` edge to each serving endpoint whose name appears in a task parameter or job parameter. A job that names no endpoint is not recorded. Only the endpoint name is kept; the parameter text is not stored | `workspace:job/<name>`, edge `workspace:job/<name>/task/<key>` |
+| Vector Search indexes | `vector_search_endpoints.list_endpoints`, `vector_search_indexes.list_indexes`, `get_index` | `vector_index` node, `reads` edge to the source table | `workspace:vector-index/<name>` |
+| Unity Catalog functions (tools) | `functions.list(catalog, schema)` for each schema in `INVENTORY_SCAN_SCHEMAS` | `uc_function` node | `workspace:uc-function/<full name>` |
+| Unity Catalog connections of kind MCP | `connections.list` (the `is_mcp_connection` option decides; options are never returned) | `mcp_server` node (a manifest `mcp_servers` entry of the same name merges into it) | `workspace:uc-connection/<name>` |
+
+New node kinds: `genie_space`, `job`, `vector_index`, `uc_function`. Edge kinds do not change. These nodes carry `attrs.workspace_kind` (`genie_space`, `job`, `vector_index`, `uc_function`, `uc_connection`), so a re-scan marks one gone when only the scan backed it.
+
+Shadow check: a Genie space is **active** when an agent `uses` or `reads` it, **allowlisted** when it matches the new `genie_spaces` list of `config/inventory_allowlist.yaml`, else **unmanaged** (low-severity case, as for an App). A serving endpoint with `agent_endpoint` follows the endpoint rule. Offline test data: `tests/fixtures/inventory/workspace_v2.json`; keys `model_versions`, `genie_spaces`, `jobs`, `vector_indexes`, `functions`, `connections` (see `src/supervisor/adapters/workspace/fixtures.py`).
+
+Not confirmed without a live workspace (checked by test 12 of the live kit, `docs/live-test-kit.md`): the call shapes of `genie.list_spaces` (paged response, attached tables), `jobs.list(expand_tasks=True)` task parameter fields, the vector search calls, the `is_mcp_connection` connection option, and how an agent endpoint is marked (task `agent/...` or a tag).
 
 ## Shadow-AI flow
 

@@ -20,6 +20,11 @@ NODE_KINDS: tuple[str, ...] = (
     "prompt",
     "supplier",  # model vendor, or an owner team (attrs.party)
     "entrypoint",  # an HTTP route of an agent app (WP1b-B); never a tool
+    # WP-G3 scan sources v2 (workspace_scan only; names, never workspace ids or URLs)
+    "genie_space",
+    "job",  # a Databricks job whose config names an LLM serving endpoint
+    "vector_index",
+    "uc_function",  # a Unity Catalog function (an agent tool)
 )
 EDGE_KINDS: tuple[str, ...] = ("uses", "serves", "reads", "writes", "hosted_on", "owned_by")
 # "gate": a gate-only agent registered on its first decision (WP41, gate_register.py)

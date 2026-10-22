@@ -9,6 +9,7 @@ URLs or tokens are copied (workspace URLs are left out on purpose).
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -20,7 +21,19 @@ from supervisor.inventory.model import TOOL_CLASS_RISK, Node, canonical_name
 
 log = logging.getLogger("supervisor.inventory")
 
-WORKSPACE_KINDS = ("app", "serving_endpoint", "registered_model", "uc_table")
+WORKSPACE_KINDS = (
+    "app",
+    "serving_endpoint",
+    "registered_model",
+    "uc_table",
+    # WP-G3 scan sources v2
+    "genie_space",
+    "job",
+    "vector_index",
+    "uc_function",
+    "uc_connection",
+)
+_TOKEN = re.compile(r"[^\w.:/-]+")
 DATABRICKS_HOST_NAME = "databricks"
 
 
@@ -400,6 +413,47 @@ def _ev(ev: Any) -> str:
 # ---------------------------------------------------------------------------- (c) workspace
 
 
+class _Skip(Exception):
+    """A v2 section that cannot run (no reader method, no schemas): not ok, not an error."""
+
+
+def _version_key(v: str) -> tuple[int, str]:
+    return (int(v), v) if v.isdigit() else (-1, v)
+
+
+def _served_entities(g: Graph, endpoint: Node, entities: list[Any], ref: str) -> None:
+    """Served entities of an endpoint (WP-G3): foundation model, external model with its
+    provider (a vendor supplier), or a custom model (a registered model and version)."""
+    providers: set[str] = set()
+    for ent in entities:
+        name = str(ent.get("name") or "").strip()
+        if not name:
+            continue
+        kind = str(ent.get("kind") or "")
+        provider = str(ent.get("provider") or "").strip().lower()
+        attrs: dict[str, Any] = {"entity_kind": kind} if kind else {}
+        if ent.get("version"):
+            attrs["entity_version"] = str(ent["version"])
+        if provider:
+            attrs["family"] = provider
+        m = Node("model", name, attrs=attrs)
+        m.add_evidence("workspace_scan", ref)
+        g.add_node(m)
+        m = g.nodes[m.node_id]
+        g.link(endpoint, "serves", m, "workspace_scan", ref)
+        if provider:
+            providers.add(provider)
+            g.link(
+                m,
+                "owned_by",
+                _supplier(g, provider, "vendor", "workspace_scan", ref),
+                "workspace_scan",
+                ref,
+            )
+    if providers:
+        endpoint.attrs["external_providers"] = sorted(providers)
+
+
 class WorkspaceScan:
     """Result of ``fill_from_workspace``: the fragment and which sections were read."""
 
@@ -430,6 +484,8 @@ def fill_from_workspace(
         try:
             fn()
             ok.add(kind)
+        except _Skip:
+            return
         except Exception as exc:  # noqa: BLE001 - one failed listing must not hide the others
             errors[kind] = type(exc).__name__
             log.warning("inventory: workspace listing %s failed: %s", kind, type(exc).__name__)
@@ -464,6 +520,8 @@ def fill_from_workspace(
                     src = Node("system", agent_id)
                     g.link(src, "hosted_on", g.nodes[n.node_id], "workspace_scan", ref)
 
+    endpoint_names: list[str] = []
+
     def endpoints() -> None:
         for e in reader.list_serving_endpoints():
             name = str(e.get("name") or "").strip()
@@ -480,6 +538,7 @@ def fill_from_workspace(
                         "workspace_kind": "serving_endpoint",
                         "task": e.get("task"),
                         "state": e.get("state"),
+                        "agent_endpoint": True if e.get("agent") else None,
                     }.items()
                     if v
                 },
@@ -487,7 +546,9 @@ def fill_from_workspace(
             n.add_evidence("workspace_scan", ref)
             g.add_node(n)
             n = g.nodes[n.node_id]
+            endpoint_names.append(name)
             g.link(n, "hosted_on", host, "workspace_scan", ref)
+            _served_entities(g, n, e.get("entities") or [], ref)
             served = [str(s) for s in (e.get("served") or []) if s]
             if e.get("model"):
                 served.append(str(e["model"]))
@@ -539,9 +600,179 @@ def fill_from_workspace(
                 f"workspace:lineage/{agent}",
             )
 
+    # ------------------------------------------------------------ WP-G3 scan sources v2
+    def optional(kind: str, method: str, fn: Callable[[Callable[[], Any]], None]) -> None:
+        """Run a v2 section only when the reader has the method (an older reader is not an
+        error and marks nothing gone)."""
+        lister = getattr(reader, method, None)
+        if lister is not None:
+            section(kind, lambda: fn(lister))
+
+    def versions(lister: Callable[[], Any]) -> None:
+        by_model: dict[str, list[Mapping[str, Any]]] = {}
+        for v in lister():
+            name = str(v.get("model") or "").strip()
+            if name:
+                by_model.setdefault(name, []).append(v)
+        for name, rows in sorted(by_model.items()):
+            nums = sorted((str(r.get("version") or "") for r in rows), key=_version_key)
+            aliases = sorted({str(a) for r in rows for a in (r.get("aliases") or []) if a})
+            stages = sorted({str(r["stage"]) for r in rows if r.get("stage")})
+            n = Node(
+                "model",
+                name,
+                attrs={
+                    k: v
+                    for k, v in {
+                        "workspace_kind": "registered_model",
+                        "versions_n": len(rows),
+                        "latest_version": nums[-1] if nums else None,
+                        "aliases": aliases[:20] or None,
+                        "stages": stages[:10] or None,
+                    }.items()
+                    if v
+                },
+            )
+            for num in nums[-10:]:
+                n.add_evidence("workspace_scan", f"workspace:model-version/{name}/{num}")
+            g.add_node(n)
+
+    def genie(lister: Callable[[], Any]) -> None:
+        for sp in lister():
+            name = str(sp.get("name") or "").strip()
+            if not name:
+                continue
+            ref = f"workspace:genie-space/{name}"
+            n = Node(
+                "genie_space",
+                name,
+                status="unmanaged",
+                attrs={"workspace_kind": "genie_space"},
+            )
+            n.add_evidence("workspace_scan", ref)
+            g.add_node(n)
+            n = g.nodes[n.node_id]
+            g.link(n, "hosted_on", host, "workspace_scan", ref)
+            for t in sorted({str(t).strip() for t in sp.get("tables") or [] if str(t).strip()}):
+                ds = Node("dataset", t)
+                ds.add_evidence("workspace_scan", ref)
+                g.add_node(ds)
+                g.link(n, "reads", g.nodes[ds.node_id], "workspace_scan", ref)
+
+    def jobs(lister: Callable[[], Any]) -> None:
+        known = {canonical_name(x): x for x in endpoint_names}
+        for j in lister():
+            name = str(j.get("name") or "").strip()
+            if not name:
+                continue
+            hits: dict[str, str] = {}  # endpoint (canonical) -> task key or ""
+            tasks = list(j.get("tasks") or [])
+            for t in tasks:
+                for val in t.get("values") or []:
+                    for tok in [str(val), *_TOKEN.split(str(val))]:
+                        c = canonical_name(tok)
+                        if c in known:
+                            hits.setdefault(c, str(t.get("key") or ""))
+            for val in j.get("parameters") or []:
+                for tok in [str(val), *_TOKEN.split(str(val))]:
+                    c = canonical_name(tok)
+                    if c in known:
+                        hits.setdefault(c, "")
+            if not hits:
+                continue  # a job that names no LLM endpoint is not an AI object
+            ref = f"workspace:job/{name}"
+            n = Node(
+                "job",
+                name,
+                attrs={
+                    "workspace_kind": "job",
+                    "tasks_n": len(tasks),
+                    "task_kinds": sorted({str(t.get("kind")) for t in tasks if t.get("kind")}),
+                    "llm_endpoints": sorted(known[c] for c in hits),
+                },
+            )
+            n.add_evidence("workspace_scan", ref)
+            g.add_node(n)
+            n = g.nodes[n.node_id]
+            for c, key in sorted(hits.items()):
+                ep = Node("model_endpoint", known[c])
+                g.link(n, "uses", ep, "workspace_scan", f"{ref}/task/{key}" if key else ref)
+
+    def vector(lister: Callable[[], Any]) -> None:
+        for ix in lister():
+            name = str(ix.get("name") or "").strip()
+            if not name:
+                continue
+            ref = f"workspace:vector-index/{name}"
+            n = Node(
+                "vector_index",
+                name,
+                attrs={
+                    k: v
+                    for k, v in {
+                        "workspace_kind": "vector_index",
+                        "index_type": ix.get("type"),
+                    }.items()
+                    if v
+                },
+            )
+            n.add_evidence("workspace_scan", ref)
+            g.add_node(n)
+            n = g.nodes[n.node_id]
+            g.link(n, "hosted_on", host, "workspace_scan", ref)
+            src = str(ix.get("source_table") or "").strip()
+            if src:
+                ds = Node("dataset", src)
+                ds.add_evidence("workspace_scan", ref)
+                g.add_node(ds)
+                g.link(n, "reads", g.nodes[ds.node_id], "workspace_scan", ref)
+
+    def connections(lister: Callable[[], Any]) -> None:
+        for c in lister():
+            name = str(c.get("name") or "").strip()
+            if name and c.get("mcp"):
+                n = Node(
+                    "mcp_server",
+                    name,
+                    attrs={
+                        k: v
+                        for k, v in {
+                            "workspace_kind": "uc_connection",
+                            "connection_type": c.get("type"),
+                        }.items()
+                        if v
+                    },
+                )
+                n.add_evidence("workspace_scan", f"workspace:uc-connection/{name}")
+                g.add_node(n)
+
+    def functions() -> None:
+        lister = getattr(reader, "list_functions", None)
+        wanted = list(schemas or [])
+        if not wanted and hasattr(reader, "list_schemas"):
+            wanted = list(reader.list_schemas())
+        if lister is None or not wanted:
+            raise _Skip
+        for cs in wanted:
+            catalog, _, schema = cs.partition(".")
+            if not schema:
+                continue
+            for fn in lister(catalog, schema):
+                full = fn if fn.count(".") >= 2 else f"{catalog}.{schema}.{fn}"
+                n = Node("uc_function", full, attrs={"workspace_kind": "uc_function"})
+                n.add_evidence("workspace_scan", f"workspace:uc-function/{full}")
+                g.add_node(n)
+
     section("app", apps)
     section("serving_endpoint", endpoints)
     section("registered_model", models)
     section("uc_table", tables)
     section("lineage", lineage)
+    # v2 sources: after endpoints (jobs are matched against the endpoint names) and tables
+    optional("registered_model_version", "list_model_versions", versions)
+    optional("genie_space", "list_genie_spaces", genie)
+    optional("job", "list_jobs", jobs)
+    optional("vector_index", "list_vector_indexes", vector)
+    optional("uc_connection", "list_connections", connections)
+    section("uc_function", functions)
     return WorkspaceScan(g, ok, errors)

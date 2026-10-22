@@ -7,3 +7,5 @@ apps:
   - FILL-ME-known-non-agent-app-name          # for example a BI portal or a data-quality UI
 serving_endpoints:
   - FILL-ME-known-non-agent-endpoint-pattern-*
+genie_spaces:
+  - FILL-ME-known-non-agent-genie-space-pattern-*   # WP-G3
