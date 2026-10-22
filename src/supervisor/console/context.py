@@ -129,6 +129,27 @@ class ConsoleContext:
                 chat=chat,
             )
             self._classification = svc
+
+    def lifecycle(self) -> Any:
+        """Stage approvals and the lifecycle move of an AI system (WP-G1). Shares the system
+        service, so every change goes on the chain."""
+        from supervisor.governance.lifecycle import LifecycleService
+
+        svc = getattr(self, "_lifecycle", None)
+        if svc is None:
+            svc = LifecycleService(self.systems)
+            self._lifecycle = svc
+        return svc
+
+    @property
+    def reviews(self) -> Any:
+        """Reviews of an AI system (WP-G1)."""
+        from supervisor.governance.reviews import ReviewService
+
+        svc = getattr(self, "_reviews", None)
+        if svc is None:
+            svc = ReviewService(self.systems)
+            self._reviews = svc
         return svc
 
     @property

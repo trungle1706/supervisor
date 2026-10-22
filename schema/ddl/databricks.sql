@@ -1207,3 +1207,68 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`classification` (
 USING DELTA
 COMMENT 'WP-G2. A Decision 33 classification of one AI system: a draft made from the rules, edited by a person, then applied by a person (never by a model). answers holds, per question, the answer, its source (rules | ai_prefill | person) and the justification. Applying sets decision33_class on the system and the classifier floor of its risk level. Changes go on the chain as classification_change.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- stage_approval (state): WP-G1. A request to move an AI system to a lifecycle stage that needs an approval (config/tasks.yaml, stages: ... approval: true), and the answer. The approver is a reviewer or oversight manager of the system or holds the approver role, and is neither the requester nor the owner. applied_at is set when the move used the approval. Changes go on the chain as stage_change.
+-- primary key (enforced by the app, not by Delta): approval_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`stage_approval` (
+  approval_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  from_stage STRING NOT NULL,
+  to_stage STRING NOT NULL,
+  requested_by STRING NOT NULL,
+  status STRING NOT NULL,
+  decided_by STRING,
+  reason STRING,
+  created_at TIMESTAMP NOT NULL,
+  decided_at TIMESTAMP,
+  applied_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G1. A request to move an AI system to a lifecycle stage that needs an approval (config/tasks.yaml, stages: ... approval: true), and the answer. The approver is a reviewer or oversight manager of the system or holds the approver role, and is neither the requester nor the owner. applied_at is set when the move used the approval. Changes go on the chain as stage_change.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- review (state): WP-G1. A review of an AI system (internal, external, conformity or classification audit) with its scope, window and reports. Completing a review locks it; reopening needs a reason. Changes go on the chain as review_change.
+-- primary key (enforced by the app, not by Delta): review_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`review` (
+  review_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  title STRING NOT NULL,
+  scope STRING NOT NULL,
+  reviewer_user STRING NOT NULL,
+  status STRING NOT NULL,
+  window_start TIMESTAMP,
+  window_end TIMESTAMP,
+  reports STRING NOT NULL,
+  completed_at TIMESTAMP,
+  completed_by STRING,
+  locked BOOLEAN NOT NULL,
+  reopen_reason STRING,
+  reopen_count BIGINT NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G1. A review of an AI system (internal, external, conformity or classification audit) with its scope, window and reports. Completing a review locks it; reopening needs a reason. Changes go on the chain as review_change.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- outbound_event (state): WP-G1. An event for other systems (stage approved, review completed, system registered, system archived). The payload holds ids and enums only. The webhook stub (WEBHOOKS_ENABLED) marks it delivered; nothing else reads the table yet.
+-- primary key (enforced by the app, not by Delta): event_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`outbound_event` (
+  event_id STRING NOT NULL,
+  kind STRING NOT NULL,
+  system_id STRING NOT NULL,
+  payload STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  delivered BOOLEAN NOT NULL,
+  delivered_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G1. An event for other systems (stage approved, review completed, system registered, system archived). The payload holds ids and enums only. The webhook stub (WEBHOOKS_ENABLED) marks it delivered; nothing else reads the table yet.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

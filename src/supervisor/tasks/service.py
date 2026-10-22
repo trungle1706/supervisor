@@ -249,19 +249,29 @@ class TaskService:
             cls = "unclassified"
         band: str | None = None
         source = "default"
+        linked = self._linked_sizing(str(a["agent_id"]))  # WP-G1: None unless linked to a system
         svc = self.risks()
+        reg: str | None = None
         if svc is not None:
             try:
                 lv = svc.agent_levels().get(str(a["agent_id"]).lower())
             except Exception:  # noqa: BLE001 - a register problem must not stop the task list
                 lv = None
             if lv is not None and lv.inherent_level in LEVELS:
-                band, source = lv.inherent_level, "risk_register"
-        if band is None and a.get("risk_tier") in LEVELS:
-            band, source = str(a["risk_tier"]), "risk_tier"
-        if band is None:
-            band = "high"  # unknown risk is sized as high: more governance, never less
-        return {
+                reg = lv.inherent_level
+        if linked is not None:
+            # WP-G1: the higher of the band of the system and the register band (never lighter)
+            band, source = linked.band, "system"
+            if reg is not None and LEVEL_RANK[reg] > LEVEL_RANK[band]:
+                band, source = reg, "risk_register"
+        else:
+            if reg is not None:
+                band, source = reg, "risk_register"
+            if band is None and a.get("risk_tier") in LEVELS:
+                band, source = str(a["risk_tier"]), "risk_tier"
+            if band is None:
+                band = "high"  # unknown risk is sized as high: more governance, never less
+        out = {
             "agent_id": str(a["agent_id"]),
             "d33_class": cls,
             "band": band,
@@ -269,6 +279,39 @@ class TaskService:
             "level": effective_level(self.cfg, cls, band),
             "gate_state": str(a.get("gate_state") or ""),
         }
+        if linked is not None:  # WP-G1: only for a linked agent; an unlinked one is as before
+            out["system_level"] = linked.system_level
+            out["system_ids"] = ",".join(linked.system_ids)
+            # only when the level is still low after the class floor and the register band
+            if linked.initiation_only and out["level"] == "low":
+                out["initiation_only"] = "1"
+        return out
+
+    def _linked_sizing(self, agent_id: str) -> Any:
+        """WP-G1: the sizing of an agent that is linked to an AI system (docs/governance.md),
+        or None (governance off, or no active link): then the sizing is the one before WP-G1."""
+        if not getattr(self.settings, "governance_enabled", False):
+            return None
+        from supervisor.governance.sizing import linked_sizing
+
+        try:
+            return linked_sizing(self.state, self.tables, self.clock, self.settings, agent_id)
+        except Exception:  # noqa: BLE001 - a system problem must not stop the task list
+            log.exception("system sizing failed; the agent is sized as an unlinked agent")
+            return None
+
+    def _next_stage(
+        self, stage: str, level: str, classes: Any, inputs: Mapping[str, str]
+    ) -> str | None:
+        """The stage after ``stage``. WP-G1: an agent of a system whose risk level is still
+        unspecified gets the initiation set only, so it does not move on until a person sets
+        the level of the system."""
+        if stage == "initiation" and inputs.get("initiation_only") == "1" and level == "low":
+            return None
+        # WP-G2: the planned set includes the templates the assignment rules add
+        p = self._plan(inputs["agent_id"], level, classes)
+        after = [s for s in STAGES if p[s] and STAGES.index(s) > STAGES.index(stage)]
+        return after[0] if after else None
 
     def sizing(self, agent_id: str, inputs: Mapping[str, str]) -> tuple[str, tuple[str, ...]]:
         """(level, classes) the task list of the agent is sized with: the highest effective
@@ -421,9 +464,7 @@ class TaskService:
             "required_total": len(required),
             "stage_done_bp": (len(closed) * 10000 // len(required)) if required else 10000,
             "overdue": sum(1 for v in views if v["overdue"] and v["required"]),
-            "next_stage": self._next_stage(inputs["agent_id"], stage, level, classes)
-            if stage
-            else None,
+            "next_stage": self._next_stage(stage, level, classes, inputs) if stage else None,
             "stages_in_use": [
                 s for s, v in self._plan(inputs["agent_id"], level, classes).items() if v
             ],
@@ -481,13 +522,6 @@ class TaskService:
         for xs in out.values():
             xs.sort(key=lambda x: order[x.template.id])
         return out
-
-    def _next_stage(
-        self, agent_id: str, current: str, level: str, classes: Iterable[str]
-    ) -> str | None:
-        p = self._plan(agent_id, level, classes)
-        after = [s for s in STAGES if p[s] and STAGES.index(s) > STAGES.index(current)]
-        return after[0] if after else None
 
     # ------------------------------------------------------------------ generate
     def _row_for(
@@ -557,7 +591,7 @@ class TaskService:
                 actor=actor,
             )
             created += self._insert(row, actor)
-        nxt = self._next_stage(agent_id, stage, level, classes)
+        nxt = self._next_stage(stage, level, classes, inputs)
         if nxt is not None:
             row = self._row_for(
                 agent_id,
@@ -615,7 +649,7 @@ class TaskService:
         planned = {x.template.id: x for x in self._plan(agent_id, level, classes)[stage]}
         made = 0
         changed = False
-        nxt = self._next_stage(agent_id, stage, level, classes)
+        nxt = self._next_stage(stage, level, classes, inputs)
         for row in self.rows_of(agent_id):
             if row["stage"] != stage or row["status"] not in OPEN_STATUSES:
                 continue

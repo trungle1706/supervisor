@@ -16,6 +16,47 @@ Two new flags, both off by default (off = nothing is mounted and the console is 
   under Onboard. EN and VI.
 - New permissions `systems.view` (all roles) and `systems.edit` (reviewer, owner, admin).
 - Docs: `docs/governance.md`.
+### WP-UX4a: merged sidebar and the Supervisor-side pages (`CONSOLE_NAV_V3`)
+
+One new flag, off by default (off = the console as before, also with `CONSOLE_NAV_SECTIONS=1`).
+
+- `CONSOLE_NAV_V3=1`: one left bar with My overview, five Governance items, six Supervisor items
+  and a settings gear (inline SVG line icons, section folds remembered in `localStorage`). A tab
+  strip shows on every page that belongs to a section: Activity, Guardians, Cases and alerts,
+  Analytics (with an Evidence chain tab), Catalogues, Risks and controls. The Systems item
+  shows only with `console_systems_enabled` (the page belongs to WP-G0).
+- New pages: My overview, Governance overview, Supervisor overview (numbers are integers or
+  basis points from existing services; a figure that cannot be computed shows "not available" and
+  why; judges without a model show `mock`), read-only Workflows, Catalogues asset tabs (models,
+  tools, datasets, MCP servers) and the Detectors, Judges and Monitors tabs of Guardians.
+- Section routes (`/activity`, `/risks-controls`, `/catalogues`,
+  `/guardians`) answer 302 to the tab page. Old URLs keep working. A bad tab or scope is 400.
+- `tools/console_screenshots.py --v3` captures the new screens; EN and VI strings; see
+  `docs/console.md`, "Navigation v3".
+
+### WP-G1: lifecycle, stage approvals, reviews, outbound events
+
+All under `GOVERNANCE_ENABLED=1` (off = nothing is mounted and nothing changes). One new flag,
+`WEBHOOKS_ENABLED`, off by default.
+
+- Task sizing: an agent linked to an AI system is sized from the effective risk level of the system
+  and the Decision 33 floor; a system with an unspecified level gives the initiation set only. An
+  agent with no link is sized as before. Task templates accept `min_risk_level` and
+  `required_from_level` (low, medium, high, prohibited).
+- New tables `stage_approval`, `review`, `outbound_event`; chain records `stage_change` and
+  `review_change`.
+- Lifecycle: `POST /v1/systems/{id}/stage`; a move into a stage marked `approval: true` in
+  `config/tasks.yaml` (default deployment and operation) needs an approved stage approval. The
+  approver is a reviewer or oversight manager of the system, or an approver, and is not the
+  requester or the owner (`segregation of duties:`). `PATCH` no longer changes `lifecycle_stage`.
+- Reviews with scope, window and reports; complete locks, reopen needs a reason.
+- Outbound events written on stage approved, review completed, system registered and archived; the
+  webhook stub (`WEBHOOKS_ENABLED=1`) logs and marks them delivered, it sends nothing.
+- Routes under `/v1/systems/{id}`: `approvals`, `approvals/{aid}/decide`, `stage`, `reviews`,
+  `reviews/{rid}`, `reviews/{rid}/complete`, `reviews/{rid}/reopen`. New permissions
+  `systems.approve` and `systems.review`.
+- Console: tabs Tasks and Reviews on the system page. EN and VI.
+- Docs: `docs/governance.md` sections 12 to 19.
 
 ### WP-G2: assignment rules engine and Decision 33 classification
 

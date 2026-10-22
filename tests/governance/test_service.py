@@ -103,8 +103,7 @@ def test_every_vocabulary_value_is_accepted(svc: SystemService) -> None:
             _make(svc, name=f"sys {i} {v}", **{field: v})
     s = _make(svc, name="levels")
     for field, values in [
-        ("lifecycle_stage", model.LIFECYCLE_STAGES),
-        ("risk_level", model.RISK_LEVELS),
+        ("risk_level", model.RISK_LEVELS),  # lifecycle_stage: POST .../stage since WP-G1
         ("decision33_class", model.DECISION33_CLASSES),
         ("business_impact", model.BUSINESS_IMPACTS),
     ]:

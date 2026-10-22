@@ -26,7 +26,14 @@ from supervisor.governance.systems import ALL
 
 COLUMNS = ("name", "owner_team", "lifecycle_stage", "risk", "status")
 DRAWER_TABS = ("details", "team", "components")
-DETAIL_TABS = ("overview", "components", "rules", "classification")  # rules, classification: WP-G2
+DETAIL_TABS = (
+    "overview",
+    "components",
+    "tasks",
+    "reviews",  # tasks, reviews: WP-G1
+    "rules",
+    "classification",  # rules, classification: WP-G2
+)
 PAGE_SIZE = 25
 FILTERS = ("q", "status", "owner_team", "lifecycle_stage", "risk", "system_type")
 REGISTER_CHOICES = {
@@ -153,12 +160,18 @@ def detail_view(ctx: Any, me: Any, system_id: str, tab: str) -> dict[str, Any]:
     if tab not in DETAIL_TABS:
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
+    extra, counts = g1_tabs(ctx, system, tab)
     out = {
         "s": system,
         "tab": tab,
         "tabs": DETAIL_TABS,
-        "tab_counts": {"overview": len(system["team"]), "components": len(system["components"])},
+        "tab_counts": {
+            "overview": len(system["team"]),
+            "components": len(system["components"]),
+            **counts,
+        },
         "json_text": json.dumps(system, sort_keys=True, indent=2, default=str),
+        **extra,
     }
     if tab == "rules":  # WP-G2
         out.update(_rules_data(ctx, me, system_id))
@@ -214,6 +227,31 @@ def classification_changes(form: Mapping[str, str], draft: Mapping[str, Any]) ->
         if answer != a["answer"] or why != (a.get("justification") or ""):
             changes[qid] = {"answer": answer, "justification": why}
     return changes
+
+
+def g1_tabs(ctx: Any, system: Mapping[str, Any], tab: str) -> tuple[dict[str, Any], dict[str, int]]:
+    """WP-G1: data of the Tasks and Reviews tabs and their counts. Read only."""
+    sid = str(system["system_id"])
+    counts: dict[str, int] = {}
+    extra: dict[str, Any] = {}
+    reviews = ctx.reviews.list_reviews(sid)
+    counts["reviews"] = len(reviews)
+    if tab == "reviews":
+        extra["reviews"] = reviews
+    agents = [c["ref_id"] for c in system["components"] if c["ref_kind"] == "agent"]
+    counts["tasks"] = len(agents)
+    if tab == "tasks":
+        extra["lifecycle"] = ctx.lifecycle.status(sid)
+        extra["task_n"] = len(agents)
+        extra["tk_off"] = not ctx.settings.controls_enabled
+        summaries: list[dict[str, Any]] = []
+        for agent_id in agents if not extra["tk_off"] else []:
+            try:
+                summaries.append(ctx.tasks.agent_summary(agent_id))
+            except Exception:  # noqa: BLE001 - one agent without a list must not stop the tab
+                summaries.append({"agent_id": agent_id, "generated": False, "tasks": []})
+        extra["task_agents"] = summaries
+    return extra, counts
 
 
 def draft_from_form(form: Mapping[str, str], me: Any) -> dict[str, Any]:

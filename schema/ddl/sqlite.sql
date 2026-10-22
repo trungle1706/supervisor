@@ -1452,3 +1452,67 @@ CREATE TABLE IF NOT EXISTS classification (
 );
 
 CREATE INDEX IF NOT EXISTS ix_classification_system_id ON classification (system_id);
+
+-- stage_approval (state): WP-G1. A request to move an AI system to a lifecycle stage that needs an approval (config/tasks.yaml, stages: ... approval: true), and the answer. The approver is a reviewer or oversight manager of the system or holds the approver role, and is neither the requester nor the owner. applied_at is set when the move used the approval. Changes go on the chain as stage_change.
+CREATE TABLE IF NOT EXISTS stage_approval (
+  approval_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  from_stage TEXT NOT NULL,
+  to_stage TEXT NOT NULL,
+  requested_by TEXT NOT NULL,
+  status TEXT NOT NULL,
+  decided_by TEXT,
+  reason TEXT,
+  created_at TEXT NOT NULL,
+  decided_at TEXT,
+  applied_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (approval_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_stage_approval_system_id ON stage_approval (system_id);
+
+-- review (state): WP-G1. A review of an AI system (internal, external, conformity or classification audit) with its scope, window and reports. Completing a review locks it; reopening needs a reason. Changes go on the chain as review_change.
+CREATE TABLE IF NOT EXISTS review (
+  review_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  reviewer_user TEXT NOT NULL,
+  status TEXT NOT NULL,
+  window_start TEXT,
+  window_end TEXT,
+  reports TEXT NOT NULL,
+  completed_at TEXT,
+  completed_by TEXT,
+  locked INTEGER NOT NULL,
+  reopen_reason TEXT,
+  reopen_count INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (review_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_review_system_id ON review (system_id);
+
+-- outbound_event (state): WP-G1. An event for other systems (stage approved, review completed, system registered, system archived). The payload holds ids and enums only. The webhook stub (WEBHOOKS_ENABLED) marks it delivered; nothing else reads the table yet.
+CREATE TABLE IF NOT EXISTS outbound_event (
+  event_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  delivered INTEGER NOT NULL,
+  delivered_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_outbound_event_system_id ON outbound_event (system_id);
+
+CREATE INDEX IF NOT EXISTS ix_outbound_event_delivered ON outbound_event (delivered);

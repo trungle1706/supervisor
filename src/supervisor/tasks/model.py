@@ -299,6 +299,30 @@ def _level(value: Any, what: str, *, allow_none: bool = False) -> str | None:
     return str(value)
 
 
+# WP-G1: a template may state its size on the scale of an AI system (low, medium, high,
+# prohibited) with ``min_risk_level`` and ``required_from_level``. They mean the same as
+# ``min_level`` and ``required_from`` (prohibited = critical, the top of the scale).
+_SYSTEM_SCALE: dict[str, str] = {
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "prohibited": "critical",
+}
+
+
+def _sized(
+    raw: Mapping[str, Any], old: str, new: str, default: Any, where: str, *, allow_none: bool
+) -> str | None:
+    if new not in raw:
+        return _level(raw.get(old, default), f"{where}: {old}", allow_none=allow_none)
+    if old in raw:
+        raise TaskError(f"{where}: give {old} or {new}, not both")
+    value = raw[new]
+    if value not in _SYSTEM_SCALE:
+        raise TaskError(f"{where}: {new} must be one of {', '.join(_SYSTEM_SCALE)}")
+    return _SYSTEM_SCALE[value]
+
+
 def parse_config(doc: Any, name: str = "tasks.yaml") -> TaskConfig:
     if not isinstance(doc, Mapping) or not isinstance(doc.get("templates"), list):
         raise TaskError(f"{name}: expected a mapping with a 'templates' list")
@@ -363,9 +387,11 @@ def parse_config(doc: Any, name: str = "tasks.yaml") -> TaskConfig:
                 title=title.strip(),
                 owner_role=str(role),
                 due_days=due,
-                min_level=str(_level(raw.get("min_level", "low"), f"{where}: min_level")),
-                required_from=_level(
-                    raw.get("required_from"), f"{where}: required_from", allow_none=True
+                min_level=str(
+                    _sized(raw, "min_level", "min_risk_level", "low", where, allow_none=False)
+                ),
+                required_from=_sized(
+                    raw, "required_from", "required_from_level", None, where, allow_none=True
                 ),
                 classes=cls_t,
                 evidence_kind=str(ekind),

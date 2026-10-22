@@ -98,6 +98,8 @@ control); four starter controls are draft until a deterministic source exists fo
 1. **Effective level** = the higher of its band (WP29 register level; else the registry risk tier;
    else `high`) and the floor of its Decision 33 class (`high_risk` -> high, `unclassified` ->
    medium, `not_high_risk` -> low).
+   An agent linked to an AI system (`GOVERNANCE_ENABLED`) takes the effective risk level of the
+   system instead of its own band (`docs/governance.md` section 12); an unlinked agent is as above.
 2. A template is in the set when the level is at least its `min_level` and the class matches.
 3. It is **required** when the level is at least its `required_from`.
 

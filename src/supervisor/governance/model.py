@@ -270,6 +270,13 @@ def normalise_draft(data: Mapping[str, Any]) -> dict[str, Any]:
         raise SystemsError(f"unknown field: {', '.join(unknown)}")
     if data.get("status") not in (None, "", "draft"):
         raise SystemsError("a new system starts as draft")
+    stage = data.get("lifecycle_stage")
+    if stage not in (None, "", "initiation"):
+        choice(stage, LIFECYCLE_STAGES, "lifecycle_stage")  # a bad value names the field
+        raise SystemsError(
+            "lifecycle_stage: a new system starts in initiation; ask for a move with "
+            "POST /v1/systems/{id}/approvals, then POST /v1/systems/{id}/stage"
+        )
     missing = [f for f in REQUIRED if data.get(f) in (None, "")]
     if missing:
         raise SystemsError(f"required: {', '.join(missing)}")
