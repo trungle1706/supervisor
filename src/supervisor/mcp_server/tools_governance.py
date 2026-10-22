@@ -9,6 +9,7 @@ risk level, close an incident or turn a guardian off; the registry refuses such 
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from supervisor.core.errors import NotFoundError
@@ -21,12 +22,14 @@ from supervisor.governance.model import (
     choice,
     normalise_draft,
 )
-from supervisor.governance.systems import ALL, system_id_for
+from supervisor.governance.systems import system_id_for
 from supervisor.mcp_server.common import (
     LIMIT_SPEC,
     actor_of,
     agents_of_system,
     limit_of,
+    mask_deep,
+    mask_row,
     pick,
     plain,
     sees_everything,
@@ -44,9 +47,17 @@ DRAFT_REFUSED = (
     "risk_level_source",
     "risk_justification",
     "business_impact",
+    "autonomy_level",
     "status",
     "lifecycle_stage",
 )
+# Free-text fields, by entity: every one goes through the masker before it leaves (review H1).
+SYSTEM_TEXT = ("name", "purpose", "owner_team", "risk_justification")
+RISK_TEXT_KEYS = ("title", "description", "treatment_note", "marginal_note", "owner")
+CONTROL_TEXT = ("title", "objective", "owner", "notes", "description")
+INCIDENT_TEXT = ("title", "root_cause", "affected_scope")
+REVIEW_TEXT = ("title", "reopen_reason")
+TASK_TEXT = ("title", "evidence_ref", "waive_reason")
 SYSTEM_FIELDS = (
     "system_id",
     "name",
@@ -148,22 +159,31 @@ def list_entities(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
     svc = systems_on(call)
     scope = svc.scope_for(call.principal)
     if kind == "system":
-        rows = [pick(r, SYSTEM_FIELDS) for r in svc.list_systems(scope, filters)]
+        rows = [
+            mask_row(call, pick(r, SYSTEM_FIELDS), SYSTEM_TEXT)
+            for r in svc.list_systems(scope, filters)
+        ]
     elif kind == "risk":
         if not s.risk_register_enabled:
             raise SystemsError("the risk register is off (RISK_REGISTER_ENABLED=1)")
         rows = [
-            pick(r, RISK_FIELDS) for r in ctx.risks.list_risks(filters) if _risk_visible(call, r)
+            mask_row(call, pick(r, RISK_FIELDS), RISK_TEXT_KEYS)
+            for r in ctx.risks.list_risks(filters)
+            if _risk_visible(call, r)
         ]
     elif kind == "control":
         if not s.controls_enabled:
             raise SystemsError("the control catalogue is off (CONTROLS_ENABLED=1)")
-        rows = [pick(r, CONTROL_FIELDS) for r in ctx.controls.list_controls(filters)]
+        rows = [
+            mask_row(call, pick(r, CONTROL_FIELDS), CONTROL_TEXT)
+            for r in ctx.controls.list_controls(filters)
+        ]
     elif kind == "incident":
         if not s.governance_actions_enabled:
             raise SystemsError("incidents are off (GOVERNANCE_ACTIONS_ENABLED=1)")
         rows = [
-            pick(r, INCIDENT_FIELDS) for r in ctx.incidents.list_incidents(call.principal, filters)
+            mask_row(call, pick(r, INCIDENT_FIELDS), INCIDENT_TEXT)
+            for r in ctx.incidents.list_incidents(call.principal, filters)
         ]
     else:  # review
         rows = []
@@ -172,7 +192,7 @@ def list_entities(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
                 continue
             for rv in ctx.reviews.list_reviews(str(r["system_id"])):
                 if not filters.get("status") or rv["status"] == filters["status"]:
-                    rows.append(pick(rv, REVIEW_FIELDS))
+                    rows.append(mask_row(call, pick(rv, REVIEW_FIELDS), REVIEW_TEXT))
     return {"kind": kind, "count": len(rows), "truncated": len(rows) > limit, "items": rows[:limit]}
 
 
@@ -181,27 +201,33 @@ def get_entity(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
     ctx = call.ctx
     svc = systems_on(call)
     if kind == "system":
-        return {"kind": kind, "item": svc.get(visible_system(call, eid))}
+        item = mask_row(call, svc.get(visible_system(call, eid)), SYSTEM_TEXT, ("tags",))
+        item["components"] = [
+            mask_row(call, c, ("evidence_ref",)) for c in item.get("components") or []
+        ]
+        return {"kind": kind, "item": item}
     if kind == "risk":
         if not ctx.settings.risk_register_enabled:
             raise SystemsError("the risk register is off (RISK_REGISTER_ENABLED=1)")
         row = ctx.risks.get(eid)
         if not _risk_visible(call, row):
             raise NotFoundError(f"risk {eid} does not exist")
-        return {"kind": kind, "item": plain(row)}
+        return {"kind": kind, "item": mask_row(call, plain(row), RISK_TEXT_KEYS)}
     if kind == "control":
         if not ctx.settings.controls_enabled:
             raise SystemsError("the control catalogue is off (CONTROLS_ENABLED=1)")
-        return {"kind": kind, "item": plain(ctx.controls.get(eid))}
+        return {"kind": kind, "item": mask_row(call, plain(ctx.controls.get(eid)), CONTROL_TEXT)}
     if kind == "incident":
         if not ctx.settings.governance_actions_enabled:
             raise SystemsError("incidents are off (GOVERNANCE_ACTIONS_ENABLED=1)")
-        return {"kind": kind, "item": plain(ctx.incidents.get(eid, call.principal))}
+        item = plain(ctx.incidents.get(eid, call.principal))
+        return {"kind": kind, "item": mask_row(call, item, INCIDENT_TEXT)}
     row = ctx.state.get("review", {"review_id": eid})
     if row is None:
         raise NotFoundError(f"review {eid} does not exist")
     sid = visible_system(call, str(row["system_id"]))
-    return {"kind": kind, "item": plain(ctx.reviews.get(sid, eid))}
+    item = mask_row(call, plain(ctx.reviews.get(sid, eid)), REVIEW_TEXT, ("reports",))
+    return {"kind": kind, "item": item}
 
 
 def _task_owner_ids(call: Any, system_id: str) -> set[str]:
@@ -217,7 +243,7 @@ def list_tasks(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
     return {
         "system_id": sid,
         "count": len(rows),
-        "items": [pick(t, TASK_FIELDS) for t in rows[: limit_of(a)]],
+        "items": [mask_row(call, pick(t, TASK_FIELDS), TASK_TEXT) for t in rows[: limit_of(a)]],
     }
 
 
@@ -228,7 +254,7 @@ def transparency_report(call: Any, a: dict[str, Any], apply: bool) -> dict[str, 
     out = []
     for agent in agents_of_system(call, sid):
         data, info = call.ctx.transparency.report(agent, a["variant"])
-        out.append({"agent_id": agent, "info": plain(info), "report": plain(data)})
+        out.append({"agent_id": agent, "info": plain(info), "report": mask_deep(call, plain(data))})
     return {"system_id": sid, "variant": a["variant"], "agents": out}
 
 
@@ -253,11 +279,13 @@ def register_system(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]
             f"a draft cannot carry {', '.join(refused)}: the class, the risk level and the "
             "stage are set by people in the console (a new system is unclassified, initiation)"
         )
-    if not draft.get("owner_user"):
-        raise SystemsError("owner_user is required: name the person who owns the system")
     actor = actor_of(call)
-    if svc.scope_for(call.principal) is not ALL and draft["owner_user"] != actor:
-        raise SystemsError(f"this app can register a system only with {actor} as owner_user")
+    if draft.get("owner_user") not in (None, "", actor):
+        raise SystemsError(
+            f"owner_user must be {actor} (or left out): an app registers a system as its own "
+            "draft; a person takes the ownership over in the console"
+        )
+    draft = {**draft, "owner_user": actor}
     fields = normalise_draft(draft)  # the same validation as POST /v1/systems
     svc._check_team_in_scope(call.principal, fields["owner_team"])  # noqa: SLF001
     svc._unique_name(fields["name"])  # noqa: SLF001
@@ -268,7 +296,7 @@ def register_system(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]
             "status": "draft",
             "lifecycle_stage": "initiation",
             "decision33_class": "unclassified",
-            "fields": plain(fields),
+            "fields": mask_row(call, plain(fields), SYSTEM_TEXT, ("tags",)),
         }
     out = svc.register(draft, actor, for_user=call.principal)
     return {
@@ -341,7 +369,9 @@ def propose_risk(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
             "action": "propose_risk",
             "system_id": sid,
             "status": "draft",
-            "fields": plain({k: fields[k] for k in fields if k != "source"}),
+            "fields": mask_row(
+                call, plain({k: fields[k] for k in fields if k != "source"}), RISK_TEXT_KEYS
+            ),
         }
     row = ctx.risks.create(data, actor_of(call))
     return {
@@ -376,7 +406,7 @@ def complete_task(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
         return {
             "action": "complete_task",
             "task_id": a["task_id"],
-            "title": task["title"],
+            "title": mask_row(call, task, ("title",))["title"],
             "from_status": task["status"],
             "to_status": "done",
             "evidence_kind": task["evidence_kind"],
@@ -385,8 +415,48 @@ def complete_task(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
     return {"task_id": out["task_id"], "status": out["status"]}
 
 
+def _masked_classification(call: Any, view: Any) -> dict[str, Any]:
+    out = plain(view)
+    out["answers"] = [mask_row(call, x, ("justification",)) for x in out.get("answers") or []]
+    return out  # type: ignore[no-any-return]
+
+
+def _protected_draft(call: Any, system_id: str) -> dict[str, Any] | None:
+    """The open draft of the system when a person made it or edited it; the app never replaces
+    it (making a draft again resets the answers)."""
+    rows = [
+        dict(r)
+        for r in call.ctx.state.query("classification", {"system_id": system_id})
+        if r["status"] == "draft"
+    ]
+    for row in sorted(rows, key=lambda r: str(r["created_at"]), reverse=True):
+        raw = row.get("answers")
+        try:
+            answers = raw if isinstance(raw, dict) else json.loads(raw or "{}")
+        except (TypeError, ValueError):
+            answers = {}
+        edited = any(
+            isinstance(v, dict) and v.get("source") == "person" and v.get("answer") is not None
+            for v in answers.values()
+        )
+        if edited or not str(row["created_by"]).startswith("mcp:"):
+            return row
+    return None
+
+
 def classification_draft(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
     sid = visible_system(call, a["system_id"])
+    kept = _protected_draft(call, sid)
+    if kept is not None:
+        return {
+            "action": "classification_draft",
+            "system_id": sid,
+            "written": False,
+            "refused": True,
+            "reason": "an open draft made or edited by a person exists; the server does not "
+            "replace it. A person continues it in the console.",
+            "classification": _masked_classification(call, call.ctx.classification.view(kept)),
+        }
     if not apply:
         return {
             "action": "classification_draft",
@@ -397,7 +467,7 @@ def classification_draft(call: Any, a: dict[str, Any], apply: bool) -> dict[str,
     view = call.ctx.classification.draft(sid, actor_of(call))
     return {
         "system_id": sid,
-        "classification": plain(view),
+        "classification": _masked_classification(call, view),
         "next": "a person edits and applies the classification in the console; the server "
         "has no tool for that",
     }
@@ -481,10 +551,10 @@ def register(reg: Registry) -> None:
         Tool(
             "register_system",
             "Register an AI system as a draft in initiation, unclassified. draft: name, "
-            "owner_user, owner_team, purpose, system_type, org_role, user_segment, "
-            "personal_data, human_control (+ optional business_owner, money_movement, "
-            "credit_decision, autonomy_level, tags). It cannot set the class, the risk level "
-            "or the stage.",
+            "owner_team, purpose, system_type, org_role, user_segment, personal_data, "
+            "human_control (+ optional business_owner, money_movement, credit_decision, tags). "
+            "The app is the owner of the draft (owner_user may be left out). It cannot set the "
+            "class, the risk level, the autonomy level or the stage.",
             "governance.write",
             {"properties": {"draft": {"type": "object"}}, "required": ["draft"]},
             register_system,

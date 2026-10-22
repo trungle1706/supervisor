@@ -55,6 +55,7 @@ WRITE_TOOLS = {
     "propose_risk",
     "complete_task",
     "classification_draft",
+    "chain_verify",  # a write in disguise (review M1): it records a chain entry
 }
 
 
@@ -90,7 +91,9 @@ def test_the_write_tools_are_exactly_the_draft_tools() -> None:
     assert {t.name for t in reg if t.write} == WRITE_TOOLS
     for t in reg:
         if t.write:
-            assert t.scope == "governance.write" and t.permission and t.target
+            assert t.scope in ("governance.write", "supervisor.read")
+            assert (t.scope == "governance.write") == (t.name != "chain_verify")
+            assert t.permission and t.target
             assert "confirm" in t.listing()["inputSchema"]["properties"]
         else:
             assert "confirm" not in t.listing()["inputSchema"]["properties"]
@@ -117,10 +120,47 @@ def test_tool_groups_and_scopes() -> None:
         "chain_verify",
         "pack_results",
     }
-    assert by_scope["governance.write"] == WRITE_TOOLS
+    assert by_scope["governance.write"] == WRITE_TOOLS - {"chain_verify"}
     assert {"list_entities", "get_entity", "list_tasks", "transparency_report"} <= by_scope[
         "governance.read"
     ]
+
+
+VERBS = [
+    "accept", "approve", "apply", "lower", "downgrade", "close", "resolve", "pause", "resume",
+    "halt", "suspend", "quarantine", "release", "retire", "disable", "waive", "certify",
+    "authorize", "authorise", "promote", "advance", "activate", "decide", "set", "classify",
+    "signoff",
+]  # fmt: skip
+NOUNS = ["risk", "system", "agent", "incident", "task", "stage", "control", "report"]
+
+
+def probe_names() -> list[str]:
+    """The reviewer's probe: every verb with several nouns, in two orders, plus prefixes."""
+    out = [f"{v}_{n}" for v in VERBS for n in NOUNS]
+    out += [f"{n}_{v}" for v in VERBS[:12] for n in NOUNS[:3]]
+    out += ["set_anything", "set_flag", "off", "turn_off", "guardian_off", "stage_advance"]
+    return sorted(set(out))
+
+
+def test_the_probe_list_is_long_enough_and_every_name_is_refused() -> None:
+    names = probe_names()
+    assert len(names) >= 130
+    free = [n for n in names if refusal_for(n) is None]
+    assert not free, free
+    for name in names:
+        reg = Registry()
+        with pytest.raises(RefusedTool):
+            reg.register(Tool(name, "x", "governance.write", {}, noop, write=True))
+
+
+def test_a_verb_is_refused_inside_any_name_but_the_existing_tools_pass() -> None:
+    for name in ("list_and_approve", "quick_resume_all", "x_set_y", "bulk_release", "auto_waive"):
+        assert refusal_for(name)
+    for name in build_registry().names():
+        assert refusal_for(name) is None
+    for name in ("list_things", "get_report", "propose_change", "register_thing", "count_items"):
+        assert refusal_for(name) is None  # a draft or a read verb is fine
 
 
 def test_a_second_registration_or_a_bad_scope_is_refused() -> None:

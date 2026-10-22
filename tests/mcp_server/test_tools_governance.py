@@ -12,7 +12,6 @@ from .conftest import Cred, Rig
 
 DRAFT: dict[str, Any] = {
     "name": "Pay assist",
-    "owner_user": "reviewer.an",
     "owner_team": "Payments Ops",
     "purpose": "Answers staff questions about transfers.",
     "system_type": "assistant",
@@ -69,7 +68,8 @@ def test_register_with_confirm_writes_a_draft_and_two_audit_rows(rig: Rig) -> No
         ({"lifecycle_stage": "design"}, "cannot carry"),
         ({"colour": "red"}, "unknown field"),
         ({"system_type": "robot"}, "system_type"),
-        ({"owner_user": ""}, "owner_user is required"),
+        ({"autonomy_level": "l1_assistive"}, "cannot carry"),
+        ({"owner_user": "reviewer.an"}, "owner_user must be"),
     ],
 )
 def test_a_draft_cannot_classify_or_set_the_level(
@@ -88,10 +88,25 @@ def test_a_duplicate_name_is_a_message_not_a_crash(rig: Rig) -> None:
     assert err["code"] == -32602 and "already used" in err["message"]
 
 
-def test_a_scoped_app_registers_only_with_itself_as_owner(rig: Rig) -> None:
-    cred = rig.new_app("owner app", roles=("owner",))
-    err = rig.err(cred, "register_system", {"draft": DRAFT, "confirm": True})
-    assert err["code"] == -32602 and f"mcp:{cred.app_id}" in err["message"]
+@pytest.mark.parametrize("roles", [("reviewer",), ("auditor", "reviewer")])
+def test_an_app_registers_only_as_the_owner_of_its_own_draft(
+    rig: Rig, roles: tuple[str, ...]
+) -> None:
+    """L2: for every app, not only a scoped one."""
+    cred = rig.new_app("owner app", roles=roles)
+    me = f"mcp:{cred.app_id}"
+    err = rig.err(
+        cred, "register_system", {"draft": {**DRAFT, "owner_user": "someone"}, "confirm": True}
+    )
+    assert err["code"] == -32602 and me in err["message"]
+    sid = rig.ok(cred, "register_system", {"draft": {**DRAFT, "owner_user": me}, "confirm": True})[
+        "system_id"
+    ]
+    assert rig.ctx.state.get("ai_system", {"system_id": sid})["owner_user"] == me
+    other = rig.ok(
+        cred, "register_system", {"draft": {**DRAFT, "name": "Left out"}, "confirm": True}
+    )
+    assert rig.ctx.state.get("ai_system", {"system_id": other["system_id"]})["owner_user"] == me
 
 
 def test_confirm_must_be_a_boolean(rig: Rig) -> None:

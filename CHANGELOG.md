@@ -29,10 +29,18 @@ written, the Governance overview is as before, the command line prints `[SKIP]`.
   `transparency-report`, `gov-report`.
 - `GET /v1/kpis` (coverage, quality, speed; integers and basis points; scoped like G0) and a KPI
   block on the Governance overview (EN and VI) that read the same function.
+- Review fixes: free text is masked in every tool result (empty with no masker);
+  `chain_verify` is a write (confirm, two audit rows, one call per minute per app);
+  `classification_draft` never replaces a draft that a person made or edited; a draft cannot carry
+  `autonomy_level`; refused tool names are matched by verb word with an allowlist of the existing
+  tools; KPI reads are bounded and cached for 30 s, the overview survives a KPI failure; every read
+  is audited; the person who issued an app cannot approve it and the command line checks the
+  admin role in the users file; an app owns the drafts it registers; the agent ingress refuses
+  ids that start with `mcp-`; `gate_state` no longer returns who approved a resume.
 - New permission `mcp.apps` (admin). Shared files touched: `schema/model.yaml` (table
   `mcp_app`), `config.py` (three settings), `core/rbac.py`, `adapters/auth/audit.py` (target kind
   `mcp_app`), `ops/openapi.py`, `console/i18n.py`, `gateway/mcp_proxy.py` (public alias
-  `error_response`).
+  `error_response`), `gateway/ingress_auth.py` (`refuse_prefixes`).
 
 ### WP-UX4b: governance pages on the AI system
 

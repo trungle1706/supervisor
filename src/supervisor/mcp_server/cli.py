@@ -167,6 +167,31 @@ def _store_secret(
         _say(f"     secret (shown once): {secret}")
 
 
+def _roles_in_users_file(settings: Any, user: str) -> set[str] | None:
+    """The roles of a person in the users file (None: not listed). The command line is the
+    laptop path; the people who may approve are the ones that file names."""
+    from supervisor.adapters.auth.dev_header import DevHeaderPrincipal
+
+    try:
+        users = DevHeaderPrincipal.from_file(Path(settings.users_file)).users
+    except Exception:  # noqa: BLE001 - a missing or bad file is a message
+        raise SupervisorError(
+            f"cannot read the users file {Path(settings.users_file).name}; "
+            "approve through POST /v1/mcp/apps/<id>/approve as an admin"
+        ) from None
+    found = users.get(user)
+    return set(found.roles) if found is not None else None
+
+
+def _require_admin(settings: Any, user: str, what: str) -> None:
+    roles = _roles_in_users_file(settings, user)
+    if roles is None or "admin" not in roles:
+        raise SupervisorError(f"{what}: {user} is not an admin in the users file")
+
+
+CLI_ROLES = ("viewer", "owner", "reviewer")  # what a non-admin may give an app
+
+
 def _app_cmd(args: argparse.Namespace, settings: Any) -> int:
     from supervisor.adapters.factory import build_adapters
     from supervisor.gateway.ingress_sign import new_secret
@@ -191,7 +216,11 @@ def _app_cmd(args: argparse.Namespace, settings: Any) -> int:
         if args.app_cmd == "issue":
             secret = new_secret()
             scopes = [x for x in args.scopes.split(",") if x]
-            roles = [x for x in (args.roles or "").split(",") if x]
+            roles = [x.strip().lower() for x in (args.roles or "").split(",") if x]
+            if set(roles) - set(CLI_ROLES):
+                _require_admin(
+                    settings, args.by, f"roles other than {', '.join(CLI_ROLES)} need an admin"
+                )
             row = svc.create(args.name, scopes, roles, args.by, secret)
             _store_secret(settings, row["app_id"], secret, False, args.out_key_file)
             _audit(adapters, args.by, "issue", row["app_id"])
@@ -203,6 +232,7 @@ def _app_cmd(args: argparse.Namespace, settings: Any) -> int:
             _store_secret(settings, args.app_id, secret, True, args.out_key_file)
             _audit(adapters, args.by, "rotate", args.app_id)
         elif args.app_cmd == "approve":
+            _require_admin(settings, args.by, "approve")
             svc.approve(args.app_id, args.by)
             _audit(adapters, args.by, "approve", args.app_id)
             _say(f"[OK] {args.app_id} is approved")

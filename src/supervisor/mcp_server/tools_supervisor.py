@@ -10,6 +10,7 @@ masked rationale. Nothing here pauses, blocks or releases an agent.
 from __future__ import annotations
 
 import datetime as dt
+import time
 from typing import Any
 
 from supervisor.core.errors import SupervisorError
@@ -53,7 +54,7 @@ def gate_state(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
     return {
         "agent_id": agent,
         "state": desc["state"],
-        "pending_resume": [pick(p, ("role", "principal", "ts")) for p in pending],
+        "pending_resume": [pick(p, ("role", "ts")) for p in pending],
     }
 
 
@@ -140,10 +141,37 @@ def findings(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
     return {"agent_id": agent, "count": len(out), "items": out}
 
 
+_LAST_VERIFY: dict[str, float] = {}
+VERIFY_EVERY_S = 60
+_now = time.monotonic
+
+
 def chain_verify(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
+    """A write in disguise: the check commits the chain root and records a ``chain_verify``
+    entry (as the console button does). So it takes ``confirm``, leaves two audit rows and is
+    limited to one call per minute for each app."""
     from supervisor.console import auditpack
 
     agent = visible_agent(call, a["agent_id"])
+    if not apply:
+        return {
+            "action": "chain_verify",
+            "agent_id": agent,
+            "lane": f"agent:{agent}",
+            "effect": "commits the chain root and records a chain_verify entry",
+            "limit": f"one call per {VERIFY_EVERY_S} s for each app",
+        }
+    app = str(call.app.get("app_id") or call.principal.user_id)
+    now = _now()
+    last = _LAST_VERIFY.get(app)
+    if last is not None and now - last < VERIFY_EVERY_S:
+        raise SupervisorError(
+            f"chain_verify: one call per {VERIFY_EVERY_S} s for each app; "
+            f"try again in {int(VERIFY_EVERY_S - (now - last)) + 1} s"
+        )
+    if len(_LAST_VERIFY) > 1000:
+        _LAST_VERIFY.clear()
+    _LAST_VERIFY[app] = now
     res = auditpack.verify_chain(call.ctx, f"agent:{agent}")
     return {
         "agent_id": agent,
@@ -202,9 +230,22 @@ def register(reg: Registry) -> None:
         props: dict[str, Any],
         required: list[str],
         permission: str | None = None,
+        write: bool = False,
     ) -> None:
         schema = {"properties": props, "required": required}
-        reg.register(Tool(name, text, "supervisor.read", schema, fn, permission=permission))
+        target = (lambda args: ("agent", args.get("agent_id"))) if write else None
+        reg.register(
+            Tool(
+                name,
+                text,
+                "supervisor.read",
+                schema,
+                fn,
+                write=write,
+                permission=permission,
+                target=target,
+            )
+        )
 
     tool(
         "gate_state",
@@ -232,11 +273,13 @@ def register(reg: Registry) -> None:
     tool(
         "chain_verify",
         "Verify the evidence lane of an agent offline and return the result (the same check as "
-        "the console).",
+        "the console). It records a chain_verify entry, so it needs confirm and is limited to "
+        "one call per minute for each app.",
         chain_verify,
         {"agent_id": AGENT},
         ["agent_id"],
         permission="chain.verify",
+        write=True,
     )
     tool(
         "pack_results",

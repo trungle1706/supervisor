@@ -25,6 +25,7 @@ from supervisor.adapters.auth.audit import (
     AuditUnavailable,
     audit_active,
     snapshot_hash,
+    write_action,
     write_attempt,
     write_outcome,
 )
@@ -76,6 +77,20 @@ class Caller:
     scopes: frozenset[str]
     request_id: str
     approved: bool
+
+
+def read_target(tool: Tool, args: dict[str, Any]) -> tuple[str | None, str | None]:
+    """The (kind, id) a read tool looked at, from its arguments."""
+    if tool.target:
+        return tool.target(args)
+    for key, kind in (("system_id", "system"), ("agent_id", "agent"), ("task_id", "task")):
+        if args.get(key):
+            return kind, str(args[key])[:128]
+    if tool.name == "get_entity":
+        return str(args.get("kind")), str(args.get("id"))[:128]
+    if tool.name == "list_entities":
+        return str(args.get("kind")), None
+    return None, None
 
 
 def _ok(id_: Any, result: dict[str, Any]) -> dict[str, Any]:
@@ -171,6 +186,8 @@ class McpServer:
                 result = tool.handler(caller, args, False)
                 if tool.write:
                     result = {"written": False, "confirm_required": True, "planned_change": result}
+                else:
+                    self._audit_read(tool, caller, args)
         except RpcError:
             raise
         except AuditUnavailable as exc:
@@ -200,13 +217,32 @@ class McpServer:
             "path": f"/mcp/tools/{tool.name}",
         }
 
+    def _audit_read(self, tool: Tool, caller: Caller, args: dict[str, Any]) -> None:
+        """One ``ok`` row for each read that was answered: the tool name (in the path) and the
+        id read (review M7). The read is already done, so a store failure is logged and the
+        answer still goes out; a write never works that way."""
+        if not audit_active(caller.ctx.settings):
+            return
+        kind, tid = read_target(tool, args)
+        common = self._common(tool, caller)
+        common["permission"] = "mcp.read"
+        try:
+            write_action(
+                caller.ctx.tables,
+                caller.ctx.clock,
+                outcome="ok",
+                target_kind=kind,
+                target_id=tid,
+                **common,
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.error("mcp read audit write failed: %s", type(exc).__name__)
+
     def _audit_denied(self, tool: Tool, caller: Caller, detail: str) -> None:
         """A refused write leaves one ``denied`` row (no side effect, so no ``attempted``)."""
         if not tool.write or not audit_active(caller.ctx.settings):
             return
         try:
-            from supervisor.adapters.auth.audit import write_action
-
             write_action(
                 caller.ctx.tables,
                 caller.ctx.clock,

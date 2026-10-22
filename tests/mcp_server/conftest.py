@@ -47,7 +47,7 @@ class Rig:
         approved: bool = True,
     ) -> Cred:
         secret = new_secret()
-        row = self.apps.create(name, scopes, roles, "admin.chi", secret)
+        row = self.apps.create(name, scopes, roles, "ops.lan", secret)
         data = self.keys.read_all()
         from datetime import UTC, datetime, timedelta
 
@@ -89,6 +89,19 @@ class Rig:
 
     def actions(self, **where: Any) -> list[dict[str, Any]]:
         return self.ctx.tables.query("console_action", where or None, order_by=("ts",))
+
+
+@pytest.fixture(autouse=True)
+def fresh_state() -> Iterator[None]:
+    """The KPI cache and the chain_verify limit are process state: start each test clean."""
+    from supervisor.governance import kpis
+    from supervisor.mcp_server import tools_supervisor
+
+    kpis.clear_cache()
+    tools_supervisor._LAST_VERIFY.clear()  # noqa: SLF001
+    yield
+    kpis.clear_cache()
+    tools_supervisor._LAST_VERIFY.clear()  # noqa: SLF001
 
 
 @pytest.fixture

@@ -5,7 +5,7 @@ late, what needs a decision. Use it for the monthly or quarterly report, or when
 are we doing".
 
 Tools used: `kpis`, `list_entities`, `get_entity`, `list_tasks`, `pack_results`, `decisions`,
-`findings`, `gate_state`, `chain_verify`, `regulations`.
+`findings`, `gate_state`, `regulations`.
 Scopes: `governance.read`, `supervisor.read`, `library.read`.
 
 ## Rules

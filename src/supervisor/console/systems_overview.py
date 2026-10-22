@@ -14,12 +14,15 @@ The breakdown by ``autonomy_level`` appears only when WP-G2 added the column."""
 from __future__ import annotations
 
 import datetime as dt
+import logging
 from typing import Any
 
 from supervisor.console import overview_v3, readmodels, systems_tabs
 from supervisor.console.overview_v3 import SCOPES, ScopeError, tile
 from supervisor.core import rbac
 from supervisor.governance import model as gm
+
+log = logging.getLogger("supervisor.console")
 
 
 def _on(value: Any) -> bool:
@@ -408,12 +411,17 @@ def governance_overview(
 
 
 def _kpi_block(ctx: Any, me: Any, now: dt.datetime) -> dict[str, Any]:
-    """WP-G6: the KPIs of ``GET /v1/kpis`` (one function), nothing when the flag is off."""
+    """WP-G6: the KPIs of ``GET /v1/kpis`` (one function), nothing when the flag is off. A
+    failure never breaks the page: the block shows every figure as not available."""
     if not getattr(ctx.settings, "mcp_server_enabled", False):
         return {}
     from supervisor.governance import kpis
 
-    return {"kpis": kpis.compute(ctx, me, now)}
+    try:
+        return {"kpis": kpis.compute(ctx, me, now)}
+    except Exception:  # noqa: BLE001 - the overview is a page, not a report
+        log.exception("governance overview: the KPIs could not be computed")
+        return {"kpis": kpis.empty("error")}
 
 
 def overdue_days(rows: list[dict[str, Any]], now: dt.datetime) -> int | None:

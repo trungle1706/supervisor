@@ -158,6 +158,8 @@ class McpAppService:
             raise NotFoundError(f"connected app {app_id} does not exist")
         if cur["status"] == "approved":
             raise McpAppError(f"{app_id} is already approved")
+        if by == cur["created_by"]:
+            raise McpAppError("the person who issued the app cannot approve it (two people)")
         return self._change(
             app_id, {"status": "approved", "approved_by": by, "approved_at": self.clock.now()}
         )

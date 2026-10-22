@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -85,3 +86,54 @@ def agents_of_system(call: Any, system_id: str) -> list[str]:
 def actor_of(call: Any) -> str:
     """The id written as the author of a change: ``mcp:<app id>``."""
     return str(call.principal.user_id)
+
+
+# ---------------------------------------------------------------------------- masking (review H1)
+
+_HEX_DIGEST = re.compile(r"^[0-9a-f]{32,}$")
+
+
+def masker_of(call: Any) -> Any:
+    """The repo masker of the process (``MASKER_KIND``); None when it is ``none``. Kept on the
+    context so it is built once."""
+    ctx = call.ctx
+    if not hasattr(ctx, "_mcp_masker"):
+        from supervisor.adapters.factory import make_masker
+
+        ctx._mcp_masker = make_masker(ctx.settings)  # noqa: SLF001
+    return ctx._mcp_masker  # noqa: SLF001
+
+
+def mask_text(call: Any, value: Any) -> Any:
+    """Free text through the masker, as the classification prefill does. With no masker the
+    text is not sent at all: the field comes back empty. A non-text value is left as it is."""
+    if not isinstance(value, str) or not value:
+        return value
+    masker = masker_of(call)
+    return "" if masker is None else str(masker.mask(value))
+
+
+def mask_deep(call: Any, value: Any) -> Any:
+    """Every string inside a nested value, except a hex digest (a hash is not text)."""
+    if isinstance(value, str):
+        return value if _HEX_DIGEST.match(value) else mask_text(call, value)
+    if isinstance(value, Mapping):
+        return {k: mask_deep(call, v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [mask_deep(call, v) for v in value]
+    return value
+
+
+def mask_row(
+    call: Any, row: Mapping[str, Any], text_keys: Iterable[str], deep_keys: Iterable[str] = ()
+) -> dict[str, Any]:
+    """A copy of ``row`` with the free-text fields masked. ``text_keys`` hold text;
+    ``deep_keys`` hold a structure (tags, reports) whose strings are all text."""
+    out = dict(row)
+    for k in text_keys:
+        if k in out:
+            out[k] = mask_text(call, out[k])
+    for k in deep_keys:
+        if k in out:
+            out[k] = mask_deep(call, out[k])
+    return out

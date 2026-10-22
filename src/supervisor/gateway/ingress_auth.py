@@ -234,7 +234,11 @@ class IngressVerifier:
         known_agent: Callable[[str], bool] | None = None,
         registry_before_keys: bool = False,
         nonce_cap_per_agent: int = 0,
+        refuse_prefixes: tuple[str, ...] = (),
     ) -> None:
+        # WP-G6: ids that belong to another credential family (connected apps of the MCP
+        # server, "mcp-"). The agent ingress refuses them, so an app key never signs a gate call.
+        self.refuse_prefixes = refuse_prefixes
         self.kind = kind  # hmac | databricks_sp | databricks_proxy | both | all
         self.kinds = kinds if kinds is not None else KIND_SETS[kind]
         self.keys = keys
@@ -314,6 +318,8 @@ class IngressVerifier:
                 raise IngressRejected("malformed_credential")
             if abs(self.clock() - int(ts)) > self.window_s:
                 raise IngressRejected("stale_timestamp")
+            if self.refuse_prefixes and agent.startswith(self.refuse_prefixes):
+                raise IngressRejected("unknown_agent")
             if self.registry_before_keys and not self._registered(agent):
                 raise IngressRejected("unknown_agent")
         else:
@@ -656,6 +662,7 @@ def build_verifier(settings: Settings) -> IngressVerifier:
         known_agent=_registry_check() if use_registry else None,
         registry_before_keys=use_registry,
         nonce_cap_per_agent=settings.ingress_nonce_cap_per_agent,
+        refuse_prefixes=("mcp-",),
     )
 
 

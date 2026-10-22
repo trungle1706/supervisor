@@ -138,13 +138,13 @@ def test_rotate_keeps_the_old_key_for_the_overlap_and_changes_the_hash(
                 "--by",
                 "o",
             ),
-            "never holds the admin role",
+            "need an admin",
         ),
         (
             ("app", "issue", "Good name", "--scopes", "library.read", "--by", "bad user"),
             "created_by",
         ),
-        (("app", "approve", "mcp-ghost", "--by", "ops"), "does not exist"),
+        (("app", "approve", "mcp-ghost", "--by", "admin.chi"), "does not exist"),
         (("app", "block", "not-an-app", "--by", "ops"), "does not exist"),
     ],
 )
@@ -194,3 +194,83 @@ def test_serve_builds_a_small_app_with_only_the_mcp_route(
     assert seen["host"] == "127.0.0.1" and seen["port"] == 9123 and seen["workers"] == 1
     rc, out = run(capsys, "serve", "--host", "0.0.0.0")  # noqa: S104
     assert rc == 0 and "[WARN]" in out and "TLS" in out
+
+
+# ------------------------------------------------------------------------ review M8
+
+
+def test_only_an_admin_of_the_users_file_approves_and_not_the_issuer(
+    env: dict[str, Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert (
+        run(capsys, "app", "issue", "Job", "--scopes", "library.read", "--by", "reviewer.an")[0]
+        == 0
+    )
+    for who, text in (
+        ("reviewer.an", "is not an admin in the users file"),
+        ("nobody.xyz", "is not an admin in the users file"),
+        ("viewer.hoa", "is not an admin in the users file"),
+    ):
+        rc, out = run(capsys, "app", "approve", "mcp-job", "--by", who)
+        assert rc == 1 and text in out, (who, out)
+    assert table_rows(env, "mcp_app")[0]["status"] == "pending"
+    # an admin who issued the app cannot approve it either
+    assert (
+        run(capsys, "app", "issue", "Own job", "--scopes", "library.read", "--by", "admin.chi")[0]
+        == 0
+    )
+    rc, out = run(capsys, "app", "approve", "mcp-own-job", "--by", "admin.chi")
+    assert rc == 1 and "cannot approve" in out
+    rc, out = run(capsys, "app", "approve", "mcp-job", "--by", "admin.chi")
+    assert rc == 0 and "approved" in out
+
+
+def test_roles_beyond_viewer_owner_reviewer_need_an_admin_issuer(
+    env: dict[str, Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    base = ("app", "issue")
+    for role in ("viewer", "owner", "reviewer", "viewer,reviewer"):
+        name = f"App {role.replace(',', ' ')}"
+        rc, out = run(
+            capsys, *base, name, "--scopes", "library.read", "--roles", role, "--by", "ops.lan"
+        )
+        assert rc == 0, out
+    for role in ("auditor", "approver", "operator", "reviewer,auditor"):
+        rc, out = run(
+            capsys,
+            *base,
+            "Strong app",
+            "--scopes",
+            "library.read",
+            "--roles",
+            role,
+            "--by",
+            "ops.lan",
+        )
+        assert rc == 1 and "need an admin" in out, out
+    names = {r["app_id"] for r in table_rows(env, "mcp_app")}
+    assert "mcp-strong-app" not in names
+    rc, out = run(
+        capsys,
+        *base,
+        "Strong app",
+        "--scopes",
+        "library.read",
+        "--roles",
+        "auditor",
+        "--by",
+        "admin.chi",
+    )
+    assert rc == 0, out
+    rc, out = run(
+        capsys,
+        *base,
+        "Admin app",
+        "--scopes",
+        "library.read",
+        "--roles",
+        "admin",
+        "--by",
+        "admin.chi",
+    )
+    assert rc == 1 and "never holds the admin role" in out

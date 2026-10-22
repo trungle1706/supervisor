@@ -21,9 +21,12 @@ Pure Python over the ``ctx`` services; no SQL and no web imports here.
 
 from __future__ import annotations
 
+import copy
 import datetime as dt
 import json
 import logging
+import threading
+import time
 from collections.abc import Iterable
 from typing import Any
 
@@ -32,6 +35,9 @@ from supervisor.governance.systems import ALL
 
 log = logging.getLogger("supervisor.kpis")
 STATUS_CAP = 20000
+READ_CAP = 20000
+CACHE_TTL_S = 30
+CACHE_MAX = 256
 RUN_CAP = 5000
 ACTION_OK = ("done",)
 ACTION_BAD = ("failed", "failed_final")
@@ -79,8 +85,108 @@ def _latest_control_status(
     return out, len(rows) >= STATUS_CAP
 
 
-def compute(ctx: Any, me: Any, now: dt.datetime | None = None) -> dict[str, Any]:
-    """The KPI document for the systems ``me`` may see."""
+def _bounded(
+    state: Any, table: str, unavailable: dict[str, str], order_by: tuple[str, ...] = ()
+) -> list[Any]:
+    """At most READ_CAP rows of a state table; a table that hits the cap says so (review M5)."""
+    rows = state.query(table, None, order_by=order_by, limit=READ_CAP)
+    if len(rows) >= READ_CAP:
+        unavailable[f"{table}_capped"] = "capped"
+    return list(rows)
+
+
+def empty(reason: str = "error") -> dict[str, Any]:
+    """A document of the same shape with nothing computed: every rate is None and says why."""
+    rates = (
+        "classification_rate_bp",
+        "policy_coverage_bp",
+        "risk_treatment_coverage_bp",
+        "acceptable_residual_bp",
+        "control_readiness_bp",
+        "implementation_per_policy_bp",
+        "inheritance_rate_bp",
+        "action_success_bp",
+    )
+    return {
+        "generated_at": None,
+        "coverage": {
+            "assets_by_kind": {},
+            "systems_total": 0,
+            "systems_by_risk": {},
+            "systems_by_stage": {},
+            "classification_rate_bp": None,
+            "policy_coverage_bp": None,
+        },
+        "quality": {
+            "risk_treatment_coverage_bp": None,
+            "acceptable_residual_bp": None,
+            "control_readiness_bp": None,
+            "control_readiness_n": 0,
+            "control_readiness_of": 0,
+            "implementation_per_policy_bp": None,
+            "implementation_by_system": [],
+        },
+        "speed": {
+            "avg_days_per_stage": {},
+            "overdue_tasks": None,
+            "inheritance_rate_bp": None,
+            "automation": {
+                "rule_runs": 0,
+                "rule_runs_capped": False,
+                "events": 0,
+                "events_done": 0,
+                "actions_ok": 0,
+                "actions_failed": 0,
+                "action_success_bp": None,
+            },
+        },
+        "unavailable": {**dict.fromkeys(rates, reason), "overdue_tasks": reason},
+    }
+
+
+_cache_lock = threading.Lock()
+_cache: dict[Any, tuple[float, dict[str, Any]]] = {}
+_clock = time.monotonic
+
+
+def clear_cache() -> None:
+    with _cache_lock:
+        _cache.clear()
+
+
+def compute(
+    ctx: Any, me: Any, now: dt.datetime | None = None, *, cache: bool = True
+) -> dict[str, Any]:
+    """The KPI document for the systems ``me`` may see. The answer is kept for CACHE_TTL_S
+    seconds for the same person, scope and settings (a KPI page must not rescan the store at
+    each load); the caller gets a copy."""
+    if not cache:
+        return _compute(ctx, me, now)
+    scope = ctx.systems.scope_for(me)
+    s = ctx.settings
+    key = (
+        id(ctx.state),
+        str(me.user_id),
+        tuple(sorted(getattr(me, "roles", ()) or ())),
+        "ALL" if scope is ALL else tuple(sorted(scope)),
+        bool(s.risk_register_enabled),
+        bool(s.controls_enabled),
+        bool(s.governance_enabled),
+    )
+    t = _clock()
+    with _cache_lock:
+        hit = _cache.get(key)
+        if hit is not None and t - hit[0] < CACHE_TTL_S:
+            return copy.deepcopy(hit[1])
+    doc = _compute(ctx, me, now)
+    with _cache_lock:
+        if len(_cache) >= CACHE_MAX:
+            _cache.clear()
+        _cache[key] = (t, doc)
+    return copy.deepcopy(doc)
+
+
+def _compute(ctx: Any, me: Any, now: dt.datetime | None = None) -> dict[str, Any]:
     s = ctx.settings
     now = now or ctx.clock.now()
     svc = ctx.systems
@@ -90,7 +196,7 @@ def compute(ctx: Any, me: Any, now: dt.datetime | None = None) -> dict[str, Any]
     unavailable: dict[str, str] = {}
 
     comps: dict[str, list[dict[str, Any]]] = {}
-    for c in ctx.state.query("system_component"):
+    for c in _bounded(ctx.state, "system_component", unavailable):
         if _on(c["active"]) and str(c["system_id"]) in sids:
             comps.setdefault(str(c["system_id"]), []).append(dict(c))
     sys_agents = {
@@ -104,7 +210,7 @@ def compute(ctx: Any, me: Any, now: dt.datetime | None = None) -> dict[str, Any]
     # ------------------------------------------------------------------ coverage
     assets: dict[str, int] = {"agent": len(visible_agents)}
     node_ids = {str(c["ref_id"]) for cs in comps.values() for c in cs if c["ref_kind"] == "node"}
-    for n in ctx.state.query("inventory_node"):
+    for n in _bounded(ctx.state, "inventory_node", unavailable):
         if scope is ALL or str(n["node_id"]) in node_ids:
             if n["status"] != "gone":
                 assets[str(n["kind"])] = assets.get(str(n["kind"]), 0) + 1
@@ -188,10 +294,10 @@ def compute(ctx: Any, me: Any, now: dt.datetime | None = None) -> dict[str, Any]
         )
     inherited = sum(1 for r in rows if r.get("effective_risk_source") == "inherited")
     speed = {
-        "avg_days_per_stage": _days_per_stage(ctx, sids),
+        "avg_days_per_stage": _days_per_stage(ctx, sids, unavailable),
         "overdue_tasks": overdue,
         "inheritance_rate_bp": bp(inherited, len(rows)),
-        "automation": _automation(ctx, sids),
+        "automation": _automation(ctx, sids, unavailable),
     }
     return {
         "generated_at": now.isoformat() if isinstance(now, dt.datetime) else str(now),
@@ -232,11 +338,11 @@ def _implementation(
     return out, bp(met_all, of_all)
 
 
-def _days_per_stage(ctx: Any, sids: set[str]) -> dict[str, int]:
+def _days_per_stage(ctx: Any, sids: set[str], unavailable: dict[str, str]) -> dict[str, int]:
     """Whole days from the request of a stage approval to the move that used it, averaged by the
     stage left. Only applied approvals count; a stage with none is left out."""
     total: dict[str, list[int]] = {}
-    for a in ctx.state.query("stage_approval"):
+    for a in _bounded(ctx.state, "stage_approval", unavailable, ("-created_at",)):
         if str(a["system_id"]) not in sids:
             continue
         start, end = _ts(a["created_at"]), _ts(a.get("applied_at"))
@@ -246,16 +352,22 @@ def _days_per_stage(ctx: Any, sids: set[str]) -> dict[str, int]:
     return {k: sum(v) // len(v) for k, v in sorted(total.items())}
 
 
-def _automation(ctx: Any, sids: set[str]) -> dict[str, int | None]:
+def _automation(ctx: Any, sids: set[str], unavailable: dict[str, str]) -> dict[str, Any]:
     """Rule runs (chain records ``rule_run``) and governance events with their actions."""
     runs = 0
-    for e in ctx.tables.query("chain_entry", {"record_type": "rule_run"}, limit=RUN_CAP):
+    entries = ctx.tables.query(
+        "chain_entry", {"record_type": "rule_run"}, order_by=("-ts",), limit=RUN_CAP
+    )
+    capped = len(entries) >= RUN_CAP  # the newest RUN_CAP runs; older ones are not counted
+    if capped:
+        unavailable["rule_runs"] = "capped"
+    for e in entries:
         ref = str(e["record_ref"])
         if ref.startswith("system:") and ref[7:] in sids:
             runs += 1
     events = done = ok = bad = 0
-    for ev in ctx.state.query("governance_event"):
-        if ev.get("system_id") and str(ev["system_id"]) not in sids:
+    for ev in _bounded(ctx.state, "governance_event", unavailable, ("-started_at",)):
+        if str(ev.get("system_id") or "") not in sids:  # an event of no system is no one's figure
             continue
         events += 1
         done += 1 if ev["status"] == "done" else 0
@@ -270,6 +382,7 @@ def _automation(ctx: Any, sids: set[str]) -> dict[str, int | None]:
             bad += 1 if st in ACTION_BAD else 0
     return {
         "rule_runs": runs,
+        "rule_runs_capped": capped,
         "events": events,
         "events_done": done,
         "actions_ok": ok,

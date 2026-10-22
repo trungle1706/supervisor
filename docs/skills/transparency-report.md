@@ -4,7 +4,7 @@ Read the transparency report of an AI system and explain it to the right reader:
 customer or the bank itself. Use it when a person asks for the report, for what to tell a
 customer, or whether the report is current.
 
-Tools used: `transparency_report`, `get_entity`, `list_tasks`, `chain_verify`, `obligations`,
+Tools used: `transparency_report`, `get_entity`, `list_tasks`, `obligations`,
 `regulations`.
 Scopes: `governance.read`, `library.read`, `supervisor.read`.
 
@@ -27,8 +27,9 @@ The server decides. Confirm before you write. Never classify by yourself.
    `info.status` (`signed` or `preview`), `info.version` and the report sections.
 3. If the status is `preview`, or the report is old, say what is missing and who signs it
    (a reviewer, on the Transparency page).
-4. For the evidence behind a signed report call `chain_verify` for the agent and tell the person
-   the result in one line: ok or the number of failures.
+4. For the evidence behind a signed report, tell the person to run the chain check on the
+   Evidence page. This skill does not call `chain_verify`: that tool records a chain entry, so it
+   is a write that needs the person's yes.
 5. For the duties behind a section use `obligations` with the duty words and name the obligation
    id. Not legal advice. Bank counsel must confirm.
 6. Offer **one** next step, for example `list_tasks` for the open tasks that block a signature.

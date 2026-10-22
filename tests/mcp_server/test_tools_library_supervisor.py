@@ -6,6 +6,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+import pytest
+
 from .conftest import Rig
 
 # ------------------------------------------------------------------------ library
@@ -130,7 +132,6 @@ def test_an_app_sees_an_agent_only_when_a_person_with_its_roles_would(rig: Rig) 
 def _draft() -> dict[str, Any]:
     return {
         "name": "Pay assist",
-        "owner_user": "reviewer.an",
         "owner_team": "Payments Ops",
         "purpose": "x",
         "system_type": "assistant",
@@ -209,14 +210,45 @@ def test_findings_are_the_masked_rows(rig: Rig) -> None:
     assert isinstance(f["score_bp"], int)
 
 
+def test_chain_verify_is_a_write_with_confirm_audit_and_a_limit(
+    rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review M1: the check commits the chain root and records an entry, so it is a write."""
+    from supervisor.mcp_server import tools_supervisor as ts
+
+    cred = rig.new_app()
+    listed = {t["name"]: t for t in rig.rpc(cred, "tools/list").json()["result"]["tools"]}
+    assert listed["chain_verify"]["annotations"]["readOnlyHint"] is False
+    assert "confirm" in listed["chain_verify"]["inputSchema"]["properties"]
+    before = len(rig.ctx.tables.query("chain_entry"))
+    plan = rig.ok(cred, "chain_verify", {"agent_id": "payments"})
+    assert plan["written"] is False and "records a chain_verify entry" in str(plan)
+    assert len(rig.ctx.tables.query("chain_entry")) == before  # nothing recorded
+    assert not [r for r in rig.actions() if r["path"] == "/mcp/tools/chain_verify"]
+    clock = [1000.0]
+    monkeypatch.setattr(ts, "_now", lambda: clock[0])
+    out = rig.ok(cred, "chain_verify", {"agent_id": "payments", "confirm": True})
+    assert out["ok"] is True
+    rows = [r for r in rig.actions() if r["path"] == "/mcp/tools/chain_verify"]
+    assert [r["outcome"] for r in rows] == ["attempted", "ok"]
+    assert rows[1]["target_kind"] == "agent" and rows[1]["target_id"] == "payments"
+    err = rig.err(cred, "chain_verify", {"agent_id": "payments", "confirm": True})
+    assert err["code"] == -32602 and "one call per 60 s" in err["message"]
+    other = rig.new_app("other app")  # the limit is for each app
+    assert rig.ok(other, "chain_verify", {"agent_id": "payments", "confirm": True})["ok"] is True
+    clock[0] += 61
+    assert rig.ok(cred, "chain_verify", {"agent_id": "payments", "confirm": True})["ok"] is True
+
+
 def test_chain_verify_needs_the_role_and_gives_no_server_path(rig: Rig) -> None:
     cred = rig.new_app()
-    out = rig.ok(cred, "chain_verify", {"agent_id": "payments"})
+    out = rig.ok(cred, "chain_verify", {"agent_id": "payments", "confirm": True})
     assert out["ok"] is True and out["failures"] == 0 and out["lane"] == "agent:payments"
     assert out["last_lines"] and all(line.startswith("[") for line in out["last_lines"])
     assert "/tmp" not in str(out) and "export" not in out["last_lines"][0].lower()[:12]
     viewer = rig.new_app("viewer app", scopes=("supervisor.read",), roles=("viewer",))
-    assert rig.err(viewer, "chain_verify", {"agent_id": "payments"})["code"] == -32003
+    err = rig.err(viewer, "chain_verify", {"agent_id": "payments", "confirm": True})
+    assert err["code"] == -32003
 
 
 def test_pack_results_label_mock_runs(rig: Rig) -> None:

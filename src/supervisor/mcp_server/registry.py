@@ -76,6 +76,8 @@ REFUSAL_TEXT = (
     "refused: {name} would classify, approve, accept a risk, change a risk level, close an "
     "incident or turn a guardian off. A person does that in the console (/console/systems)."
 )
+# chain_verify reads the supervisor lane but records a chain entry, so it is a write (review M1).
+WRITE_EXCEPTIONS: frozenset[str] = frozenset({"chain_verify"})
 NAME_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}\Z")
 
 
@@ -107,13 +109,92 @@ def _refused_words(w: set[str]) -> bool:
     )
 
 
+# A name with one of these words is refused, whatever the other words are (review M4): each
+# verb is a decision that belongs to a person, or a change of state the server does not offer.
+REFUSED_VERBS: frozenset[str] = frozenset(
+    {
+        "accept",
+        "approve",
+        "approver",
+        "apply",
+        "lower",
+        "downgrade",
+        "close",
+        "resolve",
+        "pause",
+        "resume",
+        "halt",
+        "suspend",
+        "quarantine",
+        "release",
+        "retire",
+        "disable",
+        "off",
+        "waive",
+        "certify",
+        "authorize",
+        "authorise",
+        "promote",
+        "advance",
+        "activate",
+        "decide",
+        "set",
+        "classify",
+        "signoff",
+    }
+)
+# The tools that exist. A name here skips the verb check (the other checks still run); a new
+# tool whose name has a verb above must be added here on purpose, in a reviewed change.
+ALLOWED_NAMES: frozenset[str] = frozenset(
+    {
+        "list_entities",
+        "get_entity",
+        "list_tasks",
+        "transparency_report",
+        "kpis",
+        "register_system",
+        "link_component",
+        "propose_risk",
+        "complete_task",
+        "classification_draft",
+        "regulations",
+        "obligations",
+        "starter_risks",
+        "starter_controls",
+        "guardian_catalog",
+        "assignment_rules",
+        "gate_state",
+        "decisions",
+        "findings",
+        "chain_verify",
+        "pack_results",
+    }
+)
+
+
+def _refused_words(w: set[str]) -> bool:
+    """The name read word by word, so that "risk_accept" and "classification_apply" are caught
+    as well as "accept_risk"."""
+    return bool(
+        w & REFUSED_VERBS
+        or {"sign", "off"} <= w
+        or {"turn", "off"} <= w
+        or (w & {"apply", "accept"} and w & {"classification", "classify", "risk"})
+        or ("level" in w and "risk" in w)
+        or (w & {"close", "closure", "resolve", "transition"} and "incident" in w)
+        or ("guardian" in w and w & {"off", "disable", "remove", "stop", "bypass"})
+        or (w & {"pause", "resume", "quarantine", "release"} and "agent" in w)
+    )
+
+
 def refusal_for(name: str) -> str | None:
     key = name.lower().replace("-", "_")
-    if (
-        key in REFUSED_NAMES
-        or any(part in key for part in REFUSED_PARTS)
-        or _refused_words(set(key.split("_")))
-    ):
+    if key in REFUSED_NAMES or any(part in key for part in REFUSED_PARTS):
+        return REFUSAL_TEXT.format(name=name)
+    words = set(key.split("_"))
+    if key in ALLOWED_NAMES:
+        words = {w for w in words if w not in REFUSED_VERBS}
+    if _refused_words(words):
         return REFUSAL_TEXT.format(name=name)
     return None
 
@@ -167,7 +248,7 @@ class Registry:
             raise ValueError(f"bad tool name {tool.name!r}")
         if tool.scope not in SCOPES:
             raise ValueError(f"tool {tool.name}: unknown scope {tool.scope!r}")
-        if tool.write and tool.scope != "governance.write":
+        if tool.write and tool.scope != "governance.write" and tool.name not in WRITE_EXCEPTIONS:
             raise ValueError(f"tool {tool.name}: a write tool has the scope governance.write")
         if tool.name in self._tools:
             raise ValueError(f"tool {tool.name} is registered twice")

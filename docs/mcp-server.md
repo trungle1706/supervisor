@@ -61,7 +61,13 @@ python -m supervisor.mcp_server app rotate mcp-nightly-register-job --by ops.lan
 
 * `issue` makes the row (`pending`), stores the key in the file key store (or prints what to set
   for the `env` and `secret_scope` stores), and shows the secret once. With `--out-key-file` it
-  writes the secret to that file (mode 600) and prints nothing secret.
+  writes the secret to that file (mode 600) and prints nothing secret. `--roles` may name
+  `viewer`, `owner` and `reviewer`; any other role needs `--by` to be an admin of the users file.
+* **Two people.** The person who issued an app cannot approve it. At the command line
+  `approve --by` must also be an id with the role `admin` in the users file (`USERS_FILE`);
+  on the route the permission `mcp.apps` is admin only.
+* An app key is a WP20 key with an id that starts with `mcp-`. The agent ingress (`/gate/check`,
+  `/v1/traces`) refuses every id with that prefix, so an app key never signs a gate call.
 * `approve` and `block` are also routes for a signed-in **admin**: `POST /v1/mcp/apps/{id}/approve`
   and `/block` (permission `mcp.apps`). A service principal cannot approve. `GET /v1/mcp/apps`
   lists the apps without the key hash.
@@ -122,13 +128,13 @@ An error is a JSON-RPC error with HTTP 200 (`-32602` invalid input or a refused 
 | `list_entities(kind, filters, limit)` | no | none beyond scope | `kind`: `system`, `risk`, `control`, `incident`, `review`. For systems the filters of `GET /v1/systems`. Risks and incidents are limited to the agents in scope. |
 | `get_entity(kind, id)` | no | none beyond scope | One entity; for `review` the id is the review id. An id outside the scope is `-32004`, like a missing one. |
 | `list_tasks(system_id)` | no | none beyond scope | Lifecycle tasks of the system and of its linked agents. |
-| `transparency_report(system_id, variant)` | no | none beyond scope | Latest signed report or a preview for each linked agent. |
+| `transparency_report(system_id, variant)` | no | none beyond scope | Latest signed report or a preview for each linked agent. Text in the report goes through the masker. |
 | `kpis()` | no | none beyond scope | The KPI document of section 5. |
-| `register_system(draft)` | draft | `systems.edit` | Registers a system: status `draft`, stage `initiation`, class `unclassified`. Same validation and scoping as `POST /v1/systems`. The draft cannot carry `decision33_class`, `risk_level`, `risk_level_source`, `risk_justification`, `business_impact`, `status` or `lifecycle_stage`. `owner_user` is required. A scoped role must name itself as owner (as the API). |
+| `register_system(draft)` | draft | `systems.edit` | Registers a system: status `draft`, stage `initiation`, class `unclassified`. Same validation and scoping as `POST /v1/systems`. The draft cannot carry `decision33_class`, `risk_level`, `risk_level_source`, `risk_justification`, `business_impact`, `autonomy_level`, `status` or `lifecycle_stage`. The app is the owner of its draft: `owner_user` is left out or is `mcp:<app id>`, for every app (a person takes the ownership over in the console). |
 | `link_component(system_id, ref_kind, ref_id, role)` | yes | `systems.edit` | Links an agent or an inventory node. A repeat is a no-op. |
 | `propose_risk(system_id, agent_id, ...)` | draft | `risks.edit` | Creates a risk row with status `draft`, never `active`. The agent must be linked to the system. `treatment: accept` is not in the schema and the service refuses it. |
 | `complete_task(task_id, evidence_ref)` | yes | `tasks.edit` | Marks a task done. Only a task of a system in scope whose `owner_role` is a role of the app; a lifecycle move and an approver task are refused. The task service applies its own rules (evidence for control and pack tasks). |
-| `classification_draft(system_id)` | draft | `systems.edit` | Makes the Decision 33 draft from the rules. It never changes the class of the system. |
+| `classification_draft(system_id)` | draft | `systems.edit` | Makes the Decision 33 draft from the rules. It never changes the class of the system. Making a draft again resets its answers, so the tool refuses when an open draft was made by a person, or has an answer that a person set: it returns that draft (`refused: true`, `written: false`) and changes nothing. |
 
 ### 4.2 Library (`library.read`)
 
@@ -140,10 +146,10 @@ Regulation answers repeat "Not legal advice. Bank counsel must confirm."
 
 | Tool | What it does |
 |---|---|
-| `gate_state(agent_id)` | State (`RUNNING`, `SHADOW`, `PAUSED`, `QUARANTINED`) and the approvals of a pending resume. |
+| `gate_state(agent_id)` | State (`RUNNING`, `SHADOW`, `PAUSED`, `QUARANTINED`) and the role and time of each approval of a pending resume (not who gave it). |
 | `decisions(agent_id, since, limit)` | Newest gate decisions: tool, outcome, rule id, masked rationale. The masked arguments and results of the call are left out. |
 | `findings(agent_id, since, limit)` | Detector findings, masked entities and fragments, scores in basis points. |
-| `chain_verify(agent_id)` | Verifies the evidence lane offline (the check of the console; it records a `chain_verify` entry like the console). Needs the console permission `chain.verify`. |
+| `chain_verify(agent_id)` | **A write.** Verifies the evidence lane offline (the check of the console). It commits the chain root and records a `chain_verify` entry, so it takes `confirm`, leaves two audit rows, is announced with `readOnlyHint: false`, and one app may call it once per 60 s. Scope `supervisor.read`; needs the console permission `chain.verify`. |
 | `pack_results(agent_id, limit)` | Newest assurance pack result per pack; mock runs are labelled. |
 
 The app sees an agent only when a person with its roles would see it in the console
@@ -156,10 +162,14 @@ The app sees an agent only when a person with its roles would see it in the cons
   nothing, not even an audit row. `confirm` must be `true` or `false`.
 * **Draft only.** Systems are drafts in initiation, unclassified. Risks are drafts. Classification
   is a draft. Nothing a tool writes is active, applied or approved.
-* **No decision tool.** The registry refuses, at registration, any tool whose name says it would
-  classify, apply a classification, approve, accept a risk, change a risk level, close or resolve
-  an incident, turn a guardian off, or pause, resume or quarantine an agent. The message points at
-  the console. `tests/mcp_server/test_refused.py` enumerates the tools that exist.
+* **No decision tool.** The registry refuses, at registration, any name that has one of these
+  words: accept, approve, apply, lower, downgrade, close, resolve, pause, resume, halt, suspend,
+  quarantine, release, retire, disable, off, waive, certify, authorize, promote, advance,
+  activate, decide, set, classify, signoff; and the phrases for a risk level, an incident close,
+  a guardian off. The 21 tools that exist are named in `ALLOWED_NAMES` (a new tool with such a word
+  needs a reviewed change). The message points at the console.
+  `tests/mcp_server/test_refused.py` enumerates the tools and runs a list of more than 130 probe
+  names.
 * **Same rules as people.** A write needs the scope in the app row **and** the console
   permission that a person would need, given the roles of the app. Segregation of duties,
   validation, scoping and chain records are those of the services.
@@ -169,7 +179,16 @@ The app sees an agent only when a person with its roles would see it in the cons
   roles of the app, method `MCP`, path `/mcp/tools/<tool>`. A refused write (scope or role) leaves
   one `denied` row. The chain records of the services (`system_change`, `risk_change`,
   `task_change`, ...) carry a keyed hash of the actor as for a person.
-* **Results.** No name of a person, no key, no secret; masked text only. A test sweeps every tool.
+* **Reads are audited.** Every answered read leaves one `ok` row (permission `mcp.read`, path
+  `/mcp/tools/<tool>`, the id read as target). If the row cannot be written the answer still goes
+  out and the failure is logged (a write never works that way).
+* **Results.** Ids and enums as stored. Every free-text field passes through the repo masker
+  (`MASKER_KIND`) before it leaves: system name, purpose, owner team, justification, tags and link
+  evidence; risk title, description, notes and owner; task, control, review and incident
+  titles and text; the text of a transparency report; the plan echoed by a write tool. With
+  `MASKER_KIND=none` those fields come back empty. A hash is not text and is left as it is.
+  A test seeds a name, an e-mail, a CCCD and a phone number into each field and checks that no
+  tool returns them.
 
 ## 5. KPIs
 
@@ -193,7 +212,15 @@ a rate is basis points; a figure that cannot be computed is `null` and `unavaila
 | | `inheritance_rate_bp` | Systems whose effective risk level comes from a linked part |
 | | `automation` | `rule_runs` (chain records), `events`, `events_done`, `actions_ok`, `actions_failed`, `action_success_bp` (governance events) |
 
-`generated_at` is the time of the call. The plan names `rule_run` and `governance_action`
+`generated_at` is the time of the call. `compute` keeps its answer for 30 s for the same person,
+scope and settings (the caller gets a copy), so a KPI page does not rescan the store at each load.
+Reads are bounded: rule runs count the newest 5000 chain entries and report `rule_runs_capped`
+and `unavailable["rule_runs"] = "capped"` when the cap is hit; `governance_event`, `stage_approval`,
+`system_component` and `inventory_node` read at most 20000 rows each and add
+`unavailable["<table>_capped"]`. A governance event counts only for a system in scope (an event
+of no system counts for nobody). If the function fails, the Governance overview shows the KPI
+block with every figure "not available" (reason `error`) and logs the failure; the page never
+answers with an error. The plan names `rule_run` and `governance_action`
 records: there is no table of rule runs, so the figures come from the chain entries `rule_run` and
 the `actions` of `governance_event`.
 
@@ -234,14 +261,16 @@ skill names a refused tool.
   apply to `mcp.auth` rows (open question for the bank).
 * **Approval.** An admin approves in the API or at the command line. A console page for apps is
   not built; the text of such a page would need EN and VI.
-* **`chain_verify`** writes a `chain_verify` entry and a scratch export, like the console button.
+* **`chain_verify`** is a write (section 4.3); it also writes a scratch export, like the console button.
 * **Task ownership.** A task has an `owner_role`, not an owner person; "owned by the app" means
   the role is one of the app's roles.
-* **Free text.** `register_system` and `propose_risk` store text that the client wrote (purpose,
-  title). The masker does not run on it; the client must not put personal data in it.
+* **Free text in.** `register_system` and `propose_risk` store the text that the client wrote
+  (purpose, title) as it is; only the text that leaves is masked. The client must not put
+  personal data in it.
 
 ## 9. Tests
 
 `tests/mcp_server/`: `test_off_path.py` (first), `test_auth.py`, `test_protocol.py`,
 `test_refused.py`, `test_tools_governance.py`, `test_tools_library_supervisor.py`,
-`test_pii_and_scope.py`, `test_kpis.py`, `test_cli.py`, `test_skills.py`, `test_rbac.py`.
+`test_pii_and_scope.py`, `test_kpis.py`, `test_cli.py`, `test_skills.py`, `test_rbac.py`, `test_review_fixes.py` (masking sweep,
+`chain_verify`, KPI bounds and cache, read audit, CLI rules).

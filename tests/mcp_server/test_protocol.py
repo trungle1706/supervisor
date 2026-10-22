@@ -195,7 +195,6 @@ def test_an_audit_store_that_fails_stops_the_write(
     monkeypatch.setattr(rig.ctx.tables, "append", failing)
     draft = {
         "name": "Pay assist",
-        "owner_user": "reviewer.an",
         "owner_team": "Payments Ops",
         "purpose": "x",
         "system_type": "assistant",

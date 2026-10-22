@@ -25,7 +25,9 @@ def person(user_id: str, *roles: str) -> AuthPrincipal:
 
 def make(rig: Rig, name: str, **over: Any) -> str:
     return str(
-        rig.ctx.systems.register({**_draft(), "name": name, **over}, "reviewer.an")["system_id"]
+        rig.ctx.systems.register(
+            {**_draft(), "owner_user": "reviewer.an", "name": name, **over}, "reviewer.an"
+        )["system_id"]
     )
 
 

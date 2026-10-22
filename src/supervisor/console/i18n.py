@@ -4213,6 +4213,14 @@ _T.update(
             "AI systems are off (GOVERNANCE_ENABLED).",
             "Hệ thống AI đang tắt (GOVERNANCE_ENABLED).",
         ),
+        "g6_na_error": (
+            "The figures could not be computed; see the server log.",
+            "Không tính được số liệu; xem nhật ký máy chủ.",
+        ),
+        "g6_na_capped": (
+            "The store has more rows than one pass reads.",
+            "Kho dữ liệu có nhiều dòng hơn mức một lần đọc.",
+        ),
         "g6_na_no_obligations": (
             "No obligation is assigned yet.",
             "Chưa có nghĩa vụ nào được gán.",

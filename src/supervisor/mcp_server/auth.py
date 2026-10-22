@@ -116,7 +116,7 @@ def principal_of(row: dict[str, Any], roles: list[str]) -> AuthPrincipal:
         user_id=f"mcp:{row['app_id']}",
         kind="service_principal",
         auth_method=AUTH_METHOD,
-        roles=frozenset(roles),
+        roles=frozenset(r for r in roles if r != "admin"),  # an app never holds admin
         display_name=str(row["app_id"]),
     )
 
