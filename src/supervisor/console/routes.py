@@ -61,7 +61,9 @@ from supervisor.console import (
     integrations_view,
     inventory_views,
     nav,
+    nav_v3,  # --- WP-UX4a ---
     onboard_runs,
+    overview_v3,  # --- WP-UX4a ---
     playground,
     policies_view,
     readmodels,
@@ -187,6 +189,28 @@ def render(
         nav_sections=lambda: nav.sections(
             shell(), compliance=compliance_on, integration=integration_on, lang=lang
         ),
+        # --- WP-UX4a --- CONSOLE_NAV_V3: merged bar, gear drawer, section tab strip
+        nav_v3_on=bool(ctx.settings.console_nav_v3),
+        nav_v3_bar=lambda: nav_v3.bar(
+            shell(),
+            me.roles,
+            compliance=compliance_on,
+            integration=integration_on,
+            lang=lang,
+            active=nav_v3.active_item(data["section"]),
+            actions_n=_v3_actions(ctx, me, cache),
+        ),
+        nav_v3_gear=lambda: nav_v3.gear(
+            shell(), me.roles, ctx.settings, auth_kind=ctx.provider.name, lang=lang
+        ),
+        nav_v3_tabs=lambda: nav_v3.tab_strip(
+            data["section"],
+            shell(),
+            me.roles,
+            compliance=compliance_on,
+            integration=integration_on,
+            lang=lang,
+        ),
         lang=lang,
         other_lang="vi" if lang == "en" else "en",
         me=me,
@@ -204,6 +228,18 @@ def render(
     if q in LANGS:
         resp.set_cookie(LANG_COOKIE, q, samesite="strict", httponly=True)
     return resp
+
+
+def _v3_actions(ctx: ConsoleContext, me: AuthPrincipal, cache: dict[str, Any]) -> int | None:
+    """The badge of My overview (CONSOLE_NAV_V3), once per request. None when it cannot be
+    counted: a missing badge is better than a broken page."""
+    if "actions" not in cache:
+        try:
+            cache["actions"] = overview_v3.actions_count(ctx, me)
+        except Exception:  # noqa: BLE001 - the badge is a convenience, never a page failure
+            log.exception("my overview badge failed")
+            cache["actions"] = None
+    return cache["actions"]
 
 
 def message_html(message: str, *, ok: bool = False, oob: bool = False) -> str:
@@ -439,6 +475,17 @@ async def overview(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     now = ctx.clock.now()
+    if ctx.settings.console_nav_v3:  # --- WP-UX4a --- My overview replaces Overview and Inbox
+        d = await _call(overview_v3.my_overview, ctx, me, request.query_params.get("scope"), now)
+        return render(
+            request,
+            ctx,
+            me,
+            "ov_my.html",
+            section="overview",
+            d=d,
+            greet_key=readmodels.greeting_key(now),
+        )
     ov = await _call(readmodels.overview, ctx, now)
     return render(
         request,
@@ -2403,6 +2450,139 @@ async def analytics_tab(
 
 
 # --- end WP-UX2 ---
+
+
+# --- WP-UX4a --- CONSOLE_NAV_V3: overview pages, section routes, Workflows (all read only)
+
+
+def _v3_off(ctx: ConsoleContext) -> None:
+    if not ctx.settings.console_nav_v3:
+        raise ConsoleInputError(
+            "The merged navigation is off (CONSOLE_NAV_V3=1 turns it on); "
+            "the old pages are at their old URLs"
+        )
+
+
+def _v3_tab(request: Request, ctx: ConsoleContext, me: AuthPrincipal, sec: str) -> nav_v3.Tab:
+    """The tab the section route shows: ``?tab=`` when it is known and on, else the first one on.
+    A tab that is off, or that this role may not open, is HTTP 400 with the reason."""
+    _v3_off(ctx)
+    sh = readmodels.shell(ctx, me)
+    on = nav_v3.visible_tabs(
+        sec,
+        sh,
+        me.roles,
+        compliance=bool(ctx.settings.console_compliance_enabled),
+        integration=bool(ctx.settings.console_integration_enabled),
+    )
+    want = request.query_params.get("tab")
+    if not want:
+        if not on:
+            raise ConsoleInputError("No page of this section is on (see docs/console.md)")
+        return on[0]
+    tab = next((t for t in nav_v3.SECTIONS_V3[sec].tabs if t.key == want), None)
+    if tab is None:
+        raise ConsoleInputError(f"unknown tab {want!r} in this section")
+    if tab not in on:
+        raise ConsoleInputError(
+            f"The {want} tab is off (its page flag is off) or your role may not open it"
+        )
+    return tab
+
+
+def _v3_go(request: Request, path: str) -> RedirectResponse:
+    """302 to the page behind a tab, keeping ``lang``."""
+    lang = request.query_params.get("lang")
+    return RedirectResponse(nav.href(path, lang) if lang in LANGS else path, status_code=302)
+
+
+def _v3_section(
+    request: Request, ctx: ConsoleContext, me: AuthPrincipal, sec: str
+) -> tuple[nav_v3.Tab, bool]:
+    """(tab, redirect). A tab whose page is this very route renders here; any other is a 302."""
+    tab = _v3_tab(request, ctx, me, sec)
+    return tab, tab.path.split("?", 1)[0] != request.url.path
+
+
+@router.get(
+    "/governance", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def governance_overview_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _v3_off(ctx)
+    d = await _call(
+        overview_v3.governance_overview, ctx, me, request.query_params.get("scope"), ctx.clock.now()
+    )
+    return render(request, ctx, me, "ov_governance.html", section="gov_overview", d=d)
+
+
+@router.get(
+    "/supervisor", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def supervisor_overview_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _v3_off(ctx)
+    d = await _call(
+        overview_v3.supervisor_overview, ctx, me, request.query_params.get("scope"), ctx.clock.now()
+    )
+    return render(request, ctx, me, "ov_supervisor.html", section="sup_overview", d=d)
+
+
+@router.get(
+    "/workflows", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def workflows_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _v3_off(ctx)
+    d = await _call(overview_v3.workflows, ctx)
+    return render(request, ctx, me, "workflows.html", section="workflows", d=d)
+
+
+def _v3_redirect_route(sec: str, path: str) -> None:
+    """Sections with no page of their own: the route is a 302 to the tab's page."""
+
+    @router.get(path, dependencies=[Depends(needs("console.view"))], name=f"v3_{sec}")
+    async def section_route(
+        request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+    ) -> Response:
+        tab = await _call(_v3_tab, request, ctx, me, sec)
+        return _v3_go(request, tab.path)
+
+
+for _sec in ("systems", "activity", "risks-controls"):
+    _v3_redirect_route(_sec.replace("-", "_"), f"/{_sec}")
+
+
+@router.get(
+    "/catalogues", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def catalogues_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    tab, away = await _call(_v3_section, request, ctx, me, "catalogues")
+    if away:
+        return _v3_go(request, tab.path)
+    data = await _call(overview_v3.asset_page, ctx, tab.key)
+    return render(request, ctx, me, "cat_assets.html", section=f"cat_{tab.key}", d=data)
+
+
+@router.get(
+    "/guardians", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def guardians_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    tab, away = await _call(_v3_section, request, ctx, me, "guardians")
+    if away:
+        return _v3_go(request, tab.path)
+    data = await _call(overview_v3.guardian_cards, ctx, tab.key, _lang(request, ctx))
+    return render(request, ctx, me, "guardians_cat.html", section=f"g_{tab.key}", d=data)
+
+
+# --- end WP-UX4a ---
 
 
 @router.get("/home")

@@ -339,6 +339,15 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/v1/transparency"): "transparency.view",
     ("GET", "/v1/transparency/{agent_id}"): "transparency.view",
     ("POST", "/v1/transparency/{agent_id}/generate"): "transparency.generate",
+    # --- WP-UX4a --- CONSOLE_NAV_V3 pages and section routes (read only)
+    ("GET", "/console/governance"): "console.view",
+    ("GET", "/console/supervisor"): "console.view",
+    ("GET", "/console/workflows"): "console.view",
+    ("GET", "/console/systems"): "console.view",
+    ("GET", "/console/catalogues"): "console.view",
+    ("GET", "/console/risks-controls"): "console.view",
+    ("GET", "/console/activity"): "console.view",
+    ("GET", "/console/guardians"): "console.view",
 }
 
 

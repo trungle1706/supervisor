@@ -665,3 +665,36 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .cat-foot .btn { margin-left: auto; }
 .cat-env { font-size: 12px; min-width: 0; overflow-wrap: anywhere; }
 .cat-env code { font-family: var(--f-mono); font-size: 11px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+
+/* ------------------------------------------------------------------ merged bar (CONSOLE_NAV_V3, WP-UX4a)
+   Line icons (inline SVG), sections as <details>, a settings gear, section tab strips. */
+.side-v3 .ni3 { width: 22px; height: 22px; display: grid; place-items: center; flex: none; color: var(--muted); }
+.side-v3 .ni3 svg { width: 18px; height: 18px; }
+.side-v3 li a:hover .ni3, .side-v3 li a.active .ni3 { color: inherit; }
+.side-v3 .side-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gear-btn { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid var(--line);
+  border-radius: var(--r-s); color: var(--fg); text-decoration: none; font-size: 12px; }
+.gear-btn:hover { background: var(--surface-2); }
+.gear-btn svg { width: 16px; height: 16px; }
+.gear-drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(420px, 92vw); z-index: 60;
+  background: var(--surface); border-left: 1px solid var(--line); box-shadow: -10px 0 30px rgba(0, 0, 0, .14);
+  padding: 20px; overflow-y: auto; transform: translateX(104%); transition: transform .18s ease; visibility: hidden; }
+.gear-drawer:target, .gear-drawer.open { transform: none; visibility: visible; }
+.gear-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.gear-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.gear-list a { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-s);
+  color: var(--fg); text-decoration: none; }
+.gear-list a:hover { background: var(--surface-2); }
+.gear-n { font-weight: 700; font-size: 14px; }
+.gear-s { font-size: 12px; }
+@media (min-width: 1101px) {
+  html[data-side="collapsed"] .side-v3 .ni3 { color: inherit; }
+  html[data-side="collapsed"] .side-v3 .gear-l { display: none; }
+  html[data-side="collapsed"] .side-v3 .side-foot { justify-content: center; }
+  html[data-side="collapsed"] .side-v3 .side-foot > span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .gear-drawer { transition: none; } }
+.sec-tabs { align-items: center; }
+.sec-tabs-t { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  padding-right: 6px; border-right: 1px solid var(--line); white-space: nowrap; }
+.nv3-na .pill { margin-right: 6px; }

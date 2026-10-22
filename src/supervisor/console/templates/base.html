@@ -17,7 +17,7 @@
    pill header, unchanged. Everything below the header is the same in both. #}
 {% if side_nav %}
 <div class="shell">
-{% include "_c_sidebar.html" %}
+{% include "_c_sidebar_v3.html" if nav_v3_on else "_c_sidebar.html" %}
 <div class="shell-main">
 {% include "_c_topbar.html" %}
 {% else %}
@@ -27,6 +27,12 @@
 {% if me.kind == 'service_principal' %}<div class="notice sp"><span class="dot"></span>{{ t('sp_banner') }}</div>{% endif %}
 <main id="main" tabindex="-1">
   <div id="flash" aria-live="polite"></div>
+{% if nav_v3_on %}
+{% set st = nav_v3_tabs() %}
+{% if st %}
+{% include "_c_section_tabs.html" %}
+{% endif %}
+{% endif %}
   {% block content %}{% endblock %}
 </main>
 <footer class="foot">Supervisor {{ version }} · {{ t('mode') }} {{ mode }} · {{ now|ict }} · <a href="/console/analytics?tab=metrics&amp;lang={{ lang }}">{{ t('metrics') }}</a></footer>

@@ -1,0 +1,54 @@
+{# Supervisor overview (CONSOLE_NAV_V3): runtime health of the agents in scope. Variables:
+   overview_v3.supervisor_overview() as d. Judges without a model are labelled mock. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% block title %}{{ t('nv3_sup_overview') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_sup'), None), (t('nv3_overview'), None)]) }}
+{{ ui.pagehead(t('nv3_sup_overview')) }}
+<p class="hint">{{ t('nv3_sup_sub', n=d.rows|length) }}</p>
+{{ v3.scope_switch('/console/supervisor', d.scope, d.scopes) }}
+<div class="grid g4" id="numbers">
+{% for tl in d.tiles %}
+{% if tl.key == 'checked' %}{{ v3.tile(tl, t('nv3_tile_checked'), (tl.value ~ '+') if tl.capped else tl.value, t('num_checked_sub', n=tl.agents)) }}
+{% elif tl.key == 'stopped' %}{{ v3.tile(tl, t('nv3_tile_stopped'), tl.value, t('blocked_paused', b=tl.blocked, p=tl.paused)) }}
+{% elif tl.key == 'cover' %}{{ v3.tile(tl, t('nv3_tile_cover'), tl.value ~ ' / ' ~ tl.of, t(tl.detail) if tl.detail else '') }}
+{% else %}{{ v3.tile(tl, t('nv3_tile_cases'), tl.value, (t('n_critical', n=tl.critical) ~ ' · ' if tl.critical else '') ~ ((t('greet_clock_over', d=dur(tl.clock.secs)) if tl.clock.overdue else t('greet_clock_left', d=dur(tl.clock.secs))) if tl.clock else t('nv3_no_clock'))) }}
+{% endif %}
+{% endfor %}
+</div>
+
+<h2 class="sec">{{ t('nv3_health_agents') }}</h2>
+{% if d.rows %}
+<div class="tablewrap"><table class="list" data-table="health">
+<thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('nv3_c_coverage') }}</th><th scope="col">{{ t('nv3_c_blocks') }}</th><th scope="col">{{ t('nv3_c_detectors') }}</th><th scope="col">{{ t('nv3_c_p95') }}</th><th scope="col">{{ t('nv3_c_chain') }}</th></tr></thead>
+<tbody>
+{% for r in d.rows %}
+<tr><td><a href="/console/agents?drawer={{ r.agent_id }}&amp;lang={{ lang }}">{{ r.agent_id }}</a></td><td>{{ v3.pct(r.coverage_bp) }}</td><td>{{ r.blocks }}</td><td>{{ v3.cover(r.cover) }}</td><td>{% if r.p95_ms is none %}<span class="muted">-</span>{% else %}{{ t('median_ms', ms=r.p95_ms) }}{% endif %}</td><td>{{ ui.verify_pill(r.verify) }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}
+{{ ui.empty(t('nv3_no_agents'), t('nv3_no_agents_line'), '/console/supervisor?scope=all&lang=' ~ lang, t('nv3_scope_all')) }}
+{% endif %}
+
+<div class="grid g2">
+<section class="card">
+<h2 class="sec">{{ t('nv3_alerts_7d') }}</h2>
+{% if d.alerts %}
+<div class="tablewrap flat"><table class="list"><thead><tr><th scope="col">{{ t('nv3_c_rule') }}</th><th scope="col">{{ t('nv3_c_count') }}</th></tr></thead><tbody>
+{% for a in d.alerts %}<tr><td><a href="/console/alerts?lang={{ lang }}">{{ a.title }}</a> <span class="mono muted">{{ a.rule_id }}</span></td><td>{{ a.n }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}<p class="muted">{{ t('nv3_no_alerts') }}</p>{% endif %}
+</section>
+<section class="card">
+<h2 class="sec">{{ t('nv3_judges_packs') }}</h2>
+<div class="tablewrap flat"><table class="list"><thead><tr><th scope="col">{{ t('nv3_c_item') }}</th><th scope="col">{{ t('status') }}</th></tr></thead><tbody>
+<tr><td>{{ t('cat_judge_tiers') }}</td><td>{% if d.judges.on %}{{ ui.pill(t('cat_on'), 'ok', True) }}{% if d.judges.mock %} {{ ui.pill('mock', 'warn') }} <span class="muted">{{ t('nv3_no_model') }}</span>{% endif %}{% else %}<span class="muted">{{ t('nv3_off') }}</span>{% endif %}</td></tr>
+<tr><td>{{ t('nv3_last_pack') }}</td><td>{% if d.packs %}<a href="/console/assurance?lang={{ lang }}">{{ t('nv3_pack_counts', ok=d.packs.ok, warn=d.packs.warn, fail=d.packs.fail) }}</a>{% if d.packs.mock %} {{ ui.pill('mock', 'warn') }}{% endif %}{% else %}<span class="muted">{{ t('nv3_no_pack') }}</span>{% endif %}</td></tr>
+<tr><td>{{ t('cat_redteam') }}</td><td>{% if d.redteam %}{{ ui.pill(t('cat_on'), 'ok', True) }}{% else %}<span class="muted">{{ t('nv3_off') }}</span>{% endif %}</td></tr>
+</tbody></table></div>
+</section>
+</div>
+{% endblock %}
