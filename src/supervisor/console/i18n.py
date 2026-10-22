@@ -3391,7 +3391,7 @@ _T.update(
         "nv3_c_blocks": ("Stops 24 h", "Bị chặn 24 giờ"),
         "nv3_c_detectors": ("Detectors", "Bộ phát hiện"),
         "nv3_c_p95": ("Latency p95", "Độ trễ p95"),
-        "nv3_ms": ("{ms} ms", "{ms} ms"),
+        "nv3_ms": ("{ms} ms", "{ms} mili giây"),
         "nv3_checked_sub": ("across {n} agents", "trên {n} tác tử"),
         "nv3_no_task_list": ("no task list yet", "chưa có danh sách công việc"),
         "nv3_c_chain": ("Chain", "Chuỗi"),
