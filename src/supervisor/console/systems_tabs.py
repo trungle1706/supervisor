@@ -8,7 +8,7 @@ made-up value. Judges that run without a model are labelled ``mock``. Nothing he
 The tabs exist only with CONSOLE_NAV_V3 (``systems_views.detail_tabs``). Each tab needs the
 permission of the page it summarises (``TAB_PERM``); a role without it does not see the tab.
 
-WP-G2 (Rules and Classification tabs, ``guardian-floor``) and WP-G5 (incidents) are optional
+WP-G2 (Rules and Classification tabs, ``guardian-floor``) and WP-G5 are optional
 neighbours: every use below goes through ``getattr`` or a ``try`` with a one-line comment, so
 this module works with or without them."""
 
@@ -287,21 +287,6 @@ def guardians_tab(ctx: Any, system: Mapping[str, Any]) -> dict[str, Any]:
 # ------------------------------------------------------------------------------ Reports
 
 
-def incidents_slot(ctx: Any, system_id: str) -> tuple[list[dict[str, Any]] | None, str]:
-    """Incidents of the system (WP-G5). ``(None, reason key)`` while WP-G5 is not merged or
-    its flag is off."""
-    svc = getattr(ctx, "incidents", None)  # WP-G5 adds ctx.incidents; absent before the merge
-    fn = getattr(svc, "list_incidents", None)
-    if fn is None:
-        return None, "ux4b_na_incidents"
-    if not getattr(ctx.settings, "governance_actions_enabled", False):
-        return None, "ux4b_na_incidents_flag"
-    try:
-        return [dict(r) for r in fn({"system_id": system_id})], ""
-    except Exception:  # noqa: BLE001 - the slot never breaks the Reports tab
-        return None, "ux4b_na_incidents"
-
-
 def reports_tab(ctx: Any, system: Mapping[str, Any]) -> dict[str, Any]:
     """Per linked agent: the latest transparency report of each variant (with its verify
     state), and the chain verify state of the agent lane. The audit pack is built on the
@@ -338,14 +323,11 @@ def reports_tab(ctx: Any, system: Mapping[str, Any]) -> dict[str, Any]:
                 "verify": ctx.last_verify.get(lane) or verify_all,
             }
         )
-    incidents, inc_na = incidents_slot(ctx, str(system["system_id"]))
     return {
         "rp_rows": rows,
         "rp_variants": VARIANTS,
         "rp_tp_on": tp_on,
         "rp_tp_page": bool(ctx.settings.console_transparency_enabled),
-        "rp_incidents": incidents,
-        "rp_incidents_na": inc_na,
     }
 
 

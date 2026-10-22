@@ -54,11 +54,21 @@
   {% if rp_incidents is none %}
   {{ v3.na(rp_incidents_na) }}
   {% elif rp_incidents %}
-  <div class="tablewrap flat"><table data-table="system-incidents">
-    <thead><tr><th scope="col">{{ t('ux4b_incident') }}</th><th scope="col">{{ t('status') }}</th></tr></thead>
-    <tbody>{% for i in rp_incidents %}<tr><td><span class="mono">{{ i.incident_id }}</span><div class="idline">{{ i.title }}</div></td><td>{{ t('ux4b_inc_st_' ~ i.status) }}</td></tr>{% endfor %}</tbody>
+  <div class="tablewrap flat"><table data-table="system-incidents" id="system-incidents">
+    <thead><tr><th scope="col">{{ t('time') }}</th><th scope="col">{{ t('inc_incident') }}</th><th scope="col">{{ t('severity') }}</th><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('status') }}</th></tr></thead>
+    <tbody>
+    {% for i in rp_incidents %}
+      <tr>
+        <td class="mono">{{ i.opened_at|day }}</td>
+        <td><a href="/console/incidents?drawer={{ i.incident_id }}&amp;status=all&amp;lang={{ lang }}">{{ t('inc_kind_' ~ i.kind) }}</a><div class="idline mono">{{ i.incident_id }}</div></td>
+        <td>{{ ui.sev(i.severity) }}</td>
+        <td class="mono">{{ i.agent_id }}</td>
+        <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
   </table></div>
   {% else %}
-  <p class="hint">{{ t('ux4b_incidents_none') }}</p>
+  <p class="hint">{{ t('inc_none') }}</p>
   {% endif %}
 </section>

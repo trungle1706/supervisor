@@ -1,0 +1,176 @@
+# Governance actions (WP-G5, docs/governance-actions.md).
+#
+# An event (alert, gate stop on a risky tool, failed detector, failing monitor, assurance NO-GO,
+# chain break, new model version, judge escalation) is matched against these rules. Each rule
+# says: the event kind, the lowest severity, optionally a filter on the AI system, and the
+# actions to run. The file is checked field by field; an unknown key stops the load.
+#
+# Actions (run in this order, once each per event):
+#   create_incident          make an incident (title from a template; a person closes it)
+#   notify_owner             a notice in the inbox for the owner of the system
+#   raise_risk_level         manual level of the system one step up, never down, never above high
+#   move_to_re_evaluation    lifecycle move of a deployed system to re_evaluation
+#   create_review            an internal review of the system, scope = the event
+#   fire_webhook             an outbound event (kind governance_action) for other systems
+#   reopen_control           the controls that map the evidence of the event become failing
+#                            for the agent (optional "controls: [CTL-...]" adds named ones)
+# There is no action that pauses, blocks or quarantines an agent (rule R1: the gate did that).
+#
+# system_class (optional): decision33_class (list), risk_level (list, effective level),
+# autonomy_level_gte (l0 to l5). An action that needs a system (raise_risk_level,
+# move_to_re_evaluation, create_review, fire_webhook) is left out for an event with no system.
+#
+# ILLUSTRATIVE until the second line of the bank agrees the thresholds.
+version: 1
+rules:
+  # ---- the nine SOC use cases of docs/alerts.md (alert rules of WP39) ------------------------
+  - id: GA-COVERAGE-GAP
+    title: An agent reaches its tools without the gate
+    kind: alert
+    alert_rule: AL-COVERAGE-GAP
+    min_severity: high
+    actions: [create_incident, notify_owner, fire_webhook]
+
+  - id: GA-DETECTOR-FAILED-ALERT
+    title: Detectors failed on a share of the calls
+    kind: alert
+    alert_rule: AL-DETECTOR-FAILED
+    min_severity: high
+    actions: [create_incident, notify_owner]
+
+  - id: GA-THREAT-NOT-ENFORCED
+    title: A detector asked for a stop that was not enforced
+    kind: alert
+    alert_rule: AL-THREAT-NOT-ENFORCED
+    min_severity: high
+    actions: [create_incident, notify_owner]
+
+  - id: GA-SECRETS-OUTPUT
+    title: A secret is in what an agent said
+    kind: alert
+    alert_rule: AL-SECRETS-OUTPUT
+    min_severity: critical
+    actions: [create_incident, notify_owner, create_review, fire_webhook, reopen_control]
+
+  - id: GA-PII-OUTPUT
+    title: Personal data leaves in agent outputs
+    kind: alert
+    alert_rule: AL-PII-OUTPUT
+    min_severity: high
+    actions: [create_incident, notify_owner, create_review, reopen_control]
+
+  - id: GA-REDACTION-SPIKE
+    title: The masking transform changes far more payloads than usual
+    kind: alert
+    alert_rule: AL-REDACTION-SPIKE
+    min_severity: medium
+    actions: [notify_owner]
+
+  - id: GA-LATENCY-DEGRADATION
+    title: The gate is slow
+    kind: alert
+    alert_rule: AL-LATENCY-DEGRADATION
+    min_severity: medium
+    actions: [notify_owner]
+
+  - id: GA-ERROR-RATE
+    title: Many calls to the gate fail
+    kind: alert
+    alert_rule: AL-ERROR-RATE
+    min_severity: high
+    actions: [create_incident, notify_owner]
+
+  - id: GA-INGRESS-AUTH-ANOMALY
+    title: An agent presents an unknown key or a replayed nonce
+    kind: alert
+    alert_rule: AL-INGRESS-AUTH-ANOMALY
+    min_severity: high
+    actions: [create_incident, notify_owner, fire_webhook]
+
+  # ---- other alerts that matter to the system owner -------------------------------------------
+  - id: GA-ALERT-CRITICAL-HIGH-RISK
+    title: Any critical alert on a high-risk system
+    kind: alert
+    min_severity: critical
+    system_class: {risk_level: [high, prohibited]}
+    actions: [create_incident, notify_owner, move_to_re_evaluation, fire_webhook]
+
+  - id: GA-QUARANTINE
+    title: An agent was quarantined
+    kind: alert
+    alert_rule: AL-QUARANTINE
+    min_severity: critical
+    actions: [create_incident, notify_owner, create_review, fire_webhook]
+
+  # ---- the other event kinds --------------------------------------------------------------------
+  - id: GA-CHAIN-BREAK
+    title: The evidence chain failed its verification
+    kind: chain_break
+    min_severity: critical
+    actions: [create_incident, notify_owner, fire_webhook]
+
+  - id: GA-PACK-NO-GO
+    title: A required assurance pack gave a NO-GO
+    kind: pack_no_go
+    min_severity: high
+    actions: [create_incident, notify_owner, create_review, reopen_control]
+
+  - id: GA-PACK-NO-GO-HIGH-RISK
+    title: A NO-GO on a high-risk system returns it to re-evaluation
+    kind: pack_no_go
+    min_severity: high
+    system_class: {risk_level: [high, prohibited]}
+    actions: [move_to_re_evaluation, raise_risk_level]
+
+  # One gate_stop event is one agent, one action (block or pause) and one hour, however many
+  # calls were stopped in it. So this rule makes at most one incident per agent and hour.
+  - id: GA-GATE-STOP-RISKY-TOOL
+    title: The gate blocked or paused a money, credit or personal-data export tool
+    kind: gate_stop
+    min_severity: high
+    actions: [create_incident, notify_owner]
+
+  - id: GA-GATE-STOP-HIGH-RISK
+    title: A gate stop on a high-risk system, for the team to review
+    kind: gate_stop
+    min_severity: medium
+    system_class: {risk_level: [high, prohibited]}
+    actions: [notify_owner, create_review]
+
+  - id: GA-DETECTOR-FAILED
+    title: A detector could not run for an agent
+    kind: detector_failed
+    min_severity: medium
+    actions: [notify_owner]
+
+  - id: GA-MONITOR-FAILING
+    title: A drift, fairness or quality monitor found a breach
+    kind: monitor_failing
+    min_severity: medium
+    actions: [create_incident, notify_owner, reopen_control]
+
+  - id: GA-MONITOR-FAILING-DECISION33
+    title: A monitor breach on a Decision 33 high-risk system
+    kind: monitor_failing
+    min_severity: medium
+    system_class: {decision33_class: [high_risk]}
+    actions: [create_review, move_to_re_evaluation, raise_risk_level]
+
+  - id: GA-MODEL-VERSION-CHANGE
+    title: The model behind an agent changed
+    kind: model_version_change
+    min_severity: medium
+    actions: [notify_owner, create_review]
+
+  - id: GA-MODEL-VERSION-CHANGE-AUTONOMOUS
+    title: The model of a system with high autonomy changed
+    kind: model_version_change
+    min_severity: medium
+    system_class: {autonomy_level_gte: l3}
+    actions: [move_to_re_evaluation]
+
+  - id: GA-JUDGE-ESCALATION
+    title: A judge asked for a person to look at an agent
+    kind: judge_escalation
+    min_severity: high
+    actions: [create_incident, notify_owner]

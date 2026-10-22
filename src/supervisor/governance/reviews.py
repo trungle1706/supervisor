@@ -36,7 +36,7 @@ from supervisor.governance.systems import SystemService, _on, _plain
 REVIEW_KINDS: tuple[str, ...] = ("internal", "external", "conformity", "classification_audit")
 REVIEW_STATUSES: tuple[str, ...] = ("planned", "in_progress", "completed", "reopened")
 SETTABLE_STATUSES: tuple[str, ...] = ("planned", "in_progress")  # completed: /complete
-SCOPE_KINDS: tuple[str, ...] = ("agent", "node", "system")
+SCOPE_KINDS: tuple[str, ...] = ("agent", "node", "system", "event")  # event: WP-G5
 REPORT_KINDS: tuple[str, ...] = ("file", "link", "note")
 EDITABLE: tuple[str, ...] = (
     "kind",

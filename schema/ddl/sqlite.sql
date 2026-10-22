@@ -1516,3 +1516,54 @@ CREATE TABLE IF NOT EXISTS outbound_event (
 CREATE INDEX IF NOT EXISTS ix_outbound_event_system_id ON outbound_event (system_id);
 
 CREATE INDEX IF NOT EXISTS ix_outbound_event_delivered ON outbound_event (delivered);
+
+-- incident (state): WP-G5. An incident made by the governance action job from an event (alert, gate stop on a risky tool, failed detector, failing monitor, assurance NO-GO, chain break, model version change, judge escalation). Auto-created only; a person moves it on and closes it. The title comes from a template; no free text from an event. root_cause and affected_scope are typed by a person. Changes go on the chain as incident_change.
+CREATE TABLE IF NOT EXISTS incident (
+  incident_id TEXT NOT NULL,
+  system_id TEXT,
+  agent_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  title TEXT NOT NULL,
+  event_ref TEXT NOT NULL,
+  root_cause TEXT,
+  affected_scope TEXT,
+  status TEXT NOT NULL,
+  opened_at TEXT NOT NULL,
+  closed_at TEXT,
+  closed_by TEXT,
+  case_id TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (incident_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_incident_status ON incident (status);
+
+CREATE INDEX IF NOT EXISTS ix_incident_system_id ON incident (system_id);
+
+CREATE INDEX IF NOT EXISTS ix_incident_agent_id ON incident (agent_id);
+
+-- governance_event (state): WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action (and an attempting entry before an action runs), so a retry of a started event skips what was done or may have been done. A failed action is retried up to 3 runs, then failed_final. Ids and enums only.
+CREATE TABLE IF NOT EXISTS governance_event (
+  event_key TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  system_id TEXT,
+  ref TEXT NOT NULL,
+  event_at TEXT NOT NULL,
+  status TEXT NOT NULL,
+  rules TEXT NOT NULL,
+  actions TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  done_at TEXT,
+  detail TEXT,
+  runner_id TEXT,
+  lease_until TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (event_key)
+);
+
+CREATE INDEX IF NOT EXISTS ix_governance_event_status ON governance_event (status);

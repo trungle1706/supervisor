@@ -349,32 +349,40 @@ def test_reports_tab_variants_chain_and_pack(seeded_registers: Console) -> None:
     assert 'class="pill ok"' in body(page(c, sid, "reports"))
 
 
-def test_reports_tab_incidents_slot_is_guarded(
+def test_reports_tab_lists_the_incidents_of_the_system(
     v3: Console, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from datetime import UTC, datetime
+
+    from supervisor.governance.event_sources import GovernanceEvent
+
     sid = system(v3)
+    other = system(v3, name="Other system")
     html = body(page(v3, sid, "reports"))
     assert "Incidents" in html and "not available" in html
-
-    # WP-G5 present but its flag off
-    class Svc:
-        def list_incidents(self, f: dict[str, str]) -> list[dict[str, Any]]:
-            assert f == {"system_id": sid}
-            return [{"incident_id": "inc_1", "title": "Detector failed", "status": "open"}]
-
-    monkeypatch.setattr(v3.ctx, "incidents", Svc(), raising=False)
-    assert "GOVERNANCE_ACTIONS_ENABLED=1" in body(page(v3, sid, "reports"))
-    # the flag is WP-G5's: with it on, the incidents of the system are listed
-    from types import SimpleNamespace
-
-    fake = SimpleNamespace(
-        settings=SimpleNamespace(governance_actions_enabled=True), incidents=Svc()
+    assert "GOVERNANCE_ACTIONS_ENABLED=1" in html  # the flag of WP-G5 is off
+    monkeypatch.setattr(v3.ctx.settings, "governance_actions_enabled", True)
+    at = datetime(2026, 10, 22, 11, 0, tzinfo=UTC)
+    ev = GovernanceEvent("alert", "high", "payments", "alert:al_1", at, sid, rule_id="AL-X")
+    row, _ = v3.ctx.incidents.open_from_event(ev)
+    v3.ctx.incidents.open_from_event(
+        GovernanceEvent("alert", "high", "payments", "alert:al_2", at, other, rule_id="AL-X")
     )
-    rows, na = systems_tabs.incidents_slot(fake, sid)
-    assert na == "" and rows and rows[0]["incident_id"] == "inc_1"
-    monkeypatch.setattr(systems_tabs, "incidents_slot", lambda ctx, system_id: (rows, ""))
+    iid = row["incident_id"]
     html = body(page(v3, sid, "reports"))
-    assert "inc_1" in html and "Detector failed" in html
+    assert 'id="system-incidents"' in html and iid in html and "alert:al_2" not in html
+    assert f"/console/incidents?drawer={iid}&amp;status=all" in html  # the drawer of the tab
+    assert "No incident" not in html
+    n = re.search(
+        r'data-tab="reports".*?<span class="k">(\d+)</span>', page(v3, sid, "reports"), re.S
+    )
+    assert n  # the count of the label is the rows of the tab (agents)
+    vi = body(page(v3, sid, "reports", "vi"))
+    assert iid in vi and "Mới" in vi  # status translated
+    en = body(page(v3, sid, "reports"))
+    assert "Open" in en and "high" in en.lower()
+    empty = body(page(v3, system(v3, name="Quiet"), "reports"))
+    assert "inc_" not in empty and "system-incidents" not in empty
 
 
 def test_reports_tab_transparency_off(v3: Console, monkeypatch: pytest.MonkeyPatch) -> None:

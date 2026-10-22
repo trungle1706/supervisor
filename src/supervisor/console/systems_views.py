@@ -176,10 +176,14 @@ def drawer_view(
 
 
 def detail_tabs(ctx: Any, me: Any) -> tuple[str, ...]:
-    """The tabs of the system page. WP-UX4b: with CONSOLE_NAV_V3 on, the governance tabs too
-    (a tab needs the permission of the page it summarises); off, the four of WP-G0 and WP-G1."""
+    """The tabs of the system page. WP-UX4b: with CONSOLE_NAV_V3 on, the governance tabs too (a
+    tab needs the permission of the page it summarises). Off: the tabs of WP-G0 to WP-G2, and
+    WP-G5's Reports tab (incidents) with GOVERNANCE_ACTIONS_ENABLED."""
     if not ctx.settings.console_nav_v3:
-        return DETAIL_TABS
+        tabs = DETAIL_TABS
+        if getattr(ctx.settings, "governance_actions_enabled", False) and "reports" not in tabs:
+            tabs = (*tabs, "reports")
+        return tabs
     return tuple(
         t
         for t in DETAIL_TABS_V3
@@ -189,18 +193,31 @@ def detail_tabs(ctx: Any, me: Any) -> tuple[str, ...]:
 
 def detail_view(ctx: Any, me: Any, system_id: str, tab: str) -> dict[str, Any]:
     tabs = detail_tabs(ctx, me)
+    v3 = bool(ctx.settings.console_nav_v3)
     if tab not in tabs:
-        if tab in DETAIL_TABS_V3 and ctx.settings.console_nav_v3:
+        if tab in DETAIL_TABS_V3 and v3:
             raise PermissionDenied(f"your role may not open the {tab} tab")
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
     extra, counts = g1_tabs(ctx, system, tab)
-    if tab in systems_tabs.BUILDERS:  # WP-UX4b
+    if v3 and tab in systems_tabs.BUILDERS:  # WP-UX4b
         gov = systems_tabs.BUILDERS[tab](ctx, system)
         extra.update(gov)
         n = systems_tabs.count_of(tab, gov)
         if n is not None:
             counts[tab] = n
+    actions_on = bool(getattr(ctx.settings, "governance_actions_enabled", False))
+    if "reports" in tabs and actions_on:  # WP-G5: the incidents of the system
+        from supervisor.console.incidents_views import system_incidents
+
+        found = system_incidents(ctx, str(system["system_id"]))
+        if not v3:
+            counts["reports"] = len(found)
+        if tab == "reports":
+            extra["incidents"] = found  # the G5 template (CONSOLE_NAV_V3 off)
+            extra["rp_incidents"], extra["rp_incidents_na"] = found, ""  # the UX4b Reports tab
+    elif tab == "reports":
+        extra["rp_incidents"], extra["rp_incidents_na"] = None, "ux4b_na_incidents_flag"
     out = {
         "s": system,
         "tab": tab,

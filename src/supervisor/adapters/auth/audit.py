@@ -38,6 +38,7 @@ TARGET_KINDS = (
     "control",
     "task",
     "system",  # WP-G0
+    "incident",  # WP-G5
 )
 # path parameter name -> target kind (the first one present on the route wins)
 _PARAM_KIND = {
@@ -49,6 +50,7 @@ _PARAM_KIND = {
     "control_id": "control",  # WP30
     "task_id": "task",  # WP30
     "system_id": "system",  # WP-G0
+    "incident_id": "incident",  # WP-G5
     "name": "export",
 }
 # route template -> target kind when the route has no id parameter
@@ -158,6 +160,8 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
             if r.get("active")
         )
         return row_hash({"system": system, "team": team, "links": links})
+    if kind == "incident":  # WP-G5
+        return row_hash(state.get("incident", {"incident_id": target_id}))
     if kind == "agent":
         agent = state.get("agent", {"agent_id": target_id})
         controls = [

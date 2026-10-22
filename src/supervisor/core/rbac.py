@@ -161,6 +161,15 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "approver", "admin"),
         "Plan, change, complete and reopen reviews of an AI system (WP-G1)",
     ),
+    # --- WP-G5 --- mounted only when GOVERNANCE_ACTIONS_ENABLED is on
+    "incidents.view": (
+        _ALL,
+        "Incidents tab and GET /v1/incidents: incidents in your scope (WP-G5)",
+    ),
+    "incidents.transition": (
+        ("reviewer", "owner", "admin"),
+        "Move an incident on and close it (the holders of case.transition or systems.edit) (WP-G5)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -397,6 +406,14 @@ ROUTES: dict[tuple[str, str], str] = {
     ("PATCH", "/v1/systems/{system_id}/reviews/{review_id}"): "systems.review",
     ("POST", "/v1/systems/{system_id}/reviews/{review_id}/complete"): "systems.review",
     ("POST", "/v1/systems/{system_id}/reviews/{review_id}/reopen"): "systems.review",
+    # --- WP-G5 --- incidents of the governance loop (GOVERNANCE_ACTIONS_ENABLED)
+    ("GET", "/v1/incidents"): "incidents.view",
+    ("GET", "/v1/incidents/{incident_id}"): "incidents.view",
+    ("POST", "/v1/incidents/{incident_id}/transition"): "incidents.transition",
+    ("GET", "/console/incidents"): "incidents.view",
+    ("GET", "/console/incidents/rows"): "incidents.view",
+    ("GET", "/console/incidents/{incident_id}/drawer"): "incidents.view",
+    ("POST", "/console/incidents/{incident_id}/transition"): "incidents.transition",
     # --- WP-UX4a --- CONSOLE_NAV_V3 pages and section routes (read only)
     ("GET", "/console/governance"): "console.view",
     ("GET", "/console/supervisor"): "console.view",

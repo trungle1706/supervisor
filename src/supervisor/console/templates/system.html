@@ -27,12 +27,14 @@
   {% include "_system_policies.html" %}
 {% elif tab == 'guardians' %}
   {% include "_system_guardians.html" %}
-{% elif tab == 'reports' %}
+{% elif tab == 'reports' and rp_rows is defined %}
   {% include "_system_reports.html" %}
 {% elif tab == 'rules' %}
   {% include "_system_rules.html" %}
 {% elif tab == 'classification' %}
   {% include "_system_classification.html" %}
+{% elif tab == 'reports' %}
+  {% include "_system_incidents.html" %}
 {% else %}
   {% include "_system_components.html" %}
 {% endif %}

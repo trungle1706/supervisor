@@ -12,6 +12,36 @@ Needs `CONSOLE_NAV_V3=1` and `CONSOLE_SYSTEMS_ENABLED=1` (with `GOVERNANCE_ENABL
 - Catalogues > Agents: a System column and a linked / unlinked filter.
 - Screenshots in `docs/design/screens-v3` replaced; `tools/console_screenshots.py --v3` seeds four systems.
 
+### WP-G5: governance loop, incidents
+
+One new flag, off by default (off = nothing is mounted or scheduled, the tables stay empty, the
+console and the system pages are as before). `GOVERNANCE_ACTIONS_ENABLED=1` needs
+`GOVERNANCE_ENABLED=1` too.
+
+- Normalised `GovernanceEvent` from eight read-only sources: alerts, gate block or pause on money,
+  credit or pii_export tools, failed detectors, monitor breach cases (drift, fairness,
+  multiagent) and low quality verdicts, required assurance packs with a NO-GO, failed chain
+  verifies, new model versions, judge escalation cases. One event per linked AI system.
+- `config/governance_actions.yaml` with a strict schema and a starter file (the nine SOC use
+  cases of `docs/alerts.md`, chain break, pack NO-GO and more). Seven actions: `create_incident`,
+  `notify_owner`, `raise_risk_level` (one step up, never down, never above `high`, source
+  `event`), `move_to_re_evaluation` (G1 lifecycle move), `create_review` (G1 review, scope = the
+  event), `fire_webhook` (G1 outbound event `governance_action`), `reopen_control` (a `failing`
+  `control_status` row, reason `reopened_by_event`, through the control service). No action
+  pauses or blocks an agent; the loader refuses those words.
+- New tables `incident` and `governance_event` (the processed marker). Chain records
+  `incident_change`, `governance_action`, `control_reopen`; `system_change` gets the action
+  `risk_raise`. Incidents are auto-created only and closed only by a person.
+- Job `python -m supervisor.jobs.governance_actions [--dry-run]` and the scheduler entry
+  `governance_actions` (`SCHED_GOVERNANCE_S`, default 60): deterministic, an event is processed
+  once, a raising action does not stop the others, a crashed event is resumed.
+- `GET /v1/incidents`, `GET /v1/incidents/{id}`, `POST /v1/incidents/{id}/transition`; new
+  permissions `incidents.view` (all roles) and `incidents.transition` (reviewer, owner, admin);
+  tab **Incidents** on Cases & alerts and tab **Reports** on the system page. EN and VI.
+- Changes to earlier code, all additive: risk source `event`; outbound event kind
+  `governance_action`; review scope kind `event`; audit target kind `incident`.
+- Docs: `docs/governance-actions.md`, `docs/incidents.md`, `docs/governance.md` section 20.
+
 ### WP-G3: Databricks auto-record v2 and agent auto-define
 
 Two new flags, both off by default (off = the inventory scan and the governance tables are as before). `INVENTORY_SCAN_V2=1` turns on the scan sources v2; `INVENTORY_AUTOREGISTER=1` the draft registration.

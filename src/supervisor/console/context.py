@@ -157,6 +157,24 @@ class ConsoleContext:
         return svc
 
     @property
+    def incidents(self) -> Any:
+        """Incidents of the governance loop (WP-G5). Scoped by the system service; every change
+        goes on the chain."""
+        from supervisor.governance.incidents import IncidentService
+
+        svc = getattr(self, "_incidents", None)
+        if svc is None:
+            svc = IncidentService(
+                self.state,
+                self.clock,
+                self.settings,
+                evidence=self.runtime.chain,
+                systems=self.systems,
+            )
+            self._incidents = svc
+        return svc
+
+    @property
     def transparency(self) -> Any:
         """The transparency report service (WP31, ADR D31). Signed reports go on the chain."""
         from supervisor.transparency.service import TransparencyService

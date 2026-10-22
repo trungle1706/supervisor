@@ -56,6 +56,7 @@ REASONS = (
     "stale",
     "changed_since_evidence",
     "bank_owned",
+    "reopened_by_event",  # WP-G5: a governance event contradicts the control
 )
 
 STALE_WINDOWS = ev.STALE_WINDOWS

@@ -405,6 +405,16 @@ severity, agent, window count, repeats, case link and chain position. The **Ackn
 button needs the `alert.ack` permission (operator, admin) and writes two audit rows and an
 `alert_ack` evidence record. See `docs/alerts.md`.
 
+### Incidents (WP-G5)
+
+The **Incidents** tab of Cases & alerts (`/console/incidents`, flag `GOVERNANCE_ACTIONS_ENABLED`
+with `GOVERNANCE_ENABLED`; item **Incidents** next to Inbox in the old sidebar). It lists the
+incidents the governance loop made from events (`docs/incidents.md`): tiles by status, filters,
+sortable table, drawer. `incidents.view` is held by every role (a scoped role sees the incidents of
+its systems and agents); `incidents.transition` (reviewer, owner, admin) moves an incident on and
+closes it, with two audit rows and an `incident_change` record. The **Reports** tab of the AI
+system page lists the incidents of that system.
+
 ### Old URLs (WP-UX2)
 
 A moved page answers `303 See Other` to its new place. The query string is kept (`lang`, filters,
@@ -477,6 +487,8 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `systems.edit` | Register and change AI systems, their team and their links (WP-G0) |  | x |  | x | x |  |  |
 | `systems.approve` | Answer a stage approval of an AI system (WP-G1) |  | x | x | x | x |  |  |
 | `systems.review` | Plan, change, complete and reopen reviews of an AI system (WP-G1) |  | x | x |  | x |  |  |
+| `incidents.view` | Incidents tab and GET /v1/incidents: incidents in your scope (WP-G5) | x | x | x | x | x | x | x |
+| `incidents.transition` | Move an incident on and close it (the holders of case.transition or systems.edit) (WP-G5) |  | x |  | x | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

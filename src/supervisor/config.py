@@ -623,6 +623,16 @@ class Settings(BaseSettings):
     # events delivered and logs them (no network; the real sender is later work).
     webhooks_enabled: bool = False
 
+    # --- WP-G5 --- governance loop: events to actions, incidents (docs/governance-actions.md).
+    # Off by default. GOVERNANCE_ACTIONS_ENABLED (needs GOVERNANCE_ENABLED too): the job
+    # governance_actions is scheduled and /v1/incidents and the Incidents tab are mounted.
+    # The job never pauses or blocks an agent. GOVERNANCE_ACTIONS_LOOKBACK_S: how far back the
+    # first run looks (later runs start at the cursor).
+    governance_actions_enabled: bool = False
+    governance_actions_config: Path = Path("config/governance_actions.yaml")
+    sched_governance_s: int = Field(default=60, ge=5)
+    governance_actions_lookback_s: int = Field(default=86400, ge=60, le=2_592_000)
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -649,6 +659,7 @@ class Settings(BaseSettings):
         "inventory_allowlist_file",
         "inventory_workspace_fixture",
         "governance_config_file",
+        "governance_actions_config",
         "policy_dir",
         "fact_query_map",
         "detectors_config",

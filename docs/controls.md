@@ -75,6 +75,13 @@ next pass**, and the same change changes the evidence basis of every risk that l
 A judge-scored pack counts for a control only with `RISK_EVIDENCE_JUDGED_PACKS=1`, the same switch
 as the risk register.
 
+**Reopen (WP-G5).** The governance action `reopen_control` (`docs/governance-actions.md`) appends a
+`failing` row with reason `reopened_by_event` for one control and agent when an event contradicts
+the control (a failed pack, a monitor breach, a rule that had to stop a call). The row reads
+`failing` while it is the newest row of the pair; the next pass in a later window writes a newer
+row and the evidence decides again. The control, its map and its scope do not change. One chain
+record `control_reopen` per row.
+
 `control_status` is append-only (one row per control, agent, window and map fingerprint). One chain
 record `control_status` per agent and pass carries counts and the compliance bp, plus a digest.
 

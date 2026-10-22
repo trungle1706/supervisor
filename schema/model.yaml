@@ -1230,7 +1230,7 @@ tables:
       human_control: string    # pre_approval | post_review | none
       lifecycle_stage: string  # initiation | design | validation | deployment | operation | re_evaluation | retirement
       risk_level: string       # prohibited | high | medium | low | unspecified (the manual level)
-      risk_level_source: string  # manual | inherited | classifier (as last recorded)
+      risk_level_source: string  # manual | inherited | classifier | event (as last recorded; event = WP-G5)
       risk_justification: text?
       decision33_class: string # high_risk | not_high_risk | unclassified
       business_impact: string  # high | medium | low | unspecified
@@ -1396,3 +1396,62 @@ tables:
       created_at: timestamp
       delivered: bool
       delivered_at: timestamp?
+
+  # --- WP-G5 governance loop: events to actions, incidents (docs/governance-actions.md) -------
+  incident:
+    kind: state
+    description: >
+      WP-G5. An incident made by the governance action job from an event (alert, gate stop on a
+      risky tool, failed detector, failing monitor, assurance NO-GO, chain break, model version
+      change, judge escalation). Auto-created only; a person moves it on and closes it. The title
+      comes from a template; no free text from an event. root_cause and affected_scope are typed
+      by a person. Changes go on the chain as incident_change.
+    primary_key: [incident_id]
+    indexes:
+      - [status]
+      - [system_id]
+      - [agent_id]
+    columns:
+      incident_id: string      # inc_ + hash of the event key: a repeat is a no-op
+      system_id: string?
+      agent_id: string         # "-" when the event names no agent
+      kind: string             # alert | gate_stop | detector_failed | monitor_failing | pack_no_go | chain_break | model_version_change | judge_escalation
+      severity: string         # low | medium | high | critical
+      title: string            # from a template
+      event_ref: string        # ids only, for example alert:al_x
+      root_cause: text?
+      affected_scope: text?
+      status: string           # open | investigating | resolved | closed
+      opened_at: timestamp
+      closed_at: timestamp?
+      closed_by: string?
+      case_id: string?
+
+  governance_event:
+    kind: state
+    description: >
+      WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref
+      and system). Written before the actions run (status started), so an event is processed
+      once across runs; the actions column holds the result of each action (and an attempting
+      entry before an action runs), so a retry of a started event skips what was done or may
+      have been done. A failed action is retried up to 3 runs, then failed_final. Ids and enums
+      only.
+    primary_key: [event_key]
+    indexes:
+      - [status]
+    columns:
+      event_key: string        # hash of (kind, ref, system_id)
+      kind: string
+      severity: string
+      agent_id: string
+      system_id: string?
+      ref: string
+      event_at: timestamp
+      status: string           # started | done
+      rules: json              # ids of the rules that matched
+      actions: json            # list of {action, status, ref}
+      started_at: timestamp
+      done_at: timestamp?
+      detail: json?            # rule_id, case_id, evidence of the event, to resume it later
+      runner_id: string?       # the runner that holds the event now (lease)
+      lease_until: timestamp?  # a runner whose lease ran out may be replaced
