@@ -203,6 +203,11 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
     policy file), or None when DETECTORS_ENABLED is off. A bad config or a bad agent override is
     a startup error, never a silent default."""
     if not settings.detectors_enabled:
+        if settings.document_intake_enabled:
+            log.warning(
+                "DOCUMENT_INTAKE_ENABLED=1 has no effect without DETECTORS_ENABLED=1; "
+                "context.documents is refused"
+            )
         return None
     from supervisor.core.errors import ConfigError
     from supervisor.detectors import build_registry

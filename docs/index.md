@@ -56,6 +56,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/session-monitor-validation-report.md` | Session harness result with GO / NO-GO and the WP28 trace catch rates (WP27) | Aud, 2L |
 | `docs/detectors.md` | Detector contract, catalogue, verdict v2, precedence, coverage, harness, how to add a detector (WP37) | Dev, Op, Aud |
 | `docs/detectors-validation-report.md` | Detector harness result on the mock path with GO / NO-GO (WP37) | Aud, 2L |
+| `docs/document-intake-validation-report.md` | Harness rows `document_injection_vi`, `document_pii_vi`, `url_ssrf` with GO / NO-GO (WP-D1) | Aud, 2L |
 | `docs/latency.md` | Gate latency: method, numbers from `tools/bench_latency.py`, budgets, what is not measured | Op, Dev, Aud |
 | `docs/monitors.md` | Per-agent monitor bindings and monitor status (`not_applicable`) | Dev, Op, 2L |
 | `docs/threat-model.md` | Threat model of Supervisor itself | 2L, Aud |
