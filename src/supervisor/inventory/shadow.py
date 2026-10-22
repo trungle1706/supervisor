@@ -29,13 +29,14 @@ log = logging.getLogger("supervisor.inventory")
 CASE_AGENT_ID = "inventory"  # one evidence lane for all shadow-AI cases
 SOURCE_KIND = "inventory"
 SHADOW_SEVERITY = "low"
-ALLOWLIST_KEYS = ("apps", "serving_endpoints")
+ALLOWLIST_KEYS = ("apps", "serving_endpoints", "genie_spaces")
 
 
 @dataclass
 class Allowlist:
     apps: list[str] = field(default_factory=list)
     serving_endpoints: list[str] = field(default_factory=list)
+    genie_spaces: list[str] = field(default_factory=list)  # WP-G3
 
     @classmethod
     def load(cls, path: Path | None) -> Allowlist:
@@ -64,7 +65,10 @@ class Allowlist:
         return out
 
     def matches(self, workspace_kind: str, name: str) -> bool:
-        patterns = self.apps if workspace_kind == "app" else self.serving_endpoints
+        patterns = {
+            "app": self.apps,
+            "genie_space": self.genie_spaces,
+        }.get(workspace_kind, self.serving_endpoints)
         n = canonical_name(name)
         return any(fnmatch.fnmatchcase(n, p) for p in patterns)
 
@@ -89,7 +93,9 @@ def _norm(name: str) -> str:
     return canonical_name(name).replace("-", "_")
 
 
-def classify(graph: Graph, allow: Allowlist, *, self_app: str = "") -> dict[str, str]:
+def classify(
+    graph: Graph, allow: Allowlist, *, self_app: str = "", scan_v2: bool = False
+) -> dict[str, str]:
     """node id -> ``active`` | ``allowlisted`` | ``unmanaged`` for every live workspace app
     and serving endpoint (nodes with workspace_scan evidence)."""
     agents = {
@@ -104,7 +110,9 @@ def classify(graph: Graph, allow: Allowlist, *, self_app: str = "") -> dict[str,
     out: dict[str, str] = {}
     for nid, n in sorted(graph.nodes.items()):
         wk = n.attrs.get("workspace_kind")
-        if wk not in ("app", "serving_endpoint") or n.status == "gone":
+        if wk not in ("app", "serving_endpoint", "genie_space") or n.status == "gone":
+            continue
+        if wk == "genie_space" and not scan_v2:  # WP-G3: Genie spaces need INVENTORY_SCAN_V2
             continue
         if not any(e["source"] == "workspace_scan" for e in n.evidence):
             continue  # declared by a manifest but not seen in the workspace now
@@ -120,6 +128,10 @@ def classify(graph: Graph, allow: Allowlist, *, self_app: str = "") -> dict[str,
             e.src_id in agents for e in graph.in_edges(nid, ("uses",))
         ):
             out[nid] = "active"
+        elif wk == "genie_space" and any(
+            e.src_id in agents for e in graph.in_edges(nid, ("uses", "reads"))
+        ):
+            out[nid] = "active"
         elif allow.matches(wk, raw):
             out[nid] = "allowlisted"
         else:
@@ -128,7 +140,9 @@ def classify(graph: Graph, allow: Allowlist, *, self_app: str = "") -> dict[str,
 
 
 def case_summary(node: Mapping[str, Any]) -> str:
-    kind = "Databricks App" if node["kind"] == "system" else "serving endpoint"
+    kind = {"system": "Databricks App", "genie_space": "Genie space"}.get(
+        node["kind"], "serving endpoint"
+    )
     return (
         f"Shadow AI: {kind} '{node['display_name']}' runs in the workspace but no Supervisor "
         f"manifest or agent row covers it. Register it (onboarding) or add it to "

@@ -20,6 +20,7 @@ You run it on the bank laptop and send back the results file. All commands are W
 | 09 | Command Execution runner (optional) | Does one execution context run cells, return the sentinel line and get destroyed? (needs `DATABRICKS_CLUSTER_NAME`) |
 | 10 | Environment summary | Prints settings that matter (no secrets) |
 | 11 | Ingress headers (WP20, manual, do this first) | Which identity headers reach the App: `X-Forwarded-User` / `X-Forwarded-Email` / `X-Forwarded-Access-Token` / `Authorization`, for a service-principal caller and a user caller? Decides the ingress credential kind (`docs/ingress-auth.md`, "Databricks App setup") |
+| 12 | Inventory scan v2 (WP-G3) | Does each read-only call of the scan sources v2 work with your role: serving endpoints (entities, agent flag), model versions, Genie spaces, jobs, Vector Search indexes, UC functions (needs `INVENTORY_SCAN_SCHEMAS`), UC connections (MCP flag)? One `[OK]` or `[FAIL]` line per call; send the lines back |
 
 The command below also runs the SQL contract tests (`tests\contract`) against your
 workspace: the same tests that pass on SQLite here.

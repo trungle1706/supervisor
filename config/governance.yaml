@@ -1,0 +1,38 @@
+# Governance settings (WP-G3, docs/inventory.md "Draft registration from the scan").
+# Used only when INVENTORY_AUTOREGISTER=1 and GOVERNANCE_ENABLED=1. Replace every FILL-ME value in
+# your local copy; never commit real names. A draft is not created while the owner is still a
+# FILL-ME value (the scan counts it as "skipped_no_owner").
+#
+# Owner lookup order for an unmanaged App, agent endpoint or Genie space:
+#   1. default_owner_by_group[<owner group of the object>]   (only when the reader supplies one)
+#   2. default_owner_by_catalog[<Unity Catalog catalog the object reads or serves>]
+#   3. default_owner
+# Keys match case-insensitively. Each value has owner_user and owner_team.
+default_owner:
+  owner_user: FILL-ME-owner-user
+  owner_team: FILL-ME-owner-team
+
+default_owner_by_group: {}
+#  FILL-ME-workspace-group:
+#    owner_user: FILL-ME-owner-user
+#    owner_team: FILL-ME-owner-team
+
+default_owner_by_catalog: {}
+#  FILL-ME-catalog:
+#    owner_user: FILL-ME-owner-user
+#    owner_team: FILL-ME-owner-team
+
+# Intake placeholders for the draft. They are guesses on the safe side; the owner confirms them
+# in the initiation task below. Allowed values: see docs/governance.md section 2.
+draft_defaults:
+  system_type: assistant
+  org_role: deployer
+  user_segment: internal
+  personal_data: identifiable
+  human_control: none
+
+# The task opened on the draft (stage initiation).
+initiation_task:
+  title: Confirm context
+  owner_role: owner
+  due_days: 14

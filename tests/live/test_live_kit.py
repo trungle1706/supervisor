@@ -235,3 +235,40 @@ def test_10_environment_summary() -> None:
     for k in keys:
         ascii_print(f"{k}={os.environ.get(k, '(from .env or unset)')}")
     assert "DATABRICKS_TOKEN" not in os.environ
+
+
+# 12 ----------------------------------------------------------------- inventory scan v2 (WP-G3)
+def test_12_inventory_scan_v2_read_calls(live_settings: Any, live_client: Any) -> None:
+    """Calls each read-only call of the scan sources v2 once and prints [OK] with the number of
+    items, or [FAIL] with the exception class. A permission error is reported, not a failure of
+    the kit: the owner reads the lines and tells us which calls their role may use. A missing SDK
+    attribute (AttributeError, TypeError) fails the test: the call shape is wrong."""
+    from supervisor.adapters.workspace.databricks_sdk import DatabricksWorkspaceReader
+
+    reader = DatabricksWorkspaceReader(live_client, max_items=50)
+    schemas = [s.strip() for s in live_settings.inventory_scan_schemas.split(",") if s.strip()]
+    calls: list[tuple[str, Any]] = [
+        ("serving endpoints (entities, agent flag)", reader.list_serving_endpoints),
+        ("registered models", reader.list_registered_models),
+        ("model versions", reader.list_model_versions),
+        ("genie spaces", reader.list_genie_spaces),
+        ("jobs (task parameters)", reader.list_jobs),
+        ("vector search indexes", reader.list_vector_indexes),
+        ("uc connections (mcp flag)", reader.list_connections),
+    ]
+    if schemas:
+        cat, _, sch = schemas[0].partition(".")
+        calls.append((f"uc functions of {schemas[0]}", lambda: reader.list_functions(cat, sch)))
+    else:
+        ascii_print("[SKIP] uc functions: set INVENTORY_SCAN_SCHEMAS=catalog.schema in .env")
+    shape_errors: list[str] = []
+    for label, fn in calls:
+        try:
+            n = len(fn())
+            ascii_print(f"[OK] {label}: {n} item(s)")
+        except (AttributeError, TypeError) as exc:
+            shape_errors.append(label)
+            ascii_print(f"[FAIL] {label}: {type(exc).__name__}: {str(exc)[:200]}")
+        except Exception as exc:  # noqa: BLE001 - e.g. permission denied: report, do not fail
+            ascii_print(f"[FAIL] {label}: {type(exc).__name__} (see docs/inventory.md, scan v2)")
+    assert not shape_errors, f"SDK call shape is wrong for: {shape_errors}"

@@ -439,6 +439,15 @@ class Settings(BaseSettings):
     inventory_self_app: str = ""  # name of this Databricks App (never reported as shadow AI)
     inventory_allowlist_file: Path | None = None  # default config/inventory_allowlist.yaml
     inventory_workspace_fixture: Path | None = None  # offline: JSON fixture instead of a workspace
+    # WP-G3: an unmanaged App, agent endpoint or Genie space becomes a draft ai_system with a
+    # default owner. Needs INVENTORY_ENABLED and GOVERNANCE_ENABLED. Default off: the scan
+    # behaves as before. Owners come from config/governance.yaml (or GOVERNANCE_CONFIG_FILE).
+    # WP-G3 review M2: the six v2 scan sources (model versions, served-entity detail, Genie
+    # spaces, jobs, Vector Search indexes, UC functions, MCP connections) and the Genie shadow
+    # check. Default off: the scan is the WP24 scan, with the same SDK calls.
+    inventory_scan_v2: bool = False
+    inventory_autoregister: bool = False
+    governance_config_file: Path | None = None
 
     # --- WP1b-B --- per-agent monitor bindings (D06, docs/monitors.md). Additive: the
     # monitor flags above keep their meaning. A second folder is read after the built-in
@@ -636,6 +645,7 @@ class Settings(BaseSettings):
         "notify_webhook_dead_letter",
         "inventory_allowlist_file",
         "inventory_workspace_fixture",
+        "governance_config_file",
         "policy_dir",
         "fact_query_map",
         "detectors_config",

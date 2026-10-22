@@ -65,6 +65,39 @@ static the family stays `unknown`. The judge family check still compares familie
 
 Eval and numbers: `docs/onboard-eval.md`. Monitor bindings for the new agent: `docs/monitors.md`.
 
+## Define from an artifact (WP-G3)
+
+An agent that lives in the workspace as an MLflow model has no code repository. `define` runs the first two stages (Discover, Understand) on the artifact folder that `mlflow.<flavor>.log_model` writes, or on a download of it. It writes the same `inventory.json` and `profile.json`, so every later step (inventory fill, compliance advisor, task list) reads them as before.
+
+```
+python -m supervisor.onboard.define --artifact path\to\artifact --out out\define\my_agent
+python -m supervisor.onboard.define --artifact path\to\artifact --out out\x --mock-llm
+python -m supervisor.onboard.define --artifact path\to\artifact --out out\x --llm
+```
+
+| Flag | Meaning |
+|---|---|
+| `--artifact` | The artifact folder (required). It is read only. |
+| `--out` | Output folder. Default `define-out\<artifact name>`. It must be outside the artifact (else `[FAIL]` and exit 1). |
+| `--agent-id` | Agent id. Default: `id` of the tool manifest, else the folder name. |
+| `--llm` / `--mock-llm` | Run the optional model step with the configured model, or with the mock (labelled `mock`). Default: the deterministic profile, no model. |
+
+What it reads (in the artifact folder):
+
+| File | Used for |
+|---|---|
+| `MLmodel` | Flavors, loader module, Python version, the `agent/...` task, signature. Run id, model uuid and creation time are not copied. Written to `artifact.json` with `MLmodel:line` evidence; also gives the framework when the code does not name one. |
+| `requirements.txt` (`requirements*.txt`) | AI packages with their pinned versions and line evidence (`artifact.json`); the framework when the code does not name one. |
+| Code (`*.py`) | Everything Discover finds in a repository: tools, model call sites, endpoints, tables read and written, personal-data fields, approval steps. |
+| Tool manifest | `tools.json`, `tools.yaml`, `tool_manifest.*`, `manifest.yaml` or `agent.yaml`. A bare list or an OpenAI function-calling list (`{"type": "function", "function": {...}}`) is accepted. The tool risk class comes from `risk_class` when given, else from the name rules of Discover. |
+| Prompt files | `prompts/` or a file name with `prompt` (`.txt`, `.md`, `.yaml`, `.json`): kind, excerpt, hash, first line as evidence. |
+
+Output files: `inventory.json` and `profile.json` (same schema as `python -m supervisor.onboard`), `profile.md`, and `artifact.json` (MLmodel and requirements facts). The profile holds the tools with their risk class, the model family, the data touched, the proposed risk tier and the Decision 33 proposal (a proposal: counsel confirms). Every claim carries `file:line` evidence that points into the artifact. To put the result in the inventory: `python -m supervisor.inventory onboarding out\define\my_agent\inventory.json`.
+
+Safety: the existing secret scrubber runs on every text when it is read, so a token in `config.yaml` never reaches an artefact or a model (counts only). Text that looks like a prompt injection is withheld from the artefacts and flagged (ADR D12). No network call is made unless you pass `--llm`, and then the model gets only scrubbed text. The folder is never written to. Output is ASCII (`[OK]`, `[FAIL]`, `[SKIP]`).
+
+Limits: the artifact is read as text. A binary model file is skipped (the weights are not inspected). Code that builds tools at run time cannot be listed (Discover marks such places as dynamic tool sources). Test data: `tests/onboard/data/artifact_credit_memo` (pyfunc, function-calling manifest) and `tests/onboard/data/artifact_collections_mcp` (LangGraph, YAML manifest, MCP server, money tool); both are synthetic and contain one fake token and one planted instruction on purpose.
+
 ## Safety rules (ADR D12)
 
 - Read-only: `LocalGitRepoReader` has no write method; size cap per file; binary files
@@ -107,6 +140,23 @@ code; a sentence in a README or manifest does not. Counsel confirms.
 | payments | high_risk | `transfer` sends money to a payee; no approval step in code |
 | credit_prequal | high_risk | `decide_prequal` records decisions; the "human underwriter" is prose only |
 | customer_service | not_high_risk (by default) | money tools (fee waiver, dispute) have no destination |
+
+## Autonomy level proposal (WP-G3)
+
+`python -m supervisor.onboard.define` also writes `autonomy_level_proposal` in `profile.json`: `level`, `why`, `evidence` (file:line) and `is_proposal`. It is a segmentation dimension; a person confirms it. It is separate from the older `autonomy` field (L0 to L3, WP16), which does not change. Code: `src/supervisor/onboard/autonomy.py`.
+
+| Level | Meaning | Rule (first match wins) |
+|---|---|---|
+| `l5_self_directed` | Sets sub-goals, spawns agents or changes its own tools | Code matches agent spawning, run-time tool creation (`register_tool(`, `add_tool(`) or a self-changing prompt |
+| `l0_rule_based` | No model decides | No model call and no model id found |
+| `l1_assistive` | Model writes text, a person acts | Model call, no tool declared, entry point is a chat or HTTP route |
+| `l2_workflow_step` | A fixed workflow calls a model for one step | Model call, no tool declared, entry point is a job, pipeline or batch handler (batch plus HTTP: l2, the higher one) |
+| `l3_tool_using_supervised` | Model picks tools from a bounded set, a person approves consequential actions | Tools declared and every tool with a side effect sits behind a human approval or interrupt step in code (LangGraph `interrupt`, approval node, confirmation); or all tools only read |
+| `l4_autonomous_bounded` | Plans and executes multi-step work inside an authority boundary | Tools with side effects and no approval step, with or without a planner or loop; an approval step that covers only some tools also gives l4 (mixed evidence: the higher level) |
+
+Heuristic limits (accepted): the rules read code text, not behaviour. A batch or chat entry point is guessed from names and decorators, a `__main__` block alone is not a job, and dynamic tool creation is found only by the listed call names. Treat the level as a starting point for a person.
+
+`why` names the rule and, for mixed evidence, says that the higher level was kept. The draft registration (`INVENTORY_AUTOREGISTER`) copies a proposal found on the node (`attrs.autonomy_level_proposal`) into `ai_system.autonomy_level` only when that column exists (WP-G2); otherwise it does nothing. Fixtures: `artifact_batch_summariser` (l2), `artifact_credit_memo` (l4), `artifact_collections_mcp` (l3).
 
 ## Capability catalogue
 

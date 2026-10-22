@@ -133,6 +133,8 @@ def test_databricks_reader_with_fake_client() -> None:
             "task": "llm/v1/chat",
             "state": "READY",
             "served": ["databricks-llama"],
+            "entities": [{"kind": "foundation_model", "name": "databricks-llama"}],
+            "agent": False,
         }
     ]
     assert r.list_tables("bank", "core") == ["bank.core.accounts", "bank.core.transfers"]

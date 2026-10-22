@@ -285,3 +285,7 @@ through the API. EN and VI strings sit in one block marked WP-G1 in `console/i18
    move? The plan says a team reviewer, an oversight manager or the `approver` role; admin is out.
 5. (WP-G1) Stage moves other than into `deployment` and `operation` need no approval, and a move may
    go back (for example operation to design). Should the bank forbid backward moves?
+
+## 14. Draft systems from the workspace scan (WP-G3)
+
+With `INVENTORY_AUTOREGISTER=1` the inventory scan registers a draft system (status draft, risk `unspecified`, tag `source=workspace_scan`) for each unmanaged App, agent endpoint or Genie space, with a default owner from `config/governance.yaml`, and opens the task "Confirm context". See `docs/inventory.md`, "Draft registration from the scan".

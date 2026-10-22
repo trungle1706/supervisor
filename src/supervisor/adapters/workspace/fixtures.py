@@ -7,6 +7,12 @@ Fixture layout (all keys optional)::
       "serving_endpoints": [{"name": "...", "model": "...", "family": "...", "task": "..."}],
       "registered_models": [{"name": "catalog.schema.model", "owner": "..."}],
       "tables": {"catalog.schema": ["table_a", "table_b"]},
+      "model_versions": [{"model": "cat.sch.m", "version": "3", "aliases": ["champion"]}],
+      "genie_spaces": [{"name": "Credit Q&A", "tables": ["cat.sch.t"]}],
+      "jobs": [{"name": "nightly", "tasks": [{"key": "t1", "kind": "notebook", "values": ["ep"]}]}],
+      "vector_indexes": [{"name": "cat.sch.idx", "source_table": "cat.sch.t"}],
+      "functions": {"catalog.schema": ["catalog.schema.fn"]},
+      "connections": [{"name": "mcp_conn", "type": "HTTP", "mcp": true}],
       "lineage": [{"agent": "payments", "table": "cat.sch.t", "direction": "read"}],
       "traces": [{"agent": "payments", "source": "mlflow", "count": 120}]
     }
@@ -63,3 +69,22 @@ class FixtureWorkspaceReader:
 
     def traces(self) -> Sequence[Mapping[str, Any]]:
         return [dict(x) for x in self.data.get("traces", [])]
+
+    # WP-G3 scan sources v2 (same shapes as DatabricksWorkspaceReader)
+    def list_model_versions(self) -> list[dict[str, Any]]:
+        return [dict(x) for x in self.data.get("model_versions", [])]
+
+    def list_genie_spaces(self) -> list[dict[str, Any]]:
+        return [dict(x) for x in self.data.get("genie_spaces", [])]
+
+    def list_jobs(self) -> list[dict[str, Any]]:
+        return [dict(x) for x in self.data.get("jobs", [])]
+
+    def list_vector_indexes(self) -> list[dict[str, Any]]:
+        return [dict(x) for x in self.data.get("vector_indexes", [])]
+
+    def list_functions(self, catalog: str, schema: str) -> list[str]:
+        return sorted(str(f) for f in self.data.get("functions", {}).get(f"{catalog}.{schema}", []))
+
+    def list_connections(self) -> list[dict[str, Any]]:
+        return [dict(x) for x in self.data.get("connections", [])]

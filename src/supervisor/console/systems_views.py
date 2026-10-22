@@ -239,10 +239,13 @@ def g1_tabs(ctx: Any, system: Mapping[str, Any], tab: str) -> tuple[dict[str, An
     if tab == "reviews":
         extra["reviews"] = reviews
     agents = [c["ref_id"] for c in system["components"] if c["ref_kind"] == "agent"]
-    counts["tasks"] = len(agents)
+    # WP-G3 review M1: tasks opened on the system itself (agent_id = system id), for example
+    # "Confirm context" on a draft made by the workspace scan.
+    own = ctx.tasks.list_tasks({"agent": sid})
+    counts["tasks"] = len(agents) + (1 if own else 0)
     if tab == "tasks":
         extra["lifecycle"] = ctx.lifecycle.status(sid)
-        extra["task_n"] = len(agents)
+        extra["task_n"] = len(agents) + (1 if own else 0)
         extra["tk_off"] = not ctx.settings.controls_enabled
         summaries: list[dict[str, Any]] = []
         for agent_id in agents if not extra["tk_off"] else []:
@@ -250,6 +253,10 @@ def g1_tabs(ctx: Any, system: Mapping[str, Any], tab: str) -> tuple[dict[str, An
                 summaries.append(ctx.tasks.agent_summary(agent_id))
             except Exception:  # noqa: BLE001 - one agent without a list must not stop the tab
                 summaries.append({"agent_id": agent_id, "generated": False, "tasks": []})
+        if own:
+            summaries.insert(
+                0, {"agent_id": sid, "system_own": True, "generated": True, "tasks": own}
+            )
         extra["task_agents"] = summaries
     return extra, counts
 

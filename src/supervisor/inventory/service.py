@@ -141,12 +141,20 @@ class InventoryService:
     def schemas(self) -> list[str]:
         return [s.strip() for s in self.settings.inventory_scan_schemas.split(",") if s.strip()]
 
-    def refresh_workspace(self, reader: Any, cases: Any = None) -> dict[str, Any]:
+    def refresh_workspace(
+        self, reader: Any, cases: Any = None, systems: Any = None, tasks: Any = None
+    ) -> dict[str, Any]:
         """Read the workspace, merge it, run the shadow-AI check (opens cases when ``cases``
         is given). Returns counts. A listing that fails is reported and does not mark the
-        objects of that kind as gone."""
+        objects of that kind as gone. With ``INVENTORY_AUTOREGISTER=1`` and
+        ``GOVERNANCE_ENABLED=1`` an unmanaged App, agent endpoint or Genie space also becomes a
+        draft AI system (``systems``: a ``SystemService``; ``tasks``: a ``TaskService``); the
+        result then has an ``autoregister`` entry. With the flag off the result is unchanged."""
         scan = fill_from_workspace(
-            reader, schemas=self.schemas(), registered=self.declared_apps(self.store.load_graph())
+            reader,
+            schemas=self.schemas(),
+            registered=self.declared_apps(self.store.load_graph()),
+            v2=self.settings.inventory_scan_v2,
         )
         stale = {k for k in scan.ok if k in WORKSPACE_KINDS}
         res = self.store.apply(
@@ -156,11 +164,33 @@ class InventoryService:
             stale_edges=len(scan.errors) == 0,
         )
         sh = self.run_shadow(cases)
-        return {
+        out: dict[str, Any] = {
             "apply": res.as_dict(),
             "shadow": sh.as_dict(),
             "errors": dict(sorted(scan.errors.items())),
         }
+        if self.settings.inventory_autoregister:
+            out["autoregister"] = self._autoregister(systems, tasks)
+        return out
+
+    def _autoregister(self, systems: Any, tasks: Any) -> dict[str, Any]:
+        """Draft registration (WP-G3). Never raises: the scan result does not depend on it."""
+        from supervisor.inventory import autoregister as ar
+
+        if not self.settings.governance_enabled:
+            return ar.AutoRegisterResult(
+                status="skipped", reason="GOVERNANCE_ENABLED is off"
+            ).as_dict()
+        if systems is None:
+            return ar.AutoRegisterResult(status="skipped", reason="no system service").as_dict()
+        try:
+            cfg = ar.GovernanceConfig.load(self.settings.governance_config_file)
+            return ar.autoregister(
+                self.store.load_graph(), systems, self.state, tasks=tasks, cfg=cfg
+            ).as_dict()
+        except Exception:  # noqa: BLE001 - the scan never fails because of governance
+            log.exception("inventory: draft registration failed")
+            return ar.AutoRegisterResult(status="failed", errors=1).as_dict()
 
     # ------------------------------------------------------------------ shadow AI
     def allowlist(self) -> shadow.Allowlist:
@@ -169,7 +199,12 @@ class InventoryService:
 
     def run_shadow(self, cases: Any = None) -> shadow.ShadowResult:
         g = self.store.load_graph()
-        verdicts = shadow.classify(g, self.allowlist(), self_app=self.settings.inventory_self_app)
+        verdicts = shadow.classify(
+            g,
+            self.allowlist(),
+            self_app=self.settings.inventory_self_app,
+            scan_v2=self.settings.inventory_scan_v2,
+        )
         res = shadow.ShadowResult()
         eff = g.effective_risk()
         for nid in sorted(verdicts):

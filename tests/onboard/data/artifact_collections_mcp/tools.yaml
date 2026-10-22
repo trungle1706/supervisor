@@ -1,0 +1,24 @@
+# Tool manifest of the collections reminder agent (synthetic).
+id: collections_reminder
+name: Collections reminder agent
+version: "0.3.0"
+owner: Collections Ops
+description: >
+  Reminds retail customers of overdue instalments by SMS or e-mail, looks up the account and
+  can waive a late fee up to a small limit after an officer approves.
+limits:
+  waive_max_minor: 50000000
+tools:
+  - name: lookup_account
+    risk_class: read_only
+    description: Read the overdue state of an account.
+    args: {account_id: string}
+  - name: send_payment_reminder
+    description: Send a reminder message to the customer by SMS or e-mail.
+    args: {customer_id: string, channel: string, phone: string}
+  - name: waive_late_fee
+    risk_class: money
+    description: Waive the late fee of an account, in VND minor units.
+    args: {account_id: string, amount_minor: integer}
+mcp_servers:
+  - core-banking-mcp
