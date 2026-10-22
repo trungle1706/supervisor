@@ -2887,6 +2887,10 @@ _T.update(
         "ne_payload_too_large": ("payload too large", "dữ liệu quá lớn"),
         "ne_content_uninspectable": ("content could not be read", "không đọc được nội dung"),
         "ne_timed_out": ("a detector timed out", "một bộ phát hiện quá thời gian"),
+        "ne_budget_exhausted": (  # WP-D4
+            "a detector ran out of its time or call budget",
+            "một bộ phát hiện hết ngân sách thời gian hoặc số lần gọi",
+        ),
         "ne_skipped_by_policy": ("skipped by policy", "bị bỏ qua theo chính sách"),
         "ne_gate_failed": ("the gate could not decide", "cổng không thể quyết định"),
         "not_applicable": ("Not applicable", "Không áp dụng"),

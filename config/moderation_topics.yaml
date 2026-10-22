@@ -1,18 +1,20 @@
 # Draft topics for the judge_moderation detector (WP-D4, docs/detectors.md section 3e).
 #
-# These are EDITABLE DRAFTS, in the bank's own hands. None is enabled: this file is a menu, the
+# These are EDITABLE DRAFTS for the bank to adapt. None is enabled: this file is a menu and the
 # detector never reads it. To use a topic, copy its `name` and `definition` (in the language of
 # your traffic) into `detectors.judge_moderation.settings.topics` in config/detectors.yaml, or
 # into the per-agent override (agents.<id>.detectors.settings.judge_moderation.topics).
 #
-# Rules for the detector: at most 5 topics per detector, a name up to 120 characters and unique,
-# a definition up to 400 characters. The DEFINITION is what the judge scores; the name is only
-# the label of the finding (moderation.topic:<name>).
+# Limits: at most 5 topics per detector; a name up to 120 characters and unique; a definition up
+# to 400 characters on one line (no line breaks or other control characters). The judge reads the
+# DEFINITION; the name is only the label of the finding (moderation.topic:<name>).
 #
-# How to write a definition: one plain sentence that says what belongs to the topic. Do not name
-# a neighbouring topic to rule it out. Do not paste example messages. Write it in the language
-# of most of your traffic. A draft that you never edit is still the wording that is scored, so
-# test it on sample messages with the harness before you turn it on.
+# Wording tips. State the subject itself in one plain sentence, in the language most of your
+# customers write in. Keep the sentence about the subject only: a sentence that lists what the
+# subject is NOT tends to attract the very text it excludes, so narrow the subject instead.
+# Leave sample customer messages out of the sentence. Whatever wording is saved is the wording
+# that is used, drafts included, so run the harness on a few real-looking messages before you
+# turn a topic on.
 version: 1
 topics:
   - key: financial_advice
@@ -51,17 +53,18 @@ topics:
       definition: >-
         Đảng phái, bầu cử, chính trị gia, tranh luận về chính sách của nhà nước, biểu tình và
         các vấn đề quyền lực chính trị khác.
-  - key: religion
+  - key: loan_approval_promises
     enabled: false
     en:
-      name: Religion
+      name: Loan approval promises
       definition: >-
-        Faith, worship, scripture, religious leaders, rituals and the comparison of beliefs.
+        Promises or guarantees that a loan, credit limit or refund will be approved, or that an
+        interest rate or fee waiver is certain, before any decision is made.
     vi:
-      name: Tôn giáo
+      name: Hứa hẹn duyệt khoản vay
       definition: >-
-        Đức tin, thờ cúng, kinh sách, chức sắc tôn giáo, nghi lễ và việc so sánh các tín
-        ngưỡng.
+        Lời hứa hoặc cam kết chắc chắn khoản vay, hạn mức hay hoàn tiền sẽ được duyệt, hoặc lãi
+        suất và miễn phí cố định, trước khi có quyết định.
   - key: competitor_products
     enabled: false
     en:
@@ -120,13 +123,15 @@ topics:
       name: Nội dung người lớn
       definition: >-
         Tài liệu khiêu dâm, truyện gợi dục và yêu cầu về nội dung tình dục.
-  - key: code_generation
+  - key: staff_and_security_details
     enabled: false
     en:
-      name: Code generation
+      name: Staff and branch security
       definition: >-
-        Requests to write, complete or fix source code, scripts, formulas or SQL queries.
+        Names, rosters, home details or movements of bank employees, and branch security
+        routines, alarm codes, vault access or cash transport timing.
     vi:
-      name: Viết mã nguồn
+      name: Nhân viên và an ninh chi nhánh
       definition: >-
-        Yêu cầu viết, hoàn thiện hoặc sửa mã nguồn, tập lệnh, công thức hoặc câu truy vấn SQL.
+        Tên, lịch làm việc, thông tin cá nhân hoặc việc đi lại của nhân viên ngân hàng, và quy
+        trình an ninh chi nhánh, mã báo động, ra vào kho quỹ hoặc lịch vận chuyển tiền mặt.

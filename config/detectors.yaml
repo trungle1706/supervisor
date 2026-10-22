@@ -54,3 +54,6 @@ detectors:
     settings:
       toxicity: {enabled: false}
       topics: []
+      # max_calls: 12      # hard cap of model calls per check (one call per text window)
+      # timeout_ms: 8000   # this detector's own deadline; empty = limits.timeout_ms. A real judge
+      #                    # model needs seconds; it stops asking at 80 percent of this value.

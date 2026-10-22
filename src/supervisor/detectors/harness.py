@@ -678,11 +678,11 @@ def main(argv: list[str] | None = None) -> int:
             path = validation.write_baseline(report)
             print(f"[OK] baseline written: {path}")
     if args.check:
-        problems = compare(
-            report,
-            json.loads(BASELINE.read_text(encoding="utf-8")),
-            partial=bool(args.detector or args.split),
-        )
+        baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+        problems = compare(report, baseline, partial=bool(args.detector or args.split))
+        for slug in report["detectors"]:  # WP-D4: a new detector is not guarded until recorded
+            if slug != CLASSIFIER and slug not in baseline["detectors"]:
+                print(f"[NOTE] {slug} not in baseline.json: run --record")
         if CLASSIFIER in report["detectors"]:
             from supervisor.detectors.injection_classifier import validation
 

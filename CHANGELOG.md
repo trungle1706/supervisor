@@ -7,9 +7,14 @@
 New detector `judge_moderation` (phase 5), off by default (`enabled: false`, `mrm_status: NO-GO`);
 absent or off = nothing changes. Details: `docs/detectors.md` section 3e.
 
-- Toxicity (one answer) and up to 5 topics `{name, definition}` (definition up to 400 characters, the
-  definition is what is scored), input and output, one judge prompt per question on masked text,
-  overlapping windows, highest score per topic. Findings `moderation.toxic` and
+- Toxicity (one answer) and up to 5 topics `{name, definition}` (definition up to 400 characters on one
+  line, the definition is what the judge reads), input and output, ONE judge prompt per text window on
+  masked text with every question in it (at most 10 calls per check, `max_calls` default 12), overlapping
+  windows, highest "yes" score per topic; a "no" never gives a finding. A deadline (80 percent of the
+  gate timeout, or the per-detector `timeout_ms` setting) stops the calls; unasked questions are
+  `not_executed` `budget_exhausted` (new reason, advisory). Review fixes: topic definitions escaped and
+  quoted in the prompt; two draft topics renamed to bank topics (loan approval promises, staff and
+  branch security). Findings `moderation.toxic` and
   `moderation.topic:<name>`, report only, never fail closed. MockJudge without a judge model,
   every finding `mock: true`. Strict topic checks when `config/detectors.yaml` or an agent override
   loads.

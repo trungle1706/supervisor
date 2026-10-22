@@ -54,6 +54,7 @@ NOT_EXECUTED_REASONS: tuple[str, ...] = (
     "content_uninspectable",
     "not_applicable_for_direction",
     "timed_out",
+    "budget_exhausted",  # WP-D4: a budgeted detector (judge_moderation) stopped asking
 )
 # Reasons that mean "we could not look". Fail closed on money, credit and PII-export tools.
 FAILURE_REASONS: frozenset[str] = frozenset(NOT_EXECUTED_REASONS) - {"not_applicable_for_direction"}
@@ -830,10 +831,20 @@ class DetectorRegistry:
                 )
                 continue
             t0 = clock_ns()
+            # WP-D4: a detector with a `timeout_ms` setting has its own deadline (default: the
+            # gate's). A budget-aware detector is told the deadline so it stops asking its model
+            # and frees its thread slot before the gate gives up on it.
+            own_ms = clean.get("timeout_ms")
+            timeout_ms = own_ms if isinstance(own_ms, int) and own_ms > 0 else config.timeout_ms
+            run_settings = (
+                {**clean, "_budget_ms": timeout_ms}
+                if getattr(det, "budget_aware", False)
+                else clean
+            )
             try:
                 found = _call_bounded(
-                    lambda det=det, clean=clean, view=view: det.evaluate(view, clean, direction),
-                    config.timeout_ms / 1000,
+                    lambda det=det, s=run_settings, view=view: det.evaluate(view, s, direction),
+                    timeout_ms / 1000,
                 )
             except (TimeoutError, _NoSlot) as exc:
                 took_us = (clock_ns() - t0) // 1000
@@ -849,7 +860,7 @@ class DetectorRegistry:
                 continue
             took_us = (clock_ns() - t0) // 1000
             res.per_detector_us[slug] = took_us
-            if took_us > config.timeout_ms * 1000:
+            if took_us > timeout_ms * 1000:
                 res.not_executed.append(
                     not_executed(slug, did, "timed_out", f"{took_us // 1000} ms", preset=preset)
                 )

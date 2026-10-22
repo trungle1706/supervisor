@@ -1,29 +1,35 @@
-"""``judge_moderation``: toxicity and topic scope by the judge model, report only (WP-D4).
+"""``judge_moderation``: harmful language and subject scope, asked of the judge (WP-D4).
 
-Two kinds of question, each with its own prompt (``judge/moderation.py``):
+The detector puts up to six yes or no questions to the judge model about a text:
 
-* ``toxicity``: one yes or no answer with a score. Finding ``moderation.toxic``.
-* ``topics``: up to five ``{name, definition}`` entries. Each topic is scored on its own and the
-  definition is what is scored (the name is only the label). Finding
-  ``moderation.topic:<name>``.
+* ``toxicity``: is the text harmful language? Finding ``moderation.toxic``.
+* ``topics``: up to five ``{name, definition}`` entries. The definition is the subject the text
+  is compared with; the name is only the label of the finding ``moderation.topic:<name>``.
 
-On the input side the text is the user text in ``args`` (the latest user message when ``args``
-holds a message list); on the output side it is the assistant text in ``output``. Long text is
-read up to 10 000 characters, in overlapping windows; the highest window score per question wins.
+The input text is the user text in ``args`` (the latest user message when ``args`` holds a
+message list); the output text is the ``output`` part. A long text is read up to 10 000
+characters in overlapping windows, and the highest "yes" score of a question over the windows is
+its score. All questions go in ONE prompt per window, so a check costs at most 10 model calls
+(``max_calls`` caps it, default 12), usually 1 to 3, and it stops at a deadline.
 
 Rules the code keeps:
 
 * R1. Every finding says ``report``. Nothing in the gate reads these scores to block or pause,
-  and the detector is advisory (never fails closed).
+  and the detector is advisory (never fails closed). A "no" answer never gives a finding.
 * The judge sees the MASKED text only (masked once, before the windows are cut).
 * Without a real judge model the MockModerationChat answers and every finding says
-  ``mock: true``. A judge that cannot answer is a ``not_executed`` entry, never a pass.
+  ``mock: true``. A judge that cannot answer is a ``not_executed`` entry, never a pass; a
+  question that was not asked because the deadline or call cap came first is
+  ``not_executed`` with reason ``budget_exhausted``.
+* The gate tells this detector its deadline (``_budget_ms``); the detector stops asking at 80
+  percent of it, so its thread leaves the shared pool before the gate gives up on it.
 * The judge model family rule is checked where the judge is built (``JudgeRouter``); this
   detector takes the judge the product already built for ``judge_advisory``.
 """
 
 from __future__ import annotations
 
+import time
 from collections.abc import Mapping
 from typing import Any
 
@@ -38,13 +44,25 @@ from supervisor.core.detectors import (
 )
 from supervisor.core.ports import Masker
 from supervisor.detectors.judge_advisory import PRESETS, mock_tier1
-from supervisor.judge.moderation import MAX_TEXT_CHARS, Answer, ModerationJudge
+from supervisor.judge.moderation import (
+    MAX_CALLS,
+    MAX_TEXT_CHARS,
+    TOXIC_ID,
+    ModerationJudge,
+    Question,
+)
 from supervisor.judge.runner import TierJudge
 
 MAX_TOPICS = 5
 MAX_NAME_CHARS = 120
 MAX_DEFINITION_CHARS = 400
 TOPIC_KEYS = ("name", "definition")
+DEADLINE_SHARE = 0.8  # of the gate's time for this detector
+DEFAULT_BUDGET_MS = 500  # when the detector is called without a gate (the harness)
+
+
+def _has_control(text: str) -> bool:
+    return any(ord(c) < 32 or ord(c) == 127 for c in text)
 
 
 def topic_problems(topics: Any) -> list[str]:
@@ -70,7 +88,7 @@ def topic_problems(topics: Any) -> list[str]:
             out.append(f"{where}.name: required text")
         elif len(name) > MAX_NAME_CHARS:
             out.append(f"{where}.name: longer than {MAX_NAME_CHARS} characters")
-        elif any(ord(c) < 32 for c in name):
+        elif _has_control(name):
             out.append(f"{where}.name: control characters")
         elif name in seen:
             out.append(f"{where}.name: duplicate")
@@ -80,6 +98,8 @@ def topic_problems(topics: Any) -> list[str]:
             out.append(f"{where}.definition: required text")
         elif len(definition) > MAX_DEFINITION_CHARS:
             out.append(f"{where}.definition: longer than {MAX_DEFINITION_CHARS} characters")
+        elif _has_control(definition):
+            out.append(f"{where}.definition: control characters (write it as one line)")
     return out
 
 
@@ -105,12 +125,13 @@ def extract_text(part: str, value: Any) -> str:
 
 class JudgeModerationDetector:
     slug = "judge_moderation"
-    name = "Moderation: toxicity and topics (judge, advisory)"
+    name = "Moderation: harmful language and subject scope (judge, advisory)"
     category = "advisory"
     version = "1.0.0"
     sides = ("input", "output")
     protocols = ("all",)
     presets = PRESETS
+    budget_aware = True  # the registry passes `_budget_ms` (this detector's deadline)
     settings_schema = SettingsSchema(
         (
             SettingField(
@@ -121,7 +142,7 @@ class JudgeModerationDetector:
                 fields=(
                     SettingField(
                         "enabled",
-                        "Ask whether the text is toxic",
+                        "Ask whether the text is harmful language",
                         "boolean",
                         default=False,
                     ),
@@ -135,8 +156,30 @@ class JudgeModerationDetector:
                 default=[],
                 max_length=MAX_TOPICS,
                 description=(
-                    "Each topic is scored on its own. The definition (up to 400 characters) is "
-                    "what is scored; the name is only the label of the finding."
+                    "Each topic is a subject the text is compared with. The definition (up to "
+                    "400 characters, one line) is what the judge reads; the name is only the "
+                    "label of the finding."
+                ),
+            ),
+            SettingField(
+                "max_calls",
+                "Most model calls for one check",
+                "integer",
+                default=MAX_CALLS,
+                minimum=1,
+                maximum=30,
+                description="One call per text window; retries count. Hard cap per check.",
+            ),
+            SettingField(
+                "timeout_ms",
+                "Time this detector may take (ms); empty = the gate's timeout",
+                "integer",
+                default=None,
+                minimum=10,
+                maximum=60_000,
+                description=(
+                    "Replaces limits.timeout_ms for this detector only. A real judge model "
+                    "needs seconds, not the 500 ms of the gate."
                 ),
             ),
         )
@@ -156,6 +199,7 @@ class JudgeModerationDetector:
     def evaluate(
         self, payload: Mapping[str, Any], settings: Mapping[str, Any], direction: str
     ) -> list[Finding]:
+        started = time.monotonic()
         did = detector_id(self)
         preset = str(settings.get("preset") or "balanced")
         tox = settings.get("toxicity")
@@ -170,34 +214,42 @@ class JudgeModerationDetector:
         if not text.strip():
             return []
         threshold = threshold_for(self, settings)
-        windows_ = self.mod.prepare(text)
-        findings: list[Finding] = []
-        failed = ""
-        asked: list[tuple[str, Answer]] = []
+        budget_ms = int(settings.get("_budget_ms") or DEFAULT_BUDGET_MS)
+        deadline = started + DEADLINE_SHARE * budget_ms / 1000
+        questions: list[Question] = []
+        codes: dict[str, str] = {}
         if want_toxic:
-            asked.append(("moderation.toxic", self.mod.toxic(windows_)))
-        for t in topics:
-            asked.append(
-                (f"moderation.topic:{t['name']}", self.mod.topic(t["definition"], windows_))
-            )
-        for code, ans in asked:
-            if ans.score_bp is None:
-                failed = failed or ans.status
-                continue
-            if ans.score_bp < threshold:
-                continue
-            findings.append(
-                Finding(
-                    detector_slug=self.slug,
-                    detector_id=did,
-                    code=code,
-                    score_bp=ans.score_bp,
-                    threshold_bp=threshold,
-                    action_hint="report",
-                    preset=preset,
-                    is_mock=ans.is_mock,
+            questions.append(Question(TOXIC_ID))
+            codes[TOXIC_ID] = "moderation.toxic"
+        for i, t in enumerate(topics, 1):
+            questions.append(Question(f"t{i}", t["definition"]))
+            codes[f"t{i}"] = f"moderation.topic:{t['name']}"
+        answers = self.mod.ask(
+            questions,
+            self.mod.prepare(text),
+            deadline=deadline,
+            max_calls=int(settings.get("max_calls") or MAX_CALLS),
+        )
+        findings: list[Finding] = []
+        failed: list[str] = []
+        for q in questions:
+            ans = answers[q.qid]
+            if ans.status not in ("ok", "no_text") and ans.status not in failed:
+                failed.append(ans.status)
+            if ans.score_bp and ans.score_bp >= threshold:  # only a "yes" has a score
+                findings.append(
+                    Finding(
+                        detector_slug=self.slug,
+                        detector_id=did,
+                        code=codes[q.qid],
+                        score_bp=ans.score_bp,
+                        threshold_bp=threshold,
+                        action_hint="report",
+                        preset=preset,
+                        is_mock=ans.is_mock,
+                    )
                 )
-            )
-        if failed:
-            findings.append(not_executed(self.slug, did, "execution_failed", failed, preset))
+        for status in failed:
+            reason = "budget_exhausted" if status == "budget_exhausted" else "execution_failed"
+            findings.append(not_executed(self.slug, did, reason, status, preset))
         return findings

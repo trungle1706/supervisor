@@ -255,7 +255,7 @@ Art. 15(5)(b) safe shutdown of data, model and configuration). ADR D03 has the a
 ## 9. Moderation questions (WP-D4)
 
 The detector `judge_moderation` (`docs/detectors.md` section 3e) asks the Tier 1 judge model two
-kinds of yes or no question, toxicity and up to five topic definitions, on masked text. It is not
+kinds of yes or no question, harmful language and up to five topic definitions, on masked text, all in one prompt per text window. It is not
 a trace judge: it has its own prompt and reply schema (`judge/moderation.py`) and it does not use
 the Tier 1 trace record. It uses the same model and the same family rule. It advises only: its
 findings are `report` hints, and `mrm_status: NO-GO` means they weigh 0 in the session monitor. It

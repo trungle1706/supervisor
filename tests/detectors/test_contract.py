@@ -91,6 +91,7 @@ def test_not_executed_reasons_are_the_fixed_list() -> None:
         "content_uninspectable",
         "not_applicable_for_direction",
         "timed_out",
+        "budget_exhausted",  # WP-D4
     }
     assert "not_applicable_for_direction" not in D.FAILURE_REASONS
 
