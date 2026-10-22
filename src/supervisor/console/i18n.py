@@ -4266,6 +4266,25 @@ _T.update(
 )
 
 
+# WP-D4: judge moderation detector (Catalog card)
+_T.update(
+    {
+        "cat_judge_moderation": (
+            "Judge moderation detector",
+            "Bộ phát hiện kiểm duyệt của giám khảo",
+        ),
+        "cat_judge_moderation_d": (
+            "Asks the judge whether text is toxic and whether it belongs to up to five topics "
+            "you define, on the user text and on the reply. Advises and reports only; the "
+            "mock judge is labelled mock.",
+            "Hỏi giám khảo xem văn bản có độc hại không và có thuộc tối đa năm chủ đề do bạn "
+            "định nghĩa không, trên văn bản người dùng và trên câu trả lời. Chỉ tư vấn và báo "
+            "cáo; giám khảo giả được gắn nhãn mock.",
+        ),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

@@ -43,3 +43,14 @@ detectors:
     fail_closed: false          # uses the mock judge and every finding is labelled mock.
     mrm_status: NO-GO           # an advisor: weighs 0 in sessions
     settings: {}
+  # WP-D4: toxicity and topic scope by the judge model. Report only, never fail closed (R1).
+  # Both questions are off until you set them: toxicity.enabled, or topics (at most 5 entries,
+  # each {name, definition}; definition up to 400 characters; the definition is what is scored).
+  # Editable drafts to copy from: config/moderation_topics.yaml (none of them is enabled).
+  judge_moderation:
+    enabled: false              # Off: every question is one judge call per text window. With no
+    fail_closed: false          # judge model set it uses the mock judge (labelled mock).
+    mrm_status: NO-GO           # an advisor: weighs 0 in sessions until a real judge run says GO
+    settings:
+      toxicity: {enabled: false}
+      topics: []
