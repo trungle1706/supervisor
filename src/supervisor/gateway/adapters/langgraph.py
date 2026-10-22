@@ -34,10 +34,11 @@ from __future__ import annotations
 
 import copy
 import dataclasses
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
 from supervisor.core.ports import GateHook
+from supervisor.gateway.adapters import attachments
 from supervisor.gateway.adapters.common import (
     CLOSED_RISK,
     GateAnswer,
@@ -153,6 +154,8 @@ class SupervisorToolMiddleware:
         send_tool_results: bool = True,
         tool_results_count: int = 3,
         tool_result_max_bytes: int = 16_384,
+        send_documents: bool = True,
+        documents_getter: Callable[[Any], Sequence[Any] | None] | None = None,
     ) -> None:
         if on_block not in ("raise", "message"):
             raise ValueError("on_block must be 'raise' or 'message'")
@@ -173,6 +176,10 @@ class SupervisorToolMiddleware:
         self.send_tool_results = send_tool_results
         self.tool_results_count = max(0, min(int(tool_results_count), 10))
         self.tool_result_max_bytes = max(256, int(tool_result_max_bytes))
+        # WP-D1: files attached to the newest human message go to the gate as context.documents,
+        # but only while DOCUMENT_INTAKE_ENABLED is on in this process (GateClient checks it)
+        self.send_documents = send_documents
+        self.documents_getter = documents_getter
 
     def _input_ctx(self, request: Any) -> dict[str, Any]:
         """Context of an input check: the tool call id and, if enabled, the recent tool results."""
@@ -193,15 +200,40 @@ class SupervisorToolMiddleware:
 
     # ------------------------------------------------------------------ pieces
 
+    def _documents(self, request: Any) -> list[dict[str, Any]] | None:
+        """WP-D1: the attachments of this run (None when off, none found, or on any error)."""
+        if not self.send_documents or not attachments.intake_on():
+            return None
+        try:
+            if self.documents_getter is not None:
+                return attachments.to_documents(self.documents_getter(request))
+            state = getattr(request, "state", None)
+            messages = (
+                state.get("messages")
+                if isinstance(state, Mapping)
+                else getattr(state, "messages", None)
+            )
+            return attachments.latest_user_attachments(messages) or None
+        except Exception:  # noqa: BLE001 - a strange state means no documents, never an error
+            return None
+
     def _input_check(self, request: Any, cid: str) -> tuple[Any, GateAnswer | None]:
         tc = request.tool_call
         args = tc.get("args")
         args = dict(args) if isinstance(args, Mapping) else {"value": args}
         ctx = self._input_ctx(request)
-        return args, self._ask(request, tc.get("name"), args, "input", ctx, cid)
+        docs = self._documents(request)
+        return args, self._ask(request, tc.get("name"), args, "input", ctx, cid, docs)
 
     def _ask(
-        self, request: Any, name: Any, args: dict[str, Any], direction: str, ctx: dict, cid: str
+        self,
+        request: Any,
+        name: Any,
+        args: dict[str, Any],
+        direction: str,
+        ctx: dict,
+        cid: str,
+        documents: Sequence[Any] | None = None,
     ) -> GateAnswer:
         return self.client.check(
             name,
@@ -211,6 +243,7 @@ class SupervisorToolMiddleware:
             correlation_id=cid,
             consumer_id=_resolve(self.consumer_id, request),
             session_id=_resolve(self.session_id, request),
+            documents=documents,
         )
 
     def _skip_transform(self, ans: GateAnswer) -> bool:
@@ -303,8 +336,9 @@ class SupervisorToolMiddleware:
             args = tc.get("args")
             args = dict(args) if isinstance(args, Mapping) else {"value": args}
             ctx = self._input_ctx(request)
+            docs = self._documents(request)
             ans = await asyncio.to_thread(
-                self._ask, request, tc.get("name"), args, "input", ctx, cid
+                self._ask, request, tc.get("name"), args, "input", ctx, cid, docs
             )
             request = self._after_input(request, args, ans)
         except SupervisorBlocked as exc:

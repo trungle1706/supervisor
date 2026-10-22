@@ -27,6 +27,7 @@ from collections.abc import Awaitable, Callable, Iterable, Mapping, MutableMappi
 from typing import Any
 
 from supervisor.core.ports import GateHook
+from supervisor.gateway.adapters import attachments
 from supervisor.gateway.adapters.common import (
     CORRELATION_HEADER,
     UNAVAILABLE_RULES,
@@ -147,6 +148,23 @@ class SupervisorASGIMiddleware:
                 args["text"] = body.decode("utf-8", "replace")
         return args
 
+    @classmethod
+    def _upload(
+        cls, scope: Scope, body: bytes
+    ) -> tuple[dict[str, Any], list[dict[str, Any]] | None]:
+        """(args, documents) of an input check. WP-D1: with DOCUMENT_INTAKE_ENABLED on in this
+        process, a ``multipart/form-data`` request sends its files as ``context.documents`` and
+        its text fields as ``args.form`` (the raw multipart body is not sent as text). Anything
+        else, and every request with the switch off, is as before."""
+        if attachments.intake_on():
+            ctype = _header(scope, "content-type") or ""
+            docs, fields = attachments.multipart_parts(ctype, body)
+            if docs or fields:
+                args = {"method": str(scope.get("method", "")), "path": scope["path"][:512]}
+                args["form"] = fields
+                return args, docs or None
+        return cls._args_of(scope, body), None
+
     @staticmethod
     def _body_from(answer: GateAnswer, original: bytes) -> bytes | None:
         """The body to pass on; None when masked values exist but cannot be applied."""
@@ -174,12 +192,14 @@ class SupervisorASGIMiddleware:
             if too_big:  # the body is partly read: it cannot be passed on, in any fail mode
                 await self._reply(send, 413, {"error": "too large", "correlation_id": cid}, cid)
                 return
+            args_in, docs = self._upload(scope, body)
             ans = await self.client.acheck(
                 self.tool_name,
-                self._args_of(scope, body),
+                args_in,
                 correlation_id=cid,
                 consumer_id=consumer,
                 session_id=session,
+                documents=docs,
             )
             if (stop := GateClient.refusal(ans)) is not None:
                 await self._refuse(send, stop)

@@ -27,11 +27,12 @@ import json
 import re
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from supervisor.core.ports import GateHook
+from supervisor.gateway.adapters import attachments
 from supervisor.gateway.sdk import CORRELATION_HEADER, SupervisorBlocked, SupervisorPaused
 
 ID_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}\Z")
@@ -235,9 +236,12 @@ class GateClient:
         correlation_id: str | None = None,
         consumer_id: Any = None,
         session_id: Any = None,
+        documents: Sequence[Any] | None = None,
     ) -> GateAnswer:
         """Ask the gate. Never raises. A strange id is dropped (consumer, session) or replaced
-        (correlation id), never forwarded."""
+        (correlation id), never forwarded. ``documents`` (WP-D1) are the files the user attached
+        (see ``attachments.to_documents``); they are sent as ``context.documents`` only when
+        ``DOCUMENT_INTAKE_ENABLED`` is on in this process, otherwise they are not sent."""
         t0 = time.perf_counter()
         tool = safe_tool_name(tool_name)
         cid = clean_id(correlation_id) or new_correlation_id()
@@ -254,6 +258,10 @@ class GateClient:
                 ctx[key] = ok
             else:
                 ctx.pop(key, None)
+        if documents and direction == "input" and attachments.intake_on():
+            found = attachments.to_documents(documents)
+            if found:
+                ctx["documents"] = found
         payload_args = dict(args or {})
         too_big = (
             _size(payload_args) + _size(ctx.get("output")) + _size(ctx.get("tool_results"))

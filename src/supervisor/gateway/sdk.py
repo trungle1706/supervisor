@@ -333,6 +333,12 @@ def apply_transformed(
         ) from None
 
 
+def _documents_on() -> bool:
+    from supervisor.gateway.adapters.attachments import intake_on
+
+    return intake_on()
+
+
 def set_default_gate(gate: GateHook | None) -> None:
     global _default_gate
     _default_gate = gate
@@ -357,8 +363,15 @@ def supervised_tool(
     tool_name: str,
     risk_class: str,
     gate: GateHook | None = None,
+    documents_arg: str | None = None,
 ) -> Callable[[F], F]:
-    """Decorator: ask the gate before the tool runs; do not run it unless allowed."""
+    """Decorator: ask the gate before the tool runs; do not run it unless allowed.
+
+    ``documents_arg`` (WP-D1) names a parameter of the tool that holds the files the user attached
+    (bytes, ``(name, bytes)`` pairs, ``pathlib.Path`` objects or document dicts). While
+    ``DOCUMENT_INTAKE_ENABLED`` is on in this process the files go to the gate as
+    ``context.documents`` and the parameter is left out of ``args``; with the switch off nothing
+    changes."""
 
     def resolve() -> GateHook:
         g = gate or _default_gate
@@ -388,13 +401,26 @@ def supervised_tool(
         if risk_class == "pii_export" and inline_redaction_on():
             warn_inline_once()
 
+        def with_documents(
+            bound_args: dict[str, Any],
+        ) -> tuple[dict[str, Any], dict[str, Any]]:
+            """(args, context) for the gate call. WP-D1: off, both are what they were."""
+            if documents_arg is None or not _documents_on():
+                return bound_args, context
+            from supervisor.gateway.adapters.attachments import to_documents
+
+            args_ = dict(bound_args)
+            found = to_documents(args_.pop(documents_arg, None))
+            return args_, ({**context, "documents": found} if found else context)
+
         if inspect.iscoroutinefunction(fn):
 
             @functools.wraps(fn)
             async def awrapper(*args: Any, **kwargs: Any) -> Any:
                 g = resolve()
+                gate_args, gate_ctx = with_documents(bind(args, kwargs))
                 decision = await asyncio.to_thread(
-                    g.check, agent_id, agent_version, tool_name, bind(args, kwargs), context
+                    g.check, agent_id, agent_version, tool_name, gate_args, gate_ctx
                 )
                 _enforce(decision)
                 args, kwargs = apply_transformed(sig, args, kwargs, decision)
@@ -405,7 +431,8 @@ def supervised_tool(
         @functools.wraps(fn)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             g = resolve()
-            decision = g.check(agent_id, agent_version, tool_name, bind(args, kwargs), context)
+            gate_args, gate_ctx = with_documents(bind(args, kwargs))
+            decision = g.check(agent_id, agent_version, tool_name, gate_args, gate_ctx)
             _enforce(decision)
             args, kwargs = apply_transformed(sig, args, kwargs, decision)
             return fn(*args, **kwargs)
