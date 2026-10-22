@@ -3340,6 +3340,88 @@ _T.update(
 )
 
 
+_T.update(
+    {
+        # --- WP-G2: Rules and Classification tabs of the system page ---
+        "sy_tab_rules": ("Rules", "Quy tắc"),
+        "sy_tab_classification": ("Classification", "Phân loại"),
+        "sy_rules_intro": (
+            "What the assignment rules put on this system. The same system and the same rules "
+            "file always give the same list.",
+            "Những gì quy tắc phân công gán cho hệ thống này. Cùng hệ thống và cùng tệp quy tắc "
+            "luôn cho cùng một danh sách.",
+        ),
+        "sy_rules_none": (
+            "No rule has fired for this system yet.",
+            "Chưa có quy tắc nào áp dụng cho hệ thống này.",
+        ),
+        "sy_rules_file": ("Rules file sha256", "sha256 của tệp quy tắc"),
+        "sy_rules_run": ("Run the rules now", "Chạy quy tắc ngay"),
+        "sy_rules_floor": (
+            "Guardian floor (cannot be switched off)",
+            "Mức sàn bảo vệ (không thể tắt)",
+        ),
+        "sy_rules_floor_none": ("No feature is mandatory.", "Không có tính năng bắt buộc."),
+        "sy_rules_off_hint": (
+            "Rows switched off stay as history.",
+            "Các dòng đã tắt được giữ lại làm lịch sử.",
+        ),
+        "sy_rule_col_kind": ("Kind", "Loại"),
+        "sy_rule_col_ref": ("Assigned", "Được gán"),
+        "sy_rule_col_rule": ("Rule", "Quy tắc"),
+        "sy_rule_col_fields": ("Fields that fired", "Trường kích hoạt"),
+        "sy_rule_col_status": ("Status", "Trạng thái"),
+        "sy_rule_active": ("active", "đang bật"),
+        "sy_rule_inactive": ("off", "đã tắt"),
+        "sy_kind_obligation": ("Obligation", "Nghĩa vụ"),
+        "sy_kind_control": ("Control", "Kiểm soát"),
+        "sy_kind_risk": ("Risk", "Rủi ro"),
+        "sy_kind_task": ("Task", "Nhiệm vụ"),
+        "sy_kind_guardian": ("Guardian feature", "Tính năng bảo vệ"),
+        "sy_cls_intro": (
+            "Decision 33 question flow. Answers come from the system fields where they can. A "
+            "person edits and applies; nothing is applied by itself.",
+            "Luồng câu hỏi theo Quyết định 33. Câu trả lời lấy từ các trường của hệ thống khi có "
+            "thể. Con người chỉnh sửa và áp dụng; không có gì tự động áp dụng.",
+        ),
+        "sy_cls_illustrative": (
+            "Illustrative, not legal advice. Counsel confirms.",
+            "Mang tính minh họa, không phải tư vấn pháp lý. Cần luật sư xác nhận.",
+        ),
+        "sy_cls_current": ("Applied classification", "Phân loại đã áp dụng"),
+        "sy_cls_none_applied": ("Not applied yet.", "Chưa áp dụng."),
+        "sy_cls_draft": ("Draft", "Bản nháp"),
+        "sy_cls_no_draft": ("There is no draft.", "Chưa có bản nháp."),
+        "sy_cls_make": ("Make a draft from the rules", "Tạo bản nháp từ quy tắc"),
+        "sy_cls_remake": ("Start again from the rules", "Làm lại từ quy tắc"),
+        "sy_cls_save": ("Save answers", "Lưu câu trả lời"),
+        "sy_cls_apply": ("Apply this classification", "Áp dụng phân loại này"),
+        "sy_cls_confirm_ai": (
+            "I checked the AI pre-filled answers",
+            "Tôi đã kiểm tra các câu trả lời do AI điền sẵn",
+        ),
+        "sy_cls_outcome": ("Outcome of the draft", "Kết quả của bản nháp"),
+        "sy_cls_rule": ("Decided by", "Quyết định bởi"),
+        "sy_cls_q": ("Question", "Câu hỏi"),
+        "sy_cls_a": ("Answer", "Trả lời"),
+        "sy_cls_src": ("Source", "Nguồn"),
+        "sy_cls_why": ("Justification", "Lý giải"),
+        "sy_cls_open": ("not answered", "chưa trả lời"),
+        "sy_cls_yes": ("yes", "có"),
+        "sy_cls_no": ("no", "không"),
+        "sy_cls_src_rules": ("from system fields", "từ trường của hệ thống"),
+        "sy_cls_src_ai_prefill": ("AI pre-fill", "AI điền sẵn"),
+        "sy_cls_src_person": ("a person", "do người nhập"),
+        "sy_cls_mock": ("mock model", "mô hình giả lập"),
+        "sy_cls_ai_note": (
+            "AI pre-filled answers are advice only. A person must check them.",
+            "Câu trả lời do AI điền sẵn chỉ là gợi ý. Con người phải kiểm tra.",
+        ),
+        "sy_cls_history": ("Classifications applied before", "Các phân loại đã áp dụng trước đây"),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

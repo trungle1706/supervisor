@@ -121,6 +121,10 @@ team changes also `member_ref`). No name, no purpose, no user id, no float.
 `agents_in_scope`, `list_systems`, `get`, constants `ALL`, `SCOPED_ROLES`, `ALL_ROLES`.
 Console context: `ctx.systems`.
 
+WP-G2 adds `RulesService` (`ctx.rules`) and `ClassificationService` (`ctx.classification`); a change
+of a system re-runs the assignment rules, and the effective risk level also has a classifier floor
+(class `high_risk` is at least `high`). See `docs/assignment-rules.md` and `docs/decision33.md`.
+
 ## 10. Off path
 
 With both flags off no `/v1/systems` or `/console/systems` route is mounted (`app.py` reads the

@@ -26,7 +26,7 @@ from supervisor.governance.systems import ALL
 
 COLUMNS = ("name", "owner_team", "lifecycle_stage", "risk", "status")
 DRAWER_TABS = ("details", "team", "components")
-DETAIL_TABS = ("overview", "components")
+DETAIL_TABS = ("overview", "components", "rules", "classification")  # rules, classification: WP-G2
 PAGE_SIZE = 25
 FILTERS = ("q", "status", "owner_team", "lifecycle_stage", "risk", "system_type")
 REGISTER_CHOICES = {
@@ -152,13 +152,67 @@ def detail_view(ctx: Any, me: Any, system_id: str, tab: str) -> dict[str, Any]:
     if tab not in DETAIL_TABS:
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
-    return {
+    out = {
         "s": system,
         "tab": tab,
         "tabs": DETAIL_TABS,
         "tab_counts": {"overview": len(system["team"]), "components": len(system["components"])},
         "json_text": json.dumps(system, sort_keys=True, indent=2, default=str),
     }
+    if tab == "rules":  # WP-G2
+        out.update(_rules_data(ctx, me, system_id))
+    elif tab == "classification":
+        out.update(_classification_data(ctx, me, system_id))
+    return out
+
+
+def _can_edit(me: Any) -> bool:
+    return getattr(me, "kind", "") == "user" and rbac.allowed(me.roles, "systems.edit")
+
+
+def _rules_data(ctx: Any, me: Any, system_id: str) -> dict[str, Any]:
+    """WP-G2 Rules tab: what the rules put on the system (active first), the guardian floor."""
+    from supervisor.governance.rules import load_rules
+
+    rows = ctx.rules.assignments(system_id, active_only=False)
+    rows.sort(key=lambda r: (not r["active"],))  # stable: active rows first, kind order kept
+    try:
+        sha = load_rules(ctx.settings.assignment_rules_config).sha256
+    except Exception:  # noqa: BLE001 - the tab still shows the saved rows
+        sha = ""
+    return {
+        "assignments": rows,
+        "floor": ctx.rules.guardian_floor(system_id),
+        "rules_sha": sha,
+        "can_edit": _can_edit(me),
+    }
+
+
+def _classification_data(ctx: Any, me: Any, system_id: str) -> dict[str, Any]:
+    """WP-G2 Classification tab: the open draft, the applied class, the history count."""
+    data = ctx.classification.get(system_id)
+    draft = data["draft"]
+    return {
+        "cls": data,
+        "ai_pending": bool(draft and any(a["source"] == "ai_prefill" for a in draft["answers"])),
+        "can_edit": _can_edit(me),
+    }
+
+
+def classification_changes(form: Mapping[str, str], draft: Mapping[str, Any]) -> dict[str, Any]:
+    """The answers of the classification form that differ from the draft: question id ->
+    ``{answer, justification}``. A field the person did not touch keeps its source."""
+    changes: dict[str, Any] = {}
+    for a in draft["answers"]:
+        qid = a["id"]
+        if f"a_{qid}" not in form:
+            continue
+        raw = form.get(f"a_{qid}", "")
+        answer = raw if raw in ("yes", "no") else None
+        why = (form.get(f"j_{qid}") or "").strip()
+        if answer != a["answer"] or why != (a.get("justification") or ""):
+            changes[qid] = {"answer": answer, "justification": why}
+    return changes
 
 
 def draft_from_form(form: Mapping[str, str], me: Any) -> dict[str, Any]:
