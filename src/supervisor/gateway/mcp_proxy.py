@@ -47,6 +47,10 @@ def _error(id_: Any, code: int, message: str) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": id_, "error": {"code": code, "message": message}}
 
 
+# WP-G6: the MCP server (supervisor.mcp_server) builds its JSON-RPC errors with the same function.
+error_response = _error
+
+
 def deny_response(id_: Any, verdict: dict[str, Any]) -> dict[str, Any]:
     """The MCP tool-error result for a refused call (shared with the HTTP proxy, WP26)."""
     text = f"blocked by supervisor: {verdict.get('rule_id')}: {verdict.get('reason')}"

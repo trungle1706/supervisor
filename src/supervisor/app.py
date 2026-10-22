@@ -125,6 +125,12 @@ if get_settings().governance_actions_enabled:  # WP-G5: mounted only when the fl
 
     app.include_router(incidents_router)  # /v1/incidents/...
     app.include_router(incidents_console_router)  # /console/incidents (needs GOVERNANCE_ENABLED)
+if get_settings().mcp_server_enabled:  # WP-G6: mounted only when the flag is on
+    from supervisor.mcp_server.routes import admin_router as mcp_admin_router
+    from supervisor.mcp_server.routes import mcp_router
+
+    app.include_router(mcp_router)  # POST /mcp (JSON-RPC 2.0, streamable HTTP)
+    app.include_router(mcp_admin_router)  # /v1/mcp/apps, /v1/kpis
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 

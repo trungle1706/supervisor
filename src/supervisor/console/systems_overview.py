@@ -403,7 +403,17 @@ def governance_overview(
         "policy": policy,
         "autonomy": _autonomy(scoped),
         "systems_page": bool(ctx.settings.console_systems_enabled),
+        **_kpi_block(ctx, me, now),  # WP-G6: only with MCP_SERVER_ENABLED
     }
+
+
+def _kpi_block(ctx: Any, me: Any, now: dt.datetime) -> dict[str, Any]:
+    """WP-G6: the KPIs of ``GET /v1/kpis`` (one function), nothing when the flag is off."""
+    if not getattr(ctx.settings, "mcp_server_enabled", False):
+        return {}
+    from supervisor.governance import kpis
+
+    return {"kpis": kpis.compute(ctx, me, now)}
 
 
 def overdue_days(rows: list[dict[str, Any]], now: dt.datetime) -> int | None:

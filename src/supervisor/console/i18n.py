@@ -4170,6 +4170,57 @@ _T.update(
 )
 
 
+_T.update(
+    {
+        # --- WP-G6: KPI block of the Governance overview (MCP_SERVER_ENABLED) ----------------
+        "g6_kpi_title": ("Governance KPIs", "Chỉ số KPI quản trị"),
+        "g6_kpi_sub": (
+            "The same figures as GET /v1/kpis and the MCP tool kpis. A rate is basis points, "
+            "shown as a percent; a figure that cannot be computed says why.",
+            "Cùng số liệu với GET /v1/kpis và công cụ MCP kpis. Tỷ lệ tính bằng điểm cơ bản, "
+            "hiển thị theo phần trăm; số liệu không tính được sẽ nêu lý do.",
+        ),
+        "g6_kpi_coverage": ("Coverage", "Phạm vi"),
+        "g6_kpi_quality": ("Quality", "Chất lượng"),
+        "g6_kpi_speed": ("Speed", "Tốc độ"),
+        "g6_kpi_assets": ("Assets by kind", "Tài sản theo loại"),
+        "g6_kpi_by_risk": ("Systems by risk level", "Hệ thống theo mức rủi ro"),
+        "g6_kpi_by_stage": ("Systems by stage", "Hệ thống theo giai đoạn"),
+        "g6_kpi_class_rate": ("Classification rate", "Tỷ lệ đã phân loại"),
+        "g6_kpi_policy_cov": ("Policy coverage", "Độ phủ chính sách"),
+        "g6_kpi_risk_treat": ("Risk treatment coverage", "Độ phủ xử lý rủi ro"),
+        "g6_kpi_residual": ("Acceptable residual rate", "Tỷ lệ rủi ro dư chấp nhận được"),
+        "g6_kpi_readiness": ("Control readiness", "Mức sẵn sàng của kiểm soát"),
+        "g6_kpi_impl": ("Implementation per policy", "Mức triển khai theo chính sách"),
+        "g6_kpi_days": ("Average days per stage", "Số ngày trung bình mỗi giai đoạn"),
+        "g6_kpi_overdue": ("Overdue tasks", "Công việc quá hạn"),
+        "g6_kpi_inherit": ("Risk inheritance rate", "Tỷ lệ kế thừa mức rủi ro"),
+        "g6_kpi_runs": ("Rule runs", "Số lần chạy quy tắc"),
+        "g6_kpi_events": ("Governance events", "Sự kiện quản trị"),
+        "g6_kpi_actions": ("Action success", "Tỷ lệ hành động thành công"),
+        "g6_kpi_none": ("none", "không có"),
+        "g6_na_risk_register_off": (
+            "The risk register is off (RISK_REGISTER_ENABLED).",
+            "Sổ đăng ký rủi ro đang tắt (RISK_REGISTER_ENABLED).",
+        ),
+        "g6_na_controls_off": (
+            "The control catalogue is off (CONTROLS_ENABLED).",
+            "Danh mục kiểm soát đang tắt (CONTROLS_ENABLED).",
+        ),
+        "g6_na_no_active_risks": ("No active risk yet.", "Chưa có rủi ro đang hiệu lực."),
+        "g6_na_no_status": ("No control status yet.", "Chưa có trạng thái kiểm soát."),
+        "g6_na_governance_off": (
+            "AI systems are off (GOVERNANCE_ENABLED).",
+            "Hệ thống AI đang tắt (GOVERNANCE_ENABLED).",
+        ),
+        "g6_na_no_obligations": (
+            "No obligation is assigned yet.",
+            "Chưa có nghĩa vụ nào được gán.",
+        ),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""
