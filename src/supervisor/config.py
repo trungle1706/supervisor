@@ -620,6 +620,12 @@ class Settings(BaseSettings):
     # events delivered and logs them (no network; the real sender is later work).
     webhooks_enabled: bool = False
 
+    # --- WP-S1 --- per-system guardian bindings (docs/guardian-bindings.md). Off by default.
+    # GUARDIAN_BINDINGS_ENABLED (needs GOVERNANCE_ENABLED too): a product owner may switch a
+    # guardian feature off for the agents of one AI system, except the features in its guardian
+    # floor. A binding only narrows what the instance already has on. No binding rows = no change.
+    guardian_bindings_enabled: bool = False
+
     # --- WP-G5 --- governance loop: events to actions, incidents (docs/governance-actions.md).
     # Off by default. GOVERNANCE_ACTIONS_ENABLED (needs GOVERNANCE_ENABLED too): the job
     # governance_actions is scheduled and /v1/incidents and the Incidents tab are mounted.

@@ -1455,3 +1455,25 @@ tables:
       detail: json?            # rule_id, case_id, evidence of the event, to resume it later
       runner_id: string?       # the runner that holds the event now (lease)
       lease_until: timestamp?  # a runner whose lease ran out may be replaced
+
+  # --- WP-S1 per-system guardian bindings (docs/guardian-bindings.md) -----------------------
+  guardian_binding:
+    kind: state
+    description: >
+      WP-S1. A product owner's switch for one guardian feature on one AI system: on or off. No row
+      means on. A binding can only narrow what the instance already has on; the assignment rules'
+      guardian floor always wins (a floor feature cannot be set off, and a floor added later
+      overrides an old off row at resolution time). mandatory is the floor state when the row was
+      written (a snapshot for the audit; resolution reads the floor again). Changes go on the
+      chain as binding_change (ids and enums only).
+    primary_key: [system_id, feature_slug]
+    indexes:
+      - [state]
+    columns:
+      system_id: string
+      feature_slug: string     # a detector slug, session_monitor, judge_t2_sample, judge_challenger, monitor_quality | monitor_fairness | monitor_split_payment | monitor_drift
+      state: string            # on | off
+      mandatory: bool          # in the guardian floor when the row was written
+      set_by: string
+      set_at: timestamp
+      reason: text?
