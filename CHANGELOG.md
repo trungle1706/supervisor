@@ -63,6 +63,49 @@ absent or off = nothing changes. Details: `docs/detectors.md` section 3e.
 - Harness rows with a small synthetic VI and EN set and a rubric; report
   `docs/judge-moderation-validation-report.md`. Catalog card and i18n (EN, VI); Guardians card
   binding `judge_moderation`.
+### WP-D3: guard model detector and the model decision memo
+
+One new detector, `guard_model`, off by default (`enabled: false`, `mrm_status: NO-GO` in
+`config/detectors.yaml`). A slug that is absent from the file changes nothing. Details:
+`docs/detectors.md` section 3d, memo `docs/guard-model-decision.md`.
+
+- `guard_model`: a configured model scores user text in arguments, tool results, tool descriptions
+  and documents for jailbreak and indirect injection (codes `guard.jailbreak`,
+  `guard.indirect_injection`), input and output side, `llm` and `mcp`. Masked text only, no system
+  prompt, 2,000-character windows with 500 overlap and the highest score wins, scores cached by text
+  hash. Presets `permissive | balanced | strict` are thresholds per label in basis points.
+- Port `GuardModelPort.score(texts)` (`core/ports.py`) and three adapters in
+  `adapters/guard/`: a direct classifier endpoint (`POST <url>` with `{"inputs": [...]}`, the shape
+  of a Databricks serving endpoint), an OpenAI-compatible chat model with a fixed classification
+  prompt (judge family rule applies), and a labelled mock. Settings `GUARD_MODEL_ADAPTER`,
+  `GUARD_MODEL_URL`, `GUARD_MODEL_NAME`, `GUARD_MODEL_VERSION`, `GUARD_MODEL_API_KEY`, `GUARD_MODEL_TIMEOUT_MS`,
+  `GUARD_MODEL_FAIL_CLOSED_APPROVED`.
+- Findings only. A timeout or error is a `timed_out` or `execution_failed` row, never a block and
+  never fail closed by default. The pause hint (rule `GATE-CLASSIFIER-PAUSE`, money and credit
+  tools) needs `pause_tool_classes` and a card approval that names the approver, the model id and the version
+  (`data/models/guard_model/model_card.json`). `gateway/detector_gate.py` lists `guard_model` as a
+  pause-capable detector.
+- Harness `python -m supervisor.detectors.guard_harness` on the WP25 corpus: mock adapter in CI
+  (never GO; baseline `data/eval/guard_model/baseline_mock.json`), real endpoint when
+  `GUARD_MODEL_URL` is set. Report `docs/guard-model-validation-report.md`.
+- Docs: decision memo (prompt-guard class model on Databricks serving, the judge model as
+  classifier, vendor API excluded; latency and cost as formulas; what the live kit measures), model
+  card template, `docs/llm-adapter.md` section 5. Catalog card and i18n EN and VI.
+- The detector is always in the catalogue (`GET /v1/gate/detectors` lists it, like every detector),
+  but its port is built and it runs only when the `guard_model` entry is enabled in
+  `config/detectors.yaml` or a per-agent override enables it. Off, a bad `GUARD_MODEL_*` setting is a
+  `[SKIP]` line in the log, never a start-up failure.
+- Review fixes: one total deadline per model call (the classifier adapter cuts a trickling body, the
+  chat adapter passes the time left to a single attempt and skips the retry), a guard-only pool of 4
+  threads so a slow model cannot starve `dlp_vn`, `budget_aware` with a per-detector `timeout_ms`
+  and reason `budget_exhausted` (WP-D4 mechanism), frame markers stripped until stable, the approval
+  pins `GUARD_MODEL_VERSION` as well as the model id, the judge or LLM key only goes to its own URL,
+  at most `max_windows` windows in all with a `windows dropped` note, harness run invalid when an
+  item was not scored, exact catalogue list in three tests.
+- Shared files touched: `config/detectors.yaml`, `src/supervisor/config.py` (settings block),
+  `core/ports.py`, `core/errors.py`, `wiring.py`, `detectors/__init__.py`, `gateway/detector_gate.py`
+  (one set entry), `console/catalog_view.py`, `console/i18n.py`, `console/guardians_view.py`; tests
+  `test_contract.py`, `test_routes.py`, `test_harness.py` now compare the first four slugs only.
 
 ### WP-G6: MCP server, skills, KPI endpoint
 

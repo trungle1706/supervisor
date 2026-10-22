@@ -29,6 +29,7 @@ CARD_SLUGS: dict[str, tuple[str, ...]] = {
     "injection_classifier": ("injection_classifier",),
     "judge_advisory": ("judge_advisory",),
     "judge_moderation": ("judge_moderation",),  # WP-D4
+    "guard_model": ("guard_model",),  # WP-D3
     "session_monitor": ("session_monitor",),
     "judge_tiers": ("judge_t2_sample", "judge_challenger"),
     "drift": ("monitor_drift",),

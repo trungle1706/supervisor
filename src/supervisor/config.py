@@ -501,6 +501,22 @@ class Settings(BaseSettings):
     # payments without a named owner (R1). Env name: CLASSIFIER_FAIL_CLOSED_APPROVED.
     classifier_fail_closed_approved: bool = False
 
+    # --- WP-D3 --- guard model (docs/detectors.md section 3d, docs/guard-model-decision.md).
+    # Used only when DETECTORS_ENABLED=1 and config/detectors.yaml has a guard_model entry.
+    # GUARD_MODEL_ADAPTER: auto (classifier when GUARD_MODEL_URL is set, else the labelled mock),
+    # mock, classifier (POST <url> with {"inputs": [...]}) or chat (OpenAI-compatible chat model;
+    # base URL GUARD_MODEL_URL or JUDGE_T1_BASE_URL or LLM_BASE_URL, model GUARD_MODEL_NAME or
+    # JUDGE_T1_MODEL; the judge family rule applies). A non-loopback URL needs LLM_ALLOW_REMOTE=1.
+    guard_model_adapter: Literal["auto", "mock", "classifier", "chat"] = "auto"
+    guard_model_url: str = ""
+    guard_model_name: str = ""  # model id (pins the approval in the model card)
+    guard_model_version: str = ""  # pinned revision; the card approval must name the same
+    guard_model_api_key: SecretStr | None = None
+    guard_model_timeout_ms: int = Field(default=400, ge=10, le=60_000)
+    # Fail-closed and the pause path are honoured only when the model card of the guard model has
+    # an approval that names the approver (R1). Env name: GUARD_MODEL_FAIL_CLOSED_APPROVED.
+    guard_model_fail_closed_approved: bool = False
+
     # --- WP26 --- HTTP MCP gateway with tool locking (ADR D24, docs/mcp-gateway.md)
     # MCP_HTTP_ENABLED: the /v1/mcp/tools routes work and the proxy process may start (default
     # off). MCP_TOOL_LOCK: inside the proxy, hold new or changed tools for two-person review

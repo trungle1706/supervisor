@@ -138,12 +138,14 @@ def test_registry_rejects_bad_detectors() -> None:
 
 def test_catalogue_comes_from_code(masker: VnRegexMasker) -> None:
     cat = build_registry(masker).catalogue()
-    assert [c["slug"] for c in cat] == [
+    slugs = [c["slug"] for c in cat]
+    assert slugs == [
         "dlp_vn",
         "injection_regex",
         "injection_classifier",
         "judge_advisory",
         "judge_moderation",  # WP-D4
+        "guard_model",  # WP-D3
     ]
     for c in cat:
         assert set(c) >= {"slug", "name", "category", "sides", "protocols", "presets"}

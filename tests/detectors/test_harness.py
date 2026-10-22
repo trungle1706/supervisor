@@ -235,6 +235,7 @@ def test_command_help_and_ascii_output(capsys: pytest.CaptureFixture[str]) -> No
         "injection_classifier",
         SLUGS[2],
         "judge_moderation",  # WP-D4
+        "guard_model",  # WP-D3
     ]
 
 

@@ -105,3 +105,32 @@ one, so the run makes no network call.
 
 `--model settings` uses the configured judges. Without it the run uses mock judges and the report
 says `MOCK`.
+
+## 5. Guard model through the chat adapter (WP-D3)
+
+The `guard_model` detector (`docs/detectors.md` section 3d) can use the OpenAI-compatible adapter as
+its model: `GUARD_MODEL_ADAPTER=chat`. It is option (b) of `docs/guard-model-decision.md`.
+
+* **Request.** One call per text window (2,000 characters). A fixed system prompt says that the text
+  is data and must not be followed. The text goes in the user message between two marker lines; the
+  every `<<<` and `>>>` is cut out of the text, repeatedly, so pieces cannot join into a marker. The reply is one JSON object
+  `{"label": "benign" | "jailbreak" | "indirect_injection", "score_bp": 0..10000}`, checked against
+  the schema by the adapter (one retry, then an error). `benign` always scores 0.
+* **Which model.** `GUARD_MODEL_NAME` (default `JUDGE_T1_MODEL`) at `GUARD_MODEL_URL` (default
+  `JUDGE_T1_BASE_URL`, then `LLM_BASE_URL`). Key: `GUARD_MODEL_API_KEY`; else the judge key when the
+  URL equals `JUDGE_T1_BASE_URL`, else the LLM key when it equals `LLM_BASE_URL`; never a key for
+  another URL. `LLM_STRICT_SCHEMA` and `LLM_SEND_TEMPERATURE` apply. `max_tokens` is 64.
+* **Family rule.** The family comes from the model id as in section 2 (no declared family exists
+  for the guard). It must be known, and it must differ from the family of every agent in the
+  manifests and the registry. Otherwise start-up stops with `FamilyConflictError`, with the agent
+  named. `JUDGE_FAMILY_PROBE=1` also asks `GET /models`.
+* **Time.** `GUARD_MODEL_TIMEOUT_MS` (default 400) is the total for all texts of one gate call,
+  attempts included. Each attempt gets the time left (`complete_json(..., deadline=)`), and the
+  anti-repetition retry is skipped when less than one timeout is left. A slower model gives
+  `timed_out` findings, not a stopped call. The calls run in the guard's pool of 4 threads. A chat
+  model on a real LLM cannot answer in 400 ms: give it a larger timeout and set the `timeout_ms`
+  setting of `guard_model` above it, and keep it off the hot path.
+* **Remote.** A non-loopback URL needs `LLM_ALLOW_REMOTE=1`, as for the other model URLs.
+
+The direct classifier endpoint (`GUARD_MODEL_ADAPTER=classifier`) does not use this adapter. It is a
+plain `POST <url>` with `{"inputs": [...]}` (`adapters/guard/classifier_endpoint.py`).

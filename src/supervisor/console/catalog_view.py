@@ -154,6 +154,12 @@ ENTRIES: tuple[Entry, ...] = (
         "siem", "connect", "watches", "SI", "SIEM_ENABLED=1", "docs/siem.md",
         on=_flag("siem_enabled"),
     ),
+    # --- WP-D3: guard model (ML jailbreak and indirect-injection scoring); advises, may only pause
+    Entry(
+        "guard_model", "detect", "advises", "GM",
+        "DETECTORS_ENABLED=1 + guard_model.enabled", "docs/guard-model-decision.md", "decisions",
+        on=_detector("guard_model"),
+    ),
 )  # fmt: skip
 
 # Pages that are always there (not behind a WP-UX3 flag), by nav key.

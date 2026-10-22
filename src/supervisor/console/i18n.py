@@ -4293,6 +4293,25 @@ _T.update(
 )
 
 
+_T.update(
+    {
+        # --- WP-D3: Catalog card of the guard model detector -----------------------------------
+        "cat_guard_model": (
+            "Guard model (jailbreak and injection)",
+            "Mô hình bảo vệ (jailbreak và chèn lệnh)",
+        ),
+        "cat_guard_model_d": (
+            "A configured model scores user text, tool results, tool descriptions and documents "
+            "for jailbreak and hidden instructions. It reports a finding; on money and credit "
+            "tools it may pause only when the model card names the approver.",
+            "Một mô hình được cấu hình chấm văn bản người dùng, kết quả công cụ, mô tả công cụ "
+            "và tài liệu để tìm jailbreak và lệnh ẩn. Mô hình chỉ báo phát hiện; trên công cụ "
+            "tiền và tín dụng nó chỉ được tạm dừng khi thẻ mô hình ghi tên người phê duyệt.",
+        ),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

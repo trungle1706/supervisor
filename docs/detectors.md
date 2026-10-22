@@ -83,6 +83,10 @@ override 8500, role tag 8000, prompt leak 7000, urgent transfer 6500, plus 500 f
 hit. At the `balanced` preset an urgent-transfer phrase alone does not fire. Known gaps are in
 `BACKLOG.md` and in the validation report (typos, leetspeak, base64, split fields, paraphrase).
 
+`guard_model` (WP-D3, `enabled: false` by default, section 3d) is a fifth detector: a configured model
+scores jailbreak and indirect injection. Presets `strict` / `balanced` / `permissive` (3500 / 5500 / 8000 bp
+for `guard.jailbreak`); codes `guard.jailbreak`, `guard.indirect_injection`.
+
 `injection_classifier` (WP25, `enabled: false` by default, see `docs/injection-classifier.md`) is a fourth
 detector. It is the only one whose `pause` hint the gate obeys: `GATE-CLASSIFIER-PAUSE`, money and credit tools only.
 
@@ -450,6 +454,105 @@ Harness: `python -m supervisor.detectors.harness --detector judge_moderation` (g
 EN, 21 dev, 20 held-out and 10 adversarial items; the rubric is in that file; the topics are financial advice, politics and loan approval promises). Report:
 `docs/judge-moderation-validation-report.md`. It ran on the MockJudge, so the numbers prove the
 harness; `mrm_status` stays NO-GO until a real judge model runs the set (see `docs/judge-mrm.md`).
+NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO, `guard_model` NO-GO (WP-D3). The status never
+changes what the gate answers or records for the decision itself.
+
+## 3d. `guard_model`: ML jailbreak and indirect-injection scoring (WP-D3)
+
+A fifth detector asks a configured model whether a text tries to take control of the agent. It
+completes the regex (`injection_regex`) and the local classifier (`injection_classifier`) with a
+model the bank chooses (`docs/guard-model-decision.md`). **Off by default**, `mrm_status: NO-GO`
+until a real run gives GO, and a slug that is absent from `config/detectors.yaml` changes nothing.
+
+| Item | Value |
+|---|---|
+| Sides, protocols | input and output; `llm` and `mcp` |
+| Codes | `guard.jailbreak` (a person writes to the agent), `guard.indirect_injection` (hidden instructions in third-party text) |
+| Parts read | `args` (user text fields), `tool_results`, tool descriptions (`meta.tool_description` and `meta.tool_descriptions`), `documents` (WP-D1; `payload["documents"]`), and `output` on the output side |
+| Never read | system prompts. They are no payload part, and an argument key named `system`, `system_prompt`, `developer`, `developer_message` or `instructions` is left out |
+| Text sent | the **masked** text (the masker runs on every leaf first; `dlp_vn` and the guard share the same masker) |
+| Windows | 2,000 characters, 500 characters of overlap; the highest score wins; at most `max_windows` (12) per call, spread over the text; one batch per call; scores cached by text hash |
+| Label | a model that names its class (`jailbreak`, `injection`) sets the label; a one-class model (`malicious`) takes the label of the surface (arguments: jailbreak; the rest: indirect injection) |
+
+**Presets** are thresholds per label in basis points, frozen with the detector version
+(ILLUSTRATIVE until the harness runs on the real model):
+
+| Preset | jailbreak | indirect_injection |
+|---|---|---|
+| `strict` | 3500 | 4000 |
+| `balanced` (default) | 5500 | 6000 |
+| `permissive` (`lenient` is an alias) | 8000 | 8500 |
+
+The preset moves one thing: how sure the model must be before the detector reports. `threshold_bp`
+replaces the preset for both labels.
+
+**Settings** (`config/detectors.yaml`, per agent in the policy file as for any detector):
+`scan_args`, `scan_tool_results`, `scan_tool_descriptions`, `scan_documents` (all true),
+`pause_tool_classes` (default empty), `pause_threshold_bp` (can raise the pause bar, never lower it
+below the `permissive` value of the label), `max_windows` (at most this many windows in all, the
+model's own `window_cap` can lower it; a note `windows dropped: n of m` is set in the `detail` of
+the findings when some were left out), `timeout_ms` (this detector's own deadline, empty =
+`limits.timeout_ms`). Common: `preset`, `threshold_bp`,
+`max_scan_bytes`.
+
+**The model** comes from the environment (`GUARD_MODEL_*`, `config.py`), not from the file:
+
+| Setting | Meaning |
+|---|---|
+| `GUARD_MODEL_ADAPTER` | `auto` (default: `classifier` when `GUARD_MODEL_URL` is set, else the labelled mock), `mock`, `classifier`, `chat` |
+| `GUARD_MODEL_URL` | `classifier`: the endpoint (`POST <url>` with `{"inputs": [...]}`). `chat`: the OpenAI-compatible base URL (default `JUDGE_T1_BASE_URL`, then `LLM_BASE_URL`) |
+| `GUARD_MODEL_NAME` | model id; for `chat` the model (default `JUDGE_T1_MODEL`); it pins the approval |
+| `GUARD_MODEL_VERSION` | the pinned revision of that model; it also pins the approval (see below) |
+| `GUARD_MODEL_API_KEY` | bearer key; in `databricks_app` mode a workspace serving URL uses the App identity instead. For `chat` with no key set, the judge or LLM key is used only when `GUARD_MODEL_URL` equals the base URL of that same key (`JUDGE_T1_BASE_URL`, `LLM_BASE_URL`), never for another URL |
+| `GUARD_MODEL_TIMEOUT_MS` | the total time of ONE call to the model, default 400: all batches or texts, the credential call and every attempt together, not a per-phase timeout. The adapter returns `timed_out` at that time even when the server sends one byte at a time. Keep it below the deadline of the detector (`limits.timeout_ms`, or the `timeout_ms` setting of `guard_model`) |
+| `GUARD_MODEL_FAIL_CLOSED_APPROVED` | see below |
+
+A URL that is not loopback needs `LLM_ALLOW_REMOTE=1`, unless it is the workspace's own serving
+endpoint. The `chat` adapter obeys the judge family rule: the family is derived from the model id,
+must be known, and must differ from every registered agent family, or start-up stops
+(`FamilyConflictError`). The three adapters are in `src/supervisor/adapters/guard/`; port
+`GuardModelPort.score(texts)` in `core/ports.py`. With no port the detector reports
+`execution_failed` (only reachable by a per-agent `enable`, because the wiring sets the port only
+when the slug is in the file).
+
+**Time and threads.** The detector is budget aware (like `judge_moderation`): it takes 90 percent of
+its deadline, never starts a model call with less than the adapter timeout left (reason
+`budget_exhausted`), and runs the call in its own pool of 4 threads for all agents together. A slow
+model therefore holds at most 4 threads and never the shared pool of 32, so `dlp_vn` is not
+starved; when the 4 are taken, a call fails at once with `timed_out` ("busy"). Residual: a server
+that answers the headers one byte at a time can keep its thread until httpx gives up; at most 4 such
+threads exist. A real model needs `timeout_ms` for this detector above the gate default (500).
+
+**Actions (R1).** Findings only. A timeout is `timed_out`, any other error `execution_failed`
+(never an exception, never a block). The detector is **not fail closed**: `fail_closed: true` in the
+file is ignored unless `GUARD_MODEL_FAIL_CLOSED_APPROVED=1` AND the card approval is valid. The
+pause path is the WP25 one (section 5 of `docs/injection-classifier.md`): the finding carries the
+pause hint only when all of these hold, and the gate then turns it into `pause` with rule
+`GATE-CLASSIFIER-PAUSE` (never a block; a shadow agent is never paused). Residual: an endpoint
+that reports no version leaves the version as the operator's declaration, and a model swapped
+behind the same name is not seen; the classifier adapter reads `X-Model-Version` or a
+`model_version` field of the answer when there is one:
+
+```
+ direction = input
+ AND tool risk class in pause_tool_classes            (default empty = report only)
+ AND finding score >= the pause bar of its label      (permissive threshold, can be raised)
+ AND data/models/guard_model/model_card.json has approval.approver  (a person, not FILL-ME)
+     AND approval.model_id == model_id == the model id the adapter serves (GUARD_MODEL_NAME)
+     AND approval.model_version == model_version == GUARD_MODEL_VERSION (set, not FILL-ME)
+     AND the version the endpoint reports, if it reports one, equals GUARD_MODEL_VERSION
+ AND the adapter is not the mock
+```
+
+**Harness.** `python -m supervisor.detectors.guard_harness` runs the WP25 corpus (dev, held-out,
+adversarial; `--split evasion` for the rewritten set) through the WP37 rubric with the mock adapter
+(CI; `data/eval/guard_model/baseline_mock.json`, `--check`), or with the real endpoint when
+`GUARD_MODEL_URL` is set. A mock run is never GO, and neither is a run with any item the detector did not score (printed
+"run invalid") or without all three of dev, held-out and adversarial. Report: `docs/guard-model-validation-report.md`.
+Model card: `docs/guard-model-card-template.md`, `data/models/guard_model/model_card.json`.
+
+Tests: `tests/detectors/test_guard_model_review.py`, `tests/detectors/test_guard_model.py`, `test_guard_adapters.py`, `test_guard_model_gate.py`,
+`test_guard_model_harness.py`, `test_guard_model_catalog.py`.
 
 ## 4. Verdict v2 and precedence
 

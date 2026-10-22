@@ -52,3 +52,13 @@ def check_agent_id(agent_id: str) -> str:
             "inventory); rename the agent folder or set a different id in its manifest"
         )
     return agent_id
+
+
+# --- WP-D3 --- guard model adapters
+class GuardModelError(SupervisorError):
+    """A guard model call failed. ``reason`` is a detector not-executed reason: ``timed_out`` or
+    ``execution_failed``. The message never holds input text or a credential."""
+
+    def __init__(self, message: str, reason: str = "execution_failed") -> None:
+        super().__init__(message)
+        self.reason = reason

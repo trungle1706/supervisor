@@ -45,12 +45,15 @@ FAILED_RULE = "GATE-DETECTOR-FAILED"
 # WP-D2: dlp_vn secrets.action = block. A secret in a tool argument blocks the call on every tool
 # class: a masked credential has still left (the bank rule). Same fail-closed shape as above.
 SECRET_RULE = "GATE-SECRET-IN-ARGS"  # noqa: S105 - a rule id, not a password
-# WP25 (ADR D27): the one pause a detector may cause. Only a detector listed here is allowed to
+# WP25 (ADR D27), WP-D3: the one pause a detector may cause (the classifier or the guard model).
+# Only a detector listed here is allowed to
 # turn a pause hint into a pause, and never on a tool whose risk class is outside the set below
 # (a read_only tool cannot be paused by a finding). The detector itself also checks the classes it
 # is configured with; this is the gate's own backstop.
 CLASSIFIER_PAUSE_RULE = "GATE-CLASSIFIER-PAUSE"
-PAUSE_CAPABLE_DETECTORS: frozenset[str] = frozenset({"injection_classifier"})
+PAUSE_CAPABLE_DETECTORS: frozenset[str] = frozenset(
+    {"injection_classifier", "guard_model"}
+)  # WP-D3
 PAUSE_RISK_CLASSES: frozenset[str] = frozenset({"money", "credit", "pii_export"})
 
 
@@ -385,7 +388,8 @@ class DetectorGate:
                 d.fail_mode = "closed"
                 transformed = None
                 d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0
-        # 1b. WP25: a pause-capable detector (the injection classifier) may turn an ALLOW into a
+        # 1b. WP25: a pause-capable detector (the injection classifier or the guard model) may turn
+        # an ALLOW into a
         # PAUSE, never a block, on a money / credit / pii_export tool. The detector set the hint
         # only above its frozen threshold and only for its configured classes. A human resumes.
         if (
@@ -406,7 +410,7 @@ class DetectorGate:
                 d.classifier_pause = True  # the engine pauses on this flag, not on the rule id
                 d.reason = (
                     f"{CLASSIFIER_PAUSE_RULE}: {top.code} score {top.score_bp} bp at or above "
-                    f"the pause threshold on a {pre.risk_class} tool (the classifier advises; a "
+                    f"the pause threshold on a {pre.risk_class} tool (the detector advises; a "
                     "human resumes)"
                 )
                 transformed = None
