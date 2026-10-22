@@ -360,6 +360,14 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/systems/{system_id}/links"): "systems.edit",
     ("DELETE", "/v1/systems/{system_id}/links/{component_id}"): "systems.edit",
     ("POST", "/v1/systems/{system_id}/archive"): "systems.edit",
+    # --- WP-UX4a --- CONSOLE_NAV_V3 pages and section routes (read only)
+    ("GET", "/console/governance"): "console.view",
+    ("GET", "/console/supervisor"): "console.view",
+    ("GET", "/console/workflows"): "console.view",
+    ("GET", "/console/catalogues"): "console.view",
+    ("GET", "/console/risks-controls"): "console.view",
+    ("GET", "/console/activity"): "console.view",
+    ("GET", "/console/guardians"): "console.view",
 }
 
 

@@ -3339,6 +3339,281 @@ _T.update(
     }
 )
 
+# --- WP-UX4a --- CONSOLE_NAV_V3: merged sidebar, section tabs, overview pages, Workflows
+_T.update(
+    {
+        "nv3_my": ("My overview", "Tổng quan của tôi"),
+        "nv3_overview": ("Overview", "Tổng quan"),
+        "nv3_gov": ("AI management", "Quản lý AI"),
+        "nv3_gov_k": ("Governance", "Quản trị"),
+        "nv3_sup": ("AI guardian", "Giám sát AI"),
+        "nv3_sup_k": ("Supervisor", "Giám sát"),
+        "nv3_systems": ("Systems", "Hệ thống"),
+        "nv3_catalogues": ("Catalogues", "Danh mục"),
+        "nv3_risks_controls": ("Risks & controls", "Rủi ro và kiểm soát"),
+        "nv3_workflows": ("Workflows", "Quy trình"),
+        "nv3_activity": ("Activity", "Hoạt động"),
+        "nv3_guardians": ("Guardians", "Bộ bảo vệ"),
+        "nv3_cases_alerts": ("Cases & alerts", "Vụ việc và cảnh báo"),
+        "nv3_settings": ("Settings", "Cài đặt"),
+        "nv3_close": ("Close", "Đóng"),
+        "nv3_gear_none": (
+            "No settings page is on for your role.",
+            "Không có trang cài đặt nào được bật cho vai trò của bạn.",
+        ),
+        "nv3_policies_code": ("Policies as code", "Chính sách dạng mã"),
+        "nv3_on": ("on", "bật"),
+        "nv3_off": ("off", "tắt"),
+        "nv3_yes": ("yes", "có"),
+        "nv3_no": ("no", "không"),
+        "nv3_st_collectors_on": ("Collectors on", "Bộ thu thập: bật"),
+        "nv3_st_collectors_off": ("Collectors off", "Bộ thu thập: tắt"),
+        "nv3_st_ingress_on": ("Agent credentials required", "Bắt buộc xác thực tác tử"),
+        "nv3_st_ingress_off": ("Agent credentials not required", "Không bắt buộc xác thực tác tử"),
+        "nv3_st_audit_on": ("Console actions are logged", "Thao tác trên bảng điều khiển được ghi"),
+        "nv3_st_audit_off": ("Console action log is off", "Nhật ký thao tác đang tắt"),
+        "nv3_st_auth": ("Sign-in: {kind}", "Đăng nhập: {kind}"),
+        "nv3_st_mode": ("Mode: {mode}", "Chế độ: {mode}"),
+        "nv3_st_policy": ("Deployed rules, read only", "Quy tắc đang chạy, chỉ đọc"),
+        # tabs
+        "nv3_t_models": ("Models", "Mô hình"),
+        "nv3_t_tools": ("Tools", "Công cụ"),
+        "nv3_t_datasets": ("Datasets", "Bộ dữ liệu"),
+        "nv3_t_mcp": ("MCP servers", "Máy chủ MCP"),
+        "nv3_t_unmanaged": ("Unmanaged", "Chưa quản lý"),
+        "nv3_t_policies": ("Policies", "Chính sách"),
+        "nv3_t_library": ("Library", "Thư viện"),
+        "nv3_t_rules": ("Rules", "Quy tắc"),
+        "nv3_t_detectors": ("Detectors", "Bộ phát hiện"),
+        "nv3_t_judges": ("Judges", "Bộ đánh giá AI"),
+        "nv3_t_monitors": ("Monitors", "Bộ giám sát"),
+        "nv3_t_packs": ("Packs", "Gói kiểm thử"),
+        "nv3_t_approvals": ("Approvals", "Phê duyệt"),
+        "nv3_t_evidence": ("Evidence chain", "Chuỗi bằng chứng"),
+        # scope and tiles
+        "nv3_scope": ("Scope", "Phạm vi"),
+        "nv3_scope_my": ("Mine", "Của tôi"),
+        "nv3_scope_team": ("My team", "Nhóm của tôi"),
+        "nv3_scope_all": ("All", "Tất cả"),
+        "nv3_na": ("not available", "không có số liệu"),
+        "nv3_tile_agents": ("Agents in scope", "Tác tử trong phạm vi"),
+        "nv3_tile_models": ("Models in use", "Mô hình đang dùng"),
+        "nv3_tile_cover": ("Guardian coverage", "Độ phủ bộ bảo vệ"),
+        "nv3_tile_actions": ("Open actions", "Việc cần làm"),
+        "nv3_tile_classified": ("Classification rate", "Tỷ lệ phân loại"),
+        "nv3_tile_readiness": ("Control readiness", "Mức sẵn sàng của kiểm soát"),
+        "nv3_tile_overdue": ("Overdue tasks", "Công việc quá hạn"),
+        "nv3_tile_checked": ("Calls checked 24 h", "Lượt gọi đã kiểm tra 24 giờ"),
+        "nv3_tile_stopped": ("Stopped by a rule", "Bị quy tắc chặn"),
+        "nv3_tile_cases": ("Open cases", "Vụ việc đang mở"),
+        "nv3_unmanaged_n": ("{n} unmanaged", "{n} chưa quản lý"),
+        "nv3_actions_split": (
+            "{cases} cases · {approvals} approvals · {tasks} tasks",
+            "{cases} vụ việc · {approvals} phê duyệt · {tasks} công việc",
+        ),
+        "nv3_classified_n": (
+            "{n} of {of} agents have a Decision 33 class",
+            "{n} trên {of} tác tử đã có phân loại Quyết định 33",
+        ),
+        "nv3_readiness_n": (
+            "{n} of {of} control checks working",
+            "{n} trên {of} kiểm tra kiểm soát đang hoạt động",
+        ),
+        "nv3_overdue_oldest": ("oldest {d} d", "lâu nhất {d} ngày"),
+        "nv3_no_clock": ("no SBV clock running", "không có đồng hồ SBV đang chạy"),
+        "nv3_cover_full": ("full", "đủ"),
+        "nv3_cover_below": ("below floor", "dưới mức tối thiểu"),
+        "nv3_cover_master_off": (
+            "Detectors are off (DETECTORS_ENABLED=1 turns them on), so no agent is covered.",
+            "Bộ phát hiện đang tắt (DETECTORS_ENABLED=1 để bật), nên chưa tác tử nào được phủ.",
+        ),
+        # reasons a figure is not available
+        "nv3_na_inventory_off": (
+            "Inventory is off (INVENTORY_ENABLED=1 turns it on).",
+            "Kiểm kê đang tắt (INVENTORY_ENABLED=1 để bật).",
+        ),
+        "nv3_na_controls_off": (
+            "Controls are off (CONTROLS_ENABLED=1 turns them on).",
+            "Kiểm soát đang tắt (CONTROLS_ENABLED=1 để bật).",
+        ),
+        "nv3_na_risks_off": (
+            "The risk register is off (RISK_REGISTER_ENABLED=1 turns it on).",
+            "Sổ rủi ro đang tắt (RISK_REGISTER_ENABLED=1 để bật).",
+        ),
+        "nv3_na_compliance_off": (
+            "The compliance tab is off (CONSOLE_COMPLIANCE_ENABLED=1 turns it on).",
+            "Tab tuân thủ đang tắt (CONSOLE_COMPLIANCE_ENABLED=1 để bật).",
+        ),
+        "nv3_na_detector_file": (
+            "config/detectors.yaml cannot be read.",
+            "Không đọc được config/detectors.yaml.",
+        ),
+        "nv3_na_no_mandatory": (
+            "No detector in config/detectors.yaml is marked fail_closed.",
+            "Không có bộ phát hiện nào trong config/detectors.yaml đặt fail_closed.",
+        ),
+        "nv3_na_no_agents": ("No agent is in scope.", "Không có tác tử nào trong phạm vi."),
+        "nv3_na_no_status": (
+            "No control status yet (the control_status job has not run).",
+            "Chưa có trạng thái kiểm soát (tác vụ control_status chưa chạy).",
+        ),
+        # My overview
+        "nv3_my_sub": (
+            "{agents} agents in scope. {actions} actions wait on you. {cases} cases are open.",
+            "{agents} tác tử trong phạm vi. {actions} việc đang chờ bạn. {cases} vụ việc đang mở.",
+        ),
+        "nv3_health_agents": ("Health per agent", "Tình trạng từng tác tử"),
+        "nv3_c_risk": ("Risk tier", "Mức rủi ro"),
+        "nv3_c_guardian": ("Guardian", "Bộ bảo vệ"),
+        "nv3_c_cases": ("Open cases", "Vụ việc mở"),
+        "nv3_c_coverage": ("Gate coverage", "Độ phủ cổng"),
+        "nv3_no_agents": ("No agent in this scope", "Không có tác tử trong phạm vi này"),
+        "nv3_no_agents_line": (
+            "Switch the scope to see more agents.",
+            "Đổi phạm vi để xem thêm tác tử.",
+        ),
+        "nv3_waiting": ("Actions waiting on me", "Việc đang chờ tôi"),
+        "nv3_waiting_none": ("Nothing waits on you", "Không có việc nào chờ bạn"),
+        "nv3_waiting_none_line": (
+            "Assigned cases, sign-offs and required tasks show here.",
+            "Vụ việc được giao, phê duyệt và công việc bắt buộc sẽ hiện ở đây.",
+        ),
+        "nv3_c_what": ("What", "Việc"),
+        "nv3_c_kind": ("Kind", "Loại"),
+        "nv3_kind_case": ("case", "vụ việc"),
+        "nv3_kind_approval": ("approval", "phê duyệt"),
+        "nv3_kind_task": ("task", "công việc"),
+        "nv3_inbox_n": ("{n} unread notices in the inbox", "{n} thông báo chưa đọc trong hộp thư"),
+        "nv3_recent": ("Recent events", "Sự kiện gần đây"),
+        # Governance overview
+        "nv3_gov_overview": ("Governance overview", "Tổng quan quản trị"),
+        "nv3_gov_sub": (
+            "The portfolio of the {n} agents in scope.",
+            "Danh mục của {n} tác tử trong phạm vi.",
+        ),
+        "nv3_by_stage": ("By lifecycle stage", "Theo giai đoạn vòng đời"),
+        "nv3_c_stage": ("Stage", "Giai đoạn"),
+        "nv3_c_open_required": ("Open required tasks", "Công việc bắt buộc đang mở"),
+        "nv3_risk_posture": ("Risk posture", "Tình hình rủi ro"),
+        "nv3_c_band": ("Band", "Mức"),
+        "nv3_c_risks": ("Active risks", "Rủi ro đang hiệu lực"),
+        "nv3_c_treated": ("Treated", "Đã xử lý"),
+        "nv3_c_accepted": ("Accepted", "Chấp nhận"),
+        "nv3_no_risks": ("No active risk in scope.", "Không có rủi ro hiệu lực trong phạm vi."),
+        "nv3_policy_impl": ("Policy implementation", "Triển khai chính sách"),
+        "nv3_c_obligations": ("Obligations that apply", "Nghĩa vụ áp dụng"),
+        "nv3_c_met": ("Met", "Đạt"),
+        "nv3_c_gap": ("Gap", "Thiếu"),
+        "nv3_c_progress": ("Progress", "Tiến độ"),
+        "nv3_no_matrix": (
+            "No compliance matrix for the agents in scope.",
+            "Chưa có ma trận tuân thủ cho các tác tử trong phạm vi.",
+        ),
+        "nv3_policy_note": (
+            "From the advisory compliance matrix. Not legal advice; bank counsel confirms.",
+            "Từ ma trận tuân thủ mang tính tư vấn. Không phải tư vấn pháp lý; pháp chế ngân "
+            "hàng xác nhận.",
+        ),
+        # Supervisor overview
+        "nv3_sup_overview": ("Supervisor overview", "Tổng quan giám sát"),
+        "nv3_sup_sub": (
+            "Runtime health of the {n} agents in scope.",
+            "Tình trạng vận hành của {n} tác tử trong phạm vi.",
+        ),
+        "nv3_c_blocks": ("Stops 24 h", "Bị chặn 24 giờ"),
+        "nv3_c_detectors": ("Detectors", "Bộ phát hiện"),
+        "nv3_c_p95": ("Latency p95", "Độ trễ p95"),
+        "nv3_ms": ("{ms} ms", "{ms} mili giây"),
+        "nv3_checked_sub": ("across {n} agents", "trên {n} tác tử"),
+        "nv3_no_task_list": ("no task list yet", "chưa có danh sách công việc"),
+        "nv3_c_chain": ("Chain", "Chuỗi"),
+        "nv3_alerts_7d": ("Alerts fired 7 d", "Cảnh báo 7 ngày"),
+        "nv3_c_rule": ("Rule", "Quy tắc"),
+        "nv3_c_count": ("Count", "Số lượng"),
+        "nv3_no_alerts": ("No alert fired in 7 days.", "Không có cảnh báo trong 7 ngày."),
+        "nv3_judges_packs": ("Judges and packs", "Bộ đánh giá AI và gói kiểm thử"),
+        "nv3_c_item": ("Item", "Mục"),
+        "nv3_no_model": ("no judge model set", "chưa đặt mô hình đánh giá"),
+        "nv3_last_pack": ("Assurance packs, last run", "Gói kiểm thử, lần chạy gần nhất"),
+        "nv3_pack_counts": (
+            "{ok} ok · {warn} warn · {fail} fail",
+            "{ok} đạt · {warn} cảnh báo · {fail} lỗi",
+        ),
+        "nv3_no_pack": ("no run yet", "chưa chạy"),
+        # Catalogues and Guardians tabs
+        "nv3_c_name": ("Name", "Tên"),
+        "nv3_c_own_risk": ("Own risk", "Rủi ro riêng"),
+        "nv3_c_last_seen": ("Last seen", "Thấy lần cuối"),
+        "nv3_unspecified": ("unspecified", "chưa xác định"),
+        "nv3_assets_none": ("Nothing in this catalogue", "Danh mục này chưa có mục nào"),
+        "nv3_assets_none_line": (
+            "python -m supervisor.jobs.inventory fills it.",
+            "Chạy python -m supervisor.jobs.inventory để điền.",
+        ),
+        "nv3_g_lede_detectors": (
+            "Checks that run inside the gate call. Only dlp_vn may change a call; the rest report.",
+            "Các kiểm tra chạy trong lượt gọi qua cổng. Chỉ dlp_vn được sửa nội dung; còn lại "
+            "chỉ báo cáo.",
+        ),
+        "nv3_g_lede_judges": (
+            "AI judges advise. They open a case or raise severity; they never block.",
+            "Bộ đánh giá AI chỉ tư vấn. Chúng mở vụ việc hoặc nâng mức độ; không bao giờ chặn.",
+        ),
+        "nv3_g_lede_monitors": (
+            "Monitors watch behaviour over time and open cases or alerts.",
+            "Bộ giám sát theo dõi hành vi theo thời gian và mở vụ việc hoặc cảnh báo.",
+        ),
+        "nv3_c_detector": ("Detector", "Bộ phát hiện"),
+        "nv3_c_in_file": ("In the file", "Trong tệp"),
+        "nv3_c_mandatory": ("Mandatory", "Bắt buộc"),
+        "nv3_mandatory_note": (
+            "Mandatory means fail_closed in config/detectors.yaml. An agent has full guardian "
+            "coverage when all of them are on for it.",
+            "Bắt buộc nghĩa là fail_closed trong config/detectors.yaml. Tác tử được phủ đủ khi "
+            "tất cả đều bật cho nó.",
+        ),
+        # Workflows
+        "nv3_wf_lede": (
+            "What runs by itself in this instance. Read only: there is no editor yet.",
+            "Những gì tự chạy trong hệ thống này. Chỉ đọc: chưa có trình chỉnh sửa.",
+        ),
+        "nv3_c_workflow": ("Workflow", "Quy trình"),
+        "nv3_c_every": ("Every or window", "Chu kỳ hoặc cửa sổ"),
+        "nv3_c_last_run": ("Last run", "Lần chạy cuối"),
+        "nv3_kind_wf_job": ("scheduler job", "tác vụ định kỳ"),
+        "nv3_kind_wf_alert": ("alert rule", "quy tắc cảnh báo"),
+        "nv3_kind_wf_approval": ("approval", "phê duyệt"),
+        "nv3_kind_wf_sink": ("sink", "đầu ra"),
+        "nv3_wf_signoff": ("Case sign-off", "Phê duyệt vụ việc"),
+        "nv3_wf_resume": ("Resume a paused agent", "Cho tác tử tạm dừng chạy lại"),
+        "nv3_wf_waive": ("Waive a required task", "Miễn một công việc bắt buộc"),
+        "nv3_wf_siem": ("SIEM export", "Xuất sang SIEM"),
+        "nv3_wf_webhook": ("Webhook notices", "Thông báo webhook"),
+        "nv3_wfd_signoff": (
+            "two people for high and critical cases",
+            "hai người cho vụ việc mức cao và nghiêm trọng",
+        ),
+        "nv3_wfd_resume": ("the owner and a reviewer", "chủ sở hữu và một người rà soát"),
+        "nv3_wfd_waive": ("a reason and a second person", "cần lý do và người thứ hai"),
+        "nv3_wf_sched_none": (
+            "not running in this process, so job state is not available",
+            "không chạy trong tiến trình này, nên không có trạng thái tác vụ",
+        ),
+        "nv3_wf_rules_unreadable": (
+            "config/alerts.yaml cannot be read, so the alert rules are not listed.",
+            "Không đọc được config/alerts.yaml nên không liệt kê quy tắc cảnh báo.",
+        ),
+        "nv3_threshold": ("threshold {n}", "ngưỡng {n}"),
+        "nv3_never": ("never", "chưa chạy"),
+        "nv3_wf_note": (
+            "Assignment rules, the Decision 33 question flow and event actions come with the "
+            "governance work packages; this page lists them when they exist.",
+            "Quy tắc phân công, luồng câu hỏi Quyết định 33 và hành động theo sự kiện sẽ đến "
+            "cùng các gói công việc quản trị; trang này sẽ liệt kê khi chúng có.",
+        ),
+    }
+)
+
 
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come

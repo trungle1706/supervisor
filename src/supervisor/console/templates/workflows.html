@@ -1,0 +1,26 @@
+{# Workflows (CONSOLE_NAV_V3): read-only list of what runs. No editor yet. Variables:
+   overview_v3.workflows() as d. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% block title %}{{ t('nv3_workflows') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_workflows'), None)]) }}
+{{ ui.pagehead(t('nv3_workflows')) }}
+<p class="hint">{{ t('nv3_wf_lede') }}</p>
+{% if d.rules_na %}{{ v3.na(d.rules_na) }}{% endif %}
+<div class="tablewrap"><table class="list" data-table="workflows">
+<thead><tr><th scope="col">{{ t('nv3_c_workflow') }}</th><th scope="col">{{ t('nv3_c_kind') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('nv3_c_every') }}</th><th scope="col">{{ t('nv3_c_last_run') }}</th></tr></thead>
+<tbody>
+{% for r in d.rows %}
+<tr>
+  <td>{% if r.kind == 'approval' %}{{ t('nv3_wf_' ~ r.name) }}{% elif r.kind == 'sink' %}{{ t('nv3_wf_' ~ r.name) }}{% else %}<code>{{ r.name }}</code>{% endif %}{% if r.detail %} <span class="muted">{{ t(r.detail) }}</span>{% endif %}</td>
+  <td>{{ t('nv3_kind_wf_' ~ r.kind) }}</td>
+  <td>{{ ui.pill(t('nv3_' ~ r.state), 'ok' if r.state == 'on' else 'neutral', True) }}</td>
+  <td>{% if r.interval is none %}<span class="muted">-</span>{% else %}{{ dur(r.interval) }}{% if r.threshold is defined %} · {{ t('nv3_threshold', n=r.threshold) }}{% endif %}{% endif %}</td>
+  <td>{% if r.last %}{{ r.last|day }}{% elif r.kind == 'job' and d.sched %}<span class="muted">{{ t('nv3_never') }}</span>{% else %}<span class="muted">{{ t('nv3_na') }}</span>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+<p class="hint">{{ t('nv3_wf_note') }}</p>
+{% endblock %}
