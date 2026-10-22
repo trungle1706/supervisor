@@ -26,6 +26,9 @@ from urllib.parse import urlsplit
 SSRF_REFUSED = "url.ssrf_refused"
 DOMAIN_BLOCKED = "url.domain_blocked"
 MAX_URL_CHARS = 2048
+_HOST = re.compile(
+    r"^[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?(\.[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?)*$"
+)
 _NUMERIC_HOST = re.compile(r"^[0-9a-fx.]+$", re.I)
 
 Resolver = Callable[[str], Sequence[str]]
@@ -89,7 +92,13 @@ def parse_ip(text: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
 
 def parse_url(url: str) -> ParsedUrl:
     """Split and check the shape of a URL. Raises ``UrlRefused(SSRF_REFUSED)``."""
-    if not isinstance(url, str) or not url or len(url) > MAX_URL_CHARS or not url.isprintable():
+    if (
+        not isinstance(url, str)
+        or not url
+        or len(url) > MAX_URL_CHARS
+        or not url.isprintable()
+        or any(c.isspace() for c in url)
+    ):
         raise UrlRefused(SSRF_REFUSED, "bad url")
     try:
         parts = urlsplit(url)
@@ -111,6 +120,8 @@ def parse_url(url: str) -> ParsedUrl:
             host = host.encode("idna").decode("ascii")
         except UnicodeError:
             raise UrlRefused(SSRF_REFUSED, "bad host") from None
+    if not _HOST.match(host) and parse_ip(host) is None:
+        raise UrlRefused(SSRF_REFUSED, "bad host")
     path = parts.path or "/"
     if parts.query:
         path += "?" + parts.query

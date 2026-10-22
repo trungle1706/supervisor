@@ -506,20 +506,15 @@ class IntakeService:
         read_count = 0
         limit_hit = False
         for doc in docs:
-            if read_count >= MAX_DOCUMENTS:
-                limit_hit = True
+            url = doc.get("url") if isinstance(doc.get("url"), str) else None
+            if url is not None and url in seen_urls:
+                continue  # the same link twice counts once
+            if read_count >= MAX_DOCUMENTS or (url is not None and len(seen_urls) >= MAX_URLS):
+                limit_hit = True  # the surplus is not read
                 out.unread += 1
                 out.closing += 1
                 continue
-            url = doc.get("url") if isinstance(doc.get("url"), str) else None
             if url is not None:
-                if url in seen_urls:
-                    continue  # the same link twice counts once
-                if len(seen_urls) >= MAX_URLS:
-                    limit_hit = True
-                    out.unread += 1
-                    out.closing += 1
-                    continue
                 seen_urls.add(url)
             read_count += 1
             index = len(out.meta)
