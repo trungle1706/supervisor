@@ -509,6 +509,7 @@ def fill_from_workspace(
                 attrs={
                     "role": "databricks_app",
                     "workspace_kind": "app",
+                    **({"owner_group": str(a["group"])} if a.get("group") else {}),
                 },
             )
             n.add_evidence("workspace_scan", ref)
@@ -539,6 +540,7 @@ def fill_from_workspace(
                         "task": e.get("task"),
                         "state": e.get("state"),
                         "agent_endpoint": True if e.get("agent") else None,
+                        "owner_group": str(e["group"]) if e.get("group") else None,
                     }.items()
                     if v
                 },
@@ -647,7 +649,10 @@ def fill_from_workspace(
                 "genie_space",
                 name,
                 status="unmanaged",
-                attrs={"workspace_kind": "genie_space"},
+                attrs={
+                    "workspace_kind": "genie_space",
+                    **({"owner_group": str(sp["group"])} if sp.get("group") else {}),
+                },
             )
             n.add_evidence("workspace_scan", ref)
             g.add_node(n)

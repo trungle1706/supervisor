@@ -134,3 +134,7 @@ flags once at start), the nav is unchanged, and the three tables stay empty.
 2. `systems.edit` is held by `reviewer`, `owner`, `admin` (like the control catalogue). Should a
    reviewer be able to register systems, or only the owner role?
 3. Archive is final. Should an archived system come back (needs a reviewer)?
+
+## 12. Draft systems from the workspace scan (WP-G3)
+
+With `INVENTORY_AUTOREGISTER=1` the inventory scan registers a draft system (status draft, risk `unspecified`, tag `source=workspace_scan`) for each unmanaged App, agent endpoint or Genie space, with a default owner from `config/governance.yaml`, and opens the task "Confirm context". See `docs/inventory.md`, "Draft registration from the scan".

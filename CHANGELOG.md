@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### WP-G3: Databricks auto-record v2 and agent auto-define
+
+One new flag, off by default (off = the inventory scan and the governance tables are as before).
+
+- Inventory scan sources v2 (same `INVENTORY_ENABLED` flag, read-only SDK calls, evidence
+  `workspace:<kind>/<name>`, no workspace URL or id stored): MLflow model versions, serving
+  endpoint config (foundation, external and custom served entities, agent endpoint flag), Genie
+  spaces, jobs and notebook tasks that name an LLM endpoint, Vector Search indexes, Unity Catalog
+  functions and MCP connections. New node kinds `genie_space`, `job`, `vector_index`,
+  `uc_function`. A Genie space is part of the shadow-AI check (new `genie_spaces` allow-list key).
+  Live kit test 12 checks each call shape.
+- `python -m supervisor.onboard.define --artifact <folder>`: Discover and Understand on an MLflow
+  model artifact folder (code, tool manifest, prompt files, `requirements.txt`, `MLmodel`) with no
+  code repository. Same `inventory.json` and `profile.json`, plus `artifact.json`. Two synthetic
+  fixtures under `tests/onboard/data/`.
+- `INVENTORY_AUTOREGISTER=1` (with `GOVERNANCE_ENABLED=1`): an unmanaged App, agent endpoint or
+  Genie space becomes a draft AI system with a default owner from `config/governance.yaml`, the
+  node is linked, and the initiation task "Confirm context" is opened. Deduplicated on the node
+  id. The scan never blocks anything.
+- Docs: `docs/inventory.md` ("Scan sources v2", "Draft registration from the scan"),
+  `docs/onboard.md` ("Define from an artifact").
+
 ### WP-G0: governance shared core, the AI system entity
 
 Two new flags, both off by default (off = nothing is mounted and the console is as in v0.4.1).

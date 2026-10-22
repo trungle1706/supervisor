@@ -45,10 +45,26 @@ def scheduled(settings: Settings) -> bool:
     )
 
 
-def run(adapters: Any, settings: Settings, reader: Any = None, cases: Any = None) -> dict[str, Any]:
+def run(
+    adapters: Any,
+    settings: Settings,
+    reader: Any = None,
+    cases: Any = None,
+    systems: Any = None,
+    tasks: Any = None,
+) -> dict[str, Any]:
+    """``systems`` and ``tasks`` (WP-G3) are the services that register a draft AI system; they
+    are used only with ``INVENTORY_AUTOREGISTER=1`` and ``GOVERNANCE_ENABLED=1``. The scheduler
+    passes the console's services (chain records); the standalone command builds its own."""
     svc = InventoryService.from_adapters(adapters)
     manifests = svc.fill_manifests()
-    out = svc.refresh_workspace(reader or build_reader(settings), cases)
+    if settings.inventory_autoregister and settings.governance_enabled and systems is None:
+        from supervisor.governance.systems import SystemService
+        from supervisor.tasks.service import TaskService
+
+        systems = SystemService.from_adapters(adapters)
+        tasks = tasks or TaskService.from_adapters(adapters)
+    out = svc.refresh_workspace(reader or build_reader(settings), cases, systems, tasks)
     out["manifests"] = manifests.as_dict()
     return out
 
@@ -83,6 +99,14 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         runtime.close()
     sh = out["shadow"]
+    if "autoregister" in out:
+        ar = out["autoregister"]
+        print(  # noqa: T201
+            f"[{'SKIP' if ar['status'] != 'ran' else 'OK'}] draft registration: "
+            f"{ar['created']} created, {ar['already_registered']} already registered, "
+            f"{ar['skipped_no_owner']} without a default owner"
+            + (f" ({ar['reason']})" if ar.get("reason") else "")
+        )
     print(  # noqa: T201
         f"[OK] inventory: {sh['managed']} managed, {sh['allowlisted']} allowlisted, "
         f"{sh['unmanaged']} unmanaged workspace item(s); errors: {out['errors'] or 'none'}"

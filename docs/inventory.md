@@ -101,6 +101,27 @@ Shadow check: a Genie space is **active** when an agent `uses` or `reads` it, **
 
 Not confirmed without a live workspace (checked by test 12 of the live kit, `docs/live-test-kit.md`): the call shapes of `genie.list_spaces` (paged response, attached tables), `jobs.list(expand_tasks=True)` task parameter fields, the vector search calls, the `is_mcp_connection` connection option, and how an agent endpoint is marked (task `agent/...` or a tag).
 
+### Draft registration from the scan (WP-G3)
+
+Off by default. With `INVENTORY_AUTOREGISTER=1` **and** `GOVERNANCE_ENABLED=1`, each refresh turns an **unmanaged** Databricks App, agent serving endpoint (`attrs.agent_endpoint`) or Genie space into a draft AI system (`docs/governance.md`), after the shadow-AI check:
+
+```
+unmanaged node --> owner lookup --> ai_system (status draft, risk_level unspecified, tag source=workspace_scan)
+                                      |-- system_component (ref_kind node, source workspace_scan, evidence workspace:<kind>/<name>)
+                                      `-- task "Confirm context" (stage initiation, owner role owner, due in 14 days)
+```
+
+| Rule | Detail |
+|---|---|
+| Owner | `config/governance.yaml` (or `GOVERNANCE_CONFIG_FILE`): `default_owner_by_group[<owner group>]`, else `default_owner_by_catalog[<catalog of the tables or models the node reads or serves>]`, else `default_owner`. Each value is `owner_user` and `owner_team`. Keys match without case. The committed file holds FILL-ME placeholders: while the chosen owner is a placeholder no draft is made (`skipped_no_owner`). The live SDK reader gives no owner group; the group key works with a fixture or a later reader. |
+| Intake fields | Placeholders from `draft_defaults` in the same file (assistant, deployer, internal, identifiable, no human control: the safe side). The task asks the owner to confirm them. |
+| Dedupe | On the inventory node id. A node that has any `system_component` row, active or removed, is never registered again, so an archived or unlinked draft does not come back. A name used by a person gets the suffix `(app)`, `(agent endpoint)` or `(genie space)` once; if that is taken too the node is skipped (`skipped_name`). |
+| Never blocks | A failure on one node is logged and counted (`errors`); the scan result and the shadow-AI cases do not change. Nothing is paused or blocked. At most 100 drafts per refresh. |
+| Chain | The service writes `system_change` (create, link) and `task_change` records as for a person (ids, enums, hashes only; no workspace name). |
+| Result | `python -m supervisor.jobs.inventory` prints `[OK] draft registration: N created, ...` or `[SKIP] ...` (governance off). The refresh result has an `autoregister` entry only when the flag is on. |
+
+The Genie space and agent endpoint stay `unmanaged` in the inventory until an agent covers them or they match the allow-list; the shadow-AI case and the draft are two separate signals.
+
 ## Shadow-AI flow
 
 ```
@@ -175,6 +196,8 @@ Returns `found`, `own_risk`, `effective_risk`, `decision33_class` and `links` (f
 | `INVENTORY_SELF_APP` | (empty) | Name of this Databricks App; never reported as shadow AI |
 | `INVENTORY_ALLOWLIST_FILE` | `config\inventory_allowlist.yaml` | Allow-list file |
 | `INVENTORY_WORKSPACE_FIXTURE` | (empty) | JSON file read instead of a workspace (offline demo, tests) |
+| `INVENTORY_AUTOREGISTER` | `0` | WP-G3: draft AI system for each unmanaged App, agent endpoint or Genie space. Needs `GOVERNANCE_ENABLED=1` |
+| `GOVERNANCE_CONFIG_FILE` | `config\governance.yaml` | Default owners, intake placeholders and the initiation task of the draft |
 
 Windows cmd: `set INVENTORY_ENABLED=1`.
 

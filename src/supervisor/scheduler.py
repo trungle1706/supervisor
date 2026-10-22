@@ -411,7 +411,15 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
     def inventory() -> Any:  # WP24: manifests + workspace + shadow-AI cases
         from supervisor.jobs import inventory as inventory_job
 
-        return inventory_job.run(adapters, settings, cases=case_service())
+        systems = tasks = None
+        if settings.inventory_autoregister and settings.governance_enabled:  # WP-G3
+            from supervisor.console.context import peek_context
+
+            ctx_ = peek_context()  # the console's services write chain records
+            systems, tasks = getattr(ctx_, "systems", None), getattr(ctx_, "tasks", None)
+        return inventory_job.run(
+            adapters, settings, cases=case_service(), systems=systems, tasks=tasks
+        )
 
     judge = quality = None
     if settings.judge_enabled:
