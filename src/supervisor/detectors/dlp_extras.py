@@ -22,6 +22,8 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import hmac
+import os
 import re
 import re._parser as sre_parse  # the stdlib regex parser: used to refuse risky patterns
 import time
@@ -42,7 +44,8 @@ MAX_TOKEN_CHARS = 40
 MAX_MASK_TOKENS = 16
 MAX_REPEAT_FINITE = 1000  # a finite {n,m} above this is refused
 MAX_GROUP_DEPTH = 4
-RULE_BUDGET_NS = 1_000_000  # 1 ms per rule and leaf
+RULE_BUDGET_NS = 10_000_000  # 10 ms per regex rule and call (all texts together)
+RULE_LEAF_CHARS = 2_000  # a regex rule reads this many characters of one text, no more
 MAX_B64_RUNS = 32
 MAX_B64_CHARS = 8192
 MAX_HITS_PER_LEAF = 200  # also the most sentinels a text can carry (one character each)
@@ -56,17 +59,20 @@ _SENT_OPEN, _SENT_CLOSE = "\ue000", "\ue001"
 _SENT_BASE = 0xE100  # the hit number is one private-use character, so no regex class sees a digit
 _SENTINEL = re.compile("\ue000([\ue100-\ue1ff])\ue001")
 _B64 = re.compile(r"(?<![A-Za-z0-9+/_-])[A-Za-z0-9+/_-]{24,}={0,2}(?![A-Za-z0-9+/=_-])")
-_PW_NAMES = (
-    "password",
-    "passwd",
-    "pwd",
-    "passphrase",
-    "secret",
-    "apikey",
-    "accesstoken",
-    "authtoken",
-    "privatekey",
+# WP-D2 review: the LAST word of a key name decides (passwordPolicy, password_changed_at,
+# apiKeyName, client_secret_id are metadata, not a value). Two words joined count as one
+# (api + key, mat + khau). Vietnamese names are matched with the accents removed.
+_PW_LAST = frozenset(
+    {"password", "passwd", "pwd", "passphrase", "secret", "apikey", "token", "matkhau", "pin",
+     "pw", "mk", "secretkey", "privatekey", "accesskey"}
+)  # fmt: skip
+_PW_STRICT = frozenset({"password", "passwd", "pwd", "passphrase", "matkhau", "pw", "mk"})
+_WORDS = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
+_DATE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$|^\d{1,2}/\d{1,2}/\d{2,4}$"
 )
+_VERSION = re.compile(r"^v?\d+(\.\d+){1,3}([-+][\w.]+)?$")
+_ENUM = re.compile(r"^[a-z][a-z_-]{0,19}$")
 _NOT_A_VALUE = frozenset({"true", "false", "null", "none", "nil", "undefined", "redacted"})
 
 SECRET_KINDS: tuple[str, ...] = tuple(
@@ -77,17 +83,36 @@ SECRET_KINDS: tuple[str, ...] = tuple(
 )
 
 
-def digest12(value: str) -> str:
-    """Short SHA-256 of a value: what a finding keeps instead of the value."""
-    return hashlib.sha256(value.encode("utf-8", "replace")).hexdigest()[:12]
+_PROCESS_KEY = os.urandom(32)  # used when the masker has no key of its own (R2)
+
+
+def make_digest(masker: Any) -> Callable[[str], str]:
+    """The short hash a finding keeps instead of a value: the first 12 hex characters of a KEYED
+    HMAC-SHA256 (the masker's own key when it has one, else a random key held in this process).
+    Never an unkeyed hash: with one, anyone who reads the audit store could confirm a guessed
+    password offline and link one key across calls."""
+    keyed = getattr(masker, "keyed_hash", None)
+    if callable(keyed):
+        return lambda value: str(keyed("secret:" + value))[:12]
+    return lambda value: hmac.new(
+        _PROCESS_KEY, ("secret:" + value).encode("utf-8", "replace"), hashlib.sha256
+    ).hexdigest()[:12]
 
 
 # ---------------------------------------------------------------------------- pattern safety
 
 
-def _walk(sub: Any, depth: int, in_var_repeat: bool, problems: list[str]) -> None:
-    """Refuse nested variable repeats, a branch under an unbounded repeat, back references and
-    deep nesting. ``in_var_repeat``: an enclosing repeat can run more than once."""
+_CONSUMES = frozenset({"LITERAL", "NOT_LITERAL", "IN", "ANY", "CATEGORY"})
+MAX_VARIABLE_REPEATS = 2  # a repeat that can run more than one way (+ * ? {n,m}) per pattern
+
+
+def _walk(sub: Any, depth: int, in_var_repeat: bool, problems: list[str], stats: list[int]) -> bool:
+    """Refuse nested variable repeats, a branch under an unbounded repeat, back references, deep
+    nesting, more than two variable repeats and two unbounded repeats in sequence (``.*.*x`` is
+    quadratic or worse). ``in_var_repeat``: an enclosing repeat can run more than once.
+    ``stats[0]`` counts the variable repeats. Returns True when the sequence ends in an
+    unbounded repeat with nothing fixed after it."""
+    pending = False
     for op, av in sub:
         name = str(op)
         if name in ("GROUPREF", "GROUPREF_EXISTS"):
@@ -97,24 +122,36 @@ def _walk(sub: Any, depth: int, in_var_repeat: bool, problems: list[str]) -> Non
             unbounded = hi == sre_parse.MAXREPEAT
             if not unbounded and hi > MAX_REPEAT_FINITE:
                 problems.append(f"a repeat above {MAX_REPEAT_FINITE}")
-            variable = hi > 1
+            variable = hi > 1 or lo != hi  # `?` counts: a?a?a?...aaa is exponential
+            if variable:
+                stats[0] += 1
             if variable and in_var_repeat:
                 problems.append("nested repeats (a quantifier inside a quantifier)")
             if unbounded and any(str(o) == "BRANCH" for o, _ in _flatten(body)):
                 problems.append("an alternation under an unbounded repeat")
-            _walk(body, depth, in_var_repeat or variable, problems)
+            inner = _walk(body, depth, in_var_repeat or variable, problems, stats)
+            if unbounded:
+                if pending:
+                    problems.append("two unbounded repeats in sequence")
+                pending = True
+            elif lo > 0 and not inner:
+                pending = False  # a repeat that must match something separates the two
         elif name == "SUBPATTERN":
             if depth + 1 > MAX_GROUP_DEPTH:
                 problems.append(f"groups nested deeper than {MAX_GROUP_DEPTH}")
             else:
-                _walk(av[-1], depth + 1, in_var_repeat, problems)
+                pending = _walk(av[-1], depth + 1, in_var_repeat, problems, stats)
         elif name == "BRANCH":
             for alt in av[1]:
-                _walk(alt, depth, in_var_repeat, problems)
+                _walk(alt, depth, in_var_repeat, problems, stats)
+            pending = False
         elif name in ("ASSERT", "ASSERT_NOT"):
-            _walk(av[1], depth, in_var_repeat, problems)
+            _walk(av[1], depth, in_var_repeat, problems, stats)
         elif name == "ATOMIC_GROUP":
-            _walk(av, depth, in_var_repeat, problems)
+            _walk(av, depth, in_var_repeat, problems, stats)
+        elif name in _CONSUMES:
+            pending = False
+    return pending
 
 
 def _flatten(sub: Any) -> list[tuple[Any, Any]]:
@@ -146,7 +183,10 @@ def regex_problems(pattern: str) -> list[str]:
     except (re.error, RecursionError, OverflowError) as exc:
         return [f"is not a valid regular expression ({type(exc).__name__})"]
     problems: list[str] = []
-    _walk(parsed, 0, False, problems)
+    stats = [0]
+    _walk(parsed, 0, False, problems, stats)
+    if stats[0] > MAX_VARIABLE_REPEATS:
+        problems.append(f"more than {MAX_VARIABLE_REPEATS} variable repeats (+ * ? {{n,m}})")
     if compiled.search(""):
         problems.append("matches the empty text")
     return sorted(set(problems))
@@ -283,20 +323,43 @@ class Scanned:
     plain: bool = False  # the text held a sentinel character: replacements are put in directly
 
 
-def _password_key(key: str | None) -> bool:
+def _fold(text: str) -> str:
+    import unicodedata
+
+    t = unicodedata.normalize("NFD", text.replace("đ", "d").replace("Đ", "D"))
+    return "".join(c for c in t if not unicodedata.combining(c))
+
+
+def _key_words(key: str) -> list[str]:
+    return [w.lower() for w in _WORDS.findall(_fold(key))]
+
+
+def _password_key(key: str | None) -> str | None:
+    """The matched name (last word, or last two joined) when ``key`` names a secret value."""
     if not key:
-        return False
-    norm = re.sub(r"[^a-z0-9]", "", key.lower())
-    return any(n in norm for n in _PW_NAMES)
+        return None
+    words = _key_words(key)
+    if not words:
+        return None
+    if len(words) > 1 and words[-2] + words[-1] in _PW_LAST:
+        return words[-2] + words[-1]
+    return words[-1] if words[-1] in _PW_LAST else None
 
 
-def _plausible_value(text: str) -> bool:
-    if not 6 <= len(text) <= 256 or any(c.isspace() for c in text):
+def _plausible_value(text: str, name: str = "password") -> bool:
+    short = name in ("pin", "pw", "mk")
+    if not (4 if short else 6) <= len(text) <= 256 or any(c.isspace() for c in text):
         return False
     low = text.lower()
     if low in _NOT_A_VALUE or is_placeholder(text):
         return False
     if low.startswith(("http://", "https://", "${", "{{", "<", "$(", "env:", "os.")):
+        return False
+    if _DATE.match(text) or _VERSION.match(text):
+        return False
+    if name not in _PW_STRICT and _ENUM.match(text):
+        return False  # token: "none", secret: "enabled" ... a word, not a value
+    if name == "pin" and not text.isdigit():
         return False
     return True
 
@@ -308,7 +371,9 @@ class Extras:
         self,
         settings: Mapping[str, Any],
         clock: Callable[[], int] = time.perf_counter_ns,
+        digest: Callable[[str], str] | None = None,
     ) -> None:
+        self.digest = digest or make_digest(None)
         sec = settings.get("secrets") or {}
         self.secrets_on = bool(sec.get("enabled"))
         self.secrets_action = str(sec.get("action") or "report")
@@ -329,7 +394,11 @@ class Extras:
             if (m := ENTITY_KEY.match(str(k)))
         }
         self.clock = clock
-        self.over_budget: set[str] = set()  # custom rule ids that ran out of time in this call
+        # Coverage notes, never a failure: rules that ran out of time, and rules that read only
+        # the first RULE_LEAF_CHARS characters of a text. Neither fails a call closed.
+        self.over_budget: set[str] = set()
+        self.leaf_cut: set[str] = set()
+        self._spent: dict[str, int] = {}
         self._memo: dict[tuple[str | None, str], Scanned] = {}
 
     @property
@@ -366,15 +435,16 @@ class Extras:
     def _scan_secrets(self, res: Scanned, text: str, key: str | None) -> None:
         def marker(kind: str, value: str) -> str:
             k = refine_kind(kind, value)
-            return self._put(res, Hit(f"secret.{k}", f"<SECRET:{k}>", digest12(value)))
+            return self._put(res, Hit(f"secret.{k}", f"<SECRET:{k}>", self.digest(value)))
 
         out = redact(text, marker)
-        if out == text and key is not None and _plausible_value(text):
+        name = _password_key(key)
+        if out == text and name is not None and _plausible_value(text, name):
             out = self._put(
-                res, Hit("secret.password_field", "<SECRET:password_field>", digest12(text))
+                res, Hit("secret.password_field", "<SECRET:password_field>", self.digest(text))
             )
-        elif out == text:
-            out = self._scan_base64(res, text)
+        else:  # a base64 secret next to a plain one is found too
+            out = self._scan_base64(res, out)
         res.text = out
 
     def _scan_base64(self, res: Scanned, text: str) -> str:
@@ -398,7 +468,7 @@ class Extras:
             k = refine_kind(kind, value)
             pieces += [
                 text[last : m.start()],
-                self._put(res, Hit(f"secret.{k}", f"<SECRET:{k}>", digest12(run))),
+                self._put(res, Hit(f"secret.{k}", f"<SECRET:{k}>", self.digest(run))),
             ]
             last = m.end()
         if not pieces:
@@ -406,27 +476,34 @@ class Extras:
         return "".join(pieces) + text[last:]
 
     def _scan_rule(self, res: Scanned, rule: Rule) -> None:
-        t0 = self.clock()
         text = res.text
-        pieces: list[str] = []
-        last = 0
         if rule.kind == "keyword":
             spans = _keyword_spans(text, rule.pattern)
         else:
+            if self._spent.get(rule.id, 0) > RULE_BUDGET_NS:
+                return  # out of time earlier in this call: the rest is not scanned
+            head = text[:RULE_LEAF_CHARS]
+            if len(text) > RULE_LEAF_CHARS:
+                self.leaf_cut.add(rule.id)
             spans = []
-            for m in compiled(rule.pattern).finditer(text):
+            t0 = self.clock()
+            for m in compiled(rule.pattern).finditer(head):
                 if m.end() > m.start():
                     spans.append((m.start(), m.end()))
-                if self.clock() - t0 > RULE_BUDGET_NS:
+                if self._spent.get(rule.id, 0) + self.clock() - t0 > RULE_BUDGET_NS:
                     break
-        if self.clock() - t0 > RULE_BUDGET_NS:
-            self.over_budget.add(rule.id)
-            return  # a rule that ran out of time masks nothing: the call reports it
+            self._spent[rule.id] = self._spent.get(rule.id, 0) + self.clock() - t0
+            if self._spent[rule.id] > RULE_BUDGET_NS:
+                self.over_budget.add(rule.id)
+        pieces: list[str] = []
+        last = 0
         for s, e in spans[: MAX_HITS_PER_LEAF - len(res.hits)]:
             value = text[s:e]
             pieces += [
                 text[last:s],
-                self._put(res, Hit(f"custom.{rule.id}", rule.replacement(value), digest12(value))),
+                self._put(
+                    res, Hit(f"custom.{rule.id}", rule.replacement(value), self.digest(value))
+                ),
             ]
             last = e
         if pieces:

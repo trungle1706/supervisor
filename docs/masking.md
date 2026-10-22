@@ -97,7 +97,7 @@ off again.
 `<SECRET:aws_access_key>`); a custom rule becomes its `mask_token` (default `<CUSTOM:id>`) or, with
 `preserve_length`, `*` repeated to the length of the match. These markers carry no hash and no
 pseudonym: a secret is not given a consistent pseudonym, because the same pseudonym for the same
-key would let a reader tell that two calls used one key. The findings keep a 12 character hash of
+key would let a reader tell that two calls used one key. The findings keep a 12 character keyed hash of
 the value, never the value. `mask_tokens: {pii.phone: "<PHONE>"}` replaces a built-in pseudonym in
 the transformed payload by a fixed text (the consistent pseudonym is lost). The masker itself
 (`vn_regex-3`) is unchanged; the secrets and the rules run first and the masker sees a placeholder.

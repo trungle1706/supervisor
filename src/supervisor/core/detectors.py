@@ -784,6 +784,7 @@ class DetectorRegistry:
         scanned_min: dict[str, int] = {}  # per part: the least any detector scanned
 
         merged: dict[str, Any] = {}
+        notes: list[dict[str, str]] = []  # WP-D2: coverage notes, never a failure
         for slug, det in self._by_slug.items():
             st = config.detectors.get(slug)
             if st is None or not st.enabled:
@@ -879,6 +880,16 @@ class DetectorRegistry:
             for f in found:
                 if f.not_executed_reason is not None:
                     res.not_executed.append(f)
+                elif f.code.startswith("coverage_note."):
+                    # WP-D2: a detector says it read less than all of a text (a cut). Listed in
+                    # coverage.notes; it is not a finding and never fails a call closed.
+                    notes.append(
+                        {
+                            "detector": slug,
+                            "reason": f.code.split(".", 1)[1],
+                            "detail": f.detail,
+                        }
+                    )
                 elif f.fired:
                     res.findings.append(f)
                     if f.action_hint == "transform" and f.transformed_payload:
@@ -886,6 +897,8 @@ class DetectorRegistry:
                             merged[part] = value
         if merged:
             res.transformed_payload = merged
+        if notes:
+            res.coverage["notes"] = notes
         cut = [
             {
                 "part": p,

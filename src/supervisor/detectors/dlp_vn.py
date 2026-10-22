@@ -24,17 +24,24 @@ from supervisor.core.detectors import (
     Entity,
     Finding,
     Fragment,
+    Leaf,
     SettingField,
     SettingsSchema,
     clip,
     detector_id,
     map_leaves,
-    not_executed,
     threshold_for,
     walk_leaves,
 )
+from supervisor.core.detectors import _key as _safe_key
 from supervisor.core.ports import Masker
-from supervisor.detectors.dlp_extras import Extras, Hit, Scanned
+from supervisor.detectors.dlp_extras import (
+    RULE_LEAF_CHARS,
+    Extras,
+    Hit,
+    Scanned,
+    make_digest,
+)
 
 _TOKEN = re.compile(r"<([A-Z_]{2,20}):([0-9a-f]{4,64})>")
 
@@ -141,6 +148,71 @@ def _mask_tree_x(value: Any, leaf: Any, depth: int = 0) -> Any:
     if isinstance(value, list | tuple) and depth <= MAX_DEPTH:
         return [_mask_tree_x(v, leaf, depth + 1) for v in value]
     return map_leaves(value, lambda t: leaf(None, t), depth)
+
+
+def _keyed_leaves(
+    part: str, value: Any, path: str = "$", key: str | None = None, depth: int = 0
+) -> Any:
+    """``walk_leaves`` that also gives the REAL dict key above a string (the path shows
+    ``*`` for a key that is not a plain identifier, e.g. a Vietnamese name)."""
+    if depth > MAX_DEPTH:
+        return
+    if isinstance(value, str):
+        yield Leaf(part, path, value), key
+    elif isinstance(value, Mapping):
+        for k, v in value.items():
+            yield from _keyed_leaves(
+                part, v, f"{path}.{_safe_key(k)}", k if isinstance(k, str) else None, depth + 1
+            )
+    elif isinstance(value, list | tuple):
+        for i, v in enumerate(value):
+            yield from _keyed_leaves(part, v, f"{path}[{i}]", None, depth + 1)
+
+
+def _leaves(part: str, value: Any, keyed: bool) -> Any:
+    if keyed:  # WP-D2 path: the real key is needed
+        yield from _keyed_leaves(part, value)
+        return
+    for leaf in walk_leaves(part, value):  # the old path, unchanged
+        yield leaf, (None if leaf.path.endswith("]") else leaf.path.rsplit(".", 1)[-1])
+
+
+def _str_keys(value: Any, path: str = "$", depth: int = 0) -> Any:
+    """(path of the dict, key) for every string key of 8 or more characters."""
+    if depth > MAX_DEPTH:
+        return
+    if isinstance(value, Mapping):
+        for k, v in value.items():
+            if isinstance(k, str) and len(k) >= 8:
+                yield path, k
+            yield from _str_keys(v, f"{path}.{_safe_key(k)}", depth + 1)
+    elif isinstance(value, list | tuple):
+        for i, v in enumerate(value):
+            yield from _str_keys(v, f"{path}[{i}]", depth + 1)
+
+
+def _notes(slug: str, did: str, preset: str, x: Extras) -> list[Finding]:
+    """Coverage notes of the custom rules: a regex read only the first characters of a text,
+    or ran out of its time. A note is not a failure and not a finding (core registry)."""
+    out = []
+    for rid in sorted(x.leaf_cut):
+        out.append(
+            _note(slug, did, preset, f"custom rule {rid}: first {RULE_LEAF_CHARS} characters")
+        )
+    for rid in sorted(x.over_budget):
+        out.append(_note(slug, did, preset, f"custom rule {rid}: time budget"))
+    return out
+
+
+def _note(slug: str, did: str, preset: str, detail: str) -> Finding:
+    return Finding(
+        detector_slug=slug,
+        detector_id=did,
+        code="coverage_note.cut",
+        threshold_bp=SCORE_MAX,
+        detail=detail,
+        preset=preset,
+    )
 
 
 def extras_active(settings: Mapping[str, Any]) -> bool:
@@ -300,9 +372,15 @@ class DlpVnDetector:
 
         return full
 
+    def _extras(self, settings: Mapping[str, Any]) -> Extras | None:
+        """The WP-D2 extras of this call, or None (the old code path) when none is on."""
+        if not extras_active(settings):
+            return None
+        return Extras(settings, digest=make_digest(self.masker))
+
     def masked_leaf(self, text: str, settings: Mapping[str, Any], key: str | None = None) -> str:
         """The masked text of one string as ``evaluate`` shows it in a fragment (harness)."""
-        x = Extras(settings) if extras_active(settings) else None
+        x = self._extras(settings)
         typed = settings.get("pseudonym_mode") == "typed"
         return self._leaf_fn(x, typed, self.masker.mask)(key, text)[0]
 
@@ -319,7 +397,7 @@ class DlpVnDetector:
                 out = memo[text] = self.masker.mask(text)
             return out
 
-        x = Extras(settings) if extras_active(settings) else None
+        x = self._extras(settings)
         full = self._leaf_fn(x, typed, mask)
         did = detector_id(self)
         threshold = threshold_for(self, settings)
@@ -332,8 +410,7 @@ class DlpVnDetector:
         for part in PARTS_BY_DIRECTION[direction]:
             if payload.get(part) is None:
                 continue
-            for leaf in walk_leaves(part, payload[part]):
-                key = None if leaf.path.endswith("]") else leaf.path.rsplit(".", 1)[-1]
+            for leaf, key in _leaves(part, payload[part], x is not None):
                 masked, spans, sc = full(key, leaf.text)
                 if masked == leaf.text:
                     continue
@@ -370,21 +447,41 @@ class DlpVnDetector:
                             part, leaf.path, m.start(), m.end(), clip(masked, m.start(), m.end())
                         )
                     )
-        late = (
-            [
-                not_executed(self.slug, did, "timed_out", f"custom rule {rid}", preset=preset)
-                for rid in sorted(x.over_budget)
-            ]
-            if x is not None
-            else []
-        )
+            if x is not None and x.scans:  # L1: a secret used as a key is found too
+                for kpath, kname in _str_keys(payload[part]):
+                    masked, _, sc = full(None, kname)
+                    for h in sc.hits:
+                        xhits.setdefault(h.code, []).append(h)
+                        xfrags.setdefault(h.code, []).append(
+                            Fragment(
+                                part,
+                                kpath,
+                                0,
+                                min(len(masked), FRAGMENT_TEXT_MAX),
+                                clip(masked, 0, FRAGMENT_TEXT_MAX),
+                                "leaf",
+                            )
+                        )
+        late = _notes(self.slug, did, preset, x) if x is not None else []
         if not counts and not xhits:
             return late
         transform = self._in_scope(settings, meta)
+        # WP-D2: a secret in the arguments with action block. The gate blocks the call; the
+        # masked arguments ride along so observe mode (which lifts the block) still sends
+        # the masked copy to the tool, not the raw one.
+        blocking = {
+            code
+            for code in xhits
+            if x is not None
+            and code.startswith("secret.")
+            and x.secrets_action == "block"
+            and any(f.part == "args" for f in xfrags.get(code, ()))
+        }
         out_payload: dict[str, Any] | None = None
-        if transform:
+        block_payload: dict[str, Any] | None = None
+        if transform or blocking:
             if x is None:
-                out_payload = {
+                tree = {
                     part: _mask_tree(payload[part], mask, typed=typed)
                     for part in PARTS_BY_DIRECTION[direction]
                     if payload.get(part) is not None
@@ -394,11 +491,13 @@ class DlpVnDetector:
                 def final_leaf(key: str | None, text: str) -> str:
                     return x.finish(full(key, text)[0], _TOKEN)
 
-                out_payload = {
+                tree = {
                     part: _mask_tree_x(payload[part], final_leaf)
                     for part in PARTS_BY_DIRECTION[direction]
                     if payload.get(part) is not None
                 }
+            block_payload = tree
+            out_payload = tree if transform else None
         findings = []
         for typ in sorted(counts):
             findings.append(
@@ -425,13 +524,10 @@ class DlpVnDetector:
             per: Counter[str] = Counter(f"<{etype}:{kind}:{h.digest}>" for h in hits)
             fr = tuple(xfrags.get(code, ()))
             hint = "transform" if transform else "report"
-            if (
-                code.startswith("secret.")
-                and x is not None
-                and x.secrets_action == "block"
-                and any(f.part == "args" for f in fr)
-            ):
+            payload_out = out_payload
+            if code in blocking:
                 hint = "block"  # the gate turns it into GATE-SECRET-IN-ARGS (detector_gate.py)
+                payload_out = block_payload
             findings.append(
                 Finding(
                     detector_slug=self.slug,
@@ -444,7 +540,7 @@ class DlpVnDetector:
                     masked_count=len(hits),
                     action_hint=hint,
                     preset=preset,
-                    transformed_payload=out_payload,
+                    transformed_payload=payload_out,
                 )
             )
         return [*findings, *late]

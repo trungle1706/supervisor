@@ -263,6 +263,21 @@ NEG_HELD = [
     ),
 ]
 
+VI_KEYS_DEV = ["mat_khau", "matkhau"]
+VI_KEYS_HELD = ["m\u1eadt_kh\u1ea9u", "MatKhau", "pw", "mk"]
+META_KEYS_DEV = [
+    ("passwordPolicy", "Hunter2Pass9x"),
+    ("password_changed_at", "2026-10-22T10:00:00Z"),
+    ("apiKeyName", "production-key-01"),
+    ("privateKeyType", "rsa2048x"),
+]
+META_KEYS_HELD = [
+    ("secrets_manager", "vault-prod-01"),
+    ("client_secret_id", "b3f1c2d4e5f6"),
+    ("pwd_reset_url", "https://example.invalid/reset/abc"),
+    ("passphrase_required", "yes please"),
+]
+
 RULES_DEV: list[dict[str, Any]] = [
     {"id": "proj", "kind": "regex", "pattern": "PRJ-[0-9]{4}-[A-Z]{2}"},
     {"id": "conf", "kind": "keyword", "pattern": "CONFIDENTIAL"},
@@ -357,6 +372,43 @@ def _split(split: str) -> list[dict[str, Any]]:
             settings=settings,
         )
     )
+    # Vietnamese and short names of a password field (positives)
+    for j, vkey in enumerate(VI_KEYS_DEV if split == "dev" else VI_KEYS_HELD):
+        r = random.Random(f"{SEED}:{split}:vi:{j}")
+        vpw = _pw(r) + _pick(r, ALNUM, 3)
+        n += 1
+        items.append(
+            _item(
+                n,
+                split,
+                {"args": {"user": "svc", vkey: vpw}},
+                META_EXPORT,
+                "input",
+                1,
+                expect=["secret.password_field"],
+                sensitive=[vpw],
+                category="password_field_vi",
+                settings=settings,
+                lang="vi",
+            )
+        )
+    # metadata names that merely contain a password word (benign)
+    for mkey, mval in META_KEYS_DEV if split == "dev" else META_KEYS_HELD:
+        n += 1
+        items.append(
+            _item(
+                n,
+                split,
+                {"args": {mkey: mval}},
+                META_EXPORT,
+                "input",
+                0,
+                expect=[],
+                sensitive=[],
+                category="benign-metadata-name",
+                settings=settings,
+            )
+        )
     for cat, text in NEG_DEV if split == "dev" else NEG_HELD:
         payload, meta, direction = _shape(split, n, text)
         n += 1

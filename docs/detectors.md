@@ -299,19 +299,32 @@ A leaked credential is an incident, not a privacy problem, so it has its own fin
 API key, private key id and OAuth token, GitHub, GitLab, Hugging Face, npm, Vault, Slack, Stripe
 and SendGrid tokens, OpenAI (`openai_api_key`) and Anthropic (`anthropic_api_key`) keys, JWT,
 bearer header, HTTP basic, URL with a password (a DSN), PEM private key block, Databricks token
-and OAuth secret, three forms of a password assignment, and `password_field` (a string under a
-key named like a password, secret or api key, with a value that is not a flag, a template or a
-placeholder). A secret hidden in base64 (a run of 24 or more characters that decodes to text
-with a secret in it) is found and masked as a whole.
+and OAuth secret, three forms of a password assignment, and `password_field`: a string under a
+key whose LAST word is `password`, `passwd`, `pwd`, `passphrase`, `secret`, `token`, `pin`, `pw`,
+`mk`, or two words that join to `apikey`, `secretkey`, `privatekey`, `accesskey`. So
+`client_secret`, `apiKey` and `accessToken` are found; `passwordPolicy`, `password_changed_at`,
+`apiKeyName`, `privateKeyType`, `secrets_manager`, `client_secret_id` and `pwd_reset_url` are
+metadata and are not. The value must be 6 or more characters (4 for `pin`, `pw`, `mk`; a pin is
+digits), with no space, and not a date, a version, a URL, a template (`${X}`), a placeholder or a
+flag; for `secret`, `token`, `apikey` and the like a plain lower-case word (`none`, `enabled`)
+is skipped too. Vietnamese names are covered with the accents removed: `mat_khau`, `matkhau`,
+`matKhau`, `mật_khẩu`, plus `mk` and `pw`. Other Vietnamese or local words are not (add a custom
+rule). A secret hidden in base64 (a run of 24 or more characters that decodes to text with a
+secret in it) is found and masked as a whole, also next to a plain secret in the same text. A
+secret used as a dict KEY is found and masked too (the finding points at the dict, precision
+`leaf`).
 
 **One pattern source.** The onboarding scrubber (`onboard/scrub.py`) and this detector both use
 `src/supervisor/core/secret_patterns.py`. A pattern added there protects both. The scrubber gained
 the kinds it did not have (GitLab, Hugging Face, Stripe, SendGrid, npm, Vault) and a fix: the AWS
 secret key pattern no longer needs a word boundary after a key that ends in `/` or `+`.
 
-**What a finding keeps.** The kind and the first 12 hex characters of the SHA-256 of the value
-(`<SECRET:aws_access_key:3c1f...>` in the entity). The value is never in a finding, a fragment,
-a log line, a record or the chain. The transformed payload holds `<SECRET:aws_access_key>` where
+**What a finding keeps.** The kind and a keyed hash of the value: the first 12 hex characters
+of an HMAC-SHA256 under the masker key (`VnRegexMasker.keyed_hash`; a masker without one gets a
+random key held in the process), in the entity as `<SECRET:aws_access_key:3c1f...>`. It is never
+an unkeyed hash: with one, anyone who reads the audit store could confirm a guessed password
+offline and link one key across calls. The hash changes with the masker key, so it is stable only
+while the key is. The value is never in a finding, a fragment, a log line, a record or the chain. The transformed payload holds `<SECRET:aws_access_key>` where
 the value was, where `dlp_vn` transforms (mode `transform` and a tool in scope, as for personal
 data). A secret is masked before the personal-data masker runs, so the masker never sees it.
 
@@ -321,8 +334,15 @@ tool class (a masked credential has still left, and a request that carries one i
 worth surfacing). The block uses the same fail-closed shape as `GATE-DETECTOR-FAILED`: `allow:
 false`, `fail_mode: closed`, `status: block`, no `transformed_args`. A secret only in a tool
 result, in `output` or in the context does not block; it is reported and masked. In `observe`
-mode the block is lifted like any block (a money, credit or `pii_export` tool needs the two
-observe approvals, as before). The detector only sets the hint `block`; the gate decides (R1).
+mode the block is lifted on a read-only or money/credit tool (money and credit need the two
+observe approvals, as before) and the call goes on with the MASKED arguments in
+`transformed_args`, status `report`: never weaker than report mode. On a `pii_export` tool the
+block is held in observe mode, like `GATE-DETECTOR-FAILED`. The detector only sets the hint `block`; the gate decides (R1).
+
+**Report mode and the transform scope.** In `report` mode a secret is masked only where
+`dlp_vn` transforms (mode `transform` and the tool in `transform_risk_classes` or
+`transform_tools`). In the arguments of a tool outside that scope the secret reaches the tool as
+sent and the finding is the only trace. Use `action: block` for money and credit tools.
 
 **Not found, on purpose.** A secret split over two fields, with spaces, a zero-width character, a
 hyphen inside, reversed or percent encoded is not found. The adversarial row of the validation
@@ -344,15 +364,19 @@ A finding holds the rule id, the count and a short hash of each value; the value
 Checks at load (a bad value stops the start with a `ConfigError` that names the field, never a
 call): unknown keys, an id used twice, a bad regex, a regex that matches the empty text, and a
 risky shape: a repeat inside a repeat (`(a+)+`), an alternation under an unbounded repeat
-(`(a|b)*`), a back reference, a finite repeat above 1000, groups nested deeper than 4. A mask token
+(`(a|b)*`), a back reference, a finite repeat above 1000, groups nested deeper than 4, more than
+two variable repeats (`+ * ? {n,m}`; `?` counts, so `a?a?a?...aaa` is refused) and two unbounded
+repeats in sequence (`.*.*x`, `\w+\w+!`). A mask token
 must not look like a pseudonym (`<TYPE:hex>`).
 
-**Time budget.** Each regex rule has 1 ms per text (a leaf of the payload). `re` cannot be
-interrupted, so the budget is checked between matches and after the scan; the shape check above is
-what keeps one match short. A rule that goes over its budget masks nothing in that call and the
-detector returns a `timed_out` row with the rule id in the detail (the call fails closed on a
-money, credit or `pii_export` tool when `dlp_vn` is `fail_closed`, like any detector that could
-not finish). The overall detector timeout (`limits.timeout_ms`) still applies.
+**Text cap and time budget.** A regex rule reads only the first 2000 characters of one text (a
+leaf of the payload); the rest is not scanned. Keywords are not capped. A regex rule also has
+10 ms for the whole call (all texts together). Python `re` runs in C and cannot be interrupted, so
+the shape check above and the 2000 character cap are what bound one match; the budget is checked
+between matches. A rule that reads less than all of a text, or goes over its budget, is a
+**coverage note** (`coverage.notes: [{detector, reason: cut, detail}]` in the verdict), not a
+`timed_out` row and not a finding: it never fails a call closed on its own. What it found before
+the cut is still masked. Keep an eye on `coverage.notes` for rules that matter.
 
 ### Per-entity mask tokens
 
@@ -362,6 +386,10 @@ and fragments keep the pseudonym (`<PHONE:ab12cd>`), so the fragment offsets ref
 masked text. A configured token loses the consistent pseudonym: two phones both become `<PHONE>`.
 
 ### Where the transform applies
+
+**Version.** `dlp_vn` stays at 1.0.0 on purpose: `detector_id` (`dlp_vn@1.0.0`) is in every
+finding, row and chain record, so a bump would change the bytes of the off path, which must be
+identical. The new settings are visible in the catalogue schema.
 
 The transformed payload comes from the `dlp_vn` transform. With inline redaction on
 (`INLINE_REDACTION_ENABLED`) the masker pass of WP24b knows personal data only; when a `secret.*`

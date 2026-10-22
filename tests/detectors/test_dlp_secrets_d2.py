@@ -234,23 +234,25 @@ def test_custom_rules_off_with_an_empty_list(det: DlpVnDetector) -> None:
     assert run(det, {"n": "CONFIDENTIAL"}, {"custom_rules": []}) == []
 
 
-def test_a_rule_over_budget_masks_nothing_and_is_reported_not_executed() -> None:
-    ticks = iter(range(0, 10**9, 5_000_000))  # every clock read is 5 ms later
+def test_a_rule_over_budget_is_a_note_not_a_failure() -> None:
+    ticks = iter(range(0, 10**10, 20_000_000))  # every clock read is 20 ms later
     x = Extras(
         {"custom_rules": [{"id": "slow", "kind": "regex", "pattern": "A+B"}]},
         clock=lambda: next(ticks),
     )
-    sc = x.scan("AAAB", None)
-    assert sc.text == "AAAB" and x.over_budget == {"slow"}
+    x.scan("AAAB", None)
+    assert x.over_budget == {"slow"}
 
 
-def test_over_budget_rule_becomes_a_timed_out_finding(
+def test_over_budget_rule_adds_a_coverage_note(
     det: DlpVnDetector, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(dlp_extras, "RULE_BUDGET_NS", -1)
+    monkeypatch.setattr(dlp_extras, "RULE_BUDGET_NS", 0)
     rules = [{"id": "slow", "kind": "regex", "pattern": "A+B"}]
-    (f,) = run(det, {"n": "AAAB"}, {"custom_rules": rules})
-    assert f.not_executed_reason == "timed_out" and "slow" in f.detail
+    found = run(det, {"n": "AAAB"}, {"custom_rules": rules})
+    note = [f for f in found if f.code == "coverage_note.cut"]
+    assert len(note) == 1 and "slow" in note[0].detail and note[0].not_executed_reason is None
+    assert not note[0].fired
 
 
 # ---------------------------------------------------------------------------- mask tokens

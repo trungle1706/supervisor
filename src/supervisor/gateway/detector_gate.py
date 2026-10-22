@@ -365,6 +365,18 @@ class DetectorGate:
                 and any(fr.part == "args" for fr in f.fragments)
             )
             if leaked:
+                # the masked copy of the arguments rides along: observe mode lifts this block
+                # and must then send the masked arguments, not the raw ones (WP-D2 review)
+                masked = next(
+                    (
+                        f.transformed_payload
+                        for f in out.findings
+                        if f.action_hint == "block" and f.transformed_payload
+                    ),
+                    None,
+                )
+                if masked and isinstance(masked.get("args"), Mapping):
+                    d.secret_masked_args = dict(masked["args"])
                 d.allow, d.action, d.rule_id = False, "block", SECRET_RULE
                 d.reason = (
                     f"{SECRET_RULE}: a secret in the tool arguments ({', '.join(leaked)}): "

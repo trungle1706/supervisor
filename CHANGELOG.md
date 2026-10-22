@@ -30,6 +30,19 @@ detector output is byte for byte what it was (golden test). Details: `docs/detec
   Observe mode lifts `GATE-SECRET-IN-ARGS` like other blocks.
 - Catalog card text of `dlp_vn` extended (English and Vietnamese).
 
+Review fixes (same entry):
+
+- Custom regex: `?` counts as a variable repeat; more than two variable repeats, and two
+  unbounded repeats in sequence, are refused at load (`.*.*.*.*x`, `\w+\w+\w+\w+!`,
+  `a?`x22 `a`x22). A regex reads at most 2000 characters of a text. The budget is 10 ms per
+  rule and call. A cut or an overrun is a `coverage.notes` entry, never `timed_out`.
+- The hash in a secret finding is a keyed HMAC (masker key, else a per-process random key).
+- Observe mode: `GATE-SECRET-IN-ARGS` is held on `pii_export` tools; where it is lifted the
+  call carries the masked `transformed_args`.
+- A base64 secret next to a plain secret is found. `password_field` matches the last word of
+  the key name, covers Vietnamese and short names, and skips dates, versions, URLs and enum
+  words. A secret used as a dict key is found and masked.
+
 ### WP-D4: judge moderation detector (toxicity and topic scope)
 
 New detector `judge_moderation` (phase 5), off by default (`enabled: false`, `mrm_status: NO-GO`);

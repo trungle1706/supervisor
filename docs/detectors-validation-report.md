@@ -119,7 +119,11 @@ with preserve-length) and benign look-alikes; they use different wrappers, value
 The adversarial split is written by hand: base64 (decoded by the detector), the secret split over
 two fields, spaced, with a zero-width character, reversed, percent encoded, a hyphen inside, a
 keyword in another case, and benign look-alikes (base64 of ordinary text, hex runs, a prefix
-alone, a template `${DB_PASSWORD}`).
+alone, a template `${DB_PASSWORD}`). After review the dev and held-out splits also hold
+Vietnamese and short password key names (`mat_khau`, `matkhau`, `mật_khẩu`, `pw`, `mk`) as
+positives and metadata names that merely contain a password word (`passwordPolicy`,
+`password_changed_at`, `apiKeyName`, `privateKeyType`, `secrets_manager`, `client_secret_id`,
+`pwd_reset_url`, `passphrase_required`) as benign.
 
 Reading the numbers.
 
@@ -133,14 +137,14 @@ Reading the numbers.
   a different control (an egress filter on the tool); `dlp_vn` does not claim them.
 - `leak_items` is 0 on all three splits: no planted secret, no custom match and no base64 form
   appears in a finding, a fragment, an entity or the transformed payload. A finding holds the
-  kind and the first 12 hex characters of the SHA-256 of the value.
+  kind and the first 12 hex characters of a keyed HMAC-SHA256 of the value.
 - Latency is the whole registry run for one call, microseconds, on the development host.
 
 | split | n | pos | tp | fn | fp | recall bp (95% CI) | precision bp (95% CI) | typed recall bp | fragment exact bp | leaks | p95 us |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| dev | 49 | 33 | 33 | 0 | 0 | 10000 [8957, 10000] | 10000 [8957, 10000] | 10000 | 10000 | 0 | 650 |
-| heldout | 49 | 33 | 33 | 0 | 0 | 10000 [8957, 10000] | 10000 [8957, 10000] | 10000 | 10000 | 0 | 486 |
-| adversarial | 32 | 24 | 12 | 12 | 0 | 5000 [3142, 6858] | 10000 [7574, 10000] | 10000 | 10000 | 0 | 438 |
+| dev | 55 | 35 | 35 | 0 | 0 | 10000 [9010, 10000] | 10000 [9010, 10000] | 10000 | 10000 | 0 | 502 |
+| heldout | 57 | 37 | 37 | 0 | 0 | 10000 [9059, 10000] | 10000 [9059, 10000] | 10000 | 10000 | 0 | 573 |
+| adversarial | 32 | 24 | 12 | 12 | 0 | 5000 [3142, 6858] | 10000 [7574, 10000] | 10000 | 10000 | 0 | 492 |
 
 Failure taxonomy (counts):
 
@@ -153,13 +157,13 @@ Failure taxonomy (counts):
 | typed_recall_bp.dev | 10000 | 8500 | GO |
 | leak_items.dev | 0 | 0 | GO |
 | fragment_exact_bp.dev | 10000 | 9900 | GO |
-| p95_us.dev | 650 | 20000 | GO |
+| p95_us.dev | 502 | 20000 | GO |
 | recall_bp.heldout | 10000 | 9000 | GO |
 | precision_bp.heldout | 10000 | 9000 | GO |
 | typed_recall_bp.heldout | 10000 | 8500 | GO |
 | leak_items.heldout | 0 | 0 | GO |
 | fragment_exact_bp.heldout | 10000 | 9900 | GO |
-| p95_us.heldout | 486 | 20000 | GO |
+| p95_us.heldout | 573 | 20000 | GO |
 | heldout_gap_bp | 0 | 1500 | GO |
 | adversarial_recall_bp | 5000 | 4000 | GO (indicative) |
 | adversarial_leak_items | 0 | 0 | GO |

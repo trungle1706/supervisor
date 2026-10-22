@@ -343,6 +343,9 @@ class Decision:
     total_us: int = 0  # end to end inside the gateway, recording included
     # WP24b inline redaction: masked copy of the arguments for the SDK / MCP proxy to use.
     transformed_args: dict[str, Any] | None = None
+    # WP-D2: masked arguments of a call GATE-SECRET-IN-ARGS blocked; used only if observe
+    # mode lifts the block. Never recorded or returned on its own.
+    secret_masked_args: dict[str, Any] | None = None
     args_hmac_transformed: str | None = None
     redaction_count: int = 0
     # WP37 verdict contract v2 (None when DETECTORS_ENABLED is off: the answer is unchanged).
@@ -1045,6 +1048,7 @@ class Gateway:
             )
         if eff.active:
             self._apply_mode(d, eff, shadow, builtin is not None, risk)
+            self._observed_secret(d)
         return d, matches, shadow, builtin
 
     @staticmethod
@@ -1068,6 +1072,27 @@ class Gateway:
         d.allow, d.action, d.fail_mode = True, "log", None
         d.reason = f"observe: would {d.observed['action']} by {d.observed['rule_id']}"
 
+    def _observed_secret(self, d: Decision) -> None:
+        """WP-D2 review: observe mode lifted GATE-SECRET-IN-ARGS. The call goes on, but with
+        the masked arguments (never weaker than report mode)."""
+        if (
+            not d.allow
+            or d.observed is None
+            or d.observed.get("rule_id") != DETECTOR_SECRET_RULE
+            or d.secret_masked_args is None
+        ):
+            return
+        d.transformed_args = d.secret_masked_args
+        d.args_hmac_transformed = args_hmac(d.transformed_args, self._args_key)
+        d.redaction_count = sum(
+            f.masked_count
+            for f in (d.det.findings if d.det else [])
+            if f.code.startswith("secret.")
+        )
+        d.transformed_payload = {"args": d.transformed_args}
+        if d.v2 is not None:
+            d.v2["transformed_payload"] = d.transformed_payload
+
     @classmethod
     def _apply_mode(
         cls, d: Decision, eff: Effective, shadow: bool, builtin: bool, risk: str | None
@@ -1087,9 +1112,10 @@ class Gateway:
         d.observe_approved = eff.observe_approved
         if eff.mode != "observe" or shadow or builtin:
             return
-        if not d.allow and (
-            (d.rule_id == DETECTOR_FAILED_RULE and risk != "pii_export")
-            or d.rule_id == DETECTOR_SECRET_RULE  # WP-D2: observe lifts it (approvals as usual)
+        if (
+            not d.allow
+            and d.rule_id in (DETECTOR_FAILED_RULE, DETECTOR_SECRET_RULE)
+            and risk != "pii_export"  # WP-D2 review: GATE-SECRET-IN-ARGS is held there too
         ):
             cls._observe(d, eff, risk)
         if d.observed is not None and d.v2 is not None:
