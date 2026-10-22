@@ -1,0 +1,17 @@
+artifact_path: agent
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: code/agent.py
+    python_version: 3.11.9
+    code: code
+metadata:
+  task: agent/v1/chat
+  owner: FILL-ME-owner-team
+mlflow_version: 2.17.0
+signature:
+  inputs: '[{"type": "string", "name": "messages"}]'
+  outputs: '[{"type": "string", "name": "content"}]'

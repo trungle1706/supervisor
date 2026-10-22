@@ -1,0 +1,38 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "get_applicant_profile",
+      "description": "Read the profile of a loan applicant by customer id.",
+      "parameters": {
+        "type": "object",
+        "properties": {"customer_id": {"type": "string"}},
+        "required": ["customer_id"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "get_bureau_score",
+      "description": "Read the credit bureau score of an application.",
+      "parameters": {
+        "type": "object",
+        "properties": {"application_id": {"type": "string"}},
+        "required": ["application_id"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "save_memo_draft",
+      "description": "Save the draft credit memo of an application for a credit officer to review.",
+      "parameters": {
+        "type": "object",
+        "properties": {"application_id": {"type": "string"}, "memo_text": {"type": "string"}},
+        "required": ["application_id", "memo_text"]
+      }
+    }
+  }
+]

@@ -65,6 +65,39 @@ static the family stays `unknown`. The judge family check still compares familie
 
 Eval and numbers: `docs/onboard-eval.md`. Monitor bindings for the new agent: `docs/monitors.md`.
 
+## Define from an artifact (WP-G3)
+
+An agent that lives in the workspace as an MLflow model has no code repository. `define` runs the first two stages (Discover, Understand) on the artifact folder that `mlflow.<flavor>.log_model` writes, or on a download of it. It writes the same `inventory.json` and `profile.json`, so every later step (inventory fill, compliance advisor, task list) reads them as before.
+
+```
+python -m supervisor.onboard.define --artifact path\to\artifact --out out\define\my_agent
+python -m supervisor.onboard.define --artifact path\to\artifact --out out\x --mock-llm
+python -m supervisor.onboard.define --artifact path\to\artifact --out out\x --llm
+```
+
+| Flag | Meaning |
+|---|---|
+| `--artifact` | The artifact folder (required). It is read only. |
+| `--out` | Output folder. Default `define-out\<artifact name>`. It must be outside the artifact (else `[FAIL]` and exit 1). |
+| `--agent-id` | Agent id. Default: `id` of the tool manifest, else the folder name. |
+| `--llm` / `--mock-llm` | Run the optional model step with the configured model, or with the mock (labelled `mock`). Default: the deterministic profile, no model. |
+
+What it reads (in the artifact folder):
+
+| File | Used for |
+|---|---|
+| `MLmodel` | Flavors, loader module, Python version, the `agent/...` task, signature. Run id, model uuid and creation time are not copied. Written to `artifact.json` with `MLmodel:line` evidence; also gives the framework when the code does not name one. |
+| `requirements.txt` (`requirements*.txt`) | AI packages with their pinned versions and line evidence (`artifact.json`); the framework when the code does not name one. |
+| Code (`*.py`) | Everything Discover finds in a repository: tools, model call sites, endpoints, tables read and written, personal-data fields, approval steps. |
+| Tool manifest | `tools.json`, `tools.yaml`, `tool_manifest.*`, `manifest.yaml` or `agent.yaml`. A bare list or an OpenAI function-calling list (`{"type": "function", "function": {...}}`) is accepted. The tool risk class comes from `risk_class` when given, else from the name rules of Discover. |
+| Prompt files | `prompts/` or a file name with `prompt` (`.txt`, `.md`, `.yaml`, `.json`): kind, excerpt, hash, first line as evidence. |
+
+Output files: `inventory.json` and `profile.json` (same schema as `python -m supervisor.onboard`), `profile.md`, and `artifact.json` (MLmodel and requirements facts). The profile holds the tools with their risk class, the model family, the data touched, the proposed risk tier and the Decision 33 proposal (a proposal: counsel confirms). Every claim carries `file:line` evidence that points into the artifact. To put the result in the inventory: `python -m supervisor.inventory onboarding out\define\my_agent\inventory.json`.
+
+Safety: the existing secret scrubber runs on every text when it is read, so a token in `config.yaml` never reaches an artefact or a model (counts only). Text that looks like a prompt injection is withheld from the artefacts and flagged (ADR D12). No network call is made unless you pass `--llm`, and then the model gets only scrubbed text. The folder is never written to. Output is ASCII (`[OK]`, `[FAIL]`, `[SKIP]`).
+
+Limits: the artifact is read as text. A binary model file is skipped (the weights are not inspected). Code that builds tools at run time cannot be listed (Discover marks such places as dynamic tool sources). Test data: `tests/onboard/data/artifact_credit_memo` (pyfunc, function-calling manifest) and `tests/onboard/data/artifact_collections_mcp` (LangGraph, YAML manifest, MCP server, money tool); both are synthetic and contain one fake token and one planted instruction on purpose.
+
 ## Safety rules (ADR D12)
 
 - Read-only: `LocalGitRepoReader` has no write method; size cap per file; binary files

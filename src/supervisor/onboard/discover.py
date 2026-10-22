@@ -45,6 +45,16 @@ from supervisor.onboard.models import (
 from supervisor.onboard.scrub import Scrubber
 
 MANIFEST_NAMES = ("manifest.yaml", "manifest.yml", "agent.yaml", "agent.yml")
+# WP-G3: an MLflow agent artifact keeps its tool list in one of these (see onboard/define.py)
+ARTIFACT_MANIFEST_NAMES = MANIFEST_NAMES + (
+    "tools.json",
+    "tools.yaml",
+    "tools.yml",
+    "tool_manifest.json",
+    "tool_manifest.yaml",
+    "tool_manifest.yml",
+)
+EXTRA_FILES = ("MLmodel",)  # extensionless files that Discover reads (WP-G3)
 MAX_FILES = 400
 RISK_ORDER = {"money": 3, "credit": 2, "pii_export": 1, "read_only": 0}
 
@@ -170,6 +180,7 @@ def discover(
     agent_id: str | None = None,
     revision: str | None = None,
     max_files: int = MAX_FILES,
+    manifest_names: Sequence[str] = MANIFEST_NAMES,
 ) -> Discovery:
     """Build the inventory. ``agent_id`` overrides the id from the manifest or folder."""
     scrubber = scrubber or Scrubber()
@@ -187,7 +198,11 @@ def discover(
 
     st = _State(index=index)
     manifest_file = next(
-        (f for f in sorted(index.lines, key=lambda p: (p.count("/"), p)) if _is_manifest(f)),
+        (
+            f
+            for f in sorted(index.lines, key=lambda p: (p.count("/"), p))
+            if _is_manifest(f, manifest_names)
+        ),
         None,
     )
     manifest: dict[str, Any] = {}
@@ -483,14 +498,14 @@ class _State:
 
 
 def _interesting(path: str) -> bool:
-    return path.endswith(
+    return path.rsplit("/", 1)[-1] in EXTRA_FILES or path.endswith(
         (".py", ".yaml", ".yml", ".json", ".toml", ".md", ".txt", ".sql")
         + (".ini", ".cfg", ".env.example")  # WP16: config files often hold secrets
     )
 
 
-def _is_manifest(path: str) -> bool:
-    return path.rsplit("/", 1)[-1] in MANIFEST_NAMES
+def _is_manifest(path: str, names: Sequence[str] = MANIFEST_NAMES) -> bool:
+    return path.rsplit("/", 1)[-1] in names
 
 
 def _folder_id(repo: RepoReader) -> str | None:
@@ -526,14 +541,21 @@ def _parse_manifest(file: str, index: SourceIndex, st: _State) -> dict[str, Any]
         data = yaml.safe_load(text)
     except yaml.YAMLError:
         return {}
+    data = _normalise_tool_manifest(data)
     if not isinstance(data, Mapping):
         return {}
     rows = index.lines[file]
-    # Tool blocks: "- name: <tool>" up to the next "- name:" (line ranges for evidence).
+    # Tool blocks: "- name: <tool>" (or a JSON "name": "<tool>" line) up to the next one (line
+    # ranges for evidence).
     starts = [
-        (i, m.group(1))
+        (i, m.group(1) or m.group(2))
         for i, line in enumerate(rows, start=1)
-        if (m := re.match(r"^\s*-\s*name:\s*['\"]?([\w.-]+)", line))
+        if (
+            m := re.match(
+                r"^\s*-\s*name:\s*['\"]?([\w.-]+)|^\s*\"name\"\s*:\s*\"([\w.-]+)\"",
+                line,
+            )
+        )
     ]
     for n, (line, name) in enumerate(starts):
         end = starts[n + 1][0] - 1 if n + 1 < len(starts) else len(rows)
@@ -578,6 +600,37 @@ def _parse_manifest(file: str, index: SourceIndex, st: _State) -> dict[str, Any]
                 NamedRef(name=str(server), source="manifest", evidence=index.evidence(file, line))
             )
     return dict(data)
+
+
+def _normalise_tool_manifest(data: Any) -> Any:
+    """WP-G3. A bare list of tools, or a list in the function-calling shape
+    (``{"type": "function", "function": {"name", "description", "parameters"}}``), becomes
+    ``{"tools": [{"name", "description", "args"}]}``. A mapping is returned unchanged."""
+    if isinstance(data, list):
+        data = {"tools": data}
+    if not isinstance(data, Mapping) or not isinstance(data.get("tools"), list):
+        return data
+    tools = []
+    for t in data["tools"]:
+        if isinstance(t, Mapping) and isinstance(t.get("function"), Mapping):
+            fn = t["function"]
+            props = (fn.get("parameters") or {}).get("properties") or {}
+            tools.append(
+                {
+                    "name": fn.get("name"),
+                    "description": fn.get("description"),
+                    "risk_class": t.get("risk_class") or fn.get("risk_class"),
+                    "args": {
+                        str(k): str((v or {}).get("type", "unknown"))
+                        if isinstance(v, Mapping)
+                        else "unknown"
+                        for k, v in props.items()
+                    },
+                }
+            )
+        else:
+            tools.append(t)
+    return {**data, "tools": tools}
 
 
 def _merge_tools(
