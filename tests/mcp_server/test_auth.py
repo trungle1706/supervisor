@@ -66,7 +66,9 @@ def test_a_bad_credential_is_401_and_audited(rig: Rig, reason: str) -> None:
     assert r.status_code == 401, r.text
     assert r.json()["error"] and r.headers["www-authenticate"]
     last = rig.actions(permission="mcp.auth")[-1]
-    assert last["outcome"] == "denied" and last["before_hash"] and last["detail"]
+    assert last["outcome"] == "denied" and last["detail"]
+    # a header-stage refusal never reads the body, so it has no body hash; the others do
+    assert bool(last["before_hash"]) == (reason in ("bad_signature", "unknown_app"))
     assert "jsonrpc" not in json.dumps(last, default=str)  # a hash of the body, never the body
 
 

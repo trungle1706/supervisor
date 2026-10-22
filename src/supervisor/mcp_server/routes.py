@@ -92,16 +92,39 @@ def _handle(
     return 200, out if isinstance(message, list) else out[0]
 
 
-@mcp_router.post("/mcp")
-async def mcp_endpoint(request: Request) -> Response:
+async def _read_capped(request: Request) -> bytes | None:
+    """The body, or None when it is over MAX_BODY (never buffers more than the cap)."""
     declared = request.headers.get("content-length", "")
     if declared.isdigit() and int(declared) > MAX_BODY:
-        return _refuse(413, "request body too large")
-    body = await request.body()
-    if len(body) > MAX_BODY:
-        return _refuse(413, "request body too large")
+        return None
+    buf = bytearray()
+    async for chunk in request.stream():
+        buf += chunk
+        if len(buf) > MAX_BODY:
+            return None
+    return bytes(buf)
+
+
+def _precheck(ctx: ConsoleContext, path: str, headers: Any) -> auth.AuthFailure | None:
+    try:
+        auth.precheck(ctx, _apps(ctx), headers)
+    except auth.AuthFailure as fail:
+        auth.audit_refusal(ctx, fail, path, None)  # the body was never read: no body hash
+        return fail
+    return None
+
+
+@mcp_router.post("/mcp")
+async def mcp_endpoint(request: Request) -> Response:
     try:
         ctx = await run_in_threadpool(get_context)
+        # F11 as for the agent ingress: header checks first, so a bad request costs no buffer
+        failure = await run_in_threadpool(_precheck, ctx, request.url.path, request.headers)
+        if failure is not None:
+            return _refuse(failure.status, failure.message)
+        body = await _read_capped(request)
+        if body is None:
+            return _refuse(413, "request body too large")
         status, content = await run_in_threadpool(
             _handle,
             ctx,

@@ -100,7 +100,8 @@ print(urllib.request.urlopen(req).read().decode())
 | Body that is not JSON, empty batch, more than 50 messages | 400 | none |
 
 Every 4xx above writes one `console_action` row: permission `mcp.auth`, outcome `denied`, actor
-`unverified:<claimed app id>`, `before_hash` = SHA-256 of the body (never the body). An unknown
+`unverified:<claimed app id>`, `before_hash` = SHA-256 of the body (never the body; empty when the
+refusal came from the headers alone, because the body is then never read). An unknown
 app and a wrong signature give the same answer. There is no rate limit (as for the agent ingress).
 
 ## 4. Tools
@@ -243,4 +244,4 @@ skill names a refused tool.
 
 `tests/mcp_server/`: `test_off_path.py` (first), `test_auth.py`, `test_protocol.py`,
 `test_refused.py`, `test_tools_governance.py`, `test_tools_library_supervisor.py`,
-`test_pii_and_scope.py`, `test_kpis.py`, `test_cli.py`, `test_skills.py`.
+`test_pii_and_scope.py`, `test_kpis.py`, `test_cli.py`, `test_skills.py`, `test_rbac.py`.

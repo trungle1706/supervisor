@@ -121,6 +121,20 @@ def principal_of(row: dict[str, Any], roles: list[str]) -> AuthPrincipal:
     )
 
 
+def precheck(ctx: Any, apps: McpAppService, headers: Any) -> None:
+    """Header-only checks (sizes, shape, timestamp window): a bad request never makes the
+    server buffer a body. Raises ``AuthFailure``."""
+    claimed = headers.get(H_AGENT)
+    claimed = claimed if isinstance(claimed, str) and AGENT_ID_RE.match(claimed) else None
+    try:
+        verifier_for(ctx.settings, apps).precheck(headers)
+    except IngressRejected as exc:
+        raise AuthFailure(exc.status_code, str(exc.detail), exc.reason, claimed) from exc
+    except Exception as exc:  # noqa: BLE001 - a verifier bug is a 401, never a 500
+        log.error("mcp precheck failed: %s", type(exc).__name__)
+        raise AuthFailure(401, "authentication failed", "auth_unavailable", claimed) from exc
+
+
 def authenticate(
     ctx: Any, apps: McpAppService, method: str, path: str, headers: Any, body: bytes
 ) -> AppIdentity:
