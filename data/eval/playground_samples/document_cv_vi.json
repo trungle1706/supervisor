@@ -1,0 +1,28 @@
+{
+  "agent_hint": "payments",
+  "args": {
+    "customer_id": "C-1"
+  },
+  "category": "pii",
+  "consumer_id": null,
+  "context": {
+    "declared_risk_class": "pii_export",
+    "documents": [
+      {
+        "media_type": "text/plain",
+        "name": "cv-ung-vien.txt",
+        "text": "SƠ YẾU LÝ LỊCH\nHọ tên: Nguyễn Văn An\nCCCD: 001203004567\nĐiện thoại: 0912345678\nKinh nghiệm: 5 năm chăm sóc khách hàng ngân hàng.\n"
+      }
+    ]
+  },
+  "direction": "input",
+  "id": "document_cv_vi",
+  "labeller": "synthetic",
+  "language": "vi",
+  "licence": "project-internal, no real data",
+  "note": "Needs DOCUMENT_INTAKE_ENABLED=1 and DETECTORS_ENABLED=1. A personal-data tool: dlp_vn masks the document text in transformed_payload.documents (pii.cccd, pii.phone).",
+  "source": "synthetic (WP-D1)",
+  "title_en": "CV with a national ID number (Vietnamese)",
+  "title_vi": "Hồ sơ ứng viên có số CCCD (tiếng Việt)",
+  "tool": "add_payee"
+}

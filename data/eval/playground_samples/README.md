@@ -17,3 +17,10 @@ The file is generated: `python -m supervisor.redteam.multiturn build-data` (add 
 verify). Edit `src/supervisor/redteam/multiturn/samples.py`, not the JSONL. A test runs every
 sample through the real gate and the Tier 0b classifier. Some samples show a gap on purpose
 (Tier 0b has no pattern for secrets or insults); their `notes` say so.
+
+## Document samples (WP-D1)
+
+`document_invoice_vi.json` and `document_cv_vi.json` carry `context.documents`. They need
+`DETECTORS_ENABLED=1` and `DOCUMENT_INTAKE_ENABLED=1`; with the intake off the Playground answers
+HTTP 400 and says which flag is missing. Text only: no file is read from disk, and the sample
+numbers (CCCD, phone) are synthetic.

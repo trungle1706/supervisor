@@ -24,6 +24,7 @@ from supervisor.console.ux3 import ID
 
 MAX_ARGS_BYTES = 16 * 1024
 MAX_CONTEXT_BYTES = 4 * 1024
+MAX_CONTEXT_DOCS_BYTES = 256 * 1024  # WP-D1: a context with context.documents may be larger
 MAX_DEPTH = 8
 # WP38: sample library (data/eval/playground_samples/*.json) and the extra attributes panel.
 SAMPLES_DIR = REPO_ROOT / "data" / ("ev" + "al") / "playground_samples"
@@ -96,7 +97,17 @@ def parse_form(data: Mapping[str, str]) -> dict[str, Any]:
     for value, what in ((agent, "agent"), (tool, "tool"), (version, "version")):
         if not ID.match(value):
             raise ListingError(f"{what} is missing or not a valid id")
-    context = _json_object(data.get("context", ""), "context", MAX_CONTEXT_BYTES)
+    context = _json_object(data.get("context", ""), "context", MAX_CONTEXT_DOCS_BYTES)
+    if "documents" not in context and len((data.get("context") or "").encode("utf-8")) > (
+        MAX_CONTEXT_BYTES
+    ):
+        raise ListingError(f"context is too large (limit {MAX_CONTEXT_BYTES // 1024} KB)")
+    if "documents" in context:  # WP-D1: the shape is checked here; the flag in run()
+        from supervisor.detectors.intake import check_documents
+
+        problem = check_documents(context["documents"])
+        if problem:
+            raise ListingError(problem)
     # WP38 extra attributes: they fill the context of the check (a typed context key is replaced)
     consumer = (data.get("consumer_id") or "").strip()
     if consumer:
@@ -175,6 +186,16 @@ def run(ctx: Any, form: Mapping[str, Any]) -> dict[str, Any]:
     direction = form.get("direction", "input")
     if direction == "output" and not getattr(ctx.gateway, "detectors_on", False):
         raise ListingError("direction=output needs DETECTORS_ENABLED=1")
+    if "documents" in form["context"]:  # WP-D1: refused unless DOCUMENT_INTAKE_ENABLED=1
+        from supervisor.detectors.intake import documents_problem
+
+        problem = documents_problem(
+            form["context"]["documents"], getattr(ctx.gateway, "documents_on", False)
+        )
+        if problem:
+            raise ListingError(problem)
+        if direction != "input":
+            raise ListingError("context.documents belongs to an input check")
     kw = {"direction": direction} if direction != "input" else {}
     res = ctx.gateway.evaluate_only(
         form["agent_id"], form["version"], form["tool"], form["args"], form["context"], **kw

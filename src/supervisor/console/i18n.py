@@ -4266,6 +4266,34 @@ _T.update(
 )
 
 
+_T.update(
+    {
+        # --- WP-D1: document and URL intake (docs/detectors.md "Documents and URLs") ----------
+        "cat_document_intake": ("Document and URL intake", "Tiếp nhận tài liệu và đường dẫn"),
+        "cat_document_intake_d": (
+            "Reads the files and links an agent is given (PDF, DOCX, text, web pages) and checks "
+            "their text for hidden instructions and personal data; reports a finding, never "
+            "blocks. A file that cannot be read stops a money, credit or personal-data call.",
+            "Đọc các tệp và liên kết được đưa cho tác tử (PDF, DOCX, văn bản, trang web) và kiểm "
+            "tra nội dung xem có chỉ dẫn ẩn và dữ liệu cá nhân không; báo phát hiện, không chặn. "
+            "Tệp không đọc được sẽ chặn lệnh gọi liên quan đến tiền, tín dụng hoặc dữ liệu "
+            "cá nhân.",
+        ),
+        "part_documents": ("Documents", "Tài liệu"),
+        "pg_documents": ("Documents read", "Tài liệu đã đọc"),
+        "pg_doc_type": ("Type", "Loại"),
+        "pg_doc_size": ("Size (bytes)", "Kích thước (byte)"),
+        "pg_doc_status": ("Status", "Trạng thái"),
+        "pg_doc_reason": ("Reason", "Lý do"),
+        "pg_doc_note": (
+            "Only the hash, size and type of a document are kept. The text is not stored.",
+            "Chỉ băm, kích thước và loại của tài liệu được giữ lại. Nội dung không được lưu.",
+        ),
+        "pg_doc_findings": ("Findings", "Phát hiện"),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

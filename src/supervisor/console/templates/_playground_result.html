@@ -45,6 +45,21 @@
   {% if result.not_evaluated %}
   <p class="hint">{{ t('pg_not_evaluated') }}: <span class="mono">{{ result.not_evaluated|join(', ') }}</span></p>
   {% endif %}
+  {% if res.get('documents') %}
+  <h3 class="sec">{{ t('pg_documents') }}</h3>
+  <div class="tablewrap flat"><table>
+    <thead><tr><th scope="col">#</th><th scope="col">{{ t('pg_doc_type') }}</th><th scope="col">{{ t('pg_doc_size') }}</th><th scope="col">{{ t('pg_doc_status') }}</th><th scope="col">{{ t('pg_doc_reason') }}</th></tr></thead>
+    <tbody>
+    {% for d in res.documents %}
+      <tr><td>{{ d.index + 1 }}</td><td class="mono">{{ d.media_type }}</td><td>{{ d.size }}</td><td>{{ d.status }}</td><td class="mono">{{ d.get('reason') or '-' }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if res.get('findings') %}
+  <p class="hint">{{ t('pg_doc_findings') }}: <span class="mono">{% for f in res.findings %}{{ f.code }}{% if not loop.last %}, {% endif %}{% endfor %}</span></p>
+  {% endif %}
+  <p class="hint">{{ t('pg_doc_note') }}</p>
+  {% endif %}
   <h3 class="sec">{{ t('pg_transformed') }}</h3>
   {% if result.transformed %}
     <pre class="mono wrap payload">{{ result.transformed }}</pre>

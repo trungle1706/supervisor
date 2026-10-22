@@ -85,6 +85,15 @@ ENTRIES: tuple[Entry, ...] = (
         "DETECTORS_ENABLED=1 + injection_classifier.enabled", "docs/injection-classifier.md",
         "decisions", on=_detector("injection_classifier"),
     ),
+    # WP-D1: document and URL intake. It reports (and, with the bank's fail_closed setting, fails
+    # closed on money, credit and pii_export tools when a document cannot be read).
+    Entry(
+        "document_intake", "detect", "watches", "DI",
+        "DOCUMENT_INTAKE_ENABLED=1 + DETECTORS_ENABLED=1", "docs/detectors.md", "decisions",
+        on=lambda s, d: bool(getattr(s, "detectors_enabled", False))
+        and bool(getattr(s, "document_intake_enabled", False))
+        and d.get("document_intake", False),
+    ),
     Entry(
         "inline_redaction", "detect", "transforms", "RD", "INLINE_REDACTION_ENABLED=1",
         "docs/masking.md", on=_flag("inline_redaction_enabled"),
