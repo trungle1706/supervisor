@@ -1277,3 +1277,75 @@ tables:
       active: bool
       first_seen: timestamp
       last_seen: timestamp
+
+  # --- WP-G1 lifecycle, stage approvals, reviews, outbound events (docs/governance.md) -------
+  stage_approval:
+    kind: state
+    description: >
+      WP-G1. A request to move an AI system to a lifecycle stage that needs an approval
+      (config/tasks.yaml, stages: ... approval: true), and the answer. The approver is a
+      reviewer or oversight manager of the system or holds the approver role, and is neither the
+      requester nor the owner. applied_at is set when the move used the approval. Changes go on
+      the chain as stage_change.
+    primary_key: [approval_id]
+    indexes:
+      - [system_id]
+    columns:
+      approval_id: string
+      system_id: string
+      from_stage: string       # the stage of the system when the request was made
+      to_stage: string
+      requested_by: string
+      status: string           # pending | approved | rejected
+      decided_by: string?
+      reason: text?
+      created_at: timestamp
+      decided_at: timestamp?
+      applied_at: timestamp?   # set when the stage move used this approval
+
+  review:
+    kind: state
+    description: >
+      WP-G1. A review of an AI system (internal, external, conformity or classification audit)
+      with its scope, window and reports. Completing a review locks it; reopening needs a
+      reason. Changes go on the chain as review_change.
+    primary_key: [review_id]
+    indexes:
+      - [system_id]
+    columns:
+      review_id: string
+      system_id: string
+      kind: string             # internal | external | conformity | classification_audit
+      title: string
+      scope: json              # list of {kind: agent | node | system, id}
+      reviewer_user: string
+      status: string           # planned | in_progress | completed | reopened
+      window_start: timestamp?
+      window_end: timestamp?
+      reports: json            # list of {kind: file | link | note, ref, sha256}
+      completed_at: timestamp?
+      completed_by: string?
+      locked: bool
+      reopen_reason: text?     # the reason of the last reopen
+      reopen_count: int
+      created_at: timestamp
+      created_by: string
+
+  outbound_event:
+    kind: state
+    description: >
+      WP-G1. An event for other systems (stage approved, review completed, system registered,
+      system archived). The payload holds ids and enums only. The webhook stub
+      (WEBHOOKS_ENABLED) marks it delivered; nothing else reads the table yet.
+    primary_key: [event_id]
+    indexes:
+      - [system_id]
+      - [delivered]
+    columns:
+      event_id: string
+      kind: string             # stage_approved | review_completed | system_registered | system_archived
+      system_id: string
+      payload: json            # ids and enums only
+      created_at: timestamp
+      delivered: bool
+      delivered_at: timestamp?

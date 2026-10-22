@@ -597,6 +597,11 @@ class Settings(BaseSettings):
     governance_enabled: bool = False
     console_systems_enabled: bool = False
 
+    # --- WP-G1 --- lifecycle, stage approvals, reviews, outbound events (docs/governance.md).
+    # Everything is under GOVERNANCE_ENABLED. WEBHOOKS_ENABLED: the outbound event stub marks
+    # events delivered and logs them (no network; the real sender is later work).
+    webhooks_enabled: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",
