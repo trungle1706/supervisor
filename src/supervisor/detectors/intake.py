@@ -30,6 +30,7 @@ import codecs
 import hashlib
 import io
 import json
+import logging
 import re
 import time
 import zipfile
@@ -374,6 +375,7 @@ def read_pdf(data: bytes, deadline: float) -> str:
         from pypdf import PdfReader
     except ImportError:
         raise Uninspectable("pdf_reader_missing") from None
+    logging.getLogger("pypdf").setLevel(logging.ERROR)  # a damaged file is a reason, not a log line
     try:
         reader = PdfReader(io.BytesIO(data), strict=False)
         if reader.is_encrypted:

@@ -1,0 +1,103 @@
+{
+  "commit": "wp-d1",
+  "date": "2026-10-22",
+  "detectors": {
+    "document_injection_vi": {
+      "detector_id": "document_injection_vi@document-intake-eval-1",
+      "splits": {
+        "adversarial": {
+          "fn": 3,
+          "fp": 0,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 20,
+          "precision_bp": 10000,
+          "recall_bp": 8125,
+          "typed_recall_bp": 8125
+        },
+        "dev": {
+          "fn": 0,
+          "fp": 0,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        },
+        "heldout": {
+          "fn": 0,
+          "fp": 0,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        }
+      }
+    },
+    "document_pii_vi": {
+      "detector_id": "document_pii_vi@document-intake-eval-1",
+      "splits": {
+        "dev": {
+          "fn": 0,
+          "fp": 1,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 9756,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        },
+        "heldout": {
+          "fn": 0,
+          "fp": 4,
+          "fragment_exact_bp": 10000,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 9090,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        }
+      }
+    },
+    "url_ssrf": {
+      "detector_id": "url_ssrf@document-intake-eval-1",
+      "splits": {
+        "adversarial": {
+          "fn": 0,
+          "fp": 0,
+          "fragment_exact_bp": null,
+          "leak_items": 0,
+          "n": 15,
+          "precision_bp": 10000,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        },
+        "dev": {
+          "fn": 0,
+          "fp": 0,
+          "fragment_exact_bp": null,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        },
+        "heldout": {
+          "fn": 0,
+          "fp": 0,
+          "fragment_exact_bp": null,
+          "leak_items": 0,
+          "n": 60,
+          "precision_bp": 10000,
+          "recall_bp": 10000,
+          "typed_recall_bp": 10000
+        }
+      }
+    }
+  },
+  "harness": "document-intake-eval-1",
+  "note": "Regenerate with --record after a deliberate change and commit it."
+}

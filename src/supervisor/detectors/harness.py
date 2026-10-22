@@ -379,7 +379,11 @@ def run(
         "detectors": {},
     }
     overall = "GO"
-    for slug in detectors or list(SLUGS):
+    # WP-D1: the rows of the document and URL intake (intake_eval.py) run after the detectors
+    from supervisor.detectors import intake_eval
+
+    intake_rows = [s for s in (detectors or intake_eval.ROWS) if s in intake_eval.ROWS]
+    for slug in [s for s in (detectors or list(SLUGS)) if s not in intake_eval.ROWS]:
         det = registry.get(slug)
         by_split: dict[str, dict[str, Any]] = {}
         rows_by_split: dict[str, list[dict[str, Any]]] = {}
@@ -428,6 +432,11 @@ def run(
             "verdict": verdict,
             **({"mrm": mrm} if mrm is not None else {}),
         }
+    if intake_rows:  # WP-D1
+        extra = intake_eval.run_rows(intake_rows, splits, preset, registry, masker)
+        report["detectors"].update(extra)
+        if any(d["verdict"] == "NO-GO" for d in extra.values()):
+            overall = "NO-GO"
     report["overall"] = overall
     return report
 
@@ -616,7 +625,14 @@ def main(argv: list[str] | None = None) -> int:
         prog="python -m supervisor.detectors.harness",
         description="Score the WP37 detectors on the golden set (offline, mock path, integers).",
     )
-    ap.add_argument("--detector", choices=SLUGS, action="append", help="limit to one detector")
+    from supervisor.detectors import intake_eval  # WP-D1: the intake rows are detector names too
+
+    ap.add_argument(
+        "--detector",
+        choices=(*SLUGS, *intake_eval.ROWS),
+        action="append",
+        help="limit to one detector or intake row",
+    )
     ap.add_argument("--split", choices=SPLITS, action="append", help="limit to one split")
     ap.add_argument("--preset", choices=("strict", "balanced", "lenient"), default="balanced")
     ap.add_argument("--json", metavar="PATH", help="write the full report as JSON")
@@ -652,6 +668,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.record:
         base = to_baseline(report)
         base["detectors"].pop(CLASSIFIER, None)  # the classifier has its own baseline file
+        for row in intake_eval.ROWS:  # WP-D1: so do the intake rows (data/eval/documents)
+            base["detectors"].pop(row, None)
         if base["detectors"]:  # a classifier-only run must not empty the shared baseline
             BASELINE.write_text(json.dumps(base, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             print(f"[OK] baseline written: {BASELINE}")
@@ -660,6 +678,16 @@ def main(argv: list[str] | None = None) -> int:
 
             path = validation.write_baseline(report)
             print(f"[OK] baseline written: {path}")
+    if args.record and any(r in report["detectors"] for r in intake_eval.ROWS):  # WP-D1
+        mine = {r: d for r, d in report["detectors"].items() if r in intake_eval.ROWS}
+        intake_eval.BASELINE.write_text(
+            json.dumps(
+                intake_eval.to_baseline(mine, args.commit, args.date), indent=2, sort_keys=True
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(f"[OK] baseline written: {intake_eval.BASELINE}")
     if args.check:
         problems = compare(
             report,
@@ -670,6 +698,11 @@ def main(argv: list[str] | None = None) -> int:
             from supervisor.detectors.injection_classifier import validation
 
             problems += validation.compare_baseline(report["detectors"][CLASSIFIER])
+        mine = {r: d for r, d in report["detectors"].items() if r in intake_eval.ROWS}  # WP-D1
+        if mine:
+            problems += intake_eval.compare_baseline(
+                mine, partial=bool(args.detector or args.split)
+            )
         for p in problems:
             print(f"[FAIL] {p}")
         if problems:

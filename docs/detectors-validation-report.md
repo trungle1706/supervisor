@@ -102,3 +102,17 @@ Failure taxonomy (counts):
 | adversarial_leak_items | 0 | 0 | GO |
 
 Ran on the MockJudge (`mock-judge-t1`): the numbers prove the harness only.
+
+<!-- WP-D1: appended block; the full tables are in docs/document-intake-validation-report.md -->
+
+## Documents and URLs (WP-D1): GO
+
+Three harness rows score the intake of `context.documents` (`python -m supervisor.detectors.intake_eval`, or this harness with `--detector document_injection_vi`, `document_pii_vi`, `url_ssrf`). They run on `data/eval/documents/` (synthetic, 60 dev, 60 held-out, 15 to 20 hand-written probes per row), offline, with integers only. Full tables, the failure taxonomy and the reading guide: `docs/document-intake-validation-report.md`.
+
+| row | dev recall / precision (bp) | held-out recall / precision (bp) | adversarial recall (bp) | leaks |
+|---|---|---|---|---|
+| `document_injection_vi` | 10000 / 10000 | 10000 / 10000 | 8125 | 0 |
+| `document_pii_vi` | 10000 / 9756 | 10000 / 9090 | - | 0 |
+| `url_ssrf` | 10000 / 10000 | 10000 / 10000 | 10000 | 0 (no request reached a forbidden target) |
+
+Known gaps, named in the taxonomy: an instruction split over two files, in base64 or in leetspeak; images have no text (no OCR) and are reported as `document.uninspectable`. The precision of `document_pii_vi` is limited by the vn_regex masker (it reads an upper-case phrase like `LY DO TU CHOI` as a name). Thresholds are ILLUSTRATIVE.

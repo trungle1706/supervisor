@@ -71,7 +71,12 @@ def ip_is_public(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         if wrapped:  # judged as the IPv4 address(es) it wraps
             return all(ip_is_public(v4) for v4 in wrapped)
     return bool(ip.is_global) and not (
-        ip.is_multicast or ip.is_loopback or ip.is_link_local or ip.is_unspecified or ip.is_reserved
+        ip.is_multicast
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_unspecified
+        or ip.is_reserved
+        or getattr(ip, "is_site_local", False)  # fec0::/10 (deprecated, still routable inside)
     )
 
 

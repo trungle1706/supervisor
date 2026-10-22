@@ -1,0 +1,47 @@
+{
+  "files": {
+    "document_injection_vi.adversarial.jsonl": {
+      "n_items": 20,
+      "n_positive": 16,
+      "sha256": "2feeda4ea938f74add44b8f65908558bb8884110e39b423850d69c8d527c9dd0"
+    },
+    "document_injection_vi.dev.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "51cdac79f3b8801ecdf19021209b35b6366f9aaedd63d31ce54b135aee2b69f8"
+    },
+    "document_injection_vi.heldout.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "4b37f8af4d76d36f600382317abad07050b7680f9e392c97e58b9c901564fb6d"
+    },
+    "document_pii_vi.dev.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "c6ec038b7c6c159aafa68502ffd97cb76ee8205ddda61ebee0a64db3044cec3d"
+    },
+    "document_pii_vi.heldout.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "215a229cea057b4c76e32f2cf8e4b2a6a6ee53ca2a400788cacdff0e294b0789"
+    },
+    "url_ssrf.adversarial.jsonl": {
+      "n_items": 15,
+      "n_positive": 9,
+      "sha256": "8108227c6ec8df33ad3a536569a9ef9062980c8c1d1abc5e9dcdaa6123784d60"
+    },
+    "url_ssrf.dev.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "7446a9a82f7539f58d3e8f9da6017c2f355eb688b9007825f75d199643a753a8"
+    },
+    "url_ssrf.heldout.jsonl": {
+      "n_items": 60,
+      "n_positive": 40,
+      "sha256": "49939eec9564abe34b06232462e8c3c36db36d29162861e15ded91dded827909"
+    }
+  },
+  "licence": "own (synthetic, MIT)",
+  "note": "synthetic Vietnamese documents and URLs; no real customer data",
+  "seed": 20261022
+}

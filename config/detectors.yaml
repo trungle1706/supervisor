@@ -53,5 +53,5 @@ detectors:
   document_intake:
     enabled: true
     fail_closed: true
-    mrm_status: NO-GO           # until the harness rows document_injection_vi, document_pii_vi
-    settings: {}                # and url_ssrf say GO (docs/detectors-validation-report.md)
+    mrm_status: GO              # deterministic; harness rows document_injection_vi,
+    settings: {}                # document_pii_vi and url_ssrf are GO (docs/document-intake-validation-report.md)

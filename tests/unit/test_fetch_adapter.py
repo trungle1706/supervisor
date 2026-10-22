@@ -72,6 +72,7 @@ def fetcher(*responses: Any, resolver: Any = None, **kw: Any) -> tuple[Fetcher, 
         "::1",
         "fe80::1",
         "fd00:ec2::254",  # AWS IPv6 metadata
+        "fec0::1",  # deprecated site-local
         "::ffff:127.0.0.1",
         "::ffff:10.0.0.1",
         "64:ff9b::7f00:1",  # NAT64 around 127.0.0.1
