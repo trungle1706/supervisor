@@ -527,6 +527,14 @@ class Gateway:
     def detectors_on(self) -> bool:
         return self.detector_gate is not None
 
+    @property
+    def documents_on(self) -> bool:
+        """WP-D1: context.documents is accepted (DOCUMENT_INTAKE_ENABLED and the detectors on)."""
+        return (
+            self.detector_gate is not None
+            and getattr(self.detector_gate, "intake", None) is not None
+        )
+
     def _req(
         self, direction: str, correlation_id: str | None, request_id: str | None
     ) -> Req | None:

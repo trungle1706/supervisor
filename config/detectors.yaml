@@ -43,3 +43,15 @@ detectors:
     fail_closed: false          # uses the mock judge and every finding is labelled mock.
     mrm_status: NO-GO           # an advisor: weighs 0 in sessions
     settings: {}
+  # WP-D1: document and URL intake (docs/detectors.md "Documents and URLs"). It reports what
+  # happened when the gate read context.documents: document.uninspectable, document.limit_exceeded,
+  # url.ssrf_refused, url.domain_blocked. The switch for the feature is DOCUMENT_INTAKE_ENABLED
+  # (default 0, and then this entry never runs). The text of the documents is scored by
+  # injection_regex and dlp_vn, whatever this entry says. fail_closed: true makes an unread
+  # document (image, scan, damaged file) on a money, credit or pii_export tool a block
+  # (GATE-DETECTOR-FAILED); false only lists it.
+  document_intake:
+    enabled: true
+    fail_closed: true
+    mrm_status: NO-GO           # until the harness rows document_injection_vi, document_pii_vi
+    settings: {}                # and url_ssrf say GO (docs/detectors-validation-report.md)

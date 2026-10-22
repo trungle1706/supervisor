@@ -226,6 +226,8 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
         msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
     gate = DetectorGate(registry, resolved)
+    # WP-D1: document and URL intake (None unless DOCUMENT_INTAKE_ENABLED=1)
+    gate.intake = make_intake(settings)
     # WP-S1: per-system guardian bindings (None unless both flags are on)
     from supervisor.governance.guardians import make_narrower
 
@@ -235,6 +237,20 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
         msg = "detector overrides in the policy are invalid: " + "; ".join(problems)
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii"))
     return gate
+
+
+def make_intake(settings: Settings) -> Any:
+    """WP-D1: the reader of ``context.documents``, or None when DOCUMENT_INTAKE_ENABLED is off.
+    The URL fetcher exists only with URL_FETCH_ENABLED=1 and a non-empty URL_FETCH_ALLOWLIST;
+    without it a document given by URL is reported as unread (``url_fetch_disabled``)."""
+    if not settings.document_intake_enabled:
+        return None
+    from supervisor.adapters.fetch import Fetcher
+    from supervisor.detectors.intake import IntakeService
+
+    domains = settings.url_fetch_domains
+    fetcher = Fetcher(domains) if settings.url_fetch_enabled and domains else None
+    return IntakeService(fetcher)
 
 
 def _advisory_judge(settings: Settings, masker: Any) -> Any:

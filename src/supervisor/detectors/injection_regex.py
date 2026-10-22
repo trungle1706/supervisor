@@ -20,7 +20,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.core.detectors import (
-    PARTS_BY_DIRECTION,
+    DOCUMENT_PART,
     SCORE_MAX,
     Finding,
     Fragment,
@@ -28,6 +28,7 @@ from supervisor.core.detectors import (
     SettingsSchema,
     clip,
     detector_id,
+    parts_for,
     threshold_for,
     walk_leaves,
 )
@@ -71,6 +72,7 @@ class InjectionRegexDetector:
     version = "1.0.0"
     sides = ("input",)
     protocols = ("all",)
+    parts = ("args", "tool_results", DOCUMENT_PART)  # WP-D1: the text of documents and pages
     presets = PRESETS
     settings_schema = SettingsSchema(
         (
@@ -116,7 +118,7 @@ class InjectionRegexDetector:
         hits: dict[str, int] = {}
         frags: dict[str, list[Fragment]] = {}
         saturated = False
-        for part in PARTS_BY_DIRECTION[direction]:
+        for part in parts_for(payload, direction, self):
             if payload.get(part) is None or saturated:
                 continue
             for leaf in walk_leaves(part, payload[part]):

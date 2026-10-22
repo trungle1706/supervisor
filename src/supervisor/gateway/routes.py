@@ -22,6 +22,7 @@ from supervisor.adapters.auth.audit import (
 )
 from supervisor.adapters.auth.authz import needs, runtime_settings
 from supervisor.core.errors import SupervisorError
+from supervisor.detectors.intake import documents_problem
 from supervisor.gateway import wiring
 from supervisor.gateway.detector_gate import CORRELATION_HEADER, ID_PATTERN
 from supervisor.gateway.engine import Gateway
@@ -101,6 +102,13 @@ async def check(request: Request, gw: Gateway = _GW) -> JSONResponse:
             extra["correlation_id"] = cid
     elif req.direction != "input":
         return _bad("direction=output needs DETECTORS_ENABLED=1")
+    # WP-D1: context.documents. Off (the default): refused, nothing else changes.
+    if req.context is not None and "documents" in req.context:
+        problem = documents_problem(req.context["documents"], getattr(gw, "documents_on", False))
+        if problem:
+            return _bad(problem)
+        if req.direction != "input":
+            return _bad("context.documents belongs to an input check")
     try:
         result = await run_in_threadpool(
             gw.check,

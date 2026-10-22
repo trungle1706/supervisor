@@ -65,6 +65,31 @@ PARTS_BY_DIRECTION: dict[str, tuple[str, ...]] = {
     "output": ("output",),
 }
 
+# WP-D1: the part that holds the text of documents and fetched pages ([{name, text}]). It is in the
+# payload only when document intake is on and the call carried documents; a detector sees it only
+# when its ``parts`` attribute lists it. It is read after the arguments and the tool results.
+DOCUMENT_PART = "documents"
+
+
+def _reads_documents(det: object) -> bool:
+    return DOCUMENT_PART in getattr(det, "parts", ())
+
+
+def parts_for(
+    payload: Mapping[str, Any], direction: str, det: object | None = None
+) -> tuple[str, ...]:
+    """The payload parts a detector reads on this call: the parts of the direction, plus
+    ``documents`` when the payload has it and the detector lists it in ``parts``."""
+    base = PARTS_BY_DIRECTION[direction]
+    if (
+        direction == "input"
+        and payload.get(DOCUMENT_PART) is not None
+        and (det is None or DOCUMENT_PART in getattr(det, "parts", ()))
+    ):
+        return (*base, DOCUMENT_PART)
+    return base
+
+
 # Verdict precedence. Index = rank; the highest rank wins. ``skip`` is not in the list: it is
 # decided by a policy rule before any detector runs (see :func:`derive_status`).
 PRECEDENCE: tuple[str, ...] = ("allow", "report", "transform", "pause", "block")
@@ -579,7 +604,7 @@ def _without_parts(f: Finding, parts: set[str]) -> Finding:
 
 # WP41 review: the parts whose transformed copy a caller applies (the tool gets the masked
 # arguments, the user gets the masked output). A cut tool result is never applied.
-APPLIED_PARTS: frozenset[str] = frozenset({"args", "output"})
+APPLIED_PARTS: frozenset[str] = frozenset({"args", "output", DOCUMENT_PART})
 
 
 def _transforms_here(det: Any, settings: Mapping[str, Any], meta: Mapping[str, Any]) -> bool:
@@ -736,14 +761,15 @@ class DetectorRegistry:
     ) -> RunResult:
         t_start = clock_ns()
         res = RunResult()
-        parts_here = PARTS_BY_DIRECTION[direction]
+        has_docs = direction == "input" and payload.get(DOCUMENT_PART) is not None
+        parts_here = parts_for(payload, direction)
         inspected: list[str] = []
         not_inspected: list[dict[str, Any]] = []
         too_large = False
         uninspectable = False
         total = 0
         part_bytes: dict[str, int] = {}
-        for part in PARTS:
+        for part in (*PARTS, *((DOCUMENT_PART,) if has_docs else ())):
             if part not in parts_here:
                 not_inspected.append({"part": part, "reason": "not_applicable_for_direction"})
                 continue
@@ -808,12 +834,13 @@ class DetectorRegistry:
             # WP41 (D30, D18): this detector sees at most max_scan_bytes of text, and all
             # detectors together at most the call's scan budget. Arguments first, results last.
             limit = min(int(clean.get("max_scan_bytes") or DEFAULT_MAX_SCAN_BYTES), budget_left)
-            if limit <= 0 and sum(part_bytes.values()) > 0:
+            det_parts = tuple(p for p in parts_here if p != DOCUMENT_PART or _reads_documents(det))
+            if limit <= 0 and sum(b for p, b in part_bytes.items() if p in det_parts) > 0:
                 res.not_executed.append(
                     not_executed(slug, did, "payload_too_large", "scan budget", preset=preset)
                 )
                 continue
-            view, scanned, clipped = clipped_view(payload, parts_here, part_bytes, limit)
+            view, scanned, clipped = clipped_view(payload, det_parts, part_bytes, limit)
             budget_left -= sum(scanned.values())
             for p, nb in scanned.items():
                 scanned_min[p] = min(scanned_min.get(p, nb), nb)
@@ -889,6 +916,23 @@ class DetectorRegistry:
             res.coverage["inspected"] = [p for p in inspected if p not in {c["part"] for c in cut}]
             res.coverage["not_inspected"] = [*not_inspected, *cut]
             res.coverage["bytes"] = sum(part_bytes.values())
+        intake = (payload.get("meta") or {}).get("intake") if has_docs else None
+        if isinstance(intake, Mapping) and int(intake.get("unread") or 0) > 0:
+            # WP-D1: some documents were not read (image, damaged file, limit, refused URL). The
+            # part moves out of ``inspected``: the readable documents were still scanned.
+            res.coverage["inspected"] = [p for p in res.coverage["inspected"] if p != DOCUMENT_PART]
+            if not any(
+                n["part"] == DOCUMENT_PART and n["reason"] == "content_uninspectable"
+                for n in res.coverage["not_inspected"]
+            ):
+                res.coverage["not_inspected"] = [
+                    *res.coverage["not_inspected"],
+                    {
+                        "part": DOCUMENT_PART,
+                        "reason": "content_uninspectable",
+                        "unread": int(intake["unread"]),
+                    },
+                ]
         if (
             any(c["part"] == "args" for c in cut)
             and risk_class in config.fail_closed_risk_classes

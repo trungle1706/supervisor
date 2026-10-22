@@ -142,6 +142,7 @@ def test_catalogue_comes_from_code(masker: VnRegexMasker) -> None:
         "injection_regex",
         "injection_classifier",
         "judge_advisory",
+        "document_intake",  # WP-D1
     ]
     for c in cat:
         assert set(c) >= {"slug", "name", "category", "sides", "protocols", "presets"}

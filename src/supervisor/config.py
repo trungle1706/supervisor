@@ -589,6 +589,15 @@ class Settings(BaseSettings):
     # text all detectors together scan in one call (default 65536; per detector the setting
     # max_scan_bytes, default 16384). None = the value of limits.scan_budget_bytes in the file.
     detectors_scan_budget_bytes: int | None = Field(default=None, ge=1024, le=10_000_000)
+    # --- WP-D1 --- document and URL intake (docs/detectors.md "Documents and URLs"). Off: a
+    # request with context.documents is refused (HTTP 400) and nothing else changes. On (needs
+    # DETECTORS_ENABLED=1): the gate extracts text from the documents and scores it.
+    # URL_FETCH_ENABLED=1 + URL_FETCH_ALLOWLIST (comma separated domains) lets the gate fetch a
+    # document by URL (HTTPS only, SSRF guard). Both default off; the fetch is the only
+    # outbound network call of the intake and only to a listed domain.
+    document_intake_enabled: bool = False
+    url_fetch_enabled: bool = False
+    url_fetch_allowlist: str = Field(default="", pattern=r"^[A-Za-z0-9.*_, -]*$", max_length=2000)
 
     # --- WP38 --- collector catalogue on the Integrations page (ADR D28, docs/collectors.md).
     # Off: the Integrations page is the delivery status page of v0.3.0. On: it is the catalogue
@@ -912,6 +921,15 @@ class Settings(BaseSettings):
     @property
     def inline_redaction_tool_set(self) -> frozenset[str]:
         return frozenset(t.strip() for t in self.inline_redaction_tools.split(",") if t.strip())
+
+    @property
+    def url_fetch_domains(self) -> tuple[str, ...]:
+        """WP-D1: the URL_FETCH_ALLOWLIST as lower case domains (no wildcard, no empty item)."""
+        return tuple(
+            d
+            for d in (x.strip().lower().lstrip("*.") for x in self.url_fetch_allowlist.split(","))
+            if d
+        )
 
     @property
     def mask_key(self) -> tuple[bytes, str]:

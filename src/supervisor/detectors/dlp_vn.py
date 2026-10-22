@@ -17,8 +17,8 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.core.detectors import (
+    DOCUMENT_PART,
     MAX_DEPTH,
-    PARTS_BY_DIRECTION,
     SCORE_MAX,
     Entity,
     Finding,
@@ -28,6 +28,7 @@ from supervisor.core.detectors import (
     clip,
     detector_id,
     map_leaves,
+    parts_for,
     threshold_for,
     walk_leaves,
 )
@@ -130,6 +131,9 @@ class DlpVnDetector:
     version = "1.0.0"
     sides = ("input", "output")
     protocols = ("all",)
+    # WP-D1: the document text is scanned too; it is masked in the transformed payload only for a
+    # pii_export tool (the same rule as the arguments)
+    parts = ("args", "tool_results", "output", DOCUMENT_PART)
     presets = PRESETS
     settings_schema = SettingsSchema(
         (
@@ -219,7 +223,9 @@ class DlpVnDetector:
         counts: Counter[str] = Counter()
         tokens: dict[str, Counter[str]] = {}
         frags: dict[str, list[Fragment]] = {}
-        for part in PARTS_BY_DIRECTION[direction]:
+        seen_in: dict[str, set[str]] = {}  # entity type -> parts it was found in
+        parts = parts_for(payload, direction, self)
+        for part in parts:
             if payload.get(part) is None:
                 continue
             for leaf in walk_leaves(part, payload[part]):
@@ -238,6 +244,7 @@ class DlpVnDetector:
                     typ = m.group(1)
                     counts[typ] += 1
                     tokens.setdefault(typ, Counter())[m.group(0)] += 1
+                    seen_in.setdefault(typ, set()).add(part)
                     frags.setdefault(typ, []).append(
                         Fragment(
                             part, leaf.path, m.start(), m.end(), clip(masked, m.start(), m.end())
@@ -246,15 +253,22 @@ class DlpVnDetector:
         if not counts:
             return []
         transform = self._in_scope(settings, meta)
+        doc_transform = transform and meta.get("risk_class") == "pii_export"
         out_payload: dict[str, Any] | None = None
         if transform:
             out_payload = {
                 part: _mask_tree(payload[part], mask, typed=typed)
-                for part in PARTS_BY_DIRECTION[direction]
-                if payload.get(part) is not None
+                for part in parts
+                if payload.get(part) is not None and (part != DOCUMENT_PART or doc_transform)
             }
         findings = []
         for typ in sorted(counts):
+            # an entity found only in a document, on a tool that is not pii_export, is reported
+            hint = (
+                "transform"
+                if transform and (seen_in[typ] != {DOCUMENT_PART} or doc_transform)
+                else "report"
+            )
             findings.append(
                 Finding(
                     detector_slug=self.slug,
@@ -267,9 +281,9 @@ class DlpVnDetector:
                     ),
                     fragments=tuple(frags[typ]),
                     masked_count=counts[typ],
-                    action_hint="transform" if transform else "report",
+                    action_hint=hint,
                     preset=preset,
-                    transformed_payload=out_payload,
+                    transformed_payload=out_payload if hint == "transform" else None,
                 )
             )
         return findings

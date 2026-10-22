@@ -19,7 +19,7 @@ import logging
 import re
 import uuid
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from supervisor.analytics.decisions import looks_personal
@@ -34,6 +34,7 @@ from supervisor.core.detectors import (
     detector_id,
 )
 from supervisor.detectors.config import ResolvedDetectors
+from supervisor.detectors.intake import IntakeResult, IntakeService, public_meta
 from supervisor.gateway.policy import AgentDetectors, Policy
 
 log = logging.getLogger(__name__)
@@ -86,6 +87,8 @@ class PreDetect:
     # WP41 (D29): the sent values of the arguments the policy keeps unmasked for this tool
     # (dlp_vn keep_args). Held in memory for this call only; never recorded.
     kept: dict[str, Any] = field(default_factory=dict)
+    # WP-D1: the result of reading context.documents (None = no documents, or intake is off)
+    intake: IntakeResult | None = None
 
 
 @dataclass
@@ -121,6 +124,8 @@ class DetectorGate:
         # WP-S1: a GuardianNarrower when GUARDIAN_BINDINGS_ENABLED (set by wiring), else None.
         # It can only add detectors to the agent's ``disable`` list; None = the code as before.
         self.narrow: Any = None
+        # WP-D1: reads context.documents when DOCUMENT_INTAKE_ENABLED=1 (set by wiring), else None
+        self.intake: IntakeService | None = None
 
     def redact_budget_bytes(self) -> int | None:
         """WP41b (D32): the bytes of argument text the inline masker may read for one call, or
@@ -212,9 +217,12 @@ class DetectorGate:
         args: Mapping[str, Any],
         ctx: Mapping[str, Any],
         direction: str,
+        intake: IntakeResult | None = None,
     ) -> dict[str, Any]:
         """The parts of the call a detector may read. ``tool_results`` and ``output`` come from
-        the request context (documented in docs/api.md)."""
+        the request context (documented in docs/api.md). ``intake`` (WP-D1) is the result of
+        reading ``context.documents``: the readable text becomes the part ``documents`` and the
+        counts go in ``meta.intake`` for the ``document_intake`` detector."""
         view: dict[str, Any] = {
             "meta": {
                 "agent_id": agent_id,
@@ -233,9 +241,23 @@ class DetectorGate:
                 view["meta"]["tool_description"] = ctx["tool_description"]
             if ctx.get("prior_calls") is not None:
                 view["meta"]["prior_calls"] = ctx["prior_calls"]
+            if intake is not None:
+                view["documents"] = intake.documents
+                view["meta"]["intake"] = intake.detector_meta()
         elif ctx.get("output") is not None:
             view["output"] = ctx["output"]
         return view
+
+    @staticmethod
+    def _intake_cfg(run_cfg: Any, active: bool) -> Any:
+        """WP-D1: the ``document_intake`` detector runs only on a call whose documents were read.
+        Without that it is off, so a call without documents is answered as before."""
+        st = run_cfg.detectors.get("document_intake")
+        if st is None or active or not st.enabled:
+            return run_cfg
+        return replace(
+            run_cfg, detectors={**run_cfg.detectors, "document_intake": replace(st, enabled=False)}
+        )
 
     def prepare(
         self,
@@ -261,6 +283,13 @@ class DetectorGate:
             if tool_name in skip_tools:
                 pre.skipped = True
                 return pre
+            if (
+                self.intake is not None
+                and req.direction == "input"
+                and ctx.get("documents") is not None
+            ):
+                pre.intake = self.intake.run(ctx.get("documents"))
+            run_cfg = self._intake_cfg(run_cfg, pre.intake is not None)
             dlp = run_cfg.detectors.get("dlp_vn")
             # WP41 review: input direction only (an output check never passes a value through)
             if dlp is not None and dlp.enabled and req.direction == "input":
@@ -269,7 +298,14 @@ class DetectorGate:
             protocol = ctx.get("protocol")
             pre.result = self.registry.run(
                 self.payload_view(
-                    agent_id, agent_version, tool_name, pre.risk_class, args, ctx, req.direction
+                    agent_id,
+                    agent_version,
+                    tool_name,
+                    pre.risk_class,
+                    args,
+                    ctx,
+                    req.direction,
+                    pre.intake,
                 ),
                 req.direction,
                 run_cfg,
@@ -425,6 +461,8 @@ class DetectorGate:
         }
         if d.kept_args:  # WP41: absent unless the policy kept an argument unmasked
             d.v2["kept_args"] = list(d.kept_args)
+        if pre.intake is not None:  # WP-D1: absent unless the call carried documents
+            d.v2["documents"] = public_meta(pre.intake)
 
 
 def fallback_v2(d: Any, req: Req) -> None:
@@ -561,4 +599,11 @@ def chain_fields(d: Any) -> dict[str, Any]:
         "transformed": d.transformed_payload is not None,
         "detectors": list(v2["detectors"]),
         **({"kept_args": list(v2["kept_args"])} if v2.get("kept_args") else {}),
+        # WP-D1: sha256, size, media type and status per document; never the bytes or the text
+        **({"documents": _chain_documents(v2["documents"])} if v2.get("documents") else {}),
     }
+
+
+def _chain_documents(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    keys = ("index", "sha256", "size", "media_type", "source", "status", "reason", "url_sha256")
+    return [{k: m[k] for k in keys if k in m} for m in items]

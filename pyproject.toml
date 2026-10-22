@@ -29,6 +29,8 @@ llm = ["openai>=1.40"]
 pdf = [
     "fpdf2>=2.7",
 ]
+# WP-D1: PDF text for document intake (pure Python, BSD-3-Clause; docs/LICENSES.md)
+documents = ["pypdf>=5.0"]
 
 [dependency-groups]
 dev = [
