@@ -392,3 +392,131 @@ G4 policy activation and retrieval.
 
 What was built. How the DoD was proven (commands and output). Deviations. Open questions.
 Files changed outside the package, with the reason. Commits on the branch.
+
+## 6. Phase 5: guardian detectors (closing the TrustGuard catalogue gap)
+
+Decided by the owner on 2026-10-22 after the detector comparison (lead's judgement against the
+five NeuralTrust detector pages in `~/supervisor-testbed/neuraltrust/docs/trustguard__detectors__*`).
+Copy the logic, not the text. Every detector follows the WP37 contract (`docs/detectors.md`:
+`slug, sides, protocols, settings_schema, evaluate(payload, settings, direction) -> findings`),
+is a key in `config/detectors.yaml` (so WP-S1 bindings and the Catalog pick it up), has a row
+in the WP37 harness with a validation report, and is **off by default** with `mrm_status`
+NO-GO until the harness says GO. Rules R1 stays: a detector reports, masks, or (money and
+credit tools only, when the bank approves) pauses; it never blocks on its own; the gate rules do.
+
+| WP | Scope | Size |
+|---|---|---|
+| D1 document and URL intake | New payload part `documents`; text extraction for PDF, DOCX, TXT, CSV in pure Python; images and scans are `uninspectable`; URL fetch behind an allow list with an SSRF guard; the extracted text goes through `injection_regex`, `dlp_vn` and `guard_model` | L |
+| D2 secrets and custom DLP rules | `dlp_vn` gains a `secrets` group (API keys, tokens, JWT, PEM, DSN, password fields, cloud keys), reported as `secret.*` findings, and custom keyword or regex rules with a mask token and preserve-length | M |
+| D3 guard model adapter | `guard_model` detector: ML jailbreak and indirect-injection scoring of user text, tool results and tool descriptions through a configured endpoint; three presets; harness; a decision memo for the bank on which model to serve | L |
+| D4 judge moderation | `judge_moderation` detector: toxicity (one answer) and up to five topics with definitions, input and output, advisory only, mock without a key | M |
+
+### 6.1 WP-D1: document and URL intake
+
+1. **Payload.** `POST /v1/gate/check` and the playground accept `context.documents`: a list of
+   `{name, media_type, text?, bytes_b64?, url?}`. Limits: at most 10 documents, 2 MB each after
+   decoding, 10 unique URLs after dedupe; beyond the limit the finding `document.limit_exceeded`
+   is raised and the surplus is not read. `context.documents` is never stored raw: the chain
+   keeps the sha256, size and media type per document.
+2. **Extraction** `src/supervisor/detectors/intake.py`: TXT, CSV, Markdown and JSON as text;
+   PDF through a pure-Python reader (`pypdf` has cp311 wheels and a BSD licence; add it as an
+   optional extra `[documents]`, record it in `docs/LICENSES.md`); DOCX by unzipping
+   `word/document.xml` with the standard library; images, scans and any format that fails or
+   times out (per-document 2 s) give `document.uninspectable` with a reason. No OCR (needs a
+   binary; say so in the docs). A document with no text is allowed.
+3. **URL fetch** in an adapter (`src/supervisor/adapters/fetch/`), used only when
+   `URL_FETCH_ENABLED=1` and `URL_FETCH_ALLOWLIST` names at least one domain: HTTPS only, refuse
+   private, loopback, link-local and cloud-metadata addresses after DNS resolution, no
+   redirects to another host, 1 MB cap, 3 s timeout. A refused address is `url.ssrf_refused`;
+   a domain not in the list is `url.domain_blocked`. Tests use a fake transport; no network.
+4. **Scoring.** The extracted text becomes payload part `documents` (list of `{name, text}`)
+   and runs through the detectors whose `sides` include input and whose `parts` include
+   `documents`: `injection_regex` and `dlp_vn` today, `guard_model` when D3 lands (guard the
+   import). `dlp_vn` transform applies to document text only when the tool class is
+   `pii_export` (same rule as arguments). Coverage reports `documents` as scanned, cut or not
+   evaluated with the reason.
+5. **Fail mode.** `document.uninspectable` on a money, credit or pii_export tool is a block with
+   the existing `GATE-DETECTOR-FAILED` fail-closed path when `fail_closed: true`; otherwise a
+   finding. Flag `DOCUMENT_INTAKE_ENABLED` (default false; off = `context.documents` is refused
+   with 400 and nothing else changes).
+6. Collectors: the Python SDK, the LangGraph middleware and the FastAPI middleware pass file
+   attachments as documents when the flag is on (`docs/collectors.md`). Playground gets two
+   samples (a VI invoice with a hidden instruction, a CV with a CCCD). Harness rows:
+   `document_injection_vi`, `document_pii_vi`, `url_ssrf`. Docs: `docs/detectors.md` section
+   "Documents and URLs", `docs/latency.md` numbers for 100 KB of PDF text.
+
+### 6.2 WP-D2: secrets and custom DLP rules
+
+1. `dlp_vn` settings gain `secrets: {enabled: false, action: report | block}` and
+   `custom_rules: [{id, kind: keyword | regex, pattern, mask_token?, preserve_length?}]` with a
+   strict schema (bad regex fails at load, catastrophic patterns refused by a length and
+   nesting check).
+2. Secret entities, reused from the onboarding scrubber patterns (`src/supervisor/onboard/scrub.py`)
+   so there is one pattern source: AWS access key, Google API key, OpenAI, Anthropic, Hugging
+   Face, GitHub and GitLab tokens, Slack, Stripe, SendGrid, npm, Vault, JWT, bearer header,
+   HTTP basic, password assignment, DSN with credentials, PEM block, Azure SAS, Databricks PAT.
+   Findings are `secret.<kind>` with the fragment hash only, never the value; the transformed
+   payload masks the value as `<SECRET:kind>`. With `action: block` a secret in a tool argument
+   is `GATE-SECRET-IN-ARGS` through the existing fail-closed path for every tool class (a
+   masked credential has still left, as the bank rule says); default `report`.
+3. Custom rules: keyword is exact substring; regex is Python `re` with a 1 ms per-rule budget;
+   mask token default `<CUSTOM:id>`; `preserve_length` repeats `*`. Per-entity mask tokens for
+   the built-in entities (`mask_tokens: {pii.phone: "<PHONE>"}`) are also accepted.
+4. Harness rows for every secret kind and for custom rules (dev, held-out, adversarial with
+   base64 and split variants); validation report section; zero leaks required. Docs:
+   `docs/detectors.md` section 3c, `docs/masking.md`, CHANGELOG. Off path: with `secrets`
+   absent and `custom_rules` empty, `dlp_vn` output is byte-identical (golden test).
+
+### 6.3 WP-D3: guard model adapter and the model decision
+
+1. Detector `guard_model` (`src/supervisor/detectors/guard_model.py`): sides input and output,
+   protocols llm and mcp, parts `args` (user text fields), `tool_results`, `tool_descriptions`
+   (from the WP26 tool list) and `documents`. It calls a classification endpoint through a new
+   port `GuardModelPort.score(texts) -> [{label, score_bp}]` with two adapters: an
+   OpenAI-compatible chat endpoint using a fixed classification prompt and JSON answer (reuse
+   the LLM adapter, judge family rule applies), and a direct classifier endpoint
+   (`POST <url>` with `{"inputs": [...]}` returning labels and scores, the shape of a Databricks
+   serving endpoint that hosts a prompt-guard class model). A mock adapter for tests.
+2. Presets `permissive | balanced | strict` map to score thresholds in basis points per label
+   (`jailbreak`, `indirect_injection`); the preset is a setting in `config/detectors.yaml`.
+   Long text is scored in overlapping windows of 2,000 characters and the highest score wins.
+   System prompts are never sent. The text sent is the masked text (dlp_vn runs first).
+3. Actions: findings only; on money and credit tools a finding above the strict threshold may
+   pause through the existing `GATE-CLASSIFIER-PAUSE` rule when `pause_tool_classes` is set
+   and the card approval names the approver (same rule as WP25). Never fail closed by default.
+4. Harness: reuse the WP25 corpus (VI and EN, dev, held-out, adversarial) and the WP37 rubric;
+   run with the mock adapter in CI and with a real endpoint when `GUARD_MODEL_URL` is set.
+   `mrm_status: NO-GO` in the shipped file until a real run gives GO. Model card template.
+5. **Decision memo** `docs/guard-model-decision.md` for the bank: options (a) a prompt-guard
+   class open model served on Databricks model serving, multilingual, under 1 B parameters,
+   licence to be checked; (b) the judge model with a classification prompt (slower, shares the
+   judge family rule); (c) a vendor API (excluded by the offline rule). State latency and cost
+   per 1,000 calls as formulas, not guesses, and list what the live kit must measure.
+6. Docs: `docs/detectors.md` section 3d, `docs/llm-adapter.md`, CHANGELOG. Off path: the slug
+   absent from the file changes nothing.
+
+### 6.4 WP-D4: judge moderation
+
+1. Detector `judge_moderation`: sides input and output, parts `args` (user text) and `output`.
+   Settings: `toxicity: {enabled}` (one yes or no answer with a score) and `topics: [{name,
+   definition}]` (at most 5, definition at most 400 characters, scored one by one in overlapping
+   windows, highest score per topic wins). Uses the Tier 1 judge adapter with one prompt per
+   question on masked text; the MockJudge answers when no model is set and every finding says
+   `mock: true`. Findings `moderation.toxic` and `moderation.topic:<name>`, report only.
+2. Ship 10 editable draft topics in Vietnamese and English in `config/moderation_topics.yaml`
+   (financial advice, legal advice, politics, religion, competitor products, internal project
+   names, medical advice, illegal activity, adult content, code generation); none enabled.
+3. Harness rows with a small synthetic VI and EN set (toxic and benign, on-topic and off-topic)
+   and the rubric; `mrm_status: NO-GO` until a real judge run. Docs: `docs/detectors.md`
+   section 3e, `docs/judge-mrm.md` note, CHANGELOG. Off path: slug absent changes nothing.
+
+### 6.5 Shared rules for phase 5
+
+- Each WP appends its own block to `config/detectors.yaml` (commented, `enabled: false`) and to
+  `catalog_view.py` (one card each, "may do" = reports / masks / advises), and its own
+  `_T.update` block in i18n. The lead merges; expect append conflicts only.
+- Nothing fetches from the internet except the URL adapter behind its flag and allow list.
+  No new dependency except `pypdf` as an optional extra. No binary.
+- Workers run targeted tests only (tests/detectors, tests/gateway, tests/console/test_catalog*,
+  tests/console/test_rbac_matrix.py, tests/test_architecture.py, tests/test_schema.py, plus
+  their own files); the lead runs the full suite.
