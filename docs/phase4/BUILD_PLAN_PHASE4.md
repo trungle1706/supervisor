@@ -271,10 +271,78 @@ monitors (reuse WP1b-B bindings); the gate rules themselves are never bindable. 
 gets a per-system column with switches for the owner role; the floor shows a lock. Flag
 `GUARDIAN_BINDINGS_ENABLED`. Chain record `binding_change`.
 
-### 4.5 Later
+### 4.5 WP-UX4b: governance pages on the AI system (after G0, G1; G2 tabs when merged)
 
-G4 policy activation and retrieval · G5 governance actions, incidents, webhook sender ·
-G6 MCP server, skills, KPI home · UX4b governance pages on `ai_system`.
+Flags: `CONSOLE_NAV_V3` and `console_systems_enabled` (both exist). No new flag unless a page
+needs one. Jinja2 and HTMX only. Use the v3 patterns from UX4a (tiles as filters, filter bar,
+row drawer, section tab strip, EN and VI).
+
+1. **System detail tabs**, in this order: Overview · Components · Risks · Controls · Policies ·
+   Guardians · Tasks · Reviews · Reports (G2 adds Rules and Classification when merged; leave
+   the slots). Overview, Components, Tasks, Reviews exist. Add: Risks (WP29 register rows
+   anchored on the system's agents and linked nodes, with the inherited-from column), Controls
+   (control_status rows for the system's agents: working, failing, no_data, plus the compliance
+   figure in bp), Policies (compliance matrix for the system: obligations that apply, met,
+   gap, source), Reports (transparency report link per variant, audit pack, chain verify state
+   per agent lane), Guardians (read-only until WP-S1: the detectors, judges and monitors on for
+   each linked agent, from the same sources as the Supervisor overview).
+2. **Register wizard** at `/console/systems/new`: the intake fields of G0 (and `autonomy_level`
+   when the column exists, use `getattr` on the model), scoping rules applied, then a
+   "preliminary checks" step that runs, in process and read-only: the integration readiness
+   advisor when a repo path is given (`docs/INTEGRATION_GUIDE.md` section 6), the list of
+   assurance packs that apply to the declared type, and the G2 classification draft when the
+   G2 routes exist (`getattr` guard). One result page: readiness band, risk class proposal,
+   packs to run, and the mandatory guardian floor when G2 exposes it. Nothing is applied by the
+   wizard; it registers the draft and opens the initiation tasks.
+3. **Overviews on systems**: when `GOVERNANCE_ENABLED` is on, My overview and Governance
+   overview count systems (not agents): systems in scope by risk level, classification rate by
+   `decision33_class` on systems, control readiness per system, overdue tasks, and a breakdown
+   by `autonomy_level` when the column exists. Agents stay the unit when the flag is off (the
+   UX4a path, unchanged, tested).
+4. **Catalogues › Agents** gains a "System" column with a link, and an "unlinked" filter.
+5. Tests: off path, each tab 200 for a seeded system, EN and VI, scoping (a scoped user cannot
+   open another team's system tabs, 400 or 404 as G0 does), the wizard refuses bad input with
+   400, and the overview switch. Screenshots to `docs/design/screens-v3` (replace, keep under
+   4 MB). Docs: `docs/console.md` Systems section, `docs/governance.md` console section.
+
+### 4.6 WP-G5: governance loop, incidents, webhook sender flag (after G0, G1)
+
+Flag `GOVERNANCE_ACTIONS_ENABLED` (default false). Follow the G0 and G1 patterns.
+
+1. **Event sources** (read-only adapters over existing tables, no new capture): alert rows
+   (`alert` table, every rule id), gate decisions `block` or `pause` on money, credit or
+   pii_export tools (`verdict`), detector `failed` findings, monitor status `failing` (drift,
+   fairness, quality), assurance `eval_run` with a NO-GO, chain verify failure (the existing
+   verify result), new `agent_version` rows (model version change), judge escalation (case kind).
+   Each becomes a normalised `GovernanceEvent(kind, severity, agent_id, system_id?, ref,
+   at)`; system_id comes from `system_component`.
+2. **Rules** `config/governance_actions.yaml`, strict schema: `kind`, `min_severity`
+   (low, medium, high, critical), optional `system_class` filter (decision33_class, risk_level,
+   autonomy_level gte), `actions` from: `create_incident`, `notify_owner` (notice row to the
+   system owner), `raise_risk_level` (manual level up only, never down, source `event`, with
+   a `system_change` record), `move_to_re_evaluation` (uses G1 move; re_evaluation needs no
+   approval), `create_review` (G1 review, kind internal, scope = the event ref),
+   `fire_webhook` (G1 outbound_event, kind `governance_action`), `reopen_control` (sets the
+   control instance for that agent to `failing` with the event ref, through the control service).
+   Ship a starter file that mirrors the nine SOC alert use cases plus chain break and pack
+   NO-GO. A rule never pauses or blocks an agent (rule R1; the gate already did).
+3. **Incident** table: incident_id, system_id?, agent_id, kind, severity, title (template, no
+   free text from events), event_ref, root_cause?, affected_scope?, status (open |
+   investigating | resolved | closed), opened_at, closed_at?, closed_by?, linked case_id?.
+   Chain record `incident_change`. Closing needs a person with `cases.transition` or
+   `systems.edit`; auto-created only.
+4. **Job** `python -m supervisor.jobs.governance_actions` and the in-process scheduler entry
+   (`SCHED_GOVERNANCE_S`, default 60 s), idempotent: an event is processed once (dedupe table
+   or a processed marker with the event ref hash). Dry-run mode prints what would fire.
+5. **API and console**: `GET /v1/incidents`, `GET /v1/incidents/{id}`, `POST .../transition`;
+   Cases & alerts page gets an Incidents tab; the system Reports tab lists incidents. EN and VI.
+6. Tests: off path first; every action kind; never-lower risk; dedupe; a raising action does
+   not stop the others; incidents closed only by a person; chain payloads clean. Docs:
+   `docs/governance-actions.md`, `docs/incidents.md`, CHANGELOG.
+
+### 4.7 Later
+
+G4 policy activation and retrieval · G6 MCP server, skills, KPI home · S1 bindings (after G2).
 
 ## 5. Report format (every WP)
 
