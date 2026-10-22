@@ -51,3 +51,19 @@ controls:
       risk: [RSK-PAY-006]
     evidence:
       document: [incident-procedure]
+
+  - id: CTL-BANK-PAUSETEST
+    title: Pause switch tested
+    objective: >
+      The first line pauses the agent with the pause switch on a schedule and after each change,
+      and records that the agent stopped and that resuming needed two different people.
+    type: detective
+    implemented_by: bank
+    owner: AI Platform
+    status: active
+    review_date: 2027-04-20
+    covers:
+      matrix: [INTL-EUAIA-2024-A14-01]
+      risk: [RSK-PAY-006]
+    evidence:
+      document: [pause-test-record]

@@ -427,6 +427,12 @@ class ClassificationService:
         if draft is None:
             raise SystemsError("there is no draft to apply; make one first")
         self._check_apply(system_id, user, draft)
+        level = system.get("autonomy_level") or "unspecified"
+        if level == "unspecified":
+            raise SystemsError(
+                "autonomy_level is not set: set the autonomy level of the system "
+                "(docs/autonomy-levels.md) before the classification can be applied"
+            )
         answers = _answers_of(draft)
         pending = sorted(q for q, a in answers.items() if a.get("source") == "ai_prefill")
         if pending and not confirm_ai_prefill:
@@ -436,10 +442,15 @@ class ClassificationService:
             )
         outcome = str(draft["outcome"])
         changes: dict[str, Any] = {"decision33_class": outcome}
-        if outcome == "high_risk" and rank(system["risk_level"]) < rank("high"):
-            changes.update(risk_level="high", risk_level_source="classifier")
+        floor = (
+            "prohibited"
+            if level == "l5_self_directed"
+            else ("high" if outcome == "high_risk" else "unspecified")
+        )
+        if rank(system["risk_level"]) < rank(floor):
+            changes.update(risk_level=floor, risk_level_source="classifier")
         elif (
-            outcome == "not_high_risk"
+            floor == "unspecified"
             and system["risk_level_source"] == "classifier"
             and system["risk_level"] == "high"
         ):
@@ -456,6 +467,6 @@ class ClassificationService:
             "apply",
             dict(stored),
             actor,
-            {"risk_floor_set": "risk_level" in changes and outcome == "high_risk"},
+            {"risk_floor_set": "risk_level" in changes and floor != "unspecified"},
         )
         return self.get(system_id)

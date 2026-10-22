@@ -36,6 +36,12 @@ No new flag. Everything is under `GOVERNANCE_ENABLED` (off = nothing mounted, no
   never the system's reviewer or oversight manager. Applying sets `decision33_class` and the floor
   of the risk level (`high_risk` is at least `high`; the effective level uses the floor too).
   Optional AI pre-fill, answers tagged `ai_prefill` (and `mock`).
+- Autonomy level: new column `ai_system.autonomy_level` (`unspecified`, `l0_rule_based` ...
+  `l5_self_directed`), an ordered field in the rules (`gte`; `unspecified` never matches), starter
+  rules `AR-AUTONOMY-L3/L4/L5`, a classification cannot be applied while it is `unspecified`, and
+  l5 sets the risk floor to `prohibited`. New starter items: task `OPS-RESUME-2P` (new template
+  key `assigned_only`: sizing never picks it), control `CTL-BANK-PAUSETEST`, risk `RSK-SHR-003` (kept in `config/risks_pending/`, not in the register until the governing body approves it).
+  Docs: `docs/autonomy-levels.md`.
 - Console: tabs Rules and Classification on the system page. EN and VI.
 - New routes under `/v1/systems/{id}/` (assignments, obligations, guardian-floor, rules/explain,
   assignments/run, classification) use the existing permissions `systems.view` and `systems.edit`.

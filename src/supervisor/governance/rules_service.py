@@ -33,6 +33,9 @@ from supervisor.inventory.model import node_id_for
 from supervisor.inventory.store import InventoryStore
 
 log = logging.getLogger("supervisor.governance")
+# Guardian features that are not detectors: the gate rules of the policy file and the session
+# monitor (docs/autonomy-levels.md). WP-S1 binds them per system.
+GUARDIAN_EXTRA: frozenset[str] = frozenset({"policy_rules", "session_monitor"})
 TRIGGERS: tuple[str, ...] = ("register", "update", "link", "unlink", "classification", "manual")
 
 
@@ -86,6 +89,9 @@ def build_catalogue(settings: Any, state: Any = None) -> R.Catalogue:
     risks, task templates, detector slugs."""
     controls = _yaml_ids(Path(settings.controls_starter_dir), "controls")
     risks = _yaml_ids(Path(settings.risk_starter_dir), "risks")
+    # risks the rules may name that are not in the register yet (config/risks_pending: a risk
+    # that needs governing-body approval before the risk team imports it)
+    risks |= _yaml_ids(Path(settings.risk_starter_dir).parent / "risks_pending", "risks")
     if state is not None:
         controls |= {str(r["control_id"]) for r in state.query("control")}
         risks |= {str(r["risk_id"]) for r in state.query("risk")}
@@ -98,6 +104,7 @@ def build_catalogue(settings: Any, state: Any = None) -> R.Catalogue:
         guardian = {str(k) for k in (doc.get("detectors") or {})}
     except (OSError, yaml.YAMLError, AttributeError):
         guardian = set()
+    guardian |= GUARDIAN_EXTRA
     return R.Catalogue(
         obligation=_kb_obligation_ids(),
         control=frozenset(controls),

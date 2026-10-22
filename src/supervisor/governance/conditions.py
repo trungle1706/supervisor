@@ -130,6 +130,8 @@ def _check_value(spec: FieldSpec, name: str, op: str, value: Any, where: str) ->
         return True
     if op == "gte":
         if kind == "ordered":
+            if value == "unspecified":
+                raise _err(where, f"field {name}: gte unspecified would match everything")
             if value not in (spec.values or ()):
                 raise _err(
                     where, f"field {name}: gte must be one of {', '.join(spec.values or ())}"

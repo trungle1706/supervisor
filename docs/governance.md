@@ -38,7 +38,11 @@ Intake fields (all required at registration): name, owner user, owner team, purp
 `both`), user segment (`internal`, `customer`, `partner`), personal data (`none`, `identifiable`,
 `pseudonymised`, `special`), human control (`pre_approval`, `post_review`, `none`). Defaults:
 status `draft`, stage `initiation`, risk `unspecified`, Decision 33 class `unclassified`, business
-impact `unspecified`, money movement and credit decision false.
+impact `unspecified`, autonomy level `unspecified`, money movement and credit decision false.
+
+| Field (WP-G2) | Values (ordered) |
+|---|---|
+| `autonomy_level` | `unspecified` (not a level), `l0_rule_based`, `l1_assistive`, `l2_workflow_step`, `l3_tool_using_supervised`, `l4_autonomous_bounded`, `l5_self_directed`. Set by a person at registration or later. A Decision 33 classification cannot be applied while it is `unspecified`. See `docs/autonomy-levels.md` |
 
 ## 3. Risk level
 

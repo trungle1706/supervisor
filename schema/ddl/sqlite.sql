@@ -1364,6 +1364,7 @@ CREATE TABLE IF NOT EXISTS ai_system (
   risk_justification TEXT,
   decision33_class TEXT NOT NULL,
   business_impact TEXT NOT NULL,
+  autonomy_level TEXT NOT NULL,
   status TEXT NOT NULL,
   tags TEXT NOT NULL,
   created_at TEXT NOT NULL,

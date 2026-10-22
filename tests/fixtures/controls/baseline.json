@@ -1,7 +1,7 @@
 {
   "base_commit": "316a039",
   "branch": "wp30-controls",
-  "date": "2026-10-20",
+  "date": "2026-10-22",
   "note": "Recorded by `python -m supervisor.controls.harness --write-baseline`. tests/controls/test_harness.py fails if a metric drops below this.",
   "results": {
     "adversarial": {
@@ -88,8 +88,8 @@
     },
     "starters": {
       "bp": 10000,
-      "controls": 28,
-      "maps": 165,
+      "controls": 29,
+      "maps": 168,
       "risks_covered": 19
     },
     "verdicts": {
@@ -100,5 +100,5 @@
       "starters": "GO"
     }
   },
-  "tasks_config_sha256": "9ffe48915204af2daf1d8ab10177d8eac958b2c7fbf14b919a8bcf629188b93d"
+  "tasks_config_sha256": "0ef185bba75c7b2fd9589717e04f8e8e8b89bddcb73e505b442e24af7c183f5a"
 }

@@ -3417,6 +3417,23 @@ _T.update(
             "AI pre-filled answers are advice only. A person must check them.",
             "Câu trả lời do AI điền sẵn chỉ là gợi ý. Con người phải kiểm tra.",
         ),
+        "sy_f_autonomy_level": ("Autonomy level", "Mức tự chủ"),
+        "sy_autonomy_level_unspecified": ("Not set", "Chưa đặt"),
+        "sy_autonomy_level_l0_rule_based": ("L0 rule based", "L0 dựa trên quy tắc"),
+        "sy_autonomy_level_l1_assistive": ("L1 assistive", "L1 hỗ trợ"),
+        "sy_autonomy_level_l2_workflow_step": (
+            "L2 step in a workflow",
+            "L2 một bước trong quy trình",
+        ),
+        "sy_autonomy_level_l3_tool_using_supervised": (
+            "L3 tools, supervised",
+            "L3 dùng công cụ, có giám sát",
+        ),
+        "sy_autonomy_level_l4_autonomous_bounded": (
+            "L4 autonomous, bounded",
+            "L4 tự chủ trong giới hạn",
+        ),
+        "sy_autonomy_level_l5_self_directed": ("L5 self-directed", "L5 tự đặt mục tiêu"),
         "sy_cls_history": ("Classifications applied before", "Các phân loại đã áp dụng trước đây"),
     }
 )

@@ -1234,6 +1234,7 @@ tables:
       risk_justification: text?
       decision33_class: string # high_risk | not_high_risk | unclassified
       business_impact: string  # high | medium | low | unspecified
+      autonomy_level: string   # unspecified | l0_rule_based | l1_assistive | l2_workflow_step | l3_tool_using_supervised | l4_autonomous_bounded | l5_self_directed (WP-G2)
       status: string           # draft | active | archived
       tags: json
       created_at: timestamp

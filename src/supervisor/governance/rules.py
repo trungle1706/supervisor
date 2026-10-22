@@ -74,6 +74,7 @@ _SYSTEM_FIELDS: dict[str, FieldSpec] = {
     "risk_level": FieldSpec("ordered", gm.RISK_LEVELS),
     "decision33_class": FieldSpec("enum", gm.DECISION33_CLASSES),
     "business_impact": FieldSpec("ordered", IMPACT_ORDER),
+    "autonomy_level": FieldSpec("ordered", gm.AUTONOMY_LEVELS),
     "status": FieldSpec("enum", gm.STATUSES),
     "effective_risk_level": FieldSpec("ordered", gm.RISK_LEVELS),
 }

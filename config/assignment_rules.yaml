@@ -74,3 +74,26 @@
   assign:
     controls: [CTL-PII-SWEEP]
     guardian_floor: [dlp_vn]
+
+# ---- autonomy ladder (docs/autonomy-levels.md). `unspecified` never matches gte. ------------------
+- id: AR-AUTONOMY-L3
+  title: The model chooses and calls tools (level l3 and above)
+  when: {field: autonomy_level, gte: l3_tool_using_supervised}
+  assign:
+    guardian_floor: [policy_rules, dlp_vn]
+
+- id: AR-AUTONOMY-L4
+  title: The agent runs a multi-step workflow end to end (level l4 and above)
+  when: {field: autonomy_level, gte: l4_autonomous_bounded}
+  assign:
+    controls: [CTL-BANK-PAUSETEST]
+    tasks: [OPS-RESUME-2P]
+    guardian_floor: [session_monitor]
+
+- id: AR-AUTONOMY-L5
+  title: Self-directed agent (level l5, prohibited by default)
+  when: {field: autonomy_level, eq: l5_self_directed}
+  assign:
+    risks: [RSK-SHR-003]
+    # the prohibited task set: initiation tasks only
+    tasks: [INI-REGISTER, INI-PURPOSE, INI-RISKS, INI-D33]

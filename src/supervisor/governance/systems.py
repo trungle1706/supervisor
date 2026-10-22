@@ -637,6 +637,8 @@ class SystemService:
         # WP-G2: the classifier floor. A system classed high risk under Decision 33 is at least
         # "high", whatever a person typed in the manual level.
         floor = "high" if row.get("decision33_class") == "high_risk" else "unspecified"
+        if row.get("autonomy_level") == "l5_self_directed":  # prohibited at the bank by default
+            floor = "prohibited"
         if rank(floor) > max(rank(manual), rank(inherited)):
             level, source = floor, "classifier"
         elif rank(inherited) > rank(manual):

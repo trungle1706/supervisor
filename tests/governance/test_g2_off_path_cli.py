@@ -96,7 +96,7 @@ def test_cli_check_needs_no_flag(
     _env(monkeypatch, tmp_path, False)
     assert rules_cli.main(["check"]) == 0
     out = capsys.readouterr().out
-    assert "[OK] 6 rule(s)" in out and out.isascii()
+    assert "[OK] 9 rule(s)" in out and out.isascii()
 
 
 def test_cli_run_and_explain(

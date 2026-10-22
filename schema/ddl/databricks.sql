@@ -1121,6 +1121,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`ai_system` (
   risk_justification STRING,
   decision33_class STRING NOT NULL,
   business_impact STRING NOT NULL,
+  autonomy_level STRING NOT NULL,
   status STRING NOT NULL,
   tags STRING NOT NULL,
   created_at TIMESTAMP NOT NULL,

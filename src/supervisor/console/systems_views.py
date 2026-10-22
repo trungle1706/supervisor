@@ -35,6 +35,7 @@ REGISTER_CHOICES = {
     "user_segment": gm.USER_SEGMENTS,
     "personal_data": gm.PERSONAL_DATA,
     "human_control": gm.HUMAN_CONTROLS,
+    "autonomy_level": gm.AUTONOMY_LEVELS,  # WP-G2
 }
 
 

@@ -43,6 +43,7 @@ DRAFT: dict[str, Any] = {
     "user_segment": "internal",
     "personal_data": "pseudonymised",
     "human_control": "post_review",
+    "autonomy_level": "l1_assistive",  # WP-G2: apply of a classification needs a level
 }
 
 
