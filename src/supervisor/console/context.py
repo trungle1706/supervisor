@@ -82,6 +82,19 @@ class ConsoleContext:
         return svc
 
     @property
+    def systems(self) -> Any:
+        """The AI system service (WP-G0, docs/governance.md). Every change goes on the chain."""
+        from supervisor.governance.systems import SystemService
+
+        svc = getattr(self, "_systems", None)
+        if svc is None:
+            svc = SystemService(
+                self.state, self.tables, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._systems = svc
+        return svc
+
+    @property
     def transparency(self) -> Any:
         """The transparency report service (WP31, ADR D31). Signed reports go on the chain."""
         from supervisor.transparency.service import TransparencyService

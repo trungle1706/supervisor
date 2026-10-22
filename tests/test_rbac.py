@@ -76,6 +76,7 @@ def test_new_roles() -> None:
         "controls.view",  # WP30: the catalogue and the task list are readable by every role
         "tasks.view",
         "transparency.view",  # WP31: the report is readable by every role
+        "systems.view",  # WP-G0: every role reads (a scoped role sees its own systems)
     }
     operator = {p for p in rbac.PERMISSIONS if rbac.allowed(["operator"], p)}
     assert operator == viewer | {
@@ -105,7 +106,7 @@ def test_service_tuples_come_from_the_matrix() -> None:
 
 def test_every_route_permission_exists() -> None:
     for (method, path), entry in rbac.ROUTES.items():
-        assert method in ("GET", "POST"), (method, path)
+        assert method in ("GET", "POST", "PATCH", "DELETE"), (method, path)  # PATCH, DELETE: WP-G0
         if entry in rbac.MARKERS:
             continue
         if "{" in entry:  # agent.{action}

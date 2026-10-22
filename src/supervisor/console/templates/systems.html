@@ -1,0 +1,47 @@
+{# Systems page (WP-G0): tiles, filter bar, sortable paged table, row drawer (?drawer=<id> is
+   the no-JS fallback) and the register form. Variables: systems_views.list_view. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('nav_systems') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_onboard'), None), (t('nav_systems'), None)]) }}
+{{ ui.pagehead(t('nav_systems')) }}
+{{ ui.purpose(t('sy_purpose'), t('sy_why')) }}
+{% if not scope_all %}<p class="hint">{{ t('sy_scope_note') }}</p>{% endif %}
+<section id="systems" aria-label="{{ t('nav_systems') }}">
+{{ ui.tiles(tiles, '/console/systems', '/console/systems/rows') }}
+{{ ui.filterbar('/console/systems', '/console/systems/rows', [
+  {'name': 'q', 'label': t('sy_col_name'), 'kind': 'search', 'value': params.q},
+  {'name': 'owner_team', 'label': t('sy_col_team'), 'kind': 'select', 'value': params.owner_team, 'options': team_opts},
+  {'name': 'lifecycle_stage', 'label': t('sy_col_stage'), 'kind': 'select', 'value': params.lifecycle_stage, 'options': stage_opts},
+  {'name': 'risk', 'label': t('sy_col_risk'), 'kind': 'select', 'value': params.risk, 'options': risk_opts},
+  {'name': 'system_type', 'label': t('sy_f_system_type'), 'kind': 'select', 'value': params.system_type, 'options': type_opts},
+  {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
+], '/console/systems?lang=' ~ lang) }}
+<div id="list" aria-live="polite">
+{% include "_systems_list.html" %}
+</div>
+</section>
+{% if can_edit %}
+<details class="card" id="register">
+  <summary>{{ t('sy_register') }}</summary>
+  <form method="post" action="/console/systems?lang={{ lang }}" hx-post="/console/systems?lang={{ lang }}" hx-swap="none">
+    <p class="hint">{{ t('sy_register_hint') }}</p>
+    <label>{{ t('sy_col_name') }} <input name="name" required maxlength="120"></label>
+    <label>{{ t('sy_col_team') }} <input name="owner_team" required maxlength="128"></label>
+    <label>{{ t('sy_f_purpose') }} <textarea name="purpose" required maxlength="2000" rows="3"></textarea></label>
+    {% for field, opts in choices.items() %}
+    <label>{{ t('sy_f_' ~ field) }}
+      <select name="{{ field }}" required>
+        {% for v, l in opts %}<option value="{{ v }}">{{ t(l) }}</option>{% endfor %}
+      </select>
+    </label>
+    {% endfor %}
+    <label><input type="checkbox" name="money_movement" value="1"> {{ t('sy_f_money_movement') }}</label>
+    <label><input type="checkbox" name="credit_decision" value="1"> {{ t('sy_f_credit_decision') }}</label>
+    <button class="btn" type="submit">{{ t('sy_register') }}</button>
+  </form>
+</details>
+{% endif %}
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_system_drawer.html" %}{% endif %}{% endblock %}

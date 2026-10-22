@@ -39,6 +39,12 @@ def _walk(routes: Any) -> Iterator[Any]:
             yield r
 
 
+# Mounted by app.py only with GOVERNANCE_ENABLED / CONSOLE_SYSTEMS_ENABLED (WP-G0). With the
+# flags off they are not in the app; tests/governance/test_api.py runs the same checks with
+# them mounted.
+FLAG_MOUNTED = ("/v1/systems", "/console/systems")
+
+
 def app_routes() -> list[tuple[str, str, Any]]:
     out = []
     for r in _walk(app.router.routes):
@@ -85,7 +91,7 @@ def test_every_protected_route_has_the_needs_dependency() -> None:
 
 def test_matrix_has_no_stale_route() -> None:
     live = {(m, rbac.normalise_path(p)) for m, p, _ in app_routes()}
-    stale = [k for k in rbac.ROUTES if k not in live]
+    stale = [k for k in rbac.ROUTES if k not in live and not k[1].startswith(FLAG_MOUNTED)]
     assert not stale, f"in ROUTES but not in the app: {stale}"
 
 
@@ -144,8 +150,9 @@ def _call(console: Console, method: str, url: str, user: str) -> Any:
 def _human_cases() -> list[tuple[str, str, str, str]]:
     """(method, template, permission, action) for every route that needs a role."""
     out = []
+    mounted = {p for _, p, _ in app_routes()}
     for (method, path), entry in rbac.ROUTES.items():
-        if entry in rbac.MARKERS:
+        if entry in rbac.MARKERS or (path.startswith(FLAG_MOUNTED) and path not in mounted):
             continue
         if "{" in entry:
             for action in ("pause", "resume", "quarantine", "release"):
@@ -332,6 +339,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "decisions.export",  # WP39: tests/console/test_wp39_decisions.py
         "dev.user",
         "transparency.generate",  # WP31: tests/console/test_transparency.py
+        "systems.edit",  # WP-G0: tests/governance/test_console.py (two audit rows)
     }
     posts = {
         rbac.resolve_permission(e, {"action": "pause"}) if e != rbac.DEV_ONLY else "dev.user"

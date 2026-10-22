@@ -146,6 +146,12 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "admin"),
         "Build and sign a transparency report (WP31)",
     ),
+    # --- WP-G0 ---
+    "systems.view": (_ALL, "Systems pages and GET /v1/systems: AI systems in your scope (WP-G0)"),
+    "systems.edit": (
+        ("reviewer", "owner", "admin"),
+        "Register and change AI systems, their team and their links (WP-G0)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -339,6 +345,21 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/v1/transparency"): "transparency.view",
     ("GET", "/v1/transparency/{agent_id}"): "transparency.view",
     ("POST", "/v1/transparency/{agent_id}/generate"): "transparency.generate",
+    # --- WP-G0 --- mounted only when GOVERNANCE_ENABLED / CONSOLE_SYSTEMS_ENABLED are on
+    ("GET", "/console/systems"): "systems.view",
+    ("GET", "/console/systems/rows"): "systems.view",
+    ("GET", "/console/systems/{system_id}"): "systems.view",
+    ("GET", "/console/systems/{system_id}/drawer"): "systems.view",
+    ("POST", "/console/systems"): "systems.edit",
+    ("GET", "/v1/systems"): "systems.view",
+    ("POST", "/v1/systems"): "systems.edit",
+    ("GET", "/v1/systems/{system_id}"): "systems.view",
+    ("PATCH", "/v1/systems/{system_id}"): "systems.edit",
+    ("POST", "/v1/systems/{system_id}/team"): "systems.edit",
+    ("DELETE", "/v1/systems/{system_id}/team/{user}"): "systems.edit",
+    ("POST", "/v1/systems/{system_id}/links"): "systems.edit",
+    ("DELETE", "/v1/systems/{system_id}/links/{component_id}"): "systems.edit",
+    ("POST", "/v1/systems/{system_id}/archive"): "systems.edit",
 }
 
 

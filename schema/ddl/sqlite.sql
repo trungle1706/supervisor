@@ -1342,3 +1342,73 @@ BEFORE DELETE ON transparency_report
 BEGIN
   SELECT RAISE(ABORT, 'transparency_report is append-only');
 END;
+
+-- ai_system (state): WP-G0. The unit of governance: one AI system (product, platform, feature or use case) with named owners, a few unambiguous intake fields and a manual risk level. The effective risk level (manual level and the level inherited from linked agents and inventory nodes) is computed on read, never stored. decision33_class is human-set. Changes go on the chain as system_change.
+CREATE TABLE IF NOT EXISTS ai_system (
+  system_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  owner_user TEXT NOT NULL,
+  owner_team TEXT NOT NULL,
+  business_owner TEXT,
+  purpose TEXT NOT NULL,
+  system_type TEXT NOT NULL,
+  org_role TEXT NOT NULL,
+  user_segment TEXT NOT NULL,
+  personal_data TEXT NOT NULL,
+  money_movement INTEGER NOT NULL,
+  credit_decision INTEGER NOT NULL,
+  human_control TEXT NOT NULL,
+  lifecycle_stage TEXT NOT NULL,
+  risk_level TEXT NOT NULL,
+  risk_level_source TEXT NOT NULL,
+  risk_justification TEXT,
+  decision33_class TEXT NOT NULL,
+  business_impact TEXT NOT NULL,
+  status TEXT NOT NULL,
+  tags TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (system_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_ai_system_status ON ai_system (status);
+
+CREATE INDEX IF NOT EXISTS ix_ai_system_owner_team ON ai_system (owner_team);
+
+-- system_team (state): WP-G0. Who is on an AI system and in which role. A member sees and edits the system; a reviewer or oversight manager cannot be the system owner of the same system (segregation of duties).
+CREATE TABLE IF NOT EXISTS system_team (
+  system_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  team_role TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  added_at TEXT NOT NULL,
+  added_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (system_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_system_team_user_id ON system_team (user_id);
+
+-- system_component (state): WP-G0. A link from an AI system to an agent or an inventory node. component_id is a hash of (system_id, ref_kind, ref_id, role), so a repeat is a no-op. active is false after an unlink (the row stays as history).
+CREATE TABLE IF NOT EXISTS system_component (
+  component_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  ref_kind TEXT NOT NULL,
+  ref_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  source TEXT NOT NULL,
+  evidence_ref TEXT NOT NULL,
+  active INTEGER NOT NULL,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (component_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_system_component_system_id ON system_component (system_id);
+
+CREATE INDEX IF NOT EXISTS ix_system_component_ref_kind_ref_id ON system_component (ref_kind, ref_id);

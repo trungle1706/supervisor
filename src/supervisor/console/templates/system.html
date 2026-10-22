@@ -1,0 +1,22 @@
+{# System detail page (WP-G0): header and tabs Overview, Components. Variables: s, tab, tabs,
+   tab_counts, json_text (systems_views.detail_view). #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ s.name }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_onboard'), None), (t('nav_systems'), '/console/systems?lang=' ~ lang), (s.name, None)]) }}
+{% set pills %}{{ ui.pill(t('sy_st_' ~ s.status), 'ok' if s.status == 'active' else 'neutral') }} {{ ui.pill(t('sy_risk_' ~ s.effective_risk.level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk.level, 'neutral')) }}{% endset %}
+{{ ui.pagehead(s.name, pills) }}
+{{ ui.purpose(t('sy_purpose'), t('sy_why')) }}
+{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components')} %}
+{{ ui.tabs(tabs, tab, labels, '/console/systems/' ~ s.system_id ~ '?tab={tab}&lang=' ~ lang, '/console/systems/' ~ s.system_id ~ '?tab={tab}&lang=' ~ lang, target='#tab-body', counts=tab_counts, panel='tab-body', select='#tab-body') }}
+<div id="tab-body" class="tabpanel" role="tabpanel">
+{% if tab == 'overview' %}
+  {% include "_system_facts.html" %}
+  <h3 class="sec">{{ t('sy_dtab_team') }}</h3>
+  {% include "_system_team.html" %}
+{% else %}
+  {% include "_system_components.html" %}
+{% endif %}
+</div>
+{% endblock %}

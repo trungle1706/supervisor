@@ -591,6 +591,12 @@ class Settings(BaseSettings):
     console_export_max_rows: int = Field(default=5000, ge=1, le=100_000)  # CSV rows, masked cols
     sched_decision_rollup_s: int = Field(default=3600, ge=60)  # decision_daily rollup job
 
+    # --- WP-G0 --- governance shared core: the AI system entity (docs/governance.md). Off by
+    # default. GOVERNANCE_ENABLED: /v1/systems routes are mounted. CONSOLE_SYSTEMS_ENABLED: the
+    # Systems pages (needs GOVERNANCE_ENABLED too).
+    governance_enabled: bool = False
+    console_systems_enabled: bool = False
+
     @field_validator(
         "data_dir",
         "sqlite_path",

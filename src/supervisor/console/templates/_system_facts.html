@@ -1,0 +1,23 @@
+{# Facts of one system (drawer Details and the Overview tab). Variable: s. #}
+{% import "_ui.html" as ui with context %}
+{{ ui.kv([
+  (t('sy_f_purpose'), s.purpose),
+  (t('sy_col_team'), s.owner_team),
+  (t('sy_f_owner_user'), s.owner_user, True),
+  (t('sy_f_business_owner'), s.business_owner, True),
+  (t('sy_f_system_type'), t('sy_system_type_' ~ s.system_type)),
+  (t('sy_f_org_role'), t('sy_org_role_' ~ s.org_role)),
+  (t('sy_f_user_segment'), t('sy_user_segment_' ~ s.user_segment)),
+  (t('sy_f_personal_data'), t('sy_personal_data_' ~ s.personal_data)),
+  (t('sy_f_money_movement'), t('sy_yes') if s.money_movement else t('sy_no')),
+  (t('sy_f_credit_decision'), t('sy_yes') if s.credit_decision else t('sy_no')),
+  (t('sy_f_human_control'), t('sy_human_control_' ~ s.human_control)),
+  (t('sy_col_stage'), t('sy_stage_' ~ s.lifecycle_stage)),
+  (t('sy_effective'), t('sy_risk_' ~ s.effective_risk.level) ~ ' (' ~ t('sy_source_' ~ s.effective_risk.source) ~ ')'),
+  (t('sy_manual'), t('sy_risk_' ~ s.effective_risk.manual_level)),
+  (t('sy_inherited'), t('sy_risk_' ~ s.effective_risk.inherited_level)),
+  (t('sy_f_risk_justification'), s.risk_justification),
+  (t('sy_f_decision33_class'), t('sy_d33_' ~ s.decision33_class)),
+  (t('sy_f_business_impact'), t('sy_impact_' ~ s.business_impact)),
+  (t('status'), t('sy_st_' ~ s.status)),
+]) }}

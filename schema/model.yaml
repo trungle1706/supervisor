@@ -1200,3 +1200,80 @@ tables:
       section_hashes: json     # section id -> sha256 of that section (for the diff)
       verify_state: string     # ok | failed | not_run: the chain check made for this report
       chain_hash: string?      # entry hash of the transparency_report chain record
+
+  # --- WP-G0 shared core: the AI system entity (docs/governance.md) --------------------------
+  ai_system:
+    kind: state
+    description: >
+      WP-G0. The unit of governance: one AI system (product, platform, feature or use case)
+      with named owners, a few unambiguous intake fields and a manual risk level. The effective
+      risk level (manual level and the level inherited from linked agents and inventory nodes) is
+      computed on read, never stored. decision33_class is human-set. Changes go on the chain as
+      system_change.
+    primary_key: [system_id]
+    indexes:
+      - [status]
+      - [owner_team]
+    columns:
+      system_id: string
+      name: string             # unique
+      owner_user: string
+      owner_team: string
+      business_owner: string?
+      purpose: text
+      system_type: string      # assistant | decision | automation | platform | feature
+      org_role: string         # provider | deployer | both
+      user_segment: string     # internal | customer | partner
+      personal_data: string    # none | identifiable | pseudonymised | special
+      money_movement: bool
+      credit_decision: bool
+      human_control: string    # pre_approval | post_review | none
+      lifecycle_stage: string  # initiation | design | validation | deployment | operation | re_evaluation | retirement
+      risk_level: string       # prohibited | high | medium | low | unspecified (the manual level)
+      risk_level_source: string  # manual | inherited | classifier (as last recorded)
+      risk_justification: text?
+      decision33_class: string # high_risk | not_high_risk | unclassified
+      business_impact: string  # high | medium | low | unspecified
+      status: string           # draft | active | archived
+      tags: json
+      created_at: timestamp
+      created_by: string
+
+  system_team:
+    kind: state
+    description: >
+      WP-G0. Who is on an AI system and in which role. A member sees and edits the system; a
+      reviewer or oversight manager cannot be the system owner of the same system (segregation
+      of duties).
+    primary_key: [system_id, user_id]
+    indexes:
+      - [user_id]
+    columns:
+      system_id: string
+      user_id: string
+      team_role: string        # system_owner | business_owner | technical_specialist | data_steward | compliance_specialist | reviewer | oversight_manager
+      active: bool             # false after a removal (the row stays as history; the port has no delete)
+      added_at: timestamp
+      added_by: string
+
+  system_component:
+    kind: state
+    description: >
+      WP-G0. A link from an AI system to an agent or an inventory node. component_id is a hash
+      of (system_id, ref_kind, ref_id, role), so a repeat is a no-op. active is false after an
+      unlink (the row stays as history).
+    primary_key: [component_id]
+    indexes:
+      - [system_id]
+      - [ref_kind, ref_id]
+    columns:
+      component_id: string
+      system_id: string
+      ref_kind: string         # agent | node
+      ref_id: string           # agent id, or inventory node id
+      role: string             # component_of | built_on | depends_on
+      source: string           # manual | onboarding | workspace_scan | gate
+      evidence_ref: string
+      active: bool
+      first_seen: timestamp
+      last_seen: timestamp
