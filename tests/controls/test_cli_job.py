@@ -92,9 +92,9 @@ def test_controls_cli_import_list_status_export_and_jobs(
     )
     assert "dry run: created=0" in capsys.readouterr().out
     assert ccli.main(["import", str(STARTERS), "--source", "starter", "--by", "ann"]) == 0
-    assert "created=29" in capsys.readouterr().out
+    assert "created=28" in capsys.readouterr().out
     assert ccli.main(["import", str(STARTERS), "--source", "starter", "--by", "ann"]) == 0
-    assert "unchanged=29" in capsys.readouterr().out
+    assert "unchanged=28" in capsys.readouterr().out
     assert ccli.main(["list", "--agent", "payments", "--type", "preventive"]) == 0
     out = capsys.readouterr().out
     assert "CTL-PAY-LIMIT" in out and "CTL-CRD-LIMIT" not in out and out.isascii()

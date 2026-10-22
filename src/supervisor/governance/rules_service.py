@@ -88,6 +88,10 @@ def build_catalogue(settings: Any, state: Any = None) -> R.Catalogue:
     """The ids the rules may name: regulation KB obligations, starter and stored controls and
     risks, task templates, detector slugs."""
     controls = _yaml_ids(Path(settings.controls_starter_dir), "controls")
+    # controls the rules may name that are not in the catalogue yet (config/controls_pending)
+    controls |= _yaml_ids(
+        Path(settings.controls_starter_dir).parent / "controls_pending", "controls"
+    )
     risks = _yaml_ids(Path(settings.risk_starter_dir), "risks")
     # risks the rules may name that are not in the register yet (config/risks_pending: a risk
     # that needs governing-body approval before the risk team imports it)

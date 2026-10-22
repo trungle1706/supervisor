@@ -81,7 +81,7 @@ No new flag. Everything is under `GOVERNANCE_ENABLED` (off = nothing mounted, no
   `l5_self_directed`), an ordered field in the rules (`gte`; `unspecified` never matches), starter
   rules `AR-AUTONOMY-L3/L4/L5`, a classification cannot be applied while it is `unspecified`, and
   l5 sets the risk floor to `prohibited`. New starter items: task `OPS-RESUME-2P` (new template
-  key `assigned_only`: sizing never picks it), control `CTL-BANK-PAUSETEST`, risk `RSK-SHR-003` (kept in `config/risks_pending/`, not in the register until the governing body approves it).
+  key `assigned_only`: sizing never picks it), control `CTL-BANK-PAUSETEST` (kept in `config/controls_pending/`, so the starter catalogue is unchanged), risk `RSK-SHR-003` (kept in `config/risks_pending/`, not in the register until the governing body approves it).
   Docs: `docs/autonomy-levels.md`.
 - Console: tabs Rules and Classification on the system page. EN and VI.
 - New routes under `/v1/systems/{id}/` (assignments, obligations, guardian-floor, rules/explain,

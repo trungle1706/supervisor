@@ -129,7 +129,9 @@ class ConsoleContext:
                 chat=chat,
             )
             self._classification = svc
+        return svc
 
+    @property
     def lifecycle(self) -> Any:
         """Stage approvals and the lifecycle move of an AI system (WP-G1). Shares the system
         service, so every change goes on the chain."""

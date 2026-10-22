@@ -32,7 +32,7 @@ output (`python -m supervisor.governance.rules explain --system ID`) shows the l
 | Rule | Fires at | Guardian floor | Controls and tasks | Risk |
 |---|---|---|---|---|
 | `AR-AUTONOMY-L3` | l3 and above | `policy_rules`, `dlp_vn` | - | - |
-| `AR-AUTONOMY-L4` | l4 and above | `session_monitor` | control `CTL-BANK-PAUSETEST` (pause switch tested), task `OPS-RESUME-2P` (two-person resume approved; assigned by rule only, sizing never picks it) | - |
+| `AR-AUTONOMY-L4` | l4 and above | `session_monitor` | control `CTL-BANK-PAUSETEST` (pause switch tested; the file is `config/controls_pending/autonomy.yaml`, imported when the bank wants it), task `OPS-RESUME-2P` (two-person resume approved; assigned by rule only, sizing never picks it) | - |
 | `AR-AUTONOMY-L5` | l5 | - | the prohibited task set: initiation tasks only (`INI-REGISTER`, `INI-PURPOSE`, `INI-RISKS`, `INI-D33`) | `RSK-SHR-003` unbounded autonomy (status draft: needs governing-body approval; the file is `config/risks_pending/autonomy.yaml`, outside the register until the risk team imports it) |
 
 ## Interaction with Decision 33 (`docs/decision33.md`)
