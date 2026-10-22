@@ -42,7 +42,15 @@ def _walk(routes: Any) -> Iterator[Any]:
 # Mounted by app.py only with GOVERNANCE_ENABLED / CONSOLE_SYSTEMS_ENABLED (WP-G0). With the
 # flags off they are not in the app; tests/governance/test_api.py runs the same checks with
 # them mounted.
-FLAG_MOUNTED = ("/v1/systems", "/console/systems", "/v1/incidents", "/console/incidents")  # WP-G5
+FLAG_MOUNTED = (
+    "/v1/systems",
+    "/console/systems",
+    "/v1/incidents",
+    "/console/incidents",  # WP-G5
+    "/mcp",
+    "/v1/mcp/apps",
+    "/v1/kpis",  # WP-G6
+)
 
 
 def app_routes() -> list[tuple[str, str, Any]]:

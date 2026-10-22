@@ -489,6 +489,7 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `systems.review` | Plan, change, complete and reopen reviews of an AI system (WP-G1) |  | x | x |  | x |  |  |
 | `incidents.view` | Incidents tab and GET /v1/incidents: incidents in your scope (WP-G5) | x | x | x | x | x | x | x |
 | `incidents.transition` | Move an incident on and close it (the holders of case.transition or systems.edit) (WP-G5) |  | x |  | x | x |  |  |
+| `mcp.apps` | List, approve and block the apps connected to the MCP server (WP-G6) |  |  |  |  | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).
@@ -595,6 +596,7 @@ set that header.
 | `CONSOLE_LANG` | `en` | Default UI language (`en` or `vi`) |
 | `CONSOLE_NAV` | `sidebar` | WP-UX1: `sidebar` (left sidebar, default) or `top` (the phase 2 pill header). One setting rolls the layout back. Windows cmd: `set CONSOLE_NAV=top` |
 | `CONSOLE_NAV_SECTIONS` | `0` | Two-section sidebar: "AI Management and Governance" (Onboard, Prove, Settings) and "AI Guardian and Supervisor" (Watch, Act, Protect, Analytics). Each section folds open and closed without JS. Off = the six-group sidebar. Order in `console/nav.py` `SECTIONS`. Windows cmd: `set CONSOLE_NAV_SECTIONS=1` |
+| `MCP_SERVER_ENABLED` / `MCP_SERVER_HOST` / `MCP_SERVER_PORT` | `0` / `127.0.0.1` / `8765` | WP-G6: the MCP server. On: `POST /mcp`, `GET /v1/mcp/apps`, `POST /v1/mcp/apps/<id>/approve` and `/block` (permission `mcp.apps`, admin), `GET /v1/kpis` (`console.view`) and a KPI block on the Governance overview. Off: nothing is mounted, no table is read, the overview is as before. Host and port are for `python -m supervisor.mcp_server`. See `docs/mcp-server.md`. Windows cmd: `set MCP_SERVER_ENABLED=1` |
 | `CONSOLE_NAV_V3` | `0` | WP-UX4a: the merged left bar (My overview, Governance, Supervisor, settings gear), section tab strips, the three overview pages and Workflows. Needs `CONSOLE_NAV=sidebar`. Off = the sidebar as before. See "Navigation v3". Windows cmd: `set CONSOLE_NAV_V3=1` |
 | `ONBOARD_ALLOWED_ROOTS` | empty | WP-UX4b: folders (`;` or `,` separated) the register wizard may run the readiness advisor on. Empty = advisor off in the wizard. Windows cmd: `set ONBOARD_ALLOWED_ROOTS=C:\work\agents` |
 | `CONSOLE_CATALOG_ENABLED` | `0` | `/console/catalog`: every guardian capability as a card (gateway controls, detectors, judges, monitors, evidence, connectors), showing whether it is on in this instance and the setting that turns it on. Tabs: Catalog and Active. Read-only: it never changes a setting. Windows cmd: `set CONSOLE_CATALOG_ENABLED=1` |

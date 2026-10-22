@@ -170,6 +170,11 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "owner", "admin"),
         "Move an incident on and close it (the holders of case.transition or systems.edit) (WP-G5)",
     ),
+    # --- WP-G6 --- mounted only when MCP_SERVER_ENABLED is on
+    "mcp.apps": (
+        ("admin",),
+        "List, approve and block the apps connected to the MCP server (WP-G6)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -414,6 +419,12 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/incidents/rows"): "incidents.view",
     ("GET", "/console/incidents/{incident_id}/drawer"): "incidents.view",
     ("POST", "/console/incidents/{incident_id}/transition"): "incidents.transition",
+    # --- WP-G6 --- MCP server, connected apps, KPIs (MCP_SERVER_ENABLED)
+    ("POST", "/mcp"): AGENT,  # the credential is the HMAC signature of a connected app
+    ("GET", "/v1/mcp/apps"): "mcp.apps",
+    ("POST", "/v1/mcp/apps/{app_id}/approve"): "mcp.apps",
+    ("POST", "/v1/mcp/apps/{app_id}/block"): "mcp.apps",
+    ("GET", "/v1/kpis"): "console.view",
     # --- WP-UX4a --- CONSOLE_NAV_V3 pages and section routes (read only)
     ("GET", "/console/governance"): "console.view",
     ("GET", "/console/supervisor"): "console.view",

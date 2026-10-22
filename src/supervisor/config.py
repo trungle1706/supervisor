@@ -633,6 +633,15 @@ class Settings(BaseSettings):
     sched_governance_s: int = Field(default=60, ge=5)
     governance_actions_lookback_s: int = Field(default=86400, ge=60, le=2_592_000)
 
+    # --- WP-G6 --- MCP server, skills, KPI endpoint (docs/mcp-server.md). Off by default: nothing
+    # is mounted, no table is read or written, the Governance overview is unchanged.
+    # MCP_SERVER_ENABLED: POST /mcp (streamable HTTP, JSON-RPC 2.0), /v1/mcp/apps, /v1/kpis and
+    # the KPI block of the Governance overview. `python -m supervisor.mcp_server` serves the
+    # same router alone on MCP_SERVER_HOST:MCP_SERVER_PORT (loopback unless you change it).
+    mcp_server_enabled: bool = False
+    mcp_server_host: str = "127.0.0.1"
+    mcp_server_port: int = Field(default=8765, ge=1, le=65535)
+
     @field_validator(
         "data_dir",
         "sqlite_path",

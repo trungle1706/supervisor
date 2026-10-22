@@ -1321,3 +1321,24 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`governance_event` (
 USING DELTA
 COMMENT 'WP-G5. The marker that an event was processed (one row per event key, a hash of kind, ref and system). Written before the actions run (status started), so an event is processed once across runs; the actions column holds the result of each action (and an attempting entry before an action runs), so a retry of a started event skips what was done or may have been done. A failed action is retried up to 3 runs, then failed_final. Ids and enums only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- mcp_app (state): WP-G6. An application connected to the MCP server (a pipeline or an AI assistant). The first connection is pending until an admin approves it; a blocked app is refused at once. scopes lists what it may call (governance.read, governance.write, library.read, supervisor.read); roles are the console roles the app acts with (never admin), so its view of the AI systems is scoped like a person's. key_hash is the SHA-256 of the current HMAC secret (the secret itself lives in the WP20 key store under the app id). Every change is a console_action row; no free text from a client is stored here.
+-- primary key (enforced by the app, not by Delta): app_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`mcp_app` (
+  app_id STRING NOT NULL,
+  name STRING NOT NULL,
+  scopes STRING NOT NULL,
+  roles STRING NOT NULL,
+  created_by STRING NOT NULL,
+  approved_by STRING,
+  status STRING NOT NULL,
+  key_hash STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  approved_at TIMESTAMP,
+  first_connected_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G6. An application connected to the MCP server (a pipeline or an AI assistant). The first connection is pending until an admin approves it; a blocked app is refused at once. scopes lists what it may call (governance.read, governance.write, library.read, supervisor.read); roles are the console roles the app acts with (never admin), so its view of the AI systems is scoped like a person''s. key_hash is the SHA-256 of the current HMAC secret (the secret itself lives in the WP20 key store under the app id). Every change is a console_action row; no free text from a client is stored here.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

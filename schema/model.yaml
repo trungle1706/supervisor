@@ -1455,3 +1455,30 @@ tables:
       detail: json?            # rule_id, case_id, evidence of the event, to resume it later
       runner_id: string?       # the runner that holds the event now (lease)
       lease_until: timestamp?  # a runner whose lease ran out may be replaced
+
+  # --- WP-G6 MCP server: connected apps (docs/mcp-server.md) ---------------------------------
+  mcp_app:
+    kind: state
+    description: >
+      WP-G6. An application connected to the MCP server (a pipeline or an AI assistant). The
+      first connection is pending until an admin approves it; a blocked app is refused at once.
+      scopes lists what it may call (governance.read, governance.write, library.read,
+      supervisor.read); roles are the console roles the app acts with (never admin), so its
+      view of the AI systems is scoped like a person's. key_hash is the SHA-256 of the current
+      HMAC secret (the secret itself lives in the WP20 key store under the app id). Every
+      change is a console_action row; no free text from a client is stored here.
+    primary_key: [app_id]
+    indexes:
+      - [status]
+    columns:
+      app_id: string           # mcp- + name slug; also the WP20 agent id of its key
+      name: string
+      scopes: json             # list of scope ids
+      roles: json              # list of console roles (viewer, reviewer, owner, ...)
+      created_by: string
+      approved_by: string?
+      status: string           # pending | approved | blocked
+      key_hash: string         # sha256 hex of the current secret
+      created_at: timestamp
+      approved_at: timestamp?
+      first_connected_at: timestamp?

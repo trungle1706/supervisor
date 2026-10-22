@@ -1567,3 +1567,23 @@ CREATE TABLE IF NOT EXISTS governance_event (
 );
 
 CREATE INDEX IF NOT EXISTS ix_governance_event_status ON governance_event (status);
+
+-- mcp_app (state): WP-G6. An application connected to the MCP server (a pipeline or an AI assistant). The first connection is pending until an admin approves it; a blocked app is refused at once. scopes lists what it may call (governance.read, governance.write, library.read, supervisor.read); roles are the console roles the app acts with (never admin), so its view of the AI systems is scoped like a person's. key_hash is the SHA-256 of the current HMAC secret (the secret itself lives in the WP20 key store under the app id). Every change is a console_action row; no free text from a client is stored here.
+CREATE TABLE IF NOT EXISTS mcp_app (
+  app_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  scopes TEXT NOT NULL,
+  roles TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  approved_by TEXT,
+  status TEXT NOT NULL,
+  key_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  approved_at TEXT,
+  first_connected_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (app_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_mcp_app_status ON mcp_app (status);

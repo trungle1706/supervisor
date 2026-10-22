@@ -64,6 +64,7 @@ _INGRESS = {
     "/v1/traces",
     "/v1/mcp/tools/observe",
     "/v1/mcp/tools/blocked",
+    "/mcp",  # WP-G6: signed by a connected app (HMAC), not a person
 }
 _METHODS = {"get", "put", "post", "delete", "patch", "head", "options"}
 
@@ -83,6 +84,8 @@ def _is_human_path(path: str) -> bool:
             "/v1/controls",  # WP30
             "/v1/tasks",  # WP30
             "/v1/transparency",  # WP31
+            "/v1/mcp/apps",  # WP-G6
+            "/v1/kpis",  # WP-G6
         )
     )
 
