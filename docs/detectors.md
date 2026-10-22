@@ -81,6 +81,10 @@ override 8500, role tag 8000, prompt leak 7000, urgent transfer 6500, plus 500 f
 hit. At the `balanced` preset an urgent-transfer phrase alone does not fire. Known gaps are in
 `BACKLOG.md` and in the validation report (typos, leetspeak, base64, split fields, paraphrase).
 
+`guard_model` (WP-D3, `enabled: false` by default, section 3d) is a fifth detector: a configured model
+scores jailbreak and indirect injection. Presets `strict` / `balanced` / `permissive` (3500 / 5500 / 8000 bp
+for `guard.jailbreak`); codes `guard.jailbreak`, `guard.indirect_injection`.
+
 `injection_classifier` (WP25, `enabled: false` by default, see `docs/injection-classifier.md`) is a fourth
 detector. It is the only one whose `pause` hint the gate obeys: `GATE-CLASSIFIER-PAUSE`, money and credit tools only.
 
@@ -265,7 +269,7 @@ It feeds one reader: the session monitor (`docs/session-monitor.md` section 2). 
 detector that is deterministic (`dlp_vn`, `injection_regex`: `deterministic = True` in code) or
 has `mrm_status: GO` count in the `findings` signal; findings of any other detector are recorded
 on the turn and weigh 0. Shipped: `dlp_vn` GO, `injection_regex` GO, `injection_classifier`
-NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO. The status never
+NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO, `guard_model` NO-GO (WP-D3). The status never
 changes what the gate answers or records for the decision itself.
 
 ## 3d. `guard_model`: ML jailbreak and indirect-injection scoring (WP-D3)
