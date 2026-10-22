@@ -83,7 +83,23 @@ def test_a_trickling_server_returns_at_the_deadline() -> None:
     with pytest.raises(GuardModelError) as exc:
         g.score(["x"])
     took = time.monotonic() - t0
-    assert exc.value.reason == "timed_out" and took <= 0.3 + 0.05, took
+    assert exc.value.reason == "timed_out" and took <= 0.3 + 0.15, took
+
+
+def test_the_deadline_logic_with_a_fake_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No sleeping: the clock is replaced, so a loaded host cannot change the result."""
+    from supervisor.adapters.guard import classifier_endpoint as ce
+
+    now = [1000.0]
+    monkeypatch.setattr(ce.time, "monotonic", lambda: now[0])
+    ok = [{"label": "benign", "score": 1.0}]
+    g = ClassifierEndpointGuard(
+        URL, timeout_s=0.4, transport=httpx.MockTransport(lambda r: httpx.Response(200, json=ok))
+    )
+    with pytest.raises(GuardModelError) as late:
+        g._post(["x"], deadline=now[0] - 0.001)  # already past: no request is sent
+    assert late.value.reason == "timed_out"
+    assert g._post(["x"], deadline=now[0] + 0.4)[0]["label"] == "benign"
 
 
 def test_the_auth_call_is_inside_the_same_deadline() -> None:
