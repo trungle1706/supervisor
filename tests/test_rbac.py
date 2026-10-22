@@ -107,7 +107,8 @@ def test_service_tuples_come_from_the_matrix() -> None:
 
 def test_every_route_permission_exists() -> None:
     for (method, path), entry in rbac.ROUTES.items():
-        assert method in ("GET", "POST", "PATCH", "DELETE"), (method, path)  # PATCH, DELETE: WP-G0
+        # PATCH, DELETE: WP-G0; PUT: WP-S1
+        assert method in ("GET", "POST", "PATCH", "DELETE", "PUT"), (method, path)
         if entry in rbac.MARKERS:
             continue
         if "{" in entry:  # agent.{action}

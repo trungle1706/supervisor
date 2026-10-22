@@ -96,7 +96,19 @@ def add_agent(adapters: Adapters, agent_id: str, team: str = "payments-team", **
 
 
 # --------------------------------------------------------------------------- the real app
+from supervisor.app import app as _app  # noqa: E402
 from tests.console.conftest import Console, console, seeded  # noqa: E402, F401  (fixtures)
+
+APP_LIFESPAN = _app.router.lifespan_context  # before any test mounts a router
+
+
+def restore_app(app: Any, routes: list[Any], lifespan: Any) -> None:
+    """Take the mounted routers off the global app again. ``include_router`` also wraps
+    ``app.router.lifespan_context`` (one nesting per call), so restoring only the routes leaves a
+    deeper chain after every test; after a few hundred tests the app start-up recurses."""
+    app.router.routes[:] = routes
+    app.router.lifespan_context = lifespan
+    app.openapi_schema = None
 
 
 @pytest.fixture
@@ -105,18 +117,22 @@ def mounted() -> Iterator[None]:
     take them off again. The app reads the flags once at import, so a test cannot flip them."""
     from supervisor.app import app
     from supervisor.console.systems_routes import router as console_router
+    from supervisor.governance.guardian_routes import console_router as guardians_console  # WP-S1
+    from supervisor.governance.guardian_routes import router as guardians_router  # WP-S1
     from supervisor.governance.routes import router as api_router
     from supervisor.governance.rules_routes import router as rules_router  # WP-G2
 
     saved = list(app.router.routes)
+    lifespan = app.router.lifespan_context
     app.include_router(api_router)
     app.include_router(rules_router)
+    app.include_router(guardians_router)  # WP-S1 (the handlers answer 400 while the flag is off)
+    app.include_router(guardians_console)
     app.include_router(console_router)
     try:
         yield
     finally:
-        app.router.routes[:] = saved
-        app.openapi_schema = None
+        restore_app(app, saved, lifespan)
 
 
 @pytest.fixture

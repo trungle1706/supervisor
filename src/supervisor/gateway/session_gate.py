@@ -26,7 +26,7 @@ import threading
 import time
 from collections import OrderedDict
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Any
 
@@ -154,6 +154,10 @@ class SessionGate:
         self._pause_read = 0.0
         self._forgot = time.monotonic()
         self.stats = {"observed": 0, "cases": 0, "pauses": 0, "errors": 0}
+        # WP-S1: per-system guardian bindings (None unless GUARDIAN_BINDINGS_ENABLED)
+        from supervisor.governance.guardians import make_narrower
+
+        self.narrow = make_narrower(settings, getattr(ctx, "state", None))
 
     # ------------------------------------------------------------------ config
 
@@ -168,6 +172,14 @@ class SessionGate:
             if len(self._cfg) > 512:
                 self._cfg.clear()
             self._cfg[ck] = hit
+        if (
+            self.narrow is not None
+            and hit[0].enabled
+            and self.narrow.is_off(agent_id, "session_monitor")
+        ):
+            # WP-S1: the product owner switched the session monitor off for this agent's system.
+            # Applied after the cache, so a new binding acts within seconds, not at a policy reload.
+            return replace(hit[0], enabled=False), hit[1]
         return hit
 
     # ------------------------------------------------------------------ before the lock

@@ -254,7 +254,7 @@ def build_quality_sweep(ctx: MonitorContext, settings: Any) -> QualitySweep | No
         ctx,
         scorer,
         settle_s=settings.judge_sweep_settle_s,
-        resolver=BindingResolver.from_settings(settings),
+        resolver=BindingResolver.from_settings(settings, ctx.state),
         sample_bp=settings.quality_sample_bp,
     )
 

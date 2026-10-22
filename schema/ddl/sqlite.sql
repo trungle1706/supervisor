@@ -1587,3 +1587,19 @@ CREATE TABLE IF NOT EXISTS mcp_app (
 );
 
 CREATE INDEX IF NOT EXISTS ix_mcp_app_status ON mcp_app (status);
+
+-- guardian_binding (state): WP-S1. A product owner's switch for one guardian feature on one AI system: on or off. No row means on. A binding can only narrow what the instance already has on; the assignment rules' guardian floor always wins (a floor feature cannot be set off, and a floor added later overrides an old off row at resolution time). mandatory is the floor state when the row was written (a snapshot for the audit; resolution reads the floor again). Changes go on the chain as binding_change (ids and enums only).
+CREATE TABLE IF NOT EXISTS guardian_binding (
+  system_id TEXT NOT NULL,
+  feature_slug TEXT NOT NULL,
+  state TEXT NOT NULL,
+  mandatory INTEGER NOT NULL,
+  set_by TEXT NOT NULL,
+  set_at TEXT NOT NULL,
+  reason TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (system_id, feature_slug)
+);
+
+CREATE INDEX IF NOT EXISTS ix_guardian_binding_state ON guardian_binding (state);

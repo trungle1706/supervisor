@@ -281,7 +281,21 @@ def guardians_tab(ctx: Any, system: Mapping[str, Any]) -> dict[str, Any]:
         "gd_floor": floor,
         "gd_floor_na": floor_na,
         "gd_no_agents": not agents,
+        "gd_bindings": _guardian_bindings(ctx, system),  # WP-S1
     }
+
+
+def _guardian_bindings(ctx: Any, system: Mapping[str, Any]) -> list[dict[str, Any]] | None:
+    """WP-S1 (guarded): the guardian features with their binding for this system, or None while
+    GUARDIAN_BINDINGS_ENABLED is off. The switches themselves are on the Catalog page."""
+    from supervisor.governance.guardians import guardian_bindings_on
+
+    if not guardian_bindings_on(ctx.settings):
+        return None
+    try:
+        return list(ctx.guardians.get(str(system["system_id"]))["guardians"])
+    except Exception:  # noqa: BLE001 - the tab still shows the rest
+        return None
 
 
 # ------------------------------------------------------------------------------ Reports

@@ -147,6 +147,10 @@ class JudgeService:
             self._challenger = cls(router.challenger, self.masker, **kw)
         self._flags: dict[str, deque[tuple[datetime, str]]] = {}
         self._case_opened: dict[str, datetime] = {}
+        # WP-S1: a GuardianNarrower when GUARDIAN_BINDINGS_ENABLED (set by from_settings), else
+        # None. It can only switch the Tier 2 random sample and the challenger sample off for an
+        # agent; a flagged trace still goes to Tier 2 (that is an escalation, not a sample).
+        self.narrow: Any = None
 
     # -- construction -------------------------------------------------------------
     @classmethod
@@ -195,6 +199,9 @@ class JudgeService:
             max_input_chars=settings.judge_max_input_chars,
             case_sink=case_sink,
         )
+        from supervisor.governance.guardians import make_narrower
+
+        service.narrow = make_narrower(settings, state)  # WP-S1: None when the flag is off
         if settings.judge_require_validation:  # WP19: default off, no lookup when off
             from supervisor.judge.mrm.control import check_validation_gate
 
@@ -235,7 +242,7 @@ class JudgeService:
             out.escalation_reason = "t1_unavailable"
         elif t1.flagged(self.t1_threshold_bp):
             out.escalation_reason = "t1_flag"
-        elif self.router.t2_sampled(trace_id):
+        elif self.router.t2_sampled(trace_id) and not self._bound_off(agent_id, "judge_t2_sample"):
             out.escalation_reason = "sample"
         if out.escalation_reason:
             out.t2 = self.t2.judge(events, agent_id=agent_id, agent_version=agent_version)
@@ -259,7 +266,7 @@ class JudgeService:
                     )
                 )
         # Challenger: same trace, stored with role=challenger, action log, never acted on.
-        if self._challenger is not None:
+        if self._challenger is not None and not self._bound_off(agent_id, "judge_challenger"):
             c_model = self.router.challenger_for(self._challenger.tier, trace_id)
             if c_model is not None:
                 c = self._challenger.judge(events, agent_id=agent_id, agent_version=agent_version)
@@ -272,6 +279,9 @@ class JudgeService:
             self._protocol(out, _ts(events[-1]), last_event_id)
         self._deliver(out)
         return out
+
+    def _bound_off(self, agent_id: str, slug: str) -> bool:
+        return self.narrow is not None and bool(self.narrow.is_off(agent_id, slug))
 
     def _deliver(self, out: TraceOutcome) -> None:
         """Hand case requests to the case workflow (WP8). A failure there never loses the

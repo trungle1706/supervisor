@@ -4067,6 +4067,43 @@ _T.update(
             "Đóng là quyết định cuối và do người thực hiện. Nguyên nhân gốc và phạm vi ảnh "
             "hưởng là văn bản của bạn; chuỗi bằng chứng chỉ giữ giá trị băm của từng mục.",
         ),
+        # --- WP-S1: per-system guardian switches on the Catalog page ---
+        "gb_system": ("AI system", "Hệ thống AI"),
+        "gb_tab_title": ("Guardian switches", "Công tắc bảo vệ"),
+        "gb_tab_none": (
+            "No feature is locked or switched off for this system.",
+            "Chưa có tính năng nào bị khóa hoặc tắt cho hệ thống này.",
+        ),
+        "gb_tab_link": (
+            "Change the switches on the Catalog page",
+            "Đổi công tắc ở trang Danh mục bảo vệ",
+        ),
+        "gb_pick": ("Choose a system", "Chọn một hệ thống"),
+        "gb_show": ("Show switches", "Hiện công tắc"),
+        "gb_lede": (
+            "Switches for {name}. A switch only turns a feature off for the agents of this system; "
+            "it never turns on a feature this instance has off.",
+            "Công tắc cho {name}. Công tắc chỉ tắt một tính năng cho các tác nhân của hệ thống "
+            "này; không bao giờ bật một tính năng mà hệ thống đang tắt.",
+        ),
+        "gb_read_only": (
+            "You can see the switches. You need the right to edit this system to change them.",
+            "Bạn xem được các công tắc. Cần quyền sửa hệ thống này để thay đổi.",
+        ),
+        "gb_locked": ("Locked", "Đã khóa"),
+        "gb_floor": (
+            "Required by rules {rules}; cannot be switched off",
+            "Bắt buộc theo quy tắc {rules}; không thể tắt",
+        ),
+        "gb_never": (
+            "Gate rules block or pause. No one switches them per system.",
+            "Quy tắc cổng chặn hoặc tạm dừng. Không ai tắt được theo từng hệ thống.",
+        ),
+        "gb_instance_off": ("Off in this instance", "Đang tắt trên hệ thống này"),
+        "gb_state_on": ("On for this system", "Bật cho hệ thống này"),
+        "gb_state_off": ("Off for this system", "Tắt cho hệ thống này"),
+        "gb_switch_off": ("Switch off", "Tắt"),
+        "gb_switch_on": ("Switch on", "Bật"),
         # --- WP-G2: Rules and Classification tabs of the system page ---
         "sy_tab_rules": ("Rules", "Quy tắc"),
         "sy_tab_classification": ("Classification", "Phân loại"),

@@ -31,7 +31,10 @@ def g5(console: Console, monkeypatch: pytest.MonkeyPatch) -> Iterator[Console]:
     from supervisor.governance.incident_routes import router as incidents_api
     from supervisor.governance.routes import router as systems_api
 
+    from .conftest import restore_app
+
     saved = list(app.router.routes)
+    lifespan = app.router.lifespan_context
     for r in (systems_api, systems_console, incidents_api, incidents_console):
         app.include_router(r)
     for flag in ("governance_enabled", "console_systems_enabled", "governance_actions_enabled"):
@@ -39,8 +42,7 @@ def g5(console: Console, monkeypatch: pytest.MonkeyPatch) -> Iterator[Console]:
     try:
         yield console
     finally:
-        app.router.routes[:] = saved
-        app.openapi_schema = None
+        restore_app(app, saved, lifespan)
 
 
 def req(c: Console, method: str, url: str, body: Any = None, user: str = REVIEWER) -> Any:

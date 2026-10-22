@@ -111,15 +111,17 @@ def mounted_mcp() -> Iterator[None]:
     from supervisor.governance.routes import router as systems_router
     from supervisor.mcp_server.routes import admin_router, mcp_router
 
+    from tests.governance.conftest import restore_app
+
     saved = list(app.router.routes)
+    lifespan = app.router.lifespan_context
     app.include_router(systems_router)
     app.include_router(mcp_router)
     app.include_router(admin_router)
     try:
         yield
     finally:
-        app.router.routes[:] = saved
-        app.openapi_schema = None
+        restore_app(app, saved, lifespan)  # routes, lifespan chain and the cached schema
 
 
 @pytest.fixture

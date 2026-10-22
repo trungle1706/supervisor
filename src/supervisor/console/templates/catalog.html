@@ -12,6 +12,19 @@
   <a href="/console/catalog?tab=active&amp;lang={{ lang }}" class="{{ 'on' if tab == 'active' else '' }}"{% if tab == 'active' %} aria-current="page"{% endif %}>{{ t('cat_tab_active') }} <span class="k">{{ n_on }}</span></a>
 </nav>
 <p class="hint">{{ t('cat_rule') }}</p>
+{# WP-S1: per-system switches (GUARDIAN_BINDINGS_ENABLED). gb is None when the feature is off. #}
+{% if gb %}
+<form class="gb-pick" method="get" action="/console/catalog">
+  <input type="hidden" name="tab" value="{{ tab }}"><input type="hidden" name="lang" value="{{ lang }}">
+  <label for="gb-system">{{ t('gb_system') }}</label>
+  <select id="gb-system" name="system">
+    <option value="">{{ t('gb_pick') }}</option>
+    {% for s in gb.systems %}<option value="{{ s.system_id }}"{{ ' selected' if gb.system and gb.system.system_id == s.system_id else '' }}>{{ s.name }} ({{ s.system_id }})</option>{% endfor %}
+  </select>
+  <button class="btn" type="submit">{{ t('gb_show') }}</button>
+</form>
+{% if gb.system %}<p class="hint">{{ t('gb_lede', name=gb.system.name) }}{% if not gb.can_edit %} {{ t('gb_read_only') }}{% endif %}</p>{% endif %}
+{% endif %}
 {% if not cats %}
 {{ ui.empty(t('cat_none'), t('cat_none_line'), '/console/catalog?tab=catalog&lang=' ~ lang, t('cat_tab_catalog')) }}
 {% endif %}
@@ -39,6 +52,32 @@
         {% endif %}
         {% if card.href %}<a class="btn" href="{{ card.href }}">{{ t('cat_open') }}</a>{% endif %}
       </div>
+      {% if gb and gb.system %}
+      <div class="cat-gb">
+        {% if e.key in gb.never_cards %}
+          <p class="gb-row"><svg class="gb-lock" width="12" height="12" viewBox="0 0 12 12" role="img" aria-label="{{ t('gb_locked') }}"><rect x="2" y="5.5" width="8" height="5.5" rx="1" fill="currentColor"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg> <span class="muted">{{ t('gb_never') }}</span></p>
+        {% endif %}
+        {% for g in gb.by_card.get(e.key, []) %}
+        <div class="gb-row">
+          <span class="mono">{{ g.slug }}</span>
+          {% if g.locked %}
+            <svg class="gb-lock" width="12" height="12" viewBox="0 0 12 12" role="img" aria-label="{{ t('gb_locked') }}"><rect x="2" y="5.5" width="8" height="5.5" rx="1" fill="currentColor"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+            <span class="muted">{{ t('gb_floor', rules=g.floor_rules|join(', ')) }}</span>
+          {% elif not g.instance_on %}
+            <span class="muted">{{ t('gb_instance_off') }}</span>
+          {% else %}
+            {{ ui.pill(t('gb_state_on') if g.state == 'on' else t('gb_state_off'), 'ok' if g.state == 'on' else 'neutral') }}
+            {% if gb.can_edit %}
+            <form method="post" action="/console/systems/{{ gb.system.system_id }}/guardians/{{ g.slug }}?lang={{ lang }}">
+              <input type="hidden" name="state" value="{{ 'off' if g.state == 'on' else 'on' }}">
+              <button class="btn" type="submit">{{ t('gb_switch_off') if g.state == 'on' else t('gb_switch_on') }}</button>
+            </form>
+            {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
     </li>
   {% endfor %}
   </ul>
