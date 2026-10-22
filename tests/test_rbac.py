@@ -77,6 +77,7 @@ def test_new_roles() -> None:
         "tasks.view",
         "transparency.view",  # WP31: the report is readable by every role
         "systems.view",  # WP-G0: every role reads (a scoped role sees its own systems)
+        "incidents.view",  # WP-G5: every role reads; the list is scoped like systems
     }
     operator = {p for p in rbac.PERMISSIONS if rbac.allowed(["operator"], p)}
     assert operator == viewer | {

@@ -32,6 +32,7 @@ EVENT_KINDS: tuple[str, ...] = (
     "review_completed",
     "system_registered",
     "system_archived",
+    "governance_action",  # WP-G5: a governance action asked for a webhook
 )
 _SAFE = re.compile(r"^[A-Za-z0-9_.:-]{0,64}$")
 

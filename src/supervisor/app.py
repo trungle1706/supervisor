@@ -116,6 +116,12 @@ if get_settings().console_systems_enabled:  # WP-G0: /console/systems (needs the
     from supervisor.console.systems_routes import router as systems_console_router
 
     app.include_router(systems_console_router)
+if get_settings().governance_actions_enabled:  # WP-G5: mounted only when the flag is on
+    from supervisor.console.incidents_routes import router as incidents_console_router
+    from supervisor.governance.incident_routes import router as incidents_router
+
+    app.include_router(incidents_router)  # /v1/incidents/...
+    app.include_router(incidents_console_router)  # /console/incidents (needs GOVERNANCE_ENABLED)
 openapi_doc.install(app)  # WP18: tags, security schemes
 ops_middleware.install(app, get_settings())  # WP18: request id, headers, size and rate limits
 

@@ -100,6 +100,13 @@ SECTIONS_V3: dict[str, Sec] = {
             Tab("cases", "cases", "/console/cases"),
             Tab("alerts", "nav_alerts", "/console/alerts", perm="metrics.view"),
             Tab("approvals", "nv3_t_approvals", "/console/signoff"),
+            Tab(
+                "incidents",
+                "nv3_t_incidents",
+                "/console/incidents",
+                "ux3:incidents",
+                "incidents.view",
+            ),  # WP-G5
         ),
     ),
     "analytics": Sec(
@@ -146,6 +153,7 @@ PAGE_HOME: dict[str, tuple[str, str | None, str | None]] = {
     "cases": ("cases_alerts", "cases_alerts", "cases"),
     "alerts": ("cases_alerts", "cases_alerts", "alerts"),
     "signoff": ("cases_alerts", "cases_alerts", "approvals"),
+    "incidents": ("cases_alerts", "cases_alerts", "incidents"),  # WP-G5
     "analytics": ("analytics", "analytics", "analytics"),
     "evidence": ("analytics", "analytics", "evidence"),
 }

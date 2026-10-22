@@ -148,15 +148,32 @@ def drawer_view(
     }
 
 
+def detail_tabs(ctx: Any) -> tuple[str, ...]:
+    """WP-G5: the Reports tab (incidents of the system) appears with GOVERNANCE_ACTIONS_ENABLED,
+    unless the tab list already holds one (WP-UX4b)."""
+    tabs = DETAIL_TABS
+    if getattr(ctx.settings, "governance_actions_enabled", False) and "reports" not in tabs:
+        tabs = (*tabs, "reports")
+    return tabs
+
+
 def detail_view(ctx: Any, me: Any, system_id: str, tab: str) -> dict[str, Any]:
-    if tab not in DETAIL_TABS:
+    tabs = detail_tabs(ctx)
+    if tab not in tabs:
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
     extra, counts = g1_tabs(ctx, system, tab)
+    if "reports" in tabs:  # WP-G5: the incidents of the system
+        from supervisor.console.incidents_views import system_incidents
+
+        found = system_incidents(ctx, str(system["system_id"]))
+        counts["reports"] = len(found)
+        if tab == "reports":
+            extra["incidents"] = found
     return {
         "s": system,
         "tab": tab,
-        "tabs": DETAIL_TABS,
+        "tabs": tabs,
         "tab_counts": {
             "overview": len(system["team"]),
             "components": len(system["components"]),

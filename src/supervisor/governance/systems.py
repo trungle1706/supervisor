@@ -648,6 +648,37 @@ class SystemService:
         levels, tiers = self._inventory_levels()
         return self._effective(row, self._component_rows(system_id), levels, tiers)
 
+    # ------------------------------------------------------------------ WP-G5: event raise
+    def raise_risk_from_event(self, system_id: str, actor: str, event_key: str) -> dict[str, str]:
+        """WP-G5: raise the manual risk level one step above the effective level, source
+        ``event``. Never lowers (the new level is above the manual one or nothing changes), never
+        goes above ``high`` (``prohibited`` is a legal finding a person sets). Writes a
+        ``system_change`` record (action ``risk_raise``) with the event key. Raises
+        ``SystemsError`` when there is nothing to raise."""
+        check_user(actor, "actor")
+        cur = self._need_open(system_id)
+        eff = self.effective_risk_level(system_id)
+        steps = ("unspecified", "low", "medium", "high")
+        if eff.level not in steps[:-1]:
+            raise SystemsError("the effective level is already high (or prohibited); not raised")
+        target = steps[steps.index(eff.level) + 1]
+        manual = str(cur["risk_level"])
+        if rank(target) <= rank(manual):
+            raise SystemsError("the manual level is already at or above the level to set")
+        stored = self.state.update(
+            "ai_system",
+            {"system_id": system_id},
+            {"risk_level": target, "risk_level_source": "event"},
+            int(cur["row_version"]),
+        )
+        self._changed(
+            "risk_raise",
+            stored,
+            actor,
+            {"from_level": manual, "to_level": target, "event_key": event_key},
+        )
+        return {"from_level": manual, "to_level": target}
+
     # ------------------------------------------------------------------ scope
     def teams_of(self, user_id: str) -> frozenset[str]:
         """Teams a person works in: the owner team of the agents they own, and of the systems

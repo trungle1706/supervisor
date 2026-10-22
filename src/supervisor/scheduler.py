@@ -31,6 +31,8 @@ task_due       CONTROLS_ENABLED       close tasks whose evidence is there; one c
 transparency   TRANSPARENCY_ENABLED   build and sign the transparency reports of every running
                                       agent when the facts changed (WP31)
 decision_rollup CONSOLE_DECISIONS_V2  daily ``decision_daily`` rollup for Analytics (WP39)
+governance_actions GOVERNANCE_ACTIONS_ENABLED  events to actions and incidents; needs
+                                      GOVERNANCE_ENABLED too (WP-G5)
 =============  =====================  ===============================================
 
 The scheduler itself is on when ``SCHEDULER_ENABLED`` is set true, or unset in laptop
@@ -518,6 +520,16 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
         jobs.append(
             JobSpec(
                 "redteam_nightly", settings.sched_redteam_s, lambda: redteam_job.run(ctx, settings)
+            )
+        )
+    from supervisor.jobs import governance_actions as governance_actions_job  # WP-G5
+
+    if governance_actions_job.enabled(settings):  # WP-G5: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "governance_actions",
+                settings.sched_governance_s,
+                lambda: governance_actions_job.run(ctx, settings),
             )
         )
     return jobs

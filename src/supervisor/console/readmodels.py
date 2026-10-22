@@ -122,6 +122,8 @@ def ux3_pages(settings: Any) -> dict[str, bool]:
     out = {page: bool(getattr(settings, flag, False)) for page, flag in nav.PAGES.items()}
     # WP-G0: the Systems item needs both flags (the page answers 400 without GOVERNANCE_ENABLED)
     out["systems"] = bool(out.get("systems") and getattr(settings, "governance_enabled", False))
+    # WP-G5: the Incidents tab needs both flags (the page answers 400 without GOVERNANCE_ENABLED)
+    out["incidents"] = bool(out.get("incidents") and getattr(settings, "governance_enabled", False))
     if out.get("playground") and settings.supervisor_mode == "databricks_app":
         out["playground"] = bool(getattr(settings, "playground_allow_app", False))
     return out

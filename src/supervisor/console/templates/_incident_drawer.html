@@ -1,0 +1,37 @@
+{# Row drawer of the Incidents tab (WP-G5). Variable: drawer (incidents_views.drawer_view). The
+   title of an incident comes from a template; root cause and affected scope are typed by the
+   person who moves it. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_drawer.html" as dr with context %}
+{% set inc = drawer.inc %}
+{% set pills %}{{ ui.sev(inc.severity) }} {{ ui.pill(t('inc_st_' ~ inc.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(inc.status, 'neutral'), True) }}{% endset %}
+{% call dr.drawer(inc.incident_id, pills, '', drawer.json_text) %}
+  <p style="margin:0 0 10px"><strong>{{ inc.title }}</strong></p>
+  {{ ui.kv([
+    (t('inc_kind'), t('inc_kind_' ~ inc.kind)),
+    (t('agent'), inc.agent_id),
+    (t('inc_system'), inc.system_id, True),
+    (t('inc_event_ref'), inc.event_ref, True),
+    (t('time'), inc.opened_at|day),
+    (t('case'), inc.case_id, True),
+    (t('inc_root_cause'), inc.root_cause),
+    (t('inc_affected'), inc.affected_scope),
+    (t('inc_closed_by'), inc.closed_by),
+  ]) }}
+  <p class="btnrow">
+    {% if inc.case_id %}<a class="btn" href="/console/cases/{{ inc.case_id }}?lang={{ lang }}">{{ t('case') }} {{ inc.case_id }}</a>{% endif %}
+  </p>
+  {% if drawer.can_move and inc.next %}
+  <form class="stack" method="post" action="/console/incidents/{{ inc.incident_id }}/transition?lang={{ lang }}" hx-post="/console/incidents/{{ inc.incident_id }}/transition?lang={{ lang }}" hx-target="#list">
+    <input type="hidden" name="row_version" value="{{ inc.row_version }}">
+    <label for="inc-status">{{ t('inc_move_to') }}</label>
+    <select id="inc-status" name="status">{% for s in inc.next %}<option value="{{ s }}">{{ t('inc_st_' ~ s) }}</option>{% endfor %}</select>
+    <label for="inc-cause">{{ t('inc_root_cause') }}</label>
+    <textarea id="inc-cause" name="root_cause" rows="2" maxlength="1000"></textarea>
+    <label for="inc-scope">{{ t('inc_affected') }}</label>
+    <textarea id="inc-scope" name="affected_scope" rows="2" maxlength="1000"></textarea>
+    <button class="btn primary">{{ t('inc_move_btn') }}</button>
+  </form>
+  <p class="hint">{{ t('inc_close_note') }}</p>
+  {% endif %}
+{% endcall %}

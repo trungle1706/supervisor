@@ -30,7 +30,7 @@ LIFECYCLE_STAGES: tuple[str, ...] = (
 # Order matters: index = rank. unspecified ranks below low; prohibited above high.
 RISK_LEVELS: tuple[str, ...] = ("unspecified", "low", "medium", "high", "prohibited")
 RISK_RANK: dict[str, int] = {lv: i for i, lv in enumerate(RISK_LEVELS)}
-RISK_SOURCES: tuple[str, ...] = ("manual", "inherited", "classifier")
+RISK_SOURCES: tuple[str, ...] = ("manual", "inherited", "classifier", "event")  # event: WP-G5
 # A person may record only these; "inherited" is a result, computed on read.
 SETTABLE_RISK_SOURCES: tuple[str, ...] = ("manual", "classifier")
 DECISION33_CLASSES: tuple[str, ...] = ("high_risk", "not_high_risk", "unclassified")

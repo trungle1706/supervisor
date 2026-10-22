@@ -1,0 +1,21 @@
+{# Incidents of one AI system (WP-G5), for the Reports tab of the system page. Variable: incidents
+   (incidents_views.system_incidents). Read only: a person moves an incident on from the
+   Incidents tab of Cases & alerts. #}
+{% import "_ui.html" as ui with context %}
+<h3 class="sec">{{ t('inc_title') }}</h3>
+{% if incidents %}
+<div class="tablewrap flat"><table id="system-incidents">
+  <thead><tr><th scope="col">{{ t('time') }}</th><th scope="col">{{ t('inc_incident') }}</th><th scope="col">{{ t('severity') }}</th><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('status') }}</th></tr></thead>
+  <tbody>
+  {% for i in incidents %}
+    <tr>
+      <td class="mono">{{ i.opened_at|day }}</td>
+      <td><a href="/console/incidents?drawer={{ i.incident_id }}&amp;status=all&amp;lang={{ lang }}">{{ t('inc_kind_' ~ i.kind) }}</a><div class="idline mono">{{ i.incident_id }}</div></td>
+      <td>{{ ui.sev(i.severity) }}</td>
+      <td>{{ i.agent_id }}</td>
+      <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="hint">{{ t('inc_none') }}</p>{% endif %}

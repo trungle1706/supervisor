@@ -443,6 +443,8 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `systems.edit` | Register and change AI systems, their team and their links (WP-G0) |  | x |  | x | x |  |  |
 | `systems.approve` | Answer a stage approval of an AI system (WP-G1) |  | x | x | x | x |  |  |
 | `systems.review` | Plan, change, complete and reopen reviews of an AI system (WP-G1) |  | x | x |  | x |  |  |
+| `incidents.view` | Incidents tab and GET /v1/incidents: incidents in your scope (WP-G5) | x | x | x | x | x | x | x |
+| `incidents.transition` | Move an incident on and close it (the holders of case.transition or systems.edit) (WP-G5) |  | x |  | x | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

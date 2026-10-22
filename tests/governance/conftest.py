@@ -125,3 +125,7 @@ def on(
     for flag in ("governance_enabled", "console_systems_enabled"):
         monkeypatch.setattr(console.ctx.settings, flag, True)
     return console
+
+
+# WP-G5 fixtures (a store on a fixed clock, a rig of services): tests/governance/g5_support.py
+from .g5_support import clock, rig, store  # noqa: E402, F401

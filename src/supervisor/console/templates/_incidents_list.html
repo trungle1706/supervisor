@@ -1,0 +1,39 @@
+{# Incidents table and pager: the swap target #list of the Incidents tab, and the answer of the
+   transition action (WP-G5). Variables: inc_counts, page, sort_col, sort_dir, base_qs, list_qs. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+<p style="margin:0 0 8px" id="inc-counts">
+  {{ ui.pill(inc_counts.open ~ ' ' ~ t('inc_st_open'), 'warn' if inc_counts.open else 'ok') }}
+  {{ ui.pill(inc_counts.investigating ~ ' ' ~ t('inc_st_investigating'), 'neutral') }}
+</p>
+{% if page.items %}
+<div class="tablewrap"><table class="incidents">
+  <caption class="sr">{{ t('inc_title') }}</caption>
+  <thead><tr>
+    {{ tb.th('opened_at', t('time'), sort_col, sort_dir, '/console/incidents', '/console/incidents/rows', base_qs) }}
+    <th scope="col">{{ t('inc_incident') }}</th>
+    {{ tb.th('severity', t('severity'), sort_col, sort_dir, '/console/incidents', '/console/incidents/rows', base_qs) }}
+    {{ tb.th('agent', t('agent'), sort_col, sort_dir, '/console/incidents', '/console/incidents/rows', base_qs) }}
+    <th scope="col">{{ t('inc_system') }}</th><th scope="col">{{ t('case') }}</th>
+    {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/incidents', '/console/incidents/rows', base_qs) }}
+    <th scope="col"><span class="sr">{{ t('details') }}</span></th>
+  </tr></thead>
+  <tbody>
+  {% for i in page.items %}
+  <tr class="row" data-incident="{{ i.incident_id }}" data-status="{{ i.status }}">
+    <td class="mono">{{ i.opened_at|day }}</td>
+    <td><strong>{{ t('inc_kind_' ~ i.kind) }}</strong><div class="idline mono">{{ i.incident_id }}</div></td>
+    <td>{{ ui.sev(i.severity) }}</td>
+    <td>{{ i.agent_id }}</td>
+    <td class="mono">{{ i.system_id or '-' }}</td>
+    <td>{% if i.case_id %}<a href="/console/cases/{{ i.case_id }}?lang={{ lang }}">{{ i.case_id }}</a>{% else %}-{% endif %}</td>
+    <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}{% if i.closed_by %}<div class="idline">{{ i.closed_by }}</div>{% endif %}</td>
+    <td><a class="chipbtn" href="/console/incidents?{{ list_qs }}&amp;drawer={{ i.incident_id }}&amp;lang={{ lang }}" hx-get="/console/incidents/{{ i.incident_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('details') }} {{ i.incident_id }}">{{ t('details') }}</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{{ tb.pager(page, '/console/incidents', '/console/incidents/rows', list_qs) }}
+{% else %}
+{{ ui.empty(t('inc_none'), t('inc_none_line')) }}
+{% endif %}

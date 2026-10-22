@@ -1,0 +1,23 @@
+{# Incidents tab of Cases & alerts (WP-G5): incidents made by the governance action job. List with
+   tiles, filter bar, sortable paged table and a row drawer (?drawer=<id> is the no-JS fallback).
+   Read only here; a person moves an incident on in the drawer. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('inc_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_act'), None), (t('inc_title'), None)]) }}
+{{ ui.pagehead(t('inc_title')) }}
+{{ ui.purpose(t('inc_purpose'), t('inc_why')) }}
+<section id="incidents" aria-label="{{ t('inc_title') }}">
+{{ ui.tiles(tiles, '/console/incidents', '/console/incidents/rows') }}
+{{ ui.filterbar('/console/incidents', '/console/incidents/rows', [
+  {'name': 'severity', 'label': t('severity'), 'kind': 'select', 'value': params.severity, 'options': severity_opts},
+  {'name': 'kind', 'label': t('inc_kind'), 'kind': 'select', 'value': params.kind, 'options': kind_opts},
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+], '/console/incidents?lang=' ~ lang, '#list', {'status': params.status}) }}
+<div id="list" aria-live="polite">
+{% include "_incidents_list.html" %}
+</div>
+</section>
+{% endblock %}
+{% block drawer %}{% if drawer is defined %}{% include "_incident_drawer.html" %}{% endif %}{% endblock %}

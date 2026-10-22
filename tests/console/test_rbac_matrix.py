@@ -42,7 +42,7 @@ def _walk(routes: Any) -> Iterator[Any]:
 # Mounted by app.py only with GOVERNANCE_ENABLED / CONSOLE_SYSTEMS_ENABLED (WP-G0). With the
 # flags off they are not in the app; tests/governance/test_api.py runs the same checks with
 # them mounted.
-FLAG_MOUNTED = ("/v1/systems", "/console/systems")
+FLAG_MOUNTED = ("/v1/systems", "/console/systems", "/v1/incidents", "/console/incidents")  # WP-G5
 
 
 def app_routes() -> list[tuple[str, str, Any]]:
@@ -340,6 +340,7 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "dev.user",
         "transparency.generate",  # WP31: tests/console/test_transparency.py
         "systems.edit",  # WP-G0: tests/governance/test_console.py (two audit rows)
+        "incidents.transition",  # WP-G5: tests/governance/test_g5_api.py (two audit rows)
     }
     posts = {
         rbac.resolve_permission(e, {"action": "pause"}) if e != rbac.DEV_ONLY else "dev.user"

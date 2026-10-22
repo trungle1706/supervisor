@@ -56,6 +56,7 @@ from supervisor.risk import evidence as ev
 log = logging.getLogger("supervisor.controls")
 
 MAX_IMPORT_BYTES = 2_000_000
+REOPEN_REASON = "reopened_by_event"  # WP-G5
 MAX_CONTROLS = 2000
 FILTERS = ("type", "implemented_by", "status", "owner", "agent", "q")
 CONTROL_CSV = (
@@ -562,6 +563,78 @@ class ControlService:
             out["written"] += len(new_rows)
         return out
 
+    # ------------------------------------------------------------------ WP-G5: reopen
+    def reopen(
+        self,
+        control_id: str,
+        agent_id: str,
+        event_key: str,
+        actor: str = "system:governance_actions",
+    ) -> dict[str, Any]:
+        """A governance event contradicts the control: write one ``failing`` status row for the
+        agent (reason ``reopened_by_event``) and one ``control_reopen`` chain record. The row id
+        comes from the control, the agent and the event key, so a repeat is a no-op (returned
+        with ``written`` false). The row wins while it is the newest of the pair; the next
+        status pass in a later window writes a newer row and the evidence decides again. Nothing
+        else changes: the control, its map and its scope are untouched."""
+        check_id(agent_id, "agent id")
+        c = self._need(control_id)
+        if c["status"] != "active":
+            raise ControlError(f"control {control_id} is {c['status']}; only an active one reopens")
+        agents = self.agent_rows()
+        a = agents.get(agent_id.lower())
+        if a is None:
+            raise NotFoundError(f"agent {agent_id} is not a supervised agent")
+        aid = str(a["agent_id"])
+        if not self.controls_for(aid, [c]):
+            raise ControlError(f"control {control_id} is not in scope for agent {aid}")
+        sid = "cs_" + sha256_hex({"c": control_id, "a": aid, "reopen": event_key})[:24]
+        if self.tables.query("control_status", {"status_id": sid}, limit=1):
+            return {"status_id": sid, "written": False, "control_id": control_id, "agent_id": aid}
+        now = self.clock.now()
+        w = self.window(now)
+        digest = sha256_hex(
+            {"c": control_id, "a": aid, "reopen": event_key, "reason": REOPEN_REASON}
+        )
+        chain_hash = self._chain(
+            "control_reopen",
+            f"agent:{aid}",
+            {
+                "agent_id": aid,
+                "control_id": control_id,
+                "event_key": event_key,
+                "reason": REOPEN_REASON,
+                "window_start": format_ts(w.start),
+                "window_end": format_ts(w.end),
+                "actor_ref": actor_ref(self.settings, actor),
+                "digest": digest,
+                "ts": format_ts(now),
+            },
+        )
+        self.tables.append(
+            "control_status",
+            [
+                {
+                    "status_id": sid,
+                    "control_id": control_id,
+                    "agent_id": aid,
+                    "ts": now,
+                    "window_start": w.start,
+                    "window_end": w.end,
+                    "status": "failing",
+                    "reason": REOPEN_REASON,
+                    "sources_n": 0,
+                    "working_n": 0,
+                    "failing_n": 0,
+                    "idle_n": 0,
+                    "refs_n": 0,
+                    "digest": digest,
+                    "chain_hash": chain_hash,
+                }
+            ],
+        )
+        return {"status_id": sid, "written": True, "control_id": control_id, "agent_id": aid}
+
     def bases(self) -> dict[str, str]:
         """control id -> map fingerprint (what the evidence of the control depends on)."""
         from supervisor.controls.refs import map_fingerprint
@@ -576,6 +649,10 @@ class ControlService:
         after a change to the map, the scope or the status of the control."""
         if self._stale(row):
             return STATUS_NO_DATA, "stale"
+        if (
+            row.get("reason") == REOPEN_REASON
+        ):  # WP-G5: not tied to the map; the next pass replaces it
+            return str(row["status"]), REOPEN_REASON
         w = ev.Window(ev._ts(row["window_start"]), ev._ts(row["window_end"]))  # noqa: SLF001
         want = cev.status_id(
             str(row["control_id"]), str(row["agent_id"]), w, bases.get(str(row["control_id"]), "")
@@ -609,7 +686,11 @@ class ControlService:
                 w = ev.Window(ev._ts(r["window_start"]), ev._ts(r["window_end"]))  # noqa: SLF001
                 if cev.status_id(cid, str(r["agent_id"]), w, bases.get(cid, "")) == r["status_id"]:
                     valid[cid] = dict(r)
-        return newest | valid
+        out = newest | valid
+        for cid, r in newest.items():  # WP-G5: a reopen row wins while it is the newest row
+            if r.get("reason") == REOPEN_REASON:
+                out[cid] = r
+        return out
 
     def agent_compliance(self, agent_id: str) -> dict[str, Any]:
         """Controls in scope of one agent, their status, and the compliance bp: controls with

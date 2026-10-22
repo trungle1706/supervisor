@@ -3686,6 +3686,64 @@ _T.update(
 )
 
 
+_T.update(
+    {
+        # --- WP-G5: Incidents tab of Cases & alerts, Reports tab of the system page ---------
+        "nav_incidents": ("Incidents", "Sự cố"),
+        "nv3_t_incidents": ("Incidents", "Sự cố"),
+        "sy_tab_reports": ("Reports", "Báo cáo"),
+        "inc_title": ("Incidents", "Sự cố"),
+        "inc_purpose": (
+            "Incidents made from governance events",
+            "Sự cố được tạo từ các sự kiện quản trị",
+        ),
+        "inc_why": (
+            "The governance loop turns an alert, a gate stop on a risky tool, a failed "
+            "detector, a failing monitor, an assurance NO-GO, a chain break, a new model "
+            "version or a judge escalation into an incident. Only a person moves an incident "
+            "on and closes it. The loop never pauses or blocks an agent.",
+            "Vòng quản trị biến cảnh báo, việc cổng chặn công cụ rủi ro, bộ phát hiện lỗi, bộ "
+            "giám sát thất bại, kết quả NO-GO của bài đánh giá, chuỗi bằng chứng bị đứt, "
+            "phiên bản mô hình mới hoặc leo thang của bộ đánh giá thành sự cố. Chỉ có người mới "
+            "chuyển trạng thái và đóng sự cố. Vòng này không bao giờ tạm dừng hay chặn tác tử.",
+        ),
+        "inc_incident": ("Incident", "Sự cố"),
+        "inc_system": ("System", "Hệ thống"),
+        "inc_kind": ("Kind", "Loại"),
+        "inc_event_ref": ("Event", "Sự kiện"),
+        "inc_root_cause": ("Root cause", "Nguyên nhân gốc"),
+        "inc_affected": ("Affected scope", "Phạm vi ảnh hưởng"),
+        "inc_closed_by": ("Closed by", "Người đóng"),
+        "inc_active": ("Not closed", "Chưa đóng"),
+        "inc_st_open": ("Open", "Mới"),
+        "inc_st_investigating": ("Investigating", "Đang điều tra"),
+        "inc_st_resolved": ("Resolved", "Đã xử lý"),
+        "inc_st_closed": ("Closed", "Đã đóng"),
+        "inc_kind_alert": ("Alert", "Cảnh báo"),
+        "inc_kind_gate_stop": ("Gate stop on a risky tool", "Cổng chặn công cụ rủi ro"),
+        "inc_kind_detector_failed": ("Detector failed", "Bộ phát hiện lỗi"),
+        "inc_kind_monitor_failing": ("Monitor failing", "Bộ giám sát thất bại"),
+        "inc_kind_pack_no_go": ("Assurance NO-GO", "NO-GO của bài đánh giá"),
+        "inc_kind_chain_break": ("Chain break", "Chuỗi bằng chứng bị đứt"),
+        "inc_kind_model_version_change": ("Model version change", "Đổi phiên bản mô hình"),
+        "inc_kind_judge_escalation": ("Judge escalation", "Bộ đánh giá leo thang"),
+        "inc_none": ("No incidents.", "Không có sự cố."),
+        "inc_none_line": (
+            "An incident appears when a governance rule matches an event.",
+            "Sự cố xuất hiện khi một quy tắc quản trị khớp với một sự kiện.",
+        ),
+        "inc_move_to": ("Move to", "Chuyển sang"),
+        "inc_move_btn": ("Move incident", "Chuyển trạng thái"),
+        "inc_close_note": (
+            "Closing is final and is done by a person. The root cause and the affected scope "
+            "are your own text; the evidence chain keeps only a hash of each.",
+            "Đóng là quyết định cuối và do người thực hiện. Nguyên nhân gốc và phạm vi ảnh "
+            "hưởng là văn bản của bạn; chuỗi bằng chứng chỉ giữ giá trị băm của từng mục.",
+        ),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""
