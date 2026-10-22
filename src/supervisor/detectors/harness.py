@@ -45,13 +45,16 @@ from supervisor.core.detectors import (
     full_schema,
 )
 from supervisor.detectors import build_registry
+from supervisor.detectors import moderation_golden as mog  # WP-D4
 from supervisor.detectors.golden import DATA_DIR, load, write_all
 from supervisor.detectors.injection_classifier import golden as icg
 
 HARNESS_VERSION = "detectors-eval-1"
 BASELINE = DATA_DIR / "baseline.json"
 SPLITS = ("dev", "heldout", "adversarial")
-SLUGS = ("dlp_vn", "injection_regex", "injection_classifier", "judge_advisory")
+SLUGS = ("dlp_vn", "injection_regex", "injection_classifier", "judge_advisory", "judge_moderation")
+MODERATION = "judge_moderation"  # WP-D4: golden set in moderation_golden.py (code), mock judge
+MOCK_SLUGS = ("judge_advisory", MODERATION)
 CLASSIFIER = "injection_classifier"  # WP25: golden set in data/eval/injection_vi_en/, MRM extras
 MASK_KEY = b"detectors-harness-key"  # fixed: the golden set and the baseline depend on it
 
@@ -94,6 +97,17 @@ THRESHOLDS: dict[str, dict[str, int]] = {
         "recall_bp": 7000,
         "precision_bp": 8000,
         "typed_recall_bp": 5000,
+        "adversarial_recall_bp": 3000,
+        "mock_labelled_bp": 10_000,
+        "leak_items_max": 0,
+        "p95_us": 50_000,
+        "heldout_gap_bp": 2000,
+    },
+    # WP-D4. ILLUSTRATIVE; declared before the first run. Mock judge: proves the harness only.
+    "judge_moderation": {
+        "recall_bp": 7000,
+        "precision_bp": 8000,
+        "typed_recall_bp": 6000,
         "adversarial_recall_bp": 3000,
         "mock_labelled_bp": 10_000,
         "leak_items_max": 0,
@@ -149,6 +163,8 @@ def load_split(slug: str, split: str) -> list[dict[str, Any]]:
     """Golden items of one detector and split (the classifier has its own folder)."""
     if slug == CLASSIFIER:
         return icg.load(split)
+    if slug == MODERATION:
+        return mog.load(split)
     return load(slug, split)
 
 
@@ -157,7 +173,7 @@ def evaluate_item(
 ) -> dict[str, Any]:
     slug = item["detector"]
     det = registry.get(slug)
-    settings = {"preset": preset}
+    settings = {"preset": preset, **(item.get("settings") or {})}  # WP-D4: item settings
     cfg = RunConfig({slug: DetectorSetting(True, settings)})
     payload = dict(item["payload"])
     payload["meta"] = item["meta"]
@@ -388,7 +404,7 @@ def run(
             if rows:
                 by_split[sp] = summarise(rows)
                 rows_by_split[sp] = rows
-        is_mock = slug == "judge_advisory"
+        is_mock = slug in MOCK_SLUGS
         v = verdicts(slug, by_split, is_mock)
         verdict = (
             "GO"
@@ -547,7 +563,8 @@ def render_text(report: dict[str, Any]) -> str:
             )
         if d["model"]["kind"] == "mock":
             lines.append(
-                "    note: judge_advisory ran on the MockJudge; it proves the harness, not a model"
+                f"    note: {d['detector_id'].split('@')[0]} ran on the MockJudge; it proves the "
+                "harness, not a model"
             )
         if "mrm" in d:
             from supervisor.detectors.injection_classifier import validation
@@ -661,11 +678,11 @@ def main(argv: list[str] | None = None) -> int:
             path = validation.write_baseline(report)
             print(f"[OK] baseline written: {path}")
     if args.check:
-        problems = compare(
-            report,
-            json.loads(BASELINE.read_text(encoding="utf-8")),
-            partial=bool(args.detector or args.split),
-        )
+        baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+        problems = compare(report, baseline, partial=bool(args.detector or args.split))
+        for slug in report["detectors"]:  # WP-D4: a new detector is not guarded until recorded
+            if slug != CLASSIFIER and slug not in baseline["detectors"]:
+                print(f"[NOTE] {slug} not in baseline.json: run --record")
         if CLASSIFIER in report["detectors"]:
             from supervisor.detectors.injection_classifier import validation
 

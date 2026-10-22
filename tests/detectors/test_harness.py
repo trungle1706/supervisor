@@ -230,8 +230,13 @@ def test_command_help_and_ascii_output(capsys: pytest.CaptureFixture[str]) -> No
     assert out.isascii() and "dlp_vn@1.0.0" in out and "ILLUSTRATIVE" in out
     assert H.main(["--catalogue"]) == 0
     cat = json.loads(capsys.readouterr().out)
-    slugs = [c["slug"] for c in cat]  # WP-D3: phase 5 detectors are appended
-    assert slugs[:4] == [*SLUGS[:2], "injection_classifier", SLUGS[2]]
+    assert [c["slug"] for c in cat] == [
+        *SLUGS[:2],
+        "injection_classifier",
+        SLUGS[2],
+        "judge_moderation",  # WP-D4
+        "guard_model",  # WP-D3
+    ]
 
 
 def test_check_flag_passes_on_the_committed_baseline(capsys: pytest.CaptureFixture[str]) -> None:

@@ -118,12 +118,13 @@ def test_the_catalogue_endpoint(on: TestClient) -> None:
     body = on.get("/v1/gate/detectors").json()
     assert body["enabled"] is True
     slugs = [d["slug"] for d in body["detectors"]]
-    assert "guard_model" in slugs  # WP-D3: phase 5 detectors are appended after these four
-    assert slugs[:4] == [
+    assert slugs == [
         "dlp_vn",
         "injection_regex",
         "injection_classifier",
         "judge_advisory",
+        "judge_moderation",  # WP-D4
+        "guard_model",  # WP-D3
     ]
 
 

@@ -31,6 +31,7 @@ DETECTOR_GAP_REASONS = (
     "payload_too_large",
     "content_uninspectable",
     "timed_out",
+    "budget_exhausted",  # WP-D4
 )
 # The two that an on-call person treats as a detector outage.
 DETECTOR_FAILED_REASONS = ("execution_failed", "timed_out")

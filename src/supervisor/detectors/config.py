@@ -101,6 +101,10 @@ def _extra_problems(slug: str, settings: Mapping[str, Any]) -> list[str]:
     """Checks the declarative schema cannot express (WP41: the shape of dlp_vn keep_args)."""
     if slug == "dlp_vn":
         return keep_args_problems(settings.get("keep_args"))
+    if slug == "judge_moderation":  # WP-D4: strict shape of each topic entry
+        from supervisor.detectors.judge_moderation import topic_problems
+
+        return topic_problems(settings.get("topics"))
     return []
 
 
