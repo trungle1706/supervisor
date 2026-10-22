@@ -268,6 +268,104 @@ on the turn and weigh 0. Shipped: `dlp_vn` GO, `injection_regex` GO, `injection_
 NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO. The status never
 changes what the gate answers or records for the decision itself.
 
+## 3d. Secrets group, custom rules and mask tokens (WP-D2)
+
+The build plan calls this section 3c; `3c` was already `mrm_status`, so it is 3d here. Three new
+`dlp_vn` settings. All are off or empty by default. With `secrets` absent (or `enabled: false`),
+`custom_rules` empty and `mask_tokens` empty, the detector takes the old code path and its output
+is byte for byte the same (golden test `tests/detectors/test_dlp_off_path_d2.py`).
+
+```yaml
+detectors:
+  dlp_vn:
+    settings:
+      secrets: {enabled: true, action: report}     # action: report (default) | block
+      custom_rules:
+        - {id: proj, kind: regex, pattern: "PRJ-[0-9]{4}-[A-Z]{2}"}
+        - {id: conf, kind: keyword, pattern: "CONFIDENTIAL", mask_token: "[HIDDEN]"}
+        - {id: emp, kind: regex, pattern: "EMP[0-9]{5}", preserve_length: true}
+      mask_tokens: {pii.phone: "<PHONE>"}
+```
+
+A per-agent value goes in `agents.<id>.detectors.settings.dlp_vn` as for every other setting.
+
+### Secrets are a different kind of finding
+
+A leaked credential is an incident, not a privacy problem, so it has its own finding code
+`secret.<kind>` (never `pii.*`), score 10000. The kinds are in `supervisor.core.secret_patterns`
+(`KINDS`): AWS access and secret keys, Azure storage key, SAS signature and client secret, Google
+API key, private key id and OAuth token, GitHub, GitLab, Hugging Face, npm, Vault, Slack, Stripe
+and SendGrid tokens, OpenAI (`openai_api_key`) and Anthropic (`anthropic_api_key`) keys, JWT,
+bearer header, HTTP basic, URL with a password (a DSN), PEM private key block, Databricks token
+and OAuth secret, three forms of a password assignment, and `password_field` (a string under a
+key named like a password, secret or api key, with a value that is not a flag, a template or a
+placeholder). A secret hidden in base64 (a run of 24 or more characters that decodes to text
+with a secret in it) is found and masked as a whole.
+
+**One pattern source.** The onboarding scrubber (`onboard/scrub.py`) and this detector both use
+`src/supervisor/core/secret_patterns.py`. A pattern added there protects both. The scrubber gained
+the kinds it did not have (GitLab, Hugging Face, Stripe, SendGrid, npm, Vault) and a fix: the AWS
+secret key pattern no longer needs a word boundary after a key that ends in `/` or `+`.
+
+**What a finding keeps.** The kind and the first 12 hex characters of the SHA-256 of the value
+(`<SECRET:aws_access_key:3c1f...>` in the entity). The value is never in a finding, a fragment,
+a log line, a record or the chain. The transformed payload holds `<SECRET:aws_access_key>` where
+the value was, where `dlp_vn` transforms (mode `transform` and a tool in scope, as for personal
+data). A secret is masked before the personal-data masker runs, so the masker never sees it.
+
+**`action`.** `report` (default): a finding, and the mask above where `dlp_vn` transforms.
+`block`: a secret in a tool ARGUMENT blocks the call with rule `GATE-SECRET-IN-ARGS` for every
+tool class (a masked credential has still left, and a request that carries one is usually a bug
+worth surfacing). The block uses the same fail-closed shape as `GATE-DETECTOR-FAILED`: `allow:
+false`, `fail_mode: closed`, `status: block`, no `transformed_args`. A secret only in a tool
+result, in `output` or in the context does not block; it is reported and masked. In `observe`
+mode the block is lifted like any block (a money, credit or `pii_export` tool needs the two
+observe approvals, as before). The detector only sets the hint `block`; the gate decides (R1).
+
+**Not found, on purpose.** A secret split over two fields, with spaces, a zero-width character, a
+hyphen inside, reversed or percent encoded is not found. The adversarial row of the validation
+report counts them. If that matters, add an egress control on the tool.
+
+### Custom rules
+
+`custom_rules` is a list of at most 32 rules, applied in order after the secrets.
+
+| Field | Meaning |
+|---|---|
+| `id` | `[a-z][a-z0-9_]{0,31}`, unique. The finding code is `custom.<id>` |
+| `kind` | `keyword`: exact, case-sensitive substring. `regex`: Python `re` |
+| `pattern` | 1 to 200 characters |
+| `mask_token` | optional, 1 to 40 characters. Default `<CUSTOM:id>` |
+| `preserve_length` | optional. The match becomes `*` repeated to its length |
+
+A finding holds the rule id, the count and a short hash of each value; the value is never in it.
+Checks at load (a bad value stops the start with a `ConfigError` that names the field, never a
+call): unknown keys, an id used twice, a bad regex, a regex that matches the empty text, and a
+risky shape: a repeat inside a repeat (`(a+)+`), an alternation under an unbounded repeat
+(`(a|b)*`), a back reference, a finite repeat above 1000, groups nested deeper than 4. A mask token
+must not look like a pseudonym (`<TYPE:hex>`).
+
+**Time budget.** Each regex rule has 1 ms per text (a leaf of the payload). `re` cannot be
+interrupted, so the budget is checked between matches and after the scan; the shape check above is
+what keeps one match short. A rule that goes over its budget masks nothing in that call and the
+detector returns a `timed_out` row with the rule id in the detail (the call fails closed on a
+money, credit or `pii_export` tool when `dlp_vn` is `fail_closed`, like any detector that could
+not finish). The overall detector timeout (`limits.timeout_ms`) still applies.
+
+### Per-entity mask tokens
+
+`mask_tokens: {pii.phone: "<PHONE>"}` replaces the pseudonym of the built-in entity in the
+TRANSFORMED payload only. The keys are `pii.` plus the lower-case entity type. Findings, entities
+and fragments keep the pseudonym (`<PHONE:ab12cd>`), so the fragment offsets refer to the default
+masked text. A configured token loses the consistent pseudonym: two phones both become `<PHONE>`.
+
+### Where the transform applies
+
+The transformed payload comes from the `dlp_vn` transform. With inline redaction on
+(`INLINE_REDACTION_ENABLED`) the masker pass of WP24b knows personal data only; when a `secret.*`
+or `custom.*` finding exists, the detector's `args` replace those, so a secret never stays in
+`transformed_args`.
+
 ## 4. Verdict v2 and precedence
 
 The status of a verdict:
@@ -368,6 +466,11 @@ not a model. `tests/detectors/test_harness.py` fails on a drop below `baseline.j
 Expert rubrics: SOC analyst reading a verdict (typed recall, fragments you can find, false
 positives, speed) and data protection officer (no raw personal data in findings, fragments,
 entities or the transformed payload).
+
+WP-D2 adds the suite `dlp_vn_secrets` (`--detector dlp_vn_secrets`): the secrets group and custom
+rules, with dev, held-out and adversarial items built at run time (no credential-shaped string is
+committed) and its own baseline `data/eval/detectors/baseline_secrets.json`. The DPO rubric covers
+the secret values and the custom matches too: `leak_items` must be 0.
 
 ## 9. How to add a detector
 

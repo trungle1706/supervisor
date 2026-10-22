@@ -4265,6 +4265,23 @@ _T.update(
     }
 )
 
+# --- WP-D2: dlp_vn secrets group and custom rules. Appended block: the later entry replaces the
+# card text of cat_dlp_vn_d (same key), so the earlier block above stays as it was.
+_T.update(
+    {
+        "cat_dlp_vn_d": (
+            "Finds Vietnamese personal data (CCCD, phone, account, address) in tool arguments "
+            "and masks it on PII-export tools. Optional: a secrets group (API keys, tokens, "
+            "private keys, passwords) reported as secret findings, and your own keyword or "
+            "regex rules.",
+            "Tìm dữ liệu cá nhân tiếng Việt (CCCD, điện thoại, tài khoản, địa chỉ) trong tham số "
+            "công cụ và che trên công cụ xuất dữ liệu cá nhân. Tùy chọn: nhóm bí mật (khóa API, "
+            "token, khóa riêng, mật khẩu) báo thành phát hiện bí mật, và quy tắc từ khóa hoặc "
+            "regex của riêng bạn.",
+        ),
+    }
+)
+
 
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come

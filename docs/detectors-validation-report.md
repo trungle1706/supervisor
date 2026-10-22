@@ -113,7 +113,7 @@ Reproduce: `python -m supervisor.detectors.harness --detector dlp_vn_secrets`. T
 How the set is built. It is not a committed file. `src/supervisor/detectors/golden_secrets.py`
 builds every planted secret at run time from a seeded generator and split literals, so no
 credential-shaped string is in the repository (`tests/test_no_secrets.py` stays green) and the
-build is deterministic. Dev and held-out hold one positive per secret kind (30 kinds, including
+build is deterministic. Dev and held-out hold one positive per secret kind (29 kinds, including
 the password field under a JSON key), the custom keyword and regex rules (with a mask token and
 with preserve-length) and benign look-alikes; they use different wrappers, values and rules.
 The adversarial split is written by hand: base64 (decoded by the detector), the secret split over

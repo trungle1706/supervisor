@@ -90,6 +90,18 @@ when only the class must be right, nothing otherwise. The masker itself (`vn_reg
 unchanged: the typing is done in the detector by prefixing a label for the masker and cutting it
 off again.
 
+### Secrets, custom rules and mask tokens (WP-D2)
+
+`dlp_vn` can also mask what is not personal data (`docs/detectors.md` section 3d). With
+`secrets.enabled` a credential in a payload text becomes `<SECRET:kind>` (for example
+`<SECRET:aws_access_key>`); a custom rule becomes its `mask_token` (default `<CUSTOM:id>`) or, with
+`preserve_length`, `*` repeated to the length of the match. These markers carry no hash and no
+pseudonym: a secret is not given a consistent pseudonym, because the same pseudonym for the same
+key would let a reader tell that two calls used one key. The findings keep a 12 character hash of
+the value, never the value. `mask_tokens: {pii.phone: "<PHONE>"}` replaces a built-in pseudonym in
+the transformed payload by a fixed text (the consistent pseudonym is lost). The masker itself
+(`vn_regex-3`) is unchanged; the secrets and the rules run first and the masker sees a placeholder.
+
 ## 3. Measuring it
 
 Golden set: `data/eval/pii_vn/` (`dev.jsonl`, `heldout.jsonl`, `MANIFEST.json`), 1031 items

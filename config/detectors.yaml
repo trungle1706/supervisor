@@ -43,3 +43,14 @@ detectors:
     fail_closed: false          # uses the mock judge and every finding is labelled mock.
     mrm_status: NO-GO           # an advisor: weighs 0 in sessions
     settings: {}
+  # WP-D2: dlp_vn secrets group, custom rules and mask tokens (docs/detectors.md section 3c).
+  # Nothing to switch on here by default: with `secrets` absent and `custom_rules` empty dlp_vn
+  # behaves exactly as before. To use them, add under detectors.dlp_vn.settings above:
+  #   secrets: {enabled: true, action: report}      # report (default) | block
+  #   custom_rules:
+  #     - {id: proj, kind: regex, pattern: "PRJ-[0-9]{4}-[A-Z]{2}"}
+  #     - {id: conf, kind: keyword, pattern: "CONFIDENTIAL", mask_token: "[HIDDEN]"}
+  #     - {id: emp, kind: regex, pattern: "EMP[0-9]{5}", preserve_length: true}
+  #   mask_tokens: {pii.phone: "<PHONE>"}
+  # action: block makes a secret in a tool argument the rule GATE-SECRET-IN-ARGS on every tool
+  # class. A bad or risky regex (nested quantifiers) stops the load with a message.

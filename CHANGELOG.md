@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### WP-D2: secrets group and custom rules for dlp_vn
+
+No new flag. Three new `dlp_vn` settings, all off or empty by default; with none of them set the
+detector output is byte for byte what it was (golden test). Details: `docs/detectors.md` section 3d,
+`docs/masking.md`.
+
+- `secrets: {enabled, action: report | block}`: 29 secret kinds reported as `secret.<kind>`
+  (cloud keys, API tokens, JWT, PEM, DSN, password assignments and password fields, a secret in
+  base64). A finding keeps the kind and a 12 character hash; the transformed payload holds
+  `<SECRET:kind>`. `action: block` is the new gate rule `GATE-SECRET-IN-ARGS`: a secret in a tool
+  argument blocks the call on every tool class, in the fail-closed shape of
+  `GATE-DETECTOR-FAILED`. Default `report`.
+- `custom_rules: [{id, kind: keyword | regex, pattern, mask_token?, preserve_length?}]`: strict
+  schema, a bad regex or a risky shape (nested quantifiers, back references, length) stops the
+  load; 1 ms per regex rule and text; mask token default `<CUSTOM:id>`.
+- `mask_tokens: {pii.phone: "<PHONE>"}`: a fixed text for a built-in entity in the transformed
+  payload.
+- One pattern source: `src/supervisor/core/secret_patterns.py`, used by `dlp_vn` and by the
+  onboarding scrubber. The scrubber gained GitLab, Hugging Face, Stripe, SendGrid, npm and Vault
+  tokens, and the AWS secret key pattern accepts a key that ends in `/` or `+`.
+- With inline redaction on, a call with a `secret.*` or `custom.*` finding takes the detector's
+  masked `args`, so a secret does not stay in `transformed_args`.
+- Harness suite `dlp_vn_secrets` (`python -m supervisor.detectors.harness --detector
+  dlp_vn_secrets`): items are built at run time, so no credential-shaped string is committed; own
+  baseline `data/eval/detectors/baseline_secrets.json`. Validation report section added.
+  Observe mode lifts `GATE-SECRET-IN-ARGS` like other blocks.
+- Catalog card text of `dlp_vn` extended (English and Vietnamese).
+
 ### WP-G6: MCP server, skills, KPI endpoint
 
 One new flag, off by default (`MCP_SERVER_ENABLED`). Off = nothing is mounted, no table is read or
