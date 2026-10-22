@@ -101,7 +101,9 @@ def test_tasks_tab_with_the_task_list_off_and_on(on: Console) -> None:
 def test_unspecified_level_says_initiation_only(on: Console) -> None:
     from .conftest import add_agent
 
-    add_agent(on.runtime.adapters, "newbot", risk_tier="unknown")  # no level to inherit
+    add_agent(
+        on.runtime.adapters, "newbot", risk_tier="unknown", decision33_class="not_high_risk"
+    )  # no level to inherit
     sid = _system(on)
     on.ctx.systems.link(sid, "agent", "newbot", REVIEWER)
     on.ctx.settings.controls_enabled = True

@@ -75,7 +75,10 @@ def emit(
         log.exception("outbound event %s was not written", kind)
         return None
     if getattr(settings, "webhooks_enabled", False):
-        deliver_pending(state, clock, settings, limit=1, only=row["event_id"])
+        try:
+            deliver_pending(state, clock, settings, limit=1, only=row["event_id"])
+        except Exception:  # noqa: BLE001 - a sender problem never fails the request
+            log.exception("outbound event %s was not delivered", row["event_id"])
     return row
 
 
@@ -89,9 +92,11 @@ def deliver_pending(
     from supervisor.adapters.notify.outbound_webhook import OutboundWebhookStub
 
     sender = OutboundWebhookStub()
-    rows = [dict(r) for r in state.query("outbound_event") if not _on(r["delivered"])]
-    if only is not None:
-        rows = [r for r in rows if r["event_id"] == only]
+    if only is not None:  # one event: read that row, not the table
+        one = state.get("outbound_event", {"event_id": only})
+        rows = [dict(one)] if one is not None and not _on(one["delivered"]) else []
+    else:
+        rows = [dict(r) for r in state.query("outbound_event") if not _on(r["delivered"])]
     rows.sort(key=lambda r: (r["created_at"], r["event_id"]))
     done = 0
     for row in rows[:limit]:

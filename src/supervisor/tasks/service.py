@@ -250,20 +250,27 @@ class TaskService:
         band: str | None = None
         source = "default"
         linked = self._linked_sizing(str(a["agent_id"]))  # WP-G1: None unless linked to a system
-        if linked is not None:
-            band, source = linked.band, "system"
-        svc = self.risks() if linked is None else None
+        svc = self.risks()
+        reg: str | None = None
         if svc is not None:
             try:
                 lv = svc.agent_levels().get(str(a["agent_id"]).lower())
             except Exception:  # noqa: BLE001 - a register problem must not stop the task list
                 lv = None
             if lv is not None and lv.inherent_level in LEVELS:
-                band, source = lv.inherent_level, "risk_register"
-        if band is None and a.get("risk_tier") in LEVELS:
-            band, source = str(a["risk_tier"]), "risk_tier"
-        if band is None:
-            band = "high"  # unknown risk is sized as high: more governance, never less
+                reg = lv.inherent_level
+        if linked is not None:
+            # WP-G1: the higher of the band of the system and the register band (never lighter)
+            band, source = linked.band, "system"
+            if reg is not None and LEVEL_RANK[reg] > LEVEL_RANK[band]:
+                band, source = reg, "risk_register"
+        else:
+            if reg is not None:
+                band, source = reg, "risk_register"
+            if band is None and a.get("risk_tier") in LEVELS:
+                band, source = str(a["risk_tier"]), "risk_tier"
+            if band is None:
+                band = "high"  # unknown risk is sized as high: more governance, never less
         out = {
             "agent_id": str(a["agent_id"]),
             "d33_class": cls,
@@ -275,7 +282,8 @@ class TaskService:
         if linked is not None:  # WP-G1: only for a linked agent; an unlinked one is as before
             out["system_level"] = linked.system_level
             out["system_ids"] = ",".join(linked.system_ids)
-            if linked.initiation_only:
+            # only when the level is still low after the class floor and the register band
+            if linked.initiation_only and out["level"] == "low":
                 out["initiation_only"] = "1"
         return out
 
@@ -298,7 +306,7 @@ class TaskService:
         """The stage after ``stage``. WP-G1: an agent of a system whose risk level is still
         unspecified gets the initiation set only, so it does not move on until a person sets
         the level of the system."""
-        if stage == "initiation" and inputs.get("initiation_only") == "1":
+        if stage == "initiation" and inputs.get("initiation_only") == "1" and level == "low":
             return None
         return next_stage_at(self.cfg, stage, level, classes)
 

@@ -281,6 +281,27 @@ class LifecycleService:
                     f"(POST /v1/systems/{system_id}/approvals, then an approver answers it)"
                 )
             ap = max(ready, key=lambda r: (r["decided_at"], r["approval_id"]))
+        payload: dict[str, Any] = {
+            "from_stage": cur,
+            "to_stage": to_stage,
+            "status": "moved",
+            "actor_ref": self._ref(actor),
+            "approval_id": "",
+        }
+        if ap is not None:  # claim the approval first: a lost race leaves the system untouched
+            try:
+                self.state.update(
+                    "stage_approval",
+                    {"approval_id": ap["approval_id"]},
+                    {"applied_at": self.systems.clock.now()},
+                    int(ap["row_version"]),
+                )
+            except ConcurrencyError:
+                raise SystemsError(
+                    "the stage approval was used by someone else; reload and retry"
+                ) from None
+            payload["approval_id"] = ap["approval_id"]
+            payload["approver_ref"] = self._ref(str(ap["decided_by"]))
         try:
             stored = dict(
                 self.state.update(
@@ -294,21 +315,5 @@ class LifecycleService:
             raise SystemsError(
                 "the AI system was changed by someone else; reload and retry"
             ) from None
-        payload: dict[str, Any] = {
-            "from_stage": cur,
-            "to_stage": to_stage,
-            "status": "moved",
-            "actor_ref": self._ref(actor),
-            "approval_id": "",
-        }
-        if ap is not None:
-            self.state.update(
-                "stage_approval",
-                {"approval_id": ap["approval_id"]},
-                {"applied_at": self.systems.clock.now()},
-                int(ap["row_version"]),
-            )
-            payload["approval_id"] = ap["approval_id"]
-            payload["approver_ref"] = self._ref(str(ap["decided_by"]))
         self._chain("move", stored, payload)
         return self.systems.get(system_id)

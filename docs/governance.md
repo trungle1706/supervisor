@@ -137,14 +137,16 @@ flags once at start), the nav is unchanged, and the three tables stay empty.
 ## 12. Task sizing by the risk level of the system (WP-G1)
 
 An agent that is linked to at least one system (active link, system not archived) is sized from the
-system, not from its own band:
+system and, when higher, from its WP29 register band:
 
 ```
- band  = effective risk level of the system (the highest one if the agent is on several)
+ band  = higher of (effective risk level of the system, WP29 register band of the agent)
+         (the highest system level if the agent is on several systems)
          low -> low, medium -> medium, high -> high, prohibited -> critical (top of the task scale)
  level = higher of (band, floor of the Decision 33 class of the agent)      [tasks.model.effective_level]
- unspecified system level -> band low, and the initiation set ONLY: no move to the next stage
-         until a person sets the level of the system
+ unspecified system level and the final level still low -> the initiation set ONLY: no move
+         to the next stage until a person sets the level of the system. A Decision 33 floor or a
+         higher register band gives the full set and the move task
 ```
 
 An agent with no link keeps the computation of `docs/controls.md` section 5, byte for byte (test
@@ -187,7 +189,16 @@ Table `stage_approval` (`approval_id`, `system_id`, `from_stage`, `to_stage`, `r
 * **Rules.** One pending request per target stage. A reject needs a reason. The request must still
   be valid (the system is in `from_stage`). An approval is used once: after the move the row has
   `applied_at`, and a later move needs a new approval.
-* **Stage change by `PATCH`** is refused (HTTP 400): it would skip the approval.
+* **Stage change by `PATCH` or at registration** is refused (HTTP 400): it would skip the approval. A new
+  system starts in `initiation`; ask with `POST .../approvals`, then `POST .../stage`.
+* **Route permission is not standing.** `systems.approve` (kept for `approver`, `reviewer`, `owner`,
+  `admin`) only lets the call reach the service. An `admin`, an `owner` or a `reviewer` decides only
+  if the person is also a team `reviewer` or `oversight_manager` of this system, or holds the
+  `approver` role. Otherwise the answer is HTTP 400 ("only a reviewer or oversight manager...").
+* **No stage order rule.** Any stage other than the current one is a valid target, forward or
+  backward, except out of `retirement`. Only the approval stages are gated (open question 5).
+* **Claim first.** A move marks the approval as used before it changes the system, so a lost race
+  leaves the system as it was.
 
 ## 14. Reviews (WP-G1)
 
@@ -262,10 +273,7 @@ through the API. EN and VI strings sit in one block marked WP-G1 in `console/i18
 2. `systems.edit` is held by `reviewer`, `owner`, `admin` (like the control catalogue). Should a
    reviewer be able to register systems, or only the owner role?
 3. Archive is final. Should an archived system come back (needs a reviewer)?
-4. (WP-G1) A linked agent is sized from its system only; the WP29 register band of the agent is no
-   longer read for it. Should the higher of the two win, so a linked agent is never lighter than
-   today?
-5. (WP-G1) Should an `admin` be allowed to answer a stage approval, as an admin may approve a task
+4. (WP-G1) Should an `admin` be allowed to answer a stage approval, as an admin may approve a task
    move? The plan says a team reviewer, an oversight manager or the `approver` role; admin is out.
-6. (WP-G1) Stage moves other than into `deployment` and `operation` need no approval, and a move may
+5. (WP-G1) Stage moves other than into `deployment` and `operation` need no approval, and a move may
    go back (for example operation to design). Should the bank forbid backward moves?
