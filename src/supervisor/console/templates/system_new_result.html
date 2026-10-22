@@ -99,7 +99,7 @@
   {% else %}<p class="hint">{{ t('ux4b_floor_none') }}</p>{% endif %}
 </section>
 
-<form method="post" action="/console/systems/new?lang={{ lang }}" class="card" data-wizard="confirm">
+<form method="post" action="/console/systems/new?lang={{ lang }}" hx-post="/console/systems/new?lang={{ lang }}" hx-swap="none" class="card" data-wizard="confirm">
   {% for k, v in d.form.items() %}{% if v is sameas true %}<input type="hidden" name="{{ k }}" value="1">{% elif v is sameas false %}{% else %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}
   {% endfor %}
   <p>{{ t('ux4b_confirm_line') }}</p>

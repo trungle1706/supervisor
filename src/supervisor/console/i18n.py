@@ -3940,7 +3940,7 @@ _T.update(
         "ux4b_kind_stage": ("Stage move", "Chuyển giai đoạn"),
         "ux4b_health_systems": ("Health of my systems", "Tình trạng các hệ thống của tôi"),
         "ux4b_system": ("System", "Hệ thống"),
-        "ux4b_agents_n": ("{n} agents", "{n} tác tử"),
+        "ux4b_agents_n": ("Agents: {n}", "Tác tử: {n}"),
         "ux4b_next_action": ("Next action", "Việc tiếp theo"),
         "ux4b_no_systems": (
             "No system in this scope.",

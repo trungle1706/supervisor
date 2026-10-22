@@ -14,7 +14,7 @@
 </ol>
 <p class="hint">{{ t('ux4b_wiz_hint') }}</p>
 {% if scoped %}<p class="hint" data-wizard="scope">{{ t('ux4b_wiz_scope', teams=teams|join(', ') or '-') }}</p>{% endif %}
-<form class="card wizform" method="post" action="/console/systems/new/checks?lang={{ lang }}" data-wizard="intake">
+<form class="card wizform" method="post" action="/console/systems/new/checks?lang={{ lang }}" hx-post="/console/systems/new/checks?lang={{ lang }}" hx-target="#main" hx-select="#main" hx-swap="outerHTML" hx-push-url="false" data-wizard="intake">
   <label>{{ t('sy_col_name') }} <input type="text" name="name" required maxlength="120"></label>
   <label>{{ t('sy_col_team') }} <input type="text" name="owner_team" required maxlength="128"{% if teams|length == 1 %} value="{{ teams[0] }}"{% endif %}></label>
   <label>{{ t('sy_f_purpose') }} <textarea name="purpose" required maxlength="2000" rows="3"></textarea></label>

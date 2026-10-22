@@ -182,6 +182,38 @@ the SIEM and webhook sinks. There is no editor yet.
 Errors are HTTP 400 with a message. Screenshots: `uv run python tools/console_screenshots.py --v3
 --reseed --out docs/design/screens-v3 --data-dir <new folder>`.
 
+### Systems pages (WP-UX4b, `CONSOLE_NAV_V3` and `CONSOLE_SYSTEMS_ENABLED`)
+
+The governance pages on the AI system (`docs/governance.md`). With `CONSOLE_NAV_V3` off, or the
+page flags off, nothing below exists and the Systems page is the one of WP-G0.
+
+System page tabs: Overview, Components, Risks, Controls, Policies, Guardians, Tasks, Reviews,
+Reports (WP-G2 will add Rules and Classification after Components). A tab needs the permission of
+the page it summarises. All tabs read the agents linked to the system.
+
+| Tab | Source | Not available when |
+|---|---|---|
+| Risks | register rows that reach the linked agents or sit on a linked node, with the anchor ("inherited from") | `RISK_REGISTER_ENABLED` off |
+| Controls | `control_status` per control and agent, compliance figure in bp (working over in scope) | `CONTROLS_ENABLED` off |
+| Policies | compliance matrices of the linked agents added up by instrument (apply, met, partial, gap); an agent with no matrix is listed apart | `CONSOLE_COMPLIANCE_ENABLED` off, or no matrix |
+| Guardians | detectors on per agent (detector file, per-agent enable and disable, `DETECTORS_ENABLED`), mandatory ones, judges (labelled `mock` without a model), monitors, the WP-G2 floor | floor: rules engine not merged |
+| Reports | latest transparency report per variant and agent, chain verify state per agent lane, audit pack link, incidents slot | transparency off; incidents until WP-G5 and its flag |
+
+Register wizard `/console/systems/new` (needs `systems.edit`): step 1 intake (plus `autonomy_level`
+once WP-G2 adds it, and an optional repository folder for people who may start onboarding), step 2
+`POST /console/systems/new/checks` runs the preliminary checks and writes nothing, step 3
+`POST /console/systems/new` registers the draft and opens the tasks `SYS-INTAKE-CONFIRM` and
+`SYS-INTAKE-CHECKS`. The result page shows the readiness score and band (80+ ready, 50-79 needs the
+patches, below 50 needs work; static analysis, no model), the class proposal (money movement or a
+credit decision without a human approval before the action is high risk; WP-G2 rules win when
+merged), the assurance packs per dimension and the guardian floor. Scoped people register for
+themselves and for a team they already work in. A bad input is HTTP 400 with the reason.
+
+Overviews: with `GOVERNANCE_ENABLED` on, My overview and Governance overview count systems. Scope:
+my = systems I own or am on, team = systems of my teams, all = what the role may see. The agent-based
+pages are used when the flag is off. Catalogues > Agents has a System column and a linked or
+unlinked filter (both flags needed).
+
 ### Components
 
 Server-rendered Jinja2 macros and partials; htmx only; the CSS is in `static/console.css`

@@ -53,8 +53,15 @@ with sync_playwright() as p:
         page = ctx.new_page()
         page.goto(cfg["base"] + shot["path"], wait_until="networkidle")
         page.evaluate("document.fonts.ready")
+        for name, value in (shot.get("fill") or {}).items():  # WP-UX4b: the wizard form
+            page.fill('[name="' + name + '"]', value)
+        for name in shot.get("check") or []:
+            page.check('[name="' + name + '"]')
         if shot.get("click") and page.locator(shot["click"]).count():
             page.click(shot["click"])
+            if shot.get("wait"):  # an htmx swap: wait for what it brings, not for the network
+                page.wait_for_selector(shot["wait"], timeout=30000)
+                page.evaluate("window.scrollTo(0, 0)")
             page.wait_for_load_state("networkidle")
             page.wait_for_timeout(300)
         page.screenshot(path=shot["file"])
@@ -211,9 +218,10 @@ WAVE2_FLAGS = {
 
 
 # WP-UX4a: the merged bar (CONSOLE_NAV_V3) and the pages behind it, with the role each needs.
+# WP-UX4b: with GOVERNANCE_ENABLED the overviews count systems; the system page tabs, the register
+# wizard and the System column of Catalogues > Agents. {sys_*} are filled from the seeded names.
 V3_SCREENS = [
     ("v3-my-overview", "/console/", "reviewer.an", None),
-    ("v3-my-overview-collapsed", "/console/", "reviewer.an", "[data-side-collapse]"),
     ("v3-settings-drawer", "/console/", "admin.chi", "a.gear-btn"),
     ("v3-governance", "/console/governance?scope=all", "reviewer.an", None),
     ("v3-supervisor", "/console/supervisor?scope=all", "reviewer.an", None),
@@ -227,7 +235,31 @@ V3_SCREENS = [
     ("v3-catalogues-models", "/console/catalogues?tab=models", "reviewer.an", None),
     ("v3-catalogues-agents", "/console/catalogues", "reviewer.an", None),
     ("v3-risks-controls", "/console/risks-controls", "reviewer.an", None),
+    # WP-UX4b
+    ("v3-systems", "/console/systems", "reviewer.an", None),
+    ("v3-system-overview", "/console/systems/{sys_payments}", "reviewer.an", None),
+    ("v3-system-risks", "/console/systems/{sys_payments}?tab=risks", "reviewer.an", None),
+    ("v3-system-controls", "/console/systems/{sys_payments}?tab=controls", "reviewer.an", None),
+    ("v3-system-policies", "/console/systems/{sys_payments}?tab=policies", "reviewer.an", None),
+    ("v3-system-guardians", "/console/systems/{sys_payments}?tab=guardians", "reviewer.an", None),
+    ("v3-system-reports", "/console/systems/{sys_payments}?tab=reports", "reviewer.an", None),
+    ("v3-system-new", "/console/systems/new", "reviewer.an", None),
 ]
+# the wizard result page is a POST: fill the form, tick the box, press the button
+V3_WIZARD_RESULT = {
+    "name": "v3-system-new-result",
+    "path": "/console/systems/new",
+    "user": "reviewer.an",
+    "fill": {
+        "name": "Collections assistant",
+        "owner_team": "Payments Ops",
+        "purpose": "Drafts reminders for customers with late instalments.",
+        "repo_path": "src/supervisor_agents/payments",
+    },
+    "check": ["money_movement"],
+    "click": 'form[data-wizard="intake"] button[type=submit]',
+    "wait": '[data-wizard="proposals"]',
+}
 V3_FLAGS = {
     **WAVE2_FLAGS,
     "CONSOLE_NAV_V3": "1",
@@ -235,7 +267,68 @@ V3_FLAGS = {
     "CONSOLE_DECISIONS_V2": "1",
     "ALERTS_ENABLED": "1",
     "CONSOLE_CATALOG_ENABLED": "1",
+    "GOVERNANCE_ENABLED": "1",  # WP-UX4b: systems are the unit of the overviews
+    "CONSOLE_SYSTEMS_ENABLED": "1",
 }
+# WP-UX4b: (name, owner team, owner, agent linked, manual risk level)
+V3_SYSTEMS = [
+    ("Payments exception agent", "Payments Ops", "reviewer.an", "payments", "high"),
+    (
+        "Credit pre-qualification assistant",
+        "Consumer Lending",
+        "reviewer.an",
+        "credit_prequal",
+        "medium",
+    ),
+    ("Customer service assistant", "Retail Customer Care", "reviewer.an", "customer_service", None),
+    ("Market intelligence assistant", "Payments Ops", "reviewer.an", None, None),
+]
+
+
+def _seed_systems(data_dir: Path) -> dict[str, str]:
+    """WP-UX4b: four AI systems for the system pages (synthetic; the demo agents are linked).
+    Returns the ids, by the key used in V3_SCREENS ({sys_payments}). A repeat is a no-op."""
+    from supervisor.adapters.factory import build_adapters
+    from supervisor.config import load_settings
+    from supervisor.core.errors import SupervisorError
+    from supervisor.governance.systems import SystemService, system_id_for
+
+    a = build_adapters(
+        load_settings(data_dir=data_dir, sql_backend="sqlite", governance_enabled=True)
+    )
+    ids = {}
+    try:
+        svc = SystemService.from_adapters(a)
+        for name, team, owner, agent, level in V3_SYSTEMS:
+            sid = system_id_for(name)
+            ids[agent or "draft"] = sid
+            try:
+                svc.register(
+                    {
+                        "name": name,
+                        "owner_user": owner,
+                        "owner_team": team,
+                        "purpose": f"{name}: synthetic demo system.",
+                        "system_type": "assistant",
+                        "org_role": "deployer",
+                        "user_segment": "internal",
+                        "personal_data": "pseudonymised",
+                        "human_control": "post_review",
+                    },
+                    owner,
+                )
+                if level:
+                    changes = {"risk_level": level}
+                    if level == "high":
+                        changes["decision33_class"] = "high_risk"
+                    svc.update_fields(sid, changes, owner)
+                if agent:
+                    svc.link(sid, "agent", agent, owner)
+            except SupervisorError:
+                say(f"[SKIP] system {name} exists")
+    finally:
+        a.close()
+    return ids
 
 
 def _seed_wave2(data_dir: Path, py: str, env: dict[str, str]) -> None:
@@ -448,6 +541,7 @@ def main(argv: list[str] | None = None) -> int:
         _seed_ux2(data_dir, py, env)
     if args.wave2 or args.v3:
         _seed_wave2(data_dir, py, env)
+    sys_ids: dict[str, str] = _seed_systems(data_dir) if args.v3 else {}
 
     out = Path(os.path.abspath(args.out))
     out.mkdir(parents=True, exist_ok=True)
@@ -529,7 +623,10 @@ def main(argv: list[str] | None = None) -> int:
                 ("inventory", "/console/inventory", None),
             ]
         if args.v3:  # only the WP-UX4a pages, with the role each one needs
-            screens = [(n, p, c) for n, p, _, c in V3_SCREENS]
+            screens = [
+                (n, p.replace("{sys_payments}", sys_ids.get("payments", "none")), c)
+                for n, p, _, c in V3_SCREENS
+            ]
             who = {n: u for n, _, u, _ in V3_SCREENS}
         elif args.wave2:  # only the wave-2 pages, with the role each one needs
             screens = [(n, p, c) for n, p, _, c in WAVE2_SCREENS]
@@ -570,6 +667,12 @@ def main(argv: list[str] | None = None) -> int:
             dark["file"] = str(out / "decisions-en-dark.png")
         else:
             dark = {"path": "/console/?lang=en", "file": str(out / "overview-en-dark.png")}
+        if args.v3:  # WP-UX4b: the wizard result page (a POST, driven by fill and click)
+            for lang in ("en", "vi"):
+                w = dict(V3_WIZARD_RESULT)
+                w["file"] = str(out / f"{w.pop('name')}-{lang}.png")
+                w["path"] = f"{w['path']}?lang={lang}"
+                shots.append(w)
         shots.append({**dark, "scheme": "dark"})
         with tempfile.TemporaryDirectory() as tmp:
             script = Path(tmp) / "capture.py"
