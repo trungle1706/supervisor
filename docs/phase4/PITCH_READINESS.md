@@ -52,7 +52,7 @@ Step 11 can be shown only with fixtures until the live kit runs.
 | Item | Value |
 |---|---|
 | Work packages merged | 9 (phase 4) |
-| Tests on main before G6 | 5,939 passed, 33 skipped |
+| Tests on main with all nine packages | 6,159 passed, 33 skipped (run of 2026-10-22 15:56 UTC) |
 | High defects found by review and fixed before merge | 8 |
 | New flags, all off by default | GOVERNANCE_ENABLED, CONSOLE_SYSTEMS_ENABLED, CONSOLE_NAV_V3, GOVERNANCE_ACTIONS_ENABLED, GUARDIAN_BINDINGS_ENABLED, MCP_SERVER_ENABLED, INVENTORY_SCAN_V2, INVENTORY_AUTOREGISTER, WEBHOOKS_ENABLED, CLASSIFIER_AI_PREFILL |
 | Demo systems registered | 1 (SME credit memo assistant); payments and customer service not seeded on the demo server |
