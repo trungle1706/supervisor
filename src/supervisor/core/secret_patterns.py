@@ -28,7 +28,7 @@ PATTERNS: tuple[tuple[str, str, int], ...] = (
     ("aws_access_key", r"\b(?:AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}\b", 0),
     (
         "aws_secret_key",
-        r"(?i)aws_?secret_?access_?key\s*[\"']?\s*[:=]\s*[\"']?([A-Za-z0-9/+=]{40})\b",
+        r"(?i)aws_?secret_?access_?key\s*[\"']?\s*[:=]\s*[\"']?([A-Za-z0-9/+=]{40})(?![A-Za-z0-9/+=])",
         1,
     ),
     ("azure_storage_key", r"(?i)AccountKey=([A-Za-z0-9+/]{40,}={0,2})", 1),
