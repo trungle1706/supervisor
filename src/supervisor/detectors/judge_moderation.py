@@ -143,13 +143,14 @@ class JudgeModerationDetector:
     )
 
     def __init__(self, masker: Masker, judge: TierJudge | None = None) -> None:
-        tier = judge or mock_tier1(masker)
+        # a judge object without a model (a test double of the trace judge) falls back to the mock
+        model = getattr(judge, "model", None) or mock_tier1(masker).model
         self.masker = masker
         self.mod = ModerationJudge(
-            tier.model,
+            model,
             masker,
-            timeout_s=tier.timeout_s,
-            max_retries=tier.max_retries,
+            timeout_s=float(getattr(judge, "timeout_s", 30.0)),
+            max_retries=int(getattr(judge, "max_retries", 0)),
         )
 
     def evaluate(

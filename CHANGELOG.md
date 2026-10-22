@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### WP-D4: judge moderation detector (toxicity and topic scope)
+
+New detector `judge_moderation` (phase 5), off by default (`enabled: false`, `mrm_status: NO-GO`);
+absent or off = nothing changes. Details: `docs/detectors.md` section 3e.
+
+- Toxicity (one answer) and up to 5 topics `{name, definition}` (definition up to 400 characters, the
+  definition is what is scored), input and output, one judge prompt per question on masked text,
+  overlapping windows, highest score per topic. Findings `moderation.toxic` and
+  `moderation.topic:<name>`, report only, never fail closed. MockJudge without a judge model,
+  every finding `mock: true`. Strict topic checks when `config/detectors.yaml` or an agent override
+  loads.
+- `config/moderation_topics.yaml`: 10 editable draft topics in Vietnamese and English, none enabled.
+- Harness rows with a small synthetic VI and EN set and a rubric; report
+  `docs/judge-moderation-validation-report.md`. Catalog card and i18n (EN, VI); Guardians card
+  binding `judge_moderation`.
+
 ### WP-G6: MCP server, skills, KPI endpoint
 
 One new flag, off by default (`MCP_SERVER_ENABLED`). Off = nothing is mounted, no table is read or

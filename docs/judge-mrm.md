@@ -251,3 +251,16 @@ Art. 15(5)(b) safe shutdown of data, model and configuration). ADR D03 has the a
 | Thresholds and role names | illustrative / FILL-ME | second line |
 | Assurance packs | WP17 results not yet wired | WP17 adapter to `JudgeValidationInput` |
 | Urgency classes, holiday calendar, "15 days" basis | assumptions | bank counsel |
+
+## 9. Moderation questions (WP-D4)
+
+The detector `judge_moderation` (`docs/detectors.md` section 3e) asks the Tier 1 judge model two
+kinds of yes or no question, toxicity and up to five topic definitions, on masked text. It is not
+a trace judge: it has its own prompt and reply schema (`judge/moderation.py`) and it does not use
+the Tier 1 trace record. It uses the same model and the same family rule. It advises only: its
+findings are `report` hints, and `mrm_status: NO-GO` means they weigh 0 in the session monitor. It
+needs its own MRM run before it can be GO: a real judge model on a reviewed Vietnamese and English
+set per topic, with the topic wording the bank chose (a definition is the thing that is scored, so
+a changed definition is a changed validated object). The mock run in
+`docs/judge-moderation-validation-report.md` proves the harness only.
+

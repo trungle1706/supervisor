@@ -122,6 +122,7 @@ def test_the_catalogue_endpoint(on: TestClient) -> None:
         "injection_regex",
         "injection_classifier",
         "judge_advisory",
+        "judge_moderation",  # WP-D4
     ]
 
 

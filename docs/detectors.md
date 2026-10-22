@@ -68,6 +68,7 @@ runs the enabled detectors.
 | `dlp_vn` | input, output | Wraps the `vn_regex-3` masker. One finding per entity type (`pii.person`, `pii.phone`, `pii.cccd`, ...). The only detector that transforms | `transform` for tools in scope, else `report` | 5000 / 8000 / 9500 |
 | `injection_regex` | input | The Tier 0b pattern list as a detector (Vietnamese and English). Scans `args` and `tool_results` (indirect injection). Codes `injection.instruction_override`, `mode_switch`, `prompt_leak`, `policy_override`, `urgent_transfer`, `role_tag` | `report` | 5000 / 7000 / 8500 |
 | `judge_advisory` | input, output | The Tier 1 judge. Without a judge model it uses the MockJudge and every finding says `mock: true`. The judge sees masked text only | `report` | 3000 / 5000 / 7000 |
+| `judge_moderation` (WP-D4, section 3e) | input, output | Toxicity (one yes or no answer) and up to 5 topics with definitions, asked of the judge one question at a time. Codes `moderation.toxic`, `moderation.topic:<name>`. Mock without a judge model, `mock: true` | `report` | 3000 / 5000 / 7000 |
 
 `dlp_vn` settings: `mode` (`transform` or `report`), `transform_risk_classes` (default
 `[pii_export]`), `transform_tools`. In transform scope the call carries the masked payload in
@@ -265,8 +266,53 @@ It feeds one reader: the session monitor (`docs/session-monitor.md` section 2). 
 detector that is deterministic (`dlp_vn`, `injection_regex`: `deterministic = True` in code) or
 has `mrm_status: GO` count in the `findings` signal; findings of any other detector are recorded
 on the turn and weigh 0. Shipped: `dlp_vn` GO, `injection_regex` GO, `injection_classifier`
-NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO. The status never
+NO-GO (held-out recall 8111 bp, false alarm 2522 bp), `judge_advisory` NO-GO, `judge_moderation` NO-GO. The status never
 changes what the gate answers or records for the decision itself.
+
+## 3e. `judge_moderation`: toxicity and topic scope (WP-D4)
+
+Phase 5. A judge detector that answers two kinds of question about text. It advises and reports;
+it never blocks, pauses or transforms (R1), it never fails closed, and it is off by default
+(`judge_moderation.enabled: false`, `mrm_status: NO-GO`). With the slug absent from
+`config/detectors.yaml`, or with `enabled: false`, nothing changes: no judge call, no finding.
+
+| Item | Rule |
+|---|---|
+| Sides and parts | `input`: the user text in `args` (the latest `role: user` message when `args.messages` is a list, else every string leaf). `output`: the assistant text in `output` |
+| Questions | `toxicity: {enabled}`: is the text toxic (abusive, hateful, degrading, threatening)? One answer, no breakdown by kind. `topics: [{name, definition}]`: does the text belong to this subject? One answer per topic; the other topics never change its score |
+| Limits | At most 5 topics per detector (add a second detector entry for more). `name` 1 to 120 characters and unique. `definition` up to 400 characters. Unknown keys are errors. Checked when the file loads (`DetectorsFile`, per-agent override too), so a bad topic is a startup error, not a runtime surprise |
+| What is scored | The DEFINITION. The name is only the label of the finding |
+| Prompts | One prompt per question and per window, on masked text. The judge answers `{answer: yes or no, score_bp, reason}` in a strict schema. A reply with the canary token (the model obeyed the data) is dropped and listed as `not_executed` `execution_failed`; it never becomes a finding |
+| Windows | The first 10 000 characters, in windows of 1 200 characters with 200 overlap (at most 10). The highest window score per question wins, so a subject at the end of a long text is found. Text past 10 000 characters is not read |
+| Findings | `moderation.toxic`, `moderation.topic:<name>`. Score in basis points. A finding is returned when the score reaches the threshold (strict 3000, balanced 5000, lenient 7000; one threshold for all topics). `action_hint` is always `report`. No text in a finding |
+| Judge | The Tier 1 judge the product built for `judge_advisory` (same model, same family rule: the judge family differs from every agent family, checked in `JudgeRouter`). Without a judge model the labelled MockJudge answers (keyword cues; it proves the harness, not a model) and every finding says `mock: true` |
+| Cost | Up to 1 + 5 questions times up to 10 windows per call. A real judge adds that latency to the gate answer, so keep the detector off in the hot path until a latency budget is set (same open point as `judge_advisory`) |
+
+Settings, in `config/detectors.yaml` or per agent (`agents.<id>.detectors.settings.judge_moderation`):
+
+```yaml
+judge_moderation:
+  enabled: true
+  settings:
+    toxicity: {enabled: true}
+    topics:
+      - name: Financial advice
+        definition: Personal recommendations about what to invest in, buy, sell or borrow ...
+```
+
+Ten editable drafts, in Vietnamese and English, are in `config/moderation_topics.yaml` (financial
+advice, legal advice, politics, religion, competitor products, internal project names, medical
+advice, illegal activity, adult content, code generation). The file is a menu: the detector never
+reads it and none of the drafts is enabled. Copy a draft into the settings and edit it. Write one
+plain sentence that says what belongs to the topic, in the language of your traffic; do not name a
+neighbouring topic to rule it out; do not paste example messages. After a change, run the harness
+on sample messages before you turn the topic on.
+
+Harness: `python -m supervisor.detectors.harness --detector judge_moderation` (golden set in
+`src/supervisor/detectors/moderation_golden.py`: toxic and benign, on-topic and off-topic, VI and
+EN, 21 dev, 20 held-out and 10 adversarial items; the rubric is in that file). Report:
+`docs/judge-moderation-validation-report.md`. It ran on the MockJudge, so the numbers prove the
+harness; `mrm_status` stays NO-GO until a real judge model runs the set (see `docs/judge-mrm.md`).
 
 ## 4. Verdict v2 and precedence
 
