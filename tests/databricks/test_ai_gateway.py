@@ -195,3 +195,32 @@ def test_judge_factory_uses_workspace_auth_on_gateway(monkeypatch: pytest.Monkey
     chat._transport = httpx.MockTransport(handler)  # type: ignore[attr-defined]
     assert chat.complete_json(MSGS, SCHEMA) == {"a": 1}
     assert seen == [f"{GW}/responses|Bearer t"]
+
+
+def test_model_family_uc_and_glm() -> None:
+    from supervisor.adapters.llm.openai_compatible import model_family
+
+    assert model_family("tcb_x.ai_champion_endpoint.glm-5-3-flash-ai_champion") == "glm"
+    assert model_family("glm-4-plus") == "glm"
+    assert model_family("gpt-4.1") == "openai"
+    assert model_family("qwen3:4b") == "qwen"
+    assert model_family("a.b.c.glm-1") == "unknown"
+    assert model_family("my_cat.sch.custom-name") == "unknown"
+
+
+def test_judge_factory_uc_glm_needs_no_declared_family(monkeypatch: pytest.MonkeyPatch) -> None:
+    from supervisor.adapters import factory
+
+    for k, v in APP.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setenv("LLM_BASE_URL", GW)
+    monkeypatch.setenv("JUDGE_T1_MODEL", "tcb_x.ai_champion_endpoint.glm-5-3-flash-ai_champion")
+    s = load_settings()
+    fake = SimpleNamespace(
+        config=SimpleNamespace(authenticate=lambda: {"Authorization": "Bearer t"})
+    )
+    monkeypatch.setattr(
+        "supervisor.adapters.sql.databricks_rest.make_workspace_client", lambda _s: fake
+    )
+    chat = factory.make_judge_chat_model(s, "t1")
+    assert chat.family == "glm" and chat.family_source == "derived"

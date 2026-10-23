@@ -62,6 +62,7 @@ FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
     ("gemma", "google"),
     ("gemini", "google"),
     ("deepseek", "deepseek"),
+    ("glm", "glm"),
     # D05: with the derived family an unknown id cannot be judged, so name the Mistral models.
     ("mistral", "mistral"),
     ("mixtral", "mistral"),
@@ -76,9 +77,10 @@ ANTI_REPETITION = (
 )
 
 
-def model_family(model: str) -> str:
-    """Family from the model name: claude->anthropic, gpt->openai, ... else ``unknown``."""
-    name = model.strip().lower().rsplit("/", 1)[-1]
+_UC_NAME = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+\.([^.\s]+)$")
+
+
+def _family_of(name: str) -> str:
     changed = True
     while changed:
         changed = False
@@ -89,6 +91,20 @@ def model_family(model: str) -> str:
         if name.startswith(prefix):
             return family
     return "unknown"
+
+
+def model_family(model: str) -> str:
+    """Family from the model name: claude->anthropic, gpt->openai, ... else ``unknown``.
+
+    A Unity Catalog name ``catalog.schema.name`` (exactly two dots, identifier segments) with
+    no known prefix is judged by its last segment (WP-P3)."""
+    name = model.strip().lower().rsplit("/", 1)[-1]
+    fam = _family_of(name)
+    if fam == "unknown":
+        m = _UC_NAME.match(name)
+        if m:
+            return _family_of(m.group(1))
+    return fam
 
 
 def looks_repetitive(text: str, window: int = 32, times: int = 6, tail: int = 4000) -> bool:
