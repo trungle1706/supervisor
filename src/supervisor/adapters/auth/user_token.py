@@ -41,6 +41,14 @@ def forwarded_token(token: UserToken | None) -> Iterator[None]:
         _current.reset(marker)
 
 
+@contextmanager
+def without_forwarded_token() -> Iterator[None]:
+    """WP-P5: run a block as the App service principal even inside a request that carries a
+    user token (runtime build: policy deploy, chain-writer init). Restored in finally."""
+    with forwarded_token(None):
+        yield
+
+
 class UserTokenMiddleware:
     """Pure ASGI middleware: expose the forwarded token to code running inside the request."""
 

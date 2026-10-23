@@ -139,3 +139,31 @@ def test_real_factory_sends_bearer() -> None:
     api = _make_user_api_factory(load_settings(), "https://ws.example.invalid")(USER)
     headers = api._api._cfg.authenticate()  # noqa: SLF001
     assert headers["Authorization"] == f"Bearer {USER}"
+
+
+def test_runtime_build_runs_as_sp_inside_a_token_request(monkeypatch: pytest.MonkeyPatch) -> None:
+    from supervisor.adapters.auth.user_token import current_forwarded_token
+    from supervisor.gateway import wiring as gw
+
+    seen: list[object] = []
+
+    def fake_build(settings: Any = None, policy_dir: Any = None) -> Any:
+        seen.append(current_forwarded_token())
+        return SimpleNamespace(gateway=object())
+
+    monkeypatch.setattr("supervisor.wiring._build_runtime", fake_build)
+    monkeypatch.setattr(gw, "_runtime", None)
+    monkeypatch.setattr(gw, "_gateway", None)
+    ex, _sp, user = _executor()
+    user.add(dml_result(1))
+    app = FastAPI()
+    app.add_middleware(UserTokenMiddleware)
+
+    @app.get("/q")
+    def q() -> dict[str, int]:
+        gw.install_runtime(None)  # lazy build inside the request
+        return {"n": ex.execute("UPDATE t SET a = 1")}
+
+    assert TestClient(app).get("/q", headers={"X-Forwarded-Access-Token": USER}).json() == {"n": 1}
+    assert seen == [None]  # the build saw no token
+    assert ex.seen == [USER]  # type: ignore[attr-defined]  # the request's own SQL still did

@@ -89,7 +89,17 @@ class Runtime:
                     self.adapters.close()
 
 
-def build_runtime(
+def build_runtime(*args: Any, **kwargs: Any) -> Runtime:
+    """Build the runtime. WP-P5: always as the App service principal, even when called inside a
+    request that carries a forwarded user token (lazy retry): policy deploy and chain-writer
+    init must never run as a user."""
+    from supervisor.adapters.auth.user_token import without_forwarded_token
+
+    with without_forwarded_token():
+        return _build_runtime(*args, **kwargs)
+
+
+def _build_runtime(
     settings: Settings | None = None,
     *,
     adapters: Adapters | None = None,

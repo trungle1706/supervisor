@@ -159,6 +159,8 @@ def readiness(me: Any, raw_path: str, settings: Any = None) -> dict[str, Any]:
     if not _ADVISOR_LOCK.acquire(blocking=False):
         raise ListingError("a check is already running; try again in a moment")
     try:
+        # WP-P5: the advisor scans repo files only and never touches SQL, so the forwarded
+        # user token is deliberately not propagated into this pool.
         future = _POOL.submit(_run_advisor, target)  # the worker releases the lock
     except BaseException:
         _ADVISOR_LOCK.release()
