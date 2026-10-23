@@ -163,3 +163,7 @@ Audit row: table `console_action`, `permission=ingress.auth`, `outcome=denied`, 
 ## Limits
 
 Nonces live in memory (one process, `--workers 1`). Rejection floods write audit rows unless `INGRESS_AUDIT_THROTTLE_S` is set. A compromised agent that holds its own key can still lie about its own calls. The OTel exporter cannot sign HMAC. See `BACKLOG.md`.
+
+### Key store location and settings of the key commands (WP-P2)
+
+The commands `issue`, `rotate` and `list` write the key store named by `INGRESS_KEYS_FILE` (or `--keys-file`); the default `config/agent_keys.yaml` inside the Supervisor repo is used only when neither is set. They print the full path of the file they wrote, for example `[OK] key issued for kb_chatbot in D:\cands\a1\agent_keys.yaml`. An agent app outside the repo sets `INGRESS_KEYS_FILE` (cmd: `set INGRESS_KEYS_FILE=D:\cands\a1\agent_keys.yaml`) and issues its key without touching the repo. The commands read only `SUPERVISOR_MODE`, `INGRESS_KEYS_FILE`, `INGRESS_KEY_STORE`, `INGRESS_KEY_OVERLAP_HOURS` and `INGRESS_SECRET_SCOPE` (from the environment and the env file), so an unrelated setting, such as a judge URL that is not a loopback address, does not stop them when `SUPERVISOR_ENV_FILE` is unset.

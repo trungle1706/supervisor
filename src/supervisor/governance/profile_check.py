@@ -1,4 +1,4 @@
-"""WP-P2: cross-check of the declared human_control with the define profile of linked agents."""
+"""WP-P2: cross-check of the declared human_control with the define profile of linked agents.
 
 The Decision 33 draft answers ``Q-PRE-APPROVAL`` from the declared field ``human_control``. A
 person can declare ``pre_approval`` for a system whose code has no human gate in front of its

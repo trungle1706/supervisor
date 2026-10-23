@@ -826,6 +826,46 @@ def _out(text: str) -> None:
     sys.stdout.write(text + "\n")
 
 
+def key_cli_settings() -> Any:
+    """WP-P2: only the settings the key commands need (INGRESS_KEYS_FILE, INGRESS_KEY_STORE,
+    INGRESS_KEY_OVERLAP_HOURS, INGRESS_SECRET_SCOPE, SUPERVISOR_MODE), read from the environment
+    and the env file. The full ``Settings`` is not loaded, so an unrelated setting (a judge URL
+    that is not a loopback address, for example) cannot stop ``issue`` or ``rotate``."""
+    from pydantic import Field
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+
+    from supervisor.config import REPO_ROOT, check_no_databricks_token, env_file_path
+
+    check_no_databricks_token()
+
+    class KeySettings(BaseSettings):
+        model_config = SettingsConfigDict(
+            env_file=str(env_file_path()),
+            env_file_encoding="utf-8",
+            extra="ignore",
+            case_sensitive=False,
+        )
+        supervisor_mode: str = "laptop"
+        ingress_keys_file: Path | None = None
+        ingress_key_store: str = "auto"
+        ingress_key_overlap_hours: int = Field(default=24, ge=1)
+        ingress_secret_scope: str = ""
+
+        @property
+        def effective_ingress_key_store(self) -> str:
+            if self.ingress_key_store != "auto":
+                return self.ingress_key_store
+            return "env" if self.supervisor_mode == "databricks_app" else "file"
+
+    ks = KeySettings()
+    path = ks.ingress_keys_file or (REPO_ROOT / "config" / "agent_keys.yaml")
+    path = path.expanduser()
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    ks.ingress_keys_file = Path(os.path.abspath(path))
+    return ks
+
+
 def _cli(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="python -m supervisor.gateway.ingress_auth",
@@ -842,11 +882,9 @@ def _cli(argv: list[str] | None = None) -> int:
     ls.add_argument("--keys-file")
     ns = p.parse_args(argv)
 
-    from supervisor.config import load_settings
-
-    settings = load_settings()
+    settings = key_cli_settings()  # WP-P2: not the full Settings
     store_kind = settings.effective_ingress_key_store
-    path = Path(ns.keys_file) if ns.keys_file else settings.ingress_keys_file
+    path = Path(os.path.abspath(ns.keys_file)) if ns.keys_file else settings.ingress_keys_file
     assert path is not None
     store = FileKeyStore(path)
     now = _utcnow()
@@ -861,7 +899,7 @@ def _cli(argv: list[str] | None = None) -> int:
             for k in keys:
                 exp = k.expires_at.isoformat() if k.expires_at else "-"
                 _out(f"{agent} {k.key_id} {k.state} expires={exp}")
-        _out(f"[OK] {len(data)} agent(s) in {path.name}")
+        _out(f"[OK] {len(data)} agent(s) in {path}")
         return 0
 
     agent_id = ns.agent_id
@@ -907,7 +945,7 @@ def _cli(argv: list[str] | None = None) -> int:
     data[agent_id] = rotate_keys(existing, secret, now, overlap)
     store.write_all(data)
     verb = "issued" if ns.cmd == "issue" else "rotated"
-    _out(f"[OK] key {verb} for {agent_id} in {path.name}")
+    _out(f"[OK] key {verb} for {agent_id} in {path}")
     if ns.cmd == "rotate":
         _out(f"     previous key valid until {(now + overlap).isoformat(timespec='seconds')}")
     if out_file:
