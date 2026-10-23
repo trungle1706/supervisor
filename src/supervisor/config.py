@@ -175,6 +175,9 @@ class Settings(BaseSettings):
     # maximum, pattern, maxItems and refuses `temperature`. Defaults keep the old request.
     llm_strict_schema: bool = False  # strict:true + schema copy without the refused keywords
     llm_send_temperature: bool = True  # false = leave temperature out of the request
+    # WP-P3: wire shape. "chat" = POST {base}/chat/completions; "responses" = POST
+    # {base}/responses (OpenAI responses API, Databricks AI Gateway model service).
+    llm_api_shape: Literal["chat", "responses"] = "chat"
 
     # Judges (WP5). Advisory only. Empty JUDGE_T*_MODEL = MockJudge (labelled mock).
     # Empty JUDGE_T*_BASE_URL = LLM_BASE_URL. JUDGE_T*_FAMILY overrides the family that is
@@ -913,14 +916,20 @@ class Settings(BaseSettings):
         """OpenAI-compatible base URL of the workspace's model-serving endpoints."""
         return f"{self.databricks_host}/serving-endpoints"
 
+    @property
+    def gateway_base_url(self) -> str:
+        """WP-P3: base URL of the workspace AI Gateway (Unity Catalog model services)."""
+        return f"{self.databricks_host}/ai-gateway/mlflow/v1"
+
     def is_workspace_serving_url(self, url: str) -> bool:
-        """True only in databricks_app mode for ``<DATABRICKS_HOST>/serving-endpoints``.
+        """True only in databricks_app mode for ``<DATABRICKS_HOST>/serving-endpoints``
+        or ``<DATABRICKS_HOST>/ai-gateway/mlflow/v1`` (WP-P3).
 
         This is the implied ``LLM_ALLOW_REMOTE``: the workspace's own endpoint, reached
         with the App's own identity, is not AI egress."""
         if self.supervisor_mode != "databricks_app" or is_placeholder(self.databricks_host):
             return False
-        return url.rstrip("/") == self.serving_base_url
+        return url.rstrip("/") in (self.serving_base_url, self.gateway_base_url)
 
     @property
     def llm_uses_workspace_auth(self) -> bool:

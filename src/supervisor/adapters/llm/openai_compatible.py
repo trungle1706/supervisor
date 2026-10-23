@@ -62,6 +62,7 @@ FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
     ("gemma", "google"),
     ("gemini", "google"),
     ("deepseek", "deepseek"),
+    ("glm", "glm"),
     # D05: with the derived family an unknown id cannot be judged, so name the Mistral models.
     ("mistral", "mistral"),
     ("mixtral", "mistral"),
@@ -76,9 +77,10 @@ ANTI_REPETITION = (
 )
 
 
-def model_family(model: str) -> str:
-    """Family from the model name: claude->anthropic, gpt->openai, ... else ``unknown``."""
-    name = model.strip().lower().rsplit("/", 1)[-1]
+_UC_NAME = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+\.([^.\s]+)$")
+
+
+def _family_of(name: str) -> str:
     changed = True
     while changed:
         changed = False
@@ -89,6 +91,20 @@ def model_family(model: str) -> str:
         if name.startswith(prefix):
             return family
     return "unknown"
+
+
+def model_family(model: str) -> str:
+    """Family from the model name: claude->anthropic, gpt->openai, ... else ``unknown``.
+
+    A Unity Catalog name ``catalog.schema.name`` (exactly two dots, identifier segments) with
+    no known prefix is judged by its last segment (WP-P3)."""
+    name = model.strip().lower().rsplit("/", 1)[-1]
+    fam = _family_of(name)
+    if fam == "unknown":
+        m = _UC_NAME.match(name)
+        if m:
+            return _family_of(m.group(1))
+    return fam
 
 
 def looks_repetitive(text: str, window: int = 32, times: int = 6, tail: int = 4000) -> bool:
@@ -131,7 +147,11 @@ class OpenAICompatibleChat:
         transport: httpx.BaseTransport | None = None,
         strict_schema: bool = False,
         send_temperature: bool = True,
+        api_shape: str = "chat",
     ) -> None:
+        if api_shape not in ("chat", "responses"):
+            raise LLMError(f"unknown LLM_API_SHAPE {api_shape!r} (use chat or responses)")
+        self.api_shape = api_shape
         if not base_url:
             raise LLMError("LLM_BASE_URL is empty; use MockChat")
         self.base_url = base_url.rstrip("/")
@@ -168,6 +188,7 @@ class OpenAICompatibleChat:
             transport=transport,
             strict_schema=settings.llm_strict_schema,
             send_temperature=settings.llm_send_temperature,
+            api_shape=getattr(settings, "llm_api_shape", "chat"),
         )
 
     def close(self) -> None:
@@ -236,6 +257,19 @@ class OpenAICompatibleChat:
     def _post(self, msgs: list[dict[str, str]], schema: Mapping[str, Any], timeout: float) -> str:
         # Strict endpoints refuse some keywords: send a stripped copy, validate with the full one.
         sent = jsonschema_lite.strict_compatible(schema) if self.strict_schema else dict(schema)
+        if self.api_shape == "responses":
+            body = self._responses_body(msgs, sent)
+            path = "responses"
+        else:
+            body = self._chat_body(msgs, sent)
+            path = "chat/completions"
+        headers = {"Content-Type": "application/json"}
+        if self.__api_key:
+            headers["Authorization"] = f"Bearer {self.__api_key}"
+        url = f"{self.base_url}/{path}"
+        return self._send(url, body, headers, timeout)
+
+    def _chat_body(self, msgs: list[dict[str, str]], sent: Mapping[str, Any]) -> dict[str, Any]:
         body: dict[str, Any] = {
             "model": self.model_id,
             "messages": msgs,
@@ -251,10 +285,45 @@ class OpenAICompatibleChat:
         }
         if self.send_temperature:
             body["temperature"] = 0
-        headers = {"Content-Type": "application/json"}
-        if self.__api_key:
-            headers["Authorization"] = f"Bearer {self.__api_key}"
-        url = f"{self.base_url}/chat/completions"
+        return body
+
+    def _responses_body(
+        self, msgs: list[dict[str, str]], sent: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """OpenAI responses API: system text -> ``instructions``; others -> typed input items."""
+        system = "\n\n".join(m["content"] for m in msgs if m.get("role") == "system")
+        items: list[dict[str, Any]] = []
+        for m in msgs:
+            role = m.get("role")
+            if role == "system":
+                continue
+            kind = "output_text" if role == "assistant" else "input_text"
+            items.append(
+                {
+                    "role": "assistant" if role == "assistant" else "user",
+                    "content": [{"type": kind, "text": m.get("content", "")}],
+                }
+            )
+        body: dict[str, Any] = {
+            "model": self.model_id,
+            "max_output_tokens": self.max_tokens,
+            "input": items,
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "reply",
+                    "schema": dict(sent),
+                    "strict": self.strict_schema,
+                }
+            },
+        }
+        if system:
+            body["instructions"] = system
+        if self.send_temperature:
+            body["temperature"] = 0
+        return body
+
+    def _send(self, url: str, body: dict[str, Any], headers: dict[str, str], timeout: float) -> str:
         start = time.monotonic()
         try:
             resp = self._client.post(url, json=body, headers=headers, timeout=timeout)
@@ -280,6 +349,8 @@ class OpenAICompatibleChat:
             raise LLMError(
                 f"model endpoint {self.base_url} returned HTTP {resp.status_code}: {text}"
             )
+        if self.api_shape == "responses":
+            return self._read_responses(resp)
         try:
             data = resp.json()
             choice = data["choices"][0]
@@ -293,6 +364,41 @@ class OpenAICompatibleChat:
                 "(raise num_ctx in the Modelfile or LLM_MAX_TOKENS)"
             )
         return content
+
+    def _read_responses(self, resp: httpx.Response) -> str:
+        try:
+            data = resp.json()
+            if not isinstance(data, dict):
+                raise TypeError("not an object")
+            status = data.get("status")
+            if status == "incomplete":
+                reason = (data.get("incomplete_details") or {}).get("reason")
+                if reason == "max_output_tokens":
+                    raise TruncatedError(
+                        f"reply from {self.model_id} was cut off at "
+                        f"max_output_tokens={self.max_tokens} (raise LLM_MAX_TOKENS)"
+                    )
+                raise LLMError(f"model {self.model_id} reply incomplete: {reason}")
+            if status == "failed":
+                raise LLMError(f"model {self.model_id} reported status failed")
+            items = data.get("output") or []
+            for item in items:
+                for part in item.get("content") or []:
+                    if part.get("type") == "refusal":
+                        raise LLMError("model refused")
+            text = data.get("output_text")
+            if not isinstance(text, str) or not text:
+                parts: list[str] = []
+                for item in items:
+                    for part in item.get("content") or []:
+                        if part.get("type") == "output_text":
+                            parts.append(str(part.get("text") or ""))
+                text = "".join(parts)
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
+            raise LLMError(f"model endpoint {self.base_url} sent a malformed response") from exc
+        if not text.strip():
+            raise LLMError(f"model {self.model_id} sent an empty reply")
+        return text
 
     @staticmethod
     def _parse(content: str, schema: Mapping[str, Any]) -> tuple[dict[str, Any] | None, str]:
