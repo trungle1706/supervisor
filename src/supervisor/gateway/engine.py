@@ -366,6 +366,9 @@ class Decision:
     # WP38 follow-up: true when the agent has two observe_approvals (written to the chain record
     # of an observed decision; WP39 reads it).
     observe_approved: bool = False
+    # WP-P2: False when the gate masked the arguments but the caller said it does not apply them
+    # (context.redaction_applied is false). None otherwise: the answer is unchanged.
+    redaction_applied: bool | None = None
 
     @property
     def consumer_id(self) -> str | None:
@@ -402,6 +405,8 @@ class Decision:
             out["transformed_args"] = self.transformed_args
             out["args_hmac_transformed"] = self.args_hmac_transformed
             out["redaction_count"] = self.redaction_count
+            if self.redaction_applied is False:  # WP-P2
+                out["redaction_applied"] = False
         if self.v2 is not None:  # absent with the flag off: same output as before
             out.update(self.v2)
         if self.sem is not None:  # WP38: only for agents that use mode, switches or consumers
@@ -1063,6 +1068,8 @@ class Gateway:
         if eff.active:
             self._apply_mode(d, eff, shadow, builtin is not None, risk)
             self._observed_secret(d)
+        if d.transformed_args is not None and ctx.get("redaction_applied") is False:
+            d.redaction_applied = False  # WP-P2
         return d, matches, shadow, builtin
 
     @staticmethod
@@ -1555,6 +1562,8 @@ class Gateway:
             out["inline_redaction"] = True
             out["args_hmac_transformed"] = d.args_hmac_transformed
             out["redaction_count"] = d.redaction_count
+            if d.redaction_applied is False:  # WP-P2: the caller does not apply the masked args
+                out["redaction_applied"] = False
             out["masker_version"] = str(getattr(self.masker, "mask_version", "unknown"))
         if d.v2 is not None:  # WP37: ids, codes and hashes only
             out.update(chain_fields(d))

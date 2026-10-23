@@ -153,3 +153,31 @@ timeout) x 4 settings (money or read_only, closed or open) = 144 cases against a
 replaying answers of a real gateway (`data/eval/collectors/gate_answers.json`). 26 adversarial
 probes. Overhead p50 and p95 per adapter. Thresholds are ILLUSTRATIVE. Rubric, baseline and
 result: `docs/collectors-validation-report.md`, `data/eval/collectors/`.
+
+## Session id, consumer id and the two redaction switches (WP-P2)
+
+### Session monitor from `@supervised_tool`
+
+An agent does not need its own `GateHook` wrapper to take part in the session monitor. The decorator sends `context.session_id` and `context.consumer_id` when it has them:
+
+```python
+from supervisor.gateway.sdk import supervised_tool, supervised_session, set_session
+
+@supervised_tool("kb_chatbot", "1", "search_policies", "read_only",
+                  session_id=lambda args: args.get("sid"), consumer_id="web")  # text or a function
+def search_policies(query, sid=None): ...
+
+with supervised_session("sess-123", "web"):   # or set_session(...) once per request
+    search_policies("limit")
+```
+
+A decorator argument wins over the context variable. With neither, nothing is sent and the monitor derives the id from agent, consumer and day. `HttpGate.check_v2` and `InProcessGate.check_v2` also take `session_id=` and `consumer_id=` and put them in `context`.
+
+### Inline redaction: two switches
+
+| Side | Switch | What it does |
+|---|---|---|
+| Gate (Supervisor server) | `INLINE_REDACTION_ENABLED=1`, or `DETECTORS_ENABLED=1` with `dlp_vn` in `transform` mode (also in SHADOW) | The gate answers with `transformed_args` (the masked arguments) |
+| Agent process (SDK, collector, MCP proxy) | `INLINE_REDACTION_ENABLED=1` in the agent environment (or `set_inline_redaction(True)`) | The SDK replaces the arguments with `transformed_args` before the tool runs |
+
+Both must be on. If the gate masks and the agent side is off, the tool gets the original arguments. To make this visible, the SDK sends `context.redaction_applied: false` on `pii_export` tools when its switch is off (other tool classes keep their old context). The gate then adds `redaction_applied: false` to the answer and to the `gate_decision` chain record (only when it masked; otherwise the answer is unchanged), and the SDK logs one warning per agent when it receives `transformed_args` it does not apply.

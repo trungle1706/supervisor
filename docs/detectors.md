@@ -838,3 +838,7 @@ dry run do not fetch a URL (above). A page is read as it is when
 the call is made; a page that changes later is a different page. Known gaps (the adversarial
 split of the harness names them): an instruction split over two files, in base64 or in leetspeak.
 The session monitor and the decision drawer do not show document text: it is not stored.
+
+## Two switches for masking (WP-P2)
+
+The gate side (`dlp_vn` `mode: transform`, or `INLINE_REDACTION_ENABLED=1` on the server) produces `transformed_args`. The agent side (`INLINE_REDACTION_ENABLED=1` in the agent process) applies them. Both are needed; see the table in `docs/collectors.md`. The server logs a start-up warning when `dlp_vn` is in transform mode and its own `INLINE_REDACTION_ENABLED` is off. A decision where the gate masked but the caller does not apply the masking carries `redaction_applied: false`. In SHADOW the gate still returns the masked arguments with the shadow allow (masking is not a decision).

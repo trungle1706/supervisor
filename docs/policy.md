@@ -165,3 +165,5 @@ By API (`AGENTS_API_ENABLED=1`): `POST /gate/agents/{id}/state` with `{"to": "RU
 "..."}`. It needs two different persons: the requester, then a second person with the reviewer
 or approver role. The way back (`RUNNING` to `SHADOW`) needs one person with `systems.edit` or the
 reviewer role. See `docs/api.md`.
+
+Session monitor settings (WP-P2): `agents.<id>.monitors.session` is checked when the policy loads (also with `reload`), using the built-in defaults for fields left out. With `pause_scope` set, the findings weight must stay below `pause_threshold_bp`, and `pause_threshold_bp` must not be below `case_threshold_bp`. A bad block is a load error with the numbers in the message; it does not disable the session monitor at run time.

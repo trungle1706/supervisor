@@ -6,6 +6,8 @@ Fail closed: no gate, no call. ``check`` on a hook never raises.
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import contextvars
 import functools
 import inspect
 import json
@@ -39,6 +41,20 @@ class SupervisorBlocked(Exception):
 
 class SupervisorPaused(SupervisorBlocked):
     """The gate paused the agent (or the agent was already paused)."""
+
+
+def _with_ids(
+    context: Mapping[str, Any] | None, session_id: str | None, consumer_id: str | None
+) -> Mapping[str, Any] | None:
+    """WP-P2: put session_id and consumer_id into the context when given (None: unchanged)."""
+    if session_id is None and consumer_id is None:
+        return context
+    out = dict(context or {})
+    if session_id is not None:
+        out["session_id"] = session_id
+    if consumer_id is not None:
+        out["consumer_id"] = consumer_id
+    return out
 
 
 def _closed_decision(rule_id: str, reason: str, t0: float) -> dict[str, Any]:
@@ -77,8 +93,12 @@ class InProcessGate:
         *,
         direction: str = "input",
         correlation_id: str | None = None,
+        session_id: str | None = None,
+        consumer_id: str | None = None,
     ) -> Mapping[str, Any]:
-        """``check`` plus ``direction`` and ``correlation_id`` (WP38 adapters)."""
+        """``check`` plus ``direction`` and ``correlation_id`` (WP38 adapters), and
+        ``session_id`` / ``consumer_id`` (WP-P2, sent in the context)."""
+        context = _with_ids(context, session_id, consumer_id)
         t0 = time.perf_counter()
         try:
             if direction == "input" and correlation_id is None:
@@ -189,10 +209,14 @@ class HttpGate:
         *,
         direction: str = "input",
         correlation_id: str | None = None,
+        session_id: str | None = None,
+        consumer_id: str | None = None,
     ) -> Mapping[str, Any]:
         """``check`` plus ``direction`` and ``correlation_id`` (WP38), sent only when set:
         ``direction`` as a body field when it is not ``input`` (an older server rejects
-        unknown fields), the correlation id as the ``X-Supervisor-Correlation-Id`` header."""
+        unknown fields), the correlation id as the ``X-Supervisor-Correlation-Id`` header.
+        WP-P2: ``session_id`` and ``consumer_id`` go into ``context`` (session monitor)."""
+        context = _with_ids(context, session_id, consumer_id)
         t0 = time.perf_counter()
         payload: dict[str, Any] = {
             "agent_id": agent_id,
@@ -288,6 +312,62 @@ def warn_inline_once() -> None:
     )
 
 
+_warned_not_applied: set[str] = set()
+
+
+def warn_not_applied_once(agent_id: str) -> None:
+    """WP-P2: one warning per agent when the gate returned ``transformed_args`` and this process
+    is configured not to apply them (INLINE_REDACTION_ENABLED is off here): the tool then gets
+    the original arguments. The gate is told in ``context.redaction_applied`` (false) and shows
+    it in the decision."""
+    if agent_id in _warned_not_applied:
+        return
+    _warned_not_applied.add(agent_id)
+    log.warning(
+        "the gate masked the arguments of agent %s but inline redaction is OFF in this process "
+        "(INLINE_REDACTION_ENABLED): the tool gets the original arguments. Switch it on on the "
+        "agent side too; see docs/collectors.md",
+        agent_id,
+    )
+
+
+# WP-P2: session and consumer id for the session monitor, without a GateHook wrapper of your own.
+_session_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "supervisor_session_id", default=None
+)
+_consumer_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "supervisor_consumer_id", default=None
+)
+
+
+def set_session(session_id: str | None, consumer_id: str | None = None) -> None:
+    """Set the session (and consumer) id for the current thread or async task."""
+    _session_id.set(session_id)
+    _consumer_id.set(consumer_id)
+
+
+@contextlib.contextmanager
+def supervised_session(session_id: str | None, consumer_id: str | None = None) -> Any:
+    """``with supervised_session(sid, consumer): ...`` sets both ids for the calls inside."""
+    t1, t2 = _session_id.set(session_id), _consumer_id.set(consumer_id)
+    try:
+        yield
+    finally:
+        _session_id.reset(t1)
+        _consumer_id.reset(t2)
+
+
+def _ids(value: Any, bound: Mapping[str, Any], fallback: str | None) -> str | None:
+    """A decorator argument: text, or a callable taking no argument or the bound arguments."""
+    if callable(value):
+        try:
+            value = value(bound)
+        except TypeError:
+            value = value()
+    got = value if value is not None else fallback
+    return str(got) if isinstance(got, str | int) and str(got) else None
+
+
 _inline_override: bool | None = None
 
 
@@ -308,10 +388,13 @@ def apply_transformed(
     args: tuple[Any, ...],
     kwargs: dict[str, Any],
     decision: Mapping[str, Any],
+    agent_id: str | None = None,
 ) -> tuple[tuple[Any, ...], dict[str, Any]]:
     """(args, kwargs) for the tool call: the gate's masked values when redaction is on and the
     decision carries ``transformed_args``; otherwise the original call, untouched."""
     transformed = decision.get("transformed_args")
+    if isinstance(transformed, Mapping) and not inline_redaction_on():
+        warn_not_applied_once(agent_id or str(decision.get("agent_id") or "agent"))  # WP-P2
     if not inline_redaction_on() or not isinstance(transformed, Mapping):
         return args, kwargs
     try:
@@ -364,6 +447,8 @@ def supervised_tool(
     risk_class: str,
     gate: GateHook | None = None,
     documents_arg: str | None = None,
+    session_id: str | Callable[..., str | None] | None = None,
+    consumer_id: str | Callable[..., str | None] | None = None,
 ) -> Callable[[F], F]:
     """Decorator: ask the gate before the tool runs; do not run it unless allowed.
 
@@ -371,7 +456,13 @@ def supervised_tool(
     (bytes, ``(name, bytes)`` pairs, ``pathlib.Path`` objects or document dicts). While
     ``DOCUMENT_INTAKE_ENABLED`` is on in this process the files go to the gate as
     ``context.documents`` and the parameter is left out of ``args``; with the switch off nothing
-    changes."""
+    changes.
+
+    ``session_id`` and ``consumer_id`` (WP-P2) go to the gate as ``context.session_id`` and
+    ``context.consumer_id`` for the session monitor. Each is a text, or a function that takes the
+    bound arguments (or nothing) and returns the text; when it is not given the value set with
+    ``set_session`` / ``supervised_session`` (a context variable) is used. Nothing is sent when
+    there is none."""
 
     def resolve() -> GateHook:
         g = gate or _default_gate
@@ -401,17 +492,32 @@ def supervised_tool(
         if risk_class == "pii_export" and inline_redaction_on():
             warn_inline_once()
 
+        def call_context(bound_args: dict[str, Any]) -> dict[str, Any]:
+            ctx = dict(context)
+            sid = _ids(session_id, bound_args, _session_id.get())
+            cid = _ids(consumer_id, bound_args, _consumer_id.get())
+            if sid:
+                ctx["session_id"] = sid
+            if cid:
+                ctx["consumer_id"] = cid
+            if risk_class == "pii_export" and not inline_redaction_on():
+                # WP-P2: this process will not apply masking (other tool classes keep the old
+                # context; the warning still fires when masked arguments come back)
+                ctx["redaction_applied"] = False
+            return ctx
+
         def with_documents(
             bound_args: dict[str, Any],
         ) -> tuple[dict[str, Any], dict[str, Any]]:
             """(args, context) for the gate call. WP-D1: off, both are what they were."""
+            ctx = call_context(bound_args)
             if documents_arg is None or not _documents_on():
-                return bound_args, context
+                return bound_args, ctx
             from supervisor.gateway.adapters.attachments import to_documents
 
             args_ = dict(bound_args)
             found = to_documents(args_.pop(documents_arg, None))
-            return args_, ({**context, "documents": found} if found else context)
+            return args_, ({**ctx, "documents": found} if found else ctx)
 
         if inspect.iscoroutinefunction(fn):
 
@@ -423,7 +529,7 @@ def supervised_tool(
                     g.check, agent_id, agent_version, tool_name, gate_args, gate_ctx
                 )
                 _enforce(decision)
-                args, kwargs = apply_transformed(sig, args, kwargs, decision)
+                args, kwargs = apply_transformed(sig, args, kwargs, decision, agent_id)
                 return await fn(*args, **kwargs)
 
             return awrapper  # type: ignore[return-value]
@@ -434,7 +540,7 @@ def supervised_tool(
             gate_args, gate_ctx = with_documents(bind(args, kwargs))
             decision = g.check(agent_id, agent_version, tool_name, gate_args, gate_ctx)
             _enforce(decision)
-            args, kwargs = apply_transformed(sig, args, kwargs, decision)
+            args, kwargs = apply_transformed(sig, args, kwargs, decision, agent_id)
             return fn(*args, **kwargs)
 
         return wrapper  # type: ignore[return-value]
