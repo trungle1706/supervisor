@@ -280,6 +280,7 @@ Never send `.env`, `uv.toml` with credentials, tokens, or `databricks auth token
 | Symptom | Cause | Fix |
 |---|---|---|
 | Deploy fails: 404 `Endpoint with name ... does not exist` | The model is a Unity Catalog model service (AI Gateway), not a classic serving endpoint, so the `llm-endpoint` resource cannot bind it | Remove the `llm-endpoint` resource and use the gateway form in `app.yaml` (`LLM_BASE_URL=.../ai-gateway/mlflow/v1`, `LLM_MODEL=<catalog>.<schema>.<name>`, `LLM_API_SHAPE=responses`); grant the App service principal EXECUTE on the model service |
+| Judge 403 with `LLM_USER_TOKEN_FORWARD=1` (verdict label `judge_unavailable`) | The scope for the model service is missing in `user_api_scopes`, or the signed-in user has no grant on the model service | Add the serving scope in `databricks.yml` (try `serving.serving-endpoints`), redeploy, sign in again so the token carries it; else ask the workspace admin which scope the AI Gateway needs. The gate is not affected: judges only advise |
 | "Access is denied (os error 5)" | AppLocker blocks the `.exe` stub | `uv run python -m <module>` |
 | uv downloads Python and fails with `UnknownIssuer` | Python 3.11 not found locally | install Python 3.11; `uv sync --python 3.11` |
 | `uv sync` cannot resolve any package | Nexus `uv.toml` missing | put `uv.toml` in the repo folder; run uv from there |

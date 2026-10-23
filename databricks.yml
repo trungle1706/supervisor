@@ -42,6 +42,11 @@ resources:
       # On-behalf-of user SQL: the signed-in user's token arrives in X-Forwarded-Access-Token.
       user_api_scopes:
         - sql
+        # WP-P4, sandbox-only (LLM_USER_TOKEN_FORWARD=1): the judges call the model service with
+        # the signed-in user's token. The exact scope name for the AI Gateway is NOT confirmed.
+        # Try serving.serving-endpoints; if the token is refused (403), ask the workspace admin
+        # which scope the gateway needs.
+        # - serving.serving-endpoints
       resources:
         # app.yaml reads these with valueFrom: sql-warehouse -> warehouse id,
         # llm-endpoint -> serving endpoint name.
