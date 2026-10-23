@@ -370,23 +370,34 @@ class OpenAICompatibleChat:
             data = resp.json()
             if not isinstance(data, dict):
                 raise TypeError("not an object")
-            if data.get("status") == "incomplete":
-                details = data.get("incomplete_details") or {}
-                if details.get("reason") == "max_output_tokens":
+            status = data.get("status")
+            if status == "incomplete":
+                reason = (data.get("incomplete_details") or {}).get("reason")
+                if reason == "max_output_tokens":
                     raise TruncatedError(
                         f"reply from {self.model_id} was cut off at "
                         f"max_output_tokens={self.max_tokens} (raise LLM_MAX_TOKENS)"
                     )
+                raise LLMError(f"model {self.model_id} reply incomplete: {reason}")
+            if status == "failed":
+                raise LLMError(f"model {self.model_id} reported status failed")
+            items = data.get("output") or []
+            for item in items:
+                for part in item.get("content") or []:
+                    if part.get("type") == "refusal":
+                        raise LLMError("model refused")
             text = data.get("output_text")
             if not isinstance(text, str) or not text:
                 parts: list[str] = []
-                for item in data["output"]:
+                for item in items:
                     for part in item.get("content") or []:
                         if part.get("type") == "output_text":
                             parts.append(str(part.get("text") or ""))
                 text = "".join(parts)
         except (ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
             raise LLMError(f"model endpoint {self.base_url} sent a malformed response") from exc
+        if not text.strip():
+            raise LLMError(f"model {self.model_id} sent an empty reply")
         return text
 
     @staticmethod

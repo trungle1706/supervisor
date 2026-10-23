@@ -115,7 +115,7 @@ def test_http_error_masks_key() -> None:
 
 def test_malformed_response() -> None:
     def handler(req: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"nope": 1})
+        return httpx.Response(200, json=[1])
 
     with pytest.raises(LLMError, match="malformed"):
         _chat(handler).complete_json(MSGS, SCHEMA)
@@ -224,3 +224,46 @@ def test_judge_factory_uc_glm_needs_no_declared_family(monkeypatch: pytest.Monke
     )
     chat = factory.make_judge_chat_model(s, "t1")
     assert chat.family == "glm" and chat.family_source == "derived"
+
+
+@pytest.mark.parametrize(
+    ("payload", "match"),
+    [
+        ({"output": [{"content": [{"type": "refusal", "refusal": "no"}]}]}, "refused"),
+        (
+            {"status": "incomplete", "incomplete_details": {"reason": "content_filter"}},
+            "content_filter",
+        ),
+        ({"status": "failed", "error": {"message": "secret body"}}, "failed"),
+        ({"output": []}, "empty"),
+        ({"output_text": "  "}, "empty"),
+    ],
+)
+def test_responses_failure_modes(payload: dict[str, Any], match: str) -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    with pytest.raises(LLMError, match=match) as ei:
+        _chat(handler).complete_json(MSGS, SCHEMA)
+    assert "secret body" not in str(ei.value)
+
+
+def test_serving_chat_deadline_passthrough_responses() -> None:
+    import time
+
+    from supervisor.adapters.llm.errors import LLMTimeoutError
+    from supervisor.databricks.serving import DatabricksServingChat
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"output_text": '{"a": 1}'})
+
+    chat = DatabricksServingChat(
+        GW,
+        MODEL,
+        lambda: {"Authorization": "Bearer t"},
+        api_shape="responses",
+        transport=httpx.MockTransport(handler),
+    )
+    assert chat.complete_json(MSGS, SCHEMA, deadline=time.monotonic() + 60) == {"a": 1}
+    with pytest.raises(LLMTimeoutError):
+        chat.complete_json(MSGS, SCHEMA, deadline=time.monotonic() - 1)
