@@ -90,7 +90,10 @@ def test_not_applied_is_warned_once_and_told_to_the_gate(caplog: pytest.LogCaptu
     with caplog.at_level(logging.WARNING, logger="supervisor.gateway.sdk"):
         assert t("raw") == "raw"  # inline redaction is off here: the original arguments go on
         t("raw")
-    assert spy.calls[0]["context"]["redaction_applied"] is False
+    # the first request is the one of before WP-P2; once masked arguments came back unapplied,
+    # the next requests of that agent tell the gate
+    assert spy.calls[0]["context"] == {"declared_risk_class": "pii_export"}
+    assert spy.calls[1]["context"]["redaction_applied"] is False
     warns = [r for r in caplog.records if "agent_w" in r.getMessage()]
     assert len(warns) == 1
 

@@ -381,15 +381,18 @@ def _unified(path: Path, old: str, new: str) -> str:
     )
 
 
-def find_policy_file(policy_dir: Path, rule_id: str) -> Path | None:
+def find_policy_file(policy_dir: Any, rule_id: str) -> Path | None:
+    """The file that defines the rule, in one folder or in several (WP-P2: first match)."""
     pat = re.compile(rf"^\s*-\s*id:\s*{re.escape(rule_id)}\s*$", re.M)
-    for f in sorted(Path(policy_dir).glob("*.yaml")):
-        if pat.search(f.read_text(encoding="utf-8")):
-            return f
+    folders = policy_dir if isinstance(policy_dir, list | tuple) else [policy_dir]
+    for folder in folders:
+        for f in sorted(Path(folder).glob("*.yaml")):
+            if pat.search(f.read_text(encoding="utf-8")):
+                return f
     return None
 
 
-def attach_diff(s: dict[str, Any], policy_dir: Path, manifest_dir: Path | None) -> dict[str, Any]:
+def attach_diff(s: dict[str, Any], policy_dir: Any, manifest_dir: Path | None) -> dict[str, Any]:
     """Add ``diff`` (unified, policy then manifest) and the file names to a suggestion.
 
     All or nothing per agent: when one allow-list rule cannot be patched safely (shared with
@@ -564,14 +567,14 @@ def build_all(
     with_diff: bool = True,
 ) -> list[dict[str, Any]]:
     """Suggestions for every agent in the policy (or one agent), from the stored rollup."""
-    from supervisor.gateway.policy import PolicyError, load_policy_dir
+    from supervisor.gateway.policy import PolicyError, load_policy_dirs
 
-    # WP41 (D27): the served POLICY_DIR (D13), not only the repo folder
-    policy_dir = Path(policy_dir or settings.policy_dir or POLICY_DIR)
+    # WP41 (D27): the served POLICY_DIR (D13), not only the repo folder; WP-P2: all its folders
+    policy_dir = [Path(policy_dir)] if policy_dir else list(settings.policy_dirs) or [POLICY_DIR]
     days = days or settings.tool_analytics_window_days
     start, end = window_bounds(as_of, days)
     try:
-        policy = load_policy_dir(policy_dir)
+        policy = load_policy_dirs(policy_dir)
     except (PolicyError, OSError) as exc:
         raise AnalyticsError(f"cannot load policy from {policy_dir}: {exc}") from exc
     if manifest_dir is None:

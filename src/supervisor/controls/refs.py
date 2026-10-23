@@ -126,10 +126,10 @@ def build_refs(state: Any, settings: Any) -> ControlRefs:
         if deployed:
             return out
         from supervisor.config import REPO_ROOT
-        from supervisor.gateway.policy import load_policy_dir
+        from supervisor.gateway.policy import load_policy_dirs
 
-        folder = getattr(settings, "policy_dir", None) or (REPO_ROOT / "policies")
-        return {r.id: r.agent_scope for r in load_policy_dir(folder).doc.rules}
+        folders = list(getattr(settings, "policy_dirs", ()) or ()) or [REPO_ROOT / "policies"]
+        return {r.id: r.agent_scope for r in load_policy_dirs(folders).doc.rules}
 
     return ControlRefs(base, risks=risks, rule_scopes=scopes)
 

@@ -21,8 +21,13 @@ from typing import Any
 MONEY_CLASSES = ("money", "credit")
 
 
+MAX_BYTES = 2_000_000  # a profile is a few KB; never read an oversized file
+
+
 def _load(path: Path) -> dict[str, Any] | None:
     try:
+        if path.stat().st_size > MAX_BYTES:
+            return None
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None

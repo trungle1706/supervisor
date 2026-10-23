@@ -500,9 +500,10 @@ def supervised_tool(
                 ctx["session_id"] = sid
             if cid:
                 ctx["consumer_id"] = cid
-            if risk_class == "pii_export" and not inline_redaction_on():
-                # WP-P2: this process will not apply masking (other tool classes keep the old
-                # context; the warning still fires when masked arguments come back)
+            if agent_id in _warned_not_applied and not inline_redaction_on():
+                # WP-P2: this agent already received masked arguments that this process did not
+                # apply. Tell the gate so the decision shows it. A request that never met that
+                # case is byte-identical to the one before WP-P2.
                 ctx["redaction_applied"] = False
             return ctx
 

@@ -237,11 +237,16 @@ def risk_classes(policy_dir: Any = None) -> dict[str, str]:
     from pathlib import Path
 
     from supervisor.config import REPO_ROOT
-    from supervisor.gateway.policy import PolicyError, load_policy_dir
+    from supervisor.gateway.policy import PolicyError, load_policy_dirs
 
     out: dict[str, str] = {}
+    folders = (
+        [Path(d) for d in policy_dir]
+        if isinstance(policy_dir, list | tuple)
+        else [Path(policy_dir or REPO_ROOT / "policies")]
+    )
     try:
-        out.update(load_policy_dir(Path(policy_dir or REPO_ROOT / "policies")).doc.tools)
+        out.update(load_policy_dirs(folders).doc.tools)
     except (PolicyError, OSError):
         pass
     try:

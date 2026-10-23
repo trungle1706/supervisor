@@ -75,3 +75,13 @@ def test_no_profile_or_no_money_tool_changes_nothing(
         json.dumps({"tool_risk_classes": {"a": "read_only"}, "decision33": {}}), encoding="utf-8"
     )
     assert check_pre_approval(tmp_path, ["r"])[0] == "no_profile"
+
+
+def test_oversized_profile_is_ignored(tmp_path: Path) -> None:
+    folder = tmp_path / "onboard" / "big"
+    folder.mkdir(parents=True)
+    pad = " " * 2_100_000
+    (folder / "profile.json").write_text(
+        json.dumps({"tool_risk_classes": {"a": "money"}, "decision33": {}}) + pad, encoding="utf-8"
+    )
+    assert check_pre_approval(tmp_path, ["big"])[0] == "no_profile"

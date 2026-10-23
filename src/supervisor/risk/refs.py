@@ -112,10 +112,10 @@ def build_catalogue(state: Any, settings: Any) -> RefCatalogue:
         if deployed:
             return deployed
         from supervisor.config import REPO_ROOT
-        from supervisor.gateway.policy import load_policy_dir
+        from supervisor.gateway.policy import load_policy_dirs
 
-        folder = getattr(settings, "policy_dir", None) or (REPO_ROOT / "policies")
-        return [r.id for r in load_policy_dir(folder).doc.rules]
+        folders = list(getattr(settings, "policy_dirs", ()) or ()) or [REPO_ROOT / "policies"]
+        return [r.id for r in load_policy_dirs(folders).doc.rules]
 
     def case_exists(case_id: str) -> bool:
         return state.get("cases", {"case_id": case_id}) is not None
