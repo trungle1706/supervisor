@@ -4,6 +4,9 @@ A ``ContextVar`` set by ``UserTokenMiddleware`` from ``X-Forwarded-Access-Token`
 HTTP request and reset when the request ends. It is read by the judge client only when
 ``LLM_USER_TOKEN_FORWARD=1``. Never stored, never logged, never in the evidence chain.
 
+Trust: the header is trusted only behind the Apps proxy; a spoofed header only lets a caller
+run the judge under its own token.
+
 Reach: the value follows the request into ``async`` code, into sync endpoints (run by the
 framework in a worker thread with a copied context) and into ``asyncio.to_thread``. It does
 NOT follow a plain ``ThreadPoolExecutor.submit`` or a task that outlives the response: those
