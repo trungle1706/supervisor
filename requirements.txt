@@ -1,5 +1,6 @@
 # Exported from uv.lock. Do not edit. Regenerate: uv run python -m supervisor.cli export-reqs
-# (= uv export --frozen --no-dev --extra databricks --no-hashes --no-emit-project --no-header)
+# (= uv export --frozen --no-dev --extra databricks --extra documents --no-hashes
+#    --no-emit-project --no-header)
 # The Databricks App installs this file at BUILD; the runtime has no package index.
 # If BUILD cannot reach PyPI, switch to the bank Nexus GROUP index in your LOCAL copy only:
 #   uv run python -m supervisor.cli export-reqs --nexus <nexus host>
@@ -80,6 +81,8 @@ pydantic==2.14.1
 pydantic-core==2.50.1
     # via pydantic
 pydantic-settings==2.16.0
+    # via supervisor
+pypdf==6.21.2
     # via supervisor
 python-dotenv==1.2.4
     # via pydantic-settings
