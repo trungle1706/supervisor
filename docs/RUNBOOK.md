@@ -241,6 +241,8 @@ durable files go to the Volume in `app.yaml`, tables to your schema.
 
 ## 9. Live test kit
 
+v0.5.0 adds items 13 to 16 (MCP and KPIs, document intake, guard model, candidate App): `docs\live-test-kit.md` section 6. The whole Databricks route in one page: `docs\deploy\LAUNCH_DATABRICKS.md`.
+
 See `docs\live-test-kit.md`. Short form:
 
 ```
