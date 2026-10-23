@@ -87,7 +87,7 @@ built, harnessed and off; the bank must choose and serve a model first.
 
 | Item | State |
 |---|---|
-| Release v0.5.0 | tagged on main (local); bundles at `~/supervisor-release/v0.5.0/laptop/` and `.../databricks/`, SHA256SUMS in each |
+| Release v0.5.0 | tagged on main (local, cfc35db); full suite on main 6,703 passed, 46 skipped (2026-10-23, after one contract-test fix cd3296a); bundles at `~/supervisor-release/v0.5.0/laptop/` and `.../databricks/`, SHA256SUMS in each |
 | Laptop launch | `docs/deploy/LAUNCH_LAPTOP.md` (Windows cmd); `tools/smoke_launch.py` passes on Linux; not yet run on Windows |
 | Databricks launch | `docs/deploy/LAUNCH_DATABRICKS.md`; app.yaml and databricks.yml carry every phase 4 and 5 switch; live test kit items 1 to 16 are manual and NOT run |
 | Candidate A1, bank knowledge chatbot, L1 | MIT upstream, pinned; FastAPI middleware; retrieval-only tool; registered, classified (unclassified until a person answers), gate checks captured |
