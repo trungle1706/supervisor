@@ -347,7 +347,7 @@ def _resolve_agent_id(src: Path, agent_id: str | None) -> str | None:
             doc = None
         meta = doc.get("metadata") if isinstance(doc, Mapping) else None
         value = meta.get("agent_id") if isinstance(meta, Mapping) else None
-        if isinstance(value, str) and value.strip():
+        if isinstance(value, str) and value.strip() and not value.upper().startswith("FILL-ME"):
             return value.strip()
     if src.name.lower() == "artifact":
         raise DefineError(
@@ -364,10 +364,15 @@ def _add_artifact_facts(disc: Discovery) -> Discovery:
     inv, index = disc.inventory, disc.index
     update: dict[str, Any] = {}
     meta = _mlmodel_metadata(index)
-    if str(inv.owner_user).startswith("FILL-ME") and meta.get("owner"):
-        update["owner_user"] = str(meta["owner"]).strip()[:200]
-    if str(inv.owner_team).startswith("FILL-ME") and meta.get("owner_team"):
-        update["owner_team"] = str(meta["owner_team"]).strip()[:200]
+
+    def given(key: str) -> str | None:  # a FILL-ME placeholder is an absent value
+        v = str(meta.get(key) or "").strip()
+        return v[:200] if v and not v.upper().startswith("FILL-ME") else None
+
+    if str(inv.owner_user).startswith("FILL-ME") and given("owner"):
+        update["owner_user"] = given("owner")
+    if str(inv.owner_team).startswith("FILL-ME") and given("owner_team"):
+        update["owner_team"] = given("owner_team")
     phantom = [t for t in inv.tools if t.name == inv.agent_id and t.manifest_entry is None]
     if phantom:
         update["tools"] = [t for t in inv.tools if t not in phantom]

@@ -33,9 +33,10 @@ _SPAWN = re.compile(
     r"(?i)\b(spawn_?agents?|create_?sub_?agents?|sub_?agents?\s*=|AgentFactory|register_tool\(|"
     r"add_tool\(|self\.(?:system_)?prompt\s*(?:\+)?=|rewrite_?prompt|update_?own_?(?:prompt|tools))"
 )
+# WP-P2: LangGraph interrupt / interrupt_before are NOT generic: they count only for the tools in
+# the node they guard (``understand._approval_refs``). The other patterns stay generic.
 _INTERRUPT = re.compile(
-    r"(?i)\binterrupt\s*\(|interrupt_before|interrupt_after|human_?in_?the_?loop|"
-    r"HumanApproval|require_confirmation|confirm_before"
+    r"(?i)interrupt_after|human_?in_?the_?loop|HumanApproval|require_confirmation|confirm_before"
 )
 _LOOP = re.compile(
     r"(?i)create_react_agent|AgentExecutor|initialize_agent|plan_and_execute|PlanAndExecute|"

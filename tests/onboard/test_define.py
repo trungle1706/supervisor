@@ -348,3 +348,30 @@ def test_p2_interrupt_before_counts_as_a_human_gate_for_the_money_tool(tmp_path:
     assert res.autonomy["level"] == "l3_tool_using_supervised"  # consistent with the gate
     assert any("interrupt_before" in r.quote for r in res.inventory.human_approval_refs)
     assert res.inventory.model_family == "qwen"
+
+
+def test_p2_interrupt_before_a_read_only_node_is_not_a_gate_for_the_money_tool(
+    tmp_path: Path,
+) -> None:
+    import shutil
+
+    src = tmp_path / "cs"
+    shutil.copytree(CS, src)
+    agent = src / "code" / "csagent" / "agent.py"
+    agent.write_text(
+        agent.read_text().replace(
+            'interrupt_before=["sensitive_tools"]', 'interrupt_before=["safe_tools"]'
+        )
+    )
+    res = define_artifact(src, tmp_path / "o", agent_id="cs_agent")
+    assert res.profile.decision33.human_gate_in_code is False
+    assert res.autonomy["level"] == "l4_autonomous_bounded"  # waive_fee is unguarded
+    # and the positive case: the node that holds waive_fee
+    ok = define_artifact(CS, tmp_path / "o2", agent_id="cs_agent")
+    assert ok.profile.decision33.human_gate_in_code is True
+    assert all("waive_fee" in g for g in ok.inventory.interrupt_guards.values())
+
+
+def test_p2_fill_me_owner_in_mlmodel_is_not_copied(tmp_path: Path) -> None:
+    res = define_artifact(CREDIT, tmp_path / "o")
+    assert res.inventory.owner_user.startswith("FILL-ME-owner-user")

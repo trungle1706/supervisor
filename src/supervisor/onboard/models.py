@@ -190,6 +190,8 @@ class Inventory(_M):
     constants: dict[str, list[str]] = Field(default_factory=dict)
     pii_fields: dict[str, Evidence] = Field(default_factory=dict)
     human_approval_refs: list[Evidence] = Field(default_factory=list)
+    # WP-P2: "file:line" of a LangGraph interrupt -> names of the functions it guards
+    interrupt_guards: dict[str, list[str]] = Field(default_factory=dict)
     secret_refs: list[Evidence] = Field(default_factory=list)
     skipped: dict[str, str] = Field(default_factory=dict)
     scrub: dict[str, Any] = Field(default_factory=dict)

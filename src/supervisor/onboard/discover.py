@@ -270,6 +270,7 @@ def discover(
         constants=st.constants,
         pii_fields=dict(sorted(st.pii.items())),
         human_approval_refs=st.human_refs,
+        interrupt_guards=_interrupt_guards(index, st.interrupts),
         secret_refs=st.secret_refs,
         skipped=dict(sorted(skipped.items())),
         scrub=scrubber.summary(),
@@ -491,6 +492,7 @@ class _State:
     constants: dict[str, list[str]] = field(default_factory=dict)
     pii: dict[str, Evidence] = field(default_factory=dict)
     human_refs: list[Evidence] = field(default_factory=list)
+    interrupts: dict[str, dict[str, list[str]]] = field(default_factory=dict)  # WP-P2
     secret_refs: list[Evidence] = field(default_factory=list)
     apps: list[str] = field(default_factory=list)
     code_tools: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -837,16 +839,92 @@ def _scan_python(file: str, index: SourceIndex, st: _State) -> None:
             st.human_refs.append(index.evidence(file, fn.lineno))
     for node in ast.walk(tree):
         _scan_node(file, node, index, st)
-        # WP-P2: LangGraph interrupt_before=[...] (non-empty) or interrupt(...) is a human gate
+        # WP-P2: LangGraph interrupt_before=[...] (non-empty) is a human gate for the named nodes
         if isinstance(node, ast.Call):
-            nonempty = any(
-                kw.arg == "interrupt_before"
-                and isinstance(kw.value, ast.List | ast.Tuple | ast.Set)
-                and kw.value.elts
-                for kw in node.keywords
-            )
-            if nonempty or _call_name(node) in ("interrupt", "langgraph.types.interrupt"):
-                st.human_refs.append(index.evidence(file, node.lineno))
+            for kw in node.keywords:
+                if (
+                    kw.arg == "interrupt_before"
+                    and isinstance(kw.value, ast.List | ast.Tuple | ast.Set)
+                    and kw.value.elts
+                ):
+                    nodes = [
+                        e.value
+                        for e in kw.value.elts
+                        if isinstance(e, ast.Constant) and isinstance(e.value, str)
+                    ]
+                    st.human_refs.append(index.evidence(file, node.lineno))
+                    st.interrupts[f"{file}:{node.lineno}"] = {"nodes": nodes, "funcs": []}
+    # interrupt(...) inside a function guards that function (a tool or a node function)
+    for fn in (n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)):
+        for sub in ast.walk(fn):
+            if isinstance(sub, ast.Call) and _call_name(sub) in (
+                "interrupt",
+                "langgraph.types.interrupt",
+            ):
+                key = f"{file}:{sub.lineno}"
+                if key not in st.interrupts:
+                    st.human_refs.append(index.evidence(file, sub.lineno))
+                    st.interrupts[key] = {"nodes": [], "funcs": [fn.name]}
+
+
+def _names_in(node: ast.AST | None) -> set[str]:
+    if node is None:
+        return set()
+    out: set[str] = set()
+    for n in ast.walk(node):
+        if isinstance(n, ast.Name):
+            out.add(n.id)
+        elif isinstance(n, ast.Attribute):
+            out.add(n.attr)
+    return out
+
+
+def _interrupt_guards(
+    index: SourceIndex, raw: Mapping[str, Mapping[str, list[str]]]
+) -> dict[str, list[str]]:
+    """WP-P2: for each interrupt found, the function names it guards: the functions that sit in
+    the graph node(s) named by ``interrupt_before`` (``add_node("name", ToolNode(LIST))``, the
+    list resolved in any file), or the function that contains ``interrupt(...)``."""
+    if not raw:
+        return {}
+    trees = []
+    for f in sorted(index.lines):
+        if f.endswith(".py"):
+            try:
+                trees.append(ast.parse("\n".join(index.lines[f])))
+            except SyntaxError:
+                continue
+    lists: dict[str, set[str]] = {}
+    nodes: dict[str, set[str]] = {}
+    for tree in trees:
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Assign) and isinstance(n.value, ast.List | ast.Tuple):
+                for t in n.targets:
+                    if isinstance(t, ast.Name):
+                        lists.setdefault(t.id, set()).update(_names_in(n.value))
+            if (
+                isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Attribute)
+                and n.func.attr == "add_node"
+                and len(n.args) >= 2
+                and isinstance(n.args[0], ast.Constant)
+                and isinstance(n.args[0].value, str)
+            ):
+                names = _names_in(n.args[1])
+                for nm in list(names):
+                    names |= lists.get(nm, set())
+                nodes.setdefault(n.args[0].value, set()).update(names)
+    # lists may be defined after add_node in file order: resolve once more
+    for node_names in nodes.values():
+        for nm in list(node_names):
+            node_names |= lists.get(nm, set())
+    out: dict[str, list[str]] = {}
+    for key, info in raw.items():
+        guarded = set(info.get("funcs", []))
+        for node in info.get("nodes", []):
+            guarded |= nodes.get(node, set())
+        out[key] = sorted(guarded)
+    return out
 
 
 def _call_name(node: ast.AST) -> str:

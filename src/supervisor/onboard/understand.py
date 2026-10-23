@@ -263,22 +263,39 @@ def _weak_spots(inv: Inventory, first: Evidence) -> list[Claim]:
     return out
 
 
-_INTERRUPT_QUOTE = re.compile(r"interrupt_before|\binterrupt\s*\(")
+def _tool_names(t: ToolInfo) -> set[str]:
+    names = {t.name}
+    if t.definition is not None:
+        m = re.search(r"def\s+(\w+)", t.definition.quote)
+        if m:
+            names.add(m.group(1))
+    return names
+
+
+def _interrupt_refs(inv: Inventory, tools: list[ToolInfo]) -> list[Evidence]:
+    """WP-P2: LangGraph interrupts whose guarded node holds one of ``tools`` (by function or tool
+    name). An interrupt before a node that holds only other tools does not count."""
+    wanted = set().union(*(_tool_names(t) for t in tools)) if tools else set()
+    out = []
+    for r in inv.human_approval_refs:
+        guarded = inv.interrupt_guards.get(f"{r.file}:{r.line}")
+        if guarded is not None and wanted & set(guarded):
+            out.append(r)
+    return out
 
 
 def _approval_refs(inv: Inventory, tools: list[ToolInfo]) -> list[Evidence]:
     """Human-approval steps in the SAME file as a triggering tool's definition. An
     approval function somewhere else in the repo does not count (a false "not high
-    risk" is the worse error)."""
+    risk" is the worse error). A LangGraph interrupt counts only for the tools in the node
+    it guards (``_interrupt_refs``), wherever the graph is built."""
     files = {t.definition.file for t in tools if t.definition is not None}
-    # WP-P2: a LangGraph interrupt_before / interrupt() halts the whole graph before the guarded
-    # node; the graph is built in another file than the tools, so these refs count graph-wide.
-    graph = inv.framework == "langgraph"
-    return [
+    same_file = [
         r
         for r in inv.human_approval_refs
-        if r.file in files or (graph and _INTERRUPT_QUOTE.search(r.quote))
+        if r.file in files and f"{r.file}:{r.line}" not in inv.interrupt_guards
     ]
+    return same_file + _interrupt_refs(inv, tools)
 
 
 def classify_decision33(inv: Inventory, first: Evidence) -> Decision33:
@@ -335,7 +352,7 @@ def classify_decision33(inv: Inventory, first: Evidence) -> Decision33:
             )
         )
     for t in inv.tools:  # WP-P2: a gate in code for a money or credit tool, with or without entry
-        if t.risk_class in ("money", "credit") and _approval_refs(inv, [t]):
+        if t.risk_class in ("money", "credit") and _interrupt_refs(inv, [t]):
             any_gate = True
     high = any(e.triggered for e in entries)
     return Decision33(
