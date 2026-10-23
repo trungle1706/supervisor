@@ -52,6 +52,7 @@ EXTRAS: dict[str, list[str]] = {
     "presidio": ["presidio_analyzer", "presidio_anonymizer"],
     "mlflow": ["mlflow"],
     "llm": ["openai"],
+    "documents": ["pypdf"],  # PDF text in document intake
 }
 
 

@@ -39,6 +39,7 @@ from supervisor.config import REPO_ROOT
 from supervisor.core.errors import SandboxError, SupervisorError
 
 TOP = "supervisor"
+TARGETS = ("laptop", "databricks")
 NEXUS_UV_TOML = """\
 # Bank Nexus index (docs/BANK_DEPLOY_GUIDE.md section 2.1). Only in the hand-off zip;
 # never committed. Run uv from the folder that contains this file.
@@ -96,7 +97,7 @@ PATH_RULES: tuple[tuple[str, str], ...] = (
     ("run data", "*/anchors/*"),
     ("git metadata", "*/.git/*"),
 )
-ALLOWED_PATHS = {f"{TOP}/.env.example"}
+ALLOWED_PATHS = {f"{TOP}/.env.example", f"{TOP}/.env.laptop.example"}
 
 # Same patterns as tests/test_no_secrets.py (kept in sync by a test).
 SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
@@ -171,6 +172,9 @@ def handoff_md(*, nexus: bool, version: str, sha: str, wheelhouse: bool) -> str:
 Built with `python -m supervisor.cli release` from `git archive HEAD`, leak-swept.
 {nexus_note}
 
+Start with `docs\\deploy\\LAUNCH_LAPTOP.md` (Python 3.11, pip install from `requirements.txt`,
+the ten-step story). The `uv` checklist below is the alternative route.
+
 ## Checklist (Windows cmd)
 
 1. Copy the zip to the laptop and unzip it, for example to `C:\\work\\`. Then:
@@ -221,6 +225,24 @@ Built with `python -m supervisor.cli release` from `git archive HEAD`, leak-swep
 
 Never use `uv run pytest` or `uv run uvicorn` (AppLocker blocks the .exe stubs).
 Never set `DATABRICKS_TOKEN` (OAuth only).
+"""
+
+
+def handoff_databricks_md(*, version: str, sha: str) -> str:
+    """The short checklist in the Databricks bundle (Windows cmd; the CLI runs on the laptop)."""
+    return f"""# Supervisor Databricks bundle {version} ({sha})
+
+Built with `python -m supervisor.cli release --bundles`, leak-swept. Nothing in this folder
+holds a workspace value: every `FILL-ME-...` is yours to fill in, in your local copy only.
+Start with `docs\\deploy\\LAUNCH_DATABRICKS.md`.
+
+1. Unzip, then `cd /d C:\\work\\supervisor`.
+2. Fill the `FILL-ME` values in `app.yaml` and `databricks.yml` (inline, local copy only).
+3. `databricks bundle validate -t dev --profile FILL-ME-profile`
+4. `databricks bundle deploy -t dev --profile FILL-ME-profile`
+5. `databricks bundle run supervisor -t dev --profile FILL-ME-profile`
+
+Never set `DATABRICKS_TOKEN` (OAuth only). `docs\\RUNBOOK.md` has symptom -> fix tables.
 """
 
 
@@ -315,7 +337,14 @@ def build_release(
     wheelhouse: bool = False,
     echo: Callable[[str], None] | None = None,
     wheel_fetcher: Callable[[Path, Path], tuple[bool, str]] = try_wheelhouse,
+    target: str = "laptop",
+    ref: str = "HEAD",
 ) -> ReleaseReport:
+    """Build one hand-off zip from ``ref`` (default HEAD). ``target`` is ``laptop`` (HANDOFF.md
+    with the cmd checklist, optional bank ``uv.toml``) or ``databricks`` (HANDOFF.md points to
+    ``docs/deploy/LAUNCH_DATABRICKS.md``; never a ``uv.toml``)."""
+    if target not in TARGETS:
+        raise ReleaseError(f"target must be one of {', '.join(TARGETS)}")
     rep = ReleaseReport()
 
     def say(line: str) -> None:
@@ -336,24 +365,25 @@ def build_release(
             repo, "check-ignore", "-q", str(out_dir)
         ).ok:
             return fail(f"--out {out_dir} is inside the repository and not git-ignored")
-    head = _git(repo, "rev-parse", "--short=12", "HEAD")
+    head = _git(repo, "rev-parse", "--short=12", f"{ref}^{{commit}}")
     if not head.ok:
         return fail(f"not a git repository with a commit: {repo} ({head.stderr.strip()[:120]})")
     sha = head.stdout.strip()
-    say(f"[OK] repository {repo} at HEAD {sha}")
+    say(f"[OK] repository {repo} at {ref} {sha}")
     dirty = _git(repo, "status", "--porcelain", "--untracked-files=no")
     if dirty.ok and dirty.stdout.strip():
         say("[SKIP] working tree has uncommitted changes: they are NOT in the zip (HEAD only)")
     out_dir.mkdir(parents=True, exist_ok=True)
-    final = out_dir / f"supervisor-{__version__}-{sha}.zip"
+    prefix = "supervisor-databricks" if target == "databricks" else "supervisor"
+    final = out_dir / f"{prefix}-{__version__}-{sha}.zip"
 
     with tempfile.TemporaryDirectory(prefix="supervisor-release-") as tmp_s:
         tmp = Path(tmp_s)
         archive = tmp / "head.zip"
-        res = _git(repo, "archive", "--format=zip", f"--prefix={TOP}/", "-o", str(archive), "HEAD")
+        res = _git(repo, "archive", "--format=zip", f"--prefix={TOP}/", "-o", str(archive), ref)
         if not res.ok:
             return fail(f"git archive failed: {res.stderr.strip()[:200]}")
-        say(f"[OK] git archive HEAD -> {archive.name}")
+        say(f"[OK] git archive {ref} -> {archive.name}")
 
         reqs = tmp / "requirements.txt"
         try:
@@ -398,17 +428,18 @@ def build_release(
                     continue
                 dst.writestr(info, src.read(info.filename))
             dst.write(reqs, f"{TOP}/requirements.txt")
-            if nexus:
+            if nexus and target == "laptop":
                 dst.writestr(f"{TOP}/uv.toml", NEXUS_UV_TOML)
                 say("[OK] uv.toml (bank Nexus index) added to the zip only")
             else:
                 say("[SKIP] uv.toml: not added (use --nexus for the bank laptop)")
-            dst.writestr(
-                f"{TOP}/HANDOFF.md",
-                handoff_md(
+            if target == "databricks":
+                handoff = handoff_databricks_md(version=__version__, sha=sha)
+            else:
+                handoff = handoff_md(
                     nexus=nexus, version=__version__, sha=sha, wheelhouse=wheel_dir is not None
-                ),
-            )
+                )
+            dst.writestr(f"{TOP}/HANDOFF.md", handoff)
             if wheel_dir is not None:
                 for whl in sorted(wheel_dir.iterdir()):
                     dst.write(whl, f"{TOP}/wheelhouse/{whl.name}")
@@ -438,6 +469,85 @@ def build_release(
     return rep
 
 
+# Files copied out of the zip next to it, so the owner can read them without unzipping.
+BUNDLE_FILES: dict[str, tuple[str, ...]] = {
+    "laptop": (
+        "requirements.txt",
+        ".env.laptop.example",
+        "docs/deploy/LAUNCH_LAPTOP.md",
+        "docs/deploy/SMOKE_RESULT.md",
+    ),
+    "databricks": (
+        "app.yaml",
+        "databricks.yml",
+        "requirements.txt",
+        "docs/deploy/LAUNCH_DATABRICKS.md",
+    ),
+}
+
+
+@dataclass
+class BundleReport:
+    ok: bool = True
+    lines: list[str] = field(default_factory=list)
+    folders: dict[str, Path] = field(default_factory=dict)
+    zips: dict[str, Path] = field(default_factory=dict)
+
+
+def build_bundles(
+    out_root: Path,
+    *,
+    repo: Path = REPO_ROOT,
+    ref: str = "HEAD",
+    echo: Callable[[str], None] | None = None,
+) -> BundleReport:
+    """Build ``<out_root>/laptop/`` and ``<out_root>/databricks/`` (WP-P1).
+
+    Each folder has the leak-swept zip of ``ref``, loose copies of the files the owner reads
+    first (``BUNDLE_FILES``) and ``SHA256SUMS.txt``. The laptop zip carries the bank Nexus
+    ``uv.toml``; the Databricks zip never does."""
+    import hashlib
+
+    rep = BundleReport()
+    out_root = Path(out_root).resolve()
+    for target in TARGETS:
+        folder = out_root / target
+        if folder.exists():
+            shutil.rmtree(folder)
+        folder.mkdir(parents=True)
+        built = build_release(
+            folder, repo=repo, nexus=(target == "laptop"), echo=echo, target=target, ref=ref
+        )
+        rep.lines.extend(built.lines)
+        if not built.ok or built.zip_path is None:
+            rep.ok = False
+            return rep
+        rep.zips[target] = built.zip_path
+        with zipfile.ZipFile(built.zip_path) as zf:
+            names = set(zf.namelist())
+            for rel in BUNDLE_FILES[target]:
+                member = f"{TOP}/{rel}"
+                if member not in names:
+                    rep.ok = False
+                    rep.lines.append(f"[FAIL] {target}: {rel} is not in the zip")
+                    if echo:
+                        echo(rep.lines[-1])
+                    return rep
+                (folder / Path(rel).name).write_bytes(zf.read(member))
+        sums = [
+            f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}"
+            for p in sorted(folder.iterdir())
+            if p.is_file() and p.name != "SHA256SUMS.txt"
+        ]
+        (folder / "SHA256SUMS.txt").write_text("\n".join(sums) + "\n", encoding="utf-8")
+        rep.folders[target] = folder
+        line = f"[OK] {target} bundle: {folder} ({len(sums)} files + SHA256SUMS.txt)"
+        rep.lines.append(line)
+        if echo:
+            echo(_ascii(line))
+    return rep
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="python -m supervisor.cli release",
@@ -450,6 +560,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also try to download Windows cp311 wheels into wheelhouse/",
     )
+    p.add_argument(
+        "--bundles",
+        action="store_true",
+        help="build <out>/laptop/ and <out>/databricks/ (zip + loose files + SHA256SUMS.txt)",
+    )
+    p.add_argument(
+        "--ref", default="HEAD", help="git ref to archive (default HEAD, for example v0.5.0)"
+    )
     p.add_argument("--repo", default=None, help=argparse.SUPPRESS)
     return p
 
@@ -458,12 +576,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(list(argv) if argv is not None else None)
     out = Path(args.out) if args.out else REPO_ROOT / "dist"
     try:
+        if args.bundles:
+            brep = build_bundles(
+                out,
+                repo=Path(args.repo) if args.repo else REPO_ROOT,
+                ref=args.ref,
+                echo=lambda line: print(line, flush=True),  # noqa: T201 (CLI output)
+            )
+            return 0 if brep.ok else 1
         rep = build_release(
             out,
             repo=Path(args.repo) if args.repo else REPO_ROOT,
             nexus=args.nexus,
             wheelhouse=args.wheelhouse,
             echo=lambda line: print(line, flush=True),  # noqa: T201 (CLI output)
+            ref=args.ref,
         )
     except (SupervisorError, OSError, zipfile.BadZipFile) as exc:
         print(_ascii(f"[FAIL] release: {type(exc).__name__}: {exc}"))  # noqa: T201
@@ -475,8 +602,11 @@ __all__ = [
     "NEXUS_UV_TOML",
     "SECRET_PATTERNS",
     "ReleaseError",
+    "BundleReport",
     "ReleaseReport",
+    "build_bundles",
     "build_release",
+    "handoff_databricks_md",
     "handoff_md",
     "leak_sweep",
     "main",
