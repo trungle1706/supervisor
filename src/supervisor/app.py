@@ -65,6 +65,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         runtime = await run_in_threadpool(gate_wiring.install_runtime, get_settings())
     except Exception:  # noqa: BLE001 - startup must not crash the app process
         log.exception("runtime build failed at startup; gateway routes will retry")
+        if get_settings().sql_user_token_forward:  # WP-P5
+            log.warning("[WARN] SP has no SQL access; console reads run as the signed-in user")
     if runtime is not None:  # WP7: in-process scheduler (on in laptop mode by default)
         try:
             await run_in_threadpool(scheduler.start_for_runtime, get_settings(), runtime)

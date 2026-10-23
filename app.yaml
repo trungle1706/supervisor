@@ -66,6 +66,11 @@ env:
   # user_api_scopes (databricks.yml). Do not use in production.
   # - name: LLM_USER_TOKEN_FORWARD
   #   value: "1"
+  # SANDBOX ONLY (WP-P5): every SQL statement inside a request that carries the user token runs
+  # as the signed-in user (needs the sql scope in user_api_scopes). Startup, scheduler, jobs and
+  # the chain writer still use the App service principal. Do not use in production.
+  # - name: SQL_USER_TOKEN_FORWARD
+  #   value: "1"
 
   # ---- Phase 4 and 5 (v0.5.0). Every switch is off in the code; "1" here turns it on for the
   # sandbox. Set a switch to "0" to switch the feature off again. Nothing below needs a secret.

@@ -272,7 +272,9 @@ def install(app: Any, settings: Any) -> None:
         app.add_middleware(BodyLimitMiddleware, limit=settings.max_request_bytes)
     if settings.security_headers_enabled:
         app.add_middleware(SecurityHeadersMiddleware, hsts=settings.hsts_enabled)
-    if getattr(settings, "llm_user_token_forward", False):  # WP-P4, sandbox-only
+    if getattr(settings, "llm_user_token_forward", False) or getattr(
+        settings, "sql_user_token_forward", False
+    ):  # WP-P4 / WP-P5, sandbox-only
         from supervisor.adapters.auth.user_token import UserTokenMiddleware
 
         app.add_middleware(UserTokenMiddleware)
