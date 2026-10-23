@@ -36,6 +36,7 @@ from collections import Counter, deque
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from supervisor.core.args_hmac import args_hmac, as_key, key_id
@@ -505,6 +506,8 @@ class Gateway:
         # INVENTORY_ENABLED off, today's behaviour). Runs in the background pool.
         self.agent_registrar = agent_registrar
         self._registered: set[str] = set()
+        # WP-P2: the policy folders the runtime loaded (POST /gate/policy/reload reads them again).
+        self.policy_dirs: tuple[Path, ...] = ()
         # Tools seen as pii_export: their masker pass runs BEFORE the gate lock (a 2 KB payload
         # costs about 3 ms; inside the lock it would delay every other agent's decision).
         self._redact_hint: frozenset[str] = frozenset()

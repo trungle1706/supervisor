@@ -148,6 +148,7 @@ def _audit_row(
     outcome: str,
     before: str | None,
     detail: str | None,
+    permission: str | None = None,  # WP-P2
 ) -> str | None:
     """One ``console_action`` row for a control call (also with API_RBAC_ENABLED off; skipped
     only with CONSOLE_AUDIT_ENABLED=0 in dev mode). ``attempt`` = the row written BEFORE the
@@ -161,7 +162,7 @@ def _audit_row(
         "request_id": request_id_of(request),
         "actor": me,
         "actor_fallback": ("unverified:unknown", "unverified", get_provider().name),
-        "permission": f"agent.{action}",
+        "permission": permission or f"agent.{action}",
         "method": request.method,
         "path": request.url.path,
         "target_kind": "agent" if agent_id else None,
@@ -362,6 +363,52 @@ async def set_agent_state(agent_id: str, request: Request, gw: Gateway = _GW) ->
     warn = await audit(
         False, "ok", result.get("status") or ("changed" if result["changed"] else None)
     )
+    return JSONResponse(content={**result, "audit_warning": warn} if warn else result)
+
+
+@router.post("/policy/reload", dependencies=[Depends(needs("policy.reload", control=True))])
+async def policy_reload(request: Request, gw: Gateway = _GW) -> JSONResponse:
+    """WP-P2 (admin, AGENTS_API_ENABLED): read the policy folders again, deploy, switch. A load
+    error answers 400 and the old policy stays in force. The new hash goes on the chain."""
+    from supervisor.gateway.policy_reload import reload_policy
+
+    if not runtime_settings().agents_api_enabled:
+        return _bad("policy reload needs AGENTS_API_ENABLED=1")
+    me = getattr(request.state, "principal", None)
+    if not isinstance(me, AuthPrincipal):
+        return JSONResponse(status_code=403, content={"error": "identity required"})
+
+    async def audit(attempt: bool, outcome: str, detail: str | None) -> str | None:
+        return await run_in_threadpool(
+            _audit_row,
+            request,
+            gw,
+            "reload",
+            attempt=attempt,
+            principal=me.user_id,
+            agent_id=None,
+            outcome=outcome,
+            before=None,
+            detail=detail,
+            permission="policy.reload",
+        )
+
+    try:
+        await audit(True, "attempted", None)
+    except AuditUnavailable as exc:
+        return _bad(str(exc))
+    try:
+        result = await run_in_threadpool(reload_policy, gw, me.user_id)
+    except SupervisorError as exc:
+        warn = await audit(False, "error", type(exc).__name__)
+        return _bad(str(exc), **({"audit_warning": warn} if warn else {}))
+    except Exception as exc:  # noqa: BLE001 - never 500
+        warn = await audit(False, "error", type(exc).__name__)
+        return _bad(
+            f"policy reload failed: {type(exc).__name__}; see the server log",
+            **({"audit_warning": warn} if warn else {}),
+        )
+    warn = await audit(False, "ok", "changed" if result["changed"] else "unchanged")
     return JSONResponse(content={**result, "audit_warning": warn} if warn else result)
 
 

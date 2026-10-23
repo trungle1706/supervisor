@@ -753,6 +753,41 @@ def load_policy_dir(directory: str | Path) -> Policy:
     return load_policy_texts(texts)
 
 
+def load_policy_dirs(directories: Sequence[str | Path]) -> Policy:
+    """WP-P2: load several policy folders in order and merge them.
+
+    One folder is exactly ``load_policy_dir``. With more: every folder is loaded with the same
+    validation, and a later folder may not define a rule id that an earlier folder defines
+    (``PolicyError``). Tools, agents, reviewers and admins merge as inside one folder. The policy
+    hash covers the merged document, so it covers all folders."""
+    dirs = list(directories)
+    if not dirs:
+        raise PolicyError("no policy folder given")
+    if len(dirs) == 1:
+        return load_policy_dir(dirs[0])
+    docs: list[PolicyDoc] = []
+    seen: dict[str, str] = {}  # rule id -> folder that defined it
+    for directory in dirs:
+        root = Path(directory).resolve()
+        texts = []
+        for f in sorted(root.glob("*.yaml")):
+            if f.stat().st_size > MAX_POLICY_BYTES:
+                raise PolicyError(f"{f.name}: policy file is larger than {MAX_POLICY_BYTES} bytes")
+            texts.append((f.name, f.read_text(encoding="utf-8")))
+        if not texts:
+            raise PolicyError(f"{root}: no policy files found")
+        folder_docs = [parse_policy_text(text, source) for source, text in texts]
+        mine = {r.id for d in folder_docs for r in d.rules}
+        for rid in sorted(mine & seen.keys()):
+            raise PolicyError(
+                f"rule {rid} in {root} is already defined in {seen[rid]}; "
+                "a later policy folder cannot redefine a rule id of an earlier one"
+            )
+        seen.update({rid: str(root) for rid in mine})
+        docs.extend(folder_docs)
+    return Policy(_merge(docs))
+
+
 def policy_json_schema() -> dict[str, Any]:
     schema = PolicyDoc.model_json_schema(by_alias=True)
     schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
@@ -950,6 +985,11 @@ class StorePolicyProvider:
     def last_known(self) -> Policy | None:
         return self._policy
 
+    def refresh(self) -> Policy:
+        """WP-P2: re-read the deployed policy now (after a reload), not at the next refresh."""
+        self._loaded_at = 0.0
+        return self.current()
+
 
 def deploy_with_retry(
     policy: Policy, state: StateStore, clock: Clock, git_sha: str | None = None, attempts: int = 3
@@ -984,6 +1024,7 @@ __all__ = [
     "deploy_with_retry",
     "load_deployed",
     "load_policy_dir",
+    "load_policy_dirs",
     "load_policy_texts",
     "money_agent",
     "parse_policy_text",

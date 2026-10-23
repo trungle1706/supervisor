@@ -119,3 +119,49 @@ Answers of agents that use none of the new keys have none of the new fields.
   `enforce` (a pull request, two reviewers) when the report is clean.
 * A consumer override lets one channel (a pilot, a call centre) run in observe or with another
   detector preset while the rest stays strict.
+
+## 5. Several policy folders and policy reload (WP-P2)
+
+### `POLICY_DIR` with several folders
+
+`POLICY_DIR` may list several folders, separated by the OS path separator (`;` on Windows, `:` on
+Linux). Example (Windows): `POLICY_DIR=C:\sup\policies;C:\cands\a1\policy`.
+
+* The folders load in the order given. Each file gets the same validation as today.
+* Tools, agents, reviewers and admins merge as inside one folder (the same tool with two risk
+  classes, or the same agent with different values, is a load error).
+* A later folder cannot define a rule id that an earlier folder defines. This is a load error
+  that names the rule and both folders.
+* An empty later folder is a load error.
+* The policy hash covers the merged document, so it covers all folders. The order of folders does
+  not change the hash.
+* One folder behaves exactly as before (a test compares the hash with `load_policy_dir`).
+* Some read-only helpers (analytics suggestions, risk and control refs) still read the first
+  folder only.
+
+### `POST /gate/policy/reload` (admin, needs `AGENTS_API_ENABLED=1`)
+
+Reads the folders again from disk, validates them, deploys them to the rule table and switches
+the gate to the new policy at once (no wait for the 5 second refresh). The chain gets a
+`policy_reload` record: `old_policy_hash`, `new_policy_hash`, `changed`, `folders`, `rules`,
+`inserted`, `retired`, `principal`, `ts`. Two `console_action` rows (permission `policy.reload`).
+
+A load error (bad YAML, a schema error, a rule id defined twice across folders, a rule version
+already deployed with other content, a detector override problem) answers HTTP 400 with the
+reason, and the old policy stays in force. Nothing is written to the rule table in that case.
+
+## 6. SHADOW and masking (WP-P2)
+
+SHADOW observes decisions: a rule that would block or pause is logged, not enforced. Masking is
+not a decision. With `DETECTORS_ENABLED=1` and `dlp_vn` in `transform` mode for the tool class, an
+agent in SHADOW still gets the masked arguments in `transformed_args` and `transformed_payload`
+with the shadow allow, so a collector can apply them and the tool and model never see the raw
+value. The status of the verdict is `transform`. The WP24b inline redaction (without detectors)
+is unchanged: it does not run in SHADOW.
+
+## 7. Moving an agent from SHADOW to RUNNING
+
+By API (`AGENTS_API_ENABLED=1`): `POST /gate/agents/{id}/state` with `{"to": "RUNNING", "reason":
+"..."}`. It needs two different persons: the requester, then a second person with the reviewer
+or approver role. The way back (`RUNNING` to `SHADOW`) needs one person with `systems.edit` or the
+reviewer role. See `docs/api.md`.

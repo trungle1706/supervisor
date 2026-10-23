@@ -34,7 +34,7 @@ from supervisor.gateway.policy import (
     Policy,
     StorePolicyProvider,
     deploy_with_retry,
-    load_policy_dir,
+    load_policy_dirs,
 )
 from supervisor.gateway.state import STATUS_FOR_STATE
 
@@ -46,6 +46,14 @@ POLICY_DIR = REPO_ROOT / "policies"
 def resolve_policy_dir(settings: Settings, explicit: Path | None = None) -> Path:
     """An explicit folder (tests, CLI), else ``POLICY_DIR`` (D13), else ``<repo>/policies``."""
     return explicit or settings.policy_dir or POLICY_DIR
+
+
+def resolve_policy_dirs(settings: Settings, explicit: Path | None = None) -> list[Path]:
+    """WP-P2: every policy folder in load order. An explicit folder wins and is alone; else
+    POLICY_DIR (one or several folders); else ``<repo>/policies``."""
+    if explicit is not None:
+        return [explicit]
+    return list(settings.policy_dirs) or [POLICY_DIR]
 
 
 class RegistrableAgent(Protocol):
@@ -101,7 +109,7 @@ def build_runtime(
             from supervisor.jobs import bootstrap_schema
 
             bootstrap_schema.run(settings, adapters)
-        policy = load_policy_dir(resolve_policy_dir(settings, policy_dir))
+        policy = load_policy_dirs(resolve_policy_dirs(settings, policy_dir))  # WP-P2
         deploy_with_retry(policy, adapters.state, adapters.clock, git_sha)
         chain = build_chain_writer(settings, adapters.tables, adapters.clock)
     except BaseException:
@@ -133,6 +141,7 @@ def build_runtime(
         if owns:
             adapters.close()
         raise
+    gateway.policy_dirs = tuple(resolve_policy_dirs(settings, policy_dir))  # WP-P2 (reload)
     return Runtime(settings, adapters, policy, chain, gateway, owns_adapters=owns)
 
 
@@ -403,4 +412,5 @@ __all__ = [
     "build_runtime",
     "register_agents",
     "resolve_policy_dir",
+    "resolve_policy_dirs",
 ]

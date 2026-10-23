@@ -21,15 +21,15 @@ from typing import Any  # noqa: E402
 
 from supervisor.config import Settings  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
-from supervisor.gateway.policy import load_policy_dir  # noqa: E402
+from supervisor.gateway.policy import load_policy_dirs  # noqa: E402
 from supervisor.monitors.common import MonitorContext  # noqa: E402
 from supervisor.monitors.jobctx import ascii_line, standalone  # noqa: E402
 from supervisor.monitors.session_batch import SessionMonitor  # noqa: E402
-from supervisor.wiring import resolve_policy_dir  # noqa: E402
+from supervisor.wiring import resolve_policy_dirs  # noqa: E402
 
 
 def run(ctx: MonitorContext, settings: Settings) -> dict[str, Any]:
-    policy = load_policy_dir(resolve_policy_dir(settings))
+    policy = load_policy_dirs(resolve_policy_dirs(settings))
     res = SessionMonitor(ctx, settings, policy).run()
     return {
         "sessions": res.sessions,

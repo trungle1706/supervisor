@@ -23,7 +23,7 @@ from supervisor.config import REPO_ROOT, Settings
 from supervisor.core.canonical import canonical_bytes
 from supervisor.core.ports import EvidenceSink
 from supervisor.gateway.engine import Gateway
-from supervisor.gateway.policy import StorePolicyProvider, deploy_with_retry, load_policy_dir
+from supervisor.gateway.policy import StorePolicyProvider, deploy_with_retry, load_policy_dirs
 
 if TYPE_CHECKING:
     from supervisor.wiring import Runtime
@@ -77,9 +77,9 @@ def build_gateway(
 
         bootstrap_schema.run(settings, adapters)
     from supervisor.adapters.facts import make_fact_source
-    from supervisor.wiring import make_detector_gate, make_session_gate, resolve_policy_dir
+    from supervisor.wiring import make_detector_gate, make_session_gate, resolve_policy_dirs
 
-    policy = load_policy_dir(resolve_policy_dir(settings, policy_dir))
+    policy = load_policy_dirs(resolve_policy_dirs(settings, policy_dir))  # WP-P2
     deploy_with_retry(policy, adapters.state, adapters.clock)
     provider = StorePolicyProvider(adapters.state, refresh_s=5.0)
     detector_gate = make_detector_gate(settings, policy, adapters.state)  # WP37 (default off)
