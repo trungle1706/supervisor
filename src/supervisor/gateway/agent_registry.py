@@ -10,18 +10,20 @@ free text stay in the row.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import ConcurrencyError, NotFoundError, SupervisorError, check_agent_id
 from supervisor.core.ports import Clock, EvidenceSink, StateStore
+from supervisor.gateway.state import STATUS_FOR_STATE
 
 ID_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 RISK_TIERS = ("low", "medium", "high", "critical")
 TEXT_FIELDS = ("name", "owner_team", "owner_user")
 SLUG_FIELDS = ("host_type", "plug_point", "model_family")
 SLUG_RE = re.compile(r"^[A-Za-z0-9_.:@/+-]{1,64}$")
+GUARDED = ("owner_user", "owner_team", "risk_tier")
 MAX_TEXT = 200
 ALLOWED = ("agent_id", "name", "owner_team", "owner_user", "risk_tier", *SLUG_FIELDS)
 REQUIRED = ("agent_id", "name", "owner_team", "owner_user")
@@ -71,11 +73,14 @@ class AgentRegistry:
         evidence: EvidenceSink,
         *,
         on_change: Callable[[str], None] | None = None,
+        policy_agents: Callable[[], Mapping[str, Any]] | None = None,
     ) -> None:
         self.state = state
         self.clock = clock
         self.evidence = evidence
         self.on_change = on_change  # called with the agent id (cache invalidation)
+        # the agents of the deployed policy (id -> manifest); None = no policy known
+        self.policy_agents = policy_agents
 
     def get(self, agent_id: str) -> dict[str, Any]:
         if not ID_RE.match(agent_id):
@@ -85,13 +90,36 @@ class AgentRegistry:
             raise NotFoundError(f"agent {agent_id} is not registered")
         return view(row)
 
-    def register(self, body: Any, principal: str) -> tuple[dict[str, Any], bool]:
-        """Create or update. Returns (agent view, created)."""
+    def _manifest(self, agent_id: str) -> Any:
+        try:
+            return (self.policy_agents() if self.policy_agents else {}).get(agent_id)
+        except Exception:  # noqa: BLE001 - the policy cannot be read: treat as unknown agent
+            return None
+
+    def register(
+        self, body: Any, principal: str, roles: Iterable[str] = ("reviewer",)
+    ) -> tuple[dict[str, Any], bool]:
+        """Create or update. Returns (agent view, created).
+
+        The gate state never changes here: a new agent starts in the state of its policy manifest
+        (``initial_state``) when the policy knows the id, else in SHADOW. ``owner_user``,
+        ``owner_team`` and ``risk_tier`` of an existing agent change only for a reviewer or an
+        admin, and never for an agent that the policy defines (WP-P2 review)."""
         data = clean(body)
         agent_id = data["agent_id"]
+        manifest = self._manifest(agent_id)
+        privileged = bool({"reviewer", "admin"} & set(roles))
         now = self.clock.now()
         row = self.state.get("agent", {"agent_id": agent_id})
         if row is None:
+            state = manifest.initial_state if manifest is not None else "SHADOW"
+            if manifest is not None:
+                for key in GUARDED:
+                    if key in data and data[key] != getattr(manifest, key):
+                        raise AgentRegistryError(
+                            f"{key} of agent {agent_id} is defined in the policy; "
+                            "change the policy file, not the registry"
+                        )
             new = {
                 "agent_id": agent_id,
                 "name": data["name"],
@@ -101,8 +129,8 @@ class AgentRegistry:
                 "host_type": data.get("host_type", "python"),
                 "plug_point": data.get("plug_point", "sdk"),
                 "model_family": data.get("model_family", "unknown"),
-                "status": "shadow",
-                "gate_state": "SHADOW",
+                "status": STATUS_FOR_STATE[state],
+                "gate_state": state,
                 "created_at": now,
             }
             try:
@@ -115,6 +143,17 @@ class AgentRegistry:
             if row["gate_state"] == "RETIRED":
                 raise AgentRegistryError(f"agent {agent_id} is RETIRED; it cannot change")
             patch = {k: v for k, v in data.items() if k != "agent_id" and row.get(k) != v}
+            if any(k in GUARDED for k in patch):
+                if manifest is not None:
+                    raise AgentRegistryError(
+                        f"agent {agent_id} is defined in the policy: "
+                        f"{', '.join(k for k in GUARDED if k in patch)} cannot be changed here"
+                    )
+                if not privileged:
+                    raise AgentRegistryError(
+                        "owner_user, owner_team and risk_tier of an existing agent can be "
+                        "changed by a reviewer or an admin only"
+                    )
             changed = sorted(patch)
             created = False
             current = row

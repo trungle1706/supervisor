@@ -21,7 +21,6 @@ from supervisor.adapters.auth.audit import (
     write_outcome,
 )
 from supervisor.adapters.auth.authz import needs, runtime_settings
-from supervisor.core import rbac
 from supervisor.core.errors import SupervisorError
 from supervisor.detectors.intake import documents_problem
 from supervisor.gateway import wiring
@@ -297,7 +296,7 @@ class ModeRequest(BaseModel):
 @router.post("/agents/{agent_id}/state", dependencies=[Depends(needs("agent.mode", control=True))])
 async def set_agent_state(agent_id: str, request: Request, gw: Gateway = _GW) -> JSONResponse:
     """``{to: RUNNING, reason}``: two different persons (the requester, then a second person with
-    the reviewer or approver role). ``{to: SHADOW, reason}``: one person with systems.edit."""
+    the agent owner or a policy reviewer). ``{to: SHADOW, reason}``: one reviewer or admin."""
     if not runtime_settings().agents_api_enabled:
         return _bad("changing the gate state by the API needs AGENTS_API_ENABLED=1")
     if not re.fullmatch(_ID, agent_id):
@@ -325,13 +324,13 @@ async def set_agent_state(agent_id: str, request: Request, gw: Gateway = _GW) ->
             detail=detail,
         )
 
-    if req.to == "SHADOW" and not rbac.allowed(me.roles, "systems.edit"):
+    if req.to == "SHADOW" and not ({"reviewer", "admin"} & set(me.roles)):
         warn = await audit(False, "denied", "permission_denied")
         return JSONResponse(
             status_code=403,
             content={
-                "error": "moving an agent from RUNNING to SHADOW needs systems.edit or the "
-                "reviewer role",
+                "error": "moving an agent from RUNNING to SHADOW (it turns enforcement off) "
+                "needs the reviewer or admin role",
                 **({"audit_warning": warn} if warn else {}),
             },
         )
@@ -339,7 +338,6 @@ async def set_agent_state(agent_id: str, request: Request, gw: Gateway = _GW) ->
         await audit(True, "attempted", None)
     except AuditUnavailable as exc:
         return _bad(str(exc))
-    approver = bool({"reviewer", "approver"} & set(me.roles))
     try:
         result = await run_in_threadpool(
             gw.states.change_mode,
@@ -347,7 +345,6 @@ async def set_agent_state(agent_id: str, request: Request, gw: Gateway = _GW) ->
             req.to,
             me.user_id,
             req.reason,
-            approver,
             auth_method=me.auth_method,
             actor_kind=me.kind,
         )

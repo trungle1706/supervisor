@@ -182,8 +182,8 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
     ),
     "agent.mode": (
         ("reviewer", "approver", "owner", "admin"),
-        "Ask for or approve SHADOW to RUNNING (two persons); RUNNING to SHADOW needs systems.edit "
-        "(WP-P2)",
+        "Ask for or approve SHADOW to RUNNING (two persons); RUNNING to SHADOW needs the reviewer "
+        "or admin role (WP-P2)",
     ),
     "policy.reload": (("admin",), "Reload the policy folders from disk (WP-P2)"),
 }

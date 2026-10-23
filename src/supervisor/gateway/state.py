@@ -182,6 +182,7 @@ class AgentStateMachine:
         *,
         auth_method: str | None = None,
         actor_kind: str | None = None,
+        keep_control: str | None = None,
     ) -> tuple[dict[str, Any], str]:
         """Change ``gate_state`` with the row_version check; retry on a lost race."""
         last_error: Exception | None = None
@@ -202,6 +203,11 @@ class AgentStateMachine:
                 self.invalidate(agent_id)
                 continue
             self._cache[agent_id] = (new, time.monotonic())
+            # WP-P2: a request to go RUNNING answers the state it was made in; any transition
+            # voids it (except the one that is completing it now)
+            for stale in self._controls(agent_id, "mode_running", "pending"):
+                if stale["control_id"] != keep_control:
+                    self._close_control(stale, "void")
             payload = {
                 "agent_id": agent_id,
                 "event": event,
@@ -225,6 +231,9 @@ class AgentStateMachine:
     def _controls(self, agent_id: str, action: str, status: str) -> list[dict[str, Any]]:
         rows = self.state.query("gate_control", {"agent_id": agent_id, "status": status})
         return [r for r in rows if r["action"] == action]
+
+    def _controls_by_id(self, control_id: str) -> dict[str, Any] | None:
+        return self.state.get("gate_control", {"control_id": control_id})
 
     def _close_control(self, row: Mapping[str, Any], status: str) -> None:
         try:
@@ -551,7 +560,6 @@ class AgentStateMachine:
         to: str,
         principal: str,
         reason: str,
-        approver_role: bool,
         *,
         auth_method: str | None = None,
         actor_kind: str | None = None,
@@ -559,8 +567,9 @@ class AgentStateMachine:
         """WP-P2: SHADOW <-> RUNNING by the API.
 
         * ``RUNNING``: two different persons within the resume window. The first call is the
-          request (any person the route let in); the second must hold the reviewer or approver
-          role (``approver_role``). Same mechanism and chain records as the two-person resume.
+          request (any person the route let in); the second must be the agent owner or a policy
+          reviewer, the same rule as the two-person resume (``_role``). A pending request is
+          voided by any other state transition. Same mechanism and chain records as resume.
         * ``SHADOW``: one person, one call (the route checked ``systems.edit``).
         """
         reason = _reason(reason)
@@ -627,10 +636,7 @@ class AgentStateMachine:
                     "needs": "reviewer or approver",
                     "changed": False,
                 }
-            if not approver_role:
-                raise TransitionError(
-                    f"{principal} may not approve this change (needs the reviewer or approver role)"
-                )
+            self._role(agent_id, principal)  # the agent owner or a policy reviewer, as for resume
             self._transition(
                 agent_id,
                 ("SHADOW",),
@@ -639,9 +645,10 @@ class AgentStateMachine:
                 reason,
                 "set_mode",
                 {"approver_1": partner["principal"], "approver_2": principal},
+                keep_control=partner["control_id"],
                 **who,
             )
-            self._close_control(partner, "used")
+            self._close_control(self._controls_by_id(partner["control_id"]) or partner, "used")
             return {
                 "agent_id": agent_id,
                 "state": "RUNNING",

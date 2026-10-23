@@ -161,8 +161,8 @@ unknown field is a 400.
 | `risk_tier` | no (`high`) | `low`, `medium`, `high`, `critical` |
 | `host_type` (`python`), `plug_point` (`sdk`), `model_family` (`unknown`) | no | `^[A-Za-z0-9_.:@/+-]{1,64}$` |
 
-* New agent: HTTP 201, `gate_state` SHADOW, `status` shadow.
-* Existing agent: HTTP 200, only the fields in the body change. The gate state never changes here.
+* New agent: HTTP 201. The gate state is the `initial_state` of the policy manifest when the policy knows the id, else SHADOW. This route never changes a gate state afterwards. For an agent that the policy defines, `owner_user`, `owner_team` and `risk_tier` in the body must equal the manifest (else 400 "defined in the policy").
+* Existing agent: HTTP 200, only the fields in the body change. `owner_user`, `owner_team` and `risk_tier` change only for a reviewer or an admin, and never for an agent that the policy defines (400 "defined in the policy"). Name, host_type, plug_point and model_family stay editable. The gate state never changes here.
   A RETIRED agent cannot change (400). An update that changes nothing writes no chain record.
 * Chain record `agent_change` (lane of the agent): `agent_id`, `action` (`created` or `updated`),
   `changed_fields` (names only), `risk_tier`, `host_type`, `plug_point`, `model_family`,
@@ -182,8 +182,8 @@ Body `{"to": "RUNNING" | "SHADOW", "reason": "..."}`.
 
 | Move | Who | Result |
 |---|---|---|
-| SHADOW to RUNNING | Two different persons within the resume window (default 1 hour). The first call is the request (reviewer, approver, owner, admin) and answers `status: pending`. The second person must hold the reviewer or approver role. | `status: changed`, `approvers: [first, second]` |
-| RUNNING to SHADOW | One person with `systems.edit` (reviewer, owner, admin) | `changed: true` |
+| SHADOW to RUNNING | Two different persons within the resume window (default 1 hour). The first call is the request (reviewer, approver, owner, admin) and answers `status: pending`. The second person must be the agent owner or a policy reviewer (the rule of the two-person resume). A pending request is voided by any other state transition (pause, resume, retire and so on). | `status: changed`, `approvers: [first, second]` |
+| RUNNING to SHADOW | One person with the reviewer or admin role (it turns enforcement off; an owner alone cannot) | `changed: true` |
 
 Any other start state (PAUSED, QUARANTINED, RETIRED) is a 400. Moving to the state the agent is
 already in answers `changed: false`. Chain records: `gate_resume_requested` (with `event:

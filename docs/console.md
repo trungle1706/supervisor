@@ -491,7 +491,7 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `incidents.transition` | Move an incident on and close it (the holders of case.transition or systems.edit) (WP-G5) |  | x |  | x | x |  |  |
 | `mcp.apps` | List, approve and block the apps connected to the MCP server (WP-G6) |  |  |  |  | x |  |  |
 | `agents.edit` | Register and change an agent in the registry, POST /v1/agents (WP-P2) |  | x |  | x | x |  |  |
-| `agent.mode` | Ask for or approve SHADOW to RUNNING (two persons); RUNNING to SHADOW needs systems.edit (WP-P2) |  | x | x | x | x |  |  |
+| `agent.mode` | Ask for or approve SHADOW to RUNNING (two persons); RUNNING to SHADOW needs the reviewer or admin role (WP-P2) |  | x | x | x | x |  |  |
 | `policy.reload` | Reload the policy folders from disk (WP-P2) |  |  |  |  | x |  |  |
 <!-- ROLE-MATRIX:END -->
 

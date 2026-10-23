@@ -194,15 +194,15 @@ def test_shadow_to_running_needs_two_persons(on: Console, records: list[Any]) ->
     assert on.runtime.gateway.states.get_state("kb_chatbot") == "SHADOW"
     same = mode(on, "RUNNING", OWNER)  # the same person again
     assert same.status_code == 400
-    r2 = mode(on, "RUNNING", APPROVER)
+    r2 = mode(on, "RUNNING", REVIEWER2)
     assert r2.status_code == 200, r2.text
-    assert r2.json()["state"] == "RUNNING" and r2.json()["approvers"] == [OWNER, APPROVER]
+    assert r2.json()["state"] == "RUNNING" and r2.json()["approvers"] == [OWNER, REVIEWER2]
     assert on.runtime.gateway.states.get_state("kb_chatbot") == "RUNNING"
     types = [t for t, _, _ in records]
     assert "gate_resume_requested" in types
     change = [p for t, _, p in records if t == "gate_state_change"][-1]
     assert change["from_state"] == "SHADOW" and change["to_state"] == "RUNNING"
-    assert change["approver_1"] == OWNER and change["approver_2"] == APPROVER
+    assert change["approver_1"] == OWNER and change["approver_2"] == REVIEWER2
     assert "go live" not in repr(records)  # reasons go to the chain as a hash
     assert len(audit_rows(on, "agent.mode")) >= 4
 
@@ -211,7 +211,7 @@ def test_second_person_must_be_reviewer_or_approver(on: Console) -> None:
     call(on, "POST", "/v1/agents", BODY)
     assert mode(on, "RUNNING", REVIEWER).json()["status"] == "pending"
     r = mode(on, "RUNNING", OWNER)  # owner may request but not approve
-    assert r.status_code == 400 and "reviewer or approver" in r.json()["error"]
+    assert r.status_code == 400 and "may not approve" in r.json()["error"]
     assert on.runtime.gateway.states.get_state("kb_chatbot") == "SHADOW"
     assert mode(on, "RUNNING", REVIEWER2).json()["state"] == "RUNNING"
 
@@ -234,3 +234,90 @@ def test_mode_bad_input_and_states(on: Console) -> None:
     assert mode(on, "SHADOW", REVIEWER).json()["changed"] is False
     on.runtime.gateway.states.pause("kb_chatbot", REVIEWER, "x")
     assert mode(on, "RUNNING", REVIEWER).status_code == 400
+
+
+# --------------------------------------------------------------------------- review fixes
+import shutil  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from supervisor.config import REPO_ROOT  # noqa: E402
+
+RUNNING_FRAGMENT = """\
+policy_version: 1
+tools:
+  search_policies: read_only
+agents:
+  pay2agent:
+    name: Pay two
+    owner_user: pay2-lead@example.invalid
+    owner_team: Pay Team
+    risk_tier: high
+    initial_state: RUNNING
+"""
+
+
+@pytest.fixture
+def pay2(on: Console, tmp_path: Path) -> Console:
+    base = tmp_path / "base"
+    shutil.copytree(REPO_ROOT / "policies", base)
+    extra = tmp_path / "extra"
+    extra.mkdir()
+    (extra / "f.yaml").write_text(RUNNING_FRAGMENT, encoding="utf-8")
+    on.runtime.gateway.policy_dirs = (base, extra)
+    assert call(on, "POST", "/gate/policy/reload", user=ADMIN).status_code == 200
+    return on
+
+
+PAY2 = {
+    "agent_id": "pay2agent",
+    "name": "Pay two",
+    "owner_team": "Pay Team",
+    "owner_user": "pay2-lead@example.invalid",
+    "risk_tier": "high",
+}
+
+
+def test_h1_create_never_moves_a_policy_agent_out_of_running(pay2: Console) -> None:
+    states = pay2.runtime.gateway.states
+    assert states.get_state("pay2agent") == "RUNNING"
+    r = call(pay2, "POST", "/v1/agents", PAY2, user=OWNER)
+    assert r.status_code == 201 and r.json()["gate_state"] == "RUNNING"
+    assert states.get_state("pay2agent") == "RUNNING"
+
+
+def test_m3_policy_agent_owner_and_tier_are_not_rewritable(pay2: Console) -> None:
+    bad = call(pay2, "POST", "/v1/agents", {**PAY2, "owner_user": "me@example.invalid"}, user=OWNER)
+    assert bad.status_code == 400 and "defined in the policy" in bad.json()["error"]
+    assert call(pay2, "POST", "/v1/agents", PAY2, user=OWNER).status_code == 201
+    for user in (OWNER, ADMIN):
+        r = call(pay2, "POST", "/v1/agents", {**PAY2, "risk_tier": "low"}, user=user)
+        assert r.status_code == 400 and "defined in the policy" in r.json()["error"]
+    ok = call(pay2, "POST", "/v1/agents", {**PAY2, "name": "Pay 2 renamed"}, user=OWNER)
+    assert ok.status_code == 200 and ok.json()["name"] == "Pay 2 renamed"
+
+
+def test_m3_non_policy_agent_owner_change_needs_reviewer_or_admin(on: Console) -> None:
+    call(on, "POST", "/v1/agents", BODY)
+    other = {**BODY, "owner_user": "someone-else@example.invalid"}
+    assert call(on, "POST", "/v1/agents", other, user=OWNER).status_code == 400
+    assert call(on, "POST", "/v1/agents", other, user=REVIEWER).status_code == 200
+
+
+def test_m5_owner_cannot_turn_enforcement_off(on: Console) -> None:
+    call(on, "POST", "/v1/agents", BODY)
+    mode(on, "RUNNING", REVIEWER)
+    mode(on, "RUNNING", REVIEWER2)
+    assert mode(on, "SHADOW", OWNER).status_code == 403
+    assert mode(on, "SHADOW", ADMIN).status_code == 200
+
+
+def test_m6_a_stale_request_cannot_be_completed_later(on: Console) -> None:
+    states = on.runtime.gateway.states
+    call(on, "POST", "/v1/agents", BODY)
+    assert mode(on, "RUNNING", OWNER).json()["status"] == "pending"
+    states.pause("kb_chatbot", REVIEWER, "x")  # any transition voids the request
+    assert states.pending_mode("kb_chatbot") == []
+    states._transition("kb_chatbot", ("PAUSED",), "SHADOW", REVIEWER, "", "resume")
+    r = mode(on, "RUNNING", REVIEWER2)  # the old request is gone: this is a new request
+    assert r.json()["status"] == "pending"
+    assert states.get_state("kb_chatbot") == "SHADOW"

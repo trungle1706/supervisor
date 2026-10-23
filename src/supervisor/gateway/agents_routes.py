@@ -36,8 +36,13 @@ MAX_BODY = 16_000
 
 def registry_of(ctx: ConsoleContext) -> AgentRegistry:
     """The registry service on the running store and chain (also used by the seed command)."""
+    states = ctx.runtime.gateway.states
     return AgentRegistry(
-        ctx.state, ctx.clock, ctx.runtime.chain, on_change=ctx.runtime.gateway.states.invalidate
+        ctx.state,
+        ctx.clock,
+        ctx.runtime.chain,
+        on_change=states.invalidate,
+        policy_agents=lambda: states.policy.current().doc.agents,
     )
 
 
@@ -59,7 +64,7 @@ async def register_agent(
     if me.kind != "user":
         raise PermissionDenied("changing the agent registry needs a signed-in person")
     body = await _body(request)
-    out, created = registry_of(ctx).register(body, str(me.user_id))
+    out, created = registry_of(ctx).register(body, str(me.user_id), me.roles)
     request.state.audit_detail = "create" if created else "update"
     return JSONResponse(status_code=201 if created else 200, content=out)
 
