@@ -15,6 +15,10 @@ never committed: write them only in your local `.env`, `databricks.yml` and `app
 | 6 | Unity Catalog Volume in that schema, READ VOLUME + WRITE VOLUME | Schema owner (`CREATE VOLUME` right) | preflight `volume writable` is `[OK]` with `LIVE_VOLUME_PATH` or `SPOOL_DIR` set | App data dir, spool, anchors |
 | 7 | Right to create one Databricks App | Workspace admin | Compute > Apps > "Create app" is enabled | `databricks bundle deploy` |
 | 8 | Optional: shared interactive cluster, attach right | Workspace admin | the cluster is RUNNING in Compute | `supervisor.jobs.cluster_run`, notebook |
+| 9 | v0.5.0: read rights for the workspace scan v2 (serving endpoints, model versions, Genie spaces, jobs, Vector Search indexes, UC functions, UC connections) | Workspace admin, catalog owner | live test kit item 12 shows `[OK]` per call | `INVENTORY_SCAN_V2` (off until then) |
+| 10 | v0.5.0, optional: a second existing serving endpoint for the guard model, `CAN_QUERY` | Endpoint owner | live test kit item 15 | `GUARD_MODEL_URL`, resource `guard-model-endpoint` (commented in `databricks.yml`) |
+| 11 | v0.5.0: one service principal per candidate App, with `CAN USE` on the Supervisor App | Workspace admin | live test kit items 11 and 16 | `INGRESS_AUTH_ENABLED`, `config/agent_identities.yaml` |
+| 12 | v0.5.0: owner rows for the workspace auto-record (`default_owner` in `config/governance.yaml`) | Second line | the scan counts `skipped_no_owner` while the owner is `FILL-ME` | `INVENTORY_AUTOREGISTER` (off) |
 
 ## 2. Grants for the App service principal
 
@@ -61,3 +65,8 @@ Never a personal access token. Preflight fails when `DATABRICKS_TOKEN` is set.
 | Insert-only MERGE on `delta.appendOnly` tables | The app appends with MERGE to drop duplicates | live kit test 02 and notebook check 3 |
 | Who owns `USE CATALOG` / `USE SCHEMA` grants for the App principal | The owner lacks CREATE SCHEMA and may lack GRANT on the schema | ask the schema owner |
 | Delta retention 1825 days on evidence tables | Legal retention period; owner to confirm | notebook check 7 |
+| SDK response shapes of the scan v2 sources (v0.5.0) | The reader code was written against the SDK documentation, not a live answer | live test kit item 12 |
+| `pypdf` in the App BUILD (v0.5.0) | `requirements.txt` now includes the `documents` extra; BUILD must find it | App deploy log; live test kit item 14 |
+| App to App calls through the Apps proxy (v0.5.0) | Which identity header a candidate App's service principal produces decides the ingress kind | live test kit items 11 and 16 |
+| Playground in `databricks_app` mode (v0.5.0) | Closed unless `PLAYGROUND_ALLOW_APP=1`; kit item 14 needs it once | kit item 14 |
+| Outbound egress for URL fetch (v0.5.0) | `URL_FETCH_ENABLED` stays `0` until the platform team names the domains the App may reach | ask the platform team |

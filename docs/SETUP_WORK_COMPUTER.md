@@ -1,5 +1,7 @@
 # Set up Supervisor on a Techcombank work computer
 
+> v0.5.0: the shortest path is `docs\deploy\LAUNCH_LAPTOP.md` (pip install, `.env.laptop.example`, smoke test, the ten-step story). This page keeps the uv route and the Databricks pointers.
+
 Windows 11, cmd only, no admin rights, Python 3.11, packages from Nexus, no internet at runtime.
 Every command below is cmd syntax. Run them from the `supervisor` folder unless stated.
 

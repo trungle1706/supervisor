@@ -3,7 +3,7 @@
     python -m supervisor.cli demo                      # one full run
     python -m supervisor.cli demo --loop 20            # 20 runs, pass count + timings
     python -m supervisor.cli demo --replay             # recorded twins for model steps
-    python -m supervisor.cli demo seed | inject N | tamper | reset [--snapshot] | serve
+    python -m supervisor.cli demo seed | seed-systems | inject N | tamper | reset | serve
 
 Exit code 0 only when every step of every run matched the expected outcome.
 
@@ -307,7 +307,7 @@ def build_parser() -> argparse.ArgumentParser:
         "step",
         nargs="?",
         default="run",
-        choices=("run", "seed", "inject", "tamper", "reset", "serve"),
+        choices=("run", "seed", "seed-systems", "inject", "tamper", "reset", "serve"),
         help="run = full runbook (default)",
     )
     p.add_argument("incident", nargs="?", help="inject: 1, 2, 3 or 4")
@@ -327,6 +327,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--auto-resume", action="store_true", help="inject: two-person resume")
     p.add_argument("--snapshot", action="store_true", help="reset: take a new snapshot")
     p.add_argument("--quiet", action="store_true", help="loop: print run 1 in full only")
+    p.add_argument(
+        "--candidates-dir",
+        default=None,
+        help="seed-systems: folder with <name>/supervisor.manifest.yaml "
+        "(default ~/supervisor-testbed/candidates)",
+    )
+    p.add_argument(
+        "--no-snapshot",
+        action="store_true",
+        help="seed-systems: do not refresh the reset snapshot",
+    )
     p.add_argument("--host", default="127.0.0.1", help="serve: bind address")
     p.add_argument("--port", type=int, default=8000, help="serve: port")
     return p
@@ -356,6 +367,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             from supervisor.demo.seed import seed
 
             return 0 if seed(settings).ok else 1
+        if args.step == "seed-systems":
+            from supervisor.demo.seed_systems import seed_systems
+
+            # Governance on for this step only: the systems service needs the flag.
+            gov = demo_settings(
+                resolve_data_dir(args.data_dir),
+                governance_enabled=True,
+                classifier_ai_prefill=False,
+            )
+            rep = seed_systems(gov, args.candidates_dir, echo=echo, snapshot=not args.no_snapshot)
+            return 0 if rep.ok else 1
         if args.step == "inject":
             from supervisor.demo.inject import incident_id, inject
 

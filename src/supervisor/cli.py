@@ -24,6 +24,8 @@ EXPORT_REQS_ARGV = [
     "--no-dev",
     "--extra",
     "databricks",
+    "--extra",
+    "documents",
     "--no-hashes",
     "--no-emit-project",
     "--no-header",
@@ -33,7 +35,8 @@ NEXUS_PH = "FILL-ME-nexus-host"
 # turns the two lines on in the user's LOCAL copy only; the committed file keeps them off.
 REQS_HEADER = f"""\
 # Exported from uv.lock. Do not edit. Regenerate: uv run python -m supervisor.cli export-reqs
-# (= uv export --frozen --no-dev --extra databricks --no-hashes --no-emit-project --no-header)
+# (= uv export --frozen --no-dev --extra databricks --extra documents --no-hashes
+#    --no-emit-project --no-header)
 # The Databricks App installs this file at BUILD; the runtime has no package index.
 # If BUILD cannot reach PyPI, switch to the bank Nexus GROUP index in your LOCAL copy only:
 #   uv run python -m supervisor.cli export-reqs --nexus <nexus host>

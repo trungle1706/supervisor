@@ -2,6 +2,66 @@
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.5.0 (phase 4 governance product, phase 5 guardian detectors, deploy package) - 2026-10-23
+
+Everything new is behind a flag that is off by default; with the flags off every answer, row and
+chain record is as in v0.4.1 (each package has an off-path test). `__version__` is `0.5.0`
+(`pyproject.toml` keeps its old `0.2.0`, as in the earlier releases: `uv.lock` records it).
+Nothing has run on a live Databricks workspace. On Delta, run
+`python -m supervisor.jobs.bootstrap_schema` BEFORE the new app version (migration note below).
+The pitch status and its limits: `docs/phase4/PITCH_READINESS.md`. Deploy package:
+`docs/deploy/LAUNCH_LAPTOP.md`, `docs/deploy/LAUNCH_DATABRICKS.md`.
+
+### What is new
+
+| Phase | Packages | Feature | Docs |
+|---|---|---|---|
+| 4 | G0, UX4a, G1, G2, G3, G5, UX4b, S1, G6 | Governance product on the shared core: the AI system (intake, team, components, inherited risk), merged sidebar, lifecycle with stage approvals, reviews and outbound events, assignment rules and Decision 33 classification, workspace scan v2 and auto-record, governance actions and incidents, per-system guardian bindings with a mandatory floor, MCP server (21 tools, draft-only writes) and `GET /v1/kpis` | `docs/governance.md`, `docs/decision33.md`, `docs/governance-actions.md`, `docs/guardian-bindings.md`, `docs/mcp-server.md`, `docs/inventory.md` |
+| 5 | D1, D2, D3, D4 | Guardian detectors: document and URL intake, secrets and custom DLP rules, guard model adapter and decision memo (NO-GO, off), judge moderation (off) | `docs/detectors.md`, `docs/guard-model-decision.md` |
+| 6 | P1 | Deploy package: `demo seed-systems`, `tools/smoke_launch.py`, laptop and Databricks bundles, launch guides, `.env.laptop.example` | `docs/deploy/` |
+
+### New flags and settings (all default off or empty)
+
+`GOVERNANCE_ENABLED`, `CONSOLE_SYSTEMS_ENABLED`, `CONSOLE_NAV_SECTIONS`, `CONSOLE_NAV_V3`,
+`CONSOLE_CATALOG_ENABLED`, `GOVERNANCE_ACTIONS_ENABLED`, `SCHED_GOVERNANCE_S`,
+`GUARDIAN_BINDINGS_ENABLED`, `MCP_SERVER_ENABLED`, `WEBHOOKS_ENABLED`, `CLASSIFIER_AI_PREFILL`,
+`INVENTORY_SCAN_V2`, `INVENTORY_AUTOREGISTER`, `DOCUMENT_INTAKE_ENABLED`, `URL_FETCH_ENABLED`,
+`URL_FETCH_ALLOWLIST`, `PLAYGROUND_URL_FETCH`, `GUARD_MODEL_ADAPTER`, `GUARD_MODEL_URL`,
+`GUARD_MODEL_NAME`, `GUARD_MODEL_VERSION`, `GUARD_MODEL_API_KEY`, `GUARD_MODEL_TIMEOUT_MS`,
+`GUARD_MODEL_FAIL_CLOSED_APPROVED`. The laptop file `.env.laptop.example` and `app.yaml` list them
+with one comment each.
+
+### Deploy note for Delta (databricks_app mode)
+
+New tables: `ai_system`, `system_team`, `system_component`, `assignment`, `classification`,
+`stage_approval`, `review`, `outbound_event`, `incident`, `governance_event`, `mcp_app`,
+`guardian_binding`. `bootstrap_schema` creates them and adds missing columns; it never drops.
+`requirements.txt` now includes the `documents` extra (`pypdf`, BSD-3-Clause): the App BUILD must
+find it.
+
+### WP-P1: release and deploy package
+
+- `requirements.txt` is exported with `--extra documents` (`EXPORT_REQS_ARGV` in `cli.py` and
+  `release.py`); preflight reports the `documents` extra.
+- `python -m supervisor.cli release --bundles --out <dir> [--ref v0.5.0]` builds `<dir>/laptop/`
+  and `<dir>/databricks/`: the leak-swept zip of the ref, loose copies of the files read first,
+  `SHA256SUMS.txt`. `build_release` takes `target` (`laptop`, `databricks`) and `ref`. The leak sweep
+  allows `.env.laptop.example`.
+- `python -m supervisor.cli demo seed-systems [--candidates-dir DIR]`: registers the candidate agents
+  as AI systems from `supervisor.manifest.yaml` (agent registry row, system, link, Decision 33
+  draft; idempotent; `[SKIP]` with the reason for a missing or bad manifest; refreshes the reset
+  snapshot).
+- `tools/smoke_launch.py`: starts the app on a free port with a temporary folder, opens the
+  console, registers a system, runs a Playground check, verifies the chain, stops the app. Linux and
+  Windows, no bash. Result: `docs/deploy/SMOKE_RESULT.md`.
+- `.env.laptop.example`, `docs/deploy/LAUNCH_LAPTOP.md`, `docs/deploy/LAUNCH_DATABRICKS.md`;
+  `app.yaml` and `databricks.yml` carry the phase 4 and 5 variables as FILL-ME or "0";
+  `docs/live-test-kit.md` items 13 to 16 and `docs/databricks-prereqs.md` rows 9 to 12.
+
+### Per-package notes
+
 ### WP-D1: document and URL intake
 
 Two flags, both off by default: `DOCUMENT_INTAKE_ENABLED` (with `DETECTORS_ENABLED`) and

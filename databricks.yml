@@ -9,6 +9,10 @@
 #   databricks bundle deploy   -t dev --profile FILL-ME-profile
 #   databricks bundle run supervisor -t dev --profile FILL-ME-profile
 #
+# v0.5.0: the phase 4 and 5 environment variables (governance, actions, bindings, MCP server,
+# document intake, guard model, scan v2) are in app.yaml, not here: a bundle app reads its
+# environment from app.yaml. Scan v2 is off ("0") until live test kit item 12 has passed.
+#
 # App names: lowercase letters, digits and hyphens, at most 30 characters.
 # Suffix the name with your user name to avoid collisions in the workspace.
 bundle:
@@ -51,6 +55,15 @@ resources:
           serving_endpoint:
             name: FILL-ME-serving-endpoint-name
             permission: CAN_QUERY
+        # v0.5.0, optional: an existing serving endpoint for the guard model (phase 5 detector,
+        # NO-GO until a real model run, docs/guard-model-decision.md). Uncomment it, fill in the
+        # name, and put the same endpoint URL in GUARD_MODEL_URL in app.yaml. The App cannot
+        # create endpoints: it only gets CAN_QUERY on one that exists.
+        # - name: guard-model-endpoint
+        #   description: "Existing serving endpoint for the guard model (optional)"
+        #   serving_endpoint:
+        #     name: FILL-ME-guard-endpoint-name
+        #     permission: CAN_QUERY
 
 targets:
   dev:

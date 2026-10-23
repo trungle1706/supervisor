@@ -51,3 +51,78 @@ env:
   # (the workspace's own endpoint, so LLM_ALLOW_REMOTE is implied for that URL only).
   - name: LLM_ENDPOINT
     valueFrom: llm-endpoint
+
+  # ---- Phase 4 and 5 (v0.5.0). Every switch is off in the code; "1" here turns it on for the
+  # sandbox. Set a switch to "0" to switch the feature off again. Nothing below needs a secret.
+  # Governance: AI systems, assignment rules, Decision 33 classification, lifecycle (docs/governance.md).
+  - name: GOVERNANCE_ENABLED
+    value: "1"
+  - name: CONSOLE_SYSTEMS_ENABLED
+    value: "1"
+  # Sidebar with the Governance and Supervisor sections.
+  - name: CONSOLE_NAV_SECTIONS
+    value: "1"
+  - name: CONSOLE_NAV_V3
+    value: "1"
+  - name: CONSOLE_CATALOG_ENABLED
+    value: "1"
+  # Risk of a system inherits over the inventory graph.
+  - name: INVENTORY_ENABLED
+    value: "1"
+  # Events map to actions: incident, notify, raise risk, re-evaluate, review (docs/governance-actions.md).
+  - name: GOVERNANCE_ACTIONS_ENABLED
+    value: "1"
+  # Per-system guardian switches with the mandatory floor (docs/guardian-bindings.md).
+  - name: GUARDIAN_BINDINGS_ENABLED
+    value: "1"
+  # POST /mcp and GET /v1/kpis on the same port (docs/mcp-server.md).
+  - name: MCP_SERVER_ENABLED
+    value: "1"
+  # The stub marks outbound events delivered; it sends nothing.
+  - name: WEBHOOKS_ENABLED
+    value: "0"
+  - name: CLASSIFIER_AI_PREFILL
+    value: "0"
+  - name: TRANSPARENCY_ENABLED
+    value: "1"
+  # Scan v2 of the workspace (serving endpoints, model versions, Genie, jobs, Vector Search, UC
+  # functions, UC connections): OFF until live test kit item 12 has passed. Autoregister: OFF.
+  - name: INVENTORY_SCAN_V2
+    value: "0"
+  - name: INVENTORY_AUTOREGISTER
+    value: "0"
+  # catalog.schema,catalog.schema whose tables and functions the scan lists (needs scan v2 for functions).
+  - name: INVENTORY_SCAN_SCHEMAS
+    value: "FILL-ME-catalog.FILL-ME-schema"
+  # Guardian detectors (phase 5).
+  - name: DETECTORS_ENABLED
+    value: "1"
+  - name: DOCUMENT_INTAKE_ENABLED
+    value: "1"
+  # URL fetch for documents: HTTPS only, allow list only. The App has no internet by default.
+  - name: URL_FETCH_ENABLED
+    value: "0"
+  - name: URL_FETCH_ALLOWLIST
+    value: "FILL-ME-allowed-domain"
+  # Guard model: NO-GO until a real model run (docs/guard-model-decision.md). Stays the labelled
+  # mock until you serve a model and set these three (uncomment and fill in):
+  - name: GUARD_MODEL_ADAPTER
+    value: "auto"
+  # - name: GUARD_MODEL_URL
+  #   value: "https://FILL-ME-workspace-host/serving-endpoints/FILL-ME-guard-endpoint/invocations"
+  # - name: GUARD_MODEL_NAME
+  #   value: "FILL-ME-guard-model-id"
+  # - name: GUARD_MODEL_VERSION
+  #   value: "FILL-ME-guard-model-revision"
+  - name: GUARD_MODEL_FAIL_CLOSED_APPROVED
+    value: "0"
+  # The candidate agents run as separate Apps and call this App with their service principal
+  # (docs/deploy/LAUNCH_DATABRICKS.md section 7, docs/ingress-auth.md "Databricks App setup").
+  # Turn this on after live test kit item 11 shows which identity headers arrive, and after you
+  # map each service principal to its agent id in config/agent_identities.yaml (local copy).
+  # - name: INGRESS_AUTH_ENABLED
+  #   value: "1"
+  # - name: INGRESS_CREDENTIAL_KIND
+  #   value: "databricks_proxy"
+  # - name: INGRESS_IDENTITIES_FILE
+  #   value: "config/agent_identities.yaml"
