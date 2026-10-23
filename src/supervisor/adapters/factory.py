@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from supervisor.adapters.clock import SystemClock
 from supervisor.adapters.sql.store import SqlStateStore, SqlTableStore
@@ -114,15 +115,33 @@ def make_judge_chat_model(settings: Settings, role: str) -> ChatModel:
 
     base_url = getattr(settings, f"judge_{role}_base_url") or settings.llm_base_url
     secret = settings.judge_api_key or settings.llm_api_key
-    chat = OpenAICompatibleChat(
-        base_url,
-        model,
-        api_key=secret.get_secret_value() if secret else None,
-        timeout_s=settings.judge_timeout_s,
-        max_tokens=min(settings.llm_max_tokens, 2048),
-        strict_schema=settings.llm_strict_schema,
-        send_temperature=settings.llm_send_temperature,
-    )
+    chat: Any
+    if secret is None and settings.is_workspace_serving_url(base_url):
+        # WP-P3: workspace endpoint or AI Gateway, authenticated as the App's own identity.
+        from supervisor.adapters.sql.databricks_rest import make_workspace_client
+        from supervisor.databricks.serving import DatabricksServingChat
+
+        chat = DatabricksServingChat(
+            base_url,
+            model,
+            make_workspace_client(settings).config.authenticate,
+            timeout_s=settings.judge_timeout_s,
+            max_tokens=min(settings.llm_max_tokens, 2048),
+            api_shape=settings.llm_api_shape,
+            strict_schema=settings.llm_strict_schema,
+            send_temperature=settings.llm_send_temperature,
+        )
+    else:
+        chat = OpenAICompatibleChat(
+            base_url,
+            model,
+            api_key=secret.get_secret_value() if secret else None,
+            timeout_s=settings.judge_timeout_s,
+            max_tokens=min(settings.llm_max_tokens, 2048),
+            strict_schema=settings.llm_strict_schema,
+            send_temperature=settings.llm_send_temperature,
+            api_shape=settings.llm_api_shape,
+        )
     # D05: the family is derived (model id, and endpoint metadata when JUDGE_FAMILY_PROBE=1).
     # A declared family only counts if it agrees, or under the test-only override.
     try:

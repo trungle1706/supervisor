@@ -148,5 +148,6 @@ def build_attacker(settings: Any) -> Attacker:
         max_tokens=512,
         strict_schema=settings.llm_strict_schema,
         send_temperature=settings.llm_send_temperature,
+        api_shape=getattr(settings, "llm_api_shape", "chat"),
     )
     return LlmAttacker(chat)

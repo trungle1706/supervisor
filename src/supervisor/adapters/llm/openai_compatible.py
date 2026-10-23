@@ -131,7 +131,11 @@ class OpenAICompatibleChat:
         transport: httpx.BaseTransport | None = None,
         strict_schema: bool = False,
         send_temperature: bool = True,
+        api_shape: str = "chat",
     ) -> None:
+        if api_shape not in ("chat", "responses"):
+            raise LLMError(f"unknown LLM_API_SHAPE {api_shape!r} (use chat or responses)")
+        self.api_shape = api_shape
         if not base_url:
             raise LLMError("LLM_BASE_URL is empty; use MockChat")
         self.base_url = base_url.rstrip("/")
@@ -168,6 +172,7 @@ class OpenAICompatibleChat:
             transport=transport,
             strict_schema=settings.llm_strict_schema,
             send_temperature=settings.llm_send_temperature,
+            api_shape=getattr(settings, "llm_api_shape", "chat"),
         )
 
     def close(self) -> None:
@@ -236,6 +241,19 @@ class OpenAICompatibleChat:
     def _post(self, msgs: list[dict[str, str]], schema: Mapping[str, Any], timeout: float) -> str:
         # Strict endpoints refuse some keywords: send a stripped copy, validate with the full one.
         sent = jsonschema_lite.strict_compatible(schema) if self.strict_schema else dict(schema)
+        if self.api_shape == "responses":
+            body = self._responses_body(msgs, sent)
+            path = "responses"
+        else:
+            body = self._chat_body(msgs, sent)
+            path = "chat/completions"
+        headers = {"Content-Type": "application/json"}
+        if self.__api_key:
+            headers["Authorization"] = f"Bearer {self.__api_key}"
+        url = f"{self.base_url}/{path}"
+        return self._send(url, body, headers, timeout)
+
+    def _chat_body(self, msgs: list[dict[str, str]], sent: Mapping[str, Any]) -> dict[str, Any]:
         body: dict[str, Any] = {
             "model": self.model_id,
             "messages": msgs,
@@ -251,10 +269,45 @@ class OpenAICompatibleChat:
         }
         if self.send_temperature:
             body["temperature"] = 0
-        headers = {"Content-Type": "application/json"}
-        if self.__api_key:
-            headers["Authorization"] = f"Bearer {self.__api_key}"
-        url = f"{self.base_url}/chat/completions"
+        return body
+
+    def _responses_body(
+        self, msgs: list[dict[str, str]], sent: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """OpenAI responses API: system text -> ``instructions``; others -> typed input items."""
+        system = "\n\n".join(m["content"] for m in msgs if m.get("role") == "system")
+        items: list[dict[str, Any]] = []
+        for m in msgs:
+            role = m.get("role")
+            if role == "system":
+                continue
+            kind = "output_text" if role == "assistant" else "input_text"
+            items.append(
+                {
+                    "role": "assistant" if role == "assistant" else "user",
+                    "content": [{"type": kind, "text": m.get("content", "")}],
+                }
+            )
+        body: dict[str, Any] = {
+            "model": self.model_id,
+            "max_output_tokens": self.max_tokens,
+            "input": items,
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "reply",
+                    "schema": dict(sent),
+                    "strict": self.strict_schema,
+                }
+            },
+        }
+        if system:
+            body["instructions"] = system
+        if self.send_temperature:
+            body["temperature"] = 0
+        return body
+
+    def _send(self, url: str, body: dict[str, Any], headers: dict[str, str], timeout: float) -> str:
         start = time.monotonic()
         try:
             resp = self._client.post(url, json=body, headers=headers, timeout=timeout)
@@ -280,6 +333,8 @@ class OpenAICompatibleChat:
             raise LLMError(
                 f"model endpoint {self.base_url} returned HTTP {resp.status_code}: {text}"
             )
+        if self.api_shape == "responses":
+            return self._read_responses(resp)
         try:
             data = resp.json()
             choice = data["choices"][0]
@@ -293,6 +348,30 @@ class OpenAICompatibleChat:
                 "(raise num_ctx in the Modelfile or LLM_MAX_TOKENS)"
             )
         return content
+
+    def _read_responses(self, resp: httpx.Response) -> str:
+        try:
+            data = resp.json()
+            if not isinstance(data, dict):
+                raise TypeError("not an object")
+            if data.get("status") == "incomplete":
+                details = data.get("incomplete_details") or {}
+                if details.get("reason") == "max_output_tokens":
+                    raise TruncatedError(
+                        f"reply from {self.model_id} was cut off at "
+                        f"max_output_tokens={self.max_tokens} (raise LLM_MAX_TOKENS)"
+                    )
+            text = data.get("output_text")
+            if not isinstance(text, str) or not text:
+                parts: list[str] = []
+                for item in data["output"]:
+                    for part in item.get("content") or []:
+                        if part.get("type") == "output_text":
+                            parts.append(str(part.get("text") or ""))
+                text = "".join(parts)
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
+            raise LLMError(f"model endpoint {self.base_url} sent a malformed response") from exc
+        return text
 
     @staticmethod
     def _parse(content: str, schema: Mapping[str, Any]) -> tuple[dict[str, Any] | None, str]:

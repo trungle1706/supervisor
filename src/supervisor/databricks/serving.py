@@ -33,6 +33,7 @@ class DatabricksServingChat:
     """``ChatModel`` over the bound serving endpoint, with per-call fresh OAuth headers."""
 
     is_mock = False
+    supports_deadline = True
 
     def __init__(
         self,
@@ -44,7 +45,14 @@ class DatabricksServingChat:
         max_tokens: int = 8192,
         family: str | None = None,
         transport: Any = None,
+        api_shape: str = "chat",
+        strict_schema: bool = False,
+        send_temperature: bool = True,
     ) -> None:
+        self.api_shape = api_shape
+        self.strict_schema = strict_schema
+        self.send_temperature = send_temperature
+        self.family_source = "derived"
         self.base_url = base_url.rstrip("/")
         self.model_id = endpoint
         self.family = family or model_family(endpoint)
@@ -78,7 +86,11 @@ class DatabricksServingChat:
                 timeout_s=self._timeout_s,
                 max_tokens=self._max_tokens,
                 family=self.family,
+                family_source=self.family_source,
                 transport=self._transport,
+                api_shape=self.api_shape,
+                strict_schema=self.strict_schema,
+                send_temperature=self.send_temperature,
             )
             self._token_fp = fp
         return self._chat
@@ -88,8 +100,13 @@ class DatabricksServingChat:
         messages: Sequence[Mapping[str, str]],
         json_schema: Mapping[str, Any],
         timeout_s: float | None = None,
+        deadline: float | None = None,
     ) -> Mapping[str, Any]:
-        return self._current().complete_json(messages, json_schema, timeout_s)
+        return self._current().complete_json(messages, json_schema, timeout_s, deadline)
+
+    def endpoint_family(self, timeout_s: float = 5.0) -> str | None:
+        """No metadata probe over the workspace identity: the family comes from the model id."""
+        return None
 
     def close(self) -> None:
         if self._chat is not None:
@@ -112,4 +129,7 @@ class DatabricksServingChat:
             timeout_s=settings.llm_timeout_s,
             max_tokens=settings.llm_max_tokens,
             transport=transport,
+            api_shape=getattr(settings, "llm_api_shape", "chat"),
+            strict_schema=settings.llm_strict_schema,
+            send_temperature=settings.llm_send_temperature,
         )

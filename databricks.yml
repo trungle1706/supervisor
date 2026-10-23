@@ -50,6 +50,8 @@ resources:
           sql_warehouse:
             id: FILL-ME-warehouse-id
             permission: CAN_USE
+        # Model is a Unity Catalog model service (AI Gateway)? Remove this resource and use the
+        # commented LLM_BASE_URL / LLM_MODEL / LLM_API_SHAPE block in app.yaml.
         - name: llm-endpoint
           description: "Existing model-serving endpoint for the judges (OpenAI-compatible)"
           serving_endpoint:
