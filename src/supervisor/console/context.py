@@ -290,7 +290,12 @@ def _retry_degraded(ctx: ConsoleContext) -> ConsoleContext:
     from supervisor.gateway import wiring as gate_wiring
 
     try:
-        return build_context(gate_wiring.install_runtime(get_settings()))
+        new = build_context(gate_wiring.install_runtime(get_settings()))
     except Exception:  # noqa: BLE001 - still no grant
         ctx.degraded_until = time.monotonic() + 60.0
         return ctx
+    try:  # the old degraded adapters are not used any more
+        ctx.runtime.adapters.close()
+    except Exception:  # noqa: BLE001, S110
+        pass
+    return new

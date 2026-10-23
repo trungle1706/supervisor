@@ -278,6 +278,10 @@ def install(app: Any, settings: Any) -> None:
         from supervisor.adapters.auth.user_token import UserTokenMiddleware
 
         app.add_middleware(UserTokenMiddleware)
+    if getattr(settings, "sql_user_token_forward", False):  # WP-P5: no writes while degraded
+        from supervisor.console.degraded_guard import DegradedWriteGuard
+
+        app.add_middleware(DegradedWriteGuard)
     app.add_middleware(RequestIdMiddleware, header=settings.request_id_header)
 
 

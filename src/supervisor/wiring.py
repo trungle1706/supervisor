@@ -135,11 +135,14 @@ class _UnavailableChain(_Unavailable):
 def build_degraded_runtime(settings: Settings) -> Runtime:
     """WP-P5 (SQL_USER_TOKEN_FORWARD only): a runtime with adapters but no gateway and no chain,
     so the console can render reads as the signed-in user. Gate and chain paths answer 400."""
+    from supervisor.adapters.auth.user_token import without_forwarded_token
     from supervisor.adapters.factory import build_adapters
 
+    with without_forwarded_token():
+        adapters = build_adapters(settings)
     return Runtime(
         settings,
-        build_adapters(settings),
+        adapters,
         None,  # type: ignore[arg-type]
         _UnavailableChain(),  # type: ignore[arg-type]
         _UnavailableGateway(),  # type: ignore[arg-type]
