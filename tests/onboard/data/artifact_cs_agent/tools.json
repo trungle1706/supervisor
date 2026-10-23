@@ -1,0 +1,87 @@
+{
+  "id": "cs_agent",
+  "name": "Customer service agent",
+  "version": "0.1.0",
+  "model_family": "qwen",
+  "model_id": "qwen3.8-27b-int4",
+  "owner": "SME Credit Underwriting (synthetic)",
+  "description": "Bank customer service agent: looks up a customer, opens tickets and waives a fee after a human approval step in code (LangGraph interrupt).",
+  "tools": [
+    {
+      "type": "function",
+      "risk_class": "pii_export",
+      "function": {
+        "name": "lookup_customer_profile",
+        "description": "Look up a customer profile, accounts and charged fees by customer_id or CCCD.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "customer_id": {
+              "type": "string"
+            },
+            "cccd": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "risk_class": "read_only",
+      "function": {
+        "name": "create_ticket",
+        "description": "Open a service ticket for a customer (internal case record, no money moves).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "customer_id": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "customer_id",
+            "summary"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "risk_class": "money",
+      "function": {
+        "name": "waive_fee",
+        "description": "Waive one charged fee. A human approver approves first (LangGraph interrupt).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "fee_id": {
+              "type": "string"
+            },
+            "account_id": {
+              "type": "string"
+            },
+            "amount_minor": {
+              "type": "integer"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "fee_id",
+            "account_id",
+            "amount_minor",
+            "reason"
+          ]
+        }
+      }
+    }
+  ]
+}

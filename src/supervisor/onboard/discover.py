@@ -837,6 +837,16 @@ def _scan_python(file: str, index: SourceIndex, st: _State) -> None:
             st.human_refs.append(index.evidence(file, fn.lineno))
     for node in ast.walk(tree):
         _scan_node(file, node, index, st)
+        # WP-P2: LangGraph interrupt_before=[...] (non-empty) or interrupt(...) is a human gate
+        if isinstance(node, ast.Call):
+            nonempty = any(
+                kw.arg == "interrupt_before"
+                and isinstance(kw.value, ast.List | ast.Tuple | ast.Set)
+                and kw.value.elts
+                for kw in node.keywords
+            )
+            if nonempty or _call_name(node) in ("interrupt", "langgraph.types.interrupt"):
+                st.human_refs.append(index.evidence(file, node.lineno))
 
 
 def _call_name(node: ast.AST) -> str:

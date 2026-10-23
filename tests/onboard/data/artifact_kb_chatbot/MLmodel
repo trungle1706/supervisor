@@ -1,0 +1,13 @@
+artifact_path: agent
+flavors:
+  python_function:
+    loader_module: mlflow.pyfunc.model
+    python_model: code/agent.py
+    python_version: 3.11.9
+    code: code
+metadata:
+  task: agent/v1/chat
+  owner: owner.credit
+signature:
+  inputs: '[{"type": "string", "name": "question"}]'
+  outputs: '[{"type": "string", "name": "answer"}]'

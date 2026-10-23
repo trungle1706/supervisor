@@ -270,6 +270,7 @@ def define_artifact(
 
     reader = LocalGitRepoReader(src)
     scrubber = scrubber or Scrubber()
+    agent_id = _resolve_agent_id(src, agent_id)  # WP-P2
     try:
         disc = discover(
             reader,
@@ -321,10 +322,55 @@ def define_artifact(
     return DefineResult(out, inv, profile, facts, autonomy, paths, lines)
 
 
+def _mlmodel_metadata(index: SourceIndex) -> dict[str, Any]:
+    rows = index.lines.get(MLMODEL)
+    if rows is None:
+        return {}
+    try:
+        doc = yaml.safe_load("\n".join(rows))
+    except yaml.YAMLError:
+        return {}
+    meta = doc.get("metadata") if isinstance(doc, Mapping) else None
+    return dict(meta) if isinstance(meta, Mapping) else {}
+
+
+def _resolve_agent_id(src: Path, agent_id: str | None) -> str | None:
+    """WP-P2: the ``--agent-id`` flag, else ``metadata.agent_id`` of the MLmodel file. Never the
+    literal folder name ``artifact`` (an MLflow download folder says nothing about the agent)."""
+    if agent_id:
+        return agent_id
+    f = src / MLMODEL
+    if f.is_file():
+        try:
+            doc = yaml.safe_load(f.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
+            doc = None
+        meta = doc.get("metadata") if isinstance(doc, Mapping) else None
+        value = meta.get("agent_id") if isinstance(meta, Mapping) else None
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    if src.name.lower() == "artifact":
+        raise DefineError(
+            "the agent id is unknown: pass --agent-id or set metadata.agent_id in the MLmodel file "
+            "(the folder name 'artifact' is not an id)"
+        )
+    return None
+
+
 def _add_artifact_facts(disc: Discovery) -> Discovery:
-    """Add what only an artifact has: framework from MLmodel or requirements, prompt files."""
+    """Add what only an artifact has: framework from MLmodel or requirements, prompt files,
+    the owner (``metadata.owner`` is the owner user, ``metadata.owner_team`` the team) and no tool
+    that is the agent id itself."""
     inv, index = disc.inventory, disc.index
     update: dict[str, Any] = {}
+    meta = _mlmodel_metadata(index)
+    if str(inv.owner_user).startswith("FILL-ME") and meta.get("owner"):
+        update["owner_user"] = str(meta["owner"]).strip()[:200]
+    if str(inv.owner_team).startswith("FILL-ME") and meta.get("owner_team"):
+        update["owner_team"] = str(meta["owner_team"]).strip()[:200]
+    phantom = [t for t in inv.tools if t.name == inv.agent_id and t.manifest_entry is None]
+    if phantom:
+        update["tools"] = [t for t in inv.tools if t not in phantom]
     if inv.framework == "unknown":
         fw, ref = _framework_from(mlmodel_facts(index), requirements_facts(index))
         if fw != "unknown" and ref:

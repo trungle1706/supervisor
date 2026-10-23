@@ -303,3 +303,48 @@ def test_chat_server_with_a_main_block_is_l1_not_l2(tmp_path: Path) -> None:
         'if __name__ == "__main__":\n    import uvicorn\n    uvicorn.run(app)\n'
     )
     assert _plain(tmp_path, code)["level"] == "l1_assistive"
+
+
+# --------------------------------------------------------------------------- WP-P2
+KB = DATA / "artifact_kb_chatbot"  # A1: retrieval only chat app (synthetic)
+CS = DATA / "artifact_cs_agent"  # A2: LangGraph, interrupt_before guards the money tool
+
+
+def test_p2_retrieval_only_chat_app_is_l1_with_owner_and_family(tmp_path: Path) -> None:
+    res = define_artifact(KB, tmp_path / "o", agent_id="kb_chatbot")
+    inv = res.inventory
+    assert inv.agent_id == "kb_chatbot"
+    assert [t.name for t in inv.tools] == ["search_policies"]  # the agent id is not a tool
+    assert inv.owner_user == "owner.credit"  # MLmodel metadata.owner
+    assert inv.model_family == "qwen" and inv.model_id == "qwen3.8-27b-int4"
+    assert res.autonomy["level"] == "l1_assistive"
+    assert res.autonomy["why"] == "retrieval only, text to a person"
+
+
+def test_p2_agent_id_never_defaults_to_artifact(tmp_path: Path) -> None:
+    import shutil
+
+    bare = tmp_path / "artifact"
+    shutil.copytree(KB, bare)
+    with pytest.raises(DefineError, match="agent id is unknown"):
+        define_artifact(bare, tmp_path / "o1")
+    ml = bare / "MLmodel"
+    ml.write_text(ml.read_text().replace("owner: owner.credit", "owner: o.u\n  agent_id: kb_x"))
+    res = define_artifact(bare, tmp_path / "o2")
+    assert res.inventory.agent_id == "kb_x"  # metadata.agent_id
+    assert main(["--artifact", str(bare), "--out", str(tmp_path / "o3"), "--agent-id", "z"]) == 0
+
+
+def test_p2_other_tool_classes_keep_the_old_autonomy_rules(tmp_path: Path) -> None:
+    res = define_artifact(CREDIT, tmp_path / "o")
+    assert res.autonomy["level"] != "l1_assistive"
+
+
+def test_p2_interrupt_before_counts_as_a_human_gate_for_the_money_tool(tmp_path: Path) -> None:
+    res = define_artifact(CS, tmp_path / "o", agent_id="cs_agent")
+    d33 = res.profile.decision33
+    assert {t.name: t.risk_class for t in res.inventory.tools}["waive_fee"] == "money"
+    assert d33.human_gate_in_code is True
+    assert res.autonomy["level"] == "l3_tool_using_supervised"  # consistent with the gate
+    assert any("interrupt_before" in r.quote for r in res.inventory.human_approval_refs)
+    assert res.inventory.model_family == "qwen"

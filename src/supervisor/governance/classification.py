@@ -262,6 +262,7 @@ class ClassificationService:
             system_id
         )
         answers = d33.derive(flow, facts)
+        self._cross_check(system_id, facts, answers)  # WP-P2
         prefill = self._prefill(flow, system, answers)
         dec = d33.decide(flow, answers)
         now = self.clock.now()
@@ -296,6 +297,35 @@ class ClassificationService:
         out = self.view(dict(stored), flow)
         out["ai_prefill"] = prefill
         return out
+
+    def _cross_check(
+        self, system_id: str, facts: Mapping[str, Any], answers: dict[str, dict[str, Any]]
+    ) -> None:
+        """WP-P2: Q-PRE-APPROVAL "yes" that comes only from the declared human_control is checked
+        against the define profile of the linked agents (``profile_check``). Not found in code:
+        the question goes back to a person (unanswered, text says why). Found: stays yes, with
+        the evidence reference."""
+        cur = answers.get("Q-PRE-APPROVAL")
+        if (
+            cur is None
+            or cur.get("answer") != "yes"
+            or facts.get("human_control") != "pre_approval"
+        ):
+            return
+        from supervisor.governance.profile_check import check_pre_approval
+
+        agents = [
+            str(c["ref_id"])
+            for c in self.state.query("system_component", {"system_id": system_id})
+            if _on(c["active"]) and c["ref_kind"] == "agent"
+        ]
+        verdict, text = check_pre_approval(self.settings.data_dir, agents)
+        if verdict == "not_found":
+            answers["Q-PRE-APPROVAL"] = d33.entry(None, "person", text)
+        elif verdict == "confirmed":
+            answers["Q-PRE-APPROVAL"] = d33.entry(
+                "yes", "rules", f"{cur.get('justification', '')}; {text}"[:500]
+            )
 
     def _prefill(
         self, flow: d33.Flow, system: Mapping[str, Any], answers: dict[str, dict[str, Any]]

@@ -41,6 +41,7 @@ _LOOP = re.compile(
     r"(?i)create_react_agent|AgentExecutor|initialize_agent|plan_and_execute|PlanAndExecute|"
     r"\bplanner\b|StateGraph\(|\bwhile\s+(?:True|not\s+\w*done)\b|max_iterations|recursion_limit"
 )
+_CHAT_TASK = re.compile(r"^\s*task:\s*\S*chat")  # MLmodel metadata.task, e.g. agent/v1/chat
 _BATCH = re.compile(
     r"(?i)dbutils\.widgets|def\s+\w*(?:batch|job|pipeline|handler)\w*\s*\(|@dlt\.|"
     r"\bforeachBatch\b|spark\.read|\bbatch_?size\b"
@@ -107,6 +108,17 @@ def propose_autonomy_level(disc: Discovery) -> dict[str, Any]:
             disc,
         )
     acting = [t for t in tools if _has_side_effect(t)]
+    if not acting and all(t.risk_class == "read_only" for t in tools):
+        # WP-P2: retrieval only, the answer is text to a person (a chat or HTTP entry point)
+        routes = [e.evidence for e in inv.entrypoints if str(e.detail).startswith("route:")]
+        chat = _grep(disc, _CHAT_TASK, limit=1)
+        if routes or chat:
+            return _result(
+                "l1_assistive",
+                "retrieval only, text to a person",
+                model_ev + routes + chat,
+                disc,
+            )
     interrupt = _grep(disc, _INTERRUPT)
     approval = list(inv.human_approval_refs) + interrupt
     uncovered = [t.name for t in acting if not _approval_refs(inv, [t]) and not interrupt]

@@ -1,0 +1,15 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "search_policies",
+      "description": "Search the synthetic bank policy documents and return the matching sections. Read only.",
+      "risk_class": "read_only",
+      "parameters": {
+        "type": "object",
+        "properties": {"query": {"type": "string"}, "top_k": {"type": "integer"}},
+        "required": ["query"]
+      }
+    }
+  }
+]

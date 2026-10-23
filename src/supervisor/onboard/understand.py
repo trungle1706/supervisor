@@ -263,12 +263,22 @@ def _weak_spots(inv: Inventory, first: Evidence) -> list[Claim]:
     return out
 
 
+_INTERRUPT_QUOTE = re.compile(r"interrupt_before|\binterrupt\s*\(")
+
+
 def _approval_refs(inv: Inventory, tools: list[ToolInfo]) -> list[Evidence]:
     """Human-approval steps in the SAME file as a triggering tool's definition. An
     approval function somewhere else in the repo does not count (a false "not high
     risk" is the worse error)."""
     files = {t.definition.file for t in tools if t.definition is not None}
-    return [r for r in inv.human_approval_refs if r.file in files]
+    # WP-P2: a LangGraph interrupt_before / interrupt() halts the whole graph before the guarded
+    # node; the graph is built in another file than the tools, so these refs count graph-wide.
+    graph = inv.framework == "langgraph"
+    return [
+        r
+        for r in inv.human_approval_refs
+        if r.file in files or (graph and _INTERRUPT_QUOTE.search(r.quote))
+    ]
 
 
 def classify_decision33(inv: Inventory, first: Evidence) -> Decision33:
@@ -324,6 +334,9 @@ def classify_decision33(inv: Inventory, first: Evidence) -> Decision33:
                 evidence=([e for t in cr for e in _tool_ev(t, first)] + refs + prose)[:6],
             )
         )
+    for t in inv.tools:  # WP-P2: a gate in code for a money or credit tool, with or without entry
+        if t.risk_class in ("money", "credit") and _approval_refs(inv, [t]):
+            any_gate = True
     high = any(e.triggered for e in entries)
     return Decision33(
         classification="high_risk" if high else "not_high_risk",

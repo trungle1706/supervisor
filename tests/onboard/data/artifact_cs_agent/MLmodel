@@ -1,0 +1,10 @@
+artifact_path: agent
+flavors:
+  langchain:
+    langchain_version: 1.7.0
+    model_data: code/csagent/agent.py
+    code: code
+  python_function:
+    loader_module: mlflow.langchain
+    python_version: 3.11.9
+mlflow_version: 3.1.0

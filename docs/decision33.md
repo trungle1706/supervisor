@@ -105,3 +105,13 @@ pre-fill" and "mock model". EN and VI.
    system's. Should applying also set the class of the linked agents?
 3. Who is "the system's reviewer": only the team role `reviewer`, or also `oversight_manager`
    (both are refused now)?
+
+## Cross-check of `human_control` with the define profile (WP-P2)
+
+`Q-PRE-APPROVAL` is answered from the declared field `human_control`. When the field says `pre_approval` and a linked agent has a define profile (`<DATA_DIR>/onboard/<agent_id>/profile.json` and `inventory.json`, written by `python -m supervisor.onboard` or `python -m supervisor.onboard.define`) with a money or credit tool, the draft checks the declaration against the code:
+
+| Profile of the linked agent | Answer in the draft |
+|---|---|
+| `human_gate_in_code` true (for example a LangGraph `interrupt_before` or an approval step) | `yes`, source rules; the justification adds the `file:line` of the gate |
+| `human_gate_in_code` false | not answered, source person: "unknown, a person confirms (declared, not found in code)". The outcome is `unclassified` until a person answers. |
+| no profile, or no money or credit tool | unchanged: `yes` from the declared field |

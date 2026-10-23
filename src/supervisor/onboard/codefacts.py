@@ -400,6 +400,7 @@ def analyse(lines: Mapping[str, Sequence[str]]) -> CodeFacts:
     facts.framework, facts.framework_evidence = _framework(files)
     for f in files:
         _llm_and_data(f, facts)
+        _raw_http_llm(f, facts)  # WP-P2
         _tracing(f, facts)
         _pii(f, facts)
     facts.tools = _tools(files, all_defs, _yaml_lists(lines))
@@ -457,6 +458,47 @@ def _model_of(f: _File, call: ast.Call, extra: Iterable[str] = ()) -> str | None
         return None
     v = f.text(node)
     return v if v and "{}" not in v else None
+
+
+def _raw_http_llm(f: _File, facts: CodeFacts) -> None:
+    """WP-P2: a file that posts to ``.../chat/completions`` with httpx or requests is a model
+    call even without an SDK. The model id is the literal default of
+    ``os.environ.get("..MODEL..", "id")``; the family comes from the literal id, like the judge
+    family (``qwen3.8-27b-int4`` -> qwen)."""
+    posts = any(
+        isinstance(n, ast.Constant) and isinstance(n.value, str) and "chat/completions" in n.value
+        for n in ast.walk(f.tree)
+    )
+    if not posts:
+        return
+    open_calls = [c for c in facts.llm_calls if c.file == f.path and c.model is None]
+    if not open_calls and any(c.file == f.path for c in facts.llm_calls):
+        return
+    for node in ast.walk(f.tree):
+        if not (isinstance(node, ast.Call) and len(node.args) >= 2):
+            continue
+        if f.qual(node.func) not in ("os.environ.get", "os.getenv", "environ.get", "getenv"):
+            continue
+        key, default = node.args[0], node.args[1]
+        if not (
+            isinstance(key, ast.Constant)
+            and isinstance(key.value, str)
+            and "MODEL" in key.value.upper()
+            and isinstance(default, ast.Constant)
+            and isinstance(default.value, str)
+        ):
+            continue
+        fam = model_family(default.value)
+        if fam != "unknown":
+            if open_calls:  # the call site is known (a POST); it only lacked the model id
+                open_calls[0].model, open_calls[0].family = default.value, fam
+            else:
+                facts.llm_calls.append(
+                    LlmCallFact(
+                        f.path, node.lineno, "openai_compatible", fam, default.value, "http"
+                    )
+                )
+            return
 
 
 def _http_kind(url: str | None) -> str:
@@ -826,7 +868,9 @@ def _deco_tool(f: _File, dec: ast.AST) -> tuple[bool, str | None]:
     name = None
     if isinstance(dec, ast.Call):
         name = f.text(dec.args[0]) if dec.args else None
-        name = f.text(_kw(dec, "name", "name_or_callable")) or name
+        if last == "supervised_tool":  # WP-P2: (agent_id, version, tool_name, risk_class)
+            name = f.text(dec.args[2]) if len(dec.args) > 2 else f.text(_kw(dec, "tool_name"))
+        name = f.text(_kw(dec, "name", "name_or_callable", "tool_name")) or name
     return True, name
 
 
