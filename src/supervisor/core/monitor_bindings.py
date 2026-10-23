@@ -164,13 +164,24 @@ class SessionBinding(_Strict):
             and self.pause_threshold_bp < self.case_threshold_bp
         ):
             raise ValueError("pause_threshold_bp must not be below case_threshold_bp")
-        if self.pause_scope and self.weights is not None:
+        if self.pause_scope:
+            # WP-P2: effective values (a field left out takes the built-in default), so a
+            # fragment without ``weights`` is checked too; the global SESSION_* settings do not
+            # change these three.
+            weights = self.weights if self.weights is not None else DEFAULT_WEIGHTS
             pause_bp = self.pause_threshold_bp if self.pause_threshold_bp is not None else 4000
-            if self.weights["findings"] >= pause_bp:
+            case_bp = self.case_threshold_bp if self.case_threshold_bp is not None else 2500
+            if pause_bp < case_bp:
+                raise ValueError(
+                    f"pause_threshold_bp ({pause_bp}) must not be below case_threshold_bp "
+                    f"({case_bp}, the default when not set)"
+                )
+            if weights["findings"] >= pause_bp:
                 # R1: detector, Tier 0b and judge output is one counter and never pauses alone
                 raise ValueError(
-                    "the findings weight must stay below pause_threshold_bp: detector and "
-                    "judge output may not pause a session on its own (rule R1)"
+                    f"the findings weight ({weights['findings']}) must stay below "
+                    f"pause_threshold_bp ({pause_bp}): detector and judge output may not pause "
+                    "a session on its own (rule R1)"
                 )
         return self
 
