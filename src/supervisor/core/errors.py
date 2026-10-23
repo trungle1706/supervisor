@@ -62,3 +62,7 @@ class GuardModelError(SupervisorError):
     def __init__(self, message: str, reason: str = "execution_failed") -> None:
         super().__init__(message)
         self.reason = reason
+
+
+class GatewayUnavailable(SupervisorError):
+    """The gateway or evidence chain cannot run (runtime build failed). Answers HTTP 400."""

@@ -3,7 +3,9 @@ service, the inbox and the principal provider. Built once from the app's runtime
 
 from __future__ import annotations
 
+import logging
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -12,6 +14,8 @@ from supervisor.adapters.notify import InboxNotifier, build_notifier
 from supervisor.cases import CaseService, build_case_service
 from supervisor.config import Settings
 from supervisor.console.onboard_runs import OnboardRunner
+
+log = logging.getLogger("supervisor.console")
 
 
 @dataclass
@@ -24,6 +28,7 @@ class ConsoleContext:
     last_verify: dict[str, dict[str, Any]] = field(default_factory=dict)
     lock: threading.RLock = field(default_factory=threading.RLock)
     onboard: OnboardRunner = field(default_factory=OnboardRunner)
+    degraded_until: float = 0.0  # WP-P5: monotonic time of the next SP retry; 0 = healthy
 
     @property
     def alerts(self) -> Any:
@@ -256,5 +261,36 @@ def get_context() -> ConsoleContext:
             from supervisor.config import get_settings
             from supervisor.gateway import wiring as gate_wiring
 
-            _ctx = build_context(gate_wiring.install_runtime(get_settings()))
+            settings = get_settings()
+            try:
+                _ctx = build_context(gate_wiring.install_runtime(settings))
+            except Exception as exc:
+                if not settings.sql_user_token_forward:
+                    raise
+                # WP-P5: the SP cannot build the runtime (no SQL grant yet). Serve reads as the
+                # signed-in user; gate and chain paths answer HTTP 400. Retried every 60 s.
+                from supervisor.wiring import build_degraded_runtime
+
+                log.warning(
+                    "[WARN] SP has no SQL access (%s); console runs degraded: reads run as the "
+                    "signed-in user, gateway and evidence chain answer 400 until the service "
+                    "principal is granted",
+                    type(exc).__name__,
+                )
+                _ctx = build_context(build_degraded_runtime(settings))
+                _ctx.degraded_until = time.monotonic() + 60.0
+        elif _ctx.degraded_until and time.monotonic() > _ctx.degraded_until:
+            _ctx = _retry_degraded(_ctx)
         return _ctx
+
+
+def _retry_degraded(ctx: ConsoleContext) -> ConsoleContext:
+    """WP-P5: try the SP runtime build again; keep the degraded context while it fails."""
+    from supervisor.config import get_settings
+    from supervisor.gateway import wiring as gate_wiring
+
+    try:
+        return build_context(gate_wiring.install_runtime(get_settings()))
+    except Exception:  # noqa: BLE001 - still no grant
+        ctx.degraded_until = time.monotonic() + 60.0
+        return ctx

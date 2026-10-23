@@ -167,3 +167,8 @@ def test_runtime_build_runs_as_sp_inside_a_token_request(monkeypatch: pytest.Mon
     assert TestClient(app).get("/q", headers={"X-Forwarded-Access-Token": USER}).json() == {"n": 1}
     assert seen == [None]  # the build saw no token
     assert ex.seen == [USER]  # type: ignore[attr-defined]  # the request's own SQL still did
+
+
+def test_real_factory_close_hook_closes_session() -> None:
+    api = _make_user_api_factory(load_settings(), "https://ws.example.invalid")(USER)
+    api._supervisor_close()  # noqa: SLF001 - must not raise

@@ -67,8 +67,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         log.exception("runtime build failed at startup; gateway routes will retry")
         if get_settings().sql_user_token_forward:  # WP-P5
             log.warning(
-                "[WARN] SP has no SQL access; console reads run as the signed-in user; "
-                "gateway and evidence chain stay unavailable until the service principal is granted"
+                "[WARN] SP has no SQL access; the runtime was not built. Console reads run as the "
+                "signed-in user; gateway and evidence chain answer HTTP 400 until the service "
+                "principal is granted"
             )
     if runtime is not None:  # WP7: in-process scheduler (on in laptop mode by default)
         try:

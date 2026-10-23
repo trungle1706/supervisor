@@ -89,6 +89,63 @@ class Runtime:
                     self.adapters.close()
 
 
+def _chain_tables(adapters: Adapters) -> Any:
+    """WP-P5: the evidence chain always writes as the App service principal, never as a
+    forwarded user, so it gets its own SP-only executor when the adapter has the switch."""
+    sp_only = getattr(adapters.executor, "sp_only", None)
+    if sp_only is None:
+        return adapters.tables
+    from supervisor.adapters.sql.store import SqlTableStore
+
+    return SqlTableStore(sp_only(), adapters.model)
+
+
+GATEWAY_UNAVAILABLE = "gateway unavailable: the App service principal has no SQL grant yet"
+
+
+class _Unavailable:
+    """WP-P5: stands in for the gateway and the chain when the SP cannot build the runtime."""
+
+    def close(self, *args: Any, **kwargs: Any) -> None:
+        return None
+
+    def __getattr__(self, name: str) -> Any:
+        if name.startswith("__"):
+            raise AttributeError(name)
+        from supervisor.core.errors import GatewayUnavailable
+
+        raise GatewayUnavailable(GATEWAY_UNAVAILABLE)
+
+
+class _UnavailableGateway(_Unavailable):
+    """Read models ask ``gateway.states`` and fall back when it answers 400-class errors."""
+
+    @property
+    def states(self) -> Any:
+        return _Unavailable()
+
+
+class _UnavailableChain(_Unavailable):
+    """No writer: reads of the in-memory heads answer empty, every write answers 400."""
+
+    def heads(self) -> dict[str, Any]:
+        return {}
+
+
+def build_degraded_runtime(settings: Settings) -> Runtime:
+    """WP-P5 (SQL_USER_TOKEN_FORWARD only): a runtime with adapters but no gateway and no chain,
+    so the console can render reads as the signed-in user. Gate and chain paths answer 400."""
+    from supervisor.adapters.factory import build_adapters
+
+    return Runtime(
+        settings,
+        build_adapters(settings),
+        None,  # type: ignore[arg-type]
+        _UnavailableChain(),  # type: ignore[arg-type]
+        _UnavailableGateway(),  # type: ignore[arg-type]
+    )
+
+
 def build_runtime(*args: Any, **kwargs: Any) -> Runtime:
     """Build the runtime. WP-P5: always as the App service principal, even when called inside a
     request that carries a forwarded user token (lazy retry): policy deploy and chain-writer
@@ -121,7 +178,7 @@ def _build_runtime(
             bootstrap_schema.run(settings, adapters)
         policy = load_policy_dirs(resolve_policy_dirs(settings, policy_dir))  # WP-P2
         deploy_with_retry(policy, adapters.state, adapters.clock, git_sha)
-        chain = build_chain_writer(settings, adapters.tables, adapters.clock)
+        chain = build_chain_writer(settings, _chain_tables(adapters), adapters.clock)
     except BaseException:
         if owns:
             adapters.close()

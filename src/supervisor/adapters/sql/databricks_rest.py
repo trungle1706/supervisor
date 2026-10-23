@@ -149,12 +149,6 @@ class DatabricksRestExecutor:
         param_types: Mapping[str, str] | None,
     ) -> tuple[list[tuple[str, str]], list[list[Any]]]:
         """Run one statement; return ([(column, type_name)], rows of raw strings)."""
-        from databricks.sdk.service.sql import (
-            Disposition,
-            ExecuteStatementRequestOnWaitTimeout,
-            Format,
-        )
-
         api: Any = self._api
         identity = self.identity
         secret: str | None = None
@@ -168,6 +162,7 @@ class DatabricksRestExecutor:
                 try:
                     api = self._user_api_factory(secret)
                 except Exception as exc:
+                    # from None: the cause could carry the raw token
                     raise self._error(
                         sql,
                         "REQUEST_FAILED",
@@ -175,7 +170,40 @@ class DatabricksRestExecutor:
                         None,
                         identity,
                         secret,
-                    ) from exc
+                    ) from None
+        try:
+            return self._run_on(api, identity, secret, sql, params, param_types)
+        finally:
+            if secret is not None:  # the per-call client is never reused: close its session
+                close = getattr(api, "_supervisor_close", None)
+                if close is not None:
+                    try:
+                        close()
+                    except Exception:  # noqa: S110 - best effort
+                        pass
+
+    def sp_only(self) -> DatabricksRestExecutor:
+        """WP-P5: the same executor without the user-token switch. For the evidence chain."""
+        import copy
+
+        twin = copy.copy(self)
+        twin._user_api_factory = None
+        return twin
+
+    def _run_on(
+        self,
+        api: Any,
+        identity: str,
+        secret: str | None,
+        sql: str,
+        params: Mapping[str, Any] | None,
+        param_types: Mapping[str, str] | None,
+    ) -> tuple[list[tuple[str, str]], list[list[Any]]]:
+        from databricks.sdk.service.sql import (
+            Disposition,
+            ExecuteStatementRequestOnWaitTimeout,
+            Format,
+        )
 
         def fail(state: str, message: str, sql_state: str | None = None) -> SqlError:
             return self._error(sql, state, message, sql_state, identity, secret)
@@ -196,7 +224,9 @@ class DatabricksRestExecutor:
         except SqlError:
             raise
         except Exception as exc:  # SDK auth/transport errors
-            raise fail("REQUEST_FAILED", f"{type(exc).__name__}: {exc}") from exc
+            raise fail("REQUEST_FAILED", f"{type(exc).__name__}: {exc}") from (
+                None if secret else exc
+            )
 
         delay = 0.5
         while _state_name(resp.status.state) not in TERMINAL:
@@ -213,7 +243,9 @@ class DatabricksRestExecutor:
             try:
                 resp = api.get_statement(resp.statement_id)
             except Exception as exc:
-                raise fail("POLL_FAILED", f"{type(exc).__name__}: {exc}") from exc
+                raise fail("POLL_FAILED", f"{type(exc).__name__}: {exc}") from (
+                    None if secret else exc
+                )
 
         state = _state_name(resp.status.state)
         if state != "SUCCEEDED":
@@ -361,7 +393,17 @@ def _make_user_api_factory(settings: Settings, host: str | None) -> Callable[[st
             retry_timeout_seconds=settings.databricks_retry_timeout_s,
             http_timeout_seconds=60,
         )
-        return WorkspaceClient(config=cfg).statement_execution
+        client = WorkspaceClient(config=cfg)
+        api = client.statement_execution
+
+        def close() -> None:
+            base = getattr(getattr(client, "api_client", None), "_api_client", None)
+            session = getattr(base, "_session", None)
+            if session is not None:
+                session.close()
+
+        api._supervisor_close = close  # noqa: SLF001 - closed by the executor after the call
+        return api
 
     return factory
 
