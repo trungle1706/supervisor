@@ -19,11 +19,12 @@ bundle:
   name: supervisor
 
 sync:
-  # Gitignore syntax. A leading / anchors to the repo root: a bare `data` would also drop
-  # src/supervisor/data/ (a test checks that no source file is excluded).
+  # Gitignore syntax, but observed live (2026-10-23): a single-segment pattern such as `/data`
+  # matched src/supervisor/data too and the App crashed with ImportError. Patterns for a
+  # folder therefore carry a path (`/data/local`); a test checks that no source file is excluded.
   exclude:
     - /.venv
-    - /data
+    - /data/local
     - /runs
     - /tests
     - /docs/handoff

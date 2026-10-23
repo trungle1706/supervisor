@@ -72,7 +72,7 @@ def test_bundle_has_no_variables_or_secret_scopes() -> None:
 
 def test_bundle_sync_excludes() -> None:
     excl = set(_load(BUNDLE)["sync"]["exclude"])
-    for item in ("/.venv", "/data", "/tests", "/docs/handoff", "*.db", "/.env"):
+    for item in ("/.venv", "/data/local", "/tests", "/docs/handoff", "*.db", "/.env"):
         assert item in excl, item
 
 
@@ -84,6 +84,10 @@ def _gitignore_match(pattern: str, rel: str) -> bool:
     parts = rel.split("/")
     if pat.startswith("/"):
         pat = pat[1:]
+        if "/" not in pat:
+            # Observed live (2026-10-23): the Databricks CLI dropped src/supervisor/data for
+            # the pattern `/data`. A single-segment pattern matches at any depth, slash or not.
+            return any(fnmatch(p, pat) for p in parts)
         return any(fnmatch("/".join(parts[: i + 1]), pat) for i in range(len(parts)))
     if pat.startswith("**/"):
         pat = pat[3:]
@@ -108,6 +112,8 @@ def test_bundle_sync_keeps_every_source_file() -> None:
     assert dropped == [], dropped[:10]
     assert _gitignore_match("data", "src/supervisor/data/wordlists.py")  # emulation works
     assert _gitignore_match("/tests", "tests/x.py")
+    assert _gitignore_match("/data", "src/supervisor/data/wordlists.py")  # the live CLI did
+    assert not _gitignore_match("/data/local", "src/supervisor/data/wordlists.py")
 
 
 def test_app_yaml_command_and_env() -> None:
