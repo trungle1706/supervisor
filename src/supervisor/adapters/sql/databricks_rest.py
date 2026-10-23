@@ -56,6 +56,7 @@ class DatabricksRestExecutor:
         deadline_s: float = 120.0,
         host: str | None = None,
         identity: str = "unknown",
+        user_api_factory: Callable[[str], Any] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         monotonic: Callable[[], float] = time.monotonic,
     ) -> None:
@@ -74,14 +75,17 @@ class DatabricksRestExecutor:
         self.deadline_s = deadline_s
         self.host = host
         self.identity = identity
+        # WP-P5 (sandbox-only): builds a fresh statement API for one user token. None = off.
+        self._user_api_factory = user_api_factory
         self._sleep = sleep
         self._monotonic = monotonic
 
     # ------------------------------------------------------------------ info
-    def describe(self) -> str:
+    def describe(self, identity: str | None = None) -> str:
+        identity = identity or self.identity
         return (
             f"databricks host={self.host or '(default)'} warehouse={self.warehouse_id} "
-            f"schema={self.catalog}.{self.schema} transport=rest identity={self.identity}"
+            f"schema={self.catalog}.{self.schema} transport=rest identity={identity}"
         )
 
     def qualify(self, table: str) -> str:
@@ -99,9 +103,20 @@ class DatabricksRestExecutor:
             out.append(StatementParameterListItem(name=name, value=text, type=db_type))
         return out
 
-    def _error(self, sql: str, state: str, message: str, sql_state: str | None) -> SqlError:
+    def _error(
+        self,
+        sql: str,
+        state: str,
+        message: str,
+        sql_state: str | None,
+        identity: str | None = None,
+        secret: str | None = None,
+    ) -> SqlError:
+        if secret:  # WP-P5: the forwarded token never reaches an error text
+            message = message.replace(secret, "[REDACTED]")
+            sql = sql.replace(secret, "[REDACTED]")
         where = (
-            f"Databricks SQL {state} on {self.describe()}: {message}"
+            f"Databricks SQL {state} on {self.describe(identity)}: {message}"
             f"{f' (sql_state={sql_state})' if sql_state else ''}. "
             f"Statement: {sql.strip()[:200]}"
         )
@@ -119,11 +134,11 @@ class DatabricksRestExecutor:
             return SqlError(where + " -- fix: " + LOGIN_HINT.format(host=self.host, profile="<p>"))
         return SqlError(where)
 
-    def _cancel(self, statement_id: str | None) -> None:
+    def _cancel(self, statement_id: str | None, api: Any = None) -> None:
         if not statement_id:
             return
         try:
-            self._api.cancel_execution(statement_id)
+            (api or self._api).cancel_execution(statement_id)
         except Exception:  # noqa: S110 - best effort; the timeout error matters more
             pass
 
@@ -134,15 +149,68 @@ class DatabricksRestExecutor:
         param_types: Mapping[str, str] | None,
     ) -> tuple[list[tuple[str, str]], list[list[Any]]]:
         """Run one statement; return ([(column, type_name)], rows of raw strings)."""
+        api: Any = self._api
+        identity = self.identity
+        secret: str | None = None
+        if self._user_api_factory is not None:  # WP-P5, sandbox-only, per statement
+            from supervisor.adapters.auth.user_token import current_forwarded_token
+
+            forwarded = current_forwarded_token()
+            if forwarded is not None:
+                secret = forwarded.reveal()
+                identity = "user_forwarded"
+                try:
+                    api = self._user_api_factory(secret)
+                except Exception as exc:
+                    # from None: the cause could carry the raw token
+                    raise self._error(
+                        sql,
+                        "REQUEST_FAILED",
+                        f"{type(exc).__name__}: {exc}",
+                        None,
+                        identity,
+                        secret,
+                    ) from None
+        try:
+            return self._run_on(api, identity, secret, sql, params, param_types)
+        finally:
+            if secret is not None:  # the per-call client is never reused: close its session
+                close = getattr(api, "_supervisor_close", None)
+                if close is not None:
+                    try:
+                        close()
+                    except Exception:  # noqa: S110 - best effort
+                        pass
+
+    def sp_only(self) -> DatabricksRestExecutor:
+        """WP-P5: the same executor without the user-token switch. For the evidence chain."""
+        import copy
+
+        twin = copy.copy(self)
+        twin._user_api_factory = None
+        return twin
+
+    def _run_on(
+        self,
+        api: Any,
+        identity: str,
+        secret: str | None,
+        sql: str,
+        params: Mapping[str, Any] | None,
+        param_types: Mapping[str, str] | None,
+    ) -> tuple[list[tuple[str, str]], list[list[Any]]]:
         from databricks.sdk.service.sql import (
             Disposition,
             ExecuteStatementRequestOnWaitTimeout,
             Format,
         )
 
+        def fail(state: str, message: str, sql_state: str | None = None) -> SqlError:
+            return self._error(sql, state, message, sql_state, identity, secret)
+
         start = self._monotonic()
         try:
-            resp = self._api.execute_statement(
+            resp = api.execute_statement(
                 statement=sql,
                 warehouse_id=self.warehouse_id,
                 catalog=self.catalog,
@@ -156,30 +224,34 @@ class DatabricksRestExecutor:
         except SqlError:
             raise
         except Exception as exc:  # SDK auth/transport errors
-            raise self._error(sql, "REQUEST_FAILED", f"{type(exc).__name__}: {exc}", None) from exc
+            raise fail("REQUEST_FAILED", f"{type(exc).__name__}: {exc}") from (
+                None if secret else exc
+            )
 
         delay = 0.5
         while _state_name(resp.status.state) not in TERMINAL:
             if self._monotonic() - start > self.deadline_s:
-                self._cancel(resp.statement_id)
+                self._cancel(resp.statement_id, api)
                 raise SqlError(
                     f"Databricks SQL timed out after {self.deadline_s:.0f} s on "
-                    f"{self.describe()} (statement cancelled). A cold warehouse takes "
+                    f"{self.describe(identity)} (statement cancelled). A cold warehouse takes "
                     f"about 30 s to start; retry, or check the warehouse is running. "
                     f"Statement: {sql.strip()[:200]}"
                 )
             self._sleep(delay)
             delay = min(delay * 2, 5.0)
             try:
-                resp = self._api.get_statement(resp.statement_id)
+                resp = api.get_statement(resp.statement_id)
             except Exception as exc:
-                raise self._error(sql, "POLL_FAILED", f"{type(exc).__name__}: {exc}", None) from exc
+                raise fail("POLL_FAILED", f"{type(exc).__name__}: {exc}") from (
+                    None if secret else exc
+                )
 
         state = _state_name(resp.status.state)
         if state != "SUCCEEDED":
             err = resp.status.error
             message = getattr(err, "message", None) or "no error message"
-            raise self._error(sql, state, message, getattr(resp.status, "sql_state", None))
+            raise fail(state, message, getattr(resp.status, "sql_state", None))
 
         columns: list[tuple[str, str]] = []
         manifest = resp.manifest
@@ -196,12 +268,12 @@ class DatabricksRestExecutor:
             if nxt is None:
                 break
             if self._monotonic() - start > self.deadline_s:
-                self._cancel(resp.statement_id)
+                self._cancel(resp.statement_id, api)
                 raise SqlError(
                     f"Databricks SQL result fetch exceeded {self.deadline_s:.0f} s on "
-                    f"{self.describe()} (statement cancelled)"
+                    f"{self.describe(identity)} (statement cancelled)"
                 )
-            chunk = self._api.get_statement_result_chunk_n(resp.statement_id, nxt)
+            chunk = api.get_statement_result_chunk_n(resp.statement_id, nxt)
         return columns, rows
 
     # ------------------------------------------------------------------ port
@@ -306,6 +378,36 @@ def resolve_warehouse_id(client: Any, settings: Settings) -> str:
     raise ConfigError(f"SQL warehouse named {name!r} not found or not visible to this identity")
 
 
+def _make_user_api_factory(settings: Settings, host: str | None) -> Callable[[str], Any]:
+    """WP-P5: a fresh, uncached statement API for one user token (Bearer). Same host and
+    retry budget as the service principal path; the token lives only in this call's Config."""
+
+    def factory(token: str) -> Any:
+        from databricks.sdk import WorkspaceClient
+        from databricks.sdk.core import Config
+
+        cfg = Config(
+            host=host,
+            token=token,
+            auth_type="pat",
+            retry_timeout_seconds=settings.databricks_retry_timeout_s,
+            http_timeout_seconds=60,
+        )
+        client = WorkspaceClient(config=cfg)
+        api = client.statement_execution
+
+        def close() -> None:
+            base = getattr(getattr(client, "api_client", None), "_api_client", None)
+            session = getattr(base, "_session", None)
+            if session is not None:
+                session.close()
+
+        api._supervisor_close = close  # noqa: SLF001 - closed by the executor after the call
+        return api
+
+    return factory
+
+
 def build_databricks_executor(
     settings: Settings, client: Any | None = None
 ) -> DatabricksRestExecutor:
@@ -326,4 +428,7 @@ def build_databricks_executor(
         deadline_s=float(settings.databricks_statement_deadline_s),
         host=host,
         identity=identity,
+        user_api_factory=(
+            _make_user_api_factory(settings, host) if settings.sql_user_token_forward else None
+        ),
     )

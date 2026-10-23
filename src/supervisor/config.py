@@ -182,6 +182,10 @@ class Settings(BaseSettings):
     # user's forwarded token (X-Forwarded-Access-Token) instead of the App service principal.
     # Judge calls then run under the user's identity. Off by default.
     llm_user_token_forward: bool = False
+    # WP-P5 (sandbox-only): inside a request that carries a forwarded user token, every SQL
+    # statement runs with that token against the same warehouse/catalog/schema. Outside a
+    # request the App service principal is used. Needs databricks_app + databricks_rest.
+    sql_user_token_forward: bool = False
 
     # Judges (WP5). Advisory only. Empty JUDGE_T*_MODEL = MockJudge (labelled mock).
     # Empty JUDGE_T*_BASE_URL = LLM_BASE_URL. JUDGE_T*_FAMILY overrides the family that is
@@ -918,6 +922,14 @@ class Settings(BaseSettings):
                 "LLM_USER_TOKEN_FORWARD=1 is allowed only in databricks_app mode and when "
                 "LLM_BASE_URL is the workspace serving-endpoints or ai-gateway URL "
                 "(sandbox-only: judge calls then run under the signed-in user's identity)"
+            )
+        if self.sql_user_token_forward and not (
+            self.supervisor_mode == "databricks_app"
+            and self.effective_sql_backend == "databricks_rest"
+        ):
+            raise ValueError(
+                "SQL_USER_TOKEN_FORWARD=1 is allowed only in databricks_app mode with "
+                "SQL_BACKEND=databricks_rest (sandbox-only: SQL then runs as the signed-in user)"
             )
         if self.databricks_catalog and not is_placeholder(self.databricks_catalog):
             _check_identifier("DATABRICKS_CATALOG", self.databricks_catalog)
