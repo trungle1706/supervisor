@@ -131,6 +131,10 @@ if get_settings().governance_actions_enabled:  # WP-G5: mounted only when the fl
 
     app.include_router(incidents_router)  # /v1/incidents/...
     app.include_router(incidents_console_router)  # /console/incidents (needs GOVERNANCE_ENABLED)
+if get_settings().agents_api_enabled:  # WP-P2: mounted only when the flag is on
+    from supervisor.gateway.agents_routes import router as agents_router
+
+    app.include_router(agents_router)  # /v1/agents
 if get_settings().mcp_server_enabled:  # WP-G6: mounted only when the flag is on
     from supervisor.mcp_server.routes import admin_router as mcp_admin_router
     from supervisor.mcp_server.routes import mcp_router

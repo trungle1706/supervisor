@@ -676,6 +676,40 @@ class Settings(BaseSettings):
     mcp_server_host: str = "127.0.0.1"
     mcp_server_port: int = Field(default=8765, ge=1, le=65535)
 
+    # --- WP-P2 --- agent registry API, several policy folders (docs/api.md, docs/policy.md).
+    # AGENTS_API_ENABLED (default off): POST /v1/agents, GET /v1/agents/{id} and the gate state
+    # route POST /gate/agents/{id}/state work. POLICY_DIR may list several folders separated by the
+    # OS path separator (";" on Windows, ":" on Linux); the first is policy_dir, the rest are
+    # policy_dir_extra. One folder behaves as before.
+    agents_api_enabled: bool = False
+    policy_dir_extra: tuple[Path, ...] = ()
+
+    @model_validator(mode="before")
+    @classmethod
+    def _wp_p2_split_policy_dir(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        for key in ("policy_dir", "POLICY_DIR"):
+            raw = data.get(key)
+            if isinstance(raw, str) and os.pathsep in raw:
+                parts = [p.strip() for p in raw.split(os.pathsep) if p.strip()]
+                data = dict(data)
+                data[key] = parts[0] if parts else None
+                extra = []
+                for p in parts[1:]:
+                    path = Path(p).expanduser()
+                    extra.append(
+                        Path(os.path.abspath(path if path.is_absolute() else REPO_ROOT / path))
+                    )
+                if extra:
+                    data["policy_dir_extra"] = tuple(extra)
+        return data
+
+    @property
+    def policy_dirs(self) -> tuple[Path, ...]:
+        """WP-P2: every policy folder in load order (empty when POLICY_DIR is not set)."""
+        return (self.policy_dir, *self.policy_dir_extra) if self.policy_dir is not None else ()
+
     @field_validator(
         "data_dir",
         "sqlite_path",
@@ -800,6 +834,9 @@ class Settings(BaseSettings):
             )
         if self.policy_dir is not None and not self.policy_dir.is_dir():
             raise ValueError(f"POLICY_DIR is not a folder: {self.policy_dir}")
+        for extra in self.policy_dir_extra:  # WP-P2
+            if not extra.is_dir():
+                raise ValueError(f"POLICY_DIR is not a folder: {extra}")
         if self.fact_source.strip():
             from supervisor.adapters.facts import callable_target, split_fact_source
 

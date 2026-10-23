@@ -175,6 +175,17 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("admin",),
         "List, approve and block the apps connected to the MCP server (WP-G6)",
     ),
+    # --- WP-P2 --- agent registry API, gate mode and policy reload (AGENTS_API_ENABLED)
+    "agents.edit": (
+        ("reviewer", "owner", "admin"),
+        "Register and change an agent in the registry, POST /v1/agents (WP-P2)",
+    ),
+    "agent.mode": (
+        ("reviewer", "approver", "owner", "admin"),
+        "Ask for or approve SHADOW to RUNNING (two persons); RUNNING to SHADOW needs systems.edit "
+        "(WP-P2)",
+    ),
+    "policy.reload": (("admin",), "Reload the policy folders from disk (WP-P2)"),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -437,6 +448,11 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/risks-controls"): "console.view",
     ("GET", "/console/activity"): "console.view",
     ("GET", "/console/guardians"): "console.view",
+    # --- WP-P2 --- agent registry API, gate mode, policy reload
+    ("POST", "/v1/agents"): "agents.edit",
+    ("GET", "/v1/agents/{agent_id}"): "console.view",
+    ("POST", "/gate/agents/{agent_id}/state"): "agent.mode",
+    ("POST", "/gate/policy/reload"): "policy.reload",
 }
 
 

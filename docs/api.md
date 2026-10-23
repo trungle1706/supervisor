@@ -144,3 +144,49 @@ A document that cannot be read on a money, credit or pii_export tool gives `allo
  "documents": [{"index": 0, "source": "inline", "media_type": "text/markdown",
                 "sha256": "9f2c...", "size": 241, "status": "read"}]}
 ```
+
+## Agent registry and gate state (WP-P2, flag `AGENTS_API_ENABLED`)
+
+Off by default. With the flag off, `/v1/agents` is not mounted and the gate state route answers 400.
+
+### `POST /v1/agents` (permission `agents.edit`: reviewer, owner, admin)
+
+Creates or updates the registry row (table `agent`) from a manifest-shaped body. Strings only; an
+unknown field is a 400.
+
+| Field | Required | Rule |
+|---|---|---|
+| `agent_id` | yes | `^[A-Za-z0-9_.:@-]{1,128}$`, not a reserved id (`inventory`, `app:...`) |
+| `name`, `owner_team`, `owner_user` | yes | 1 to 200 characters |
+| `risk_tier` | no (`high`) | `low`, `medium`, `high`, `critical` |
+| `host_type` (`python`), `plug_point` (`sdk`), `model_family` (`unknown`) | no | `^[A-Za-z0-9_.:@/+-]{1,64}$` |
+
+* New agent: HTTP 201, `gate_state` SHADOW, `status` shadow.
+* Existing agent: HTTP 200, only the fields in the body change. The gate state never changes here.
+  A RETIRED agent cannot change (400). An update that changes nothing writes no chain record.
+* Chain record `agent_change` (lane of the agent): `agent_id`, `action` (`created` or `updated`),
+  `changed_fields` (names only), `risk_tier`, `host_type`, `plug_point`, `model_family`,
+  `gate_state`, `principal`, `ts`. No name, owner or free text.
+* Two `console_action` audit rows per call (permission `agents.edit`). A denied call writes a
+  `denied` row.
+* The service is `supervisor.gateway.agent_registry.AgentRegistry`; the console Integrations "Add"
+  flow and `demo seed-systems` call the same service.
+
+### `GET /v1/agents/{agent_id}` (permission `console.view`)
+
+The registry row, or 404 when the agent is not registered.
+
+### `POST /gate/agents/{agent_id}/state` (permission `agent.mode`, identity always required)
+
+Body `{"to": "RUNNING" | "SHADOW", "reason": "..."}`.
+
+| Move | Who | Result |
+|---|---|---|
+| SHADOW to RUNNING | Two different persons within the resume window (default 1 hour). The first call is the request (reviewer, approver, owner, admin) and answers `status: pending`. The second person must hold the reviewer or approver role. | `status: changed`, `approvers: [first, second]` |
+| RUNNING to SHADOW | One person with `systems.edit` (reviewer, owner, admin) | `changed: true` |
+
+Any other start state (PAUSED, QUARANTINED, RETIRED) is a 400. Moving to the state the agent is
+already in answers `changed: false`. Chain records: `gate_resume_requested` (with `event:
+mode_running`) for the request and `gate_state_change` (`event: set_mode`, `approver_1`,
+`approver_2`) for the move; the reason goes to the chain only as `reason_sha256`. Audit rows use
+the permission `agent.mode`.

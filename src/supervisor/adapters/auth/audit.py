@@ -65,6 +65,7 @@ _TEMPLATE_KIND = {
     "/v1/controls": "control",  # WP30: create
     "/v1/tasks": "task",  # WP30: add a custom task
     "/v1/systems": "system",  # WP-G0: register
+    "/v1/agents": "agent",  # WP-P2: register (the agent id is in the body)
     "/console/systems": "system",  # WP-G0: register (form)
     "/console/systems/new": "system",  # WP-UX4b: register wizard, step 3
 }

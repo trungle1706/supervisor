@@ -21,6 +21,7 @@ from supervisor.adapters.auth.audit import (
     write_outcome,
 )
 from supervisor.adapters.auth.authz import needs, runtime_settings
+from supervisor.core import rbac
 from supervisor.core.errors import SupervisorError
 from supervisor.detectors.intake import documents_problem
 from supervisor.gateway import wiring
@@ -283,6 +284,85 @@ async def quarantine(request: Request, gw: Gateway = _GW) -> JSONResponse:
 @router.post("/release", dependencies=[Depends(needs("agent.release", control=True))])
 async def release(request: Request, gw: Gateway = _GW) -> JSONResponse:
     return await _control(request, gw, "release")
+
+
+# --- WP-P2 --- SHADOW <-> RUNNING by the API (AGENTS_API_ENABLED)
+class ModeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    to: Literal["RUNNING", "SHADOW"]
+    reason: str = Field(default="", max_length=2000)
+
+
+@router.post("/agents/{agent_id}/state", dependencies=[Depends(needs("agent.mode", control=True))])
+async def set_agent_state(agent_id: str, request: Request, gw: Gateway = _GW) -> JSONResponse:
+    """``{to: RUNNING, reason}``: two different persons (the requester, then a second person with
+    the reviewer or approver role). ``{to: SHADOW, reason}``: one person with systems.edit."""
+    if not runtime_settings().agents_api_enabled:
+        return _bad("changing the gate state by the API needs AGENTS_API_ENABLED=1")
+    if not re.fullmatch(_ID, agent_id):
+        return _bad(f"agent_id must match {_ID}")
+    try:
+        req = ModeRequest.model_validate(await _body(request))
+    except ValidationError as exc:
+        return _validation_response(exc)
+    me = getattr(request.state, "principal", None)  # set by needs(..., control=True)
+    if not isinstance(me, AuthPrincipal):
+        return JSONResponse(status_code=403, content={"error": "identity required"})
+    before = await run_in_threadpool(snapshot_hash, gw.states.state, "agent", agent_id)
+
+    async def audit(attempt: bool, outcome: str, detail: str | None) -> str | None:
+        return await run_in_threadpool(
+            _audit_row,
+            request,
+            gw,
+            "mode",
+            attempt=attempt,
+            principal=me.user_id,
+            agent_id=agent_id,
+            outcome=outcome,
+            before=before,
+            detail=detail,
+        )
+
+    if req.to == "SHADOW" and not rbac.allowed(me.roles, "systems.edit"):
+        warn = await audit(False, "denied", "permission_denied")
+        return JSONResponse(
+            status_code=403,
+            content={
+                "error": "moving an agent from RUNNING to SHADOW needs systems.edit or the "
+                "reviewer role",
+                **({"audit_warning": warn} if warn else {}),
+            },
+        )
+    try:  # M4: row 1 BEFORE the side effect; no row, no action
+        await audit(True, "attempted", None)
+    except AuditUnavailable as exc:
+        return _bad(str(exc))
+    approver = bool({"reviewer", "approver"} & set(me.roles))
+    try:
+        result = await run_in_threadpool(
+            gw.states.change_mode,
+            agent_id,
+            req.to,
+            me.user_id,
+            req.reason,
+            approver,
+            auth_method=me.auth_method,
+            actor_kind=me.kind,
+        )
+    except SupervisorError as exc:
+        warn = await audit(False, "error", type(exc).__name__)
+        return _bad(str(exc), **({"audit_warning": warn} if warn else {}))
+    except Exception as exc:  # noqa: BLE001 - store outage etc.: 400 with a message, never 500
+        warn = await audit(False, "error", type(exc).__name__)
+        return _bad(
+            f"state change failed: {type(exc).__name__}; see the server log",
+            **({"audit_warning": warn} if warn else {}),
+        )
+    warn = await audit(
+        False, "ok", result.get("status") or ("changed" if result["changed"] else None)
+    )
+    return JSONResponse(content={**result, "audit_warning": warn} if warn else result)
 
 
 @router.get("/agents/{agent_id}/state", dependencies=[Depends(needs("gate.read", api=True))])

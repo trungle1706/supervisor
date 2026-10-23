@@ -531,3 +531,121 @@ class AgentStateMachine:
                 return {"agent_id": agent_id, "state": mode, "changed": False}
             self._transition(agent_id, ("RUNNING", "SHADOW"), mode, principal, "", "set_mode")
             return {"agent_id": agent_id, "state": mode, "changed": True}
+
+    # ------------------------------------------------------------ WP-P2: mode change by API
+
+    def pending_mode(self, agent_id: str) -> list[dict[str, Any]]:
+        """Open requests to move SHADOW to RUNNING (expired ones are closed)."""
+        now = self.clock.now()
+        out = []
+        for row in self._controls(agent_id, "mode_running", "pending"):
+            if row["expires_at"] is not None and row["expires_at"] <= now:
+                self._close_control(row, "expired")
+                continue
+            out.append(row)
+        return out
+
+    def change_mode(
+        self,
+        agent_id: str,
+        to: str,
+        principal: str,
+        reason: str,
+        approver_role: bool,
+        *,
+        auth_method: str | None = None,
+        actor_kind: str | None = None,
+    ) -> dict[str, Any]:
+        """WP-P2: SHADOW <-> RUNNING by the API.
+
+        * ``RUNNING``: two different persons within the resume window. The first call is the
+          request (any person the route let in); the second must hold the reviewer or approver
+          role (``approver_role``). Same mechanism and chain records as the two-person resume.
+        * ``SHADOW``: one person, one call (the route checked ``systems.edit``).
+        """
+        reason = _reason(reason)
+        if to not in ("RUNNING", "SHADOW"):
+            raise TransitionError("to must be RUNNING or SHADOW")
+        if not principal:
+            raise TransitionError("principal is required")
+        who: dict[str, Any] = {}
+        if auth_method is not None:
+            who["auth_method"] = auth_method
+        if actor_kind is not None:
+            who["actor_kind"] = actor_kind
+        with self._lock:
+            row = self._ensure_row(agent_id)
+            current = row["gate_state"]
+            if current == to:
+                return {"agent_id": agent_id, "state": to, "changed": False}
+            if to == "SHADOW":
+                if current != "RUNNING":
+                    raise TransitionError(f"agent {agent_id} is {current}; only RUNNING can move")
+                self._transition(
+                    agent_id, ("RUNNING",), "SHADOW", principal, reason, "set_mode", **who
+                )
+                return {"agent_id": agent_id, "state": "SHADOW", "changed": True}
+            if current != "SHADOW":
+                raise TransitionError(
+                    f"agent {agent_id} is {current}; only SHADOW can move to RUNNING"
+                )
+            pending = self.pending_mode(agent_id)
+            if any(p["principal"] == principal for p in pending):
+                raise TransitionError(
+                    f"{principal} already requested this change; a second, different person "
+                    "must approve"
+                )
+            partner = pending[0] if pending else None
+            if partner is None:
+                self._new_control(
+                    agent_id,
+                    "mode_running",
+                    principal,
+                    role="requester",
+                    reason=reason,
+                    status="pending",
+                    expires_at=self.clock.now() + timedelta(seconds=self.resume_window_s),
+                )
+                self.evidence.record(
+                    "gate_resume_requested",
+                    agent_id,
+                    {
+                        "agent_id": agent_id,
+                        "event": "mode_running",
+                        "principal": principal,
+                        "role": "requester",
+                        "reason_sha256": sha256_hex(reason),
+                        "window_s": self.resume_window_s,
+                        "ts": format_ts(self.clock.now()),
+                        **who,
+                    },
+                )
+                return {
+                    "agent_id": agent_id,
+                    "state": "SHADOW",
+                    "status": "pending",
+                    "needs": "reviewer or approver",
+                    "changed": False,
+                }
+            if not approver_role:
+                raise TransitionError(
+                    f"{principal} may not approve this change (needs the reviewer or approver role)"
+                )
+            self._transition(
+                agent_id,
+                ("SHADOW",),
+                "RUNNING",
+                principal,
+                reason,
+                "set_mode",
+                {"approver_1": partner["principal"], "approver_2": principal},
+                **who,
+            )
+            self._close_control(partner, "used")
+            return {
+                "agent_id": agent_id,
+                "state": "RUNNING",
+                "status": "changed",
+                "approvers": [partner["principal"], principal],
+                "changed": True,
+            }

@@ -50,6 +50,7 @@ FLAG_MOUNTED = (
     "/mcp",
     "/v1/mcp/apps",
     "/v1/kpis",  # WP-G6
+    "/v1/agents",  # WP-P2
 )
 
 
