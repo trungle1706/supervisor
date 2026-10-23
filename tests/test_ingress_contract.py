@@ -66,7 +66,16 @@ def test_no_unlisted_post_route_in_the_agent_packages() -> None:
     """Grep: POST routes declared under gateway/ and recorder/ are the pinned ingress routes
     or human control routes (which have an RBAC permission), nothing else."""
     pat = re.compile(r'@\w+\.post\(\s*"([^"]+)"')
-    human = {"/pause", "/resume", "/quarantine", "/release"}
+    human = {
+        "/pause",
+        "/resume",
+        "/quarantine",
+        "/release",
+        # WP-P2 (AGENTS_API_ENABLED): register, two-person launch, policy reload; RBAC-guarded
+        "",
+        "/agents/{agent_id}/state",
+        "/policy/reload",
+    }
     for pkg in ("gateway", "recorder"):
         for path in (REPO_ROOT / "src" / "supervisor" / pkg).rglob("*.py"):
             for route in pat.findall(path.read_text(encoding="utf-8")):
