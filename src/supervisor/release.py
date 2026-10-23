@@ -56,6 +56,8 @@ EXPORT_REQS_ARGV = [
     "--no-dev",
     "--extra",
     "databricks",
+    "--extra",
+    "documents",
     "--no-hashes",
     "--no-emit-project",
     "--no-header",
@@ -153,9 +155,10 @@ class ReleaseReport:
 def handoff_md(*, nexus: bool, version: str, sha: str, wheelhouse: bool) -> str:
     """The cmd checklist for the bank laptop (Windows cmd syntax)."""
     install = (
-        "uv sync --python 3.11 --extra databricks --offline --find-links wheelhouse"
+        "uv sync --python 3.11 --extra databricks --extra documents "
+        "--offline --find-links wheelhouse"
         if wheelhouse
-        else "uv sync --python 3.11 --extra databricks"
+        else "uv sync --python 3.11 --extra databricks --extra documents"
     )
     nexus_note = (
         "`uv.toml` in this folder points uv at the bank Nexus index. Run every `uv` command "
