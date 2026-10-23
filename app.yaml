@@ -61,6 +61,11 @@ env:
   #   value: "FILL-ME-catalog.FILL-ME-schema.FILL-ME-model-service"
   # - name: LLM_API_SHAPE
   #   value: "responses"
+  # SANDBOX ONLY (WP-P4): judge calls run under the signed-in user's identity (forwarded token)
+  # when the request carries one; else the App service principal. Needs a serving scope in
+  # user_api_scopes (databricks.yml). Do not use in production.
+  # - name: LLM_USER_TOKEN_FORWARD
+  #   value: "1"
 
   # ---- Phase 4 and 5 (v0.5.0). Every switch is off in the code; "1" here turns it on for the
   # sandbox. Set a switch to "0" to switch the feature off again. Nothing below needs a secret.

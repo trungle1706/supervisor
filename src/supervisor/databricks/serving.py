@@ -13,6 +13,7 @@ import hashlib
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+from supervisor.adapters.auth.user_token import current_forwarded_token
 from supervisor.adapters.llm.errors import LLMError
 from supervisor.adapters.llm.openai_compatible import OpenAICompatibleChat, model_family
 
@@ -48,7 +49,9 @@ class DatabricksServingChat:
         api_shape: str = "chat",
         strict_schema: bool = False,
         send_temperature: bool = True,
+        user_token_forward: bool = False,
     ) -> None:
+        self.user_token_forward = user_token_forward
         self.api_shape = api_shape
         self.strict_schema = strict_schema
         self.send_temperature = send_temperature
@@ -65,6 +68,28 @@ class DatabricksServingChat:
 
     def __repr__(self) -> str:
         return f"DatabricksServingChat(base_url={self.base_url!r}, endpoint={self.model_id!r})"
+
+    def auth_label(self) -> str | None:
+        """``user_forwarded`` when a call made now would carry the forwarded user token."""
+        if self.user_token_forward and current_forwarded_token() is not None:
+            return "user_forwarded"
+        return None
+
+    def _forwarded_chat(self, token: str) -> OpenAICompatibleChat:
+        # One short-lived client per call: a user token must not be cached or shared.
+        return OpenAICompatibleChat(
+            self.base_url,
+            self.model_id,
+            api_key=token,
+            timeout_s=self._timeout_s,
+            max_tokens=self._max_tokens,
+            family=self.family,
+            family_source=self.family_source,
+            transport=self._transport,
+            api_shape=self.api_shape,
+            strict_schema=self.strict_schema,
+            send_temperature=self.send_temperature,
+        )
 
     def _current(self) -> OpenAICompatibleChat:
         try:
@@ -102,6 +127,13 @@ class DatabricksServingChat:
         timeout_s: float | None = None,
         deadline: float | None = None,
     ) -> Mapping[str, Any]:
+        forwarded = current_forwarded_token() if self.user_token_forward else None
+        if forwarded is not None:
+            chat = self._forwarded_chat(forwarded.reveal())
+            try:
+                return chat.complete_json(messages, json_schema, timeout_s, deadline)
+            finally:
+                chat.close()
         return self._current().complete_json(messages, json_schema, timeout_s, deadline)
 
     def endpoint_family(self, timeout_s: float = 5.0) -> str | None:

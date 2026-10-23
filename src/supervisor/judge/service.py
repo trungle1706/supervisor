@@ -425,6 +425,8 @@ class JudgeService:
             "dropped_spans": call.dropped_spans,
             "error": call.error,
         }
+        if call.auth:
+            payload["auth"] = call.auth  # WP-P4: no user name, no token
         if call.role == "primary" and call.tier == 2:
             payload.update(
                 escalation_reason=out.escalation_reason,

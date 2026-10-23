@@ -72,6 +72,7 @@ class JudgeCall:
     dropped_spans: int = 0
     floored: bool = False
     error: str | None = None
+    auth: str | None = None  # WP-P4: "user_forwarded" when a forwarded user token was used
     extra: dict[str, Any] = field(default_factory=dict)
 
     def flagged(self, threshold_bp: int) -> bool:
@@ -141,6 +142,8 @@ class TierJudge:
             "mask_version": mask_version_of(self.masker),
             "is_mock": m.is_mock,
         }
+        label_auth = getattr(m.chat, "auth_label", None)
+        base["auth"] = label_auth() if callable(label_auth) else None
         max_chars = self.max_input_chars
         start = self._monotonic()
         tokens_in = 0

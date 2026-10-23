@@ -178,6 +178,10 @@ class Settings(BaseSettings):
     # WP-P3: wire shape. "chat" = POST {base}/chat/completions; "responses" = POST
     # {base}/responses (OpenAI responses API, Databricks AI Gateway model service).
     llm_api_shape: Literal["chat", "responses"] = "chat"
+    # WP-P4 (sandbox-only): judge calls to the workspace model service use the signed-in
+    # user's forwarded token (X-Forwarded-Access-Token) instead of the App service principal.
+    # Judge calls then run under the user's identity. Off by default.
+    llm_user_token_forward: bool = False
 
     # Judges (WP5). Advisory only. Empty JUDGE_T*_MODEL = MockJudge (labelled mock).
     # Empty JUDGE_T*_BASE_URL = LLM_BASE_URL. JUDGE_T*_FAMILY overrides the family that is
@@ -905,6 +909,16 @@ class Settings(BaseSettings):
                 raise ValueError(
                     f"{name.upper()} must be a loopback address unless LLM_ALLOW_REMOTE=1"
                 )
+        if self.llm_user_token_forward and not (
+            self.supervisor_mode == "databricks_app"
+            and bool(self.llm_base_url)
+            and self.is_workspace_serving_url(self.llm_base_url)
+        ):
+            raise ValueError(
+                "LLM_USER_TOKEN_FORWARD=1 is allowed only in databricks_app mode and when "
+                "LLM_BASE_URL is the workspace serving-endpoints or ai-gateway URL "
+                "(sandbox-only: judge calls then run under the signed-in user's identity)"
+            )
         if self.databricks_catalog and not is_placeholder(self.databricks_catalog):
             _check_identifier("DATABRICKS_CATALOG", self.databricks_catalog)
         if self.databricks_schema and not is_placeholder(self.databricks_schema):

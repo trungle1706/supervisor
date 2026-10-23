@@ -24,6 +24,7 @@ record. Chain payloads contain no floats (latency in integer microseconds).
 from __future__ import annotations
 
 import concurrent.futures as cf
+import contextvars
 import dataclasses
 import hashlib
 import json
@@ -628,8 +629,17 @@ class Gateway:
         args = dict(args or {})
         req = self._req(direction, correlation_id, request_id)
         try:
+            # WP-P4: the dry run ends before the response, so it may carry the request's
+            # context (forwarded user token for the judge). _pool and _bg do not.
             fut = self._dry_pool.submit(
-                self._dry, agent_id, agent_version, tool_name, args, ctx, req
+                contextvars.copy_context().run,
+                self._dry,
+                agent_id,
+                agent_version,
+                tool_name,
+                args,
+                ctx,
+                req,
             )
             return fut.result(timeout=self.timeout_s)
         except cf.TimeoutError:

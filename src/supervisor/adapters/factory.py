@@ -130,6 +130,7 @@ def make_judge_chat_model(settings: Settings, role: str) -> ChatModel:
             api_shape=settings.llm_api_shape,
             strict_schema=settings.llm_strict_schema,
             send_temperature=settings.llm_send_temperature,
+            user_token_forward=settings.llm_user_token_forward,
         )
     else:
         chat = OpenAICompatibleChat(
