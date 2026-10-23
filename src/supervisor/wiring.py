@@ -241,6 +241,18 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
     except ConfigError as exc:  # one ASCII line naming the setting, no chained traceback
         msg = f"DETECTORS_CONFIG={settings.detectors_config}: {exc}"
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii")) from None
+    dlp = resolved.cfg.detectors.get("dlp_vn")  # WP-P2
+    if (
+        dlp is not None
+        and dlp.enabled
+        and dlp.settings.get("mode", "transform") == "transform"
+        and not settings.inline_redaction_enabled
+    ):
+        log.warning(
+            "dlp_vn is in transform mode but INLINE_REDACTION_ENABLED is off: the gate returns "
+            "masked arguments, and an SDK or collector applies them only when it runs with "
+            "INLINE_REDACTION_ENABLED=1"
+        )
     _wire_guard_model(settings, registry, resolved, policy, state)  # WP-D3
     gate = DetectorGate(registry, resolved)
     # WP-D1: document and URL intake (None unless DOCUMENT_INTAKE_ENABLED=1)

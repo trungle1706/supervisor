@@ -155,15 +155,19 @@ def test_dlp_reports_only_for_a_tool_outside_the_transform_scope(gw_on: Gateway)
     assert [f["action_hint"] for f in r["findings"]] == ["report"]
 
 
-def test_shadow_agent_is_never_blocked_or_transformed(
+def test_shadow_agent_is_never_blocked_but_is_still_masked(
     make_gateway: GatewayFactory, evidence: MemoryEvidence
 ) -> None:
     doc = _policy_text()
     doc["agents"]["payments"]["initial_state"] = "SHADOW"
     gw = make_gateway(policy=load_policy_texts([("p.yaml", yaml.safe_dump(doc))]))
     r = gw.check("payments", "1", "add_payee", PII_ARGS)
-    assert r["allow"] is True and r["transformed_payload"] is None
-    assert r["status"] == "report" and r["findings"]  # the SOC still sees what was found
+    # WP-P2: SHADOW observes decisions; masking is not a decision, so the masked args still go
+    assert r["allow"] is True and r["agent_state"] == "SHADOW"
+    assert r["status"] == "transform" and r["findings"]
+    assert r["transformed_args"] == r["transformed_payload"]["args"]
+    assert r["transformed_args"]["cccd"].startswith("<CCCD:")
+    assert CCCD not in json.dumps(r, ensure_ascii=False)
 
 
 # ---------------------------------------------------------------------------- precedence

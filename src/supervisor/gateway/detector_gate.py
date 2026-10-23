@@ -469,8 +469,9 @@ class DetectorGate:
                     "human resumes)"
                 )
                 transformed = None
-        # 2. The dlp transform: only on an allowed, non-shadow call (same rule as WP24b).
-        if transformed and d.allow and not shadow and not builtin:
+        # 2. The dlp transform: only on an allowed call. WP-P2: also in SHADOW (masking is not a
+        # decision: SHADOW observes decisions, but the collector must still send masked args).
+        if transformed and d.allow and not builtin:
             d.transformed_payload = {k: transformed[k] for k in sorted(transformed)}
             # WP-D2: a secret or custom finding means the detector's arguments are the safe ones
             # (the WP24b masker pass knows personal data only); they replace those.
@@ -488,7 +489,7 @@ class DetectorGate:
         # 2b. WP41 (D29): arguments the policy keeps unmasked (a lookup key) go back to the tool
         # as sent. The fully masked copy stays in ``d.masked_args``: the session sketch and every
         # record use that one, and the finding already holds masked text only.
-        if pre.kept and d.allow and not shadow and not builtin and d.transformed_args is not None:
+        if pre.kept and d.allow and not builtin and d.transformed_args is not None:
             masked = dict(d.transformed_args)
             kept = sorted(n for n, v in pre.kept.items() if n in masked and masked[n] != v)
             if kept:
