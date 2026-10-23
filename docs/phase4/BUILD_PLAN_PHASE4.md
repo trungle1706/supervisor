@@ -520,3 +520,94 @@ credit tools only, when the bank approves) pauses; it never blocks on its own; t
 - Workers run targeted tests only (tests/detectors, tests/gateway, tests/console/test_catalog*,
   tests/console/test_rbac_matrix.py, tests/test_architecture.py, tests/test_schema.py, plus
   their own files); the lead runs the full suite.
+
+## 7. Phase 6: deploy package and three candidate agents
+
+Owner request 2026-10-23: a package the owner can migrate to the work laptop (Windows, offline,
+SQLite; `docs/SETUP_WORK_COMPUTER.md`) and to the Databricks App sandbox (`docs/RUNBOOK.md`
+sections 7 to 9, `docs/BANK_DEPLOY_GUIDE.md`), a proven launch, and three fully operational
+candidate agents cloned from existing open-source repos, tested here, and adapted for Databricks
+Apps, to exercise the whole flow: registry, preliminary checks, classification, lifecycle,
+production supervision.
+
+Facts for every worker:
+- A local OpenAI-compatible model serves at `http://127.0.0.1:8001/v1`, model id
+  `qwen3.8-27b-int4` (vLLM). Use it for tests on this host. On Databricks the same client points
+  at a serving endpoint (`https://<host>/serving-endpoints`, OAuth of the App service principal).
+- The demo Supervisor runs at `http://127.0.0.1:8130` with dev identity header `X-Dev-User:
+  reviewer.an` (owner `owner.credit` exists). Its env file is
+  `supervisor-testbed/phase3/console/wave2-nav3.env`. Nothing has run on a live workspace.
+- Hard constraints of a Databricks App: `app.yaml` with `python -m uvicorn ... --port 8000`,
+  `PYTHONPATH=src`, pure-Python wheels only, no internet at runtime, OAuth only, `/tmp` wiped.
+- Third-party code is untrusted: clone into its own folder under
+  `~/supervisor-testbed/candidates/<name>/`, pin the commit, read the code before running it,
+  check the licence (MIT, Apache-2.0 or BSD only), never run it from inside the Supervisor repo.
+- Synthetic data only. Every bank tool a candidate agent calls is an in-process fake with
+  seeded Vietnamese synthetic data.
+
+### 7.1 WP-P1: release and deploy package
+
+1. **Version 0.5.0**: `__version__`, CHANGELOG release section (phase 4 and 5), tag `v0.5.0`
+   locally, no push.
+2. **Laptop bundle** in `~/supervisor-release/v0.5.0/laptop/`: a zip of the repo at the tag,
+   `requirements.txt` exported from `uv.lock` including the `documents` extra (add
+   `--extra documents` to `EXPORT_REQS_ARGV` in `cli.py`, keep the requirements test green),
+   `.env.laptop.example` listing every flag added in phase 4 and 5 with a one-line comment and
+   FILL-ME values, and `docs/deploy/LAUNCH_LAPTOP.md` (Windows cmd only: Python 3.11, pip
+   install from requirements, preflight, `demo seed`, `demo seed-systems`, serve, open the
+   console, the ten-step story of `docs/phase4/PITCH_READINESS.md`).
+3. **Databricks bundle** in `~/supervisor-release/v0.5.0/databricks/`: `app.yaml` and
+   `databricks.yml` with the phase 4 and 5 env vars as FILL-ME (governance, actions, bindings,
+   MCP server, document intake, guard model, scan v2 off by default), `requirements.txt`, and
+   `docs/deploy/LAUNCH_DATABRICKS.md`: bundle validate, deploy, run; grants; Volume; warehouse;
+   the LLM serving endpoint for judges; how the three candidate agents deploy as separate Apps
+   that call the Supervisor App; the live test kit list extended with phase 4 and 5 calls (scan
+   v2 sources, MCP server, document intake, guard model endpoint). Update
+   `docs/live-test-kit.md` and `docs/databricks-prereqs.md` accordingly.
+4. **Demo seed** `python -m supervisor.cli demo seed-systems`: registers three AI systems from
+   the candidate manifests at `~/supervisor-testbed/candidates/*/supervisor.manifest.yaml` (read
+   the manifest schema the agent workers write; agree it with them through the lead: name,
+   owner, purpose, intake fields, autonomy level, tools with risk classes, model family), links
+   the agents, drafts the classification, and prints the system ids. Idempotent. Works when a
+   manifest is missing (skips with `[SKIP]`).
+5. **Smoke script** `tools/smoke_launch.py` (runs on Linux and Windows, no bash): start the app
+   on a free port with a temporary DATA_DIR, wait for `/healthz`, open `/console/`, register a
+   system through the API, run a playground check, verify the chain, stop the app, print
+   `[OK]`/`[FAIL]` per step and exit non-zero on a failure. Run it here and record the output in
+   `docs/deploy/SMOKE_RESULT.md`.
+6. Tests for the seed command and the smoke script's helpers; ruff; targeted tests only.
+
+### 7.2 WP-A1, A2, A3: candidate agents
+
+| WP | Profile | Autonomy | Tools (risk class) | Collector |
+|---|---|---|---|---|
+| A1 bank knowledge chatbot | RAG over synthetic bank policy documents; answers staff questions | l1_assistive | `search_policies` (read_only) | FastAPI middleware |
+| A2 customer service agent | Looks up a customer, opens tickets, waives a fee with a human approval step in code (LangGraph interrupt) | l3_tool_using_supervised | `lookup_customer` (pii_export), `create_ticket` (read_only), `waive_fee` (money, approval in code) | LangGraph middleware |
+| A3 payments operations agent | Plans and executes a reconciliation and payment workflow end to end: `reconcile`, `add_payee`, `transfer` within limits, no pre-approval | l4_autonomous_bounded | `reconcile` (read_only), `add_payee` (pii_export), `transfer` (money) | Python SDK decorator |
+
+Candidate sources to evaluate first (choose one per WP, or a better one found by search):
+A1 Databricks `app-templates` chatbot or a LangChain RAG example; A2 the LangGraph
+customer-support tutorial agent; A3 a deepagents or LangGraph planning-agent example. Record the
+repo URL, commit, licence and why it was chosen.
+
+Each candidate delivers, in its folder:
+1. The cloned repo (pinned) plus an `adapted/` application: FastAPI app, `app.yaml`,
+   `requirements.txt` (pure Python), `/healthz`, OpenAI-compatible client with base URL and
+   model from env, in-process fake bank tools with seeded synthetic data, and the Supervisor
+   collector wired with `SUPERVISOR_GATE_URL` and the WP20 credential (`docs/collectors.md`,
+   `docs/ingress-auth.md`), SHADOW first.
+2. `supervisor.manifest.yaml` (schema agreed with WP-P1 through the lead), a policy fragment
+   `policies/<name>.yaml` in the candidate folder (not in the Supervisor repo) with rules for
+   its tools, and an MLflow-style artifact folder `artifact/` (MLmodel, tools.json, prompt
+   files, requirements.txt) that `python -m supervisor.onboard.define --artifact` reads.
+3. Proof: a transcript of three interactions against the local model; the define output with
+   the autonomy proposal; registration on the demo Supervisor through the API (system, link,
+   classification draft); three gate checks through the real gate with the issued credential,
+   showing an allow, a block or pause, and a masked PII call; the Supervisor pages that show it.
+4. `README.md`: what it is, licence, autonomy level and why, tools and risk classes, run
+   locally, deploy as a Databricks App, register with Supervisor, known limits.
+5. No change to the Supervisor repo. Needed Supervisor changes are listed in the README as
+   proposals for the lead.
+
+Quality bar: the agent must really work (a real model answers, tools really run), with no
+internet at runtime beyond the model endpoint, and every tool call goes through the gate.
