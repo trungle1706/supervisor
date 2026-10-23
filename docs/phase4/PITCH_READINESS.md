@@ -82,3 +82,18 @@ passed an independent review before merge.
 What the pitch may say: the catalogue covers the same ground as the TrustGuard cards except OCR
 and Microsoft Purview. What it must not say: that the ML detectors are validated. They are
 built, harnessed and off; the bank must choose and serve a model first.
+
+## 7. Phase 6 addendum (2026-10-23): deploy package and three candidate agents
+
+| Item | State |
+|---|---|
+| Release v0.5.0 | tagged on main (local); bundles at `~/supervisor-release/v0.5.0/laptop/` and `.../databricks/`, SHA256SUMS in each |
+| Laptop launch | `docs/deploy/LAUNCH_LAPTOP.md` (Windows cmd); `tools/smoke_launch.py` passes on Linux; not yet run on Windows |
+| Databricks launch | `docs/deploy/LAUNCH_DATABRICKS.md`; app.yaml and databricks.yml carry every phase 4 and 5 switch; live test kit items 1 to 16 are manual and NOT run |
+| Candidate A1, bank knowledge chatbot, L1 | MIT upstream, pinned; FastAPI middleware; retrieval-only tool; registered, classified (unclassified until a person answers), gate checks captured |
+| Candidate A2, customer service agent, L3 | LangGraph interrupt before the fee waiver; registered, floor = DLP + injection regex + rules; waiver without approval blocked by CSA-01, CCCD masked |
+| Candidate A3, payments operations agent, L4 | deepagents planner; registered, Decision 33 high_risk by D33-TRANSACTION, floor adds the session monitor; moved SHADOW to RUNNING by two persons through the API; 150M VND transfer blocked, split transfers blocked, session paused in its own proof |
+| Supervisor fixes from the candidates (WP-P2) | agents API, two-person launch route, several policy folders and reload, define and classification cross-check, SDK session ids, masking in SHADOW, key store path |
+
+Demo server: policy folder `supervisor-testbed/phase3/console/policy_demo` (42 rules), four
+systems registered. What the pitch must still not claim: any Windows or Databricks run.
