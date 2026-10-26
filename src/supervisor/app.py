@@ -131,6 +131,12 @@ if get_settings().console_systems_enabled:  # WP-G0: /console/systems (needs the
     from supervisor.console.systems_routes import router as systems_console_router
 
     app.include_router(systems_console_router)
+if get_settings().console_overview_v4:  # WP-N1: mounted only when the flag is on
+    from supervisor.console.candidates_routes import api_router as candidates_api_router
+    from supervisor.console.candidates_routes import router as candidates_console_router
+
+    app.include_router(candidates_console_router)  # /console/candidates
+    app.include_router(candidates_api_router)  # GET /v1/candidates
 if get_settings().governance_actions_enabled:  # WP-G5: mounted only when the flag is on
     from supervisor.console.incidents_routes import router as incidents_console_router
     from supervisor.governance.incident_routes import router as incidents_router

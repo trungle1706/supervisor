@@ -35,6 +35,18 @@ class Sec:
 
 
 SECTIONS_V3: dict[str, Sec] = {
+    # WP-N1: the tab strip under "My overview" (CONSOLE_OVERVIEW_V4). Not a bar item of its own;
+    # the home row of the bar is "My overview". My agents (WP-N2) shows with CONSOLE_MY_AGENTS.
+    "my": Sec(
+        "my",
+        "nv3_my",
+        "/console/",
+        (
+            Tab("overview", "ov4_t_overview", "/console/", "ov4"),
+            Tab("my_agents", "ov4_t_agents", "/console/my/agents", "my_agents"),
+            Tab("candidates", "ov4_t_candidates", "/console/candidates", "ov4", "inventory.view"),
+        ),
+    ),
     "systems": Sec(
         "systems",
         "nv3_systems",
@@ -122,7 +134,9 @@ SECTIONS_V3: dict[str, Sec] = {
 
 # The page keys the routes pass as ``section=``, and where each sits: (bar item, section, tab).
 PAGE_HOME: dict[str, tuple[str, str | None, str | None]] = {
-    "overview": ("home", None, None),
+    "overview": ("home", "my", "overview"),  # the strip shows only with CONSOLE_OVERVIEW_V4
+    "candidates": ("home", "my", "candidates"),  # WP-N1
+    "my_agents": ("home", "my", "my_agents"),  # WP-N2 sets this page key
     "inbox": ("home", None, None),
     "gov_overview": ("gov_overview", None, None),
     "sup_overview": ("sup_overview", None, None),
@@ -263,6 +277,8 @@ def _on(need: str | None, sh: dict[str, Any], compliance: bool, integration: boo
         "compliance": compliance,
         "integration": integration,
         "inventory": sh.get("inventory_n") is not None,
+        "ov4": bool(sh.get("ov4")),  # WP-N1
+        "my_agents": bool(sh.get("ov4") and sh.get("my_agents")),  # WP-N2
     }[need]
 
 

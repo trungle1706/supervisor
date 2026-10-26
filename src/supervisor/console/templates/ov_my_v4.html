@@ -1,0 +1,109 @@
+{# My overview as a dashboard (CONSOLE_OVERVIEW_V4, WP-N1): how are we doing, the registration
+   pipeline, assessment completion, risk by autonomy level, totals, action items, the top
+   candidates to register and the cards of my systems and agents. Variables: overview_v4.my_overview()
+   as d, greet_key, cand_url, cand_src, cand_register. Read only; the grid stacks under 900 px. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% import "_ov4.html" as ov with context %}
+{% block title %}{{ t('nv3_my') }}{% endblock %}
+{% block content %}
+{% set tot = d.totals %}
+<h1 class="greet" data-page="my-overview" data-unit="systems" data-version="4" data-greeting="{{ greet_key }}">{{ t(greet_key, name=shell().first_name) }}</h1>
+<p class="greet-sub" id="greet-sub">{{ t('ux4b_my_sub', systems=tot.systems, actions=d.actions_n, cases=d.cases_n) }}{% if d.clock %} {% if d.clock.overdue %}{{ t('greet_clock_over', d=dur(d.clock.secs)) }}{% else %}{{ t('greet_clock_left', d=dur(d.clock.secs)) }}{% endif %}{% endif %}</p>
+{{ v3.scope_switch('/console/', d.scope, d.scopes) }}
+
+<div class="ov4-top">
+  <div class="ov4-left">
+    <section class="card ov4-banner state-{{ d.banner.state }}" data-banner="{{ d.banner.state }}" aria-labelledby="ov4-bn">
+      <h3 id="ov4-bn">{{ t('ov4_how') }}</h3>
+      <div class="ov4-word">{{ t('ov4_state_' ~ d.banner.state) }}</div>
+      <p class="ov4-why">{{ t(d.banner.why, arg=d.banner.arg) }}</p>
+      <p class="sub">{{ t('ov4_open_items', n=d.banner.open_items) }}</p>
+    </section>
+    <section class="card ov4-pipe" aria-labelledby="ov4-pp">
+      <h3 id="ov4-pp">{{ t('ov4_pipeline') }}</h3>
+      <ol class="ov4-stages" data-pipeline>
+        {% for key, n in d.pipeline %}
+        <li data-stage="{{ key }}"><span class="n">{% if n is none %}<span class="muted">-</span>{% else %}{{ n }}{% endif %}</span><span class="l">{{ t('ov4_stage_' ~ key) }}</span></li>
+        {% endfor %}
+      </ol>
+      <p class="hint">{{ t('ov4_pipeline_note') }}</p>
+    </section>
+  </div>
+  <section class="card" aria-labelledby="ov4-as">
+    <h3 id="ov4-as">{{ t('ov4_assess') }}</h3>
+    <ul class="ov4-rows" data-assess>
+      {% for a in d.assess %}
+      <li data-dim="{{ a.key }}"><span class="l">{{ t('ov4_dim_' ~ a.key) }}</span><span class="v">{% if a.bp is none %}<span class="muted">-</span>{% else %}{{ a.done }} / {{ a.of }}{% endif %}</span>{{ ui.bar(a.bp, '' if (a.bp or 0) >= 10000 else 'amber') }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <section class="card" aria-labelledby="ov4-rk">
+    <h3 id="ov4-rk">{{ t('ov4_risk_by_autonomy') }}</h3>
+    <ul class="ov4-rows ov4-stack" data-risk>
+      {% for r in d.risk_rows %}
+      <li data-level="{{ r.level }}"><span class="l">{{ t('sy_autonomy_level_' ~ r.level) }}</span><span class="v">{{ r.total }}</span>
+        <div class="stackbar" role="img" aria-label="{{ t('sy_autonomy_level_' ~ r.level) }}: {{ r.total }}">{% for rk, n, bp in r.segs %}<i class="seg-{{ rk }}" style="width:{{ [bp // 100, 4]|max }}%" title="{{ t('sy_risk_' ~ rk) }}: {{ n }}"></i>{% endfor %}</div></li>
+      {% endfor %}
+    </ul>
+    <p class="legend-l">{% for rk in d.risks %}<span class="lg"><i class="seg-{{ rk }}"></i>{{ t('sy_risk_' ~ rk) }}</span>{% endfor %}</p>
+  </section>
+</div>
+
+<div class="ov4-totals card" data-totals aria-label="{{ t('ov4_totals') }}">
+  <div data-num="systems"><span class="n">{{ tot.systems }}</span><span class="l">{{ t('ov4_t_systems') }}</span><span class="s">{{ v3.tiers(tot.tiers) }}</span></div>
+  <div data-num="agents"><span class="n">{{ tot.agents }}</span><span class="l">{{ t('ov4_t_agents_gate') }}</span><span class="s">{{ t('ov4_gate_split', r=tot.states.get('RUNNING', 0), s=tot.states.get('SHADOW', 0), p=tot.states.get('PAUSED', 0) + tot.states.get('QUARANTINED', 0)) }}</span></div>
+  <div data-num="models"><span class="n">{% if tot.models is none %}<span class="muted">-</span>{% else %}{{ tot.models }}{% endif %}</span><span class="l">{{ t('nv3_tile_models') }}</span></div>
+  <div data-num="cover"><span class="n">{% if tot.cover is none %}<span class="muted">-</span>{% else %}{{ tot.cover.n }} / {{ tot.cover.of }}{% endif %}</span><span class="l">{{ t('ov4_t_cover') }}</span></div>
+  <div data-num="cases"><span class="n">{{ tot.cases }}</span><span class="l">{{ t('ov4_t_cases') }}</span></div>
+  <div data-num="due"><span class="n">{{ tot.due }}</span><span class="l">{{ t('ov4_t_due') }}</span></div>
+</div>
+
+<div class="ov4-mid">
+  <section aria-labelledby="ov4-ai">
+    <h2 class="sec" id="ov4-ai">{{ t('ov4_actions') }}</h2>
+    <div class="card ov4-actions">
+      <h3>{{ t('ov4_attention', n=d.attention|length) }}</h3>
+      {% if d.attention %}<ul class="ov4-list">{% for a in d.attention %}<li><a href="{{ a.href }}?lang={{ lang }}">{{ a.text }}</a> {{ ui.pill(t('ux4b_kind_' ~ a.kind) if a.kind == 'stage' else t('nv3_kind_' ~ a.kind), {'case': 'bad', 'approval': 'warn', 'stage': 'warn'}[a.kind]) }}</li>{% endfor %}</ul>{% else %}<p class="hint">{{ t('nv3_waiting_none') }}</p>{% endif %}
+      <h3>{{ t('ov4_input', n=d.waiting_input|length) }}</h3>
+      {% if d.waiting_input %}<ul class="ov4-list">{% for a in d.waiting_input %}<li><a href="{{ a.href }}?lang={{ lang }}">{{ a.text }}</a> {{ ui.pill(t('nv3_kind_task'), 'neutral') }}</li>{% endfor %}</ul>{% else %}<p class="hint">{{ t('nv3_waiting_none_line') }}</p>{% endif %}
+    </div>
+  </section>
+  <section aria-labelledby="ov4-tc">
+    <h2 class="sec" id="ov4-tc">{{ t('ov4_top_candidates') }}<a href="/console/candidates?lang={{ lang }}">{{ t('ov4_all_candidates') }}</a></h2>
+    {% if d.cand_off %}
+    {{ ui.empty(t('ov4_cand_off'), t('ov4_cand_off_line')) }}
+    {% else %}
+    <div id="cand-rows">
+    {% with cand_page=d.cand.cand_page, cand_sort_col=d.cand.cand_sort_col, cand_sort_dir=d.cand.cand_sort_dir, cand_base_qs=d.cand.cand_base_qs, cand_list_qs=d.cand.cand_list_qs %}
+    {% include "_cand_rows.html" %}
+    {% endwith %}
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<h2 class="sec">{{ t('ov4_cards') }}</h2>
+{% if d.cards %}
+<div class="grid g3 ov4-cards" data-cards>
+{% for c in d.cards %}
+<article class="card ov4-card" data-card="{{ c.kind }}" data-id="{{ c.system_id or c.name }}">
+  <h3>{{ t('ov4_kind_' ~ c.kind) }}{% if c.stage %} · {{ t('sy_stage_' ~ c.stage) }}{% endif %}</h3>
+  <div class="ov4-name">{% if c.kind == 'system' and d.systems_page %}<a href="/console/systems/{{ c.system_id }}?lang={{ lang }}">{{ c.name }}</a>{% elif c.kind == 'agent' %}<a href="/console/agents/{{ c.name }}?lang={{ lang }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %}</div>
+  <p class="ov4-desc">{{ c.description or '-' }}</p>
+  <p class="ov4-pills">
+    {{ ui.pill(t(c.risk_key), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(c.risk, 'neutral')) }}
+    {% if c.kind == 'system' %}<span class="pill neutral">{{ t('sy_autonomy_level_' ~ c.autonomy) }}</span>{% endif %}
+    {% if c.guard is none %}<span class="pill neutral">{{ t('ov4_guard_none') }}</span>{% elif c.guard.full %}<span class="pill ok"><span class="dot"></span>{{ t('nv3_cover_full') }}</span>{% else %}<span class="pill warn"><span class="dot"></span>{{ t('nv3_cover_below') }}</span>{% endif %}
+    <span class="pill {{ 'bad' if c.open_cases else 'neutral' }}">{{ t('ov4_cases_n', n=c.open_cases) }}</span>
+  </p>
+  {% if c.agent_list %}<p class="ov4-agents">{% for a in c.agent_list %}<a href="/console/agents/{{ a.agent_id }}?lang={{ lang }}"><code>{{ a.agent_id }}</code></a> {{ ui.state_pill(a.state) }} {% endfor %}</p>{% endif %}
+  <p class="ov4-rec"><span class="l">{{ t('ux4b_next_action') }}</span> {{ ov.rec(c.recommended) }}</p>
+</article>
+{% endfor %}
+</div>
+{% else %}
+{{ ui.empty(t('ux4b_no_systems'), t('ux4b_no_systems_line'), '/console/?scope=all&lang=' ~ lang, t('nv3_scope_all')) }}
+{% endif %}
+{% endblock %}

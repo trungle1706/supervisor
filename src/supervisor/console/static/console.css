@@ -718,3 +718,55 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .wizform label.chk { display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--fg); }
 .wiz-kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px; }
 .wiz-kpis .card .bignum { font-size: 22px; }
+
+/* ------------------------------------------------------------------ My overview dashboard (WP-N1) */
+.ov4-top { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); margin-bottom: 14px; }
+.ov4-left { display: grid; gap: 14px; align-content: start; }
+.ov4-banner .ov4-word { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.ov4-banner.state-good .ov4-word { color: var(--green); }
+.ov4-banner.state-work .ov4-word { color: var(--amber); }
+.ov4-banner.state-attention .ov4-word { color: var(--red); }
+.ov4-banner.state-attention { border-color: var(--red); }
+.ov4-why { margin: 6px 0 0; font-size: 14px; }
+.ov4-stages { list-style: none; margin: 0 0 10px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.ov4-stages li { border: 1px solid var(--line); border-radius: var(--r-s); padding: 8px 6px; text-align: center; background: var(--surface-2); }
+.ov4-stages .n { display: block; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ov4-stages .l { display: block; font-size: 11px; color: var(--muted); line-height: 1.25; overflow-wrap: anywhere; }
+.ov4-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ov4-rows li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: 13px; }
+.ov4-rows li > .bar, .ov4-rows li > .stackbar { grid-column: 1 / -1; }
+.ov4-rows .v { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.stackbar { display: flex; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.stackbar i, .legend-l i { display: block; height: 100%; }
+.seg-prohibited { background: var(--brand); } .seg-high { background: var(--red); }
+.seg-medium { background: var(--amber); } .seg-low { background: var(--green); }
+.seg-unspecified { background: var(--muted); }
+.legend-l { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 12px 0 0; font-size: 11px; color: var(--muted); }
+.legend-l .lg { display: inline-flex; align-items: center; gap: 5px; }
+.legend-l i { width: 10px; height: 10px; border-radius: 2px; }
+.ov4-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 18px; margin-bottom: 14px; }
+.ov4-totals > div { display: grid; gap: 2px; align-content: start; }
+.ov4-totals .n { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ov4-totals .l { font-size: 12px; font-weight: 600; color: var(--muted); }
+.ov4-totals .s { font-size: 11px; color: var(--muted); }
+.ov4-mid { display: grid; gap: 14px; grid-template-columns: minmax(0, .6fr) minmax(0, 2.4fr); align-items: start; }
+.ov4-actions h3 + .ov4-list, .ov4-actions h3 + .hint { margin-bottom: 14px; }
+.ov4-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+.cand-desc { font-size: 12px; color: var(--muted); margin-top: 2px; max-width: 36ch; }
+.cand-tbl th, .cand-tbl td { padding: 8px 6px; font-size: 12px; }
+.cand-tbl th { letter-spacing: 0; }
+.cand-tbl td:first-child { min-width: 150px; }
+.ov4-mid > section { min-width: 0; }
+.ov4-top > * { min-width: 0; }
+.cand-sig { white-space: normal; min-width: 90px; }
+.cand-sig .pill { margin: 0 4px 4px 0; }
+.cand-list { margin: 0 0 8px; padding-left: 18px; font-size: 13px; display: grid; gap: 6px; }
+.ov4-cards .ov4-card { display: grid; gap: 6px; align-content: start; }
+.ov4-card h3 { margin: 0; }
+.ov4-name { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.ov4-desc { margin: 0; font-size: 13px; color: var(--muted); }
+.ov4-pills, .ov4-agents, .ov4-rec { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.ov4-rec .l { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 900px) {
+  .ov4-top, .ov4-mid { grid-template-columns: 1fr; }
+}
