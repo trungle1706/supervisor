@@ -167,11 +167,17 @@ def _build_runtime(
     facts: FactSource | None = None,
     bootstrap: bool = True,
     git_sha: str | None = None,
-    policy_refresh_s: float = 5.0,
-    state_cache_ttl_s: float = 1.0,
+    policy_refresh_s: float | None = None,
+    state_cache_ttl_s: float | None = None,
 ) -> Runtime:
-    """Build adapters, deploy the policy, build the chain writer and the gateway."""
+    """Build adapters, deploy the policy, build the chain writer and the gateway. The two
+    cache periods default to the settings (POLICY_REFRESH_S, STATE_CACHE_TTL_S); a test may
+    pass 0 to read the store on every call."""
     settings = settings or (adapters.settings if adapters else load_settings())
+    if policy_refresh_s is None:
+        policy_refresh_s = settings.policy_refresh_s
+    if state_cache_ttl_s is None:
+        state_cache_ttl_s = settings.state_cache_ttl_s
     owns = adapters is None
     adapters = adapters or build_adapters(settings)
     try:
@@ -240,6 +246,7 @@ def _make_gateway(
         if settings.args_hash_key is not None
         else None,
         env=settings.supervisor_mode,
+        timeout_s=settings.gate_decision_timeout_s,  # WP-P6: 2 s locally, more on Databricks
         state_cache_ttl_s=state_cache_ttl_s,
         require_caller_id=settings.require_caller_id,  # WP7, ADR D10 (default off)
         # WP24b inline redaction (default off). The gate's masker keeps amounts in the text:

@@ -95,3 +95,33 @@ def test_app_still_serves_when_runtime_build_fails(monkeypatch: pytest.MonkeyPat
             assert client.get("/healthz").json() == {"status": "ok"}
     finally:
         gate_wiring.set_gateway(None)
+
+
+def test_gate_time_budgets_come_from_settings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WP-P6: GATE_DECISION_TIMEOUT_S, POLICY_REFRESH_S and STATE_CACHE_TTL_S reach the engine
+    (a Databricks store needs more than the 2 s local default)."""
+    monkeypatch.setenv("GATE_DECISION_TIMEOUT_S", "7.5")
+    monkeypatch.setenv("POLICY_REFRESH_S", "30")
+    monkeypatch.setenv("STATE_CACHE_TTL_S", "9")
+    settings = load_settings(sql_backend="sqlite", data_dir=tmp_path / "data")
+    assert settings.gate_decision_timeout_s == 7.5
+    rt = build_runtime(settings)
+    try:
+        assert rt.gateway.timeout_s == 7.5
+        assert rt.gateway.policy.refresh_s == 30
+        assert rt.gateway.states.cache_ttl_s == 9
+    finally:
+        rt.close()
+    rt0 = build_runtime(settings, policy_refresh_s=0.0)  # an explicit value still wins
+    try:
+        assert rt0.gateway.policy.refresh_s == 0.0
+    finally:
+        rt0.close()
+
+
+def test_gate_time_budgets_default_unchanged(tmp_path: Path) -> None:
+    settings = load_settings(sql_backend="sqlite", data_dir=tmp_path / "data")
+    assert (settings.gate_decision_timeout_s, settings.policy_refresh_s) == (2.0, 5.0)
+    assert settings.state_cache_ttl_s == 1.0

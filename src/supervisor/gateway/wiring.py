@@ -81,7 +81,7 @@ def build_gateway(
 
     policy = load_policy_dirs(resolve_policy_dirs(settings, policy_dir))  # WP-P2
     deploy_with_retry(policy, adapters.state, adapters.clock)
-    provider = StorePolicyProvider(adapters.state, refresh_s=5.0)
+    provider = StorePolicyProvider(adapters.state, refresh_s=settings.policy_refresh_s)
     detector_gate = make_detector_gate(settings, policy, adapters.state)  # WP37 (default off)
     if detector_gate is not None:
         provider.validator = detector_gate.check_policy
@@ -93,6 +93,8 @@ def build_gateway(
         adapters.clock,
         facts=make_fact_source(settings),  # D13: FACT_SOURCE (default none)
         env=settings.supervisor_mode,
+        timeout_s=settings.gate_decision_timeout_s,  # WP-P6
+        state_cache_ttl_s=settings.state_cache_ttl_s,
         detector_gate=detector_gate,
         session_gate=make_session_gate(settings, adapters, evidence),  # WP27 (default off)
     )

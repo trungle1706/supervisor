@@ -77,6 +77,9 @@ are resolved against the repo folder, once, at start.
 | `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA` | your writable schema | all Supervisor tables go here |
 | `DATABRICKS_RETRY_TIMEOUT_S` | `90` (60 to 120) | SDK retry cap |
 | `DATABRICKS_STATEMENT_DEADLINE_S` | `120` | a cold warehouse needs about 30 s |
+| `GATE_DECISION_TIMEOUT_S` | `20` (code default `2`) | one gate decision, store reads included; the agent SDK timeout (`SUPERVISOR_TIMEOUT_S` in the candidates) must be larger |
+| `POLICY_REFRESH_S` | `60` (code default `5`) | how often the gate re-reads the deployed policy from the store |
+| `STATE_CACHE_TTL_S` | `30` (code default `1`) | how long the gate keeps an agent's state before it re-reads the `agent` row |
 | `LLM_ENDPOINT` | `FILL-ME-serving-endpoint-name` | preflight checks it is READY |
 | `DATABRICKS_CLUSTER_NAME` | optional | shared cluster for `cluster_run` |
 | `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` | must be loopback. Empty = mock judges |

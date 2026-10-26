@@ -157,6 +157,12 @@ class Settings(BaseSettings):
     databricks_sql_transport: Literal["rest"] = "rest"
     databricks_retry_timeout_s: int = Field(default=90, ge=60, le=120)
     databricks_statement_deadline_s: int = Field(default=120, ge=10, le=600)
+    # Gate time budgets (WP-P6). The defaults fit a local SQLite store. On Databricks every store
+    # round trip is a Statement Execution call (1 to 3 s), so a decision does not fit in 2 s:
+    # raise GATE_DECISION_TIMEOUT_S and read the policy and the agent state less often.
+    gate_decision_timeout_s: float = Field(default=2.0, ge=0.5, le=120)
+    policy_refresh_s: float = Field(default=5.0, ge=0, le=3600)
+    state_cache_ttl_s: float = Field(default=1.0, ge=0, le=3600)
     # WP10: shared all-purpose cluster for the Command Execution API runner (optional).
     databricks_cluster_id: str | None = None
     databricks_cluster_name: str | None = None

@@ -26,6 +26,14 @@ env:
     value: "0"
   - name: SCHEDULER_ENABLED
     value: "1"
+  # Gate time budgets. Every store round trip is a Statement Execution call (1 to 3 s), so
+  # the 2 s local default is too short here. The agent SDK timeout must be larger than this.
+  - name: GATE_DECISION_TIMEOUT_S
+    value: "20"
+  - name: POLICY_REFRESH_S
+    value: "60"
+  - name: STATE_CACHE_TTL_S
+    value: "30"
   # /tmp is wiped on every restart. Durable files go to a Unity Catalog Volume.
   - name: DATA_DIR
     value: "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/data"
