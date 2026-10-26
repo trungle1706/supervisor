@@ -718,3 +718,12 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .wizform label.chk { display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--fg); }
 .wiz-kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px; }
 .wiz-kpis .card .bignum { font-size: 22px; }
+
+/* WP-N3 register workflow v2 */
+.rg2-sug { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 400; }
+.rg2-buttons { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.rg2-steps li a { color: inherit; text-decoration: none; }
+.rg2-error { border-color: var(--red, #b3261e); }
+@media (max-width: 600px) { .rg2-steps li { font-size: 11px; padding: 3px 8px; } }
+.rg2-proposal { padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); font-size: 13px; line-height: 1.5; }
+.rg2-q select, .rg2-q input { min-width: 96px; }

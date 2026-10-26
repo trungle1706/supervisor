@@ -9,6 +9,7 @@
 <h1 class="greet" data-page="my-overview" data-unit="systems" data-greeting="{{ greet_key }}">{{ t(greet_key, name=shell().first_name) }}</h1>
 <p class="greet-sub" id="greet-sub">{{ t('ux4b_my_sub', systems=d.tiles[0].value, actions=d.actions_n, cases=d.cases_n) }}{% if d.clock %} {% if d.clock.overdue %}{{ t('greet_clock_over', d=dur(d.clock.secs)) }}{% else %}{{ t('greet_clock_left', d=dur(d.clock.secs)) }}{% endif %}{% endif %}</p>
 {{ v3.scope_switch('/console/', d.scope, d.scopes) }}
+{% if register_v2_on %}<p><a class="btn" href="/console/register/new?lang={{ lang }}" data-register="new">{{ t('rg2_register_btn') }}</a> <a href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a></p>{% endif %}
 <div class="grid g4" id="numbers">
 {% for tl in d.tiles %}
 {% if tl.key == 'systems' %}{{ v3.tile(tl, t('ux4b_tile_systems'), tl.value, v3.tiers(tl.tiers)) }}

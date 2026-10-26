@@ -4340,6 +4340,11 @@ _T.update(
 )
 
 
+from supervisor.console.i18n_register import RG2 as _RG2  # noqa: E402  (WP-N3, prefix rg2_)
+
+_T.update(_RG2)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""
