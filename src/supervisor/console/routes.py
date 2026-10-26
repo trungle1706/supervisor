@@ -60,6 +60,7 @@ from supervisor.console import (
     integration_reports,
     integrations_view,
     inventory_views,
+    my_agents,
     nav,
     nav_v3,  # --- WP-UX4a ---
     onboard_runs,
@@ -212,6 +213,7 @@ def render(
             compliance=compliance_on,
             integration=integration_on,
             lang=lang,
+            my_agents=bool(ctx.settings.console_my_agents),  # WP-N2
         ),
         lang=lang,
         other_lang="vi" if lang == "en" else "en",
@@ -786,6 +788,41 @@ async def signoff(
     )
     resp.headers["content-length"] = str(len(resp.body))
     return resp
+
+
+# --- WP-N2 --------------------------------------------------------------- My agents tab
+
+
+def _my_agents_off(ctx: ConsoleContext) -> None:
+    if not ctx.settings.console_my_agents:
+        raise ConsoleInputError("The My agents tab is off (CONSOLE_MY_AGENTS=1 turns it on)")
+    if not ctx.settings.console_nav_v3:
+        raise ConsoleInputError("The My agents tab needs CONSOLE_NAV_V3=1")
+
+
+def _my_agents_data(ctx: ConsoleContext, me: AuthPrincipal, query: Mapping[str, str]) -> Any:
+    _my_agents_off(ctx)
+    return my_agents.list_view(ctx, me, query)
+
+
+@router.get(
+    "/my/agents", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def my_agents_page(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    data = await _call(_my_agents_data, ctx, me, dict(request.query_params))
+    return render(request, ctx, me, "my_agents.html", section="my_agents", **data)
+
+
+@router.get(
+    "/my/agents/rows", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))]
+)
+async def my_agents_rows(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    data = await _call(_my_agents_data, ctx, me, dict(request.query_params))
+    return render(request, ctx, me, "_my_agents_list.html", **data)
 
 
 # ---------------------------------------------------------------------------- agents
@@ -2314,7 +2351,7 @@ def _agent_detail_data(
 ) -> dict[str, Any]:
     _check_id(agent_id, "agent id")
     tab = agent_detail.check_tab(ctx, me, tab)
-    card = agent_detail.card_of(ctx, me, agent_id)
+    card = agent_detail.card_of(ctx, me, agent_id, tab)
     data = agent_detail.tab_data(ctx, me, card, tab, query)
     data.update(a=card, tab=tab)
     return data

@@ -4340,6 +4340,167 @@ _T.update(
 )
 
 
+# --- WP-N2 --- My agents tab, Register and Guardians tabs of the Agent page
+_T.update(
+    {
+        "mya_tab": ("My agents", "Tác tử của tôi"),
+        "mya_title": ("My agents", "Tác tử của tôi"),
+        "mya_purpose": (
+            "Every agent in your scope: registered, known only to the gate, or found in the workspace.",  # noqa: E501
+            "Mọi tác tử trong phạm vi của bạn: đã đăng ký, chỉ cổng biết, hoặc tìm thấy trong workspace.",  # noqa: E501
+        ),
+        "mya_why": (
+            "See which agent needs a step, and open one to see how it is set up and guarded.",
+            "Xem tác tử nào cần xử lý, rồi mở để xem cách thiết lập và bảo vệ.",
+        ),
+        "mya_col_kind": ("Kind", "Loại"),
+        "mya_col_autonomy": ("Autonomy", "Mức tự chủ"),
+        "mya_col_guard": ("Guardian tools", "Công cụ bảo vệ"),
+        "mya_col_last": ("Last activity", "Hoạt động gần nhất"),
+        "mya_col_action": ("Recommended action", "Hành động đề xuất"),
+        "mya_kind_registered": ("Registered", "Đã đăng ký"),
+        "mya_kind_policy_only": ("Policy only", "Chỉ trong chính sách"),
+        "mya_kind_candidate": ("Candidate", "Ứng viên"),
+        "mya_node_system": ("Databricks App", "Ứng dụng Databricks"),
+        "mya_node_model_endpoint": ("Agent endpoint", "Endpoint tác tử"),
+        "mya_node_genie_space": ("Genie space", "Không gian Genie"),
+        "mya_pending_resume": ("{n} resume approval waiting", "{n} phê duyệt tiếp tục đang chờ"),
+        "mya_on_of": ("on {n} / of {m}", "bật {n} / trên {m}"),
+        "mya_cover_full": ("full", "đủ"),
+        "mya_cover_below_floor": ("below floor", "dưới mức sàn"),
+        "mya_cover_none": ("none", "không có"),
+        "mya_register": ("Register", "Đăng ký"),
+        "mya_none": ("No agents in this scope", "Không có tác tử trong phạm vi này"),
+        "mya_none_line": (
+            "Try the scope All, or clear the filters.",
+            "Thử phạm vi Tất cả, hoặc xóa bộ lọc.",
+        ),
+        "mya_tile_total": ("Total", "Tổng"),
+        "mya_tile_running": ("Running", "Đang chạy"),
+        "mya_tile_shadow": ("Shadow", "Giám sát"),
+        "mya_tile_stopped": ("Paused or quarantined", "Tạm dừng hoặc cách ly"),
+        "mya_tile_below": ("Below floor", "Dưới mức sàn"),
+        "mya_ra_register": ("Register this agent", "Đăng ký tác tử này"),
+        "mya_ra_task": ("Finish task: {title}", "Hoàn thành tác vụ: {title}"),
+        "mya_ra_stage": ("Approve stage {frm} to {to}", "Phê duyệt giai đoạn {frm} sang {to}"),
+        "mya_ra_classify": ("Classify (Decision 33)", "Phân loại (Quyết định 33)"),
+        "mya_ra_guardian": ("Switch on {slug}", "Bật {slug}"),
+        "mya_ra_running": (
+            "Request RUNNING (in SHADOW {days} days)",
+            "Yêu cầu RUNNING (đã ở SHADOW {days} ngày)",
+        ),
+        "mya_ra_case": ("Triage case ({n} open)", "Xử lý vụ việc ({n} đang mở)"),
+        "mya_ra_none": ("No action", "Không cần hành động"),
+        "mya_desc_built": (
+            "{name} is an agent on {family}, hosted as {host}, with {tools} tools and risk tier {tier}.",  # noqa: E501
+            "{name} là tác tử chạy trên {family}, lưu trữ dạng {host}, có {tools} công cụ, mức rủi ro {tier}.",  # noqa: E501
+        ),
+        "atab_register": ("Register", "Đăng ký"),
+        "atab_guardians": ("Guardians", "Công cụ bảo vệ"),
+        "mya_reg_policy_only": ("Known to the gate, not registered", "Cổng biết, chưa đăng ký"),
+        "mya_reg_policy_only_line": (
+            "The policy file lists this agent, but the registry has no row for it. Register it as part of an AI system.",  # noqa: E501
+            "Tệp chính sách có tác tử này nhưng sổ đăng ký chưa có dòng nào. Hãy đăng ký nó vào một hệ thống AI.",  # noqa: E501
+        ),
+        "mya_reg_registry": ("Registry row", "Dòng trong sổ đăng ký"),
+        "mya_reg_manifest": ("Manifest values", "Giá trị trong manifest"),
+        "mya_reg_team": ("Owner team", "Nhóm sở hữu"),
+        "mya_reg_host": ("Host type", "Loại lưu trữ"),
+        "mya_reg_plug": ("Plug point", "Điểm gắn"),
+        "mya_reg_since": ("Since", "Từ"),
+        "mya_reg_initial": ("Initial state", "Trạng thái ban đầu"),
+        "mya_reg_system": ("AI system", "Hệ thống AI"),
+        "mya_reg_stage": ("Stage", "Giai đoạn"),
+        "mya_reg_class": ("Decision 33 class", "Phân loại Quyết định 33"),
+        "mya_reg_no_system": (
+            "No AI system is linked to this agent.",
+            "Chưa có hệ thống AI nào liên kết với tác tử này.",
+        ),
+        "mya_reg_description": ("Description", "Mô tả"),
+        "mya_reg_assessment": ("Assessment", "Đánh giá"),
+        "mya_reg_d33": ("Decision 33 outcome", "Kết quả Quyết định 33"),
+        "mya_reg_d33_source": ("Decision 33 source", "Nguồn Quyết định 33"),
+        "mya_reg_risk_level": ("Risk level", "Mức rủi ro"),
+        "mya_reg_risk_source": ("Risk source", "Nguồn mức rủi ro"),
+        "mya_src_registry": ("registry", "sổ đăng ký"),
+        "mya_src_proposal": ("proposal from Onboard", "đề xuất từ Onboard"),
+        "mya_src_system": ("AI system", "hệ thống AI"),
+        "mya_src_agent_tier": ("agent risk tier", "mức rủi ro của tác tử"),
+        "mya_src_classifier": ("classifier", "bộ phân loại"),
+        "mya_src_inherited": ("inherited from components", "kế thừa từ thành phần"),
+        "mya_src_manual": ("set by a person", "do con người đặt"),
+        "mya_f_system_type": ("System type", "Loại hệ thống"),
+        "mya_f_org_role": ("Organisation role", "Vai trò tổ chức"),
+        "mya_f_user_segment": ("User segment", "Nhóm người dùng"),
+        "mya_f_personal_data": ("Personal data", "Dữ liệu cá nhân"),
+        "mya_f_money_movement": ("Money movement", "Chuyển tiền"),
+        "mya_f_credit_decision": ("Credit decision", "Quyết định tín dụng"),
+        "mya_f_human_control": ("Human control", "Kiểm soát của con người"),
+        "mya_g_status": ("Status of guardian features", "Trạng thái các tính năng bảo vệ"),
+        "mya_g_status_line": (
+            "Effective = on in this instance and not switched off for the AI system. The gate rules are never switchable.",  # noqa: E501
+            "Hiệu lực = bật trong hệ thống này và không bị tắt cho hệ thống AI. Quy tắc cổng không bao giờ tắt được.",  # noqa: E501
+        ),
+        "mya_g_feature": ("Feature", "Tính năng"),
+        "mya_g_group": ("Group", "Nhóm"),
+        "mya_g_instance": ("Instance", "Hệ thống"),
+        "mya_g_binding": ("Binding per AI system", "Công tắc theo hệ thống AI"),
+        "mya_g_floor": ("Floor lock", "Khóa sàn"),
+        "mya_g_effective": ("Effective", "Hiệu lực"),
+        "mya_g_reason": ("Reason when off", "Lý do khi tắt"),
+        "mya_g_never": ("never switchable", "không bao giờ tắt được"),
+        "mya_g_bind_off": ("bindings are off", "công tắc đang tắt"),
+        "mya_g_no_system": ("no AI system", "chưa có hệ thống AI"),
+        "mya_g_by": ("by {who}", "bởi {who}"),
+        "mya_g_locked": ("locked", "đã khóa"),
+        "mya_on": ("on", "bật"),
+        "mya_off": ("off", "tắt"),
+        "mya_grp_detect": ("Detectors", "Bộ phát hiện"),
+        "mya_grp_gate": ("Gate", "Cổng"),
+        "mya_grp_judge": ("Judges", "Giám khảo"),
+        "mya_grp_monitor": ("Monitors", "Bộ giám sát"),
+        "mya_grp_packs": ("Assurance packs", "Gói đảm bảo"),
+        "mya_why_flag_off": ("flag off in this instance", "cờ đang tắt trong hệ thống"),
+        "mya_why_file_off": ("off in config/detectors.yaml", "tắt trong config/detectors.yaml"),
+        "mya_why_policy_off": ("off in the agent's policy", "tắt trong chính sách của tác tử"),
+        "mya_why_binding_off": (
+            "binding off, set by {who}",
+            "công tắc đã tắt, do {who} đặt",
+        ),
+        "mya_g_results": ("Results", "Kết quả"),
+        "mya_g_window": ("Window", "Khoảng thời gian"),
+        "mya_win_24h": ("24 h", "24 giờ"),
+        "mya_win_7d": ("7 days", "7 ngày"),
+        "mya_win_30d": ("30 days", "30 ngày"),
+        "mya_g_counts_only": (
+            "Counts only. No excerpt leaves the masked store.",
+            "Chỉ có số đếm. Không có đoạn trích nào rời kho đã che.",
+        ),
+        "mya_g_none_enabled": (
+            "No enabled feature in this group.",
+            "Không có tính năng nào đang bật trong nhóm này.",
+        ),
+        "mya_g_findings": ("Findings", "Phát hiện"),
+        "mya_g_top_codes": ("Top codes", "Mã nhiều nhất"),
+        "mya_g_hints": ("Action hints", "Gợi ý hành động"),
+        "mya_g_checks": ("Checks", "Lượt kiểm tra"),
+        "mya_g_allowed": ("Allowed", "Cho phép"),
+        "mya_g_blocked": ("Blocked", "Chặn"),
+        "mya_g_paused": ("Paused", "Tạm dừng"),
+        "mya_g_would": ("Would block in SHADOW", "Sẽ chặn trong SHADOW"),
+        "mya_g_verdicts": ("Verdicts", "Phán quyết"),
+        "mya_g_cases_opened": ("Cases opened", "Vụ việc đã mở"),
+        "mya_g_last_status": ("Last status", "Trạng thái gần nhất"),
+        "mya_g_no_status": ("no status yet", "chưa có trạng thái"),
+        "mya_g_pack": ("Pack", "Gói"),
+        "mya_g_no_packs": ("No pack result for this agent.", "Chưa có kết quả gói cho tác tử này."),
+        "mya_link_activity": ("Activity", "Hoạt động"),
+        "mya_link_cases": ("Cases", "Vụ việc"),
+        "mya_link_assurance": ("Assurance", "Đảm bảo"),
+    }
+)
+
+
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
     back unchanged, so a template never fails on a label."""

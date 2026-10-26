@@ -1,0 +1,108 @@
+{# Guardians tab (WP-N2): status per guardian feature, then results over a window.
+   Variables: a, g_rows, g_window, g_windows, g_results, g_bindings_on, g_links. Read only.
+   Counts only: no excerpt and no masked text is shown. #}
+{% import "_ui.html" as ui with context %}
+{% set aid = a.agent_id %}
+<div data-tab-body="guardians">
+<section class="card" data-section="status">
+  <h3>{{ t('mya_g_status') }} <span class="k">{{ g_rows|length }}</span></h3>
+  <p class="hint">{{ t('mya_g_status_line') }}</p>
+  <div class="tablewrap flat"><table class="queue" data-table="guardian-status">
+    <thead><tr>
+      <th scope="col">{{ t('mya_g_feature') }}</th><th scope="col">{{ t('mya_g_group') }}</th>
+      <th scope="col">{{ t('mya_g_instance') }}</th><th scope="col">{{ t('mya_g_binding') }}</th>
+      <th scope="col">{{ t('mya_g_floor') }}</th><th scope="col">{{ t('mya_g_effective') }}</th>
+      <th scope="col">{{ t('mya_g_reason') }}</th>
+    </tr></thead>
+    <tbody>
+    {% for r in g_rows %}
+      <tr data-slug="{{ r.slug }}" data-effective="{{ 'on' if r.effective else 'off' }}">
+        <td><code>{{ r.slug }}</code></td>
+        <td>{{ t('mya_grp_' ~ r.group) }}</td>
+        <td>{{ ui.pill(t('mya_on') if r.instance_on else t('mya_off'), 'ok' if r.instance_on else 'neutral') }}</td>
+        <td>{% if r.slug == 'policy_rules' %}<span class="muted">{{ t('mya_g_never') }}</span>
+          {% elif not g_bindings_on %}<span class="muted">{{ t('mya_g_bind_off') }}</span>
+          {% elif r.no_system %}<span class="muted">{{ t('mya_g_no_system') }}</span>
+          {% else %}{% for b in r.bindings %}<div>{{ b.name }}: {{ ui.pill(t('mya_on') if b.state == 'on' else t('mya_off'), 'ok' if b.state == 'on' else 'warn') }}{% if b.state == 'off' and b.set_by %} <span class="muted">{{ t('mya_g_by', who=b.set_by) }}</span>{% endif %}</div>{% endfor %}{% endif %}</td>
+        <td>{% if r.locked %}{{ ui.pill(t('mya_g_locked'), 'teal') }}{% else %}<span class="muted">-</span>{% endif %}</td>
+        <td>{{ ui.pill(t('mya_on') if r.effective else t('mya_off'), 'ok' if r.effective else 'warn', True) }}</td>
+        <td>{% if r.reason %}{{ t('mya_why_' ~ r.reason, who=r.by or '-') }}{% else %}<span class="muted">-</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="card" data-section="results" data-window="{{ g_window }}">
+  <h3>{{ t('mya_g_results') }}</h3>
+  <nav class="subtabs scope-sw" aria-label="{{ t('mya_g_window') }}">
+    <span class="sec-tabs-t">{{ t('mya_g_window') }}</span>
+    {% for w in g_windows %}<a href="/console/agents/{{ aid }}?tab=guardians&amp;window={{ w }}&amp;lang={{ lang }}" hx-get="/console/agents/{{ aid }}/tab/guardians?window={{ w }}&amp;lang={{ lang }}" hx-target="#tab-body" hx-push-url="false" class="{{ 'on' if w == g_window else '' }}"{% if w == g_window %} aria-current="true"{% endif %}>{{ t('mya_win_' ~ w) }}</a>{% endfor %}
+  </nav>
+  <p class="hint">{{ t('mya_g_counts_only') }}</p>
+
+  <h4>{{ t('mya_grp_detect') }}</h4>
+  {% if g_results.detectors %}
+  <div class="tablewrap flat"><table class="queue" data-table="res-detectors">
+    <thead><tr><th scope="col">{{ t('mya_g_feature') }}</th><th scope="col" class="n">{{ t('mya_g_findings') }}</th><th scope="col">{{ t('mya_g_top_codes') }}</th><th scope="col">{{ t('mya_g_hints') }}</th></tr></thead>
+    <tbody>
+    {% for slug, d in g_results.detectors.items() %}
+      <tr data-slug="{{ slug }}"><td><code>{{ slug }}</code></td>
+        <td class="n">{{ d.n }}{% if d.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</td>
+        <td>{% for c in d.top %}<code>{{ c.code }}</code> x{{ c.n }}{{ ', ' if not loop.last }}{% else %}<span class="muted">-</span>{% endfor %}</td>
+        <td>{% for h in d.hint_list %}<code>{{ h }}</code>{{ ' ' if not loop.last }}{% else %}<span class="muted">-</span>{% endfor %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('mya_g_none_enabled') }}</p>{% endif %}
+
+  <h4>{{ t('mya_grp_gate') }} <code>policy_rules</code></h4>
+  {% set g = g_results.gate %}
+  <div class="tablewrap flat"><table class="queue" data-table="res-gate">
+    <thead><tr><th scope="col" class="n">{{ t('mya_g_checks') }}</th><th scope="col" class="n">{{ t('mya_g_allowed') }}</th><th scope="col" class="n">{{ t('mya_g_blocked') }}</th><th scope="col" class="n">{{ t('mya_g_paused') }}</th><th scope="col" class="n">{{ t('mya_g_would') }}</th></tr></thead>
+    <tbody><tr><td class="n" data-n="checks">{{ g.checks }}</td><td class="n" data-n="allowed">{{ g.allowed }}</td><td class="n" data-n="blocked">{{ g.blocked }}</td><td class="n" data-n="paused">{{ g.paused }}</td><td class="n" data-n="would_block">{{ g.would_block }}</td></tr></tbody>
+  </table></div>
+
+  <h4>{{ t('mya_grp_judge') }}</h4>
+  {% if g_results.judges %}
+  <div class="tablewrap flat"><table class="queue" data-table="res-judges">
+    <thead><tr><th scope="col">{{ t('mya_g_feature') }}</th><th scope="col" class="n">{{ t('mya_g_verdicts') }}</th><th scope="col" class="n">{{ t('mya_g_cases_opened') }}</th></tr></thead>
+    <tbody>
+    {% for slug, j in g_results.judges.items() %}
+      <tr data-slug="{{ slug }}"><td><code>{{ slug }}</code></td><td class="n">{{ j.verdicts }}{% if j.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</td><td class="n">{{ j.cases }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('mya_g_none_enabled') }}</p>{% endif %}
+
+  <h4>{{ t('mya_grp_monitor') }}</h4>
+  {% if g_results.monitors %}
+  <div class="tablewrap flat"><table class="queue" data-table="res-monitors">
+    <thead><tr><th scope="col">{{ t('mya_g_feature') }}</th><th scope="col">{{ t('mya_g_last_status') }}</th></tr></thead>
+    <tbody>
+    {% for slug, m in g_results.monitors.items() %}
+      <tr data-slug="{{ slug }}"><td><code>{{ slug }}</code></td><td>{% if m %}{{ ui.pill(m.status, {'ok': 'ok', 'no_data': 'neutral', 'not_applicable': 'warn'}.get(m.status, 'neutral')) }} <span class="muted mono">{{ m.day }}</span>{% else %}<span class="muted">{{ t('mya_g_no_status') }}</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('mya_g_none_enabled') }}</p>{% endif %}
+
+  <h4>{{ t('mya_grp_packs') }}</h4>
+  {% if g_results.packs %}
+  <div class="tablewrap flat"><table class="queue" data-table="res-packs">
+    <thead><tr><th scope="col">{{ t('mya_g_pack') }}</th><th scope="col">{{ t('state') }}</th><th scope="col">{{ t('mya_reg_since') }}</th></tr></thead>
+    <tbody>
+    {% for p in g_results.packs %}
+      <tr data-pack="{{ p.pack_id }}"><td><code>{{ p.pack_id }}</code></td><td>{{ ui.pill(p.status, {'pass': 'ok', 'fail': 'bad'}.get(p.status, 'neutral')) }}{% if p.is_mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</td><td class="mono">{{ p.ts|ict }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('mya_g_no_packs') }}</p>{% endif %}
+
+  <p class="hint">
+    {% if g_links.activity %}<a href="/console/decisions?agent={{ aid }}&amp;lang={{ lang }}">{{ t('mya_link_activity') }}</a> · {% endif %}
+    <a href="/console/cases?agent={{ aid }}&amp;lang={{ lang }}">{{ t('mya_link_cases') }}</a>
+    {% if g_links.assurance %} · <a href="/console/assurance?lang={{ lang }}">{{ t('mya_link_assurance') }}</a>{% endif %}
+  </p>
+</section>
+</div>

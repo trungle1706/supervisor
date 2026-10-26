@@ -718,3 +718,10 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .wizform label.chk { display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--fg); }
 .wiz-kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px; }
 .wiz-kpis .card .bignum { font-size: 22px; }
+
+/* WP-N2: the My agents table has nine columns; it must fit at 1280 px without a sideways scroll. */
+.my-agents-tbl { table-layout: auto; }
+.my-agents-tbl th, .my-agents-tbl td { padding: 10px 8px; }
+.my-agents-tbl td.wrap { min-width: 120px; overflow-wrap: anywhere; }
+.my-agents-tbl td:first-child { min-width: 150px; }
+@media (min-width: 761px) { .my-agents-tbl th { white-space: normal; } }

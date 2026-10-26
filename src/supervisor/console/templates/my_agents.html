@@ -1,0 +1,21 @@
+{# My agents (WP-N2): the agents in scope as an inventory table. Variables: my_agents.list_view(). #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% block title %}{{ t('mya_title') }}{% endblock %}
+{% block content %}
+{% call ui.pagehead(t('mya_title')) %}{% endcall %}
+{{ ui.purpose(t('mya_purpose'), t('mya_why')) }}
+{{ v3.scope_switch('/console/my/agents', scope, scopes) }}
+{{ ui.tiles(tiles, '/console/my/agents', '/console/my/agents/rows') }}
+{{ ui.filterbar('/console/my/agents', '/console/my/agents/rows', [
+  {'name': 'q', 'label': t('search_agents'), 'kind': 'search', 'value': params.q},
+  {'name': 'kind', 'label': t('mya_col_kind'), 'kind': 'select', 'value': params.kind, 'options': kind_opts},
+  {'name': 'state', 'label': t('state'), 'kind': 'select', 'value': params.state, 'options': state_opts},
+  {'name': 'risk', 'label': t('risk'), 'kind': 'select', 'value': params.risk, 'options': risk_opts},
+  {'name': 'cover', 'label': t('mya_col_guard'), 'kind': 'select', 'value': params.cover, 'options': cover_opts},
+], '/console/my/agents?scope=' ~ scope ~ '&lang=' ~ lang, hidden={'scope': scope}) }}
+<div id="list" data-page="my-agents">
+{% include "_my_agents_list.html" %}
+</div>
+{% endblock %}

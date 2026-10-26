@@ -497,6 +497,9 @@ class Settings(BaseSettings):
     # section tab strips and the overview pages (new: off; off = the sidebar as before).
     console_nav_v3: bool = False
     console_catalog_enabled: bool = False  # /console/catalog: guardian capabilities, on or off
+    # WP-N2: My agents tab (/console/my/agents) and the Register and Guardians tabs of the agent
+    # page (new: off; off = no tab, the routes answer 400; needs CONSOLE_NAV_V3).
+    console_my_agents: bool = False
 
     # --- WP-UX3 --- new console pages, each behind its own flag (all off by default; off = HTTP
     # 400 with a message and no nav link). The audit-log page flag is CONSOLE_AUDITLOG_ENABLED

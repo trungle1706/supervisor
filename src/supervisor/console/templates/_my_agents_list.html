@@ -1,0 +1,41 @@
+{# Table + pager of the My agents tab: the swap target #list. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% set U = '/console/my/agents' %}{% set R = '/console/my/agents/rows' %}
+<div class="tablewrap">
+<table class="queue agents-tbl my-agents-tbl" data-table="my-agents">
+  <caption class="sr">{{ t('mya_title') }}</caption>
+  <thead>
+    <tr>
+      {{ tb.th('agent', t('agent'), sort_col, sort_dir, U, R, base_qs) }}
+      {{ tb.th('kind', t('mya_col_kind'), sort_col, sort_dir, U, R, base_qs) }}
+      {{ tb.th('state', t('state'), sort_col, sort_dir, U, R, base_qs) }}
+      {{ tb.th('autonomy', t('mya_col_autonomy'), sort_col, sort_dir, U, R, base_qs) }}
+      {{ tb.th('risk', t('risk'), sort_col, sort_dir, U, R, base_qs) }}
+      {{ tb.th('guardian', t('mya_col_guard'), sort_col, sort_dir, U, R, base_qs) }}
+      {{ tb.th('last', t('mya_col_last'), sort_col, sort_dir, U, R, base_qs) }}
+      {{ tb.th('cases', t('cases'), sort_col, sort_dir, U, R, base_qs, numeric=True) }}
+      <th scope="col">{{ t('mya_col_action') }}</th>
+    </tr>
+  </thead>
+  <tbody id="rows">
+  {% for r in page.items %}
+    <tr class="row" data-row="{{ r.agent_id }}" data-kind="{{ r.kind }}">
+      <td>{% if r.kind == 'candidate' %}<span class="head">{{ r.name }}</span><div class="idline">{{ r.agent_id }}</div>
+        {% else %}<a class="head rowlink" href="/console/agents/{{ r.agent_id }}?tab=register&amp;lang={{ lang }}">{{ r.name }}</a><div class="idline">{{ r.agent_id }}{% for s in r.systems %} · {% if sys_links %}<a href="/console/systems/{{ s.system_id }}?lang={{ lang }}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}{% endfor %}</div>{% endif %}</td>
+      <td>{{ ui.pill(t('mya_kind_' ~ r.kind), {'registered': 'ok', 'policy_only': 'warn', 'candidate': 'neutral'}[r.kind]) }}{% if r.node_kind %}<div class="idline">{{ t('mya_node_' ~ r.node_kind) }}</div>{% endif %}</td>
+      <td>{% if r.state %}{{ ui.state_pill(r.state) }}{% if r.pending %}<div class="idline">{{ t('mya_pending_resume', n=r.pending|length) }}</div>{% endif %}{% else %}<span class="muted">-</span>{% endif %}</td>
+      <td>{{ r.autonomy or '-' }}</td>
+      <td>{{ t(r.risk) if r.risk else '-' }}</td>
+      <td>{% if r.guard %}<span class="mono" data-on="{{ r.guard.on }}">{{ t('mya_on_of', n=r.guard.on, m=r.guard.of) }}</span> {{ ui.pill(t('mya_cover_' ~ r.guard.cover), {'full': 'ok', 'below_floor': 'warn', 'none': 'neutral'}[r.guard.cover], True) }}{% else %}<span class="muted">-</span>{% endif %}</td>
+      <td>{% if r.last %}<span class="mono" title="{{ r.last|day }}">{{ r.last|day }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+      <td class="n">{{ r.open_cases }}</td>
+      <td class="wrap">{% if r.action.key == 'none' %}<span class="muted">{{ t(r.action.text_key) }}</span>{% elif r.kind == 'candidate' %}<a class="btn" href="{{ r.action.href }}&amp;lang={{ lang }}">{{ t('mya_register') }}</a>{% else %}<a href="{{ r.action.href }}{{ '&amp;' if '?' in r.action.href else '?' }}lang={{ lang }}">{{ t(r.action.text_key, **r.action.args) }}</a>{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9">{{ ui.empty(t('mya_none'), t('mya_none_line')) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ tb.pager(page, U, R, list_qs) }}
