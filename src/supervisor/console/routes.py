@@ -65,6 +65,7 @@ from supervisor.console import (
     nav_v3,  # --- WP-UX4a ---
     onboard_runs,
     overview_v3,  # --- WP-UX4a ---
+    overview_v4,  # --- WP-N1 ---
     playground,
     policies_view,
     readmodels,
@@ -173,7 +174,12 @@ def render(
 
     def shell() -> dict[str, Any]:  # header data, computed only when a full page asks
         if "v" not in cache:
-            cache["v"] = readmodels.shell(ctx, me)
+            cache["v"] = {
+                **readmodels.shell(ctx, me),
+                # --- WP-N1 --- flags of the tab strip under My overview
+                "ov4": bool(ctx.settings.console_overview_v4 and ctx.settings.governance_enabled),
+                "my_agents": bool(ctx.settings.console_my_agents),
+            }
         return cache["v"]
 
     data.setdefault("section", "")
@@ -213,7 +219,6 @@ def render(
             compliance=compliance_on,
             integration=integration_on,
             lang=lang,
-            my_agents=bool(ctx.settings.console_my_agents),  # WP-N2
         ),
         lang=lang,
         other_lang="vi" if lang == "en" else "en",
@@ -490,6 +495,14 @@ def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
     }
 
 
+def _cand_ctx(ctx: ConsoleContext) -> dict[str, Any]:  # --- WP-N1 ---
+    return {
+        "cand_url": "/console/",
+        "cand_src": "top",
+        "cand_register": bool(ctx.settings.console_systems_enabled),
+    }
+
+
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def overview(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
@@ -499,6 +512,25 @@ async def overview(
         # --- WP-UX4b --- with GOVERNANCE_ENABLED the unit is the AI system, not the agent
         unit = bool(ctx.settings.governance_enabled)
         build = systems_overview.my_overview if unit else overview_v3.my_overview
+        if unit and ctx.settings.console_overview_v4:  # --- WP-N1 --- dashboard + triage table
+            d4 = await _call(
+                overview_v4.my_overview,
+                ctx,
+                me,
+                request.query_params.get("scope"),
+                now,
+                request.query_params,
+            )
+            return render(
+                request,
+                ctx,
+                me,
+                "ov_my_v4.html",
+                section="overview",
+                d=d4,
+                greet_key=readmodels.greeting_key(now),
+                **_cand_ctx(ctx),
+            )
         d = await _call(build, ctx, me, request.query_params.get("scope"), now)
         return render(
             request,

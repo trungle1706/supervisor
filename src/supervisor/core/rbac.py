@@ -280,6 +280,12 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/analytics/tab/{tab}"): "metrics.view",
     ("GET", "/console/inbox/rows"): "console.view",
     ("GET", "/console/inventory/rows"): "inventory.view",
+    ("GET", "/console/my/agents"): "console.view",  # WP-N2, read-only
+    ("GET", "/console/my/agents/rows"): "console.view",
+    ("GET", "/console/candidates"): "inventory.view",  # WP-N1, read-only
+    ("GET", "/console/candidates/rows"): "inventory.view",
+    ("GET", "/console/candidates/{node_id}/drawer"): "inventory.view",
+    ("GET", "/v1/candidates"): "inventory.view",
     # --- end WP-UX2 ---
     ("GET", "/console/tools"): "tools.view",  # WP22
     ("GET", "/console/tools/{agent_id}/diff"): "tools.download",

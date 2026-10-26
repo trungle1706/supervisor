@@ -35,6 +35,18 @@ class Sec:
 
 
 SECTIONS_V3: dict[str, Sec] = {
+    # WP-N1: the tab strip under "My overview" (CONSOLE_OVERVIEW_V4). Not a bar item of its own;
+    # the home row of the bar is "My overview". My agents (WP-N2) shows with CONSOLE_MY_AGENTS.
+    "my": Sec(
+        "my",
+        "nv3_my",
+        "/console/",
+        (
+            Tab("overview", "ov4_t_overview", "/console/"),
+            Tab("my_agents", "ov4_t_agents", "/console/my/agents", "my_agents"),
+            Tab("candidates", "ov4_t_candidates", "/console/candidates", "ov4", "inventory.view"),
+        ),
+    ),
     "systems": Sec(
         "systems",
         "nv3_systems",
@@ -122,8 +134,9 @@ SECTIONS_V3: dict[str, Sec] = {
 
 # The page keys the routes pass as ``section=``, and where each sits: (bar item, section, tab).
 PAGE_HOME: dict[str, tuple[str, str | None, str | None]] = {
-    "overview": ("home", "my", "overview"),  # WP-N2: strip only when a second tab is on
-    "my_agents": ("home", "my", "agents"),  # WP-N2
+    "overview": ("home", "my", "overview"),  # the strip shows only with CONSOLE_OVERVIEW_V4
+    "candidates": ("home", "my", "candidates"),  # WP-N1
+    "my_agents": ("home", "my", "my_agents"),  # WP-N2 sets this page key
     "inbox": ("home", None, None),
     "gov_overview": ("gov_overview", None, None),
     "sup_overview": ("sup_overview", None, None),
@@ -264,6 +277,8 @@ def _on(need: str | None, sh: dict[str, Any], compliance: bool, integration: boo
         "compliance": compliance,
         "integration": integration,
         "inventory": sh.get("inventory_n") is not None,
+        "ov4": bool(sh.get("ov4")),  # WP-N1
+        "my_agents": bool(sh.get("my_agents")),  # WP-N2
     }[need]
 
 
@@ -376,25 +391,6 @@ def _status(kind: str, s: Any, auth_kind: str) -> tuple[str, dict[str, str]]:
     return ("nv3_st_policy", {})
 
 
-# WP-N2: the strip under "My overview": Overview | My agents (WP-N1 adds Candidates). It is a
-# strip of the bar item, not a section: it shows only when at least two tabs are on.
-MY_TABS: tuple[tuple[str, str, str], ...] = (
-    ("overview", "nv3_my", "/console/"),
-    ("agents", "mya_tab", "/console/my/agents"),
-)
-
-
-def my_strip(page: str, *, my_agents: bool, lang: str) -> dict[str, Any] | None:
-    tabs = [t for t in MY_TABS if t[0] != "agents" or my_agents]
-    if len(tabs) < 2:
-        return None
-    return {
-        "label": "nv3_my",
-        "tabs": [{"key": k, "label": lbl, "href": href(path, lang)} for k, lbl, path in tabs],
-        "active": PAGE_HOME[page][2],
-    }
-
-
 def tab_strip(
     page: str,
     sh: dict[str, Any],
@@ -403,20 +399,17 @@ def tab_strip(
     compliance: bool,
     integration: bool,
     lang: str,
-    my_agents: bool = False,
 ) -> dict[str, Any] | None:
     """The tab strip of the section that holds ``page`` (a ``section=`` value), or None."""
     home = PAGE_HOME.get(page)
     if home is None or home[1] is None:
         return None
-    if home[1] == "my":
-        return my_strip(page, my_agents=my_agents, lang=lang)
     sec = SECTIONS_V3[home[1]]
     if sec.key == "systems" and not (sh.get("pages") or {}).get("systems"):
         return None  # no Systems page: the pages of this section have no strip
     tabs = visible_tabs(sec.key, sh, roles, compliance=compliance, integration=integration)
-    if not tabs:
-        return None
+    if not tabs or (sec.key == "my" and len(tabs) < 2):
+        return None  # the home strip shows only with a second tab
     return {
         "label": sec.label,
         "tabs": [{"key": t.key, "label": t.label, "href": href(t.path, lang)} for t in tabs],

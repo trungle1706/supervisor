@@ -496,6 +496,12 @@ class Settings(BaseSettings):
     # WP-UX4a: one merged left bar (My overview + Governance + Supervisor + a settings gear),
     # section tab strips and the overview pages (new: off; off = the sidebar as before).
     console_nav_v3: bool = False
+    # WP-N1: My overview as a dashboard with the candidate triage table, the Candidates tab and
+    # GET /v1/candidates (new: off; off = today's My overview page; needs CONSOLE_NAV_V3,
+    # GOVERNANCE_ENABLED and, for the candidate table, INVENTORY_ENABLED).
+    console_overview_v4: bool = False
+    # WP-N2 (route built by another work package): the "My agents" tab. Only the tab is gated here.
+    console_my_agents: bool = False
     console_catalog_enabled: bool = False  # /console/catalog: guardian capabilities, on or off
     # WP-N2: My agents tab (/console/my/agents) and the Register and Guardians tabs of the agent
     # page (new: off; off = no tab, the routes answer 400; needs CONSOLE_NAV_V3).

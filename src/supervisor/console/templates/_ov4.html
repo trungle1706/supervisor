@@ -1,0 +1,14 @@
+{# Small pieces of the dashboard My overview and the Candidates pages (WP-N1). Import with context. #}
+{# One sentence about a candidate, built from its facts in the page language. A row that carries
+   a description from the analyst agent (from_override) shows that text as it is. #}
+{% macro cand_desc(r) %}{% if r.from_override %}{{ r.description }}{% else %}{% set f = r.facts %}{% set parts = [] %}
+{% if f.endpoints and f.kind != 'endpoint' %}{% set _ = parts.append(t('tri_d_calls', e=f.endpoints[:2]|join(', ')) ~ (t('tri_d_provider', p=f.providers|join(', ')) if f.providers else '')) %}{% elif f.providers %}{% set _ = parts.append(t('tri_d_uses_provider', p=f.providers|join(', '))) %}{% endif %}
+{% if f.customer_tables %}{% set _ = parts.append(t('tri_d_tables', n=f.customer_tables|length)) %}{% endif %}
+{% if f.money_tools %}{% set _ = parts.append(t('tri_d_money', n=f.money_tools|length)) %}{% endif %}
+{% if f.writes %}{% set _ = parts.append(t('tri_d_writes')) %}{% endif %}
+{{ t('tri_d_' ~ f.kind, name=f.name) }}{% if f.group %}{{ t('tri_d_group', group=f.group) }}{% endif %}{% if parts %}; {{ parts|join('; ') }}{% endif %}.{% endif %}{% endmacro %}
+
+{% macro score_pill(r) %}<span class="pill {{ {'high': 'bad', 'medium': 'warn', 'low': 'neutral'}[r.band] }}">{{ r.score }}</span>{% endmacro %}
+
+{# The recommended action of a system or agent card: a sentence and, when there is one, a link. #}
+{% macro rec(x) %}{% if x.key == 'none' %}<span class="muted">{{ t('ov4_na_none') }}</span>{% elif x.href %}<a href="{{ x.href }}{{ '&' if '?' in x.href else '?' }}lang={{ lang }}">{{ t('ov4_na_' ~ x.key, arg=x.arg) }}</a>{% else %}{{ t('ov4_na_' ~ x.key, arg=x.arg) }}{% endif %}{% endmacro %}
