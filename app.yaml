@@ -124,6 +124,15 @@ env:
   # catalog.schema,catalog.schema whose tables and functions the scan lists (needs scan v2 for functions).
   - name: INVENTORY_SCAN_SCHEMAS
     value: "FILL-ME-catalog.FILL-ME-schema"
+  # Phase 7: Navigator-style My overview with the candidate triage table, the My agents tab with
+  # the Register and Guardians tabs of the agent page, and the six-step register workflow
+  # (docs/phase7/BUILD_PLAN_PHASE7.md, docs/triage.md, docs/register-v2.md).
+  - name: CONSOLE_OVERVIEW_V4
+    value: "1"
+  - name: CONSOLE_MY_AGENTS
+    value: "1"
+  - name: CONSOLE_REGISTER_V2
+    value: "1"
   # Guardian detectors (phase 5).
   - name: DETECTORS_ENABLED
     value: "1"
