@@ -659,3 +659,13 @@ def test_descriptions() -> None:
     )
     assert text == "Agent Pay: model family qwen, hosted as app, 3 tools, risk tier high."
     assert describe_agent({"agent_id": "x"}) == "Agent x."
+
+
+def test_safe_ref_keeps_only_name_and_line() -> None:
+    from supervisor.governance.triage import safe_ref
+
+    assert safe_ref("workspace:job/nightly") == "workspace:job/nightly"
+    assert safe_ref("/home/ops/repo/agents/a.yaml:12") == "a.yaml:12"
+    assert safe_ref("C:\\work\\a.yaml:3") == "a.yaml:3"
+    assert safe_ref("agents/a.yaml") == "a.yaml"
+    assert safe_ref("manifest.yaml:7") == "manifest.yaml:7"

@@ -116,6 +116,24 @@ def scrub(text: Any) -> str:
     return out[:_MAX_TEXT]
 
 
+_WS_REF = re.compile(r"^workspace:[\w.-]+/")
+
+
+def safe_ref(ref: Any) -> str:
+    """An evidence reference that is safe to show: ``workspace:<kind>/<name>`` as it is, a file
+    reference ``path:line`` cut to the file name and the line (no directory), anything else
+    scrubbed."""
+    text = scrub(ref)
+    if _WS_REF.match(text):
+        return text
+    if "/" in text or "\\" in text:
+        head, sep, line = text.rpartition(":")
+        if sep and line.isdigit():
+            return f"{head.replace(chr(92), '/').rsplit('/', 1)[-1]}:{line}"
+        return text.replace(chr(92), "/").rsplit("/", 1)[-1]
+    return text
+
+
 # ----------------------------------------------------------------------------- graph helpers
 
 
@@ -355,7 +373,7 @@ def row_for(
         "signals": signals,
         "description": describe(f),
         "facts": f,
-        "evidence": [{"source": scrub(e["source"]), "ref": scrub(e["ref"])} for e in n.evidence],
+        "evidence": [{"source": scrub(e["source"]), "ref": safe_ref(e["ref"])} for e in n.evidence],
         "from_override": False,
     }
     ov = _clean_override(override)

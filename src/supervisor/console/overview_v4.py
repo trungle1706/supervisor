@@ -145,18 +145,19 @@ def drawer_view(rows: list[dict[str, Any]], node_id: str) -> dict[str, Any]:
 
 
 def api_rows(rows: list[dict[str, Any]], query: Any) -> dict[str, Any]:
-    """Body of ``GET /v1/candidates``: the filtered rows, best first (no paging, no facts)."""
-    view = candidates_view(rows, query, size=triage_max(), with_filters=True)
-    items = []
-    for r in view["cand_page"].items:
-        items.append({k: v for k, v in r.items() if k != "facts"})
-    return {"count": view["cand_page"].total, "total": len(rows), "items": items}
-
-
-def triage_max() -> int:
-    from supervisor.console.listing import MAX_SIZE
-
-    return MAX_SIZE
+    """Body of ``GET /v1/candidates``: all filtered rows, sorted (default best first); no paging
+    and no facts. Bad filter values are HTTP 400 as on the page."""
+    q = {k: v for k, v in query.items() if k != "page"}  # the API does not page
+    view = candidates_view(rows, q, size=1, with_filters=True)
+    f = view["cand_filters"]
+    items = triage.filter_rows(rows, f["kind"], f["signal"], f["band"])
+    keys = {"autonomy": lambda r: r["autonomy_rank"], "name": lambda r: r["name"].lower()}
+    items = sort_rows(items, view["cand_sort_col"], view["cand_sort_dir"], keys)
+    return {
+        "count": len(items),
+        "total": len(rows),
+        "items": [{k: v for k, v in r.items() if k != "facts"} for r in items],
+    }
 
 
 # ------------------------------------------------------------------------- my overview

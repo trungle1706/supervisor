@@ -457,3 +457,22 @@ def test_off_path_is_byte_identical_to_the_old_template(
         ).body.decode()
         new = on.get(f"/console/?lang={lang}").text
         assert clock.sub("T", new) == clock.sub("T", old)
+
+
+def test_api_is_not_capped_at_one_page_and_ignores_page(v4: Console) -> None:
+    g = Graph()
+    for i in range(120):
+        mk(g, "job", f"job:bulk{i:03d}", display_name=f"bulk{i:03d}", status="unmanaged")
+    fill(v4, g)
+    body = v4.get("/v1/candidates?page=abc").json()
+    assert body["count"] == len(body["items"]) == body["total"] >= 125
+    assert v4.get("/v1/candidates?sort=../&dir=x&page=9").status_code == 200
+
+
+def test_bad_query_input_never_gives_500(v4: Console) -> None:
+    qs = ("sort=../&dir=x", "page=abc", "page=0", "page=99999999999", "band=junk", "kind=%00")
+    for base in ("/console/candidates?", "/console/candidates/rows?", "/console/?"):
+        for q in qs:
+            assert v4.get(base + q).status_code < 500, (base, q)
+    for nid in ("..%2f..", "%00", "a" * 500, "x y"):
+        assert v4.get(f"/console/candidates/{nid}/drawer").status_code < 500
