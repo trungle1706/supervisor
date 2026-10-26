@@ -91,6 +91,28 @@ class DraftStore:
         out = [_view(dict(r)) for r in rows]
         return sorted(out, key=lambda r: r["updated_at"], reverse=True)
 
+    @staticmethod
+    def is_empty(draft: dict[str, Any]) -> bool:
+        """A blank draft the person has typed nothing into (the owner prefill does not count)."""
+        d = draft["data"]
+        typed = any(v not in ("", None, False) for k, v in d["v"].items() if k != "owner_user")
+        return (
+            draft["source_kind"] == "blank"
+            and not typed
+            and not d.get("q")
+            and not d.get("off")
+            and not d.get("repo_path")
+        )
+
+    def drop_empty(self, owner_user: str) -> int:
+        """Abandon the empty blank drafts of one person (at most one stays: the new one)."""
+        n = 0
+        for d in self.list_mine(owner_user):
+            if self.is_empty(d):
+                self.save(d, status="abandoned")
+                n += 1
+        return n
+
     def save(
         self,
         draft: dict[str, Any],

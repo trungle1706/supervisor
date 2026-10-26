@@ -20,6 +20,6 @@
   <h3 class="sec">{{ t('tri_c_action') }}</h3>
   <p><strong>{{ t('tri_act_' ~ c.recommended_action) }}</strong><br><span class="hint">{{ t('tri_reason_' ~ c.recommended_action) }}</span></p>
   <p class="btnrow">
-    {% if drawer.register %}<a class="btn primary" href="/console/systems/new?from={{ c.node_id }}&amp;lang={{ lang }}">{{ t('tri_register') }}</a>{% else %}<span class="hint">{{ t('tri_register_off') }}</span>{% endif %}
+    {% if drawer.register %}<a class="btn primary" href="{{ drawer.reg_base }}?from={{ c.node_id|urlencode }}&amp;lang={{ lang }}">{{ t('tri_register') }}</a>{% else %}<span class="hint">{{ t('tri_register_off') }}</span>{% endif %}
   </p>
 {% endcall %}

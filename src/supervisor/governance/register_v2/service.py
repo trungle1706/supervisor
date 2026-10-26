@@ -362,6 +362,7 @@ def guardian_view(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]
                 "instance_on": has,
                 "needs": "" if has else FLAG_OF.get(slug, DETECTOR_FLAG),
                 "off": slug in off and not locked and has,
+                "why": (draft["data"].get("off_why") or {}).get(slug, ""),
                 "bindable": bindings and has and not locked,
             }
         )
@@ -472,6 +473,7 @@ def save_step(
         data["q"] = _answers_from(ctx, form, data["q"])
     elif step == 5:
         data["off"] = _off_from(ctx, me, draft, form)
+        data["off_why"] = _why_from(ctx, me, draft, form)
     return store_of(ctx).save(draft, data=data, step=step if stay else min(step + 1, rm.STEPS))
 
 
@@ -526,6 +528,27 @@ def _off_from(ctx: Any, me: Any, draft: Mapping[str, Any], form: Mapping[str, st
     return sorted(
         r["slug"] for r in view["rows"] if r["bindable"] and f"on_{r['slug']}" not in form
     )
+
+
+def _why_from(
+    ctx: Any, me: Any, draft: Mapping[str, Any], form: Mapping[str, str]
+) -> dict[str, str]:
+    """The optional reason per feature (form field ``why_<slug>``); kept as typed."""
+    current = dict(draft["data"].get("off_why") or {})
+    if "bind_form" not in form:
+        return current
+    out: dict[str, str] = {}
+    for r in guardian_view(ctx, me, draft)["rows"]:
+        if not r["bindable"]:
+            continue
+        why = (form.get(f"why_{r['slug']}") or "").strip()
+        if len(why) > rm.MAX_ANSWER_WHY:
+            raise rm.RegisterError(f"why_{r['slug']}", f"at most {rm.MAX_ANSWER_WHY} characters")
+        if any(ord(c) < 32 and c not in "\n\t" for c in why):
+            raise rm.RegisterError(f"why_{r['slug']}", "has control characters")
+        if why:
+            out[r["slug"]] = why
+    return out
 
 
 # ------------------------------------------------------------------------------ submit
@@ -648,7 +671,9 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
         _guard(
             steps,
             "rg2_w_binding",
-            lambda s=slug: ctx.guardians.set(sid, s, "off", actor, "register workflow"),
+            lambda s=slug: ctx.guardians.set(
+                sid, s, "off", actor, (data.get("off_why") or {}).get(s) or "register workflow"
+            ),
             detail=slug,
         )
     # --- tasks ---

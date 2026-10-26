@@ -97,6 +97,8 @@ RG2: dict[str, tuple[str, str]] = {
     "rg2_no": ("No", "Không"),
     "rg2_back": ("Back", "Quay lại"),
     "rg2_continue": ("Save and continue", "Lưu và tiếp tục"),
+    "rg2_off_reason": ("Reason if set off (optional)", "Lý do nếu tắt (không bắt buộc)"),
+    "rg2_saved": ("Saved", "Đã lưu"),
     "rg2_save_later": ("Save for later", "Lưu để làm sau"),
     "rg2_my_drafts": ("My drafts", "Bản nháp của tôi"),
     # reasons

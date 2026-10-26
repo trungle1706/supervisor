@@ -22,6 +22,7 @@ from __future__ import annotations
 import concurrent.futures
 import logging
 import os
+import re
 import threading
 from collections.abc import Mapping
 from pathlib import Path
@@ -34,6 +35,7 @@ from supervisor.governance import model as gm
 from supervisor.governance.systems import ALL
 
 log = logging.getLogger("supervisor.console")
+_NODE_ID = re.compile(r"^[A-Za-z0-9_.:@-]{1,128}$")
 
 MAX_PATH = 512
 _POOL = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="wizard-advisor")
@@ -69,7 +71,7 @@ def autonomy_choices() -> tuple[str, ...]:
     return tuple(x for x in gm.AUTONOMY_LEVELS if x != "unspecified")
 
 
-def form_view(ctx: Any, me: Any) -> dict[str, Any]:
+def form_view(ctx: Any, me: Any, from_node: str = "") -> dict[str, Any]:
     svc = ctx.systems
     scoped = svc.scope_for(me) is not ALL
     return {
@@ -81,7 +83,14 @@ def form_view(ctx: Any, me: Any) -> dict[str, Any]:
         "teams": sorted(svc.teams_of(str(me.user_id))) if scoped else [],
         "can_repo": rbac.allowed(me.roles, "onboard.start"),
         "values": {},
+        "from_node": _node_id(from_node),
     }
+
+
+def _node_id(raw: Any) -> str:
+    """A scanned-object id from ``?from=`` (kept through the three steps), or ''."""
+    text = str(raw or "").strip()
+    return text if text and len(text) <= 128 and _NODE_ID.match(text) else ""
 
 
 def draft_of(form: Mapping[str, str], me: Any, svc: Any) -> dict[str, Any]:
@@ -299,7 +308,14 @@ def checks(ctx: Any, me: Any, form: Mapping[str, str]) -> dict[str, Any]:
     svc = ctx.systems
     return {
         "draft": full,
-        "form": {k: v for k, v in draft.items() if k != "tags"},
+        "form": {
+            **{k: v for k, v in draft.items() if k != "tags"},
+            **(
+                {"from_node": _node_id(form.get("from_node"))}
+                if _node_id(form.get("from_node"))
+                else {}
+            ),
+        },
         "scoped": svc.scope_for(me) is not ALL,
         "repo": (form.get("repo_path") or "").strip(),
         "ready": readiness(me, form.get("repo_path", ""), ctx.settings),
@@ -355,6 +371,19 @@ def register(ctx: Any, me: Any, form: Mapping[str, str]) -> dict[str, Any]:
     svc = ctx.systems
     draft = draft_of(form, me, svc)
     out = svc.register(draft, str(me.user_id), for_user=me)
+    node = _node_id(form.get("from_node"))
+    if node:  # H5b: link the scanned object so the candidate leaves the list
+        try:
+            svc.link(
+                out["system_id"],
+                "node",
+                node,
+                str(me.user_id),
+                source="workspace_scan",
+                for_user=me,
+            )
+        except Exception:  # noqa: BLE001 - the system exists; the Components tab can link later
+            log.exception("wizard: could not link the scanned object")
     out["tasks_opened"] = open_tasks(ctx, out["system_id"], str(me.user_id))
     out["tasks_missing"] = missing_tasks(ctx, out["system_id"])
     # the Decision 33 draft, by the Classification tab's own code path; never applied

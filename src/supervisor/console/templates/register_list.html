@@ -5,6 +5,7 @@
 {% block content %}
 {{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
 {{ ui.pagehead(t('rg2_drafts')) }}
+{% if saved %}<div class="notice" role="status" data-register="saved"><span class="dot"></span>{{ t('rg2_saved') }}</div>{% endif %}
 <p><a class="btn" href="/console/register/new?lang={{ lang }}" data-register="new">{{ t('rg2_register_btn') }}</a></p>
 {% if drafts %}
 <div class="tablewrap"><table class="list" data-table="drafts">

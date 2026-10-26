@@ -30,7 +30,7 @@
       <td>{% if r.guard %}<span class="mono" data-on="{{ r.guard.on }}">{{ t('mya_on_of', n=r.guard.on, m=r.guard.of) }}</span> {{ ui.pill(t('mya_cover_' ~ r.guard.cover), {'full': 'ok', 'below_floor': 'warn', 'none': 'neutral'}[r.guard.cover], True) }}{% else %}<span class="muted">-</span>{% endif %}</td>
       <td>{% if r.last %}<span class="mono" title="{{ r.last|day }}">{{ r.last|day }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
       <td class="n">{{ r.open_cases }}</td>
-      <td class="wrap">{% if r.action.key == 'none' %}<span class="muted">{{ t(r.action.text_key) }}</span>{% elif r.kind == 'candidate' %}<a class="btn" href="{{ r.action.href }}&amp;lang={{ lang }}">{{ t('mya_register') }}</a>{% else %}<a href="{{ r.action.href }}{{ '&amp;' if '?' in r.action.href else '?' }}lang={{ lang }}">{{ t(r.action.text_key, **r.action.args) }}</a>{% endif %}</td>
+      <td class="wrap">{% if r.action.key == 'none' %}<span class="muted">{{ t(r.action.text_key) }}</span>{% elif r.kind == 'candidate' %}<a class="btn" href="{{ r.action.href }}{% if '?' in r.action.href %}&amp;{% else %}?{% endif %}lang={{ lang }}">{{ t('mya_register') }}</a>{% else %}<a href="{{ r.action.href }}{% if '?' in r.action.href %}&amp;{% else %}?{% endif %}lang={{ lang }}">{{ t(r.action.text_key, **r.action.args) }}</a>{% endif %}</td>
     </tr>
   {% else %}
     <tr><td colspan="9">{{ ui.empty(t('mya_none'), t('mya_none_line')) }}</td></tr>

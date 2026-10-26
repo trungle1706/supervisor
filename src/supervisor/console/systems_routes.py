@@ -94,7 +94,7 @@ async def system_new_page(
 ) -> Response:
     _wizard_off(ctx)
     _person(me)
-    data = await _call(systems_wizard.form_view, ctx, me)
+    data = await _call(systems_wizard.form_view, ctx, me, request.query_params.get("from") or "")
     return render(request, ctx, me, "system_new.html", section="systems", **data)
 
 

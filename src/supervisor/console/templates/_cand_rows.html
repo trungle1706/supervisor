@@ -29,7 +29,7 @@
     <td>{{ t('sy_autonomy_level_' ~ r.autonomy) }}</td>
     <td class="n">{{ ov.score_pill(r) }}</td>
     <td>{{ t('tri_act_' ~ r.recommended_action) }}
-      {% if cand_register %}<a class="chipbtn" href="/console/systems/new?from={{ r.node_id }}&amp;lang={{ lang }}">{{ t('tri_register') }}</a>{% endif %}</td>
+      {% if cand_register %}<a class="chipbtn" href="{{ cand_reg_base }}?from={{ r.node_id|urlencode }}&amp;lang={{ lang }}">{{ t('tri_register') }}</a>{% endif %}</td>
   </tr>
   {% endfor %}
   </tbody>

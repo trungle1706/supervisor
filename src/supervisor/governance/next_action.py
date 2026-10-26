@@ -29,6 +29,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.console.systems_overview import next_action as first_task_or_stage
+from supervisor.governance.register_v2 import links
 
 SHADOW_DAYS = 7
 RULES: tuple[str, ...] = (
@@ -157,10 +158,15 @@ def recommended_action(
     aid = str(agent_card["agent_id"])
     kind = agent_card.get("kind") or "registered"
     if kind == "policy_only":
-        return _act("register", "mya_ra_register", f"/console/agents/{aid}?tab=register")
+        href = (
+            links.agent_href(ctx.settings, aid)
+            if links.v2_on(ctx.settings)
+            else f"/console/agents/{aid}?tab=register"
+        )
+        return _act("register", "mya_ra_register", href)
     if kind == "candidate":
         node = agent_card.get("node_id", "")
-        return _act("register", "mya_ra_register", f"/console/systems/new?from={node}")
+        return _act("register", "mya_ra_register", links.candidate_href(ctx.settings, node))
     pre = pre if pre is not None else prefetch(ctx)
     sid = str(system_row["system_id"]) if system_row else None
     ids = {aid} | ({sid} if sid else set())

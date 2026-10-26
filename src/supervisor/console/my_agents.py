@@ -26,6 +26,7 @@ from supervisor.console.listing import (
     sort_rows,
 )
 from supervisor.governance import next_action
+from supervisor.governance.register_v2 import links
 
 KINDS = ("registered", "policy_only", "candidate")
 STATES = ("RUNNING", "SHADOW", "PAUSED", "QUARANTINED")
@@ -384,7 +385,7 @@ def register_tab(ctx: Any, me: Any, card: Mapping[str, Any]) -> dict[str, Any]:
         "description": _description(card, sysrow),
         "assess": _assessment(card, sysrow),
         "action": action,
-        "register_href": f"/console/systems/new?agent={aid}",
+        "register_href": links.agent_href(ctx.settings, aid),
     }
 
 

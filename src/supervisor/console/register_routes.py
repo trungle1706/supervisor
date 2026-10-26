@@ -136,7 +136,10 @@ async def register_list(
     _off(ctx)
     uid = _person(me)
     drafts = await _call(rs.store_of(ctx).list_mine, uid)
-    return render(request, ctx, me, "register_list.html", section="systems", drafts=drafts)
+    saved = request.query_params.get("saved") == "1"
+    return render(
+        request, ctx, me, "register_list.html", section="systems", drafts=drafts, saved=saved
+    )
 
 
 @router.get("/new", dependencies=_EDIT)
@@ -146,8 +149,10 @@ async def register_new(
     """Make a draft (``?from=<node id>`` scan prefill, ``?agent=<agent id>`` policy prefill, none
     = blank) and go to step 1."""
     _off(ctx)
-    _person(me)
+    uid = _person(me)
     q = request.query_params
+    if not (q.get("from") or q.get("agent")):  # M2: one empty draft per person at most
+        await _call(rs.store_of(ctx).drop_empty, uid)
     draft = await _call(rs.start, ctx, me, q.get("from") or "", q.get("agent") or "")
     return _go(request, True, f"/console/register/{draft['draft_id']}/step/1")
 
@@ -179,11 +184,14 @@ async def register_save(
     draft = await _call(store.get, draft_id, uid)
     if draft["status"] != "draft":
         raise rm.RegisterError("draft_id", f"this draft is {draft['status']}")
-    stay = request.query_params.get("save") == "1" or bool(form.get("accept") or form.get("run"))
+    later = request.query_params.get("save") == "1"
+    stay = later or bool(form.get("accept") or form.get("run"))
     try:
         saved = await _call(rs.save_step, ctx, me, draft, num, form, stay=stay)
     except rm.RegisterError as exc:
         return _render_step(request, ctx, me, draft, num, error=str(exc), posted=form, status=400)
+    if later:  # "Save for later": every field of the step is stored, then the drafts list
+        return _go(request, plain, "/console/register?saved=1")
     target = num if stay else min(num + 1, rm.STEPS)
     return _go(request, plain, f"/console/register/{saved['draft_id']}/step/{target}")
 

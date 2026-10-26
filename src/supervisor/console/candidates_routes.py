@@ -15,6 +15,7 @@ from supervisor.adapters.auth.authz import needs
 from supervisor.console import overview_v4
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.routes import ConsoleInputError, _call, _check_id, render
+from supervisor.governance.register_v2 import links as rl
 from supervisor.inventory.api import InventoryInputError
 
 router = APIRouter(prefix="/console", tags=["console"])
@@ -49,13 +50,20 @@ def _page_data(ctx: ConsoleContext, query: Any, src: str) -> dict[str, Any]:
     data["cand_register"] = bool(
         ctx.settings.console_systems_enabled and ctx.settings.console_nav_v3
     )
+    data["cand_reg_base"] = _reg_base(ctx)
     return data
+
+
+def _reg_base(ctx: ConsoleContext) -> str:
+    """Where Register goes: the six-step workflow while it is on, else the old wizard."""
+    return rl.candidate_href(ctx.settings, "x").split("?", 1)[0]
 
 
 def _drawer_data(ctx: ConsoleContext, node_id: str) -> dict[str, Any]:
     _check_id(node_id, "candidate id")
     data = overview_v4.drawer_view(overview_v4.load_candidates(ctx) or [], node_id)
     data["register"] = bool(ctx.settings.console_systems_enabled and ctx.settings.console_nav_v3)
+    data["reg_base"] = _reg_base(ctx)
     return data
 
 

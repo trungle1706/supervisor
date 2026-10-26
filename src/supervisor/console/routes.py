@@ -88,6 +88,7 @@ from supervisor.core import rbac
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import NotFoundError, SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
+from supervisor.governance.register_v2 import links as rl
 from supervisor.jobs import case_intake
 from supervisor.risk.model import ensure_on as ensure_risks_on
 from supervisor.transparency.model import ensure_on as ensure_transparency_on
@@ -507,6 +508,7 @@ def _cand_ctx(ctx: ConsoleContext) -> dict[str, Any]:  # --- WP-N1 ---
         "cand_url": "/console/",
         "cand_src": "top",
         "cand_register": bool(ctx.settings.console_systems_enabled),
+        "cand_reg_base": rl.candidate_href(ctx.settings, "x").split("?", 1)[0],
     }
 
 
