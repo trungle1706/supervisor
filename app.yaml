@@ -34,6 +34,8 @@ env:
     value: "60"
   - name: STATE_CACHE_TTL_S
     value: "30"
+  - name: GATE_RECORD_ASYNC
+    value: "1"
   # /tmp is wiped on every restart. Durable files go to a Unity Catalog Volume.
   - name: DATA_DIR
     value: "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor/data"

@@ -442,6 +442,18 @@ class _Call:
         self.lock = threading.Lock()
         self.abandoned = False
         self.decision: Decision | None = None
+        self.committed = threading.Event()  # WP-P6: set when ``decision`` is final
+        self._t0 = time.perf_counter_ns()
+        self._marks: list[tuple[str, int]] = []  # (phase, ns since the previous mark)
+
+    def mark(self, phase: str) -> None:
+        """Record the time the phase that just ended took (WP-P6: names the slow step)."""
+        now = time.perf_counter_ns()
+        self._marks.append((phase, now - self._t0))
+        self._t0 = now
+
+    def phases(self) -> str:
+        return ", ".join(f"{name} {ns / 1e9:.2f}s" for name, ns in self._marks) or "none"
 
 
 def _detector_fails_closed(det: PreDetect | None, risk: str | None, eff: Effective | None) -> bool:
@@ -474,6 +486,7 @@ class Gateway:
         env: str = "local",
         state_cache_ttl_s: float = 1.0,
         workers: int = 8,
+        record_async: bool = False,
         require_caller_id: bool = False,
         masker: Masker | None = None,
         inline_redaction: bool = False,
@@ -495,6 +508,7 @@ class Gateway:
         self.args_key_id = key_id(self._args_key)
         self.tier0b_enabled = tier0b_enabled
         self.timeout_s = timeout_s
+        self.record_async = record_async  # WP-P6 (default off: check() waits for the record)
         self.env = env
         # ADR D10 (WP7): a handoff call without caller_agent_id fails closed for
         # money / credit / pii_export tools. Off by default (REQUIRE_CALLER_ID).
@@ -584,6 +598,13 @@ class Gateway:
             fut = self._pool.submit(
                 self._decide, call, t0, agent_id, agent_version, tool_name, args, ctx, req
             )
+            if self.record_async:
+                # WP-P6 (GATE_RECORD_ASYNC): answer as soon as the decision is final; the
+                # recording (verdict, event, chain) finishes in the pool thread. On a slow store
+                # the caller is not held up by the writes.
+                if call.committed.wait(self.timeout_s) and call.decision is not None:
+                    return call.decision.as_result()
+                raise cf.TimeoutError
             decision = fut.result(timeout=self.timeout_s)
         except cf.TimeoutError:
             with call.lock:
@@ -601,7 +622,9 @@ class Gateway:
                     tool_name,
                     args,
                     ctx,
-                    TimeoutError(f"no decision within {self.timeout_s:g} s"),
+                    TimeoutError(
+                        f"no decision within {self.timeout_s:g} s (phases: {call.phases()})"
+                    ),
                     req,
                 )
         except Exception as exc:  # noqa: BLE001 - check() must never raise
@@ -834,13 +857,20 @@ class Gateway:
         req: Req | None = None,
     ) -> Decision:
         det = self._pre_detect(None, agent_id, agent_version, tool_name, args, ctx, req)
+        call.mark("pre_detect")
         pre = self._pre_redact(tool_name, args, ctx, det)
+        call.mark("pre_redact")
         sess = self._pre_session(agent_id, tool_name, args, ctx, req)
+        call.mark("pre_session")
         with self._lock:
+            call.mark("lock_wait")
             policy = self.policy.current()
+            call.mark("policy")
             if not self.windows.warm or self.windows.policy_hash != policy.policy_hash:
                 self._warm(policy)  # cold start, or new policy (tracked keys may differ)
+                call.mark("warm")
             state = self.states.get_state(agent_id, policy)
+            call.mark("state")
             risk = policy.risk_class(tool_name)
             now, now_us = self._now_us()
             self.windows.prune(now_us, policy.max_window_s)
@@ -859,6 +889,7 @@ class Gateway:
                 req,
                 sess,
             )
+            call.mark("evaluate")
             with call.lock:
                 if call.abandoned:
                     return d  # the caller already applied the fail mode and recorded it
@@ -888,7 +919,11 @@ class Gateway:
                 )
                 d.paused = True
             d.latency_us = (time.perf_counter_ns() - t0) // 1000
-            self._record(d, now, agent_id, agent_version, tool_name, args, ctx, matches, shadow)
+            call.committed.set()  # WP-P6: the answer is final; the writes below do not change it
+        # WP-P6: the record (verdict, event, chain) runs outside the engine lock. It touches no
+        # window or state, and on a slow store it must not hold up the other decisions.
+        self._record(d, now, agent_id, agent_version, tool_name, args, ctx, matches, shadow)
+        call.mark("record")
         d.total_us = (time.perf_counter_ns() - t0) // 1000
         self.metrics.observe(
             d.total_us,

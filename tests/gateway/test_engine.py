@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Iterator
+from typing import Any
 
 import pytest
 
@@ -298,3 +300,79 @@ def test_metrics_are_integers(gw: Gateway) -> None:
     assert snap["samples"] == 5
     for k in ("p50", "p95", "p99"):
         assert isinstance(snap["latency_us"][k], int)
+
+
+def test_timeout_reason_names_the_slow_phase(
+    adapters: Adapters, evidence: MemoryEvidence, mini: Policy, caplog: pytest.LogCaptureFixture
+) -> None:
+    """WP-P6: the fail line says which step took the time (here the policy read, under the lock)."""
+    g = Gateway(
+        _SlowPolicy(mini, 0.6),
+        adapters.tables,
+        adapters.state,
+        evidence,
+        adapters.clock,
+        timeout_s=0.2,
+    )
+    with caplog.at_level(logging.WARNING, logger="supervisor.gateway"):
+        call(g, "a1", "pay", customer_id="C1", amount_minor=1)
+    time.sleep(0.8)
+    g.close()
+    assert "no decision within 0.2 s (phases: pre_detect " in caplog.text
+    assert "lock_wait " in caplog.text and "policy" not in caplog.text.split("lock_wait")[1][:1]
+
+
+class _SlowTables:
+    """A table store whose verdict write is slow (a Databricks INSERT)."""
+
+    def __init__(self, inner: Any, delay_s: float) -> None:
+        self._inner = inner
+        self.delay_s = delay_s
+
+    def append(self, table: str, rows: Any) -> Any:
+        if table == "verdict":
+            time.sleep(self.delay_s)
+        return self._inner.append(table, rows)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+
+def test_record_async_answers_before_the_record(
+    adapters: Adapters, evidence: MemoryEvidence, mini: Policy
+) -> None:
+    """WP-P6 GATE_RECORD_ASYNC: the answer comes at commit; the verdict is written afterwards."""
+    g = Gateway(
+        StaticPolicyProvider(mini),
+        _SlowTables(adapters.tables, 0.5),  # type: ignore[arg-type]
+        adapters.state,
+        evidence,
+        adapters.clock,
+        timeout_s=2.0,
+        record_async=True,
+    )
+    t = time.perf_counter()
+    r = call(g, "a1", "read", n=1)
+    assert time.perf_counter() - t < 0.4
+    assert r["allow"] is True and r["rule_id"] is None and r.get("fail_mode") is None
+    assert adapters.tables.query("verdict", {"agent_id": "a1"}) == []
+    time.sleep(0.8)
+    g.close()
+    assert len(adapters.tables.query("verdict", {"agent_id": "a1"})) == 1
+
+
+def test_record_async_off_waits_for_the_record(
+    adapters: Adapters, evidence: MemoryEvidence, mini: Policy
+) -> None:
+    g = Gateway(
+        StaticPolicyProvider(mini),
+        _SlowTables(adapters.tables, 0.3),  # type: ignore[arg-type]
+        adapters.state,
+        evidence,
+        adapters.clock,
+        timeout_s=2.0,
+    )
+    r = call(g, "a1", "read", n=1)
+    g.close()
+    assert r["allow"] is True
+    assert len(adapters.tables.query("verdict", {"agent_id": "a1"})) == 1

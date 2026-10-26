@@ -94,6 +94,7 @@ def build_gateway(
         facts=make_fact_source(settings),  # D13: FACT_SOURCE (default none)
         env=settings.supervisor_mode,
         timeout_s=settings.gate_decision_timeout_s,  # WP-P6
+        record_async=settings.gate_record_async,
         state_cache_ttl_s=settings.state_cache_ttl_s,
         detector_gate=detector_gate,
         session_gate=make_session_gate(settings, adapters, evidence),  # WP27 (default off)

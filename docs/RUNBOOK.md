@@ -80,6 +80,7 @@ are resolved against the repo folder, once, at start.
 | `GATE_DECISION_TIMEOUT_S` | `20` (code default `2`) | one gate decision, store reads included; the agent SDK timeout (`SUPERVISOR_TIMEOUT_S` in the candidates) must be larger |
 | `POLICY_REFRESH_S` | `60` (code default `5`) | how often the gate re-reads the deployed policy from the store |
 | `STATE_CACHE_TTL_S` | `30` (code default `1`) | how long the gate keeps an agent's state before it re-reads the `agent` row |
+| `GATE_RECORD_ASYNC` | `1` (code default off) | answer the agent as soon as the decision is final; the verdict, event and chain writes (three store round trips) finish afterwards |
 | `LLM_ENDPOINT` | `FILL-ME-serving-endpoint-name` | preflight checks it is READY |
 | `DATABRICKS_CLUSTER_NAME` | optional | shared cluster for `cluster_run` |
 | `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` | must be loopback. Empty = mock judges |

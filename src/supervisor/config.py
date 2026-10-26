@@ -163,6 +163,9 @@ class Settings(BaseSettings):
     gate_decision_timeout_s: float = Field(default=2.0, ge=0.5, le=120)
     policy_refresh_s: float = Field(default=5.0, ge=0, le=3600)
     state_cache_ttl_s: float = Field(default=1.0, ge=0, le=3600)
+    # GATE_RECORD_ASYNC (default off): the gate answers as soon as the decision is final and
+    # writes the verdict, the event and the chain record afterwards in its own thread.
+    gate_record_async: bool = False
     # WP10: shared all-purpose cluster for the Command Execution API runner (optional).
     databricks_cluster_id: str | None = None
     databricks_cluster_name: str | None = None

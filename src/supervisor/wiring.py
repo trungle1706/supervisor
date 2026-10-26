@@ -247,6 +247,7 @@ def _make_gateway(
         else None,
         env=settings.supervisor_mode,
         timeout_s=settings.gate_decision_timeout_s,  # WP-P6: 2 s locally, more on Databricks
+        record_async=settings.gate_record_async,
         state_cache_ttl_s=state_cache_ttl_s,
         require_caller_id=settings.require_caller_id,  # WP7, ADR D10 (default off)
         # WP24b inline redaction (default off). The gate's masker keeps amounts in the text:
