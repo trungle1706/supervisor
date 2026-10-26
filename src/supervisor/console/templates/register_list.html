@@ -1,0 +1,21 @@
+{# Register workflow v2 (WP-N3): my open drafts, with the link to resume each. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('rg2_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
+{{ ui.pagehead(t('rg2_drafts')) }}
+<p><a class="btn" href="/console/register/new?lang={{ lang }}" data-register="new">{{ t('rg2_register_btn') }}</a></p>
+{% if drafts %}
+<div class="tablewrap"><table class="list" data-table="drafts">
+<thead><tr><th scope="col">{{ t('sy_col_name') }}</th><th scope="col">{{ t('rg2_source') }}</th><th scope="col">{{ t('rg2_step_word') }}</th><th scope="col">{{ t('rg2_updated') }}</th><th scope="col"></th></tr></thead>
+<tbody>
+{% for d in drafts %}
+<tr data-draft="{{ d.draft_id }}"><td>{{ d.data.v.get('name') or t('rg2_unnamed') }}</td><td>{{ t('rg2_from_kind_' ~ d.source_kind) }}</td><td>{{ d.step }} / 6</td><td>{{ d.updated_at }}</td>
+<td><a class="chipbtn" href="/console/register/{{ d.draft_id }}/step/{{ d.step }}?lang={{ lang }}">{{ t('rg2_resume') }}</a></td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}
+{{ ui.empty(t('rg2_no_drafts'), t('rg2_no_drafts_line')) }}
+{% endif %}
+{% endblock %}

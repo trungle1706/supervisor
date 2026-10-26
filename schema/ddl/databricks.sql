@@ -1343,6 +1343,24 @@ USING DELTA
 COMMENT 'WP-G6. An application connected to the MCP server (a pipeline or an AI assistant). The first connection is pending until an admin approves it; a blocked app is refused at once. scopes lists what it may call (governance.read, governance.write, library.read, supervisor.read); roles are the console roles the app acts with (never admin), so its view of the AI systems is scoped like a person''s. key_hash is the SHA-256 of the current HMAC secret (the secret itself lives in the WP20 key store under the app id). Every change is a console_action row; no free text from a client is stored here.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
 
+-- registration_draft (state): WP-N3. A half-finished registration of an AI system (register workflow v2, six steps). One row per person and attempt; data holds the answers, the suggestions with their reason keys and the source of each value. No evidence rows and no chain records: a draft is working state. submitted means the system was written; abandoned means the person dropped it.
+-- primary key (enforced by the app, not by Delta): draft_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`registration_draft` (
+  draft_id STRING NOT NULL,
+  owner_user STRING NOT NULL,
+  status STRING NOT NULL,
+  step BIGINT NOT NULL,
+  source_kind STRING NOT NULL,
+  source_ref STRING,
+  data STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-N3. A half-finished registration of an AI system (register workflow v2, six steps). One row per person and attempt; data holds the answers, the suggestions with their reason keys and the source of each value. No evidence rows and no chain records: a draft is working state. submitted means the system was written; abandoned means the person dropped it.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
 -- guardian_binding (state): WP-S1. A product owner's switch for one guardian feature on one AI system: on or off. No row means on. A binding can only narrow what the instance already has on; the assignment rules' guardian floor always wins (a floor feature cannot be set off, and a floor added later overrides an old off row at resolution time). mandatory is the floor state when the row was written (a snapshot for the audit; resolution reads the floor again). Changes go on the chain as binding_change (ids and enums only).
 -- primary key (enforced by the app, not by Delta): system_id, feature_slug
 CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_binding` (

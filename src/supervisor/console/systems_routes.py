@@ -274,3 +274,9 @@ async def system_classification_step(
         await _call(functools.partial(svc.apply, sid, me, confirm_ai_prefill=confirm))
     request.state.audit_detail = f"classification {step}"
     return _done(request, plain, sid, "classification")
+
+
+# --- WP-N3 --- register workflow v2: /console/register (answers 400 while the flag is off)
+from supervisor.console.register_routes import router as _register_router  # noqa: E402
+
+router.include_router(_register_router)

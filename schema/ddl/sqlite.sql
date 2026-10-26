@@ -1588,6 +1588,23 @@ CREATE TABLE IF NOT EXISTS mcp_app (
 
 CREATE INDEX IF NOT EXISTS ix_mcp_app_status ON mcp_app (status);
 
+-- registration_draft (state): WP-N3. A half-finished registration of an AI system (register workflow v2, six steps). One row per person and attempt; data holds the answers, the suggestions with their reason keys and the source of each value. No evidence rows and no chain records: a draft is working state. submitted means the system was written; abandoned means the person dropped it.
+CREATE TABLE IF NOT EXISTS registration_draft (
+  draft_id TEXT NOT NULL,
+  owner_user TEXT NOT NULL,
+  status TEXT NOT NULL,
+  step INTEGER NOT NULL,
+  source_kind TEXT NOT NULL,
+  source_ref TEXT,
+  data TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (draft_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_registration_draft_owner_user_status ON registration_draft (owner_user, status);
+
 -- guardian_binding (state): WP-S1. A product owner's switch for one guardian feature on one AI system: on or off. No row means on. A binding can only narrow what the instance already has on; the assignment rules' guardian floor always wins (a floor feature cannot be set off, and a floor added later overrides an old off row at resolution time). mandatory is the floor state when the row was written (a snapshot for the audit; resolution reads the floor again). Changes go on the chain as binding_change (ids and enums only).
 CREATE TABLE IF NOT EXISTS guardian_binding (
   system_id TEXT NOT NULL,

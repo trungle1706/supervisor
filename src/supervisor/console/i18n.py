@@ -4499,6 +4499,9 @@ _T.update(
         "mya_link_assurance": ("Assurance", "Đảm bảo"),
     }
 )
+from supervisor.console.i18n_register import RG2 as _RG2  # noqa: E402  (WP-N3, prefix rg2_)
+
+_T.update(_RG2)
 
 
 def translator(lang: str) -> Callable[..., str]:

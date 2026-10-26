@@ -1,0 +1,30 @@
+{# Register workflow v2 (WP-N3): what the submit wrote and the next actions. Variables: d
+   (register_v2.service.result_view). #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('rg2_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
+{{ ui.pagehead(d.system.name) }}
+<div class="notice" data-register="done"><span class="dot"></span><b>{{ t('rg2_done') }}</b> {{ t('rg2_done_line') }}</div>
+<div class="grid g2">
+<section class="card">
+  <h3>{{ t('rg2_written') }}</h3>
+  <ul data-register="steps-done">
+  {% for s in d.steps %}<li data-status="{{ s.status }}">{{ ui.pill(t('rg2_st_' ~ s.status), {'ok': 'ok', 'failed': 'bad', 'skipped': 'neutral'}[s.status]) }} {{ t(s.key) }}{% if s.detail %} <code>{{ s.detail }}</code>{% endif %}</li>{% endfor %}
+  </ul>
+</section>
+<section class="card">
+  <h3>{{ t('rg2_next') }}</h3>
+  <ol data-register="next">
+    <li><a href="/console/systems/{{ d.system.system_id }}?tab=tasks&amp;lang={{ lang }}">{{ t('rg2_next_intake') }}</a></li>
+    <li><a href="/console/systems/{{ d.system.system_id }}?tab=classification&amp;lang={{ lang }}">{{ t('rg2_next_class') }}</a></li>
+    {% if 'SYS-REG-POLICY' in d.tasks %}<li>{{ t('rg2_next_policy') }}</li>{% endif %}
+    {% if 'SYS-REG-SPID' in d.tasks %}<li>{{ t('rg2_next_spid') }}</li>{% endif %}
+    {% if d.agent_id %}<li>{{ t('rg2_next_running') }}</li>{% endif %}
+  </ol>
+  <p><a class="btn" href="/console/systems/{{ d.system.system_id }}?lang={{ lang }}">{{ t('rg2_open_system') }}</a>
+  <a href="/console/register/new?lang={{ lang }}">{{ t('rg2_register_another') }}</a></p>
+</section>
+</div>
+{% endblock %}

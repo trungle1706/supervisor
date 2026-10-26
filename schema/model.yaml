@@ -1483,6 +1483,26 @@ tables:
       approved_at: timestamp?
       first_connected_at: timestamp?
   # --- WP-S1 per-system guardian bindings (docs/guardian-bindings.md) -----------------------
+  registration_draft:
+    kind: state
+    description: >
+      WP-N3. A half-finished registration of an AI system (register workflow v2, six steps). One
+      row per person and attempt; data holds the answers, the suggestions with their reason keys
+      and the source of each value. No evidence rows and no chain records: a draft is working
+      state. submitted means the system was written; abandoned means the person dropped it.
+    primary_key: [draft_id]
+    indexes:
+      - [owner_user, status]
+    columns:
+      draft_id: string
+      owner_user: string
+      status: string           # draft | submitted | abandoned
+      step: int                # the furthest step the person has saved (1..6)
+      source_kind: string      # scan | policy | blank
+      source_ref: string?      # inventory node id or agent id; nothing else from the workspace
+      data: json
+      created_at: timestamp
+
   guardian_binding:
     kind: state
     description: >

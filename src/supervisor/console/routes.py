@@ -230,6 +230,13 @@ def render(
         now=ctx.clock.now(),
         version=__version__,
         path=request.url.path,
+        # WP-N3: the "+ Register" buttons show only with the register workflow v2 on
+        register_v2_on=bool(
+            ctx.settings.console_register_v2
+            and ctx.settings.governance_enabled
+            and ctx.settings.console_systems_enabled
+            and rbac.allowed(me.roles, "systems.edit")
+        ),
         **data,
     )
     resp = HTMLResponse(body, status_code=status_code)

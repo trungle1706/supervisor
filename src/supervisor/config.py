@@ -668,6 +668,10 @@ class Settings(BaseSettings):
     # Systems pages (needs GOVERNANCE_ENABLED too).
     governance_enabled: bool = False
     console_systems_enabled: bool = False
+    # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
+    # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
+    # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.
+    console_register_v2: bool = False
 
     # --- WP-G2 --- assignment rules and Decision 33 classification (docs/assignment-rules.md,
     # docs/decision33.md). Both need GOVERNANCE_ENABLED. CLASSIFIER_AI_PREFILL=1 lets the

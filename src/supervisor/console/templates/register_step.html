@@ -1,0 +1,207 @@
+{# Register workflow v2 (WP-N3, CONSOLE_REGISTER_V2): one page per step, six steps, state in a
+   registration_draft row. Plain forms (no JavaScript needed); a suggestion is accepted with one
+   button. Variables: register_routes.step_data() plus error, posted. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% set base = '/console/register/' ~ draft.draft_id %}
+{% macro stepnav() %}
+<ol class="wiz-steps rg2-steps" aria-label="{{ t('rg2_steps') }}" data-register="steps">
+  {% for i in range(1, steps + 1) %}
+  <li{% if i == step %} class="on" aria-current="step"{% endif %}>{% if i <= draft.step and i != step %}<a href="{{ base }}/step/{{ i }}?lang={{ lang }}">{{ t('rg2_step_' ~ i) }}</a>{% else %}{{ t('rg2_step_' ~ i) }}{% endif %}</li>
+  {% endfor %}
+</ol>
+{% endmacro %}
+{% macro valtxt(name, val) -%}
+{%- if val is none or val == '' -%}-
+{%- elif name == 'money_movement' or name == 'credit_decision' -%}{{ t('rg2_yes') if val else t('rg2_no') }}
+{%- elif name == 'kind' -%}{{ t('rg2_kind_' ~ val) }}
+{%- elif name == 'autonomy_level' -%}{{ t('ux4b_autonomy_' ~ val) }}
+{%- elif name in ('system_type', 'org_role', 'user_segment', 'personal_data', 'human_control') -%}{{ t('sy_' ~ name ~ '_' ~ val) }}
+{%- else -%}{{ val }}{%- endif -%}
+{%- endmacro %}
+{% macro mark(name) %}{% set m = marks.get(name) %}{% if m == 'person' %}<span class="pill neutral" data-mark="person">{{ t('rg2_by_person') }}</span>{% elif m %}<span class="pill teal" data-mark="{{ m }}">{{ t('rg2_by_' ~ m) }}</span>{% endif %}{% endmacro %}
+{% macro chip(name) %}{% set s = sg.get(name) %}{% if s %}<div class="rg2-sug" data-suggest="{{ name }}"><span class="hint">{{ t('rg2_suggested') }}: <b>{{ valtxt(name, s.value) }}</b> - {{ t(s.reason_key) }} ({{ t('rg2_src_' ~ s.source) }})</span>{% if v.get(name) != s.value %} <button class="chipbtn" type="submit" name="accept" value="{{ name }}">{{ t('rg2_accept') }}</button>{% endif %}</div>{% endif %}{% endmacro %}
+{% macro text(name, required=False, area=False, maxlen=200) %}
+<label>{{ t('rg2_f_' ~ name) }} {{ mark(name) }}
+  {% if area %}<textarea name="{{ name }}" rows="3" maxlength="{{ maxlen }}"{% if required %} required{% endif %}>{{ posted.get(name, v.get(name, '')) }}</textarea>
+  {% else %}<input type="text" name="{{ name }}" maxlength="{{ maxlen }}" value="{{ posted.get(name, v.get(name, '')) }}"{% if required %} required{% endif %}>{% endif %}
+  {{ chip(name) }}
+</label>
+{% endmacro %}
+{% macro pick(name, required=False, opts=None) %}
+{% set cur = posted.get(name, v.get(name, '')) %}
+<label>{{ t('rg2_f_' ~ name) }} {{ mark(name) }}
+  <select name="{{ name }}"{% if required %} required{% endif %}>
+    <option value="">-</option>
+    {% for o in (opts if opts is not none else choices[name]) %}<option value="{{ o }}"{% if cur == o %} selected{% endif %}>{{ valtxt(name, o) }}</option>{% endfor %}
+  </select>
+  {{ chip(name) }}
+</label>
+{% endmacro %}
+{% macro chkbox(name) %}
+<label class="chk"><input type="checkbox" name="{{ name }}" value="1"{% if v.get(name) %} checked{% endif %}> {{ t('sy_f_' ~ name) }} {{ mark(name) }}</label>{{ chip(name) }}
+{% endmacro %}
+{% macro buttons(last=False) %}
+<p class="rg2-buttons">
+  {% if step > 1 %}<a class="chipbtn" href="{{ base }}/step/{{ step - 1 }}?lang={{ lang }}">{{ t('rg2_back') }}</a>{% endif %}
+  <button class="btn" type="submit">{{ t('rg2_continue') }}</button>
+  <button class="chipbtn" type="submit" formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('rg2_save_later') }}</button>
+  <a href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a>
+</p>
+{% endmacro %}
+{% block title %}{{ t('rg2_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
+{{ ui.pagehead(t('rg2_title') ~ ' - ' ~ t('rg2_step_' ~ step)) }}
+{{ stepnav() }}
+{% if error %}<div class="notice rg2-error" role="alert" data-register="error"><span class="dot"></span><b>{{ error }}</b></div>{% endif %}
+<p class="hint">{{ t('rg2_hint_' ~ step) }}</p>
+{% if draft.source_kind != 'blank' %}<p class="hint" data-register="source">{{ t('rg2_from_' ~ draft.source_kind) }}</p>{% endif %}
+
+{% if step == 1 %}
+<form class="card wizform" method="post" action="{{ base }}/step/1?lang={{ lang }}" data-register="step1">
+  {{ text('name', True, maxlen=120) }}
+  {{ pick('kind', True, kinds) }}
+  {{ text('agent_id', maxlen=128) }}
+  <p class="hint">{{ t('rg2_agent_id_hint') }}</p>
+  {% if scoped %}<p class="hint">{{ t('rg2_owner_scoped', user=v.get('owner_user', '')) }}</p>{% else %}{{ text('owner_user', True, maxlen=128) }}{% endif %}
+  {{ text('owner_team', True, maxlen=128) }}
+  {{ text('description', False, True, 500) }}
+  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
+  {{ buttons() }}
+</form>
+
+{% elif step == 2 %}
+<form class="card wizform" method="post" action="{{ base }}/step/2?lang={{ lang }}" data-register="step2">
+  {{ text('purpose', True, True, 2000) }}
+  {{ pick('system_type', True) }}
+  {{ pick('org_role', True) }}
+  {{ pick('user_segment', True) }}
+  {{ pick('personal_data', True) }}
+  {{ pick('human_control', True) }}
+  {{ pick('autonomy_level') }}
+  {{ chkbox('money_movement') }}
+  {{ chkbox('credit_decision') }}
+  {{ text('model_family', maxlen=64) }}
+  {{ text('data_sources', False, True, 600) }}
+  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
+  {{ buttons() }}
+</form>
+
+{% elif step == 3 %}
+<form class="card wizform" method="post" action="{{ base }}/step/3?lang={{ lang }}" data-register="step3">
+  <h3>{{ t('rg2_chk_readiness') }}</h3>
+  {% if can_repo %}
+  <label>{{ t('ux4b_f_repo') }} <input type="text" name="repo_path" maxlength="512" value="{{ posted.get('repo_path', repo) }}" placeholder="agents/my-agent"></label>
+  <p><button class="chipbtn" type="submit" name="run" value="1">{{ t('rg2_run_check') }}</button></p>
+  <p class="hint">{{ t('ux4b_f_repo_hint') }}</p>
+  {% else %}<p class="hint">{{ t('rg2_no_repo_right') }}</p>{% endif %}
+  {% if check and check.total is not none %}
+  <div class="card stat" data-num="readiness"><h3>{{ t('ux4b_readiness') }}</h3><div class="bignum">{{ check.total }} / 100</div><div class="sub">{{ t(check.band) }}</div></div>
+  {% elif check and check.na %}<p class="hint" data-num="readiness">{{ t(check.na) }}</p>{% endif %}
+  <h3>{{ t('rg2_gaps') }}</h3>
+  <div class="tablewrap"><table class="list" data-table="gaps">
+    <thead><tr><th scope="col">{{ t('rg2_check') }}</th><th scope="col">{{ t('rg2_result') }}</th><th scope="col">{{ t('rg2_fix') }}</th></tr></thead>
+    <tbody>
+    {% for g in gaps %}
+    <tr data-gap="{{ g.key }}" data-status="{{ g.status }}"><td>{{ t(g.key) }}{% if g.detail %} <code>{{ g.detail }}</code>{% endif %}</td>
+      <td>{{ ui.pill(t('rg2_st_' ~ g.status), {'ok': 'ok', 'gap': 'warn', 'info': 'neutral'}[g.status]) }}</td>
+      <td>{% if g.fix_key %}{{ t(g.fix_key) }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% if prelim %}
+  <h3>{{ t('ux4b_step_checks') }}</h3>
+  <p data-num="class">{{ t('ux4b_class') }}: <b>{{ t('sy_d33_' ~ prelim.cls.d33) }}</b> ({{ t('ux4b_class_src_' ~ prelim.cls.source) }})</p>
+  <p data-num="packs">{{ t('ux4b_packs') }}: {% if prelim.packs.na %}{{ t(prelim.packs.na) }}{% else %}{{ prelim.packs.rows|length }}{% endif %}</p>
+  {% endif %}
+  <p class="hint">{{ t('ux4b_nothing_applied_line') }}</p>
+  {{ buttons() }}
+</form>
+
+{% elif step == 4 %}
+<form class="card wizform" method="post" action="{{ base }}/step/4?lang={{ lang }}" data-register="step4">
+  {% if not cls.ready %}
+  <p class="hint">{{ t('rg2_need_steps_12') }}</p>
+  {% else %}
+  <div class="rg2-proposal" data-register="proposal"><b>{{ t('sy_d33_' ~ cls.outcome) }}</b>
+    {% if cls.level %} - {{ t('ux4b_class_level', level=t('sy_risk_' ~ cls.level)) }}{% endif %}
+    {% if cls.rule_id %} - {{ t('rg2_rule') }} <code>{{ cls.rule_id }}</code>{% endif %}
+    - {{ cls.reason }}</div>
+  <p class="hint">{{ t('rg2_inherited') }}: {% if cls.inherited %}{{ ui.pill(t('sy_risk_' ~ ('high' if cls.inherited == 'critical' else cls.inherited)), 'neutral') }}{% else %}{{ t('rg2_inherited_none') }}{% endif %}</p>
+  <div class="tablewrap"><table class="list" data-table="questions">
+    <thead><tr><th scope="col">{{ t('rg2_question') }}</th><th scope="col">{{ t('rg2_answer') }}</th><th scope="col">{{ t('rg2_justification') }}</th></tr></thead>
+    <tbody>
+    {% for q in cls.questions %}
+    <tr class="rg2-q" data-q="{{ q.id }}"><td>{{ q.text_vi if lang == 'vi' else q.text_en }}<div class="idline">{{ q.id }} - {{ t('rg2_qsrc_' ~ q.source) }}</div></td>
+      <td><select name="a_{{ q.id }}"><option value="">-</option><option value="yes"{% if q.answer == 'yes' %} selected{% endif %}>{{ t('rg2_yes') }}</option><option value="no"{% if q.answer == 'no' %} selected{% endif %}>{{ t('rg2_no') }}</option></select></td>
+      <td><input type="text" name="j_{{ q.id }}" maxlength="500" value="{{ q.why if q.source == 'person' else '' }}"></td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% endif %}
+  <p class="hint">{{ t('rg2_nothing_applied_4') }}</p>
+  {{ buttons() }}
+</form>
+
+{% elif step == 5 %}
+<form class="card wizform" method="post" action="{{ base }}/step/5?lang={{ lang }}" data-register="step5">
+  <input type="hidden" name="bind_form" value="1">
+  {% if not g.bindings_on %}<div class="notice"><span class="dot"></span>{{ t('rg2_bindings_off') }}</div>{% endif %}
+  {% if not g.floor_known %}<p class="hint">{{ t('rg2_need_steps_12') }}</p>{% endif %}
+  {% if g.agent_in_policy %}<p class="hint">{{ t('rg2_policy_rules_n', n=g.policy_rules|length) }}{% if g.policy_rules %}: {% for r in g.policy_rules %}<code>{{ r }}</code> {% endfor %}{% endif %}</p>{% endif %}
+  <div class="tablewrap"><table class="list" data-table="guardians">
+    <thead><tr><th scope="col">{{ t('rg2_feature') }}</th><th scope="col">{{ t('rg2_group') }}</th><th scope="col">{{ t('rg2_state') }}</th></tr></thead>
+    <tbody>
+    {% for r in g.rows %}
+    <tr data-slug="{{ r.slug }}"><td><code>{{ r.slug }}</code></td><td>{{ t('rg2_grp_' ~ r.group) }}</td>
+      <td>{% if r.locked %}{{ ui.pill(t('rg2_floor_on'), 'ok') }} <span class="hint">{{ r.floor_rules|join(', ') }}</span>
+      {% elif not r.instance_on %}{{ ui.pill(t('rg2_unavailable'), 'neutral') }} <span class="hint">{{ t('rg2_needs', flag=r.needs) }}</span>
+      {% elif not g.bindings_on %}{{ ui.pill(t('rg2_on'), 'ok') }}
+      {% else %}<label class="chk"><input type="checkbox" name="on_{{ r.slug }}" value="1"{% if not r.off %} checked{% endif %}> {{ t('rg2_on') }}</label>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <p class="hint">{{ t('rg2_guardian_hint') }}</p>
+  {{ buttons() }}
+</form>
+
+{% else %}
+<div class="card" data-register="review">
+  {% if r.problems %}<div class="notice rg2-error" role="alert"><span class="dot"></span><b>{{ r.problems[0] }}</b></div>{% endif %}
+  <div class="grid g2">
+  <section>
+    <h3>{{ t('rg2_step_1') }}</h3>
+    <dl class="kv">{% for f in ['name', 'kind', 'agent_id', 'owner_user', 'owner_team', 'description'] %}<dt>{{ t('rg2_f_' ~ f) }} {{ mark(f) }}</dt><dd>{{ valtxt(f, r['values'].get(f)) }}</dd>{% endfor %}</dl>
+    <h3>{{ t('rg2_step_2') }}</h3>
+    <dl class="kv">{% for f in ['purpose', 'system_type', 'org_role', 'user_segment', 'personal_data', 'human_control', 'autonomy_level', 'money_movement', 'credit_decision', 'model_family', 'data_sources'] %}<dt>{{ t('rg2_f_' ~ f) }} {{ mark(f) }}</dt><dd>{{ valtxt(f, r['values'].get(f)) }}</dd>{% endfor %}</dl>
+  </section>
+  <section>
+    <h3>{{ t('rg2_step_3') }}</h3>
+    <p data-register="review-check">{% if r.readiness is not none %}{{ t('rg2_chk_readiness') }}: {{ r.readiness }}{% else %}{{ t('rg2_fix_readiness_run') }}{% endif %}</p>
+    <h3>{{ t('rg2_step_4') }}</h3>
+    <p data-register="review-class">{% if r.outcome %}{{ t('sy_d33_' ~ r.outcome) }}{% if r.rule_id %} - <code>{{ r.rule_id }}</code>{% endif %}{% else %}-{% endif %}</p>
+    <h3>{{ t('rg2_will_write') }}</h3>
+    <ul data-register="writes">
+      <li>{{ t('rg2_w_system') }}</li><li>{{ t('rg2_w_team') }}</li>
+      {% if r.node %}<li>{{ t('rg2_w_link_node') }}</li>{% endif %}
+      {% if r.plan.create_row %}<li>{{ t('rg2_w_agent') }} <code>{{ r.plan.agent_id }}</code></li>{% endif %}
+      {% if r.plan.link_row %}<li>{{ t('rg2_w_link_agent') }}</li>{% endif %}
+      <li>{{ t('rg2_w_class') }}{% if r.q_n %} ({{ t('rg2_answers_n', n=r.q_n) }}){% endif %}</li>
+      {% for s in r.off %}<li>{{ t('rg2_w_binding') }} <code>{{ s }}</code></li>{% endfor %}
+      {% if not r.off %}<li class="muted">{{ t('rg2_w_no_binding') }}</li>{% endif %}
+    </ul>
+    {% if r.plan.needs_flag %}<p class="hint">{{ t('rg2_needs', flag=r.plan.needs_flag) }}</p>{% endif %}
+    <h3>{{ t('rg2_tasks_open') }}</h3>
+    <ul data-register="tasks">{% for tid in r.tasks %}<li><code>{{ tid }}</code> - {{ t('rg2_task_' ~ tid) }}</li>{% endfor %}</ul>
+    <h3>{{ t('rg2_who_approves') }}</h3>
+    <ul><li>{{ t('rg2_appr_intake') }}</li><li>{{ t('rg2_appr_class') }}</li><li>{{ t('rg2_appr_stage') }}</li></ul>
+  </section>
+  </div>
+  <form method="post" action="{{ base }}/submit?lang={{ lang }}" data-register="submit">
+    <p class="rg2-buttons"><a class="chipbtn" href="{{ base }}/step/5?lang={{ lang }}">{{ t('rg2_back') }}</a>
+    <button class="btn" type="submit"{% if r.problems %} disabled{% endif %}>{{ t('rg2_submit') }}</button>
+    <a href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a></p>
+  </form>
+  <form method="post" action="{{ base }}/abandon?lang={{ lang }}"><p><button class="chipbtn" type="submit">{{ t('rg2_abandon') }}</button></p></form>
+</div>
+{% endif %}
+{% endblock %}

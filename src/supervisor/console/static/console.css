@@ -775,4 +775,18 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .ov4-rec .l { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 @media (max-width: 900px) {
   .ov4-top, .ov4-mid { grid-template-columns: 1fr; }
+/* WP-N3 register workflow v2 */
+.rg2-sug { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 400; }
+.rg2-buttons { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.rg2-steps li a { color: inherit; text-decoration: none; }
+.rg2-error { border-color: var(--red, #b3261e); }
+@media (max-width: 600px) { .rg2-steps li { font-size: 11px; padding: 3px 8px; } }
+.rg2-proposal { padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); font-size: 13px; line-height: 1.5; }
+.rg2-q select, .rg2-q input { min-width: 96px; }
+/* stack the step 4 and 5 tables on a narrow screen: every column stays visible */
+@media (max-width: 600px) {
+  table[data-table="questions"] thead, table[data-table="guardians"] thead { display: none; }
+  table[data-table="questions"] tr, table[data-table="guardians"] tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  table[data-table="questions"] td, table[data-table="guardians"] td { display: block; border: 0; padding: 4px 8px; }
+  table[data-table="questions"] td input[type=text] { width: 100%; box-sizing: border-box; }
 }
