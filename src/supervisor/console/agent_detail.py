@@ -15,10 +15,12 @@ from typing import Any
 
 from supervisor.cases.service import PermissionDenied
 from supervisor.console import (
+    agent_guardians,
     assurance_views,
     compliance_view,
     controls_views,
     inventory_views,
+    my_agents,
     readmodels,
     risks_views,
     tasks_views,
@@ -31,6 +33,8 @@ from supervisor.inventory.api import InventoryInputError
 
 TABS = (
     "overview",
+    "register",  # WP-N2
+    "guardians",  # WP-N2
     "policy",
     "tools",
     "inventory",
@@ -48,6 +52,18 @@ CASE_LIMIT = 50
 ASSURANCE_LIMIT = 50
 # tab -> (Settings flag, permission, flag name for the message, how to use it without the console)
 GATED: dict[str, tuple[str, str, str, str]] = {
+    "register": (
+        "console_my_agents",
+        "console.view",
+        "CONSOLE_MY_AGENTS",
+        "the agent list at /console/agents",
+    ),
+    "guardians": (
+        "console_my_agents",
+        "console.view",
+        "CONSOLE_MY_AGENTS",
+        "the Catalog page at /console/catalog",
+    ),
     "tools": (
         "console_tools_enabled",
         "tools.view",
@@ -140,12 +156,23 @@ def check_tab(ctx: Any, me: Any, tab: str) -> str:
     return tab
 
 
-def card_of(ctx: Any, me: Any, agent_id: str) -> dict[str, Any]:
+POLICY_TABS = ("register", "guardians")  # WP-N2: also open for an agent only the policy knows
+
+
+def card_of(ctx: Any, me: Any, agent_id: str, tab: str | None = None) -> dict[str, Any]:
     """The agent card of ``agent_id`` (``readmodels.agent_cards``); AgentDetailError if the
-    agent is not registered. Only this agent's card is built (a card costs several queries)."""
+    agent is not registered. Only this agent's card is built (a card costs several queries).
+    For the Register and Guardians tabs an agent that only the policy file knows gets a
+    card-shaped dict (``kind: policy_only``)."""
     for c in readmodels.agent_cards(ctx, me, only=agent_id):
         if c["agent_id"] == agent_id:
             return c
+    if tab in POLICY_TABS:
+        try:
+            if agent_id in ctx.gateway.states.policy.current().doc.agents:
+                return my_agents.policy_card(ctx, agent_id)
+        except Exception:  # noqa: BLE001, S110 - no policy loaded: the agent is unknown
+            pass
     raise AgentDetailError(f"agent {agent_id} is not registered")
 
 
@@ -361,8 +388,18 @@ def _transparency(
     return transparency_views.agent_tab(ctx, me, card["agent_id"])
 
 
+def _register(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    return my_agents.register_tab(ctx, me, card)
+
+
+def _guardians(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    return agent_guardians.tab_data(ctx, card["agent_id"], q)
+
+
 _BUILDERS = {
     "overview": _overview,
+    "register": _register,
+    "guardians": _guardians,
     "policy": _policy,
     "tools": _tools,
     "inventory": _inventory,

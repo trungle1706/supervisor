@@ -1,0 +1,64 @@
+{# Register tab (WP-N2): registry row, AI system, description, assessment, recommended action.
+   Variables: a, policy_only, reg, sys, sys_more, intake, description, assess, action,
+   register_href. Read only. #}
+{% import "_ui.html" as ui with context %}
+<div data-tab-body="register">
+{% if policy_only %}
+<section class="card" data-section="policy-only">
+  <h3>{{ t('mya_reg_policy_only') }} {{ ui.pill(t('mya_kind_policy_only'), 'warn') }}</h3>
+  <p>{{ t('mya_reg_policy_only_line') }}</p>
+  <p><a class="btn primary" href="{{ register_href }}&amp;lang={{ lang }}" data-register="link">{{ t('mya_register') }}</a></p>
+</section>
+{% endif %}
+<div class="grid g2">
+<section class="card" data-section="registry">
+  <h3>{{ t('mya_reg_registry') if not policy_only else t('mya_reg_manifest') }}</h3>
+  {{ ui.kv([
+    (t('agent'), reg.name),
+    ('id', reg.agent_id, True),
+    (t('owner'), reg.owner_user),
+    (t('mya_reg_team'), reg.owner_team),
+    (t('risk'), t(reg.risk_tier) if reg.risk_tier else None),
+    (t('mya_reg_host'), reg.host_type),
+    (t('mya_reg_plug'), reg.plug_point),
+    (t('model_family'), reg.model_family),
+    (t('state'), reg.state),
+    (t('mya_reg_since'), (reg.since|ict) if reg.since else None),
+  ] + ([(t('mya_reg_initial'), reg.initial_state)] if policy_only else [])) }}
+</section>
+<section class="card" data-section="system">
+  <h3>{{ t('mya_reg_system') }}</h3>
+  {% if sys %}
+  <p><a href="/console/systems/{{ sys.system_id }}?lang={{ lang }}">{{ sys.name }}</a> <span class="mono muted">{{ sys.system_id }}</span>{% for s in sys_more %} · <a href="/console/systems/{{ s.system_id }}?lang={{ lang }}">{{ s.name }}</a>{% endfor %}</p>
+  {% set irows = [] %}{% for f, v in intake %}{% set _ = irows.append((t('mya_f_' ~ f), v if v is not none else None)) %}{% endfor %}
+  {{ ui.kv([
+    (t('mya_reg_stage'), sys.lifecycle_stage),
+    (t('mya_reg_class'), sys.decision33_class),
+    (t('mya_col_autonomy'), sys.autonomy_level),
+    (t('risk'), sys.effective_risk_level),
+  ] + irows) }}
+  {% else %}
+  <p class="muted">{{ t('mya_reg_no_system') }}</p>
+  {% endif %}
+</section>
+</div>
+<div class="grid g2">
+<section class="card" data-section="description">
+  <h3>{{ t('mya_reg_description') }}</h3>
+  <p data-description="{{ 'purpose' if description.text else 'built' }}">{{ description.text if description.text else t(description.key, **description.args) }}</p>
+</section>
+<section class="card" data-section="assessment">
+  <h3>{{ t('mya_reg_assessment') }}</h3>
+  {{ ui.kv([
+    (t('mya_reg_d33'), assess.d33 if assess.d33 else t('d33_none')),
+    (t('mya_reg_d33_source'), (t('mya_src_' ~ assess.d33_source) if t('mya_src_' ~ assess.d33_source) != 'mya_src_' ~ assess.d33_source else assess.d33_source) if assess.d33_source else None),
+    (t('mya_reg_risk_level'), t(assess.risk) if assess.risk else None),
+    (t('mya_reg_risk_source'), (t('mya_src_' ~ assess.risk_source) if t('mya_src_' ~ assess.risk_source) != 'mya_src_' ~ assess.risk_source else assess.risk_source) if assess.risk_source else None),
+  ]) }}
+</section>
+</div>
+<section class="card" data-section="action">
+  <h3>{{ t('mya_col_action') }}</h3>
+  <p data-action="{{ action.key }}">{% if action.key == 'none' %}<span class="muted">{{ t(action.text_key) }}</span>{% elif action.href %}<a class="btn" href="{{ action.href }}{{ '&amp;' if '?' in action.href else '?' }}lang={{ lang }}">{{ t(action.text_key, **action.args) }}</a>{% else %}{{ t(action.text_key, **action.args) }}{% endif %}</p>
+</section>
+</div>

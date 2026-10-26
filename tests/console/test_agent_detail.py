@@ -21,6 +21,7 @@ FLAGS = (
     "risk_register_enabled",
     "console_transparency_enabled",  # WP31
     "transparency_enabled",
+    "console_my_agents",  # WP-N2: the Register and Guardians tabs
 )
 DEMO_AGENTS = ("payments", "credit_prequal", "customer_service")
 HX = {"HX-Request": "true"}
