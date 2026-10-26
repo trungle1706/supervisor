@@ -393,6 +393,7 @@ def review_view(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
         fields_of(ctx, me, draft)
     except SupervisorError as exc:
         problems.append(str(exc))
+    cls = class_view(ctx, me, draft)
     return {
         "values": v,
         "marks": {f: mark(draft, f) for f in (*rm.STEP1, *rm.STEP2)},
@@ -401,6 +402,9 @@ def review_view(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
         "off": [s for s in draft["data"].get("off") or []],
         "q_n": len(draft["data"].get("q") or {}),
         "problems": problems,
+        "outcome": cls["outcome"] if cls["ready"] else None,
+        "rule_id": cls.get("rule_id", ""),
+        "readiness": (draft["data"].get("check") or {}).get("total"),
         "source_kind": draft["source_kind"],
         "node": draft.get("source_ref") if draft["source_kind"] == "scan" else None,
     }
@@ -569,11 +573,17 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
     agent_id = str(v.get("agent_id") or "")
     plan = agent_plan(ctx, agent_id, draft)
     sysdraft = system_draft(ctx, me, draft)
-    out = ctx.systems.register(sysdraft, actor, for_user=me)
+    # claim the draft first (optimistic version check): a second submit of the same draft, even a
+    # concurrent one, finds it submitted or loses the version race, and writes nothing
+    draft = store_of(ctx).save(draft, step=rm.STEPS, status="submitted")
+    try:
+        out = ctx.systems.register(sysdraft, actor, for_user=me)
+    except BaseException:
+        # nothing was written: give the draft back so the person can fix it
+        store_of(ctx).release(draft)
+        raise
     sid = str(out["system_id"])
-    data = dict(draft["data"])
-    data["result"] = {"system_id": sid}
-    draft = store_of(ctx).save(draft, data=data, step=rm.STEPS, status="submitted")
+    draft = store_of(ctx).keep_system(draft, sid)
     data = draft["data"]
     steps: list[dict[str, str]] = []
     _step(steps, "rg2_w_system", "ok", sid)
@@ -583,10 +593,17 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
         try:
             _create_agent(ctx, me, agent_id)
             _step(steps, "rg2_w_agent", "ok", agent_id)
-        except SupervisorError as exc:
+        except Exception as exc:  # noqa: BLE001 - e.g. the policy changed since the plan
+            if not isinstance(exc, SupervisorError):
+                log.exception("register_v2: agent row failed")
             plan["link_row"] = False
             plan["task_policy"] = True
-            _step(steps, "rg2_w_agent", "failed", str(exc)[:200])
+            _step(
+                steps,
+                "rg2_w_agent",
+                "failed",
+                str(exc)[:200] if isinstance(exc, SupervisorError) else "",
+            )
     elif agent_id:
         _step(steps, "rg2_w_agent", "skipped", agent_id)
     # --- the links ---

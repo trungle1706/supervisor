@@ -727,3 +727,10 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 @media (max-width: 600px) { .rg2-steps li { font-size: 11px; padding: 3px 8px; } }
 .rg2-proposal { padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); font-size: 13px; line-height: 1.5; }
 .rg2-q select, .rg2-q input { min-width: 96px; }
+/* stack the step 4 and 5 tables on a narrow screen: every column stays visible */
+@media (max-width: 600px) {
+  table[data-table="questions"] thead, table[data-table="guardians"] thead { display: none; }
+  table[data-table="questions"] tr, table[data-table="guardians"] tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  table[data-table="questions"] td, table[data-table="guardians"] td { display: block; border: 0; padding: 4px 8px; }
+  table[data-table="questions"] td input[type=text] { width: 100%; box-sizing: border-box; }
+}

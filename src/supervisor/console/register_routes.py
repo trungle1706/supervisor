@@ -50,7 +50,7 @@ def _person(me: AuthPrincipal) -> str:
 
 
 def _step_no(raw: str) -> int:
-    if not raw.isdigit() or not 1 <= int(raw) <= rm.STEPS:
+    if not (raw.isascii() and raw.isdigit()) or not 1 <= int(raw) <= rm.STEPS:
         raise rm.RegisterError("step", f"must be 1 to {rm.STEPS}")
     return int(raw)
 

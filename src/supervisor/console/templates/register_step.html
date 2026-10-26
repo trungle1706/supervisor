@@ -175,6 +175,10 @@
     <dl class="kv">{% for f in ['purpose', 'system_type', 'org_role', 'user_segment', 'personal_data', 'human_control', 'autonomy_level', 'money_movement', 'credit_decision', 'model_family', 'data_sources'] %}<dt>{{ t('rg2_f_' ~ f) }} {{ mark(f) }}</dt><dd>{{ valtxt(f, r['values'].get(f)) }}</dd>{% endfor %}</dl>
   </section>
   <section>
+    <h3>{{ t('rg2_step_3') }}</h3>
+    <p data-register="review-check">{% if r.readiness is not none %}{{ t('rg2_chk_readiness') }}: {{ r.readiness }}{% else %}{{ t('rg2_fix_readiness_run') }}{% endif %}</p>
+    <h3>{{ t('rg2_step_4') }}</h3>
+    <p data-register="review-class">{% if r.outcome %}{{ t('sy_d33_' ~ r.outcome) }}{% if r.rule_id %} - <code>{{ r.rule_id }}</code>{% endif %}{% else %}-{% endif %}</p>
     <h3>{{ t('rg2_will_write') }}</h3>
     <ul data-register="writes">
       <li>{{ t('rg2_w_system') }}</li><li>{{ t('rg2_w_team') }}</li>

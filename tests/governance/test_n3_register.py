@@ -465,3 +465,72 @@ def test_all_steps_render_in_both_languages(reg: Console, lang: str) -> None:
     assert submit(reg, did).status_code == 200
     page = reg.get(f"/console/register/{did}/result?lang={lang}")
     assert page.status_code == 200 and "rg2_" not in _bare(page.text)
+
+
+# ------------------------------------------------------------------ review (fuzz, double submit)
+
+
+def test_fuzz_bad_input_is_never_500(reg: Console) -> None:
+    did = new(reg)
+    for n in ("0", "7", "abc", "-1", "²", "1.5", "99999999999999999999", "%00"):
+        for method in ("get", "post"):
+            r = (
+                reg.get(f"/console/register/{did}/step/{n}")
+                if method == "get"
+                else reg.post(f"/console/register/{did}/step/{n}", {}, user=ME)
+            )
+            assert r.status_code < 500, (n, method, r.status_code)
+    for q in (
+        "?from=../",
+        "?from=%00",
+        "?from=" + "a" * 5000,
+        "?agent=<script>",
+        "?agent=x&from=y",
+    ):
+        r = reg.get("/console/register/new" + q, follow_redirects=False)
+        assert r.status_code in (302, 303, 307, 400), (q, r.status_code)
+    for bad in ("rd_" + "0" * 20, "../x", "rd_<script>", "x" * 3000, "rd_%00"):
+        for path in ("step/1", "result"):
+            assert reg.get(f"/console/register/{bad}/{path}").status_code < 500
+        assert reg.post(f"/console/register/{bad}/submit", {}, user=ME).status_code < 500
+        assert reg.post(f"/console/register/{bad}/abandon", {}, user=ME).status_code < 500
+    long = "x" * 100_000
+    forms = [
+        {"name": long},
+        {"description": long},
+        {"kind": "zzz", "name": "a"},
+        {"agent_id": "<script>"},
+        {"name": "a\x00b"},
+        {"accept": "nope"},
+        {"accept": "*"},
+        {"run": "1", "repo_path": "../../etc"},
+    ]
+    for n in range(1, 7):
+        for f in forms:
+            assert reg.post(f"/console/register/{did}/step/{n}", f, user=ME).status_code < 500
+    assert step(reg, did, 1, S1).status_code == 200
+    for f in (
+        {"purpose": long},
+        {"system_type": "bad"},
+        {"autonomy_level": "bad"},
+        {"model_family": "a b c"},
+        {"data_sources": long},
+    ):
+        assert reg.post(f"/console/register/{did}/step/2", f, user=ME).status_code < 500
+    for f in ({"a_Q-PRE-APPROVAL": "yes", "j_Q-PRE-APPROVAL": long}, {"a_nope": "yes"}):
+        assert reg.post(f"/console/register/{did}/step/4", f, user=ME).status_code < 500
+    assert (
+        reg.post(f"/console/register/{did}/step/5", {"bind_form": "1"}, user=ME).status_code < 500
+    )
+
+
+def test_submit_twice_writes_once_and_submitted_draft_is_not_editable(reg: Console) -> None:
+    did = new(reg)
+    fill_all(reg, did)
+    assert submit(reg, did).status_code == 200
+    n = len(rows(reg, "ai_system"))
+    assert submit(reg, did).status_code == 400
+    assert step(reg, did, 1, S1).status_code == 400
+    assert reg.post(f"/console/register/{did}/abandon", {}, user=ME).status_code == 400
+    assert len(rows(reg, "ai_system")) == n == 1
+    assert reg.get(f"/console/register/{did}/result").status_code == 200

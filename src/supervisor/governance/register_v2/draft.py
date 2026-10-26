@@ -145,3 +145,24 @@ class DraftStore:
         except ConcurrencyError:
             return draft  # the result page then shows the system only
         return _view(dict(row))
+
+    def release(self, draft: dict[str, Any]) -> None:
+        """Give a claimed draft back (the submit wrote nothing)."""
+        self.state.update(
+            "registration_draft",
+            {"draft_id": draft["draft_id"]},
+            {"status": "draft"},
+            int(draft["row_version"]),
+        )
+
+    def keep_system(self, draft: dict[str, Any], system_id: str) -> dict[str, Any]:
+        """Note the new system id on a claimed (submitted) draft."""
+        data = dict(draft["data"])
+        data["result"] = {"system_id": system_id}
+        row = self.state.update(
+            "registration_draft",
+            {"draft_id": draft["draft_id"]},
+            {"data": json.dumps(data, sort_keys=True)},
+            int(draft["row_version"]),
+        )
+        return _view(dict(row))
