@@ -46,7 +46,7 @@
 <p class="rg2-buttons">
   {% if step > 1 %}<a class="chipbtn" href="{{ base }}/step/{{ step - 1 }}?lang={{ lang }}">{{ t('rg2_back') }}</a>{% endif %}
   <button class="btn" type="submit">{{ t('rg2_continue') }}</button>
-  <button class="chipbtn" type="submit" formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('rg2_save_later') }}</button>
+  <button class="chipbtn" type="submit" formnovalidate formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('rg2_save_later') }}</button>
   <a href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a>
 </p>
 {% endmacro %}
@@ -157,7 +157,8 @@
       <td>{% if r.locked %}{{ ui.pill(t('rg2_floor_on'), 'ok') }} <span class="hint">{{ r.floor_rules|join(', ') }}</span>
       {% elif not r.instance_on %}{{ ui.pill(t('rg2_unavailable'), 'neutral') }} <span class="hint">{{ t('rg2_needs', flag=r.needs) }}</span>
       {% elif not g.bindings_on %}{{ ui.pill(t('rg2_on'), 'ok') }}
-      {% else %}<label class="chk"><input type="checkbox" name="on_{{ r.slug }}" value="1"{% if not r.off %} checked{% endif %}> {{ t('rg2_on') }}</label>{% endif %}</td></tr>
+      {% else %}<label class="chk"><input type="checkbox" name="on_{{ r.slug }}" value="1"{% if not r.off %} checked{% endif %}> {{ t('rg2_on') }}</label>
+        <br><label class="hint">{{ t('rg2_off_reason') }} <input type="text" name="why_{{ r.slug }}" value="{{ r.why }}" maxlength="500" data-why="{{ r.slug }}"></label>{% endif %}</td></tr>
     {% endfor %}
     </tbody></table></div>
   <p class="hint">{{ t('rg2_guardian_hint') }}</p>

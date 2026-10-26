@@ -375,7 +375,7 @@ def test_duplicate_name_is_400_at_step_1(reg: Console) -> None:
 def test_save_for_later_and_resume(reg: Console) -> None:
     did = new(reg)
     r = step(reg, did, 1, {"name": "Half done", "kind": "job"}, save=True)
-    assert r.status_code == 200 and r.headers["HX-Redirect"].endswith(f"/{did}/step/1")
+    assert r.status_code == 200 and r.headers["HX-Redirect"] == "/console/register?saved=1"
     lst = reg.get("/console/register?lang=en").text
     assert did in lst and "Half done" in lst and "Resume" in lst
     page = reg.get(f"/console/register/{did}/step/1?lang=en").text

@@ -63,11 +63,8 @@ def load_candidates(ctx: Any) -> list[dict[str, Any]] | None:
     if not ctx.settings.inventory_enabled:
         return None
     g = InventoryService.from_adapters(ctx.runtime.adapters).store.load_graph()
-    taken = {
-        str(c["ref_id"])
-        for c in ctx.state.query("system_component", {"ref_kind": "node"})
-        if _on(c["active"])
-    }
+    # any component row covers the node, active or not (a removed link keeps the history)
+    taken = {str(c["ref_id"]) for c in ctx.state.query("system_component", {"ref_kind": "node"})}
     return triage.triage(g, exclude=taken)
 
 

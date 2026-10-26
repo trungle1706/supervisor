@@ -80,7 +80,7 @@ def json_of(value: Any, default: Any) -> Any:
 
 
 def empty_data() -> dict[str, Any]:
-    return {"v": {}, "sg": {}, "repo_path": "", "q": {}, "off": []}
+    return {"v": {}, "sg": {}, "repo_path": "", "q": {}, "off": [], "off_why": {}}
 
 
 def clean_field(name: str, raw: Any) -> Any:

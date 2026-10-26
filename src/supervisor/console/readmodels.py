@@ -548,7 +548,8 @@ def agent_cards(ctx: Any, me: Any, only: str | None = None) -> list[dict[str, An
         except SupervisorError:
             desc = {"state": a["gate_state"], "pending_resume": []}
         state = desc["state"]
-        pending = desc.get("pending_resume") or []
+        # an approval answers one pause: a state other than PAUSED has none waiting (M18)
+        pending = (desc.get("pending_resume") or []) if state == "PAUSED" else []
         scoped = [
             r
             for r in rules.values()
