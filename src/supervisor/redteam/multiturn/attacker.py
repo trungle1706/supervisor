@@ -140,14 +140,31 @@ def build_attacker(settings: Any) -> Attacker:
     from supervisor.adapters.llm.openai_compatible import OpenAICompatibleChat
 
     secret = settings.llm_api_key
-    chat = OpenAICompatibleChat(
-        settings.llm_base_url,
-        model,
-        api_key=secret.get_secret_value() if secret else None,
-        timeout_s=float(min(settings.llm_timeout_s, 300)),
-        max_tokens=512,
-        strict_schema=settings.llm_strict_schema,
-        send_temperature=settings.llm_send_temperature,
-        api_shape=getattr(settings, "llm_api_shape", "chat"),
-    )
+    chat: Any
+    if secret is None and settings.is_workspace_serving_url(settings.llm_base_url):
+        # WP-L1: workspace endpoint or AI Gateway, authenticated as the App's own identity.
+        from supervisor.adapters.sql.databricks_rest import make_workspace_client
+        from supervisor.databricks.serving import DatabricksServingChat
+
+        chat = DatabricksServingChat(
+            settings.llm_base_url,
+            model,
+            make_workspace_client(settings).config.authenticate,
+            timeout_s=float(min(settings.llm_timeout_s, 300)),
+            max_tokens=512,
+            strict_schema=settings.llm_strict_schema,
+            send_temperature=settings.llm_send_temperature,
+            api_shape=getattr(settings, "llm_api_shape", "chat"),
+        )
+    else:
+        chat = OpenAICompatibleChat(
+            settings.llm_base_url,
+            model,
+            api_key=secret.get_secret_value() if secret else None,
+            timeout_s=float(min(settings.llm_timeout_s, 300)),
+            max_tokens=512,
+            strict_schema=settings.llm_strict_schema,
+            send_temperature=settings.llm_send_temperature,
+            api_shape=getattr(settings, "llm_api_shape", "chat"),
+        )
     return LlmAttacker(chat)

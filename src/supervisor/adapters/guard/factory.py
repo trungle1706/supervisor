@@ -41,7 +41,10 @@ def _is_workspace_url(settings: Settings, url: str) -> bool:
     if settings.supervisor_mode != "databricks_app" or not settings.databricks_host:
         return False
     base = settings.serving_base_url.rstrip("/")
-    return url.rstrip("/") == base or url.startswith(base + "/")
+    if url.rstrip("/") == base or url.startswith(base + "/"):
+        return True
+    # WP-L1: the workspace AI Gateway (Unity Catalog model services) is also the workspace itself.
+    return bool(settings.is_workspace_serving_url(url))
 
 
 def check_guard_family(
@@ -142,17 +145,34 @@ def make_guard_model(
             if other is not None and url_of and url_of.rstrip("/") == norm:
                 secret = other.get_secret_value()
                 break
-    chat = OpenAICompatibleChat(
-        base_url,
-        model,
-        api_key=secret,
-        timeout_s=timeout_s,
-        max_tokens=64,
-        strict_schema=settings.llm_strict_schema,
-        send_temperature=settings.llm_send_temperature,
-        api_shape=getattr(settings, "llm_api_shape", "chat"),
-        transport=transport,
-    )
+    chat: Any
+    if secret is None and _is_workspace_url(settings, base_url):
+        # WP-L1: workspace endpoint or AI Gateway, authenticated as the App's own identity.
+        from supervisor.databricks.serving import DatabricksServingChat
+
+        chat = DatabricksServingChat(
+            base_url,
+            model,
+            _workspace_headers(settings, client),
+            timeout_s=timeout_s,
+            max_tokens=64,
+            strict_schema=settings.llm_strict_schema,
+            send_temperature=settings.llm_send_temperature,
+            api_shape=getattr(settings, "llm_api_shape", "chat"),
+            transport=transport,
+        )
+    else:
+        chat = OpenAICompatibleChat(
+            base_url,
+            model,
+            api_key=secret,
+            timeout_s=timeout_s,
+            max_tokens=64,
+            strict_schema=settings.llm_strict_schema,
+            send_temperature=settings.llm_send_temperature,
+            api_shape=getattr(settings, "llm_api_shape", "chat"),
+            transport=transport,
+        )
     try:
         chat.family, chat.family_source = resolve_family(
             "GUARD_MODEL_NAME",
