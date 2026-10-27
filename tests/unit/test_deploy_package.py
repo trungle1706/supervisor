@@ -119,7 +119,7 @@ def test_databricks_yml_stays_valid_and_has_no_variables() -> None:
     text = (REPO_ROOT / "databricks.yml").read_text(encoding="utf-8")
     doc = yaml.safe_load(text)
     res = doc["resources"]["apps"]["supervisor"]["resources"]
-    assert [r["name"] for r in res] == ["sql-warehouse", "llm-endpoint"]
+    assert [r["name"] for r in res] == ["sql-warehouse"]
     assert "guard-model-endpoint" in text  # present, commented out
     assert "variables:" not in text and "secret_scope" not in text and "${var." not in text
 

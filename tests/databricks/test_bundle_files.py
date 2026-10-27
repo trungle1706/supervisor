@@ -37,11 +37,9 @@ def test_bundle_parses_and_has_required_keys() -> None:
     assert app["source_code_path"] == "./"
     assert app["user_api_scopes"] == ["sql"]
     res = {r["name"]: r for r in app["resources"]}
-    assert set(res) == {"sql-warehouse", "llm-endpoint"}
+    assert set(res) == {"sql-warehouse"}  # WP-L1: the model service is not a bound endpoint
     assert res["sql-warehouse"]["sql_warehouse"]["permission"] == "CAN_USE"
     assert res["sql-warehouse"]["sql_warehouse"]["id"].startswith("FILL-ME")
-    assert res["llm-endpoint"]["serving_endpoint"]["permission"] == "CAN_QUERY"
-    assert res["llm-endpoint"]["serving_endpoint"]["name"].startswith("FILL-ME")
 
 
 def test_bundle_targets_dev_default_and_prod_distinct_names() -> None:
@@ -137,7 +135,8 @@ def test_app_yaml_command_and_env() -> None:
     assert env["SCHEDULER_ENABLED"]["value"] == "1"
     for name in ("DATA_DIR", "SPOOL_DIR", "ANCHOR_PATH"):
         assert env[name]["value"].startswith("/Volumes/FILL-ME-catalog/"), name
-    assert env["LLM_ENDPOINT"] == {"name": "LLM_ENDPOINT", "valueFrom": "llm-endpoint"}
+    assert "LLM_ENDPOINT" not in env  # WP-L1: AI Gateway lines instead
+    assert env["LLM_API_SHAPE"]["value"] == "responses"
     assert env["DATABRICKS_WAREHOUSE_ID"] == {
         "name": "DATABRICKS_WAREHOUSE_ID",
         "valueFrom": "sql-warehouse",
@@ -146,7 +145,7 @@ def test_app_yaml_command_and_env() -> None:
     bound = {r["name"] for r in _app(_load(BUNDLE))["resources"]}
     assert {e["valueFrom"] for e in a["env"] if "valueFrom" in e} <= bound
     # the platform injects these; the file must not set them
-    for name in ("DATABRICKS_TOKEN", "DATABRICKS_CLIENT_SECRET", "DATABRICKS_HOST", "LLM_BASE_URL"):
+    for name in ("DATABRICKS_TOKEN", "DATABRICKS_CLIENT_SECRET", "DATABRICKS_HOST"):
         assert name not in env, name
     assert "uv run" not in APP.read_text(encoding="utf-8").replace("never uv run", "")
 
@@ -166,10 +165,9 @@ def test_app_env_loads_as_settings(monkeypatch: Any, tmp_path: Any) -> None:
     from supervisor.config import load_settings
 
     for e in _load(APP)["env"]:
-        value = (
-            e.get("value")
-            or {"sql-warehouse": "wh01", "llm-endpoint": "my-endpoint"}[e["valueFrom"]]
-        )
+        value = e.get("value") or {"sql-warehouse": "wh01"}[e["valueFrom"]]
+        value = value.replace("FILL-ME-workspace-host", "example-workspace.invalid")
+        value = value.replace("FILL-ME-model-service", "glm-5")
         value = value.replace("FILL-ME-catalog", "cat").replace("FILL-ME-schema", "sch")
         value = value.replace("FILL-ME-volume", "vol")
         monkeypatch.setenv(e["name"], value)
@@ -181,8 +179,9 @@ def test_app_env_loads_as_settings(monkeypatch: Any, tmp_path: Any) -> None:
     assert s.effective_sql_backend == "databricks_rest"
     assert s.databricks_auth_kind == "service_principal"
     assert s.databricks_host == "https://example-workspace.invalid"
-    assert s.llm_base_url == "https://example-workspace.invalid/serving-endpoints"
-    assert s.llm_model == "my-endpoint" and s.llm_uses_workspace_auth
+    assert s.llm_base_url == "https://example-workspace.invalid/ai-gateway/mlflow/v1"
+    assert s.llm_model == "cat.sch.glm-5" and s.llm_uses_workspace_auth
+    assert s.llm_api_shape == "responses"
     assert str(s.recorder_spool_dir) == "/Volumes/cat/sch/vol/supervisor/spool"
     # this host has no /Volumes mount: DATA_DIR falls back to the container disk, loudly
     assert s.data_dir_requested == "/Volumes/cat/sch/vol/supervisor/data"

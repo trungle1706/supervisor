@@ -49,20 +49,23 @@ resources:
         # which scope the gateway needs.
         # - serving.serving-endpoints
       resources:
-        # app.yaml reads these with valueFrom: sql-warehouse -> warehouse id,
-        # llm-endpoint -> serving endpoint name.
+        # app.yaml reads this with valueFrom: sql-warehouse -> warehouse id.
         - name: sql-warehouse
           description: "SQL warehouse for the Supervisor tables (Statement Execution API)"
           sql_warehouse:
             id: FILL-ME-warehouse-id
             permission: CAN_USE
-        # Model is a Unity Catalog model service (AI Gateway)? Remove this resource and use the
-        # commented LLM_BASE_URL / LLM_MODEL / LLM_API_SHAPE block in app.yaml.
-        - name: llm-endpoint
-          description: "Existing model-serving endpoint for the judges (OpenAI-compatible)"
-          serving_endpoint:
-            name: FILL-ME-serving-endpoint-name
-            permission: CAN_QUERY
+        # The chat model is a Unity Catalog model service (AI Gateway), not a classic serving
+        # endpoint: a serving_endpoint resource gives a 404 on deploy, so there is none. app.yaml
+        # sets LLM_BASE_URL / LLM_MODEL / LLM_API_SHAPE. To use a CLASSIC endpoint instead, add:
+        #   - name: llm-endpoint
+        #     description: "Existing model-serving endpoint for the judges"
+        #     serving_endpoint:
+        #       name: FILL-ME-serving-endpoint-name
+        #       permission: CAN_QUERY
+        # and in app.yaml replace the three LLM_* lines with
+        #   - name: LLM_ENDPOINT
+        #     valueFrom: llm-endpoint
         # v0.5.0, optional: an existing serving endpoint for the guard model (phase 5 detector,
         # NO-GO until a real model run, docs/guard-model-decision.md). Uncomment it, fill in the
         # name, and put the same endpoint URL in GUARD_MODEL_URL in app.yaml. The App cannot

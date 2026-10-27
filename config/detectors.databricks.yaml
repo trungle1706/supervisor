@@ -1,0 +1,115 @@
+# WP-L1: detector settings for the Databricks App (app.yaml sets DETECTORS_CONFIG to this file).
+# Copy of config/detectors.yaml with the three model-backed detectors ON: judge_advisory,
+# judge_moderation (toxicity on) and guard_model. All three report only: fail_closed false,
+# pause_tool_classes empty, mrm_status unchanged. config/detectors.yaml keeps the defaults.
+# Detector settings (WP37, docs/detectors.md). Read only when DETECTORS_ENABLED=1.
+# A per-agent override goes in the policy file: agents.<id>.detectors (preset, enable, disable,
+# settings, skip_tools). Presets are named thresholds in basis points, frozen per detector
+# version; the values are ILLUSTRATIVE until the bank sets them (see the catalogue:
+# GET /v1/gate/detectors, or python -m supervisor.detectors.harness --catalogue).
+# limits.timeout_ms is 5000 (not 500): a model call needs seconds. Three model detectors run one
+# after the other, so 3 x 5 s stays inside the App gate budget (GATE_DECISION_TIMEOUT_S=20).
+version: 1
+default_preset: balanced        # strict | balanced | lenient
+limits:
+  max_payload_chars: 100000     # above this no detector runs: reason payload_too_large
+  timeout_ms: 5000              # the gate waits at most this per detector: reason timed_out
+  # A detector that is set fail_closed and cannot run blocks a call to a tool of these risk
+  # classes (rule GATE-DETECTOR-FAILED). On any other tool the failure is only listed.
+  fail_closed_risk_classes: [money, credit, pii_export]
+  # WP-D1: the most text of the documents (context.documents) that each detector reads per call.
+  # Documents have their own budget: they do not count in max_payload_chars or in the shared scan
+  # budget, so a long document cannot switch off the scan of the arguments. A document beyond it
+  # is cut (coverage payload_too_large). On a pii_export tool the cut part is not masked, so that
+  # call fails closed (GATE-DETECTOR-FAILED) for the cut document; the rest is still scored.
+  document_max_scan_bytes: 262144
+detectors:
+  # mrm_status (WP41): GO or NO-GO from the model risk validation. Only a deterministic detector
+  # (dlp_vn, injection_regex) or one with GO counts in the session monitor's `findings` signal;
+  # the findings of any other are recorded there and weigh 0 (docs/session-monitor.md).
+  dlp_vn:                       # Vietnamese personal data; the only detector that may transform
+    enabled: true
+    fail_closed: true
+    mrm_status: GO              # deterministic
+    settings:
+      mode: transform           # transform | report
+      transform_risk_classes: [pii_export]
+      transform_tools: []
+  injection_regex:              # prompt-injection patterns; report only
+    enabled: true
+    fail_closed: true
+    mrm_status: GO              # deterministic
+    settings: {}
+  injection_classifier:         # WP25 local classifier (Vietnamese and English), see
+    enabled: false              # docs/injection-classifier.md. OFF by default: the `enabled` key
+    fail_closed: false          # of this entry is the only switch. It may only PAUSE money and
+    mrm_status: NO-GO           # held-out recall 8111 bp, false alarm 2522 bp: weighs 0 in sessions
+    settings:                   # credit tools (rule GATE-CLASSIFIER-PAUSE), so an outage never
+      scan_tool_results: true   # stops payments (R1): not fail closed.
+      scan_tool_descriptions: true
+      pause_tool_classes: [money, credit]   # empty list = report only
+      # pause_threshold_bp is frozen per model version (it can only be raised)
+  judge_advisory:               # Tier 1 judge opinion; report only, never fail closed (R1:
+                                # fail_closed: true is ignored for an advisory detector).
+    enabled: true               # On (WP-L1): a real judge model is slow. With no judge model set it
+    fail_closed: false          # uses the mock judge and every finding is labelled mock.
+    mrm_status: NO-GO           # an advisor: weighs 0 in sessions
+    settings: {}
+  # WP-D2: dlp_vn secrets group, custom rules and mask tokens (docs/detectors.md section 3d).
+  # Nothing to switch on here by default: with `secrets` absent and `custom_rules` empty dlp_vn
+  # behaves exactly as before. To use them, add under detectors.dlp_vn.settings above:
+  #   secrets: {enabled: true, action: report}      # report (default) | block
+  #   custom_rules:
+  #     - {id: proj, kind: regex, pattern: "PRJ-[0-9]{4}-[A-Z]{2}"}
+  #     - {id: conf, kind: keyword, pattern: "CONFIDENTIAL", mask_token: "[HIDDEN]"}
+  #     - {id: emp, kind: regex, pattern: "EMP[0-9]{5}", preserve_length: true}
+  #   mask_tokens: {pii.phone: "<PHONE>"}
+  # action: block makes a secret in a tool argument the rule GATE-SECRET-IN-ARGS on every tool
+  # class. In report mode a secret in the arguments of a tool OUTSIDE the transform scope
+  # (transform_risk_classes / transform_tools) reaches the tool as sent: use action: block for
+  # money and credit tools. A bad or risky regex (nested quantifiers) stops the load with a message.
+  # WP-D4: toxicity and topic scope by the judge model. Report only, never fail closed (R1).
+  # Both questions are off until you set them: toxicity.enabled, or topics (at most 5 entries,
+  # each {name, definition}; definition up to 400 characters; the definition is what is scored).
+  # Editable drafts to copy from: config/moderation_topics.yaml (none of them is enabled).
+  judge_moderation:
+    enabled: true               # On (WP-L1): every question is one judge call per text window. With no
+    fail_closed: false          # judge model set it uses the mock judge (labelled mock).
+    mrm_status: NO-GO           # an advisor: weighs 0 in sessions until a real judge run says GO
+    settings:
+      toxicity: {enabled: true}
+      topics: []
+      # max_calls: 12      # hard cap of model calls per check (one call per text window)
+      # timeout_ms: 8000   # this detector's own deadline; empty = limits.timeout_ms. A real judge
+      #                    # model needs seconds; it stops asking at 80 percent of this value.
+  # WP-D3 --- guard_model: ML jailbreak and indirect-injection scoring through a configured model
+  # (docs/detectors.md section 3d, docs/guard-model-decision.md). OFF by default; the `enabled`
+  # key is the only switch. The model comes from GUARD_MODEL_* in the environment (no URL = the
+  # labelled mock). Findings only. It may pause money and credit tools only when
+  # pause_tool_classes is set AND data/models/guard_model/model_card.json carries an approval that
+  # names the approver and the model id (rule GATE-CLASSIFIER-PAUSE). Never fail closed: an outage
+  # is a timed_out / execution_failed row (R1). Raise limits.timeout_ms before a real endpoint.
+  guard_model:
+    enabled: true 
+    fail_closed: false
+    mrm_status: NO-GO           # no real run yet: weighs 0 in sessions
+    preset: balanced            # permissive | balanced | strict (lenient = permissive)
+    settings:
+      scan_args: true           # jailbreak in user text fields
+      scan_tool_results: true   # indirect injection (and the output side)
+      scan_tool_descriptions: true
+      scan_documents: true      # text extracted by the document intake (WP-D1)
+      pause_tool_classes: []    # e.g. [money, credit]; empty = report only
+      max_windows: 12           # 2,000-character windows per call
+  # WP-D1: document and URL intake (docs/detectors.md "Documents and URLs"). It reports what
+  # happened when the gate read context.documents: document.uninspectable, document.limit_exceeded,
+  # url.ssrf_refused, url.domain_blocked. The switch for the feature is DOCUMENT_INTAKE_ENABLED
+  # (default 0, and then this entry never runs). The text of the documents is scored by
+  # injection_regex and dlp_vn, whatever this entry says. fail_closed: true makes an unread
+  # document (image, scan, damaged file) on a money, credit or pii_export tool a block
+  # (GATE-DETECTOR-FAILED); false only lists it.
+  document_intake:
+    enabled: true
+    fail_closed: true
+    mrm_status: GO              # deterministic; harness rows document_injection_vi,
+    settings: {}                # document_pii_vi and url_ssrf are GO (docs/document-intake-validation-report.md)

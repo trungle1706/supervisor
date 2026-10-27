@@ -174,8 +174,8 @@ Design for both from day one: **one codebase, the environment chosen by config o
   env:
     - name: PYTHONPATH
       value: "src"            # src-layout import without installing the project
-    - name: LLM_ENDPOINT
-      valueFrom: llm-endpoint # bound from the bundle resource
+    - name: LLM_BASE_URL      # AI Gateway model service (WP-L1), no bundle resource
+      value: "https://FILL-ME-workspace-host/ai-gateway/mlflow/v1"
     - name: DATABRICKS_WAREHOUSE_ID
       valueFrom: sql-warehouse
   ```

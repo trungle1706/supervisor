@@ -57,20 +57,51 @@ env:
     value: "FILL-ME-schema"
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: sql-warehouse
-  # Serving endpoint name. LLM_BASE_URL is derived: https://<DATABRICKS_HOST>/serving-endpoints
-  # (the workspace's own endpoint, so LLM_ALLOW_REMOTE is implied for that URL only).
-  - name: LLM_ENDPOINT
-    valueFrom: llm-endpoint
-  # ALTERNATIVE (WP-P3): the chat model is a Unity Catalog model service (AI Gateway), not a
-  # classic serving endpoint. Then REMOVE the `llm-endpoint` resource in databricks.yml, drop
-  # the LLM_ENDPOINT lines above, and use these three lines instead. The App service principal
-  # needs EXECUTE (or the equivalent) on the model service in Unity Catalog.
-  # - name: LLM_BASE_URL
-  #   value: "https://FILL-ME-workspace-host/ai-gateway/mlflow/v1"
-  # - name: LLM_MODEL
-  #   value: "FILL-ME-catalog.FILL-ME-schema.FILL-ME-model-service"
-  # - name: LLM_API_SHAPE
-  #   value: "responses"
+  # The chat model is a Unity Catalog model service behind the Databricks AI Gateway (WP-P3), not
+  # a classic serving endpoint, so there is no `llm-endpoint` resource in databricks.yml. The App
+  # service principal needs EXECUTE (or the equivalent) on the model service in Unity Catalog.
+  # The model family (glm) is derived from the 3-part name. Set LLM_API_SHAPE=chat if the gateway
+  # only accepts /chat/completions.
+  - name: LLM_BASE_URL
+    value: "https://FILL-ME-workspace-host/ai-gateway/mlflow/v1"
+  - name: LLM_MODEL
+    value: "FILL-ME-catalog.FILL-ME-schema.FILL-ME-model-service"
+  - name: LLM_API_SHAPE
+    value: "responses"
+
+  # ---- LLM-empowered features (WP-L1). Every one uses the model above. All of them ADVISE only:
+  # no model answer blocks or pauses a call, and only deterministic rules do that. Set a value to
+  # "0" (or empty for a model name) to switch the feature off. Details: docs/llm-features.md.
+  # Judge (Tier 1, Tier 2, challenger): reads masked traces and writes an opinion; may open a case.
+  - name: JUDGE_ENABLED
+    value: "1"
+  # Same model as the chat model; the judge family (glm) must differ from every agent family.
+  - name: JUDGE_T1_MODEL
+    value: "FILL-ME-catalog.FILL-ME-schema.FILL-ME-model-service"
+  # Detectors that call the model at the gate (judge_advisory, judge_moderation, guard_model) are
+  # switched on in this file; they only report findings and never fail closed.
+  - name: DETECTORS_CONFIG
+    value: "config/detectors.databricks.yaml"
+  # Guard model through the same chat adapter and gateway: scores jailbreak text; findings only.
+  - name: GUARD_MODEL_ADAPTER
+    value: "chat"
+  # Decision 33: the model fills a draft of the classification answers; a person applies them.
+  - name: CLASSIFIER_AI_PREFILL
+    value: "1"
+  # Integration advisor (reads a repo and suggests wiring) and compliance advisor (suggests a
+  # compliance matrix), as onboarding stages and as console tabs. Suggestions only.
+  - name: ONBOARD_ADVISOR_ENABLED
+    value: "1"
+  - name: ONBOARD_COMPLIANCE_ENABLED
+    value: "1"
+  - name: CONSOLE_INTEGRATION_ENABLED
+    value: "1"
+  - name: CONSOLE_COMPLIANCE_ENABLED
+    value: "1"
+  # Red team attacker: the model writes the attack turns of the multi-turn test; the template
+  # attacker is the fallback. Test traffic only.
+  - name: REDTEAM_ATTACKER_MODEL
+    value: "FILL-ME-catalog.FILL-ME-schema.FILL-ME-model-service"
   # SANDBOX ONLY (WP-P4): judge calls run under the signed-in user's identity (forwarded token)
   # when the request carries one; else the App service principal. Needs a serving scope in
   # user_api_scopes (databricks.yml). Do not use in production.
@@ -111,8 +142,6 @@ env:
   # The stub marks outbound events delivered; it sends nothing.
   - name: WEBHOOKS_ENABLED
     value: "0"
-  - name: CLASSIFIER_AI_PREFILL
-    value: "0"
   - name: TRANSPARENCY_ENABLED
     value: "1"
   # Scan v2 of the workspace (serving endpoints, model versions, Genie, jobs, Vector Search, UC
@@ -143,10 +172,9 @@ env:
     value: "0"
   - name: URL_FETCH_ALLOWLIST
     value: "FILL-ME-allowed-domain"
-  # Guard model: NO-GO until a real model run (docs/guard-model-decision.md). Stays the labelled
-  # mock until you serve a model and set these three (uncomment and fill in):
-  - name: GUARD_MODEL_ADAPTER
-    value: "auto"
+  # Guard model: NO-GO until a real model run (docs/guard-model-decision.md). The chat adapter is
+  # set in the WP-L1 block above. To use a classifier endpoint instead, set GUARD_MODEL_ADAPTER to
+  # "classifier" there and set these three (uncomment and fill in):
   # - name: GUARD_MODEL_URL
   #   value: "https://FILL-ME-workspace-host/serving-endpoints/FILL-ME-guard-endpoint/invocations"
   # - name: GUARD_MODEL_NAME
