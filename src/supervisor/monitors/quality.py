@@ -107,6 +107,7 @@ class QualityScorer:
         timeout_s: float = 60.0,
         region: str = "local",
         reply_binding: ReplyBinding | None = None,
+        allow_family_conflict: bool = False,
     ) -> None:
         self.reply_binding = reply_binding
         self.chat = chat
@@ -119,9 +120,19 @@ class QualityScorer:
         self.salt = salt
         self.timeout_s = timeout_s
         self.region = region
+        self.allow_family_conflict = allow_family_conflict
         fam = normalize_family(chat.family)
         clash = sorted(a for a, f in self.agent_families.items() if normalize_family(f) == fam)
-        if clash:
+        if clash and allow_family_conflict:  # WP-L2
+            for a in clash:
+                log.warning(
+                    "judge family conflict allowed: quality scorer model %r is family %r, the "
+                    "same as agent %r; independence reduced",
+                    chat.model_id,
+                    fam,
+                    a,
+                )
+        elif clash:
             raise FamilyConflictError(
                 f"quality scorer model {chat.model_id!r} is family {fam!r}, the same as "
                 f"agent(s) {clash}; scorer and agent families must differ"
@@ -230,10 +241,17 @@ class QualityScorer:
         if self.tables is not None:
             self.tables.append("verdict", rows)
         if self.evidence is not None:
+            conflict = bool(
+                self.allow_family_conflict
+                and normalize_family(self.agent_families.get(res.agent_id))
+                == normalize_family(self.chat.family)
+            )
+            extra = {"independence": "reduced", "family_conflict": True} if conflict else {}
             self.evidence.record(
                 EVIDENCE_TYPE,
                 f"quality:{res.event_id}",
                 {
+                    **extra,
                     "agent_id": res.agent_id,
                     "event_id": res.event_id,
                     "trace_id": res.trace_id,

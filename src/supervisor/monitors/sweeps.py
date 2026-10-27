@@ -249,6 +249,7 @@ def build_quality_sweep(ctx: MonitorContext, settings: Any) -> QualitySweep | No
         sample_bp=settings.quality_sample_bp,
         timeout_s=settings.judge_timeout_s,
         region=settings.judge_region,
+        allow_family_conflict=settings.judge_family_conflict_allow,
     )
     return QualitySweep(
         ctx,

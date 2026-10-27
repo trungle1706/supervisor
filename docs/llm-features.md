@@ -17,6 +17,13 @@ behind the Databricks AI Gateway.
 The model family (for example `glm`) comes from the 3-part name. The judge family rule still
 applies: the judge and guard family must differ from the family of every agent they watch.
 
+`JUDGE_FAMILY_CONFLICT_ALLOW=1` (default `0`, allowed in `databricks_app` mode) is for sandbox
+and single-model workspaces. The judge, guard and quality scorer then start even when they share a
+family with an agent. One WARNING per judge/agent pair is logged ("judge family conflict
+allowed"). Each `judge_verdict` evidence record for such a pair carries `independence: "reduced"`
+and `family_conflict: true`. The judge still only advises, but its independence is reduced: do
+not use its verdicts as independent evidence. An unknown family is still refused.
+
 ## The features
 
 | Feature | What it does for the user | Where it runs | Switch (App value) | What it sees | What it can do | What it can never do |

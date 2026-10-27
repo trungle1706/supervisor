@@ -47,7 +47,7 @@ from supervisor.core.ports import Clock, EvidenceSink, Masker, StateStore, Table
 from supervisor.judge import ADVISORY_ACTIONS
 from supervisor.judge.masking import IdentityMasker, mask_version_of
 from supervisor.judge.mrm.identity import rubric_version
-from supervisor.judge.router import JudgeModel, JudgeRouter
+from supervisor.judge.router import JudgeModel, JudgeRouter, normalize_family
 from supervisor.judge.runner import JudgeCall, TierJudge
 from supervisor.judge.tier1 import Tier1Judge
 from supervisor.judge.tier2 import Tier2Judge
@@ -425,6 +425,9 @@ class JudgeService:
             "dropped_spans": call.dropped_spans,
             "error": call.error,
         }
+        if self._family_conflict(call, out.agent_id):  # WP-L2: ids/enums/bools only
+            payload["independence"] = "reduced"
+            payload["family_conflict"] = True
         if call.auth:
             payload["auth"] = call.auth  # WP-P4: no user name, no token
         if call.role == "primary" and call.tier == 2:
@@ -499,6 +502,17 @@ class JudgeService:
         }
         self._persist(v, payload)
         return v
+
+    def _family_conflict(self, call: JudgeCall, agent_id: str) -> bool:
+        if not getattr(self.router, "allow_family_conflict", False):
+            return False
+        fams = (
+            self.router.challenger_agent_families
+            if call.role == "challenger"
+            else self.router.agent_families
+        ).get(agent_id, ())
+        fam_set = {fams} if isinstance(fams, str) else set(fams)
+        return normalize_family(call.model_family) in {normalize_family(f) for f in fam_set}
 
     def _persist(self, v: Verdict, payload: Mapping[str, Any]) -> None:
         if self.tables is not None:
