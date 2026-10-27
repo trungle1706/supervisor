@@ -48,7 +48,11 @@ def _is_workspace_url(settings: Settings, url: str) -> bool:
 
 
 def check_guard_family(
-    model_id: str, family: str, agent_families: Mapping[str, str | Iterable[str]]
+    model_id: str,
+    family: str,
+    agent_families: Mapping[str, str | Iterable[str]],
+    *,
+    allow_conflict: bool = False,
 ) -> None:
     """The judge family rule for the guard chat model: known, and not the family of any agent."""
     from supervisor.judge.router import FamilyConflictError, normalize_family
@@ -63,6 +67,15 @@ def check_guard_family(
     for agent_id, fams in sorted(agent_families.items()):
         fam_set = {fams} if isinstance(fams, str) else set(fams)
         if fam in {normalize_family(f) for f in fam_set}:
+            if allow_conflict:  # WP-L2
+                log.warning(
+                    "judge family conflict allowed: guard model %r is family %r, the same as "
+                    "agent %r; independence reduced",
+                    model_id,
+                    fam,
+                    agent_id,
+                )
+                continue
             problems.append(
                 f"guard model {model_id!r} is family {fam!r}, the same as agent {agent_id!r}"
             )
@@ -183,7 +196,9 @@ def make_guard_model(
             endpoint_family=chat.endpoint_family() if settings.judge_family_probe else None,
         )
         families = dict(agent_families) if agent_families is not None else _agent_families(state)
-        check_guard_family(model, chat.family, families)
+        check_guard_family(
+            model, chat.family, families, allow_conflict=settings.judge_family_conflict_allow
+        )
     except BaseException:
         chat.close()
         raise

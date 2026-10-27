@@ -226,6 +226,11 @@ class Settings(BaseSettings):
     # D05: the judge family is derived from the model id (and endpoint metadata). A declared
     # JUDGE_*_FAMILY that disagrees is refused unless this flag is set; never in databricks_app.
     judge_family_override_test_only: bool = False
+    # WP-L2: sandbox / single-model workspaces. A judge, guard or scorer model that shares the
+    # family of a registered agent runs anyway (one WARNING per pair); every verdict then carries
+    # independence "reduced" and family_conflict true. Unlike the test-only override above it is
+    # allowed in databricks_app mode. The judge advises with reduced independence.
+    judge_family_conflict_allow: bool = False
     judge_family_probe: bool = False  # ask GET /models of the judge endpoint for its family
     # D05 transition: 0 = a declared family is accepted (warning, family_source
     # declared-unverified) for a model id that shows no family. A clash is always refused.

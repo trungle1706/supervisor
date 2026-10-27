@@ -155,10 +155,18 @@ def load_registry_families(
 
 
 def check_family_independence(
-    judges: Iterable[JudgeModel], agent_families: Mapping[str, str | Iterable[str]]
-) -> None:
-    """Raise FamilyConflictError when any judge shares a family with any agent."""
+    judges: Iterable[JudgeModel],
+    agent_families: Mapping[str, str | Iterable[str]],
+    *,
+    allow_conflict: bool = False,
+) -> list[tuple[str, str]]:
+    """Raise FamilyConflictError when any judge shares a family with any agent.
+
+    WP-L2: with ``allow_conflict`` (JUDGE_FAMILY_CONFLICT_ALLOW) a shared family is logged
+    (one WARNING per judge/agent pair) and returned as ``[(checker_id, agent_id)]``; an
+    unknown family still raises."""
     problems: list[str] = []
+    allowed: list[tuple[str, str]] = []
     for j in judges:
         fam = j.family
         if fam in ("", "unknown"):
@@ -172,6 +180,17 @@ def check_family_independence(
         for agent_id, fams in sorted(agent_families.items()):
             fam_set = {fams} if isinstance(fams, str) else set(fams)
             if fam in {normalize_family(f) for f in fam_set}:
+                if allow_conflict:
+                    log.warning(
+                        "judge family conflict allowed: %s model %r is family %r, the same as "
+                        "agent %r; independence reduced",
+                        j.checker_id,
+                        j.model_id,
+                        fam,
+                        agent_id,
+                    )
+                    allowed.append((j.checker_id, agent_id))
+                    continue
                 problems.append(
                     f"{j.checker_id} model {j.model_id!r} is family {fam!r}, the same as "
                     f"agent {agent_id!r}"
@@ -180,6 +199,7 @@ def check_family_independence(
         raise FamilyConflictError(
             "judge model family must differ from the agent model family: " + "; ".join(problems)
         )
+    return allowed
 
 
 def sample_hit(salt: str, key: str, rate_bp: int) -> bool:
@@ -204,6 +224,7 @@ class JudgeRouter:
         challenger_sample_bp: int = 500,
         t2_sample_bp: int = 200,
         salt: str = "supervisor-judge-v1",
+        allow_family_conflict: bool = False,
     ) -> None:
         if t1.tier != 1 or t2.tier != 2 or t1.role != "primary" or t2.role != "primary":
             raise ConfigError("router needs a primary Tier 1 and a primary Tier 2 judge")
@@ -213,12 +234,19 @@ class JudgeRouter:
         for j in judges:
             if not j.is_mock:
                 check_pinned(j.model_id)
-        check_family_independence([j for j in judges if j is not challenger], agent_families)
+        self.allow_family_conflict = allow_family_conflict
+        conflicts = check_family_independence(
+            [j for j in judges if j is not challenger],
+            agent_families,
+            allow_conflict=allow_family_conflict,
+        )
         if challenger is not None:  # D15: only against the agents it judges
-            check_family_independence(
+            conflicts += check_family_independence(
                 [challenger],
                 agent_families if challenger_agent_families is None else challenger_agent_families,
+                allow_conflict=allow_family_conflict,
             )
+        self.family_conflicts: list[tuple[str, str]] = conflicts  # WP-L2: (checker_id, agent_id)
         if t1.family == t2.family and not t1.is_mock:
             log.warning(
                 "Tier 1 and Tier 2 judges share family %r; one payload may beat both", t1.family
@@ -235,6 +263,10 @@ class JudgeRouter:
     @property
     def is_mock(self) -> bool:
         return self.t1.is_mock or self.t2.is_mock
+
+    def is_family_conflict(self, checker_id: str, agent_id: str) -> bool:
+        """WP-L2: True when this judge was allowed despite sharing the agent's family."""
+        return (checker_id, agent_id) in self.family_conflicts
 
     def model(self, tier: int) -> JudgeModel:
         return self.t1 if tier == 1 else self.t2
@@ -332,4 +364,5 @@ class JudgeRouter:
             challenger_sample_bp=settings.judge_challenger_sample_bp,
             t2_sample_bp=settings.judge_t2_sample_bp,
             salt=settings.judge_sample_salt,
+            allow_family_conflict=settings.judge_family_conflict_allow,
         )

@@ -76,6 +76,10 @@ env:
   - name: JUDGE_ENABLED
     value: "1"
   # Same model as the chat model; the judge family (glm) must differ from every agent family.
+  # Single-model workspace: uncomment to let the judge run when it shares the agents' model family
+  # (verdicts then carry independence "reduced"). See docs/llm-features.md.
+  # - name: JUDGE_FAMILY_CONFLICT_ALLOW
+  #   value: "1"
   - name: JUDGE_T1_MODEL
     value: "FILL-ME-catalog.FILL-ME-schema.FILL-ME-model-service"
   # Detectors that call the model at the gate (judge_advisory, judge_moderation, guard_model) are

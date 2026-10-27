@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-Nothing yet.
+- WP-L2: `JUDGE_FAMILY_CONFLICT_ALLOW` (default `0`). When set, a judge, guard or quality-scorer
+  model that shares the family of a registered agent no longer stops start-up: one WARNING per
+  pair is logged, and every `judge_verdict` evidence record for that pair carries
+  `independence: "reduced"` and `family_conflict: true`. For sandbox and single-model
+  workspaces. Allowed in `databricks_app` mode. An unknown family is still refused.
 
 ## v0.5.0 (phase 4 governance product, phase 5 guardian detectors, deploy package) - 2026-10-23
 

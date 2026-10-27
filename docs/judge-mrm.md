@@ -138,6 +138,13 @@ Every judge verdict (`verdict` table and `judge_verdict` evidence) carries:
 The validated unit is keyed by three composite strings (`identity.py`): model version
 `t1=<id>@<ver>;t2=<id>@<ver>`, composite prompt hash, rubric version.
 
+**Family conflict switch (WP-L2).** `JUDGE_FAMILY_CONFLICT_ALLOW` (default off) lets the judge
+run when its model family equals an agent family (single-model sandbox). It is not a gate: it
+removes a start-up refusal. Verdicts for such a pair carry `independence: "reduced"` and
+`family_conflict: true` in the chain; MRM review must treat them as non-independent. Unlike
+`JUDGE_FAMILY_OVERRIDE_TEST_ONLY` it is allowed in `databricks_app` mode and does not cover an
+unknown family.
+
 **Judge enablement gates.** `JudgeService.from_settings` runs two checks, in this order, in one
 place:
 
