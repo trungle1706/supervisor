@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- WP-W1 (phase 11): **regulation watcher and signed update package**, `REGWATCH_ENABLED` (default
+  `0`) and `REGWATCH_INTERVAL_S` (default 86400, minimum 3600). New `regkb/watch.py` and the CLI
+  `python -m supervisor.regkb watch [--out DIR] [--instrument ID] [--dry-run]` (dev host or laptop;
+  network only through `tools/regkb_fetch.py`): per stored Vietnamese instrument it finds an
+  amendment, replacement or repeal, an effect-status change, a newer `updatedDate` and a changed
+  text; new texts go to `regulations/sources/<id>/incoming/<date>/` with sha256 and a sidecar (git
+  ignored; the text of record is never touched); one run also scans for new instruments (SBV,
+  Government, MST, MPS), notes the Decree 142 Art. 46 interim channel and re-queries the open items
+  M-01 to M-10. Output: `watch-<date>.json` and `.md` and a zip signed by the evidence signer
+  (`regkb/package.py`). Scheduler job `regwatch` (laptop mode only; refused with a log line in
+  `databricks_app` mode), table `regwatch_run` (appended at the end of `schema/model.yaml`; DDL and
+  notebook regenerated), chain record `regwatch_run`. New `POST /v1/regkb/import` (admin, 50 MB):
+  checks signature and every sha, refuses with a code (`bad_signature`, `sha_mismatch`,
+  `path_traversal`, `unknown_member`, `too_large`, ...), stores under
+  `DATA_DIR/regkb/incoming/<sha>/`; **nothing is applied**. `GET /v1/regkb/watch/runs` and
+  `/packages`, page `/console/regkb/watch` ("pending review (WP-W2)"). Permissions `regkb.import`
+  and `regkb.watch` (admin). New setting `REGKB_IMPORT_PUBKEY`. Shared files touched: `config.py`,
+  `rbac.py`, `scheduler.py`, `app.py`, `ops/middleware.py` (50 MB limit for the import path),
+  `nav_v3.py`, `console/routes.py`, `console/i18n.py`, `docs/console.md` (role matrix),
+  `.gitignore`. Off: no job, every route 400 `regwatch_off`. Details: `docs/regulations.md`
+  "Watcher and update package (WP-W1)".
 - WP-C4 (phase 12): **portfolio blocks on My overview**, `OVERVIEW_PORTFOLIO` (default `0`; needs
   `CONSOLE_OVERVIEW_V4`, `GOVERNANCE_ENABLED`). New `console/portfolio.py`: block **Classification**
   (a bar per outcome plus not classified, counts and integer percents, link to the Systems list

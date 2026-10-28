@@ -1,0 +1,204 @@
+{
+ "_note": "Synthetic scan results by query. UBND is not one of the four agencies; the 2026-01-01 decree is before the window.",
+ "queries": {
+  "trí tuệ nhân tạo": [
+   {
+    "id": "u-new-0007",
+    "title": "Nghị định 200/2026/NĐ-CP quy định về quản lý hệ thống trí tuệ nhân tạo trong ngân hàng",
+    "docNum": "200/2026/NĐ-CP",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-24T00:00:00",
+    "effFrom": "2026-10-24T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Chính phủ",
+    "agencyIds": [
+     "62"
+    ]
+   },
+   {
+    "id": "u-new-0008",
+    "title": "Quyết định 300/2026/QĐ-UBND về trí tuệ nhân tạo của tỉnh",
+    "docNum": "300/2026/QĐ-UBND",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-24T00:00:00",
+    "effFrom": "2026-10-24T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "UBND Tỉnh Mẫu",
+    "agencyIds": [
+     "62"
+    ]
+   },
+   {
+    "id": "u-new-0009",
+    "title": "Thông tư 12/2026/TT-BKHCN hướng dẫn cổng thông tin một cửa trí tuệ nhân tạo",
+    "docNum": "12/2026/TT-BKHCN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-25T00:00:00",
+    "effFrom": "2026-10-25T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Bộ Khoa học và Công nghệ",
+    "agencyIds": [
+     "62"
+    ]
+   },
+   {
+    "id": "u-new-0010",
+    "title": "Nghị định 1/2026/NĐ-CP cũ",
+    "docNum": "1/2026/NĐ-CP",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-01-01T00:00:00",
+    "effFrom": "2026-01-01T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Chính phủ",
+    "agencyIds": [
+     "62"
+    ]
+   }
+  ],
+  "AI": [
+   {
+    "id": "u-new-0007",
+    "title": "Nghị định 200/2026/NĐ-CP quy định về quản lý hệ thống trí tuệ nhân tạo trong ngân hàng",
+    "docNum": "200/2026/NĐ-CP",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-24T00:00:00",
+    "effFrom": "2026-10-24T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Chính phủ",
+    "agencyIds": [
+     "62"
+    ]
+   }
+  ],
+  "cổng thông tin một cửa trí tuệ nhân tạo": [
+   {
+    "id": "u-new-0009",
+    "title": "Thông tư 12/2026/TT-BKHCN hướng dẫn cổng thông tin một cửa trí tuệ nhân tạo",
+    "docNum": "12/2026/TT-BKHCN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-25T00:00:00",
+    "effFrom": "2026-10-25T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Bộ Khoa học và Công nghệ",
+    "agencyIds": [
+     "62"
+    ]
+   },
+   {
+    "id": "u-new-0007",
+    "title": "Nghị định 200/2026/NĐ-CP quy định về quản lý hệ thống trí tuệ nhân tạo trong ngân hàng",
+    "docNum": "200/2026/NĐ-CP",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-24T00:00:00",
+    "effFrom": "2026-10-24T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Chính phủ",
+    "agencyIds": [
+     "62"
+    ]
+   }
+  ],
+  "cơ chế tạm thời": [
+   {
+    "id": "u-new-0007",
+    "title": "Nghị định 200/2026/NĐ-CP quy định về quản lý hệ thống trí tuệ nhân tạo trong ngân hàng",
+    "docNum": "200/2026/NĐ-CP",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-24T00:00:00",
+    "effFrom": "2026-10-24T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Chính phủ",
+    "agencyIds": [
+     "62"
+    ]
+   }
+  ],
+  "96/2025/QH15": [
+   {
+    "id": "u-m1-0011",
+    "title": "Luật 96/2025/QH15 sửa đổi Luật Các tổ chức tín dụng",
+    "docNum": "96/2025/QH15",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2025-06-27T00:00:00",
+    "effFrom": "2025-06-27T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Quốc hội",
+    "agencyIds": [
+     "62"
+    ]
+   }
+  ]
+ }
+}

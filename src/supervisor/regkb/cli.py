@@ -1,4 +1,4 @@
-"""CLI: python -m supervisor.regkb {validate,list,show,coverage,diff,export}.
+"""CLI: python -m supervisor.regkb {validate,list,show,coverage,diff,export,watch}.
 
 ASCII output only. Every command prints the disclaimer first.
 """
@@ -278,6 +278,53 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_watch(args: argparse.Namespace) -> int:
+    """Dev host / laptop: ask vbpl.vn about the stored instruments (WP-W1). The App never does."""
+    from supervisor.regkb import watch
+
+    settings = load_settings()
+    out_dir = Path(os.path.abspath(args.out or Path(settings.data_dir) / "regwatch"))
+    try:
+        fetcher = watch.ToolFetcher()
+    except RuntimeError as exc:
+        raise RegKBError(str(exc)) from None
+    sources = Path(os.path.abspath(args.sources_root)) if args.sources_root else None
+
+    def progress(line: str) -> None:
+        out(f"[..] {line}")
+
+    if args.dry_run:
+        result = watch.run_watch(
+            fetcher, only=args.instrument, prev=watch.latest_report(out_dir), progress=progress
+        )
+        report, written = result.report, "nothing written (dry run)"
+    else:
+        from supervisor.evidence.signer import build_signer
+
+        done = watch.run_and_package(
+            fetcher,
+            out_dir,
+            build_signer(settings),
+            sources_root=sources,
+            only=args.instrument,
+            progress=progress,
+        )
+        report = done["report"]
+        written = f"report {done['report_json']} package {done['package']}"
+    s = report["summary"]
+    out(
+        f"[OK] watch {report['run_id']}: {s['instruments_checked']} instruments, "
+        f"{s['changes_found']} changes, {s['new_candidates']} new candidates, "
+        f"{s['errors']} errors; {written}"
+    )
+    for row in report["instruments"]:
+        for c in row["changes"]:
+            out(f"  {row['instrument_id']}: {c['kind']}: {c['detail']}")
+    for e in report["errors"][:10]:
+        out(f"[SKIP] {e}")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python -m supervisor.regkb", description=DISCLAIMER)
     p.add_argument("--root", type=Path, default=None, help="regulations root (default: repo)")
@@ -298,6 +345,18 @@ def _parser() -> argparse.ArgumentParser:
     diff.add_argument("a")
     diff.add_argument("b")
     diff.set_defaults(func=cmd_diff)
+    wat = sub.add_parser("watch", help="query vbpl.vn for changes (dev host / laptop, WP-W1)")
+    wat.add_argument(
+        "--out", default=None, help="report and package folder (default DATA_DIR/regwatch)"
+    )
+    wat.add_argument("--instrument", default=None, help="check one instrument id only")
+    wat.add_argument("--dry-run", action="store_true", help="query and print; write nothing")
+    wat.add_argument(
+        "--sources-root",
+        default=None,
+        help="where incoming/ texts go (default regulations/sources)",
+    )
+    wat.set_defaults(func=cmd_watch)
     exp = sub.add_parser("export")
     exp.add_argument("out")
     exp.set_defaults(func=cmd_export)

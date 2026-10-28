@@ -1,0 +1,50 @@
+{
+ "_note": "Synthetic: a replacing circular.",
+ "result": {
+  "total": 2,
+  "items": [
+   {
+    "id": "u-own-0001",
+    "title": "Thông tư số 99/2026/TT-NHNN Quy định mẫu về mô hình thử nghiệm",
+    "docNum": "99/2026/TT-NHNN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-03-01T00:00:00",
+    "effFrom": "2026-03-01T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Ngân hàng Nhà nước Việt Nam",
+    "agencyIds": [
+     "62"
+    ]
+   },
+   {
+    "id": "u-rep-0005",
+    "title": "Thông tư 120/2026/TT-NHNN thay thế Thông tư số 99/2026/TT-NHNN",
+    "docNum": "120/2026/TT-NHNN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-22T00:00:00",
+    "effFrom": "2026-10-22T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Ngân hàng Nhà nước Việt Nam",
+    "agencyIds": [
+     "62"
+    ]
+   }
+  ]
+ }
+}

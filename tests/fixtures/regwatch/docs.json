@@ -1,0 +1,33 @@
+{
+ "_note": "Synthetic vbpl.vn doc API data. _text is the extracted text the fake fetcher returns.",
+ "docs": {
+  "u-own-0001": {
+   "id": "u-own-0001",
+   "docNum": "99/2026/TT-NHNN",
+   "title": "Thông tư số 99/2026/TT-NHNN Quy định mẫu về mô hình thử nghiệm",
+   "updatedDate": "2026-10-01T08:00:00",
+   "_text": "Điều 1. Phạm vi.\nĐiều 2. Giải thích từ ngữ.\nĐiều 3. Nghĩa vụ của tổ chức."
+  },
+  "u-amd-0002": {
+   "id": "u-amd-0002",
+   "docNum": "100/2026/TT-NHNN",
+   "title": "Thông tư 100/2026/TT-NHNN sửa đổi",
+   "updatedDate": "2026-10-20T08:00:00",
+   "_text": "Điều 1. Sửa đổi Điều 3 của Thông tư 99/2026/TT-NHNN. Nội dung mới của điều ba."
+  },
+  "u-rep-0005": {
+   "id": "u-rep-0005",
+   "docNum": "120/2026/TT-NHNN",
+   "title": "Thông tư 120/2026/TT-NHNN",
+   "updatedDate": "2026-10-22T08:00:00",
+   "_text": "Điều 1. Thay thế Thông tư 99/2026/TT-NHNN."
+  },
+  "u-rpl-0006": {
+   "id": "u-rpl-0006",
+   "docNum": "121/2026/TT-NHNN",
+   "title": "Thông tư 121/2026/TT-NHNN",
+   "updatedDate": "2026-10-23T08:00:00",
+   "_text": "Điều 1. Bãi bỏ Thông tư 99/2026/TT-NHNN."
+  }
+ }
+}

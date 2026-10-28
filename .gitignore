@@ -17,3 +17,4 @@ node_modules/
 .claude/
 data/*.log
 config/agent_keys.yaml
+regulations/sources/*/incoming/

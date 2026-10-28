@@ -4842,6 +4842,9 @@ _T.update(_GF)
 from supervisor.console.i18n_regkb_internal import RI as _RI  # noqa: E402  (WP-W3, prefix ri_)
 
 _T.update(_RI)
+from supervisor.console.i18n_regwatch import RW as _RW  # noqa: E402  (WP-W1, prefix rw_)
+
+_T.update(_RW)
 from supervisor.console.i18n_factory import FA as _FA  # noqa: E402  (WP-F2, prefix fa_)
 
 _T.update(_FA)

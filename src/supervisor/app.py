@@ -121,6 +121,12 @@ from supervisor.console.regkb_internal_routes import router as regkb_internal_co
 
 app.include_router(regkb_internal_console_router)  # /console/regkb/internal
 app.include_router(regkb_internal_api_router)  # /v1/regkb/internal
+# WP-W1: always mounted; with REGWATCH_ENABLED=0 every route answers HTTP 400 regwatch_off
+from supervisor.console.regwatch_routes import api_router as regwatch_api_router  # noqa: E402
+from supervisor.console.regwatch_routes import router as regwatch_console_router  # noqa: E402
+
+app.include_router(regwatch_console_router)  # /console/regkb/watch
+app.include_router(regwatch_api_router)  # /v1/regkb/import, /v1/regkb/watch/*
 app.include_router(tools_analytics_router, prefix="/v1")  # WP22: GET /v1/analytics/tools
 app.include_router(inventory_router)  # WP24: GET /v1/inventory/... (off unless INVENTORY_ENABLED)
 app.include_router(mcp_lock_router)  # WP26: /v1/mcp/tools/... (off unless MCP_HTTP_ENABLED)

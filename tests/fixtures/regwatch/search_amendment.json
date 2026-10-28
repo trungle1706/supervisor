@@ -1,0 +1,92 @@
+{
+ "_note": "Synthetic: an amendment, a decoy with a longer number, a guidance circular (not a change).",
+ "result": {
+  "total": 4,
+  "items": [
+   {
+    "id": "u-own-0001",
+    "title": "Thông tư số 99/2026/TT-NHNN Quy định mẫu về mô hình thử nghiệm",
+    "docNum": "99/2026/TT-NHNN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-03-01T00:00:00",
+    "effFrom": "2026-03-01T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Ngân hàng Nhà nước Việt Nam",
+    "agencyIds": [
+     "62"
+    ]
+   },
+   {
+    "id": "u-amd-0002",
+    "title": "Thông tư 100/2026/TT-NHNN sửa đổi, bổ sung một số điều của Thông tư số 99/2026/TT-NHNN",
+    "docNum": "100/2026/TT-NHNN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-20T00:00:00",
+    "effFrom": "2026-10-20T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Ngân hàng Nhà nước Việt Nam",
+    "agencyIds": [
+     "62"
+    ]
+   },
+   {
+    "id": "u-dec-0003",
+    "title": "Thông tư 13/2026/TT-NHNN Sửa đổi, bổ sung một số điều của Thông tư số 199/2026/TT-NHNN quy định khác",
+    "docNum": "13/2026/TT-NHNN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-05-19T00:00:00",
+    "effFrom": "2026-05-19T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Ngân hàng Nhà nước Việt Nam",
+    "agencyIds": [
+     "62"
+    ]
+   },
+   {
+    "id": "u-oth-0004",
+    "title": "Thông tư 101/2026/TT-NHNN hướng dẫn thi hành Thông tư số 99/2026/TT-NHNN",
+    "docNum": "101/2026/TT-NHNN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-10-21T00:00:00",
+    "effFrom": "2026-10-21T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Ngân hàng Nhà nước Việt Nam",
+    "agencyIds": [
+     "62"
+    ]
+   }
+  ]
+ }
+}

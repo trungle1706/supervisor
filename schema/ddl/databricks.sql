@@ -1759,3 +1759,22 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`gate_run` (
 USING DELTA
 COMMENT 'WP-F3 (phase 12B, AGENT_FACTORY_GATE). One run of the test gate for one version of a factory agent. kind: full (layers 1, 2 and 3; the only kind that can lead to state tested), sample (layers 1 and 2 on a small batch; never promotes), simulation (the draft on chosen systems of the inventory, assessed by a person in a review screen; never promotes) or shadow (layer 3 only). status: queued, running, done or failed (the run itself broke). verdict: pass, fail or not_run. layer1_json is the deterministic layer (checks and the harness component tests), layer2_json the guideline judges with the calibration (Cohen''s kappa in hundredths, the confusion matrix, the paired comparison with the live version), layer3_json the shadow run (agreement counts). cost_json holds integers (model calls, estimated tokens, seconds). report_sha256 and signature belong to the signed JSON report on disk under DATA_DIR/factory/<agent>/gate/<run_id>/ (evidence signer). Integers only: no floats, no personal data, no text of a document.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- regwatch_run (state): WP-W1 (phase 11, REGWATCH_ENABLED). One run of the scheduler job regwatch (laptop mode): the watcher asked vbpl.vn about the stored Vietnamese instruments and wrote a watch report and a signed update package under DATA_DIR/regwatch/. status: running, ok, partial (some queries failed) or error. instruments_checked and changes_found are counts; report_sha256 and package_sha256 are SHA-256 hex of the report JSON and of the zip. Nothing in a run is applied to RegKB: the changes wait for review (WP-W2). error is a short text, no secret, no path. Integers, hashes and short texts only.
+-- primary key (enforced by the app, not by Delta): run_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regwatch_run` (
+  run_id STRING NOT NULL,
+  started_at TIMESTAMP NOT NULL,
+  finished_at TIMESTAMP,
+  status STRING NOT NULL,
+  instruments_checked BIGINT NOT NULL,
+  changes_found BIGINT NOT NULL,
+  report_sha256 STRING,
+  package_sha256 STRING,
+  error STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-W1 (phase 11, REGWATCH_ENABLED). One run of the scheduler job regwatch (laptop mode): the watcher asked vbpl.vn about the stored Vietnamese instruments and wrote a watch report and a signed update package under DATA_DIR/regwatch/. status: running, ok, partial (some queries failed) or error. instruments_checked and changes_found are counts; report_sha256 and package_sha256 are SHA-256 hex of the report JSON and of the zip. Nothing in a run is applied to RegKB: the changes wait for review (WP-W2). error is a short text, no secret, no path. Integers, hashes and short texts only.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

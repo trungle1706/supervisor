@@ -2019,3 +2019,21 @@ CREATE TABLE IF NOT EXISTS gate_run (
 );
 
 CREATE INDEX IF NOT EXISTS ix_gate_run_agent_id_version_kind ON gate_run (agent_id, version, kind);
+
+-- regwatch_run (state): WP-W1 (phase 11, REGWATCH_ENABLED). One run of the scheduler job regwatch (laptop mode): the watcher asked vbpl.vn about the stored Vietnamese instruments and wrote a watch report and a signed update package under DATA_DIR/regwatch/. status: running, ok, partial (some queries failed) or error. instruments_checked and changes_found are counts; report_sha256 and package_sha256 are SHA-256 hex of the report JSON and of the zip. Nothing in a run is applied to RegKB: the changes wait for review (WP-W2). error is a short text, no secret, no path. Integers, hashes and short texts only.
+CREATE TABLE IF NOT EXISTS regwatch_run (
+  run_id TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  status TEXT NOT NULL,
+  instruments_checked INTEGER NOT NULL,
+  changes_found INTEGER NOT NULL,
+  report_sha256 TEXT,
+  package_sha256 TEXT,
+  error TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (run_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_regwatch_run_started_at ON regwatch_run (started_at);

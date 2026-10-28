@@ -280,6 +280,8 @@ def install(app: Any, settings: Any) -> None:
         if getattr(settings, "onboard_intake", False):  # WP-O1: the zip upload may be larger
             big = int(settings.onboard_intake_max_mb) * 1024 * 1024 + 512 * 1024
             path_limits = {"/v1/intake/": big, "/console/intake/": big}
+        # WP-W1: the update package (50 MB) is checked by the route; the route is 400 while off
+        path_limits["/v1/regkb/import"] = 50 * 1024 * 1024 + 512 * 1024
         app.add_middleware(
             BodyLimitMiddleware, limit=settings.max_request_bytes, path_limits=path_limits
         )
