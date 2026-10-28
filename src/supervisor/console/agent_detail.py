@@ -47,6 +47,7 @@ TABS = (
     "controls",  # WP30
     "tasks",  # WP30
     "transparency",  # WP31
+    "source",  # WP-O1 (ONBOARD_INTAKE)
 )
 TRACE_LIMIT = 20  # traces shown on the Traces tab
 CASE_LIMIT = 50
@@ -106,6 +107,12 @@ GATED: dict[str, tuple[str, str, str, str]] = {
         "tasks.view",
         "CONSOLE_CONTROLS_ENABLED",
         "python -m supervisor.tasks list --agent <id>",
+    ),
+    "source": (
+        "onboard_intake",
+        "systems.view",
+        "ONBOARD_INTAKE",
+        "POST /v1/intake/<agent id> (a zip file or a git URL)",
     ),
     "transparency": (
         "console_transparency_enabled",
@@ -399,6 +406,12 @@ def _guardians(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str])
     return agent_guardians.tab_data(ctx, card["agent_id"], q)
 
 
+def _source(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    from supervisor.console import intake_routes  # late: it imports this module
+
+    return intake_routes.panel_data(ctx, me, card["agent_id"])
+
+
 _BUILDERS = {
     "overview": _overview,
     "register": _register,
@@ -414,6 +427,7 @@ _BUILDERS = {
     "controls": _controls,
     "tasks": _tasks,
     "transparency": _transparency,
+    "source": _source,
 }
 
 

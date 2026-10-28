@@ -311,3 +311,50 @@ def git(
         "GIT_ALLOW_PROTOCOL": "file",
     }
     return run(argv, cwd=cwd, timeout_s=timeout_s, env=env)
+
+
+def git_clone_https(url: str, dest: str | Path, *, timeout_s: float = 120.0) -> RunResult:
+    """WP-O1: shallow clone of one ``https://`` URL into ``dest`` (a new folder).
+
+    The caller (``onboard.intake``) has already checked the host against ONBOARD_GIT_HOSTS and
+    refused credentials in the URL. Only the https transport is allowed here (the general
+    ``git`` helper above allows file paths only); hooks, prompts, credential helpers, symlink
+    checkout and redirects are off. Depth 1, one branch, no tags."""
+    if not url.startswith("https://") or "::" in url:
+        raise SandboxError("git clone: only an https:// URL is allowed")
+    exe = which("git")
+    if exe is None:
+        raise SandboxError("git is not installed or not on PATH")
+    dest_abs = Path(os.path.abspath(dest))
+    dest_abs.parent.mkdir(parents=True, exist_ok=True)
+    argv = [
+        exe,
+        "-c",
+        "core.hooksPath=" + os.devnull,
+        "-c",
+        "credential.helper=",
+        "-c",
+        "protocol.allow=never",
+        "-c",
+        "protocol.https.allow=always",
+        "-c",
+        "core.symlinks=false",
+        "-c",
+        "http.followRedirects=false",
+        "clone",
+        "--quiet",
+        "--depth",
+        "1",
+        "--single-branch",
+        "--no-tags",
+        "--",
+        url,
+        str(dest_abs),
+    ]
+    env = {
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_ASKPASS": "",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_ALLOW_PROTOCOL": "https",
+    }
+    return run(argv, cwd=dest_abs.parent, timeout_s=timeout_s, env=env)

@@ -2,7 +2,20 @@
 
 ## Unreleased
 
-(nothing yet)
+- WP-O1 (phase 9): candidate source intake, `ONBOARD_INTAKE` (default `0`),
+  `ONBOARD_INTAKE_MAX_MB` (default `20`), `ONBOARD_GIT_HOSTS` (default empty = git off). New
+  **Source** panel in the Candidates drawer and **Source** tab on the agent page (upload form,
+  attempts list, **Re-upload**); `POST` and `GET /v1/intake/{node_id}` (`systems.edit` /
+  `systems.view`; a POST writes two audit rows). A zip of at most 20 MB with text files only
+  (`.py .yaml .yml .toml .json .md .txt .cfg .ini .env.example .sql .ipynb`; notebooks keep code
+  cells as `.py`) or an `https://` URL on an allowed host is checked (no `..`, absolute path,
+  symlink, binary file), scrubbed with the WP16 scrubber in memory, then stored under
+  `DATA_DIR/intake/<node_id>/<n>/`. Each attempt is a row of the new table `intake_attempt` (run
+  `python -m supervisor.jobs.bootstrap_schema` before the new app version on Delta); a re-upload is
+  attempt n+1. The clone runs in the new `sandbox.git_clone_https` (https only, shallow). The
+  workspace folder source answers HTTP 400 `not_built` (WP-O1c). `BodyLimitMiddleware` takes a
+  per-path limit so the intake paths may exceed `MAX_REQUEST_BYTES`. Off = no tab, no panel,
+  routes answer 400 `intake_off`.
 
 ## v0.7.0 (phase 10: workflow close-out, separation of duties, live-run hardening) - 2026-10-28
 

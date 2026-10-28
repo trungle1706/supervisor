@@ -40,6 +40,7 @@ TARGET_KINDS = (
     "system",  # WP-G0
     "incident",  # WP-G5
     "mcp_app",  # WP-G6
+    "node",  # WP-O1: an inventory node or agent whose source is taken in
 )
 # path parameter name -> target kind (the first one present on the route wins)
 _PARAM_KIND = {
@@ -53,6 +54,7 @@ _PARAM_KIND = {
     "system_id": "system",  # WP-G0
     "incident_id": "incident",  # WP-G5
     "app_id": "mcp_app",  # WP-G6
+    "node_id": "node",  # WP-O1
     "name": "export",
 }
 # route template -> target kind when the route has no id parameter
@@ -170,6 +172,13 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
         if app is None:
             return None
         return row_hash({k: v for k, v in dict(app).items() if k != "key_hash"})
+    if kind == "node":  # WP-O1: the intake attempts of the node (the n+1 row changes the hash)
+        return row_hash(
+            sorted(
+                f"{r['n']}:{r['sha256']}:{r['status']}"
+                for r in state.query("intake_attempt", {"node_id": target_id})
+            )
+        )
     if kind == "agent":
         agent = state.get("agent", {"agent_id": target_id})
         controls = [

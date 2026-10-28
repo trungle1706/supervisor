@@ -685,6 +685,14 @@ class Settings(BaseSettings):
     # answer needs a justification of 20 characters), guardian switch-off (reason; a second
     # person on a production or high-risk system). Off = nothing changes (new: off).
     console_state_actions: bool = False
+    # --- WP-O1 (phase 9) --- candidate source intake (docs/onboard.md "Intake"): a zip upload or a
+    # clone of an allowed host becomes a numbered, scrubbed attempt under
+    # <data_dir>/intake/<node_id>/<n>/. Off = POST /v1/intake and the Source panel answer HTTP 400
+    # with the flag name (new: off). ONBOARD_GIT_HOSTS: comma list of host names (empty = the
+    # clone intake is off).
+    onboard_intake: bool = False
+    onboard_intake_max_mb: int = Field(default=20, ge=1, le=200)
+    onboard_git_hosts: str = ""
     # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.

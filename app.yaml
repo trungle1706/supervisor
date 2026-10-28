@@ -182,6 +182,14 @@ env:
   # second person on a production or high-risk system). Off by default (docs/console.md).
   # - name: CONSOLE_STATE_ACTIONS
   #   value: "1"
+  # Phase 9 WP-O1: candidate source intake (Source panel: zip upload or https git URL, scrubbed,
+  # numbered attempts under DATA_DIR/intake). Off by default (docs/onboard.md "Intake").
+  # - name: ONBOARD_INTAKE
+  #   value: "1"
+  # - name: ONBOARD_INTAKE_MAX_MB
+  #   value: "20"
+  # - name: ONBOARD_GIT_HOSTS   # comma list; empty = git intake off
+  #   value: "FILL-ME-git-host"
   # Guardian detectors (phase 5).
   - name: DETECTORS_ENABLED
     value: "1"

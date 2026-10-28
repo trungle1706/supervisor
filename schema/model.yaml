@@ -1545,3 +1545,30 @@ tables:
       decision_reason: text?
       created_at: timestamp
       decided_at: timestamp?
+
+  intake_attempt:
+    kind: state
+    description: >
+      WP-O1 (phase 9, ONBOARD_INTAKE). One numbered intake of the source code of an inventory
+      candidate or an agent: a zip upload, a clone or (later) a workspace folder. Re-upload makes
+      attempt n+1; old attempts stay. The files are stored scrubbed under
+      DATA_DIR/intake/<node_id>/<n>/ (the WP16 scrubber runs before anything is written); this row
+      holds only the source reference (no secrets), the SHA-256 and size of what was received,
+      the count of stored files and a counts-only detail note. status: scrubbed (stored after the
+      scrub), failed (refused; detail has the code), stored (reserved).
+    primary_key: [attempt_id]
+    indexes:
+      - [node_id, n]
+    columns:
+      attempt_id: string
+      node_id: string          # inventory node id or agent id
+      n: int                   # 1-based per node
+      source_kind: string      # upload | git | workspace
+      source_ref: string       # file name or URL (no credentials)
+      sha256: string           # of the received zip, or of the sorted file hashes of a clone
+      size_bytes: int
+      file_count: int
+      created_by: string
+      created_at: timestamp
+      status: string           # stored | scrubbed | failed
+      detail: text?
