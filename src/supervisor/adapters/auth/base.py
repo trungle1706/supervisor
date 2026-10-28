@@ -31,6 +31,9 @@ class AuthPrincipal:
     auth_method: str
     roles: frozenset[str] = field(default_factory=frozenset)
     display_name: str = ""
+    # WP-F3: factory user groups (``groups:`` in config/users.yaml). Empty = use the role mapping
+    # of config/factory_groups.yaml.
+    groups: frozenset[str] = field(default_factory=frozenset)
 
     def has(self, *roles: str) -> bool:
         return any(r in self.roles for r in roles)

@@ -152,6 +152,14 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "approver", "admin"),
         "Agent factory: create and edit draft agents of your group, run helper agents (WP-F2)",
     ),
+    "factory.approve": (
+        ("approver", "admin"),
+        "Agent factory: approve, reject or set live a tested agent version (WP-F3)",
+    ),
+    "factory.rollback": (
+        ("admin",),
+        "Agent factory: set the previous version of an agent live again, with a reason (WP-F3)",
+    ),
     "systems.view": (_ALL, "Systems pages and GET /v1/systems: AI systems in your scope (WP-G0)"),
     "systems.edit": (
         ("reviewer", "owner", "admin"),
@@ -543,6 +551,20 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/factory/{agent_id}/drafts/{draft_id}/drop"): "factory.edit",
     ("POST", "/console/factory/{agent_id}/new-version"): "factory.edit",
     ("POST", "/console/factory/{agent_id}/retire"): "factory.edit",
+    # --- WP-F3 (phase 12B) --- test gate and promotion (AGENT_FACTORY_GATE; 400 factory_gate_off)
+    ("GET", "/v1/factory/agents/{agent_id}/gate"): "systems.view",
+    ("GET", "/v1/factory/gate/{run_id}"): "systems.view",
+    ("GET", "/console/factory/{agent_id}/gate"): "systems.view",
+    ("POST", "/console/factory/{agent_id}/gate/run"): "factory.edit",
+    ("GET", "/console/factory/{agent_id}/gate/{run_id}"): "systems.view",
+    ("GET", "/console/factory/{agent_id}/simulation/{run_id}"): "systems.view",
+    ("POST", "/console/factory/{agent_id}/simulation/{run_id}/mark"): "factory.edit",
+    ("POST", "/console/factory/{agent_id}/promote/submit"): "factory.edit",
+    ("POST", "/console/factory/{agent_id}/promote/reopen"): "factory.edit",
+    ("POST", "/console/factory/{agent_id}/promote/approve"): "factory.approve",
+    ("POST", "/console/factory/{agent_id}/promote/reject"): "factory.approve",
+    ("POST", "/console/factory/{agent_id}/promote/activate"): "factory.approve",
+    ("POST", "/console/factory/{agent_id}/promote/rollback"): "factory.rollback",
     # --- WP-O1 (phase 9) --- candidate source intake (ONBOARD_INTAKE; 400 with the flag when off)
     ("GET", "/v1/intake/{node_id}"): "systems.view",
     ("POST", "/v1/intake/{node_id}"): "systems.edit",

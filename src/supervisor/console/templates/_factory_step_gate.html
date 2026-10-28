@@ -1,0 +1,122 @@
+{# Editor step 10: the test gate, the simulation and the promotion panel (WP-F3). Variable: ed (ed.gate). #}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+{% set g = ed.gate %}
+{% set aid = ed.agent.id %}
+<section class="card" id="factory-step-panel" data-step="gate">
+  <h3>10. {{ t('fg_title') }}</h3>
+  <p class="hint">{{ t('fg_hint') }}</p>
+  {% if not g.model_ready %}<p class="notice" data-model-off="1"><span class="dot"></span>{{ t('fg_model_off') }}</p>{% endif %}
+
+  <h4>{{ t('fg_golden') }}</h4>
+  <p class="idline" data-gate-golden="1">
+    {{ ui.pill(t('fg_cases', n=g.golden.total, m=g.golden.min_cases), 'ok' if g.golden.ready else 'warn', True) }}
+    {{ ui.pill(t('fg_labels', n=g.labels, m=g.labels_min), 'ok' if g.labels >= g.labels_min else 'warn', True) }}
+    {% if g.golden.problems %}<span class="hint" data-golden-problems="1">{{ g.golden.problems|join('; ') }}</span>{% endif %}
+    <a href="/console/factory/{{ aid }}?v={{ ed.version }}&amp;step=golden">{{ t('fa_step_golden') }}</a>
+  </p>
+
+  <h4>{{ t('fg_run') }}</h4>
+  {% if g.can_run %}
+  <div class="btnrow" data-gate-run="1">
+    <form hx-post="/console/factory/{{ aid }}/gate/run" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}"><input type="hidden" name="kind" value="full">
+      <button class="btn primary" data-act="run-full" {{ 'disabled' if ed.agent.state != 'draft' and ed.agent.state != 'tested' }}>{{ t('fg_run_full') }}</button>
+    </form>
+    <form hx-post="/console/factory/{{ aid }}/gate/run" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}"><input type="hidden" name="kind" value="sample">
+      <label>{{ t('fg_n') }} <input type="number" name="n" data-field="n" min="1" max="{{ g.sample_max }}" value="{{ g.sample_default }}"></label>
+      <button class="btn" data-act="run-sample" {{ 'disabled' if not g.can_run_nondraft }}>{{ t('fg_run_sample') }}</button>
+    </form>
+    <form hx-post="/console/factory/{{ aid }}/gate/run" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}"><input type="hidden" name="kind" value="simulation">
+      <label>{{ t('fg_systems') }} <input name="systems" data-field="systems" placeholder="sys-1, sys-2"></label>
+      <button class="btn" data-act="run-simulation" {{ 'disabled' if not g.can_run_nondraft }}>{{ t('fg_run_simulation') }}</button>
+    </form>
+    <form hx-post="/console/factory/{{ aid }}/gate/run" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}"><input type="hidden" name="kind" value="shadow">
+      <input type="number" name="n" data-field="shadow-n" min="1" max="25" value="10">
+      <button class="btn" data-act="run-shadow">{{ t('fg_run_shadow') }}</button>
+    </form>
+  </div>
+  <p class="hint">{{ t('fg_run_hint') }}</p>
+  {% else %}<p class="hint" data-readonly="1">{{ t('fg_no_run') }}</p>{% endif %}
+
+  <div id="gate-poll" data-running="{{ 1 if g.running else 0 }}"
+    {% if g.running %}hx-get="/console/factory/{{ aid }}/gate?v={{ ed.version }}&amp;state={{ ed.agent.state }}" hx-trigger="every 2s" hx-target="#factory-step" hx-swap="innerHTML"{% endif %}>
+    <h4>{{ t('fg_runs') }}</h4>
+    <table class="queue" data-table="gate-runs">
+      <thead><tr><th scope="col">{{ t('fg_kind') }}</th><th scope="col">v</th><th scope="col">{{ t('fg_status') }}</th><th scope="col">{{ t('fg_verdict') }}</th><th scope="col">L1 %</th><th scope="col">kappa</th><th scope="col">{{ t('fg_match') }} %</th><th scope="col">{{ t('fg_lost') }}</th><th scope="col">{{ t('fg_cost') }}</th><th scope="col"></th></tr></thead>
+      <tbody>
+      {% for r in g.runs %}
+        <tr data-run="{{ r.run_id }}" data-kind="{{ r.kind }}" data-status="{{ r.status }}" data-verdict="{{ r.verdict }}">
+          <td>{{ r.kind }}</td><td class="mono">{{ r.version }}</td>
+          <td>{% if r.running %}{{ ui.pill(r.status, 'info', True) }} <span class="k" data-progress="{{ r.progress.get('done', 0) }}/{{ r.progress.get('total', 0) }}">{{ r.progress.get('done', 0) }}/{{ r.progress.get('total', 0) }}</span>{% elif r.status == 'failed' %}{{ ui.pill(r.status, 'bad', True) }} <span class="mono">{{ r.error }}</span>{% else %}{{ ui.pill(r.status, 'neutral') }}{% endif %}</td>
+          <td>{{ ui.pill(r.verdict, {'pass': 'ok', 'fail': 'bad'}.get(r.verdict, 'neutral'), True) }}</td>
+          <td data-l1="{{ r.layer1.get('percent', '') }}">{{ r.layer1.get('percent', '-') }}</td>
+          <td data-kappa="{{ r.cal.get('kappa_hundredths', '') }}">{{ r.cal.get('kappa_hundredths', '-') }}</td>
+          <td data-match="{{ r.layer2.get('match_percent', '') }}">{{ r.layer2.get('match_percent', '-') }}</td>
+          <td>{{ r.reg.get('lost', '-') }}</td>
+          <td class="mono">{{ r.cost.get('model_calls', '-') }} / {{ r.cost.get('tokens_estimated', '-') }} / {{ r.cost.get('seconds', '-') }}s</td>
+          <td>
+            <a href="#" hx-get="/console/factory/{{ aid }}/gate/{{ r.run_id }}" hx-target="#gate-detail" hx-swap="innerHTML" data-act="detail">{{ t('fg_detail') }}</a>
+            {% if r.kind == 'simulation' and r.status == 'done' %}<a href="/console/factory/{{ aid }}/simulation/{{ r.run_id }}" data-act="review">{{ t('fg_review') }}</a>{% endif %}
+          </td>
+        </tr>
+      {% else %}<tr><td class="hint" colspan="10">{{ t('fg_no_runs') }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div id="gate-detail" aria-live="polite"></div>
+</section>
+
+<section class="card" data-section="promotion">
+  <h3>{{ t('fg_promotion') }} {{ ui.pill(ed.agent.state, ed.agent.state_pill, True) }}</h3>
+  <p class="idline" data-promo="1">
+    <span class="pill" data-tier="{{ g.promo.tier }}">{{ t('fg_tier') }}: {{ g.promo.tier }}</span>
+    <span class="pill" data-change="{{ g.promo.change }}">{{ t('fg_change') }}: {{ g.promo.change }}</span>
+    {% for k in g.promo.required %}<span class="pill {{ 'ok' if k not in g.promo.missing else 'warn' }}" data-approval="{{ k }}" data-given="{{ 0 if k in g.promo.missing else 1 }}">{{ k }}</span>{% endfor %}
+  </p>
+  <p class="hint">{{ t('fg_promo_hint') }}</p>
+  {% if g.promo.approvals %}
+  <table class="queue" data-table="approvals"><tbody>
+  {% for a in g.promo.approvals %}<tr data-approval-row="{{ a.role }}"><td>{{ a.role }}</td><td>{{ a.by }}</td><td class="mono">{{ a.at }}</td><td class="wrap">{{ a.note }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% endif %}
+  {% if g.promo.unreferenced %}<p class="notice" data-unreferenced="1"><span class="dot"></span>{{ t('fg_unreferenced', ids=g.promo.unreferenced|join(', ')) }}</p>{% endif %}
+  <div class="btnrow" data-promo-actions="1">
+    {% if g.can_submit %}
+    <form hx-post="/console/factory/{{ aid }}/promote/submit" hx-swap="none" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}"><button class="btn primary" data-act="submit" {{ 'disabled' if g.promo.unreferenced }}>{{ t('fg_submit') }}</button></form>
+    {% endif %}
+    {% if g.approve_kinds %}
+    <form hx-post="/console/factory/{{ aid }}/promote/approve" hx-swap="none" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}">
+      <select name="kind" data-field="kind">{% for k in g.approve_kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select>
+      <input name="note" data-field="note" maxlength="300" placeholder="{{ t('fg_note') }}">
+      <button class="btn primary" data-act="approve">{{ t('fg_approve') }}</button></form>
+    {% endif %}
+    {% if g.can_reject %}
+    <form hx-post="/console/factory/{{ aid }}/promote/reject" hx-swap="none" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}">
+      <input name="reason" data-field="reject-reason" minlength="20" maxlength="300" placeholder="{{ t('fg_reject_reason') }}" required>
+      <button class="btn" data-act="reject">{{ t('fg_reject') }}</button></form>
+    {% endif %}
+    {% if g.can_activate %}
+    <form hx-post="/console/factory/{{ aid }}/promote/activate" hx-swap="none" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}"><button class="btn primary" data-act="activate">{{ t('fg_activate') }}</button></form>
+    {% endif %}
+    {% if g.can_reopen %}
+    <form hx-post="/console/factory/{{ aid }}/promote/reopen" hx-swap="none" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}">
+      <input name="reason" data-field="reopen-reason" minlength="10" maxlength="300" placeholder="{{ t('fg_reopen_reason') }}" required>
+      <button class="btn" data-act="reopen">{{ t('fg_reopen') }}</button></form>
+    {% endif %}
+    {% if g.can_rollback %}
+    <form hx-post="/console/factory/{{ aid }}/promote/rollback" hx-swap="none" method="post">
+      <input type="hidden" name="version" value="{{ ed.version }}"><input type="hidden" name="to" value="{{ g.rollback_to }}">
+      <input name="reason" data-field="rollback-reason" minlength="10" maxlength="300" placeholder="{{ t('fg_rollback_reason') }}" required>
+      <button class="btn" data-act="rollback">{{ t('fg_rollback', v=g.rollback_to) }}</button></form>
+    {% endif %}
+  </div>
+</section>

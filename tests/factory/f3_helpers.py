@@ -1,0 +1,171 @@
+"""Helpers of the WP-F3 tests: a fake gateway ChatModel (tests only: the product has no mock path),
+a gate environment on the test adapters, and synthetic golden cases (Vietnamese, no real data)."""
+
+from __future__ import annotations
+
+import copy
+import json
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+from supervisor.evidence.signer import Ed25519FileSigner
+from supervisor.factory import caps, gate, golden, probe, registry
+from supervisor.factory.store import FactoryStore
+
+ACTOR = "reviewer.an"
+
+
+class FakeChat:
+    """A scripted gateway model. Agent calls answer like a careful agent (pass with a quote when a
+    source of the right kind is loaded, else question); judge calls compare the expected and the
+    actual verdicts in the prompt; label calls answer ``label_verdict`` (default: pass when a
+    source is given, else question)."""
+
+    family = "fake"
+    model_id = "fake-gateway-1"
+    is_mock = False
+
+    def __init__(self) -> None:
+        self.calls = 0
+        self.judge_answer: str | None = None  # force "yes" / "no" for every judge question
+        self.label_verdict: str | None = None
+        self.agent_answer: Any = probe.answer_good
+        self.fail_judge = False
+        self.prompts: list[Mapping[str, Any]] = []
+
+    def complete_json(self, messages: Any, json_schema: Mapping[str, Any], timeout_s: float) -> Any:
+        self.calls += 1
+        props = (json_schema or {}).get("properties", {})
+        user = json.loads(messages[-1]["content"])
+        self.prompts.append(user)
+        if "findings" in props:
+            return self.agent_answer(user)
+        if "verdict_matches_expected" in props:
+            if self.fail_judge:
+                raise RuntimeError("judge down")
+            exp, act = user["expected"], {a["checklist_id"]: a["verdict"] for a in user["actual"]}
+            ok = all(act.get(k) == v for k, v in exp.items())
+            ans = self.judge_answer or ("yes" if ok else "no")
+            return {
+                "verdict_matches_expected": {"answer": ans, "reason": "compared"},
+                "rationale_faithful_to_evidence": {"answer": "yes", "reason": "supported"},
+            }
+        if "verdict" in props:
+            if self.label_verdict:
+                return {"verdict": self.label_verdict, "reason": "fixed"}
+            return {"verdict": "pass" if user.get("sources") else "question", "reason": "sources"}
+        if "score" in props:
+            return {"score": 90, "reason": "good draft"}
+        return {"reviews": []}
+
+
+def make_env(
+    adapters: Any,
+    sink: Any,
+    chat: Any,
+    tmp: Path,
+    *,
+    inputs_for: Any = None,
+) -> gate.GateEnv:
+    settings = adapters.settings
+    settings.governance_enabled = True
+    settings.agent_factory = True
+    settings.agent_factory_gate = True
+    tools, groups = registry.load_tools(), registry.load_groups()
+    store = FactoryStore(adapters.state, adapters.tables, adapters.clock, tools, groups)
+    return gate.GateEnv(
+        settings,
+        adapters.state,
+        adapters.tables,
+        adapters.clock,
+        sink,
+        store,
+        tools,
+        chat,
+        inputs_for,
+        Ed25519FileSigner(tmp / "gate-key.pem"),
+    )
+
+
+def create_agent(
+    env: gate.GateEnv, agent_id: str = "mr-agent", dim: str = "model"
+) -> dict[str, Any]:
+    return env.store.create_from_template(dim, agent_id, "Mine", ACTOR)
+
+
+def case_for(
+    defn: Mapping[str, Any], item: Mapping[str, Any], n: int, verdict: str = "pass"
+) -> dict:
+    """A synthetic gate case for one checklist item; every evidence kind has a source."""
+    pack = "pack-" + defn["id"]
+    inputs: dict[str, Any] = {
+        "system": {
+            "system_id": f"sys-{n}",
+            "owner_user": "nguoi-so-huu",
+            "model_version": "v3",
+            "validation_date": "2026-09-01",
+        },
+        "facts": {
+            "facts": [
+                {
+                    "fact_id": f"fct_{n:04d}",
+                    "kind": "tool",
+                    "name": "tinh_phi",
+                    "detail": "risk_class=money",
+                    "file": "agent.py",
+                    "line": 7,
+                    "quote": "def tinh_phi():",
+                }
+            ]
+        },
+        "packs": [
+            {"ref": f"{pack}:{n}", "label": "kiem thu do ben", "text": "dat o phien ban hien tai"}
+        ],
+        "regkb": [{"ref": f"VN-TT53-2026#{n}", "text": "To chuc phai danh gia rui ro mo hinh."}],
+    }
+    return {
+        "case_id": f"c{n:03d}-{item['id'].lower()}",
+        "inputs": inputs,
+        "expected": {item["id"]: verdict},
+        "expected_evidence_refs": [],
+        "rubric_notes": "Vietnamese synthetic case",
+    }
+
+
+def golden_cases(defn: Mapping[str, Any], total: int = 50) -> list[dict[str, Any]]:
+    items = defn["checklist"]
+    return [case_for(defn, items[i % len(items)], i) for i in range(total)]
+
+
+def load_golden(
+    env: gate.GateEnv, row: Mapping[str, Any], total: int = 50, labels: int = 24
+) -> None:
+    cases = golden_cases(row["definition"], total)
+    ok, bad = golden.check_gate_cases(cases, [c["id"] for c in row["definition"]["checklist"]])
+    assert not bad, bad
+    golden.store_gate_cases(env.data_dir, row["id"], ok)
+    rows = [
+        {
+            "case_id": c["case_id"],
+            "finding_id": "f-" + next(iter(c["expected"])),
+            "human_verdict": "pass",
+            "label_by": "reviewer.binh",
+            "labelled_at": "2026-10-20T08:00:00Z",
+        }
+        for c in ok[:labels]
+    ]
+    good, bad2 = golden.check_labels(
+        rows, [c["case_id"] for c in ok], [c["id"] for c in row["definition"]["checklist"]]
+    )
+    assert not bad2, bad2
+    golden.store_labels(env.data_dir, row["id"], good)
+
+
+def ready_definition(env: gate.GateEnv, row: Mapping[str, Any]) -> dict[str, Any]:
+    """The template instructions already name every item; return a private copy of the row."""
+    return copy.deepcopy(dict(row))
+
+
+def kinds() -> tuple[str, ...]:
+    return caps.GATE_KINDS

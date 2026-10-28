@@ -11,6 +11,14 @@
     <button class="btn primary" data-act="upload">{{ t('fa_upload') }}</button>
   </form>
   <p class="hint">{{ t('fa_golden_format') }}</p>
+  {% if ed.gate_on %}
+  <p class="hint" data-gate-cases="{{ ed.gate_cases }}">{{ t('fg_golden_gate_hint', n=ed.gate_cases, m=ed.gate_labels) }}</p>
+  <form hx-post="/console/factory/{{ ed.agent.id }}/golden" hx-target="#factory-step" hx-swap="innerHTML" hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data" class="btnrow">
+    <input type="hidden" name="version" value="{{ ed.version }}"><input type="hidden" name="kind" value="labels">
+    <input type="file" name="file" accept=".json" data-field="labels-file" required>
+    <button class="btn" data-act="upload-labels">{{ t('fg_upload_labels') }}</button>
+  </form>
+  {% endif %}
   {% endif %}
   <h4>{{ t('fa_strat') }}</h4>
   <table class="queue" data-table="stratification"><thead><tr><th scope="col">{{ t('fa_f_id') }}</th><th scope="col">{{ t('fa_golden_cases') }}</th></tr></thead><tbody>

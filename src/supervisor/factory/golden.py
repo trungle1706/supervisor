@@ -448,3 +448,13 @@ def store_labels(
     rows = [merged[k] for k in sorted(merged)]
     _write_list(golden_dir(data_dir, agent_id), LABEL_FILE, rows)
     return rows
+
+
+def remove_label(data_dir: Path, agent_id: str, case_id: str, finding_id: str) -> None:
+    """Drop the label of one finding (a reviewer who turns a mark into ``unsure``)."""
+    rows = [
+        r
+        for r in load_labels(data_dir, agent_id)
+        if (r["case_id"], r["finding_id"]) != (case_id, finding_id)
+    ]
+    _write_list(golden_dir(data_dir, agent_id), LABEL_FILE, rows)

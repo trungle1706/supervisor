@@ -69,7 +69,7 @@ def actor(me: Any) -> str:
 
 def may_edit(me: Any, owner_group: str) -> bool:
     return getattr(me, "kind", "user") == "user" and permits(
-        me.roles, owner_group, group_registry()
+        me.roles, owner_group, group_registry(), getattr(me, "groups", None)
     )
 
 
@@ -81,6 +81,19 @@ def require_edit(me: Any, owner_group: str) -> str:
 
 
 # ------------------------------------------------------------------------------ catalogue
+
+
+def _gate_card(ctx: ConsoleContext, row: Mapping[str, Any]) -> dict[str, Any]:
+    """WP-F3: the last gate result and the live version (empty without a table read when off)."""
+    from supervisor.console import factory_gate_view as fgv
+
+    return fgv.card_extra(ctx, row)
+
+
+def all_steps(ctx: ConsoleContext) -> tuple[str, ...]:
+    from supervisor.console import factory_gate_view as fgv
+
+    return fgv.steps(ctx)
 
 
 def card(ctx: ConsoleContext, me: Any, row: Mapping[str, Any]) -> dict[str, Any]:
@@ -98,7 +111,7 @@ def card(ctx: ConsoleContext, me: Any, row: Mapping[str, Any]) -> dict[str, Any]
         "state_pill": STATE_PILL.get(row["state"], "neutral"),
         "checklist_size": len(d.get("checklist") or []),
         "golden_size": len(golden.load_cases(ctx.settings.data_dir, row["id"])),
-        "last_gate": None,  # placeholder: the test gate is WP-F3
+        **_gate_card(ctx, row),
         "can_edit": may_edit(me, row["owner_group"]),
         "updated_at": row.get("updated_at"),
     }
@@ -153,8 +166,8 @@ def load_row(ctx: ConsoleContext, agent_id: str, version: str = "") -> dict[str,
 def editor_data(
     ctx: ConsoleContext, me: Any, agent_id: str, version: str = "", step: str = "template"
 ) -> dict[str, Any]:
-    if step not in STEPS:
-        raise FactoryError("bad_step", f"step must be one of {', '.join(STEPS)}")
+    if step not in all_steps(ctx):
+        raise FactoryError("bad_step", f"step must be one of {', '.join(all_steps(ctx))}")
     st = store(ctx)
     row = load_row(ctx, agent_id, version)
     defn = row["definition"]
@@ -165,7 +178,7 @@ def editor_data(
         "row_version": row["row_version"],
         "defn": defn,
         "step": step,
-        "steps": STEPS,
+        "steps": all_steps(ctx),
         "version": row["version"],
         "versions": [{"version": v["version"], "state": v["state"]} for v in st.versions(agent_id)],
         "editable": editable,
@@ -178,12 +191,12 @@ def editor_data(
         "lint": [i.as_dict() for i in linter.lint_definition(defn)],
         "events": list(reversed(st.events(agent_id, row["version"])))[:15],
     }
-    data.update(_step_extra(ctx, st, row, step))
+    data.update(_step_extra(ctx, st, row, step, me))
     return {"ed": data}
 
 
 def _step_extra(
-    ctx: ConsoleContext, st: FactoryStore, row: Mapping[str, Any], step: str
+    ctx: ConsoleContext, st: FactoryStore, row: Mapping[str, Any], step: str, me: Any = None
 ) -> dict[str, Any]:
     defn = row["definition"]
     out: dict[str, Any] = {}
@@ -218,9 +231,19 @@ def _step_extra(
         out["picked"] = ""
         out["nodes"] = fact_nodes(ctx)
         out["drafts"] = _drafts(ctx, row, "result_explainer", status="")
+    elif step == "gate":
+        from supervisor.console import factory_gate_view as fgv
+
+        out["gate"] = fgv.gate_data(ctx, me, row)
     elif step == "golden":
         cases = golden.load_cases(ctx.settings.data_dir, row["id"])
         out["strat"] = golden.stratification(cases, [c["id"] for c in defn["checklist"]])
+        from supervisor.console import factory_gate_view as fgv
+
+        out["gate_on"] = fgv.on(ctx)
+        if out["gate_on"]:
+            out["gate_cases"] = len(golden.all_gate_cases(ctx.settings.data_dir, row["id"]))
+            out["gate_labels"] = len(golden.load_labels(ctx.settings.data_dir, row["id"]))
         out["cases"] = cases[:50]
         out["drafts"] = _drafts(ctx, row, "golden_generator")
     return out

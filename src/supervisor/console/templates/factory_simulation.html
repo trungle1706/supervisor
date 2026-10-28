@@ -1,0 +1,10 @@
+{# Simulation review page (WP-F3): each finding beside its evidence; the reviewer marks it. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('fg_sim_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('fa_title'), '/console/factory'), (agent.id, '/console/factory/' ~ agent.id ~ '?step=gate'), (t('fg_sim_title'), None)]) }}
+{{ ui.pagehead(t('fg_sim_title'), ui.pill(sim.run.run_id, 'neutral')) }}
+<p class="hint">{{ t('fg_sim_hint') }}</p>
+<div id="sim-review">{% include "_factory_sim_body.html" %}</div>
+{% endblock %}

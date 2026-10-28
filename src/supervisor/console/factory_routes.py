@@ -28,6 +28,7 @@ from fastapi.responses import HTMLResponse, Response
 
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
+from supervisor.console import factory_gate_view as fgv
 from supervisor.console import factory_view as fv
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.intake_routes import _same_site, parse_multipart
@@ -40,7 +41,7 @@ from supervisor.console.routes import (
     message_html,
     render,
 )
-from supervisor.factory import golden, helpers, linter
+from supervisor.factory import gate, golden, helpers, linter
 from supervisor.factory.store import FactoryError, require_on
 
 router = APIRouter(prefix="/console", tags=["console"])
@@ -293,11 +294,31 @@ async def golden_upload(
         if not files:
             raise golden.GoldenError("choose a .json or .csv file")
         name, raw = files[0]
-        cases = golden.parse_upload(name, raw)
         ids = [c["id"] for c in row["definition"]["checklist"]]
-        ok, bad = golden.check_cases(cases, ids)
-        if ok:
-            golden.store_cases(ctx.settings.data_dir, agent_id, ok)
+        data_dir = ctx.settings.data_dir
+        gate_rows = None
+        if fields.get("kind") == "labels":  # WP-F3: calibration labels of the gate
+            if not fgv.on(ctx):
+                raise FactoryError("factory_gate_off", gate.FLAG_TEXT)
+            ok, bad = golden.check_labels(
+                golden.parse_json_rows(name, raw, "labels"),
+                [c["case_id"] for c in golden.all_gate_cases(data_dir, agent_id)],
+                ids,
+            )
+            if ok:
+                golden.store_labels(data_dir, agent_id, ok)
+        else:
+            if name.lower().endswith(".json") and fgv.on(ctx):
+                rows = golden.parse_json_rows(name, raw, "cases")
+                gate_rows = rows if golden.is_gate_upload(rows) else None
+            if gate_rows is not None:  # WP-F3: gate cases carry the inputs of a run
+                ok, bad = golden.check_gate_cases(gate_rows, ids)
+                if ok:
+                    golden.store_gate_cases(data_dir, agent_id, ok)
+            else:
+                ok, bad = golden.check_cases(golden.parse_upload(name, raw), ids)
+                if ok:
+                    golden.store_cases(data_dir, agent_id, ok)
         fv.store(ctx).record_event(
             agent_id,
             row["version"],

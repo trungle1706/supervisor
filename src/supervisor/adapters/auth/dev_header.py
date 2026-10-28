@@ -22,6 +22,20 @@ AUTH_METHOD = "dev_header"
 _ID = re.compile(r"^[A-Za-z0-9_.@+-]{1,128}$")
 
 
+_GROUP = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+
+
+def _groups(raw: Any, path: Path, uid: str) -> frozenset[str]:
+    """The optional ``groups:`` list of a user (factory groups, WP-F3)."""
+    if raw in (None, ""):
+        return frozenset()
+    if not isinstance(raw, (list, tuple)) or not all(
+        isinstance(g, str) and _GROUP.match(g) for g in raw
+    ):
+        raise AuthError(f"users file {path}: groups of {uid!r} must be a list of group ids")
+    return frozenset(raw)
+
+
 class DevHeaderPrincipal:
     name = "dev_header"
 
@@ -54,6 +68,7 @@ class DevHeaderPrincipal:
                 auth_method=AUTH_METHOD,
                 roles=clean_roles(spec.get("roles") or ()),
                 display_name=str(spec.get("name") or ""),
+                groups=_groups(spec.get("groups"), path, uid),
             )
         return cls(users, doc.get("default_user"))
 
