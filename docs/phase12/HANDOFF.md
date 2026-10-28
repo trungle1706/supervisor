@@ -16,16 +16,17 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
   * Wave 2 merged: WP-F4 (orchestrator), WP-G1 (guardian definitions), WP-W3 (internal documents),
     WP-F2 (factory UI and helper agents); fixes 7697618. Schema: 77 tables. RegKB: 39 instruments,
     618 obligations.
-  * Wave 3 workers started 2026-10-29 in local worktrees: WP-F3 (gate and promotion), WP-C3
-    (nine-step workflow), WP-C4 (portfolio blocks and nav entries), WP-G2 (guardian benchmark).
-    Still to start: WP-F5 (starter agents, after F3), WP-G3 (shadow and promotion, after G2),
-    WP-G4 (smart guardian), WP-W1 and WP-W2 (watcher and change loop).
+  * Wave 3 part one merged 2026-10-29: WP-C4 (portfolio, nav), WP-G2 (guardian benchmark),
+    WP-C3 (nine-step workflow), WP-F3 (gate and promotion); fix 93dfdae. Schema: 79 tables.
+  * Wave 3 part two workers started 2026-10-29: WP-F5 (starter agents), WP-G3 (shadow and
+    promotion), WP-G4 (smart guardian), WP-W1 (watcher). Still to start: WP-W2 (after W1).
   * Merge lesson: every WP appends a table and a CHANGELOG entry, so a merge conflicts in
     schema/model.yaml, the two DDL files, the notebook and CHANGELOG.md. Keep both appends, take
     either side of the generated files, then regenerate; add new /v1/systems routers to the
     `mounted` fixture in tests/governance/conftest.py and new flag-mounted prefixes to
     FLAG_MOUNTED in tests/console/test_rbac_matrix.py; regenerate the ROLE-MATRIX block in
-    docs/console.md with `rbac.matrix_markdown()` when permissions change.
+    docs/console.md with `rbac.matrix_markdown()` when permissions change. Check that the LAST
+    column of the last table before a conflict region survived the merge (git drops it twice now).
 * Next waves: see section 5 of the build plan ("Order and merge").
 
 ## 2. How the hub works
@@ -100,9 +101,8 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
 
 ## 7. Next actions in order
 
-1. Merge any wave 3 branch on GitHub (F3, C3, C4, G2) with the merge lesson above.
-2. Start the rest of wave 3: WP-F5 (after F3), WP-G3 (after G2), WP-G4, WP-W1 → W2. Brief each
-   worker as section 2 says.
+1. Merge any wave 3 branch on GitHub (F5, G3, G4, W1) with the merge lesson above.
+2. Start WP-W2 (after W1). Brief the worker as section 2 says.
 3. Full suite, then release v0.9.0 (section 4).
 4. Report to the owner in the controlled style (short sentences, tables, diagrams; see the
    owner's `ste-communication` skill note in the memory file when local).
