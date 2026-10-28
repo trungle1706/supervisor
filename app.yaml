@@ -198,9 +198,19 @@ env:
   # /v1/systems/{id}/orchestrate). Needs GOVERNANCE_ENABLED, RISK_DIMENSIONS, CLASSIFICATION_V2.
   # Off by default (docs/orchestrator.md).
   # - name: ONBOARD_ORCHESTRATOR
+  #   value: "1"
   # Phase 12B WP-F2: the agent factory (catalogue /console/factory, editor, three helper agents that
   # need LLM_BASE_URL). Needs GOVERNANCE_ENABLED. Off by default (docs/factory.md).
   # - name: AGENT_FACTORY
+  #   value: "1"
+  # Phase 12 WP-G1: guardian factory (registry and editor of guardian definitions at
+  # /console/guardian-factory). Needs DETECTORS_ENABLED. Off by default (docs/guardian-factory.md).
+  # - name: GUARDIAN_FACTORY
+  #   value: "1"
+  # Phase 12 WP-C4: Classification and Risk assessment blocks on My overview and GET /v1/portfolio.
+  # Needs CONSOLE_OVERVIEW_V4 and GOVERNANCE_ENABLED; a block needs CLASSIFICATION_V2 or
+  # RISK_DIMENSIONS for data. Off by default (docs/console.md "Portfolio blocks (WP-C4)").
+  # - name: OVERVIEW_PORTFOLIO
   #   value: "1"
   # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
   # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.

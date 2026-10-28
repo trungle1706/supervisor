@@ -71,6 +71,7 @@ def parse_params(query: Mapping[str, str]) -> dict[str, str]:
         "lifecycle_stage": ux3.choice(query, "lifecycle_stage", gm.LIFECYCLE_STAGES),
         "risk": ux3.choice(query, "risk", gm.RISK_LEVELS),
         "system_type": ux3.choice(query, "system_type", gm.SYSTEM_TYPES),
+        "outcome": ux3.token(query, "outcome"),  # WP-C4: approved classification outcome or "none"
         "sort": query.get("sort") or "",
         "dir": query.get("dir") or "",
         "page": query.get("page") or "",
@@ -91,7 +92,13 @@ def _ordered(rows: list[dict[str, Any]], p: Mapping[str, str]) -> tuple[list[Any
 def _rows(ctx: Any, me: Any, p: Mapping[str, str]) -> list[dict[str, Any]]:
     svc = ctx.systems
     filters = {k: p[k] for k in FILTERS if p[k]}
-    return svc.list_systems(svc.scope_for(me), filters)
+    rows: list[dict[str, Any]] = svc.list_systems(svc.scope_for(me), filters)
+    if p.get("outcome"):  # WP-C4: needs CLASSIFICATION_V2; a bad value or the flag off is HTTP 400
+        from supervisor.console import portfolio
+
+        keep = portfolio.outcome_filter(ctx, [str(r["system_id"]) for r in rows], p["outcome"])
+        rows = [r for r in rows if str(r["system_id"]) in keep]
+    return rows
 
 
 def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
@@ -101,7 +108,7 @@ def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
     shown_all = _rows(ctx, me, p)
     shown, col, direction = _ordered(shown_all, p)
     page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
-    base = {k: p[k] for k in FILTERS}
+    base = {k: p[k] for k in (*FILTERS, "outcome")}
     tiles = [
         {
             "label": "sy_tile_all",

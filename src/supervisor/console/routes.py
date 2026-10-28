@@ -185,6 +185,12 @@ def render(
                 # --- WP-N1 --- flags of the tab strip under My overview
                 "ov4": bool(ctx.settings.console_overview_v4 and ctx.settings.governance_enabled),
                 "my_agents": bool(ctx.settings.console_my_agents),
+                # --- WP-C4 --- page flags of the factory and internal documents nav entries
+                "agent_factory": bool(
+                    ctx.settings.agent_factory and ctx.settings.governance_enabled
+                ),
+                "guardian_factory": bool(ctx.settings.guardian_factory),
+                "regkb_internal": bool(ctx.settings.regkb_internal),
             }
         return cache["v"]
 

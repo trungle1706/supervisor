@@ -1,0 +1,60 @@
+{# Portfolio blocks of My overview (WP-C4, OVERVIEW_PORTFOLIO). Variables: d.portfolio from
+   console/portfolio.py (classification, risk), lang, d.systems_page. Server-rendered bars and grid,
+   no script. A bar links to the systems list filtered by outcome; a cell to the Risk assessment tab. #}
+{% set pf = d.portfolio %}
+{% set cl = pf.classification %}
+{% set rk = pf.risk %}
+<div class="pf-wrap" data-portfolio>
+  <section class="card pf-class" aria-labelledby="pf-cl" data-block="classification">
+    <h3 id="pf-cl">{{ t('pf_class') }}</h3>
+    {% if not cl.on %}
+    <p class="hint" data-off="classification">{{ t('pf_class_off') }}</p>
+    {% else %}
+    <ul class="pf-bars" data-bars>
+      {% for b in cl.bars %}
+      <li data-outcome="{{ b.outcome }}" data-count="{{ b.count }}" data-pct="{{ b.pct }}">
+        {% if d.systems_page %}<a class="l" href="/console/systems?outcome={{ b.outcome }}&amp;lang={{ lang }}">{{ t('pf_out_' ~ b.outcome) }}</a>{% else %}<span class="l">{{ t('pf_out_' ~ b.outcome) }}</span>{% endif %}
+        <span class="v">{{ b.count }} · {{ b.pct }}%</span>
+        <div class="bar pf-b-{{ b.outcome }}{{ ' none' if b.pct == 0 else '' }}" role="img" aria-label="{{ t('pf_out_' ~ b.outcome) }}: {{ b.pct }}%"><i style="width:{{ b.pct }}%"></i></div>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="sub">{{ t('pf_class_foot', waiting=cl.waiting_for_approval_n, due=cl.review_due_n) }}</p>
+    {% endif %}
+  </section>
+
+  <section class="card pf-risk" aria-labelledby="pf-rk" data-block="risk">
+    <h3 id="pf-rk">{{ t('pf_risk') }}</h3>
+    {% if not rk.on %}
+    <p class="hint" data-off="risk">{{ t('pf_risk_off') }}</p>
+    {% else %}
+    <p class="sub" data-past="{{ rk.past_valid_until_n }}">{{ t('pf_risk_past', n=rk.past_valid_until_n) }}</p>
+    {% if rk.rows %}
+    <div class="pf-scroll">
+    <table class="pf-grid" data-grid>
+      <thead><tr><th scope="col">{{ t('pf_system') }}</th>{% for dim in rk.dimension_ids %}<th scope="col" title="{{ t('pf_dim_' ~ dim) }}">{{ t('pf_dim_' ~ dim) }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for r in rk.rows %}
+      <tr data-system="{{ r.system_id }}">
+        <th scope="row">{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</th>
+        {% for dim in rk.dimension_ids %}{% set st = r.cells[dim] %}
+        <td class="pf-c pf-s-{{ st }}" data-dim="{{ dim }}" data-status="{{ st }}">{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?tab=riskdim&amp;lang={{ lang }}" title="{{ t('pf_dim_' ~ dim) }}: {{ t('pf_st_' ~ st) }}">{{ t('pf_sh_' ~ st) }}</a>{% else %}<span title="{{ t('pf_st_' ~ st) }}">{{ t('pf_sh_' ~ st) }}</span>{% endif %}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot>
+        {% for key in ['pass', 'open', 'fail', 'waived', 'not_applicable'] %}
+        <tr data-total="{{ key }}"><th scope="row">{{ t('pf_st_' ~ key) }}</th>{% for dm in rk.dimensions %}<td data-dim="{{ dm.dimension_id }}">{{ dm[key] }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tfoot>
+    </table>
+    </div>
+    {% if rk.more_n %}<p class="sub" data-more="{{ rk.more_n }}">{{ t('pf_more', shown=rk.rows|length, total=rk.rows_total) }}{% if d.systems_page %} <a href="/console/systems?lang={{ lang }}">{{ t('pf_more_link') }}</a>{% endif %}</p>{% endif %}
+    <p class="legend-l">{% for st in ['pass', 'open', 'fail', 'waived', 'not_applicable'] %}<span class="lg"><i class="pf-s-{{ st }}"></i>{{ t('pf_st_' ~ st) }}</span>{% endfor %}</p>
+    {% else %}
+    <p class="hint">{{ t('pf_risk_none') }}</p>
+    {% endif %}
+    {% endif %}
+  </section>
+</div>

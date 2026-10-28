@@ -163,7 +163,7 @@ async def internal_page(
 ) -> Response:
     internal.require_on(ctx.settings)
     data = await _call(panel_data, ctx, me)
-    return render(request, ctx, me, "regkb_internal.html", section="", **data)
+    return render(request, ctx, me, "regkb_internal.html", section="regkb_internal", **data)
 
 
 def _with_note(resp: Response, note: str) -> Response:

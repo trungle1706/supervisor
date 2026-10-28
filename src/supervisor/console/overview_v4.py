@@ -16,7 +16,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from supervisor.console import overview_v3, readmodels, systems_overview
+from supervisor.console import overview_v3, portfolio, readmodels, systems_overview
 from supervisor.console.listing import paginate, parse_int, parse_sort, query_string, sort_rows
 from supervisor.console.overview_v3 import SCOPES
 from supervisor.core.errors import SupervisorError
@@ -463,4 +463,8 @@ def my_overview(
         "clock": overview_v3._nearest_clock(ctx, now),  # noqa: SLF001
         "systems_page": bool(ctx.settings.console_systems_enabled),
         "stages": STAGES,
+        # WP-C4: the two portfolio blocks over the same scope; None while OVERVIEW_PORTFOLIO is off
+        "portfolio": (
+            portfolio.block_data(ctx, scoped) if portfolio.enabled(ctx.settings) else None
+        ),
     }

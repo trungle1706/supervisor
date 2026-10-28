@@ -53,6 +53,7 @@ FLAG_MOUNTED = (
     "/v1/agents",  # WP-P2
     "/v1/candidates",  # WP-N1
     "/console/candidates",
+    "/v1/portfolio",  # WP-C4: mounted with CONSOLE_OVERVIEW_V4
     "/v1/risk-dimensions",  # WP-C2: mounted inside the GOVERNANCE_ENABLED block
     "/v1/classification",  # WP-C1: the summary route, same block
     "/v1/orchestrate",  # WP-F4: mounted inside the GOVERNANCE_ENABLED block

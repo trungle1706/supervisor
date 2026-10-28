@@ -18,6 +18,7 @@
   {'name': 'system_type', 'label': t('sy_f_system_type'), 'kind': 'select', 'value': params.system_type, 'options': type_opts},
   {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
 ], '/console/systems?lang=' ~ lang) }}
+{% if params.outcome %}<p class="hint" data-outcome-filter="{{ params.outcome }}">{{ t('pf_filter_outcome', outcome=t('pf_out_' ~ params.outcome)) }} <a href="/console/systems?lang={{ lang }}">{{ t('pf_filter_clear') }}</a></p>{% endif %}
 <div id="list" aria-live="polite">
 {% include "_systems_list.html" %}
 </div>

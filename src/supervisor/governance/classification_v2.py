@@ -552,6 +552,21 @@ class ClassificationV2Service:
             "not_triggers": [_trigger_dict(t) for t in tree.not_triggers],
         }
 
+    def approved_outcomes(self, system_ids: Any) -> dict[str, str | None]:
+        """The outcome of the latest approved record per system (None: no approved record). The
+        same rule as ``summary``; the systems list filter and the portfolio block use it (WP-C4)."""
+        require_on(self.settings)
+        wanted = set(system_ids)
+        latest: dict[str, tuple[str, str]] = {}
+        for r in self.state.query("classification_v2", {}):
+            sid = str(r["system_id"])
+            if sid not in wanted or not r.get("approved_by"):
+                continue
+            key = str(_stamp(r["created_at"]))
+            if sid not in latest or key >= latest[sid][0]:
+                latest[sid] = (key, str(r["outcome"]))
+        return {sid: (latest[sid][1] if sid in latest else None) for sid in sorted(wanted)}
+
     def summary(self, system_ids: Any) -> dict[str, Any]:
         """Counts for the portfolio: per outcome (approved records), waiting for approval, no
         record, and review due. ``system_ids``: ids in the caller's scope."""

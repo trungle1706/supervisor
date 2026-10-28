@@ -523,3 +523,59 @@ def test_workflow_and_catalogue_words_are_translated(v3all: Console) -> None:
     html = v3all.get("/console/workflows?lang=vi").text
     assert "Bộ lập lịch" in html and "tác vụ định kỳ" in html and ">scheduler job<" not in html
     assert ">on<" not in html.split("<tbody>")[1]
+
+
+# ---- WP-C4: factory and internal documents
+
+
+def test_factory_entries_are_absent_with_the_flags_off(v3all: Console) -> None:
+    side = _v3_side(v3all.get("/console/?lang=en").text)
+    for path in ("/console/factory", "/console/guardian-factory", "/console/regkb/internal"):
+        assert path not in side, path
+    assert "Factory" not in _labels(side) and "Guardian factory" not in _labels(side)
+    assert "/console/regkb/internal" not in v3all.get("/console/risks?lang=en").text
+
+
+def test_factory_entries_show_with_their_flags(
+    v3all: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    s = v3all.ctx.settings
+    monkeypatch.setattr(s, "agent_factory", True)
+    side = _v3_side(v3all.get("/console/?lang=en").text)
+    assert "Factory" in _labels(side)
+    assert 'href="/console/factory?lang=en"' in side and "/console/guardian-factory" not in side
+    monkeypatch.setattr(s, "guardian_factory", True)
+    side = _v3_side(v3all.get("/console/?lang=en").text)
+    labels = _labels(side)
+    assert labels.index("Factory") < labels.index("Guardian factory")
+    assert 'href="/console/guardian-factory?lang=en"' in side
+    assert "Xưởng guardian" in _v3_side(v3all.get("/console/?lang=vi").text)
+
+
+def test_factory_pages_mark_their_item_active(
+    v3all: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(v3all.ctx.settings, "agent_factory", True)
+    r = v3all.get("/console/factory?lang=en")
+    assert r.status_code == 200
+    assert re.search(r'href="/console/factory\?lang=en" class="active"', _v3_side(r.text))
+
+
+def test_internal_documents_tab_shows_with_regkb_internal(
+    v3all: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(v3all.ctx.settings, "regkb_internal", True)
+    page = v3all.get("/console/risks?lang=en").text
+    assert 'href="/console/regkb/internal?lang=en"' in page and "Internal documents" in page
+
+
+def test_factory_entries_follow_the_permission(
+    v3all: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from supervisor.core import rbac
+
+    monkeypatch.setattr(v3all.ctx.settings, "agent_factory", True)
+    monkeypatch.setattr(v3all.ctx.settings, "guardian_factory", True)
+    labels = _labels(_v3_side(v3all.get("/console/?lang=en", user="viewer.hoa").text))
+    assert ("Factory" in labels) == rbac.allowed(frozenset({"viewer"}), "systems.view")
+    assert ("Guardian factory" in labels) == rbac.allowed(frozenset({"viewer"}), "guardians.view")

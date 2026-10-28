@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- WP-C4 (phase 12): **portfolio blocks on My overview**, `OVERVIEW_PORTFOLIO` (default `0`; needs
+  `CONSOLE_OVERVIEW_V4`, `GOVERNANCE_ENABLED`). New `console/portfolio.py`: block **Classification**
+  (a bar per outcome plus not classified, counts and integer percents, link to the Systems list
+  filtered by the new `outcome` parameter) and block **Risk assessment** (eight types by systems
+  grid, at most 50 rows, totals per column, systems past `valid_until`, cells link to the Risk
+  assessment tab). Both read the services behind the two summary APIs. New route `GET /v1/portfolio`
+  (`systems.view`; 400 `overview_portfolio_off` when off). Navigation: sidebar entries Factory
+  (`AGENT_FACTORY`), Guardian factory (`GUARDIAN_FACTORY`) and Internal documents tab
+  (`REGKB_INTERNAL`) in the v3 bar. `app.yaml`: commented entries for `GUARDIAN_FACTORY`,
+  `OVERVIEW_PORTFOLIO` and the missing value line of `ONBOARD_ORCHESTRATOR`. Off: My overview and
+  the sidebar are unchanged. Details: `docs/console.md` "Portfolio blocks (WP-C4)".
 - WP-F4 (phase 12B): **onboarding orchestrator**, `ONBOARD_ORCHESTRATOR` (default `0`; needs
   `GOVERNANCE_ENABLED`, `RISK_DIMENSIONS`, `CLASSIFICATION_V2`). New `onboard/orchestrator.py`
   (deterministic, no model call): `plan` (which of the eight risk types apply by classification
