@@ -2019,3 +2019,22 @@ CREATE TABLE IF NOT EXISTS gate_run (
 );
 
 CREATE INDEX IF NOT EXISTS ix_gate_run_agent_id_version_kind ON gate_run (agent_id, version, kind);
+
+-- guardian_proposal (state): WP-G4 (phase 12C, SMART_GUARDIAN). One proposal of the smart guardian for one AI system: a guardian set, thresholds, autonomy limits and the floor, each line with the pointer that justifies it (finding, dimension status, fact, flag, classification, system record or rule) and the rule id of config/smart_guardian.yaml. Deterministic, no model call. status: proposed (open), accepted (a person with systems.edit accepted all or some lines; the decision, the results and the policy snippet are kept in proposal_json), rejected (a reason of 20 characters or more in note) or superseded (a newer assessment run or a newer proposal replaced it). attempt_n is the orchestrator attempt the proposal read (0 when there was no run). note is at most 300 characters, masked. Integers only; no floats, no personal data. Chain record guardian_proposal: ids, hash and counts.
+CREATE TABLE IF NOT EXISTS guardian_proposal (
+  proposal_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  attempt_n INTEGER NOT NULL,
+  proposal_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  proposed_at TEXT NOT NULL,
+  proposed_by TEXT NOT NULL,
+  decided_by TEXT,
+  decided_at TEXT,
+  note TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (proposal_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_guardian_proposal_system_id_status ON guardian_proposal (system_id, status);

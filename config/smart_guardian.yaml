@@ -1,0 +1,165 @@
+# Smart guardian rules (WP-G4, phase 12C, SMART_GUARDIAN=1; docs/smart-guardian.md).
+#
+# A deterministic table. No model call. The engine reads: the facts v1 of the system, the eight
+# risk_dimension_status rows, the newest assessment reports (findings with verdict and evidence),
+# the classification outcome, the AI type flags (system tags ai_*) and the autonomy level. It
+# PROPOSES lines; a person with systems.edit accepts some or all; nothing attaches by itself.
+#
+# ILLUSTRATIVE: every number and every mapping below is a starting point the bank must set.
+# Integers only (no floats). Not legal advice. Bank counsel must confirm.
+#
+# A rule is {id, group, when | any_of, lines}. All keys of one `when` must hold (AND); `any_of` is a
+# list of `when` blocks (OR; the first that holds gives the `why` pointer). Condition keys:
+#   levels: [outcome, ...]                classification outcome in the list
+#   dim: {dimension, status_in}           risk_dimension_status of that type is in the list
+#   finding: {dimension, verdict, checklist_re}   a finding of the newest report with that
+#                                         verdict, optionally with a checklist id matching the regex
+#   fact_kinds: [kind, ...]               a fact of one of these kinds exists
+#   fact_tool_re: regex                   a tool fact whose name matches (matched names are kept)
+#   flags_any: [generative, agentic, customer_facing, decides]   one of the ai_* flags is on
+#   money: true                           the system moves money
+#   credit: true                          the system takes credit decisions
+#   personal_data: true                   personal_data is not "none", or a dataset fact exists
+#   segment: [internal, customer, partner]
+#   autonomy_gte: level                   autonomy level at or above (unspecified never matches)
+# A line of group `guardian_set` is {subject: <slug>, stage}; `thresholds` is {kind, subject,
+# value | value_by_level | value_from, unit?, scope?}; `autonomy_limits` is {subject, value |
+# value_by_level | value_from: threshold:<key> of config/classification.yaml, unit}.
+version: 1
+illustrative: true
+
+limits:
+  max_lines: 40
+
+# Pointer used by cybersecurity rules: the checklist id of the injection test for tool transfer
+# (CY-08 in the cybersecurity assessment checklist, or any checklist id that names injection).
+patterns:
+  cyber_injection: "(^|[-_:])cy-?0?8($|[-_])|inject"
+  personal_data_tool: "export|download|send|mail|upload|report|statement|share|forward|attach"
+
+rules:
+  # --- guardian set: which guardians to bind -------------------------------------------------
+  - id: SG-G-INJ-PAIR
+    group: guardian_set
+    any_of:
+      - finding: {dimension: cybersecurity, verdict: fail, checklist_re: cyber_injection}
+      - dim: {dimension: cybersecurity, status_in: [fail]}
+    lines:
+      - {subject: injection_regex, stage: tool_call}
+      - {subject: guard_model, stage: tool_call}
+  - id: SG-G-INJ-AGENTIC
+    group: guardian_set
+    when: {flags_any: [agentic], levels: [high_certify, high_self, medium]}
+    lines:
+      - {subject: injection_regex, stage: tool_call}
+  - id: SG-G-DLP
+    group: guardian_set
+    any_of:
+      - dim: {dimension: data_governance, status_in: [fail]}
+      - personal_data: true
+    lines:
+      - {subject: dlp_vn, stage: output}
+  - id: SG-G-SESSION
+    group: guardian_set
+    any_of:
+      - autonomy_gte: l3_tool_using_supervised
+      - levels: [high_certify, high_self]
+    lines:
+      - {subject: session_monitor, stage: input}
+  - id: SG-G-JUDGE
+    group: guardian_set
+    any_of:
+      - flags_any: [decides]
+      - dim: {dimension: ethics, status_in: [fail]}
+    lines:
+      - {subject: judge_t2_sample, stage: output}
+  - id: SG-G-DRIFT
+    group: guardian_set
+    any_of:
+      - dim: {dimension: model, status_in: [fail]}
+      - finding: {dimension: model, verdict: fail}
+    lines:
+      - {subject: monitor_drift, stage: output}
+      - {subject: monitor_quality, stage: output}
+  - id: SG-G-FAIR
+    group: guardian_set
+    when: {credit: true}
+    lines:
+      - {subject: monitor_fairness, stage: output}
+  - id: SG-G-SPLIT
+    group: guardian_set
+    when: {money: true, flags_any: [agentic]}
+    lines:
+      - {subject: monitor_split_payment, stage: tool_call}
+
+  # --- thresholds: settings per detector and per monitor -------------------------------------
+  - id: SG-T-DLP-TRANSFORM
+    group: thresholds
+    when: {personal_data: true, fact_tool_re: personal_data_tool}
+    lines:
+      - {kind: detector_setting, subject: dlp_vn.transform_tools, value_from: matched_tools}
+  - id: SG-T-PRESET-STRICT
+    group: thresholds
+    any_of:
+      - levels: [high_certify, high_self]
+      - dim: {dimension: cybersecurity, status_in: [fail]}
+    lines:
+      - {kind: detector_setting, subject: guard_model.preset, value: strict}
+  - id: SG-T-PRESET-BALANCED
+    group: thresholds
+    when: {levels: [medium]}
+    lines:
+      - {kind: detector_setting, subject: guard_model.preset, value: balanced}
+  - id: SG-T-PAUSE-CLASSES
+    group: thresholds
+    when: {money: true, levels: [high_certify, high_self]}
+    lines:
+      - {kind: detector_setting, subject: guard_model.pause_tool_classes, value: [money, credit]}
+  - id: SG-T-DRIFT-CONSECUTIVE
+    group: thresholds
+    any_of:
+      - levels: [high_certify, high_self]
+      - dim: {dimension: model, status_in: [fail]}
+    lines:
+      - {kind: monitor_threshold, subject: drift.consecutive, value: 2, unit: days}
+  - id: SG-T-DRIFT-K
+    group: thresholds
+    when: {levels: [high_certify, high_self]}
+    lines:
+      - {kind: monitor_threshold, subject: drift.k, value: 2, unit: count}
+
+  # --- autonomy limits -----------------------------------------------------------------------
+  - id: SG-A-CAP-HIGH
+    group: autonomy_limits
+    when: {levels: [high_certify, high_self], autonomy_gte: l4_autonomous_bounded}
+    lines:
+      - {subject: max_level, value: l3_tool_using_supervised}
+  - id: SG-A-CAP-FAIL
+    group: autonomy_limits
+    any_of:
+      - dim: {dimension: cybersecurity, status_in: [fail]}
+      - dim: {dimension: model, status_in: [fail]}
+      - dim: {dimension: ethics, status_in: [fail]}
+    lines:
+      - {subject: max_level, value: l3_tool_using_supervised, requires_autonomy_gte: l4_autonomous_bounded}
+  - id: SG-A-MONEY-APPROVAL
+    group: autonomy_limits
+    when: {money: true}
+    lines:
+      - {subject: approval_above_vnd, value_from: "threshold:per_transaction", unit: vnd}
+      - {subject: daily_total_vnd, value_from: "threshold:per_day", unit: vnd}
+  - id: SG-A-CREDIT-APPROVAL
+    group: autonomy_limits
+    when: {credit: true}
+    lines:
+      - {subject: credit_approval_above_vnd, value_from: "threshold:credit_vnd", unit: vnd}
+  - id: SG-A-SESSION-CALLS
+    group: autonomy_limits
+    when: {flags_any: [agentic]}
+    lines:
+      - subject: session_max_tool_calls
+        unit: count
+        value_by_level: {high_certify: 20, high_self: 30, medium: 60, low: 100}
+      - subject: session_max_minutes
+        unit: minutes
+        value_by_level: {high_certify: 30, high_self: 30, medium: 60, low: 120}

@@ -779,6 +779,13 @@ class Settings(BaseSettings):
     # Needs GOVERNANCE_ENABLED, RISK_DIMENSIONS and CLASSIFICATION_V2 (ONBOARD_FACTS adds facts v1).
     # Off: routes answer HTTP 400 orchestrator_off, no table read, the Risk tab is unchanged.
     onboard_orchestrator: bool = False
+    # --- WP-G4 (phase 12C) --- the smart guardian (docs/smart-guardian.md): from the assessment
+    # reports, the facts and the risk statuses it PROPOSES a guardian set, thresholds and autonomy
+    # limits for one AI system, each line with its why pointer; a person accepts. Deterministic
+    # (config/smart_guardian.yaml), no model call. Needs GOVERNANCE_ENABLED and RISK_DIMENSIONS
+    # (ONBOARD_ORCHESTRATOR adds the report inputs). Off: routes answer HTTP 400
+    # smart_guardian_off, no table read, no panel.
+    smart_guardian: bool = False
     # --- WP-F2 (phase 12B) --- the agent factory UI and catalogue (docs/factory.md): tables
     # factory_agent, factory_agent_event, factory_helper_draft; /console/factory and /v1/factory;
     # three helper agents (checklist drafter, golden-set generator, result explainer) that draft

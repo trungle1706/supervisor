@@ -1759,3 +1759,23 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`gate_run` (
 USING DELTA
 COMMENT 'WP-F3 (phase 12B, AGENT_FACTORY_GATE). One run of the test gate for one version of a factory agent. kind: full (layers 1, 2 and 3; the only kind that can lead to state tested), sample (layers 1 and 2 on a small batch; never promotes), simulation (the draft on chosen systems of the inventory, assessed by a person in a review screen; never promotes) or shadow (layer 3 only). status: queued, running, done or failed (the run itself broke). verdict: pass, fail or not_run. layer1_json is the deterministic layer (checks and the harness component tests), layer2_json the guideline judges with the calibration (Cohen''s kappa in hundredths, the confusion matrix, the paired comparison with the live version), layer3_json the shadow run (agreement counts). cost_json holds integers (model calls, estimated tokens, seconds). report_sha256 and signature belong to the signed JSON report on disk under DATA_DIR/factory/<agent>/gate/<run_id>/ (evidence signer). Integers only: no floats, no personal data, no text of a document.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_proposal (state): WP-G4 (phase 12C, SMART_GUARDIAN). One proposal of the smart guardian for one AI system: a guardian set, thresholds, autonomy limits and the floor, each line with the pointer that justifies it (finding, dimension status, fact, flag, classification, system record or rule) and the rule id of config/smart_guardian.yaml. Deterministic, no model call. status: proposed (open), accepted (a person with systems.edit accepted all or some lines; the decision, the results and the policy snippet are kept in proposal_json), rejected (a reason of 20 characters or more in note) or superseded (a newer assessment run or a newer proposal replaced it). attempt_n is the orchestrator attempt the proposal read (0 when there was no run). note is at most 300 characters, masked. Integers only; no floats, no personal data. Chain record guardian_proposal: ids, hash and counts.
+-- primary key (enforced by the app, not by Delta): proposal_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_proposal` (
+  proposal_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  attempt_n BIGINT NOT NULL,
+  proposal_json STRING NOT NULL,
+  status STRING NOT NULL,
+  proposed_at TIMESTAMP NOT NULL,
+  proposed_by STRING NOT NULL,
+  decided_by STRING,
+  decided_at TIMESTAMP,
+  note STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G4 (phase 12C, SMART_GUARDIAN). One proposal of the smart guardian for one AI system: a guardian set, thresholds, autonomy limits and the floor, each line with the pointer that justifies it (finding, dimension status, fact, flag, classification, system record or rule) and the rule id of config/smart_guardian.yaml. Deterministic, no model call. status: proposed (open), accepted (a person with systems.edit accepted all or some lines; the decision, the results and the policy snippet are kept in proposal_json), rejected (a reason of 20 characters or more in note) or superseded (a newer assessment run or a newer proposal replaced it). attempt_n is the orchestrator attempt the proposal read (0 when there was no run). note is at most 300 characters, masked. Integers only; no floats, no personal data. Chain record guardian_proposal: ids, hash and counts.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

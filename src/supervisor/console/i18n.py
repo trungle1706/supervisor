@@ -4520,6 +4520,9 @@ _T.update(_RD)
 from supervisor.console.i18n_orch import ORCH as _ORCH  # noqa: E402  (WP-F4, prefix orch_)
 
 _T.update(_ORCH)
+from supervisor.console.i18n_smart_guardian import SG as _SG  # noqa: E402  (WP-G4, prefix sg_)
+
+_T.update(_SG)
 
 # --- WP-P2 (phase 8) --- CONSOLE_STATE_ACTIONS: RUNNING request, Decision 33 apply, guardian off
 _T.update(
