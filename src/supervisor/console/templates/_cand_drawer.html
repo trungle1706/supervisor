@@ -38,4 +38,8 @@
   <h3 class="sec">{{ t('at_title') }}</h3>
   <div id="attach-slot" hx-get="/console/attach/{{ c.node_id|urlencode }}?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/attach/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('at_open_page') }}</a></p></div>
   {% endif %}
+  {% if drawer.postdeploy %}
+  <h3 class="sec">{{ t('px_title') }}</h3>
+  <div id="postdeploy-slot" hx-get="/console/postdeploy/{{ c.node_id|urlencode }}?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/postdeploy/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('px_open_page') }}</a></p></div>
+  {% endif %}
 {% endcall %}

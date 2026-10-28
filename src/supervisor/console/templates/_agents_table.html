@@ -57,6 +57,7 @@
       <section class="mode-panel" data-section="mode" aria-label="{{ t('sa_title') }}">
         <h5>{{ t('sa_title') }}</h5>
         <div class="hint">{{ t('sa_would_block', n=m.would_block_7d, days=m.window_days) }} <span class="mono" data-num="would_block_7d">{{ m.would_block_7d }}</span></div>
+        {% if m.get('postdeploy') %}<div class="hint" data-postdeploy-link="1"><a href="/console/agents/{{ a.agent_id }}?tab=postdeploy&amp;lang={{ lang }}">{{ t('px_review_first') }}</a></div>{% endif %}
         {% if m.pending %}
         <div class="pending" data-mode-pending="{{ m.pending|length }}">{{ t('sa_requested_by', who=m.pending[0].principal) }}{% if m.pending[0].reason %}<br><i>{{ m.pending[0].reason }}</i>{% endif %}</div>
           {% if m.can_approve %}

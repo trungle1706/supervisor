@@ -67,15 +67,18 @@ def _cell(value: Any) -> str:
 
 
 class InventoryService:
-    def __init__(self, state: Any, clock: Any, settings: Settings) -> None:
+    def __init__(self, state: Any, clock: Any, settings: Settings, tables: Any = None) -> None:
         self.store = InventoryStore(state, clock)
         self.state = state
         self.clock = clock
         self.settings = settings
+        self.tables = tables  # WP-O5: the agent log (onboard_log); None = no log
 
     @classmethod
     def from_adapters(cls, adapters: Any) -> InventoryService:
-        return cls(adapters.state, adapters.clock, adapters.settings)
+        return cls(
+            adapters.state, adapters.clock, adapters.settings, getattr(adapters, "tables", None)
+        )
 
     # ------------------------------------------------------------------ fillers
     def agent_rows(self) -> dict[str, dict[str, Any]]:
@@ -150,6 +153,7 @@ class InventoryService:
         ``GOVERNANCE_ENABLED=1`` an unmanaged App, agent endpoint or Genie space also becomes a
         draft AI system (``systems``: a ``SystemService``; ``tasks``: a ``TaskService``); the
         result then has an ``autoregister`` entry. With the flag off the result is unchanged."""
+        before = self._unmanaged_ids()  # WP-O5: None when the agent log is off
         scan = fill_from_workspace(
             reader,
             schemas=self.schemas(),
@@ -164,6 +168,7 @@ class InventoryService:
             stale_edges=len(scan.errors) == 0,
         )
         sh = self.run_shadow(cases)
+        self._log_new_candidates(before, sh.unmanaged)
         out: dict[str, Any] = {
             "apply": res.as_dict(),
             "shadow": sh.as_dict(),
@@ -224,6 +229,51 @@ class InventoryService:
                 )
                 res.cases[nid] = case["case_id"]
         return res
+
+    def _unmanaged_ids(self) -> set[str] | None:
+        """WP-O5: the nodes that are unmanaged before a scan; ``None`` when nothing is logged."""
+        if not (getattr(self.settings, "onboard_postdeploy", False) and self.tables is not None):
+            return None
+        try:
+            return {
+                str(r["node_id"])
+                for r in self.state.query("inventory_node", {"status": "unmanaged"})
+            }
+        except Exception:  # noqa: BLE001 - the log is a courtesy; the scan goes on
+            log.warning("inventory: agent log could not read the unmanaged nodes")
+            return None
+
+    def _log_new_candidates(self, before: set[str] | None, now: list[str]) -> None:
+        """WP-O5: one agent log row for each node that is unmanaged now and was not before."""
+        if before is None:
+            return
+        try:
+            fresh = [nid for nid in now if nid not in before]
+            if fresh:
+                g = self.store.load_graph()
+                for nid in fresh:
+                    if nid in g.nodes:
+                        self._log_candidate(g.nodes[nid])
+        except Exception:  # noqa: BLE001 - never fails the scan
+            log.warning("inventory: agent log rows for new candidates not written")
+
+    def _log_candidate(self, node: Any) -> None:
+        """WP-O5 agent log: the scan found a node that is a candidate to take in (an App, an
+        agent endpoint or a Genie space). Nothing else is logged; the name is not copied."""
+        from supervisor.inventory.autoregister import candidate_kind
+        from supervisor.onboard import agent_log
+
+        kind = candidate_kind(node)
+        if kind is not None:
+            agent_log.log(
+                self,
+                node.node_id,
+                "scan",
+                f"workspace scan found a candidate ({kind})",
+                f"inventory node {node.node_id}",
+                "rule",
+                "rule",
+            )
 
     # ------------------------------------------------------------------ reads
     def agent_view(self, agent_id: str) -> dict[str, Any] | None:

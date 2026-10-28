@@ -50,7 +50,7 @@ def mode_data(ctx: Any, me: Any, card: Mapping[str, Any]) -> dict[str, Any]:
         would = int(agent_guardians._gate_results(ctx, agent_id, since)["would_block"])
     me_requested = any(p["principal"] == me.user_id for p in pending)
     role = card.get("me_role")
-    return {
+    out = {
         "shadow": shadow,
         "pending": [
             {"principal": p["principal"], "reason": p.get("reason") or ""} for p in pending
@@ -61,6 +61,9 @@ def mode_data(ctx: Any, me: Any, card: Mapping[str, Any]) -> dict[str, Any]:
         "would_block_7d": would,
         "window_days": WINDOW_DAYS,
     }
+    if getattr(ctx.settings, "onboard_postdeploy", False):  # WP-O5: link to the Post-deploy tab
+        out["postdeploy"] = True
+    return out
 
 
 def run_step(ctx: Any, me: Any, agent_id: str, step: str, reason: str) -> dict[str, Any]:

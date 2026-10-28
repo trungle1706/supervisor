@@ -39,8 +39,8 @@ from typing import Any
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
 from supervisor.evidence.chain import check_no_floats
+from supervisor.onboard import agent_log, intake
 from supervisor.onboard import facts as facts_mod
-from supervisor.onboard import intake
 from supervisor.onboard.scrub import scrub_text
 
 log = logging.getLogger(__name__)
@@ -180,11 +180,14 @@ class PredeployService:
         chat_factory: Callable[[], Any] | None = None,
         target_factory: Callable[[Path, str, Path, Any], Any] | None = None,
         executor: Callable[..., list[Any]] | None = None,
+        tables: Any = None,
     ) -> None:
         self.settings = settings
         self.state = state
         self.clock = clock
         self.ctx = ctx
+        # WP-O5: the agent log (onboard_log) takes the tables of the console context
+        self.tables = tables if tables is not None else getattr(ctx, "tables", None)
         self._chat_factory = chat_factory
         self._target_factory = target_factory or build_target
         self._executor = executor
@@ -265,6 +268,16 @@ class PredeployService:
                 },
             )
             _RUNNING[node_id] = report_id
+            agent_log.log(  # WP-O5
+                self,
+                node_id,
+                "predeploy",
+                f"assessment of attempt {n} started",
+                f"report {report_id}",
+                "rule",
+                "rule",
+                attempt_n=n,
+            )
             if background:
                 th = threading.Thread(
                     target=self._thread, args=(report_id, node_id, n), daemon=True
@@ -377,6 +390,27 @@ class PredeployService:
                 "model_id": _clean(model_id, 120) if model_id else None,
             },
             fresh["row_version"],
+        )
+        self._log_verdict(row, status, verdict, c)
+
+    def _log_verdict(
+        self, row: Mapping[str, Any], status: str, verdict: str, c: Mapping[str, int]
+    ) -> None:
+        """WP-O5: the verdict line of the agent log (a failed run says failed)."""
+        what = (
+            f"verdict {verdict}: {c['fail']} fail, {c['question']} question, {c['warn']} warn"
+            if status == "done"
+            else f"the assessment ended as {status}"
+        )
+        agent_log.log(
+            self,
+            row["node_id"],
+            "predeploy",
+            what,
+            f"report {row['report_id']}",
+            "rule",
+            "rule",
+            attempt_n=int(row["attempt_n"]),
         )
 
 

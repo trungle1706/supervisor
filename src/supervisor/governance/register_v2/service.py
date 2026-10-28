@@ -27,6 +27,7 @@ from supervisor.governance.register_v2.draft import DraftStore
 from supervisor.governance.systems import ALL
 from supervisor.inventory.autoregister import GovernanceConfig
 from supervisor.inventory.store import InventoryStore
+from supervisor.onboard import agent_log
 
 log = logging.getLogger("supervisor.governance")
 
@@ -729,6 +730,16 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
 
         def write_duties() -> None:
             counts.update(dut.write(ctx, draft, sid, str(sysdraft["owner_user"]), actor))
+            agent_log.log(  # WP-O5
+                ctx,
+                str(draft.get("source_ref") or agent_id or sid),
+                "duties",
+                f"duties step submitted: {counts.get('rows', 0)} duty rows, "
+                f"{counts.get('tasks', 0)} gap tasks",
+                f"system {sid}",
+                "rule",
+                "rule",
+            )
 
         _guard(steps, "rg2_w_duties", write_duties)
         if counts:

@@ -714,6 +714,12 @@ class Settings(BaseSettings):
     # evidence of each and the How to attach env lines. Read only. Off = GET /console/attach/{id}
     # answers HTTP 400 attach_off and the tab and panel are absent (new: off).
     onboard_attach_view: bool = False
+    # --- WP-O5 (phase 9) --- post-deploy assessment and the agent log (docs/onboard.md
+    # "Post-deploy assessment and the agent log"): the Post-deploy tab and panel, the onboard_log
+    # rows of every onboarding step, GET /console/postdeploy/{id} and GET /v1/postdeploy/{id}.
+    # Off = those routes answer HTTP 400 postdeploy_off, the tab and panel are absent and no
+    # onboard_log row is written (new: off).
+    onboard_postdeploy: bool = False
     # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.

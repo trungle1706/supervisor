@@ -1754,3 +1754,31 @@ CREATE TABLE IF NOT EXISTS predeploy_report (
 );
 
 CREATE INDEX IF NOT EXISTS ix_predeploy_report_node_id_attempt_n ON predeploy_report (node_id, attempt_n);
+
+-- onboard_log (append_only): WP-O5 (phase 9, ONBOARD_POSTDEPLOY). The agent log: one row per onboarding action of a candidate or agent, shown in the console as a timeline "plan, read, found, suggest". step names the onboarding step: scan (the node became a candidate), intake (a source was taken in), facts, predeploy, attach, postdeploy, state (Request or Approve RUNNING) or duties. by_kind says who did it: rule (deterministic code), model (the gateway model produced the content, a mock model says so in what) or person (actor is the person id). what is a short scrubbed sentence of at most 300 characters; pointer is where to look (file:line, report id, row id or pack id) at most 200 characters. Rows are never updated or deleted. No personal data, no secret, no float; counts are integers. A write failure never fails the action that was logged.
+CREATE TABLE IF NOT EXISTS onboard_log (
+  log_id TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  attempt_n INTEGER,
+  step TEXT NOT NULL,
+  what TEXT NOT NULL,
+  pointer TEXT NOT NULL,
+  by_kind TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  at TEXT NOT NULL,
+  PRIMARY KEY (log_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_onboard_log_node_id_at ON onboard_log (node_id, at);
+
+CREATE TRIGGER IF NOT EXISTS trg_onboard_log_no_update
+BEFORE UPDATE ON onboard_log
+BEGIN
+  SELECT RAISE(ABORT, 'onboard_log is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_onboard_log_no_delete
+BEFORE DELETE ON onboard_log
+BEGIN
+  SELECT RAISE(ABORT, 'onboard_log is append-only');
+END;

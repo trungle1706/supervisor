@@ -36,7 +36,7 @@ from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SupervisorError
 from supervisor.core.ports import ChatModel
 from supervisor.inventory.model import TOOL_CLASS_RISK, Edge, Node, node_id_for
-from supervisor.onboard import intake
+from supervisor.onboard import agent_log, intake
 from supervisor.onboard.discover import Discovery, discover
 from supervisor.onboard.models import AgentProfile, Evidence
 from supervisor.onboard.scrub import scrub_text
@@ -307,10 +307,12 @@ class FactsService:
         clock: Any,
         *,
         chat_factory: Callable[[], ChatModel] | None = None,
+        tables: Any = None,
     ) -> None:
         self.settings = settings
         self.state = state
         self.clock = clock
+        self.tables = tables  # WP-O5: the agent log (onboard_log); None = no log
         self._chat_factory = chat_factory
 
     # ------------------------------------------------------------------ helpers
@@ -400,6 +402,16 @@ class FactsService:
                 "tree_missing",
                 f"the stored source of attempt {n} is not on this server any more; upload again",
             )
+        agent_log.log(  # WP-O5
+            self,
+            node_id,
+            "facts",
+            f"reading the stored source of attempt {n}",
+            f"intake attempt {n}",
+            "rule",
+            "rule",
+            attempt_n=n,
+        )
         try:
             disc = discover(LocalGitRepoReader(tree))
             chat = self._chat()
@@ -413,6 +425,18 @@ class FactsService:
         with _LOCK:
             self._store(node_id, n, rows)
             self._feed_graph(node_id, n, disc)
+        summary = rows[-1]  # WP-O5: the log says model or rule as the summary row says
+        agent_log.log(
+            self,
+            node_id,
+            "facts",
+            f"{len(rows) - 1} facts found, {int(summary['dropped_claims'])} claims dropped "
+            "(no evidence)",
+            f"table onboard_facts attempt {n}",
+            "model" if summary["source"] == "model" else "rule",
+            str(summary["model_id"]) if summary["source"] == "model" else "rule",
+            attempt_n=n,
+        )
         return self.card(node_id)
 
     def _summary_row(

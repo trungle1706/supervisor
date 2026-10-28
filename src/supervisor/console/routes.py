@@ -93,6 +93,7 @@ from supervisor.core.errors import NotFoundError, SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
 from supervisor.governance.register_v2 import links as rl
 from supervisor.jobs import case_intake
+from supervisor.onboard import agent_log  # WP-O5
 from supervisor.ops import schema_selfcheck
 from supervisor.risk.model import ensure_on as ensure_risks_on
 from supervisor.transparency.model import ensure_on as ensure_transparency_on
@@ -1081,6 +1082,16 @@ async def agent_running(
         return result
 
     result = await _call(act)
+    await _call(  # WP-O5: the reason a person typed is not copied
+        agent_log.log,
+        ctx,
+        agent_id,
+        "state",
+        "RUNNING requested" if step == "request" else "RUNNING approved",
+        f"agent {agent_id}",
+        "person",
+        str(me.user_id),
+    )
     if result.get("status") == "pending":
         msg = (
             f"{agent_id}: RUNNING requested; a second person (the agent owner or a policy "

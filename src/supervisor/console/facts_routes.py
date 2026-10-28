@@ -32,7 +32,7 @@ _ME = Depends(current_principal)
 
 
 def service(ctx: ConsoleContext) -> facts.FactsService:
-    return facts.FactsService(ctx.settings, ctx.state, ctx.clock)
+    return facts.FactsService(ctx.settings, ctx.state, ctx.clock, tables=ctx.tables)
 
 
 def panel_data(ctx: ConsoleContext, me: AuthPrincipal, node_id: str) -> dict[str, Any]:
