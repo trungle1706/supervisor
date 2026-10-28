@@ -52,6 +52,30 @@
       {% endif %}
       <div class="hint">{{ t('release_rule') }}</div>
     {% endif %}
+    {% if a.get('mode') and a.mode.shadow %}
+      {% set m = a.mode %}
+      <section class="mode-panel" data-section="mode" aria-label="{{ t('sa_title') }}">
+        <h5>{{ t('sa_title') }}</h5>
+        <div class="hint">{{ t('sa_would_block', n=m.would_block_7d, days=m.window_days) }} <span class="mono" data-num="would_block_7d">{{ m.would_block_7d }}</span></div>
+        {% if m.pending %}
+        <div class="pending" data-mode-pending="{{ m.pending|length }}">{{ t('sa_requested_by', who=m.pending[0].principal) }}{% if m.pending[0].reason %}<br><i>{{ m.pending[0].reason }}</i>{% endif %}</div>
+          {% if m.can_approve %}
+          <form hx-post="/console/agents/{{ a.agent_id }}/running/approve" hx-target="#agents-table" class="stack-f">
+            <input type="text" name="reason" placeholder="{{ t('reason_required') }}" maxlength="2000" required aria-label="{{ t('reason') }}">
+            <button class="btn primary block" type="submit">{{ t('sa_approve') }}</button>
+          </form>
+          {% else %}
+          <div class="hint">{{ t('sa_you_requested') if m.me_requested else t('sa_cannot_approve') }}</div>
+          {% endif %}
+        {% else %}
+        <form hx-post="/console/agents/{{ a.agent_id }}/running/request" hx-target="#agents-table" class="stack-f">
+          <input type="text" name="reason" placeholder="{{ t('reason_required') }}" maxlength="2000" required aria-label="{{ t('reason') }}">
+          <button class="btn block" type="submit">{{ t('sa_request') }}</button>
+        </form>
+        {% endif %}
+        <div class="hint">{{ t('sa_rule') }}</div>
+      </section>
+    {% endif %}
     {% if a.state not in ('QUARANTINED', 'RETIRED') and me.has('admin') %}
       <details class="more"><summary>{{ t('quarantine') }}</summary>
         <form hx-post="/console/agents/{{ a.agent_id }}/quarantine" hx-target="#agents-table" class="stack-f">

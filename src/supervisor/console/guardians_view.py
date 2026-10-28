@@ -96,4 +96,11 @@ def catalog_panel(ctx: Any, me: Any, system_id: str | None) -> dict[str, Any] | 
     out["by_card"] = {
         card: [rows[s] for s in slugs if s in rows] for card, slugs in CARD_SLUGS.items()
     }
+    out["state_actions"] = bool(getattr(ctx.settings, "console_state_actions", False))
+    if out["state_actions"]:  # WP-P2 (phase 8): the requests that wait for a second person
+        out["pending_off"] = ctx.guardians.pending_off(system_id)
+        out["me_id"] = getattr(me, "user_id", "")
+        out["can_approve"] = getattr(me, "kind", "") == "user" and rbac.allowed(
+            me.roles, "systems.approve"
+        )
     return out

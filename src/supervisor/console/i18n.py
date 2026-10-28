@@ -4506,6 +4506,54 @@ from supervisor.console.i18n_workflow import WF as _WF  # noqa: E402  (WP-P1, pr
 
 _T.update(_WF)
 
+# --- WP-P2 (phase 8) --- CONSOLE_STATE_ACTIONS: RUNNING request, Decision 33 apply, guardian off
+_T.update(
+    {
+        "sa_title": ("Move to RUNNING", "Chuyển sang RUNNING"),
+        "sa_would_block": (
+            "Shadow would-block in the last {days} days:",
+            "Số lần shadow sẽ chặn trong {days} ngày qua:",
+        ),
+        "sa_request": ("Request RUNNING", "Yêu cầu RUNNING"),
+        "sa_approve": ("Approve RUNNING", "Duyệt RUNNING"),
+        "sa_requested_by": (
+            "RUNNING requested by {who}.",
+            "{who} đã yêu cầu chuyển sang RUNNING.",
+        ),
+        "sa_you_requested": (
+            "You asked for this. A different person approves it.",
+            "Bạn đã yêu cầu. Một người khác phải duyệt.",
+        ),
+        "sa_cannot_approve": (
+            "Only the agent owner or a policy reviewer approves.",
+            "Chỉ chủ sở hữu tác tử hoặc người rà soát trong chính sách được duyệt.",
+        ),
+        "sa_rule": (
+            "Two different people: one asks, the agent owner or a policy reviewer approves.",
+            "Hai người khác nhau: một người yêu cầu, chủ sở hữu hoặc người rà soát duyệt.",
+        ),
+        "gb_reason_ph": ("Reason (required)", "Lý do (bắt buộc)"),
+        "gb_second_person": (
+            "On a production or high-risk system a second person approves a switch-off.",
+            "Với hệ thống đang vận hành hoặc rủi ro cao, cần người thứ hai duyệt khi tắt.",
+        ),
+        "gb_pending_title": (
+            "Switch-off requests waiting for a second person",
+            "Yêu cầu tắt đang chờ người thứ hai",
+        ),
+        "gb_pending_row": ("{slug}, asked by {who}", "{slug}, do {who} yêu cầu"),
+        "gb_approve": ("Approve switch-off", "Duyệt việc tắt"),
+        "gb_you_asked": (
+            "You asked for this. A different person approves it.",
+            "Bạn đã yêu cầu. Một người khác phải duyệt.",
+        ),
+        "sy_cls_why_min": (
+            "Every answer needs a justification of at least {n} characters.",
+            "Mỗi câu trả lời cần lý do ít nhất {n} ký tự.",
+        ),
+    }
+)
+
 
 def translator(lang: str) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come

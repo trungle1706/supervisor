@@ -1523,3 +1523,25 @@ tables:
       set_by: string
       set_at: timestamp
       reason: text?
+
+  guardian_off_request:
+    kind: state
+    description: >
+      WP-P2 (phase 8, CONSOLE_STATE_ACTIONS). A request to switch a guardian feature off on an AI
+      system that is in production or has a high risk level. A second person, not the requester,
+      approves or rejects it; only an approval writes the guardian_binding row. The reason is
+      required. Changes go on the chain as binding_change (ids, enums and a reason hash).
+    primary_key: [request_id]
+    indexes:
+      - [system_id, status]
+    columns:
+      request_id: string
+      system_id: string
+      feature_slug: string
+      requested_by: string
+      reason: text
+      status: string           # pending | approved | rejected
+      decided_by: string?
+      decision_reason: text?
+      created_at: timestamp
+      decided_at: timestamp?

@@ -35,6 +35,19 @@
   Tasks tab, never to an API path. `LifecycleService.request` takes an optional `reason`
   (kept in `stage_approval.reason` while the request waits; the API call is unchanged). No schema
   change. See `docs/console.md`.
+- WP-P2 (phase 8): `CONSOLE_STATE_ACTIONS` (default `0`) closes UX findings H3, H4 and M8.
+  Agent page: **Request RUNNING** (from SHADOW, reason required) and **Approve RUNNING** by a
+  second person who is the agent owner or a policy reviewer; the requester gets HTTP 400
+  `same_person`. It uses the rule of `POST /v1/gate/agents/{id}/state`; the shadow would-block
+  count of the last 7 days shows next to the button. Decision 33 apply: the system owner cannot
+  apply the class on the own system (`owner_cannot_apply`); every person answer needs a
+  justification of 20 characters (`justification_too_short`). Guardian switch-off: reason
+  required; on a production or high-risk system a second person approves before the binding takes
+  effect (new table `guardian_off_request`; run `python -m supervisor.jobs.bootstrap_schema`
+  before the new app version on Delta). The guardian floor is unchanged. New routes:
+  `POST /console/agents/{id}/running/{request|approve}`,
+  `POST /v1/systems/{id}/guardian-off-requests/{rid}/decide`,
+  `POST /console/systems/{id}/guardian-requests/{rid}/{approve|reject}`. Off = no change.
 - WP-L2: `JUDGE_FAMILY_CONFLICT_ALLOW` (default `0`). When set, a judge, guard or quality-scorer
   model that shares the family of a registered agent no longer stops start-up: one WARNING per
   pair is logged, and every `judge_verdict` evidence record for that pair carries

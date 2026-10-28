@@ -1377,3 +1377,23 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_binding` (
 USING DELTA
 COMMENT 'WP-S1. A product owner''s switch for one guardian feature on one AI system: on or off. No row means on. A binding can only narrow what the instance already has on; the assignment rules'' guardian floor always wins (a floor feature cannot be set off, and a floor added later overrides an old off row at resolution time). mandatory is the floor state when the row was written (a snapshot for the audit; resolution reads the floor again). Changes go on the chain as binding_change (ids and enums only).'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_off_request (state): WP-P2 (phase 8, CONSOLE_STATE_ACTIONS). A request to switch a guardian feature off on an AI system that is in production or has a high risk level. A second person, not the requester, approves or rejects it; only an approval writes the guardian_binding row. The reason is required. Changes go on the chain as binding_change (ids, enums and a reason hash).
+-- primary key (enforced by the app, not by Delta): request_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_off_request` (
+  request_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  feature_slug STRING NOT NULL,
+  requested_by STRING NOT NULL,
+  reason STRING NOT NULL,
+  status STRING NOT NULL,
+  decided_by STRING,
+  decision_reason STRING,
+  created_at TIMESTAMP NOT NULL,
+  decided_at TIMESTAMP,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-P2 (phase 8, CONSOLE_STATE_ACTIONS). A request to switch a guardian feature off on an AI system that is in production or has a high risk level. A second person, not the requester, approves or rejects it; only an approval writes the guardian_binding row. The reason is required. Changes go on the chain as binding_change (ids, enums and a reason hash).'
+TBLPROPERTIES ('supervisor.kind' = 'state');

@@ -16,6 +16,7 @@ from typing import Any
 from supervisor.cases.service import PermissionDenied
 from supervisor.console import (
     agent_guardians,
+    agent_state,
     assurance_views,
     compliance_view,
     controls_views,
@@ -166,6 +167,8 @@ def card_of(ctx: Any, me: Any, agent_id: str, tab: str | None = None) -> dict[st
     card-shaped dict (``kind: policy_only``)."""
     for c in readmodels.agent_cards(ctx, me, only=agent_id):
         if c["agent_id"] == agent_id:
+            if agent_state.enabled(ctx):  # WP-P2 (phase 8): CONSOLE_STATE_ACTIONS
+                c["mode"] = agent_state.mode_data(ctx, me, c)
             return c
     if tab in POLICY_TABS:
         try:

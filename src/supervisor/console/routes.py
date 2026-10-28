@@ -42,6 +42,7 @@ from supervisor.cases.service import RESOLUTIONS, SEVERITIES, CaseError, Permiss
 from supervisor.config import get_settings
 from supervisor.console import (
     agent_detail,  # --- WP-UX2 ---
+    agent_state,  # --- WP-P2 (phase 8) ---
     agents_list,
     alerts_list,  # --- WP-UX2 ---
     analytics,  # --- WP-UX2 ---
@@ -1028,6 +1029,12 @@ async def agent_action(
         msg = f"{agent_id}: {action} -> {result.get('state')}"
     if warn:
         msg += f" (WARNING: the console evidence record failed: {warn}; see the server log)"
+    return await _agent_card_response(request, ctx, me, agent_id, msg)
+
+
+async def _agent_card_response(
+    request: Request, ctx: ConsoleContext, me: AuthPrincipal, agent_id: str, msg: str
+) -> Response:
     # --- WP-UX2 --- the controls live on the agent page: answer with this agent's card (the
     # swap target #agents-table) and refresh the header pills out of band.
     card = await _call(agent_detail.card_of, ctx, me, agent_id)
@@ -1042,6 +1049,49 @@ async def agent_action(
     )
     resp.headers["content-length"] = str(len(resp.body))
     return resp
+
+
+# --- WP-P2 (phase 8) --- Request and Approve RUNNING on the agent page (CONSOLE_STATE_ACTIONS).
+# Two segments after the agent id, so it never meets the generic "/agents/{id}/{action}" above.
+@router.post(
+    "/agents/{agent_id}/running/{step}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("agent.mode"))],
+)
+@audited("agent.mode")
+async def agent_running(
+    agent_id: str,
+    step: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    _check_id(agent_id, "agent id")
+    if not agent_state.enabled(ctx):
+        raise ConsoleInputError(agent_state.FLAG_MESSAGE)
+    d = await form(request)
+
+    def act() -> dict[str, Any]:
+        result = agent_state.run_step(ctx, me, agent_id, step, d.get("reason", ""))
+        try:
+            _record_gate_action(ctx, agent_id, f"{step}_running", me, result)
+        except Exception as exc:  # noqa: BLE001 - the state change already happened
+            log.error("console_gate_action evidence failed: %s", type(exc).__name__)
+            result = {**result, "evidence_warning": type(exc).__name__}
+        return result
+
+    result = await _call(act)
+    if result.get("status") == "pending":
+        msg = (
+            f"{agent_id}: RUNNING requested; a second person (the agent owner or a policy "
+            "reviewer) approves it"
+        )
+    else:
+        msg = f"{agent_id}: RUNNING approved; the state is now {result.get('state')}"
+    if result.get("evidence_warning"):
+        msg += f" (WARNING: the console evidence record failed: {result['evidence_warning']})"
+    request.state.audit_detail = f"running {step}"
+    return await _agent_card_response(request, ctx, me, agent_id, msg)
 
 
 # ---------------------------------------------------------------------------- metrics

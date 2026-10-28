@@ -356,7 +356,8 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         # buttons are tasks.view in the matrix and check the task role in the handler
         "tasks.view",
         "tasks.approve",
-        "systems.approve",
+        "systems.approve",  # WP-P1 and WP-P2: tests/governance/test_p2_separation.py
+        "agent.mode",  # WP-P2 (phase 8): tests/console/test_p2_state_actions.py (two audit rows)
     }
     posts = {
         rbac.resolve_permission(e, {"action": "pause"}) if e != rbac.DEV_ONLY else "dev.user"

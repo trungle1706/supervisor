@@ -269,6 +269,8 @@ def _classification_data(ctx: Any, me: Any, system_id: str) -> dict[str, Any]:
         "cls": data,
         "ai_pending": bool(draft and any(a["source"] == "ai_prefill" for a in draft["answers"])),
         "can_edit": _can_edit(me),
+        # WP-P2 (phase 8): the least justification length when CONSOLE_STATE_ACTIONS is on
+        "min_why": 20 if getattr(ctx.settings, "console_state_actions", False) else 0,
     }
 
 

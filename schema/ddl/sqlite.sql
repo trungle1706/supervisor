@@ -1620,3 +1620,22 @@ CREATE TABLE IF NOT EXISTS guardian_binding (
 );
 
 CREATE INDEX IF NOT EXISTS ix_guardian_binding_state ON guardian_binding (state);
+
+-- guardian_off_request (state): WP-P2 (phase 8, CONSOLE_STATE_ACTIONS). A request to switch a guardian feature off on an AI system that is in production or has a high risk level. A second person, not the requester, approves or rejects it; only an approval writes the guardian_binding row. The reason is required. Changes go on the chain as binding_change (ids, enums and a reason hash).
+CREATE TABLE IF NOT EXISTS guardian_off_request (
+  request_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  feature_slug TEXT NOT NULL,
+  requested_by TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL,
+  decided_by TEXT,
+  decision_reason TEXT,
+  created_at TEXT NOT NULL,
+  decided_at TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (request_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_guardian_off_request_system_id_status ON guardian_off_request (system_id, status);

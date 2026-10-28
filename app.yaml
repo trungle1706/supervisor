@@ -177,6 +177,11 @@ env:
     value: "1"
   - name: CONSOLE_REGISTER_V2
     value: "1"
+  # Phase 8 WP-P2: Request / Approve RUNNING on the agent page (two people), Decision 33 apply
+  # (the system owner cannot apply; 20-character justification), guardian switch-off (reason; a
+  # second person on a production or high-risk system). Off by default (docs/console.md).
+  # - name: CONSOLE_STATE_ACTIONS
+  #   value: "1"
   # Guardian detectors (phase 5).
   - name: DETECTORS_ENABLED
     value: "1"

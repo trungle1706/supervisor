@@ -65,6 +65,19 @@ PREFILL_SYSTEM = (
     "answer and decides. Give one short reason for each answer."
 )
 MAX_PREFILL_REASON = 300
+MIN_ANSWER_JUSTIFICATION = 20  # WP-P2 (phase 8): CONSOLE_STATE_ACTIONS
+
+
+class OwnerCannotApply(SystemsError):
+    """The system owner applies the class on the own system (code ``owner_cannot_apply``)."""
+
+    code = "owner_cannot_apply"
+
+
+class JustificationTooShort(SystemsError):
+    """An answer has a justification under 20 characters (code ``justification_too_short``)."""
+
+    code = "justification_too_short"
 
 
 def _on(value: Any) -> bool:
@@ -422,6 +435,8 @@ class ClassificationService:
                 why = d33.check_justification(ch.get("justification"))
             except RulesError as exc:
                 raise SystemsError(f"{qid}: {exc}") from None
+            if self._state_actions() and ch["answer"] is not None:
+                self._need_justification(qid, why)
             answers[qid] = d33.entry(ch["answer"], "person", why)
         dec = d33.decide(flow, answers)
         stored = self.state.update(
@@ -432,6 +447,27 @@ class ClassificationService:
         )
         self._changed("edit", dict(stored), actor, {"changed_n": len(changes)})
         return self.view(dict(stored), flow)
+
+    def _state_actions(self) -> bool:
+        return bool(getattr(self.settings, "console_state_actions", False))
+
+    @staticmethod
+    def _need_justification(qid: str, why: str) -> None:
+        if len(why.strip()) < MIN_ANSWER_JUSTIFICATION:
+            raise JustificationTooShort(
+                f"{JustificationTooShort.code}: {qid}: give a justification of at least "
+                f"{MIN_ANSWER_JUSTIFICATION} characters"
+            )
+
+    def _is_owner(self, system_id: str, uid: str) -> bool:
+        """The owner of the system: ``owner_user`` or an active ``system_owner`` team member."""
+        row = self.state.get("ai_system", {"system_id": system_id})
+        if row is not None and row.get("owner_user") == uid:
+            return True
+        return any(
+            _on(m["active"]) and m["team_role"] == "system_owner"
+            for m in self.state.query("system_team", {"system_id": system_id, "user_id": uid})
+        )
 
     def _check_apply(self, system_id: str, user: Any, draft: Mapping[str, Any]) -> None:
         roles = frozenset(getattr(user, "roles", ()) or ())
@@ -446,6 +482,15 @@ class ClassificationService:
                     f"segregation of duties: {uid} is {m['team_role']} of this system and "
                     "cannot apply its classification"
                 )
+        if self._state_actions():  # WP-P2 (phase 8): separation of duties, justified answers
+            if self._is_owner(system_id, uid):
+                raise OwnerCannotApply(
+                    f"{OwnerCannotApply.code}: {uid} owns this system and cannot apply its "
+                    "classification; another person applies it"
+                )
+            for qid, a in sorted(_answers_of(draft).items()):
+                if a.get("answer") is not None and a.get("source") == "person":
+                    self._need_justification(qid, str(a.get("justification") or ""))
         if draft["outcome"] not in d33.OUTCOMES:
             raise SystemsError(
                 "the draft is not complete: answer every question before it can be applied"
