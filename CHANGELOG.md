@@ -9,6 +9,23 @@
   `python -m supervisor.factory validate|schema`. New route `GET /v1/facts/{node_id}/export`
   (`ONBOARD_FACTS`, `systems.view`; off: HTTP 400 `facts_off`). No new flag for the pure modules.
 
+- WP-C2 (phase 12): **the eight risk types of Circular 53 Art. 14(3) as records**, `RISK_DIMENSIONS`
+  (default `0`; needs `GOVERNANCE_ENABLED`). New `config/risk_dimensions.yaml` (strict loader): exactly
+  the eight ids `model`, `data_governance`, `cybersecurity`, `legal_compliance`, `ethics`,
+  `third_party`, `supply_chain`, `reputation`, each with meaning, criteria, measure, threshold
+  placeholder, controls and the packs and monitors that measure it; `extra_dimensions` stays empty
+  (no ninth row). New table `risk_dimension_status` (appended at the end of `schema/model.yaml`; DDL
+  and notebook regenerated). The first read of a system makes its eight rows. The rules propose a
+  status from pack results (pass when every required pack passed at the current version, fail when
+  one failed) and a person confirms; `pass` needs an evidence pointer; `waived` needs a reason and a
+  person who is not the system owner. Every change writes a `risk_dimension_status` chain record
+  (hashes and integers) and two audit rows with `before>after`. New tab **Risk assessment** on the
+  system page (HTMX) with links to the risk register lines of the matching categories;
+  `GET/POST /v1/systems/{id}/risk-dimensions`, `POST .../{dim}/waive`, `GET
+  /v1/risk-dimensions/summary`. RegKB: rows `VN-TT53-2026-A14.03-01` and `VN-TT53-2026-A14.04-01`
+  (verbatim quotes, Art. 14 from 2027-01-01) and the evidence control `risk_dimension_status`. With
+  the flag off no table is read, no tab shows and the routes answer 400 `risk_dimensions_off`.
+  `app.yaml` has the commented flag. Details: `docs/risk-dimensions.md`.
 - Fix (WP-O2): the facts build raised `AttributeError` ("'DataAccess' object has no attribute
   'file'") as soon as the discovery step found an http call; the http locations are now read from
   the evidence pointer (`onboard/facts.py` `http_locations`). Found in the live test of the

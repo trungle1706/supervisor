@@ -189,6 +189,11 @@ env:
   #   value: "1"
   # - name: RISK_DUTIES_SWEEP_S   # weekly reminder task for duties due within 30 days; 0 = off
   #   value: "21600"
+  # Phase 12 WP-C2: the eight risk types of Circular 53 Art. 14(3) as a status row per AI system
+  # (Risk assessment tab, /v1/systems/{id}/risk-dimensions). Needs GOVERNANCE_ENABLED. Off by
+  # default (docs/risk-dimensions.md).
+  # - name: RISK_DIMENSIONS
+  #   value: "1"
   # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
   # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.
   # Needs GOVERNANCE_ENABLED and RISK_DUTIES. Off by default (docs/regulator-pack.md).

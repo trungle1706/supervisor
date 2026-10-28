@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.cases.service import PermissionDenied
-from supervisor.console import systems_duties, systems_tabs, systems_workflow, ux3
+from supervisor.console import systems_duties, systems_riskdim, systems_tabs, systems_workflow, ux3
 from supervisor.console.listing import (
     ListingError,
     paginate,
@@ -41,6 +41,7 @@ DETAIL_TABS_V3 = (
     "components",
     "rules",
     "classification",
+    "riskdim",  # WP-C2: only with RISK_DIMENSIONS (detail_tabs leaves it out otherwise)
     "risks",
     "controls",
     "policies",
@@ -181,15 +182,18 @@ def detail_tabs(ctx: Any, me: Any) -> tuple[str, ...]:
     tab needs the permission of the page it summarises). Off: the tabs of WP-G0 to WP-G2, and
     WP-G5's Reports tab (incidents) with GOVERNANCE_ACTIONS_ENABLED."""
     duties = systems_duties.is_on(ctx)  # WP-L3: the Duties tab (RISK_DUTIES)
+    riskdim = systems_riskdim.is_on(ctx)  # WP-C2: the Risk assessment tab (RISK_DIMENSIONS)
     if not ctx.settings.console_nav_v3:
         tabs = DETAIL_TABS
         if getattr(ctx.settings, "governance_actions_enabled", False) and "reports" not in tabs:
             tabs = (*tabs, "reports")
-        return (*tabs, "duties") if duties else tabs
+        tabs = (*tabs, "duties") if duties else tabs
+        return (*tabs, "riskdim") if riskdim else tabs
     return tuple(
         t
         for t in DETAIL_TABS_V3
         if (t != "duties" or duties)
+        and (t != "riskdim" or riskdim)
         and (t not in systems_tabs.TAB_PERM or systems_tabs.may(me, systems_tabs.TAB_PERM[t]))
     )
 
@@ -200,7 +204,7 @@ def detail_view(
     tabs = detail_tabs(ctx, me)
     v3 = bool(ctx.settings.console_nav_v3)
     if tab not in tabs:
-        if tab in DETAIL_TABS_V3 and v3 and tab != "duties":
+        if tab in DETAIL_TABS_V3 and v3 and tab not in ("duties", "riskdim"):
             raise PermissionDenied(f"your role may not open the {tab} tab")
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
@@ -213,6 +217,9 @@ def detail_view(
         counts["duties"] = extra["duty_score"]["open"]
         if tab == "duties":
             extra.update(systems_duties.tab_data(ctx, me, system, query or {}))
+    if tab == "riskdim":  # WP-C2: the eight rows (made on the first read)
+        extra.update(systems_riskdim.tab_data(ctx, me, system))
+        counts["riskdim"] = systems_riskdim.open_count(extra["rd_counts"])
     if v3 and tab in systems_tabs.BUILDERS:  # WP-UX4b
         gov = systems_tabs.BUILDERS[tab](ctx, system)
         extra.update(gov)

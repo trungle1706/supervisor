@@ -1782,3 +1782,24 @@ BEFORE DELETE ON onboard_log
 BEGIN
   SELECT RAISE(ABORT, 'onboard_log is append-only');
 END;
+
+-- risk_dimension_status (state): WP-C2 (phase 12, RISK_DIMENSIONS). One row per AI system and per risk type of Circular 53 Art. 14(3) (model, data_governance, cybersecurity, legal_compliance, ethics, third_party, supply_chain, reputation): the status of the assessment. status is not_started, in_progress, pass, fail, waived or not_applicable. pass needs at least one evidence pointer; waived needs a reason and a person who is not the system owner. evidence_json is a JSON list of pointers (pack result id, fact id, document id), never text from a person. threshold_json holds the bank threshold (integers and enums, no floats). note is masked and at most 300 characters. The service creates the eight rows the first time a system is read with the flag on. Every change writes a chain record risk_dimension_status. Advisory only: not legal advice, bank counsel must confirm.
+CREATE TABLE IF NOT EXISTS risk_dimension_status (
+  status_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  dimension_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  owner_team TEXT,
+  assessed_by TEXT,
+  report_ref TEXT,
+  evidence_json TEXT NOT NULL,
+  threshold_json TEXT NOT NULL,
+  note TEXT,
+  updated_by TEXT NOT NULL,
+  valid_until TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (status_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_risk_dimension_status_system_id_dimension_id ON risk_dimension_status (system_id, dimension_id);

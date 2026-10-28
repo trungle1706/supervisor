@@ -13,7 +13,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
 from supervisor.cases.service import PermissionDenied
-from supervisor.console import systems_duties, systems_views, systems_wizard, systems_workflow
+from supervisor.console import (
+    systems_duties,
+    systems_riskdim,
+    systems_views,
+    systems_wizard,
+    systems_workflow,
+)
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import translator
 from supervisor.console.routes import (
@@ -551,3 +557,83 @@ async def system_duties_refresh_evidence(
 from supervisor.console.register_routes import router as _register_router  # noqa: E402
 
 router.include_router(_register_router)
+
+
+# --- WP-C2: the Risk assessment tab (RISK_DIMENSIONS) ---------------------------------------------
+# Set and Confirm need systems.edit, Waive needs systems.approve (the owner of the system cannot
+# waive: 400 owner_cannot_waive). Every route answers HTTP 400 risk_dimensions_off while the flag is
+# off. The answer is the refreshed tab (htmx fragment for #tab-body) with the result in #flash, or a
+# 303 back to the tab for a plain form post. Two console_action rows per POST (with before>after).
+
+
+async def _rd_answer(
+    request: Request,
+    ctx: ConsoleContext,
+    me: AuthPrincipal,
+    plain: bool,
+    system_id: str,
+    note: str,
+    ok_key: str,
+) -> Response:
+    request.state.audit_detail = note
+    if plain:
+        return _done(request, True, system_id, systems_riskdim.TAB)
+    data = await _call(systems_views.detail_view, ctx, me, system_id, systems_riskdim.TAB, {})
+    resp = render(request, ctx, me, "_system_riskdim.html", **data)
+    msg = translator(_lang(request, ctx))(ok_key)
+    resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
+    resp.headers["content-length"] = str(len(resp.body))
+    return resp
+
+
+async def _rd_system(
+    request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str
+) -> tuple[dict[str, str], bool, dict[str, Any]]:
+    _off(ctx)
+    systems_riskdim.ensure_on(ctx)
+    systems_riskdim.person(me)
+    _check_id(system_id, "system id")
+    form, plain = await form_or_plain(request)
+    system = await _call(systems_views._need_visible, ctx, me, system_id)
+    return form, plain, system
+
+
+@router.post(
+    "/systems/{system_id}/risk-dimensions/{dim}/set", dependencies=[Depends(needs("systems.edit"))]
+)
+@audited("systems.edit")
+async def system_riskdim_set(
+    system_id: str, dim: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Set the status of one risk type with evidence pointers and a short note."""
+    form, plain, system = await _rd_system(request, ctx, me, system_id)
+    _, note = await _call(systems_riskdim.do_set, ctx, me, system, dim, form)
+    return await _rd_answer(request, ctx, me, plain, system["system_id"], note, "rd_ok_set")
+
+
+@router.post(
+    "/systems/{system_id}/risk-dimensions/{dim}/confirm",
+    dependencies=[Depends(needs("systems.edit"))],
+)
+@audited("systems.edit")
+async def system_riskdim_confirm(
+    system_id: str, dim: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Store the rule proposal of one risk type (a person confirms it)."""
+    _, plain, system = await _rd_system(request, ctx, me, system_id)
+    _, note = await _call(systems_riskdim.do_confirm, ctx, me, system, dim)
+    return await _rd_answer(request, ctx, me, plain, system["system_id"], note, "rd_ok_confirm")
+
+
+@router.post(
+    "/systems/{system_id}/risk-dimensions/{dim}/waive",
+    dependencies=[Depends(needs("systems.approve"))],
+)
+@audited("systems.approve")
+async def system_riskdim_waive(
+    system_id: str, dim: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Waive one risk type: reason of 20 characters or more; not by the system owner."""
+    form, plain, system = await _rd_system(request, ctx, me, system_id)
+    _, note = await _call(systems_riskdim.do_waive, ctx, me, system, dim, form)
+    return await _rd_answer(request, ctx, me, plain, system["system_id"], note, "rd_ok_waive")

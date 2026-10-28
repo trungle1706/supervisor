@@ -4514,6 +4514,9 @@ _T.update(_WF)
 from supervisor.console.i18n_duties import DU as _DU  # noqa: E402  (WP-L3, prefix du_)
 
 _T.update(_DU)
+from supervisor.console.i18n_riskdim import RD as _RD  # noqa: E402  (WP-C2, prefix rd_)
+
+_T.update(_RD)
 
 # --- WP-P2 (phase 8) --- CONSOLE_STATE_ACTIONS: RUNNING request, Decision 33 apply, guardian off
 _T.update(
