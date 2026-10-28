@@ -45,7 +45,7 @@ instrument:
     kind: secondary
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: Full text read from vbpl.vn (documentContent). Dates verified in the text (issued 21 Feb 2025,
     Art. 46 effective 10 Apr 2025); vbpl status is in force. Guides Law 20/2023/QH15 Arts 25, 29, 30,
     31, 32, 33 (VN-ETX-2023). Circular 16/2025/TT-BKHCN (model certification rules) and Circular 17/2025

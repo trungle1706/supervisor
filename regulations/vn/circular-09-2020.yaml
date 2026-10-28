@@ -37,7 +37,7 @@ instrument:
     local_path: regulations/sources/VN-TT50-2024/tt-50-2024-nhnn.txt
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: 'vbpl.vn status 2026-10-15: ''Het hieu luc mot phan'' (partly expired). Verified partial repeal:
     Art. 25 (online transaction systems) was repealed by Art. 22(6) of Circular 50/2024/TT-NHNN (effective
     2025-01-01); the stored text still shows Art. 25. The assignment hint ''Circular 12/2024'' is WRONG:
