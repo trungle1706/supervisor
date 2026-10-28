@@ -693,3 +693,17 @@ def test_i18n_has_every_key_in_both_languages() -> None:
     known = set(FG) | set(i18n_factory.FA)
     assert used <= known, sorted(used - known)
     assert caps.GATE_KINDS == ("full", "sample", "simulation", "shadow") and probe.TESTS
+
+
+def test_retiring_a_live_version_is_a_release_act(on: Console) -> None:
+    make_tested(on)
+    promote(on, "submit", "reviewer.an")
+    promote(on, "approve", "lead.model", kind="owner_lead")
+    promote(on, "approve", "second.line", kind="second_line")
+    promote(on, "activate", "lead.model")
+    assert row(on)["state"] == "live"
+    body = {"version": "0.1", "reason": "No longer needed by the team."}
+    assert on.post("/console/factory/mr-agent/retire", body, "reviewer.an").status_code == 403
+    assert row(on)["state"] == "live"
+    assert on.post("/console/factory/mr-agent/retire", body, "admin.chi").status_code == 200
+    assert row(on)["state"] == "retired"

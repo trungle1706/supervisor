@@ -202,6 +202,10 @@ env:
   # need LLM_BASE_URL). Needs GOVERNANCE_ENABLED. Off by default (docs/factory.md).
   # - name: AGENT_FACTORY
   #   value: "1"
+  # Phase 12B WP-F3: the agent test gate and promotion (needs AGENT_FACTORY and LLM_BASE_URL).
+  # Off by default (docs/factory.md "Test gate", "Promotion").
+  # - name: AGENT_FACTORY_GATE
+  #   value: "1"
   # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
   # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.
   # Needs GOVERNANCE_ENABLED and RISK_DUTIES. Off by default (docs/regulator-pack.md).

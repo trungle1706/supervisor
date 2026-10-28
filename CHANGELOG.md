@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- WP-F3 (phase 12B): **agent test gate and promotion**, `AGENT_FACTORY_GATE` (default `0`; needs
+  `AGENT_FACTORY`; runs need `LLM_BASE_URL`; off: HTTP 400 `factory_gate_off`, no `gate_run` read, catalogue
+  and editor unchanged). New `factory/runtime.py` (`run_agent`: the harness of plan section 2.0 for
+  `single_pass` and `loop`: platform preamble first, progressive context under the budget, one structured
+  call per checklist group, a deterministic verifier, stop points, loop evaluator `rules` or `judge`,
+  `max_iterations` and `budget_tokens`, integer trace; `model_not_configured` without a gateway model),
+  `factory/gate.py` (layer 1: five per-case checks and six harness component tests, all 100 percent;
+  layer 2: `verdict_matches_expected` and `rationale_faithful_to_evidence` judges, calibration with Cohen's
+  kappa in integer hundredths and the confusion matrix, paired regression against the live version, tier
+  floor; layer 3: shadow run on stored onboardings; sample batch of 10 to 25 cases that never promotes;
+  signed JSON report; background job with a status row; `python -m supervisor.factory gate`),
+  `factory/simulation.py` (simulation review page, marks become calibration labels and a signed report),
+  `factory/promotion.py` (draft, tested, approved, live, retired; two different people for a high-tier agent;
+  author cannot approve; immutable versions; definition-change detection; reject, reopen, admin rollback),
+  `factory/catalog.py` (live agents reach the orchestrator), golden gate cases and calibration labels
+  (`golden.py`). New table `gate_run` (appended at the end of `schema/model.yaml`; DDL and notebook
+  regenerated), chain records `factory_gate_run` and `factory_promotion`, RBAC `factory.approve` (approver,
+  admin) and `factory.rollback` (admin), signed-document kind `supervisor.factory_gate_report` in the offline
+  verifier, optional `groups:` per user in `config/users.yaml` (`permits()` prefers them over the role
+  mapping), three synthetic leads, editor step 10, catalogue card with the last gate result and the live
+  version. Details: `docs/factory.md` "Runtime", "Test gate", "Simulation review", "Promotion".
+
 - WP-F4 (phase 12B): **onboarding orchestrator**, `ONBOARD_ORCHESTRATOR` (default `0`; needs
   `GOVERNANCE_ENABLED`, `RISK_DIMENSIONS`, `CLASSIFICATION_V2`). New `onboard/orchestrator.py`
   (deterministic, no model call): `plan` (which of the eight risk types apply by classification

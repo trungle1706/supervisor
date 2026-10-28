@@ -48,7 +48,11 @@ def panel_data(ctx: Any, me: Any, system: Mapping[str, Any]) -> dict[str, Any]:
 
 def do_start(ctx: Any, me: Any, system: Mapping[str, Any]) -> tuple[dict[str, Any], str]:
     orch.ensure_on(ctx.settings)
-    run = orch.start(ctx, str(system["system_id"]), person(me))
+    from supervisor.factory import catalog as factory_catalog  # WP-F3: live factory agents
+
+    run = orch.start(
+        ctx, str(system["system_id"]), person(me), catalog=factory_catalog.for_console(ctx)
+    )
     return run.to_dict(), f"orchestrate attempt={run.attempt_n} plan_sha={run.plan_hash[:12]}"
 
 

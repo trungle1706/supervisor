@@ -28,6 +28,7 @@ from fastapi.responses import HTMLResponse, Response
 
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
+from supervisor.cases.service import PermissionDenied
 from supervisor.console import factory_gate_view as fgv
 from supervisor.console import factory_view as fv
 from supervisor.console.context import ConsoleContext, get_context
@@ -517,6 +518,18 @@ async def retire(
     def work() -> str:
         row = fv.load_row(ctx, agent_id, f.get("version", ""))
         who = fv.require_edit(me, row["owner_group"])
+        if row["state"] in (
+            "approved",
+            "live",
+        ):  # WP-F3: retiring a released version is a release act
+            from supervisor.factory import promotion
+
+            if not promotion.eligible(
+                "owner_lead", promotion.actor_of(me), row["owner_group"], fv.store(ctx)
+            ):
+                raise PermissionDenied(
+                    "only the owner group's approver or an admin retires this version"
+                )
         fv.store(ctx).retire(agent_id, row["version"], who, f.get("reason", ""))
         return row["version"]
 

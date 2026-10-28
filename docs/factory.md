@@ -195,7 +195,7 @@ read. The routers are always mounted.
  template (config/factory_templates/<dimension>.yaml)
         |  create_from_template
         v
- factory_agent  (id, version) --- draft --- retire ---> retired       WP-F3 adds tested, approved, live
+ factory_agent  (id, version) --- draft --- retire ---> retired       WP-F3: tested, approved, live ("Promotion")
         |  save_draft: agent_definition_v1 + registry on every save
         |  new_version: copy to the next minor version (one open draft per agent)
         v
@@ -291,7 +291,8 @@ schema, so a bad value is a 400 that names the field (for example `harness.conte
 | 6 | harness | one block per component of "Harness" above: the locked default, the editable fields and their caps | context order, budget, memory, approval points and permissions, verifier and validators, loop mode, iterations, stop rules, evaluator, min score, budget |
 | 7 | guardians | extra guardian ids | the three mandatory ones are pre-checked, disabled and always saved |
 | 8 | preview | pick up to three nodes with a stored facts card | **dry preview**: no model call, no tool call |
-| 9 | golden set | upload JSON or CSV; count and stratification; the generator below | the gate that uses the set is WP-F3 |
+| 9 | golden set | upload JSON or CSV; count and stratification; the generator below | WP-F3 adds gate cases and calibration labels (JSON, see "Test gate") |
+| 10 | test and promote | gate runs, results, promotion buttons | only with `AGENT_FACTORY_GATE=1` (see "Test gate" and "Promotion") |
 
 ### Instruction linter (`supervisor.factory.linter`, phrase list in `config/factory_lint.yaml`)
 
@@ -351,3 +352,204 @@ set AGENT_FACTORY=1
 set LLM_BASE_URL=http://127.0.0.1:8000/v1
 python -m uvicorn supervisor.app:app --port 8130
 ```
+
+## Runtime (the harness)
+
+WP-F3. `supervisor.factory.runtime.run_agent(definition, inputs, model=None, clock=None)` returns an
+`assessment_report_v1` dict. `RoutingRunner` of the orchestrator calls it for a live agent
+(`supervisor.factory.catalog.FactoryCatalog` gives the orchestrator the live version of a dimension).
+It implements section "Harness" above for `mode: single_pass` and `mode: loop`.
+
+| Component | What the runtime does |
+|---|---|
+| system_prompt | the platform preamble `platform_v1` first, then the team `instructions` (system message) |
+| context | per checklist group (consecutive items that read the same sources): the source index (names) first, then the bodies of the sources the definition names, in its order, while `budget_tokens` has room. A source is read only through a tool the definition holds and inside the tool's scope (`regkb:<instrument>`, `pack:<prefix>`, `documents:<prefix>`). A prompt is never larger than the budget; when the fixed part alone does not fit, no call is made and the items answer `question` |
+| model call | one structured `complete_json` call per group; the answer carries `verdict`, `pass_rule_met`, `confidence`, `rationale` and evidence `{kind, ref, file, line, quote}` |
+| verification | always: the evidence pointer is a loaded source of an allowed kind, the quote occurs in the loaded text (a quote is required for document and RegKB evidence), the verdict follows the pass rule (`pass` needs `pass_rule_met: true`, `fail` needs `false`), `pass` and `fail` carry evidence. A failed check turns the finding into `question` and counts as rejected. Extra validators: `evidence_kind_allowed`, `evidence_age`, `rationale_length`, `no_personal_data`. `rules+judge` adds one judge re-read that can only lower the confidence |
+| hitl | a checklist approval point stops that item before the call; a verdict approval point stops a finding with that verdict. A stopped item gets verdict `question` and the rationale starts with `STOP`. A `fail` on a `high` item counts in `approvals_requested` (the orchestrator then asks for a person) |
+| memory | `run` scratchpad lives in the call. With `system_memory: true` and a `memory_dir` in the inputs, rows of ids, enums and dates (`prior_verdicts`, `open_questions`, `waivers`) are masked, stored and pruned by `retention_days` on every read and write |
+| loop | iteration 1 is the single pass; the next iterations ask again only for the items still `question`, with the verifier reasons. The evaluator is `rules` (every item has a verdict with evidence) or `judge` (an integer score 0 to 100, `min_score`). Stops: `all_answered`, `evaluator_done`, `max_iterations`, `budget` (the loop `budget_tokens`, capped by the orchestrator budget). The reason of each evaluation is logged (the `log` argument) and the trace holds a pointer |
+
+The trace holds integers and pointers only. The rationale is masked (`pii_mask`) and cut to 600
+characters; a document text never reaches the report. With `LLM_BASE_URL` empty the run raises
+`model_not_configured`. There is no mock model in the product path; tests pass a fake `ChatModel`.
+
+Inputs: `system` (record), `facts` (facts v1 export), `packs` (`[{ref, label, text}]`, else the pointers of
+the rule `proposal` of the orchestrator), `regkb` (`[{ref, text}]`), `documents`
+(`[{doc_id, sections: [{ref, text}]}]`), `system_id`, `report_id`, `now`, `budget {seconds, tokens}`,
+`memory_dir`. A finding id is `f-<checklist id>`.
+
+## Test gate
+
+WP-F3. Flag `AGENT_FACTORY_GATE=1` (default `0`; needs `AGENT_FACTORY`, and `LLM_BASE_URL` for a run;
+Windows cmd: `set AGENT_FACTORY_GATE=1`). Off: every gate route answers HTTP 400 `factory_gate_off`,
+no `gate_run` row is read, and the catalogue and editor are unchanged. Editor step 10 "Test and
+promote" holds the gate panel and the promotion panel.
+
+```text
+  golden gate cases (>= 50, every item)  +  calibration labels (>= 20)
+        |
+        v
+  layer 1  deterministic, all 100 %  ----+
+  layer 2  judges + calibration + regression + tier floor ----+--> verdict pass / fail
+  layer 3  shadow (information only) -----+                   |
+                                                              v
+                       signed report (evidence signer)   gate_run row   chain record factory_gate_run
+```
+
+| Kind | Layers | Cases | Promotes |
+|---|---|---|---|
+| `full` | 1, 2 (with calibration and regression), 3 | all | a pass moves a draft to `tested` |
+| `sample` | 1 and 2 (judge questions and tier floor only) | default 10, at most 25, stratified by item | never |
+| `simulation` | 1 on the reports | the chosen systems (1 to 10) | never (see "Simulation review") |
+| `shadow` | 3 | the last N stored onboardings (default 10, at most 25) | never |
+
+A run is a background job: the row is `queued`, then `running` (with progress), then `done` or `failed`
+(the run itself broke). The panel polls the step every 2 seconds while a run goes and reloads the page
+when the state of the version changed. One run at a time per agent id (`run_in_progress`).
+CLI (same code, in this process, ASCII output, exit 0 on a pass):
+
+```text
+python -m supervisor.factory gate <agent_id> --kind full|sample [--version 0.1] [--n 10]
+```
+
+### Golden gate cases and calibration labels
+
+`DATA_DIR/factory/<id>/golden/gate_cases.json` and `calibration.json`. A gate case is JSON:
+`{case_id, inputs: {system, facts, packs, regkb, documents}, expected: {checklist_id: verdict},
+expected_evidence_refs: [ref], rubric_notes}`; at most 60 KB of inputs, integers only, every string through
+the masker. An F2 case (one text, one verdict) is converted to a gate case with one document section. A
+full gate needs at least **50 cases** and **every checklist item** in at least one `expected`
+(`golden.gate_stratification`). A label is `{case_id, finding_id, human_verdict, label_by,
+labelled_at}`; the upload form on step 9 takes both (JSON). Simulation marks add labels (source
+`simulation`).
+
+### Layer 1: deterministic checks (all must be 100 percent)
+
+| Check | Kind | Fails when |
+|---|---|---|
+| `schema_valid` | per case | the report is not a valid `assessment_report_v1`, names another agent, version or dimension, or does not cover the checklist exactly |
+| `evidence_exists` | per case | a `pass` or `fail` has no evidence, a cited pointer was not loaded into the run, or its kind is not in `evidence_rules.allowed_sources` |
+| `tools_in_scope` | per case | the definition fails the registry check, a tool mode is not offered, or the run blocked a source that needs a tool the agent lacks |
+| `no_personal_data` | per case | the masker finds personal data in a rationale or pointer |
+| `token_budget` | per case | a call was over `context.budget_tokens` or the run over `loop.budget_tokens` |
+| `budget_never_exceeded` | component | a probe run with oversized inputs makes a call over the budget |
+| `cited_sources_loaded` | component | a cited pointer, or a pointer in the trace, was never in a prompt |
+| `memory_rows_masked` | component | a stored memory row holds personal data, or a row older than `retention_days` is not pruned (passes when system memory is off) |
+| `stop_points_fire` | component | an approval point does not stop its item or finding in a replay, or a `fail` on a `high` item does not ask for a person |
+| `verifier_catches_planted` | component | a planted finding (an unloaded source, a quote that is not in the source, a pass that breaks the pass rule) is accepted |
+| `loop_stops_at_cap` | component | a loop that never converges runs past `max_iterations` or the budget, or a single pass runs twice |
+
+The component tests run the real runtime with a scripted *probe model* (`supervisor.factory.probe`). It
+tests the harness, not the agent; its answers are never stored as an assessment.
+
+### Layer 2: judges, calibration, regression, floor
+
+Two yes or no questions with a reason (masked, 200 characters) per case, on the gateway model:
+`verdict_matches_expected` and `rationale_faithful_to_evidence`. The report also counts the cases where the
+verdicts are exactly equal, so a judge that says yes to everything is visible. A judge call that fails
+counts as `no` and in `judge_errors`.
+
+| Rule (full gate) | Value | Gate |
+|---|---|---|
+| Calibration | the judge labels the human-labelled findings from the same sources; Cohen's kappa as an integer in hundredths (81 = 0.81) and the 4x4 confusion matrix (rows human, columns judge) | kappa >= `CALIBRATION_KAPPA_FLOOR` (70) and at least `CALIBRATION_MIN_LABELS` (20) usable labels |
+| Regression | paired comparison with the live version of the same agent id on the same cases; a case is lost when the live version was accepted and the candidate was not | lost <= `MAX_REGRESSION_CASES` (2). The live results come from its newest passed full run on the same golden set (sha), else they are computed. No live version: no baseline |
+| Tier floor | share of cases the judge accepts, for both questions | `high` tier 90 percent, `standard` 80 percent (`TIER_FLOOR_PERCENT`) |
+
+`kappa = (n * agree - S) / (n * n - S)` with `S` the sum over verdicts of row total times column total;
+integer arithmetic, rounded half up; one category and a perfect match is 100. Tier: `high` for the model,
+cybersecurity and legal_compliance dimensions and for any agent with a `high` severity item. Judge and agent
+both run on the gateway model (owner decision 5); the report states `same_family` so a reviewer sees it.
+The verdict of the gate is a function of these integers; a judge never decides alone.
+
+### Layer 3: shadow run
+
+The candidate runs on the newest stored reports of its dimension under `DATA_DIR/assessments/<system>/
+<attempt>/<dimension>.json` (one per system, N at most 25). The candidate reports are stored under the run
+directory (`shadow/`), not shown. The report counts: systems, same worst verdict as the stored report,
+different, **new fails** (candidate `fail`, stored not), fixed fails, and agreement with the status a person
+confirmed in `risk_dimension_status` (`pass` or `fail`, `updated_by` not a rule). No stored onboarding is
+`no_data`, not a failure. Layer 3 informs; it does not block.
+
+### The report
+
+`DATA_DIR/factory/<id>/gate/<run_id>/report.json`: signed JSON (`format:
+supervisor.factory_gate_report`, `content_sha256`, Ed25519 `signature` of the evidence signer, like the
+regulator pack) with integers, ids and enums only; verify offline with `python -m
+supervisor.evidence.verify report.json`. The same directory holds `definition.json` (the tested
+definition), `cases.json` (per case: match, faithful, exact, reasons) and `shadow/`. The `gate_run` row has
+the layers, the cost (`model_calls`, `tokens_estimated`, `seconds`), `verdict`, `report_sha256`,
+`signature` and `definition_sha256`. Each finished run writes the chain record `factory_gate_run`.
+
+## Simulation review
+
+Owner decision 5a. `POST /console/factory/{id}/gate/run` with `kind=simulation` and `systems=a, b` (1 to 10
+systems of the inventory) runs the draft on the real run inputs of those systems (the system record, the
+facts v1 export, the pack results of the rule proposal). The page
+`/console/factory/{id}/simulation/{run_id}` shows, per system and finding, the verdict, the rationale and each
+evidence pointer with the loaded text (masked, 300 characters). The reviewer marks the finding:
+
+| Mark | Calibration label |
+|---|---|
+| `agree` | `human_verdict` = the agent's verdict |
+| `disagree` | `human_verdict` = the verdict the reviewer holds correct (required) |
+| `unsure` | none (an earlier label of the finding is removed) |
+
+The note is at most 300 characters and masked. The marks are labels with source `simulation` (the inputs the
+agent saw are kept in the run directory, so the calibration can re-read them) and a signed
+`review_report.json` (counts, marks with hashed notes). The permission is `factory.edit` plus the group of
+the agent; anyone who may read the factory reads the page. A simulation never promotes: its verdict stays
+`not_run`.
+
+## Promotion
+
+```text
+ draft --(full gate passed, this definition sha)--> tested --submit--> [approvals] --> approved --activate--> live
+   ^                                                  |  reject / reopen / changed sha / failed gate |            |
+   +--------------------------------------------------+----------------------------------------------+            |
+ retired <-- supersede, retire, rollback ---------------------------------------------------------------------- live
+ retired --rollback (admin, reason)--> live
+```
+
+| Move | Who | Condition | Refusal codes (HTTP 400) |
+|---|---|---|---|
+| draft to tested | the gate | a passed `full` run of this version and definition sha | `gate_not_passed` |
+| submit | editor of the group (`factory.edit`) | state `tested`; the instructions name every checklist item | `not_tested`, `lint_not_ready`, `definition_changed` |
+| approve `owner_lead` | approver of the owner group or admin (`factory.approve`) | submitted; not the author; not already given | `not_submitted`, `author_cannot_approve`, `already_approved`, `not_eligible`, `kind_not_required`, `definition_changed` |
+| approve `second_line` | member of the `platform` group or admin (`factory.approve`) | as above; **a different person** from the first approval | `same_person`, plus the codes above |
+| tested to approved | automatic | all approvals the change needs are given | |
+| reject | owner lead, second line or admin (`factory.approve`) | state `tested` or `approved`; reason of at least 20 characters; approvals cleared, back to draft | `reason_too_short`, `not_eligible` |
+| reopen | editor of the group | state `tested` or `approved`; reason of at least 10 characters | `reason_needed`, `not_eligible` |
+| approved to live | owner lead or admin (`factory.approve`) | approvals complete, definition sha unchanged; the previous live version of the agent id becomes `retired` and stays readable | `not_approved`, `approvals_missing`, `not_eligible`, `definition_changed` |
+| rollback | admin (`factory.rollback`) | a reason of at least 10 characters; the newest earlier retired version that was live becomes live, the live one becomes retired | `not_admin`, `reason_needed`, `no_previous_version`, `not_rollbackable` |
+
+* **Approvals needed.** A `high` tier agent (see Layer 2) needs `owner_lead` and `second_line`, two different
+  people. A `standard` tier agent needs `owner_lead`. A new version whose change against the newest earlier
+  live version touches only the instructions or the checklist needs `owner_lead` only ("re-test, then the
+  owner"). A change of the tools, the guardians, the harness permissions, the output schema or the tier needs
+  the full approval again (`promotion.classify_change`).
+* **Immutable versions.** Only a draft is edited. A tested, approved or live version changes only its state
+  and its approvals. To change it, reopen it (back to draft) or make a new version (`new-version`).
+* **Definition-change detection.** `definition_sha256` (the definition without `lifecycle`) is stored with the
+  passed run. Submit, approve and activate compare it again; a difference sends the version back to draft
+  (event and chain record `definition_changed`) and the answer is 400 `definition_changed`.
+* **Failed gate.** A failed `full` run of a tested or approved version sends it back to draft.
+* **Records.** Every move writes a `factory_agent_event` row (`tested`, `submitted`, `approval`, `approved`,
+  `rejected`, `reopened`, `live`, `rolled_back`, `retired`, `definition_changed`) and the chain record
+  `factory_promotion` (agent id, version, action, from, to, a keyed short hash of the actor, the definition
+  sha, integers). Approvals are also in `lifecycle.approvals` of the version.
+* **Orchestrator.** `live_agent_for(dimension)` returns the live version; with the flag on the Risk assessment
+  tab passes `FactoryCatalog` to the orchestrator, so a live agent is planned as `<id>@<version>` and a
+  dimension without one keeps the rule proposal.
+* **Console.** RBAC rows: `factory.edit` (runs, marks, submit, reopen), `factory.approve` (approve, reject,
+  activate; approver and admin), `factory.rollback` (admin). Every POST writes two `console_action` rows.
+  The catalogue card shows the last gate result and the live version.
+
+## Groups of a user
+
+`config/users.yaml` accepts an optional `groups:` list per user (ids of `config/factory_groups.yaml`).
+`store.permits(roles, owner_group, groups, user_groups)`: `admin` edits every group; a user **with** a
+`groups:` list belongs to exactly those groups, whatever the role mapping says; a user **without** one falls
+back to the `roles` mapping of the group. Example: `lead.model` has `roles: [approver]` and `groups:
+[model_risk]`, so the user owns the model-risk agents and nothing else; `second.line` has `groups: [platform]`,
+the second line of an approval. Synthetic users only; the Databricks App has no groups (role mapping).
