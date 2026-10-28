@@ -800,3 +800,19 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .lawdraft dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 8px 0; font-size: 13px; }
 .lawdraft dt { color: var(--muted); }
 .lawdraft dd { margin: 0; }
+
+/* WP-O4 Attach panel: the wiring picture uses theme variables only (light and dark). */
+.at-wrap { overflow-x: auto; margin: 8px 0; }
+.at-svg { width: 100%; min-width: 640px; height: auto; display: block; }
+.at-svg .at-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.at-svg .at-gate { stroke: var(--teal); }
+.at-svg .at-link { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+.at-svg text { font-family: var(--f-body); font-size: 12px; fill: var(--fg); }
+.at-svg .at-t2 { fill: var(--muted); }
+.at-svg .at-c { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.at-svg .at-c.lit { fill: var(--green); stroke: var(--green); }
+.at-svg .at-c.off { stroke-dasharray: 3 2; opacity: .7; }
+.at-svg .at-lock rect { fill: var(--fg); stroke: none; }
+.at-svg .at-lock path { fill: none; stroke: var(--fg); stroke-width: 1.2; }
+.at-env { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-s); padding: 10px 12px; overflow-x: auto; white-space: pre; font-size: 12.5px; }
+.at-notes { margin: 6px 0 0 18px; padding: 0; }

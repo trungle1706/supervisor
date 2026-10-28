@@ -1,0 +1,9 @@
+{# Attach panel as a full page (WP-O4), the no-JS link of the candidate drawer. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('at_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('at_title'), None), (at.node_id, None)]) }}
+{{ ui.pagehead(t('at_title') ~ ': ' ~ at.node_id) }}
+{% include "_attach_panel.html" %}
+{% endblock %}

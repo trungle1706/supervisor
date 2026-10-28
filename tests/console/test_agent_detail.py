@@ -25,6 +25,7 @@ FLAGS = (
     "onboard_intake",  # WP-O1: the Source tab
     "onboard_facts",  # WP-O2: the Facts tab
     "onboard_predeploy",  # WP-O3: the Pre-deploy tab
+    "onboard_attach_view",  # WP-O4: the Attach tab
 )
 DEMO_AGENTS = ("payments", "credit_prequal", "customer_service")
 HX = {"HX-Request": "true"}
@@ -234,7 +235,9 @@ def test_pages_have_no_inline_script_or_external_url(
         html = console.get(f"/console/agents/payments?tab={tab}").text
         assert not re.search(r"<script(?![^>]*\bsrc=)", html), tab
         assert not re.search(r"\son[a-z]+=\"", html), tab
-        assert not re.search(r"https?://", html, re.I), tab
+        # WP-O4: the How to attach block is text to copy (the gate URL), not a page load
+        page = re.sub(r'<pre[^>]*id="attach-env".*?</pre>', "", html, flags=re.S)
+        assert not re.search(r"https?://", page, re.I), tab
 
 
 def test_service_principal_sees_read_only_tabs(console: Console) -> None:

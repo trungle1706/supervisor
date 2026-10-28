@@ -50,6 +50,7 @@ TABS = (
     "source",  # WP-O1 (ONBOARD_INTAKE)
     "facts",  # WP-O2 (ONBOARD_FACTS)
     "predeploy",  # WP-O3 (ONBOARD_PREDEPLOY)
+    "attach",  # WP-O4 (ONBOARD_ATTACH_VIEW)
 )
 TRACE_LIMIT = 20  # traces shown on the Traces tab
 CASE_LIMIT = 50
@@ -127,6 +128,12 @@ GATED: dict[str, tuple[str, str, str, str]] = {
         "systems.view",
         "ONBOARD_PREDEPLOY",
         "POST /v1/predeploy/<agent id>/<attempt n> (needs a stored source, see the Source tab)",
+    ),
+    "attach": (
+        "onboard_attach_view",
+        "systems.view",
+        "ONBOARD_ATTACH_VIEW",
+        "GET /console/attach/<agent id>",
     ),
     "transparency": (
         "console_transparency_enabled",
@@ -438,6 +445,12 @@ def _predeploy(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str])
     return predeploy_routes.panel_data(ctx, me, card["agent_id"])
 
 
+def _attach(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    from supervisor.console import attach_routes  # late: it imports this module
+
+    return attach_routes.panel_data(ctx, me, card["agent_id"])
+
+
 _BUILDERS = {
     "overview": _overview,
     "register": _register,
@@ -456,6 +469,7 @@ _BUILDERS = {
     "source": _source,
     "facts": _facts,
     "predeploy": _predeploy,
+    "attach": _attach,
 }
 
 

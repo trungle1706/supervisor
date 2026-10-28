@@ -210,6 +210,10 @@ env:
   # required assurance packs, multi-turn red team and duties); needs ONBOARD_INTAKE. Off by default.
   # - name: ONBOARD_PREDEPLOY
   #   value: "1"
+  # Phase 9 WP-O4: Attach tab and panel (wiring picture, guardians on the plug point, last
+  # evidence, How to attach env lines). Read only. Off by default.
+  # - name: ONBOARD_ATTACH_VIEW
+  #   value: "1"
   # Guardian detectors (phase 5).
   - name: DETECTORS_ENABLED
     value: "1"
