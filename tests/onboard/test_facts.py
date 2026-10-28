@@ -454,3 +454,18 @@ def test_collect_rows_is_pure_and_deterministic(adapters: Adapters) -> None:
     assert [(r["fact_id"], r["kind"], r["name"], r["file"], r["line"]) for r in a] == [
         (r["fact_id"], r["kind"], r["name"], r["file"], r["line"]) for r in b
     ]
+
+
+def test_http_locations_read_the_evidence_pointer_of_a_data_access_row() -> None:
+    """Regression: the facts build raised AttributeError ('DataAccess' object has no attribute
+    'file') as soon as the discovery step found an http call (WP-O2 live test, 2026-10-28)."""
+    from supervisor.onboard.facts import http_locations
+    from supervisor.onboard.models import DataAccess, Evidence
+
+    ev = Evidence(file="agent.py", line=12, quote="httpx.post(url)", line_sha256="a" * 64)
+    rows = [
+        DataAccess(kind="http", direction="read", target="https://x.example", evidence=ev),
+        DataAccess(kind="db", direction="read", target="t", evidence=ev),
+    ]
+    assert http_locations(rows) == {("agent.py", 12)}
+    assert http_locations([]) == set()

@@ -27,7 +27,7 @@ from __future__ import annotations
 import hashlib
 import re
 import threading
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -143,6 +143,12 @@ class _Rows:
         }
 
 
+def http_locations(rows: Iterable[Any]) -> set[tuple[str, int]]:
+    """(file, line) of every http data access the discovery step found, read from its
+    evidence pointer (a ``DataAccess`` row has no ``file`` of its own)."""
+    return {(r.evidence.file, r.evidence.line) for r in rows if r.kind == "http"}
+
+
 def collect_rows(
     node_id: str, n: int, disc: Discovery, profile: AgentProfile
 ) -> tuple[list[dict[str, Any]], int]:
@@ -193,7 +199,7 @@ def collect_rows(
             out.add("external_url", target, f"direction={da.direction}", da.evidence)
         else:
             out.add("dataset", target, f"direction={da.direction}; via={da.kind}", da.evidence)
-    urls_seen = {(r.file, r.line) for r in inv.data_access if r.kind == "http"}
+    urls_seen = http_locations(inv.data_access)
     for file in sorted(idx.lines):
         if not file.endswith(_URL_FILES):
             continue

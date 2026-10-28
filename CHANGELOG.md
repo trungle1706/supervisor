@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Fix (WP-O2): the facts build raised `AttributeError` ("'DataAccess' object has no attribute
+  'file'") as soon as the discovery step found an http call; the http locations are now read from
+  the evidence pointer (`onboard/facts.py` `http_locations`). Found in the live test of the
+  candidate onboarding on 2026-10-28; regression test added.
+
 ## v0.8.0 (phases 8 and 9: law agent, duties and regulator pack, agentic onboarding) - 2026-10-28
 
 - WP-O5 (phase 9): **post-deploy assessment and the agent log**, `ONBOARD_POSTDEPLOY` (default
