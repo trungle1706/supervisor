@@ -27,28 +27,28 @@
   "as_of": "2026-10-15",
   "disclaimer": "Not legal advice. Bank counsel must confirm. / Khong phai tu van phap ly.",
   "generated_at": "2026-10-15T00:00:00Z",
-  "instruments": 31,
+  "instruments": 39,
   "internal_instruments": [],
   "internal_rules": false,
-  "obligations": 528,
+  "obligations": 604,
   "product_id": "payments",
   "product_name": "Payments assistant agent",
   "product_source": "onboard",
-  "regkb_version": "58ce65e3a06be1c8137477b553868ea029404fc7ad9984ff50811de51cbba137",
+  "regkb_version": "c08de51db76bb8b35cf90f653bc933a005c54f593ac69790da2e0dc5a9165e5e",
   "tool": "supervisor.advisory.compliance"
  },
  "questions": [
   {
    "id": "Q-agent_classes",
-   "obligations": 76
+   "obligations": 86
   },
   {
    "id": "Q-cross_border",
-   "obligations": 16
+   "obligations": 18
   },
   {
    "id": "Q-data_classes",
-   "obligations": 21
+   "obligations": 23
   },
   {
    "id": "Q-in_operation_since",
@@ -1462,6 +1462,89 @@
    ]
   ],
   [
+   "VN-AML-2022-A16.01-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-AML-2022-A19.01-01",
+   "yes",
+   "gap",
+   []
+  ],
+  [
+   "VN-AML-2022-A20.02-01",
+   "yes",
+   "partial",
+   [
+    "daily_aggregate",
+    "single_limit",
+    "split_payment"
+   ]
+  ],
+  [
+   "VN-AML-2022-A24.01-01",
+   "yes",
+   "partial",
+   [
+    "policy_baseline"
+   ]
+  ],
+  [
+   "VN-AML-2022-A26.01-01",
+   "yes",
+   "partial",
+   [
+    "case_file",
+    "split_payment"
+   ]
+  ],
+  [
+   "VN-AML-2022-A37.02-01",
+   "yes",
+   "partial",
+   [
+    "case_file"
+   ]
+  ],
+  [
+   "VN-AML-2022-A38.01-01",
+   "yes",
+   "partial",
+   [
+    "evidence_chain"
+   ]
+  ],
+  [
+   "VN-AML-2022-A40.02-01",
+   "yes",
+   "partial",
+   [
+    "pii_masking",
+    "verdict_log"
+   ]
+  ],
+  [
+   "VN-AML-2022-A44.01-01",
+   "yes",
+   "partial",
+   [
+    "agent_action",
+    "approved_tools"
+   ]
+  ],
+  [
+   "VN-AML-2022-A9.02-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
    "VN-CPL-2023-A10.1A-01",
    "needs_answer",
    "partial",
@@ -2519,6 +2602,108 @@
    ]
   ],
   [
+   "VN-DEC330-2026-A55.01-01",
+   "yes",
+   "partial",
+   [
+    "agent_registry",
+    "onboard_profile"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A56.01-01",
+   "needs_answer",
+   "partial",
+   [
+    "agent_event_log",
+    "pii_masking",
+    "verdict_log"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A56.02-01",
+   "needs_answer",
+   "partial",
+   [
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A64.01-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A64.02-01",
+   "needs_answer",
+   "partial",
+   [
+    "agent_event_log",
+    "pii_bulk_read",
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A66.02-01",
+   "yes",
+   "gap",
+   []
+  ],
+  [
+   "VN-DEC330-2026-A66.03-01",
+   "yes",
+   "partial",
+   [
+    "case_signoff"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A67.01-01",
+   "yes",
+   "partial",
+   [
+    "audit_pack"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A67.02-01",
+   "yes",
+   "partial",
+   [
+    "case_file",
+    "drift",
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A67.03-01",
+   "yes",
+   "partial",
+   [
+    "agent_action",
+    "case_signoff"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A70.01-01",
+   "needs_answer",
+   "partial",
+   [
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-DEC330-2026-A70.02-01",
+   "needs_answer",
+   "partial",
+   [
+    "approved_tools"
+   ]
+  ],
+  [
    "VN-DEC356-2025-A10.3-01",
    "yes",
    "partial",
@@ -2747,6 +2932,58 @@
    ]
   ],
   [
+   "VN-DEC52-2024-A10.02-01",
+   "yes",
+   "partial",
+   [
+    "agent_registry"
+   ]
+  ],
+  [
+   "VN-DEC52-2024-A10.05-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log",
+    "single_limit"
+   ]
+  ],
+  [
+   "VN-DEC52-2024-A29.01-01",
+   "yes",
+   "partial",
+   [
+    "evidence_chain"
+   ]
+  ],
+  [
+   "VN-DEC52-2024-A29.03-01",
+   "yes",
+   "partial",
+   [
+    "daily_aggregate",
+    "split_payment"
+   ]
+  ],
+  [
+   "VN-DEC52-2024-A32.02-01",
+   "yes",
+   "partial",
+   [
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-DEC52-2024-A8.08-01",
+   "yes",
+   "partial",
+   [
+    "daily_aggregate",
+    "single_limit",
+    "split_payment"
+   ]
+  ],
+  [
    "VN-DEC53-2022-A11.1-01",
    "yes",
    "partial",
@@ -2808,6 +3045,38 @@
    "yes",
    "bank_process",
    []
+  ],
+  [
+   "VN-DEC69-2024-A19.03-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-DEC69-2024-A19.04-01",
+   "yes",
+   "partial",
+   [
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-DEC69-2024-A32-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-DEC69-2024-A40.09-01",
+   "yes",
+   "partial",
+   [
+    "agent_registry"
+   ]
   ],
   [
    "VN-ETX-2023-A10-01",
@@ -2972,6 +3241,29 @@
    [
     "audit_pack",
     "case_file"
+   ]
+  ],
+  [
+   "VN-LAW23-2026-A2.03-01",
+   "yes",
+   "partial",
+   [
+    "case_file"
+   ]
+  ],
+  [
+   "VN-LAW23-2026-A2.06-01",
+   "yes",
+   "gap",
+   []
+  ],
+  [
+   "VN-LAW23-2026-A2.08-01",
+   "yes",
+   "partial",
+   [
+    "case_file",
+    "split_payment"
    ]
   ],
   [
@@ -3714,6 +4006,156 @@
    []
   ],
   [
+   "VN-TT15-2023-A12.03-01",
+   "needs_answer",
+   "bank_process",
+   []
+  ],
+  [
+   "VN-TT15-2023-A12.07-01",
+   "needs_answer",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-TT15-2023-A13.01-01",
+   "needs_answer",
+   "partial",
+   [
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-TT15-2023-A16.01-01",
+   "needs_answer",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-TT15-2023-A19.04-01",
+   "needs_answer",
+   "partial",
+   [
+    "cases"
+   ]
+  ],
+  [
+   "VN-TT15-2023-A5.01-01",
+   "needs_answer",
+   "partial",
+   [
+    "agent_event_log",
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-TT15-2023-A6-01",
+   "needs_answer",
+   "partial",
+   [
+    "pii_bulk_read",
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-TT15-2023-A7.02-01",
+   "needs_answer",
+   "partial",
+   [
+    "pii_masking"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A19.02A-01",
+   "yes",
+   "partial",
+   [
+    "agent_action"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A19.02B-01",
+   "yes",
+   "gap",
+   []
+  ],
+  [
+   "VN-TT15-2024-A19.03A-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log",
+    "amount_valid",
+    "single_limit"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A19.03B-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A19.04-01",
+   "yes",
+   "partial",
+   [
+    "evidence_chain"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A19.05-01",
+   "yes",
+   "bank_process",
+   []
+  ],
+  [
+   "VN-TT15-2024-A19.06-01",
+   "yes",
+   "partial",
+   [
+    "daily_aggregate",
+    "single_limit",
+    "split_payment"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A19.07-01",
+   "yes",
+   "partial",
+   [
+    "case_file"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A19.08-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A6.02-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log"
+   ]
+  ],
+  [
+   "VN-TT15-2024-A6.03A-01",
+   "yes",
+   "bank_process",
+   []
+  ],
+  [
    "VN-TT50-2024-A10.1-01",
    "yes",
    "partial",
@@ -4386,22 +4828,194 @@
     "agent_registry",
     "duties_actions"
    ]
+  ],
+  [
+   "VN-TT83-2025-A11.07-01",
+   "yes",
+   "partial",
+   [
+    "policy_baseline"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A15.03-01",
+   "needs_answer",
+   "partial",
+   [
+    "agent_event_log",
+    "agent_registry"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A21.02-01",
+   "yes",
+   "gap",
+   []
+  ],
+  [
+   "VN-TT83-2025-A24-01",
+   "yes",
+   "partial",
+   [
+    "agent_event_log",
+    "audit_pack"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A40.02C-01",
+   "yes",
+   "partial",
+   [
+    "agent_registry"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A40.03-01",
+   "yes",
+   "partial",
+   [
+    "agent_registry"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A40.04-01",
+   "yes",
+   "bank_process",
+   []
+  ],
+  [
+   "VN-TT83-2025-A41.01B-01",
+   "yes",
+   "gap",
+   []
+  ],
+  [
+   "VN-TT83-2025-A41.02-01",
+   "yes",
+   "partial",
+   [
+    "agent_version"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A43.02-01",
+   "yes",
+   "partial",
+   [
+    "agent_action"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A56.01-01",
+   "yes",
+   "partial",
+   [
+    "agent_registry"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A56.02-01",
+   "yes",
+   "partial",
+   [
+    "agent_registry"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A56.04A-01",
+   "yes",
+   "partial",
+   [
+    "onboard_profile"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A56.04B-01",
+   "yes",
+   "partial",
+   [
+    "agent_version"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A56.04C-01",
+   "yes",
+   "partial",
+   [
+    "approved_tools",
+    "case_signoff",
+    "signoff_record"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A56.04D-01",
+   "yes",
+   "partial",
+   [
+    "drift"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A56.04E-01",
+   "yes",
+   "gap",
+   []
+  ],
+  [
+   "VN-TT83-2025-A56.05-01",
+   "yes",
+   "gap",
+   []
+  ],
+  [
+   "VN-TT83-2025-A56.06-01",
+   "yes",
+   "partial",
+   [
+    "agent_version",
+    "audit_pack",
+    "case_file"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A56.07-01",
+   "yes",
+   "partial",
+   [
+    "case_signoff"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A57-01",
+   "yes",
+   "partial",
+   [
+    "cases"
+   ]
+  ],
+  [
+   "VN-TT83-2025-A58-01",
+   "yes",
+   "partial",
+   [
+    "audit_pack"
+   ]
   ]
  ],
  "summary": {
   "by_applies": {
-   "needs_answer": 122,
+   "needs_answer": 136,
    "no": 0,
-   "yes": 406
+   "yes": 468
   },
   "by_status": {
-   "bank_process": 58,
-   "gap": 32,
+   "bank_process": 61,
+   "gap": 40,
    "met": 1,
    "not_applicable": 0,
-   "partial": 315
+   "partial": 366
   },
-  "needs_answer": 122,
+  "needs_answer": 136,
   "questions": 6,
   "threshold_exceeds": 3,
   "threshold_gaps": 1
