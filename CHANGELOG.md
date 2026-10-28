@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+(nothing yet)
+
+## v0.7.0 (phase 10: workflow close-out, separation of duties, live-run hardening) - 2026-10-28
+
 - WP-P3 (live-run hardening, from the first live run on Databricks, 2026-10-27). Both new flags
   default off; with them off nothing changes except the extra fields of `/healthz`.
   - `SCHEMA_SELFCHECK=1`: at start the app compares `schema/model.yaml` with the warehouse (one

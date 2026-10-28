@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -84,4 +85,4 @@ def test_serve_answers_healthz(tmp_path: Path) -> None:
                 time.sleep(0.2)
     finally:
         proc.stop()
-    assert body == b'{"status":"ok"}'
+    assert json.loads(body)["status"] == "ok"  # WP-P3: /healthz carries more fields
