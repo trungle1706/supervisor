@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- WP-L1: law breakdown agent (flag `LAWAGENT_ENABLED`, default `0`; `LAWAGENT_MODEL`, empty = the
+  bank chat model). `python -m supervisor.regkb.lawagent --instrument VN-DEC142-2026` reads the
+  stored official text article by article (46 articles for Decree 142/2026), asks the model for
+  draft duties, and keeps only drafts whose verbatim quote is in the article, whose duty id is in
+  `duties.yaml` and whose article exists. Drafts go to the new state table `regkb_draft`; a draft
+  is never an obligation until a person confirms it on `/console/regkb/<instrument>/drafts`
+  (permissions `regkb.view` for every role, `regkb.confirm` for approver and admin; two audit rows
+  per POST). `--export-confirmed` writes confirmed rows as obligation YAML
+  (`VERIFIED_PRIMARY`, `confirmed_by`, source sha) for a pull request. `compare(old, new)` lists
+  added, changed and removed articles (used by Phase 11). The obligation schema gets the optional
+  field `confirmed_by`; the version hash of existing data does not change. A mock model is
+  refused unless `--allow-mock`, and every output says MOCK MODEL. Not legal advice.
+  New table: run `python -m supervisor.jobs.bootstrap_schema` before the new app version on Delta.
 - WP-L2: `JUDGE_FAMILY_CONFLICT_ALLOW` (default `0`). When set, a judge, guard or quality-scorer
   model that shares the family of a registered agent no longer stops start-up: one WARNING per
   pair is logged, and every `judge_verdict` evidence record for that pair carries

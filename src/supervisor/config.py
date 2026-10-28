@@ -378,6 +378,12 @@ class Settings(BaseSettings):
     # compliance_matrix.* during onboarding; the console tab reads demo and onboarded products.
     onboard_compliance_enabled: bool = False
     console_compliance_enabled: bool = False
+    # WP-L1 law agent: drafts duties from the stored official text of one instrument. The page
+    # /console/regkb/<instrument>/drafts and the CLI python -m supervisor.regkb.lawagent need
+    # LAWAGENT_ENABLED=1. LAWAGENT_MODEL empty = the bank chat model (LLM_MODEL). A draft is
+    # never an obligation until a person confirms it. Not legal advice.
+    lawagent_enabled: bool = False
+    lawagent_model: str = ""
     # WP17 assurance eval packs. Bank-supplied datasets live under ASSURANCE_DATA_DIR/<pack>/;
     # OSV_DB_PATH is a local OSV vulnerability dump. All new features default off.
     assurance_data_dir: Path | None = None

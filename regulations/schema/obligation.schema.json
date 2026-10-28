@@ -151,6 +151,7 @@
         "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/source"}},
         "confidence": {"enum": ["high", "medium", "low"]},
         "notes": {"type": "string"},
+        "confirmed_by": {"type": "string", "minLength": 1, "description": "WP-L1: the person who confirmed a law-agent draft (user id)."},
         "status": {"$ref": "#/$defs/status"},
         "dates": {"$ref": "#/$defs/dates"}
       }
@@ -164,7 +165,7 @@
         "id": true, "article_ref": true, "text_vi": true, "text_en": true, "summary_en": true,
         "summary_vi": true, "duties": true, "applies_to": true, "addressee": true,
         "control_mapping": true, "evidence_needed": true, "verification": true, "sources": true,
-        "confidence": true, "notes": true, "status": true, "dates": true,
+        "confidence": true, "notes": true, "confirmed_by": true, "status": true, "dates": true,
         "instrument_id": {"$ref": "#/$defs/instrument_id"},
         "jurisdiction": {"type": "string", "pattern": "^[A-Z]{2,4}$"},
         "instrument_kind": {"$ref": "#/$defs/instrument_kind"},
@@ -185,7 +186,7 @@
         "id": true, "article_ref": true, "text_vi": true, "text_en": true, "summary_en": true,
         "summary_vi": true, "duties": true, "applies_to": true, "addressee": true,
         "control_mapping": true, "evidence_needed": true, "verification": true, "sources": true,
-        "confidence": true, "notes": true, "status": true, "dates": true
+        "confidence": true, "notes": true, "confirmed_by": true, "status": true, "dates": true
       }
     },
     "instrument_file": {

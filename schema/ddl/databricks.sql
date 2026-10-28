@@ -1377,3 +1377,30 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_binding` (
 USING DELTA
 COMMENT 'WP-S1. A product owner''s switch for one guardian feature on one AI system: on or off. No row means on. A binding can only narrow what the instance already has on; the assignment rules'' guardian floor always wins (a floor feature cannot be set off, and a floor added later overrides an old off row at resolution time). mandatory is the floor state when the row was written (a snapshot for the audit; resolution reads the floor again). Changes go on the chain as binding_change (ids and enums only).'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- regkb_draft (state): WP-L1. A draft duty that the law agent read from the stored official text of one instrument, one row per draft. A draft is never an obligation: a person with regkb.confirm sets status confirmed or dropped. text_vi is a verbatim quote that the rules checked against the stored article text. source is model (the agent) or rule (a deterministic parser); model_id and prompt_version say which model and prompt wrote it (a mock model has mock in model_id). The CLI python -m supervisor.regkb.lawagent --export-confirmed turns confirmed rows into regulations YAML for a pull request; the app cannot edit repo files. No PII: law text only.
+-- primary key (enforced by the app, not by Delta): draft_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regkb_draft` (
+  draft_id STRING NOT NULL,
+  instrument_id STRING NOT NULL,
+  article STRING NOT NULL,
+  duty_id STRING NOT NULL,
+  subject STRING NOT NULL,
+  trigger STRING NOT NULL,
+  evidence_asked STRING NOT NULL,
+  text_vi STRING NOT NULL,
+  summary_en STRING NOT NULL,
+  source STRING NOT NULL,
+  model_id STRING,
+  prompt_version STRING,
+  status STRING NOT NULL,
+  confirmed_by STRING,
+  confirmed_at TIMESTAMP,
+  run_id STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-L1. A draft duty that the law agent read from the stored official text of one instrument, one row per draft. A draft is never an obligation: a person with regkb.confirm sets status confirmed or dropped. text_vi is a verbatim quote that the rules checked against the stored article text. source is model (the agent) or rule (a deterministic parser); model_id and prompt_version say which model and prompt wrote it (a mock model has mock in model_id). The CLI python -m supervisor.regkb.lawagent --export-confirmed turns confirmed rows into regulations YAML for a pull request; the app cannot edit repo files. No PII: law text only.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

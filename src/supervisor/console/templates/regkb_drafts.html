@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}Law agent drafts{% endblock %}
+{% block content %}
+{{ ui.crumbs([('Regulations', None), (instrument, None), ('Law agent drafts', None)]) }}
+{{ ui.pagehead('Law agent drafts: ' ~ instrument, ui.pill('Drafts only', 'info')) }}
+<div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ banner }}</b> A draft is not an obligation. The model drafted it; a person confirms or drops it.</div>
+<p class="hint">{{ instrument_title }}. The agent runs from the command line:
+  <code>python -m supervisor.regkb.lawagent --instrument {{ instrument }}</code>.
+  Confirmed drafts are exported with <code>--export-confirmed</code> into the YAML files by a pull request.</p>
+<p style="margin:0 0 12px" id="draft-counts">
+  {% for s in ('draft', 'confirmed', 'dropped') %}
+  <a href="/console/regkb/{{ instrument }}/drafts?status={{ s }}&amp;lang={{ lang }}" data-status-filter="{{ s }}">{{ ui.pill(s ~ ' ' ~ counts[s], {'draft': 'warn', 'confirmed': 'ok', 'dropped': 'neutral'}[s] if status == s else 'neutral', status == s) }}</a>
+  {% endfor %}
+  <a href="/console/regkb/{{ instrument }}/drafts?status=all&amp;lang={{ lang }}" data-status-filter="all">{{ ui.pill('all', 'info' if status == 'all' else 'neutral', status == 'all') }}</a>
+</p>
+{% if not has_text %}
+<div class="notice"><span class="dot"></span>The stored official text of this instrument was not found, so quotes are shown without the article around them.</div>
+{% endif %}
+{% for g in groups %}
+<section class="card lawdraft" data-article="{{ g.number }}">
+  <h3>Điều {{ g.number }}{% if g.heading %} &middot; {{ g.heading }}{% endif %}</h3>
+  {% for d in g.drafts %}
+    {% include "_regkb_draft.html" %}
+  {% endfor %}
+</section>
+{% else %}
+{{ ui.empty('No drafts in this view', 'Run the agent from the command line, or pick another status above.') }}
+{% endfor %}
+{% endblock %}

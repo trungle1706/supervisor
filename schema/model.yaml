@@ -1523,3 +1523,36 @@ tables:
       set_by: string
       set_at: timestamp
       reason: text?
+
+  # --- WP-L1 law agent drafts (docs/regulations.md, section "Law agent (WP-L1)") ---------------
+  regkb_draft:
+    kind: state
+    description: >
+      WP-L1. A draft duty that the law agent read from the stored official text of one instrument,
+      one row per draft. A draft is never an obligation: a person with regkb.confirm sets status
+      confirmed or dropped. text_vi is a verbatim quote that the rules checked against the stored
+      article text. source is model (the agent) or rule (a deterministic parser); model_id and
+      prompt_version say which model and prompt wrote it (a mock model has mock in model_id). The
+      CLI python -m supervisor.regkb.lawagent --export-confirmed turns confirmed rows into
+      regulations YAML for a pull request; the app cannot edit repo files. No PII: law text only.
+    primary_key: [draft_id]
+    indexes:
+      - [instrument_id, status]
+    columns:
+      draft_id: string
+      instrument_id: string
+      article: string          # "Điều 12" (article) or "12.3" (article 12, clause 3)
+      duty_id: string          # an id from regulations/schema/duties.yaml
+      subject: text            # who the duty binds
+      trigger: text            # when it applies
+      evidence_asked: text     # what an auditor asks for
+      text_vi: text            # verbatim quote from the stored article, max 2000 chars
+      summary_en: text
+      source: string           # model | rule
+      model_id: string?
+      prompt_version: string?
+      status: string           # draft | confirmed | dropped
+      confirmed_by: string?
+      confirmed_at: timestamp?
+      run_id: string
+      created_at: timestamp

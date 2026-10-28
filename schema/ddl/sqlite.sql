@@ -1620,3 +1620,29 @@ CREATE TABLE IF NOT EXISTS guardian_binding (
 );
 
 CREATE INDEX IF NOT EXISTS ix_guardian_binding_state ON guardian_binding (state);
+
+-- regkb_draft (state): WP-L1. A draft duty that the law agent read from the stored official text of one instrument, one row per draft. A draft is never an obligation: a person with regkb.confirm sets status confirmed or dropped. text_vi is a verbatim quote that the rules checked against the stored article text. source is model (the agent) or rule (a deterministic parser); model_id and prompt_version say which model and prompt wrote it (a mock model has mock in model_id). The CLI python -m supervisor.regkb.lawagent --export-confirmed turns confirmed rows into regulations YAML for a pull request; the app cannot edit repo files. No PII: law text only.
+CREATE TABLE IF NOT EXISTS regkb_draft (
+  draft_id TEXT NOT NULL,
+  instrument_id TEXT NOT NULL,
+  article TEXT NOT NULL,
+  duty_id TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  trigger TEXT NOT NULL,
+  evidence_asked TEXT NOT NULL,
+  text_vi TEXT NOT NULL,
+  summary_en TEXT NOT NULL,
+  source TEXT NOT NULL,
+  model_id TEXT,
+  prompt_version TEXT,
+  status TEXT NOT NULL,
+  confirmed_by TEXT,
+  confirmed_at TEXT,
+  run_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (draft_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_regkb_draft_instrument_id_status ON regkb_draft (instrument_id, status);

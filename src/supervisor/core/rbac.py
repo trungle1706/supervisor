@@ -186,6 +186,15 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         "or admin role (WP-P2)",
     ),
     "policy.reload": (("admin",), "Reload the policy folders from disk (WP-P2)"),
+    # --- WP-L1 --- law agent drafts (LAWAGENT_ENABLED); the page needs the flag
+    "regkb.view": (
+        _ALL,
+        "Law agent drafts page: duties drafted from the stored official text (WP-L1)",
+    ),
+    "regkb.confirm": (
+        ("approver", "admin"),
+        "Confirm or drop a law agent draft; the compliance sign-off role (WP-L1)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -440,6 +449,10 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/incidents/rows"): "incidents.view",
     ("GET", "/console/incidents/{incident_id}/drawer"): "incidents.view",
     ("POST", "/console/incidents/{incident_id}/transition"): "incidents.transition",
+    # --- WP-L1 --- law agent drafts (flag LAWAGENT_ENABLED; the routes answer 400 when it is off)
+    ("GET", "/console/regkb/{instrument_id}/drafts"): "regkb.view",
+    ("POST", "/console/regkb/{instrument_id}/drafts/{draft_id}/confirm"): "regkb.confirm",
+    ("POST", "/console/regkb/{instrument_id}/drafts/{draft_id}/drop"): "regkb.confirm",
     # --- WP-G6 --- MCP server, connected apps, KPIs (MCP_SERVER_ENABLED)
     ("POST", "/mcp"): AGENT,  # the credential is the HMAC signature of a connected app
     ("GET", "/v1/mcp/apps"): "mcp.apps",

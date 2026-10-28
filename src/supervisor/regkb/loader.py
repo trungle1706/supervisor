@@ -159,6 +159,7 @@ def _obligation(d: dict[str, Any], file: str) -> Obligation:
         summary_vi=d.get("summary_vi"),
         addressee=d.get("addressee"),
         notes=d.get("notes"),
+        confirmed_by=d.get("confirmed_by"),
         file=file,
     )
 

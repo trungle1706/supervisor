@@ -187,6 +187,57 @@ date), the `control_mapping` (met / partial / gap / bank process), `evidence_nee
 question for every `unknown`. It records `kb.version` in the matrix so a reviewer can tell which
 data version produced it.
 
+## Law agent (WP-L1)
+
+> **Not legal advice. Bank counsel must confirm.** The agent drafts. It never makes an
+> obligation. The banner is on the page and in every CLI output.
+
+The agent reads the stored official text of one instrument (`regulations/sources/<id>/*.txt`)
+article by article and drafts the duties in it. A person decides what becomes an obligation.
+
+```
+stored text -> split at "Dieu N." (46 articles for Decree 142)
+            -> gateway model, temperature 0, one call per article
+            -> rules (drop + count) -> table regkb_draft (status draft)
+            -> person: Confirm / Drop on /console/regkb/<id>/drafts
+            -> CLI --export-confirmed -> YAML -> pull request -> python -m supervisor.regkb validate
+```
+
+| Part | What it does |
+|---|---|
+| Switch | `LAWAGENT_ENABLED=1` (default `0`). `LAWAGENT_MODEL` names another model; empty = `LLM_MODEL`, the bank chat model. |
+| Draft | `duty_id` (from `duties.yaml`), `subject` (who), `trigger` (when), `evidence_asked` (what an auditor asks), `text_vi` (verbatim quote, max 2000 chars), `summary_en`, optional clause. |
+| Rules | The quote must be a substring of the stored article text (white space folded, nothing else). The duty id must be in `duties.yaml`. The article must exist. A draft that fails is dropped and counted by reason in the run summary. A draft already in the table (same article, duty and quote) is not written again; one a person dropped is not proposed again. |
+| Table | `regkb_draft` (state): `draft_id`, `instrument_id`, `article` (`Điều 12` or `12.3`), `duty_id`, `subject`, `trigger`, `evidence_asked`, `text_vi`, `summary_en`, `source` (`model` or `rule`), `model_id`, `prompt_version`, `status` (`draft`, `confirmed`, `dropped`), `confirmed_by`, `confirmed_at`, `run_id`, `created_at`. The Databricks App cannot edit repo files, so drafts and decisions live in the table. |
+| Page | `/console/regkb/<instrument>/drafts`: drafts grouped by article with the quote marked in the article text; **Confirm** and **Drop** (HTMX; two audit rows per POST; the person is written on the row). `regkb.view`: every role. `regkb.confirm`: approver and admin. There is no run button. |
+| Diff mode | `compare(old_text, new_text)` lists added, changed and removed articles by heading and body hash (Phase 11 uses it). CLI: `--compare old.txt new.txt`. |
+
+Run it (Windows cmd; the model settings are those of the other LLM features, see
+`docs/llm-features.md`):
+
+```
+set LAWAGENT_ENABLED=1
+python -m supervisor.regkb.lawagent --instrument VN-DEC142-2026 --articles 1-5 --out drafts.json
+python -m supervisor.regkb.lawagent --instrument VN-DEC142-2026
+python -m supervisor.regkb.lawagent --instrument VN-DEC142-2026 --export-confirmed confirmed.yaml
+python -m supervisor.regkb.lawagent --compare old.txt new.txt
+```
+
+Output is ASCII (`[OK]`, `[FAIL]`, `[SKIP]`). The run prints the model id and the prompt
+version, the number of drafts the model gave, the number kept and the number the rules dropped
+with the reasons (`quote_not_in_article`, `unknown_duty`, `bad_quote_length`, `missing_field`,
+`bad_clause`). The same ids are stored on every row, so a reviewer sees which model wrote it. If
+the configured model is a mock (empty `LLM_BASE_URL` or `LLM_MOCK=1`) the CLI stops with
+`[FAIL]`; `--allow-mock` is for tests, and then every output and the page say MOCK MODEL.
+
+`--export-confirmed` writes the confirmed rows as obligations in the shape of
+`regulations/vn/*.yaml`: `verification: VERIFIED_PRIMARY`, `confirmed_by`, the primary source of
+the instrument with its stored sha256, `evidence_needed`, an empty `control_mapping`, and the
+subject, trigger and run in `notes`. An engineer pastes the items under `obligations:` of the
+instrument file, adds the control mapping, runs `python -m supervisor.regkb validate` and opens a
+pull request. The obligation schema accepts the optional field `confirmed_by`; it is part of the
+version hash only when present.
+
 ## Open points for counsel
 
 - Whether the Decision 33 transition date for banks is 2027-09-01 ("finance", AI Law Art. 35)

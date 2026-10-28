@@ -23,6 +23,7 @@ from supervisor.cases.service import PermissionDenied  # noqa: E402
 from supervisor.config import get_settings  # noqa: E402
 from supervisor.console import context as console_context  # noqa: E402
 from supervisor.console.errors import console_error, is_console  # noqa: E402
+from supervisor.console.regkb_routes import router as regkb_console_router  # noqa: E402
 from supervisor.console.routes import router as console_router  # noqa: E402
 from supervisor.controls.api import router as controls_router  # noqa: E402
 from supervisor.core.errors import SupervisorError  # noqa: E402
@@ -104,6 +105,7 @@ app.include_router(gate_router, prefix="/v1")
 app.include_router(gate_router, deprecated=True)
 app.include_router(otlp_router)  # WP4: POST /v1/traces (OTLP/HTTP JSON)
 app.include_router(console_router)  # WP8: reviewer console (/console)
+app.include_router(regkb_console_router)  # WP-L1: /console/regkb/<id>/drafts (400 while off)
 app.include_router(tools_analytics_router, prefix="/v1")  # WP22: GET /v1/analytics/tools
 app.include_router(inventory_router)  # WP24: GET /v1/inventory/... (off unless INVENTORY_ENABLED)
 app.include_router(mcp_lock_router)  # WP26: /v1/mcp/tools/... (off unless MCP_HTTP_ENABLED)
