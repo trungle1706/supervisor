@@ -294,6 +294,7 @@ def my_overview(
             below_floor=floor_of[h["system_id"]][1],
             shadow_agents=old_shadow(ag),
             open_cases=h["open_cases"],
+            workflow=bool(ctx.settings.console_workflow_actions),
         )
         system_cards.append(
             {

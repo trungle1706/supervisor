@@ -4502,6 +4502,9 @@ _T.update(
 from supervisor.console.i18n_register import RG2 as _RG2  # noqa: E402  (WP-N3, prefix rg2_)
 
 _T.update(_RG2)
+from supervisor.console.i18n_workflow import WF as _WF  # noqa: E402  (WP-P1, prefix wf_)
+
+_T.update(_WF)
 
 
 def translator(lang: str) -> Callable[..., str]:

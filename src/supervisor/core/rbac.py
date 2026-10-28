@@ -432,6 +432,14 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/v1/systems/{system_id}/guardians"): "systems.view",
     ("PUT", "/v1/systems/{system_id}/guardians/{slug}"): "systems.edit",
     ("POST", "/console/systems/{system_id}/guardians/{slug}"): "systems.edit",
+    # --- WP-P1 --- CONSOLE_WORKFLOW_ACTIONS: tasks and stage approvals as buttons. The task
+    # buttons need only tasks.view here: the handler checks the role of the task or systems.edit.
+    ("POST", "/console/systems/{system_id}/tasks/{task_id}/done"): "tasks.view",
+    ("POST", "/console/systems/{system_id}/tasks/{task_id}/waive"): "tasks.view",
+    ("POST", "/console/systems/{system_id}/tasks/{task_id}/waive/{answer}"): "tasks.approve",
+    ("POST", "/console/systems/{system_id}/stage/request"): "systems.edit",
+    ("POST", "/console/systems/{system_id}/stage/{approval_id}/decide"): "systems.approve",
+    ("POST", "/console/systems/{system_id}/stage/move"): "systems.edit",
     # --- WP-G5 --- incidents of the governance loop (GOVERNANCE_ACTIONS_ENABLED)
     ("GET", "/v1/incidents"): "incidents.view",
     ("GET", "/v1/incidents/{incident_id}"): "incidents.view",

@@ -143,6 +143,10 @@ env:
   # POST /mcp and GET /v1/kpis on the same port (docs/mcp-server.md).
   - name: MCP_SERVER_ENABLED
     value: "1"
+  # Done, Waive, Request move, Approve, Reject and Move as console buttons (docs/console.md, WP-P1).
+  # Needs GOVERNANCE_ENABLED, CONSOLE_SYSTEMS_ENABLED and CONTROLS_ENABLED. Off until the owner turns it on.
+  # - name: CONSOLE_WORKFLOW_ACTIONS
+  #   value: "1"
   # The stub marks outbound events delivered; it sends nothing.
   - name: WEBHOOKS_ENABLED
     value: "0"

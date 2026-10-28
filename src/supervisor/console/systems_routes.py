@@ -13,17 +13,21 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
 from supervisor.cases.service import PermissionDenied
-from supervisor.console import systems_views, systems_wizard
+from supervisor.console import systems_views, systems_wizard, systems_workflow
 from supervisor.console.context import ConsoleContext, get_context
+from supervisor.console.i18n import translator
 from supervisor.console.routes import (
     ConsoleInputError,
     _call,
     _check_id,
     _drawer_query,
+    _lang,
     audited,
     form_or_plain,
+    message_html,
     render,
 )
+from supervisor.core.errors import SupervisorError
 from supervisor.governance.model import ensure_on
 from supervisor.governance.systems import ALL
 
@@ -274,6 +278,183 @@ async def system_classification_step(
         await _call(functools.partial(svc.apply, sid, me, confirm_ai_prefill=confirm))
     request.state.audit_detail = f"classification {step}"
     return _done(request, plain, sid, "classification")
+
+
+# --- WP-P1: tasks and stage approvals as buttons (CONSOLE_WORKFLOW_ACTIONS) --------------------
+# Every route answers HTTP 400 naming the flag while it is off (systems_workflow.ensure_on). The
+# answer is the refreshed Tasks tab (an htmx fragment for #tab-body) with the result in #flash, or a
+# 303 back to the tab for a plain form post. The audit row note is set by the route
+# (``request.state.audit_detail``): action, status before and after, hash of the reason.
+
+
+async def _wf_run(fn: Any, *args: Any) -> Any:
+    """Run a workflow step; a service text that names an API path is shown without it."""
+    try:
+        return await _call(fn, *args)
+    except (systems_workflow.WorkflowError, PermissionDenied):
+        raise
+    except SupervisorError as exc:
+        text = systems_workflow.console_text(str(exc))
+        if text != str(exc):
+            raise type(exc)(text) from None
+        raise
+
+
+async def _wf_answer(
+    request: Request,
+    ctx: ConsoleContext,
+    me: AuthPrincipal,
+    plain: bool,
+    system_id: str,
+    note: str,
+    ok_key: str,
+) -> Response:
+    request.state.audit_detail = note
+    if plain:
+        return _done(request, True, system_id, "tasks")
+    data = await _call(systems_views.detail_view, ctx, me, system_id, "tasks")
+    resp = render(request, ctx, me, "_system_tasks.html", **data)
+    msg = translator(_lang(request, ctx))(ok_key)
+    resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
+    resp.headers["content-length"] = str(len(resp.body))
+    return resp
+
+
+async def _wf_system(
+    request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str
+) -> tuple[dict[str, str], bool, dict[str, Any]]:
+    """Flag check, the form, and the system if it is in the caller's scope."""
+    _off(ctx)
+    systems_workflow.ensure_on(ctx)
+    systems_workflow.person(me)
+    _check_id(system_id, "system id")
+    form, plain = await form_or_plain(request)
+    system = await _call(systems_views._need_visible, ctx, me, system_id)
+    return form, plain, system
+
+
+@router.post(
+    "/systems/{system_id}/tasks/{task_id}/done", dependencies=[Depends(needs("tasks.view"))]
+)
+@audited("tasks.edit")
+async def system_task_done(
+    system_id: str,
+    task_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    """Done. The role of the task or ``systems.edit`` (checked in the handler)."""
+    form, plain, system = await _wf_system(request, ctx, me, system_id)
+    _, note = await _wf_run(
+        systems_workflow.task_done, ctx, me, system, task_id, form.get("evidence_ref")
+    )
+    return await _wf_answer(request, ctx, me, plain, system["system_id"], note, "wf_ok_done")
+
+
+@router.post(
+    "/systems/{system_id}/tasks/{task_id}/waive", dependencies=[Depends(needs("tasks.view"))]
+)
+@audited("tasks.edit")
+async def system_task_waive(
+    system_id: str,
+    task_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    """Waive: a reason of 10 characters or more; not the creator of the task; a second person
+    closes it (the next route)."""
+    form, plain, system = await _wf_system(request, ctx, me, system_id)
+    _, note = await _wf_run(
+        systems_workflow.task_waive, ctx, me, system, task_id, form.get("reason")
+    )
+    return await _wf_answer(request, ctx, me, plain, system["system_id"], note, "wf_ok_waive")
+
+
+@router.post(
+    "/systems/{system_id}/tasks/{task_id}/waive/{answer}",
+    dependencies=[Depends(needs("tasks.approve"))],
+)
+@audited("tasks.approve")
+async def system_task_waive_answer(
+    system_id: str,
+    task_id: str,
+    answer: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    """The second person approves or rejects the waiver (``tasks.approve``)."""
+    if answer not in ("approve", "reject"):
+        raise ConsoleInputError("unknown waiver answer")
+    form, plain, system = await _wf_system(request, ctx, me, system_id)
+    _, note = await _wf_run(
+        systems_workflow.task_waive_answer,
+        ctx,
+        me,
+        system,
+        task_id,
+        answer == "approve",
+        form.get("reason"),
+    )
+    key = "wf_ok_waive_approve" if answer == "approve" else "wf_ok_waive_reject"
+    return await _wf_answer(request, ctx, me, plain, system["system_id"], note, key)
+
+
+@router.post("/systems/{system_id}/stage/request", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def system_stage_request(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    form, plain, system = await _wf_system(request, ctx, me, system_id)
+    _, note = await _wf_run(
+        systems_workflow.stage_request,
+        ctx,
+        me,
+        system,
+        form.get("to_stage", ""),
+        form.get("reason"),
+    )
+    return await _wf_answer(request, ctx, me, plain, system["system_id"], note, "wf_ok_request")
+
+
+@router.post(
+    "/systems/{system_id}/stage/{approval_id}/decide",
+    dependencies=[Depends(needs("systems.approve"))],
+)
+@audited("systems.approve")
+async def system_stage_decide(
+    system_id: str,
+    approval_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    """Approve or reject by a second person. The requester gets HTTP 400 ``same_person``."""
+    form, plain, system = await _wf_system(request, ctx, me, system_id)
+    decision = form.get("decision", "")
+    _, note = await _wf_run(
+        systems_workflow.stage_decide,
+        ctx,
+        me,
+        system,
+        approval_id,
+        decision,
+        form.get("reason"),
+    )
+    key = "wf_ok_approve" if decision == "approve" else "wf_ok_reject"
+    return await _wf_answer(request, ctx, me, plain, system["system_id"], note, key)
+
+
+@router.post("/systems/{system_id}/stage/move", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def system_stage_move(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    form, plain, system = await _wf_system(request, ctx, me, system_id)
+    _, note = await _wf_run(systems_workflow.stage_move, ctx, me, system, form.get("to_stage", ""))
+    return await _wf_answer(request, ctx, me, plain, system["system_id"], note, "wf_ok_move")
 
 
 # --- WP-N3 --- register workflow v2: /console/register (answers 400 while the flag is off)

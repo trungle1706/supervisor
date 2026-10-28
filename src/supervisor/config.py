@@ -677,6 +677,10 @@ class Settings(BaseSettings):
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.
     console_register_v2: bool = False
+    # --- WP-P1 --- tasks and stage approvals in the console (docs/console.md). Off: the Tasks tab
+    # of a system is read only and the workflow routes answer HTTP 400 naming this flag. Needs
+    # GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED (tasks also need CONTROLS_ENABLED).
+    console_workflow_actions: bool = False
 
     # --- WP-G2 --- assignment rules and Decision 33 classification (docs/assignment-rules.md,
     # docs/decision33.md). Both need GOVERNANCE_ENABLED. CLASSIFIER_AI_PREFILL=1 lets the

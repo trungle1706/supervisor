@@ -48,6 +48,11 @@ def _result(key: str, arg: str = "", href: str = "") -> dict[str, str]:
     return {"key": key, "arg": arg, "href": href}
 
 
+def tasks_tab(system_id: str) -> str:
+    """The console page with the task and stage buttons of a system (WP-P1)."""
+    return f"/console/systems/{system_id}?tab=tasks"
+
+
 def shadow_days(created_at: Any, now: dt.datetime) -> int | None:
     """Days since the agent row was created. The gate keeps no timestamp of a state change, so the
     age of the row is the nearest honest figure (see docs/triage.md)."""
@@ -69,18 +74,22 @@ def recommend(
     shadow_agents: list[str],
     open_cases: int,
     owner_id: str | None = None,
+    workflow: bool = False,
 ) -> dict[str, str]:
     """The first matching rule. ``system`` is the ``ai_system`` row, or None for an agent that is
     on no system (rules 2 and 3 then skip). ``below_floor`` lists feature slugs that are not
     effective though the floor holds them; ``shadow_agents`` the agents in SHADOW for more than
-    ``SHADOW_DAYS`` days."""
+    ``SHADOW_DAYS`` days. ``workflow`` (CONSOLE_WORKFLOW_ACTIONS, WP-P1): the task and stage rules
+    of a system point to its Tasks tab, where the buttons are."""
     sid = str(system["system_id"]) if system else (owner_id or "")
     nxt = first_task_or_stage(sid, agents, tasks, waiting) if sid else None
-    task_href = "/console/tasks"
+    task_href = f"/console/systems/{sid}?tab=tasks" if workflow and system else "/console/tasks"
     if nxt and nxt["kind"] == "task" and nxt["overdue"]:
         return _result("finish_task_overdue", nxt["text"], task_href)
     if system and can_decide and waiting.get(sid):
-        return _result("approve_stage", "", f"/console/systems/{sid}")
+        return _result(
+            "approve_stage", "", tasks_tab(sid) if workflow else f"/console/systems/{sid}"
+        )
     if system and str(system.get("decision33_class") or "unclassified") == "unclassified":
         return _result("classify", "", f"/console/systems/{sid}?tab=classification")
     if below_floor:
@@ -134,7 +143,7 @@ def prefetch(
             from supervisor.console import systems_overview
 
             for item in systems_overview.stage_approvals(ctx, me, systems):
-                stages.setdefault(str(item["href"]).rsplit("/", 1)[-1], item)
+                stages.setdefault(str(item["system_id"]), item)
         except Exception:  # noqa: BLE001
             stages = {}
     return {"tasks": tasks, "stages": stages}
@@ -169,17 +178,19 @@ def recommended_action(
         return _act("register", "mya_ra_register", links.candidate_href(ctx.settings, node))
     pre = pre if pre is not None else prefetch(ctx)
     sid = str(system_row["system_id"]) if system_row else None
+    wf = bool(getattr(ctx.settings, "console_workflow_actions", False)) and bool(sid)
     ids = {aid} | ({sid} if sid else set())
     overdue = [t for t in pre.get("tasks", []) if t["agent_id"] in ids and t.get("overdue")]
     if overdue:
         first = sorted(overdue, key=lambda t: (str(t.get("due_at") or "9"), t["task_id"]))[0]
-        return _act("task", "mya_ra_task", "/console/tasks", title=str(first["title"]))
+        href = tasks_tab(str(sid)) if wf else "/console/tasks"
+        return _act("task", "mya_ra_task", href, title=str(first["title"]))
     stage = (pre.get("stages") or {}).get(sid or "")
     if stage:
         return _act(
             "stage",
             "mya_ra_stage",
-            f"/console/systems/{sid}",
+            tasks_tab(str(sid)) if wf else f"/console/systems/{sid}",
             frm=str(stage["from_stage"]),
             to=str(stage["to_stage"]),
         )

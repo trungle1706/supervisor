@@ -170,13 +170,23 @@ def _routes() -> list[tuple[str, str, str]]:
     return sorted((m, p, e) for (m, p), e in rbac.ROUTES.items() if e.startswith("systems."))
 
 
+def _all_system_routes() -> list[tuple[str, str, str]]:
+    """Every matrix entry under the two system paths. WP-P1: the task buttons are in the matrix as
+    ``tasks.view`` / ``tasks.approve`` (the handler checks the role of the task or systems.edit)."""
+    return sorted(
+        (m, p, e)
+        for (m, p), e in rbac.ROUTES.items()
+        if p.startswith(("/v1/systems", "/console/systems"))
+    )
+
+
 def test_every_systems_route_is_in_the_matrix_and_enforced(on: Console) -> None:
     from tests.console.test_rbac_matrix import _needs_of, app_routes
 
     live = [
         (m, p, r) for m, p, r in app_routes() if p.startswith(("/v1/systems", "/console/systems"))
     ]
-    assert {(m, p) for m, p, _ in live} == {(m, p) for m, p, _ in _routes()}
+    assert {(m, p) for m, p, _ in live} == {(m, p) for m, p, _ in _all_system_routes()}
     for m, p, r in live:
         assert _needs_of(r) == [rbac.route_entry(m, p)], (m, p)
 

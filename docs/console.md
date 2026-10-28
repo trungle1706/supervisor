@@ -214,6 +214,40 @@ my = systems I own or am on, team = systems of my teams, all = what the role may
 pages are used when the flag is off. Catalogues > Agents has a System column and a linked or
 unlinked filter (both flags needed).
 
+#### Tasks and stage approvals as buttons (WP-P1, `CONSOLE_WORKFLOW_ACTIONS`)
+
+Needs `GOVERNANCE_ENABLED=1`, `CONSOLE_SYSTEMS_ENABLED=1` and, for the task buttons, `CONTROLS_ENABLED=1`.
+Off (default): the Tasks tab of a system is read only, as before, and the six routes below answer
+HTTP 400 with a message that names `CONSOLE_WORKFLOW_ACTIONS` (code `workflow_off`). Windows cmd:
+`set CONSOLE_WORKFLOW_ACTIONS=1`.
+
+| Button | Route (all `POST /console/systems/<id>/...`) | Who | Rule added by the console |
+|---|---|---|---|
+| Done | `tasks/<task>/done` | the role of the task, an admin, or `systems.edit` | the task list still applies its own rule: a task of role reviewer, approver or auditor is closed by that role or an admin |
+| Waive | `tasks/<task>/waive` | same as Done | reason of 10 characters or more (`reason_too_short`); the person who created the task cannot ask (`same_person`) |
+| Approve waiver, Reject waiver | `tasks/<task>/waive/approve`, `.../reject` | `tasks.approve` (approver, admin) | not the person who asked (`same_person`); reject needs a reason of 10 characters or more |
+| Request move | `stage/request` (fields `to_stage`, `reason`) | `systems.edit` | reason of 10 characters or more; only a stage that needs an approval |
+| Approve, Reject | `stage/<approval>/decide` (fields `decision`, `reason`) | `systems.approve` and `LifecycleService.can_decide` | the requester cannot answer (`same_person`); the owner of the system cannot answer (segregation of duties, from the service) |
+| Move | `stage/move` (field `to_stage`) | `systems.edit` | a stage that needs an approval needs an approved, unused request; a stage that needs none moves at once |
+
+The business rules are the ones of `TaskService` and `LifecycleService`; the console reuses them and
+adds only the rows above. A refusal is HTTP 400 and the message starts with the code. A missing
+role is HTTP 403. The answer to an htmx post is the refreshed Tasks tab (swap target `#tab-body`)
+with the result in `#flash`; a plain form post is a 303 back to the tab. Text from the service that
+names an API path is shown without it. The reason of a request is kept in the `reason` column of the
+`stage_approval` row while the request waits (the answer replaces it); a waiver reason is kept on the
+task row.
+
+Audit: two `console_action` rows as for every action. `detail` holds the action name, the status
+before and after, and the first 12 characters of the SHA-256 of the reason (never the reason):
+`task_done open>done`, `task_waive open>waive_pending reason_sha=...`, `task_waive_approve`,
+`task_waive_reject`, `stage_request initiation>deployment reason_sha=...`, `stage_approve
+pending>approved`, `stage_reject`, `stage_move initiation>deployment`. `before_hash` and
+`after_hash` are the hashes of the task row (task buttons) or of the system row (stage buttons).
+
+With the flag on, the next action of a system or an agent row (My overview, My agents, the stage
+approvals waiting for you) links to `/console/systems/<id>?tab=tasks`, where the buttons are.
+
 ### Components
 
 Server-rendered Jinja2 macros and partials; htmx only; the CSS is in `static/console.css`
@@ -604,6 +638,7 @@ set that header.
 | `MCP_SERVER_ENABLED` / `MCP_SERVER_HOST` / `MCP_SERVER_PORT` | `0` / `127.0.0.1` / `8765` | WP-G6: the MCP server. On: `POST /mcp`, `GET /v1/mcp/apps`, `POST /v1/mcp/apps/<id>/approve` and `/block` (permission `mcp.apps`, admin), `GET /v1/kpis` (`console.view`) and a KPI block on the Governance overview. Off: nothing is mounted, no table is read, the overview is as before. Host and port are for `python -m supervisor.mcp_server`. See `docs/mcp-server.md`. Windows cmd: `set MCP_SERVER_ENABLED=1` |
 | `CONSOLE_NAV_V3` | `0` | WP-UX4a: the merged left bar (My overview, Governance, Supervisor, settings gear), section tab strips, the three overview pages and Workflows. Needs `CONSOLE_NAV=sidebar`. Off = the sidebar as before. See "Navigation v3". Windows cmd: `set CONSOLE_NAV_V3=1` |
 | `CONSOLE_OVERVIEW_V4` | `0` | WP-N1: My overview as a dashboard (banner, registration pipeline, assessment completion, risk by autonomy, totals, action items, top candidates, cards with description and recommended action), the Candidates tab `/console/candidates` and `GET /v1/candidates`. Needs `CONSOLE_NAV_V3=1` and `GOVERNANCE_ENABLED=1`; the candidate table also needs `INVENTORY_ENABLED=1`. Off = today's My overview. See `docs/triage.md`. Windows cmd: `set CONSOLE_OVERVIEW_V4=1` |
+| `CONSOLE_WORKFLOW_ACTIONS` | `0` | WP-P1: Done, Waive, Request move, Approve, Reject and Move as buttons on the Tasks tab of a system (see "Tasks and stage approvals as buttons"). Needs `GOVERNANCE_ENABLED=1`, `CONSOLE_SYSTEMS_ENABLED=1` and `CONTROLS_ENABLED=1`. Off = the tab is read only and the routes answer HTTP 400 with the flag name. Windows cmd: `set CONSOLE_WORKFLOW_ACTIONS=1` |
 | `CONSOLE_MY_AGENTS` | `0` | WP-N2: the My agents tab under My overview. WP-N1 only adds the tab entry (shown when `CONSOLE_OVERVIEW_V4=1` too); the page is built by WP-N2. Windows cmd: `set CONSOLE_MY_AGENTS=1` |
 | `ONBOARD_ALLOWED_ROOTS` | empty | WP-UX4b: folders (`;` or `,` separated) the register wizard may run the readiness advisor on. Empty = advisor off in the wizard. Windows cmd: `set ONBOARD_ALLOWED_ROOTS=C:\work\agents` |
 | `CONSOLE_CATALOG_ENABLED` | `0` | `/console/catalog`: every guardian capability as a card (gateway controls, detectors, judges, monitors, evidence, connectors), showing whether it is on in this instance and the setting that turns it on. Tabs: Catalog and Active. Read-only: it never changes a setting. With `GUARDIAN_BINDINGS_ENABLED=1` (WP-S1) a system picker adds per-system switches for people with `systems.edit`, see `docs/guardian-bindings.md`. Windows cmd: `set CONSOLE_CATALOG_ENABLED=1` |
