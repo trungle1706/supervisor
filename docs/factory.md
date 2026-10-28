@@ -553,3 +553,106 @@ the agent; anyone who may read the factory reads the page. A simulation never pr
 back to the `roles` mapping of the group. Example: `lead.model` has `roles: [approver]` and `groups:
 [model_risk]`, so the user owns the model-risk agents and nothing else; `second.line` has `groups: [platform]`,
 the second line of an approval. Synthetic users only; the Databricks App has no groups (role mapping).
+
+## Starter agents
+
+WP-F5. Committed definitions under `config/factory_agents/` (no flag of their own): six starter
+assessment agents and two templates, each `lifecycle.state: draft` in the file. They load into the
+catalogue only through `seed`; nothing is promoted by loading. The checklists follow
+`docs/phase12/research/regulation-structure.md` section 2 and the rows of `regulations/vn/`; every
+question carries its article pointer. They are a starting point for the owner group, not legal advice.
+
+| Agent | Dimension | Main articles (Circular 53 unless marked) | Checklist | Golden cases (labels) | Packs mapped | Harness |
+|---|---|---|---|---|---|---|
+| `model-risk-assessor` | model | 14(3)(a), 8(2), 16(2)-(5), 6(2) | 12 | 60 (24) | 3 (`truthfulqa_vi`, `perturbation_vi`, `paraphrase_consistency`) | single pass |
+| `data-governance-assessor` | data_governance | 14(3)(b), 7(2), 7(3), 7(4), 15(5)(b) | 11 | 66 (24) | 1 (`pii_canary`) | single pass |
+| `cyber-assessor` | cybersecurity | 14(3)(c), 6(1), 6(1)(a)-(b), 6(2), 5(2) | 13 | 65 (24) | 6 (`indirect_injection_vi`, `owasp_agentic_redteam`, `finance_harm_refusal`, `prefilter_evasion`, `owasp_llm_top10`, `multiturn_redteam_vi`) | **loop**, `rules` evaluator, 3 iterations |
+| `legal-compliance-assessor` | legal_compliance | 14(3)(d), 3(1), 4(1), 4(3), 4(5), 5(1)(a), 12(3), 13(1)(c), 13(2), 20(2)-(5), 22(1)-(2); Decree 142/2026 13(1), 14(1) | 13 | 65 (24) | 0 (the dimension has none) | single pass |
+| `third-party-assessor` | third_party | 14(3)(e), 8(3)(b), 16(3)(b), 18(1)(b), 18(2)(a), 18(3), 18(4)(đ), 18(4)(e) | 11 | 66 (24) | 1 (`model_dependency_inventory`) | single pass |
+| `ethics-assessor` | ethics | 14(3)(đ), 17(1)-(2), 13(1)(b), 3(5), 5(2), 20(2)-(5), 21(3) | 12 | 60 (24) | 3 (`fairness_metrics`, `four_fifths_rule`, `counterfactual_vi`) | single pass |
+| `supply-chain-assessor` | supply_chain | 14(3)(g), 19(1)-(3), 19(5) | 6 | 0 | 3 (`licence_allowlist`, `pin_hash_check`, `mcp_tool_manifest_drift`) | **template** |
+| `reputation-assessor` | reputation | 14(3)(h), 14(4), 20(4), 5(2) | 4 | 0 | 0 | **template** |
+
+* **Packs.** An item that a pack measures (`config/risk_dimensions.yaml`, `measured_by`) has evidence kind
+  `pack`; it reads the result through `read_pack_results` and its pass rule is "the pack passed at the
+  current version" (a failed result, or a pass only at an older version, is a fail; no result is a
+  question). Every pack marked `required` for the dimension is mapped. The ethics group may now use
+  `read_pack_results` (one word added to `allowed_groups` in `config/factory_tools.yaml`).
+* **Pass rules.** The pass rule is text that the model applies and the verifier checks: the runtime
+  accepts a `pass` only with `pass_rule_met` true and evidence the run loaded, a `fail` only with
+  `pass_rule_met` false and evidence. There is no other grammar.
+* **Harness.** Context sources are the ones the tools can read; `verification.validators` are
+  `rationale_length` and `no_personal_data`; `hitl` holds the verdict stop point `question`; the locked rule
+  (a `fail` on a `high` item needs a person) applies to all. Instructions are about 700 to 900 tokens each and
+  name every checklist id.
+* **Templates.** `supply-chain-assessor` and `reputation-assessor` are drafts marked `TEMPLATE` in the
+  description, with a checklist and an empty golden set (`cases.json` holds `[]`). Add a golden set before a
+  full gate run; the gate refuses a set under 50 cases.
+
+### Golden sets
+
+`config/factory_agents/golden/<agent_id>/cases.json` (gate cases) and `calibration.json` (24 labels,
+`label_by: synthetic.labeller`, three of them differing from the expected verdict, like a careful human).
+Every item has 5 or 6 cases: pass, fail, question and, where the pass rule has an applicability clause,
+not_applicable. A `fail` case has a source that shows the breach; a `question` case has only neutral sources.
+`expected_evidence_refs` are refs of the case's own inputs (record fields `case-<case_id>.<field>`, fact ids,
+pack refs, document sections). Synthetic Vietnamese text; the masker finds nothing in any case (a test
+checks it). Regenerate (deterministic, seed 20261028, no model):
+
+```text
+python -m tools.factory_golden_gen            writes the files
+python -m tools.factory_golden_gen --check    fails when a committed file differs
+```
+
+The scenarios are in `tools/factory_golden_specs.py`; a change there needs a regeneration and a commit.
+
+### Seed
+
+```text
+python -m supervisor.factory seed
+```
+
+Needs `AGENT_FACTORY=1` and `GOVERNANCE_ENABLED=1`. For each of the eight ids that has no row in the
+catalogue it creates the draft (validated like any other definition), copies the golden set into
+`DATA_DIR/factory/<id>/golden/` and writes the events `created` and `golden_uploaded`. An id that already has
+a row (any version) is skipped, so a team's edits and golden sets are never overwritten and a second call
+changes nothing. Output: `[OK] created agent <id> (draft)`, `[OK] created template <id> (draft)`,
+`[SKIP] <id> is already in the catalogue`.
+
+`FACTORY_SEED_STARTERS=1` (default `0`; Windows cmd: `set FACTORY_SEED_STARTERS=1`) runs the same seed once at
+startup when `AGENT_FACTORY` is on. A failure is logged and never blocks startup. Off: nothing is seeded.
+
+### Gate on synthetic data (`--model fake`)
+
+```text
+set AGENT_FACTORY=1
+set GOVERNANCE_ENABLED=1
+set AGENT_FACTORY_GATE=1
+python -m supervisor.factory seed
+python -m supervisor.factory gate cyber-assessor --kind full --model fake
+```
+
+`--model fake` is for development and tests only. The model that answers is
+`supervisor.factory.devfake.ReplayChat` (`model_id: dev-fixture-replay`): it looks up the golden case of the
+run and replays its expected verdict with its expected evidence refs; as judge it compares expected and actual
+verdicts; as calibration judge it returns the expected verdict of the case behind the sources. The harness,
+the verifier, the six component tests, the layer 1 checks, the signed report and the calibration arithmetic
+are the real ones. **So layer 1 is a real result, and layer 2 is not**: its numbers show that the plumbing
+works (they would drop if a case were broken) and say nothing about how well a model or a judge reads a bank
+document. The command is refused with `[FAIL]` when `SUPERVISOR_MODE=databricks_app`; on the bank's gateway
+the run uses the gateway model (default `--model gateway`). Promotion (tested, approved, live) happens there,
+never from the committed file.
+
+Result of the fake run on the committed sets (2026-10-28; layer 1 = 5 per-case checks and 6 harness tests):
+
+| Agent | Layer 1 | Cases | Judge match / faithful | Calibration (labels, agree, kappa) | Verdict |
+|---|---|---|---|---|---|
+| `model-risk-assessor` | 11 of 11, 100 % | 60 | 60 / 60 | 24, 21, 78 | pass |
+| `data-governance-assessor` | 11 of 11, 100 % | 66 | 66 / 66 | 24, 21, 80 | pass |
+| `cyber-assessor` | 11 of 11, 100 % | 65 | 65 / 65 | 24, 21, 78 | pass |
+| `legal-compliance-assessor` | 11 of 11, 100 % | 65 | 65 / 65 | 24, 21, 78 | pass |
+| `third-party-assessor` | 11 of 11, 100 % | 66 | 66 / 66 | 24, 21, 80 | pass |
+| `ethics-assessor` | 11 of 11, 100 % | 60 | 60 / 60 | 24, 21, 78 | pass |
+
+Kappa is in hundredths (78 = 0.78; floor 70). The 3 of 24 labels that differ from the replayed verdict are
+the only source of disagreement. Layer 3 reads "no data" (no stored onboarding).

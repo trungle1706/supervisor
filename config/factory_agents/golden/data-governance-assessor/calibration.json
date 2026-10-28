@@ -1,0 +1,170 @@
+[
+ {
+  "case_id": "dg-dg-01-01",
+  "finding_id": "f-DG-01",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-02-01",
+  "finding_id": "f-DG-02",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-03-01",
+  "finding_id": "f-DG-03",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-04-01",
+  "finding_id": "f-DG-04",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-05-01",
+  "finding_id": "f-DG-05",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-06-01",
+  "finding_id": "f-DG-06",
+  "human_verdict": "question",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-07-01",
+  "finding_id": "f-DG-07",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-08-01",
+  "finding_id": "f-DG-08",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-09-01",
+  "finding_id": "f-DG-09",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-10-01",
+  "finding_id": "f-DG-10",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-11-01",
+  "finding_id": "f-DG-11",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-01-02",
+  "finding_id": "f-DG-01",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-02-02",
+  "finding_id": "f-DG-02",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-03-02",
+  "finding_id": "f-DG-03",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-04-02",
+  "finding_id": "f-DG-04",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-05-02",
+  "finding_id": "f-DG-05",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-06-02",
+  "finding_id": "f-DG-06",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-07-02",
+  "finding_id": "f-DG-07",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-08-02",
+  "finding_id": "f-DG-08",
+  "human_verdict": "question",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-09-02",
+  "finding_id": "f-DG-09",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-10-02",
+  "finding_id": "f-DG-10",
+  "human_verdict": "question",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-11-02",
+  "finding_id": "f-DG-11",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-01-03",
+  "finding_id": "f-DG-01",
+  "human_verdict": "question",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "dg-dg-02-03",
+  "finding_id": "f-DG-02",
+  "human_verdict": "question",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ }
+]

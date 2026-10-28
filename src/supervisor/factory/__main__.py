@@ -3,6 +3,8 @@
     python -m supervisor.factory validate <file> [--schema NAME]
     python -m supervisor.factory schema <name>
     python -m supervisor.factory gate <agent_id> --kind full|sample [--version V] [--n N]
+        [--model fake]
+    python -m supervisor.factory seed
 
 Exit 0 when valid, 1 on any error. Output is ASCII (``[OK]`` / ``[FAIL]``); an error line names the
 field. A bad file never produces a traceback.
@@ -84,22 +86,78 @@ def validate_file(path: Path, schema: str | None) -> tuple[str, list[str]]:
     return name, []
 
 
-def run_gate(args: argparse.Namespace, env: Any = None) -> int:
-    """WP-F3: run the test gate for one agent version in this process (no thread). Needs
-    ``AGENT_FACTORY_GATE=1`` and the gateway model. ``env`` is for tests."""
+def _settings() -> Any:
+    from supervisor.config import load_settings
+
+    return load_settings()
+
+
+def run_seed(env: Any = None) -> int:
+    """WP-F5: create the starter agents and templates the catalogue lacks, as drafts. Needs
+    ``AGENT_FACTORY=1`` and ``GOVERNANCE_ENABLED=1``. Running it twice changes nothing."""
     from supervisor.core.errors import SupervisorError
-    from supervisor.factory import gate
+    from supervisor.factory import starters, store
 
     runtime = None
     try:
         if env is None:
-            from supervisor.config import load_settings
+            from supervisor.console.context import build_context
             from supervisor.wiring import build_runtime
 
-            settings = load_settings()
+            settings = _settings()
+            store.require_on(settings)
+            runtime = build_runtime(settings)
+            ctx = build_context(runtime)
+            fstore = store.FactoryStore(ctx.state, ctx.tables, ctx.clock)
+            data_dir = Path(settings.data_dir)
+        else:
+            store.require_on(env.settings)
+            fstore, data_dir = env.store, env.data_dir
+        result = starters.seed(fstore, data_dir)
+    except SupervisorError as exc:
+        _out(f"[FAIL] {exc}")
+        return 1
+    finally:
+        if runtime is not None:
+            runtime.close()
+    for agent_id in result["created"]:
+        kind = "template" if agent_id in starters.TEMPLATE_IDS else "agent"
+        _out(f"[OK] created {kind} {agent_id} (draft)")
+    for agent_id in result["skipped"]:
+        _out(f"[SKIP] {agent_id} is already in the catalogue")
+    return 0
+
+
+def run_gate(args: argparse.Namespace, env: Any = None) -> int:
+    """WP-F3: run the test gate for one agent version in this process (no thread). Needs
+    ``AGENT_FACTORY_GATE=1`` and the gateway model. ``env`` is for tests."""
+    from supervisor.core.errors import SupervisorError
+    from supervisor.factory import devfake, gate
+
+    runtime = None
+    try:
+        if getattr(args, "model", "gateway") == "fake" and devfake.refused(
+            env.settings if env is not None else _settings()
+        ):
+            _out(f"[FAIL] {devfake.FAKE_REFUSED_TEXT}")
+            return 1
+        if env is None:
+            from supervisor.wiring import build_runtime
+
+            settings = _settings()
             gate.require_on(settings)
             runtime = build_runtime(settings)
             env = gate.GateEnv.from_runtime(runtime)
+        if getattr(args, "model", "gateway") == "fake":
+            from supervisor.factory import golden
+
+            row = env.store.get(args.agent_id, args.version or None)
+            if row is None:
+                raise gate.GateError("not_found", f"agent {args.agent_id} does not exist")
+            env.chat = devfake.ReplayChat(
+                row["definition"], golden.all_gate_cases(env.data_dir, args.agent_id)
+            )
+            _out(f"[INFO] model: {devfake.MODEL_ID} (replays the golden fixture; development only)")
         run = gate.start(
             env,
             args.agent_id,
@@ -147,10 +205,22 @@ def main(argv: list[str] | None = None, gate_env: Any = None) -> int:
     g.add_argument("--kind", choices=["full", "sample"], default="full")
     g.add_argument("--version", default="")
     g.add_argument("--n", type=int, default=0, help="cases of a sample (default 10, at most 25)")
+    g.add_argument(
+        "--model",
+        choices=["gateway", "fake"],
+        default="gateway",
+        help="fake = replay of the golden fixture, development and tests only; refused in "
+        "databricks_app mode",
+    )
+    sub.add_parser(
+        "seed", help="create the starter agents and templates as drafts (AGENT_FACTORY=1)"
+    )
     args = parser.parse_args(argv)
 
     if args.cmd == "gate":
         return run_gate(args, gate_env)
+    if args.cmd == "seed":
+        return run_seed(gate_env)
     if args.cmd == "schema":
         doc = MODELS[args.name].model_json_schema()
         _out(json.dumps(doc, indent=2, sort_keys=True, ensure_ascii=True))

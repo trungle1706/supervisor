@@ -215,6 +215,11 @@ env:
   # Off by default (docs/factory.md "Test gate", "Promotion").
   # - name: AGENT_FACTORY_GATE
   #   value: "1"
+  # Phase 12B WP-F5: at startup, create the six starter assessment agents and two templates (drafts,
+  # with their golden sets) for each id the catalogue lacks. Needs AGENT_FACTORY. Off by default
+  # (docs/factory.md "Starter agents").
+  # - name: FACTORY_SEED_STARTERS
+  #   value: "1"
   # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
   # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.
   # Needs GOVERNANCE_ENABLED and RISK_DUTIES. Off by default (docs/regulator-pack.md).

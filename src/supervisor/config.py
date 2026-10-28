@@ -799,6 +799,11 @@ class Settings(BaseSettings):
     # AGENT_FACTORY (and so GOVERNANCE_ENABLED) and LLM_BASE_URL for the runs. Off: no gate_run
     # read, the routes answer HTTP 400 factory_gate_off, the catalogue and editor are unchanged.
     agent_factory_gate: bool = False
+    # --- WP-F5 (phase 12B) --- starter agents (docs/factory.md "Starter agents").
+    # With AGENT_FACTORY on, startup creates the six starter agents and the two templates from
+    # config/factory_agents/ as drafts, for each id the catalogue does not have yet (golden sets
+    # included). `python -m supervisor.factory seed` does the same by hand. Off: nothing is seeded.
+    factory_seed_starters: bool = False
     # --- WP-L4 (phase 8) --- evidence per duty and the regulator pack (docs/regulator-pack.md):
     # live counts per control for the duties of a system, auto-close of a full-coverage duty whose
     # mapped controls all work, the group task closes with its last row, the Refresh evidence
