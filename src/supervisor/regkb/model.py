@@ -138,6 +138,7 @@ class Obligation:
     summary_vi: str | None = None
     addressee: str | None = None
     notes: str | None = None
+    confirmed_by: str | None = None  # WP-L1: person who confirmed a law-agent draft
     file: str = field(default="", metadata={"hash": False})
 
 

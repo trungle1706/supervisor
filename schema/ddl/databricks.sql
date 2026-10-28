@@ -1419,3 +1419,30 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`intake_attempt` (
 USING DELTA
 COMMENT 'WP-O1 (phase 9, ONBOARD_INTAKE). One numbered intake of the source code of an inventory candidate or an agent: a zip upload, a clone or (later) a workspace folder. Re-upload makes attempt n+1; old attempts stay. The files are stored scrubbed under DATA_DIR/intake/<node_id>/<n>/ (the WP16 scrubber runs before anything is written); this row holds only the source reference (no secrets), the SHA-256 and size of what was received, the count of stored files and a counts-only detail note. status: scrubbed (stored after the scrub), failed (refused; detail has the code), stored (reserved).'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- regkb_draft (state): WP-L1. A draft duty that the law agent read from the stored official text of one instrument, one row per draft. A draft is never an obligation: a person with regkb.confirm sets status confirmed or dropped. text_vi is a verbatim quote that the rules checked against the stored article text. source is model (the agent) or rule (a deterministic parser); model_id and prompt_version say which model and prompt wrote it (a mock model has mock in model_id). The CLI python -m supervisor.regkb.lawagent --export-confirmed turns confirmed rows into regulations YAML for a pull request; the app cannot edit repo files. No PII: law text only.
+-- primary key (enforced by the app, not by Delta): draft_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regkb_draft` (
+  draft_id STRING NOT NULL,
+  instrument_id STRING NOT NULL,
+  article STRING NOT NULL,
+  duty_id STRING NOT NULL,
+  subject STRING NOT NULL,
+  trigger STRING NOT NULL,
+  evidence_asked STRING NOT NULL,
+  text_vi STRING NOT NULL,
+  summary_en STRING NOT NULL,
+  source STRING NOT NULL,
+  model_id STRING,
+  prompt_version STRING,
+  status STRING NOT NULL,
+  confirmed_by STRING,
+  confirmed_at TIMESTAMP,
+  run_id STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-L1. A draft duty that the law agent read from the stored official text of one instrument, one row per draft. A draft is never an obligation: a person with regkb.confirm sets status confirmed or dropped. text_vi is a verbatim quote that the rules checked against the stored article text. source is model (the agent) or rule (a deterministic parser); model_id and prompt_version say which model and prompt wrote it (a mock model has mock in model_id). The CLI python -m supervisor.regkb.lawagent --export-confirmed turns confirmed rows into regulations YAML for a pull request; the app cannot edit repo files. No PII: law text only.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

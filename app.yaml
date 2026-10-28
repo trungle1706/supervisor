@@ -221,3 +221,11 @@ env:
   #   value: "databricks_proxy"
   # - name: INGRESS_IDENTITIES_FILE
   #   value: "config/agent_identities.yaml"
+  # Law agent (WP-L1): drafts duties from the stored official text; a person confirms each draft
+  # on /console/regkb/<instrument>/drafts. The CLI runs the agent:
+  # python -m supervisor.regkb.lawagent --instrument VN-DEC142-2026. Needs the model settings above.
+  # LAWAGENT_MODEL empty = LLM_MODEL. The table regkb_draft comes from bootstrap_schema.
+  # - name: LAWAGENT_ENABLED
+  #   value: "1"
+  # - name: LAWAGENT_MODEL
+  #   value: ""

@@ -452,6 +452,16 @@ its systems and agents); `incidents.transition` (reviewer, owner, admin) moves a
 closes it, with two audit rows and an `incident_change` record. The **Reports** tab of the AI
 system page lists the incidents of that system.
 
+### Law agent drafts (WP-L1)
+
+The page `/console/regkb/<instrument>/drafts` (flag `LAWAGENT_ENABLED`; HTTP 400 while it is off)
+lists the duties that the law agent drafted from the stored official text of one instrument,
+grouped by article, with the verbatim Vietnamese quote marked in the article. `regkb.view` is held
+by every role. `regkb.confirm` (approver, admin) puts **Confirm** or **Drop** on a draft, with two
+audit rows per POST and the person written on the row. There is no "Run the agent" button: the
+CLI runs the agent (`docs/regulations.md`, "Law agent (WP-L1)"). A draft is never an obligation.
+The banner "Not legal advice. Bank counsel must confirm." stays on the page.
+
 ### Old URLs (WP-UX2)
 
 A moved page answers `303 See Other` to its new place. The query string is kept (`lang`, filters,
@@ -531,6 +541,8 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `agents.edit` | Register and change an agent in the registry, POST /v1/agents (WP-P2) |  | x |  | x | x |  |  |
 | `agent.mode` | Ask for or approve SHADOW to RUNNING (two persons); RUNNING to SHADOW needs the reviewer or admin role (WP-P2) |  | x | x | x | x |  |  |
 | `policy.reload` | Reload the policy folders from disk (WP-P2) |  |  |  |  | x |  |  |
+| `regkb.view` | Law agent drafts page: duties drafted from the stored official text (WP-L1) | x | x | x | x | x | x | x |
+| `regkb.confirm` | Confirm or drop a law agent draft; the compliance sign-off role (WP-L1) |  |  | x |  | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

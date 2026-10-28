@@ -41,6 +41,7 @@ TARGET_KINDS = (
     "incident",  # WP-G5
     "mcp_app",  # WP-G6
     "node",  # WP-O1: an inventory node or agent whose source is taken in
+    "regkb_draft",  # WP-L1
 )
 # path parameter name -> target kind (the first one present on the route wins)
 _PARAM_KIND = {
@@ -55,6 +56,7 @@ _PARAM_KIND = {
     "incident_id": "incident",  # WP-G5
     "app_id": "mcp_app",  # WP-G6
     "node_id": "node",  # WP-O1
+    "draft_id": "regkb_draft",  # WP-L1
     "name": "export",
 }
 # route template -> target kind when the route has no id parameter
@@ -167,6 +169,8 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
         return row_hash({"system": system, "team": team, "links": links})
     if kind == "incident":  # WP-G5
         return row_hash(state.get("incident", {"incident_id": target_id}))
+    if kind == "regkb_draft":  # WP-L1
+        return row_hash(state.get("regkb_draft", {"draft_id": target_id}))
     if kind == "mcp_app":  # WP-G6: the app row without its key hash
         app = state.get("mcp_app", {"app_id": target_id})
         if app is None:

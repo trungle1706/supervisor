@@ -1,0 +1,33 @@
+{# One law agent draft (WP-L1). Variables: d (draft item), instrument, can_confirm. Also the answer
+   of Confirm and Drop (swapped in place of the card). #}
+{% import "_ui.html" as ui with context %}
+<article class="lawdraft" id="draft-{{ d.draft_id }}" data-draft="{{ d.draft_id }}" data-status="{{ d.status }}" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">
+  <div>
+    {{ ui.pill(d.status, {'draft': 'warn', 'confirmed': 'ok', 'dropped': 'neutral'}.get(d.status, 'neutral'), True) }}
+    <span class="pill mono">{{ d.duty_id }}</span>
+    {% if d.clause %}<span class="pill mono">clause {{ d.clause }}</span>{% endif %}
+    <span class="hint">{{ d.duty_label }}</span>
+    <span class="hint">source {{ d.source }}{% if d.model_id %} &middot; {{ d.model_id }}{% endif %}{% if d.prompt_version %} &middot; {{ d.prompt_version }}{% endif %}</span>
+    {% if d.is_mock %}{{ ui.pill('MOCK MODEL', 'bad', True) }}{% endif %}
+  </div>
+  <p style="margin:8px 0 0"><b>{{ d.summary_en }}</b></p>
+  <blockquote data-quote="1" lang="vi">{% if d.in_text %}{{ d.before }}<mark>{{ d.quote }}</mark>{{ d.after }}{% else %}<mark>{{ d.quote }}</mark>{% endif %}</blockquote>
+  <dl>
+    <dt>Subject</dt><dd>{{ d.subject }}</dd>
+    <dt>Trigger</dt><dd>{{ d.trigger }}</dd>
+    <dt>Evidence asked</dt><dd>{{ d.evidence_asked }}</dd>
+    {% if d.confirmed_by %}<dt>Decided by</dt><dd data-decided-by="1">{{ d.confirmed_by }}{% if d.confirmed_at %} &middot; {{ d.confirmed_at|day }}{% endif %}</dd>{% endif %}
+  </dl>
+  {% if d.status == 'draft' and can_confirm %}
+  <div class="row-actions">
+    <form method="post" action="/console/regkb/{{ instrument }}/drafts/{{ d.draft_id }}/confirm?lang={{ lang }}" hx-post="/console/regkb/{{ instrument }}/drafts/{{ d.draft_id }}/confirm?lang={{ lang }}" hx-target="#draft-{{ d.draft_id }}" hx-swap="outerHTML">
+      <input type="hidden" name="row_version" value="{{ d.row_version }}">
+      <button class="btn primary" data-act="confirm">Confirm</button>
+    </form>
+    <form method="post" action="/console/regkb/{{ instrument }}/drafts/{{ d.draft_id }}/drop?lang={{ lang }}" hx-post="/console/regkb/{{ instrument }}/drafts/{{ d.draft_id }}/drop?lang={{ lang }}" hx-target="#draft-{{ d.draft_id }}" hx-swap="outerHTML">
+      <input type="hidden" name="row_version" value="{{ d.row_version }}">
+      <button class="btn" data-act="drop">Drop</button>
+    </form>
+  </div>
+  {% endif %}
+</article>
