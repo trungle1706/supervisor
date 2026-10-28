@@ -13,6 +13,7 @@
 | Duty vocabulary | `regulations/schema/duties.yaml` |
 | Control vocabulary (monitor, console, evidence, process ids) | `regulations/schema/controls.yaml` |
 | Vietnamese instruments (one file each) | `regulations/vn/*.yaml` |
+| Regulator map: every regulator, every instrument that binds or guides a bank AI system, stored or missing (WP-W0) | `regulations/REGULATOR_MAP.md` |
 | International reference frameworks (`binding: false`) | `regulations/intl/*.yaml` |
 | Official texts as fetched, with sha256 sidecars | `regulations/sources/<instrument_id>/` |
 | Bank internal rules (off by default) | folder named by `REGKB_INTERNAL_DIR`; guide in `regulations/internal/README.md` |
@@ -36,10 +37,13 @@ and a verification tag:
 Status values: `in_force`, `issued` (signed, not yet effective), `draft`, `superseded`,
 `repealed`, `reference` (international frameworks). A draft is never `in_force`; the loader refuses it.
 
-## Coverage (2026-10-15)
+## Coverage (2026-10-28)
 
 `python -m supervisor.regkb coverage` prints this table from the data. P/S/A = obligations
-tagged VERIFIED_PRIMARY / VERIFIED_SECONDARY / ASSUMED.
+tagged VERIFIED_PRIMARY / VERIFIED_SECONDARY / ASSUMED. The first 18 Vietnamese rows were read on
+2026-10-15 and checked again on 2026-10-28 (WP-W0); the last 8 were added on 2026-10-28.
+`regulations/REGULATOR_MAP.md` lists every regulator and every instrument, stored or missing, with the
+articles that are not yet rows.
 
 ### Vietnam (binding)
 
@@ -63,6 +67,14 @@ tagged VERIFIED_PRIMARY / VERIFIED_SECONDARY / ASSUMED.
 | E-Transactions Law | 20/2023/QH15 | in_force | 2024-07-01 | 19 | 19/0/0 | yes |
 | E-signatures and trust services | 23/2025/NĐ-CP | in_force | 2025-04-10 | 10 | 10/0/0 | yes |
 | Consumer Rights Protection Law (+ Decree 55/2024) | 19/2023/QH15 | in_force | 2024-07-01 | 28 | 28/0/0 | yes |
+| SBV internal control and risk management, incl. model risk (WP-W0) | 83/2025/TT-NHNN | in_force | 2026-07-01 (model risk by 2028-01-01) | 22 | 22/0/0 | yes |
+| SBV credit information, CIC (WP-W0) | 15/2023/TT-NHNN (+46/2026) | in_force | 2024-01-01 (46/2026: 2026-11-01) | 8 | 8/0/0 | yes (+ Circular 46/2026) |
+| SBV non-cash payment services (WP-W0) | 15/2024/TT-NHNN (+30/2025, 21/2026) | in_force | 2024-07-01 | 11 | 11/0/0 | yes (+ 30/2025, 21/2026) |
+| Anti-Money Laundering Law (WP-W0) | 14/2022/QH15 | in_force | 2023-03-01 | 10 | 10/0/0 | yes |
+| Law amending the SBV, AML and Credit Institutions laws (WP-W0) | 23/2026/QH16 | **issued** | 2026-12-01 | 3 | 3/0/0 | yes |
+| Penalties: cybersecurity and personal data, incl. AI (Art. 67) (WP-W0) | 330/2026/NĐ-CP | in_force | 2026-08-19 | 12 | 12/0/0 | yes |
+| Non-cash payments decree (WP-W0) | 52/2024/NĐ-CP | in_force | 2024-07-01 | 6 | 6/0/0 | yes |
+| E-identification and authentication (WP-W0) | 69/2024/NĐ-CP (+320/2026) | in_force | 2024-07-01 (320/2026: 2026-09-28) | 4 | 4/0/0 | yes (+ Decree 320/2026) |
 
 ### International reference frameworks (`binding: false`)
 
@@ -82,11 +94,29 @@ tagged VERIFIED_PRIMARY / VERIFIED_SECONDARY / ASSUMED.
 | MITRE ATLAS 2026.09 | reference | 11 | 11/0/0 | no |
 | OECD AI Principles (2019, updated 2024) | reference | 5 | 1/4/0 | no |
 
-Total: 31 instruments, 528 obligations. Control coverage by Supervisor controls (bank process steps
-do not count; `python -m supervisor.regkb coverage --levels` prints it per instrument): 1 obligation
-has a `full` control, 435 have only `partial` controls, 92 rely only on a bank process. Before
-WP-L5 these were 0 / 433 / 95. Supervisor produces evidence; it does not make a product compliant.
-Detail for Decree 142 and Circular 53: "Coverage raise (WP-L5)" below.
+Total: 39 instruments (26 Vietnamese, 13 international), 604 obligations. Control coverage by Supervisor controls
+(bank process steps do not count; `python -m supervisor.regkb coverage --levels` prints it per instrument): 1 obligation
+has a `full` control, 507 have only `partial` controls, 96 rely only on a bank process or have no control. Before WP-W0 these
+were 1 / 435 / 92 (528 obligations); WP-W0 added 76 obligations, 72 partial and 4 with no Supervisor control. Supervisor produces
+evidence; it does not make a product compliant. Detail for Decree 142 and Circular 53: "Coverage raise (WP-L5)" below.
+
+### Coverage of the instruments added by WP-W0
+
+Same rules as WP-L5 for the notes (`Missing: ...`, `Manual step: ...`, `No Supervisor control: ...`); the tests of
+WP-L5 still check only Decree 142 and Circular 53. The level is the best coverage of the entries of an obligation.
+
+| Instrument | Obligations | Supervisor f / p / n | With process f / p / n | Rows with `No Supervisor control` |
+|---|---|---|---|---|
+| VN-TT83-2025 (internal control, model risk) | 22 | 0 / 21 / 1 | 0 / 22 / 0 | 1 |
+| VN-TT15-2023 (credit information) | 8 | 0 / 7 / 1 | 0 / 8 / 0 | 1 |
+| VN-TT15-2024 (non-cash payment services) | 11 | 0 / 9 / 2 | 0 / 11 / 0 | 2 |
+| VN-AML-2022 (AML Law) | 10 | 0 / 10 / 0 | 0 / 10 / 0 | 0 |
+| VN-LAW23-2026 (amends the AML Law) | 3 | 0 / 3 / 0 | 0 / 3 / 0 | 0 |
+| VN-DEC330-2026 (penalties) | 12 | 0 / 12 / 0 | 0 / 12 / 0 | 0 |
+| VN-DEC52-2024 (non-cash payments) | 6 | 0 / 6 / 0 | 0 / 6 / 0 | 0 |
+| VN-DEC69-2024 (e-identification) | 4 | 0 / 4 / 0 | 0 / 4 / 0 | 0 |
+
+No row is `full`: a gateway rule, the evidence chain or the pause switch supports the duty, but a bank step (policy, record, report, contract) is always needed. New duty id: `pd_compliance_assessment` (yearly personal data compliance assessment; Decree 330/2026 Art. 64(1) and 67(1); no existing tag fitted).
 
 ### Facts that changed during the research (read before you use older notes)
 
@@ -110,6 +140,48 @@ Detail for Decree 142 and Circular 53: "Coverage raise (WP-L5)" below.
 - Cybersecurity Law 116/2025 replaced the 2018 and 2015 laws on 2026-07-01; Decree 333/2026
   (local storage, 24-month minimum after a storage request; 12-month system logs) and Decree
   331/2026 (system security levels; 24 h initial notice of serious incidents) guide it.
+
+- Circular 83/2025/TT-NHNN (internal control, in force 2026-07-01) replaces Circular 13/2018 and 40/2018 and adds
+  **model risk management** (Art. 56-58: model list rated high, medium or low, validation before use, after a material
+  change and yearly, override control, model file, three lines, yearly report). It does not name AI; "model" is
+  defined in Art. 3(23) as any quantitative method or system that turns inputs into outputs. Duties from 2028-01-01 at the latest.
+- Decree 330/2026/NĐ-CP (penalties, in force 2026-08-19) is the first text that puts a fine on AI-specific personal data
+  duties: Art. 67 (notice and explanation of the algorithm, opt-out of automated processing, risk classes, human
+  re-assessment, yearly assessment), Art. 64 (banking and credit scoring without consent), Art. 70 (biometric data), Art. 56
+  (cross-border transfer, up to 5 percent of revenue). Suspension of an AI system for 3 to 6 months is an added penalty.
+- Circular 30/2025/TT-NHNN (in force 2025-11-18) added to Circular 15/2024: a payment service outage over 30 minutes is
+  reported to SBV within **4 hours**; availability limits of 4 hours a year; identity matching against police-issued data or
+  the e-identification account. The incident clock of Supervisor (Decree 142: 72 h or 5 working days) has no 4-hour clock.
+- Law 23/2026/QH16 (signed 2026-08-24, effective 2026-12-01) changes the AML Law: risk assessment of products that use new
+  technology must be carried out in full, identification applies when a transaction is suspected even if not completed, and
+  suspicious reports rest on the bank own analysis and signs.
+- Decree 320/2026/NĐ-CP (in force 2026-09-28) requires bank electronic transaction accounts to be linked to electronic
+  identity accounts (Decree 69/2024 Art. 40(9)).
+- Decree 13/2023/NĐ-CP is repealed by Decree 356/2025 (Art. 40(2) of that Decree). Chapter IV (AI) of the Digital Technology
+  Industry Law 71/2025/QH15 is repealed by the AI Law Art. 33, so it is not stored.
+- Texts checked again on 2026-10-28 (WP-W0): 16 vbpl.vn texts are unchanged; Decree 142/2026 and Decision 33/2026 come from
+  the Official Gazette PDFs and were not re-fetched (see the re-check log in the regulator map).
+
+## Regulator map (WP-W0)
+
+`regulations/REGULATOR_MAP.md` has one table per group: the 26 stored Vietnamese instruments, the 13 international references, and
+17 rows of missing, open or checked-and-closed instruments (M-01 to M-17). Each row has regulator, status, issued and effective
+dates, scope for a bank AI system, stored (`yes` or `yaml-only`), verified tag, obligation count, and the gap or action. The gap
+column lists the articles of the stored text that are not rows yet. A test (`tests/regkb/test_regulator_map.py`) keeps the map and
+the files in step: every instrument file is listed, a row marked `yes` has a sources folder with sidecars, and the counts match.
+When you add an instrument, add its row to the map (the test fails until you do).
+
+Where the map stands on 2026-10-28:
+
+| Regulator | Stored | Missing or open |
+|---|---|---|
+| National Assembly | AI Law, PDPL, Data Law, Cybersecurity Law, E-Transactions Law, Consumer Law, Credit Institutions Law, AML Law, Law 23/2026 | Laws 96/2025, 142/2025, 43/2024 (amend the credit law); Law on Identification 26/2023 |
+| Government | Decrees 142, 356, 165, 330, 117, 23, 52, 69, 53 (superseded) | Decree 85/2016 (security levels); AML guiding decree; banking penalty decree |
+| Prime Minister | Decision 33/2026 | none found |
+| SBV | Circulars 53/2026, 09/2020, 50/2024, 83/2025, 15/2023, 15/2024; Decision 2345 (reproduction) | payment intermediary (40/2024), bank card, e-KYC, outsourcing, AML circular |
+| MST (with former MIC functions) | none own | no AI circular or decree found besides Decree 142 and Decision 33 |
+| MPS | none own (authority under PDPL and Cybersecurity Law) | biometric technical regulations 169/2026 and 170/2026 (effective 2027-04-15); Decree 70/2024 |
+| MOF | none | none found that binds a bank AI system |
 
 ## Use it (Windows cmd)
 
@@ -380,3 +452,17 @@ different wording. A made-up sentence does not match, so the fold is not a blank
 - ISO/IEC 42001 and 23894 clause numbers were not checked against a licensed copy.
 - Whether the bank is a large digital platform under the Consumer Protection Law (Art. 39(4)(c)).
 - Whether a monitoring or judge call falls under the Decree 356 payment exemption (assumed not).
+- Whether an AI or LLM agent is a "model" under Circular 83/2025 Art. 3(23) and so falls under the model risk section
+  (Art. 56-58, from 2028-01-01 at the latest). The KB reads it that way.
+- Whether an AI credit memo agent is "approval of credit by electronic means" (Circular 83/2025 Art. 15(3)), and whether the
+  "new technology" in the AML Law Art. 19 covers AI agents.
+- Which form of authorisation satisfies Decree 52/2024 Art. 10(2) ("in writing") when an AI agent acts on a customer account.
+- Whether the 5-year limit on negative credit information (Circular 15/2023 Art. 13(1)) also limits the bank own use of the data.
+- Whether "big data" in Decree 330/2026 Art. 66 covers an AI agent platform, and how the fines of Art. 67 relate to Circular 53 (both ask for human re-assessment of automated decisions).
+- Whether Decree 53/2022 is superseded: vbpl.vn still shows it in force on 2026-10-28 (existing point, new evidence).
+- Circular 15/2024 and Decree 52/2024: vbpl.vn shows "partly expired" for Circular 15/2024; the expired parts were not identified. Later amendments of Decree 52/2024 were not checked.
+- Decree 320/2026 Art. 20 (transition for the e-identification link) was not read in full.
+- Instruments the map lists as open (M-01 to M-10): amending laws of the credit law, identification law and decree, biometric
+  technical regulations, security levels decree, payment intermediary and card circulars, e-KYC, outsourcing, AML guides, and the
+  banking penalty decree. Counsel should confirm which of them apply to the bank.
+- Whether an SBV AI instrument besides Circular 53/2026 exists. The search on 2026-10-28 found none; the keyword search is weak.

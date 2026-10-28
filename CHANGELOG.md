@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- WP-W0 (phase 11): **completeness of the regulations in RegKB**. Data and tests only, no flag. New file
+  `regulations/REGULATOR_MAP.md`: one table per group (26 Vietnamese instruments stored, 13 international
+  references, 17 rows of missing, open or checked-and-closed instruments) with regulator, status, dates, scope
+  for a bank AI system, stored, verified, obligation count, and the articles not yet rows. Eight instruments added
+  with the primary text, sha256 and sidecar: Circular 83/2025/TT-NHNN (internal control and model risk, 22
+  obligations), Circular 15/2023/TT-NHNN (credit information, 8, with 46/2026), Circular 15/2024/TT-NHNN (non-cash
+  payment services, 11, with 30/2025 and 21/2026), AML Law 14/2022/QH15 (10), Law 23/2026/QH16 (3, effective
+  2026-12-01), Decree 330/2026/NĐ-CP (penalties incl. AI Art. 67, 12), Decree 52/2024/NĐ-CP (6), Decree 69/2024/NĐ-CP
+  (4, with 320/2026). RegKB now has 39 instruments and 604 obligations (was 31 and 528). New duty id
+  `pd_compliance_assessment`. 15 stored instruments were checked again against vbpl.vn on 2026-10-28 (texts unchanged);
+  Circular 50/2024 gets its consolidated text 25/VBHN-NHNN as a second source. `docs/regulations.md` has the new
+  coverage rows, the facts that changed and new open points for counsel. New test
+  `tests/regkb/test_regulator_map.py`. The four compliance matrix snapshots under
+  `tests/advisory/compliance/snapshots/` were regenerated because the new rows change the KB version and the counts.
 - Fix (WP-O2): the facts build raised `AttributeError` ("'DataAccess' object has no attribute
   'file'") as soon as the discovery step found an http call; the http locations are now read from
   the evidence pointer (`onboard/facts.py` `http_locations`). Found in the live test of the
