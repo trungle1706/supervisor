@@ -245,6 +245,8 @@ def test_whole_path_benchmarked_to_live_and_rollback(gf: Any, clk: Clk) -> None:
     # audit rows: two per POST
     acts = gf.ctx.tables.query("console_action", {})
     assert len(acts) >= 10
+    perms = [a["permission"] for a in acts]
+    assert perms.count("guardians.approve") >= 2 * 4 and perms.count("guardians.edit") >= 2 * 3
 
 
 def test_api_refusals_are_400_or_404_never_500(gf: Any, clk: Clk) -> None:
