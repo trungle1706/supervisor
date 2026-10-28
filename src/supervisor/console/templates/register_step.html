@@ -21,7 +21,7 @@
 {%- else -%}{{ val }}{%- endif -%}
 {%- endmacro %}
 {% macro mark(name) %}{% set m = marks.get(name) %}{% if m == 'person' %}<span class="pill neutral" data-mark="person">{{ t('rg2_by_person') }}</span>{% elif m %}<span class="pill teal" data-mark="{{ m }}">{{ t('rg2_by_' ~ m) }}</span>{% endif %}{% endmacro %}
-{% macro chip(name) %}{% set s = sg.get(name) %}{% if s %}<div class="rg2-sug" data-suggest="{{ name }}"><span class="hint">{{ t('rg2_suggested') }}: <b>{{ valtxt(name, s.value) }}</b> - {{ t(s.reason_key) }} ({{ t('rg2_src_' ~ s.source) }})</span>{% if v.get(name) != s.value %} <button class="chipbtn" type="submit" name="accept" value="{{ name }}">{{ t('rg2_accept') }}</button>{% endif %}</div>{% endif %}{% endmacro %}
+{% macro chip(name) %}{% set s = sg.get(name) %}{% if s %}<div class="rg2-sug" data-suggest="{{ name }}"><span class="hint">{{ t('rg2_suggested') }}: <b>{{ valtxt(name, s.value) }}</b> - {{ t(s.reason_key) }} ({{ t('rg2_src_' ~ s.source) }}){% if s.get('fact') %} <span class="mono" data-fact="1">[{{ s.get('fact') }}]</span>{% endif %}</span>{% if v.get(name) != s.value %} <button class="chipbtn" type="submit" name="accept" value="{{ name }}">{{ t('rg2_accept') }}</button>{% endif %}</div>{% endif %}{% endmacro %}
 {% macro text(name, required=False, area=False, maxlen=200) %}
 <label>{{ t('rg2_f_' ~ name) }} {{ mark(name) }}
   {% if area %}<textarea name="{{ name }}" rows="3" maxlength="{{ maxlen }}"{% if required %} required{% endif %}>{{ posted.get(name, v.get(name, '')) }}</textarea>

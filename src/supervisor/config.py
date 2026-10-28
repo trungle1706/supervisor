@@ -699,6 +699,11 @@ class Settings(BaseSettings):
     onboard_intake: bool = False
     onboard_intake_max_mb: int = Field(default=20, ge=1, le=200)
     onboard_git_hosts: str = ""
+    # --- WP-O2 (phase 9) --- facts card (docs/onboard.md "Facts card"): Discover + Understand run
+    # on the server on a stored intake attempt; the facts (file:line + quote each) are stored as
+    # onboard_facts rows and feed the inventory graph. Needs ONBOARD_INTAKE for the source. Off =
+    # POST /v1/facts and the Facts tab and panel answer HTTP 400 with the flag name (new: off).
+    onboard_facts: bool = False
     # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.

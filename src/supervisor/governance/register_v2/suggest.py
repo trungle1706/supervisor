@@ -10,7 +10,8 @@ attribute values). The reason is a label key (``rg2_why_*``), shown translated."
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import re
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from supervisor.inventory.autoregister import GovernanceConfig, resolve_owner
@@ -84,8 +85,105 @@ def inherited_level(graph: Graph, node_id: str) -> str | None:
     return graph.effective_risk().get(node_id)
 
 
-def from_node(graph: Graph, node: Node, cfg: GovernanceConfig | None = None) -> dict[str, Any]:
-    """Suggestions for a scanned node: ``{field: {value, reason_key, source}}``."""
+def from_node(
+    graph: Graph,
+    node: Node,
+    cfg: GovernanceConfig | None = None,
+    facts: Sequence[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Suggestions for a scanned node: ``{field: {value, reason_key, source}}``. ``facts`` are the
+    active rows of the facts card of the node (WP-O2, ONBOARD_FACTS); None or empty = as before."""
+    out = _from_node(graph, node, cfg)
+    if facts:
+        apply_facts(out, facts)
+    return out
+
+
+FACT_AUTONOMY: dict[str, str] = {
+    "L0": "l1_assistive",
+    "L1": "l1_assistive",
+    "L2": "l2_workflow_step",
+    "L3": "l3_tool_using_supervised",
+}
+
+
+def _fact(rows: Sequence[Mapping[str, Any]], kind: str) -> list[Mapping[str, Any]]:
+    return [r for r in rows if r.get("kind") == kind]
+
+
+def _pointer(row: Mapping[str, Any]) -> str:
+    return f"{row.get('file')}:{row.get('line')}"
+
+
+def fsg(value: Any, reason_key: str, row: Mapping[str, Any]) -> dict[str, Any]:
+    """A suggestion built from a fact: ``fact`` names the fact row (kind, name, file:line)."""
+    out = sg(value, reason_key, "scan")
+    out["fact"] = f"{row.get('kind')}:{str(row.get('name'))[:60]} @ {_pointer(row)}"[:200]
+    return out
+
+
+def apply_facts(out: dict[str, dict[str, Any]], rows: Sequence[Mapping[str, Any]]) -> None:
+    """Replace or add suggestions from the facts card of the node (WP-O2). Each one carries a
+    reason key ``rg2_why_fact_*`` and the pointer of the fact it comes from."""
+    tools = _fact(rows, "tool")
+    models = [*_fact(rows, "model"), *_fact(rows, "endpoint")]
+    data = [*_fact(rows, "dataset"), *_fact(rows, "file")]
+    purpose = next((r for r in _fact(rows, "claim") if r.get("name") == "purpose"), None)
+    parts: list[str] = []
+    if purpose is not None:
+        parts.append(str(purpose.get("detail") or "").rstrip("."))
+    if tools:
+        parts.append("Tools: " + ", ".join(sorted({str(r["name"]) for r in tools})[:8]))
+    if models:
+        parts.append("Models: " + ", ".join(sorted({str(r["name"]) for r in models})[:5]))
+    if data:
+        parts.append("Data: " + ", ".join(sorted({str(r["name"]) for r in data})[:8]))
+    anchor = purpose or (tools or models or data or [None])[0]
+    if parts and anchor is not None:
+        out["purpose"] = fsg(". ".join(p for p in parts if p)[:500], "rg2_why_fact_purpose", anchor)
+    if data:
+        out["data_sources"] = fsg(
+            ", ".join(sorted({str(r["name"]) for r in data}))[:600], "rg2_why_fact_data", data[0]
+        )
+    pii = [r for r in _fact(rows, "claim") if str(r.get("detail")) == "category=personal_data"]
+    if pii:
+        out["personal_data"] = fsg("identifiable", "rg2_why_fact_pii", pii[0])
+    elif data and "personal_data" not in out:
+        out["personal_data"] = fsg("identifiable", "rg2_why_fact_data_pd", data[0])
+    fam = next(
+        (
+            (m.group(1), r)
+            for r in models
+            if (m := re.search(r"family=([A-Za-z0-9_.-]+)", str(r.get("detail"))))
+            and m.group(1) not in ("unknown", "None")
+        ),
+        None,
+    )
+    if fam is not None:
+        out["model_family"] = fsg(fam[0], "rg2_why_fact_model", fam[1])
+    if tools:
+        classes = {
+            m.group(1): r
+            for r in tools
+            if (m := re.search(r"risk_class=([a-z_]+)", str(r.get("detail"))))
+        }
+        for field_, cls, key in (
+            ("money_movement", "money", "rg2_why_fact_tool_money"),
+            ("credit_decision", "credit", "rg2_why_fact_tool_credit"),
+        ):
+            hit = classes.get(cls)
+            out[field_] = fsg(
+                hit is not None, key if hit else "rg2_why_fact_tool_none", hit or tools[0]
+            )
+    approvals = _fact(rows, "approval_point")
+    if approvals:
+        out["human_control"] = fsg("pre_approval", "rg2_why_fact_approval", approvals[0])
+    auto = next(iter(_fact(rows, "autonomy")), None)
+    if auto is not None and str(auto.get("name")) in FACT_AUTONOMY:
+        out["autonomy_level"] = fsg(FACT_AUTONOMY[str(auto["name"])], "rg2_why_fact_autonomy", auto)
+
+
+def _from_node(graph: Graph, node: Node, cfg: GovernanceConfig | None = None) -> dict[str, Any]:
     ev = evidence_of_node(graph, node)
     wk = str(node.attrs.get("workspace_kind") or "")
     kind = KIND_OF_WORKSPACE.get(wk, "other")
@@ -162,8 +260,18 @@ def describe(node: Node, kind: str, ev: Mapping[str, Any]) -> str:
     return (", ".join(parts) + ".")[:500]
 
 
-def from_agent(agent_id: str, manifest: Any) -> dict[str, Any]:
-    """Suggestions for a policy-only agent, from its manifest in the deployed policy."""
+def from_agent(
+    agent_id: str, manifest: Any, facts: Sequence[Mapping[str, Any]] | None = None
+) -> dict[str, Any]:
+    """Suggestions for a policy-only agent, from its manifest in the deployed policy (and the
+    facts card of the agent when ``facts`` are given, WP-O2)."""
+    out = _from_agent(agent_id, manifest)
+    if facts:
+        apply_facts(out, facts)
+    return out
+
+
+def _from_agent(agent_id: str, manifest: Any) -> dict[str, Any]:
     out: dict[str, dict[str, Any]] = {
         "name": sg(str(manifest.name), "rg2_why_name_policy", "policy"),
         "kind": sg("other", "rg2_why_kind_policy", "policy"),

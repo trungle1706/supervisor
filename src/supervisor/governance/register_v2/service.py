@@ -168,6 +168,20 @@ def fields_of(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
 # ------------------------------------------------------------------------------ start
 
 
+def fact_rows(ctx: Any, node_id: str) -> list[dict[str, Any]]:
+    """The rule and model facts of the newest built card of the node (WP-O2); empty with
+    ONBOARD_FACTS off or when no card was built, so the prefill is as before."""
+    if not getattr(ctx.settings, "onboard_facts", False):
+        return []
+    from supervisor.onboard.facts import FactsService
+
+    try:
+        card = FactsService(ctx.settings, ctx.state, ctx.clock).card(node_id)
+    except SupervisorError:
+        return []
+    return [r for r in card["rows"] if r["kind"] != "summary"]
+
+
 def start(ctx: Any, me: Any, node_id: str = "", agent_id: str = "") -> dict[str, Any]:
     """Make a draft with the prefill of a scanned node, of a policy-only agent, or blank."""
     if me.kind != "user":
@@ -189,7 +203,7 @@ def start(ctx: Any, me: Any, node_id: str = "", agent_id: str = "") -> dict[str,
             raise rm.RegisterError("from", "this object is already linked to an AI system")
         if scoped(ctx, me) and node.status != "unmanaged":
             raise rm.RegisterError("from", "this object is not a candidate for registration")
-        sg = suggest.from_node(graph, node, GovernanceConfig.load())
+        sg = suggest.from_node(graph, node, GovernanceConfig.load(), fact_rows(ctx, node_id))
         kind, ref = "scan", node_id
     elif agent_id:
         if not rm.ID_RE.match(agent_id):
@@ -199,7 +213,7 @@ def start(ctx: Any, me: Any, node_id: str = "", agent_id: str = "") -> dict[str,
             raise rm.RegisterError("agent", "this agent is not in the deployed policy")
         if ctx.state.get("agent", {"agent_id": agent_id}) is not None:
             raise rm.RegisterError("agent", "this agent already has a registry row")
-        sg = suggest.from_agent(agent_id, manifest)
+        sg = suggest.from_agent(agent_id, manifest, fact_rows(ctx, agent_id))
         kind, ref = "policy", agent_id
     values = {
         f: sg[f]["value"]

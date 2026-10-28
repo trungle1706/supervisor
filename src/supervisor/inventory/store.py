@@ -260,6 +260,18 @@ class InventoryStore:
                 if attempt:
                     raise
 
+    def deactivate_edges(self, src_id: str, source: str, keep: Iterable[str]) -> int:
+        """Set ``active`` false on the edges of ``source`` that start at ``src_id`` and whose id is
+        not in ``keep`` (one node's edges only; ``apply(stale_edges=True)`` is for a whole
+        source)."""
+        kept = set(keep)
+        n = 0
+        for row in self.state.query("inventory_edge", {"src_id": src_id, "source": source}):
+            if row["edge_id"] not in kept and _bool(row.get("active")):
+                self._update("inventory_edge", {"edge_id": row["edge_id"]}, {"active": False})
+                n += 1
+        return n
+
     def set_status(self, node_id: str, status: str) -> bool:
         row = self.state.get("inventory_node", {"node_id": node_id})
         if row is None or row["status"] == status:

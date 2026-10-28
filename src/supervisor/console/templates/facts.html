@@ -1,0 +1,9 @@
+{# Facts panel as a full page (WP-O2), the no-JS link of the candidate drawer. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('fk_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('fk_title'), None), (fk.node_id, None)]) }}
+{{ ui.pagehead(t('fk_title') ~ ': ' ~ fk.node_id) }}
+{% include "_facts_panel.html" %}
+{% endblock %}

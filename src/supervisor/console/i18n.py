@@ -4398,6 +4398,7 @@ _T.update(
         "atab_register": ("Register", "Đăng ký"),
         "atab_guardians": ("Guardians", "Công cụ bảo vệ"),
         "atab_source": ("Source", "Mã nguồn"),
+        "atab_facts": ("Facts", "Dữ kiện"),
         "mya_reg_policy_only": ("Known to the gate, not registered", "Cổng biết, chưa đăng ký"),
         "mya_reg_policy_only_line": (
             "The policy file lists this agent, but the registry has no row for it. Register it as part of an AI system.",  # noqa: E501
@@ -4805,3 +4806,6 @@ _T.update(_SCH)
 from supervisor.console.i18n_intake import IK as _IK  # noqa: E402  (WP-O1, prefix ik_)
 
 _T.update(_IK)
+from supervisor.console.i18n_facts import FK as _FK  # noqa: E402  (WP-O2, prefix fk_)
+
+_T.update(_FK)

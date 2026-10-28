@@ -149,6 +149,46 @@ RG2: dict[str, tuple[str, str]] = {
         "level proposed by the onboarding run",
         "mức do lần onboarding đề xuất",
     ),
+    "rg2_why_fact_purpose": (
+        "from the facts card of the stored source (purpose, tools, models, data)",
+        "từ thẻ dữ kiện của mã nguồn đã lưu (mục đích, công cụ, mô hình, dữ liệu)",
+    ),
+    "rg2_why_fact_data": (
+        "data the stored source reads or writes (facts card)",
+        "dữ liệu mã nguồn đã lưu đọc hoặc ghi (thẻ dữ kiện)",
+    ),
+    "rg2_why_fact_pii": (
+        "the stored source handles a personal data field (facts card)",
+        "mã nguồn đã lưu xử lý trường dữ liệu cá nhân (thẻ dữ kiện)",
+    ),
+    "rg2_why_fact_data_pd": (
+        "the stored source reads data; safe side (facts card)",
+        "mã nguồn đã lưu đọc dữ liệu; mặc định an toàn (thẻ dữ kiện)",
+    ),
+    "rg2_why_fact_model": (
+        "family of the model the stored source calls (facts card)",
+        "họ của mô hình mã nguồn đã lưu gọi (thẻ dữ kiện)",
+    ),
+    "rg2_why_fact_tool_money": (
+        "a money tool is in the stored source (facts card)",
+        "có công cụ tiền trong mã nguồn đã lưu (thẻ dữ kiện)",
+    ),
+    "rg2_why_fact_tool_credit": (
+        "a credit tool is in the stored source (facts card)",
+        "có công cụ tín dụng trong mã nguồn đã lưu (thẻ dữ kiện)",
+    ),
+    "rg2_why_fact_tool_none": (
+        "no such tool in the stored source (facts card)",
+        "không có công cụ loại này trong mã nguồn đã lưu (thẻ dữ kiện)",
+    ),
+    "rg2_why_fact_approval": (
+        "a human approval step is in the stored source; confirm it runs before execution (facts card)",
+        "có bước phê duyệt của con người trong mã nguồn đã lưu; hãy xác nhận nó chạy trước khi thực thi (thẻ dữ kiện)",
+    ),
+    "rg2_why_fact_autonomy": (
+        "autonomy level read from the stored source (facts card)",
+        "mức tự chủ đọc từ mã nguồn đã lưu (thẻ dữ kiện)",
+    ),
     "rg2_why_auto_tools": ("it uses tools", "có dùng công cụ"),
     "rg2_why_auto_notools": ("no tools found", "không thấy công cụ"),
     "rg2_why_money_tool": ("a money tool is linked", "có công cụ tiền được liên kết"),

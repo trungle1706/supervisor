@@ -23,6 +23,7 @@ FLAGS = (
     "transparency_enabled",
     "console_my_agents",  # WP-N2: the Register and Guardians tabs
     "onboard_intake",  # WP-O1: the Source tab
+    "onboard_facts",  # WP-O2: the Facts tab
 )
 DEMO_AGENTS = ("payments", "credit_prequal", "customer_service")
 HX = {"HX-Request": "true"}
