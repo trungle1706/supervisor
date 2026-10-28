@@ -1,0 +1,353 @@
+schema_version: 1
+instrument:
+  id: VN-TT15-2023
+  jurisdiction: VN
+  kind: circular
+  issuer: State Bank of Vietnam
+  number: 15/2023/TT-NHNN
+  title_vi: Thông tư quy định về hoạt động thông tin tín dụng của Ngân hàng Nhà nước Việt Nam
+  title_en: Circular on credit information activity of the State Bank of Vietnam (CIC)
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2023-12-05'
+      source: https://vbpl.vn/van-ban/chi-tiet/163727
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2024-01-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/163727
+      verification: VERIFIED_PRIMARY
+      note: Art. 22(1). vbpl.vn metadata shows 2025-01-01.
+    milestones:
+    - label: Amending Circular 46/2026/TT-NHNN effective (signed 2026-09-09)
+      date: '2026-11-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/a9099380-acf8-11f1-bff3-938dc04090f4
+      verification: VERIFIED_PRIMARY
+      note: Art. 11(1) of Circular 46/2026
+  related:
+  - VN-LCI-2024
+  - VN-PDPL-2025
+  - VN-DEC356-2025
+  sources:
+  - &id001
+    url: https://vbpl.vn/van-ban/chi-tiet/163727
+    title: Circular 15/2023/TT-NHNN full text (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: 4318ccdfb0086e8de378e23d3c3a224c9221ffd343d5b7f6885b0be3d5f09c7a
+    local_path: regulations/sources/VN-TT15-2023/tt-15-2023-nhnn.txt
+  - &id004
+    url: https://vbpl.vn/van-ban/chi-tiet/a9099380-acf8-11f1-bff3-938dc04090f4
+    title: Circular 46/2026/TT-NHNN amending Circular 15/2023 (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: f77a5bd7e48466786fa205cd2b555f10a7e659f52da375f7dd9edd539a85d280
+    local_path: regulations/sources/VN-TT15-2023/tt-46-2026-nhnn.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-28'
+  notes: 'Added by WP-W0 on 2026-10-28. Governs credit information activity of CIC and the credit institutions
+    that supply and use it. Binds a credit scoring or credit memo agent that reads CIC data. Amended by
+    Circular 46/2026/TT-NHNN (effective 2026-11-01; Art. 12(7) and Art. 17(1) add consent wording). Not
+    covered as rows: Art. 8-11 (collection, content and timing of data supplied to CIC), Art. 14-15 (duties
+    of CIC and SBV units), Art. 17 (voluntary organisations), Art. 20 (breach handling). Not legal advice;
+    bank counsel must confirm.'
+obligations:
+- id: VN-TT15-2023-A5.01-01
+  article_ref: Art. 5(1)-(3)
+  text_vi: 1. Tuân thủ quy định của pháp luật về bảo vệ dữ liệu cá nhân và các quy định pháp luật khác
+    có liên quan. 2. Đảm bảo tính khách quan và không ảnh hưởng đến quyền, lợi ích hợp pháp của các tổ
+    chức, cá nhân có liên quan. 3. Đảm bảo chính xác, trung thực, đầy đủ, kịp thời đối với thông tin tín
+    dụng cung cấp cho CIC quy định tại Điều 8, Điều 9, Điều 10 Thông tư này.
+  summary_en: Credit information activity follows personal data protection law, must be objective and
+    must not harm the lawful rights of related parties, and the credit data given to CIC must be accurate,
+    truthful, complete and timely.
+  duties:
+  - lawful_basis
+  - data_quality
+  - fair_treatment
+  applies_to: &id002
+    agent_class:
+    - credit_decision
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks identity and account fields in traces. Missing: lawfulness of the use of CIC data and
+      the accuracy of data sent to CIC.'
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records which data an agent read and used. Missing: data accuracy checks on what the bank reports
+      to CIC.'
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the legal basis for the credit agent use of CIC data and personal
+      data protection rules.'
+  evidence_needed:
+  - legal basis note for use of credit information
+  - data accuracy check on data reported to CIC
+  verification: VERIFIED_PRIMARY
+  sources: &id003
+  - *id001
+  confidence: high
+  notes: Effective 2024-01-01 (Art. 22(1)). vbpl.vn metadata shows 2025-01-01; the text of record says
+    2024-01-01.
+- id: VN-TT15-2023-A6-01
+  article_ref: Art. 6
+  text_vi: 'CIC, tổ chức tín dụng, tổ chức tự nguyện, tổ chức khác được cung cấp thông tin tín dụng phải:
+    1. Có biện pháp bảo vệ thông tin tín dụng để chống lại mất mát, truy cập, sử dụng hoặc tiết lộ trái
+    phép. 2. Có giải pháp khôi phục dữ liệu trong trường hợp dữ liệu bị lỗi, bị mất, bị hỏng và phương
+    án khôi phục hoạt động sau khi dữ liệu bị lỗi, bị mất, bị hỏng. 3. Đảm bảo an toàn, bảo mật thông
+    tin tín dụng theo quy định tại Thông tư này và các quy định khác của pháp luật về an toàn, bảo mật
+    thông tin.'
+  summary_en: Anyone who receives credit information must protect it against loss and unauthorised access,
+    use or disclosure, have data recovery and operation recovery plans, and follow information security
+    rules.
+  duties:
+  - customer_confidentiality
+  - robustness_security
+  - business_continuity
+  - access_control
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: 'Limits mass reads of customer records by an agent. Missing: protection of the CIC channel and
+      stored CIC data outside agent flows.'
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks identifiers in traces and evidence. Missing: encryption and access control of the CIC
+      data store.'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank protects the CIC data it stores and uses and tests recovery.'
+  - kind: process
+    id: business_continuity_plan
+    coverage: partial
+    note: 'Manual step: the bank keeps data recovery and operation recovery plans for credit information
+      systems.'
+  evidence_needed:
+  - access control record for CIC data
+  - recovery plan for credit information
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2023-A7.02-01
+  article_ref: Art. 7(2)-(3)
+  text_vi: 2. Cố ý làm sai lệch nội dung thông tin tín dụng, ảnh hưởng đến quyền và lợi ích hợp pháp của
+    tổ chức, cá nhân liên quan. 3. Trao đổi, cung cấp thông tin tín dụng sai đối tượng hoặc cho bên thứ
+    ba trái quy định của pháp luật.
+  summary_en: 'Banned: deliberately distorting credit information to the harm of others; giving or exchanging
+    credit information with the wrong person or with a third party against the law.'
+  duties:
+  - customer_confidentiality
+  - purpose_limitation
+  - data_quality
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks identity in traces and in anything sent to a judge model. Missing: control of who may
+      receive CIC data from the bank.'
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: 'Logs outbound calls so a transfer to a third party or model host is visible. Missing: a rule
+      that blocks sending CIC data to an unapproved party.'
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel lists who may receive credit information, including AI model vendors.'
+  evidence_needed:
+  - list of permitted recipients of credit information
+  - outbound call log
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2023-A12.03-01
+  article_ref: Art. 12(3)
+  text_vi: 3. Tổ chức tín dụng, tổ chức tự nguyện được cung cấp dịch vụ thông tin tín dụng trên cơ sở
+    hợp đồng ký kết với CIC.
+  summary_en: Credit institutions and voluntary organisations receive credit information services under
+    a contract with CIC.
+  duties:
+  - lawful_basis
+  - purpose_limitation
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: the bank checks that the CIC contract covers the credit agent use of CIC products.
+      No Supervisor control: the CIC contract is outside Supervisor.'
+  evidence_needed:
+  - CIC service contract
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2023-A12.07-01
+  article_ref: Art. 12(7) (added by Circular 46/2026)
+  text_vi: 7. Việc cung cấp thông tin tín dụng về khách hàng vay cho các tổ chức tự nguyện tại khoản 3,
+    tổ chức thông tin tín dụng nước ngoài tại khoản 5 và tổ chức khác tại khoản 6 Điều này phải có sự
+    đồng ý của khách hàng vay đó theo quy định của pháp luật có liên quan và đảm bảo tuân thủ theo hợp
+    đồng thỏa thuận với CIC. Sự đồng ý của khách hàng vay được thể hiện bằng phương thức rõ ràng, cụ thể,
+    có thể in, sao chép bằng văn bản, bao gồm cả dưới dạng điện tử hoặc định dạng kiểm chứng được.
+  summary_en: Giving credit information about a borrower to voluntary organisations, foreign credit-information
+    bodies or other organisations needs the borrower consent, in clear and specific form that can be printed
+    or copied, including in electronic form, and follows the contract with CIC.
+  duties:
+  - consent
+  - lawful_basis
+  - purpose_limitation
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: consent_management
+    coverage: partial
+    note: 'Manual step: the bank records the borrower consent in a verifiable form before credit information
+      goes to another organisation.'
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'May carry a consent reference per event if the agent passes it. Missing: the consent register
+      itself.'
+  evidence_needed:
+  - borrower consent record in verifiable form
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id004
+  confidence: high
+  notes: Circular 46/2026/TT-NHNN is signed 2026-09-09 and effective 2026-11-01; not yet effective on
+    2026-10-28. This is the bank duty when it passes credit information on; it addresses the bank as an
+    organisation that gives information to others.
+  status: issued
+  dates:
+    effective:
+      date: '2026-11-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/a9099380-acf8-11f1-bff3-938dc04090f4
+      verification: VERIFIED_PRIMARY
+      note: Art. 11(1) of Circular 46/2026
+- id: VN-TT15-2023-A13.01-01
+  article_ref: Art. 13(1)
+  text_vi: 1. Thông tin tiêu cực về khách hàng vay chỉ được cung cấp trong thời gian tối đa 05 năm, kể
+    từ ngày kết thúc thông tin tiêu cực đó, trừ trường hợp phục vụ yêu cầu của cơ quan quản lý nhà nước
+    theo quy định của pháp luật.
+  summary_en: Negative information about a borrower may be provided only for 5 years after the negative
+    event ends, except for state authority needs.
+  duties:
+  - retention
+  - data_minimisation
+  - fair_treatment
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks identifiers in traces. Missing: an age filter that drops negative information older than
+      5 years from the data the credit agent reads.'
+  - kind: process
+    id: records_retention
+    coverage: partial
+    note: 'Manual step: the bank applies the 5-year limit to negative credit information used by a credit
+      model or agent. No Supervisor control: Supervisor has no rule on the age of CIC data.'
+  evidence_needed:
+  - data rule that excludes negative information older than 5 years
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+  notes: The limit binds what is "provided" by CIC. Whether it also limits the bank own use of the data
+    is a reading to confirm; bank counsel must confirm.
+- id: VN-TT15-2023-A16.01-01
+  article_ref: Art. 16(1)
+  text_vi: 1. Thiết lập cơ sở hạ tầng thông tin đáp ứng yêu cầu tạo lập dữ liệu, kiểm soát dữ liệu cung
+    cấp cho CIC; ban hành các quy định nội bộ và quản lý hệ thống chỉ tiêu thông tin tín dụng trong toàn
+    hệ thống.
+  summary_en: The credit institution builds the information infrastructure to create and control the data
+    it sends to CIC, issues internal rules and manages the credit information indicator system across
+    the bank.
+  duties:
+  - internal_policy
+  - data_quality
+  - governance_accountability
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records what an agent read and wrote. Missing: control of the data sent to CIC and the indicator
+      system.'
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank issues internal rules on credit information data and runs the indicator
+      system.'
+  evidence_needed:
+  - internal rule on credit information data
+  - data control record for CIC reports
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2023-A19.04-01
+  article_ref: Art. 19(4)
+  text_vi: 4. Trường hợp khách hàng vay phát hiện thông tin tín dụng về chính khách hàng vay có sai sót,
+    khách hàng vay đề nghị với CIC, tổ chức tín dụng, tổ chức tự nguyện (sau đây gọi là tổ chức tiếp nhận)
+    điều chỉnh lại thông tin. Việc đề nghị điều chỉnh thực hiện qua hệ thống điện tử hoặc gửi bằng văn
+    bản, trong đó nêu rõ lý do đề nghị và phải cung cấp các tài liệu, căn cứ chứng minh dữ liệu có sai
+    sót. a) Trong thời hạn 05 ngày làm việc kể từ ngày nhận được đề nghị, tổ chức tiếp nhận thông báo
+    cho khách hàng vay về tính hợp lệ của đề nghị đó. Trường hợp cần bổ sung thông tin để giải quyết,
+    tổ chức tiếp nhận thông báo để khách hàng vay cung cấp bổ sung thông tin, tài liệu liên quan; b) Trong
+    thời hạn 10 ngày làm việc kể từ ngày tiếp nhận đề nghị hợp lệ, tổ chức tiếp nhận thực hiện giải quyết
+    theo quy định. Trường hợp cần kiểm tra, xác minh nội dung đề nghị tại các cơ quan, tổ chức có liên
+    quan, tổ chức tiếp nhận được kéo dài thời gian giải quyết đề nghị theo tình hình thực tế nhưng phải
+    thông báo cho khách hàng vay biết về nguyên nhân kéo dài thời gian; c) Trong thời hạn 02 ngày làm
+    việc kể từ ngày điều chỉnh dữ liệu xong, tổ chức tiếp nhận thông báo cho khách hàng vay về kết quả
+    điều chỉnh đó.
+  summary_en: When a borrower finds an error in own credit information and asks CIC or the bank to fix
+    it, the receiving party confirms validity within 5 working days, resolves within 10 working days (longer
+    only with notice of the reason) and tells the borrower the result within 2 working days of the fix.
+  duties:
+  - data_subject_rights
+  - complaint_handling
+  - data_quality
+  - right_to_human_review
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: cases
+    coverage: partial
+    note: 'Case queue and deadlines for cases that Supervisor opens. Missing: the borrower request channel
+      and the correction of the credit data itself.'
+  - kind: process
+    id: complaint_handling
+    coverage: partial
+    note: 'Manual step: the bank takes the borrower correction request, runs the 5 / 10 / 2 working-day
+      clocks and corrects or forwards the data to CIC.'
+  - kind: process
+    id: data_subject_request
+    coverage: partial
+    note: 'Manual step: a correction that follows an AI credit decision also triggers a review of that
+      decision.'
+  evidence_needed:
+  - correction request log with the three dates
+  - record of the borrower notice
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
