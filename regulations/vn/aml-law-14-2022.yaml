@@ -1,0 +1,440 @@
+schema_version: 1
+instrument:
+  id: VN-AML-2022
+  jurisdiction: VN
+  kind: law
+  issuer: National Assembly
+  number: 14/2022/QH15
+  title_vi: Luật Phòng, chống rửa tiền
+  title_en: Law on Anti-Money Laundering
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2022-11-15'
+      source: https://vbpl.vn/van-ban/chi-tiet/157721
+      verification: VERIFIED_PRIMARY
+      note: Art. 66 (adopted 15 Nov 2022)
+    effective:
+      date: '2023-03-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/157721
+      verification: VERIFIED_PRIMARY
+      note: Art. 66(1)
+    milestones:
+    - label: Amending Law 23/2026/QH16 effective (Art. 9(2)(c), 19(1), 26 and others)
+      date: '2026-12-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/22493b00-b26d-11f1-a509-31ce7ae83f2c
+      verification: VERIFIED_PRIMARY
+      note: Art. 4(1) of Law 23/2026/QH16
+  related:
+  - VN-LAW23-2026
+  - VN-LCI-2024
+  - VN-TT15-2024
+  - VN-DEC52-2024
+  sources: &id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/157721
+    title: Law 14/2022/QH15 on Anti-Money Laundering, full text (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: f9119191358dbd8abf2f346756331f566601a3428ab9089367d3bd8419873b13
+    local_path: regulations/sources/VN-AML-2022/luat-14-2022-qh15.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-28'
+  notes: 'Added by WP-W0 on 2026-10-28. The law applies to banks as reporting entities. It does not name
+    AI. The rows are the duties an AI agent in customer identification, transaction monitoring or payment
+    must respect. The vbpl.vn status flag was not read in this pass; the law was amended by Law 23/2026/QH16
+    (effective 2026-12-01) and by earlier laws not stored here. Not covered as rows: Art. 10-14 (identification
+    data and verification), Art. 27-33 (suspicious signs), Art. 34 (electronic transfers), Art. 45-46.
+    The Government decree guiding the law and the SBV circular on AML were not identified or stored in
+    this pass. Not legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-AML-2022-A9.02-01
+  article_ref: Art. 9(2)
+  text_vi: '2. Tổ chức tài chính phải nhận biết khách hàng trong các trường hợp sau đây: a) Khách hàng
+    lần đầu mở tài khoản hoặc thiết lập quan hệ với tổ chức tài chính; b) Khách hàng thực hiện giao dịch
+    không thường xuyên có giá trị bằng hoặc vượt mức quy định; thực hiện giao dịch chuyển tiền điện tử
+    mà thiếu thông tin về tên, địa chỉ, số tài khoản của người khởi tạo hoặc mã giao dịch trong trường
+    hợp người khởi tạo không có tài khoản; c) Nghi ngờ giao dịch hoặc các bên liên quan đến giao dịch
+    có liên quan đến hoạt động rửa tiền; d) Nghi ngờ về tính chính xác hoặc tính đầy đủ của các thông
+    tin nhận biết khách hàng đã thu thập trước đó.'
+  summary_en: A financial institution identifies the customer at first account opening, for occasional
+    transactions above the set value or transfers with missing originator data, when it suspects money
+    laundering, and when it doubts earlier customer data.
+  duties:
+  - fraud_monitoring
+  - transaction_authentication
+  - record_keeping
+  applies_to: &id003
+    agent_class:
+    - payment
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records the actions an agent takes on customer data. Missing: the customer identification itself;
+      it happens in the onboarding channel.'
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: 'Manual step: the bank runs customer identification triggers; an AI agent that opens accounts
+      or handles transfers runs after identification or calls the bank identification service.'
+  evidence_needed:
+  - customer identification record
+  - trigger rules for re-identification
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: In force since 2023-03-01 (Art. 66(1)). Art. 9(2)(c) is amended by Law 23/2026/QH16 from 2026-12-01
+    (see VN-LAW23-2026). vbpl.vn status was not read in this pass.
+- id: VN-AML-2022-A16.01-01
+  article_ref: Art. 16(1)-(2)
+  text_vi: '1. Căn cứ kết quả đánh giá, cập nhật rủi ro về rửa tiền quy định tại Điều 15 của Luật này,
+    đối tượng báo cáo xây dựng quy trình quản lý rủi ro về rửa tiền. Quy trình quản lý rủi ro về rửa tiền
+    bao gồm cả việc phân loại khách hàng theo mức độ rủi ro thấp, trung bình, cao và các biện pháp áp
+    dụng tương ứng với các mức độ rủi ro về rửa tiền của khách hàng. 2. Đối tượng báo cáo áp dụng các
+    biện pháp tương ứng với các mức độ rủi ro về rửa tiền của khách hàng theo quy định sau đây: a) Đối
+    với khách hàng có mức độ rủi ro về rửa tiền thấp, đối tượng báo cáo có thể thu thập, cập nhật, xác
+    minh thông tin nhận biết khách hàng ở mức độ giảm nhẹ sau lần đầu thiết lập quan hệ với khách hàng;
+    b) Đối với khách hàng có mức độ rủi ro về rửa tiền trung bình, đối tượng báo cáo phải nhận biết khách
+    hàng quy định tại Điều 9 của Luật này; c) Đối với khách hàng có mức độ rủi ro về rửa tiền cao, ngoài
+    các biện pháp quy định tại điểm b khoản này, đối tượng báo cáo phải áp dụng biện pháp tăng cường bao
+    gồm thu thập, cập nhật, xác minh thông tin nhận biết khách hàng tăng cường và giám sát chặt chẽ các
+    giao dịch của khách hàng.'
+  summary_en: 'The reporting entity builds a money-laundering risk process that classes customers low,
+    medium or high risk and applies matching measures: lighter checks for low risk, normal checks for
+    medium, and enhanced identification and close monitoring for high risk.'
+  duties:
+  - risk_classification
+  - fraud_monitoring
+  - bias_monitoring
+  applies_to: &id002
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: monitor
+    id: fairness
+    coverage: partial
+    note: 'Fairness slices by customer segment show uneven treatment of groups by an agent. Missing: the
+      AML customer risk classes and the enhanced checks.'
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records what an agent did for a customer. Missing: the customer risk class used by an AI scoring
+      or onboarding agent.'
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank defines the AML customer risk classes and states how an AI agent uses
+      or must not change them.'
+  evidence_needed:
+  - AML customer risk classification policy
+  - record of the class used by each AI agent
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-AML-2022-A19.01-01
+  article_ref: Art. 19(1)-(2)
+  text_vi: '1. Đối tượng báo cáo phải ban hành chính sách, quy trình để nhận diện và đánh giá mức độ rủi
+    ro về rửa tiền trước khi cung cấp sản phẩm, dịch vụ mới; sản phẩm, dịch vụ hiện có áp dụng công nghệ
+    đổi mới nhằm mục đích sau đây: a) Phát hiện, ngăn chặn việc sử dụng sản phẩm, dịch vụ mới; sản phẩm,
+    dịch vụ hiện có áp dụng công nghệ đổi mới để rửa tiền; b) Quản lý rủi ro về rửa tiền khi thiết lập
+    giao dịch với khách hàng sử dụng sản phẩm, dịch vụ mới; sản phẩm, dịch vụ hiện có áp dụng công nghệ
+    đổi mới. 2. Đối tượng báo cáo phải áp dụng các biện pháp khi cung cấp sản phẩm, dịch vụ mới; sản phẩm,
+    dịch vụ hiện có áp dụng công nghệ đổi mới để giảm thiểu rủi ro về rửa tiền.'
+  summary_en: Before offering a new product or service, or an existing one that uses new technology, the
+    reporting entity issues a policy and process to find and assess money-laundering risk, and applies
+    measures to reduce it.
+  duties:
+  - risk_management_system
+  - lifecycle_management
+  - fraud_monitoring
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: predeploy_report
+    coverage: partial
+    note: 'Pre-deploy report lists facts and open questions before go-live. Missing: the AML risk assessment
+      of the new AI product.'
+  - kind: evidence
+    id: risk_register
+    coverage: partial
+    note: 'Risk register lines. Missing: a money-laundering line for each AI product.'
+  - kind: process
+    id: go_live_decision
+    coverage: partial
+    note: 'Manual step: the AML function assesses the money-laundering risk of each AI product before
+      go-live and records the mitigation.'
+  evidence_needed:
+  - AML risk assessment of the AI product before go-live
+  - mitigation list
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 19(1) is reworded by Law 23/2026/QH16 from 2026-12-01 ("thực hiện đầy đủ"). New technology
+    includes AI in the usual reading; bank counsel must confirm.
+- id: VN-AML-2022-A20.02-01
+  article_ref: Art. 20(1)-(2)
+  text_vi: '1. Đối tượng báo cáo phải giám sát đối với giao dịch đặc biệt sau đây: a) Giao dịch có giá
+    trị lớn bất thường hoặc phức tạp theo quy định của Chính phủ; b) Giao dịch với tổ chức, cá nhân tại
+    quốc gia, vùng lãnh thổ nằm trong danh sách do Lực lượng đặc nhiệm tài chính công bố nhằm chống rửa
+    tiền hoặc Danh sách cảnh báo. 2. Để giám sát giao dịch đặc biệt, đối tượng báo cáo phải áp dụng các
+    biện pháp tăng cường quy định tại điểm c khoản 2 Điều 16 của Luật này; kiểm tra thông tin và mục đích
+    của giao dịch; trường hợp có nghi ngờ, đối tượng báo cáo phải xem xét, phân tích, báo cáo giao dịch
+    đáng ngờ và có thể từ chối giao dịch đó.'
+  summary_en: The reporting entity monitors unusually large or complex transactions and transactions with
+    parties in listed countries, applies enhanced measures, checks purpose, reports suspicious transactions
+    and may refuse them.
+  duties:
+  - fraud_monitoring
+  - transaction_limits
+  - human_oversight
+  applies_to: *id003
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: 'Blocks a payment over a limit. Missing: monitoring of complex patterns and listed-country parties.'
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: 'Daily cap per customer. Missing: pattern analysis and the list checks.'
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: 'Detects splitting. Missing: sanction and listed-country screening.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank AML unit reviews flagged cases and files the report.'
+  evidence_needed:
+  - monitoring rules for special transactions
+  - review record of flagged cases
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-AML-2022-A24.01-01
+  article_ref: Art. 24(1)(đ) and 24(4)
+  text_vi: đ) Quy trình rà soát, phát hiện, xử lý và báo cáo giao dịch đáng ngờ; cách thức giao tiếp với
+    khách hàng thực hiện giao dịch đáng ngờ; ... 4. Hằng năm, đối tượng báo cáo phải đánh giá quy định
+    nội bộ về phòng, chống rửa tiền để xem xét sửa đổi, bổ sung cho phù hợp.
+  summary_en: The internal AML rule includes the process to review, detect, handle and report suspicious
+    transactions and how to talk to the customer; the bank reviews the rule at least yearly.
+  duties:
+  - internal_policy
+  - fraud_monitoring
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: 'Versioned gateway rule baseline for agent payments. Missing: the bank AML rule and its yearly
+      review.'
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank updates the AML rule to say how AI agents take part in detecting and
+      reporting, and reviews it each year.'
+  evidence_needed:
+  - internal AML rule
+  - record of the yearly review
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-AML-2022-A26.01-01
+  article_ref: Art. 26(1)
+  text_vi: '1. Đối tượng báo cáo có trách nhiệm báo cáo giao dịch đáng ngờ cho Ngân hàng Nhà nước Việt
+    Nam trong trường hợp sau đây: a) Khi biết giao dịch được thực hiện theo yêu cầu của bị can, bị cáo,
+    người bị kết án và có cơ sở hợp lý để nghi ngờ tài sản trong giao dịch là tài sản thuộc quyền sở hữu
+    hoặc có nguồn gốc thuộc quyền sở hữu, quyền kiểm soát của bị can, bị cáo, người bị kết án đó. Việc
+    xác định bị can, bị cáo, người bị kết án theo thông báo của cơ quan nhà nước có thẩm quyền; b) Khi
+    có cơ sở hợp lý để nghi ngờ tài sản trong giao dịch liên quan đến rửa tiền được xác định từ việc xem
+    xét, thu thập và phân tích thông tin khi khách hàng, giao dịch có một hoặc nhiều dấu hiệu đáng ngờ
+    quy định tại các điều 27,28,29,30,31,32 và 33 của Luật này và có thể từ các dấu hiệu khác do đối tượng
+    báo cáo xác định.'
+  summary_en: The reporting entity reports a suspicious transaction to SBV when the transaction is made
+    on request of a person under criminal process, or when reasonable grounds point to money laundering
+    from the suspicious signs in Art. 27-33.
+  duties:
+  - fraud_monitoring
+  - regulatory_reporting
+  applies_to: *id003
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: 'Flags payments split to avoid a limit, one of the signs of suspicion. Missing: the grounds
+      analysis and the report to SBV.'
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: 'Case file keeps the evidence that led to a flag. Missing: the report to SBV in the required
+      form.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank AML unit decides and files the suspicious transaction report.'
+  evidence_needed:
+  - suspicious transaction report
+  - case file with grounds
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 26 is replaced by Law 23/2026/QH16 from 2026-12-01 (see VN-LAW23-2026).
+- id: VN-AML-2022-A37.02-01
+  article_ref: Art. 37(2)-(3)
+  text_vi: 2. Đối tượng báo cáo phải báo cáo giao dịch đáng ngờ quy định tại Điều 26 của Luật này trong
+    thời hạn 03 ngày làm việc kể từ ngày phát sinh giao dịch hoặc trong thời hạn 01 ngày làm việc kể từ
+    ngày đối tượng báo cáo phát hiện được giao dịch đáng ngờ. 3. Trường hợp phát hiện giao dịch đáng ngờ
+    do khách hàng yêu cầu có dấu hiệu liên quan đến tội phạm thì đối tượng báo cáo phải báo cáo cơ quan
+    nhà nước có thẩm quyền và Ngân hàng Nhà nước Việt Nam trong thời hạn 24 giờ kể từ thời điểm phát hiện.
+  summary_en: A suspicious transaction is reported within 3 working days of the transaction or 1 working
+    day of detection; a suspicious transaction with signs of crime is reported to the authority and SBV
+    within 24 hours of detection.
+  duties:
+  - regulatory_reporting
+  - incident_report_24h
+  - fraud_monitoring
+  applies_to: *id003
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: incident_clock
+    coverage: partial
+    note: 'Clock for the report times of a case under Decree 142 (72 h or 5 working days). Missing: the
+      1 working day and 24-hour clocks of the AML law.'
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: 'Time of detection and evidence are in the case file. Missing: the report and its timing check.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank AML unit meets the 3-day, 1-day and 24-hour clocks from the time of detection
+      by an AI agent as well as by staff.'
+  evidence_needed:
+  - suspicious transaction report with detection time
+  - proof of filing
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-AML-2022-A38.01-01
+  article_ref: Art. 38(1)-(2)
+  text_vi: '1. Đối tượng báo cáo có trách nhiệm lưu trữ thông tin, hồ sơ, tài liệu, báo cáo sau đây: a)
+    Thông tin, hồ sơ, tài liệu nhận biết khách hàng; b) Kết quả phân tích, đánh giá của đối tượng báo
+    cáo đối với khách hàng, giao dịch phải báo cáo; c) Thông tin, hồ sơ, tài liệu khác liên quan đến khách
+    hàng, giao dịch phải báo cáo; d) Báo cáo giao dịch quy định tại các điều 25, 26 và 34 của Luật này
+    và thông tin, hồ sơ, tài liệu kèm theo giao dịch báo cáo. 2. Thời hạn lưu trữ quy định như sau: a)
+    05 năm kể từ ngày kết thúc giao dịch hoặc ngày đóng tài khoản hoặc ngày báo cáo đối với các thông
+    tin, hồ sơ, tài liệu quy định tại các điểm a, b và c khoản 1 Điều này; b) 05 năm kể từ ngày phát sinh
+    giao dịch đối với các báo cáo quy định tại điểm d khoản 1 Điều này.'
+  summary_en: The bank keeps customer identification records, its analysis of customers and reportable
+    transactions, and the reports themselves for 5 years from the end of the transaction, account closure
+    or report date.
+  duties:
+  - record_keeping
+  - retention
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: 'Hash-chained evidence lanes with a retention setting for the evidence tables. Missing: keeping
+      the identification records and the AML analysis, which live outside Supervisor.'
+  - kind: process
+    id: records_retention
+    coverage: partial
+    note: 'Manual step: the bank keeps AML records 5 years, including the analysis done by an AI agent.'
+  evidence_needed:
+  - retention schedule showing 5 years for AML records
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-AML-2022-A40.02-01
+  article_ref: Art. 40(2)
+  text_vi: 2. Đối tượng báo cáo , người quản lý, người lao động thuộc đối tượng báo cáo không được tiết
+    lộ thông tin về việc đã báo cáo giao dịch đáng ngờ hoặc các thông tin có liên quan đến giao dịch đáng
+    ngờ cho Ngân hàng Nhà nước Việt Nam.
+  summary_en: The bank, its managers and staff must not disclose that a suspicious transaction was reported
+    or related information to anyone outside SBV (no tipping-off).
+  duties:
+  - customer_confidentiality
+  - output_handling
+  applies_to:
+    agent_class:
+    - customer_facing
+    - payment
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks personal data in traces. Missing: a rule that stops a customer-facing agent from saying
+      that a report was made.'
+  - kind: evidence
+    id: verdict_log
+    coverage: partial
+    note: 'Judge verdicts on agent output can flag such disclosure for review. Missing: a deterministic
+      block.'
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank tells staff and sets agent instructions and output checks so that a report
+      is never mentioned to the customer.'
+  evidence_needed:
+  - agent instruction and output check that prevents tipping-off
+  - staff rule
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: A customer-facing AI agent must not reveal a report or a delay made for AML reasons.
+- id: VN-AML-2022-A44.01-01
+  article_ref: Art. 44(1)-(3)
+  text_vi: '1. Đối tượng báo cáo phải áp dụng ngay biện pháp trì hoãn giao dịch trong các trường hợp sau
+    đây: a) Khi có căn cứ để nghi ngờ hoặc phát hiện các bên liên quan đến giao dịch thuộc Danh sách đen;
+    b) Khi có lý do để tin rằng giao dịch được yêu cầu thực hiện có liên quan đến hoạt động phạm tội,
+    bao gồm: giao dịch do người bị kết án theo quy định của pháp luật tố tụng hình sự yêu cầu thực hiện
+    và tài sản trong giao dịch thuộc quyền sở hữu hoặc có nguồn gốc thuộc quyền sở hữu, quyền kiểm soát
+    của người bị kết án đó; giao dịch liên quan đến tổ chức, cá nhân thực hiện hành vi có liên quan đến
+    tội phạm tài trợ khủng bố; c) Khi có yêu cầu của cơ quan nhà nước có thẩm quyền theo quy định tại
+    các luật có liên quan. 2. Khi thực hiện biện pháp trì hoãn giao dịch, đối tượng báo cáo phải báo cáo
+    ngay cho cơ quan nhà nước có thẩm quyền và Ngân hàng Nhà nước Việt Nam. 3. Thời hạn áp dụng biện pháp
+    trì hoãn giao dịch không quá 03 ngày làm việc kể từ ngày bắt đầu áp dụng.'
+  summary_en: The reporting entity delays a transaction at once when a party is on the black list, when
+    a transaction is linked to crime, or when an authority asks; it reports the delay at once and the
+    delay lasts at most 3 working days.
+  duties:
+  - transaction_limits
+  - fraud_monitoring
+  - pre_execution_approval
+  applies_to: *id003
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: 'Pause or quarantine of one agent. Missing: a hold on a single transaction by list match; the
+      list match itself.'
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: 'Allow-list for agent tools. Missing: black-list screening before a payment tool call.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank screens against the black list before payment, delays the transaction
+      and reports at once.'
+  evidence_needed:
+  - black-list screening record
+  - delay and report log
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high

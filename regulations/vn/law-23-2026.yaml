@@ -1,0 +1,165 @@
+schema_version: 1
+instrument:
+  id: VN-LAW23-2026
+  jurisdiction: VN
+  kind: law
+  issuer: National Assembly
+  number: 23/2026/QH16
+  title_vi: Luật sửa đổi, bổ sung một số điều của Luật Ngân hàng Nhà nước Việt Nam, Luật Phòng, chống
+    rửa tiền và Luật Các tổ chức tín dụng
+  title_en: Law amending the SBV Law, the Anti-Money Laundering Law and the Law on Credit Institutions
+  status: issued
+  binding: true
+  dates:
+    issued:
+      date: '2026-08-24'
+      source: https://vbpl.vn/van-ban/chi-tiet/22493b00-b26d-11f1-a509-31ce7ae83f2c
+      verification: VERIFIED_PRIMARY
+      note: Adopted 24 Aug 2026 (16th National Assembly)
+    effective:
+      date: '2026-12-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/22493b00-b26d-11f1-a509-31ce7ae83f2c
+      verification: VERIFIED_PRIMARY
+      note: Art. 4(1)
+  related:
+  - VN-AML-2022
+  - VN-LCI-2024
+  sources: &id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/22493b00-b26d-11f1-a509-31ce7ae83f2c
+    title: Law 23/2026/QH16 amending the SBV, AML and Credit Institutions laws (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: 05d9f59a097dd3c5619a085164e81c311175aff3d419752e348293bc15f0ae54
+    local_path: regulations/sources/VN-LAW23-2026/luat-23-2026-qh16.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-28'
+  notes: Added by WP-W0 on 2026-10-28. Amends three laws; only the AML Law amendments touch an AI system
+    (new-technology risk assessment, customer identification on suspicion, suspicious transaction reporting
+    basis). Art. 1 (SBV Law) and Art. 3 (Law on Credit Institutions, a collateral agent for corporate
+    bonds) were read and add no duty for a bank AI system. Not legal advice; bank counsel must confirm.
+obligations:
+- id: VN-LAW23-2026-A2.03-01
+  article_ref: Art. 2(3) (amends AML Law Art. 9(2)(c))
+  text_vi: c) Khi nghi ngờ khách hàng hoặc giao dịch của khách hàng hoặc các bên liên quan đến giao dịch,
+    kể cả trường hợp giao dịch chưa hoàn thành, có liên quan đến rửa tiền;
+  summary_en: A financial institution identifies the customer when it suspects that the customer, the
+    transaction or related parties are linked to money laundering, including a transaction that is not
+    completed.
+  duties:
+  - fraud_monitoring
+  - transaction_authentication
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: 'Case file keeps evidence of a suspicion raised on an agent action, including a payment that
+      was blocked before completion. Missing: the re-identification step.'
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: 'Manual step: the bank re-identifies the customer when an agent flag or staff suspicion arises,
+      also for a blocked transaction.'
+  evidence_needed:
+  - re-identification record after a suspicion
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Law 23/2026/QH16 is signed 2026-08-24 and effective 2026-12-01; not effective on 2026-10-28.
+    It amends the AML Law 14/2022/QH15 (stored as VN-AML-2022).
+  status: issued
+  dates: &id002
+    effective:
+      date: '2026-12-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/22493b00-b26d-11f1-a509-31ce7ae83f2c
+      verification: VERIFIED_PRIMARY
+      note: Art. 4(1)
+- id: VN-LAW23-2026-A2.06-01
+  article_ref: Art. 2(6) (amends AML Law Art. 19(1))
+  text_vi: '1. Đối tượng báo cáo phải ban hành và thực hiện đầy đủ các chính sách, quy trình để nhận diện
+    và đánh giá mức độ rủi ro về rửa tiền trước khi cung cấp sản phẩm, dịch vụ mới; sản phẩm, dịch vụ
+    hiện có áp dụng công nghệ đổi mới nhằm mục đích sau đây: a) Phát hiện, ngăn chặn việc sử dụng sản
+    phẩm, dịch vụ mới; sản phẩm, dịch vụ hiện có áp dụng công nghệ đổi mới để rửa tiền; b) Quản lý rủi
+    ro về rửa tiền khi thiết lập giao dịch với khách hàng sử dụng sản phẩm, dịch vụ mới; sản phẩm, dịch
+    vụ hiện có áp dụng công nghệ đổi mới.'
+  summary_en: The reporting entity must issue and fully carry out policies and processes to identify and
+    assess money-laundering risk before offering new products or services, or existing ones that use new
+    technology.
+  duties:
+  - risk_management_system
+  - lifecycle_management
+  - fraud_monitoring
+  applies_to:
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: predeploy_report
+    coverage: partial
+    note: 'Pre-deploy report before go-live. Missing: AML risk assessment.'
+  - kind: process
+    id: go_live_decision
+    coverage: partial
+    note: 'Manual step: the AML function assesses the risk of each AI product and follows up that the
+      process is carried out in full.'
+  evidence_needed:
+  - AML risk assessment per AI product
+  - proof that the process was carried out
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Law 23/2026/QH16 is signed 2026-08-24 and effective 2026-12-01; not effective on 2026-10-28.
+    It amends the AML Law 14/2022/QH15 (stored as VN-AML-2022).
+  status: issued
+  dates: *id002
+- id: VN-LAW23-2026-A2.08-01
+  article_ref: Art. 2(8) (replaces AML Law Art. 26(1)-(2))
+  text_vi: 1. Đối tượng báo cáo có trách nhiệm báo cáo giao dịch đáng ngờ cho Ngân hàng Nhà nước Việt
+    Nam khi có cơ sở hợp lý để nghi ngờ tài sản trong giao dịch là tài sản do phạm tội mà có. Việc xác
+    định cơ sở hợp lý để nghi ngờ được thực hiện dựa trên phân tích, đánh giá thông tin khách hàng và
+    giao dịch, bao gồm dấu hiệu đáng ngờ quy định tại các điều 27, 28, 29, 30, 31, 32, 33 và 33a của Luật
+    này và các dấu hiệu khác do đối tượng báo cáo xác định. 2. Khi phát hiện dấu hiệu đáng ngờ ngoài các
+    dấu hiệu quy định tại các điều 27, 28, 29, 30, 31, 32, 33 và 33a của Luật này, đối tượng báo cáo,
+    các Bộ, ngành có liên quan thông báo cho Ngân hàng Nhà nước Việt Nam.
+  summary_en: The reporting entity reports a suspicious transaction to SBV when it has reasonable grounds
+    to suspect that the asset in the transaction comes from crime; the grounds come from analysis of customer
+    and transaction information and the signs in the law and other signs that the entity itself defines.
+  duties:
+  - fraud_monitoring
+  - regulatory_reporting
+  - explainability
+  applies_to:
+    agent_class:
+    - payment
+    - customer_facing
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: 'Flags splitting. Missing: the grounds analysis and the SBV report.'
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: 'Case file shows the grounds for a flag. Missing: the report.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank defines its own signs (for example from AI model flags), documents the
+      grounds and files the report.'
+  evidence_needed:
+  - definition of own suspicious signs
+  - grounds analysis per report
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Law 23/2026/QH16 is signed 2026-08-24 and effective 2026-12-01; not effective on 2026-10-28.
+    It amends the AML Law 14/2022/QH15 (stored as VN-AML-2022).
+  status: issued
+  dates: *id002
