@@ -2017,3 +2017,50 @@ tables:
       signature: string?       # base64 Ed25519 signature of the evidence signer
       definition_sha256: string  # sha256 of the definition that was tested
       created_by: string
+
+  # --- WP-G3 (phase 12C) guardian factory: shadow mode and promotion --------------------------------
+  guardian_shadow_finding:
+    kind: state
+    description: >
+      WP-G3 (GUARDIAN_FACTORY + GUARDIAN_SHADOW). One finding of a guardian definition in state
+      shadow, found on live gate traffic in log-only mode. Nothing was blocked or redacted.
+      call_ref is the correlation or request id of the call; value_hash is the SHA-256 digest of
+      the finding (ids, code, integers and fragment digests), never the masked value text. count
+      is the number of matches. would_action is the action_on_fail the guardian would take once
+      live. reviewed is empty (not yet), correct (a true finding) or false (a false positive); a
+      person sets it with reviewed_by. No personal data, no floats.
+    primary_key: [finding_id]
+    indexes:
+      - [def_id, version]
+    columns:
+      finding_id: string
+      def_id: string
+      version: int
+      agent_id: string
+      call_ref: string
+      stage: string
+      finding_code: string
+      count: int
+      value_hash: string
+      would_action: string     # block | redact | require_approval | log
+      reviewed: string?        # correct | false
+      reviewed_by: string?
+      created_at: timestamp
+
+  guardian_shadow_day:
+    kind: state
+    description: >
+      WP-G3. One row per guardian version and UTC day of its shadow run: calls in scope, calls
+      with a finding that would act (would_act), calls where the shadow detector was skipped
+      because the latency budget was used (skipped_budget) and findings written. Integers only.
+      A daily job writes one guardian_shadow_day chain record per closed day (chained).
+    primary_key: [def_id, version, day]
+    columns:
+      def_id: string
+      version: int
+      day: string              # YYYY-MM-DD, UTC
+      calls_seen: int
+      would_act: int
+      skipped_budget: int
+      findings_n: int
+      chained: bool

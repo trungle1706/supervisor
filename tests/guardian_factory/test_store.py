@@ -79,20 +79,22 @@ def test_save_validates_and_replaces_the_draft(store: GuardianDefStore) -> None:
         store.save("account-numbers", regex_def(id="other"), AN)
 
 
-def test_transition_table_only_the_g1_and_g2_moves_are_open() -> None:
+def test_transition_table_moves_are_open_by_work_package() -> None:
     check_transition("draft", "retired")
     check_transition("retired", "draft")
     check_transition("draft", "benchmarked")  # WP-G2
     check_transition("benchmarked", "draft")  # WP-G2
     for a, b in [
-        ("benchmarked", "shadow"),
+        ("benchmarked", "shadow"),  # WP-G3
         ("shadow", "approved"),
         ("approved", "live"),
         ("live", "retired"),
     ]:
+        check_transition(a, b)
+    for a, b in [("live", "approved"), ("approved", "shadow")]:
         with pytest.raises(GuardianFactoryError) as e:
             check_transition(a, b)
-        assert e.value.code == "transition_not_yet_allowed", (a, b)
+        assert e.value.code == "bad_transition", (a, b)
     with pytest.raises(GuardianFactoryError) as e:
         check_transition("draft", "live")
     assert e.value.code == "bad_transition"

@@ -227,6 +227,17 @@ class ConsoleContext:
         return svc
 
     @property
+    def guardian_promotion(self) -> Any:
+        """Shadow mode and promotion of guardian definitions (WP-G3)."""
+        from supervisor.guardian_factory.promotion import Promotion
+
+        svc = getattr(self, "_guardian_promotion", None)
+        if svc is None:
+            svc = Promotion(self.guardian_defs)
+            self._guardian_promotion = svc
+        return svc
+
+    @property
     def lifecycle(self) -> Any:
         """Stage approvals and the lifecycle move of an AI system (WP-G1). Shares the system
         service, so every change goes on the chain."""

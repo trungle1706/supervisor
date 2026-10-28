@@ -78,7 +78,8 @@
   {% if gb is defined and gb %}{% include "_gf_bench.html" %}
   {% else %}<p class="hint" data-panel="benchmark">{{ t('gf_b_save_first') }}</p>{% endif %}
   <h4>{{ t('gf_shadow_panel') }}</h4>
-  <p class="hint" data-panel="shadow">{{ t('gf_shadow_soon') }}</p>
+  {% if gs is defined and gs %}{% include "_gf_shadow.html" %}{% include "_gf_promo.html" %}
+  {% else %}<p class="hint" data-panel="shadow">{{ t('gf_b_save_first') }}</p>{% endif %}
 
   {% if gf.events %}
   <h4>{{ t('gf_history') }}</h4>

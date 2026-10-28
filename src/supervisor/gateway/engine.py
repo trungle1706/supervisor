@@ -45,6 +45,7 @@ from supervisor.core.canonical import canonical_json, format_ts, sha256_hex
 from supervisor.core.ports import Clock, EvidenceSink, Masker, StateStore, TableStore
 from supervisor.gateway.detector_gate import (
     CLASSIFIER_PAUSE_RULE,
+    GUARDIAN_RULE,
     DetectorGate,
     PreDetect,
     Req,
@@ -1180,7 +1181,7 @@ class Gateway:
             return
         if (
             not d.allow
-            and d.rule_id in (DETECTOR_FAILED_RULE, DETECTOR_SECRET_RULE)
+            and d.rule_id in (DETECTOR_FAILED_RULE, DETECTOR_SECRET_RULE, GUARDIAN_RULE)
             # a cut payload has no masked copy: observe cannot lift the secret block then
             and (d.rule_id != DETECTOR_SECRET_RULE or d.secret_masked_args is not None)
             and risk != "pii_export"  # WP-D2 review: GATE-SECRET-IN-ARGS is held there too

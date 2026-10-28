@@ -532,6 +532,16 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 lambda: governance_actions_job.run(ctx, settings),
             )
         )
+    from supervisor.jobs import guardian_shadow as guardian_shadow_job  # WP-G3
+
+    if guardian_shadow_job.enabled(settings):  # WP-G3: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "guardian_shadow",
+                settings.sched_guardian_shadow_s,
+                lambda: guardian_shadow_job.run(ctx, settings),
+            )
+        )
     from supervisor.jobs import duties_sweep as duties_sweep_job  # WP-L3
 
     if duties_sweep_job.enabled(settings):  # WP-L3: listed only when it can run

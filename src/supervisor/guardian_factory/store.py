@@ -33,7 +33,7 @@ log = logging.getLogger("supervisor.guardian_factory")
 TABLE = "guardian_def"
 EVENTS = "guardian_def_event"
 OFF_MESSAGE = "the guardian factory is off (GUARDIAN_FACTORY=1 and DETECTORS_ENABLED=1 turn it on)"
-LATER_STATES = "the states shadow, approved and live come with WP-G3"
+LATER_STATES = "this move is not open"
 EDITABLE = ("draft", "benchmarked")  # a change of a benchmarked version sends it back to draft
 
 
@@ -64,14 +64,17 @@ def check_transition(from_state: str, to_state: str) -> None:
 
 def can_edit(user: Any, owner_group: str) -> bool:
     """A member of the owner group edits its guardians (a role listed for the group in
-    config/factory_groups.yaml); an admin edits all."""
-    roles = frozenset(getattr(user, "roles", ()) or ())
-    if "admin" in roles:
-        return True
+    config/factory_groups.yaml, or the group named in the user's ``groups`` list of
+    config/users.yaml); an admin edits all."""
     from supervisor.factory.registry import load_groups
+    from supervisor.factory.store import permits
 
-    grp = load_groups().get(owner_group)
-    return bool(grp and roles & set(grp.roles))
+    return permits(
+        getattr(user, "roles", ()) or (),
+        owner_group,
+        load_groups(),
+        getattr(user, "groups", ()) or (),
+    )
 
 
 def _stamp(value: Any) -> str:

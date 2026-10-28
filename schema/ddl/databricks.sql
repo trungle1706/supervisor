@@ -1759,3 +1759,44 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`gate_run` (
 USING DELTA
 COMMENT 'WP-F3 (phase 12B, AGENT_FACTORY_GATE). One run of the test gate for one version of a factory agent. kind: full (layers 1, 2 and 3; the only kind that can lead to state tested), sample (layers 1 and 2 on a small batch; never promotes), simulation (the draft on chosen systems of the inventory, assessed by a person in a review screen; never promotes) or shadow (layer 3 only). status: queued, running, done or failed (the run itself broke). verdict: pass, fail or not_run. layer1_json is the deterministic layer (checks and the harness component tests), layer2_json the guideline judges with the calibration (Cohen''s kappa in hundredths, the confusion matrix, the paired comparison with the live version), layer3_json the shadow run (agreement counts). cost_json holds integers (model calls, estimated tokens, seconds). report_sha256 and signature belong to the signed JSON report on disk under DATA_DIR/factory/<agent>/gate/<run_id>/ (evidence signer). Integers only: no floats, no personal data, no text of a document.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_shadow_finding (state): WP-G3 (GUARDIAN_FACTORY + GUARDIAN_SHADOW). One finding of a guardian definition in state shadow, found on live gate traffic in log-only mode. Nothing was blocked or redacted. call_ref is the correlation or request id of the call; value_hash is the SHA-256 digest of the finding (ids, code, integers and fragment digests), never the masked value text. count is the number of matches. would_action is the action_on_fail the guardian would take once live. reviewed is empty (not yet), correct (a true finding) or false (a false positive); a person sets it with reviewed_by. No personal data, no floats.
+-- primary key (enforced by the app, not by Delta): finding_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_shadow_finding` (
+  finding_id STRING NOT NULL,
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  agent_id STRING NOT NULL,
+  call_ref STRING NOT NULL,
+  stage STRING NOT NULL,
+  finding_code STRING NOT NULL,
+  count BIGINT NOT NULL,
+  value_hash STRING NOT NULL,
+  would_action STRING NOT NULL,
+  reviewed STRING,
+  reviewed_by STRING,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G3 (GUARDIAN_FACTORY + GUARDIAN_SHADOW). One finding of a guardian definition in state shadow, found on live gate traffic in log-only mode. Nothing was blocked or redacted. call_ref is the correlation or request id of the call; value_hash is the SHA-256 digest of the finding (ids, code, integers and fragment digests), never the masked value text. count is the number of matches. would_action is the action_on_fail the guardian would take once live. reviewed is empty (not yet), correct (a true finding) or false (a false positive); a person sets it with reviewed_by. No personal data, no floats.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_shadow_day (state): WP-G3. One row per guardian version and UTC day of its shadow run: calls in scope, calls with a finding that would act (would_act), calls where the shadow detector was skipped because the latency budget was used (skipped_budget) and findings written. Integers only. A daily job writes one guardian_shadow_day chain record per closed day (chained).
+-- primary key (enforced by the app, not by Delta): def_id, version, day
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_shadow_day` (
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  day STRING NOT NULL,
+  calls_seen BIGINT NOT NULL,
+  would_act BIGINT NOT NULL,
+  skipped_budget BIGINT NOT NULL,
+  findings_n BIGINT NOT NULL,
+  chained BOOLEAN NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G3. One row per guardian version and UTC day of its shadow run: calls in scope, calls with a finding that would act (would_act), calls where the shadow detector was skipped because the latency budget was used (skipped_budget) and findings written. Integers only. A daily job writes one guardian_shadow_day chain record per closed day (chained).'
+TBLPROPERTIES ('supervisor.kind' = 'state');

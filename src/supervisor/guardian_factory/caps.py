@@ -73,7 +73,7 @@ TRANSITIONS: dict[str, tuple[str, ...]] = {
     "shadow": ("approved", "draft", "retired"),  # approved: WP-G3
     "approved": ("live", "retired"),  # live: WP-G3
     "live": ("retired",),
-    "retired": ("draft",),
+    "retired": ("draft", "live"),  # live: rollback only (WP-G3, an admin with a reason)
 }
 # WP-G2 adds draft -> benchmarked (needs a passing run of this version and definition) and
 # benchmarked -> draft (any change of the definition).
@@ -84,9 +84,19 @@ ALLOWED_NOW: frozenset[tuple[str, str]] = frozenset(
         ("draft", "benchmarked"),
         ("benchmarked", "draft"),
         ("benchmarked", "retired"),
+        # WP-G3: shadow and promotion (the conditions are in guardian_factory/promotion.py)
+        ("benchmarked", "shadow"),
+        ("shadow", "approved"),
+        ("shadow", "draft"),
+        ("shadow", "retired"),
+        ("approved", "live"),
+        ("approved", "retired"),
+        ("live", "retired"),
+        ("retired", "live"),
     }
 )
 SHADOW_DAYS_MAX = 90
+SHADOW_DAYS_DEFAULT = 7  # lifecycle.shadow_days 0 = not set = this many days
 APPROVALS_MAX = 10
 ALLOW_LIST_MAX = 50
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -107,3 +117,18 @@ COMPARE_WITH = ("", "dlp_vn", "injection_regex", "none")
 # ------------------------------------------------------------------ author
 OVER_BROAD_PCT = 5  # a regex that matches more than this share of the benign sample is flagged
 AUTHOR_TIMEOUT_S = 30.0
+
+# ------------------------------------------------------------------ shadow and promotion (WP-G3)
+GF_PREFIX = "gf:"  # detector slug of a live guardian: gf:<def_id>@<version>
+GF_SLUG_RE = re.compile(r"^gf:([a-z0-9][a-z0-9-]{0,63})@([0-9]{1,5})$")
+APPROVAL_KINDS = ("owner_lead", "platform_security")
+SECURITY_GROUP = "platform"  # the group of config/factory_groups.yaml that is platform security
+REASON_MIN = 20  # characters: a rollback, an allow-list entry
+REASON_MAX = 200
+ALLOW_MAX_DAYS = 90  # an allow-list entry ends within this many days
+REVIEW_LIST_MAX = 200
+REVIEWS = ("correct", "false")
+SHADOW_CACHE_S = 5.0  # how long the gate keeps the list of shadow and live guardians
+SHADOW_FLUSH_CALLS = 25  # day counters are written every this many calls ...
+SHADOW_FLUSH_S = 5.0  # ... or this many seconds
+SHADOW_MODEL_QUEUE = 50  # model-type shadow checks waiting for the one worker thread
