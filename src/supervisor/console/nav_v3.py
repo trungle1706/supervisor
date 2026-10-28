@@ -80,6 +80,14 @@ SECTIONS_V3: dict[str, Sec] = {
             Tab("risks", "nav_risks", "/console/risks", "ux3:risks"),
             Tab("controls", "nav_controls", "/console/controls", "ux3:controls"),
             Tab("policies", "nv3_t_policies", "/console/compliance", "compliance"),
+            # WP-C4: the RegKB internal documents page (REGKB_INTERNAL)
+            Tab(
+                "regkb_internal",
+                "nv3_t_regkb_internal",
+                "/console/regkb/internal",
+                "regkb_internal",
+                "regkb.view",
+            ),
         ),
     ),
     "activity": Sec(
@@ -156,6 +164,9 @@ PAGE_HOME: dict[str, tuple[str, str | None, str | None]] = {
     "risks": ("risks_controls", "risks_controls", "risks"),
     "controls": ("risks_controls", "risks_controls", "controls"),
     "compliance": ("risks_controls", "risks_controls", "policies"),
+    "regkb_internal": ("risks_controls", "risks_controls", "regkb_internal"),  # WP-C4
+    "factory": ("factory", None, None),  # WP-C4 (AGENT_FACTORY)
+    "guardian_factory": ("guardian_factory", None, None),  # WP-C4 (GUARDIAN_FACTORY)
     "decisions": ("activity", "activity", "decisions"),
     "traces": ("activity", "activity", "traces"),
     "catalog": ("guardians", "guardians", "library"),
@@ -208,6 +219,14 @@ BAR: tuple[tuple[str, str, str, tuple[BarItem, ...]], ...] = (
                 "/console/risks-controls",
                 "risks_controls",
             ),
+            BarItem(
+                "factory",
+                "nv3_factory",
+                "layers",
+                "/console/factory",
+                need="agent_factory",  # WP-C4
+                perm="systems.view",
+            ),
             BarItem("workflows", "nv3_workflows", "branch", "/console/workflows"),
         ),
     ),
@@ -219,6 +238,14 @@ BAR: tuple[tuple[str, str, str, tuple[BarItem, ...]], ...] = (
             BarItem("sup_overview", "nv3_overview", "overview", "/console/supervisor"),
             BarItem("activity", "nv3_activity", "pulse", "/console/activity", "activity"),
             BarItem("guardians", "nv3_guardians", "sliders", "/console/guardians", "guardians"),
+            BarItem(
+                "guardian_factory",
+                "nv3_guardian_factory",
+                "sliders",
+                "/console/guardian-factory",
+                need="guardian_factory",  # WP-C4
+                perm="guardians.view",
+            ),
             BarItem("cases_alerts", "nv3_cases_alerts", "bell", "/console/cases", "cases_alerts"),
             BarItem("analytics", "nav_analytics", "bars", "/console/analytics", "analytics"),
             BarItem(
@@ -279,6 +306,9 @@ def _on(need: str | None, sh: dict[str, Any], compliance: bool, integration: boo
         "inventory": sh.get("inventory_n") is not None,
         "ov4": bool(sh.get("ov4")),  # WP-N1
         "my_agents": bool(sh.get("my_agents")),  # WP-N2
+        "agent_factory": bool(sh.get("agent_factory")),  # WP-C4
+        "guardian_factory": bool(sh.get("guardian_factory")),  # WP-C4
+        "regkb_internal": bool(sh.get("regkb_internal")),  # WP-C4
     }[need]
 
 

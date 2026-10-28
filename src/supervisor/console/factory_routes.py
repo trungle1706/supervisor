@@ -115,7 +115,7 @@ async def catalogue(
     data = await _call(
         fv.catalogue_data, ctx, me, q.get("group", ""), q.get("dimension", ""), q.get("state", "")
     )
-    return render(request, ctx, me, "factory.html", section="", **data)
+    return render(request, ctx, me, "factory.html", section="factory", **data)
 
 
 @router.post(
@@ -160,7 +160,7 @@ async def editor(
     q = request.query_params
     step = q.get("step", "template")
     data = await _call(fv.editor_data, ctx, me, agent_id, q.get("v", ""), step)
-    return render(request, ctx, me, "factory_editor.html", section="", **data)
+    return render(request, ctx, me, "factory_editor.html", section="factory", **data)
 
 
 @router.get(
@@ -176,7 +176,7 @@ async def step_fragment(
     data = await _call(fv.editor_data, ctx, me, agent_id, version, step)
     if request.headers.get("hx-request") == "true":
         return render(request, ctx, me, f"_factory_step_{step}.html", **data)
-    return render(request, ctx, me, "factory_editor.html", section="", **data)
+    return render(request, ctx, me, "factory_editor.html", section="factory", **data)
 
 
 def _save(

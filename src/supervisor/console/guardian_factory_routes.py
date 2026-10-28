@@ -392,7 +392,7 @@ async def registry_page(
     _svc(ctx)
     data = await _call(list_data, ctx, request)
     template = "_gf_list.html" if request.headers.get("hx-request") == "true" else "gf_list.html"
-    return render(request, ctx, me, template, section="", **data)
+    return render(request, ctx, me, template, section="guardian_factory", **data)
 
 
 @router.get(
@@ -412,7 +412,7 @@ async def editor_page(
     template = (
         "_gf_editor.html" if request.headers.get("hx-request") == "true" else "gf_editor.html"
     )
-    return render(request, ctx, me, template, section="", **data)
+    return render(request, ctx, me, template, section="guardian_factory", **data)
 
 
 async def _respond(
@@ -431,7 +431,12 @@ async def _respond(
         )
     data = await _call(panel_data, ctx, me, def_id, vals, draft)
     resp = render(
-        request, ctx, me, "gf_editor.html" if plain else "_gf_editor.html", section="", **data
+        request,
+        ctx,
+        me,
+        "gf_editor.html" if plain else "_gf_editor.html",
+        section="guardian_factory",
+        **data,
     )
     if not plain and note:
         resp.body = resp.body + message_html(note, ok=True, oob=True).encode()

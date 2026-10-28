@@ -506,6 +506,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/systems/{system_id}/classification-v2"): "systems.edit",
     ("POST", "/v1/systems/{system_id}/classification-v2/approve"): "systems.approve",
     ("GET", "/v1/classification/summary"): "systems.view",
+    ("GET", "/v1/portfolio"): "systems.view",  # WP-C4 (400 overview_portfolio_off when off)
     ("GET", "/console/systems/{system_id}/classify"): "systems.view",
     ("POST", "/console/systems/{system_id}/classify"): "systems.edit",
     ("POST", "/console/systems/{system_id}/classify/approve"): "systems.approve",

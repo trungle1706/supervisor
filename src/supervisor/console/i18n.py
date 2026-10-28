@@ -4845,3 +4845,6 @@ _T.update(_RI)
 from supervisor.console.i18n_factory import FA as _FA  # noqa: E402  (WP-F2, prefix fa_)
 
 _T.update(_FA)
+from supervisor.console.i18n_portfolio import PF as _PF  # noqa: E402  (WP-C4, prefix pf_)
+
+_T.update(_PF)

@@ -139,11 +139,13 @@ The section routes below answer `302` to the first tab that is on (or to the tab
 | Governance, Overview | `/console/governance` | none |
 | Governance, Systems | `/console/systems` (route and page owned by WP-G0) | The item shows only with `console_systems_enabled`. The Onboard, Integration, Transparency and Tasks pages carry a Systems tab strip meanwhile |
 | Governance, Catalogues | `/console/catalogues` | Agents (`/console/agents`), Models, Tools, Datasets, MCP servers (inventory nodes, read only), Unmanaged (`/console/inventory`) |
-| Governance, Risks and controls | `/console/risks-controls` (302) | Risks, Controls, Policies (the Compliance page) |
+| Governance, Risks and controls | `/console/risks-controls` (302) | Risks, Controls, Policies (the Compliance page), Internal documents (`/console/regkb/internal`, WP-C4; shows only with `REGKB_INTERNAL=1`, permission `regkb.view`) |
+| Governance, Factory (WP-C4) | `/console/factory` | none. Shows only with `AGENT_FACTORY=1` (and `GOVERNANCE_ENABLED`); permission `systems.view` |
 | Governance, Workflows | `/console/workflows` | none |
 | Supervisor, Overview | `/console/supervisor` | none |
 | Supervisor, Activity | `/console/activity` (302) | Gate decisions, Traces. There is no Sessions page yet |
 | Supervisor, Guardians | `/console/guardians` | Library (Catalog), Rules (Policies), Detectors, Judges, Monitors, Packs (Assurance) |
+| Supervisor, Guardian factory (WP-C4) | `/console/guardian-factory` | none. Shows only with `GUARDIAN_FACTORY=1`; permission `guardians.view` |
 | Supervisor, Cases and alerts | `/console/cases` | Cases, Alerts, Approvals (Sign-off) |
 | Supervisor, Analytics | `/console/analytics` | Analytics, Evidence chain (the Evidence page) |
 | Supervisor, Playground | `/console/playground` | none |
@@ -441,6 +443,45 @@ page equal to `supervisor.core.rbac.matrix_markdown()`, so change the code first
 | auditor | Read pages, verify case and chain, mark inbox read, build and download audit packs and chain exports |
 | admin | Everything a reviewer can do, plus quarantine and release a quarantine |
 | operator | Read pages, run case intake, verify the chain, acknowledge alerts |
+
+### Portfolio blocks (WP-C4)
+
+Flag `OVERVIEW_PORTFOLIO=1` (needs `CONSOLE_OVERVIEW_V4=1` and `GOVERNANCE_ENABLED=1`; default off).
+Two blocks sit between the totals and the action items of My overview v4. They are server-rendered
+HTML and CSS (no script, CSP `script-src 'self'`), read only, every number is an integer. They call
+the service functions behind `GET /v1/classification/summary` and `GET /v1/risk-dimensions/summary`,
+not HTTP, over the systems of the chosen scope (my, team, all), so the totals equal the system pages
+and the two summary APIs. A block shows a "turn on" note while its own flag is off
+(`CLASSIFICATION_V2`, `RISK_DIMENSIONS`).
+
+* **Classification**: one bar per outcome (prohibited, high certify, high self-assess, medium, low,
+  not an AI system) and one for **not classified** (no approved record yet), each with the count and
+  the share as an integer percent (largest remainder, the bars add up to 100). A bar links to
+  `/console/systems?outcome=<id>` (`none` = not classified); an unknown outcome or the flag off is
+  HTTP 400. The footer shows the records waiting for approval and the reviews due.
+* **Risk assessment**: a grid of the eight types (columns) by systems (rows). The rows are the
+  systems in scope, at most 50, the ones with most failed types first, then by name; more systems
+  show a "Showing 50 of N" line with a link to the Systems list. A cell has a colour and a letter
+  (P pass, F fail, W waived, n/a, `-` not started, `...` in progress); it links to the system's
+  **Risk assessment** tab. Under the grid: the portfolio total per column (pass, open = not started
+  plus in progress, fail, waived, not applicable) and the count of systems with a type past
+  `valid_until`. Archived systems are left out, as in the summary API.
+
+`GET /v1/portfolio` (permission `systems.view`, all systems the caller may see) returns both blocks:
+
+```
+{"classification": {"on": true, "systems_n", "approved_n", "not_classified_n",
+                    "waiting_for_approval_n", "review_due_n",
+                    "bars": [{"outcome", "count", "pct"}]},
+ "risk": {"on": true, "systems_n", "past_valid_until_n", "dimension_ids": [...],
+          "dimensions": [{"dimension_id", "label_en", "pass", "open", "fail", "waived",
+                          "not_applicable"}],
+          "rows_total", "more_n", "rows": [{"system_id", "name", "fail_n", "cells": {dim: status}}]}}
+```
+
+A block with its own flag off is `{"on": false}`. With `OVERVIEW_PORTFOLIO` off the route answers HTTP
+400 `overview_portfolio_off` and My overview is unchanged. The sidebar entries Factory, Guardian
+factory and Internal documents (table above) are part of this work package; they use the v3 bar only.
 
 ### Alerts (WP21)
 

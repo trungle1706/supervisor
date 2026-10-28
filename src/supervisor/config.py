@@ -777,6 +777,13 @@ class Settings(BaseSettings):
     # only and need LLM_BASE_URL. Needs GOVERNANCE_ENABLED. Off: no table read, the routes answer
     # HTTP 400 agent_factory_off.
     agent_factory: bool = False
+    # --- WP-C4 (phase 12) --- portfolio blocks on My overview (docs/console.md "Portfolio blocks"):
+    # Classification (a bar per outcome) and Risk assessment (eight types by systems grid), read
+    # from the services behind the two summary APIs, and GET /v1/portfolio. Needs
+    # CONSOLE_OVERVIEW_V4 and GOVERNANCE_ENABLED; a block shows data only with CLASSIFICATION_V2
+    # or RISK_DIMENSIONS on. Off: My overview unchanged, the route answers HTTP 400
+    # overview_portfolio_off.
+    overview_portfolio: bool = False
     # --- WP-L4 (phase 8) --- evidence per duty and the regulator pack (docs/regulator-pack.md):
     # live counts per control for the duties of a system, auto-close of a full-coverage duty whose
     # mapped controls all work, the group task closes with its last row, the Refresh evidence

@@ -60,6 +60,8 @@
   <div data-num="due"><span class="n">{{ tot.due }}</span><span class="l">{{ t('ov4_t_due') }}</span></div>
 </div>
 
+{% if d.portfolio %}{% include "_ov4_portfolio.html" %}{% endif %}
+
 <div class="ov4-mid">
   <section aria-labelledby="ov4-ai">
     <h2 class="sec" id="ov4-ai">{{ t('ov4_actions') }}</h2>
