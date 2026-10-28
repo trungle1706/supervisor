@@ -131,6 +131,15 @@ Flag `ONBOARD_PREDEPLOY=1`.
 * Console: tab **Pre-deploy**: the verdict, the items, each with its pointer, and **Run again**.
   Register v2 step 3 links to the latest report instead of the folder scan.
 
+### WP-O3b: packs against the running candidate (follow-up found in WP-O3)
+
+The launch sandbox runs demo agents only. A real candidate tree has no harness, so every pack that
+needs a running agent fails and the verdict is NO-GO. Build an `HttpAgentTarget`: the required
+packs and the multi-turn red team run against the candidate App URL (the candidate in SHADOW,
+ingress credential of the Supervisor service principal, synthetic data only), the same way the
+kb-chatbot Re-check page calls the gate. The pre-deploy report says which target ran. Also fix
+`assurance.gates._row`, which drops `is_mock` from a `PackResult` object (found in WP-O3).
+
 ### WP-O4: guardian attachment view
 
 Flag `ONBOARD_ATTACH_VIEW=1`.
