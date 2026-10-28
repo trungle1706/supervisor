@@ -73,17 +73,29 @@ obligations:
   addressee: deployer
   control_mapping:
   - kind: evidence
-    id: agent_registry
-    coverage: partial
-    note: agent inventory with owner, risk tier and model family
-  - kind: evidence
     id: agent_version
     coverage: partial
-    note: version history shows functional change
+    note: 'A new version row marks a change of model, tools or policy; it is the prompt to ask ''new or
+      higher risk?''. Missing: no automatic link from a change to a new classification record; the bank
+      decides what is a significant change; the exchange with the provider is outside Supervisor.'
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: Registry keeps the risk tier now in use for the agent.
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows (proposal, answers, class) per system; a new proposal can be started
+      after a change.
+  - kind: console
+    id: duties_actions
+    coverage: partial
+    note: Re-evaluate runs the duties matrix again on the stored answers (flag RISK_DUTIES).
   - kind: process
     id: legal_review
-    coverage: none
-    note: bank counsel confirms scope and reading
+    coverage: partial
+    note: 'Manual step: bank and provider review the change together, record the new class, and counsel
+      confirms what counts as new or higher risk.'
   evidence_needed:
   - re-classification record linked to each functional change
   verification: VERIFIED_PRIMARY
@@ -119,14 +131,29 @@ obligations:
     - deployer
   addressee: any
   control_mapping:
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: 'Launch sandbox report (catch rate, false alarms, GO or NO-GO) is test evidence for the dossier;
+      it is not a conformity assessment. Missing: the conformity result itself (registered body or provider
+      self-assessment) and the deployer''s part of it.'
+  - kind: evidence
+    id: predeploy_report
+    coverage: partial
+    note: Pre-deploy report lists facts, readiness, required packs and duties with pointers (flag ONBOARD_PREDEPLOY).
+  - kind: evidence
+    id: assurance_results
+    coverage: partial
+    note: Pack results (red team, injection, fairness, SBOM) can be attached as technical evidence.
   - kind: process
     id: conformity_assessment_file
-    coverage: none
-    note: conformity dossier
+    coverage: partial
+    note: 'Manual step: keep the provider''s certificate or technical file and the deployer''s own part
+      of the assessment; Supervisor stores no certificate.'
   - kind: process
     id: legal_review
-    coverage: none
-    note: bank counsel confirms scope and reading
+    coverage: partial
+    note: 'Manual step: counsel confirms that the system is high risk under the list and which route applies.'
   evidence_needed:
   - conformity dossier or provider's certificate on file
   verification: VERIFIED_PRIMARY
@@ -168,17 +195,28 @@ obligations:
   addressee: deployer
   control_mapping:
   - kind: evidence
-    id: agent_registry
-    coverage: partial
-    note: agent inventory with owner, risk tier and model family
-  - kind: evidence
     id: agent_version
     coverage: partial
-    note: version history
+    note: 'A new version row marks a change of model, tools or policy beyond the first statement. Missing:
+      no automatic comparison with the provider''s original statement of purpose; no change record linked
+      to a re-classification outcome.'
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: Registry keeps the risk tier now in use for the agent.
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows give the class before and after a change.
+  - kind: console
+    id: duties_actions
+    coverage: partial
+    note: Re-evaluate runs the duties matrix again on the stored answers (flag RISK_DUTIES).
   - kind: process
     id: legal_review
-    coverage: none
-    note: bank counsel confirms scope and reading
+    coverage: partial
+    note: 'Manual step: deployer helps the provider re-classify; counsel confirms ''beyond the provider''s
+      original statement'' and records the outcome.'
   evidence_needed:
   - change record and re-classification outcome
   verification: VERIFIED_PRIMARY
@@ -223,21 +261,31 @@ obligations:
   - kind: console
     id: case_signoff
     coverage: partial
-    note: records a named human decision on a case; counts as pre-execution approval only if the agent
-      code waits for it
+    note: 'Records a named human decision on a case; counts as pre-execution approval only if the agent
+      code waits for it. Missing: a technical block that holds the action until a named human approves exists
+      only if the agent code waits for the sign-off.'
   - kind: monitor
     id: oversight
     coverage: partial
-    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+    note: Dwell time, approval rate and chain_ok metrics show whether the human step is real.
   - kind: evidence
     id: signoff_record
     coverage: partial
-    note: signoff records show a named human decision
+    note: Sign-off records show a named human decision.
   - kind: console
     id: agent_action
     coverage: partial
-    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
-      execution
+    note: Pause, resume or retire switch stops an agent after it acts; it is not human approval before execution.
+  - kind: console
+    id: state_actions
+    coverage: partial
+    note: 'Request RUNNING and Approve RUNNING by a second person (flag CONSOLE_STATE_ACTIONS): a person
+      decides before enforcement starts.'
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel decides whether the bank relies on this criterion; it is for drafting the
+      list, not a self-service exemption.'
   evidence_needed:
   - code path where the agent waits for a named human before the action takes effect
   - dwell time and override rate
@@ -288,11 +336,22 @@ obligations:
   - kind: evidence
     id: agent_registry
     coverage: partial
-    note: agent inventory with owner, risk tier and model family
+    note: 'Registry keeps the risk tier now in use for the agent. Missing: the duty is the provider''s;
+      Supervisor sees only the triggers inside the bank; a change of the Prime Minister''s list is not watched
+      yet (Phase 11).'
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: Version rows record the significant functional changes the bank makes (trigger a).
+  - kind: evidence
+    id: incident_record
+    coverage: partial
+    note: Incident rows record serious incidents that may show a higher risk (trigger b).
   - kind: process
     id: legal_review
-    coverage: none
-    note: bank counsel confirms scope and reading
+    coverage: partial
+    note: 'Manual step: counsel logs the triggers the bank sees (change, serious incident, list change by
+      the Prime Minister, written request of the authority) and tells the provider.'
   evidence_needed:
   - trigger log for re-classification
   verification: VERIFIED_PRIMARY
@@ -332,18 +391,29 @@ obligations:
     - deployer
   addressee: any
   control_mapping:
-  - kind: process
-    id: ai_registration
-    coverage: none
-    note: portal notice
   - kind: evidence
     id: agent_registry
     coverage: partial
-    note: agent inventory with owner, risk tier and model family
+    note: 'Registry keeps the risk tier; a raised tier is the fact that starts the 15 working days. Missing:
+      no 15-working-day clock for a re-classification, no filing, no check that the controls of the new
+      level are switched on.'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows show the new class and the date it was applied.
+  - kind: evidence
+    id: task_record
+    coverage: partial
+    note: A task with a due date can carry the 15 working days; it is created by a person.
+  - kind: process
+    id: ai_registration
+    coverage: partial
+    note: 'Manual step: send the notice on the national AI portal (or the interim channel of Art. 46(1))
+      within 15 working days of finishing the review, and keep the receipt.'
   - kind: process
     id: legal_review
-    coverage: none
-    note: bank counsel confirms scope and reading
+    coverage: partial
+    note: 'Manual step: counsel confirms who files (provider or deployer) and the date the review was completed.'
   evidence_needed:
   - notice sent within 15 working days
   - controls for the new level switched on
@@ -395,29 +465,39 @@ obligations:
   - kind: console
     id: agents
     coverage: partial
-    note: agent registry screen with the pause switch
+    note: 'Agent registry screen with the pause switch. Missing: a reviewer can reject a result before it
+      takes effect only if the agent waits for the sign-off; the 12-month plan and the conformity file are
+      the bank''s.'
   - kind: console
     id: agent_action
     coverage: partial
-    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
-      execution
+    note: Pause, resume or retire switch stops an agent after it acts; it is not human approval before execution.
   - kind: console
     id: case_signoff
     coverage: partial
-    note: records a named human decision on a case; counts as pre-execution approval only if the agent
-      code waits for it
+    note: Records a named human decision on a case; counts as pre-execution approval only if the agent code
+      waits for it.
   - kind: monitor
     id: oversight
     coverage: partial
-    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+    note: Dwell time, approval rate and chain_ok metrics show whether the human step is real.
   - kind: evidence
     id: evidence_chain
     coverage: partial
-    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+    note: Hash-chained record of gate decisions and verdicts; the bank still owns retention and access.
   - kind: evidence
     id: agent_event_log
     coverage: partial
-    note: recorded tool calls and gate decisions per agent
+    note: Recorded tool calls and gate decisions per agent (the operation log of the transition).
+  - kind: evidence
+    id: guardian_off_approval
+    coverage: partial
+    note: A guardian cannot be switched off without a reason and, on production or high-risk systems, a
+      second person (flag CONSOLE_STATE_ACTIONS).
+  - kind: process
+    id: conformity_assessment_file
+    coverage: partial
+    note: 'Manual step: finish the conformity file within 12 months of the list change taking effect.'
   evidence_needed:
   - human can review independently and reject results
   - logs of operation and every intervention kept
@@ -462,15 +542,31 @@ obligations:
   - kind: evidence
     id: agent_registry
     coverage: partial
-    note: agent inventory with owner, risk tier and model family
-  - kind: process
-    id: records_retention
-    coverage: none
-    note: retention schedule
+    note: 'Registry holds the identity, owner and tier of the system. Missing: the classification file of
+      Art. 12(2) (provider documents a-d) is not generated as one file; retention for the life of the system
+      is the bank''s.'
   - kind: evidence
     id: onboard_profile
     coverage: partial
-    note: onboarding profile is a seed for the file
+    note: Onboarding profile is a seed for the classification file.
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows are kept with the system.
+  - kind: evidence
+    id: transparency_report
+    coverage: partial
+    note: Transparency report (regulator variant) puts identity, class, controls and evidence state in one
+      document.
+  - kind: evidence
+    id: facts_card
+    coverage: partial
+    note: Facts card lists tools, models and data with file and line (flag ONBOARD_FACTS).
+  - kind: process
+    id: records_retention
+    coverage: partial
+    note: 'Manual step: keep the classification file for the whole life of the system, in the bank''s retention
+      schedule.'
   evidence_needed:
   - classification file retained for the life of the system
   verification: VERIFIED_PRIMARY
@@ -508,14 +604,25 @@ obligations:
     - provider
   addressee: provider
   control_mapping:
-  - kind: process
-    id: conformity_assessment_file
-    coverage: none
-    note: dossier
   - kind: evidence
     id: agent_version
     coverage: partial
-    note: version history helps decide 'significant change'
+    note: 'Version history helps decide ''significant change'' (model, tools, configuration). Missing: a
+      model or configuration change does not start a new conformity assessment by itself; the result is
+      not held in Supervisor.'
+  - kind: evidence
+    id: lifecycle_approval
+    coverage: partial
+    note: The lifecycle has a re-evaluation stage; the move needs an approver at high level.
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: Launch report is sandbox evidence for the assessment after a change.
+  - kind: process
+    id: conformity_assessment_file
+    coverage: partial
+    note: 'Manual step: provider completes and repeats the conformity assessment; the bank keeps the result
+      and the change assessment log.'
   evidence_needed:
   - conformity result
   - change assessment log
@@ -563,14 +670,24 @@ obligations:
     - provider
   addressee: provider
   control_mapping:
-  - kind: process
-    id: conformity_assessment_file
-    coverage: none
-    note: dossier
   - kind: evidence
     id: launch_report
     coverage: partial
-    note: launch report is sandbox evidence, not a legal assessment
+    note: 'Launch report is sandbox evidence, not a legal assessment. Missing: route choice, the technical
+      file and the certificate or self-assessment result.'
+  - kind: evidence
+    id: predeploy_report
+    coverage: partial
+    note: Pre-deploy report shows which duties and packs the system still lacks (flag ONBOARD_PREDEPLOY).
+  - kind: process
+    id: conformity_assessment_file
+    coverage: partial
+    note: 'Manual step: record the route chosen (registered body for a mandatory-certification item, self-assessment
+      or body for the others) and keep the technical file.'
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms which route applies to the Decision 33 entry.'
   evidence_needed:
   - route chosen and evidence
   verification: VERIFIED_PRIMARY
@@ -616,8 +733,10 @@ obligations:
   control_mapping:
   - kind: process
     id: ai_registration
-    coverage: none
-    note: portal publication
+    coverage: partial
+    note: 'Manual step: the provider publishes the result on the national AI portal; the bank checks the
+      published entry before it uses the system. No Supervisor control: Supervisor works offline and has
+      no portal link; publishing is the provider''s act.'
   evidence_needed:
   - portal record
   verification: VERIFIED_PRIMARY
@@ -657,14 +776,28 @@ obligations:
     - provider
   addressee: provider
   control_mapping:
-  - kind: process
-    id: ai_registration
-    coverage: none
-    note: portal notice
   - kind: evidence
     id: onboard_profile
     coverage: partial
-    note: profile can supply the facts
+    note: 'Onboarding profile supplies the facts for the notice. Missing: no filing and no portal identifier
+      field; the notice is the provider''s.'
+  - kind: evidence
+    id: facts_card
+    coverage: partial
+    note: Facts card gives purpose, tools, models and data with file and line (flag ONBOARD_FACTS).
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows give the class and its date.
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: Registry holds identity and tier.
+  - kind: process
+    id: ai_registration
+    coverage: partial
+    note: 'Manual step: provider notifies the Ministry through the portal before use; the bank keeps the
+      confirmation with the system identifier.'
   evidence_needed:
   - portal confirmation with system identifier
   verification: VERIFIED_PRIMARY
@@ -708,19 +841,38 @@ obligations:
   - kind: evidence
     id: policy_baseline
     coverage: partial
-    note: versioned policy baseline
+    note: 'Versioned policy baseline (the rules enforced at the gate). Missing: the written procedure for
+      each high-risk agent and its approval are the bank''s; the provider''s technical guidance is not read
+      in.'
   - kind: evidence
     id: coverage_rows
     coverage: partial
-    note: capability coverage per agent
+    note: Capability coverage per agent.
+  - kind: evidence
+    id: risk_register
+    coverage: partial
+    note: Risk register holds risks per system with bands, owners and runtime evidence.
+  - kind: evidence
+    id: control_catalogue
+    coverage: partial
+    note: Control catalogue holds controls with owner, review date and evidence status.
+  - kind: evidence
+    id: task_record
+    coverage: partial
+    note: Lifecycle tasks (for example INI-RISKS, DES-CONTROLS, OPS-REVIEW) record the risk management steps
+      per stage.
+  - kind: evidence
+    id: duties_gap
+    coverage: partial
+    note: Gap closure score and risk line show open duties of the system (flag RISK_DUTIES).
   - kind: process
     id: board_governance
-    coverage: none
-    note: board or committee oversight of AI
+    coverage: partial
+    note: 'Manual step: the senior board or its committee oversees AI risk management.'
   - kind: process
     id: internal_policy_issuance
-    coverage: none
-    note: bank issues the internal policy
+    coverage: partial
+    note: 'Manual step: the bank issues the written risk management procedure for high-risk agents.'
   evidence_needed:
   - risk management procedure for each high-risk agent
   verification: VERIFIED_PRIMARY
@@ -772,32 +924,40 @@ obligations:
   - kind: monitor
     id: drift
     coverage: partial
-    note: behaviour drift band per agent
+    note: 'Behaviour drift band per agent. Missing: the provider''s purpose and limits are not read in;
+      a test of the human intervention path is not recorded; the written usage limits are the bank''s.'
   - kind: catalogue
     id: drift_band
     coverage: partial
-    note: behaviour drift band
+    note: Behaviour drift band.
   - kind: monitor
     id: quality
     coverage: partial
-    note: quality and groundedness sampling
+    note: Quality and groundedness sampling.
   - kind: console
     id: agents
     coverage: partial
-    note: agent registry screen with the pause switch
+    note: Agent registry screen with the pause switch.
   - kind: console
     id: agent_action
     coverage: partial
-    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
-      execution
+    note: Pause, resume or retire switch stops an agent after it acts; it is not human approval before execution.
   - kind: monitor
     id: oversight
     coverage: partial
-    note: dwell time, approval rate and chain_ok metrics show whether the human step is real
+    note: Dwell time, approval rate and chain_ok metrics show whether the human step is real.
   - kind: catalogue
     id: approved_tools
     coverage: partial
-    note: tool allow-list keeps the agent inside its purpose
+    note: Tool allow-list keeps the agent inside its purpose.
+  - kind: console
+    id: attach_view
+    coverage: partial
+    note: Attach view shows which guardians are plugged in and gave evidence in the last 7 days (flag ONBOARD_ATTACH_VIEW).
+  - kind: evidence
+    id: facts_card
+    coverage: partial
+    note: Facts card shows the purpose and limits found in the code, with file and line (flag ONBOARD_FACTS).
   evidence_needed:
   - monitoring in place
   - human intervention path tested
@@ -844,24 +1004,33 @@ obligations:
   - kind: console
     id: agent_action
     coverage: partial
-    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
-      execution
+    note: 'Pause, resume or retire switch stops an agent after it acts; it is not human approval before
+      execution. Missing: the decision that harm is serious, the notice to the provider and the notice to
+      the authority.'
   - kind: console
     id: agents
     coverage: partial
-    note: agent registry screen with the pause switch
+    note: Agent registry screen with the pause switch.
   - kind: evidence
     id: case_file
     coverage: partial
-    note: case file export can hold the facts for a report; Supervisor does not file the report
+    note: Case file export can hold the facts for a report; Supervisor does not file the report.
+  - kind: evidence
+    id: incident_record
+    coverage: partial
+    note: Incident rows record the event and who closed it.
+  - kind: evidence
+    id: incident_clock
+    coverage: partial
+    note: Case clock computes the report due times; it does not send anything.
   - kind: process
     id: regulator_notification
-    coverage: none
-    note: the bank files the report on the national AI portal or with SBV
+    coverage: partial
+    note: 'Manual step: the bank notifies the provider and the authority through the portal or SBV.'
   - kind: process
     id: incident_management
-    coverage: none
-    note: bank incident procedure
+    coverage: partial
+    note: 'Manual step: a named person decides that the risk is serious and orders the restriction.'
   evidence_needed:
   - pause or restriction applied
   - notice to provider and authority
@@ -905,18 +1074,29 @@ obligations:
     - provider
   addressee: any
   control_mapping:
-  - kind: process
-    id: customer_disclosure
-    coverage: none
-    note: customer-facing notices
   - kind: evidence
     id: evidence_chain
     coverage: partial
-    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+    note: 'Hash-chained record of gate decisions and verdicts; the bank still owns retention and access.
+      Missing: the AI notice and label in the customer channel; Supervisor stores information for inspectors
+      but does not display notices.'
   - kind: evidence
     id: audit_pack
     coverage: partial
-    note: audit export
+    note: Audit export for inspectors.
+  - kind: evidence
+    id: transparency_report
+    coverage: partial
+    note: 'Transparency report: purpose, class, controls, limits; variants for regulator, customer and internal
+      readers.'
+  - kind: console
+    id: transparency
+    coverage: partial
+    note: Console page that builds the report per agent.
+  - kind: process
+    id: customer_disclosure
+    coverage: partial
+    note: 'Manual step: show the AI notice and the statement of limits to customers in the bank channel.'
   evidence_needed:
   - AI notice
   - statement of limits
@@ -960,15 +1140,25 @@ obligations:
   - kind: evidence
     id: audit_pack
     coverage: partial
-    note: audit export pack
+    note: 'Audit export pack. Missing: no intake or tracking of a written request from the authority; the
+      answer is written by people.'
   - kind: evidence
     id: case_file
     coverage: partial
-    note: case file export can hold the facts for a report; Supervisor does not file the report
+    note: Case file export can hold the facts for a report; Supervisor does not file the report.
+  - kind: evidence
+    id: transparency_report
+    coverage: partial
+    note: Transparency report (regulator variant) is a ready explanation of identity, class and controls.
+  - kind: console
+    id: transparency
+    coverage: partial
+    note: Console page that builds the report per agent.
   - kind: process
     id: legal_review
-    coverage: none
-    note: bank counsel confirms scope and reading
+    coverage: partial
+    note: 'Manual step: counsel receives the written request, sets the scope and time limit, and approves
+      the answer; source code and trade secrets stay protected (Art. 16(4)).'
   evidence_needed:
   - response procedure for written requests
   verification: VERIFIED_PRIMARY
@@ -1008,8 +1198,10 @@ obligations:
   control_mapping:
   - kind: process
     id: vendor_management
-    coverage: none
-    note: contract, audit and exit plan with the AI vendor
+    coverage: partial
+    note: 'Manual step: put a clause in the contract with the model vendor that it supplies the technical
+      information needed for transparency and accountability. No Supervisor control: the duty is a contract
+      term; Supervisor cannot see contracts.'
   evidence_needed:
   - contract clause on technical information from the model vendor
   verification: VERIFIED_PRIMARY
@@ -1049,9 +1241,11 @@ obligations:
   addressee: provider
   control_mapping:
   - kind: process
-    id: customer_disclosure
+    id: media_marking
     coverage: none
-    note: mark implemented in the generator
+    note: 'No control: Supervisor agents answer in text, and Art. 17(1) does not ask for a machine-readable
+      mark on text; the duty is the provider''s. If the bank builds an agent that makes audio, image or
+      video, the generator must add the mark and this row needs a bank process.'
   evidence_needed:
   - watermark or metadata mark on generated media
   verification: VERIFIED_PRIMARY
@@ -1092,8 +1286,10 @@ obligations:
   control_mapping:
   - kind: process
     id: customer_disclosure
-    coverage: none
-    note: public notice
+    coverage: partial
+    note: 'Manual step: put a clear notice on AI-made content the bank releases to the public when it could
+      be mistaken for real events, persons or sources. No Supervisor control: Supervisor does not see what
+      the bank publishes and its agents answer in text.'
   evidence_needed:
   - notice or label on public AI content
   verification: VERIFIED_PRIMARY
@@ -1135,8 +1331,9 @@ obligations:
   control_mapping:
   - kind: process
     id: customer_disclosure
-    coverage: none
-    note: label policy
+    coverage: partial
+    note: 'Manual step: label AI audio, image or video that imitates a real person or recreates real events.
+      No Supervisor control: Supervisor agents make no audio, image or video.'
   evidence_needed:
   - label on synthetic media
   verification: VERIFIED_PRIMARY
@@ -1177,24 +1374,30 @@ obligations:
   - kind: evidence
     id: evidence_chain
     coverage: partial
-    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+    note: 'Hash-chained record of gate decisions and verdicts; the bank still owns retention and access.
+      Missing: the notice to the provider; a serious incident of Art. 19(1) is a legal test that a person
+      applies.'
   - kind: evidence
     id: agent_event_log
     coverage: partial
-    note: recorded tool calls and gate decisions per agent
+    note: Recorded tool calls and gate decisions per agent.
   - kind: console
     id: agent_action
     coverage: partial
-    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
-      execution
+    note: Pause, resume or retire switch limits the damage after the agent acts.
   - kind: evidence
     id: case_file
     coverage: partial
-    note: case file export can hold the facts for a report; Supervisor does not file the report
+    note: Case file export can hold the facts for a report; Supervisor does not file the report.
+  - kind: evidence
+    id: incident_record
+    coverage: partial
+    note: Incident rows record the event, the status and who closed it.
   - kind: process
     id: incident_management
-    coverage: none
-    note: bank incident procedure
+    coverage: partial
+    note: 'Manual step: record the serious incident, limit the damage and tell the provider so both fix
+      it.'
   evidence_needed:
   - incident record
   - notice to provider
@@ -1242,25 +1445,31 @@ obligations:
   addressee: deployer
   control_mapping:
   - kind: evidence
+    id: incident_clock
+    coverage: partial
+    note: 'Case clock computes the due time of the preliminary report (72 hours if urgent, else 5 working
+      days) and records ''report sent''. Missing: Supervisor does not fill form AI01a or send it; the confirmation
+      time is taken as the case detection time and urgency is guessed from severity (ASSUMED in incident_clock.py).'
+  - kind: evidence
     id: case_file
     coverage: partial
-    note: case file export can hold the facts for a report; Supervisor does not file the report
+    note: Case file export can hold the facts for a report; Supervisor does not file the report.
   - kind: evidence
     id: evidence_chain
     coverage: partial
-    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+    note: Hash-chained record of gate decisions and verdicts; the bank still owns retention and access.
   - kind: evidence
     id: agent_event_log
     coverage: partial
-    note: recorded tool calls and gate decisions per agent
+    note: Recorded tool calls and gate decisions per agent.
   - kind: process
     id: regulator_notification
-    coverage: none
-    note: the bank files the report on the national AI portal or with SBV
+    coverage: partial
+    note: 'Manual step: fill form AI01a and send it through the portal; the case clock only tells when.'
   - kind: process
     id: incident_management
-    coverage: none
-    note: bank incident procedure
+    coverage: partial
+    note: 'Manual step: a named person confirms the incident (Art. 19(3)(c)) and decides urgent or not.'
   evidence_needed:
   - incident clock started at confirmation
   - preliminary report on form AI01a
@@ -1307,25 +1516,31 @@ obligations:
   addressee: deployer
   control_mapping:
   - kind: evidence
+    id: incident_clock
+    coverage: partial
+    note: 'Case clock computes the due time of the formal report (15 days after the preliminary report).
+      Missing: the formal report itself and its sending; how long the bank keeps the logs is the bank''s
+      schedule.'
+  - kind: evidence
     id: evidence_chain
     coverage: partial
-    note: hash-chained record of gate decisions and verdicts; the bank still owns retention and access
+    note: Hash-chained record of gate decisions and verdicts; the bank still owns retention and access.
   - kind: evidence
     id: agent_event_log
     coverage: partial
-    note: recorded tool calls and gate decisions per agent
+    note: Recorded tool calls and gate decisions per agent.
   - kind: evidence
     id: case_file
     coverage: partial
-    note: case file export can hold the facts for a report; Supervisor does not file the report
+    note: Case file export can hold the facts for a report; Supervisor does not file the report.
   - kind: evidence
     id: audit_pack
     coverage: partial
-    note: audit export
+    note: Audit export.
   - kind: process
     id: regulator_notification
-    coverage: none
-    note: the bank files the report on the national AI portal or with SBV
+    coverage: partial
+    note: 'Manual step: write and send the formal remediation report to the authority within 15 days.'
   evidence_needed:
   - incident logs retained
   - formal report filed within 15 days
@@ -1365,13 +1580,17 @@ obligations:
   control_mapping:
   - kind: console
     id: agent_action
-    coverage: partial
-    note: pause, resume or retire switch stops an agent after it acts; it is not human approval before
-      execution
+    coverage: full
+    note: 'Pause and quarantine stop the agent at the gate at once; the state change is a chain record.
+      This is the whole technical need: the ability to stop an agent on order.'
   - kind: console
     id: agents
     coverage: partial
-    note: agent registry screen with the pause switch
+    note: Agent registry screen shows the gate state of every agent.
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: a named person receives the authority''s order and triggers the pause.'
   evidence_needed:
   - ability to stop an agent on order
   verification: VERIFIED_PRIMARY
@@ -1414,12 +1633,14 @@ obligations:
   control_mapping:
   - kind: process
     id: ai_registration
-    coverage: none
-    note: filing channel
+    coverage: partial
+    note: 'Manual step: check which interim channel the Ministry announced and record it before the first
+      filing. No Supervisor control: the announcement is outside knowledge and Supervisor is offline by
+      design (a watcher is planned in Phase 11).'
   - kind: process
     id: legal_review
-    coverage: none
-    note: bank counsel confirms scope and reading
+    coverage: partial
+    note: 'Manual step: counsel confirms whether the portal is live and which channel applies.'
   evidence_needed:
   - check which channel MST announced
   verification: VERIFIED_PRIMARY

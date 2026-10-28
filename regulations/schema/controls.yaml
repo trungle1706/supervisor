@@ -5,6 +5,10 @@
 #   kind console   -> console screen name below; its path must exist in src/supervisor/console/routes.py
 #   kind evidence  -> evidence artefact below; its module or table must exist
 #   kind process   -> bank process below (owned by the bank, Supervisor only records evidence of it)
+# Entries added in WP-L5 carry an optional doc: "<file> | <heading text>" that names the doc section
+# describing the control (a test checks the file and the heading). Console entries are assumed present for
+# every supervised product (advisory.compliance.facts.standard_controls); a label that names a flag
+# is live only when the deployment sets that flag.
 # coverage on a mapping: full = the control alone meets the duty; partial = it helps, more is needed;
 # none = no Supervisor control; the bank must act (used with kind process).
 schema_version: 1
@@ -30,6 +34,16 @@ console:
   onboard: {path: /onboard, label: Onboarding runs}
   inbox: {path: /inbox, label: Notices to reviewers}
   health: {path: /health, label: System health}
+  systems: {path: "/systems/{system_id}", label: "AI system page (register, lifecycle, tasks, Decision 33 class, reports)", doc: "docs/console.md | Systems pages"}
+  incidents: {path: /incidents, label: "Incident list and transitions (governance incidents)", doc: "docs/incidents.md | Console"}
+  transparency: {path: /transparency, label: "Transparency report per agent (regulator, customer, internal variants)", doc: "docs/transparency-report.md | Variants"}
+  assurance: {path: /assurance, label: "Assurance pack runs and results", doc: "docs/assurance.md | Catalogue"}
+  workflow_actions: {path: "/systems/{system_id}/tasks/{task_id}/done", label: "Task and stage buttons with a second person (flag CONSOLE_WORKFLOW_ACTIONS)", doc: "docs/console.md | Tasks and stage approvals as buttons"}
+  state_actions: {path: "/agents/{agent_id}/running/{step}", label: "Request and approve RUNNING by a second person (flag CONSOLE_STATE_ACTIONS)", doc: "docs/decision33.md | Separation of duties"}
+  attach_view: {path: "/attach/{node_id}", label: "Guardian attach view with last-7-day evidence (flag ONBOARD_ATTACH_VIEW)", doc: "docs/guardian-bindings.md | Attach view"}
+  law_agent_drafts: {path: "/regkb/{instrument_id}/drafts", label: "Law agent drafts confirmed or dropped by a person (flag LAWAGENT_ENABLED)", doc: "docs/regulations.md | Law agent (WP-L1)"}
+  duties_actions: {path: "/systems/{system_id}/duties/close", label: "Duties tab: close, waive, re-evaluate (flag RISK_DUTIES)", doc: "docs/console.md | Duties tab"}
+  schema_selfcheck: {path: /admin/schema, label: "Start-up schema check with the SQL plan (flag SCHEMA_SELFCHECK)", doc: "docs/console.md | Schema check"}
 evidence:
   evidence_chain: {module: supervisor.evidence.chain, label: Hash-chained evidence lanes with signed roots}
   chain_verify_report: {module: supervisor.evidence.verify, label: Offline chain verification report}
@@ -49,6 +63,23 @@ evidence:
   onboard_plan: {module: supervisor.onboard.plan, label: Onboarding control plan}
   launch_report: {module: supervisor.onboard.launch, label: Launch sandbox report (catch rate, false alarms, GO or NO-GO)}
   handover: {module: supervisor.onboard.operate, label: Operate handover}
+  guardian_off_approval: {table: guardian_off_request, label: "Reason and second-person approval to switch a guardian off (flag CONSOLE_STATE_ACTIONS)", doc: "docs/guardian-bindings.md | Reason and second person for a switch-off"}
+  intake_scrub: {table: intake_attempt, label: "Candidate source intake: checked zip or URL, secrets scrubbed before any model reads it (flag ONBOARD_INTAKE)", doc: "docs/onboard.md | Intake (WP-O1"}
+  facts_card: {table: onboard_facts, label: "Facts card: tools, models, data, approval points with file and line (flag ONBOARD_FACTS)", doc: "docs/onboard.md | Facts card (WP-O2"}
+  predeploy_report: {table: predeploy_report, label: "Pre-deploy report: GO, NO-GO or QUESTIONS with pointers (flag ONBOARD_PREDEPLOY)", doc: "docs/onboard.md | Pre-deploy assessment (WP-O3"}
+  duties_step: {table: obligation_status, label: "Duties step of the register workflow: one row per duty with applies and coverage (flag CONSOLE_REGISTER_DUTIES)", doc: "docs/register-v2.md | Duties step (WP-L2"}
+  duties_gap: {module: supervisor.governance.duties_gap, label: "Gap closure score, risk line and due-date sweep for open duties (flag RISK_DUTIES)", doc: "docs/risk-register.md | Duties (WP-L3)"}
+  incident_record: {table: incident, label: "Governance incidents with status and closer", doc: "docs/incidents.md | Table"}
+  incident_clock: {module: supervisor.cases.incident_clock, label: "Report due times of a case: 72 h or 5 working days, then 15 days (Decree 142 Art. 19)", doc: "docs/judge-mrm.md | Incident clock"}
+  transparency_report: {table: transparency_report, label: "Transparency report rows per agent and variant", doc: "docs/transparency-report.md | Variants"}
+  assurance_results: {table: eval_result, label: "Assurance pack results (OWASP, red team, fairness, SBOM, licence, pin and hash packs)", doc: "docs/assurance.md | How results flow"}
+  risk_register: {table: risk, label: "Risk register with bands and evidence", doc: "docs/risk-register.md | Model"}
+  control_catalogue: {table: control, label: "Control catalogue with owner, review date and evidence status", doc: "docs/controls.md | The control"}
+  task_record: {table: task, label: "Lifecycle tasks with stage, role, evidence and waiver record", doc: "docs/controls.md | Tasks and sizing"}
+  lifecycle_approval: {table: stage_approval, label: "Stage approvals: request, second person, move (seven stages)", doc: "docs/governance.md | Stage approvals and the lifecycle move"}
+  classification_record: {table: classification, label: "Decision 33 classification: proposal, answers, class", doc: "docs/decision33.md | Steps"}
+  ai_system_record: {table: ai_system, label: "AI system record: name, owner, team, risk level, components", doc: "docs/governance.md | What it is"}
+  threshold_check: {module: supervisor.advisory.compliance.thresholds, label: "Daily cap check of AI payment limits against Circular 53 Art. 5(1)(g)(ii)", doc: "docs/compliance-advisor.md | Threshold check"}
 process:
   legal_review: {label: Bank legal or compliance review and interpretation}
   dpo_signoff: {label: Data protection officer review and sign-off}
@@ -73,3 +104,18 @@ process:
   data_localisation_setup: {label: In-country hosting decision and setup}
   board_governance: {label: Board or committee oversight of AI}
   internal_policy_issuance: {label: Issue or update an internal bank policy}
+  change_management: {label: "Bank IT change management procedure applied to AI model and system changes"}
+  ai_inventory_review: {label: "Yearly review and approval of the AI system inventory"}
+  risk_classification_approval: {label: "Approval of the risk classification by the competent level (board, legal representative or written delegate)"}
+  ai_bom_management: {label: "AI bill of materials, component integrity checks and vulnerability watch"}
+  customer_control_tool: {label: "Customer channel tool to pause or revoke autonomous AI payments"}
+  impact_assessment_file: {label: "Impact assessment file of a high-risk AI system, approved and kept"}
+  go_live_decision: {label: "Go-live dossier and decision by the competent level"}
+  board_reporting: {label: "Periodic report on AI to the senior board and the parent bank"}
+  three_lines_model: {label: "Three lines of defence for AI risk (roles, independence, outsourcing of functions)"}
+  elending_compliance: {label: "Check of the credit agent against the rules on lending by electronic means"}
+  media_marking: {label: "Machine-readable mark on AI audio, image or video output"}
+  emergency_stop_drill: {label: "Drill of the emergency stop and the manual fallback"}
+  retirement_procedure: {label: "Safe shutdown of a retired AI system (archive, then delete or isolate data, model, configuration)"}
+  user_guidance: {label: "User guide, limits and warnings for internal users of each AI system"}
+  customer_explanation: {label: "Answer to a customer who asks why an automated decision was made"}

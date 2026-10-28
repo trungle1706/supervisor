@@ -52,6 +52,39 @@
   supervisor.governance.regulator_pack --system <id> --out <dir>`. No schema change. With the flag
   off nothing changes and the routes answer 400 `regulator_pack_off`. `app.yaml` has the commented
   flags. Details: `docs/regulator-pack.md`.
+- WP-L5 (phase 8): **Decree 142 and Circular 53 coverage raise**, no flag (data, vocabulary, two
+  tests, one dev tool). All 26 obligations of Decree 142/2026 and all 53 of Circular 53/2026 were
+  read again against the stored article and their `control_mapping` was rewritten by hand. Rules
+  (tests enforce them): a `partial` Supervisor control names what is missing (`Missing: ...`); a
+  bank process entry is `partial` with `Manual step: ...`; a duty with no Supervisor control says
+  `No Supervisor control: <reason>`; `full` only when the control alone meets the evidence need
+  (one row: Decree 142 Art. 19(6), the pause and quarantine switch). Counts (full / partial /
+  none, Supervisor controls only): Decree 142 0 / 19 / 7 to 1 / 19 / 6; Circular 53 0 / 47 / 6 to
+  0 / 49 / 4; with bank process steps counted: 1 / 24 / 1 and 0 / 53 / 0. Supervisor entries
+  went from 50 to 87 and from 129 to 202; process entries from 78 `none` to 94 `partial` and
+  one `none` with its reason. `text_vi`, verification tags, article references and dates are
+  unchanged. `regulations/schema/controls.yaml` keeps its schema and gets the controls of the
+  new features (console `workflow_actions`, `state_actions`, `attach_view`, `law_agent_drafts`,
+  `duties_actions`, `schema_selfcheck`; evidence `guardian_off_approval`, `intake_scrub`,
+  `facts_card`, `predeploy_report`, `duties_step`, `duties_gap`), existing features the mapping
+  needed (console `systems`, `incidents`, `transparency`, `assurance`; evidence `incident_record`,
+  `incident_clock`, `transparency_report`, `assurance_results`, `risk_register`,
+  `control_catalogue`, `task_record`, `lifecycle_approval`, `classification_record`,
+  `ai_system_record`, `threshold_check`) and 15 bank process ids; each new entry names its doc
+  section in an optional `doc` field. `python -m supervisor.regkb coverage --levels` prints
+  full / partial / none per instrument. **OCR of the signed Circular 53**: new dev-host tool
+  `tools/regkb_ocr.py` (pdftoppm and `tesseract -l vie` through `subprocess`, never imported by
+  the app) wrote `regulations/sources/VN-TT53-2026/53-2026-tt-nhnn-signed.ocr.txt` (23 pages)
+  and `.ocr.meta.json` (sha256 of the PDF and the text, tool versions, date). New test
+  `tests/regkb/test_quotes_ocr.py` checks every Circular 53 quote against the vbpl text (exact)
+  and the OCR text (folded for diacritics, punctuation, white space and look-alike characters;
+  exact 46 of 53, noise-tolerant 53 of 53; it fails when more than 10 percent match neither
+  way). `test_quotes.py` ignores `*.ocr.txt`. The RegKB version hash changed (`74cb5bb09c73` to
+  `58ce65e3a06b`); the four compliance snapshots and `product.schema.json` (evidence ids) were
+  regenerated: Decree 142 Art. 19(6) is `met`, Circular 53 Art. 16(4) and Art. 20(2) are
+  `partial` (were `bank_process`), Decree 142 Art. 5(4) reads `gap` (Supervisor evidence is
+  mapped but not on for an unlaunched product). Details: `docs/regulations.md` "Coverage raise
+  (WP-L5)". Not legal advice. Bank counsel must confirm.
 - WP-O4 (phase 9): **guardian attachment view**, `ONBOARD_ATTACH_VIEW` (default `0`). New **Attach**
   tab on the agent page (after Pre-deploy) and **Attach** panel in the Candidates drawer. Content:
   an inline SVG wiring picture (agent, plug point, Supervisor gate, four guardian groups; one

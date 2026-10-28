@@ -11,6 +11,7 @@ import os
 import sys
 import unicodedata
 from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,7 @@ from supervisor.core.errors import SupervisorError
 from supervisor.regkb import DISCLAIMER
 from supervisor.regkb.errors import RegKBError, UnknownObligationError
 from supervisor.regkb.loader import load_kb
-from supervisor.regkb.model import KnowledgeBase, Obligation, to_plain
+from supervisor.regkb.model import Control, KnowledgeBase, Obligation, to_plain
 
 STRIPPED_NOTE = "(diacritics stripped; see file)"
 _SPECIAL = str.maketrans(
@@ -167,8 +168,54 @@ def cmd_coverage(args: argparse.Namespace) -> int:
     out(f"  at least one full control: {tally['full']}")
     out(f"  only partial controls:     {tally['partial']}")
     out(f"  none or process only:      {tally['none']}")
+    if args.levels:
+        _levels(kb)
     out(f"version {kb.version}")
     return 0
+
+
+def _levels(kb: KnowledgeBase) -> None:
+    """Per instrument: obligations by control level (WP-L5). 'Supervisor' counts the entries that
+    are not a bank process; 'with process' counts every entry (a process step counts as partial)."""
+    rows = [
+        [
+            "instrument",
+            "obligations",
+            "Supervisor f/p/n",
+            "with process f/p/n",
+            "none, named reason",
+        ]
+    ]
+    for inst in kb.instruments:
+        obs = kb.obligations_of(inst.id)
+        sup = Counter(_control_level(o) for o in obs)
+        every = Counter(_best_level(o.control_mapping) for o in obs)
+        named = sum(
+            1
+            for o in obs
+            if _control_level(o) == "none"
+            and any(
+                (c.note or "").startswith(("Manual step:", "No control:"))
+                for c in o.control_mapping
+            )
+        )
+        rows.append(
+            [
+                inst.id,
+                str(len(obs)),
+                f"{sup['full']}/{sup['partial']}/{sup['none']}",
+                f"{every['full']}/{every['partial']}/{every['none']}",
+                str(named),
+            ]
+        )
+    out()
+    out("Control levels per instrument (f = full, p = partial, n = none):")
+    _table(rows)
+
+
+def _best_level(controls: Iterable[Control]) -> str:
+    cov = {c.coverage for c in controls}
+    return "full" if "full" in cov else "partial" if "partial" in cov else "none"
 
 
 def _control_level(o: Obligation) -> str:
@@ -244,7 +291,9 @@ def _parser() -> argparse.ArgumentParser:
     show = sub.add_parser("show")
     show.add_argument("id")
     show.set_defaults(func=cmd_show)
-    sub.add_parser("coverage").set_defaults(func=cmd_coverage)
+    cov = sub.add_parser("coverage")
+    cov.add_argument("--levels", action="store_true", help="add full/partial/none per instrument")
+    cov.set_defaults(func=cmd_coverage)
     diff = sub.add_parser("diff")
     diff.add_argument("a")
     diff.add_argument("b")

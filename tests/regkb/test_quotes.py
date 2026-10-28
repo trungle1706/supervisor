@@ -28,7 +28,13 @@ def _stored_text(instrument_id: str) -> str | None:
     folder = SOURCES / instrument_id
     if not folder.is_dir():
         return None
-    parts = [p.read_text(encoding="utf-8", errors="replace") for p in sorted(folder.glob("*.txt"))]
+    parts = [
+        p.read_text(encoding="utf-8", errors="replace")
+        for p in sorted(folder.glob("*.txt"))
+        if not p.name.endswith(
+            ".ocr.txt"
+        )  # OCR of a signed scan is a second check, not the text of record
+    ]
     return _norm("\n".join(parts)) if parts else None
 
 
