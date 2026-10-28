@@ -104,3 +104,7 @@ page (UX4b) can call it. That tab is not part of WP-S1.
 * A lookup that fails leaves every feature as the instance has it (more coverage, never less).
 * Switching the session monitor off for an agent also stops its pause enforcement, as the per-agent
   `monitors.session.enabled: false` of the policy file does (`docs/session-monitor.md`).
+
+## Reason and second person for a switch-off (WP-P2, phase 8, `CONSOLE_STATE_ACTIONS`)
+
+With the flag on, a switch-off needs a reason (HTTP 400 `reason_required`). On a system in `deployment`, `operation` or `re_evaluation`, at risk level `high` or `prohibited`, or classed high risk, the switch-off is a request (`guardian_off_request`, status `pending`) and the binding changes only when a second person approves it: `POST /v1/systems/{id}/guardian-off-requests/{request_id}/decide` with `{"decision": "approve"|"reject"}` (permission `systems.approve`), or Approve and Reject on the Catalog page. The requester gets HTTP 400 `same_person`. The floor is read again at approval: a floor feature can never be switched off. `GET /v1/systems/{id}/guardians` adds `pending_off` (only with the flag on). Switching on needs neither. Chain: `binding_change` records for request, approval (with `approver_ref`) and rejection.

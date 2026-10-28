@@ -673,6 +673,11 @@ class Settings(BaseSettings):
     # Systems pages (needs GOVERNANCE_ENABLED too).
     governance_enabled: bool = False
     console_systems_enabled: bool = False
+    # --- WP-P2 (phase 8) --- agent state and separation of duties in the console: Request and
+    # Approve RUNNING on the agent page, Decision 33 apply (the system owner cannot apply; every
+    # answer needs a justification of 20 characters), guardian switch-off (reason; a second
+    # person on a production or high-risk system). Off = nothing changes (new: off).
+    console_state_actions: bool = False
     # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.

@@ -20,6 +20,7 @@
 <p>{{ t('sy_cls_outcome') }}: {{ ui.pill(t('sy_d33_' ~ cls.draft.outcome), 'bad' if cls.draft.outcome == 'high_risk' else ('ok' if cls.draft.outcome == 'not_high_risk' else 'neutral')) }}
   <span class="muted">{{ cls.draft.reason }}{% if cls.draft.decided_by_rule %} ({{ t('sy_cls_rule') }} <span class="mono">{{ cls.draft.decided_by_rule }}</span>){% endif %}</span></p>
 {% if ai_pending %}<p class="hint">{{ t('sy_cls_ai_note') }}</p>{% endif %}
+{% if min_why %}<p class="hint" data-min-why="{{ min_why }}">{{ t('sy_cls_why_min', n=min_why) }}</p>{% endif %}
 <form method="post" action="{{ base }}/answers?lang={{ lang }}" hx-post="{{ base }}/answers?lang={{ lang }}" hx-swap="none">
 <div class="tablewrap flat"><table>
   <thead><tr><th scope="col">{{ t('sy_cls_q') }}</th><th scope="col">{{ t('sy_cls_a') }}</th><th scope="col">{{ t('sy_cls_src') }}</th><th scope="col">{{ t('sy_cls_why') }}</th></tr></thead>

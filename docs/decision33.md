@@ -115,3 +115,7 @@ pre-fill" and "mock model". EN and VI.
 | `human_gate_in_code` true (for example a LangGraph `interrupt_before` or an approval step) | `yes`, source rules; the justification adds the `file:line` of the gate |
 | `human_gate_in_code` false | not answered, source person: "unknown, a person confirms (declared, not found in code)". The outcome is `unclassified` until a person answers. |
 | no profile, or no money or credit tool | unchanged: `yes` from the declared field |
+
+## Separation of duties (WP-P2, phase 8, `CONSOLE_STATE_ACTIONS`)
+
+With the flag on: the system owner (`owner_user` or an active `system_owner` of the team) cannot apply the class on the own system (HTTP 400 `owner_cannot_apply`), and every answer a person gives needs a justification of at least 20 characters (HTTP 400 `justification_too_short`; the check runs on edit and again on apply for answers a person gave). The reviewer and oversight-manager rule is unchanged. Off = as before.

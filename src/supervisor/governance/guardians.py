@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import logging
 import time
+import uuid
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -33,13 +34,17 @@ import yaml
 
 from supervisor.controls.model import actor_ref
 from supervisor.core.canonical import format_ts, sha256_hex
-from supervisor.core.errors import NotFoundError
+from supervisor.core.errors import ConcurrencyError, NotFoundError
 from supervisor.governance.model import SystemsError, check_system_id, check_user, ensure_on
 
 log = logging.getLogger("supervisor.governance")
 
 STATES = ("on", "off")
 MAX_REASON = 500
+# WP-P2 (phase 8, CONSOLE_STATE_ACTIONS): a switch-off on a system in one of these stages, or at
+# these risk levels, or classed high risk, needs a second person.
+LIVE_STAGES = ("deployment", "operation", "re_evaluation")
+SECOND_PERSON_RISK = ("high", "prohibited")
 
 # Feature slugs that are not detectors. Detector slugs are the keys of config/detectors.yaml.
 SESSION = "session_monitor"
@@ -55,6 +60,24 @@ def _on(value: Any) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in ("1", "true")
     return bool(value)
+
+
+class GuardianOffError(SystemsError):
+    """A refused switch-off step. The message starts with a short code (HTTP 400)."""
+
+
+def state_actions_on(settings: Any) -> bool:
+    return bool(getattr(settings, "console_state_actions", False))
+
+
+def needs_second_person(system: Mapping[str, Any]) -> bool:
+    """True when the system is live (deployment, operation, re-evaluation), has a high risk
+    level, or is classed high risk under Decision 33."""
+    return (
+        str(system.get("lifecycle_stage")) in LIVE_STAGES
+        or str(system.get("risk_level")) in SECOND_PERSON_RISK
+        or str(system.get("decision33_class")) == "high_risk"
+    )
 
 
 def bump() -> None:
@@ -209,12 +232,15 @@ class GuardianService:
                     "reason": (row.get("reason") if row is not None else None),
                 }
             )
-        return {
+        res: dict[str, Any] = {
             "system_id": system_id,
             "count": len(out),
             "guardians": out,
             "never_bindable": sorted(NEVER_BINDABLE),
         }
+        if state_actions_on(self.settings):  # WP-P2 (phase 8): off path adds no key
+            res["pending_off"] = self.pending_off(system_id)
+        return res
 
     # ------------------------------------------------------------------ write
     def set(
@@ -259,6 +285,26 @@ class GuardianService:
         cur = self.state.get("guardian_binding", {"system_id": system_id, "feature_slug": slug})
         if (cur is not None and str(cur["state"]) == state) or (cur is None and state == "on"):
             return self._one(system_id, slug)  # no effective change: write nothing
+        if state == "off" and state_actions_on(self.settings):  # WP-P2 (phase 8)
+            if not reason:
+                raise GuardianOffError("reason_required: give the reason for switching it off")
+            if needs_second_person(row):
+                req = self._request_off(row, slug, actor, reason)
+                return {**self._one(system_id, slug), "pending_request": req}
+        self._write(system_id, slug, state, actor, reason, mandatory, cur)
+        return self._one(system_id, slug)
+
+    def _write(
+        self,
+        system_id: str,
+        slug: str,
+        state: str,
+        actor: str,
+        reason: str | None,
+        mandatory: bool,
+        cur: Mapping[str, Any] | None,
+        approver: str | None = None,
+    ) -> None:
         now = self.clock.now()
         fields = {
             "state": state,
@@ -288,10 +334,150 @@ class GuardianService:
             "actor_ref": actor_ref(self.settings, actor, "system"),
             "ts": format_ts(now),
         }
+        if approver:
+            payload["approver_ref"] = actor_ref(self.settings, approver, "system")
         if reason:
             payload["reason_sha256"] = sha256_hex(reason)
         self._chain(payload)
-        return self._one(system_id, slug)
+
+    # ------------------------------------------------------- WP-P2: second person for switch-off
+    def pending_off(self, system_id: str) -> list[dict[str, Any]]:
+        """Switch-off requests that wait for a second person (oldest first)."""
+        rows = [
+            dict(r)
+            for r in self.state.query(
+                "guardian_off_request", {"system_id": system_id, "status": "pending"}
+            )
+        ]
+        rows.sort(key=lambda r: (r["created_at"], r["request_id"]))
+        return [
+            {
+                "request_id": r["request_id"],
+                "system_id": r["system_id"],
+                "feature_slug": r["feature_slug"],
+                "requested_by": r["requested_by"],
+                "reason": r["reason"],
+                "created_at": format_ts(r["created_at"]),
+            }
+            for r in rows
+        ]
+
+    def _request_off(
+        self, system: Mapping[str, Any], slug: str, actor: str, reason: str
+    ) -> dict[str, Any]:
+        system_id = str(system["system_id"])
+        if any(r["feature_slug"] == slug for r in self.pending_off(system_id)):
+            raise GuardianOffError(
+                f"request_pending: a request to switch {slug} off is already waiting for a "
+                "second person"
+            )
+        now = self.clock.now()
+        row = dict(
+            self.state.insert(
+                "guardian_off_request",
+                {
+                    "request_id": "gof_" + uuid.uuid4().hex[:24],
+                    "system_id": system_id,
+                    "feature_slug": slug,
+                    "requested_by": actor,
+                    "reason": reason,
+                    "status": "pending",
+                    "created_at": now,
+                },
+            )
+        )
+        self._chain(
+            {
+                "system_id": system_id,
+                "feature_slug": slug,
+                "from_state": "on",
+                "to_state": "off",
+                "status": "requested",
+                "request_id": row["request_id"],
+                "actor_ref": actor_ref(self.settings, actor, "system"),
+                "reason_sha256": sha256_hex(reason),
+                "ts": format_ts(now),
+            }
+        )
+        return {
+            "request_id": row["request_id"],
+            "feature_slug": slug,
+            "requested_by": actor,
+            "status": "pending",
+        }
+
+    def decide_off(
+        self, system_id: str, request_id: str, approver: str, decision: str = "approve"
+    ) -> dict[str, Any]:
+        """A second person approves or rejects a switch-off request. The requester cannot answer
+        (code ``same_person``). Approval writes the binding; the floor is read again first."""
+        ensure_bindings_on(self.settings)
+        if not state_actions_on(self.settings):
+            raise GuardianOffError(
+                "switch-off approval is off (CONSOLE_STATE_ACTIONS=1 turns it on)"
+            )
+        check_user(approver, "approver")
+        row = self._system(system_id)
+        if decision not in ("approve", "reject"):
+            raise GuardianOffError("decision must be approve or reject")
+        req = self.state.get("guardian_off_request", {"request_id": request_id})
+        if req is None or req["system_id"] != system_id:
+            raise NotFoundError(f"switch-off request {request_id} does not exist")
+        if req["status"] != "pending":
+            raise GuardianOffError(f"the request was already answered ({req['status']})")
+        if str(req["requested_by"]).casefold() == approver.casefold():
+            raise GuardianOffError(
+                "same_person: the person who asked for the switch-off cannot answer it; "
+                "a second person does"
+            )
+        slug = str(req["feature_slug"])
+        status = "approved" if decision == "approve" else "rejected"
+        if status == "approved":
+            floor = {f["slug"]: f["rules"] for f in _floor(self.settings, self.state, system_id)}
+            if slug in floor:
+                raise GuardianOffError(
+                    f"{slug} is in the guardian floor of this system (rules "
+                    f"{', '.join(floor[slug])}); it cannot be switched off"
+                )
+            if row["status"] == "archived":
+                raise GuardianOffError(f"AI system {system_id} is archived; it cannot be changed")
+        now = self.clock.now()
+        try:  # claim the request first: a lost race leaves the binding untouched
+            self.state.update(
+                "guardian_off_request",
+                {"request_id": request_id},
+                {"status": status, "decided_by": approver, "decided_at": now},
+                int(req["row_version"]),
+            )
+        except ConcurrencyError:
+            raise GuardianOffError("the request was answered by someone else; reload") from None
+        if status == "approved":
+            cur = self.state.get("guardian_binding", {"system_id": system_id, "feature_slug": slug})
+            if cur is None or str(cur["state"]) != "off":
+                self._write(
+                    system_id,
+                    slug,
+                    "off",
+                    str(req["requested_by"]),
+                    str(req["reason"]),
+                    False,
+                    cur,
+                    approver=approver,
+                )
+        else:
+            self._chain(
+                {
+                    "system_id": system_id,
+                    "feature_slug": slug,
+                    "from_state": "on",
+                    "to_state": "off",
+                    "status": "rejected",
+                    "request_id": request_id,
+                    "actor_ref": actor_ref(self.settings, approver, "system"),
+                    "ts": format_ts(now),
+                }
+            )
+        return {**self._one(system_id, slug), "request_id": request_id, "request_status": status}
 
     def _one(self, system_id: str, slug: str) -> dict[str, Any]:
         for g in self.get(system_id)["guardians"]:

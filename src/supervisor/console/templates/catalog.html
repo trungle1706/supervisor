@@ -24,6 +24,24 @@
   <button class="btn" type="submit">{{ t('gb_show') }}</button>
 </form>
 {% if gb.system %}<p class="hint">{{ t('gb_lede', name=gb.system.name) }}{% if not gb.can_edit %} {{ t('gb_read_only') }}{% endif %}</p>{% endif %}
+{% if gb.system and gb.state_actions %}
+<p class="hint" data-gb-second>{{ t('gb_second_person') }}</p>
+{% if gb.pending_off %}
+<section class="card" data-section="gb-pending" aria-label="{{ t('gb_pending_title') }}">
+  <h3>{{ t('gb_pending_title') }}</h3>
+  <ul class="drawer-list">
+  {% for r in gb.pending_off %}
+    <li data-request="{{ r.request_id }}">{{ t('gb_pending_row', slug=r.feature_slug, who=r.requested_by) }}<div class="idline">{{ r.reason }}</div>
+      {% if gb.can_approve and r.requested_by != gb.me_id %}
+      <form method="post" action="/console/systems/{{ gb.system.system_id }}/guardian-requests/{{ r.request_id }}/approve?lang={{ lang }}"><button class="btn primary" type="submit">{{ t('gb_approve') }}</button></form>
+      <form method="post" action="/console/systems/{{ gb.system.system_id }}/guardian-requests/{{ r.request_id }}/reject?lang={{ lang }}"><button class="btn" type="submit">{{ t('reject') }}</button></form>
+      {% elif r.requested_by == gb.me_id %}<div class="hint">{{ t('gb_you_asked') }}</div>{% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endif %}
 {% endif %}
 {% if not cats %}
 {{ ui.empty(t('cat_none'), t('cat_none_line'), '/console/catalog?tab=catalog&lang=' ~ lang, t('cat_tab_catalog')) }}
@@ -70,6 +88,7 @@
             {% if gb.can_edit %}
             <form method="post" action="/console/systems/{{ gb.system.system_id }}/guardians/{{ g.slug }}?lang={{ lang }}">
               <input type="hidden" name="state" value="{{ 'off' if g.state == 'on' else 'on' }}">
+              {% if gb.state_actions and g.state == 'on' %}<input type="text" name="reason" maxlength="500" required placeholder="{{ t('gb_reason_ph') }}" aria-label="{{ t('reason') }}">{% endif %}
               <button class="btn" type="submit">{{ t('gb_switch_off') if g.state == 'on' else t('gb_switch_on') }}</button>
             </form>
             {% endif %}

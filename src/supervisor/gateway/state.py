@@ -51,6 +51,12 @@ class TransitionError(SupervisorError):
     """A state change is not allowed (shown to the user as HTTP 400)."""
 
 
+class SamePersonError(TransitionError):
+    """The second person is the first person (code ``same_person``)."""
+
+    code = "same_person"
+
+
 def _reason(text: str | None) -> str:
     value = (text or "").strip()
     if len(value) > MAX_REASON:
@@ -600,7 +606,7 @@ class AgentStateMachine:
                 )
             pending = self.pending_mode(agent_id)
             if any(p["principal"] == principal for p in pending):
-                raise TransitionError(
+                raise SamePersonError(
                     f"{principal} already requested this change; a second, different person "
                     "must approve"
                 )

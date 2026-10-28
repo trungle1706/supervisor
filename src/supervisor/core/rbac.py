@@ -299,6 +299,8 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/cases/{case_id}/verify"): "case.verify",
     ("POST", "/console/cases/{case_id}/signoff"): "case.signoff",
     ("POST", "/console/agents/{agent_id}/{action}"): _AGENT_ACTION,
+    # --- WP-P2 (phase 8) --- Request / Approve RUNNING on the agent page (CONSOLE_STATE_ACTIONS)
+    ("POST", "/console/agents/{agent_id}/running/{step}"): "agent.mode",
     ("POST", "/console/intake/run"): "intake.run",
     ("POST", "/console/chain/verify"): "chain.verify",
     ("POST", "/console/chain/export"): "evidence.export",
@@ -432,6 +434,15 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/v1/systems/{system_id}/guardians"): "systems.view",
     ("PUT", "/v1/systems/{system_id}/guardians/{slug}"): "systems.edit",
     ("POST", "/console/systems/{system_id}/guardians/{slug}"): "systems.edit",
+    # --- WP-P2 (phase 8) --- second person for a guardian switch-off (CONSOLE_STATE_ACTIONS)
+    (
+        "POST",
+        "/v1/systems/{system_id}/guardian-off-requests/{request_id}/decide",
+    ): "systems.approve",
+    (
+        "POST",
+        "/console/systems/{system_id}/guardian-requests/{request_id}/{decision}",
+    ): "systems.approve",
     # --- WP-G5 --- incidents of the governance loop (GOVERNANCE_ACTIONS_ENABLED)
     ("GET", "/v1/incidents"): "incidents.view",
     ("GET", "/v1/incidents/{incident_id}"): "incidents.view",
