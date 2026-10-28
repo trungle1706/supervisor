@@ -172,6 +172,37 @@ class ConsoleContext:
         return svc
 
     @property
+    def guardian_defs(self) -> Any:
+        """The guardian definition store (WP-G1, docs/guardian-factory.md)."""
+        from supervisor.guardian_factory.store import GuardianDefStore
+
+        svc = getattr(self, "_guardian_defs", None)
+        if svc is None:
+            svc = GuardianDefStore(
+                self.state, self.tables, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._guardian_defs = svc
+        return svc
+
+    @property
+    def guardian_author(self) -> Any:
+        """The plain-words author (WP-G1). The gateway model only when LLM_BASE_URL is set and
+        LLM_MOCK is off; otherwise the model path answers "model not configured"."""
+        from supervisor.guardian_factory.author import Author
+
+        svc = getattr(self, "_guardian_author", None)
+        if svc is None:
+            chat = masker = None
+            if self.settings.llm_base_url and not self.settings.llm_mock:
+                from supervisor.adapters.factory import make_chat_model, make_masker
+
+                chat = make_chat_model(self.settings)
+                masker = make_masker(self.settings)
+            svc = Author(chat, masker, self.settings)
+            self._guardian_author = svc
+        return svc
+
+    @property
     def lifecycle(self) -> Any:
         """Stage approvals and the lifecycle move of an AI system (WP-G1). Shares the system
         service, so every change goes on the chain."""

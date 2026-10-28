@@ -1579,3 +1579,39 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`classification_v2` (
 USING DELTA
 COMMENT 'WP-C1 (phase 12, CLASSIFICATION_V2). One record of the classification tree (config/classification.yaml) for one AI system: the path from the first question to an outcome (not_system, prohibited, high_certify, high_self, medium, low), decided by a person and approved by a different person (Circular 53 Art. 4(3)). path_json is a JSON list of steps {node, answer, source (rules | person | decision33), evidence (a pointer: file:line, table row id or document id, at most 200 characters), note (at most 300 characters, masked)}; a step of the Decision 33 sub-flow also carries the answers of its questions. No personal data, no floats. inherited_from_provider: the bank took the provider''s result (Art. 4(4)). valid_until: the yearly review date (Art. 4(5)), set again at approval. approved_by and approved_at are null until a second person approves; only then does the risk level of the system change (floor rule, never lowers). Changes go on the chain as classification_v2.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_def (state): WP-G1. One row per version of a guardian definition (a detector described as data: regex, keyword_list, classifier, judge_prompt or policy). definition_json is the validated definition (config/guardian definition schema, docs/guardian-factory.md): the rule text, the scope and the thresholds; it holds no personal data and no floats (rates are integer percent, scores integer basis points). state is draft, benchmarked, shadow, approved, live or retired; in WP-G1 only draft and retired are reachable (the others belong to WP-G2 and WP-G3). A saved version is replaced in place only while it is a draft; a new version is a new row. Changes go on the chain as guardian_def (ids, enums, hashes).
+-- primary key (enforced by the app, not by Delta): def_id, version
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_def` (
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  owner_group STRING NOT NULL,
+  type STRING NOT NULL,
+  stage STRING NOT NULL,
+  definition_json STRING NOT NULL,
+  state STRING NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G1. One row per version of a guardian definition (a detector described as data: regex, keyword_list, classifier, judge_prompt or policy). definition_json is the validated definition (config/guardian definition schema, docs/guardian-factory.md): the rule text, the scope and the thresholds; it holds no personal data and no floats (rates are integer percent, scores integer basis points). state is draft, benchmarked, shadow, approved, live or retired; in WP-G1 only draft and retired are reachable (the others belong to WP-G2 and WP-G3). A saved version is replaced in place only while it is a draft; a new version is a new row. Changes go on the chain as guardian_def (ids, enums, hashes).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_def_event (append_only): WP-G1. One row per change of a guardian definition: created, saved, new_version, retired, reopened (and, from WP-G2 and WP-G3, the later state changes). def_sha256 is the hash of the canonical definition after the change; no definition text, no personal data.
+-- primary key (enforced by the app, not by Delta): event_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_def_event` (
+  event_id STRING NOT NULL,
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  action STRING NOT NULL,
+  from_state STRING,
+  to_state STRING NOT NULL,
+  actor STRING NOT NULL,
+  def_sha256 STRING NOT NULL,
+  at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G1. One row per change of a guardian definition: created, saved, new_version, retired, reopened (and, from WP-G2 and WP-G3, the later state changes). def_sha256 is the hash of the canonical definition after the change; no definition text, no personal data.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');

@@ -1,0 +1,9 @@
+{# Guardian factory editor as a full page (WP-G1); the panel is the same fragment. Variable: gf. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('gf_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('gf_title'), '/console/guardian-factory?lang=' ~ lang), (gf.id, None)]) }}
+{{ ui.pagehead(t('gf_title') ~ ': ' ~ gf.id) }}
+{% include "_gf_editor.html" %}
+{% endblock %}
