@@ -1604,3 +1604,30 @@ tables:
       confirmed_at: timestamp?
       run_id: string
       created_at: timestamp
+
+  # --- WP-L2 duties of an AI system (docs/register-v2.md, section "Duties step") ---------------
+  obligation_status:
+    kind: state
+    description: >
+      WP-L2. One row per duty (RegKB obligation) that applies to one AI system, written by the
+      Duties step of the register workflow v2 on submit. applies is the matrix answer (the step
+      writes yes rows only); coverage says how well Supervisor controls cover the duty (full,
+      partial, none, unknown); status is the work state (open, closed, waived). closing_control
+      is a Supervisor control id or a bank manual control, set later (WP-L3). No PII, no free
+      text from a person. Advisory only: not legal advice, bank counsel must confirm.
+    primary_key: [status_id]
+    indexes:
+      - [system_id, status]
+    columns:
+      status_id: string        # hash of (system_id, obligation_id): a repeat is a no-op
+      system_id: string
+      obligation_id: string
+      instrument_id: string
+      applies: string          # yes | no | needs_answer
+      coverage: string         # full | partial | none | unknown
+      status: string           # open | closed | waived
+      owner_user: string
+      due_date: date?
+      closing_control: string?
+      note: text?
+      created_at: timestamp

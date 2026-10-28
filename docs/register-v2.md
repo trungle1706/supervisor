@@ -9,6 +9,7 @@ section 3. The two-step wizard at `/console/systems/new` stays and is used while
 |---|---|
 | `CONSOLE_REGISTER_V2=1` | turns the workflow on (default off; off: every URL below answers HTTP 400 naming the flag) |
 | `GOVERNANCE_ENABLED=1`, `CONSOLE_SYSTEMS_ENABLED=1` | needed (the routes are mounted with the Systems pages) |
+| `CONSOLE_REGISTER_DUTIES=1` | adds the **Duties** step (seven steps; default off; needs `CONSOLE_REGISTER_V2` and `GOVERNANCE_ENABLED`; see "Duties step") |
 | `AGENTS_API_ENABLED=1` | needed only for the agent row; without it the task "Add the agent to the policy" opens |
 | `GUARDIAN_BINDINGS_ENABLED=1` | needed only to set a guardian feature off (step 5) |
 | `ONBOARD_ALLOWED_ROOTS` | folders the optional readiness check (step 3) may scan |
@@ -55,3 +56,58 @@ result page and does not undo the system.
 The draft is the table `registration_draft` (kind state, no evidence, nothing on the chain).
 Suggestions come from `governance/register_v2/suggest.py` (inventory graph, `config/governance.yaml`
 owner map, policy manifest); an LLM assist may be added later and would only advise.
+
+## Duties step (WP-L2, `CONSOLE_REGISTER_DUTIES=1`)
+
+> **Not legal advice. Bank counsel must confirm.** The step is an advisory aid. It does not decide
+> compliance. An unknown fact is an open question, never a guess.
+
+With the flag on, the workflow has seven steps. The Duties step is step 4: after the
+pre-deployment check and before Decision 33. Steps 5, 6 and 7 are Decision 33, Guardian tools and
+Review and submit. With the flag off the workflow keeps six steps and every URL as above. The step
+numbers come from `register_v2/model.py` (`STEP_KEYS`, `STEP_KEYS_DUTIES`, `step_keys()`); the flag
+only chooses the list. A draft that is already open keeps its answers; the "furthest step" mark
+follows the list in use.
+
+**What the step does.** It builds a product profile from the draft answers (purpose, user segment,
+personal data, role, autonomy, human control, money movement, credit decision) and from the
+policy rules that name the agent. It runs the compliance matrix (`docs/compliance-advisor.md`) on
+it. The profile marks what the person said as known and leaves the rest unknown: data classes are
+a lower bound (financial data is never asked), cross border and model hosting are unknown, and the
+controls are those of a system registered with Supervisor (`planned`) plus the gate rules of the
+policy. The model family, the host kind and the data sources text do not map to a matrix fact and
+are not used. If the table `onboard_facts` (WP-O2) exists and the draft came from a scanned node,
+the step shows how many facts rows it saw; it reads that table by name only and works without it.
+
+**The page.** A banner with the sentence above; counts (duties checked, apply, do not apply, need an
+answer; of those that apply, full, partial and none coverage); the Decision 33 suggestion; the open
+questions; the rows. A row has the instrument, the article, the duty, applies (`yes`, `no`, `needs
+answer`), coverage and the effective date of the instrument when RegKB knows it. Coverage comes
+from the matrix status: `met` is full, `partial` is partial, `gap` and `bank_process` are none.
+The filter `?f=` is `gaps` (default: apply and not fully covered), `yes`, `needs_answer`, `no` or
+`all`; the page size is 100 rows (`?p=`). A bad filter or page is HTTP 400.
+
+**The questions.** Each open question of the matrix is a form field named by its question id
+(`Q-<fact>`, for example `Q-data_classes`, `Q-model_hosting`, `Q-cross_border`,
+`Q-in_operation_since`). Yes/no questions are a select, vocabulary questions are a select or a
+comma list (`none` means an empty list), money is a whole number of VND, a date is `YYYY-MM-DD`.
+A blank field means unknown. The button **Run again** saves the answers and stays on the step,
+so the matrix runs again on them. **Continue** saves and goes to the next step. The answers are
+stored in the draft `data` under `duties_answers` (`{"Q-cross_border": false, ...}`). A question
+that the answers have settled stays on the page, marked answered, so the person can change it; the
+person can also go back to any earlier step and return. A bad value is HTTP 400 with the field name
+and the page shows what was typed.
+
+**On submit** (after the system exists; a failure here is shown on the result page and does not
+undo the system):
+
+| Write | Detail |
+|---|---|
+| table `obligation_status` | one row per duty that applies (`applies = yes`, `coverage` full, partial or none) and one per duty that needs an answer (`applies = needs_answer`, `coverage = unknown`), so the open questions survive the submit. `status` open; `owner_user` the system owner; `due_date` the effective date of the instrument when known; `closing_control` empty (WP-L3 sets it); `note` starts with the banner. No row for a duty that does not apply. A repeat is a no-op (the id is a hash of system and obligation) |
+| one task per instrument and coverage class | for the applying duties with coverage partial or none, grouped by instrument and coverage: title `Close N duties of <instrument short name> (coverage none)` or `(coverage partial)` (`Close 1 duty of ...` for one), template `DUTY-<instrument id>-<coverage>`, stage initiation, owner role owner, not required (it does not block a stage move). Due date: the earliest effective date in the group that is still ahead, else 14 days. The task note (the evidence field) holds the banner and the sorted duty ids, at most 60 ids then `, ... and N more` |
+
+Rows for duties that do not apply are not written. A typical internal assistant has 330 applying
+duties and 39 that need an answer, so 369 status rows and 56 tasks (a payment draft: 389 apply, 53 need an answer, so 442 rows and
+58 tasks). No duty is fully covered by a Supervisor control today. The matrix takes about two
+seconds; the last eight results are kept in memory by
+profile, so the page, the review and the submit of one draft run it once.

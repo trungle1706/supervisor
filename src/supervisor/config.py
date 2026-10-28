@@ -703,6 +703,11 @@ class Settings(BaseSettings):
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.
     console_register_v2: bool = False
+    # --- WP-L2 --- Duties step in the register workflow (docs/register-v2.md "Duties step"):
+    # a seventh step after the pre-deployment check. Runs the compliance matrix on the draft
+    # answers; on submit writes obligation_status rows and one task per open gap. Needs
+    # CONSOLE_REGISTER_V2 and GOVERNANCE_ENABLED. Off: six steps, every URL as before.
+    console_register_duties: bool = False
     # --- WP-P1 --- tasks and stage approvals in the console (docs/console.md). Off: the Tasks tab
     # of a system is read only and the workflow routes answer HTTP 400 naming this flag. Needs
     # GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED (tasks also need CONTROLS_ENABLED).

@@ -177,6 +177,11 @@ env:
     value: "1"
   - name: CONSOLE_REGISTER_V2
     value: "1"
+  # Phase 8 WP-L2: Duties step (step 4 of 7) in the register workflow: the compliance matrix on the
+  # draft answers, open questions as fields, obligation_status rows and gap tasks on submit.
+  # Needs CONSOLE_REGISTER_V2 and GOVERNANCE_ENABLED. Off by default (docs/register-v2.md).
+  # - name: CONSOLE_REGISTER_DUTIES
+  #   value: "1"
   # Phase 8 WP-P2: Request / Approve RUNNING on the agent page (two people), Decision 33 apply
   # (the system owner cannot apply; 20-character justification), guardian switch-off (reason; a
   # second person on a production or high-risk system). Off by default (docs/console.md).

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- WP-L2 (phase 8): **Duties step** in the register workflow v2, flag `CONSOLE_REGISTER_DUTIES`
+  (default `0`; needs `CONSOLE_REGISTER_V2` and `GOVERNANCE_ENABLED`). Seven steps with the flag
+  on (Duties is step 4, before Decision 33); with the flag off the workflow keeps six steps and every
+  URL (`model.py` now holds the step list as data: `STEP_KEYS`, `STEP_KEYS_DUTIES`). The step builds a
+  product profile from the draft answers and the policy rules of the agent, runs the compliance
+  matrix and shows the rows (instrument, article, duty, applies yes / no / needs answer, coverage
+  full / partial / none) with the open questions as form fields (`Q-<fact>`). Answers are kept in
+  the draft under `duties_answers`; **Run again** re-runs the matrix; the person can go back and
+  change answers. On submit: one `obligation_status` row per duty that applies (coverage full / partial /
+  none) and one per duty that needs an answer (coverage unknown); new state table, run
+  `python -m supervisor.jobs.bootstrap_schema` on Delta before the new app version. One task per
+  instrument and coverage class for the applying duties with coverage partial or none (title
+  `Close N duties of <instrument> (coverage none)`, owner role owner, not required, due date the
+  earliest future effective date else 14 days, the sorted duty ids, at most 60, and the banner in
+  the task note). "Not legal advice. Bank counsel must confirm." on the step, in the row note and
+  in the task note. Details:
+  `docs/register-v2.md` "Duties step". `app.yaml` has the commented flag.
 - WP-O1 (phase 9): candidate source intake, `ONBOARD_INTAKE` (default `0`),
   `ONBOARD_INTAKE_MAX_MB` (default `20`), `ONBOARD_GIT_HOSTS` (default empty = git off). New
   **Source** panel in the Candidates drawer and **Source** tab on the agent page (upload form,

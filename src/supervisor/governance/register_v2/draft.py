@@ -25,7 +25,7 @@ def _view(row: dict[str, Any]) -> dict[str, Any]:
         {
             k: v
             for k, v in (data if isinstance(data, dict) else {}).items()
-            if k in (*base, "check", "result")
+            if k in (*base, "check", "result", "duties_answers")
         }
     )
     out = {k: row[k] for k in ("draft_id", "owner_user", "status", "source_kind", "source_ref")}
@@ -131,7 +131,7 @@ class DraftStore:
                 raise rm.RegisterError("draft", "holds too much text")
             changes["data"] = text
         if step is not None:
-            changes["step"] = max(int(draft["step"]), min(rm.STEPS, int(step)))
+            changes["step"] = max(int(draft["step"]), min(rm.MAX_STEPS, int(step)))
         if status is not None:
             if status not in rm.STATUSES:
                 raise rm.RegisterError("status", "unknown status")

@@ -49,9 +49,10 @@ def _person(me: AuthPrincipal) -> str:
     return str(me.user_id)
 
 
-def _step_no(raw: str) -> int:
-    if not (raw.isascii() and raw.isdigit()) or not 1 <= int(raw) <= rm.STEPS:
-        raise rm.RegisterError("step", f"must be 1 to {rm.STEPS}")
+def _step_no(raw: str, ctx: ConsoleContext) -> int:
+    n = rs.total_steps(ctx)
+    if not (raw.isascii() and raw.isdigit()) or not 1 <= int(raw) <= n:
+        raise rm.RegisterError("step", f"must be 1 to {n}")
     return int(raw)
 
 
@@ -65,19 +66,32 @@ def _go(request: Request, plain: bool, url: str) -> Response:
 
 
 def step_data(
-    ctx: ConsoleContext, me: AuthPrincipal, draft: dict[str, Any], n: int
+    ctx: ConsoleContext,
+    me: AuthPrincipal,
+    draft: dict[str, Any],
+    n: int,
+    query: Any = None,
+    posted: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """The view model of one step."""
-    out: dict[str, Any] = {"draft": draft, "step": n, "steps": rm.STEPS}
+    keys = rm.step_keys(rs.duties_on(ctx))
+    key = keys[n - 1]
+    out: dict[str, Any] = {
+        "draft": draft,
+        "step": n,
+        "steps": len(keys),
+        "key": key,
+        "lab": [rm.LABEL_OF_KEY[k] for k in keys],  # i18n suffix per step number
+    }
     out["v"] = rs.values_of(draft)
     out["sg"] = draft["data"]["sg"]
     out["marks"] = {f: rs.mark(draft, f) for f in (*rm.STEP1, *rm.STEP2)}
     out["scoped"] = rs.scoped(ctx, me)
-    if n == 1:
+    if key == "identify":
         out["kinds"] = rm.KINDS
-    elif n == 2:
+    elif key == "ai":
         out["choices"] = rm.CHOICES
-    elif n == 3:
+    elif key == "check":
         out["gaps"] = rs.gaps(ctx, me, draft)
         out["check"] = draft["data"].get("check") or {}
         out["repo"] = draft["data"].get("repo_path") or ""
@@ -94,9 +108,11 @@ def step_data(
             if full is not None
             else None
         )
-    elif n == 4:
+    elif key == "duties":
+        out["duty"] = rs.duties_view(ctx, draft, query or {}, posted)
+    elif key == "class":
         out["cls"] = rs.class_view(ctx, me, draft)
-    elif n == 5:
+    elif key == "guardians":
         out["g"] = rs.guardian_view(ctx, me, draft)
     else:
         out["r"] = rs.review_view(ctx, me, draft)
@@ -114,7 +130,7 @@ def _render_step(
     posted: dict[str, str] | None = None,
     status: int = 200,
 ) -> Response:
-    data = step_data(ctx, me, draft, n)
+    data = step_data(ctx, me, draft, n, request.query_params, posted)
     return render(
         request,
         ctx,
@@ -163,7 +179,7 @@ async def register_step(
 ) -> Response:
     _off(ctx)
     uid = _person(me)
-    num = _step_no(n)
+    num = _step_no(n, ctx)
     draft = await _call(rs.store_of(ctx).get, draft_id, uid)
     if draft["status"] != "draft":
         return _go(request, True, f"/console/register/{draft_id}/result")
@@ -178,7 +194,7 @@ async def register_save(
     running the check: stay)."""
     _off(ctx)
     uid = _person(me)
-    num = _step_no(n)
+    num = _step_no(n, ctx)
     form, plain = await form_or_plain(request)
     store = rs.store_of(ctx)
     draft = await _call(store.get, draft_id, uid)
@@ -192,7 +208,7 @@ async def register_save(
         return _render_step(request, ctx, me, draft, num, error=str(exc), posted=form, status=400)
     if later:  # "Save for later": every field of the step is stored, then the drafts list
         return _go(request, plain, "/console/register?saved=1")
-    target = num if stay else min(num + 1, rm.STEPS)
+    target = num if stay else min(num + 1, rs.total_steps(ctx))
     return _go(request, plain, f"/console/register/{saved['draft_id']}/step/{target}")
 
 
