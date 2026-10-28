@@ -1,4 +1,4 @@
-# Agent factory (phase 12B): schemas and harness
+# Agent factory (phase 12B): schemas, harness, catalogue, editor
 
 WP-F1. Pure modules in `src/supervisor/factory/`; no flag. The one route sits behind
 `ONBOARD_FACTS`. The platform locks the schemas, the tool registry and the mandatory guardians.
@@ -184,3 +184,170 @@ The plan fixed `instructions` (5,000 tokens), `retention_days` (365), `max_itera
 modes. The values for the context budget (24,000), the loop budget (200,000), `max_document_chars`
 (20,000), the integer score scale (0 to 100) and the three mandatory guardian ids were chosen in
 WP-F1 and need the hub to confirm.
+
+## Catalogue
+
+WP-F2. Flag `AGENT_FACTORY=1` (default `0`; needs `GOVERNANCE_ENABLED=1`; Windows cmd:
+`set AGENT_FACTORY=1`). Off: every route answers HTTP 400 `agent_factory_off` and no factory table is
+read. The routers are always mounted.
+
+```text
+ template (config/factory_templates/<dimension>.yaml)
+        |  create_from_template
+        v
+ factory_agent  (id, version) --- draft --- retire ---> retired       WP-F3 adds tested, approved, live
+        |  save_draft: agent_definition_v1 + registry on every save
+        |  new_version: copy to the next minor version (one open draft per agent)
+        v
+ factory_agent_event (append only): created, saved, new_version, retired,
+                                    helper_accepted, helper_dropped, golden_uploaded
+```
+
+### Tables (appended at the end of `schema/model.yaml`)
+
+| Table | Kind | Key | Columns |
+|---|---|---|---|
+| `factory_agent` | state | `id`, `version` | `owner_group`, `dimension_id`, `definition_json` (an `agent_definition_v1`), `state`, `created_by`, `updated_at`, `row_version` |
+| `factory_agent_event` | append only | `event_id` | `agent_id`, `version`, `kind`, `actor_ref`, `detail` (masked, at most 300 characters), `created_at` |
+| `factory_helper_draft` | state | `draft_id` | `agent_id`, `version`, `helper`, `row_json`, `status` (`draft` / `accepted` / `dropped`), `model_id`, `prompt_version`, `run_id`, `decided_by`, `decided_at`, `created_at` |
+
+`factory_helper_draft` is a third table that the plan did not list: the helper agents need a
+draft-then-accept table like `regkb_draft`.
+
+### Store API (`supervisor.factory.store`, for WP-F4 and WP-F3)
+
+`FactoryStore(state, tables, clock, tools=None, groups=None)`; a row is a dict with the columns and
+`definition` (the parsed `definition_json`). A refusal is `FactoryError` (a `SupervisorError`, HTTP 400)
+whose text starts with a code (`invalid_definition`, `exists`, `not_found`, `not_draft`, `stale`,
+`draft_open`, `bad_transition`, `reason_needed`) and, for a definition, lists `field: message` pairs.
+
+| Call | Does |
+|---|---|
+| `create_from_template(dimension_id, agent_id, name, actor) -> row` | draft `0.1` from the template; the owner group is the owner of the dimension; event `created` |
+| `save_draft(agent_id, version, definition, actor, expected_version) -> row` | draft only; `id`, `owner_group`, `dimension_id` cannot change; state and approvals are forced; validates with `agent_definition_v1` and the registry; optimistic `row_version`; event `saved` |
+| `new_version(agent_id, from_version, actor) -> row` | next minor version as a draft; refused while a draft is open |
+| `retire(agent_id, version, actor, reason) -> row` | draft to retired, with a reason |
+| `get(agent_id, version=None)`, `versions(agent_id)` | one row (the newest when no version), all versions in order |
+| `list_agents(owner_group=None, dimension_id=None, state=None)` | the newest version of every agent, by dimension then id |
+| `events(agent_id, version=None, limit=None)`, `record_event(agent_id, version, kind, actor_ref, detail)` | the event log |
+| `live_agent_for(dimension_id) -> row or None` | the newest `live` version for the dimension (WP-F2 never sets `live`) |
+| `portfolio() -> list[dict]` | eight entries `{dimension_id, owner_group, kind: live_agent or rule_proposal, agent_id, version}` |
+
+Module functions: `validate_definition(raw, tools, groups)`, `permits(roles, owner_group, groups)`,
+`enabled(settings)`, `require_on(settings)`, and the table `TRANSITIONS` (draft to retired; WP-F3
+extends it). The orchestrator (WP-F4) reads `live_agent_for` and `portfolio`; a dimension with no live
+agent uses the rule proposal of the risk assessment.
+
+### Page and API
+
+* `GET /console/factory`: cards (name, dimension, owner group, state, version, last gate result
+  placeholder, checklist size, golden set size), filters (group, dimension, state), the form to
+  create a draft, and the strip of the eight dimensions (live agent, or "rule proposal").
+* `GET /v1/factory/agents`, `/v1/factory/agents/{id}?version=`, `/v1/factory/portfolio` (JSON).
+
+### Who may do what
+
+| Action | Permission | Extra rule |
+|---|---|---|
+| read the catalogue, the editor, the preview, the API | `systems.view` | none |
+| create, save a step, upload a golden set, run a helper, accept or drop a row, new version, retire | `factory.edit` (reviewer, approver, admin) | the handler checks that one of your roles is listed for the owner group in `config/factory_groups.yaml`; `admin` edits every group; the `platform` group lists `admin` only |
+
+Every POST writes the two `console_action` rows and, for a change of an agent, a `factory_agent_event`
+row. A role outside the group gets HTTP 403 with a message.
+
+### Templates (`config/factory_templates/<dimension>.yaml`)
+
+Eight files, one per dimension, strict keys (`supervisor.factory.templates`). Each holds the starter
+checklist (from `docs/phase12/research/regulation-structure.md` section 2), the group tools, the
+mandatory guardians, the harness defaults and starter instructions that name every checklist id. A
+template is a starting point for the owner group, not legal advice.
+
+| Dimension | Group | Items | Prefix |
+|---|---|---|---|
+| `model` | model_risk | 6 | MR |
+| `data_governance` | data | 5 | DG |
+| `cybersecurity` | cyber | 5 | CY |
+| `legal_compliance` | legal | 4 | LC |
+| `ethics` | ethics | 4 | ET |
+| `third_party` | third_party | 4 | TP |
+| `supply_chain` | platform | 4 | SC |
+| `reputation` | ethics | 3 | RP |
+
+## Editor
+
+`GET /console/factory/{id}?v=<version>&step=<step>` is a full page. Each step is also an HTMX
+fragment: `GET /console/factory/{id}/step/{step}` (target `#factory-step`) and `POST` to the same URL to
+save it. A POST needs the `HX-Request: true` header (HTTP 400 without it) and carries `version` and
+`row_version`. The editor builds a plain definition and calls `save_draft`; it never bypasses the
+schema, so a bad value is a 400 that names the field (for example `harness.context.budget_tokens`).
+
+| # | Step | What a person edits | Notes |
+|---|---|---|---|
+| 1 | template | name, description, eval pack id | dimension, owner group and output schema are shown and locked |
+| 2 | policy references | add or drop a row: RegKB instrument id (checked against RegKB) or an internal document id, version, sections | the internal source is a placeholder until WP-W3 |
+| 3 | checklist | add, edit, drop rows: id, question, evidence kinds, severity, pass rule | dropping an item also drops an approval point that names it; the checklist drafter sits below the table |
+| 4 | tools | tick tools from the allow-list of the owner group, mode and scope | the list shows kind and data class; an inline tool is refused by the schema |
+| 5 | instructions | the text, "Check only" (lint without saving) and Save | linter below |
+| 6 | harness | one block per component of "Harness" above: the locked default, the editable fields and their caps | context order, budget, memory, approval points and permissions, verifier and validators, loop mode, iterations, stop rules, evaluator, min score, budget |
+| 7 | guardians | extra guardian ids | the three mandatory ones are pre-checked, disabled and always saved |
+| 8 | preview | pick up to three nodes with a stored facts card | **dry preview**: no model call, no tool call |
+| 9 | golden set | upload JSON or CSV; count and stratification; the generator below | the gate that uses the set is WP-F3 |
+
+### Instruction linter (`supervisor.factory.linter`, phrase list in `config/factory_lint.yaml`)
+
+| Rule | Severity | Meaning |
+|---|---|---|
+| `tokens` | error / warn | more than the cap (5,000 tokens, estimate bytes / 4) is an error; 80 percent of the cap is a warning |
+| `control_chars` | error | control characters other than newline, tab, return |
+| `override` | error | text that tries to override the locked preamble |
+| `forbidden_phrase` | error | a phrase of the config list ("always pass", "skip the evidence", ...) |
+| `checklist_unreferenced` | warn | a checklist id the text never names |
+
+An error blocks the save (the field is `instructions`). The warning does not block a draft; `linter.is_ready`
+is false while one is open, and the gate (WP-F3) asks for it before a test run.
+
+### Dry preview and the plan tracer (`supervisor.factory.preview`)
+
+For each chosen node (the stored `facts_v1` export, at most three) and each checklist item the page shows
+the evidence kinds, the context sources the harness would load, the registry tool each source goes
+through (with the number of facts in the export for `facts_v1`), what is missing (a source not in
+`harness.context.sources`, or no tool of the needed kind), whether the item would answer `question`, and
+the stop points (approval points and the locked "fail on a high item needs a person"). It also lists the
+six harness components. The page labels it "dry preview". It is the plan only; a real run is WP-F4, and
+the gate runs the real harness (WP-F3).
+
+### Golden-set store (`supervisor.factory.golden`)
+
+`DATA_DIR/factory/<id>/golden/cases.json`. A case: `case_id`, `checklist_id` (an item of the agent),
+`input` (at most 2,000 characters), `expected_verdict`, `note`. A file is at most 1 MB and 500 cases; a
+case with the same `case_id` replaces the old one. Every case goes through the Vietnamese masker and a
+case that holds a name, phone, account, id number, email or address is refused and listed, never stored.
+The page shows the count, the cases per checklist item and per verdict, and the items without a case.
+
+## Helper agents
+
+Owner decision 3. Three helpers, behind `AGENT_FACTORY`, in `supervisor.factory.helpers`. They **draft
+only**. Each proposed row is written to `factory_helper_draft` with status `draft`; a person with the
+edit right accepts or drops each row, and each accept or drop writes a `factory_agent_event` row
+(`helper_accepted`, `helper_dropped`). Like the RegKB drafts (`regkb/drafts.py`).
+
+| Helper | Input | Output | Accept does | Rows dropped before they reach the table |
+|---|---|---|---|---|
+| `checklist_drafter` | policy section text (pasted; an internal document id arrives with WP-W3) and its pointer | checklist rows with the section pointer | adds the row to the checklist (next free id, the pointer is added to the pass rule) through `save_draft`, so the schema checks it | text too long, severity or evidence kind not allowed, no pointer, text that trips the masker |
+| `golden_generator` | the checklist and a count per item (1 to 5) | synthetic Vietnamese cases with expected verdicts | stores the case in the golden set | an unknown checklist id, a bad verdict, **any text that trips the masker** (listed as refused) |
+| `result_explainer` | an `assessment_report_v1` JSON (at most 100 KB, validated) | plain sentences with pointers | marks the sentence accepted (shown in the explainer table) | a pointer that is not a `finding_id` of the report, no pointer, text that trips the masker |
+
+The model is the gateway model (`make_chat_model`, see `docs/llm-features.md`). **There is no mock path.**
+With `LLM_BASE_URL` empty, or a mock model, the buttons answer HTTP 400 `model_not_configured: model not
+configured ...` and nothing is drafted; the editor shows the same notice. Policy text goes through the
+secret scrubber before the model sees it. A model error is a 400 message, never a 500. The tests use a
+scripted fake `ChatModel`; the product does not.
+
+Windows cmd:
+
+```text
+set GOVERNANCE_ENABLED=1
+set AGENT_FACTORY=1
+set LLM_BASE_URL=http://127.0.0.1:8000/v1
+python -m uvicorn supervisor.app:app --port 8130
+```

@@ -1,0 +1,90 @@
+# Starter template of the agent factory (WP-F2) for the reputation dimension. The checklist follows
+# docs/phase12/research/regulation-structure.md section 2. It is a starting point for the owner
+# group, not legal advice (bank counsel confirms). Strict keys: supervisor.factory.templates.
+template_id: reputation
+version: 1
+label_en: Reputation risk assessment
+name: Reputation risk assessment agent
+description: Assesses reputation risk of one AI system for a bank. The bank sets the criteria; this agent
+  checks that they were applied.
+owner_group: ethics
+dimension_id: reputation
+policy_refs:
+- doc_id: VN-TT53-2026
+  source: regkb
+  version: 1
+  sections:
+  - Art.14(3)(h)
+checklist:
+- id: RP-01
+  question: Is a reputation impact described for a wrong or harmful output of the system?
+  evidence:
+  - document
+  - system_record
+  severity: medium
+  pass_rule: A document or record field states the impact and the owner.
+- id: RP-02
+  question: Is there a complaint route for the people who use the system?
+  evidence:
+  - system_record
+  - document
+  severity: medium
+  pass_rule: A complaint route is named.
+- id: RP-03
+  question: Is there a tested way to stop the system quickly when it harms customers?
+  evidence:
+  - fact
+  - pack
+  - system_record
+  severity: high
+  pass_rule: An emergency stop exists and its test result is present.
+evidence_rules:
+  allowed_sources:
+  - fact
+  - document
+  - regkb
+  - pack
+  - system_record
+  must_cite: true
+  max_age_days: 365
+tools:
+- tool_id: read_facts
+  mode: read
+  scope: system:own
+- tool_id: read_regkb
+  mode: read
+  scope: regkb:VN-TT53-2026
+- tool_id: read_system_record
+  mode: read
+- tool_id: search_documents
+  mode: read
+  scope: documents:internal
+instructions: Answer each checklist item (RP-01, RP-02, RP-03) from the evidence only. Cite the evidence
+  for every pass or fail. Use question when the evidence is missing. Give a short reason for each answer.
+harness:
+  context:
+    sources:
+    - facts_v1
+    - pack_results
+    - system_record
+    - regkb_rows
+    - document_sections
+    budget_tokens: 12000
+    max_document_chars: 8000
+  memory:
+    system_memory: false
+  hitl:
+    approval_points:
+    - kind: verdict
+      ref: question
+    permissions: []
+  verification:
+    verifier: rules
+    validators: []
+  loop:
+    mode: single_pass
+guardians:
+- pii_mask_v2
+- tool_scope_guard
+- citation_required
+eval_pack: reputation-golden-v1

@@ -1579,3 +1579,58 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`classification_v2` (
 USING DELTA
 COMMENT 'WP-C1 (phase 12, CLASSIFICATION_V2). One record of the classification tree (config/classification.yaml) for one AI system: the path from the first question to an outcome (not_system, prohibited, high_certify, high_self, medium, low), decided by a person and approved by a different person (Circular 53 Art. 4(3)). path_json is a JSON list of steps {node, answer, source (rules | person | decision33), evidence (a pointer: file:line, table row id or document id, at most 200 characters), note (at most 300 characters, masked)}; a step of the Decision 33 sub-flow also carries the answers of its questions. No personal data, no floats. inherited_from_provider: the bank took the provider''s result (Art. 4(4)). valid_until: the yearly review date (Art. 4(5)), set again at approval. approved_by and approved_at are null until a second person approves; only then does the risk level of the system change (floor rule, never lowers). Changes go on the chain as classification_v2.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- factory_agent (state): WP-F2 (phase 12B, AGENT_FACTORY). One row per version of an assessment agent definition (docs/factory.md). definition_json is the agent_definition_v1 document, validated on every save; it holds no personal data and no float. state is draft or retired in WP-F2 (tested, approved and live belong to WP-F3). A version other than draft is not edited; a change makes a new version. owner_group is a group of config/factory_groups.yaml and owns dimension_id.
+-- primary key (enforced by the app, not by Delta): id, version
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`factory_agent` (
+  id STRING NOT NULL,
+  version STRING NOT NULL,
+  owner_group STRING NOT NULL,
+  dimension_id STRING NOT NULL,
+  definition_json STRING NOT NULL,
+  state STRING NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-F2 (phase 12B, AGENT_FACTORY). One row per version of an assessment agent definition (docs/factory.md). definition_json is the agent_definition_v1 document, validated on every save; it holds no personal data and no float. state is draft or retired in WP-F2 (tested, approved and live belong to WP-F3). A version other than draft is not edited; a change makes a new version. owner_group is a group of config/factory_groups.yaml and owns dimension_id.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- factory_agent_event (append_only): WP-F2 (phase 12B, AGENT_FACTORY). Append-only log of every change of an agent version in the factory: created, saved, new_version, retired, helper rows accepted or dropped, golden set uploaded. detail is a masked sentence of at most 300 characters. Rows are never updated or deleted. No personal data, no float.
+-- primary key (enforced by the app, not by Delta): event_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`factory_agent_event` (
+  event_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  version STRING NOT NULL,
+  kind STRING NOT NULL,
+  actor_ref STRING NOT NULL,
+  detail STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-F2 (phase 12B, AGENT_FACTORY). Append-only log of every change of an agent version in the factory: created, saved, new_version, retired, helper rows accepted or dropped, golden set uploaded. detail is a masked sentence of at most 300 characters. Rows are never updated or deleted. No personal data, no float.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+
+-- factory_helper_draft (state): WP-F2 (phase 12B, AGENT_FACTORY). A row proposed by a helper agent (checklist_drafter, golden_generator, result_explainer) through the gateway model. A draft is never part of an agent: a person accepts or drops each row. row_json is the proposed row (a checklist item, a golden case or an explanation sentence with its pointers). A golden case that trips the masker is refused and never stored. No personal data, no float.
+-- primary key (enforced by the app, not by Delta): draft_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`factory_helper_draft` (
+  draft_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  version STRING NOT NULL,
+  helper STRING NOT NULL,
+  row_json STRING NOT NULL,
+  status STRING NOT NULL,
+  model_id STRING NOT NULL,
+  prompt_version STRING NOT NULL,
+  run_id STRING NOT NULL,
+  decided_by STRING,
+  decided_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-F2 (phase 12B, AGENT_FACTORY). A row proposed by a helper agent (checklist_drafter, golden_generator, result_explainer) through the gateway model. A draft is never part of an agent: a person accepts or drops each row. row_json is the proposed row (a checklist item, a golden case or an explanation sentence with its pointers). A golden case that trips the masker is refused and never stored. No personal data, no float.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

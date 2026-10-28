@@ -157,6 +157,12 @@ from supervisor.console.classify_routes import router as classify_console_router
 
 app.include_router(classify_console_router)  # /console/systems/{id}/classify
 app.include_router(classify_api_router)  # /v1/systems/{id}/classification-v2, /v1/classification
+# WP-F2: always mounted; with AGENT_FACTORY=0 every route answers HTTP 400 agent_factory_off
+from supervisor.console.factory_routes import api_router as factory_api_router  # noqa: E402
+from supervisor.console.factory_routes import router as factory_console_router  # noqa: E402
+
+app.include_router(factory_console_router)  # /console/factory
+app.include_router(factory_api_router)  # /v1/factory/...
 # WP-O1: always mounted; with ONBOARD_INTAKE=0 every route answers HTTP 400 with the flag name
 from supervisor.console.intake_routes import api_router as intake_api_router  # noqa: E402
 from supervisor.console.intake_routes import router as intake_console_router  # noqa: E402

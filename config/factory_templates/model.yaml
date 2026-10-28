@@ -1,0 +1,112 @@
+# Starter template of the agent factory (WP-F2) for the model dimension. The checklist follows
+# docs/phase12/research/regulation-structure.md section 2. It is a starting point for the owner
+# group, not legal advice (bank counsel confirms). Strict keys: supervisor.factory.templates.
+template_id: model
+version: 1
+label_en: Model risk assessment
+name: Model risk assessment agent
+description: 'Assesses model risk of one AI system: data fit, accuracy, explainability, fairness, robustness
+  and drift.'
+owner_group: model_risk
+dimension_id: model
+policy_refs:
+- doc_id: VN-TT53-2026
+  source: regkb
+  version: 1
+  sections:
+  - Art.14(3)(a)
+  - Art.16(3)
+  - Art.16(5)
+checklist:
+- id: MR-01
+  question: Does the system record name the model, its version and its validation date?
+  evidence:
+  - system_record
+  - fact
+  severity: medium
+  pass_rule: Model id, version and a validation date are all present.
+- id: MR-02
+  question: Is the fit between the training data and the use case documented?
+  evidence:
+  - system_record
+  - document
+  severity: medium
+  pass_rule: A document or record states that the data source and the use case match (Art.16(3)).
+- id: MR-03
+  question: Are accuracy and robustness pack results present at the current model version?
+  evidence:
+  - pack
+  severity: high
+  pass_rule: Every required truthfulness and perturbation pack passed at the current version.
+- id: MR-04
+  question: Is explainability of the output described for the people who use it?
+  evidence:
+  - document
+  - system_record
+  severity: medium
+  pass_rule: The record or a document says how the output is explained to the user.
+- id: MR-05
+  question: Are fairness and bias slices monitored for the model?
+  evidence:
+  - pack
+  - system_record
+  severity: high
+  pass_rule: A fairness result or monitor exists and shows no failed slice (Art.16(3)).
+- id: MR-06
+  question: Is drift monitored and is a drift band set?
+  evidence:
+  - pack
+  - system_record
+  severity: medium
+  pass_rule: A drift monitor exists with a set band (Art.16(5)).
+evidence_rules:
+  allowed_sources:
+  - fact
+  - document
+  - regkb
+  - pack
+  - system_record
+  must_cite: true
+  max_age_days: 365
+tools:
+- tool_id: read_facts
+  mode: read
+  scope: system:own
+- tool_id: read_regkb
+  mode: read
+  scope: regkb:VN-TT53-2026
+- tool_id: read_pack_results
+  mode: read
+  scope: system:own
+- tool_id: read_system_record
+  mode: read
+instructions: Answer each checklist item (MR-01, MR-02, MR-03, MR-04, MR-05, MR-06) from the evidence
+  only. Cite the evidence for every pass or fail. Use question when the evidence is missing. Give a short
+  reason for each answer.
+harness:
+  context:
+    sources:
+    - facts_v1
+    - pack_results
+    - system_record
+    - regkb_rows
+    - document_sections
+    budget_tokens: 12000
+    max_document_chars: 8000
+  memory:
+    system_memory: false
+  hitl:
+    approval_points:
+    - kind: verdict
+      ref: question
+    permissions: []
+  verification:
+    verifier: rules
+    validators: []
+  loop:
+    mode: single_pass
+guardians:
+- pii_mask_v2
+- tool_scope_guard
+- citation_required
+eval_pack: model-golden-v1

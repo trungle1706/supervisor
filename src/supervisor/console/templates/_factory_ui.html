@@ -1,0 +1,26 @@
+{# Small macros of the agent factory pages (WP-F2). #}
+{% macro hid(ed) %}<input type="hidden" name="version" value="{{ ed.version }}"><input type="hidden" name="row_version" value="{{ ed.row_version }}">{% endmacro %}
+
+{# Lint list. issues = [{rule, severity, message}] #}
+{% macro lint_list(issues) %}
+<ul class="lint" data-lint="1">
+{% for i in issues %}<li data-lint-rule="{{ i.rule }}" data-lint-severity="{{ i.severity }}"><span class="pill {{ 'bad' if i.severity == 'error' else 'warn' }}">{{ i.rule }}</span> {{ i.message }}</li>
+{% else %}<li data-lint-clean="1">{{ t('fa_lint_clean') }}</li>{% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro model_notice(ed) %}
+{% if not ed.model_ready %}<p class="notice" data-model-off="1"><span class="dot"></span>{{ t('fa_model_off') }}</p>{% endif %}
+{% endmacro %}
+
+{# Accept and Drop buttons of one helper draft row. #}
+{% macro draft_buttons(ed, d) %}
+{% if ed.editable and d.status == 'draft' %}
+<div class="btnrow">
+  <form hx-post="/console/factory/{{ ed.agent.id }}/drafts/{{ d.draft_id }}/accept" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+    <input type="hidden" name="row_version" value="{{ d.row_version }}"><button class="btn primary" data-act="accept">{{ t('fa_accept') }}</button></form>
+  <form hx-post="/console/factory/{{ ed.agent.id }}/drafts/{{ d.draft_id }}/drop" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+    <input type="hidden" name="row_version" value="{{ d.row_version }}"><button class="btn" data-act="drop">{{ t('fa_drop') }}</button></form>
+</div>
+{% endif %}
+{% endmacro %}

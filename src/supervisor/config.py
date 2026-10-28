@@ -758,6 +758,12 @@ class Settings(BaseSettings):
     # GOVERNANCE_ENABLED (the tab also needs CONSOLE_SYSTEMS_ENABLED). Off: no table read, no tab,
     # the routes answer HTTP 400 risk_dimensions_off.
     risk_dimensions: bool = False
+    # --- WP-F2 (phase 12B) --- the agent factory UI and catalogue (docs/factory.md): tables
+    # factory_agent, factory_agent_event, factory_helper_draft; /console/factory and /v1/factory;
+    # three helper agents (checklist drafter, golden-set generator, result explainer) that draft
+    # only and need LLM_BASE_URL. Needs GOVERNANCE_ENABLED. Off: no table read, the routes answer
+    # HTTP 400 agent_factory_off.
+    agent_factory: bool = False
     # --- WP-L4 (phase 8) --- evidence per duty and the regulator pack (docs/regulator-pack.md):
     # live counts per control for the duties of a system, auto-close of a full-coverage duty whose
     # mapped controls all work, the group task closes with its last row, the Refresh evidence

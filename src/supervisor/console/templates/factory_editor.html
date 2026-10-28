@@ -1,0 +1,34 @@
+{# Agent factory editor (WP-F2): the shell and the step navigation. Variable: ed. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ ed.agent.name }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('fa_title'), '/console/factory'), (ed.agent.id, None)]) }}
+{{ ui.pagehead(ed.agent.name, ui.pill(ed.agent.state, ed.agent.state_pill, True) ~ ' ' ~ ui.pill('v' ~ ed.version, 'neutral')) }}
+<p class="hint">{{ ed.agent.description }}</p>
+<p class="idline">{{ t('fa_dim_' ~ ed.agent.dimension_id) }} &middot; {{ ed.agent.owner_label }}
+  {% for v in ed.versions %}<a href="/console/factory/{{ ed.agent.id }}?v={{ v.version }}" data-version="{{ v.version }}">{{ ui.pill('v' ~ v.version ~ ' ' ~ v.state, 'info' if v.version == ed.version else 'neutral') }}</a>{% endfor %}
+</p>
+{% if ed.agent.state == 'retired' %}<p class="notice" data-retired="1"><span class="dot"></span>{{ t('fa_retired_note') }}</p>
+{% elif not ed.editable %}<p class="hint" data-readonly="1">{{ t('fa_readonly') }}</p>{% endif %}
+<nav class="tabs" aria-label="{{ t('fa_steps') }}" data-steps="1">
+{% for s in ed.steps %}
+  <a class="tab {{ 'active' if s == ed.step }}" data-step-link="{{ s }}" href="/console/factory/{{ ed.agent.id }}?v={{ ed.version }}&amp;step={{ s }}"
+     hx-get="/console/factory/{{ ed.agent.id }}/step/{{ s }}?v={{ ed.version }}" hx-target="#factory-step" hx-swap="innerHTML">{{ loop.index }}. {{ t('fa_step_' ~ s) }}</a>
+{% endfor %}
+</nav>
+<div id="factory-step">{% include "_factory_step_" ~ ed.step ~ ".html" %}</div>
+<section class="card" data-section="actions">
+  <div class="btnrow">
+  {% if ed.can_new_version %}<form hx-post="/console/factory/{{ ed.agent.id }}/new-version" hx-swap="none" method="post"><input type="hidden" name="version" value="{{ ed.version }}"><button class="btn" data-act="new-version">{{ t('fa_new_version') }}</button></form>{% endif %}
+  {% if ed.can_retire %}<form hx-post="/console/factory/{{ ed.agent.id }}/retire" hx-swap="none" method="post"><input type="hidden" name="version" value="{{ ed.version }}"><input name="reason" data-field="reason" maxlength="200" placeholder="{{ t('fa_reason') }}" required><button class="btn" data-act="retire">{{ t('fa_retire') }}</button></form>{% endif %}
+  </div>
+</section>
+<section class="card" data-section="events">
+  <h3>{{ t('fa_events') }}</h3>
+  <table class="queue" data-table="events"><tbody>
+  {% for e in ed.events %}<tr data-event="{{ e.kind }}"><td>{{ e.kind }}</td><td>{{ e.actor_ref }}</td><td class="wrap">{{ e.detail }}</td></tr>
+  {% else %}<tr><td class="hint">{{ t('fa_no_events') }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% endblock %}

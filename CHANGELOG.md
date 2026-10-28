@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- WP-F2 (phase 12B): **agent factory UI and catalogue**, `AGENT_FACTORY` (default `0`; needs
+  `GOVERNANCE_ENABLED`; off: HTTP 400 `agent_factory_off`, no table read). New tables `factory_agent`,
+  `factory_agent_event` (append only) and `factory_helper_draft` (appended at the end of
+  `schema/model.yaml`; DDL and notebook regenerated). Service `factory/store.py` (create from
+  template, save draft, new version, retire, list, get, event log, `live_agent_for`, `portfolio`):
+  every save is validated with `agent_definition_v1` and the registry and a refusal names the field;
+  a state changes only through the lifecycle rules (WP-F2: draft and retired). Eight templates in
+  `config/factory_templates/<dimension>.yaml`, linter (`factory/linter.py`, phrase list in
+  `config/factory_lint.yaml`), dry preview with a plan tracer (`factory/preview.py`), golden-set
+  store under `DATA_DIR/factory/<id>/golden/`. Pages: catalogue `/console/factory` (cards, portfolio
+  strip of the eight dimensions) and editor `/console/factory/{id}` with nine steps as HTMX
+  fragments. Three helper agents (checklist drafter, golden-set generator, result explainer) through
+  the gateway model: they draft, a person accepts each row, the golden generator runs every case
+  through the masker, and with `LLM_BASE_URL` empty they answer "model not configured". New
+  permission `factory.edit` (reviewer, approver, admin; the handler also checks the role against the
+  owner group in `config/factory_groups.yaml`); `GET /v1/factory/agents|agents/{id}|portfolio`. i18n
+  keys `fa_*`.
+
 - WP-F1 (phase 12B): **agent factory schemas** (`src/supervisor/factory/`, docs/factory.md). Three
   frozen pydantic schemas with JSON Schema export (`facts_v1`, `assessment_report_v1`,
   `agent_definition_v1` with the `harness` block), all limits in `factory/caps.py`, strict loaders

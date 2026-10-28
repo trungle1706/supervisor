@@ -1,0 +1,64 @@
+{# Editor step 8: dry preview with the plan tracer, and the result explainer helper (WP-F2). #}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+<section class="card" id="factory-step-panel" data-step="preview">
+  <h3>8. {{ t('fa_step_preview') }} {{ ui.pill(t('fa_dry'), 'warn', True) }}</h3>
+  <p class="hint" data-dry-label="1">{{ t('fa_preview_hint') }}</p>
+  <form hx-get="/console/factory/{{ ed.agent.id }}/preview" hx-target="#factory-step" hx-swap="innerHTML" class="btnrow">
+    <input type="hidden" name="v" value="{{ ed.version }}">
+    <label>{{ t('fa_f_nodes') }} <input name="nodes" data-field="nodes" value="{{ ed.picked or '' }}" placeholder="{{ ed.nodes|join(', ') }}"></label>
+    <button class="btn primary" data-act="preview">{{ t('fa_preview_run') }}</button>
+  </form>
+  <p class="hint">{{ t('fa_preview_nodes', n=ed.nodes|length) }} {{ ed.nodes[:10]|join(', ') }}</p>
+  {% if ed.plan %}
+  <div data-plan="1" data-dry="true">
+    <p class="notice"><span class="dot"></span><b>{{ t('fa_dry') }}</b> {{ ed.plan.label }}</p>
+    <h4>{{ t('fa_trace_components') }}</h4>
+    <table class="queue" data-table="trace-components"><tbody>
+    {% for name, c in ed.plan.components.items() %}<tr data-component="{{ name }}"><td class="mono">{{ name }}</td><td class="mono wrap">{% for k, v in c.items() %}{{ k }}={{ v if v is not none else '-' }}{{ '; ' if not loop.last }}{% endfor %}</td></tr>{% endfor %}
+    </tbody></table>
+    {% for run in ed.plan.runs %}
+    <h4 data-run="{{ run.node_id }}">{{ run.node_id }} <span class="k">{{ t('fa_facts_n', n=run.facts) }}</span></h4>
+    <table class="queue" data-table="plan-{{ run.node_id }}">
+      <thead><tr><th scope="col">{{ t('fa_f_id') }}</th><th scope="col">{{ t('fa_f_evidence') }}</th><th scope="col">{{ t('fa_trace_loads') }}</th><th scope="col">{{ t('fa_trace_stops') }}</th></tr></thead>
+      <tbody>
+      {% for it in run['items'] %}
+        <tr data-plan-item="{{ it.checklist_id }}">
+          <td class="mono">{{ it.checklist_id }} {{ ui.sev(it.severity) }}</td>
+          <td>{{ it.evidence_kinds|join(', ') }}</td>
+          <td class="wrap">
+            {% for l in it.loads %}<span class="pill mono" data-load="{{ l.source }}">{{ l.source }} via {{ l.tool_id or '-' }}{% if l.facts_in_export is defined %} ({{ l.facts_in_export }}){% endif %}</span> {% endfor %}
+            {% for m in it.missing %}<span class="pill bad" data-missing="1">{{ m }}</span> {% endfor %}
+            {% if it.would_answer_question %}{{ ui.pill(t('fa_trace_question'), 'warn') }}{% endif %}
+          </td>
+          <td class="mono wrap">{{ it.stops|join(', ') or '-' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="card" data-helper="result_explainer">
+  <h3>{{ t('fa_h_result_explainer') }}</h3>
+  <p class="hint">{{ t('fa_h_explainer_hint') }}</p>
+  {{ fu.model_notice(ed) }}
+  {% if ed.editable %}
+  <form hx-post="/console/factory/{{ ed.agent.id }}/helpers/result_explainer" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+    <input type="hidden" name="version" value="{{ ed.version }}">
+    <label>{{ t('fa_h_report_json') }} <textarea name="report_json" data-field="report_json" rows="6"></textarea></label>
+    <button class="btn" data-act="run-helper" data-helper="result_explainer">{{ t('fa_h_run') }}</button>
+  </form>
+  {% endif %}
+  <table class="queue" data-table="drafts-result_explainer"><tbody>
+  {% for d in ed.drafts %}
+    <tr data-draft="{{ d.draft_id }}" data-status="{{ d.status }}">
+      <td class="wrap">{{ ui.pill(d.status, {'draft': 'warn', 'accepted': 'ok', 'dropped': 'neutral'}.get(d.status, 'neutral')) }} {{ d.row.text }}
+        <br>{% for p in d.row.pointers %}<span class="pill mono" data-pointer="1">{{ p }}</span> {% endfor %}</td>
+      <td>{{ fu.draft_buttons(ed, d) }}</td>
+    </tr>
+  {% else %}<tr><td class="hint">{{ t('fa_h_none') }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>

@@ -1,0 +1,78 @@
+{# Editor step 6: the harness panel, one block per component of docs/factory.md "Harness" (WP-F2). #}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+{% set h = ed.defn.harness %}
+{% set dis = '' if ed.editable else 'disabled' %}
+<section class="card" id="factory-step-panel" data-step="harness">
+  <h3>6. {{ t('fa_step_harness') }}</h3>
+  <p class="hint">{{ t('fa_harness_hint') }}</p>
+  <form hx-post="/console/factory/{{ ed.agent.id }}/step/harness" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+    {{ fu.hid(ed) }}
+
+    <fieldset data-component="system_prompt">
+      <legend>{{ t('fa_hc_system_prompt') }}</legend>
+      <p class="hint"><b>{{ t('fa_default') }}:</b> {{ t('fa_hd_system_prompt', name=ed.caps.PREAMBLE) }}</p>
+      <p class="hint"><b>{{ t('fa_editable') }}:</b> {{ t('fa_he_system_prompt', max=ed.caps.INSTRUCTIONS_MAX_TOKENS) }}</p>
+    </fieldset>
+
+    <fieldset data-component="context">
+      <legend>{{ t('fa_hc_context') }}</legend>
+      <p class="hint"><b>{{ t('fa_default') }}:</b> {{ t('fa_hd_context') }} <span class="mono">{{ ed.caps.CONTEXT_SOURCES|join(', ') }}</span></p>
+      {% for s in ed.caps.CONTEXT_SOURCES %}
+      <label><input type="checkbox" name="src_{{ s }}" {{ 'checked' if s in h.context.sources }} {{ dis }}> {{ s }}</label>
+      <label>#<input type="number" name="order_{{ s }}" min="1" max="9" style="width:3.5em" value="{{ (h.context.sources.index(s) + 1) if s in h.context.sources else '' }}" {{ dis }}></label>
+      {% endfor %}
+      <br>
+      <label>{{ t('fa_f_budget') }} <input type="number" name="budget_tokens" data-field="budget_tokens" min="{{ ed.caps.CONTEXT_BUDGET_MIN }}" max="{{ ed.caps.CONTEXT_BUDGET_MAX }}" value="{{ h.context.budget_tokens }}" {{ dis }}></label>
+      <span class="hint">{{ t('fa_cap') }} {{ ed.caps.CONTEXT_BUDGET_MIN }}..{{ ed.caps.CONTEXT_BUDGET_MAX }}</span>
+      <label>{{ t('fa_f_max_doc') }} <input type="number" name="max_document_chars" data-field="max_document_chars" min="0" max="{{ ed.caps.MAX_DOCUMENT_CHARS_MAX }}" value="{{ h.context.max_document_chars }}" {{ dis }}></label>
+      <span class="hint">{{ t('fa_cap') }} 0..{{ ed.caps.MAX_DOCUMENT_CHARS_MAX }}</span>
+      <p class="hint">{{ t('fa_locked') }}: progressive = true</p>
+    </fieldset>
+
+    <fieldset data-component="memory">
+      <legend>{{ t('fa_hc_memory') }}</legend>
+      <p class="hint"><b>{{ t('fa_default') }}:</b> {{ t('fa_hd_memory') }}</p>
+      <label><input type="checkbox" name="system_memory" {{ 'checked' if h.memory.system_memory }} {{ dis }}> {{ t('fa_f_system_memory') }}</label>
+      <label>{{ t('fa_f_retention') }} <input type="number" name="retention_days" data-field="retention_days" min="1" max="{{ ed.caps.MEMORY_RETENTION_MAX_DAYS }}" value="{{ h.memory.retention_days or '' }}" {{ dis }}></label>
+      <span class="hint">{{ t('fa_cap') }} 1..{{ ed.caps.MEMORY_RETENTION_MAX_DAYS }}</span>
+      {% for m in ed.caps.MEMORY_FIELDS %}<label><input type="checkbox" name="memf_{{ m }}" {{ 'checked' if m in h.memory.fields }} {{ dis }}> {{ m }}</label>{% endfor %}
+      <p class="hint">{{ t('fa_locked') }}: run = scratchpad, cross_run = off</p>
+    </fieldset>
+
+    <fieldset data-component="hitl">
+      <legend>{{ t('fa_hc_hitl') }}</legend>
+      <p class="hint"><b>{{ t('fa_default') }}:</b> {{ t('fa_hd_hitl') }}</p>
+      <label>{{ t('fa_f_approval_points') }} <textarea name="approval_points" data-field="approval_points" rows="3" {{ dis }}>{% for a in h.hitl.approval_points %}{{ a.kind }}:{{ a.ref }}
+{% endfor %}</textarea></label>
+      <span class="hint">{{ t('fa_approval_hint', max=ed.caps.APPROVAL_POINTS_MAX) }}</span>
+      {% for tl in ed.defn.tools %}
+      {% set cur = ed.perm_of.get(tl.tool_id, '') %}
+      <label>{{ tl.tool_id }} <select name="perm_{{ tl.tool_id }}" {{ dis }}><option value="" {{ 'selected' if not cur }}>{{ t('fa_perm_default') }}</option><option value="read" {{ 'selected' if cur == 'read' }}>read</option>{% if tl.mode == 'propose' %}<option value="propose" {{ 'selected' if cur == 'propose' }}>propose</option>{% endif %}</select></label>
+      {% endfor %}
+      <p class="hint">{{ t('fa_locked') }}: {{ t('fa_hl_hitl') }}</p>
+    </fieldset>
+
+    <fieldset data-component="verification">
+      <legend>{{ t('fa_hc_verification') }}</legend>
+      <p class="hint"><b>{{ t('fa_default') }}:</b> {{ t('fa_hd_verification') }} <span class="mono">{{ ed.caps.LOCKED_VALIDATORS|join(', ') }}</span></p>
+      <label>{{ t('fa_f_verifier') }} <select name="verifier" data-field="verifier" {{ dis }}>{% for v in ed.caps.VERIFIERS %}<option value="{{ v }}" {{ 'selected' if v == h.verification.verifier }}>{{ v }}</option>{% endfor %}</select></label>
+      {% for v in ed.caps.EXTRA_VALIDATORS %}<label><input type="checkbox" name="val_{{ v }}" {{ 'checked' if v in h.verification.validators }} {{ dis }}> {{ v }}</label>{% endfor %}
+    </fieldset>
+
+    <fieldset data-component="loop">
+      <legend>{{ t('fa_hc_loop') }}</legend>
+      <p class="hint"><b>{{ t('fa_default') }}:</b> {{ t('fa_hd_loop') }}</p>
+      <label>{{ t('fa_f_mode') }} <select name="loop_mode" data-field="loop_mode" {{ dis }}>{% for m in ed.caps.LOOP_MODES %}<option value="{{ m }}" {{ 'selected' if m == h.loop.mode }}>{{ m }}</option>{% endfor %}</select></label>
+      <label>{{ t('fa_f_max_iter') }} <input type="number" name="max_iterations" data-field="max_iterations" min="1" max="{{ ed.caps.LOOP_MAX_ITERATIONS }}" value="{{ h.loop.max_iterations }}" {{ dis }}></label>
+      <span class="hint">{{ t('fa_cap') }} 1..{{ ed.caps.LOOP_MAX_ITERATIONS }}</span>
+      {% for s in ed.caps.STOP_WHEN %}<label><input type="checkbox" name="stop_{{ s }}" {{ 'checked' if s in h.loop.stop_when }} {{ dis }}> {{ s }}</label>{% endfor %}
+      <label>{{ t('fa_f_evaluator') }} <select name="loop_evaluator" data-field="loop_evaluator" {{ dis }}>{% for v in ed.caps.LOOP_EVALUATORS %}<option value="{{ v }}" {{ 'selected' if v == h.loop.loop_evaluator }}>{{ v }}</option>{% endfor %}</select></label>
+      <label>{{ t('fa_f_min_score') }} <input type="number" name="min_score" data-field="min_score" min="0" max="{{ ed.caps.MIN_SCORE_MAX }}" value="{{ h.loop.min_score if h.loop.min_score is not none else '' }}" {{ dis }}></label>
+      <label>{{ t('fa_f_loop_budget') }} <input type="number" name="loop_budget_tokens" data-field="loop_budget_tokens" min="{{ ed.caps.CONTEXT_BUDGET_MIN }}" max="{{ ed.caps.LOOP_BUDGET_MAX }}" value="{{ h.loop.budget_tokens }}" {{ dis }}></label>
+      <span class="hint">{{ t('fa_cap') }} {{ ed.caps.CONTEXT_BUDGET_MIN }}..{{ ed.caps.LOOP_BUDGET_MAX }}</span>
+    </fieldset>
+
+    {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}
+  </form>
+</section>

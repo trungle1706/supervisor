@@ -1824,3 +1824,68 @@ CREATE TABLE IF NOT EXISTS classification_v2 (
 );
 
 CREATE INDEX IF NOT EXISTS ix_classification_v2_system_id ON classification_v2 (system_id);
+
+-- factory_agent (state): WP-F2 (phase 12B, AGENT_FACTORY). One row per version of an assessment agent definition (docs/factory.md). definition_json is the agent_definition_v1 document, validated on every save; it holds no personal data and no float. state is draft or retired in WP-F2 (tested, approved and live belong to WP-F3). A version other than draft is not edited; a change makes a new version. owner_group is a group of config/factory_groups.yaml and owns dimension_id.
+CREATE TABLE IF NOT EXISTS factory_agent (
+  id TEXT NOT NULL,
+  version TEXT NOT NULL,
+  owner_group TEXT NOT NULL,
+  dimension_id TEXT NOT NULL,
+  definition_json TEXT NOT NULL,
+  state TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (id, version)
+);
+
+CREATE INDEX IF NOT EXISTS ix_factory_agent_owner_group_state ON factory_agent (owner_group, state);
+
+CREATE INDEX IF NOT EXISTS ix_factory_agent_dimension_id_state ON factory_agent (dimension_id, state);
+
+-- factory_agent_event (append_only): WP-F2 (phase 12B, AGENT_FACTORY). Append-only log of every change of an agent version in the factory: created, saved, new_version, retired, helper rows accepted or dropped, golden set uploaded. detail is a masked sentence of at most 300 characters. Rows are never updated or deleted. No personal data, no float.
+CREATE TABLE IF NOT EXISTS factory_agent_event (
+  event_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  version TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  actor_ref TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_factory_agent_event_agent_id_created_at ON factory_agent_event (agent_id, created_at);
+
+CREATE TRIGGER IF NOT EXISTS trg_factory_agent_event_no_update
+BEFORE UPDATE ON factory_agent_event
+BEGIN
+  SELECT RAISE(ABORT, 'factory_agent_event is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_factory_agent_event_no_delete
+BEFORE DELETE ON factory_agent_event
+BEGIN
+  SELECT RAISE(ABORT, 'factory_agent_event is append-only');
+END;
+
+-- factory_helper_draft (state): WP-F2 (phase 12B, AGENT_FACTORY). A row proposed by a helper agent (checklist_drafter, golden_generator, result_explainer) through the gateway model. A draft is never part of an agent: a person accepts or drops each row. row_json is the proposed row (a checklist item, a golden case or an explanation sentence with its pointers). A golden case that trips the masker is refused and never stored. No personal data, no float.
+CREATE TABLE IF NOT EXISTS factory_helper_draft (
+  draft_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  version TEXT NOT NULL,
+  helper TEXT NOT NULL,
+  row_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  model_id TEXT NOT NULL,
+  prompt_version TEXT NOT NULL,
+  run_id TEXT NOT NULL,
+  decided_by TEXT,
+  decided_at TEXT,
+  created_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (draft_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_factory_helper_draft_agent_id_helper_status ON factory_helper_draft (agent_id, helper, status);

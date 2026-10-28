@@ -1,0 +1,97 @@
+# Starter template of the agent factory (WP-F2) for the third_party dimension. The checklist follows
+# docs/phase12/research/regulation-structure.md section 2. It is a starting point for the owner
+# group, not legal advice (bank counsel confirms). Strict keys: supervisor.factory.templates.
+template_id: third_party
+version: 1
+label_en: Third-party risk assessment
+name: Third-party risk assessment agent
+description: 'Assesses third-party risk of one AI system: vendor assessment, contract terms and platform
+  dependence.'
+owner_group: third_party
+dimension_id: third_party
+policy_refs:
+- doc_id: VN-TT53-2026
+  source: regkb
+  version: 1
+  sections:
+  - Art.14(3)(e)
+  - Art.18(2)
+  - Art.18(3)
+  - Art.18(4)
+checklist:
+- id: TP-01
+  question: Is the vendor of the model or platform assessed and the result on file?
+  evidence:
+  - document
+  - system_record
+  severity: high
+  pass_rule: A vendor assessment is referenced (Art.18(2)(a)).
+- id: TP-02
+  question: Does the contract require logs or API access and ban training on bank data?
+  evidence:
+  - document
+  severity: high
+  pass_rule: The contract summary states both terms (Art.18(3)).
+- id: TP-03
+  question: Does the vendor hold a security or AI management certificate (SOC 2, ISO 27001, ISO 42001)?
+  evidence:
+  - document
+  - system_record
+  severity: medium
+  pass_rule: At least one certificate is listed with a valid date.
+- id: TP-04
+  question: Is the dependence on one platform recorded with an exit option?
+  evidence:
+  - system_record
+  - fact
+  severity: medium
+  pass_rule: The record names the platform and an exit or fallback (Art.18(4)).
+evidence_rules:
+  allowed_sources:
+  - fact
+  - document
+  - regkb
+  - system_record
+  must_cite: true
+  max_age_days: 365
+tools:
+- tool_id: read_facts
+  mode: read
+  scope: system:own
+- tool_id: read_regkb
+  mode: read
+  scope: regkb:VN-TT53-2026
+- tool_id: read_system_record
+  mode: read
+- tool_id: search_documents
+  mode: read
+  scope: documents:internal
+instructions: Answer each checklist item (TP-01, TP-02, TP-03, TP-04) from the evidence only. Cite the
+  evidence for every pass or fail. Use question when the evidence is missing. Give a short reason for
+  each answer.
+harness:
+  context:
+    sources:
+    - facts_v1
+    - system_record
+    - regkb_rows
+    - document_sections
+    budget_tokens: 12000
+    max_document_chars: 8000
+  memory:
+    system_memory: false
+  hitl:
+    approval_points:
+    - kind: verdict
+      ref: question
+    permissions: []
+  verification:
+    verifier: rules
+    validators: []
+  loop:
+    mode: single_pass
+guardians:
+- pii_mask_v2
+- tool_scope_guard
+- citation_required
+eval_pack: third-party-golden-v1

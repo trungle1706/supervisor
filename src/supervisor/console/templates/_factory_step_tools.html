@@ -1,0 +1,27 @@
+{# Editor step 4: tools from the allow-list of the owner group (WP-F2). By reference only. #}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+<section class="card" id="factory-step-panel" data-step="tools">
+  <h3>4. {{ t('fa_step_tools') }}</h3>
+  <p class="hint">{{ t('fa_tools_hint', group=ed.agent.owner_label) }}</p>
+  <form hx-post="/console/factory/{{ ed.agent.id }}/step/tools" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+    {{ fu.hid(ed) }}
+    <div class="tablewrap flat"><table class="queue" data-table="tools">
+      <thead><tr><th scope="col"></th><th scope="col">{{ t('fa_f_tool') }}</th><th scope="col">{{ t('fa_f_kind') }}</th><th scope="col">{{ t('fa_f_data_class') }}</th><th scope="col">{{ t('fa_f_mode') }}</th><th scope="col">{{ t('fa_f_scope') }}</th></tr></thead>
+      <tbody>
+      {% for tv in ed.tools_view %}
+        <tr data-tool="{{ tv.tool_id }}">
+          <td><input type="checkbox" name="use_{{ tv.tool_id }}" {{ 'checked' if tv.on }} {{ '' if ed.editable else 'disabled' }}></td>
+          <td><b>{{ tv.label }}</b><br><span class="mono">{{ tv.tool_id }}</span></td>
+          <td>{{ tv.kind }}</td>
+          <td>{{ ui.pill(tv.data_class, 'warn' if tv.data_class in ('confidential', 'personal_masked') else 'neutral') }}</td>
+          <td><select name="mode_{{ tv.tool_id }}" {{ '' if ed.editable else 'disabled' }}>{% for m in tv.modes %}<option value="{{ m }}" {{ 'selected' if m == tv.mode }}>{{ m }}</option>{% endfor %}</select></td>
+          <td><input name="scope_{{ tv.tool_id }}" value="{{ tv.scope }}" placeholder="{{ tv.scopes|join(' | ') }}:..." {{ '' if ed.editable else 'disabled' }}></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="hint">{{ t('fa_tools_inline') }}</p>
+    {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}
+  </form>
+</section>

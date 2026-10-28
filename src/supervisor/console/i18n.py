@@ -4832,3 +4832,6 @@ _T.update(_PX)
 from supervisor.console.i18n_classify import CV as _CV  # noqa: E402  (WP-C1, prefix cv_)
 
 _T.update(_CV)
+from supervisor.console.i18n_factory import FA as _FA  # noqa: E402  (WP-F2, prefix fa_)
+
+_T.update(_FA)

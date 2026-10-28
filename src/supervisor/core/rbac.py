@@ -148,6 +148,10 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         "Build and sign a transparency report (WP31)",
     ),
     # --- WP-G0 ---
+    "factory.edit": (
+        ("reviewer", "approver", "admin"),
+        "Agent factory: create and edit draft agents of your group, run helper agents (WP-F2)",
+    ),
     "systems.view": (_ALL, "Systems pages and GET /v1/systems: AI systems in your scope (WP-G0)"),
     "systems.edit": (
         ("reviewer", "owner", "admin"),
@@ -486,6 +490,23 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/systems/{system_id}/classify"): "systems.view",
     ("POST", "/console/systems/{system_id}/classify"): "systems.edit",
     ("POST", "/console/systems/{system_id}/classify/approve"): "systems.approve",
+    # --- WP-F2 (phase 12B) --- agent factory (AGENT_FACTORY; 400 agent_factory_off when off).
+    # factory.edit also needs a role the owner group lists in config/factory_groups.yaml.
+    ("GET", "/v1/factory/agents"): "systems.view",
+    ("GET", "/v1/factory/agents/{agent_id}"): "systems.view",
+    ("GET", "/v1/factory/portfolio"): "systems.view",
+    ("GET", "/console/factory"): "systems.view",
+    ("POST", "/console/factory/new"): "factory.edit",
+    ("GET", "/console/factory/{agent_id}"): "systems.view",
+    ("GET", "/console/factory/{agent_id}/step/{step}"): "systems.view",
+    ("POST", "/console/factory/{agent_id}/step/{step}"): "factory.edit",
+    ("GET", "/console/factory/{agent_id}/preview"): "systems.view",
+    ("POST", "/console/factory/{agent_id}/golden"): "factory.edit",
+    ("POST", "/console/factory/{agent_id}/helpers/{helper}"): "factory.edit",
+    ("POST", "/console/factory/{agent_id}/drafts/{draft_id}/accept"): "factory.edit",
+    ("POST", "/console/factory/{agent_id}/drafts/{draft_id}/drop"): "factory.edit",
+    ("POST", "/console/factory/{agent_id}/new-version"): "factory.edit",
+    ("POST", "/console/factory/{agent_id}/retire"): "factory.edit",
     # --- WP-O1 (phase 9) --- candidate source intake (ONBOARD_INTAKE; 400 with the flag when off)
     ("GET", "/v1/intake/{node_id}"): "systems.view",
     ("POST", "/v1/intake/{node_id}"): "systems.edit",

@@ -1,0 +1,46 @@
+{# Editor step 9: golden set (upload, count, stratification) and the golden-set generator (WP-F2). The gate is WP-F3. #}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+<section class="card" id="factory-step-panel" data-step="golden">
+  <h3>9. {{ t('fa_step_golden') }} <span class="k" data-golden-total="{{ ed.strat.total }}">{{ ed.strat.total }}</span></h3>
+  <p class="hint">{{ t('fa_golden_hint') }}</p>
+  {% if ed.editable %}
+  <form hx-post="/console/factory/{{ ed.agent.id }}/golden" hx-target="#factory-step" hx-swap="innerHTML" hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data" class="btnrow">
+    <input type="hidden" name="version" value="{{ ed.version }}">
+    <input type="file" name="file" accept=".json,.csv" data-field="file" required>
+    <button class="btn primary" data-act="upload">{{ t('fa_upload') }}</button>
+  </form>
+  <p class="hint">{{ t('fa_golden_format') }}</p>
+  {% endif %}
+  <h4>{{ t('fa_strat') }}</h4>
+  <table class="queue" data-table="stratification"><thead><tr><th scope="col">{{ t('fa_f_id') }}</th><th scope="col">{{ t('fa_golden_cases') }}</th></tr></thead><tbody>
+  {% for item, n in ed.strat.per_item.items() %}<tr data-strat-item="{{ item }}"><td class="mono">{{ item }}</td><td>{{ ui.barcell(n, ed.strat.total or 1) }}</td></tr>{% endfor %}
+  </tbody></table>
+  <p class="idline" data-per-verdict="1">{% for v, n in ed.strat.per_verdict.items() %}<span class="pill">{{ v }} {{ n }}</span> {% endfor %}</p>
+  {% if ed.strat.uncovered %}<p class="notice" data-uncovered="1"><span class="dot"></span>{{ t('fa_golden_uncovered', ids=ed.strat.uncovered|join(', ')) }}</p>{% endif %}
+  <p class="hint">{{ t('fa_golden_min') }}</p>
+  <table class="queue" data-table="cases"><tbody>
+  {% for c in ed.cases %}<tr data-case="{{ c.case_id }}"><td class="mono">{{ c.case_id }}</td><td class="mono">{{ c.checklist_id }}</td><td>{{ c.expected_verdict }}</td><td class="wrap" lang="vi">{{ c.input }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+
+<section class="card" data-helper="golden_generator">
+  <h3>{{ t('fa_h_golden_generator') }}</h3>
+  <p class="hint">{{ t('fa_h_golden_hint') }}</p>
+  {{ fu.model_notice(ed) }}
+  {% if ed.editable %}
+  <form hx-post="/console/factory/{{ ed.agent.id }}/helpers/golden_generator" hx-target="#factory-step" hx-swap="innerHTML" method="post" class="btnrow">
+    <input type="hidden" name="version" value="{{ ed.version }}">
+    <label>{{ t('fa_h_per_item') }} <input type="number" name="per_item" data-field="per_item" min="1" max="5" value="2"></label>
+    <button class="btn" data-act="run-helper" data-helper="golden_generator">{{ t('fa_h_run') }}</button>
+  </form>
+  {% endif %}
+  <table class="queue" data-table="drafts-golden_generator"><tbody>
+  {% for d in ed.drafts %}
+    <tr data-draft="{{ d.draft_id }}" data-status="{{ d.status }}">
+      <td class="wrap"><span class="pill mono">{{ d.row.case_id }}</span> <span class="pill">{{ d.row.expected_verdict }}</span> <span lang="vi">{{ d.row.input }}</span></td>
+      <td>{{ fu.draft_buttons(ed, d) }}</td>
+    </tr>
+  {% else %}<tr><td class="hint">{{ t('fa_h_none') }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
