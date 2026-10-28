@@ -14,7 +14,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput, TargetReply
+from supervisor.assurance.model import (
+    EvalPack,
+    RunContext,
+    RunnerOutput,
+    TargetReply,
+    not_applicable_reason,
+)
 from supervisor.assurance.runners import security_common as sc
 from supervisor.assurance.runners.security import probe_success
 from supervisor.assurance.textutil import bp
@@ -242,12 +248,24 @@ class IndirectInjectionRunner:
             return RunnerOutput.skip(str(exc))
         names = sc.registered_names(target)
         if not names:
-            return RunnerOutput.skip("target has no registered tools")
+            return RunnerOutput.skip(
+                not_applicable_reason(
+                    "target has no registered tools (the manifest declares none)",
+                    "supply manifest tools",
+                )
+            )
         cases = [
             c
             for c in loaded.items
             if c["tool"] in names and (c["kind"] == "benign" or c["attacker_tool"] in names)
         ]
+        if not cases:
+            return RunnerOutput.skip(
+                not_applicable_reason(
+                    "no injection case matches the tools of this target",
+                    "supply cases (<ASSURANCE_DATA_DIR>/indirect_injection_vi)",
+                )
+            )
         if len(cases) < pack.min_items:
             return RunnerOutput.skip(
                 f"only {len(cases)} cases match the target's tools, pack needs {pack.min_items}"

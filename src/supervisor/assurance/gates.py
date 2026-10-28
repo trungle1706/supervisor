@@ -91,6 +91,15 @@ class JudgeNotValidatedError(ConfigError):
         )
 
 
+def mock_reason_of(r: PackResult) -> str:
+    """Why a result is mock: the target or runner says so in ``details.mock_reason`` when it
+    can; else a fixed sentence for a mock result; ``""`` for a real result."""
+    if not r.is_mock:
+        return ""
+    why = r.details.get("mock_reason") if isinstance(r.details, Mapping) else None
+    return str(why) if why else "the agent or a model behind this result is a mock"
+
+
 def _row(r: PackResult | Mapping[str, Any]) -> dict[str, Any]:
     if isinstance(r, Mapping):
         d = dict(r)
@@ -103,6 +112,9 @@ def _row(r: PackResult | Mapping[str, Any]) -> dict[str, Any]:
             "reasons": list(r.reasons),
             "target_id": r.target_id,
             "details": dict(r.details),
+            # a PackResult keeps is_mock; the mock state and the mock-only item read it
+            "is_mock": bool(r.is_mock),
+            "mock_reason": mock_reason_of(r),
         }
     reasons = d.get("reasons") or []
     if isinstance(reasons, str):

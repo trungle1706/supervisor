@@ -31,12 +31,14 @@ from typing import Any
 
 from supervisor.assurance.loader import PACKS_DIR, manifest_sha256, pack_path
 from supervisor.assurance.model import (
+    NOT_APPLICABLE_PREFIX,
     EvalPack,
     MetricStatusT,
     PackResult,
     RunContext,
     RunnerOutput,
     StatusT,
+    parse_not_applicable,
 )
 from supervisor.assurance.registry import resolve_runner
 from supervisor.assurance.results import (
@@ -194,6 +196,10 @@ def _result(
     details: Mapping[str, Any] | None = None,
 ) -> PackResult:
     metrics = dict(metrics or {})
+    # WP-O3b: a target may add small, JSON-safe facts to every result (the HTTP target: kind,
+    # host, turn count). Strings, ints and booleans only; no personal data.
+    extra = getattr(target, "result_details", None)
+    target_details = dict(extra()) if callable(extra) else {}
     return PackResult(
         run_id=run_id,
         pack_id=pack.id,
@@ -214,7 +220,7 @@ def _result(
         judge_gate=pack.judge_gate,
         started_at=started,
         finished_at=finished,
-        details={**(out.details if out else {}), **(details or {})},
+        details={**(out.details if out else {}), **target_details, **(details or {})},
     )
 
 
@@ -269,6 +275,7 @@ def run_pack(
             details={"error_class": "InvalidRunnerOutput"},
         )
     if out.status == "skip":
+        na = parse_not_applicable(out.skip_reason or "")
         return _result(
             pack,
             run_id,
@@ -276,9 +283,16 @@ def run_pack(
             started,
             finished,
             "skip",
-            reasons=[_short(out.skip_reason or "skipped by the runner")],
+            reasons=[
+                _short(f"{NOT_APPLICABLE_PREFIX} {na[0]}")
+                if na
+                else _short(out.skip_reason or "skipped by the runner")
+            ],
             metrics=out.metrics,
             out=out,
+            details=(
+                {"reason": f"{NOT_APPLICABLE_PREFIX} {na[0]}", "action": na[1]} if na else None
+            ),
         )
     if out.n_items < pack.min_items:
         return _result(

@@ -33,7 +33,7 @@ from typing import Any
 
 from supervisor.assurance import versions
 from supervisor.assurance.depfiles import Component, DepSet, load_depset, normalise_name
-from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput
+from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput, not_applicable_reason
 from supervisor.assurance.textutil import bp, sha256_lines
 
 SYNTHETIC_DIR = Path("data") / "assurance" / "synthetic"
@@ -646,6 +646,18 @@ class PinHashRunner:
             return sel
         comps = sel.deps.sorted_components()
         total = len(comps)
+        if (
+            getattr(ctx.target, "tree_target", False)
+            and sel.data_mode != "synthetic"
+            and not sel.deps.lock_present
+            and not any(c.hashed for c in comps)
+        ):  # WP-O3b: a stored tree with no hashes anywhere: there is nothing to check
+            return RunnerOutput.skip(
+                not_applicable_reason(
+                    "no hashed lock file in the stored tree",
+                    "add hashes to requirements.txt (pip hash) or a lock file",
+                )
+            )
         unpinned = [c for c in comps if not c.pinned]
         unhashed = [c for c in comps if not c.hashed]
         return RunnerOutput(
@@ -859,7 +871,11 @@ class McpDriftRunner:
             baseline = _baseline(pack, ctx)
         items = _flatten_tools(manifest)
         if not items:
-            return RunnerOutput.skip("no tools declared: nothing to check for drift")
+            return RunnerOutput.skip(
+                not_applicable_reason(
+                    "no tools declared: nothing to check for drift", "supply manifest tools"
+                )
+            )
         names_full = {n for n, _t, _b in items}
         names_all = names_full | {b for _n, _t, b in items}
         current = {n: tool_hash(t) for n, t, _b in items}
@@ -902,6 +918,9 @@ class McpDriftRunner:
                     drift.append("baseline_hash_mismatch")
         poisoned_tools = {n: r for n, t, _b in items if (r := poisoned(t))}
         measured = bool(checks)
+        # WP-O3b: a stored tree (no running registry, no baseline) cannot show drift; only the
+        # description check runs, and the drift metrics are declared not applicable (not hidden).
+        static_tree = bool(getattr(target, "tree_target", False)) and not measured
         details = {
             "checks_run": checks,
             "drift": drift[:100],
@@ -932,4 +951,5 @@ class McpDriftRunner:
             dataset_sha256=sha256_lines(sorted(f"{n}|{h}" for n, h in current.items())),
             is_mock=bool(getattr(target, "is_mock", False)),
             details=details,
+            not_applicable_metrics={"drift_count", "undeclared_tools"} if static_tree else set(),
         )

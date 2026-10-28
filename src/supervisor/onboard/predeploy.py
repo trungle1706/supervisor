@@ -11,7 +11,12 @@ in this order, and goes on when one section breaks (that section becomes one ite
 3. ``packs``     the assurance packs with ``launch_gate: required``, run on the attempt in the
                  launch sandbox (gate in SHADOW, synthetic world). A skip is a ``fail`` for a
                  required pack, as in ``docs/assurance.md``, except a structured "not applicable".
-4. ``multiturn`` the multi-turn red-team pack (``launch_gate: advisory``): never blocks.
+                 With ``PREDEPLOY_HTTP_TARGET`` on and an ``http_target`` block on the candidate
+                 (WP-O3b), the packs that need a running agent send synthetic turns to the
+                 candidate's HTTP chat endpoint instead (``HttpAgentTarget``); each pack item says
+                 which target ran (``target: http <host>``, ``sandbox demo`` or ``no harness``).
+4. ``multiturn`` the multi-turn red-team pack (``launch_gate: advisory``): never blocks. It uses
+                 the same target as ``packs``.
 5. ``duties``    the duties matrix (WP-L2) when ``CONSOLE_REGISTER_DUTIES`` is on and a register
                  draft exists for the node; else the ``question`` item "duties: not run".
 
@@ -180,6 +185,8 @@ class PredeployService:
         chat_factory: Callable[[], Any] | None = None,
         target_factory: Callable[[Path, str, Path, Any], Any] | None = None,
         executor: Callable[..., list[Any]] | None = None,
+        http_transport: Any = None,
+        http_auth: Callable[[], Mapping[str, str]] | None = None,
     ) -> None:
         self.settings = settings
         self.state = state
@@ -188,6 +195,10 @@ class PredeployService:
         self._chat_factory = chat_factory
         self._target_factory = target_factory or build_target
         self._executor = executor
+        # WP-O3b: tests inject a local transport and a fake auth header; the product path uses
+        # httpx and the service principal of the Supervisor (never a stored token).
+        self._http_transport = http_transport
+        self._http_auth = http_auth
 
     # ------------------------------------------------------------------ read
     def _rows(self, node_id: str) -> list[dict[str, Any]]:
@@ -400,6 +411,7 @@ class _Run:
         self._work = Path(self.settings.data_dir) / "predeploy" / report_id
         self._target: Any = None
         self._target_error: BaseException | None = None
+        self._http_refused: str = ""
         self._packs: list[Any] | None = None
 
     def close(self) -> None:
@@ -535,13 +547,48 @@ class _Run:
             try:
                 agent_id = agent_id_of(self.tree, self.node_id)
                 self._work.mkdir(parents=True, exist_ok=True)
-                self._target = self.svc._target_factory(  # noqa: SLF001
+                self._target = self._http_target(agent_id) or self.svc._target_factory(  # noqa: SLF001
                     self.tree, agent_id, self._work, self.settings
                 )
             except BaseException as exc:
                 self._target_error = exc
                 raise
         return self._target
+
+    def _http_target(self, agent_id: str) -> Any:
+        """WP-O3b: the HTTP target for a candidate that has an ``http_target`` block, else
+        ``None`` (the WP-O3 target is built). A block the rules refuse leaves a reason in
+        ``_http_refused``; the packs section turns it into a ``fail`` item."""
+        from supervisor.assurance.targets import (
+            DEMO_AGENTS,
+            HttpAgentTarget,
+            TargetError,
+            service_principal_headers,
+            split_allowed_hosts,
+        )
+        from supervisor.onboard import predeploy_http
+
+        if agent_id in DEMO_AGENTS or not predeploy_http.enabled(self.settings):
+            return None
+        try:
+            cfg = predeploy_http.resolve(self.settings, self.svc.state, self.node_id, self.tree)
+            if cfg is None:
+                return None
+            from supervisor.adapters.factory import make_masker
+
+            return HttpAgentTarget(
+                agent_id,
+                cfg,
+                allowed_hosts=split_allowed_hosts(self.settings.predeploy_http_allowed_hosts),
+                auth_headers=self.svc._http_auth  # noqa: SLF001
+                or service_principal_headers(self.settings),
+                repo_dir=self.tree if self.tree.is_dir() else None,
+                transport=self.svc._http_transport,  # noqa: SLF001
+                masker=make_masker(self.settings),
+            )
+        except TargetError as exc:
+            self._http_refused = _clean(str(exc), 200)
+            return None
 
     def _execute(self, packs: Sequence[Any]) -> list[Any]:
         from supervisor.adapters.clock import FixedClock
@@ -564,6 +611,13 @@ class _Run:
             extras={"out_dir": str(self._work / "assurance")},
         )
         run = self.svc._executor or execute  # noqa: SLF001
+        if hasattr(target, "begin_pack"):  # WP-O3b: the HTTP target counts turns per pack
+            ctx.max_items = int(target.cfg.max_turns)
+            out: list[Any] = []
+            for pack in packs:
+                target.begin_pack(pack.id)
+                out += list(run([pack], target, ctx, "run-predeploy", FixedClock(T0)))
+            return out
         return list(run(list(packs), target, ctx, "run-predeploy", FixedClock(T0)))
 
     def packs(self) -> list[dict[str, str]]:
@@ -580,6 +634,29 @@ class _Run:
         results = self._execute(required)
         by_id = {p.id: p for p in required}
         out: list[dict[str, str]] = []
+        label = _target_label(self._target)
+        if self._http_refused:
+            out.append(
+                make_item(
+                    "packs",
+                    "packs:http_target",
+                    "fail",
+                    f"the HTTP target is configured but refused: {self._http_refused}",
+                    "docs/assurance.md HTTP target (WP-O3b)",
+                )
+            )
+        if type(self._target).__name__ == "HttpAgentTarget":
+            if self._agent_state() == "RUNNING":
+                out.append(
+                    make_item(
+                        "packs",
+                        "packs:running_agent",
+                        "warn",
+                        "assessment ran against a RUNNING agent: the pack turns reached a live "
+                        "agent (the candidate should be in SHADOW)",
+                        f"agent {self._http_agent_id()}",
+                    )
+                )
         if type(self._target).__name__ == "RepoAgentTarget":
             out.append(
                 make_item(
@@ -596,7 +673,9 @@ class _Run:
             if r.pack_id not in by_id:
                 continue
             seen.add(r.pack_id)
-            out.append(_pack_item("packs", r, required=True, na=not_applicable(_as_dict(r))))
+            out.append(
+                _pack_item("packs", r, required=True, na=not_applicable(_as_dict(r)), label=label)
+            )
         for p in required:  # a required pack with no result at all is a fail, never a pass
             if p.id not in seen:
                 out.append(
@@ -656,7 +735,31 @@ class _Run:
                     f"pack {MULTITURN_PACK}",
                 )
             ]
-        return [_pack_item("multiturn", results[0], required=False, na=False)]
+        return [
+            _pack_item(
+                "multiturn", results[0], required=False, na=False, label=_target_label(self._target)
+            )
+        ]
+
+    def _http_agent_id(self) -> str:
+        return str(getattr(self._target, "agent_id", "") or self.node_id)
+
+    def _agent_state(self) -> str:
+        """``RUNNING`` when any registry row the candidate may have is RUNNING; else the state of
+        the first row found (SHADOW, PAUSED, ...), or ``""`` when there is no row."""
+        from supervisor.onboard import predeploy_http
+
+        found = ""
+        for aid in predeploy_http.agent_ids(self.tree, self.node_id):
+            try:
+                row = self.svc.state.get("agent", {"agent_id": aid})
+            except Exception:  # noqa: BLE001, S112 - no agent table: state unknown
+                continue
+            state = str((row or {}).get("gate_state") or "")
+            if state == "RUNNING":
+                return state
+            found = found or state
+        return found
 
     # -- (e) duties ----------------------------------------------------------
     def duties(self) -> list[dict[str, str]]:
@@ -752,14 +855,46 @@ def _as_dict(r: Any) -> dict[str, Any]:
     }
 
 
-def _pack_item(section: str, r: Any, *, required: bool, na: bool) -> dict[str, str]:
+def _target_label(target: Any) -> str:
+    """Which target ran a pack: ``http <host>``, ``sandbox demo``, ``no harness`` or ``""``
+    (a target that is none of these, such as a unit-test fake)."""
+    name = type(target).__name__
+    if name == "HttpAgentTarget":
+        return f"http {target.host}"
+    if name == "DemoAgentTarget":
+        return "sandbox demo"
+    if name == "RepoAgentTarget":
+        return "no harness"
+    return ""
+
+
+def _pack_item(
+    section: str, r: Any, *, required: bool, na: bool, label: str = ""
+) -> dict[str, str]:
     """One pack result as one item. A required pack that failed, errored or skipped is ``fail``
     (a skip is never a pass), except a structured "not applicable" skip. An advisory pack never
     gives ``fail``."""
     reasons = "; ".join(str(x) for x in (r.reasons or [])[:2]) or "no reason given"
     mock = " (mock)" if r.is_mock else ""
-    head = f"pack {r.pack_id}{mock}: {r.status}"
+    details = r.details if isinstance(getattr(r, "details", None), Mapping) else {}
+    if label and details.get("target_kind") == "http":
+        label += f", {int(details.get('turns') or 0)} turns"
+    head = f"pack {r.pack_id}{mock}: {r.status}" + (f" [target: {label}]" if label else "")
     pointer = f"pack {r.pack_id}"
+    na_reason = str(details.get("reason") or "") if r.status == "skip" else ""
+    if required and na_reason.startswith("not_applicable:"):
+        # WP-O3b: the pack structurally cannot run on this target (no data for it, or a
+        # capability that the target can never have). Not a pass and not a defect of the
+        # candidate: an open question for the reviewer. Launch still treats the skip as NO-GO.
+        what = na_reason[len("not_applicable:") :].strip()
+        action = str(details.get("action") or "supply what is missing")
+        return make_item(
+            section,
+            f"pack:{r.pack_id}",
+            "question",
+            f"pack {r.pack_id} cannot run on this target: {what}; {action} or accept the gap",
+            pointer,
+        )
     if r.status == "ok":
         status, text = "ok", head
     elif r.status == "warn":
