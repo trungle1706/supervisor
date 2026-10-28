@@ -550,8 +550,11 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `agents.edit` | Register and change an agent in the registry, POST /v1/agents (WP-P2) |  | x |  | x | x |  |  |
 | `agent.mode` | Ask for or approve SHADOW to RUNNING (two persons); RUNNING to SHADOW needs the reviewer or admin role (WP-P2) |  | x | x | x | x |  |  |
 | `policy.reload` | Reload the policy folders from disk (WP-P2) |  |  |  |  | x |  |  |
+| `guardians.view` | Guardian factory registry and editor, read-only (WP-G1) | x | x | x | x | x | x | x |
+| `guardians.edit` | Create, draft, save and retire guardian definitions; the owner group is also checked (WP-G1) |  | x | x | x | x |  |  |
 | `regkb.view` | Law agent drafts page: duties drafted from the stored official text (WP-L1) | x | x | x | x | x | x | x |
 | `regkb.confirm` | Confirm or drop a law agent draft; the compliance sign-off role (WP-L1) |  |  | x |  | x |  |  |
+| `regkb.upload` | Upload an internal document to RegKB and ask the law agent to draft its duties (WP-W3) |  | x | x | x | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).
