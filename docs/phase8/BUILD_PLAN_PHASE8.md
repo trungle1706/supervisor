@@ -214,6 +214,13 @@ Flag `REGULATOR_PACK=1`.
   applies, coverage, status, evidence counts, pointers, confirmed by, date. Signed with the
   evidence signer; the audit pack verifier reads it.
 
+
+Hub notes after WP-L3 (2026-10-28): WP-L4 must (a) close a `full` coverage row by itself with the
+mapped Supervisor control id once live evidence for that control exists, so the score reflects the
+controls that work; (b) close the WP-L2 gap task of a group when its last row closes; (c) read the
+close evidence and the waive reason from `obligation_status.note` (after the banner) and the
+control from `closing_control`.
+
 ### WP-L5: Decree 142 and TT 53 coverage raise
 
 No flag; data and controls.
