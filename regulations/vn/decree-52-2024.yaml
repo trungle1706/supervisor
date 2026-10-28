@@ -1,0 +1,250 @@
+schema_version: 1
+instrument:
+  id: VN-DEC52-2024
+  jurisdiction: VN
+  kind: decree
+  issuer: Government
+  number: 52/2024/NĐ-CP
+  title_vi: Nghị định quy định về thanh toán không dùng tiền mặt
+  title_en: Decree on non-cash payments
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2024-05-15'
+      source: https://vbpl.vn/van-ban/chi-tiet/167087
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2024-07-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/167087
+      verification: VERIFIED_PRIMARY
+      note: Art. 37(1)
+  related:
+  - VN-TT15-2024
+  - VN-TT50-2024
+  - VN-LCI-2024
+  - VN-AML-2022
+  sources: &id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/167087
+    title: Decree 52/2024/ND-CP full text (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: 1bca62ddaf9ea1aa33d772bb36b14b1aadd00cc8a2931061eccba5703862fdfa
+    local_path: regulations/sources/VN-DEC52-2024/nd-52-2024.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-28'
+  notes: 'Added by WP-W0 on 2026-10-28. The Decree sets the base rules for payment accounts and payment
+    services. It does not name AI. Rows cover the prohibited acts, authorisation to use an account, refusal
+    of orders, safety and risk measures and secrecy. Not covered as rows: Art. 5-7 (foreign currency,
+    e-wallets, payment systems), Art. 9, 11-28 (account opening, freezing, intermediary licences), Art.
+    30-35. vbpl.vn status flag was not read for this Decree in this pass; whether later decrees amended
+    it was not checked. Not legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-DEC52-2024-A8.08-01
+  article_ref: Art. 8(8)
+  text_vi: '8. Thực hiện, tổ chức thực hiện hoặc tạo điều kiện thực hiện các hành vi: sử dụng, lợi dụng
+    tài khoản thanh toán, phương tiện thanh toán, dịch vụ thanh toán, dịch vụ trung gian thanh toán để
+    đánh bạc, tổ chức đánh bạc, gian lận, lừa đảo, kinh doanh trái pháp luật và thực hiện các hành vi
+    vi phạm pháp luật khác.'
+  summary_en: 'Banned: using or enabling the use of payment accounts, payment means or services for gambling,
+    fraud, deceit, illegal business or other violations.'
+  duties:
+  - fraud_monitoring
+  - transaction_limits
+  applies_to: &id002
+    agent_class:
+    - payment
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: 'Blocks a payment over a limit. Missing: detection of the purpose of a transaction.'
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: 'Detects payments split into parts. Missing: detection of gambling and fraud patterns.'
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: 'Daily total cap. Missing: pattern detection.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank fraud function reviews flagged transactions and reports to the authority
+      as the law requires.'
+  evidence_needed:
+  - fraud rules and flagged-case review log
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Effective 2024-07-01 (Art. 37(1)). The ban binds the bank as provider; an AI payment agent must
+    not become the way to move funds for these purposes.
+- id: VN-DEC52-2024-A10.02-01
+  article_ref: Art. 10(2)
+  text_vi: 2. Chủ tài khoản thanh toán được ủy quyền trong sử dụng tài khoản thanh toán. Việc ủy quyền
+    phải thực hiện bằng văn bản, phù hợp với quy định pháp luật về ủy quyền.
+  summary_en: The account holder may authorise someone to use the payment account; the authorisation must
+    be in writing and follow the law on authorisation.
+  duties:
+  - excessive_agency_limits
+  - record_keeping
+  - consent
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: 'Registry records what each agent may do and its owner. Missing: a written authorisation by
+      the account holder for an agent that acts on the account.'
+  - kind: process
+    id: consent_management
+    coverage: partial
+    note: 'Manual step: a customer-facing agent that moves money for a customer acts under a written authorisation
+      (electronic form allowed by the E-Transactions Law; bank counsel must confirm).'
+  evidence_needed:
+  - written authorisation of the account holder for an agent that acts on the account
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Read for an autonomous payment agent that acts on a customer account; bank counsel must confirm
+    what form of authorisation is enough. Compare Circular 53/2026 Art. 5(1)(g).
+- id: VN-DEC52-2024-A10.05-01
+  article_ref: Art. 10(5)
+  text_vi: 5. Tổ chức cung ứng dịch vụ thanh toán có quyền từ chối thực hiện lệnh thanh toán của chủ tài
+    khoản thanh toán khi lệnh thanh toán không hợp lệ hoặc có cơ sở pháp lý để xác định chủ tài khoản
+    vi phạm các hành vi bị cấm theo quy định tại Điều 8 Nghị định này hoặc khi tài khoản thanh toán không
+    đủ tiền trừ trường hợp có thỏa thuận khác. Trường hợp từ chối thực hiện lệnh thanh toán của chủ tài
+    khoản thanh toán, tổ chức cung ứng dịch vụ thanh toán phải thông báo lý do từ chối cho chủ tài khoản
+    thanh toán.
+  summary_en: The provider may refuse a payment order that is invalid, or where there is a legal basis
+    that the holder breaks a banned act of Art. 8, or the balance is short, and must tell the account
+    holder the reason for the refusal.
+  duties:
+  - transaction_limits
+  - fraud_monitoring
+  - consumer_information
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: 'A rule block stops the payment and records the reason. Missing: the message with the reason
+      to the account holder.'
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records the rule that blocked a payment. Missing: customer notice.'
+  - kind: process
+    id: customer_disclosure
+    coverage: partial
+    note: 'Manual step: the bank tells the account holder why a payment was refused, also when an AI agent
+      started it.'
+  evidence_needed:
+  - refusal notice with reason
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC52-2024-A29.01-01
+  article_ref: Art. 29(1)
+  text_vi: 1. Tổ chức cung ứng dịch vụ thanh toán, tổ chức cung ứng dịch vụ trung gian thanh toán phải
+    áp dụng các biện pháp đảm bảo an toàn, bảo mật trong thanh toán theo quy định của pháp luật và được
+    quy định các biện pháp đảm bảo an toàn trong hoạt động thanh toán phù hợp với các quy định pháp luật
+    liên quan. Khách hàng sử dụng dịch vụ có nghĩa vụ tuân thủ các biện pháp đảm bảo an toàn, bảo mật
+    trong thanh toán theo quy định và hướng dẫn của các tổ chức cung ứng dịch vụ.
+  summary_en: Providers apply safety and security measures in payments under the law; customers follow
+    the measures and guidance.
+  duties:
+  - robustness_security
+  - transaction_authentication
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: evidence_chain
+    coverage: partial
+    note: 'Hash-chained evidence of agent payment actions. Missing: the safety and security measures of
+      the payment system itself (see Circular 50/2024).'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank applies SBV safety and security rules to payment services that an AI
+      agent uses.'
+  evidence_needed:
+  - payment safety and security measures
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC52-2024-A29.03-01
+  article_ref: Art. 29(3)
+  text_vi: 3. Tổ chức cung ứng dịch vụ thanh toán, tổ chức cung ứng dịch vụ trung gian thanh toán phải
+    có biện pháp quản trị rủi ro, phòng, chống việc sử dụng, lợi dụng việc cung ứng phương tiện thanh
+    toán, dịch vụ thanh toán, dịch vụ trung gian thanh toán để đánh bạc, tổ chức đánh bạc, thực hiện giao
+    dịch thanh toán khống (giao dịch thanh toán hàng hóa, dịch vụ mà không phát sinh việc mua bán hàng
+    hóa hoặc cung ứng dịch vụ) hoặc các hành vi vi phạm pháp luật khác.
+  summary_en: Providers must have risk management measures that prevent the use of payment means and services
+    for gambling, sham payments (no real sale) or other violations.
+  duties:
+  - fraud_monitoring
+  - risk_management_system
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: 'Detects splitting. Missing: sham-payment detection with merchants.'
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: 'Daily cap. Missing: merchant and purpose analysis.'
+  - kind: monitor
+    id: multiagent
+    coverage: partial
+    note: 'Cross-agent pattern checks over the agents. Missing: merchant-level analysis.'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank fraud function runs risk measures against sham payments and misuse.'
+  evidence_needed:
+  - fraud and misuse risk measures
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC52-2024-A32.02-01
+  article_ref: Art. 32(2)
+  text_vi: Tổ chức cung ứng dịch vụ thanh toán, tổ chức cung ứng dịch vụ trung gian thanh toán có trách
+    nhiệm giữ bí mật các thông tin liên quan đến tài khoản, giao dịch và số dư trên tài khoản, ví điện
+    tử, giao dịch và số dư trên ví điện tử, trừ trường hợp được sự chấp thuận của khách hàng hoặc pháp
+    luật có quy định khác.
+  summary_en: Providers keep secret information on accounts, transactions and balances of payment accounts
+    and e-wallets, unless the customer agrees or the law says otherwise.
+  duties:
+  - customer_confidentiality
+  - purpose_limitation
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks account and identity fields in traces and judge payloads. Missing: customer consent for
+      any other use.'
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: 'Logs outbound calls so disclosure to a model host is visible. Missing: a block on disclosure
+      without consent.'
+  - kind: process
+    id: consent_management
+    coverage: partial
+    note: 'Manual step: the bank records consent where account information goes to an AI vendor or other
+      third party.'
+  evidence_needed:
+  - consent record for any disclosure of account information
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
