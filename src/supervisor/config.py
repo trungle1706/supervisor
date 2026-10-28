@@ -758,6 +758,12 @@ class Settings(BaseSettings):
     # GOVERNANCE_ENABLED (the tab also needs CONSOLE_SYSTEMS_ENABLED). Off: no table read, no tab,
     # the routes answer HTTP 400 risk_dimensions_off.
     risk_dimensions: bool = False
+    # --- WP-F4 (phase 12) --- the onboarding orchestrator (docs/orchestrator.md): plans the eight
+    # risk types for a system, runs the assessment (live factory agent or the rule proposal) under a
+    # budget, writes assessment_report_v1 files and risk_dimension_status proposals (never pass).
+    # Needs GOVERNANCE_ENABLED, RISK_DIMENSIONS and CLASSIFICATION_V2 (ONBOARD_FACTS adds facts v1).
+    # Off: routes answer HTTP 400 orchestrator_off, no table read, the Risk tab is unchanged.
+    onboard_orchestrator: bool = False
     # --- WP-L4 (phase 8) --- evidence per duty and the regulator pack (docs/regulator-pack.md):
     # live counts per control for the duties of a system, auto-close of a full-coverage duty whose
     # mapped controls all work, the group task closes with its last row, the Refresh evidence

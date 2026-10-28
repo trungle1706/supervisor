@@ -15,6 +15,7 @@ from supervisor.adapters.auth.authz import needs
 from supervisor.cases.service import PermissionDenied
 from supervisor.console import (
     systems_duties,
+    systems_orch,
     systems_riskdim,
     systems_views,
     systems_wizard,
@@ -637,3 +638,58 @@ async def system_riskdim_waive(
     form, plain, system = await _rd_system(request, ctx, me, system_id)
     _, note = await _call(systems_riskdim.do_waive, ctx, me, system, dim, form)
     return await _rd_answer(request, ctx, me, plain, system["system_id"], note, "rd_ok_waive")
+
+
+# --- WP-F4: the Run assessment button and the run panel (ONBOARD_ORCHESTRATOR) -------------------
+# GET answers the panel fragment (the panel polls it every 2 s while a run is queued or running);
+# POST needs systems.edit, starts a run and answers the panel. Both answer HTTP 400
+# orchestrator_off while the flag is off. Two console_action rows per POST.
+
+
+async def _orch_panel(
+    request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str, note: str | None
+) -> Response:
+    data = await _call(systems_views.detail_view, ctx, me, system_id, systems_riskdim.TAB, {})
+    resp = render(request, ctx, me, "_system_orch_panel.html", **data)
+    if note:
+        msg = translator(_lang(request, ctx))(note)
+        resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
+        resp.headers["content-length"] = str(len(resp.body))
+    return resp
+
+
+@router.get(
+    "/systems/{system_id}/orchestrate",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("systems.view"))],
+)
+async def system_orchestrate_panel(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _off(ctx)
+    systems_orch.ensure_on(ctx)
+    _check_id(system_id, "system id")
+    await _call(systems_views._need_visible, ctx, me, system_id)
+    return await _orch_panel(request, ctx, me, system_id, None)
+
+
+@router.post(
+    "/systems/{system_id}/orchestrate",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("systems.edit"))],
+)
+@audited("systems.edit")
+async def system_orchestrate_start(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _off(ctx)
+    systems_orch.ensure_on(ctx)
+    systems_orch.person(me)
+    _check_id(system_id, "system id")
+    _, plain = await form_or_plain(request)
+    system = await _call(systems_views._need_visible, ctx, me, system_id)
+    _, note = await _call(systems_orch.do_start, ctx, me, system)
+    request.state.audit_detail = note
+    if plain:
+        return _done(request, True, system["system_id"], systems_riskdim.TAB)
+    return await _orch_panel(request, ctx, me, system["system_id"], "orch_ok_started")

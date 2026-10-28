@@ -1,0 +1,55 @@
+{# Run assessment panel of the Risk assessment tab (WP-F4, ONBOARD_ORCHESTRATOR). Variables: s, lang,
+   orch_run (run view or none), orch_labels, orch_can_run, orch_banner (systems_orch.panel_data).
+   Polls itself every 2 s while a run is queued or running. Not legal advice. #}
+{% import "_ui.html" as ui with context %}
+{% set ob = '/console/systems/' ~ s.system_id %}
+{% set o_kind = {'done': 'ok', 'needs_person': 'bad', 'budget_exceeded': 'warn', 'failed': 'bad', 'running': 'warn', 'queued': 'neutral', 'not_applicable': 'neutral', 'skipped': 'neutral'} %}
+<div id="orch-panel" data-section="orch-panel"{% if orch_run and orch_run.running %} hx-get="{{ ob }}/orchestrate?lang={{ lang }}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+<section class="card" data-orch="panel">
+  <h3>{{ t('orch_title') }}
+    {% if orch_run %}{{ ui.pill(t('orch_run_' ~ orch_run.status), 'ok' if orch_run.status == 'done' else 'bad' if orch_run.status == 'failed' else 'warn') }}{% endif %}</h3>
+  <p class="hint">{{ t('orch_intro') }}</p>
+  {% if orch_can_run %}
+  <form method="post" action="{{ ob }}/orchestrate?lang={{ lang }}" hx-post="{{ ob }}/orchestrate?lang={{ lang }}" hx-target="#orch-panel" hx-swap="outerHTML" class="stack-f">
+    <button class="btn sm primary" type="submit" data-act="orch-run">{{ t('orch_run') }}</button>
+  </form>
+  {% elif orch_run and orch_run.running %}
+  <p class="muted" data-orch="running">{{ t('orch_running') }}</p>
+  {% endif %}
+  {% if orch_run %}
+  <dl class="kv">
+    <dt>{{ t('orch_attempt') }}</dt><dd data-orch="attempt">{{ orch_run.attempt_n }}</dd>
+    <dt>{{ t('orch_outcome') }}</dt><dd class="mono" data-orch="outcome">{{ orch_run.plan.outcome }}</dd>
+    <dt>{{ t('orch_plan_hash') }}</dt><dd class="mono" data-orch="plan-hash">{{ orch_run.plan_hash[:12] }}</dd>
+    <dt>{{ t('orch_budget') }}</dt>
+    <dd data-orch="budget">{{ t('orch_time') }} {{ (orch_run.budget.used_ms // 1000) }} / {{ orch_run.budget.total_seconds }} s;
+      {{ t('orch_tokens') }} {{ orch_run.budget.used_tokens }} / {{ orch_run.budget.total_tokens }}</dd>
+    <dt>{{ t('orch_summary') }}</dt><dd data-orch="summary">{{ orch_run.summary }}</dd>
+  </dl>
+  <table class="tbl" data-orch="items">
+    <thead><tr><th>{{ t('orch_col_type') }}</th><th>{{ t('orch_col_agent') }}</th><th>{{ t('orch_col_status') }}</th><th>{{ t('orch_col_verdict') }}</th><th>{{ t('orch_col_stop') }}</th><th>{{ t('orch_col_report') }}</th></tr></thead>
+    <tbody>
+    {% for i in orch_run["items"] %}
+      <tr data-orch-dim="{{ i.dimension_id }}" data-orch-status="{{ i.status }}">
+        {% set lab = orch_labels.get(i.dimension_id) %}
+        <td>{{ (lab[1] if lang == 'vi' else lab[0]) if lab else i.dimension_id }}</td>
+        <td class="mono">{{ i.agent }}</td>
+        <td>{{ ui.pill(t('orch_it_' ~ i.status), o_kind.get(i.status, 'neutral')) }}
+          {% if not i.applies %}<span class="muted mono">{{ i.reason }}</span>{% endif %}
+          {% if i.status in ('budget_exceeded', 'failed') %}<span class="muted">{{ i.note }}</span>{% endif %}</td>
+        <td data-orch="verdict">{{ i.verdict or '-' }}{% if i.needs_person %} {{ ui.pill(t('orch_needs_person'), 'bad') }}{% endif %}</td>
+        <td class="mono" data-orch="stop">{{ i.stop_point or '-' }}</td>
+        <td>{% if i.report_ref %}<a class="mono" href="/v1/orchestrate/{{ orch_run.run_id }}/reports/{{ i.dimension_id }}" data-orch="report">{{ i.report_ref }}</a>{% else %}-{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if not orch_run.running %}
+  <p><button class="btn sm" type="button" hx-get="{{ ob }}?tab=riskdim&amp;lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML" data-act="orch-reload">{{ t('orch_reload') }}</button></p>
+  {% endif %}
+  {% else %}
+  <p class="muted" data-orch="none">{{ t('orch_none') }}</p>
+  {% endif %}
+  <p class="hint">{{ orch_banner }}</p>
+</section>
+</div>

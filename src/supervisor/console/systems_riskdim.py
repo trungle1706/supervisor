@@ -99,7 +99,10 @@ def tab_data(ctx: Any, me: Any, system: Mapping[str, Any]) -> dict[str, Any]:
             for line in by_cat.get(cat, []):
                 seen.setdefault(line["risk_id"], {**line, "category": cat})
         row["risk_lines"] = list(seen.values())
+    from supervisor.console import systems_orch  # WP-F4: the Run assessment panel
+
     return {
+        **systems_orch.panel_data(ctx, me, system),
         "rd_on": True,
         "rd_rows": data["dimensions"],
         "rd_counts": data["counts"],

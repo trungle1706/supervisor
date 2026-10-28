@@ -7,6 +7,7 @@
 {% set rd_kind = {'pass': 'ok', 'fail': 'bad', 'in_progress': 'warn', 'waived': 'neutral', 'not_applicable': 'neutral', 'not_started': 'neutral'} %}
 {% macro rd_post(dim, action) %}method="post" action="{{ rdb }}/risk-dimensions/{{ dim }}/{{ action }}?lang={{ lang }}" hx-post="{{ rdb }}/risk-dimensions/{{ dim }}/{{ action }}?lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML"{% endmacro %}
 <p class="notice" data-rd="banner"><span class="dot"></span><b>{{ rd_banner }}</b> {{ t('rd_date_note') }}{% if rd_illustrative %} {{ t('rd_illustrative') }}{% endif %}</p>
+{% if orch_on %}{% include "_system_orch_panel.html" %}{% endif %}
 <section class="card" data-section="rd-summary">
   <h3>{{ t('rd_title') }}</h3>
   <p class="hint">{{ t('rd_intro') }}</p>
@@ -60,7 +61,7 @@
         <button class="btn sm primary" type="submit" data-act="rd-set-go">{{ t('rd_set') }}</button>
       </form>
     </details>
-    <button class="btn sm" type="button" disabled data-act="rd-reassess" title="{{ t('rd_reassess_hint') }}">{{ t('rd_reassess') }}</button>
+    {% if not orch_on %}<button class="btn sm" type="button" disabled data-act="rd-reassess" title="{{ t('rd_reassess_hint') }}">{{ t('rd_reassess') }}</button>{% endif %}
     {% if rd_can_waive and not rd_is_owner and r.status != 'waived' %}
     <details class="du-act"><summary class="btn sm" data-act="rd-waive">{{ t('rd_waive') }}</summary>
       <form {{ rd_post(r.dimension_id, 'waive') }} class="stack-f">

@@ -33,7 +33,17 @@ from supervisor.onboard.scrub import scrub_text
 
 log_ = logging.getLogger("supervisor.onboard.agent_log")
 
-STEPS = ("scan", "intake", "facts", "predeploy", "attach", "postdeploy", "state", "duties")
+STEPS = (
+    "scan",
+    "intake",
+    "facts",
+    "predeploy",
+    "attach",
+    "postdeploy",
+    "state",
+    "duties",
+    "orchestrate",
+)
 BY_KINDS = ("model", "rule", "person")
 MAX_WHAT = 300
 MAX_POINTER = 200
@@ -43,7 +53,11 @@ _PII_KEY = b"agent-log-span-finder"  # only finds spans; no token is ever writte
 
 
 def enabled(ctx: Any) -> bool:
-    return bool(getattr(getattr(ctx, "settings", None), "onboard_postdeploy", False))
+    st = getattr(ctx, "settings", None)
+    # the orchestrator (WP-F4) writes its plan and steps here too
+    return bool(
+        getattr(st, "onboard_postdeploy", False) or getattr(st, "onboard_orchestrator", False)
+    )
 
 
 def _masker() -> Any:

@@ -135,6 +135,9 @@ if get_settings().governance_enabled:  # WP-G0: mounted only when the flag is on
     from supervisor.governance.risk_dimension_routes import router as risk_dim_router  # WP-C2
 
     app.include_router(risk_dim_router)  # /v1/systems/{id}/risk-dimensions (400 while flag off)
+    from supervisor.governance.orchestrator_routes import router as orchestrator_router  # WP-F4
+
+    app.include_router(orchestrator_router)  # /v1/systems/{id}/orchestrate (400 while flag off)
 if get_settings().governance_enabled and get_settings().guardian_bindings_enabled:  # WP-S1
     from supervisor.governance.guardian_routes import console_router as guardians_console_router
     from supervisor.governance.guardian_routes import router as guardians_router
