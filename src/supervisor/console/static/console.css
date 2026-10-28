@@ -816,3 +816,16 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .at-svg .at-lock path { fill: none; stroke: var(--fg); stroke-width: 1.2; }
 .at-env { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-s); padding: 10px 12px; overflow-x: auto; white-space: pre; font-size: 12.5px; }
 .at-notes { margin: 6px 0 0 18px; padding: 0; }
+
+/* WP-O5 Post-deploy panel and the agent log: theme variables only. */
+.pdx-cols { align-items: start; }
+.pdx-col h5 { margin: 14px 0 4px; }
+.pdx-nums { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 4px 0; font-size: 13px; }
+.pdx-nums b { font-family: var(--f-mono); }
+.pdx-items { margin: 4px 0 8px 18px; padding: 0; }
+.pdx-items li { margin: 3px 0; }
+.pdx-tl { list-style: none; margin: 8px 0; padding: 0; border-left: 2px solid var(--line); }
+.pdx-tl li { padding: 4px 0 4px 12px; font-size: 13px; position: relative; }
+.pdx-tl li::before { content: ""; position: absolute; left: -5px; top: 11px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.pdx-log li[data-by="person"]::before { background: var(--teal); }
+.pdx-log li[data-by="model"]::before { background: var(--surface); border: 2px solid var(--fg); width: 4px; height: 4px; }

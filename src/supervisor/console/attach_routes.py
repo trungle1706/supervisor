@@ -25,7 +25,7 @@ from supervisor.console import agent_detail, attach_view
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.routes import _call, _htmx_only, audited, message_html, render
 from supervisor.core.errors import SupervisorError
-from supervisor.onboard import intake
+from supervisor.onboard import agent_log, intake
 
 router = APIRouter(prefix="/console", tags=["console"])
 _CTX = Depends(get_context)
@@ -161,6 +161,16 @@ async def attach_check(
     data = await _call(panel_data, ctx, me, node_id, True)
     counts = data["at"]["m"]["counts"]
     request.state.audit_detail = f"lit={counts['lit']} items={counts['total']}"
+    await _call(  # WP-O5
+        agent_log.log,
+        ctx,
+        node_id,
+        "attach",
+        f"checked now: {counts['lit']} of {counts['total']} guardians have evidence",
+        "table agent_event",
+        "person",
+        str(me.user_id),
+    )
     resp = render(request, ctx, me, "_attach_panel.html", **data)
     note = f"{node_id}: checked now, {counts['lit']} of {counts['total']} guardians have evidence"
     resp.body = resp.body + message_html(note, ok=True, oob=True).encode()

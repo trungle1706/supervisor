@@ -1,0 +1,117 @@
+{# Post-deploy panel (WP-O5, ONBOARD_POSTDEPLOY). Variable: px (node_id, assessment, predeploy,
+   attention, agent_log, phases, predeploy_on). Read only. Left: the pre-deploy verdict. Right: the
+   statistics after deploy. Under them: the timeline, then the agent log. #}
+{% import "_ui.html" as ui with context %}
+{% set a = px.assessment %}
+{% set pd = px.predeploy %}
+{% set vkind = {'go': 'ok', 'no_go': 'bad', 'questions': 'warn', 'none': 'neutral'} %}
+{% set bykind = {'model': 'warn', 'rule': 'neutral', 'person': 'teal'} %}
+<section class="card" id="postdeploy-panel" data-section="postdeploy" data-node="{{ px.node_id }}" data-mode="{{ a.mode }}">
+  <h3>{{ t('px_title') }} <span class="k">{{ a.days }}d</span></h3>
+  <p class="hint">{{ t('px_hint', days=a.days) }}</p>
+  {% if a.truncated %}<p class="hint" data-truncated="1">{{ t('px_truncated') }}</p>{% endif %}
+  <div class="grid g2 pdx-cols">
+    <div class="pdx-col" data-col="before">
+      <h4>{{ t('px_before') }}</h4>
+      {% if not px.predeploy_on %}
+      <p class="hint" data-empty="predeploy-off">{{ t('px_pd_off') }}</p>
+      {% elif not pd %}
+      <p class="hint" data-empty="predeploy">{{ t('px_pd_none') }}</p>
+      {% else %}
+      <p data-verdict="{{ pd.verdict }}"><b>{{ t('px_pd_verdict') }}:</b> {{ ui.pill(t('pd_v_' ~ pd.verdict), vkind[pd.verdict], True) }}
+        <span class="idline">{{ t('px_pd_counts', fail=pd.items_fail, question=pd.items_question, warn=pd.items_warn) }}</span></p>
+      <p class="idline" data-summary="1">{{ pd.summary }}</p>
+      {% if px.attention %}
+      <h5>{{ t('px_pd_items') }}</h5>
+      <ul class="pdx-items">
+        {% for i in px.attention %}<li data-item="{{ i.id }}" data-status="{{ i.status }}">{{ ui.pill(t('pd_st_' ~ i.status), 'bad' if i.status == 'fail' else 'warn') }} {{ i.text }} <span class="mono muted">{{ i.pointer }}</span></li>{% endfor %}
+      </ul>
+      {% endif %}
+      <p><a href="/console/agents/{{ px.node_id|urlencode }}?tab=predeploy&amp;lang={{ lang }}">{{ t('px_pd_open') }}</a></p>
+      {% endif %}
+    </div>
+    <div class="pdx-col" data-col="after">
+      <h4>{{ t('px_after') }}</h4>
+      <p class="idline" data-mode-line="1">{{ t('px_mode') }}:
+        {% if a.mode == 'none' %}<span class="muted">{{ t('px_mode_none') }}</span>{% else %}{{ ui.pill(a.mode|upper, 'teal' if a.mode == 'shadow' else ('ok' if a.mode == 'running' else 'neutral'), True) }}{% endif %}</p>
+      <h5>{{ t('px_gate') }}</h5>
+      <p class="pdx-nums" data-block="gate">
+        <span><b data-num="checks">{{ a.gate.checks }}</b> {{ t('px_calls') }}</span>
+        <span><b data-num="allowed">{{ a.gate.allowed }}</b> {{ t('px_allowed') }}</span>
+        <span><b data-num="blocked">{{ a.gate.blocked }}</b> {{ t('px_blocked') }}</span>
+        <span><b data-num="paused">{{ a.gate.paused }}</b> {{ t('px_paused') }}</span>
+        <span><b data-num="would_block">{{ a.gate.would_block }}</b> {{ t('px_would_block') }}</span>
+      </p>
+      {% if a.gate.by_rule %}
+      <div class="tablewrap flat"><table class="queue" data-table="postdeploy-rules">
+        <thead><tr><th scope="col">{{ t('px_c_rule') }}</th><th scope="col" class="n">{{ t('px_would_block') }}</th><th scope="col" class="n">{{ t('px_blocked') }}</th></tr></thead>
+        <tbody>{% for r in a.gate.by_rule %}
+          <tr class="row" data-rule="{{ r.rule_id }}"><td class="mono">{{ r.rule_id }}</td><td class="n">{{ r.would_block }}</td><td class="n">{{ r.blocked }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+      {% else %}<p class="hint" data-empty="rules">{{ t('px_no_rules') }}</p>{% endif %}
+
+      <h5>{{ t('px_judges') }}</h5>
+      {% if a.judges.tiers %}
+      <div class="tablewrap flat"><table class="queue" data-table="postdeploy-judges">
+        <thead><tr><th scope="col">{{ t('px_c_tier') }}</th><th scope="col" class="n">{{ t('px_c_count') }}</th><th scope="col" class="n">{{ t('px_c_flagged') }}</th><th scope="col" class="n">{{ t('px_c_mock') }}</th><th scope="col" class="n">{{ t('px_c_mock_flagged') }}</th></tr></thead>
+        <tbody>{% for r in a.judges.tiers %}
+          <tr class="row" data-tier="{{ r.tier }}"><td>{{ r.tier }}</td><td class="n">{{ r.count }}</td><td class="n">{{ r.flagged }}</td><td class="n">{{ r.mock_count }}{% if r.mock_count %} {{ ui.pill(t('mock'), 'warn') }}{% endif %}</td><td class="n">{{ r.mock_flagged }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+      {% else %}<p class="hint" data-empty="judges">{{ t('px_no_judges') }}</p>{% endif %}
+
+      <h5>{{ t('px_drift') }}</h5>
+      <ul class="pdx-items" data-block="monitors">
+        {% for m in ('drift', 'session') %}{% set s = a.drift[m] %}
+        <li data-monitor="{{ m }}">{{ t('px_mon_' ~ m) }}:
+          {% if s %}{{ ui.pill(s.status, 'ok' if s.status == 'ok' else 'neutral') }} <span class="mono muted">{{ s.day }}{% if s.code %} {{ s.code }}{% endif %} n={{ s.n }}</span>
+          {% else %}<span class="muted">{{ t('px_mon_none') }}</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+
+      <h5>{{ t('px_incidents') }}</h5>
+      <p class="pdx-nums" data-block="incidents">
+        <span><b data-num="open">{{ a.incidents.open }}</b> {{ t('px_inc_open') }}</span>
+        <span><b data-num="opened">{{ a.incidents.opened }}</b> {{ t('px_inc_opened') }}</span>
+        <span><b data-num="closed">{{ a.incidents.closed }}</b> {{ t('px_inc_closed') }}</span>
+      </p>
+
+      <h5>{{ t('px_packs') }}</h5>
+      {% if a.packs %}
+      <div class="tablewrap flat"><table class="queue" data-table="postdeploy-packs">
+        <thead><tr><th scope="col">{{ t('px_c_pack') }}</th><th scope="col">{{ t('px_c_status') }}</th><th scope="col" class="n">{{ t('px_c_items') }}</th><th scope="col">{{ t('px_c_at') }}</th></tr></thead>
+        <tbody>{% for p in a.packs %}
+          <tr class="row" data-pack="{{ p.pack_id }}"><td class="mono">{{ p.pack_id }}{% if p.is_mock %} {{ ui.pill(t('mock'), 'warn') }}{% endif %}</td><td>{{ ui.pill(p.status, 'ok' if p.status == 'ok' else ('bad' if p.status in ('fail', 'error') else 'warn')) }}</td><td class="n">{{ p.n_items }}</td><td class="mono">{{ p.ts or '-' }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+      {% else %}<p class="hint" data-empty="packs">{{ t('px_no_packs') }}</p>{% endif %}
+    </div>
+  </div>
+
+  <h4>{{ t('px_timeline') }} <span class="k">{{ a.timeline|length }}</span></h4>
+  {% if a.timeline %}
+  <p class="hint">{{ t('px_timeline_cap', n=a.timeline|length) }}</p>
+  <ol class="pdx-tl" data-block="timeline">
+    {% for e in a.timeline %}
+    <li data-kind="{{ e.kind }}" data-ref="{{ e.ref }}"><span class="mono muted">{{ e.ts }}</span> {{ ui.pill(t('px_k_' ~ e.kind), 'neutral') }} {{ e.text }}</li>
+    {% endfor %}
+  </ol>
+  {% else %}<p class="hint" data-empty="timeline">{{ t('px_timeline_none') }}</p>{% endif %}
+
+  <h4>{{ t('px_log') }} <span class="k">{{ px.agent_log|length }}</span></h4>
+  <p class="hint">{{ t('px_log_hint') }}</p>
+  {% if px.agent_log %}
+  <ol class="pdx-tl pdx-log" data-block="agent-log">
+    {% for r in px.agent_log %}
+    <li data-step="{{ r.step }}" data-phase="{{ r.phase }}" data-by="{{ r.by_kind }}">
+      <span class="mono muted">{{ r.at }}</span>
+      {{ ui.pill(t('px_ph_' ~ r.phase), 'neutral') }}
+      {{ ui.pill(t('px_by_' ~ r.by_kind), bykind[r.by_kind]) }}
+      <b>{{ r.step }}</b>{% if r.attempt_n is not none %} <span class="muted">#{{ r.attempt_n }}</span>{% endif %}:
+      {{ r.what }} <span class="mono muted" data-pointer="1">{{ r.pointer }}</span>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}<p class="hint" data-empty="agent-log">{{ t('px_log_none') }}</p>{% endif %}
+</section>

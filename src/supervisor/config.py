@@ -724,6 +724,12 @@ class Settings(BaseSettings):
     predeploy_http_timeout_s: int = Field(default=30, ge=1, le=120)
     predeploy_http_max_turns: int = Field(default=300, ge=1, le=500)
     predeploy_http_budget_s: int = Field(default=600, ge=10, le=3600)
+    # --- WP-O5 (phase 9) --- post-deploy assessment and the agent log (docs/onboard.md
+    # "Post-deploy assessment and the agent log"): the Post-deploy tab and panel, the onboard_log
+    # rows of every onboarding step, GET /console/postdeploy/{id} and GET /v1/postdeploy/{id}.
+    # Off = those routes answer HTTP 400 postdeploy_off, the tab and panel are absent and no
+    # onboard_log row is written (new: off).
+    onboard_postdeploy: bool = False
     # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.

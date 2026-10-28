@@ -37,6 +37,7 @@ from urllib.parse import urlsplit
 from supervisor import sandbox
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import SandboxError, SupervisorError
+from supervisor.onboard import agent_log
 from supervisor.onboard.scrub import Scrubber, scrub_text
 
 ALLOWED_SUFFIXES = (
@@ -319,10 +320,11 @@ def clean_name(name: str) -> str:
 class IntakeService:
     """Attempts of one app: ``state`` is the StateStore, ``clock`` has ``now()``."""
 
-    def __init__(self, settings: Any, state: Any, clock: Any) -> None:
+    def __init__(self, settings: Any, state: Any, clock: Any, tables: Any = None) -> None:
         self.settings = settings
         self.state = state
         self.clock = clock
+        self.tables = tables  # WP-O5: the agent log (onboard_log); None = no log
 
     # ------------------------------------------------------------------ read
     @property
@@ -425,6 +427,15 @@ class IntakeService:
                         "detail": scrub_text(str(exc)).text[:200],
                     }
                 )
+            agent_log.log(  # WP-O5
+                self,
+                node_id,
+                "intake",
+                f"source refused: {exc.code}",
+                f"intake {kind}",
+                "person",
+                actor,
+            )
         except Exception:  # noqa: BLE001, S110 - the refusal itself is the answer; a row is a courtesy
             pass
 
@@ -473,7 +484,7 @@ class IntakeService:
                 detail += " kinds=" + ",".join(sorted(scrubber.totals))
             if note:
                 detail += " " + note
-            return self._insert(
+            result = self._insert(
                 {
                     "attempt_id": "ita_" + uuid.uuid4().hex[:24],
                     "node_id": node_id,
@@ -489,6 +500,17 @@ class IntakeService:
                     "detail": detail[:200],
                 }
             )
+        agent_log.log(  # WP-O5
+            self,
+            node_id,
+            "intake",
+            f"source taken in ({kind}): {len(clean)} files, {scrubber.total} secrets redacted",
+            f"intake attempt {n}",
+            "person",
+            actor,
+            attempt_n=n,
+        )
+        return result
 
 
 def _short(text: str) -> str:

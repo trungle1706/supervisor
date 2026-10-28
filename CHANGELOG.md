@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- WP-O5 (phase 9): **post-deploy assessment and the agent log**, `ONBOARD_POSTDEPLOY` (default
+  `0`). New table `onboard_log` (append only, appended at the end of `schema/model.yaml`; DDL and
+  notebook regenerated). The agent log writes one row for each onboarding action: the scan makes a
+  candidate (rule), a source is taken in or refused (person), the facts build starts and ends with
+  the dropped-claims count (rule or model), the pre-deploy assessment starts and gives its verdict
+  (rule), **Check now** (person), Request and Approve RUNNING (person, the typed reason is not
+  copied), the Duties step submit (rule). Each text is a fixed sentence, scrubbed for secrets and
+  masked for personal data, at most 300 and 200 characters; a failing hook logs a WARNING and never
+  fails the action. `postdeploy.assess(ctx, agent_id, days)` reads the tables without a model call
+  and returns integers only: gate calls, allowed, blocked, would-block, top 5 rules; judge verdicts
+  by tier with mock verdicts counted apart; drift and session monitor status; incidents; pack
+  re-runs on traces; a timeline of at most 200 events, newest first. New **Post-deploy** tab on the
+  agent page (after Attach) and panel in the Candidates drawer: the pre-deploy verdict on the left,
+  the figures on the right, the timeline, then the agent log as plan, read, found, suggest with a
+  rule, model or person pill. `GET /console/postdeploy/{id}` and `GET /v1/postdeploy/{id}` need
+  `systems.view` and only read. The Request RUNNING panel (WP-P2) links to the tab. With the flag
+  off the tab and panel are absent, no row is written and the routes answer 400 `postdeploy_off`.
+  `app.yaml` has the commented flag. Details: `docs/onboard.md` "Post-deploy assessment and the
+  agent log".
 - WP-O4 (phase 9): **guardian attachment view**, `ONBOARD_ATTACH_VIEW` (default `0`). New **Attach**
   tab on the agent page (after Pre-deploy) and **Attach** panel in the Candidates drawer. Content:
   an inline SVG wiring picture (agent, plug point, Supervisor gate, four guardian groups; one

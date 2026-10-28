@@ -223,6 +223,11 @@ env:
   #   value: "1"
   # - name: PREDEPLOY_HTTP_ALLOWED_HOSTS
   #   value: "FILL-ME-candidate-app-host.example"
+  # Phase 9 WP-O5: Post-deploy tab and panel (SHADOW or RUNNING statistics, judge verdicts, drift,
+  # incidents, pack re-runs on traces, timeline) and the agent log of every onboarding step. Read
+  # only except the log rows. Off by default.
+  # - name: ONBOARD_POSTDEPLOY
+  #   value: "1"
   # Guardian detectors (phase 5).
   - name: DETECTORS_ENABLED
     value: "1"

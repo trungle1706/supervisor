@@ -68,6 +68,7 @@ def _drawer_data(ctx: ConsoleContext, node_id: str) -> dict[str, Any]:
     data["facts"] = bool(ctx.settings.onboard_facts)  # WP-O2: the Facts panel
     data["predeploy"] = bool(ctx.settings.onboard_predeploy)  # WP-O3: the Pre-deploy panel
     data["attach"] = bool(ctx.settings.onboard_attach_view)  # WP-O4: the Attach panel
+    data["postdeploy"] = bool(ctx.settings.onboard_postdeploy)  # WP-O5: the Post-deploy panel
     return data
 
 

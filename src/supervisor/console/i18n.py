@@ -4402,6 +4402,7 @@ _T.update(
         "atab_facts": ("Facts", "Dữ kiện"),
         "atab_predeploy": ("Pre-deploy", "Trước triển khai"),
         "atab_attach": ("Attach", "Gắn kết"),
+        "atab_postdeploy": ("Post-deploy", "Sau triển khai"),
         "mya_reg_policy_only": ("Known to the gate, not registered", "Cổng biết, chưa đăng ký"),
         "mya_reg_policy_only_line": (
             "The policy file lists this agent, but the registry has no row for it. Register it as part of an AI system.",  # noqa: E501
@@ -4822,3 +4823,6 @@ _T.update(_PD)
 from supervisor.console.i18n_attach import AT as _AT  # noqa: E402  (WP-O4, prefix at_)
 
 _T.update(_AT)
+from supervisor.console.i18n_postdeploy import PX as _PX  # noqa: E402  (WP-O5, prefix px_)
+
+_T.update(_PX)

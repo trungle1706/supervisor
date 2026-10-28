@@ -26,6 +26,7 @@ FLAGS = (
     "onboard_facts",  # WP-O2: the Facts tab
     "onboard_predeploy",  # WP-O3: the Pre-deploy tab
     "onboard_attach_view",  # WP-O4: the Attach tab
+    "onboard_postdeploy",  # WP-O5: the Post-deploy tab
 )
 DEMO_AGENTS = ("payments", "credit_prequal", "customer_service")
 HX = {"HX-Request": "true"}

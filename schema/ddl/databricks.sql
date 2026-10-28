@@ -1517,3 +1517,21 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`predeploy_report` (
 USING DELTA
 COMMENT 'WP-O3 (phase 9, ONBOARD_PREDEPLOY). One pre-deploy assessment of one intake attempt of an inventory candidate or agent. It joins the facts card (onboard_facts), the readiness advisor, the assurance packs with launch_gate required (run in the launch sandbox with the gate in SHADOW and the synthetic world), the multi-turn red-team pack (advisory) and the duties matrix (when CONSOLE_REGISTER_DUTIES is on and a draft exists for the node). status: queued, running, done or failed (the run itself broke). verdict is deterministic from the items: no_go (a fail item in a required section), questions (a question item), go, or none (not finished). The model never sets it. items is a JSON list of {section, id, status ok | warn | fail | question | skip, text, pointer}; text is scrubbed, no personal data, integers only. A run on a mock agent says mock in the item text. A report is never updated after it is done; Run again writes a new report_id.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- onboard_log (append_only): WP-O5 (phase 9, ONBOARD_POSTDEPLOY). The agent log: one row per onboarding action of a candidate or agent, shown in the console as a timeline "plan, read, found, suggest". step names the onboarding step: scan (the node became a candidate), intake (a source was taken in), facts, predeploy, attach, postdeploy, state (Request or Approve RUNNING) or duties. by_kind says who did it: rule (deterministic code), model (the gateway model produced the content, a mock model says so in what) or person (actor is the person id). what is a short scrubbed sentence of at most 300 characters; pointer is where to look (file:line, report id, row id or pack id) at most 200 characters. Rows are never updated or deleted. No personal data, no secret, no float; counts are integers. A write failure never fails the action that was logged.
+-- primary key (enforced by the app, not by Delta): log_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`onboard_log` (
+  log_id STRING NOT NULL,
+  node_id STRING NOT NULL,
+  attempt_n BIGINT,
+  step STRING NOT NULL,
+  what STRING NOT NULL,
+  pointer STRING NOT NULL,
+  by_kind STRING NOT NULL,
+  actor STRING NOT NULL,
+  at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-O5 (phase 9, ONBOARD_POSTDEPLOY). The agent log: one row per onboarding action of a candidate or agent, shown in the console as a timeline "plan, read, found, suggest". step names the onboarding step: scan (the node became a candidate), intake (a source was taken in), facts, predeploy, attach, postdeploy, state (Request or Approve RUNNING) or duties. by_kind says who did it: rule (deterministic code), model (the gateway model produced the content, a mock model says so in what) or person (actor is the person id). what is a short scrubbed sentence of at most 300 characters; pointer is where to look (file:line, report id, row id or pack id) at most 200 characters. Rows are never updated or deleted. No personal data, no secret, no float; counts are integers. A write failure never fails the action that was logged.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');

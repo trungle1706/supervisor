@@ -334,6 +334,45 @@ advisor runs one at a time for the whole server and the run waits up to 30 s for
 table: run `python -m supervisor.jobs.bootstrap_schema` (or the smoke notebook) before the new
 version.
 
+## Post-deploy assessment and the agent log (WP-O5, phase 9, `ONBOARD_POSTDEPLOY`)
+
+Two parts that share one flag. Off by default; with the flag off the tab and the panel are absent, the two routes answer HTTP 400 `postdeploy_off`, and no log row is written.
+
+### Post-deploy assessment
+
+What the Supervisor saw after the agent was attached, read from its own tables in one pass. No model call, no write, no call to the agent. Window: 7 days; `?days=` takes 1 to 90 (else 400 `bad_days`). Code: `src/supervisor/onboard/postdeploy.py` (`assess(ctx, agent_id, days=7)`).
+
+| Part | Source | Figures (integers only) |
+|---|---|---|
+| Gate | `agent_event` gate decisions, tier-0 `verdict` rows | calls, allowed, blocked, paused, would-block (the same query as the Guardians tab and the Request RUNNING panel, `agent_guardians._gate_results`); `by_rule`: the top 5 rule ids with would-block and blocked counts |
+| Mode | `agent.gate_state` | `shadow`, `running`, another state, or `none` (no agent row yet) |
+| Judges | `verdict` rows with tier 1 or higher, not `protocol` | per tier: count, flagged; `mock_count` and `mock_flagged` apart. A mock verdict is never in `count` or `flagged`. Flagged = label is not `benign`, or action is `alert` or `open_case` |
+| Drift | `oversight_metric.monitor_status`, keys `drift` and `session` | newest status per monitor: status, code, n, day (or none) |
+| Incidents | `incident` | open now, opened in the window, closed in the window |
+| Packs | newest `eval_result` per pack with target kind `traces` | status, items, time, mock flag |
+| Timeline | verdicts (gate would-block or stop, flagged judge verdicts), findings, cases, incidents, pack results, gate controls (state changes), agent log rows | newest first, at most 200, each `{ts, kind, text, ref}` with ids and codes only |
+
+`truncated` is true when one read hit its scan limit (5,000 rows): the figures are then a lower bound, and the panel says so. The text of a timeline event never holds an argument, a masked excerpt or a judge rationale.
+
+**Console.** Tab **Post-deploy** on the agent page (after Attach) and a panel in the Candidates drawer. Left: the newest pre-deploy report (verdict, counts, the fail and question items; needs `ONBOARD_PREDEPLOY` to show). Right: the figures above. Under them: the timeline, then the agent log. `GET /console/postdeploy/<id>` (fragment with htmx, full page without) and `GET /v1/postdeploy/<id>` (JSON: `assessment`, `predeploy`, `agent_log`) need `systems.view`. The Request RUNNING panel of WP-P2 shows the link "Review the post-deploy assessment first" when this flag is on.
+
+### The agent log
+
+Table `onboard_log` (append only; columns `log_id`, `node_id`, `attempt_n`, `step`, `what`, `pointer`, `by_kind`, `actor`, `at`). One row per onboarding action. `what` is a fixed sentence with counts and ids, at most 300 characters. `pointer` says where to look (file:line, report id, row id, pack id), at most 200. Every text goes through the secret scrubber and the Vietnamese PII masker (a name, a phone number or an account number becomes `[pii]`); the hooks also never copy a file name, a URL or a reason a person typed. Code: `src/supervisor/onboard/agent_log.py` (`log(ctx, node_id, step, what, pointer, by_kind, actor, attempt_n=None)`). A hook that fails writes one WARNING and never fails the action it logs.
+
+| Step | Written when | by_kind | Phase |
+|---|---|---|---|
+| `scan` | the inventory scan sets a node to unmanaged and its kind is App, agent endpoint or Genie space (a new candidate) | rule | plan |
+| `intake` | a source is taken in, or refused | person | read |
+| `facts` | a facts build starts (rule) and ends with the facts count and the dropped-claims count (model if the model gave claims, else rule) | rule or model | read |
+| `predeploy` | an assessment starts, and when it ends with the verdict | rule | found |
+| `attach` | a person presses **Check now** | person | found |
+| `postdeploy` | reserved for a later hook; the step name is valid | - | found |
+| `duties` | the Duties step of Register v2 is submitted | rule | suggest |
+| `state` | a person asks for RUNNING or approves it (the reason is not copied) | person | suggest |
+
+The console shows the rows oldest first as a timeline "plan, read, found, suggest" (the phase column above). Each row has a pill for the phase and a pill for who acted: `rule`, `model` or `person`. `actor` is the person id, the model id (a mock model is named `mock`) or `rule`.
+
 ## Safety rules (ADR D12)
 
 - Read-only: `LocalGitRepoReader` has no write method; size cap per file; binary files

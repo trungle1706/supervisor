@@ -1,0 +1,9 @@
+{# Post-deploy panel as a full page (WP-O5), the no-JS link of the candidate drawer. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('px_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('px_title'), None), (px.node_id, None)]) }}
+{{ ui.pagehead(t('px_title') ~ ': ' ~ px.node_id) }}
+{% include "_postdeploy_panel.html" %}
+{% endblock %}

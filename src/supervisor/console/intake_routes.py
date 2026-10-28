@@ -39,7 +39,7 @@ FORM_SLACK = 256 * 1024  # multipart overhead on top of the zip limit
 
 
 def service(ctx: ConsoleContext) -> intake.IntakeService:
-    return intake.IntakeService(ctx.settings, ctx.state, ctx.clock)
+    return intake.IntakeService(ctx.settings, ctx.state, ctx.clock, ctx.tables)
 
 
 def panel_data(ctx: ConsoleContext, me: AuthPrincipal, node_id: str) -> dict[str, Any]:
