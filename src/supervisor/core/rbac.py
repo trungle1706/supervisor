@@ -527,6 +527,16 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/guardian-factory/{def_id}/retire"): "guardians.edit",
     ("POST", "/console/guardian-factory/{def_id}/reopen"): "guardians.edit",
     ("POST", "/console/guardian-factory/{def_id}/new-version"): "guardians.edit",
+    # --- WP-G2 (phase 12) --- guardian benchmark (same flag, same 400)
+    ("GET", "/v1/guardian-defs/{def_id}/bench-packs"): "guardians.view",
+    ("POST", "/v1/guardian-defs/{def_id}/bench-packs"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/benchmark"): "guardians.edit",
+    ("GET", "/v1/guardian-defs/{def_id}/benchmark/{run_id}"): "guardians.view",
+    ("POST", "/v1/guardian-defs/{def_id}/mark-benchmarked"): "guardians.edit",
+    ("GET", "/console/guardian-factory/{def_id}/benchmark"): "guardians.view",
+    ("POST", "/console/guardian-factory/{def_id}/bench-packs/{op}"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/benchmark"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/mark-benchmarked"): "guardians.edit",
     # --- WP-F2 (phase 12B) --- agent factory (AGENT_FACTORY; 400 agent_factory_off when off).
     # factory.edit also needs a role the owner group lists in config/factory_groups.yaml.
     ("GET", "/v1/factory/agents"): "systems.view",

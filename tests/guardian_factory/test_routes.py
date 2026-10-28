@@ -160,8 +160,9 @@ def test_later_states_are_not_reachable(gf: Any) -> None:
     from supervisor.guardian_factory.store import check_transition
 
     make(gf)
-    with pytest.raises(Exception, match="not allowed yet"):
-        check_transition("draft", "benchmarked")
+    for pair in (("benchmarked", "shadow"), ("shadow", "approved"), ("approved", "live")):
+        with pytest.raises(Exception, match="not allowed yet"):
+            check_transition(*pair)
 
 
 def test_draft_artifact_stores_nothing(gf: Any) -> None:

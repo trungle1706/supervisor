@@ -79,11 +79,12 @@ def test_save_validates_and_replaces_the_draft(store: GuardianDefStore) -> None:
         store.save("account-numbers", regex_def(id="other"), AN)
 
 
-def test_transition_table_only_draft_and_retired_move_now() -> None:
+def test_transition_table_only_the_g1_and_g2_moves_are_open() -> None:
     check_transition("draft", "retired")
     check_transition("retired", "draft")
+    check_transition("draft", "benchmarked")  # WP-G2
+    check_transition("benchmarked", "draft")  # WP-G2
     for a, b in [
-        ("draft", "benchmarked"),
         ("benchmarked", "shadow"),
         ("shadow", "approved"),
         ("approved", "live"),

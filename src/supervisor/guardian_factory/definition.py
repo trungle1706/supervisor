@@ -354,6 +354,7 @@ class GuardianDefinition(_Strict):
     config: dict[str, Any]
     benchmark_pack: str = ""  # may be empty in draft
     thresholds: Thresholds = Field(default_factory=Thresholds)
+    compare_with: str = ""  # WP-G2: live detector shown beside the benchmark ("" = by stage)
     lifecycle: Lifecycle = Field(default_factory=Lifecycle)
     created_by: str = Field(min_length=1, max_length=caps.USER_MAX)
     created_at: str | None = None
@@ -379,6 +380,11 @@ class GuardianDefinition(_Strict):
                 f"action_on_fail: type {self.type} may only use "
                 f"{' or '.join(caps.ACTIONS_BY_TYPE[self.type])} (a model advises; "
                 "only a deterministic rule blocks or redacts)"
+            )
+        if self.compare_with not in caps.COMPARE_WITH:
+            bad.append(
+                "compare_with: empty, none or one of "
+                + ", ".join(c for c in caps.COMPARE_WITH if c and c != "none")
             )
         if self.benchmark_pack and not caps.BENCH_PACK_RE.match(self.benchmark_pack):
             bad.append("benchmark_pack: lower case letters, digits, _ and - (max 64)")
