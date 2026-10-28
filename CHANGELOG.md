@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- WP-O3b (phase 9): **packs against the running candidate**, `PREDEPLOY_HTTP_TARGET` (default `0`)
+  with `PREDEPLOY_HTTP_ALLOWED_HOSTS` (empty = off), `PREDEPLOY_HTTP_TIMEOUT_S` (30),
+  `PREDEPLOY_HTTP_MAX_TURNS` (50 per pack) and `PREDEPLOY_HTTP_BUDGET_S` (600). New
+  `HttpAgentTarget` (`assurance/targets.py`): sends each synthetic pack turn to the HTTP chat
+  endpoint of a candidate (https only, host on the allow list, field names per candidate: the
+  kb-chatbot uses `question` and `history`), signed in as the Supervisor's own service principal
+  (SDK `Config().authenticate()`; no stored token, no redirect followed), with a per-turn timeout,
+  a turn cap per pack and a total time budget. Replies are masked before a pack reads them (a
+  value that the pack itself sent stays, so `pii_canary` still sees a repeat). The pre-deploy
+  `packs` and `multiturn` sections use it when the candidate has an `http_target` block (in
+  `supervisor.manifest.yaml`, or an inventory system node with a URL); each pack item says
+  `[target: http <host>, N turns]`, `sandbox demo` or `no harness`; a RUNNING agent row gives a
+  `warn` item; a refused block gives a `fail` item. Results carry `details.target_kind=http`,
+  `target_host` and `turns`. `multiturn_redteam_vi` (manifest version 2) has a text-only mode for
+  such a target (a weaker text oracle; the sandbox metrics are not applicable). Packs that need
+  tools or the sandbox gate still cannot run over chat and stay `fail`. **Bug fix:**
+  `assurance.gates._row` dropped `is_mock` of a `PackResult` object, so `assurance_mock_state`
+  and the Launch "results are mock only" NO-GO never saw engine results; it now keeps `is_mock`
+  and a `mock_reason`. With the flag off, nothing changes. `app.yaml` has the commented flags.
+  Details: `docs/assurance.md` "HTTP target (WP-O3b)".
 - WP-O3 (phase 9): **pre-deploy assessment**, `ONBOARD_PREDEPLOY` (default `0`; needs the stored
   source of `ONBOARD_INTAKE`). New **Pre-deploy** tab on the agent page and **Pre-deploy** panel in
   the Candidates drawer, after Facts: one report per run with a verdict GO, NO-GO or QUESTIONS and

@@ -203,6 +203,15 @@ env:
   # required assurance packs, multi-turn red team and duties); needs ONBOARD_INTAKE. Off by default.
   # - name: ONBOARD_PREDEPLOY
   #   value: "1"
+  # Phase 9 WP-O3b: the pre-deploy packs that need a running agent send synthetic turns to the
+  # candidate's HTTP chat endpoint (the candidate in SHADOW; the Supervisor's own service principal
+  # signs in; https only). Needs ONBOARD_PREDEPLOY. Off by default; an empty host list is off too.
+  # Comma list of host names, exact or "*.suffix". Limits: PREDEPLOY_HTTP_TIMEOUT_S (30),
+  # PREDEPLOY_HTTP_MAX_TURNS (50 per pack), PREDEPLOY_HTTP_BUDGET_S (600 in total).
+  # - name: PREDEPLOY_HTTP_TARGET
+  #   value: "1"
+  # - name: PREDEPLOY_HTTP_ALLOWED_HOSTS
+  #   value: "FILL-ME-candidate-app-host.example"
   # Guardian detectors (phase 5).
   - name: DETECTORS_ENABLED
     value: "1"

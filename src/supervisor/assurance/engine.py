@@ -194,6 +194,10 @@ def _result(
     details: Mapping[str, Any] | None = None,
 ) -> PackResult:
     metrics = dict(metrics or {})
+    # WP-O3b: a target may add small, JSON-safe facts to every result (the HTTP target: kind,
+    # host, turn count). Strings, ints and booleans only; no personal data.
+    extra = getattr(target, "result_details", None)
+    target_details = dict(extra()) if callable(extra) else {}
     return PackResult(
         run_id=run_id,
         pack_id=pack.id,
@@ -214,7 +218,7 @@ def _result(
         judge_gate=pack.judge_gate,
         started_at=started,
         finished_at=finished,
-        details={**(out.details if out else {}), **(details or {})},
+        details={**(out.details if out else {}), **target_details, **(details or {})},
     )
 
 
