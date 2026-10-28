@@ -1,0 +1,962 @@
+schema_version: 1
+instrument:
+  id: VN-TT83-2025
+  jurisdiction: VN
+  kind: circular
+  issuer: State Bank of Vietnam
+  number: 83/2025/TT-NHNN
+  title_vi: Thông tư quy định về hệ thống kiểm soát nội bộ của ngân hàng thương mại, chi nhánh ngân hàng
+    nước ngoài
+  title_en: Circular on the internal control system of commercial banks and foreign bank branches (incl.
+    model risk)
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2025-12-31'
+      source: https://vbpl.vn/van-ban/chi-tiet/186792
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2026-07-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/186792
+      verification: VERIFIED_PRIMARY
+      note: Art. 74(1)
+    milestones:
+    - label: Stress tests of credit and market risk (Art. 23) and risk data management (Art. 24) at the
+        latest
+      date: '2028-01-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/186792
+      verification: VERIFIED_PRIMARY
+      note: Art. 74(2)
+    - label: Model risk management (Art. 56-58) at the latest; internal-ratings-based models earlier (2026-07-01
+        or at transition start)
+      date: '2028-01-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/186792
+      verification: VERIFIED_PRIMARY
+      note: Art. 74(3)
+  related:
+  - VN-LCI-2024
+  - VN-TT53-2026
+  - VN-TT09-2020
+  sources: &id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/186792
+    title: Circular 83/2025/TT-NHNN full text (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: c3297ad2322fd998bf7b1632483d295f80e95e8376b3e43dcf4d620a0587c51d
+    local_path: regulations/sources/VN-TT83-2025/tt-83-2025-nhnn.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-28'
+  notes: 'Added by WP-W0 on 2026-10-28. From 2026-07-01 this Circular repeals Circular 13/2018/TT-NHNN,
+    Circular 40/2018/TT-NHNN and Art. 3 of Circular 09/2024/TT-NHNN (Art. 74(6)). It does not name AI.
+    The model risk section (Art. 56-58) and the rules on outsourcing (Art. 40), technology use (Art. 41)
+    and electronic credit approval (Art. 15(3)) are read as binding on an AI system in a bank; this reading
+    is the KB, not the law. vbpl.vn metadata shows status Con hieu luc. Not covered as rows: Art. 4 and
+    6-7 (three lines and organisation), Art. 8 (management information system), Art. 17-20 and 22 (general
+    risk management), Art. 39 (operational risk tools), Art. 64-73 (internal audit, including the technology
+    auditor in Art. 64(3)(a)). Not legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-TT83-2025-A56.01-01
+  article_ref: Art. 56(1)
+  text_vi: 1. Ngân hàng xác định danh mục mô hình cần quản lý theo quy định nội bộ; định kỳ xếp hạng,
+    phân loại thành mô hình có rủi ro cao, trung bình, thấp dựa trên các yếu tố (như tính trọng yếu (materiality),
+    tính phức tạp (complexity), mục đích sử dụng của mô hình, chất lượng mô hình (quality)...) theo quy
+    định nội bộ của ngân hàng. Kể từ thời điểm ngân hàng thực hiện giai đoạn chuyển đổi sang phương pháp
+    xếp hạng nội bộ theo quy định của Ngân hàng Nhà nước về tỷ lệ an toàn vốn đối với ngân hàng, mô hình
+    được sử dụng trong phương pháp xếp hạng nội bộ phải được xác định là mô hình có rủi ro cao.
+  summary_en: 'The bank keeps a list of the models it must manage and rates them high, medium or low risk
+    by materiality, complexity, purpose and quality, reviewed periodically. Applied to AI: the AI inventory
+    and risk tier.'
+  duties:
+  - model_inventory
+  - risk_classification
+  - governance_accountability
+  applies_to: &id002
+    agent_class:
+    - any
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: 'Agent registry holds owner, risk tier and model family per agent. Missing: the bank rating
+      criteria (materiality, complexity, purpose, quality) and the periodic re-rating are bank policy;
+      models that are not agents are outside the registry.'
+  - kind: evidence
+    id: ai_system_record
+    coverage: partial
+    note: 'AI system record names components and a risk level. Missing: a high / medium / low rating by
+      the Art. 56(1) factors.'
+  - kind: process
+    id: ai_inventory_review
+    coverage: partial
+    note: 'Manual step: the second line reviews and re-rates the model list at set intervals and records
+      the decision.'
+  evidence_needed:
+  - model list with rating (high, medium, low) and rating criteria
+  - record of the last periodic rating
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: &id003
+    compliance_deadline:
+      date: '2028-01-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/186792
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 74(3)(c): model risk management at the latest from 2028-01-01 (models used in the internal
+        ratings-based approach earlier, Art. 74(3)(a)-(b)).'
+- id: VN-TT83-2025-A56.02-01
+  article_ref: Art. 56(2)-(3)
+  text_vi: 2. Ngân hàng thực hiện quản lý rủi ro mô hình theo quy định tại Mục này, tối thiểu bao gồm
+    các mô hình có rủi ro cao tại khoản 1 Điều này. 3. Ngân hàng thực hiện quản lý rủi ro mô hình có rủi
+    ro thấp, trung bình theo quy định nội bộ của ngân hàng.
+  summary_en: Model risk management under Section 8 covers at least the high-risk models; low and medium
+    risk models follow the bank internal rules.
+  duties:
+  - risk_management_system
+  - internal_policy
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank issues an internal rule that sets the model risk scope and the lighter
+      regime for low and medium risk models. No Supervisor control: scope of the model risk regime is
+      a bank policy decision.'
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: 'Registry risk tier can show which agents fall in the high band. Missing: the policy that sets
+      the line.'
+  evidence_needed:
+  - internal model risk policy with scope by rating
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A56.04A-01
+  article_ref: Art. 56(4)(a)
+  text_vi: a) Trong giai đoạn xây dựng mô hình, ngân hàng phải xác định mục đích sử dụng, phạm vi sử dụng
+    dự kiến và đánh giá chất lượng dữ liệu đầu vào của mô hình (tối thiểu về tính chính xác, tính đầy
+    đủ) theo quy định nội bộ của ngân hàng;
+  summary_en: When the bank builds a model (or has it built by a vendor), it states the intended use and
+    scope and checks the accuracy and completeness of the input data.
+  duties:
+  - lifecycle_management
+  - data_quality
+  - technical_documentation
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: 'Onboarding profile records declared purpose and data classes. Missing: an input-data quality
+      check of accuracy and completeness for the model.'
+  - kind: evidence
+    id: predeploy_report
+    coverage: partial
+    note: 'Pre-deploy report lists facts and open questions with pointers. Missing: data quality assessment
+      of training or reference data.'
+  - kind: process
+    id: model_validation
+    coverage: partial
+    note: 'Manual step: the model owner writes the intended use, scope and data quality check into the
+      model file before build is approved.'
+  evidence_needed:
+  - statement of intended use and scope
+  - input data quality check (accuracy, completeness)
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A56.04B-01
+  article_ref: Art. 56(4)(b)
+  text_vi: b) Trong giai đoạn triển khai mô hình (bao gồm cả việc kiểm thử chấp nhận người dùng (user
+    acceptance testing)), ngân hàng phải đảm bảo triển khai thống nhất với kết quả xây dựng mô hình đã
+    được phê duyệt; trường hợp phát sinh thay đổi không thống nhất thì phải được cấp có thẩm quyền của
+    ngân hàng phê duyệt lại và lưu giữ trong hồ sơ mô hình;
+  summary_en: The deployed model must match the approved development result (including user acceptance
+    testing); any inconsistent change needs new approval by the competent level and is kept in the model
+    file.
+  duties:
+  - change_control
+  - lifecycle_management
+  - record_keeping
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: 'Agent version history with hashes shows what changed and when. Missing: the link to the approved
+      development result and the approver of an inconsistent change.'
+  - kind: evidence
+    id: lifecycle_approval
+    coverage: partial
+    note: 'Stage approvals need a second person to move a system. Missing: the approval record for a change
+      that differs from the approved result.'
+  - kind: process
+    id: change_management
+    coverage: partial
+    note: 'Manual step: a change that differs from the approved model result goes through re-approval
+      by the competent level and is filed in the model file.'
+  evidence_needed:
+  - deployment record that matches the approved result
+  - re-approval record for each inconsistent change
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A56.04C-01
+  article_ref: Art. 56(4)(c)
+  text_vi: 'c) Trong quá trình sử dụng mô hình, ngân hàng phải đảm bảo: (i) Mô hình được sử dụng đúng
+    mục đích, phạm vi; (ii) Việc ghi đè (override) đối với dữ liệu đầu vào và kết quả đầu ra của mô hình
+    (như trường hợp nhập dữ liệu đầu vào, kết quả đầu ra bị bỏ qua, thay đổi hoặc đảo ngược…) phải được
+    quản lý, tối thiểu bao gồm trường hợp được ghi đè, trường hợp thực hiện ghi đè phải được cấp có thẩm
+    quyền phê duyệt, lưu giữ thông tin và đánh giá việc ghi đè; (iii) Các phản hồi của cá nhân, bộ phận
+    sử dụng (nếu có) phải được xử lý;'
+  summary_en: In use, the model stays within its purpose and scope; every override of an input or output
+    (ignored, changed or reversed) is controlled with approval, record and review; user feedback is handled.
+  duties:
+  - human_oversight
+  - record_keeping
+  - excessive_agency_limits
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: 'Gateway allow-list keeps an agent to approved tools. Missing: purpose and scope of the model
+      as a business concept; overrides of model output by staff are not seen.'
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: 'A reviewer signs off a case with a reason; the sign-off is recorded. Missing: a general override
+      log for model outputs used outside agent cases.'
+  - kind: evidence
+    id: signoff_record
+    coverage: partial
+    note: 'Sign-off records name the person, the time and the decision. Missing: review of override patterns.'
+  - kind: process
+    id: three_lines_model
+    coverage: partial
+    note: 'Manual step: the first line lists who may override a model result, the approver and the periodic
+      review of overrides.'
+  evidence_needed:
+  - list of permitted overrides and approvers
+  - override log with approval
+  - record of user feedback handled
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A56.04D-01
+  article_ref: Art. 56(4)(d)
+  text_vi: d) Ngân hàng phải theo dõi, giám sát mô hình, trong đó đánh giá về hiệu quả của việc sử dụng
+    mô hình;
+  summary_en: The bank monitors the model and assesses how well its use works.
+  duties:
+  - performance_monitoring
+  - lifecycle_management
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: monitor
+    id: drift
+    coverage: partial
+    note: 'Behaviour drift band per agent against a baseline. Missing: business effectiveness of the model
+      (outcome quality against the original goal).'
+  - kind: monitor
+    id: quality
+    coverage: partial
+    note: 'Quality and groundedness sampling. Missing: effectiveness measured by business results.'
+  - kind: evidence
+    id: oversight_metric
+    coverage: partial
+    note: 'Daily oversight metrics per agent. Missing: a periodic effectiveness assessment signed by the
+      model owner.'
+  - kind: process
+    id: model_validation
+    coverage: partial
+    note: 'Manual step: the model owner records a periodic assessment of use effectiveness.'
+  evidence_needed:
+  - monitoring results per model
+  - periodic effectiveness assessment
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A56.04E-01
+  article_ref: Art. 56(4)(đ)
+  text_vi: 'đ) Ngân hàng phải kiểm định mô hình tối thiểu bao gồm: Kiểm định trước khi sử dụng, kiểm định
+    khi mô hình có những thay đổi trọng yếu được xác định theo quy định nội bộ của ngân hàng, kiểm định
+    định kỳ tối thiểu hằng năm. Kết quả kiểm định mô hình phải bao gồm báo cáo đánh giá về khả năng đáp
+    ứng mục tiêu ban đầu và hiệu quả sử dụng thực tế của mô hình.'
+  summary_en: The bank validates the model before use, after a material change and at least yearly. The
+    result includes a report on whether the model meets its original goal and how well it works in practice.
+  duties:
+  - independent_validation
+  - change_control
+  - performance_monitoring
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: predeploy_report
+    coverage: partial
+    note: 'Pre-deploy test result (GO, NO-GO, QUESTIONS) before use. Missing: independence of the validator
+      and the yearly cycle.'
+  - kind: evidence
+    id: assurance_results
+    coverage: partial
+    note: 'Assurance pack results (security, fairness, pin and hash packs) are stored per run. Missing:
+      a validation report in the form the bank sets, signed by the second line.'
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: 'Launch sandbox report with catch rate and false alarms. Missing: the formal annual validation
+      report.'
+  - kind: process
+    id: model_validation
+    coverage: partial
+    note: 'Manual step: the second line validates before use, after a material change and yearly, and
+      signs a report against the original goal.'
+  evidence_needed:
+  - validation report before first use
+  - validation report after each material change
+  - annual validation report
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A56.05-01
+  article_ref: Art. 56(5)
+  text_vi: '5. Trường hợp ngân hàng mua mô hình (bao gồm cả trường hợp sử dụng mô hình từ ngân hàng mẹ),
+    ngân hàng phải có biện pháp quản lý tối thiểu đảm bảo các yêu cầu sau: a) Yêu cầu bên bán hoặc ngân
+    hàng mẹ cung cấp thông tin liên quan về mô hình để phục vụ việc đánh giá, sử dụng mô hình; b) Đánh
+    giá hiệu quả của việc sử dụng mô hình theo quy định của ngân hàng.'
+  summary_en: For a bought model (including one from the parent bank) the bank asks the seller for the
+    information it needs to assess and use the model, and assesses how well it works.
+  duties:
+  - outsourcing_oversight
+  - supply_chain_security
+  - technical_documentation
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: ai_system_record
+    coverage: partial
+    note: 'AI system record lists components (model, provider) of a system. Missing: the information obtained
+      from the vendor and the vendor request itself.'
+  - kind: process
+    id: vendor_management
+    coverage: partial
+    note: 'Manual step: the bank asks the vendor or parent bank for model information (design, data, limits,
+      tests) and files the answer. No Supervisor control: vendor correspondence and contract terms are
+      outside Supervisor.'
+  evidence_needed:
+  - vendor model information file
+  - effectiveness assessment of the bought model
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)). Relevant to a third-party LLM used through an API.
+  dates: *id003
+- id: VN-TT83-2025-A56.06-01
+  article_ref: Art. 56(6)
+  text_vi: 6. Ngân hàng phải lập, quản lý hồ sơ mô hình đối với tối thiểu các mô hình quy định tại khoản
+    2 Điều này (bao gồm cả mô hình đang sử dụng, mô hình được điều chỉnh, mô hình đã ngừng sử dụng).
+  summary_en: 'The bank creates and manages a model file for each managed model: models in use, adjusted
+    and retired.'
+  duties:
+  - technical_documentation
+  - model_inventory
+  - record_keeping
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: 'Version history of each agent (config, model, hash). Missing: validation reports, approvals
+      and retirement record in one file.'
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: 'Case files hold evidence per incident. Missing: a per-model dossier.'
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: 'Audit export pack can collect records for a period. Missing: a model file structure as the
+      bank defines it.'
+  - kind: process
+    id: model_validation
+    coverage: partial
+    note: 'Manual step: the model owner keeps one model file per model through its life, including after
+      retirement.'
+  evidence_needed:
+  - model file per model (in use, adjusted, retired)
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A56.07-01
+  article_ref: Art. 56(7)
+  text_vi: '7. Đối với việc quản lý rủi ro mô hình, ngân hàng có 03 tuyến bảo vệ độc lập như sau: a) Tuyến
+    bảo vệ thứ nhất là bộ phận hoặc cá nhân thực hiện chức năng xây dựng, triển khai, sử dụng mô hình,
+    nhận dạng, thực hiện các biện pháp kiểm soát, theo dõi, giảm thiểu rủi ro; b) Tuyến bảo vệ thứ hai
+    là bộ phận hoặc cá nhân thực hiện chức năng kiểm định mô hình, xây dựng chính sách quản lý rủi ro,
+    quy định nội bộ về quản lý rủi ro; theo dõi, kiểm soát rủi ro toàn ngân hàng và tuân thủ quy định
+    của pháp luật; c) Tuyến bảo vệ thứ ba là bộ phận hoặc cá nhân thực hiện chức năng kiểm toán nội bộ.'
+  summary_en: 'Model risk has three independent lines: builders and users (first), validation and risk
+    policy (second), internal audit (third).'
+  duties:
+  - governance_accountability
+  - independent_validation
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: 'Separation of duties inside Supervisor: reviewer sign-off and second-person approvals. Missing:
+      the bank organisation of the three lines and their independence.'
+  - kind: process
+    id: three_lines_model
+    coverage: partial
+    note: 'Manual step: the bank names the first, second and third line roles for model risk and keeps
+      them independent.'
+  evidence_needed:
+  - organisation chart of the three lines for model risk
+  - terms of reference of the validation function
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A57-01
+  article_ref: Art. 57(1)-(2)
+  text_vi: 1. Nhận dạng rủi ro mô hình phải xác định nguyên nhân làm phát sinh rủi ro mô hình. 2. Theo
+    dõi, kiểm soát rủi ro mô hình để có biện pháp phòng ngừa, giảm thiểu, xử lý rủi ro phát sinh, biện
+    pháp khắc phục (remedial action) đối với hạn chế của mô hình (nếu có).
+  summary_en: Model risk identification finds the cause of the risk; monitoring and control prevent, reduce
+    and fix the risk and apply remedial action to known model limits.
+  duties:
+  - risk_management_system
+  - incident_response
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: cases
+    coverage: partial
+    note: 'Case queue opens a case on a verdict or rule hit and tracks it to sign-off. Missing: root-cause
+      analysis and the remedial plan are done by people.'
+  - kind: evidence
+    id: risk_register
+    coverage: partial
+    note: 'Risk register with bands and evidence. Missing: model-specific risk entries and remedial actions
+      owned by the bank.'
+  - kind: process
+    id: incident_management
+    coverage: partial
+    note: 'Manual step: the model owner records the cause and the remedial action for each model fault.'
+  evidence_needed:
+  - root-cause notes for model faults
+  - remedial action list with owner and date
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A58-01
+  article_ref: Art. 58(1)-(2)
+  text_vi: '1. Định kỳ tối thiểu hằng năm hoặc đột xuất, ngân hàng có báo cáo nội bộ về rủi ro mô hình
+    theo quy định tại khoản 2 Điều này. 2. Báo cáo nội bộ về rủi ro mô hình tối thiểu bao gồm: a) Danh
+    mục mô hình cần quản lý của ngân hàng, bao gồm: Mô hình có rủi ro cao (mô hình sử dụng trong phương
+    pháp xếp hạng nội bộ, mô hình khác có rủi ro cao), mô hình có rủi ro trung bình, mô hình có rủi ro
+    thấp; b) Danh mục mô hình được điều chỉnh, mô hình đã ngừng sử dụng trong kỳ báo cáo; c) Tình hình
+    xây dựng (bao gồm cả hoạt động thuê ngoài đối với mô hình), triển khai, sử dụng mô hình (bao gồm cả
+    mua mô hình); d) Kết quả kiểm định mô hình định kỳ hoặc đột xuất (nếu có); đ) Đề xuất, kiến nghị về
+    quản lý rủi ro mô hình với cấp nhận báo cáo; e) Kết quả xử lý, khắc phục theo yêu cầu, kiến nghị của
+    kiểm toán nội bộ, Ngân hàng Nhà nước, tổ chức kiểm toán độc lập, cơ quan có thẩm quyền khác (nếu có).'
+  summary_en: 'At least yearly (and ad hoc) the bank issues an internal model risk report: model list
+    by rating, changed and retired models, build and use status, validation results, proposals and follow-up
+    of audit and SBV findings.'
+  duties:
+  - governance_accountability
+  - model_inventory
+  - record_keeping
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: transparency_report
+    coverage: partial
+    note: 'Transparency report rows per agent (internal variant). Missing: the portfolio view by rating
+      and the follow-up of audit and regulator findings.'
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: 'Audit pack exports the evidence for a period. Missing: the report text and recommendations.'
+  - kind: process
+    id: board_reporting
+    coverage: partial
+    note: 'Manual step: the second line writes the yearly model risk report for the competent level.'
+  evidence_needed:
+  - yearly internal model risk report
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Art. 3(23) defines "model" as a quantitative method or system that turns input data into output
+    used in the bank (statistics, economics, expert judgement). Whether an AI or LLM agent is a "model"
+    is a reading of this KB; bank counsel must confirm. The Art. 56 duties apply from 2028-01-01 at the
+    latest (Art. 74(3)(c)).
+  dates: *id003
+- id: VN-TT83-2025-A40.02C-01
+  article_ref: Art. 40(2)(c)-(e)
+  text_vi: 'c) Thẩm định năng lực của bên thứ ba trong việc đáp ứng các yêu cầu, mục tiêu đề ra của hoạt
+    động thuê ngoài trước khi ký hợp đồng thuê ngoài; đánh giá khả năng thực hiện hợp đồng của bên thứ
+    ba trong suốt quá trình thực hiện hợp đồng; d) Hợp đồng thuê ngoài phải đảm bảo chặt chẽ, đầy đủ,
+    bảo vệ quyền sở hữu, bảo mật cơ sở dữ liệu, thông tin khách hàng, quyền chấm dứt hợp đồng thuê ngoài
+    của ngân hàng. Hợp đồng thuê ngoài tối thiểu bao gồm: mức độ và phạm vi hoạt động thuê ngoài; quyền,
+    nghĩa vụ cụ thể của ngân hàng và bên thứ ba; điều khoản xử lý tranh chấp theo quy định của pháp luật;
+    đ) Lập hoặc yêu cầu bên thứ ba lập kế hoạch duy trì hoạt động liên tục cho hoạt động thuê ngoài theo
+    Điều 43 Thông tư này; e) Thiết lập cơ chế giám sát của ngân hàng đối với bên thứ ba trong thời gian
+    thực hiện thuê ngoài.'
+  summary_en: 'Outsourcing management: assess the third party before signing and during the contract;
+    the contract protects ownership, database and customer information confidentiality and the bank right
+    to terminate; plan business continuity for the outsourced activity; monitor the third party.'
+  duties:
+  - outsourcing_oversight
+  - processor_contract
+  - customer_confidentiality
+  - business_continuity
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: 'Gateway proxy log records what an outsourced agent or model does at the call level. Missing:
+      due diligence and the contract.'
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: 'Registry shows model family and hosting. Missing: vendor assessment, contract terms and exit
+      plan.'
+  - kind: process
+    id: vendor_management
+    coverage: partial
+    note: 'Manual step: due diligence before and during the contract, contract clauses (IP, confidentiality,
+      termination), continuity plan and monitoring are done and filed by the bank. No Supervisor control:
+      contracts and vendor audits are outside Supervisor.'
+  evidence_needed:
+  - vendor due diligence file
+  - contract with the clauses of Art. 40(2)(d)
+  - continuity plan of the outsourced activity
+  - vendor monitoring record
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Applies to an AI model or agent run by a third party for the bank; compare Circular 53 Art. 18.
+- id: VN-TT83-2025-A40.03-01
+  article_ref: Art. 40(3)
+  text_vi: '3. Ngân hàng thực hiện quản lý rủi ro bên thứ ba từ hoạt động thuê ngoài tối thiểu đảm bảo:
+    a) Ngân hàng theo dõi các hợp đồng thuê ngoài tối thiểu bao gồm các nội dung sau: mức độ trọng yếu
+    của thỏa thuận, khả năng thay thế cho dịch vụ bên thứ ba đang cung cấp (substitutability), danh sách
+    các nhà cung cấp dự phòng (contingent providers), việc có hay không chia sẻ thông tin mật hoặc thông
+    tin độc quyền, địa điểm cung cấp dịch vụ; b) Ngân hàng thực hiện đánh giá tổng thể các rủi ro có khả
+    năng phát sinh từ hoạt động thuê ngoài trước khi ký kết hợp đồng; c) Ngân hàng giám sát các rủi ro
+    phát sinh từ hoạt động thuê ngoài, định kỳ báo cáo cấp có thẩm quyền theo quy định nội bộ của ngân
+    hàng; d) Ngân hàng xây dựng và định kỳ rà soát, cập nhật kế hoạch duy trì hoạt động liên tục bao gồm
+    các biện pháp phục hồi đảm bảo không bị gián đoạn vận hành khi hoạt động thuê ngoài xảy ra sự cố.'
+  summary_en: The bank tracks each outsourcing contract (materiality, substitutability, backup providers,
+    shared confidential information, service location), assesses risk before signing, monitors and reports
+    it, and keeps a continuity plan.
+  duties:
+  - outsourcing_oversight
+  - supply_chain_security
+  - business_continuity
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: 'Registry shows model family and hosting for each agent. Missing: materiality, substitutability,
+      backup providers and service location of the vendor.'
+  - kind: process
+    id: vendor_management
+    coverage: partial
+    note: 'Manual step: the bank keeps the outsourcing register with the Art. 40(3)(a) fields and reports
+      risk to the competent level.'
+  evidence_needed:
+  - outsourcing register with materiality, substitutability, backup providers, data shared, service location
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-TT83-2025-A40.04-01
+  article_ref: Art. 40(4)
+  text_vi: 4. Ngân hàng phải đảm bảo việc thực hiện hoạt động thuê ngoài không làm thay đổi trách nhiệm
+    trong việc thực hiện nghĩa vụ của ngân hàng đối với bên liên quan.
+  summary_en: Outsourcing must not change the bank responsibility for its duties to related parties.
+  duties:
+  - outsourcing_oversight
+  - governance_accountability
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms that no contract term moves a duty of the bank to the vendor.
+      No Supervisor control: a legal principle; Supervisor only shows who acted (agent, version) in the
+      evidence chain.'
+  evidence_needed:
+  - legal review note on outsourcing contracts
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-TT83-2025-A41.01B-01
+  article_ref: Art. 41(1)(b)
+  text_vi: 'b) Nhận dạng, đo lường, theo dõi và kiểm soát rủi ro hoạt động phát sinh trong ứng dụng công
+    nghệ theo quy định tại Điều 39 Thông tư này tối thiểu đảm bảo: (i) Nhận dạng nguy cơ phát sinh rủi
+    ro hoạt động liên quan hệ thống mạng kết nối nội bộ và bên ngoài, phần cứng, phần mềm, ứng dụng, giao
+    diện giao dịch, vận hành và yếu tố con người; (ii) Đo lường rủi ro trên cơ sở ước tính tổn thất khi
+    xảy ra rủi ro hoạt động đối với hoạt động kinh doanh; (iii) Theo dõi, đánh giá khả năng duy trì hoạt
+    động ổn định trước nguy cơ phát sinh rủi ro hoạt động trong ứng dụng công nghệ; (iv) Kiểm soát, có
+    các biện pháp giảm thiểu rủi ro hoạt động (nếu cần thiết) trong hoạt động ứng dụng công nghệ.'
+  summary_en: Operational risk from technology use (networks, hardware, software, applications, transaction
+    interfaces, operations, human factors) is identified, measured by estimated loss, monitored for stability
+    and controlled.
+  duties:
+  - risk_management_system
+  - security_monitoring
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: risk_register
+    coverage: partial
+    note: 'Risk register with bands. Missing: loss estimation per risk event.'
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'Oversight metrics show stability signals for agents. Missing: network, hardware and interface
+      risks of the wider system.'
+  - kind: evidence
+    id: incident_record
+    coverage: partial
+    note: 'Governance incident records. Missing: loss measurement.'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank identifies and measures technology operational risk and records the loss
+      estimate.'
+  evidence_needed:
+  - technology operational risk register with loss estimates
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-TT83-2025-A41.02-01
+  article_ref: Art. 41(2)
+  text_vi: '2. Quản lý ứng dụng công nghệ của ngân hàng tối thiểu đảm bảo: a) Có quy định quản lý ứng
+    dụng công nghệ tối thiểu bao gồm: (i) Phạm vi quản lý ứng dụng công nghệ tối thiểu đối với hệ thống
+    thông tin; (ii) Nhiệm vụ, trách nhiệm, quyền hạn của cá nhân, bộ phận thực hiện quản lý ứng dụng công
+    nghệ; (iii) Quản lý hiệu quả khi có sự cố, thay đổi ứng dụng công nghệ; (iv) Hệ thống xác thực đảm
+    bảo bảo mật thông tin của khách hàng, an toàn giao dịch và hệ thống thông tin của ngân hàng; b) Tuân
+    thủ quy định của Ngân hàng Nhà nước về giao dịch điện tử; an toàn, bảo mật cho việc cung cấp dịch
+    vụ trực tuyến trong ngành Ngân hàng và quy định có liên quan của pháp luật.'
+  summary_en: 'The bank has a technology-use rule covering: scope for information systems, roles and powers,
+    handling of incidents and changes, authentication that protects customer information and transaction
+    safety; and it complies with SBV rules on e-transactions and online banking safety.'
+  duties:
+  - internal_policy
+  - change_control
+  - transaction_authentication
+  - incident_response
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_version
+    coverage: partial
+    note: 'Version history and hash chain record changes to agents. Missing: the bank change policy and
+      approval path.'
+  - kind: evidence
+    id: incident_record
+    coverage: partial
+    note: 'Incident records with status. Missing: incident procedure owned by the bank.'
+  - kind: process
+    id: change_management
+    coverage: partial
+    note: 'Manual step: the bank keeps a technology-use rule that covers scope, roles, incident handling,
+      change handling and authentication.'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank shows compliance with the SBV rules on e-transactions and online banking
+      (Circular 50/2024).'
+  evidence_needed:
+  - technology-use rule
+  - change records
+  - incident records
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-TT83-2025-A43.02-01
+  article_ref: Art. 43(2)
+  text_vi: '2. Kế hoạch duy trì hoạt động liên tục phải đáp ứng tối thiểu các yêu cầu sau đây: a) Xác
+    định rõ thẩm quyền kích hoạt kế hoạch duy trì hoạt động liên tục và vai trò, trách nhiệm của cá nhân,
+    bộ phận có liên quan trong việc thực hiện kế hoạch này; b) Phù hợp với tính chất, quy mô hoạt động
+    của ngân hàng; c) Xác định các hoạt động quan trọng, sản phẩm, dịch vụ và quy trình nghiệp vụ trọng
+    yếu cần được ưu tiên duy trì; d) Có hệ thống dự phòng về nhân sự, địa điểm làm việc thay thế, hệ thống
+    thông tin và hạ tầng thiết yếu; đ) Đảm bảo khả năng phối hợp, trao đổi thông tin kịp thời, hiệu quả
+    trong nội bộ và với cơ quan quản lý, khách hàng, đối tác quan trọng trong tình huống gián đoạn; e)
+    Có các biện pháp giảm thiểu tổn thất và tác động bất lợi từ sự cố hoặc ngừng hoạt động; g) Đảm bảo
+    khôi phục hoạt động kinh doanh bị gián đoạn về trạng thái bình thường trong thời hạn yêu cầu; h) Được
+    rà soát và thử nghiệm hoặc diễn tập định kỳ tối thiểu hằng năm hoặc khi có thay đổi trọng yếu về môi
+    trường hoạt động, công nghệ hoặc tổ chức nhằm đánh giá hiệu quả của kế hoạch duy trì hoạt động liên
+    tục và điều chỉnh (nếu cần thiết).'
+  summary_en: The business continuity plan names who triggers it, covers critical activities, has backup
+    systems, communication and recovery targets, and is tested or exercised at least yearly or when technology
+    changes materially.
+  duties:
+  - business_continuity
+  - incident_response
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: 'Pause, resume and retire switch per agent. Missing: the plan, recovery targets and the exercise.'
+  - kind: process
+    id: business_continuity_plan
+    coverage: partial
+    note: 'Manual step: the bank includes AI agents in the plan, with a manual fallback and a yearly test.'
+  - kind: process
+    id: emergency_stop_drill
+    coverage: partial
+    note: 'Manual step: the bank drills the emergency stop of an AI agent and the manual fallback at least
+      yearly.'
+  evidence_needed:
+  - business continuity plan that covers AI agents
+  - yearly test or exercise record
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-TT83-2025-A15.03-01
+  article_ref: Art. 15(3)
+  text_vi: 3. Ngân hàng tổ chức xét duyệt cấp tín dụng bằng phương tiện điện tử phải kiểm soát xung đột
+    lợi ích thông qua nguyên tắc phân định trách nhiệm của từng cá nhân, bộ phận xây dựng, thiết lập và
+    vận hành hệ thống thông tin phục vụ khâu thẩm định và quyết định cấp tín dụng. Trường hợp có rủi ro
+    phát sinh, ngân hàng phải có cơ chế để xác định từng cá nhân, bộ phận chịu trách nhiệm và xử lý kịp
+    thời các vấn đề, rủi ro phát sinh để đảm bảo hiệu quả, an toàn trong việc tổ chức xét duyệt cấp tín
+    dụng bằng phương tiện điện tử của ngân hàng.
+  summary_en: A bank that approves credit by electronic means controls conflicts of interest by separating
+    who builds, sets up and runs the information system used for appraisal and credit decisions, and must
+    be able to name the person or unit responsible for any risk that arises and fix it quickly.
+  duties:
+  - governance_accountability
+  - human_oversight
+  - lifecycle_management
+  applies_to:
+    agent_class:
+    - credit_decision
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: 'Registry records owner and team of each agent. Missing: separation of builder, operator and
+      approver across the credit chain.'
+  - kind: evidence
+    id: lifecycle_approval
+    coverage: partial
+    note: 'Second-person approval for stage moves. Missing: conflict-of-interest rules for credit system
+      roles.'
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Recorded agent events make it possible to trace an action to an agent and version. Missing:
+      the named person responsible for each risk.'
+  - kind: process
+    id: three_lines_model
+    coverage: partial
+    note: 'Manual step: the bank assigns separate roles for building, operating and approving the credit
+      system and names the responsible person for each risk.'
+  - kind: process
+    id: elending_compliance
+    coverage: partial
+    note: 'Manual step: the bank checks the credit agent against the SBV rules on lending by electronic
+      means.'
+  evidence_needed:
+  - role matrix for the credit system (build, operate, approve)
+  - named owner for each credit-system risk
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Read for a credit agent that appraises or decides credit. Bank counsel must confirm that an AI
+    credit memo agent is "xét duyệt cấp tín dụng bằng phương tiện điện tử".
+- id: VN-TT83-2025-A21.02-01
+  article_ref: Art. 21(2)
+  text_vi: '2. Kế hoạch cung cấp sản phẩm mới, hoạt động trong thị trường mới phải được bộ phận quản lý
+    rủi ro thẩm định về rủi ro, biện pháp quản lý rủi ro và xác định cụ thể, tối thiểu bao gồm: a) Quy
+    mô, thời gian thử nghiệm cung cấp sản phẩm mới, hoạt động trong thị trường mới trên cơ sở đánh giá
+    rủi ro có thể phát sinh từ việc cung cấp sản phẩm mới, hoạt động trong thị trường mới, tác động đối
+    với vốn tự có và thu nhập để đảm bảo phù hợp khả năng kiểm soát rủi ro của ngân hàng; b) Thời gian
+    chính thức cung cấp sản phẩm mới, hoạt động trong thị trường mới trên cơ sở đánh giá kết quả thử nghiệm
+    so với các chỉ tiêu đề ra về quản lý rủi ro của ngân hàng.'
+  summary_en: The plan for a new product or market is appraised by the risk function. It sets pilot size
+    and duration from the assessed risk and impact on capital and income, and the date of official launch
+    after pilot results meet the bank risk targets.
+  duties:
+  - risk_management_system
+  - lifecycle_management
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: predeploy_report
+    coverage: partial
+    note: 'Pre-deploy report gives GO, NO-GO or QUESTIONS before launch. Missing: the risk-function appraisal
+      and the impact on capital and income.'
+  - kind: evidence
+    id: launch_report
+    coverage: partial
+    note: 'Launch sandbox report with catch rate and false alarms supports pilot results. Missing: bank
+      risk targets for the new product.'
+  - kind: process
+    id: go_live_decision
+    coverage: partial
+    note: 'Manual step: the risk function appraises the plan and the competent level decides pilot scope
+      and the official launch date.'
+  evidence_needed:
+  - risk appraisal of the new product plan
+  - pilot scope and result against risk targets
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: Applies where an AI agent is a new product or a new way to provide a banking activity; bank counsel
+    must confirm.
+- id: VN-TT83-2025-A11.07-01
+  article_ref: Art. 11(7)
+  text_vi: 7. Ngân hàng phải có quy định về hoạt động kiểm soát đối với các hoạt động được thực hiện bằng
+    phương tiện điện tử đảm bảo đáp ứng các quy định tại Thông tư này và các quy định của pháp luật có
+    liên quan.
+  summary_en: The bank must have a rule for control activities carried out by electronic means.
+  duties:
+  - internal_policy
+  - human_oversight
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: policy_baseline
+    coverage: partial
+    note: 'Versioned policy baseline for the gateway rules. Missing: the bank control rule for electronic
+      activities as a whole.'
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank issues a control rule that covers activities done by AI agents.'
+  evidence_needed:
+  - internal rule on controls for electronic activities
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-TT83-2025-A24-01
+  article_ref: Art. 24
+  text_vi: 'Dữ liệu rủi ro được sử dụng để thực hiện hoạt động quản lý rủi ro theo quy định tại Chương
+    này. Ngân hàng quản lý dữ liệu rủi ro theo quy định nội bộ, tối thiểu đảm bảo các yêu cầu sau: 1.
+    Dữ liệu rủi ro phải chính xác (accuracy) và toàn vẹn (integrity) trong đó đảm bảo nhất quán các khái
+    niệm về dữ liệu, có kênh báo cáo nội bộ và kế hoạch khắc phục về tình trạng dữ liệu kém chất lượng
+    (nếu có). 2. Ngân hàng phải thu thập và tổng hợp được dữ liệu rủi ro, tối thiểu bao gồm toàn bộ dữ
+    liệu rủi ro từ các rủi ro trọng yếu. 3. Ngân hàng có khả năng tổng hợp dữ liệu rủi ro phục vụ cho
+    hoạt động quản lý rủi ro một cách nhanh chóng, kịp thời. 4. Ngân hàng có khả năng tổng hợp dữ liệu
+    rủi ro đáp ứng yêu cầu các loại báo cáo quản lý rủi ro khác nhau.'
+  summary_en: Risk data must be accurate and complete in definition, with a channel and plan to fix poor
+    data; the bank must collect and aggregate risk data for all material risks quickly and for different
+    report types.
+  duties:
+  - data_quality
+  - record_keeping
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Recorded agent events and the chain provide consistent, hashed operational data. Missing: bank-wide
+      risk data definitions and aggregation across risk types.'
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: 'Audit export. Missing: aggregation of all material risks.'
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank sets risk data definitions, a data quality escalation channel and aggregation
+      capability.'
+  evidence_needed:
+  - risk data definitions
+  - data quality issue log and remediation plan
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Applies from 2028-01-01 at the latest (Art. 74(2)(b)). The link to AI is indirect: risk data
+    feed the risk reports that cover AI.'
+  dates:
+    compliance_deadline:
+      date: '2028-01-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/186792
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 74(2)(b): risk data management at the latest from 2028-01-01.'
