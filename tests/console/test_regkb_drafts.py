@@ -194,7 +194,11 @@ def test_every_role_can_view_but_only_compliance_roles_see_buttons(on: Console) 
 def test_permissions_in_the_matrix() -> None:
     assert set(rbac.PERMISSIONS["regkb.view"][0]) == set(rbac.ROLES)
     assert set(rbac.PERMISSIONS["regkb.confirm"][0]) == {"approver", "admin"}
-    found = {(m, p): rbac.route_entry(m, p) for m, p, _ in app_routes() if "/console/regkb" in p}
+    found = {
+        (m, p): rbac.route_entry(m, p)
+        for m, p, _ in app_routes()
+        if "/console/regkb" in p and "/internal" not in p
+    }
     assert found == {
         ("GET", "/console/regkb/{instrument_id}/drafts"): "regkb.view",
         ("POST", "/console/regkb/{instrument_id}/drafts/{draft_id}/confirm"): "regkb.confirm",

@@ -4838,3 +4838,7 @@ _T.update(_CV)
 from supervisor.console.i18n_guardian_factory import GF as _GF  # noqa: E402  (WP-G1, prefix gf_)
 
 _T.update(_GF)
+
+from supervisor.console.i18n_regkb_internal import RI as _RI  # noqa: E402  (WP-W3, prefix ri_)
+
+_T.update(_RI)

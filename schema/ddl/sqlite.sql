@@ -1890,3 +1890,20 @@ BEFORE DELETE ON guardian_def_event
 BEGIN
   SELECT RAISE(ABORT, 'guardian_def_event is append-only');
 END;
+
+-- regkb_internal_doc (state): WP-W3 (phase 11, REGKB_INTERNAL). One internal document (policy, standard, procedure) that a person uploaded to RegKB. The raw text and the masked text sit under DATA_DIR/regkb/internal/<doc_id>/ (text.txt, text.masked.txt, .meta.json); only the masked text goes to the gateway model. status: uploaded, drafted (the law agent wrote drafts into regkb_draft with instrument_id VN-INT-<doc_id>), confirmed (a person with regkb.confirm accepted at least one row, so instrument.yaml exists) or retired. sha256 is the hash of the raw text file. No personal data in this row: title and owner_group are masked on upload.
+CREATE TABLE IF NOT EXISTS regkb_internal_doc (
+  doc_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  owner_group TEXT NOT NULL,
+  version_label TEXT NOT NULL,
+  sha256 TEXT NOT NULL,
+  status TEXT NOT NULL,
+  uploaded_by TEXT NOT NULL,
+  uploaded_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (doc_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_regkb_internal_doc_status ON regkb_internal_doc (status);

@@ -4,6 +4,7 @@
         [--out drafts.json]
     python -m supervisor.regkb.lawagent --instrument VN-DEC142-2026 --export-confirmed out.yaml
     python -m supervisor.regkb.lawagent --compare old.txt new.txt
+    python -m supervisor.regkb.lawagent --internal 3F9A0C21B7D4 [--out drafts.json]
 
 What happens, in order:
 
@@ -16,6 +17,10 @@ What happens, in order:
    obligation: a person confirms or drops it on ``/console/regkb/<instrument>/drafts``.
 5. ``--export-confirmed`` writes the confirmed rows in the obligation YAML shape of
    ``regulations/vn/*.yaml`` for an engineer to paste into the instrument file in a pull request.
+
+Internal mode (WP-W3, REGKB_INTERNAL=1): ``--internal <doc_id>`` reads the MASKED text of an
+uploaded internal document (``regkb/internal.py``), draft one duty row per section that imposes a
+duty, and writes it to ``regkb_draft`` with ``instrument_id = VN-INT-<doc_id>``.
 
 The model only drafts. A mock chat model is for unit tests: a run on a mock is refused unless
 ``--allow-mock`` is given, and every output then says MOCK MODEL.
@@ -679,6 +684,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--out", help="also write the new drafts and the summary to this JSON file")
     parser.add_argument("--export-confirmed", metavar="FILE", help="write confirmed rows as YAML")
     parser.add_argument("--compare", nargs=2, metavar=("OLD", "NEW"), help="list changed articles")
+    parser.add_argument("--internal", metavar="DOC_ID", help="internal mode: draft an uploaded doc")
     parser.add_argument("--allow-mock", action="store_true", help="allow a mock model (tests only)")
     args = parser.parse_args(argv)
     from supervisor.bootstrap import bootstrap
@@ -689,10 +695,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.compare:
             return _compare_cli(*args.compare)
+        if args.internal:
+            return _internal_cli(args)
         if not args.instrument:
-            parser.error("--instrument is required")
+            parser.error("--instrument or --internal is required")
         return _run_cli(args)
-    except (SupervisorError, RegKBError, OSError, ValueError) as exc:
+    except (SupervisorError, RegKBError, OSError, ValueError) as exc:  # InternalError is one
         _out(f"[FAIL] {exc}")
         _out(BANNER)
         return 2
@@ -751,6 +759,52 @@ def _run_cli(args: argparse.Namespace) -> int:
                 "summary": {k: v for k, v in asdict(summary).items() if k != "rows"},
                 "drafts": summary.rows,
             }
+            Path(args.out).write_text(
+                json.dumps(
+                    payload, ensure_ascii=False, indent=2, default=_jsonable, sort_keys=True
+                ),
+                encoding="utf-8",
+                newline="\n",
+            )
+            _out(f"[OK] wrote {args.out}")
+        _out(BANNER)
+        return 1 if summary.model_errors and not summary.rows else 0
+    finally:
+        adapters.close()
+
+
+def _internal_cli(args: argparse.Namespace) -> int:
+    from supervisor.adapters.factory import build_adapters
+    from supervisor.config import load_settings
+    from supervisor.regkb import internal
+
+    settings = load_settings()
+    _out(BANNER)
+    if not settings.lawagent_enabled:
+        _out("[SKIP] the law agent is off (set LAWAGENT_ENABLED=1)")
+        return 2
+    if not settings.regkb_internal:
+        _out("[SKIP] internal documents are off (set REGKB_INTERNAL=1)")
+        return 2
+    adapters = build_adapters(settings)
+    try:
+        if adapters.executor.dialect == "sqlite":
+            from supervisor.jobs import bootstrap_schema
+
+            bootstrap_schema.run(settings, adapters)
+        svc = internal.InternalDocs(
+            adapters.state, adapters.clock, settings, masker=internal.make_masker(settings)
+        )
+        if args.allow_mock:
+            chat = make_chat(settings)
+        else:
+            chat = internal.make_chat(settings)
+        summary = svc.draft(args.internal, chat, progress=_out)
+        for line in summary.lines():
+            _out(line)
+        _out("[OK] review: " + PAGE_URL.format(instrument=internal.instrument_id(args.internal)))
+        if args.out:
+            payload = {"banner": BANNER, "summary": summary.as_dict(), "drafts": summary.rows}
             Path(args.out).write_text(
                 json.dumps(
                     payload, ensure_ascii=False, indent=2, default=_jsonable, sort_keys=True

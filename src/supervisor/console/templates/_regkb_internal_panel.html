@@ -1,0 +1,47 @@
+{# Internal documents panel (WP-W3, REGKB_INTERNAL): upload form, list, Draft duties. Variable: ri. #}
+{% import "_ui.html" as ui with context %}
+<section class="card" id="regkb-internal-panel" data-section="regkb-internal">
+  <h3>{{ t('ri_title') }} <span class="k">{{ ri.docs|length }}</span></h3>
+  <div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ t('ri_banner') }}</b></div>
+  <p class="hint">{{ t('ri_hint', mb=ri.max_mb) }}</p>
+  {% if ri.docs %}
+  <div class="tablewrap flat"><table class="queue" data-table="regkb-internal-docs">
+    <thead><tr><th scope="col">{{ t('ri_c_doc') }}</th><th scope="col">{{ t('ri_c_owner') }}</th><th scope="col">{{ t('ri_c_version') }}</th><th scope="col">{{ t('ri_c_status') }}</th><th scope="col">{{ t('ri_c_drafts') }}</th><th scope="col">{{ t('ri_c_by') }}</th><th scope="col">{{ t('ri_c_actions') }}</th></tr></thead>
+    <tbody>
+    {% for d in ri.docs %}
+      <tr class="row" data-doc="{{ d.doc_id }}">
+        <td>{{ d.title }}<div class="idline mono">{{ d.instrument_id }} · {{ d.sha256[:12] }}</div></td>
+        <td>{{ d.owner_group }}</td>
+        <td class="mono">{{ d.version_label }}</td>
+        <td>{{ ui.pill(t('ri_st_' ~ d.status), {'confirmed': 'ok', 'drafted': 'warn', 'retired': 'neutral'}.get(d.status, 'info'), True) }}
+          <div class="idline">{{ t('ri_instrument') }}: {{ t('ri_has_instrument') if d.has_instrument else t('ri_not_yet') }}</div></td>
+        <td class="mono">{{ d.drafts.draft }} / {{ d.drafts.confirmed }} / {{ d.drafts.dropped }}</td>
+        <td>{{ d.uploaded_by }}<div class="idline mono">{{ (d.uploaded_at or '-')[:19] }}</div></td>
+        <td>
+          {% if ri.can_upload and d.status != 'retired' %}
+          <button class="btn" data-act="draft" hx-post="/console/regkb/internal/{{ d.doc_id }}/draft?lang={{ lang }}" hx-target="#regkb-internal-panel" hx-swap="outerHTML">{{ t('ri_draft') }}</button>
+          {% endif %}
+          <a class="btn" data-act="open-drafts" href="/console/regkb/{{ d.instrument_id }}/drafts?lang={{ lang }}">{{ t('ri_open_drafts') }}</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="hint" data-empty="regkb-internal">{{ t('ri_none') }}</p>
+  {% endif %}
+  {% if ri.can_upload %}
+  <details {% if not ri.docs %}open{% endif %} class="intake-form">
+    <summary class="btn{% if not ri.docs %} primary{% endif %}" data-action="upload">{{ t('ri_upload') }}</summary>
+    <form hx-post="/console/regkb/internal?lang={{ lang }}" hx-encoding="multipart/form-data" hx-target="#regkb-internal-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
+      <label>{{ t('ri_file') }} <input type="file" name="file" accept=".txt,.md,.pdf" aria-label="{{ t('ri_file') }}"></label>
+      <label>{{ t('ri_f_title') }} <input type="text" name="title" maxlength="200" size="30" aria-label="{{ t('ri_f_title') }}"></label>
+      <label>{{ t('ri_f_owner') }} <input type="text" name="owner_group" maxlength="200" size="20" required aria-label="{{ t('ri_f_owner') }}"></label>
+      <label>{{ t('ri_f_version') }} <input type="text" name="version_label" maxlength="200" size="10" aria-label="{{ t('ri_f_version') }}"></label>
+      <button type="submit" class="btn primary">{{ t('ri_send') }}</button>
+    </form>
+  </details>
+  {% else %}
+  <p class="hint">{{ t('ri_view_only') }}</p>
+  {% endif %}
+</section>

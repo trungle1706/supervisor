@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('ri_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([('Regulations', None), (t('ri_title'), None)]) }}
+{{ ui.pagehead(t('ri_title')) }}
+{% include "_regkb_internal_panel.html" %}
+{% endblock %}

@@ -6,6 +6,8 @@
     {{ ui.pill(d.status, {'draft': 'warn', 'confirmed': 'ok', 'dropped': 'neutral'}.get(d.status, 'neutral'), True) }}
     <span class="pill mono">{{ d.duty_id }}</span>
     {% if d.clause %}<span class="pill mono">clause {{ d.clause }}</span>{% endif %}
+    {% if d.section_ref %}<span class="pill mono" data-section-ref="{{ d.section_ref }}">section {{ d.section_ref }}</span>{% endif %}
+    {% for dim in d.dimensions or [] %}<span class="pill mono" data-dimension="{{ dim }}">{{ dim }}</span>{% endfor %}
     <span class="hint">{{ d.duty_label }}</span>
     <span class="hint">source {{ d.source }}{% if d.model_id %} &middot; {{ d.model_id }}{% endif %}{% if d.prompt_version %} &middot; {{ d.prompt_version }}{% endif %}</span>
     {% if d.is_mock %}{{ ui.pill('MOCK MODEL', 'bad', True) }}{% endif %}

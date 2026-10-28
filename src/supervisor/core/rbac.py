@@ -203,6 +203,11 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("approver", "admin"),
         "Confirm or drop a law agent draft; the compliance sign-off role (WP-L1)",
     ),
+    # --- WP-W3 --- internal documents in RegKB (REGKB_INTERNAL; 400 regkb_internal_off)
+    "regkb.upload": (
+        ("reviewer", "owner", "approver", "admin"),
+        "Upload an internal document to RegKB and ask the law agent to draft its duties (WP-W3)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -551,6 +556,15 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/regkb/{instrument_id}/drafts"): "regkb.view",
     ("POST", "/console/regkb/{instrument_id}/drafts/{draft_id}/confirm"): "regkb.confirm",
     ("POST", "/console/regkb/{instrument_id}/drafts/{draft_id}/drop"): "regkb.confirm",
+    # --- WP-W3 --- internal documents (REGKB_INTERNAL; the routes answer 400 regkb_internal_off)
+    ("GET", "/v1/regkb/internal"): "regkb.view",
+    ("POST", "/v1/regkb/internal"): "regkb.upload",
+    ("GET", "/v1/regkb/internal/{doc_id}"): "regkb.view",
+    ("GET", "/v1/regkb/internal/{doc_id}/sections/{n}"): "regkb.view",
+    ("POST", "/v1/regkb/internal/{doc_id}/draft"): "regkb.upload",
+    ("GET", "/console/regkb/internal"): "regkb.view",
+    ("POST", "/console/regkb/internal"): "regkb.upload",
+    ("POST", "/console/regkb/internal/{doc_id}/draft"): "regkb.upload",
     # --- WP-G6 --- MCP server, connected apps, KPIs (MCP_SERVER_ENABLED)
     ("POST", "/mcp"): AGENT,  # the credential is the HMAC signature of a connected app
     ("GET", "/v1/mcp/apps"): "mcp.apps",

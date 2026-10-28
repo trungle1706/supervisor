@@ -1,0 +1,9 @@
+Hướng dẫn vận hành trợ lý trả lời khách hàng (bản giả lập)
+
+Trợ lý trả lời khách hàng chỉ được dùng các tài liệu đã được phê duyệt của ngân hàng làm nguồn trả lời và không được tự suy đoán số liệu.
+
+Khi trợ lý không chắc chắn về câu trả lời, trợ lý phải chuyển cuộc hội thoại cho nhân viên hỗ trợ và ghi lại lý do chuyển.
+
+Nhóm vận hành phải kiểm tra chất lượng câu trả lời của trợ lý bằng bộ câu hỏi mẫu trước mỗi lần cập nhật nội dung.
+
+Tài liệu này chỉ nhằm cung cấp thông tin cho nhân viên mới.

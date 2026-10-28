@@ -165,7 +165,7 @@ def build_matrix(
                 instrument_id=ob.instrument_id,
                 instrument_number=ob.number,
                 jurisdiction=ob.jurisdiction,
-                binding=ob.binding,
+                binding=bool(ob.binding),
                 instrument_status=ob.status,
                 article_ref=ob.article_ref,
                 summary_en=ob.summary_en,

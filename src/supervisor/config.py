@@ -391,6 +391,13 @@ class Settings(BaseSettings):
     # never an obligation until a person confirms it. Not legal advice.
     lawagent_enabled: bool = False
     lawagent_model: str = ""
+    # WP-W3 (phase 11): internal documents in RegKB. REGKB_INTERNAL=1 (needs LAWAGENT_ENABLED)
+    # lets a person upload a policy (.txt, .md, .pdf with a text layer) under
+    # DATA_DIR/regkb/internal/<doc id>/; the law agent drafts duties from the MASKED text through
+    # the gateway model; a person confirms rows; they become the instrument VN-INT-<doc id>.
+    # Off = upload refused (400 regkb_internal_off) and the loader ignores internal files.
+    regkb_internal: bool = False
+    regkb_internal_max_mb: int = Field(default=10, ge=1, le=50)
     # WP17 assurance eval packs. Bank-supplied datasets live under ASSURANCE_DATA_DIR/<pack>/;
     # OSV_DB_PATH is a local OSV vulnerability dump. All new features default off.
     assurance_data_dir: Path | None = None
