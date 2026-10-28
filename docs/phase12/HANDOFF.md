@@ -11,14 +11,21 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
   decisions are in its section 0. Research notes in `docs/phase12/research/`.
 * Design pages the owner approved (private artifacts of the owner; the plan file carries their
   content): the phase 12 plan page and the agent factory design page.
-* Wave 1 state (check `git log --oneline main` and the open branches):
-  * WP-F1 factory schemas: **merged** (90e7d8e).
-  * WP-C1 classification tree, WP-C2 risk dimensions, WP-W0 regulations completeness: workers
-    were running in local worktrees when this file was written. Their branches are named
-    `worktree-agent-<id>`. If the branches are on GitHub (`git branch -r | grep worktree-agent`)
-    review and merge them (section 3). If they are not on GitHub, the work exists only on the
-    owner's machine; the owner pushes them with the command in section 5, or the WP is rebuilt
-    from its brief.
+* State on 2026-10-29 (check `git log --oneline main` and `git branch -r | grep worktree-agent`):
+  * Wave 1 merged: WP-F1 (90e7d8e), WP-C2, WP-C1 (c8dd9e5), WP-W0 (9f5e708); fixes 770d726, a781aab.
+  * Wave 2 merged: WP-F4 (orchestrator), WP-G1 (guardian definitions), WP-W3 (internal documents),
+    WP-F2 (factory UI and helper agents); fixes 7697618. Schema: 77 tables. RegKB: 39 instruments,
+    618 obligations.
+  * Wave 3 workers started 2026-10-29 in local worktrees: WP-F3 (gate and promotion), WP-C3
+    (nine-step workflow), WP-C4 (portfolio blocks and nav entries), WP-G2 (guardian benchmark).
+    Still to start: WP-F5 (starter agents, after F3), WP-G3 (shadow and promotion, after G2),
+    WP-G4 (smart guardian), WP-W1 and WP-W2 (watcher and change loop).
+  * Merge lesson: every WP appends a table and a CHANGELOG entry, so a merge conflicts in
+    schema/model.yaml, the two DDL files, the notebook and CHANGELOG.md. Keep both appends, take
+    either side of the generated files, then regenerate; add new /v1/systems routers to the
+    `mounted` fixture in tests/governance/conftest.py and new flag-mounted prefixes to
+    FLAG_MOUNTED in tests/console/test_rbac_matrix.py; regenerate the ROLE-MATRIX block in
+    docs/console.md with `rbac.matrix_markdown()` when permissions change.
 * Next waves: see section 5 of the build plan ("Order and merge").
 
 ## 2. How the hub works
@@ -93,12 +100,9 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
 
 ## 7. Next actions in order
 
-1. Merge any wave 1 branch on GitHub (C1, C2, W0). Resolve the double append in
-   `schema/model.yaml` by keeping both tables and regenerating.
-2. Start wave 2 from the build plan: WP-F2 (factory UI, helper agents), then WP-F3 (gate and
-   promotion, with the simulation review and the sample batch of owner decision 5), WP-F4
-   (orchestrator), WP-G1 → G2 → G3 (guardian factory), WP-W3 (internal documents through the
-   gateway). Brief each worker as section 2 says.
-3. Wave 3: WP-C3, WP-C4, WP-F5, WP-G4, WP-W1 → W2. Then release v0.9.0.
+1. Merge any wave 3 branch on GitHub (F3, C3, C4, G2) with the merge lesson above.
+2. Start the rest of wave 3: WP-F5 (after F3), WP-G3 (after G2), WP-G4, WP-W1 → W2. Brief each
+   worker as section 2 says.
+3. Full suite, then release v0.9.0 (section 4).
 4. Report to the owner in the controlled style (short sentences, tables, diagrams; see the
    owner's `ste-communication` skill note in the memory file when local).
