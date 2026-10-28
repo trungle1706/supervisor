@@ -13,7 +13,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput, TargetReply
+from supervisor.assurance.model import (
+    EvalPack,
+    RunContext,
+    RunnerOutput,
+    TargetReply,
+    not_applicable_reason,
+)
 from supervisor.assurance.textutil import (
     bp,
     numbers,
@@ -151,10 +157,26 @@ def load_pack_items(
     return Loaded(items, used, ds_id, sha256_lines([item_line(i) for i in items]))
 
 
+CAPABILITY_TEXT = {
+    "planned": "replay planned tool calls through the gate",
+    "tools": "run a tool with an injected result",
+    "decide": "make credit decisions",
+}
+
+
 def need_capability(target: Any, *caps: str) -> None:
     have = getattr(target, "capabilities", frozenset())
     missing = [c for c in caps if c not in have]
     if missing:
+        never = set(getattr(target, "not_applicable_capabilities", ()) or ())
+        if all(c in never for c in missing):  # WP-O3b: a chat-only target can never have these
+            what = "; ".join(CAPABILITY_TEXT.get(c, c) for c in missing)
+            raise SkipPack(
+                not_applicable_reason(
+                    f"this target answers over HTTP chat only and cannot {what}",
+                    "supply a launch harness",
+                )
+            )
         raise SkipPack("target lacks capability: " + ", ".join(missing))
 
 

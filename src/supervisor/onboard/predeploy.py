@@ -881,6 +881,20 @@ def _pack_item(
         label += f", {int(details.get('turns') or 0)} turns"
     head = f"pack {r.pack_id}{mock}: {r.status}" + (f" [target: {label}]" if label else "")
     pointer = f"pack {r.pack_id}"
+    na_reason = str(details.get("reason") or "") if r.status == "skip" else ""
+    if required and na_reason.startswith("not_applicable:"):
+        # WP-O3b: the pack structurally cannot run on this target (no data for it, or a
+        # capability that the target can never have). Not a pass and not a defect of the
+        # candidate: an open question for the reviewer. Launch still treats the skip as NO-GO.
+        what = na_reason[len("not_applicable:") :].strip()
+        action = str(details.get("action") or "supply what is missing")
+        return make_item(
+            section,
+            f"pack:{r.pack_id}",
+            "question",
+            f"pack {r.pack_id} cannot run on this target: {what}; {action} or accept the gap",
+            pointer,
+        )
     if r.status == "ok":
         status, text = "ok", head
     elif r.status == "warn":

@@ -257,7 +257,7 @@ It needs a stored source (`ONBOARD_INTAKE=1`) and, for useful facts, `ONBOARD_FA
 | `ONBOARD_PREDEPLOY` | `0` | Turns the assessment on. Off: `POST` and `GET /v1/predeploy/...`, the Pre-deploy tab and panel answer HTTP 400 `predeploy_off` with the flag name; nothing is read or written, register step 3 is unchanged. |
 | `PREDEPLOY_HTTP_TARGET` | `0` | WP-O3b. Packs against the running candidate over its HTTP chat endpoint. Off: the offline repo target, "no harness". |
 | `PREDEPLOY_HTTP_ALLOWED_HOSTS` | empty | Comma list of host names (exact, or `*.suffix`). Empty = no host = off. https only. |
-| `PREDEPLOY_HTTP_TIMEOUT_S`, `PREDEPLOY_HTTP_MAX_TURNS`, `PREDEPLOY_HTTP_BUDGET_S` | 30, 50, 600 | Seconds per turn; turns per pack; seconds in total. A candidate block can lower them, never raise them. |
+| `PREDEPLOY_HTTP_TIMEOUT_S`, `PREDEPLOY_HTTP_MAX_TURNS`, `PREDEPLOY_HTTP_BUDGET_S` | 30, 300, 600 | Seconds per turn; turns per pack; seconds in total. A candidate block can lower them, never raise them. |
 
 Where it shows: the **Pre-deploy** tab of the agent page and the **Pre-deploy** panel in the
 Candidates drawer, below **Facts** (also a full page at `/console/predeploy/<node id>`). The panel
@@ -284,9 +284,19 @@ sections send synthetic turns to the candidate's HTTP chat endpoint (the candida
 Supervisor's own service principal signs in). Each pack item says which target ran:
 `[target: http <host>, N turns]`, `[target: sandbox demo]` or `[target: no harness]`. If the agent
 row is RUNNING the report has a `warn` item "assessment ran against a RUNNING agent". A refused
-block is a `fail` item. Packs that need tools or the sandbox gate still cannot run over chat and
-stay `fail` with the missing capability named. The default 50 turns per pack ends three packs with
-an error item: raise `PREDEPLOY_HTTP_MAX_TURNS` for a full run.
+block is a `fail` item. The default is 300 turns per pack (at most 500); a pack that runs out of
+turns is an error item, never a pass.
+
+Not applicable packs (WP-O3b). A required pack that structurally cannot run on the target (a
+chat-only candidate cannot replay tool calls through the gate or inject a tool result; the
+dataset has no case for this agent; the manifest declares no tools; the tree has no hashed lock
+file) is not a defect of the candidate and not a pass. The engine records `skip` with
+`details.reason = "not_applicable: ..."`; the report shows the item with status `question`:
+"pack <id> cannot run on this target: <what is missing>; supply <manifest tools | cases> (or add
+hashes to requirements.txt, pip hash, or a lock file) or accept the gap", pointer `pack <id>`.
+Reason: without it the verdict was a NO-GO that no candidate could ever clear. The verdict rule is
+unchanged (fail = NO-GO, else question = QUESTIONS, else GO). The Launch gate is not changed: it
+still treats the skip as NO-GO. Details: `docs/assurance.md` "Not applicable (WP-O3b)".
 
 Where the packs run. A tree whose manifest id (or node id) is one of the demo agents runs in the
 launch sandbox: a private store, the synthetic bank world, the real gateway on the policy with the

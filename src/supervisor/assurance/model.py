@@ -413,5 +413,25 @@ class PackRunner(Protocol):
     def run(self, pack: EvalPack, ctx: RunContext) -> RunnerOutput: ...
 
 
+NOT_APPLICABLE_PREFIX = "not_applicable:"
+
+
+def not_applicable_reason(what: str, action: str) -> str:
+    """Skip reason of a pack that cannot run on this target, structurally (WP-O3b): the target
+    lacks a capability it can never have, or the pack has no data for it. The engine turns it
+    into ``details.reason`` and ``details.action``. This is NOT the engine's own
+    ``details.not_applicable`` flag: Launch still treats the skip as NO-GO; only the pre-deploy
+    report shows it as a question."""
+    return f"{NOT_APPLICABLE_PREFIX} {what} | {action}"
+
+
+def parse_not_applicable(reason: str) -> tuple[str, str] | None:
+    """``(what, action)`` for a reason made by :func:`not_applicable_reason`, else ``None``."""
+    if not reason.startswith(NOT_APPLICABLE_PREFIX):
+        return None
+    what, _, action = reason[len(NOT_APPLICABLE_PREFIX) :].partition(" | ")
+    return what.strip(), action.strip()
+
+
 def safe_id(text: str) -> str:
     return re.sub(r"[^a-z0-9_]+", "_", text.lower()).strip("_")

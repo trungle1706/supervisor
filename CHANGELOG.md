@@ -4,7 +4,7 @@
 
 - WP-O3b (phase 9): **packs against the running candidate**, `PREDEPLOY_HTTP_TARGET` (default `0`)
   with `PREDEPLOY_HTTP_ALLOWED_HOSTS` (empty = off), `PREDEPLOY_HTTP_TIMEOUT_S` (30),
-  `PREDEPLOY_HTTP_MAX_TURNS` (50 per pack) and `PREDEPLOY_HTTP_BUDGET_S` (600). New
+  `PREDEPLOY_HTTP_MAX_TURNS` (300 per pack, at most 500) and `PREDEPLOY_HTTP_BUDGET_S` (600). New
   `HttpAgentTarget` (`assurance/targets.py`): sends each synthetic pack turn to the HTTP chat
   endpoint of a candidate (https only, host on the allow list, field names per candidate: the
   kb-chatbot uses `question` and `history`), signed in as the Supervisor's own service principal
@@ -17,7 +17,17 @@
   `warn` item; a refused block gives a `fail` item. Results carry `details.target_kind=http`,
   `target_host` and `turns`. `multiturn_redteam_vi` (manifest version 2) has a text-only mode for
   such a target (a weaker text oracle; the sandbox metrics are not applicable). Packs that need
-  tools or the sandbox gate still cannot run over chat and stay `fail`. **Bug fix:**
+  tools or the sandbox gate cannot run over chat: such a required pack is now a structured
+  **not applicable** result (`skip` with `details.reason = "not_applicable: ..."` and
+  `details.action`), shown in the pre-deploy report as a `question` ("pack X cannot run on this
+  target: ...; supply ... or accept the gap"), so the verdict can be QUESTIONS instead of an
+  unclearable NO-GO. Launch (`launch._with_assurance`) still treats the skip as NO-GO. Applies
+  to: a chat-only target that lacks `planned`, `tools` or `decide`; a pack with no case for the
+  agent (`owasp_agentic_redteam`, `indirect_injection_vi`); a manifest with no tools
+  (`mcp_tool_manifest_drift`, `indirect_injection_vi`); a stored tree with no hashed lock file
+  (`pin_hash_check`). `RepoAgentTarget` and the HTTP target now read the tools of
+  `supervisor.manifest.yaml` (top level or under `agent:`), so `mcp_tool_manifest_drift` can run
+  on a stored tree (description check only; drift metrics declared not applicable). **Bug fix:**
   `assurance.gates._row` dropped `is_mock` of a `PackResult` object, so `assurance_mock_state`
   and the Launch "results are mock only" NO-GO never saw engine results; it now keeps `is_mock`
   and a `mock_reason`. With the flag off, nothing changes. `app.yaml` has the commented flags.

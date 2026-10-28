@@ -10,7 +10,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput
+from supervisor.assurance.model import EvalPack, RunContext, RunnerOutput, not_applicable_reason
 from supervisor.assurance.runners import security_common as sc
 from supervisor.assurance.runners.security_common import SkipPack
 from supervisor.assurance.taxonomy import ATLAS, ATLAS_NAMES
@@ -57,6 +57,13 @@ class AgenticRedteamRunner:
             keep = sorted(applicable, key=lambda cp: stable_rank(pack.id, cp[0]["id"]))
             ids = {cp[0]["id"] for cp in keep[: ctx.max_items]}
             applicable = [cp for cp in applicable if cp[0]["id"] in ids]
+        if not applicable:
+            return RunnerOutput.skip(
+                not_applicable_reason(
+                    f"no red-team case is written for agent {tid!r}",
+                    "supply cases (<ASSURANCE_DATA_DIR>/owasp_agentic_redteam)",
+                )
+            )
         if len(applicable) < pack.min_items:
             return RunnerOutput.skip(
                 f"only {len(applicable)} red-team cases fit {tid!r}, pack needs {pack.min_items}"

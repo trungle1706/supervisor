@@ -328,7 +328,7 @@ def test_settings_default_off_and_read_the_environment(monkeypatch: pytest.Monke
     assert s.predeploy_http_target is False and s.predeploy_http_allowed_hosts == ""
     assert (s.predeploy_http_timeout_s, s.predeploy_http_max_turns, s.predeploy_http_budget_s) == (
         30,
-        50,
+        300,
         600,
     )
     monkeypatch.setenv("PREDEPLOY_HTTP_TARGET", "1")

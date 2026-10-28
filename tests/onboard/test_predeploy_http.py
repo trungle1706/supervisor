@@ -31,6 +31,10 @@ system:
 agent:
   agent_id: kb_chatbot
   name: Bank knowledge chatbot
+  tools:
+    - name: search_policies
+      risk_class: read_only
+      description: Search the synthetic bank policy documents (read only).
 http_target:
   url: https://{HOST}
   path: /chat
@@ -63,7 +67,6 @@ def make_adapters(tmp_path: Path, **flags: Any) -> Adapters:
         "onboard_predeploy": True,
         "predeploy_http_target": True,
         "predeploy_http_allowed_hosts": HOST,
-        "predeploy_http_max_turns": 50,
     }
     base.update(flags)
     a = build_adapters(load_settings(**base))
@@ -135,8 +138,8 @@ def test_the_chat_packs_run_against_the_http_target(adapters: Adapters) -> None:
         assert f"[target: http {HOST}" in p["text"]
     assert "packs:no_harness" not in packs  # the WP-O3 "no harness" warning is gone
     assert "FAKE-SP-TOKEN" not in json.dumps(rep)  # the auth header never reaches the report
-    # a pack that needs the sandbox gate cannot pass over chat: a fail, never a quiet pass
-    assert packs["pack:owasp_agentic_redteam"]["status"] == "fail"
+    # a pack that needs the sandbox gate cannot run over chat: a question, never a quiet pass
+    assert packs["pack:owasp_agentic_redteam"]["status"] == "question"
 
 
 def test_the_multiturn_item_names_the_http_target(adapters: Adapters) -> None:
@@ -274,14 +277,58 @@ def test_the_verdict_comes_from_real_pack_results_not_from_no_harness(tmp_path: 
     # ... and it cannot know the truthful answers: a real metric misses its limit
     assert p_on["pack:truthfulqa_vi"]["status"] == "fail"
     assert "truthful_bp=" in p_on["pack:truthfulqa_vi"]["text"]
-    # packs that need tools or the sandbox gate cannot run over chat: still fail, with the reason
-    for pid in ("owasp_agentic_redteam", "indirect_injection_vi", "mcp_tool_manifest_drift"):
-        assert p_on[f"pack:{pid}"]["status"] == "fail" and "capab" in p_on[f"pack:{pid}"]["text"]
-    assert r_on["verdict"] == "no_go"
+    # packs that need tools or the sandbox gate cannot run over chat: questions, not fails
+    for pid in ("owasp_agentic_redteam", "indirect_injection_vi", "pin_hash_check"):
+        item = p_on[f"pack:{pid}"]
+        assert item["status"] == "question" and "cannot run on this target" in item["text"]
+        assert item["text"].endswith("or accept the gap") and item["pointer"] == f"pack {pid}"
+    assert "add hashes to requirements.txt (pip hash)" in p_on["pack:pin_hash_check"]["text"]
+    # the manifest of the tree lists tools, so the drift pack runs (description check only)
+    assert p_on["pack:mcp_tool_manifest_drift"]["status"] == "ok"
+    assert r_on["verdict"] == "no_go"  # a real metric (truthful_bp) still misses its limit
+    fails = [i["id"] for i in r_on["items"] if i["status"] == "fail" and i["section"] == "packs"]
+    assert fails == ["pack:finance_harm_refusal", "pack:ragas_rag_triad", "pack:truthfulqa_vi"]
+
+
+def test_not_applicable_packs_give_questions_and_no_fail(adapters: Adapters) -> None:
+    """Fake pack engine: every pack is ok, three are structured 'not applicable' skips. The
+    verdict has no fail item, so it is QUESTIONS (not NO-GO)."""
+    from tests.onboard.test_predeploy import fake_target, result
+
+    na = {
+        "owasp_agentic_redteam": ("no red-team case is written for agent 'x'", "supply cases"),
+        "indirect_injection_vi": ("target has no registered tools", "supply manifest tools"),
+        "pin_hash_check": ("no hashed lock file", "add hashes to requirements.txt (pip hash)"),
+    }
+
+    def executor(packs: Any, target: Any, ctx: Any, run_id: str, clock: Any) -> list[Any]:
+        out = []
+        for p in packs:
+            r = result(p.id, "ok")
+            if p.id in na:
+                r.status = "skip"
+                r.reasons = [f"not_applicable: {na[p.id][0]}"]
+                r.details = {"reason": f"not_applicable: {na[p.id][0]}", "action": na[p.id][1]}
+            out.append(r)
+        return out
+
+    n = take_in_tree(adapters)
+    rep = service(adapters, executor=executor, target_factory=fake_target).start(
+        NODE, n, "reviewer.an", background=False
+    )
+    packs = packs_of(rep)
+    for pid, (what, action) in na.items():
+        item = packs[f"pack:{pid}"]
+        assert item["status"] == "question"
+        want = f"pack {pid} cannot run on this target: {what}; {action} or accept the gap"
+        assert item["text"] == want
+    assert not [i for i in rep["items"] if i["status"] == "fail"]
+    assert rep["verdict"] == "questions"
 
 
 def test_the_default_turn_cap_stops_a_pack_with_an_error_item(adapters: Adapters) -> None:
-    packs = packs_of(run(adapters, service(adapters)))  # the settings cap is 50 turns per pack
+    adapters.settings.predeploy_http_max_turns = 50
+    packs = packs_of(run(adapters, service(adapters)))
     item = packs["pack:perturbation_vi"]
     assert item["status"] == "fail" and "TurnLimitError" in item["text"]
     assert "turn cap 50 reached" in item["text"]

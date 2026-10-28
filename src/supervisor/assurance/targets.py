@@ -426,11 +426,60 @@ class DemoAgentTarget:
 # --------------------------------------------------------------------------- repo agent
 
 
+MANIFEST_NAME = "supervisor.manifest.yaml"
+MAX_TOOLS = 100
+
+
+def read_declared_tools(repo_dir: Path) -> list[dict[str, Any]] | None:
+    """Tools declared in ``supervisor.manifest.yaml`` (root or one folder down), under ``agent:``
+    or at the top level. ``None`` when there is no such manifest with an ``agent`` section or a
+    ``tools`` key; ``[]`` when it declares no tools. Each tool keeps name, risk class, a cut
+    description and the argument types (WP-O3b)."""
+    import yaml
+
+    try:
+        folders = [repo_dir, *sorted(p for p in repo_dir.iterdir() if p.is_dir())]
+    except OSError:
+        return None
+    for folder in folders:
+        path = folder / MANIFEST_NAME
+        try:
+            if not path.is_file() or path.stat().st_size > 256 * 1024:
+                continue
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001, S112 - an unreadable manifest is not a manifest
+            continue
+        if not isinstance(doc, Mapping):
+            continue
+        agent = doc.get("agent")
+        raw = agent.get("tools") if isinstance(agent, Mapping) else None
+        if raw is None:
+            raw = doc.get("tools")
+        if raw is None and not isinstance(agent, Mapping):
+            continue
+        out: list[dict[str, Any]] = []
+        for t in raw if isinstance(raw, list) else []:
+            if not isinstance(t, Mapping) or not isinstance(t.get("name"), str):
+                continue
+            tool: dict[str, Any] = {
+                "name": t["name"][:64],
+                "risk_class": str(t.get("risk_class") or "")[:32],
+                "description": str(t.get("description") or "")[:500],
+                "args": dict(t["args"]) if isinstance(t.get("args"), Mapping) else {},
+            }
+            out.append(tool)
+            if len(out) >= MAX_TOOLS:
+                break
+        return out
+    return None
+
+
 class RepoAgentTarget:
     """An onboarded agent known only by its repository (read offline, nothing runs)."""
 
     kind: Literal["agent"] = "agent"
     is_mock = False
+    tree_target = True  # WP-O3b: only the stored tree is known (no registry, no baseline)
 
     def __init__(self, agent_id: str, repo_dir: str | Path) -> None:
         self.agent_id = agent_id
@@ -439,11 +488,16 @@ class RepoAgentTarget:
         if not self.repo_dir.is_dir():
             raise TargetError(f"repo folder not found: {self.repo_dir}")
         self._manifest = self._read_manifest()
+        self._declared_tools = (
+            read_declared_tools(self.repo_dir) if self._manifest is None else None
+        )
         caps = set()
         if self.dependency_files():
             caps.add("deps")
         if self._manifest is not None:
             caps |= {"models", "tool_manifest"}
+        elif self._declared_tools is not None:
+            caps.add("tool_manifest")  # WP-O3b: tools from supervisor.manifest.yaml
         self.capabilities: frozenset[str] = frozenset(caps)
 
     def _read_manifest(self) -> Any:
@@ -492,6 +546,14 @@ class RepoAgentTarget:
 
     def tool_manifest(self) -> Mapping[str, Any]:
         m = self._manifest
+        if m is None and self._declared_tools is not None:
+            # registered is None: a stored tree cannot say which tools are registered at run time
+            return {
+                "tools": [dict(t) for t in self._declared_tools],
+                "declared_hash": "",
+                "registered": None,
+                "mcp_servers": [],
+            }
         if m is None:
             return {"tools": [], "declared_hash": "", "registered": [], "mcp_servers": []}
         return {
@@ -732,6 +794,10 @@ class HttpAgentTarget:
 
     kind: Literal["agent"] = "agent"
     is_mock = False
+    tree_target = True
+    # a chat endpoint can never replay planned calls, inject a tool result or decide credit:
+    # the packs that need these are "not applicable" (a question in the pre-deploy report)
+    not_applicable_capabilities = frozenset({"planned", "tools", "decide"})
 
     def __init__(
         self,

@@ -717,7 +717,7 @@ class Settings(BaseSettings):
     predeploy_http_target: bool = False
     predeploy_http_allowed_hosts: str = ""
     predeploy_http_timeout_s: int = Field(default=30, ge=1, le=120)
-    predeploy_http_max_turns: int = Field(default=50, ge=1, le=500)
+    predeploy_http_max_turns: int = Field(default=300, ge=1, le=500)
     predeploy_http_budget_s: int = Field(default=600, ge=10, le=3600)
     # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
