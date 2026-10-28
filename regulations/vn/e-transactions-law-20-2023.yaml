@@ -39,7 +39,7 @@ instrument:
     kind: secondary
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: 'Full text read from vbpl.vn (documentContent). vbpl status is ''Hết hiệu lực một phần'' (partially
     expired); the articles used here were checked in the text. caselaw.vn lists amendments dated 2025-03-01
     and 2025-07-01 (secondary, not analysed). Implementing decrees: Decree 23/2025/ND-CP (e-signatures

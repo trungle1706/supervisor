@@ -54,7 +54,7 @@ instrument:
     kind: primary
   verification: ASSUMED
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: 'STATUS IS ASSUMED. Facts verified: the decree guides the 2018 Cybersecurity Law; that law ceased
     on 2026-07-01 (Law 116/2025 Art. 44(2)); Decree 333/2026/NĐ-CP (19 Aug 2026) guides the new law, covers
     the same subjects (storage Art. 19-20, incident response Art. 9, appraisal and assessment) and Art.

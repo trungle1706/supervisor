@@ -85,9 +85,15 @@ instrument:
     title: Cuc Tin hoc hoa (div.gov.vn) - contents of Decision 2345 now set in Circular 50/2024
     fetched_at: '2026-10-15'
     kind: secondary
+  - url: https://vbpl.vn/van-ban/chi-tiet/87be55a0-4f72-11f1-8f9f-d3df737f6a54
+    title: Consolidated text 25/VBHN-NHNN of Circular 50/2024 as amended by Circular 77/2025 (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: b59aa73275e7ce01d233800b22f0d46271415e0fc3b495d9daa10acee6fc6ea1
+    local_path: regulations/sources/VN-TT50-2024/vbhn-25-nhnn-consolidated.txt
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: 'Issue date 2024-10-31, effective 2025-01-01 verified in the text (Art. 22). vbpl.vn status on
     2026-10-15: ''Het hieu luc mot phan''. Verified amendment: Circular 77/2025/TT-NHNN (signed 2025-12-31,
     effective 2026-03-01, with later start dates in its Art. 12(2)-(3)); it adds mobile-money, replaces

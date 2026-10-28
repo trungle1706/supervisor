@@ -50,7 +50,7 @@ instrument:
     local_path: regulations/sources/VN-CPL-2023/decree-55-2024-nd-cp.txt
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: 'Full texts of the Law and of Decree 55/2024/ND-CP read from vbpl.vn (documentContent) and stored
     under regulations/sources/VN-CPL-2023/. Both show status in force. Decree 55 is recorded here through
     obligation-level sources (Arts 6, 7, 22, 23) and has no file of its own. The Law has one AI mention:

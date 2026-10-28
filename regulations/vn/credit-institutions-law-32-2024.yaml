@@ -46,7 +46,7 @@ instrument:
     kind: secondary
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: 'Original text of Law 32/2024/QH15 stored (copied from the tcb-reggraph vbpl fetch of 2026-10-08,
     text re-extracted from doc.json). vbpl marks the law ''Het hieu luc mot phan'' because Law 96/2025/QH15
     amended it (effective 2025-10-15 per secondary source). Primary Circular 77/2025/TT-NHNN and Circular

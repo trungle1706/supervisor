@@ -1,0 +1,198 @@
+schema_version: 1
+instrument:
+  id: VN-DEC69-2024
+  jurisdiction: VN
+  kind: decree
+  issuer: Government
+  number: 69/2024/NĐ-CP
+  title_vi: Nghị định quy định về định danh và xác thực điện tử
+  title_en: Decree on electronic identification and authentication (with amending Decree 320/2026)
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2024-06-25'
+      source: https://vbpl.vn/van-ban/chi-tiet/168331
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2024-07-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/168331
+      verification: VERIFIED_PRIMARY
+      note: Art. 40(1)
+    milestones:
+    - label: Amending Decree 320/2026/NĐ-CP effective (signed 2026-08-13)
+      date: '2026-09-28'
+      source: https://vbpl.vn/van-ban/chi-tiet/19dd5960-c523-11f1-b549-d3805f560b42
+      verification: VERIFIED_PRIMARY
+      note: Art. 20(3) of Decree 320/2026
+  related:
+  - VN-TT50-2024
+  - VN-TT15-2024
+  - VN-ETX-2023
+  sources:
+  - &id001
+    url: https://vbpl.vn/van-ban/chi-tiet/168331
+    title: Decree 69/2024/ND-CP full text (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: f6417fc832888b7608963b14d5a6fba562261a871eff7ea87adc45c9ff97e126
+    local_path: regulations/sources/VN-DEC69-2024/nd-69-2024.txt
+  - &id004
+    url: https://vbpl.vn/van-ban/chi-tiet/19dd5960-c523-11f1-b549-d3805f560b42
+    title: Decree 320/2026/ND-CP amending Decree 69/2024 (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: 1dc627a324ba6d01ca219f5f6e059b5e312455f80ea61e87943e60823a205ef4
+    local_path: regulations/sources/VN-DEC69-2024/nd-320-2026-amending.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-28'
+  notes: 'Added by WP-W0 on 2026-10-28. Sets electronic identity accounts and authentication levels (Art.
+    20: level 4 needs a biometric factor, a possession factor and a knowledge factor). Banks use it for
+    e-KYC and transaction authentication in front of an AI agent. Decree 320/2026 adds Art. 40(9): bank
+    electronic transaction accounts must be linked to electronic identity accounts. Not covered as rows:
+    Art. 20-21 (authentication levels and methods), Art. 22-26 (provider licences), Art. 33. Not legal
+    advice; bank counsel must confirm.'
+obligations:
+- id: VN-DEC69-2024-A19.03-01
+  article_ref: Art. 19(3)
+  text_vi: 3. Tổ chức, cá nhân không thuộc khoản 2 Điều này được yêu cầu xác thực điện tử thông qua dịch
+    vụ của tổ chức cung cấp dịch vụ xác thực điện tử; việc thực hiện xác thực điện tử đối với danh tính
+    điện tử, tài khoản định danh điện tử theo yêu cầu của tổ chức, cá nhân quy định tại khoản này phải
+    được sự đồng ý của chủ thể danh tính điện tử thông qua việc xác nhận trên Ứng dụng định danh quốc
+    gia, tin nhắn SMS qua số điện thoại chính chủ hoặc các hình thức xác nhận khác theo quy định.
+  summary_en: A bank or customer that asks for electronic authentication uses an authentication service
+    provider; the owner of the electronic identity must agree, by confirming in the national ID app, by
+    SMS to the registered phone or other permitted means.
+  duties:
+  - consent
+  - transaction_authentication
+  - lawful_basis
+  applies_to: &id002
+    agent_class:
+    - customer_facing
+    - payment
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records agent actions. Missing: the authentication and the owner consent step; it runs in the
+      bank channel.'
+  - kind: process
+    id: consent_management
+    coverage: partial
+    note: 'Manual step: the bank channel gets the electronic identity owner consent through an allowed
+      method before it checks the identity.'
+  evidence_needed:
+  - consent confirmation per authentication
+  verification: VERIFIED_PRIMARY
+  sources: &id003
+  - *id001
+  confidence: high
+  notes: Effective 2024-07-01 (Art. 40(1)). Read for e-KYC steps in front of an AI agent.
+- id: VN-DEC69-2024-A19.04-01
+  article_ref: Art. 19(4)
+  text_vi: 4. Tổ chức, cá nhân không được cung cấp, chia sẻ kết quả xác thực điện tử cho tổ chức, cá nhân
+    khác, trừ trường hợp pháp luật về bảo vệ dữ liệu cá nhân có quy định khác; kết quả xác thực điện tử
+    không có giá trị để trở thành yếu tố xác thực trong các giao dịch khác.
+  summary_en: The result of an electronic authentication must not be shared with others (except as personal
+    data law allows) and has no value as an authentication factor in other transactions.
+  duties:
+  - purpose_limitation
+  - customer_confidentiality
+  - transaction_authentication
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: 'Logs outbound calls so a share of an authentication result with a model host is visible. Missing:
+      a block on sharing it.'
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks identity fields. Missing: rule on authentication results.'
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank rule says that an authentication result is not passed to an AI vendor
+      and is not reused as a factor.'
+  evidence_needed:
+  - internal rule on authentication results
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-DEC69-2024-A32-01
+  article_ref: Art. 32
+  text_vi: Điều 32. Trách nhiệm của bên sử dụng dịch vụ xác thực điện tử 1. Tuân thủ quy chuẩn kỹ thuật
+    về định danh và xác thực điện tử. 2. Quản lý, bảo mật thông tin tài khoản định danh điện tử, bảo đảm
+    sử dụng tài khoản định danh điện tử an toàn. 3. Chịu trách nhiệm về các giao dịch đã thực hiện và
+    quy định của các bên có liên quan đối với các giao dịch điện tử.
+  summary_en: A user of the electronic authentication service follows the technical standard, manages
+    and protects the electronic identity account information and is responsible for the transactions done.
+  duties:
+  - transaction_authentication
+  - access_control
+  - governance_accountability
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Shows which agent made which transaction. Missing: protection of the electronic identity data
+      and compliance with the technical standard.'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank complies with the electronic identification technical standard and protects
+      the account data.'
+  evidence_needed:
+  - compliance record with the electronic identification technical standard
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-DEC69-2024-A40.09-01
+  article_ref: Art. 40(9) (added by Decree 320/2026)
+  text_vi: 9. Tài khoản giao dịch điện tử theo Luật Giao dịch điện tử trên các nền tảng số phục vụ hoạt
+    động thuộc lĩnh vực giáo dục, bình dân học vụ số, chứng khoán, viễn thông, ngân hàng, thương mại điện
+    tử (người bán, người livestream bán hàng và người tiếp thị liên kết theo quy định của Luật Thương
+    mại điện tử), hóa đơn điện tử, kinh doanh vận tải, kinh doanh du lịch, kinh doanh dược, khám bệnh,
+    chữa bệnh, mạng xã hội tại Việt Nam phải được liên kết, xác thực với tài khoản định danh điện tử.
+    Các tài khoản giao dịch điện tử trên các nền tảng số phục vụ hoạt động quốc phòng, an ninh, dịch vụ
+    xuyên biên giới thực hiện liên kết, xác thực với tài khoản định danh điện tử trước khi sử dụng khi
+    các nền tảng số đáp ứng đủ điều kiện và được kết nối với nền tảng định danh và xác thực điện tử.
+  summary_en: Electronic transaction accounts on digital platforms for banking (among other fields) must
+    be linked and authenticated with the electronic identity account.
+  duties:
+  - transaction_authentication
+  - lawful_basis
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: 'Registry lists agents and their channels. Missing: the check that the customer account behind
+      a channel is linked to an electronic identity account.'
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: 'Manual step: the bank links each customer electronic transaction account to an electronic identity
+      account before an AI agent can act on it.'
+  evidence_needed:
+  - proof of linkage between customer accounts and electronic identity accounts
+  verification: VERIFIED_PRIMARY
+  sources:
+  - *id004
+  confidence: high
+  notes: Decree 320/2026/NĐ-CP is signed 2026-08-13 and effective 2026-09-28 (Art. 20(3)). This pass did
+    not read Art. 20 in full for a transition period; bank counsel must confirm.
+  dates:
+    effective:
+      date: '2026-09-28'
+      source: https://vbpl.vn/van-ban/chi-tiet/19dd5960-c523-11f1-b549-d3805f560b42
+      verification: VERIFIED_PRIMARY
+      note: Art. 20(3) of Decree 320/2026

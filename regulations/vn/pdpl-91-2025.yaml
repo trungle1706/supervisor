@@ -61,7 +61,7 @@ instrument:
       kind: secondary
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: "2026-10-15"
+  last_checked: "2026-10-28"
   notes: >-
     Text read from the vbpl.vn gateway (body_content.html, record id 179252). The HTML is partly scrambled:
     some article headings are missing or out of order (for example the heading "Điều 9" appears as "9." and

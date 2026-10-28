@@ -55,7 +55,7 @@ instrument:
     kind: secondary
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: 'Full Vietnamese text read from the vbpl.vn gateway copy (also a PDF and DOCX stored). Detailed
     rules: Decree 142/2026/ND-CP (VN-DEC142-2026), Decision 33/2026/QD-TTg (VN-QD33-2026), SBV Circular
     53/2026/TT-NHNN (VN-TT53-2026). The Law has no fine amounts: Art. 29(1) only says administrative or

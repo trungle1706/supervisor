@@ -323,6 +323,7 @@
               "oversight_metric",
               "policy_baseline",
               "predeploy_report",
+              "risk_dimension_status",
               "risk_register",
               "signoff_record",
               "task_record",

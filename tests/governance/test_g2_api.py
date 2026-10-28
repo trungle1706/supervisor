@@ -47,7 +47,24 @@ def test_create_runs_the_rules_and_the_routes_show_them(on: Console) -> None:
         ],
     }
     obl = req(on, "GET", f"/v1/systems/{sid}/obligations").json()
-    assert obl["count"] == 35 + 53 and {o["source"] for o in obl["obligations"]} == {"rule"}
+    # every obligation of the instruments the rules fire for (the counts grow with RegKB)
+    import yaml as _yaml
+
+    ids = {str(o["obligation"]) for o in obl["obligations"]}
+    seen = set()
+    expected = 0
+    for f in sorted(
+        (__import__("pathlib").Path(__file__).resolve().parents[2] / "regulations" / "vn").glob(
+            "*.yaml"
+        )
+    ):
+        doc = _yaml.safe_load(f.read_text(encoding="utf-8"))
+        rows = {str(r["id"]) for r in doc["obligations"]}
+        if rows & ids:
+            seen.add(doc["instrument"]["id"])
+            expected += len(rows)
+    assert len(seen) == 2
+    assert obl["count"] == expected >= 88 and {o["source"] for o in obl["obligations"]} == {"rule"}
     text = req(on, "GET", f"/v1/systems/{sid}/rules/explain").json()["lines"]
     assert any("AR-C53-MONEY: FIRED" in ln for ln in text) and all(ln.isascii() for ln in text)
 

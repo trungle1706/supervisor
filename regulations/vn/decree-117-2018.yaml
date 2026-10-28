@@ -32,7 +32,7 @@ instrument:
     local_path: regulations/sources/VN-DEC117-2018/nd-117-2018.txt
   verification: VERIFIED_PRIMARY
   primary_text_fetched: true
-  last_checked: '2026-10-15'
+  last_checked: '2026-10-28'
   notes: 'vbpl.vn status on 2026-10-15 is ''Con hieu luc'' (in force). The Decree was written under the
     2010 Law on Credit Institutions (amended 2017); the 2024 Law (32/2024/QH15, in force since 2024-07-01)
     keeps the same delegation in Art. 13(2): confidentiality ''as the Government prescribes''. A vbpl
