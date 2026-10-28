@@ -216,7 +216,7 @@ def test_event_detail_is_masked_and_cut(fs: FactoryStore) -> None:
     ev = fs.record_event("m7", "0.1", "saved", "reviewer.an", "call 0912345678 " + "x" * 400)
     assert "0912345678" not in ev["detail"] and len(ev["detail"]) <= 300
     with pytest.raises(FactoryError, match="bad_event"):
-        fs.record_event("m7", "0.1", "approved", "reviewer.an", "x")
+        fs.record_event("m7", "0.1", "bogus", "reviewer.an", "x")  # F3 added approved
 
 
 def test_permits() -> None:

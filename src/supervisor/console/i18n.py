@@ -4851,3 +4851,6 @@ _T.update(_PF)
 from supervisor.console.i18n_register3 import RG3 as _RG3  # noqa: E402  (WP-C3, prefix rg3_)
 
 _T.update(_RG3)
+from supervisor.console.i18n_factory_gate import FG as _FG  # noqa: E402  (WP-F3, prefix fg_)
+
+_T.update(_FG)

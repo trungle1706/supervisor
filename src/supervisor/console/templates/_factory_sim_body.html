@@ -1,0 +1,33 @@
+{# Body of the simulation review (WP-F3): systems, findings, evidence, marks. #}
+{% import "_ui.html" as ui with context %}
+{% set aid = agent.id %}
+<p class="idline" data-sim-counts="1">
+  {% for m, n in sim.counts.items() %}<span class="pill" data-count="{{ m }}" data-n="{{ n }}">{{ m }} {{ n }}</span> {% endfor %}
+  <span class="pill warn" data-unmarked="{{ sim.unmarked }}">{{ t('fg_unmarked') }} {{ sim.unmarked }}</span>
+  <span class="mono" data-report-sha="1">{{ sim.report_sha256[:16] }}</span>
+</p>
+{% for s in sim.systems %}
+<section class="card" data-system="{{ s.name }}">
+  <h3>{{ s.system_id }}{% if s.error %} {{ ui.pill(s.error, 'bad', True) }}{% endif %}</h3>
+  {% for f in s.findings %}
+  <article class="card flat" data-finding="{{ f.finding_id }}" data-verdict="{{ f.verdict }}" data-mark="{{ f.mark.get('mark', '') }}">
+    <p><b class="mono">{{ f.checklist_id }}</b> {{ ui.pill(f.verdict, {'pass': 'ok', 'fail': 'bad'}.get(f.verdict, 'neutral'), True) }} <span class="k">{{ f.confidence }}</span></p>
+    <p class="wrap" data-rationale="1">{{ f.rationale }}</p>
+    <ul data-evidence="1">
+    {% for e in f.evidence %}<li data-evidence-ref="{{ e.ref }}"><span class="pill mono">{{ e.kind }}</span> <span class="mono">{{ e.ref }}{% if e.file %} {{ e.file }}{% if e.line %}:{{ e.line }}{% endif %}{% endif %}</span><br><span class="wrap" lang="vi">{{ e.text }}</span></li>
+    {% else %}<li class="hint">{{ t('fg_no_evidence') }}</li>{% endfor %}
+    </ul>
+    {% if f.mark %}<p class="hint" data-mark-note="1">{{ f.mark.mark }}{% if f.mark.correct_verdict %} -> {{ f.mark.correct_verdict }}{% endif %} ({{ f.mark.by }}): {{ f.mark.note }}</p>{% endif %}
+    {% if can_mark %}
+    <form hx-post="/console/factory/{{ aid }}/simulation/{{ sim.run.run_id }}/mark" hx-target="#sim-review" hx-swap="innerHTML" method="post" class="btnrow">
+      <input type="hidden" name="system" value="{{ s.name }}"><input type="hidden" name="finding_id" value="{{ f.finding_id }}">
+      <select name="mark" data-field="mark"><option value="agree">agree</option><option value="disagree">disagree</option><option value="unsure">unsure</option></select>
+      <select name="correct_verdict" data-field="correct_verdict"><option value="">-</option>{% for v in verdicts %}<option value="{{ v }}">{{ v }}</option>{% endfor %}</select>
+      <input name="note" data-field="note" maxlength="300" placeholder="{{ t('fg_note') }}">
+      <button class="btn" data-act="mark">{{ t('fg_mark') }}</button>
+    </form>
+    {% endif %}
+  </article>
+  {% endfor %}
+</section>
+{% endfor %}

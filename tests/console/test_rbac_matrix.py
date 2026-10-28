@@ -356,6 +356,8 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "regkb.confirm",  # WP-L1: tests/console/test_regkb_drafts.py (two audit rows)
         "regkb.upload",  # WP-W3: tests/console/test_regkb_internal.py (two audit rows)
         "factory.edit",  # WP-F2: tests/console/test_f2_factory.py (two audit rows per POST)
+        "factory.approve",  # WP-F3: tests/console/test_f3_gate.py (two audit rows per POST)
+        "factory.rollback",  # WP-F3: tests/console/test_f3_gate.py (two audit rows)
         "transparency.generate",  # WP31: tests/console/test_transparency.py
         "systems.edit",  # WP-G0: tests/governance/test_console.py (two audit rows)
         "incidents.transition",  # WP-G5: tests/governance/test_g5_api.py (two audit rows)

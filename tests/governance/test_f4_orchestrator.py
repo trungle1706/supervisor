@@ -551,7 +551,8 @@ def test_definition_approval_point_stops(orchon: Console) -> None:
             "harness": {"hitl": {"approval_points": [{"kind": "verdict", "ref": "pass"}]}},
         },
     )
-    run = orch.run(c.ctx, sid, 1, catalog=Cat({"model": live}))
+    # a partial definition is no real agent: the rule runner builds the report (F3 needs a full one)
+    run = orch.run(c.ctx, sid, 1, catalog=Cat({"model": live}), runner=orch.RuleRunner())
     it = _items(run)["model"]
     assert it["agent"] == "model-checker@1" and it["status"] == "needs_person"
     assert it["stop_point"] == "approval_point:pass"

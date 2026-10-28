@@ -52,7 +52,10 @@
       <dt>{{ t('fa_f_group') }}</dt><dd>{{ c.owner_label }}</dd>
       <dt>{{ t('fa_checklist_size') }}</dt><dd data-checklist-size="{{ c.checklist_size }}">{{ c.checklist_size }}</dd>
       <dt>{{ t('fa_golden_size') }}</dt><dd data-golden-size="{{ c.golden_size }}">{{ c.golden_size }}</dd>
-      <dt>{{ t('fa_last_gate') }}</dt><dd data-last-gate="none"><span class="muted">-</span> <span class="hint">{{ t('fa_gate_later') }}</span></dd>
+      <dt>{{ t('fa_last_gate') }}</dt>
+      {% if c.last_gate %}<dd data-last-gate="{{ c.last_gate.verdict }}" data-gate-kind="{{ c.last_gate.kind }}">{{ ui.pill(c.last_gate.verdict, {'pass': 'ok', 'fail': 'bad'}.get(c.last_gate.verdict, 'neutral'), True) }} <span class="k">{{ c.last_gate.kind }} v{{ c.last_gate.version }}</span> <span class="hint">L1 {{ c.last_gate.layer1_percent }} %{% if c.last_gate.kappa is not none %}, kappa {{ c.last_gate.kappa }}{% endif %}</span></dd>
+      {% else %}<dd data-last-gate="none"><span class="muted">-</span> <span class="hint">{{ t('fa_gate_later') }}</span></dd>{% endif %}
+      {% if c.live_version %}<dt>{{ t('fg_live_version') }}</dt><dd data-live-version="{{ c.live_version }}">{{ ui.pill('v' ~ c.live_version, 'ok', True) }}</dd>{% endif %}
     </dl>
   </article>
 {% else %}

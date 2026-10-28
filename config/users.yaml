@@ -49,3 +49,18 @@ users:
   lending-lead@example.invalid:
     name: "Consumer Lending lead (owner)"
     roles: [owner]
+  # Agent factory leads (WP-F3). `groups:` is optional. With it the user belongs to exactly those
+  # factory groups (config/factory_groups.yaml) whatever the role mapping says; without it the
+  # role mapping applies. `platform` is the second line for the approval of a high-tier agent.
+  lead.model:
+    name: "Bùi Quang Minh"
+    roles: [approver]
+    groups: [model_risk]
+  lead.cyber:
+    name: "Ngô Thị Lan"
+    roles: [approver]
+    groups: [cyber]
+  second.line:
+    name: "Đỗ Văn Sơn"
+    roles: [approver]
+    groups: [platform]

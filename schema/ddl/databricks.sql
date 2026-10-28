@@ -1726,10 +1726,35 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_bench_run` (
   result_json STRING NOT NULL,
   gate STRING NOT NULL,
   failing_threshold STRING,
-  created_by STRING NOT NULL,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )
 USING DELTA
 COMMENT 'WP-G2. One row per benchmark run of a guardian definition (docs/guardian-factory.md, section Benchmark). The run is a background job: queued, running, then done or failed. result_json holds integers only (counts per sensitivity level, true and false positive rate in integer percent, p50 and p95 latency in microseconds, token cost, the live detector row, the gate); it holds no case text and no personal data. gate is pass, fail or not_run; failing_threshold names the thresholds that failed (min_tpr_pct, max_fpr_pct, max_p95_ms, comma separated). def_sha256 is the hash of the definition without its lifecycle: a pass counts for a transition to benchmarked only for the same version and the same hash. Each finished run also goes on the chain as guardian_bench.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- gate_run (state): WP-F3 (phase 12B, AGENT_FACTORY_GATE). One run of the test gate for one version of a factory agent. kind: full (layers 1, 2 and 3; the only kind that can lead to state tested), sample (layers 1 and 2 on a small batch; never promotes), simulation (the draft on chosen systems of the inventory, assessed by a person in a review screen; never promotes) or shadow (layer 3 only). status: queued, running, done or failed (the run itself broke). verdict: pass, fail or not_run. layer1_json is the deterministic layer (checks and the harness component tests), layer2_json the guideline judges with the calibration (Cohen's kappa in hundredths, the confusion matrix, the paired comparison with the live version), layer3_json the shadow run (agreement counts). cost_json holds integers (model calls, estimated tokens, seconds). report_sha256 and signature belong to the signed JSON report on disk under DATA_DIR/factory/<agent>/gate/<run_id>/ (evidence signer). Integers only: no floats, no personal data, no text of a document.
+-- primary key (enforced by the app, not by Delta): run_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`gate_run` (
+  run_id STRING NOT NULL,
+  agent_id STRING NOT NULL,
+  version STRING NOT NULL,
+  kind STRING NOT NULL,
+  status STRING NOT NULL,
+  started_at TIMESTAMP NOT NULL,
+  finished_at TIMESTAMP,
+  layer1_json STRING NOT NULL,
+  layer2_json STRING NOT NULL,
+  layer3_json STRING NOT NULL,
+  cost_json STRING NOT NULL,
+  verdict STRING NOT NULL,
+  report_sha256 STRING,
+  signature STRING,
+  definition_sha256 STRING NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-F3 (phase 12B, AGENT_FACTORY_GATE). One run of the test gate for one version of a factory agent. kind: full (layers 1, 2 and 3; the only kind that can lead to state tested), sample (layers 1 and 2 on a small batch; never promotes), simulation (the draft on chosen systems of the inventory, assessed by a person in a review screen; never promotes) or shadow (layer 3 only). status: queued, running, done or failed (the run itself broke). verdict: pass, fail or not_run. layer1_json is the deterministic layer (checks and the harness component tests), layer2_json the guideline judges with the calibration (Cohen''s kappa in hundredths, the confusion matrix, the paired comparison with the live version), layer3_json the shadow run (agreement counts). cost_json holds integers (model calls, estimated tokens, seconds). report_sha256 and signature belong to the signed JSON report on disk under DATA_DIR/factory/<agent>/gate/<run_id>/ (evidence signer). Integers only: no floats, no personal data, no text of a document.'
 TBLPROPERTIES ('supervisor.kind' = 'state');

@@ -581,6 +581,8 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `transparency.view` | Transparency page, Agent tab and GET /v1/transparency (WP31) | x | x | x | x | x | x | x |
 | `transparency.generate` | Build and sign a transparency report (WP31) |  | x |  |  | x |  |  |
 | `factory.edit` | Agent factory: create and edit draft agents of your group, run helper agents (WP-F2) |  | x | x |  | x |  |  |
+| `factory.approve` | Agent factory: approve, reject or set live a tested agent version (WP-F3) |  |  | x |  | x |  |  |
+| `factory.rollback` | Agent factory: set the previous version of an agent live again, with a reason (WP-F3) |  |  |  |  | x |  |  |
 | `systems.view` | Systems pages and GET /v1/systems: AI systems in your scope (WP-G0) | x | x | x | x | x | x | x |
 | `systems.edit` | Register and change AI systems, their team and their links (WP-G0) |  | x |  | x | x |  |  |
 | `systems.approve` | Answer a stage approval of an AI system (WP-G1) |  | x | x | x | x |  |  |

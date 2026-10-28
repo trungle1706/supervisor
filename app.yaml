@@ -211,6 +211,9 @@ env:
   # Needs CONSOLE_OVERVIEW_V4 and GOVERNANCE_ENABLED; a block needs CLASSIFICATION_V2 or
   # RISK_DIMENSIONS for data. Off by default (docs/console.md "Portfolio blocks (WP-C4)").
   # - name: OVERVIEW_PORTFOLIO
+  # Phase 12B WP-F3: the agent test gate and promotion (needs AGENT_FACTORY and LLM_BASE_URL).
+  # Off by default (docs/factory.md "Test gate", "Promotion").
+  # - name: AGENT_FACTORY_GATE
   #   value: "1"
   # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
   # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.

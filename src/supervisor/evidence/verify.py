@@ -69,7 +69,11 @@ ALGORITHM = "ed25519"
 # WP-L4: signed JSON documents (kind -> signing prefix). The hash is the canonical SHA-256 of the
 # document without ``content_sha256`` and ``signature``.
 PACK_SIGNING_PREFIX = b"supervisor-regulator-pack/v1 "
-SIGNED_DOC_PREFIXES = {"supervisor.regulator_pack": PACK_SIGNING_PREFIX}
+GATE_REPORT_SIGNING_PREFIX = b"supervisor-factory-gate/v1 "  # WP-F3: the agent test gate report
+SIGNED_DOC_PREFIXES = {
+    "supervisor.regulator_pack": PACK_SIGNING_PREFIX,
+    "supervisor.factory_gate_report": GATE_REPORT_SIGNING_PREFIX,
+}
 EXPORT_FORMAT = "supervisor-evidence-export"
 ANCHOR_FORMAT = "supervisor-evidence-anchor"
 ENTRY_HASH_FIELDS = (

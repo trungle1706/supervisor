@@ -113,3 +113,29 @@ def estimate_tokens(text: str) -> int:
     """Deterministic token estimate: UTF-8 bytes divided by 4, rounded up (conservative for
     Vietnamese, which has more bytes per token than English)."""
     return (len(text.encode("utf-8")) + 3) // 4
+
+
+# ------------------------------------------------------------------ test gate and promotion (WP-F3)
+GATE_KINDS = ("full", "sample", "simulation", "shadow")
+GATE_STATUSES = ("queued", "running", "done", "failed")
+GATE_VERDICTS = ("pass", "fail", "not_run")
+GOLDEN_MIN_CASES = 50  # a full gate needs at least this many cases, every checklist item covered
+GOLDEN_MAX_CASES = 2000
+SAMPLE_DEFAULT = 10
+SAMPLE_MAX = 25
+SHADOW_DEFAULT = 10
+SHADOW_MAX = 25
+CALIBRATION_MIN_LABELS = 20  # fewer labelled findings: the kappa is "too small", the gate fails
+CALIBRATION_KAPPA_FLOOR = 70  # platform floor, Cohen's kappa in hundredths (70 = 0.70)
+MAX_REGRESSION_CASES = 2  # the candidate may lose at most this many cases against the live one
+# floor per tier: percent of cases whose verdict the judge says matches the expectation
+TIER_FLOOR_PERCENT = {"high": 90, "standard": 80}
+HIGH_TIER_DIMENSIONS = ("model", "cybersecurity", "legal_compliance")
+SIMULATION_MAX_SYSTEMS = 10
+NOTE_MAX = 300
+REJECT_REASON_MIN = 20
+REASON_MIN = 10
+# approvals: kinds and who may give them (see docs/factory.md "Promotion")
+APPROVAL_KINDS = ("owner_lead", "second_line")
+SECOND_LINE_GROUPS = ("platform",)
+GATE_REPORT_FORMAT = "supervisor.factory_gate_report"

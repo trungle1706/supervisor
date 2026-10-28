@@ -18,9 +18,9 @@ Public API (the orchestrator, WP-F4, reads ``live_agent_for`` and ``portfolio``;
 
 A row has the table columns plus ``definition`` (the parsed ``definition_json``). Every save
 validates the definition with ``agent_definition_v1`` and the registry. The state changes only
-through ``TRANSITIONS``: in WP-F2 a draft can be retired and nothing else; ``tested``,
-``approved`` and ``live`` belong to WP-F3, which extends the table. A version that is not a draft
-is never edited. No personal data and no float is stored; the event detail is masked.
+through ``TRANSITIONS`` (``transition``); the conditions of ``tested``, ``approved``, ``live`` and
+the rollback are in ``supervisor.factory.promotion`` (WP-F3). A version that is not a draft is never
+edited. No personal data and no float is stored; the event detail is masked.
 """
 
 from __future__ import annotations
@@ -49,13 +49,36 @@ EVENT_KINDS = (
     "helper_accepted",
     "helper_dropped",
     "golden_uploaded",
+    # WP-F3: the test gate and the promotion
+    "gate_run",
+    "tested",
+    "submitted",
+    "approval",
+    "approved",
+    "rejected",
+    "reopened",
+    "live",
+    "rolled_back",
+    "definition_changed",
 )
 MAX_DETAIL = 300
 FLAG_TEXT = "the agent factory is off (AGENT_FACTORY=1 turns it on; needs GOVERNANCE_ENABLED)"
 
-# The lifecycle rules of this WP: from state -> states it may move to. WP-F3 adds tested,
-# approved and live here (with the gate and the approvals); nothing else changes a state.
-TRANSITIONS: dict[str, tuple[str, ...]] = {"draft": ("retired",), "retired": ()}
+# The lifecycle rules: from state -> states it may move to. Nothing else changes a state. The
+# conditions of each move (passed full gate run of this exact definition, approvals, the
+# rollback by an admin) are in ``supervisor.factory.promotion``; this table is the outer wall.
+#   draft -> tested      only by a passed ``full`` gate run of this version and definition sha
+#   tested -> approved   the approvals the change needs; -> draft on reject, reopen or change
+#   approved -> live     one live version per agent id: the previous live becomes retired
+#   live -> retired      or by a rollback (the previous version becomes live again)
+#   retired -> live      only by a rollback (an admin, with a reason)
+TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "draft": ("tested", "retired"),
+    "tested": ("approved", "draft", "retired"),
+    "approved": ("live", "draft", "retired"),
+    "live": ("retired",),
+    "retired": ("live",),
+}
 
 
 class FactoryError(SupervisorError):
@@ -113,14 +136,37 @@ def validate_definition(
     return model
 
 
-def permits(roles: Iterable[str], owner_group: str, groups: registry.GroupRegistry) -> bool:
-    """Who may edit the agents of a group: ``admin`` edits all; any other role must be one of
-    the roles the group lists in ``config/factory_groups.yaml``."""
+def permits(
+    roles: Iterable[str],
+    owner_group: str,
+    groups: registry.GroupRegistry,
+    user_groups: Iterable[str] | None = None,
+) -> bool:
+    """Who may edit the agents of a group: ``admin`` edits all. A user with a ``groups:`` list in
+    ``config/users.yaml`` (``user_groups`` not empty) belongs to exactly those groups, whatever the
+    role mapping says. A user without one falls back to the role mapping: any role the group
+    lists in ``config/factory_groups.yaml``."""
     held = set(roles)
     if "admin" in held:
         return True
     group = groups.get(owner_group)
-    return group is not None and bool(held & set(group.roles))
+    if group is None:
+        return False
+    mine = set(user_groups or ())
+    if mine:
+        return owner_group in mine
+    return bool(held & set(group.roles))
+
+
+def definition_sha256(definition: Mapping[str, Any]) -> str:
+    """The identity of a definition for the gate: SHA-256 of its canonical JSON without the
+    ``lifecycle`` block (state and approvals change; the version is part of the row key)."""
+    import hashlib
+
+    body = {k: v for k, v in definition.items() if k != "lifecycle"}
+    body["lifecycle_version"] = (definition.get("lifecycle") or {}).get("version")
+    raw = json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def _version_key(version: str) -> tuple[int, ...]:
@@ -343,11 +389,26 @@ class FactoryStore:
     def _move(
         self, row: Mapping[str, Any], to: str, actor: str, kind: str, detail: str
     ) -> dict[str, Any]:
-        """The only place the state of a version changes."""
+        return self.transition(row, to, actor, kind, detail)
+
+    def transition(
+        self,
+        row: Mapping[str, Any],
+        to: str,
+        actor: str,
+        kind: str,
+        detail: str,
+        approvals: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """The only place the state of a version changes (``TRANSITIONS`` is the wall). The
+        definition is otherwise frozen: only ``lifecycle.state`` and ``lifecycle.approvals``
+        change. ``approvals`` replaces the approval list when given."""
         if to not in TRANSITIONS.get(row["state"], ()):
             raise FactoryError("bad_transition", f"a {row['state']} agent cannot become {to}")
         doc = json.loads(json.dumps(row["definition"]))
         doc["lifecycle"]["state"] = to
+        if approvals is not None:
+            doc["lifecycle"]["approvals"] = approvals
         try:
             updated = self.state.update(
                 AGENT_TABLE,
@@ -363,9 +424,34 @@ class FactoryStore:
         return self._row(updated)
 
     # ------------------------------------------------------------------ for the orchestrator
+    def add_approval(
+        self, row: Mapping[str, Any], approval: Mapping[str, Any], actor: str, detail: str
+    ) -> dict[str, Any]:
+        """Append one approval to a ``tested`` version (state unchanged, definition frozen)."""
+        doc = json.loads(json.dumps(row["definition"]))
+        doc["lifecycle"]["approvals"] = [*doc["lifecycle"].get("approvals", []), dict(approval)]
+        try:
+            updated = self.state.update(
+                AGENT_TABLE,
+                {"id": row["id"], "version": row["version"]},
+                {"definition_json": doc},
+                int(row["row_version"]),
+            )
+        except ConcurrencyError:
+            raise FactoryError(
+                "stale", "the agent was changed in another window; reload the page"
+            ) from None
+        self.record_event(row["id"], row["version"], "approval", actor, detail)
+        return self._row(updated)
+
+    def live_version(self, agent_id: str) -> dict[str, Any] | None:
+        """The live version of an agent id (at most one), or ``None``."""
+        live = [r for r in self.versions(agent_id) if r["state"] == "live"]
+        return live[-1] if live else None
+
     def live_agent_for(self, dimension_id: str) -> dict[str, Any] | None:
         """The newest ``live`` version for a dimension, or ``None`` (the orchestrator then uses
-        the rule proposal of WP-C2). WP-F2 never sets ``live``; WP-F3 does."""
+        the rule proposal of WP-C2). Only ``promotion.activate`` and ``rollback`` set ``live``."""
         rows = [
             self._row(r)
             for r in self.state.query(AGENT_TABLE, {"dimension_id": dimension_id, "state": "live"})

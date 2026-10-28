@@ -1,0 +1,62 @@
+{# One gate run in detail (WP-F3): the three layers, the calibration with the confusion matrix, cost. #}
+{% import "_ui.html" as ui with context %}
+<section class="card" data-gate-run-detail="{{ run.run_id }}">
+  <h4>{{ run.kind }} {{ run.run_id }} {{ ui.pill(run.verdict, {'pass': 'ok', 'fail': 'bad'}.get(run.verdict, 'neutral'), True) }}</h4>
+  {% if run.error %}<p class="notice" data-error="1"><span class="dot"></span>{{ run.error }}</p>{% endif %}
+  {% if run.layer1 %}
+  <h5>{{ t('fg_layer1') }} <span class="k" data-l1-percent="{{ run.layer1.percent }}">{{ run.layer1.percent }} %</span></h5>
+  <table class="queue" data-table="layer1"><tbody>
+  {% for c in run.layer1.checks %}
+    <tr data-check="{{ c.id }}" data-ok="{{ 1 if c.ok else 0 }}"><td class="mono">{{ c.id }}</td><td>{{ ui.pill('ok' if c.ok else 'fail', 'ok' if c.ok else 'bad', True) }}</td>
+      <td class="wrap">{% if c.kind == 'case' %}{{ t('fg_cases_failed', n=c.cases_failed, m=c.cases) }}{% else %}{{ c.detail }}{% endif %}</td></tr>
+  {% endfor %}
+  </tbody></table>
+  {% endif %}
+  {% if run.layer2.get('cases') is not none and run.layer2.get('match_percent') is not none %}
+  {% set l2 = run.layer2 %}
+  <h5>{{ t('fg_layer2') }}</h5>
+  <p class="idline" data-layer2="1">
+    <span class="pill" data-match="{{ l2.match_percent }}">{{ t('fg_match') }} {{ l2.match_percent }} %</span>
+    <span class="pill" data-faithful="{{ l2.faithful_percent }}">{{ t('fg_faithful') }} {{ l2.faithful_percent }} %</span>
+    <span class="pill {{ 'ok' if l2.tier_floor_ok else 'bad' }}" data-floor="{{ l2.tier_floor_percent }}">{{ t('fg_floor') }} {{ l2.tier }} {{ l2.tier_floor_percent }} %</span>
+    <span class="pill">{{ t('fg_exact') }} {{ l2.exact_verdict_matches }}/{{ l2.cases }}</span>
+    <span class="pill">{{ t('fg_judge_errors') }} {{ l2.judge_errors }}</span>
+    {% if l2.same_family %}<span class="pill warn" data-same-family="1">{{ t('fg_same_family') }}</span>{% endif %}
+  </p>
+  {% if run.cal %}
+  <h5>{{ t('fg_calibration') }}</h5>
+  <p class="idline" data-calibration="1">
+    <span class="pill {{ 'ok' if run.cal.ok else 'bad' }}" data-kappa="{{ run.cal.kappa_hundredths }}">kappa {{ run.cal.kappa_hundredths }} / 100 ({{ t('fg_floor') }} {{ run.cal.kappa_floor }})</span>
+    <span class="pill">{{ t('fg_labels_used', n=run.cal.labels_used, m=run.cal.min_labels) }}</span>
+    <span class="pill">{{ t('fg_agreement') }} {{ run.cal.agreement_percent }} %</span>
+    <span class="mono">{{ run.cal.reason }}</span>
+  </p>
+  <table class="queue" data-table="confusion">
+    <thead><tr><th scope="col">{{ t('fg_human') }} \ {{ t('fg_judge') }}</th>{% for l in run.cal.confusion.labels %}<th scope="col">{{ l }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for l in run.cal.confusion.labels %}{% set i = loop.index0 %}
+      <tr data-human="{{ l }}"><td class="mono">{{ l }}</td>{% for n in run.cal.confusion.matrix[i] %}<td data-cell="{{ run.cal.confusion.labels[loop.index0] }}">{{ n }}</td>{% endfor %}</tr>
+    {% endfor %}</tbody>
+  </table>
+  {% endif %}
+  {% if run.reg %}
+  <h5>{{ t('fg_regression') }}</h5>
+  <p class="idline" data-regression="1"><span class="pill {{ 'ok' if run.reg.ok else 'bad' }}">{{ t('fg_lost') }} {{ run.reg.lost }} / {{ run.reg.max_regression_cases }}</span> <span class="pill">{{ t('fg_gained') }} {{ run.reg.gained }}</span> <span class="mono">{{ run.reg.baseline }}</span></p>
+  {% endif %}
+  {% endif %}
+  {% if run.layer3 %}
+  {% set l3 = run.layer3 %}
+  <h5>{{ t('fg_layer3') }}</h5>
+  <p class="idline" data-layer3="1">
+    <span class="pill">{{ l3.status }}</span>
+    <span class="pill">{{ t('fg_systems') }} {{ l3.systems }}</span>
+    <span class="pill">{{ t('fg_agree_live') }} {{ l3.agree_live }}/{{ l3.systems }}</span>
+    <span class="pill {{ 'warn' if l3.new_fails else '' }}" data-new-fails="{{ l3.new_fails }}">{{ t('fg_new_fails') }} {{ l3.new_fails }}</span>
+    <span class="pill">{{ t('fg_agree_person') }} {{ l3.agree_person }}/{{ l3.compared_person }}</span>
+  </p>
+  {% endif %}
+  {% if run.layer2.get('review') %}
+  <p class="idline" data-review="1">{{ t('fg_review_counts', f=run.layer2.review.findings, m=run.layer2.review.marked) }}</p>
+  {% endif %}
+  <p class="idline mono" data-cost="1">{{ t('fg_cost') }}: {{ run.cost.get('model_calls', 0) }} calls, {{ run.cost.get('tokens_estimated', 0) }} tokens, {{ run.cost.get('seconds', 0) }} s</p>
+  <p class="idline mono" data-report="1">sha256 {{ run.report_sha256[:16] }}</p>
+</section>
