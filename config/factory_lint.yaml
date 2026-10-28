@@ -1,0 +1,20 @@
+# Instruction linter of the agent factory (WP-F2). The platform preamble stays first and locked;
+# this list adds phrases a team may not put into `instructions`. Strict keys. A change here is a
+# platform change. Phrases match case-insensitively on folded whitespace.
+version: 1
+warn_token_percent: 80      # a warning when the instructions use this share of the token cap
+forbidden_phrases:
+  - always pass
+  - always answer pass
+  - never fail
+  - skip the evidence
+  - without evidence
+  - make up evidence
+  - invent a source
+  - do not escalate
+  - never ask a person
+  - approve without review
+  - hide this from the reviewer
+  - bo qua bang chung
+  - bỏ qua bằng chứng
+  - luôn đạt

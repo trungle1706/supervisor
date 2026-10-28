@@ -1,0 +1,18 @@
+{# Editor step 7: guardians. The mandatory set is pre-checked and cannot be removed (WP-F2). #}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+<section class="card" id="factory-step-panel" data-step="guardians">
+  <h3>7. {{ t('fa_step_guardians') }}</h3>
+  <p class="hint">{{ t('fa_guardians_hint') }}</p>
+  <form hx-post="/console/factory/{{ ed.agent.id }}/step/guardians" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+    {{ fu.hid(ed) }}
+    <ul data-list="mandatory">
+    {% for g in ed.caps.MANDATORY_GUARDIANS %}
+      <li data-guardian="{{ g }}"><label><input type="checkbox" checked disabled> <span class="mono">{{ g }}</span></label> {{ ui.pill(t('fa_mandatory'), 'info') }}</li>
+    {% endfor %}
+    </ul>
+    <label>{{ t('fa_f_extra_guardians') }}
+      <input name="extra" data-field="extra" value="{{ ed.defn.guardians|reject('in', ed.caps.MANDATORY_GUARDIANS)|join(', ') }}" {{ '' if ed.editable else 'disabled' }}></label>
+    {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}
+  </form>
+</section>

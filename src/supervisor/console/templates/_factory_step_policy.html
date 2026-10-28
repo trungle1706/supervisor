@@ -1,0 +1,35 @@
+{# Editor step 2: policy references (WP-F2). #}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+<section class="card" id="factory-step-panel" data-step="policy">
+  <h3>2. {{ t('fa_step_policy') }}</h3>
+  <p class="hint">{{ t('fa_policy_hint') }}</p>
+  <table class="queue" data-table="policy_refs">
+    <thead><tr><th scope="col">{{ t('fa_f_doc') }}</th><th scope="col">{{ t('fa_f_source') }}</th><th scope="col">{{ t('fa_f_version') }}</th><th scope="col">{{ t('fa_f_sections') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for r in ed.defn.policy_refs %}
+      <tr data-policy-ref="{{ loop.index0 }}">
+        <td class="mono">{{ r.doc_id }}</td>
+        <td>{{ ui.pill(t('fa_src_' ~ r.source), 'neutral' if r.source == 'regkb' else 'info') }}</td>
+        <td>{{ r.version }}</td>
+        <td class="wrap">{{ r.sections|join('; ') }}</td>
+        <td>{% if ed.editable %}
+          <form hx-post="/console/factory/{{ ed.agent.id }}/step/policy" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+            {{ fu.hid(ed) }}<input type="hidden" name="op" value="drop"><input type="hidden" name="index" value="{{ loop.index0 }}">
+            <button class="btn" data-act="drop-ref">{{ t('fa_drop') }}</button></form>{% endif %}</td>
+      </tr>
+    {% else %}<tr><td colspan="5" class="hint">{{ t('fa_policy_none') }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  {% if ed.editable %}
+  <form hx-post="/console/factory/{{ ed.agent.id }}/step/policy" hx-target="#factory-step" hx-swap="innerHTML" method="post" class="btnrow">
+    {{ fu.hid(ed) }}<input type="hidden" name="op" value="add">
+    <label>{{ t('fa_f_source') }} <select name="source" data-field="source"><option value="regkb">{{ t('fa_src_regkb') }}</option><option value="internal">{{ t('fa_src_internal') }}</option></select></label>
+    <label>{{ t('fa_f_doc') }} <input name="doc_id" data-field="doc_id" maxlength="64" required></label>
+    <label>{{ t('fa_f_version') }} <input name="ref_version" data-field="ref_version" type="number" min="1" value="1"></label>
+    <label>{{ t('fa_f_sections') }} <input name="sections" data-field="sections" placeholder="Art.16(3); Art.16(5)"></label>
+    <button class="btn primary" data-act="add-ref">{{ t('fa_add') }}</button>
+  </form>
+  <p class="hint" data-internal-note="1">{{ t('fa_policy_internal') }}</p>
+  {% endif %}
+</section>

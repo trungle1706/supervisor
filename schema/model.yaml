@@ -1886,3 +1886,67 @@ tables:
       status: string           # uploaded | drafted | confirmed | retired
       uploaded_by: string
       uploaded_at: timestamp
+
+  # --- WP-F2 (phase 12B) the agent factory: catalogue, events, helper-agent drafts --------------
+  factory_agent:
+    kind: state
+    description: >
+      WP-F2 (phase 12B, AGENT_FACTORY). One row per version of an assessment agent definition
+      (docs/factory.md). definition_json is the agent_definition_v1 document, validated on every
+      save; it holds no personal data and no float. state is draft or retired in WP-F2 (tested,
+      approved and live belong to WP-F3). A version other than draft is not edited; a change makes
+      a new version. owner_group is a group of config/factory_groups.yaml and owns dimension_id.
+    primary_key: [id, version]
+    indexes:
+      - [owner_group, state]
+      - [dimension_id, state]
+    columns:
+      id: string               # lowercase letters, digits, hyphen; at most 64
+      version: string          # "0.1", "0.2", ... (lifecycle.version of the definition)
+      owner_group: string      # model_risk | data | cyber | legal | third_party | ethics | platform
+      dimension_id: string     # one of the eight risk types
+      definition_json: json    # agent_definition_v1
+      state: string            # draft | tested | approved | live | retired
+      created_by: string
+  factory_agent_event:
+    kind: append_only
+    description: >
+      WP-F2 (phase 12B, AGENT_FACTORY). Append-only log of every change of an agent version in the
+      factory: created, saved, new_version, retired, helper rows accepted or dropped, golden set
+      uploaded. detail is a masked sentence of at most 300 characters. Rows are never updated or
+      deleted. No personal data, no float.
+    primary_key: [event_id]
+    indexes:
+      - [agent_id, created_at]
+    columns:
+      event_id: string
+      agent_id: string
+      version: string
+      kind: string             # created | saved | new_version | retired | helper_accepted | helper_dropped | golden_uploaded
+      actor_ref: string        # person id, or a model id for a draft written by a helper agent
+      detail: text             # at most 300 characters, masked
+      created_at: timestamp
+  factory_helper_draft:
+    kind: state
+    description: >
+      WP-F2 (phase 12B, AGENT_FACTORY). A row proposed by a helper agent (checklist_drafter,
+      golden_generator, result_explainer) through the gateway model. A draft is never part of an
+      agent: a person accepts or drops each row. row_json is the proposed row (a checklist item, a
+      golden case or an explanation sentence with its pointers). A golden case that trips the
+      masker is refused and never stored. No personal data, no float.
+    primary_key: [draft_id]
+    indexes:
+      - [agent_id, helper, status]
+    columns:
+      draft_id: string
+      agent_id: string
+      version: string
+      helper: string           # checklist_drafter | golden_generator | result_explainer
+      row_json: json
+      status: string           # draft | accepted | dropped
+      model_id: string
+      prompt_version: string
+      run_id: string
+      decided_by: string?
+      decided_at: timestamp?
+      created_at: timestamp

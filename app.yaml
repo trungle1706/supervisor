@@ -198,6 +198,9 @@ env:
   # /v1/systems/{id}/orchestrate). Needs GOVERNANCE_ENABLED, RISK_DIMENSIONS, CLASSIFICATION_V2.
   # Off by default (docs/orchestrator.md).
   # - name: ONBOARD_ORCHESTRATOR
+  # Phase 12B WP-F2: the agent factory (catalogue /console/factory, editor, three helper agents that
+  # need LLM_BASE_URL). Needs GOVERNANCE_ENABLED. Off by default (docs/factory.md).
+  # - name: AGENT_FACTORY
   #   value: "1"
   # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
   # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.

@@ -178,6 +178,12 @@ from supervisor.console.guardian_factory_routes import (  # noqa: E402
 
 app.include_router(guardian_factory_console_router)  # /console/guardian-factory
 app.include_router(guardian_factory_api_router)  # /v1/guardian-defs
+# WP-F2: always mounted; with AGENT_FACTORY=0 every route answers HTTP 400 agent_factory_off
+from supervisor.console.factory_routes import api_router as factory_api_router  # noqa: E402
+from supervisor.console.factory_routes import router as factory_console_router  # noqa: E402
+
+app.include_router(factory_console_router)  # /console/factory
+app.include_router(factory_api_router)  # /v1/factory/...
 # WP-O1: always mounted; with ONBOARD_INTAKE=0 every route answers HTTP 400 with the flag name
 from supervisor.console.intake_routes import api_router as intake_api_router  # noqa: E402
 from supervisor.console.intake_routes import router as intake_console_router  # noqa: E402

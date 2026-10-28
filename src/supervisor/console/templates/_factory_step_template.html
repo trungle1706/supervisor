@@ -1,0 +1,20 @@
+{# Editor step 1: template (WP-F2). The dimension, the group and the schema version are locked. #}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+<section class="card" id="factory-step-panel" data-step="template">
+  <h3>1. {{ t('fa_step_template') }}</h3>
+  <p class="hint">{{ t('fa_template_hint') }}</p>
+  <dl>
+    <dt>{{ t('fa_f_dimension') }}</dt><dd data-locked="dimension_id">{{ t('fa_dim_' ~ ed.agent.dimension_id) }} <span class="pill mono">{{ ed.agent.dimension_id }}</span> {{ t('fa_locked') }}</dd>
+    <dt>{{ t('fa_f_group') }}</dt><dd data-locked="owner_group">{{ ed.agent.owner_label }} <span class="pill mono">{{ ed.agent.owner_group }}</span> {{ t('fa_locked') }}</dd>
+    <dt>{{ t('fa_f_schema') }}</dt><dd class="mono">{{ ed.defn.schema_version }} / {{ ed.defn.output_schema.type }} {{ t('fa_locked') }}</dd>
+    {% if ed.template %}<dt>{{ t('fa_f_template') }}</dt><dd data-template="{{ ed.template.template_id }}">{{ ed.template.label_en }} &middot; {{ t('fa_template_items', n=ed.template.checklist|length) }}</dd>{% endif %}
+  </dl>
+  <form hx-post="/console/factory/{{ ed.agent.id }}/step/template" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+    {{ fu.hid(ed) }}
+    <label>{{ t('fa_f_name') }} <input name="name" data-field="name" value="{{ ed.defn.name }}" maxlength="{{ ed.caps.NAME_MAX }}" {{ '' if ed.editable else 'disabled' }}></label>
+    <label>{{ t('fa_f_description') }} <textarea name="description" data-field="description" rows="3" maxlength="{{ ed.caps.DESCRIPTION_MAX }}" {{ '' if ed.editable else 'disabled' }}>{{ ed.defn.description }}</textarea></label>
+    <label>{{ t('fa_f_eval_pack') }} <input name="eval_pack" data-field="eval_pack" value="{{ ed.defn.eval_pack }}" {{ '' if ed.editable else 'disabled' }}></label>
+    {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}
+  </form>
+</section>
