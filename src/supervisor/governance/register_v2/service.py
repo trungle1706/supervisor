@@ -19,6 +19,7 @@ from supervisor.core.errors import SupervisorError
 from supervisor.governance import decision33 as d33
 from supervisor.governance import guardians as gd
 from supervisor.governance import model as gm
+from supervisor.governance.register_v2 import duties as dut
 from supervisor.governance.register_v2 import model as rm
 from supervisor.governance.register_v2 import suggest
 from supervisor.governance.register_v2.draft import DraftStore
@@ -50,6 +51,27 @@ DETECTOR_FLAG = "DETECTORS_ENABLED"
 
 def store_of(ctx: Any) -> DraftStore:
     return DraftStore(ctx.state, ctx.clock)
+
+
+def duties_on(ctx: Any) -> bool:
+    """The Duties step is part of this instance's workflow (CONSOLE_REGISTER_DUTIES)."""
+    return dut.enabled(ctx.settings)
+
+
+def duties_view(
+    ctx: Any, draft: Mapping[str, Any], query: Mapping[str, str], posted: Mapping[str, str] | None
+) -> dict[str, Any]:
+    """Step "Duties": the matrix rows, filtered and paged by the query (``f``, ``p``)."""
+    raw_page = str(query.get("p") or "1")
+    if not (raw_page.isascii() and raw_page.isdigit()) or int(raw_page) < 1 or len(raw_page) > 6:
+        raise rm.RegisterError("p", "must be a page number")
+    return dut.view(
+        ctx, draft, flt=str(query.get("f") or "gaps"), page=int(raw_page), posted=posted
+    )
+
+
+def total_steps(ctx: Any) -> int:
+    return rm.n_steps(duties_on(ctx))
 
 
 def scoped(ctx: Any, me: Any) -> bool:
@@ -406,6 +428,7 @@ def review_view(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
         "outcome": cls["outcome"] if cls["ready"] else None,
         "rule_id": cls.get("rule_id", ""),
         "readiness": (draft["data"].get("check") or {}).get("total"),
+        "duties": dut.review(ctx, draft) if duties_on(ctx) else None,
         "source_kind": draft["source_kind"],
         "node": draft.get("source_ref") if draft["source_kind"] == "scan" else None,
     }
@@ -447,21 +470,24 @@ def save_step(
 ) -> dict[str, Any]:
     """Validate and store one step. ``stay`` (save for later): required fields may stay empty.
     Returns the changed draft. A bad value is a RegisterError that names the field."""
-    if not 1 <= step <= rm.STEPS:
-        raise rm.RegisterError("step", f"must be 1 to {rm.STEPS}")
+    duties = duties_on(ctx)
+    n = rm.n_steps(duties)
+    if not 1 <= step <= n:
+        raise rm.RegisterError("step", f"must be 1 to {n}")
+    key = rm.key_of(step, duties)
     data = {k: (dict(v) if isinstance(v, dict) else v) for k, v in draft["data"].items()}
     accept = (form.get("accept") or "").strip()
     strict = not stay and not accept
-    if step in rm.FIELDS_OF_STEP:
+    if key in rm.FIELDS_OF_KEY:
         vals = rm.clean_step(step, form, data["v"], strict=strict)
         data["v"] = {**data["v"], **vals}
-        if step == 1 and scoped(ctx, me):
+        if key == "identify" and scoped(ctx, me):
             data["v"]["owner_user"] = str(me.user_id)
         if accept:
             _accept(data, step, accept)
-        if step == 1 and strict:
+        if key == "identify" and strict:
             _check_name_and_team(ctx, me, data["v"])
-    elif step == 3:
+    elif key == "check":
         repo = (form.get("repo_path") or "").strip()
         if len(repo) > rm.MAX_REPO:
             raise rm.RegisterError("repo_path", "is too long")
@@ -469,12 +495,18 @@ def save_step(
         if repo and form.get("run"):
             draft = store_of(ctx).save(draft, data=data)
             return run_readiness(ctx, me, draft, repo)
-    elif step == 4:
+    elif key == "duties":
+        answers = dut.answers_from(form, data.get("duties_answers") or {})
+        if answers:
+            data["duties_answers"] = answers
+        else:
+            data.pop("duties_answers", None)
+    elif key == "class":
         data["q"] = _answers_from(ctx, form, data["q"])
-    elif step == 5:
+    elif key == "guardians":
         data["off"] = _off_from(ctx, me, draft, form)
         data["off_why"] = _why_from(ctx, me, draft, form)
-    return store_of(ctx).save(draft, data=data, step=step if stay else min(step + 1, rm.STEPS))
+    return store_of(ctx).save(draft, data=data, step=step if stay else min(step + 1, n))
 
 
 def _accept(data: dict[str, Any], step: int, which: str) -> None:
@@ -598,7 +630,7 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
     sysdraft = system_draft(ctx, me, draft)
     # claim the draft first (optimistic version check): a second submit of the same draft, even a
     # concurrent one, finds it submitted or loses the version race, and writes nothing
-    draft = store_of(ctx).save(draft, step=rm.STEPS, status="submitted")
+    draft = store_of(ctx).save(draft, step=total_steps(ctx), status="submitted")
     try:
         out = ctx.systems.register(sysdraft, actor, for_user=me)
     except BaseException:
@@ -676,6 +708,16 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
             ),
             detail=slug,
         )
+    # --- duties (WP-L2): obligation_status rows and the gap tasks ---
+    if duties_on(ctx):
+        counts: dict[str, int] = {}
+
+        def write_duties() -> None:
+            counts.update(dut.write(ctx, draft, sid, str(sysdraft["owner_user"]), actor))
+
+        _guard(steps, "rg2_w_duties", write_duties)
+        if counts:
+            steps[-1]["detail"] = f"{counts['rows']} / {counts['tasks']}"
     # --- tasks ---
     opened = wiz.open_tasks(ctx, sid, actor)
     if plan["task_policy"] and _task(ctx, sid, TASK_POLICY, actor):

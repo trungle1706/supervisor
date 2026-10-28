@@ -1686,3 +1686,24 @@ CREATE TABLE IF NOT EXISTS regkb_draft (
 );
 
 CREATE INDEX IF NOT EXISTS ix_regkb_draft_instrument_id_status ON regkb_draft (instrument_id, status);
+
+-- obligation_status (state): WP-L2. One row per duty (RegKB obligation) that applies to one AI system, written by the Duties step of the register workflow v2 on submit. applies is the matrix answer (the step writes yes rows only); coverage says how well Supervisor controls cover the duty (full, partial, none, unknown); status is the work state (open, closed, waived). closing_control is a Supervisor control id or a bank manual control, set later (WP-L3). No PII, no free text from a person. Advisory only: not legal advice, bank counsel must confirm.
+CREATE TABLE IF NOT EXISTS obligation_status (
+  status_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  obligation_id TEXT NOT NULL,
+  instrument_id TEXT NOT NULL,
+  applies TEXT NOT NULL,
+  coverage TEXT NOT NULL,
+  status TEXT NOT NULL,
+  owner_user TEXT NOT NULL,
+  due_date TEXT,
+  closing_control TEXT,
+  note TEXT,
+  created_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (status_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_obligation_status_system_id_status ON obligation_status (system_id, status);

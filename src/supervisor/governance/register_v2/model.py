@@ -10,7 +10,41 @@ from typing import Any
 from supervisor.core.errors import SupervisorError
 from supervisor.governance import model as gm
 
-STEPS = 6
+STEP_KEYS: tuple[str, ...] = ("identify", "ai", "check", "class", "guardians", "review")
+# WP-L2: with CONSOLE_REGISTER_DUTIES the Duties step sits after the check and before Decision 33.
+STEP_KEYS_DUTIES: tuple[str, ...] = (
+    "identify",
+    "ai",
+    "check",
+    "duties",
+    "class",
+    "guardians",
+    "review",
+)
+STEPS = len(STEP_KEYS)  # the workflow with the flag off
+MAX_STEPS = len(STEP_KEYS_DUTIES)
+# the i18n suffix of a step: rg2_step_<label>, rg2_hint_<label> (the six old steps keep 1..6)
+LABEL_OF_KEY: dict[str, str] = {k: str(i) for i, k in enumerate(STEP_KEYS, 1)} | {
+    "duties": "duties"
+}
+
+
+def step_keys(duties: bool = False) -> tuple[str, ...]:
+    """The steps of the workflow in order: six, or seven with the Duties step."""
+    return STEP_KEYS_DUTIES if duties else STEP_KEYS
+
+
+def n_steps(duties: bool = False) -> int:
+    return len(step_keys(duties))
+
+
+def key_of(step: int, duties: bool = False) -> str:
+    keys = step_keys(duties)
+    if not 1 <= step <= len(keys):
+        raise RegisterError("step", f"must be 1 to {len(keys)}")
+    return keys[step - 1]
+
+
 KINDS: tuple[str, ...] = ("app", "endpoint", "genie", "job", "other")
 SOURCE_KINDS: tuple[str, ...] = ("scan", "policy", "blank")
 STATUSES: tuple[str, ...] = ("draft", "submitted", "abandoned")
@@ -30,7 +64,11 @@ STEP2: tuple[str, ...] = (
     "model_family",
     "data_sources",
 )
-FIELDS_OF_STEP: dict[int, tuple[str, ...]] = {1: STEP1, 2: STEP2}
+FIELDS_OF_KEY: dict[str, tuple[str, ...]] = {"identify": STEP1, "ai": STEP2}
+# the fields of the step numbers 1 and 2 (the same with and without the Duties step)
+FIELDS_OF_STEP: dict[int, tuple[str, ...]] = {
+    i: FIELDS_OF_KEY[k] for i, k in enumerate(STEP_KEYS, 1) if k in FIELDS_OF_KEY
+}
 CHOICES: dict[str, tuple[str, ...]] = {
     "kind": KINDS,
     "system_type": gm.SYSTEM_TYPES,

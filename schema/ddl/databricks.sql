@@ -1446,3 +1446,25 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regkb_draft` (
 USING DELTA
 COMMENT 'WP-L1. A draft duty that the law agent read from the stored official text of one instrument, one row per draft. A draft is never an obligation: a person with regkb.confirm sets status confirmed or dropped. text_vi is a verbatim quote that the rules checked against the stored article text. source is model (the agent) or rule (a deterministic parser); model_id and prompt_version say which model and prompt wrote it (a mock model has mock in model_id). The CLI python -m supervisor.regkb.lawagent --export-confirmed turns confirmed rows into regulations YAML for a pull request; the app cannot edit repo files. No PII: law text only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- obligation_status (state): WP-L2. One row per duty (RegKB obligation) that applies to one AI system, written by the Duties step of the register workflow v2 on submit. applies is the matrix answer (the step writes yes rows only); coverage says how well Supervisor controls cover the duty (full, partial, none, unknown); status is the work state (open, closed, waived). closing_control is a Supervisor control id or a bank manual control, set later (WP-L3). No PII, no free text from a person. Advisory only: not legal advice, bank counsel must confirm.
+-- primary key (enforced by the app, not by Delta): status_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`obligation_status` (
+  status_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  obligation_id STRING NOT NULL,
+  instrument_id STRING NOT NULL,
+  applies STRING NOT NULL,
+  coverage STRING NOT NULL,
+  status STRING NOT NULL,
+  owner_user STRING NOT NULL,
+  due_date DATE,
+  closing_control STRING,
+  note STRING,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-L2. One row per duty (RegKB obligation) that applies to one AI system, written by the Duties step of the register workflow v2 on submit. applies is the matrix answer (the step writes yes rows only); coverage says how well Supervisor controls cover the duty (full, partial, none, unknown); status is the work state (open, closed, waived). closing_control is a Supervisor control id or a bank manual control, set later (WP-L3). No PII, no free text from a person. Advisory only: not legal advice, bank counsel must confirm.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
