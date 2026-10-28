@@ -1,0 +1,444 @@
+schema_version: 1
+instrument:
+  id: VN-TT15-2024
+  jurisdiction: VN
+  kind: circular
+  issuer: State Bank of Vietnam
+  number: 15/2024/TT-NHNN
+  title_vi: Thông tư quy định về cung ứng dịch vụ thanh toán không dùng tiền mặt
+  title_en: Circular on the provision of non-cash payment services
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2024-06-28'
+      source: https://vbpl.vn/van-ban/chi-tiet/168089
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2024-07-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/168089
+      verification: VERIFIED_PRIMARY
+      note: Art. 22(1); Art. 6(6) from 2025-01-01 (Art. 22(2))
+    milestones:
+    - label: Amending Circular 30/2025/TT-NHNN effective (Art. 19(2a), 19(2b), 19(3b), 19(8) amended)
+      date: '2025-11-18'
+      source: https://vbpl.vn/van-ban/chi-tiet/182565
+      verification: VERIFIED_PRIMARY
+      note: Art. 12(1) of Circular 30/2025
+    - label: Art. 19(3a) (order and account-name check) effective
+      date: '2026-04-01'
+      source: https://vbpl.vn/van-ban/chi-tiet/182565
+      verification: VERIFIED_PRIMARY
+      note: Art. 12(2) of Circular 30/2025
+    - label: Circular 21/2026/TT-NHNN replaces Art. 15 (postal services; no AI relevance)
+      date: '2026-05-19'
+      source: https://vbpl.vn/van-ban/chi-tiet/4a08e160-54f6-11f1-b6e0-f5c216e3d3c0
+      verification: VERIFIED_PRIMARY
+      note: Art. 3 of Circular 21/2026
+  related:
+  - VN-DEC52-2024
+  - VN-TT50-2024
+  - VN-LCI-2024
+  - VN-LAW23-2026
+  sources:
+  - &id001
+    url: https://vbpl.vn/van-ban/chi-tiet/168089
+    title: Circular 15/2024/TT-NHNN full text (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: 7f05a23570c03de868c48a34cab3208195bcdb97f971f89a6ec8b562c8fba780
+    local_path: regulations/sources/VN-TT15-2024/tt-15-2024-nhnn.txt
+  - &id004
+    url: https://vbpl.vn/van-ban/chi-tiet/182565
+    title: Circular 30/2025/TT-NHNN amending Circular 15/2024 (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: 46509d395bdf07d7d7922ef41661863097d3715519131d21b453172978e659a7
+    local_path: regulations/sources/VN-TT15-2024/tt-30-2025-nhnn.txt
+  - url: https://vbpl.vn/van-ban/chi-tiet/4a08e160-54f6-11f1-b6e0-f5c216e3d3c0
+    title: Circular 21/2026/TT-NHNN amending Art. 15 (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: 6a757a6abb01d81a768d34993fd086fc2650c6ee2b6ea0f6a649ac354e2bbb60
+    local_path: regulations/sources/VN-TT15-2024/tt-21-2026-nhnn.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-28'
+  notes: 'Added by WP-W0 on 2026-10-28. Circular 15/2024 sets how banks and intermediaries provide non-cash
+    payment services. It does not name AI. The rows are the provider duties that bind an AI agent that
+    starts or handles payments: complaints, availability, incident report within 4 hours, order checks,
+    risk management, customer warnings, suspicious transactions, identity matching. vbpl.vn status is
+    "Het hieu luc mot phan" (partly expired); parts that expired were not identified in this pass. Not
+    covered as rows: Art. 7-14 (service types), Art. 20 (card acceptance units), Art. 21. Not legal advice;
+    bank counsel must confirm.'
+obligations:
+- id: VN-TT15-2024-A6.02-01
+  article_ref: Art. 6(2)
+  text_vi: 2. Tổ chức cung ứng dịch vụ thanh toán, tổ chức cung ứng dịch vụ trung gian thanh toán quy
+    định cụ thể thời hạn khách hàng sử dụng dịch vụ được quyền đề nghị tra soát, khiếu nại đối với tổ
+    chức cung ứng dịch vụ thanh toán, tổ chức cung ứng dịch vụ trung gian thanh toán nhưng không ít hơn
+    60 ngày kể từ ngày phát sinh giao dịch yêu cầu tra soát.
+  summary_en: The payment service provider sets a time limit for a customer to ask for a transaction check
+    or file a complaint, and the limit is at least 60 days from the transaction.
+  duties:
+  - complaint_handling
+  - record_keeping
+  - retention
+  applies_to: &id002
+    agent_class:
+    - payment
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Recorded agent events and hashed evidence support a transaction check for an AI-initiated payment.
+      Missing: retention for at least 60 days is a bank setting; the customer channel is the bank own.'
+  - kind: process
+    id: complaint_handling
+    coverage: partial
+    note: 'Manual step: the bank sets the complaint window to at least 60 days and keeps AI-payment evidence
+      for that window.'
+  evidence_needed:
+  - customer terms with a complaint window of at least 60 days
+  - evidence retention setting for AI payments
+  verification: VERIFIED_PRIMARY
+  sources: &id003
+  - *id001
+  confidence: high
+  notes: Effective 2024-07-01 (Art. 22(1)).
+- id: VN-TT15-2024-A6.03A-01
+  article_ref: Art. 6(3)(a)
+  text_vi: a) Áp dụng tối thiểu hai hình thức tiếp nhận thông tin tra soát, khiếu nại qua tổng đài điện
+    thoại (có ghi âm, hoạt động 24/24 giờ trong ngày và 7/7 ngày trong tuần) và qua các địa điểm giao
+    dịch hợp pháp của tổ chức cung ứng dịch vụ thanh toán, tổ chức cung ứng dịch vụ trung gian thanh toán;
+    đảm bảo xác thực những thông tin cơ bản mà khách hàng đã cung cấp cho tổ chức cung ứng dịch vụ thanh
+    toán, tổ chức cung ứng dịch vụ trung gian thanh toán;
+  summary_en: 'Complaints and transaction-check requests are taken by at least two channels: a recorded
+    phone line open 24/7 and the bank legal service points; the basic customer information is verified.'
+  duties:
+  - complaint_handling
+  - right_to_human_review
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: complaint_handling
+    coverage: partial
+    note: 'Manual step: the bank runs the two channels; a customer who disputes an AI-initiated payment
+      reaches a person. No Supervisor control: complaint channels are the bank own.'
+  evidence_needed:
+  - complaint channel description (24/7 phone, service points)
+  - complaint log
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2024-A19.02A-01
+  article_ref: Art. 19(2a) (added by Circular 30/2025)
+  text_vi: 2a. Tổ chức cung ứng dịch vụ thanh toán, tổ chức cung ứng dịch vụ trung gian thanh toán có
+    trách nhiệm thực hiện các biện pháp đảm bảo cung ứng dịch vụ thanh toán, dịch vụ trung gian thanh
+    toán được thông suốt, liên tục. Tổng thời gian gián đoạn cung ứng toàn bộ dịch vụ thanh toán trực
+    tuyến, dịch vụ trung gian thanh toán trực tuyến không vượt quá 04 giờ/năm, thời gian gián đoạn cung
+    ứng dịch vụ không vượt quá 30 phút/lần trừ các trường hợp bất khả kháng hoặc bảo trì, nâng cấp hệ
+    thống đã được thông báo trước 24 giờ cho khách hàng và gửi thông báo cho đơn vị giám sát (Ngân hàng
+    Nhà nước) [...] để nắm bắt và theo dõi.
+  summary_en: 'The provider keeps payment services running without break: the total outage of all online
+    payment services must stay within 4 hours a year and 30 minutes per outage, except force majeure or
+    a notified maintenance window.'
+  duties:
+  - business_continuity
+  - robustness_security
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: 'Pause or resume an agent. A pause of an AI payment agent is a planned stop, not the provider
+      outage in this rule. Missing: availability measurement and recovery of the payment service.'
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'Oversight metrics for agents. Missing: service availability measurement.'
+  - kind: process
+    id: business_continuity_plan
+    coverage: partial
+    note: 'Manual step: the bank measures availability of online payment services and keeps recovery plans;
+      AI agents have a manual fallback.'
+  evidence_needed:
+  - availability record against the 4 h / year and 30 min / outage limits
+  verification: VERIFIED_PRIMARY
+  sources: &id005
+  - *id004
+  confidence: high
+  notes: Effective 2025-11-18 (Art. 12(1) of Circular 30/2025). The article also names an SBV functional
+    mailbox for the maintenance notice; the address is left out of the quote ([...]).
+- id: VN-TT15-2024-A19.02B-01
+  article_ref: Art. 19(2b) (added by Circular 30/2025)
+  text_vi: 2b. Tổ chức cung ứng dịch vụ thanh toán, tổ chức cung ứng dịch vụ trung gian thanh toán có
+    trách nhiệm báo cáo Ngân hàng Nhà nước trong thời hạn 04 giờ khi phát hiện sự cố gây gián đoạn quá
+    30 phút hoạt động cung ứng dịch vụ thanh toán trực tuyến, dịch vụ trung gian thanh toán trực tuyến
+    (trong đó bao gồm trường hợp bất khả kháng hoặc trường hợp vượt quá thời hạn bảo trì, nâng cấp hệ
+    thống đã được thông báo trước 24 giờ) theo Phụ lục 05 ban hành kèm theo Thông tư này. Trong thời hạn
+    03 ngày làm việc kể từ ngày hoàn thành khắc phục sự cố, tổ chức cung ứng dịch vụ thanh toán, tổ chức
+    cung ứng dịch vụ trung gian thanh toán có trách nhiệm gửi báo cáo sự cố đầy đủ các nội dung theo Phụ
+    lục số 05 ban hành kèm theo Thông tư này [...] để nắm bắt và theo dõi tình hình xử lý sự cố.
+  summary_en: The provider reports to SBV within 4 hours when an incident interrupts online payment services
+    for more than 30 minutes, in the form of Appendix 05.
+  duties:
+  - incident_report
+  - regulatory_reporting
+  - incident_response
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: incident_record
+    coverage: partial
+    note: 'Incident record with status and time. Missing: the Appendix 05 report and its delivery to SBV.'
+  - kind: evidence
+    id: incident_clock
+    coverage: partial
+    note: 'Clock for the report times of a case under Decree 142 (72 h or 5 working days). Missing: this
+      4-hour clock.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank files the Appendix 05 report to SBV within 4 hours of finding a payment-service
+      outage over 30 minutes.'
+  evidence_needed:
+  - Appendix 05 report with time stamps
+  verification: VERIFIED_PRIMARY
+  sources: *id005
+  confidence: high
+  notes: Effective 2025-11-18. This is a 4-hour clock that is not in the incident clock of Supervisor
+    today.
+- id: VN-TT15-2024-A19.03A-01
+  article_ref: Art. 19(3a) (added by Circular 30/2025)
+  text_vi: 3a. Tổ chức cung ứng dịch vụ thanh toán có trách nhiệm kiểm tra, kiểm soát lệnh thanh toán
+    hợp pháp, hợp lệ trong đó đảm bảo thể hiện đúng số hiệu tài khoản thanh toán, tên tài khoản thanh
+    toán trong thỏa thuận mở và sử dụng tài khoản thanh toán của khách hàng khi thực hiện giao dịch thanh
+    toán và hiển thị đầy đủ trên chứng từ thanh toán.
+  summary_en: The provider checks that a payment order is lawful and valid and that the account number
+    and account name match the account opening agreement, and shows them in full on the payment document.
+  duties:
+  - transaction_limits
+  - transaction_authentication
+  - record_keeping
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: 'Blocks a single payment over a configured amount. Missing: account-name match and the payment
+      document layout.'
+  - kind: catalogue
+    id: amount_valid
+    coverage: partial
+    note: 'Checks the amount field of a payment. Missing: account number and name consistency with the
+      account agreement.'
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records the payment call with its arguments. Missing: check of account name against the account
+      agreement.'
+  evidence_needed:
+  - order validation record with account number and name check
+  verification: VERIFIED_PRIMARY
+  sources: *id005
+  confidence: high
+  notes: Effective 2026-04-01 (Art. 12(2) of Circular 30/2025).
+- id: VN-TT15-2024-A19.04-01
+  article_ref: Art. 19(4)
+  text_vi: '4. Tổ chức cung ứng dịch vụ thanh toán phải tuân thủ đúng quy định của pháp luật về giao dịch
+    điện tử và về đảm bảo an toàn, bảo mật, quản lý rủi ro trong hoạt động ngân hàng. Ban hành các cơ
+    chế quản lý rủi ro: nhận diện các rủi ro, phân nhóm các loại rủi ro xảy ra đối với từng loại hình
+    dịch vụ cung ứng, bảo mật và bảo đảm tính toàn vẹn, chính xác của thông tin dữ liệu liên quan đến
+    các giao dịch, có biện pháp đánh giá, kiểm soát, phòng ngừa rủi ro và tuân thủ theo các quy định của
+    pháp luật.'
+  summary_en: 'The provider follows the law on e-transactions and on safety, security and risk management
+    in banking, and issues risk management mechanisms: identify and group risks per service, protect integrity
+    and accuracy of transaction data, assess, control and prevent risk.'
+  duties:
+  - risk_management_system
+  - robustness_security
+  - transaction_authentication
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: evidence_chain
+    coverage: partial
+    note: 'Hash-chained evidence keeps transaction records intact. Missing: the risk grouping per service
+      and the full risk mechanism.'
+  - kind: evidence
+    id: risk_register
+    coverage: partial
+    note: 'Risk register with bands. Missing: bank-wide payment risk mechanism.'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank keeps a payment risk mechanism that includes AI agents that initiate
+      payments.'
+  evidence_needed:
+  - payment risk mechanism document
+  - risk register entries for AI payment services
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2024-A19.05-01
+  article_ref: Art. 19(5)
+  text_vi: 5. Tổ chức cung ứng dịch vụ thanh toán có nghĩa vụ thông báo, cảnh báo để khách hàng nhận biết
+    và phòng tránh những rủi ro khi sử dụng dịch vụ thanh toán và tuân thủ đúng nội dung tại văn bản thỏa
+    thuận đã ký kết với tổ chức cung ứng dịch vụ thanh toán; hướng dẫn tổ chức, cá nhân sử dụng dịch vụ
+    thanh toán về nghĩa vụ tự bảo mật thông tin tài khoản, các yếu tố định danh khác và các phương tiện
+    điện tử dùng trong thanh toán, tránh bị lợi dụng, lừa đảo, gian lận.
+  summary_en: The provider warns customers about payment risks and guides them to keep account data and
+    electronic means secret, so that they are not used for fraud or deceit.
+  duties:
+  - consumer_information
+  - fraud_monitoring
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: process
+    id: customer_disclosure
+    coverage: partial
+    note: 'Manual step: the bank sends fraud and security warnings to customers; for an AI agent it adds
+      the customer notice about autonomous payments. No Supervisor control: customer messages are the
+      bank own.'
+  evidence_needed:
+  - customer warning notices
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2024-A19.06-01
+  article_ref: Art. 19(6)
+  text_vi: 6. Tổ chức cung ứng dịch vụ thanh toán phải thực hiện những biện pháp nhận biết khách hàng;
+    kiểm soát, phát hiện, báo cáo giao dịch có giá trị lớn, giao dịch chuyển tiền điện tử, giao dịch đáng
+    ngờ cho cơ quan nhà nước có thẩm quyền theo quy định của pháp luật phòng chống, rửa tiền và các quy
+    định pháp luật khác có liên quan.
+  summary_en: The provider identifies customers and controls, detects and reports large-value, electronic
+    transfer and suspicious transactions to the authority, as the anti-money-laundering law requires.
+  duties:
+  - fraud_monitoring
+  - transaction_limits
+  - regulatory_reporting
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: single_limit
+    coverage: partial
+    note: 'Blocks a payment over a limit. Missing: customer identification and the report of suspicious
+      or large transactions.'
+  - kind: catalogue
+    id: split_payment
+    coverage: partial
+    note: 'Detects splitting of a payment into small parts. Missing: bank-wide suspicious transaction
+      detection and the report to the authority.'
+  - kind: catalogue
+    id: daily_aggregate
+    coverage: partial
+    note: 'Daily total cap per customer. Missing: report to the authority.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank files suspicious and large-value transaction reports under the AML law.'
+  evidence_needed:
+  - suspicious transaction report log
+  - customer identification records
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2024-A19.07-01
+  article_ref: Art. 19(7)
+  text_vi: 7. Tổ chức cung ứng dịch vụ thanh toán phải chịu trách nhiệm bồi thường thiệt hại do lỗi của
+    mình theo quy định của pháp luật.
+  summary_en: The provider pays for damage that its own fault causes.
+  duties:
+  - governance_accountability
+  - complaint_handling
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: 'Case file shows what an agent did and which rule fired, to decide fault. Missing: the compensation
+      decision and payment.'
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: the bank decides fault and compensation; an AI agent error is the bank own fault
+      toward the customer (bank counsel must confirm). No Supervisor control: liability and compensation
+      are a legal and finance matter.'
+  evidence_needed:
+  - compensation decision record
+  verification: VERIFIED_PRIMARY
+  sources: *id003
+  confidence: high
+- id: VN-TT15-2024-A19.08-01
+  article_ref: Art. 19(8) (as replaced by Circular 30/2025)
+  text_vi: 8. Tổ chức cung ứng dịch vụ thanh toán có trách nhiệm áp dụng các biện pháp, giải pháp đảm
+    bảo kiểm tra, đối chiếu khớp đúng thông tin xác minh khách hàng đã được xác thực chính xác là do cơ
+    quan Công an cấp hoặc thông qua xác thực tài khoản định danh điện tử của người đó do Hệ thống định
+    danh và xác thực điện tử tạo lập trong quá trình thực hiện giao dịch thanh toán.
+  summary_en: During a payment transaction the provider checks and matches the customer identity information,
+    which must be correctly authenticated as issued by the police or through the customer e-identification
+    account.
+  duties:
+  - transaction_authentication
+  - biometric_verification
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records the payment call. Missing: the identity check itself; it happens in the bank channel
+      before the agent acts.'
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: 'Manual step: the bank channel checks the customer identity against police-issued data or the
+      e-identification account; an agent acts only for an authenticated customer.'
+  evidence_needed:
+  - identity verification record per transaction
+  verification: VERIFIED_PRIMARY
+  sources: *id005
+  confidence: high
+  notes: Effective 2025-11-18. Compare Circular 50/2024 on authentication and biometrics (VN-TT50-2024).
+- id: VN-TT15-2024-A19.03B-01
+  article_ref: Art. 19(3b)
+  text_vi: '3b. Khi thực hiện dịch vụ ủy nhiệm chi, dịch vụ chuyển tiền qua tài khoản thanh toán hoặc
+    không qua tài khoản thanh toán, tổ chức cung ứng dịch vụ thanh toán phục vụ bên trả tiền có trách
+    nhiệm cung cấp cho tổ chức cung ứng dịch vụ thanh toán phục vụ bên thụ hưởng khi được tổ chức cung
+    ứng dịch vụ thanh toán phục vụ bên thụ hưởng yêu cầu các thông tin tối thiểu liên quan đến giao dịch
+    và các tổ chức cung ứng dịch vụ thanh toán phải bảo đảm tuân thủ quy định pháp luật về cung cấp và
+    bảo mật thông tin, gồm:'
+  summary_en: For a payment order or money transfer, the provider of the payer gives the provider of the
+    beneficiary the minimum transaction information when asked.
+  duties:
+  - record_keeping
+  - regulatory_reporting
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records payer, beneficiary and amount in the agent payment call. Missing: delivery of the information
+      to the other provider.'
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: the bank payment operations unit answers requests from the beneficiary provider.
+      No Supervisor control: the exchange between providers is outside Supervisor.'
+  evidence_needed:
+  - request and answer log between providers
+  verification: VERIFIED_PRIMARY
+  sources: *id005
+  confidence: high
+  notes: Added by Circular 30/2025 Art. 7(6); effective 2025-11-18.
