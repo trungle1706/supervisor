@@ -1,0 +1,10 @@
+{# Guardian factory registry as a full page (WP-G1); the list is the same fragment. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('gf_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('gf_title'), None)]) }}
+{{ ui.pagehead(t('gf_title')) }}
+{{ ui.purpose(t('gf_purpose'), t('gf_why')) }}
+{% include "_gf_list.html" %}
+{% endblock %}

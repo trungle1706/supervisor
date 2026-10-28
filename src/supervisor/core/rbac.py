@@ -187,6 +187,13 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         "or admin role (WP-P2)",
     ),
     "policy.reload": (("admin",), "Reload the policy folders from disk (WP-P2)"),
+    # --- WP-G1 (phase 12) --- guardian factory (GUARDIAN_FACTORY; 400 guardian_factory_off)
+    "guardians.view": (_ALL, "Guardian factory registry and editor, read-only (WP-G1)"),
+    "guardians.edit": (
+        ("reviewer", "approver", "owner", "admin"),
+        "Create, draft, save and retire guardian definitions; the owner group is also checked "
+        "(WP-G1)",
+    ),
     # --- WP-L1 --- law agent drafts (LAWAGENT_ENABLED); the page needs the flag
     "regkb.view": (
         _ALL,
@@ -493,6 +500,23 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/systems/{system_id}/classify"): "systems.view",
     ("POST", "/console/systems/{system_id}/classify"): "systems.edit",
     ("POST", "/console/systems/{system_id}/classify/approve"): "systems.approve",
+    # --- WP-G1 (phase 12) --- guardian factory (GUARDIAN_FACTORY; 400 guardian_factory_off)
+    ("GET", "/v1/guardian-defs"): "guardians.view",
+    ("POST", "/v1/guardian-defs"): "guardians.edit",
+    ("GET", "/v1/guardian-defs/{def_id}"): "guardians.view",
+    ("POST", "/v1/guardian-defs/{def_id}"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/draft-artifact"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/retire"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/reopen"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/new-version"): "guardians.edit",
+    ("GET", "/v1/guardian-defs-schema"): "guardians.view",
+    ("GET", "/console/guardian-factory"): "guardians.view",
+    ("GET", "/console/guardian-factory/{def_id}"): "guardians.view",
+    ("POST", "/console/guardian-factory/{def_id}"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/draft"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/retire"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/reopen"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/new-version"): "guardians.edit",
     # --- WP-O1 (phase 9) --- candidate source intake (ONBOARD_INTAKE; 400 with the flag when off)
     ("GET", "/v1/intake/{node_id}"): "systems.view",
     ("POST", "/v1/intake/{node_id}"): "systems.edit",

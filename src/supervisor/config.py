@@ -788,6 +788,9 @@ class Settings(BaseSettings):
     # the routes answer HTTP 400 classification_v2_off (new: off).
     classification_v2: bool = False
     classification_config: Path = Path("config/classification.yaml")
+    # --- WP-G1 (phase 12) --- guardian factory (docs/guardian-factory.md). Needs DETECTORS_ENABLED.
+    # Off = the routes answer HTTP 400 guardian_factory_off and nothing is read or written.
+    guardian_factory: bool = False
     # --- WP-G1 --- lifecycle, stage approvals, reviews, outbound events (docs/governance.md).
     # Everything is under GOVERNANCE_ENABLED. WEBHOOKS_ENABLED: the outbound event stub marks
     # events delivered and logs them (no network; the real sender is later work).

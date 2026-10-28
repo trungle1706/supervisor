@@ -1845,3 +1845,48 @@ CREATE TABLE IF NOT EXISTS orchestrator_run (
 );
 
 CREATE INDEX IF NOT EXISTS ix_orchestrator_run_system_id_attempt_n ON orchestrator_run (system_id, attempt_n);
+
+-- guardian_def (state): WP-G1. One row per version of a guardian definition (a detector described as data: regex, keyword_list, classifier, judge_prompt or policy). definition_json is the validated definition (config/guardian definition schema, docs/guardian-factory.md): the rule text, the scope and the thresholds; it holds no personal data and no floats (rates are integer percent, scores integer basis points). state is draft, benchmarked, shadow, approved, live or retired; in WP-G1 only draft and retired are reachable (the others belong to WP-G2 and WP-G3). A saved version is replaced in place only while it is a draft; a new version is a new row. Changes go on the chain as guardian_def (ids, enums, hashes).
+CREATE TABLE IF NOT EXISTS guardian_def (
+  def_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  owner_group TEXT NOT NULL,
+  type TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  definition_json TEXT NOT NULL,
+  state TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (def_id, version)
+);
+
+CREATE INDEX IF NOT EXISTS ix_guardian_def_state_owner_group ON guardian_def (state, owner_group);
+
+-- guardian_def_event (append_only): WP-G1. One row per change of a guardian definition: created, saved, new_version, retired, reopened (and, from WP-G2 and WP-G3, the later state changes). def_sha256 is the hash of the canonical definition after the change; no definition text, no personal data.
+CREATE TABLE IF NOT EXISTS guardian_def_event (
+  event_id TEXT NOT NULL,
+  def_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  from_state TEXT,
+  to_state TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  def_sha256 TEXT NOT NULL,
+  at TEXT NOT NULL,
+  PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_guardian_def_event_def_id_at ON guardian_def_event (def_id, at);
+
+CREATE TRIGGER IF NOT EXISTS trg_guardian_def_event_no_update
+BEFORE UPDATE ON guardian_def_event
+BEGIN
+  SELECT RAISE(ABORT, 'guardian_def_event is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_guardian_def_event_no_delete
+BEFORE DELETE ON guardian_def_event
+BEGIN
+  SELECT RAISE(ABORT, 'guardian_def_event is append-only');
+END;

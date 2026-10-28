@@ -1,0 +1,35 @@
+{# Guardian factory registry list (WP-G1, GUARDIAN_FACTORY). Variable: gl. #}
+{% import "_ui.html" as ui with context %}
+<section class="card" id="gf-list" data-section="guardian-factory">
+  <div class="tiles" role="group" aria-label="{{ t('gf_state') }}">
+    {% for s in gl.states %}<a class="tile {{ 'on' if gl.filters.state == s else '' }}" href="{{ gl.base }}?state={{ s }}&amp;lang={{ lang }}" hx-get="{{ gl.base }}?state={{ s }}&amp;lang={{ lang }}" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false" data-state="{{ s }}"><span class="n">{{ gl.counts[s] }}</span><span class="l">{{ t('gf_state_' ~ s) }}</span></a>
+    {% endfor %}
+  </div>
+  <form class="filters fbar" role="search" action="{{ gl.base }}" method="get" hx-get="{{ gl.base }}" hx-target="#gf-list" hx-swap="outerHTML" hx-trigger="change, submit" hx-push-url="false">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <label class="sr" for="f-state">{{ t('gf_state') }}</label>
+    <select id="f-state" name="state"><option value="">{{ t('gf_state') }}: {{ t('gf_all') }}</option>{% for s in gl.states %}<option value="{{ s }}" {{ 'selected' if gl.filters.state == s else '' }}>{{ t('gf_state_' ~ s) }}</option>{% endfor %}</select>
+    <label class="sr" for="f-owner_group">{{ t('gf_group') }}</label>
+    <select id="f-owner_group" name="owner_group"><option value="">{{ t('gf_group') }}: {{ t('gf_all') }}</option>{% for g in gl.groups %}<option value="{{ g }}" {{ 'selected' if gl.filters.owner_group == g else '' }}>{{ g }}</option>{% endfor %}</select>
+    <label class="sr" for="f-stage">{{ t('gf_stage') }}</label>
+    <select id="f-stage" name="stage"><option value="">{{ t('gf_stage') }}: {{ t('gf_all') }}</option>{% for g in gl.stages %}<option value="{{ g }}" {{ 'selected' if gl.filters.stage == g else '' }}>{{ g }}</option>{% endfor %}</select>
+    <label class="sr" for="f-type">{{ t('gf_type') }}</label>
+    <select id="f-type" name="type"><option value="">{{ t('gf_type') }}: {{ t('gf_all') }}</option>{% for g in gl.types %}<option value="{{ g }}" {{ 'selected' if gl.filters.type == g else '' }}>{{ g }}</option>{% endfor %}</select>
+    <noscript><button class="btn" type="submit">{{ t('gf_filter') }}</button></noscript>
+    <a class="btn primary" href="{{ gl.base }}/new?lang={{ lang }}" data-action="new">{{ t('gf_new') }}</a>
+  </form>
+  <p class="hint">{{ t('gf_count', n=gl.rows|length) }}</p>
+  <div class="tablewrap">
+  <table class="queue">
+    <caption class="sr">{{ t('gf_title') }}</caption>
+    <thead><tr><th scope="col">{{ t('gf_id') }}</th><th scope="col">{{ t('gf_name') }}</th><th scope="col">{{ t('gf_state') }}</th><th scope="col">{{ t('gf_group') }}</th><th scope="col">{{ t('gf_stage') }}</th><th scope="col">{{ t('gf_type') }}</th><th scope="col" class="n">{{ t('gf_version') }}</th></tr></thead>
+    <tbody>
+    {% for g in gl.rows %}
+      <tr data-def="{{ g.id }}" data-state="{{ g.state }}"><td class="mono"><a href="{{ gl.base }}/{{ g.id }}?lang={{ lang }}">{{ g.id }}</a></td><td>{{ g.name }}</td><td>{{ ui.pill(t('gf_state_' ~ g.state), 'ok' if g.state == 'live' else ('neutral' if g.state in ('draft', 'retired') else 'warn')) }}</td><td class="mono">{{ g.owner_group }}</td><td class="mono">{{ g.stage }}</td><td class="mono">{{ g.type }}</td><td class="n">{{ g.version }}</td></tr>
+    {% else %}
+      <tr><td colspan="7">{{ ui.empty(t('gf_none')) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>

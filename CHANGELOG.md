@@ -18,6 +18,21 @@
   panel on the Risk assessment tab (replaces the disabled placeholder). Off: routes answer 400
   `orchestrator_off`, no table read, the tab is unchanged. Details: `docs/orchestrator.md`.
 
+- WP-G1 (phase 12C): **guardian factory, detector definition and registry**, `GUARDIAN_FACTORY`
+  (default `0`; needs `DETECTORS_ENABLED`). New package `src/supervisor/guardian_factory/`: strict
+  pydantic definition (`regex`, `keyword_list`, `classifier`, `judge_prompt`, `policy`; stage, scope,
+  action, sensitivity, thresholds as integers, lifecycle) with JSON Schema export, all limits in
+  `caps.py`; only the deterministic types may block or redact. The regex checks are the existing
+  `custom_rules` ones. New tables `guardian_def` and `guardian_def_event` (appended at the end of
+  `schema/model.yaml`; DDL and notebook regenerated). Store (create, save, new version, list, get,
+  retire, reopen; draft and retired only until WP-G2 and WP-G3), plain-words author (pattern library
+  for account, phone, CCCD, card, amount and named words; else the gateway model with a strict output
+  schema, validated, `model not configured` when `LLM_BASE_URL` is empty; `over_broad` percent flag),
+  and an adapter that turns a `live` definition into a detector (unit-tested, not mounted). API
+  `/v1/guardian-defs`, console `/console/guardian-factory` (registry and editor). New permissions
+  `guardians.view` and `guardians.edit` (group members edit their group). Chain record `guardian_def`
+  (hashes and ids only). With the flag off every route answers 400 `guardian_factory_off`.
+  Details: `docs/guardian-factory.md`.
 - WP-F1 (phase 12B): **agent factory schemas** (`src/supervisor/factory/`, docs/factory.md). Three
   frozen pydantic schemas with JSON Schema export (`facts_v1`, `assessment_report_v1`,
   `agent_definition_v1` with the `harness` block), all limits in `factory/caps.py`, strict loaders

@@ -1601,3 +1601,39 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`orchestrator_run` (
 USING DELTA
 COMMENT 'WP-F4 (phase 12, ONBOARD_ORCHESTRATOR). One run of the onboarding orchestrator for one AI system: it plans which of the eight risk types of Circular 53 Art. 14(3) apply and which agent assesses each (a live factory agent, else the rule proposal of risk_dimensions), runs them in order under a time and token budget, writes one assessment_report_v1 per type under DATA_DIR/assessments/<system>/<attempt>/ and a proposal into risk_dimension_status (never pass: a person confirms). status: queued, running, done or failed (the run itself broke). The orchestrator has no model call of its own and decides by deterministic rules only. plan_json is the plan (dimensions, reasons, agents, order, budget); budget_json holds the budget and what was used (integers); items_json is a JSON list with one entry per type {dimension_id, order, applies, reason, agent (rule or id@version), status (queued, running, done, needs_person, budget_exceeded, failed, not_applicable, skipped), verdict, proposed_status, status_written, report_ref, report_sha256, stop_point, needs_person, ms_used, tokens_used, note}. No personal data, no floats. A re-run is a new attempt_n and a new run_id.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_def (state): WP-G1. One row per version of a guardian definition (a detector described as data: regex, keyword_list, classifier, judge_prompt or policy). definition_json is the validated definition (config/guardian definition schema, docs/guardian-factory.md): the rule text, the scope and the thresholds; it holds no personal data and no floats (rates are integer percent, scores integer basis points). state is draft, benchmarked, shadow, approved, live or retired; in WP-G1 only draft and retired are reachable (the others belong to WP-G2 and WP-G3). A saved version is replaced in place only while it is a draft; a new version is a new row. Changes go on the chain as guardian_def (ids, enums, hashes).
+-- primary key (enforced by the app, not by Delta): def_id, version
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_def` (
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  owner_group STRING NOT NULL,
+  type STRING NOT NULL,
+  stage STRING NOT NULL,
+  definition_json STRING NOT NULL,
+  state STRING NOT NULL,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G1. One row per version of a guardian definition (a detector described as data: regex, keyword_list, classifier, judge_prompt or policy). definition_json is the validated definition (config/guardian definition schema, docs/guardian-factory.md): the rule text, the scope and the thresholds; it holds no personal data and no floats (rates are integer percent, scores integer basis points). state is draft, benchmarked, shadow, approved, live or retired; in WP-G1 only draft and retired are reachable (the others belong to WP-G2 and WP-G3). A saved version is replaced in place only while it is a draft; a new version is a new row. Changes go on the chain as guardian_def (ids, enums, hashes).'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_def_event (append_only): WP-G1. One row per change of a guardian definition: created, saved, new_version, retired, reopened (and, from WP-G2 and WP-G3, the later state changes). def_sha256 is the hash of the canonical definition after the change; no definition text, no personal data.
+-- primary key (enforced by the app, not by Delta): event_id
+-- append-only: delta.appendOnly blocks UPDATE/DELETE. Owner to set history retention (logRetentionDuration) to the legal period; never VACUUM below it.
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_def_event` (
+  event_id STRING NOT NULL,
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  action STRING NOT NULL,
+  from_state STRING,
+  to_state STRING NOT NULL,
+  actor STRING NOT NULL,
+  def_sha256 STRING NOT NULL,
+  at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G1. One row per change of a guardian definition: created, saved, new_version, retired, reopened (and, from WP-G2 and WP-G3, the later state changes). def_sha256 is the hash of the canonical definition after the change; no definition text, no personal data.'
+TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');

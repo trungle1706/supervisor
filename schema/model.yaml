@@ -1818,3 +1818,48 @@ tables:
       items_json: json        # list of items (see description)
       summary: text            # at most 300 characters, no personal data
       created_by: string
+
+  # --- WP-G1 (phase 12, GUARDIAN_FACTORY) -----------------------------------------------
+  guardian_def:
+    kind: state
+    description: >
+      WP-G1. One row per version of a guardian definition (a detector described as data: regex,
+      keyword_list, classifier, judge_prompt or policy). definition_json is the validated
+      definition (config/guardian definition schema, docs/guardian-factory.md): the rule text,
+      the scope and the thresholds; it holds no personal data and no floats (rates are integer
+      percent, scores integer basis points). state is draft, benchmarked, shadow, approved, live
+      or retired; in WP-G1 only draft and retired are reachable (the others belong to WP-G2 and
+      WP-G3). A saved version is replaced in place only while it is a draft; a new version is a
+      new row. Changes go on the chain as guardian_def (ids, enums, hashes).
+    primary_key: [def_id, version]
+    indexes:
+      - [state, owner_group]
+    columns:
+      def_id: string
+      version: int
+      owner_group: string
+      type: string             # regex | keyword_list | classifier | judge_prompt | policy
+      stage: string            # preflight | input | tool_call | output
+      definition_json: json
+      state: string            # draft | benchmarked | shadow | approved | live | retired
+      created_by: string
+
+  guardian_def_event:
+    kind: append_only
+    description: >
+      WP-G1. One row per change of a guardian definition: created, saved, new_version, retired,
+      reopened (and, from WP-G2 and WP-G3, the later state changes). def_sha256 is the hash of
+      the canonical definition after the change; no definition text, no personal data.
+    primary_key: [event_id]
+    indexes:
+      - [def_id, at]
+    columns:
+      event_id: string
+      def_id: string
+      version: int
+      action: string
+      from_state: string?
+      to_state: string
+      actor: string
+      def_sha256: string
+      at: timestamp

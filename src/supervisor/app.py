@@ -162,6 +162,16 @@ if get_settings().console_overview_v4:  # WP-N1: mounted only when the flag is o
 
     app.include_router(candidates_console_router)  # /console/candidates
     app.include_router(candidates_api_router)  # GET /v1/candidates
+# WP-G1: always mounted; with GUARDIAN_FACTORY=0 every route answers HTTP 400 guardian_factory_off
+from supervisor.console.guardian_factory_routes import (  # noqa: E402
+    api_router as guardian_factory_api_router,
+)
+from supervisor.console.guardian_factory_routes import (  # noqa: E402
+    router as guardian_factory_console_router,
+)
+
+app.include_router(guardian_factory_console_router)  # /console/guardian-factory
+app.include_router(guardian_factory_api_router)  # /v1/guardian-defs
 # WP-O1: always mounted; with ONBOARD_INTAKE=0 every route answers HTTP 400 with the flag name
 from supervisor.console.intake_routes import api_router as intake_api_router  # noqa: E402
 from supervisor.console.intake_routes import router as intake_console_router  # noqa: E402
