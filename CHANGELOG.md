@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.8.0 (phases 8 and 9: law agent, duties and regulator pack, agentic onboarding) - 2026-10-28
 
 - WP-O5 (phase 9): **post-deploy assessment and the agent log**, `ONBOARD_POSTDEPLOY` (default
   `0`). New table `onboard_log` (append only, appended at the end of `schema/model.yaml`; DDL and
