@@ -1,0 +1,55 @@
+{# Classification panel of one system (WP-C1, CLASSIFICATION_V2). Variable: cv. #}
+{% import "_ui.html" as ui with context %}
+{% set got = cv.got %}
+{% set ct = cv.tree %}
+<section class="card" id="classify-panel" data-section="classify" data-system="{{ cv.system_id }}">
+  <h3>{{ t('cv_title') }} <span class="k">{{ cv.system_name }}</span></h3>
+  <p class="hint">{{ t('cv_hint') }}</p>
+  {% if got.illustrative %}<p class="hint">{{ t('cv_illustrative') }}</p>{% endif %}
+
+  {% macro record(r, kind) %}
+  <div class="idline" data-record="{{ kind }}" data-outcome="{{ r.outcome }}">
+    {{ ui.pill(r.outcome_label_vi if lang == 'vi' else r.outcome_label_en, 'ok' if kind == 'current' else 'warn') }}
+    {{ t('cv_level') }}: {{ t('sy_risk_' ~ r.level) if r.level else t('cv_level_none') }}
+    - {{ t('cv_decided_by') }}: <span class="mono">{{ r.decided_by }}</span>
+    {% if r.approved_by %} - {{ t('cv_approved_by') }}: <span class="mono">{{ r.approved_by }}</span>{% endif %}
+    - {{ t('cv_valid_until') }}: {{ r.valid_until }}{% if r.review_due %} {{ ui.pill(t('cv_review_due'), 'bad') }}{% endif %}
+    {% if r.inherited_from_provider %} - {{ t('cv_inherited') }}{% endif %}
+    {% if r.tree_changed %} - {{ ui.pill(t('cv_tree_changed'), 'warn') }}{% endif %}
+  </div>
+  {% endmacro %}
+
+  <h4>{{ t('cv_current') }}</h4>
+  {% if got.current %}{{ record(got.current, 'current') }}{% else %}<p class="hint" data-empty="current">{{ t('cv_none') }}</p>{% endif %}
+  {% if got.pending %}
+  <h4>{{ t('cv_pending') }}</h4>
+  {{ record(got.pending, 'pending') }}
+  {% if cv.can_approve %}
+  <form method="post" action="{{ cv.base }}/approve?lang={{ lang }}" hx-post="{{ cv.base }}/approve?lang={{ lang }}" hx-target="#classify-panel" hx-swap="outerHTML" class="btnrow">
+    <button type="submit" class="btn primary" data-action="approve">{{ t('cv_approve') }}</button>
+    <span class="hint">{{ t('cv_approve_hint') }}</span>
+  </form>
+  {% else %}<p class="hint" data-cannot-approve="1">{{ t('cv_cannot_approve') }}</p>{% endif %}
+  {% endif %}
+  <p class="hint">{{ t('cv_records_n', n=got.records_n) }}</p>
+
+  <form method="post" action="{{ cv.base }}?lang={{ lang }}" hx-post="{{ cv.base }}?lang={{ lang }}" hx-target="#classify-panel" hx-swap="outerHTML" data-classify-form="1">
+    {% set editable = cv.can_edit %}
+    {% include "_classify_tree.html" %}
+    {% if cv.can_edit %}
+    <label class="chk"><input type="checkbox" name="inherited" value="1"{% if ct.inherited_from_provider %} checked{% endif %}> {{ t('cv_inherited_label') }}</label>
+    <div class="btnrow" style="margin-top:8px">
+      <button type="submit" class="btn" name="do" value="preview" data-action="preview">{{ t('cv_evaluate') }}</button>
+      <button type="submit" class="btn primary" name="do" value="decide" data-action="decide"{% if not ct.complete %} disabled{% endif %}>{{ t('cv_save') }}</button>
+      <span class="hint">{{ t('cv_evaluate_hint') }}</span>
+    </div>
+    {% else %}<p class="hint">{{ t('cv_view_only') }}</p>{% endif %}
+  </form>
+
+  <h4>{{ t('cv_thresholds') }}</h4>
+  <dl class="kv" data-thresholds="1">{% for k, v in got.thresholds_vnd.items() %}<dt>{{ t('cv_th_' ~ k) }}</dt><dd class="mono">{{ '{:,}'.format(v) }}</dd>{% endfor %}</dl>
+  <h4>{{ t('cv_triggers') }}</h4>
+  <ul data-triggers="1">{% for x in got.retriggers %}<li data-trigger="{{ x.id }}">{{ x.text_vi if lang == 'vi' else x.text_en }} <span class="idline">{{ x.article }}</span></li>{% endfor %}</ul>
+  <h4>{{ t('cv_not_triggers') }}</h4>
+  <ul data-not-triggers="1">{% for x in got.not_triggers %}<li data-trigger="{{ x.id }}">{{ x.text_vi if lang == 'vi' else x.text_en }} <span class="idline">{{ x.article }}</span></li>{% endfor %}</ul>
+</section>

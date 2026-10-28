@@ -771,6 +771,11 @@ class Settings(BaseSettings):
     assignment_rules_config: Path = Path("config/assignment_rules.yaml")
     decision33_config: Path = Path("config/decision33.yaml")
     classifier_ai_prefill: bool = False
+    # --- WP-C1 (phase 12) --- classification tree (docs/classification.md). Needs
+    # GOVERNANCE_ENABLED. Off = the Decision 33 flow and the register class step are unchanged and
+    # the routes answer HTTP 400 classification_v2_off (new: off).
+    classification_v2: bool = False
+    classification_config: Path = Path("config/classification.yaml")
     # --- WP-G1 --- lifecycle, stage approvals, reviews, outbound events (docs/governance.md).
     # Everything is under GOVERNANCE_ENABLED. WEBHOOKS_ENABLED: the outbound event stub marks
     # events delivered and logs them (no network; the real sender is later work).
@@ -871,6 +876,7 @@ class Settings(BaseSettings):
         "tasks_config",
         "assignment_rules_config",
         "decision33_config",
+        "classification_config",
         "transparency_dir",
         "transparency_backlog_file",
         mode="after",

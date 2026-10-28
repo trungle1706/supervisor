@@ -470,6 +470,14 @@ ROUTES: dict[tuple[str, str], str] = {
         "POST",
         "/console/systems/{system_id}/guardian-requests/{request_id}/{decision}",
     ): "systems.approve",
+    # --- WP-C1 (phase 12) --- classification tree (CLASSIFICATION_V2; 400 classification_v2_off)
+    ("GET", "/v1/systems/{system_id}/classification-v2"): "systems.view",
+    ("POST", "/v1/systems/{system_id}/classification-v2"): "systems.edit",
+    ("POST", "/v1/systems/{system_id}/classification-v2/approve"): "systems.approve",
+    ("GET", "/v1/classification/summary"): "systems.view",
+    ("GET", "/console/systems/{system_id}/classify"): "systems.view",
+    ("POST", "/console/systems/{system_id}/classify"): "systems.edit",
+    ("POST", "/console/systems/{system_id}/classify/approve"): "systems.approve",
     # --- WP-O1 (phase 9) --- candidate source intake (ONBOARD_INTAKE; 400 with the flag when off)
     ("GET", "/v1/intake/{node_id}"): "systems.view",
     ("POST", "/v1/intake/{node_id}"): "systems.edit",

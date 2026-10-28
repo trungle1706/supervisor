@@ -303,6 +303,7 @@
               "case_file",
               "chain_verify_report",
               "classification_record",
+              "classification_v2_record",
               "control_catalogue",
               "coverage_rows",
               "duties_gap",

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- WP-C1 (phase 12): **classification tree**, `CLASSIFICATION_V2` (default `0`, needs
+  `GOVERNANCE_ENABLED`). New `config/classification.yaml` (six outcomes: not_system, prohibited,
+  high_certify, high_self, medium, low; SBV thresholds as integer VND; re-classification triggers of
+  Decree 142 Art. 11), strict loader and pure walk (`governance/classification_tree.py`), service
+  `governance/classification_v2.py`, new table `classification_v2` (appended at the end of
+  `schema/model.yaml`; DDL and notebook regenerated). A person saves a path, a different person who
+  is not the system owner approves it (`same_person`, `owner_cannot_approve`); the approval raises the
+  risk level by the floor rule and calls the existing Decision 33 `apply` for the sub-flow. Console:
+  `/console/systems/{id}/classify` with the tree drawn on the server (no script) and a read-only copy in
+  Register v2 step 4. API: `GET|POST /v1/systems/{id}/classification-v2`, `POST .../approve`,
+  `GET /v1/classification/summary`. RegKB: 12 new rows (Law Art. 7(2), 9(2), 10(4); Decree Art. 6(2),
+  6(3), 8(1), 8(2), 9(1), 9(3), 11(2), 11(4), 12(2)) with verbatim text, new controls `classification_v2` and
+  `classification_v2_record`. Off = the Decision 33 flow and the class step are as before and the
+  routes answer 400 `classification_v2_off`. Docs: `docs/classification.md`.
 - Fix (WP-O2): the facts build raised `AttributeError` ("'DataAccess' object has no attribute
   'file'") as soon as the discovery step found an http call; the http locations are now read from
   the evidence pointer (`onboard/facts.py` `http_locations`). Found in the live test of the

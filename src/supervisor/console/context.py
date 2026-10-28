@@ -153,6 +153,25 @@ class ConsoleContext:
         return svc
 
     @property
+    def classification_v2(self) -> Any:
+        """The classification tree service (WP-C1, docs/classification.md). Changes go on the
+        chain as ``classification_v2``; the Decision 33 sub-flow uses ``self.classification``."""
+        from supervisor.governance.classification_v2 import ClassificationV2Service
+
+        svc = getattr(self, "_classification_v2", None)
+        if svc is None:
+            svc = ClassificationV2Service(
+                self.state,
+                self.tables,
+                self.clock,
+                self.settings,
+                evidence=self.runtime.chain,
+                d33_service=self.classification,
+            )
+            self._classification_v2 = svc
+        return svc
+
+    @property
     def lifecycle(self) -> Any:
         """Stage approvals and the lifecycle move of an AI system (WP-G1). Shares the system
         service, so every change goes on the chain."""

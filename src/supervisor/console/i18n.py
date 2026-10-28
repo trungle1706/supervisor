@@ -4826,3 +4826,6 @@ _T.update(_AT)
 from supervisor.console.i18n_postdeploy import PX as _PX  # noqa: E402  (WP-O5, prefix px_)
 
 _T.update(_PX)
+from supervisor.console.i18n_classify import CV as _CV  # noqa: E402  (WP-C1, prefix cv_)
+
+_T.update(_CV)

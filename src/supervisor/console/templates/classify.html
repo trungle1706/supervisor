@@ -1,0 +1,9 @@
+{# Classification tree of one system as a full page (WP-C1); the panel is the same fragment. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('cv_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(cv.system_name, '/console/systems/' ~ cv.system_id ~ '?lang=' ~ lang), (t('cv_title'), None)]) }}
+{{ ui.pagehead(t('cv_title') ~ ': ' ~ cv.system_name) }}
+{% include "_classify_panel.html" %}
+{% endblock %}

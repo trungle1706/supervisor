@@ -105,7 +105,7 @@ def test_coverage_levels_real_data(capsys) -> None:
     code, out = run(capsys, "coverage", "--levels")
     assert code == 0 and "Control levels per instrument" in out
     line = [ln for ln in out.splitlines() if ln.startswith("VN-DEC142-2026 ")][-1]
-    assert "1/19/6" in line and "1/24/1" in line
+    assert "1/28/6" in line and "1/33/1" in line
 
 
 def test_coverage_real_data(capsys) -> None:

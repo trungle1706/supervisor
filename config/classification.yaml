@@ -1,0 +1,158 @@
+# Classification tree (WP-C1 of phase 12, docs/classification.md).
+# ILLUSTRATIVE and NOT legal advice: counsel confirms. The order of the nodes follows
+# docs/phase12/research/regulation-structure.md section 1.4 (Decree 142 Art. 6(3) and 9, Law 134/2025
+# Art. 7, 9, 10, 13, Circular 53/2026 Art. 4).
+#
+# start       id of the first node.
+# thresholds  SBV thresholds of Circular 53 Art. 4(2), integers in VND (never floats).
+# nodes       the tree. Each node has:
+#               id, question_en, question_vi, article {instrument, ref} (must be a row of RegKB),
+#               answers  answer -> next node id or outcome id. The answers a node accepts are
+#                        yes, no and excluded (a legal exclusion applies). Quote yes and no.
+#               prefill  (optional) {when: <condition over the fields of the AI system>, answer}:
+#                        a deterministic rule that answers when `when` is true. Never a model.
+#               subflow  (optional) decision33: the node is answered by the Decision 33 flow
+#                        (config/decision33.yaml); its answers are the Decision 33 outcomes
+#                        high_risk and not_high_risk. An open sub-flow keeps the path open.
+#               see      (optional) more articles, same shape as `article`.
+#               evidence_hint  what a person should point to.
+# outcomes    the end points. level is the risk level of the system model (null = no change).
+#             duties: what follows, each with a RegKB article.
+# retriggers  events that start a new classification (Decree 142 Art. 11(1)(a)-(d), 11(2)).
+# not_triggers  events that do not (Decree 142 Art. 11(4)).
+version: 1
+illustrative: true
+start: N-SYSTEM
+
+thresholds:
+  personal_per_transaction_vnd: 10000000
+  personal_per_day_vnd: 20000000
+  organisation_per_transaction_vnd: 50000000
+  organisation_per_day_vnd: 100000000
+  credit_vnd: 50000000
+
+nodes:
+  - id: N-SYSTEM
+    question_en: Is it an AI system, or a model used as a component of a concrete AI system? (A bare model with no system around it is not classified.)
+    question_vi: Đây có phải là hệ thống trí tuệ nhân tạo, hoặc mô hình được dùng như một thành phần của hệ thống trí tuệ nhân tạo cụ thể không? (Mô hình đứng riêng, không nằm trong hệ thống, không được phân loại.)
+    article: {instrument: VN-DEC142-2026, ref: Art. 6(2)}
+    answers: {"yes": N-PROHIBITED, "no": not_system}
+    prefill:
+      when: {field: component.agent.count, gte: 1}
+      answer: "yes"
+    evidence_hint: The agent or model rows linked to the system (Components tab), or the design document.
+  - id: N-PROHIBITED
+    question_en: Is the system developed, supplied, deployed or used for a purpose the Law forbids (deceiving or manipulating people, exploiting vulnerable groups, harmful forged content, or any other act the law forbids)?
+    question_vi: Hệ thống có được phát triển, cung cấp, triển khai hoặc sử dụng nhằm mục đích bị cấm theo Luật (lừa dối hoặc thao túng con người, lợi dụng nhóm dễ bị tổn thương, nội dung giả mạo gây nguy hại, hoặc hành vi khác luật cấm) không?
+    article: {instrument: VN-AI-2025, ref: Art. 7(2)}
+    answers: {"yes": prohibited, "no": N-PM-LIST}
+    evidence_hint: The statement of purpose and the legal review note.
+  - id: N-PM-LIST
+    question_en: Is the system on the Prime Minister's list of high-risk AI systems (for the bank this is mostly the Decision 33 Appendix IV entries 1 and 2)? The Decision 33 questions answer this node.
+    question_vi: Hệ thống có thuộc Danh mục hệ thống trí tuệ nhân tạo có rủi ro cao do Thủ tướng Chính phủ ban hành không (với ngân hàng chủ yếu là mục 1 và 2 Phụ lục IV Quyết định 33)? Các câu hỏi của Quyết định 33 trả lời nút này.
+    article: {instrument: VN-DEC142-2026, ref: Art. 6(3)}
+    see:
+      - {instrument: VN-AI-2025, ref: Art. 9(1)}
+    subflow: decision33
+    answers: {high_risk: N-THRESHOLD, not_high_risk: N-CONFUSE}
+    evidence_hint: The Decision 33 draft of the system and the transaction or credit flow it controls.
+  - id: N-THRESHOLD
+    question_en: Does the value pass an SBV threshold (payment by a person above 10,000,000 VND per transaction or 20,000,000 per day; by an organisation above 50,000,000 or 100,000,000; credit of 50,000,000 or more)? For a high-risk entry that is not about money or credit, answer yes.
+    question_vi: Giá trị có vượt ngưỡng của Ngân hàng Nhà nước không (thanh toán của cá nhân trên 10.000.000 đồng một giao dịch hoặc 20.000.000 đồng một ngày; của tổ chức trên 50.000.000 hoặc 100.000.000 đồng; cấp tín dụng từ 50.000.000 đồng trở lên)? Với mục rủi ro cao không liên quan đến tiền hoặc tín dụng, hãy trả lời có.
+    article: {instrument: VN-TT53-2026, ref: Art. 4(2)}
+    answers: {"yes": N-CERT, "no": N-CONFUSE}
+    evidence_hint: The transaction limits or credit sizes in the product rules, as table row or document id.
+  - id: N-CERT
+    question_en: Does the list row require a conformity certificate before the system is used (certification), and not a self-assessment or an assessment by a registered body?
+    question_vi: Dòng trong Danh mục có yêu cầu chứng nhận sự phù hợp trước khi đưa hệ thống vào sử dụng (chứng nhận), chứ không phải nhà cung cấp tự đánh giá hoặc thuê tổ chức đánh giá không?
+    article: {instrument: VN-AI-2025, ref: Art. 13(1)}
+    answers: {"yes": high_certify, "no": high_self}
+    evidence_hint: The conformity column of the list row (both banking rows of Decision 33 Appendix IV are in the self-assessment column).
+  - id: N-CONFUSE
+    question_en: Can the system confuse, influence or manipulate people because they cannot tell they deal with an AI system or AI-made content? Answer excluded when one of the Decree 142 Art. 9(3) exclusions applies (technical editing only, plain office tool, no interaction with the public, art or games, back-end processing only).
+    question_vi: Hệ thống có khả năng gây nhầm lẫn, tác động hoặc thao túng người sử dụng do họ không nhận biết được mình đang tương tác với hệ thống trí tuệ nhân tạo hoặc nội dung do hệ thống tạo ra không? Trả lời loại trừ khi thuộc một trường hợp tại khoản 3 Điều 9 Nghị định 142 (chỉ chỉnh sửa kỹ thuật, công cụ văn phòng thông thường, không tương tác với công chúng, nghệ thuật hoặc trò chơi, chỉ xử lý nội bộ).
+    article: {instrument: VN-AI-2025, ref: Art. 9(1)}
+    see:
+      - {instrument: VN-DEC142-2026, ref: Art. 9(1)}
+      - {instrument: VN-DEC142-2026, ref: Art. 9(3)}
+    answers: {"yes": medium, "no": low, excluded: low}
+    prefill:
+      when:
+        all:
+          - {field: user_segment, eq: customer}
+          - {field: system_type, eq: assistant}
+      answer: "yes"
+    evidence_hint: Where the customer meets the system and how it says it is an AI system.
+
+outcomes:
+  - id: not_system
+    label_en: Not an AI system (no classification)
+    label_vi: Không phải hệ thống trí tuệ nhân tạo (không phân loại)
+    level: null
+    duties: []
+  - id: prohibited
+    label_en: Prohibited practice
+    label_vi: Hành vi bị cấm
+    level: prohibited
+    duties:
+      - {id: stop_use, article: {instrument: VN-AI-2025, ref: Art. 7(2)}, text_en: "Do not build, supply, deploy or use the system."}
+  - id: high_certify
+    label_en: High risk, certification before use
+    label_vi: Rủi ro cao, chứng nhận sự phù hợp trước khi sử dụng
+    level: high
+    duties:
+      - {id: conformity_certificate, article: {instrument: VN-AI-2025, ref: Art. 13(1)}, text_en: "Certificate of conformity before use (Law Art. 13)."}
+      - {id: impact_assessment, article: {instrument: VN-TT53-2026, ref: Art. 13(1)}, text_en: "Impact assessment (Circular 53 Art. 13)."}
+      - {id: board_approval, article: {instrument: VN-TT53-2026, ref: Art. 12(3)}, text_en: "Go-live approval by the board level (Circular 53 Art. 12(3))."}
+      - {id: classification_dossier, article: {instrument: VN-DEC142-2026, ref: Art. 12(2)}, text_en: "Classification dossier (Decree 142 Art. 12(2))."}
+      - {id: notify_authority, article: {instrument: VN-AI-2025, ref: Art. 10(3)}, text_en: "Notify the result to the Ministry of Science and Technology before use (Law Art. 10(3))."}
+  - id: high_self
+    label_en: High risk, self-assessment or registered body
+    label_vi: Rủi ro cao, tự đánh giá hoặc thuê tổ chức đánh giá
+    level: high
+    duties:
+      - {id: conformity_assessment, article: {instrument: VN-AI-2025, ref: Art. 13(1)}, text_en: "Conformity assessment by the provider or a registered body (Law Art. 13)."}
+      - {id: impact_assessment, article: {instrument: VN-TT53-2026, ref: Art. 13(1)}, text_en: "Impact assessment (Circular 53 Art. 13)."}
+      - {id: board_approval, article: {instrument: VN-TT53-2026, ref: Art. 12(3)}, text_en: "Go-live approval by the board level (Circular 53 Art. 12(3))."}
+      - {id: classification_dossier, article: {instrument: VN-DEC142-2026, ref: Art. 12(2)}, text_en: "Classification dossier (Decree 142 Art. 12(2))."}
+      - {id: notify_authority, article: {instrument: VN-AI-2025, ref: Art. 10(3)}, text_en: "Notify the result to the Ministry of Science and Technology before use (Law Art. 10(3))."}
+  - id: medium
+    label_en: Medium risk
+    label_vi: Rủi ro trung bình
+    level: medium
+    duties:
+      - {id: classification_dossier, article: {instrument: VN-DEC142-2026, ref: Art. 12(2)}, text_en: "Classification dossier (Decree 142 Art. 12(2))."}
+      - {id: notify_authority, article: {instrument: VN-AI-2025, ref: Art. 10(3)}, text_en: "Notify the result to the Ministry of Science and Technology before use (Law Art. 10(3))."}
+  - id: low
+    label_en: Low risk
+    label_vi: Rủi ro thấp
+    level: low
+    duties: []
+
+retriggers:
+  - id: RT-CHANGE
+    article: {instrument: VN-DEC142-2026, ref: Art. 11(1)(a)}
+    text_en: A significant change of function, purpose or deployment context that touches the first criteria.
+    text_vi: Thay đổi đáng kể về chức năng, mục đích sử dụng hoặc ngữ cảnh triển khai làm ảnh hưởng đến tiêu chí phân loại ban đầu.
+  - id: RT-INCIDENT
+    article: {instrument: VN-DEC142-2026, ref: Art. 11(1)(b)}
+    text_en: A serious incident that shows a higher real risk than the class given.
+    text_vi: Sự cố nghiêm trọng chứng minh mức độ rủi ro thực tế cao hơn mức đã phân loại.
+  - id: RT-LIST
+    article: {instrument: VN-DEC142-2026, ref: Art. 11(1)(c)}
+    text_en: The Prime Minister amends the list of high-risk systems in a way that changes the class.
+    text_vi: Thủ tướng Chính phủ sửa đổi, bổ sung Danh mục làm thay đổi mức độ rủi ro của hệ thống.
+  - id: RT-AUTHORITY
+    article: {instrument: VN-DEC142-2026, ref: Art. 11(1)(d)}
+    text_en: A written request of the competent authority (Law Art. 10(6)).
+    text_vi: Có yêu cầu bằng văn bản của cơ quan quản lý nhà nước có thẩm quyền.
+  - id: RT-DEPLOYER
+    article: {instrument: VN-DEC142-2026, ref: Art. 11(2)}
+    text_en: The deployer modifies, integrates or changes the function so that a new or higher risk appears.
+    text_vi: Bên triển khai sửa đổi, tích hợp hoặc thay đổi chức năng làm phát sinh rủi ro mới hoặc cao hơn.
+
+not_triggers:
+  - id: NT-ROUTINE
+    article: {instrument: VN-DEC142-2026, ref: Art. 11(4)}
+    text_en: Upgrades, performance tuning, ordinary bug fixes or periodic data updates that do not change the nature of the risk.
+    text_vi: Nâng cấp, tối ưu hiệu suất, sửa lỗi kỹ thuật thông thường hoặc cập nhật dữ liệu định kỳ mà không làm thay đổi bản chất rủi ro.

@@ -1535,3 +1535,25 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`onboard_log` (
 USING DELTA
 COMMENT 'WP-O5 (phase 9, ONBOARD_POSTDEPLOY). The agent log: one row per onboarding action of a candidate or agent, shown in the console as a timeline "plan, read, found, suggest". step names the onboarding step: scan (the node became a candidate), intake (a source was taken in), facts, predeploy, attach, postdeploy, state (Request or Approve RUNNING) or duties. by_kind says who did it: rule (deterministic code), model (the gateway model produced the content, a mock model says so in what) or person (actor is the person id). what is a short scrubbed sentence of at most 300 characters; pointer is where to look (file:line, report id, row id or pack id) at most 200 characters. Rows are never updated or deleted. No personal data, no secret, no float; counts are integers. A write failure never fails the action that was logged.'
 TBLPROPERTIES ('delta.appendOnly' = 'true', 'supervisor.kind' = 'append_only');
+
+-- classification_v2 (state): WP-C1 (phase 12, CLASSIFICATION_V2). One record of the classification tree (config/classification.yaml) for one AI system: the path from the first question to an outcome (not_system, prohibited, high_certify, high_self, medium, low), decided by a person and approved by a different person (Circular 53 Art. 4(3)). path_json is a JSON list of steps {node, answer, source (rules | person | decision33), evidence (a pointer: file:line, table row id or document id, at most 200 characters), note (at most 300 characters, masked)}; a step of the Decision 33 sub-flow also carries the answers of its questions. No personal data, no floats. inherited_from_provider: the bank took the provider's result (Art. 4(4)). valid_until: the yearly review date (Art. 4(5)), set again at approval. approved_by and approved_at are null until a second person approves; only then does the risk level of the system change (floor rule, never lowers). Changes go on the chain as classification_v2.
+-- primary key (enforced by the app, not by Delta): classification_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`classification_v2` (
+  classification_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  outcome STRING NOT NULL,
+  path_json STRING NOT NULL,
+  tree_sha256 STRING NOT NULL,
+  path_hash STRING NOT NULL,
+  decided_by STRING NOT NULL,
+  approved_by STRING,
+  approved_at TIMESTAMP,
+  inherited_from_provider BOOLEAN NOT NULL,
+  valid_until TIMESTAMP NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-C1 (phase 12, CLASSIFICATION_V2). One record of the classification tree (config/classification.yaml) for one AI system: the path from the first question to an outcome (not_system, prohibited, high_certify, high_self, medium, low), decided by a person and approved by a different person (Circular 53 Art. 4(3)). path_json is a JSON list of steps {node, answer, source (rules | person | decision33), evidence (a pointer: file:line, table row id or document id, at most 200 characters), note (at most 300 characters, masked)}; a step of the Decision 33 sub-flow also carries the answers of its questions. No personal data, no floats. inherited_from_provider: the bank took the provider''s result (Art. 4(4)). valid_until: the yearly review date (Art. 4(5)), set again at approval. approved_by and approved_at are null until a second person approves; only then does the risk level of the system change (floor rule, never lowers). Changes go on the chain as classification_v2.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

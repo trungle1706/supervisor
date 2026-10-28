@@ -44,6 +44,7 @@ console:
   law_agent_drafts: {path: "/regkb/{instrument_id}/drafts", label: "Law agent drafts confirmed or dropped by a person (flag LAWAGENT_ENABLED)", doc: "docs/regulations.md | Law agent (WP-L1)"}
   duties_actions: {path: "/systems/{system_id}/duties/close", label: "Duties tab: close, waive, re-evaluate (flag RISK_DUTIES)", doc: "docs/console.md | Duties tab"}
   schema_selfcheck: {path: /admin/schema, label: "Start-up schema check with the SQL plan (flag SCHEMA_SELFCHECK)", doc: "docs/console.md | Schema check"}
+  classification_v2: {path: "/systems/{system_id}/classify", label: "Classification tree: path, outcome and a second person to approve (flag CLASSIFICATION_V2)", doc: "docs/classification.md | Steps"}
 evidence:
   evidence_chain: {module: supervisor.evidence.chain, label: Hash-chained evidence lanes with signed roots}
   chain_verify_report: {module: supervisor.evidence.verify, label: Offline chain verification report}
@@ -78,6 +79,7 @@ evidence:
   task_record: {table: task, label: "Lifecycle tasks with stage, role, evidence and waiver record", doc: "docs/controls.md | Tasks and sizing"}
   lifecycle_approval: {table: stage_approval, label: "Stage approvals: request, second person, move (seven stages)", doc: "docs/governance.md | Stage approvals and the lifecycle move"}
   classification_record: {table: classification, label: "Decision 33 classification: proposal, answers, class", doc: "docs/decision33.md | Steps"}
+  classification_v2_record: {table: classification_v2, label: "Classification tree record: path, outcome, decided by, approved by, review date", doc: "docs/classification.md | Steps"}
   ai_system_record: {table: ai_system, label: "AI system record: name, owner, team, risk level, components", doc: "docs/governance.md | What it is"}
   threshold_check: {module: supervisor.advisory.compliance.thresholds, label: "Daily cap check of AI payment limits against Circular 53 Art. 5(1)(g)(ii)", doc: "docs/compliance-advisor.md | Threshold check"}
 process:

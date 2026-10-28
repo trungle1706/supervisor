@@ -119,3 +119,16 @@ pre-fill" and "mock model". EN and VI.
 ## Separation of duties (WP-P2, phase 8, `CONSOLE_STATE_ACTIONS`)
 
 With the flag on: the system owner (`owner_user` or an active `system_owner` of the team) cannot apply the class on the own system (HTTP 400 `owner_cannot_apply`), and every answer a person gives needs a justification of at least 20 characters (HTTP 400 `justification_too_short`; the check runs on edit and again on apply for answers a person gave). The reviewer and oversight-manager rule is unchanged. Off = as before.
+
+## The classification tree uses this flow as a sub-flow (WP-C1, phase 12, `CLASSIFICATION_V2`)
+
+With `CLASSIFICATION_V2=1` the node "on the Prime Minister's list" of the classification tree
+(`docs/classification.md`) is answered by the four questions of this page and by the outcomes
+`high_risk` and `not_high_risk`. The tree does not repeat them. When a second person approves a tree
+record, the service makes the Decision 33 draft from the sub-flow answers and calls the `apply`
+step of this page, so the rules of `apply` hold (autonomy level set, the owner rule of
+`CONSOLE_STATE_ACTIONS`, the floor of the risk level that never goes down). It does not call `apply`
+when the tree overrules the list (high in the list, SBV threshold not met). With the flag off
+nothing here changes. The routes `/v1/systems/{id}/classification` stay this flow; the tree has its
+own routes under `/classification-v2`.
+
