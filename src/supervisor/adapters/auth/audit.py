@@ -166,6 +166,17 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
             for r in state.query("system_component", {"system_id": target_id})
             if r.get("active")
         )
+        # WP-L3: the duty rows of the system (a close, waive or re-evaluate changes the hash; a
+        # system without duty rows hashes as before)
+        try:
+            duties = sorted(
+                f"{r['status_id']}:{r['row_version']}"
+                for r in state.query("obligation_status", {"system_id": target_id})
+            )
+        except Exception:  # noqa: BLE001 - a store before WP-L2 has no such table
+            duties = []
+        if duties:
+            return row_hash({"system": system, "team": team, "links": links, "duties": duties})
         return row_hash({"system": system, "team": team, "links": links})
     if kind == "incident":  # WP-G5
         return row_hash(state.get("incident", {"incident_id": target_id}))

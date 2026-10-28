@@ -35,7 +35,7 @@
     <h3 id="ov4-as">{{ t('ov4_assess') }}</h3>
     <ul class="ov4-rows" data-assess>
       {% for a in d.assess %}
-      <li data-dim="{{ a.key }}"><span class="l">{{ t('ov4_dim_' ~ a.key) }}</span><span class="v">{% if a.bp is none %}<span class="muted">-</span>{% else %}{{ a.done }} / {{ a.of }}{% endif %}</span>{{ ui.bar(a.bp, '' if (a.bp or 0) >= 10000 else 'amber') }}</li>
+      <li data-dim="{{ a.key }}"><span class="l">{{ t('ov4_dim_' ~ a.key) }}</span><span class="v">{% if a.bp is none %}<span class="muted">-</span>{% elif a.key == 'duties' %}{{ t('du_ov_line', avg=a.avg, n=a.of, open=a.open_systems) }}{% else %}{{ a.done }} / {{ a.of }}{% endif %}</span>{{ ui.bar(a.bp, '' if (a.bp or 0) >= 10000 else 'amber') }}</li>
       {% endfor %}
     </ul>
   </section>

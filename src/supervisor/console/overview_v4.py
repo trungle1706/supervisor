@@ -20,8 +20,8 @@ from supervisor.console import overview_v3, readmodels, systems_overview
 from supervisor.console.listing import paginate, parse_int, parse_sort, query_string, sort_rows
 from supervisor.console.overview_v3 import SCOPES
 from supervisor.core.errors import SupervisorError
+from supervisor.governance import duties_gap, triage
 from supervisor.governance import model as gm
-from supervisor.governance import triage
 from supervisor.governance.guardians import instance_on
 from supervisor.governance.next_action import (
     SHADOW_DAYS,
@@ -395,6 +395,10 @@ def my_overview(
         {"key": k, "done": d, "of": o, "bp": (d * 10000 // o) if o else None}
         for k, d, o in assessment
     ]
+    if duties_gap.enabled(
+        ctx.settings
+    ):  # WP-L3: the duties dimension (absent while RISK_DUTIES is off)
+        assess.append(duties_gap.overview_row(ctx.state, (r["system_id"] for r in scoped)))
 
     # ---- risk by autonomy
     grid: dict[str, dict[str, int]] = {lv: dict.fromkeys(RISKS, 0) for lv in LEVELS}

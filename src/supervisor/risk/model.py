@@ -28,10 +28,11 @@ CATEGORIES: tuple[str, ...] = (
     "model_behaviour",
     "availability",
     "third_party",
+    "duties_gap",  # WP-L3: open regulatory duties of one AI system (RISK_DUTIES)
 )
 TREATMENTS: tuple[str, ...] = ("avoid", "mitigate", "accept", "transfer")
 STATUSES: tuple[str, ...] = ("draft", "active", "retired")
-SOURCES: tuple[str, ...] = ("manual", "import", "starter")
+SOURCES: tuple[str, ...] = ("manual", "import", "starter", "duties")  # duties: WP-L3
 # matrix = a compliance matrix row (an obligation id); rule = a gate rule id; pack = an
 # assurance pack id; monitor = a monitor name (controls.yaml); case = a case id; control = a
 # WP30 catalogue control id (the evidence rule looks through it at the control's own sources).

@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
 from supervisor.cases.service import PermissionDenied
-from supervisor.console import systems_views, systems_wizard, systems_workflow
+from supervisor.console import systems_duties, systems_views, systems_wizard, systems_workflow
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import translator
 from supervisor.console.routes import (
@@ -189,7 +189,9 @@ async def system_page(
     _off(ctx)
     _check_id(system_id, "system id")
     tab = request.query_params.get("tab") or "overview"
-    data = await _call(systems_views.detail_view, ctx, me, system_id, tab)
+    data = await _call(
+        systems_views.detail_view, ctx, me, system_id, tab, dict(request.query_params)
+    )
     if tab == "tasks" and request.query_params.get("intake") == "missing":  # WP-UX4b L3
         data["intake_missing"] = bool(await _call(systems_wizard.missing_tasks, ctx, system_id))
     return render(request, ctx, me, "system.html", section="systems", **data)
@@ -455,6 +457,80 @@ async def system_stage_move(
     form, plain, system = await _wf_system(request, ctx, me, system_id)
     _, note = await _wf_run(systems_workflow.stage_move, ctx, me, system, form.get("to_stage", ""))
     return await _wf_answer(request, ctx, me, plain, system["system_id"], note, "wf_ok_move")
+
+
+# --- WP-L3: duties of a system (RISK_DUTIES) ----------------------------------------------------
+# Close and Re-evaluate need systems.edit, Waive needs systems.approve (the owner of the system
+# cannot waive: 400 owner_cannot_waive). Every route answers HTTP 400 risk_duties_off while the
+# flag is off. The answer is the refreshed Duties tab (htmx fragment for #tab-body) with the result
+# in #flash, or a 303 back to the tab for a plain form post. Two console_action rows per POST.
+
+
+async def _duty_answer(
+    request: Request,
+    ctx: ConsoleContext,
+    me: AuthPrincipal,
+    plain: bool,
+    system_id: str,
+    note: str,
+    ok_key: str,
+) -> Response:
+    request.state.audit_detail = note
+    if plain:
+        return _done(request, True, system_id, "duties")
+    data = await _call(systems_views.detail_view, ctx, me, system_id, "duties", {})
+    resp = render(request, ctx, me, "_system_duties.html", **data)
+    msg = translator(_lang(request, ctx))(ok_key)
+    resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
+    resp.headers["content-length"] = str(len(resp.body))
+    return resp
+
+
+async def _duty_system(
+    request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str
+) -> tuple[dict[str, str], bool, dict[str, Any]]:
+    _off(ctx)
+    systems_duties.ensure_on(ctx)
+    systems_duties.person(me)
+    _check_id(system_id, "system id")
+    form, plain = await form_or_plain(request)
+    system = await _call(systems_views._need_visible, ctx, me, system_id)
+    return form, plain, system
+
+
+@router.post("/systems/{system_id}/duties/close", dependencies=[Depends(needs("systems.edit"))])
+@audited("systems.edit")
+async def system_duties_close(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Close one duty (``status_id``) or one group (``group``): closing control and evidence."""
+    form, plain, system = await _duty_system(request, ctx, me, system_id)
+    _, note = await _call(systems_duties.do_close, ctx, me, system, form)
+    return await _duty_answer(request, ctx, me, plain, system["system_id"], note, "du_ok_close")
+
+
+@router.post("/systems/{system_id}/duties/waive", dependencies=[Depends(needs("systems.approve"))])
+@audited("systems.approve")
+async def system_duties_waive(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Waive one duty or one group: reason of 20 characters or more; not by the system owner."""
+    form, plain, system = await _duty_system(request, ctx, me, system_id)
+    _, note = await _call(systems_duties.do_waive, ctx, me, system, form)
+    return await _duty_answer(request, ctx, me, plain, system["system_id"], note, "du_ok_waive")
+
+
+@router.post(
+    "/systems/{system_id}/duties/reevaluate", dependencies=[Depends(needs("systems.edit"))]
+)
+@audited("systems.edit")
+async def system_duties_reevaluate(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Run the matrix again on the stored answers and update the rows. Nothing is deleted."""
+    _, plain, system = await _duty_system(request, ctx, me, system_id)
+    _, note = await _call(systems_duties.do_reevaluate, ctx, me, system)
+    return await _duty_answer(request, ctx, me, plain, system["system_id"], note, "du_ok_reeval")
 
 
 # --- WP-N3 --- register workflow v2: /console/register (answers 400 while the flag is off)

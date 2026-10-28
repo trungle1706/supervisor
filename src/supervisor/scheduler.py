@@ -532,6 +532,16 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 lambda: governance_actions_job.run(ctx, settings),
             )
         )
+    from supervisor.jobs import duties_sweep as duties_sweep_job  # WP-L3
+
+    if duties_sweep_job.enabled(settings):  # WP-L3: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "duties_sweep",
+                settings.risk_duties_sweep_s,
+                lambda: duties_sweep_job.run(ctx, settings),
+            )
+        )
     return jobs
 
 

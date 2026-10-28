@@ -453,6 +453,10 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/systems/{system_id}/stage/request"): "systems.edit",
     ("POST", "/console/systems/{system_id}/stage/{approval_id}/decide"): "systems.approve",
     ("POST", "/console/systems/{system_id}/stage/move"): "systems.edit",
+    # --- WP-L3 (phase 8) --- duties of a system (RISK_DUTIES; 400 risk_duties_off when off)
+    ("POST", "/console/systems/{system_id}/duties/close"): "systems.edit",
+    ("POST", "/console/systems/{system_id}/duties/waive"): "systems.approve",
+    ("POST", "/console/systems/{system_id}/duties/reevaluate"): "systems.edit",
     # --- WP-P2 (phase 8) --- second person for a guardian switch-off (CONSOLE_STATE_ACTIONS)
     (
         "POST",

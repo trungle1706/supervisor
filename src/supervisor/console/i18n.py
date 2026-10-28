@@ -1715,6 +1715,7 @@ _T.update(
         "rk_cat_model_behaviour": ("Model behaviour", "Hành vi mô hình"),
         "rk_cat_availability": ("Availability", "Tính sẵn sàng"),
         "rk_cat_third_party": ("Third party", "Bên thứ ba"),
+        "rk_cat_duties_gap": ("Open regulatory duties", "Nghĩa vụ pháp lý chưa đóng"),
         "rk_st_draft": ("Draft", "Nháp"),
         "rk_st_active": ("Active", "Đang áp dụng"),
         "rk_st_retired": ("Retired", "Đã gỡ"),
@@ -4507,6 +4508,9 @@ _T.update(_RG2)
 from supervisor.console.i18n_workflow import WF as _WF  # noqa: E402  (WP-P1, prefix wf_)
 
 _T.update(_WF)
+from supervisor.console.i18n_duties import DU as _DU  # noqa: E402  (WP-L3, prefix du_)
+
+_T.update(_DU)
 
 # --- WP-P2 (phase 8) --- CONSOLE_STATE_ACTIONS: RUNNING request, Decision 33 apply, guardian off
 _T.update(
@@ -4642,6 +4646,7 @@ _T.update(
         "ov4_dim_checks": ("Readiness checked", "Đã kiểm tra mức sẵn sàng"),
         "ov4_dim_guardians": ("Guardians at the floor", "Bộ bảo vệ đạt mức tối thiểu"),
         "ov4_dim_tasks": ("Required tasks done", "Nhiệm vụ bắt buộc đã xong"),
+        "ov4_dim_duties": ("Duties closed (average)", "Nghĩa vụ đã đóng (trung bình)"),
         "ov4_risk_by_autonomy": (
             "Risk classification by autonomy level",
             "Phân loại rủi ro theo mức tự chủ",

@@ -200,6 +200,43 @@ svc.add_link("RSK-PAY-001", "rule", "PAY-02", actor)
 
 On Delta run `python -m supervisor.jobs.bootstrap_schema` before turning the flag on (three new tables).
 
+## Duties (WP-L3)
+
+> **Not legal advice. Bank counsel must confirm.** The Duties tab is an advisory aid. It does not decide compliance.
+
+Flag `RISK_DUTIES=1` (default `0`; needs `GOVERNANCE_ENABLED` and `CONSOLE_SYSTEMS_ENABLED`; Windows cmd: `set RISK_DUTIES=1`). It works on the `obligation_status` rows that the Duties step of the register workflow writes (`docs/register-v2.md` "Duties step", WP-L2). The unit of work is the **group** "instrument x coverage class" (partial or none), the same group WP-L2 opens one task for. There is no risk line per duty.
+
+| Part | What it does |
+|---|---|
+| Tab **Duties** (`/console/systems/<id>?tab=duties`) | The rows grouped by instrument, then coverage (none before partial). Columns: obligation id and article, duty, applies, coverage, status, owner, due, closing control. Filter `?f=` is `open` (default), `closed`, `waived`, `needs_answer` or `all`; 100 rows a page (`?p=`). A bad filter or page is HTTP 400. Group buttons act on every open row of the group |
+| **Close** | `POST /console/systems/<id>/duties/close`, field `status_id` (one row) or `group` (`<instrument id>\|none` or `\|partial`), `closing_control`, `evidence_ref`. Permission `systems.edit`. The closing control is a control id of the Supervisor control catalogue (not retired), or `manual:<bank control id>`: an obligation id of an internal rule file in `REGKB_INTERNAL_DIR` (`regulations/internal`) or a bank process id of `regulations/schema/controls.yaml`. The evidence reference is 1 to 200 characters. Refusals (HTTP 400, message starts with the code): `control_required`, `bad_control`, `evidence_required`, `target_required`, `bad_group`, `duty_not_found`, `nothing_to_do`, `not_open`, `needs_answer` (a duty not known to apply yet cannot be closed) |
+| **Waive** | `POST .../duties/waive`, field `status_id` or `group`, `reason` of 20 characters or more (`reason_too_short`). Permission `systems.approve`. The owner of the system (the `owner_user`, or a team member with role `system_owner`) gets 400 `owner_cannot_waive`: a second person with approval rights waives. Waived rows stay in the table and are not part of the score |
+| **Re-evaluate** | `POST .../duties/reevaluate`. Permission `systems.edit`. Runs the compliance matrix on the stored answers of the Duties step (the submitted register draft of the system) on top of the system fields, and on the `autonomy` fact of `onboard_facts` when the system has no autonomy level and a linked node has facts. Updates `applies` and `coverage` of the existing rows (a duty that stops applying keeps its row with `applies = no`). A duty that now applies and has no row gets one. A `needs_answer` row that becomes `yes` gets a due date. Closed and waived rows keep their status. Nothing is deleted. A repeat on unchanged answers changes nothing. Gap tasks of WP-L2 are opened again for groups that need one (same template ids, a repeat is a no-op) |
+
+The answer to a button is the refreshed tab (htmx) with the result in `#flash`, or a 303 for a plain form post. Two `console_action` rows per POST. The audit `detail` holds the action, the status before and after, the number of rows and a hash prefix (`text_sha`) of the typed text: `duty_close open>closed n=3 text_sha=...`, `duty_waive open>waived n=1 text_sha=...`, `duty_reevaluate rows=369>369 updated=0 added=0`. The reason and the evidence reference are stored in the `note` of the row (after the banner), never in `console_action`. `before_hash` and `after_hash` are the hashes of the system row with its duty rows. With the flag off the tab is absent and the three routes answer HTTP 400 `risk_duties_off`.
+
+**Gap closure score** of a system: `closed / (open + closed)` over the rows with `applies = yes`, an integer percent rounded down, `None` when there is no such row. Waived rows and rows that need an answer are not in the figure. It shows as a pill in the header of the system page and in the tab. My overview v4 (`CONSOLE_OVERVIEW_V4`) gets a `duties` row in the assessment completion block: the systems in scope with a score, the integer average, and how many of them still have an open group. With the flag off the row is absent.
+
+**Risk line.** One risk per system that has open groups: id `RSK-DUTY-<16 hex of the hash of the system id>`, category `duties_gap`, source `duties`, treatment `mitigate`, owner = system owner, review date 30 days ahead (kept while it is in the future), anchored on the first agent linked to the system (else on the system id). Score = likelihood x impact, both from the open groups:
+
+| Input | Rule (illustrative) |
+|---|---|
+| Likelihood | number of open groups: 1 to 2 gives 2, 3 to 5 gives 3, 6 to 9 gives 4, 10 or more gives 5 |
+| Impact | the highest group: binding Vietnamese instrument with coverage none 5, partial 4; international reference framework (non-binding or not VN) with coverage none 3, partial 2 |
+
+The obligation ids (the first id of each open group, at most 25 groups, ids RegKB knows) are `matrix` links: references, never controls, so the evidence rule leaves the residual at the inherent score. The line is created, changed and retired through the risk service (`RiskService.update_managed`, same checks and `risk_change` chain record as an edit) when a row is closed or waived, on Re-evaluate and on the register submit. All groups closed or waived: the line is retired; a group that opens again makes it active again. The bands stay **ILLUSTRATIVE**. The line is visible on the Risks page and the Risks tab when `RISK_REGISTER_ENABLED` and `CONSOLE_RISKS_ENABLED` are on.
+
+**Deadlines.** The due date of an open row is the effective date of the instrument when that date is still ahead (`advisory/compliance/deadlines.py`), otherwise the date WP-L2 set. Re-evaluate and the sweep apply this.
+
+**Sweep.** `python -m supervisor.jobs.duties_sweep`, and the scheduler job `duties_sweep` every `RISK_DUTIES_SWEEP_S` seconds (`0` = off, default; else 300 or more). For each system that is not archived and has an open applying duty due within 30 days or past due, one task for the ISO week: template `DUTY-DUE-<year>W<week>` (for example `DUTY-DUE-2026W44`), stage of the system, owner role owner, not required, due on the earliest future due date else in 7 days, the banner and the first 20 duty ids in the note. The task id comes from the system and the template, so a second run in the same week opens nothing. The standalone command writes to the evidence chain through the task service: run it with the app stopped, or let the app's scheduler run it.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `RISK_DUTIES` | `0` | Duties tab, score, risk line, overview row, the three routes |
+| `RISK_DUTIES_SWEEP_S` | `0` | Sweep interval in seconds; `0` = off, else 300 or more |
+
+No new table (the Duties step already created `obligation_status`).
+
 ## Harness (expert view: operational risk manager, internal auditor under the Three Lines model)
 
 `python -m supervisor.risk.harness` (also `tests/risk/test_harness.py`, with a baseline in `tests/fixtures/risk/baseline.json`).

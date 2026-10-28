@@ -558,6 +558,35 @@ class RiskService:
         self._changed(action, dict(stored), actor)
         return self.get(risk_id)
 
+    def update_managed(
+        self,
+        risk_id: str,
+        changes: Mapping[str, Any],
+        actor: str,
+        *,
+        source: str,
+    ) -> dict[str, Any]:
+        """Change a risk that a module keeps by itself (WP-L3 duties line). Same checks and the
+        same chain record as ``update``; the source stays ``source`` (``update`` makes it
+        ``manual``, because a person edited it)."""
+        cur = self._need(risk_id)
+        unknown = sorted(set(changes) - set(EDITABLE))
+        if unknown:
+            raise RiskError(f"cannot change: {', '.join(unknown)}")
+        merged = {k: cur[k] for k in EDITABLE} | dict(changes)
+        fields = normalise(merged, source=source)
+        try:
+            stored = self.state.update(
+                "risk", {"risk_id": risk_id}, fields, int(cur["row_version"])
+            )
+        except ConcurrencyError:
+            raise RiskError("the risk was changed by someone else; try again") from None
+        action = (
+            "retire" if fields["status"] == "retired" and cur["status"] != "retired" else "update"
+        )
+        self._changed(action, dict(stored), actor)
+        return self.get(risk_id)
+
     # ------------------------------------------------------------------ evidence
     def collector(self) -> ev.Collector:
         from supervisor.controls.refs import control_scope, runtime_sources  # WP30; lazy
