@@ -493,6 +493,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/intake/{node_id}"): "systems.edit",
     # --- WP-O2 (phase 9) --- facts card (ONBOARD_FACTS; 400 with the flag when off)
     ("GET", "/v1/facts/{node_id}"): "systems.view",
+    ("GET", "/v1/facts/{node_id}/export"): "systems.view",  # WP-F1 facts v1 export
     ("POST", "/v1/facts/{node_id}/{n}"): "systems.edit",
     ("GET", "/console/facts/{node_id}"): "systems.view",
     ("POST", "/console/facts/{node_id}"): "systems.edit",

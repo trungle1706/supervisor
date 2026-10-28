@@ -3,9 +3,14 @@ routes (scope, 400 shapes, segregation, audit rows)."""
 
 from __future__ import annotations
 
+from pathlib import Path as _Path
 from typing import Any
 
+import yaml
+
 from .conftest import Console, draft
+
+_REG_DIR = _Path(__file__).resolve().parents[2] / "regulations" / "vn"
 
 REVIEWER = "reviewer.an"
 ADMIN = "admin.chi"
@@ -48,17 +53,11 @@ def test_create_runs_the_rules_and_the_routes_show_them(on: Console) -> None:
     }
     obl = req(on, "GET", f"/v1/systems/{sid}/obligations").json()
     # every obligation of the instruments the rules fire for (the counts grow with RegKB)
-    import yaml as _yaml
-
     ids = {str(o["obligation"]) for o in obl["obligations"]}
     seen = set()
     expected = 0
-    for f in sorted(
-        (__import__("pathlib").Path(__file__).resolve().parents[2] / "regulations" / "vn").glob(
-            "*.yaml"
-        )
-    ):
-        doc = _yaml.safe_load(f.read_text(encoding="utf-8"))
+    for f in sorted((_REG_DIR).glob("*.yaml")):
+        doc = yaml.safe_load(f.read_text(encoding="utf-8"))
         rows = {str(r["id"]) for r in doc["obligations"]}
         if rows & ids:
             seen.add(doc["instrument"]["id"])

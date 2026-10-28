@@ -53,6 +53,7 @@ FLAG_MOUNTED = (
     "/v1/agents",  # WP-P2
     "/v1/candidates",  # WP-N1
     "/console/candidates",
+    "/v1/risk-dimensions",  # WP-C2: mounted inside the GOVERNANCE_ENABLED block
 )
 
 

@@ -94,7 +94,7 @@ articles that are not yet rows.
 | MITRE ATLAS 2026.09 | reference | 11 | 11/0/0 | no |
 | OECD AI Principles (2019, updated 2024) | reference | 5 | 1/4/0 | no |
 
-Total: 39 instruments (26 Vietnamese, 13 international), 604 obligations. Control coverage by Supervisor controls
+Total: 39 instruments (26 Vietnamese, 13 international), 618 obligations. Control coverage by Supervisor controls
 (bank process steps do not count; `python -m supervisor.regkb coverage --levels` prints it per instrument): 1 obligation
 has a `full` control, 507 have only `partial` controls, 96 rely only on a bank process or have no control. Before WP-W0 these
 were 1 / 435 / 92 (528 obligations); WP-W0 added 76 obligations, 72 partial and 4 with no Supervisor control. Supervisor produces

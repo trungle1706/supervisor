@@ -2,7 +2,8 @@
 
 * Every instrument in the map that is marked `stored: yes` has a YAML file and a
   `regulations/sources/<id>/` folder whose stored files all have sidecars; `yaml-only` has the YAML.
-* Every instrument file under regulations/vn and regulations/intl is listed in the map (no silent additions).
+* Every instrument file under regulations/vn and regulations/intl is listed in the map (no
+  silent additions).
 * The obligation count in the map equals the count in the file.
 * Missing rows have a reference `M-nn` and say what to do.
 """
