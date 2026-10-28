@@ -1,0 +1,99 @@
+{# Guardian factory Benchmark panel (WP-G2, GUARDIAN_FACTORY). Variable: gb. #}
+{% import "_ui.html" as ui with context %}
+{% set b = gb.base %}
+{% set L = gb.latest %}
+<div id="gf-bench" data-panel="benchmark" data-def="{{ gb.id }}"{% if gb.active %} hx-get="{{ b }}/benchmark?lang={{ lang }}" hx-trigger="every 2s" hx-target="#gf-bench" hx-swap="outerHTML" data-polling="1"{% endif %}>
+  <p class="hint">{{ t('gf_b_purpose') }}</p>
+
+  <h5>{{ t('gf_b_packs') }}</h5>
+  {% if gb.packs %}
+  <table class="tbl" data-packs="{{ gb.packs|length }}">
+    <thead><tr><th>{{ t('gf_b_pack') }}</th><th>{{ t('gf_version') }}</th><th>{{ t('gf_b_attack') }}</th><th>{{ t('gf_b_benign') }}</th><th>{{ t('gf_b_origin') }}</th><th>sha256</th></tr></thead>
+    <tbody>{% for p in gb.packs %}
+      <tr data-pack="{{ p.id }}"><td class="mono">{{ p.id }}</td><td>{{ p.version }}</td><td>{{ p.attack }}</td><td>{{ p.benign }}</td><td>{{ p.origin }}</td><td class="mono">{{ p.pack_sha256[:12] }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+  {% else %}<p class="hint" data-no-packs="1">{{ t('gf_b_no_packs') }}</p>{% endif %}
+
+  {% if gb.can_edit %}
+  <div class="grid2">
+    <form method="post" action="{{ b }}/bench-packs/generate?lang={{ lang }}" hx-post="{{ b }}/bench-packs/generate?lang={{ lang }}" hx-target="#gf-bench" hx-swap="outerHTML">
+      <label>{{ t('gf_b_pack') }} <input name="pack_id" value="{{ gb.pack_id or 'starter' }}" maxlength="64"></label>
+      <div class="btnrow"><button class="btn" data-action="bench-generate"{% if not gb.generator_ok %} disabled{% endif %}>{{ t('gf_b_generate') }}</button></div>
+      <p class="hint">{{ t('gf_b_generate_hint') if gb.generator_ok else t('gf_b_generate_na') }}</p>
+    </form>
+    <form method="post" action="{{ b }}/bench-packs/import-traces?lang={{ lang }}" hx-post="{{ b }}/bench-packs/import-traces?lang={{ lang }}" hx-target="#gf-bench" hx-swap="outerHTML">
+      <label>{{ t('gf_b_pack') }} <input name="pack_id" value="{{ gb.pack_id or 'starter' }}" maxlength="64"></label>
+      <label>{{ t('gf_b_limit') }} <input name="limit" value="2000" inputmode="numeric" maxlength="4"></label>
+      <div class="btnrow"><button class="btn" data-action="bench-import">{{ t('gf_b_import') }}</button></div>
+      <p class="hint">{{ t('gf_b_import_hint') }}</p>
+    </form>
+  </div>
+  <form method="post" enctype="multipart/form-data" action="{{ b }}/bench-packs/upload?lang={{ lang }}" hx-post="{{ b }}/bench-packs/upload?lang={{ lang }}" hx-encoding="multipart/form-data" hx-target="#gf-bench" hx-swap="outerHTML">
+    <div class="grid2">
+      <label>{{ t('gf_b_pack') }} <input name="pack_id" value="{{ gb.pack_id or 'starter' }}" maxlength="64"></label>
+      <label>{{ t('gf_b_which') }} <select name="which"><option value="attack">attack.jsonl</option><option value="benign">benign.jsonl</option></select></label>
+      <label>{{ t('gf_b_file') }} <input type="file" name="file" accept=".jsonl,.json,.txt"></label>
+    </div>
+    <div class="btnrow"><button class="btn" data-action="bench-upload">{{ t('gf_b_upload') }}</button></div>
+    <p class="hint">{{ t('gf_b_upload_hint') }}</p>
+  </form>
+
+  <form method="post" action="{{ b }}/benchmark?lang={{ lang }}" hx-post="{{ b }}/benchmark?lang={{ lang }}" hx-target="#gf-bench" hx-swap="outerHTML">
+    <label>{{ t('gf_b_run_pack') }} <input name="pack_id" value="{{ gb.pack_id }}" maxlength="64"></label>
+    <div class="btnrow"><button class="btn primary" data-action="bench-run"{% if gb.active %} disabled{% endif %}>{{ t('gf_b_run') }}</button></div>
+  </form>
+  {% endif %}
+
+  <h5>{{ t('gf_b_result') }}</h5>
+  {% if not L %}<p class="hint" data-no-run="1">{{ t('gf_b_no_run') }}</p>
+  {% else %}
+  <div class="idline" data-run="{{ L.run_id }}" data-status="{{ L.status }}">
+    <span class="mono">{{ L.run_id }}</span> - {{ t('gf_b_pack') }} <span class="mono">{{ L.pack_id }}</span> - {{ t('gf_version') }} {{ L.version }} - {{ t('gf_b_status') }}: {{ L.status }}
+  </div>
+  {% if gb.active %}<p class="hint" data-running="1">{{ t('gf_b_running') }}</p>
+  {% elif L.status == 'failed' %}<div class="msg msg-error" data-run-failed="1" role="alert">{{ t('gf_b_failed') }}: {{ L.result.error or '' }}</div>
+  {% else %}
+  {% set R = L.result %}
+  <table class="tbl" data-results="1">
+    <thead><tr><th>{{ t('gf_b_level') }}</th><th>TP</th><th>FN</th><th>FP</th><th>TN</th><th>{{ t('gf_b_tpr') }}</th><th>{{ t('gf_b_fpr') }}</th><th>{{ t('gf_b_p50') }}</th><th>{{ t('gf_b_p95') }}</th><th>{{ t('gf_b_cost') }}</th></tr></thead>
+    <tbody>
+    {% for x in R.levels %}
+      <tr data-level="{{ x.sensitivity }}"{% if x.sensitivity == R.chosen_sensitivity %} data-chosen="1"{% endif %}>
+        <td>{{ x.sensitivity }}{% if x.sensitivity == R.chosen_sensitivity %} ({{ t('gf_b_chosen') }}){% endif %}</td>
+        <td>{{ x.tp }}</td><td>{{ x.fn }}</td><td>{{ x.fp }}</td><td>{{ x.tn }}</td>
+        <td data-col="tpr">{{ x.tpr_pct }}</td><td data-col="fpr">{{ x.fpr_pct }}</td>
+        <td>{{ x.p50_us }}</td><td data-col="p95">{{ x.p95_us }}</td><td>{{ x.cost_tokens }}</td>
+      </tr>
+    {% endfor %}
+    {% if R.live %}
+      <tr data-live="{{ R.live.slug }}">
+        <td>{{ t('gf_b_live') }}: <span class="mono">{{ R.live.slug }}</span></td>
+        <td>{{ R.live.tp }}</td><td>{{ R.live.fn }}</td><td>{{ R.live.fp }}</td><td>{{ R.live.tn }}</td>
+        <td data-col="tpr">{{ R.live.tpr_pct }}</td><td data-col="fpr">{{ R.live.fpr_pct }}</td>
+        <td>{{ R.live.p50_us }}</td><td>{{ R.live.p95_us }}</td><td>0</td>
+      </tr>
+    {% endif %}
+    </tbody>
+  </table>
+  <p class="hint">{{ t('gf_b_thresholds', tpr=R.gate.thresholds.min_tpr_pct, fpr=R.gate.thresholds.max_fpr_pct, p95=R.gate.thresholds.max_p95_ms, s=R.chosen_sensitivity) }}</p>
+  <div class="msg {{ 'msg-ok' if L.gate == 'pass' else 'msg-error' }}" data-gate="{{ L.gate }}" role="status">
+    {{ t('gf_b_gate') }}: <b>{{ t('gf_b_' ~ L.gate) }}</b>{% if L.failing_threshold %} - {{ t('gf_b_failing') }}: <span class="mono" data-failing="{{ L.failing_threshold }}">{{ L.failing_threshold }}</span>{% endif %}
+  </div>
+  {% if R.advisory %}<p class="hint" data-advisory="1">{{ t('gf_b_advisory') }}{% if R.mock %} ({{ t('gf_b_mock') }}){% endif %}</p>{% endif %}
+  {% endif %}
+  {% endif %}
+
+  {% if gb.view.state == 'draft' and gb.can_edit %}
+  {% if gb.can_mark %}
+  <form method="post" action="{{ b }}/mark-benchmarked?lang={{ lang }}" hx-post="{{ b }}/mark-benchmarked?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+    <div class="btnrow"><button class="btn primary" data-action="mark-benchmarked">{{ t('gf_b_mark') }}</button></div>
+  </form>
+  {% else %}<p class="hint" data-mark-problem="1">{{ t('gf_b_mark_no') }}: {{ gb.mark_problem }}</p>{% endif %}
+  {% endif %}
+
+  {% if gb.runs|length > 1 %}
+  <h5>{{ t('gf_b_history') }}</h5>
+  <ul data-runs="1">{% for r in gb.runs %}<li><span class="mono">{{ r.run_id }}</span> {{ r.status }} {{ r.gate }}{% if r.failing_threshold %} ({{ r.failing_threshold }}){% endif %}</li>{% endfor %}</ul>
+  {% endif %}
+</div>

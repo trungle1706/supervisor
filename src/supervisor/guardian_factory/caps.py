@@ -75,13 +75,34 @@ TRANSITIONS: dict[str, tuple[str, ...]] = {
     "live": ("retired",),
     "retired": ("draft",),
 }
-ALLOWED_NOW: frozenset[tuple[str, str]] = frozenset({("draft", "retired"), ("retired", "draft")})
+# WP-G2 adds draft -> benchmarked (needs a passing run of this version and definition) and
+# benchmarked -> draft (any change of the definition).
+ALLOWED_NOW: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("draft", "retired"),
+        ("retired", "draft"),
+        ("draft", "benchmarked"),
+        ("benchmarked", "draft"),
+        ("benchmarked", "retired"),
+    }
+)
 SHADOW_DAYS_MAX = 90
 APPROVALS_MAX = 10
 ALLOW_LIST_MAX = 50
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$")
 BENCH_PACK_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+
+# ------------------------------------------------------------------ benchmark (WP-G2)
+BENCH_MAX_BYTES = 5_000_000
+BENCH_MAX_CASES = 5_000
+BENCH_TEXT_MAX = 4_000  # characters of one case (text, or the JSON of its arguments)
+BENCH_TRACE_SAMPLE_MAX = 2_000
+BENCH_GENERATED_ATTACK = 100
+BENCH_STALE_S = 1_800  # a queued or running row older than this, with no thread, was cut short
+BENCH_META_KEYS = ("agent_id", "tool_name", "data_class")
+# compare_with: "" = the closest catalogue detector of the stage; "none" = no live row
+COMPARE_WITH = ("", "dlp_vn", "injection_regex", "none")
 
 # ------------------------------------------------------------------ author
 OVER_BROAD_PCT = 5  # a regex that matches more than this share of the benign sample is flagged

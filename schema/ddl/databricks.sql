@@ -1710,3 +1710,26 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`factory_helper_draft` (
 USING DELTA
 COMMENT 'WP-F2 (phase 12B, AGENT_FACTORY). A row proposed by a helper agent (checklist_drafter, golden_generator, result_explainer) through the gateway model. A draft is never part of an agent: a person accepts or drops each row. row_json is the proposed row (a checklist item, a golden case or an explanation sentence with its pointers). A golden case that trips the masker is refused and never stored. No personal data, no float.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_bench_run (state): WP-G2. One row per benchmark run of a guardian definition (docs/guardian-factory.md, section Benchmark). The run is a background job: queued, running, then done or failed. result_json holds integers only (counts per sensitivity level, true and false positive rate in integer percent, p50 and p95 latency in microseconds, token cost, the live detector row, the gate); it holds no case text and no personal data. gate is pass, fail or not_run; failing_threshold names the thresholds that failed (min_tpr_pct, max_fpr_pct, max_p95_ms, comma separated). def_sha256 is the hash of the definition without its lifecycle: a pass counts for a transition to benchmarked only for the same version and the same hash. Each finished run also goes on the chain as guardian_bench.
+-- primary key (enforced by the app, not by Delta): run_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_bench_run` (
+  run_id STRING NOT NULL,
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  pack_id STRING NOT NULL,
+  pack_sha256 STRING NOT NULL,
+  def_sha256 STRING NOT NULL,
+  status STRING NOT NULL,
+  started_at TIMESTAMP NOT NULL,
+  finished_at TIMESTAMP,
+  result_json STRING NOT NULL,
+  gate STRING NOT NULL,
+  failing_threshold STRING,
+  created_by STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G2. One row per benchmark run of a guardian definition (docs/guardian-factory.md, section Benchmark). The run is a background job: queued, running, then done or failed. result_json holds integers only (counts per sensitivity level, true and false positive rate in integer percent, p50 and p95 latency in microseconds, token cost, the live detector row, the gate); it holds no case text and no personal data. gate is pass, fail or not_run; failing_threshold names the thresholds that failed (min_tpr_pct, max_fpr_pct, max_p95_ms, comma separated). def_sha256 is the hash of the definition without its lifecycle: a pass counts for a transition to benchmarked only for the same version and the same hash. Each finished run also goes on the chain as guardian_bench.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

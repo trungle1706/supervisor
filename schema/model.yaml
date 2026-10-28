@@ -1950,3 +1950,34 @@ tables:
       decided_by: string?
       decided_at: timestamp?
       created_at: timestamp
+
+  # --- WP-G2 (phase 12, GUARDIAN_FACTORY) -----------------------------------------------
+  guardian_bench_run:
+    kind: state
+    description: >
+      WP-G2. One row per benchmark run of a guardian definition (docs/guardian-factory.md,
+      section Benchmark). The run is a background job: queued, running, then done or failed.
+      result_json holds integers only (counts per sensitivity level, true and false positive
+      rate in integer percent, p50 and p95 latency in microseconds, token cost, the live
+      detector row, the gate); it holds no case text and no personal data. gate is pass, fail or
+      not_run; failing_threshold names the thresholds that failed (min_tpr_pct, max_fpr_pct,
+      max_p95_ms, comma separated). def_sha256 is the hash of the definition without its
+      lifecycle: a pass counts for a transition to benchmarked only for the same version and the
+      same hash. Each finished run also goes on the chain as guardian_bench.
+    primary_key: [run_id]
+    indexes:
+      - [def_id, version]
+    columns:
+      run_id: string
+      def_id: string
+      version: int
+      pack_id: string
+      pack_sha256: string
+      def_sha256: string
+      status: string           # queued | running | done | failed
+      started_at: timestamp
+      finished_at: timestamp?
+      result_json: json
+      gate: string             # pass | fail | not_run
+      failing_threshold: string?
+      created_by: string

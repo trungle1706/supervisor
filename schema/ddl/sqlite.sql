@@ -1972,3 +1972,25 @@ CREATE TABLE IF NOT EXISTS factory_helper_draft (
 );
 
 CREATE INDEX IF NOT EXISTS ix_factory_helper_draft_agent_id_helper_status ON factory_helper_draft (agent_id, helper, status);
+
+-- guardian_bench_run (state): WP-G2. One row per benchmark run of a guardian definition (docs/guardian-factory.md, section Benchmark). The run is a background job: queued, running, then done or failed. result_json holds integers only (counts per sensitivity level, true and false positive rate in integer percent, p50 and p95 latency in microseconds, token cost, the live detector row, the gate); it holds no case text and no personal data. gate is pass, fail or not_run; failing_threshold names the thresholds that failed (min_tpr_pct, max_fpr_pct, max_p95_ms, comma separated). def_sha256 is the hash of the definition without its lifecycle: a pass counts for a transition to benchmarked only for the same version and the same hash. Each finished run also goes on the chain as guardian_bench.
+CREATE TABLE IF NOT EXISTS guardian_bench_run (
+  run_id TEXT NOT NULL,
+  def_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  pack_id TEXT NOT NULL,
+  pack_sha256 TEXT NOT NULL,
+  def_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  result_json TEXT NOT NULL,
+  gate TEXT NOT NULL,
+  failing_threshold TEXT,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (run_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_guardian_bench_run_def_id_version ON guardian_bench_run (def_id, version);

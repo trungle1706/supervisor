@@ -1,0 +1,9 @@
+{# Guardian factory Benchmark panel as a full page (WP-G2); the panel is the same fragment. Variable: gb. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('gf_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('gf_title'), '/console/guardian-factory?lang=' ~ lang), (gb.id, '/console/guardian-factory/' ~ gb.id ~ '?lang=' ~ lang), (t('gf_bench_panel'), None)]) }}
+{{ ui.pagehead(t('gf_bench_panel') ~ ': ' ~ gb.id) }}
+{% include "_gf_bench.html" %}
+{% endblock %}

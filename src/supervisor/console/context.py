@@ -203,6 +203,30 @@ class ConsoleContext:
         return svc
 
     @property
+    def guardian_bench(self) -> Any:
+        """The guardian benchmark service (WP-G2). The gateway model only when LLM_BASE_URL is
+        set and LLM_MOCK is off (a judge or classifier guardian is then advisory)."""
+        from supervisor.guardian_factory.bench_service import BenchService
+
+        svc = getattr(self, "_guardian_bench", None)
+        if svc is None:
+            chat = masker = None
+            if self.settings.llm_base_url and not self.settings.llm_mock:
+                from supervisor.adapters.factory import make_chat_model, make_masker
+
+                chat = make_chat_model(self.settings)
+                masker = make_masker(self.settings)
+            svc = BenchService(
+                self.guardian_defs,
+                data_dir=self.settings.data_dir,
+                evidence=self.runtime.chain,
+                chat=chat,
+                masker=masker,
+            )
+            self._guardian_bench = svc
+        return svc
+
+    @property
     def lifecycle(self) -> Any:
         """Stage approvals and the lifecycle move of an AI system (WP-G1). Shares the system
         service, so every change goes on the chain."""

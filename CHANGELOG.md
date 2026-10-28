@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- WP-G2 (phase 12C): **guardian factory, benchmark harness**, under `GUARDIAN_FACTORY` (no new
+  flag). New `guardian_factory/bench.py` (pack format `attack.jsonl`, `benign.jsonl`, `pack.json`
+  with SHA-256; JSONL upload up to 5 MB and 5,000 cases, every case through the masker; the starter
+  pack generator for the pattern library and keyword lists; benign import from the stored masked
+  gate traces, up to 2,000; `run_benchmark` with TP, FN, FP, TN, true and false positive rate in
+  integer percent, p50 and p95 in microseconds and token cost at sensitivity 1 to 4, the live
+  detector of the same stage beside it, and the gate from the thresholds of the definition that
+  names the failing threshold) and `bench_service.py` (background run with a status row). New
+  optional definition field `compare_with`. New table `guardian_bench_run` (appended at the end of
+  `schema/model.yaml`; DDL and notebook regenerated), chain record `guardian_bench` (ids and
+  integers). `draft -> benchmarked` needs a passing run of the same version and definition hash;
+  a change of a benchmarked version sets it back to draft. API `GET/POST /v1/guardian-defs/{id}/
+  bench-packs`, `POST .../benchmark`, `GET .../benchmark/{run_id}`, `POST .../mark-benchmarked`;
+  the Benchmark panel in the editor (`/console/guardian-factory/{id}/benchmark`, polling), RBAC
+  rows, i18n, audit rows. Details: `docs/guardian-factory.md`, section Benchmark.
+
 - WP-F4 (phase 12B): **onboarding orchestrator**, `ONBOARD_ORCHESTRATOR` (default `0`; needs
   `GOVERNANCE_ENABLED`, `RISK_DIMENSIONS`, `CLASSIFICATION_V2`). New `onboard/orchestrator.py`
   (deterministic, no model call): `plan` (which of the eight risk types apply by classification

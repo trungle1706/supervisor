@@ -150,6 +150,7 @@ async def _move(
         "retire": svc.retire,
         "reopen": svc.reopen,
         "new-version": svc.new_version,
+        "mark-benchmarked": svc.mark_benchmarked,
     }[what]
     try:
         out = await _call(fn, def_id, me)
@@ -325,8 +326,10 @@ def panel_data(
     view = None if def_id == NEW else svc.get(def_id)
     owner = (view or {}).get("owner_group") or (vals or {}).get("owner_group") or ""
     can = agent_detail.can(me, "guardians.edit") and (not owner or gstore.can_edit(me, owner))
-    editable = can and (view is None or view["state"] == "draft")
+    editable = can and (view is None or view["state"] in gstore.EDITABLE)
+    bench = bench_data(ctx, me, def_id) if view is not None else {}
     return {
+        **bench,
         "gf": {
             "id": def_id,
             "is_new": view is None,
@@ -343,7 +346,7 @@ def panel_data(
             "states": caps.STATES,
             "base": "/console/guardian-factory",
             "events": _events(ctx, def_id) if view else [],
-        }
+        },
     }
 
 
@@ -506,7 +509,12 @@ async def _console_move(
     svc = _svc(ctx)
     _check_id(def_id, "guardian id")
     _, plain = await form_or_plain(request)
-    fn = {"retire": svc.retire, "reopen": svc.reopen, "new-version": svc.new_version}[what]
+    fn = {
+        "retire": svc.retire,
+        "reopen": svc.reopen,
+        "new-version": svc.new_version,
+        "mark-benchmarked": svc.mark_benchmarked,
+    }[what]
     try:
         out = await _call(fn, def_id, me)
     except NotFoundError as exc:
@@ -556,3 +564,297 @@ async def editor_new_version(
     def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     return await _console_move("new-version", def_id, request, ctx, me)
+
+
+# ------------------------------------------------------------------------------- benchmark (WP-G2)
+# JSON API: GET/POST /v1/guardian-defs/{id}/bench-packs, POST .../benchmark,
+# GET .../benchmark/{run_id}, POST .../mark-benchmarked. Console: the Benchmark panel at
+# /console/guardian-factory/{id}/benchmark and its POST actions. Same flag, same 400.
+
+_UPLOAD_LIMIT = caps.BENCH_MAX_BYTES + 65_536
+
+
+async def _json_body(request: Request) -> dict[str, Any]:
+    declared = request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > 2 * _UPLOAD_LIMIT:
+        raise GuardianFactoryError("pack_too_large", "the request body is too large")
+    raw = await request.body()
+    if len(raw) > 2 * _UPLOAD_LIMIT:
+        raise GuardianFactoryError("pack_too_large", "the request body is too large")
+    try:
+        data = json.loads(raw.decode("utf-8")) if raw else {}
+    except (UnicodeDecodeError, ValueError):
+        raise GuardianFactoryError("bad_request", "request body must be JSON") from None
+    if not isinstance(data, dict):
+        raise GuardianFactoryError("bad_request", "request body must be a JSON object")
+    return data
+
+
+def _bench(ctx: ConsoleContext) -> Any:
+    gstore.require_on(ctx.settings)
+    return ctx.guardian_bench
+
+
+def _pack_op(svc: Any, def_id: str, data: dict[str, Any], me: AuthPrincipal) -> dict[str, Any]:
+    op = data.get("op")
+    extra = sorted(set(data) - {"op", "pack_id", "attack_jsonl", "benign_jsonl", "limit"})
+    if extra:
+        raise GuardianFactoryError("bad_request", f"unknown key: {', '.join(extra)}")
+    if op == "upload":
+        for k in ("attack_jsonl", "benign_jsonl"):
+            if data.get(k) is not None and not isinstance(data[k], str):
+                raise GuardianFactoryError("bad_request", f"{k}: JSONL text")
+        return svc.upload(
+            def_id, data.get("pack_id"), data.get("attack_jsonl"), data.get("benign_jsonl"), me
+        )
+    if op == "generate":
+        return svc.generate(def_id, data.get("pack_id"), me)
+    if op == "import_traces":
+        kw = {"limit": data["limit"]} if "limit" in data else {}
+        return svc.import_traces(def_id, data.get("pack_id"), me, **kw)
+    raise GuardianFactoryError("bad_request", "op: upload, generate or import_traces")
+
+
+@api_router.get(
+    "/guardian-defs/{def_id}/bench-packs", dependencies=[Depends(needs("guardians.view"))]
+)
+def list_bench_packs(def_id: str, ctx: ConsoleContext = _CTX) -> Any:
+    svc = _bench(ctx)
+    _check_id(def_id, "guardian id")
+    try:
+        return {"items": svc.list_packs(def_id)}
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+@api_router.post(
+    "/guardian-defs/{def_id}/bench-packs", dependencies=[Depends(needs("guardians.edit"))]
+)
+@audited("guardians.edit")
+async def post_bench_pack(
+    def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    svc = _bench(ctx)
+    _check_id(def_id, "guardian id")
+    data = await _json_body(request)
+    try:
+        out = await _call(_pack_op, svc, def_id, data, me)
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = f"guardian_bench pack {data.get('op')} {def_id}/{out['id']}"
+    return JSONResponse(status_code=201, content=out)
+
+
+@api_router.post(
+    "/guardian-defs/{def_id}/benchmark", dependencies=[Depends(needs("guardians.edit"))]
+)
+@audited("guardians.edit")
+async def post_benchmark(
+    def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    svc = _bench(ctx)
+    _check_id(def_id, "guardian id")
+    data = await _json_body(request)
+    extra = sorted(set(data) - {"pack_id"})
+    if extra:
+        raise GuardianFactoryError("bad_request", f"unknown key: {', '.join(extra)}")
+    try:
+        out = await _call(svc.start_run, def_id, me, data.get("pack_id"))
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = f"guardian_bench run {def_id} {out['run_id']}"
+    return JSONResponse(status_code=202, content=out)
+
+
+@api_router.get(
+    "/guardian-defs/{def_id}/benchmark/{run_id}", dependencies=[Depends(needs("guardians.view"))]
+)
+def get_benchmark(def_id: str, run_id: str, ctx: ConsoleContext = _CTX) -> Any:
+    svc = _bench(ctx)
+    _check_id(def_id, "guardian id")
+    _check_id(run_id, "run id")
+    try:
+        return svc.get_run(def_id, run_id)
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+@api_router.post(
+    "/guardian-defs/{def_id}/mark-benchmarked", dependencies=[Depends(needs("guardians.edit"))]
+)
+@audited("guardians.edit")
+async def post_mark_benchmarked(
+    def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    return await _move("mark-benchmarked", def_id, request, ctx, me)
+
+
+def bench_data(ctx: ConsoleContext, me: AuthPrincipal, def_id: str) -> dict[str, Any]:
+    """The data of the Benchmark panel."""
+    svc = _bench(ctx)
+    store = ctx.guardian_defs
+    view = store.get(def_id)
+    row = store._latest(def_id)  # noqa: SLF001
+    can = bool(
+        agent_detail.can(me, "guardians.edit")
+        and gstore.can_edit(me, view["owner_group"])
+        and view["state"] in gstore.EDITABLE
+    )
+    runs = svc.list_runs(def_id, 5)
+    latest = runs[0] if runs else None
+    why = store.bench_problem(row) if view["state"] == "draft" else ""
+    d = view["definition"]
+    return {
+        "gb": {
+            "id": def_id,
+            "base": f"/console/guardian-factory/{def_id}",
+            "view": view,
+            "can_edit": can,
+            "packs": svc.list_packs(def_id),
+            "runs": runs,
+            "latest": latest,
+            "active": bool(latest and latest["status"] in ("queued", "running")),
+            "can_mark": can and view["state"] == "draft" and not why,
+            "mark_problem": why,
+            "pack_id": d.get("benchmark_pack", ""),
+            "thresholds": d["thresholds"],
+            "sensitivity": d["sensitivity"],
+            "generator_ok": d["type"] in ("regex", "keyword_list"),
+        }
+    }
+
+
+@router.get(
+    "/guardian-factory/{def_id}/benchmark",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("guardians.view"))],
+)
+async def bench_page(
+    def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    _svc(ctx)
+    _check_id(def_id, "guardian id")
+    try:
+        data = await _call(bench_data, ctx, me, def_id)
+    except NotFoundError as exc:
+        return _not_found(exc)
+    template = "_gf_bench.html" if request.headers.get("hx-request") == "true" else "gf_bench.html"
+    return render(request, ctx, me, template, section="", **data)
+
+
+async def _bench_respond(
+    request: Request, ctx: ConsoleContext, me: AuthPrincipal, def_id: str, plain: bool, note: str
+) -> Response:
+    if plain:
+        return RedirectResponse(
+            f"/console/guardian-factory/{def_id}/benchmark?lang={_lang(request, ctx)}",
+            status_code=303,
+        )
+    data = await _call(bench_data, ctx, me, def_id)
+    resp = render(request, ctx, me, "_gf_bench.html", section="", **data)
+    if note:
+        resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
+        resp.headers["content-length"] = str(len(resp.body))
+    return resp
+
+
+@router.post(
+    "/guardian-factory/{def_id}/bench-packs/{op}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("guardians.edit"))],
+)
+@audited("guardians.edit")
+async def bench_pack_action(
+    def_id: str, op: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """Console pack actions: ``upload`` (one multipart file, ``which`` = attack or benign),
+    ``generate``, ``import-traces``. Every refusal is HTTP 400 with a message."""
+    from supervisor.console.intake_routes import _same_site, parse_multipart
+    from supervisor.console.routes import _htmx_only
+
+    svc = _bench(ctx)
+    _check_id(def_id, "guardian id")
+    _htmx_only(request)
+    if op not in ("upload", "generate", "import-traces"):
+        raise GuardianFactoryError("bad_request", "op: upload, generate or import-traces")
+    _same_site(request)
+    work: Any
+    if op == "upload":
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > _UPLOAD_LIMIT:
+            raise GuardianFactoryError("pack_too_large", "the file is larger than 5 MB")
+        body = await request.body()
+        if len(body) > _UPLOAD_LIMIT:
+            raise GuardianFactoryError("pack_too_large", "the file is larger than 5 MB")
+        files, fields = parse_multipart(request.headers.get("content-type", ""), body)
+        if not files:
+            raise GuardianFactoryError("pack_invalid", "choose a .jsonl file")
+        which = fields.get("which", "")
+        if which not in ("attack", "benign"):
+            raise GuardianFactoryError("bad_request", "which: attack or benign")
+        raw = files[0][1]
+
+        def work() -> dict[str, Any]:
+            return svc.upload(
+                def_id,
+                fields.get("pack_id", ""),
+                raw if which == "attack" else None,
+                raw if which == "benign" else None,
+                me,
+            )
+
+    else:
+        fields, _ = await form_or_plain(request)
+
+        def work() -> dict[str, Any]:
+            if op == "generate":
+                return svc.generate(def_id, fields.get("pack_id", ""), me)
+            raw_limit = (fields.get("limit") or "").strip()
+            kw: dict[str, int] = {}
+            if raw_limit:
+                if not raw_limit.isdigit():
+                    raise GuardianFactoryError("bad_limit", "limit: a whole number from 1")
+                kw["limit"] = int(raw_limit)
+            return svc.import_traces(def_id, fields.get("pack_id", ""), me, **kw)
+
+    try:
+        out = await _call(work)
+    except NotFoundError as exc:
+        return _not_found(exc)
+    note = f"pack {out['id']} v{out['version']}: {out['attack']} attack, {out['benign']} benign"
+    request.state.audit_detail = f"guardian_bench pack {op} {def_id}/{out['id']}"
+    return await _bench_respond(request, ctx, me, def_id, False, note)
+
+
+@router.post(
+    "/guardian-factory/{def_id}/benchmark",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("guardians.edit"))],
+)
+@audited("guardians.edit")
+async def bench_run_action(
+    def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    svc = _bench(ctx)
+    _check_id(def_id, "guardian id")
+    fields, plain = await form_or_plain(request)
+    pid = (fields.get("pack_id") or "").strip() or None
+    try:
+        out = await _call(svc.start_run, def_id, me, pid)
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = f"guardian_bench run {def_id} {out['run_id']}"
+    note = f"benchmark {out['run_id']} started"
+    return await _bench_respond(request, ctx, me, def_id, plain, note)
+
+
+@router.post(
+    "/guardian-factory/{def_id}/mark-benchmarked",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("guardians.edit"))],
+)
+@audited("guardians.edit")
+async def editor_mark_benchmarked(
+    def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    return await _console_move("mark-benchmarked", def_id, request, ctx, me)

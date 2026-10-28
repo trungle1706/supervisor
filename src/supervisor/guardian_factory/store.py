@@ -21,7 +21,7 @@ from supervisor.controls.model import actor_ref
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, NotFoundError
-from supervisor.guardian_factory import caps
+from supervisor.guardian_factory import bench, caps
 from supervisor.guardian_factory.definition import (
     GuardianDefinition,
     GuardianFactoryError,
@@ -33,7 +33,8 @@ log = logging.getLogger("supervisor.guardian_factory")
 TABLE = "guardian_def"
 EVENTS = "guardian_def_event"
 OFF_MESSAGE = "the guardian factory is off (GUARDIAN_FACTORY=1 and DETECTORS_ENABLED=1 turn it on)"
-LATER_STATES = "the states benchmarked, shadow, approved and live come with WP-G2 and WP-G3"
+LATER_STATES = "the states shadow, approved and live come with WP-G3"
+EDITABLE = ("draft", "benchmarked")  # a change of a benchmarked version sends it back to draft
 
 
 def enabled(settings: Any) -> bool:
@@ -245,7 +246,7 @@ class GuardianDefStore:
         require_on(self.settings)
         row = self._latest(def_id)
         actor = self._need(user, str(row["owner_group"]))
-        if row["state"] != "draft":
+        if row["state"] not in EDITABLE:
             raise GuardianFactoryError(
                 "not_draft",
                 f"version {row['version']} is {row['state']}; make a new version to change it",
@@ -267,6 +268,20 @@ class GuardianDefStore:
             approvals=old.get("lifecycle", {}).get("approvals", []),
         )
         body["created_at"] = old.get("created_at") or body["created_at"]
+        was, action = str(row["state"]), "saved"
+        if was == "benchmarked":
+            if bench.def_sha(body) == bench.def_sha(old):
+                d, body = self._prepare(
+                    body_in,
+                    actor,
+                    state="benchmarked",
+                    version=int(row["version"]),
+                    created_by=str(row["created_by"]),
+                    approvals=old.get("lifecycle", {}).get("approvals", []),
+                )
+                body["created_at"] = old.get("created_at") or body["created_at"]
+            else:
+                action = "reset_to_draft"  # WP-G2: the benchmark no longer fits this definition
         try:
             stored = dict(
                 self.state.update(
@@ -278,7 +293,7 @@ class GuardianDefStore:
             )
         except ConcurrencyError:
             raise GuardianFactoryError("conflict", "the definition changed; reload it") from None
-        self._event(stored, "saved", "draft", actor)
+        self._event(stored, action, was, actor)
         return self.view(stored)
 
     def new_version(self, def_id: str, user: Any) -> dict[str, Any]:
@@ -321,6 +336,35 @@ class GuardianDefStore:
             raise GuardianFactoryError("conflict", "the definition changed; reload it") from None
         self._event(stored, action, str(row["state"]), actor)
         return self.view(stored)
+
+    def bench_problem(self, row: Mapping[str, Any]) -> str:
+        """Why this version cannot be marked benchmarked, or an empty string when the newest run
+        of this version passed for this exact definition and the pack it names (WP-G2)."""
+        body = self._body(row)
+        run = bench.newest_run(self.state, str(row["def_id"]), int(row["version"]))
+        if run is None:
+            return "there is no benchmark run of this version"
+        if run["status"] != "done":
+            return f"the newest run is {run['status']}"
+        if run["gate"] != "pass":
+            return f"the newest run did not pass ({run['failing_threshold'] or run['gate']})"
+        if run["def_sha256"] != bench.def_sha(body):
+            return "the definition changed after the newest run; run the benchmark again"
+        if run["pack_id"] != (body.get("benchmark_pack") or ""):
+            return "the newest run used another pack than benchmark_pack of the definition"
+        return ""
+
+    def mark_benchmarked(self, def_id: str, user: Any) -> dict[str, Any]:
+        """draft -> benchmarked, only when the newest benchmark run of this version passed for
+        this exact definition (same hash) and the pack the definition names (WP-G2)."""
+        require_on(self.settings)
+        row = self._latest(def_id)
+        self._need(user, str(row["owner_group"]))
+        check_transition(str(row["state"]), "benchmarked")
+        why = self.bench_problem(row)
+        if why:
+            raise GuardianFactoryError("no_passing_run", why)
+        return self._move(def_id, "benchmarked", "benchmarked", user)
 
     def retire(self, def_id: str, user: Any) -> dict[str, Any]:
         return self._move(def_id, "retired", "retired", user)

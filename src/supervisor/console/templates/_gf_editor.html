@@ -11,7 +11,7 @@
   </div>
   {% endif %}
   {% if not gf.can_edit %}<p class="hint" data-view-only="1">{{ t('gf_view_only') }}</p>
-  {% elif gf.view and gf.view.state != 'draft' %}<p class="hint" data-not-draft="1">{{ t('gf_not_draft') }}</p>{% endif %}
+  {% elif gf.view and gf.view.state not in ('draft', 'benchmarked') %}<p class="hint" data-not-draft="1">{{ t('gf_not_draft') }}</p>{% endif %}
 
   <form method="post" action="{{ base }}/draft?lang={{ lang }}" hx-post="{{ base }}/draft?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML" id="gf-form">
     <fieldset{% if not gf.editable %} disabled{% endif %}>
@@ -65,7 +65,7 @@
 
   {% if gf.view and gf.can_edit %}
   <div class="btnrow">
-    {% if gf.view.state == 'draft' %}
+    {% if gf.view.state in ('draft', 'benchmarked') %}
     <form method="post" action="{{ base }}/retire?lang={{ lang }}" hx-post="{{ base }}/retire?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML"><button class="btn" data-action="retire">{{ t('gf_retire') }}</button></form>
     {% elif gf.view.state == 'retired' %}
     <form method="post" action="{{ base }}/reopen?lang={{ lang }}" hx-post="{{ base }}/reopen?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML"><button class="btn" data-action="reopen">{{ t('gf_reopen') }}</button></form>
@@ -75,7 +75,8 @@
   {% endif %}
 
   <h4>{{ t('gf_bench_panel') }}</h4>
-  <p class="hint" data-panel="benchmark">{{ t('gf_bench_soon') }}</p>
+  {% if gb is defined and gb %}{% include "_gf_bench.html" %}
+  {% else %}<p class="hint" data-panel="benchmark">{{ t('gf_b_save_first') }}</p>{% endif %}
   <h4>{{ t('gf_shadow_panel') }}</h4>
   <p class="hint" data-panel="shadow">{{ t('gf_shadow_soon') }}</p>
 
