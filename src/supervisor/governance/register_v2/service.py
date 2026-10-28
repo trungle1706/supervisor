@@ -17,6 +17,7 @@ from typing import Any
 from supervisor.console import systems_wizard as wiz
 from supervisor.core.errors import SupervisorError
 from supervisor.governance import decision33 as d33
+from supervisor.governance import duties_gap as dg
 from supervisor.governance import guardians as gd
 from supervisor.governance import model as gm
 from supervisor.governance.register_v2 import duties as dut
@@ -732,6 +733,8 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
         _guard(steps, "rg2_w_duties", write_duties)
         if counts:
             steps[-1]["detail"] = f"{counts['rows']} / {counts['tasks']}"
+        if dg.enabled(ctx.settings):  # WP-L3: the risk line of the open duty groups
+            dg.sync_risk(ctx, ctx.systems.get(sid), actor)
     # --- tasks ---
     opened = wiz.open_tasks(ctx, sid, actor)
     if plan["task_policy"] and _task(ctx, sid, TASK_POLICY, actor):

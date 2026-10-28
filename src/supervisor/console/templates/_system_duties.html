@@ -1,0 +1,99 @@
+{# Duties tab of the system page (WP-L3, RISK_DUTIES): the obligation_status rows of the system,
+   grouped by instrument and coverage, with Close, Waive and Re-evaluate. Variables: s, du_score,
+   du_filter, du_filters, du_counts, du_blocks, du_page, du_shown, du_can_edit, du_can_waive,
+   du_is_owner, du_choices, du_banner, du_risk_id (systems_duties.tab_data). Not legal advice. #}
+{% import "_ui.html" as ui with context %}
+{% set dub = '/console/systems/' ~ s.system_id %}
+{% macro du_post(path) %}method="post" action="{{ dub }}/duties/{{ path }}?lang={{ lang }}" hx-post="{{ dub }}/duties/{{ path }}?lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML"{% endmacro %}
+{% macro du_close(target) %}
+  <details class="du-act"><summary class="btn sm primary" data-act="duty-close">{{ t('du_close') }}</summary>
+    <form {{ du_post('close') }} class="stack-f">
+      {{ target }}
+      <input type="text" name="closing_control" list="du-controls" maxlength="70" required placeholder="{{ t('du_control_ph') }}" aria-label="{{ t('du_control') }}">
+      <input type="text" name="evidence_ref" maxlength="{{ du_max_evidence }}" required placeholder="{{ t('du_evidence_ph') }}" aria-label="{{ t('du_evidence') }}">
+      <button class="btn sm primary" type="submit" data-act="duty-close-go">{{ t('du_close') }}</button>
+    </form>
+  </details>
+{% endmacro %}
+{% macro du_waive(target) %}
+  <details class="du-act"><summary class="btn sm" data-act="duty-waive">{{ t('du_waive') }}</summary>
+    <form {{ du_post('waive') }} class="stack-f">
+      {{ target }}
+      <input type="text" name="reason" minlength="{{ du_min_waive }}" maxlength="500" required placeholder="{{ t('du_waive_ph', n=du_min_waive) }}" aria-label="{{ t('du_waive_ph', n=du_min_waive) }}">
+      <button class="btn sm" type="submit" data-act="duty-waive-go">{{ t('du_waive') }}</button>
+    </form>
+  </details>
+{% endmacro %}
+<p class="notice" data-du="banner"><span class="dot"></span><b>{{ du_banner }}</b></p>
+<section class="card" data-section="duty-score">
+  <h3>{{ t('du_score_title') }}</h3>
+  {% if du_score.pct is none %}
+  <p class="hint" data-du="score">{{ t('du_score_none') }}</p>
+  {% else %}
+  <p data-du="score"><b>{{ du_score.pct }}%</b> {{ t('du_score_line', closed=du_score.closed, total=du_score.open + du_score.closed) }}</p>
+  {{ ui.bar(du_score.pct * 100, 'ok' if du_score.pct >= 100 else 'amber') }}
+  {% endif %}
+  <p class="hint">{{ t('du_score_note', waived=du_score.waived, groups=du_score.open_groups) }}
+    {% if du_score.open_groups %}<span class="mono">{{ du_risk_id }}</span>{% endif %}</p>
+  {% if du_can_edit %}
+  <form {{ du_post('reevaluate') }} class="stack-f" data-form="duty-reevaluate">
+    <button class="btn sm" type="submit" data-act="duty-reevaluate">{{ t('du_reeval') }}</button>
+    <span class="hint">{{ t('du_reeval_hint') }}</span>
+  </form>
+  {% endif %}
+</section>
+<nav class="filters" aria-label="{{ t('du_filter') }}" data-du="filters">
+  {% for f in du_filters %}
+  <a class="chip{% if f == du_filter %} on{% endif %}" href="/console/systems/{{ s.system_id }}?tab=duties&f={{ f }}&lang={{ lang }}" data-filter="{{ f }}">{{ t('du_f_' ~ f) }} <span class="muted">{{ du_counts[f] }}</span></a>
+  {% endfor %}
+</nav>
+{% if du_can_edit %}
+<datalist id="du-controls">
+  {% for c in du_choices.catalogue %}<option value="{{ c }}">{% endfor %}
+  {% for c in du_choices.manual %}<option value="manual:{{ c }}">{% endfor %}
+</datalist>
+{% endif %}
+{% if not du_blocks %}
+{{ ui.empty(t('du_empty')) }}
+{% endif %}
+{% for b in du_blocks %}
+<section class="card" data-section="duty-group" data-group="{{ b.instrument_id }}|{{ b.coverage }}">
+  <h3><span class="mono">{{ b.instrument }}</span> {{ ui.pill(t('du_cov_' ~ b.coverage), {'none': 'bad', 'partial': 'warn', 'full': 'ok'}.get(b.coverage, 'neutral')) }}
+    <span class="muted">{{ t('du_group_counts', open=b.counts.get('open', 0), closed=b.counts.get('closed', 0), waived=b.counts.get('waived', 0)) }}</span></h3>
+  {% if b.actionable and (du_can_edit or du_can_waive) %}
+  {% set gt %}<input type="hidden" name="group" value="{{ b.instrument_id }}|{{ b.coverage }}">{% endset %}
+  <div class="btnrow">
+    {% if du_can_edit %}{{ du_close(gt) }}{% endif %}
+    {% if du_can_waive and not du_is_owner %}{{ du_waive(gt) }}{% endif %}
+  </div>
+  {% endif %}
+  <div class="tablewrap flat"><table data-table="duties">
+    <thead><tr><th scope="col">{{ t('du_col_obl') }}</th><th scope="col">{{ t('du_col_duty') }}</th><th scope="col">{{ t('du_col_applies') }}</th><th scope="col">{{ t('du_col_cov') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('du_col_owner') }}</th><th scope="col">{{ t('du_col_due') }}</th><th scope="col">{{ t('du_col_control') }}</th>{% if du_can_edit or du_can_waive %}<th scope="col">{{ t('wf_actions') }}</th>{% endif %}</tr></thead>
+    <tbody>
+    {% for r in b.rows %}
+      <tr data-obligation="{{ r.obligation_id }}" data-status="{{ r.status }}">
+        <td><span class="mono">{{ r.obligation_id }}</span><div class="idline">{{ r.article }}</div></td>
+        <td>{{ r.duty }}</td>
+        <td>{{ ui.pill(t('du_ap_' ~ r.applies), {'yes': 'warn', 'needs_answer': 'neutral'}.get(r.applies, 'neutral')) }}</td>
+        <td>{{ t('du_cov_' ~ r.coverage) }}</td>
+        <td>{{ ui.pill(t('du_st_' ~ r.status), {'closed': 'ok', 'waived': 'neutral'}.get(r.status, 'warn'), True) }}</td>
+        <td class="mono">{{ r.owner }}</td>
+        <td class="mono">{{ r.due or '-' }}{% if r.overdue %} {{ ui.pill(t('rk_overdue'), 'bad') }}{% endif %}</td>
+        <td class="mono">{{ r.closing_control or '-' }}{% if r.status != 'open' and r.note %}<div class="idline" title="{{ r.note }}">{{ r.note[:120] }}</div>{% endif %}</td>
+        {% if du_can_edit or du_can_waive %}<td>
+          {% if r.can_act %}
+          {% set rt %}<input type="hidden" name="status_id" value="{{ r.status_id }}">{% endset %}
+          {% if du_can_edit %}{{ du_close(rt) }}{% endif %}
+          {% if du_can_waive and not du_is_owner %}{{ du_waive(rt) }}{% endif %}
+          {% elif r.applies == 'needs_answer' %}<span class="hint">{{ t('du_needs_answer') }}</span>{% endif %}
+        </td>{% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endfor %}
+{% if du_is_owner and du_can_waive %}<p class="hint" data-du="owner-note">{{ t('du_owner_note') }}</p>{% endif %}
+<p class="hint" data-du="paging">{{ t('du_paging', first=du_page.first, last=du_page.last, total=du_shown, page=du_page.page, pages=du_page.pages) }}
+  {% if du_page.prev %}<a href="/console/systems/{{ s.system_id }}?tab=duties&f={{ du_filter }}&p={{ du_page.prev }}&lang={{ lang }}">{{ t('du_prev') }}</a>{% endif %}
+  {% if du_page.next %}<a href="/console/systems/{{ s.system_id }}?tab=duties&f={{ du_filter }}&p={{ du_page.next }}&lang={{ lang }}">{{ t('du_next') }}</a>{% endif %}</p>

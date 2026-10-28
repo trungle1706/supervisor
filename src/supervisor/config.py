@@ -722,6 +722,15 @@ class Settings(BaseSettings):
     # of a system is read only and the workflow routes answer HTTP 400 naming this flag. Needs
     # GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED (tasks also need CONTROLS_ENABLED).
     console_workflow_actions: bool = False
+    # --- WP-L3 (phase 8) --- duties in the risk register and gap tasks (docs/risk-register.md
+    # "Duties (WP-L3)"): Duties tab on the system page (close, waive, re-evaluate), the gap closure
+    # score, the risk line of kind duties_gap and the My overview dimension. Needs
+    # GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED. Off: no tab, the routes answer HTTP 400
+    # risk_duties_off.
+    # RISK_DUTIES_SWEEP_S: scheduler sweep that opens one reminder task per system per week for
+    # duties due within 30 days; 0 = off (default), else 300 or more.
+    risk_duties: bool = False
+    risk_duties_sweep_s: int = Field(default=0, ge=0)
 
     # --- WP-G2 --- assignment rules and Decision 33 classification (docs/assignment-rules.md,
     # docs/decision33.md). Both need GOVERNANCE_ENABLED. CLASSIFIER_AI_PREFILL=1 lets the
@@ -841,6 +850,13 @@ class Settings(BaseSettings):
         if not value.is_absolute():
             value = REPO_ROOT / value
         return Path(os.path.abspath(value))
+
+    @field_validator("risk_duties_sweep_s", mode="after")
+    @classmethod
+    def _sweep_s(cls, value: int) -> int:
+        if 0 < value < 300:
+            raise ValueError("RISK_DUTIES_SWEEP_S must be 0 (off) or 300 or more")
+        return value
 
     @field_validator("databricks_host", mode="after")
     @classmethod

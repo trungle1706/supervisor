@@ -21,6 +21,37 @@
   version. `systems_wizard.scan_folder` is the advisor part of `readiness` made reusable. With the
   flag off every route answers 400 `predeploy_off` and nothing changes. `app.yaml` has the commented
   flag. Details: `docs/onboard.md` "Pre-deploy assessment".
+- WP-L3 (phase 8): **duties in the risk register and gap work**, flag `RISK_DUTIES` (default `0`;
+  needs `GOVERNANCE_ENABLED` and `CONSOLE_SYSTEMS_ENABLED`). The unit of work is the group
+  "instrument x coverage class" that WP-L2 already uses for its tasks, not the single duty. New tab
+  **Duties** on the system page (`?tab=duties`, filters `f=open|closed|waived|needs_answer|all`, 100
+  rows a page) shows the `obligation_status` rows grouped by instrument and coverage, with buttons
+  per row and per group: **Close** (a closing control: a control id of the Supervisor catalogue, or
+  `manual:<id>` of a bank control from `regulations/internal` or a bank process of `controls.yaml`,
+  plus an evidence reference of at most 200 characters; `systems.edit`), **Waive** (reason of 20
+  characters or more; `systems.approve`; the owner of the system gets 400 `owner_cannot_waive`) and
+  **Re-evaluate** (runs the matrix again on the stored draft answers and the `autonomy` fact of
+  `onboard_facts` when present; updates applies, coverage and due dates; a duty that now applies
+  gets a row; nothing is deleted; `systems.edit`). Two `console_action` rows per POST; the typed
+  text is only a hash in the audit note. Off = no tab, no pill, the three routes answer 400
+  `risk_duties_off`. **Gap closure score** per system: closed / (open + closed) over the rows that
+  apply, integer percent (`None` without rows), on the system page header and in the tab; My
+  overview v4 gets a `duties` dimension (systems with a score, integer average, systems with open
+  groups). **Risk line**: one risk of category `duties_gap` (source `duties`, id
+  `RSK-DUTY-<hash of the system id>`) per system with open groups; score from the number of open
+  groups (likelihood) and the highest-risk instrument (impact: binding Vietnamese instrument above
+  international reference framework, coverage none above partial); the obligation ids are `matrix`
+  links; closing every group retires the line; the risk bands stay illustrative. **Deadlines**: the
+  due date of an open row is the effective date of its instrument when that date is ahead
+  (`advisory/compliance/deadlines.py`). **Sweep** `python -m supervisor.jobs.duties_sweep` and
+  scheduler job `duties_sweep` (`RISK_DUTIES_SWEEP_S`, default `0` = off, else 300 or more): one
+  reminder task per system per ISO week (template `DUTY-DUE-<year>W<week>`) for open duties due
+  within 30 days or past due. No new table. Small changes outside the package: `RiskService.
+  update_managed`, risk category `duties_gap` and source `duties`, the system snapshot hash of the
+  audit row includes the duty rows when there are any, and the register submit syncs the risk line
+  when the flag is on. "Not legal advice. Bank counsel must confirm." on the tab, in the risk line
+  and in the notes. Details: `docs/risk-register.md` "Duties (WP-L3)". `app.yaml` has the commented
+  flags.
 - WP-L2 (phase 8): **Duties step** in the register workflow v2, flag `CONSOLE_REGISTER_DUTIES`
   (default `0`; needs `CONSOLE_REGISTER_V2` and `GOVERNANCE_ENABLED`). Seven steps with the flag
   on (Duties is step 4, before Decision 33); with the flag off the workflow keeps six steps and every

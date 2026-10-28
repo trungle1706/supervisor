@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.cases.service import PermissionDenied
-from supervisor.console import systems_tabs, systems_workflow, ux3
+from supervisor.console import systems_duties, systems_tabs, systems_workflow, ux3
 from supervisor.console.listing import (
     ListingError,
     paginate,
@@ -46,6 +46,7 @@ DETAIL_TABS_V3 = (
     "policies",
     "guardians",
     "tasks",
+    "duties",  # WP-L3: only with RISK_DUTIES (detail_tabs leaves it out otherwise)
     "reviews",
     "reports",
 )
@@ -179,29 +180,38 @@ def detail_tabs(ctx: Any, me: Any) -> tuple[str, ...]:
     """The tabs of the system page. WP-UX4b: with CONSOLE_NAV_V3 on, the governance tabs too (a
     tab needs the permission of the page it summarises). Off: the tabs of WP-G0 to WP-G2, and
     WP-G5's Reports tab (incidents) with GOVERNANCE_ACTIONS_ENABLED."""
+    duties = systems_duties.is_on(ctx)  # WP-L3: the Duties tab (RISK_DUTIES)
     if not ctx.settings.console_nav_v3:
         tabs = DETAIL_TABS
         if getattr(ctx.settings, "governance_actions_enabled", False) and "reports" not in tabs:
             tabs = (*tabs, "reports")
-        return tabs
+        return (*tabs, "duties") if duties else tabs
     return tuple(
         t
         for t in DETAIL_TABS_V3
-        if t not in systems_tabs.TAB_PERM or systems_tabs.may(me, systems_tabs.TAB_PERM[t])
+        if (t != "duties" or duties)
+        and (t not in systems_tabs.TAB_PERM or systems_tabs.may(me, systems_tabs.TAB_PERM[t]))
     )
 
 
-def detail_view(ctx: Any, me: Any, system_id: str, tab: str) -> dict[str, Any]:
+def detail_view(
+    ctx: Any, me: Any, system_id: str, tab: str, query: Mapping[str, str] | None = None
+) -> dict[str, Any]:
     tabs = detail_tabs(ctx, me)
     v3 = bool(ctx.settings.console_nav_v3)
     if tab not in tabs:
-        if tab in DETAIL_TABS_V3 and v3:
+        if tab in DETAIL_TABS_V3 and v3 and tab != "duties":
             raise PermissionDenied(f"your role may not open the {tab} tab")
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
     extra, counts = g1_tabs(ctx, system, tab)
     if tab == "tasks" and systems_workflow.is_on(ctx):  # WP-P1: the buttons of the tab
         extra["wf"] = systems_workflow.tab_data(ctx, me, system, extra)
+    if systems_duties.is_on(ctx):  # WP-L3: the gap closure score is on every tab; the tab itself
+        extra["duty_score"] = systems_duties.header(ctx, system)
+        counts["duties"] = extra["duty_score"]["open"]
+        if tab == "duties":
+            extra.update(systems_duties.tab_data(ctx, me, system, query or {}))
     if v3 and tab in systems_tabs.BUILDERS:  # WP-UX4b
         gov = systems_tabs.BUILDERS[tab](ctx, system)
         extra.update(gov)

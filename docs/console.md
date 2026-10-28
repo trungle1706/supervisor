@@ -248,6 +248,14 @@ pending>approved`, `stage_reject`, `stage_move initiation>deployment`. `before_h
 With the flag on, the next action of a system or an agent row (My overview, My agents, the stage
 approvals waiting for you) links to `/console/systems/<id>?tab=tasks`, where the buttons are.
 
+#### Duties tab (WP-L3, `RISK_DUTIES`)
+
+The Duties tab of a system (`?tab=duties`) lists the duty rows of the system and has the buttons Close
+(`systems.edit`), Waive (`systems.approve`; not the owner of the system) and Re-evaluate (`systems.edit`):
+`POST /console/systems/<id>/duties/close`, `.../waive`, `.../reevaluate`. Off (default): no tab and the
+three routes answer HTTP 400 `risk_duties_off`. Rules, score, risk line and sweep: `docs/risk-register.md`
+"Duties (WP-L3)". Audit: two `console_action` rows per POST (`duty_close`, `duty_waive`, `duty_reevaluate`).
+
 ### Components
 
 Server-rendered Jinja2 macros and partials; htmx only; the CSS is in `static/console.css`

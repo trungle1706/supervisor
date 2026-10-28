@@ -182,6 +182,13 @@ env:
   # Needs CONSOLE_REGISTER_V2 and GOVERNANCE_ENABLED. Off by default (docs/register-v2.md).
   # - name: CONSOLE_REGISTER_DUTIES
   #   value: "1"
+  # Phase 8 WP-L3: Duties tab on the system page (close, waive, re-evaluate), gap closure score,
+  # risk line of kind duties_gap and the My overview dimension. Needs GOVERNANCE_ENABLED and
+  # CONSOLE_SYSTEMS_ENABLED. Off by default (docs/risk-register.md "Duties (WP-L3)").
+  # - name: RISK_DUTIES
+  #   value: "1"
+  # - name: RISK_DUTIES_SWEEP_S   # weekly reminder task for duties due within 30 days; 0 = off
+  #   value: "21600"
   # Phase 8 WP-P2: Request / Approve RUNNING on the agent page (two people), Decision 33 apply
   # (the system owner cannot apply; 20-character justification), guardian switch-off (reason; a
   # second person on a production or high-risk system). Off by default (docs/console.md).
