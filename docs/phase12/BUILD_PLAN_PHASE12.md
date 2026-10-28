@@ -7,7 +7,8 @@ advises; evidence chain without personal data or floats; synthetic Vietnamese da
 changes by appending to `schema/model.yaml` and regenerating (`python -m schema.generate`,
 `python -m supervisor.databricks.notebook`), never by hand-editing DDL.
 
-Written 2026-10-28 from the owner's five ideas, two research notes (`research/`), and v0.8.0.
+Written 2026-10-28 from the owner's five ideas, two research notes (`research/`), the design
+pages (phase 12 plan, agent factory design) and v0.8.0.
 
 ## 0. Owner decisions (2026-10-28)
 
@@ -15,10 +16,12 @@ Written 2026-10-28 from the owner's five ideas, two research notes (`research/`)
 |---|---|---|
 | 1 | Workflow order | Nine steps; classification (step 4) before the risk assessment (step 5); duties (6) pre-filled from 4 and 5; guardian fit test (7) after the assessment. |
 | 2 | Risk types | Exactly the eight of Circular 53 Art. 14(3) as fixed platform ids. More can be added later by configuration; none now. |
-| 3 | Factory schemas | The platform locks the agent definition schema, the output schema, the tool registry and the mandatory guardians. Teams edit the listed fields only. **Supporting agents exist from the start**: the factory ships helper agents (policy-to-checklist drafter, golden-set generator, result explainer) so that a risk team is helped, not left alone (WP-F2, WP-F3). |
-| 4 | Where judges run | Open. Proposal: the test gate's judge model is the bank's own gateway model (`LLM_BASE_URL`), golden sets are synthetic Vietnamese cases we write, calibration uses a human-labelled subset. The owner decides before WP-F3 starts. |
-| 5 | Start | 12A (C1, C2) and F1 now, in parallel. |
-| 6 | Phase 11 | Elaborated in section 4; the owner decides whether it runs beside 12A. |
+| 3 | Factory schemas | The platform locks the agent definition schema, the output schema, the tool registry and the mandatory guardians. Teams edit the listed fields only. **Supporting agents exist from the start**: the factory ships helper agents (policy-to-checklist drafter, golden-set generator, result explainer). |
+| 4 | Factory design | As drawn in the design page: single-pass runtime first with a loop option per agent, helper agents from day one, no code escape hatch, group isolation, offline-safe storage. |
+| 5 | Testing | The judge of the test gate runs on the bank's gateway model (`LLM_BASE_URL`). **Plus two options**: (a) a **simulation run** of a draft agent on the existing inventory whose outputs a person assesses in a review screen (the labels feed judge calibration), and (b) a **small sample batch** (for example 10 cases) with the judge before the full gate. |
+| 6 | Harness | An agent definition carries a typed **harness block**: system prompt, context policy, memory, human-in-the-loop and permissions, verification, loop mode with a loop evaluator. Each component has a platform default and a bounded editable part (section 2.0). |
+| 7 | Phase 11 | **First completeness of the regulations**: every regulator and external instrument that binds a bank AI system is in RegKB and verified (WP-W0), before any watcher. RegKB may use the gateway model to process **internal documents** uploaded in the factory editor (WP-W3). The watcher (W1) and the change loop (W2) come after. |
+| 8 | Start | Wave 1 now: WP-C1, WP-C2, WP-F1, WP-W0 in parallel. |
 
 Earlier decisions stay: real LLM gateway for key features, no mock run in a key feature; the
 person can change, re-upload, retry; English first with verbatim Vietnamese quotes.
@@ -34,7 +37,7 @@ person can change, re-upload, retry; English first with verbatim Vietnamese quot
 | Pre-deploy: rules + 34 packs + red team | `onboard/predeploy.py`, `assurance/` | fixed sequence; no per-team agents; no test gate for new agents |
 | Detectors: fixed contract, config file, custom regex rules | `detectors/`, `config/detectors.yaml` | no authoring UI, no benchmark gate, no shadow mode for a new detector |
 | My overview v4: pipeline, completion, risk by autonomy | `console/overview_v4.py` | no classification tiers, no risk-type status at portfolio level |
-| RegKB: 79 obligations in the two instruments | `regulations/vn/` | the classification articles (Law 7, 9, 10; Decree 6, 8, 9, 11, 12(2)) and Art. 14(3)-(4) are not rows |
+| RegKB: 18 instrument files, 79 obligations in the two main instruments | `regulations/vn/` | the classification articles (Law 7, 9, 10; Decree 6, 8, 9, 11, 12(2)) and Art. 14(3)-(4) are not rows; completeness across regulators not checked since 2026-10-15 |
 
 ## 1. Phase 12A: compliance-first onboarding (4 WPs)
 
@@ -51,7 +54,7 @@ section 1 first; it has the levels, the criteria, the thresholds and the step or
   the Decision 33 questions and outcome as a sub-flow (do not duplicate them). SBV thresholds as
   integers (VND) in the file: personal 10,000,000 per transaction and 20,000,000 per day;
   organisation 50,000,000 and 100,000,000; credit 50,000,000. Re-classification triggers
-  (Decree Art. 11(1)(a)-(d), 11(2), 11(4) not a trigger) as a list with articles.
+  (Decree Art. 11(1)(a)-(d), 11(2); 11(4) is not a trigger) as a list with articles.
 * Loader with strict keys like `decision33.py` (unknown key → `ConfigError` naming the field).
   A test walks every path and checks that every node ends in an outcome and every node has an
   article that exists in RegKB.
@@ -73,7 +76,7 @@ section 1 first; it has the levels, the criteria, the thresholds and the step or
   Separation of duties as in WP-P2: the system owner cannot approve the own classification.
 * API: `GET/POST /v1/systems/{id}/classification`, `POST .../classification/approve`,
   `GET /v1/classification/summary` (counts per outcome for WP-C4). Roles: `systems.edit` to
-  decide, `systems.approve` (or the existing approver role) to approve, `systems.view` to read.
+  decide, the existing approver permission to approve, `systems.view` to read.
 * RegKB: add obligations with verbatim `text_vi` from the stored texts for Law Art. 7(2), 9(1),
   9(2), 10(1), 10(2), 10(3), 10(4); Decree Art. 6(2), 6(3), 8(1), 8(2), 9(1), 9(3), 11(4),
   12(2). `control_mapping` to a new console control `classification_v2` and evidence
@@ -94,8 +97,8 @@ section 2 first.
   sets; integers or enums, no floats), `controls` (ids from `regulations/schema/controls.yaml`
   and pack ids), `measured_by` (packs, monitors, rules that already produce a result),
   `applies_to` (`reputation`: banks only), `agent_slot` (the factory agent id that will assess it,
-  empty now). No ninth row in this WP (owner decision 2); leave a documented `extra_dimensions`
-  list that is empty.
+  empty now). No ninth row (owner decision 2); leave a documented `extra_dimensions` list that is
+  empty.
 * New table `risk_dimension_status` (append): `status_id`, `system_id`, `dimension_id`, `status`
   (`not_started`, `in_progress`, `pass`, `fail`, `waived`, `not_applicable`), `owner_team`,
   `assessed_by` (agent id and version, or a person ref), `report_ref` (assessment report id,
@@ -157,6 +160,25 @@ Flag `OVERVIEW_PORTFOLIO=1` (needs `CONSOLE_OVERVIEW_V4=1`).
 Read `research/agent-factory-research.md` first (comparison, ten principles, schema, test gate,
 promotion, licences, anti-patterns).
 
+### 2.0 The harness block (owner decision 6)
+
+Every agent definition has a `harness` block. Each component has a platform default, a bounded
+editable part, and a test in the gate (WP-F3). Nothing in the harness can call a tool outside
+the registry, write outside the run, or act on a bank system.
+
+| Component | Platform default (locked part) | Editable by the team (bounded) | Gate test |
+|---|---|---|---|
+| `system_prompt` | the platform preamble: role, the output schema, the evidence rule, the refusal rules, the masking rule; always first | `instructions` (≤ 5,000 tokens, linted) appended after the preamble | linter; prompt-injection pack against the instructions |
+| `context` | ordered sources the runtime loads per checklist group: facts v1, pack results, system record, RegKB rows, document sections; progressive loading (names first, bodies on demand); token budget per call | which sources, their order, the budget inside the platform cap, `max_document_chars` | budget never exceeded; every cited source was loaded |
+| `memory` | `run` scratchpad (lives for one run, deleted after); `system` memory off; `cross_run` memory off; no personal data ever stored | `system_memory: on` with `retention_days` (≤ 365) and `fields` (enum list: prior verdicts, open questions, waivers); `cross_run` stays off in 12B | a stored memory row passes the masker; retention enforced |
+| `hitl` (human in the loop and permissions) | tool modes `read` only; verdict `fail` on a `high` severity item needs a person; the final report needs a person before it reaches the status rows | `approval_points`: which checklist items or verdicts stop for a person; `permissions`: which registry tools, `read` or `propose` (propose = the agent writes a suggestion a person applies; `act` does not exist in 12B) | every stop point fires in a replay; no tool call outside the mode |
+| `verification` | a second pass re-checks every finding: the evidence exists, the quote matches, the verdict follows the pass rule; deterministic validators run before any judge | `verifier`: `rules` (default), `rules+judge` (a judge re-reads the rationale), extra `validators` from the platform list | the verifier catches a planted bad finding |
+| `loop` | `mode: single_pass` (gather → one structured call per checklist group → verify) | `mode: loop` with `max_iterations` (≤ 8), `stop_when` (all items answered with evidence, or the evaluator says done), `loop_evaluator`: `rules` (coverage of items, evidence present) or `judge` (quality of the draft, advisory) with a `min_score` on an integer scale; `budget_tokens` inside the platform cap | the loop stops at `max_iterations`; the evaluator's reason is logged each iteration; cost reported |
+
+The trace of a run records every component's activity (sources loaded, memory read or written,
+stop points, verifier result, each loop iteration with the evaluator's reason) as integers and
+pointers; the plan tracer in the editor shows it.
+
 ### WP-F1: the schemas (no flag; pure modules, one export route)
 
 * `src/supervisor/factory/schemas/facts_v1.py`: a frozen JSON schema and pydantic model for the
@@ -169,53 +191,63 @@ promotion, licences, anti-patterns).
   `dimension_id` (one of the eight), `findings[]` with `finding_id`, `checklist_id`, `verdict`
   (`pass` / `fail` / `not_applicable` / `question`), `evidence[]` (`kind`: `fact` / `document` /
   `regkb` / `pack` / `system_record`; `ref`; `file`; `line`), `rationale` (≤ 600 chars),
-  `confidence` (enum, no floats); `summary` with integer counts; `model_id`; `created_at`.
-  A finding with verdict `pass` or `fail` and no evidence is invalid.
-* `agent_definition_v1.py`: the schema of the research note section (c): `schema_version`,
-  `id`, `name` (≤ 64), `description` (≤ 1024), `owner_group`, `dimension_id`, `policy_refs[]`,
-  `checklist[]` (`id`, `question`, `evidence` kinds, `severity`, `pass_rule`), `evidence_rules`,
-  `tools[]` (by `tool_id` only; inline tools are refused), `instructions` (≤ 5000 tokens by a
-  simple count), `output_schema` (must be `assessment_report_v1`), `guardians[]` (the mandatory
-  set must be present), `eval_pack`, `lifecycle` (`state` in `draft` / `tested` / `approved` /
-  `live` / `retired`, `version`, `approvals[]`).
+  `confidence` (enum, no floats); `summary` with integer counts; `model_id`; `harness_trace`
+  (integers and pointers per component); `created_at`. A finding with verdict `pass` or `fail`
+  and no evidence is invalid.
+* `agent_definition_v1.py`: `schema_version`, `id`, `name` (≤ 64), `description` (≤ 1024),
+  `owner_group`, `dimension_id`, `policy_refs[]` (external RegKB instrument or internal document
+  id from WP-W3, version, sections), `checklist[]` (`id`, `question`, `evidence` kinds,
+  `severity`, `pass_rule`), `evidence_rules`, `tools[]` (by `tool_id` only; inline tools are
+  refused), `instructions`, `harness` (section 2.0; every field validated against the platform
+  caps), `output_schema` (must be `assessment_report_v1`), `guardians[]` (the mandatory set must
+  be present), `eval_pack`, `lifecycle` (`state` in `draft` / `tested` / `approved` / `live` /
+  `retired`, `version`, `approvals[]`).
 * `config/factory_tools.yaml`: the tool registry: `tool_id`, `label`, `kind` (`read_facts`,
   `read_regkb`, `read_pack_results`, `read_system_record`, `search_documents`), `scope` kinds,
-  `data_class`, `allowed_groups`, `mode: read`. Loader with strict keys.
+  `data_class`, `allowed_groups`, `modes` (`read`, `propose`). Loader with strict keys.
 * `config/factory_groups.yaml`: the user groups (model_risk, data, cyber, legal, third_party,
   ethics, platform) mapped to roles of `users.yaml`; a group owns dimensions and sees tools.
 * CLI `python -m supervisor.factory validate <file>` for the three schemas; tests with example
-  files under `tests/factory/data/`; `docs/factory.md` section "Schemas".
+  files under `tests/factory/data/` (one single-pass agent, one loop agent with memory on);
+  `docs/factory.md` section "Schemas" and "Harness".
 
 ### WP-F2: the factory UI and catalogue (after F1)
 
 Flag `AGENT_FACTORY=1`. Table `factory_agent` (append): id, version, owner_group, dimension_id,
 definition_json, state, created_by, updated_at; `factory_agent_event` (append only) for every
 state change and approval. Pages: catalogue `/console/factory` (cards per agent: dimension,
-owner group, state, version, last test result), editor with the eight authoring steps of the
-research note (template → policy refs → checklist table editor → tools from the group's
-allow-list → instructions with linter → guardians (mandatory pre-checked, not removable) →
-preview on three past onboardings with a plan tracer → golden set and thresholds). **Helper
-agents in the editor (owner decision 3)**: *checklist drafter* (reads the attached policy
-sections and proposes checklist rows with the section pointer), *golden-set generator* (proposes
-synthetic cases from the checklist, Vietnamese, no real data), *result explainer* (turns a
-report into plain sentences with the pointers). All three draft only; a person accepts each row.
-Model calls through the gateway only; off when `LLM_BASE_URL` is empty with a clear message.
+owner group, state, version, last test result), editor with the authoring steps of the design
+page (template → policy refs (external RegKB instruments, or an internal document uploaded here,
+WP-W3) → checklist table editor → tools from the group's allow-list → instructions with linter
+→ **harness** (one panel per component of section 2.0 with the default shown and the editable
+fields) → guardians (mandatory pre-checked, not removable) → preview on three past onboardings
+with a plan tracer that shows the harness trace → golden set and thresholds). **Helper agents
+in the editor (owner decision 3)**: *checklist drafter* (reads the attached policy sections and
+proposes checklist rows with the section pointer), *golden-set generator* (proposes synthetic
+cases from the checklist, Vietnamese, no real data), *result explainer* (turns a report into
+plain sentences with the pointers). All three draft only; a person accepts each row. Model
+calls through the gateway only; off with a clear message when `LLM_BASE_URL` is empty.
 
 ### WP-F3: test gate and promotion (after F1, F2) — the test-eval-improve loop
 
 Flag `AGENT_FACTORY_GATE=1`. Golden sets stored per agent (≥ 50 cases, stratified by checklist
 item; synthetic Vietnamese). Layers: deterministic checks first (schema valid, every pass or fail
-verdict cites evidence that exists in an allowed source, no tool outside scope, no personal data
-in the output, token budget); then guideline judges (yes/no with reason) with a human-labelled
-calibration subset and Cohen's kappa reported (an agreement number alone is not enough); then a
-shadow run on past onboardings (the agent runs, the result is stored, not shown). Gate: the
+verdict cites evidence that exists in an allowed source, no tool outside scope or mode, no
+personal data in the output, token budget, every harness component's test of section 2.0); then
+guideline judges (yes/no with reason) on the bank's gateway model, with a human-labelled
+calibration subset and Cohen's kappa reported; then a shadow run on past onboardings (stored,
+not shown). **Two more runs the owner asked for (decision 5)**: (a) **Simulation review**: a
+draft agent runs on chosen systems of the existing inventory and a review screen shows each
+finding beside the evidence; the reviewer marks agree / disagree / unsure with a note; the marks
+become calibration labels and a report. (b) **Sample batch**: a small batch (default 10 cases,
+≤ 25) with the judge, in minutes, before the full gate; a sample batch never promotes. Gate: the
 deterministic layer at 100 %; the judge layer with no regression against the live version (paired
-comparison) and a floor per tier; the shadow report attached. States draft → tested → approved →
-live with two approvals for a high-tier agent (owner group lead + second line); a change of
-tools, guardians, output schema or tier re-opens approval; immutable versions; one-click rollback;
-`retired`. Reuse: promptfoo (MIT) or DeepEval (Apache-2.0) only as vendored pure-Python where
-offline rules allow, else own runner; Inspect AI (MIT) as reference. Owner decision 4 applies
-(where the judge runs). Reports as integers; chain record per state change.
+comparison) and a floor per tier; the shadow and simulation reports attached. States draft →
+tested → approved → live with two approvals for a high-tier agent (owner group lead + second
+line); a change of tools, guardians, harness permissions, output schema or tier re-opens
+approval; immutable versions; one-click rollback; `retired`. promptfoo (MIT), DeepEval
+(Apache-2.0) and Inspect AI (MIT) are references; own runner unless a pure-Python wheel fits the
+offline rules. Reports as integers; chain record per state change.
 
 ### WP-F4: the orchestrator (after F1, C1, C2)
 
@@ -223,15 +255,17 @@ Flag `ONBOARD_ORCHESTRATOR=1`. Deterministic, no model call of its own. Input: t
 classification outcome, AI type flags, facts v1. Plan: which of the eight dimensions apply and
 which live agent assesses each (from `factory_agent` by dimension and `live` state; a dimension
 without a live agent gets the rule proposal of WP-C2). Runs the agents with a time and token
-budget, in order, writes `assessment_report_v1` rows and the `risk_dimension_status` proposals,
-resolves conflicts by rule (the worst verdict wins; a `fail` needs a person), writes the Duties
-pre-fill and `onboard_log` rows (WP-O5) for each step. Re-run after a fix is a new attempt.
+budget, in order, honours each agent's stop points (hitl), writes `assessment_report_v1` rows and
+the `risk_dimension_status` proposals, resolves conflicts by rule (the worst verdict wins; a
+`fail` needs a person), writes the Duties pre-fill and `onboard_log` rows (WP-O5) for each step.
+Re-run after a fix is a new attempt.
 
 ### WP-F5: six starter agents (after F2, F3)
 
 One live-able agent per dimension model, data_governance, cybersecurity, legal_compliance,
 third_party, ethics, each with a checklist from the articles in `research/regulation-structure.md`
-section 2, a golden set, and the mapping to the packs that already measure the dimension.
+section 2, a golden set, the mapping to the packs that already measure the dimension, and a
+harness block (single pass; the cyber agent as the one loop example with a rules evaluator).
 `supply_chain` and `reputation` ship as templates with an empty golden set. Each agent passes the
 WP-F3 gate on synthetic data before merge.
 
@@ -268,42 +302,75 @@ From the assessment reports and the facts, propose the guardian set, the thresho
 autonomy limits for one agent, with the pointer that justifies each line; a person accepts; the
 pre-deploy test (WP-O3) proves the fit. Proposals only; never attaches by itself.
 
-## 4. Phase 11: regulation watch loop (2 WPs, elaborated)
+## 4. Phase 11: regulations complete first, internal documents, then the watch loop (4 WPs)
 
-The App has no internet. The watcher runs on a dev host or as a scheduled job with internet and
-produces an **update package** that the App imports offline.
+### WP-W0: completeness of the regulations (now, with wave 1)
 
-### WP-W1: watcher and update package
+No flag; data and tests. Goal: every regulator and every external instrument that binds a bank
+AI system in Vietnam is in RegKB, verified against the primary text, with its scope and dates.
+
+* Build the **regulator map**: for each regulator (National Assembly, Government, Prime Minister,
+  SBV, MST (and MIC where it still applies), MPS (cybersecurity, personal data), MOF where
+  relevant) the instruments that touch an AI system in a bank: AI Law and its decrees and
+  decisions, Circular 53, personal data protection (law, decree), data law, cybersecurity law and
+  decrees, e-transactions law, consumer protection law, credit institutions law, SBV circulars on
+  IT safety, outsourcing, e-banking, biometric and account rules, anti-fraud; plus the
+  international references already stored as `binding: false`. Write `regulations/REGULATOR_MAP.md`
+  with: instrument, regulator, status, dates, scope for a bank AI system, stored? verified?
+  obligations count, gap.
+* For each instrument already stored (18 files): check `last_checked`, re-fetch where the text may
+  have changed (`tools/regkb_fetch.py`, dev host), confirm `VERIFIED_PRIMARY`, list missing
+  articles that bind an AI system (as `research/regulation-structure.md` section 3 did for the
+  two main ones).
+* For each missing instrument: fetch the primary text, store it with sha and sidecar, write the
+  obligation rows that bind a bank AI system (verbatim `text_vi`, `summary_en`, duties,
+  `control_mapping` with the WP-L5 rules), run `python -m supervisor.regkb validate` and the
+  quote tests.
+* Deliver a coverage table (instrument, obligations, full / partial / none) in `docs/regulations.md`
+  and the map. Not legal advice; the open points go to the "Open points for counsel" section.
+
+### WP-W3: internal documents in RegKB through the gateway (after W0, F1)
+
+Flag `REGKB_INTERNAL=1`. In the factory editor (step 2, WP-F2) and on a RegKB page, a person
+uploads an internal document (policy, standard, procedure; text, markdown, PDF with a text layer)
+into `DATA_DIR/regkb/internal/<doc id>/` with sha and sidecar; the **law agent** (WP-L1) runs on
+it through the gateway model in "internal" mode: splits sections, drafts duties with a verbatim
+quote and the section pointer, tags the dimension(s); a person with `regkb.confirm` accepts rows;
+accepted rows become an internal instrument (`VN-INT-<id>`, `verification: VERIFIED_INTERNAL`,
+`binding: internal`) that the compliance matrix, the Duties step and the factory `policy_refs`
+can reference like an external one. Personal data is masked before the model sees the text;
+nothing leaves the gateway. Off path: upload refused with `regkb_internal_off`.
+
+### WP-W1: watcher and update package (after W0)
 
 Flag `REGWATCH_ENABLED=1` (laptop mode scheduler job, default off) and CLI
-`python -m supervisor.regkb watch`. For every instrument in RegKB: query the vbpl.vn search
-action (`tools/regkb_fetch.py vbpl-search`; the action id rediscovery and the sitemap fallback
-exist) by document number and by keywords ("trí tuệ nhân tạo", "AI") for the issuing agencies
-(SBV, Government, MST); detect a new amendment, replacement, effect-status change or a newer
-`updatedDate`; fetch the new text into `regulations/sources/<id>/incoming/<date>/` with sha and
-sidecar; write a watch report (JSON and markdown: instrument, what changed, dates, sha) and a
-signed update package zip (texts, report, proposed YAML changes empty at this step). The App
-imports a package with `POST /v1/regkb/import` (admin, signature and sha checked, stored, not
-applied). Nothing is applied automatically. Also watches the Decree 142 Art. 46 interim channel
-announcement (MST) by keyword.
+`python -m supervisor.regkb watch`. For every instrument in the regulator map: query the vbpl.vn
+search action (`tools/regkb_fetch.py vbpl-search`; the action id rediscovery and the sitemap
+fallback exist) by document number and by keywords ("trí tuệ nhân tạo", "AI") for the issuing
+agencies; detect a new amendment, replacement, effect-status change or a newer `updatedDate`;
+fetch the new text into `regulations/sources/<id>/incoming/<date>/` with sha and sidecar; write a
+watch report (JSON and markdown) and a signed update package zip. The App imports a package with
+`POST /v1/regkb/import` (admin, signature and sha checked, stored, not applied). Nothing is
+applied automatically. Also watches the Decree 142 Art. 46 interim channel announcement by
+keyword.
 
-### WP-W2: change to re-evaluation
+### WP-W2: change to re-evaluation (after W1)
 
-The law agent (WP-L1) gets a diff mode: article-by-article diff of the stored text against the
-incoming text, drafts the changed or new duties with quotes, marks the obligations whose article
-changed. A person with `regkb.confirm` confirms; the RegKB version hash changes; a governance
-event `regkb_changed` (WP-G5 rules) with the instrument and the article list: re-opens the
-`obligation_status` rows mapped to those articles (status open, note "article changed on
-<date>"), creates the gap tasks (WP-L3), moves a system to `re_evaluation` when a classification
-input changed (Decree Art. 11(1)(c) list change; the C1 trigger list), notifies the owners, and
-shows a banner "law change pending review" on My overview. Chain record and audit rows.
+The law agent gets a diff mode: article-by-article diff of the stored text against the incoming
+text, drafts the changed or new duties with quotes, marks the obligations whose article changed.
+A person with `regkb.confirm` confirms; the RegKB version hash changes; a governance event
+`regkb_changed` (WP-G5 rules) with the instrument and the article list: re-opens the
+`obligation_status` rows mapped to those articles, creates the gap tasks (WP-L3), moves a system
+to `re_evaluation` when a classification input changed (Decree Art. 11(1)(c); the C1 trigger
+list), notifies the owners, shows a banner "law change pending review" on My overview. Chain
+record and audit rows.
 
 ## 5. Order and merge
 
 ```
- wave 1  WP-C1 | WP-C2 | WP-F1                (parallel, now)           + WP-W1 if the owner says so
- wave 2  WP-F2 -> WP-F3 | WP-F4 | WP-G1 -> WP-G2 -> WP-G3   (after wave 1)  + WP-W2
- wave 3  WP-C3 | WP-C4 | WP-F5 | WP-G4         (close-out)             -> v0.9.0
+ wave 1  WP-C1 | WP-C2 | WP-F1 | WP-W0              (parallel, now)
+ wave 2  WP-F2 -> WP-F3 | WP-F4 | WP-G1 -> WP-G2 -> WP-G3 | WP-W3   (after wave 1)
+ wave 3  WP-C3 | WP-C4 | WP-F5 | WP-G4 | WP-W1 -> WP-W2            -> v0.9.0
 ```
 
 Each WP: worker in a worktree, targeted tests, hub review and merge, full suite once per
