@@ -357,7 +357,7 @@ RG2: dict[str, tuple[str, str]] = {
         "Đã xét {total} nghĩa vụ: {yes} áp dụng, {no} không áp dụng, {ask} cần câu trả lời.",
     ),
     "rg2_d_coverage": (
-        "Of the duties that apply: {full} fully covered, {partial} partly covered, {none} not covered. {tasks} tasks will open.",
+        "Of the duties that apply: {full} fully covered, {partial} partly covered, {none} not covered. {tasks} tasks will open (one per instrument and coverage class).",
         "Trong các nghĩa vụ áp dụng: {full} được bao phủ đủ, {partial} bao phủ một phần, {none} chưa được bao phủ. Sẽ mở {tasks} nhiệm vụ.",
     ),
     "rg2_d_d33": ("Decision 33 suggestion", "Gợi ý theo Quyết định 33"),
@@ -397,12 +397,12 @@ RG2: dict[str, tuple[str, str]] = {
     "rg2_d_c_none": ("none", "chưa có"),
     "rg2_d_c_unknown": ("unknown", "chưa rõ"),
     "rg2_d_hint_submit": (
-        "On submit, each duty that applies becomes a duty status row, and each one that is not fully covered becomes a task.",
-        "Khi gửi, mỗi nghĩa vụ áp dụng thành một dòng trạng thái nghĩa vụ, mỗi nghĩa vụ chưa được bao phủ đủ thành một nhiệm vụ.",
+        "On submit, each duty that applies or needs an answer becomes a duty status row. The duties that are not fully covered are grouped in one task for each instrument and coverage class.",
+        "Khi gửi, mỗi nghĩa vụ áp dụng hoặc cần trả lời thành một dòng trạng thái nghĩa vụ. Các nghĩa vụ chưa được bao phủ đủ được gom thành một nhiệm vụ cho mỗi văn bản và mức bao phủ.",
     ),
     "rg2_d_review": (
-        "{rows} duties apply; {tasks} tasks will open; {ask} questions are still open.",
-        "{rows} nghĩa vụ áp dụng; sẽ mở {tasks} nhiệm vụ; còn {ask} câu hỏi mở.",
+        "{rows} duty rows will be stored (apply or need an answer); {tasks} tasks will open; {ask} questions are still open.",
+        "Sẽ lưu {rows} dòng nghĩa vụ (áp dụng hoặc cần trả lời); sẽ mở {tasks} nhiệm vụ; còn {ask} câu hỏi mở.",
     ),
     "rg2_w_duties": ("Duty status rows", "Dòng trạng thái nghĩa vụ"),
     "rg2_w_duty_tasks": ("gap tasks", "nhiệm vụ khắc phục"),

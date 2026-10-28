@@ -103,10 +103,11 @@ undo the system):
 
 | Write | Detail |
 |---|---|
-| table `obligation_status` | one row per duty that applies (`applies = yes`) to the new AI system: `coverage` full, partial or none; `status` open; `owner_user` the system owner; `due_date` the effective date of the instrument when known; `closing_control` empty (WP-L3 sets it); `note` starts with the banner. A repeat is a no-op (the id is a hash of system and obligation) |
-| one task per applying duty with coverage partial or none | template `DUTY-<obligation id>`, title `Close duty <obligation id>`, stage initiation, owner role owner, not required (it does not block a stage move), due date the effective date of the instrument when it is in the future, else 14 days; the banner and the article are in the task note (the evidence field) |
+| table `obligation_status` | one row per duty that applies (`applies = yes`, `coverage` full, partial or none) and one per duty that needs an answer (`applies = needs_answer`, `coverage = unknown`), so the open questions survive the submit. `status` open; `owner_user` the system owner; `due_date` the effective date of the instrument when known; `closing_control` empty (WP-L3 sets it); `note` starts with the banner. No row for a duty that does not apply. A repeat is a no-op (the id is a hash of system and obligation) |
+| one task per instrument and coverage class | for the applying duties with coverage partial or none, grouped by instrument and coverage: title `Close N duties of <instrument short name> (coverage none)` or `(coverage partial)` (`Close 1 duty of ...` for one), template `DUTY-<instrument id>-<coverage>`, stage initiation, owner role owner, not required (it does not block a stage move). Due date: the earliest effective date in the group that is still ahead, else 14 days. The task note (the evidence field) holds the banner and the sorted duty ids, at most 60 ids then `, ... and N more` |
 
-Rows with `needs answer` and `no` are not written. Expect many tasks: a typical internal assistant
-has about 330 applying duties, all partial or none (no duty is fully covered by a Supervisor
-control today). The matrix takes about two seconds; the last eight results are kept in memory by
+Rows for duties that do not apply are not written. A typical internal assistant has 330 applying
+duties and 39 that need an answer, so 369 status rows and 56 tasks (a payment draft: 389 apply, 53 need an answer, so 442 rows and
+58 tasks). No duty is fully covered by a Supervisor control today. The matrix takes about two
+seconds; the last eight results are kept in memory by
 profile, so the page, the review and the submit of one draft run it once.

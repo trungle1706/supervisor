@@ -182,7 +182,7 @@ def test_step_renders_matrix_rows_and_questions(duties: Console) -> None:
     s = v["summary"]
     assert s["yes"] + s["no"] + s["needs_answer"] == s["total"] > 100
     assert s["full"] + s["partial"] + s["none"] == s["yes"]
-    assert s["tasks"] == s["partial"] + s["none"]
+    assert 0 < s["tasks"] < s["partial"] + s["none"] == s["gap_duties"]  # grouped
     # filters
     for f, applies in (("yes", "yes"), ("no", "no"), ("needs_answer", "needs_answer")):
         h = page(duties, did, 4, f"&f={f}")
@@ -430,16 +430,22 @@ def test_submit_writes_status_rows_and_gap_tasks(duties: Console) -> None:
     d = get_draft(duties, did)
     m = dut.matrix_of(duties.ctx, d)
     applying = [r for r in m.rows if r.applies == "yes"]
+    asking = [r for r in m.rows if r.applies == "needs_answer"]
     gaps = [r for r in applying if dut.coverage_of(r) in ("partial", "none")]
-    assert applying and gaps
-    assert f"{len(applying)} duties apply; {len(gaps)} tasks will open" in review
+    groups = dut.gap_groups(m.rows)
+    assert applying and gaps and asking
+    assert len(groups) < len(gaps) and sum(len(g) for g in groups.values()) == len(gaps)
+    assert (
+        f"{len(applying) + len(asking)} duty rows will be stored (apply or need an answer); "
+        f"{len(groups)} tasks will open" in review
+    )
     r = submit(duties, did)
     assert r.status_code == 200 and "HX-Redirect" in r.headers
     sid = rows(duties, "ai_system", name=NAME)[0]["system_id"]
-    # --- one obligation_status row per applying duty
+    # --- one obligation_status row per applying duty, one per duty that needs an answer
     st = rows(duties, "obligation_status", system_id=sid)
-    assert len(st) == len(applying) == len({s["obligation_id"] for s in st})
-    assert {s["obligation_id"] for s in st} == {r.obligation_id for r in applying}
+    assert len(st) == len(applying) + len(asking) == len({s["obligation_id"] for s in st})
+    assert {s["obligation_id"] for s in st} == {r.obligation_id for r in applying + asking}
     by_ob = {s["obligation_id"]: s for s in st}
     for row in applying:
         s = by_ob[row.obligation_id]
@@ -453,47 +459,56 @@ def test_submit_writes_status_rows_and_gap_tasks(duties: Console) -> None:
             eff.isoformat() if eff else None
         )
         assert s["row_version"] == 1 and s["status_id"].startswith("os_")
-    # needs_answer and no rows are not written
+    for row in asking:  # the open questions survive the submit for WP-L3
+        s = by_ob[row.obligation_id]
+        assert (s["applies"], s["coverage"], s["status"]) == ("needs_answer", "unknown", "open")
+    # rows for a duty that does not apply are not stored
     assert not {s["obligation_id"] for s in st} & {
-        r.obligation_id for r in m.rows if r.applies != "yes"
+        r.obligation_id for r in m.rows if r.applies == "no"
     }
-    # --- one task per duty with coverage partial or none
+    # --- one task per instrument and coverage class (partial or none) of the applying duties
     tasks = [
         t for t in rows(duties, "task", agent_id=sid) if str(t["template_id"]).startswith("DUTY-")
     ]
-    assert len(tasks) == len(gaps)
-    assert {t["title"] for t in tasks} == {f"Close duty {r.obligation_id}" for r in gaps}
-    for t in tasks:
+    assert len(tasks) == len(groups)
+    by_tid = {t["template_id"]: t for t in tasks}
+    assert set(by_tid) == {f"DUTY-{inst}-{cov}" for inst, cov in groups}
+    now = duties.ctx.clock.now()
+    checked_future = checked_past = 0
+    for (inst, cov), group in groups.items():
+        t = by_tid[f"DUTY-{inst}-{cov}"]
+        n = len(group)
+        name = group[0].instrument_number or inst
+        word = "duty" if n == 1 else "duties"
+        assert t["title"] == f"Close {n} {word} of {name} (coverage {cov})"
         assert t["owner_role"] == "owner" and t["status"] == "open" and t["kind"] == "custom"
         assert t["stage"] == "initiation" and not t["required"]
-        assert BANNER in t["evidence_ref"]
-    # a duty that is fully covered would get no task (none is covered fully today)
-    assert not [
-        t
-        for t in tasks
-        if t["title"].split()[-1]
-        in {r.obligation_id for r in applying if dut.coverage_of(r) == "full"}
-    ]
-    # the due date is the effective date of the instrument when it is in the future
-    now = duties.ctx.clock.now()
-    future = [
-        r
-        for r in gaps
-        if (e := dut.effective_date(r)) and dt.date(e.year, e.month, e.day) > now.date()
-    ]
-    past = [r for r in gaps if (e := dut.effective_date(r)) and e <= now.date()]
-    assert future and past, (len(future), len(past))  # both branches are tested
-    by_title = {t["title"]: t for t in tasks}
-    for r in future[:5]:
-        due = by_title[f"Close duty {r.obligation_id}"]["due_at"]
-        assert str(due)[:10] == dut.effective_date(r).isoformat()
-    for r in past[:5]:  # in force already: the default period, not a date in the past
-        assert (
-            str(by_title[f"Close duty {r.obligation_id}"]["due_at"])[:10] >= now.date().isoformat()
+        ref = t["evidence_ref"]
+        assert ref.startswith(BANNER)
+        ids = sorted(r.obligation_id for r in group)
+        if n <= dut.MAX_IDS_IN_TASK:
+            assert ref == f"{BANNER} " + ", ".join(ids)
+        else:
+            raise AssertionError("no group has more than 60 duties in this draft")
+        # due date: the earliest effective date still ahead, else the default period
+        ahead = sorted(
+            e
+            for e in (dut.effective_date(r) for r in group)
+            if e and dt.datetime(e.year, e.month, e.day, tzinfo=dt.UTC) > now
         )
+        due = str(t["due_at"])[:10]
+        if ahead:
+            checked_future += 1
+            assert due == ahead[0].isoformat()
+        else:
+            checked_past += 1
+            assert due >= now.date().isoformat()
+    assert checked_future and checked_past  # both due-date branches are tested
+    # a repeated duty id is in no title: no per-duty task exists
+    assert not [t for t in tasks if t["title"].startswith("Close duty ")]
     # the result page names the write and its counts; the intake tasks are still opened
     page_ = duties.get(f"/console/register/{did}/result?lang=en").text
-    assert "Duty status rows" in page_ and f"{len(applying)} / {len(gaps)}" in page_
+    assert "Duty status rows" in page_ and f"{len(st)} / {len(groups)}" in page_
     assert {"SYS-INTAKE-CONFIRM", "SYS-INTAKE-CHECKS"} <= {
         t["template_id"] for t in rows(duties, "task", agent_id=sid)
     }
@@ -504,7 +519,34 @@ def test_submit_writes_status_rows_and_gap_tasks(duties: Console) -> None:
     ] == ["attempted", "ok"]
     # a repeat submit is refused and writes nothing more
     assert submit(duties, did).status_code == 400
-    assert len(rows(duties, "obligation_status", system_id=sid)) == len(applying)
+    assert len(rows(duties, "obligation_status", system_id=sid)) == len(st)
+    assert len(rows(duties, "task", agent_id=sid)) == len(tasks) + 2
+
+
+def test_task_lists_at_most_60_duty_ids(duties: Console) -> None:
+    from types import SimpleNamespace as NS
+
+    group = [
+        NS(
+            obligation_id=f"X-{i:03d}",
+            instrument_id="X",
+            instrument_number="Law X",
+            deadline=NS(effective=None),
+        )
+        for i in range(130)
+    ]
+    assert dut._task(duties.ctx, "sys_cap", ("X", "none"), group, ME)  # noqa: SLF001
+    (t,) = [t for t in rows(duties, "task", agent_id="sys_cap")]
+    assert t["title"] == "Close 130 duties of Law X (coverage none)"
+    ids = [f"X-{i:03d}" for i in range(130)]
+    assert t["evidence_ref"] == f"{BANNER} " + ", ".join(ids[:60]) + ", ... and 70 more"
+    assert "X-060" not in t["evidence_ref"]
+    # a group of one reads "1 duty"; a repeat is a no-op
+    one = group[:1]
+    assert dut._task(duties.ctx, "sys_cap", ("X", "partial"), one, ME)  # noqa: SLF001
+    assert not dut._task(duties.ctx, "sys_cap", ("X", "partial"), one, ME)  # noqa: SLF001
+    titles = {t["title"] for t in rows(duties, "task", agent_id="sys_cap")}
+    assert "Close 1 duty of Law X (coverage partial)" in titles
 
 
 def test_write_twice_is_a_no_op(duties: Console) -> None:
@@ -603,8 +645,7 @@ def test_obligation_status_table_in_the_model() -> None:
         assert "obligation_status" in text
     ddl = sqlite.split("CREATE TABLE IF NOT EXISTS obligation_status (", 1)[1].split(");", 1)[0]
     assert "row_version INTEGER NOT NULL" in ddl and "updated_at TEXT NOT NULL" in ddl
-    # the table is the last one of the model (a parallel work package appends after it)
-    assert list(model["tables"])[-1] == "obligation_status"
+    assert "obligation_status" in model["tables"]  # (not the last one: other WPs append after it)
 
 
 def test_obligation_status_roundtrip(duties: Console) -> None:

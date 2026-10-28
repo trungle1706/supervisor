@@ -347,7 +347,8 @@ def view(
         "full": sum(1 for _, c in yes if c == "full"),
         "partial": sum(1 for _, c in yes if c == "partial"),
         "none": sum(1 for _, c in yes if c == "none"),
-        "tasks": sum(1 for _, c in yes if c in ("partial", "none")),
+        "tasks": len(gap_groups(r for r, _ in rows)),
+        "gap_duties": sum(1 for _, c in yes if c in ("partial", "none")),
         "d33": m.decision33.classification,
     }
     view_rows = []
@@ -392,7 +393,7 @@ def review(ctx: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
     s = v["summary"]
     return {
         "ready": v["ready"],
-        "rows": s.get("yes", 0),
+        "rows": s.get("yes", 0) + s.get("needs_answer", 0),
         "tasks": s.get("tasks", 0),
         "open_questions": sum(1 for q in v["questions"] if q["open"]),
         "answers_n": len(draft["data"].get("duties_answers") or {}),
@@ -407,43 +408,71 @@ def status_id(system_id: str, obligation_id: str) -> str:
     return "os_" + hashlib.sha256(f"{system_id}|{obligation_id}".encode()).hexdigest()[:20]
 
 
-def _task(ctx: Any, system_id: str, row: Any, actor: str) -> bool:
+MAX_IDS_IN_TASK = 60
+
+
+def gap_groups(rows: Any) -> dict[tuple[str, str], list[Any]]:
+    """The applying duties with coverage partial or none, grouped by (instrument id, coverage).
+    One task is opened for each group."""
+    out: dict[tuple[str, str], list[Any]] = {}
+    for r in rows:
+        cov = coverage_of(r)
+        if r.applies == "yes" and cov in ("partial", "none"):
+            out.setdefault((r.instrument_id, cov), []).append(r)
+    return dict(sorted(out.items()))
+
+
+def _task(ctx: Any, system_id: str, key: tuple[str, str], group: list[Any], actor: str) -> bool:
+    """One task for the duties of one instrument with one coverage class."""
+    instrument_id, cov = key
     tasks = ctx.tasks
-    eff = effective_date(row)
-    note = f"{BANNER} {row.instrument_number or row.instrument_id} {row.article_ref}"
+    ids = sorted(r.obligation_id for r in group)
+    shown = ", ".join(ids[:MAX_IDS_IN_TASK])
+    if len(ids) > MAX_IDS_IN_TASK:
+        shown += f", ... and {len(ids) - MAX_IDS_IN_TASK} more"
+    name = group[0].instrument_number or instrument_id
+    n = len(ids)
     trow = tasks._row_for(  # noqa: SLF001 - the one place that writes a task for a system
         system_id,
         "initiation",
-        template_id=TEMPLATE_PREFIX + row.obligation_id,
+        template_id=f"{TEMPLATE_PREFIX}{instrument_id}-{cov}",
         kind="custom",
-        title=f"Close duty {row.obligation_id}",
+        title=f"Close {n} {'duty' if n == 1 else 'duties'} of {name} (coverage {cov})",
         owner_role="owner",
         required=False,
         due_days=14,
         evidence_kind="none",
-        evidence_ref=note[:200],
+        evidence_ref=f"{BANNER} {shown}",
         level="low",
         d33_class="unclassified",
         actor=actor,
     )
     now = ctx.clock.now()
-    if eff is not None:
-        due = dt.datetime(eff.year, eff.month, eff.day, tzinfo=dt.UTC)
-        if due > now:  # a date in the past keeps the default: the duty is in force already
-            trow["due_at"] = due
+    # the earliest effective date in the group that is still ahead; a date in the past keeps the
+    # default period (the duty is in force already)
+    ahead = sorted(
+        d
+        for d in (effective_date(r) for r in group)
+        if d is not None and dt.datetime(d.year, d.month, d.day, tzinfo=dt.UTC) > now
+    )
+    if ahead:
+        d = ahead[0]
+        trow["due_at"] = dt.datetime(d.year, d.month, d.day, tzinfo=dt.UTC)
     return bool(tasks._insert(trow, actor))  # noqa: SLF001
 
 
 def write(ctx: Any, draft: Mapping[str, Any], system_id: str, owner_user: str, actor: str) -> dict:
-    """One ``obligation_status`` row per applying duty and one task per applying duty with
-    coverage partial or none. A repeat is a no-op (stable ids). Returns the counts."""
+    """One ``obligation_status`` row per duty that applies (coverage full, partial, none) or needs
+    an answer (coverage unknown), and one task per instrument and coverage class (partial or none)
+    of the applying duties. No row for a duty that does not apply. A repeat is a no-op (stable
+    ids). Returns the counts."""
     m = matrix_of(ctx, draft)
     now = ctx.clock.now()
     rows_n = tasks_n = 0
     for r in m.rows:
-        if r.applies != "yes":
+        if r.applies == "no":
             continue
-        cov = coverage_of(r)
+        cov = coverage_of(r) if r.applies == "yes" else "unknown"
         eff = effective_date(r)
         try:
             ctx.state.insert(
@@ -466,10 +495,10 @@ def write(ctx: Any, draft: Mapping[str, Any], system_id: str, owner_user: str, a
             rows_n += 1
         except DuplicateKeyError:
             pass
-        if cov in ("partial", "none"):
-            try:
-                if _task(ctx, system_id, r, actor):
-                    tasks_n += 1
-            except Exception:  # noqa: BLE001 - a duty without its task is still a duty row
-                log.exception("register_v2: could not open task for %s", r.obligation_id)
+    for key, group in gap_groups(m.rows).items():
+        try:
+            if _task(ctx, system_id, key, group, actor):
+                tasks_n += 1
+        except Exception:  # noqa: BLE001 - a group without its task is still a set of duty rows
+            log.exception("register_v2: could not open the task for %s", key)
     return {"rows": rows_n, "tasks": tasks_n}
