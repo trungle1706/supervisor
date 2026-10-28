@@ -4747,3 +4747,6 @@ _T.update(
         "tri_d_writes": ("writes data", "ghi dữ liệu"),
     }
 )
+from supervisor.console.i18n_schema import SCH as _SCH  # noqa: E402  (WP-P3, prefix sch_)
+
+_T.update(_SCH)

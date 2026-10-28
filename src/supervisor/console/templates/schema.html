@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('sch_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('sch_title'), None)]) }}
+{{ ui.pagehead(t('sch_title'), ui.pill(t('read_only'), 'neutral')) }}
+{{ ui.purpose(t('sch_purpose'), t('sch_why')) }}
+<div class="tiles">
+  {{ ui.stat(t('sch_status'), t('sch_status_' ~ check.status), '', 'sch-status') }}
+  {{ ui.stat(t('sch_tables'), check.tables_total, '', 'sch-tables') }}
+  {{ ui.stat(t('sch_missing_tables'), check.missing_tables|length, '', 'sch-missing-tables') }}
+  {{ ui.stat(t('sch_missing_cols'), check.missing_column_count, '', 'sch-missing-cols') }}
+</div>
+<p class="idline">{{ t('sch_checked_at') }}: <span class="mono">{{ check.checked_at or '-' }}</span> · <a href="/console/admin/schema?recheck=1&amp;lang={{ lang }}">{{ t('sch_recheck') }}</a></p>
+{% if check.status == 'off' %}<div class="msg msg-warn" role="status">{{ t('sch_status_off') }}</div>{% endif %}
+{% if check.status == 'unknown' %}<div class="msg msg-error" role="alert">{{ t('sch_status_unknown') }}{% if check.detail %}: <span class="mono">{{ check.detail }}</span>{% endif %}</div>{% endif %}
+{% if check.missing_tables %}
+<h2 class="sec">{{ t('sch_missing_tables') }}</h2>
+<p class="mono" id="sch-missing-table-list">{{ check.missing_tables|join(', ') }}</p>
+{% endif %}
+{% if check.missing_columns %}
+<h2 class="sec">{{ t('sch_missing_cols') }}</h2>
+<ul id="sch-missing-col-list">
+{% for table, cols in check.missing_columns %}
+  <li><span class="mono">{{ table }}</span>: <span class="mono">{{ cols|join(', ') }}</span></li>
+{% endfor %}
+</ul>
+{% endif %}
+{% if check.plan %}
+<h2 class="sec">{{ t('sch_plan') }}</h2>
+<p class="muted">{{ t('sch_plan_hint') }}</p>
+<textarea id="sch-plan" class="mono" readonly rows="{{ [[check.plan|length * 6, 12]|max, 40]|min }}" style="width:100%" aria-label="{{ t('sch_plan') }}">{% for stmt in check.plan %}{{ stmt }};
+
+{% endfor %}</textarea>
+<p class="muted">{{ t('sch_invisible_note') }}</p>
+{% endif %}
+{% endblock %}

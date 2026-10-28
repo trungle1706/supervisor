@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- WP-P3 (live-run hardening, from the first live run on Databricks, 2026-10-27). Both new flags
+  default off; with them off nothing changes except the extra fields of `/healthz`.
+  - `SCHEMA_SELFCHECK=1`: at start the app compares `schema/model.yaml` with the warehouse (one
+    `information_schema.columns` query) and keeps the result. A missing table or column shows at
+    `/console/admin/schema` (admin) as the exact SQL plan (`CREATE TABLE IF NOT EXISTS`, `ALTER
+    TABLE ... ADD COLUMNS`) to copy, plus a banner on the pages an admin sees. The app never runs
+    DDL. SQLite: no-op, reports ok. A failing check logs a WARNING and the state is `unknown`.
+  - `GET /healthz` adds `schema_ok` (true, false, "unknown"), `judge_sweep` (enabled, disabled),
+    `gate_timeout_s` (the configured `GATE_DECISION_TIMEOUT_S`) and `model_resource` (ok, fail,
+    unknown). `HEALTHZ_MODEL_PROBE=1` turns on the model probe (one small call to the LLM gateway
+    in a background thread, cached 60 s); off by default it stays "unknown".
+  - `python -m supervisor.demo seed --databricks`: writes three synthetic systems, their agents
+    and three cases (with chain evidence) into the configured SQL backend. Idempotent, deletes
+    nothing. The marker is the id prefix `demo-` (agent ids, system names, case source refs): the
+    tables have no `demo` column.
+  - Docs: the timeout budget rule in `docs/ingress-auth.md` (candidate `SUPERVISOR_TIMEOUT_S` must
+    be larger than `GATE_DECISION_TIMEOUT_S`); four new rows in the failure map of
+    `docs/deploy/LAUNCH_DATABRICKS.md` (old tables, gate timeout, Model resource reset by
+    `bundle deploy`, stale `.databricks` snapshot, Umbrella DNS block).
+  - New permission `schema.view` (admin) in the role matrix.
+
 - WP-L2: `JUDGE_FAMILY_CONFLICT_ALLOW` (default `0`). When set, a judge, guard or quality-scorer
   model that shares the family of a registered agent no longer stops start-up: one WARNING per
   pair is logged, and every `judge_verdict` evidence record for that pair carries

@@ -216,7 +216,7 @@ the first 50 lines of the App log (host names are not in it; check before you se
 `[FAIL]` or deviation. No tokens: Supervisor removes anything that looks like one, but read the
 files before you send them.
 
-## 13. If something fails
+## 13. If something fails (failure map)
 
 | Symptom | Fix |
 |---|---|
@@ -227,4 +227,9 @@ files before you send them.
 | Registration refused: `a new system is unclassified` | the class is set only by applying a classification |
 | Tables missing columns after an upgrade | `bootstrap_schema` again (it adds columns, never drops) |
 | 401 from a candidate to the gate | ingress mapping (section 10 step 4) or `CAN USE` (step 3) |
+| Console pages fail with `TABLE_OR_VIEW_NOT_FOUND` (for example on `registration_draft`): the warehouse tables are from an older bootstrap | Run `python -m supervisor.jobs.bootstrap_schema` again, or set `SCHEMA_SELFCHECK=1` in `app.yaml`, redeploy, and open `/console/admin/schema` as admin: it lists the missing tables and columns and the exact SQL (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMNS`) to copy into the SQL editor. The app never runs DDL itself. `GET /healthz` shows `schema_ok` |
+| A candidate gets `GATE-UNREACHABLE` while the Supervisor is up and logs a slow decision | The candidate timeout is shorter than the gate budget (three model detectors can take up to 15 s). Set `SUPERVISOR_TIMEOUT_S` to `25` in the candidate `app.yaml` and keep it larger than `GATE_DECISION_TIMEOUT_S` (read from `/healthz`, field `gate_timeout_s`). Rule: `docs/ingress-auth.md`, section "Timeout budget" |
+| After `databricks bundle deploy` the model calls fail (the serving endpoint refuses the App, `/healthz` `model_resource` is `fail`): the Model "Can execute" resource is gone | `bundle deploy` resets the resources you added in the Apps UI. Add the Model resource again in the Apps UI after EVERY bundle deploy (resource key as in `app.yaml`, permission Can execute), or deploy without the bundle: `databricks sync` then `databricks apps deploy`, which keeps the UI resources. Set `HEALTHZ_MODEL_PROBE=1` to see `model_resource` in `/healthz` |
+| `bundle deploy` or `sync` uploads nothing and the App starts empty (the workspace folder was emptied or deleted by hand) | The local `.databricks` folder holds a sync snapshot that says the files are already there. Delete it (`rmdir /s /q .databricks`), then deploy again |
+| The App URL does not open on the bank network, or the browser shows a block page for `*.databricksapps.com` | The bank DNS filter (Cisco Umbrella) blocks the domain by a false positive. Ask IT to allow-list `*.databricksapps.com`. |
 | Anything else | `docs\RUNBOOK.md` section 12 (symptom, cause, fix) |

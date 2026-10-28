@@ -80,6 +80,13 @@ env:
   # (verdicts then carry independence "reduced"). See docs/llm-features.md.
   # - name: JUDGE_FAMILY_CONFLICT_ALLOW
   #   value: "1"
+  # WP-P3 live-run hardening (both default off). SCHEMA_SELFCHECK: compare the tables of
+  # schema/model.yaml with the warehouse at start; /console/admin/schema shows the SQL to run.
+  # HEALTHZ_MODEL_PROBE: /healthz adds model_resource from a small call to the model gateway.
+  # - name: SCHEMA_SELFCHECK
+  #   value: "1"
+  # - name: HEALTHZ_MODEL_PROBE
+  #   value: "1"
   - name: JUDGE_T1_MODEL
     value: "FILL-ME-catalog.FILL-ME-schema.FILL-ME-model-service"
   # Detectors that call the model at the gate (judge_advisory, judge_moderation, guard_model) are

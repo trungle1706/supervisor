@@ -78,6 +78,8 @@ are resolved against the repo folder, once, at start.
 | `DATABRICKS_RETRY_TIMEOUT_S` | `90` (60 to 120) | SDK retry cap |
 | `DATABRICKS_STATEMENT_DEADLINE_S` | `120` | a cold warehouse needs about 30 s |
 | `GATE_DECISION_TIMEOUT_S` | `20` (code default `2`) | one gate decision, store reads included; the agent SDK timeout (`SUPERVISOR_TIMEOUT_S` in the candidates) must be larger |
+| `SCHEMA_SELFCHECK` | `1` (code default off) | at start, compare the tables and columns of `schema/model.yaml` with the warehouse (`information_schema`, read only). `/console/admin/schema` (admin) shows the SQL to run; `/healthz` shows `schema_ok`. The app never runs DDL |
+| `HEALTHZ_MODEL_PROBE` | `1` (code default off) | `/healthz` shows `model_resource` (ok, fail, unknown) from one small call to the model gateway, made in the background and cached 60 s |
 | `POLICY_REFRESH_S` | `60` (code default `5`) | how often the gate re-reads the deployed policy from the store |
 | `STATE_CACHE_TTL_S` | `30` (code default `1`) | how long the gate keeps an agent's state before it re-reads the `agent` row |
 | `GATE_RECORD_ASYNC` | `1` (code default off) | answer the agent as soon as the decision is final; the verdict, event and chain writes (three store round trips) finish afterwards |

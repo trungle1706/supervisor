@@ -126,6 +126,20 @@ principals:
 5. **Bearer option (`databricks_sp`).** If the live check shows that the app receives the bearer token (or `X-Forwarded-Access-Token` with a scope that allows SCIM `Me`), set `INGRESS_CREDENTIAL_KIND=databricks_sp` (or `all`). The app then verifies the token itself through SCIM `Me` with the caller's token (cached, semaphore-limited).
 6. **HMAC on the App (optional, `both` or `all`).** Keep the secret in a secret scope that holds `agent-<id>-current`, `agent-<id>-previous` and `agent-<id>-previous-expires`, and set `INGRESS_KEY_STORE=secret_scope` and `INGRESS_SECRET_SCOPE=FILL-ME-scope`; or use env vars `INGRESS_AGENT_KEY_<ID>` (`<ID>` = agent id upper case, other chars to `_`) and `_PREV`, `_PREV_EXPIRES`. `python -m supervisor.gateway.ingress_auth rotate <id>` prints the names and the new secret once; prefer `--out-key-file`. The secret scope reader (`DatabricksSecretReader`) is not tested against a live workspace; tests use a fake. The App rules say "no secret-scope resources": the reader uses the SDK at runtime and is not an App resource, but confirm this with the platform team (ADR D14, Open 1).
 
+### Timeout budget (HttpGate on the App)
+
+`HttpGate` waits `timeout_s` seconds for the gate (default `2.0` in the library; the candidates read
+`SUPERVISOR_TIMEOUT_S`). On the App one decision is several Statement Execution calls and, when the
+model detectors are on, up to three model calls. The Supervisor budget is `GATE_DECISION_TIMEOUT_S`
+(for example `20` on the App).
+
+**Rule: the candidate timeout must be larger than `GATE_DECISION_TIMEOUT_S`.** If the candidate gives
+up first, the gate is still working and the candidate sees `GATE-UNREACHABLE`: a false failure (seen
+on the first live run, 2026-10-27: 5 s against up to 15 s of detectors). Use a margin of about 5 s:
+`GATE_DECISION_TIMEOUT_S=20` and `SUPERVISOR_TIMEOUT_S=25` in the candidate's `app.yaml`. The
+Supervisor tells a candidate its budget: `GET /healthz` returns `gate_timeout_s`. A candidate can
+read it at start and warn when its own timeout is not larger.
+
 ## What a caller sees
 
 | Case | HTTP | `detail` in audit |

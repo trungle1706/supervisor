@@ -166,6 +166,13 @@ class Settings(BaseSettings):
     # GATE_RECORD_ASYNC (default off): the gate answers as soon as the decision is final and
     # writes the verdict, the event and the chain record afterwards in its own thread.
     gate_record_async: bool = False
+    # WP-P3 (live-run hardening, all default off). SCHEMA_SELFCHECK: at start, compare the
+    # tables and columns of schema/model.yaml with the warehouse (information_schema, read only)
+    # and show the SQL plan at /console/admin/schema. The app never runs DDL itself.
+    # HEALTHZ_MODEL_PROBE: /healthz adds model_resource from a cheap call to the LLM gateway,
+    # made in the background and cached for 60 s.
+    schema_selfcheck: bool = False
+    healthz_model_probe: bool = False
     # WP10: shared all-purpose cluster for the Command Execution API runner (optional).
     databricks_cluster_id: str | None = None
     databricks_cluster_name: str | None = None

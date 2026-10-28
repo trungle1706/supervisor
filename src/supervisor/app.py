@@ -10,6 +10,7 @@ import logging  # noqa: E402
 import platform  # noqa: E402
 from collections.abc import AsyncIterator  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
+from typing import Any  # noqa: E402
 
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.concurrency import run_in_threadpool  # noqa: E402
@@ -33,8 +34,10 @@ from supervisor.gateway.routes import router as gate_router  # noqa: E402
 from supervisor.inventory.api import router as inventory_router  # noqa: E402
 from supervisor.mcp_tools.api import router as mcp_lock_router  # noqa: E402
 from supervisor.monitors.session_api import router as session_router  # noqa: E402
+from supervisor.ops import healthz as healthz_body  # noqa: E402
 from supervisor.ops import middleware as ops_middleware  # noqa: E402
 from supervisor.ops import openapi as openapi_doc  # noqa: E402
+from supervisor.ops import schema_selfcheck  # noqa: E402
 from supervisor.ops.logging_setup import configure_logging  # noqa: E402
 from supervisor.ops.readiness import readiness  # noqa: E402
 from supervisor.recorder.otlp_receiver import router as otlp_router  # noqa: E402
@@ -71,6 +74,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
                 "signed-in user; gateway and evidence chain answer HTTP 400 until the service "
                 "principal is granted"
             )
+    try:  # WP-P3: read-only schema self-check (SCHEMA_SELFCHECK=1); never blocks startup
+        check = await run_in_threadpool(schema_selfcheck.run_startup, get_settings(), runtime)
+        if check is not None:
+            app.state.schema_check = check
+    except Exception:  # noqa: BLE001
+        log.warning("schema self-check did not run", exc_info=True)
     if runtime is not None:  # WP7: in-process scheduler (on in laptop mode by default)
         try:
             await run_in_threadpool(scheduler.start_for_runtime, get_settings(), runtime)
@@ -222,8 +231,10 @@ def root() -> RedirectResponse:
 
 
 @app.get("/healthz", tags=["ops"])
-def healthz() -> dict[str, str]:
-    return {"status": "ok"}
+def healthz() -> dict[str, Any]:
+    """Liveness plus the live-run facts of WP-P3: schema_ok, judge_sweep, gate_timeout_s,
+    model_resource. Fast and secret-free; the model probe runs in the background."""
+    return healthz_body.body(get_settings(), scheduler.current())
 
 
 @app.get("/health", tags=["ops"])
