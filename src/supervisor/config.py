@@ -777,6 +777,13 @@ class Settings(BaseSettings):
     # only and need LLM_BASE_URL. Needs GOVERNANCE_ENABLED. Off: no table read, the routes answer
     # HTTP 400 agent_factory_off.
     agent_factory: bool = False
+    # --- WP-F3 (phase 12B) --- the agent test gate and promotion (docs/factory.md "Test gate",
+    # "Simulation review", "Promotion"): table gate_run; golden gate cases and calibration labels;
+    # full / sample / simulation / shadow runs on the gateway model; signed gate report; states
+    # draft -> tested -> approved -> live -> retired with approvals and rollback. Needs
+    # AGENT_FACTORY (and so GOVERNANCE_ENABLED) and LLM_BASE_URL for the runs. Off: no gate_run
+    # read, the routes answer HTTP 400 factory_gate_off, the catalogue and editor are unchanged.
+    agent_factory_gate: bool = False
     # --- WP-L4 (phase 8) --- evidence per duty and the regulator pack (docs/regulator-pack.md):
     # live counts per control for the duties of a system, auto-close of a full-coverage duty whose
     # mapped controls all work, the group task closes with its last row, the Refresh evidence

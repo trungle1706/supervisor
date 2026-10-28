@@ -1972,3 +1972,28 @@ CREATE TABLE IF NOT EXISTS factory_helper_draft (
 );
 
 CREATE INDEX IF NOT EXISTS ix_factory_helper_draft_agent_id_helper_status ON factory_helper_draft (agent_id, helper, status);
+
+-- gate_run (state): WP-F3 (phase 12B, AGENT_FACTORY_GATE). One run of the test gate for one version of a factory agent. kind: full (layers 1, 2 and 3; the only kind that can lead to state tested), sample (layers 1 and 2 on a small batch; never promotes), simulation (the draft on chosen systems of the inventory, assessed by a person in a review screen; never promotes) or shadow (layer 3 only). status: queued, running, done or failed (the run itself broke). verdict: pass, fail or not_run. layer1_json is the deterministic layer (checks and the harness component tests), layer2_json the guideline judges with the calibration (Cohen's kappa in hundredths, the confusion matrix, the paired comparison with the live version), layer3_json the shadow run (agreement counts). cost_json holds integers (model calls, estimated tokens, seconds). report_sha256 and signature belong to the signed JSON report on disk under DATA_DIR/factory/<agent>/gate/<run_id>/ (evidence signer). Integers only: no floats, no personal data, no text of a document.
+CREATE TABLE IF NOT EXISTS gate_run (
+  run_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  version TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  status TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  layer1_json TEXT NOT NULL,
+  layer2_json TEXT NOT NULL,
+  layer3_json TEXT NOT NULL,
+  cost_json TEXT NOT NULL,
+  verdict TEXT NOT NULL,
+  report_sha256 TEXT,
+  signature TEXT,
+  definition_sha256 TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (run_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_gate_run_agent_id_version_kind ON gate_run (agent_id, version, kind);

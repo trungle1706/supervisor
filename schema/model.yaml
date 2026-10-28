@@ -1950,3 +1950,40 @@ tables:
       decided_by: string?
       decided_at: timestamp?
       created_at: timestamp
+
+  # --- WP-F3 (phase 12B) the agent test gate -----------------------------------------------------
+  gate_run:
+    kind: state
+    description: >
+      WP-F3 (phase 12B, AGENT_FACTORY_GATE). One run of the test gate for one version of a factory
+      agent. kind: full (layers 1, 2 and 3; the only kind that can lead to state tested), sample
+      (layers 1 and 2 on a small batch; never promotes), simulation (the draft on chosen systems of
+      the inventory, assessed by a person in a review screen; never promotes) or shadow (layer 3
+      only). status: queued, running, done or failed (the run itself broke). verdict: pass, fail or
+      not_run. layer1_json is the deterministic layer (checks and the harness component tests),
+      layer2_json the guideline judges with the calibration (Cohen's kappa in hundredths, the
+      confusion matrix, the paired comparison with the live version), layer3_json the shadow run
+      (agreement counts). cost_json holds integers (model calls, estimated tokens, seconds).
+      report_sha256 and signature belong to the signed JSON report on disk under
+      DATA_DIR/factory/<agent>/gate/<run_id>/ (evidence signer). Integers only: no floats, no
+      personal data, no text of a document.
+    primary_key: [run_id]
+    indexes:
+      - [agent_id, version, kind]
+    columns:
+      run_id: string
+      agent_id: string
+      version: string
+      kind: string             # full | sample | simulation | shadow
+      status: string           # queued | running | done | failed
+      started_at: timestamp
+      finished_at: timestamp?
+      layer1_json: json        # deterministic layer
+      layer2_json: json        # judges, calibration, regression
+      layer3_json: json        # shadow run
+      cost_json: json          # integers
+      verdict: string          # pass | fail | not_run
+      report_sha256: string?   # content_sha256 of the signed report
+      signature: string?       # base64 Ed25519 signature of the evidence signer
+      definition_sha256: string  # sha256 of the definition that was tested
+      created_by: string
