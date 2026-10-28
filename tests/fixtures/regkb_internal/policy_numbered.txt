@@ -1,0 +1,16 @@
+QUY ĐỊNH NỘI BỘ SỐ 01 VỀ QUẢN LÝ TRỢ LÝ AI TẠI NGÂN HÀNG MẪU (TÀI LIỆU TỔNG HỢP, DỮ LIỆU GIẢ LẬP)
+
+1. Mục đích và phạm vi
+Quy định này áp dụng cho mọi trợ lý AI do Ngân hàng Mẫu vận hành. Đầu mối liên hệ: Nguyễn Văn Mẫu, số điện thoại 0912 345 678, số căn cước 001099012345.
+
+2. Kiểm kê hệ thống
+Đơn vị sở hữu phải đăng ký mọi trợ lý AI vào sổ kiểm kê trước khi đưa vào sử dụng và cập nhật sổ này khi có thay đổi.
+
+2.1 Phân loại mức rủi ro
+Đơn vị sở hữu phải phân loại mức rủi ro của từng trợ lý AI và lưu hồ sơ phân loại có chữ ký của người phê duyệt.
+
+2.2 Rà soát định kỳ
+Hồ sơ phân loại được rà soát mỗi mười hai tháng.
+
+3. Ghi nhật ký
+Mọi tương tác của trợ lý AI với khách hàng phải được ghi nhật ký và lưu trữ tối thiểu năm năm.

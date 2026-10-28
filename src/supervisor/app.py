@@ -115,6 +115,12 @@ app.include_router(gate_router, deprecated=True)
 app.include_router(otlp_router)  # WP4: POST /v1/traces (OTLP/HTTP JSON)
 app.include_router(console_router)  # WP8: reviewer console (/console)
 app.include_router(regkb_console_router)  # WP-L1: /console/regkb/<id>/drafts (400 while off)
+# WP-W3: always mounted; with REGKB_INTERNAL=0 every route answers HTTP 400 regkb_internal_off
+from supervisor.console.regkb_internal_routes import api_router as regkb_internal_api_router  # noqa: E402
+from supervisor.console.regkb_internal_routes import router as regkb_internal_console_router  # noqa: E402
+
+app.include_router(regkb_internal_console_router)  # /console/regkb/internal
+app.include_router(regkb_internal_api_router)  # /v1/regkb/internal
 app.include_router(tools_analytics_router, prefix="/v1")  # WP22: GET /v1/analytics/tools
 app.include_router(inventory_router)  # WP24: GET /v1/inventory/... (off unless INVENTORY_ENABLED)
 app.include_router(mcp_lock_router)  # WP26: /v1/mcp/tools/... (off unless MCP_HTTP_ENABLED)

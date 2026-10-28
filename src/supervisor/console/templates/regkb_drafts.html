@@ -5,9 +5,15 @@
 {{ ui.crumbs([('Regulations', None), (instrument, None), ('Law agent drafts', None)]) }}
 {{ ui.pagehead('Law agent drafts: ' ~ instrument, ui.pill('Drafts only', 'info')) }}
 <div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ banner }}</b> A draft is not an obligation. The model drafted it; a person confirms or drops it.</div>
+{% if is_internal %}
+<p class="hint" data-internal-doc="{{ doc.doc_id }}">{{ instrument_title }} ({{ doc.version_label }}, owner {{ doc.owner_group }}). Internal document: the model read the masked text only.
+  A confirmed row becomes part of the internal instrument <code>{{ instrument }}</code> at once (no pull request).
+  <a href="/console/regkb/internal?lang={{ lang }}">All internal documents</a>.</p>
+{% else %}
 <p class="hint">{{ instrument_title }}. The agent runs from the command line:
   <code>python -m supervisor.regkb.lawagent --instrument {{ instrument }}</code>.
   Confirmed drafts are exported with <code>--export-confirmed</code> into the YAML files by a pull request.</p>
+{% endif %}
 <p style="margin:0 0 12px" id="draft-counts">
   {% for s in ('draft', 'confirmed', 'dropped') %}
   <a href="/console/regkb/{{ instrument }}/drafts?status={{ s }}&amp;lang={{ lang }}" data-status-filter="{{ s }}">{{ ui.pill(s ~ ' ' ~ counts[s], {'draft': 'warn', 'confirmed': 'ok', 'dropped': 'neutral'}[s] if status == s else 'neutral', status == s) }}</a>
@@ -19,7 +25,7 @@
 {% endif %}
 {% for g in groups %}
 <section class="card lawdraft" data-article="{{ g.number }}">
-  <h3>Điều {{ g.number }}{% if g.heading %} &middot; {{ g.heading }}{% endif %}</h3>
+  <h3>{{ g.label }}{% if g.heading and g.heading != g.label %} &middot; {{ g.heading }}{% endif %}</h3>
   {% for d in g.drafts %}
     {% include "_regkb_draft.html" %}
   {% endfor %}

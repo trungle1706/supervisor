@@ -1579,3 +1579,21 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`classification_v2` (
 USING DELTA
 COMMENT 'WP-C1 (phase 12, CLASSIFICATION_V2). One record of the classification tree (config/classification.yaml) for one AI system: the path from the first question to an outcome (not_system, prohibited, high_certify, high_self, medium, low), decided by a person and approved by a different person (Circular 53 Art. 4(3)). path_json is a JSON list of steps {node, answer, source (rules | person | decision33), evidence (a pointer: file:line, table row id or document id, at most 200 characters), note (at most 300 characters, masked)}; a step of the Decision 33 sub-flow also carries the answers of its questions. No personal data, no floats. inherited_from_provider: the bank took the provider''s result (Art. 4(4)). valid_until: the yearly review date (Art. 4(5)), set again at approval. approved_by and approved_at are null until a second person approves; only then does the risk level of the system change (floor rule, never lowers). Changes go on the chain as classification_v2.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- regkb_internal_doc (state): WP-W3 (phase 11, REGKB_INTERNAL). One internal document (policy, standard, procedure) that a person uploaded to RegKB. The raw text and the masked text sit under DATA_DIR/regkb/internal/<doc_id>/ (text.txt, text.masked.txt, .meta.json); only the masked text goes to the gateway model. status: uploaded, drafted (the law agent wrote drafts into regkb_draft with instrument_id VN-INT-<doc_id>), confirmed (a person with regkb.confirm accepted at least one row, so instrument.yaml exists) or retired. sha256 is the hash of the raw text file. No personal data in this row: title and owner_group are masked on upload.
+-- primary key (enforced by the app, not by Delta): doc_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regkb_internal_doc` (
+  doc_id STRING NOT NULL,
+  title STRING NOT NULL,
+  owner_group STRING NOT NULL,
+  version_label STRING NOT NULL,
+  sha256 STRING NOT NULL,
+  status STRING NOT NULL,
+  uploaded_by STRING NOT NULL,
+  uploaded_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-W3 (phase 11, REGKB_INTERNAL). One internal document (policy, standard, procedure) that a person uploaded to RegKB. The raw text and the masked text sit under DATA_DIR/regkb/internal/<doc_id>/ (text.txt, text.masked.txt, .meta.json); only the masked text goes to the gateway model. status: uploaded, drafted (the law agent wrote drafts into regkb_draft with instrument_id VN-INT-<doc_id>), confirmed (a person with regkb.confirm accepted at least one row, so instrument.yaml exists) or retired. sha256 is the hash of the raw text file. No personal data in this row: title and owner_group are masked on upload.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

@@ -95,7 +95,7 @@ class Instrument:
     number: str
     title_en: str
     status: str
-    binding: bool
+    binding: bool | str  # True | False | "internal" (WP-W3, internal documents)
     dates: Dates
     sources: tuple[Source, ...]
     verification: str
@@ -121,7 +121,7 @@ class Obligation:
     number: str
     title_en: str
     status: str
-    binding: bool
+    binding: bool | str  # True | False | "internal" (WP-W3, internal documents)
     dates: Dates
     article_ref: str
     summary_en: str

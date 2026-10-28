@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- WP-W3 (phase 11): **internal documents in RegKB through the gateway**, `REGKB_INTERNAL` (default
+  `0`; needs `LAWAGENT_ENABLED`; `REGKB_INTERNAL_MAX_MB` default 10). A person uploads a `.txt`, `.md`
+  or `.pdf` (text layer) policy: the text is masked, stored under `DATA_DIR/regkb/internal/<doc id>/`
+  (raw text, masked text, sha256, `.meta.json`) and the law agent (`python -m supervisor.regkb.lawagent
+  --internal <doc id>` or the button **Draft duties**) drafts one duty per section from the masked text
+  only, with a verbatim quote checked inside the section, duty tags and risk dimension ids. Drafts go
+  to `regkb_draft` as `VN-INT-<doc id>`; a person with `regkb.confirm` accepts rows on the existing
+  drafts page; confirmed rows are written as an internal instrument (`kind: internal`,
+  `binding: internal`, `verification: VERIFIED_INTERNAL`) that the loader reads at startup next to
+  `regulations/vn`, so the matrix, the Duties step and factory `policy_refs` see it. New table
+  `regkb_internal_doc` (appended at the end of `schema/model.yaml`; DDL and notebook regenerated), new
+  permission `regkb.upload`, chain record `regkb_internal`, reader API `GET /v1/regkb/internal[/{doc}
+  [/sections/{n}]]` for WP-F2, page `/console/regkb/internal`. The RegKB version hash covers internal
+  instruments only while the flag is on. Off: HTTP 400 `regkb_internal_off`, the loader ignores
+  internal files. Details: `docs/regulations.md`, section "Internal documents (WP-W3)".
+
 - WP-F1 (phase 12B): **agent factory schemas** (`src/supervisor/factory/`, docs/factory.md). Three
   frozen pydantic schemas with JSON Schema export (`facts_v1`, `assessment_report_v1`,
   `agent_definition_v1` with the `harness` block), all limits in `factory/caps.py`, strict loaders

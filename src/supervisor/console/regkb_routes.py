@@ -17,6 +17,7 @@ from supervisor.cases.service import PermissionDenied
 from supervisor.console import regkb_view
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.routes import _call, _check_id, _version, audited, form, render
+from supervisor.regkb import internal
 from supervisor.regkb.drafts import DRAFT_ID_RE, DraftStore
 
 router = APIRouter(prefix="/console", tags=["console"])
@@ -55,7 +56,7 @@ async def _decide(
         raise PermissionDenied("confirming a draft needs a signed-in person")
     if not DRAFT_ID_RE.match(draft_id):
         raise regkb_view.RegkbInputError("invalid draft id")
-    await _call(regkb_view.check_instrument, instrument_id)
+    await _call(regkb_view.check_instrument, instrument_id, ctx)
     version = _version(d)
 
     def work() -> None:
@@ -67,6 +68,13 @@ async def _decide(
 
     await _call(work)
     request.state.audit_detail = f"regkb_draft_{status}"
+    if status == "confirmed" and internal.is_internal_instrument(instrument_id):
+        # WP-W3: the confirmed rows of an internal document are rebuilt into its instrument file
+        await _call(
+            lambda: internal.service(ctx).after_decision(
+                internal.doc_id_of(instrument_id), str(me.user_id)
+            )
+        )
     data = await _call(regkb_view.draft_view, ctx, me, instrument_id, draft_id)
     return render(request, ctx, me, "_regkb_draft.html", **data)
 

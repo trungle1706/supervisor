@@ -9,8 +9,9 @@
       "type": "string",
       "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
     },
+    "binding": {"anyOf": [{"type": "boolean"}, {"const": "internal"}], "description": "true or false for an external instrument; the word internal (WP-W3) for an internal document of the bank: binding on the bank by its own rule, not by law"},
     "url": {"type": "string", "pattern": "^https?://[^\\s]+$"},
-    "verification": {"enum": ["VERIFIED_PRIMARY", "VERIFIED_SECONDARY", "ASSUMED"]},
+    "verification": {"enum": ["VERIFIED_PRIMARY", "VERIFIED_SECONDARY", "ASSUMED", "VERIFIED_INTERNAL"], "description": "VERIFIED_INTERNAL (WP-W3): a person with regkb.confirm accepted the row against the stored text of an internal document; only for instruments VN-INT-*"},
     "status": {"enum": ["in_force", "issued", "draft", "superseded", "repealed", "reference"], "description": "issued = signed and published but not yet effective on the check date (see dates.effective)"},
     "instrument_kind": {
       "enum": ["law", "decree", "circular", "decision", "draft", "standard", "guidance", "internal"]
@@ -30,7 +31,7 @@
         "fetched_at": {"$ref": "#/$defs/date_iso"},
         "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "kind": {"enum": ["primary", "secondary"]},
-        "local_path": {"type": "string", "pattern": "^regulations/sources/[A-Za-z0-9._/-]+$"}
+        "local_path": {"type": "string", "pattern": "^(regulations/sources|regkb/internal)/[A-Za-z0-9._/-]+$"}
       }
     },
     "dated": {
@@ -118,7 +119,7 @@
         "title_vi": {"type": "string"},
         "title_en": {"type": "string", "minLength": 1},
         "status": {"$ref": "#/$defs/status"},
-        "binding": {"type": "boolean"},
+        "binding": {"$ref": "#/$defs/binding"},
         "dates": {"$ref": "#/$defs/dates"},
         "supersedes": {"type": "array", "items": {"type": "string"}},
         "superseded_by": {"type": "array", "items": {"type": "string"}},
@@ -173,7 +174,7 @@
         "number": {"type": "string", "minLength": 1},
         "title_vi": {"type": "string"},
         "title_en": {"type": "string", "minLength": 1},
-        "binding": {"type": "boolean"}
+        "binding": {"$ref": "#/$defs/binding"}
       }
     },
     "file_obligation": {

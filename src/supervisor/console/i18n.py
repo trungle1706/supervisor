@@ -4832,3 +4832,7 @@ _T.update(_PX)
 from supervisor.console.i18n_classify import CV as _CV  # noqa: E402  (WP-C1, prefix cv_)
 
 _T.update(_CV)
+
+from supervisor.console.i18n_regkb_internal import RI as _RI  # noqa: E402  (WP-W3, prefix ri_)
+
+_T.update(_RI)

@@ -283,3 +283,8 @@ env:
   #   value: "1"
   # - name: LAWAGENT_MODEL
   #   value: ""
+  # Phase 11 WP-W3: internal documents in RegKB (upload, masked text to the gateway model, a person
+  # confirms rows). Needs LAWAGENT_ENABLED. Files sit under DATA_DIR/regkb/internal (a persistent
+  # volume is needed on Databricks). Off by default (docs/regulations.md).
+  # - name: REGKB_INTERNAL
+  #   value: "1"

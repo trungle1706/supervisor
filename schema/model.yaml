@@ -1786,3 +1786,26 @@ tables:
       inherited_from_provider: bool
       valid_until: timestamp
       created_at: timestamp
+
+  regkb_internal_doc:
+    kind: state
+    description: >
+      WP-W3 (phase 11, REGKB_INTERNAL). One internal document (policy, standard, procedure) that a
+      person uploaded to RegKB. The raw text and the masked text sit under
+      DATA_DIR/regkb/internal/<doc_id>/ (text.txt, text.masked.txt, .meta.json); only the masked
+      text goes to the gateway model. status: uploaded, drafted (the law agent wrote drafts into
+      regkb_draft with instrument_id VN-INT-<doc_id>), confirmed (a person with regkb.confirm
+      accepted at least one row, so instrument.yaml exists) or retired. sha256 is the hash of the
+      raw text file. No personal data in this row: title and owner_group are masked on upload.
+    primary_key: [doc_id]
+    indexes:
+      - [status]
+    columns:
+      doc_id: string
+      title: string
+      owner_group: string
+      version_label: string
+      sha256: string
+      status: string           # uploaded | drafted | confirmed | retired
+      uploaded_by: string
+      uploaded_at: timestamp

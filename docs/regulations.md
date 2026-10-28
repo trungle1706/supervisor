@@ -319,6 +319,101 @@ instrument file, adds the control mapping, runs `python -m supervisor.regkb vali
 pull request. The obligation schema accepts the optional field `confirmed_by`; it is part of the
 version hash only when present.
 
+## Internal documents (WP-W3)
+
+Flag `REGKB_INTERNAL=1` (default `0`; needs `LAWAGENT_ENABLED=1`). `REGKB_INTERNAL_MAX_MB` (default
+`10`, 1 to 50). A person uploads a bank policy, standard or procedure; the law agent drafts one duty
+per section from the **masked** text; a person with `regkb.confirm` accepts rows; the accepted rows
+become the instrument `VN-INT-<doc id>` that the compliance matrix, the Duties step and the factory
+`policy_refs` (WP-F2) can reference like an external instrument. Not legal advice.
+
+```
+upload (.txt .md .pdf) -> text -> personal-data masker -> DATA_DIR/regkb/internal/<doc id>/
+   -> [Draft duties] sections -> gateway model (masked text only) -> rules -> regkb_draft
+   -> person: Confirm / Drop on /console/regkb/VN-INT-<doc id>/drafts
+   -> instrument.yaml (rebuilt from all confirmed rows) -> validator -> loader at startup
+```
+
+| Part | What it does |
+|---|---|
+| Upload | `POST /v1/regkb/internal` or the form on `/console/regkb/internal`. Multipart field `file` plus text fields `title`, `owner_group` (required), `version_label`. Accepted: `.txt`, `.md`, `.pdf` with a text layer (read with `read_pdf` of `detectors/intake.py`; it needs the optional extra `documents`, else code `pdf_reader_missing`). Size limit `REGKB_INTERNAL_MAX_MB`. Refusal codes (HTTP 400): `regkb_internal_off`, `bad_type`, `empty_file`, `too_large`, `unreadable`, `pdf_no_text_layer`, `pdf_reader_missing`, `too_short`, `owner_group_required`, `field_too_long`, `masker_off`, `no_sections`, `actor_required`, `cross_site`, `bad_body`. |
+| Files | `DATA_DIR/regkb/internal/<doc id>/`: `text.txt` (raw text, for the person), `text.masked.txt` (the only text a model sees), `.meta.json` (title, owner group, version label, `uploaded_by`, `uploaded_at`, `sha256` of `text.txt`, `masked_sha256`, mask version), `drafts.json` (risk dimensions and the section label of each draft), `instrument.yaml` (after the first confirmation). The doc id is 12 characters of `0-9A-F`. |
+| Table | `regkb_internal_doc` (state): `doc_id`, `title`, `owner_group`, `version_label`, `sha256`, `status` (`uploaded`, `drafted`, `confirmed`, `retired`), `uploaded_by`, `uploaded_at`, `row_version`. Title, owner group and version label are masked before they are stored. |
+| Masker | The configured masker (`MASKER_KIND`) runs on the text at upload. With `MASKER_KIND=none` the upload is refused (`masker_off`). A model call reads the masked file only, and the file is checked against `masked_sha256` first (`files_changed`). The raw text never goes to a model. A drafted quote is a quote of the masked text, so no personal data enters `regkb_draft` or the instrument. |
+| Draft | `python -m supervisor.regkb.lawagent --internal <doc id>` or the button **Draft duties** (`POST /console/regkb/internal/<doc id>/draft`, `POST /v1/regkb/internal/<doc id>/draft`; permission `regkb.upload`). One call per section. The model says if the section imposes a duty; if so it gives 1 to 3 duty ids, subject, trigger, evidence, a verbatim quote, a one-line English summary and the risk dimension ids it touches. Rules (a reply that fails is dropped and counted): the duty ids are in `duties.yaml`; the four text fields are not empty; the quote has 12 to 2000 characters and is a substring of the section text (white space folded); dimension ids outside the eight of `config/risk_dimensions.yaml` are removed. A mock model is refused (`model_is_mock`). A draft already in the table, or one a person dropped, is not written again. |
+| Rows | `regkb_draft` with `instrument_id = VN-INT-<doc id>`, `article` = the section pointer `S<n>` (the n-th section of the masked text), `duty_id` = the duty ids joined by a comma. The drafts page `/console/regkb/VN-INT-<doc id>/drafts` shows them grouped by section with the quote marked, the dimension ids and the section pointer. |
+| Instrument | After each **Confirm**, `regkb/internal.py` rebuilds `instrument.yaml` from all confirmed rows, checks it with the RegKB schema validator and loader rules in a scratch folder, writes it, drops the RegKB caches and writes the chain record. With no confirmed row left the file is removed. A document can be retired (`InternalDocs.retire`): the file is removed and the loader no longer sees it. |
+| Loader | With the flag on, `load_kb()` reads `DATA_DIR/regkb/internal/*/instrument.yaml` next to `regulations/vn` (ids must start with `VN-INT-`). It accepts `kind: internal`, `binding: internal` and `verification: VERIFIED_INTERNAL` there and refuses them in every other folder. `sources[].local_path` of such a file is `regkb/internal/<doc id>/text.txt`, relative to `DATA_DIR`; its sha256 is checked at load. |
+| Version hash | The RegKB version hash covers an internal instrument **only while the flag is on** (the loader does not read the files otherwise). Turning the flag on or off, or confirming a row, changes the version hash that the compliance matrix and the evidence records show. |
+| Chain | One `regkb_internal` record on upload (`action: upload`, doc id, sha256, masked sha256, section count, byte count) and one on each confirm (`action: confirm`, doc id, sha256, counts of confirmed, dropped and open drafts, sha256 of the instrument file). No title, no user id, no text, no floats. |
+| Permissions | `regkb.upload` (reviewer, owner, approver, admin): upload and Draft duties. `regkb.view` (every role): the page and the reader API. `regkb.confirm` (approver, admin): Confirm and Drop, on the existing drafts routes. |
+| Audit | Every POST writes two `console_action` rows (`attempted`, then `ok` or the failure). |
+
+Reader API for the factory editor (WP-F2). The editor links to `/console/regkb/internal` and keeps
+an internal document id as a `policy_refs` value (`VN-INT-<doc id>` or one of its obligation ids).
+All reads answer HTTP 400 `regkb_internal_off` while the flag is off.
+
+| Call | Answer |
+|---|---|
+| `GET /v1/regkb/internal` | `{"documents": [...]}` : `doc_id`, `instrument_id`, `title`, `owner_group`, `version_label`, `sha256`, `status`, `uploaded_by`, `uploaded_at`, `drafts` (counts), `has_instrument` |
+| `GET /v1/regkb/internal/{doc_id}` | the same fields plus `sections`: `n`, `ref` (`S<n>`), `label`, `heading`, `chars` |
+| `GET /v1/regkb/internal/{doc_id}/sections/{n}` | `n`, `ref`, `label`, `heading`, `text` (masked), `masked: true` |
+
+Section splitter (`regkb/internal_text.py`, pure, tested on three synthetic policies). A line starts
+a section when it is `Điều N`, `Chương X`, `Phần X`, `Mục X`, `N.` or `N)` followed by text (1 or 2
+digits), or a dotted number `N.N`, `N.N.N` (up to four levels). A bare number ("15 tháng") does not.
+Text before the first heading is a `Preamble` section when it has 120 characters or more. A
+`Chương`, `Phần` or `Mục` with fewer than 60 characters of text under it is dropped. A section over
+8000 characters is cut at line boundaries (`(part 2)`, ...). With fewer than two headings the text
+is cut at blank lines into blocks `P1`, `P2`, ... (a block under 80 characters joins the next).
+Sections are numbered from 1 after these steps; at most 300 sections.
+
+Instrument file written for a document (`regkb/internal.py`; the row fields are those of
+`regulations/vn/*.yaml`):
+
+```yaml
+schema_version: 1
+instrument:
+  id: VN-INT-3F9A0C21B7D4          # 'VN-INT-' + doc id
+  jurisdiction: VN
+  kind: internal
+  issuer: <owner group>
+  number: <version label>
+  title_vi: <title>
+  title_en: <title>
+  status: in_force
+  binding: internal                 # new value; true/false stay for external instruments
+  dates: {issued: {date: <upload day>, source: https://regkb.internal.invalid/VN-INT-..., verification: VERIFIED_INTERNAL}}
+  sources: [{url: https://regkb.internal.invalid/VN-INT-..., title: ..., fetched_at: <upload day>, kind: primary, sha256: <text.txt sha>, local_path: regkb/internal/3F9A0C21B7D4/text.txt}]
+  verification: VERIFIED_INTERNAL   # new value
+  primary_text_fetched: true
+  last_checked: <day>
+obligations:
+- id: VN-INT-3F9A0C21B7D4-S3-01     # S<section n>, then a two-digit suffix
+  article_ref: Sec. 3 (Điều 3)
+  text_vi: <the verbatim masked quote>
+  summary_en: ...
+  duties: [risk_classification, internal_policy]
+  applies_to: {}
+  addressee: bank
+  control_mapping: []
+  evidence_needed: [<evidence asked>]
+  verification: VERIFIED_INTERNAL
+  confirmed_by: <person>
+  sources: [<as above>]
+  confidence: medium
+  notes: <section, risk dimensions, subject, trigger, model, run, who confirmed and when>
+```
+
+Limits and open points. (1) `DATA_DIR` is wiped on a Databricks App restart; the uploaded files
+and `drafts.json` are on that disk, so on Databricks `DATA_DIR` must be a persistent volume before
+this feature is used there. (2) The risk dimension ids of a row are kept in `drafts.json` and in
+the `notes` of the obligation; the obligation schema has no field for them. (3) The "Draft duties"
+button runs in the request (one model call per section, up to 300 sections); a long document should
+be drafted with the CLI. (4) The compliance matrix, the Duties step and the register caches are
+refreshed on a confirm; other long-lived caches (assignment rules, risk references) refresh after a
+restart.
+
 ## Coverage raise (WP-L5)
 
 > **Not legal advice. Bank counsel must confirm.** A mapping says which Supervisor control or

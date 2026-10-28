@@ -40,6 +40,25 @@ HEADER_KEYS = ("jurisdiction", "issuer", "number", "title_vi", "title_en", "bind
 CONTROL_VOCAB = {"monitor": "monitors", "console": "console", "evidence": "evidence"}
 # (sub directory, required instrument id prefix)
 SOURCE_DIRS = (("vn", "VN-"), ("intl", "INTL-"))
+# WP-W3: instruments written by regkb/internal.py, one folder per uploaded document
+INTERNAL_DOC_PREFIX = "VN-INT-"
+INTERNAL_DOC_FILE = "instrument.yaml"
+INTERNAL_ONLY_VERIFICATION = "VERIFIED_INTERNAL"
+INTERNAL_BINDING = "internal"
+
+
+def internal_docs_dir(settings: Any = None) -> Path | None:
+    """``DATA_DIR/regkb/internal`` when REGKB_INTERNAL and LAWAGENT_ENABLED are both on, else None
+    (the loader then ignores internal documents and the version hash does not include them)."""
+    if settings is None:
+        from supervisor.config import load_settings
+
+        settings = load_settings()
+    if not (
+        getattr(settings, "regkb_internal", False) and getattr(settings, "lawagent_enabled", False)
+    ):
+        return None
+    return Path(os.path.abspath(Path(settings.data_dir) / "regkb" / "internal"))
 
 
 def _today() -> dt.date:
@@ -182,10 +201,14 @@ class _Vocab:
 
 
 class _Loader:
-    def __init__(self, root: Path, internal_dir: Path | None) -> None:
+    def __init__(self, root: Path, internal_dir: Path | None, docs_dir: Path | None = None) -> None:
         self.root = root
         self.base = root.parent  # local_path in sources is relative to this
         self.internal_dir = internal_dir
+        self.docs_dir = (
+            docs_dir  # WP-W3: DATA_DIR/regkb/internal (local_path is relative to its parent)
+        )
+        self.docs: set[str] = set()  # relative names of the files read from docs_dir
         schema_dir = root / "schema"
         if not (schema_dir / "obligation.schema.json").is_file():
             schema_dir = REPO_ROOT / "regulations" / "schema"
@@ -198,6 +221,8 @@ class _Loader:
         self.obligations: dict[str, Obligation] = {}
 
     def rel(self, path: Path) -> str:
+        if self.docs_dir is not None and self.docs_dir in path.parents:
+            return path.relative_to(self.docs_dir.parent.parent).as_posix()
         try:
             return path.relative_to(self.base).as_posix()
         except ValueError:
@@ -209,6 +234,10 @@ class _Loader:
             out += [(p, prefix, False) for p in sorted((self.root / sub).glob("*.yaml"))]
         if self.internal_dir is not None:
             out += [(p, "INT-", True) for p in sorted(self.internal_dir.glob("*.yaml"))]
+        if self.docs_dir is not None and self.docs_dir.is_dir():
+            for p in sorted(self.docs_dir.glob("*/" + INTERNAL_DOC_FILE)):
+                self.docs.add(self.rel(p))
+                out.append((p, INTERNAL_DOC_PREFIX, True))
         return out
 
     def run(self) -> KnowledgeBase:
@@ -311,6 +340,19 @@ class _Loader:
             sem(f"instrument id must start with {prefix} in this directory")
         if inst.kind == "internal" and not internal:
             sem("kind internal is only allowed in the internal directory")
+        docs = inst.file in self.docs
+        if inst.id.startswith(INTERNAL_DOC_PREFIX) and not docs:
+            sem(f"ids starting with {INTERNAL_DOC_PREFIX} belong to internal documents")
+        if docs and not (
+            inst.kind == "internal"
+            and inst.binding == INTERNAL_BINDING
+            and inst.verification == INTERNAL_ONLY_VERIFICATION
+        ):
+            sem("an internal document needs kind internal, binding internal, VERIFIED_INTERNAL")
+        if not internal and (
+            inst.binding == INTERNAL_BINDING or inst.verification == INTERNAL_ONLY_VERIFICATION
+        ):
+            sem("binding internal and VERIFIED_INTERNAL are only for internal documents")
         if inst.kind == "draft" and inst.status in LIVE:
             sem("a draft instrument cannot have status in_force or issued")
         if inst.status in ("reference", "draft") and inst.binding:
@@ -338,6 +380,13 @@ class _Loader:
         for c in ob.control_mapping:
             if c.id not in self.vocab.by_kind.get(c.kind, set()):
                 sem(f"control_mapping {c.kind}:{c.id} does not resolve")
+        if ob.file in self.docs:
+            if ob.verification != INTERNAL_ONLY_VERIFICATION or ob.binding != INTERNAL_BINDING:
+                sem("a row of an internal document needs VERIFIED_INTERNAL and binding internal")
+            if not (ob.text_vi or "").strip() or not (ob.confirmed_by or "").strip():
+                sem("a row of an internal document needs text_vi and confirmed_by")
+        elif ob.verification == INTERNAL_ONLY_VERIFICATION or ob.binding == INTERNAL_BINDING:
+            sem("VERIFIED_INTERNAL and binding internal are only for internal documents")
         if ob.verification == "VERIFIED_PRIMARY":
             if not any(s.kind == "primary" for s in ob.sources):
                 sem("VERIFIED_PRIMARY needs at least one source of kind primary")
@@ -351,7 +400,11 @@ class _Loader:
     def check_source(self, src: Source, rel: str, ident: str) -> None:
         if not src.local_path:
             return
-        base = self.base.resolve()
+        base = (
+            self.docs_dir.parent.parent.resolve()
+            if rel in self.docs and self.docs_dir is not None
+            else self.base.resolve()
+        )
         path = (base / src.local_path).resolve()
         if base not in path.parents:
             self.sem(rel, ident, f"source local_path {src.local_path} leaves the repository")
@@ -361,12 +414,24 @@ class _Loader:
             self.sem(rel, ident, f"source local_path {src.local_path} sha256 does not match")
 
 
-def load_kb(root: Path | None = None, internal_dir: Path | None = None) -> KnowledgeBase:
-    """Load regulations/{vn,intl}/*.yaml (and ``internal_dir``/*.yaml when given)."""
+def load_kb(
+    root: Path | None = None,
+    internal_dir: Path | None = None,
+    docs_dir: Path | None = None,
+) -> KnowledgeBase:
+    """Load regulations/{vn,intl}/*.yaml (and ``internal_dir``/*.yaml when given).
+
+    WP-W3: with the default ``root`` and no ``docs_dir``, the internal documents under
+    ``DATA_DIR/regkb/internal/<doc>/instrument.yaml`` are read too, but only when REGKB_INTERNAL
+    and LAWAGENT_ENABLED are on. With the flag off they are not read and are not in the version
+    hash. Pass ``docs_dir`` to name the folder (tests)."""
     base = Path(os.path.abspath(root)) if root is not None else REPO_ROOT / "regulations"
     internal = Path(os.path.abspath(internal_dir)) if internal_dir is not None else None
     if not base.is_dir():
         raise RegKBError(f"regulations root {base} is not a directory")
     if internal is not None and not internal.is_dir():
         raise RegKBError(f"internal rules directory {internal} is not a directory")
-    return _Loader(base, internal).run()
+    if docs_dir is None and root is None:
+        docs_dir = internal_docs_dir()
+    docs = Path(os.path.abspath(docs_dir)) if docs_dir is not None else None
+    return _Loader(base, internal, docs).run()

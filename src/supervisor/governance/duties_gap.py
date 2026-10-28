@@ -573,7 +573,7 @@ def _binding_vn(kb: Any, instrument_id: str) -> bool:
         inst = kb.instrument(instrument_id)
     except Exception:  # noqa: BLE001 - an instrument RegKB no longer knows is a reference
         return False
-    return bool(inst.binding and inst.jurisdiction == "VN")
+    return bool(inst.binding is True and inst.jurisdiction == "VN")
 
 
 def risk_points(groups: Iterable[tuple[bool, str]]) -> tuple[int, int]:
