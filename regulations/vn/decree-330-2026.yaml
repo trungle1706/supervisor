@@ -1,0 +1,696 @@
+schema_version: 1
+instrument:
+  id: VN-DEC330-2026
+  jurisdiction: VN
+  kind: decree
+  issuer: Government
+  number: 330/2026/NĐ-CP
+  title_vi: Nghị định quy định xử phạt vi phạm hành chính trong lĩnh vực an ninh mạng và bảo vệ dữ liệu
+    cá nhân
+  title_en: Decree on administrative penalties in cybersecurity and personal data protection
+  status: in_force
+  binding: true
+  dates:
+    issued:
+      date: '2026-08-19'
+      source: https://vbpl.vn/van-ban/chi-tiet/90bd5de0-c524-11f1-86ef-85b9f675c340
+      verification: VERIFIED_PRIMARY
+    effective:
+      date: '2026-08-19'
+      source: https://vbpl.vn/van-ban/chi-tiet/90bd5de0-c524-11f1-86ef-85b9f675c340
+      verification: VERIFIED_PRIMARY
+      note: Art. 80
+  related:
+  - VN-PDPL-2025
+  - VN-DEC356-2025
+  - VN-CYBER-2025
+  sources: &id001
+  - url: https://vbpl.vn/van-ban/chi-tiet/90bd5de0-c524-11f1-86ef-85b9f675c340
+    title: Decree 330/2026/ND-CP full text (vbpl.vn gateway)
+    fetched_at: '2026-10-28'
+    kind: primary
+    sha256: 3521d84f36a30df812042ef335fd86e0048368a09b5f0b310ba32ee66282da3e
+    local_path: regulations/sources/VN-DEC330-2026/nd-330-2026.txt
+  verification: VERIFIED_PRIMARY
+  primary_text_fetched: true
+  last_checked: '2026-10-28'
+  notes: 'Added by WP-W0 on 2026-10-28. Sanction decree. Article 67 is about personal data in AI systems
+    and is the first text that attaches a fine to AI-specific personal data duties (notice and explanation
+    of the algorithm, opt-out of automated processing, risk classing, human re-assessment). Article 64
+    is about finance, banking and credit information. Article 70 is about biometric data. Article 7 sets
+    fine caps (cybersecurity: VND 200 million for an organisation; personal data: VND 3 billion, 5 percent
+    of revenue for cross-border transfer, 10 times proceeds for sale). The cybersecurity penalties (Chapter
+    II, Sections 1-5, Art. 9-38) and Art. 39-53, 57-63, 65, 68-69, 71 were not turned into rows; they
+    matter for incident response (Art. 21), security level (Art. 24), data localisation (Art. 33) and
+    the other personal data rights. Fines for organisations in the cybersecurity field are twice the individual
+    fine (Art. 7(1)). Not legal advice; bank counsel must confirm.'
+obligations:
+- id: VN-DEC330-2026-A67.01-01
+  article_ref: Art. 67(1)
+  text_vi: 1. Phạt tiền từ 20.000.000 đồng đến 50.000.000 đồng đối với hành vi xử lý dữ liệu cá nhân trong
+    hệ thống trí tuệ nhân tạo, vũ trụ ảo nhưng không thực hiện đánh giá tuân thủ các quy định về bảo vệ
+    dữ liệu cá nhân định kỳ 01 năm/lần.
+  summary_en: Fine VND 20-50 million for processing personal data in an AI system without the yearly assessment
+    of compliance with personal data protection rules.
+  duties:
+  - pd_compliance_assessment
+  - dpia
+  applies_to: &id002
+    agent_class:
+    - any
+    data_classes:
+    - personal
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: audit_pack
+    coverage: partial
+    note: 'Audit export can collect evidence for the assessment. Missing: the assessment itself and its
+      yearly cycle.'
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'Oversight metrics per agent. Missing: a compliance assessment against the data protection law.'
+  - kind: process
+    id: dpo_signoff
+    coverage: partial
+    note: 'Manual step: the data protection officer signs a yearly assessment of each AI system that processes
+      personal data.'
+  evidence_needed:
+  - yearly personal data compliance assessment per AI system
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.'
+- id: VN-DEC330-2026-A67.02-01
+  article_ref: Art. 67(2)
+  text_vi: '2. Phạt tiền từ 50.000.000 đồng đến 70.000.000 đồng đối với một trong các hành vi sau đây:
+    a) Không thông báo hoặc không giải thích nguyên tắc hoạt động của thuật toán tự động và ảnh hưởng
+    của nó đối với quyền, lợi ích hợp pháp của chủ thể dữ liệu cá nhân; b) Không cung cấp công cụ, cơ
+    chế để chủ thể dữ liệu cá nhân có quyền từ chối tham gia quá trình xử lý dữ liệu tự động; c) Không
+    bảo đảm cho chủ thể dữ liệu cá nhân quyền chỉnh sửa, ẩn danh hoặc xóa hồ sơ nhận dạng; d) Không phân
+    loại hệ thống trí tuệ nhân tạo theo các mức độ rủi ro để thiết lập các biện pháp bảo vệ dữ liệu cá
+    nhân phù hợp; đ) Không áp dụng các biện pháp bảo vệ dữ liệu cá nhân khi sử dụng kết quả suy luận của
+    trí tuệ nhân tạo để xác định hoặc giúp xác định một con người cụ thể; e) Phát triển, triển khai hệ
+    thống trí tuệ nhân tạo, vũ trụ ảo nhưng không xây dựng hệ thống đáp ứng tiêu chuẩn an ninh mạng và
+    bảo vệ dữ liệu toàn diện, hoặc không thiết lập hệ thống giám sát và cảnh báo sớm nguy cơ an ninh mạng;
+    g) Không áp dụng phương thức xác thực, định danh phù hợp hoặc không phân quyền truy cập để xử lý dữ
+    liệu cá nhân trong hệ thống.'
+  summary_en: 'Fine VND 50-70 million for an AI system that: gives no notice or explanation of how its
+    automatic algorithm works and affects the person; gives no way to opt out of automated processing;
+    blocks correction, anonymisation or deletion of the identification profile; is not classed by risk
+    level; lacks safeguards for inference that identifies a person; lacks security standards and early
+    warning; lacks authentication and access rights.'
+  duties:
+  - automated_decision_rights
+  - explainability
+  - risk_classification
+  - security_monitoring
+  - access_control
+  - data_subject_rights
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: 'Records the Decision 33 class and answers. Missing: the risk levels this Decree has in mind
+      (the Decree names no scale).'
+  - kind: evidence
+    id: case_file
+    coverage: partial
+    note: 'Case file records which factors and tools led to an outcome; supports an explanation. Missing:
+      the notice to the person and the opt-out tool.'
+  - kind: monitor
+    id: drift
+    coverage: partial
+    note: 'Behaviour drift band as an early-warning signal. Missing: early warning of cyber risk across
+      the system.'
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks identifiers in traces. Missing: the identification profile rights and the safeguards
+      for inference that identifies a person.'
+  - kind: process
+    id: customer_disclosure
+    coverage: partial
+    note: 'Manual step: the bank gives the notice and explanation of the algorithm and offers an opt-out
+      of automated processing.'
+  - kind: process
+    id: access_management
+    coverage: partial
+    note: 'Manual step: the bank applies authentication and access rights to the personal data of the
+      AI system.'
+  evidence_needed:
+  - customer notice and explanation of the algorithm
+  - opt-out tool and its use counts
+  - risk classification of the AI system
+  - access matrix
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.
+    Remedy in Art. 67(5)(a): the bank must set up the notice, the opt-out and the profile rights.'
+- id: VN-DEC330-2026-A67.03-01
+  article_ref: Art. 67(3)(a)-(b)
+  text_vi: '3. Phạt tiền từ 70.000.000 đồng đến 100.000.000 đồng đối với một trong các hành vi sau đây:
+    a) Không thiết lập cơ chế kiểm soát, ngăn chặn việc lợi dụng trí tuệ nhân tạo, vũ trụ ảo vào các hoạt
+    động xâm phạm an ninh quốc gia, trật tự an toàn xã hội; b) Phát triển, vận hành hệ thống trí tuệ nhân
+    tạo, vũ trụ ảo đưa ra các quyết định tự động gây ảnh hưởng đến an ninh trật tự, quyền, lợi ích hợp
+    pháp của tổ chức, cá nhân nhưng không thiết lập cơ chế giám sát hoặc không cho phép yêu cầu sự đánh
+    giá lại từ con người;'
+  summary_en: 'Fine VND 70-100 million for not setting a control against abuse of AI, and for running
+    an AI system that makes automatic decisions affecting rights or interests without a supervision mechanism
+    or without allowing the person to ask a human to re-assess. Added penalty: suspension of the AI system
+    for 3 to 6 months.'
+  duties:
+  - human_oversight
+  - right_to_human_review
+  - automated_decision_rights
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: 'Reviewer sign-off on a case supports human review after the fact; it is not pre-execution approval.
+      Missing: the customer-facing path to ask for a human re-assessment.'
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'Oversight metrics (dwell time, approval rate, chain check) show whether supervision is real.
+      Missing: the customer request path.'
+  - kind: console
+    id: agent_action
+    coverage: partial
+    note: 'Pause and quarantine switch is the control against misuse of an agent. Missing: the customer-facing
+      re-assessment channel.'
+  - kind: process
+    id: complaint_handling
+    coverage: partial
+    note: 'Manual step: the bank offers a route to ask a human to re-assess an automated decision and
+      tracks the answer.'
+  evidence_needed:
+  - supervision mechanism for automated decisions
+  - re-assessment request log
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.
+    The additional penalty (suspension of operation, Art. 67(4)(b)) is a business risk for an AI product.'
+- id: VN-DEC330-2026-A64.01-01
+  article_ref: Art. 64(1)
+  text_vi: '1. Phạt tiền từ 50.000.000 đồng đến 70.000.000 đồng đối với hành vi sau: a) Không thông báo
+    hoặc thông báo chậm quá thời hạn 72 giờ cho cơ quan chuyên trách bảo vệ dữ liệu cá nhân và chủ thể
+    dữ liệu cá nhân kể từ thời điểm phát hiện sự cố lộ, mất dữ liệu cá nhân nhạy cảm; b) Nội dung thông
+    báo sự cố vi phạm bảo vệ dữ liệu cá nhân không bảo đảm đầy đủ các nội dung tối thiểu theo quy định
+    của pháp luật; c) Không tiến hành ghi lại nhật ký toàn bộ hoạt động xử lý dữ liệu cá nhân hoặc không
+    thực hiện đánh giá tuân thủ định kỳ hàng năm theo quy định; d) Không thiết lập giải pháp khôi phục
+    dữ liệu cá nhân khi xảy ra sự cố mất dữ liệu cá nhân; đ) Không áp dụng tiêu chuẩn, quy chuẩn kỹ thuật
+    bảo vệ dữ liệu cá nhân; quy chuẩn kỹ thuật khử nhận dạng dữ liệu cá nhân, ẩn danh dữ liệu cá nhân
+    theo quy định; e) Nội dung xin sự đồng ý của chủ thể dữ liệu cá nhân không bảo đảm nêu rõ các thông
+    tin theo quy định tại khoản 2, Điều 9 Luật Bảo vệ dữ liệu cá nhân.'
+  summary_en: 'Finance and banking: fine VND 50-70 million for failing to notify the authority and the
+    person of a leak or loss of sensitive personal data within 72 hours, incomplete notices, no log of
+    all personal data processing or no yearly compliance assessment, no recovery solution, not applying
+    technical standards for protection and de-identification, and consent requests that lack the required
+    content.'
+  duties:
+  - incident_report_72h
+  - breach_notification_subject
+  - logging
+  - pd_compliance_assessment
+  - business_continuity
+  - consent
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records every agent action on data with hashes. Missing: full log of all personal data processing
+      outside agent flows.'
+  - kind: evidence
+    id: incident_clock
+    coverage: partial
+    note: 'Clock for the report times of a case under Decree 142 (72 h or 5 working days). Missing: the
+      72-hour personal data breach clock and the notice to the person.'
+  - kind: evidence
+    id: incident_record
+    coverage: partial
+    note: 'Incident record with status. Missing: notice content and delivery.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank notifies the data protection authority and the persons within 72 hours
+      with complete content.'
+  - kind: process
+    id: dpo_signoff
+    coverage: partial
+    note: 'Manual step: the data protection officer signs the yearly compliance assessment.'
+  evidence_needed:
+  - 72-hour notices to authority and persons
+  - log of personal data processing
+  - yearly compliance assessment
+  - recovery solution
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.
+    The 72-hour banking rule matches Decree 356/2025 (see VN-DEC356-2025-A8.3-01).'
+- id: VN-DEC330-2026-A64.02-01
+  article_ref: Art. 64(2)(a)-(c)
+  text_vi: '2. Phạt tiền từ 70.000.000 đồng đến 100.000.000 đồng đối với một trong các hành vi sau: a)
+    Sử dụng dữ liệu cá nhân của chủ thể dữ liệu cá nhân để tiến hành các hoạt động chấm điểm, xếp hạng
+    tín dụng, đánh giá mức độ tín nhiệm về tín dụng khi chưa có sự đồng ý của chủ thể dữ liệu cá nhân
+    trừ trường hợp xử lý dữ liệu cá nhân không cần sự đồng ý của chủ thể dữ liệu cá nhân; b) Tổ chức thực
+    hiện hoạt động thông tin tín dụng nhưng không triển khai các biện pháp quản lý, kỹ thuật để phòng,
+    chống truy cập, sử dụng, tiết lộ, chỉnh sửa trái phép dữ liệu cá nhân của khách hàng; c) Thu thập
+    dữ liệu cá nhân không đúng phạm vi cần thiết phục vụ hoạt động thông tin tín dụng hoặc thu thập từ
+    nguồn không được pháp luật cho phép.'
+  summary_en: 'Finance and banking: fine VND 70-100 million for using personal data for credit scoring,
+    ranking or credit rating without the person consent (unless processing without consent is allowed),
+    for a credit-information entity that lacks management and technical measures against unauthorised
+    access, use, disclosure or change, and for collecting data beyond what credit information needs or
+    from sources the law does not allow. Added penalty: suspension of credit scoring service for 3 to
+    6 months; remedy: destroy unlawful scoring results.'
+  duties:
+  - consent
+  - lawful_basis
+  - purpose_limitation
+  - data_minimisation
+  - access_control
+  - automated_decision_rights
+  applies_to:
+    agent_class:
+    - credit_decision
+    data_classes:
+    - personal
+    - financial
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks identity fields in traces. Missing: the consent check before a scoring run and the source
+      check.'
+  - kind: catalogue
+    id: pii_bulk_read
+    coverage: partial
+    note: 'Limits mass reads of customer records. Missing: a rule that blocks scoring without a recorded
+      consent.'
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records which data a scoring agent read. Missing: link to a consent record.'
+  - kind: process
+    id: consent_management
+    coverage: partial
+    note: 'Manual step: the bank records consent for credit scoring and shows the legal basis where consent
+      is not needed.'
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the legal basis (consent or exception) for each credit scoring
+      use.'
+  evidence_needed:
+  - consent or legal-basis record per scoring purpose
+  - data source list for scoring
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.
+    Read for a credit memo or scoring agent.'
+- id: VN-DEC330-2026-A66.02-01
+  article_ref: Art. 66(2)
+  text_vi: '2. Phạt tiền từ 30.000.000 đồng đến 50.000.000 đồng đối với một trong các hành vi sau đây:
+    a) Không có cơ chế thông báo hoặc không giải thích phù hợp cho chủ thể dữ liệu cá nhân về việc dữ
+    liệu của họ được đưa vào hệ thống phân tích dữ liệu lớn; b) Không sử dụng phương thức xác thực mạnh
+    (tối thiểu xác thực đa yếu tố) hoặc không phân quyền truy cập để bảo đảm chỉ những người có quyền
+    mới được truy cập dữ liệu; c) Không thực hiện giám sát liên tục hoặc không sử dụng các công cụ giám
+    sát để theo dõi hoạt động truy cập và phát hiện các hành vi bất thường; d) Không thực hiện kiểm tra,
+    đánh giá định kỳ về an ninh mạng và bảo mật dữ liệu để phát hiện, ngăn chặn và khắc phục lỗ hổng bảo
+    mật; đ) Không thực hiện mã hóa, ẩn danh dữ liệu cá nhân trong quá trình chuyển giao, cung cấp dữ liệu,
+    trừ trường hợp pháp luật chuyên ngành có quy định khác.'
+  summary_en: Fine VND 30-50 million, for big-data processing of personal data, for no notice to people
+    that their data enter the analysis system, no strong authentication (at least multi-factor) or access
+    rights, no continuous monitoring of access, no periodic security tests, and no encryption or anonymisation
+    on transfer.
+  duties:
+  - explainability
+  - access_control
+  - security_monitoring
+  - security_testing
+  - encryption
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: 'Logs outbound calls and data flows. Missing: encryption and anonymisation on transfer; the
+      notice to people.'
+  - kind: monitor
+    id: sweeps
+    coverage: partial
+    note: 'Periodic sweeps over recorded events detect unusual access. Missing: authentication strength
+      and security testing of the platform.'
+  - kind: evidence
+    id: assurance_results
+    coverage: partial
+    note: 'Assurance pack results include security packs. Missing: a periodic cybersecurity test of the
+      data platform.'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank applies multi-factor authentication, access rights, monitoring and periodic
+      testing to the platform that holds the data.'
+  evidence_needed:
+  - notice to people about big-data use
+  - authentication and access record
+  - periodic security test report
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: medium
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.
+    "Big data" is not defined in the Decree; whether an AI agent platform counts is a reading to confirm.'
+- id: VN-DEC330-2026-A66.03-01
+  article_ref: Art. 66(3)(a)
+  text_vi: a) Vận hành hệ thống dữ liệu lớn đưa ra các quyết định tự động gây ảnh hưởng đến an ninh trật
+    tự, quyền, lợi ích hợp pháp của tổ chức, cá nhân nhưng không thiết lập cơ chế giám sát hoặc không
+    cho phép yêu cầu sự đánh giá lại từ con người;
+  summary_en: Fine VND 50-100 million for a big-data system that makes automatic decisions affecting rights
+    or interests without a supervision mechanism or without allowing a human re-assessment.
+  duties:
+  - human_oversight
+  - right_to_human_review
+  - automated_decision_rights
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: console
+    id: case_signoff
+    coverage: partial
+    note: 'Human sign-off after the fact. Missing: the customer path to ask for re-assessment.'
+  - kind: monitor
+    id: oversight
+    coverage: partial
+    note: 'Oversight metrics. Missing: the customer path.'
+  - kind: process
+    id: complaint_handling
+    coverage: partial
+    note: 'Manual step: the bank offers re-assessment by a human for automated decisions.'
+  evidence_needed:
+  - supervision mechanism
+  - re-assessment request log
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: medium
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.'
+- id: VN-DEC330-2026-A70.01-01
+  article_ref: Art. 70(1)(c)-(đ)
+  text_vi: c) Thu thập, xử lý dữ liệu sinh trắc học nhưng không thiết lập các biện pháp bảo mật vật lý
+    đối với hệ thống, thiết bị lưu trữ và truyền tải dữ liệu sinh trắc học; d) Không thực hiện hạn chế
+    quyền truy cập hoặc không có hệ thống theo dõi phòng ngừa hành vi xâm phạm đối với dữ liệu vị trí
+    cá nhân, dữ liệu sinh trắc học; đ) Không thực hiện thông báo cho cơ quan chuyên trách bảo vệ dữ liệu
+    cá nhân và chủ thể dữ liệu bị ảnh hưởng trong thời hạn 72 giờ kể từ thời điểm phát hiện ra sự cố vi
+    phạm dữ liệu cá nhân liên quan đến dữ liệu vị trí hoặc dữ liệu sinh trắc học;
+  summary_en: Fine VND 50-70 million for collecting or processing biometric data without physical security
+    of systems and devices, without access limits and monitoring against abuse, or without notice to the
+    authority and the person within 72 hours of a breach of location or biometric data.
+  duties:
+  - sensitive_data_protection
+  - access_control
+  - security_monitoring
+  - incident_report_72h
+  - breach_notification_subject
+  applies_to: &id003
+    agent_class:
+    - any
+    data_classes:
+    - biometric
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Masks biometric references in traces. Missing: physical security and access limits of biometric
+      stores.'
+  - kind: evidence
+    id: incident_clock
+    coverage: partial
+    note: 'Report clocks of a case. Missing: the 72-hour biometric breach clock.'
+  - kind: process
+    id: security_assessment
+    coverage: partial
+    note: 'Manual step: the bank secures biometric stores, limits access and monitors for abuse.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank notifies the authority and affected persons within 72 hours of a biometric
+      data breach.'
+  evidence_needed:
+  - physical security assessment of biometric systems
+  - access list and monitoring record
+  - 72-hour notice record
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.'
+- id: VN-DEC330-2026-A70.02-01
+  article_ref: Art. 70(2)(b)
+  text_vi: b) Khai thác, sử dụng dữ liệu sinh trắc học của chủ thể dữ liệu cá nhân vượt quá mục đích ban
+    đầu mà chưa có được sự đồng ý.
+  summary_en: Fine VND 70-150 million for using a person biometric data beyond the original purpose without
+    consent.
+  duties:
+  - purpose_limitation
+  - consent
+  - sensitive_data_protection
+  applies_to: *id003
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: approved_tools
+    coverage: partial
+    note: 'Keeps an agent to approved tools; a biometric tool can be left off the list. Missing: a purpose
+      check on biometric data use.'
+  - kind: process
+    id: consent_management
+    coverage: partial
+    note: 'Manual step: the bank records the purpose consented to for biometric data and blocks other
+      uses.'
+  evidence_needed:
+  - biometric purpose consent record
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.
+    Biometric data for authentication under Circular 50/2024 must stay in that purpose.'
+- id: VN-DEC330-2026-A55.01-01
+  article_ref: Art. 55(1)
+  text_vi: '1. Phạt tiền từ 20.000.000 đồng đến 30.000.000 đồng đối với các hành vi sau: a) Bắt đầu các
+    hoạt động xử lý dữ liệu cá nhân nhưng không lập, không duy trì Hồ sơ đánh giá tác động xử lý dữ liệu
+    cá nhân tại trụ sở doanh nghiệp theo quy định tại Điều 21 Luật Bảo vệ dữ liệu cá nhân; b) Không gửi
+    01 bản chính Hồ sơ đánh giá tác động xử lý dữ liệu cá nhân (theo mẫu quy định tại Phụ lục Nghị định
+    356/2025/NĐ-CP) cho Cục An ninh mạng và phòng, chống tội phạm sử dụng công nghệ cao (Bộ Công an) trong
+    thời gian 60 ngày kể từ ngày đầu tiên tiến hành xử lý dữ liệu cá nhân; c) Cố ý không hoàn thiện hồ
+    sơ đánh giá tác động theo yêu cầu của cơ quan chuyên trách trong trường hợp hồ sơ chưa đầy đủ, đúng
+    quy định; d) Không cập nhật định kỳ 06 tháng đối với hồ sơ đánh giá tác động xử lý dữ liệu cá nhân
+    khi có sự thay đổi theo quy định pháp luật; đ) Không cập nhật hồ sơ trong thời hạn 10 ngày khi thuộc
+    một trong các trường hợp phải cập nhật theo quy định của pháp luật.'
+  summary_en: Fine VND 20-30 million for starting personal data processing without an impact assessment
+    dossier kept at the premises, not sending the original to the Cybersecurity and High-tech Crime Department
+    (Ministry of Public Security) within 60 days, not completing it on request, and not updating it every
+    6 months or within 10 days of a change.
+  duties:
+  - dpia
+  - regulatory_reporting
+  - record_keeping
+  applies_to: *id002
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: onboard_profile
+    coverage: partial
+    note: 'Onboarding profile lists tools, data classes and model for the data-flow section. Missing:
+      the dossier, the filing and the 6-month update.'
+  - kind: evidence
+    id: agent_registry
+    coverage: partial
+    note: 'Agent inventory. Missing: the dossier and the filing.'
+  - kind: process
+    id: dpia_document
+    coverage: partial
+    note: 'Manual step: the bank writes and keeps the impact assessment dossier and updates it every 6
+      months.'
+  - kind: process
+    id: regulator_notification
+    coverage: partial
+    note: 'Manual step: the bank files the original dossier with the authority within 60 days of the first
+      processing.'
+  evidence_needed:
+  - impact assessment dossier
+  - filing receipt within 60 days
+  - update log (6 months and 10 days)
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.
+    The substantive duty is in VN-DEC356-2025 Art. 19; this Decree adds the fine and the 10-day update
+    after a change.'
+- id: VN-DEC330-2026-A56.01-01
+  article_ref: Art. 56(1)
+  text_vi: '1. Phạt tiền từ 30.000.000 đồng đến 50.000.000 đồng đối với một trong các hành vi sau: a)
+    Không lập hồ sơ đánh giá tác động chuyển dữ liệu cá nhân xuyên biên giới trước hoặc trong thời gian
+    tiến hành chuyển dữ liệu; b) Không nộp 01 bản chính hồ sơ đánh giá tác động chuyển dữ liệu cá nhân
+    xuyên biên giới cho cơ quan chuyên trách bảo vệ dữ liệu cá nhân trong thời hạn 60 ngày kể từ ngày
+    đầu tiên tiến hành chuyển dữ liệu; c) Không hoàn thiện hồ sơ đánh giá tác động chuyển dữ liệu cá nhân
+    xuyên biên giới trong thời hạn 30 ngày kể từ khi nhận được yêu cầu của cơ quan chuyên trách bảo vệ
+    dữ liệu cá nhân; d) Không cập nhật định kỳ hoặc không cập nhật hồ sơ đánh giá tác động chuyển dữ liệu
+    cá nhân xuyên biên giới khi có thay đổi theo quy định pháp luật; đ) Không duy trì hồ sơ đánh giá tác
+    động chuyển dữ liệu cá nhân xuyên biên giới ở trạng thái sẵn sàng phục vụ hoạt động kiểm tra của cơ
+    quan chuyên trách bảo vệ dữ liệu cá nhân; e) Không thông báo thông tin và chi tiết liên lạc của tổ
+    chức, cá nhân phụ trách bảo vệ dữ liệu cá nhân phía bên nhận dữ liệu sau khi hoàn tất việc chuyển
+    dữ liệu cá nhân xuyên biên giới; g) Không có cơ chế kiểm soát hoặc không yêu cầu bên nhận dữ liệu
+    xuyên biên giới tuân thủ quy trình khi chuyển tiếp dữ liệu cá nhân cho bên thứ ba khác, dẫn đến việc
+    dữ liệu cá nhân của công dân Việt Nam được xử lý ngoài phạm vi đã khai báo trong hồ sơ đánh giá tác
+    động.'
+  summary_en: Fine VND 30-50 million for cross-border transfer of personal data without an impact assessment
+    dossier before or during the transfer, not filing it within 60 days, not completing it within 30 days
+    of a request, not updating or keeping it ready, and no control over onward transfer by the receiver.
+  duties:
+  - cross_border_notice
+  - dpia
+  - regulatory_reporting
+  - processor_contract
+  applies_to: &id004
+    agent_class:
+    - any
+    data_classes:
+    - personal
+    cross_border: true
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: agent_event_log
+    coverage: partial
+    note: 'Records the model hosting region per call so foreign-cloud use is visible. Missing: the dossier,
+      filing and onward-transfer control.'
+  - kind: evidence
+    id: verdict_log
+    coverage: partial
+    note: 'Records the judge model per verdict. Missing: the dossier.'
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Reduces personal data sent to a foreign judge model. Missing: the duty remains unless the data
+      is truly de-identified.'
+  - kind: process
+    id: transfer_impact_assessment
+    coverage: partial
+    note: 'Manual step: the bank writes the transfer impact dossier, files it within 60 days and keeps
+      it ready for inspection.'
+  evidence_needed:
+  - cross-border impact assessment dossier
+  - filing receipt
+  - onward transfer control clause
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.
+    A judge or agent model hosted outside Vietnam receiving personal data is a cross-border transfer (see
+    VN-DEC356-2025-A17.1-01). Percent-of-revenue fines in Art. 56(3)-(4).'
+- id: VN-DEC330-2026-A56.02-01
+  article_ref: Art. 56(2)(a)-(c)
+  text_vi: '2. Phạt tiền từ 50.000.000 đồng đến 100.000.000 đồng đối với một trong các hành vi sau: a)
+    Không xác lập hợp đồng hoặc văn bản chuyển giao ràng buộc trách nhiệm bảo vệ dữ liệu cá nhân giữa
+    bên chuyển và bên nhận dữ liệu xuyên biên giới, không xác định rõ trách nhiệm thực hiện quyền của
+    chủ thể dữ liệu cá nhân sau khi dữ liệu được chuyển; b) Không bảo đảm sự đồng ý của chủ thể dữ liệu
+    cá nhân đối với mục đích chuyển dữ liệu xuyên biên giới hoặc không thông báo cho chủ thể dữ liệu cá
+    nhân về việc dữ liệu của họ được chuyển ra nước ngoài, tổ chức nhận dữ liệu và mục đích xử lý; c)
+    Không áp dụng biện pháp bảo mật phù hợp trong quá trình chuyển dữ liệu cá nhân xuyên biên giới hoặc
+    không có phương án bảo đảm an toàn dữ liệu cá nhân sau khi chuyển;'
+  summary_en: Fine VND 50-100 million for cross-border transfer without a binding contract that sets data
+    protection duties and data subject rights after transfer, without the person consent and notice of
+    the receiver and purpose, or without suitable security during and after transfer.
+  duties:
+  - cross_border_notice
+  - consent
+  - processor_contract
+  - encryption
+  applies_to: *id004
+  addressee: bank
+  control_mapping:
+  - kind: catalogue
+    id: proxy_log
+    coverage: partial
+    note: 'Inventory of outbound calls to model hosts. Missing: the contract, consent and notice.'
+  - kind: catalogue
+    id: pii_masking
+    coverage: partial
+    note: 'Reduces personal data in outbound payloads. Missing: security of the transfer and the receiver.'
+  - kind: process
+    id: vendor_management
+    coverage: partial
+    note: 'Manual step: the bank signs a transfer agreement with each foreign model host with the required
+      clauses.'
+  - kind: process
+    id: consent_management
+    coverage: partial
+    note: 'Manual step: the bank records the consent and gives the notice about the transfer.'
+  evidence_needed:
+  - transfer agreement per receiver
+  - consent and notice record
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: 'Penalty provision (administrative fines). It turns a duty of the PDPL (VN-PDPL-2025) or Decree
+    356/2025 (VN-DEC356-2025) into a sanctioned conduct; the duty text is in those instruments. Effective
+    2026-08-19 (Art. 80). Fines for organisations in the personal data field: up to VND 3 billion, 5 percent
+    of prior-year revenue for cross-border transfer, 10 times the proceeds for sale of data (Art. 7(4)).
+    Whether the Decree applies to an AI agent of the bank is a reading of this KB; bank counsel must confirm.'

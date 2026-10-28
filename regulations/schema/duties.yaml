@@ -58,6 +58,7 @@ duties:
   dpo_appointment: {label_en: Name a data protection officer or unit, label_vi: Bo phan / nhan su bao ve du lieu, group: data_protection}
   processor_contract: {label_en: Written contract and controls over data processors, label_vi: Hop dong voi ben xu ly, group: data_protection}
   breach_notification_subject: {label_en: Inform affected data subjects of a breach, label_vi: Thong bao vi pham cho chu the, group: data_protection}
+  pd_compliance_assessment: {label_en: Assess compliance with personal data protection rules at set intervals (for example yearly) and keep the result, label_vi: Danh gia tuan thu bao ve du lieu ca nhan dinh ky, group: data_protection}
   # ---- banking specific
   customer_confidentiality: {label_en: Keep customer information confidential, label_vi: Bao mat thong tin khach hang, group: banking}
   transaction_authentication: {label_en: Strong authentication of transactions, label_vi: Xac thuc giao dich, group: banking}
