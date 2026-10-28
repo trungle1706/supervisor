@@ -91,6 +91,13 @@
 
 {% elif key == 'check' %}
 <form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="step3">
+  {% if pd %}
+  <h3>{{ t('pd_title') }}</h3>
+  <div class="card stat" data-register="predeploy" data-verdict="{{ pd.verdict }}"><h3>{{ t('pd_verdict') }}</h3>
+    <div class="bignum">{{ t('pd_v_' ~ pd.verdict) }}</div>
+    <div class="sub">{{ t('pd_reg_line', verdict=t('pd_v_' ~ pd.verdict)) }} {{ t('pd_counts', fail=pd.items_fail, question=pd.items_question, warn=pd.items_warn) }}</div>
+    <p><a href="/console/predeploy/{{ pd.node_id|urlencode }}?lang={{ lang }}" data-link="predeploy">{{ t('pd_reg_link') }}</a></p></div>
+  {% else %}
   <h3>{{ t('rg2_chk_readiness') }}</h3>
   {% if can_repo %}
   <label>{{ t('ux4b_f_repo') }} <input type="text" name="repo_path" maxlength="512" value="{{ posted.get('repo_path', repo) }}" placeholder="agents/my-agent"></label>
@@ -100,6 +107,7 @@
   {% if check and check.total is not none %}
   <div class="card stat" data-num="readiness"><h3>{{ t('ux4b_readiness') }}</h3><div class="bignum">{{ check.total }} / 100</div><div class="sub">{{ t(check.band) }}</div></div>
   {% elif check and check.na %}<p class="hint" data-num="readiness">{{ t(check.na) }}</p>{% endif %}
+  {% endif %}
   <h3>{{ t('rg2_gaps') }}</h3>
   <div class="tablewrap"><table class="list" data-table="gaps">
     <thead><tr><th scope="col">{{ t('rg2_check') }}</th><th scope="col">{{ t('rg2_result') }}</th><th scope="col">{{ t('rg2_fix') }}</th></tr></thead>

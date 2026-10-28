@@ -1664,3 +1664,37 @@ tables:
       dropped_claims: int?     # on the summary row only
       active: bool             # false when a later build for the same attempt no longer finds the fact
       created_at: timestamp
+
+  predeploy_report:
+    kind: state
+    description: >
+      WP-O3 (phase 9, ONBOARD_PREDEPLOY). One pre-deploy assessment of one intake attempt of an
+      inventory candidate or agent. It joins the facts card (onboard_facts), the readiness advisor,
+      the assurance packs with launch_gate required (run in the launch sandbox with the gate in
+      SHADOW and the synthetic world), the multi-turn red-team pack (advisory) and the duties
+      matrix (when CONSOLE_REGISTER_DUTIES is on and a draft exists for the node). status: queued,
+      running, done or failed (the run itself broke). verdict is deterministic from the items:
+      no_go (a fail item in a required section), questions (a question item), go, or none (not
+      finished). The model never sets it. items is a JSON list of {section, id, status ok | warn |
+      fail | question | skip, text, pointer}; text is scrubbed, no personal data, integers only.
+      A run on a mock agent says mock in the item text. A report is never updated after it is
+      done; Run again writes a new report_id.
+    primary_key: [report_id]
+    indexes:
+      - [node_id, attempt_n]
+    columns:
+      report_id: string
+      node_id: string          # inventory node id or agent id (same as intake_attempt.node_id)
+      attempt_n: int           # intake_attempt.n the assessment read
+      status: string           # queued | running | done | failed
+      verdict: string          # go | no_go | questions | none
+      started_at: timestamp
+      finished_at: timestamp?
+      items_total: int
+      items_fail: int
+      items_question: int
+      summary: text            # at most 2000 characters, no personal data
+      items: text              # JSON list of items (see description)
+      model_id: string?        # gateway model of the facts step, mock named mock; null if none
+      created_by: string
+      created_at: timestamp

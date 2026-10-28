@@ -65,6 +65,22 @@ def _go(request: Request, plain: bool, url: str) -> Response:
     return Response(status_code=200, headers={"HX-Redirect": url})
 
 
+def _predeploy_of(ctx: ConsoleContext, draft: dict[str, Any]) -> dict[str, Any] | None:
+    """WP-O3: the newest pre-deploy report of the node the draft was scanned from (or of its agent
+    id), when ONBOARD_PREDEPLOY is on and a report exists; else ``None`` (the folder scan stays)."""
+    if not ctx.settings.onboard_predeploy:
+        return None
+    from supervisor.onboard.predeploy import PredeployService
+
+    svc = PredeployService(ctx.settings, ctx.state, ctx.clock)
+    refs = [draft.get("source_ref") if draft.get("source_kind") == "scan" else None]
+    refs.append(rs.values_of(draft).get("agent_id"))
+    for ref in refs:
+        if ref and svc.has_report(str(ref)):
+            return svc.latest(str(ref))
+    return None
+
+
 def step_data(
     ctx: ConsoleContext,
     me: AuthPrincipal,
@@ -93,6 +109,9 @@ def step_data(
         out["choices"] = rm.CHOICES
     elif key == "check":
         out["gaps"] = rs.gaps(ctx, me, draft)
+        out["pd"] = _predeploy_of(ctx, draft)  # WP-O3: the report replaces the folder scan
+        if out["pd"]:
+            out["gaps"] = [g for g in out["gaps"] if g["key"] != "rg2_chk_readiness"]
         out["check"] = draft["data"].get("check") or {}
         out["repo"] = draft["data"].get("repo_path") or ""
         out["can_repo"] = bool(

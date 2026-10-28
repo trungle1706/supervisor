@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- WP-O3 (phase 9): **pre-deploy assessment**, `ONBOARD_PREDEPLOY` (default `0`; needs the stored
+  source of `ONBOARD_INTAKE`). New **Pre-deploy** tab on the agent page and **Pre-deploy** panel in
+  the Candidates drawer, after Facts: one report per run with a verdict GO, NO-GO or QUESTIONS and
+  the items by section (facts, readiness, required assurance packs, multi-turn red team, duties),
+  each with a pointer (`file:line`, pack id, duty id or table row), and a **Run again** button; the
+  panel polls itself every 3 s while a run goes. `POST /v1/predeploy/{node_id}/{n}`
+  (`systems.edit`, two audit rows, answers 202, one run at a time per node: 400 `already_running`)
+  starts a background run; `GET /v1/predeploy/{node_id}` (`systems.view`) returns the newest
+  report. The verdict is a fixed function of the items (a `fail` item in facts, readiness or packs
+  is NO-GO; else a `question` item gives QUESTIONS; else GO); the model never sets it, and a
+  section that raises becomes a `fail` item while the others still run. The required packs run in
+  the launch sandbox (gate in SHADOW, synthetic world) for the demo agents; any other stored tree
+  has no launch harness, so its packs that need a running agent are `fail` (skip is fail, as
+  `docs/assurance.md` says) and an item says so; mock results are named mock. Register v2 step 3
+  shows the verdict and a link instead of the folder scan when a report exists. New state table
+  `predeploy_report`; run `python -m supervisor.jobs.bootstrap_schema` on Delta before the new app
+  version. `systems_wizard.scan_folder` is the advisor part of `readiness` made reusable. With the
+  flag off every route answers 400 `predeploy_off` and nothing changes. `app.yaml` has the commented
+  flag. Details: `docs/onboard.md` "Pre-deploy assessment".
 - WP-L2 (phase 8): **Duties step** in the register workflow v2, flag `CONSOLE_REGISTER_DUTIES`
   (default `0`; needs `CONSOLE_REGISTER_V2` and `GOVERNANCE_ENABLED`). Seven steps with the flag
   on (Duties is step 4, before Decision 33); with the flag off the workflow keeps six steps and every

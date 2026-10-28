@@ -165,6 +165,13 @@ def readiness(me: Any, raw_path: str, settings: Any = None) -> dict[str, Any]:
     target = resolve_target(path)
     if not any(target == r or r in target.parents for r in roots):
         raise ListingError("the folder is outside ONBOARD_ALLOWED_ROOTS")
+    return scan_folder(target)
+
+
+def scan_folder(target: Path) -> dict[str, Any]:
+    """The advisor on a resolved folder: one at a time, 30 s at most. Shared by ``readiness`` and
+    the pre-deploy assessment (WP-O3), which scans the stored intake tree (not a folder in a
+    repository, not inside ``ONBOARD_ALLOWED_ROOTS``: the server wrote that tree itself)."""
     if not _ADVISOR_LOCK.acquire(blocking=False):
         raise ListingError("a check is already running; try again in a moment")
     try:
