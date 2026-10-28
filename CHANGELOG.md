@@ -28,6 +28,18 @@
   bench-packs`, `POST .../benchmark`, `GET .../benchmark/{run_id}`, `POST .../mark-benchmarked`;
   the Benchmark panel in the editor (`/console/guardian-factory/{id}/benchmark`, polling), RBAC
   rows, i18n, audit rows. Details: `docs/guardian-factory.md`, section Benchmark.
+- WP-C3 (phase 12): **nine-step register workflow with a compliance strip**, `REGISTER_V3` (default
+  `0`; needs `CONSOLE_REGISTER_V2`, `CLASSIFICATION_V2`, `RISK_DIMENSIONS`). Steps: source, facts,
+  identify and AI type, classify, assess, duties, guardian fit, review and submit, done
+  (`STEP_KEYS_V3`). Steps 1, 2, 5 and 7 are live with `ONBOARD_INTAKE`, `ONBOARD_FACTS`,
+  `ONBOARD_ORCHESTRATOR` and `ONBOARD_PREDEPLOY`, else a "turn on" note. Step 3 is prefilled from
+  facts v1 with a "from facts" mark per field, derives the flags `generative`, `agentic`,
+  `customer_facing`, `decides` by rule (stored on the draft and as system tags), and makes the
+  system record (status `draft`). Step 6 marks duties from the classification level and from
+  `read_duties_prefill`. Submit asks for the stage approval. The compliance strip
+  (`_compliance_strip.html`, `config/register_v3_strip.yaml`) shows articles per step with a rule
+  status, an evidence pointer and the attempt number. No new table, no new route. Off: the six or
+  seven steps as before. Docs: `docs/register-v3.md`.
 
 - WP-F4 (phase 12B): **onboarding orchestrator**, `ONBOARD_ORCHESTRATOR` (default `0`; needs
   `GOVERNANCE_ENABLED`, `RISK_DIMENSIONS`, `CLASSIFICATION_V2`). New `onboard/orchestrator.py`

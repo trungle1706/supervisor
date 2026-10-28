@@ -23,6 +23,18 @@
     {% if 'SYS-REG-SPID' in d.tasks %}<li>{{ t('rg2_next_spid') }}</li>{% endif %}
     {% if d.agent_id %}<li>{{ t('rg2_next_running') }}</li>{% endif %}
   </ol>
+  {% if d.get('v3') %}
+  <h3>{{ t('rg3_links') }}</h3>
+  <ul data-register="v3-links">
+    {% if d.agent_id %}<li><a href="/console/agents/{{ d.agent_id|urlencode }}?lang={{ lang }}" data-link="agent">{{ t('rg3_link_agent') }}</a>
+      - <a href="/console/agents/{{ d.agent_id|urlencode }}?tab=facts&amp;lang={{ lang }}" data-link="agent-facts">{{ t('rg3_link_facts') }}</a>
+      - <a href="/console/agents/{{ d.agent_id|urlencode }}?tab=predeploy&amp;lang={{ lang }}" data-link="agent-predeploy">{{ t('rg3_link_predeploy') }}</a></li>{% endif %}
+    <li><a href="/console/systems/{{ d.system.system_id }}?lang={{ lang }}" data-link="system">{{ t('rg2_open_system') }}</a>
+      - <a href="/console/systems/{{ d.system.system_id }}?tab=classification&amp;lang={{ lang }}" data-link="system-classification">{{ t('rg3_link_class') }}</a>
+      - <a href="/console/systems/{{ d.system.system_id }}?tab=riskdim&amp;lang={{ lang }}" data-link="system-riskdim">{{ t('rg3_link_riskdim') }}</a>
+      - <a href="/console/systems/{{ d.system.system_id }}?tab=tasks&amp;lang={{ lang }}" data-link="system-tasks">{{ t('rg3_link_approval') }}</a></li>
+  </ul>
+  {% endif %}
   <p><a class="btn" href="/console/systems/{{ d.system.system_id }}?lang={{ lang }}">{{ t('rg2_open_system') }}</a>
   <a href="/console/register/new?lang={{ lang }}">{{ t('rg2_register_another') }}</a></p>
 </section>

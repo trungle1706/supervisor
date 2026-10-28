@@ -746,6 +746,14 @@ class Settings(BaseSettings):
     # answers; on submit writes obligation_status rows and one task per open gap. Needs
     # CONSOLE_REGISTER_V2 and GOVERNANCE_ENABLED. Off: six steps, every URL as before.
     console_register_duties: bool = False
+    # --- WP-C3 (phase 12) --- the nine-step register workflow with a compliance strip
+    # (docs/register-v3.md): source, facts, identify and AI type, classify, assess, duties, guardian
+    # fit, review and submit (a stage approval request), done. Needs CONSOLE_REGISTER_V2,
+    # CLASSIFICATION_V2, RISK_DIMENSIONS (and so GOVERNANCE_ENABLED). Steps 1, 2, 5 and 7 are live
+    # with ONBOARD_INTAKE, ONBOARD_FACTS, ONBOARD_ORCHESTRATOR and ONBOARD_PREDEPLOY; a step whose
+    # flag is off shows a "turn on" note and lets the person continue. Off: six or seven steps as
+    # before.
+    register_v3: bool = False
     # --- WP-P1 --- tasks and stage approvals in the console (docs/console.md). Off: the Tasks tab
     # of a system is read only and the workflow routes answer HTTP 400 naming this flag. Needs
     # GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED (tasks also need CONTROLS_ENABLED).

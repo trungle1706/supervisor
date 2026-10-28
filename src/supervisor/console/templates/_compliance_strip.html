@@ -1,0 +1,24 @@
+{# Compliance strip (WP-C3, REGISTER_V3): the articles that apply at this step of the register workflow,
+   one status each (met, open, not applicable), the evidence pointer and the attempt number of the step.
+   One template for every step. Variable: strip (register_v3.strip.evaluate). Not legal advice. #}
+{% import "_ui.html" as ui with context %}
+{% set st_kind = {'met': 'ok', 'open': 'warn', 'not_applicable': 'neutral'} %}
+<section class="card" data-register="strip" data-step="{{ strip.step }}" data-attempt="{{ strip.attempt }}">
+  <h3>{{ t('rg3_strip_title') }} <span class="k">{{ strip.rows|length }}</span>
+    <span class="idline" data-strip="attempt">{{ t('rg3_attempt', n=strip.attempt) }}</span></h3>
+  <p class="hint">{{ t('rg3_strip_hint') }}
+    {% for s in ['met', 'open', 'not_applicable'] %}{{ ui.pill(t('rg3_st_' ~ s) ~ ' ' ~ strip.counts.get(s, 0), st_kind[s]) }} {% endfor %}</p>
+  <div class="tablewrap flat"><table class="queue" data-table="strip">
+    <thead><tr><th scope="col">{{ t('rg2_d_instrument') }}</th><th scope="col">{{ t('rg2_d_article') }}</th><th scope="col">{{ t('rg2_d_duty') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('rg3_evidence') }}</th></tr></thead>
+    <tbody>
+    {% for r in strip.rows %}
+      <tr class="row" data-strip-article="{{ r.id }}" data-status="{{ r.status }}">
+        <td>{{ r.instrument }}</td><td>{{ r.article }}</td>
+        <td class="wrap">{{ r.summary }}{% if r.when %} <span class="idline">({{ t('rg3_when_' ~ r.when) }})</span>{% endif %}<div class="idline mono">{{ r.id }}</div></td>
+        <td>{{ ui.pill(t('rg3_st_' ~ r.status), st_kind[r.status]) }}</td>
+        <td class="mono wrap" data-evidence="1">{{ r.evidence or '-' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>

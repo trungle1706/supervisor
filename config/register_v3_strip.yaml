@@ -1,0 +1,57 @@
+# The compliance strip of the nine-step register workflow (WP-C3, docs/register-v3.md).
+# ILLUSTRATIVE and NOT legal advice: bank counsel confirms which articles belong to which step.
+#
+# steps.<step key>   a list of {id, rule, when}
+#   id     a RegKB obligation id (a test checks that every id exists)
+#   rule   how the status is computed (a closed list, see governance/register_v3/strip.py):
+#          source_taken, facts_built, system_saved, class_recorded, class_approved, dims_started,
+#          dims_closed, matrix_row, guardians_saved, predeploy_go, stage_requested, submitted
+#   when   optional: high | medium_high. The duty applies only at that level. A system whose
+#          approved or proposed level is lower shows "not applicable"; with no level yet it is open.
+# Law = 134/2025/QH15 (VN-AI-2025), Decree = 142/2026/ND-CP (VN-DEC142-2026),
+# TT53 = Circular 53/2026/TT-NHNN (VN-TT53-2026).
+version: 1
+illustrative: true
+steps:
+  source:
+    - {id: VN-TT53-2026-A19.02-01, rule: source_taken}
+    - {id: VN-TT53-2026-A8.02-01, rule: source_taken}
+  facts:
+    - {id: VN-TT53-2026-A19.02-01, rule: facts_built}
+    - {id: VN-TT53-2026-A4.05-01, rule: facts_built}
+  identify:
+    - {id: VN-TT53-2026-A4.05-01, rule: system_saved}
+    - {id: VN-TT53-2026-A4.01-01, rule: system_saved}
+  classify:
+    - {id: VN-AI-2025-A9.01-01, rule: class_recorded}
+    - {id: VN-AI-2025-A9.02-01, rule: class_recorded}
+    - {id: VN-AI-2025-A10.01-01, rule: class_recorded}
+    - {id: VN-DEC142-2026-A6.02-01, rule: class_recorded}
+    - {id: VN-DEC142-2026-A6.03-01, rule: class_recorded}
+    - {id: VN-DEC142-2026-A8.01-01, rule: class_recorded}
+    - {id: VN-DEC142-2026-A9.01-01, rule: class_recorded}
+    - {id: VN-TT53-2026-A4.01-01, rule: class_recorded}
+    - {id: VN-TT53-2026-A4.03-01, rule: class_approved}
+  assess:
+    - {id: VN-TT53-2026-A14.03-01, rule: dims_closed}
+    - {id: VN-TT53-2026-A14.04-01, rule: dims_started}
+    - {id: VN-TT53-2026-A13.01-01, rule: matrix_row, when: high}
+  duties:
+    - {id: VN-TT53-2026-A13.01-01, rule: matrix_row, when: high}
+    - {id: VN-AI-2025-A13.01-01, rule: matrix_row, when: high}
+    - {id: VN-TT53-2026-A12.03-01, rule: matrix_row, when: high}
+    - {id: VN-DEC142-2026-A12.02-01, rule: matrix_row, when: medium_high}
+    - {id: VN-AI-2025-A10.03-01, rule: matrix_row, when: medium_high}
+    - {id: VN-DEC142-2026-A14.01-01, rule: matrix_row, when: medium_high}
+  guardians:
+    - {id: VN-TT53-2026-A5.01-01, rule: guardians_saved}
+    - {id: VN-TT53-2026-A5.02-01, rule: guardians_saved}
+    - {id: VN-TT53-2026-A6.01-01, rule: predeploy_go}
+    - {id: VN-TT53-2026-A6.02-01, rule: guardians_saved}
+    - {id: VN-TT53-2026-A7.04-01, rule: guardians_saved}
+  review:
+    - {id: VN-TT53-2026-A12.03-01, rule: stage_requested, when: high}
+    - {id: VN-TT53-2026-A4.03-01, rule: class_approved}
+  done:
+    - {id: VN-TT53-2026-A22.01-01, rule: stage_requested}
+    - {id: VN-TT53-2026-A4.05-01, rule: submitted}

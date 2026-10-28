@@ -25,7 +25,7 @@ def _view(row: dict[str, Any]) -> dict[str, Any]:
         {
             k: v
             for k, v in (data if isinstance(data, dict) else {}).items()
-            if k in (*base, "check", "result", "duties_answers")
+            if k in (*base, "check", "result", "duties_answers", *rm.V3_DATA_KEYS)
         }
     )
     out = {k: row[k] for k in ("draft_id", "owner_user", "status", "source_kind", "source_ref")}
@@ -44,9 +44,10 @@ def _ts(value: Any) -> str:
 
 
 class DraftStore:
-    def __init__(self, state: Any, clock: Any) -> None:
+    def __init__(self, state: Any, clock: Any, max_steps: int | None = None) -> None:
         self.state = state
         self.clock = clock
+        self.max_steps = int(max_steps or rm.MAX_STEPS)  # WP-C3: 9 with REGISTER_V3
 
     def create(
         self,
@@ -131,7 +132,7 @@ class DraftStore:
                 raise rm.RegisterError("draft", "holds too much text")
             changes["data"] = text
         if step is not None:
-            changes["step"] = max(int(draft["step"]), min(rm.MAX_STEPS, int(step)))
+            changes["step"] = max(int(draft["step"]), min(self.max_steps, int(step)))
         if status is not None:
             if status not in rm.STATUSES:
                 raise rm.RegisterError("status", "unknown status")

@@ -4848,3 +4848,6 @@ _T.update(_FA)
 from supervisor.console.i18n_portfolio import PF as _PF  # noqa: E402  (WP-C4, prefix pf_)
 
 _T.update(_PF)
+from supervisor.console.i18n_register3 import RG3 as _RG3  # noqa: E402  (WP-C3, prefix rg3_)
+
+_T.update(_RG3)
