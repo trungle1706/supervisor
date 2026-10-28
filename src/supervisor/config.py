@@ -752,6 +752,12 @@ class Settings(BaseSettings):
     # duties due within 30 days; 0 = off (default), else 300 or more.
     risk_duties: bool = False
     risk_duties_sweep_s: int = Field(default=0, ge=0)
+    # --- WP-C2 (phase 12) --- the eight risk types of Circular 53 Art. 14(3) as one status row per
+    # AI system (docs/risk-dimensions.md): table risk_dimension_status, the Risk assessment tab on
+    # the system page, /v1/systems/{id}/risk-dimensions and /v1/risk-dimensions/summary. Needs
+    # GOVERNANCE_ENABLED (the tab also needs CONSOLE_SYSTEMS_ENABLED). Off: no table read, no tab,
+    # the routes answer HTTP 400 risk_dimensions_off.
+    risk_dimensions: bool = False
     # --- WP-L4 (phase 8) --- evidence per duty and the regulator pack (docs/regulator-pack.md):
     # live counts per control for the duties of a system, auto-close of a full-coverage duty whose
     # mapped controls all work, the group task closes with its last row, the Refresh evidence

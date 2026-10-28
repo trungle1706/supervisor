@@ -461,6 +461,14 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/systems/{system_id}/duties/refresh-evidence"): "systems.edit",
     ("GET", "/v1/systems/{system_id}/regulator-pack.json"): "systems.view",
     ("GET", "/v1/systems/{system_id}/regulator-pack.html"): "systems.view",
+    # --- WP-C2 (phase 12) --- eight risk types per system (RISK_DIMENSIONS; 400 when off)
+    ("GET", "/v1/systems/{system_id}/risk-dimensions"): "systems.view",
+    ("POST", "/v1/systems/{system_id}/risk-dimensions"): "systems.edit",
+    ("POST", "/v1/systems/{system_id}/risk-dimensions/{dim}/waive"): "systems.approve",
+    ("GET", "/v1/risk-dimensions/summary"): "systems.view",
+    ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/set"): "systems.edit",
+    ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/confirm"): "systems.edit",
+    ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/waive"): "systems.approve",
     # --- WP-P2 (phase 8) --- second person for a guardian switch-off (CONSOLE_STATE_ACTIONS)
     (
         "POST",

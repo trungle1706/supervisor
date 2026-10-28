@@ -1,0 +1,76 @@
+{# Risk assessment tab of the system page (WP-C2, RISK_DIMENSIONS): the eight risk types of Circular 53
+   Art. 14(3), one row each. Variables: s, rd_rows, rd_counts, rd_banner, rd_illustrative, rd_statuses,
+   rd_can_edit, rd_can_waive, rd_is_owner, rd_min_reason, rd_register (systems_riskdim.tab_data).
+   Not legal advice. #}
+{% import "_ui.html" as ui with context %}
+{% set rdb = '/console/systems/' ~ s.system_id %}
+{% set rd_kind = {'pass': 'ok', 'fail': 'bad', 'in_progress': 'warn', 'waived': 'neutral', 'not_applicable': 'neutral', 'not_started': 'neutral'} %}
+{% macro rd_post(dim, action) %}method="post" action="{{ rdb }}/risk-dimensions/{{ dim }}/{{ action }}?lang={{ lang }}" hx-post="{{ rdb }}/risk-dimensions/{{ dim }}/{{ action }}?lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML"{% endmacro %}
+<p class="notice" data-rd="banner"><span class="dot"></span><b>{{ rd_banner }}</b> {{ t('rd_date_note') }}{% if rd_illustrative %} {{ t('rd_illustrative') }}{% endif %}</p>
+<section class="card" data-section="rd-summary">
+  <h3>{{ t('rd_title') }}</h3>
+  <p class="hint">{{ t('rd_intro') }}</p>
+  <p data-rd="counts">
+    {% for st in rd_all_statuses %}{{ ui.pill(t('rd_st_' ~ st) ~ ' ' ~ rd_counts.get(st, 0), rd_kind[st]) }} {% endfor %}
+  </p>
+</section>
+{% for r in rd_rows %}
+<section class="card" data-section="rd-row" data-dimension="{{ r.dimension_id }}" data-status="{{ r.status }}">
+  <h3>{{ r.label_vi if lang == 'vi' else r.label_en }}
+    {{ ui.pill(t('rd_st_' ~ r.status), rd_kind[r.status]) }}
+    {% if r.expired %}{{ ui.pill(t('rd_expired'), 'warn') }}{% endif %}
+    {% if r.applies_to == 'bank' %}<span class="muted">{{ t('rd_bank_only') }}</span>{% endif %}</h3>
+  <p class="hint mono">{{ r.articles | join(', ') }}</p>
+  <dl class="kv">
+    <dt>{{ t('rd_owner_team') }}</dt><dd data-rd="owner">{{ r.owner_team or '-' }}</dd>
+    <dt>{{ t('rd_assessed_by') }}</dt><dd data-rd="assessed">{{ r.assessed_by or '-' }}</dd>
+    <dt>{{ t('rd_evidence') }}</dt>
+    <dd data-rd="evidence">{% if r.evidence %}{% for e in r.evidence %}<span class="mono">{{ e }}</span>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</dd>
+    <dt>{{ t('rd_threshold') }}</dt>
+    <dd data-rd="threshold">{% for k, v in r.threshold.items() %}<span class="mono">{{ k }}={{ v }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</dd>
+    {% if r.valid_until %}<dt>{{ t('rd_valid_until') }}</dt><dd>{{ r.valid_until }}</dd>{% endif %}
+    {% if r.note %}<dt>{{ t('rd_note') }}</dt><dd data-rd="note">{{ r.note }}</dd>{% endif %}
+    {% if r.report_ref %}<dt>{{ t('rd_report') }}</dt><dd class="mono">{{ r.report_ref }}</dd>{% endif %}
+  </dl>
+  <p data-rd="proposal">
+    <b>{{ t('rd_proposal') }}:</b> {{ ui.pill(t('rd_st_' ~ r.proposal.status), rd_kind[r.proposal.status]) }}
+    {% if r.proposal.checks %}<span class="muted">
+      {% for c in r.proposal.checks %}<span class="mono">{{ c.id }}</span> {{ t('rd_chk_' ~ c.state) }}{% if c.required %}*{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}
+    </span>{% else %}<span class="muted">{{ t('rd_no_rules') }}</span>{% endif %}
+  </p>
+  {% if rd_register %}
+  <p data-rd="lines"><b>{{ t('rd_lines') }}:</b>
+    {% for l in r.risk_lines %}<a class="mono" href="/console/risks?lang={{ lang }}">{{ l.risk_id }}</a> {{ l.title }} <span class="muted">({{ l.category }})</span>{% if not loop.last %}; {% endif %}{% else %}<span class="muted">{{ t('rd_lines_none') }}</span>{% endfor %}
+  </p>
+  {% endif %}
+  {% if rd_can_edit %}
+  <div class="btnrow">
+    {% if r.proposal.status != 'not_started' and r.proposal.status != r.status %}
+    <form method="post" action="{{ rdb }}/risk-dimensions/{{ r.dimension_id }}/confirm?lang={{ lang }}" hx-post="{{ rdb }}/risk-dimensions/{{ r.dimension_id }}/confirm?lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML" class="stack-f">
+      <button class="btn sm primary" type="submit" data-act="rd-confirm">{{ t('rd_confirm') }}</button>
+    </form>
+    {% endif %}
+    <details class="du-act"><summary class="btn sm" data-act="rd-set">{{ t('rd_set') }}</summary>
+      <form {{ rd_post(r.dimension_id, 'set') }} class="stack-f">
+        <select name="status" aria-label="{{ t('rd_status') }}">
+          {% for st in rd_statuses %}<option value="{{ st }}"{% if st == r.status %} selected{% endif %}>{{ t('rd_st_' ~ st) }}</option>{% endfor %}
+        </select>
+        <input type="text" name="evidence" maxlength="1600" value="{{ r.evidence | join(' ') }}" placeholder="{{ t('rd_evidence_ph') }}" aria-label="{{ t('rd_evidence') }}">
+        <input type="text" name="note" maxlength="300" placeholder="{{ t('rd_note_ph') }}" aria-label="{{ t('rd_note') }}">
+        <button class="btn sm primary" type="submit" data-act="rd-set-go">{{ t('rd_set') }}</button>
+      </form>
+    </details>
+    <button class="btn sm" type="button" disabled data-act="rd-reassess" title="{{ t('rd_reassess_hint') }}">{{ t('rd_reassess') }}</button>
+    {% if rd_can_waive and not rd_is_owner and r.status != 'waived' %}
+    <details class="du-act"><summary class="btn sm" data-act="rd-waive">{{ t('rd_waive') }}</summary>
+      <form {{ rd_post(r.dimension_id, 'waive') }} class="stack-f">
+        <input type="text" name="reason" minlength="{{ rd_min_reason }}" maxlength="300" required placeholder="{{ t('rd_waive_ph', n=rd_min_reason) }}" aria-label="{{ t('rd_waive_ph', n=rd_min_reason) }}">
+        <button class="btn sm" type="submit" data-act="rd-waive-go">{{ t('rd_waive') }}</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endfor %}
+<p class="notice" data-rd="banner-end"><span class="dot"></span><b>{{ rd_banner }}</b></p>

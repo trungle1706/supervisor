@@ -1,0 +1,223 @@
+# The eight risk types of Circular 53/2026/TT-NHNN Art. 14(3) (WP-C2, docs/risk-dimensions.md).
+# ILLUSTRATIVE and NOT legal advice: bank counsel and the second line confirm every definition.
+# Art. 14(4): for each type the bank sets the meaning (noi ham), the identification criteria, the
+# measurement method, the acceptance threshold and the control measures. Art. 14 applies from
+# 2027-01-01 (Art. 23(2)).
+#
+# dimensions   exactly eight ids, fixed by the platform (owner decision 2, 2026-10-28):
+#              model, data_governance, cybersecurity, legal_compliance, ethics, third_party,
+#              supply_chain, reputation. The loader refuses any other id and any other count.
+#   id, label_en, label_vi, articles
+#   definition_en   the meaning of the type (Art. 14(4) "noi ham")
+#   criteria        identification criteria: when a system carries this risk
+#   measure         what is measured and how
+#   threshold       a PLACEHOLDER the bank sets; integers, booleans and short enums only (no floats)
+#   review_days     a pass is valid for this many days (valid_until); 0 = no expiry
+#   controls        ids from regulations/schema/controls.yaml (any section) and assurance pack ids
+#   measured_by     what already produces a result: {kind: pack | monitor, id, required: true|false}
+#                   pack     newest eval_result of the pack for each agent of the system
+#                   monitor  fairness (fairness_slice rows) or oversight (oversight_metric rows)
+#   risk_categories categories of the risk register (risk/model.py CATEGORIES) shown on the row
+#   applies_to      "any", or "bank" (reputation: commercial banks and foreign bank branches only)
+#   agent_slot      id of the factory agent that will assess the type (WP-F4); empty now
+#
+# proposal     the rule-only initial fill. A person confirms; nothing here sets a status alone.
+#   pass_when  every required mapped item passed at the current pack version, for every agent
+#   fail_when  one required mapped item failed
+#   otherwise  not_started
+#
+# extra_dimensions   MUST stay empty. A ninth row needs an owner decision and a code change; the
+#                    loader refuses a non-empty list.
+version: 1
+illustrative: true
+
+proposal:
+  pass_when: all_required_ok
+  fail_when: any_required_failed
+  otherwise: not_started
+
+extra_dimensions: []
+
+dimensions:
+  - id: model
+    label_en: Model risk
+    label_vi: Rủi ro mô hình
+    articles: [Art. 14(3)(a), Art. 16(3), Art. 16(5)]
+    definition_en: >
+      The AI model gives wrong, unstable, unexplainable or biased output because of its data fit,
+      algorithm, accuracy, robustness or drift.
+    criteria:
+      - The system uses a model to decide, score, classify or generate.
+      - The model or its prompt changed since the last assessment.
+    measure: >
+      Truthfulness and robustness pack results per agent; drift band and fairness slices from
+      the monitors.
+    threshold: {rule: all_required_ok, max_failed_packs: 0}
+    review_days: 365
+    controls: [drift, fairness, quality, truthfulqa_vi, perturbation_vi]
+    measured_by:
+      - {kind: pack, id: truthfulqa_vi, required: true}
+      - {kind: pack, id: perturbation_vi, required: true}
+      - {kind: pack, id: paraphrase_consistency, required: false}
+      - {kind: pack, id: simpleqa_vi, required: false}
+    risk_categories: [credit_decision, money_movement, model_behaviour]
+    applies_to: any
+    agent_slot: ""
+
+  - id: data_governance
+    label_en: Data governance risk
+    label_vi: Rủi ro quản trị dữ liệu
+    articles: [Art. 14(3)(b), Art. 7(2), Art. 7(3), Art. 7(4)]
+    definition_en: >
+      The data the system uses is of unknown origin, of poor quality, poisoned, leaked or
+      reachable with more rights than needed.
+    criteria:
+      - The system reads or writes customer data or other personal data.
+      - The system trains or tunes on bank data.
+    measure: >
+      Personal-data canary pack on the agent output and traces; masking and least-privilege
+      evidence from the gateway.
+    threshold: {rule: all_required_ok, max_leaks: 0}
+    review_days: 365
+    controls: [pii_canary, evidence_chain, agent_event_log]
+    measured_by:
+      - {kind: pack, id: pii_canary, required: true}
+    risk_categories: [pii]
+    applies_to: any
+    agent_slot: ""
+
+  - id: cybersecurity
+    label_en: Cybersecurity risk
+    label_vi: Rủi ro an ninh mạng
+    articles: [Art. 14(3)(c), Art. 6(1)(a), Art. 6(1)(b)]
+    definition_en: >
+      The system can be attacked: prompt injection, data poisoning, evasion, model extraction or
+      privacy leakage, and the output can be unsafe because of the attack.
+    criteria:
+      - The system accepts input from outside the bank, a document or a tool result.
+      - The system has tools that can act.
+    measure: >
+      Red-team and injection pack results per agent; prefilter evasion; refusal of harmful
+      finance requests.
+    threshold: {rule: all_required_ok, max_attack_success_bp: 0}
+    review_days: 180
+    controls: [owasp_agentic_redteam, indirect_injection_vi, finance_harm_refusal, prefilter_evasion]
+    measured_by:
+      - {kind: pack, id: owasp_agentic_redteam, required: true}
+      - {kind: pack, id: indirect_injection_vi, required: true}
+      - {kind: pack, id: finance_harm_refusal, required: true}
+      - {kind: pack, id: prefilter_evasion, required: true}
+      - {kind: pack, id: owasp_llm_top10, required: false}
+      - {kind: pack, id: multiturn_redteam_vi, required: false}
+    risk_categories: [injection]
+    applies_to: any
+    agent_slot: ""
+
+  - id: legal_compliance
+    label_en: Legal compliance risk
+    label_vi: Rủi ro tuân thủ pháp luật
+    articles: [Art. 14(3)(d), Art. 3(1), Art. 5(1)(a), Art. 7(1), Art. 13(1)(c)]
+    definition_en: >
+      The system breaks a law or a regulator rule, or the duties that apply to it are not
+      closed, including personal data protection and the impact assessment.
+    criteria:
+      - Any duty of the Duties tab is open for the system.
+      - The system processes personal data (impact assessment of Art. 13(1)(c), if any).
+    measure: >
+      Gap closure of the Duties tab; a person confirms the legal view. No automatic proposal.
+    threshold: {rule: person_confirms, max_open_duties: 0}
+    review_days: 365
+    controls: [duties_gap, duties_step, legal_review, dpia_document]
+    measured_by: []
+    risk_categories: [pii, duties_gap]
+    applies_to: any
+    agent_slot: ""
+
+  - id: ethics
+    label_en: Ethics risk
+    label_vi: Rủi ro đạo đức
+    articles: [Art. 14(3)(đ), Art. 17(1), Art. 17(2), Art. 13(1)(b)]
+    definition_en: >
+      The system shows data bias, model bias or operating bias, treats vulnerable groups unfairly,
+      or lacks fairness, transparency and explainability.
+    criteria:
+      - The system affects customers or staff (credit, pricing, access, complaints).
+      - The output differs across customer segments.
+    measure: >
+      Fairness pack results (four-fifths rule, counterfactual) and the fairness monitor slices.
+    threshold: {rule: all_required_ok, min_ratio_bp: 8000}
+    review_days: 180
+    controls: [fairness, fairness_slice, fairness_metrics, four_fifths_rule, counterfactual_vi]
+    measured_by:
+      - {kind: pack, id: fairness_metrics, required: true}
+      - {kind: pack, id: four_fifths_rule, required: true}
+      - {kind: pack, id: counterfactual_vi, required: true}
+      - {kind: monitor, id: fairness, required: false}
+    risk_categories: []
+    applies_to: any
+    agent_slot: ""
+
+  - id: third_party
+    label_en: Third-party risk
+    label_vi: Rủi ro từ bên thứ ba
+    articles: [Art. 14(3)(e), Art. 18(2)(a), Art. 18(3), Art. 18(4)(đ)]
+    definition_en: >
+      The bank depends on a vendor, a model provider or a platform whose assessment, contract,
+      logs or exit plan are missing.
+    criteria:
+      - The system uses a vendor model, a vendor API or a hosted platform.
+      - A vendor can see bank data.
+    measure: >
+      Vendor assessment and contract checks (bank process); model dependency inventory per agent.
+    threshold: {rule: person_confirms, vendor_assessment: required}
+    review_days: 365
+    controls: [vendor_management, model_dependency_inventory]
+    measured_by:
+      - {kind: pack, id: model_dependency_inventory, required: false}
+    risk_categories: [third_party]
+    applies_to: any
+    agent_slot: ""
+
+  - id: supply_chain
+    label_en: Supply chain risk
+    label_vi: Rủi ro chuỗi cung ứng
+    articles: [Art. 14(3)(g), Art. 19(1), Art. 19(2), Art. 19(3), Art. 19(5)]
+    definition_en: >
+      A library, dataset, pre-trained model or tool the system uses is unknown, unpinned,
+      tampered with, unlicensed or vulnerable.
+    criteria:
+      - The system has a code base, a model file, an MCP server or a dataset from outside.
+    measure: >
+      Licence, pin and hash, tool manifest drift, SBOM and vulnerability pack results per agent.
+      Yearly at least for a high-risk system (Art. 19(5)).
+    threshold: {rule: all_required_ok, max_unpinned: 0}
+    review_days: 365
+    controls: [licence_allowlist, pin_hash_check, mcp_tool_manifest_drift, sbom_cyclonedx, osv_offline, ai_bom_management]
+    measured_by:
+      - {kind: pack, id: licence_allowlist, required: true}
+      - {kind: pack, id: pin_hash_check, required: true}
+      - {kind: pack, id: mcp_tool_manifest_drift, required: true}
+      - {kind: pack, id: sbom_cyclonedx, required: false}
+      - {kind: pack, id: osv_offline, required: false}
+    risk_categories: [availability]
+    applies_to: any
+    agent_slot: ""
+
+  - id: reputation
+    label_en: Reputation risk (commercial banks and foreign bank branches)
+    label_vi: Rủi ro danh tiếng (đối với ngân hàng thương mại và chi nhánh ngân hàng nước ngoài)
+    articles: [Art. 14(3)(h)]
+    definition_en: >
+      A failure of the system harms the public trust in the bank. The bank defines the meaning
+      and the measure; the Circular names the type only.
+    criteria:
+      - The system talks to customers or its output is public.
+    measure: >
+      Bank defined. No automatic result; a person assesses and confirms.
+    threshold: {rule: person_confirms, bank_defined: true}
+    review_days: 365
+    controls: [complaint_handling, board_governance]
+    measured_by: []
+    risk_categories: []
+    applies_to: bank
+    agent_slot: ""

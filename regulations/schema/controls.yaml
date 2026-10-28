@@ -69,6 +69,7 @@ evidence:
   predeploy_report: {table: predeploy_report, label: "Pre-deploy report: GO, NO-GO or QUESTIONS with pointers (flag ONBOARD_PREDEPLOY)", doc: "docs/onboard.md | Pre-deploy assessment (WP-O3"}
   duties_step: {table: obligation_status, label: "Duties step of the register workflow: one row per duty with applies and coverage (flag CONSOLE_REGISTER_DUTIES)", doc: "docs/register-v2.md | Duties step (WP-L2"}
   duties_gap: {module: supervisor.governance.duties_gap, label: "Gap closure score, risk line and due-date sweep for open duties (flag RISK_DUTIES)", doc: "docs/risk-register.md | Duties (WP-L3)"}
+  risk_dimension_status: {table: risk_dimension_status, label: "Status of the eight risk types of Circular 53 Art. 14(3) per system, with evidence pointers and a second person for a waiver (flag RISK_DIMENSIONS)", doc: "docs/risk-dimensions.md | Status rows"}
   incident_record: {table: incident, label: "Governance incidents with status and closer", doc: "docs/incidents.md | Table"}
   incident_clock: {module: supervisor.cases.incident_clock, label: "Report due times of a case: 72 h or 5 working days, then 15 days (Decree 142 Art. 19)", doc: "docs/judge-mrm.md | Incident clock"}
   transparency_report: {table: transparency_report, label: "Transparency report rows per agent and variant", doc: "docs/transparency-report.md | Variants"}

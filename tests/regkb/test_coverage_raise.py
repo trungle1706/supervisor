@@ -21,8 +21,9 @@ from tests.conftest import REPO_ROOT
 
 INSTRUMENTS = ("VN-DEC142-2026", "VN-TT53-2026")
 # (full, partial, none) by Supervisor controls only, and with bank process steps counted.
-EXPECTED_SUPERVISOR = {"VN-DEC142-2026": (1, 19, 6), "VN-TT53-2026": (0, 49, 4)}
-EXPECTED_WITH_PROCESS = {"VN-DEC142-2026": (1, 24, 1), "VN-TT53-2026": (0, 53, 0)}
+# WP-C2 added Circular 53 Art. 14(3) and 14(4): two partial rows.
+EXPECTED_SUPERVISOR = {"VN-DEC142-2026": (1, 19, 6), "VN-TT53-2026": (0, 51, 4)}
+EXPECTED_WITH_PROCESS = {"VN-DEC142-2026": (1, 24, 1), "VN-TT53-2026": (0, 55, 0)}
 # Before WP-L5 (git a21e5ac): no full, 19 / 47 partial, 7 / 6 none, every process entry `none`.
 BEFORE_SUPERVISOR = {"VN-DEC142-2026": (0, 19, 7), "VN-TT53-2026": (0, 47, 6)}
 

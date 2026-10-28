@@ -2413,6 +2413,102 @@ obligations:
       source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
       verification: VERIFIED_PRIMARY
       note: 'Art. 23(2): Art. 14 takes effect on 2027-01-01.'
+- id: VN-TT53-2026-A14.03-01
+  article_ref: Art. 14(3)
+  text_vi: 'Các loại rủi ro đối với ứng dụng hệ thống trí tuệ nhân tạo được quản lý tối thiểu bao gồm:
+    a) Rủi ro mô hình; b) Rủi ro quản trị dữ liệu; c) Rủi ro an ninh mạng; d) Rủi ro tuân thủ pháp luật;
+    đ) Rủi ro đạo đức; e) Rủi ro từ bên thứ ba; g) Rủi ro chuỗi cung ứng; h) Rủi ro danh tiếng (đối với
+    ngân hàng thương mại và chi nhánh ngân hàng nước ngoài).'
+  summary_en: 'The bank manages at least eight risk types for AI use: model, data governance, cybersecurity,
+    legal compliance, ethics, third party, supply chain and (for commercial banks and foreign bank branches)
+    reputation. Art. 14 applies from 2027-01-01 (Art. 23(2)).'
+  duties:
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: risk_dimension_status
+    coverage: partial
+    note: 'One status row per system for each of the eight types, with evidence pointers, a chain record and a second person for a waiver (flag RISK_DIMENSIONS). Missing: the assessment itself for the types without a measuring pack (legal compliance, third party, reputation); a person does it.'
+  - kind: console
+    id: systems
+    coverage: partial
+    note: The Risk assessment tab of the system page shows the eight rows (flag RISK_DIMENSIONS).
+  - kind: process
+    id: three_lines_model
+    coverage: partial
+    note: 'Manual step: the first line assesses each type, the second line confirms the result.'
+  evidence_needed:
+  - status row per risk type per system with evidence
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  confidence: high
+  notes: 'Date override: Art. 14 takes effect 2027-01-01 (Art. 23(2)). The platform ids are model, data_governance,
+    cybersecurity, legal_compliance, ethics, third_party, supply_chain, reputation (config/risk_dimensions.yaml).'
+  status: issued
+  dates:
+    effective:
+      date: '2027-01-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 23(2): Art. 14 takes effect on 2027-01-01.'
+- id: VN-TT53-2026-A14.04-01
+  article_ref: Art. 14(4)
+  text_vi: Đơn vị xác định nội hàm, tiêu chí nhận dạng, phương pháp đo lường, ngưỡng chấp nhận và biện
+    pháp kiểm soát đối với từng loại rủi ro quy định tại khoản 3 Điều này.
+  summary_en: 'For each of the eight risk types the bank defines the meaning, the identification criteria,
+    the measurement method, the acceptance threshold and the control measures. Art. 14 applies from 2027-01-01.'
+  duties:
+  - risk_management_system
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+  addressee: bank
+  control_mapping:
+  - kind: evidence
+    id: risk_dimension_status
+    coverage: partial
+    note: 'config/risk_dimensions.yaml holds meaning, criteria, measure, threshold placeholder and controls per type. Missing: the bank sets and approves the real thresholds; the file ships placeholders.'
+  - kind: console
+    id: systems
+    coverage: partial
+    note: The Risk assessment tab of the system page shows the eight rows (flag RISK_DIMENSIONS).
+  - kind: process
+    id: internal_policy_issuance
+    coverage: partial
+    note: 'Manual step: the bank approves the definitions and thresholds in its AI risk policy.'
+  evidence_needed:
+  - approved definition, criteria, measure, threshold and controls for each risk type
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+    title: Thông tư số 53/2026/TT-NHNN (vbpl.vn gateway, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: a0c9c5a93eb76c3cc517721cca67934e6ff63b3b7fb7d94c836e711b501d2dfa
+    local_path: regulations/sources/VN-TT53-2026/53-2026-tt-nhnn.txt
+  confidence: high
+  notes: 'Date override: Art. 14 takes effect 2027-01-01 (Art. 23(2)).'
+  status: issued
+  dates:
+    effective:
+      date: '2027-01-01'
+      source: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/99fa0140-c2ba-11f1-b8ec-99379998c900
+      verification: VERIFIED_PRIMARY
+      note: 'Art. 23(2): Art. 14 takes effect on 2027-01-01.'
 - id: VN-TT53-2026-A15.01-01
   article_ref: Art. 15(1)
   text_vi: Đơn vị phải thiết lập, thực hiện và duy trì quản lý rủi ro đối với hệ thống trí tuệ nhân tạo
