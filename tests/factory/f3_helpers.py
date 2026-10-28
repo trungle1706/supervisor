@@ -11,6 +11,7 @@ from typing import Any
 
 from supervisor.evidence.signer import Ed25519FileSigner
 from supervisor.factory import caps, gate, golden, probe, registry
+from supervisor.factory.schemas.agent_definition_v1 import AgentDefinitionV1
 from supervisor.factory.store import FactoryStore
 
 ACTOR = "reviewer.an"
@@ -96,33 +97,17 @@ def create_agent(
 
 def case_for(
     defn: Mapping[str, Any], item: Mapping[str, Any], n: int, verdict: str = "pass"
-) -> dict:
-    """A synthetic gate case for one checklist item; every evidence kind has a source."""
-    pack = "pack-" + defn["id"]
-    inputs: dict[str, Any] = {
-        "system": {
-            "system_id": f"sys-{n}",
-            "owner_user": "nguoi-so-huu",
-            "model_version": "v3",
-            "validation_date": "2026-09-01",
-        },
-        "facts": {
-            "facts": [
-                {
-                    "fact_id": f"fct_{n:04d}",
-                    "kind": "tool",
-                    "name": "tinh_phi",
-                    "detail": "risk_class=money",
-                    "file": "agent.py",
-                    "line": 7,
-                    "quote": "def tinh_phi():",
-                }
-            ]
-        },
-        "packs": [
-            {"ref": f"{pack}:{n}", "label": "kiem thu do ben", "text": "dat o phien ban hien tai"}
-        ],
-        "regkb": [{"ref": f"VN-TT53-2026#{n}", "text": "To chuc phai danh gia rui ro mo hinh."}],
+) -> dict[str, Any]:
+    """A synthetic gate case for one checklist item. The inputs hold a source of every kind the
+    harness can read (refs honour the tool scopes), so a readable item can be answered."""
+    inputs = probe.probe_inputs(AgentDefinitionV1.model_validate(dict(defn)), registry.load_tools())
+    inputs.pop("now", None)
+    inputs.pop("system_id", None)
+    inputs["system"] = {
+        "system_id": f"sys-{n}",
+        "owner_user": "nguoi-so-huu",
+        "model_version": "v3",
+        "validation_date": "2026-09-01",
     }
     return {
         "case_id": f"c{n:03d}-{item['id'].lower()}",
@@ -133,9 +118,26 @@ def case_for(
     }
 
 
+def readable(defn: Mapping[str, Any], item: Mapping[str, Any]) -> bool:
+    """True when the harness of ``defn`` can load a source for one of the item's evidence kinds."""
+    from supervisor.factory import runtime as rt
+
+    tools = registry.load_tools()
+    held = {tools.get(t["tool_id"]).kind for t in defn["tools"] if tools.get(t["tool_id"])}
+    sources = defn["harness"]["context"]["sources"]
+    return any(
+        rt.SOURCE_OF_KIND[k] in sources and rt.TOOL_KIND_OF_SOURCE[rt.SOURCE_OF_KIND[k]] in held
+        for k in item["evidence"]
+    )
+
+
 def golden_cases(defn: Mapping[str, Any], total: int = 50) -> list[dict[str, Any]]:
     items = defn["checklist"]
-    return [case_for(defn, items[i % len(items)], i) for i in range(total)]
+    out = []
+    for i in range(total):
+        item = items[i % len(items)]
+        out.append(case_for(defn, item, i, "pass" if readable(defn, item) else "question"))
+    return out
 
 
 def load_golden(
@@ -169,3 +171,39 @@ def ready_definition(env: gate.GateEnv, row: Mapping[str, Any]) -> dict[str, Any
 
 def kinds() -> tuple[str, ...]:
     return caps.GATE_KINDS
+
+
+# ------------------------------------------------------------------------------ people
+from supervisor.factory import promotion  # noqa: E402
+
+AUTHOR = promotion.Actor("reviewer.an", frozenset({"reviewer"}))
+LEAD = promotion.Actor("lead.model", frozenset({"approver"}), frozenset({"model_risk"}))
+SECOND = promotion.Actor("second.line", frozenset({"approver"}), frozenset({"platform"}))
+ADMIN = promotion.Actor("admin.chi", frozenset({"admin", "reviewer"}))
+BINH = promotion.Actor("reviewer.binh", frozenset({"reviewer", "approver"}))
+
+
+def to_tested(
+    env: gate.GateEnv, agent_id: str = "mr-agent", version: str = "0.1"
+) -> dict[str, Any]:
+    """Create (when new), load the golden set and run the full gate until the version is tested."""
+    row = env.store.get(agent_id, version) or create_agent(env, agent_id)
+    if not golden.load_gate_cases(env.data_dir, agent_id):
+        load_golden(env, row)
+    run = gate.start(env, agent_id, version, "full", AUTHOR.user_id, background=False)
+    assert run["verdict"] == "pass", (run["layer1"], run["layer2"])
+    row = env.store.get(agent_id, version)
+    assert row["state"] == "tested"
+    return row
+
+
+def to_live(env: gate.GateEnv, agent_id: str = "mr-agent", version: str = "0.1") -> dict[str, Any]:
+    row = to_tested(env, agent_id, version)
+    st, sink = env.store, env.sink
+    promotion.submit(st, sink, row, AUTHOR)
+    need = promotion.required_approvals(st, st.get(agent_id, version))
+    if "owner_lead" in need["kinds"]:
+        promotion.approve(st, sink, st.get(agent_id, version), LEAD, "owner_lead")
+    if "second_line" in need["kinds"]:
+        promotion.approve(st, sink, st.get(agent_id, version), SECOND, "second_line")
+    return promotion.activate(st, sink, st.get(agent_id, version), LEAD)

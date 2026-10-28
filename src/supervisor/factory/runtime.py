@@ -516,6 +516,8 @@ class _Run:
         room = self.budget - fixed
         sources = self.sources_for(group)
         index = [{"ref": s.ref, "kind": s.kind, "name": s.label} for s in sources[:INDEX_MAX]]
+        while index and _tokens(index) > max(0, room) // 4:  # names take a quarter at most
+            index.pop()
         room -= _tokens(index)
         loaded: dict[str, Source] = {}
         bodies: list[dict[str, Any]] = []
@@ -696,6 +698,8 @@ def _ask_group(run: _Run, group: _Group, items: list[Any]) -> None:
     messages, loaded = run.build_prompt(group, items, extra)
     if _tokens(messages) > run.budget:  # the fixed part alone does not fit: no call is made
         for it in items:
+            run.checked += 1
+            run.rejected += 1
             run.results[it.id] = _reject(it, ["context_budget_too_small"])
         return
     reply = run.call(messages, RESPONSE_SCHEMA, RESERVE_PER_ITEM * len(items) + 100)
