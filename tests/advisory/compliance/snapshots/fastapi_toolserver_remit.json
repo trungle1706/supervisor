@@ -34,7 +34,7 @@
   "product_id": "fastapi_toolserver_remit",
   "product_name": "fastapi_toolserver_remit",
   "product_source": "onboard",
-  "regkb_version": "74cb5bb09c73389c0671001a39af650ef4a8b609143e92c4ff52988c0ed263ed",
+  "regkb_version": "58ce65e3a06be1c8137477b553868ea029404fc7ad9984ff50811de51cbba137",
   "tool": "supervisor.advisory.compliance"
  },
  "questions": [
@@ -2039,7 +2039,8 @@
    "needs_answer",
    "partial",
    [
-    "agent_registry"
+    "agent_registry",
+    "agent_version"
    ]
   ],
   [
@@ -2096,6 +2097,7 @@
    "needs_answer",
    "partial",
    [
+    "agent_registry",
     "onboard_profile"
    ]
   ],
@@ -2115,7 +2117,8 @@
    [
     "agent_action",
     "agents",
-    "approved_tools"
+    "approved_tools",
+    "attach_view"
    ]
   ],
   [
@@ -2134,7 +2137,8 @@
    "partial",
    [
     "audit_pack",
-    "evidence_chain"
+    "evidence_chain",
+    "transparency"
    ]
   ],
   [
@@ -2143,7 +2147,8 @@
    "partial",
    [
     "audit_pack",
-    "case_file"
+    "case_file",
+    "transparency"
    ]
   ],
   [
@@ -2205,7 +2210,7 @@
   [
    "VN-DEC142-2026-A19.06-01",
    "yes",
-   "partial",
+   "met",
    [
     "agent_action",
     "agents"
@@ -2223,13 +2228,14 @@
    "partial",
    [
     "agent_registry",
-    "agent_version"
+    "agent_version",
+    "duties_actions"
    ]
   ],
   [
    "VN-DEC142-2026-A5.04-01",
    "yes",
-   "bank_process",
+   "gap",
    []
   ],
   [
@@ -2238,7 +2244,8 @@
    "partial",
    [
     "agent_registry",
-    "agent_version"
+    "agent_version",
+    "duties_actions"
    ]
   ],
   [
@@ -2248,7 +2255,8 @@
    [
     "agent_action",
     "case_signoff",
-    "signoff_record"
+    "signoff_record",
+    "state_actions"
    ]
   ],
   [
@@ -3824,6 +3832,7 @@
    [
     "agent_event_log",
     "evidence_chain",
+    "schema_selfcheck",
     "verdict_log"
    ]
   ],
@@ -3849,7 +3858,8 @@
    "partial",
    [
     "cases",
-    "inbox"
+    "inbox",
+    "incidents"
    ]
   ],
   [
@@ -3888,7 +3898,8 @@
    "yes",
    "partial",
    [
-    "audit_pack"
+    "audit_pack",
+    "workflow_actions"
    ]
   ],
   [
@@ -3898,7 +3909,8 @@
    [
     "agent_action",
     "agent_registry",
-    "agent_version"
+    "agent_version",
+    "workflow_actions"
    ]
   ],
   [
@@ -3925,8 +3937,10 @@
   [
    "VN-TT53-2026-A16.04-01",
    "yes",
-   "bank_process",
-   []
+   "partial",
+   [
+    "workflow_actions"
+   ]
   ],
   [
    "VN-TT53-2026-A16.05-01",
@@ -3971,8 +3985,10 @@
   [
    "VN-TT53-2026-A20.02-01",
    "yes",
-   "bank_process",
-   []
+   "partial",
+   [
+    "transparency"
+   ]
   ],
   [
    "VN-TT53-2026-A20.03-01",
@@ -4028,7 +4044,8 @@
    "partial",
    [
     "agent_registry",
-    "coverage_rows"
+    "coverage_rows",
+    "duties_actions"
    ]
   ],
   [
@@ -4046,7 +4063,9 @@
    [
     "agent_action",
     "agents",
-    "case_signoff"
+    "attach_view",
+    "case_signoff",
+    "state_actions"
    ]
   ],
   [
@@ -4055,7 +4074,8 @@
    "partial",
    [
     "agent_registry",
-    "onboard_profile"
+    "onboard_profile",
+    "systems"
    ]
   ],
   [
@@ -4063,6 +4083,7 @@
    "yes",
    "partial",
    [
+    "agent_event_log",
     "agent_registry",
     "daily_aggregate"
    ]
@@ -4072,6 +4093,7 @@
    "needs_answer",
    "partial",
    [
+    "agent_event_log",
     "agent_registry"
    ]
   ],
@@ -4090,7 +4112,8 @@
    "partial",
    [
     "agent_registry",
-    "agent_version"
+    "agent_version",
+    "systems"
    ]
   ],
   [
@@ -4099,6 +4122,7 @@
    "partial",
    [
     "agent_action",
+    "state_actions",
     "tier1_monitor"
    ]
   ],
@@ -4166,6 +4190,7 @@
    "yes",
    "partial",
    [
+    "assurance",
     "injection_prefilter"
    ]
   ],
@@ -4182,8 +4207,10 @@
   [
    "VN-TT53-2026-A6.02-01",
    "yes",
-   "gap",
-   []
+   "partial",
+   [
+    "attach_view"
+   ]
   ],
   [
    "VN-TT53-2026-A7.02C-01",
@@ -4246,7 +4273,8 @@
    "partial",
    [
     "agent_action",
-    "agent_registry"
+    "agent_registry",
+    "duties_actions"
    ]
   ]
  ],
@@ -4257,11 +4285,11 @@
    "yes": 406
   },
   "by_status": {
-   "bank_process": 61,
+   "bank_process": 58,
    "gap": 41,
-   "met": 0,
+   "met": 1,
    "not_applicable": 0,
-   "partial": 304
+   "partial": 306
   },
   "needs_answer": 122,
   "questions": 12,

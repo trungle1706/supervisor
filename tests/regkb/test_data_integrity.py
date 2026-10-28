@@ -49,7 +49,11 @@ def test_control_mapping_resolves(kb: KnowledgeBase) -> None:
         r["id"]
         for r in yaml.safe_load((REPO_ROOT / "policies/baseline.yaml").read_text("utf-8"))["rules"]
     }
-    routes = (REPO_ROOT / "src/supervisor/console/routes.py").read_text(encoding="utf-8")
+    # WP-L5: later work packages keep their routes in their own files under console/
+    routes = "\n".join(
+        p.read_text(encoding="utf-8")
+        for p in sorted((REPO_ROOT / "src/supervisor/console").glob("*.py"))
+    )
     tables = yaml.safe_load((REPO_ROOT / "schema/model.yaml").read_text("utf-8"))["tables"]
     for o in kb.obligations.values():
         for c in o.control_mapping:

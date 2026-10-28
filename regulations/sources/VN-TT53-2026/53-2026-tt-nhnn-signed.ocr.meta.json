@@ -1,0 +1,18 @@
+{
+  "content_type": "text/plain; charset=utf-8",
+  "dpi": 300,
+  "fetched_at": "2026-10-28T06:08:05Z",
+  "language": "vie",
+  "note": "Machine OCR of the signed scan. It has noise (diacritics, punctuation, line breaks). The vbpl text stays the text of record; this copy lets a test check the quotes against the signed copy.",
+  "pages": 23,
+  "pdf_file": "53-2026-tt-nhnn-signed.pdf",
+  "pdf_sha256": "f0661470392965a3782975fc2c8f759cc94cd2094aa92eedda22d929cc792d71",
+  "sha256": "bce2e2df612cec5d669b44905a59420a48b15cc078e875f90c4dae220bf4af79",
+  "title": "OCR text of 53-2026-tt-nhnn-signed.pdf",
+  "tool": "regkb_ocr/1",
+  "tool_versions": {
+    "pdftoppm": "pdftoppm version 24.02.0",
+    "tesseract": "tesseract 5.5.3"
+  },
+  "url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/53-nhnn.signed.pdf"
+}
