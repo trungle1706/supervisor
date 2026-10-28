@@ -51,13 +51,21 @@ DETECTOR_FLAG = "DETECTORS_ENABLED"
 # ------------------------------------------------------------------------------ helpers
 
 
+def v3_on(ctx: Any) -> bool:
+    """The nine-step workflow replaces the six or seven steps (REGISTER_V3, WP-C3)."""
+    from supervisor.governance.register_v3 import service as v3
+
+    return v3.enabled(ctx.settings)
+
+
 def store_of(ctx: Any) -> DraftStore:
-    return DraftStore(ctx.state, ctx.clock)
+    return DraftStore(ctx.state, ctx.clock, rm.MAX_STEPS_V3 if v3_on(ctx) else None)
 
 
 def duties_on(ctx: Any) -> bool:
-    """The Duties step is part of this instance's workflow (CONSOLE_REGISTER_DUTIES)."""
-    return dut.enabled(ctx.settings)
+    """The Duties step is part of this instance's workflow (CONSOLE_REGISTER_DUTIES, or always
+    with REGISTER_V3)."""
+    return dut.enabled(ctx.settings) or v3_on(ctx)
 
 
 def duties_view(
@@ -73,7 +81,7 @@ def duties_view(
 
 
 def total_steps(ctx: Any) -> int:
-    return rm.n_steps(duties_on(ctx))
+    return rm.n_steps(duties_on(ctx), v3_on(ctx))
 
 
 def scoped(ctx: Any, me: Any) -> bool:
@@ -498,6 +506,10 @@ def save_step(
 ) -> dict[str, Any]:
     """Validate and store one step. ``stay`` (save for later): required fields may stay empty.
     Returns the changed draft. A bad value is a RegisterError that names the field."""
+    if v3_on(ctx):  # WP-C3: the nine steps have their own saves
+        from supervisor.governance.register_v3 import service as v3
+
+        return v3.save_step(ctx, me, draft, step, form, stay=stay)
     duties = duties_on(ctx)
     n = rm.n_steps(duties)
     if not 1 <= step <= n:
@@ -656,11 +668,18 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
     agent_id = str(v.get("agent_id") or "")
     plan = agent_plan(ctx, agent_id, draft)
     sysdraft = system_draft(ctx, me, draft)
+    v3 = v3_on(ctx)
+    made = str(draft["data"].get("sys") or "")  # WP-C3: the system record made at step 3
+    if v3:
+        if not made:
+            raise rm.RegisterError("step", "save step 3 first: the system record is made there")
+        if ctx.systems.get(made)["status"] != "draft":
+            raise rm.RegisterError("step", "the system of this draft is not in status draft")
     # claim the draft first (optimistic version check): a second submit of the same draft, even a
     # concurrent one, finds it submitted or loses the version race, and writes nothing
     draft = store_of(ctx).save(draft, step=total_steps(ctx), status="submitted")
     try:
-        out = ctx.systems.register(sysdraft, actor, for_user=me)
+        out = {"system_id": made} if v3 else ctx.systems.register(sysdraft, actor, for_user=me)
     except BaseException:
         # nothing was written: give the draft back so the person can fix it
         store_of(ctx).release(draft)
@@ -765,6 +784,11 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
     if plan["task_spid"] and _task(ctx, sid, TASK_SPID, actor):
         opened.append(TASK_SPID[0])
     _step(steps, "rg2_w_tasks", "ok", ", ".join(opened))
+    if v3:  # WP-C3: the submit action of step 8 is the stage approval request (WP-P1)
+        from supervisor.governance.register_v3 import service as v3svc
+
+        st = v3svc.request_stage(ctx, sid, actor)
+        _step(steps, "rg3_w_stage", st["status"], st["detail"])
     result = {
         "system_id": sid,
         "steps": steps,
@@ -773,6 +797,8 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
         "plan": plan,
         "draft_id": draft["draft_id"],
     }
+    if v3:
+        result["v3"] = True
     store_of(ctx).record_result(draft, result)
     return result
 

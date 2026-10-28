@@ -230,6 +230,10 @@ env:
   # person to approve; needs GOVERNANCE_ENABLED. Off by default (docs/classification.md).
   # - name: CLASSIFICATION_V2
   #   value: "1"
+  # Phase 12 WP-C3: the nine-step register workflow with a compliance strip; needs
+  # CONSOLE_REGISTER_V2, CLASSIFICATION_V2, RISK_DIMENSIONS. Off by default (docs/register-v3.md).
+  # - name: REGISTER_V3
+  #   value: "1"
   # Phase 9 WP-O3: pre-deploy assessment (verdict GO / NO-GO / QUESTIONS from the facts, readiness,
   # required assurance packs, multi-turn red team and duties); needs ONBOARD_INTAKE. Off by default.
   # - name: ONBOARD_PREDEPLOY

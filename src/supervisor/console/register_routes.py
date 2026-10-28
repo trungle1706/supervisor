@@ -41,6 +41,11 @@ def _off(ctx: ConsoleContext) -> None:
     if not ctx.settings.console_register_v2:
         raise ConsoleInputError("The register workflow is off (CONSOLE_REGISTER_V2=1 turns it on)")
     ensure_on(ctx.settings)
+    from supervisor.governance.register_v3 import service as v3svc
+
+    text = v3svc.needs_text(ctx.settings)  # WP-C3: REGISTER_V3 without what it needs
+    if text:
+        raise ConsoleInputError(text)
 
 
 def _person(me: AuthPrincipal) -> str:
@@ -90,20 +95,26 @@ def step_data(
     posted: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """The view model of one step."""
-    keys = rm.step_keys(rs.duties_on(ctx))
+    v3 = rs.v3_on(ctx)
+    keys = rm.step_keys(rs.duties_on(ctx), v3)
     key = keys[n - 1]
     out: dict[str, Any] = {
         "draft": draft,
         "step": n,
         "steps": len(keys),
         "key": key,
-        "lab": [rm.LABEL_OF_KEY[k] for k in keys],  # i18n suffix per step number
+        "lab": list(keys) if v3 else [rm.LABEL_OF_KEY[k] for k in keys],  # i18n suffix per step
+        "v3": v3,
     }
     out["v"] = rs.values_of(draft)
     out["sg"] = draft["data"]["sg"]
     out["marks"] = {f: rs.mark(draft, f) for f in (*rm.STEP1, *rm.STEP2)}
     out["scoped"] = rs.scoped(ctx, me)
-    if key == "identify":
+    if v3:  # WP-C3: the nine steps and the compliance strip
+        from supervisor.governance.register_v3 import service as v3svc
+
+        out.update(v3svc.step_view(ctx, me, draft, key, query or {}, posted))
+    elif key == "identify":
         out["kinds"] = rm.KINDS
     elif key == "ai":
         out["choices"] = rm.CHOICES
@@ -202,6 +213,8 @@ async def register_step(
     draft = await _call(rs.store_of(ctx).get, draft_id, uid)
     if draft["status"] != "draft":
         return _go(request, True, f"/console/register/{draft_id}/result")
+    if rs.v3_on(ctx) and num == rm.MAX_STEPS_V3:  # the last step is the result page
+        return _go(request, True, f"/console/register/{draft_id}/step/{num - 1}")
     return _render_step(request, ctx, me, draft, num)
 
 
@@ -257,6 +270,10 @@ async def register_abandon(
     store = rs.store_of(ctx)
     draft = await _call(store.get, draft_id, uid)
     await _call(store.save, draft, status="abandoned")
+    if rs.v3_on(ctx):  # WP-C3: the system record made at step 3 is archived
+        from supervisor.governance.register_v3 import service as v3svc
+
+        await _call(v3svc.on_abandon, ctx, me, draft)
     request.state.audit_detail = "register abandon"
     return _go(request, plain, "/console/register")
 

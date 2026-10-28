@@ -21,25 +21,54 @@ STEP_KEYS_DUTIES: tuple[str, ...] = (
     "guardians",
     "review",
 )
+# WP-C3: with REGISTER_V3 the nine-step workflow (docs/register-v3.md) replaces both of the above.
+STEP_KEYS_V3: tuple[str, ...] = (
+    "source",
+    "facts",
+    "identify",
+    "classify",
+    "assess",
+    "duties",
+    "guardians",
+    "review",
+    "done",
+)
 STEPS = len(STEP_KEYS)  # the workflow with the flag off
 MAX_STEPS = len(STEP_KEYS_DUTIES)
 # the i18n suffix of a step: rg2_step_<label>, rg2_hint_<label> (the six old steps keep 1..6)
-LABEL_OF_KEY: dict[str, str] = {k: str(i) for i, k in enumerate(STEP_KEYS, 1)} | {
-    "duties": "duties"
-}
+LABEL_OF_KEY: dict[str, str] = (
+    {k: str(i) for i, k in enumerate(STEP_KEYS, 1)}
+    | {"duties": "duties"}
+    | {k: k for k in STEP_KEYS_V3 if k not in STEP_KEYS and k != "duties"}
+)
+MAX_STEPS_V3 = len(STEP_KEYS_V3)
+# keys of the draft data that only the nine-step workflow writes (draft._view keeps them)
+V3_DATA_KEYS: tuple[str, ...] = (
+    "step_attempts",  # {step key: n}, one number per save of a step
+    "sys",  # the system id made at step 3
+    "skip_source",  # the reason the person gave to go on without a source
+    "src_key",  # the key of the intake and facts of this draft
+    "ai_flags",  # {generative, agentic, customer_facing, decides} booleans
+    "ai_flag_src",  # {flag: rule | person}
+    "ai_from",  # {field: "kind:name @ file:line"} fields filled from facts v1
+    "ai_from_attempt",  # the facts attempt the prefill came from
+    "duty_from",  # {question id or obligation id: classification | assessment | ai_type}
+)
 
 
-def step_keys(duties: bool = False) -> tuple[str, ...]:
-    """The steps of the workflow in order: six, or seven with the Duties step."""
+def step_keys(duties: bool = False, v3: bool = False) -> tuple[str, ...]:
+    """The steps in order: six, seven with the Duties step, nine with REGISTER_V3."""
+    if v3:
+        return STEP_KEYS_V3
     return STEP_KEYS_DUTIES if duties else STEP_KEYS
 
 
-def n_steps(duties: bool = False) -> int:
-    return len(step_keys(duties))
+def n_steps(duties: bool = False, v3: bool = False) -> int:
+    return len(step_keys(duties, v3))
 
 
-def key_of(step: int, duties: bool = False) -> str:
-    keys = step_keys(duties)
+def key_of(step: int, duties: bool = False, v3: bool = False) -> str:
+    keys = step_keys(duties, v3)
     if not 1 <= step <= len(keys):
         raise RegisterError("step", f"must be 1 to {len(keys)}")
     return keys[step - 1]

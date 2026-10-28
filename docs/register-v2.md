@@ -3,6 +3,8 @@
 A six-step registration of an AI system with a stored draft. Spec: `docs/phase7/BUILD_PLAN_PHASE7.md`
 section 3. The two-step wizard at `/console/systems/new` stays and is used while the flag is off.
 
+> WP-C3: with `REGISTER_V3=1` the workflow has nine steps and a compliance strip; see `docs/register-v3.md`. With the flag off nothing here changes.
+
 ## Flags
 
 | Flag | Role |

@@ -1,14 +1,17 @@
+{# WP-C3 (REGISTER_V3): the nine steps and the compliance strip are the branches with v3 or the v3 step keys
+   (source, facts, identify, classify, assess); with the flag off none of them renders. #}
 {# Register workflow v2 (WP-N3, CONSOLE_REGISTER_V2): one page per step, six steps (seven with CONSOLE_REGISTER_DUTIES), state in a
    registration_draft row. Plain forms (no JavaScript needed); a suggestion is accepted with one
    button. Variables: register_routes.step_data() plus error, posted. #}
 {% extends "base.html" %}
 {% import "_ui.html" as ui with context %}
-{% import "_v3.html" as v3 with context %}
+{% import "_v3.html" as navv3 with context %}
 {% set base = '/console/register/' ~ draft.draft_id %}
+{% macro lbl(i) %}{% if v3 %}{{ t('rg3_step_' ~ lab[i - 1]) }}{% else %}{{ t('rg2_step_' ~ lab[i - 1]) }}{% endif %}{% endmacro %}
 {% macro stepnav() %}
 <ol class="wiz-steps rg2-steps" aria-label="{{ t('rg2_steps') }}" data-register="steps">
   {% for i in range(1, steps + 1) %}
-  <li{% if i == step %} class="on" aria-current="step"{% endif %}>{% if i <= draft.step and i != step %}<a href="{{ base }}/step/{{ i }}?lang={{ lang }}">{{ t('rg2_step_' ~ lab[i - 1]) }}</a>{% else %}{{ t('rg2_step_' ~ lab[i - 1]) }}{% endif %}</li>
+  <li{% if i == step %} class="on" aria-current="step"{% endif %}>{% if i <= draft.step and i != step %}<a href="{{ base }}/step/{{ i }}?lang={{ lang }}">{{ lbl(i) }}</a>{% else %}{{ lbl(i) }}{% endif %}</li>
   {% endfor %}
 </ol>
 {% endmacro %}
@@ -20,7 +23,7 @@
 {%- elif name in ('system_type', 'org_role', 'user_segment', 'personal_data', 'human_control') -%}{{ t('sy_' ~ name ~ '_' ~ val) }}
 {%- else -%}{{ val }}{%- endif -%}
 {%- endmacro %}
-{% macro mark(name) %}{% set m = marks.get(name) %}{% if m == 'person' %}<span class="pill neutral" data-mark="person">{{ t('rg2_by_person') }}</span>{% elif m %}<span class="pill teal" data-mark="{{ m }}">{{ t('rg2_by_' ~ m) }}</span>{% endif %}{% endmacro %}
+{% macro mark(name) %}{% set m = marks.get(name) %}{% if v3 and ai_from.get(name) %}<span class="pill teal" data-mark="facts" title="{{ ai_from.get(name) }}">{{ t('rg3_from_facts') }}</span>{% elif m == 'person' %}<span class="pill neutral" data-mark="person">{{ t('rg2_by_person') }}</span>{% elif m %}<span class="pill teal" data-mark="{{ m }}">{{ t('rg2_by_' ~ m) }}</span>{% endif %}{% endmacro %}
 {% macro chip(name) %}{% set s = sg.get(name) %}{% if s %}<div class="rg2-sug" data-suggest="{{ name }}"><span class="hint">{{ t('rg2_suggested') }}: <b>{{ valtxt(name, s.value) }}</b> - {{ t(s.reason_key) }} ({{ t('rg2_src_' ~ s.source) }}){% if s.get('fact') %} <span class="mono" data-fact="1">[{{ s.get('fact') }}]</span>{% endif %}</span>{% if v.get(name) != s.value %} <button class="chipbtn" type="submit" name="accept" value="{{ name }}">{{ t('rg2_accept') }}</button>{% endif %}</div>{% endif %}{% endmacro %}
 {% macro text(name, required=False, area=False, maxlen=200) %}
 <label>{{ t('rg2_f_' ~ name) }} {{ mark(name) }}
@@ -53,13 +56,89 @@
 {% block title %}{{ t('rg2_title') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
-{{ ui.pagehead(t('rg2_title') ~ ' - ' ~ t('rg2_step_' ~ lab[step - 1])) }}
+{{ ui.pagehead(t('rg2_title') ~ ' - ' ~ lbl(step)) }}
 {{ stepnav() }}
 {% if error %}<div class="notice rg2-error" role="alert" data-register="error"><span class="dot"></span><b>{{ error }}</b></div>{% endif %}
-<p class="hint">{{ t('rg2_hint_' ~ lab[step - 1]) }}</p>
+<p class="hint">{{ t(('rg3_hint_' if v3 else 'rg2_hint_') ~ lab[step - 1]) }}</p>
+{% if v3 %}{% include "_compliance_strip.html" %}{% endif %}
 {% if draft.source_kind != 'blank' %}<p class="hint" data-register="source">{{ t('rg2_from_' ~ draft.source_kind) }}</p>{% endif %}
 
-{% if key == 'identify' %}
+{% if key == 'source' %}
+{% if not live.source %}<div class="notice" data-register="turn-on"><span class="dot"></span>{{ t('rg3_turn_on', flag='ONBOARD_INTAKE') }}</div>
+{% else %}{% include "_intake_panel.html" %}{% endif %}
+<form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="source">
+  <label>{{ t('rg3_skip_reason') }} <input type="text" name="skip_reason" maxlength="500" value="{{ posted.get('skip_reason', skip) }}"></label>
+  <p class="hint">{{ t('rg3_skip_hint') }}</p>
+  {% if skip %}<p class="hint" data-register="skipped">{{ t('rg3_skipped') }}: {{ skip }}</p>{% endif %}
+  <p><button class="chipbtn" type="submit" name="skip" value="1" data-action="skip">{{ t('rg3_skip') }}</button></p>
+  {{ buttons() }}
+</form>
+
+{% elif key == 'facts' %}
+{% if not live.facts %}<div class="notice" data-register="turn-on"><span class="dot"></span>{{ t('rg3_turn_on', flag='ONBOARD_FACTS') }}</div>
+{% else %}{% include "_facts_panel.html" %}{% endif %}
+<form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="facts">
+  <p class="hint">{{ t('rg3_facts_next') }}</p>
+  {{ buttons() }}
+</form>
+
+{% elif key == 'identify' and v3 %}
+<form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="identify">
+  {% if facts_attempt %}<p class="hint" data-register="facts-used">{{ t('rg3_facts_used', n=facts_attempt) }}</p>{% endif %}
+  <h3>{{ t('rg2_step_1') }}</h3>
+  {{ text('name', True, maxlen=120) }}
+  {{ pick('kind', True, kinds) }}
+  {{ text('agent_id', maxlen=128) }}
+  <p class="hint">{{ t('rg2_agent_id_hint') }}</p>
+  {% if scoped %}<p class="hint">{{ t('rg2_owner_scoped', user=v.get('owner_user', '')) }}</p>{% else %}{{ text('owner_user', True, maxlen=128) }}{% endif %}
+  {{ text('owner_team', True, maxlen=128) }}
+  {{ text('description', False, True, 500) }}
+  <h3>{{ t('rg2_step_2') }}</h3>
+  {{ text('purpose', True, True, 2000) }}
+  {{ pick('system_type', True) }}
+  {{ pick('org_role', True) }}
+  {{ pick('user_segment', True) }}
+  {{ pick('personal_data', True) }}
+  {{ pick('human_control', True) }}
+  {{ pick('autonomy_level') }}
+  {{ chkbox('money_movement') }}
+  {{ chkbox('credit_decision') }}
+  {{ text('model_family', maxlen=64) }}
+  {{ text('data_sources', False, True, 600) }}
+  <fieldset data-register="ai-type"><legend>{{ t('rg3_ai_type') }}</legend>
+    <input type="hidden" name="flags_form" value="1">
+    <p class="hint" data-num="proposed-type">{{ t('rg3_proposed_type') }}: <b>{{ t('sy_system_type_' ~ proposed_type) }}</b></p>
+    {% for f in flag_names %}
+    <label class="chk" data-flag="{{ f }}"><input type="checkbox" name="flag_{{ f }}" value="1"{% if flags[f] %} checked{% endif %}> {{ t('rg3_flag_' ~ f) }}
+      <span class="pill {{ 'teal' if flag_src[f] == 'rule' else 'neutral' }}" data-flag-src="{{ flag_src[f] }}">{{ t('rg3_flag_src_' ~ flag_src[f]) }}</span>
+      <span class="hint">{{ t('rg3_flag_rule_' ~ f) }}</span></label>
+    {% endfor %}
+  </fieldset>
+  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
+  <p class="hint">{{ t('rg3_system_made') }}</p>
+  {{ buttons() }}
+</form>
+
+{% elif key == 'classify' %}
+{% if not cv %}<p class="hint" data-register="need-step3">{{ t('rg3_need_step3') }}</p>
+{% else %}{% include "_classify_panel.html" %}{% endif %}
+<form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="classify">
+  <p class="hint">{{ t('rg3_class_approval_note') }}</p>
+  {{ buttons() }}
+</form>
+
+{% elif key == 'assess' %}
+{% if not system %}<p class="hint" data-register="need-step3">{{ t('rg3_need_step3') }}</p>
+{% else %}
+{% if not live.assess %}<div class="notice" data-register="turn-on"><span class="dot"></span>{{ t('rg3_turn_on', flag='ONBOARD_ORCHESTRATOR') }}</div>{% endif %}
+<div id="tab-body" data-register="assess">{% include "_system_riskdim.html" %}</div>
+{% endif %}
+<form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="assess-next">
+  <p class="hint">{{ t('rg3_assess_note') }}</p>
+  {{ buttons() }}
+</form>
+
+{% elif key == 'identify' %}
 <form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="step1">
   {{ text('name', True, maxlen=120) }}
   {{ pick('kind', True, kinds) }}
@@ -138,6 +217,19 @@
   <p data-num="coverage">{{ t('rg2_d_coverage', full=sm.full, partial=sm.partial, none=sm.none, tasks=sm.tasks) }}</p>
   <p class="hint" data-num="d33">{{ t('rg2_d_d33') }}: {{ t('sy_d33_' ~ sm.d33) if sm.d33 in ('high_risk', 'not_high_risk') else t('rg2_d_needs_answer') }}</p>
   {% if duty.facts_n %}<p class="hint" data-num="facts">{{ t('rg2_d_facts', n=duty.facts_n) }}</p>{% endif %}
+  {% if v3 and marks_duty %}
+  <h3>{{ t('rg3_prefilled') }}</h3>
+  <p class="hint">{{ t('rg3_prefilled_hint') }}{% if level.level %} {{ t('rg3_level_is', level=t('sy_risk_' ~ ('high' if level.level == 'prohibited' else level.level))) }}{% endif %}</p>
+  <div class="tablewrap"><table class="list" data-table="duty-prefill">
+    <thead><tr><th scope="col">{{ t('rg2_d_instrument') }}</th><th scope="col">{{ t('rg2_d_article') }}</th><th scope="col">{{ t('rg2_d_applies') }}</th><th scope="col">{{ t('rg2_d_cov') }}</th><th scope="col">{{ t('rg3_source') }}</th></tr></thead>
+    <tbody>
+    {% for r in marks_duty %}
+    <tr data-prefill="{{ r.obligation_id }}" data-from="{{ r.from }}"><td>{{ r.instrument }}</td><td>{{ r.article }}</td>
+      <td>{{ t('rg2_d_a_' ~ r.applies) }}</td><td>{{ t('rg2_d_c_' ~ r.coverage) }}</td>
+      <td><span class="pill teal" data-mark="{{ r.from }}">{{ t('rg3_from_' ~ r.from) }}</span>{% if r.from == 'assessment' %} {{ t('rg3_confirmed') if r.confirmed else t('rg3_proposal') }}{% endif %} <span class="mono">{{ r.ref }}</span></td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% endif %}
   <h3>{{ t('rg2_d_questions') }}</h3>
   {% if duty.questions %}
   <p class="hint">{{ t('rg2_d_questions_hint') }}</p>
@@ -146,14 +238,15 @@
     <tbody>
     {% for q in duty.questions %}
     <tr class="rg2-q" data-q="{{ q.id }}" data-open="{{ 'yes' if q.open else 'no' }}"><td>{{ q.text_vi if lang == 'vi' else q.text_en }}<div class="idline">{{ q.id }}{% if q.why %} - {{ q.why }}{% endif %}{% if not q.open %} - {{ t('rg2_d_answered') }}{% endif %}</div></td>
-      <td>{% if not q.editable %}<span class="hint">{{ t('rg2_d_not_here') }}</span>
+      <td>{% if v3 and duty_from.get(q.id) %}<span class="pill teal" data-mark="{{ duty_from[q.id] }}">{{ t('rg3_from_' ~ duty_from[q.id]) }}</span> {% endif %}{% if not q.editable %}<span class="hint">{{ t('rg2_d_not_here') }}</span>
         {% elif q.kind == 'bool' %}<select name="{{ q.id }}"><option value="">-</option><option value="yes"{% if q.value == 'yes' %} selected{% endif %}>{{ t('rg2_yes') }}</option><option value="no"{% if q.value == 'no' %} selected{% endif %}>{{ t('rg2_no') }}</option></select>
         {% elif q.kind == 'enum' %}<select name="{{ q.id }}"><option value="">-</option>{% for o in q.options %}<option value="{{ o }}"{% if q.value == o %} selected{% endif %}>{{ o }}</option>{% endfor %}</select>
         {% else %}<input type="text" name="{{ q.id }}" maxlength="200" value="{{ q.value }}"{% if q.kind == 'enum_list' %} placeholder="{{ q.options|join(', ') }}"{% elif q.kind == 'date' %} placeholder="YYYY-MM-DD"{% elif q.kind == 'int' %} inputmode="numeric" placeholder="VND"{% endif %}>{% endif %}</td>
       <td>{{ q.n if q.open else '-' }}</td></tr>
     {% endfor %}
     </tbody></table></div>
-  <p><button class="chipbtn" type="submit" name="run" value="1" data-duties="rerun">{{ t('rg2_d_rerun') }}</button></p>
+  <p><button class="chipbtn" type="submit" name="run" value="1" data-duties="rerun">{{ t('rg2_d_rerun') }}</button>
+    {% if v3 %}<button class="chipbtn" type="submit" name="prefill" value="1" data-duties="prefill">{{ t('rg3_reapply') }}</button>{% endif %}</p>
   {% else %}<p class="hint" data-register="no-questions">{{ t('rg2_d_no_questions') }}</p>{% endif %}
   <h3>{{ t('rg2_d_rows') }}</h3>
   <p class="rg2-filter" data-duties="filters">{% for f in duty.filters %}{% if f == duty.filter %}<b>{{ t('rg2_d_f_' ~ f) }}</b>{% else %}<a href="{{ base }}/step/{{ step }}?f={{ f }}&amp;lang={{ lang }}" data-filter="{{ f }}">{{ t('rg2_d_f_' ~ f) }}</a>{% endif %}{% if not loop.last %} | {% endif %}{% endfor %}
@@ -208,6 +301,9 @@
 </form>
 
 {% elif key == 'guardians' %}
+{% if v3 %}
+{% if pd %}{% include "_predeploy_panel.html" %}{% else %}<div class="notice" data-register="turn-on"><span class="dot"></span>{{ t('rg3_turn_on', flag='ONBOARD_PREDEPLOY') }}</div>{% endif %}
+{% endif %}
 <form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="step5">
   <input type="hidden" name="bind_form" value="1">
   {% if not g.bindings_on %}<div class="notice"><span class="dot"></span>{{ t('rg2_bindings_off') }}</div>{% endif %}
@@ -240,8 +336,13 @@
     <dl class="kv">{% for f in ['purpose', 'system_type', 'org_role', 'user_segment', 'personal_data', 'human_control', 'autonomy_level', 'money_movement', 'credit_decision', 'model_family', 'data_sources'] %}<dt>{{ t('rg2_f_' ~ f) }} {{ mark(f) }}</dt><dd>{{ valtxt(f, r['values'].get(f)) }}</dd>{% endfor %}</dl>
   </section>
   <section>
+    {% if v3 %}
+    <h3>{{ t('rg3_ai_type') }}</h3>
+    <p data-register="review-flags">{% for f in ['generative', 'agentic', 'customer_facing', 'decides'] %}{{ t('rg3_flag_' ~ f) }}: <b>{{ t('rg2_yes') if flags.get(f) else t('rg2_no') }}</b>{% if not loop.last %}; {% endif %}{% endfor %}</p>
+    {% else %}
     <h3>{{ t('rg2_step_3') }}</h3>
     <p data-register="review-check">{% if r.readiness is not none %}{{ t('rg2_chk_readiness') }}: {{ r.readiness }}{% else %}{{ t('rg2_fix_readiness_run') }}{% endif %}</p>
+    {% endif %}
     <h3>{{ t('rg2_step_4') }}</h3>
     <p data-register="review-class">{% if r.outcome %}{{ t('sy_d33_' ~ r.outcome) }}{% if r.rule_id %} - <code>{{ r.rule_id }}</code>{% endif %}{% else %}-{% endif %}</p>
     {% if r.duties %}
@@ -264,11 +365,12 @@
     <ul data-register="tasks">{% for tid in r.tasks %}<li><code>{{ tid }}</code> - {{ t('rg2_task_' ~ tid) }}</li>{% endfor %}</ul>
     <h3>{{ t('rg2_who_approves') }}</h3>
     <ul><li>{{ t('rg2_appr_intake') }}</li><li>{{ t('rg2_appr_class') }}</li><li>{{ t('rg2_appr_stage') }}</li></ul>
+    {% if v3 %}<p data-register="stage-request">{% if stage_to %}{{ t('rg3_stage_request', stage=stage_to) }}{% else %}{{ t('rg3_stage_none') }}{% endif %}</p>{% endif %}
   </section>
   </div>
   <form method="post" action="{{ base }}/submit?lang={{ lang }}" data-register="submit">
     <p class="rg2-buttons"><a class="chipbtn" href="{{ base }}/step/{{ step - 1 }}?lang={{ lang }}">{{ t('rg2_back') }}</a>
-    <button class="btn" type="submit"{% if r.problems %} disabled{% endif %}>{{ t('rg2_submit') }}</button>
+    <button class="btn" type="submit"{% if r.problems %} disabled{% endif %}>{{ t('rg3_submit') if v3 else t('rg2_submit') }}</button>
     <a href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a></p>
   </form>
   <form method="post" action="{{ base }}/abandon?lang={{ lang }}"><p><button class="chipbtn" type="submit">{{ t('rg2_abandon') }}</button></p></form>
