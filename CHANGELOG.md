@@ -21,6 +21,37 @@
   off the tab and panel are absent, no row is written and the routes answer 400 `postdeploy_off`.
   `app.yaml` has the commented flag. Details: `docs/onboard.md` "Post-deploy assessment and the
   agent log".
+- WP-L4 (phase 8): **effectiveness evidence and the regulator pack**, flag `REGULATOR_PACK` (default
+  `0`; needs `GOVERNANCE_ENABLED` and `RISK_DUTIES`). For each `obligation_status` row, the live
+  integer counts of the mapped Supervisor controls (kinds catalogue, rule, monitor, evidence; a bank
+  process is never one) are read in a window (`DUTY_EVIDENCE_WINDOW_DAYS`, default 30) for the
+  supervised agents of the system: gate decisions, rule hits (`risk/evidence.py` `Collector`),
+  findings, verdicts, chain entries and chain verifications, pack results, monitor rows. A control
+  works with at least `DUTY_EVIDENCE_MIN_ROWS` (default 1) rows; judge verdicts (tier 1 and 2) are
+  shown but advisory, and a control with no counter (console screens, onboarding artefacts, the
+  quality and sweeps monitors) is unmeasured and never works. Hub rules: (a) an open `full` row whose
+  mapped controls all work is closed by the system (`closing_control` = control ids joined by ",",
+  note = banner + "closed by evidence <window> <counts>", chain record `duty_evidence_close`);
+  partial, none, waived and unknown rows are never closed this way; (b) when the last open row of a
+  WP-L2 gap group closes, its task `DUTY-<instrument id>-<coverage>` is closed through the task
+  service ("all duties of the group closed"); (c) the Duties tab reads the close evidence and the
+  waive reason from `note` after the banner and the control from `closing_control`. Scheduler job
+  `duty_evidence_sweep` (`DUTY_EVIDENCE_SWEEP_S`, `0` = off, else 300 or more; also `python -m
+  supervisor.jobs.duty_evidence_sweep`) does this for every system, one `console_action` row with
+  actor `system` per system that changed. New button **Refresh evidence** on the Duties tab
+  (`POST /console/systems/{id}/duties/refresh-evidence`, `systems.edit`, two audit rows). The tab
+  shows the counts per control and a works / no evidence mark per row. **Regulator pack** per
+  system, HTML and JSON, offline, no personal data (owners by role name only, typed notes as a
+  hash), no floats: header, one section per instrument (article, duty, verbatim `text_vi` quote,
+  applies, coverage, status, closing control, evidence counts, pointers, confirmed by, date),
+  summary and gap closure score, the banner on every page. The JSON carries `content_sha256` and an
+  Ed25519 signature of the evidence signer; `python -m supervisor.evidence.verify
+  regulator-pack.json [--pubkey FILE]` checks it (an export directory is verified as before). Routes
+  `GET /v1/systems/{id}/regulator-pack.json` and `.html` (`systems.view`, so the auditor role
+  too), buttons on the Duties tab and the system header, CLI `python -m
+  supervisor.governance.regulator_pack --system <id> --out <dir>`. No schema change. With the flag
+  off nothing changes and the routes answer 400 `regulator_pack_off`. `app.yaml` has the commented
+  flags. Details: `docs/regulator-pack.md`.
 - WP-O4 (phase 9): **guardian attachment view**, `ONBOARD_ATTACH_VIEW` (default `0`). New **Attach**
   tab on the agent page (after Pre-deploy) and **Attach** panel in the Candidates drawer. Content:
   an inline SVG wiring picture (agent, plug point, Supervisor gate, four guardian groups; one

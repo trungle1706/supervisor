@@ -20,6 +20,7 @@ from supervisor.cases.service import PermissionDenied
 from supervisor.console.listing import ListingError, paginate, parse_int, query_string
 from supervisor.core import rbac
 from supervisor.governance import duties_gap as dg
+from supervisor.governance import duty_evidence as de
 
 
 def person(me: Any) -> str:
@@ -103,6 +104,20 @@ def do_reevaluate(ctx: Any, me: Any, system: Mapping[str, Any]) -> tuple[dict[st
     )
 
 
+def pack_on(ctx: Any) -> bool:
+    """WP-L4: the evidence marks, the Refresh evidence button and the Regulator pack links."""
+    return de.enabled(ctx.settings)
+
+
+def do_refresh(ctx: Any, me: Any, system: Mapping[str, Any]) -> tuple[dict[str, Any], str]:
+    """WP-L4 Refresh evidence: close the open full-coverage rows whose controls all work."""
+    dg.ensure_on(ctx)
+    de.ensure_on(ctx.settings)
+    person(me)
+    out = de.refresh(de.Env.from_console(ctx), system)
+    return out, f"duty_evidence_refresh checked={out['checked']} closed={out['closed']}"
+
+
 # ------------------------------------------------------------------------------ page data
 
 
@@ -154,6 +169,7 @@ def tab_data(
             if r["status"] in t:
                 t[str(r["status"])] += 1
     blocks: list[dict[str, Any]] = []
+    marks = de.tab_rows(de.Env.from_console(ctx), sid, page.items) if pack_on(ctx) else {}
     for r in page.items:
         key = dg.group_key(r)
         if not blocks or blocks[-1]["key"] != key:
@@ -183,6 +199,9 @@ def tab_data(
                 "overdue": bool(due and due < today and r["status"] == "open"),
                 "closing_control": r["closing_control"] or "",
                 "note": str(r["note"] or ""),
+                "detail": de.split_note(r["note"]) if r["status"] != "open" else "",
+                "basis": de.close_basis(r),
+                "ev": marks.get(str(r["obligation_id"])),
                 "can_act": r["applies"] == "yes" and r["status"] == "open",
             }
         )
@@ -204,6 +223,8 @@ def tab_data(
         "du_can_waive": may_waive(me, system),
         "du_is_owner": dg._is_owner(system, str(getattr(me, "user_id", ""))),  # noqa: SLF001
         "du_choices": dg.control_choices(ctx) if may_edit(me, system) else {},
+        "du_pack": pack_on(ctx),
+        "du_window_days": int(getattr(ctx.settings, "duty_evidence_window_days", 30)),
         "du_banner": dg.BANNER,
         "du_min_waive": dg.MIN_WAIVE,
         "du_max_evidence": dg.MAX_EVIDENCE,

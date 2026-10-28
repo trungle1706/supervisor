@@ -28,6 +28,12 @@ What it checks (exit code 0 = all OK, 1 = any FAIL, 2 = the export cannot be rea
    ``anchors.jsonl`` match the SHA-256 of the anchor files.
 
 The report is ASCII: ``[OK]`` / ``[FAIL]`` per check, with the first broken seq per lane.
+
+A signed JSON file (a regulator pack, WP-L4) can be given in place of an export directory:
+``python -m supervisor.evidence.verify regulator-pack.json [--pubkey FILE]`` re-computes the
+canonical SHA-256 of the file without its signature block and checks the Ed25519 signature over
+``PACK_SIGNING_PREFIX + hash`` (with ``--pubkey`` the key must be the pinned key). Export
+directories are verified exactly as before.
 """
 
 from __future__ import annotations
@@ -60,6 +66,10 @@ ROOT_RECORD_TYPE = "root_commit"
 KEY_ROTATION_RECORD_TYPE = "key_rotation"
 SIGNING_PREFIX = b"supervisor-chain/v1 root "
 ALGORITHM = "ed25519"
+# WP-L4: signed JSON documents (kind -> signing prefix). The hash is the canonical SHA-256 of the
+# document without ``content_sha256`` and ``signature``.
+PACK_SIGNING_PREFIX = b"supervisor-regulator-pack/v1 "
+SIGNED_DOC_PREFIXES = {"supervisor.regulator_pack": PACK_SIGNING_PREFIX}
 EXPORT_FORMAT = "supervisor-evidence-export"
 ANCHOR_FORMAT = "supervisor-evidence-anchor"
 ENTRY_HASH_FIELDS = (
@@ -657,6 +667,52 @@ def _receipt_sha256(receipt: Any) -> str | None:
     return None
 
 
+def verify_signed_doc(path: Path, *, pubkey: Path | None = None) -> Report:
+    """Verify a signed JSON document (a regulator pack): the content hash and the signature."""
+    r = Report()
+    r.lines.append(_ascii(f"Supervisor signed document verify - {path}"))
+    try:
+        doc = _loads_strict(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ExportError(f"{path} is not a readable JSON document: {exc}") from exc
+    if not isinstance(doc, dict) or doc.get("format") not in SIGNED_DOC_PREFIXES:
+        raise ExportError(f"{path} is not a supervisor signed document")
+    prefix = SIGNED_DOC_PREFIXES[doc["format"]]
+    body = {k: v for k, v in doc.items() if k not in ("content_sha256", "signature")}
+    try:
+        digest = sha256_hex(body)
+    except (CanonicalError, ValueError) as exc:
+        r.fail(f"content: cannot be canonicalised ({exc})")
+        r.lines.append("RESULT: FAIL (1 problem(s))")
+        return r
+    if digest == doc.get("content_sha256"):
+        r.ok(f"content: sha256 {digest[:16]}... matches content_sha256")
+    else:
+        r.fail("content: sha256 differs from content_sha256 (the document was changed)")
+    sig = doc.get("signature")
+    key = None
+    try:
+        if not isinstance(sig, dict):
+            raise ValueError("no signature block")
+        key, kid = _load_public_key(str(sig.get("public_key") or ""))
+        if sig.get("key_id") != kid:
+            raise ValueError("key_id is not sha256(public key)")
+        if pubkey is not None:
+            pinned, pinned_id = _load_public_key(Path(pubkey).read_bytes())
+            if pinned_id != kid:
+                raise ValueError("the signing key is not the pinned key")
+            key = pinned
+            r.ok(f"pinned key {pinned_id[:16]}... is the signing key")
+        raw = base64.b64decode(str(sig.get("signature") or ""), validate=True)
+        key.verify(raw, prefix + digest.encode("ascii"))
+        r.ok(f"signature: Ed25519 by key {kid[:16]}... ({sig.get('key_kind', '?')}) verifies")
+    except (InvalidSignature, binascii.Error, ValueError, TypeError, OSError) as exc:
+        msg = "signature does not verify" if isinstance(exc, InvalidSignature) else str(exc)
+        r.fail(f"signature: {msg}")
+    r.lines.append("RESULT: " + ("OK" if r.failures == 0 else f"FAIL ({r.failures} problem(s))"))
+    return r
+
+
 def verify_export(
     export_dir: Path,
     *,
@@ -674,7 +730,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         prog="python -m supervisor.evidence.verify",
         description="Verify a Supervisor evidence export offline.",
     )
-    ap.add_argument("export_dir", help="directory written by supervisor.evidence.export")
+    ap.add_argument(
+        "export_dir",
+        help="directory written by supervisor.evidence.export, or a signed JSON file "
+        "(regulator pack)",
+    )
     ap.add_argument("--pubkey", default=None, help="pinned notary public key (PEM)")
     ap.add_argument("--anchors", default=None, help="directory of anchor documents")
     ap.add_argument(
@@ -689,13 +749,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.pubkey is not None and not Path(args.pubkey).is_file():
             raise ExportError(f"--pubkey file not found: {args.pubkey}")
-        report = verify_export(
-            Path(args.export_dir),
-            pubkey=Path(args.pubkey) if args.pubkey else None,
-            anchors_dir=Path(args.anchors) if args.anchors else None,
-            strict=args.strict,
-            partial=args.partial,
-        )
+        if Path(args.export_dir).is_file():  # WP-L4: a signed JSON document, not an export dir
+            report = verify_signed_doc(
+                Path(args.export_dir), pubkey=Path(args.pubkey) if args.pubkey else None
+            )
+        else:
+            report = verify_export(
+                Path(args.export_dir),
+                pubkey=Path(args.pubkey) if args.pubkey else None,
+                anchors_dir=Path(args.anchors) if args.anchors else None,
+                strict=args.strict,
+                partial=args.partial,
+            )
     except (TypeError, KeyError, AttributeError) as exc:
         print(_ascii(f"[FAIL] malformed export: {type(exc).__name__}: {exc}"))  # noqa: T201
         return 1

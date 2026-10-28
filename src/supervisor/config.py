@@ -752,6 +752,18 @@ class Settings(BaseSettings):
     # duties due within 30 days; 0 = off (default), else 300 or more.
     risk_duties: bool = False
     risk_duties_sweep_s: int = Field(default=0, ge=0)
+    # --- WP-L4 (phase 8) --- evidence per duty and the regulator pack (docs/regulator-pack.md):
+    # live counts per control for the duties of a system, auto-close of a full-coverage duty whose
+    # mapped controls all work, the group task closes with its last row, the Refresh evidence
+    # button, and the signed regulator pack (JSON and HTML) per system. Needs GOVERNANCE_ENABLED
+    # and RISK_DUTIES (and so CONSOLE_SYSTEMS_ENABLED). Off: no change, the routes answer HTTP 400
+    # regulator_pack_off. DUTY_EVIDENCE_WINDOW_DAYS: window of the counts. DUTY_EVIDENCE_MIN_ROWS:
+    # evidence rows a control needs in the window to count as working. DUTY_EVIDENCE_SWEEP_S:
+    # scheduler sweep over every system; 0 = off (default), else 300 or more.
+    regulator_pack: bool = False
+    duty_evidence_window_days: int = Field(default=30, ge=1, le=365)
+    duty_evidence_min_rows: int = Field(default=1, ge=1, le=1000000)
+    duty_evidence_sweep_s: int = Field(default=0, ge=0)
 
     # --- WP-G2 --- assignment rules and Decision 33 classification (docs/assignment-rules.md,
     # docs/decision33.md). Both need GOVERNANCE_ENABLED. CLASSIFIER_AI_PREFILL=1 lets the
@@ -877,6 +889,13 @@ class Settings(BaseSettings):
     def _sweep_s(cls, value: int) -> int:
         if 0 < value < 300:
             raise ValueError("RISK_DUTIES_SWEEP_S must be 0 (off) or 300 or more")
+        return value
+
+    @field_validator("duty_evidence_sweep_s", mode="after")
+    @classmethod
+    def _duty_evidence_sweep_s(cls, value: int) -> int:
+        if 0 < value < 300:
+            raise ValueError("DUTY_EVIDENCE_SWEEP_S must be 0 (off) or 300 or more")
         return value
 
     @field_validator("databricks_host", mode="after")

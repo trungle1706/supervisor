@@ -209,6 +209,7 @@ def detail_view(
         extra["wf"] = systems_workflow.tab_data(ctx, me, system, extra)
     if systems_duties.is_on(ctx):  # WP-L3: the gap closure score is on every tab; the tab itself
         extra["duty_score"] = systems_duties.header(ctx, system)
+        extra["rp_pack"] = systems_duties.pack_on(ctx)  # WP-L4: Regulator pack link in the header
         counts["duties"] = extra["duty_score"]["open"]
         if tab == "duties":
             extra.update(systems_duties.tab_data(ctx, me, system, query or {}))

@@ -533,6 +533,20 @@ async def system_duties_reevaluate(
     return await _duty_answer(request, ctx, me, plain, system["system_id"], note, "du_ok_reeval")
 
 
+@router.post(
+    "/systems/{system_id}/duties/refresh-evidence", dependencies=[Depends(needs("systems.edit"))]
+)
+@audited("systems.edit")
+async def system_duties_refresh_evidence(
+    system_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """WP-L4 (REGULATOR_PACK): read the live evidence again and close the full-coverage duties
+    whose mapped controls all work. Answers HTTP 400 regulator_pack_off while the flag is off."""
+    _, plain, system = await _duty_system(request, ctx, me, system_id)
+    _, note = await _call(systems_duties.do_refresh, ctx, me, system)
+    return await _duty_answer(request, ctx, me, plain, system["system_id"], note, "du_ok_refresh")
+
+
 # --- WP-N3 --- register workflow v2: /console/register (answers 400 while the flag is off)
 from supervisor.console.register_routes import router as _register_router  # noqa: E402
 

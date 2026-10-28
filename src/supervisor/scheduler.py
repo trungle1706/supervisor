@@ -542,6 +542,16 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 lambda: duties_sweep_job.run(ctx, settings),
             )
         )
+    from supervisor.jobs import duty_evidence_sweep as duty_evidence_sweep_job  # WP-L4
+
+    if duty_evidence_sweep_job.enabled(settings):  # WP-L4: listed only when it can run
+        jobs.append(
+            JobSpec(
+                "duty_evidence_sweep",
+                settings.duty_evidence_sweep_s,
+                lambda: duty_evidence_sweep_job.run(ctx, settings),
+            )
+        )
     return jobs
 
 

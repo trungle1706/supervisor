@@ -34,6 +34,7 @@ Regulation and compliance documents are advisory. Not legal advice. Bank counsel
 | `docs/regulations.md` | Regulation knowledge base: coverage, format, internal rules | 2L, Dev |
 | `docs/compliance-advisor.md` | Obligations matrix, Decision 33, threshold check | 2L, Dev |
 | `docs/risk-register.md` | Risk register: scoring, inheritance up the inventory graph, evidence from runtime, import, harness (WP29) | 2L, Risk, Audit, Dev |
+| `docs/regulator-pack.md` | Effectiveness evidence per duty and the signed regulator pack per AI system (WP-L4) | 2L, Risk, Audit, Dev |
 | `docs/controls.md` | Control catalogue, evidence status, compliance figure, task list sized by Decision 33 class, import (WP30) | 2L, Risk, Audit, Dev |
 | `docs/governance.md` | Governance shared core: the AI system entity, team scope, risk inheritance, segregation of duties, API, console (WP-G0) | 2L, Risk, Audit, Dev |
 | `docs/governance-actions.md` | Governance loop: events from alerts, gate, detectors, monitors, packs and the chain become actions by rule; the rules file, the seven actions, dedupe, dry run (WP-G5) | 2L, Risk, SOC, Dev |
