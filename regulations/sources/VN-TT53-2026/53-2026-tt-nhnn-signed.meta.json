@@ -1,0 +1,11 @@
+{
+  "content_type": "application/pdf",
+  "fetched_at": "2026-10-27T19:33:00Z",
+  "sha256": "f0661470392965a3782975fc2c8f759cc94cd2094aa92eedda22d929cc792d71",
+  "title": "Thông tư số 53/2026/TT-NHNN, bản ký số (SAO Y, Ngân hàng Nhà nước, ký 2026-10-06; Cổng TTĐT Chính phủ ký 2026-10-07). Bản scan, không có lớp chữ; cần OCR (tesseract vie).",
+  "tool": "curl; same sha256 as the copy the owner uploaded on 2026-10-28",
+  "url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/53-nhnn.signed.pdf",
+  "page": "https://chinhphu.vn/?pageid=27160&docid=219813&classid=1&typegroupid=6",
+  "signed_date": "2026-09-30",
+  "note": "Second primary copy. The stored docx/pdf from vbpl (sha fca19a14...) is the text source; this signed scan is the authority copy for the audit pack."
+}
