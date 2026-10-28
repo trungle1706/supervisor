@@ -466,6 +466,13 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/systems/{system_id}/risk-dimensions"): "systems.edit",
     ("POST", "/v1/systems/{system_id}/risk-dimensions/{dim}/waive"): "systems.approve",
     ("GET", "/v1/risk-dimensions/summary"): "systems.view",
+    # --- WP-F4 (phase 12) --- onboarding orchestrator (ONBOARD_ORCHESTRATOR; 400 when off)
+    ("POST", "/v1/systems/{system_id}/orchestrate"): "systems.edit",
+    ("GET", "/v1/systems/{system_id}/orchestrate"): "systems.view",
+    ("GET", "/v1/orchestrate/{run_id}"): "systems.view",
+    ("GET", "/v1/orchestrate/{run_id}/reports/{dim}"): "systems.view",
+    ("GET", "/console/systems/{system_id}/orchestrate"): "systems.view",
+    ("POST", "/console/systems/{system_id}/orchestrate"): "systems.edit",
     ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/set"): "systems.edit",
     ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/confirm"): "systems.edit",
     ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/waive"): "systems.approve",

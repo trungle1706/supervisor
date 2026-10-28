@@ -1705,7 +1705,7 @@ tables:
       WP-O5 (phase 9, ONBOARD_POSTDEPLOY). The agent log: one row per onboarding action of a
       candidate or agent, shown in the console as a timeline "plan, read, found, suggest". step
       names the onboarding step: scan (the node became a candidate), intake (a source was taken
-      in), facts, predeploy, attach, postdeploy, state (Request or Approve RUNNING) or duties.
+      in), facts, predeploy, attach, postdeploy, state (Request or Approve RUNNING) duties or orchestrate (WP-F4).
       by_kind says who did it: rule (deterministic code), model (the gateway model produced the
       content, a mock model says so in what) or person (actor is the person id). what is a short
       scrubbed sentence of at most 300 characters; pointer is where to look (file:line, report id,
@@ -1719,7 +1719,7 @@ tables:
       log_id: string
       node_id: string          # inventory node id or agent id (same as intake_attempt.node_id)
       attempt_n: int?          # intake attempt number when the step belongs to one
-      step: string             # scan | intake | facts | predeploy | attach | postdeploy | state | duties
+      step: string             # scan | intake | facts | predeploy | attach | postdeploy | state | duties | orchestrate
       what: text               # at most 300 characters, no personal data
       pointer: string          # at most 200 characters: file:line, report id, row id, pack id
       by_kind: string          # model | rule | person
@@ -1786,3 +1786,35 @@ tables:
       inherited_from_provider: bool
       valid_until: timestamp
       created_at: timestamp
+  orchestrator_run:
+    kind: state
+    description: >
+      WP-F4 (phase 12, ONBOARD_ORCHESTRATOR). One run of the onboarding orchestrator for one AI
+      system: it plans which of the eight risk types of Circular 53 Art. 14(3) apply and which
+      agent assesses each (a live factory agent, else the rule proposal of risk_dimensions), runs
+      them in order under a time and token budget, writes one assessment_report_v1 per type under
+      DATA_DIR/assessments/<system>/<attempt>/ and a proposal into risk_dimension_status (never
+      pass: a person confirms). status: queued, running, done or failed (the run itself broke).
+      The orchestrator has no model call of its own and decides by deterministic rules only.
+      plan_json is the plan (dimensions, reasons, agents, order, budget); budget_json holds the
+      budget and what was used (integers); items_json is a JSON list with one entry per type
+      {dimension_id, order, applies, reason, agent (rule or id@version), status (queued, running,
+      done, needs_person, budget_exceeded, failed, not_applicable, skipped), verdict, proposed_status,
+      status_written, report_ref, report_sha256, stop_point, needs_person, ms_used, tokens_used,
+      note}. No personal data, no floats. A re-run is a new attempt_n and a new run_id.
+    primary_key: [run_id]
+    indexes:
+      - [system_id, attempt_n]
+    columns:
+      run_id: string
+      system_id: string
+      attempt_n: int
+      plan_json: json
+      plan_hash: string        # sha256 of the canonical plan
+      status: string           # queued | running | done | failed
+      started_at: timestamp
+      finished_at: timestamp?
+      budget_json: json        # limits and use, integers
+      items_json: json        # list of items (see description)
+      summary: text            # at most 300 characters, no personal data
+      created_by: string

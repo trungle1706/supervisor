@@ -194,6 +194,11 @@ env:
   # default (docs/risk-dimensions.md).
   # - name: RISK_DIMENSIONS
   #   value: "1"
+  # Phase 12 WP-F4: the onboarding orchestrator (Run assessment button on the Risk assessment tab,
+  # /v1/systems/{id}/orchestrate). Needs GOVERNANCE_ENABLED, RISK_DIMENSIONS, CLASSIFICATION_V2.
+  # Off by default (docs/orchestrator.md).
+  # - name: ONBOARD_ORCHESTRATOR
+  #   value: "1"
   # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
   # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.
   # Needs GOVERNANCE_ENABLED and RISK_DUTIES. Off by default (docs/regulator-pack.md).

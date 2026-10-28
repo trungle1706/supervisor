@@ -1755,7 +1755,7 @@ CREATE TABLE IF NOT EXISTS predeploy_report (
 
 CREATE INDEX IF NOT EXISTS ix_predeploy_report_node_id_attempt_n ON predeploy_report (node_id, attempt_n);
 
--- onboard_log (append_only): WP-O5 (phase 9, ONBOARD_POSTDEPLOY). The agent log: one row per onboarding action of a candidate or agent, shown in the console as a timeline "plan, read, found, suggest". step names the onboarding step: scan (the node became a candidate), intake (a source was taken in), facts, predeploy, attach, postdeploy, state (Request or Approve RUNNING) or duties. by_kind says who did it: rule (deterministic code), model (the gateway model produced the content, a mock model says so in what) or person (actor is the person id). what is a short scrubbed sentence of at most 300 characters; pointer is where to look (file:line, report id, row id or pack id) at most 200 characters. Rows are never updated or deleted. No personal data, no secret, no float; counts are integers. A write failure never fails the action that was logged.
+-- onboard_log (append_only): WP-O5 (phase 9, ONBOARD_POSTDEPLOY). The agent log: one row per onboarding action of a candidate or agent, shown in the console as a timeline "plan, read, found, suggest". step names the onboarding step: scan (the node became a candidate), intake (a source was taken in), facts, predeploy, attach, postdeploy, state (Request or Approve RUNNING) duties or orchestrate (WP-F4). by_kind says who did it: rule (deterministic code), model (the gateway model produced the content, a mock model says so in what) or person (actor is the person id). what is a short scrubbed sentence of at most 300 characters; pointer is where to look (file:line, report id, row id or pack id) at most 200 characters. Rows are never updated or deleted. No personal data, no secret, no float; counts are integers. A write failure never fails the action that was logged.
 CREATE TABLE IF NOT EXISTS onboard_log (
   log_id TEXT NOT NULL,
   node_id TEXT NOT NULL,
@@ -1824,3 +1824,24 @@ CREATE TABLE IF NOT EXISTS classification_v2 (
 );
 
 CREATE INDEX IF NOT EXISTS ix_classification_v2_system_id ON classification_v2 (system_id);
+
+-- orchestrator_run (state): WP-F4 (phase 12, ONBOARD_ORCHESTRATOR). One run of the onboarding orchestrator for one AI system: it plans which of the eight risk types of Circular 53 Art. 14(3) apply and which agent assesses each (a live factory agent, else the rule proposal of risk_dimensions), runs them in order under a time and token budget, writes one assessment_report_v1 per type under DATA_DIR/assessments/<system>/<attempt>/ and a proposal into risk_dimension_status (never pass: a person confirms). status: queued, running, done or failed (the run itself broke). The orchestrator has no model call of its own and decides by deterministic rules only. plan_json is the plan (dimensions, reasons, agents, order, budget); budget_json holds the budget and what was used (integers); items_json is a JSON list with one entry per type {dimension_id, order, applies, reason, agent (rule or id@version), status (queued, running, done, needs_person, budget_exceeded, failed, not_applicable, skipped), verdict, proposed_status, status_written, report_ref, report_sha256, stop_point, needs_person, ms_used, tokens_used, note}. No personal data, no floats. A re-run is a new attempt_n and a new run_id.
+CREATE TABLE IF NOT EXISTS orchestrator_run (
+  run_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  attempt_n INTEGER NOT NULL,
+  plan_json TEXT NOT NULL,
+  plan_hash TEXT NOT NULL,
+  status TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  budget_json TEXT NOT NULL,
+  items_json TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (run_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_orchestrator_run_system_id_attempt_n ON orchestrator_run (system_id, attempt_n);

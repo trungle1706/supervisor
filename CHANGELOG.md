@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- WP-F4 (phase 12B): **onboarding orchestrator**, `ONBOARD_ORCHESTRATOR` (default `0`; needs
+  `GOVERNANCE_ENABLED`, `RISK_DIMENSIONS`, `CLASSIFICATION_V2`). New `onboard/orchestrator.py`
+  (deterministic, no model call): `plan` (which of the eight risk types apply by classification
+  outcome and flags, the agent per type through the `AgentCatalog` interface, `legal_compliance`
+  last, time and token budget from `factory/caps.py`) and `run` (queued, running, done or failed;
+  `Runner` interface with a rule-based default that builds an `assessment_report_v1` from the rule
+  proposal; budget cut gives `budget_exceeded`; a `high` fail or an approval point gives
+  `needs_person`; worst verdict wins). Reports are stored under `DATA_DIR/assessments/<system>/
+  <attempt>/` with SHA-256; the status rows get a proposal (`in_progress` or `fail`, never `pass`)
+  and `assessed_by`; `duties_prefill.json` plus `read_duties_prefill`. New table `orchestrator_run`
+  (appended at the end of `schema/model.yaml`; DDL and notebook regenerated), chain record
+  `orchestrator_run`, `onboard_log` step `orchestrate`, API `POST/GET /v1/systems/{id}/orchestrate`,
+  `GET /v1/orchestrate/{run_id}` and `.../reports/{dim}`, the **Run assessment** button and run
+  panel on the Risk assessment tab (replaces the disabled placeholder). Off: routes answer 400
+  `orchestrator_off`, no table read, the tab is unchanged. Details: `docs/orchestrator.md`.
+
 - WP-F1 (phase 12B): **agent factory schemas** (`src/supervisor/factory/`, docs/factory.md). Three
   frozen pydantic schemas with JSON Schema export (`facts_v1`, `assessment_report_v1`,
   `agent_definition_v1` with the `harness` block), all limits in `factory/caps.py`, strict loaders

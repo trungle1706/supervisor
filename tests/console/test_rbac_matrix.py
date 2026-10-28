@@ -55,6 +55,7 @@ FLAG_MOUNTED = (
     "/console/candidates",
     "/v1/risk-dimensions",  # WP-C2: mounted inside the GOVERNANCE_ENABLED block
     "/v1/classification",  # WP-C1: the summary route, same block
+    "/v1/orchestrate",  # WP-F4: mounted inside the GOVERNANCE_ENABLED block
 )
 
 
