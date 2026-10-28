@@ -165,6 +165,76 @@ Limits and notes:
 * The scrub has lower recall than gitleaks (ADR D12): treat the stored tree as scrubbed, not as
   secret-free.
 
+## Facts card (WP-O2, phase 9, `ONBOARD_FACTS`)
+
+The facts card answers "what do we know about this agent" from the code that the intake stored.
+Off by default. Windows cmd: `set ONBOARD_FACTS=1`. It reads attempts of the Intake step, so the
+source must be taken in first (`ONBOARD_INTAKE=1`).
+
+```text
+ stored tree (scrubbed) --> discover --> understand (rules + gateway model claims)
+        DATA_DIR/intake/<node id>/<n>/            |
+                                                  v
+                              onboard_facts rows (file, line, quote)  --> inventory edges
+                                                                      --> register v2 prefill
+```
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `ONBOARD_FACTS` | `0` | Turns the card on. Off: `POST` and `GET /v1/facts/...`, the Facts tab and the Facts panel answer HTTP 400 `facts_off` with the flag name; nothing is read or written, the register prefill is unchanged. |
+
+Where it shows: the **Facts** panel in the Candidates drawer, below **Source**, and the **Facts**
+tab of the agent page (also a full page at `/console/facts/<node id>`). Groups: tools (risk class,
+approval, side effects, reversibility), models, endpoints, data (tables with read or write, files),
+secret use (the kind only, never the value), external addresses (no query string), MCP servers,
+human approval points, autonomy level (L0 to L3), Decision 33 proposal (a proposal; counsel
+confirms), weak spots, and "purpose and other claims". Every row shows `file:line` and a quote of
+at most 200 characters from the scrubbed text. The line "n claims dropped (no evidence)" counts the
+claims of the model that had no usable file and line. **Re-read** builds the card again for the
+newest attempt; a pill says when a newer attempt than the one read exists.
+
+Rules:
+
+* **Rule facts** (`source=rule`) come from Discover and Understand and are the same as in an
+  onboarding run. **Model facts** (`source=model`) are extra claims of the gateway model. They pass
+  `validate_llm_claims`: the file and line must exist and the quote must be on that line, else the
+  claim is dropped and counted (`dropped_claims` on the summary row). A model fact never sets the
+  Decision 33 class, the tier or the autonomy level.
+* With no model configured (`LLM_BASE_URL` empty or `LLM_MOCK=1`) the model step is skipped. The
+  summary row and the panel say "mock", the model id names the mock, and only rule facts exist.
+  A model that fails keeps the rule facts; the summary row notes the failure.
+* One row per fact in the table `onboard_facts` (kinds `tool`, `model`, `endpoint`, `dataset`,
+  `file`, `secret_use`, `external_url`, `mcp_server`, `approval_point`, `autonomy`, `decision33`,
+  `weak_spot`, plus `claim` for the purpose, personal-data fields and model claims that are not
+  weak spots, and one `summary` row per build). The fact id is a hash of node, attempt, kind,
+  name and pointer. A build for the same attempt updates the rows it finds again and sets
+  `active=false` on rows it no longer finds (the state store has no delete); readers use active
+  rows. Rows of older attempts stay.
+* A secret does not reach a row: the tree is scrubbed by the intake, Discover scrubs again, and
+  every text of a row goes through the scrubber once more. A line with an injection phrase is
+  shown as "withheld". The scrub has lower recall than gitleaks (ADR D12).
+* **Inventory graph.** With the flag on, each build writes edges with source `onboard_facts` and
+  the pointer as evidence: tools, models and endpoints as `uses`, tables as `reads` or `writes`.
+  The edges start at the inventory node (a candidate) or at the system node of the agent id (made
+  when the inventory does not know it). Tool nodes carry the risk of their class, so the risk
+  inheritance and the register prefill see them. Edges of facts that a later build no longer finds
+  become inactive.
+* **Register v2 prefill.** When a card exists for the node, step 2 suggests purpose (purpose, tools,
+  models, data), data sources, personal data, model family, money and credit tool flags, human
+  control (when an approval step is in code) and autonomy level, each with a reason key
+  `rg2_why_fact_*` and the `kind:name @ file:line` of the fact next to it.
+
+Routes and roles: `POST /v1/facts/<node id>/<n>` builds attempt `n` (`systems.edit`, two
+`console_action` rows, target kind `node`, answer 201 with the card); `GET /v1/facts/<node id>`
+returns the card of the newest built attempt (`systems.view`); `POST /console/facts/<node id>` is
+the **Re-read** button (htmx only). A refusal is HTTP 400 with `<code>: <text>`: `facts_off`,
+`no_attempt`, `attempt_failed`, `tree_missing` (the local folder was wiped; upload again),
+`read_failed`.
+
+Limits: the stored tree lives on the local disk (see Intake), so after a restart on a Databricks App
+a build needs a new upload first; the fact rows and the edges (Delta) stay. New table: run
+`python -m supervisor.jobs.bootstrap_schema` (or the smoke notebook) before the new version.
+
 ## Safety rules (ADR D12)
 
 - Read-only: `LocalGitRepoReader` has no write method; size cap per file; binary files

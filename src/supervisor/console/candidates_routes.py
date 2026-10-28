@@ -65,6 +65,7 @@ def _drawer_data(ctx: ConsoleContext, node_id: str) -> dict[str, Any]:
     data["register"] = bool(ctx.settings.console_systems_enabled and ctx.settings.console_nav_v3)
     data["reg_base"] = _reg_base(ctx)
     data["intake"] = bool(ctx.settings.onboard_intake)  # WP-O1: the Source panel
+    data["facts"] = bool(ctx.settings.onboard_facts)  # WP-O2: the Facts panel
     return data
 
 

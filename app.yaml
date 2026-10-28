@@ -190,6 +190,10 @@ env:
   #   value: "20"
   # - name: ONBOARD_GIT_HOSTS   # comma list; empty = git intake off
   #   value: "FILL-ME-git-host"
+  # Phase 9 WP-O2: facts card (what we know about this agent) built from a stored intake attempt;
+  # needs ONBOARD_INTAKE. Off by default (docs/onboard.md "Facts card").
+  # - name: ONBOARD_FACTS
+  #   value: "1"
   # Guardian detectors (phase 5).
   - name: DETECTORS_ENABLED
     value: "1"

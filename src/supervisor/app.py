@@ -154,6 +154,12 @@ from supervisor.console.intake_routes import router as intake_console_router  # 
 
 app.include_router(intake_console_router)  # /console/intake/{node_id}
 app.include_router(intake_api_router)  # /v1/intake/{node_id}
+# WP-O2: always mounted; with ONBOARD_FACTS=0 every route answers HTTP 400 with the flag name
+from supervisor.console.facts_routes import api_router as facts_api_router  # noqa: E402
+from supervisor.console.facts_routes import router as facts_console_router  # noqa: E402
+
+app.include_router(facts_console_router)  # /console/facts/{node_id}
+app.include_router(facts_api_router)  # /v1/facts/{node_id}
 if get_settings().governance_actions_enabled:  # WP-G5: mounted only when the flag is on
     from supervisor.console.incidents_routes import router as incidents_console_router
     from supervisor.governance.incident_routes import router as incidents_router

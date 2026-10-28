@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- WP-O2 (phase 9): facts card "what we know about this agent", `ONBOARD_FACTS` (default `0`). New
+  **Facts** tab on the agent page and **Facts** panel in the Candidates drawer, next to Source: the
+  card grouped by kind (tools, models, endpoints, data, files, secret use by kind only, external
+  addresses, MCP servers, human approval points, autonomy level, Decision 33 proposal, weak spots,
+  purpose and other claims). Each row has its file, line and a scrubbed quote of at most 200
+  characters. A line "n claims dropped (no evidence)" and a **Re-read** button that builds the
+  card again from the newest intake attempt. `POST /v1/facts/{node_id}/{n}` (`systems.edit`, two
+  audit rows) runs Discover and Understand on the stored tree on the server; `GET
+  /v1/facts/{node_id}` (`systems.view`) returns the card. The model step uses the gateway model
+  (labelled mock, and skipped, when none is configured); its claims pass `validate_llm_claims`, and
+  a claim without file:line is dropped and counted on the summary row. New state table
+  `onboard_facts` (run `python -m supervisor.jobs.bootstrap_schema` before the new app version on
+  Delta). A build for the same attempt keeps the id of a fact it finds again and sets `active`
+  false on one it no longer finds. New inventory edge source `onboard_facts`: tools, models and
+  endpoints become `uses` edges and data becomes `reads` / `writes` edges (pointer as evidence), so
+  risk inheritance sees them. Register v2 step 2 suggests purpose, data sources, model family,
+  money and credit tool flags, human control and autonomy level from the facts (reason keys
+  `rg2_why_fact_*`, the pointer next to the suggestion). Off = no tab, no panel, routes answer 400
+  `facts_off`, the prefill is unchanged.
 - WP-O1 (phase 9): candidate source intake, `ONBOARD_INTAKE` (default `0`),
   `ONBOARD_INTAKE_MAX_MB` (default `20`), `ONBOARD_GIT_HOSTS` (default empty = git off). New
   **Source** panel in the Candidates drawer and **Source** tab on the agent page (upload form,

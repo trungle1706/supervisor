@@ -467,6 +467,11 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/intake/{node_id}"): "systems.edit",
     ("GET", "/console/intake/{node_id}"): "systems.view",
     ("POST", "/console/intake/{node_id}"): "systems.edit",
+    # --- WP-O2 (phase 9) --- facts card (ONBOARD_FACTS; 400 with the flag when off)
+    ("GET", "/v1/facts/{node_id}"): "systems.view",
+    ("POST", "/v1/facts/{node_id}/{n}"): "systems.edit",
+    ("GET", "/console/facts/{node_id}"): "systems.view",
+    ("POST", "/console/facts/{node_id}"): "systems.edit",
     # --- WP-G5 --- incidents of the governance loop (GOVERNANCE_ACTIONS_ENABLED)
     ("GET", "/v1/incidents"): "incidents.view",
     ("GET", "/v1/incidents/{incident_id}"): "incidents.view",

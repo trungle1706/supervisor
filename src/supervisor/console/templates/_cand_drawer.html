@@ -26,4 +26,8 @@
   <h3 class="sec">{{ t('ik_title') }}</h3>
   <div id="intake-slot" hx-get="/console/intake/{{ c.node_id|urlencode }}?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/intake/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('ik_open_page') }}</a></p></div>
   {% endif %}
+  {% if drawer.facts %}
+  <h3 class="sec">{{ t('fk_title') }}</h3>
+  <div id="facts-slot" hx-get="/console/facts/{{ c.node_id|urlencode }}?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/facts/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('fk_open_page') }}</a></p></div>
+  {% endif %}
 {% endcall %}

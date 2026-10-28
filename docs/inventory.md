@@ -30,7 +30,7 @@ system:payments --uses--> tool:payments/transfer
 | Node id | `inv_` + first 16 hex of sha256(kind, NUL, canonical name). Canonical = trimmed, lower-case, single spaces. A re-fill never duplicates. |
 | Tool, prompt names | Scoped to the agent: `payments/transfer`. Models, endpoints, datasets and suppliers are shared across agents. |
 | Edge id | Hash of (src, kind, dst, source): one row per claim, so each source keeps its own evidence. |
-| Evidence | `source` is `manifest`, `onboarding`, `workspace_scan`, `manual` or `gate` (WP41: see below).  `evidence_ref` is `path:line` for repo text and `workspace:<kind>/<name>` for a workspace object. Workspace URLs and ids are not stored. |
+| Evidence | `source` is `manifest`, `onboarding`, `workspace_scan`, `manual`, `gate` (WP41: see below) or `onboard_facts` (WP-O2: edges written from the facts card of an intake attempt, `ONBOARD_FACTS`, see `docs/onboard.md` "Facts card").  `evidence_ref` is `path:line` for repo text and `workspace:<kind>/<name>` for a workspace object. Workspace URLs and ids are not stored. |
 | Shared edges | When two agents share an edge (the same model), the smallest reference wins inside one fill, so the result does not depend on fill order. |
 | Status | `active`, `unmanaged`, `allowlisted`, `gone` (the workspace no longer lists it, or the manifest or agent row that was its only evidence was removed or retired). |
 | Writes | State tables with `row_version`. Only changed rows are written, plus a `last_seen` refresh once a day. |

@@ -1,0 +1,44 @@
+{# Facts panel (WP-O2, ONBOARD_FACTS): the card grouped by kind, dropped claims, Re-read. Variable: fk. #}
+{% import "_ui.html" as ui with context %}
+{% set card = fk.card %}
+{% set is_mock = card.summary and ('mock' in (card.summary.model_id or '')) %}
+<section class="card" id="facts-panel" data-section="facts" data-node="{{ fk.node_id }}">
+  <h3>{{ t('fk_title') }} <span class="k">{{ card.total or 0 }}</span></h3>
+  <p class="hint">{{ t('fk_hint') }}</p>
+  {% if card.attempt_n is none %}
+  <p class="hint" data-empty="facts">{{ t('fk_none') }}</p>
+  {% else %}
+  <p class="idline" data-facts-attempt="{{ card.attempt_n }}">{{ t('fk_from_attempt', n=card.attempt_n) }}
+    {% if card.newer_attempt %}<span data-newer="1">{{ ui.pill(t('fk_newer', n=card.latest_attempt), 'warn') }}</span>{% endif %}
+    {% if card.summary and card.summary.model_id %}{{ ui.pill(('mock: ' if is_mock else 'model: ') ~ card.summary.model_id, 'warn' if is_mock else 'neutral') }}{% endif %}
+  </p>
+  <p class="idline" data-dropped="{{ card.dropped_claims }}">{{ t('fk_dropped', n=card.dropped_claims) }}</p>
+  {% if is_mock %}<p class="hint" data-mock="1">{{ t('fk_mock') }}</p>{% endif %}
+  {% for g in card.groups %}
+  <h4 data-kind="{{ g.kind }}">{{ t('fk_k_' ~ g.kind) }} <span class="k">{{ g.rows|length }}</span></h4>
+  <div class="tablewrap flat"><table class="queue" data-table="facts-{{ g.kind }}">
+    <thead><tr><th scope="col">{{ t('fk_c_name') }}</th><th scope="col">{{ t('fk_c_detail') }}</th><th scope="col">{{ t('fk_c_pointer') }}</th><th scope="col">{{ t('fk_c_quote') }}</th><th scope="col">{{ t('fk_c_source') }}</th></tr></thead>
+    <tbody>
+    {% for r in g.rows %}
+      <tr class="row" data-fact="{{ r.fact_id }}">
+        <td class="wrap">{{ r.name }}</td>
+        <td class="idline wrap">{{ r.detail or '-' }}</td>
+        <td class="mono wrap" data-pointer="1">{{ r.file }}:{{ r.line }}</td>
+        <td class="mono wrap">{{ r.quote or '-' }}</td>
+        <td>{{ ui.pill(t('fk_src_' ~ r.source), 'neutral' if r.source == 'rule' else 'warn') }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endfor %}
+  {% if not card.groups %}<p class="hint" data-empty="facts">{{ t('fk_empty_card') }}</p>{% endif %}
+  {% endif %}
+  {% if fk.can_edit %}
+  <form hx-post="/console/facts/{{ fk.node_id }}" hx-target="#facts-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
+    <button type="submit" class="btn{% if card.attempt_n is none or card.newer_attempt %} primary{% endif %}" data-action="reread">{{ t('fk_reread') }}</button>
+    <span class="hint">{{ t('fk_reread_hint') }}</span>
+  </form>
+  {% else %}
+  <p class="hint">{{ t('fk_view_only') }}</p>
+  {% endif %}
+</section>

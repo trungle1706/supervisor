@@ -1446,3 +1446,27 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regkb_draft` (
 USING DELTA
 COMMENT 'WP-L1. A draft duty that the law agent read from the stored official text of one instrument, one row per draft. A draft is never an obligation: a person with regkb.confirm sets status confirmed or dropped. text_vi is a verbatim quote that the rules checked against the stored article text. source is model (the agent) or rule (a deterministic parser); model_id and prompt_version say which model and prompt wrote it (a mock model has mock in model_id). The CLI python -m supervisor.regkb.lawagent --export-confirmed turns confirmed rows into regulations YAML for a pull request; the app cannot edit repo files. No PII: law text only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- onboard_facts (state): WP-O2 (phase 9, ONBOARD_FACTS). One fact about an agent or candidate, found by Discover and Understand on one stored intake attempt (the scrubbed tree): a tool, model, endpoint, dataset, file, secret use (kind only), external URL, MCP server, approval point, the autonomy level, the Decision 33 proposal or a weak spot. Every fact row has the file, the line and a scrubbed quote of at most 200 characters (no secret, no personal data). source is rule (deterministic) or model (a claim of the real gateway model that passed validate_llm_claims; model_id says which, and a mock model is named mock). A summary row (kind summary) per build counts the dropped_claims (model claims without evidence). Building again for the same attempt replaces that attempt's rows: a fact that is found again keeps its fact_id and is updated; a fact that is not found again gets active false (the state store has no delete). Readers use active rows only. kind claim holds the purpose, the personal data fields and the model claims that are not weak spots.
+-- primary key (enforced by the app, not by Delta): fact_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`onboard_facts` (
+  fact_id STRING NOT NULL,
+  node_id STRING NOT NULL,
+  attempt_n BIGINT NOT NULL,
+  kind STRING NOT NULL,
+  name STRING NOT NULL,
+  detail STRING,
+  file STRING,
+  line BIGINT,
+  quote STRING,
+  source STRING NOT NULL,
+  model_id STRING,
+  dropped_claims BIGINT,
+  active BOOLEAN NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-O2 (phase 9, ONBOARD_FACTS). One fact about an agent or candidate, found by Discover and Understand on one stored intake attempt (the scrubbed tree): a tool, model, endpoint, dataset, file, secret use (kind only), external URL, MCP server, approval point, the autonomy level, the Decision 33 proposal or a weak spot. Every fact row has the file, the line and a scrubbed quote of at most 200 characters (no secret, no personal data). source is rule (deterministic) or model (a claim of the real gateway model that passed validate_llm_claims; model_id says which, and a mock model is named mock). A summary row (kind summary) per build counts the dropped_claims (model claims without evidence). Building again for the same attempt replaces that attempt''s rows: a fact that is found again keeps its fact_id and is updated; a fact that is not found again gets active false (the state store has no delete). Readers use active rows only. kind claim holds the purpose, the personal data fields and the model claims that are not weak spots.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

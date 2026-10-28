@@ -177,12 +177,16 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
             return None
         return row_hash({k: v for k, v in dict(app).items() if k != "key_hash"})
     if kind == "node":  # WP-O1: the intake attempts of the node (the n+1 row changes the hash)
-        return row_hash(
-            sorted(
-                f"{r['n']}:{r['sha256']}:{r['status']}"
-                for r in state.query("intake_attempt", {"node_id": target_id})
-            )
+        parts = sorted(
+            f"{r['n']}:{r['sha256']}:{r['status']}"
+            for r in state.query("intake_attempt", {"node_id": target_id})
         )
+        # WP-O2: the active fact rows of the node (a build changes the hash; no facts = as before)
+        parts += sorted(
+            f"facts:{r['attempt_n']}:{r['fact_id']}:{r['row_version']}"
+            for r in state.query("onboard_facts", {"node_id": target_id})
+        )
+        return row_hash(parts)
     if kind == "agent":
         agent = state.get("agent", {"agent_id": target_id})
         controls = [

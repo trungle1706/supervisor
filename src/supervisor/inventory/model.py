@@ -28,7 +28,15 @@ NODE_KINDS: tuple[str, ...] = (
 )
 EDGE_KINDS: tuple[str, ...] = ("uses", "serves", "reads", "writes", "hosted_on", "owned_by")
 # "gate": a gate-only agent registered on its first decision (WP41, gate_register.py)
-SOURCES: tuple[str, ...] = ("manifest", "onboarding", "workspace_scan", "manual", "gate")
+# "onboard_facts": edges from the facts card of an intake attempt (WP-O2, onboard/facts.py)
+SOURCES: tuple[str, ...] = (
+    "manifest",
+    "onboarding",
+    "workspace_scan",
+    "manual",
+    "gate",
+    "onboard_facts",
+)
 STATUSES: tuple[str, ...] = ("active", "unmanaged", "allowlisted", "gone")
 RISK_SOURCES: tuple[str, ...] = ("none", "manifest", "onboarding", "manual")
 
