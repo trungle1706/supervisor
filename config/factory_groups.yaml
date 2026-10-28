@@ -1,0 +1,34 @@
+# Agent factory user groups (WP-F1). A group owns dimensions (the eight risk dimensions of
+# Circular 53 Art. 14(3)) and sees the tools whose allowed_groups name it
+# (config/factory_tools.yaml). `roles` are roles of config/users.yaml: a user with one of them may
+# author agents for the group. Strict keys.
+version: 1
+groups:
+  model_risk:
+    label: Model risk
+    roles: [reviewer, approver]
+    dimensions: [model]
+  data:
+    label: Data governance
+    roles: [reviewer]
+    dimensions: [data_governance]
+  cyber:
+    label: Cybersecurity
+    roles: [reviewer]
+    dimensions: [cybersecurity]
+  legal:
+    label: Legal and compliance
+    roles: [reviewer, approver]
+    dimensions: [legal_compliance]
+  third_party:
+    label: Third party
+    roles: [reviewer]
+    dimensions: [third_party]
+  ethics:
+    label: Ethics and reputation
+    roles: [reviewer]
+    dimensions: [ethics, reputation]
+  platform:
+    label: Platform
+    roles: [admin]
+    dimensions: [supply_chain]

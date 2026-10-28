@@ -3,6 +3,8 @@ JSON API. The routers are always mounted; with the flag off every route answers 
 flag name (nothing is read or written).
 
 * ``GET  /v1/facts/{node_id}``      the card of the newest built attempt (``systems.view``)
+* ``GET  /v1/facts/{node_id}/export`` the frozen ``facts_v1`` export for the agent factory (WP-F1,
+                                     ``systems.view``)
 * ``POST /v1/facts/{node_id}/{n}``  build the facts of intake attempt ``n`` (``systems.edit``); 201
 * ``GET  /console/facts/{node_id}`` the Facts panel (an htmx fragment; a full page without htmx)
 * ``POST /console/facts/{node_id}`` the **Re-read** button: build again for the newest attempt
@@ -23,6 +25,7 @@ from supervisor.adapters.auth.authz import needs
 from supervisor.console import agent_detail
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.routes import _call, _htmx_only, audited, message_html, render
+from supervisor.factory.schemas.facts_v1 import export_card
 from supervisor.onboard import facts, intake
 
 router = APIRouter(prefix="/console", tags=["console"])
@@ -71,6 +74,12 @@ def _public(card: dict[str, Any]) -> dict[str, Any]:
 def get_card(node_id: str, ctx: ConsoleContext = _CTX) -> Any:
     facts.require_on(ctx.settings)
     return _public(service(ctx).card(node_id))
+
+
+@api_router.get("/facts/{node_id}/export", dependencies=[Depends(needs("systems.view"))])
+def get_export(node_id: str, ctx: ConsoleContext = _CTX) -> Any:
+    facts.require_on(ctx.settings)
+    return export_card(service(ctx).card(node_id))
 
 
 @api_router.post("/facts/{node_id}/{n}", dependencies=[Depends(needs("systems.edit"))])

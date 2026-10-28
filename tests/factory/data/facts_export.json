@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "node_id": "payments",
+  "attempt_n": 1,
+  "latest_attempt": 1,
+  "newer_attempt": false,
+  "total": 1,
+  "dropped_claims": 0,
+  "facts": [
+    {
+      "fact_id": "fct_0123456789abcdef0123",
+      "node_id": "payments",
+      "attempt_n": 1,
+      "kind": "tool",
+      "name": "refund_fee",
+      "detail": "risk_class=money; approval=none",
+      "file": "agent.py",
+      "line": 5,
+      "quote": "def refund_fee(account_id, amount_minor, payee_id):",
+      "source": "rule",
+      "confidence": "high",
+      "model_id": null,
+      "dropped_claims": null,
+      "created_at": "2026-10-28T09:00:00Z"
+    }
+  ],
+  "summary": {
+    "fact_id": "fct_summary000000000001",
+    "node_id": "payments",
+    "attempt_n": 1,
+    "kind": "summary",
+    "name": "build",
+    "detail": "MOCK MODEL: facts=1; model_used=no",
+    "file": null,
+    "line": null,
+    "quote": null,
+    "source": "rule",
+    "confidence": "high",
+    "model_id": "mock:none",
+    "dropped_claims": 0,
+    "created_at": "2026-10-28T09:00:00Z"
+  }
+}

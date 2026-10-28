@@ -1,0 +1,46 @@
+# Agent factory tool registry (WP-F1). An agent definition lists tools by tool_id only; it never
+# carries a tool definition. Strict keys: an unknown key is refused by supervisor.factory.registry.
+#
+# tool_id        stable id (lowercase, digits, underscore, hyphen)
+# kind           what the tool does (the platform implements each kind; there is no code escape)
+# scope          scope kinds the agent may set in `scope: "<kind>:<value>"`
+# data_class     public | internal | confidential | personal_masked (what the tool can return)
+# allowed_groups groups of config/factory_groups.yaml that may use the tool
+# modes          read | propose (propose = the agent writes a suggestion a person applies)
+version: 1
+tools:
+  - tool_id: read_facts
+    label: Read the facts card (facts_v1) of the system
+    kind: read_facts
+    scope: [system]
+    data_class: internal
+    allowed_groups: [model_risk, data, cyber, legal, third_party, ethics, platform]
+    modes: [read]
+  - tool_id: read_regkb
+    label: Read regulation rows from RegKB
+    kind: read_regkb
+    scope: [regkb]
+    data_class: public
+    allowed_groups: [model_risk, data, cyber, legal, third_party, ethics, platform]
+    modes: [read]
+  - tool_id: read_pack_results
+    label: Read assurance pack results of the system
+    kind: read_pack_results
+    scope: [system, pack]
+    data_class: internal
+    allowed_groups: [model_risk, data, cyber, third_party, platform]
+    modes: [read]
+  - tool_id: read_system_record
+    label: Read the register record of the system
+    kind: read_system_record
+    scope: [system]
+    data_class: confidential
+    allowed_groups: [model_risk, data, cyber, legal, third_party, ethics, platform]
+    modes: [read, propose]
+  - tool_id: search_documents
+    label: Search the internal documents of the bank (masked)
+    kind: search_documents
+    scope: [documents]
+    data_class: personal_masked
+    allowed_groups: [model_risk, data, legal, third_party, ethics]
+    modes: [read]

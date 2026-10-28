@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- WP-F1 (phase 12B): **agent factory schemas** (`src/supervisor/factory/`, docs/factory.md). Three
+  frozen pydantic schemas with JSON Schema export (`facts_v1`, `assessment_report_v1`,
+  `agent_definition_v1` with the `harness` block), all limits in `factory/caps.py`, strict loaders
+  for `config/factory_tools.yaml` and `config/factory_groups.yaml`, and the CLI
+  `python -m supervisor.factory validate|schema`. New route `GET /v1/facts/{node_id}/export`
+  (`ONBOARD_FACTS`, `systems.view`; off: HTTP 400 `facts_off`). No new flag for the pure modules.
+
 - Fix (WP-O2): the facts build raised `AttributeError` ("'DataAccess' object has no attribute
   'file'") as soon as the discovery step found an http call; the http locations are now read from
   the evidence pointer (`onboard/facts.py` `http_locations`). Found in the live test of the

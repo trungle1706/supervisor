@@ -1,0 +1,45 @@
+schema_version: "1.0"
+id: model-risk-assessor
+name: Model Risk Assessment Agent
+description: Assesses the model risk dimension of one AI system from its facts, pack results and the register record.
+owner_group: model_risk
+dimension_id: model
+policy_refs:
+  - {doc_id: SBV-TT53-2025, source: regkb, version: 1, sections: ["Art.14(3)", "Art.16"]}
+checklist:
+  - id: MR-01
+    question: Are the model owner and the model validator different people in different units?
+    evidence: [system_record, document]
+    severity: high
+    pass_rule: Both are named and their org units differ.
+  - id: MR-02
+    question: Does the system record list a model version and a validation date?
+    evidence: [system_record]
+    severity: medium
+    pass_rule: Both fields are filled.
+evidence_rules:
+  allowed_sources: [fact, system_record, regkb, pack, document]
+  must_cite: true
+  max_age_days: 365
+tools:
+  - {tool_id: read_facts, scope: "system:own", mode: read}
+  - {tool_id: read_system_record, mode: read}
+  - {tool_id: read_regkb, scope: "regkb:SBV-TT53-2025", mode: read}
+instructions: |
+  Answer each checklist item from the evidence only. Quote the file and line for a fact.
+harness:
+  system_prompt: {preamble: platform_v1}
+  context:
+    sources: [facts_v1, system_record, regkb_rows, document_sections]
+    budget_tokens: 12000
+    max_document_chars: 8000
+  memory: {system_memory: false}
+  hitl:
+    approval_points:
+      - {kind: verdict, ref: question}
+  verification: {verifier: rules}
+  loop: {mode: single_pass}
+output_schema: {type: assessment_report_v1}
+guardians: [pii_mask_v2, tool_scope_guard, citation_required]
+eval_pack: model-risk-golden-v1
+lifecycle: {state: draft, version: "0.1", approvals: []}

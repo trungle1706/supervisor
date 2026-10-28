@@ -1,0 +1,33 @@
+report_id: rpt-0001
+agent_id: model-risk-assessor
+agent_version: "0.1"
+system_id: payments
+dimension_id: model
+findings:
+  - finding_id: f-1
+    checklist_id: MR-01
+    verdict: pass
+    evidence: []
+    rationale: Owner and validator are named and sit in different units.
+    confidence: high
+  - finding_id: f-2
+    checklist_id: MR-02
+    verdict: question
+    evidence: []
+    rationale: The validation date is empty; ask the owner.
+    confidence: low
+summary: {total: 2, passed: 1, failed: 0, not_applicable: 0, questions: 1}
+model_id: gateway-model-1
+harness_trace:
+  system_prompt: {preamble_version: 1, instructions_tokens: 40}
+  context: {sources_loaded: 3, tokens_used: 4200, budget_tokens: 12000, source_refs: ["facts_v1:payments:1"]}
+  memory: {reads: 0, writes: 0, rows_stored: 0}
+  hitl: {stop_points_fired: 1, approvals_requested: 1, tool_calls_blocked: 0}
+  verification: {findings_checked: 2, findings_rejected: 0, judge_calls: 0}
+  loop:
+    iterations: 1
+    stopped_by: single_pass
+    tokens_used: 5100
+    per_iteration:
+      - {iteration: 1, reason_ref: "log:rpt-0001:1", tokens_used: 5100}
+created_at: "2026-10-28T09:00:00Z"
