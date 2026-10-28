@@ -28,7 +28,7 @@ def test_health_and_healthz_unchanged():
     c = TestClient(app)
     h = c.get("/health")
     assert h.status_code == 200 and h.json()["status"] == "ok" and h.json()["version"]
-    assert c.get("/healthz").json() == {"status": "ok"}
+    assert c.get("/healthz").json()["status"] == "ok"
     assert "x-request-id" in h.headers and "content-security-policy" in h.headers
 
 

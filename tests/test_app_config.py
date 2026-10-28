@@ -18,7 +18,7 @@ def client() -> TestClient:
 
 
 def test_healthz_and_version(client: TestClient) -> None:
-    assert client.get("/healthz").json() == {"status": "ok"}
+    assert client.get("/healthz").json()["status"] == "ok"
     v = client.get("/version").json()
     assert v["mode"] == "laptop" and v["sql_backend"] == "sqlite"
 

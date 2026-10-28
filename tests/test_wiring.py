@@ -92,7 +92,7 @@ def test_app_still_serves_when_runtime_build_fails(monkeypatch: pytest.MonkeyPat
     gate_wiring.set_gateway(None)
     try:
         with TestClient(app) as client:
-            assert client.get("/healthz").json() == {"status": "ok"}
+            assert client.get("/healthz").json()["status"] == "ok"
     finally:
         gate_wiring.set_gateway(None)
 

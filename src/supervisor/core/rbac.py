@@ -97,6 +97,7 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         "Credentials page: agent key metadata, never a secret (read-only)",
     ),
     "users.view": (("admin",), "Users and roles page (read-only)"),
+    "schema.view": (("admin",), "Schema self-check page: SQL plan, read-only (WP-P3)"),
     "audit.view": (("auditor", "admin"), "Audit log page: console_action rows (read-only)"),
     "integrations.view": (_ALL, "Integrations status page (read-only)"),
     # --- WP26 ---
@@ -324,6 +325,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/policies/{rule_id}/drawer"): "policies.view",
     ("GET", "/console/credentials"): "credentials.view",
     ("GET", "/console/users"): "users.view",
+    ("GET", "/console/admin/schema"): "schema.view",
     ("GET", "/console/audit"): "audit.view",
     ("GET", "/console/audit/rows"): "audit.view",
     ("GET", "/console/audit/{action_id}/drawer"): "audit.view",

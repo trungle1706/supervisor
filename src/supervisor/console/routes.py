@@ -39,6 +39,7 @@ from supervisor.adapters.auth.audit import (
 from supervisor.adapters.auth.authz import needs
 from supervisor.adapters.auth.dev_header import COOKIE as DEV_COOKIE
 from supervisor.cases.service import RESOLUTIONS, SEVERITIES, CaseError, PermissionDenied
+from supervisor.config import get_settings
 from supervisor.console import (
     agent_detail,  # --- WP-UX2 ---
     agents_list,
@@ -70,6 +71,7 @@ from supervisor.console import (
     policies_view,
     readmodels,
     risks_views,  # --- WP29 ---
+    schema_view,  # --- WP-P3 ---
     search,
     systems_overview,  # --- WP-UX4b ---
     systems_views,  # --- WP-UX4b ---
@@ -90,6 +92,7 @@ from supervisor.core.errors import NotFoundError, SupervisorError
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc
 from supervisor.governance.register_v2 import links as rl
 from supervisor.jobs import case_intake
+from supervisor.ops import schema_selfcheck
 from supervisor.risk.model import ensure_on as ensure_risks_on
 from supervisor.transparency.model import ensure_on as ensure_transparency_on
 
@@ -231,6 +234,7 @@ def render(
         now=ctx.clock.now(),
         version=__version__,
         path=request.url.path,
+        schema_banner=schema_view.banner(me),  # WP-P3: admin only, only when SQL is missing
         # WP-N3: the "+ Register" buttons show only with the register workflow v2 on
         register_v2_on=bool(
             ctx.settings.console_register_v2
@@ -2142,6 +2146,31 @@ async def users_page(
     _ux3_off(ctx, "users")
     data = await _call(users_view.page, ctx)
     return render(request, ctx, me, "users.html", section="users", **data)
+
+
+@router.get(
+    "/admin/schema",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("schema.view"))],
+)
+async def admin_schema_page(request: Request, me: AuthPrincipal = _ME) -> Response:
+    """WP-P3: the schema self-check result and the SQL plan to copy (admin only, read only).
+    Works even when the runtime could not be built (a missing table is the usual cause): then
+    a plain page without the console shell answers."""
+    settings = get_settings()
+    if request.query_params.get("recheck") == "1" and settings.schema_selfcheck:
+        await run_in_threadpool(
+            schema_selfcheck.run_startup, settings, schema_view.current_runtime()
+        )
+    check = schema_selfcheck.get_state() or schema_selfcheck.SchemaCheck(
+        "off", detail="SCHEMA_SELFCHECK is off"
+    )
+    try:
+        ctx = await run_in_threadpool(get_context)
+    except Exception as exc:  # noqa: BLE001 - the page exists to explain exactly this failure
+        log.warning("schema page without console context (%s)", type(exc).__name__)
+        return HTMLResponse(schema_view.standalone_html(check, type(exc).__name__))
+    return render(request, ctx, me, "schema.html", section="schema", check=check)
 
 
 @router.get(
