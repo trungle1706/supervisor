@@ -194,6 +194,14 @@ obligations:
     - deployer
   addressee: deployer
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: evidence
     id: agent_version
     coverage: partial
@@ -258,6 +266,14 @@ obligations:
     - provider
   addressee: any
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: console
     id: case_signoff
     coverage: partial
@@ -333,6 +349,14 @@ obligations:
     - provider
   addressee: provider
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: evidence
     id: agent_registry
     coverage: partial
@@ -391,6 +415,14 @@ obligations:
     - deployer
   addressee: any
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: evidence
     id: agent_registry
     coverage: partial
@@ -1662,3 +1694,460 @@ obligations:
     kind: secondary
   confidence: medium
   notes: Whether the portal is live on 2026-10-15 was not verified.
+- id: VN-DEC142-2026-A6.02-01
+  article_ref: Art. 6(2)
+  text_vi: Việc phân loại quy định tại Điều này chỉ áp dụng đối với hệ thống trí tuệ nhân tạo; không áp
+    dụng đối với mô hình trí tuệ nhân tạo, trừ trường hợp mô hình được sử dụng như một thành phần của
+    hệ thống trí tuệ nhân tạo cụ thể.
+  summary_en: Classification applies to AI systems only. A bare AI model is not classified unless it is
+    used as a component of a concrete AI system.
+  duties:
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The first node N-SYSTEM asks whether the thing is an AI system or a model used inside one;
+      no ends the path as not_system and changes nothing. A rule fills the answer when an agent is linked.
+      Missing: the line between a model and a system is a person''s call.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the reading of the article for this system and records it in
+      the legal review note.'
+  evidence_needed:
+  - answer of the system test node
+  verification: VERIFIED_PRIMARY
+  sources: &id001
+  - url: https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/18/469480-1778814202_v1_1779067280_signed.pdf
+    title: Nghị định số 142/2026/NĐ-CP (Công báo số 278 ngày 18-05-2026), text extracted from the gazette
+      PDF
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: b8e0be6bc8ff2396a6a6c1fb894e3a7e1531e85c06518ad25a869b6062ea536b
+    local_path: regulations/sources/VN-DEC142-2026/142-2026-nd-cp.txt
+  - url: https://media.chinhphu.vn/ban-hanh-nghi-dinh-quy-dinh-chi-tiet-mot-so-dieu-va-bien-phap-thi-hanh-luat-tri-tue-nhan-tao-102260508162952667.htm
+    title: Chinhphu media - Ban hanh Nghi dinh quy dinh chi tiet Luat Tri tue nhan tao
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://luatvietan.vn/nghi-dinh-142-2026-nd-cp-huong-dan-luat-tri-tue-nhan-tao.html
+    title: Luat Viet An - summary of Decree 142/2026/ND-CP
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+- id: VN-DEC142-2026-A6.03-01
+  article_ref: Art. 6(3)
+  text_vi: 'Mức độ rủi ro của hệ thống trí tuệ nhân tạo được xác định như sau: a) Hệ thống trí tuệ nhân
+    tạo được phân loại rủi ro cao là các hệ thống thuộc Danh mục hệ thống trí tuệ nhân tạo có rủi ro cao
+    do Thủ tướng Chính phủ ban hành theo quy định tại khoản 4 Điều 13 của Luật Trí tuệ nhân tạo; b) Hệ
+    thống trí tuệ nhân tạo được phân loại có rủi ro trung bình là hệ thống không thuộc trường hợp quy
+    định tại điểm a khoản này và thuộc các trường hợp quy định tại Điều 9 của Nghị định này; c) Hệ thống
+    trí tuệ nhân tạo được phân loại có rủi ro thấp là hệ thống không thuộc trường hợp quy định tại điểm
+    a và điểm b khoản này.'
+  summary_en: 'Order of the test: high if the system is on the Prime Minister''s list; medium if not on
+    the list and within Decree Art. 9; low for the rest.'
+  duties:
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The tree follows this order: the list node (answered by the Decision 33 questions), then the
+      medium node, then low. Missing: the list itself is the Prime Minister''s decision; Supervisor holds
+      the Decision 33 banking entries only.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: risk_classification_approval
+    coverage: partial
+    note: 'Manual step: the competent level of the bank approves the risk class and the inventory keeps
+      it (Circular 53 Art. 4(3), 4(5)).'
+  evidence_needed:
+  - 'classification record: path and outcome'
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC142-2026-A8.01-01
+  article_ref: Art. 8(1)
+  text_vi: 'Hệ thống trí tuệ nhân tạo được xác định là có rủi ro cao khi đáp ứng một hoặc nhiều tiêu chí
+    sau đây: a) Mức độ tác động: Mức độ có thể gây thiệt hại đối với tính mạng, sức khỏe, tài sản, quyền
+    con người, lợi ích quốc gia, lợi ích công cộng hoặc an ninh quốc gia; mức độ tự động của hệ thống;
+    mức độ hỗ trợ ra quyết định cuối cùng; khả năng giám sát và can thiệp của con người trong thực thi
+    hành động; b) Lĩnh vực sử dụng: Triển khai trong lĩnh vực thiết yếu quy định tại khoản 2 Điều 6 của
+    Luật Trí tuệ nhân tạo hoặc các lĩnh vực liên quan trực tiếp đến lợi ích công cộng; c) Phạm vi người
+    sử dụng và quy mô ảnh hưởng: Phạm vi người sử dụng, quy mô đối tượng chịu tác động hoặc mức độ kết
+    nối với hệ thống hạ tầng kỹ thuật quan trọng.'
+  summary_en: 'Criteria for the high-risk list: level of impact (including degree of automation and support
+    of the final decision), sector of use, and range of users and scale.'
+  duties:
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The list node and the threshold node carry these criteria for the banking entries: automation
+      and human control come from the system record, the scale from the SBV thresholds. Missing: criteria
+      for other sectors are not modelled.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the reading of the article for this system and records it in
+      the legal review note.'
+  evidence_needed:
+  - answers of the list node with evidence pointers
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC142-2026-A8.02-01
+  article_ref: Art. 8(2)
+  text_vi: 'Hệ thống trí tuệ nhân tạo mặc dù thuộc tiêu chí quy định tại khoản 1 Điều này nhưng không
+    được đề xuất đưa vào Danh mục hệ thống trí tuệ nhân tạo có rủi ro cao khi đáp ứng một trong các tiêu
+    chí sau đây: a) Chỉ thực hiện các tác vụ thu thập, xử lý, chuẩn hóa, phân loại, dịch thuật hoặc cải
+    thiện chất lượng dữ liệu; không trực tiếp tạo lập quyết định làm ảnh hưởng đến quyền và lợi ích hợp
+    pháp của tổ chức, cá nhân; b) Có cơ chế kỹ thuật và quy trình vận hành bảo đảm sự giám sát thực chất
+    của con người, theo đó người có thẩm quyền có khả năng xem xét độc lập, can thiệp, từ chối hoặc thay
+    đổi quyết định của hệ thống trước khi quyết định đó có hiệu lực; c) Chỉ sử dụng phục vụ hoạt động
+    quản trị, vận hành nội bộ của tổ chức, doanh nghiệp; không trực tiếp tác động đến quyền, nghĩa vụ
+    pháp lý hoặc lợi ích hợp pháp của tổ chức, cá nhân bên ngoài tổ chức; d) Chỉ thực hiện chức năng phân
+    tích, dự báo, đánh giá, khuyến nghị mang tính tham khảo; nhà cung cấp và bên triển khai không được
+    sử dụng kết quả đầu ra làm căn cứ duy nhất để ra quyết định cuối cùng.'
+  summary_en: 'A system that meets the criteria is still not proposed for the high-risk list when one
+    exclusion applies: data tasks only, real human oversight before the decision takes effect, internal
+    use only, or advisory output that is not the sole basis.'
+  duties:
+  - risk_classification
+  - human_oversight
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The Decision 33 question about a person who approves before execution carries the oversight
+      exclusion; the others are asked as notes at the list node. Missing: the exclusions (a), (c) and
+      (d) have no rule; a person answers with evidence.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the reading of the article for this system and records it in
+      the legal review note.'
+  evidence_needed:
+  - evidence for the exclusion that applies
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC142-2026-A9.01-01
+  article_ref: Art. 9(1)
+  text_vi: 'Nhà cung cấp có trách nhiệm phân loại hệ thống trí tuệ nhân tạo vào nhóm rủi ro trung bình
+    khi hệ thống đó đáp ứng đồng thời các điều kiện sau đây: a) Không thuộc Danh mục hệ thống trí tuệ
+    nhân tạo có rủi ro cao do Thủ tướng Chính phủ ban hành theo quy định tại khoản 4 Điều 13 của Luật
+    Trí tuệ nhân tạo; b) Có khả năng gây nhầm lẫn, tác động hoặc thao túng người sử dụng do người sử dụng
+    không nhận biết được chủ thể tương tác là hệ thống trí tuệ nhân tạo hoặc nội dung do hệ thống tạo
+    ra theo quy định tại điểm b khoản 1 Điều 9 của Luật Trí tuệ nhân tạo.'
+  summary_en: 'The provider classes a system as medium risk when both hold: it is not on the Prime Minister''s
+    high-risk list, and it can confuse or manipulate users who cannot tell they deal with an AI system
+    or AI content.'
+  duties:
+  - risk_classification
+  - ai_disclosure
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The node N-CONFUSE asks the second condition; yes gives medium. A rule proposes yes for a customer-facing
+      assistant and a person confirms. Missing: whether users can tell they deal with AI depends on the
+      screen and the wording, which a person checks.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the reading of the article for this system and records it in
+      the legal review note.'
+  evidence_needed:
+  - answer of the confusion node with evidence pointer
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC142-2026-A9.03-01
+  article_ref: Art. 9(3)
+  text_vi: 'Nhà cung cấp, bên triển khai không phân loại hệ thống trí tuệ nhân tạo là hệ thống có rủi
+    ro trung bình khi thuộc một trong các trường hợp sau đây: a) Hệ thống chỉ hỗ trợ chỉnh sửa kỹ thuật
+    nhằm cải thiện hình thức nội dung, không tạo nội dung mới và không thay đổi danh tính của chủ thể;
+    b) Hệ thống hỗ trợ công việc văn phòng mà người sử dụng có thể nhận biết rõ ràng bản chất chức năng
+    là công cụ trí tuệ nhân tạo thông qua bối cảnh sử dụng và không có chức năng mô phỏng, giả lập có
+    khả năng gây nhầm lẫn về danh tính, tính xác thực của sự kiện; c) Hệ thống không tương tác, cung cấp
+    trực tiếp dịch vụ hoặc nội dung ra công chúng bao gồm cả trường hợp không phát hành ra công chúng
+    thông qua bên thứ ba, nền tảng trung gian; d) Hệ thống được sử dụng trong hoạt động nghệ thuật, điện
+    ảnh, trò chơi điện tử hoặc hoạt động sáng tạo khác; bối cảnh công bố thể hiện rõ nội dung mang tính
+    hư cấu; đ) Hệ thống trí tuệ nhân tạo chỉ thực hiện xử lý, phân tích dữ liệu hoặc tối ưu vận hành trong
+    hệ thống kỹ thuật; không tương tác trực tiếp với người sử dụng, không tạo nội dung cung cấp ra công
+    chúng và không trực tiếp tương tác với môi trường vật lý như chức năng điều khiển chính của hệ thống.'
+  summary_en: 'No medium class when one exclusion applies: technical editing only; plain office tool;
+    no interaction or content to the public; art, film or games; back-end processing only.'
+  duties:
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The answer excluded at N-CONFUSE records that an exclusion applies and sends the path to low;
+      the note names which point. Missing: Supervisor does not test the exclusion; a person gives the
+      evidence.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the reading of the article for this system and records it in
+      the legal review note.'
+  evidence_needed:
+  - note and evidence pointer that name the exclusion
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC142-2026-A11.04-01
+  article_ref: Art. 11(4)
+  text_vi: Nhà cung cấp, bên triển khai không phải thực hiện rà soát và thông báo phân loại lại khi tiến
+    hành các hoạt động nâng cấp, tối ưu hóa hiệu suất, sửa lỗi kỹ thuật thông thường hoặc cập nhật dữ
+    liệu định kỳ mà không làm thay đổi bản chất rủi ro của hệ thống.
+  summary_en: No review or notice of re-classification is needed for upgrades, performance tuning, ordinary
+    bug fixes or periodic data updates that do not change the nature of the risk.
+  duties:
+  - risk_classification
+  - change_control
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The page lists the re-classification triggers of Art. 11(1) and 11(2) and names Art. 11(4)
+      as not a trigger. Missing: no automatic check whether a change alters the nature of the risk; a
+      person decides.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the reading of the article for this system and records it in
+      the legal review note.'
+  evidence_needed:
+  - change log entry that says why no re-classification was needed
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC142-2026-A12.02-01
+  article_ref: Art. 12(2)
+  text_vi: 'Đối với hệ thống trí tuệ nhân tạo có rủi ro cao và rủi ro trung bình, nhà cung cấp phải bảo
+    đảm hồ sơ phân loại rủi ro bao gồm các tài liệu sau đây: a) Thông tin nhận diện hệ thống, bao gồm:
+    tên hệ thống; phiên bản; mã định danh nội bộ hoặc mã định danh do cơ quan nhà nước có thẩm quyền cấp;
+    tên, địa chỉ và thông tin liên hệ của nhà cung cấp; b) Mô tả hệ thống và bối cảnh sử dụng: mục đích
+    sử dụng; chức năng chính; kiến trúc hệ thống ở mức chức năng, nghiệp vụ; phạm vi triển khai; nhóm
+    người sử dụng và người bị ảnh hưởng; c) Thông tin về dữ liệu: Mô tả khái quát loại dữ liệu đầu vào
+    chủ yếu được sử dụng để vận hành hệ thống; d) Nội dung quản lý rủi ro: Tóm tắt các biện pháp quản
+    lý rủi ro, bảo đảm an toàn và tính minh bạch của hệ thống.'
+  summary_en: 'For high and medium risk the classification file holds: identification of the system; description
+    and context of use; a summary of the input data; a summary of risk management, safety and transparency
+    measures.'
+  duties:
+  - risk_classification
+  - technical_documentation
+  - record_keeping
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The outcome card of a high or medium result names the dossier as a duty, and the record keeps
+      the path that the dossier summarises. Missing: Supervisor does not build the dossier; it holds the
+      path, the pointers and the approval.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: risk_classification_approval
+    coverage: partial
+    note: 'Manual step: the competent level of the bank approves the risk class and the inventory keeps
+      it (Circular 53 Art. 4(3), 4(5)).'
+  evidence_needed:
+  - classification file with the four parts
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-DEC142-2026-A11.02-01
+  article_ref: Art. 11(2)
+  text_vi: Bên triển khai phải phối hợp với nhà cung cấp thực hiện phân loại lại hệ thống trí tuệ nhân
+    tạo trong trường hợp bên triển khai thực hiện sửa đổi, tích hợp hoặc thay đổi chức năng làm phát sinh
+    rủi ro mới hoặc rủi ro cao hơn so với kết quả phân loại ban đầu của nhà cung cấp.
+  summary_en: The deployer must work with the provider to re-classify when its own change, integration
+    or change of function creates a new or higher risk than the provider's first class.
+  duties:
+  - risk_classification
+  - change_control
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+  addressee: deployer
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The page lists this event as a trigger for a new classification record; the bank saves a new
+      path and a second person approves it. Missing: no automatic link from a change of the agent to a
+      new record; the exchange with the provider is outside Supervisor.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel tells the provider and the two parties agree the new class.'
+  evidence_needed:
+  - trigger log for re-classification
+  - new classification record
+  verification: VERIFIED_PRIMARY
+  sources:
+  - url: https://congbaocdn.chinhphu.vn/180507251028987904/2026/5/18/469480-1778814202_v1_1779067280_signed.pdf
+    title: Nghị định số 142/2026/NĐ-CP (Công báo số 278 ngày 18-05-2026), text extracted from the gazette
+      PDF
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: b8e0be6bc8ff2396a6a6c1fb894e3a7e1531e85c06518ad25a869b6062ea536b
+    local_path: regulations/sources/VN-DEC142-2026/142-2026-nd-cp.txt
+  - url: https://media.chinhphu.vn/ban-hanh-nghi-dinh-quy-dinh-chi-tiet-mot-so-dieu-va-bien-phap-thi-hanh-luat-tri-tue-nhan-tao-102260508162952667.htm
+    title: Chinhphu media - Ban hanh Nghi dinh quy dinh chi tiet Luat Tri tue nhan tao
+    fetched_at: '2026-10-15'
+    kind: secondary
+  - url: https://luatvietan.vn/nghi-dinh-142-2026-nd-cp-huong-dan-luat-tri-tue-nhan-tao.html
+    title: Luat Viet An - summary of Decree 142/2026/ND-CP
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high

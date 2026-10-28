@@ -1756,3 +1756,33 @@ tables:
       note: text?              # at most 300 characters, masked
       updated_by: string
       valid_until: date?
+  classification_v2:
+    kind: state
+    description: >
+      WP-C1 (phase 12, CLASSIFICATION_V2). One record of the classification tree
+      (config/classification.yaml) for one AI system: the path from the first question to an
+      outcome (not_system, prohibited, high_certify, high_self, medium, low), decided by a person
+      and approved by a different person (Circular 53 Art. 4(3)). path_json is a JSON list of
+      steps {node, answer, source (rules | person | decision33), evidence (a pointer: file:line,
+      table row id or document id, at most 200 characters), note (at most 300 characters, masked)};
+      a step of the Decision 33 sub-flow also carries the answers of its questions. No personal
+      data, no floats. inherited_from_provider: the bank took the provider's result (Art. 4(4)).
+      valid_until: the yearly review date (Art. 4(5)), set again at approval. approved_by and
+      approved_at are null until a second person approves; only then does the risk level of the
+      system change (floor rule, never lowers). Changes go on the chain as classification_v2.
+    primary_key: [classification_id]
+    indexes:
+      - [system_id]
+    columns:
+      classification_id: string
+      system_id: string
+      outcome: string          # not_system | prohibited | high_certify | high_self | medium | low
+      path_json: json          # list of steps (see description)
+      tree_sha256: string      # sha256 of config/classification.yaml used
+      path_hash: string        # sha256 of the canonical path
+      decided_by: string
+      approved_by: string?     # a different person from decided_by
+      approved_at: timestamp?
+      inherited_from_provider: bool
+      valid_until: timestamp
+      created_at: timestamp

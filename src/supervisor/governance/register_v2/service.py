@@ -343,7 +343,8 @@ def class_view(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
     if full is None:
         return {"ready": False, "questions": [], "outcome": None}
     flow = ctx.classification.flow()
-    answers = d33.derive(flow, wiz._facts_of({**full, "owner_user": full["owner_user"]}))  # noqa: SLF001
+    facts = wiz._facts_of({**full, "owner_user": full["owner_user"]})  # noqa: SLF001
+    answers = d33.derive(flow, facts)
     for qid, a in (draft["data"].get("q") or {}).items():
         if qid in answers and a.get("answer") in d33.ANSWERS:
             answers[qid] = d33.entry(a["answer"], "person", str(a.get("justification") or ""))
@@ -364,7 +365,7 @@ def class_view(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
     if draft["source_kind"] == "scan" and draft.get("source_ref"):
         graph = InventoryStore(ctx.state, ctx.clock).load_graph()
         inherited = suggest.inherited_level(graph, str(draft["source_ref"]))
-    return {
+    out: dict[str, Any] = {
         "ready": True,
         "questions": qs,
         "outcome": dec.outcome,
@@ -374,6 +375,17 @@ def class_view(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
         "level": level,
         "inherited": inherited,
     }
+    if getattr(ctx.settings, "classification_v2", False):  # WP-C1: the drawn tree (read only)
+        given = {
+            qid: {"answer": a.get("answer"), "justification": str(a.get("justification") or "")}
+            for qid, a in (draft["data"].get("q") or {}).items()
+            if qid in flow.ids and a.get("answer") in d33.ANSWERS
+        }
+        try:
+            out["v2"] = ctx.classification_v2.preview_facts(facts, given)
+        except Exception:  # noqa: BLE001 - the Decision 33 proposal above still shows
+            out["v2"] = None
+    return out
 
 
 def guardian_view(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:

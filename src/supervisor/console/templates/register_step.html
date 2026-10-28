@@ -184,6 +184,14 @@
     {% if cls.level %} - {{ t('ux4b_class_level', level=t('sy_risk_' ~ cls.level)) }}{% endif %}
     {% if cls.rule_id %} - {{ t('rg2_rule') }} <code>{{ cls.rule_id }}</code>{% endif %}
     - {{ cls.reason }}</div>
+  {% if cls.get('v2') %}
+  <div data-register="tree-v2">
+    <h4>{{ t('cv_title') }}</h4>
+    <p class="hint">{{ t('cv_register_note') }}</p>
+    {% set ct = cls.v2 %}{% set editable = false %}
+    {% include "_classify_tree.html" %}
+  </div>
+  {% endif %}
   <p class="hint">{{ t('rg2_inherited') }}: {% if cls.inherited %}{{ ui.pill(t('sy_risk_' ~ ('high' if cls.inherited == 'critical' else cls.inherited)), 'neutral') }}{% else %}{{ t('rg2_inherited_none') }}{% endif %}</p>
   <div class="tablewrap"><table class="list" data-table="questions">
     <thead><tr><th scope="col">{{ t('rg2_question') }}</th><th scope="col">{{ t('rg2_answer') }}</th><th scope="col">{{ t('rg2_justification') }}</th></tr></thead>

@@ -1803,3 +1803,24 @@ CREATE TABLE IF NOT EXISTS risk_dimension_status (
 );
 
 CREATE INDEX IF NOT EXISTS ix_risk_dimension_status_system_id_dimension_id ON risk_dimension_status (system_id, dimension_id);
+
+-- classification_v2 (state): WP-C1 (phase 12, CLASSIFICATION_V2). One record of the classification tree (config/classification.yaml) for one AI system: the path from the first question to an outcome (not_system, prohibited, high_certify, high_self, medium, low), decided by a person and approved by a different person (Circular 53 Art. 4(3)). path_json is a JSON list of steps {node, answer, source (rules | person | decision33), evidence (a pointer: file:line, table row id or document id, at most 200 characters), note (at most 300 characters, masked)}; a step of the Decision 33 sub-flow also carries the answers of its questions. No personal data, no floats. inherited_from_provider: the bank took the provider's result (Art. 4(4)). valid_until: the yearly review date (Art. 4(5)), set again at approval. approved_by and approved_at are null until a second person approves; only then does the risk level of the system change (floor rule, never lowers). Changes go on the chain as classification_v2.
+CREATE TABLE IF NOT EXISTS classification_v2 (
+  classification_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  outcome TEXT NOT NULL,
+  path_json TEXT NOT NULL,
+  tree_sha256 TEXT NOT NULL,
+  path_hash TEXT NOT NULL,
+  decided_by TEXT NOT NULL,
+  approved_by TEXT,
+  approved_at TEXT,
+  inherited_from_provider INTEGER NOT NULL,
+  valid_until TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (classification_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_classification_v2_system_id ON classification_v2 (system_id);

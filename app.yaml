@@ -218,6 +218,10 @@ env:
   # needs ONBOARD_INTAKE. Off by default (docs/onboard.md "Facts card").
   # - name: ONBOARD_FACTS
   #   value: "1"
+  # Phase 12 WP-C1: classification tree (not a system, prohibited, high, medium, low) with a second
+  # person to approve; needs GOVERNANCE_ENABLED. Off by default (docs/classification.md).
+  # - name: CLASSIFICATION_V2
+  #   value: "1"
   # Phase 9 WP-O3: pre-deploy assessment (verdict GO / NO-GO / QUESTIONS from the facts, readiness,
   # required assurance packs, multi-turn red team and duties); needs ONBOARD_INTAKE. Off by default.
   # - name: ONBOARD_PREDEPLOY

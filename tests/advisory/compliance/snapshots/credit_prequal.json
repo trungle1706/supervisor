@@ -30,11 +30,11 @@
   "instruments": 31,
   "internal_instruments": [],
   "internal_rules": false,
-  "obligations": 528,
+  "obligations": 540,
   "product_id": "credit_prequal",
   "product_name": "Loan pre-qualification agent",
   "product_source": "onboard",
-  "regkb_version": "58ce65e3a06be1c8137477b553868ea029404fc7ad9984ff50811de51cbba137",
+  "regkb_version": "9ba3f8da2d845b9aea82276dc329fa9069aa7ef3579ce495e5545788067ebc90",
   "tool": "supervisor.advisory.compliance"
  },
  "questions": [
@@ -52,7 +52,7 @@
   },
   {
    "id": "Q-in_operation_since",
-   "obligations": 85
+   "obligations": 88
   },
   {
    "id": "Q-model_hosting",
@@ -60,7 +60,7 @@
   },
   {
    "id": "Q-roles",
-   "obligations": 12
+   "obligations": 15
   }
  ],
  "rows": [
@@ -1229,6 +1229,7 @@
    "partial",
    [
     "agent_registry",
+    "classification_v2",
     "onboard_profile"
    ]
   ],
@@ -1239,6 +1240,7 @@
    [
     "agent_registry",
     "agent_version",
+    "classification_v2",
     "policy_baseline"
    ]
   ],
@@ -1247,7 +1249,16 @@
    "needs_answer",
    "partial",
    [
+    "classification_v2",
     "onboard_profile"
+   ]
+  ],
+  [
+   "VN-AI-2025-A10.04-01",
+   "needs_answer",
+   "partial",
+   [
+    "classification_v2"
    ]
   ],
   [
@@ -1446,10 +1457,19 @@
    ]
   ],
   [
+   "VN-AI-2025-A7.02-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
+   ]
+  ],
+  [
    "VN-AI-2025-A7.02B-01",
    "needs_answer",
    "partial",
    [
+    "classification_v2",
     "injection_prefilter"
    ]
   ],
@@ -1458,6 +1478,7 @@
    "yes",
    "partial",
    [
+    "classification_v2",
     "fairness",
     "fairness_slices"
    ]
@@ -1497,7 +1518,16 @@
    "partial",
    [
     "agent_registry",
+    "classification_v2",
     "onboard_profile"
+   ]
+  ],
+  [
+   "VN-AI-2025-A9.02-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
    ]
   ],
   [
@@ -2127,7 +2157,16 @@
    "partial",
    [
     "agent_registry",
-    "agent_version"
+    "agent_version",
+    "classification_v2"
+   ]
+  ],
+  [
+   "VN-DEC142-2026-A11.02-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
    ]
   ],
   [
@@ -2135,7 +2174,16 @@
    "yes",
    "partial",
    [
-    "agent_registry"
+    "agent_registry",
+    "classification_v2"
+   ]
+  ],
+  [
+   "VN-DEC142-2026-A11.04-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
    ]
   ],
   [
@@ -2148,6 +2196,14 @@
     "agents",
     "case_signoff",
     "evidence_chain"
+   ]
+  ],
+  [
+   "VN-DEC142-2026-A12.02-01",
+   "needs_answer",
+   "partial",
+   [
+    "classification_v2"
    ]
   ],
   [
@@ -2328,13 +2384,46 @@
    []
   ],
   [
+   "VN-DEC142-2026-A6.02-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
+   ]
+  ],
+  [
+   "VN-DEC142-2026-A6.03-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
+   ]
+  ],
+  [
    "VN-DEC142-2026-A6.04-01",
    "yes",
    "partial",
    [
     "agent_registry",
     "agent_version",
+    "classification_v2",
     "duties_actions"
+   ]
+  ],
+  [
+   "VN-DEC142-2026-A8.01-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
+   ]
+  ],
+  [
+   "VN-DEC142-2026-A8.02-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
    ]
   ],
   [
@@ -2344,8 +2433,25 @@
    [
     "agent_action",
     "case_signoff",
+    "classification_v2",
     "signoff_record",
     "state_actions"
+   ]
+  ],
+  [
+   "VN-DEC142-2026-A9.01-01",
+   "needs_answer",
+   "partial",
+   [
+    "classification_v2"
+   ]
+  ],
+  [
+   "VN-DEC142-2026-A9.03-01",
+   "yes",
+   "partial",
+   [
+    "classification_v2"
    ]
   ],
   [
@@ -4446,18 +4552,18 @@
  ],
  "summary": {
   "by_applies": {
-   "needs_answer": 125,
+   "needs_answer": 128,
    "no": 0,
-   "yes": 403
+   "yes": 412
   },
   "by_status": {
    "bank_process": 53,
    "gap": 21,
    "met": 1,
    "not_applicable": 0,
-   "partial": 328
+   "partial": 337
   },
-  "needs_answer": 125,
+  "needs_answer": 128,
   "questions": 6,
   "threshold_exceeds": 0,
   "threshold_gaps": 0

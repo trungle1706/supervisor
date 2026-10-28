@@ -1,0 +1,69 @@
+{# The classification tree drawn on the server (WP-C1): boxes and arrows, no script.
+   Variables: ct (tree view), editable (show the answer fields), lang. #}
+{% import "_ui.html" as ui with context %}
+<div class="cv-tree" data-classify-tree="1" data-complete="{{ 1 if ct.complete else 0 }}"{% if ct.outcome %} data-outcome="{{ ct.outcome }}"{% endif %}>
+{% for n in ct.nodes %}
+  <div class="cv-node {{ n.state }}" data-node="{{ n.id }}" data-state="{{ n.state }}">
+    <div class="cv-head">
+      <code>{{ n.id }}</code>
+      <span data-article="1">{{ t('cv_article') }}: {{ n.article }}{% for a in n.see %}; {{ a }}{% endfor %}</span>
+      {{ ui.pill(t('cv_status_' ~ n.state), {'on': 'ok', 'open': 'warn', 'off': 'neutral'}[n.state]) }}
+      {% if n.step %}{{ ui.pill(t('cv_' ~ n.step.answer) ~ ' / ' ~ t('cv_src_' ~ n.step.source), 'info') }}{% endif %}
+    </div>
+    <div class="cv-q">{{ n.question_vi if lang == 'vi' else n.question_en }}</div>
+    {% if n.step and (n.step.evidence or n.step.note) %}
+    <div class="idline" data-pointer="1">{% if n.step.evidence %}{{ t('cv_evidence') }}: <span class="mono">{{ n.step.evidence }}</span>{% endif %}{% if n.step.note %} - {{ n.step.note }}{% endif %}</div>
+    {% endif %}
+    {% if editable and not n.subflow %}
+    <div class="cv-fields">
+      <label>{{ t('cv_answer') }}
+        <select name="a_{{ n.id }}" aria-label="{{ n.id }}">
+          <option value="">{{ t('cv_open') }}{% if n.has_prefill %} ({{ t('cv_src_rules') }}){% endif %}</option>
+          {% for a in n.answers %}<option value="{{ a }}"{% if n.step and n.step.source == 'person' and n.step.answer == a %} selected{% endif %}>{{ t('cv_' ~ a) }}</option>{% endfor %}
+        </select></label>
+      <label>{{ t('cv_evidence') }}
+        <input type="text" name="e_{{ n.id }}" maxlength="200" value="{{ n.step.evidence if n.step else '' }}" placeholder="{{ n.evidence_hint }}"></label>
+      <label>{{ t('cv_note') }}
+        <input type="text" name="n_{{ n.id }}" maxlength="300" value="{{ n.step.note if n.step else '' }}"></label>
+    </div>
+    <div class="hint">{{ t('cv_evidence_hint') }}: {{ n.evidence_hint }}</div>
+    {% elif n.subflow and ct.decision33 is defined %}
+    <div class="cv-sub" data-subflow="decision33">
+      <b>{{ t('cv_sub_title') }}</b>
+      <div class="hint">{{ t('cv_sub_hint') }}</div>
+      {% for q in ct.decision33 %}
+      <div class="cv-subrow" data-q="{{ q.id }}">
+        <div>{{ q.text_vi if lang == 'vi' else q.text_en }}<div class="idline">{{ q.id }}{% if q.ref %} - {{ q.ref }}{% endif %} - {{ t('cv_src_' ~ ('person' if q.source == 'person' else 'rules')) }}{% if q.answer and q.source != 'person' %}: {{ t('cv_' ~ q.answer) }}{% endif %}</div></div>
+        {% if editable %}
+        <select name="q_{{ q.id }}" aria-label="{{ q.id }}"><option value="">{{ t('cv_open') }}</option><option value="yes"{% if q.mine and q.answer == 'yes' %} selected{% endif %}>{{ t('cv_yes') }}</option><option value="no"{% if q.mine and q.answer == 'no' %} selected{% endif %}>{{ t('cv_no') }}</option></select>
+        <input type="text" name="qj_{{ q.id }}" maxlength="500" value="{{ q.why if q.mine else '' }}" aria-label="{{ q.id }}">
+        {% else %}
+        <div>{{ t('cv_' ~ q.answer) if q.answer else t('cv_open') }}</div><div>{{ q.why }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="cv-edges">
+      {% for e in n.edges %}<span class="cv-edge{% if e.taken %} taken{% endif %}" data-edge="{{ n.id }}:{{ e.answer }}">{{ t('cv_' ~ e.answer) }} &rarr; {{ e.target }}</span>{% endfor %}
+    </div>
+  </div>
+  {% if not loop.last %}<div class="cv-arrow{% if n.state == 'on' %} on{% endif %}" aria-hidden="true">&darr;</div>{% endif %}
+{% endfor %}
+</div>
+{% if not ct.complete and ct.pending %}
+<p class="hint" data-pending="{{ ct.pending }}">{{ t('cv_incomplete') }} {{ t('cv_next') }}: <code>{{ ct.pending }}</code> ({{ t('cv_reason_' ~ ct.pending_reason) }})</p>
+{% endif %}
+<div class="cv-outcomes" data-outcomes="1">
+{% for o in ct.outcomes %}
+  <div class="cv-out{% if o.reached %} reached{% endif %}" data-outcome-card="{{ o.id }}">
+    <b>{{ o.label_vi if lang == 'vi' else o.label_en }}</b>
+    <div class="idline"><code>{{ o.id }}</code> - {{ t('cv_level') }}: {{ t('sy_risk_' ~ o.level) if o.level else t('cv_level_none') }}</div>
+    {% if o.reached %}
+    <div>{{ t('cv_duties') }}</div>
+    {% if o.duties %}<ul>{% for d in o.duties %}<li data-duty="{{ d.id }}">{{ d.text_en }} <span class="idline">{{ d.article }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="hint">{{ t('cv_duties_none') }}</div>{% endif %}
+    {% endif %}
+  </div>
+{% endfor %}
+</div>

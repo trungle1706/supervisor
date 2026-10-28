@@ -829,3 +829,27 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 .pdx-tl li::before { content: ""; position: absolute; left: -5px; top: 11px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .pdx-log li[data-by="person"]::before { background: var(--teal); }
 .pdx-log li[data-by="model"]::before { background: var(--surface); border: 2px solid var(--fg); width: 4px; height: 4px; }
+
+/* WP-C1: classification tree, drawn on the server from boxes and arrows (no script) */
+.cv-tree { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.cv-node { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 10px 12px; }
+.cv-node.on { border-color: var(--green); box-shadow: inset 4px 0 0 var(--green); }
+.cv-node.open { border-color: var(--amber); box-shadow: inset 4px 0 0 var(--amber); }
+.cv-node.off { opacity: .72; }
+.cv-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+.cv-q { margin: 6px 0; font-size: 14px; line-height: 1.5; }
+.cv-edges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.cv-edge { font-size: 12px; padding: 2px 8px; border: 1px dashed var(--line); border-radius: 999px; color: var(--muted); }
+.cv-edge.taken { border-style: solid; border-color: var(--green); color: var(--green); font-weight: 600; }
+.cv-arrow { text-align: center; color: var(--muted); font-size: 16px; line-height: 20px; }
+.cv-arrow.on { color: var(--green); font-weight: 700; }
+.cv-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 8px; }
+.cv-fields label { font-size: 12px; color: var(--muted); display: block; }
+.cv-fields input, .cv-fields select { width: 100%; }
+.cv-sub { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.cv-sub .cv-subrow { display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 8px; align-items: start; margin-top: 6px; font-size: 13px; }
+.cv-outcomes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 12px; }
+.cv-out { border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px; font-size: 13px; background: var(--surface-2); }
+.cv-out.reached { border-color: var(--green); background: var(--green-soft); }
+.cv-out ul { margin: 6px 0 0 16px; padding: 0; }
+@media (max-width: 640px) { .cv-sub .cv-subrow { grid-template-columns: 1fr; } }

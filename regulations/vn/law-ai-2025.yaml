@@ -187,6 +187,14 @@ obligations:
     - provider
   addressee: any
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: catalogue
     id: injection_prefilter
     coverage: partial
@@ -238,6 +246,14 @@ obligations:
     - provider
   addressee: any
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: catalogue
     id: fairness_slices
     coverage: partial
@@ -442,6 +458,14 @@ obligations:
     - provider
   addressee: any
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: evidence
     id: agent_registry
     coverage: partial
@@ -488,6 +512,14 @@ obligations:
     - provider
   addressee: provider
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: evidence
     id: agent_registry
     coverage: partial
@@ -535,6 +567,14 @@ obligations:
     - deployer
   addressee: deployer
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: evidence
     id: agent_registry
     coverage: partial
@@ -586,6 +626,14 @@ obligations:
     - provider
   addressee: provider
   control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: The classification tree page records the path and the outcome for this article and needs a second person to approve (flag CLASSIFICATION_V2).
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: Classification tree record per system with the path and the approval.
   - kind: process
     id: ai_registration
     coverage: none
@@ -1633,3 +1681,145 @@ obligations:
     fetched_at: '2026-10-15'
     kind: secondary
   confidence: high
+- id: VN-AI-2025-A7.02-01
+  article_ref: Art. 7(2)
+  text_vi: 'Phát triển, cung cấp, triển khai hoặc sử dụng các hệ thống trí tuệ nhân tạo nhằm mục đích
+    sau đây: a) Thực hiện các hành vi bị nghiêm cấm theo quy định của luật; ... d) Tạo ra hoặc phổ biến
+    nội dung giả mạo có khả năng gây nguy hại nghiêm trọng đến an ninh quốc gia, trật tự, an toàn xã hội.'
+  summary_en: Lead of the list of forbidden purposes, with points (a) acts the law forbids and (d) forged
+    content that seriously harms national security or public order. Points (b) and (c) have their own
+    rows. The first node of the classification tree after the system test asks this.
+  duties:
+  - prohibited_practice
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'The tree node N-PROHIBITED asks whether the system serves a forbidden purpose; yes ends the
+      path as prohibited and the approved record raises the risk level to prohibited. Missing: Supervisor
+      cannot judge the purpose; a person answers and counsel confirms.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the reading of the article for this system and records it in
+      the legal review note.'
+  evidence_needed:
+  - answer of the prohibited-purpose node with evidence pointer
+  verification: VERIFIED_PRIMARY
+  sources: &id001
+  - url: https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/69ba65c0-8a56-11f1-878c-399a87bcb3eb
+    title: Luật Trí tuệ nhân tạo số 134/2025/QH15 (vbpl.vn, full text)
+    fetched_at: '2026-10-15'
+    kind: primary
+    sha256: 07602e8f33cab3ed6c4a35253c65769556c44a691bcb107736024f85907b957d
+    local_path: regulations/sources/VN-AI-2025/134-2025-qh15.txt
+  - url: https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Luat-Tri-tue-nhan-tao-2025-so-134-2025-QH15-679013.aspx
+    title: Thu vien Phap luat - Luat Tri tue nhan tao 134/2025/QH15 (page not fetchable by script; listed
+      for reference)
+    fetched_at: '2026-10-15'
+    kind: secondary
+  confidence: high
+- id: VN-AI-2025-A9.02-01
+  article_ref: Art. 9(2)
+  text_vi: Việc phân loại rủi ro của hệ thống trí tuệ nhân tạo được xác định trên cơ sở các tiêu chí về
+    mức độ tác động đến quyền con người, an toàn, an ninh; lĩnh vực sử dụng của hệ thống, đặc biệt là
+    lĩnh vực thiết yếu hoặc liên quan trực tiếp đến lợi ích công cộng; phạm vi người sử dụng và quy mô
+    ảnh hưởng của hệ thống.
+  summary_en: 'Risk class rests on three criteria: impact on human rights, safety and security; the sector
+    of use (essential sectors especially); the range of users and the scale of effect.'
+  duties:
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - deployer
+    - provider
+  addressee: any
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'Each node of the tree shows the article behind its question; the criteria of this paragraph
+      are the base of the Decision 33 questions and the SBV thresholds. Missing: the weighing of impact,
+      sector and scale stays a human judgement with counsel.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel confirms the reading of the article for this system and records it in
+      the legal review note.'
+  evidence_needed:
+  - classification record with the criteria considered
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+- id: VN-AI-2025-A10.04-01
+  article_ref: Art. 10(4)
+  text_vi: Trường hợp chưa xác định được mức độ rủi ro, nhà cung cấp được đề nghị Bộ Khoa học và Công
+    nghệ hướng dẫn về phân loại trên cơ sở hồ sơ kỹ thuật.
+  summary_en: If the risk level cannot be determined, the provider may ask the Ministry of Science and
+    Technology for guidance on the basis of the technical file.
+  duties:
+  - risk_classification
+  applies_to:
+    agent_class:
+    - any
+    role:
+    - provider
+  addressee: provider
+  control_mapping:
+  - kind: console
+    id: classification_v2
+    coverage: partial
+    note: 'A path that stays open at a node (for example the Decision 33 questions are not all answered)
+      is not stored as a result; the page names the open node. Missing: the request to the Ministry and
+      its answer are outside Supervisor.'
+  - kind: evidence
+    id: classification_v2_record
+    coverage: partial
+    note: 'Classification tree record per system: the path (node, answer, evidence pointer), the outcome,
+      who decided and who approved (flag CLASSIFICATION_V2).'
+  - kind: evidence
+    id: classification_record
+    coverage: partial
+    note: Decision 33 classification rows; the tree uses them as its sub-flow for the Prime Minister's
+      list.
+  - kind: process
+    id: legal_review
+    coverage: partial
+    note: 'Manual step: counsel prepares the request with the technical file and files the answer with
+      the classification record.'
+  evidence_needed:
+  - request to the Ministry and its answer, when used
+  verification: VERIFIED_PRIMARY
+  sources: *id001
+  confidence: high
+  notes: The bank is a provider only for AI it builds and puts into use under its own name.
