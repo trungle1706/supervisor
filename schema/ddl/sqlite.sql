@@ -1987,6 +1987,7 @@ CREATE TABLE IF NOT EXISTS guardian_bench_run (
   result_json TEXT NOT NULL,
   gate TEXT NOT NULL,
   failing_threshold TEXT,
+  created_by TEXT NOT NULL,
   row_version INTEGER NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (run_id)

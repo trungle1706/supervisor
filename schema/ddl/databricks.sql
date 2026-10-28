@@ -1726,6 +1726,7 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_bench_run` (
   result_json STRING NOT NULL,
   gate STRING NOT NULL,
   failing_threshold STRING,
+  created_by STRING NOT NULL,
   row_version BIGINT NOT NULL,
   updated_at TIMESTAMP NOT NULL
 )

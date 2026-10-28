@@ -1980,6 +1980,7 @@ tables:
       result_json: json
       gate: string             # pass | fail | not_run
       failing_threshold: string?
+      created_by: string
   # --- WP-F3 (phase 12B) the agent test gate -----------------------------------------------------
   gate_run:
     kind: state
