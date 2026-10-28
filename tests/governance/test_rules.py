@@ -252,7 +252,7 @@ def test_starter_rules_for_each_family() -> None:
     assert ev.fired == ("AR-BASELINE", "AR-PDPL-CUSTOMER")
     assert len(ev.of("obligation")) == 35 and ev.of("guardian")[0].ref_id == "dlp_vn"
     ev = R.evaluate(rs, _facts(money_movement=True), cat)
-    assert "AR-C53-MONEY" in ev.fired and len(ev.of("obligation")) == 53
+    assert "AR-C53-MONEY" in ev.fired and len(ev.of("obligation")) == 55
     ev = R.evaluate(rs, _facts(decision33_class="high_risk"), cat)
     assert "AR-D33-HIGH" in ev.fired
     assert {a.ref_id for a in ev.of("guardian")} == {"dlp_vn", "injection_regex"}

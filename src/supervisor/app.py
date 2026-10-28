@@ -135,6 +135,14 @@ if get_settings().governance_enabled:  # WP-G0: mounted only when the flag is on
     from supervisor.governance.risk_dimension_routes import router as risk_dim_router  # WP-C2
 
     app.include_router(risk_dim_router)  # /v1/systems/{id}/risk-dimensions (400 while flag off)
+    # WP-C1: inside the governance block like the other /v1/systems routes; with
+    # CLASSIFICATION_V2=0 every route answers HTTP 400 classification_v2_off
+    from supervisor.console.classify_routes import api_router as classify_api_router
+    from supervisor.console.classify_routes import router as classify_console_router
+
+    app.include_router(classify_console_router)  # /console/systems/{id}/classify
+    # /v1/systems/{id}/classification-v2 and /v1/classification/summary
+    app.include_router(classify_api_router)
 if get_settings().governance_enabled and get_settings().guardian_bindings_enabled:  # WP-S1
     from supervisor.governance.guardian_routes import console_router as guardians_console_router
     from supervisor.governance.guardian_routes import router as guardians_router
@@ -151,12 +159,6 @@ if get_settings().console_overview_v4:  # WP-N1: mounted only when the flag is o
 
     app.include_router(candidates_console_router)  # /console/candidates
     app.include_router(candidates_api_router)  # GET /v1/candidates
-# WP-C1: always mounted; with CLASSIFICATION_V2=0 every route answers HTTP 400 classification_v2_off
-from supervisor.console.classify_routes import api_router as classify_api_router  # noqa: E402
-from supervisor.console.classify_routes import router as classify_console_router  # noqa: E402
-
-app.include_router(classify_console_router)  # /console/systems/{id}/classify
-app.include_router(classify_api_router)  # /v1/systems/{id}/classification-v2, /v1/classification
 # WP-O1: always mounted; with ONBOARD_INTAKE=0 every route answers HTTP 400 with the flag name
 from supervisor.console.intake_routes import api_router as intake_api_router  # noqa: E402
 from supervisor.console.intake_routes import router as intake_console_router  # noqa: E402
