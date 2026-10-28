@@ -160,6 +160,12 @@ from supervisor.console.facts_routes import router as facts_console_router  # no
 
 app.include_router(facts_console_router)  # /console/facts/{node_id}
 app.include_router(facts_api_router)  # /v1/facts/{node_id}
+# WP-O3: always mounted; with ONBOARD_PREDEPLOY=0 every route answers HTTP 400 predeploy_off
+from supervisor.console.predeploy_routes import api_router as predeploy_api_router  # noqa: E402
+from supervisor.console.predeploy_routes import router as predeploy_console_router  # noqa: E402
+
+app.include_router(predeploy_console_router)  # /console/predeploy/{node_id}
+app.include_router(predeploy_api_router)  # /v1/predeploy/{node_id}
 if get_settings().governance_actions_enabled:  # WP-G5: mounted only when the flag is on
     from supervisor.console.incidents_routes import router as incidents_console_router
     from supervisor.governance.incident_routes import router as incidents_router

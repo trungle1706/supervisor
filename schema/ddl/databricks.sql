@@ -1492,3 +1492,28 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`onboard_facts` (
 USING DELTA
 COMMENT 'WP-O2 (phase 9, ONBOARD_FACTS). One fact about an agent or candidate, found by Discover and Understand on one stored intake attempt (the scrubbed tree): a tool, model, endpoint, dataset, file, secret use (kind only), external URL, MCP server, approval point, the autonomy level, the Decision 33 proposal or a weak spot. Every fact row has the file, the line and a scrubbed quote of at most 200 characters (no secret, no personal data). source is rule (deterministic) or model (a claim of the real gateway model that passed validate_llm_claims; model_id says which, and a mock model is named mock). A summary row (kind summary) per build counts the dropped_claims (model claims without evidence). Building again for the same attempt replaces that attempt''s rows: a fact that is found again keeps its fact_id and is updated; a fact that is not found again gets active false (the state store has no delete). Readers use active rows only. kind claim holds the purpose, the personal data fields and the model claims that are not weak spots.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- predeploy_report (state): WP-O3 (phase 9, ONBOARD_PREDEPLOY). One pre-deploy assessment of one intake attempt of an inventory candidate or agent. It joins the facts card (onboard_facts), the readiness advisor, the assurance packs with launch_gate required (run in the launch sandbox with the gate in SHADOW and the synthetic world), the multi-turn red-team pack (advisory) and the duties matrix (when CONSOLE_REGISTER_DUTIES is on and a draft exists for the node). status: queued, running, done or failed (the run itself broke). verdict is deterministic from the items: no_go (a fail item in a required section), questions (a question item), go, or none (not finished). The model never sets it. items is a JSON list of {section, id, status ok | warn | fail | question | skip, text, pointer}; text is scrubbed, no personal data, integers only. A run on a mock agent says mock in the item text. A report is never updated after it is done; Run again writes a new report_id.
+-- primary key (enforced by the app, not by Delta): report_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`predeploy_report` (
+  report_id STRING NOT NULL,
+  node_id STRING NOT NULL,
+  attempt_n BIGINT NOT NULL,
+  status STRING NOT NULL,
+  verdict STRING NOT NULL,
+  started_at TIMESTAMP NOT NULL,
+  finished_at TIMESTAMP,
+  items_total BIGINT NOT NULL,
+  items_fail BIGINT NOT NULL,
+  items_question BIGINT NOT NULL,
+  summary STRING NOT NULL,
+  items STRING NOT NULL,
+  model_id STRING,
+  created_by STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-O3 (phase 9, ONBOARD_PREDEPLOY). One pre-deploy assessment of one intake attempt of an inventory candidate or agent. It joins the facts card (onboard_facts), the readiness advisor, the assurance packs with launch_gate required (run in the launch sandbox with the gate in SHADOW and the synthetic world), the multi-turn red-team pack (advisory) and the duties matrix (when CONSOLE_REGISTER_DUTIES is on and a draft exists for the node). status: queued, running, done or failed (the run itself broke). verdict is deterministic from the items: no_go (a fail item in a required section), questions (a question item), go, or none (not finished). The model never sets it. items is a JSON list of {section, id, status ok | warn | fail | question | skip, text, pointer}; text is scrubbed, no personal data, integers only. A run on a mock agent says mock in the item text. A report is never updated after it is done; Run again writes a new report_id.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

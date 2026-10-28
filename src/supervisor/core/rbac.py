@@ -472,6 +472,11 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/facts/{node_id}/{n}"): "systems.edit",
     ("GET", "/console/facts/{node_id}"): "systems.view",
     ("POST", "/console/facts/{node_id}"): "systems.edit",
+    # --- WP-O3 (phase 9) --- pre-deploy assessment (ONBOARD_PREDEPLOY; 400 predeploy_off when off)
+    ("GET", "/v1/predeploy/{node_id}"): "systems.view",
+    ("POST", "/v1/predeploy/{node_id}/{n}"): "systems.edit",
+    ("GET", "/console/predeploy/{node_id}"): "systems.view",
+    ("POST", "/console/predeploy/{node_id}"): "systems.edit",
     # --- WP-G5 --- incidents of the governance loop (GOVERNANCE_ACTIONS_ENABLED)
     ("GET", "/v1/incidents"): "incidents.view",
     ("GET", "/v1/incidents/{incident_id}"): "incidents.view",

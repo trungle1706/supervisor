@@ -186,6 +186,11 @@ def snapshot_hash(state: Any, kind: str | None, target_id: str | None) -> str | 
             f"facts:{r['attempt_n']}:{r['fact_id']}:{r['row_version']}"
             for r in state.query("onboard_facts", {"node_id": target_id})
         )
+        # WP-O3: the pre-deploy reports of the node (a start or a finish changes the hash)
+        parts += sorted(
+            f"predeploy:{r['report_id']}:{r['row_version']}"
+            for r in state.query("predeploy_report", {"node_id": target_id})
+        )
         return row_hash(parts)
     if kind == "agent":
         agent = state.get("agent", {"agent_id": target_id})

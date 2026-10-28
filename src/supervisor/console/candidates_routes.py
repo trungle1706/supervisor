@@ -66,6 +66,7 @@ def _drawer_data(ctx: ConsoleContext, node_id: str) -> dict[str, Any]:
     data["reg_base"] = _reg_base(ctx)
     data["intake"] = bool(ctx.settings.onboard_intake)  # WP-O1: the Source panel
     data["facts"] = bool(ctx.settings.onboard_facts)  # WP-O2: the Facts panel
+    data["predeploy"] = bool(ctx.settings.onboard_predeploy)  # WP-O3: the Pre-deploy panel
     return data
 
 

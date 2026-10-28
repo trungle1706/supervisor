@@ -1,0 +1,51 @@
+{# Pre-deploy panel (WP-O3, ONBOARD_PREDEPLOY): verdict, items by section with pointers, Run again.
+   Variable: pd. While a run is going the section polls itself every 3 s and replaces itself. #}
+{% import "_ui.html" as ui with context %}
+{% set rep = pd.report %}
+{% set vkind = {'go': 'ok', 'no_go': 'bad', 'questions': 'warn', 'none': 'neutral'} %}
+{% set skind = {'ok': 'ok', 'warn': 'warn', 'fail': 'bad', 'question': 'warn', 'skip': 'neutral'} %}
+<section class="card" id="predeploy-panel" data-section="predeploy" data-node="{{ pd.node_id }}"{% if rep and rep.running %} hx-get="/console/predeploy/{{ pd.node_id|urlencode }}?lang={{ lang }}" hx-trigger="every 3s" hx-target="#predeploy-panel" hx-swap="outerHTML" data-polling="1"{% endif %}>
+  <h3>{{ t('pd_title') }}{% if rep %} <span class="k">{{ rep.items_total }}</span>{% endif %}</h3>
+  <p class="hint">{{ t('pd_hint') }}</p>
+  {% if not rep %}
+  <p class="hint" data-empty="predeploy">{{ t('pd_none') }}</p>
+  {% else %}
+  <p class="idline" data-predeploy-attempt="{{ rep.attempt_n }}" data-report="{{ rep.report_id }}">{{ t('pd_from_attempt', n=rep.attempt_n) }}
+    {{ ui.pill(t('pd_s_' ~ rep.status), 'warn' if rep.running else ('bad' if rep.status == 'failed' else 'neutral')) }}
+    {% if pd.newer_attempt %}<span data-newer="1">{{ ui.pill(t('pd_newer', n=pd.latest_attempt), 'warn') }}</span>{% endif %}
+    {% if rep.model_id %}{{ ui.pill(('mock: ' if 'mock' in rep.model_id else 'model: ') ~ rep.model_id, 'warn' if 'mock' in rep.model_id else 'neutral') }}{% endif %}
+  </p>
+  {% if rep.running %}
+  <p class="hint" data-running="1">{{ t('pd_running') }}</p>
+  {% else %}
+  <p data-verdict="{{ rep.verdict }}"><b>{{ t('pd_verdict') }}:</b> {{ ui.pill(t('pd_v_' ~ rep.verdict), vkind[rep.verdict], True) }}
+    <span class="idline">{{ t('pd_counts', fail=rep.items_fail, question=rep.items_question, warn=rep.items_warn) }}</span></p>
+  {% if rep.status == 'failed' %}<p class="hint" data-failed="1">{{ t('pd_failed') }}</p>{% endif %}
+  <p class="idline" data-summary="1">{{ rep.summary }}</p>
+  {% endif %}
+  {% for g in rep.groups %}
+  <h4 data-section-name="{{ g.section }}">{{ t('pd_sec_' ~ g.section) }} <span class="k">{{ g.rows|length }}</span>
+    {% if g.required %}<span class="hint">({{ t('pd_required') }})</span>{% endif %}</h4>
+  <div class="tablewrap flat"><table class="queue" data-table="predeploy-{{ g.section }}">
+    <thead><tr><th scope="col">{{ t('pd_c_status') }}</th><th scope="col">{{ t('pd_c_item') }}</th><th scope="col">{{ t('pd_c_pointer') }}</th></tr></thead>
+    <tbody>
+    {% for i in g.rows %}
+      <tr class="row" data-item="{{ i.id }}" data-status="{{ i.status }}">
+        <td>{{ ui.pill(t('pd_st_' ~ i.status), skind[i.status]) }}</td>
+        <td class="wrap">{{ i.text }}</td>
+        <td class="mono wrap" data-pointer="1">{{ i.pointer }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endfor %}
+  {% endif %}
+  {% if pd.can_edit %}
+  <form hx-post="/console/predeploy/{{ pd.node_id|urlencode }}" hx-target="#predeploy-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
+    <button type="submit" class="btn{% if not rep or pd.newer_attempt %} primary{% endif %}" data-action="run-again"{% if rep and rep.running %} disabled{% endif %}>{{ t('pd_run') if rep else t('pd_run_first') }}</button>
+    <span class="hint">{{ t('pd_run_hint') }}</span>
+  </form>
+  {% else %}
+  <p class="hint">{{ t('pd_view_only') }}</p>
+  {% endif %}
+</section>

@@ -1730,3 +1730,27 @@ CREATE TABLE IF NOT EXISTS onboard_facts (
 );
 
 CREATE INDEX IF NOT EXISTS ix_onboard_facts_node_id_attempt_n ON onboard_facts (node_id, attempt_n);
+
+-- predeploy_report (state): WP-O3 (phase 9, ONBOARD_PREDEPLOY). One pre-deploy assessment of one intake attempt of an inventory candidate or agent. It joins the facts card (onboard_facts), the readiness advisor, the assurance packs with launch_gate required (run in the launch sandbox with the gate in SHADOW and the synthetic world), the multi-turn red-team pack (advisory) and the duties matrix (when CONSOLE_REGISTER_DUTIES is on and a draft exists for the node). status: queued, running, done or failed (the run itself broke). verdict is deterministic from the items: no_go (a fail item in a required section), questions (a question item), go, or none (not finished). The model never sets it. items is a JSON list of {section, id, status ok | warn | fail | question | skip, text, pointer}; text is scrubbed, no personal data, integers only. A run on a mock agent says mock in the item text. A report is never updated after it is done; Run again writes a new report_id.
+CREATE TABLE IF NOT EXISTS predeploy_report (
+  report_id TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  attempt_n INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  verdict TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  items_total INTEGER NOT NULL,
+  items_fail INTEGER NOT NULL,
+  items_question INTEGER NOT NULL,
+  summary TEXT NOT NULL,
+  items TEXT NOT NULL,
+  model_id TEXT,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (report_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_predeploy_report_node_id_attempt_n ON predeploy_report (node_id, attempt_n);

@@ -235,6 +235,81 @@ Limits: the stored tree lives on the local disk (see Intake), so after a restart
 a build needs a new upload first; the fact rows and the edges (Delta) stay. New table: run
 `python -m supervisor.jobs.bootstrap_schema` (or the smoke notebook) before the new version.
 
+## Pre-deploy assessment (WP-O3, phase 9, `ONBOARD_PREDEPLOY`)
+
+One report that says whether the code of a candidate is ready to go to Launch. It reads the same
+stored, scrubbed tree as the facts card. Off by default. Windows cmd: `set ONBOARD_PREDEPLOY=1`.
+It needs a stored source (`ONBOARD_INTAKE=1`) and, for useful facts, `ONBOARD_FACTS=1`.
+
+```text
+ intake attempt n --> 1 facts      the active onboard_facts rows of attempt n
+                      2 readiness  the integration readiness advisor on the tree
+                      3 packs      every pack with launch_gate: required, in the launch sandbox
+                      4 multiturn  the multi-turn red-team pack (advisory)
+                      5 duties     the duties matrix (when CONSOLE_REGISTER_DUTIES is on)
+                              |
+                              v
+        items {section, id, status, text, pointer} --> verdict (fixed rules) --> predeploy_report row
+```
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `ONBOARD_PREDEPLOY` | `0` | Turns the assessment on. Off: `POST` and `GET /v1/predeploy/...`, the Pre-deploy tab and panel answer HTTP 400 `predeploy_off` with the flag name; nothing is read or written, register step 3 is unchanged. |
+
+Where it shows: the **Pre-deploy** tab of the agent page and the **Pre-deploy** panel in the
+Candidates drawer, below **Facts** (also a full page at `/console/predeploy/<node id>`). The panel
+has the verdict badge, the items grouped by section (each with its status and its pointer) and the
+**Run again** button. While a run is going the panel asks for itself again every 3 seconds.
+
+Items. Each item has a section, an id, a status (`ok`, `warn`, `fail`, `question`, `skip`), a
+short text (scrubbed, at most 300 characters, no personal data, no floats) and a pointer:
+`file:line` for a fact, `pack <id>` for a pack, `duty <id>` for a duty, `table onboard_facts`
+or `readiness area <id>` for the others.
+
+| Section | What it does | Items |
+|---|---|---|
+| `facts` | Reads the active fact rows of the attempt. | Weak spots, secret use and external addresses are `warn` items (pointer `file:line`). No facts, or facts of another attempt: the `question` "no facts yet, build the facts card". A mock facts model gives a `warn` item. |
+| `readiness` | `systems_wizard.scan_folder` (the advisor of register step 3) on the tree. | The score and its band (`ok` from 80, else `warn`) and one `warn` per area below full points. |
+| `packs` | Every pack with `launch_gate: required` that targets an agent, through the assurance engine. | One item per pack. `ok`, `warn`; `fail` for `fail`, `error` and **skip** (a skip is never a pass, `docs/assurance.md`), except a structured "not applicable" skip, which is `skip`. Results from a mock agent say `(mock)`; mock only results are a `fail` unless `ASSURANCE_ACCEPT_MOCK_FOR_LAUNCH=1`. |
+| `multiturn` | The pack `multiturn_redteam_vi` (`docs/redteam-multiturn.md`), advisory. | One item. A fail or error is `warn`; a skip is `skip`. It never blocks. |
+| `duties` | The duties matrix of the register draft of this node (`CONSOLE_REGISTER_DUTIES` on, a draft scanned from the node). | One `warn` per instrument and coverage class with partial or no coverage, a `question` when duties need an answer. Otherwise the `question` "duties: not run". |
+
+Where the packs run. A tree whose manifest id (or node id) is one of the demo agents runs in the
+launch sandbox: a private store, the synthetic bank world, the real gateway on the policy with the
+agent in SHADOW; only the agent model is a labelled mock. Any other tree has no launch harness
+(`onboard.launch.Harness`) and the stored code is never run on the server. It becomes an offline
+repo target: the static packs (pins, licences, tool manifest, prefilter) can pass, and the packs
+that need a running agent are `fail` (skip is fail), with a `warn` item that says why. This is
+the honest result until the agent team supplies a harness.
+
+Verdict. A pure function of the items; the model is never asked.
+
+| Rule (first match wins) | Verdict |
+|---|---|
+| any `fail` item in the sections `facts`, `readiness` or `packs` (a section that raised becomes a `fail` item named `<section>:error`) | `no_go` (NO-GO) |
+| any `question` item | `questions` (QUESTIONS) |
+| otherwise | `go` (GO) |
+
+A `fail` in `multiturn` or `duties` is shown and counted, and does not give NO-GO. A run that
+broke as a whole has status `failed` and verdict `none`.
+
+Runs. `POST /v1/predeploy/<node id>/<n>` writes a `queued` row of `predeploy_report` and starts
+one background thread, then answers 202 with the row. One run at a time for each node: a second
+start answers HTTP 400 `already_running`. A row left `queued` or `running` by a restart is set to
+`failed` by the next start. **Run again** (`POST /console/predeploy/<node id>`, htmx only) starts a
+new report for the newest attempt; old reports stay. Roles: `systems.edit` to start (two
+`console_action` rows, target kind `node`), `systems.view` to look. A refusal is HTTP 400 with
+`<code>: <text>`: `predeploy_off`, `no_attempt`, `attempt_failed`, `already_running`.
+
+Register v2 step 3. With the flag on and a report for the scanned node (or for the agent id of
+the draft), step 3 shows the verdict and a link to the panel in place of the folder scan.
+
+Limits: the stored tree lives on the local disk (see Intake); after a restart on a Databricks App
+the facts and the report rows (Delta) stay, but a new run needs a new upload first. The readiness
+advisor runs one at a time for the whole server and the run waits up to 30 s for its turn. New
+table: run `python -m supervisor.jobs.bootstrap_schema` (or the smoke notebook) before the new
+version.
+
 ## Safety rules (ADR D12)
 
 - Read-only: `LocalGitRepoReader` has no write method; size cap per file; binary files

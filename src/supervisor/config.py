@@ -704,6 +704,11 @@ class Settings(BaseSettings):
     # onboard_facts rows and feed the inventory graph. Needs ONBOARD_INTAKE for the source. Off =
     # POST /v1/facts and the Facts tab and panel answer HTTP 400 with the flag name (new: off).
     onboard_facts: bool = False
+    # --- WP-O3 (phase 9) --- pre-deploy assessment (docs/onboard.md "Pre-deploy assessment"): one
+    # report per intake attempt (facts, readiness, required assurance packs in the launch sandbox,
+    # the multi-turn red-team pack, the duties matrix). Needs ONBOARD_INTAKE for the source. Off =
+    # POST /v1/predeploy, the Pre-deploy tab and panel answer HTTP 400 predeploy_off (new: off).
+    onboard_predeploy: bool = False
     # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.
