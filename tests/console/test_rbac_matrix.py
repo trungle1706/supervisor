@@ -352,6 +352,11 @@ def test_every_post_route_is_covered_by_an_audit_test() -> None:
         "transparency.generate",  # WP31: tests/console/test_transparency.py
         "systems.edit",  # WP-G0: tests/governance/test_console.py (two audit rows)
         "incidents.transition",  # WP-G5: tests/governance/test_g5_api.py (two audit rows)
+        # WP-P1: tests/governance/test_p1_workflow.py (audit row with the action note); the task
+        # buttons are tasks.view in the matrix and check the task role in the handler
+        "tasks.view",
+        "tasks.approve",
+        "systems.approve",
     }
     posts = {
         rbac.resolve_permission(e, {"action": "pause"}) if e != rbac.DEV_ONLY else "dev.user"

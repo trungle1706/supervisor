@@ -113,8 +113,13 @@ class LifecycleService:
         }
 
     # ------------------------------------------------------------------ request
-    def request(self, system_id: str, to_stage: str, actor: str) -> dict[str, Any]:
+    def request(
+        self, system_id: str, to_stage: str, actor: str, reason: str | None = None
+    ) -> dict[str, Any]:
+        """Ask for the move. ``reason`` (optional, the console asks for it, WP-P1) is kept in the
+        ``reason`` column while the request waits; the answer replaces it with the approver's."""
         check_user(actor, "actor")
+        text = _text(reason, "reason", 1000, required=False)
         sys_row = self.systems._need_open(system_id)
         choice(to_stage, LIFECYCLE_STAGES, "to_stage")
         cur = str(sys_row["lifecycle_stage"])
@@ -138,21 +143,21 @@ class LifecycleService:
                     "to_stage": to_stage,
                     "requested_by": actor,
                     "status": "pending",
+                    "reason": text,
                     "created_at": self.systems.clock.now(),
                 },
             )
         )
-        self._chain(
-            "request",
-            sys_row,
-            {
-                "approval_id": row["approval_id"],
-                "from_stage": cur,
-                "to_stage": to_stage,
-                "status": "pending",
-                "actor_ref": self._ref(actor),
-            },
-        )
+        chain: dict[str, Any] = {
+            "approval_id": row["approval_id"],
+            "from_stage": cur,
+            "to_stage": to_stage,
+            "status": "pending",
+            "actor_ref": self._ref(actor),
+        }
+        if text:  # only a request with a reason has the hash: the API request chain is unchanged
+            chain["reason_hash"] = sha256_hex({"reason": text})
+        self._chain("request", sys_row, chain)
         return _plain(row)  # type: ignore[no-any-return]
 
     @staticmethod

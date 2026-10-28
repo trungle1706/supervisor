@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.cases.service import PermissionDenied
-from supervisor.console import systems_tabs, ux3
+from supervisor.console import systems_tabs, systems_workflow, ux3
 from supervisor.console.listing import (
     ListingError,
     paginate,
@@ -200,6 +200,8 @@ def detail_view(ctx: Any, me: Any, system_id: str, tab: str) -> dict[str, Any]:
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
     extra, counts = g1_tabs(ctx, system, tab)
+    if tab == "tasks" and systems_workflow.is_on(ctx):  # WP-P1: the buttons of the tab
+        extra["wf"] = systems_workflow.tab_data(ctx, me, system, extra)
     if v3 and tab in systems_tabs.BUILDERS:  # WP-UX4b
         gov = systems_tabs.BUILDERS[tab](ctx, system)
         extra.update(gov)

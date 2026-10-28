@@ -131,8 +131,10 @@ def stage_approvals(ctx: Any, me: Any, rows: list[dict[str, Any]]) -> list[dict[
                 {
                     "kind": "stage",
                     "text": f"{r['name']}: {a['from_stage']} -> {a['to_stage']}",
-                    "href": f"/console/systems/{r['system_id']}",
+                    "href": f"/console/systems/{r['system_id']}"
+                    + ("?tab=tasks" if ctx.settings.console_workflow_actions else ""),
                     "due": None,
+                    "system_id": r["system_id"],
                     "from_stage": a["from_stage"],
                     "to_stage": a["to_stage"],
                     "name": r["name"],

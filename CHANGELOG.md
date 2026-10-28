@@ -23,6 +23,18 @@
     `bundle deploy`, stale `.databricks` snapshot, Umbrella DNS block).
   - New permission `schema.view` (admin) in the role matrix.
 
+- WP-P1: `CONSOLE_WORKFLOW_ACTIONS` (default `0`). The Tasks tab of a system gets buttons: Done,
+  Waive (reason of 10 characters or more; the creator of the task cannot ask; a second person
+  approves or rejects the waiver), Request move (target stage, reason), Approve or Reject by a
+  second person (the requester gets HTTP 400 `same_person`) and Move. The rules are those of
+  `TaskService` and `LifecycleService`; the console adds the role check (task role or
+  `systems.edit`) and the reasons. Six new routes under `POST /console/systems/<id>/`; with the
+  flag off they answer HTTP 400 naming the flag and the tab is read only as before. Each action
+  writes the two `console_action` rows with a fixed note (action, status before and after, hash
+  of the reason). The next action of a system and the stage approvals waiting for you link to the
+  Tasks tab, never to an API path. `LifecycleService.request` takes an optional `reason`
+  (kept in `stage_approval.reason` while the request waits; the API call is unchanged). No schema
+  change. See `docs/console.md`.
 - WP-L2: `JUDGE_FAMILY_CONFLICT_ALLOW` (default `0`). When set, a judge, guard or quality-scorer
   model that shares the family of a registered agent no longer stops start-up: one WARNING per
   pair is logged, and every `judge_verdict` evidence record for that pair carries
