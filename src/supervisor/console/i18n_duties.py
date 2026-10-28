@@ -90,4 +90,22 @@ DU: dict[str, tuple[str, str]] = {
     "du_ok_close": ("Duty closed.", "Đã đóng nghĩa vụ."),
     "du_ok_waive": ("Duty waived.", "Đã miễn trừ nghĩa vụ."),
     "du_ok_reeval": ("Duties evaluated again.", "Đã đánh giá lại nghĩa vụ."),
+    # --- WP-L4 (REGULATOR_PACK): evidence per control and the regulator pack ---
+    "du_ok_refresh": ("Evidence read again.", "Đã đọc lại bằng chứng."),
+    "du_refresh": ("Refresh evidence", "Làm mới bằng chứng"),
+    "du_refresh_hint": (
+        "Reads the live counts of the mapped controls (last {days} days). A full-coverage duty whose controls all work is closed by the system. Partial and none are never closed here.",
+        "Đọc số liệu trực tiếp của các kiểm soát đã ánh xạ ({days} ngày gần nhất). Nghĩa vụ bao phủ đầy đủ có mọi kiểm soát đang hoạt động sẽ do hệ thống đóng. Bao phủ một phần hoặc chưa bao phủ không bao giờ đóng ở đây.",
+    ),
+    "du_pack": ("Regulator pack", "Hồ sơ cho cơ quan quản lý"),
+    "du_pack_json": ("JSON (signed)", "JSON (đã ký)"),
+    "du_pack_html": ("HTML", "HTML"),
+    "du_col_evidence": ("Evidence (rows in window)", "Bằng chứng (số dòng trong kỳ)"),
+    "du_ev_works": ("works", "đang hoạt động"),
+    "du_ev_no": ("no evidence", "chưa có bằng chứng"),
+    "du_ev_nomap": ("no Supervisor control", "không có kiểm soát của Supervisor"),
+    "du_ev_advisory": ("advisory", "chỉ tham khảo"),
+    "du_ev_unmeasured": ("unmeasured", "chưa đo"),
+    "du_by_evidence": ("closed by evidence", "đóng theo bằng chứng"),
+    "du_by_person": ("closed by a person", "đóng bởi người dùng"),
 }

@@ -457,6 +457,10 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/systems/{system_id}/duties/close"): "systems.edit",
     ("POST", "/console/systems/{system_id}/duties/waive"): "systems.approve",
     ("POST", "/console/systems/{system_id}/duties/reevaluate"): "systems.edit",
+    # --- WP-L4 (phase 8) --- evidence refresh and the regulator pack (REGULATOR_PACK; 400 when off)
+    ("POST", "/console/systems/{system_id}/duties/refresh-evidence"): "systems.edit",
+    ("GET", "/v1/systems/{system_id}/regulator-pack.json"): "systems.view",
+    ("GET", "/v1/systems/{system_id}/regulator-pack.html"): "systems.view",
     # --- WP-P2 (phase 8) --- second person for a guardian switch-off (CONSOLE_STATE_ACTIONS)
     (
         "POST",

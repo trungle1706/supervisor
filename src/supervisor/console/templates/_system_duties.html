@@ -41,6 +41,18 @@
     <span class="hint">{{ t('du_reeval_hint') }}</span>
   </form>
   {% endif %}
+  {% if du_pack %}
+  <div class="btnrow" data-du="pack">
+    {% if du_can_edit %}
+    <form {{ du_post('refresh-evidence') }} class="stack-f" data-form="duty-refresh-evidence">
+      <button class="btn sm" type="submit" data-act="duty-refresh-evidence">{{ t('du_refresh') }}</button>
+      <span class="hint">{{ t('du_refresh_hint', days=du_window_days) }}</span>
+    </form>
+    {% endif %}
+    <a class="btn sm" href="/v1/systems/{{ s.system_id }}/regulator-pack.html" data-act="regulator-pack-html">{{ t('du_pack') }} ({{ t('du_pack_html') }})</a>
+    <a class="btn sm" href="/v1/systems/{{ s.system_id }}/regulator-pack.json" data-act="regulator-pack-json">{{ t('du_pack') }} ({{ t('du_pack_json') }})</a>
+  </div>
+  {% endif %}
 </section>
 <nav class="filters" aria-label="{{ t('du_filter') }}" data-du="filters">
   {% for f in du_filters %}
@@ -68,7 +80,7 @@
   </div>
   {% endif %}
   <div class="tablewrap flat"><table data-table="duties">
-    <thead><tr><th scope="col">{{ t('du_col_obl') }}</th><th scope="col">{{ t('du_col_duty') }}</th><th scope="col">{{ t('du_col_applies') }}</th><th scope="col">{{ t('du_col_cov') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('du_col_owner') }}</th><th scope="col">{{ t('du_col_due') }}</th><th scope="col">{{ t('du_col_control') }}</th>{% if du_can_edit or du_can_waive %}<th scope="col">{{ t('wf_actions') }}</th>{% endif %}</tr></thead>
+    <thead><tr><th scope="col">{{ t('du_col_obl') }}</th><th scope="col">{{ t('du_col_duty') }}</th><th scope="col">{{ t('du_col_applies') }}</th><th scope="col">{{ t('du_col_cov') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('du_col_owner') }}</th><th scope="col">{{ t('du_col_due') }}</th><th scope="col">{{ t('du_col_control') }}</th>{% if du_pack %}<th scope="col">{{ t('du_col_evidence') }}</th>{% endif %}{% if du_can_edit or du_can_waive %}<th scope="col">{{ t('wf_actions') }}</th>{% endif %}</tr></thead>
     <tbody>
     {% for r in b.rows %}
       <tr data-obligation="{{ r.obligation_id }}" data-status="{{ r.status }}">
@@ -79,7 +91,13 @@
         <td>{{ ui.pill(t('du_st_' ~ r.status), {'closed': 'ok', 'waived': 'neutral'}.get(r.status, 'warn'), True) }}</td>
         <td class="mono">{{ r.owner }}</td>
         <td class="mono">{{ r.due or '-' }}{% if r.overdue %} {{ ui.pill(t('rk_overdue'), 'bad') }}{% endif %}</td>
-        <td class="mono">{{ r.closing_control or '-' }}{% if r.status != 'open' and r.note %}<div class="idline" title="{{ r.note }}">{{ r.note[:120] }}</div>{% endif %}</td>
+        <td class="mono">{{ r.closing_control or '-' }}{% if r.status != 'open' and r.detail %}<div class="idline" data-du="detail" title="{{ r.detail }}">{% if r.basis == 'evidence' %}{{ t('du_by_evidence') }}: {% endif %}{{ r.detail[:120] }}</div>{% endif %}</td>
+        {% if du_pack %}<td data-du="evidence">
+          {% if r.ev %}
+          {% if r.ev.mark == 'works' %}{{ ui.pill(t('du_ev_works'), 'ok') }}{% elif r.ev.mark == 'no_evidence' %}{{ ui.pill(t('du_ev_no'), 'warn') }}{% else %}<span class="hint">{{ t('du_ev_nomap') }}</span>{% endif %}
+          {% for c in r.ev.controls %}<div class="idline mono" data-control="{{ c.id }}">{{ c.id }}={{ c.n }}{% if c.advisory %} ({{ t('du_ev_advisory') }}){% elif not c.measured %} ({{ t('du_ev_unmeasured') }}){% endif %}</div>{% endfor %}
+          {% else %}-{% endif %}
+        </td>{% endif %}
         {% if du_can_edit or du_can_waive %}<td>
           {% if r.can_act %}
           {% set rt %}<input type="hidden" name="status_id" value="{{ r.status_id }}">{% endset %}

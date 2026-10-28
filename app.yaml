@@ -189,6 +189,13 @@ env:
   #   value: "1"
   # - name: RISK_DUTIES_SWEEP_S   # weekly reminder task for duties due within 30 days; 0 = off
   #   value: "21600"
+  # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
+  # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.
+  # Needs GOVERNANCE_ENABLED and RISK_DUTIES. Off by default (docs/regulator-pack.md).
+  # - name: REGULATOR_PACK
+  #   value: "1"
+  # - name: DUTY_EVIDENCE_SWEEP_S   # sweep over every system; 0 = off, else 300 or more
+  #   value: "21600"
   # Phase 8 WP-P2: Request / Approve RUNNING on the agent page (two people), Decision 33 apply
   # (the system owner cannot apply; 20-character justification), guardian switch-off (reason; a
   # second person on a production or high-risk system). Off by default (docs/console.md).

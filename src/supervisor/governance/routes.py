@@ -34,7 +34,7 @@ import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
@@ -119,6 +119,48 @@ def get_system(system_id: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _
         return svc.get(_visible(svc, me, system_id))
     except NotFoundError as exc:
         return _not_found(exc)
+
+
+def _pack(ctx: ConsoleContext, me: AuthPrincipal, system_id: str) -> dict[str, Any] | JSONResponse:
+    """WP-L4: the signed regulator pack of a system in the caller's scope (HTTP 400
+    ``regulator_pack_off`` while REGULATOR_PACK is off; a system out of scope answers 404)."""
+    from supervisor.governance import regulator_pack as rp
+
+    rp.de.ensure_on(ctx.settings)
+    try:
+        return rp.generate_for_console(ctx, _visible(_service(ctx), me, system_id))
+    except NotFoundError as exc:
+        return _not_found(exc)
+
+
+@router.get("/{system_id}/regulator-pack.json", dependencies=[Depends(needs("systems.view"))])
+def get_regulator_pack_json(
+    system_id: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    """The regulator pack as signed JSON (offline check: python -m supervisor.evidence.verify)."""
+    from supervisor.governance import regulator_pack as rp
+
+    pack = _pack(ctx, me, system_id)
+    if isinstance(pack, JSONResponse):
+        return pack
+    return Response(
+        rp.to_json_bytes(pack),
+        media_type="application/json",
+        headers={"content-disposition": 'attachment; filename="regulator-pack.json"'},
+    )
+
+
+@router.get("/{system_id}/regulator-pack.html", dependencies=[Depends(needs("systems.view"))])
+def get_regulator_pack_html(
+    system_id: str, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Any:
+    """The same pack as one self-contained HTML page (banner on top and at the end)."""
+    from supervisor.governance import regulator_pack as rp
+
+    pack = _pack(ctx, me, system_id)
+    if isinstance(pack, JSONResponse):
+        return pack
+    return Response(rp.render_html(pack), media_type="text/html; charset=utf-8")
 
 
 @router.patch("/{system_id}", dependencies=[Depends(needs("systems.edit"))])

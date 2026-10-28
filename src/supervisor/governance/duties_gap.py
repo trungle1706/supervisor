@@ -317,7 +317,27 @@ def close(
             },
         )
     risk = sync_risk(ctx, system, actor)
-    return {"n": len(targets), "control": cid, "risk": risk}
+    return {
+        "n": len(targets),
+        "control": cid,
+        "risk": risk,
+        "tasks_closed": _close_group_tasks(ctx, system, targets),
+    }
+
+
+def _close_group_tasks(ctx: Any, system: Mapping[str, Any], targets: list[dict[str, Any]]) -> int:
+    """WP-L4 (REGULATOR_PACK): the last closed row of a gap group closes the group task. Off: 0.
+    A failure never undoes the close."""
+    if not getattr(ctx.settings, "regulator_pack", False):
+        return 0
+    try:
+        from supervisor.governance import duty_evidence as de
+
+        keys = {group_key(r) for r in targets if r["coverage"] in ("partial", "none")}
+        return de.close_group_tasks(de.Env.from_console(ctx), str(system["system_id"]), keys)
+    except Exception:  # noqa: BLE001
+        log.exception("duties: could not close the group task of %s", system.get("system_id"))
+        return 0
 
 
 def _is_owner(system: Mapping[str, Any], user: str) -> bool:
