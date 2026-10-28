@@ -108,3 +108,60 @@ page (UX4b) can call it. That tab is not part of WP-S1.
 ## Reason and second person for a switch-off (WP-P2, phase 8, `CONSOLE_STATE_ACTIONS`)
 
 With the flag on, a switch-off needs a reason (HTTP 400 `reason_required`). On a system in `deployment`, `operation` or `re_evaluation`, at risk level `high` or `prohibited`, or classed high risk, the switch-off is a request (`guardian_off_request`, status `pending`) and the binding changes only when a second person approves it: `POST /v1/systems/{id}/guardian-off-requests/{request_id}/decide` with `{"decision": "approve"|"reject"}` (permission `systems.approve`), or Approve and Reject on the Catalog page. The requester gets HTTP 400 `same_person`. The floor is read again at approval: a floor feature can never be switched off. `GET /v1/systems/{id}/guardians` adds `pending_off` (only with the flag on). Switching on needs neither. Chain: `binding_change` records for request, approval (with `approver_ref`) and rejection.
+
+## Attach view (WP-O4, `ONBOARD_ATTACH_VIEW`)
+
+Off by default. Read only. It shows, for one agent or candidate, where it plugs into the Supervisor
+and which guardians sit on that plug point. It is the same check as the Re-check page of the
+kb-chatbot candidate, seen from the Supervisor side: an item lights up when its evidence arrives.
+
+```
+ agent --> plug point --> Supervisor gate --+--> gate rules
+ (id)      sdk | http_proxy |               +--> detectors
+           mcp_gateway |                    +--> judges
+           databricks_app | unknown         +--> monitors and packs
+```
+
+| Where | What |
+|---|---|
+| Agent page, tab **Attach** (after Pre-deploy) | the panel |
+| Candidates drawer, section **Attach** | the same panel for the node id |
+| `GET /console/attach/{id}` | the panel (htmx fragment, full page without htmx), `systems.view` |
+| `POST /console/attach/{id}/check` | **Check now**, `systems.edit`, htmx only, two `console_action` rows |
+
+With the flag off the tab and the panel are absent and both routes answer HTTP 400 `attach_off`.
+
+**Plug point.** The `plug_point` and `host_type` of the agent row decide; if the row has none, or a
+value this view does not know, the policy manifest decides; the panel says which one (`from the
+agent row`, `from the policy file`, or neither). `gate_hook` and `sdk` mean SDK, `mcp_proxy` means
+MCP gateway, `proxy_log` means HTTP proxy; an SDK agent with `host_type` `databricks_app` is a
+Databricks App. Anything else is `unknown`.
+
+**Items.** Each item has `slug`, `label`, `floor`, `enabled`, `last_evidence_at` (RFC 3339 text or
+none), `count_7d` (integer) and `lit` (evidence in the last 7 days). No floats.
+
+| Group | Items | Enabled when | Evidence |
+|---|---|---|---|
+| gate rules | `policy_rules` (state SHADOW or RUNNING, count of fail-closed and fail-open rules) | always | `agent_event` gate decisions |
+| detectors | every key of `config/detectors.yaml` | effective for the agent: instance flags, the file, the agent's policy override, the guardian bindings (the Guardians tab uses the same function) | `finding` rows by `detector_slug` |
+| judges | `judge_t1`, `judge_t2`, `judge_challenger` (mock flagged when no model is set) | `JUDGE_ENABLED`; the challenger also needs its model and its binding on | `verdict` rows of tier 1, tier 2 and role `challenger` (role `protocol` is not counted) |
+| monitors and packs | `monitor_quality`, `monitor_fairness`, `monitor_drift`, `monitor_split_payment`, `session_monitor`, and one item `pack:<id>` per pack with a result | effective for the agent; a pack with a result is on | `oversight_metric.monitor_status` days with status `ok`, `session_control` rows, `eval_result` rows of the agent |
+
+The **floor** is `RulesService.guardian_floor` of every AI system the agent is linked to (the union),
+read each time; the gate rules are always in it. A lock mark in the picture and a `floor` pill in
+the list show it. A rules file that cannot be read gives no floor, not an error.
+
+**How to attach.** The block holds the exact lines for the plug point: `SUPERVISOR_GATE_URL` (the
+public URL setting, else `http://127.0.0.1:8000`, or a `FILL-ME` placeholder on the App),
+`SUPERVISOR_AGENT_ID`, `SUPERVISOR_CREDENTIAL_KIND` (`hmac` or `databricks_oauth`, from
+`INGRESS_CREDENTIAL_KIND` and the mode) and `SUPERVISOR_TIMEOUT_S` = `GATE_DECISION_TIMEOUT_S`
+rounded up plus 5 (the rule in `docs/ingress-auth.md`, "Timeout budget"). The MCP variant adds the
+`python -m supervisor.gateway.mcp_http` command, the proxy variant `SUPERVISOR_URL`, the App
+variant is written as `app.yaml` env entries. For Databricks credentials the principals that
+`config/agent_identities.yaml` lists for the agent are shown (the file is read through
+`AgentIdentityMap`, so only `principal` and `agents` are read). A key, a token or a secret is never
+shown; the notes say where to get the key (`ingress_auth issue`).
+
+**Check now** drops the cached gate state of the agent and reads the state and the evidence again.
+It writes no evidence and does not call the candidate; the panel then shows the time of the read.
+

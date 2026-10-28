@@ -34,4 +34,8 @@
   <h3 class="sec">{{ t('pd_title') }}</h3>
   <div id="predeploy-slot" hx-get="/console/predeploy/{{ c.node_id|urlencode }}?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/predeploy/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('pd_open_page') }}</a></p></div>
   {% endif %}
+  {% if drawer.attach %}
+  <h3 class="sec">{{ t('at_title') }}</h3>
+  <div id="attach-slot" hx-get="/console/attach/{{ c.node_id|urlencode }}?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/attach/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('at_open_page') }}</a></p></div>
+  {% endif %}
 {% endcall %}

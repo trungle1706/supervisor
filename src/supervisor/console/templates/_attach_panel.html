@@ -1,0 +1,87 @@
+{# Attach panel (WP-O4, ONBOARD_ATTACH_VIEW): wiring picture, guardian list, How to attach, Check now.
+   Variable: at (node_id, m = attach model, svg = layout, how = how_to_attach, can_edit).
+   Read only. The SVG uses CSS variables only (both themes); its text is 12 px. #}
+{% import "_ui.html" as ui with context %}
+{% set m = at.m %}
+{% set svg = at.svg %}
+{% set b = svg.boxes %}
+<section class="card" id="attach-panel" data-section="attach" data-node="{{ at.node_id }}" data-plug="{{ m.plug.kind }}">
+  <h3>{{ t('at_title') }} <span class="k">{{ m.counts.lit }}/{{ m.counts.total }}</span></h3>
+  <p class="hint">{{ t('at_hint') }}</p>
+  <p class="idline" data-plug-line="1">{{ t('at_plug_is') }} <b>{{ t('at_plug_' ~ m.plug.kind) }}</b>
+    <span class="muted">({{ t('at_by_' ~ m.plug.decided_by) }}{% if m.plug.plug_point %}: <code>{{ m.plug.plug_point }}</code>{% endif %}{% if m.plug.host_type %}, <code>{{ m.plug.host_type }}</code>{% endif %})</span>
+    {{ ui.pill(m.gate.state or t('at_state_unknown'), 'teal' if m.gate.state == 'SHADOW' else ('ok' if m.gate.state == 'RUNNING' else 'neutral'), True) }}
+    {% if at.checked %}<span class="muted" data-checked-at="1">{{ t('at_checked') }} {{ m.checked_at }}</span>{% endif %}</p>
+
+  <div class="at-wrap">
+  <svg class="at-svg" viewBox="0 0 {{ svg.w }} {{ svg.h }}" role="img" aria-labelledby="at-svg-t at-svg-d" data-lit="{{ m.counts.lit }}" data-items="{{ m.counts.total }}">
+    <title id="at-svg-t">{{ t('at_svg_title', agent=at.node_id) }}</title>
+    <desc id="at-svg-d">{{ t('at_svg_desc', lit=m.counts.lit, n=m.counts.total) }}</desc>
+    {# links: agent -> plug point -> gate -> each group #}
+    <path class="at-link" d="M {{ b.agent.x + b.agent.w }} {{ svg.mid }} H {{ b.plug.x }}"/>
+    <path class="at-link" d="M {{ b.plug.x + b.plug.w }} {{ svg.mid }} H {{ b.gate.x }}"/>
+    {% for g in svg.groups %}
+    <path class="at-link" d="M {{ b.gate.x + b.gate.w }} {{ svg.mid }} C {{ b.gate.x + b.gate.w + 20 }} {{ svg.mid }}, {{ g.x - 20 }} {{ g.mid }}, {{ g.x }} {{ g.mid }}"/>
+    {% endfor %}
+    <rect class="at-box" x="{{ b.agent.x }}" y="{{ b.agent.y }}" width="{{ b.agent.w }}" height="{{ b.agent.h }}" rx="6"/>
+    <text class="at-t2" x="{{ b.agent.x + 10 }}" y="{{ b.agent.y + 20 }}">{{ t('at_box_agent') }}</text>
+    <text class="at-t" x="{{ b.agent.x + 10 }}" y="{{ b.agent.y + 40 }}">{{ svg.agent_label }}</text>
+    <rect class="at-box" x="{{ b.plug.x }}" y="{{ b.plug.y }}" width="{{ b.plug.w }}" height="{{ b.plug.h }}" rx="6"/>
+    <text class="at-t2" x="{{ b.plug.x + 10 }}" y="{{ b.plug.y + 20 }}">{{ t('at_box_plug') }}</text>
+    <text class="at-t" x="{{ b.plug.x + 10 }}" y="{{ b.plug.y + 40 }}">{{ t('at_plugshort_' ~ m.plug.kind) }}</text>
+    <rect class="at-box at-gate" x="{{ b.gate.x }}" y="{{ b.gate.y }}" width="{{ b.gate.w }}" height="{{ b.gate.h }}" rx="6"/>
+    <text class="at-t2" x="{{ b.gate.x + 10 }}" y="{{ b.gate.y + 20 }}">{{ t('at_box_gate') }}</text>
+    <text class="at-t" x="{{ b.gate.x + 10 }}" y="{{ b.gate.y + 40 }}">{{ m.gate.state or t('at_state_unknown') }}</text>
+    {% for g in svg.groups %}
+    <g data-group="{{ g.key }}">
+      <rect class="at-box" x="{{ g.x }}" y="{{ g.y }}" width="{{ g.w }}" height="{{ g.h }}" rx="6"/>
+      <text class="at-t" x="{{ g.x + 10 }}" y="{{ g.y + 20 }}">{{ t('at_grp_' ~ g.key) }}</text>
+      {% for c in g.circles %}{% set i = c.item %}
+      <circle class="at-c{{ ' lit' if i.lit else '' }}{{ ' off' if not i.enabled else '' }}" cx="{{ c.cx }}" cy="{{ c.cy }}" r="6" data-slug="{{ i.slug }}" data-lit="{{ 1 if i.lit else 0 }}" data-floor="{{ 1 if i.floor else 0 }}"><title>{{ i.label }}: {{ i.last_evidence_at or t('at_no_evidence') }}</title></circle>
+      {% if i.floor %}<g class="at-lock" data-lock="{{ i.slug }}"><rect x="{{ c.cx + 3 }}" y="{{ c.cy + 2 }}" width="7" height="6" rx="1"/><path d="M {{ c.cx + 4 }} {{ c.cy + 2 }} v -2 a 2 2 0 0 1 4 0 v 2"/></g>{% endif %}
+      {% endfor %}
+    </g>
+    {% endfor %}
+  </svg>
+  </div>
+  <p class="hint at-legend">{{ t('at_legend') }}</p>
+
+  {% for g in m.groups %}
+  <h4 data-group-name="{{ g.key }}">{{ t('at_grp_' ~ g.key) }} <span class="k">{{ g["items"]|length }}</span></h4>
+  <div class="tablewrap flat"><table class="queue" data-table="attach-{{ g.key }}">
+    <thead><tr><th scope="col">{{ t('at_c_guardian') }}</th><th scope="col">{{ t('at_c_state') }}</th><th scope="col">{{ t('at_c_last') }}</th><th scope="col" class="n">{{ t('at_c_count') }}</th></tr></thead>
+    <tbody>
+    {% for i in g["items"] %}
+      <tr class="row" data-item="{{ i.slug }}" data-lit="{{ 1 if i.lit else 0 }}" data-enabled="{{ 1 if i.enabled else 0 }}">
+        <td><code>{{ i.slug }}</code>{% if i.label != i.slug %} <span class="muted">{{ i.label }}</span>{% endif %}
+          {% if i.floor %} {{ ui.pill(t('at_floor'), 'teal') }}{% endif %}{% if i.mock %} {{ ui.pill(t('mock'), 'warn') }}{% endif %}
+          {% if i.detail %}<div class="hint">{{ i.detail }}</div>{% endif %}</td>
+        <td>{{ ui.pill(t('at_lit') if i.lit else (t('at_waiting') if i.enabled else t('at_off')), 'ok' if i.lit else ('neutral' if i.enabled else 'warn'), True) }}{% if i.status %} <span class="muted">{{ i.status }}</span>{% endif %}</td>
+        <td class="mono" data-last="1">{% if i.last_evidence_at %}{{ i.last_evidence_at }}{% else %}<span class="muted">-</span>{% endif %}</td>
+        <td class="n" data-count="1">{{ i.count_7d }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endfor %}
+
+  {% if at.can_edit %}
+  <form hx-post="/console/attach/{{ at.node_id|urlencode }}/check?lang={{ lang }}" hx-target="#attach-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
+    <button type="submit" class="btn primary" data-action="check-now">{{ t('at_check') }}</button>
+    <span class="hint">{{ t('at_check_hint') }}</span>
+  </form>
+  {% else %}
+  <p class="hint">{{ t('at_view_only') }}</p>
+  {% endif %}
+
+  <h4 data-section-name="how">{{ t('at_how') }}</h4>
+  <p class="hint">{{ t('at_how_hint_' ~ at.how.variant) }}</p>
+  <pre class="mono at-env" id="attach-env" data-variant="{{ at.how.variant }}">{{ at.how.text }}</pre>
+  <p class="btnrow"><button type="button" class="chipbtn" data-copy="#attach-env">{{ t('at_copy') }}</button></p>
+  {% if at.how.principals %}
+  <p class="hint" data-principals="1">{{ t('at_principals') }} {% for p in at.how.principals %}<code>{{ p }}</code>{{ ', ' if not loop.last }}{% endfor %}</p>
+  {% endif %}
+  <ul class="hint at-notes">
+    {% for n in at.how.notes %}<li data-note="{{ n }}">{{ t('at_note_' ~ n) }}</li>{% endfor %}
+  </ul>
+</section>

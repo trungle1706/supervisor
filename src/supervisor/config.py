@@ -709,6 +709,11 @@ class Settings(BaseSettings):
     # the multi-turn red-team pack, the duties matrix). Needs ONBOARD_INTAKE for the source. Off =
     # POST /v1/predeploy, the Pre-deploy tab and panel answer HTTP 400 predeploy_off (new: off).
     onboard_predeploy: bool = False
+    # --- WP-O4 (phase 9) --- guardian attachment view (docs/guardian-bindings.md "Attach view"):
+    # the Attach tab and panel with the wiring picture, the guardians on the plug point, the last
+    # evidence of each and the How to attach env lines. Read only. Off = GET /console/attach/{id}
+    # answers HTTP 400 attach_off and the tab and panel are absent (new: off).
+    onboard_attach_view: bool = False
     # --- WP-N3 --- register workflow v2 (docs/register-v2.md): /console/register, six steps with
     # a draft row. Needs GOVERNANCE_ENABLED and CONSOLE_SYSTEMS_ENABLED; the agent row step also
     # needs AGENTS_API_ENABLED. Off: the two-step wizard at /console/systems/new.

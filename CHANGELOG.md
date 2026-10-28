@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- WP-O4 (phase 9): **guardian attachment view**, `ONBOARD_ATTACH_VIEW` (default `0`). New **Attach**
+  tab on the agent page (after Pre-deploy) and **Attach** panel in the Candidates drawer. Content:
+  an inline SVG wiring picture (agent, plug point, Supervisor gate, four guardian groups; one
+  circle per guardian, filled when it showed evidence in the last 7 days, a lock mark for the
+  guardian floor; theme variables only, text 12 px), the same items as a list with the last
+  evidence time and the 7-day count, and a **How to attach** block. The plug point (SDK
+  `HttpGate`, HTTP proxy, MCP gateway, Databricks App env or unknown) is read from the agent row,
+  else from the policy, and the page says which. The groups are gate rules (state, fail modes),
+  detectors, judges (mock flagged) and monitors with assurance packs; enabled follows the engines
+  (flags, detector file, policy override, bindings), the floor is `RulesService.guardian_floor`
+  over the agent's systems. Evidence comes from `agent_event`, `finding`, `verdict`,
+  `session_control`, `oversight_metric` and `eval_result`. The env lines (`SUPERVISOR_GATE_URL`,
+  `SUPERVISOR_AGENT_ID`, `SUPERVISOR_CREDENTIAL_KIND`, `SUPERVISOR_TIMEOUT_S` =
+  `GATE_DECISION_TIMEOUT_S` rounded up + 5, and the MCP or proxy variant) come from the settings
+  and `config/agent_identities.yaml` (only `principal` and `agents` are read); a secret or token is
+  never shown. **Check now** (`POST /console/attach/{id}/check`, `systems.edit`, two audit rows)
+  reads the gate state and the evidence again; it does not call the candidate. `GET
+  /console/attach/{id}` needs `systems.view`. No schema change. With the flag off the tab and panel
+  are absent and the routes answer 400 `attach_off`. `app.yaml` has the commented flag. Details:
+  `docs/guardian-bindings.md` "Attach view (WP-O4)".
 - WP-O3 (phase 9): **pre-deploy assessment**, `ONBOARD_PREDEPLOY` (default `0`; needs the stored
   source of `ONBOARD_INTAKE`). New **Pre-deploy** tab on the agent page and **Pre-deploy** panel in
   the Candidates drawer, after Facts: one report per run with a verdict GO, NO-GO or QUESTIONS and
