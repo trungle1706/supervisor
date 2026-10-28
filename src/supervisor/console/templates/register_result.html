@@ -23,7 +23,7 @@
     {% if 'SYS-REG-SPID' in d.tasks %}<li>{{ t('rg2_next_spid') }}</li>{% endif %}
     {% if d.agent_id %}<li>{{ t('rg2_next_running') }}</li>{% endif %}
   </ol>
-  {% if d.v3 %}
+  {% if d.get('v3') %}
   <h3>{{ t('rg3_links') }}</h3>
   <ul data-register="v3-links">
     {% if d.agent_id %}<li><a href="/console/agents/{{ d.agent_id|urlencode }}?lang={{ lang }}" data-link="agent">{{ t('rg3_link_agent') }}</a>
