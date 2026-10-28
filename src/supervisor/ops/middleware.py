@@ -12,7 +12,7 @@ import threading
 import time
 import uuid
 from collections import OrderedDict
-from collections.abc import Awaitable, Callable, MutableMapping
+from collections.abc import Awaitable, Callable, Mapping, MutableMapping
 from typing import Any
 
 from starlette.requests import Request
@@ -132,17 +132,24 @@ BodyTooLarge = _TooLarge  # public name: handlers that catch Exception must re-r
 class BodyLimitMiddleware:
     """413 above ``limit`` bytes: by Content-Length, and by counting streamed bytes."""
 
-    def __init__(self, app: Any, limit: int) -> None:
+    def __init__(self, app: Any, limit: int, path_limits: Mapping[str, int] | None = None) -> None:
         self.app = app
         self.limit = limit
+        # WP-O1: a larger limit for the paths that start with a prefix (the source upload)
+        self.path_limits = dict(path_limits or {})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http" or self.limit <= 0:
             await self.app(scope, receive, send)
             return
+        limit = self.limit
+        path = scope.get("path", "")
+        for prefix, larger in self.path_limits.items():
+            if path.startswith(prefix):
+                limit = max(limit, larger)
         for k, v in scope.get("headers", []):
             if k == b"content-length":
-                if v.isdigit() and int(v) > self.limit:
+                if v.isdigit() and int(v) > limit:
                     await self._too_large(scope, receive, send)
                     return
                 break
@@ -154,7 +161,7 @@ class BodyLimitMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 seen += len(message.get("body", b""))
-                if seen > self.limit:
+                if seen > limit:
                     raise _TooLarge
             return message
 
@@ -269,7 +276,13 @@ def install(app: Any, settings: Any) -> None:
             burst=settings.rate_limit_burst,
         )
     if settings.max_request_bytes > 0:
-        app.add_middleware(BodyLimitMiddleware, limit=settings.max_request_bytes)
+        path_limits: dict[str, int] = {}
+        if getattr(settings, "onboard_intake", False):  # WP-O1: the zip upload may be larger
+            big = int(settings.onboard_intake_max_mb) * 1024 * 1024 + 512 * 1024
+            path_limits = {"/v1/intake/": big, "/console/intake/": big}
+        app.add_middleware(
+            BodyLimitMiddleware, limit=settings.max_request_bytes, path_limits=path_limits
+        )
     if settings.security_headers_enabled:
         app.add_middleware(SecurityHeadersMiddleware, hsts=settings.hsts_enabled)
     if getattr(settings, "llm_user_token_forward", False) or getattr(

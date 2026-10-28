@@ -1,0 +1,41 @@
+{# Source panel (WP-O1, ONBOARD_INTAKE): upload form, attempts list, Re-upload. Variable: ik. #}
+{% import "_ui.html" as ui with context %}
+<section class="card" id="intake-panel" data-section="intake" data-node="{{ ik.node_id }}">
+  <h3>{{ t('ik_title') }} <span class="k">{{ ik.attempts|length }}</span></h3>
+  <p class="hint">{{ t('ik_hint', mb=ik.max_mb) }}</p>
+  {% if ik.attempts %}
+  <div class="tablewrap flat"><table class="queue" data-table="intake-attempts">
+    <thead><tr><th scope="col">{{ t('ik_c_n') }}</th><th scope="col">{{ t('ik_c_source') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('ik_c_files') }}</th><th scope="col">{{ t('ik_c_sha') }}</th><th scope="col">{{ t('ik_c_by') }}</th><th scope="col">{{ t('ik_c_note') }}</th></tr></thead>
+    <tbody>
+    {% for a in ik.attempts %}
+      <tr class="row" data-attempt="{{ a.n }}">
+        <td class="mono">{{ a.n }}</td>
+        <td>{{ ui.pill(t('ik_kind_' ~ a.source_kind), 'neutral') }} <span class="mono wrap">{{ a.source_ref }}</span></td>
+        <td>{{ ui.pill(t('ik_st_' ~ a.status), {'scrubbed': 'ok', 'stored': 'ok', 'failed': 'bad'}.get(a.status, 'neutral'), True) }}</td>
+        <td class="mono">{{ a.file_count }} · {{ a.size_bytes }} B</td>
+        <td class="mono">{{ a.sha256[:12] or '-' }}</td>
+        <td>{{ a.created_by }}<div class="idline mono">{{ (a.created_at or '-')[:19] }}</div></td>
+        <td class="idline">{{ a.detail or '-' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="hint" data-empty="intake">{{ t('ik_none') }}</p>
+  {% endif %}
+  {% if ik.can_edit %}
+  <details {% if not ik.attempts %}open{% endif %} class="intake-form">
+    <summary class="btn{% if not ik.attempts %} primary{% endif %}" data-action="reupload">{{ t('ik_reupload') if ik.attempts else t('ik_upload') }}</summary>
+    <form hx-post="/console/intake/{{ ik.node_id }}" hx-encoding="multipart/form-data" hx-target="#intake-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
+      <label>{{ t('ik_file') }} <input type="file" name="file" accept=".zip,application/zip" aria-label="{{ t('ik_file') }}"></label>
+      {% if ik.git_hosts %}
+      <label>{{ t('ik_git') }} <input type="text" name="git_url" placeholder="{{ ik.git_hosts[0] }}/org/repo" size="40" aria-label="{{ t('ik_git') }}"></label>
+      {% endif %}
+      <button type="submit" class="btn primary">{{ t('ik_send') }}</button>
+    </form>
+    <p class="hint">{{ t('ik_files_hint') }}</p>
+  </details>
+  {% else %}
+  <p class="hint">{{ t('ik_view_only') }}</p>
+  {% endif %}
+</section>

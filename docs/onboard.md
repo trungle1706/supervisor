@@ -98,6 +98,73 @@ Safety: the existing secret scrubber runs on every text when it is read, so a to
 
 Limits: the artifact is read as text. A binary model file is skipped (the weights are not inspected). Code that builds tools at run time cannot be listed (Discover marks such places as dynamic tool sources). Two more WP-P2 rules: a tool is never listed under the agent id itself (a `@supervised_tool(AGENT_ID, version, "tool", ...)` decorator names the tool by its third argument), and the model family comes from the literal model id (the default of `os.environ.get("LLM_MODEL", "qwen3.8-27b-int4")` gives `qwen`, the way the judge family is derived; this also works for a plain HTTP post to `/chat/completions`). A LangGraph `interrupt_before=[...]` counts as a human gate in code only for the tools in the graph node it names (`add_node("name", ToolNode(LIST))`, the list is resolved in any file); an `interrupt(...)` call guards the function that contains it. An interrupt before a node that holds only read-only tools is not a gate for the money tool. `inventory.json` keeps this in `interrupt_guards` (`file:line` to the guarded function names). Decision 33 and the autonomy proposal read the same facts. Intended differences from before WP-P2, and only these: `MLmodel` `metadata.owner` / `owner_team` fill owner placeholders (a `FILL-ME...` value counts as absent); a tool is never named after the agent id; the model family follows the literal model id; read-only chat apps are `l1_assistive`; the generic `interrupt` text match of the autonomy rule is replaced by the per-node rule above. The fixtures `artifact_credit_memo` and `artifact_collections_mcp` give the same Decision 33 and autonomy results as before. Test data: `tests/onboard/data/artifact_kb_chatbot` (retrieval only chat app, l1) and `artifact_cs_agent` (LangGraph with `interrupt_before` on a money tool), both synthetic; also `tests/onboard/data/artifact_credit_memo` (pyfunc, function-calling manifest) and `tests/onboard/data/artifact_collections_mcp` (LangGraph, YAML manifest, MCP server, money tool); both are synthetic and contain one fake token and one planted instruction on purpose.
 
+## Intake (WP-O1, phase 9, `ONBOARD_INTAKE`)
+
+The console can take in the source code of a candidate (an inventory node) or of an agent, so the
+later steps (facts, pre-deploy assessment) read the code on the server and not a folder on a
+laptop. Off by default. Windows cmd: `set ONBOARD_INTAKE=1`.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `ONBOARD_INTAKE` | `0` | Turns the intake on. Off: `POST` and `GET /v1/intake/<id>`, the Source panel and the Source tab answer HTTP 400 `intake_off` with the flag name; nothing is read or written. |
+| `ONBOARD_INTAKE_MAX_MB` | `20` | Largest zip (and largest total of unpacked files). The request body limit of these two paths is raised to this size plus 512 KB; other paths keep `MAX_REQUEST_BYTES`. |
+| `ONBOARD_GIT_HOSTS` | empty | Comma list of host names (for example `git.bank.example`). Empty = the git source is off (`git_off`). |
+
+Where it shows: the **Source** panel in the drawer of a candidate (Candidates tab of My overview,
+needs `CONSOLE_OVERVIEW_V4`) and the **Source** tab of the agent page. Both have the upload form,
+the list of attempts and a **Re-upload** button. The same panel is a full page at
+`/console/intake/<node id>`.
+
+```text
+ zip / https URL --> check every path and type --> scrub in memory (WP16) --> write the tree
+                                                                         --> intake_attempt row
+                     DATA_DIR/intake/<node id>/<n>/   (scrubbed text only; a secret never reaches the disk)
+```
+
+Sources, in this order:
+
+1. **Zip upload** (`POST /v1/intake/<id>`, multipart field `file`, or the console form). Only text
+   files with these endings are taken: `.py .yaml .yml .toml .json .md .txt .cfg .ini .env.example
+   .sql .ipynb`. A notebook keeps its code cells only and is stored as `.py` (outputs and markdown
+   are dropped; `%` and `!` lines become comments). The whole zip is refused, with a code, for: a
+   path with `..` or an empty or `.` segment, an absolute path, a drive letter or a backslash
+   (`bad_path`); a symbolic link (`symlink`); an encrypted member (`encrypted`); any other file
+   type (`file_type_not_allowed`); a file that is not UTF-8 text (`binary_file`); a bad notebook
+   (`bad_notebook`); a file above 2 MB, a zip above the limit, or unpacked files above the limit
+   (`too_large`); more than 2000 files (`too_many_files`); two names that differ only in case
+   (`duplicate_path`); a body that is not a zip (`not_zip`).
+2. **Git URL** (`POST /v1/intake/<id>` with JSON `{"git_url": "https://host/org/repo"}`, or the
+   field of the console form when a host is configured). Only `https://` URLs without a user name,
+   password, port, query or fragment, on a host of `ONBOARD_GIT_HOSTS` (`git_off`,
+   `git_url_invalid`, `url_has_credentials`, `git_host_not_allowed`). The clone runs in
+   `supervisor.sandbox.git_clone_https` (shallow, one branch, hooks, credential helpers, redirects
+   and symlinks off; no other module starts a process). Unlike the zip, a clone holds other files:
+   those outside the list above, symbolic links and `.git` are skipped and counted (`skipped=n` in
+   the note), not refused. A clone needs a network route to the host; it is the one place the
+   Supervisor fetches from the internet, and it stays off until a bank sets the host list.
+3. **Workspace folder** (`{"workspace": "/Workspace/..."}`): not built. Answers HTTP 400
+   `not_built` and names WP-O1c.
+
+Every attempt is a row of `intake_attempt` (attempt id, node id, `n`, source kind and reference,
+SHA-256 and size of what was received, file count, who, when, status, note). A re-upload is
+attempt `n+1`; old attempts and their folders stay. A refusal after the bytes arrived is also
+written, as a `failed` attempt that uses a number. Status `scrubbed` = stored after the scrub.
+The note holds counts only (`files=12 redacted=2 kinds=assigned_secret`), never a matched text.
+The source reference and the file name are scrubbed too. The audit trail of every `POST` is the
+usual two `console_action` rows (`systems.edit`, target kind `node`).
+
+Roles: `systems.edit` to add an attempt (reviewer, owner, admin), `systems.view` to look.
+
+Limits and notes:
+
+* On a Databricks App the folder `DATA_DIR/intake` lives on the local disk, which is wiped on a
+  restart; the `intake_attempt` rows (Delta) stay. Re-upload to rebuild the tree, or point
+  `DATA_DIR` at a durable volume.
+* Run `python -m supervisor.jobs.bootstrap_schema` (or the smoke notebook) before the new version
+  on Delta: the table `intake_attempt` is new.
+* The scrub has lower recall than gitleaks (ADR D12): treat the stored tree as scrubbed, not as
+  secret-free.
+
 ## Safety rules (ADR D12)
 
 - Read-only: `LocalGitRepoReader` has no write method; size cap per file; binary files

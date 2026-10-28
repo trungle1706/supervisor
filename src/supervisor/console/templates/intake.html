@@ -1,0 +1,9 @@
+{# Source panel as a full page (WP-O1), the no-JS link of the candidate drawer. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('ik_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('ik_title'), None), (ik.node_id, None)]) }}
+{{ ui.pagehead(t('ik_title') ~ ': ' ~ ik.node_id) }}
+{% include "_intake_panel.html" %}
+{% endblock %}

@@ -1639,3 +1639,24 @@ CREATE TABLE IF NOT EXISTS guardian_off_request (
 );
 
 CREATE INDEX IF NOT EXISTS ix_guardian_off_request_system_id_status ON guardian_off_request (system_id, status);
+
+-- intake_attempt (state): WP-O1 (phase 9, ONBOARD_INTAKE). One numbered intake of the source code of an inventory candidate or an agent: a zip upload, a clone or (later) a workspace folder. Re-upload makes attempt n+1; old attempts stay. The files are stored scrubbed under DATA_DIR/intake/<node_id>/<n>/ (the WP16 scrubber runs before anything is written); this row holds only the source reference (no secrets), the SHA-256 and size of what was received, the count of stored files and a counts-only detail note. status: scrubbed (stored after the scrub), failed (refused; detail has the code), stored (reserved).
+CREATE TABLE IF NOT EXISTS intake_attempt (
+  attempt_id TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  n INTEGER NOT NULL,
+  source_kind TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  sha256 TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  file_count INTEGER NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  status TEXT NOT NULL,
+  detail TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (attempt_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_intake_attempt_node_id_n ON intake_attempt (node_id, n);

@@ -1397,3 +1397,25 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_off_request` (
 USING DELTA
 COMMENT 'WP-P2 (phase 8, CONSOLE_STATE_ACTIONS). A request to switch a guardian feature off on an AI system that is in production or has a high risk level. A second person, not the requester, approves or rejects it; only an approval writes the guardian_binding row. The reason is required. Changes go on the chain as binding_change (ids, enums and a reason hash).'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- intake_attempt (state): WP-O1 (phase 9, ONBOARD_INTAKE). One numbered intake of the source code of an inventory candidate or an agent: a zip upload, a clone or (later) a workspace folder. Re-upload makes attempt n+1; old attempts stay. The files are stored scrubbed under DATA_DIR/intake/<node_id>/<n>/ (the WP16 scrubber runs before anything is written); this row holds only the source reference (no secrets), the SHA-256 and size of what was received, the count of stored files and a counts-only detail note. status: scrubbed (stored after the scrub), failed (refused; detail has the code), stored (reserved).
+-- primary key (enforced by the app, not by Delta): attempt_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`intake_attempt` (
+  attempt_id STRING NOT NULL,
+  node_id STRING NOT NULL,
+  n BIGINT NOT NULL,
+  source_kind STRING NOT NULL,
+  source_ref STRING NOT NULL,
+  sha256 STRING NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  file_count BIGINT NOT NULL,
+  created_by STRING NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  status STRING NOT NULL,
+  detail STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-O1 (phase 9, ONBOARD_INTAKE). One numbered intake of the source code of an inventory candidate or an agent: a zip upload, a clone or (later) a workspace folder. Re-upload makes attempt n+1; old attempts stay. The files are stored scrubbed under DATA_DIR/intake/<node_id>/<n>/ (the WP16 scrubber runs before anything is written); this row holds only the source reference (no secrets), the SHA-256 and size of what was received, the count of stored files and a counts-only detail note. status: scrubbed (stored after the scrub), failed (refused; detail has the code), stored (reserved).'
+TBLPROPERTIES ('supervisor.kind' = 'state');

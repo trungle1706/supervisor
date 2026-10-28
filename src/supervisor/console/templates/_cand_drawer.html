@@ -22,4 +22,8 @@
   <p class="btnrow">
     {% if drawer.register %}<a class="btn primary" href="{{ drawer.reg_base }}?from={{ c.node_id|urlencode }}&amp;lang={{ lang }}">{{ t('tri_register') }}</a>{% else %}<span class="hint">{{ t('tri_register_off') }}</span>{% endif %}
   </p>
+  {% if drawer.intake %}
+  <h3 class="sec">{{ t('ik_title') }}</h3>
+  <div id="intake-slot" hx-get="/console/intake/{{ c.node_id|urlencode }}?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/intake/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('ik_open_page') }}</a></p></div>
+  {% endif %}
 {% endcall %}
