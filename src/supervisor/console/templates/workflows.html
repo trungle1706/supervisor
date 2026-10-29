@@ -3,8 +3,45 @@
 {% extends "base.html" %}
 {% import "_ui.html" as ui with context %}
 {% import "_v3.html" as v3 with context %}
+{% import "_ux5.html" as u5 with context %}
 {% block title %}{{ t('nv3_workflows') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% macro every(sec) %}{% if sec is none %}-{% elif sec == 0 %}{{ t('u5g1_on_event') }}{% elif sec < 120 %}{{ t('u5g1_every_min') }}{% elif sec < 3600 %}{% if sec // 60 == 1 %}{{ t('u5g1_every_min') }}{% else %}{{ t('u5g1_every_min_n', n=sec // 60) }}{% endif %}{% elif sec < 86400 %}{% if sec // 3600 == 1 %}{{ t('u5g1_every_hour') }}{% else %}{{ t('u5g1_every_hour_n', n=sec // 3600) }}{% endif %}{% elif sec == 86400 %}{{ t('u5g1_daily') }}{% else %}{{ dur(sec) }}{% endif %}{% endmacro %}
+<link rel="stylesheet" href="/console/static/ux5_g1.css">
+<div class="g1">
+{{ u5.page_head(t('nv3_workflows'), t('nv3_wf_lede')) }}
+{% if d.rules_na %}<p class="g1-sub">{{ t('nv3_wf_rules_unreadable') }}</p>{% endif %}
+{% set jobs = d.rows|selectattr('kind', 'equalto', 'job')|list %}
+{% set alerts = d.rows|selectattr('kind', 'equalto', 'alert')|list %}
+{% set others = d.rows|rejectattr('kind', 'in', ['job', 'alert'])|list %}
+<section class="u5-panel" data-table="workflows">
+<h2 class="sec">{{ t('u5g1_wf_jobs') }}</h2>
+<table class="list"><thead><tr><th scope="col">{{ t('nv3_c_workflow') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('nv3_c_every') }}</th><th scope="col">{{ t('nv3_c_last_run') }}</th></tr></thead><tbody>
+{% for r in jobs %}<tr>
+  <td>{{ t('u5g1_job_' ~ r.name) }}{% if r.detail %} <span class="muted">{{ t(r.detail) }}</span>{% endif %}</td>
+  <td>{{ u5.status_chip('ok' if r.state == 'on' else 'na', t('nv3_' ~ r.state)) }}</td>
+  <td>{{ every(r.interval) }}</td>
+  <td>{% if r.last %}{{ r.last|day }}{% elif d.sched %}<span class="muted">{{ t('u5g1_never_run') }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+</tr>{% endfor %}
+</tbody></table>
+</section>
+<section class="u5-panel">
+<h2 class="sec">{{ t('u5g1_wf_approvals') }}</h2>
+<table class="list"><tbody>
+{% for r in others if r.kind == 'approval' %}<tr><td><b>{{ t('nv3_wf_' ~ r.name) }}</b> - {{ t(r.detail) }}</td><td>{{ u5.status_chip('ok' if r.state == 'on' else 'na', t('nv3_' ~ r.state)) }}</td></tr>{% endfor %}
+{% for r in others if r.kind == 'sink' %}<tr><td><b>{{ t('nv3_wf_' ~ r.name) }}</b></td><td>{{ u5.status_chip('ok' if r.state == 'on' else 'na', t('nv3_' ~ r.state)) }}</td></tr>{% endfor %}
+</tbody></table>
+</section>
+{% if alerts %}
+<details class="u5-panel"><summary><b>{{ t('u5g1_wf_alerts', n=alerts|length) }}</b></summary>
+<table class="list"><tbody>
+{% for r in alerts %}<tr><td><code>{{ r.name }}</code></td><td>{{ u5.status_chip('ok' if r.state == 'on' else 'na', t('nv3_' ~ r.state)) }}</td><td>{{ every(r.interval) }} · {{ t('nv3_threshold', n=r.threshold) }}</td></tr>{% endfor %}
+</tbody></table>
+</details>
+{% endif %}
+</div>
+{% else %}
 {{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_workflows'), None)]) }}
 {{ ui.pagehead(t('nv3_workflows')) }}
 <p class="hint">{{ t('nv3_wf_lede') }}</p>
@@ -23,4 +60,5 @@
 {% endfor %}
 </tbody></table></div>
 <p class="hint">{{ t('nv3_wf_note') }}</p>
+{% endif %}
 {% endblock %}

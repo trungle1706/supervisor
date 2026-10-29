@@ -1,0 +1,134 @@
+{# My overview, UX5 layout (CONSOLE_UX5): attention block first, one strip of key figures,
+   assessment progress, autonomy level, risk class as counts, the risk assessments past their
+   review date (top 5). Same data as ov_my_v4.html (overview_v4.my_overview() as d); the 303
+   system cards and the candidate table moved to Systems and Candidates. Read only. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% import "_ux5.html" as u5 with context %}
+{% block title %}{{ t('nv3_my') }}{% endblock %}
+{% block content %}
+{% set tot = d.totals %}
+{% set pf = d.portfolio %}
+<link rel="stylesheet" href="/console/static/ux5_g1.css">
+<div class="g1" data-page="my-overview" data-unit="systems" data-version="5" data-greeting="{{ greet_key }}">
+<header class="u5-head">
+  <div class="u5-head-main">
+    <div class="u5-title"><h1>{{ t(greet_key, name=shell().first_name) }}</h1></div>
+    <p class="u5-purpose" id="greet-sub">{{ t('u5g1_my_purpose', n=tot.systems) }}</p>
+  </div>
+</header>
+<div class="g1-facts">
+  <a class="u5-chip {{ 'ok' if not d.actions_n else 'warn' }}" href="/console/cases?lang={{ lang }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('u5g1_items_wait', n=d.actions_n) }}</a>
+  <a class="u5-chip {{ 'warn' if d.cases_n else 'ok' }}" href="/console/cases?lang={{ lang }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('u5g1_cases_open', n=d.cases_n) }}</a>
+  {% if d.clock %}<span class="u5-chip {{ 'bad' if (d.clock.overdue or d.clock.secs < 14400) else 'info' }}"><span class="u5-dot" aria-hidden="true"></span>{% if d.clock.overdue %}{{ t('u5g1_clock_over', d=dur(d.clock.secs)) }}{% else %}{{ t('u5g1_clock_left', d=dur(d.clock.secs)) }}{% endif %}</span>{% endif %}
+  <span class="g1-grow"></span>
+  {{ v3.scope_switch('/console/', d.scope, d.scopes) }}
+</div>
+
+{% if d.law_change %}{# WP-W2 #}
+<section class="u5-panel g1-law" data-law-change="1" aria-label="{{ t('rc_title') }}">
+  {% if d.law_change.pending %}<p data-law-change-state="pending">{{ t('rc_ov_pending', n=d.law_change.pending) }} <a class="btn" href="/console/regkb/changes?lang={{ lang }}">{{ t('rc_ov_open') }}</a></p>{% endif %}
+  {% for a in d.law_change.applied %}<p data-law-change-state="applied">{{ t('rc_ov_applied', date=a.date, n=a.systems) }}</p>{% endfor %}
+</section>
+{% endif %}
+
+<section class="u5-attn g1-attn state-{{ d.banner.state }}" data-banner="{{ d.banner.state }}" aria-label="{{ t('u5g1_attention') }}">
+  {% if d.banner.state == 'good' %}
+  <div class="g1-attn-main"><b>{{ t('u5g1_all_good') }}</b></div>
+  {% else %}
+  <span class="u5-chip {{ 'bad' if d.banner.state == 'attention' else 'warn' }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('ov4_state_' ~ d.banner.state) }}</span>
+  <div class="g1-attn-main"><b>{{ t(d.banner.why, arg=d.banner.arg) }}</b>
+    {% if d.banner.open_items > 1 %}<p>{{ t('u5g1_more_open', n=d.banner.open_items - 1) }}</p>{% endif %}</div>
+  <a class="btn primary" href="{{ d.banner.href }}{{ '&' if '?' in d.banner.href else '?' }}lang={{ lang }}">{{ t('u5g1_open_' ~ d.banner.cta) }}</a>
+  <a class="btn" href="/console/cases?lang={{ lang }}">{{ t('u5g1_all_n', n=d.banner.open_items) }}</a>
+  {% endif %}
+</section>
+{% if d.attention or d.waiting_input %}
+<section class="u5-panel g1-todo" aria-label="{{ t('ov4_actions') }}">
+  <ul class="g1-list">
+  {% for a in d.attention[:5] %}<li><a href="{{ a.href }}?lang={{ lang }}">{{ a.text }}</a> {{ ui.pill(t('ux4b_kind_' ~ a.kind) if a.kind == 'stage' else t('nv3_kind_' ~ a.kind), {'case': 'bad', 'approval': 'warn', 'stage': 'warn'}[a.kind]) }}</li>{% endfor %}
+  {% for a in d.waiting_input[:5] %}<li><a href="{{ a.href }}?lang={{ lang }}">{{ a.text }}</a> {{ ui.pill(t('nv3_kind_task'), 'neutral') }}</li>{% endfor %}
+  </ul>
+  {% if d.attention|length > 5 or d.waiting_input|length > 5 %}{{ u5.view_all([d.attention[:5]|length + d.waiting_input[:5]|length, d.attention|length + d.waiting_input|length], d.attention|length + d.waiting_input|length, '/console/cases?lang=' ~ lang) }}{% endif %}
+</section>
+{% endif %}
+
+<section class="u5-strip g1-strip" data-totals aria-label="{{ t('u5g1_key_figures') }}">
+  <div data-num="systems"><b>{{ tot.systems }}</b><span>{{ t('ov4_t_systems') }}</span></div>
+  <div data-num="agents"><b>{{ tot.agents }}</b><span>{{ t('u5g1_agents_running', n=tot.states.get('RUNNING', 0)) }}</span></div>
+  <div data-num="cover"><b>{% if tot.cover is none %}-{% else %}{{ tot.cover.n }} / {{ tot.cover.of }}{% endif %}</b><span>{{ t('ov4_t_cover') }}</span></div>
+  <div data-num="cases"><b>{{ tot.cases }}</b><span>{{ t('ov4_t_cases') }}</span></div>
+  <div data-num="due"><b{% if tot.due %} class="g1-bad"{% endif %}>{{ tot.due }}</b><span>{{ t('ov4_t_due') }}</span></div>
+</section>
+
+<div class="g1-two">
+  <section class="u5-panel" aria-labelledby="ov4-as">
+    <div class="g1-ph"><h2 id="ov4-as">{{ t('ov4_assess') }}</h2>{% if d.systems_page %}<a href="/console/systems?lang={{ lang }}">{{ t('nv3_systems') }}</a>{% endif %}</div>
+    <div data-assess>
+      {% for a in d.assess %}
+      {% set pc = (a.bp // 100) if a.bp is not none else 0 %}
+      <div class="g1-row" data-dim="{{ a.key }}"><span class="g1-l">{{ t('ov4_dim_' ~ a.key) }}</span><span class="g1-n">{% if a.bp is none %}-{% elif a.key == 'duties' %}{{ t('du_ov_line', avg=a.avg, n=a.of, open=a.open_systems) }}{% else %}{{ a.done }} / {{ a.of }}{% endif %}</span><span class="g1-bar" role="img" aria-label="{{ pc }}%"><i class="{{ 'ok' if pc >= 90 else ('warn' if pc >= 50 else 'high') }}" style="width:{{ pc }}%"></i></span></div>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="u5-panel" aria-labelledby="ov4-rk">
+    <div class="g1-ph"><h2 id="ov4-rk">{{ t('ov4_risk_by_autonomy') }}</h2><span class="g1-sub">{{ t('u5g1_systems_n', n=tot.systems) }}</span></div>
+    {% set peak = namespace(v=1) %}{% for r in d.risk_rows %}{% if r.total > peak.v %}{% set peak.v = r.total %}{% endif %}{% endfor %}
+    <div data-risk>
+      {% for r in d.risk_rows if r.total %}
+      <div class="g1-row" data-level="{{ r.level }}"><span class="g1-l">{{ t('sy_autonomy_level_' ~ r.level) }}</span><span class="g1-n">{{ r.total }}</span><span class="g1-bar" role="img" aria-label="{{ r.total }}"><i class="muted" style="width:{{ r.total * 100 // peak.v }}%"></i></span></div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<div class="g1-two">
+  <section class="u5-panel" aria-labelledby="pf-cl" data-block="classification">
+    <div class="g1-ph"><h2 id="pf-cl">{{ t('u5g1_risk_class') }}</h2>{% if pf and pf.classification.on and pf.classification.waiting_for_approval_n %}<a href="/console/systems?lang={{ lang }}">{{ t('u5g1_wait_approval', n=pf.classification.waiting_for_approval_n) }}</a>{% endif %}</div>
+    {% if pf and pf.classification.on %}
+    <ul class="g1-counts" data-bars>
+      {% for b in pf.classification.bars %}
+      <li data-outcome="{{ b.outcome }}" data-count="{{ b.count }}"><span class="u5-dot g1-o-{{ b.outcome }}" aria-hidden="true"></span>{% if d.systems_page %}<a href="/console/systems?outcome={{ b.outcome }}&amp;lang={{ lang }}">{{ t('pf_out_' ~ b.outcome) }}</a>{% else %}<span>{{ t('pf_out_' ~ b.outcome) }}</span>{% endif %}<b>{{ b.count }}</b></li>
+      {% endfor %}
+    </ul>
+    {% if pf.classification.review_due_n %}<p class="g1-sub">{{ t('u5g1_due_review', n=pf.classification.review_due_n) }}</p>{% endif %}
+    {% else %}<p class="g1-sub">{{ t('pf_class_off') }}</p>{% endif %}
+  </section>
+  <section class="u5-panel" aria-labelledby="ov4-pp">
+    <div class="g1-ph"><h2 id="ov4-pp">{{ t('ov4_pipeline') }}</h2><button type="button" class="u5-info" title="{{ t('ov4_pipeline_note') }}" aria-label="{{ t('ux5_info') }}">i</button></div>
+    <div data-pipeline>
+      {% set pmax = namespace(v=1) %}{% for key, n in d.pipeline %}{% if n is not none and n > pmax.v %}{% set pmax.v = n %}{% endif %}{% endfor %}
+      {% for key, n in d.pipeline %}
+      <div class="g1-row" data-stage="{{ key }}"><span class="g1-l">{% if key == 'candidates' and n is not none %}<a href="/console/candidates?lang={{ lang }}">{{ t('ov4_stage_' ~ key) }}</a>{% else %}{{ t('ov4_stage_' ~ key) }}{% endif %}</span><span class="g1-n">{% if n is none %}-{% else %}{{ n }}{% endif %}</span><span class="g1-bar" role="img" aria-label="{{ n or 0 }}"><i class="muted" style="width:{{ ((n or 0) * 100 // pmax.v) }}%"></i></span></div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+{% if pf and pf.risk.on %}
+{% set rk = pf.risk %}
+<section class="u5-panel" aria-labelledby="pf-rk" data-block="risk">
+  <div class="g1-ph"><h2 id="pf-rk">{{ t('u5g1_past_title') }}</h2>{% if d.systems_page %}<a href="/console/risks?lang={{ lang }}">{{ t('ux5_view_all') }} {{ rk.past_valid_until_n }}</a>{% endif %}</div>
+  {% if rk.past_rows %}
+  <div class="g1-scroll">
+  <table class="g1-grid" data-grid data-past="{{ rk.past_valid_until_n }}">
+    <thead><tr><th scope="col">{{ t('pf_system') }}</th>{% for dim in rk.dimension_ids %}<th scope="col">{{ t('pf_dim_' ~ dim) }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for r in rk.past_rows[:5] %}
+    <tr data-system="{{ r.system_id }}">
+      <th scope="row">{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}<span class="g1-id">{{ r.system_id }}</span></th>
+      {% for dim in rk.dimension_ids %}{% set st = r.cells[dim] %}
+      <td data-dim="{{ dim }}" data-status="{{ st }}">{{ u5.status_chip({'pass': 'ok', 'fail': 'bad', 'waived': 'info'}.get(st, 'na'), t('pf_st_' ~ ('open' if st in ('not_started', 'in_progress') else st))) }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {{ u5.view_all([rk.past_rows|length, 5]|min, rk.past_valid_until_n, '/console/risks?lang=' ~ lang) }}
+  {% else %}<p class="g1-sub">{{ t('u5g1_past_none') }}</p>{% endif %}
+</section>
+{% endif %}
+</div>
+{% endblock %}

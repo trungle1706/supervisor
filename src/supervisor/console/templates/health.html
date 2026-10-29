@@ -1,7 +1,55 @@
 {% extends "base.html" %}
 {% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
 {% block title %}{{ t('nav_health') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% set is_admin = 'admin' in me.roles %}
+<link rel="stylesheet" href="/console/static/ux5_g1.css">
+<div class="g1">
+{{ u5.page_head(t('nav_health'), t('health_lead'), about=t('health_why')) }}
+<section class="u5-panel" id="health-summary">
+<h2 class="sec">{{ t('u5g1_health_status') }}</h2>
+<table>
+  <thead><tr><th>{{ t('check') }}</th><th>{{ t('status') }}</th><th>{{ t('detail') }}</th></tr></thead>
+  <tbody>
+  {% for r in summary %}
+  <tr data-row="{{ r.name }}">
+    <td><strong>{{ t(r.name) }}</strong></td>
+    <td>{{ u5.status_chip({'ok': 'ok', 'warn': 'warn', 'bad': 'bad', 'info': 'info'}.get(r.kind, 'na'), r.status) }}</td>
+    <td>{% set parts = [] %}{% if r.name == 'h_mode' and r.detail %}{% set _ = parts.append(r.detail) %}{% endif %}{% if r.key %}{% set _ = parts.append(t(r.key)) %}{% endif %}{{ parts|join(' · ') }}{% if r.last_anchor %}{{ ' · ' if parts }}{{ t('last_anchor') }} {{ r.last_anchor|day }}{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</section>
+{% set nfail = checks|selectattr('status', 'equalto', 'FAIL')|list|length %}
+{% set nskip = checks|selectattr('status', 'equalto', 'SKIP')|list|length %}
+<section class="u5-panel" id="health-checks">
+<h2 class="sec">{{ t('u5g1_health_dev') }}</h2>
+<p>{{ u5.status_chip('bad' if nfail else 'ok', t('n_failed', n=nfail) if nfail else t('all_pass')) }} <span class="g1-sub">{{ t('u5g1_health_pre', fail=nfail, skip=nskip, ok=checks|length - nfail - nskip) }}</span></p>
+{% if is_admin %}
+<details class="g1-filters-more"><summary>{{ t('u5g1_show_checks') }}</summary>
+<table>
+  <thead><tr><th>{{ t('check') }}</th><th>{{ t('status') }}</th><th>{{ t('detail') }}</th><th>{{ t('fix') }}</th></tr></thead>
+  <tbody>
+  {% for c in checks %}
+  <tr data-check="{{ c.name }}" data-status="{{ c.status }}">
+    <td><code>{{ c.name }}</code></td>
+    <td>{{ u5.status_chip({'ok': 'ok', 'bad': 'bad'}.get(c.kind, 'na'), c.status) }}</td>
+    <td class="wrap">{{ c.detail or '-' }}</td>
+    <td>{% if c.fix %}<code>{{ c.fix }}</code>{% else %}-{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</details>
+{{ u5.technical([('JUDGE_T1_MODEL', t('h_judge')), ('CONSOLE_ONBOARD_ENABLED', t('h_onboard')), ('python -m supervisor.cli preflight', t('preflight_checks'))]) }}
+{% endif %}
+<p class="g1-note">{{ t('health_note') }}</p>
+</section>
+</div>
+{% else %}
 {{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_health'), None)]) }}
 {{ ui.pagehead(t('nav_health')) }}
 <div class="purpose">
@@ -41,4 +89,5 @@
 </table>
 </div>
 <div class="note">{{ t('health_note') }}{% if databricks %} {{ t('health_note_dbx') }}{% endif %}</div>
+{% endif %}
 {% endblock %}

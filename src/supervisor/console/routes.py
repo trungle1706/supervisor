@@ -107,6 +107,7 @@ STATIC = {
     "console.js": "application/javascript",
     "console.css": "text/css",
     "ux5.css": "text/css",  # UX5-F: linked only with CONSOLE_UX5
+    "ux5_g1.css": "text/css",  # UX5 G1 (overview family)
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (
@@ -557,7 +558,7 @@ async def overview(
                 request,
                 ctx,
                 me,
-                "ov_my_v4.html",
+                "ov_my_v4_ux5.html" if ctx.settings.console_ux5 else "ov_my_v4.html",
                 section="overview",
                 d=d4,
                 greet_key=readmodels.greeting_key(now),
@@ -2736,6 +2737,8 @@ async def governance_overview_page(
     build = systems_overview.governance_overview if unit else overview_v3.governance_overview
     d = await _call(build, ctx, me, request.query_params.get("scope"), ctx.clock.now())
     template = "ov_gov_systems.html" if unit else "ov_governance.html"
+    if unit and ctx.settings.console_ux5:
+        template = "ov_gov_systems_ux5.html"
     return render(request, ctx, me, template, section="gov_overview", d=d)
 
 
@@ -2749,7 +2752,8 @@ async def supervisor_overview_page(
     d = await _call(
         overview_v3.supervisor_overview, ctx, me, request.query_params.get("scope"), ctx.clock.now()
     )
-    return render(request, ctx, me, "ov_supervisor.html", section="sup_overview", d=d)
+    template = "ov_supervisor_ux5.html" if ctx.settings.console_ux5 else "ov_supervisor.html"
+    return render(request, ctx, me, template, section="sup_overview", d=d)
 
 
 @router.get(

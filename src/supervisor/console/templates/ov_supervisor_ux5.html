@@ -1,0 +1,76 @@
+{# Supervisor overview, UX5 layout (CONSOLE_UX5): four figures, alerts and judges first, then the
+   agents with stops or gaps (top 10); identical healthy rows fold into one line and the chain
+   status shows once as a banner. Data: overview_v3.supervisor_overview() as d. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% import "_ux5.html" as u5 with context %}
+{% block title %}{{ t('nv3_sup_overview') }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/ux5_g1.css">
+<div class="g1">
+{{ u5.page_head(t('nv3_sup_overview'), t('u5g1_sup_purpose', n=d.rows|length)) }}
+<div class="g1-facts"><span class="g1-grow"></span>{{ v3.scope_switch('/console/supervisor', d.scope, d.scopes) }}</div>
+<div class="g1-tiles" id="numbers">
+{% for tl in d.tiles %}
+<div class="g1-tile" data-num="{{ tl.key }}">
+  {% if tl.value is none %}<b class="g1-nm">{{ t('u5g1_not_measured') }}</b><span>{{ t(tl.na) }}</span>
+  {% elif tl.key == 'checked' %}<b>{{ (tl.value ~ '+') if tl.capped else tl.value }}</b><span>{{ t('nv3_tile_checked') }} · {{ t('nv3_checked_sub', n=tl.agents) }}</span>
+  {% elif tl.key == 'stopped' %}<b>{{ tl.value }}</b><span>{{ t('nv3_tile_stopped') }} · {{ t('blocked_paused', b=tl.blocked, p=tl.paused) }}</span>
+  {% elif tl.key == 'cover' %}<b>{{ tl.value }} / {{ tl.of }}</b><span>{{ t('nv3_tile_cover') }}{% if tl.detail %} · {{ t(tl.detail) }}{% endif %}</span>
+  {% else %}<b>{{ tl.value }}</b><span>{{ t('nv3_tile_cases') }}{% if tl.critical %} · {{ t('n_critical', n=tl.critical) }}{% endif %}{% if tl.clock %} · {% if tl.clock.overdue %}{{ t('u5g1_clock_over', d=dur(tl.clock.secs)) }}{% else %}{{ t('u5g1_clock_left', d=dur(tl.clock.secs)) }}{% endif %}{% endif %}</span>
+  {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<div class="g1-two">
+<section class="u5-panel">
+<h2 class="sec">{{ t('nv3_alerts_7d') }}</h2>
+{% if d.alerts %}
+<table class="list"><thead><tr><th scope="col">{{ t('nv3_c_rule') }}</th><th scope="col" class="n">{{ t('nv3_c_count') }}</th></tr></thead><tbody>
+{% for a in d.alerts %}<tr><td><a href="/console/alerts?lang={{ lang }}">{{ a.title }}</a></td><td class="n">{{ a.n }}</td></tr>
+{% endfor %}
+</tbody></table>
+{% else %}<p class="g1-sub">{{ t('nv3_no_alerts') }}</p>{% endif %}
+</section>
+<section class="u5-panel">
+<h2 class="sec">{{ t('nv3_judges_packs') }}</h2>
+<table class="list"><thead><tr><th scope="col">{{ t('nv3_c_item') }}</th><th scope="col">{{ t('status') }}</th></tr></thead><tbody>
+<tr><td>{{ t('cat_judge_tiers') }}</td><td>{% if d.judges.on %}{{ u5.status_chip('ok', t('cat_on')) }}{% if d.judges.mock %} {{ u5.status_chip('warn', 'mock') }}{% endif %}{% else %}<span class="muted">{{ t('nv3_off') }}</span>{% endif %}</td></tr>
+<tr><td>{{ t('nv3_last_pack') }}</td><td>{% if d.packs %}<a href="/console/assurance?lang={{ lang }}">{{ t('nv3_pack_counts', ok=d.packs.ok, warn=d.packs.warn, fail=d.packs.fail) }}</a>{% if d.packs.mock %} {{ u5.status_chip('warn', 'mock') }}{% endif %}{% else %}<span class="muted">{{ t('nv3_no_pack') }}</span>{% endif %}</td></tr>
+<tr><td>{{ t('cat_redteam') }}</td><td>{% if d.redteam %}{{ u5.status_chip('ok', t('cat_on')) }}{% else %}<span class="muted">{{ t('nv3_off') }}</span>{% endif %}</td></tr>
+</tbody></table>
+</section>
+</div>
+
+{% set unverified = [] %}{% set problems = [] %}
+{% for r in d.rows %}{% if not r.verify %}{% set _ = unverified.append(r) %}{% endif %}{% if r.blocks or (r.cover and r.cover.total and not r.cover.full) %}{% set _ = problems.append(r) %}{% endif %}{% endfor %}
+{% set chain_banner = d.rows and unverified|length == d.rows|length %}
+{% if chain_banner %}
+<div class="g1-banner" data-chain="unverified">{{ u5.status_chip('warn', t('not_verified_short')) }}<span>{{ t('u5g1_chain_banner', n=unverified|length) }}</span><a class="btn" href="/console/evidence?lang={{ lang }}">{{ t('u5g1_verify') }}</a></div>
+{% endif %}
+
+<section class="u5-panel">
+<div class="g1-ph"><h2 class="sec">{{ t('u5g1_sup_problem') }}</h2><a href="/console/agents?lang={{ lang }}">{{ t('u5g1_sup_all', n=d.rows|length) }}</a></div>
+{% if d.rows %}
+{% if problems %}
+<table class="list" data-table="health">
+<thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col" class="n">{{ t('nv3_c_coverage') }}</th><th scope="col" class="n">{{ t('nv3_c_blocks') }}</th><th scope="col">{{ t('nv3_c_detectors') }}</th><th scope="col" class="n">{{ t('nv3_c_p95') }}</th>{% if not chain_banner %}<th scope="col">{{ t('nv3_c_chain') }}</th>{% endif %}</tr></thead>
+<tbody>
+{% for r in problems[:10] %}
+<tr><td><a href="/console/agents?drawer={{ r.agent_id }}&amp;lang={{ lang }}">{{ r.agent_id }}</a></td><td class="n">{{ v3.pct(r.coverage_bp) }}</td><td class="n">{{ r.blocks }}</td><td>{{ v3.cover(r.cover) }}</td><td class="n">{% if r.p95_ms is none %}-{% else %}{{ t('nv3_ms', ms=r.p95_ms) }}{% endif %}</td>{% if not chain_banner %}<td>{{ ui.verify_pill(r.verify) }}</td>{% endif %}</tr>
+{% endfor %}
+{% if d.rows|length > problems|length %}{{ u5.fold(d.rows|length - problems|length, t('u5g1_sup_fold'), 6 if not chain_banner else 5) }}{% endif %}
+</tbody></table>
+{{ u5.view_all([problems|length, 10]|min, problems|length, '/console/agents?lang=' ~ lang) }}
+{% else %}
+<p class="g1-sub">{{ t('u5g1_no_problem') }}</p>
+{{ u5.fold(d.rows|length, t('u5g1_sup_fold')) }}
+{% endif %}
+{% else %}
+{{ ui.empty(t('nv3_no_agents'), t('nv3_no_agents_line'), '/console/supervisor?scope=all&lang=' ~ lang, t('nv3_scope_all')) }}
+{% endif %}
+</section>
+</div>
+{% endblock %}

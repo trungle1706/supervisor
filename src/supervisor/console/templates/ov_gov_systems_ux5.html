@@ -1,0 +1,76 @@
+{# Governance overview, UX5 layout (CONSOLE_UX5): four figures, stage and risk tables, readiness
+   and policy by system as top 10 (systems with no data fold into one line). Data:
+   systems_overview.governance_overview() as d. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_v3.html" as v3 with context %}
+{% import "_ux5.html" as u5 with context %}
+{% block title %}{{ t('nv3_gov_overview') }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/ux5_g1.css">
+<div class="g1" data-unit="systems">
+{{ u5.page_head(t('nv3_gov_overview'), t('u5g1_gov_purpose', n=d.tiles[0].value, total=d.total), about=t('ux4b_classified_note')) }}
+<div class="g1-facts">{{ u5.disclaimer(t('u5g1_advisory')) }}<span class="g1-grow"></span>{{ v3.scope_switch('/console/governance', d.scope, d.scopes) }}</div>
+<div class="g1-tiles" id="numbers">
+{% for tl in d.tiles %}
+<div class="g1-tile" data-num="{{ tl.key }}">
+  {% if tl.key == 'systems' %}<b>{{ tl.value }}</b><span>{{ t('ux4b_tile_systems') }}</span>
+  {% elif tl.value is none %}<b class="g1-nm">{{ t('u5g1_not_measured') }}</b><span>{{ t('nv3_tile_' ~ tl.key) }} · {{ t('u5g1_not_measured_line') if tl.key == 'readiness' else t(tl.na) }}</span>
+  {% elif tl.key == 'classified' %}<b title="{{ t('u5g1_classified_tip') }}">{{ tl.value // 100 }}%</b><span title="{{ t('u5g1_classified_tip') }}">{{ t('nv3_tile_classified') }} · {{ t('ux4b_classified_n', n=tl.n, of=tl.of) }}</span>
+  {% elif tl.key == 'readiness' %}<b>{{ tl.value // 100 }}%</b><span>{{ t('nv3_tile_readiness') }} · {{ t('nv3_readiness_n', n=tl.n, of=tl.of) }}{% if tl.capped %} · {{ t('nv3_capped') }}{% endif %}</span>
+  {% else %}<b{% if tl.value %} class="g1-bad"{% endif %}><a href="/console/tasks?lang={{ lang }}">{{ tl.value }}</a></b><span>{{ t('nv3_tile_overdue') }}{% if tl.oldest is not none %} · {{ t('nv3_overdue_oldest', d=tl.oldest) }}{% endif %}</span>
+  {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<div class="g1-two">
+<section class="u5-panel">
+<h2 class="sec">{{ t('ux4b_by_stage') }}</h2>
+{% if d.stages %}
+<table class="list" data-table="stages"><thead><tr><th scope="col">{{ t('nv3_c_stage') }}</th><th scope="col" class="n">{{ t('nv3_systems') }}</th><th scope="col" class="n">{{ t('ux4b_pending_approval') }}</th><th scope="col" class="n">{{ t('nv3_c_open_required') }}</th></tr></thead><tbody>
+{% for r in d.stages %}<tr><td>{{ t('sy_stage_' ~ r.stage) }}</td><td class="n">{{ r.systems }}</td><td class="n">{{ r.pending if r.pending else '-' }}</td><td class="n">{% if d.open_na %}-{% else %}{{ r.open }}{% endif %}</td></tr>
+{% endfor %}
+</tbody></table>
+{% else %}<p class="g1-sub">{{ t('ux4b_no_systems') }}</p>{% endif %}
+</section>
+<section class="u5-panel">
+<h2 class="sec">{{ t('nv3_risk_posture') }}</h2>
+{% if d.risks.na %}<p class="g1-sub">{{ t('u5g1_not_measured') }}. {{ t(d.risks.na) }}</p>
+{% elif d.risks.rows %}
+<table class="list"><thead><tr><th scope="col">{{ t('nv3_c_band') }}</th><th scope="col" class="n">{{ t('nv3_c_risks') }}</th><th scope="col" class="n">{{ t('nv3_c_treated') }}</th><th scope="col" class="n">{{ t('nv3_c_accepted') }}</th></tr></thead><tbody>
+{% for r in d.risks.rows %}<tr><td>{{ ui.sev(r.band) }}</td><td class="n">{{ r.n }}</td><td class="n">{{ r.treated }}</td><td class="n">{{ r.accepted }}</td></tr>
+{% endfor %}
+</tbody></table>
+{% else %}<p class="g1-sub">{{ t('nv3_no_risks') }}</p>{% endif %}
+</section>
+</div>
+
+{% set ready = [] %}{% for r in d.ready_rows if r.total %}{% set _ = ready.append(r) %}{% endfor %}
+<section class="u5-panel" data-section="readiness">
+<div class="g1-ph"><h2>{{ t('u5g1_ready_title') }}</h2>{% if d.systems_page %}<a href="/console/risks?lang={{ lang }}">{{ t('ux5_view_all') }}</a>{% endif %}</div>
+{% if ready %}
+<table class="list" data-table="readiness"><thead><tr><th scope="col">{{ t('ux4b_system') }}</th><th scope="col" class="n">{{ t('ct_ev_working') }}</th><th scope="col" class="n">{{ t('ux4b_controls_n') }}</th><th scope="col" class="n">{{ t('nv3_c_progress') }}</th></tr></thead><tbody>
+{% for r in ready[:10] %}<tr><td>{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?tab=controls&amp;lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td><td class="n">{{ r.working }}</td><td class="n">{{ r.total }}</td><td class="n">{{ v3.pct(r.bp) }}</td></tr>
+{% endfor %}
+{% if d.ready_rows|length > ready|length %}{{ u5.fold(d.ready_rows|length - ready|length, t('u5g1_ready_fold'), 4) }}{% endif %}
+</tbody></table>
+{{ u5.view_all([ready|length, 10]|min, ready|length, '/console/risks?lang=' ~ lang) }}
+{% else %}<p class="g1-sub">{{ t('u5g1_ready_none') if not d.open_na else t('nv3_na_controls_off') }}</p>{% if d.ready_rows %}{{ u5.fold(d.ready_rows|length, t('u5g1_ready_fold')) }}{% endif %}{% endif %}
+</section>
+
+<section class="u5-panel" data-section="policy">
+<h2 class="sec">{{ t('ux4b_policy_by_system') }}</h2>
+{% if d.policy.na %}<p class="g1-sub">{{ t('u5g1_not_measured') }}. {{ t(d.policy.na) }}</p>
+{% elif d.policy.rows %}
+<table class="list" data-table="policy"><thead><tr><th scope="col">{{ t('ux4b_system') }}</th><th scope="col" class="n">{{ t('nv3_c_obligations') }}</th><th scope="col" class="n">{{ t('nv3_c_met') }}</th><th scope="col" class="n">{{ t('nv3_c_gap') }}</th><th scope="col" class="n">{{ t('nv3_c_progress') }}</th></tr></thead><tbody>
+{% for r in d.policy.rows[:10] %}<tr><td>{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?tab=policies&amp;lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td><td class="n">{{ r.applies }}</td><td class="n">{{ r.met }}</td><td class="n">{{ r.gap }}</td><td class="n">{{ v3.pct(r.bp) }}</td></tr>
+{% endfor %}
+</tbody></table>
+{{ u5.view_all([d.policy.rows|length, 10]|min, d.policy.rows|length, '/console/compliance?lang=' ~ lang) }}
+{% else %}<p class="g1-sub">{{ t('u5g1_policy_none') }}</p>{% endif %}
+</section>
+
+{% include "_ov_gov_kpis.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+/* UX5 group G1 (overview family). Linked only when CONSOLE_UX5 is on; every rule under .ux5. */
+.ux5 .g1-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; }
+.ux5 .g1-facts a.u5-chip { text-decoration: none; }
+.ux5 .g1-facts .scope-sw { margin: 0; }
+.ux5 .g1-grow { flex: 1; }
+.ux5 .g1-attn { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 16px; }
+.ux5 .g1-attn.state-good { background: var(--u5-panel); border-color: var(--u5-line); }
+.ux5 .g1-attn-main { flex: 1 1 320px; min-width: 0; }
+.ux5 .g1-attn-main p { margin: 2px 0 0; color: var(--u5-muted); }
+.ux5 .g1-todo, .ux5 .g1-law { margin-bottom: 16px; padding: 12px 20px; }
+.ux5 .g1-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ux5 .g1-strip { margin-bottom: 16px; }
+.ux5 .g1-bad { color: var(--u5-crit); }
+.ux5 .g1-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+@media (max-width: 900px) { .ux5 .g1-two { grid-template-columns: minmax(0, 1fr); } .ux5 .u5-strip { grid-auto-flow: row; } }
+.ux5 .g1 .u5-panel { margin-bottom: 0; }
+.ux5 .g1 > .u5-panel { margin-bottom: 16px; }
+.ux5 .g1-ph { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.ux5 .g1-ph h2 { margin: 0; }
+.ux5 .g1-sub { font-size: 13px; color: var(--u5-muted); margin: 8px 0 0; }
+.ux5 .g1-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 110px; align-items: center; gap: 12px; padding: 6px 0; font-size: 14px; }
+.ux5 .g1-row .g1-l { min-width: 0; overflow-wrap: anywhere; }
+.ux5 .g1-row .g1-n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.ux5 .g1-bar { display: block; height: 6px; border-radius: 3px; background: var(--u5-inset); overflow: hidden; }
+.ux5 .g1-bar i { display: block; height: 100%; border-radius: 3px; background: var(--u5-muted); }
+.ux5 .g1-bar i.ok { background: var(--u5-ok); }
+.ux5 .g1-bar i.warn { background: var(--u5-warn); }
+.ux5 .g1-bar i.high { background: var(--u5-high); }
+.ux5 .g1-counts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ux5 .g1-counts li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 3px 0; max-width: none; }
+.ux5 .g1-counts b { font-variant-numeric: tabular-nums; }
+.ux5 .g1-o-prohibited { background: #16181B; } .ux5 .g1-o-high_certify { background: var(--u5-crit); }
+.ux5 .g1-o-high_self { background: var(--u5-high); } .ux5 .g1-o-medium { background: var(--u5-partial); }
+.ux5 .g1-o-low { background: var(--u5-ok); } .ux5 .g1-o-not_system { background: var(--u5-na); }
+.ux5 .g1-o-none { background: var(--u5-line); }
+.ux5 .g1-scroll { overflow-x: auto; }
+.ux5 .g1-grid { width: 100%; border-collapse: collapse; }
+.ux5 .g1-grid th[scope="row"] { text-align: left; min-width: 220px; white-space: normal; color: var(--u5-ink); }
+.ux5 .g1-grid td { white-space: nowrap; }
+.ux5 .g1-id { display: block; font-family: var(--f-mono); font-size: 12px; font-weight: 400; color: var(--u5-muted); }
+.ux5 .g1-note { font-size: 12px; color: var(--u5-muted); margin: 16px 0 0; }
+.ux5 .g1-banner { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0 0 16px; padding: 12px 16px; border: 1px solid var(--u5-line); border-radius: 10px; background: var(--u5-panel); }
+.ux5 .g1-filters-more > summary { cursor: pointer; color: var(--u5-muted); font-size: 13px; margin: 8px 0; }
+.ux5 .g1-nowrap { white-space: nowrap; }
+.ux5 .g1-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.ux5 .g1-tile { background: var(--u5-panel); border: 1px solid var(--u5-line); border-radius: 10px; padding: 16px 20px; }
+.ux5 .g1-tile b { display: block; font-size: 24px; font-weight: 700; line-height: 1.2; }
+.ux5 .g1-tile .g1-nm { font-size: 18px; color: var(--u5-muted); }
+.ux5 .g1-tile span { font-size: 12px; color: var(--u5-muted); }
+.ux5 .g1-grid .u5-chip { border: 0; padding: 0; background: none; }
+.ux5 .g1-grid th, .ux5 .g1-grid td { padding-left: 8px; padding-right: 8px; }
+.ux5 .g1-grid th[scope="row"] { min-width: 190px; }
+.ux5 .g1-counts .u5-dot { width: 9px; height: 9px; }
+.ux5 .g1 .u5-panel h2.sec { margin: 0 0 12px; }
+.ux5 .g1-two { align-items: start; }

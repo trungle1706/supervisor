@@ -148,6 +148,7 @@ def risk_block(ctx: Any, systems: list[Mapping[str, Any]]) -> dict[str, Any]:
     wanted = set(ids)
     cells: dict[str, dict[str, str]] = {sid: {} for sid in ids}
     past: set[str] = set()
+    oldest: dict[str, str] = {}  # system id -> oldest past valid_until (UX5 list)
     for r in ctx.state.query("risk_dimension_status", {}):
         sid = str(r["system_id"])
         if sid not in wanted or r["dimension_id"] not in dims:
@@ -155,6 +156,9 @@ def risk_block(ctx: Any, systems: list[Mapping[str, Any]]) -> dict[str, Any]:
         cells[sid][str(r["dimension_id"])] = str(r["status"])
         if _past(r.get("valid_until"), now):
             past.add(sid)
+            day = str(r.get("valid_until"))[:10]
+            if sid not in oldest or day < oldest[sid]:
+                oldest[sid] = day
     names = {str(r["system_id"]): str(r.get("name") or r["system_id"]) for r in live}
     rows = []
     for sid in ids:
@@ -168,7 +172,12 @@ def risk_block(ctx: Any, systems: list[Mapping[str, Any]]) -> dict[str, Any]:
             }
         )
     rows.sort(key=lambda x: (-x["fail_n"], x["name"].lower(), x["system_id"]))
-    return {
+    # UX5: the systems past their review date, oldest date first (the overview shows the top 5)
+    past_rows = sorted(
+        ({**x, "oldest": oldest[x["system_id"]]} for x in rows if x["system_id"] in oldest),
+        key=lambda x: (x["oldest"], x["name"].lower(), x["system_id"]),
+    )
+    out: dict[str, Any] = {
         "on": True,
         "systems_n": int(s["systems"]),
         "dimensions": totals,
@@ -178,6 +187,9 @@ def risk_block(ctx: Any, systems: list[Mapping[str, Any]]) -> dict[str, Any]:
         "rows": rows[:GRID_ROWS],
         "more_n": max(len(rows) - GRID_ROWS, 0),
     }
+    if getattr(ctx.settings, "console_ux5", False):
+        out["past_rows"] = past_rows
+    return out
 
 
 # ----------------------------------------------------------------------------- the two together
