@@ -1,6 +1,31 @@
 {# Editor step 1: template (WP-F2). The dimension, the group and the schema version are locked. #}
 {% import "_ui.html" as ui with context %}
 {% import "_factory_ui.html" as fu with context %}
+{% if ux5 %}
+{% import "_ui.html" as ui with context %}
+{% import "_factory_ui.html" as fu with context %}
+<link rel="stylesheet" href="/console/static/ux5_g6.css">
+<section class="card" id="factory-step-panel" data-step="template">
+  <h3>{{ t('fa_step_template') }}</h3>
+  <p class="hint">{{ t('fa_template_hint') }}</p>
+  <form hx-post="/console/factory/{{ ed.agent.id }}/step/template" hx-target="#factory-step" hx-swap="innerHTML" method="post">
+    {{ fu.hid(ed) }}
+    <div class="g6-grid">
+      <span class="g6-lab">{{ t('fa_f_dimension') }}</span><span data-locked="dimension_id">{{ t('fa_dim_' ~ ed.agent.dimension_id) }} <span class="muted">{{ t('fa_locked') }}</span></span>
+      <span class="g6-lab">{{ t('fa_f_group') }}</span><span data-locked="owner_group">{{ ed.agent.owner_label }} <span class="muted">{{ t('fa_locked') }}</span></span>
+      <span class="g6-lab">{{ t('fa_f_schema') }}</span><span>v{{ ed.defn.schema_version }} <span class="muted">{{ t('fa_locked') }}</span></span>
+      {% if ed.template %}<span class="g6-lab">{{ t('fa_f_template') }}</span><span data-template="{{ ed.template.template_id }}">{{ ed.template.label_en }} &middot; {{ t('fa_template_items', n=ed.template.checklist|length) }}</span>{% endif %}
+      <label class="g6-lab" for="g6-name">{{ t('fa_f_name') }}</label>
+      <input id="g6-name" type="text" name="name" data-field="name" value="{{ ed.defn.name }}" maxlength="{{ ed.caps.NAME_MAX }}" {{ '' if ed.editable else 'disabled' }}>
+      <label class="g6-lab" for="g6-desc">{{ t('fa_f_description') }}</label>
+      <textarea id="g6-desc" name="description" data-field="description" rows="3" maxlength="{{ ed.caps.DESCRIPTION_MAX }}" {{ '' if ed.editable else 'disabled' }}>{{ ed.defn.description }}</textarea>
+      <label class="g6-lab" for="g6-pack">{{ t('fa_f_eval_pack') }}<span class="g6-help">{{ tx('u6_eval_pack_help') }}</span></label>
+      <input id="g6-pack" type="text" name="eval_pack" data-field="eval_pack" value="{{ ed.defn.eval_pack }}" {{ '' if ed.editable else 'disabled' }}>
+    </div>
+    {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}
+  </form>
+</section>
+{% else %}
 <section class="card" id="factory-step-panel" data-step="template">
   <h3>1. {{ t('fa_step_template') }}</h3>
   <p class="hint">{{ t('fa_template_hint') }}</p>
@@ -18,3 +43,4 @@
     {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}
   </form>
 </section>
+{% endif %}

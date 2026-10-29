@@ -5,7 +5,14 @@
 {% set aid = ed.agent.id %}
 <section class="card" id="factory-step-panel" data-step="gate">
   <h3>10. {{ t('fg_title') }}</h3>
-  <p class="hint">{{ t('fg_hint') }}</p>
+  {% if ux5 %}
+  <div class="g6-banner" data-gate-banner="1">{{ ui.pill(ed.agent.state, ed.agent.state_pill, True) }}
+    <b>{{ tx('u6_gate_ready_' ~ ('live' if ed.agent.live_version else 'other'), v=ed.agent.live_version) }}</b>
+    {% if ed.agent.last_gate %}<span class="muted">{{ tx('u6_gate_last', verdict=ed.agent.last_gate.verdict, kind=ed.agent.last_gate.kind, v=ed.agent.last_gate.version) }}</span>{% else %}<span class="muted">{{ t('fa_gate_later') }}</span>{% endif %}
+    {% if g.promo.required %}<span class="muted">{{ tx('u6_gate_approvals', n=g.promo.required|length - g.promo.missing|length, m=g.promo.required|length) }}</span>{% endif %}</div>
+  {% endif %}
+  {% if ux5 %}<details class="g6-gate-why"><summary>{{ tx('u6_gate_how') }}</summary><p class="hint">{{ t('fg_hint') }}</p></details>
+  {% else %}<p class="hint">{{ t('fg_hint') }}</p>{% endif %}
   {% if not g.model_ready %}<p class="notice" data-model-off="1"><span class="dot"></span>{{ t('fg_model_off') }}</p>{% endif %}
 
   <h4>{{ t('fg_golden') }}</h4>
@@ -46,18 +53,18 @@
     {% if g.running %}hx-get="/console/factory/{{ aid }}/gate?v={{ ed.version }}&amp;state={{ ed.agent.state }}" hx-trigger="every 2s" hx-target="#factory-step" hx-swap="innerHTML"{% endif %}>
     <h4>{{ t('fg_runs') }}</h4>
     <table class="queue" data-table="gate-runs">
-      <thead><tr><th scope="col">{{ t('fg_kind') }}</th><th scope="col">v</th><th scope="col">{{ t('fg_status') }}</th><th scope="col">{{ t('fg_verdict') }}</th><th scope="col">L1 %</th><th scope="col">kappa</th><th scope="col">{{ t('fg_match') }} %</th><th scope="col">{{ t('fg_lost') }}</th><th scope="col">{{ t('fg_cost') }}</th><th scope="col"></th></tr></thead>
+      <thead><tr><th scope="col">{{ t('fg_kind') }}</th><th scope="col">v</th><th scope="col">{{ t('fg_status') }}</th><th scope="col">{{ t('fg_verdict') }}</th><th scope="col">{{ tx('u6_rule_checks') if ux5 else 'L1' }} %</th><th scope="col">kappa</th><th scope="col">{{ t('fg_match') }} %</th><th scope="col">{{ t('fg_lost') }}</th><th scope="col">{{ t('fg_cost') }}</th><th scope="col"></th></tr></thead>
       <tbody>
       {% for r in g.runs %}
         <tr data-run="{{ r.run_id }}" data-kind="{{ r.kind }}" data-status="{{ r.status }}" data-verdict="{{ r.verdict }}">
           <td>{{ r.kind }}</td><td class="mono">{{ r.version }}</td>
           <td>{% if r.running %}{{ ui.pill(r.status, 'info', True) }} <span class="k" data-progress="{{ r.progress.get('done', 0) }}/{{ r.progress.get('total', 0) }}">{{ r.progress.get('done', 0) }}/{{ r.progress.get('total', 0) }}</span>{% elif r.status == 'failed' %}{{ ui.pill(r.status, 'bad', True) }} <span class="mono">{{ r.error }}</span>{% else %}{{ ui.pill(r.status, 'neutral') }}{% endif %}</td>
-          <td>{{ ui.pill(r.verdict, {'pass': 'ok', 'fail': 'bad'}.get(r.verdict, 'neutral'), True) }}</td>
+          <td>{{ ui.pill(tx('u6_verdict_' ~ r.verdict) if ux5 and r.verdict == 'not_run' else r.verdict, {'pass': 'ok', 'fail': 'bad'}.get(r.verdict, 'neutral'), True) }}</td>
           <td data-l1="{{ r.layer1.get('percent', '') }}">{{ r.layer1.get('percent', '-') }}</td>
           <td data-kappa="{{ r.cal.get('kappa_hundredths', '') }}">{{ r.cal.get('kappa_hundredths', '-') }}</td>
           <td data-match="{{ r.layer2.get('match_percent', '') }}">{{ r.layer2.get('match_percent', '-') }}</td>
           <td>{{ r.reg.get('lost', '-') }}</td>
-          <td class="mono">{{ r.cost.get('model_calls', '-') }} / {{ r.cost.get('tokens_estimated', '-') }} / {{ r.cost.get('seconds', '-') }}s</td>
+          <td class="mono">{% if ux5 %}{{ tx('u6_cost', calls=r.cost.get('model_calls', '-'), tokens=r.cost.get('tokens_estimated', '-'), s=r.cost.get('seconds', '-')) }}{% else %}{{ r.cost.get('model_calls', '-') }} / {{ r.cost.get('tokens_estimated', '-') }} / {{ r.cost.get('seconds', '-') }}s{% endif %}</td>
           <td>
             <a href="#" hx-get="/console/factory/{{ aid }}/gate/{{ r.run_id }}" hx-target="#gate-detail" hx-swap="innerHTML" data-act="detail">{{ t('fg_detail') }}</a>
             {% if r.kind == 'simulation' and r.status == 'done' %}<a href="/console/factory/{{ aid }}/simulation/{{ r.run_id }}" data-act="review">{{ t('fg_review') }}</a>{% endif %}

@@ -49,6 +49,7 @@ from supervisor.console import (
     assurance_views,
     audit_view,
     auditpack,
+    case_ux5,  # --- UX5 G6 ---
     cases_list,  # --- WP-UX2 ---
     catalog_view,
     collectors_view,
@@ -83,6 +84,9 @@ from supervisor.console import (
     users_view,
     views,
 )
+from supervisor.console import (
+    ux5 as ux5_helpers,  # --- UX5 G6 ---
+)
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.console.listing import ListingError
@@ -107,6 +111,7 @@ STATIC = {
     "console.js": "application/javascript",
     "console.css": "text/css",
     "ux5.css": "text/css",  # UX5-F: linked only with CONSOLE_UX5
+    "ux5_g6.css": "text/css",  # UX5 G6 page styles
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (
@@ -207,9 +212,11 @@ def render(
     data.setdefault("section", "")
     data["compliance_enabled"] = bool(ctx.settings.console_compliance_enabled)  # WP14 nav link
     compliance_on = data["compliance_enabled"]
+    _t = translator(lang, ux5=bool(ctx.settings.console_ux5))
     integration_on = bool(ctx.settings.console_integration_enabled)
     body = _env.get_template(template).render(
-        t=translator(lang, ux5=bool(ctx.settings.console_ux5)),
+        t=_t,
+        tx=_t,  # UX5 G6: the same translator; templates call it for keys that exist only under UX5
         ux5=bool(ctx.settings.console_ux5),
         dur=lambda secs: views.duration_text(secs, lang),
         shell=shell,
@@ -633,7 +640,7 @@ CASE_TABS = ("story", "rules", "transcript", "evidence", "casefile")
 
 
 def _case_data(
-    ctx: ConsoleContext, case_id: str, me: AuthPrincipal, tab: str = "story"
+    ctx: ConsoleContext, case_id: str, me: AuthPrincipal, tab: str = "story", page: Any = 1
 ) -> dict[str, Any]:
     _check_id(case_id, "case id")
     if tab not in CASE_TABS:
@@ -641,6 +648,8 @@ def _case_data(
     data = readmodels.case_detail(ctx, case_id, me, ctx.clock.now())
     data["tab"] = tab
     data["resolutions"] = RESOLUTIONS
+    if ctx.settings.console_ux5:  # G6: grouped story and rules, paged transcript
+        data["g6"] = case_ux5.build(data, page)
     return data
 
 
@@ -651,7 +660,7 @@ async def case_page(
     case_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     tab = request.query_params.get("tab") or "story"
-    data = await _call(_case_data, ctx, case_id, me, tab)
+    data = await _call(_case_data, ctx, case_id, me, tab, request.query_params.get("page"))
     return render(request, ctx, me, "case.html", section="cases", **data)
 
 
@@ -664,7 +673,7 @@ async def case_tab(
     case_id: str, tab: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     """One pill tab of the case page (htmx partial)."""
-    data = await _call(_case_data, ctx, case_id, me, tab)
+    data = await _call(_case_data, ctx, case_id, me, tab, request.query_params.get("page"))
     return render(request, ctx, me, f"_tab_{tab}.html", **data)
 
 
@@ -1206,6 +1215,13 @@ async def evidence_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     data = await _call(_evidence_data, ctx)
+    if ctx.settings.console_ux5:  # G6: busiest lanes first, search, 25 per page
+        q = (request.query_params.get("q") or "").strip()[:80]
+        lanes = sorted(data["lanes"], key=lambda ln: (ln["lane"] != "root", -int(ln["count"])))
+        if q:
+            lanes = [ln for ln in lanes if q.lower() in str(ln["lane"]).lower()]
+        rows, pg, pages = ux5_helpers.page_slice(lanes, request.query_params.get("page"))
+        data.update(lanes_all=len(data["lanes"]), lanes=rows, lane_page=pg, lane_pages=pages, q=q)
     return render(request, ctx, me, "evidence.html", section="evidence", pack=None, **data)
 
 

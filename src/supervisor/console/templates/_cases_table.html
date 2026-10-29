@@ -1,6 +1,51 @@
 {# Case rows (WP-UX2). `items` = readmodels.case_rows. With `sortable` the headers are sort
    links (needs page, sort_col, sort_dir, base_qs) and each row has a details button that
    opens the row drawer; the agent page Cases tab uses it plain. #}
+{% if ux5 %}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+<link rel="stylesheet" href="/console/static/ux5_g6.css">
+<div class="tablewrap">
+<table class="queue cases-tbl g6-cases">
+  <caption class="sr">{{ t('cases') }}</caption>
+  <thead>
+    <tr>
+      {% if sortable %}
+      {{ tb.th('severity', t('severity'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
+      {{ tb.th('agent_id', t('agent'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
+      <th scope="col">{{ t('what_happened') }}</th>
+      {{ tb.th('clock', t('sbv_clock'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
+      {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
+      {{ tb.th('assignee', t('assignee'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
+      <th scope="col"><span class="sr">{{ t('details') }}</span></th>
+      {% else %}
+      <th scope="col">{{ t('severity') }}</th><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('what_happened') }}</th>
+      <th scope="col">{{ t('sbv_clock') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('assignee') }}</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+  {% for c in items %}
+    {% set h = c.head %}
+    <tr class="row" data-case="{{ c.case_id }}">
+      <td>{{ ui.sev(c.severity) }}</td>
+      <td>{{ c.agent_id }}</td>
+      <td>
+        <a class="head" title="{{ c.case_id }}" href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary|replace('[demo:showcase] ', '')|replace(' (synthetic)', '')|truncate(120) }}{% endif %}</a>
+        <div class="idline">{% for s in c.sources %}{{ t('src_' ~ s) }}{% if not loop.last or h.rule_id or h.joined %} · {% endif %}{% endfor %}{% if h.rule_id %}{{ h.rule_id }}{% if h.joined %} · {% endif %}{% endif %}{% if h.joined %}{{ t('joined_n', n=h.joined) }}{% endif %}</div>
+      </td>
+      <td>{% if c.status == 'closed' %}<span class="muted">{{ t('closed') }} {{ c.closed_at|day }}</span>{% else %}{{ ui.clock(c.clock) }}{% endif %}</td>
+      <td><span class="pill neutral" data-status="{{ c.status }}">{{ t(c.status) }}</span></td>
+      <td>{{ c.assignee or tx('u6_unassigned') }}</td>
+      {% if sortable %}<td><a class="chipbtn" href="/console/cases?{{ (list_qs ~ '&') if list_qs else '' }}drawer={{ c.case_id }}&amp;lang={{ lang }}" hx-get="/console/cases/{{ c.case_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('details') }} {{ c.case_id }}">{{ t('details') }}</a></td>{% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="{{ 7 if sortable else 6 }}" class="empty">{{ t('no_cases') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
 {% import "_ui.html" as ui with context %}
 {% import "_c_table.html" as tb with context %}
 <div class="tablewrap">
@@ -44,3 +89,4 @@
   </tbody>
 </table>
 </div>
+{% endif %}

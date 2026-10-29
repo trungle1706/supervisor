@@ -6,8 +6,12 @@
 {% block title %}{{ t('inc_title') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_act'), None), (t('inc_title'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+{{ u5.page_head(t('inc_title'), t('inc_why')) }}
+{% else %}
 {{ ui.pagehead(t('inc_title')) }}
 {{ ui.purpose(t('inc_purpose'), t('inc_why')) }}
+{% endif %}
 <section id="incidents" aria-label="{{ t('inc_title') }}">
 {{ ui.tiles(tiles, '/console/incidents', '/console/incidents/rows') }}
 {{ ui.filterbar('/console/incidents', '/console/incidents/rows', [

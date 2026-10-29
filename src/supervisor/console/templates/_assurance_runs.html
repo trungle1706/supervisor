@@ -1,4 +1,7 @@
 {% import "_ui.html" as ui with context %}
+{% if ux5 and not runs %}
+{{ ui.empty(t('as_no_runs'), tx('u6_as_empty_line')) }}
+{% else %}
 <div class="tablewrap">
 <table class="queue">
   <thead>
@@ -24,8 +27,9 @@
       <td>{% if r.is_mock %}{{ ui.pill(t('mock'), 'neutral') }}{% else %}-{% endif %}</td>
     </tr>
   {% else %}
-    <tr><td colspan="5" class="empty">{{ t('as_no_runs') }} <code>python -m supervisor.assurance run all --target demo --out out\assurance</code></td></tr>
+    <tr><td colspan="5" class="empty">{{ t('as_no_runs') }} {% if not ux5 %}<code>python -m supervisor.assurance run all --target demo --out out\assurance</code>{% endif %}</td></tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
+{% endif %}

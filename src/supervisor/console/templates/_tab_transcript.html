@@ -1,3 +1,27 @@
+{% if ux5 %}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+<section class="card">
+  <h3>{{ t('transcript') }}</h3>
+  <p class="hint" style="margin-top:0">{{ t('masking_note') }}</p>
+  {% if g6.t_rows %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th>{{ t('time') }}</th><th>{{ t('event') }}</th><th>{{ t('status') }}</th><th>{{ t('masked_text') }}</th></tr></thead>
+    <tbody>
+    {% for x in g6.t_rows %}{% set e = x.event %}
+    <tr>
+      <td class="mono">{{ e.ts|hhmmss }}</td>
+      <td>{{ e.event_type }}{% if e.tool_name %} · {{ e.tool_name }}{% endif %}{% if e.amount_minor %}<div class="idline">{{ e.amount_minor|vnd }} {{ e.currency or 'VND' }}</div>{% endif %}</td>
+      <td>{{ ui.pill(e.status or '-', {'denied': 'bad', 'blocked': 'bad', 'paused': 'warn', 'error': 'bad'}.get(e.status, 'neutral')) }}</td>
+      <td>{% if e.args_masked or e.result_masked %}<details><summary>{{ tx('u6_show_masked') }}</summary><div class="mono wrap" style="font-size:12px">{{ (e.args_masked or '')[:600] }}{% if e.result_masked %}<div class="muted">=&gt; {{ e.result_masked[:600] }}</div>{% endif %}</div></details>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {{ u5.pager(g6.t_page, g6.t_pages, '/console/cases/' ~ case.case_id ~ '?tab=transcript&lang=' ~ lang) }}
+  {% else %}<p class="muted">{{ t('no_transcript') }}</p>{% endif %}
+</section>
+{% else %}
 {% import "_ui.html" as ui with context %}
 <section class="card">
   <h3>{{ t('transcript') }}</h3>
@@ -18,3 +42,4 @@
   </table></div>
   {% else %}<p class="muted">{{ t('no_transcript') }}</p>{% endif %}
 </section>
+{% endif %}

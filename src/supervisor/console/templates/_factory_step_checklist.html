@@ -26,7 +26,7 @@
           </form>
         </td>
         {% else %}
-        <td class="mono">{{ c.id }}</td><td class="wrap">{{ c.question }}</td><td>{{ c.evidence|join(', ') }}</td><td>{{ ui.sev(c.severity) }}</td><td class="wrap">{{ c.pass_rule }}</td><td></td>
+        <td class="mono">{{ c.id }}</td><td class="wrap">{{ c.question }}</td><td>{% if ux5 %}{{ c.evidence|map('replace', '_', ' ')|join(', ') }}{% else %}{{ c.evidence|join(', ') }}{% endif %}</td><td>{{ ui.sev(c.severity) }}</td><td class="wrap">{{ c.pass_rule }}</td><td></td>
         {% endif %}
       </tr>
     {% endfor %}

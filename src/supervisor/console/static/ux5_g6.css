@@ -1,0 +1,31 @@
+/* UX5 group G6 page styles. Linked from G6 templates only when ux5 is true. */
+.ux5 .two > .stack { position: sticky; top: 12px; align-self: start; }
+.ux5 .g6-next { border-left: 3px solid var(--u5-ink, #1a1a1a); }
+.ux5 .g6-next-line { font-size: 18px; margin: 4px 0; }
+.ux5 .g6-group > summary { cursor: pointer; }
+.ux5 .g6-sub { list-style: none; margin: 6px 0 0; padding-left: 0; font-size: 13px; }
+.ux5 .g6-sub li { padding: 2px 0; }
+.ux5 .g6-sub .t { display: inline-block; min-width: 64px; font-variant-numeric: tabular-nums; }
+.ux5 .g6-more { margin-top: 12px; font-size: 14px; }
+.ux5 .g6-evid-line { font-size: 14px; }
+.ux5 .g6-evid-line #verify-result { display: inline; }
+.ux5 .g6-evid-line .ok-big, .ux5 .g6-evid-line .bad-big, .ux5 .g6-evid-line .idle-big { display: inline; padding: 0; background: none !important; font-size: 14px; }
+.ux5 .g6-log, .ux5 .g6-hash { margin-top: 12px; }
+/* label / field grid for editor forms */
+.ux5 .g6-grid { display: grid; grid-template-columns: minmax(160px, 220px) minmax(0, 1fr); gap: 10px 16px; align-items: start; margin: 8px 0; }
+.ux5 .g6-grid > label, .ux5 .g6-grid > .g6-lab { font-weight: 600; font-size: 14px; padding-top: 6px; }
+.ux5 .g6-grid .g6-help { display: block; font-weight: 400; color: var(--u5-muted, #666); font-size: 12px; }
+.ux5 .g6-grid input[type=text], .ux5 .g6-grid input[type=number], .ux5 .g6-grid select, .ux5 .g6-grid textarea { width: 100%; max-width: 480px; }
+.ux5 .g6-grid input[type=number] { max-width: 160px; }
+.ux5 .g6-block > summary { cursor: pointer; font-weight: 600; }
+.ux5 .g6-steps { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 12px 0; }
+.ux5 .g6-stage { display: flex; gap: 6px; align-items: center; }
+.ux5 .g6-stage-name { font-size: 12px; color: var(--u5-muted, #666); margin-right: 4px; }
+.ux5 .g6-step { padding: 4px 10px; border: 1px solid var(--u5-line, #ccc); border-radius: 14px; font-size: 13px; text-decoration: none; white-space: nowrap; }
+.ux5 .g6-step.current { background: var(--u5-ink, #1a1a1a); color: #fff; }
+.ux5 .g6-q { font-weight: 600; }
+.ux5 .g6-find { padding: 10px 0; border-bottom: 1px solid var(--u5-line, #ddd); }
+.ux5 .g6-radios label { margin-right: 12px; }
+.ux5 .g6-savebar { position: sticky; bottom: 0; background: var(--u5-bg, #fff); padding: 10px 0; border-top: 1px solid var(--u5-line, #ddd); }
+.ux5 .g6-lanes-search { margin: 8px 0; }
+.ux5 .g6-block { margin: 10px 0; }

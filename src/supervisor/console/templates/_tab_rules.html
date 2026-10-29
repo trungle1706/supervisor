@@ -1,3 +1,35 @@
+{% if ux5 %}
+{% import "_ui.html" as ui with context %}
+<section class="card">
+  <h3>{{ t('rules_and_judges') }}</h3>
+  <p class="hint" style="margin-top:0">{{ t('rules_tab_why') }}</p>
+  {% if g6.rule_groups %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th>{{ tx('u6_checker') }}</th><th>{{ t('verdict') }}</th><th>{{ t('reason') }}</th><th class="n">{{ tx('u6_hits') }}</th><th>{{ tx('u6_when') }}</th></tr></thead>
+    <tbody>
+    {% for g in g6.rule_groups %}{% set v = g.row %}
+    <tr data-tier="{{ v.tier }}">
+      <td>{% if v.source == 'tier0' %}{{ tx('u6_hard_rule') }} <span class="mono">{{ v.rule_id or '-' }}</span>{% elif v.source == 'tier0b' %}{{ tx('u6_pattern_screen') }}{% else %}{{ t('judge_word') }} ({{ tx('u6_tier', n=v.tier) }}){% endif %}</td>
+      <td>{% if v.source == 'judge' %}{% if v.mock %}{{ ui.pill(t('mock') ~ ' · ' ~ v.action, 'neutral') }}{% else %}{{ ui.pill(v.action, 'teal') }}{% endif %}{% else %}{{ ui.pill(v.action, {'pause': 'warn', 'block': 'bad', 'alert': 'info'}.get(v.action, 'neutral')) }}{% endif %}</td>
+      <td>{{ v.reason or '-' }}{% if v.source == 'judge' %}<div class="hint">{% if v.mock %}{{ t('judge_mock_note') }}{% else %}{{ t('judge_advisory_note') }}{% endif %}</div>{% endif %}</td>
+      <td class="n">{{ g.count }}</td>
+      <td class="mono">{{ g.ts_from|hhmmss }}{% if g.count > 1 %}-{{ g.ts_to|hhmmss }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('no_verdicts') }}</p>{% endif %}
+  {% if g6.check_log %}
+  <details class="g6-log"><summary>{{ tx('u6_check_log', n=g6.check_log_total) }}</summary>
+    <div class="tablewrap flat"><table>
+      <thead><tr><th>{{ t('time') }}</th><th>{{ t('checker') }}</th><th>{{ t('label') }}</th><th>{{ t('rationale') }}</th></tr></thead>
+      <tbody>{% for v in g6.check_log %}<tr><td class="mono">{{ v.ts|hhmmss }}</td><td>{{ tx('u6_hard_rule') if v.source == 'tier0' else (tx('u6_pattern_screen') if v.source == 'tier0b' else t('judge_word')) }}{% if v.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}</td><td>{{ v.label or '-' }}</td><td class="rat">{{ v.rationale or '-' }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% if g6.check_log_total > g6.check_log|length %}<p class="hint">{{ t('ux5_shown_of', shown=g6.check_log|length, total=g6.check_log_total) }}</p>{% endif %}
+  </details>
+  {% endif %}
+</section>
+{% else %}
 {% import "_ui.html" as ui with context %}
 <section class="card">
   <h3>{{ t('rules_and_judges') }}</h3>
@@ -24,3 +56,4 @@
   </table></div>
   {% else %}<p class="muted">{{ t('no_verdicts') }}</p>{% endif %}
 </section>
+{% endif %}

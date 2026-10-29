@@ -1,5 +1,6 @@
 {% import "_ui.html" as ui with context %}
 {% set h = head %}
+{% if ux5 %}<link rel="stylesheet" href="/console/static/ux5_g6.css">{% endif %}
 <section class="case-head" aria-label="{{ t('case') }}">
   <div>
     <div class="pills">
@@ -41,6 +42,16 @@
   </div>
   <div class="stack">
     {% include "_case_decide.html" %}
+    {% if ux5 %}
+    <section class="card g6-evid" aria-label="{{ t('chain') }}">
+      <div class="g6-evid-line"><b>{{ t('chain') }}</b>: {% if cf.chain %}{{ t('n_entries', n=cf.chain.entry_count) }} · {% endif %}<span id="verify-result">{% include "_verify_result.html" %}</span></div>
+      <div class="btnrow">
+        <button class="btn" hx-post="/console/cases/{{ case.case_id }}/verify?lang={{ lang }}" hx-target="#verify-result">{{ t('verify_again') if verify else t('verify_now') }}</button>
+        <a class="btn" href="/console/cases/{{ case.case_id }}?tab=evidence&amp;lang={{ lang }}">{{ t('tab_evidence') }}</a>
+        <a class="btn gold" href="/console/cases/{{ case.case_id }}/casefile.html" target="_blank" rel="noopener">{{ t('casefile_btn') }}</a>
+      </div>
+    </section>
+    {% else %}
     <section class="card gold-card" aria-label="{{ t('chain') }}">
       <h3>{{ t('nav_evidence') }}</h3>
       <div style="font-size:13px">{{ t('chain_lane') }} <span class="mono">{{ lane }}</span>{% if cf.chain %} · seq <span class="mono">{{ cf.chain.seq_from }}..{{ cf.chain.seq_to }}</span><br>{{ t('head') }} <span class="mono" title="{{ cf.chain.head_hash }}">{{ cf.chain.head_hash[:12] }}…</span>{% endif %}</div>
@@ -50,5 +61,6 @@
         <a class="btn gold" href="/console/cases/{{ case.case_id }}/casefile.html" target="_blank" rel="noopener">{{ t('casefile_btn') }}</a>
       </div>
     </section>
+    {% endif %}
   </div>
 </div>

@@ -8,7 +8,7 @@
   <form hx-post="/console/factory/{{ ed.agent.id }}/step/instructions" hx-target="#factory-step" hx-swap="innerHTML" method="post">
     {{ fu.hid(ed) }}
     <textarea name="instructions" data-field="instructions" rows="12" style="width:100%" {{ '' if ed.editable else 'disabled' }}>{{ ed.defn.instructions }}</textarea>
-    <p class="hint" data-tokens="{{ ed.defn.instructions|length }}">{{ t('fa_instr_ids', ids=(ed.defn.checklist|map(attribute='id')|join(', '))) }}</p>
+    {% if not ux5 %}<p class="hint" data-tokens="{{ ed.defn.instructions|length }}">{{ t('fa_instr_ids', ids=(ed.defn.checklist|map(attribute='id')|join(', '))) }}</p>{% endif %}
     {% if ed.editable %}
     <div class="btnrow">
       <button class="btn" name="op" value="lint" data-act="lint">{{ t('fa_lint_run') }}</button>

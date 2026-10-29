@@ -2,6 +2,9 @@
    Variables: page (items = case rows + approvals + missing), sort_col, sort_dir, base_qs, list_qs. #}
 {% import "_ui.html" as ui with context %}
 {% import "_c_table.html" as tb with context %}
+{% if ux5 and not page.items %}
+{{ ui.empty(t('so_none'), t('so_none_line')) }}
+{% else %}
 <div class="tablewrap">
 <table class="queue signoff-tbl">
   <caption class="sr">{{ t('signoff') }}</caption>
@@ -37,4 +40,5 @@
   </tbody>
 </table>
 </div>
-{{ tb.pager(page, '/console/signoff', '/console/signoff/rows', list_qs) }}
+{% if not ux5 or page.pages > 1 %}{{ tb.pager(page, '/console/signoff', '/console/signoff/rows', list_qs) }}{% endif %}
+{% endif %}
