@@ -113,6 +113,19 @@ class ConsoleContext:
         return svc
 
     @property
+    def detector_overrides(self) -> Any:
+        """Stored per-agent detector setting overrides (WP-B1). Writes go on the chain."""
+        from supervisor.detectors.overrides import DetectorOverrideService
+
+        svc = getattr(self, "_detector_overrides", None)
+        if svc is None:
+            svc = DetectorOverrideService(
+                self.state, self.clock, self.settings, evidence=self.runtime.chain
+            )
+            self._detector_overrides = svc
+        return svc
+
+    @property
     def guardians(self) -> Any:
         """The per-system guardian bindings service (WP-S1, docs/guardian-bindings.md). Every
         change goes on the chain as ``binding_change``."""

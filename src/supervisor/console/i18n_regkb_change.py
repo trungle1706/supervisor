@@ -86,4 +86,9 @@ RC: dict[str, tuple[str, str]] = {
         "Thay đổi quy định đã áp dụng vào {date}: {n} hệ thống được mở lại",
     ),
     "rc_ov_open": ("Review", "Xem xét"),
+    "rc_nav": ("Law changes", "Thay đổi quy định"),
+    "rc_duty_link": (
+        "Law change that re-opened this duty",
+        "Thay đổi quy định đã mở lại nghĩa vụ này",
+    ),
 }

@@ -523,6 +523,8 @@ class Gateway:
         self.detector_gate = detector_gate
         # WP27: session monitor (None = off, today's behaviour).
         self.session_gate = session_gate
+        # WP-B1: autonomy cap rule GATE-AUTONOMY-CAP (None = off, today's behaviour).
+        self.autonomy_cap: Any = None
         # WP41 (D19): registers a gate-only agent in the inventory on its first decision (None =
         # INVENTORY_ENABLED off, today's behaviour). Runs in the background pool.
         self.agent_registrar = agent_registrar
@@ -913,7 +915,7 @@ class Gateway:
                 # money / credit tool. Same state change as a pause rule; a human resumes.
                 self.states.pause(
                     agent_id,
-                    f"rule:{CLASSIFIER_PAUSE_RULE}",
+                    f"rule:{d.rule_id or CLASSIFIER_PAUSE_RULE}",
                     d.reason[:240],
                     auth_method="local_system",
                     actor_kind="system",
@@ -1086,6 +1088,14 @@ class Gateway:
             # WP38 review: observe lifts a rule block BEFORE the redaction and the detectors, so
             # an observed call still gets its masked arguments (pii_export) and its transform.
             self._observe(d, eff, risk)
+        if (
+            self.autonomy_cap is not None  # WP-B1 (flag off: this branch never runs)
+            and d.allow
+            and not shadow
+            and builtin is None
+            and not (req is not None and req.direction == "output")
+        ):
+            self._autonomy_cap(d, eff, risk, agent_id, args)
         d.sess = sess
         if d.allow and not shadow and builtin is None:
             self._redact(d, risk, tool_name, args, pre, dry=dry, det=det, eff=eff)
@@ -1118,6 +1128,22 @@ class Gateway:
             d.redaction_applied = False  # WP-P2
         return d, matches, shadow, builtin
 
+    def _autonomy_cap(
+        self, d: Decision, eff: Effective, risk: str | None, agent_id: str, args: Any
+    ) -> None:
+        """WP-B1: GATE-AUTONOMY-CAP. A pause for approval, made with the same flag as the
+        classifier pause (the agent is paused; a person resumes). Observe mode lifts it."""
+        from supervisor.gateway.autonomy_cap import RULE_ID, check
+
+        reason = check(self.autonomy_cap.limits_for(agent_id), risk, args)
+        if reason is None:
+            return
+        d.allow, d.action, d.rule_id = False, "pause", RULE_ID
+        d.reason = reason
+        d.classifier_pause = True
+        if eff.active:
+            self._observe(d, eff, risk)
+
     @staticmethod
     def _observe(d: Decision, eff: Effective, risk: str | None) -> None:
         """WP38 observe mode: turn the block or pause in ``d`` into a report and keep the
@@ -1137,6 +1163,7 @@ class Gateway:
                 "reason": d.reason[:500],
             }
         d.allow, d.action, d.fail_mode = True, "log", None
+        d.classifier_pause = False  # WP-B1: a lifted pause does not pause the agent
         d.reason = f"observe: would {d.observed['action']} by {d.observed['rule_id']}"
 
     def _observed_secret(self, d: Decision) -> None:
@@ -1426,7 +1453,9 @@ class Gateway:
                     **base,
                     "verdict_id": uuid.uuid4().hex,
                     "checker_id": CHECKER_0A,
-                    "label": "classifier_pause",
+                    "label": "classifier_pause"
+                    if d.rule_id == CLASSIFIER_PAUSE_RULE
+                    else "autonomy_cap_pause",
                     "action": "pause",
                     "rule_id": d.rule_id,
                     "rationale_masked": d.reason[:500],

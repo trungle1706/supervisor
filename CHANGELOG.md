@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+- WP-B1 item 1: **detector setting overrides**. New table `detector_override` and service
+  `supervisor.detectors.overrides`. Smart guardian Accept writes `detector_setting` lines through it
+  (the policy block stays as an export). The gate reads the rows under the policy file (a key the
+  policy names wins; `keep_args` never) and only when `SMART_GUARDIAN=1` and `DETECTORS_ENABLED=1`.
+  Chain record `detector_override` (ids, value hash, actor ref).
+- WP-B1 item 2: **autonomy cap at the gate**. Rule `GATE-AUTONOMY-CAP` pauses a call whose tool
+  class needs a higher level than the system tag `autonomy_limits.max_level`, or whose amount is above
+  `approval_above_vnd` (credit: `credit_approval_above_vnd`). Observe mode lifts it. Needs
+  `SMART_GUARDIAN=1` and `GOVERNANCE_ENABLED=1`; off, nothing changes.
+- WP-B1 item 4: **watcher noise**. `text_changed` compares word sequences without page numbers,
+  part headings (Chuong, Muc, Phan, Tieu muc) and line breaks; such differences are `layout_only`.
+  Article headings still count.
+- WP-B1 item 3: **Law changes tab** under Risks & controls (v3 nav, `REGKB_CHANGE_LOOP` with
+  `LAWAGENT_ENABLED` and `GOVERNANCE_ENABLED`; `regkb.view`), and a link on the system Duties tab from
+  a row to the law change that re-opened it (the note's package sha8 is matched to the applied change).
+- WP-B1 item 5: **user groups**. Every user in `config/users.yaml` has an explicit `groups:` list;
+  `docs/factory.md` "Groups of a user" has the table. The role mapping stays the fallback.
+
 ## v0.9.0 (phases 11 and 12: compliance-first onboarding, agent factory, guardian factory, regulation watch) - 2026-10-29
 
 - WP-W2 (phase 11): **law change to re-evaluation**, `REGKB_CHANGE_LOOP` (default `0`; needs

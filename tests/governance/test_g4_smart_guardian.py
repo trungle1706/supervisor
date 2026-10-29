@@ -506,7 +506,7 @@ def test_accept_thresholds_and_limits(sgon: Console) -> None:
     dec = r.json()["proposal"]["decision"]
     assert {x["subject"]: x["result"] for x in dec["results"]} == {
         "drift.consecutive": "applied",
-        "guard_model.preset": "recorded",
+        "guard_model.preset": "applied",
         "approval_above_vnd": "applied",
         "max_level": "applied",
     }
@@ -516,6 +516,11 @@ def test_accept_thresholds_and_limits(sgon: Console) -> None:
     limits = json.loads(tags["autonomy_limits"])
     assert limits == {"approval_above_vnd": 50000000, "max_level": "l3_tool_using_supervised"}
     assert tags["ai_agentic"] == "1"  # the other tags stay
+    ov = c.ctx.state.get(
+        "detector_override", {"agent_id": AGENT, "slug": "guard_model", "setting": "preset"}
+    )
+    assert ov["value"] == {"v": "strict"} and ov["source"] == "smart_guardian"
+    assert c.ctx.detector_overrides.for_agent(AGENT) == {"guard_model": {"preset": "strict"}}
     snippet = yaml.safe_load(dec["policy_snippet"])
     assert snippet["agents"][AGENT]["detectors"]["settings"]["guard_model"]["preset"] == "strict"
     # autonomy_level of the system itself is not changed by an accepted cap

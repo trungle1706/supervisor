@@ -2142,3 +2142,18 @@ CREATE TABLE IF NOT EXISTS regkb_change_draft (
 );
 
 CREATE INDEX IF NOT EXISTS ix_regkb_change_draft_change_id ON regkb_change_draft (change_id);
+
+-- detector_override (state): WP-B1. One per-agent detector setting written by a person (the smart guardian Accept, or the override service), read by the detector loader on top of config/detectors.yaml and under the policy file: a key that agents.<id>.detectors.settings names wins over this row. agent_id '*' is a default for every agent. value is the JSON object {"v": <whole number, text, true/false or list of texts>}; no floats. source is smart_guardian or manual. Chain record detector_override: ids, a value hash and the actor ref; no value text.
+CREATE TABLE IF NOT EXISTS detector_override (
+  agent_id TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  setting TEXT NOT NULL,
+  value TEXT NOT NULL,
+  source TEXT NOT NULL,
+  set_by TEXT NOT NULL,
+  set_at TEXT NOT NULL,
+  note TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (agent_id, slug, setting)
+);

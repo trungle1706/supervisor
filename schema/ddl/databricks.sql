@@ -1888,3 +1888,21 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regkb_change_draft` (
 USING DELTA
 COMMENT 'WP-W2. Links a law agent draft (regkb_draft) to the change it was made for. change_ref is the package sha and the article ("<sha256>:Dieu 12"). One row per draft.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- detector_override (state): WP-B1. One per-agent detector setting written by a person (the smart guardian Accept, or the override service), read by the detector loader on top of config/detectors.yaml and under the policy file: a key that agents.<id>.detectors.settings names wins over this row. agent_id '*' is a default for every agent. value is the JSON object {"v": <whole number, text, true/false or list of texts>}; no floats. source is smart_guardian or manual. Chain record detector_override: ids, a value hash and the actor ref; no value text.
+-- primary key (enforced by the app, not by Delta): agent_id, slug, setting
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`detector_override` (
+  agent_id STRING NOT NULL,
+  slug STRING NOT NULL,
+  setting STRING NOT NULL,
+  value STRING NOT NULL,
+  source STRING NOT NULL,
+  set_by STRING NOT NULL,
+  set_at TIMESTAMP NOT NULL,
+  note STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-B1. One per-agent detector setting written by a person (the smart guardian Accept, or the override service), read by the detector loader on top of config/detectors.yaml and under the policy file: a key that agents.<id>.detectors.settings names wins over this row. agent_id ''*'' is a default for every agent. value is the JSON object {"v": <whole number, text, true/false or list of texts>}; no floats. source is smart_guardian or manual. Chain record detector_override: ids, a value hash and the actor ref; no value text.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

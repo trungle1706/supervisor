@@ -53,3 +53,21 @@ the level is l5.
 3. The stored risk level is never lowered by applying a classification. Lowering (for example
    after a system leaves l5) is `POST /v1/systems/{id}/risk-level/lower` with a reason, by a person
    who is not the owner.
+
+## The cap at the gate (WP-B1)
+
+An accepted smart guardian line `max_level` is stored in the system tag `autonomy_limits`. With
+`SMART_GUARDIAN=1` and `GOVERNANCE_ENABLED=1` the gateway reads that tag for every agent linked to
+the system (an agent on several systems gets the strictest limit) and applies one deterministic
+rule, `GATE-AUTONOMY-CAP`. A matching call is paused for approval: the agent is paused and a person
+resumes it, as for the other pause rules. Source: `src/supervisor/gateway/autonomy_cap.py`.
+
+| Check | Pause when |
+|---|---|
+| Level | the level the tool risk class needs is above `max_level`. `read_only` needs L3; `money`, `credit`, `pii_export` need L4 (illustrative; the bank sets the real mapping) |
+| Amount | a `money` call has an integer `amount_minor` above `approval_above_vnd`; a `credit` call above `credit_approval_above_vnd` (VND has no minor unit) |
+
+Observe mode lifts the pause like the other rules (`observed_decision`; on money, credit and
+pii_export tools it needs the two `observe_approvals`). Output checks are not tool calls and are not
+checked. The tag is cached for 5 seconds. With the flags off, no source exists and nothing changes.
+The other limits of the tag (`daily_total_vnd`, `session_max_*`) are not enforced by this rule.

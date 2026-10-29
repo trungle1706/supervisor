@@ -547,12 +547,29 @@ the agent; anyone who may read the factory reads the page. A simulation never pr
 
 ## Groups of a user
 
-`config/users.yaml` accepts an optional `groups:` list per user (ids of `config/factory_groups.yaml`).
+`config/users.yaml` gives every user an explicit `groups:` list (ids of `config/factory_groups.yaml`; WP-B1). The key is still
+optional in the loader, so a user file without it keeps working.
 `store.permits(roles, owner_group, groups, user_groups)`: `admin` edits every group; a user **with** a
 `groups:` list belongs to exactly those groups, whatever the role mapping says; a user **without** one falls
 back to the `roles` mapping of the group. Example: `lead.model` has `roles: [approver]` and `groups:
 [model_risk]`, so the user owns the model-risk agents and nothing else; `second.line` has `groups: [platform]`,
 the second line of an approval. Synthetic users only; the Databricks App has no groups (role mapping).
+
+Shipped assignment (the same reach the role mapping gave, now written down):
+
+| User | Roles | `groups:` |
+|---|---|---|
+| `reviewer.an`, `reviewer.binh` | reviewer (binh also approver) | `model_risk, data, cyber, legal, third_party, ethics` |
+| `approver.em` | approver | `model_risk, legal` |
+| `lead.model` / `lead.cyber` | approver | `model_risk` / `cyber` |
+| `second.line` | approver | `platform` |
+| `admin.chi` | admin, reviewer | all seven (admin edits every group anyway) |
+| `auditor.dung`, `viewer.hoa`, `operator.khanh`, the three owners | no factory role | `[]` |
+
+Rules: a non-empty list is the whole membership. An empty list or no key means no explicit group, so the
+role mapping of `config/factory_groups.yaml` applies (the fallback); for the users above with `[]` no role
+matches, so they author nothing. A test (`tests/factory/test_wpb1_groups.py`) checks that every user has the key
+and that every id is a group of `config/factory_groups.yaml`.
 
 ## Starter agents
 

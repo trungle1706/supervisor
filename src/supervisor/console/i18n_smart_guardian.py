@@ -38,10 +38,10 @@ SG: dict[str, tuple[str, str]] = {
     "sgd_accept": ("Accept selected", "Chấp nhận các dòng đã chọn"),
     "sgd_reason_label": ("Reason to reject (20 characters or more)", "Lý do từ chối (từ 20 ký tự)"),
     "sgd_reject": ("Reject", "Từ chối"),
-    "sgd_snippet": ("Detector settings for the policy file", "Cài đặt detector cho tệp chính sách"),
+    "sgd_snippet": ("Detector settings (export)", "Cài đặt detector (xuất)"),
     "sgd_snippet_hint": (
-        "The per-agent detector override lives in the policy file. Copy this block into a pull request.",
-        "Ghi đè detector theo agent nằm trong tệp chính sách. Sao chép khối này vào pull request.",
+        "These settings are saved as per-agent overrides now. A key that the policy file names still wins. Copy this block into a pull request to keep it in the policy file.",
+        "Các cài đặt này đã được lưu thành ghi đè theo agent. Khóa nào tệp chính sách đã nêu vẫn được ưu tiên. Sao chép khối này vào pull request để giữ trong tệp chính sách.",
     ),
     "sgd_res_applied": ("Applied", "Đã áp dụng"),
     "sgd_res_recorded": ("Recorded", "Đã ghi"),

@@ -571,7 +571,7 @@ is written as bytes and never imported or executed.
 | `amendment`, `replacement`, `repeal` | Another document whose title names the full number with "sửa đổi", "thay thế" or "bãi bỏ" (the first word found wins: repeal, then replacement, then amendment). A longer number (199/2026 for 99/2026) does not match. A number named in the instrument file or in the last report is known, not new. |
 | `effect_status_change` | vbpl effect status code differs from the last report. In the first run: not compatible with the `status` in the file. |
 | `updated_date_newer` | `updatedDate` is later than the last report, or than `last_checked` in the first run. |
-| `text_changed` | A primary vbpl source now gives a text whose sha256 and white-space-folded text differ from the stored one. A layout-only difference is counted (`layout_only`), not reported. |
+| `text_changed` | A primary vbpl source now gives a text whose sha256 and word sequence differ from the stored one. The word sequence leaves out line breaks, page-number lines (`12`, `- 12 -`, `Trang 12`, `12/40`) and part headings (`Chương`, `Mục`, `Phần`, `Tiểu mục` with a number, and the capitals title line after it). Article headings stay: an added or renamed article is a change. A layout-only difference is counted (`layout_only`), not reported. |
 
 Also once per full run: the keywords "trí tuệ nhân tạo" and "AI" for the SBV, the Government,
 the MST and the MPS (new instrument candidates), the Decree 142 Art. 46 interim channel
@@ -644,6 +644,12 @@ imported package (WP-W1)  ->  diff  ->  person: accept or drop drafts  ->  Apply
 
 Only the draft is made by a model. The diff, the override, the validator, the quote check and every
 rule of the event are deterministic.
+
+Navigation (WP-B1): with `CONSOLE_NAV_V3=1` the tab **Law changes** (`/console/regkb/changes`,
+`regkb.view`) sits under Risks & controls while the flag is on. On the system **Duties** tab a row
+whose note reads "article changed on <date> (package <sha8>)" shows a link "Law change that
+re-opened this duty" to `/console/regkb/changes/<sha>/<instrument>`; the sha8 is matched to an applied
+change that lists the obligation. No link with the flag off.
 
 ### Diff mode of the law agent
 

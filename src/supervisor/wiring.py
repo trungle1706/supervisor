@@ -235,7 +235,7 @@ def _make_gateway(
     if detector_gate is not None:  # F11: the same check on every reload
         provider.validator = detector_gate.check_policy
         provider.on_accept = lambda p: detector_gate.audit_policy(p, chain)  # WP41
-    return Gateway(
+    gw = Gateway(
         provider,
         adapters.tables,
         adapters.state,
@@ -259,6 +259,10 @@ def _make_gateway(
         session_gate=session_gate,  # WP27 (default off)
         agent_registrar=_agent_registrar(settings, adapters),  # WP41 (INVENTORY_ENABLED)
     )
+    from supervisor.gateway.autonomy_cap import make_source
+
+    gw.autonomy_cap = make_source(settings, adapters.state)  # WP-B1 (None unless SMART_GUARDIAN)
+    return gw
 
 
 def _agent_registrar(settings: Settings, adapters: Adapters) -> Any:
@@ -340,6 +344,9 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
     from supervisor.governance.guardians import make_narrower
 
     gate.narrow = make_narrower(settings, state)
+    from supervisor.detectors.overrides import make_source
+
+    gate.overrides = make_source(settings, state)  # WP-B1 (None unless SMART_GUARDIAN)
     _wire_guardian_factory(settings, gate, registry, state)  # WP-G3 (default off)
     problems = gate.check_policy(policy)
     if problems:

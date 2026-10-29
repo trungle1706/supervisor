@@ -928,8 +928,18 @@ def _apply(
             elif ln.get("kind") == "detector_setting":
                 slug, _, setting = str(ln["subject"]).partition(".")
                 for a in agents or ["*"]:
+                    ctx.detector_overrides.set(
+                        a,
+                        slug,
+                        setting,
+                        ln["value"],
+                        actor,
+                        source="smart_guardian",
+                        note=f"smart guardian {ln['rule_id']}",
+                    )
                     overrides.setdefault(a, {}).setdefault(slug, {})[setting] = ln["value"]
-                rec["result"] = "recorded"
+                rec["result"] = "applied"
+                rec["agents_n"] = len(agents or ["*"])
             else:  # autonomy_limits
                 limits[str(ln["subject"])] = ln["value"]
                 rec["result"] = "applied"
