@@ -10,7 +10,12 @@
 
 {# `page` is a listing.Page; `list_qs` holds filters + sort. #}
 {% macro pager(page, url, rows_url, list_qs, target='#list') %}
-<nav class="pager" aria-label="{{ t('pager_label') }}">
+{% if ux5 is defined and ux5 %}<nav class="u5-foot" aria-label="{{ t('pager_label') }}"><span>{{ t('ux5_page_of', page=page.page, pages=page.pages) }}</span>
+  <span class="u5-pager">
+  {% if page.prev %}{% set q = (list_qs ~ '&' if list_qs else '') ~ 'page=' ~ page.prev ~ '&lang=' ~ lang %}<a rel="prev" href="{{ url }}?{{ q }}" hx-get="{{ rows_url }}?{{ q }}" hx-target="{{ target }}" hx-push-url="false">{{ t('ux5_prev') }}</a>{% else %}<span class="off">{{ t('ux5_prev') }}</span>{% endif %}
+  {% if page.next %}{% set q = (list_qs ~ '&' if list_qs else '') ~ 'page=' ~ page.next ~ '&lang=' ~ lang %}<a rel="next" href="{{ url }}?{{ q }}" hx-get="{{ rows_url }}?{{ q }}" hx-target="{{ target }}" hx-push-url="false">{{ t('ux5_next') }}</a>{% else %}<span class="off">{{ t('ux5_next') }}</span>{% endif %}
+  </span></nav>
+{% else %}<nav class="pager" aria-label="{{ t('pager_label') }}">
   <span class="range">{{ t('pager_showing', a=page.first, b=page.last, n=page.total) }}</span>
   <span class="steps">
   {% if page.prev %}{% set q = (list_qs ~ '&' if list_qs else '') ~ 'page=' ~ page.prev ~ '&lang=' ~ lang %}<a class="chipbtn" rel="prev" href="{{ url }}?{{ q }}" hx-get="{{ rows_url }}?{{ q }}" hx-target="{{ target }}" hx-push-url="false">← {{ t('pager_prev') }}</a>{% else %}<span class="chipbtn off" aria-disabled="true">← {{ t('pager_prev') }}</span>{% endif %}
@@ -18,4 +23,5 @@
   {% if page.next %}{% set q = (list_qs ~ '&' if list_qs else '') ~ 'page=' ~ page.next ~ '&lang=' ~ lang %}<a class="chipbtn" rel="next" href="{{ url }}?{{ q }}" hx-get="{{ rows_url }}?{{ q }}" hx-target="{{ target }}" hx-push-url="false">{{ t('pager_next') }} →</a>{% else %}<span class="chipbtn off" aria-disabled="true">{{ t('pager_next') }} →</span>{% endif %}
   </span>
 </nav>
+{% endif %}
 {% endmacro %}

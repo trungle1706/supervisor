@@ -30,7 +30,7 @@
         <input type="hidden" name="row_version" value="{{ case.row_version }}">
         <input type="hidden" name="to" value="triaged">
         <input type="hidden" name="assignee" value="{{ case.assignee or me.user_id }}">
-        <label class="f">{{ t('note') }}<textarea name="note" placeholder="{{ t('triage_note_ph') }}"></textarea></label>
+        <label class="f">{% if ux5 %}<span class="sr">{{ t('note') }}</span>{% else %}{{ t('note') }}{% endif %}<textarea name="note" placeholder="{{ t('triage_note_ph') }}"></textarea></label>
         <button class="btn dark" type="submit">{{ t('triage') }}</button>
       </form>
     </details>
@@ -67,17 +67,18 @@
     </details>
     {% if case.status == 'triaged' %}<div class="why-btn">{{ t('close_from_triaged') }}</div>{% endif %}
     {% else %}
-    <button class="btn ghost block" type="button" disabled>{{ t('close_needs_two') if two_person else t('close') }}</button>
-    <div class="why-btn">{% if case.status == 'open' %}{{ t('close_why_open') }}{% elif two_person %}{{ t('close_why_two', n=approvals|length) }}{% else %}{{ t('close_why_role') }}{% endif %}</div>
+    {% set close_why %}{% if case.status == 'open' %}{{ t('close_why_open') }}{% elif two_person %}{{ t('close_why_two', n=approvals|length) }}{% else %}{{ t('close_why_role') }}{% endif %}{% endset %}
+    <button class="btn ghost block" type="button" disabled{% if ux5 %} title="{{ close_why|trim }}"{% endif %}>{{ t('close_needs_two') if two_person else t('close') }}</button>
+    {% if not ux5 %}<div class="why-btn">{{ close_why }}</div>{% endif %}
     {% endif %}
     {# comment #}
     <details class="act">
       <summary class="btn ghost block">{{ t('add_comment') }}</summary>
       <form hx-post="/console/cases/{{ case.case_id }}/comment?lang={{ lang }}" hx-target="#case-body" class="stack-f" style="margin-top:8px">
         <input type="hidden" name="row_version" value="{{ case.row_version }}">
-        <label class="f">{{ t('comment') }}<textarea name="text" required></textarea></label>
+        <label class="f">{{ t('comment') }}<textarea name="text" required{% if ux5 %} placeholder="{{ t('comment_masked') }}"{% endif %}></textarea></label>
         <button class="btn" type="submit">{{ t('comment') }}</button>
-        <div class="hint">{{ t('comment_masked') }}</div>
+        {% if not ux5 %}<div class="hint">{{ t('comment_masked') }}</div>{% endif %}
       </form>
     </details>
   </div>
@@ -86,10 +87,10 @@
   {% endif %}
   <form class="btnrow" hx-post="/console/cases/{{ case.case_id }}/itsm?lang={{ lang }}" hx-target="#case-body" style="font-size:12px">
     <input type="hidden" name="row_version" value="{{ case.row_version }}">
-    <label class="f" style="flex:1">{{ t('itsm_ticket') }}<input type="text" name="itsm_ref" value="{{ case.itsm_ref or '' }}" maxlength="64" placeholder="{{ t('itsm_ph') }}" class="mono"></label>
+    <label class="f" style="flex:1">{{ t('itsm_ticket') }}<input type="text" name="itsm_ref" value="{{ case.itsm_ref or '' }}" maxlength="64" placeholder="{{ t('itsm_ph') }}" class="mono"{% if ux5 %} title="{{ t('itsm_hint') }}"{% endif %}></label>
     <button class="btn sm" type="submit" style="align-self:end">{{ t('save') }}</button>
   </form>
-  <div class="hint">{{ t('itsm_hint') }}</div>
+  {% if not ux5 %}<div class="hint">{{ t('itsm_hint') }}</div>{% endif %}
   {% if incident.clocked and (not incident.prelim_sent_at or not incident.formal_sent_at) %}
   <form class="btnrow" hx-post="/console/cases/{{ case.case_id }}/report-sent?lang={{ lang }}" hx-target="#case-body" style="font-size:12px">
     <input type="hidden" name="row_version" value="{{ case.row_version }}">

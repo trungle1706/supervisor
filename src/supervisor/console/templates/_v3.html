@@ -20,7 +20,7 @@
 </div>
 {% endmacro %}
 
-{% macro na(reason) %}<p class="hint nv3-na"><span class="pill neutral">{{ t('nv3_na') }}</span> {{ t(reason) }}</p>{% endmacro %}
+{% macro na(reason) %}{% if ux5 is defined and ux5 %}<p class="hint nv3-na"><span class="u5-chip na" tabindex="0" title="{{ t(reason) }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('nv3_na') }}</span></p>{% else %}<p class="hint nv3-na"><span class="pill neutral">{{ t('nv3_na') }}</span> {{ t(reason) }}</p>{% endif %}{% endmacro %}
 
 {# Guardian cover of one agent: all mandatory detectors on, or the ones that are off. #}
 {% macro cover(c) %}{% if not c or c.total == 0 %}<span class="muted">-</span>{% elif c.full %}<span class="pill ok"><span class="dot"></span>{{ t('nv3_cover_full') }}</span>{% else %}<span class="pill warn"><span class="dot"></span>{{ t('nv3_cover_below') }}</span> {% for s in c.off %}<code>{{ s }}</code> {% endfor %}{% endif %}{% endmacro %}

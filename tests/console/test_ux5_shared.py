@@ -48,3 +48,44 @@ def test_ux5_new_keys_are_in_the_base_table_with_both_languages() -> None:
     table = i18n.table()
     for key, pair in {**i18n_ux5_g5.NEW, **i18n_ux5_g6.ALL}.items():
         assert table[key] == pair and all(pair), key
+
+
+def _render(src: str, ux5: bool, **ctx: object) -> str:
+    from supervisor.console import routes
+
+    t = i18n.translator("en", ux5=ux5)
+    return routes._env.from_string(src).render(t=t, ux5=ux5, lang="en", **ctx)  # noqa: SLF001
+
+
+def test_na_macro_puts_the_reason_in_a_tooltip_under_ux5() -> None:
+    src = "{% import '_v3.html' as v3 with context %}{{ v3.na('nv3_na_risks_off') }}"
+    reason_on = i18n.translator("en", ux5=True)("nv3_na_risks_off")
+    reason = i18n.translator("en")("nv3_na_risks_off")
+    on, off = _render(src, True), _render(src, False)
+    assert f'title="{reason_on}"' in on and f"</span> {reason_on}</p>" not in on
+    assert f"</span> {reason}</p>" in off
+
+
+def test_compliance_note_is_one_chip_under_ux5() -> None:
+    on = _render("{% include '_compliance_note.html' %}", True)
+    off = _render("{% include '_compliance_note.html' %}", False)
+    assert "u5-chip" in on and "data-compliance-advisory" not in on
+    assert "data-compliance-advisory" in off
+
+
+def test_table_pager_uses_the_u5_look_under_ux5() -> None:
+    from types import SimpleNamespace
+
+    page = SimpleNamespace(page=2, pages=3, prev=1, next=3, first=26, last=50, total=70)
+    src = "{% import '_c_table.html' as tb with context %}{{ tb.pager(page, '/x', '/x/rows', '') }}"
+    on, off = _render(src, True, page=page), _render(src, False, page=page)
+    assert "u5-pager" in on and 'rel="next"' in on and "u5-pager" not in off
+    assert 'class="pager"' in off
+
+
+def test_decision_panel_text_under_ux5() -> None:
+    t = i18n.translator("en", ux5=True)
+    assert t("you_are_a", role="admin") == "Your role: admin."
+    assert t("signoffs_n", n=0) == "0 of 2 so far."
+    assert i18n.translator("en", ux5=True)("nv3_activity") == "Gate decisions"
+    assert i18n.translator("en")("nv3_activity") == "Activity"

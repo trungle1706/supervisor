@@ -41,7 +41,7 @@
 .ux5 details.g3-ins[open] > summary::before { content: "\25BE"; }
 .ux5 details.g3-ins > summary { padding-left: 16px; position: relative; }
 .ux5 .g3-ins-name b { display: block; font-weight: 600; color: var(--u5-ink); }
-.ux5 .g3-ins-name .mono { display: block; }
+.ux5 .g3-ins-name .g3-ins-sub { display: block; font-weight: 400; color: var(--u5-muted); font-size: 12px; }
 .ux5 .g3-cnts { font-size: 12px; color: var(--u5-muted); white-space: nowrap; min-width: 110px; text-align: right; }
 .ux5 details.g3-sum > summary { list-style: none; cursor: pointer; }
 .ux5 details.g3-sum > summary::-webkit-details-marker { display: none; }

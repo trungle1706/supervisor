@@ -141,14 +141,14 @@
   {% for grp in g3.groups %}
   {% if not grp.open %}
   <a class="g3-ins g3-ins-closed" id="g-{{ grp.id }}" data-instrument="{{ grp.id }}" href="{{ base }}{{ bq }}{{ ('&status=' ~ f.status if f.status) ~ ('&applies=' ~ f.applies if f.applies) }}&amp;more={{ grp.id }}:25#g-{{ grp.id }}">
-    <span class="g3-ins-name"><b>{{ grp.number }}</b>{% if grp.title %}<span class="mono">{{ grp.title }}</span>{% endif %}</span>
+    <span class="g3-ins-name"><b>{{ grp.number }}</b>{% if grp.title %}<span class="g3-ins-sub">{{ grp.title }}</span>{% endif %}</span>
     {{ u5.tick_strip(grp.ticks) }}
     <span class="g3-cnts">{{ t('g3_cnt', n=grp.total) }}</span>
   </a>
   {% else %}
   <details class="g3-ins" id="g-{{ grp.id }}" data-instrument="{{ grp.id }}" open>
     <summary>
-      <span class="g3-ins-name"><b>{{ grp.number }}</b>{% if grp.title %}<span class="mono">{{ grp.title }}</span>{% endif %}</span>
+      <span class="g3-ins-name"><b>{{ grp.number }}</b>{% if grp.title %}<span class="g3-ins-sub">{{ grp.title }}</span>{% endif %}</span>
       {{ u5.tick_strip(grp.ticks) }}
       <span class="g3-cnts">{{ t('g3_cnt', n=grp.total) }}{% if grp.gaps %} · {{ t('g3_cnt_gap', n=grp.gaps) }}{% endif %}</span>
     </summary>

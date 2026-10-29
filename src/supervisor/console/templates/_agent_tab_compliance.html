@@ -4,7 +4,7 @@
 {% if cmp %}
 <div class="grid g2">
   <section class="card" data-section="counts">
-    <h3>{{ t('cp_counts') }} {{ ui.pill(t('cp_advisory'), 'info') }}</h3>
+    <h3>{{ t('cp_counts') }} {% if not ux5 %}{{ ui.pill(t('cp_advisory'), 'info') }}{% endif %}</h3>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       {% for s in cmp_statuses %}{{ ui.pill(cw('status.' ~ s) ~ ' ' ~ cmp.by_status.get(s, 0), status_pill[s], True) }}{% endfor %}
     </div>
