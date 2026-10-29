@@ -22,7 +22,7 @@ Databricks run is the test. Report every `[FAIL]` line.
  +----------------------------+  deploy  +--------------------------------------------+
  | bundle (v0.10.0)           | -------> | App: Guardian (console + gate)  [STOP for   |
  | bootstrap_schema (SQL)     | -- SQL ->|   steps 5.2 to 5.4, START for the show]     |
- | act 1 seed (state tables)  | -- SQL ->| Delta tables  catalog.schema (87 tables)    |
+ | act 1 seed (state tables)  | -- SQL ->| Delta tables  catalog.schema (86 tables)    |
  +----------------------------+          | Volume: keys, spool, anchors, DATA_DIR files|
                                          | Notebook "showcase-seed" (cluster):         |
                                          |   journeys, factory  (one chain writer)     |
