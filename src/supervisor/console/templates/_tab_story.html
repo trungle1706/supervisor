@@ -1,3 +1,47 @@
+{% if ux5 %}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% set nx = [] %}{% for n in next_steps %}{% set _ = nx.append(t('next_' ~ n)) %}{% endfor %}
+{% if case.status != 'closed' %}
+<section class="card g6-next" data-key="waiting">
+  <h3>{{ tx('u6_next') }}</h3>
+  <p class="g6-next-line">{{ t('st_waiting', next=nx|join(', ') or '-') }}</p>
+  <p class="muted">{{ tx('u6_stops_line', n=g6.stops) }}</p>
+</section>
+{% endif %}
+<section class="card">
+  <h3>{{ t('what_happened') }}</h3>
+  <ul class="timeline g6-story" id="story">
+    {% for g in g6.groups %}{% set i = g.item %}
+    <li data-key="{{ i.key }}">
+      <span class="t">{{ g.ts_from|hhmmss }}</span><span class="dot {{ i.dot }}"></span>
+      <span>
+      {% if g.grouped %}
+        <details class="g6-group"><summary>
+        {% if i.key in ('st_rule_pause', 'st_rule_block') %}<strong>{{ tx('u6_grp_rule', rule=i.params.rule, n=g.count, a=g.ts_from|hhmmss, b=g.ts_to|hhmmss) }}</strong> {{ tx('u6_act_pause' if i.key == 'st_rule_pause' else 'u6_act_block') }}
+        {% elif i.key == 'ev_join' %}{{ tx('u6_grp_join', n=g.count) }}
+        {% elif i.key == 'st_t0b' %}{{ tx('u6_grp_t0b', n=g.count, a=g.ts_from|hhmmss, b=g.ts_to|hhmmss) }}
+        {% else %}{{ t(i.key, **i.params) }} <span class="muted">{{ tx('u6_times', n=g.count) }}, {{ g.ts_from|hhmmss }}-{{ g.ts_to|hhmmss }}</span>{% endif %}
+        </summary>
+        {% if i.key in ('st_rule_pause', 'st_rule_block') %}<div class="muted">{{ i.params.desc }}</div>{% endif %}
+        <ul class="g6-sub">{% for x in g['items'] %}<li><span class="t">{{ x.ts|hhmmss }}</span> {% if x.key in ('st_rule_pause', 'st_rule_block') %}{{ tx('u6_act_pause' if x.key == 'st_rule_pause' else 'u6_act_block') }}{% else %}{{ t(x.key, **x.params) }}{% endif %}{% if x.amount %} {{ t('st_amount', amount=x.amount|vnd, cur=x.currency) }}{% endif %}{% if x.latency_ms is not none %} <span class="muted">{{ t('st_latency', ms=x.latency_ms) }}</span>{% endif %}</li>{% endfor %}</ul>
+        </details>
+      {% else %}
+        {% if i.strong %}<strong>{% endif %}{{ t(i.key, **i.params) }}{% if i.strong %}</strong>{% endif %}
+        {%- if i.amount %}{{ ' ' }}{{ t('st_amount', amount=i.amount|vnd, cur=i.currency) }}{% endif %}
+        {%- if i.mock %}{{ ' ' }}{{ ui.pill(t('mock'), 'neutral') }}{% endif %}
+        {% if i.comment %}<div class="who-l">“{{ i.comment }}”</div>{% endif %}
+      {% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="g6-more">
+    <a href="/console/cases/{{ case.case_id }}?tab=rules&amp;lang={{ lang }}" hx-get="/console/cases/{{ case.case_id }}/tab/rules?lang={{ lang }}" hx-target="#tab-body">{{ t('rules_and_judges') }} →</a>
+    · <a href="/console/cases/{{ case.case_id }}?tab=transcript&amp;lang={{ lang }}" hx-get="/console/cases/{{ case.case_id }}/tab/transcript?lang={{ lang }}" hx-target="#tab-body">{{ t('transcript') }} →</a>
+  </p>
+</section>
+{% else %}
 {% import "_ui.html" as ui with context %}
 <section class="card">
   <h3>{{ t('what_happened') }}</h3>
@@ -32,3 +76,4 @@
   {% else %}<p class="muted">{{ t('no_transcript') }}</p>{% endif %}
   <div class="hint">{{ t('masking_note') }}{% if mask_versions %} ({{ t('mask_version') }} <span class="mono">{{ mask_versions|join(', ') }}</span>){% endif %}</div>
 </section>
+{% endif %}

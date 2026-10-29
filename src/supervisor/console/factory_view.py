@@ -16,6 +16,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.cases.service import PermissionDenied
+from supervisor.console import factory_ux5
 from supervisor.console.context import ConsoleContext
 from supervisor.factory import caps, golden, helpers, linter, registry
 from supervisor.factory.preview import MAX_EXPORTS, dry_preview
@@ -192,6 +193,9 @@ def editor_data(
         "events": list(reversed(st.events(agent_id, row["version"])))[:15],
     }
     data.update(_step_extra(ctx, st, row, step, me))
+    if ctx.settings.console_ux5:  # --- UX5 G6 ---
+        data["stages"] = factory_ux5.stages(data["steps"])
+        data["ux_events"] = factory_ux5.event_rows(data["events"])
     return {"ed": data}
 
 

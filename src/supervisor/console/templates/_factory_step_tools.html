@@ -12,7 +12,7 @@
       {% for tv in ed.tools_view %}
         <tr data-tool="{{ tv.tool_id }}">
           <td><input type="checkbox" name="use_{{ tv.tool_id }}" {{ 'checked' if tv.on }} {{ '' if ed.editable else 'disabled' }}></td>
-          <td><b>{{ tv.label }}</b><br><span class="mono">{{ tv.tool_id }}</span></td>
+          <td><b>{{ tv.label }}</b>{% if not ux5 %}<br><span class="mono">{{ tv.tool_id }}</span>{% endif %}</td>
           <td>{{ tv.kind }}</td>
           <td>{{ ui.pill(tv.data_class, 'warn' if tv.data_class in ('confidential', 'personal_masked') else 'neutral') }}</td>
           <td><select name="mode_{{ tv.tool_id }}" {{ '' if ed.editable else 'disabled' }}>{% for m in tv.modes %}<option value="{{ m }}" {{ 'selected' if m == tv.mode }}>{{ m }}</option>{% endfor %}</select></td>
@@ -21,7 +21,7 @@
       {% endfor %}
       </tbody>
     </table></div>
-    <p class="hint">{{ t('fa_tools_inline') }}</p>
+    {% if not ux5 %}<p class="hint">{{ t('fa_tools_inline') }}</p>{% endif %}
     {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}
   </form>
 </section>

@@ -4,7 +4,11 @@
 {% block title %}{{ t('fg_sim_title') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('fa_title'), '/console/factory'), (agent.id, '/console/factory/' ~ agent.id ~ '?step=gate'), (t('fg_sim_title'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+{{ u5.page_head(t('fg_sim_title'), t('fg_sim_hint')) }}
+{% else %}
 {{ ui.pagehead(t('fg_sim_title'), ui.pill(sim.run.run_id, 'neutral')) }}
 <p class="hint">{{ t('fg_sim_hint') }}</p>
+{% endif %}
 <div id="sim-review">{% include "_factory_sim_body.html" %}</div>
 {% endblock %}

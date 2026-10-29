@@ -1,3 +1,29 @@
+{% if ux5 %}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+<section class="card gold-card">
+  <h3>{{ t('case_on_chain') }}</h3>
+  <p class="hint" style="margin-top:0">{{ t('case_on_chain_why') }}</p>
+  {% if cf.chain %}<p>{{ t('n_entries', n=cf.chain.entry_count) }}{% if chain.signed %} · {{ tx('u6_last_signed', time=chain.signed.ts|hhmmss) }}{% endif %} · {% if verify and verify.ok %}{{ t('verified_at', time=verify.ts|hhmm) }}{% else %}{{ t('not_verified_short') }}{% endif %}</p>{% endif %}
+  <details class="g6-hash"><summary>{{ tx('u6_chain_details') }}</summary>
+  <dl class="kv">
+    <dt>{{ t('chain_lane') }}</dt><dd class="mono">{{ lane }}</dd>
+    {% if cf.chain %}
+    <dt>{{ t('seq_range') }}</dt><dd class="mono">{{ cf.chain.seq_from }}..{{ cf.chain.seq_to }}</dd>
+    <dt>{{ t('head') }}</dt><dd class="mono" title="{{ cf.chain.head_hash }}">{{ cf.chain.head_hash[:16] }}…</dd>
+    {% endif %}
+    {% if chain.signed %}<dt>{{ t('last_signed_root') }}</dt><dd>seq <span class="mono">{{ chain.signed.seq }}</span> · {{ chain.signed.ts|hhmmss }} · {{ t('key') }} <span class="mono">{{ chain.signed.key_id[:12] }}…</span></dd>{% endif %}
+    <dt>{{ t('last_anchor') }}</dt><dd>{% if chain.anchor %}{{ chain.anchor.anchored_at|day }}{% else %}{{ t('not_anchored') }}{% endif %}</dd>
+  </dl></details>
+  <details class="g6-hash"><summary>{{ tx('u6_sources', n=links|length) }}</summary>
+  <div class="tablewrap flat"><table>
+    <thead><tr><th>{{ t('time') }}</th><th>{{ t('source') }}</th><th>{{ t('reference') }}</th></tr></thead>
+    <tbody>{% for l in links[:25] %}<tr><td class="mono">{{ l.ts|hhmmss }}</td><td>{{ t('src_' ~ l.source_kind) }}</td><td class="mono wrap">{{ l.source_ref[:16] }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if links|length > 25 %}<p class="hint">{{ t('ux5_shown_of', shown=25, total=links|length) }}</p>{% endif %}
+  </details>
+</section>
+{% else %}
 {% import "_ui.html" as ui with context %}
 <section class="card gold-card">
   <h3>{{ t('case_on_chain') }}</h3>
@@ -19,3 +45,4 @@
     <tbody>{% for l in links %}<tr><td class="mono">{{ l.ts|hhmmss }}</td><td>{{ t('src_' ~ l.source_kind) }}</td><td class="mono wrap">{{ l.source_ref }}</td></tr>{% endfor %}</tbody>
   </table></div>
 </section>
+{% endif %}

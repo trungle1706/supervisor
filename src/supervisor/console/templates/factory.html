@@ -3,6 +3,73 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('fa_title') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g6.css">
+{{ ui.crumbs([(t('fa_title'), None)]) }}
+{{ u5.page_head(t('fa_title'), t('fa_intro')) }}
+
+<section class="card" data-section="portfolio">
+  <h3>{{ t('fa_portfolio') }}</h3>
+  <p class="hint">{{ t('fa_portfolio_hint') }}</p>
+  <div class="portfolio-strip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
+  {% for p in fa.portfolio %}
+    <div class="card flat" data-dimension="{{ p.dimension_id }}" data-kind="{{ p.kind }}">
+      <b>{{ t('fa_dim_' ~ p.dimension_id) }}</b><br>
+      {% if p.kind == 'live_agent' %}{{ u5.status_chip('ok', t('fa_live_agent')) }} <a href="/console/factory/{{ p.agent_id }}">{{ p.agent_id }} v{{ p.version }}</a>
+      {% else %}{{ u5.status_chip('na', t('fa_rule_proposal')) }}{% endif %}
+      <div class="hint">{{ t('fa_agents_n', n=p.agents) }}</div>
+    </div>
+  {% endfor %}
+  </div>
+</section>
+
+{% if fa.creatable %}
+<details class="card" data-section="new">
+  <summary><b>{{ t('fa_new') }}</b></summary>
+  <form hx-post="/console/factory/new" hx-swap="none" method="post">
+    <div class="g6-grid">
+      <label for="g6-new-dim">{{ t('fa_f_dimension') }}</label>
+      <select id="g6-new-dim" name="dimension_id" data-field="dimension_id">{% for c in fa.creatable %}<option value="{{ c.dimension_id }}">{{ t('fa_dim_' ~ c.dimension_id) }}</option>{% endfor %}</select>
+      <label for="g6-new-id">{{ t('fa_f_id') }}<span class="g6-help">{{ tx('u6_id_help') }}</span></label>
+      <input id="g6-new-id" type="text" name="id" data-field="id" maxlength="64" pattern="[a-z0-9][a-z0-9-]*" placeholder="{{ tx('u6_id_ph') }}" required>
+      <label for="g6-new-name">{{ t('fa_f_name') }}</label>
+      <input id="g6-new-name" type="text" name="name" data-field="name" maxlength="64">
+    </div>
+    <button class="btn primary" data-act="create">{{ t('fa_create') }}</button>
+  </form>
+  <p class="hint">{{ t('fa_new_hint') }}</p>
+</details>
+{% endif %}
+
+<form method="get" action="/console/factory" class="btnrow" data-filters="1">
+  <label>{{ t('fa_f_group') }} <select name="group"><option value="">{{ t('fa_all') }}</option>{% for g in fa.groups %}<option value="{{ g }}" {{ 'selected' if g == fa.group }}>{{ g }}</option>{% endfor %}</select></label>
+  <label>{{ t('fa_f_dimension') }} <select name="dimension"><option value="">{{ t('fa_all') }}</option>{% for d in fa.dimensions %}<option value="{{ d }}" {{ 'selected' if d == fa.dimension }}>{{ t('fa_dim_' ~ d) }}</option>{% endfor %}</select></label>
+  <label>{{ t('fa_f_state') }} <select name="state"><option value="">{{ t('fa_all') }}</option>{% for s in fa.states %}<option value="{{ s }}" {{ 'selected' if s == fa.state }}>{{ s }}</option>{% endfor %}</select></label>
+  <button class="btn" type="submit">{{ t('fa_filter') }}</button>
+</form>
+
+{% if fa.cards %}
+<div class="tablewrap"><table class="queue" data-table="agents">
+  <thead><tr><th>{{ tx('u6_col_agent') }}</th><th>{{ t('fa_f_dimension') }}</th><th>{{ t('fa_f_state') }}</th><th class="n">{{ t('fa_checklist_size') }}</th><th>{{ t('fa_last_gate') }}</th><th>{{ t('fg_live_version') }}</th></tr></thead>
+  <tbody>
+  {% for c in fa.cards %}
+  <tr data-agent="{{ c.id }}" data-state="{{ c.state }}">
+    <td><a href="/console/factory/{{ c.id }}">{{ c.name|replace('[demo:showcase] ', '')|replace(' (synthetic)', '') }}</a><div class="idline">{{ c.owner_label }}</div></td>
+    <td>{{ t('fa_dim_' ~ c.dimension_id) }}</td>
+    <td>{{ ui.pill(c.state, c.state_pill, True) }} <span class="muted">v{{ c.version }}</span></td>
+    <td class="n" data-checklist-size="{{ c.checklist_size }}">{{ c.checklist_size }}</td>
+    {% if c.last_gate %}<td data-last-gate="{{ c.last_gate.verdict }}" data-gate-kind="{{ c.last_gate.kind }}">{{ ui.pill(c.last_gate.verdict, {'pass': 'ok', 'fail': 'bad'}.get(c.last_gate.verdict, 'neutral'), True) }} <span class="hint">{{ tx('u6_rule_checks') }} {{ c.last_gate.layer1_percent }} %</span></td>
+    {% else %}<td data-last-gate="none"><span class="muted">{{ t('fa_gate_later') }}</span></td>{% endif %}
+    <td{% if c.live_version %} data-live-version="{{ c.live_version }}"{% endif %}>{% if c.live_version %}{{ ui.pill('v' ~ c.live_version, 'ok', True) }}{% else %}<span class="muted">-</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+  {{ ui.empty(t('fa_none'), t('fa_none_line')) }}
+{% endif %}
+{% else %}
 {{ ui.crumbs([(t('fa_title'), None)]) }}
 {{ ui.pagehead(t('fa_title')) }}
 <p class="hint">{{ t('fa_intro') }}</p>
@@ -62,4 +129,5 @@
   {{ ui.empty(t('fa_none'), t('fa_none_line')) }}
 {% endfor %}
 </div>
+{% endif %}
 {% endblock %}

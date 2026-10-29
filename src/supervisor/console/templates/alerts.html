@@ -5,17 +5,24 @@
 {% block title %}{{ t('alerts') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_watch'), None), (t('alerts'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+{{ u5.page_head(t('alerts'), t('alerts_purpose')) }}
+{% else %}
 {% call ui.pagehead(t('alerts')) %}
   <a class="btn" href="/console/analytics?tab=metrics&amp;lang={{ lang }}">{{ t('nav_analytics') }}</a>
 {% endcall %}
 {{ ui.purpose(t('alerts_purpose'), t('alerts_why')) }}
+{% endif %}
 <section id="alerts" aria-label="{{ t('alerts') }}">
+{% set u6_empty = ux5 and (tiles|sum(attribute='n')) == 0 and not (params.severity or params.agent or params.rule) %}
+{% if not u6_empty %}
 {{ ui.tiles(tiles, '/console/alerts', '/console/alerts/rows') }}
 {{ ui.filterbar('/console/alerts', '/console/alerts/rows', [
   {'name': 'severity', 'label': t('severity'), 'kind': 'select', 'value': params.severity, 'options': severity_opts},
   {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
   {'name': 'rule', 'label': t('alert_rule'), 'kind': 'select', 'value': params.rule, 'options': rule_opts},
 ], '/console/alerts?lang=' ~ lang, '#list', {'status': params.status}) }}
+{% endif %}
 <div id="list" aria-live="polite">
 {% include "_alerts_list.html" %}
 </div>

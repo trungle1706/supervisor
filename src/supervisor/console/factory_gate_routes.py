@@ -146,12 +146,52 @@ async def gate_detail(
 def _sim_data(ctx: ConsoleContext, me: Any, agent_id: str, run_id: str) -> dict[str, Any]:
     row = fv.load_row(ctx, agent_id)
     review = simulation.review_data(fgv.env(ctx), agent_id, run_id)
-    return {
+    out = {
         "sim": review,
         "agent": fv.card(ctx, me, row),
         "can_mark": fv.may_edit(me, row["owner_group"]),
         "verdicts": ("pass", "fail", "not_applicable", "question"),
     }
+    if ctx.settings.console_ux5:  # --- UX5 G6 --- the question text on every finding card
+        out["questions"] = {
+            str(c.get("id")): str(c.get("question") or "")
+            for c in (row["definition"].get("checklist") or [])
+        }
+    return out
+
+
+def _bulk_marks(
+    ctx: ConsoleContext, me: Any, agent_id: str, run_id: str, f: dict[str, str]
+) -> tuple[dict[str, Any], int]:
+    """UX5 G6: one Save for the whole review page. Fields ``mark_<n>``, ``cv_<n>``, ``note_<n>``,
+    ``sys_<n>``, ``fid_<n>``, ``orig_<n>``; an empty or unchanged mark is left as it is."""
+    row = fv.load_row(ctx, agent_id)
+    who = fv.require_edit(me, row["owner_group"])
+    todo = []
+    for key in sorted(f):
+        if not key.startswith("mark_") or not f[key]:
+            continue
+        n = key[5:]
+        now_val = "|".join((f[key], f.get(f"cv_{n}", ""), f.get(f"note_{n}", "")))
+        if now_val == f.get(f"orig_{n}"):  # unchanged: do not rewrite the mark
+            continue
+        todo.append(
+            (
+                f.get(f"sys_{n}", ""),
+                f.get(f"fid_{n}", ""),
+                f[key],
+                f.get(f"cv_{n}", ""),
+                f.get(f"note_{n}", ""),
+            )
+        )
+    for _s, fid, value, cv, _note in todo:  # check all first: nothing half saved
+        if value == "disagree" and cv not in fv.caps.VERDICTS:
+            raise FactoryError(
+                "verdict_needed", f"finding {fid}: a disagree mark names the correct verdict"
+            )
+    for sysname, fid, value, cv, note in todo:
+        simulation.mark(fgv.env(ctx), agent_id, run_id, sysname, fid, value, cv, note, who)
+    return _sim_data(ctx, me, agent_id, run_id), len(todo)
 
 
 @router.get(
@@ -188,6 +228,10 @@ async def simulation_mark(
 ) -> Response:
     _on(ctx)
     f = await form(request)
+    if any(k.startswith("mark_") for k in f):  # UX5 G6: the page's single Save
+        data, n = await _call(_bulk_marks, ctx, me, agent_id, run_id, f)
+        request.state.audit_detail = f"marks {n}"[:200]
+        return render(request, ctx, me, "_factory_sim_body.html", **data)
 
     def work() -> dict[str, Any]:
         row = fv.load_row(ctx, agent_id)

@@ -2,10 +2,10 @@
    transition action (WP-G5). Variables: inc_counts, page, sort_col, sort_dir, base_qs, list_qs. #}
 {% import "_ui.html" as ui with context %}
 {% import "_c_table.html" as tb with context %}
-<p style="margin:0 0 8px" id="inc-counts">
+{% if not ux5 %}<p style="margin:0 0 8px" id="inc-counts">
   {{ ui.pill(inc_counts.open ~ ' ' ~ t('inc_st_open'), 'warn' if inc_counts.open else 'ok') }}
   {{ ui.pill(inc_counts.investigating ~ ' ' ~ t('inc_st_investigating'), 'neutral') }}
-</p>
+</p>{% endif %}
 {% if page.items %}
 <div class="tablewrap"><table class="incidents">
   <caption class="sr">{{ t('inc_title') }}</caption>
@@ -22,18 +22,18 @@
   {% for i in page.items %}
   <tr class="row" data-incident="{{ i.incident_id }}" data-status="{{ i.status }}">
     <td class="mono">{{ i.opened_at|day }}</td>
-    <td><strong>{{ t('inc_kind_' ~ i.kind) }}</strong><div class="idline mono">{{ i.incident_id }}</div></td>
+    <td><strong title="{{ i.incident_id }}">{{ t('inc_kind_' ~ i.kind) }}</strong>{% if not ux5 %}<div class="idline mono">{{ i.incident_id }}</div>{% endif %}</td>
     <td>{{ ui.sev(i.severity) }}</td>
     <td>{{ i.agent_id }}</td>
-    <td class="mono">{{ i.system_id or '-' }}</td>
-    <td>{% if i.case_id %}<a href="/console/cases/{{ i.case_id }}?lang={{ lang }}">{{ i.case_id }}</a>{% else %}-{% endif %}</td>
-    <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}{% if i.closed_by %}<div class="idline">{{ i.closed_by }}</div>{% endif %}</td>
+    <td{% if not ux5 %} class="mono"{% endif %}>{{ i.system_id or '-' }}</td>
+    <td>{% if i.case_id %}<a href="/console/cases/{{ i.case_id }}?lang={{ lang }}"{% if ux5 %} class="g6-plain"{% endif %}>{% if ux5 %}{{ t('case') }} {{ i.case_id|replace('shw_case_', '') }}{% else %}{{ i.case_id }}{% endif %}</a>{% else %}-{% endif %}</td>
+    <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}{% if i.closed_by %}<div class="idline">{% if ux5 %}{{ tx('u6_by', who=i.closed_by) }}{% else %}{{ i.closed_by }}{% endif %}</div>{% endif %}</td>
     <td><a class="chipbtn" href="/console/incidents?{{ list_qs }}&amp;drawer={{ i.incident_id }}&amp;lang={{ lang }}" hx-get="/console/incidents/{{ i.incident_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('details') }} {{ i.incident_id }}">{{ t('details') }}</a></td>
   </tr>
   {% endfor %}
   </tbody>
 </table></div>
-{{ tb.pager(page, '/console/incidents', '/console/incidents/rows', list_qs) }}
+{% if not ux5 or page.pages > 1 %}{{ tb.pager(page, '/console/incidents', '/console/incidents/rows', list_qs) }}{% endif %}
 {% else %}
 {{ ui.empty(t('inc_none'), t('inc_none_line')) }}
 {% endif %}

@@ -3,25 +3,43 @@
 {% block title %}{{ t('cases') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_act'), None), (t('cases') if filters.status != 'closed' else t('archive'), None)]) }}
+{% if ux5 %}
+{% import "_ux5.html" as u5 with context %}
+{{ u5.page_head(t('cases') if filters.status != 'closed' else t('archive'), t('cases_purpose'), about=t('cases_why') ~ ' ' ~ t('cases_note')) }}
+{% else %}
 {% call ui.pagehead(t('cases') if filters.status != 'closed' else t('archive')) %}
   {% if me.has('reviewer', 'admin') %}
   <button type="button" class="btn" hx-post="/console/intake/run?{{ query }}&amp;lang={{ lang }}" hx-target="#queue-rows" hx-swap="innerHTML">{{ t('refresh_cases') }}</button>
   {% endif %}
 {% endcall %}
 {{ ui.purpose(t('cases_purpose'), t('cases_why')) }}
+{% endif %}
 <nav class="segm" aria-label="{{ t('status') }}" style="margin-bottom:10px">
   <a href="/console/cases?lang={{ lang }}" class="{{ 'on' if filters.status == 'open' else '' }}">{{ t('open_cases') }}</a>
   <a href="/console/cases?status=closed&amp;lang={{ lang }}" class="{{ 'on' if filters.status == 'closed' else '' }}">{{ t('archive') }} <span class="mono">{{ closed_n }}</span></a>
   <a href="/console/cases?status=all&amp;lang={{ lang }}" class="{{ 'on' if filters.status == 'all' else '' }}">{{ t('all') }}</a>
 </nav>
+{% if ux5 %}
+<form class="filters fbar" role="search" action="/console/cases" method="get" hx-get="/console/queue/rows" hx-target="#queue-rows" hx-trigger="change, submit" hx-push-url="false">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <input type="hidden" name="status" value="{{ filters.status }}">
+  <select name="severity" aria-label="{{ t('severity') }}"><option value="">{{ t('severity') }}: {{ t('all') }}</option>{% for v, l in severity_opts %}<option value="{{ v }}" {{ 'selected' if filters.severity == v else '' }}>{{ t(l) }}</option>{% endfor %}</select>
+  <input type="search" name="agent" list="g6-agents" value="{{ filters.agent }}" placeholder="{{ t('agent') }}" aria-label="{{ t('agent') }}" maxlength="64" autocomplete="off">
+  <datalist id="g6-agents">{% for v, l in agent_opts %}<option value="{{ v }}">{% endfor %}</datalist>
+  <select name="source" aria-label="{{ t('opened_by') }}"><option value="">{{ t('opened_by') }}: {{ t('all') }}</option>{% for v, l in source_opts %}<option value="{{ v }}" {{ 'selected' if filters.source == v else '' }}>{{ t(l) }}</option>{% endfor %}</select>
+  <noscript><button class="btn" type="submit">{{ t('apply') }}</button></noscript>
+  <a class="chipbtn" href="/console/cases?status={{ filters.status }}&amp;lang={{ lang }}">{{ t('reset') }}</a>
+</form>
+{% else %}
 {{ ui.filterbar('/console/cases', '/console/queue/rows', [
   {'name': 'severity', 'label': t('severity'), 'kind': 'select', 'value': filters.severity, 'options': severity_opts},
   {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': filters.agent, 'options': agent_opts},
   {'name': 'source', 'label': t('opened_by'), 'kind': 'select', 'value': filters.source, 'options': source_opts},
 ], '/console/cases?status=' ~ filters.status ~ '&lang=' ~ lang, '#queue-rows', {'status': filters.status}) }}
+{% endif %}
 <div id="queue-rows" hx-get="/console/queue/rows?{{ list_qs }}&amp;page={{ page.page }}&amp;lang={{ lang }}" hx-trigger="every 30s" hx-swap="innerHTML">
 {% include "_queue_rows.html" %}
 </div>
-<div class="note">{{ t('cases_note') }}</div>
+{% if not ux5 %}<div class="note">{{ t('cases_note') }}</div>{% endif %}
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_case_drawer.html" %}{% endif %}{% endblock %}

@@ -3,8 +3,12 @@
 {% block title %}{{ t('nav_assurance') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_assurance'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+{{ u5.page_head(t('nav_assurance'), t('as_purpose'), about=t('as_why')) }}
+{% else %}
 {{ ui.pagehead(t('nav_assurance')) }}
 {{ ui.purpose(t('as_purpose'), t('as_why')) }}
+{% endif %}
 <div id="assurance-body" data-assurance="1">
 {% if run_id is defined and run_id %}
 {% include "_assurance_run.html" %}

@@ -3,10 +3,10 @@
    list_qs. #}
 {% import "_ui.html" as ui with context %}
 {% import "_c_table.html" as tb with context %}
-<p style="margin:0 0 8px" id="alert-counts">
+{% if not ux5 %}<p style="margin:0 0 8px" id="alert-counts">
   {{ ui.pill(alert_counts.open ~ ' ' ~ t('alerts_open'), 'warn' if alert_counts.open else 'ok') }}
   {{ ui.pill(alert_counts.acknowledged ~ ' ' ~ t('alerts_ack'), 'neutral') }}
-</p>
+</p>{% endif %}
 {% if page.items %}
 <div class="tablewrap"><table class="alerts">
   <caption class="sr">{{ t('alerts') }}</caption>
@@ -44,7 +44,7 @@
   {% endfor %}
   </tbody>
 </table></div>
-{{ tb.pager(page, '/console/alerts', '/console/alerts/rows', list_qs) }}
+{% if not ux5 or page.pages > 1 %}{{ tb.pager(page, '/console/alerts', '/console/alerts/rows', list_qs) }}{% endif %}
 {% else %}
-{{ ui.empty(t('no_alerts'), t('no_alerts_line')) }}
+{% if ux5 %}{{ ui.empty(tx('u6_no_alerts'), tx('u6_no_alerts_line')) }}{% else %}{{ ui.empty(t('no_alerts'), t('no_alerts_line')) }}{% endif %}
 {% endif %}

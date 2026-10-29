@@ -5,10 +5,14 @@
 {% block title %}{{ t('signoff') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_act'), None), (t('signoff'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+{{ u5.page_head(t('signoff'), t('so_purpose'), about=t('signoff_rule')) }}
+{% else %}
 {% call ui.pagehead(t('signoff')) %}
   <a class="btn" href="/console/cases?lang={{ lang }}">{{ t('cases') }}</a>
 {% endcall %}
 {{ ui.purpose(t('so_purpose'), t('signoff_rule')) }}
+{% endif %}
 <div id="list" hx-get="/console/signoff/rows?{{ list_qs }}&amp;page={{ page.page }}&amp;lang={{ lang }}" hx-trigger="every 30s" hx-swap="innerHTML">
 {% include "_signoff_rows.html" %}
 </div>
