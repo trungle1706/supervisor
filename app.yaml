@@ -345,3 +345,12 @@ env:
   # systems to re-evaluation. Needs LAWAGENT_ENABLED and GOVERNANCE_ENABLED. Off by default.
   # - name: REGKB_CHANGE_LOOP
   #   value: "1"
+  # Showcase (v0.10.0, demo workspaces only; docs/showcase/DEPLOY_SHOWCASE.md). Seeds synthetic rows
+  # tagged demo:showcase. Never in a production App. POLICY_DIR adds the showcase policy of the three
+  # journey agents next to the baseline policies.
+  # - name: SHOWCASE_ENABLED
+  #   value: "1"
+  # - name: POLICY_DIR
+  #   value: "policies:src/supervisor/demo/showcase_data/policy"
+  # - name: INLINE_REDACTION_ENABLED
+  #   value: "1"

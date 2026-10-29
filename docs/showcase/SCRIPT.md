@@ -89,10 +89,9 @@ If the class differs, the run stops with `unexpected_class`. Do not click on.
 | The smart guardian reads the assessment and proposes. Each line has a rule and a reason. A person accepts. | kb: the floor guardian `dlp_vn`; 2 session limit lines accepted. cs: 7 lines accepted (session monitor, split payment monitor, guard model preset, approval above and daily total, session limits); floor `dlp_vn`, `injection_regex`, `policy_rules`. payments: 8 lines accepted (split payment monitor, strict preset, pause on money and credit, drift, level cap, approval limits); floor adds `session_monitor` |
 | The pre-deploy report is the proof of fit. | On a laptop or without an App URL: `no_go` (9 to 10 packs fail with "no harness"). With the deployed App and the HTTP target on, the packs run against it |
 
-Known limit (tell the audience if asked): the five autonomy limit lines of a payments system do not
-fit the 120 characters of the system tag `autonomy_limits`. The run accepts the three that fit
-(level cap, approval above, daily total) and prints `[SKIP]` for the two session limits. It is an
-open issue of WP-G4.
+Autonomy cap (live step): the run accepts every autonomy limit line except `max_level` (the tag
+`autonomy_limits` holds up to 600 characters). Accept `max_level` live on the Guardians tab: after it,
+every money call of `payment-ops-copilot` pauses for a person (`GATE-AUTONOMY-CAP`).
 
 ### Screen 8: Review and approval (step 8, tab Tasks)
 
@@ -262,10 +261,12 @@ rows with the table of the Databricks run (gateway model) before the show.
 <!-- act 5: WP-D2 -->
 
 
-> Act order matters for the payments story. Before act 4, an over-limit transfer from
-> `payment-ops-copilot` is paused by the policy rule SHOW-PAY-01. After act 4, the new guardian
-> `transfer-above-limit-needs-approval` is live on the same agent and blocks it
-> (GATE-GUARDIAN-BLOCK). Run `traffic --candidate payment-ops-copilot` again after act 4 to show it.
+> Payments story after act 4 (checked on the laptop run of 2026-10-29). An over-limit transfer from
+> `payment-ops-copilot` stays **paused** by the policy rule SHOW-PAY-01; the new guardian
+> `transfer-above-limit-needs-approval` shows next to it as a finding. A live guardian turns an
+> allowed call into a block (GATE-GUARDIAN-BLOCK); it does not change a pause, which already waits
+> for a person. The block shows on the agent without the pause rule: the factory runner prints it as
+> the final check. The account-number mask (`gf:vn-account-number-mask@1`) shows on every `add_payee`.
 >
 > Pre-deploy on Databricks: set `PREDEPLOY_HTTP_TARGET=1`, the allow-list `*.databricksapps.com`
 > and `SHOWCASE_APP_URL_<ID>` for each candidate App, or the pre-deploy verdict stays NO-GO (no
