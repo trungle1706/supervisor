@@ -21,8 +21,8 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
   * Wave 3 part two merged 2026-10-29: WP-F5 (starter agents), WP-W1 (watcher and update
     package), WP-G4 (smart guardian), WP-G3 (shadow and promotion); main 322cd05. Schema: 83
     tables. Full suite after part one: 8,663 passed, 0 failed.
-  * Last worker started 2026-10-29: WP-W2 (change to re-evaluation). After its merge: full
-    suite, then release v0.9.0.
+  * WP-W2 merged 2026-10-29 (5c22e14). Phase 12 and phase 11 are code-complete: 85 tables,
+    8,889+ tests. Release commit 2cea40c (v0.9.0); the tag follows a clean full suite.
   * Merge lesson: every WP appends a table and a CHANGELOG entry, so a merge conflicts in
     schema/model.yaml, the two DDL files, the notebook and CHANGELOG.md. Keep both appends, take
     either side of the generated files, then regenerate; add new /v1/systems routers to the
@@ -104,8 +104,53 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
 
 ## 7. Next actions in order
 
-1. Merge the WP-W2 branch on GitHub with the merge lesson above.
-2. Nothing else to start in phase 12; the plan's section 5 is complete after W2.
-3. Full suite, then release v0.9.0 (section 4).
+1. Confirm the v0.9.0 tag and GitHub Release exist (section 4). If the tag is missing, the
+   owner's machine still has the release commit 2cea40c: tag it after a clean full suite.
+2. Work the follow-up list in section 8 in that order. Each item is a small WP; brief a worker
+   as section 2 says, or do it in the session when it is under about 200 lines.
+3. Keep the house rules and the merge lesson. Report to the owner in the controlled style.
 4. Report to the owner in the controlled style (short sentences, tables, diagrams; see the
    owner's `ste-communication` skill note in the memory file when local).
+
+## 8. Follow-ups after v0.9.0 (from the workers' open questions; owner has not decided yet)
+
+| # | Item | Size | Needs |
+|---|---|---|---|
+| 1 | Smart guardian: a service that writes per-agent detector settings so Accept applies thresholds instead of showing a policy block (WP-G4 open question 1) | small | code only |
+| 2 | Gate enforcement of an accepted autonomy `max_level` cap (today only a system tag) (G4) | small | code only |
+| 3 | Nav entry for the regulation changes page; the changes page link from the Duties tab (W2) | small | code only |
+| 4 | WP-O1c: workspace folder read of a candidate Databricks App (needs CAN READ for the service principal) | small | the owner's workspace |
+| 5 | Judge validation packs on the bank gateway model so the judge sweep turns on (`python -m supervisor.assurance run halueval_vi --target judge`) | run | gateway model, owner's machine or App |
+| 6 | First live run of the model features on the gateway: law agent on Decree 142, facts card model path, the six starter agents through the full gate (`python -m supervisor.factory gate <id> --kind full`), one simulation review | run | gateway model; the owner judges the output quality |
+| 7 | Live Databricks run of v0.9.0: 17 new tables (bootstrap SQL in the filled config zip), all phase 12 flags, the nine-step register on a candidate, the portfolio blocks | run | the owner's workspace |
+| 8 | Counsel review of the illustrative files: config/classification.yaml, config/risk_dimensions.yaml, config/register_v3_strip.yaml, config/smart_guardian.yaml, regulations/REGULATOR_MAP.md open items M-01..M-10, the Decree 310/2026 amendment of Decree 69/2024 found by the watcher | review | bank counsel |
+| 9 | Text-change noise in the watcher (headings and line merges count as a change): compare word sequences with headings removed (W1 open question 1) | small | code only |
+| 10 | Watcher trust model: pin `REGKB_IMPORT_PUBKEY` to the dev host's signer or share one evidence key between the dev host and the App (W1) | decision | owner |
+| 11 | `require_approval` for a live deterministic guardian: pause the agent, or stay a report (G3 open question 2) | decision | owner |
+| 12 | Group membership: move from role mapping to `groups:` per user for every user in config/users.yaml (F2, F3, G1) | small | owner's user list |
+| 13 | Test-eval-improve loop on the real model per agent (the owner postponed it to this phase): now possible with the gate, the sample batch and the simulation review; needs the gateway and the owner's labels | run | gateway model |
+
+## 9. How to start a new cloud session for this work
+
+Paste this as the first message of the new session (edit the brackets):
+
+```
+You take over as the hub for the Guardian Agent / Supervisor project (repo trungle1706/supervisor,
+branch main). Read, in this order: docs/phase12/HANDOFF.md (all of it), CLAUDE.md,
+docs/phase12/BUILD_PLAN_PHASE12.md section 0, CHANGELOG.md top entry. Then confirm the state
+(git log --oneline -15, git tag | tail -3, git branch -r | grep worktree-agent | wc -l) and tell me
+in one table what is merged, what is tagged, and which follow-ups of HANDOFF.md section 8 you can
+do in the cloud. Work the follow-ups [1, 2, 3, 9, 12] one at a time: one worker or inline change
+per item, targeted tests, the house rules, a merge to main with the commit trailer, a push. Do not
+run model features or anything that needs my workspace; list those for me instead. Report in short
+sentences with tables.
+```
+
+What the cloud session needs from the owner: nothing for items 1, 2, 3, 9, 12. For items 5, 6, 7
+(runs on the gateway or the workspace) and 10, 11 (decisions) the owner answers in the session or
+runs the commands on the owner's machine and pastes the summary.
+
+Before you leave the owner's machine: push every worker branch that still matters
+(`git branch --list "worktree-agent-*"` → `git push origin <branch>`), keep `~/supervisor-release/`
+(release zips, filled config, SQL) because a cloud session cannot rebuild the filled config, and
+note that the demo console on port 8130 and the Cloudflare tunnel exist only here.
