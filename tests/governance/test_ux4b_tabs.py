@@ -399,3 +399,12 @@ def test_vi_tabs_render_vietnamese(seeded_registers: Console) -> None:
     vi = page(seeded_registers, sid, "risks", "vi")
     assert "Rủi ro" in vi and "Thừa hưởng từ" in vi
     assert "Báo cáo" in page(seeded_registers, sid, "reports", "vi")
+
+
+def test_system_policies_tab_is_labelled_obligations(v3: Console) -> None:
+    """UX5-BUG: the tab shows obligations, so it is not called Policies (that is another page)."""
+    html = page(v3, system(v3), "overview")
+    tab = re.search(r'data-tab="policies"[^>]*>([^<]+)<', html)
+    assert tab and tab.group(1).strip() == "Obligations"
+    vi = page(v3, system(v3, name="Other"), "overview", "vi")
+    assert re.search(r'data-tab="policies"[^>]*>\s*Nghĩa vụ\s*<', vi)
