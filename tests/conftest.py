@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import socket
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,25 @@ def _regkb_cache() -> None:
     from tests._cache import install_regkb_cache
 
     install_regkb_cache()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _no_databricks_host_lookup() -> Iterator[None]:
+    """WP-T1: ``databricks.sdk.core.Config(host=...)`` asks the host for its OIDC metadata
+    (``_resolve_host_metadata``) and, for the invalid test hosts, retries a failing DNS lookup for
+    about 90 s: two tests in tests/databricks/test_sql_user_token_forward.py took 183 s of a
+    10-minute run. The lookup only fills optional fields, so it is stubbed to do nothing."""
+    from databricks.sdk.core import Config
+
+    original = getattr(Config, "_resolve_host_metadata", None)
+    if original is None:  # a different SDK version: nothing to stub
+        yield
+        return
+    Config._resolve_host_metadata = lambda self: None  # type: ignore[method-assign]
+    try:
+        yield
+    finally:
+        Config._resolve_host_metadata = original  # type: ignore[method-assign]
 
 
 @pytest.fixture
@@ -65,6 +85,12 @@ SLOW_PATH_PREFIXES = (
 SLOW_FILE_PARTS = ("harness", "_perf", "_e2e", "_bench")
 SLOW_NODEIDS = (
     # single tests found slow by --durations (>8 s on a loaded host), see docs/testing.md
+    "tests/redteam/test_pack_job.py::",  # long redteam campaigns
+    "tests/redteam/test_runner.py::",
+    "tests/assurance/test_wiring.py::",  # long assurance launches (43 s for one)
+    "tests/assurance/test_catalogue.py::",
+    "tests/assurance/test_gates_mock_row.py::",
+    "tests/unit/test_smoke_launch.py::",  # starts the real app
     "tests/regkb/test_w2_change.py::",
     "tests/console/test_w2_change.py::",
     "tests/regkb/test_lawagent.py::test_cli_refuses_a_mock_model_and_runs_with_allow_mock",
