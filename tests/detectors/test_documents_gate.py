@@ -524,8 +524,17 @@ def test_m1_beyond_the_document_budget_the_part_is_cut_and_the_arguments_are_rea
 
 
 def test_m1_on_pii_export_the_cut_document_fails_closed_but_the_call_is_scored(
-    gw: Gateway,
+    make_gateway: GatewayFactory, masker: Any
 ) -> None:
+    # The gate gives each detector `limits.timeout_ms` (500 ms) of wall clock. Scanning 262,144
+    # characters can take longer than that on a loaded host (xdist workers, a shared server), and
+    # the detector would then be `timed_out` instead of cut: the assertion below is about the
+    # cut, not about speed. So the deadline is made too long to be reached (WP-T1).
+    text = CONFIG.read_text(encoding="utf-8")
+    assert "timeout_ms: 500 " in text
+    gw = make_docs_gw(
+        make_gateway, masker, config_text=text.replace("timeout_ms: 500 ", "timeout_ms: 60000 ", 1)
+    )
     big = "Bao cao doanh thu thang nay tang nhe. " * 9000
     r = gw.check(
         "payments",

@@ -38,6 +38,8 @@ dev = [
     "pytest>=8.0",
     # Unit tests for the databricks_rest adapter use the real SDK dataclasses with a fake transport.
     "databricks-sdk>=0.40",
+    "pytest-xdist>=3.8.0",
+    "pytest-testmon>=2.2.0",
 ]
 
 [build-system]
@@ -58,6 +60,7 @@ norecursedirs = [".*", "*.egg", "build", "dist", "node_modules", "venv", "data"]
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 markers = [
     "databricks: live test against a real Databricks workspace (needs RUN_DATABRICKS=1)",
+    "slow: slow test (harness, end to end, perf, long assurance/redteam runs); the daily run is -m 'not slow'",
     "perf: performance test; the time budget is enforced only with RUN_PERF=1",
 ]
 
