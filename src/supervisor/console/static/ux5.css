@@ -187,3 +187,4 @@
 /* ---- forms ---------------------------------------------------------------------------------------- */
 .ux5 input, .ux5 select, .ux5 textarea { font: inherit; font-size: 14px; border: 1px solid var(--u5-line); border-radius: 8px;
   background: var(--u5-panel); color: var(--u5-ink); }
+.ux5 .skip { background: var(--u5-ink); color: var(--u5-ground); }
