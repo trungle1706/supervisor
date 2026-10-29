@@ -2961,8 +2961,21 @@ _T.update(
             "Run python -m supervisor.jobs.decision_rollup (the scheduler does it every hour).",
             "Chạy python -m supervisor.jobs.decision_rollup (bộ lập lịch chạy mỗi giờ).",
         ),
-        "dd_series": ("Gate outcomes by day", "Kết quả của cổng theo ngày"),
-        "dd_per_agent": ("Per agent", "Theo tác tử"),
+        "dd_series": (
+            "Gate outcomes by day (daily rollup)",
+            "Kết quả của cổng theo ngày (tổng hợp theo ngày)",
+        ),
+        "dd_rollup_note": (
+            "The chart and the four tables below read the daily rollup. The tiles and the first "
+            "table above count single gate calls in the window. The rollup can hold more traffic "
+            "than those calls (for example rolled-up history of demo agents), so the totals can "
+            "differ.",
+            "Biểu đồ và bốn bảng bên dưới đọc từ bảng tổng hợp theo ngày. Các ô và bảng đầu tiên "
+            "ở trên đếm từng lệnh gọi qua cổng trong khoảng thời gian. Bảng tổng hợp có thể chứa "
+            "nhiều lưu lượng hơn các lệnh gọi đó (ví dụ lịch sử tổng hợp của tác tử demo), nên "
+            "tổng số có thể khác.",
+        ),
+        "dd_per_agent": ("Per agent (daily rollup)", "Theo tác tử (tổng hợp theo ngày)"),
         "dd_per_consumer": ("Per application", "Theo ứng dụng"),
         "dd_per_rule": ("Per rule", "Theo quy tắc"),
         "dd_per_detector": ("Per detector and code", "Theo bộ phát hiện và mã"),
