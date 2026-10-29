@@ -241,9 +241,13 @@ def _step_extra(
         out["gate"] = fgv.gate_data(ctx, me, row)
     elif step == "golden":
         cases = golden.load_cases(ctx.settings.data_dir, row["id"])
-        out["strat"] = golden.stratification(cases, [c["id"] for c in defn["checklist"]])
-        # UX5-BUG: the golden set is the checklist cases plus the gate cases (one count everywhere)
-        out["golden_total"] = len(golden.all_gate_cases(ctx.settings.data_dir, row["id"]))
+        # The golden set is the checklist cases plus the gate cases (one count everywhere). Gate
+        # cases carry ``expected: {checklist_id: verdict}``, so the stratification counts them all.
+        every = golden.all_gate_cases(ctx.settings.data_dir, row["id"])
+        out["strat"] = golden.gate_stratification(every, [c["id"] for c in defn["checklist"]])
+        out["golden_total"] = len(every)
+        out["checklist_total"] = len(cases)
+        out["golden_min"] = caps.GOLDEN_MIN_CASES
         from supervisor.console import factory_gate_view as fgv
 
         out["gate_on"] = fgv.on(ctx)
