@@ -5,13 +5,19 @@
 {% block title %}{{ t('nav_risks') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_risks'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g3.css">{% endif %}
+{% if ux5 %}
+{% set actions %}{% if illustrative %}{{ u5.disclaimer(t('rk_illustrative', low=thresholds.low_max, med=thresholds.medium_max, high=thresholds.high_max)) }}{% endif %}{% endset %}
+{{ u5.page_head(t('nav_risks'), t('rk_purpose'), about=t('rk_why'), actions=actions) }}
+{% else %}
 {{ ui.pagehead(t('nav_risks'), ui.pill(t('read_only'), 'neutral')) }}
 {{ ui.purpose(t('rk_purpose'), t('rk_why')) }}
 {% if illustrative %}<p class="hint">{{ t('rk_illustrative', low=thresholds.low_max, med=thresholds.medium_max, high=thresholds.high_max) }}</p>{% endif %}
+{% endif %}
 <section id="risks" aria-label="{{ t('nav_risks') }}">
 {{ ui.tiles(tiles, '/console/risks', '/console/risks/rows') }}
 {% if overdue_n %}<p class="hint">{{ t('rk_overdue_line', n=overdue_n) }}</p>{% endif %}
-{% if unproven_n %}<p class="hint">{{ t('rk_unproven_line', n=unproven_n) }}</p>{% endif %}
+{% if unproven_n %}<p class="hint">{{ t('g3_risks_nowork', n=unproven_n) if ux5 else t('rk_unproven_line', n=unproven_n) }}</p>{% endif %}
 {{ ui.filterbar('/console/risks', '/console/risks/rows', [
   {'name': 'q', 'label': t('rk_col_risk'), 'kind': 'search', 'value': params.q},
   {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
@@ -24,6 +30,6 @@
 {% include "_risks_list.html" %}
 </div>
 </section>
-<p class="hint">{{ t('rk_edit_note') }}</p>
+{% if ux5 %}{% if me.has('admin') %}{{ u5.technical([('Edit', t('rk_edit_note'))]) }}{% endif %}{% else %}<p class="hint">{{ t('rk_edit_note') }}</p>{% endif %}
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_risk_drawer.html" %}{% endif %}{% endblock %}

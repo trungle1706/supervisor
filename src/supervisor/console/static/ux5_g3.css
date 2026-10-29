@@ -1,0 +1,63 @@
+/* UX5 group G3: compliance advisor, risks, controls, policies, internal documents, law changes, drafts.
+   Linked only from ux5 templates; every rule sits under .ux5. */
+.ux5 .g3-crumb { font-size: 12px; color: var(--u5-muted); margin: 0 0 4px; }
+.ux5 .g3-crumb a { font-weight: 500; color: var(--u5-muted); }
+.ux5 .g3-meta { margin: 0 0 12px; font-size: 12px; color: var(--u5-muted); }
+.ux5 .g3-bad { color: var(--u5-crit); }
+.ux5 .g3-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--u5-line); margin: 0 0 16px; }
+.ux5 .g3-tabs a { padding: 8px 14px; font-size: 14px; font-weight: 500; color: var(--u5-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ux5 .g3-tabs a.on { color: var(--u5-ink); font-weight: 600; border-bottom-color: var(--u5-brand); }
+.ux5 .g3-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; margin: 16px 0; }
+.ux5 .g3-two-wide { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+@media (max-width: 900px) { .ux5 .g3-two, .ux5 .g3-two-wide { grid-template-columns: minmax(0, 1fr); } }
+.ux5 .g3-ph { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.ux5 .g3-ph h3 { margin: 0; }
+.ux5 .g3-ph > span { font-size: 12px; color: var(--u5-muted); }
+.ux5 .g3-item { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--u5-line-soft); flex-wrap: wrap; }
+.ux5 .g3-item:first-of-type { border-top: 0; }
+.ux5 .g3-item small { display: block; color: var(--u5-muted); font-size: 12px; }
+.ux5 .g3-lines { margin: 6px 0 0 18px; padding: 0; font-size: 13px; flex: 1 1 100%; }
+.ux5 .g3-more { margin: 8px 0; font-size: 13px; }
+.ux5 .g3-more > summary { cursor: pointer; color: var(--u5-muted); }
+.ux5 .g3-link { font-size: 13px; }
+.ux5 .g3-tbl { width: 100%; border-collapse: collapse; }
+.ux5 .g3-id { white-space: nowrap; }
+.ux5 .g3-wide { min-width: 40ch; width: 46%; }
+.ux5 .g3-wait { font-size: 12px; color: var(--u5-warn); margin-top: 2px; }
+.ux5 .g3-scroll { overflow-x: auto; }
+.ux5 .g3-filters { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin: 8px 0; }
+.ux5 .g3-seg { display: inline-flex; border: 1px solid var(--u5-line); border-radius: 8px; overflow: hidden; }
+.ux5 .g3-seg a { padding: 6px 12px; font-size: 13px; font-weight: 500; color: var(--u5-muted); border-left: 1px solid var(--u5-line); }
+.ux5 .g3-seg a:first-child { border-left: 0; }
+.ux5 .g3-seg a.on { background: var(--u5-ink); color: var(--u5-panel); }
+.ux5 .g3-search { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ux5 .g3-search input[type="search"] { min-width: 220px; padding: 6px 10px; }
+.ux5 .g3-search select { padding: 6px 8px; max-width: 220px; }
+.ux5 .g3-legend-row { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--u5-muted); }
+.ux5 details.g3-ins { border-top: 1px solid var(--u5-line); }
+.ux5 details.g3-ins > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center; padding: 12px 4px; cursor: pointer; list-style: none; }
+.ux5 details.g3-ins > summary::-webkit-details-marker { display: none; }
+.ux5 details.g3-ins > summary::before { content: "\25B8"; position: absolute; margin-left: -14px; color: var(--u5-muted); font-size: 12px; }
+.ux5 details.g3-ins[open] > summary::before { content: "\25BE"; }
+.ux5 details.g3-ins > summary { padding-left: 16px; position: relative; }
+.ux5 .g3-ins-name b { display: block; font-weight: 600; color: var(--u5-ink); }
+.ux5 .g3-ins-name .mono { display: block; }
+.ux5 .g3-cnts { font-size: 12px; color: var(--u5-muted); white-space: nowrap; min-width: 110px; text-align: right; }
+.ux5 details.g3-sum > summary { list-style: none; cursor: pointer; }
+.ux5 details.g3-sum > summary::-webkit-details-marker { display: none; }
+.ux5 .g3-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--u5-body); }
+.ux5 details.g3-sum[open] .g3-clamp { -webkit-line-clamp: unset; display: block; }
+.ux5 tr.g3-morerow td { color: var(--u5-muted); font-size: 13px; background: var(--u5-inset); }
+.ux5 .g3-vi { white-space: pre-wrap; margin-bottom: 12px; }
+.ux5 .g3-prevnext { display: flex; justify-content: space-between; gap: 12px; margin: 16px 0; font-size: 13px; }
+.ux5 .g3-desc { font-size: 13px; color: var(--u5-body); margin-top: 2px; }
+.ux5 .g3-line { margin: 0 0 12px; color: var(--u5-muted); font-size: 13px; }
+.ux5 .g3-lawcard { border-top: 1px solid var(--u5-line-soft); padding-top: 10px; margin-top: 10px; }
+.ux5 .g3-lawcard blockquote { margin: 8px 0; padding: 8px 12px; background: var(--u5-inset); border-radius: 8px; }
+.ux5 .g3-tabs-row { margin: 0 0 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+.ux5 a.g3-ins-closed { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center; padding: 12px 4px 12px 16px;
+  border-top: 1px solid var(--u5-line); font-weight: 400; position: relative; color: var(--u5-body); }
+.ux5 a.g3-ins-closed::before { content: "\25B8"; position: absolute; left: 0; color: var(--u5-muted); font-size: 12px; }
+.ux5 a.g3-ins-closed:hover { background: var(--u5-hover); text-decoration: none; }
+.ux5 .g3-item .btn { flex: none; white-space: nowrap; }
+.ux5 .g3-item > div:first-child { flex: 1 1 260px; min-width: 0; }

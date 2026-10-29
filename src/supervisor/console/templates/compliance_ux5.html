@@ -1,0 +1,31 @@
+{# Compliance advisor, agent list (CONSOLE_UX5, group G3). Variables: enabled, cards. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% block title %}{{ t('nav_compliance') }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/ux5_g3.css">
+{% set actions %}{{ u5.disclaimer(t('cp_disclaimer')) }}{% endset %}
+{{ u5.page_head(t('cp_title'), t('cp_purpose'), about=t('cp_why'), actions=actions) }}
+{% if cards %}<p class="g3-meta">{{ t('g3_legal_data', v=cards[0].regkb_version[:8], d=cards[0].as_of) }}</p>{% endif %}
+<section class="card" data-section="agents">
+  <table class="g3-tbl">
+    <thead><tr><th>{{ t('g3_col_agent') }}</th><th>{{ t('g3_col_risk') }}</th><th>{{ t('g3_col_status') }}</th><th class="n">{{ t('g3_col_gaps') }}</th><th class="n">{{ t('g3_col_ask') }}</th></tr></thead>
+    <tbody>
+    {% for c in cards|sort(attribute='by_status.gap', reverse=True) %}
+    <tr data-agent="{{ c.agent }}">
+      <td><a href="/console/compliance/{{ c.agent }}?lang={{ lang }}">{{ c.name }}</a>
+        {% if c.source_kind == 'demo' %}<span class="pill neutral">{{ t('cp_source_demo') }}</span>{% endif %}
+        <div class="hint">{{ t('g3_card_line', a=c.applies_yes, w=c.needs_answer, q=c.questions, g=c.threshold_gaps) }}</div></td>
+      <td>{{ u5.status_chip({'high_risk': 'bad', 'not_high_risk': 'ok'}.get(c.d33, 'warn'), cw('d33.' ~ c.d33)) }}</td>
+      <td>{{ u5.tick_strip([('gap', c.by_status.gap), ('partial', c.by_status.partial), ('bank', c.by_status.bank_process), ('closed', c.by_status.met)]) }}
+        <div class="hint">{{ cw('status.gap') }} {{ c.by_status.gap }} · {{ cw('status.partial') }} {{ c.by_status.partial }} · {{ cw('status.met') }} {{ c.by_status.met }} · {{ cw('status.bank_process') }} {{ c.by_status.bank_process }}</div></td>
+      <td class="n">{{ c.by_status.gap }}</td>
+      <td class="n">{{ c.questions }}</td>
+    </tr>
+    {% else %}<tr><td colspan="5" class="hint">{{ t('cp_no_agents') }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  {{ u5.tick_legend(['gap', 'partial', 'bank', 'closed']) }}
+</section>
+{% endblock %}

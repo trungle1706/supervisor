@@ -52,6 +52,7 @@ from supervisor.console import (
     cases_list,  # --- WP-UX2 ---
     catalog_view,
     collectors_view,
+    compliance_ux5,
     compliance_view,
     controls_views,  # --- WP30 ---
     credentials_view,
@@ -107,6 +108,7 @@ STATIC = {
     "console.js": "application/javascript",
     "console.css": "text/css",
     "ux5.css": "text/css",  # UX5-F: linked only with CONSOLE_UX5
+    "ux5_g3.css": "text/css",  # UX5 group G3 (compliance, risks, regkb pages)
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (
@@ -1354,7 +1356,7 @@ async def compliance_page(
         request,
         ctx,
         me,
-        "compliance.html",
+        "compliance_ux5.html" if ctx.settings.console_ux5 else "compliance.html",
         enabled=True,
         cards=cards,
         **_compliance_ctx(request, ctx),
@@ -1385,6 +1387,33 @@ async def compliance_agent(
         return m, f
 
     matrix, filtered = await _call(work)
+    if ctx.settings.console_ux5 and q.get("format") == "csv":
+        # UX5: the duty rows as CSV (all, or the filtered ones), full legal summary kept
+        rows = compliance_ux5.filter_all(
+            matrix, filtered["rows"], q=q.get("q", ""), question=(q.get("question", "") or "")[:128]
+        )
+        resp = Response(compliance_ux5.csv_text(rows), media_type="text/csv; charset=utf-8")
+        resp.headers["content-disposition"] = f'attachment; filename="compliance-{agent}.csv"'
+        resp.headers["x-content-type-options"] = "nosniff"
+        return resp
+    if ctx.settings.console_ux5:
+        lang = _lang(request, ctx)
+        tr = translator(lang, ux5=True)
+        titles = compliance_ux5.instrument_titles(compliance_view.kb_for(ctx.settings))
+        g3 = compliance_ux5.build(matrix, filtered, titles, q, tr, lang)
+        return render(
+            request,
+            ctx,
+            me,
+            "compliance_agent_ux5.html",
+            agent=agent,
+            matrix=matrix,
+            f=filtered,
+            g3=g3,
+            evidence=lambda r: compliance_ux5.evidence_label(r, tr),
+            status_kind=compliance_ux5.STATUS_KIND,
+            **_compliance_ctx(request, ctx),
+        )
     return render(
         request,
         ctx,
@@ -1412,6 +1441,24 @@ async def compliance_obligation(
     if not ctx.settings.console_compliance_enabled:
         return _compliance_off(request, ctx, me)
     detail = await _call(compliance_view.obligation_detail, ctx.settings, agent, obligation_id)
+    if ctx.settings.console_ux5:
+        tr = translator(_lang(request, ctx), ux5=True)
+        prev_id, next_id = compliance_ux5.neighbours(detail["matrix"], obligation_id)
+        return render(
+            request,
+            ctx,
+            me,
+            "compliance_obligation_ux5.html",
+            agent=agent,
+            row=detail["row"],
+            ob=detail["ob"],
+            controls=detail["controls"],
+            prev_id=prev_id,
+            next_id=next_id,
+            evidence=lambda r: compliance_ux5.evidence_label(r, tr),
+            status_kind=compliance_ux5.STATUS_KIND,
+            **_compliance_ctx(request, ctx),
+        )
     return render(
         request,
         ctx,

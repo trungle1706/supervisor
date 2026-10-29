@@ -2,6 +2,36 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}Law agent drafts{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g3.css">
+{% set doc_name = (instrument_title or instrument)|replace(' demo:showcase', '')|replace(' (synthetic)', '') %}
+{% set actions %}{{ u5.disclaimer(banner) }}{% endset %}
+{{ u5.page_head(t('g3_dr_title', name=doc_name.split(' ')[0] if is_internal else doc_name), t('g3_dr_purpose'), actions=actions) }}
+{% if is_internal %}
+<p class="g3-line" data-internal-doc="{{ doc.doc_id }}">{{ t('g3_dr_internal', title=doc_name, version=doc.version_label, owner=doc.owner_group) }}
+  {{ t('g3_dr_internal_note') }} <a href="/console/regkb/internal?lang={{ lang }}">{{ t('g3_dr_all_docs') }}</a></p>
+{% elif me.has('admin') %}
+{{ u5.technical([(t('g3_dr_cli'), 'python -m supervisor.regkb.lawagent --instrument ' ~ instrument), (t('g3_dr_source'), instrument)]) }}
+{% endif %}
+<p class="g3-tabs-row" id="draft-counts">
+  {% for s in ('draft', 'confirmed', 'dropped') %}
+  <a href="/console/regkb/{{ instrument }}/drafts?status={{ s }}&amp;lang={{ lang }}" data-status-filter="{{ s }}">{{ ui.pill(t('g3_dr_' ~ s) ~ ' ' ~ counts[s], {'draft': 'warn', 'confirmed': 'ok', 'dropped': 'neutral'}[s] if status == s else 'neutral', status == s) }}</a>
+  {% endfor %}
+  <a href="/console/regkb/{{ instrument }}/drafts?status=all&amp;lang={{ lang }}" data-status-filter="all">{{ ui.pill(t('g3_dr_all'), 'info' if status == 'all' else 'neutral', status == 'all') }}</a>
+</p>
+{% if not has_text %}<p class="g3-line">{{ t('g3_dr_notext') }}</p>{% endif %}
+{% for g in groups %}
+<section class="card lawdraft" data-article="{{ g.number }}">
+  <h3>{{ g.label }}{% if g.heading and g.heading != g.label %} &middot; {{ g.heading }}{% endif %}</h3>
+  {% for d in g.drafts %}
+    {% include "_regkb_draft.html" %}
+  {% endfor %}
+</section>
+{% else %}
+{{ ui.empty(t('g3_dr_empty_t'), t('g3_dr_empty_internal') if is_internal else t('g3_dr_empty_other')) }}
+{% endfor %}
+{% else %}
 {{ ui.crumbs([('Regulations', None), (instrument, None), ('Law agent drafts', None)]) }}
 {{ ui.pagehead('Law agent drafts: ' ~ instrument, ui.pill('Drafts only', 'info')) }}
 <div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ banner }}</b> A draft is not an obligation. The model drafted it; a person confirms or drops it.</div>
@@ -33,4 +63,5 @@
 {% else %}
 {{ ui.empty('No drafts in this view', 'Run the agent from the command line, or pick another status above.') }}
 {% endfor %}
+{% endif %}
 {% endblock %}

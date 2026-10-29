@@ -1,0 +1,180 @@
+{# Compliance advisor, one agent (CONSOLE_UX5, group G3). Variables: agent, matrix, f (filter_rows), g3 (compliance_ux5.build),
+   titles are in g3.groups. Approved look: Compliance.dc.html. Legal text is never removed. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% block title %}{{ t('nav_compliance') }} - {{ matrix.header.product_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/ux5_g3.css">
+{% set m = matrix %}
+{% set base = '/console/compliance/' ~ agent ~ '?lang=' ~ lang %}
+{% set fq = ('&status=' ~ f.status if f.status else '') ~ ('&applies=' ~ f.applies if f.applies else '') ~ ('&instrument=' ~ f.instrument if f.instrument else '') ~ ('&duty=' ~ f.duty if f.duty else '') ~ ('&q=' ~ g3.q|urlencode if g3.q else '') ~ ('&question=' ~ g3.question if g3.question else '') %}
+{% set admin = me.has('admin') %}
+
+{% macro d33_entries(full) %}
+  {% for e in g3.d33.entries %}
+  <div class="g3-item" data-d33-entry="{{ e.entry }}">
+    <div><b>{{ t('g3_d33_entry_' ~ e.entry) if t('g3_d33_entry_' ~ e.entry) != 'g3_d33_entry_' ~ e.entry else e.entry }}</b>
+      <small>{{ cw('d33.triggered') if e.triggered is true else (cw('d33.not_triggered') if e.triggered is false else cw('d33.unknown')) }}</small></div>
+    {% if full %}
+    <ul class="g3-lines">{% for ln in e.lines %}<li>{% if ln.ids %}<span class="mono">{{ ln.ids }}</span> {% endif %}{{ ln.text }}</li>{% endfor %}</ul>
+    {% else %}
+    <details class="g3-more"><summary>{{ t('g3_reasoning', n=e.lines|length) }}</summary>
+      <ul class="g3-lines">{% for ln in e.lines %}<li>{% if ln.ids %}<span class="mono">{{ ln.ids }}</span> {% endif %}{{ ln.text }}</li>{% endfor %}</ul></details>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endmacro %}
+
+{% set actions %}
+  {{ u5.disclaimer(t('cp_disclaimer')) }}
+  <a class="btn" href="/console/compliance/{{ agent }}?format=csv&amp;lang={{ lang }}{{ fq }}">{{ t('g3_export') }}</a>
+{% endset %}
+<div class="g3-crumb"><a href="/console/compliance?lang={{ lang }}">{{ t('nav_compliance') }}</a> / {{ m.header.product_name }}</div>
+{{ u5.page_head(m.header.product_name, t('g3_purpose_agent'), about=t('cp_why'), actions=actions) }}
+<p class="g3-meta">{{ t('g3_legal_data', v=m.header.regkb_version[:8], d=m.header.as_of) }}{% if m.header.internal_rules %} · {{ t('cp_instrument') }}: internal{% endif %}</p>
+
+<nav class="g3-tabs" aria-label="{{ t('g3_tabs') }}">
+  <a class="{{ 'on' if g3.tab == 'summary' }}" href="{{ base }}&amp;tab=summary">{{ t('g3_tab_summary') }}</a>
+  <a class="{{ 'on' if g3.tab == 'd33' }}" href="{{ base }}&amp;tab=d33">{{ t('g3_tab_d33') }}</a>
+  <a class="{{ 'on' if g3.tab == 'all' }}" href="{{ base }}&amp;tab=all">{{ t('g3_tab_all', n=g3.total) }}</a>
+</nav>
+
+{% if g3.tab == 'summary' %}
+<section class="u5-strip" data-section="counts" aria-label="{{ t('g3_strip') }}">
+  <div><b>{{ g3.applies_n }}</b><span>{{ t('g3_strip_apply') }}</span></div>
+  <div><b class="g3-bad">{{ g3.by.gap }}</b><span>{{ u5.status_chip('bad', cw('status.gap')) }}</span></div>
+  <div><b>{{ g3.by.partial }}</b><span>{{ u5.status_chip('warn', cw('status.partial')) }}</span></div>
+  <div><b>{{ g3.by.bank_process }}</b><span>{{ u5.status_chip('info', cw('status.bank_process')) }}</span></div>
+  <div><b>{{ g3.by.met }}</b><span>{{ u5.status_chip('ok', cw('status.met')) }}</span></div>
+</section>
+<p class="g3-meta" data-needs-answer="{{ g3.needs_answer }}">{{ t('g3_card_line', a=g3.applies_n, w=g3.needs_answer, q=m.summary.questions, g=m.summary.threshold_gaps) }}</p>
+
+<div class="g3-two">
+  <section class="card" data-section="questions">
+    <div class="g3-ph"><h3>{{ t('g3_answer_first') }}</h3><span>{{ t('g3_answer_sub', q=g3.questions|length, n=m.summary.needs_answer) }}</span></div>
+    {% for q in g3.questions %}
+    <div class="g3-item" data-question="{{ q.id }}">
+      <div><b title="{{ q.full }}">{{ q.short }}</b><small>{{ t('g3_blocks', n=q.n) }}</small></div>
+      <a class="btn" href="{{ base }}&amp;tab=all&amp;question={{ q.id }}">{{ t('g3_show_duties') }}</a>
+    </div>
+    {% else %}<div class="hint">{{ t('g3_none_q') }}</div>{% endfor %}
+  </section>
+  <section class="card" data-section="decision33">
+    <div class="g3-ph"><h3>{{ t('g3_d33_title') }}</h3>
+      {{ u5.status_chip({'high_risk': 'bad', 'not_high_risk': 'ok'}.get(g3.d33.classification, 'warn'), cw('d33.' ~ g3.d33.classification)) }}</div>
+    {{ d33_entries(false) }}
+    <details class="g3-more"><summary>{{ t('g3_caveat') }}</summary><p>{{ g3.d33.caveat }}</p></details>
+    <a class="g3-link" href="{{ base }}&amp;tab=d33">{{ t('g3_d33_more') }}</a>
+  </section>
+</div>
+
+<section class="card" data-section="gaps">
+  <div class="g3-ph"><h3>{{ t('g3_gaps') }}</h3><span>{{ t('g3_gaps_sub', n=g3.by.gap) }}</span></div>
+  <table class="g3-tbl">
+    <tbody>
+    {% for r in g3.gap_rows[:8] %}
+    <tr data-obligation="{{ r.obligation_id }}" data-status="gap">
+      <td class="g3-id"><a href="/console/compliance/{{ agent }}/obligation/{{ r.obligation_id }}?lang={{ lang }}">{{ r.article_ref }}</a><div class="mono">{{ r.instrument_number|truncate(40) }}</div></td>
+      <td>{{ u5.status_chip('bad', cw('status.gap')) }}</td>
+      <td>{{ evidence(r) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {{ u5.view_all(g3.gap_rows[:8]|length, g3.gap_rows|length, base ~ '&tab=all&status=gap') }}
+</section>
+
+{% elif g3.tab == 'd33' %}
+<section class="card" data-section="decision33">
+  <div class="g3-ph"><h3>{{ t('g3_d33_title') }}</h3>
+    {{ u5.status_chip({'high_risk': 'bad', 'not_high_risk': 'ok'}.get(g3.d33.classification, 'warn'), cw('d33.' ~ g3.d33.classification)) }}</div>
+  {{ d33_entries(true) }}
+  <details class="g3-more" open><summary>{{ t('g3_caveat') }}</summary><p>{{ g3.d33.caveat }}</p></details>
+</section>
+
+<section class="card" data-section="thresholds">
+  <div class="g3-ph"><h3>{{ t('cp_thresholds') }}</h3></div>
+  {% if g3.thresholds %}
+  <table class="g3-tbl">
+    <thead><tr><th>{{ t('g3_th_col_id') }}</th><th class="n">{{ t('cp_col_limit') }}</th><th class="n">{{ t('cp_col_cap') }}</th><th>{{ t('cp_col_verdict') }}</th><th>{{ t('cp_col_reason') }}</th></tr></thead>
+    <tbody>
+    {% for f2 in g3.thresholds %}
+    <tr data-threshold="{{ f2.id }}"><td>{{ f2.label }}</td>
+      <td class="n">{{ f2.limit }}</td><td class="n">{{ f2.cap }}</td>
+      <td>{{ u5.status_chip({'exceeds': 'bad', 'at_cap': 'warn', 'within': 'ok'}.get(f2.verdict, 'na'), cw('verdict.' ~ f2.verdict)) }}</td>
+      <td title="{{ f2.raw if admin }}">{{ f2.why }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="hint">{{ t('g3_none_limits') }}</div>{% endif %}
+</section>
+{% if admin %}{{ u5.technical(g3.tech) }}{% endif %}
+
+{% else %}
+<section class="card g3-reg" data-section="rows">
+  <div class="g3-ph"><h3>{{ t('g3_by_inst') }}</h3><span>{{ t('g3_inst_sub', n=g3.groups|length) }}</span></div>
+  <div class="g3-filters">
+    <div class="g3-seg" role="group" aria-label="{{ t('g3_f_status') }}">
+      {% set bq = '&tab=all' ~ ('&instrument=' ~ f.instrument if f.instrument else '') ~ ('&duty=' ~ f.duty if f.duty else '') ~ ('&q=' ~ g3.q|urlencode if g3.q else '') ~ ('&question=' ~ g3.question if g3.question else '') %}
+      <a class="{{ 'on' if not f.status and not f.applies }}" href="{{ base }}{{ bq }}">{{ t('g3_f_all') }}</a>
+      {% for s in ('gap', 'partial', 'bank_process', 'met') %}<a class="{{ 'on' if f.status == s }}" href="{{ base }}{{ bq }}&amp;status={{ s }}">{{ cw('status.' ~ s) }}</a>{% endfor %}
+      <a class="{{ 'on' if f.applies == 'needs_answer' }}" href="{{ base }}{{ bq }}&amp;applies=needs_answer">{{ t('g3_f_wait') }}</a>
+    </div>
+    <form method="get" action="/console/compliance/{{ agent }}" class="g3-search">
+      <input type="hidden" name="lang" value="{{ lang }}"><input type="hidden" name="tab" value="all">
+      {% if f.status %}<input type="hidden" name="status" value="{{ f.status }}">{% endif %}
+      {% if f.applies %}<input type="hidden" name="applies" value="{{ f.applies }}">{% endif %}
+      {% if g3.question %}<input type="hidden" name="question" value="{{ g3.question }}">{% endif %}
+      <select name="instrument" aria-label="{{ t('cp_instrument') }}"><option value="">{{ t('cp_instrument') }}: {{ t('cp_any') }}</option>
+        {% for i in f.instruments %}<option value="{{ i }}" {{ 'selected' if f.instrument == i }}>{{ i }}</option>{% endfor %}</select>
+      <select name="duty" aria-label="{{ t('cp_duty') }}"><option value="">{{ t('cp_duty') }}: {{ t('cp_any') }}</option>
+        {% for d in f.duties %}<option value="{{ d }}" {{ 'selected' if f.duty == d }}>{{ d|replace('_', ' ') }}</option>{% endfor %}</select>
+      <input type="search" name="q" value="{{ g3.q }}" maxlength="64" placeholder="{{ t('g3_search') }}" aria-label="{{ t('g3_search') }}">
+      <button class="btn" type="submit">{{ t('g3_filter') }}</button>
+      {% if fq %}<a href="{{ base }}&amp;tab=all">{{ t('g3_clear') }}</a>{% endif %}
+    </form>
+  </div>
+  {% if g3.question %}<p class="g3-meta">{{ t('g3_q_filter', id=g3.question) }}</p>{% endif %}
+  <div class="g3-legend-row"><span>{{ t('g3_legend_lead') }}</span>{{ u5.tick_legend(['gap', 'partial', 'bank', 'closed']) }}</div>
+  <div class="hint" data-showing="1">{{ t('g3_shown_n', n=g3.n_rows, g=g3.groups|length) }}</div>
+
+  {% for grp in g3.groups %}
+  {% if not grp.open %}
+  <a class="g3-ins g3-ins-closed" id="g-{{ grp.id }}" data-instrument="{{ grp.id }}" href="{{ base }}{{ bq }}{{ ('&status=' ~ f.status if f.status) ~ ('&applies=' ~ f.applies if f.applies) }}&amp;more={{ grp.id }}:25#g-{{ grp.id }}">
+    <span class="g3-ins-name"><b>{{ grp.number }}</b>{% if grp.title %}<span class="mono">{{ grp.title }}</span>{% endif %}</span>
+    {{ u5.tick_strip(grp.ticks) }}
+    <span class="g3-cnts">{{ t('g3_cnt', n=grp.total) }}</span>
+  </a>
+  {% else %}
+  <details class="g3-ins" id="g-{{ grp.id }}" data-instrument="{{ grp.id }}" open>
+    <summary>
+      <span class="g3-ins-name"><b>{{ grp.number }}</b>{% if grp.title %}<span class="mono">{{ grp.title }}</span>{% endif %}</span>
+      {{ u5.tick_strip(grp.ticks) }}
+      <span class="g3-cnts">{{ t('g3_cnt', n=grp.total) }}{% if grp.gaps %} · {{ t('g3_cnt_gap', n=grp.gaps) }}{% endif %}</span>
+    </summary>
+    <div class="g3-scroll">
+    <table class="g3-tbl">
+      <thead><tr><th>{{ t('cp_col_obligation') }}</th><th class="g3-wide">{{ t('cp_col_article') }}</th><th>{{ t('status') }}</th><th>{{ t('g3_col_control') }}</th></tr></thead>
+      <tbody>
+      {% for r in grp.rows %}
+      <tr data-obligation="{{ r.obligation_id }}" data-status="{{ r.status }}">
+        <td class="g3-id"><a href="/console/compliance/{{ agent }}/obligation/{{ r.obligation_id }}?lang={{ lang }}">{{ r.obligation_id }}</a></td>
+        <td class="g3-wide"><b>{{ r.article_ref }}</b>
+          <details class="g3-sum"><summary><span class="g3-clamp">{{ r.summary_en }}</span></summary></details></td>
+        <td>{{ u5.status_chip(status_kind[r.status] if status_kind[r.status] is defined else 'na', cw('status.' ~ r.status)) }}
+          {% if r.applies == 'needs_answer' %}<div class="g3-wait">{{ cw('applies.needs_answer') }}</div>{% endif %}</td>
+        <td title="{{ r.status_reason if admin }}">{{ evidence(r) }}</td></tr>
+      {% endfor %}
+      {% if grp.total > grp.shown %}
+      <tr class="g3-morerow"><td colspan="4">{{ t('g3_more_in', n=grp.total - grp.shown) }}
+        <a href="{{ base }}{{ bq }}{{ ('&status=' ~ f.status if f.status) ~ ('&applies=' ~ f.applies if f.applies) }}&amp;more={{ grp.id }}:{{ grp.next_n }}#g-{{ grp.id }}">{{ t('g3_show_more') }}</a></td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+  {% endif %}
+  {% else %}<div class="hint">{{ t('g3_none_rows') }}</div>{% endfor %}
+</section>
+{% endif %}
+{% endblock %}

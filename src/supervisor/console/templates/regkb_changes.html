@@ -3,12 +3,22 @@
 {% block title %}{{ t('rc_title') }}{% endblock %}
 {% block content %}
 {# WP-W2. Variables: ch (items, rows, banner), can_confirm. #}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g3.css">
+{% set actions %}{{ u5.disclaimer(t('rc_banner')) }}{% endset %}
+{{ u5.page_head(t('rc_title'), t('g3_rc_purpose'), actions=actions) }}
+{% else %}
 {{ ui.crumbs([('Regulations', None), (t('rc_title'), None)]) }}
 {{ ui.pagehead(t('rc_title')) }}
+{% endif %}
 <section class="card" id="regkb-changes" data-section="regkb-changes">
+  {% if not ux5 %}
   <div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ t('rc_banner') }}</b></div>
   <p class="hint">{{ t('rc_hint') }}</p>
   <h3>{{ t('rc_items') }} <span class="k">{{ ch['items']|length }}</span></h3>
+  {% elif ch['items'] %}
+  <details class="g3-more"><summary>{{ t('rc_items') }} ({{ ch['items']|length }})</summary><p>{{ t('rc_hint') }}</p></details>
+  {% endif %}
   {% if ch['items'] %}
   <div class="tablewrap flat"><table class="queue" data-table="regkb-changes">
     <thead><tr><th scope="col">{{ t('rc_c_package') }}</th><th scope="col">{{ t('rc_c_instrument') }}</th><th scope="col">{{ t('rc_c_kinds') }}</th><th scope="col">{{ t('rc_c_status') }}</th><th scope="col">{{ t('rc_c_action') }}</th></tr></thead>
@@ -39,6 +49,7 @@
   </table></div>
   {% else %}
   <p class="hint" data-empty="regkb-changes">{{ t('rc_none') }}</p>
+  {% if ux5 %}<p class="hint">{{ t('rc_hint') }}</p>{% endif %}
   {% endif %}
 </section>
 {% endblock %}

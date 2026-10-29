@@ -22,12 +22,12 @@
   {% for r in page.items %}
     {% set dq = list_qs ~ '&lang=' ~ lang %}
     <tr class="row" data-row="{{ r.risk_id }}" data-status="{{ r.status }}">
-      <td><a class="head rowlink mono" href="/console/risks?drawer={{ r.risk_id }}&amp;{{ dq }}" hx-get="/console/risks/{{ r.risk_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.risk_id }}</a>{% if r.status != 'active' %} {{ ui.pill(t('rk_st_' ~ r.status), 'neutral') }}{% endif %}<div class="idline">{{ r.title }}</div></td>
+      <td><a class="head rowlink mono" href="/console/risks?drawer={{ r.risk_id }}&amp;{{ dq }}" hx-get="/console/risks/{{ r.risk_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false"{% if ux5 %} title="{{ r.risk_id if me.has('admin') }}"{% endif %}>{{ r.title if ux5 else r.risk_id }}</a>{% if r.status != 'active' %} {{ ui.pill(t('rk_st_' ~ r.status), 'neutral') }}{% endif %}{% if not ux5 %}<div class="idline">{{ r.title }}</div>{% endif %}</td>
       <td>{{ t('rk_cat_' ~ r.category) }}</td>
       <td class="mono">{{ r.agents|join(', ') or '-' }}</td>
-      <td class="n">{{ r.inherent_score }} {{ ui.sev(r.inherent_band) }}</td>
+      <td class="n">{% if ux5 and r.inherent_score == r.residual_score %}<span class="muted">{{ t('g3_same') }}</span>{% else %}{{ r.inherent_score }} {{ ui.sev(r.inherent_band) }}{% endif %}</td>
       <td class="n">{{ r.residual_score }} {{ ui.sev(r.residual_band) }}</td>
-      <td>{% if r.evidence_state %}{{ ui.pill(t('rk_ev_' ~ r.evidence_state), {'working': 'ok', 'failing': 'bad', 'no_evidence': 'warn'}.get(r.evidence_state, 'neutral'), True) }}{% else %}<span class="muted">{{ t('rk_ev_none') }}</span>{% endif %}<div class="idline">{{ t('rk_reason_' ~ r.evidence_reason) }}</div></td>
+      <td>{% if r.evidence_state %}{{ ui.pill(t('rk_ev_' ~ r.evidence_state), {'working': 'ok', 'failing': 'bad', 'no_evidence': 'warn'}.get(r.evidence_state, 'neutral'), True) }}{% else %}<span class="muted">{{ t('rk_ev_none') }}</span>{% endif %}{% if not ux5 or r.evidence_state %}<div class="idline">{{ t('rk_reason_' ~ r.evidence_reason) }}</div>{% endif %}</td>
       <td>{{ t('rk_treat_' ~ r.treatment) }}</td>
       <td>{{ r.owner }}</td>
       <td class="mono">{{ r.review_date or '-' }}{% if r.review_overdue %} {{ ui.pill(t('rk_overdue'), 'warn') }}{% endif %}</td>

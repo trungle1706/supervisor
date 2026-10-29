@@ -10,7 +10,7 @@
       <th scope="col">{{ t('agent_scope') }}</th>
       {{ tb.th('action', t('action'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
       {{ tb.th('severity', t('severity'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
-      {{ tb.th('fail_mode', t('fail_mode'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
+      {{ tb.th('fail_mode', t('g3_fail_mode') if ux5 else t('fail_mode'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
       {{ tb.th('risk_class', t('risk_class'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs) }}
       {{ tb.th('version', t('version'), sort_col, sort_dir, '/console/policies', '/console/policies/rows', base_qs, numeric=True) }}
     </tr>
@@ -19,11 +19,11 @@
   {% for r in page.items %}
     {% set dq = list_qs ~ '&lang=' ~ lang %}
     <tr class="row" data-row="{{ r.rule_id }}">
-      <td><a class="head rowlink mono" href="/console/policies?drawer={{ r.rule_id }}&amp;{{ dq }}" hx-get="/console/policies/{{ r.rule_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.rule_id }}</a><div class="idline">{{ r.description }}</div></td>
+      <td><a class="head rowlink mono" href="/console/policies?drawer={{ r.rule_id }}&amp;{{ dq }}" hx-get="/console/policies/{{ r.rule_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.rule_id }}</a>{% if ux5 %}<div class="g3-desc">{{ r.description|replace('(mirror of ', '(same as ') }}</div>{% else %}<div class="idline">{{ r.description }}</div>{% endif %}</td>
       <td class="mono">{{ r.scope|join(', ') }}</td>
       <td>{{ ui.action_pill(r.action) }}</td>
       <td>{{ ui.sev(r.severity) }}</td>
-      <td>{{ r.fail_mode or '-' }}</td>
+      <td>{% if ux5 and r.fail_mode in ('closed', 'open') %}{{ t('g3_fm_' ~ r.fail_mode) }}{% else %}{{ r.fail_mode or '-' }}{% endif %}</td>
       <td>{{ r.risk_class or '-' }}</td>
       <td class="n">{{ r.version }}</td>
     </tr>
