@@ -340,6 +340,9 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
     from supervisor.governance.guardians import make_narrower
 
     gate.narrow = make_narrower(settings, state)
+    from supervisor.detectors.overrides import make_source
+
+    gate.overrides = make_source(settings, state)  # WP-B1 (None unless SMART_GUARDIAN)
     _wire_guardian_factory(settings, gate, registry, state)  # WP-G3 (default off)
     problems = gate.check_policy(policy)
     if problems:

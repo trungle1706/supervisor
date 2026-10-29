@@ -142,6 +142,8 @@ class DetectorGate:
         # WP-G3: live guardians (LiveGuardians) and the shadow runner (ShadowRunner), both set by
         # wiring only when GUARDIAN_FACTORY (and GUARDIAN_SHADOW) are on; None = the code as before.
         self.attach: Any = None
+        # WP-B1: stored per-agent setting overrides (None unless SMART_GUARDIAN; the off path)
+        self.overrides: Any = None
         self.shadow: Any = None
 
     def redact_budget_bytes(self) -> int | None:
@@ -153,6 +155,28 @@ class DetectorGate:
         if entry is None or not entry.enabled:
             return None
         return int(entry.settings.get("max_scan_bytes") or DEFAULT_MAX_SCAN_BYTES)
+
+    def _with_stored(self, override: AgentDetectors | None, agent_id: str) -> AgentDetectors | None:
+        """WP-B1: stored setting overrides under the policy file. A key the policy file names
+        wins; only settings are merged, never ``enable`` / ``disable``. Unchanged when none."""
+        stored = self.overrides.settings_for(agent_id)
+        if not stored:
+            return override
+        base = override if override is not None else AgentDetectors()
+        merged: dict[str, dict[str, Any]] = {}
+        for slug, vals in stored.items():
+            if slug not in self.registry:
+                continue
+            entry = self.resolved.cfg.detectors.get(slug)
+            trial = {**(entry.settings if entry else {}), **vals, **base.settings.get(slug, {})}
+            _, errs = self.registry.validate_settings(slug, trial)
+            if errs:  # a stored value the catalogue refuses is not applied
+                log.warning("detector_override for %s is not applied: %s", slug, errs)
+                continue
+            merged[slug] = {**vals, **base.settings.get(slug, {})}
+        for slug, vals in base.settings.items():
+            merged.setdefault(slug, dict(vals))
+        return base.model_copy(update={"settings": merged})
 
     def _narrowed(self, override: AgentDetectors | None, agent_id: str) -> AgentDetectors | None:
         """WP-S1: the agent's override with the detectors its systems switched off added to
@@ -302,6 +326,8 @@ class DetectorGate:
         try:
             pre.risk_class = policy.risk_class(tool_name)
             override = policy.agent_detectors(agent_id)
+            if self.overrides is not None:  # WP-B1 (flag off: this branch never runs)
+                override = self._with_stored(override, agent_id)
             if self.attach is not None:  # WP-G3 (flag off: this branch never runs)
                 override = self._with_live(override, agent_id)
             if self.narrow is not None:  # WP-S1 (flag off: this branch never runs)

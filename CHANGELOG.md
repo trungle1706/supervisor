@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- WP-B1 item 1: **detector setting overrides**. New table `detector_override` and service
+  `supervisor.detectors.overrides`. Smart guardian Accept writes `detector_setting` lines through it
+  (the policy block stays as an export). The gate reads the rows under the policy file (a key the
+  policy names wins; `keep_args` never) and only when `SMART_GUARDIAN=1` and `DETECTORS_ENABLED=1`.
+  Chain record `detector_override` (ids, value hash, actor ref).
+
 ## v0.9.0 (phases 11 and 12: compliance-first onboarding, agent factory, guardian factory, regulation watch) - 2026-10-29
 
 - WP-W2 (phase 11): **law change to re-evaluation**, `REGKB_CHANGE_LOOP` (default `0`; needs
