@@ -1,0 +1,14 @@
+{# UX5-BUG: a GET never makes a draft. This page asks first; the button is a POST. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('rg2_new_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_new_title'), None)]) }}
+{{ ui.pagehead(t('rg2_new_title')) }}
+<form class="card wizform" method="post" action="/console/register/new?lang={{ lang }}" data-register="new-confirm">
+  <p>{% if src_from %}{{ t('rg2_new_from', id=src_from) }}{% elif src_agent %}{{ t('rg2_new_agent', id=src_agent) }}{% else %}{{ t('rg2_new_blank') }}{% endif %}</p>
+  {% if src_from %}<input type="hidden" name="from" value="{{ src_from }}">{% endif %}
+  {% if src_agent %}<input type="hidden" name="agent" value="{{ src_agent }}">{% endif %}
+  <p class="btnrow"><button class="btn primary" type="submit" data-register="create">{{ t('rg2_new_go') }}</button> <a class="btn" href="/console/register?lang={{ lang }}">{{ t('rg2_new_cancel') }}</a></p>
+</form>
+{% endblock %}

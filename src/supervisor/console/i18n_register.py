@@ -372,6 +372,21 @@ RG2: dict[str, tuple[str, str]] = {
     # list
     "rg2_drafts": ("My registration drafts", "Bản nháp đăng ký của tôi"),
     "rg2_register_btn": ("+ Register", "+ Đăng ký"),
+    "rg2_new_title": ("Start a registration", "Bắt đầu đăng ký"),
+    "rg2_new_blank": (
+        "This starts a new, empty registration draft.",
+        "Thao tác này tạo một bản nháp đăng ký trống.",
+    ),
+    "rg2_new_from": (
+        "This starts a registration draft from the scanned object {id}.",
+        "Thao tác này tạo bản nháp đăng ký từ đối tượng quét {id}.",
+    ),
+    "rg2_new_agent": (
+        "This starts a registration draft for the agent {id}.",
+        "Thao tác này tạo bản nháp đăng ký cho tác tử {id}.",
+    ),
+    "rg2_new_go": ("Create the draft", "Tạo bản nháp"),
+    "rg2_new_cancel": ("Cancel", "Hủy"),
     "rg2_source": ("Source", "Nguồn"),
     "rg2_step_word": ("Step", "Bước"),
     "rg2_updated": ("Updated", "Cập nhật"),

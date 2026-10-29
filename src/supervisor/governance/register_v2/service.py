@@ -192,8 +192,11 @@ def fact_rows(ctx: Any, node_id: str) -> list[dict[str, Any]]:
     return [r for r in card["rows"] if r["kind"] != "summary"]
 
 
-def start(ctx: Any, me: Any, node_id: str = "", agent_id: str = "") -> dict[str, Any]:
-    """Make a draft with the prefill of a scanned node, of a policy-only agent, or blank."""
+def start(
+    ctx: Any, me: Any, node_id: str = "", agent_id: str = "", *, dry: bool = False
+) -> dict[str, Any]:
+    """Make a draft with the prefill of a scanned node, of a policy-only agent, or blank.
+    ``dry``: run every check, write nothing (the confirm page of a GET), return ``{}``."""
     if me.kind != "user":
         raise rm.RegisterError("user", "registering needs a signed-in person")
     uid = str(me.user_id)
@@ -225,6 +228,8 @@ def start(ctx: Any, me: Any, node_id: str = "", agent_id: str = "") -> dict[str,
             raise rm.RegisterError("agent", "this agent already has a registry row")
         sg = suggest.from_agent(agent_id, manifest, fact_rows(ctx, agent_id))
         kind, ref = "policy", agent_id
+    if dry:
+        return {}
     values = {
         f: sg[f]["value"]
         for f in rm.STEP1

@@ -188,19 +188,45 @@ async def register_list(
     )
 
 
-@router.get("/new", dependencies=_EDIT)
+@router.get("/new", response_class=HTMLResponse, dependencies=_EDIT)
+async def register_new_confirm(
+    request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    """A GET never writes (UX5-BUG): the confirm page of a new draft (``?from=<node id>`` scan
+    prefill, ``?agent=<agent id>`` policy prefill, none = blank). The checks run here, so a bad
+    id is a 400 now; the button posts to ``POST /register/new``."""
+    _off(ctx)
+    _person(me)
+    q = request.query_params
+    await _call(rs.start, ctx, me, q.get("from") or "", q.get("agent") or "", dry=True)
+    return render(
+        request,
+        ctx,
+        me,
+        "register_new.html",
+        section="systems",
+        src_from=q.get("from") or "",
+        src_agent=q.get("agent") or "",
+    )
+
+
+@router.post("/new", dependencies=_EDIT)
+@audited("systems.edit")
 async def register_new(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
-    """Make a draft (``?from=<node id>`` scan prefill, ``?agent=<agent id>`` policy prefill, none
-    = blank) and go to step 1."""
+    """Make a draft and go to step 1 (same origin guard as every console POST)."""
     _off(ctx)
     uid = _person(me)
+    form, plain = await form_or_plain(request)
     q = request.query_params
-    if not (q.get("from") or q.get("agent")):  # M2: one empty draft per person at most
+    node_id = form.get("from") or q.get("from") or ""
+    agent_id = form.get("agent") or q.get("agent") or ""
+    if not (node_id or agent_id):  # M2: one empty draft per person at most
         await _call(rs.store_of(ctx).drop_empty, uid)
-    draft = await _call(rs.start, ctx, me, q.get("from") or "", q.get("agent") or "")
-    return _go(request, True, f"/console/register/{draft['draft_id']}/step/1")
+    draft = await _call(rs.start, ctx, me, node_id, agent_id)
+    request.state.audit_detail = "register new"
+    return _go(request, plain, f"/console/register/{draft['draft_id']}/step/1")
 
 
 @router.get("/{draft_id}/step/{n}", response_class=HTMLResponse, dependencies=_EDIT)

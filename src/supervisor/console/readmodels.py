@@ -689,6 +689,26 @@ def case_head(
     return out
 
 
+def incident_clock(c: Mapping[str, Any], now: dt.datetime) -> dict | None:
+    """The one report deadline in force for a case row (UX5-BUG): the preliminary report until it
+    is sent, then the formal report. The deprecated 24 h ``report_due_at`` is not used. A case
+    with no Decree 142 clock gives ``None`` (the page shows "-")."""
+    from supervisor.console import views
+
+    if c.get("status") == "closed":
+        return None
+    prelim, formal = c.get("prelim_report_due_at"), c.get("formal_report_due_at")
+    if c.get("prelim_report_sent_at") is None and prelim is not None:
+        due = prelim
+    elif c.get("formal_report_sent_at") is None and formal is not None:
+        due = formal
+    else:
+        return None
+    start = c.get("incident_detected_at")
+    window = int((due - start).total_seconds()) if start is not None and due > start else 0
+    return views.countdown(due, now, window or 86400, severity=c["severity"])
+
+
 def case_rows(ctx: Any, cases: Sequence[Mapping[str, Any]], now: dt.datetime) -> list[dict]:
     from supervisor.console import views
 
@@ -698,11 +718,7 @@ def case_rows(ctx: Any, cases: Sequence[Mapping[str, Any]], now: dt.datetime) ->
     rows = []
     for c in cases:
         head = case_head(ctx, c, rules=rules, classes=classes, agents=agents)
-        clock = (
-            views.countdown(c.get("report_due_at"), now, severity=c["severity"])
-            if c["status"] != "closed"
-            else None
-        )
+        clock = incident_clock(c, now)
         rows.append({**c, "head": head, "sources": head["kinds"], "clock": clock})
     return rows
 

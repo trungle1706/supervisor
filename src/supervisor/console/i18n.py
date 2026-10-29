@@ -42,6 +42,7 @@ _T: dict[str, tuple[str, str]] = {
         "SBV 24 h report (deprecated: not in Circular 53)",
         "Báo cáo NHNN 24 giờ (không còn dùng: không có trong Thông tư 53)",
     ),
+    "report_due_col": ("Report due", "Hạn báo cáo"),
     "incident_urgency": ("Incident urgency", "Mức khẩn cấp sự cố"),
     "urgency_urgent": ("urgent (72 h)", "khẩn cấp (72 giờ)"),
     "urgency_standard": ("standard (5 working days)", "thông thường (5 ngày làm việc)"),

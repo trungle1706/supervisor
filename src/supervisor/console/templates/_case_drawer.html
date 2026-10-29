@@ -10,7 +10,7 @@
     (t('agent'), c.agent_id),
     (t('assignee'), c.assignee),
     (t('rule_word'), h.rule_id),
-    (t('sbv_clock'), (ui.clocktext(c.clock) if c.clock and c.clock.text != '-' else None)),
+    (t('report_due_col'), (ui.clocktext(c.clock) if c.clock and c.clock.text != '-' else None)),
     (t('opened'), c.opened_at|day),
     (t('regulation'), (c.regulation_refs|join('; ')) if c.regulation_refs else None),
   ]) }}
