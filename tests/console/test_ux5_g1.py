@@ -72,8 +72,8 @@ def test_my_overview_vietnamese(ux: Console) -> None:
 
 
 def test_my_overview_off_path_unchanged(
-    seeded_pf: Console,
-    monkeypatch: pytest.MonkeyPatch,  # noqa: F811
+    seeded_pf: Console,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     h = seeded_pf.get("/console/?scope=all").text
     assert "data-cards" in h and "Assessment completion" in h and "ux5_g1" not in h
