@@ -26,6 +26,7 @@ SCH: dict[str, tuple[str, str]] = {
     "sch_tables": ("Tables in the model", "Số bảng trong mô hình"),
     "sch_missing_tables": ("Missing tables", "Bảng thiếu"),
     "sch_missing_cols": ("Missing columns", "Cột thiếu"),
+    "sch_not_checked": ("Not checked", "Chưa kiểm tra"),
     "sch_plan": (
         "SQL plan (copy and run in the SQL editor)",
         "Kế hoạch SQL (sao chép và chạy trong trình soạn SQL)",
