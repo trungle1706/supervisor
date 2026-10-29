@@ -22,10 +22,8 @@
   {% if gb %}
   <form class="g5-sys" method="get" action="/console/catalog">
     <input type="hidden" name="cat" value="{{ cat }}"><input type="hidden" name="state" value="{{ state }}"><input type="hidden" name="lang" value="{{ lang }}">
-    <select id="gb-system" name="system" aria-label="{{ x5.cat_sys_pick }}" onchange="this.form.submit()">
-      <option value="">{{ x5.cat_sys_pick }}: {{ x5.cat_sys_none }}</option>
-      {% for s in gb.systems %}<option value="{{ s.system_id }}"{{ ' selected' if gb.system and gb.system.system_id == s.system_id else '' }}>{{ s.name }}</option>{% endfor %}
-    </select>
+    <input id="gb-system" name="system_name" type="text" list="gb-systems" value="{{ gb.system.name if gb.system else '' }}" placeholder="{{ x5.cat_sys_pick }}" aria-label="{{ x5.cat_sys_pick }}" autocomplete="off" maxlength="200" onchange="this.form.submit()">
+    <datalist id="gb-systems">{% for s in gb.systems %}<option value="{{ s.name }}">{% endfor %}</datalist>
     <noscript><button class="btn" type="submit">{{ t('gb_show') }}</button></noscript>
   </form>
   {% endif %}
@@ -84,7 +82,7 @@
       {% endif %}
     </div>
     <span><span class="u5-chip {{ card.eff_cls }}"><span class="u5-dot" aria-hidden="true"></span>{{ x5[card.eff_key] }}</span></span>
-    <span>{{ u5.status_chip('ok' if card.on else 'na', (x5.cat_on ~ (' · mock' if card.mock else '')) if card.on else x5.cat_off) }}</span>
+    <span>{{ u5.status_chip('ok' if card.on else 'na', (t('cat_on') ~ (' · mock' if card.mock else '')) if card.on else x5.cat_off) }}</span>
     <span>{% if card.href %}<a class="btn" href="{{ card.href }}">{{ t('cat_open') }}</a>{% endif %}</span>
   </div>
   {% endfor %}

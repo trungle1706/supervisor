@@ -2,6 +2,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_traces') }}{% endblock %}
 {% block content %}
+{% if ux5 %}{% include "_traces_ux5.html" %}{% else %}
 {{ ui.crumbs([(t('nav_g_watch'), None), (t('nav_traces'), None)]) }}
 {{ ui.pagehead(t('nav_traces')) }}
 {{ ui.purpose(t('traces_purpose'), t('traces_why')) }}
@@ -14,4 +15,5 @@
 <div id="list">
 {% include "_traces_list.html" %}
 </div>
+{% endif %}
 {% endblock %}

@@ -58,6 +58,7 @@ from supervisor.console import (
     decisions,
     decisions_v2,
     health,
+    i18n_ux5_g5,
     inbox_list,  # --- WP-UX2 ---
     integration_reports,
     integrations_view,
@@ -81,10 +82,10 @@ from supervisor.console import (
     traces,
     transparency_views,  # --- WP31 ---
     users_view,
+    ux5_g5,
     views,
 )
 from supervisor.console.context import ConsoleContext, get_context
-from supervisor.console import i18n_ux5_g5, ux5_g5
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.console.listing import ListingError
 from supervisor.controls.model import ensure_on as ensure_controls_on
@@ -148,6 +149,7 @@ _env.filters["u5when"] = ux5_g5.when  # UX5 G5 filters
 _env.filters["u5pct"] = ux5_g5.pct
 _env.filters["u5share"] = ux5_g5.share
 _env.filters["u5rule"] = ux5_g5.rule
+_env.filters["u5reason"] = ux5_g5.monitor_reason
 _env.filters["vnd"] = lambda v: "-" if v is None else f"{int(v):,}"
 
 
@@ -1899,6 +1901,7 @@ async def catalog_page(
                 _lang(request, ctx),
                 me,
                 system or None,
+                request.query_params.get("system_name", "")[:200],
             )
             return render(request, ctx, me, "catalog.html", section="catalog", tab=tab, **data)
         data = await _call(catalog_view.page, ctx, tab, _lang(request, ctx), me, system or None)
@@ -2834,6 +2837,7 @@ async def guardians_page(
             _lang(request, ctx),
             me,
             system or None,
+            request.query_params.get("system_name", "")[:200],
         )
         return render(
             request,

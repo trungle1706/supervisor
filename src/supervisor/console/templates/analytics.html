@@ -5,11 +5,16 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_analytics') }}{% endblock %}
 {% block content %}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g5.css">
+{% set head_actions %}<a class="btn" href="/console/alerts?lang={{ lang }}">{{ t('alerts') }}</a>{% endset %}
+{{ u5.page_head(t('nav_analytics'), t('an_purpose'), actions=head_actions) }}
+{% else %}
 {{ ui.crumbs([(t('nav_analytics'), None)]) }}
 {% call ui.pagehead(t('nav_analytics')) %}
   <a class="btn" href="/console/alerts?lang={{ lang }}">{{ t('alerts') }}</a>
 {% endcall %}
 {{ ui.purpose(t('an_purpose'), t('an_why')) }}
+{% endif %}
 {% set tab_labels = {'gate': t('an_tab_gate'), 'tools': t('an_tab_tools'), 'metrics': t('an_tab_metrics'), 'latency': t('an_tab_latency'), 'detectors': t('an_tab_detectors')} %}
 {% set tb_qs = ('&days=' ~ toolbar.days if toolbar.days else '') ~ ('&agent=' ~ toolbar.agent if toolbar.agent else '') %}
 {# a tab click swaps the whole #main (not only the tab body), so the toolbar's hidden tab
@@ -24,15 +29,20 @@
     {% for d in range_opts %}<option value="{{ d }}" {{ 'selected' if toolbar.days == d else '' }}>{{ t('an_range') }}: {{ t('an_days', n=d) }}</option>{% endfor %}
   </select>
   <label class="sr" for="f-agent">{{ t('agent') }}</label>
+  {% if ux5 %}
+  <input id="f-agent" name="agent" type="text" list="f-agent-list" value="{{ toolbar.agent }}" placeholder="{{ t('agent') }}: {{ t('all') }}" autocomplete="off" maxlength="128">
+  <datalist id="f-agent-list">{% for a in agent_opts %}<option value="{{ a }}">{% endfor %}</datalist>
+  {% else %}
   <select id="f-agent" name="agent">
     <option value="">{{ t('agent') }}: {{ t('all') }}</option>
     {% for a in agent_opts %}<option value="{{ a }}" {{ 'selected' if toolbar.agent == a else '' }}>{{ a }}</option>{% endfor %}
   </select>
+  {% endif %}
   <noscript><button class="btn" type="submit">{{ t('apply') }}</button></noscript>
   <a class="chipbtn" href="/console/analytics?tab={{ tab }}&amp;lang={{ lang }}">{{ t('reset') }}</a>
   <span class="hint" id="an-window" data-window="{{ window.kind }}">{% if window.kind == 'days' %}{{ t('an_window_days', a=window['from'], b=window['to'], n=window.n) }}{% if window.default %} ({{ t('an_range_default') }}){% endif %}{% elif window.kind == 'stored' %}{% if window['from'] %}{{ t('an_window_stored', a=window['from'], b=window['to']) }}{% else %}{{ t('an_window_stored_none') }}{% endif %}{% else %}{{ t('an_window_live') }}{% endif %}</span>
 </form>
 <div id="tab-body" class="tabpanel" aria-labelledby="tab-body-tab-{{ tab }}" role="tabpanel">
-{% include "_analytics_tab_" ~ tab ~ ".html" %}
+{% if ux5 and tab != 'tools' %}{% include "_analytics_tab_" ~ tab ~ "_ux5.html" %}{% else %}{% include "_analytics_tab_" ~ tab ~ ".html" %}{% endif %}
 </div>
 {% endblock %}

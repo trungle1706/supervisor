@@ -2,6 +2,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_traces') }} {{ head.trace_id[:16] }}{% endblock %}
 {% block content %}
+{% if ux5 %}{% include "_trace_ux5.html" %}{% else %}
 {{ ui.crumbs([(t('nav_g_watch'), None), (t('nav_traces'), '/console/traces?lang=' ~ lang), (head.trace_id[:16], None)]) }}
 {% set status_pill %}{{ ui.pill(t('trace_' ~ head.status), {'ok': 'ok', 'alert': 'warn', 'blocked': 'bad', 'paused': 'warn'}[head.status], True) }}{% endset %}
 {% call ui.pagehead(t('trace_title'), status_pill) %}
@@ -34,4 +35,5 @@
     {% include "_span_detail.html" %}
   </section>
 </div>
+{% endif %}
 {% endblock %}

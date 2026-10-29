@@ -103,7 +103,6 @@ NEW: dict[str, tuple[str, str]] = {
         "Chọn một hệ thống để xem bộ bảo vệ nào đang bật cho nó.",
     ),
     "cat_off": ("Off", "Tắt"),
-    "cat_on": ("On", "Bật"),
     "cat_off_hint": (
         "Off. Ask the platform team to turn it on.",
         "Đang tắt. Hãy nhờ nhóm nền tảng bật.",
@@ -307,6 +306,120 @@ NEW.update(
     {
         "pg_advanced": ("Advanced", "Nâng cao"),
         "pg_version": ("Agent version", "Phiên bản tác tử"),
+    }
+)
+
+
+# --- analytics tabs, metrics ---
+UX5.update(
+    {
+        "an_purpose": (
+            "Gate results, tool use and oversight, per agent.",
+            "Kết quả của cổng, mức dùng công cụ và giám sát, theo từng tác tử.",
+        ),
+        "an_window_days": (
+            "{a} to {b} ({n} days)",
+            "{a} đến {b} ({n} ngày)",
+        ),
+        "an_window_stored": (
+            "Every stored day, {a} to {b}",
+            "Mọi ngày đã lưu, {a} đến {b}",
+        ),
+        "an_window_stored_none": ("Every stored day (none yet)", "Mọi ngày đã lưu (chưa có)"),
+        "an_window_live": ("Since the service started", "Từ lúc dịch vụ khởi động"),
+        "an_p95": ("95th percentile (ms)", "Phân vị 95 (ms)"),
+    }
+)
+
+NEW.update(
+    {
+        "an_show_all": ("Show all {n}", "Xem cả {n}"),
+        "an_how": ("How counts are computed", "Cách tính số liệu"),
+        "an_totals_differ": (
+            "Totals here count by verdict, so they can differ from the tiles above.",
+            "Tổng ở đây đếm theo phán quyết nên có thể khác các ô phía trên.",
+        ),
+        "an_c_reported": ("Reported", "Đã báo cáo"),
+        "an_c_masked": ("Data masked", "Đã che dữ liệu"),
+        "an_c_paused": ("Paused", "Đã tạm dừng"),
+        "an_c_blocked": ("Blocked", "Đã chặn"),
+        "an_c_skipped": ("Skipped", "Đã bỏ qua"),
+        "an_c_notchk": ("Not checked", "Chưa kiểm tra"),
+        "an_lat_none": (
+            "No calls checked yet since the service started.",
+            "Chưa có lệnh gọi nào được kiểm tra từ lúc dịch vụ khởi động.",
+        ),
+        "an_lat_none_line": (
+            "Numbers appear after the first call.",
+            "Số liệu xuất hiện sau lệnh gọi đầu tiên.",
+        ),
+        "an_lat_calls": ("Calls measured", "Lệnh gọi đã đo"),
+        "an_lat_p50": ("Median (ms)", "Trung vị (ms)"),
+        "an_lat_p95": ("95th percentile (ms)", "Phân vị 95 (ms)"),
+        "an_lat_p99": ("99th percentile (ms)", "Phân vị 99 (ms)"),
+        "an_lat_max": ("Slowest (ms)", "Chậm nhất (ms)"),
+        "an_det_p50": ("Median (ms)", "Trung vị (ms)"),
+        "an_det_p95": ("95th percentile (ms)", "Phân vị 95 (ms)"),
+        "an_det_result": ("Test result", "Kết quả kiểm thử"),
+        "an_det_notrun": ("Not run", "Chưa chạy"),
+        "an_det_cmd_label": ("Run the detector test", "Chạy kiểm thử bộ phát hiện"),
+        "an_more_codes": ("more finding codes", "mã phát hiện khác"),
+        "an_mon_purpose": (
+            "Status of each monitor per agent. Agents with nothing to measure are folded.",
+            "Trạng thái từng bộ giám sát theo tác tử. Tác tử không có gì để đo được gộp lại.",
+        ),
+        "an_mon_line": (
+            "{ok} ok, {nd} no data, {na} not applicable",
+            "{ok} bình thường, {nd} chưa có dữ liệu, {na} không áp dụng",
+        ),
+        "an_mon_fold": (
+            "agents: not applicable (nothing to measure)",
+            "tác tử: không áp dụng (không có gì để đo)",
+        ),
+        "an_no_data": (
+            "No data yet. Metrics appear after the first daily run.",
+            "Chưa có dữ liệu. Số liệu xuất hiện sau lần chạy hằng ngày đầu tiên.",
+        ),
+        "an_chain": ("Evidence chain", "Chuỗi bằng chứng"),
+        "an_chain_line": (
+            "{lanes} lanes, {entries} entries.",
+            "{lanes} làn, {entries} bản ghi.",
+        ),
+        "an_chain_open": ("Open the evidence chain", "Mở chuỗi bằng chứng"),
+    }
+)
+
+
+# --- traces ---
+UX5.update(
+    {
+        "traces_why": (
+            "Open a trace to see each step. Text is masked.",
+            "Mở một dấu vết để xem từng bước. Văn bản đã được che.",
+        ),
+        "digest_only": (
+            "No text stored for this step. Only hashes and numbers.",
+            "Bước này không lưu văn bản. Chỉ có mã băm và số.",
+        ),
+    }
+)
+
+NEW.update(
+    {
+        "tr_trace": ("Trace", "Dấu vết"),
+        "tr_steps": ("Steps", "Số bước"),
+        "tr_checks": ("Checks", "Kiểm tra"),
+        "tr_paused": ("Paused", "Đã tạm dừng"),
+        "tr_blocked": ("Blocked", "Đã chặn"),
+        "tr_blocked_paused": ("Blocked and paused", "Đã chặn và tạm dừng"),
+        "tr_alert": ("Alert", "Cảnh báo"),
+        "tr_judge": ("AI judge notes: {n}", "Ghi chú của giám khảo AI: {n}"),
+        "tr_ai_judge": ("AI judge", "Giám khảo AI"),
+        "tr_more_filters": ("More filters", "Thêm bộ lọc"),
+        "tr_view_case": ("View case", "Xem vụ việc"),
+        "tr_view_decision": ("View decision", "Xem quyết định"),
+        "tr_view_chain": ("View in evidence chain", "Xem trong chuỗi bằng chứng"),
+        "tr_meta": ("Steps: {n}. Duration: {ms} ms.", "Số bước: {n}. Thời lượng: {ms} ms."),
     }
 )
 

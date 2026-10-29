@@ -69,3 +69,13 @@
 .ux5 ol.steps li + li::before { content: "\203A"; margin-right: 12px; color: var(--u5-na); }
 .ux5 ol.steps li[data-done="1"] { color: var(--u5-ok); }
 .ux5 ol.steps li[aria-current="step"] { color: var(--u5-ink); font-weight: 700; }
+
+/* ---- analytics ---- */
+.ux5 .g5-bars { display: flex; align-items: flex-end; gap: 3px; height: 36px; margin-top: 6px; }
+.ux5 .g5-bars i { flex: 1 1 0; background: var(--u5-ink); opacity: .75; border-radius: 1px; min-width: 4px; }
+.ux5 .g5-axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--u5-muted); margin-top: 2px; }
+.ux5 .u5-panel .tablewrap { margin: 0; }
+
+.ux5 .monitor-status .idline, .ux5 .traces-tbl .idline { font-family: var(--f-body); }
+.ux5 .traces-tbl .idline { font-family: var(--f-mono); }
+.ux5 .tracegrid .spanlink { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }

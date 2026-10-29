@@ -8,9 +8,9 @@
 <section id="gf-list" data-section="guardian-factory">
   <div class="g5-chips" role="group" aria-label="{{ t('gf_state') }}">
     {% set total = namespace(n=0) %}{% for s in gl.states %}{% set total.n = total.n + gl.counts[s] %}{% endfor %}
-    <a class="{{ 'on' if not f.state else '' }}" href="{{ gl.base }}{{ qs }}&state=" hx-get="{{ gl.base }}{{ qs }}&state=" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false">{{ x5.cat_all }} {{ total.n }}</a>
+    <a class="{{ 'on' if not f.state else '' }}" href="{{ gl.base }}{{ qs }}&amp;state=" hx-get="{{ gl.base }}{{ qs }}&amp;state=" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false">{{ x5.cat_all }} {{ total.n }}</a>
     {% for s in gl.states %}{% if gl.counts[s] or f.state == s %}
-    <a class="{{ 'on' if f.state == s else '' }}" href="{{ gl.base }}{{ qs }}&state={{ s }}" hx-get="{{ gl.base }}{{ qs }}&state={{ s }}" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false" data-state="{{ s }}">{{ t('gf_state_' ~ s) }} {{ gl.counts[s] }}</a>
+    <a class="{{ 'on' if f.state == s else '' }}" href="{{ gl.base }}{{ qs }}&amp;state={{ s }}" hx-get="{{ gl.base }}{{ qs }}&amp;state={{ s }}" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false" data-state="{{ s }}">{{ t('gf_state_' ~ s)|capitalize }} {{ gl.counts[s] }}</a>
     {% endif %}{% endfor %}
   </div>
   <form class="g5-filters" role="search" action="{{ gl.base }}" method="get" hx-get="{{ gl.base }}" hx-target="#gf-list" hx-swap="outerHTML" hx-trigger="change, submit" hx-push-url="false">

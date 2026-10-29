@@ -273,11 +273,20 @@ def ux5_page(
     lang: str = "en",
     me: Any = None,
     system: str | None = None,
+    system_name: str = "",
 ) -> dict[str, Any]:
     """The catalog as one list: ``groups`` (filtered), counts for the filter strip, and the
-    per-system switches. ``cat`` is a category key or empty; ``state`` is ``on``, ``off`` or empty."""
+    per-system switches. ``cat`` is a category key or empty; ``state`` is on, off or empty."""
     from supervisor.detectors.config import load_config
 
+    if system_name and not system and me is not None:  # the picker sends a name, not an id
+        from supervisor.console import guardians_view
+
+        pick = guardians_view.catalog_panel(ctx, me, None)
+        for s in (pick or {}).get("systems", []):
+            if s["name"] == system_name:
+                system = s["system_id"]
+                break
     base = page(ctx, "catalog", lang, me, system)
     try:
         conf = load_config(ctx.settings.detectors_config)

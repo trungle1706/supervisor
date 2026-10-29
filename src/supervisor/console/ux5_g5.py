@@ -84,5 +84,60 @@ def rule(slug: Any) -> str:
         return s.replace("-", " ").replace("_", " ").capitalize()
     if "." in s:
         head, _, tail = s.partition(".")
-        return f"{head.replace('_', ' ').capitalize()}: {tail.replace('_', ' ').replace('.', ' - ')}"
+        return (
+            f"{head.replace('_', ' ').capitalize()}: {tail.replace('_', ' ').replace('.', ' - ')}"
+        )
     return s.replace("_", " ").replace("-", " ").capitalize()
+
+
+# ---- monitor status (Oversight metrics tab) ----------------------------------------------------
+_REASONS: tuple[tuple[str, str], ...] = (
+    (r"^no reply tool bound", "No reply tool chosen"),
+    (r"^no decision tool bound", "No decision tool chosen"),
+    (r"^no payment tool bound", "No payment tool chosen"),
+    (r"^no agent_event rows with an agent_version", "No version data yet"),
+    (r"^baseline needs 7 whole windows", "Needs 7 days of data first"),
+    (r"^drift is switched off", "Switched off for this system"),
+    (r"^several money tools", "Choose which tool counts as a payment"),
+    (r"^no decision events with attributes", "No decisions with attributes yet"),
+)
+
+
+def monitor_reason(text: Any) -> str:
+    """The reason of a monitor status cell in plain words (config keys and units removed)."""
+    import re
+
+    s = str(text or "")
+    for pat, plain in _REASONS:
+        if re.search(pat, s):
+            return plain
+    m = re.match(r"^no gate_decision events for (\S+) in the last (\d+) s", s)
+    if m:
+        hours = int(m.group(2)) // 3600
+        span = "hour" if hours == 1 else f"{hours} hours"
+        return f"No calls to {m.group(1)} in the last {span}"
+    s = re.sub(r"\s*\([a-z_]+\.[a-z_.]+\)", "", s)
+    s = re.sub(r";?\s*set [a-z_]+\.[a-z_.]+.*$", "", s)
+    return s[:1].upper() + s[1:] if s else "-"
+
+
+def monitor_view(rows: list[dict[str, Any]], order: list[str] | tuple[str, ...]) -> dict[str, Any]:
+    """Summary per monitor and only the agents with a cell other than "not applicable"."""
+    summary = {m: {"ok": 0, "no_data": 0, "not_applicable": 0} for m in order}
+    active = []
+    for r in rows:
+        any_data = False
+        for m in order:
+            c = r["monitors"].get(m)
+            if c and c.get("status") in summary[m]:
+                summary[m][c["status"]] += 1
+                if c["status"] != "not_applicable":
+                    any_data = True
+        if any_data:
+            active.append(r)
+    return {
+        "mon_summary": summary,
+        "mon_active": active,
+        "mon_hidden": len(rows) - len(active),
+        "mon_total": len(rows),
+    }

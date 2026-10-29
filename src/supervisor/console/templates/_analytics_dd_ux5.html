@@ -1,0 +1,57 @@
+{# Gate tab tables under CONSOLE_UX5: top 10 rows per table, the rest folded; each cell is the count
+   and its percentage (the stored basis points divided by 100). Counting is unchanged. #}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% macro drow(r, link_agent, two_keys, plain) %}<tr data-key="{{ r.key }}">
+        <td>{% if link_agent %}<a class="head" href="/console/agents/{{ r.key|urlencode }}?lang={{ lang }}">{{ r.key }}</a>{% elif plain %}{{ r.key|u5rule }}{% else %}{{ r.key }}{% endif %}{% if two_keys %}<div class="idline">{{ r.key2|u5rule }}</div>{% endif %}</td>
+        <td class="n">{{ r.requests }}</td>
+        {% for c in ['reports', 'transforms', 'pauses', 'blocks', 'skips', 'not_evaluated'] %}
+        <td class="n">{{ r[c] }}{% if r[c] %} <span class="idline">({{ r[c ~ '_bp']|u5pct }})</span>{% endif %}</td>
+        {% endfor %}
+      </tr>{% endmacro %}
+{% macro dd_table(id, title, rows, key_label, link_agent=False, two_keys=False, plain=False) %}
+<section class="u5-panel" style="margin:12px 0;padding:16px 0 0" id="{{ id }}">
+  <h3 style="padding:0 20px">{{ title }}</h3>
+  {% if rows %}
+  <div class="tablewrap flat"><table class="u5-sticky">
+    <caption class="sr">{{ title }}</caption>
+    <thead><tr>
+      <th scope="col">{{ key_label }}</th><th scope="col" class="n">{{ t('dd_requests') }}</th>
+      <th scope="col" class="n">{{ x5.an_c_reported }}</th><th scope="col" class="n">{{ x5.an_c_masked }}</th>
+      <th scope="col" class="n">{{ x5.an_c_paused }}</th><th scope="col" class="n">{{ x5.an_c_blocked }}</th>
+      <th scope="col" class="n">{{ x5.an_c_skipped }}</th><th scope="col" class="n">{{ x5.an_c_notchk }}</th>
+    </tr></thead>
+    <tbody>{% for r in rows[:10] %}{{ drow(r, link_agent, two_keys, plain) }}{% endfor %}</tbody>
+  </table>
+  {% if rows|length > 10 %}
+  <details class="g5-adv" style="padding:0 12px"><summary>{{ x5.an_show_all.format(n=rows|length) }}</summary>
+  <table><tbody>{% for r in rows[10:] %}{{ drow(r, link_agent, two_keys, plain) }}{% endfor %}</tbody></table></details>
+  {% endif %}</div>
+  {% else %}
+  <p class="muted" style="padding:0 20px 16px">{{ t('dd_none') }}</p>
+  {% endif %}
+</section>
+{% endmacro %}
+
+{% if dd_empty %}
+{{ ui.empty(t('dd_empty'), t('dd_empty_line')) }}
+{% endif %}
+<section class="u5-panel" style="margin:12px 0" id="dd-series">
+  <h3>{{ t('dd_series') }}</h3>
+  <div class="grid g4">
+  {% for c in ['reports', 'transforms', 'pauses', 'blocks'] %}
+    {% set vals = dd_series[c]['values'] %}{% set top = ([vals|max, 1]|max) %}
+    <div class="stat" data-series="{{ c }}">
+      <div class="sub">{{ x5['an_c_' ~ {'reports': 'reported', 'transforms': 'masked', 'pauses': 'paused', 'blocks': 'blocked'}[c]] }}</div>
+      <div class="bignum">{{ dd_series[c].total }}</div>
+      <div class="g5-bars" role="img" aria-label="{{ dd_series[c].total }}">{% for v in vals %}<i style="height:{{ [(v * 100 // top), 4]|max if v else 2 }}%" title="{{ dd_days[loop.index0] }}: {{ v }}"></i>{% endfor %}</div>
+      <div class="g5-axis"><span>{{ dd_days[0][5:] }}</span><span>{{ dd_days[-1][5:] }}</span></div>
+    </div>
+  {% endfor %}
+  </div>
+  <details class="g5-adv" id="dd-series-note"><summary>{{ x5.an_how }}</summary><div>{{ x5.an_totals_differ }} {{ t('dd_series_note') }}</div></details>
+</section>
+{{ dd_table('dd-agent', t('dd_per_agent'), dd_tables.agent, t('agent'), link_agent=True) }}
+{{ dd_table('dd-consumer', t('dd_per_consumer'), dd_tables.consumer, t('consumer')) }}
+{{ dd_table('dd-rule', t('dd_per_rule'), dd_tables.rule, t('rule_col')) }}
+{{ dd_table('dd-detector', t('dd_per_detector'), dd_tables.detector_code, t('detector'), two_keys=True, plain=True) }}

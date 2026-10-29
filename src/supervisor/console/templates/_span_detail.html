@@ -8,6 +8,20 @@
 {% for it in selected.evs %}
   {% set e = it.e %}
   <h3 class="sec">{{ t('event_word') }} {{ e.event_type }}</h3>
+  {% if ux5 %}
+  {{ ui.kv([
+    (t('agent'), e.agent_id),
+    (t('tool'), e.tool_name, True),
+    (t('status'), e.status),
+    (t('time'), e.ts|hhmmss),
+    (t('latency'), (e.latency_ms ~ ' ms') if e.latency_ms is not none else None),
+    (t('amount_vnd'), (e.amount_minor|vnd) if e.amount_minor is not none else None),
+  ]) }}
+  {% if 'admin' in me.roles %}{% import "_ux5.html" as u5 with context %}{{ u5.technical([
+    (t('span_id'), e.span_id), (t('parent_span'), e.parent_span_id or '-'), (t('args_hash'), e.args_hash or '-'),
+    (t('capture_level'), it.level), (t('source'), e.source or '-'), (t('correlation_id'), e.correlation_id or '-'),
+  ]) }}{% endif %}
+  {% else %}
   {{ ui.kv([
     (t('agent'), e.agent_id),
     (t('tool'), e.tool_name, True),
@@ -21,6 +35,7 @@
     (t('capture_level'), it.level),
     (t('source'), e.source),
   ] + ([(t('correlation_id'), e.correlation_id, True)] if v2 and e.correlation_id else [])) }}
+  {% endif %}
   {% if it.digest_only %}
     <p class="hint">{{ t('digest_only') }}</p>
   {% else %}
@@ -28,9 +43,9 @@
     {% if it.result %}<h4 class="sec">{{ t('result_masked') }}</h4><pre class="mono wrap payload">{{ it.result }}</pre>{% endif %}
   {% endif %}
   <p class="btnrow">
-    {% if v2 and e.event_type == 'gate_decision' %}<a class="btn" href="/console/decisions?event={{ e.event_id|urlencode }}&amp;lang={{ lang }}">{{ t('open_decision') }}</a>{% endif %}
-    {% if it.case_id %}<a class="btn" href="/console/cases/{{ it.case_id }}?lang={{ lang }}">{{ t('open_case') }} {{ it.case_id }}</a>{% endif %}
-    {% if it.chain %}<a class="btn" href="/console/evidence?lang={{ lang }}">{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}</a>{% endif %}
+    {% if v2 and e.event_type == 'gate_decision' %}<a class="btn" href="/console/decisions?event={{ e.event_id|urlencode }}&amp;lang={{ lang }}">{{ x5.tr_view_decision if ux5 else t('open_decision') }}</a>{% endif %}
+    {% if it.case_id %}<a class="btn" href="/console/cases/{{ it.case_id }}?lang={{ lang }}">{% if ux5 %}{{ x5.tr_view_case }}{% else %}{{ t('open_case') }} {{ it.case_id }}{% endif %}</a>{% endif %}
+    {% if it.chain %}<a class="btn" href="/console/evidence?lang={{ lang }}"{% if ux5 %} title="{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}"{% endif %}>{% if ux5 %}{{ x5.tr_view_chain }}{% else %}{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}{% endif %}</a>{% endif %}
   </p>
 {% endfor %}
 <h3 class="sec">{{ t('verdicts') }}</h3>

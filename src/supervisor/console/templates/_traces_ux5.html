@@ -1,0 +1,27 @@
+{# Traces page under CONSOLE_UX5: head without a purpose line, trace id and correlation id under
+   More filters. Same form field names and htmx targets as traces.html. #}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g5.css">
+{{ u5.page_head(t('nav_traces'), t('traces_why')) }}
+<form class="g5-filters" role="search" action="/console/traces" method="get" hx-get="/console/traces/rows" hx-target="#list" hx-trigger="change, submit" hx-push-url="false">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <label class="sr" for="f-agent">{{ t('agent') }}</label>
+  <select id="f-agent" name="agent"><option value="">{{ t('agent') }}: {{ t('all') }}</option>{% for v, l in agent_opts %}<option value="{{ v }}" {{ 'selected' if params.agent == v else '' }}>{{ l }}</option>{% endfor %}</select>
+  <label class="sr" for="f-status">{{ t('status') }}</label>
+  <select id="f-status" name="status"><option value="">{{ t('status') }}: {{ t('all') }}</option>{% for v, l in status_opts %}<option value="{{ v }}" {{ 'selected' if params.status == v else '' }}>{{ t(l) }}</option>{% endfor %}</select>
+  <label class="sr" for="f-range">{{ t('time_range') }}</label>
+  <select id="f-range" name="range"><option value="">{{ t('time_range') }}: {{ t('all') }}</option>{% for v, l in range_opts %}<option value="{{ v }}" {{ 'selected' if params.range == v else '' }}>{{ t(l) }}</option>{% endfor %}</select>
+  <details class="g5-adv" style="margin:0"{% if params.q or params.corr %} open{% endif %}><summary>{{ x5.tr_more_filters }}</summary>
+    <div class="g5-filters">
+      <label class="sr" for="f-q">{{ t('trace_id') }}</label>
+      <input id="f-q" type="search" name="q" value="{{ params.q }}" placeholder="{{ t('trace_id') }}" maxlength="64" autocomplete="off">
+      {% if v2 %}<label class="sr" for="f-corr">{{ t('correlation_id') }}</label>
+      <input id="f-corr" type="search" name="corr" value="{{ params.corr }}" placeholder="{{ t('correlation_id') }}" maxlength="64" autocomplete="off">{% endif %}
+    </div>
+  </details>
+  <noscript><button class="btn" type="submit">{{ t('apply') }}</button></noscript>
+  <a class="chipbtn" href="/console/traces?lang={{ lang }}">{{ t('reset') }}</a>
+</form>
+<div id="list">
+{% include "_traces_list.html" %}
+</div>
