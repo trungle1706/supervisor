@@ -243,7 +243,7 @@ async def changes_page(
         ctx,
         me,
         "regkb_changes.html",
-        section="regkb_watch",
+        section="regkb_changes",
         ch=data,
         can_confirm=rbac.allowed(me.roles, "regkb.confirm"),
     )
@@ -262,7 +262,7 @@ async def change_page(
     me: AuthPrincipal = _ME,
 ) -> Response:
     data = await _call(detail_data, ctx, me, package_sha, instrument_id)
-    return render(request, ctx, me, "regkb_change.html", section="regkb_watch", **data)
+    return render(request, ctx, me, "regkb_change.html", section="regkb_changes", **data)
 
 
 def _back(sha: str, instrument_id: str, request: Request) -> RedirectResponse:

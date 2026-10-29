@@ -167,6 +167,13 @@ def _lang(request: Request, ctx: ConsoleContext) -> str:
     )
 
 
+def _change_loop_on(settings: Any) -> bool:
+    """WP-B1: the Law changes tab shows with REGKB_CHANGE_LOOP (and what it needs)."""
+    return bool(
+        settings.regkb_change_loop and settings.lawagent_enabled and settings.governance_enabled
+    )
+
+
 def render(
     request: Request,
     ctx: ConsoleContext,
@@ -192,6 +199,7 @@ def render(
                 "guardian_factory": bool(ctx.settings.guardian_factory),
                 "regkb_internal": bool(ctx.settings.regkb_internal),
                 "regkb_watch": bool(ctx.settings.regwatch_enabled),  # WP-W1
+                "regkb_changes": _change_loop_on(ctx.settings),  # WP-B1
             }
         return cache["v"]
 

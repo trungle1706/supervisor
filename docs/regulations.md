@@ -645,6 +645,12 @@ imported package (WP-W1)  ->  diff  ->  person: accept or drop drafts  ->  Apply
 Only the draft is made by a model. The diff, the override, the validator, the quote check and every
 rule of the event are deterministic.
 
+Navigation (WP-B1): with `CONSOLE_NAV_V3=1` the tab **Law changes** (`/console/regkb/changes`,
+`regkb.view`) sits under Risks & controls while the flag is on. On the system **Duties** tab a row
+whose note reads "article changed on <date> (package <sha8>)" shows a link "Law change that
+re-opened this duty" to `/console/regkb/changes/<sha>/<instrument>`; the sha8 is matched to an applied
+change that lists the obligation. No link with the flag off.
+
 ### Diff mode of the law agent
 
 ```

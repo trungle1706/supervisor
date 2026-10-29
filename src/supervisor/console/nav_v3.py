@@ -90,6 +90,8 @@ SECTIONS_V3: dict[str, Sec] = {
             ),
             # WP-W1: the regulation watch page (REGWATCH_ENABLED, admin)
             Tab("regkb_watch", "rw_nav", "/console/regkb/watch", "regkb_watch", "regkb.watch"),
+            # WP-B1: the law changes page (REGKB_CHANGE_LOOP)
+            Tab("regkb_changes", "rc_nav", "/console/regkb/changes", "regkb_changes", "regkb.view"),
         ),
     ),
     "activity": Sec(
@@ -168,6 +170,7 @@ PAGE_HOME: dict[str, tuple[str, str | None, str | None]] = {
     "compliance": ("risks_controls", "risks_controls", "policies"),
     "regkb_internal": ("risks_controls", "risks_controls", "regkb_internal"),  # WP-C4
     "regkb_watch": ("risks_controls", "risks_controls", "regkb_watch"),  # WP-W1
+    "regkb_changes": ("risks_controls", "risks_controls", "regkb_changes"),  # WP-B1
     "factory": ("factory", None, None),  # WP-C4 (AGENT_FACTORY)
     "guardian_factory": ("guardian_factory", None, None),  # WP-C4 (GUARDIAN_FACTORY)
     "decisions": ("activity", "activity", "decisions"),
@@ -313,6 +316,7 @@ def _on(need: str | None, sh: dict[str, Any], compliance: bool, integration: boo
         "guardian_factory": bool(sh.get("guardian_factory")),  # WP-C4
         "regkb_internal": bool(sh.get("regkb_internal")),  # WP-C4
         "regkb_watch": bool(sh.get("regkb_watch")),  # WP-W1
+        "regkb_changes": bool(sh.get("regkb_changes")),  # WP-B1
     }[need]
 
 

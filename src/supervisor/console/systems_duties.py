@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -169,6 +170,7 @@ def tab_data(
             if r["status"] in t:
                 t[str(r["status"])] += 1
     blocks: list[dict[str, Any]] = []
+    links = change_links(ctx, page.items)  # WP-B1
     marks = de.tab_rows(de.Env.from_console(ctx), sid, page.items) if pack_on(ctx) else {}
     for r in page.items:
         key = dg.group_key(r)
@@ -201,6 +203,7 @@ def tab_data(
                 "note": str(r["note"] or ""),
                 "detail": de.split_note(r["note"]) if r["status"] != "open" else "",
                 "basis": de.close_basis(r),
+                "change_url": links.get(str(r["obligation_id"]), ""),  # WP-B1
                 "ev": marks.get(str(r["obligation_id"])),
                 "can_act": r["applies"] == "yes" and r["status"] == "open",
             }
@@ -231,6 +234,39 @@ def tab_data(
         "du_risk_id": dg.risk_id_of(sid),
         "du_today": today.isoformat() if isinstance(today, dt.date) else "",
     }
+
+
+_PACKAGE = re.compile(r"\(package ([0-9a-f]{8})\)")
+
+
+def change_links(ctx: Any, rows: Any) -> dict[str, str]:
+    """WP-B1: ``obligation_id -> /console/regkb/changes/<sha>/<instrument>`` for the rows whose
+    note names the package of an applied law change (note "article changed on <date> (package
+    <sha8>)"). Empty with REGKB_CHANGE_LOOP off or when no note names a package."""
+    from supervisor.regkb import change as rc
+
+    if not rc.enabled(ctx.settings):
+        return {}
+    wanted: dict[str, str] = {}
+    for r in rows:
+        found = _PACKAGE.findall(str(r["note"] or ""))
+        if found:
+            wanted[str(r["obligation_id"])] = found[-1]  # the newest note is last
+    if not wanted:
+        return {}
+    changes = [
+        c for c in ctx.state.query("regkb_change", {"status": "applied"}) if c["package_sha"]
+    ]
+    out: dict[str, str] = {}
+    for oid, sha8 in wanted.items():
+        for c in changes:
+            ids = c["obligations_affected"]
+            if str(c["package_sha"]).startswith(sha8) and oid in (
+                ids if isinstance(ids, list) else []
+            ):
+                out[oid] = f"/console/regkb/changes/{c['package_sha']}/{c['instrument_id']}"
+                break
+    return out
 
 
 def kb_number(kb: Any, instrument_id: str) -> str:

@@ -84,7 +84,7 @@
     <tbody>
     {% for r in b.rows %}
       <tr data-obligation="{{ r.obligation_id }}" data-status="{{ r.status }}">
-        <td><span class="mono">{{ r.obligation_id }}</span><div class="idline">{{ r.article }}</div></td>
+        <td><span class="mono">{{ r.obligation_id }}</span><div class="idline">{{ r.article }}</div>{% if r.change_url %}<div class="idline"><a href="{{ r.change_url }}" data-du="change-link">{{ t('rc_duty_link') }}</a></div>{% endif %}</td>
         <td>{{ r.duty }}</td>
         <td>{{ ui.pill(t('du_ap_' ~ r.applies), {'yes': 'warn', 'needs_answer': 'neutral'}.get(r.applies, 'neutral')) }}</td>
         <td>{{ t('du_cov_' ~ r.coverage) }}</td>
